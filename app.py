@@ -6,6 +6,7 @@ import requests
 import time
 import json
 import os
+import re
 
 
 app = FastAPI(title="Local-LLM Server", docs_url="/")
@@ -13,6 +14,22 @@ app = FastAPI(title="Local-LLM Server", docs_url="/")
 llama_api = "http://localhost:8080"
 # Get api_key from environment LLAMACPP_API_KEY
 api_key = os.environ.get("LOCAL_LLM_API_KEY", "")
+try:
+    with open(f"models/prompt.txt", "r") as f:
+        prompt_template = f.read()
+except:
+    prompt_template = """
+<|im_start|>system
+
+{system_message}<|im_end|>
+
+<|im_start|>user
+
+{prompt}<|im_end|>
+
+<|im_start|>assistant
+
+"""
 
 
 class ChatMessage(BaseModel):
@@ -39,6 +56,30 @@ class ChatInput(BaseModel):
     tokenize: Optional[bool] = False
 
 
+def custom_format(string, **kwargs):
+    if isinstance(string, list):
+        string = "".join(str(x) for x in string)
+
+    def replace(match):
+        key = match.group(1)
+        value = kwargs.get(key, match.group(0))
+        if isinstance(value, list):
+            return "".join(str(x) for x in value)
+        else:
+            return str(value)
+
+    pattern = r"(?<!{){([^{}\n]+)}(?!})"
+    result = re.sub(pattern, replace, string)
+    return result
+
+
+def format_prompt(prompt, system_message=""):
+    formatted_prompt = custom_format(
+        string=prompt_template, prompt=prompt, system_message=system_message
+    )
+    return formatted_prompt
+
+
 def is_present(data, key):
     return key in data
 
@@ -61,6 +102,7 @@ def make_post_data(body, chat=False, stream=False):
         post_data["prompt"] = convert_chat(body.messages)
     else:
         post_data["prompt"] = body.prompt
+    post_data["prompt"] = format_prompt(prompt=post_data["prompt"])
     if is_present(body, "temperature"):
         post_data["temperature"] = body.temperature
     if is_present(body, "top_k"):

@@ -6,20 +6,39 @@ import requests
 def get_model(model_url="TheBloke/Mistral-7B-OpenOrca-GGUF", quant_type="Q4_K_M"):
     model_name = model_url.split("/")[-1].replace("-GGUF", "").lower()
     file_path = f"models/{model_name}.{quant_type}.gguf"
-    if os.path.exists(file_path):
-        return file_path
     if not os.path.exists("models"):
         os.makedirs("models")
-    url = (
-        model_url
-        if "https://" in model_url
-        else f"https://huggingface.co/{model_url}/resolve/main/{model_name}.{quant_type}.gguf"
-    )
-    with requests.get(url, stream=True, allow_redirects=True) as r:
-        r.raise_for_status()
-        with open(file_path, "wb") as f:
-            for chunk in r.iter_content(chunk_size=8192):
-                f.write(chunk)
+    if not os.path.exists(file_path):
+        url = (
+            model_url
+            if "https://" in model_url
+            else f"https://huggingface.co/{model_url}/resolve/main/{model_name}.{quant_type}.gguf"
+        )
+        with requests.get(url, stream=True, allow_redirects=True) as r:
+            r.raise_for_status()
+            with open(file_path, "wb") as f:
+                for chunk in r.iter_content(chunk_size=8192):
+                    f.write(chunk)
+    if not os.path.exists(f"models/{model_name}.txt"):
+        readme_url = f"https://huggingface.co/{model_url}/raw/main/README.md"
+        with requests.get(readme_url, stream=True, allow_redirects=True) as r:
+            r.raise_for_status()
+            with open(f"models/{model_name}.README.md", "wb") as f:
+                for chunk in r.iter_content(chunk_size=8192):
+                    f.write(chunk)
+        # Get content of readme.md
+        with open(f"models/{model_name}.README.md", "r") as f:
+            readme = f.read()
+        # Get prompt_template from readme.md
+        prompt_template = readme.split("prompt_template: '")[1].split("'")[0]
+        # Write prompt_template to file
+        with open(f"models/{model_name}.txt", "w") as f:
+            f.write(prompt_template)
+
+    # Set the content of prompt.txt to the content of the model's prompt_template
+    with open(f"models/prompt.txt", "w") as f:
+        with open(f"models/{model_name}.txt", "r") as g:
+            f.write(g.read())
     return file_path
 
 
