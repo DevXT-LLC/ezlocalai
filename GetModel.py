@@ -44,4 +44,4 @@ if __name__ == "__main__":
         quant_type = sys.argv[2] if len(sys.argv) > 2 else "Q4_K_M"
         if len(model_url) > 1:
             model_path = get_model(model_url, quant_type)
-        print(model_path)
+            print(model_path)
