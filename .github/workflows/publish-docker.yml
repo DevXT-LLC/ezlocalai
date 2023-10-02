@@ -27,6 +27,6 @@ jobs:
         type=schedule
         type=ref,event=branch
         type=semver,pattern={{version}}-${{ matrix.llamacpp_image }}
-      platforms: linux/amd64,linux/arm64/v8
+      platforms: linux/amd64
     secrets:
       DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
