@@ -49,3 +49,12 @@ jobs:
             ${{ vars.DOCKERHUB_USERNAME }}/llamacpp:${{ matrix.llamacpp_image }}
           build-args: |
             LLAMACPP_IMAGE=${{ matrix.llamacpp_image }}
+
+      - name: Update DockerHub README
+        uses: ghcr.io/peter-evans/dockerhub-description@v2
+        with:
+          username: ${{ vars.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          repository: llamacpp
+          readme: ./README.md
+          token: ${{ secrets.GH_TOKEN }}
