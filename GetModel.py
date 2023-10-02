@@ -3,7 +3,7 @@ import os
 import requests
 
 
-def get_model(model_url, quant_type):
+def get_model(model_url="TheBloke/Mistral-7B-OpenOrca-GGUF", quant_type="Q4_K_M"):
     model_name = model_url.split("/")[-1].replace("-GGUF", "").lower()
     file_path = f"models/{model_name}.{quant_type}.gguf"
     if os.path.exists(file_path):
@@ -27,6 +27,6 @@ if __name__ == "__main__":
     model_url = (
         sys.argv[1] if len(sys.argv) > 1 else "TheBloke/Mistral-7B-OpenOrca-GGUF"
     )
-    quant_type = sys.argv[2] if len(sys.argv) > 2 else "Q5_K_S"
+    quant_type = sys.argv[2] if len(sys.argv) > 2 else "Q4_K_M"
     model_path = get_model(model_url, quant_type)
     print(model_path)

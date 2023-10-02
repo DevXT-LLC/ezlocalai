@@ -2,7 +2,6 @@ from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from typing import List, Optional
-import urllib.parse
 import requests
 import time
 import json
@@ -183,22 +182,20 @@ async def chat_completions(
     prompt_token = []
     if tokenize:
         token_data = requests.post(
-            urllib.parse.urljoin(llama_api, "/tokenize"),
+            f"{llama_api}/tokenize",
             json={"content": post_data["prompt"]},
         ).json()
         prompt_token = token_data["tokens"]
 
     if not stream:
-        data = requests.post(
-            urllib.parse.urljoin(llama_api, "/completion"), json=post_data
-        ).json()
+        data = requests.post(f"{llama_api}/completion", json=post_data).json()
         res_data = make_res_data(data, chat=True, prompt_token=prompt_token)
         return res_data
     else:
 
         async def generate():
             data = requests.post(
-                urllib.parse.urljoin(llama_api, "/completion"),
+                f"{llama_api}/completion",
                 json=post_data,
                 stream=True,
             )
@@ -231,22 +228,20 @@ async def completion(chat_input: ChatInput, api_key: Optional[str] = Query(defau
     prompt_token = []
     if tokenize:
         token_data = requests.post(
-            urllib.parse.urljoin(llama_api, "/tokenize"),
+            f"{llama_api}/tokenize",
             json={"content": post_data["prompt"]},
         ).json()
         prompt_token = token_data["tokens"]
 
     if not stream:
-        data = requests.post(
-            urllib.parse.urljoin(llama_api, "/completion"), json=post_data
-        ).json()
+        data = requests.post(f"{llama_api}/completion", json=post_data).json()
         res_data = make_res_data(data, chat=False, prompt_token=prompt_token)
         return res_data
     else:
 
         async def generate():
             data = requests.post(
-                urllib.parse.urljoin(llama_api, "/completion"),
+                f"{llama_api}/completion",
                 json=post_data,
                 stream=True,
             )
