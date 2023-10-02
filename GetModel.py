@@ -1,6 +1,7 @@
 import sys
 import os
 import requests
+import argparse
 
 
 def get_model(model_url="TheBloke/Mistral-7B-OpenOrca-GGUF", quant_type="Q4_K_M"):
@@ -39,9 +40,12 @@ def get_model(model_url="TheBloke/Mistral-7B-OpenOrca-GGUF", quant_type="Q4_K_M"
 
 
 if __name__ == "__main__":
-    if len(sys.argv) > 1:
-        model_url = sys.argv[1]
-        quant_type = sys.argv[2] if len(sys.argv) > 2 else "Q4_K_M"
-        if len(model_url) > 1:
-            model_path = get_model(model_url, quant_type)
-            print(model_path)
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--model_url", type=str, default="")
+    parser.add_argument("--quant_type", type=str, default="Q4_K_M")
+    args = parser.parse_args()
+    model_url = args.model_url
+    quant_type = args.quant_type
+    if model_url != "":
+        model_path = get_model(model_url, quant_type)
+        print(model_path)
