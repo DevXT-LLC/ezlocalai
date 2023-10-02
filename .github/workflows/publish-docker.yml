@@ -65,6 +65,8 @@ jobs:
             ${{ vars.DOCKERHUB_USERNAME }}/local-llm:${{ matrix.tag_name }}
           build-args: |
             LLAMACPP_IMAGE=${{ matrix.llamacpp_image }}
+            MODEL_URL=${{ matrix.MODEL_URL }}
+            QUANT_TYPE=${{ matrix.QUANT_TYPE }}
 
       - name: Docker Hub Description
         uses: peter-evans/dockerhub-description@v3
