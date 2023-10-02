@@ -15,7 +15,13 @@ jobs:
   build-llamacpp:
     strategy:
       matrix:
-        llamacpp_image: ["full", "full-cuda", "full-rocm"]
+        include:
+          - llamacpp_image: "full"
+            platforms: "linux/amd64,linux/arm64/v8"
+          - llamacpp_image: "full-cuda"
+            platforms: "linux/amd64" # only amd64 for full-cuda
+          - llamacpp_image: "full-rocm"
+            platforms: "linux/amd64,linux/arm64/v8"
     uses: josh-xt/AGiXT/.github/workflows/operation-docker-build-publish.yml@main
     with:
       registry-dockerhub-enable: ${{ github.event_name != 'pull_request' }}
@@ -27,6 +33,6 @@ jobs:
         type=schedule
         type=ref,event=branch
         type=semver,pattern={{version}}-${{ matrix.llamacpp_image }}
-      platforms: linux/amd64
+      platforms: ${{ matrix.platforms }}
     secrets:
       DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
