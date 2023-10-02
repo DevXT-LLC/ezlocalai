@@ -30,7 +30,7 @@ jobs:
       - name: Login to DockerHub
         uses: docker/login-action@v1
         with:
-          username: ${{ vars.DOCKERHUB_USERNAME }}
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Login to GitHub Container Registry
@@ -48,7 +48,7 @@ jobs:
           platforms: ${{ matrix.platforms }}
           push: true
           tags: |
-            ${{ vars.DOCKERHUB_USERNAME }}/llamacpp:${{ matrix.llamacpp_image }}
-            ghcr.io/${{ github.repository_owner }}/llamacpp:${{ matrix.llamacpp_image }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/llamacpp:${{ matrix.llamacpp_image }}
+            ghcr.io/${{ github.repository_owner | toLower }}/llamacpp:${{ matrix.llamacpp_image }}
           build-args: |
             LLAMACPP_IMAGE=${{ matrix.llamacpp_image }}
