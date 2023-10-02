@@ -26,8 +26,8 @@ LLAMACPP_API_KEY=
 Run with docker:
 
 ```bash
-docker pull joshxt/llamacpp-server:full
-docker run -d --name llamacpp-server -p 8091:8091 joshxt/llamacpp-server:full --env-file .env
+docker pull joshxt/llamacpp-server:cpu
+docker run -d --name llamacpp-server -p 8091:8091 joshxt/llamacpp-server:cpu --env-file .env
 ```
 
 Or with docker-compose:
@@ -46,8 +46,8 @@ If you're using an NVIDIA GPU, you can use the CUDA version of the server.
 Run with docker:
 
 ```bash
-docker pull joshxt/llamacpp-server:full-cuda
-docker run -d --name llamacpp-server -p 8091:8091 --gpus all joshxt/llamacpp-server:full-cuda --env-file .env
+docker pull joshxt/llamacpp-server:cuda
+docker run -d --name llamacpp-server -p 8091:8091 --gpus all joshxt/llamacpp-server:cuda --env-file .env
 ```
 
 Or with docker-compose:

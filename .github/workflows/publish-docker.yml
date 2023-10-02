@@ -15,8 +15,10 @@ jobs:
         include:
           - llamacpp_image: "full"
             platforms: "linux/amd64,linux/arm64/v8"
+            tag_name: "cpu"
           - llamacpp_image: "full-cuda"
             platforms: "linux/amd64"
+            tag_name: "cuda"
 
     steps:
       - name: Checkout code
@@ -53,6 +55,6 @@ jobs:
           platforms: ${{ matrix.platforms }}
           push: true
           tags: |
-            ${{ vars.DOCKERHUB_USERNAME }}/llamacpp:${{ matrix.llamacpp_image }}
+            ${{ vars.DOCKERHUB_USERNAME }}/llamacpp:${{ matrix.tag_name }}
           build-args: |
             LLAMACPP_IMAGE=${{ matrix.llamacpp_image }}

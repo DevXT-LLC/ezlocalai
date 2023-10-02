@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   llamacpp:
-    image: joshxt/llamacpp:full-cuda
+    image: joshxt/llamacpp:cuda
     env_file: .env
     restart: unless-stopped
     ports:
