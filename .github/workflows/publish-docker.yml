@@ -16,9 +16,7 @@ jobs:
           - llamacpp_image: "full"
             platforms: "linux/amd64,linux/arm64/v8"
           - llamacpp_image: "full-cuda"
-            platforms: "linux/amd64" # only amd64 for full-cuda
-          - llamacpp_image: "full-rocm"
-            platforms: "linux/amd64,linux/arm64/v8"
+            platforms: "linux/amd64"
 
     steps:
       - name: Checkout code
