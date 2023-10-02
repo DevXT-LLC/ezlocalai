@@ -19,6 +19,7 @@ jobs:
     uses: josh-xt/AGiXT/.github/workflows/operation-docker-build-publish.yml@main
     with:
       registry-dockerhub-enable: ${{ github.event_name != 'pull_request' }}
+      registry-github-enable: true
       registry-repo-name: llamacpp
       registry-readme: ./README.md
       build-args: LLAMACPP_IMAGE=${{ matrix.llamacpp_image }}
@@ -29,3 +30,4 @@ jobs:
       platforms: linux/amd64,linux/arm64/v8
     secrets:
       DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
