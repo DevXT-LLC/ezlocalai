@@ -1,8 +1,12 @@
 # llamacpp-server in Docker with OpenAI Style Endpoints
 
-This llamacpp server comes equipped with the OpenAI style endpoints that most software is familiar with. will allow you to start it with a `MODEL_URL` defined in the `.env` file instead of needing to manually go to Hugging Face and download the model on the server.
+This llamacpp server comes equipped with the OpenAI style endpoints that most software is familiar with. It will allow you to start it with a `MODEL_URL` defined in the `.env` file instead of needing to manually go to Hugging Face and download the model on the server.
 
-This is the default `.env` file, modify it to your needs:
+TheBloke sticks to the same naming convention for his models, so you can just use the model repository name like `TheBloke/Mistral-7B-OpenOrca-GGUF` and it will automatically download the model from Hugging Face. If the model repositories are not in the format he uses, you can use the full URL to the model of the download link like `https://huggingface.co/TheBloke/Mistral-7B-OpenOrca-GGUF/resolve/main/mistral.7b.q5_k_s.gguf` and it will download the quantized model from Hugging Face.
+
+## Environment Set Up
+
+Create a `.env` file if one does not exist and modify it to your needs. This is the default `.env` file if cloning the repository, modify it to your needs:
 
 ```env
 MODEL_URL=TheBloke/Mistral-7B-OpenOrca-GGUF
@@ -17,50 +21,43 @@ UVICORN_WORKERS=2
 LLAMACPP_API_KEY=
 ```
 
-TheBloke sticks to the same naming convention for his models, so you can just use the model name and it will automatically download the model from Hugging Face. If the model repositories are not in the format he uses, you can use the full URL to the model of the download link.
+## CPU Only
 
-## Clone the repository
+Run with docker:
+
+```bash
+docker pull joshxt/llamacpp-server:full
+docker run -d --name llamacpp-server -p 8091:8091 joshxt/llamacpp-server:full --env-file .env
+```
+
+Or with docker-compose:
 
 ```bash
 git clone https://github.com/Josh-XT/llamacpp-server
 cd llamacpp-server
-```
-
-Modify the `.env` file if desired before proceeding.
-
-### NVIDIA GPU
-
-If running without an NVIDIA GPU, you can start the server with:
-
-```bash
-docker-compose -f docker-compose-cuda.yml pull
-docker-compose -f docker-compose-cuda.yml up
-```
-
-Or if you only want the OpenAPI Style endpoints exposed:
-
-```bash
-docker-compose -f docker-compose-cuda-openai.yml pull
-docker-compose -f docker-compose-cuda-openai.yml up
-```
-
-### CPU Only
-
-If you are not running on an NVIDIA GPU, you can start the server with:
-
-```bash
 docker-compose pull
 docker-compose up
 ```
 
-Or if you only want the OpenAPI Style endpoints exposed:
+## NVIDIA GPU
+
+If you're using an NVIDIA GPU, you can use the CUDA version of the server.
+
+Run with docker:
 
 ```bash
-docker-compose -f docker-compose-openai.yml pull
-docker-compose -f docker-compose-openai.yml up
+docker pull joshxt/llamacpp-server:full-cuda
+docker run -d --name llamacpp-server -p 8091:8091 --gpus all joshxt/llamacpp-server:full-cuda --env-file .env
 ```
 
-The llamacpp server API is available at `http://localhost:8090` by default. The [documentation for the API is available here.](https://github.com/ggerganov/llama.cpp/tree/master/examples/server#api-endpoints)
+Or with docker-compose:
+
+```bash
+git clone https://github.com/Josh-XT/llamacpp-server
+cd llamacpp-server
+docker-compose -f docker-compose-cuda.yml pull
+docker-compose -f docker-compose-cuda.yml up
+```
 
 ## OpenAI Style Endpoint Usage
 
