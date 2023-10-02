@@ -18,18 +18,7 @@ try:
     with open(f"models/prompt.txt", "r") as f:
         prompt_template = f.read()
 except:
-    prompt_template = """
-<|im_start|>system
-
-{system_message}<|im_end|>
-
-<|im_start|>user
-
-{prompt}<|im_end|>
-
-<|im_start|>assistant
-
-"""
+    prompt_template = "{system_message}\n\n{prompt}"
 
 
 class ChatMessage(BaseModel):
