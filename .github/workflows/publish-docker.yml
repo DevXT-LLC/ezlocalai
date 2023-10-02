@@ -16,9 +16,23 @@ jobs:
           - llamacpp_image: "full"
             platforms: "linux/amd64,linux/arm64/v8"
             tag_name: "cpu"
+            MODEL_URL: ""
+            QUANT_TYPE: ""
           - llamacpp_image: "full-cuda"
             platforms: "linux/amd64"
             tag_name: "cuda"
+            MODEL_URL: ""
+            QUANT_TYPE: ""
+          - llamacpp_image: "full-cuda"
+            platforms: "linux/arm64/v8"
+            tag_name: "mistral7b-openorca-cuda"
+            MODEL_URL: "TheBloke/Mistral-7B-OpenOrca-GGUF"
+            QUANT_TYPE: "Q4_K_M"
+          - llamacpp_image: "full"
+            platforms: "linux/amd64"
+            tag_name: "mistral7b-openorca-cpu"
+            MODEL_URL: "TheBloke/Mistral-7B-OpenOrca-GGUF"
+            QUANT_TYPE: "Q4_K_M"
 
     steps:
       - name: Checkout code

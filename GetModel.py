@@ -39,9 +39,9 @@ def get_model(model_url="TheBloke/Mistral-7B-OpenOrca-GGUF", quant_type="Q4_K_M"
 
 
 if __name__ == "__main__":
-    model_url = (
-        sys.argv[1] if len(sys.argv) > 1 else "TheBloke/Mistral-7B-OpenOrca-GGUF"
-    )
-    quant_type = sys.argv[2] if len(sys.argv) > 2 else "Q4_K_M"
-    model_path = get_model(model_url, quant_type)
-    print(model_path)
+    if len(sys.argv) > 1:
+        model_url = sys.argv[1]
+        quant_type = sys.argv[2] if len(sys.argv) > 2 else "Q4_K_M"
+        if len(model_url) > 1:
+            model_path = get_model(model_url, quant_type)
+        print(model_path)
