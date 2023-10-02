@@ -62,4 +62,52 @@ docker-compose -f docker-compose-openai.yml up
 
 The llamacpp server API is available at `http://localhost:8090` by default. The [documentation for the API is available here.](https://github.com/ggerganov/llama.cpp/tree/master/examples/server#api-endpoints)
 
+## OpenAI Style Endpoint Usage
+
 OpenAI Style endpoints available at `http://localhost:8091/` by default. Documentation can be accessed at that url when the server is running.
+
+### Completion
+
+```python
+import openai
+
+openai.api_base = "http://localhost:8091/v1"
+openai.api_key = "YOUR API KEY IF YOU SET ONE IN THE .env FILE"
+prompt = "Tell me something funny about llamas."
+
+response = openai.Completion.create(
+    engine="llamacpp",
+    prompt=prompt,
+    temperature=1.31,
+    max_tokens=8192,
+    top_p=1.0,
+    frequency_penalty=0,
+    presence_penalty=0,
+    stream=False,
+)
+message = response.choices[0].text.strip()
+print(message)
+```
+
+### Chat Completion
+
+```python
+import openai
+
+openai.api_base = "http://localhost:8091/v1"
+openai.api_key = "YOUR API KEY IF YOU SET ONE IN THE .env FILE"
+prompt = "Tell me something funny about llamas."
+messages = [{"role": "system", "content": prompt}]
+
+response = openai.ChatCompletion.create(
+    model="llamacpp",
+    messages=messages,
+    temperature=1.31,
+    max_tokens=8192,
+    top_p=1.0,
+    n=1,
+    stream=False,
+)
+message = response.choices[0].message.content.strip()
+print(message)
+```
