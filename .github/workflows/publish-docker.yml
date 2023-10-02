@@ -49,6 +49,6 @@ jobs:
           push: true
           tags: |
             ${{ vars.DOCKERHUB_USERNAME }}/llamacpp:${{ matrix.llamacpp_image }}
-            ghcr.io/${{ github.actor }}/llamacpp:${{ matrix.llamacpp_image }}
+            ghcr.io/josh-xt/llamacpp:${{ matrix.llamacpp_image }}
           build-args: |
             LLAMACPP_IMAGE=${{ matrix.llamacpp_image }}
