@@ -11,9 +11,9 @@ THREADS_BATCH=${THREADS_BATCH:-$THREADS}
 GPU_LAYERS=${GPU_LAYERS:-0}
 MAIN_GPU=${MAIN_GPU:-0}
 BATCH_SIZE=${BATCH_SIZE:-512}
-LLAMACPP_PORT=${LLAMACPP_PORT:-8090}
-OPENAI_ENDPOINT_PORT=${OPENAI_ENDPOINT_PORT:-8091}
-UVICORN_WORKERS="${UVICORN_WORKERS:-2}"
 
-./app/tools.sh --server -m $MODEL_PATH -c $MAX_TOKENS -ngl $GPU_LAYERS -t $THREADS -tb $THREADS_BATCH -mg $MAIN_GPU -b $BATCH_SIZE --host 0.0.0.0 --port $LLAMACPP_PORT &
+# Workers should be threads divide by threads_batch rounded up to the nearest whole number
+UVICORN_WORKERS=$(python3 -c "from math import ceil; print(ceil($THREADS / $THREADS_BATCH))")
+
+./app/tools.sh --server -m $MODEL_PATH -c $MAX_TOKENS -ngl $GPU_LAYERS -t $THREADS -tb $THREADS_BATCH -mg $MAIN_GPU -b $BATCH_SIZE --host 0.0.0.0 --port 8080 &
 uvicorn app:app --host 0.0.0.0 --port 8091 --workers $UVICORN_WORKERS --proxy-headers

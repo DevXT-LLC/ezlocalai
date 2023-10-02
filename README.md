@@ -8,7 +8,7 @@ TheBloke sticks to the same naming convention for his models, so you can just us
 
 ## Environment Set Up
 
-Create a `.env` file if one does not exist and modify it to your needs. This is the default `.env` file if cloning the repository, modify it to your needs:
+Create a `.env` file if one does not exist and modify it to your needs. Here is an example `.env` file:
 
 ```env
 MODEL_URL=TheBloke/Mistral-7B-OpenOrca-GGUF
@@ -19,7 +19,6 @@ THREADS_BATCH=20
 GPU_LAYERS=20
 MAIN_GPU=0
 BATCH_SIZE=512
-UVICORN_WORKERS=2
 LOCAL_LLM_API_KEY=
 ```
 
@@ -31,7 +30,6 @@ LOCAL_LLM_API_KEY=
 - `GPU_LAYERS` - The number of layers to use on the GPU.
 - `MAIN_GPU` - The GPU to use for the main model.
 - `BATCH_SIZE` - The batch size to use for batch generation. Default is `512`.
-- `UVICORN_WORKERS` - The number of uvicorn workers to use. Default is `2`.
 - `LOCAL_LLM_API_KEY` - The API key to use for the server. If not set, the server will not require an API key.
 
 ## CPU Only
