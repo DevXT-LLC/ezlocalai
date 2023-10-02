@@ -8,11 +8,11 @@ import json
 import os
 
 
-app = FastAPI(docs_url="/")
+app = FastAPI(title="Local-LLM Server", docs_url="/")
 
 llama_api = "http://localhost:8080"
 # Get api_key from environment LLAMACPP_API_KEY
-api_key = os.environ.get("LLAMACPP_API_KEY", "")
+api_key = os.environ.get("LOCAL_LLM_API_KEY", "")
 
 
 class ChatMessage(BaseModel):

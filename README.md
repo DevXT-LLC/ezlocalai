@@ -1,6 +1,8 @@
-# llamacpp-server in Docker with OpenAI Style Endpoints
+# Local-LLM
 
-This llamacpp server comes equipped with the OpenAI style endpoints that most software is familiar with. It will allow you to start it with a `MODEL_URL` defined in the `.env` file instead of needing to manually go to Hugging Face and download the model on the server.
+Local-LLM is a llama.cpp server in Docker with OpenAI Style Endpoints.
+
+This server comes equipped with the OpenAI style endpoints that most software is familiar with. It will allow you to start it with a `MODEL_URL` defined in the `.env` file instead of needing to manually go to Hugging Face and download the model on the server.
 
 TheBloke sticks to the same naming convention for his models, so you can just use the model repository name like `TheBloke/Mistral-7B-OpenOrca-GGUF` and it will automatically download the model from Hugging Face. If the model repositories are not in the format he uses, you can use the full URL to the model of the download link like `https://huggingface.co/TheBloke/Mistral-7B-OpenOrca-GGUF/resolve/main/mistral.7b.q5_k_s.gguf` and it will download the quantized model from Hugging Face.
 
@@ -18,7 +20,7 @@ GPU_LAYERS=20
 MAIN_GPU=0
 BATCH_SIZE=512
 UVICORN_WORKERS=2
-LLAMACPP_API_KEY=
+LOCAL_LLM_API_KEY=
 ```
 
 ## CPU Only
@@ -26,15 +28,15 @@ LLAMACPP_API_KEY=
 Run with docker:
 
 ```bash
-docker pull joshxt/llamacpp-server:cpu
-docker run -d --name llamacpp-server -p 8091:8091 joshxt/llamacpp-server:cpu --env-file .env
+docker pull joshxt/local-llm:cpu
+docker run -d --name local-llm -p 8091:8091 joshxt/local-llm:cpu --env-file .env
 ```
 
 Or with docker-compose:
 
 ```bash
-git clone https://github.com/Josh-XT/llamacpp-server
-cd llamacpp-server
+git clone https://github.com/Josh-XT/Local-LLM
+cd Local-LLM
 docker-compose pull
 docker-compose up
 ```
@@ -46,15 +48,15 @@ If you're using an NVIDIA GPU, you can use the CUDA version of the server.
 Run with docker:
 
 ```bash
-docker pull joshxt/llamacpp-server:cuda
-docker run -d --name llamacpp-server -p 8091:8091 --gpus all joshxt/llamacpp-server:cuda --env-file .env
+docker pull joshxt/local-llm:cuda
+docker run -d --name local-llm -p 8091:8091 --gpus all joshxt/local-llm:cuda --env-file .env
 ```
 
 Or with docker-compose:
 
 ```bash
-git clone https://github.com/Josh-XT/llamacpp-server
-cd llamacpp-server
+git clone https://github.com/Josh-XT/Local-LLM
+cd Local-LLM
 docker-compose -f docker-compose-cuda.yml pull
 docker-compose -f docker-compose-cuda.yml up
 ```
