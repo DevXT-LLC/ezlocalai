@@ -15,7 +15,5 @@ LLAMACPP_PORT=${LLAMACPP_PORT:-8090}
 OPENAI_ENDPOINT_PORT=${OPENAI_ENDPOINT_PORT:-8091}
 UVICORN_WORKERS="${UVICORN_WORKERS:-2}"
 
-python3 GetModel.py "$MODEL_URL" "$QUANT_TYPE"
-
 ./app/tools.sh --server -m $MODEL_PATH -c $MAX_TOKENS -ngl $GPU_LAYERS -t $THREADS -tb $THREADS_BATCH -mg $MAIN_GPU -b $BATCH_SIZE --host 0.0.0.0 --port $LLAMACPP_PORT &
 uvicorn app:app --host 0.0.0.0 --port 8091 --workers $UVICORN_WORKERS --proxy-headers
