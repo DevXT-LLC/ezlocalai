@@ -1,6 +1,5 @@
 ARG LLAMACPP_IMAGE="full"
-ARG BASE_IMAGE="ghcr.io/ggerganov/llama.cpp:${LLAMACPP_IMAGE}"
-FROM ${BASE_IMAGE}
+FROM "ghcr.io/ggerganov/llama.cpp:${LLAMACPP_IMAGE}"
 WORKDIR /app
 COPY requirements.txt ./
 RUN pip install --upgrade pip && pip install -r requirements.txt
