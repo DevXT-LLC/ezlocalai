@@ -33,12 +33,14 @@ Modify the `.env` file if desired before proceeding.
 If running without an NVIDIA GPU, you can start the server with:
 
 ```bash
+docker-compose -f docker-compose-cuda.yml pull
 docker-compose -f docker-compose-cuda.yml up
 ```
 
 Or if you only want the OpenAPI Style endpoints exposed:
 
 ```bash
+docker-compose -f docker-compose-cuda-openai.yml pull
 docker-compose -f docker-compose-cuda-openai.yml up
 ```
 
@@ -47,12 +49,14 @@ docker-compose -f docker-compose-cuda-openai.yml up
 If you are not running on an NVIDIA GPU, you can start the server with:
 
 ```bash
+docker-compose pull
 docker-compose up
 ```
 
 Or if you only want the OpenAPI Style endpoints exposed:
 
 ```bash
+docker-compose -f docker-compose-openai.yml pull
 docker-compose -f docker-compose-openai.yml up
 ```
 
