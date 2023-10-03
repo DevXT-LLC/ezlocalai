@@ -160,8 +160,7 @@ response = openai.Embedding.create(
     input=prompt,
     engine="Local-LLM",
 )
-embedding = response.embedding
-print(embedding)
+print(response)
 ```
 
 ## Shout Outs

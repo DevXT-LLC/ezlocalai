@@ -142,6 +142,8 @@ def make_post_data(body, chat=False, stream=False):
         post_data["stop"] = []
     post_data["n_keep"] = -1
     post_data["stream"] = stream
+    post_data["freq_base"] = 0
+    post_data["freq_scale"] = 0
     return post_data
 
 
