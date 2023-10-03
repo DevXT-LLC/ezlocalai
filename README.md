@@ -24,11 +24,11 @@ There are two options, you can either manually set up your environment variables
 
 ### Automated Environment Set Up
 
-The automated script uses `gpt4free` as a free OpenAI `gpt-3.5-turbo` model only to ask it what settings are recommended for your system. It will then set up your `.env` file with the recommended settings. If you run this, you can skip the manual environment set up section.
+The automated script uses `gpt4free` as a free OpenAI `gpt-3.5-turbo` model only to ask it what settings are recommended for your system. It will then set up your `.env` file with the recommended settings. If you run this, you can skip the manual environment set up section. You can also set the `--api_key` argument to set the API key for the server.
 
 ```bash
 pip install gputil argparse g4f --upgrade
-python3 configure.py --model_url "TheBloke/Mistral-7B-OpenOrca-GGUF"
+python3 configure.py --model_url "TheBloke/Mistral-7B-OpenOrca-GGUF" --api_key ""
 ```
 
 ### Manual Environment Set Up

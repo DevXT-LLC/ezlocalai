@@ -38,7 +38,7 @@ async def get_model_url(prompt):
     return new_model_url
 
 
-async def auto_configure(model_url="TheBloke/Mistral-7B-OpenOrca-GGUF"):
+async def auto_configure(model_url="TheBloke/Mistral-7B-OpenOrca-GGUF", api_key=""):
     readme = get_readme(model_url)
     table = readme.split("Provided files\n")[1].split("\n\n")[0]
     with open("hardwarereqs.txt", "r") as f:
@@ -90,7 +90,8 @@ async def auto_configure(model_url="TheBloke/Mistral-7B-OpenOrca-GGUF"):
         f.write(f"MODEL_URL={model_url}\n")
         f.write(f"MAX_TOKENS={max_tokens}\n")
         f.write(f"QUANT_TYPE=Q{quantization_type}\n")
-        f.write(f"MAIN_GPU=0")
+        f.write(f"MAIN_GPU=0\n")
+        f.write(f"LOCAL_LLM_API_KEY={api_key}")
     return model_url
 
 
@@ -155,7 +156,8 @@ class Gpt4freeProvider:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--model_url", type=str, default="None")
+    parser.add_argument("--api_key", type=str, default="")
     args = parser.parse_args()
     model_url = args.model_url
     if model_url != "None":
-        asyncio.run(auto_configure(model_url))
+        asyncio.run(auto_configure(model_url, api_key))
