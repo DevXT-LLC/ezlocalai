@@ -9,7 +9,8 @@ from typing import List, Union, Sequence
 def embed_text(
     texts: List[str], batch_size: int = 32
 ) -> List[Union[Sequence[float], Sequence[int]]]:
-    onnx_path = os.path.join(os.getcwd(), "onnx")
+    model_path = os.path.join(os.getcwd(), "models")
+    onnx_path = os.path.join(model_path, "onnx")
     if not all(
         os.path.exists(os.path.join(onnx_path, f))
         for f in [
@@ -24,7 +25,7 @@ def embed_text(
         with tarfile.open(
             name=os.path.join(onnx_path, "onnx.tar.gz"), mode="r:gz"
         ) as tar:
-            tar.extractall(path=os.getcwd())
+            tar.extractall(path=model_path)
     tokenizer = Tokenizer.from_file(os.path.join(onnx_path, "tokenizer.json"))
     tokenizer.enable_truncation(max_length=256)
     tokenizer.enable_padding(pad_id=0, pad_token="[PAD]", length=256)
