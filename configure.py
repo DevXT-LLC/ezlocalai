@@ -2,8 +2,18 @@ import re
 import sys
 import subprocess
 import logging
-import asyncio
-import psutil
+
+try:
+    import asyncio
+except ImportError:
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "asyncio"])
+    import asyncio
+
+try:
+    import psutil
+except ImportError:
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "psutil"])
+    import psutil
 
 try:
     import argparse
@@ -15,7 +25,7 @@ from GetModel import get_readme
 try:
     from g4f.Provider import RetryProvider
 except ImportError:
-    subprocess.check_call([sys.executable, "-m", "pip", "install", "g4f"])
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "g4f", "--upgrade"])
     from g4f.Provider import RetryProvider
 from g4f.models import ModelUtils, gpt_35_turbo, default
 
@@ -27,7 +37,8 @@ except ImportError:
 
 
 async def get_model_url(prompt):
-    model_response = await Gpt4freeProvider().instruct(prompt=prompt)
+    ai = G4FProvider()
+    model_response = await ai.ask(prompt=prompt)
     # Strip out anything that isn't the url from the response
     extract_model_url = model_response.split("https://huggingface.co/")[1].split(
         ".gguf"
@@ -39,6 +50,7 @@ async def get_model_url(prompt):
 
 
 async def auto_configure(model_url="TheBloke/Mistral-7B-OpenOrca-GGUF", api_key=""):
+    ai = G4FProvider()
     readme = get_readme(model_url)
     table = readme.split("Provided files\n")[1].split("\n\n")[0]
     with open("hardwarereqs.txt", "r") as f:
@@ -58,7 +70,7 @@ async def auto_configure(model_url="TheBloke/Mistral-7B-OpenOrca-GGUF", api_key=
     new_model_url = get_model_url(get_model_prompt)
     # How many GPU layers, threads, and batch size?
     get_settings_prompt = f"{prompt}The default batch size is 512. The default GPU layers is set to 0. If not running an NVIDIA GPU, GPU Layers should be 0. **How many GPU layers, CPU threads, and batch size should we use when running llama.cpp on this computer?** Respond like this: `layers: 0, threads: 4, batch size: 512`"
-    settings_response = await Gpt4freeProvider().instruct(prompt=get_settings_prompt)
+    settings_response = await ai.ask(prompt=get_settings_prompt)
     # Strip out anything that isn't the settings from the response
     gpu_layers = settings_response.split("layers: ")[1].split(", threads: ")[0]
     if not gpu_layers:
@@ -70,7 +82,7 @@ async def auto_configure(model_url="TheBloke/Mistral-7B-OpenOrca-GGUF", api_key=
     if not batch_size:
         batch_size = 512
     get_max_tokens = f"{prompt}**Does anything indicate what the token limit is? Something like 8k, 16k, 32k, something like that would tell us.  If so, just respond with a python code block with the number.  For example, 8k would be 8192.**"
-    max_tokens_response = await Gpt4freeProvider().instruct(prompt=get_max_tokens)
+    max_tokens_response = await ai.ask(prompt=get_max_tokens)
     # Strip out anything but numbers from max_tokens_response
     max_tokens = re.sub("[^0-9]", "", max_tokens_response)
     if not max_tokens:
@@ -95,16 +107,10 @@ async def auto_configure(model_url="TheBloke/Mistral-7B-OpenOrca-GGUF", api_key=
     return model_url
 
 
-class Gpt4freeProvider:
+class G4FProvider:
     def __init__(
         self,
         AI_MODEL: str = gpt_35_turbo.name,
-        MAX_TOKENS: int = 4096,
-        AI_TEMPERATURE: float = 0.0,
-        AI_TOP_P: float = 1.0,
-        WAIT_BETWEEN_REQUESTS: int = 1,
-        WAIT_AFTER_FAILURE: int = 3,
-        **kwargs,
     ):
         self.requirements = ["g4f", "httpx"]
         if not AI_MODEL:
@@ -113,18 +119,8 @@ class Gpt4freeProvider:
             self.AI_MODEL = ModelUtils.convert[AI_MODEL]
         else:
             raise ValueError(f"Model not found: {AI_MODEL}")
-        self.AI_TEMPERATURE = AI_TEMPERATURE if AI_TEMPERATURE else 0.7
-        self.MAX_TOKENS = MAX_TOKENS if MAX_TOKENS else 4096
-        self.AI_TOP_P = AI_TOP_P if AI_TOP_P else 0.7
-        self.WAIT_BETWEEN_REQUESTS = (
-            WAIT_BETWEEN_REQUESTS if WAIT_BETWEEN_REQUESTS else 1
-        )
-        self.WAIT_AFTER_FAILURE = WAIT_AFTER_FAILURE if WAIT_AFTER_FAILURE else 3
 
-    async def instruct(self, prompt, tokens: int = 0):
-        max_new_tokens = (
-            int(self.MAX_TOKENS) - int(tokens) if tokens > 0 else self.MAX_TOKENS
-        )
+    async def ask(self, prompt):
         model = self.AI_MODEL
         provider = model.best_provider
         if provider:
@@ -135,15 +131,14 @@ class Gpt4freeProvider:
                 provider.create_async(
                     model=model.name,
                     messages=[{"role": "user", "content": prompt}],
-                    max_tokens=max_new_tokens,
-                    temperature=float(self.AI_TEMPERATURE),
-                    top_p=float(self.AI_TOP_P),
+                    max_tokens=4096,
+                    temperature=0.0,
+                    top_p=1.0,
                 ),
-                asyncio.sleep(int(self.WAIT_BETWEEN_REQUESTS)),
+                asyncio.sleep(1),
             )[0]
         except Exception as e:
-            if int(self.WAIT_AFTER_FAILURE) > 0:
-                await asyncio.sleep(int(self.WAIT_AFTER_FAILURE))
+            await asyncio.sleep(3)
             raise e
         finally:
             if provider and isinstance(provider, RetryProvider):
@@ -161,4 +156,4 @@ if __name__ == "__main__":
     model_url = args.model_url
     api_key = args.api_key
     if model_url != "None":
-        asyncio.run(auto_configure(model_url, api_key))
+        asyncio.run(auto_configure(model_url=model_url, api_key=api_key))

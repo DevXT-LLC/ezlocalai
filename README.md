@@ -3,15 +3,43 @@
 - [Dockerhub](https://hub.docker.com/r/joshxt/local-llm/tags)
 - [GitHub](https://github.com/Josh-XT/Local-LLM)
 
-Local-LLM is a llama.cpp server in Docker with OpenAI Style Endpoints.
+Local-LLM is a [llama.cpp](https://github.com/ggerganov/llama.cpp) server in Docker with OpenAI Style Endpoints that allows you to start it with the URL of the model from Hugging Face. It will automatically download the model from Hugging Face and configure the server for you. It also allows you to automatically configure the server based on your CPU, RAM, and GPU. It is designed to be as easy as possible to get started with local models.
 
-This server comes equipped with the OpenAI style endpoints that most software is familiar with. It will allow you to start it with a `MODEL_URL` defined in the `.env` file instead of needing to manually go to Hugging Face and download the model on the server.
+## Table of Contents 📖
 
-[Browse models on Hugging Face for GGUF format. TheBloke](https://huggingface.co/TheBloke?search_models=GGUF) generally sticks to the same naming convention for his models, so you can just use the model repository name like `TheBloke/Mistral-7B-OpenOrca-GGUF` and it will automatically download the model from Hugging Face. If the model repositories are not in the format he uses, you can use the full URL to the model of the download link like `https://huggingface.co/TheBloke/Mistral-7B-OpenOrca-GGUF/resolve/main/mistral.7b.q5_k_s.gguf` and it will download the quantized model from Hugging Face.
+- [Local-LLM](#local-llm)
+  - [Table of Contents 📖](#table-of-contents-)
+  - [Prerequisites](#prerequisites)
+  - [Find a Model](#find-a-model)
+  - [Clone the repository](#clone-the-repository)
+  - [Environment Set Up](#environment-set-up)
+    - [Automated Environment Set Up](#automated-environment-set-up)
+    - [Manual Environment Set Up](#manual-environment-set-up)
+  - [CPU Only](#cpu-only)
+  - [NVIDIA GPU](#nvidia-gpu)
+  - [OpenAI Style Endpoint Usage](#openai-style-endpoint-usage)
+    - [Completion](#completion)
+    - [Chat Completion](#chat-completion)
+    - [Embeddings](#embeddings)
+  - [Shout Outs](#shout-outs)
 
-## Getting Started
+## Prerequisites
 
-Clone the repository:
+- [Git](https://git-scm.com/downloads)
+- [Docker](https://docs.docker.com/get-docker/)
+- [Docker Compose](https://docs.docker.com/compose/install/)
+- [Python 3.10](https://www.python.org/downloads/)
+- [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html) (if using NVIDIA GPU)
+
+If using Windows and trying to run locally, it is unsupported, but you will need [Windows Subsystem for Linux](https://docs.microsoft.com/en-us/windows/wsl/install-win10) and [Docker Desktop](https://docs.docker.com/docker-for-windows/install/) at a minimum in addition to the above.
+
+## Find a Model
+
+The first thing you will need to do is find a model you want to use.
+
+[Browse models on Hugging Face for GGUF format by clicking here. TheBloke](https://huggingface.co/TheBloke?search_models=GGUF) generally sticks to the same naming convention for his models, so you can just use the model repository name like `TheBloke/Mistral-7B-OpenOrca-GGUF` and it will automatically download the model from Hugging Face. If the model repositories are not in the format he uses, you can use the full URL to the model of the download link like `https://huggingface.co/TheBloke/Mistral-7B-OpenOrca-GGUF/resolve/main/mistral.7b.q5_k_s.gguf` and it will download the quantized model from Hugging Face.
+
+## Clone the repository
 
 ```bash
 git clone https://github.com/Josh-XT/Local-LLM
@@ -27,7 +55,6 @@ There are two options, you can either manually set up your environment variables
 The automated script uses `gpt4free` as a free OpenAI `gpt-3.5-turbo` model only to ask it what settings are recommended for your system. It will then set up your `.env` file with the recommended settings. If you run this, you can skip the manual environment set up section. You can also set the `--api_key` argument to set the API key for the server.
 
 ```bash
-pip install gputil argparse g4f --upgrade
 python3 configure.py --model_url "TheBloke/Mistral-7B-OpenOrca-GGUF" --api_key ""
 ```
 
@@ -107,7 +134,7 @@ openai.api_key = "YOUR API KEY IF YOU SET ONE IN THE .env FILE"
 prompt = "Tell me something funny about llamas."
 
 response = openai.Completion.create(
-    engine="llamacpp",
+    engine="Local-LLM",
     prompt=prompt,
     temperature=1.31,
     max_tokens=8192,
@@ -131,7 +158,7 @@ prompt = "Tell me something funny about llamas."
 messages = [{"role": "system", "content": prompt}]
 
 response = openai.ChatCompletion.create(
-    model="llamacpp",
+    model="Local-LLM",
     messages=messages,
     temperature=1.31,
     max_tokens=8192,
@@ -142,3 +169,31 @@ response = openai.ChatCompletion.create(
 message = response.choices[0].message.content.strip()
 print(message)
 ```
+
+### Embeddings
+
+The embeddings endpoint is uses an ONNX embedder with 256 max tokens.
+
+```python
+import openai
+
+openai.api_base = "http://localhost:8091/v1"
+openai.api_key = "YOUR API KEY IF YOU SET ONE IN THE .env FILE"
+prompt = "Tell me something funny about llamas."
+
+response = openai.Embedding.create(
+    input=prompt,
+    engine="Local-LLM",
+)
+embedding = response.embedding
+print(embedding)
+```
+
+## Shout Outs
+
+- [llama.cpp](https://github.com/ggerganov/llama.cpp) - For constantly improving the ability for anyone to run local models. It is one of my favorite and most exciting projects on GitHub.
+- [TheBloke](https://huggingface.co/TheBloke) - For helping enable the ability to run local models by quantizing them and sharing them with a great readme on how to use them in every repository.
+- [GPT4Free](https://github.com/xtekky/gpt4free) - For keeping this service available to generate text with great models for free.
+- [Meta](https://meta.com) - For the absolutely earth shattering open source releases of the LLaMa models and all other contributions they have made to Open Source.
+- As much as I hate to do it, I can't list all of the amazing people building and fine tuning local models, but you know who you are. Thank you for all of your hard work and contributions to the community!
+- [OpenAI](https://openai.com/) - For setting good standards for endpoints and making great models.
