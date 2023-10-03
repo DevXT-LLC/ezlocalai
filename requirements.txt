@@ -7,3 +7,4 @@ pyjwt
 tiktoken
 onnxruntime
 tokenizers
+tqdm
