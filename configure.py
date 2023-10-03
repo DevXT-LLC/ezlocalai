@@ -57,10 +57,14 @@ async def auto_configure(model_url="TheBloke/Mistral-7B-OpenOrca-GGUF", api_key=
         hardware_requirements = f.read()
     prompt = f"Readme: {hardware_requirements}\n\n{table}\n\n"
     prompt = "## Current Computer Specifications\n"
-    gpus = GPUtil.getGPUs()
-    gpu = gpus[0]
-    gpu_name = gpu.name
-    gpu_memory = gpu.memoryTotal
+    try:
+        gpus = GPUtil.getGPUs()
+        gpu = gpus[0]
+        gpu_name = gpu.name
+        gpu_memory = gpu.memoryTotal
+    except:
+        gpu_name = "None"
+        gpu_memory = "None"
     cpu_name = psutil.cpu_freq().current
     ram = psutil.virtual_memory().total
     prompt += f"- GPU: {gpu_name} ({gpu_memory} MB)\n"
