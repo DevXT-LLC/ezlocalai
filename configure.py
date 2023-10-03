@@ -159,5 +159,6 @@ if __name__ == "__main__":
     parser.add_argument("--api_key", type=str, default="")
     args = parser.parse_args()
     model_url = args.model_url
+    api_key = args.api_key
     if model_url != "None":
         asyncio.run(auto_configure(model_url, api_key))
