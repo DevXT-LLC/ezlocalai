@@ -63,6 +63,9 @@ jobs:
           push: true
           tags: |
             ${{ vars.DOCKERHUB_USERNAME }}/local-llm:${{ matrix.tag_name }}
+            ${{ vars.DOCKERHUB_USERNAME }}/local-llm:${{ matrix.tag_name }}-${{ github.run_number }}
+            ghcr.io/${{ github.repository_owner }}/local-llm:${{ matrix.tag_name }}
+            ghcr.io/${{ github.repository_owner }}/local-llm:${{ matrix.tag_name }}-${{ github.run_number }}
           build-args: |
             LLAMACPP_IMAGE=${{ matrix.llamacpp_image }}
             MODEL_URL=${{ matrix.MODEL_URL }}
