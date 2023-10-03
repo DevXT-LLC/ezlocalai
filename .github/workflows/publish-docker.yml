@@ -6,6 +6,8 @@ on:
   release:
     types: [published]
   workflow_dispatch:
+  schedule:
+    - cron: "0 1 * * *"
 
 jobs:
   build_and_push:
@@ -54,6 +56,10 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Generate timestamp
+        id: timestamp
+        run: echo "::set-output name=timestamp::$(date +%Y%m%d%H%M%S)"
+
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
@@ -63,9 +69,9 @@ jobs:
           push: true
           tags: |
             ${{ vars.DOCKERHUB_USERNAME }}/local-llm:${{ matrix.tag_name }}
-            ${{ vars.DOCKERHUB_USERNAME }}/local-llm:${{ matrix.tag_name }}-${{ github.run_number }}
+            ${{ vars.DOCKERHUB_USERNAME }}/local-llm:${{ matrix.tag_name }}-${{ steps.timestamp.outputs.timestamp }}
             ghcr.io/josh-xt/local-llm:${{ matrix.tag_name }}
-            ghcr.io/josh-xt/local-llm:${{ matrix.tag_name }}-${{ github.run_number }}
+            ghcr.io/josh-xt/local-llm:${{ matrix.tag_name }}-${{ steps.timestamp.outputs.timestamp }}
           build-args: |
             LLAMACPP_IMAGE=${{ matrix.llamacpp_image }}
             MODEL_URL=${{ matrix.MODEL_URL }}
