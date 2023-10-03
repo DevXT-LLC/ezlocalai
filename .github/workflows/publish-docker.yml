@@ -58,7 +58,7 @@ jobs:
 
       - name: Generate timestamp
         id: timestamp
-        run: echo "::set-output name=timestamp::$(date +%Y%m%d%H%M%S)"
+        run: echo "timestamp=$(date +%Y%m%d%H%M%S)" >> $GITHUB_OUTPUT
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
