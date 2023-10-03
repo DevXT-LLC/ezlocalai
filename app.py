@@ -146,14 +146,14 @@ async def embedding(embedding: EmbeddingModel, user=Depends(verify_api_key)):
     if tokens > 256:
         raise HTTPException("Input text is too long. Max length is 256 tokens.")
     return {
+        "object": "list",
         "data": [
             {
+                "object": "embedding",
                 "embedding": embed_text(text=embedding.input),
                 "index": 0,
-                "object": "embedding",
             }
         ],
         "model": embedding.model,
-        "object": "list",
         "usage": {"prompt_tokens": tokens, "total_tokens": tokens},
     }
