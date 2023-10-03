@@ -16,4 +16,5 @@ BATCH_SIZE=${BATCH_SIZE:-512}
 UVICORN_WORKERS=$(python3 -c "from math import ceil; print(ceil($THREADS / $THREADS_BATCH))")
 make
 uvicorn app:app --host 0.0.0.0 --port 8091 --workers $UVICORN_WORKERS --proxy-headers &
-./server -m $MODEL_PATH -c $MAX_TOKENS -ngl $GPU_LAYERS -t $THREADS -tb $THREADS_BATCH -mg $MAIN_GPU -b $BATCH_SIZE
+# Need to add `-tb $THREADS_BATCH` to the server command once implemented in llama.cpp repository
+./server -m $MODEL_PATH -c $MAX_TOKENS -ngl $GPU_LAYERS -t $THREADS -mg $MAIN_GPU -b $BATCH_SIZE
