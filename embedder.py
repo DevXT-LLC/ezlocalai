@@ -16,7 +16,7 @@ def normalize(v: np.ndarray) -> np.ndarray:
 
 
 def embed_text(texts: List[str], batch_size: int = 32) -> Embeddings:
-    onnx_path = os.path.join(os.getcwd(), "models", "onnx")
+    onnx_path = os.path.join(os.getcwd(), "onnx")
     if not all(
         os.path.exists(os.path.join(onnx_path, f))
         for f in [
