@@ -100,8 +100,8 @@ def make_post_data(body, chat=False, stream=False):
     else:
         post_data["prompt"] = body.prompt
     tokens = get_tokens(post_data["prompt"])
-    if tokens > max_tokens:
-        soft_max = max_tokens - 50
+    soft_max = max_tokens - 10
+    if tokens > soft_max:
         post_data["prompt"] = post_data["prompt"][-soft_max:]
     post_data["prompt"] = format_prompt(prompt=post_data["prompt"])
     if is_present(body, "temperature"):
