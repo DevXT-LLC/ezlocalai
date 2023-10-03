@@ -3,20 +3,18 @@
 - [Dockerhub](https://hub.docker.com/r/joshxt/local-llm/tags)
 - [GitHub](https://github.com/Josh-XT/Local-LLM)
 
-Local-LLM is a [llama.cpp](https://github.com/ggerganov/llama.cpp) server in Docker with OpenAI Style Endpoints that allows you to start it with the URL of the model from Hugging Face. It will automatically download the model from Hugging Face and configure the server for you. It also allows you to automatically configure the server based on your CPU, RAM, and GPU. It is designed to be as easy as possible to get started with local models.
+Local-LLM is a [llama.cpp](https://github.com/ggerganov/llama.cpp) server in Docker with OpenAI Style Endpoints that allows you to start it with the URL of the model from Hugging Face. It will automatically download the model from Hugging Face and configure the server for you. It also allows you to automatically configure the server based on your CPU, RAM, and GPU. It is designed to be as easy as possible to get started with running local models.
 
 ## Table of Contents 📖
 
 - [Local-LLM](#local-llm)
   - [Table of Contents 📖](#table-of-contents-)
   - [Prerequisites](#prerequisites)
-  - [Find a Model](#find-a-model)
   - [Clone the repository](#clone-the-repository)
-  - [Environment Set Up](#environment-set-up)
-    - [Automated Environment Set Up](#automated-environment-set-up)
-    - [Manual Environment Set Up](#manual-environment-set-up)
-  - [CPU Only](#cpu-only)
-  - [NVIDIA GPU](#nvidia-gpu)
+  - [Local-LLM Configurator UI](#local-llm-configurator-ui)
+  - [Run with Docker](#run-with-docker)
+    - [CPU Only](#cpu-only)
+    - [NVIDIA GPU](#nvidia-gpu)
   - [OpenAI Style Endpoint Usage](#openai-style-endpoint-usage)
     - [Completion](#completion)
     - [Chat Completion](#chat-completion)
@@ -33,12 +31,6 @@ Local-LLM is a [llama.cpp](https://github.com/ggerganov/llama.cpp) server in Doc
 
 If using Windows and trying to run locally, it is unsupported, but you will need [Windows Subsystem for Linux](https://docs.microsoft.com/en-us/windows/wsl/install-win10) and [Docker Desktop](https://docs.docker.com/docker-for-windows/install/) at a minimum in addition to the above.
 
-## Find a Model
-
-The first thing you will need to do is find a model you want to use.
-
-[Browse models on Hugging Face for GGUF format by clicking here. TheBloke](https://huggingface.co/TheBloke?search_models=GGUF) generally sticks to the same naming convention for his models, so you can just use the model repository name like `TheBloke/Mistral-7B-OpenOrca-GGUF` and it will automatically download the model from Hugging Face. If the model repositories are not in the format he uses, you can use the full URL to the model of the download link like `https://huggingface.co/TheBloke/Mistral-7B-OpenOrca-GGUF/resolve/main/mistral.7b.q5_k_s.gguf` and it will download the quantized model from Hugging Face.
-
 ## Clone the repository
 
 ```bash
@@ -46,45 +38,26 @@ git clone https://github.com/Josh-XT/Local-LLM
 cd Local-LLM
 ```
 
-## Environment Set Up
+## Local-LLM Configurator UI
 
-There are two options, you can either manually set up your environment variables or you can use the automated script to set up your environment variables based on your CPU, RAM, and GPU.
+The Local-LLM Configurator UI is a Streamlit app that will automatically set up your environment variables for you based on your CPU, RAM, and GPU. It will also give you the option to manually set up your environment variables if you want to do that instead.  You can choose your desired model from the list pulled from Hugging Face directly and choose to auto configure or [manually configure](ManualSetup.md) your environment variables. This will also determine if you can run the CUDA version of the server or not so that you do not have to worry about it.
 
-### Automated Environment Set Up
-
-The automated script uses `gpt4free` as a free OpenAI `gpt-3.5-turbo` model only to ask it what settings are recommended for your system. It will then set up your `.env` file with the recommended settings. If you run this, you can skip the manual environment set up section. You can also set the `--api_key` argument to set the API key for the server.
+The automated configuration script uses `gpt4free` as a free OpenAI `gpt-3.5-turbo` model only to ask it what settings are recommended for your system. It will then set up your `.env` file with the recommended settings. You can skip the manual setup if you use this method.
 
 ```bash
-python3 configure.py --model_url "TheBloke/Mistral-7B-OpenOrca-GGUF" --api_key ""
+pip install -r configurator-requirements.txt --upgrade
+streamlit run configurator.py
 ```
 
-### Manual Environment Set Up
+![Automated Configuration](screenshots/configurator-ss1.png)
 
-Create a `.env` file if one does not exist and modify it to your needs. Here is an example `.env` file:
+![Manual Configuration](screenshots/configurator-ss2.png)
 
-```env
-MODEL_URL=TheBloke/Mistral-7B-OpenOrca-GGUF
-QUANT_TYPE=Q4_K_M
-MAX_TOKENS=8192
-THREADS=10
-THREADS_BATCH=10
-GPU_LAYERS=0
-MAIN_GPU=0
-BATCH_SIZE=512
-LOCAL_LLM_API_KEY=
-```
+[If you prefer to manually set up your environment variables, check out the manual setup documentation.](ManualSetup.md)
 
-- `LOCAL_LLM_API_KEY` - The API key to use for the server. If not set, the server will not require an API key.
-- `MODEL_URL` - The model URL or repository name to download from Hugging Face. Default is `TheBloke/Mistral-7B-OpenOrca-GGUF`.
-- `QUANT_TYPE` - The quantization type to use. Default is `Q4_K_M`.
-- `MAX_TOKENS` - The maximum number of tokens. Default is `8192`.
-- `THREADS` - The number of threads to use.
-- `THREADS_BATCH` - The number of threads to use for batch generation, this will enable parallel generation of batches. Setting it to the same value as threads will disable batch generation.
-- `BATCH_SIZE` - The batch size to use for batch generation. Default is `512`.
-- `GPU_LAYERS` - The number of layers to use on the GPU. Default is `0`.
-- `MAIN_GPU` - The GPU to use for the main model. Default is `0`.
+## Run with Docker
 
-## CPU Only
+### CPU Only
 
 Run with docker:
 
@@ -100,7 +73,7 @@ docker-compose pull
 docker-compose up
 ```
 
-## NVIDIA GPU
+### NVIDIA GPU
 
 If you're using an NVIDIA GPU, you can use the CUDA version of the server.
 
@@ -121,6 +94,8 @@ docker-compose -f docker-compose-cuda.yml up
 ## OpenAI Style Endpoint Usage
 
 OpenAI Style endpoints available at `http://localhost:8091/` by default. Documentation can be accessed at that url when the server is running.
+
+There are tests for each of the endpoints in the [Tests Jupyter Notebook](tests.ipynb).
 
 **Note, you do not need an OpenAI API Key, this is your own API Key for the server if you defined one.**
 
@@ -195,5 +170,5 @@ print(embedding)
 - [TheBloke](https://huggingface.co/TheBloke) - For helping enable the ability to run local models by quantizing them and sharing them with a great readme on how to use them in every repository.
 - [GPT4Free](https://github.com/xtekky/gpt4free) - For keeping this service available to generate text with great models for free.
 - [Meta](https://meta.com) - For the absolutely earth shattering open source releases of the LLaMa models and all other contributions they have made to Open Source.
-- As much as I hate to do it, I can't list all of the amazing people building and fine tuning local models, but you know who you are. Thank you for all of your hard work and contributions to the community!
 - [OpenAI](https://openai.com/) - For setting good standards for endpoints and making great models.
+- As much as I hate to do it, I can't list all of the amazing people building and fine tuning local models, but you know who you are. Thank you for all of your hard work and contributions to the community!
