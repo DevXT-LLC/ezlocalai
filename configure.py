@@ -1,3 +1,4 @@
+import re
 import sys
 import subprocess
 import logging
@@ -50,12 +51,19 @@ async def auto_configure(model_url="TheBloke/Mistral-7B-OpenOrca-GGUF"):
     gpu_layers = settings_response.split("layers: ")[1].split(", threads: ")[0]
     cpu_threads = settings_response.split(", threads: ")[1].split(", batch size: ")[0]
     batch_size = settings_response.split(", batch size: ")[1]
+    get_max_tokens = f"{prompt}**Does anything indicate what the token limit is? Something like 8k, 16k, 32k, something like that would tell us.  If so, just respond with a python code block with the number.  For example, 8k would be 8192.**"
+    max_tokens_response = await Gpt4freeProvider().instruct(prompt=get_max_tokens)
+    # Strip out anything but numbers from max_tokens_response
+    max_tokens = re.sub("[^0-9]", "", max_tokens_response)
+    if not max_tokens:
+        max_tokens = 8192
     # Now we need to create a .env file with the settings
     with open(".env", "w") as f:
         f.write(f"GPU_LAYERS={gpu_layers}\n")
         f.write(f"CPU_THREADS={cpu_threads}\n")
         f.write(f"BATCH_SIZE={batch_size}\n")
         f.write(f"MODEL_URL={model_url}\n")
+        f.write(f"MAX_TOKENS={max_tokens}\n")
     return model_url
 
 
