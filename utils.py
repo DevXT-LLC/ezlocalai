@@ -98,7 +98,10 @@ def make_post_data(body, chat=False, stream=False):
     else:
         post_data["prompt"] = body.prompt
     tokens = get_tokens(post_data["prompt"])
-    soft_max = MODEL_MAX_TOKENS - 10
+    try:
+        soft_max = int(MODEL_MAX_TOKENS) - 10
+    except:
+        soft_max = 8182
     if tokens > soft_max:
         post_data["prompt"] = post_data["prompt"][-soft_max:]
     post_data["prompt"] = format_prompt(prompt=post_data["prompt"])
