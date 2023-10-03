@@ -6,9 +6,8 @@ from tokenizers import Tokenizer
 from typing import List, Union, Sequence
 
 
-def embed_text(
-    texts: List[str], batch_size: int = 32
-) -> List[Union[Sequence[float], Sequence[int]]]:
+def embed_text(text) -> List[Union[Sequence[float], Sequence[int]]]:
+    texts = [text]
     model_path = os.path.join(os.getcwd(), "models")
     onnx_path = os.path.join(model_path, "onnx")
     if not all(
@@ -33,8 +32,8 @@ def embed_text(
         os.path.join(onnx_path, "model.onnx"), providers=ort.get_available_providers()
     )
     all_embeddings = []
-    for i in range(0, len(texts), batch_size):
-        batch = texts[i : i + batch_size]
+    for i in range(0, len(texts), 32):
+        batch = texts[i : i + 32]
         encoded = [tokenizer.encode(d) for d in batch]
         input_ids = np.array([e.ids for e in encoded], dtype=np.int64)
         attention_mask = np.array([e.attention_mask for e in encoded], dtype=np.int64)

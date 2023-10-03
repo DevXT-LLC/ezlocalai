@@ -1,7 +1,8 @@
 import requests
 import time
 import json
-from fastapi import FastAPI, Depends
+import numpy as np
+from fastapi import FastAPI, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from typing import List, Optional, Dict
@@ -142,7 +143,9 @@ async def completion(chat_input: ChatInput, user=Depends(verify_api_key)):
 )
 async def embedding(embedding: EmbeddingModel, user=Depends(verify_api_key)):
     tokens = get_tokens(embedding.input)
-    embedding = embed_text(texts=[embedding.input])
+    if tokens > 256:
+        raise HTTPException("Input text is too long. Max length is 256 tokens.")
+    embedding = embed_text(text=embedding.input)
     return {
         "data": [{"embedding": embedding, "index": 0, "object": "embedding"}],
         "model": embedding.model,
