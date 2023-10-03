@@ -5,3 +5,4 @@ uvicorn
 argparse
 pyjwt
 tiktoken
+onnxruntime
