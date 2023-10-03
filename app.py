@@ -1,20 +1,22 @@
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, Depends, Header
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from typing import List, Optional
+from embedder import embed_text
 import requests
 import time
 import json
 import os
 import re
 import tiktoken
-
+import jwt
 
 app = FastAPI(title="Local-LLM Server", docs_url="/")
 
 llama_api = "http://localhost:8080"
 # Get api_key from environment LLAMACPP_API_KEY
-api_key = os.environ.get("LOCAL_LLM_API_KEY", "")
+LOCAL_LLM_API_KEY = os.environ.get("LOCAL_LLM_API_KEY", "")
+USING_JWT = True if os.environ.get("USING_JWT", "false").lower() == "true" else False
 max_tokens = os.environ.get("MAX_TOKENS", 8192)
 try:
     with open(f"models/prompt.txt", "r") as f:
@@ -45,6 +47,40 @@ class ChatInput(BaseModel):
     stop: Optional[List[str]] = None
     stream: Optional[bool] = False
     tokenize: Optional[bool] = False
+
+
+class EmbeddingModel(BaseModel):
+    input: str
+    model: str
+
+
+def verify_api_key(authorization: str = Header(None)):
+    if LOCAL_LLM_API_KEY:
+        if authorization is None:
+            raise HTTPException(
+                status_code=401, detail="Authorization header is missing"
+            )
+        try:
+            scheme, _, api_key = authorization.partition(" ")
+            if scheme.lower() != "bearer":
+                raise HTTPException(
+                    status_code=401, detail="Invalid authentication scheme"
+                )
+            if USING_JWT:
+                token = jwt.decode(
+                    jwt=api_key,
+                    key=LOCAL_LLM_API_KEY,
+                    algorithms=["HS256"],
+                )
+                return token["email"]
+            else:
+                if api_key != LOCAL_LLM_API_KEY:
+                    raise HTTPException(status_code=401, detail="Invalid API Key")
+                return "USER"
+        except Exception as e:
+            raise HTTPException(status_code=401, detail="Invalid API Key")
+    else:
+        return "USER"
 
 
 def get_tokens(text: str) -> int:
@@ -215,14 +251,10 @@ def make_res_data_stream(data, chat=False, time_now=0, start=False):
     return res_data
 
 
-@app.post("/chat/completions")
-@app.post("/v1/chat/completions")
-async def chat_completions(
-    chat_input: ChatInput, api_key: Optional[str] = Query(default="")
-):
-    if api_key != "" and api_key != api_key:
-        raise HTTPException(status_code=403)
-
+@app.post(
+    "/v1/chat/completions", tags=["Completions"], dependencies=[Depends(verify_api_key)]
+)
+async def chat_completions(chat_input: ChatInput, user=Depends(verify_api_key)):
     stream = chat_input.stream
     tokenize = chat_input.tokenize
     post_data = make_post_data(chat_input, chat=True, stream=stream)
@@ -263,12 +295,10 @@ async def chat_completions(
         return StreamingResponse(generate(), media_type="text/event-stream")
 
 
-@app.post("/completions")
-@app.post("/v1/completions")
-async def completion(chat_input: ChatInput, api_key: Optional[str] = Query(default="")):
-    if api_key != "" and api_key != api_key:
-        raise HTTPException(status_code=403)
-
+@app.post(
+    "/v1/completions", tags=["Completions"], dependencies=[Depends(verify_api_key)]
+)
+async def completion(chat_input: ChatInput, user=Depends(verify_api_key)):
     stream = chat_input.stream
     tokenize = chat_input.tokenize
     post_data = make_post_data(chat_input, chat=False, stream=stream)
@@ -303,3 +333,17 @@ async def completion(chat_input: ChatInput, api_key: Optional[str] = Query(defau
                     yield "data: {}\n".format(json.dumps(res_data))
 
         return StreamingResponse(generate(), media_type="text/event-stream")
+
+
+@app.post(
+    "/v1/embeddings", tags=["Completions"], dependencies=[Depends(verify_api_key)]
+)
+async def embedding(embedding: EmbeddingModel, user=Depends(verify_api_key)):
+    tokens = get_tokens(embedding.input)
+    embedding = embed_text(text=embedding.input)
+    return {
+        "data": [{"embedding": embedding, "index": 0, "object": "embedding"}],
+        "model": embedding.model,
+        "object": "list",
+        "usage": {"prompt_tokens": tokens, "total_tokens": tokens},
+    }

@@ -3,3 +3,5 @@ pydantic
 requests
 uvicorn
 argparse
+pyjwt
+tiktoken
