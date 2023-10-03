@@ -9,11 +9,6 @@ from typing import List, Union, Sequence
 def embed_text(
     texts: List[str], batch_size: int = 32
 ) -> List[Union[Sequence[float], Sequence[int]]]:
-    def normalize(v: np.ndarray) -> np.ndarray:
-        norm = np.linalg.norm(v, axis=1)
-        norm[norm == 0] = 1e-12
-        return v / norm[:, np.newaxis]
-
     onnx_path = os.path.join(os.getcwd(), "onnx")
     if not all(
         os.path.exists(os.path.join(onnx_path, f))
@@ -55,5 +50,8 @@ def embed_text(
         embeddings = sum_hidden_state / np.clip(
             input_mask_expanded.sum(1), a_min=1e-9, a_max=None
         )
-        all_embeddings.append(normalize(embeddings).astype(np.float32))
+        norm = np.linalg.norm(embeddings, axis=1)
+        norm[norm == 0] = 1e-12
+        embedding = embeddings / norm[:, np.newaxis]
+        all_embeddings.append(embedding.astype(np.float32))
     return np.concatenate(all_embeddings).tolist()
