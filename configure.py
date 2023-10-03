@@ -4,7 +4,12 @@ import subprocess
 import logging
 import asyncio
 import psutil
-import argparse
+
+try:
+    import argparse
+except ImportError:
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "argparse"])
+    import argparse
 from GetModel import get_readme
 
 try:
