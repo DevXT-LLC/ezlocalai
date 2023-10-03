@@ -1,7 +1,7 @@
 import streamlit as st
 import requests
 from bs4 import BeautifulSoup
-from configure import auto_configure
+from configure import auto_configure, get_sys_info
 from GetModel import get_model
 from dotenv import load_dotenv
 import os
@@ -31,16 +31,7 @@ is_container_running = subprocess.run(
 ).stdout
 
 
-try:
-    gpus = GPUtil.getGPUs()
-except:
-    gpus = "None"
-
-
-psutil.cpu_stats()
-ram_in_gb = psutil.virtual_memory().total / 1024**3
-# Round the ram to closest full number
-ram_in_gb = round(ram_in_gb)
+gpus, ram = get_sys_info()
 if st.button("Update Server"):
     if gpus == "None":
         subprocess.run(["docker-compose", "pull"])
@@ -77,7 +68,7 @@ st.markdown(
     "### About your computer\n\n"
     f"- **GPU Information:** {gpus}\n\n"
     f"- **CPU Threads:** {psutil.cpu_count()}\n"
-    f"- **RAM:** {ram_in_gb} GB"
+    f"- **RAM:** {ram} GB"
 )
 
 

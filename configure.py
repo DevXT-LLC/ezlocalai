@@ -49,6 +49,16 @@ async def get_model_url(prompt):
     return new_model_url
 
 
+def get_sys_info():
+    try:
+        gpus = GPUtil.getGPUs()
+    except:
+        gpus = "None"
+    ram = psutil.virtual_memory().total / 1024**3
+    ram = round(ram)
+    return gpus, ram
+
+
 async def auto_configure(model_url="TheBloke/Mistral-7B-OpenOrca-GGUF", api_key=""):
     ai = G4FProvider()
     readme = get_readme(model_url)
@@ -57,19 +67,10 @@ async def auto_configure(model_url="TheBloke/Mistral-7B-OpenOrca-GGUF", api_key=
         hardware_requirements = f.read()
     prompt = f"Readme: {hardware_requirements}\n\n{table}\n\n"
     prompt = "## Current Computer Specifications\n"
-    try:
-        gpus = GPUtil.getGPUs()
-        gpu = gpus[0]
-        gpu_name = gpu.name
-        gpu_memory = gpu.memoryTotal
-    except:
-        gpu_name = "None"
-        gpu_memory = "None"
-    cpu_name = psutil.cpu_freq().current
-    ram = psutil.virtual_memory().total
-    prompt += f"- GPU: {gpu_name} ({gpu_memory} MB)\n"
-    prompt += f"- CPU: {cpu_name} MHz\n"
-    prompt += f"- RAM: {ram} MB\n\n"
+    gpus, ram = get_sys_info()
+    prompt += f"- GPU: {gpus}\n"
+    prompt += f"- CPU Threads: {psutil.cpu_count()}\n"
+    prompt += f"- RAM: {ram} GB\n\n"
     get_model_prompt = f"{prompt}**Determine the best model to run for a machine with the computer specifications provided. Ensure that the model will not utilize more than 80% of the resources. Return only the model URL of the best one.**"
     new_model_url = get_model_url(get_model_prompt)
     # How many GPU layers, threads, and batch size?
