@@ -7,6 +7,7 @@ import time
 import json
 import os
 import re
+import tiktoken
 
 
 app = FastAPI(title="Local-LLM Server", docs_url="/")
@@ -14,6 +15,7 @@ app = FastAPI(title="Local-LLM Server", docs_url="/")
 llama_api = "http://localhost:8080"
 # Get api_key from environment LLAMACPP_API_KEY
 api_key = os.environ.get("LOCAL_LLM_API_KEY", "")
+max_tokens = os.environ.get("MAX_TOKENS", 8192)
 try:
     with open(f"models/prompt.txt", "r") as f:
         prompt_template = f.read()
@@ -43,6 +45,12 @@ class ChatInput(BaseModel):
     stop: Optional[List[str]] = None
     stream: Optional[bool] = False
     tokenize: Optional[bool] = False
+
+
+def get_tokens(text: str) -> int:
+    encoding = tiktoken.get_encoding("cl100k_base")
+    num_tokens = len(encoding.encode(text))
+    return num_tokens
 
 
 def custom_format(string, **kwargs):
@@ -91,6 +99,10 @@ def make_post_data(body, chat=False, stream=False):
         post_data["prompt"] = convert_chat(body.messages)
     else:
         post_data["prompt"] = body.prompt
+    tokens = get_tokens(post_data["prompt"])
+    if tokens > max_tokens:
+        soft_max = max_tokens - 50
+        post_data["prompt"] = post_data["prompt"][-soft_max:]
     post_data["prompt"] = format_prompt(prompt=post_data["prompt"])
     if is_present(body, "temperature"):
         post_data["temperature"] = body.temperature
@@ -99,6 +111,11 @@ def make_post_data(body, chat=False, stream=False):
     if is_present(body, "top_p"):
         post_data["top_p"] = body.top_p
     if is_present(body, "max_tokens"):
+        try:
+            if int(body.max_tokens) > int(max_tokens):
+                body.max_tokens = int(max_tokens)
+        except:
+            body.max_tokens = max_tokens
         post_data["n_predict"] = body.max_tokens
     if is_present(body, "presence_penalty"):
         post_data["presence_penalty"] = body.presence_penalty
