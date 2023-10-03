@@ -1,5 +1,8 @@
 # Local-LLM
 
+- [Dockerhub](https://hub.docker.com/r/joshxt/local-llm/tags)
+- [GitHub](https://github.com/Josh-XT/Local-LLM)
+
 Local-LLM is a llama.cpp server in Docker with OpenAI Style Endpoints.
 
 This server comes equipped with the OpenAI style endpoints that most software is familiar with. It will allow you to start it with a `MODEL_URL` defined in the `.env` file instead of needing to manually go to Hugging Face and download the model on the server.
