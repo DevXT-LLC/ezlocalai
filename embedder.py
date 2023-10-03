@@ -13,6 +13,8 @@ Embedding = Union[Sequence[float], Sequence[int]]
 Embeddings = List[Embedding]
 
 
+# Credit to Chroma for this code
+# https://github.com/chroma-core/chroma
 class ONNXMiniLM_L6_V2:
     MODEL_NAME = "all-MiniLM-L6-v2"
     DOWNLOAD_PATH = os.getcwd()
@@ -187,8 +189,3 @@ class ONNXMiniLM_L6_V2:
                 mode="r:gz",
             ) as tar:
                 tar.extractall(path=self.DOWNLOAD_PATH)
-
-
-def embed_text(text) -> np.ndarray:
-    embedding = ONNXMiniLM_L6_V2().__call__(texts=[text])[0]
-    return embedding
