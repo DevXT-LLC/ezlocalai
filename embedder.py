@@ -22,7 +22,7 @@ def embed_text(text) -> List[Union[Sequence[float], Sequence[int]]]:
         ]
     ):
         with tarfile.open(
-            name=os.path.join(onnx_path, "onnx.tar.gz"), mode="r:gz"
+            name=os.path.join(os.getcwd(), "onnx.tar.gz"), mode="r:gz"
         ) as tar:
             tar.extractall(path=model_path)
     tokenizer = Tokenizer.from_file(os.path.join(onnx_path, "tokenizer.json"))
