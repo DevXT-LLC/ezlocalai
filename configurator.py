@@ -40,7 +40,7 @@ if st.button("Update Server"):
             subprocess.run(["docker-compose", "-f", "docker-compose-cuda.yml", "pull"])
         else:
             subprocess.run(["docker-compose", "pull"])
-    st.experimental_rerun()
+    st.rerun()
 
 if is_container_running:
     # Stop server button
@@ -54,7 +54,7 @@ if is_container_running:
                 )
             else:
                 subprocess.run(["docker-compose", "down"])
-        st.experimental_rerun()
+        st.rerun()
 else:
     # Start server button
     if st.button(
@@ -62,7 +62,7 @@ else:
         help="Start the Local-LLM server. This will download the model if you do not already have it, configure it, and start the server.",
     ):
         subprocess.run(["docker-compose", "up"])
-        st.experimental_rerun()
+        st.rerun()
 
 st.markdown(
     "### About your computer\n\n"
@@ -183,7 +183,7 @@ with st.form("configure"):
                 f.write(f"MAIN_GPU={main_gpu}\n")
                 f.write(f"BATCH_SIZE={batch_size}\n")
                 f.write(f"LOCAL_LLM_API_KEY={local_llm_api_key}\n")
-            st.experimental_rerun()
+            st.rerun()
     else:
         quantization_type = QUANT_TYPE
         max_tokens = MAX_TOKENS
@@ -196,4 +196,4 @@ with st.form("configure"):
             model_url = list(model_names[default_index].values())[0]
             auto_configure(model_url=model_url, api_key=local_llm_api_key)
             get_model(model_url=model_url, quant_type=QUANT_TYPE)
-            st.experimental_rerun()
+            st.rerun()
