@@ -5,7 +5,7 @@ from fastapi import FastAPI, Depends
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from typing import List, Optional, Dict
-from embedder import ONNXMiniLM_L6_V2
+from embedder import embed_text
 from utils import (
     verify_api_key,
     get_tokens,
@@ -142,7 +142,7 @@ async def completion(chat_input: ChatInput, user=Depends(verify_api_key)):
 )
 async def embedding(embedding: EmbeddingModel, user=Depends(verify_api_key)):
     tokens = get_tokens(embedding.input)
-    embedding = ONNXMiniLM_L6_V2().__call__(texts=[embedding.input])[0]
+    embedding = embed_text(texts=[embedding.input])
     return {
         "data": [{"embedding": embedding, "index": 0, "object": "embedding"}],
         "model": embedding.model,
