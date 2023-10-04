@@ -8,5 +8,4 @@ ARG MODEL_URL="None"
 ARG QUANT_TYPE="Q4_K_M"
 RUN python3 GetModel.py --model_url ${MODEL_URL} --quant_type ${QUANT_TYPE}
 EXPOSE 8091
-EXPOSE 8080
 ENTRYPOINT ["/app/entrypoint.sh"]
