@@ -12,8 +12,11 @@ Local-LLM is a [llama.cpp](https://github.com/ggerganov/llama.cpp) server in Doc
   - [Prerequisites](#prerequisites)
   - [Environment Setup (Optional)](#environment-setup-optional)
   - [Run with Docker](#run-with-docker)
-    - [CPU Only](#cpu-only)
-    - [NVIDIA GPU](#nvidia-gpu)
+    - [Run with Docker (Without NVIDIA GPU)](#run-with-docker-without-nvidia-gpu)
+    - [Run with NVIDIA GPU support using Docker](#run-with-nvidia-gpu-support-using-docker)
+  - [Run with Docker Compose](#run-with-docker-compose)
+    - [Run with Docker Compose (Without NVIDIA GPU)](#run-with-docker-compose-without-nvidia-gpu)
+    - [Run with NVIDIA GPU support using Docker Compose](#run-with-nvidia-gpu-support-using-docker-compose)
   - [OpenAI Style Endpoint Usage](#openai-style-endpoint-usage)
   - [Shout Outs](#shout-outs)
 
@@ -46,16 +49,33 @@ MAIN_GPU=0
 
 ## Run with Docker
 
-### CPU Only
+You can choose to run with Docker or Docker Compose. Both are not needed.
 
-Run with docker without a `.env` file, just replace the environment variables with your desired settings:
+Run with docker without a `.env` file, just replace the environment variables with your desired settings.
+
+### Run with Docker (Without NVIDIA GPU)
 
 ```bash
 docker pull joshxt/local-llm:cpu
 docker run -d --name local-llm -p 8091:8091 joshxt/local-llm:cpu -e THREADS="10" -e BATCH_SIZE="512" -e LOCAL_LLM_API_KEY=""
 ```
 
-Or with docker-compose after setting up your `.env` file:
+### Run with NVIDIA GPU support using Docker
+
+If you're using an NVIDIA GPU, you can use the CUDA version of the server.
+
+```bash
+docker pull joshxt/local-llm:cuda
+docker run -d --name local-llm -p 8091:8091 --gpus all joshxt/local-llm:cuda -e THREADS="10" -e BATCH_SIZE="512" -e GPU_LAYERS="0" -e MAIN_GPU="0" -e LOCAL_LLM_API_KEY=""
+```
+
+## Run with Docker Compose
+
+You can choose to run with Docker or Docker Compose. Both are not needed.
+
+Make sure to move your `.env` file to the `Local-LLM` directory if you set one up.
+
+### Run with Docker Compose (Without NVIDIA GPU)
 
 ```bash
 git clone https://github.com/Josh-XT/Local-LLM
@@ -64,18 +84,7 @@ docker-compose pull
 docker-compose up
 ```
 
-### NVIDIA GPU
-
-If you're using an NVIDIA GPU, you can use the CUDA version of the server.
-
-Run with docker without a `.env` file, just replace the environment variables with your desired settings:
-
-```bash
-docker pull joshxt/local-llm:cuda
-docker run -d --name local-llm -p 8091:8091 --gpus all joshxt/local-llm:cuda -e THREADS="10" -e BATCH_SIZE="512" -e GPU_LAYERS="0" -e MAIN_GPU="0" -e LOCAL_LLM_API_KEY=""
-```
-
-Or with docker-compose after setting up your `.env` file:
+### Run with NVIDIA GPU support using Docker Compose
 
 ```bash
 git clone https://github.com/Josh-XT/Local-LLM
