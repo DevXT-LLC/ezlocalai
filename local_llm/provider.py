@@ -309,6 +309,14 @@ class LLM:
         embeddings["model"] = self.model_name
         return embeddings
 
+    def models(self):
+        models = get_models()
+        model_list = []
+        for model in models:
+            for key in model:
+                model_list.append(key)
+        return model_list
+
 
 if __name__ == "__main__":
     import argparse
