@@ -216,13 +216,14 @@ class LLM:
     def completion(self, prompt):
         data = self.generate(prompt=prompt)
         message = data["choices"][0]["text"]
+        for stop_string in self.params["stop"]:
+            if stop_string in message:
+                message = message.split(stop_string)[0]
         if message.startswith("\n "):
             message = message[3:]
         if message.endswith("\n\n  "):
             message = message[:-4]
-        for stop_string in self.params["stop"]:
-            if stop_string in message:
-                message = message.split(stop_string)[0]
+
         data["choices"][0]["text"] = message
         return data
 
@@ -243,13 +244,13 @@ class LLM:
         data = self.generate(prompt=prompt)
         messages = [{"role": "user", "content": prompt}]
         message = data["choices"][0]["text"]
+        for stop_string in self.params["stop"]:
+            if stop_string in message:
+                message = message.split(stop_string)[0]
         if message.startswith("\n "):
             message = message[3:]
         if message.endswith("\n\n  "):
             message = message[:-4]
-        for stop_string in self.params["stop"]:
-            if stop_string in message:
-                message = message.split(stop_string)[0]
         messages.append({"role": "assistant", "content": message})
         data["messages"] = messages
         return data
