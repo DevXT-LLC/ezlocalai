@@ -5,6 +5,6 @@ COPY requirements.txt ./
 RUN pip install --upgrade pip && pip install -r requirements.txt
 COPY . .
 ARG MODEL_URL="None"
-RUN python3 provider.py --model_url ${MODEL_URL}
+RUN python3 provider.py --model_name ${MODEL_URL}
 EXPOSE 8091
 ENTRYPOINT ["/app/entrypoint.sh"]

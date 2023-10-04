@@ -3,7 +3,7 @@
 - [Dockerhub](https://hub.docker.com/r/joshxt/local-llm/tags)
 - [GitHub](https://github.com/Josh-XT/Local-LLM)
 
-Local-LLM is a [llama.cpp](https://github.com/ggerganov/llama.cpp) server in Docker with OpenAI Style Endpoints that allows you to send the model name as the URL of the model from Hugging Face. It will automatically download the model from Hugging Face if it isn't already downloaded and configure the server for you. It automatically configures the server based on your CPU, RAM, and GPU. It is designed to be as easy as possible to get started with running local models.
+Local-LLM is a [llama.cpp](https://github.com/ggerganov/llama.cpp) server in Docker with OpenAI Style Endpoints that allows you to send the model name as the name of the model as it appears in the model list, for example `Mistral-7B-OpenOrca`. It will automatically download the model from Hugging Face if it isn't already downloaded and configure the server for you. It automatically configures the server based on your CPU, RAM, and GPU. It is designed to be as easy as possible to get started with running local models.
 
 ## Table of Contents 📖
 
@@ -25,6 +25,9 @@ Replace the environment variables with your desired settings. Assumptions will b
 - `LOCAL_LLM_API_KEY` - The API key to use for the server. If not set, the server will not require an API key.
 - `THREADS` - The number of threads to use. Default is `your CPU core count minus 1`.
 - `BATCH_SIZE` - The batch size to use for batch generation. Default is `512`.
+
+The following are only applicable to NVIDIA GPUs:
+
 - `GPU_LAYERS` - The number of layers to use on the GPU. Default is `0`.
 - `MAIN_GPU` - The GPU to use for the main model. Default is `0`.
 

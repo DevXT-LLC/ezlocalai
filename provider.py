@@ -41,11 +41,6 @@ DOWNLOAD_MODELS = (
 
 # Will improve the strategy for deciding which quantization type to use later.
 # If the user has more than 16GB of RAM, use Q5_K_M. Otherwise, use Q4_K_M.
-if ram > 16:
-    QUANT_TYPE = os.environ.get("QUANT_TYPE", "Q5_K_M")
-else:
-    QUANT_TYPE = os.environ.get("QUANT_TYPE", "Q4_K_M")
-    print(f"Using Q4_K_M because RAM is {ram} GB")
 
 
 def get_models():
@@ -62,6 +57,20 @@ def get_models():
     return model_names
 
 
+def get_model_url(model_name="Mistral-7B-OpenOrca"):
+    model_url = ""
+    models = get_models()
+    for model in models.keys():
+        if model_name.lower() == model.lower():
+            model_url = model[model_name]
+            break
+    if model_url == "":
+        raise Exception(
+            f"Model not found. Choose from one of these models: {', '.join(models.keys())}"
+        )
+    return model_url
+
+
 def get_tokens(text: str) -> int:
     encoding = tiktoken.get_encoding("cl100k_base")
     num_tokens = len(encoding.encode(text))
@@ -73,8 +82,8 @@ def get_model_name(model_url="TheBloke/Mistral-7B-OpenOrca-GGUF"):
     return model_name
 
 
-def get_readme(model_url="TheBloke/Mistral-7B-OpenOrca-GGUF"):
-    model_name = get_model_name(model_url=model_url)
+def get_readme(model_name="Mistral-7B-OpenOrca"):
+    model_url = get_model_url(model_name=model_name)
     if not os.path.exists(f"models/{model_name}/README.md"):
         readme_url = f"https://huggingface.co/{model_url}/raw/main/README.md"
         with requests.get(readme_url, stream=True, allow_redirects=True) as r:
@@ -87,8 +96,8 @@ def get_readme(model_url="TheBloke/Mistral-7B-OpenOrca-GGUF"):
     return readme
 
 
-def get_max_tokens(model_url="TheBloke/Mistral-7B-OpenOrca-GGUF"):
-    readme = get_readme(model_url)
+def get_max_tokens(model_name="Mistral-7B-OpenOrca"):
+    readme = get_readme(model_name=model_name)
     if "131072" in readme or "128k" in readme:
         return 131072
     if "65536" in readme or "64k" in readme:
@@ -106,22 +115,26 @@ def get_max_tokens(model_url="TheBloke/Mistral-7B-OpenOrca-GGUF"):
     return 8192
 
 
-def get_prompt(model_url="TheBloke/Mistral-7B-OpenOrca-GGUF"):
-    model_name = get_model_name(model_url=model_url)
+def get_prompt(model_name="Mistral-7B-OpenOrca"):
     if os.path.exists(f"models/{model_name}/prompt.txt"):
         with open(f"models/{model_name}/prompt.txt", "r") as f:
             prompt_template = f.read()
         return prompt_template
-    readme = get_readme(model_url)
+    readme = get_readme(model_name=model_name)
     prompt_template = readme.split("prompt_template: '")[1].split("'")[0]
     if prompt_template == "":
         prompt_template = "{system_message}\n\n{prompt}"
     return prompt_template
 
 
-def get_model(model_url="TheBloke/Mistral-7B-OpenOrca-GGUF"):
-    model_name = get_model_name(model_url=model_url)
-    file_path = f"models/{model_name}/{model_name}.{QUANT_TYPE}.gguf"
+def get_model(model_name="Mistral-7B-OpenOrca"):
+    if ram > 16:
+        default_quantization_type = "Q5_K_M"
+    else:
+        default_quantization_type = "Q4_K_M"
+    quantization_type = os.environ.get("QUANT_TYPE", default_quantization_type)
+    model_url = get_model_url(model_name=model_name)
+    file_path = f"models/{model_name}/{model_name}.{quantization_type}.gguf"
     if not os.path.exists("models"):
         os.makedirs("models")
     if not os.path.exists(file_path):
@@ -130,14 +143,14 @@ def get_model(model_url="TheBloke/Mistral-7B-OpenOrca-GGUF"):
         url = (
             model_url
             if "https://" in model_url
-            else f"https://huggingface.co/{model_url}/resolve/main/{model_name}.{QUANT_TYPE}.gguf"
+            else f"https://huggingface.co/{model_url}/resolve/main/{model_name}.{quantization_type}.gguf"
         )
         with requests.get(url, stream=True, allow_redirects=True) as r:
             r.raise_for_status()
             with open(file_path, "wb") as f:
                 for chunk in r.iter_content(chunk_size=8192):
                     f.write(chunk)
-    prompt_template = get_prompt(model_url)
+    prompt_template = get_prompt(model_name=model_name)
     return file_path
 
 
@@ -200,13 +213,13 @@ class LLM:
         presence_penalty: float = 0.0,
         frequency_penalty: float = 0.0,
         logit_bias: list = [],
-        model: str = "TheBloke/Mistral-7B-OpenOrca-GGUF",
+        model: str = "Mistral-7B-OpenOrca",
         **kwargs,
     ):
         self.params = {}
-        self.model = model
-        self.params["model_path"] = get_model(model_url=model)
-        model_max_tokens = get_max_tokens(model_url=model)
+        self.model_name = model
+        self.params["model_path"] = get_model(model_name=self.model_name)
+        model_max_tokens = get_max_tokens(model_name=self.model_name)
         try:
             self.max_tokens = (
                 int(max_tokens)
@@ -245,7 +258,7 @@ class LLM:
             self.params["n_batch"] = int(BATCH_SIZE)
 
     def generate(self, prompt):
-        prompt_template = get_prompt(model_url=self.model)
+        prompt_template = get_prompt(model_name=self.model_name)
         formatted_prompt = format_prompt(
             prompt=prompt, prompt_template=prompt_template, system_message=""
         )
@@ -253,6 +266,7 @@ class LLM:
         self.params["n_predict"] = int(self.max_tokens) - tokens
         llm = Llama(**self.params)
         data = llm(prompt=formatted_prompt)
+        data["model"] = self.model_name
         return data
 
     def completion(self, prompt):
@@ -260,7 +274,6 @@ class LLM:
         data["choices"][0]["text"] = clean(
             params=self.params, message=data["choices"][0]["text"]
         )
-        data["model"] = get_model_name(model_url=self.model)
         return data
 
     def chat(self, messages):
@@ -282,13 +295,13 @@ class LLM:
         message = clean(params=self.params, message=data["choices"][0]["text"])
         messages.append({"role": "assistant", "content": message})
         data["messages"] = messages
-        data["model"] = get_model_name(model_url=self.model)
         del data["choices"]
         return data
 
     def embedding(self, input):
         llm = Llama(embedding=True, **self.params)
-        embeddings = llm.create_embedding(input=input, model=self.model)
+        embeddings = llm.create_embedding(input=input, model=self.model_name)
+        embeddings["model"] = self.model_name
         return embeddings
 
 
@@ -296,9 +309,9 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--model_url", type=str, default="None")
+    parser.add_argument("--model_name", type=str, default="None")
     args = parser.parse_args()
-    model_url = args.model_url
-    if model_url != "None":
-        model_path = get_model(model_url)
+    model_name = args.model_name
+    if model_name != "None":
+        model_path = get_model(model_name=model_name)
         print(model_path)

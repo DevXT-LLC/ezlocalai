@@ -49,13 +49,13 @@ def verify_api_key(authorization: str = Header(None)):
     dependencies=[Depends(verify_api_key)],
 )
 async def models(user=Depends(verify_api_key)):
-    return get_models()
+    return get_models().keys()
 
 
 # Chat completions endpoint
 # https://platform.openai.com/docs/api-reference/chat
 class ChatCompletions(BaseModel):
-    model: str = "TheBloke/Mistral-7B-OpenOrca-GGUF"
+    model: str = "Mistral-7B-OpenOrca"
     messages: List[dict] = None
     functions: List[dict] = None
     function_call: str = None
@@ -98,7 +98,7 @@ async def chat_completions(c: ChatCompletions, user=Depends(verify_api_key)):
 # Completions endpoint
 # https://platform.openai.com/docs/api-reference/completions
 class Completions(BaseModel):
-    model: str = "TheBloke/Mistral-7B-OpenOrca-GGUF"
+    model: str = "Mistral-7B-OpenOrca"
     prompt: str = None
     suffix: str = None
     max_tokens: int = 100
@@ -146,7 +146,7 @@ async def completions(c: Completions, user=Depends(verify_api_key)):
 # https://platform.openai.com/docs/api-reference/embeddings
 class EmbeddingModel(BaseModel):
     input: str
-    model: str = "TheBloke/Mistral-7B-OpenOrca-GGUF"
+    model: str = "Mistral-7B-OpenOrca"
     user: str = None
 
 

@@ -3,7 +3,7 @@
 set -e
 
 MODEL_URL=${MODEL_URL:-"TheBloke/Mistral-7B-OpenOrca-GGUF"}
-MODEL_PATH=$(python3 provider.py --model_url $MODEL_URL)
+MODEL_PATH=$(python3 provider.py --model_name $MODEL_URL)
 MAX_TOKENS=${MAX_TOKENS:-8192}
 THREADS=${THREADS:-($(nproc) - 1)}
 THREADS_BATCH=${THREADS_BATCH:-$THREADS}
