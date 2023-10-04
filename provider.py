@@ -233,7 +233,7 @@ class LLM:
         data["choices"][0]["text"] = clean(
             params=self.params, message=data["choices"][0]["text"]
         )
-        data["model"] = self.model
+        data["model"] = get_model_name(model_url=self.model)
         return data
 
     def chat(self, messages):
@@ -255,7 +255,7 @@ class LLM:
         message = clean(params=self.params, message=data["choices"][0]["text"])
         messages.append({"role": "assistant", "content": message})
         data["messages"] = messages
-        data["model"] = self.model
+        data["model"] = get_model_name(model_url=self.model)
         del data["choices"]
         return data
 
