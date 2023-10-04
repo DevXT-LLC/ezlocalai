@@ -83,23 +83,23 @@ def get_model_name(model_url="TheBloke/Mistral-7B-OpenOrca-GGUF"):
     return model_name
 
 
-def get_readme(model_name="Mistral-7B-OpenOrca"):
+def get_readme(model_name="Mistral-7B-OpenOrca", models_dir="models"):
     model_url = get_model_url(model_name=model_name)
     model_name = model_name.lower()
-    if not os.path.exists(f"models/{model_name}/README.md"):
+    if not os.path.exists(f"{models_dir}/{model_name}/README.md"):
         readme_url = f"https://huggingface.co/{model_url}/raw/main/README.md"
         with requests.get(readme_url, stream=True, allow_redirects=True) as r:
             r.raise_for_status()
-            with open(f"models/{model_name}/README.md", "wb") as f:
+            with open(f"{models_dir}/{model_name}/README.md", "wb") as f:
                 for chunk in r.iter_content(chunk_size=8192):
                     f.write(chunk)
-    with open(f"models/{model_name}/README.md", "r") as f:
+    with open(f"{models_dir}/{model_name}/README.md", "r") as f:
         readme = f.read()
     return readme
 
 
-def get_max_tokens(model_name="Mistral-7B-OpenOrca"):
-    readme = get_readme(model_name=model_name)
+def get_max_tokens(model_name="Mistral-7B-OpenOrca", models_dir="models"):
+    readme = get_readme(model_name=model_name, models_dir=models_dir)
     if "131072" in readme or "128k" in readme:
         return 131072
     if "65536" in readme or "64k" in readme:
@@ -117,20 +117,20 @@ def get_max_tokens(model_name="Mistral-7B-OpenOrca"):
     return 8192
 
 
-def get_prompt(model_name="Mistral-7B-OpenOrca"):
+def get_prompt(model_name="Mistral-7B-OpenOrca", models_dir="models"):
     model_name = model_name.lower()
-    if os.path.exists(f"models/{model_name}/prompt.txt"):
-        with open(f"models/{model_name}/prompt.txt", "r") as f:
+    if os.path.exists(f"{models_dir}/{model_name}/prompt.txt"):
+        with open(f"{models_dir}/{model_name}/prompt.txt", "r") as f:
             prompt_template = f.read()
         return prompt_template
-    readme = get_readme(model_name=model_name)
+    readme = get_readme(model_name=model_name, models_dir=models_dir)
     prompt_template = readme.split("prompt_template: '")[1].split("'")[0]
     if prompt_template == "":
         prompt_template = "{system_message}\n\n{prompt}"
     return prompt_template
 
 
-def get_model(model_name="Mistral-7B-OpenOrca"):
+def get_model(model_name="Mistral-7B-OpenOrca", models_dir="models"):
     if ram > 16:
         default_quantization_type = "Q5_K_M"
     else:
@@ -138,9 +138,9 @@ def get_model(model_name="Mistral-7B-OpenOrca"):
     quantization_type = os.environ.get("QUANT_TYPE", default_quantization_type)
     model_url = get_model_url(model_name=model_name)
     model_name = model_name.lower()
-    file_path = f"models/{model_name}/{model_name}.{quantization_type}.gguf"
-    if not os.path.exists("models"):
-        os.makedirs("models")
+    file_path = f"{models_dir}/{model_name}/{model_name}.{quantization_type}.gguf"
+    if not os.path.exists(models_dir):
+        os.makedirs(models_dir)
     if not os.path.exists(file_path):
         if DOWNLOAD_MODELS is False:
             raise Exception("Model not found.")
@@ -155,7 +155,6 @@ def get_model(model_name="Mistral-7B-OpenOrca"):
             with open(file_path, "wb") as f:
                 for chunk in r.iter_content(chunk_size=8192):
                     f.write(chunk)
-    prompt_template = get_prompt(model_name=model_name)
     return file_path
 
 
@@ -219,12 +218,21 @@ class LLM:
         frequency_penalty: float = 0.0,
         logit_bias: list = [],
         model: str = "Mistral-7B-OpenOrca",
+        models_dir: str = "models",
+        system_message: str = "",
         **kwargs,
     ):
         self.params = {}
         self.model_name = model
-        self.params["model_path"] = get_model(model_name=self.model_name)
-        model_max_tokens = get_max_tokens(model_name=self.model_name)
+        self.params["model_path"] = get_model(
+            model_name=self.model_name, models_dir=models_dir
+        )
+        model_max_tokens = get_max_tokens(
+            model_name=self.model_name, models_dir=models_dir
+        )
+        self.prompt_template = get_prompt(
+            model_name=self.model_name, models_dir=models_dir
+        )
         try:
             self.max_tokens = (
                 int(max_tokens)
@@ -235,6 +243,7 @@ class LLM:
             self.max_tokens = model_max_tokens
         self.params["n_ctx"] = self.max_tokens
         self.params["verbose"] = False
+        self.system_message = system_message
         if stop:
             if isinstance(stop, str):
                 stop = [stop]
@@ -263,9 +272,10 @@ class LLM:
             self.params["n_batch"] = int(BATCH_SIZE)
 
     def generate(self, prompt):
-        prompt_template = get_prompt(model_name=self.model_name)
         formatted_prompt = format_prompt(
-            prompt=prompt, prompt_template=prompt_template, system_message=""
+            prompt=prompt,
+            prompt_template=self.prompt_template,
+            system_message=self.system_message,
         )
         tokens = get_tokens(formatted_prompt)
         self.params["n_predict"] = int(self.max_tokens) - tokens
