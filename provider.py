@@ -1,4 +1,5 @@
 from llama_cpp import Llama
+from bs4 import BeautifulSoup
 import os
 import re
 import requests
@@ -41,6 +42,20 @@ if ram >= 16:
     QUANT_TYPE = os.environ.get("QUANT_TYPE", "Q5_K_M")
 else:
     QUANT_TYPE = os.environ.get("QUANT_TYPE", "Q4_K_M")
+
+
+def get_models():
+    response = requests.get(
+        "https://huggingface.co/TheBloke?search_models=GGUF&sort_models=modified"
+    )
+    soup = BeautifulSoup(response.text, "html.parser")
+    model_names = []
+    for a_tag in soup.find_all("a", href=True):
+        href = a_tag["href"]
+        if href.startswith("/TheBloke/") and href.endswith("-GGUF"):
+            base_name = href[10:-5]
+            model_names.append({base_name: href[1:]})
+    return model_names
 
 
 def get_tokens(text: str) -> int:

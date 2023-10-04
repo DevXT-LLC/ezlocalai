@@ -2,7 +2,7 @@ from fastapi import FastAPI, Depends, HTTPException, Header
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from typing import List, Dict
-from provider import LLM, streaming_generation
+from provider import LLM, streaming_generation, get_models
 import os
 import jwt
 
@@ -11,11 +11,11 @@ app = FastAPI(title="Local-LLM Server", docs_url="/")
 
 
 def verify_api_key(authorization: str = Header(None)):
-    LOCAL_LLM_API_KEY = os.environ.get("LOCAL_LLM_API_KEY", "")
+    encryption_key = os.environ.get("LOCAL_LLM_API_KEY", "")
     using_jwt = (
         True if os.environ.get("USING_JWT", "false").lower() == "true" else False
     )
-    if LOCAL_LLM_API_KEY:
+    if encryption_key:
         if authorization is None:
             raise HTTPException(
                 status_code=401, detail="Authorization header is missing"
@@ -29,18 +29,27 @@ def verify_api_key(authorization: str = Header(None)):
             if using_jwt:
                 token = jwt.decode(
                     jwt=api_key,
-                    key=LOCAL_LLM_API_KEY,
+                    key=encryption_key,
                     algorithms=["HS256"],
                 )
                 return token["email"]
             else:
-                if api_key != LOCAL_LLM_API_KEY:
+                if api_key != encryption_key:
                     raise HTTPException(status_code=401, detail="Invalid API Key")
                 return "USER"
         except Exception as e:
             raise HTTPException(status_code=401, detail="Invalid API Key")
     else:
         return "USER"
+
+
+@app.get(
+    "/v1/models",
+    tags=["Models"],
+    dependencies=[Depends(verify_api_key)],
+)
+async def models(user=Depends(verify_api_key)):
+    return get_models()
 
 
 # Chat completions endpoint
@@ -150,7 +159,7 @@ class EmbeddingResponse(BaseModel):
 
 @app.post(
     "/v1/embeddings",
-    tags=["Completions"],
+    tags=["Embeddings"],
     dependencies=[Depends(verify_api_key)],
     response_model=EmbeddingResponse,
 )

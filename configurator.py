@@ -1,8 +1,6 @@
 import streamlit as st
-import requests
-from bs4 import BeautifulSoup
 from configure import auto_configure, get_sys_info
-from provider import get_model
+from provider import get_model, get_models
 from dotenv import load_dotenv
 import os
 import psutil
@@ -68,20 +66,6 @@ st.markdown(
     f"- **CPU Threads:** {psutil.cpu_count()}\n"
     f"- **RAM:** {ram} GB"
 )
-
-
-def get_models():
-    response = requests.get(
-        "https://huggingface.co/TheBloke?search_models=GGUF&sort_models=modified"
-    )
-    soup = BeautifulSoup(response.text, "html.parser")
-    model_names = []
-    for a_tag in soup.find_all("a", href=True):
-        href = a_tag["href"]
-        if href.startswith("/TheBloke/") and href.endswith("-GGUF"):
-            base_name = href[10:-5]
-            model_names.append({base_name: href[1:]})
-    return model_names
 
 
 manual_config = st.checkbox("Manually Configure Environment")

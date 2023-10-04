@@ -12,3 +12,4 @@ llama-cpp-python
 python-dotenv
 GPUtil
 psutil
+beautifulsoup4
