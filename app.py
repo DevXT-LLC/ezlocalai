@@ -46,7 +46,7 @@ def verify_api_key(authorization: str = Header(None)):
 # Chat completions endpoint
 # https://platform.openai.com/docs/api-reference/chat
 class ChatCompletions(BaseModel):
-    model: str = None  # Model is actually the agent_name
+    model: str = "TheBloke/Mistral-7B-OpenOrca-GGUF"
     messages: List[dict] = None
     functions: List[dict] = None
     function_call: str = None
@@ -78,11 +78,12 @@ class ChatCompletionsResponse(BaseModel):
     response_model=ChatCompletionsResponse,
 )
 async def chat_completions(c: ChatCompletions, user=Depends(verify_api_key)):
+    # Turn c into a dict
     if not c.stream:
-        return ChatCompletionsResponse(LLM(**c).chat(messages=c.messages))
+        return ChatCompletionsResponse(LLM(**c.dict()).chat(messages=c.messages))
     else:
         return StreamingResponse(
-            streaming_generation(data=LLM(**c).chat(messages=c.messages)),
+            streaming_generation(data=LLM(**c.dict()).chat(messages=c.messages)),
             media_type="text/event-stream",
         )
 
@@ -90,7 +91,7 @@ async def chat_completions(c: ChatCompletions, user=Depends(verify_api_key)):
 # Completions endpoint
 # https://platform.openai.com/docs/api-reference/completions
 class Completions(BaseModel):
-    model: str = None  # Model is actually the agent_name
+    model: str = "TheBloke/Mistral-7B-OpenOrca-GGUF"
     prompt: str = None
     suffix: str = None
     max_tokens: int = 100
@@ -125,10 +126,10 @@ class CompletionsResponse(BaseModel):
 )
 async def completions(c: Completions, user=Depends(verify_api_key)):
     if not c.stream:
-        return CompletionsResponse(LLM(**c).completion(prompt=c.prompt))
+        return CompletionsResponse(LLM(**c.dict()).completion(prompt=c.prompt))
     else:
         return StreamingResponse(
-            streaming_generation(data=LLM(**c).completion(prompt=c.prompt)),
+            streaming_generation(data=LLM(**c.dict()).completion(prompt=c.prompt)),
             media_type="text/event-stream",
         )
 
@@ -137,7 +138,7 @@ async def completions(c: Completions, user=Depends(verify_api_key)):
 # https://platform.openai.com/docs/api-reference/embeddings
 class EmbeddingModel(BaseModel):
     input: str
-    model: str
+    model: str = "TheBloke/Mistral-7B-OpenOrca-GGUF"
     user: str = None
 
 

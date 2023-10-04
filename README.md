@@ -16,9 +16,6 @@ Local-LLM is a [llama.cpp](https://github.com/ggerganov/llama.cpp) server in Doc
     - [CPU Only](#cpu-only)
     - [NVIDIA GPU](#nvidia-gpu)
   - [OpenAI Style Endpoint Usage](#openai-style-endpoint-usage)
-    - [Completion](#completion)
-    - [Chat Completion](#chat-completion)
-    - [Embeddings](#embeddings)
   - [Shout Outs](#shout-outs)
 
 ## Prerequisites
@@ -93,79 +90,12 @@ docker-compose -f docker-compose-cuda.yml up
 
 ## OpenAI Style Endpoint Usage
 
-OpenAI Style endpoints available at `http://localhost:8091/` by default. Documentation can be accessed at that url when the server is running.
-
-There are tests for each of the endpoints in the [Tests Jupyter Notebook](tests.ipynb).
-
-**Note, you do not need an OpenAI API Key, this is your own API Key for the server if you defined one.**
-
-### Completion
-
-```python
-import openai
-
-openai.api_base = "http://localhost:8091/v1"
-openai.api_key = "YOUR API KEY IF YOU SET ONE IN THE .env FILE"
-prompt = "Tell me something funny about llamas."
-
-response = openai.Completion.create(
-    model="Local-LLM",
-    prompt=prompt,
-    temperature=1.31,
-    max_tokens=8192,
-    top_p=1.0,
-    frequency_penalty=0,
-    presence_penalty=0,
-    stream=False,
-)
-message = response.choices[0].text.strip()
-print(message)
-```
-
-### Chat Completion
-
-```python
-import openai
-
-openai.api_base = "http://localhost:8091/v1"
-openai.api_key = "YOUR API KEY IF YOU SET ONE IN THE .env FILE"
-prompt = "Tell me something funny about llamas."
-messages = [{"role": "system", "content": prompt}]
-
-response = openai.ChatCompletion.create(
-    model="Local-LLM",
-    messages=messages,
-    temperature=1.31,
-    max_tokens=8192,
-    top_p=1.0,
-    n=1,
-    stream=False,
-)
-message = response.choices[0].message.content.strip()
-print(message)
-```
-
-### Embeddings
-
-The embeddings endpoint is uses an ONNX embedder with 256 max tokens.
-
-```python
-import openai
-
-openai.api_base = "http://localhost:8091/v1"
-openai.api_key = "YOUR API KEY IF YOU SET ONE IN THE .env FILE"
-prompt = "Tell me something funny about llamas."
-
-response = openai.Embedding.create(
-    input=prompt,
-    model="Local-LLM",
-)
-print(response)
-```
+OpenAI Style endpoints available at `http://localhost:8091/` by default. Documentation can be accessed at that url when the server is running. There are tests with examples for each of the endpoints in the [Tests Jupyter Notebook](tests.ipynb).
 
 ## Shout Outs
 
 - [llama.cpp](https://github.com/ggerganov/llama.cpp) - For constantly improving the ability for anyone to run local models. It is one of my favorite and most exciting projects on GitHub.
+- [llamacpp-python] - For making it easy to extend the functionality of llama.cpp in Python.
 - [TheBloke](https://huggingface.co/TheBloke) - For helping enable the ability to run local models by quantizing them and sharing them with a great readme on how to use them in every repository.
 - [GPT4Free](https://github.com/xtekky/gpt4free) - For keeping this service available to generate text with great models for free.
 - [Meta](https://meta.com) - For the absolutely earth shattering open source releases of the LLaMa models and all other contributions they have made to Open Source.
