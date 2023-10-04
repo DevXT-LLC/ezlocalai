@@ -95,7 +95,7 @@ OpenAI Style endpoints available at `http://localhost:8091/` by default. Documen
 ## Shout Outs
 
 - [llama.cpp](https://github.com/ggerganov/llama.cpp) - For constantly improving the ability for anyone to run local models. It is one of my favorite and most exciting projects on GitHub.
-- [llamacpp-python] - For making it easy to extend the functionality of llama.cpp in Python.
+- [llamacpp-python](https://github.com/abetlen/llama-cpp-python) - For making it easy to extend the functionality of llama.cpp in Python.
 - [TheBloke](https://huggingface.co/TheBloke) - For helping enable the ability to run local models by quantizing them and sharing them with a great readme on how to use them in every repository.
 - [GPT4Free](https://github.com/xtekky/gpt4free) - For keeping this service available to generate text with great models for free.
 - [Meta](https://meta.com) - For the absolutely earth shattering open source releases of the LLaMa models and all other contributions they have made to Open Source.

@@ -20,7 +20,7 @@ try:
 except ImportError:
     subprocess.check_call([sys.executable, "-m", "pip", "install", "argparse"])
     import argparse
-from GetModel import get_readme
+from provider import get_readme
 
 try:
     from g4f.Provider import RetryProvider

@@ -6,3 +6,4 @@ beautifulsoup4
 streamlit
 requests
 psutil
+python-dotenv

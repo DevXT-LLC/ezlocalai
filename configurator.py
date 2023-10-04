@@ -2,10 +2,9 @@ import streamlit as st
 import requests
 from bs4 import BeautifulSoup
 from configure import auto_configure, get_sys_info
-from GetModel import get_model
+from provider import get_model
 from dotenv import load_dotenv
 import os
-import GPUtil
 import psutil
 import subprocess
 

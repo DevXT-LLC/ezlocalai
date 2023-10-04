@@ -9,3 +9,4 @@ onnxruntime
 tokenizers
 tqdm
 llama-cpp-python
+python-dotenv
