@@ -15,12 +15,12 @@ jobs:
         include:
           - llamacpp_image: "full"
             platforms: "linux/amd64,linux/arm64/v8"
-            tag_name: "${{ github.sha }}cpu"
+            tag_name: "cpu"
             MODEL_URL: "None"
             QUANT_TYPE: "None"
           - llamacpp_image: "full-cuda"
             platforms: "linux/amd64"
-            tag_name: "${{ github.sha }}cuda"
+            tag_name: "cuda"
             MODEL_URL: "None"
             QUANT_TYPE: "None"
           # Proof of concept for building images with LLMs baked in
@@ -55,6 +55,10 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Generate timestamp
+        id: timestamp
+        run: echo "timestamp=$(date +%Y%m%d%H%M%S)" >> $GITHUB_OUTPUT
+
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
@@ -64,7 +68,9 @@ jobs:
           push: true
           tags: |
             ${{ vars.DOCKERHUB_USERNAME }}/local-llm:${{ matrix.tag_name }}
+            ${{ vars.DOCKERHUB_USERNAME }}/local-llm:${{ matrix.tag_name }}-${{ steps.timestamp.outputs.timestamp }}
             ghcr.io/josh-xt/local-llm:${{ matrix.tag_name }}
+            ghcr.io/josh-xt/local-llm:${{ matrix.tag_name }}-${{ steps.timestamp.outputs.timestamp }}
           build-args: |
             LLAMACPP_IMAGE=${{ matrix.llamacpp_image }}
             MODEL_URL=${{ matrix.MODEL_URL }}
