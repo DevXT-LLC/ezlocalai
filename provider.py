@@ -11,6 +11,9 @@ THREADS = os.getenv("THREADS")
 GPU_LAYERS = os.getenv("GPU_LAYERS")
 MAIN_GPU = os.getenv("MAIN_GPU")
 BATCH_SIZE = os.getenv("BATCH_SIZE")
+DOWNLOAD_MODELS = (
+    True if os.getenv("DOWNLOAD_MODELS", "true").lower() == "true" else False
+)
 
 
 def get_tokens(text: str) -> int:
@@ -57,6 +60,8 @@ def get_model(model_url="TheBloke/Mistral-7B-OpenOrca-GGUF", quant_type="Q4_K_M"
     if not os.path.exists("models"):
         os.makedirs("models")
     if not os.path.exists(file_path):
+        if DOWNLOAD_MODELS is False:
+            raise Exception("Model not found.")
         url = (
             model_url
             if "https://" in model_url
