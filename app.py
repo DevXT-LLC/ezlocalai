@@ -88,10 +88,10 @@ class ChatCompletionsResponse(BaseModel):
 )
 async def chat_completions(c: ChatCompletions, user=Depends(verify_api_key)):
     if not c.stream:
-        return ChatCompletionsResponse(LLM(**c.dict()).chat(messages=c.messages))
+        return ChatCompletionsResponse(LLM(**c.model_dump()).chat(messages=c.messages))
     else:
         return StreamingResponse(
-            streaming_generation(data=LLM(**c.dict()).chat(messages=c.messages)),
+            streaming_generation(data=LLM(**c.model_dump()).chat(messages=c.messages)),
             media_type="text/event-stream",
         )
 
@@ -134,10 +134,12 @@ class CompletionsResponse(BaseModel):
 )
 async def completions(c: Completions, user=Depends(verify_api_key)):
     if not c.stream:
-        return CompletionsResponse(LLM(**c.dict()).completion(prompt=c.prompt))
+        return CompletionsResponse(LLM(**c.model_dump()).completion(prompt=c.prompt))
     else:
         return StreamingResponse(
-            streaming_generation(data=LLM(**c.dict()).completion(prompt=c.prompt)),
+            streaming_generation(
+                data=LLM(**c.model_dump()).completion(prompt=c.prompt)
+            ),
             media_type="text/event-stream",
         )
 
