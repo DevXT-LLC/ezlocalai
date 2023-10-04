@@ -4,7 +4,6 @@ Create a `.env` file if one does not exist and modify it to your needs. Here is 
 
 ```env
 MODEL_URL=TheBloke/Mistral-7B-OpenOrca-GGUF
-QUANT_TYPE=Q4_K_M
 MAX_TOKENS=8192
 THREADS=10
 THREADS_BATCH=10
