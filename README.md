@@ -42,8 +42,6 @@ Run with docker without a `.env` file, just replace the environment variables wi
 
 - [Docker](https://docs.docker.com/get-docker/)
 
-If using Windows and trying to run locally, it is unsupported, but you will need [Windows Subsystem for Linux](https://docs.microsoft.com/en-us/windows/wsl/install-win10) and [Docker Desktop](https://docs.docker.com/docker-for-windows/install/) at a minimum in addition to the above.
-
 ### Run with Docker (Without NVIDIA GPU)
 
 ```bash
