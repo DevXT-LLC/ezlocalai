@@ -1,18 +1,15 @@
 import requests
 import time
 import json
-import numpy as np
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
-from typing import List, Optional, Dict
+from typing import List, Dict
 from embedder import embed_text
-from llamaprovider import LlamaProvider
+from provider import LLM
 from utils import (
     verify_api_key,
     get_tokens,
-    make_post_data,
-    make_res_data,
     make_res_data_stream,
 )
 
@@ -63,78 +60,38 @@ class EmbeddingModel(BaseModel):
     user: str = None
 
 
-class ChatMessage(BaseModel):
-    role: str
-    content: str
-
-
-class ChatInput(BaseModel):
-    prompt: Optional[str] = None
-    messages: Optional[List[ChatMessage]] = None
-    temperature: Optional[float] = None
-    top_k: Optional[int] = None
-    top_p: Optional[float] = None
-    max_tokens: Optional[int] = None
-    presence_penalty: Optional[float] = None
-    frequency_penalty: Optional[float] = None
-    repeat_penalty: Optional[float] = None
-    mirostat: Optional[float] = None
-    mirostat_tau: Optional[float] = None
-    mirostat_eta: Optional[float] = None
-    seed: Optional[int] = None
-    logit_bias: Optional[dict] = None
-    stop: Optional[List[str]] = None
-    stream: Optional[bool] = False
-    tokenize: Optional[bool] = False
-
-
-class EmbeddingModel(BaseModel):
-    input: str
-    model: str
-
-
 # Chat completions endpoint
 # https://platform.openai.com/docs/api-reference/chat
 @app.post(
     "/v1/chat/completions", tags=["Completions"], dependencies=[Depends(verify_api_key)]
 )
-async def chat_completions(chat_input: ChatInput, user=Depends(verify_api_key)):
-    stream = chat_input.stream
-    tokenize = chat_input.tokenize
-    post_data = make_post_data(chat_input, chat=True, stream=stream)
-
-    prompt_token = []
-    if tokenize:
-        token_data = requests.post(
-            f"{base_uri}/tokenize",
-            json={"content": post_data["prompt"]},
-        ).json()
-        prompt_token = token_data["tokens"]
-
+async def chat_completions(c: ChatCompletions, user=Depends(verify_api_key)):
+    stream = c.stream
+    messages = c.messages
+    if len(messages) > 1:
+        for message in messages:
+            if message["role"] == "system":
+                prompt = f"\nASSISTANT's RULE: {message.content}"
+            elif message["role"] == "user":
+                prompt = f"\nUSER: {message.content}"
+            elif message["role"] == "assistant":
+                prompt = f"\nASSISTANT: {message.content}"
+    else:
+        prompt = messages[0]["content"]
+    tokens = get_tokens(prompt)
     if not stream:
-        data = requests.post(f"{base_uri}/completion", json=post_data).json()
-        res_data = make_res_data(data, chat=True, prompt_token=prompt_token)
-        return res_data
+        data = LLM(**c).instruct(prompt=prompt, tokens=tokens)
+        return data
     else:
 
         async def generate():
-            data = requests.post(
-                f"{base_uri}/completion",
-                json=post_data,
-                stream=True,
-            )
-            time_now = int(time.time())
-            res_data = make_res_data_stream(
-                {}, chat=True, time_now=time_now, start=True
-            )
-            yield "data: {}\n".format(json.dumps(res_data))
+            data = LLM(**c).instruct(prompt=c.prompt, tokens=tokens)
+            yield "data: {}\n".format(json.dumps(data))
             for line in data.iter_lines():
                 if line:
                     decoded_line = line.decode("utf-8")
-                    res_data = make_res_data_stream(
-                        json.loads(decoded_line[6:]), chat=True, time_now=time_now
-                    )
-                    yield "data: {}\n".format(json.dumps(res_data))
+                    current_data = json.loads(decoded_line[6:])
+                    yield "data: {}\n".format(json.dumps(current_data))
 
         return StreamingResponse(generate(), media_type="text/event-stream")
 
@@ -144,38 +101,22 @@ async def chat_completions(chat_input: ChatInput, user=Depends(verify_api_key)):
 @app.post(
     "/v1/completions", tags=["Completions"], dependencies=[Depends(verify_api_key)]
 )
-async def completion(chat_input: ChatInput, user=Depends(verify_api_key)):
-    stream = chat_input.stream
-    tokenize = chat_input.tokenize
-    post_data = make_post_data(chat_input, chat=False, stream=stream)
-    prompt_token = []
-    if tokenize:
-        token_data = requests.post(
-            f"{base_uri}/tokenize",
-            json={"content": post_data["prompt"]},
-        ).json()
-        prompt_token = token_data["tokens"]
-
+async def completions(c: Completions, user=Depends(verify_api_key)):
+    stream = c.stream
+    tokens = get_tokens(c.prompt)
     if not stream:
-        data = requests.post(f"{base_uri}/completion", json=post_data).json()
-        res_data = make_res_data(data, chat=False, prompt_token=prompt_token)
-        return res_data
+        data = LLM(**c).instruct(prompt=c.prompt, tokens=tokens)
+        return data
     else:
 
         async def generate():
-            data = requests.post(
-                f"{base_uri}/completion",
-                json=post_data,
-                stream=True,
-            )
-            time_now = int(time.time())
+            data = LLM(**c).instruct(prompt=c.prompt, tokens=tokens)
+            yield "data: {}\n".format(json.dumps(data))
             for line in data.iter_lines():
                 if line:
                     decoded_line = line.decode("utf-8")
-                    res_data = make_res_data_stream(
-                        json.loads(decoded_line[6:]), chat=False, time_now=time_now
-                    )
-                    yield "data: {}\n".format(json.dumps(res_data))
+                    current_data = json.loads(decoded_line[6:])
+                    yield "data: {}\n".format(json.dumps(current_data))
 
         return StreamingResponse(generate(), media_type="text/event-stream")
 
@@ -201,105 +142,3 @@ async def embedding(embedding: EmbeddingModel, user=Depends(verify_api_key)):
         "model": embedding.model,
         "usage": {"prompt_tokens": tokens, "total_tokens": tokens},
     }
-
-
-"""
-@app.post(
-    "/api/v1/completions", tags=["Completions"], dependencies=[Depends(verify_api_key)]
-)
-async def completion(prompt: Completions, user=Depends(verify_api_key)):
-    # prompt.model is the agent name
-    agent = Interactions(agent_name=prompt.model, user=user)
-    agent_config = agent.agent.AGENT_CONFIG
-    if "settings" in agent_config:
-        if "AI_MODEL" in agent_config["settings"]:
-            model = agent_config["settings"]["AI_MODEL"]
-        else:
-            model = "undefined"
-    else:
-        model = "undefined"
-    response = await agent.run(
-        user_input=prompt.prompt,
-        prompt="Custom Input",
-        context_results=3,
-        shots=prompt.n,
-    )
-    characters = string.ascii_letters + string.digits
-    prompt_tokens = get_tokens(prompt.prompt)
-    completion_tokens = get_tokens(response)
-    total_tokens = int(prompt_tokens) + int(completion_tokens)
-    random_chars = "".join(random.choice(characters) for _ in range(15))
-    res_model = {
-        "id": f"cmpl-{random_chars}",
-        "object": "text_completion",
-        "created": int(time.time()),
-        "model": model,
-        "choices": [
-            {
-                "text": response,
-                "index": 0,
-                "logprobs": None,
-                "finish_reason": "stop",
-            }
-        ],
-        "usage": {
-            "prompt_tokens": prompt_tokens,
-            "completion_tokens": completion_tokens,
-            "total_tokens": total_tokens,
-        },
-    }
-    return res_model
-
-
-@app.post(
-    "/api/v1/chat/completions",
-    tags=["Completions"],
-    dependencies=[Depends(verify_api_key)],
-)
-async def chat_completion(prompt: Completions, user=Depends(verify_api_key)):
-    # prompt.model is the agent name
-    agent = Interactions(agent_name=prompt.model, user=user)
-    agent_config = agent.agent.AGENT_CONFIG
-    if "settings" in agent_config:
-        if "AI_MODEL" in agent_config["settings"]:
-            model = agent_config["settings"]["AI_MODEL"]
-        else:
-            model = "undefined"
-    else:
-        model = "undefined"
-    response = await agent.run(
-        user_input=prompt.prompt,
-        prompt="Custom Input",
-        context_results=3,
-        shots=prompt.n,
-    )
-    characters = string.ascii_letters + string.digits
-    prompt_tokens = get_tokens(prompt.prompt)
-    completion_tokens = get_tokens(response)
-    total_tokens = int(prompt_tokens) + int(completion_tokens)
-    random_chars = "".join(random.choice(characters) for _ in range(15))
-    res_model = {
-        "id": f"chatcmpl-{random_chars}",
-        "object": "chat.completion",
-        "created": int(time.time()),
-        "model": model,
-        "choices": [
-            {
-                "index": 0,
-                "message": [
-                    {
-                        "role": "assistant",
-                        "content": response,
-                    },
-                ],
-                "finish_reason": "stop",
-            }
-        ],
-        "usage": {
-            "prompt_tokens": prompt_tokens,
-            "completion_tokens": completion_tokens,
-            "total_tokens": total_tokens,
-        },
-    }
-    return res_model
-"""
