@@ -44,7 +44,7 @@ class ChatCompletions(BaseModel):
     model: str = None  # Model is actually the agent_name
     messages: List[dict] = None
     functions: List[dict] = None
-    function_call = None
+    function_call: str = None
     temperature: float = 0.9
     top_p: float = 1.0
     n: int = 1
@@ -203,6 +203,7 @@ async def embedding(embedding: EmbeddingModel, user=Depends(verify_api_key)):
     }
 
 
+"""
 @app.post(
     "/api/v1/completions", tags=["Completions"], dependencies=[Depends(verify_api_key)]
 )
@@ -301,3 +302,4 @@ async def chat_completion(prompt: Completions, user=Depends(verify_api_key)):
         },
     }
     return res_model
+"""
