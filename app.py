@@ -84,11 +84,10 @@ class ChatCompletionsResponse(BaseModel):
     "/v1/chat/completions",
     tags=["Completions"],
     dependencies=[Depends(verify_api_key)],
-    response_model=ChatCompletionsResponse,
 )
 async def chat_completions(c: ChatCompletions, user=Depends(verify_api_key)):
     if not c.stream:
-        return ChatCompletionsResponse(LLM(**c.model_dump()).chat(messages=c.messages))
+        return LLM(**c.model_dump()).chat(messages=c.messages)
     else:
         return StreamingResponse(
             streaming_generation(data=LLM(**c.model_dump()).chat(messages=c.messages)),
@@ -130,11 +129,10 @@ class CompletionsResponse(BaseModel):
     "/v1/completions",
     tags=["Completions"],
     dependencies=[Depends(verify_api_key)],
-    response_model=CompletionsResponse,
 )
 async def completions(c: Completions, user=Depends(verify_api_key)):
     if not c.stream:
-        return CompletionsResponse(LLM(**c.model_dump()).completion(prompt=c.prompt))
+        return LLM(**c.model_dump()).completion(prompt=c.prompt)
     else:
         return StreamingResponse(
             streaming_generation(
@@ -163,9 +161,6 @@ class EmbeddingResponse(BaseModel):
     "/v1/embeddings",
     tags=["Embeddings"],
     dependencies=[Depends(verify_api_key)],
-    response_model=EmbeddingResponse,
 )
 async def embedding(embedding: EmbeddingModel, user=Depends(verify_api_key)):
-    return EmbeddingResponse(
-        LLM(model=embedding.model).embedding(input=embedding.input)
-    )
+    return LLM(model=embedding.model).embedding(input=embedding.input)
