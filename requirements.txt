@@ -10,3 +10,5 @@ tokenizers
 tqdm
 llama-cpp-python
 python-dotenv
+GPUtil
+psutil

@@ -16,7 +16,6 @@ LOCAL_LLM_API_KEY=
 
 - `LOCAL_LLM_API_KEY` - The API key to use for the server. If not set, the server will not require an API key.
 - `MODEL_URL` - The model URL or repository name to download from Hugging Face. Default is `TheBloke/Mistral-7B-OpenOrca-GGUF`.
-- `QUANT_TYPE` - The quantization type to use. Default is `Q4_K_M`.
 - `MAX_TOKENS` - The maximum number of tokens. Default is `8192`.
 - `THREADS` - The number of threads to use.
 - `THREADS_BATCH` - The number of threads to use for batch generation, this will enable parallel generation of batches. Setting it to the same value as threads will disable batch generation.

@@ -3,8 +3,7 @@
 set -e
 
 MODEL_URL=${MODEL_URL:-"TheBloke/Mistral-7B-OpenOrca-GGUF"}
-QUANT_TYPE=${QUANT_TYPE:-"Q5_K_S"}
-MODEL_PATH=$(python3 GetModel.py --model_url $MODEL_URL --quant_type $QUANT_TYPE)
+MODEL_PATH=$(python3 GetModel.py --model_url $MODEL_URL)
 MAX_TOKENS=${MAX_TOKENS:-8192}
 THREADS=${THREADS:-($(nproc) - 1)}
 THREADS_BATCH=${THREADS_BATCH:-$THREADS}

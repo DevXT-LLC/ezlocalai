@@ -10,7 +10,6 @@ import subprocess
 
 load_dotenv()
 CURRENT_MODEL = os.getenv("MODEL_URL", "TheBloke/Mistral-7B-OpenOrca-GGUF")
-QUANT_TYPE = os.getenv("QUANT_TYPE", "Q4_K_M")
 MAX_TOKENS = os.getenv("MAX_TOKENS", 8192)
 THREADS = os.getenv("THREADS", 4)
 THREADS_BATCH = os.getenv("THREADS_BATCH", 4)
@@ -90,20 +89,6 @@ manual_config = st.checkbox("Manually Configure Environment")
 model_names = get_models()
 with st.form("configure"):
     model_keys = [list(model.keys())[0] for model in model_names]
-    quantization_types = [
-        "Q4_K_M",
-        "Q2_K",
-        "Q3_K_S",
-        "Q3_K_M",
-        "Q3_K_L",
-        "Q4_0",
-        "Q4_K_S",
-        "Q5_0",
-        "Q5_K_S",
-        "Q5_K_M",
-        "Q6_K",
-        "Q8_0",
-    ]
     current_model_name = CURRENT_MODEL.split("/")[1].replace("-GGUF", "")
     default_index = (
         model_keys.index(current_model_name) if current_model_name in model_keys else 0
@@ -126,12 +111,6 @@ with st.form("configure"):
     )
 
     if manual_config:
-        quantization_type = st.selectbox(
-            "Quantization Type",
-            quantization_types,
-            index=quantization_types.index(QUANT_TYPE),
-            help="The quantization type to use. Default is Q4_K_M.",
-        )
         max_tokens = st.number_input(
             "Max Tokens",
             min_value=1,
@@ -174,7 +153,6 @@ with st.form("configure"):
                 f.write(
                     f"MODEL_URL={model_names[model_keys.index(model_name)][model_name]}\n"
                 )
-                f.write(f"QUANT_TYPE={quantization_type}\n")
                 f.write(f"MAX_TOKENS={max_tokens}\n")
                 f.write(f"THREADS={threads}\n")
                 f.write(f"THREADS_BATCH={threads_batch}\n")
@@ -184,7 +162,6 @@ with st.form("configure"):
                 f.write(f"LOCAL_LLM_API_KEY={local_llm_api_key}\n")
             st.rerun()
     else:
-        quantization_type = QUANT_TYPE
         max_tokens = MAX_TOKENS
         threads = THREADS
         threads_batch = THREADS_BATCH
@@ -194,5 +171,5 @@ with st.form("configure"):
         if st.form_submit_button("Auto Configure Server"):
             model_url = list(model_names[default_index].values())[0]
             auto_configure(model_url=model_url, api_key=local_llm_api_key)
-            get_model(model_url=model_url, quant_type=QUANT_TYPE)
+            get_model(model_url=model_url)
             st.rerun()

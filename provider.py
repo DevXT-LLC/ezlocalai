@@ -4,14 +4,43 @@ import re
 import requests
 import tiktoken
 import json
+import psutil
+import GPUtil
 
-THREADS = os.environ.get("THREADS")
-GPU_LAYERS = os.environ.get("GPU_LAYERS")
-MAIN_GPU = os.environ.get("MAIN_GPU")
-BATCH_SIZE = os.environ.get("BATCH_SIZE")
+
+def get_sys_info():
+    try:
+        gpus = GPUtil.getGPUs()
+    except:
+        gpus = "None"
+    ram = psutil.virtual_memory().total / 1024**3
+    ram = round(ram)
+    threads = psutil.cpu_count()
+    return gpus, ram, threads
+
+
+gpus, ram, threads = get_sys_info()
+if gpus == "None":
+    GPU_LAYERS = 0
+    MAIN_GPU = 0
+else:
+    GPU_LAYERS = os.environ.get("GPU_LAYERS", 0)
+    MAIN_GPU = os.environ.get("MAIN_GPU", 0)
+THREADS = os.environ.get("THREADS", threads - 2)
+BATCH_SIZE = os.environ.get("BATCH_SIZE", 512)
 DOWNLOAD_MODELS = (
     True if os.environ.get("DOWNLOAD_MODELS", "true").lower() == "true" else False
 )
+# 8GB for 7B for Q5_K_M
+# 13GB for 13B for Q5_K_M
+# 30GB for 34B for Q5_K_M
+# 52GB for 70B for Q5_K_M
+# Subtract 1GB for Q4_K_M on each model. Difference isn't worth it to run any others.
+# If the user has 16GB or more, use Q5_K_M. Otherwise, use Q4_K_M.
+if ram >= 16:
+    QUANT_TYPE = os.environ.get("QUANT_TYPE", "Q5_K_M")
+else:
+    QUANT_TYPE = os.environ.get("QUANT_TYPE", "Q4_K_M")
 
 
 def get_tokens(text: str) -> int:
@@ -52,9 +81,9 @@ def get_prompt(model_url="TheBloke/Mistral-7B-OpenOrca-GGUF"):
     return prompt_template
 
 
-def get_model(model_url="TheBloke/Mistral-7B-OpenOrca-GGUF", quant_type="Q4_K_M"):
+def get_model(model_url="TheBloke/Mistral-7B-OpenOrca-GGUF"):
     model_name = get_model_name(model_url=model_url)
-    file_path = f"models/{model_name}/{model_name}.{quant_type}.gguf"
+    file_path = f"models/{model_name}/{model_name}.{QUANT_TYPE}.gguf"
     if not os.path.exists("models"):
         os.makedirs("models")
     if not os.path.exists(file_path):
@@ -63,7 +92,7 @@ def get_model(model_url="TheBloke/Mistral-7B-OpenOrca-GGUF", quant_type="Q4_K_M"
         url = (
             model_url
             if "https://" in model_url
-            else f"https://huggingface.co/{model_url}/resolve/main/{model_name}.{quant_type}.gguf"
+            else f"https://huggingface.co/{model_url}/resolve/main/{model_name}.{QUANT_TYPE}.gguf"
         )
         with requests.get(url, stream=True, allow_redirects=True) as r:
             r.raise_for_status()

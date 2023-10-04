@@ -78,7 +78,6 @@ class ChatCompletionsResponse(BaseModel):
     response_model=ChatCompletionsResponse,
 )
 async def chat_completions(c: ChatCompletions, user=Depends(verify_api_key)):
-    # Turn c into a dict
     if not c.stream:
         return ChatCompletionsResponse(LLM(**c.dict()).chat(messages=c.messages))
     else:
