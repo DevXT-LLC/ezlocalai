@@ -87,6 +87,25 @@ def get_readme(model_url="TheBloke/Mistral-7B-OpenOrca-GGUF"):
     return readme
 
 
+def get_max_tokens(model_url="TheBloke/Mistral-7B-OpenOrca-GGUF"):
+    readme = get_readme(model_url)
+    if "131072" in readme or "128k" in readme:
+        return 131072
+    if "65536" in readme or "64k" in readme:
+        return 65536
+    if "32768" in readme or "32k" in readme:
+        return 32768
+    if "16384" in readme or "16k" in readme:
+        return 16384
+    if "8192" in readme or "8k" in readme:
+        return 8192
+    if "4096" in readme or "4k" in readme:
+        return 4096
+    if "2048" in readme or "2k" in readme:
+        return 2048
+    return 8192
+
+
 def get_prompt(model_url="TheBloke/Mistral-7B-OpenOrca-GGUF"):
     model_name = get_model_name(model_url=model_url)
     if os.path.exists(f"models/{model_name}/prompt.txt"):
@@ -174,7 +193,7 @@ class LLM:
     def __init__(
         self,
         stop: List[str] = ["<|im_end|>", "</s>"],
-        max_tokens: int = 8192,
+        max_tokens: int = 0,
         temperature: float = 1.31,
         top_p: float = 1.0,
         stream: bool = False,
@@ -187,7 +206,15 @@ class LLM:
         self.params = {}
         self.model = model
         self.params["model_path"] = get_model(model_url=model)
-        self.max_tokens = max_tokens if max_tokens else 8192
+        model_max_tokens = get_max_tokens(model_url=model)
+        try:
+            self.max_tokens = (
+                int(max_tokens)
+                if max_tokens and int(max_tokens) > 0
+                else model_max_tokens
+            )
+        except:
+            self.max_tokens = model_max_tokens
         self.params["n_ctx"] = self.max_tokens
         self.params["verbose"] = False
         if stop:
@@ -263,3 +290,15 @@ class LLM:
         llm = Llama(embedding=True, **self.params)
         embeddings = llm.create_embedding(input=input, model=self.model)
         return embeddings
+
+
+if __name__ == "__main__":
+    import argparse
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--model_url", type=str, default="None")
+    args = parser.parse_args()
+    model_url = args.model_url
+    if model_url != "None":
+        model_path = get_model(model_url)
+        print(model_path)

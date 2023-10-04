@@ -3,7 +3,7 @@
 - [Dockerhub](https://hub.docker.com/r/joshxt/local-llm/tags)
 - [GitHub](https://github.com/Josh-XT/Local-LLM)
 
-Local-LLM is a [llama.cpp](https://github.com/ggerganov/llama.cpp) server in Docker with OpenAI Style Endpoints that allows you to start it with the URL of the model from Hugging Face. It will automatically download the model from Hugging Face and configure the server for you. It also allows you to automatically configure the server based on your CPU, RAM, and GPU. It is designed to be as easy as possible to get started with running local models.
+Local-LLM is a [llama.cpp](https://github.com/ggerganov/llama.cpp) server in Docker with OpenAI Style Endpoints that allows you to send the model name as the URL of the model from Hugging Face. It will automatically download the model from Hugging Face and configure the server for you. It automatically configures the server based on your CPU, RAM, and GPU. It is designed to be as easy as possible to get started with running local models.
 
 ## Table of Contents 📖
 
@@ -11,7 +11,7 @@ Local-LLM is a [llama.cpp](https://github.com/ggerganov/llama.cpp) server in Doc
   - [Table of Contents 📖](#table-of-contents-)
   - [Prerequisites](#prerequisites)
   - [Clone the repository](#clone-the-repository)
-  - [Local-LLM Configurator UI](#local-llm-configurator-ui)
+  - [Environment Setup (Optional)](#environment-setup-optional)
   - [Run with Docker](#run-with-docker)
     - [CPU Only](#cpu-only)
     - [NVIDIA GPU](#nvidia-gpu)
@@ -35,22 +35,27 @@ git clone https://github.com/Josh-XT/Local-LLM
 cd Local-LLM
 ```
 
-## Local-LLM Configurator UI
+## Environment Setup (Optional)
 
-The Local-LLM Configurator UI is a Streamlit app that will automatically set up your environment variables for you based on your CPU, RAM, and GPU. It will also give you the option to manually set up your environment variables if you want to do that instead.  You can choose your desired model from the list pulled from Hugging Face directly and choose to auto configure or [manually configure](ManualSetup.md) your environment variables. This will also determine if you can run the CUDA version of the server or not so that you do not have to worry about it.
+Assumptions will be made on all of these values if you choose to skip this step. Create a `.env` file if one does not exist and modify it to your needs. Here is an example `.env` file:
 
-The automated configuration script uses `gpt4free` as a free OpenAI `gpt-3.5-turbo` model only to ask it what settings are recommended for your system. It will then set up your `.env` file with the recommended settings. You can skip the manual setup if you use this method.
-
-```bash
-pip install -r configurator-requirements.txt --upgrade
-streamlit run configurator.py
+```env
+MODEL_URL=TheBloke/Mistral-7B-OpenOrca-GGUF
+THREADS=10
+THREADS_BATCH=10
+GPU_LAYERS=0
+MAIN_GPU=0
+BATCH_SIZE=512
+LOCAL_LLM_API_KEY=
 ```
 
-![Automated Configuration](screenshots/configurator-ss1.png)
-
-![Manual Configuration](screenshots/configurator-ss2.png)
-
-[If you prefer to manually set up your environment variables, check out the manual setup documentation.](ManualSetup.md)
+- `LOCAL_LLM_API_KEY` - The API key to use for the server. If not set, the server will not require an API key.
+- `MODEL_URL` - The model URL or repository name to download from Hugging Face. Default is `TheBloke/Mistral-7B-OpenOrca-GGUF`.
+- `THREADS` - The number of threads to use.
+- `THREADS_BATCH` - The number of threads to use for batch generation, this will enable parallel generation of batches. Setting it to the same value as threads will disable batch generation.
+- `BATCH_SIZE` - The batch size to use for batch generation. Default is `512`.
+- `GPU_LAYERS` - The number of layers to use on the GPU. Default is `0`.
+- `MAIN_GPU` - The GPU to use for the main model. Default is `0`.
 
 ## Run with Docker
 
@@ -60,10 +65,10 @@ Run with docker without a `.env` file, just replace the environment variables wi
 
 ```bash
 docker pull joshxt/local-llm:cpu
-docker run -d --name local-llm -p 8091:8091 joshxt/local-llm:cpu -e MODEL_URL="TheBloke/Mistral-7B-OpenOrca-GGUF" -e MAX_TOKENS="8192" -e THREADS="10" -e THREADS_BATCH="10" -e BATCH_SIZE="512" -e GPU_LAYERS="0" -e MAIN_GPU="0" -e LOCAL_LLM_API_KEY=""
+docker run -d --name local-llm -p 8091:8091 joshxt/local-llm:cpu -e MODEL_URL="TheBloke/Mistral-7B-OpenOrca-GGUF" -e THREADS="10" -e THREADS_BATCH="10" -e BATCH_SIZE="512" -e GPU_LAYERS="0" -e MAIN_GPU="0" -e LOCAL_LLM_API_KEY=""
 ```
 
-Or with docker-compose after setting up your `.env` file with the configurator or manually:
+Or with docker-compose after setting up your `.env` file:
 
 ```bash
 docker-compose pull
@@ -78,10 +83,10 @@ Run with docker without a `.env` file, just replace the environment variables wi
 
 ```bash
 docker pull joshxt/local-llm:cuda
-docker run -d --name local-llm -p 8091:8091 --gpus all joshxt/local-llm:cuda -e MODEL_URL="TheBloke/Mistral-7B-OpenOrca-GGUF" -e MAX_TOKENS="8192" -e THREADS="10" -e THREADS_BATCH="10" -e BATCH_SIZE="512" -e GPU_LAYERS="0" -e MAIN_GPU="0" -e LOCAL_LLM_API_KEY=""
+docker run -d --name local-llm -p 8091:8091 --gpus all joshxt/local-llm:cuda -e MODEL_URL="TheBloke/Mistral-7B-OpenOrca-GGUF" -e THREADS="10" -e THREADS_BATCH="10" -e BATCH_SIZE="512" -e GPU_LAYERS="0" -e MAIN_GPU="0" -e LOCAL_LLM_API_KEY=""
 ```
 
-Or with docker-compose after setting up your `.env` file with the configurator or manually:
+Or with docker-compose after setting up your `.env` file:
 
 ```bash
 docker-compose -f docker-compose-cuda.yml pull
@@ -97,7 +102,6 @@ OpenAI Style endpoints available at `http://localhost:8091/` by default. Documen
 - [ggerganov/llama.cpp](https://github.com/ggerganov/llama.cpp) - For constantly improving the ability for anyone to run local models. It is one of my favorite and most exciting projects on GitHub.
 - [abetlen/llama-cpp-python](https://github.com/abetlen/llama-cpp-python) - For making it easy to extend the functionality of llama.cpp in Python.
 - [TheBloke](https://huggingface.co/TheBloke) - For helping enable the ability to run local models by quantizing them and sharing them with a great readme on how to use them in every repository.
-- [xtekky/GPT4Free](https://github.com/xtekky/gpt4free) - For keeping this service available to generate text with great models for free.
 - [Meta](https://meta.com) - For the absolutely earth shattering open source releases of the LLaMa models and all other contributions they have made to Open Source.
 - [OpenAI](https://openai.com/) - For setting good standards for endpoints and making great models.
 - As much as I hate to do it, I can't list all of the amazing people building and fine tuning local models, but you know who you are. Thank you for all of your hard work and contributions to the community!

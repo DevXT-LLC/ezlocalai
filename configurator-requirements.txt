@@ -1,9 +1,0 @@
-g4f
-psutil
-argparse
-GPUtil
-beautifulsoup4
-streamlit
-requests
-psutil
-python-dotenv
