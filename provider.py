@@ -1,5 +1,6 @@
 from llama_cpp import Llama
 from bs4 import BeautifulSoup
+from typing import List
 import os
 import re
 import requests
@@ -154,7 +155,7 @@ async def streaming_generation(data):
 class LLM:
     def __init__(
         self,
-        stop: str = "<|im_end|>",
+        stop: List[str] = "<|im_end|>",
         max_tokens: int = 8192,
         temperature: float = 1.31,
         top_p: float = 1.0,
