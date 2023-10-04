@@ -62,4 +62,5 @@ OpenAI Style endpoints available at `http://localhost:8091/` by default. Documen
 - [TheBloke](https://huggingface.co/TheBloke) - For helping enable the ability to run local models by quantizing them and sharing them with a great readme on how to use them in every repository.
 - [Meta](https://meta.com) - For the absolutely earth shattering open source releases of the LLaMa models and all other contributions they have made to Open Source.
 - [OpenAI](https://openai.com/) - For setting good standards for endpoints and making great models.
+- [Hugging Face](https://huggingface.co/) - For making it easy to use and share models.
 - As much as I hate to do it, I can't list all of the amazing people building and fine tuning local models, but you know who you are. Thank you for all of your hard work and contributions to the community!
