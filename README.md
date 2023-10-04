@@ -3,7 +3,7 @@
 - [Dockerhub](https://hub.docker.com/r/joshxt/local-llm/tags)
 - [GitHub](https://github.com/Josh-XT/Local-LLM)
 
-Local-LLM is a [llama.cpp](https://github.com/ggerganov/llama.cpp) server in Docker with OpenAI Style Endpoints that allows you to send the model name as the URL of the model from Hugging Face. It will automatically download the model from Hugging Face and configure the server for you. It automatically configures the server based on your CPU, RAM, and GPU. It is designed to be as easy as possible to get started with running local models.
+Local-LLM is a [llama.cpp](https://github.com/ggerganov/llama.cpp) server in Docker with OpenAI Style Endpoints that allows you to send the model name as the URL of the model from Hugging Face. It will automatically download the model from Hugging Face if it isn't already downloaded and configure the server for you. It automatically configures the server based on your CPU, RAM, and GPU. It is designed to be as easy as possible to get started with running local models.
 
 ## Table of Contents 📖
 
@@ -23,7 +23,6 @@ Local-LLM is a [llama.cpp](https://github.com/ggerganov/llama.cpp) server in Doc
 - [Git](https://git-scm.com/downloads)
 - [Docker](https://docs.docker.com/get-docker/)
 - [Docker Compose](https://docs.docker.com/compose/install/)
-- [Python 3.10](https://www.python.org/downloads/)
 - [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html) (if using NVIDIA GPU)
 
 If using Windows and trying to run locally, it is unsupported, but you will need [Windows Subsystem for Linux](https://docs.microsoft.com/en-us/windows/wsl/install-win10) and [Docker Desktop](https://docs.docker.com/docker-for-windows/install/) at a minimum in addition to the above.
@@ -40,19 +39,15 @@ cd Local-LLM
 Assumptions will be made on all of these values if you choose to skip this step. Create a `.env` file if one does not exist and modify it to your needs. Here is an example `.env` file:
 
 ```env
-MODEL_URL=TheBloke/Mistral-7B-OpenOrca-GGUF
+LOCAL_LLM_API_KEY=
 THREADS=10
-THREADS_BATCH=10
+BATCH_SIZE=512
 GPU_LAYERS=0
 MAIN_GPU=0
-BATCH_SIZE=512
-LOCAL_LLM_API_KEY=
 ```
 
 - `LOCAL_LLM_API_KEY` - The API key to use for the server. If not set, the server will not require an API key.
-- `MODEL_URL` - The model URL or repository name to download from Hugging Face. Default is `TheBloke/Mistral-7B-OpenOrca-GGUF`.
-- `THREADS` - The number of threads to use.
-- `THREADS_BATCH` - The number of threads to use for batch generation, this will enable parallel generation of batches. Setting it to the same value as threads will disable batch generation.
+- `THREADS` - The number of threads to use. Default is your CPU core count minus 1.
 - `BATCH_SIZE` - The batch size to use for batch generation. Default is `512`.
 - `GPU_LAYERS` - The number of layers to use on the GPU. Default is `0`.
 - `MAIN_GPU` - The GPU to use for the main model. Default is `0`.
@@ -65,7 +60,7 @@ Run with docker without a `.env` file, just replace the environment variables wi
 
 ```bash
 docker pull joshxt/local-llm:cpu
-docker run -d --name local-llm -p 8091:8091 joshxt/local-llm:cpu -e MODEL_URL="TheBloke/Mistral-7B-OpenOrca-GGUF" -e THREADS="10" -e THREADS_BATCH="10" -e BATCH_SIZE="512" -e GPU_LAYERS="0" -e MAIN_GPU="0" -e LOCAL_LLM_API_KEY=""
+docker run -d --name local-llm -p 8091:8091 joshxt/local-llm:cpu -e THREADS="10" -e BATCH_SIZE="512" -e LOCAL_LLM_API_KEY=""
 ```
 
 Or with docker-compose after setting up your `.env` file:
@@ -83,7 +78,7 @@ Run with docker without a `.env` file, just replace the environment variables wi
 
 ```bash
 docker pull joshxt/local-llm:cuda
-docker run -d --name local-llm -p 8091:8091 --gpus all joshxt/local-llm:cuda -e MODEL_URL="TheBloke/Mistral-7B-OpenOrca-GGUF" -e THREADS="10" -e THREADS_BATCH="10" -e BATCH_SIZE="512" -e GPU_LAYERS="0" -e MAIN_GPU="0" -e LOCAL_LLM_API_KEY=""
+docker run -d --name local-llm -p 8091:8091 --gpus all joshxt/local-llm:cuda -e THREADS="10" -e BATCH_SIZE="512" -e GPU_LAYERS="0" -e MAIN_GPU="0" -e LOCAL_LLM_API_KEY=""
 ```
 
 Or with docker-compose after setting up your `.env` file:
