@@ -5,9 +5,6 @@ uvicorn
 argparse
 pyjwt
 tiktoken
-onnxruntime
-tokenizers
-tqdm
 llama-cpp-python
 python-dotenv
 GPUtil
