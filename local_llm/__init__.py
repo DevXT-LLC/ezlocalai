@@ -63,7 +63,7 @@ def get_model_url(model_name="Mistral-7B-OpenOrca"):
     for model in models:
         for key in model:
             if model_name.lower() == key.lower():
-                model_url = model[model_name]
+                model_url = model[key]
                 break
     if model_url == "":
         raise Exception(
