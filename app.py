@@ -2,7 +2,7 @@ from fastapi import FastAPI, Depends, HTTPException, Header
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from typing import List, Dict
-from local_llm import LLM, streaming_generation, get_models
+from local_llm import LLM, streaming_generation
 import os
 import jwt
 
