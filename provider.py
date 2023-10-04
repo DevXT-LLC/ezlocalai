@@ -176,7 +176,11 @@ class LLM:
         self.params["n_ctx"] = self.max_tokens
         self.params["verbose"] = False
         if stop:
+            if isinstance(stop, str):
+                stop = [stop]
             self.params["stop"] = stop
+        else:
+            self.params["stop"] = ["<|im_end|>"]
         if temperature:
             self.params["temperature"] = temperature
         if top_p:
