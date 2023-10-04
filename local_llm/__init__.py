@@ -141,6 +141,8 @@ def get_model(model_name="Mistral-7B-OpenOrca", models_dir="models"):
     file_path = f"{models_dir}/{model_name}/{model_name}.{quantization_type}.gguf"
     if not os.path.exists(models_dir):
         os.makedirs(models_dir)
+    if not os.path.exists(f"{models_dir}/{model_name}"):
+        os.makedirs(f"{models_dir}/{model_name}")
     if not os.path.exists(file_path):
         if DOWNLOAD_MODELS is False:
             raise Exception("Model not found.")
@@ -217,16 +219,19 @@ class LLM:
         presence_penalty: float = 0.0,
         frequency_penalty: float = 0.0,
         logit_bias: list = [],
-        model: str = "Mistral-7B-OpenOrca",
-        models_dir: str = "models",
+        model: str = "",
+        models_dir: str = "./models",
         system_message: str = "",
         **kwargs,
     ):
         self.params = {}
         self.model_name = model
-        self.params["model_path"] = get_model(
-            model_name=self.model_name, models_dir=models_dir
-        )
+        if model != "":
+            self.params["model_path"] = get_model(
+                model_name=self.model_name, models_dir=models_dir
+            )
+        else:
+            self.params["model_path"] = ""
         model_max_tokens = get_max_tokens(
             model_name=self.model_name, models_dir=models_dir
         )
