@@ -16,24 +16,9 @@ jobs:
           - llamacpp_image: "full"
             platforms: "linux/amd64,linux/arm64/v8"
             tag_name: "cpu"
-            MODEL_URL: "None"
-            QUANT_TYPE: "None"
           - llamacpp_image: "full-cuda"
             platforms: "linux/amd64"
             tag_name: "cuda"
-            MODEL_URL: "None"
-            QUANT_TYPE: "None"
-          # Proof of concept for building images with LLMs baked in
-          #- llamacpp_image: "full"
-          # platforms: "linux/amd64,linux/arm64/v8"
-          # tag_name: "mistral7b-openorca-cpu"
-          # MODEL_URL: "TheBloke/Mistral-7B-OpenOrca-GGUF"
-          # QUANT_TYPE: "Q4_K_M"
-          #- llamacpp_image: "full-cuda"
-          # platforms: "linux/amd64"
-          # tag_name: "mistral7b-openorca-cuda"
-          # MODEL_URL: "TheBloke/Mistral-7B-OpenOrca-GGUF"
-          # QUANT_TYPE: "Q4_K_M"
 
     steps:
       - name: Checkout code
@@ -69,8 +54,6 @@ jobs:
             ghcr.io/josh-xt/local-llm:${{ matrix.tag_name }}-${{ github.sha }}
           build-args: |
             LLAMACPP_IMAGE=${{ matrix.llamacpp_image }}
-            MODEL_URL=${{ matrix.MODEL_URL }}
-            QUANT_TYPE=${{ matrix.QUANT_TYPE }}
 
       - name: Docker Hub Description
         uses: peter-evans/dockerhub-description@v3.4.2
