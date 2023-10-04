@@ -16,14 +16,15 @@ Assumptions will be made on all of these values if you choose to skip this step.
 ```env
 LOCAL_LLM_API_KEY=
 THREADS=10
-BATCH_SIZE=512
 GPU_LAYERS=0
 MAIN_GPU=0
 ```
 
 - `LOCAL_LLM_API_KEY` - The API key to use for the server. If not set, the server will not require an API key.
 - `THREADS` - The number of threads to use. Default is `your CPU core count minus 1`.
-- `BATCH_SIZE` - The batch size to use for batch generation. Default is `512`.
+
+The following are only applicable to NVIDIA GPUs:
+
 - `GPU_LAYERS` - The number of layers to use on the GPU. Default is `0`.
 - `MAIN_GPU` - The GPU to use for the main model. Default is `0`.
 

@@ -29,7 +29,6 @@ else:
     GPU_LAYERS = os.environ.get("GPU_LAYERS", 0)
     MAIN_GPU = os.environ.get("MAIN_GPU", 0)
 THREADS = os.environ.get("THREADS", threads - 2)
-BATCH_SIZE = os.environ.get("BATCH_SIZE", 512)
 DOWNLOAD_MODELS = (
     True if os.environ.get("DOWNLOAD_MODELS", "true").lower() == "true" else False
 )
@@ -275,8 +274,8 @@ class LLM:
             self.params["n_gpu_layers"] = int(GPU_LAYERS)
         if MAIN_GPU:
             self.params["main_gpu"] = int(MAIN_GPU)
-        if BATCH_SIZE:
-            self.params["n_batch"] = int(BATCH_SIZE)
+        if "batch_size" in kwargs:
+            self.params["n_batch"] = int(kwargs["batch_size"])
 
     def generate(self, prompt):
         formatted_prompt = format_prompt(

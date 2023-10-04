@@ -24,7 +24,6 @@ Replace the environment variables with your desired settings. Assumptions will b
 
 - `LOCAL_LLM_API_KEY` - The API key to use for the server. If not set, the server will not require an API key.
 - `THREADS` - The number of threads to use. Default is `your CPU core count minus 1`.
-- `BATCH_SIZE` - The batch size to use for batch generation. Default is `512`.
 
 The following are only applicable to NVIDIA GPUs:
 
@@ -39,7 +38,7 @@ The following are only applicable to NVIDIA GPUs:
 
 ```bash
 docker pull joshxt/local-llm:cpu
-docker run -d --name local-llm -p 8091:8091 joshxt/local-llm:cpu -e THREADS="10" -e BATCH_SIZE="512" -e LOCAL_LLM_API_KEY=""
+docker run -d --name local-llm -p 8091:8091 joshxt/local-llm:cpu -e THREADS="10" -e LOCAL_LLM_API_KEY=""
 ```
 
 ### Run with NVIDIA GPU support
@@ -48,7 +47,7 @@ If you're using an NVIDIA GPU, you can use the CUDA version of the server.
 
 ```bash
 docker pull joshxt/local-llm:cuda
-docker run -d --name local-llm -p 8091:8091 --gpus all joshxt/local-llm:cuda -e THREADS="10" -e BATCH_SIZE="512" -e GPU_LAYERS="0" -e MAIN_GPU="0" -e LOCAL_LLM_API_KEY=""
+docker run -d --name local-llm -p 8091:8091 --gpus all joshxt/local-llm:cuda -e THREADS="10" -e GPU_LAYERS="0" -e MAIN_GPU="0" -e LOCAL_LLM_API_KEY=""
 ```
 
 ## OpenAI Style Endpoint Usage
