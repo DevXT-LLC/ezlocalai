@@ -10,7 +10,6 @@ Local-LLM is a [llama.cpp](https://github.com/ggerganov/llama.cpp) server in Doc
 - [Local-LLM](#local-llm)
   - [Table of Contents 📖](#table-of-contents-)
   - [Prerequisites](#prerequisites)
-  - [Clone the repository](#clone-the-repository)
   - [Environment Setup (Optional)](#environment-setup-optional)
   - [Run with Docker](#run-with-docker)
     - [CPU Only](#cpu-only)
@@ -26,13 +25,6 @@ Local-LLM is a [llama.cpp](https://github.com/ggerganov/llama.cpp) server in Doc
 - [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html) (if using NVIDIA GPU)
 
 If using Windows and trying to run locally, it is unsupported, but you will need [Windows Subsystem for Linux](https://docs.microsoft.com/en-us/windows/wsl/install-win10) and [Docker Desktop](https://docs.docker.com/docker-for-windows/install/) at a minimum in addition to the above.
-
-## Clone the repository
-
-```bash
-git clone https://github.com/Josh-XT/Local-LLM
-cd Local-LLM
-```
 
 ## Environment Setup (Optional)
 
@@ -66,6 +58,8 @@ docker run -d --name local-llm -p 8091:8091 joshxt/local-llm:cpu -e THREADS="10"
 Or with docker-compose after setting up your `.env` file:
 
 ```bash
+git clone https://github.com/Josh-XT/Local-LLM
+cd Local-LLM
 docker-compose pull
 docker-compose up
 ```
@@ -84,6 +78,8 @@ docker run -d --name local-llm -p 8091:8091 --gpus all joshxt/local-llm:cuda -e 
 Or with docker-compose after setting up your `.env` file:
 
 ```bash
+git clone https://github.com/Josh-XT/Local-LLM
+cd Local-LLM
 docker-compose -f docker-compose-cuda.yml pull
 docker-compose -f docker-compose-cuda.yml up
 ```
