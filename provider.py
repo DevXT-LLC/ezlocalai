@@ -38,11 +38,14 @@ DOWNLOAD_MODELS = (
 # 30GB for 34B for Q5_K_M
 # 52GB for 70B for Q5_K_M
 # Subtract 1GB for Q4_K_M on each model. Difference isn't worth it to run any others.
-# If the user has 16GB or more, use Q5_K_M. Otherwise, use Q4_K_M.
-if ram >= 16:
+
+# Will improve the strategy for deciding which quantization type to use later.
+# If the user has more than 16GB of RAM, use Q5_K_M. Otherwise, use Q4_K_M.
+if ram > 16:
     QUANT_TYPE = os.environ.get("QUANT_TYPE", "Q5_K_M")
 else:
     QUANT_TYPE = os.environ.get("QUANT_TYPE", "Q4_K_M")
+    print(f"Using Q4_K_M because RAM is {ram} GB")
 
 
 def get_models():
