@@ -202,6 +202,16 @@ class LLM:
         if BATCH_SIZE:
             self.params["n_batch"] = int(BATCH_SIZE)
 
+    def clean(self, message: str = ""):
+        for stop_string in self.params["stop"]:
+            if stop_string in message:
+                message = message.split(stop_string)[0]
+        if message.startswith("\n "):
+            message = message[3:]
+        if message.endswith("\n\n  "):
+            message = message[:-4]
+        return message
+
     def generate(self, prompt):
         prompt_template = get_prompt(model_url=self.model)
         formatted_prompt = format_prompt(
@@ -215,15 +225,7 @@ class LLM:
 
     def completion(self, prompt):
         data = self.generate(prompt=prompt)
-        message = data["choices"][0]["text"]
-        for stop_string in self.params["stop"]:
-            if stop_string in message:
-                message = message.split(stop_string)[0]
-        if message.startswith("\n "):
-            message = message[3:]
-        if message.endswith("\n\n  "):
-            message = message[:-4]
-        data["choices"][0]["text"] = message
+        data["choices"][0]["text"] = self.clean(data["choices"][0]["text"])
         data["model"] = self.model
         return data
 
@@ -243,14 +245,7 @@ class LLM:
                 prompt = messages
         data = self.generate(prompt=prompt)
         messages = [{"role": "user", "content": prompt}]
-        message = data["choices"][0]["text"]
-        for stop_string in self.params["stop"]:
-            if stop_string in message:
-                message = message.split(stop_string)[0]
-        if message.startswith("\n "):
-            message = message[3:]
-        if message.endswith("\n\n  "):
-            message = message[:-4]
+        message = self.clean(data["choices"][0]["text"])
         messages.append({"role": "assistant", "content": message})
         data["messages"] = messages
         data["model"] = self.model
