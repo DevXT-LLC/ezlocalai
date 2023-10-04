@@ -163,6 +163,8 @@ def clean(params, message: str = ""):
         message = message[3:]
     if message.endswith("\n\n  "):
         message = message[:-4]
+    if message.startswith(" "):
+        message = message[1:]
     return message
 
 
@@ -252,6 +254,7 @@ class LLM:
         messages.append({"role": "assistant", "content": message})
         data["messages"] = messages
         data["model"] = self.model
+        del data["choices"]
         return data
 
     def embedding(self, input):
