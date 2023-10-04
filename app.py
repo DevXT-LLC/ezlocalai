@@ -167,5 +167,5 @@ class EmbeddingResponse(BaseModel):
 )
 async def embedding(embedding: EmbeddingModel, user=Depends(verify_api_key)):
     return EmbeddingResponse(
-        LLM(model=embedding.model).embedding(prompt=embedding.input)
+        LLM(model=embedding.model).embedding(input=embedding.input)
     )

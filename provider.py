@@ -253,7 +253,7 @@ class LLM:
         data["messages"] = messages
         return data
 
-    def embedding(self, prompt):
+    def embedding(self, input):
         llm = Llama(embedding=True, **self.params)
-        embeddings = llm.create_embedding(prompt=prompt)
+        embeddings = llm.create_embedding(input=input, model=self.model)
         return embeddings
