@@ -7,6 +7,7 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from typing import List, Optional, Dict
 from embedder import embed_text
+from llamaprovider import LlamaProvider
 from utils import (
     verify_api_key,
     get_tokens,
@@ -20,13 +21,56 @@ app = FastAPI(title="Local-LLM Server", docs_url="/")
 base_uri = "http://localhost:8080"
 
 
+class Completions(BaseModel):
+    model: str = None  # Model is actually the agent_name
+    prompt: str = None
+    suffix: str = None
+    max_tokens: int = 100
+    temperature: float = 0.9
+    top_p: float = 1.0
+    n: int = 1
+    stream: bool = False
+    logprobs: int = None
+    echo: bool = False
+    stop: List[str] = None
+    presence_penalty: float = 0.0
+    frequency_penalty: float = 0.0
+    best_of: int = 1
+    logit_bias: Dict[str, float] = None
+    user: str = None
+
+
+class ChatCompletions(BaseModel):
+    model: str = None  # Model is actually the agent_name
+    messages: List[dict] = None
+    functions: List[dict] = None
+    function_call = None
+    temperature: float = 0.9
+    top_p: float = 1.0
+    n: int = 1
+    stream: bool = False
+    stop: List[str] = None
+    max_tokens: int = 8192
+    presence_penalty: float = 0.0
+    frequency_penalty: float = 0.0
+    logit_bias: Dict[str, float] = None
+    user: str = None
+
+
+class EmbeddingModel(BaseModel):
+    input: str
+    model: str
+    user: str = None
+
+
 class ChatMessage(BaseModel):
     role: str
     content: str
 
 
 class ChatInput(BaseModel):
-    messages: List[ChatMessage]
+    prompt: Optional[str] = None
+    messages: Optional[List[ChatMessage]] = None
     temperature: Optional[float] = None
     top_k: Optional[int] = None
     top_p: Optional[float] = None
@@ -157,3 +201,103 @@ async def embedding(embedding: EmbeddingModel, user=Depends(verify_api_key)):
         "model": embedding.model,
         "usage": {"prompt_tokens": tokens, "total_tokens": tokens},
     }
+
+
+@app.post(
+    "/api/v1/completions", tags=["Completions"], dependencies=[Depends(verify_api_key)]
+)
+async def completion(prompt: Completions, user=Depends(verify_api_key)):
+    # prompt.model is the agent name
+    agent = Interactions(agent_name=prompt.model, user=user)
+    agent_config = agent.agent.AGENT_CONFIG
+    if "settings" in agent_config:
+        if "AI_MODEL" in agent_config["settings"]:
+            model = agent_config["settings"]["AI_MODEL"]
+        else:
+            model = "undefined"
+    else:
+        model = "undefined"
+    response = await agent.run(
+        user_input=prompt.prompt,
+        prompt="Custom Input",
+        context_results=3,
+        shots=prompt.n,
+    )
+    characters = string.ascii_letters + string.digits
+    prompt_tokens = get_tokens(prompt.prompt)
+    completion_tokens = get_tokens(response)
+    total_tokens = int(prompt_tokens) + int(completion_tokens)
+    random_chars = "".join(random.choice(characters) for _ in range(15))
+    res_model = {
+        "id": f"cmpl-{random_chars}",
+        "object": "text_completion",
+        "created": int(time.time()),
+        "model": model,
+        "choices": [
+            {
+                "text": response,
+                "index": 0,
+                "logprobs": None,
+                "finish_reason": "stop",
+            }
+        ],
+        "usage": {
+            "prompt_tokens": prompt_tokens,
+            "completion_tokens": completion_tokens,
+            "total_tokens": total_tokens,
+        },
+    }
+    return res_model
+
+
+@app.post(
+    "/api/v1/chat/completions",
+    tags=["Completions"],
+    dependencies=[Depends(verify_api_key)],
+)
+async def chat_completion(prompt: Completions, user=Depends(verify_api_key)):
+    # prompt.model is the agent name
+    agent = Interactions(agent_name=prompt.model, user=user)
+    agent_config = agent.agent.AGENT_CONFIG
+    if "settings" in agent_config:
+        if "AI_MODEL" in agent_config["settings"]:
+            model = agent_config["settings"]["AI_MODEL"]
+        else:
+            model = "undefined"
+    else:
+        model = "undefined"
+    response = await agent.run(
+        user_input=prompt.prompt,
+        prompt="Custom Input",
+        context_results=3,
+        shots=prompt.n,
+    )
+    characters = string.ascii_letters + string.digits
+    prompt_tokens = get_tokens(prompt.prompt)
+    completion_tokens = get_tokens(response)
+    total_tokens = int(prompt_tokens) + int(completion_tokens)
+    random_chars = "".join(random.choice(characters) for _ in range(15))
+    res_model = {
+        "id": f"chatcmpl-{random_chars}",
+        "object": "chat.completion",
+        "created": int(time.time()),
+        "model": model,
+        "choices": [
+            {
+                "index": 0,
+                "message": [
+                    {
+                        "role": "assistant",
+                        "content": response,
+                    },
+                ],
+                "finish_reason": "stop",
+            }
+        ],
+        "usage": {
+            "prompt_tokens": prompt_tokens,
+            "completion_tokens": completion_tokens,
+            "total_tokens": total_tokens,
+        },
+    }
+    return res_model

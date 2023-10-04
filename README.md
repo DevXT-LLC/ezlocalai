@@ -109,7 +109,7 @@ openai.api_key = "YOUR API KEY IF YOU SET ONE IN THE .env FILE"
 prompt = "Tell me something funny about llamas."
 
 response = openai.Completion.create(
-    engine="Local-LLM",
+    model="Local-LLM",
     prompt=prompt,
     temperature=1.31,
     max_tokens=8192,
@@ -158,7 +158,7 @@ prompt = "Tell me something funny about llamas."
 
 response = openai.Embedding.create(
     input=prompt,
-    engine="Local-LLM",
+    model="Local-LLM",
 )
 print(response)
 ```

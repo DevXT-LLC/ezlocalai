@@ -7,5 +7,6 @@ services:
     restart: unless-stopped
     ports:
       - "8091:8091"
+      - "8080:8080"
     volumes:
       - ./models:/app/models
