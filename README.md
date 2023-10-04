@@ -9,26 +9,18 @@ Local-LLM is a [llama.cpp](https://github.com/ggerganov/llama.cpp) server in Doc
 
 - [Local-LLM](#local-llm)
   - [Table of Contents 📖](#table-of-contents-)
-  - [Prerequisites](#prerequisites)
   - [Environment Variables](#environment-variables)
   - [Run with Docker](#run-with-docker)
+    - [Docker Prerequisites](#docker-prerequisites)
     - [Run with Docker (Without NVIDIA GPU)](#run-with-docker-without-nvidia-gpu)
-    - [Run with NVIDIA GPU support using Docker](#run-with-nvidia-gpu-support-using-docker)
+    - [Run with Docker (With NVIDIA GPU support)](#run-with-docker-with-nvidia-gpu-support)
   - [Run with Docker Compose](#run-with-docker-compose)
+    - [Docker Compose Prerequisites](#docker-compose-prerequisites)
     - [Environment Setup (Optional)](#environment-setup-optional)
     - [Run with Docker Compose (Without NVIDIA GPU)](#run-with-docker-compose-without-nvidia-gpu)
-    - [Run with NVIDIA GPU support using Docker Compose](#run-with-nvidia-gpu-support-using-docker-compose)
+    - [Run with Docker Compose (With NVIDIA GPU support)](#run-with-docker-compose-with-nvidia-gpu-support)
   - [OpenAI Style Endpoint Usage](#openai-style-endpoint-usage)
   - [Shout Outs](#shout-outs)
-
-## Prerequisites
-
-- [Git](https://git-scm.com/downloads)
-- [Docker](https://docs.docker.com/get-docker/)
-- [Docker Compose](https://docs.docker.com/compose/install/)
-- [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html) (if using NVIDIA GPU)
-
-If using Windows and trying to run locally, it is unsupported, but you will need [Windows Subsystem for Linux](https://docs.microsoft.com/en-us/windows/wsl/install-win10) and [Docker Desktop](https://docs.docker.com/docker-for-windows/install/) at a minimum in addition to the above.
 
 ## Environment Variables
 
@@ -46,6 +38,12 @@ You can choose to run with Docker or Docker Compose. Both are not needed.
 
 Run with docker without a `.env` file, just replace the environment variables with your desired settings.
 
+### Docker Prerequisites
+
+- [Docker](https://docs.docker.com/get-docker/)
+
+If using Windows and trying to run locally, it is unsupported, but you will need [Windows Subsystem for Linux](https://docs.microsoft.com/en-us/windows/wsl/install-win10) and [Docker Desktop](https://docs.docker.com/docker-for-windows/install/) at a minimum in addition to the above.
+
 ### Run with Docker (Without NVIDIA GPU)
 
 ```bash
@@ -53,7 +51,7 @@ docker pull joshxt/local-llm:cpu
 docker run -d --name local-llm -p 8091:8091 joshxt/local-llm:cpu -e THREADS="10" -e BATCH_SIZE="512" -e LOCAL_LLM_API_KEY=""
 ```
 
-### Run with NVIDIA GPU support using Docker
+### Run with Docker (With NVIDIA GPU support)
 
 If you're using an NVIDIA GPU, you can use the CUDA version of the server.
 
@@ -65,6 +63,15 @@ docker run -d --name local-llm -p 8091:8091 --gpus all joshxt/local-llm:cuda -e 
 ## Run with Docker Compose
 
 You can choose to run with Docker or Docker Compose. Both are not needed.
+
+### Docker Compose Prerequisites
+
+- [Git](https://git-scm.com/downloads)
+- [Docker](https://docs.docker.com/get-docker/)
+- [Docker Compose](https://docs.docker.com/compose/install/)
+- [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html) (if using NVIDIA GPU)
+
+If using Windows and trying to run locally, it is unsupported, but you will need [Windows Subsystem for Linux](https://docs.microsoft.com/en-us/windows/wsl/install-win10) and [Docker Desktop](https://docs.docker.com/docker-for-windows/install/) at a minimum in addition to the above.
 
 ### Environment Setup (Optional)
 
@@ -89,7 +96,7 @@ docker-compose pull
 docker-compose up
 ```
 
-### Run with NVIDIA GPU support using Docker Compose
+### Run with Docker Compose (With NVIDIA GPU support)
 
 ```bash
 git clone https://github.com/Josh-XT/Local-LLM
