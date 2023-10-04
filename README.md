@@ -90,7 +90,7 @@ docker-compose -f docker-compose-cuda.yml up
 
 ## OpenAI Style Endpoint Usage
 
-OpenAI Style endpoints available at `http://localhost:8091/` by default. Documentation can be accessed at that url when the server is running. There are tests with examples for each of the endpoints in the [Tests Jupyter Notebook](tests.ipynb).
+OpenAI Style endpoints available at `http://localhost:8091/` by default. Documentation can be accessed at that url when the server is running. There are examples for each of the endpoints in the [Examples Jupyter Notebook](examples.ipynb).
 
 ## Shout Outs
 
