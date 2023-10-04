@@ -43,7 +43,7 @@ docker run -d --name local-llm -p 8091:8091 joshxt/local-llm:cpu -e THREADS="10"
 
 ### Run with NVIDIA GPU support
 
-If you're using an NVIDIA GPU, you can use the CUDA version of the server.
+If you're using an NVIDIA GPU, you can use the CUDA version of the server. You must have the [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html) installed if using NVIDIA GPU.
 
 ```bash
 docker pull joshxt/local-llm:cuda
