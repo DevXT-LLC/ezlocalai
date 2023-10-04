@@ -4,15 +4,13 @@ import re
 import requests
 import tiktoken
 import json
-from dotenv import load_dotenv
 
-load_dotenv()
-THREADS = os.getenv("THREADS")
-GPU_LAYERS = os.getenv("GPU_LAYERS")
-MAIN_GPU = os.getenv("MAIN_GPU")
-BATCH_SIZE = os.getenv("BATCH_SIZE")
+THREADS = os.environ.get("THREADS")
+GPU_LAYERS = os.environ.get("GPU_LAYERS")
+MAIN_GPU = os.environ.get("MAIN_GPU")
+BATCH_SIZE = os.environ.get("BATCH_SIZE")
 DOWNLOAD_MODELS = (
-    True if os.getenv("DOWNLOAD_MODELS", "true").lower() == "true" else False
+    True if os.environ.get("DOWNLOAD_MODELS", "true").lower() == "true" else False
 )
 
 
