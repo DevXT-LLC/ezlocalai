@@ -131,15 +131,14 @@ def get_prompt(model_name="Mistral-7B-OpenOrca"):
 
 
 def get_model(model_name="Mistral-7B-OpenOrca"):
+    model_name = model_name.lower()
     if ram > 16:
         default_quantization_type = "Q5_K_M"
     else:
         default_quantization_type = "Q4_K_M"
     quantization_type = os.environ.get("QUANT_TYPE", default_quantization_type)
     model_url = get_model_url(model_name=model_name)
-    file_path = (
-        f"models/{model_name.lower()}/{model_name.lower()}.{quantization_type}.gguf"
-    )
+    file_path = f"models/{model_name}/{model_name}.{quantization_type}.gguf"
     if not os.path.exists("models"):
         os.makedirs("models")
     if not os.path.exists(file_path):
@@ -148,7 +147,7 @@ def get_model(model_name="Mistral-7B-OpenOrca"):
         url = (
             model_url
             if "https://" in model_url
-            else f"https://huggingface.co/{model_url}/resolve/main/{model_name.lower()}.{quantization_type}.gguf"
+            else f"https://huggingface.co/{model_url}/resolve/main/{model_name}.{quantization_type}.gguf"
         )
         print(f"Downloading {model_name}...")
         with requests.get(url, stream=True, allow_redirects=True) as r:
