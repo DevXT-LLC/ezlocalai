@@ -158,7 +158,7 @@ async def streaming_generation(data):
 class LLM:
     def __init__(
         self,
-        stop: List[str] = "<|im_end|>",
+        stop: List[str] = ["<|im_end|>", "</s>"],
         max_tokens: int = 8192,
         temperature: float = 1.31,
         top_p: float = 1.0,
@@ -180,7 +180,7 @@ class LLM:
                 stop = [stop]
             self.params["stop"] = stop
         else:
-            self.params["stop"] = ["<|im_end|>"]
+            self.params["stop"] = ["<|im_end|>", "</s>"]
         if temperature:
             self.params["temperature"] = temperature
         if top_p:
