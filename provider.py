@@ -165,6 +165,8 @@ def clean(params, message: str = ""):
         message = message[:-4]
     if message.startswith(" "):
         message = message[1:]
+    if message.endswith("\n  "):
+        message = message[:-3]
     return message
 
 
