@@ -41,6 +41,8 @@ docker-compose up
 
 ## Run with Docker Compose (With NVIDIA GPU support)
 
+You must have the [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html) installed if using NVIDIA GPU.
+
 ```bash
 git clone https://github.com/Josh-XT/Local-LLM
 cd Local-LLM
