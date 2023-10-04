@@ -230,14 +230,16 @@ class LLM:
             self.params["model_path"] = get_model(
                 model_name=self.model_name, models_dir=models_dir
             )
+            model_max_tokens = get_max_tokens(
+                model_name=self.model_name, models_dir=models_dir
+            )
+            self.prompt_template = get_prompt(
+                model_name=self.model_name, models_dir=models_dir
+            )
         else:
             self.params["model_path"] = ""
-        model_max_tokens = get_max_tokens(
-            model_name=self.model_name, models_dir=models_dir
-        )
-        self.prompt_template = get_prompt(
-            model_name=self.model_name, models_dir=models_dir
-        )
+            model_max_tokens = 8192
+            self.prompt_template = "{system_message}\n\n{prompt}"
         try:
             self.max_tokens = (
                 int(max_tokens)
