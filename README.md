@@ -10,11 +10,12 @@ Local-LLM is a [llama.cpp](https://github.com/ggerganov/llama.cpp) server in Doc
 - [Local-LLM](#local-llm)
   - [Table of Contents 📖](#table-of-contents-)
   - [Prerequisites](#prerequisites)
-  - [Environment Setup (Optional)](#environment-setup-optional)
+  - [Environment Variables](#environment-variables)
   - [Run with Docker](#run-with-docker)
     - [Run with Docker (Without NVIDIA GPU)](#run-with-docker-without-nvidia-gpu)
     - [Run with NVIDIA GPU support using Docker](#run-with-nvidia-gpu-support-using-docker)
   - [Run with Docker Compose](#run-with-docker-compose)
+    - [Environment Setup (Optional)](#environment-setup-optional)
     - [Run with Docker Compose (Without NVIDIA GPU)](#run-with-docker-compose-without-nvidia-gpu)
     - [Run with NVIDIA GPU support using Docker Compose](#run-with-nvidia-gpu-support-using-docker-compose)
   - [OpenAI Style Endpoint Usage](#openai-style-endpoint-usage)
@@ -29,20 +30,12 @@ Local-LLM is a [llama.cpp](https://github.com/ggerganov/llama.cpp) server in Doc
 
 If using Windows and trying to run locally, it is unsupported, but you will need [Windows Subsystem for Linux](https://docs.microsoft.com/en-us/windows/wsl/install-win10) and [Docker Desktop](https://docs.docker.com/docker-for-windows/install/) at a minimum in addition to the above.
 
-## Environment Setup (Optional)
+## Environment Variables
 
-Assumptions will be made on all of these values if you choose to skip this step. Create a `.env` file if one does not exist and modify it to your needs. Here is an example `.env` file:
-
-```env
-LOCAL_LLM_API_KEY=
-THREADS=10
-BATCH_SIZE=512
-GPU_LAYERS=0
-MAIN_GPU=0
-```
+Assumptions will be made on all of these values if you choose to accept the defaults.
 
 - `LOCAL_LLM_API_KEY` - The API key to use for the server. If not set, the server will not require an API key.
-- `THREADS` - The number of threads to use. Default is your CPU core count minus 1.
+- `THREADS` - The number of threads to use. Default is `your CPU core count minus 1`.
 - `BATCH_SIZE` - The batch size to use for batch generation. Default is `512`.
 - `GPU_LAYERS` - The number of layers to use on the GPU. Default is `0`.
 - `MAIN_GPU` - The GPU to use for the main model. Default is `0`.
@@ -72,6 +65,18 @@ docker run -d --name local-llm -p 8091:8091 --gpus all joshxt/local-llm:cuda -e 
 ## Run with Docker Compose
 
 You can choose to run with Docker or Docker Compose. Both are not needed.
+
+### Environment Setup (Optional)
+
+Assumptions will be made on all of these values if you choose to skip this step. Create a `.env` file if one does not exist and modify it to your needs. Here is an example `.env` file:
+
+```env
+LOCAL_LLM_API_KEY=
+THREADS=10
+BATCH_SIZE=512
+GPU_LAYERS=0
+MAIN_GPU=0
+```
 
 Make sure to move your `.env` file to the `Local-LLM` directory if you set one up.
 
