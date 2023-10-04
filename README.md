@@ -9,22 +9,18 @@ Local-LLM is a [llama.cpp](https://github.com/ggerganov/llama.cpp) server in Doc
 
 - [Local-LLM](#local-llm)
   - [Table of Contents 📖](#table-of-contents-)
-  - [Environment Variables](#environment-variables)
   - [Run with Docker](#run-with-docker)
-    - [Docker Prerequisites](#docker-prerequisites)
-    - [Run with Docker (Without NVIDIA GPU)](#run-with-docker-without-nvidia-gpu)
-    - [Run with Docker (With NVIDIA GPU support)](#run-with-docker-with-nvidia-gpu-support)
-  - [Run with Docker Compose](#run-with-docker-compose)
-    - [Docker Compose Prerequisites](#docker-compose-prerequisites)
-    - [Environment Setup (Optional)](#environment-setup-optional)
-    - [Run with Docker Compose (Without NVIDIA GPU)](#run-with-docker-compose-without-nvidia-gpu)
-    - [Run with Docker Compose (With NVIDIA GPU support)](#run-with-docker-compose-with-nvidia-gpu-support)
+    - [Prerequisites](#prerequisites)
+    - [Run without NVIDIA GPU support](#run-without-nvidia-gpu-support)
+    - [Run with NVIDIA GPU support](#run-with-nvidia-gpu-support)
   - [OpenAI Style Endpoint Usage](#openai-style-endpoint-usage)
   - [Shout Outs](#shout-outs)
 
-## Environment Variables
+## Run with Docker
 
-Assumptions will be made on all of these values if you choose to accept the defaults.
+You can choose to run with Docker or [Docker Compose](DockerCompose.md). Both are not needed. Instructions to run with Docker Compose can be found [here](DockerCompose.md).
+
+Replace the environment variables with your desired settings. Assumptions will be made on all of these values if you choose to accept the defaults.
 
 - `LOCAL_LLM_API_KEY` - The API key to use for the server. If not set, the server will not require an API key.
 - `THREADS` - The number of threads to use. Default is `your CPU core count minus 1`.
@@ -32,73 +28,24 @@ Assumptions will be made on all of these values if you choose to accept the defa
 - `GPU_LAYERS` - The number of layers to use on the GPU. Default is `0`.
 - `MAIN_GPU` - The GPU to use for the main model. Default is `0`.
 
-## Run with Docker
-
-You can choose to run with Docker or Docker Compose. Both are not needed.
-
-Run with docker without a `.env` file, just replace the environment variables with your desired settings.
-
-### Docker Prerequisites
+### Prerequisites
 
 - [Docker](https://docs.docker.com/get-docker/)
 
-### Run with Docker (Without NVIDIA GPU)
+### Run without NVIDIA GPU support
 
 ```bash
 docker pull joshxt/local-llm:cpu
 docker run -d --name local-llm -p 8091:8091 joshxt/local-llm:cpu -e THREADS="10" -e BATCH_SIZE="512" -e LOCAL_LLM_API_KEY=""
 ```
 
-### Run with Docker (With NVIDIA GPU support)
+### Run with NVIDIA GPU support
 
 If you're using an NVIDIA GPU, you can use the CUDA version of the server.
 
 ```bash
 docker pull joshxt/local-llm:cuda
 docker run -d --name local-llm -p 8091:8091 --gpus all joshxt/local-llm:cuda -e THREADS="10" -e BATCH_SIZE="512" -e GPU_LAYERS="0" -e MAIN_GPU="0" -e LOCAL_LLM_API_KEY=""
-```
-
-## Run with Docker Compose
-
-You can choose to run with Docker or Docker Compose. Both are not needed.
-
-### Docker Compose Prerequisites
-
-- [Git](https://git-scm.com/downloads)
-- [Docker](https://docs.docker.com/get-docker/)
-- [Docker Compose](https://docs.docker.com/compose/install/)
-- [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html) (if using NVIDIA GPU)
-
-### Environment Setup (Optional)
-
-Assumptions will be made on all of these values if you choose to skip this step. Create a `.env` file if one does not exist and modify it to your needs. Here is an example `.env` file:
-
-```env
-LOCAL_LLM_API_KEY=
-THREADS=10
-BATCH_SIZE=512
-GPU_LAYERS=0
-MAIN_GPU=0
-```
-
-Make sure to move your `.env` file to the `Local-LLM` directory if you set one up.
-
-### Run with Docker Compose (Without NVIDIA GPU)
-
-```bash
-git clone https://github.com/Josh-XT/Local-LLM
-cd Local-LLM
-docker-compose pull
-docker-compose up
-```
-
-### Run with Docker Compose (With NVIDIA GPU support)
-
-```bash
-git clone https://github.com/Josh-XT/Local-LLM
-cd Local-LLM
-docker-compose -f docker-compose-cuda.yml pull
-docker-compose -f docker-compose-cuda.yml up
 ```
 
 ## OpenAI Style Endpoint Usage
