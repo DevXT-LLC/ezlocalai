@@ -223,8 +223,8 @@ class LLM:
             message = message[3:]
         if message.endswith("\n\n  "):
             message = message[:-4]
-
         data["choices"][0]["text"] = message
+        data["model"] = self.model
         return data
 
     def chat(self, messages):
@@ -253,6 +253,7 @@ class LLM:
             message = message[:-4]
         messages.append({"role": "assistant", "content": message})
         data["messages"] = messages
+        data["model"] = self.model
         return data
 
     def embedding(self, input):
