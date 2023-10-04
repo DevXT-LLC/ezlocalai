@@ -49,7 +49,12 @@ def verify_api_key(authorization: str = Header(None)):
     dependencies=[Depends(verify_api_key)],
 )
 async def models(user=Depends(verify_api_key)):
-    return get_models().keys()
+    models = get_models()
+    model_list = []
+    for model in models:
+        for key in model:
+            model_list.append(key)
+    return model_list
 
 
 # Chat completions endpoint

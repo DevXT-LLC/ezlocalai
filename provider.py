@@ -60,10 +60,11 @@ def get_models():
 def get_model_url(model_name="Mistral-7B-OpenOrca"):
     model_url = ""
     models = get_models()
-    for model in models.keys():
-        if model_name.lower() == model.lower():
-            model_url = model[model_name]
-            break
+    for model in models:
+        for key in model:
+            if model_name.lower() == key.lower():
+                model_url = model[model_name]
+                break
     if model_url == "":
         raise Exception(
             f"Model not found. Choose from one of these models: {', '.join(models.keys())}"
@@ -84,6 +85,7 @@ def get_model_name(model_url="TheBloke/Mistral-7B-OpenOrca-GGUF"):
 
 def get_readme(model_name="Mistral-7B-OpenOrca"):
     model_url = get_model_url(model_name=model_name)
+    model_name = model_name.lower()
     if not os.path.exists(f"models/{model_name}/README.md"):
         readme_url = f"https://huggingface.co/{model_url}/raw/main/README.md"
         with requests.get(readme_url, stream=True, allow_redirects=True) as r:
@@ -116,6 +118,7 @@ def get_max_tokens(model_name="Mistral-7B-OpenOrca"):
 
 
 def get_prompt(model_name="Mistral-7B-OpenOrca"):
+    model_name = model_name.lower()
     if os.path.exists(f"models/{model_name}/prompt.txt"):
         with open(f"models/{model_name}/prompt.txt", "r") as f:
             prompt_template = f.read()
@@ -134,7 +137,9 @@ def get_model(model_name="Mistral-7B-OpenOrca"):
         default_quantization_type = "Q4_K_M"
     quantization_type = os.environ.get("QUANT_TYPE", default_quantization_type)
     model_url = get_model_url(model_name=model_name)
-    file_path = f"models/{model_name}/{model_name}.{quantization_type}.gguf"
+    file_path = (
+        f"models/{model_name.lower()}/{model_name.lower()}.{quantization_type}.gguf"
+    )
     if not os.path.exists("models"):
         os.makedirs("models")
     if not os.path.exists(file_path):
@@ -143,8 +148,9 @@ def get_model(model_name="Mistral-7B-OpenOrca"):
         url = (
             model_url
             if "https://" in model_url
-            else f"https://huggingface.co/{model_url}/resolve/main/{model_name}.{quantization_type}.gguf"
+            else f"https://huggingface.co/{model_url}/resolve/main/{model_name.lower()}.{quantization_type}.gguf"
         )
+        print(f"Downloading {model_name}...")
         with requests.get(url, stream=True, allow_redirects=True) as r:
             r.raise_for_status()
             with open(file_path, "wb") as f:
