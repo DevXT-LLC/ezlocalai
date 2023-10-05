@@ -2,7 +2,6 @@ fastapi
 pydantic
 requests
 uvicorn
-argparse
 pyjwt
 tiktoken
 llama-cpp-python==0.2.11
