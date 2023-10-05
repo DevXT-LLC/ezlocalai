@@ -10,7 +10,7 @@ with open(os.path.join(this_directory, "requirements.txt")) as f:
 
 setup(
     name="local-llm",
-    version="0.0.13",
+    version="0.0.14",
     description="Local-LLM is a llama.cpp server in Docker with OpenAI Style Endpoints.",
     long_description=long_description,
     long_description_content_type="text/markdown",
