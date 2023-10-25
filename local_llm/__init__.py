@@ -146,9 +146,13 @@ def get_model(model_name="Mistral-7B-OpenOrca", models_dir="models"):
         if DOWNLOAD_MODELS is False:
             raise Exception("Model not found.")
         url = (
-            model_url
-            if "https://" in model_url
-            else f"https://huggingface.co/{model_url}/resolve/main/{model_name}.{quantization_type}.gguf"
+            (
+                model_url
+                if "https://" in model_url
+                else f"https://huggingface.co/{model_url}/resolve/main/{model_name}.{quantization_type}.gguf"
+            )
+            if model_name != "mistrallite-7b"
+            else f"https://huggingface.co/TheBloke/MistralLite-7B-GGUF/resolve/main/mistrallite.{quantization_type}.gguf"
         )
         print(f"Downloading {model_name}...")
         with requests.get(url, stream=True, allow_redirects=True) as r:
