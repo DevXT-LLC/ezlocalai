@@ -1,4 +1,4 @@
-from llama_cpp import Llama
+from llama_cpp import Llama, llama_chat_format
 from bs4 import BeautifulSoup
 from typing import List
 import os
@@ -47,7 +47,11 @@ def get_models():
         "https://huggingface.co/TheBloke?search_models=GGUF&sort_models=modified"
     )
     soup = BeautifulSoup(response.text, "html.parser")
-    model_names = []
+    model_names = [
+        {"bakllava-1-7b": "mys/ggml_bakllava-1"},
+        {"llava-v1.5-7b": "mys/ggml_llava-v1.5-7b"},
+        {"llava-v1.5-13b": "mys/ggml_llava-v1.5-13b"},
+    ]
     for a_tag in soup.find_all("a", href=True):
         href = a_tag["href"]
         if href.startswith("/TheBloke/") and href.endswith("-GGUF"):
@@ -123,7 +127,10 @@ def get_prompt(model_name="Mistral-7B-OpenOrca", models_dir="models"):
             prompt_template = f.read()
         return prompt_template
     readme = get_readme(model_name=model_name, models_dir=models_dir)
-    prompt_template = readme.split("prompt_template: '")[1].split("'")[0]
+    try:
+        prompt_template = readme.split("prompt_template: '")[1].split("'")[0]
+    except:
+        prompt_template = ""
     if prompt_template == "":
         prompt_template = "{system_message}\n\n{prompt}"
     return prompt_template
@@ -145,21 +152,40 @@ def get_model(model_name="Mistral-7B-OpenOrca", models_dir="models"):
     if not os.path.exists(file_path):
         if DOWNLOAD_MODELS is False:
             raise Exception("Model not found.")
-        url = (
-            (
-                model_url
-                if "https://" in model_url
-                else f"https://huggingface.co/{model_url}/resolve/main/{model_name}.{quantization_type}.gguf"
+        clip_url = ""
+        if model_url.startswith("mys/"):
+            # Multimodal models
+            url = (
+                f"https://huggingface.co/{model_url}/resolve/main/ggml-model-q5_k.gguf"
             )
-            if model_name != "mistrallite-7b"
-            else f"https://huggingface.co/TheBloke/MistralLite-7B-GGUF/resolve/main/mistrallite.{quantization_type}.gguf"
-        )
+            clip_url = (
+                f"https://huggingface.co/{model_url}/resolve/main/mmproj-model-f16.gguf"
+            )
+        else:
+            url = (
+                (
+                    model_url
+                    if "https://" in model_url
+                    else f"https://huggingface.co/{model_url}/resolve/main/{model_name}.{quantization_type}.gguf"
+                )
+                if model_name != "mistrallite-7b"
+                else f"https://huggingface.co/TheBloke/MistralLite-7B-GGUF/resolve/main/mistrallite.{quantization_type}.gguf"
+            )
         print(f"Downloading {model_name}...")
         with requests.get(url, stream=True, allow_redirects=True) as r:
             r.raise_for_status()
             with open(file_path, "wb") as f:
                 for chunk in r.iter_content(chunk_size=8192):
                     f.write(chunk)
+        if clip_url != "":
+            print(f"Downloading {model_name} CLIP...")
+            with requests.get(clip_url, stream=True, allow_redirects=True) as r:
+                r.raise_for_status()
+                with open(
+                    f"{models_dir}/{model_name}/mmproj-model-f16.gguf", "wb"
+                ) as f:
+                    for chunk in r.iter_content(chunk_size=8192):
+                        f.write(chunk)
     return file_path
 
 
@@ -239,6 +265,10 @@ class LLM:
             self.prompt_template = get_prompt(
                 model_name=self.model_name, models_dir=models_dir
             )
+            if "llava" in self.model_name:
+                self.params["chat_handler"] = llama_chat_format.Llava15ChatHandler(
+                    clip_model_path=self.params["model_path"], verbose=False
+                )
         else:
             self.params["model_path"] = ""
             model_max_tokens = 8192
