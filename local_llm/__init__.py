@@ -32,46 +32,45 @@ THREADS = os.environ.get("THREADS", threads - 2)
 DOWNLOAD_MODELS = (
     True if os.environ.get("DOWNLOAD_MODELS", "true").lower() == "true" else False
 )
-# 8GB for 7B for Q5_K_M
-# 13GB for 13B for Q5_K_M
-# 30GB for 34B for Q5_K_M
-# 52GB for 70B for Q5_K_M
-# Subtract 1GB for Q4_K_M on each model. Difference isn't worth it to run any others.
-
-# Will improve the strategy for deciding which quantization type to use later.
-# If the user has more than 16GB of RAM, use Q5_K_M. Otherwise, use Q4_K_M.
 
 
 def get_models():
-    response = requests.get(
-        "https://huggingface.co/TheBloke?search_models=GGUF&sort_models=modified"
-    )
-    soup = BeautifulSoup(response.text, "html.parser")
+    try:
+        response = requests.get(
+            "https://huggingface.co/TheBloke?search_models=GGUF&sort_models=modified"
+        )
+        soup = BeautifulSoup(response.text, "html.parser")
+    except:
+        soup = None
     model_names = [
         {"bakllava-1-7b": "mys/ggml_bakllava-1"},
         {"llava-v1.5-7b": "mys/ggml_llava-v1.5-7b"},
         {"llava-v1.5-13b": "mys/ggml_llava-v1.5-13b"},
     ]
-    for a_tag in soup.find_all("a", href=True):
-        href = a_tag["href"]
-        if href.startswith("/TheBloke/") and href.endswith("-GGUF"):
-            base_name = href[10:-5]
-            model_names.append({base_name: href[1:]})
+    if soup:
+        for a_tag in soup.find_all("a", href=True):
+            href = a_tag["href"]
+            if href.startswith("/TheBloke/") and href.endswith("-GGUF"):
+                base_name = href[10:-5]
+                model_names.append({base_name: href[1:]})
     return model_names
 
 
 def get_model_url(model_name="Mistral-7B-OpenOrca"):
     model_url = ""
-    models = get_models()
-    for model in models:
-        for key in model:
-            if model_name.lower() == key.lower():
-                model_url = model[key]
-                break
-    if model_url == "":
-        raise Exception(
-            f"Model not found. Choose from one of these models: {', '.join(models.keys())}"
-        )
+    try:
+        models = get_models()
+        for model in models:
+            for key in model:
+                if model_name.lower() == key.lower():
+                    model_url = model[key]
+                    break
+        if model_url == "":
+            raise Exception(
+                f"Model not found. Choose from one of these models: {', '.join(models.keys())}"
+            )
+    except:
+        model_url = f"https://huggingface.co/TheBloke/{model_name}-GGUF"
     return model_url
 
 
@@ -92,7 +91,6 @@ def get_readme(model_name="Mistral-7B-OpenOrca", models_dir="models"):
     if not os.path.exists(f"{models_dir}/{model_name}/README.md"):
         readme_url = f"https://huggingface.co/{model_url}/raw/main/README.md"
         with requests.get(readme_url, stream=True, allow_redirects=True) as r:
-            r.raise_for_status()
             with open(f"{models_dir}/{model_name}/README.md", "wb") as f:
                 for chunk in r.iter_content(chunk_size=8192):
                     f.write(chunk)
@@ -103,6 +101,8 @@ def get_readme(model_name="Mistral-7B-OpenOrca", models_dir="models"):
 
 def get_max_tokens(model_name="Mistral-7B-OpenOrca", models_dir="models"):
     readme = get_readme(model_name=model_name, models_dir=models_dir)
+    if "200k" in readme:
+        return 200000
     if "131072" in readme or "128k" in readme:
         return 131072
     if "65536" in readme or "64k" in readme:
@@ -173,14 +173,12 @@ def get_model(model_name="Mistral-7B-OpenOrca", models_dir="models"):
             )
         print(f"Downloading {model_name}...")
         with requests.get(url, stream=True, allow_redirects=True) as r:
-            r.raise_for_status()
             with open(file_path, "wb") as f:
                 for chunk in r.iter_content(chunk_size=8192):
                     f.write(chunk)
         if clip_url != "":
             print(f"Downloading {model_name} CLIP...")
             with requests.get(clip_url, stream=True, allow_redirects=True) as r:
-                r.raise_for_status()
                 with open(
                     f"{models_dir}/{model_name}/mmproj-model-f16.gguf", "wb"
                 ) as f:
