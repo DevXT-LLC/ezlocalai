@@ -1,7 +1,7 @@
 from fastapi import FastAPI, Depends, HTTPException, Header
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
-from typing import List, Dict
+from typing import List, Dict, Union
 from local_llm import LLM, streaming_generation
 import os
 import jwt
@@ -146,7 +146,7 @@ async def completions(c: Completions, user=Depends(verify_api_key)):
 # Embeddings endpoint
 # https://platform.openai.com/docs/api-reference/embeddings
 class EmbeddingModel(BaseModel):
-    input: str
+    input: Union[str, List[str]]
     model: str = "Mistral-7B-OpenOrca"
     user: str = None
 
