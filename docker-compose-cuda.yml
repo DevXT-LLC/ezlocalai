@@ -3,7 +3,8 @@ version: '3.8'
 services:
   llamacpp:
     image: joshxt/local-llm:cuda
-    env_file: .env
+    environment:
+      - LOCAL_LLM_API_KEY=${LOCAL_LLM_API_KEY-}
     restart: unless-stopped
     ports:
       - "8091:8091"
