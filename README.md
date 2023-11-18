@@ -13,6 +13,9 @@ Local-LLM is a [llama.cpp](https://github.com/ggerganov/llama.cpp) server in Doc
     - [Prerequisites](#prerequisites)
     - [Run without NVIDIA GPU support](#run-without-nvidia-gpu-support)
     - [Run with NVIDIA GPU support](#run-with-nvidia-gpu-support)
+  - [Run with Docker Compose](#run-with-docker-compose)
+    - [Run without NVIDIA GPU support with Docker Compose](#run-without-nvidia-gpu-support-with-docker-compose)
+    - [Run with NVIDIA GPU support with Docker Compose](#run-with-nvidia-gpu-support-with-docker-compose)
   - [OpenAI Style Endpoint Usage](#openai-style-endpoint-usage)
   - [Shout Outs](#shout-outs)
 
@@ -52,6 +55,26 @@ Modify the `GPU_LAYERS`, `MAIN_GPU`, and `THREADS` environment variables to your
 ```bash
 docker pull joshxt/local-llm:cuda
 docker run -d --name local-llm -p 8091:8091 --gpus all joshxt/local-llm:cuda -e THREADS="10" -e GPU_LAYERS="20" -e MAIN_GPU="0" -e LOCAL_LLM_API_KEY="" -v ./models:/app/models
+```
+
+## Run with Docker Compose
+
+You can choose to run with Docker Compose or Docker. Both are not needed.
+
+Update the `.env` file with your desired settings. Assumptions will be made on all of these values if you choose to accept the defaults.
+
+### Run without NVIDIA GPU support with Docker Compose
+
+```bash
+docker-compose pull
+docker-compose up
+```
+
+### Run with NVIDIA GPU support with Docker Compose
+
+```bash
+docker-compose -f docker-compose-cuda.yml pull
+docker-compose -f docker-compose-cuda.yml up
 ```
 
 ## OpenAI Style Endpoint Usage
