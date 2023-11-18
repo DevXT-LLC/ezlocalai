@@ -220,10 +220,7 @@ async def streaming_generation(data):
             yield "data: {}\n".format(json.dumps(current_data))
 
 
-def clean(params, message: str = ""):
-    for stop_string in params["stop"]:
-        if stop_string in message:
-            message = message.split(stop_string)[0]
+def clean(message: str = ""):
     if message.startswith("\n "):
         message = message[3:]
     if message.endswith("\n\n  "):
@@ -351,7 +348,7 @@ class LLM:
                 prompt = messages
         data = self.generate(prompt=prompt)
         messages = [{"role": "user", "content": prompt}]
-        message = clean(params=self.params, message=data["choices"][0]["text"])
+        message = clean(message=data["choices"][0]["text"])
         messages.append({"role": "assistant", "content": message})
         data["messages"] = messages
         del data["choices"]
