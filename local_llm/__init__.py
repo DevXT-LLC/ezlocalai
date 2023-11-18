@@ -238,7 +238,7 @@ def clean(params, message: str = ""):
 class LLM:
     def __init__(
         self,
-        stop: List[str] = ["</|im_end|>", "<|im_end|>", "</s>"],
+        stop: List[str] = [],
         max_tokens: int = 0,
         temperature: float = 1.31,
         top_p: float = 1.0,
@@ -282,13 +282,18 @@ class LLM:
         self.params["n_ctx"] = self.max_tokens
         self.params["verbose"] = False
         self.system_message = system_message
-        if stop:
-            if isinstance(stop, str):
-                stop = [stop]
-            self.params["stop"] = stop
-        else:
-            self.params["stop"] = ["</|im_end|>", "</s>"]
         self.params["mirostat_mode"] = 2
+        self.params["stop"] = ["<|im_end|>", "</|im_end|>", "</s>"]
+        if stop != []:
+            if isinstance(stop, str):
+                self.params["stop"].append(stop)
+            else:
+                try:
+                    for stop_string in stop:
+                        if stop_string not in self.params["stop"]:
+                            self.params["stop"].append(stop_string)
+                except:
+                    self.params["stop"].append(stop)
         if temperature:
             self.params["temperature"] = temperature
         if top_p:
