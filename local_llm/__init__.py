@@ -288,6 +288,7 @@ class LLM:
             self.params["stop"] = stop
         else:
             self.params["stop"] = ["</|im_end|>", "</s>"]
+        self.params["mirostat_mode"] = 2
         if temperature:
             self.params["temperature"] = temperature
         if top_p:
