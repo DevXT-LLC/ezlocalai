@@ -1,7 +1,7 @@
 from fastapi import FastAPI, Depends, HTTPException, Header
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
-from typing import List, Dict, Union
+from typing import List, Dict, Union, Optional
 from local_llm import LLM, streaming_generation
 import os
 import jwt
@@ -58,18 +58,18 @@ async def models(user=Depends(verify_api_key)):
 class ChatCompletions(BaseModel):
     model: str = "Mistral-7B-OpenOrca"
     messages: List[dict] = None
-    functions: List[dict] = None
-    function_call: str = None
-    temperature: float = 0.9
-    top_p: float = 1.0
-    n: int = 1
-    stream: bool = False
-    stop: List[str] = None
-    max_tokens: int = 8192
-    presence_penalty: float = 0.0
-    frequency_penalty: float = 0.0
-    logit_bias: Dict[str, float] = None
-    user: str = None
+    temperature: Optional[float] = 0.9
+    top_p: Optional[float] = 1.0
+    functions: Optional[List[dict]] = None
+    function_call: Optional[str] = None
+    n: Optional[int] = 1
+    stream: Optional[bool] = False
+    stop: Optional[List[str]] = None
+    max_tokens: Optional[int] = 8192
+    presence_penalty: Optional[float] = 0.0
+    frequency_penalty: Optional[float] = 0.0
+    logit_bias: Optional[Dict[str, float]] = None
+    user: Optional[str] = None
 
 
 class ChatCompletionsResponse(BaseModel):
@@ -100,21 +100,21 @@ async def chat_completions(c: ChatCompletions, user=Depends(verify_api_key)):
 # https://platform.openai.com/docs/api-reference/completions
 class Completions(BaseModel):
     model: str = "Mistral-7B-OpenOrca"
-    prompt: str = None
-    suffix: str = None
-    max_tokens: int = 100
-    temperature: float = 0.9
-    top_p: float = 1.0
-    n: int = 1
-    stream: bool = False
-    logprobs: int = None
-    echo: bool = False
-    stop: List[str] = None
-    presence_penalty: float = 0.0
-    frequency_penalty: float = 0.0
-    best_of: int = 1
-    logit_bias: Dict[str, float] = None
-    user: str = None
+    prompt: str = ""
+    suffix: Optional[str] = None
+    max_tokens: Optional[int] = 8000
+    temperature: Optional[float] = 0.9
+    top_p: Optional[float] = 1.0
+    n: Optional[int] = 1
+    stream: Optional[bool] = False
+    logprobs: Optional[int] = None
+    echo: Optional[bool] = False
+    stop: Optional[List[str]] = None
+    presence_penalty: Optional[float] = 0.0
+    frequency_penalty: Optional[float] = 0.0
+    best_of: Optional[int] = 1
+    logit_bias: Optional[Dict[str, float]] = None
+    user: Optional[str] = None
 
 
 class CompletionsResponse(BaseModel):
@@ -148,7 +148,7 @@ async def completions(c: Completions, user=Depends(verify_api_key)):
 class EmbeddingModel(BaseModel):
     input: Union[str, List[str]]
     model: str = "Mistral-7B-OpenOrca"
-    user: str = None
+    user: Optional[str] = None
 
 
 class EmbeddingResponse(BaseModel):
