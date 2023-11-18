@@ -172,5 +172,7 @@ async def embedding(embedding: EmbeddingModel, user=Depends(verify_api_key)):
     tags=["Embeddings"],
     dependencies=[Depends(verify_api_key)],
 )
-async def embedding(embedding: EmbeddingModel, user=Depends(verify_api_key)):
-    return LLM(model=embedding.model).embedding(input=embedding.input)
+async def embedding(
+    model_name: str, embedding: EmbeddingModel, user=Depends(verify_api_key)
+):
+    return LLM(model=model_name).embedding(input=embedding.input)
