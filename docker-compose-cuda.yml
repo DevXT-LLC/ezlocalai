@@ -5,6 +5,8 @@ services:
     image: joshxt/local-llm:cuda
     environment:
       - LOCAL_LLM_API_KEY=${LOCAL_LLM_API_KEY-}
+      - GPU_LAYERS=${GPU_LAYERS-20}
+      - MAIN_GPU=${MAIN_GPU-0}
     restart: unless-stopped
     ports:
       - "8091:8091"
