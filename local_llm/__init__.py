@@ -238,7 +238,7 @@ def clean(params, message: str = ""):
 class LLM:
     def __init__(
         self,
-        stop: List[str] = ["</|im_end|>", "</s>"],
+        stop: List[str] = ["</|im_end|>", "<|im_end|>", "</s>"],
         max_tokens: int = 0,
         temperature: float = 1.31,
         top_p: float = 1.0,

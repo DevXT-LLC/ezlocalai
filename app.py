@@ -96,58 +96,11 @@ async def chat_completions(c: ChatCompletions, user=Depends(verify_api_key)):
         )
 
 
-# Completions endpoint
-# https://platform.openai.com/docs/api-reference/completions
-class Completions(BaseModel):
-    model: str = "Mistral-7B-OpenOrca"
-    prompt: str = ""
-    suffix: Optional[str] = None
-    max_tokens: Optional[int] = 8000
-    temperature: Optional[float] = 0.9
-    top_p: Optional[float] = 1.0
-    n: Optional[int] = 1
-    stream: Optional[bool] = False
-    logprobs: Optional[int] = None
-    echo: Optional[bool] = False
-    stop: Optional[List[str]] = None
-    presence_penalty: Optional[float] = 0.0
-    frequency_penalty: Optional[float] = 0.0
-    best_of: Optional[int] = 1
-    logit_bias: Optional[Dict[str, float]] = None
-    user: Optional[str] = None
-
-
-class CompletionsResponse(BaseModel):
-    id: str
-    object: str
-    created: int
-    model: str
-    choices: List[dict]
-    usage: dict
-
-
-@app.post(
-    "/v1/completions",
-    tags=["Completions"],
-    dependencies=[Depends(verify_api_key)],
-)
-async def completions(c: Completions, user=Depends(verify_api_key)):
-    if not c.stream:
-        return LLM(**c.model_dump()).completion(prompt=c.prompt)
-    else:
-        return StreamingResponse(
-            streaming_generation(
-                data=LLM(**c.model_dump()).completion(prompt=c.prompt)
-            ),
-            media_type="text/event-stream",
-        )
-
-
 # Embeddings endpoint
 # https://platform.openai.com/docs/api-reference/embeddings
 class EmbeddingModel(BaseModel):
     input: Union[str, List[str]]
-    model: str = "Mistral-7B-OpenOrca"
+    model: Optional[str] = "Mistral-7B-OpenOrca"
     user: Optional[str] = None
 
 
@@ -159,15 +112,6 @@ class EmbeddingResponse(BaseModel):
 
 
 @app.post(
-    "/v1/embeddings",
-    tags=["Embeddings"],
-    dependencies=[Depends(verify_api_key)],
-)
-async def embedding(embedding: EmbeddingModel, user=Depends(verify_api_key)):
-    return LLM(model=embedding.model).embedding(input=embedding.input)
-
-
-@app.post(
     "/v1/engines/{model_name}/embeddings",
     tags=["Embeddings"],
     dependencies=[Depends(verify_api_key)],
@@ -176,3 +120,12 @@ async def embedding(
     model_name: str, embedding: EmbeddingModel, user=Depends(verify_api_key)
 ):
     return LLM(model=model_name).embedding(input=embedding.input)
+
+
+@app.post(
+    "/v1/embeddings",
+    tags=["Embeddings"],
+    dependencies=[Depends(verify_api_key)],
+)
+async def embedding(embedding: EmbeddingModel, user=Depends(verify_api_key)):
+    return LLM(model=embedding.model).embedding(input=embedding.input)
