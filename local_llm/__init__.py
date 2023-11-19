@@ -280,6 +280,7 @@ class LLM:
         self.params["verbose"] = False
         self.system_message = system_message
         self.params["mirostat_mode"] = 2
+        self.params["top_k"] = 20 if "top_k" not in kwargs else kwargs["top_k"]
         self.params["stop"] = ["<|im_end|>", "</|im_end|>", "</s>"]
         if stop != []:
             if isinstance(stop, str):
