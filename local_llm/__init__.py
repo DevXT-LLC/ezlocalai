@@ -337,11 +337,11 @@ class LLM:
         if len(messages) > 1:
             for message in messages:
                 if message["role"] == "system":
-                    prompt = f"\nASSISTANT's RULE: {message.content}"
+                    prompt = f"\nASSISTANT's RULE: {message.get('content', '')}"
                 elif message["role"] == "user":
-                    prompt = f"\nUSER: {message.content}"
+                    prompt = f"\nUSER: {message.get('content', '')}"
                 elif message["role"] == "assistant":
-                    prompt = f"\nASSISTANT: {message.content}"
+                    prompt = f"\nASSISTANT: {message.get('content', '')}"
         else:
             try:
                 prompt = messages[0]["content"]
