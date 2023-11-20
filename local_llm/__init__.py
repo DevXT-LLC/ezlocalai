@@ -334,14 +334,16 @@ class LLM:
         return data
 
     def chat(self, messages):
+        prompt = ""
         if len(messages) > 1:
             for message in messages:
                 if message["role"] == "system":
-                    prompt = f"\nASSISTANT's RULE: {message['content']}"
+                    prompt += f"ASSISTANT's RULE: {message['content']}"
                 elif message["role"] == "user":
-                    prompt = f"\nUSER: {message['content']}"
+                    prompt += f"USER: {message['content']}"
                 elif message["role"] == "assistant":
-                    prompt = f"\nASSISTANT: {message['content']}"
+                    prompt += f"ASSISTANT: {message['content']}"
+                prompt += "\n"
         else:
             try:
                 prompt = messages[0]["content"]
