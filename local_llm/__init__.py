@@ -328,9 +328,7 @@ class LLM:
 
     def completion(self, prompt):
         data = self.generate(prompt=prompt)
-        data["choices"][0]["text"] = clean(
-            params=self.params, message=data["choices"][0]["text"]
-        )
+        data["choices"][0]["text"] = clean(message=data["choices"][0]["text"])
         return data
 
     def chat(self, messages):
