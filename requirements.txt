@@ -4,7 +4,7 @@ requests
 uvicorn
 pyjwt
 tiktoken
-llama-cpp-python==0.2.19
+llama-cpp-python==0.2.22
 python-dotenv
 GPUtil
 psutil
