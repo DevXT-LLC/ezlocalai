@@ -236,7 +236,6 @@ class LLM:
     def __init__(
         self,
         stop: List[str] = [],
-        max_tokens: int = 0,
         temperature: float = 1.31,
         top_p: float = 1.0,
         stream: bool = False,
@@ -268,14 +267,7 @@ class LLM:
             self.params["model_path"] = ""
             model_max_tokens = 8192
             self.prompt_template = "{system_message}\n\n{prompt}"
-        try:
-            self.max_tokens = (
-                int(max_tokens)
-                if max_tokens and int(max_tokens) > 0
-                else model_max_tokens
-            )
-        except:
-            self.max_tokens = model_max_tokens
+        self.max_tokens = model_max_tokens
         self.params["n_ctx"] = self.max_tokens
         self.params["verbose"] = False
         self.system_message = system_message
@@ -322,6 +314,7 @@ class LLM:
             )
         tokens = get_tokens(formatted_prompt if format_prompt else prompt)
         self.params["n_predict"] = int(self.max_tokens) - tokens
+        self.params["n_ctx"] = int(self.max_tokens) - tokens
         llm = Llama(**self.params)
         data = llm(prompt=formatted_prompt if format_prompt else prompt)
         data["model"] = self.model_name
