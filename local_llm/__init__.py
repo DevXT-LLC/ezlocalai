@@ -313,21 +313,22 @@ class LLM:
         if "batch_size" in kwargs:
             self.params["n_batch"] = int(kwargs["batch_size"])
 
-    def generate(self, prompt):
-        formatted_prompt = format_prompt(
-            prompt=prompt,
-            prompt_template=self.prompt_template,
-            system_message=self.system_message,
-        )
-        tokens = get_tokens(formatted_prompt)
+    def generate(self, prompt, format_prompt: bool = True):
+        if format_prompt:
+            formatted_prompt = format_prompt(
+                prompt=prompt,
+                prompt_template=self.prompt_template,
+                system_message=self.system_message,
+            )
+        tokens = get_tokens(formatted_prompt if format_prompt else prompt)
         self.params["n_predict"] = int(self.max_tokens) - tokens
         llm = Llama(**self.params)
-        data = llm(prompt=formatted_prompt)
+        data = llm(prompt=formatted_prompt if format_prompt else prompt)
         data["model"] = self.model_name
         return data
 
-    def completion(self, prompt):
-        data = self.generate(prompt=prompt)
+    def completion(self, prompt, format_prompt: bool = True):
+        data = self.generate(prompt=prompt, format_prompt=format_prompt)
         data["choices"][0]["text"] = clean(message=data["choices"][0]["text"])
         return data
 
