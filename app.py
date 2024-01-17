@@ -70,6 +70,7 @@ class ChatCompletions(BaseModel):
     frequency_penalty: Optional[float] = 0.0
     logit_bias: Optional[Dict[str, float]] = None
     user: Optional[str] = None
+    system_message: Optional[str] = ""
 
 
 class ChatCompletionsResponse(BaseModel):
@@ -92,6 +93,56 @@ async def chat_completions(c: ChatCompletions, user=Depends(verify_api_key)):
     else:
         return StreamingResponse(
             streaming_generation(data=LLM(**c.model_dump()).chat(messages=c.messages)),
+            media_type="text/event-stream",
+        )
+
+
+# Completions endpoint
+# https://platform.openai.com/docs/api-reference/completions
+
+
+class Completions(BaseModel):
+    model: str = "Mistral-7B-OpenOrca"
+    prompt: str = ""
+    max_tokens: Optional[int] = 8192
+    temperature: Optional[float] = 0.9
+    top_p: Optional[float] = 1.0
+    n: Optional[int] = 1
+    stream: Optional[bool] = False
+    logit_bias: Optional[Dict[str, float]] = None
+    stop: Optional[List[str]] = None
+    echo: Optional[bool] = False
+    system_message: Optional[str] = ""
+    user: Optional[str] = None
+    format_prompt: Optional[bool] = True
+
+
+class CompletionsResponse(BaseModel):
+    id: str
+    object: str
+    created: int
+    model: str
+    choices: List[dict]
+    usage: dict
+
+
+@app.post(
+    "/v1/completions",
+    tags=["Completions"],
+    dependencies=[Depends(verify_api_key)],
+)
+async def completions(c: Completions, user=Depends(verify_api_key)):
+    if not c.stream:
+        return LLM(**c.model_dump()).completion(
+            prompt=c.prompt, format_prompt=c.format_prompt
+        )
+    else:
+        return StreamingResponse(
+            streaming_generation(
+                data=LLM(**c.model_dump()).completion(
+                    prompt=c.prompt, format_prompt=c.format_prompt
+                )
+            ),
             media_type="text/event-stream",
         )
 

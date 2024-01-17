@@ -1,6 +1,6 @@
 from llama_cpp import Llama, llama_chat_format
 from bs4 import BeautifulSoup
-from typing import List
+from typing import List, Optional, Dict
 import os
 import re
 import requests
@@ -220,14 +220,23 @@ async def streaming_generation(data):
             yield "data: {}\n".format(json.dumps(current_data))
 
 
-def clean(message: str = ""):
+def clean(
+    message: str = "",
+    stop_tokens: List[str] = ["<|im_end|", "<|im_end|>", "</|im_end|>", "</s>"],
+):
+    if message == "":
+        return message
+    for token in stop_tokens:
+        if token in message:
+            message = message.split(token)[0]
+    message = message.strip()
     if message.startswith("\n "):
         message = message[3:]
-    if message.endswith("\n\n  "):
+    if message.endswith("\n\n"):
         message = message[:-4]
     if message.startswith(" "):
         message = message[1:]
-    if message.endswith("\n  "):
+    if message.endswith("\n"):
         message = message[:-3]
     return message
 
@@ -237,11 +246,12 @@ class LLM:
         self,
         stop: List[str] = [],
         temperature: float = 1.31,
-        top_p: float = 1.0,
+        top_p: float = 0.95,
+        min_p: float = 0.05,
         stream: bool = False,
         presence_penalty: float = 0.0,
         frequency_penalty: float = 0.0,
-        logit_bias: list = [],
+        logit_bias: Optional[Dict[str, float]] = None,
         model: str = "",
         models_dir: str = "./models",
         system_message: str = "",
@@ -273,7 +283,7 @@ class LLM:
         self.system_message = system_message
         self.params["mirostat_mode"] = 2
         self.params["top_k"] = 20 if "top_k" not in kwargs else kwargs["top_k"]
-        self.params["stop"] = ["<|im_end|>", "</|im_end|>", "</s>"]
+        self.params["stop"] = ["<|im_end|", "<|im_end|>", "</|im_end|>", "</s>"]
         if stop != []:
             if isinstance(stop, str):
                 self.params["stop"].append(stop)
@@ -281,29 +291,28 @@ class LLM:
                 try:
                     for stop_string in stop:
                         if stop_string not in self.params["stop"]:
-                            self.params["stop"].append(stop_string)
+                            if stop_string != None:
+                                self.params["stop"].append(stop_string)
                 except:
-                    self.params["stop"].append(stop)
-        if temperature:
-            self.params["temperature"] = temperature
-        if top_p:
-            self.params["top_p"] = top_p
-        if stream:
-            self.params["stream"] = stream
-        if presence_penalty:
-            self.params["presence_penalty"] = presence_penalty
-        if frequency_penalty:
-            self.params["frequency_penalty"] = frequency_penalty
-        if logit_bias:
-            self.params["logit_bias"] = logit_bias
-        if THREADS:
-            self.params["n_threads"] = int(THREADS)
-        if GPU_LAYERS:
-            self.params["n_gpu_layers"] = int(GPU_LAYERS)
-        if MAIN_GPU:
-            self.params["main_gpu"] = int(MAIN_GPU)
+                    if stop != None:
+                        self.params["stop"].append(stop)
+
+        self.params["temperature"] = temperature if temperature else 1.31
+        self.params["top_p"] = top_p if top_p else 0.95
+        self.params["min_p"] = min_p if min_p else 0.05
+        self.params["stream"] = stream if stream else False
+        self.params["presence_penalty"] = presence_penalty if presence_penalty else 0.0
+        self.params["frequency_penalty"] = (
+            frequency_penalty if frequency_penalty else 0.0
+        )
+        self.params["logit_bias"] = logit_bias if logit_bias else None
+        self.params["n_threads"] = int(THREADS) if THREADS else 8
+        self.params["n_gpu_layers"] = int(GPU_LAYERS) if GPU_LAYERS else 0
+        self.params["main_gpu"] = int(MAIN_GPU) if MAIN_GPU else 0
         if "batch_size" in kwargs:
-            self.params["n_batch"] = int(kwargs["batch_size"])
+            self.params["n_batch"] = (
+                int(kwargs["batch_size"]) if kwargs["batch_size"] else 1024
+            )
 
     def generate(self, prompt, format_prompt: bool = True):
         if format_prompt:
@@ -314,14 +323,30 @@ class LLM:
             )
         tokens = get_tokens(formatted_prompt if format_prompt else prompt)
         self.params["max_tokens"] = int(self.max_tokens) - int(tokens)
-        llm = Llama(**self.params)
-        data = llm(prompt=formatted_prompt if format_prompt else prompt)
+        data = Llama(**self.params).create_completion(
+            prompt=formatted_prompt if format_prompt else prompt,
+            max_tokens=self.params["max_tokens"],
+            temperature=self.params["temperature"],
+            top_p=self.params["top_p"],
+            min_p=self.params["min_p"],
+            stop=self.params["stop"],
+            top_k=self.params["top_k"],
+            logit_bias=self.params["logit_bias"],
+            mirostat_mode=self.params["mirostat_mode"],
+            frequency_penalty=self.params["frequency_penalty"],
+            presence_penalty=self.params["presence_penalty"],
+            stream=self.params["stream"],
+            model=self.model_name,
+        )
+        # data = llm(prompt=formatted_prompt if format_prompt else prompt)
         data["model"] = self.model_name
         return data
 
     def completion(self, prompt, format_prompt: bool = True):
         data = self.generate(prompt=prompt, format_prompt=format_prompt)
-        data["choices"][0]["text"] = clean(message=data["choices"][0]["text"])
+        data["choices"][0]["text"] = clean(
+            message=data["choices"][0]["text"], stop_tokens=self.params["stop"]
+        )
         return data
 
     def chat(self, messages):
@@ -342,7 +367,9 @@ class LLM:
                 prompt = messages
         data = self.generate(prompt=prompt)
         messages = [{"role": "user", "content": prompt}]
-        message = clean(message=data["choices"][0]["text"])
+        message = clean(
+            message=data["choices"][0]["text"], stop_tokens=self.params["stop"]
+        )
         messages.append({"role": "assistant", "content": message})
         data["messages"] = messages
         del data["choices"]
