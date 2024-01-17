@@ -94,7 +94,7 @@ def get_readme(model_name="Mistral-7B-OpenOrca", models_dir="models"):
             with open(f"{models_dir}/{model_name}/README.md", "wb") as f:
                 for chunk in r.iter_content(chunk_size=8192):
                     f.write(chunk)
-    with open(f"{models_dir}/{model_name}/README.md", "r") as f:
+    with open(f"{models_dir}/{model_name}/README.md", "r", encoding="utf-8") as f:
         readme = f.read()
     return readme
 
