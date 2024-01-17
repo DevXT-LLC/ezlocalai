@@ -36,7 +36,9 @@ You can choose to run locally with the instructions below, or with [Docker](Dock
 
 ### Prerequisites
 
+- [Git](https://git-scm.com/downloads)
 - [Python 3.10](https://www.python.org/downloads/)
+- [PowerShell 7.X](https://learn.microsoft.com/en-us/powershell/scripting/install/installing-powershell?view=powershell-7.4)
 
 ### Installation
 
@@ -51,7 +53,7 @@ pip install -r requirements.txt
 Make your modifications to the `.env` file or proceed to accept defaults running on CPU without an API key.
 
 ```bash
-uvicorn app:app --host 0.0.0.0 --port 8091 --workers 4
+./start.ps1
 ```
 
 ## OpenAI Style Endpoint Usage

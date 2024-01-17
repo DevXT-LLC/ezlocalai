@@ -30,10 +30,8 @@ if ($env:GPU_LAYERS -ne "0") {
         if ($env:CMAKE_ARGS.Length -eq 0) {
             write-host "Installing llama-cpp-python with cublas support"
             $env:CMAKE_ARGS = "-DLLAMA_CUBLAS=on"
-            #Start-Process -FilePath "pip" -ArgumentList "install", "llama-cpp-python", "--upgrade", "--force-reinstall", "--no-cache-dir" -Wait
-            & write-host $env:CMAKE_ARGS
-            & pip install llama-cpp-python --upgrade --force-reinstall --no-cache-dir
             Add-Content -Path ".env" -Value "CMAKE_ARGS=$env:CMAKE_ARGS"
+            & pip install llama-cpp-python --upgrade --force-reinstall --no-cache-dir
         }
     }
 }
