@@ -77,7 +77,7 @@ def get_model_url(model_name="Mistral-7B-OpenOrca"):
 def get_tokens(text: str) -> int:
     encoding = tiktoken.get_encoding("cl100k_base")
     num_tokens = len(encoding.encode(text))
-    return num_tokens
+    return int(num_tokens)
 
 
 def get_model_name(model_url="TheBloke/Mistral-7B-OpenOrca-GGUF"):
@@ -204,7 +204,7 @@ def custom_format(string, **kwargs):
     return result
 
 
-def format_prompt(prompt, prompt_template, system_message=""):
+def custom_format_prompt(prompt, prompt_template, system_message=""):
     formatted_prompt = custom_format(
         string=prompt_template, prompt=prompt, system_message=system_message
     )
@@ -268,7 +268,7 @@ class LLM:
             model_max_tokens = 8192
             self.prompt_template = "{system_message}\n\n{prompt}"
         self.max_tokens = model_max_tokens
-        self.params["n_ctx"] = self.max_tokens
+        self.params["n_ctx"] = 0
         self.params["verbose"] = False
         self.system_message = system_message
         self.params["mirostat_mode"] = 2
@@ -307,14 +307,13 @@ class LLM:
 
     def generate(self, prompt, format_prompt: bool = True):
         if format_prompt:
-            formatted_prompt = format_prompt(
+            formatted_prompt = custom_format_prompt(
                 prompt=prompt,
                 prompt_template=self.prompt_template,
                 system_message=self.system_message,
             )
         tokens = get_tokens(formatted_prompt if format_prompt else prompt)
-        self.params["n_predict"] = int(self.max_tokens) - tokens
-        self.params["n_ctx"] = int(self.max_tokens) - tokens
+        self.params["max_tokens"] = int(self.max_tokens) - int(tokens)
         llm = Llama(**self.params)
         data = llm(prompt=formatted_prompt if format_prompt else prompt)
         data["model"] = self.model_name
