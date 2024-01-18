@@ -56,7 +56,7 @@ async def models(user=Depends(verify_api_key)):
 # Chat completions endpoint
 # https://platform.openai.com/docs/api-reference/chat
 class ChatCompletions(BaseModel):
-    model: str = "Mistral-7B-OpenOrca"
+    model: str = "phi-2-dpo"
     messages: List[dict] = None
     temperature: Optional[float] = 0.9
     top_p: Optional[float] = 1.0
@@ -102,7 +102,7 @@ async def chat_completions(c: ChatCompletions, user=Depends(verify_api_key)):
 
 
 class Completions(BaseModel):
-    model: str = "Mistral-7B-OpenOrca"
+    model: str = "phi-2-dpo"
     prompt: str = ""
     max_tokens: Optional[int] = 8192
     temperature: Optional[float] = 0.9
@@ -151,7 +151,7 @@ async def completions(c: Completions, user=Depends(verify_api_key)):
 # https://platform.openai.com/docs/api-reference/embeddings
 class EmbeddingModel(BaseModel):
     input: Union[str, List[str]]
-    model: Optional[str] = "Mistral-7B-OpenOrca"
+    model: Optional[str] = "phi-2-dpo"
     user: Optional[str] = None
 
 

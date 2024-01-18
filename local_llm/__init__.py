@@ -56,7 +56,7 @@ def get_models():
     return model_names
 
 
-def get_model_url(model_name="Mistral-7B-OpenOrca"):
+def get_model_url(model_name="phi-2-dpo"):
     model_url = ""
     try:
         models = get_models()
@@ -80,12 +80,12 @@ def get_tokens(text: str) -> int:
     return int(num_tokens)
 
 
-def get_model_name(model_url="TheBloke/Mistral-7B-OpenOrca-GGUF"):
+def get_model_name(model_url="TheBloke/phi-2-dpo-GGUF"):
     model_name = model_url.split("/")[-1].replace("-GGUF", "").lower()
     return model_name
 
 
-def get_readme(model_name="Mistral-7B-OpenOrca", models_dir="models"):
+def get_readme(model_name="phi-2-dpo", models_dir="models"):
     model_url = get_model_url(model_name=model_name)
     model_name = model_name.lower()
     if not os.path.exists(f"{models_dir}/{model_name}/README.md"):
@@ -99,7 +99,7 @@ def get_readme(model_name="Mistral-7B-OpenOrca", models_dir="models"):
     return readme
 
 
-def get_max_tokens(model_name="Mistral-7B-OpenOrca", models_dir="models"):
+def get_max_tokens(model_name="phi-2-dpo", models_dir="models"):
     readme = get_readme(model_name=model_name, models_dir=models_dir)
     if "200k" in readme:
         return 200000
@@ -120,7 +120,7 @@ def get_max_tokens(model_name="Mistral-7B-OpenOrca", models_dir="models"):
     return 8192
 
 
-def get_prompt(model_name="Mistral-7B-OpenOrca", models_dir="models"):
+def get_prompt(model_name="phi-2-dpo", models_dir="models"):
     model_name = model_name.lower()
     if os.path.exists(f"{models_dir}/{model_name}/prompt.txt"):
         with open(f"{models_dir}/{model_name}/prompt.txt", "r") as f:
@@ -136,7 +136,7 @@ def get_prompt(model_name="Mistral-7B-OpenOrca", models_dir="models"):
     return prompt_template
 
 
-def get_model(model_name="Mistral-7B-OpenOrca", models_dir="models"):
+def get_model(model_name="phi-2-dpo", models_dir="models"):
     if ram > 16:
         default_quantization_type = "Q5_K_M"
     else:
