@@ -10,7 +10,7 @@ RUN apt-get update && apt-get upgrade -y \
     ocl-icd-opencl-dev opencl-headers clinfo \
     libclblast-dev libopenblas-dev \
     && mkdir -p /etc/OpenCL/vendors && echo "libnvidia-opencl.so.1" > /etc/OpenCL/vendors/nvidia.icd
-
+WORKDIR /app
 COPY . .
 
 # setting build related env vars
