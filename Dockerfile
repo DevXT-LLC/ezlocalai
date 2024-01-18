@@ -22,4 +22,5 @@ RUN python3 -m pip install --upgrade pip cmake scikit-build setuptools fastapi u
 RUN python3 -m pip install -r requirements.txt
 
 EXPOSE 8091
+RUN chmod +x start.sh
 ENTRYPOINT ["/app/start.sh"]
