@@ -18,6 +18,6 @@ if [ $GPU_LAYERS -gt 0 ]; then
     export CUDA_DOCKER_ARCH
     export LLAMA_CUBLAS
     export CMAKE_ARGS
-    CMAKE_ARGS="-DLLAMA_CUBLAS=on" pip install llama-cpp-python --upgrade
+    CMAKE_ARGS="-DLLAMA_CUBLAS=on" pip install llama-cpp-python --upgrade --force-reinstall --no-cache-dir
 fi
 uvicorn app:app --host 0.0.0.0 --port 8091 --workers 4 --proxy-headers
