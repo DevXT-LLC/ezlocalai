@@ -13,4 +13,6 @@ if [ $GPU_LAYERS -gt 0 ]; then
     export CMAKE_ARGS
     CMAKE_ARGS="-DLLAMA_CUBLAS=on" pip install llama-cpp-python --upgrade --force-reinstall --no-cache-dir
 fi
+# Update the llama-cpp-python package
+pip install llama-cpp-python --upgrade
 uvicorn app:app --host 0.0.0.0 --port 8091 --workers 4 --proxy-headers
