@@ -32,6 +32,7 @@ THREADS = os.environ.get("THREADS", threads - 2)
 DOWNLOAD_MODELS = (
     True if os.environ.get("DOWNLOAD_MODELS", "true").lower() == "true" else False
 )
+DEFAULT_MODEL = os.environ.get("DEFAULT_MODEL", "phi-2-dpo")
 
 
 def get_models():
@@ -56,7 +57,7 @@ def get_models():
     return model_names
 
 
-def get_model_url(model_name="phi-2-dpo"):
+def get_model_url(model_name=DEFAULT_MODEL):
     model_url = ""
     try:
         models = get_models()
@@ -85,7 +86,7 @@ def get_model_name(model_url="TheBloke/phi-2-dpo-GGUF"):
     return model_name
 
 
-def get_readme(model_name="phi-2-dpo", models_dir="models"):
+def get_readme(model_name=DEFAULT_MODEL, models_dir="models"):
     model_url = get_model_url(model_name=model_name)
     model_name = model_name.lower()
     if not os.path.exists(f"{models_dir}/{model_name}/README.md"):
@@ -99,7 +100,7 @@ def get_readme(model_name="phi-2-dpo", models_dir="models"):
     return readme
 
 
-def get_max_tokens(model_name="phi-2-dpo", models_dir="models"):
+def get_max_tokens(model_name=DEFAULT_MODEL, models_dir="models"):
     readme = get_readme(model_name=model_name, models_dir=models_dir)
     if "200k" in readme:
         return 200000
@@ -120,7 +121,7 @@ def get_max_tokens(model_name="phi-2-dpo", models_dir="models"):
     return 8192
 
 
-def get_prompt(model_name="phi-2-dpo", models_dir="models"):
+def get_prompt(model_name=DEFAULT_MODEL, models_dir="models"):
     model_name = model_name.lower()
     if os.path.exists(f"{models_dir}/{model_name}/prompt.txt"):
         with open(f"{models_dir}/{model_name}/prompt.txt", "r") as f:
@@ -136,7 +137,7 @@ def get_prompt(model_name="phi-2-dpo", models_dir="models"):
     return prompt_template
 
 
-def get_model(model_name="phi-2-dpo", models_dir="models"):
+def get_model(model_name=DEFAULT_MODEL, models_dir="models"):
     if ram > 16:
         default_quantization_type = "Q5_K_M"
     else:
@@ -246,6 +247,7 @@ class LLM:
         self,
         stop: List[str] = [],
         temperature: float = 1.31,
+        max_tokens: int = 0,
         top_p: float = 0.95,
         min_p: float = 0.05,
         stream: bool = False,
@@ -263,9 +265,12 @@ class LLM:
             self.params["model_path"] = get_model(
                 model_name=self.model_name, models_dir=models_dir
             )
-            model_max_tokens = get_max_tokens(
-                model_name=self.model_name, models_dir=models_dir
-            )
+            if max_tokens != 0:
+                self.params["max_tokens"] = get_max_tokens(
+                    model_name=self.model_name, models_dir=models_dir
+                )
+            else:
+                self.params["max_tokens"] = max_tokens
             self.prompt_template = get_prompt(
                 model_name=self.model_name, models_dir=models_dir
             )
@@ -275,9 +280,8 @@ class LLM:
                 )
         else:
             self.params["model_path"] = ""
-            model_max_tokens = 8192
+            self.params["max_tokens"] = 8192
             self.prompt_template = "{system_message}\n\n{prompt}"
-        self.max_tokens = model_max_tokens
         self.params["n_ctx"] = 0
         self.params["verbose"] = False
         self.system_message = system_message
@@ -313,6 +317,10 @@ class LLM:
             self.params["n_batch"] = (
                 int(kwargs["batch_size"]) if kwargs["batch_size"] else 1024
             )
+        if model != "":
+            self.lcpp = Llama(**self.params, embedding=True)
+        else:
+            self.lcpp = None
 
     def generate(self, prompt, format_prompt: bool = True):
         if format_prompt:
@@ -321,9 +329,8 @@ class LLM:
                 prompt_template=self.prompt_template,
                 system_message=self.system_message,
             )
-        tokens = get_tokens(formatted_prompt if format_prompt else prompt)
-        self.params["max_tokens"] = int(self.max_tokens) - int(tokens)
-        data = Llama(**self.params).create_completion(
+        print(self.params)
+        data = self.lcpp.create_completion(
             prompt=formatted_prompt if format_prompt else prompt,
             max_tokens=self.params["max_tokens"],
             temperature=self.params["temperature"],
@@ -376,8 +383,8 @@ class LLM:
         return data
 
     def embedding(self, input):
-        llm = Llama(embedding=True, **self.params)
-        embeddings = llm.create_embedding(input=input, model=self.model_name)
+        # llm = Llama(embedding=True, **self.params)
+        embeddings = self.lcpp.create_embedding(input=input, model=self.model_name)
         embeddings["model"] = self.model_name
         return embeddings
 

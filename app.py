@@ -3,7 +3,7 @@ from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Dict, Union, Optional
-from local_llm import LLM, streaming_generation
+from local_llm import LLM, streaming_generation, DEFAULT_MODEL
 import os
 import jwt
 
@@ -16,6 +16,11 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+if DEFAULT_MODEL != "":
+    default_llm = LLM(model=DEFAULT_MODEL)
+else:
+    default_llm = None
 
 
 def verify_api_key(authorization: str = Header(None)):
@@ -57,6 +62,8 @@ def verify_api_key(authorization: str = Header(None)):
     dependencies=[Depends(verify_api_key)],
 )
 async def models(user=Depends(verify_api_key)):
+    if default_llm:
+        return default_llm.models()
     models = LLM().models()
     return models
 
@@ -64,7 +71,7 @@ async def models(user=Depends(verify_api_key)):
 # Chat completions endpoint
 # https://platform.openai.com/docs/api-reference/chat
 class ChatCompletions(BaseModel):
-    model: str = "phi-2-dpo"
+    model: str = DEFAULT_MODEL
     messages: List[dict] = None
     temperature: Optional[float] = 0.9
     top_p: Optional[float] = 1.0
@@ -97,8 +104,15 @@ class ChatCompletionsResponse(BaseModel):
 )
 async def chat_completions(c: ChatCompletions, user=Depends(verify_api_key)):
     if not c.stream:
+        if DEFAULT_MODEL == c.model:
+            return default_llm.chat(messages=c.messages)
         return LLM(**c.model_dump()).chat(messages=c.messages)
     else:
+        if DEFAULT_MODEL == c.model:
+            return StreamingResponse(
+                streaming_generation(data=default_llm.chat(messages=c.messages)),
+                media_type="text/event-stream",
+            )
         return StreamingResponse(
             streaming_generation(data=LLM(**c.model_dump()).chat(messages=c.messages)),
             media_type="text/event-stream",
@@ -108,7 +122,7 @@ async def chat_completions(c: ChatCompletions, user=Depends(verify_api_key)):
 # Completions endpoint
 # https://platform.openai.com/docs/api-reference/completions
 class Completions(BaseModel):
-    model: str = "phi-2-dpo"
+    model: str = DEFAULT_MODEL
     prompt: str = ""
     max_tokens: Optional[int] = 8192
     temperature: Optional[float] = 0.9
@@ -139,10 +153,23 @@ class CompletionsResponse(BaseModel):
 )
 async def completions(c: Completions, user=Depends(verify_api_key)):
     if not c.stream:
+        if DEFAULT_MODEL == c.model:
+            return default_llm.completion(
+                prompt=c.prompt, format_prompt=c.format_prompt
+            )
         return LLM(**c.model_dump()).completion(
             prompt=c.prompt, format_prompt=c.format_prompt
         )
     else:
+        if DEFAULT_MODEL == c.model:
+            return StreamingResponse(
+                streaming_generation(
+                    data=default_llm.completion(
+                        prompt=c.prompt, format_prompt=c.format_prompt
+                    )
+                ),
+                media_type="text/event-stream",
+            )
         return StreamingResponse(
             streaming_generation(
                 data=LLM(**c.model_dump()).completion(
@@ -157,7 +184,7 @@ async def completions(c: Completions, user=Depends(verify_api_key)):
 # https://platform.openai.com/docs/api-reference/embeddings
 class EmbeddingModel(BaseModel):
     input: Union[str, List[str]]
-    model: Optional[str] = "phi-2-dpo"
+    model: Optional[str] = DEFAULT_MODEL
     user: Optional[str] = None
 
 
@@ -176,6 +203,8 @@ class EmbeddingResponse(BaseModel):
 async def embedding(
     model_name: str, embedding: EmbeddingModel, user=Depends(verify_api_key)
 ):
+    if DEFAULT_MODEL == embedding.model:
+        return default_llm.embedding(input=embedding.input)
     return LLM(model=model_name).embedding(input=embedding.input)
 
 
@@ -185,4 +214,6 @@ async def embedding(
     dependencies=[Depends(verify_api_key)],
 )
 async def embedding(embedding: EmbeddingModel, user=Depends(verify_api_key)):
+    if DEFAULT_MODEL == embedding.model:
+        return default_llm.embedding(input=embedding.input)
     return LLM(model=embedding.model).embedding(input=embedding.input)

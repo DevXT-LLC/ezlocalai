@@ -41,7 +41,7 @@ if ($env:GPU_LAYERS -ne "0") {
             $env:CMAKE_ARGS = "-DLLAMA_CUBLAS=on"
             Add-Content -Path ".env" -Value "CMAKE_ARGS=$env:CMAKE_ARGS"
             if( $env:RUN_WITHOUT_DOCKER.Length -ne 0) {
-                & pip install llama-cpp-python==0.0.29 --upgrade --force-reinstall
+                & pip install llama-cpp-python --upgrade --force-reinstall
             }
         }
     }
@@ -51,7 +51,7 @@ if( $env:RUN_WITHOUT_DOCKER.Length -ne 0) {
     if ($env:AUTO_UPDATE -eq "true") {
         git pull
     }
-    & uvicorn app:app --host 0.0.0.0 --port 8091 --workers 2 --proxy-headers
+    & uvicorn app:app --host 0.0.0.0 --port 8091 --workers 1 --proxy-headers
 } else {
     if ($env:CUDA_DOCKER_ARCH.Length -ne 0) {
         docker-compose -f docker-compose-cuda.yml down
