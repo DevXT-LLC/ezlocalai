@@ -3,17 +3,7 @@
 - [Dockerhub](https://hub.docker.com/r/joshxt/local-llm/tags)
 - [GitHub](https://github.com/Josh-XT/Local-LLM)
 
-Local-LLM is a simple [llama.cpp](https://github.com/ggerganov/llama.cpp) server in Docker with OpenAI Style Endpoints that allows you to send the model name as the name of the model as it appears in the model list, for example `phi-2-dpo`. It will automatically download the model from Hugging Face if it isn't already downloaded and configure the server for you. It automatically configures the server based on your CPU, RAM, and GPU. It is designed to be as easy as possible to get started with running local models.
-
-## Table of Contents 📖
-
-- [Local-LLM](#local-llm)
-  - [Table of Contents 📖](#table-of-contents-)
-  - [Prerequisites](#prerequisites)
-    - [Linux Prerequisites](#linux-prerequisites)
-  - [Installation](#installation)
-  - [Usage](#usage)
-  - [OpenAI Style Endpoint Usage](#openai-style-endpoint-usage)
+Local-LLM is a simple [llama.cpp](https://github.com/ggerganov/llama.cpp) server in Docker with [OpenAI Style Endpoints](https://pypi.org/project/openai/) that allows you to send the model name as the name of the model as it appears in the model list, for example `phi-2-dpo`. It will automatically download the model from Hugging Face if it isn't already downloaded and then automatically configures the server based on your CPU, RAM, and GPU. It is designed to be as easy as possible to get started with running local models.
 
 ## Prerequisites
 
@@ -21,11 +11,14 @@ Local-LLM is a simple [llama.cpp](https://github.com/ggerganov/llama.cpp) server
 - [PowerShell 7.X](https://learn.microsoft.com/en-us/powershell/scripting/install/installing-powershell?view=powershell-7.4)
 - [Docker Desktop](https://docs.docker.com/docker-for-windows/install/) (Windows or Mac)
 
-### Linux Prerequisites
+<details>
+  <summary>Additional Linux Prerequisites</summary>
 
 - [Docker](https://docs.docker.com/get-docker/)
 - [Docker Compose](https://docs.docker.com/compose/install/)
 - [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html)
+
+</details>
 
 ## Installation
 
@@ -46,6 +39,7 @@ Modify the `.env` file to your desired settings. Assumptions will be made on all
 Replace the environment variables with your desired settings. Assumptions will be made on all of these values if you choose to accept the defaults.
 
 - `LOCAL_LLM_API_KEY` - The API key to use for the server. If not set, the server will not require an API key when accepting requests.
+- `AUTO_UPDATE` - Whether or not to automatically update Local-LLM. Default is `true`.
 - `THREADS` - The number of CPU threads Local-LLM is allowed to use. Default is `your CPU thread count minus 2`.
 - `GPU_LAYERS` (Only applicable to NVIDIA GPU) - The number of layers to use on the GPU. Default is `0`.
 - `MAIN_GPU` (Only applicable to NVIDIA GPU) - The GPU to use for the main model. Default is `0`.
@@ -58,6 +52,8 @@ Replace the environment variables with your desired settings. Assumptions will b
 ./start.ps1
 ```
 
+For examples on how to use the server to communicate with the models, see the [Examples Jupyter Notebook](tests/tests.ipynb).
+
 ## OpenAI Style Endpoint Usage
 
-OpenAI Style endpoints available at `http://<YOUR LOCAL IP ADDRESS>:8091/v1` by default. Documentation can be accessed at that <http://localhost:8091> when the server is running. There are examples for each of the endpoints in the [Examples Jupyter Notebook](tests/tests.ipynb).
+OpenAI Style endpoints available at `http://<YOUR LOCAL IP ADDRESS>:8091/v1/` by default. Documentation can be accessed at that <http://localhost:8091> when the server is running.

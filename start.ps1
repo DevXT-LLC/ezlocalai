@@ -29,6 +29,10 @@ $env:CUDA_DOCKER_ARCH = Get-Content -Path ".env" | Select-String -Pattern "CUDA_
 if ($null -eq $env:CUDA_DOCKER_ARCH) {
     $env:CUDA_DOCKER_ARCH = ""
 }
+$env:AUTO_UPDATE = Get-Content -Path ".env" | Select-String -Pattern "AUTO_UPDATE" | ForEach-Object { $_.ToString().Split("=")[1] }
+if ($null -eq $env:AUTO_UPDATE) {
+    $env:AUTO_UPDATE = "true"
+}
 if ($env:GPU_LAYERS -ne "0") {
     $env:CUDA_DOCKER_ARCH = "all"
     if ($env:CMAKE_ARGS -ne "-DLLAMA_CUBLAS=on") {
@@ -44,15 +48,22 @@ if ($env:GPU_LAYERS -ne "0") {
 }
 
 if( $env:RUN_WITHOUT_DOCKER.Length -ne 0) {
+    if ($env:AUTO_UPDATE -eq "true") {
+        git pull
+    }
     & uvicorn app:app --host 0.0.0.0 --port 8091 --workers 2 --proxy-headers
 } else {
     if ($env:CUDA_DOCKER_ARCH.Length -ne 0) {
         docker-compose -f docker-compose-cuda.yml down
-        docker-compose -f docker-compose-cuda.yml pull
+        if ($env:AUTO_UPDATE -eq "true") {
+            docker-compose -f docker-compose-cuda.yml pull
+        }
         docker-compose -f docker-compose-cuda.yml up
     } else {
         docker-compose down
-        docker-compose pull
+        if ($env:AUTO_UPDATE -eq "true") {
+            docker-compose pull
+        }
         docker-compose up
     }
 }
