@@ -9,26 +9,23 @@ Local-LLM is a simple [llama.cpp](https://github.com/ggerganov/llama.cpp) server
 
 - [Local-LLM](#local-llm)
   - [Table of Contents 📖](#table-of-contents-)
-  - [Windows and Mac Prerequisites](#windows-and-mac-prerequisites)
-  - [Linux Prerequisites](#linux-prerequisites)
+  - [Prerequisites](#prerequisites)
+    - [Linux Prerequisites](#linux-prerequisites)
   - [Installation](#installation)
-  - [Environment Setup (Optional)](#environment-setup-optional)
   - [Usage](#usage)
   - [OpenAI Style Endpoint Usage](#openai-style-endpoint-usage)
 
-## Windows and Mac Prerequisites
+## Prerequisites
 
 - [Git](https://git-scm.com/downloads)
-- [Docker Desktop](https://docs.docker.com/docker-for-windows/install/)
 - [PowerShell 7.X](https://learn.microsoft.com/en-us/powershell/scripting/install/installing-powershell?view=powershell-7.4)
+- [Docker Desktop](https://docs.docker.com/docker-for-windows/install/) (Windows or Mac)
 
-## Linux Prerequisites
+### Linux Prerequisites
 
-- [Git](https://git-scm.com/downloads)
 - [Docker](https://docs.docker.com/get-docker/)
 - [Docker Compose](https://docs.docker.com/compose/install/)
-- [PowerShell 7.X](https://learn.microsoft.com/en-us/powershell/scripting/install/installing-powershell?view=powershell-7.4)
-- [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html) (if using GPU)
+- [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html)
 
 ## Installation
 
@@ -37,7 +34,10 @@ git clone https://github.com/Josh-XT/Local-LLM
 cd Local-LLM
 ```
 
-## Environment Setup (Optional)
+Make your modifications to the `.env` file or proceed to accept defaults running on CPU without an API key.
+
+<details>
+  <summary>Environment Setup (Optional)</summary>
 
 None of the values need modified in order to run the server. If you are using an NVIDIA GPU, I would recommend setting the `GPU_LAYERS` and `MAIN_GPU` environment variables. If you plan to expose the server to the internet, I would recommend setting the `LOCAL_LLM_API_KEY` environment variable for security. `THREADS` is set to your CPU thread count minus 2 by default, if this causes significant performance issues, consider setting the `THREADS` environment variable manually to a lower number.
 
@@ -50,9 +50,9 @@ Replace the environment variables with your desired settings. Assumptions will b
 - `GPU_LAYERS` (Only applicable to NVIDIA GPU) - The number of layers to use on the GPU. Default is `0`.
 - `MAIN_GPU` (Only applicable to NVIDIA GPU) - The GPU to use for the main model. Default is `0`.
 
-## Usage
+</details>
 
-Make your modifications to the `.env` file or proceed to accept defaults running on CPU without an API key.
+## Usage
 
 ```bash
 ./start.ps1
