@@ -104,12 +104,18 @@ class ChatCompletionsResponse(BaseModel):
 )
 async def chat_completions(c: ChatCompletions, user=Depends(verify_api_key)):
     if DEFAULT_MODEL == c.model:
-        default_llm.params["max_tokens"] = c.max_tokens
-        default_llm.params["temperature"] = c.temperature
-        default_llm.params["top_p"] = c.top_p
-        default_llm.params["logit_bias"] = c.logit_bias
-        default_llm.params["stop"].append(c.stop)
-        default_llm.params["system_message"] = c.system_message
+        if c.max_tokens
+            default_llm.params["max_tokens"] = c.max_tokens
+        if c.temperature:
+            default_llm.params["temperature"] = c.temperature
+        if c.top_p:
+            default_llm.params["top_p"] = c.top_p
+        if c.logit_bias:
+            default_llm.params["logit_bias"] = c.logit_bias
+        if c.stop:
+            default_llm.params["stop"].append(c.stop)
+        if c.system_message:
+            default_llm.params["system_message"] = c.system_message
     if not c.stream:
         if DEFAULT_MODEL == c.model:
             return default_llm.chat(messages=c.messages)
@@ -160,12 +166,18 @@ class CompletionsResponse(BaseModel):
 )
 async def completions(c: Completions, user=Depends(verify_api_key)):
     if DEFAULT_MODEL == c.model:
-        default_llm.params["max_tokens"] = c.max_tokens
-        default_llm.params["temperature"] = c.temperature
-        default_llm.params["top_p"] = c.top_p
-        default_llm.params["logit_bias"] = c.logit_bias
-        default_llm.params["stop"].append(c.stop)
-        default_llm.params["system_message"] = c.system_message
+        if c.max_tokens
+            default_llm.params["max_tokens"] = c.max_tokens
+        if c.temperature:
+            default_llm.params["temperature"] = c.temperature
+        if c.top_p:
+            default_llm.params["top_p"] = c.top_p
+        if c.logit_bias:
+            default_llm.params["logit_bias"] = c.logit_bias
+        if c.stop:
+            default_llm.params["stop"].append(c.stop)
+        if c.system_message:
+            default_llm.params["system_message"] = c.system_message
     if not c.stream:
         if DEFAULT_MODEL == c.model:
             return default_llm.completion(
