@@ -21,8 +21,6 @@ ENV LLAMA_CUBLAS=1
 RUN python3 -m pip install --upgrade pip cmake scikit-build setuptools fastapi uvicorn sse-starlette pydantic-settings starlette-context
 RUN python3 -m pip install -r requirements.txt
 
-RUN python3 download.py
-
 EXPOSE 8091
 RUN chmod +x start.sh
 ENTRYPOINT ["/app/start.sh"]
