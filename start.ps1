@@ -48,10 +48,10 @@ if( $env:RUN_WITHOUT_DOCKER.Length -ne 0) {
     if ($env:CUDA_DOCKER_ARCH.Length -ne 0) {
         docker-compose -f docker-compose-cuda.yml down
         docker-compose -f docker-compose-cuda.yml pull
-        docker-compose -f docker-compose-cuda.yml up -d
+        docker-compose -f docker-compose-cuda.yml up
     } else {
         docker-compose down
         docker-compose pull
-        docker-compose up -d
+        docker-compose up
     }
 }
