@@ -1,9 +1,8 @@
 # Local-LLM
 
-- [Dockerhub](https://hub.docker.com/r/joshxt/local-llm/tags)
-- [GitHub](https://github.com/Josh-XT/Local-LLM)
+[![GitHub](https://img.shields.io/badge/GitHub-Local%20LLM-blue?logo=github&style=plastic)](https://github.com/Josh-XT/Local-LLM) [![Dockerhub](https://img.shields.io/badge/Docker-Local%20LLM-blue?logo=docker&style=plastic)](https://hub.docker.com/r/joshxt/local-llm)
 
-Local-LLM is a simple [llama.cpp](https://github.com/ggerganov/llama.cpp) server in Docker with [OpenAI Style Endpoints](https://pypi.org/project/openai/) that allows you to send the model name as the name of the model as it appears in the model list, for example `phi-2-dpo`. It will automatically download the model from Hugging Face if it isn't already downloaded and then automatically configures the server based on your CPU, RAM, and GPU. It is designed to be as easy as possible to get started with running local models.
+Local-LLM is a simple [llama.cpp](https://github.com/ggerganov/llama.cpp) server that easily exposes a list of local language models to choose from to run on your own computer. It is designed to be as easy as possible to get started with running local models. It automatically handles downloading the model of your choice and configuring the server based on your CPU, RAM, and GPU. It also includes [OpenAI Style](https://pypi.org/project/openai/) endpoints for easy integration with other applications.
 
 ## Prerequisites
 
@@ -27,7 +26,7 @@ git clone https://github.com/Josh-XT/Local-LLM
 cd Local-LLM
 ```
 
-Make your modifications to the `.env` file or proceed to accept defaults running on CPU without an API key.
+Expand Environment Setup if you would like to modify the default environment variables, otherwise skip to Usage.
 
 <details>
   <summary>Environment Setup (Optional)</summary>
