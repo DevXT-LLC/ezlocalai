@@ -67,5 +67,5 @@ jobs:
       notebook: tests/tests.ipynb
       image: ghcr.io/josh-xt/local-llm:cpu
       port: "8091"
-      additional-python-dependencies: openai==0.28.1 requests
+      additional-python-dependencies: openai requests
     needs: build_and_push
