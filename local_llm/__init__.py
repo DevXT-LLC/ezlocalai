@@ -329,7 +329,6 @@ class LLM:
                 prompt_template=self.prompt_template,
                 system_message=self.system_message,
             )
-        print(self.params)
         data = self.lcpp.create_completion(
             prompt=formatted_prompt if format_prompt else prompt,
             max_tokens=self.params["max_tokens"],
