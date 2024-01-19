@@ -1,5 +1,6 @@
 from fastapi import FastAPI, Depends, HTTPException, Header
 from fastapi.responses import StreamingResponse
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Dict, Union, Optional
 from local_llm import LLM, streaming_generation
@@ -8,6 +9,13 @@ import jwt
 
 
 app = FastAPI(title="Local-LLM Server", docs_url="/")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 def verify_api_key(authorization: str = Header(None)):
@@ -99,8 +107,6 @@ async def chat_completions(c: ChatCompletions, user=Depends(verify_api_key)):
 
 # Completions endpoint
 # https://platform.openai.com/docs/api-reference/completions
-
-
 class Completions(BaseModel):
     model: str = "phi-2-dpo"
     prompt: str = ""
