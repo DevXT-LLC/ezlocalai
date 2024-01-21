@@ -38,6 +38,8 @@ Modify the `.env` file to your desired settings. Assumptions will be made on all
 Replace the environment variables with your desired settings. Assumptions will be made on all of these values if you choose to accept the defaults.
 
 - `LOCAL_LLM_API_KEY` - The API key to use for the server. If not set, the server will not require an API key when accepting requests.
+- `DEFAULT_MODEL` - The default model to use when no model is specified. Default is `phi-2-dpo`.
+- `MULTI_SERVER` - This will run two servers, one with `zephyr-7b-beta` running on GPU, and one with `phi-2-dpo` running on CPU. If set, this will run both, otherwise it will only run one server.
 - `AUTO_UPDATE` - Whether or not to automatically update Local-LLM. Default is `true`.
 - `THREADS` - The number of CPU threads Local-LLM is allowed to use. Default is `your CPU thread count minus 2`.
 - `GPU_LAYERS` (Only applicable to NVIDIA GPU) - The number of layers to use on the GPU. Default is `0`.

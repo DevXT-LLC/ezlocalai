@@ -8,7 +8,7 @@ if ($null -eq $env:LOCAL_LLM_API_KEY) {
 }
 $env:THREADS = Get-Content -Path ".env" | Select-String -Pattern "THREADS" | ForEach-Object { $_.ToString().Split("=")[1] }
 if ($null -eq $env:THREADS) {
-    $env:THREADS = [Environment]::ProcessorCount - 1
+    $env:THREADS = [Environment]::ProcessorCount - 2
 }
 $env:MAIN_GPU = Get-Content -Path ".env" | Select-String -Pattern "MAIN_GPU" | ForEach-Object { $_.ToString().Split("=")[1] }
 if ($null -eq $env:MAIN_GPU) {
@@ -17,6 +17,10 @@ if ($null -eq $env:MAIN_GPU) {
 $env:GPU_LAYERS = Get-Content -Path ".env" | Select-String -Pattern "GPU_LAYERS" | ForEach-Object { $_.ToString().Split("=")[1] }
 if ($null -eq $env:GPU_LAYERS) {
     $env:GPU_LAYERS = "0"
+}
+$env:MULTI_SERVER = Get-Content -Path ".env" | Select-String -Pattern "MULTI_SERVER" | ForEach-Object { $_.ToString().Split("=")[1] }
+if ($null -eq $env:MULTI_SERVER) {
+    $env:MULTI_SERVER = ""
 }
 $env:CMAKE_ARGS = Get-Content -Path ".env" | Select-String -Pattern "CMAKE_ARGS" | ForEach-Object { $_.ToString().Split("=")[1] }
 if ($null -eq $env:CMAKE_ARGS) {
@@ -53,19 +57,28 @@ if( $env:RUN_WITHOUT_DOCKER.Length -ne 0) {
     }
     & uvicorn app:app --host 0.0.0.0 --port 8091 --workers 1 --proxy-headers
 } else {
-    if ($env:CUDA_DOCKER_ARCH.Length -ne 0) {
-        docker-compose -f docker-compose-cuda.yml down
+    if ($env:MULTI_SERVER.Length -ne 0) {
+        docker-compose -f docker-compose-multi.yml down
         if ($env:AUTO_UPDATE -eq "true") {
-            docker-compose -f docker-compose-cuda.yml pull
+            docker-compose -f docker-compose-multi.yml pull
         }
         Write-Host "Starting server, please wait.."
-        docker-compose -f docker-compose-cuda.yml up
+        docker-compose -f docker-compose-multi.yml up
     } else {
-        docker-compose down
-        if ($env:AUTO_UPDATE -eq "true") {
-            docker-compose pull
+        if ($env:CUDA_DOCKER_ARCH.Length -ne 0) {
+            docker-compose -f docker-compose-cuda.yml down
+            if ($env:AUTO_UPDATE -eq "true") {
+                docker-compose -f docker-compose-cuda.yml pull
+            }
+            Write-Host "Starting server, please wait.."
+            docker-compose -f docker-compose-cuda.yml up
+        } else {
+            docker-compose down
+            if ($env:AUTO_UPDATE -eq "true") {
+                docker-compose pull
+            }
+            Write-Host "Starting server, please wait.."
+            docker-compose up
         }
-        Write-Host "Starting server, please wait.."
-        docker-compose up
     }
 }
