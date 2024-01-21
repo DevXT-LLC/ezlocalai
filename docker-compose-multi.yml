@@ -1,0 +1,32 @@
+version: '3.8'
+services:
+  zephyr-llm:
+    image: joshxt/local-llm:cuda
+    environment:
+      - LOCAL_LLM_API_KEY=${LOCAL_LLM_API_KEY-}
+      - GPU_LAYERS=${GPU_LAYERS-32}
+      - MAIN_GPU=${MAIN_GPU-1}
+      - DEFAULT_MODEL=zephyr-7b-beta
+    restart: unless-stopped
+    ports:
+      - "8091:8091"
+    volumes:
+      - ./models:/app/models
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [ gpu ]
+  phi-llm:
+    image: joshxt/local-llm:cpu
+    environment:
+      - LOCAL_LLM_API_KEY=${LOCAL_LLM_API_KEY-}
+      - DEFAULT_MODEL=phi-2-dpo
+      - THREADS=${THREADS-10}
+    restart: unless-stopped
+    ports:
+      - "8092:8091"
+    volumes:
+      - ./models:/app/models
