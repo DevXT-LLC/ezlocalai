@@ -58,12 +58,14 @@ if( $env:RUN_WITHOUT_DOCKER.Length -ne 0) {
         if ($env:AUTO_UPDATE -eq "true") {
             docker-compose -f docker-compose-cuda.yml pull
         }
+        Write-Host "Starting server, please wait.."
         docker-compose -f docker-compose-cuda.yml up
     } else {
         docker-compose down
         if ($env:AUTO_UPDATE -eq "true") {
             docker-compose pull
         }
+        Write-Host "Starting server, please wait.."
         docker-compose up
     }
 }

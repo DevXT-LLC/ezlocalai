@@ -5,6 +5,7 @@ services:
     image: joshxt/local-llm:cpu
     environment:
       - LOCAL_LLM_API_KEY=${LOCAL_LLM_API_KEY-}
+      - DEFAULT_MODEL=${DEFAULT_MODEL-phi-2-dpo}
     restart: unless-stopped
     ports:
       - "8091:8091"
