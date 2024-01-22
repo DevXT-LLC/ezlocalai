@@ -5,7 +5,9 @@ from pydantic import BaseModel
 from typing import List, Dict, Union, Optional
 from local_llm import LLM, streaming_generation
 import os
-import jwt
+from dotenv import load_dotenv
+
+load_dotenv()
 
 
 app = FastAPI(title="Local-LLM Server", docs_url="/")
@@ -16,41 +18,26 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-DEFAULT_MODEL = os.environ.get("DEFAULT_MODEL", "zephyr-7b-beta")
-CURRENT_MODEL = DEFAULT_MODEL
-if CURRENT_MODEL == "":
-    CURRENT_MODEL = "zephyr-7b-beta"
+DEFAULT_MODEL = os.getenv("DEFAULT_MODEL", "zephyr-7b-beta")
+CURRENT_MODEL = DEFAULT_MODEL if DEFAULT_MODEL else "zephyr-7b-beta"
 LOADED_LLM = LLM(model=CURRENT_MODEL)
 
 
 def verify_api_key(authorization: str = Header(None)):
     encryption_key = os.environ.get("LOCAL_LLM_API_KEY", "")
-    using_jwt = (
-        True if os.environ.get("USING_JWT", "false").lower() == "true" else False
-    )
     if encryption_key:
         if authorization is None:
             raise HTTPException(
                 status_code=401, detail="Authorization header is missing"
             )
         try:
-            scheme, _, api_key = authorization.partition(" ")
-            if scheme.lower() != "bearer":
-                raise HTTPException(
-                    status_code=401, detail="Invalid authentication scheme"
-                )
-            if using_jwt:
-                token = jwt.decode(
-                    jwt=api_key,
-                    key=encryption_key,
-                    algorithms=["HS256"],
-                )
-                return token["email"]
+            if "bearer " in authorization.lower():
+                scheme, _, api_key = authorization.partition(" ")
             else:
-                if api_key != encryption_key:
-                    raise HTTPException(status_code=401, detail="Invalid API Key")
-                return "USER"
+                api_key = authorization
+            if api_key != encryption_key:
+                raise HTTPException(status_code=401, detail="Invalid API Key")
+            return "USER"
         except Exception as e:
             raise HTTPException(status_code=401, detail="Invalid API Key")
     else:
@@ -63,6 +50,7 @@ def verify_api_key(authorization: str = Header(None)):
     dependencies=[Depends(verify_api_key)],
 )
 async def models(user=Depends(verify_api_key)):
+    global LOADED_LLM
     if LOADED_LLM:
         return LOADED_LLM.models()
     models = LLM().models()
@@ -104,6 +92,8 @@ class ChatCompletionsResponse(BaseModel):
     dependencies=[Depends(verify_api_key)],
 )
 async def chat_completions(c: ChatCompletions, user=Depends(verify_api_key)):
+    global CURRENT_MODEL
+    global LOADED_LLM
     if CURRENT_MODEL != c.model:
         CURRENT_MODEL = c.model
         LOADED_LLM = LLM(model=c.model)
@@ -160,6 +150,8 @@ class CompletionsResponse(BaseModel):
     dependencies=[Depends(verify_api_key)],
 )
 async def completions(c: Completions, user=Depends(verify_api_key)):
+    global CURRENT_MODEL
+    global LOADED_LLM
     if CURRENT_MODEL != c.model:
         CURRENT_MODEL = c.model
         LOADED_LLM = LLM(model=c.model)
@@ -211,6 +203,8 @@ class EmbeddingResponse(BaseModel):
 async def embedding(
     model_name: str, embedding: EmbeddingModel, user=Depends(verify_api_key)
 ):
+    global CURRENT_MODEL
+    global LOADED_LLM
     if CURRENT_MODEL != embedding.model:
         CURRENT_MODEL = embedding.model
         LOADED_LLM = LLM(model=embedding.model)
@@ -223,6 +217,8 @@ async def embedding(
     dependencies=[Depends(verify_api_key)],
 )
 async def embedding(embedding: EmbeddingModel, user=Depends(verify_api_key)):
+    global CURRENT_MODEL
+    global LOADED_LLM
     if CURRENT_MODEL != embedding.model:
         CURRENT_MODEL = embedding.model
         LOADED_LLM = LLM(model=embedding.model)
