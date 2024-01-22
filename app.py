@@ -3,7 +3,7 @@ from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Dict, Union, Optional
-from local_llm import LLM, streaming_generation, DEFAULT_MODEL
+from local_llm import LLM, streaming_generation
 import os
 import jwt
 
@@ -17,10 +17,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-if DEFAULT_MODEL != "":
-    default_llm = LLM(model=DEFAULT_MODEL)
-else:
-    default_llm = None
+DEFAULT_MODEL = os.environ.get("DEFAULT_MODEL", "zephyr-7b-beta")
+CURRENT_MODEL = DEFAULT_MODEL
+if CURRENT_MODEL == "":
+    CURRENT_MODEL = "zephyr-7b-beta"
+LOADED_LLM = LLM(model=CURRENT_MODEL)
 
 
 def verify_api_key(authorization: str = Header(None)):
@@ -62,8 +63,8 @@ def verify_api_key(authorization: str = Header(None)):
     dependencies=[Depends(verify_api_key)],
 )
 async def models(user=Depends(verify_api_key)):
-    if default_llm:
-        return default_llm.models()
+    if LOADED_LLM:
+        return LOADED_LLM.models()
     models = LLM().models()
     return models
 
@@ -103,31 +104,25 @@ class ChatCompletionsResponse(BaseModel):
     dependencies=[Depends(verify_api_key)],
 )
 async def chat_completions(c: ChatCompletions, user=Depends(verify_api_key)):
-    if DEFAULT_MODEL == c.model:
-        if c.max_tokens:
-            default_llm.params["max_tokens"] = c.max_tokens
-        if c.temperature:
-            default_llm.params["temperature"] = c.temperature
-        if c.top_p:
-            default_llm.params["top_p"] = c.top_p
-        if c.logit_bias:
-            default_llm.params["logit_bias"] = c.logit_bias
-        if c.stop:
-            default_llm.params["stop"].append(c.stop)
-        if c.system_message:
-            default_llm.params["system_message"] = c.system_message
-    if not c.stream:
-        if DEFAULT_MODEL == c.model:
-            return default_llm.chat(messages=c.messages)
-        return LLM(**c.model_dump()).chat(messages=c.messages)
+    if CURRENT_MODEL != c.model:
+        CURRENT_MODEL = c.model
+        LOADED_LLM = LLM(model=c.model)
+    if c.max_tokens:
+        LOADED_LLM.params["max_tokens"] = c.max_tokens
+    if c.temperature:
+        LOADED_LLM.params["temperature"] = c.temperature
+    if c.top_p:
+        LOADED_LLM.params["top_p"] = c.top_p
+    if c.logit_bias:
+        LOADED_LLM.params["logit_bias"] = c.logit_bias
+    if c.stop:
+        LOADED_LLM.params["stop"].append(c.stop)
+    if c.system_message:
+        LOADED_LLM.params["system_message"] = c.system_message
+        return LOADED_LLM.chat(messages=c.messages)
     else:
-        if DEFAULT_MODEL == c.model:
-            return StreamingResponse(
-                streaming_generation(data=default_llm.chat(messages=c.messages)),
-                media_type="text/event-stream",
-            )
         return StreamingResponse(
-            streaming_generation(data=LLM(**c.model_dump()).chat(messages=c.messages)),
+            streaming_generation(data=LOADED_LLM.chat(messages=c.messages)),
             media_type="text/event-stream",
         )
 
@@ -165,40 +160,27 @@ class CompletionsResponse(BaseModel):
     dependencies=[Depends(verify_api_key)],
 )
 async def completions(c: Completions, user=Depends(verify_api_key)):
-    if DEFAULT_MODEL == c.model:
-        if c.max_tokens:
-            default_llm.params["max_tokens"] = c.max_tokens
-        if c.temperature:
-            default_llm.params["temperature"] = c.temperature
-        if c.top_p:
-            default_llm.params["top_p"] = c.top_p
-        if c.logit_bias:
-            default_llm.params["logit_bias"] = c.logit_bias
-        if c.stop:
-            default_llm.params["stop"].append(c.stop)
-        if c.system_message:
-            default_llm.params["system_message"] = c.system_message
+    if CURRENT_MODEL != c.model:
+        CURRENT_MODEL = c.model
+        LOADED_LLM = LLM(model=c.model)
+    if c.max_tokens:
+        LOADED_LLM.params["max_tokens"] = c.max_tokens
+    if c.temperature:
+        LOADED_LLM.params["temperature"] = c.temperature
+    if c.top_p:
+        LOADED_LLM.params["top_p"] = c.top_p
+    if c.logit_bias:
+        LOADED_LLM.params["logit_bias"] = c.logit_bias
+    if c.stop:
+        LOADED_LLM.params["stop"].append(c.stop)
+    if c.system_message:
+        LOADED_LLM.params["system_message"] = c.system_message
     if not c.stream:
-        if DEFAULT_MODEL == c.model:
-            return default_llm.completion(
-                prompt=c.prompt, format_prompt=c.format_prompt
-            )
-        return LLM(**c.model_dump()).completion(
-            prompt=c.prompt, format_prompt=c.format_prompt
-        )
+        return LOADED_LLM.completion(prompt=c.prompt, format_prompt=c.format_prompt)
     else:
-        if DEFAULT_MODEL == c.model:
-            return StreamingResponse(
-                streaming_generation(
-                    data=default_llm.completion(
-                        prompt=c.prompt, format_prompt=c.format_prompt
-                    )
-                ),
-                media_type="text/event-stream",
-            )
         return StreamingResponse(
             streaming_generation(
-                data=LLM(**c.model_dump()).completion(
+                data=LOADED_LLM.completion(
                     prompt=c.prompt, format_prompt=c.format_prompt
                 )
             ),
@@ -229,9 +211,10 @@ class EmbeddingResponse(BaseModel):
 async def embedding(
     model_name: str, embedding: EmbeddingModel, user=Depends(verify_api_key)
 ):
-    if DEFAULT_MODEL == embedding.model:
-        return default_llm.embedding(input=embedding.input)
-    return LLM(model=model_name).embedding(input=embedding.input)
+    if CURRENT_MODEL != embedding.model:
+        CURRENT_MODEL = embedding.model
+        LOADED_LLM = LLM(model=embedding.model)
+    return LOADED_LLM.embedding(input=embedding.input)
 
 
 @app.post(
@@ -240,6 +223,7 @@ async def embedding(
     dependencies=[Depends(verify_api_key)],
 )
 async def embedding(embedding: EmbeddingModel, user=Depends(verify_api_key)):
-    if DEFAULT_MODEL == embedding.model:
-        return default_llm.embedding(input=embedding.input)
-    return LLM(model=embedding.model).embedding(input=embedding.input)
+    if CURRENT_MODEL != embedding.model:
+        CURRENT_MODEL = embedding.model
+        LOADED_LLM = LLM(model=embedding.model)
+    return LOADED_LLM.embedding(input=embedding.input)
