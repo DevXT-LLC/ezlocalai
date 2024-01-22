@@ -109,6 +109,7 @@ async def chat_completions(c: ChatCompletions, user=Depends(verify_api_key)):
         LOADED_LLM.params["stop"].append(c.stop)
     if c.system_message:
         LOADED_LLM.params["system_message"] = c.system_message
+    if not c.stream:
         return LOADED_LLM.chat(messages=c.messages)
     else:
         return StreamingResponse(
