@@ -1,4 +1,3 @@
-import time
 import os
 import re
 import uuid
@@ -20,15 +19,20 @@ try:
     deepspeed_available = True
 except ImportError:
     pass
-if deepspeed_available:
-    print("DeepSpeed enabled.")
-else:
-    print("DeepSpeed disabled.")
 
 
 class CTTS:
     def __init__(self):
+        global deepspeed_available
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        if self.device == "cuda":
+            self.device = "cpu"
+            self.model.to(self.device)
+            torch.cuda.empty_cache()
+        else:
+            self.device == "cpu"
+            self.device = "cuda"
+            self.model.to(self.device)
         config = XttsConfig()
         modeldownload_settings = {
             "base_path": "models",
@@ -46,20 +50,7 @@ class CTTS:
         }
         modeldownload_base_path = Path(modeldownload_settings.get("base_path", ""))
         modeldownload_model_path = Path(modeldownload_settings.get("model_path", ""))
-        self.params = {
-            "activate": True,
-            "autoplay": True,
-            "deepspeed_activate": True,
-            "low_vram": False if not torch.cuda.is_available() else False,
-            "local_temperature": "0.7",
-            "local_repetition_penalty": "10.0",
-            "output_folder_wav_standalone": "outputs/",
-            "remove_trailing_dots": False,
-            "show_text": True,
-            "voice": "female_01.wav",
-        }
         self.home_dir = Path(__file__).parent.resolve()
-        # check to see if a custom path has been set in modeldownload.json and use that path to load the model if so
         if str(modeldownload_base_path) == "models":
             config_path = (
                 self.home_dir / "models" / modeldownload_model_path / "config.json"
@@ -81,30 +72,25 @@ class CTTS:
             )
             checkpoint_dir = modeldownload_base_path / modeldownload_model_path
         config.load_json(str(config_path))
-        model = Xtts.init_from_config(config)
-        model.load_checkpoint(
+        self.model = Xtts.init_from_config(config)
+        self.model.load_checkpoint(
             config,
             checkpoint_dir=str(checkpoint_dir),
             vocab_path=str(vocab_path_dir),
-            use_deepspeed=self.params["deepspeed_activate"],
+            use_deepspeed=deepspeed_available,
         )
-        model.to(self.device)
-        self.model = model
-        # Set the output path for wav files
-        output_directory = self.home_dir / self.params["output_folder_wav_standalone"]
+        self.model.to(self.device)
+        output_directory = self.home_dir / "outputs"
         output_directory.mkdir(parents=True, exist_ok=True)
 
-    async def switch_device(self):
-        # Check if CUDA is available before performing GPU-related operations
-        if torch.cuda.is_available():
-            if self.device == "cuda":
-                self.device = "cpu"
-                self.model.to(self.device)
-                torch.cuda.empty_cache()
-            else:
-                self.device == "cpu"
-                self.device = "cuda"
-                self.model.to(self.device)
+    async def get_voices(self):
+        directory = self.home_dir / "voices"
+        wav_files = [
+            f
+            for f in os.listdir(directory)
+            if os.path.isfile(os.path.join(directory, f)) and f.endswith(".wav")
+        ]
+        return {"voices": wav_files}
 
     async def generate_audio(
         self,
@@ -116,8 +102,6 @@ class CTTS:
         repetition_penalty=10.0,
         streaming=False,
     ):
-        if self.params["low_vram"] and self.device == "cpu":
-            await self.switch_device()
         print(f"[TTS] {text}")
         gpt_cond_latent, speaker_embedding = self.model.get_conditioning_latents(
             audio_path=[f"{self.home_dir}/voices/{voice}"],
@@ -168,15 +152,6 @@ class CTTS:
                 output_file, torch.tensor(output["wav"]).unsqueeze(0), 24000
             )
 
-    async def get_voices(self):
-        directory = self.home_dir / "voices"
-        wav_files = [
-            f
-            for f in os.listdir(directory)
-            if os.path.isfile(os.path.join(directory, f)) and f.endswith(".wav")
-        ]
-        return {"voices": wav_files}
-
     async def generate(
         self,
         text: str = "",
@@ -188,33 +163,28 @@ class CTTS:
         try:
             output_file_path = self.home_dir / "outputs" / f"{output_file_name}.wav"
             cleaned_string = re.sub(r"([!?.])\1+", r"\1", text)
-            # Further clean to remove any other unwanted characters
             cleaned_string = re.sub(
                 r'[^a-zA-Z0-9\s\.,;:!?\-\'"\u0400-\u04FFÀ-ÿ\u0150\u0151\u0170\u0171]\$',
                 "",
                 cleaned_string,
             )
-            # Remove all newline characters (single or multiple)
             cleaned_string = re.sub(r"\n+", " ", cleaned_string)
             cleaned_string = cleaned_string.replace("#", "")
             response = await self.generate_audio(
                 text=cleaned_string,
                 voice=voice,
                 language=language,
-                temperature=self.params["local_temperature"],
-                repetition_penalty=self.params["local_repetition_penalty"],
+                temperature=0.7,
+                repetition_penalty=10.0,
                 output_file_path=output_file_path,
                 streaming=streaming,
             )
             if streaming:
                 return StreamingResponse(response, media_type="audio/wav")
             else:
-                # Get content of output file
                 with open(output_file_path, "rb") as file:
                     file_content = file.read()
-                # Delete the output file
                 os.remove(output_file_path)
-                # Return the content of the output file in base64 format
                 return JSONResponse(
                     content={
                         "status": "success",
