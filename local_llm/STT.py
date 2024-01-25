@@ -37,14 +37,14 @@ class STT:
                 allow_redirects=True,
             )
             open(self.model_path, "wb").write(r.content)
+        self.w = Whisper(model_path=self.model_path)
 
     async def transcribe_audio_from_file(self, filename: str = "recording.wav"):
-        w = Whisper(model_path=self.model_path)
         file_path = os.path.join(os.getcwd(), "WORKSPACE", filename)
         if not os.path.exists(file_path):
             raise RuntimeError(f"Failed to load audio: {filename} does not exist.")
-        w.transcribe(file_path)
-        return w.output()
+        self.w.transcribe(file_path)
+        return self.w.output()
 
     async def transcribe_audio(self, base64_audio, audio_format="m4a"):
         filename = f"{uuid.uuid4().hex}.wav"
