@@ -11,7 +11,6 @@ from pydub import AudioSegment
 class STT:
     def __init__(self, model="base.en"):
         # https://huggingface.co/ggerganov/whisper.cpp
-        # Models: tiny, tiny.en, base, base.en, small, small.en, medium, medium.en, large, large-v1
         if model not in [
             "tiny",
             "tiny.en",
@@ -21,8 +20,9 @@ class STT:
             "small.en",
             "medium",
             "medium.en",
-            "large",
             "large-v1",
+            "large-v2",
+            "large-v3",
         ]:
             self.model = "base.en"
         else:
