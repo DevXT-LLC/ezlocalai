@@ -9,3 +9,5 @@ python-dotenv
 GPUtil
 psutil
 beautifulsoup4
+whisper-cpp-pybind
+pydub

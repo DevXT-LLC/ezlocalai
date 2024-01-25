@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Dict, Union, Optional
 from local_llm import LLM, streaming_generation
+from local_llm.STT import STT
 import os
 from dotenv import load_dotenv
 
@@ -19,8 +20,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 DEFAULT_MODEL = os.getenv("DEFAULT_MODEL", "zephyr-7b-beta")
+WHISPER_MODEL = os.getenv("WHISPER_MODEL", "base.en")
 CURRENT_MODEL = DEFAULT_MODEL if DEFAULT_MODEL else "zephyr-7b-beta"
 LOADED_LLM = LLM(model=CURRENT_MODEL)
+LOADED_STT = STT(model=WHISPER_MODEL)
 
 
 def verify_api_key(authorization: str = Header(None)):
@@ -224,3 +227,21 @@ async def embedding(embedding: EmbeddingModel, user=Depends(verify_api_key)):
         CURRENT_MODEL = embedding.model
         LOADED_LLM = LLM(model=embedding.model)
     return LOADED_LLM.embedding(input=embedding.input)
+
+
+class SpeechToText(BaseModel):
+    file: str  # The base64 encoded audio file
+    audio_format: Optional[str] = "wav"
+    user: Optional[str] = None
+
+
+@app.post(
+    "/v1/audio/transcriptions",
+    tags=["Speech to Text"],
+    dependencies=[Depends(verify_api_key)],
+)
+async def speech_to_text(stt: SpeechToText, user=Depends(verify_api_key)):
+    global LOADED_STT
+    return LOADED_STT.transcribe_audio(
+        base64_audio=stt.file, audio_format=stt.audio_format
+    )
