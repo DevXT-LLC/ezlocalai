@@ -5,7 +5,6 @@ import numpy as np
 import base64
 import io
 import wave
-from pathlib import Path
 import torch
 import torchaudio
 from TTS.tts.configs.xtts_config import XttsConfig
@@ -34,43 +33,9 @@ class CTTS:
             self.device = "cuda"
             self.model.to(self.device)
         config = XttsConfig()
-        modeldownload_settings = {
-            "base_path": "models",
-            "model_path": "xttsv2_2.0.2",
-            "files_to_download": {
-                "LICENSE.txt": "https://huggingface.co/coqui/XTTS-v2/resolve/v2.0.2/LICENSE.txt?download=true",
-                "README.md": "https://huggingface.co/coqui/XTTS-v2/resolve/v2.0.2/README.md?download=true",
-                "config.json": "https://huggingface.co/coqui/XTTS-v2/resolve/v2.0.2/config.json?download=true",
-                "model.pth": "https://huggingface.co/coqui/XTTS-v2/resolve/v2.0.2/model.pth?download=true",
-                "dvae.pth": "https://huggingface.co/coqui/XTTS-v2/resolve/v2.0.2/dvae.pth?download=true",
-                "mel_stats.pth": "https://huggingface.co/coqui/XTTS-v2/resolve/v2.0.2/mel_stats.pth?download=true",
-                "speakers_xtts.pth": "https://huggingface.co/coqui/XTTS-v2/resolve/v2.0.2/speakers_xtts.pth?download=true",
-                "vocab.json": "https://huggingface.co/coqui/XTTS-v2/resolve/v2.0.2/vocab.json?download=true",
-            },
-        }
-        modeldownload_base_path = Path(modeldownload_settings.get("base_path", ""))
-        modeldownload_model_path = Path(modeldownload_settings.get("model_path", ""))
-        self.home_dir = Path(__file__).parent.resolve()
-        if str(modeldownload_base_path) == "models":
-            config_path = (
-                self.home_dir / "models" / modeldownload_model_path / "config.json"
-            )
-            vocab_path_dir = (
-                self.home_dir / "models" / modeldownload_model_path / "vocab.json"
-            )
-            checkpoint_dir = self.home_dir / "models" / modeldownload_model_path
-        else:
-            print(
-                f"[TTS Model] \033[94mInfo\033[0m Loading your custom model set in \033[93mmodeldownload.json\033[0m:",
-                modeldownload_base_path / modeldownload_model_path,
-            )
-            config_path = (
-                modeldownload_base_path / modeldownload_model_path / "config.json"
-            )
-            vocab_path_dir = (
-                modeldownload_base_path / modeldownload_model_path / "vocab.json"
-            )
-            checkpoint_dir = modeldownload_base_path / modeldownload_model_path
+        checkpoint_dir = os.path.join(os.getcwd(), "models", "xttsv2_2.0.2")
+        config_path = os.path.join(checkpoint_dir, "config.json")
+        vocab_path_dir = os.path.join(checkpoint_dir, "vocab.json")
         config.load_json(str(config_path))
         self.model = Xtts.init_from_config(config)
         self.model.load_checkpoint(
@@ -80,16 +45,12 @@ class CTTS:
             use_deepspeed=deepspeed_available,
         )
         self.model.to(self.device)
-        output_directory = self.home_dir / "outputs"
-        output_directory.mkdir(parents=True, exist_ok=True)
 
     async def get_voices(self):
-        directory = self.home_dir / "voices"
-        wav_files = [
-            f
-            for f in os.listdir(directory)
-            if os.path.isfile(os.path.join(directory, f)) and f.endswith(".wav")
-        ]
+        wav_files = []
+        for file in os.listdir(os.path.join(os.getcwd(), "voices")):
+            if file.endswith(".wav"):
+                wav_files.append(file.replace(".wav", ""))
         return {"voices": wav_files}
 
     async def generate_audio(
@@ -98,13 +59,21 @@ class CTTS:
         voice,
         output_file,
         language="en",
-        temperature=0.7,
-        repetition_penalty=10.0,
         streaming=False,
     ):
-        print(f"[TTS] {text}")
+        cleaned_string = re.sub(r"([!?.])\1+", r"\1", text)
+        cleaned_string = re.sub(
+            r'[^a-zA-Z0-9\s\.,;:!?\-\'"\u0400-\u04FFÀ-ÿ\u0150\u0151\u0170\u0171]\$',
+            "",
+            cleaned_string,
+        )
+        if not voice.endswith(".wav"):
+            voice = f"{voice}.wav"
+        cleaned_string = re.sub(r"\n+", " ", cleaned_string)
+        cleaned_string = cleaned_string.replace("#", "")
+        text = cleaned_string
         gpt_cond_latent, speaker_embedding = self.model.get_conditioning_latents(
-            audio_path=[f"{self.home_dir}/voices/{voice}"],
+            audio_path=[f"{os.getcwd()}/voices/{voice}"],
             gpt_cond_len=self.model.config.gpt_cond_len,
             max_ref_length=self.model.config.max_ref_len,
             sound_norm_refs=self.model.config.sound_norm_refs,
@@ -114,9 +83,9 @@ class CTTS:
             "language": language,
             "gpt_cond_latent": gpt_cond_latent,
             "speaker_embedding": speaker_embedding,
-            "temperature": float(temperature),
+            "temperature": 0.7,
             "length_penalty": float(self.model.config.length_penalty),
-            "repetition_penalty": float(repetition_penalty),
+            "repetition_penalty": 10.0,
             "top_k": int(self.model.config.top_k),
             "top_p": float(self.model.config.top_p),
             "enable_text_splitting": True,
@@ -137,7 +106,6 @@ class CTTS:
                 vfout.writeframes(b"")
             wav_buf.seek(0)
             yield wav_buf.read()
-
             for i, chunk in enumerate(output):
                 file_chunks.append(chunk)
                 if isinstance(chunk, list):
@@ -161,22 +129,14 @@ class CTTS:
     ):
         output_file_name = f"{uuid.uuid4().hex}.wav"
         try:
-            output_file_path = self.home_dir / "outputs" / f"{output_file_name}.wav"
-            cleaned_string = re.sub(r"([!?.])\1+", r"\1", text)
-            cleaned_string = re.sub(
-                r'[^a-zA-Z0-9\s\.,;:!?\-\'"\u0400-\u04FFÀ-ÿ\u0150\u0151\u0170\u0171]\$',
-                "",
-                cleaned_string,
+            output_file_path = os.path.join(
+                os.getcwd(), "outputs", f"{output_file_name}.wav"
             )
-            cleaned_string = re.sub(r"\n+", " ", cleaned_string)
-            cleaned_string = cleaned_string.replace("#", "")
             response = await self.generate_audio(
-                text=cleaned_string,
+                text=text,
                 voice=voice,
+                output_file=output_file_path,
                 language=language,
-                temperature=0.7,
-                repetition_penalty=10.0,
-                output_file_path=output_file_path,
                 streaming=streaming,
             )
             if streaming:
