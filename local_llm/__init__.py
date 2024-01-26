@@ -1,3 +1,3 @@
-from LLM import LLM
-from STT import STT
-from CTTS import CTTS
+from local_llm.LLM import LLM
+from local_llm.STT import STT
+from local_llm.CTTS import CTTS

@@ -25,6 +25,7 @@ RUN pip install --no-cache-dir -r requirements.txt && \
     pip install --no-cache-dir deepspeed
 
 RUN python3 local_llm/CTTS.py
+RUN python3 local_llm/STT.py
 
 EXPOSE 8091
 RUN chmod +x start.sh

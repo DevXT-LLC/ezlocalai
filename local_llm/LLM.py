@@ -394,3 +394,8 @@ class LLM:
             for key in model:
                 model_list.append(key)
         return model_list
+
+
+if __name__ == "__main__":
+    print("Downloading default model...")
+    get_model(model_name=DEFAULT_MODEL, models_dir="models")

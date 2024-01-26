@@ -5,6 +5,7 @@ from pydantic import BaseModel
 from typing import List, Dict, Union, Optional
 from local_llm.LLM import LLM, streaming_generation
 from local_llm.STT import STT
+from local_llm.CTTS import CTTS
 import os
 from dotenv import load_dotenv
 
@@ -22,8 +23,12 @@ app.add_middleware(
 DEFAULT_MODEL = os.getenv("DEFAULT_MODEL", "zephyr-7b-beta")
 WHISPER_MODEL = os.getenv("WHISPER_MODEL", "base.en")
 CURRENT_MODEL = DEFAULT_MODEL if DEFAULT_MODEL else "zephyr-7b-beta"
+print(f"Loading LLM model: {CURRENT_MODEL}")
 LOADED_LLM = LLM(model=CURRENT_MODEL)
+print(f"Loading STT model: {WHISPER_MODEL}")
 LOADED_STT = STT(model=WHISPER_MODEL)
+print(f"Loading CTTS model: xttsv2_2.0.2")
+LOADED_CTTS = CTTS()
 
 
 def verify_api_key(authorization: str = Header(None)):
