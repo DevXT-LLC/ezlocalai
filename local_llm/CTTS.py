@@ -83,15 +83,15 @@ class CTTS:
             "",
             cleaned_string,
         )
+        cleaned_string = re.sub(r"\n+", " ", cleaned_string)
+        cleaned_string = cleaned_string.replace("#", "")
+        text = cleaned_string
         if not voice.endswith(".wav"):
             voice = f"{voice}.wav"
         audio_path = os.path.join(os.getcwd(), "voices", voice)
         if not os.path.exists(audio_path):
             voice = "default.wav"
             audio_path = os.path.join(os.getcwd(), "voices", voice)
-        cleaned_string = re.sub(r"\n+", " ", cleaned_string)
-        cleaned_string = cleaned_string.replace("#", "")
-        text = cleaned_string
         gpt_cond_latent, speaker_embedding = self.model.get_conditioning_latents(
             audio_path=[f"{audio_path}"],
             gpt_cond_len=self.model.config.gpt_cond_len,
