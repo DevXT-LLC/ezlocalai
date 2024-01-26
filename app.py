@@ -80,6 +80,10 @@ async def models(user=Depends(verify_api_key)):
 #   If streaming, the audio will be streamed in the response in audio/wav format.
 
 
+def create_audio_control(audio: str):
+    return f"""<audio controls><source src="data:audio/wav;base64,{audio}" type="audio/wav"></audio>"""
+
+
 # Chat completions endpoint
 # https://platform.openai.com/docs/api-reference/chat
 class ChatCompletions(BaseModel):
@@ -149,7 +153,8 @@ async def chat_completions(c: ChatCompletions, user=Depends(verify_api_key)):
             audio_response = LOADED_CTTS.generate(
                 text=text_response, voice=c.extra_json["voice"], language=language
             )
-            response["messages"][1]["audio"] = audio_response
+            audio_control = create_audio_control(audio_response)
+            response["messages"][1]["text"] = f"{text_response}\n{audio_control}"
     if not c.stream:
         return response
     else:
@@ -230,7 +235,8 @@ async def completions(c: Completions, user=Depends(verify_api_key)):
             audio_response = LOADED_CTTS.generate(
                 text=text_response, voice=c.extra_json["voice"], language=language
             )
-            response["choices"][0]["audio"] = audio_response
+            audio_control = create_audio_control(audio_response)
+            response["choices"][0]["text"] = f"{text_response}\n{audio_control}"
     if not c.stream:
         return response
     else:
