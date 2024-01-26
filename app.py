@@ -26,12 +26,12 @@ VOICE_ENABLED = os.getenv("VOICE_ENABLED", "false")
 
 CURRENT_MODEL = DEFAULT_MODEL if DEFAULT_MODEL else "zephyr-7b-beta"
 CURRENT_STT_MODEL = WHISPER_MODEL if WHISPER_MODEL else "base.en"
-print(f"Loading LLM model: {CURRENT_MODEL}")
+print(f"[LLM] {CURRENT_MODEL} model loading...")
 LOADED_LLM = LLM(model=CURRENT_MODEL)
-print(f"Loading STT model: {WHISPER_MODEL}")
+print(f"[STT] {WHISPER_MODEL} model loading...")
 LOADED_STT = STT(model=WHISPER_MODEL)
 if VOICE_ENABLED.lower() == "true":
-    print(f"Loading CTTS model: xttsv2_2.0.2")
+    print(f"[CTTS] xttsv2_2.0.2 model loading...")
     LOADED_CTTS = CTTS()
 
 

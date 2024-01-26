@@ -7,15 +7,13 @@ import torchaudio
 import requests
 from TTS.tts.configs.xtts_config import XttsConfig
 from TTS.tts.models.xtts import Xtts
-from fastapi.responses import JSONResponse
 
-deepspeed_available = False
 try:
     import deepspeed
 
     deepspeed_available = True
-except ImportError:
-    pass
+except:
+    deepspeed_available = False
 
 
 def download_xtts():
@@ -33,7 +31,7 @@ def download_xtts():
     for filename, url in files_to_download.items():
         destination = os.path.join(os.getcwd(), "xttsv2_2.0.2", filename)
         if not os.path.exists(destination):
-            print(f"Downloading {filename} for XTTSv2...")
+            print(f"[CTTS] Downloading {filename} for XTTSv2...")
             response = requests.get(url, stream=True)
             block_size = 1024  # 1 Kibibyte
             with open(destination, "wb") as file:
@@ -62,8 +60,9 @@ class CTTS:
         self.model.to(self.device)
         self.output_folder = os.path.join(os.getcwd(), "outputs")
         os.makedirs(self.output_folder, exist_ok=True)
+        self.voices_path = os.path.join(os.getcwd(), "voices")
         wav_files = []
-        for file in os.listdir(os.path.join(os.getcwd(), "voices")):
+        for file in os.listdir(self.voices_path):
             if file.endswith(".wav"):
                 wav_files.append(file.replace(".wav", ""))
         self.voices = wav_files
@@ -82,14 +81,12 @@ class CTTS:
             cleaned_string,
         )
         cleaned_string = re.sub(r"\n+", " ", cleaned_string)
-        cleaned_string = cleaned_string.replace("#", "")
-        text = cleaned_string
+        text = cleaned_string.replace("#", "")
         if not voice.endswith(".wav"):
             voice = f"{voice}.wav"
-        audio_path = os.path.join(os.getcwd(), "voices", voice)
+        audio_path = os.path.join(self.voices_path, voice)
         if not os.path.exists(audio_path):
-            voice = "default.wav"
-            audio_path = os.path.join(os.getcwd(), "voices", voice)
+            audio_path = os.path.join(self.voices_path, "default.wav")
         gpt_cond_latent, speaker_embedding = self.model.get_conditioning_latents(
             audio_path=[f"{audio_path}"],
             gpt_cond_len=self.model.config.gpt_cond_len,

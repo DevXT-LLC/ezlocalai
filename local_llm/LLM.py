@@ -172,13 +172,13 @@ def get_model(model_name=DEFAULT_MODEL, models_dir="models"):
                 if model_name != "mistrallite-7b"
                 else f"https://huggingface.co/TheBloke/MistralLite-7B-GGUF/resolve/main/mistrallite.{quantization_type}.gguf"
             )
-        print(f"Downloading {model_name}...")
+        print(f"[LLM] Downloading {model_name}...")
         with requests.get(url, stream=True, allow_redirects=True) as r:
             with open(file_path, "wb") as f:
                 for chunk in r.iter_content(chunk_size=8192):
                     f.write(chunk)
         if clip_url != "":
-            print(f"Downloading {model_name} CLIP...")
+            print(f"[LLM] Downloading {model_name} CLIP...")
             with requests.get(clip_url, stream=True, allow_redirects=True) as r:
                 with open(
                     f"{models_dir}/{model_name}/mmproj-model-f16.gguf", "wb"
@@ -397,5 +397,5 @@ class LLM:
 
 
 if __name__ == "__main__":
-    print("Downloading default model...")
+    print(f"[LLM] Downloading {DEFAULT_MODEL} model...")
     get_model(model_name=DEFAULT_MODEL, models_dir="models")

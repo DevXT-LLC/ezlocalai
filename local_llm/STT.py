@@ -1,4 +1,3 @@
-import logging
 import os
 import base64
 import io
@@ -52,7 +51,7 @@ class STT:
         if not os.path.exists(file_path):
             raise RuntimeError(f"Failed to load audio.")
         user_input = self.w.transcribe(file_path)
-        logging.info(f"[Whisper]: Transcribed User Input: {user_input}")
+        print(f"[STT] Transcribed User Input: {user_input}")
         os.remove(file_path)
         return user_input
 
