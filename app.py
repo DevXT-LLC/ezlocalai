@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, HTTPException, Header
+from fastapi import FastAPI, Depends, HTTPException, Header, Request
 from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -201,7 +201,9 @@ class CompletionsResponse(BaseModel):
     tags=["Completions"],
     dependencies=[Depends(verify_api_key)],
 )
-async def completions(c: Completions, user=Depends(verify_api_key)):
+async def completions(c: Completions, request: Request, user=Depends(verify_api_key)):
+    print(f"[CHAT] {c.extra_json}")
+    print(f"[CHAT] {request.json()}")
     global CURRENT_MODEL
     global LOADED_LLM
     if c.model:
