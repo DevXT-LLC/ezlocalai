@@ -68,7 +68,7 @@ async def models(user=Depends(verify_api_key)):
     return models
 
 
-# For the completions and chat completions endpoints, we use extra_body for additional parameters.
+# For the completions and chat completions endpoints, we use extra_json for additional parameters.
 # --------------------------------
 # If `audio_format`` is present, the prompt will be transcribed to text.
 #   It is assumed it is base64 encoded audio in the `audio_format`` specified.
@@ -97,7 +97,7 @@ class ChatCompletions(BaseModel):
     frequency_penalty: Optional[float] = 0.0
     logit_bias: Optional[Dict[str, float]] = None
     user: Optional[str] = None
-    extra_body: Optional[dict] = {}
+    extra_json: Optional[dict] = {}
 
 
 class ChatCompletionsResponse(BaseModel):
@@ -131,23 +131,23 @@ async def chat_completions(c: ChatCompletions, user=Depends(verify_api_key)):
         LOADED_LLM.params["logit_bias"] = c.logit_bias
     if c.stop:
         LOADED_LLM.params["stop"].append(c.stop)
-    if c.extra_body:
-        if "audio_format" in c.extra_body:
+    if c.extra_json:
+        if "audio_format" in c.extra_json:
             prompt = LOADED_STT.transcribe_audio(
                 base64_audio=c.messages[-1]["content"],
-                audio_format=c.extra_body["audio_format"],
+                audio_format=c.extra_json["audio_format"],
             )
             c.messages[-1]["content"] = prompt
-        if "system_message" in c.extra_body:
-            LOADED_LLM.params["system_message"] = c.extra_body["system_message"]
+        if "system_message" in c.extra_json:
+            LOADED_LLM.params["system_message"] = c.extra_json["system_message"]
     response = LOADED_LLM.chat(messages=c.messages)
     audio_response = None
-    if c.extra_body:
-        if "voice" in c.extra_body:
+    if c.extra_json:
+        if "voice" in c.extra_json:
             text_response = response["messages"][1]["content"]
-            language = c.extra_body["language"] if "language" in c.extra_body else "en"
+            language = c.extra_json["language"] if "language" in c.extra_json else "en"
             audio_response = LOADED_CTTS.generate(
-                text=text_response, voice=c.extra_body["voice"], language=language
+                text=text_response, voice=c.extra_json["voice"], language=language
             )
             response["messages"][1]["audio"] = audio_response
     if not c.stream:
@@ -177,7 +177,7 @@ class Completions(BaseModel):
     logit_bias: Optional[Dict[str, float]] = None
     stop: Optional[List[str]] = None
     echo: Optional[bool] = False
-    extra_body: Optional[dict] = {}
+    extra_json: Optional[dict] = {}
     user: Optional[str] = None
     format_prompt: Optional[bool] = True
 
@@ -213,22 +213,22 @@ async def completions(c: Completions, user=Depends(verify_api_key)):
         LOADED_LLM.params["logit_bias"] = c.logit_bias
     if c.stop:
         LOADED_LLM.params["stop"].append(c.stop)
-    if c.extra_body:
-        if "audio_format" in c.extra_body:
+    if c.extra_json:
+        if "audio_format" in c.extra_json:
             prompt = LOADED_STT.transcribe_audio(
-                base64_audio=c.prompt, audio_format=c.extra_body["audio_format"]
+                base64_audio=c.prompt, audio_format=c.extra_json["audio_format"]
             )
             c.prompt = prompt
-        if "system_message" in c.extra_body:
-            LOADED_LLM.params["system_message"] = c.extra_body["system_message"]
+        if "system_message" in c.extra_json:
+            LOADED_LLM.params["system_message"] = c.extra_json["system_message"]
     response = LOADED_LLM.completion(prompt=c.prompt, format_prompt=c.format_prompt)
     audio_response = None
-    if c.extra_body:
-        if "voice" in c.extra_body:
+    if c.extra_json:
+        if "voice" in c.extra_json:
             text_response = response["choices"][0]["text"]
-            language = c.extra_body["language"] if "language" in c.extra_body else "en"
+            language = c.extra_json["language"] if "language" in c.extra_json else "en"
             audio_response = LOADED_CTTS.generate(
-                text=text_response, voice=c.extra_body["voice"], language=language
+                text=text_response, voice=c.extra_json["voice"], language=language
             )
             response["choices"][0]["audio"] = audio_response
     if not c.stream:
