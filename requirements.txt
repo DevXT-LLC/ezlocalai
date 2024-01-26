@@ -9,7 +9,7 @@ python-dotenv
 GPUtil
 psutil
 beautifulsoup4
-whisper-cpp-pybind==0.1.2
+whisper-cpp-pybind
 pydub
 ffmpeg
 numpy>=1.22.0

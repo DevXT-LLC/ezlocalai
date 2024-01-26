@@ -50,7 +50,8 @@ class STT:
         audio_segment.export(file_path, format="wav")
         if not os.path.exists(file_path):
             raise RuntimeError(f"Failed to load audio.")
-        user_input = self.w.transcribe(file_path)
+        self.w.transcribe(file_path)
+        user_input = self.w.output(output_txt=True)
         print(f"[STT] Transcribed User Input: {user_input}")
         os.remove(file_path)
         return user_input
