@@ -1,2 +1,7 @@
 __pycache__/
 models/*
+build
+*.egg*
+xttsv2_2.0.2
+whispercpp
+outputs/*
