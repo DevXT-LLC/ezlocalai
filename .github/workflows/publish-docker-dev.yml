@@ -9,10 +9,6 @@ on:
 jobs:
   build_and_push:
     runs-on: ubuntu-latest
-    outputs:
-      github_user: ${{ steps.extract_branch.outputs.GITHUB_USER }}
-      repo_name: ${{ steps.extract_branch.outputs.REPO_NAME }}
-      branch_name: ${{ steps.extract_branch.outputs.BRANCH_NAME }}
     strategy:
       matrix:
         include:
@@ -60,7 +56,7 @@ jobs:
     uses: josh-xt/AGiXT/.github/workflows/operation-test-with-jupyter.yml@main
     with:
       notebook: tests/tests.ipynb
-      image: ghcr.io/${{ needs.build_and_push.outputs.github_user }}/${{ needs.build_and_push.outputs.repo_name }}:cpu-dev-${{ needs.build_and_push.outputs.branch_name }}-${{ github.sha }}
+      image: ghcr.io/josh-xt/local-llm:cpu-dev
       port: "8091"
       additional-python-dependencies: openai requests
     needs: build_and_push
