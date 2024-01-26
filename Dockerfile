@@ -5,7 +5,10 @@ FROM ${LLAMACPP_IMAGE}
 ENV HOST 0.0.0.0
 
 RUN apt-get update && apt-get upgrade -y \
-    && apt-get install -y git build-essential portaudio19-dev \
+    && apt-get install -y git build-essential gcc g++ portaudio19-dev ffmpeg libportaudio2 libasound-dev \
+    apt-get install -y gcc-10 g++-10 && \
+    update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-10 10 && \
+    update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-10 10 && \
     python3 python3-pip gcc wget \
     ocl-icd-opencl-dev opencl-headers clinfo \
     libclblast-dev libopenblas-dev \

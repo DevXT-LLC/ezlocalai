@@ -43,17 +43,12 @@ class STT:
     async def transcribe_audio(self, base64_audio, audio_format="m4a"):
         filename = f"{uuid.uuid4().hex}.wav"
         file_path = os.path.join(os.getcwd(), "outputs", filename)
-        if audio_format.lower() != "wav":
-            audio_data = base64.b64decode(base64_audio)
-            audio_segment = AudioSegment.from_file(
-                io.BytesIO(audio_data), format=audio_format.lower()
-            )
-            audio_segment = audio_segment.set_frame_rate(16000)
-            audio_segment.export(file_path, format="wav")
-        else:
-            audio_data = base64.b64decode(base64_audio)
-            with open(file_path, "wb") as f:
-                f.write(audio_data)
+        audio_data = base64.b64decode(base64_audio)
+        audio_segment = AudioSegment.from_file(
+            io.BytesIO(audio_data), format=audio_format.lower()
+        )
+        audio_segment = audio_segment.set_frame_rate(16000)
+        audio_segment.export(file_path, format="wav")
         if not os.path.exists(file_path):
             raise RuntimeError(f"Failed to load audio.")
         user_input = self.w.transcribe(file_path)
