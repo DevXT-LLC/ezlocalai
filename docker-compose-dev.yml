@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   local-llm:
-    image: ghcr.io/josh-xt/local-llm:cuda-dev-add-stt
+    image: ghcr.io/josh-xt/local-llm:cpu-dev-add-stt
     environment:
       - GPU_LAYERS=0
       - LOCAL_LLM_API_KEY=${LOCAL_LLM_API_KEY-}
@@ -14,10 +14,3 @@ services:
       - ./models:/app/models
       - ./outputs:/app/outputs
       - ./voices:/app/voices
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: all
-              capabilities: [ gpu ]

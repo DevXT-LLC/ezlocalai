@@ -10,8 +10,7 @@ RUN apt-get update && apt-get upgrade -y && \
 WORKDIR /app
 ENV HOST 0.0.0.0
 COPY . .
-RUN pip install --no-cache-dir -r requirements.txt && \
-    pip install --no-cache-dir deepspeed
+RUN pip install --no-cache-dir -r requirements.txt
 RUN python3 local_llm/CTTS.py
 RUN python3 local_llm/STT.py
 EXPOSE 8091
