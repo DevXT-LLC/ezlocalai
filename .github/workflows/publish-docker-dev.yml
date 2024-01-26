@@ -1,4 +1,4 @@
-name: Publish Development Docker images
+name: Dev - Build and Test
 
 on:
   push:
