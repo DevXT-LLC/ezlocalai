@@ -24,8 +24,8 @@ def download_whisper_model(model="base.en"):
         "large-v3",
     ]:
         model = "base.en"
-    os.makedirs(os.path.join(os.getcwd(), "models", "whispercpp"), exist_ok=True)
-    model_path = os.path.join(os.getcwd(), "models", "whispercpp", f"ggml-{model}.bin")
+    os.makedirs(os.path.join(os.getcwd(), "whispercpp"), exist_ok=True)
+    model_path = os.path.join(os.getcwd(), "whispercpp", f"ggml-{model}.bin")
     if not os.path.exists(model_path):
         r = requests.get(
             f"https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-{model}.bin",

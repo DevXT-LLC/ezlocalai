@@ -29,9 +29,9 @@ def download_xtts():
         "speakers_xtts.pth": "https://huggingface.co/coqui/XTTS-v2/resolve/v2.0.2/speakers_xtts.pth?download=true",
         "vocab.json": "https://huggingface.co/coqui/XTTS-v2/resolve/v2.0.2/vocab.json?download=true",
     }
-    os.makedirs(os.path.join(os.getcwd(), "models", "xttsv2_2.0.2"), exist_ok=True)
+    os.makedirs(os.path.join(os.getcwd(), "xttsv2_2.0.2"), exist_ok=True)
     for filename, url in files_to_download.items():
-        destination = os.path.join(os.getcwd(), "models", "xttsv2_2.0.2", filename)
+        destination = os.path.join(os.getcwd(), "xttsv2_2.0.2", filename)
         if not os.path.exists(destination):
             response = requests.get(url, stream=True)
             block_size = 1024  # 1 Kibibyte
@@ -47,7 +47,7 @@ class CTTS:
         if self.device == "cuda":
             torch.cuda.empty_cache()
         config = XttsConfig()
-        checkpoint_dir = os.path.join(os.getcwd(), "models", "xttsv2_2.0.2")
+        checkpoint_dir = os.path.join(os.getcwd(), "xttsv2_2.0.2")
         if not os.path.exists(checkpoint_dir):
             print("Downloading XTTSv2 model...")
             download_xtts()
@@ -115,7 +115,7 @@ class CTTS:
         torchaudio.save(output_file, torch.tensor(output["wav"]).unsqueeze(0), 24000)
         with open(output_file, "rb") as file:
             audio_data = file.read()
-        # os.remove(output_file)
+        os.remove(output_file)
         return JSONResponse(
             content={
                 "status": "success",
