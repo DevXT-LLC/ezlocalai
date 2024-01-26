@@ -35,7 +35,7 @@ def download_xtts():
     os.makedirs(os.path.join(os.getcwd(), "models", "xttsv2_2.0.2"), exist_ok=True)
     for filename, url in files_to_download.items():
         destination = os.path.join(os.getcwd(), "models", "xttsv2_2.0.2", filename)
-        if not destination.exists():
+        if not os.path.exists(destination):
             response = requests.get(url, stream=True)
             block_size = 1024  # 1 Kibibyte
             with open(destination, "wb") as file:
