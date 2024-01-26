@@ -3,7 +3,7 @@ from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Dict, Union, Optional
-from local_llm import LLM, streaming_generation
+from local_llm.LLM import LLM, streaming_generation
 from local_llm.STT import STT
 import os
 from dotenv import load_dotenv
