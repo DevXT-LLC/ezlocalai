@@ -202,8 +202,8 @@ class CompletionsResponse(BaseModel):
     dependencies=[Depends(verify_api_key)],
 )
 async def completions(c: Completions, request: Request, user=Depends(verify_api_key)):
-    print(f"[CHAT] {c.extra_json}")
-    print(f"[CHAT] {request.json()}")
+    json_data = await request.json()
+    print(f"[CHAT] {json_data}")
     global CURRENT_MODEL
     global LOADED_LLM
     if c.model:
