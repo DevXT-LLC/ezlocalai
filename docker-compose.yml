@@ -11,3 +11,5 @@ services:
       - "8091:8091"
     volumes:
       - ./models:/app/models
+      - ./outputs:/app/outputs
+      - ./voices:/app/voices
