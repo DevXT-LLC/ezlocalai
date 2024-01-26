@@ -24,14 +24,8 @@ class CTTS:
     def __init__(self):
         global deepspeed_available
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
-        if self.device == "cuda":
-            self.device = "cpu"
-            self.model.to(self.device)
+        if torch.cuda.is_available():
             torch.cuda.empty_cache()
-        else:
-            self.device == "cpu"
-            self.device = "cuda"
-            self.model.to(self.device)
         config = XttsConfig()
         checkpoint_dir = os.path.join(os.getcwd(), "models", "xttsv2_2.0.2")
         config_path = os.path.join(checkpoint_dir, "config.json")
