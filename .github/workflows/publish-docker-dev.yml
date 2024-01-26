@@ -11,7 +11,7 @@ jobs:
     strategy:
       matrix:
         include:
-          - llamacpp_image: "python:3-slim-bullseye"
+          - llamacpp_image: "ubuntu:22.04"
             platforms: "linux/amd64"
             tag_name: "cpu-dev"
           - llamacpp_image: "nvidia/cuda:12.1.1-devel-ubuntu22.04"
