@@ -2,9 +2,7 @@ version: '3.8'
 
 services:
   local-llm:
-    build:
-      context: .
-      dockerfile: cuda.Dockerfile
+    image: ghcr.io/josh-xt/local-llm:cuda-dev-add-stt
     environment:
       - GPU_LAYERS=0
       - LOCAL_LLM_API_KEY=${LOCAL_LLM_API_KEY-}

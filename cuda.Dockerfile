@@ -9,10 +9,10 @@ RUN apt-get update && apt-get upgrade -y && \
     pip install --upgrade pip && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
+COPY . .
 ENV HOST 0.0.0.0
 ENV CUDA_DOCKER_ARCH=all
 ENV LLAMA_CUBLAS=1
-COPY . .
 RUN pip install --no-cache-dir -r requirements.txt && \
     pip install --no-cache-dir deepspeed
 RUN python3 local_llm/CTTS.py
