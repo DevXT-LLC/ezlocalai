@@ -16,4 +16,4 @@ RUN python3 local_llm/CTTS.py
 RUN python3 local_llm/STT.py
 EXPOSE 8091
 RUN chmod +x start.sh
-ENTRYPOINT ["/app/start.sh"]
+ENTRYPOINT ["sh", "-c", "./start.sh"]
