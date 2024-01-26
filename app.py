@@ -154,7 +154,7 @@ async def chat_completions(c: ChatCompletions, user=Depends(verify_api_key)):
                 text=text_response, voice=c.extra_json["voice"], language=language
             )
             audio_control = create_audio_control(audio_response)
-            response["messages"][1]["text"] = f"{text_response}\n{audio_control}"
+            response["messages"][1]["content"] = f"{text_response}\n{audio_control}"
     if not c.stream:
         return response
     else:
