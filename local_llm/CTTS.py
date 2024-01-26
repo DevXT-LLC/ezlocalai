@@ -7,6 +7,7 @@ import io
 import wave
 import torch
 import torchaudio
+import requests
 from TTS.tts.configs.xtts_config import XttsConfig
 from TTS.tts.models.xtts import Xtts
 from fastapi.responses import JSONResponse, StreamingResponse
@@ -20,22 +21,46 @@ except ImportError:
     pass
 
 
+def download_xtts():
+    files_to_download = {
+        "LICENSE.txt": "https://huggingface.co/coqui/XTTS-v2/resolve/v2.0.2/LICENSE.txt?download=true",
+        "README.md": "https://huggingface.co/coqui/XTTS-v2/resolve/v2.0.2/README.md?download=true",
+        "config.json": "https://huggingface.co/coqui/XTTS-v2/resolve/v2.0.2/config.json?download=true",
+        "model.pth": "https://huggingface.co/coqui/XTTS-v2/resolve/v2.0.2/model.pth?download=true",
+        "dvae.pth": "https://huggingface.co/coqui/XTTS-v2/resolve/v2.0.2/dvae.pth?download=true",
+        "mel_stats.pth": "https://huggingface.co/coqui/XTTS-v2/resolve/v2.0.2/mel_stats.pth?download=true",
+        "speakers_xtts.pth": "https://huggingface.co/coqui/XTTS-v2/resolve/v2.0.2/speakers_xtts.pth?download=true",
+        "vocab.json": "https://huggingface.co/coqui/XTTS-v2/resolve/v2.0.2/vocab.json?download=true",
+    }
+    os.makedirs(os.path.join(os.getcwd(), "models", "xttsv2_2.0.2"), exist_ok=True)
+    for filename, url in files_to_download.items():
+        destination = os.path.join(os.getcwd(), "models", "xttsv2_2.0.2", filename)
+        if not destination.exists():
+            response = requests.get(url, stream=True)
+            block_size = 1024  # 1 Kibibyte
+            with open(destination, "wb") as file:
+                for data in response.iter_content(block_size):
+                    file.write(data)
+
+
 class CTTS:
     def __init__(self):
         global deepspeed_available
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
-        if torch.cuda.is_available():
+        if self.device == "cuda":
             torch.cuda.empty_cache()
         config = XttsConfig()
         checkpoint_dir = os.path.join(os.getcwd(), "models", "xttsv2_2.0.2")
-        config_path = os.path.join(checkpoint_dir, "config.json")
-        vocab_path_dir = os.path.join(checkpoint_dir, "vocab.json")
-        config.load_json(str(config_path))
+        # Check if the model is downloaded
+        if not os.path.exists(checkpoint_dir):
+            print("Downloading XTTSv2 model...")
+            download_xtts()
+        config.load_json(str(os.path.join(checkpoint_dir, "config.json")))
         self.model = Xtts.init_from_config(config)
         self.model.load_checkpoint(
             config,
             checkpoint_dir=str(checkpoint_dir),
-            vocab_path=str(vocab_path_dir),
+            vocab_path=str(os.path.join(checkpoint_dir, "vocab.json")),
             use_deepspeed=deepspeed_available,
         )
         self.model.to(self.device)
@@ -151,3 +176,7 @@ class CTTS:
                 content={"status": "generate-failure", "error": "An error occurred"},
                 status_code=500,
             )
+
+
+if __name__ == "__main__":
+    download_xtts()
