@@ -19,8 +19,8 @@ ENV CUDA_DOCKER_ARCH=all
 ENV LLAMA_CUBLAS=1
 
 # Install depencencies
-RUN python3 -m pip install --no-cache-dir --upgrade pip cmake scikit-build setuptools fastapi uvicorn sse-starlette pydantic-settings starlette-context deepspeed
-RUN python3 -m pip install --no-cache-dir -r requirements.txt
+RUN python3 -m pip install --upgrade pip cmake scikit-build setuptools fastapi uvicorn sse-starlette pydantic-settings starlette-context deepspeed && \
+    python3 -m pip install -r requirements.txt
 RUN python3 local_llm/CTTS.py
 
 EXPOSE 8091
