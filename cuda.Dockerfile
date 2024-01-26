@@ -15,6 +15,7 @@ ENV CUDA_DOCKER_ARCH=all
 ENV LLAMA_CUBLAS=1
 RUN pip install --no-cache-dir -r requirements.txt && \
     pip install --no-cache-dir deepspeed
+RUN CMAKE_ARGS="-DLLAMA_CUBLAS=on" pip install llama-cpp-python --force-reinstall --no-cache-dir
 RUN python3 local_llm/CTTS.py
 RUN python3 local_llm/STT.py
 EXPOSE 8091

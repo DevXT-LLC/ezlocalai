@@ -14,3 +14,10 @@ services:
       - ./models:/app/models
       - ./outputs:/app/outputs
       - ./voices:/app/voices
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [ gpu ]
