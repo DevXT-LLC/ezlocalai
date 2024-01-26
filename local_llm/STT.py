@@ -37,7 +37,7 @@ def download_whisper_model(model="base.en"):
 class STT:
     def __init__(self, model="base.en"):
         model_path = download_whisper_model(model=model)
-        self.w = Whisper(model_path=model_path)
+        self.w = Whisper(model_path=model_path, verbose=False)
 
     async def transcribe_audio(self, base64_audio, audio_format="m4a"):
         filename = f"{uuid.uuid4().hex}.wav"
@@ -51,7 +51,7 @@ class STT:
         if not os.path.exists(file_path):
             raise RuntimeError(f"Failed to load audio.")
         self.w.transcribe(file_path)
-        user_input = self.w.output(output_txt=True)
+        user_input = self.w.output(output_txt=False)
         print(f"[STT] Transcribed User Input: {user_input}")
         user_input = user_input.replace("[BLANK_AUDIO]", "")
         os.remove(file_path)
