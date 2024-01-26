@@ -23,6 +23,7 @@ app.add_middleware(
 DEFAULT_MODEL = os.getenv("DEFAULT_MODEL", "zephyr-7b-beta")
 WHISPER_MODEL = os.getenv("WHISPER_MODEL", "base.en")
 CURRENT_MODEL = DEFAULT_MODEL if DEFAULT_MODEL else "zephyr-7b-beta"
+CURRENT_STT_MODEL = WHISPER_MODEL if WHISPER_MODEL else "base.en"
 print(f"Loading LLM model: {CURRENT_MODEL}")
 LOADED_LLM = LLM(model=CURRENT_MODEL)
 print(f"Loading STT model: {WHISPER_MODEL}")
@@ -102,9 +103,10 @@ class ChatCompletionsResponse(BaseModel):
 async def chat_completions(c: ChatCompletions, user=Depends(verify_api_key)):
     global CURRENT_MODEL
     global LOADED_LLM
-    if CURRENT_MODEL != c.model:
-        CURRENT_MODEL = c.model
-        LOADED_LLM = LLM(model=c.model)
+    if c.model:
+        if CURRENT_MODEL != c.model:
+            CURRENT_MODEL = c.model
+            LOADED_LLM = LLM(model=c.model)
     if c.max_tokens:
         LOADED_LLM.params["max_tokens"] = c.max_tokens
     if c.temperature:
@@ -161,9 +163,10 @@ class CompletionsResponse(BaseModel):
 async def completions(c: Completions, user=Depends(verify_api_key)):
     global CURRENT_MODEL
     global LOADED_LLM
-    if CURRENT_MODEL != c.model:
-        CURRENT_MODEL = c.model
-        LOADED_LLM = LLM(model=c.model)
+    if c.model:
+        if CURRENT_MODEL != c.model:
+            CURRENT_MODEL = c.model
+            LOADED_LLM = LLM(model=c.model)
     if c.max_tokens:
         LOADED_LLM.params["max_tokens"] = c.max_tokens
     if c.temperature:
@@ -209,14 +212,13 @@ class EmbeddingResponse(BaseModel):
     tags=["Embeddings"],
     dependencies=[Depends(verify_api_key)],
 )
-async def embedding(
-    model_name: str, embedding: EmbeddingModel, user=Depends(verify_api_key)
-):
+async def embedding(embedding: EmbeddingModel, user=Depends(verify_api_key)):
     global CURRENT_MODEL
     global LOADED_LLM
-    if CURRENT_MODEL != embedding.model:
-        CURRENT_MODEL = embedding.model
-        LOADED_LLM = LLM(model=embedding.model)
+    if embedding.model:
+        if CURRENT_MODEL != embedding.model:
+            CURRENT_MODEL = embedding.model
+            LOADED_LLM = LLM(model=embedding.model)
     return LOADED_LLM.embedding(input=embedding.input)
 
 
@@ -228,15 +230,17 @@ async def embedding(
 async def embedding(embedding: EmbeddingModel, user=Depends(verify_api_key)):
     global CURRENT_MODEL
     global LOADED_LLM
-    if CURRENT_MODEL != embedding.model:
-        CURRENT_MODEL = embedding.model
-        LOADED_LLM = LLM(model=embedding.model)
+    if embedding.model:
+        if CURRENT_MODEL != embedding.model:
+            CURRENT_MODEL = embedding.model
+            LOADED_LLM = LLM(model=embedding.model)
     return LOADED_LLM.embedding(input=embedding.input)
 
 
 class SpeechToText(BaseModel):
     file: str  # The base64 encoded audio file
     audio_format: Optional[str] = "wav"
+    model: Optional[str] = WHISPER_MODEL
     user: Optional[str] = None
 
 
@@ -247,6 +251,39 @@ class SpeechToText(BaseModel):
 )
 async def speech_to_text(stt: SpeechToText, user=Depends(verify_api_key)):
     global LOADED_STT
-    return LOADED_STT.transcribe_audio(
+    if stt.model:
+        if CURRENT_STT_MODEL != stt.model:
+            LOADED_STT = STT(model=stt.model)
+    response = await LOADED_STT.transcribe_audio(
         base64_audio=stt.file, audio_format=stt.audio_format
     )
+    return {"data": response}
+
+
+class TextToSpeech(BaseModel):
+    text: str
+    voice: Optional[str] = "default"
+    language: Optional[str] = "en"
+    user: Optional[str] = None
+
+
+@app.post(
+    "/v1/audio/generation",
+    tags=["Text to Speech"],
+    dependencies=[Depends(verify_api_key)],
+)
+async def text_to_speech(tts: TextToSpeech, user=Depends(verify_api_key)):
+    global LOADED_CTTS
+    return await LOADED_CTTS.generate(
+        text=tts.text, voice=tts.voice, language=tts.language
+    )
+
+
+@app.get(
+    "/v1/audio/voices",
+    tags=["Text to Speech"],
+    dependencies=[Depends(verify_api_key)],
+)
+async def get_voices(user=Depends(verify_api_key)):
+    global LOADED_CTTS
+    return await LOADED_CTTS.get_voices()

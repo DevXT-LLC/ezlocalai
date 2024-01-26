@@ -42,7 +42,7 @@ class STT:
 
     async def transcribe_audio(self, base64_audio, audio_format="m4a"):
         filename = f"{uuid.uuid4().hex}.wav"
-        file_path = os.path.join(os.getcwd(), "WORKSPACE", filename)
+        file_path = os.path.join(os.getcwd(), "outputs", filename)
         if audio_format.lower() != "wav":
             audio_data = base64.b64decode(base64_audio)
             audio_segment = AudioSegment.from_file(

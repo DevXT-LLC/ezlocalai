@@ -1,16 +1,13 @@
 import os
 import re
 import uuid
-import numpy as np
 import base64
-import io
-import wave
 import torch
 import torchaudio
 import requests
 from TTS.tts.configs.xtts_config import XttsConfig
 from TTS.tts.models.xtts import Xtts
-from fastapi.responses import JSONResponse, StreamingResponse
+from fastapi.responses import JSONResponse
 
 deepspeed_available = False
 try:
@@ -51,7 +48,6 @@ class CTTS:
             torch.cuda.empty_cache()
         config = XttsConfig()
         checkpoint_dir = os.path.join(os.getcwd(), "models", "xttsv2_2.0.2")
-        # Check if the model is downloaded
         if not os.path.exists(checkpoint_dir):
             print("Downloading XTTSv2 model...")
             download_xtts()
@@ -64,6 +60,8 @@ class CTTS:
             use_deepspeed=deepspeed_available,
         )
         self.model.to(self.device)
+        self.output_folder = os.path.join(os.getcwd(), "outputs")
+        os.makedirs(self.output_folder, exist_ok=True)
 
     async def get_voices(self):
         wav_files = []
@@ -72,14 +70,13 @@ class CTTS:
                 wav_files.append(file.replace(".wav", ""))
         return {"voices": wav_files}
 
-    async def generate_audio(
+    async def generate(
         self,
         text,
-        voice,
-        output_file,
+        voice="default",
         language="en",
-        streaming=False,
     ):
+        output_file = os.path.join(self.output_folder, f"{uuid.uuid4().hex}.wav")
         cleaned_string = re.sub(r"([!?.])\1+", r"\1", text)
         cleaned_string = re.sub(
             r'[^a-zA-Z0-9\s\.,;:!?\-\'"\u0400-\u04FFÀ-ÿ\u0150\u0151\u0170\u0171]\$',
@@ -88,11 +85,15 @@ class CTTS:
         )
         if not voice.endswith(".wav"):
             voice = f"{voice}.wav"
+        audio_path = os.path.join(os.getcwd(), "voices", voice)
+        if not os.path.exists(audio_path):
+            voice = "default.wav"
+            audio_path = os.path.join(os.getcwd(), "voices", voice)
         cleaned_string = re.sub(r"\n+", " ", cleaned_string)
         cleaned_string = cleaned_string.replace("#", "")
         text = cleaned_string
         gpt_cond_latent, speaker_embedding = self.model.get_conditioning_latents(
-            audio_path=[f"{os.getcwd()}/voices/{voice}"],
+            audio_path=[f"{audio_path}"],
             gpt_cond_len=self.model.config.gpt_cond_len,
             max_ref_length=self.model.config.max_ref_len,
             sound_norm_refs=self.model.config.sound_norm_refs,
@@ -109,73 +110,19 @@ class CTTS:
             "top_p": float(self.model.config.top_p),
             "enable_text_splitting": True,
         }
-        inference_func = (
-            self.model.inference_stream if streaming else self.model.inference
-        )
-        if streaming:
-            common_args["stream_chunk_size"] = 20
+        inference_func = self.model.inference
         output = inference_func(**common_args)
-        if streaming:
-            file_chunks = []
-            wav_buf = io.BytesIO()
-            with wave.open(wav_buf, "wb") as vfout:
-                vfout.setnchannels(1)
-                vfout.setsampwidth(2)
-                vfout.setframerate(24000)
-                vfout.writeframes(b"")
-            wav_buf.seek(0)
-            yield wav_buf.read()
-            for i, chunk in enumerate(output):
-                file_chunks.append(chunk)
-                if isinstance(chunk, list):
-                    chunk = torch.cat(chunk, dim=0)
-                chunk = chunk.clone().detach().cpu().numpy()
-                chunk = chunk[None, : int(chunk.shape[0])]
-                chunk = np.clip(chunk, -1, 1)
-                chunk = (chunk * 32767).astype(np.int16)
-                yield chunk.tobytes()
-        else:
-            torchaudio.save(
-                output_file, torch.tensor(output["wav"]).unsqueeze(0), 24000
-            )
-
-    async def generate(
-        self,
-        text: str = "",
-        voice: str = "",
-        language: str = "en",
-        streaming: bool = False,
-    ):
-        output_file_name = f"{uuid.uuid4().hex}.wav"
-        try:
-            output_file_path = os.path.join(
-                os.getcwd(), "outputs", f"{output_file_name}.wav"
-            )
-            response = await self.generate_audio(
-                text=text,
-                voice=voice,
-                output_file=output_file_path,
-                language=language,
-                streaming=streaming,
-            )
-            if streaming:
-                return StreamingResponse(response, media_type="audio/wav")
-            else:
-                with open(output_file_path, "rb") as file:
-                    file_content = file.read()
-                os.remove(output_file_path)
-                return JSONResponse(
-                    content={
-                        "status": "success",
-                        "data": base64.b64encode(file_content).decode("utf-8"),
-                    },
-                    status_code=200,
-                )
-        except Exception as e:
-            return JSONResponse(
-                content={"status": "generate-failure", "error": "An error occurred"},
-                status_code=500,
-            )
+        torchaudio.save(output_file, torch.tensor(output["wav"]).unsqueeze(0), 24000)
+        with open(output_file, "rb") as file:
+            audio_data = file.read()
+        # os.remove(output_file)
+        return JSONResponse(
+            content={
+                "status": "success",
+                "data": base64.b64encode(audio_data).decode("utf-8"),
+            },
+            status_code=200,
+        )
 
 
 if __name__ == "__main__":
