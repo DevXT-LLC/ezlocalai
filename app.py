@@ -68,6 +68,18 @@ async def models(user=Depends(verify_api_key)):
     return models
 
 
+# For the completions and chat completions endpoints, we use extra_body for additional parameters.
+# --------------------------------
+# If `audio_format`` is present, the prompt will be transcribed to text.
+#   It is assumed it is base64 encoded audio in the `audio_format`` specified.
+# --------------------------------
+# If `system_message`` is present, it will be used as the system message for the completion.
+# --------------------------------
+# If `voice`` is present, the completion will be converted to audio using the specified voice.
+#   If not streaming, the audio will be returned in the response in the "audio" beside the "text" or "content" keys.
+#   If streaming, the audio will be streamed in the response in audio/wav format.
+
+
 # Chat completions endpoint
 # https://platform.openai.com/docs/api-reference/chat
 class ChatCompletions(BaseModel):
@@ -120,11 +132,32 @@ async def chat_completions(c: ChatCompletions, user=Depends(verify_api_key)):
     if c.stop:
         LOADED_LLM.params["stop"].append(c.stop)
     if c.extra_body:
+        if "audio_format" in c.extra_body:
+            prompt = LOADED_STT.transcribe_audio(
+                base64_audio=c.messages[-1]["content"],
+                audio_format=c.extra_body["audio_format"],
+            )
+            c.messages[-1]["content"] = prompt
         if "system_message" in c.extra_body:
-            LOADED_LLM.params["system_message"] = c.system_message
+            LOADED_LLM.params["system_message"] = c.extra_body["system_message"]
+    response = LOADED_LLM.chat(messages=c.messages)
+    audio_response = None
+    if c.extra_body:
+        if "voice" in c.extra_body:
+            text_response = response["messages"][1]["content"]
+            language = c.extra_body["language"] if "language" in c.extra_body else "en"
+            audio_response = LOADED_CTTS.generate(
+                text=text_response, voice=c.extra_body["voice"], language=language
+            )
+            response["messages"][1]["audio"] = audio_response
     if not c.stream:
-        return LOADED_LLM.chat(messages=c.messages)
+        return response
     else:
+        if audio_response:
+            return StreamingResponse(
+                streaming_generation(data=audio_response),
+                media_type="audio/wav",
+            )
         return StreamingResponse(
             streaming_generation(data=LOADED_LLM.chat(messages=c.messages)),
             media_type="text/event-stream",
@@ -181,16 +214,34 @@ async def completions(c: Completions, user=Depends(verify_api_key)):
     if c.stop:
         LOADED_LLM.params["stop"].append(c.stop)
     if c.extra_body:
+        if "audio_format" in c.extra_body:
+            prompt = LOADED_STT.transcribe_audio(
+                base64_audio=c.prompt, audio_format=c.extra_body["audio_format"]
+            )
+            c.prompt = prompt
         if "system_message" in c.extra_body:
-            LOADED_LLM.params["system_message"] = c.system_message
+            LOADED_LLM.params["system_message"] = c.extra_body["system_message"]
+    response = LOADED_LLM.completion(prompt=c.prompt, format_prompt=c.format_prompt)
+    audio_response = None
+    if c.extra_body:
+        if "voice" in c.extra_body:
+            text_response = response["choices"][0]["text"]
+            language = c.extra_body["language"] if "language" in c.extra_body else "en"
+            audio_response = LOADED_CTTS.generate(
+                text=text_response, voice=c.extra_body["voice"], language=language
+            )
+            response["choices"][0]["audio"] = audio_response
     if not c.stream:
-        return LOADED_LLM.completion(prompt=c.prompt, format_prompt=c.format_prompt)
+        return response
     else:
+        if audio_response:
+            return StreamingResponse(
+                streaming_generation(data=audio_response),
+                media_type="audio/wav",
+            )
         return StreamingResponse(
             streaming_generation(
-                data=LOADED_LLM.completion(
-                    prompt=c.prompt, format_prompt=c.format_prompt
-                )
+                data=response["choices"][0]["text"], format_prompt=c.format_prompt
             ),
             media_type="text/event-stream",
         )
