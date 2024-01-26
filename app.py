@@ -85,7 +85,7 @@ class ChatCompletions(BaseModel):
     frequency_penalty: Optional[float] = 0.0
     logit_bias: Optional[Dict[str, float]] = None
     user: Optional[str] = None
-    system_message: Optional[str] = ""
+    extra_body: Optional[dict] = {}
 
 
 class ChatCompletionsResponse(BaseModel):
@@ -119,8 +119,9 @@ async def chat_completions(c: ChatCompletions, user=Depends(verify_api_key)):
         LOADED_LLM.params["logit_bias"] = c.logit_bias
     if c.stop:
         LOADED_LLM.params["stop"].append(c.stop)
-    if c.system_message:
-        LOADED_LLM.params["system_message"] = c.system_message
+    if c.extra_body:
+        if "system_message" in c.extra_body:
+            LOADED_LLM.params["system_message"] = c.system_message
     if not c.stream:
         return LOADED_LLM.chat(messages=c.messages)
     else:
@@ -143,7 +144,7 @@ class Completions(BaseModel):
     logit_bias: Optional[Dict[str, float]] = None
     stop: Optional[List[str]] = None
     echo: Optional[bool] = False
-    system_message: Optional[str] = ""
+    extra_body: Optional[dict] = {}
     user: Optional[str] = None
     format_prompt: Optional[bool] = True
 
@@ -179,8 +180,9 @@ async def completions(c: Completions, user=Depends(verify_api_key)):
         LOADED_LLM.params["logit_bias"] = c.logit_bias
     if c.stop:
         LOADED_LLM.params["stop"].append(c.stop)
-    if c.system_message:
-        LOADED_LLM.params["system_message"] = c.system_message
+    if c.extra_body:
+        if "system_message" in c.extra_body:
+            LOADED_LLM.params["system_message"] = c.system_message
     if not c.stream:
         return LOADED_LLM.completion(prompt=c.prompt, format_prompt=c.format_prompt)
     else:
