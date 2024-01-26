@@ -22,14 +22,17 @@ app.add_middleware(
 )
 DEFAULT_MODEL = os.getenv("DEFAULT_MODEL", "zephyr-7b-beta")
 WHISPER_MODEL = os.getenv("WHISPER_MODEL", "base.en")
+VOICE_ENABLED = os.getenv("VOICE_ENABLED", "false")
+
 CURRENT_MODEL = DEFAULT_MODEL if DEFAULT_MODEL else "zephyr-7b-beta"
 CURRENT_STT_MODEL = WHISPER_MODEL if WHISPER_MODEL else "base.en"
 print(f"Loading LLM model: {CURRENT_MODEL}")
 LOADED_LLM = LLM(model=CURRENT_MODEL)
 print(f"Loading STT model: {WHISPER_MODEL}")
 LOADED_STT = STT(model=WHISPER_MODEL)
-print(f"Loading CTTS model: xttsv2_2.0.2")
-LOADED_CTTS = CTTS()
+if VOICE_ENABLED.lower() == "true":
+    print(f"Loading CTTS model: xttsv2_2.0.2")
+    LOADED_CTTS = CTTS()
 
 
 def verify_api_key(authorization: str = Header(None)):
@@ -267,23 +270,25 @@ class TextToSpeech(BaseModel):
     user: Optional[str] = None
 
 
-@app.post(
-    "/v1/audio/generation",
-    tags=["Text to Speech"],
-    dependencies=[Depends(verify_api_key)],
-)
-async def text_to_speech(tts: TextToSpeech, user=Depends(verify_api_key)):
-    global LOADED_CTTS
-    return await LOADED_CTTS.generate(
-        text=tts.text, voice=tts.voice, language=tts.language
+if VOICE_ENABLED.lower() == "true":
+
+    @app.post(
+        "/v1/audio/generation",
+        tags=["Text to Speech"],
+        dependencies=[Depends(verify_api_key)],
     )
+    async def text_to_speech(tts: TextToSpeech, user=Depends(verify_api_key)):
+        global LOADED_CTTS
+        audio = await LOADED_CTTS.generate(
+            text=tts.text, voice=tts.voice, language=tts.language
+        )
+        return {"data": audio}
 
-
-@app.get(
-    "/v1/audio/voices",
-    tags=["Text to Speech"],
-    dependencies=[Depends(verify_api_key)],
-)
-async def get_voices(user=Depends(verify_api_key)):
-    global LOADED_CTTS
-    return await LOADED_CTTS.get_voices()
+    @app.get(
+        "/v1/audio/voices",
+        tags=["Text to Speech"],
+        dependencies=[Depends(verify_api_key)],
+    )
+    async def get_voices(user=Depends(verify_api_key)):
+        global LOADED_CTTS
+        return {"voices": LOADED_CTTS.voices}

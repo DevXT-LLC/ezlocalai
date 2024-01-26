@@ -33,6 +33,7 @@ def download_xtts():
     for filename, url in files_to_download.items():
         destination = os.path.join(os.getcwd(), "xttsv2_2.0.2", filename)
         if not os.path.exists(destination):
+            print(f"Downloading {filename} for XTTSv2...")
             response = requests.get(url, stream=True)
             block_size = 1024  # 1 Kibibyte
             with open(destination, "wb") as file:
@@ -46,11 +47,10 @@ class CTTS:
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         if self.device == "cuda":
             torch.cuda.empty_cache()
-        config = XttsConfig()
         checkpoint_dir = os.path.join(os.getcwd(), "xttsv2_2.0.2")
         if not os.path.exists(checkpoint_dir):
-            print("Downloading XTTSv2 model...")
             download_xtts()
+        config = XttsConfig()
         config.load_json(str(os.path.join(checkpoint_dir, "config.json")))
         self.model = Xtts.init_from_config(config)
         self.model.load_checkpoint(
@@ -62,13 +62,11 @@ class CTTS:
         self.model.to(self.device)
         self.output_folder = os.path.join(os.getcwd(), "outputs")
         os.makedirs(self.output_folder, exist_ok=True)
-
-    async def get_voices(self):
         wav_files = []
         for file in os.listdir(os.path.join(os.getcwd(), "voices")):
             if file.endswith(".wav"):
                 wav_files.append(file.replace(".wav", ""))
-        return {"voices": wav_files}
+        self.voices = wav_files
 
     async def generate(
         self,
@@ -98,31 +96,23 @@ class CTTS:
             max_ref_length=self.model.config.max_ref_len,
             sound_norm_refs=self.model.config.sound_norm_refs,
         )
-        common_args = {
-            "text": text,
-            "language": language,
-            "gpt_cond_latent": gpt_cond_latent,
-            "speaker_embedding": speaker_embedding,
-            "temperature": 0.7,
-            "length_penalty": float(self.model.config.length_penalty),
-            "repetition_penalty": 10.0,
-            "top_k": int(self.model.config.top_k),
-            "top_p": float(self.model.config.top_p),
-            "enable_text_splitting": True,
-        }
-        inference_func = self.model.inference
-        output = inference_func(**common_args)
+        output = self.model.inference(
+            text=text,
+            language=language,
+            gpt_cond_latent=gpt_cond_latent,
+            speaker_embedding=speaker_embedding,
+            temperature=0.7,
+            length_penalty=float(self.model.config.length_penalty),
+            repetition_penalty=10.0,
+            top_k=int(self.model.config.top_k),
+            top_p=float(self.model.config.top_p),
+            enable_text_splitting=True,
+        )
         torchaudio.save(output_file, torch.tensor(output["wav"]).unsqueeze(0), 24000)
         with open(output_file, "rb") as file:
             audio_data = file.read()
         os.remove(output_file)
-        return JSONResponse(
-            content={
-                "status": "success",
-                "data": base64.b64encode(audio_data).decode("utf-8"),
-            },
-            status_code=200,
-        )
+        return base64.b64encode(audio_data).decode("utf-8")
 
 
 if __name__ == "__main__":
