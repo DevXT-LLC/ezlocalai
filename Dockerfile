@@ -10,7 +10,9 @@ RUN apt-get update && apt-get upgrade -y \
     ocl-icd-opencl-dev opencl-headers clinfo \
     libclblast-dev libopenblas-dev \
     && mkdir -p /etc/OpenCL/vendors && echo "libnvidia-opencl.so.1" > /etc/OpenCL/vendors/nvidia.icd \ 
-    && ln -s /usr/bin/python3 /usr/bin/python
+    && ln -s /usr/bin/python3 /usr/bin/python \
+    && pip install --upgrade pip \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY . .
 
@@ -19,9 +21,9 @@ ENV CUDA_DOCKER_ARCH=all
 ENV LLAMA_CUBLAS=1
 
 # Install depencencies
-RUN pip install -r requirements.txt && \
-    pip install -r requirements-cuda.txt && \
-    pip install deepspeed
+RUN pip install --no-cache-dir -r requirements.txt && \
+    pip install --no-cache-dir -r requirements-cuda.txt && \
+    pip install --no-cache-dir deepspeed
 
 RUN python3 local_llm/CTTS.py
 
