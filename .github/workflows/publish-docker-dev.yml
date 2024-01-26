@@ -2,7 +2,7 @@ name: Publish Development Docker images
 
 on:
   push:
-    branches: "*"
+    branches: ["*"]
     branches-ignore:
       - main
   workflow_dispatch:
