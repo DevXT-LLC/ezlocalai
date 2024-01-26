@@ -22,7 +22,6 @@ app.add_middleware(
 )
 DEFAULT_MODEL = os.getenv("DEFAULT_MODEL", "zephyr-7b-beta")
 WHISPER_MODEL = os.getenv("WHISPER_MODEL", "base.en")
-VOICE_ENABLED = os.getenv("VOICE_ENABLED", "false")
 
 CURRENT_MODEL = DEFAULT_MODEL if DEFAULT_MODEL else "zephyr-7b-beta"
 CURRENT_STT_MODEL = WHISPER_MODEL if WHISPER_MODEL else "base.en"
@@ -30,9 +29,9 @@ print(f"[LLM] {CURRENT_MODEL} model loading...")
 LOADED_LLM = LLM(model=CURRENT_MODEL)
 print(f"[STT] {WHISPER_MODEL} model loading...")
 LOADED_STT = STT(model=WHISPER_MODEL)
-if VOICE_ENABLED.lower() == "true":
-    print(f"[CTTS] xttsv2_2.0.2 model loading...")
-    LOADED_CTTS = CTTS()
+
+print(f"[CTTS] xttsv2_2.0.2 model loading...")
+LOADED_CTTS = CTTS()
 
 
 def verify_api_key(authorization: str = Header(None)):
@@ -270,25 +269,24 @@ class TextToSpeech(BaseModel):
     user: Optional[str] = None
 
 
-if VOICE_ENABLED.lower() == "true":
-
-    @app.post(
-        "/v1/audio/generation",
-        tags=["Text to Speech"],
-        dependencies=[Depends(verify_api_key)],
+@app.post(
+    "/v1/audio/generation",
+    tags=["Text to Speech"],
+    dependencies=[Depends(verify_api_key)],
+)
+async def text_to_speech(tts: TextToSpeech, user=Depends(verify_api_key)):
+    global LOADED_CTTS
+    audio = await LOADED_CTTS.generate(
+        text=tts.text, voice=tts.voice, language=tts.language
     )
-    async def text_to_speech(tts: TextToSpeech, user=Depends(verify_api_key)):
-        global LOADED_CTTS
-        audio = await LOADED_CTTS.generate(
-            text=tts.text, voice=tts.voice, language=tts.language
-        )
-        return {"data": audio}
+    return {"data": audio}
 
-    @app.get(
-        "/v1/audio/voices",
-        tags=["Text to Speech"],
-        dependencies=[Depends(verify_api_key)],
-    )
-    async def get_voices(user=Depends(verify_api_key)):
-        global LOADED_CTTS
-        return {"voices": LOADED_CTTS.voices}
+
+@app.get(
+    "/v1/audio/voices",
+    tags=["Text to Speech"],
+    dependencies=[Depends(verify_api_key)],
+)
+async def get_voices(user=Depends(verify_api_key)):
+    global LOADED_CTTS
+    return {"voices": LOADED_CTTS.voices}
