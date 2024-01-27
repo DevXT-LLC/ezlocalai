@@ -165,7 +165,7 @@ async def chat_completions(
                 media_type="audio/wav",
             )
         return StreamingResponse(
-            streaming_generation(data=LOADED_LLM.chat(messages=c.messages)),
+            streaming_generation(data=response["messages"][1]["content"]),
             media_type="text/event-stream",
         )
 
@@ -247,9 +247,7 @@ async def completions(c: Completions, request: Request, user=Depends(verify_api_
                 media_type="audio/wav",
             )
         return StreamingResponse(
-            streaming_generation(
-                data=response["choices"][0]["text"], format_prompt=c.format_prompt
-            ),
+            streaming_generation(data=response["choices"][0]["text"]),
             media_type="text/event-stream",
         )
 
