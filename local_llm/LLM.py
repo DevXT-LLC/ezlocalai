@@ -10,41 +10,14 @@ import psutil
 import torch
 
 
+GPU_LAYERS = os.environ.get("GPU_LAYERS", 0)
+GPU = torch.cuda.get_device_properties(0)
+VRAM = round(GPU.total_memory / 1024**3)
+print(f"[LLM] {VRAM} GB of VRAM detected.")
+if torch.cuda.is_available() and int(GPU_LAYERS) == 0:
+    GPU_LAYERS = min(2 * max(0, (VRAM - 1) // 2), 36)
 RAM = round(psutil.virtual_memory().total / 1024**3)
 MAIN_GPU = os.environ.get("MAIN_GPU", 0)
-GPU_LAYERS = os.environ.get("GPU_LAYERS", 0)
-if torch.cuda.is_available() and int(GPU_LAYERS) == 0:
-    # Check how much vram is available
-    gpu = torch.cuda.get_device_properties(0)
-    vram = gpu.total_memory / 1024**3
-    print(f"[LLM] {vram} GB of VRAM detected.")
-    if vram > 18:
-        GPU_LAYERS = 36
-    if vram > 16:
-        GPU_LAYERS = 30
-    elif vram > 12:
-        GPU_LAYERS = 20
-    elif vram > 10:
-        GPU_LAYERS = 18
-    elif vram > 8:
-        GPU_LAYERS = 16
-    elif vram > 7:
-        GPU_LAYERS = 14
-    elif vram > 6:
-        GPU_LAYERS = 12
-    elif vram > 5:
-        GPU_LAYERS = 10
-    elif vram > 4:
-        GPU_LAYERS = 8
-    elif vram > 3:
-        GPU_LAYERS = 6
-    elif vram > 2:
-        GPU_LAYERS = 4
-    elif vram > 1:
-        GPU_LAYERS = 2
-    else:
-        GPU_LAYERS = 1
-
 THREADS = os.environ.get("THREADS", psutil.cpu_count() - 2)
 DOWNLOAD_MODELS = (
     True if os.environ.get("DOWNLOAD_MODELS", "true").lower() == "true" else False
