@@ -3,7 +3,6 @@ import base64
 import io
 import requests
 import uuid
-import torch
 import logging
 from whisper_cpp import Whisper
 from pydub import AudioSegment

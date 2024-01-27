@@ -9,7 +9,6 @@ from local_llm.CTTS import CTTS
 import os
 import logging
 from dotenv import load_dotenv
-from contextlib import asynccontextmanager
 
 load_dotenv()
 DEFAULT_MODEL = os.getenv("DEFAULT_MODEL", "phi-2-dpo")
@@ -17,31 +16,21 @@ WHISPER_MODEL = os.getenv("WHISPER_MODEL", "base.en")
 
 CURRENT_MODEL = DEFAULT_MODEL if DEFAULT_MODEL else "phi-2-dpo"
 CURRENT_STT_MODEL = WHISPER_MODEL if WHISPER_MODEL else "base.en"
-LOADED_LLM = None
-LOADED_STT = None
-LOADED_CTTS = None
 logging.basicConfig(
     level=os.environ.get("LOGLEVEL", "INFO"),
     format="%(asctime)s | %(levelname)s | %(message)s",
 )
 
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    global CURRENT_MODEL
-    global CURRENT_STT_MODEL
-    global LOADED_LLM
-    global LOADED_STT
-    global LOADED_CTTS
-    logging.info(f"[LLM] {CURRENT_MODEL} model loading...")
-    LOADED_LLM = LLM(model=CURRENT_MODEL)
-    logging.info(f"[STT] {CURRENT_STT_MODEL} model loading...")
-    LOADED_STT = STT(model=CURRENT_STT_MODEL)
-    logging.info(f"[CTTS] xttsv2_2.0.2 model loading...")
-    LOADED_CTTS = CTTS()
+logging.info(f"[LLM] {CURRENT_MODEL} model loading...")
+LOADED_LLM = LLM(model=CURRENT_MODEL)
+logging.info(f"[STT] {CURRENT_STT_MODEL} model loading...")
+LOADED_STT = STT(model=CURRENT_STT_MODEL)
+logging.info(f"[CTTS] xttsv2_2.0.2 model loading...")
+LOADED_CTTS = CTTS()
 
 
-app = FastAPI(title="Local-LLM Server", docs_url="/", lifespan=lifespan)
+app = FastAPI(title="Local-LLM Server", docs_url="/")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
