@@ -13,11 +13,14 @@ jobs:
       matrix:
         include:
           - dockerfile: "Dockerfile"
-            platforms: "linux/amd64"
+            platforms: "linux/amd64,linux/arm64"
             tag_name: "cpu-dev"
           - dockerfile: "cuda.Dockerfile"
             platforms: "linux/amd64"
             tag_name: "cuda-dev"
+
+    outputs:
+      primary-image: ${{ steps.get_image_path.outputs.IMAGE_PATH }}
 
     steps:
       - name: Checkout code
@@ -52,11 +55,16 @@ jobs:
             ghcr.io/${{ env.GITHUB_USER }}/${{ env.REPO_NAME }}:${{ matrix.tag_name }}-${{ env.BRANCH_NAME }}
             ghcr.io/${{ env.GITHUB_USER }}/${{ env.REPO_NAME }}:${{ matrix.tag_name }}-${{ env.BRANCH_NAME }}-${{ github.sha }}
 
+      - name: Get full image path
+        id: get_image_path
+        run: |
+          echo "IMAGE_PATH=$(echo ghcr.io/${{ env.GITHUB_USER }}/${{ env.REPO_NAME }}:${{ matrix.tag_name }}-${{ env.BRANCH_NAME }}-${{ github.sha }})" >> $GITHUB_ENV
+
   test-local-llm:
     uses: josh-xt/AGiXT/.github/workflows/operation-test-with-jupyter.yml@main
     with:
       notebook: tests/tests.ipynb
-      image: ghcr.io/josh-xt/local-llm:cpu-dev
+      image: ${{ needs.build_and_push.outputs.primary-image }}
       port: "8091"
       additional-python-dependencies: openai requests
     needs: build_and_push
