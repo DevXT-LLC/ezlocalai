@@ -58,7 +58,7 @@ jobs:
       - name: Get full image path
         id: get_image_path
         run: |
-          echo "IMAGE_PATH=$(echo ghcr.io/${{ env.GITHUB_USER }}/${{ env.REPO_NAME }}:${{ matrix.tag_name }}-${{ env.BRANCH_NAME }}-${{ github.sha }})" >> $GITHUB_ENV
+          echo "IMAGE_PATH=$(echo ghcr.io/${{ env.GITHUB_USER }}/${{ env.REPO_NAME }}:cpu-dev-${{ env.BRANCH_NAME }}-${{ github.sha }})" >> $GITHUB_ENV
 
   test-local-llm:
     uses: josh-xt/AGiXT/.github/workflows/operation-test-with-jupyter.yml@main

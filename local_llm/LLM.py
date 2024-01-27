@@ -263,13 +263,13 @@ class LLM:
         GPU_LAYERS = os.environ.get("GPU_LAYERS", 0)
         if torch.cuda.is_available() and int(GPU_LAYERS) == 0:
             vram = round(torch.cuda.get_device_properties(0).total_memory / 1024**3)
-            logging.info(f"[LLM] {vram} GB of VRAM detected.")
+            logging.info(f"[LLM] {vram}GB of VRAM detected.")
             if vram >= 48 or vram <= 2:
                 GPU_LAYERS = vram
             else:
                 GPU_LAYERS = vram * 2
         logging.info(
-            f"[LLM] Running {DEFAULT_MODEL} with {GPU_LAYERS} GPU layers and {THREADS} CPU threads available for offloading."
+            f"[LLM] Loading {DEFAULT_MODEL} with {GPU_LAYERS} GPU layers and {THREADS} CPU threads available for offloading. Please wait..."
         )
         self.params = {}
         self.model_name = model
