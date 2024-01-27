@@ -138,6 +138,8 @@ def get_prompt(model_name=DEFAULT_MODEL, models_dir="models"):
 
 
 def get_model(model_name=DEFAULT_MODEL, models_dir="models"):
+    global ram
+    global DOWNLOAD_MODELS
     if ram > 16:
         default_quantization_type = "Q5_K_M"
     else:
@@ -259,6 +261,9 @@ class LLM:
         system_message: str = "",
         **kwargs,
     ):
+        global THREADS
+        global GPU_LAYERS
+        global MAIN_GPU
         self.params = {}
         self.model_name = model
         if model != "":
@@ -318,7 +323,7 @@ class LLM:
                 int(kwargs["batch_size"]) if kwargs["batch_size"] else 1024
             )
         if model != "":
-            self.lcpp = Llama(**self.params, embedding=True, offload_kqv=False)
+            self.lcpp = Llama(**self.params, embedding=True)
         else:
             self.lcpp = None
 
