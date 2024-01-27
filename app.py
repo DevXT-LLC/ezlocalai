@@ -21,13 +21,18 @@ logging.basicConfig(
     format="%(asctime)s | %(levelname)s | %(message)s",
 )
 
-
-logging.info(f"[LLM] {CURRENT_MODEL} model loading...")
-LOADED_LLM = LLM(model=CURRENT_MODEL)
-logging.info(f"[STT] {CURRENT_STT_MODEL} model loading...")
-LOADED_STT = STT(model=CURRENT_STT_MODEL)
-logging.info(f"[CTTS] xttsv2_2.0.2 model loading...")
+logging.info(f"[CTTS] xttsv2_2.0.2 model loading. Please wait...")
 LOADED_CTTS = CTTS()
+logging.info(f"[CTTS] xttsv2_2.0.2 model loaded successfully.")
+
+logging.info(f"[STT] {CURRENT_STT_MODEL} model loading. Please wait...")
+LOADED_STT = STT(model=CURRENT_STT_MODEL)
+logging.info(f"[STT] {CURRENT_STT_MODEL} model loaded successfully.")
+
+logging.info(f"[LLM] {CURRENT_MODEL} model loading. Please wait...")
+LOADED_LLM = LLM(model=CURRENT_MODEL)
+logging.info(f"[LLM] {CURRENT_MODEL} model loaded successfully.")
+logging.info(f"[Local-LLM] Server is ready.")
 
 
 app = FastAPI(title="Local-LLM Server", docs_url="/")
