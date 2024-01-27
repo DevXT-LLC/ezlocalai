@@ -24,10 +24,24 @@ if torch.cuda.is_available() and int(GPU_LAYERS) == 0:
         GPU_LAYERS = 30
     elif vram > 12:
         GPU_LAYERS = 20
+    elif vram > 10:
+        GPU_LAYERS = 18
     elif vram > 8:
+        GPU_LAYERS = 16
+    elif vram > 7:
+        GPU_LAYERS = 14
+    elif vram > 6:
+        GPU_LAYERS = 12
+    elif vram > 5:
         GPU_LAYERS = 10
     elif vram > 4:
-        GPU_LAYERS = 5
+        GPU_LAYERS = 8
+    elif vram > 3:
+        GPU_LAYERS = 6
+    elif vram > 2:
+        GPU_LAYERS = 4
+    elif vram > 1:
+        GPU_LAYERS = 2
     else:
         GPU_LAYERS = 1
 

@@ -1,3 +1,15 @@
+function Test-NvidiaGpuPresent {
+    if ($IsWindows) { # Windows-specific check
+        $nvidiaPresent = Get-WmiObject Win32_VideoController | Where-Object { $_.Name -like "*NVIDIA*" }
+    } elseif ($IsLinux) { # Linux-specific check
+        $nvidiaPresent = lspci | Select-String "NVIDIA"
+    } else {
+        Write-Error "Unsupported operating system"
+        return $false
+    }
+    return $null -ne $nvidiaPresent
+}
+
 $env:RUN_WITHOUT_DOCKER = Get-Content -Path ".env" | Select-String -Pattern "RUN_WITHOUT_DOCKER" | ForEach-Object { $_.ToString().Split("=")[1] }
 if ($null -eq $env:RUN_WITHOUT_DOCKER) {
     $env:RUN_WITHOUT_DOCKER = ""
@@ -37,7 +49,8 @@ $env:AUTO_UPDATE = Get-Content -Path ".env" | Select-String -Pattern "AUTO_UPDAT
 if ($null -eq $env:AUTO_UPDATE) {
     $env:AUTO_UPDATE = "true"
 }
-if ($env:GPU_LAYERS -ne "0") {
+if (Test-NvidiaGpuPresent) {
+    Write-Host "NVIDIA GPU detected, using CUDA image.."
     $env:CUDA_DOCKER_ARCH = "all"
     if ($env:CMAKE_ARGS -ne "-DLLAMA_CUBLAS=on") {
         # if length of $env:CMAKE_ARGS is 0
@@ -49,6 +62,8 @@ if ($env:GPU_LAYERS -ne "0") {
             }
         }
     }
+} else {
+    Write-Host "No NVIDIA GPU detected, using CPU image.."
 }
 
 if( $env:RUN_WITHOUT_DOCKER.Length -ne 0) {
