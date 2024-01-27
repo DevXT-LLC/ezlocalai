@@ -138,7 +138,7 @@ async def chat_completions(
         LOADED_LLM.params["stop"].append(c.stop)
     if json_data:
         if "audio_format" in json_data:
-            prompt = LOADED_STT.transcribe_audio(
+            prompt = await LOADED_STT.transcribe_audio(
                 base64_audio=c.messages[-1]["content"],
                 audio_format=json_data["audio_format"],
             )
@@ -221,7 +221,7 @@ async def completions(c: Completions, request: Request, user=Depends(verify_api_
         LOADED_LLM.params["stop"].append(c.stop)
     if json_data:
         if "audio_format" in json_data:
-            prompt = LOADED_STT.transcribe_audio(
+            prompt = await LOADED_STT.transcribe_audio(
                 base64_audio=c.prompt, audio_format=json_data["audio_format"]
             )
             c.prompt = prompt
