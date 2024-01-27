@@ -318,7 +318,7 @@ class LLM:
                 int(kwargs["batch_size"]) if kwargs["batch_size"] else 1024
             )
         if model != "":
-            self.lcpp = Llama(**self.params, embedding=True)
+            self.lcpp = Llama(**self.params, embedding=True, offload_kqv=False)
         else:
             self.lcpp = None
 
