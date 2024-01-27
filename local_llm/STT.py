@@ -9,7 +9,7 @@ from whisper_cpp import Whisper
 from pydub import AudioSegment
 
 
-def download_whisper_model(model="large-v3"):
+def download_whisper_model(model="base.en"):
     # https://huggingface.co/ggerganov/whisper.cpp
     if model not in [
         "tiny",
@@ -24,7 +24,7 @@ def download_whisper_model(model="large-v3"):
         "large-v2",
         "large-v3",
     ]:
-        model = "large-v3"
+        model = "base.en"
     os.makedirs(os.path.join(os.getcwd(), "whispercpp"), exist_ok=True)
     model_path = os.path.join(os.getcwd(), "whispercpp", f"ggml-{model}.bin")
     if not os.path.exists(model_path):
@@ -37,12 +37,9 @@ def download_whisper_model(model="large-v3"):
 
 
 class STT:
-    def __init__(self, model="large-v3"):
-        self.device = "GPU" if torch.cuda.is_available() else "CPU"
+    def __init__(self, model="base.en"):
         model_path = download_whisper_model(model=model)
-        self.w = Whisper(
-            model_path=model_path, verbose=False, openvino_encode_device=self.device
-        )
+        self.w = Whisper(model_path=model_path, verbose=False)
 
     async def transcribe_audio(self, base64_audio, audio_format="m4a"):
         filename = f"{uuid.uuid4().hex}.wav"
