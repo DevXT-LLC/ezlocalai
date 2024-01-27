@@ -20,10 +20,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-DEFAULT_MODEL = os.getenv("DEFAULT_MODEL", "zephyr-7b-beta")
+DEFAULT_MODEL = os.getenv("DEFAULT_MODEL", "phi-2-dpo")
 WHISPER_MODEL = os.getenv("WHISPER_MODEL", "base.en")
 
-CURRENT_MODEL = DEFAULT_MODEL if DEFAULT_MODEL else "zephyr-7b-beta"
+CURRENT_MODEL = DEFAULT_MODEL if DEFAULT_MODEL else "phi-2-dpo"
 CURRENT_STT_MODEL = WHISPER_MODEL if WHISPER_MODEL else "base.en"
 print(f"[LLM] {CURRENT_MODEL} model loading...")
 LOADED_LLM = LLM(model=CURRENT_MODEL)
