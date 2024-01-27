@@ -11,10 +11,9 @@ import torch
 
 
 GPU_LAYERS = os.environ.get("GPU_LAYERS", 0)
-GPU = torch.cuda.get_device_properties(0)
-VRAM = round(GPU.total_memory / 1024**3)
-print(f"[LLM] {VRAM} GB of VRAM detected.")
 if torch.cuda.is_available() and int(GPU_LAYERS) == 0:
+    VRAM = round(torch.cuda.get_device_properties(0).total_memory / 1024**3)
+    print(f"[LLM] {VRAM} GB of VRAM detected.")
     GPU_LAYERS = min(2 * max(0, (VRAM - 1) // 2), 36)
 RAM = round(psutil.virtual_memory().total / 1024**3)
 MAIN_GPU = os.environ.get("MAIN_GPU", 0)
