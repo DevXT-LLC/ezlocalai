@@ -151,7 +151,7 @@ async def chat_completions(
         if "voice" in json_data:
             text_response = response["messages"][1]["content"]
             language = json_data["language"] if "language" in json_data else "en"
-            audio_response = LOADED_CTTS.generate(
+            audio_response = await LOADED_CTTS.generate(
                 text=text_response, voice=json_data["voice"], language=language
             )
             audio_control = create_audio_control(audio_response)
@@ -233,7 +233,7 @@ async def completions(c: Completions, request: Request, user=Depends(verify_api_
         if "voice" in json_data:
             text_response = response["choices"][0]["text"]
             language = json_data["language"] if "language" in json_data else "en"
-            audio_response = LOADED_CTTS.generate(
+            audio_response = await LOADED_CTTS.generate(
                 text=text_response, voice=json_data["voice"], language=language
             )
             audio_control = create_audio_control(audio_response)
