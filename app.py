@@ -12,10 +12,10 @@ from contextlib import asynccontextmanager
 
 load_dotenv()
 DEFAULT_MODEL = os.getenv("DEFAULT_MODEL", "phi-2-dpo")
-WHISPER_MODEL = os.getenv("WHISPER_MODEL", "base.en")
+WHISPER_MODEL = os.getenv("WHISPER_MODEL", "large-v3")
 
 CURRENT_MODEL = DEFAULT_MODEL if DEFAULT_MODEL else "phi-2-dpo"
-CURRENT_STT_MODEL = WHISPER_MODEL if WHISPER_MODEL else "base.en"
+CURRENT_STT_MODEL = WHISPER_MODEL if WHISPER_MODEL else "large-v3"
 LOADED_LLM = None
 LOADED_STT = None
 LOADED_CTTS = None
