@@ -7,47 +7,31 @@ import requests
 import tiktoken
 import json
 import psutil
-import GPUtil
 import torch
 
 
-def get_sys_info():
-    try:
-        gpus = GPUtil.getGPUs()
-    except:
-        gpus = "None"
-    ram = psutil.virtual_memory().total / 1024**3
-    ram = round(ram)
-    threads = psutil.cpu_count()
-    return gpus, ram, threads
+RAM = round(psutil.virtual_memory().total / 1024**3)
+MAIN_GPU = os.environ.get("MAIN_GPU", 0)
+GPU_LAYERS = os.environ.get("GPU_LAYERS", 0)
+if torch.cuda.is_available() and int(GPU_LAYERS) == 0:
+    # Check how much vram is available
+    gpu = torch.cuda.get_device_properties(0)
+    vram = gpu.total_memory / 1024**3
+    print(f"[LLM] {vram} GB of VRAM detected.")
+    if vram > 18:
+        GPU_LAYERS = 36
+    if vram > 16:
+        GPU_LAYERS = 30
+    elif vram > 12:
+        GPU_LAYERS = 20
+    elif vram > 8:
+        GPU_LAYERS = 10
+    elif vram > 4:
+        GPU_LAYERS = 5
+    else:
+        GPU_LAYERS = 1
 
-
-gpus, ram, threads = get_sys_info()
-if gpus == "None":
-    MAIN_GPU = 0
-    GPU_LAYERS = 0
-else:
-    MAIN_GPU = os.environ.get("MAIN_GPU", 0)
-    GPU_LAYERS = os.environ.get("GPU_LAYERS", 0)
-    if torch.cuda.is_available() and GPU_LAYERS == 0:
-        # Check how much vram is available
-        gpu = torch.cuda.get_device_properties(0)
-        vram = gpu.total_memory / 1024**3
-        print(f"[LLM] {vram} GB of VRAM detected.")
-        if vram > 18:
-            GPU_LAYERS = 36
-        if vram > 16:
-            GPU_LAYERS = 30
-        elif vram > 12:
-            GPU_LAYERS = 20
-        elif vram > 8:
-            GPU_LAYERS = 10
-        elif vram > 4:
-            GPU_LAYERS = 5
-        else:
-            GPU_LAYERS = 1
-
-THREADS = os.environ.get("THREADS", threads - 2)
+THREADS = os.environ.get("THREADS", psutil.cpu_count() - 2)
 DOWNLOAD_MODELS = (
     True if os.environ.get("DOWNLOAD_MODELS", "true").lower() == "true" else False
 )
@@ -160,9 +144,9 @@ def get_prompt(model_name=DEFAULT_MODEL, models_dir="models"):
 
 
 def get_model(model_name=DEFAULT_MODEL, models_dir="models"):
-    global ram
+    global RAM
     global DOWNLOAD_MODELS
-    if ram > 16:
+    if RAM > 16:
         default_quantization_type = "Q5_K_M"
     else:
         default_quantization_type = "Q4_K_M"
