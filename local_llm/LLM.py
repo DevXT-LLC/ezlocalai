@@ -8,6 +8,7 @@ import tiktoken
 import json
 import psutil
 import torch
+import logging
 
 
 DEFAULT_MODEL = os.environ.get("DEFAULT_MODEL", "phi-2-dpo")
@@ -169,13 +170,13 @@ def get_model(model_name="", models_dir="models"):
                 if model_name != "mistrallite-7b"
                 else f"https://huggingface.co/TheBloke/MistralLite-7B-GGUF/resolve/main/mistrallite.{quantization_type}.gguf"
             )
-        print(f"[LLM] Downloading {model_name}...")
+        logging.info(f"[LLM] Downloading {model_name}...")
         with requests.get(url, stream=True, allow_redirects=True) as r:
             with open(file_path, "wb") as f:
                 for chunk in r.iter_content(chunk_size=8192):
                     f.write(chunk)
         if clip_url != "":
-            print(f"[LLM] Downloading {model_name} CLIP...")
+            logging.info(f"[LLM] Downloading {model_name} CLIP...")
             with requests.get(clip_url, stream=True, allow_redirects=True) as r:
                 with open(
                     f"{models_dir}/{model_name}/mmproj-model-f16.gguf", "wb"
@@ -262,12 +263,12 @@ class LLM:
         GPU_LAYERS = os.environ.get("GPU_LAYERS", 0)
         if torch.cuda.is_available() and int(GPU_LAYERS) == 0:
             vram = round(torch.cuda.get_device_properties(0).total_memory / 1024**3)
-            print(f"[LLM] {vram} GB of VRAM detected.")
+            logging.info(f"[LLM] {vram} GB of VRAM detected.")
             if vram >= 48 or vram <= 2:
                 GPU_LAYERS = vram
             else:
                 GPU_LAYERS = vram * 2
-        print(
+        logging.info(
             f"[LLM] Running {DEFAULT_MODEL} with {GPU_LAYERS} GPU layers and {THREADS} CPU threads available for offloading."
         )
         self.params = {}
@@ -408,5 +409,5 @@ class LLM:
 
 
 if __name__ == "__main__":
-    print(f"[LLM] Downloading {DEFAULT_MODEL} model...")
+    logging.info(f"[LLM] Downloading {DEFAULT_MODEL} model...")
     get_model(model_name=DEFAULT_MODEL, models_dir="models")

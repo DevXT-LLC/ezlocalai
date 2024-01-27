@@ -7,6 +7,7 @@ from local_llm.LLM import LLM, streaming_generation
 from local_llm.STT import STT
 from local_llm.CTTS import CTTS
 import os
+import logging
 from dotenv import load_dotenv
 from contextlib import asynccontextmanager
 
@@ -19,6 +20,10 @@ CURRENT_STT_MODEL = WHISPER_MODEL if WHISPER_MODEL else "large-v3"
 LOADED_LLM = None
 LOADED_STT = None
 LOADED_CTTS = None
+logging.basicConfig(
+    level=os.environ.get("LOGLEVEL", "INFO"),
+    format="%(asctime)s | %(levelname)s | %(message)s",
+)
 
 
 @asynccontextmanager
@@ -28,11 +33,11 @@ async def lifespan(app: FastAPI):
     global LOADED_LLM
     global LOADED_STT
     global LOADED_CTTS
-    print(f"[LLM] {CURRENT_MODEL} model loading...")
+    logging.info(f"[LLM] {CURRENT_MODEL} model loading...")
     LOADED_LLM = LLM(model=CURRENT_MODEL)
-    print(f"[STT] {CURRENT_STT_MODEL} model loading...")
+    logging.info(f"[STT] {CURRENT_STT_MODEL} model loading...")
     LOADED_STT = STT(model=CURRENT_STT_MODEL)
-    print(f"[CTTS] xttsv2_2.0.2 model loading...")
+    logging.info(f"[CTTS] xttsv2_2.0.2 model loading...")
     LOADED_CTTS = CTTS()
 
 
