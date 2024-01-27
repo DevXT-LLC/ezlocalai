@@ -52,8 +52,8 @@ if (Test-NvidiaGpuPresent) {
         # if length of $env:CMAKE_ARGS is 0
         if ($env:CMAKE_ARGS.Length -eq 0) {
             $env:CMAKE_ARGS = "-DLLAMA_CUBLAS=on"
-            Add-Content -Path ".env" -Value "CMAKE_ARGS=$env:CMAKE_ARGS"
             if( $env:RUN_WITHOUT_DOCKER.Length -ne 0) {
+                Add-Content -Path ".env" -Value "CMAKE_ARGS=$env:CMAKE_ARGS"
                 & pip install llama-cpp-python --upgrade --force-reinstall
             }
         }
