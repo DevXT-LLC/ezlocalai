@@ -8,11 +8,35 @@ from local_llm.STT import STT
 from local_llm.CTTS import CTTS
 import os
 from dotenv import load_dotenv
+from contextlib import asynccontextmanager
 
 load_dotenv()
+DEFAULT_MODEL = os.getenv("DEFAULT_MODEL", "phi-2-dpo")
+WHISPER_MODEL = os.getenv("WHISPER_MODEL", "base.en")
+
+CURRENT_MODEL = DEFAULT_MODEL if DEFAULT_MODEL else "phi-2-dpo"
+CURRENT_STT_MODEL = WHISPER_MODEL if WHISPER_MODEL else "base.en"
+LOADED_LLM = None
+LOADED_STT = None
+LOADED_CTTS = None
 
 
-app = FastAPI(title="Local-LLM Server", docs_url="/")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    global CURRENT_MODEL
+    global CURRENT_STT_MODEL
+    global LOADED_LLM
+    global LOADED_STT
+    global LOADED_CTTS
+    print(f"[LLM] {CURRENT_MODEL} model loading...")
+    LOADED_LLM = LLM(model=CURRENT_MODEL)
+    print(f"[STT] {WHISPER_MODEL} model loading...")
+    LOADED_STT = STT(model=WHISPER_MODEL)
+    print(f"[CTTS] xttsv2_2.0.2 model loading...")
+    LOADED_CTTS = CTTS()
+
+
+app = FastAPI(title="Local-LLM Server", docs_url="/", lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -20,17 +44,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-DEFAULT_MODEL = os.getenv("DEFAULT_MODEL", "phi-2-dpo")
-WHISPER_MODEL = os.getenv("WHISPER_MODEL", "base.en")
-
-CURRENT_MODEL = DEFAULT_MODEL if DEFAULT_MODEL else "phi-2-dpo"
-CURRENT_STT_MODEL = WHISPER_MODEL if WHISPER_MODEL else "base.en"
-print(f"[LLM] {CURRENT_MODEL} model loading...")
-LOADED_LLM = LLM(model=CURRENT_MODEL)
-print(f"[STT] {WHISPER_MODEL} model loading...")
-LOADED_STT = STT(model=WHISPER_MODEL)
-print(f"[CTTS] xttsv2_2.0.2 model loading...")
-LOADED_CTTS = CTTS()
 
 
 def verify_api_key(authorization: str = Header(None)):
