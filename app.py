@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, HTTPException, Header
+from fastapi import FastAPI, Depends, HTTPException, Header, Request
 from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -29,7 +29,6 @@ print(f"[LLM] {CURRENT_MODEL} model loading...")
 LOADED_LLM = LLM(model=CURRENT_MODEL)
 print(f"[STT] {WHISPER_MODEL} model loading...")
 LOADED_STT = STT(model=WHISPER_MODEL)
-
 print(f"[CTTS] xttsv2_2.0.2 model loading...")
 LOADED_CTTS = CTTS()
 
@@ -68,7 +67,7 @@ async def models(user=Depends(verify_api_key)):
     return models
 
 
-# For the completions and chat completions endpoints, we use extra_body for additional parameters.
+# For the completions and chat completions endpoints, we use extra_json for additional parameters.
 # --------------------------------
 # If `audio_format`` is present, the prompt will be transcribed to text.
 #   It is assumed it is base64 encoded audio in the `audio_format`` specified.
@@ -78,6 +77,10 @@ async def models(user=Depends(verify_api_key)):
 # If `voice`` is present, the completion will be converted to audio using the specified voice.
 #   If not streaming, the audio will be returned in the response in the "audio" beside the "text" or "content" keys.
 #   If streaming, the audio will be streamed in the response in audio/wav format.
+
+
+def create_audio_control(audio: str):
+    return f"""<audio controls><source src="data:audio/wav;base64,{audio}" type="audio/wav"></audio>"""
 
 
 # Chat completions endpoint
@@ -97,7 +100,6 @@ class ChatCompletions(BaseModel):
     frequency_penalty: Optional[float] = 0.0
     logit_bias: Optional[Dict[str, float]] = None
     user: Optional[str] = None
-    extra_body: Optional[dict] = {}
 
 
 class ChatCompletionsResponse(BaseModel):
@@ -114,7 +116,10 @@ class ChatCompletionsResponse(BaseModel):
     tags=["Completions"],
     dependencies=[Depends(verify_api_key)],
 )
-async def chat_completions(c: ChatCompletions, user=Depends(verify_api_key)):
+async def chat_completions(
+    c: ChatCompletions, request: Request, user=Depends(verify_api_key)
+):
+    json_data = await request.json()
     global CURRENT_MODEL
     global LOADED_LLM
     if c.model:
@@ -131,25 +136,26 @@ async def chat_completions(c: ChatCompletions, user=Depends(verify_api_key)):
         LOADED_LLM.params["logit_bias"] = c.logit_bias
     if c.stop:
         LOADED_LLM.params["stop"].append(c.stop)
-    if c.extra_body:
-        if "audio_format" in c.extra_body:
+    if json_data:
+        if "audio_format" in json_data:
             prompt = LOADED_STT.transcribe_audio(
                 base64_audio=c.messages[-1]["content"],
-                audio_format=c.extra_body["audio_format"],
+                audio_format=json_data["audio_format"],
             )
             c.messages[-1]["content"] = prompt
-        if "system_message" in c.extra_body:
-            LOADED_LLM.params["system_message"] = c.extra_body["system_message"]
+        if "system_message" in json_data:
+            LOADED_LLM.params["system_message"] = json_data["system_message"]
     response = LOADED_LLM.chat(messages=c.messages)
     audio_response = None
-    if c.extra_body:
-        if "voice" in c.extra_body:
+    if json_data:
+        if "voice" in json_data:
             text_response = response["messages"][1]["content"]
-            language = c.extra_body["language"] if "language" in c.extra_body else "en"
+            language = json_data["language"] if "language" in json_data else "en"
             audio_response = LOADED_CTTS.generate(
-                text=text_response, voice=c.extra_body["voice"], language=language
+                text=text_response, voice=json_data["voice"], language=language
             )
-            response["messages"][1]["audio"] = audio_response
+            audio_control = create_audio_control(audio_response)
+            response["messages"][1]["content"] = f"{text_response}\n{audio_control}"
     if not c.stream:
         return response
     else:
@@ -177,7 +183,6 @@ class Completions(BaseModel):
     logit_bias: Optional[Dict[str, float]] = None
     stop: Optional[List[str]] = None
     echo: Optional[bool] = False
-    extra_body: Optional[dict] = {}
     user: Optional[str] = None
     format_prompt: Optional[bool] = True
 
@@ -196,7 +201,8 @@ class CompletionsResponse(BaseModel):
     tags=["Completions"],
     dependencies=[Depends(verify_api_key)],
 )
-async def completions(c: Completions, user=Depends(verify_api_key)):
+async def completions(c: Completions, request: Request, user=Depends(verify_api_key)):
+    json_data = await request.json()
     global CURRENT_MODEL
     global LOADED_LLM
     if c.model:
@@ -213,24 +219,25 @@ async def completions(c: Completions, user=Depends(verify_api_key)):
         LOADED_LLM.params["logit_bias"] = c.logit_bias
     if c.stop:
         LOADED_LLM.params["stop"].append(c.stop)
-    if c.extra_body:
-        if "audio_format" in c.extra_body:
+    if json_data:
+        if "audio_format" in json_data:
             prompt = LOADED_STT.transcribe_audio(
-                base64_audio=c.prompt, audio_format=c.extra_body["audio_format"]
+                base64_audio=c.prompt, audio_format=json_data["audio_format"]
             )
             c.prompt = prompt
-        if "system_message" in c.extra_body:
-            LOADED_LLM.params["system_message"] = c.extra_body["system_message"]
+        if "system_message" in json_data:
+            LOADED_LLM.params["system_message"] = json_data["system_message"]
     response = LOADED_LLM.completion(prompt=c.prompt, format_prompt=c.format_prompt)
     audio_response = None
-    if c.extra_body:
-        if "voice" in c.extra_body:
+    if json_data:
+        if "voice" in json_data:
             text_response = response["choices"][0]["text"]
-            language = c.extra_body["language"] if "language" in c.extra_body else "en"
+            language = json_data["language"] if "language" in json_data else "en"
             audio_response = LOADED_CTTS.generate(
-                text=text_response, voice=c.extra_body["voice"], language=language
+                text=text_response, voice=json_data["voice"], language=language
             )
-            response["choices"][0]["audio"] = audio_response
+            audio_control = create_audio_control(audio_response)
+            response["choices"][0]["text"] = f"{text_response}\n{audio_control}"
     if not c.stream:
         return response
     else:
