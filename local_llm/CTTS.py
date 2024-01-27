@@ -110,6 +110,8 @@ class CTTS:
         with open(output_file, "rb") as file:
             audio_data = file.read()
         os.remove(output_file)
+        # Release GPU memory
+        torch.cuda.empty_cache()
         return base64.b64encode(audio_data).decode("utf-8")
 
 
