@@ -30,8 +30,8 @@ async def lifespan(app: FastAPI):
     global LOADED_CTTS
     print(f"[LLM] {CURRENT_MODEL} model loading...")
     LOADED_LLM = LLM(model=CURRENT_MODEL)
-    print(f"[STT] {WHISPER_MODEL} model loading...")
-    LOADED_STT = STT(model=WHISPER_MODEL)
+    print(f"[STT] {CURRENT_STT_MODEL} model loading...")
+    LOADED_STT = STT(model=CURRENT_STT_MODEL)
     print(f"[CTTS] xttsv2_2.0.2 model loading...")
     LOADED_CTTS = CTTS()
 
