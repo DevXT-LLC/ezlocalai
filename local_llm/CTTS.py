@@ -5,6 +5,7 @@ import base64
 import torch
 import torchaudio
 import requests
+import logging
 from TTS.tts.configs.xtts_config import XttsConfig
 from TTS.tts.models.xtts import Xtts
 
@@ -31,7 +32,7 @@ def download_xtts():
     for filename, url in files_to_download.items():
         destination = os.path.join(os.getcwd(), "xttsv2_2.0.2", filename)
         if not os.path.exists(destination):
-            print(f"[CTTS] Downloading {filename} for XTTSv2...")
+            logging.info(f"[CTTS] Downloading {filename} for XTTSv2...")
             response = requests.get(url, stream=True)
             block_size = 1024  # 1 Kibibyte
             with open(destination, "wb") as file:

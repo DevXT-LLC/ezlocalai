@@ -8,23 +8,10 @@ import tiktoken
 import json
 import psutil
 import torch
+import logging
 
 
-GPU_LAYERS = os.environ.get("GPU_LAYERS", 0)
-if torch.cuda.is_available() and int(GPU_LAYERS) == 0:
-    VRAM = round(torch.cuda.get_device_properties(0).total_memory / 1024**3)
-    print(f"[LLM] {VRAM} GB of VRAM detected.")
-    GPU_LAYERS = min(2 * max(0, (VRAM - 1) // 2), 36)
-RAM = round(psutil.virtual_memory().total / 1024**3)
-MAIN_GPU = os.environ.get("MAIN_GPU", 0)
-THREADS = os.environ.get("THREADS", psutil.cpu_count() - 2)
-DOWNLOAD_MODELS = (
-    True if os.environ.get("DOWNLOAD_MODELS", "true").lower() == "true" else False
-)
 DEFAULT_MODEL = os.environ.get("DEFAULT_MODEL", "phi-2-dpo")
-print(
-    f"[LLM] Running {DEFAULT_MODEL} with {GPU_LAYERS} GPU layers and {THREADS} CPU threads available for offloading."
-)
 
 
 def get_models():
@@ -49,7 +36,10 @@ def get_models():
     return model_names
 
 
-def get_model_url(model_name=DEFAULT_MODEL):
+def get_model_url(model_name=""):
+    if model_name == "":
+        global DEFAULT_MODEL
+        model_name = DEFAULT_MODEL
     model_url = ""
     try:
         models = get_models()
@@ -78,7 +68,10 @@ def get_model_name(model_url="TheBloke/phi-2-dpo-GGUF"):
     return model_name
 
 
-def get_readme(model_name=DEFAULT_MODEL, models_dir="models"):
+def get_readme(model_name="", models_dir="models"):
+    if model_name == "":
+        global DEFAULT_MODEL
+        model_name = DEFAULT_MODEL
     model_url = get_model_url(model_name=model_name)
     model_name = model_name.lower()
     if not os.path.exists(f"{models_dir}/{model_name}/README.md"):
@@ -92,7 +85,10 @@ def get_readme(model_name=DEFAULT_MODEL, models_dir="models"):
     return readme
 
 
-def get_max_tokens(model_name=DEFAULT_MODEL, models_dir="models"):
+def get_max_tokens(model_name="", models_dir="models"):
+    if model_name == "":
+        global DEFAULT_MODEL
+        model_name = DEFAULT_MODEL
     readme = get_readme(model_name=model_name, models_dir=models_dir)
     if "200k" in readme:
         return 200000
@@ -113,7 +109,10 @@ def get_max_tokens(model_name=DEFAULT_MODEL, models_dir="models"):
     return 8192
 
 
-def get_prompt(model_name=DEFAULT_MODEL, models_dir="models"):
+def get_prompt(model_name="", models_dir="models"):
+    if model_name == "":
+        global DEFAULT_MODEL
+        model_name = DEFAULT_MODEL
     model_name = model_name.lower()
     if os.path.exists(f"{models_dir}/{model_name}/prompt.txt"):
         with open(f"{models_dir}/{model_name}/prompt.txt", "r") as f:
@@ -129,10 +128,15 @@ def get_prompt(model_name=DEFAULT_MODEL, models_dir="models"):
     return prompt_template
 
 
-def get_model(model_name=DEFAULT_MODEL, models_dir="models"):
-    global RAM
-    global DOWNLOAD_MODELS
-    if RAM > 16:
+def get_model(model_name="", models_dir="models"):
+    if model_name == "":
+        global DEFAULT_MODEL
+        model_name = DEFAULT_MODEL
+    DOWNLOAD_MODELS = (
+        True if os.environ.get("DOWNLOAD_MODELS", "true").lower() == "true" else False
+    )
+    ram = round(psutil.virtual_memory().total / 1024**3)
+    if ram > 16:
         default_quantization_type = "Q5_K_M"
     else:
         default_quantization_type = "Q4_K_M"
@@ -166,13 +170,13 @@ def get_model(model_name=DEFAULT_MODEL, models_dir="models"):
                 if model_name != "mistrallite-7b"
                 else f"https://huggingface.co/TheBloke/MistralLite-7B-GGUF/resolve/main/mistrallite.{quantization_type}.gguf"
             )
-        print(f"[LLM] Downloading {model_name}...")
+        logging.info(f"[LLM] Downloading {model_name}...")
         with requests.get(url, stream=True, allow_redirects=True) as r:
             with open(file_path, "wb") as f:
                 for chunk in r.iter_content(chunk_size=8192):
                     f.write(chunk)
         if clip_url != "":
-            print(f"[LLM] Downloading {model_name} CLIP...")
+            logging.info(f"[LLM] Downloading {model_name} CLIP...")
             with requests.get(clip_url, stream=True, allow_redirects=True) as r:
                 with open(
                     f"{models_dir}/{model_name}/mmproj-model-f16.gguf", "wb"
@@ -253,9 +257,20 @@ class LLM:
         system_message: str = "",
         **kwargs,
     ):
-        global THREADS
-        global GPU_LAYERS
-        global MAIN_GPU
+        global DEFAULT_MODEL
+        THREADS = os.environ.get("THREADS", psutil.cpu_count() - 2)
+        MAIN_GPU = os.environ.get("MAIN_GPU", 0)
+        GPU_LAYERS = os.environ.get("GPU_LAYERS", 0)
+        if torch.cuda.is_available() and int(GPU_LAYERS) == 0:
+            vram = round(torch.cuda.get_device_properties(0).total_memory / 1024**3)
+            logging.info(f"[LLM] {vram}GB of VRAM detected.")
+            if vram >= 48 or vram <= 2:
+                GPU_LAYERS = vram
+            else:
+                GPU_LAYERS = vram * 2
+        logging.info(
+            f"[LLM] Loading {DEFAULT_MODEL} with {GPU_LAYERS} GPU layers and {THREADS} CPU threads available for offloading. Please wait..."
+        )
         self.params = {}
         self.model_name = model
         if model != "":
@@ -394,5 +409,5 @@ class LLM:
 
 
 if __name__ == "__main__":
-    print(f"[LLM] Downloading {DEFAULT_MODEL} model...")
+    logging.info(f"[LLM] Downloading {DEFAULT_MODEL} model...")
     get_model(model_name=DEFAULT_MODEL, models_dir="models")

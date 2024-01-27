@@ -3,6 +3,7 @@ import base64
 import io
 import requests
 import uuid
+import logging
 from whisper_cpp import Whisper
 from pydub import AudioSegment
 
@@ -52,7 +53,7 @@ class STT:
             raise RuntimeError(f"Failed to load audio.")
         self.w.transcribe(file_path)
         user_input = self.w.output(output_txt=False)
-        print(f"[STT] Transcribed User Input: {user_input}")
+        logging.info(f"[STT] Transcribed User Input: {user_input}")
         user_input = user_input.replace("[BLANK_AUDIO]", "")
         os.remove(file_path)
         return user_input
