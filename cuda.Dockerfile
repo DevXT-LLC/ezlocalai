@@ -8,23 +8,27 @@ RUN apt-get update && apt-get upgrade -y && \
     ln -s /usr/bin/python3 /usr/bin/python && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
-COPY . .
 ENV CUDA_DOCKER_ARCH=all
 ENV LLAMA_CUBLAS=1
 RUN python3 -m pip install --upgrade pip --no-cache-dir
 RUN python3 -m venv venv
+COPY requirements.txt .
 RUN CMAKE_ARGS="-DLLAMA_BLAS=ON -DLLAMA_BLAS_VENDOR=OpenBLAS" venv/bin/pip install --no-cache-dir -r requirements.txt && \
     venv/bin/pip install --no-cache-dir deepspeed
+# Delete everything except /app folder
+RUN find /app -mindepth 1 -maxdepth 1 ! -name 'app' -exec rm -rf {} +
+
 FROM nvidia/cuda:12.1.1-runtime-ubuntu22.04
 RUN apt-get update && apt-get upgrade -y && \
     apt-get install -y ffmpeg libportaudio2 libasound-dev python3 python3-pip python3-venv && \
     pip install --upgrade pip --no-cache-dir && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
+COPY . .
 ENV HOST 0.0.0.0
 ENV CUDA_DOCKER_ARCH=all
-COPY --from=builder /app /app
+COPY --from=builder /app/venv /app/venv
 RUN venv/bin/python3 local_llm/CTTS.py
 RUN venv/bin/python3 local_llm/STT.py
 EXPOSE 8091
-CMD "/app/venv/bin/python3 server.py"
+ENTRYPOINT  [ "/app/venv/bin/python3 server.py" ]
