@@ -10,13 +10,13 @@ RUN --mount=type=cache,target=/var/cache/cuda/apt,sharing=locked \
 WORKDIR /app
 ENV HOST 0.0.0.0
 ENV CUDA_DOCKER_ARCH=all
+COPY download.py .
+RUN --mount=type=cache,target=/var/cache/cuda/models,sharing=locked \
+    python3 download.py
 COPY requirements.txt .
 RUN --mount=type=cache,target=/var/cache/cuda/pip,sharing=locked \
     CMAKE_ARGS="-DLLAMA_BLAS=ON -DLLAMA_BLAS_VENDOR=OpenBLAS" python3 -m pip install --no-cache-dir -r requirements.txt && \
     python3 -m pip install --no-cache-dir deepspeed
-COPY download.py .
-RUN --mount=type=cache,target=/var/cache/cuda/models,sharing=locked \
-    python3 download.py
 COPY . .
 EXPOSE 8091
 RUN chmod +x start.sh

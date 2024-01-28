@@ -1,4 +1,5 @@
 import os
+import logging
 
 try:
     import requests
@@ -29,6 +30,7 @@ def download_whisper_model(model="base.en"):
     os.makedirs(os.path.join(os.getcwd(), "whispercpp"), exist_ok=True)
     model_path = os.path.join(os.getcwd(), "whispercpp", f"ggml-{model}.bin")
     if not os.path.exists(model_path):
+        logging.info(f"[STT] Downloading {model} for Whisper...")
         r = requests.get(
             f"https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-{model}.bin",
             allow_redirects=True,
@@ -50,6 +52,7 @@ def download_xtts():
     }
     os.makedirs(os.path.join(os.getcwd(), "xttsv2_2.0.2"), exist_ok=True)
     for filename, url in files_to_download.items():
+        logging.info(f"[CTTS] Downloading {filename} for XTTSv2...")
         destination = os.path.join(os.getcwd(), "xttsv2_2.0.2", filename)
         if not os.path.exists(destination):
             response = requests.get(url, stream=True)

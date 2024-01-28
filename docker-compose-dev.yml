@@ -4,13 +4,12 @@ services:
   local-llm:
     image: ghcr.io/josh-xt/local-llm:cpu-dev
     environment:
+      - LOCAL_LLM_URL=${LOCAL_LLM_URL-http://localhost:8091}
       - LOCAL_LLM_API_KEY=${LOCAL_LLM_API_KEY-}
       - GPU_LAYERS=${GPU_LAYERS-0}
       - MAIN_GPU=${MAIN_GPU-0}
       - DEFAULT_MODEL=${DEFAULT_MODEL-phi-2-dpo}
       - WHISPER_MODEL=${WHISPER_MODEL-base.en}
-      - CMAKE_ARGS="-DLLAMA_CUBLAS=on"
-      - LLAMA_CUBLAS=1
       - CUDA_DOCKER_ARCH=all
     restart: unless-stopped
     ports:

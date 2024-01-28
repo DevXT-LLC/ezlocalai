@@ -4,6 +4,7 @@ services:
   local-llm:
     image: joshxt/local-llm:cpu
     environment:
+      - LOCAL_LLM_URL=${LOCAL_LLM_URL-http://localhost:8091}
       - LOCAL_LLM_API_KEY=${LOCAL_LLM_API_KEY-}
       - DEFAULT_MODEL=${DEFAULT_MODEL-phi-2-dpo}
       - WHISPER_MODEL=${WHISPER_MODEL-base.en}

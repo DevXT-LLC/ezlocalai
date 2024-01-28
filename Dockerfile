@@ -9,12 +9,12 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     python3 -m pip install --upgrade pip --no-cache-dir
 WORKDIR /app
 ENV HOST 0.0.0.0
+COPY download.py .
+RUN --mount=type=cache,target=/var/cache/cuda/models,sharing=locked \
+    python3 download.py
 COPY requirements.txt .
 RUN --mount=type=cache,target=/var/cache/pip,sharing=locked \
     python3 -m pip install --no-cache-dir -r requirements.txt
-COPY download.py .
-RUN --mount=type=cache,target=/var/cache/models,sharing=locked \
-    python3 download.py
 COPY . .
 EXPOSE 8091
 RUN chmod +x start.sh
