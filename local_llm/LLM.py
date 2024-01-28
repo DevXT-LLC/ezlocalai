@@ -21,6 +21,7 @@ VISION_MODELS = [
 
 
 def get_models():
+    global VISION_MODELS
     try:
         response = requests.get(
             "https://huggingface.co/TheBloke?search_models=GGUF&sort_models=modified"
