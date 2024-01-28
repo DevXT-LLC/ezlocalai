@@ -1,6 +1,6 @@
 FROM nvidia/cuda:12.1.1-devel-ubuntu22.04 as builder
 RUN apt-get update && apt-get upgrade -y && \
-    apt-get install -y git build-essential gcc g++ portaudio19-dev ffmpeg libportaudio2 libasound-dev python3 python3-pip python3-venv gcc wget ocl-icd-opencl-dev opencl-headers clinfo libclblast-dev libopenblas-dev pkg-config ninja-build && \
+    apt-get install -y --no-install-recommends git build-essential gcc g++ portaudio19-dev ffmpeg libportaudio2 libasound-dev python3 python3-pip python3-venv gcc wget ocl-icd-opencl-dev opencl-headers clinfo libclblast-dev libopenblas-dev pkg-config ninja-build && \
     apt-get install -y gcc-10 g++-10 && \
     update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-10 10 && \
     update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-10 10 && \
@@ -14,13 +14,13 @@ RUN python3 -m pip install --upgrade pip --no-cache-dir
 RUN python3 -m venv venv
 COPY requirements.txt .
 RUN CMAKE_ARGS="-DLLAMA_BLAS=ON -DLLAMA_BLAS_VENDOR=OpenBLAS" venv/bin/pip install --no-cache-dir -r requirements.txt && \
-    venv/bin/pip install --no-cache-dir deepspeed
-# Delete everything except /app folder
-RUN find /app -mindepth 1 -maxdepth 1 ! -name 'app' -exec rm -rf {} +
+    venv/bin/pip install --no-cache-dir deepspeed && \
+    find /app/venv -type d -name tests -exec rm -rf {} + && \
+    find /app/venv -type d -name test -exec rm -rf {} +
 
 FROM nvidia/cuda:12.1.1-runtime-ubuntu22.04
 RUN apt-get update && apt-get upgrade -y && \
-    apt-get install -y ffmpeg libportaudio2 libasound-dev python3 python3-pip python3-venv && \
+    apt-get install -y --no-install-recommends ffmpeg libportaudio2 libasound-dev python3 python3-pip python3-venv && \
     pip install --upgrade pip --no-cache-dir && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
