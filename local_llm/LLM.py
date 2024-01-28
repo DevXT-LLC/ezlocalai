@@ -295,7 +295,7 @@ class LLM:
             vram = (
                 round(torch.cuda.get_device_properties(0).total_memory / 1024**3) - 2
             )
-            logging.info(f"[LLM] {vram}GB of VRAM detected.")
+            logging.info(f"[LLM] {vram}GB of available VRAM detected.")
             if vram >= 48 or vram <= 2:
                 GPU_LAYERS = vram
             else:
