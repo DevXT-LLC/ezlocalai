@@ -46,6 +46,8 @@ jobs:
           file: ./${{ matrix.dockerfile }}
           platforms: ${{ matrix.platforms }}
           push: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
           tags: |
             ghcr.io/${{ env.GITHUB_USER }}/${{ env.REPO_NAME }}:${{ matrix.tag_name }}
             ghcr.io/${{ env.GITHUB_USER }}/${{ env.REPO_NAME }}:${{ matrix.tag_name }}-${{ env.BRANCH_NAME }}
