@@ -13,8 +13,7 @@ ENV CUDA_DOCKER_ARCH=all
 ENV LLAMA_CUBLAS=1
 RUN python3 -m pip install --upgrade pip --no-cache-dir
 RUN python3 -m venv venv
-RUN venv/bin/pip install --no-cache-dir -r requirements.txt
-RUN CMAKE_ARGS="-DLLAMA_BLAS=ON -DLLAMA_BLAS_VENDOR=OpenBLAS" venv/bin/pip install llama-cpp-python --no-cache-dir && \
+RUN CMAKE_ARGS="-DLLAMA_BLAS=ON -DLLAMA_BLAS_VENDOR=OpenBLAS" venv/bin/pip install --no-cache-dir -r requirements.txt && \
     venv/bin/pip install --no-cache-dir deepspeed
 FROM nvidia/cuda:12.1.1-runtime-ubuntu22.04
 RUN apt-get update && apt-get upgrade -y && \
