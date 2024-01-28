@@ -21,8 +21,8 @@ logging.info(f"[CTTS] xttsv2_2.0.2 model loading. Please wait...")
 LOADED_CTTS = CTTS()
 logging.info(f"[CTTS] xttsv2_2.0.2 model loaded successfully.")
 
-WHISPER_MODEL = os.getenv("WHISPER_MODEL", "large-v3")
-CURRENT_STT_MODEL = WHISPER_MODEL if WHISPER_MODEL else "large-v3"
+WHISPER_MODEL = os.getenv("WHISPER_MODEL", "base.en")
+CURRENT_STT_MODEL = WHISPER_MODEL if WHISPER_MODEL else "base.en"
 logging.info(f"[STT] {CURRENT_STT_MODEL} model loading. Please wait...")
 LOADED_STT = STT(model=CURRENT_STT_MODEL)
 logging.info(f"[STT] {CURRENT_STT_MODEL} model loaded successfully.")
