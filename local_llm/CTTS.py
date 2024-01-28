@@ -73,8 +73,10 @@ class CTTS:
         text,
         voice="default",
         language="en",
+        url_output=False,
     ):
-        output_file = os.path.join(self.output_folder, f"{uuid.uuid4().hex}.wav")
+        output_file_name = f"{uuid.uuid4().hex}.wav"
+        output_file = os.path.join(self.output_folder, output_file_name)
         cleaned_string = re.sub(r"([!?.])\1+", r"\1", text)
         cleaned_string = re.sub(
             r'[^a-zA-Z0-9\s\.,;:!?\-\'"\u0400-\u04FFÀ-ÿ\u0150\u0151\u0170\u0171]\$',
@@ -107,11 +109,12 @@ class CTTS:
             enable_text_splitting=True,
         )
         torchaudio.save(output_file, torch.tensor(output["wav"]).unsqueeze(0), 24000)
+        torch.cuda.empty_cache()
+        if url_output:
+            return f"{os.environ.get('LOCAL_LLM_URL', 'http://localhost:8091')}/outputs/{output_file_name}"
         with open(output_file, "rb") as file:
             audio_data = file.read()
         os.remove(output_file)
-        # Release GPU memory
-        torch.cuda.empty_cache()
         return base64.b64encode(audio_data).decode("utf-8")
 
 

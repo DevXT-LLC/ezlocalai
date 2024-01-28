@@ -11,7 +11,7 @@ import torch
 import logging
 
 
-DEFAULT_MODEL = os.environ.get("DEFAULT_MODEL", "phi-2-dpo")
+DEFAULT_MODEL = os.environ.get("DEFAULT_MODEL", "zephyr-7b-beta")
 
 
 def get_vision_models():
@@ -289,18 +289,19 @@ class LLM:
         **kwargs,
     ):
         global DEFAULT_MODEL
-        THREADS = os.environ.get("THREADS", psutil.cpu_count() - 2)
         MAIN_GPU = os.environ.get("MAIN_GPU", 0)
         GPU_LAYERS = os.environ.get("GPU_LAYERS", 0)
         if torch.cuda.is_available() and int(GPU_LAYERS) == 0:
-            vram = round(torch.cuda.get_device_properties(0).total_memory / 1024**3)
-            logging.info(f"[LLM] {vram}GB of VRAM detected.")
+            vram = (
+                round(torch.cuda.get_device_properties(0).total_memory / 1024**3) - 2
+            )
+            logging.info(f"[LLM] {vram}GB of available VRAM detected.")
             if vram >= 48 or vram <= 2:
                 GPU_LAYERS = vram
             else:
                 GPU_LAYERS = vram * 2
         logging.info(
-            f"[LLM] Loading {DEFAULT_MODEL} with {GPU_LAYERS} GPU layers and {THREADS} CPU threads available for offloading. Please wait..."
+            f"[LLM] Loading {DEFAULT_MODEL} with {GPU_LAYERS if GPU_LAYERS != -1 else 'all'} GPU layers. Please wait..."
         )
         self.params = {}
         self.model_name = model
@@ -323,7 +324,7 @@ class LLM:
                 )
                 if clip_path != "":
                     self.params["chat_handler"] = llama_chat_format.Llava15ChatHandler(
-                        clip_model_path=clip_path, verbose=True
+                        clip_model_path=clip_path, verbose=False
                     )
         else:
             self.params["model_path"] = ""
@@ -357,7 +358,6 @@ class LLM:
             frequency_penalty if frequency_penalty else 0.0
         )
         self.params["logit_bias"] = logit_bias if logit_bias else None
-        self.params["n_threads"] = int(THREADS) if THREADS else 8
         self.params["n_gpu_layers"] = int(GPU_LAYERS) if GPU_LAYERS else 0
         self.params["main_gpu"] = int(MAIN_GPU) if MAIN_GPU else 0
         if "batch_size" in kwargs:

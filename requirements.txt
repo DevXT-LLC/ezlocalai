@@ -6,7 +6,6 @@ pyjwt
 tiktoken
 llama-cpp-python
 python-dotenv
-GPUtil
 psutil
 beautifulsoup4
 whisper-cpp-pybind

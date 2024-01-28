@@ -6,3 +6,4 @@ xttsv2_2.0.2
 whispercpp
 outputs/*
 audio_response.wav
+tests/*.wav
