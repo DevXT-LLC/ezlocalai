@@ -323,7 +323,7 @@ class LLM:
                 )
                 if clip_path != "":
                     self.params["chat_handler"] = llama_chat_format.Llava15ChatHandler(
-                        clip_model_path=clip_path, verbose=True
+                        clip_model_path=clip_path, verbose=False
                     )
         else:
             self.params["model_path"] = ""

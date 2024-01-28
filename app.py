@@ -178,10 +178,19 @@ async def get_response(data, completion_type="chat"):
         else:
             text_response = response["choices"][0]["text"]
         language = data["language"] if "language" in data else "en"
+        if "url_output" in data:
+            url_output = data["url_output"].lower() == "true"
+        else:
+            url_output = True
         audio_response = await LOADED_CTTS.generate(
-            text=text_response, voice=data["voice"], language=language
+            text=text_response,
+            voice=data["voice"],
+            language=language,
+            url_output=url_output,
         )
-        audio_control = create_audio_control(audio_response)
+        audio_control = (
+            audio_response if url_output else create_audio_control(audio_response)
+        )
         if completion_type == "chat":
             response["messages"][1]["content"] = f"{text_response}\n{audio_control}"
         else:
@@ -197,15 +206,17 @@ async def get_response(data, completion_type="chat"):
 async def chat_completions(
     c: ChatCompletions, request: Request, user=Depends(verify_api_key)
 ):
-    response, audio_response = await get_response(
-        data=await request.json(), completion_type="chat"
-    )
+    data = await request.json()
+    response, audio_response = await get_response(data=data, completion_type="chat")
+    if audio_response:
+        if audio_response.startswith("http"):
+            return response
     if not c.stream:
         return response
     else:
         if audio_response:
             return StreamingResponse(
-                streaming_generation(data=audio_response),
+                content=audio_response,
                 media_type="audio/wav",
             )
         return StreamingResponse(
@@ -249,12 +260,15 @@ async def completions(c: Completions, request: Request, user=Depends(verify_api_
     response, audio_response = await get_response(
         data=await request.json(), completion_type="completion"
     )
+    if audio_response:
+        if audio_response.startswith("http"):
+            return response
     if not c.stream:
         return response
     else:
         if audio_response:
             return StreamingResponse(
-                streaming_generation(data=audio_response),
+                content=audio_response,
                 media_type="audio/wav",
             )
         return StreamingResponse(
