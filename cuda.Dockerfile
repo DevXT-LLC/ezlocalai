@@ -16,7 +16,8 @@ RUN python3 -m venv venv
 RUN venv/bin/pip install --no-cache-dir -r requirements.txt
 RUN CMAKE_ARGS="-DLLAMA_BLAS=ON -DLLAMA_BLAS_VENDOR=OpenBLAS" venv/bin/pip install llama-cpp-python --no-cache-dir && \
     venv/bin/pip install --no-cache-dir deepspeed
-RUN venv/bin/python3 download.py
+RUN venv/bin/python3 local_llm/CTTS.py
+RUN venv/bin/python3 local_llm/STT.py
 
 FROM nvidia/cuda:12.1.1-runtime-ubuntu22.04
 RUN apt-get update && apt-get upgrade -y && \
