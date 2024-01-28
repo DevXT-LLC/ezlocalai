@@ -26,8 +26,6 @@ RUN apt-get update && apt-get upgrade -y && \
 WORKDIR /app
 ENV HOST 0.0.0.0
 ENV CUDA_DOCKER_ARCH=all
-COPY --from=builder /app/venv /app/venv
-COPY --from=builder /app/whispercpp /app/whispercpp
-COPY --from=builder /app/xttsv2_2.0.2 /app/xttsv2_2.0.2
+COPY --from=builder /app /app
 EXPOSE 8091
 CMD "venv/bin/uvicorn app:app --host 0.0.0.0 --port 8091 --workers 1 --proxy-headers"
