@@ -12,16 +12,18 @@ import logging
 
 
 DEFAULT_MODEL = os.environ.get("DEFAULT_MODEL", "phi-2-dpo")
-VISION_MODELS = [
-    {"bakllava-1-7b": "mys/ggml_bakllava-1"},
-    {"llava-v1.5-7b": "mys/ggml_llava-v1.5-7b"},
-    {"llava-v1.5-13b": "mys/ggml_llava-v1.5-13b"},
-    {"yi-vl-6b": "cmp-nct/Yi-VL-6B-GGUF"},
-]
+
+
+def get_vision_models():
+    return [
+        {"bakllava-1-7b": "mys/ggml_bakllava-1"},
+        {"llava-v1.5-7b": "mys/ggml_llava-v1.5-7b"},
+        {"llava-v1.5-13b": "mys/ggml_llava-v1.5-13b"},
+        {"yi-vl-6b": "cmp-nct/Yi-VL-6B-GGUF"},
+    ]
 
 
 def get_models():
-    global VISION_MODELS
     try:
         response = requests.get(
             "https://huggingface.co/TheBloke?search_models=GGUF&sort_models=modified"
@@ -29,7 +31,7 @@ def get_models():
         soup = BeautifulSoup(response.text, "html.parser")
     except:
         soup = None
-    model_names = VISION_MODELS
+    model_names = get_vision_models()
     if soup:
         for a_tag in soup.find_all("a", href=True):
             href = a_tag["href"]
@@ -39,13 +41,11 @@ def get_models():
     return model_names
 
 
-def is_vision_model(model_name=""):
-    global VISION_MODELS
+def is_vision_model(model_name="") -> bool:
     if model_name == "":
-        global DEFAULT_MODEL
-        model_name = DEFAULT_MODEL
+        return False
     model_name = model_name.lower()
-    for model in VISION_MODELS:
+    for model in get_vision_models():
         for key in model:
             if model_name == key.lower():
                 return True
@@ -318,12 +318,13 @@ class LLM:
                 model_name=self.model_name, models_dir=models_dir
             )
             if is_vision_model(model_name=self.model_name):
-                self.params["chat_handler"] = llama_chat_format.Llava15ChatHandler(
-                    clip_model_path=get_clip_path(
-                        model_name=self.model_name, models_dir=models_dir
-                    ),
-                    verbose=True,
+                clip_path = get_clip_path(
+                    model_name=self.model_name, models_dir=models_dir
                 )
+                if clip_path != "":
+                    self.params["chat_handler"] = llama_chat_format.Llava15ChatHandler(
+                        clip_model_path=clip_path, verbose=True
+                    )
         else:
             self.params["model_path"] = ""
             self.params["max_tokens"] = 8192
