@@ -141,6 +141,12 @@ def get_prompt(model_name="", models_dir="models"):
         prompt_template = ""
     if prompt_template == "":
         prompt_template = "{system_message}\n\n{prompt}"
+    if "{system_message}" not in prompt_template:
+        if "<|system|>" in prompt_template:
+            prompt_template = prompt_template.replace(
+                "<|system|>", "<|system|>\n{system_message}"
+            )
+        prompt_template = "{system_message}\n" + prompt_template
     return prompt_template
 
 
@@ -365,44 +371,74 @@ class LLM:
                 int(kwargs["batch_size"]) if kwargs["batch_size"] else 1024
             )
         if model != "":
+            logging.info(f"[LLM] {self.params}")
             self.lcpp = Llama(**self.params, embedding=True)
         else:
             self.lcpp = None
 
-    def generate(self, prompt, format_prompt: bool = True):
+    def generate(
+        self,
+        prompt,
+        format_prompt: bool = True,
+        max_tokens=None,
+        temperature=None,
+        top_p=None,
+        min_p=None,
+        top_k=None,
+        logit_bias=None,
+        mirostat_mode=None,
+        frequency_penalty=None,
+        presence_penalty=None,
+        stream=None,
+        model=None,
+        system_message=None,
+        **kwargs,
+    ):
         if format_prompt:
             formatted_prompt = custom_format_prompt(
                 prompt=prompt,
                 prompt_template=self.prompt_template,
-                system_message=self.system_message,
+                system_message=self.system_message
+                if system_message is None
+                else system_message,
             )
+            logging.info(f"[LLM] Formatted Prompt: {formatted_prompt}")
         data = self.lcpp.create_completion(
             prompt=formatted_prompt if format_prompt else prompt,
-            max_tokens=self.params["max_tokens"],
-            temperature=self.params["temperature"],
-            top_p=self.params["top_p"],
-            min_p=self.params["min_p"],
+            max_tokens=self.params["max_tokens"]
+            if max_tokens is None
+            else int(max_tokens),
+            temperature=self.params["temperature"]
+            if temperature is None
+            else float(temperature),
+            top_p=self.params["top_p"] if top_p is None else float(top_p),
+            min_p=self.params["min_p"] if min_p is None else float(min_p),
             stop=self.params["stop"],
-            top_k=self.params["top_k"],
-            logit_bias=self.params["logit_bias"],
-            mirostat_mode=self.params["mirostat_mode"],
-            frequency_penalty=self.params["frequency_penalty"],
-            presence_penalty=self.params["presence_penalty"],
-            stream=self.params["stream"],
-            model=self.model_name,
+            top_k=self.params["top_k"] if top_k is None else int(top_k),
+            logit_bias=self.params["logit_bias"] if logit_bias is None else logit_bias,
+            mirostat_mode=self.params["mirostat_mode"]
+            if mirostat_mode is None
+            else int(mirostat_mode),
+            frequency_penalty=self.params["frequency_penalty"]
+            if frequency_penalty is None
+            else float(frequency_penalty),
+            presence_penalty=self.params["presence_penalty"]
+            if presence_penalty is None
+            else float(presence_penalty),
+            stream=self.params["stream"] if stream is None else stream,
+            model=self.model_name if model is None else model,
         )
-        # data = llm(prompt=formatted_prompt if format_prompt else prompt)
         data["model"] = self.model_name
         return data
 
-    def completion(self, prompt, format_prompt: bool = True):
-        data = self.generate(prompt=prompt, format_prompt=format_prompt)
+    def completion(self, prompt, format_prompt: bool = True, **kwargs):
+        data = self.generate(prompt=prompt, format_prompt=format_prompt, **kwargs)
         data["choices"][0]["text"] = clean(
             message=data["choices"][0]["text"], stop_tokens=self.params["stop"]
         )
         return data
 
-    def chat(self, messages):
+    def chat(self, messages, **kwargs):
         prompt = ""
         if len(messages) > 1:
             for message in messages:
@@ -418,7 +454,7 @@ class LLM:
                 prompt = messages[0]["content"]
             except:
                 prompt = messages
-        data = self.generate(prompt=prompt)
+        data = self.generate(prompt=prompt, **kwargs)
         messages = [{"role": "user", "content": prompt}]
         message = clean(
             message=data["choices"][0]["text"], stop_tokens=self.params["stop"]
@@ -429,7 +465,6 @@ class LLM:
         return data
 
     def embedding(self, input):
-        # llm = Llama(embedding=True, **self.params)
         embeddings = self.lcpp.create_embedding(input=input, model=self.model_name)
         embeddings["model"] = self.model_name
         return embeddings

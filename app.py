@@ -134,20 +134,15 @@ class ChatCompletionsResponse(BaseModel):
 async def get_response(data, completion_type="chat"):
     global CURRENT_MODEL
     global LOADED_LLM
+    print(data)
     if data["model"]:
         if CURRENT_MODEL != data["model"]:
             CURRENT_MODEL = data["model"]
             LOADED_LLM = LLM(model=data["model"])
-    if "max_tokens" in data:
-        LOADED_LLM.params["max_tokens"] = data["max_tokens"]
-    if "temperature" in data:
-        LOADED_LLM.params["temperature"] = data["temperature"]
-    if "top_p" in data:
-        LOADED_LLM.params["top_p"] = data["top_p"]
-    if "logit_bias" in data:
-        LOADED_LLM.params["logit_bias"] = data["logit_bias"]
     if "stop" in data:
-        LOADED_LLM.params["stop"].append(data["stop"])
+        new_stop = LOADED_LLM.params["stop"]
+        new_stop.append(data["stop"])
+        data["stop"] = new_stop
     if "audio_format" in data:
         base64_audio = (
             data["messages"][-1]["content"]
@@ -162,15 +157,10 @@ async def get_response(data, completion_type="chat"):
             data["messages"][-1]["content"] = prompt
         else:
             data["prompt"] = prompt
-    if "system_message" in data:
-        LOADED_LLM.params["system_message"] = data["system_message"]
     if completion_type == "chat":
-        response = LOADED_LLM.chat(messages=data["messages"])
+        response = LOADED_LLM.chat(**data)
     else:
-        response = LOADED_LLM.completion(
-            prompt=data["prompt"],
-            format_prompt=data["format_prompt"] if "format_prompt" in data else True,
-        )
+        response = LOADED_LLM.completion(**data)
     audio_response = None
     if "voice" in data:
         if completion_type == "chat":
