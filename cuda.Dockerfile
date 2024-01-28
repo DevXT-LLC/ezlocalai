@@ -6,17 +6,19 @@ RUN --mount=type=cache,target=/var/cache/cuda/apt,sharing=locked \
     update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-10 10 && \
     update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-10 10 && \
     apt-get clean && rm -rf /var/lib/apt/lists/* && \
-    python3 -m pip install --upgrade pip --no-cache-dir
+    python3 -m pip install --upgrade pip --no-cache-dir && \
+    python3 -m pip install cmake scikit-build setuptools --no-cache-dir
 WORKDIR /app
 ENV HOST 0.0.0.0
 ENV CUDA_DOCKER_ARCH=all
+ENV LLAMA_OPENBLAS=1
 COPY download.py .
 RUN --mount=type=cache,target=/var/cache/cuda/models,sharing=locked \
     python3 download.py
-COPY requirements.txt .
 RUN --mount=type=cache,target=/var/cache/cuda/pip,sharing=locked \
-    CMAKE_ARGS="-DLLAMA_BLAS=ON -DLLAMA_BLAS_VENDOR=OpenBLAS" python3 -m pip install --no-cache-dir -r requirements.txt && \
     python3 -m pip install --no-cache-dir deepspeed
+COPY requirements.txt .
+RUN CMAKE_ARGS="-DLLAMA_BLAS=ON -DLLAMA_BLAS_VENDOR=OpenBLAS"  python3 -m pip install --no-cache-dir -r requirements.txt
 COPY . .
 EXPOSE 8091
 RUN chmod +x start.sh
