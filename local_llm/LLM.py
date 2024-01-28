@@ -140,14 +140,16 @@ def get_prompt(model_name="", models_dir="models"):
     except:
         prompt_template = ""
     if prompt_template == "":
-        prompt_template = "{system_message}\n\n{prompt}"
+        prompt_template = (
+            "## SYSTEM\n{system_message}\n## USER\n{prompt}\n## ASSISTANT\n"
+        )
     if "{system_message}" not in prompt_template:
         if "<|system|>" in prompt_template:
             prompt_template = prompt_template.replace(
                 "<|system|>", "<|system|>\n{system_message}"
             )
         else:
-            prompt_template = "{system_message}\n" + prompt_template
+            prompt_template = "## SYSTEM\n{system_message}\n" + prompt_template
     return prompt_template
 
 
