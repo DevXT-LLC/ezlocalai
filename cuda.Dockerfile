@@ -16,4 +16,5 @@ RUN python3 -m pip install --upgrade pip --no-cache-dir && \
     python3 -m pip install --no-cache-dir deepspeed
 RUN python3 local_llm/CTTS.py && python3 local_llm/STT.py
 EXPOSE 8091
-ENTRYPOINT  [ "python3 server.py" ]
+RUN chmod +x start.sh
+ENTRYPOINT ["sh", "-c", "./start.sh"]
