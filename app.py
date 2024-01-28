@@ -1,6 +1,7 @@
 from fastapi import FastAPI, Depends, HTTPException, Header, Request
 from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from typing import List, Dict, Union, Optional
 from local_llm.LLM import LLM, streaming_generation
@@ -43,6 +44,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.mount("/outputs", StaticFiles(directory="outputs"), name="outputs")
 
 
 def verify_api_key(authorization: str = Header(None)):

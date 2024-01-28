@@ -186,6 +186,17 @@ def get_model(model_name="", models_dir="models"):
     return file_path
 
 
+def get_clip_path(model_name="", models_dir="models"):
+    if model_name == "":
+        global DEFAULT_MODEL
+        model_name = DEFAULT_MODEL
+    model_name = model_name.lower()
+    if os.path.exists(f"{models_dir}/{model_name}/mmproj-model-f16.gguf"):
+        return f"{models_dir}/{model_name}/mmproj-model-f16.gguf"
+    else:
+        return ""
+
+
 def custom_format(string, **kwargs):
     if isinstance(string, list):
         string = "".join(str(x) for x in string)
@@ -288,7 +299,10 @@ class LLM:
             )
             if "llava" in self.model_name:
                 self.params["chat_handler"] = llama_chat_format.Llava15ChatHandler(
-                    clip_model_path=self.params["model_path"], verbose=False
+                    clip_model_path=get_clip_path(
+                        model_name=self.model_name, models_dir=models_dir
+                    ),
+                    verbose=False,
                 )
         else:
             self.params["model_path"] = ""
