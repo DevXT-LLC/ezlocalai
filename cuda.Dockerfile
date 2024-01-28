@@ -16,9 +16,6 @@ RUN python3 -m venv venv
 RUN venv/bin/pip install --no-cache-dir -r requirements.txt
 RUN CMAKE_ARGS="-DLLAMA_BLAS=ON -DLLAMA_BLAS_VENDOR=OpenBLAS" venv/bin/pip install llama-cpp-python --no-cache-dir && \
     venv/bin/pip install --no-cache-dir deepspeed
-RUN venv/bin/python3 local_llm/CTTS.py
-RUN venv/bin/python3 local_llm/STT.py
-
 FROM nvidia/cuda:12.1.1-runtime-ubuntu22.04
 RUN apt-get update && apt-get upgrade -y && \
     apt-get install -y ffmpeg libportaudio2 libasound-dev python3 python3-pip python3-venv && \
@@ -28,5 +25,7 @@ WORKDIR /app
 ENV HOST 0.0.0.0
 ENV CUDA_DOCKER_ARCH=all
 COPY --from=builder /app /app
+RUN venv/bin/python3 local_llm/CTTS.py
+RUN venv/bin/python3 local_llm/STT.py
 EXPOSE 8091
 CMD "/app/venv/bin/python3 server.py"
