@@ -131,6 +131,64 @@ class ChatCompletionsResponse(BaseModel):
     usage: dict
 
 
+async def get_response(data, completion_type="chat"):
+    global CURRENT_MODEL
+    global LOADED_LLM
+    if data["model"]:
+        if CURRENT_MODEL != data["model"]:
+            CURRENT_MODEL = data["model"]
+            LOADED_LLM = LLM(model=data["model"])
+    if "max_tokens" in data:
+        LOADED_LLM.params["max_tokens"] = data["max_tokens"]
+    if "temperature" in data:
+        LOADED_LLM.params["temperature"] = data["temperature"]
+    if "top_p" in data:
+        LOADED_LLM.params["top_p"] = data["top_p"]
+    if "logit_bias" in data:
+        LOADED_LLM.params["logit_bias"] = data["logit_bias"]
+    if "stop" in data:
+        LOADED_LLM.params["stop"].append(data["stop"])
+    if "audio_format" in data:
+        base64_audio = (
+            data["messages"][-1]["content"]
+            if completion_type == "chat"
+            else data["prompt"]
+        )
+        prompt = await LOADED_STT.transcribe_audio(
+            base64_audio=base64_audio,
+            audio_format=data["audio_format"],
+        )
+        if completion_type == "chat":
+            data["messages"][-1]["content"] = prompt
+        else:
+            data["prompt"] = prompt
+    if "system_message" in data:
+        LOADED_LLM.params["system_message"] = data["system_message"]
+    if completion_type == "chat":
+        response = LOADED_LLM.chat(messages=data["messages"])
+    else:
+        response = LOADED_LLM.completion(
+            prompt=prompt,
+            format_prompt=data["format_prompt"] if "format_prompt" in data else True,
+        )
+    audio_response = None
+    if "voice" in data:
+        if completion_type == "chat":
+            text_response = response["messages"][1]["content"]
+        else:
+            text_response = response["choices"][0]["text"]
+        language = data["language"] if "language" in data else "en"
+        audio_response = await LOADED_CTTS.generate(
+            text=text_response, voice=data["voice"], language=language
+        )
+        audio_control = create_audio_control(audio_response)
+        if completion_type == "chat":
+            response["messages"][1]["content"] = f"{text_response}\n{audio_control}"
+        else:
+            response["choices"][0]["text"] = f"{text_response}\n{audio_control}"
+    return response, audio_response
+
+
 @app.post(
     "/v1/chat/completions",
     tags=["Completions"],
@@ -139,43 +197,9 @@ class ChatCompletionsResponse(BaseModel):
 async def chat_completions(
     c: ChatCompletions, request: Request, user=Depends(verify_api_key)
 ):
-    json_data = await request.json()
-    global CURRENT_MODEL
-    global LOADED_LLM
-    if c.model:
-        if CURRENT_MODEL != c.model:
-            CURRENT_MODEL = c.model
-            LOADED_LLM = LLM(model=c.model)
-    if c.max_tokens:
-        LOADED_LLM.params["max_tokens"] = c.max_tokens
-    if c.temperature:
-        LOADED_LLM.params["temperature"] = c.temperature
-    if c.top_p:
-        LOADED_LLM.params["top_p"] = c.top_p
-    if c.logit_bias:
-        LOADED_LLM.params["logit_bias"] = c.logit_bias
-    if c.stop:
-        LOADED_LLM.params["stop"].append(c.stop)
-    if json_data:
-        if "audio_format" in json_data:
-            prompt = await LOADED_STT.transcribe_audio(
-                base64_audio=c.messages[-1]["content"],
-                audio_format=json_data["audio_format"],
-            )
-            c.messages[-1]["content"] = prompt
-        if "system_message" in json_data:
-            LOADED_LLM.params["system_message"] = json_data["system_message"]
-    response = LOADED_LLM.chat(messages=c.messages)
-    audio_response = None
-    if json_data:
-        if "voice" in json_data:
-            text_response = response["messages"][1]["content"]
-            language = json_data["language"] if "language" in json_data else "en"
-            audio_response = await LOADED_CTTS.generate(
-                text=text_response, voice=json_data["voice"], language=language
-            )
-            audio_control = create_audio_control(audio_response)
-            response["messages"][1]["content"] = f"{text_response}\n{audio_control}"
+    response, audio_response = await get_response(
+        data=await request.json(), completion_type="chat"
+    )
     if not c.stream:
         return response
     else:
@@ -222,42 +246,9 @@ class CompletionsResponse(BaseModel):
     dependencies=[Depends(verify_api_key)],
 )
 async def completions(c: Completions, request: Request, user=Depends(verify_api_key)):
-    json_data = await request.json()
-    global CURRENT_MODEL
-    global LOADED_LLM
-    if c.model:
-        if CURRENT_MODEL != c.model:
-            CURRENT_MODEL = c.model
-            LOADED_LLM = LLM(model=c.model)
-    if c.max_tokens:
-        LOADED_LLM.params["max_tokens"] = c.max_tokens
-    if c.temperature:
-        LOADED_LLM.params["temperature"] = c.temperature
-    if c.top_p:
-        LOADED_LLM.params["top_p"] = c.top_p
-    if c.logit_bias:
-        LOADED_LLM.params["logit_bias"] = c.logit_bias
-    if c.stop:
-        LOADED_LLM.params["stop"].append(c.stop)
-    if json_data:
-        if "audio_format" in json_data:
-            prompt = await LOADED_STT.transcribe_audio(
-                base64_audio=c.prompt, audio_format=json_data["audio_format"]
-            )
-            c.prompt = prompt
-        if "system_message" in json_data:
-            LOADED_LLM.params["system_message"] = json_data["system_message"]
-    response = LOADED_LLM.completion(prompt=c.prompt, format_prompt=c.format_prompt)
-    audio_response = None
-    if json_data:
-        if "voice" in json_data:
-            text_response = response["choices"][0]["text"]
-            language = json_data["language"] if "language" in json_data else "en"
-            audio_response = await LOADED_CTTS.generate(
-                text=text_response, voice=json_data["voice"], language=language
-            )
-            audio_control = create_audio_control(audio_response)
-            response["choices"][0]["text"] = f"{text_response}\n{audio_control}"
+    response, audio_response = await get_response(
+        data=await request.json(), completion_type="completion"
+    )
     if not c.stream:
         return response
     else:
