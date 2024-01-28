@@ -40,6 +40,7 @@ def get_models():
 
 
 def is_vision_model(model_name=""):
+    global VISION_MODELS
     if model_name == "":
         global DEFAULT_MODEL
         model_name = DEFAULT_MODEL
