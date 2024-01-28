@@ -9,15 +9,12 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     python3 -m pip install --upgrade pip --no-cache-dir
 WORKDIR /app
 ENV HOST 0.0.0.0
-
 COPY requirements.txt .
 RUN --mount=type=cache,target=/var/cache/pip,sharing=locked \
     python3 -m pip install --no-cache-dir -r requirements.txt
-
-COPY local_llm/CTTS.py local_llm/CTTS.py
-COPY local_llm/STT.py local_llm/STT.py
+COPY download.py .
 RUN --mount=type=cache,target=/var/cache/models,sharing=locked \
-    python3 local_llm/CTTS.py && python3 local_llm/STT.py
+    python3 download.py
 COPY . .
 EXPOSE 8091
 RUN chmod +x start.sh
