@@ -12,11 +12,6 @@ import logging
 from dotenv import load_dotenv
 
 load_dotenv()
-DEFAULT_MODEL = os.getenv("DEFAULT_MODEL", "phi-2-dpo")
-WHISPER_MODEL = os.getenv("WHISPER_MODEL", "base.en")
-
-CURRENT_MODEL = DEFAULT_MODEL if DEFAULT_MODEL else "phi-2-dpo"
-CURRENT_STT_MODEL = WHISPER_MODEL if WHISPER_MODEL else "base.en"
 logging.basicConfig(
     level=os.environ.get("LOGLEVEL", "INFO"),
     format="%(asctime)s | %(levelname)s | %(message)s",
@@ -26,15 +21,25 @@ logging.info(f"[CTTS] xttsv2_2.0.2 model loading. Please wait...")
 LOADED_CTTS = CTTS()
 logging.info(f"[CTTS] xttsv2_2.0.2 model loaded successfully.")
 
+WHISPER_MODEL = os.getenv("WHISPER_MODEL", "base.en")
+CURRENT_STT_MODEL = WHISPER_MODEL if WHISPER_MODEL else "base.en"
 logging.info(f"[STT] {CURRENT_STT_MODEL} model loading. Please wait...")
 LOADED_STT = STT(model=CURRENT_STT_MODEL)
 logging.info(f"[STT] {CURRENT_STT_MODEL} model loaded successfully.")
 
+DEFAULT_MODEL = os.getenv("DEFAULT_MODEL", "phi-2-dpo")
+CURRENT_MODEL = DEFAULT_MODEL if DEFAULT_MODEL else "phi-2-dpo"
 logging.info(f"[LLM] {CURRENT_MODEL} model loading. Please wait...")
 LOADED_LLM = LLM(model=CURRENT_MODEL)
 logging.info(f"[LLM] {CURRENT_MODEL} model loaded successfully.")
-logging.info(f"[Local-LLM] Server is ready.")
 
+VISION_MODEL = os.getenv("VISION_MODEL", "")
+LOADED_VISION_MODEL = None
+if VISION_MODEL != "":
+    LOADED_VISION_MODEL = LLM(model=VISION_MODEL)  # bakllava-1-7b
+    logging.info(f"[Local-LLM] Vision is enabled.")
+
+logging.info(f"[Local-LLM] Server is ready.")
 
 app = FastAPI(title="Local-LLM Server", docs_url="/")
 app.add_middleware(

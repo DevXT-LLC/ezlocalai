@@ -26,6 +26,7 @@ def get_models():
         {"bakllava-1-7b": "mys/ggml_bakllava-1"},
         {"llava-v1.5-7b": "mys/ggml_llava-v1.5-7b"},
         {"llava-v1.5-13b": "mys/ggml_llava-v1.5-13b"},
+        {"yi-vl-6b": "cmp-nct/Yi-VL-6B-GGUF"},
     ]
     if soup:
         for a_tag in soup.find_all("a", href=True):
@@ -153,13 +154,17 @@ def get_model(model_name="", models_dir="models"):
             raise Exception("Model not found.")
         clip_url = ""
         if model_url.startswith("mys/"):
-            # Multimodal models
             url = (
                 f"https://huggingface.co/{model_url}/resolve/main/ggml-model-q5_k.gguf"
             )
             clip_url = (
                 f"https://huggingface.co/{model_url}/resolve/main/mmproj-model-f16.gguf"
             )
+        elif model_url == "cmp-nct/Yi-VL-6B-GGUF":
+            url = (
+                f"https://huggingface.co/{model_url}/resolve/main/ggml-model-Q5_K.gguf"
+            )
+            clip_url = f"https://huggingface.co/{model_url}/resolve/main/mmproj-model-f16-q6_k.gguf"
         else:
             url = (
                 (
@@ -302,7 +307,7 @@ class LLM:
                     clip_model_path=get_clip_path(
                         model_name=self.model_name, models_dir=models_dir
                     ),
-                    verbose=False,
+                    verbose=True,
                 )
         else:
             self.params["model_path"] = ""
