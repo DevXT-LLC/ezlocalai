@@ -134,7 +134,6 @@ class ChatCompletionsResponse(BaseModel):
 async def get_response(data, completion_type="chat"):
     global CURRENT_MODEL
     global LOADED_LLM
-    print(data)
     if data["model"]:
         if CURRENT_MODEL != data["model"]:
             CURRENT_MODEL = data["model"]

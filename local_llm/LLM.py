@@ -146,7 +146,8 @@ def get_prompt(model_name="", models_dir="models"):
             prompt_template = prompt_template.replace(
                 "<|system|>", "<|system|>\n{system_message}"
             )
-        prompt_template = "{system_message}\n" + prompt_template
+        else:
+            prompt_template = "{system_message}\n" + prompt_template
     return prompt_template
 
 
@@ -402,7 +403,6 @@ class LLM:
                 if system_message is None
                 else system_message,
             )
-            logging.info(f"[LLM] Formatted Prompt: {formatted_prompt}")
         data = self.lcpp.create_completion(
             prompt=formatted_prompt if format_prompt else prompt,
             max_tokens=self.params["max_tokens"]
