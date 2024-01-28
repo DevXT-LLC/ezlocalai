@@ -12,5 +12,4 @@ RUN python3 -m pip install --upgrade pip --no-cache-dir && \
     python3 -m pip install --no-cache-dir -r requirements.txt
 RUN python3 local_llm/CTTS.py && python3 local_llm/STT.py
 EXPOSE 8091
-RUN chmod +x start.sh
-ENTRYPOINT ["sh", "-c", "./start.sh"]
+ENTRYPOINT  [ "python3 server.py" ]
