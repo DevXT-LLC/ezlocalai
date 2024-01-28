@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   local-llm:
-    image: ghcr.io/josh-xt/local-llm:cpu-dev
+    image: ghcr.io/josh-xt/local-llm:cuda-dev
     environment:
       - LOCAL_LLM_API_KEY=${LOCAL_LLM_API_KEY-}
       - GPU_LAYERS=${GPU_LAYERS-0}

@@ -109,11 +109,11 @@ class CTTS:
             enable_text_splitting=True,
         )
         torchaudio.save(output_file, torch.tensor(output["wav"]).unsqueeze(0), 24000)
-        with open(output_file, "rb") as file:
-            audio_data = file.read()
         torch.cuda.empty_cache()
         if url_output:
             return f"{os.environ.get('LOCAL_LLM_URL', 'http://localhost:8091')}/outputs/{output_file_name}"
+        with open(output_file, "rb") as file:
+            audio_data = file.read()
         os.remove(output_file)
         return base64.b64encode(audio_data).decode("utf-8")
 

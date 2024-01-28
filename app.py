@@ -168,7 +168,7 @@ async def get_response(data, completion_type="chat"):
         response = LOADED_LLM.chat(messages=data["messages"])
     else:
         response = LOADED_LLM.completion(
-            prompt=prompt,
+            prompt=data["prompt"],
             format_prompt=data["format_prompt"] if "format_prompt" in data else True,
         )
     audio_response = None
