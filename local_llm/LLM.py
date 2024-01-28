@@ -12,6 +12,12 @@ import logging
 
 
 DEFAULT_MODEL = os.environ.get("DEFAULT_MODEL", "phi-2-dpo")
+VISION_MODELS = [
+    {"bakllava-1-7b": "mys/ggml_bakllava-1"},
+    {"llava-v1.5-7b": "mys/ggml_llava-v1.5-7b"},
+    {"llava-v1.5-13b": "mys/ggml_llava-v1.5-13b"},
+    {"yi-vl-6b": "cmp-nct/Yi-VL-6B-GGUF"},
+]
 
 
 def get_models():
@@ -22,12 +28,7 @@ def get_models():
         soup = BeautifulSoup(response.text, "html.parser")
     except:
         soup = None
-    model_names = [
-        {"bakllava-1-7b": "mys/ggml_bakllava-1"},
-        {"llava-v1.5-7b": "mys/ggml_llava-v1.5-7b"},
-        {"llava-v1.5-13b": "mys/ggml_llava-v1.5-13b"},
-        {"yi-vl-6b": "cmp-nct/Yi-VL-6B-GGUF"},
-    ]
+    model_names = VISION_MODELS
     if soup:
         for a_tag in soup.find_all("a", href=True):
             href = a_tag["href"]
@@ -35,6 +36,18 @@ def get_models():
                 base_name = href[10:-5]
                 model_names.append({base_name: href[1:]})
     return model_names
+
+
+def is_vision_model(model_name=""):
+    if model_name == "":
+        global DEFAULT_MODEL
+        model_name = DEFAULT_MODEL
+    model_name = model_name.lower()
+    for model in VISION_MODELS:
+        for key in model:
+            if model_name == key.lower():
+                return True
+    return False
 
 
 def get_model_url(model_name=""):
@@ -302,7 +315,7 @@ class LLM:
             self.prompt_template = get_prompt(
                 model_name=self.model_name, models_dir=models_dir
             )
-            if "llava" in self.model_name:
+            if is_vision_model(model_name=self.model_name):
                 self.params["chat_handler"] = llama_chat_format.Llava15ChatHandler(
                     clip_model_path=get_clip_path(
                         model_name=self.model_name, models_dir=models_dir
