@@ -17,8 +17,7 @@ RUN --mount=type=cache,target=/var/cache/models,sharing=locked \
     python3 download.py
 COPY requirements.txt .
 RUN python3 -m pip install cmake scikit-build setuptools --no-cache-dir && \
-    CMAKE_ARGS="-DLLAMA_BLAS=ON -DLLAMA_BLAS_VENDOR=OpenBLAS" python3 -m pip install --no-cache-dir -r requirements.txt && \
-    python3 -m pip install --no-cache-dir deepspeed
+    CMAKE_ARGS="-DLLAMA_BLAS=ON -DLLAMA_BLAS_VENDOR=OpenBLAS" python3 -m pip install --no-cache-dir -r requirements.txt
 COPY . .
 EXPOSE 8091
 RUN chmod +x start.sh
