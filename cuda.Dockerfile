@@ -7,7 +7,8 @@ RUN --mount=type=cache,target=/var/cache/cuda/apt,sharing=locked \
     update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-10 10 && \
     mkdir -p /etc/OpenCL/vendors && echo "libnvidia-opencl.so.1" > /etc/OpenCL/vendors/nvidia.icd && \
     apt-get clean && rm -rf /var/lib/apt/lists/* && \
-    python3 -m pip install --upgrade pip --no-cache-dir
+    python3 -m pip install --upgrade pip --no-cache-dir && \
+    ln -s /usr/bin/python3 /usr/bin/python
 WORKDIR /app
 ENV HOST 0.0.0.0
 ENV CUDA_DOCKER_ARCH=all
