@@ -17,7 +17,7 @@ RUN pip install -r requirements.txt && \
     CMAKE_ARGS="-DLLAMA_CUBLAS=on" pip install -U llama-cpp-python --force-reinstall
 COPY . .
 RUN python3 local_llm/CTTS.py
-RUN python3 local_llm/TTS.py
+RUN python3 local_llm/STT.py
 EXPOSE 8091
 RUN chmod +x start.sh
 ENTRYPOINT ["sh", "-c", "./start.sh"]
