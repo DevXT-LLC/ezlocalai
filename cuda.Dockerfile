@@ -9,9 +9,9 @@ WORKDIR /app
 ENV HOST 0.0.0.0
 ENV CUDA_DOCKER_ARCH=all
 ENV LLAMA_OPENBLAS=1
-RUN CMAKE_ARGS="-DLLAMA_BLAS=ON -DLLAMA_BLAS_VENDOR=OpenBLAS" pip install --no-cache-dir llama_cpp_python --verbose --force-reinstall
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
+RUN CMAKE_ARGS="-DLLAMA_BLAS=ON -DLLAMA_BLAS_VENDOR=OpenBLAS" FORCE_CMAKE=1 pip install llama-cpp-python --verbose --force-reinstall --no-cache-dir
 COPY . .
 RUN python3 download.py
 EXPOSE 8091
