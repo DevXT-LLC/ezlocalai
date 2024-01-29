@@ -11,13 +11,12 @@ RUN --mount=type=cache,target=/var/cache/cuda/apt,sharing=locked \
 WORKDIR /app
 ENV HOST 0.0.0.0
 ENV CUDA_DOCKER_ARCH=all
-ENV LLAMA_CUBLAS=1
 COPY download.py .
 RUN --mount=type=cache,target=/var/cache/models,sharing=locked \
     python3 download.py
 COPY requirements.txt .
 RUN python3 -m pip install cmake scikit-build setuptools --no-cache-dir && \
-    CMAKE_ARGS="-DLLAMA_BLAS=on" python3 -m pip install --no-cache-dir -r requirements.txt
+    CMAKE_ARGS="-DLLAMA_VULKAN=1" python3 -m pip install --no-cache-dir -r requirements.txt
 COPY . .
 EXPOSE 8091
 RUN chmod +x start.sh

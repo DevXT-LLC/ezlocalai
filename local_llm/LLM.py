@@ -374,7 +374,6 @@ class LLM:
                 int(kwargs["batch_size"]) if kwargs["batch_size"] else 1024
             )
         if model != "":
-            logging.info(f"[LLM] {self.params}")
             self.lcpp = Llama(**self.params, embedding=True)
         else:
             self.lcpp = None
