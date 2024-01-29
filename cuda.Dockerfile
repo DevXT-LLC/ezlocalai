@@ -1,4 +1,6 @@
 FROM nvidia/cuda:12.1.1-devel-ubuntu22.04
+ENV HOST 0.0.0.0
+ENV CUDA_DOCKER_ARCH=all
 RUN --mount=type=cache,target=/var/cache/cuda/apt,sharing=locked \
     apt-get update --fix-missing  && apt-get upgrade -y && \
     apt-get install -y --fix-missing --no-install-recommends git build-essential gcc g++ portaudio19-dev ffmpeg libportaudio2 libasound-dev python3 python3-pip gcc wget ocl-icd-opencl-dev opencl-headers clinfo libclblast-dev libopenblas-dev pkg-config ninja-build && \
@@ -6,17 +8,17 @@ RUN --mount=type=cache,target=/var/cache/cuda/apt,sharing=locked \
     update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-10 10 && \
     update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-10 10 && \
     mkdir -p /etc/OpenCL/vendors && echo "libnvidia-opencl.so.1" > /etc/OpenCL/vendors/nvidia.icd && \ 
-    apt-get clean && rm -rf /var/lib/apt/lists/* && \
-    python3 -m pip install --upgrade pip --no-cache-dir
+    apt-get clean && rm -rf /var/lib/apt/lists/*
+RUN --mount=type=cache,target=/root/.cache/pip,sharing=locked \
+    pip install -U pip setuptools cmake scikit-build
 WORKDIR /app
-ENV HOST 0.0.0.0
-ENV CUDA_DOCKER_ARCH=all
 COPY download.py .
 RUN --mount=type=cache,target=/var/cache/models,sharing=locked \
     python3 download.py
+RUN --mount=type=cache,target=/var/cache/cuda/llama,sharing=locked \
+    CMAKE_ARGS="-DLLAMA_VULKAN=1" python3 -m pip install --force-reinstall -U llama-cpp-python
 COPY requirements.txt .
-RUN python3 -m pip install cmake scikit-build setuptools --no-cache-dir && \
-    CMAKE_ARGS="-DLLAMA_VULKAN=1" python3 -m pip install --no-cache-dir -r requirements.txt
+RUN pip install -r requirements.txt && pip install deepspeed
 COPY . .
 EXPOSE 8091
 RUN chmod +x start.sh
