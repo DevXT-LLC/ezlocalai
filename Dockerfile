@@ -10,7 +10,7 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
 WORKDIR /app
 ENV HOST 0.0.0.0
 COPY download.py .
-RUN --mount=type=cache,target=/var/cache/models,sharing=locked \
+RUN --mount=type=cache,target=/var/cache/models,sharing=shared \
     python3 download.py
 COPY requirements.txt .
 RUN --mount=type=cache,target=/var/cache/pip,sharing=locked \
