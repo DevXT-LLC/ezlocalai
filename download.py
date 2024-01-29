@@ -10,6 +10,11 @@ except:
     subprocess.check_call([sys.executable, "-m", "pip", "install", "requests"])
     import requests
 
+try:
+    import deepspeed
+except:
+    pass
+
 
 def download_whisper_model(model="base.en"):
     # https://huggingface.co/ggerganov/whisper.cpp
