@@ -7,11 +7,10 @@ RUN apt-get update --fix-missing  && apt-get upgrade -y && \
     apt-get clean && rm -rf /var/lib/apt/lists/* && \
     pip install -U pip setuptools cmake scikit-build
 WORKDIR /app
-COPY requirements.txt .
+COPY . .
 RUN pip install -r requirements.txt && \
     pip install deepspeed && \
     CMAKE_ARGS="-DLLAMA_CUBLAS=on" pip install -U llama-cpp-python --force-reinstall
-COPY . .
 RUN python3 local_llm/CTTS.py
 RUN python3 local_llm/STT.py
 EXPOSE 8091
