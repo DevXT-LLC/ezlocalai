@@ -14,14 +14,6 @@ RUN pip install --no-cache-dir fastapi uvicorn pydantic==2.5.3 requests==2.31.0 
 COPY download.py .
 RUN --mount=type=cache,target=/var/cache/models,sharing=shared \
     python3 download.py
-RUN git clone https://github.com/microsoft/DeepSpeed.git DeepSpeed
-RUN cd DeepSpeed && \
-    git checkout . && \
-    git checkout master && \
-    ./install.sh --pip_sudo
-RUN rm -rf DeepSpeed
-RUN python -c "import deepspeed; print(deepspeed.__version__)"
-
 COPY . .
 EXPOSE 8091
 RUN chmod +x start.sh
