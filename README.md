@@ -52,6 +52,7 @@ Replace the environment variables with your desired settings. Assumptions will b
 ## Usage
 
 ```bash
+chmod +x start.ps1
 ./start.ps1
 ```
 
