@@ -8,10 +8,10 @@ RUN --mount=type=cache,target=/root/.cache/pip,sharing=locked \
 WORKDIR /app
 ENV HOST 0.0.0.0
 ENV CUDA_DOCKER_ARCH=all
-ENV LLAMA_OPENBLAS=1
+ENV LLAMA_VULKAN=1
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
-RUN CMAKE_ARGS="-DLLAMA_BLAS=ON -DLLAMA_BLAS_VENDOR=OpenBLAS" FORCE_CMAKE=1 pip install llama-cpp-python --verbose --force-reinstall --no-cache-dir
+RUN CMAKE_ARGS="-DLLAMA_VULKAN=ON" FORCE_CMAKE=1 pip install llama-cpp-python --verbose --force-reinstall --no-cache-dir
 COPY . .
 RUN python3 download.py
 EXPOSE 8091
