@@ -6,8 +6,7 @@ RUN --mount=type=cache,target=/var/cache/cuda/apt,sharing=locked \
 ENV HOST 0.0.0.0
 ENV CUDA_DOCKER_ARCH=all
 ENV LLAMA_VULKAN=1
-RUN pip install pip --upgrade --no-cache-dir && \
-    pip install cmake deepspeed --no-cache-dir && \
+RUN pip install pip cmake --upgrade --no-cache-dir && \
     CMAKE_ARGS="-DLLAMA_VULKAN=ON" FORCE_CMAKE=1 pip install llama-cpp-python --verbose --force-reinstall --no-cache-dir
 WORKDIR /app
 COPY requirements.txt .
