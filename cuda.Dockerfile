@@ -12,7 +12,8 @@ ENV CUDA_DOCKER_ARCH=all
 ENV LLAMA_CUBLAS=1
 COPY . .
 RUN CMAKE_ARGS="-DLLAMA_CUBLAS=on" FORCE_CMAKE=1 pip install llama-cpp-python --no-cache-dir && \
-    pip install --no-cache-dir -r requirements.txt
+    pip install --no-cache-dir -r cuda-requirements.txt && \
+    pip install --no-cache-dir deepspeed
 RUN python3 download.py
 EXPOSE 8091
 RUN chmod +x start.sh
