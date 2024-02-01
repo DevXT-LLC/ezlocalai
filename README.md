@@ -9,6 +9,7 @@ Local-LLM is a simple [llama.cpp](https://github.com/ggerganov/llama.cpp) server
 - [Git](https://git-scm.com/downloads)
 - [PowerShell 7.X](https://learn.microsoft.com/en-us/powershell/scripting/install/installing-powershell?view=powershell-7.4)
 - [Docker Desktop](https://docs.docker.com/docker-for-windows/install/) (Windows or Mac)
+- [CUDA Toolkit](https://developer.nvidia.com/cuda-downloads) (NVIDIA GPU only)
 
 <details>
   <summary>Additional Linux Prerequisites</summary>
