@@ -7,15 +7,17 @@ on:
   workflow_dispatch:
 
 jobs:
-  build_and_push:
+  build-local-llm:
     runs-on: ubuntu-latest
     strategy:
       matrix:
         include:
-          - dockerfile: "Dockerfile"
+          - name: "CPU"
+            dockerfile: "Dockerfile"
             platforms: "linux/amd64"
             tag_name: "cpu-dev"
-          - dockerfile: "cuda.Dockerfile"
+          - name: "CUDA"
+            dockerfile: "cuda.Dockerfile"
             platforms: "linux/amd64"
             tag_name: "cuda-dev"
     steps:
@@ -60,4 +62,4 @@ jobs:
       image: ghcr.io/josh-xt/local-llm:cpu-dev
       port: "8091"
       additional-python-dependencies: openai requests
-    needs: build_and_push
+    needs: build-local-llm
