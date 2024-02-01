@@ -1,11 +1,11 @@
 FROM nvidia/cuda:12.1.1-devel-ubuntu22.04
 RUN --mount=type=cache,target=/var/cache/cuda/apt,sharing=locked \
     apt-get update --fix-missing  && apt-get upgrade -y && \
-    apt-get install -y --fix-missing git build-essential cmake gcc g++ portaudio19-dev ffmpeg libportaudio2 libasound-dev python3 python3-pip wget ocl-icd-opencl-dev opencl-headers clinfo libclblast-dev libopenblas-dev && \
+    apt-get install -y --fix-missing git build-essential cmake gcc g++ portaudio19-dev ffmpeg libportaudio2 libasound-dev python3 python3-pip wget ocl-icd-opencl-dev opencl-headers clinfo libclblast-dev libopenblas-dev ninja-build && \
     mkdir -p /etc/OpenCL/vendors && echo "libnvidia-opencl.so.1" > /etc/OpenCL/vendors/nvidia.icd && \
     apt-get clean && rm -rf /var/lib/apt/lists/* && \
-    ln -s /usr/bin/python3 /usr/bin/python && \
-    python3 -m pip install pip cmake --upgrade --no-cache-dir
+    ln -s /usr/bin/python3 /usr/bin/python
+RUN python3 -m pip install --upgrade pip cmake scikit-build setuptools wheel --no-cache-dir
 WORKDIR /app
 ENV HOST 0.0.0.0
 ENV CUDA_DOCKER_ARCH=all

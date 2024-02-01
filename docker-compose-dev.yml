@@ -6,7 +6,7 @@ services:
     environment:
       - LOCAL_LLM_URL=${LOCAL_LLM_URL-http://localhost:8091}
       - LOCAL_LLM_API_KEY=${LOCAL_LLM_API_KEY-}
-      - GPU_LAYERS=${GPU_LAYERS-0}
+      - GPU_LAYERS=20
       - MAIN_GPU=${MAIN_GPU-0}
       - DEFAULT_MODEL=${DEFAULT_MODEL-phi-2-dpo}
       - WHISPER_MODEL=${WHISPER_MODEL-base.en}
