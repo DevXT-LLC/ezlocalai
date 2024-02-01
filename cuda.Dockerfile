@@ -8,11 +8,12 @@ RUN --mount=type=cache,target=/var/cache/cuda/apt,sharing=locked \
 WORKDIR /app
 ENV HOST 0.0.0.0
 ENV CUDA_DOCKER_ARCH=all
-ENV LLAMA_CUBLAS=1
+ENV LLAMA_BLAS=1
+ENV LLAMA_BLAS_VENDOR=OpenBLAS
 COPY cuda-requirements.txt .
 RUN --mount=type=cache,target=/var/cache/cuda/pip,sharing=locked \
     python3 -m pip install --upgrade pip cmake scikit-build setuptools wheel --no-cache-dir && \
-    CMAKE_ARGS="-DLLAMA_CUBLAS=on" FORCE_CMAKE=1 pip install llama-cpp-python --no-cache-dir && \
+    CMAKE_ARGS="-DLLAMA_BLAS=ON -DLLAMA_BLAS_VENDOR=OpenBLAS" FORCE_CMAKE=1 pip install llama-cpp-python --no-cache-dir && \
     pip install --no-cache-dir -r cuda-requirements.txt && \
     pip install --no-cache-dir deepspeed && \
     python -c "import deepspeed; print(deepspeed.__version__)"
