@@ -13,4 +13,4 @@ torchaudio>=2.2.0+cu118
 transformers==4.37.2
 TTS==0.22.0
 sounddevice==0.4.6
-llama-cpp-python
+deepspeed==0.13.1
