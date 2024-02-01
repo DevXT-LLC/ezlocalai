@@ -333,14 +333,14 @@ class LLM:
                 )
                 if clip_path != "":
                     self.params["chat_handler"] = llama_chat_format.Llava15ChatHandler(
-                        clip_model_path=clip_path, verbose=False
+                        clip_model_path=clip_path, verbose=True
                     )
         else:
             self.params["model_path"] = ""
             self.params["max_tokens"] = 8192
             self.prompt_template = "{system_message}\n\n{prompt}"
         self.params["n_ctx"] = 0
-        self.params["verbose"] = False
+        self.params["verbose"] = True
         self.system_message = system_message
         self.params["mirostat_mode"] = 2
         self.params["top_k"] = 20 if "top_k" not in kwargs else kwargs["top_k"]
