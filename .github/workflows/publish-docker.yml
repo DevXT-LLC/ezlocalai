@@ -24,7 +24,7 @@ jobs:
           - name: "Vulkan"
             dockerfile: "vulkan.Dockerfile"
             platforms: "linux/amd64"
-            tag_name: "vulkan-dev"
+            tag_name: "vulkan"
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
