@@ -5,16 +5,18 @@ RUN --mount=type=cache,target=/var/cache/cuda/apt,sharing=locked \
     mkdir -p /etc/OpenCL/vendors && echo "libnvidia-opencl.so.1" > /etc/OpenCL/vendors/nvidia.icd && \
     apt-get clean && rm -rf /var/lib/apt/lists/* && \
     ln -s /usr/bin/python3 /usr/bin/python
-RUN python3 -m pip install --upgrade pip cmake scikit-build setuptools wheel --no-cache-dir
 WORKDIR /app
 ENV HOST 0.0.0.0
 ENV CUDA_DOCKER_ARCH=all
 ENV LLAMA_CUBLAS=1
-COPY . .
-RUN CMAKE_ARGS="-DLLAMA_CUBLAS=on" FORCE_CMAKE=1 pip install llama-cpp-python --no-cache-dir && \
+COPY cuda-requirements.txt .
+RUN --mount=type=cache,target=/var/cache/cuda/pip,sharing=locked \
+    python3 -m pip install --upgrade pip cmake scikit-build setuptools wheel --no-cache-dir && \
+    CMAKE_ARGS="-DLLAMA_CUBLAS=on" FORCE_CMAKE=1 pip install llama-cpp-python --no-cache-dir && \
     pip install --no-cache-dir -r cuda-requirements.txt && \
     pip install --no-cache-dir deepspeed && \
     python -c "import deepspeed; print(deepspeed.__version__)"
+COPY . .
 RUN python3 download.py
 EXPOSE 8091
 RUN chmod +x start.sh
