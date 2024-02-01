@@ -6,6 +6,8 @@ RUN --mount=type=cache,target=/var/cache/cuda/apt,sharing=locked \
     python3 -m pip install pip cmake --upgrade --no-cache-dir
 ENV HOST 0.0.0.0
 ENV CUDA_DOCKER_ARCH=all
+ENV LLAMA_VULKAN=1
+RUN CMAKE_ARGS="-DLLAMA_VULKAN=ON" FORCE_CMAKE=1 pip install llama-cpp-python --force-reinstall --no-cache-dir
 WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
