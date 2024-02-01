@@ -302,8 +302,10 @@ class LLM:
         GPU_LAYERS = os.environ.get("GPU_LAYERS", 0)
         if torch.cuda.is_available() and int(GPU_LAYERS) == 0:
             vram = (
-                round(torch.cuda.get_device_properties(0).total_memory / 1024**3) - 2
+                round(torch.cuda.get_device_properties(0).total_memory / 1024**3) - 3
             )
+            if vram <= 0:
+                vram = 0
             logging.info(f"[LLM] {vram}GB of available VRAM detected.")
             if vram >= 48 or vram <= 2:
                 GPU_LAYERS = vram
@@ -373,6 +375,8 @@ class LLM:
             self.params["n_batch"] = (
                 int(kwargs["batch_size"]) if kwargs["batch_size"] else 1024
             )
+        else:
+            self.params["n_batch"] = 1024
         if model != "":
             self.lcpp = Llama(**self.params, embedding=True)
         else:
