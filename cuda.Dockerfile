@@ -1,4 +1,4 @@
-FROM nvidia/cuda:12.3.1-devel-ubuntu22.04
+FROM nvidia/cuda:12.1.1-devel-ubuntu22.04
 RUN --mount=type=cache,target=/var/cache/cuda/apt,sharing=locked \
     apt-get update --fix-missing  && apt-get upgrade -y && \
     apt-get install -y --fix-missing --no-install-recommends git build-essential autotools-dev nfs-common pdsh cmake gcc g++ portaudio19-dev ffmpeg libportaudio2 libasound-dev python3 python3-pip gcc wget ninja-build build-essential pkg-config ocl-icd-opencl-dev opencl-headers clinfo libclblast-dev libopenblas-dev && \
