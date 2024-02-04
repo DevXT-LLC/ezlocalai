@@ -16,4 +16,3 @@ sounddevice==0.4.6
 llama-cpp-python
 webrtcvad
 pyaudio
-numpy
