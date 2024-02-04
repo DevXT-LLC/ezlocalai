@@ -18,7 +18,6 @@ RUN --mount=type=cache,target=/var/cache/vulkan/pip,sharing=locked \
     CMAKE_ARGS="-DLLAMA_VULKAN=1" FORCE_CMAKE=1 pip install llama-cpp-python --no-cache-dir && \
     pip install --no-cache-dir -r cuda-requirements.txt
 COPY . .
-RUN python3 download.py
 EXPOSE 8091
 RUN chmod +x start.sh
 ENTRYPOINT ["sh", "-c", "./start.sh"]
