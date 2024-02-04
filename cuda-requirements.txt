@@ -14,3 +14,6 @@ transformers==4.37.2
 TTS==0.22.0
 sounddevice==0.4.6
 deepspeed==0.13.1
+webrtcvad
+pyaudio
+numpy
