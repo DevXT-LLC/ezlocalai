@@ -11,9 +11,8 @@ RUN --mount=type=cache,target=/var/cache/cuda/apt,sharing=locked \
     python3 -m pip install --upgrade pip cmake scikit-build setuptools wheel --no-cache-dir && \
     CMAKE_ARGS="-DLLAMA_CUBLAS=on" FORCE_CMAKE=1 pip install llama-cpp-python --no-cache-dir
 WORKDIR /app
-COPY cuda-requirements.txt .
-RUN pip install --no-cache-dir -r cuda-requirements.txt
 COPY . .
+RUN pip install --no-cache-dir -r cuda-requirements.txt
 EXPOSE 8091
 RUN chmod +x start.sh
 ENTRYPOINT ["sh", "-c", "./start.sh"]
