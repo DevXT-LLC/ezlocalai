@@ -339,7 +339,7 @@ class LLM:
             self.params["model_path"] = ""
             self.params["max_tokens"] = 8192
             self.prompt_template = "{system_message}\n\n{prompt}"
-        self.params["n_ctx"] = get_max_tokens(model_name=self.model_name)
+        self.params["n_ctx"] = 0
         self.params["verbose"] = True
         self.system_message = system_message
         self.params["mirostat_mode"] = 2
