@@ -8,7 +8,7 @@ on:
 
 jobs:
   build-local-llm:
-    runs-on: LargeRunner
+    runs-on: self-hosted
     strategy:
       matrix:
         include:

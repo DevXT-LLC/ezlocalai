@@ -9,7 +9,7 @@ on:
 
 jobs:
   build-local-llm:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     strategy:
       matrix:
         include:
