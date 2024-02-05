@@ -21,10 +21,6 @@ jobs:
             dockerfile: "cuda.Dockerfile"
             platforms: "linux/amd64"
             tag_name: "cuda"
-          - name: "Vulkan"
-            dockerfile: "vulkan.Dockerfile"
-            platforms: "linux/amd64"
-            tag_name: "vulkan"
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
