@@ -10,7 +10,7 @@ with open(os.path.join(this_directory, "requirements.txt")) as f:
 
 setup(
     name="ezlocalai",
-    version="0.1.1",
+    version="0.1.2",
     description="ezlocalai is a llama.cpp server in Docker with OpenAI Style Endpoints.",
     long_description=long_description,
     long_description_content_type="text/markdown",

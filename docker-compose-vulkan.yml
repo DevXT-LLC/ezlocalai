@@ -2,7 +2,9 @@ version: '3.8'
 
 services:
   ezlocalai:
-    image: joshxt/ezlocalai:vulkan
+    build: 
+      context: .
+      dockerfile: vulkan.Dockerfile
     environment:
       - EZLOCALAI_URL=${EZLOCALAI_URL-http://localhost:8091}
       - EZLOCALAI_API_KEY=${EZLOCALAI_API_KEY-}
