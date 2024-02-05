@@ -1,4 +1,4 @@
-name: Dev - Cuda Build
+name: Dev - Build and Test
 
 on:
   push:
@@ -7,15 +7,15 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-local-llm:
+  build-ezlocalai:
     runs-on: ubuntu-latest
     strategy:
       matrix:
         include:
-          - name: "CUDA"
-            dockerfile: "cuda.Dockerfile"
+          - name: "CPU"
+            dockerfile: "Dockerfile"
             platforms: "linux/amd64"
-            tag_name: "cuda-dev"
+            tag_name: "dev"
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -50,3 +50,12 @@ jobs:
             ghcr.io/agixt/${{ env.REPO_NAME }}:${{ matrix.tag_name }}
             ghcr.io/agixt/${{ env.REPO_NAME }}:${{ matrix.tag_name }}-${{ env.BRANCH_NAME }}
             ghcr.io/agixt/${{ env.REPO_NAME }}:${{ matrix.tag_name }}-${{ env.BRANCH_NAME }}-${{ github.sha }}
+
+  test-ezlocalai:
+    uses: josh-xt/AGiXT/.github/workflows/operation-test-with-jupyter.yml@main
+    with:
+      notebook: tests/tests.ipynb
+      image: ghcr.io/agixt/ezlocalai:cpu-dev
+      port: "8091"
+      additional-python-dependencies: openai requests
+    needs: build-ezlocalai

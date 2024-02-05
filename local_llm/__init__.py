@@ -1,3 +1,3 @@
-from local_llm.LLM import LLM
-from local_llm.STT import STT
-from local_llm.CTTS import CTTS
+from ezlocalai.LLM import LLM
+from ezlocalai.STT import STT
+from ezlocalai.CTTS import CTTS

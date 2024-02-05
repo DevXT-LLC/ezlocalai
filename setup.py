@@ -9,9 +9,9 @@ with open(os.path.join(this_directory, "requirements.txt")) as f:
     requirements = f.read().splitlines()
 
 setup(
-    name="local-llm",
+    name="ezlocalai",
     version="0.1.1",
-    description="Local-LLM is a llama.cpp server in Docker with OpenAI Style Endpoints.",
+    description="ezlocalai is a llama.cpp server in Docker with OpenAI Style Endpoints.",
     long_description=long_description,
     long_description_content_type="text/markdown",
     author="Josh XT",

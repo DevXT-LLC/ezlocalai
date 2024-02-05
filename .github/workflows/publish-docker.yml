@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-local-llm:
+  build-ezlocalai:
     runs-on: self-hosted
     strategy:
       matrix:
@@ -16,11 +16,7 @@ jobs:
           - name: "CPU"
             dockerfile: "Dockerfile"
             platforms: "linux/amd64"
-            tag_name: "cpu"
-          - name: "CUDA"
-            dockerfile: "cuda.Dockerfile"
-            platforms: "linux/amd64"
-            tag_name: "cuda"
+            tag_name: "latest"
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -68,13 +64,13 @@ jobs:
         with:
           username: ${{ vars.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-          repository: ${{ vars.DOCKERHUB_USERNAME }}/local-llm
+          repository: ${{ vars.DOCKERHUB_USERNAME }}/ezlocalai
 
-  test-local-llm:
+  test-ezlocalai:
     uses: josh-xt/AGiXT/.github/workflows/operation-test-with-jupyter.yml@main
     with:
       notebook: tests/tests.ipynb
-      image: ghcr.io/agixt/local-llm:cpu
+      image: ghcr.io/agixt/ezlocalai:cpu
       port: "8091"
       additional-python-dependencies: openai requests
-    needs: build-local-llm
+    needs: build-ezlocalai
