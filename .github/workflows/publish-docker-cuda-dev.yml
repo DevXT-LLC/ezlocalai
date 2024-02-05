@@ -1,4 +1,4 @@
-name: Dev - Build and Test
+name: Dev - Cuda Build
 
 on:
   push:
@@ -8,14 +8,10 @@ on:
 
 jobs:
   build-local-llm:
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     strategy:
       matrix:
         include:
-          - name: "CPU"
-            dockerfile: "Dockerfile"
-            platforms: "linux/amd64"
-            tag_name: "cpu-dev"
           - name: "CUDA"
             dockerfile: "cuda.Dockerfile"
             platforms: "linux/amd64"
@@ -54,12 +50,3 @@ jobs:
             ghcr.io/agixt/${{ env.REPO_NAME }}:${{ matrix.tag_name }}
             ghcr.io/agixt/${{ env.REPO_NAME }}:${{ matrix.tag_name }}-${{ env.BRANCH_NAME }}
             ghcr.io/agixt/${{ env.REPO_NAME }}:${{ matrix.tag_name }}-${{ env.BRANCH_NAME }}-${{ github.sha }}
-
-  test-local-llm:
-    uses: josh-xt/AGiXT/.github/workflows/operation-test-with-jupyter.yml@main
-    with:
-      notebook: tests/tests.ipynb
-      image: ghcr.io/agixt/local-llm:cpu-dev
-      port: "8091"
-      additional-python-dependencies: openai requests
-    needs: build-local-llm
