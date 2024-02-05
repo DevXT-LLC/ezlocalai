@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   ezlocalai:
-    image: ghcr.io/josh-xt/ezlocalai:cuda-dev
+    image: ghcr.io/josh-xt/ezlocalai:dev
     environment:
       - EZLOCALAI_URL=${EZLOCALAI_URL-http://localhost:8091}
       - EZLOCALAI_API_KEY=${EZLOCALAI_API_KEY-}
