@@ -111,7 +111,7 @@ class CTTS:
         torchaudio.save(output_file, torch.tensor(output["wav"]).unsqueeze(0), 24000)
         torch.cuda.empty_cache()
         if url_output:
-            return f"{os.environ.get('LOCAL_LLM_URL', 'http://localhost:8091')}/outputs/{output_file_name}"
+            return f"{os.environ.get('EZLOCALAI_URL', 'http://localhost:8091')}/outputs/{output_file_name}"
         with open(output_file, "rb") as file:
             audio_data = file.read()
         os.remove(output_file)

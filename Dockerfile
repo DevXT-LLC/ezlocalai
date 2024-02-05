@@ -17,5 +17,4 @@ RUN --mount=type=cache,target=/var/cache/pip,sharing=locked \
     python3 -m pip install --no-cache-dir -r requirements.txt
 COPY . .
 EXPOSE 8091
-RUN chmod +x start.sh
-ENTRYPOINT ["sh", "-c", "./start.sh"]
+ENTRYPOINT ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8091", "--workers", "1", "--proxy-headers"]

@@ -14,9 +14,9 @@ $env:RUN_WITHOUT_DOCKER = Get-Content -Path ".env" | Select-String -Pattern "RUN
 if ($null -eq $env:RUN_WITHOUT_DOCKER) {
     $env:RUN_WITHOUT_DOCKER = ""
 }
-$env:LOCAL_LLM_API_KEY = Get-Content -Path ".env" | Select-String -Pattern "LOCAL_LLM_API_KEY" | ForEach-Object { $_.ToString().Split("=")[1] }
-if ($null -eq $env:LOCAL_LLM_API_KEY) {
-    $env:LOCAL_LLM_API_KEY = ""
+$env:EZLOCALAI_API_KEY = Get-Content -Path ".env" | Select-String -Pattern "EZLOCALAI_API_KEY" | ForEach-Object { $_.ToString().Split("=")[1] }
+if ($null -eq $env:EZLOCALAI_API_KEY) {
+    $env:EZLOCALAI_API_KEY = ""
 }
 $env:THREADS = Get-Content -Path ".env" | Select-String -Pattern "THREADS" | ForEach-Object { $_.ToString().Split("=")[1] }
 if ($null -eq $env:THREADS) {
@@ -71,8 +71,8 @@ if( $env:RUN_WITHOUT_DOCKER.Length -ne 0) {
     if ($env:CUDA_DOCKER_ARCH.Length -ne 0) {
         docker-compose -f docker-compose-cuda.yml down
         if ($env:AUTO_UPDATE -eq "true") {
-            Write-Host "Pulling latest images, please wait.."
-            docker-compose -f docker-compose-cuda.yml pull
+            Write-Host "Build latest images, please wait.."
+            docker-compose -f docker-compose-cuda.yml build
         }
         Write-Host "Starting server, please wait.."
         docker-compose -f docker-compose-cuda.yml up

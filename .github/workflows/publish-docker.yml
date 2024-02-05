@@ -8,23 +8,15 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-local-llm:
-    runs-on: ubuntu-latest
+  build-ezlocalai:
+    runs-on: self-hosted
     strategy:
       matrix:
         include:
           - name: "CPU"
             dockerfile: "Dockerfile"
             platforms: "linux/amd64"
-            tag_name: "cpu"
-          - name: "CUDA"
-            dockerfile: "cuda.Dockerfile"
-            platforms: "linux/amd64"
-            tag_name: "cuda"
-          - name: "Vulkan"
-            dockerfile: "vulkan.Dockerfile"
-            platforms: "linux/amd64"
-            tag_name: "vulkan"
+            tag_name: "latest"
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -64,21 +56,21 @@ jobs:
           tags: |
             ${{ vars.DOCKERHUB_USERNAME }}/${{ env.REPO_NAME }}:${{ matrix.tag_name }}
             ${{ vars.DOCKERHUB_USERNAME }}/${{ env.REPO_NAME }}:${{ matrix.tag_name }}-${{ github.sha }}
-            ghcr.io/${{ env.GITHUB_USER }}/${{ env.REPO_NAME }}:${{ matrix.tag_name }}
-            ghcr.io/${{ env.GITHUB_USER }}/${{ env.REPO_NAME }}:${{ matrix.tag_name }}-${{ github.sha }}
+            ghcr.io/agixt/${{ env.REPO_NAME }}:${{ matrix.tag_name }}
+            ghcr.io/agixt/${{ env.REPO_NAME }}:${{ matrix.tag_name }}-${{ github.sha }}
 
       - name: Docker Hub Description
         uses: peter-evans/dockerhub-description@v3.4.2
         with:
           username: ${{ vars.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-          repository: ${{ vars.DOCKERHUB_USERNAME }}/local-llm
+          repository: ${{ vars.DOCKERHUB_USERNAME }}/ezlocalai
 
-  test-local-llm:
+  test-ezlocalai:
     uses: josh-xt/AGiXT/.github/workflows/operation-test-with-jupyter.yml@main
     with:
       notebook: tests/tests.ipynb
-      image: ghcr.io/josh-xt/local-llm:cpu
+      image: ghcr.io/agixt/ezlocalai:latest
       port: "8091"
       additional-python-dependencies: openai requests
-    needs: build-local-llm
+    needs: build-ezlocalai

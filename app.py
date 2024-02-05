@@ -4,9 +4,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from typing import List, Dict, Union, Optional
-from local_llm.LLM import LLM, streaming_generation
-from local_llm.STT import STT
-from local_llm.CTTS import CTTS
+from ezlocalai.LLM import LLM, streaming_generation
+from ezlocalai.STT import STT
+from ezlocalai.CTTS import CTTS
 import os
 import logging
 from dotenv import load_dotenv
@@ -37,11 +37,11 @@ VISION_MODEL = os.getenv("VISION_MODEL", "")
 LOADED_VISION_MODEL = None
 if VISION_MODEL != "":
     LOADED_VISION_MODEL = LLM(model=VISION_MODEL)  # bakllava-1-7b
-    logging.info(f"[Local-LLM] Vision is enabled.")
+    logging.info(f"[ezlocalai] Vision is enabled.")
 
-logging.info(f"[Local-LLM] Server is ready.")
+logging.info(f"[ezlocalai] Server is ready.")
 
-app = FastAPI(title="Local-LLM Server", docs_url="/")
+app = FastAPI(title="ezlocalai Server", docs_url="/")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -54,7 +54,7 @@ app.mount("/outputs", StaticFiles(directory="outputs"), name="outputs")
 
 
 def verify_api_key(authorization: str = Header(None)):
-    encryption_key = os.environ.get("LOCAL_LLM_API_KEY", "")
+    encryption_key = os.environ.get("EZLOCALAI_API_KEY", "")
     if encryption_key:
         if authorization is None:
             raise HTTPException(

@@ -153,7 +153,7 @@ def get_prompt(model_name="", models_dir="models"):
     return prompt_template
 
 
-def get_model(model_name="", models_dir="models"):
+def download_llm(model_name="", models_dir="models"):
     if model_name == "":
         global DEFAULT_MODEL
         model_name = DEFAULT_MODEL
@@ -301,9 +301,7 @@ class LLM:
         MAIN_GPU = os.environ.get("MAIN_GPU", 0)
         GPU_LAYERS = os.environ.get("GPU_LAYERS", 0)
         if torch.cuda.is_available() and int(GPU_LAYERS) == 0:
-            vram = (
-                round(torch.cuda.get_device_properties(0).total_memory / 1024**3) - 3
-            )
+            vram = round(torch.cuda.get_device_properties(0).total_memory / 1024**3) - 3
             if vram <= 0:
                 vram = 0
             logging.info(f"[LLM] {vram}GB of available VRAM detected.")
@@ -317,7 +315,7 @@ class LLM:
         self.params = {}
         self.model_name = model
         if model != "":
-            self.params["model_path"] = get_model(
+            self.params["model_path"] = download_llm(
                 model_name=self.model_name, models_dir=models_dir
             )
             if max_tokens != 0:
@@ -341,7 +339,7 @@ class LLM:
             self.params["model_path"] = ""
             self.params["max_tokens"] = 8192
             self.prompt_template = "{system_message}\n\n{prompt}"
-        self.params["n_ctx"] = get_max_tokens(model_name=self.model_name)
+        self.params["n_ctx"] = 0
         self.params["verbose"] = True
         self.system_message = system_message
         self.params["mirostat_mode"] = 2
@@ -404,32 +402,40 @@ class LLM:
             formatted_prompt = custom_format_prompt(
                 prompt=prompt,
                 prompt_template=self.prompt_template,
-                system_message=self.system_message
-                if system_message is None
-                else system_message,
+                system_message=(
+                    self.system_message if system_message is None else system_message
+                ),
             )
         data = self.lcpp.create_completion(
             prompt=formatted_prompt if format_prompt else prompt,
-            max_tokens=self.params["max_tokens"]
-            if max_tokens is None
-            else int(max_tokens),
-            temperature=self.params["temperature"]
-            if temperature is None
-            else float(temperature),
+            max_tokens=(
+                self.params["max_tokens"] if max_tokens is None else int(max_tokens)
+            ),
+            temperature=(
+                self.params["temperature"]
+                if temperature is None
+                else float(temperature)
+            ),
             top_p=self.params["top_p"] if top_p is None else float(top_p),
             min_p=self.params["min_p"] if min_p is None else float(min_p),
             stop=self.params["stop"],
             top_k=self.params["top_k"] if top_k is None else int(top_k),
             logit_bias=self.params["logit_bias"] if logit_bias is None else logit_bias,
-            mirostat_mode=self.params["mirostat_mode"]
-            if mirostat_mode is None
-            else int(mirostat_mode),
-            frequency_penalty=self.params["frequency_penalty"]
-            if frequency_penalty is None
-            else float(frequency_penalty),
-            presence_penalty=self.params["presence_penalty"]
-            if presence_penalty is None
-            else float(presence_penalty),
+            mirostat_mode=(
+                self.params["mirostat_mode"]
+                if mirostat_mode is None
+                else int(mirostat_mode)
+            ),
+            frequency_penalty=(
+                self.params["frequency_penalty"]
+                if frequency_penalty is None
+                else float(frequency_penalty)
+            ),
+            presence_penalty=(
+                self.params["presence_penalty"]
+                if presence_penalty is None
+                else float(presence_penalty)
+            ),
             stream=self.params["stream"] if stream is None else stream,
             model=self.model_name if model is None else model,
         )
@@ -485,4 +491,4 @@ class LLM:
 
 if __name__ == "__main__":
     logging.info(f"[LLM] Downloading {DEFAULT_MODEL} model...")
-    get_model(model_name=DEFAULT_MODEL, models_dir="models")
+    download_llm(model_name=DEFAULT_MODEL, models_dir="models")
