@@ -15,3 +15,5 @@ services:
       - ./models:/app/models
       - ./outputs:/app/outputs
       - ./voices:/app/voices
+      - ./whispercpp:/app/whispercpp
+      - ./xttsv2_2.0.2:/app/xttsv2_2.0.2
