@@ -60,8 +60,8 @@ jobs:
           tags: |
             ${{ vars.DOCKERHUB_USERNAME }}/${{ env.REPO_NAME }}:${{ matrix.tag_name }}
             ${{ vars.DOCKERHUB_USERNAME }}/${{ env.REPO_NAME }}:${{ matrix.tag_name }}-${{ github.sha }}
-            ghcr.io/${{ env.GITHUB_USER }}/${{ env.REPO_NAME }}:${{ matrix.tag_name }}
-            ghcr.io/${{ env.GITHUB_USER }}/${{ env.REPO_NAME }}:${{ matrix.tag_name }}-${{ github.sha }}
+            ghcr.io/agixt/${{ env.REPO_NAME }}:${{ matrix.tag_name }}
+            ghcr.io/agixt/${{ env.REPO_NAME }}:${{ matrix.tag_name }}-${{ github.sha }}
 
       - name: Docker Hub Description
         uses: peter-evans/dockerhub-description@v3.4.2
@@ -74,7 +74,7 @@ jobs:
     uses: josh-xt/AGiXT/.github/workflows/operation-test-with-jupyter.yml@main
     with:
       notebook: tests/tests.ipynb
-      image: ghcr.io/josh-xt/local-llm:cpu
+      image: ghcr.io/agixt/local-llm:cpu
       port: "8091"
       additional-python-dependencies: openai requests
     needs: build-local-llm
