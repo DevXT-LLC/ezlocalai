@@ -1,6 +1,6 @@
 # ezlocalai
 
-[![GitHub](https://img.shields.io/badge/GitHub-Local%20LLM-blue?logo=github&style=plastic)](https://github.com/Josh-XT/ezlocalai) [![Dockerhub](https://img.shields.io/badge/Docker-Local%20LLM-blue?logo=docker&style=plastic)](https://hub.docker.com/r/joshxt/ezlocalai)
+[![GitHub](https://img.shields.io/badge/GitHub-Local%20LLM-blue?logo=github&style=plastic)](https://github.com/DevXT-LLC/ezlocalai) [![Dockerhub](https://img.shields.io/badge/Docker-Local%20LLM-blue?logo=docker&style=plastic)](https://hub.docker.com/r/joshxt/ezlocalai)
 
 ezlocalai is a simple [llama.cpp](https://github.com/ggerganov/llama.cpp) server that easily exposes a list of local language models to choose from to run on your own computer. It is designed to be as easy as possible to get started with running local models. It automatically handles downloading the model of your choice and configuring the server based on your CPU, RAM, and GPU. It also includes [OpenAI Style](https://pypi.org/project/openai/) endpoints for easy integration with other applications. Additional functionality is built in for voice cloning text to speech and a voice to text for easy voice communication entirely offline after the initial setup.
 
@@ -23,7 +23,7 @@ ezlocalai is a simple [llama.cpp](https://github.com/ggerganov/llama.cpp) server
 ## Installation
 
 ```bash
-git clone https://github.com/Josh-XT/ezlocalai
+git clone https://github.com/DevXT-LLC/ezlocalai
 cd ezlocalai
 ```
 

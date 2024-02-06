@@ -63,7 +63,7 @@ Make sure to move your `.env` file to the `ezlocalai` directory if you set one u
 ## Run with Docker Compose (Without NVIDIA GPU)
 
 ```bash
-git clone https://github.com/Josh-XT/ezlocalai
+git clone https://github.com/DevXT-LLC/ezlocalai
 cd ezlocalai
 docker-compose pull
 docker-compose up
@@ -74,7 +74,7 @@ docker-compose up
 You must have the [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html) installed if using NVIDIA GPU.
 
 ```bash
-git clone https://github.com/Josh-XT/ezlocalai
+git clone https://github.com/DevXT-LLC/ezlocalai
 cd ezlocalai
 docker-compose -f docker-compose-cuda.yml pull
 docker-compose -f docker-compose-cuda.yml up
