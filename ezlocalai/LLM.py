@@ -301,7 +301,7 @@ class LLM:
         MAIN_GPU = os.environ.get("MAIN_GPU", 0)
         GPU_LAYERS = os.environ.get("GPU_LAYERS", 0)
         if torch.cuda.is_available() and int(GPU_LAYERS) == 0:
-            vram = round(torch.cuda.get_device_properties(0).total_memory / 1024**3) - 3
+            vram = round(torch.cuda.get_device_properties(0).total_memory / 1024**3) - 4
             if vram <= 0:
                 vram = 0
             logging.info(f"[LLM] {vram}GB of available VRAM detected.")
