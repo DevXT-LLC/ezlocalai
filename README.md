@@ -2,7 +2,7 @@
 
 [![GitHub](https://img.shields.io/badge/GitHub-Local%20LLM-blue?logo=github&style=plastic)](https://github.com/DevXT-LLC/ezlocalai) [![Dockerhub](https://img.shields.io/badge/Docker-Local%20LLM-blue?logo=docker&style=plastic)](https://hub.docker.com/r/joshxt/ezlocalai)
 
-ezlocalai is a simple [llama.cpp](https://github.com/ggerganov/llama.cpp) server that easily exposes a list of local language models to choose from to run on your own computer. It is designed to be as easy as possible to get started with running local models. It automatically handles downloading the model of your choice and configuring the server based on your CPU, RAM, and GPU. It also includes [OpenAI Style](https://pypi.org/project/openai/) endpoints for easy integration with other applications. Additional functionality is built in for voice cloning text to speech and a voice to text for easy voice communication entirely offline after the initial setup.
+ezlocalai is an easy set up artificial intelligence server that easily exposes a list of local artificial intelligence models to choose from to run on your own computer. It is designed to be as easy as possible to get started with running local models. It automatically handles downloading the model of your choice and configuring the server based on your CPU, RAM, and GPU specifications. It also includes [OpenAI Style](https://pypi.org/project/openai/) endpoints for easy integration with other applications using ezlocalai as an OpenAI API proxy with any model. Additional functionality is built in for voice cloning text to speech and a voice to text for easy voice communication entirely offline after the initial setup.
 
 ## Prerequisites
 
@@ -16,7 +16,7 @@ ezlocalai is a simple [llama.cpp](https://github.com/ggerganov/llama.cpp) server
 
 - [Docker](https://docs.docker.com/get-docker/)
 - [Docker Compose](https://docs.docker.com/compose/install/)
-- [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html)
+- [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html) (NVIDIA GPU only)
 
 </details>
 
@@ -41,12 +41,12 @@ Modify the `.env` file to your desired settings. Assumptions will be made on all
 Replace the environment variables with your desired settings. Assumptions will be made on all of these values if you choose to accept the defaults.
 
 - `EZLOCALAI_API_KEY` - The API key to use for the server. If not set, the server will not require an API key when accepting requests.
-- `DEFAULT_MODEL` - The default model to use when no model is specified. Default is `phi-2-dpo`.
+- `DEFAULT_MODEL` - The default model to use when no model is specified. Default is `zephyr-7b-beta`.
 - `WHISPER_MODEL` - The model to use for speech-to-text. Default is `base.en`.
 - `AUTO_UPDATE` - Whether or not to automatically update ezlocalai. Default is `true`.
-- `THREADS` - The number of CPU threads ezlocalai is allowed to use. Default is `your CPU thread count minus 2`.
-- `GPU_LAYERS` (Only applicable to NVIDIA GPU) - The number of layers to use on the GPU. Default is `0`. ezlocalai will automatically determine the optimal number of layers to use based on your GPU's memory if it is set to 0 and you have an NVIDIA GPU.
-- `MAIN_GPU` (Only applicable to NVIDIA GPU) - The GPU to use for the main model. Default is `0`.
+- `THREADS` - The number of CPU threads ezlocalai is allowed to use. Default is 4.
+- `GPU_LAYERS` (Only applicable to NVIDIA GPU) - The number of layers to use on the GPU. Default is `0`. Your `GPU_LAYERS` will automatically determine a number of layers to use based on your GPU's memory if it is set to 0 and you have an NVIDIA GPU.
+- `MAIN_GPU` (Only applicable to NVIDIA GPU) - The GPU to use for the language model. Default is `0`.
 
 </details>
 
