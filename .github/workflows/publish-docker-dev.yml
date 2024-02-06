@@ -47,15 +47,15 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           tags: |
-            ghcr.io/agixt/${{ env.REPO_NAME }}:${{ matrix.tag_name }}
-            ghcr.io/agixt/${{ env.REPO_NAME }}:${{ matrix.tag_name }}-${{ env.BRANCH_NAME }}
-            ghcr.io/agixt/${{ env.REPO_NAME }}:${{ matrix.tag_name }}-${{ env.BRANCH_NAME }}-${{ github.sha }}
+            ghcr.io/devxt-llc/${{ env.REPO_NAME }}:${{ matrix.tag_name }}
+            ghcr.io/devxt-llc/${{ env.REPO_NAME }}:${{ matrix.tag_name }}-${{ env.BRANCH_NAME }}
+            ghcr.io/devxt-llc/${{ env.REPO_NAME }}:${{ matrix.tag_name }}-${{ env.BRANCH_NAME }}-${{ github.sha }}
 
   test-ezlocalai:
     uses: josh-xt/AGiXT/.github/workflows/operation-test-with-jupyter.yml@main
     with:
       notebook: tests/tests.ipynb
-      image: ghcr.io/agixt/ezlocalai:dev
+      image: ghcr.io/devxt-llc/ezlocalai:dev
       port: "8091"
       additional-python-dependencies: openai requests
     needs: build-ezlocalai
