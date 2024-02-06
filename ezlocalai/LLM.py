@@ -305,10 +305,7 @@ class LLM:
             if vram <= 0:
                 vram = 0
             logging.info(f"[LLM] {vram}GB of available VRAM detected.")
-            if vram >= 48 or vram <= 5:
-                GPU_LAYERS = vram
-            else:
-                GPU_LAYERS = vram * 2
+            GPU_LAYERS = vram -1 if vram > 1 else 0
         logging.info(
             f"[LLM] Loading {DEFAULT_MODEL} with {GPU_LAYERS if GPU_LAYERS != -1 else 'all'} GPU layers. Please wait..."
         )
