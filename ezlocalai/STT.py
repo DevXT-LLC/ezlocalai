@@ -15,7 +15,7 @@ from pydub import AudioSegment
 
 class STT:
     def __init__(self, model="base", wake_functions={}):
-        self.w = WhisperModel(model, download_root="models")
+        self.w = WhisperModel(model, download_root="models", device="cpu")
         self.audio = pyaudio.PyAudio()
         self.wake_functions = wake_functions
 
