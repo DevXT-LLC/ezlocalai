@@ -1,7 +1,6 @@
 import os
 import base64
 import io
-import requests
 import uuid
 import logging
 import webrtcvad
@@ -10,41 +9,13 @@ import wave
 import threading
 import numpy as np
 from io import BytesIO
-from whisper_cpp import Whisper
+from faster_whisper import WhisperModel
 from pydub import AudioSegment
 
 
-def download_whisper_model(model="base.en"):
-    # https://huggingface.co/ggerganov/whisper.cpp
-    if model not in [
-        "tiny",
-        "tiny.en",
-        "base",
-        "base.en",
-        "small",
-        "small.en",
-        "medium",
-        "medium.en",
-        "large-v1",
-        "large-v2",
-        "large-v3",
-    ]:
-        model = "base.en"
-    os.makedirs(os.path.join(os.getcwd(), "whispercpp"), exist_ok=True)
-    model_path = os.path.join(os.getcwd(), "whispercpp", f"ggml-{model}.bin")
-    if not os.path.exists(model_path):
-        r = requests.get(
-            f"https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-{model}.bin",
-            allow_redirects=True,
-        )
-        open(model_path, "wb").write(r.content)
-    return model_path
-
-
 class STT:
-    def __init__(self, model="base.en", wake_functions={}):
-        model_path = download_whisper_model(model=model)
-        self.w = Whisper(model_path=model_path, verbose=False)
+    def __init__(self, model="base", wake_functions={}):
+        self.w = WhisperModel(model, download_root="models", device="cpu")
         self.audio = pyaudio.PyAudio()
         self.wake_functions = wake_functions
 
@@ -59,8 +30,13 @@ class STT:
         audio_segment.export(file_path, format="wav")
         if not os.path.exists(file_path):
             raise RuntimeError(f"Failed to load audio.")
-        self.w.transcribe(file_path)
-        user_input = self.w.output(output_txt=False)
+        segments, _  = self.w.transcribe(file_path, vad_filter=True,
+            vad_parameters=dict(min_silence_duration_ms=500),
+        )
+        segments = list(segments)
+        user_input = ""
+        for segment in segments:
+            user_input += segment.text
         logging.info(f"[STT] Transcribed User Input: {user_input}")
         user_input = user_input.replace("[BLANK_AUDIO]", "")
         os.remove(file_path)
@@ -115,7 +91,3 @@ class STT:
                     silence_frames = 0
             else:
                 silence_frames = 0
-
-
-if __name__ == "__main__":
-    download_whisper_model()

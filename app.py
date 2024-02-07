@@ -49,6 +49,13 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+NGROK_TOKEN = os.environ.get("NGROK_TOKEN", "")
+if NGROK_TOKEN:
+    from pyngrok import ngrok
+    
+    ngrok.set_auth_token(NGROK_TOKEN)
+    public_url = ngrok.connect(port=8091)
+    logging.info(f"ngrok tunnel: {public_url}")
 
 app.mount("/outputs", StaticFiles(directory="outputs"), name="outputs")
 
