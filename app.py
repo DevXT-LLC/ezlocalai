@@ -55,7 +55,7 @@ if NGROK_TOKEN:
     
     ngrok.set_auth_token(NGROK_TOKEN)
     public_url = ngrok.connect(8091)
-    logging.info(f"ngrok tunnel: {public_url}")
+    logging.info(f"[ngrok] Public Tunnel: {public_url.public_url}")
 
 app.mount("/outputs", StaticFiles(directory="outputs"), name="outputs")
 
