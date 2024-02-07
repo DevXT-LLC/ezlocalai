@@ -9,9 +9,6 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     python3 -m pip install --upgrade pip --no-cache-dir
 WORKDIR /app
 ENV HOST 0.0.0.0
-COPY download.py .
-RUN --mount=type=cache,target=/var/cache/models,sharing=shared \
-    python3 download.py
 COPY requirements.txt .
 RUN --mount=type=cache,target=/var/cache/pip,sharing=locked \
     python3 -m pip install --no-cache-dir -r requirements.txt
