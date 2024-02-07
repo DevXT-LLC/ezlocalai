@@ -54,10 +54,12 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           tags: |
-            ${{ vars.DOCKERHUB_USERNAME }}/${{ env.REPO_NAME }}:${{ matrix.tag_name }}
-            ${{ vars.DOCKERHUB_USERNAME }}/${{ env.REPO_NAME }}:${{ matrix.tag_name }}-${{ github.sha }}
-            ghcr.io/devxt-llc/${{ env.REPO_NAME }}:${{ matrix.tag_name }}
-            ghcr.io/devxt-llc/${{ env.REPO_NAME }}:${{ matrix.tag_name }}-${{ github.sha }}
+            ${{ vars.DOCKERHUB_USERNAME }}/${{ env.REPO_NAME }}:latest
+            ${{ vars.DOCKERHUB_USERNAME }}/${{ env.REPO_NAME }}:${{ env.BRANCH_NAME }}
+            ${{ vars.DOCKERHUB_USERNAME }}/${{ env.REPO_NAME }}:${{ env.BRANCH_NAME }}-${{ github.sha }}
+            ghcr.io/devxt-llc/${{ env.REPO_NAME }}:latest
+            ghcr.io/devxt-llc/${{ env.REPO_NAME }}:${{ env.BRANCH_NAME }}
+            ghcr.io/devxt-llc/${{ env.REPO_NAME }}:${{ env.BRANCH_NAME }}-${{ github.sha }}
 
       - name: Docker Hub Description
         uses: peter-evans/dockerhub-description@v3.4.2
@@ -70,7 +72,7 @@ jobs:
     uses: josh-xt/AGiXT/.github/workflows/operation-test-with-jupyter.yml@main
     with:
       notebook: tests/tests.ipynb
-      image: ghcr.io/devxt-llc/ezlocalai:latest
+      image: ghcr.io/devxt-llc/ezlocalai:main
       port: "8091"
       additional-python-dependencies: openai requests
     needs: build-ezlocalai
