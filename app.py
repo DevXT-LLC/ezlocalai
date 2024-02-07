@@ -54,7 +54,7 @@ if NGROK_TOKEN:
     from pyngrok import ngrok
     
     ngrok.set_auth_token(NGROK_TOKEN)
-    public_url = ngrok.connect(port=8091)
+    public_url = ngrok.connect(8091)
     logging.info(f"ngrok tunnel: {public_url}")
 
 app.mount("/outputs", StaticFiles(directory="outputs"), name="outputs")
