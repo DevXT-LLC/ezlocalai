@@ -15,4 +15,5 @@ TTS==0.22.0
 sounddevice==0.4.6
 pyaudio==0.2.14
 webrtcvad==2.0.10
+pyngrok==7.1.0
 llama-cpp-python
