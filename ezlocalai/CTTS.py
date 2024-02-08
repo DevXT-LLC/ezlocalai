@@ -47,8 +47,7 @@ class CTTS:
         if self.device == "cuda":
             torch.cuda.empty_cache()
         checkpoint_dir = os.path.join(os.getcwd(), "xttsv2_2.0.2")
-        if not os.path.exists(checkpoint_dir):
-            download_xtts()
+        download_xtts()
         config = XttsConfig()
         config.load_json(str(os.path.join(checkpoint_dir, "config.json")))
         self.model = Xtts.init_from_config(config)
