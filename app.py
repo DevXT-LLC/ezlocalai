@@ -16,13 +16,13 @@ logging.basicConfig(
     level=os.environ.get("LOGLEVEL", "INFO"),
     format="%(asctime)s | %(levelname)s | %(message)s",
 )
-ALLOW_MODEL_SWITCHING = os.getenv("ALLOW_MODEL_SWITCHING", "false").lower() == "true"
+ALLOW_MODEL_SWITCHING = os.getenv("ALLOW_MODEL_SWITCHING", "false").lower()
 logging.info(f"[CTTS] xttsv2_2.0.2 model loading. Please wait...")
 LOADED_CTTS = CTTS()
 logging.info(f"[CTTS] xttsv2_2.0.2 model loaded successfully.")
 
-WHISPER_MODEL = os.getenv("WHISPER_MODEL", "base.en")
-CURRENT_STT_MODEL = WHISPER_MODEL if WHISPER_MODEL else "base.en"
+WHISPER_MODEL = os.getenv("WHISPER_MODEL", "base")
+CURRENT_STT_MODEL = WHISPER_MODEL if WHISPER_MODEL else "base"
 logging.info(f"[STT] {CURRENT_STT_MODEL} model loading. Please wait...")
 LOADED_STT = STT(model=CURRENT_STT_MODEL)
 logging.info(f"[STT] {CURRENT_STT_MODEL} model loaded successfully.")
@@ -145,8 +145,8 @@ async def get_response(data, completion_type="chat"):
     global ALLOW_MODEL_SWITCHING
     if data["model"]:
         if CURRENT_MODEL != data["model"]:
-            if not ALLOW_MODEL_SWITCHING:
-                model = CURRENT_MODEL
+            if str(ALLOW_MODEL_SWITCHING).lower() != "true":
+                data["model"] = CURRENT_MODEL
             else:
                 CURRENT_MODEL = data["model"]
                 LOADED_LLM = LLM(model=data["model"])
@@ -304,7 +304,7 @@ async def embedding(embedding: EmbeddingModel, user=Depends(verify_api_key)):
     global ALLOW_MODEL_SWITCHING
     if embedding.model:
         if CURRENT_MODEL != embedding.model:
-            if ALLOW_MODEL_SWITCHING:
+            if str(ALLOW_MODEL_SWITCHING).lower() == "true":
                 CURRENT_MODEL = embedding.model
                 LOADED_LLM = LLM(model=embedding.model)
     return LOADED_LLM.embedding(input=embedding.input)
@@ -321,7 +321,7 @@ async def embedding(embedding: EmbeddingModel, user=Depends(verify_api_key)):
     global ALLOW_MODEL_SWITCHING
     if embedding.model:
         if CURRENT_MODEL != embedding.model:
-            if ALLOW_MODEL_SWITCHING:
+            if str(ALLOW_MODEL_SWITCHING).lower() == "true":
                 CURRENT_MODEL = embedding.model
                 LOADED_LLM = LLM(model=embedding.model)
     return LOADED_LLM.embedding(input=embedding.input)
@@ -344,7 +344,7 @@ async def speech_to_text(stt: SpeechToText, user=Depends(verify_api_key)):
     global ALLOW_MODEL_SWITCHING
     if stt.model:
         if CURRENT_STT_MODEL != stt.model:
-            if ALLOW_MODEL_SWITCHING:
+            if str(ALLOW_MODEL_SWITCHING).lower() == "true":
                 CURRENT_STT_MODEL = stt.model
                 LOADED_STT = STT(model=stt.model)
     response = await LOADED_STT.transcribe_audio(
