@@ -27,8 +27,8 @@ logging.info(f"[STT] {CURRENT_STT_MODEL} model loading. Please wait...")
 LOADED_STT = STT(model=CURRENT_STT_MODEL)
 logging.info(f"[STT] {CURRENT_STT_MODEL} model loaded successfully.")
 
-DEFAULT_MODEL = os.environ.get("DEFAULT_MODEL", "zephyr-7b-beta")
-CURRENT_MODEL = DEFAULT_MODEL if DEFAULT_MODEL else "zephyr-7b-beta"
+DEFAULT_MODEL = os.environ.get("DEFAULT_MODEL", "TinyLlama-1.1B-Chat-v1.0")
+CURRENT_MODEL = DEFAULT_MODEL if DEFAULT_MODEL else "TinyLlama-1.1B-Chat-v1.0"
 logging.info(f"[LLM] {CURRENT_MODEL} model loading. Please wait...")
 LOADED_LLM = LLM(model=CURRENT_MODEL)
 logging.info(f"[LLM] {CURRENT_MODEL} model loaded successfully.")
@@ -342,6 +342,7 @@ class SpeechToText(BaseModel):
 async def speech_to_text(stt: SpeechToText, user=Depends(verify_api_key)):
     global LOADED_STT
     global ALLOW_MODEL_SWITCHING
+    global CURRENT_STT_MODEL
     if stt.model:
         if CURRENT_STT_MODEL != stt.model:
             if str(ALLOW_MODEL_SWITCHING).lower() == "true":

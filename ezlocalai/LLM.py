@@ -11,7 +11,7 @@ import torch
 import logging
 
 
-DEFAULT_MODEL = os.environ.get("DEFAULT_MODEL", "zephyr-7b-beta")
+DEFAULT_MODEL = os.environ.get("DEFAULT_MODEL", "TinyLlama-1.1B-Chat-v1.0")
 
 
 def get_vision_models():
