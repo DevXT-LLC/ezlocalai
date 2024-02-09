@@ -16,19 +16,19 @@ logging.basicConfig(
     level=os.environ.get("LOGLEVEL", "INFO"),
     format="%(asctime)s | %(levelname)s | %(message)s",
 )
-
+ALLOW_MODEL_SWITCHING = os.getenv("ALLOW_MODEL_SWITCHING", "false").lower()
 logging.info(f"[CTTS] xttsv2_2.0.2 model loading. Please wait...")
 LOADED_CTTS = CTTS()
 logging.info(f"[CTTS] xttsv2_2.0.2 model loaded successfully.")
 
-WHISPER_MODEL = os.getenv("WHISPER_MODEL", "base.en")
-CURRENT_STT_MODEL = WHISPER_MODEL if WHISPER_MODEL else "base.en"
+WHISPER_MODEL = os.getenv("WHISPER_MODEL", "base")
+CURRENT_STT_MODEL = WHISPER_MODEL if WHISPER_MODEL else "base"
 logging.info(f"[STT] {CURRENT_STT_MODEL} model loading. Please wait...")
 LOADED_STT = STT(model=CURRENT_STT_MODEL)
 logging.info(f"[STT] {CURRENT_STT_MODEL} model loaded successfully.")
 
-DEFAULT_MODEL = os.environ.get("DEFAULT_MODEL", "zephyr-7b-beta")
-CURRENT_MODEL = DEFAULT_MODEL if DEFAULT_MODEL else "zephyr-7b-beta"
+DEFAULT_MODEL = os.environ.get("DEFAULT_MODEL", "TinyLlama-1.1B-Chat-v1.0")
+CURRENT_MODEL = DEFAULT_MODEL if DEFAULT_MODEL else "TinyLlama-1.1B-Chat-v1.0"
 logging.info(f"[LLM] {CURRENT_MODEL} model loading. Please wait...")
 LOADED_LLM = LLM(model=CURRENT_MODEL)
 logging.info(f"[LLM] {CURRENT_MODEL} model loaded successfully.")
@@ -141,10 +141,15 @@ class ChatCompletionsResponse(BaseModel):
 async def get_response(data, completion_type="chat"):
     global CURRENT_MODEL
     global LOADED_LLM
+    global LOADED_CTTS
+    global ALLOW_MODEL_SWITCHING
     if data["model"]:
         if CURRENT_MODEL != data["model"]:
-            CURRENT_MODEL = data["model"]
-            LOADED_LLM = LLM(model=data["model"])
+            if str(ALLOW_MODEL_SWITCHING).lower() != "true":
+                data["model"] = CURRENT_MODEL
+            else:
+                CURRENT_MODEL = data["model"]
+                LOADED_LLM = LLM(model=data["model"])
     if "stop" in data:
         new_stop = LOADED_LLM.params["stop"]
         new_stop.append(data["stop"])
@@ -296,10 +301,12 @@ class EmbeddingResponse(BaseModel):
 async def embedding(embedding: EmbeddingModel, user=Depends(verify_api_key)):
     global CURRENT_MODEL
     global LOADED_LLM
+    global ALLOW_MODEL_SWITCHING
     if embedding.model:
         if CURRENT_MODEL != embedding.model:
-            CURRENT_MODEL = embedding.model
-            LOADED_LLM = LLM(model=embedding.model)
+            if str(ALLOW_MODEL_SWITCHING).lower() == "true":
+                CURRENT_MODEL = embedding.model
+                LOADED_LLM = LLM(model=embedding.model)
     return LOADED_LLM.embedding(input=embedding.input)
 
 
@@ -311,10 +318,12 @@ async def embedding(embedding: EmbeddingModel, user=Depends(verify_api_key)):
 async def embedding(embedding: EmbeddingModel, user=Depends(verify_api_key)):
     global CURRENT_MODEL
     global LOADED_LLM
+    global ALLOW_MODEL_SWITCHING
     if embedding.model:
         if CURRENT_MODEL != embedding.model:
-            CURRENT_MODEL = embedding.model
-            LOADED_LLM = LLM(model=embedding.model)
+            if str(ALLOW_MODEL_SWITCHING).lower() == "true":
+                CURRENT_MODEL = embedding.model
+                LOADED_LLM = LLM(model=embedding.model)
     return LOADED_LLM.embedding(input=embedding.input)
 
 
@@ -332,9 +341,13 @@ class SpeechToText(BaseModel):
 )
 async def speech_to_text(stt: SpeechToText, user=Depends(verify_api_key)):
     global LOADED_STT
+    global ALLOW_MODEL_SWITCHING
+    global CURRENT_STT_MODEL
     if stt.model:
         if CURRENT_STT_MODEL != stt.model:
-            LOADED_STT = STT(model=stt.model)
+            if str(ALLOW_MODEL_SWITCHING).lower() == "true":
+                CURRENT_STT_MODEL = stt.model
+                LOADED_STT = STT(model=stt.model)
     response = await LOADED_STT.transcribe_audio(
         base64_audio=stt.file, audio_format=stt.audio_format
     )

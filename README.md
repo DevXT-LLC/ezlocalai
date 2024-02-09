@@ -43,12 +43,13 @@ Replace the environment variables with your desired settings. Assumptions will b
 - `EZLOCALAI_URL` - The URL to use for the server. Default is `http://localhost:8091`.
 - `EZLOCALAI_API_KEY` - The API key to use for the server. If not set, the server will not require an API key when accepting requests.
 - `NGROK_TOKEN` - The ngrok token to use for the server. If not set, ngrok will not be used. Using ngrok will allow you to expose your ezlocalai server to the public with as simple as an API key. [Get your free NGROK_TOKEN here.](https://dashboard.ngrok.com/get-started/your-authtoken)
-- `DEFAULT_MODEL` - The default model to use when no model is specified. Default is `zephyr-7b-beta`.
+- `DEFAULT_MODEL` - The default model to use when no model is specified. Default is `TinyLlama-1.1B-Chat-v1.0`.
 - `WHISPER_MODEL` - The model to use for speech-to-text. Default is `base.en`.
 - `AUTO_UPDATE` - Whether or not to automatically update ezlocalai. Default is `true`.
 - `THREADS` - The number of CPU threads ezlocalai is allowed to use. Default is 4.
 - `GPU_LAYERS` (Only applicable to NVIDIA GPU) - The number of layers to use on the GPU. Default is `0`. Your `GPU_LAYERS` will automatically determine a number of layers to use based on your GPU's memory if it is set to 0 and you have an NVIDIA GPU.
 - `MAIN_GPU` (Only applicable to NVIDIA GPU) - The GPU to use for the language model. Default is `0`.
+- `ALLOW_MODEL_SWITCHING` - Whether or not to allow model switching. Default is `false` which will mean it will ignore whatever is entered in the `model` field on API calls and use the model running on the server.
 
 </details>
 
