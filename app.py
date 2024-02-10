@@ -52,7 +52,7 @@ app.add_middleware(
 NGROK_TOKEN = os.environ.get("NGROK_TOKEN", "")
 if NGROK_TOKEN:
     from pyngrok import ngrok
-    
+
     ngrok.set_auth_token(NGROK_TOKEN)
     public_url = ngrok.connect(8091)
     logging.info(f"[ngrok] Public Tunnel: {public_url.public_url}")
@@ -221,7 +221,7 @@ async def chat_completions(
                 media_type="audio/wav",
             )
         return StreamingResponse(
-            streaming_generation(data=response["messages"][1]["content"]),
+            content=response["messages"][1]["content"],
             media_type="text/event-stream",
         )
 
@@ -273,7 +273,7 @@ async def completions(c: Completions, request: Request, user=Depends(verify_api_
                 media_type="audio/wav",
             )
         return StreamingResponse(
-            streaming_generation(data=response["choices"][0]["text"]),
+            content=response["choices"][0]["text"],
             media_type="text/event-stream",
         )
 
