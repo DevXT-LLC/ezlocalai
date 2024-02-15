@@ -27,8 +27,8 @@ logging.info(f"[STT] {CURRENT_STT_MODEL} model loading. Please wait...")
 LOADED_STT = STT(model=CURRENT_STT_MODEL)
 logging.info(f"[STT] {CURRENT_STT_MODEL} model loaded successfully.")
 
-DEFAULT_MODEL = os.environ.get("DEFAULT_MODEL", "TinyLlama-1.1B-Chat-v1.0")
-CURRENT_MODEL = DEFAULT_MODEL if DEFAULT_MODEL else "TinyLlama-1.1B-Chat-v1.0"
+DEFAULT_MODEL = os.environ.get("DEFAULT_MODEL", "phi-2-dpo")
+CURRENT_MODEL = DEFAULT_MODEL if DEFAULT_MODEL else "phi-2-dpo"
 logging.info(f"[LLM] {CURRENT_MODEL} model loading. Please wait...")
 LOADED_LLM = LLM(model=CURRENT_MODEL)
 logging.info(f"[LLM] {CURRENT_MODEL} model loaded successfully.")

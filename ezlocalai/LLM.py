@@ -11,7 +11,7 @@ import torch
 import logging
 
 
-DEFAULT_MODEL = os.environ.get("DEFAULT_MODEL", "TinyLlama-1.1B-Chat-v1.0")
+DEFAULT_MODEL = os.environ.get("DEFAULT_MODEL", "phi-2-dpo")
 
 
 def get_vision_models():
