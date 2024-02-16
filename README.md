@@ -59,6 +59,12 @@ Replace the environment variables with your desired settings. Assumptions will b
 ./start.ps1
 ```
 
+Linux:
+
+```bash
+sudo pwsh start.ps1
+```
+
 For examples on how to use the server to communicate with the models, see the [Examples Jupyter Notebook](tests/tests.ipynb).
 
 ## OpenAI Style Endpoint Usage
