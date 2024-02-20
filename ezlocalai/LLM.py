@@ -303,10 +303,12 @@ class LLM:
         if torch.cuda.is_available() and int(GPU_LAYERS) == 0:
             # 5GB VRAM reserved for TTS and STT.
             vram = round(torch.cuda.get_device_properties(0).total_memory / 1024**3) - 5
+            if vram == 3:
+                vram = 1
             if vram <= 0:
                 vram = 0
             logging.info(f"[LLM] {vram}GB of available VRAM detected.")
-            GPU_LAYERS = vram -1 if vram > 0 else 0
+            GPU_LAYERS = vram - 1 if vram > 0 else 0
         logging.info(
             f"[LLM] Loading {DEFAULT_MODEL} with {GPU_LAYERS if GPU_LAYERS != -1 else 'all'} GPU layers. Please wait..."
         )
