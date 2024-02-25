@@ -80,14 +80,25 @@ class Pipes:
         generated_image = None
         if self.img:
             create_img = self.llm.completion(
-                prompt=create_img_prompt.format(prompt=data["prompt"]),
+                prompt=create_img_prompt.format(
+                    prompt=(
+                        data["messages"][-1]["content"]
+                        if completion_type == "chat"
+                        else data["prompt"]
+                    )
+                ),
                 max_tokens=10,
                 system_message="Respond with a concise yes or no answer on if it would make sense to generate an image based on the users message. No other explanation is needed!",
             )
             create_img = str(create_img["choices"][0]["text"])
             if create_img.lower().startswith("y"):
+                prompt = (
+                    data["messages"][-1]["content"]
+                    if completion_type == "chat"
+                    else data["prompt"]
+                )
                 image_generation_prompt = self.llm.completion(
-                    prompt=img_prompt.format(prompt=data["prompt"]),
+                    prompt=img_prompt.format(prompt=prompt),
                     max_tokens=128,
                     system_message="You will now act as a prompt generator for a generative AI called STABLE DIFFUSION. STABLE DIFFUSION generates images based on given prompts.",
                 )
@@ -103,11 +114,11 @@ class Pipes:
                     prompt=image_generation_prompt, local_uri=self.local_uri
                 )
                 if generated_image:
-                    prompt = (
-                        data["prompt"]
-                        + f"\n\nAdditionally, you have used your image creation tool successfully to generate an image with the following stable diffusion description: {image_generation_prompt}.\n\nMention the image you created in the response."
-                    )
-                    data["prompt"] = prompt
+                    prompt += f"\n\nAdditionally, you have used your image creation tool successfully to generate an image with the following stable diffusion description: {image_generation_prompt}.\n\nMention the image you created in the response."
+                    if completion_type == "chat":
+                        data["messages"][-1]["content"] = prompt
+                    else:
+                        data["prompt"] = prompt
         if completion_type == "chat":
             response = self.llm.chat(**data)
         else:
