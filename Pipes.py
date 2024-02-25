@@ -8,6 +8,8 @@ from pyngrok import ngrok
 
 try:
     from ezlocalai.IMG import IMG, img_prompt, create_img_prompt
+
+    img_import_success = True
 except ImportError:
     img_import_success = False
     img_prompt = ""
