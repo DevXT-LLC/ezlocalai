@@ -151,11 +151,7 @@ class Pipes:
                 response["choices"][0]["text"] = f"{text_response}\n{audio_control}"
         if generated_image:
             if completion_type == "chat":
-                response["messages"][1][
-                    "content"
-                ] += f"\n\n![Generated Image]({generated_image})"
+                response["messages"][1]["content"] += f"\n\n{generated_image}"
             else:
-                response["choices"][0][
-                    "text"
-                ] += f"\n\n![Generated Image]({generated_image})"
+                response["choices"][0]["text"] += f"\n\n{generated_image}"
         return response, audio_response
