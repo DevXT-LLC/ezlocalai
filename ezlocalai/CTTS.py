@@ -72,7 +72,7 @@ class CTTS:
         text,
         voice="default",
         language="en",
-        url_output=False,
+        local_uri=None,
     ):
         output_file_name = f"{uuid.uuid4().hex}.wav"
         output_file = os.path.join(self.output_folder, output_file_name)
@@ -109,8 +109,8 @@ class CTTS:
         )
         torchaudio.save(output_file, torch.tensor(output["wav"]).unsqueeze(0), 24000)
         torch.cuda.empty_cache()
-        if url_output:
-            return f"{os.environ.get('EZLOCALAI_URL', 'http://localhost:8091')}/outputs/{output_file_name}"
+        if local_uri:
+            return f"{local_uri}/outputs/{output_file_name}"
         with open(output_file, "rb") as file:
             audio_data = file.read()
         os.remove(output_file)

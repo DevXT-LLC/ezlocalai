@@ -34,6 +34,17 @@ if NGROK_TOKEN:
     ngrok.set_auth_token(NGROK_TOKEN)
     public_url = ngrok.connect(8091)
     logging.info(f"[ngrok] Public Tunnel: {public_url.public_url}")
+    ngrok_url = public_url.public_url
+
+    def get_ngrok_url():
+        global ngrok_url
+        return ngrok_url
+
+else:
+
+    def get_ngrok_url():
+        return "http://localhost:8091"
+
 
 app.mount("/outputs", StaticFiles(directory="outputs"), name="outputs")
 

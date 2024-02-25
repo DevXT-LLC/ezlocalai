@@ -8,6 +8,7 @@ services:
       - EZLOCALAI_API_KEY=${EZLOCALAI_API_KEY-}
       - DEFAULT_MODEL=${DEFAULT_MODEL-phi-2-dpo}
       - WHISPER_MODEL=${WHISPER_MODEL-base.en}
+      - IMG_ENABLED=${IMG_ENABLED-false}
     restart: unless-stopped
     ports:
       - "8091:8091"

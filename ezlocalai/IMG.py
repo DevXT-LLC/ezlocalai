@@ -1,6 +1,6 @@
 import logging
 import uuid
-import os
+import torch
 
 try:
     from diffusers import AutoPipelineForText2Image
@@ -11,7 +11,6 @@ except ImportError:
         "Failed to import diffusers. Please install diffusers using 'pip install diffusers'"
     )
     import_success = False
-import torch
 
 create_img_prompt = """Users message: {prompt} 
 
@@ -87,7 +86,7 @@ class IMG:
         negative_prompt="low resolution, grainy, distorted",
         num_inference_steps=1,
         guidance_scale=0.0,
-        url_output=True,
+        local_uri=None,
     ):
         new_file_name = f"outputs/{uuid.uuid4()}.png"
         if self.pipe:
@@ -98,14 +97,8 @@ class IMG:
                 guidance_scale=guidance_scale,
             ).images[0]
             new_image.save(new_file_name)
-            if url_output:
-                return f"{os.environ.get('EZLOCALAI_URL', 'http://localhost:8091')}/{new_file_name}"
+            if local_uri:
+                return f"{local_uri}/{new_file_name}"
             return new_image
         else:
             return None
-
-
-if __name__ == "__main__":
-    img = IMG()
-    prompt = "A beautiful landscape with a river flowing through the middle, a bridge over the river, a small town on the left side of the river, and a sunset in the background."
-    img.generate(prompt=prompt, url_output=False)

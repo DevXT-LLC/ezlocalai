@@ -12,6 +12,7 @@ services:
       - MAIN_GPU=${MAIN_GPU-0}
       - DEFAULT_MODEL=${DEFAULT_MODEL-phi-2-dpo}
       - WHISPER_MODEL=${WHISPER_MODEL-base.en}
+      - IMG_ENABLED=${IMG_ENABLED-true}
       - CUDA_DOCKER_ARCH=all
     restart: unless-stopped
     ports:

@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 from ezlocalai.LLM import LLM
 from ezlocalai.STT import STT
 from ezlocalai.CTTS import CTTS
+from pyngrok import ngrok
 
 try:
     from ezlocalai.IMG import IMG, img_prompt, create_img_prompt
@@ -42,8 +43,17 @@ class Pipes:
             logging.info(f"[IMG] sdxl-turbo model loading. Please wait...")
             self.img = IMG(model=SD_MODEL)
             logging.info(f"[IMG] sdxl-turbo model loaded successfully.")
+        NGROK_TOKEN = os.environ.get("NGROK_TOKEN", "")
+        if NGROK_TOKEN:
+            ngrok.set_auth_token(NGROK_TOKEN)
+            public_url = ngrok.connect(8091)
+            logging.info(f"[ngrok] Public Tunnel: {public_url.public_url}")
+            self.local_uri = public_url.public_url
+        else:
+            self.local_uri = os.environ.get("EZLOCALAI_URL", "http://localhost:8091")
 
     async def get_response(self, data, completion_type="chat"):
+        data["local_uri"] = self.local_uri
         if data["model"]:
             if self.current_llm != data["model"]:
                 data["model"] = self.current_llm
@@ -87,7 +97,9 @@ class Pipes:
                         "```python"
                     )[1]
                     image_generation_prompt = image_generation_prompt.split("```")[0]
-                generated_image = self.img.generate(prompt=image_generation_prompt)
+                generated_image = self.img.generate(
+                    prompt=image_generation_prompt, local_uri=self.local_uri
+                )
                 if generated_image:
                     prompt = (
                         data["prompt"]
