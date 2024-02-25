@@ -1,4 +1,14 @@
-from diffusers import AutoPipelineForText2Image
+import logging
+
+try:
+    from diffusers import AutoPipelineForText2Image
+
+    import_success = True
+except ImportError:
+    logging.error(
+        "Failed to import diffusers. Please install diffusers using 'pip install diffusers'"
+    )
+    import_success = False
 import torch
 
 create_img_prompt = """Users message: {prompt} 
@@ -54,15 +64,18 @@ User's message: {prompt}
 
 class IMG:
     def __init__(self, model="stabilityai/sdxl-turbo"):
-        device = "cuda" if torch.cuda.is_available() else "cpu"
-        pipe = AutoPipelineForText2Image.from_pretrained(
-            model,
-            torch_dtype=torch.float16,
-            variant="fp16",
-            safety_checker=None,
-        ).to(device)
-        # pipe.enable_freeu(s1=0.9, s2=0.2, b1=1.3, b2=1.4)
-        self.pipe = pipe
+        global import_success
+        if import_success:
+            device = "cuda" if torch.cuda.is_available() else "cpu"
+            pipe = AutoPipelineForText2Image.from_pretrained(
+                model,
+                torch_dtype=torch.float16,
+                variant="fp16",
+                safety_checker=None,
+            ).to(device)
+            self.pipe = pipe
+        else:
+            self.pipe = None
 
     def generate_image(
         self,
@@ -71,9 +84,10 @@ class IMG:
         num_inference_steps=1,
         guidance_scale=0.0,
     ):
-        return self.pipe(
-            prompt=prompt,
-            negative_prompt=negative_prompt,
-            num_inference_steps=num_inference_steps,
-            guidance_scale=guidance_scale,
-        ).images[0]
+        if self.pipe:
+            return self.pipe(
+                prompt=prompt,
+                negative_prompt=negative_prompt,
+                num_inference_steps=num_inference_steps,
+                guidance_scale=guidance_scale,
+            ).images[0]
