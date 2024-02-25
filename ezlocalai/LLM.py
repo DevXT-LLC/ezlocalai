@@ -454,7 +454,7 @@ class LLM:
         if len(messages) > 1:
             for message in messages:
                 if message["role"] == "system":
-                    prompt += f"ASSISTANT's RULE: {message['content']}"
+                    kwargs["system_message"] = message["content"]
                 elif message["role"] == "user":
                     prompt += f"USER: {message['content']}"
                 elif message["role"] == "assistant":
