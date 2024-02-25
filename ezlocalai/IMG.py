@@ -1,4 +1,6 @@
 import logging
+import uuid
+import os
 
 try:
     from diffusers import AutoPipelineForText2Image
@@ -69,6 +71,8 @@ class IMG:
             device = "cuda" if torch.cuda.is_available() else "cpu"
             pipe = AutoPipelineForText2Image.from_pretrained(
                 model,
+                cache_dir="models",
+                local_dir="models",
                 torch_dtype=torch.float16,
                 variant="fp16",
                 safety_checker=None,
@@ -83,14 +87,20 @@ class IMG:
         negative_prompt="low resolution, grainy, distorted",
         num_inference_steps=1,
         guidance_scale=0.0,
+        url_output=True,
     ):
+        new_file_name = f"outputs/{uuid.uuid4()}.png"
         if self.pipe:
-            return self.pipe(
+            new_image = self.pipe(
                 prompt=prompt,
                 negative_prompt=negative_prompt,
                 num_inference_steps=num_inference_steps,
                 guidance_scale=guidance_scale,
             ).images[0]
+            new_image.save(new_file_name)
+            if url_output:
+                return f"{os.environ.get('EZLOCALAI_URL', 'http://localhost:8091')}/{new_file_name}"
+            return new_image
         else:
             return None
 
@@ -98,8 +108,4 @@ class IMG:
 if __name__ == "__main__":
     img = IMG()
     prompt = "A beautiful landscape with a river flowing through the middle, a bridge over the river, a small town on the left side of the river, and a sunset in the background."
-    img.generate(prompt=prompt)
-    prompt = "A beautiful landscape with a river flowing through the middle, a bridge over the river, a small town on the left side of the river, and a sunset in the background."
-    img.generate(prompt=prompt)
-    prompt = "A beautiful landscape with a river flowing through the middle, a bridge over the river, a small town on the left side of the river, and a sunset in the background."
-    img.generate(prompt=prompt)
+    img.generate(prompt=prompt, url_output=False)
