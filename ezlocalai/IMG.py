@@ -91,3 +91,15 @@ class IMG:
                 num_inference_steps=num_inference_steps,
                 guidance_scale=guidance_scale,
             ).images[0]
+        else:
+            return None
+
+
+if __name__ == "__main__":
+    img = IMG()
+    prompt = "A beautiful landscape with a river flowing through the middle, a bridge over the river, a small town on the left side of the river, and a sunset in the background."
+    img.generate_image(prompt=prompt)
+    prompt = "A beautiful landscape with a river flowing through the middle, a bridge over the river, a small town on the left side of the river, and a sunset in the background."
+    img.generate_image(prompt=prompt)
+    prompt = "A beautiful landscape with a river flowing through the middle, a bridge over the river, a small town on the left side of the river, and a sunset in the background."
+    img.generate_image(prompt=prompt)

@@ -87,11 +87,12 @@ class Pipes:
                 generated_image = self.img.generate_image(
                     prompt=image_generation_prompt
                 )
-                prompt = (
-                    data["prompt"]
-                    + f"\n\nAdditionally, you have used your image creation tool successfully to generate an image with the following stable diffusion description: {image_generation_prompt}.\n\nMention the image you created in the response."
-                )
-                data["prompt"] = prompt
+                if generated_image:
+                    prompt = (
+                        data["prompt"]
+                        + f"\n\nAdditionally, you have used your image creation tool successfully to generate an image with the following stable diffusion description: {image_generation_prompt}.\n\nMention the image you created in the response."
+                    )
+                    data["prompt"] = prompt
         if completion_type == "chat":
             response = self.llm.chat(**data)
         else:

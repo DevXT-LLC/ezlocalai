@@ -464,7 +464,7 @@ class LLM:
             try:
                 prompt = messages[0]["content"]
             except:
-                prompt = messages
+                prompt = str(messages)
         data = self.generate(prompt=prompt, **kwargs)
         messages = [{"role": "user", "content": prompt}]
         message = clean(
