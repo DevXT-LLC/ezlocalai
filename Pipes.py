@@ -9,6 +9,8 @@ try:
     from ezlocalai.IMG import IMG, img_prompt, create_img_prompt
 except ImportError:
     img_import_success = False
+    img_prompt = ""
+    create_img_prompt = ""
 
 
 class Pipes:
