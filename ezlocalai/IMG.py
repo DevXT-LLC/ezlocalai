@@ -77,7 +77,7 @@ class IMG:
         else:
             self.pipe = None
 
-    def generate_image(
+    def generate(
         self,
         prompt,
         negative_prompt="low resolution, grainy, distorted",
@@ -98,8 +98,8 @@ class IMG:
 if __name__ == "__main__":
     img = IMG()
     prompt = "A beautiful landscape with a river flowing through the middle, a bridge over the river, a small town on the left side of the river, and a sunset in the background."
-    img.generate_image(prompt=prompt)
+    img.generate(prompt=prompt)
     prompt = "A beautiful landscape with a river flowing through the middle, a bridge over the river, a small town on the left side of the river, and a sunset in the background."
-    img.generate_image(prompt=prompt)
+    img.generate(prompt=prompt)
     prompt = "A beautiful landscape with a river flowing through the middle, a bridge over the river, a small town on the left side of the river, and a sunset in the background."
-    img.generate_image(prompt=prompt)
+    img.generate(prompt=prompt)

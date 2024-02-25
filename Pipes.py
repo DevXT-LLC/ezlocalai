@@ -85,9 +85,7 @@ class Pipes:
                         "```python"
                     )[1]
                     image_generation_prompt = image_generation_prompt.split("```")[0]
-                generated_image = self.img.generate_image(
-                    prompt=image_generation_prompt
-                )
+                generated_image = self.img.generate(prompt=image_generation_prompt)
                 if generated_image:
                     prompt = (
                         data["prompt"]

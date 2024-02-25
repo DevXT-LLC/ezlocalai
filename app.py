@@ -4,41 +4,19 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from typing import List, Dict, Union, Optional
-from ezlocalai.LLM import LLM
-from ezlocalai.STT import STT
-from ezlocalai.CTTS import CTTS
+from Pipes import Pipes
 import os
 import logging
 from dotenv import load_dotenv
 
 load_dotenv()
+DEFAULT_MODEL = os.getenv("DEFAULT_MODEL", "phi-2-dpo")
+WHISPER_MODEL = os.getenv("WHISPER_MODEL", "base")
 logging.basicConfig(
     level=os.environ.get("LOGLEVEL", "INFO"),
     format="%(asctime)s | %(levelname)s | %(message)s",
 )
-ALLOW_MODEL_SWITCHING = os.getenv("ALLOW_MODEL_SWITCHING", "false").lower()
-logging.info(f"[CTTS] xttsv2_2.0.2 model loading. Please wait...")
-LOADED_CTTS = CTTS()
-logging.info(f"[CTTS] xttsv2_2.0.2 model loaded successfully.")
-
-WHISPER_MODEL = os.getenv("WHISPER_MODEL", "base")
-CURRENT_STT_MODEL = WHISPER_MODEL if WHISPER_MODEL else "base"
-logging.info(f"[STT] {CURRENT_STT_MODEL} model loading. Please wait...")
-LOADED_STT = STT(model=CURRENT_STT_MODEL)
-logging.info(f"[STT] {CURRENT_STT_MODEL} model loaded successfully.")
-
-DEFAULT_MODEL = os.environ.get("DEFAULT_MODEL", "phi-2-dpo")
-CURRENT_MODEL = DEFAULT_MODEL if DEFAULT_MODEL else "phi-2-dpo"
-logging.info(f"[LLM] {CURRENT_MODEL} model loading. Please wait...")
-LOADED_LLM = LLM(model=CURRENT_MODEL)
-logging.info(f"[LLM] {CURRENT_MODEL} model loaded successfully.")
-
-VISION_MODEL = os.getenv("VISION_MODEL", "")
-LOADED_VISION_MODEL = None
-if VISION_MODEL != "":
-    LOADED_VISION_MODEL = LLM(model=VISION_MODEL)  # bakllava-1-7b
-    logging.info(f"[ezlocalai] Vision is enabled.")
-
+pipe = Pipes()
 logging.info(f"[ezlocalai] Server is ready.")
 
 app = FastAPI(title="ezlocalai Server", docs_url="/")
@@ -87,11 +65,7 @@ def verify_api_key(authorization: str = Header(None)):
     dependencies=[Depends(verify_api_key)],
 )
 async def models(user=Depends(verify_api_key)):
-    global LOADED_LLM
-    if LOADED_LLM:
-        return LOADED_LLM.models()
-    models = LLM().models()
-    return models
+    return pipe.llm.models()
 
 
 # For the completions and chat completions endpoints, we use extra_json for additional parameters.
@@ -104,10 +78,6 @@ async def models(user=Depends(verify_api_key)):
 # If `voice`` is present, the completion will be converted to audio using the specified voice.
 #   If not streaming, the audio will be returned in the response in the "audio" beside the "text" or "content" keys.
 #   If streaming, the audio will be streamed in the response in audio/wav format.
-
-
-def create_audio_control(audio: str):
-    return f"""<audio controls><source src="data:audio/wav;base64,{audio}" type="audio/wav"></audio>"""
 
 
 # Chat completions endpoint
@@ -138,67 +108,6 @@ class ChatCompletionsResponse(BaseModel):
     usage: dict
 
 
-async def get_response(data, completion_type="chat"):
-    global CURRENT_MODEL
-    global LOADED_LLM
-    global LOADED_CTTS
-    global ALLOW_MODEL_SWITCHING
-    if data["model"]:
-        if CURRENT_MODEL != data["model"]:
-            if str(ALLOW_MODEL_SWITCHING).lower() != "true":
-                data["model"] = CURRENT_MODEL
-            else:
-                CURRENT_MODEL = data["model"]
-                LOADED_LLM = LLM(model=data["model"])
-    if "stop" in data:
-        new_stop = LOADED_LLM.params["stop"]
-        new_stop.append(data["stop"])
-        data["stop"] = new_stop
-    if "audio_format" in data:
-        base64_audio = (
-            data["messages"][-1]["content"]
-            if completion_type == "chat"
-            else data["prompt"]
-        )
-        prompt = await LOADED_STT.transcribe_audio(
-            base64_audio=base64_audio,
-            audio_format=data["audio_format"],
-        )
-        if completion_type == "chat":
-            data["messages"][-1]["content"] = prompt
-        else:
-            data["prompt"] = prompt
-    if completion_type == "chat":
-        response = LOADED_LLM.chat(**data)
-    else:
-        response = LOADED_LLM.completion(**data)
-    audio_response = None
-    if "voice" in data:
-        if completion_type == "chat":
-            text_response = response["messages"][1]["content"]
-        else:
-            text_response = response["choices"][0]["text"]
-        language = data["language"] if "language" in data else "en"
-        if "url_output" in data:
-            url_output = data["url_output"].lower() == "true"
-        else:
-            url_output = True
-        audio_response = await LOADED_CTTS.generate(
-            text=text_response,
-            voice=data["voice"],
-            language=language,
-            url_output=url_output,
-        )
-        audio_control = (
-            audio_response if url_output else create_audio_control(audio_response)
-        )
-        if completion_type == "chat":
-            response["messages"][1]["content"] = f"{text_response}\n{audio_control}"
-        else:
-            response["choices"][0]["text"] = f"{text_response}\n{audio_control}"
-    return response, audio_response
-
-
 @app.post(
     "/v1/chat/completions",
     tags=["Completions"],
@@ -208,7 +117,9 @@ async def chat_completions(
     c: ChatCompletions, request: Request, user=Depends(verify_api_key)
 ):
     data = await request.json()
-    response, audio_response = await get_response(data=data, completion_type="chat")
+    response, audio_response = await pipe.get_response(
+        data=data, completion_type="chat"
+    )
     if audio_response:
         if audio_response.startswith("http"):
             return response
@@ -258,7 +169,7 @@ class CompletionsResponse(BaseModel):
     dependencies=[Depends(verify_api_key)],
 )
 async def completions(c: Completions, request: Request, user=Depends(verify_api_key)):
-    response, audio_response = await get_response(
+    response, audio_response = await pipe.get_response(
         data=await request.json(), completion_type="completion"
     )
     if audio_response:
@@ -299,8 +210,7 @@ class EmbeddingResponse(BaseModel):
     dependencies=[Depends(verify_api_key)],
 )
 async def embedding(embedding: EmbeddingModel, user=Depends(verify_api_key)):
-    global LOADED_LLM
-    return LOADED_LLM.embedding(input=embedding.input)
+    return pipe.llm.embedding(input=embedding.input)
 
 
 @app.post(
@@ -309,8 +219,7 @@ async def embedding(embedding: EmbeddingModel, user=Depends(verify_api_key)):
     dependencies=[Depends(verify_api_key)],
 )
 async def embedding(embedding: EmbeddingModel, user=Depends(verify_api_key)):
-    global LOADED_LLM
-    return LOADED_LLM.embedding(input=embedding.input)
+    return pipe.llm.embedding(input=embedding.input)
 
 
 class SpeechToText(BaseModel):
@@ -326,8 +235,7 @@ class SpeechToText(BaseModel):
     dependencies=[Depends(verify_api_key)],
 )
 async def speech_to_text(stt: SpeechToText, user=Depends(verify_api_key)):
-    global LOADED_STT
-    response = await LOADED_STT.transcribe_audio(
+    response = await pipe.stt.transcribe_audio(
         base64_audio=stt.file, audio_format=stt.audio_format
     )
     return {"data": response}
@@ -346,8 +254,7 @@ class TextToSpeech(BaseModel):
     dependencies=[Depends(verify_api_key)],
 )
 async def text_to_speech(tts: TextToSpeech, user=Depends(verify_api_key)):
-    global LOADED_CTTS
-    audio = await LOADED_CTTS.generate(
+    audio = await pipe.ctts.generate(
         text=tts.text, voice=tts.voice, language=tts.language
     )
     return {"data": audio}
@@ -359,5 +266,4 @@ async def text_to_speech(tts: TextToSpeech, user=Depends(verify_api_key)):
     dependencies=[Depends(verify_api_key)],
 )
 async def get_voices(user=Depends(verify_api_key)):
-    global LOADED_CTTS
-    return {"voices": LOADED_CTTS.voices}
+    return {"voices": pipe.ctts.voices}
