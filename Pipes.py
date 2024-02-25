@@ -74,6 +74,7 @@ class Pipes:
             if create_img.lower().startswith("y"):
                 image_generation_prompt = self.llm.completion(
                     prompt=img_prompt.format(prompt=data["prompt"]),
+                    max_tokens=128,
                     system_message="You will now act as a prompt generator for a generative AI called STABLE DIFFUSION. STABLE DIFFUSION generates images based on given prompts.",
                 )
                 image_generation_prompt = str(

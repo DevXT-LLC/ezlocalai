@@ -379,6 +379,7 @@ class LLM:
             self.lcpp = Llama(**self.params, embedding=True)
         else:
             self.lcpp = None
+        self.model_list = get_models()
 
     def generate(
         self,
@@ -481,9 +482,8 @@ class LLM:
         return embeddings
 
     def models(self):
-        models = get_models()
         model_list = []
-        for model in models:
+        for model in self.model_list:
             for key in model:
                 model_list.append(key)
         return model_list
