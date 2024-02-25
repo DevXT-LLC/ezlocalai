@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from typing import List, Dict, Union, Optional
-from ezlocalai.LLM import LLM, streaming_generation
+from ezlocalai.LLM import LLM
 from ezlocalai.STT import STT
 from ezlocalai.CTTS import CTTS
 import os
@@ -299,14 +299,7 @@ class EmbeddingResponse(BaseModel):
     dependencies=[Depends(verify_api_key)],
 )
 async def embedding(embedding: EmbeddingModel, user=Depends(verify_api_key)):
-    global CURRENT_MODEL
     global LOADED_LLM
-    global ALLOW_MODEL_SWITCHING
-    if embedding.model:
-        if CURRENT_MODEL != embedding.model:
-            if str(ALLOW_MODEL_SWITCHING).lower() == "true":
-                CURRENT_MODEL = embedding.model
-                LOADED_LLM = LLM(model=embedding.model)
     return LOADED_LLM.embedding(input=embedding.input)
 
 
@@ -316,14 +309,7 @@ async def embedding(embedding: EmbeddingModel, user=Depends(verify_api_key)):
     dependencies=[Depends(verify_api_key)],
 )
 async def embedding(embedding: EmbeddingModel, user=Depends(verify_api_key)):
-    global CURRENT_MODEL
     global LOADED_LLM
-    global ALLOW_MODEL_SWITCHING
-    if embedding.model:
-        if CURRENT_MODEL != embedding.model:
-            if str(ALLOW_MODEL_SWITCHING).lower() == "true":
-                CURRENT_MODEL = embedding.model
-                LOADED_LLM = LLM(model=embedding.model)
     return LOADED_LLM.embedding(input=embedding.input)
 
 
@@ -341,13 +327,6 @@ class SpeechToText(BaseModel):
 )
 async def speech_to_text(stt: SpeechToText, user=Depends(verify_api_key)):
     global LOADED_STT
-    global ALLOW_MODEL_SWITCHING
-    global CURRENT_STT_MODEL
-    if stt.model:
-        if CURRENT_STT_MODEL != stt.model:
-            if str(ALLOW_MODEL_SWITCHING).lower() == "true":
-                CURRENT_STT_MODEL = stt.model
-                LOADED_STT = STT(model=stt.model)
     response = await LOADED_STT.transcribe_audio(
         base64_audio=stt.file, audio_format=stt.audio_format
     )

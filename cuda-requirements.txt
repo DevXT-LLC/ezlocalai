@@ -8,8 +8,8 @@ beautifulsoup4==4.12.3
 faster-whisper==0.10.0
 pydub==0.25.1
 ffmpeg==1.4
-torch>=2.2.0+cu118
-torchaudio>=2.2.0+cu118
+torch>=2.2.0+cu121
+torchaudio>=2.2.0+cu121
 transformers==4.37.2
 TTS==0.22.0
 sounddevice==0.4.6
