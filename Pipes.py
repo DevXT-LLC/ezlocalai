@@ -4,7 +4,11 @@ from dotenv import load_dotenv
 from ezlocalai.LLM import LLM
 from ezlocalai.STT import STT
 from ezlocalai.CTTS import CTTS
-from ezlocalai.IMG import IMG, img_prompt, create_img_prompt
+
+try:
+    from ezlocalai.IMG import IMG, img_prompt, create_img_prompt
+except ImportError:
+    img_import_success = False
 
 
 class Pipes:
@@ -30,7 +34,7 @@ class Pipes:
             logging.info(f"[ezlocalai] Vision is enabled.")
         self.img_enabled = os.getenv("IMG_ENABLED", "false").lower() == "true"
         self.img = None
-        if self.img_enabled:
+        if self.img_enabled and img_import_success:
             logging.info(f"[IMG] Image generation is enabled.")
             SD_MODEL = os.getenv("SD_MODEL", "stabilityai/sdxl-turbo")
             logging.info(f"[IMG] sdxl-turbo model loading. Please wait...")
@@ -61,19 +65,31 @@ class Pipes:
                 data["prompt"] = prompt
         generated_image = None
         if self.img:
-            create_img = self.llm.generate(
-                prompt=create_img_prompt.format(prompt=data["prompt"]), max_tokens=10
+            create_img = self.llm.completion(
+                prompt=create_img_prompt.format(prompt=data["prompt"]),
+                max_tokens=10,
+                system_message="Respond with a concise yes or no answer on if it would make sense to generate an image based on the users message. No other explanation is needed!",
             )
-            if str(create_img).lower().startswith("y"):
-                image_generation_prompt = self.llm.generate(
-                    prompt=img_prompt.format(prompt=data["prompt"])
+            create_img = str(create_img["choices"][0]["text"])
+            if create_img.lower().startswith("y"):
+                image_generation_prompt = self.llm.completion(
+                    prompt=img_prompt.format(prompt=data["prompt"]),
+                    system_message="You will now act as a prompt generator for a generative AI called STABLE DIFFUSION. STABLE DIFFUSION generates images based on given prompts.",
                 )
+                image_generation_prompt = str(
+                    image_generation_prompt["choices"][0]["text"]
+                )
+                if "```python" in image_generation_prompt:
+                    image_generation_prompt = image_generation_prompt.split(
+                        "```python"
+                    )[1]
+                    image_generation_prompt = image_generation_prompt.split("```")[0]
                 generated_image = self.img.generate_image(
                     prompt=image_generation_prompt
                 )
                 prompt = (
                     data["prompt"]
-                    + f"\n\nAdditionally, you have used your image creation tool successfully to generate an image with the following stable diffusion description: {generated_image}.\n\nMention the image you created in the response."
+                    + f"\n\nAdditionally, you have used your image creation tool successfully to generate an image with the following stable diffusion description: {image_generation_prompt}.\n\nMention the image you created in the response."
                 )
                 data["prompt"] = prompt
         if completion_type == "chat":
