@@ -76,33 +76,60 @@ class Pipes:
                 data["messages"][-1]["content"] = prompt
             else:
                 data["prompt"] = prompt
+        if completion_type == "chat":
+            response = self.llm.chat(**data)
+        else:
+            response = self.llm.completion(**data)
         generated_image = None
         if self.img and img_import_success:
-            create_img = self.llm.completion(
-                prompt=create_img_prompt.format(
-                    prompt=(
-                        data["messages"][-1]["content"]
-                        if completion_type == "chat"
-                        else data["prompt"]
-                    )
+            img_gen_prompt = create_img_prompt.format(
+                prompt=(
+                    data["messages"][-1]["content"]
+                    if completion_type == "chat"
+                    else data["prompt"]
                 ),
-                max_tokens=10,
-                system_message="Respond with a concise yes or no answer on if it would make sense to generate an image based on the users message. No other explanation is needed!",
+                response=(
+                    response["messages"][1]["content"]
+                    if completion_type == "chat"
+                    else response["choices"][0]["text"]
+                ),
             )
-            create_img = str(create_img["choices"][0]["text"])
-            if create_img.lower().startswith("y"):
+            logging.info(f"[IMG] Decision maker prompt: {img_gen_prompt}")
+            create_img = self.llm.completion(
+                prompt=img_gen_prompt,
+                system_message="Act as a decision maker for creating stable diffusion images. Respond with a concise YES or NO answer on if it would make sense to generate an image based on the users message. No other explanation is needed!",
+                max_tokens=10,
+            )
+            create_img = (
+                str(create_img["choices"][0]["text"]).lstrip("YyNn").strip().lower()
+            )
+            logging.info(f"[IMG] Decision maker response: {create_img}")
+            if "yes" in create_img:
                 prompt = (
                     data["messages"][-1]["content"]
                     if completion_type == "chat"
                     else data["prompt"]
                 )
                 image_generation_prompt = self.llm.completion(
-                    prompt=img_prompt.format(prompt=prompt),
-                    max_tokens=128,
+                    prompt=img_prompt.format(
+                        prompt=prompt,
+                        response=(
+                            response["messages"][1]["content"]
+                            if completion_type == "chat"
+                            else response["choices"][0]["text"]
+                        ),
+                    ),
+                    max_tokens=100,
                     system_message="You will now act as a prompt generator for a generative AI called STABLE DIFFUSION. STABLE DIFFUSION generates images based on given prompts.",
+                )
+                logging.info(
+                    f"[IMG] Image generation prompt: {image_generation_prompt}"
                 )
                 image_generation_prompt = str(
                     image_generation_prompt["choices"][0]["text"]
+                )
+                logging.info(
+                    f"[IMG] Image generation response: {image_generation_prompt}"
                 )
                 if "```python" in image_generation_prompt:
                     image_generation_prompt = image_generation_prompt.split(
@@ -112,19 +139,6 @@ class Pipes:
                 generated_image = self.img.generate(
                     prompt=image_generation_prompt, local_uri=self.local_uri
                 )
-                if generated_image:
-                    prompt = (
-                        f"## Context:\nYou have used your image creation tool successfully to generate an image with the following stable diffusion description: {image_generation_prompt}.\n\n"
-                        + prompt
-                    )
-                    if completion_type == "chat":
-                        data["messages"][-1]["content"] = prompt
-                    else:
-                        data["prompt"] = prompt
-        if completion_type == "chat":
-            response = self.llm.chat(**data)
-        else:
-            response = self.llm.completion(**data)
         audio_response = None
         if "voice" in data:
             if completion_type == "chat":
