@@ -71,12 +71,11 @@ class IMG:
             pipe = AutoPipelineForText2Image.from_pretrained(
                 model,
                 cache_dir="models",
-                local_dir="models",
                 torch_dtype=torch.float16,
                 variant="fp16",
-                safety_checker=None,
             ).to(device)
             self.pipe = pipe
+            self.pipe.safety_checker = None
         else:
             self.pipe = None
 
