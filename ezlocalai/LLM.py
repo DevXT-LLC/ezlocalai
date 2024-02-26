@@ -256,7 +256,7 @@ async def streaming_generation(data):
 
 def clean(
     message: str = "",
-    stop_tokens: List[str] = ["<|im_end|", "<|im_end|>", "</|im_end|>", "</s>"],
+    stop_tokens: List[str] = ["<|im_end|", "<|im_end|>", "</|im_end|>", "</s>", "<s>"],
 ):
     if message == "":
         return message
@@ -341,7 +341,7 @@ class LLM:
         self.system_message = system_message
         self.params["mirostat_mode"] = 2
         self.params["top_k"] = 20 if "top_k" not in kwargs else kwargs["top_k"]
-        self.params["stop"] = ["<|im_end|", "<|im_end|>", "</|im_end|>", "</s>"]
+        self.params["stop"] = ["<|im_end|", "<|im_end|>", "</|im_end|>", "</s>", "<s>"]
         if stop != []:
             if isinstance(stop, str):
                 self.params["stop"].append(stop)

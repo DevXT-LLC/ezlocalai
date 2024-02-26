@@ -17,7 +17,7 @@ create_img_prompt = """Users message: {prompt}
 **Respond with a concise yes or no answer on if it would make sense to generate an image based on the users message. No other explanation is needed!**
 """
 
-img_prompt = """You will now act as a prompt generator for a generative AI called "STABLE DIFFUSION ". STABLE DIFFUSION generates images based on given prompts. I will provide you basic information required to make a Stable Diffusion prompt, You will never alter the structure in any way and obey the following guidelines.
+img_prompt = """You will now act as a prompt generator for a generative AI called STABLE DIFFUSION. STABLE DIFFUSION generates images based on given prompts. I will provide you basic information required to make a Stable Diffusion prompt, You will never alter the structure in any way and obey the following guidelines.
 
 Basic information required to make STABLE DIFFUSION prompt:
 
@@ -55,7 +55,7 @@ Important points to note :
 
 I will provide you with a message from a user and you will generate one prompt with lots of details as given in the prompt structure.
 
-The prompt can only be up to 77 words long, so try to be concise while using enough descriptive words to make a proper prompt.
+The prompt can only be up to 60 words long, so try to be concise while using enough descriptive words to make a proper prompt.
 
 Must be in python code block to be parsed out and only provide prompt.
 

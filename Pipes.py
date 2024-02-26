@@ -113,7 +113,10 @@ class Pipes:
                     prompt=image_generation_prompt, local_uri=self.local_uri
                 )
                 if generated_image:
-                    prompt += f"\n\nAdditionally, you have used your image creation tool successfully to generate an image with the following stable diffusion description: {image_generation_prompt}.\n\n"
+                    prompt = (
+                        f"## Context:\nYou have used your image creation tool successfully to generate an image with the following stable diffusion description: {image_generation_prompt}.\n\n"
+                        + prompt
+                    )
                     if completion_type == "chat":
                         data["messages"][-1]["content"] = prompt
                     else:

@@ -43,7 +43,7 @@ Replace the environment variables with your desired settings. Assumptions will b
 - `EZLOCALAI_URL` - The URL to use for the server. Default is `http://localhost:8091`.
 - `EZLOCALAI_API_KEY` - The API key to use for the server. If not set, the server will not require an API key when accepting requests.
 - `NGROK_TOKEN` - The ngrok token to use for the server. If not set, ngrok will not be used. Using ngrok will allow you to expose your ezlocalai server to the public with as simple as an API key. [Get your free NGROK_TOKEN here.](https://dashboard.ngrok.com/get-started/your-authtoken)
-- `DEFAULT_MODEL` - The default model to use when no model is specified. Default is `phi-2-dpo` without a `.env` file present, otherwise it is `zephyr-7b-beta` until changed.
+- `DEFAULT_MODEL` - The default model to use when no model is specified. Default is `phi-2-dpo`.
 - `LLM_MAX_TOKENS` - The maximum number of tokens to use for the language model. If set to `0`, it will automatically use the max tokens for the model. Default is `0`.
 - `WHISPER_MODEL` - The model to use for speech-to-text. Default is `base.en`.
 - `AUTO_UPDATE` - Whether or not to automatically update ezlocalai. Default is `true`.
