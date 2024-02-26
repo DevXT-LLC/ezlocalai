@@ -138,7 +138,7 @@ class Pipes:
                 text=text_response,
                 voice=data["voice"],
                 language=language,
-                url_output=url_output,
+                local_uri=self.local_uri,
             )
             audio_control = (
                 audio_response

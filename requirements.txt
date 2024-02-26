@@ -17,4 +17,5 @@ pyaudio==0.2.14
 webrtcvad==2.0.10
 pyngrok==7.1.0
 diffusers==0.26.3
+accelerate=0.27.2
 llama-cpp-python
