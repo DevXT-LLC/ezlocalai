@@ -74,5 +74,5 @@ jobs:
       notebook: tests.ipynb
       image: ghcr.io/devxt-llc/ezlocalai:main
       port: "8091"
-      additional-python-dependencies: openai requests
+      additional-python-dependencies: openai requests python-dotenv
     needs: build-ezlocalai
