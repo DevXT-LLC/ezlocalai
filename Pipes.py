@@ -130,25 +130,18 @@ class Pipes:
             else:
                 text_response = response["choices"][0]["text"]
             language = data["language"] if "language" in data else "en"
-            if "url_output" in data:
-                url_output = data["url_output"].lower() == "true"
-            else:
-                url_output = True
             audio_response = await self.ctts.generate(
                 text=text_response,
                 voice=data["voice"],
                 language=language,
                 local_uri=self.local_uri,
             )
-            audio_control = (
-                audio_response
-                if url_output
-                else f"""<audio controls><source src="data:audio/wav;base64,{audio_response}" type="audio/wav"></audio>"""
-            )
             if completion_type == "chat":
-                response["messages"][1]["content"] = f"{text_response}\n{audio_control}"
+                response["messages"][1][
+                    "content"
+                ] = f"{text_response}\n{audio_response}"
             else:
-                response["choices"][0]["text"] = f"{text_response}\n{audio_control}"
+                response["choices"][0]["text"] = f"{text_response}\n{audio_response}"
         if generated_image:
             if completion_type == "chat":
                 response["messages"][1]["content"] += f"\n\n{generated_image}"
