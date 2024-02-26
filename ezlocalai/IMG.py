@@ -28,7 +28,7 @@ Important rules to follow:
 - Based on the message from the user and response of the assistant, you will need to generate one detailed stable diffusion image generation prompt based on the context of the conversation to accompany the assistant response.
 - The prompt can only be up to 60 words long, so try to be concise while using enough descriptive words to make a proper prompt.
 - Following all rules will result in a $2000 tip that you can spend on anything!
-- Must be in python code block to be parsed out and only provide prompt in the code block, not any code. Do not write python code!
+- Must be in markdown code block to be parsed out and only provide prompt in the code block, nothing else.
 """
 
 

@@ -100,11 +100,9 @@ class Pipes:
                 system_message="Act as a decision maker for creating stable diffusion images. Respond with a concise YES or NO answer on if it would make sense to generate an image based on the users message. No other explanation is needed!",
                 max_tokens=10,
             )
-            create_img = (
-                str(create_img["choices"][0]["text"]).lstrip("YyNn").strip().lower()
-            )
+            create_img = str(create_img["choices"][0]["text"]).lower()
             logging.info(f"[IMG] Decision maker response: {create_img}")
-            if "yes" in create_img:
+            if "yes" in create_img or "es," in create_img:
                 prompt = (
                     data["messages"][-1]["content"]
                     if completion_type == "chat"
@@ -131,9 +129,9 @@ class Pipes:
                 logging.info(
                     f"[IMG] Image generation response: {image_generation_prompt}"
                 )
-                if "```python" in image_generation_prompt:
+                if "```markdown" in image_generation_prompt:
                     image_generation_prompt = image_generation_prompt.split(
-                        "```python"
+                        "```markdown"
                     )[1]
                     image_generation_prompt = image_generation_prompt.split("```")[0]
                 generated_image = self.img.generate(
