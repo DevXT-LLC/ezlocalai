@@ -120,7 +120,7 @@ class Pipes:
                         ),
                     ),
                     max_tokens=100,
-                    system_message="You will now act as a prompt generator for a generative AI called STABLE DIFFUSION. STABLE DIFFUSION generates images based on given prompts.",
+                    system_message="You will now act as a prompt generator for a generative AI called STABLE DIFFUSION. STABLE DIFFUSION generates images based on given prompts. Do not write python code!",
                 )
                 logging.info(
                     f"[IMG] Image generation prompt: {image_generation_prompt}"
