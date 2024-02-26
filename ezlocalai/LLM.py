@@ -310,8 +310,8 @@ class LLM:
             f"[LLM] Loading {DEFAULT_MODEL} with {GPU_LAYERS if GPU_LAYERS != -1 else 'all'} GPU layers. Please wait..."
         )
         self.params = {}
-        self.model_name = model
-        if model != "":
+        self.model_name = DEFAULT_MODEL
+        if self.model_name != "":
             self.params["model_path"] = download_llm(
                 model_name=self.model_name, models_dir=models_dir
             )
@@ -372,7 +372,7 @@ class LLM:
             )
         else:
             self.params["n_batch"] = 1024
-        if model != "":
+        if self.model_name != "":
             self.lcpp = Llama(**self.params, embedding=True)
         else:
             self.lcpp = None
