@@ -154,12 +154,9 @@ def get_prompt(model_name="", models_dir="models"):
 
 
 def download_llm(model_name="", models_dir="models"):
-    if model_name == "":
+    if model_name != "":
         global DEFAULT_MODEL
         model_name = DEFAULT_MODEL
-    DOWNLOAD_MODELS = (
-        True if os.environ.get("DOWNLOAD_MODELS", "true").lower() == "true" else False
-    )
     ram = round(psutil.virtual_memory().total / 1024**3)
     if ram > 16:
         default_quantization_type = "Q5_K_M"
@@ -174,8 +171,6 @@ def download_llm(model_name="", models_dir="models"):
     if not os.path.exists(f"{models_dir}/{model_name}"):
         os.makedirs(f"{models_dir}/{model_name}")
     if not os.path.exists(file_path):
-        if DOWNLOAD_MODELS is False:
-            raise Exception("Model not found.")
         clip_url = ""
         if model_url.startswith("mys/"):
             url = (
@@ -341,7 +336,7 @@ class LLM:
             self.params["model_path"] = ""
             self.params["max_tokens"] = 8192
             self.prompt_template = "{system_message}\n\n{prompt}"
-        self.params["n_ctx"] = 0
+        self.params["n_ctx"] = int(os.environ.get("LLM_MAX_TOKENS", 0))
         self.params["verbose"] = True
         self.system_message = system_message
         self.params["mirostat_mode"] = 2

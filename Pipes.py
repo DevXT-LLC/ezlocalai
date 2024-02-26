@@ -22,8 +22,7 @@ class Pipes:
         logging.info(f"[CTTS] xttsv2_2.0.2 model loading. Please wait...")
         self.ctts = CTTS()
         logging.info(f"[CTTS] xttsv2_2.0.2 model loaded successfully.")
-        WHISPER_MODEL = os.getenv("WHISPER_MODEL", "base")
-        self.current_stt = WHISPER_MODEL if WHISPER_MODEL else "base"
+        self.current_stt = os.getenv("WHISPER_MODEL", "base")
         logging.info(f"[STT] {self.current_stt} model loading. Please wait...")
         self.stt = STT(model=self.current_stt)
         logging.info(f"[STT] {self.current_stt} model loaded successfully.")
@@ -114,7 +113,7 @@ class Pipes:
                     prompt=image_generation_prompt, local_uri=self.local_uri
                 )
                 if generated_image:
-                    prompt += f"\n\nAdditionally, you have used your image creation tool successfully to generate an image with the following stable diffusion description: {image_generation_prompt}.\n\nMention the image you created in the response."
+                    prompt += f"\n\nAdditionally, you have used your image creation tool successfully to generate an image with the following stable diffusion description: {image_generation_prompt}.\n\n"
                     if completion_type == "chat":
                         data["messages"][-1]["content"] = prompt
                     else:
