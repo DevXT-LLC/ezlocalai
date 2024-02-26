@@ -49,7 +49,8 @@ Replace the environment variables with your desired settings. Assumptions will b
 - `THREADS` - The number of CPU threads ezlocalai is allowed to use. Default is 4.
 - `GPU_LAYERS` (Only applicable to NVIDIA GPU) - The number of layers to use on the GPU. Default is `0`. Your `GPU_LAYERS` will automatically determine a number of layers to use based on your GPU's memory if it is set to 0 and you have an NVIDIA GPU.
 - `MAIN_GPU` (Only applicable to NVIDIA GPU) - The GPU to use for the language model. Default is `0`.
-- `ALLOW_MODEL_SWITCHING` - Whether or not to allow model switching. Default is `false` which will mean it will ignore whatever is entered in the `model` field on API calls and use the model running on the server.
+- `IMG_ENABLED` - If set to true, models will choose to generate images when they want to based on the user input. Default is `false`.
+- `SD_MODEL` - The stable diffusion model to use. Default is `stabilityai/sdxl-turbo`.
 
 </details>
 
