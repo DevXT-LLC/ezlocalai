@@ -9,6 +9,7 @@ services:
       - DEFAULT_MODEL=${DEFAULT_MODEL-phi-2-dpo}
       - WHISPER_MODEL=${WHISPER_MODEL-base.en}
       - IMG_ENABLED=${IMG_ENABLED-false}
+      - SD_MODEL=${SD_MODEL}
     restart: unless-stopped
     ports:
       - "8091:8091"

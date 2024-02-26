@@ -13,6 +13,7 @@ services:
       - DEFAULT_MODEL=${DEFAULT_MODEL-phi-2-dpo}
       - WHISPER_MODEL=${WHISPER_MODEL-base.en}
       - IMG_ENABLED=${IMG_ENABLED-true}
+      - SD_MODEL=${SD_MODEL}
       - CUDA_DOCKER_ARCH=all
     restart: unless-stopped
     ports:

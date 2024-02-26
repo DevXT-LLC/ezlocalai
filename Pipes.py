@@ -78,7 +78,7 @@ class Pipes:
             else:
                 data["prompt"] = prompt
         generated_image = None
-        if self.img:
+        if self.img and img_import_success:
             create_img = self.llm.completion(
                 prompt=create_img_prompt.format(
                     prompt=(
