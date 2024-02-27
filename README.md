@@ -2,7 +2,7 @@
 
 [![GitHub](https://img.shields.io/badge/GitHub-Local%20LLM-blue?logo=github&style=plastic)](https://github.com/DevXT-LLC/ezlocalai) [![Dockerhub](https://img.shields.io/badge/Docker-ezlocalai-blue?logo=docker&style=plastic)](https://hub.docker.com/r/joshxt/ezlocalai)
 
-ezlocalai is an easy set up artificial intelligence server that easily exposes a list of local artificial intelligence models to choose from to run on your own computer. It is designed to be as easy as possible to get started with running local models. It automatically handles downloading the model of your choice and configuring the server based on your CPU, RAM, and GPU specifications. It also includes [OpenAI Style](https://pypi.org/project/openai/) endpoints for easy integration with other applications using ezlocalai as an OpenAI API proxy with any model. Additional functionality is built in for voice cloning text to speech and a voice to text for easy voice communication entirely offline after the initial setup.
+ezlocalai is an easy set up artificial intelligence server that allows you to easily run multimodal artificial intelligence from your computer. It is designed to be as easy as possible to get started with running local models. It automatically handles downloading the model of your choice and configuring the server based on your CPU, RAM, and GPU specifications. It also includes [OpenAI Style](https://pypi.org/project/openai/) endpoints for easy integration with other applications using ezlocalai as an OpenAI API proxy with any model. Additional functionality is built in for voice cloning text to speech and a voice to text for easy voice communication as well as image generation entirely offline after the initial setup.
 
 ## Prerequisites
 
@@ -50,7 +50,7 @@ Replace the environment variables with your desired settings. Assumptions will b
 - `THREADS` - The number of CPU threads ezlocalai is allowed to use. Default is 4.
 - `GPU_LAYERS` (Only applicable to NVIDIA GPU) - The number of layers to use on the GPU. Default is `0`. Your `GPU_LAYERS` will automatically determine a number of layers to use based on your GPU's memory if it is set to `-1` and you have an NVIDIA GPU. If it is set to `-2`, it will use the maximum number of layers requested by the model.
 - `MAIN_GPU` (Only applicable to NVIDIA GPU) - The GPU to use for the language model. Default is `0`.
-- `IMG_ENABLED` - If set to true, models will choose to generate images when they want to based on the user input. This is only available on GPU. Default is `false`.
+- `IMG_ENABLED` - If set to true, models will choose to generate images when they want to based on the user input. **This is only available on GPU.** Default is `false`.
 - `SD_MODEL` - The stable diffusion model to use. Default is `stabilityai/sdxl-turbo`.
 
 </details>
