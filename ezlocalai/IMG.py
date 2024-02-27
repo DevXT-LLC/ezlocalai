@@ -3,7 +3,7 @@ import uuid
 import torch
 
 try:
-    from diffusers import AutoPipelineForText2Image
+    from diffusers import DiffusionPipeline
 
     import_success = True
 except ImportError:
@@ -37,7 +37,7 @@ class IMG:
         global import_success
         if import_success:
             device = "cuda" if torch.cuda.is_available() else "cpu"
-            pipe = AutoPipelineForText2Image.from_pretrained(
+            pipe = DiffusionPipeline.from_pretrained(
                 model,
                 cache_dir="models",
                 torch_dtype=torch.float16,
