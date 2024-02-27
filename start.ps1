@@ -45,8 +45,16 @@ $env:AUTO_UPDATE = Get-Content -Path ".env" | Select-String -Pattern "AUTO_UPDAT
 if ($null -eq $env:AUTO_UPDATE) {
     $env:AUTO_UPDATE = "true"
 }
+$env:USE_VULKAN = Get-Content -Path ".env" | Select-String -Pattern "USE_VULKAN" | ForEach-Object { $_.ToString().Split("=")[1] }
+if ($null -eq $env:USE_VULKAN) {
+    $env:USE_VULKAN = "false"
+}
 if (Test-NvidiaGpuPresent) {
-    Write-Host "NVIDIA GPU detected, using CUDA image.."
+    if($env:USE_VULKAN -eq "true") {
+        Write-Host "NVIDIA GPU detected, using Vulkan image.."
+    } else {
+        Write-Host "NVIDIA GPU detected, using CUDA image.."
+    }
     $env:CUDA_DOCKER_ARCH = "all"
     if ($env:CMAKE_ARGS -ne "-DLLAMA_CUBLAS=on") {
         # if length of $env:CMAKE_ARGS is 0
@@ -69,13 +77,23 @@ if( $env:RUN_WITHOUT_DOCKER.Length -ne 0) {
     & uvicorn app:app --host 0.0.0.0 --port 8091 --workers 1 --proxy-headers
 } else {
     if ($env:CUDA_DOCKER_ARCH.Length -ne 0) {
-        docker-compose -f docker-compose-cuda.yml down
-        if ($env:AUTO_UPDATE -eq "true") {
-            Write-Host "Build latest images, please wait.."
-            docker-compose -f docker-compose-cuda.yml build
+        if($env:USE_VULKAN -eq "true") {
+            docker-compose -f docker-compose-vulkan.yml down
+            if ($env:AUTO_UPDATE -eq "true") {
+                Write-Host "Build latest images, please wait.."
+                docker-compose -f docker-compose-vulkan.yml build
+            }
+            Write-Host "Starting server, please wait.."
+            docker-compose -f docker-compose-vulkan.yml up
+        } else {
+            docker-compose -f docker-compose-cuda.yml down
+            if ($env:AUTO_UPDATE -eq "true") {
+                Write-Host "Build latest images, please wait.."
+                docker-compose -f docker-compose-cuda.yml build
+            }
+            Write-Host "Starting server, please wait.."
+            docker-compose -f docker-compose-cuda.yml up
         }
-        Write-Host "Starting server, please wait.."
-        docker-compose -f docker-compose-cuda.yml up
     } else {
         docker-compose down
         if ($env:AUTO_UPDATE -eq "true") {

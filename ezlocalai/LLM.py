@@ -154,12 +154,9 @@ def get_prompt(model_name="", models_dir="models"):
 
 
 def download_llm(model_name="", models_dir="models"):
-    if model_name == "":
+    if model_name != "":
         global DEFAULT_MODEL
         model_name = DEFAULT_MODEL
-    DOWNLOAD_MODELS = (
-        True if os.environ.get("DOWNLOAD_MODELS", "true").lower() == "true" else False
-    )
     ram = round(psutil.virtual_memory().total / 1024**3)
     if ram > 16:
         default_quantization_type = "Q5_K_M"
@@ -174,8 +171,6 @@ def download_llm(model_name="", models_dir="models"):
     if not os.path.exists(f"{models_dir}/{model_name}"):
         os.makedirs(f"{models_dir}/{model_name}")
     if not os.path.exists(file_path):
-        if DOWNLOAD_MODELS is False:
-            raise Exception("Model not found.")
         clip_url = ""
         if model_url.startswith("mys/"):
             url = (
@@ -261,7 +256,7 @@ async def streaming_generation(data):
 
 def clean(
     message: str = "",
-    stop_tokens: List[str] = ["<|im_end|", "<|im_end|>", "</|im_end|>", "</s>"],
+    stop_tokens: List[str] = ["<|im_end|", "<|im_end|>", "</|im_end|>", "</s>", "<s>"],
 ):
     if message == "":
         return message
@@ -300,7 +295,7 @@ class LLM:
         global DEFAULT_MODEL
         MAIN_GPU = os.environ.get("MAIN_GPU", 0)
         GPU_LAYERS = os.environ.get("GPU_LAYERS", 0)
-        if torch.cuda.is_available() and int(GPU_LAYERS) == 0:
+        if torch.cuda.is_available() and int(GPU_LAYERS) == -1:
             # 5GB VRAM reserved for TTS and STT.
             vram = round(torch.cuda.get_device_properties(0).total_memory / 1024**3) - 5
             if vram == 3:
@@ -309,12 +304,14 @@ class LLM:
                 vram = 0
             logging.info(f"[LLM] {vram}GB of available VRAM detected.")
             GPU_LAYERS = vram - 1 if vram > 0 else 0
+        if GPU_LAYERS == -2:
+            GPU_LAYERS = -1
         logging.info(
             f"[LLM] Loading {DEFAULT_MODEL} with {GPU_LAYERS if GPU_LAYERS != -1 else 'all'} GPU layers. Please wait..."
         )
         self.params = {}
-        self.model_name = model
-        if model != "":
+        self.model_name = DEFAULT_MODEL
+        if self.model_name != "":
             self.params["model_path"] = download_llm(
                 model_name=self.model_name, models_dir=models_dir
             )
@@ -339,12 +336,12 @@ class LLM:
             self.params["model_path"] = ""
             self.params["max_tokens"] = 8192
             self.prompt_template = "{system_message}\n\n{prompt}"
-        self.params["n_ctx"] = 0
+        self.params["n_ctx"] = int(os.environ.get("LLM_MAX_TOKENS", 0))
         self.params["verbose"] = True
         self.system_message = system_message
         self.params["mirostat_mode"] = 2
         self.params["top_k"] = 20 if "top_k" not in kwargs else kwargs["top_k"]
-        self.params["stop"] = ["<|im_end|", "<|im_end|>", "</|im_end|>", "</s>"]
+        self.params["stop"] = ["<|im_end|", "<|im_end|>", "</|im_end|>", "</s>", "<s>"]
         if stop != []:
             if isinstance(stop, str):
                 self.params["stop"].append(stop)
@@ -375,10 +372,11 @@ class LLM:
             )
         else:
             self.params["n_batch"] = 1024
-        if model != "":
+        if self.model_name != "":
             self.lcpp = Llama(**self.params, embedding=True)
         else:
             self.lcpp = None
+        self.model_list = get_models()
 
     def generate(
         self,
@@ -454,7 +452,7 @@ class LLM:
         if len(messages) > 1:
             for message in messages:
                 if message["role"] == "system":
-                    prompt += f"ASSISTANT's RULE: {message['content']}"
+                    kwargs["system_message"] = message["content"]
                 elif message["role"] == "user":
                     prompt += f"USER: {message['content']}"
                 elif message["role"] == "assistant":
@@ -464,7 +462,7 @@ class LLM:
             try:
                 prompt = messages[0]["content"]
             except:
-                prompt = messages
+                prompt = str(messages)
         data = self.generate(prompt=prompt, **kwargs)
         messages = [{"role": "user", "content": prompt}]
         message = clean(
@@ -481,9 +479,8 @@ class LLM:
         return embeddings
 
     def models(self):
-        models = get_models()
         model_list = []
-        for model in models:
+        for model in self.model_list:
             for key in model:
                 model_list.append(key)
         return model_list
