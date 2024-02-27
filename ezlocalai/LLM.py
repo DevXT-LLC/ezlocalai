@@ -377,6 +377,7 @@ class LLM:
         self.params["frequency_penalty"] = (
             frequency_penalty if frequency_penalty else 0.0
         )
+        self.params["repetition_penalty"] = 1.0
         self.params["logit_bias"] = logit_bias if logit_bias else None
         self.params["n_gpu_layers"] = int(GPU_LAYERS) if GPU_LAYERS else 0
         self.params["main_gpu"] = int(MAIN_GPU) if MAIN_GPU else 0
