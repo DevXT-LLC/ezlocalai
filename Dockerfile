@@ -5,10 +5,10 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     apt-get clean && rm -rf /var/lib/apt/lists/* && \
     python3 -m pip install --upgrade pip --no-cache-dir
 WORKDIR /app
-ENV HOST 0.0.0.0
 COPY requirements.txt .
-RUN --mount=type=cache,target=/var/cache/pip,sharing=locked \
+RUN --mount=type=cache,target=/root/.cache/pip,sharing=locked \
     python3 -m pip install --no-cache-dir -r requirements.txt
 COPY . .
+ENV HOST 0.0.0.0
 EXPOSE 8091
 ENTRYPOINT ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8091", "--workers", "1", "--proxy-headers"]
