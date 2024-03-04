@@ -9,20 +9,14 @@ on:
 jobs:
   build-ezlocalai:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        include:
-          - name: "CPU"
-            dockerfile: "Dockerfile"
-            platforms: "linux/amd64"
-            tag_name: "dev"
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
       - name: Extract GitHub info
         run: |
-          echo "BRANCH_NAME=$(echo ${GITHUB_REF#refs/heads/} | sed 's/[^a-zA-Z0-9._-]/-/g')" >> $GITHUB_ENV 
+          echo "BRANCH_NAME=$(echo ${GITHUB_REF#refs/heads/} | sed 's/[^a-zA-Z0-9._-]/-/g')" >> $GITHUB_ENV
+          echo "ORG_NAME=$(echo ${{ github.repository }} | cut -d'/' -f 1 | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
           echo "GITHUB_USER=$(echo ${{ github.actor }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
           echo "REPO_NAME=$(echo ${{ github.repository }} | cut -d'/' -f 2 | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
         id: extract_branch
@@ -41,15 +35,15 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: ./${{ matrix.dockerfile }}
-          platforms: ${{ matrix.platforms }}
+          file: ./Dockerfile
+          platforms: linux/amd64
           push: true
           cache-from: type=gha
           cache-to: type=gha,mode=max
           tags: |
-            ghcr.io/devxt-llc/${{ env.REPO_NAME }}:${{ matrix.tag_name }}
-            ghcr.io/devxt-llc/${{ env.REPO_NAME }}:${{ matrix.tag_name }}-${{ env.BRANCH_NAME }}
-            ghcr.io/devxt-llc/${{ env.REPO_NAME }}:${{ matrix.tag_name }}-${{ env.BRANCH_NAME }}-${{ github.sha }}
+            ghcr.io/${{ env.ORG_NAME }}/${{ env.REPO_NAME }}:dev
+            ghcr.io/${{ env.ORG_NAME }}/${{ env.REPO_NAME }}:${{ env.BRANCH_NAME }}
+            ghcr.io/${{ env.ORG_NAME }}/${{ env.REPO_NAME }}:${{ env.BRANCH_NAME }}-${{ github.sha }}
 
   test-ezlocalai:
     uses: josh-xt/AGiXT/.github/workflows/operation-test-with-jupyter.yml@main
