@@ -73,6 +73,8 @@ For examples on how to use the server to communicate with the models, see the [E
 
 OpenAI Style endpoints available at `http://<YOUR LOCAL IP ADDRESS>:8091/v1/` by default. Documentation can be accessed at that <http://localhost:8091> when the server is running.
 
+## Workflow
+
 ```mermaid
 graph TD
    A[app.py] --> B[FASTAPI]
