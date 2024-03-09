@@ -72,3 +72,86 @@ For examples on how to use the server to communicate with the models, see the [E
 ## OpenAI Style Endpoint Usage
 
 OpenAI Style endpoints available at `http://<YOUR LOCAL IP ADDRESS>:8091/v1/` by default. Documentation can be accessed at that <http://localhost:8091> when the server is running.
+
+```mermaid
+graph TD
+   A[app.py] --> B[FASTAPI]
+   B --> C[Pipes]
+   C --> D[LLM]
+   C --> E[STT]
+   C --> F[CTTS]
+   C --> G[IMG]
+   D --> H[llama_cpp]
+   D --> I[tiktoken]
+   D --> J[torch]
+   E --> K[faster_whisper]
+   E --> L[pyaudio]
+   E --> M[webrtcvad]
+   E --> N[pydub]
+   F --> O[TTS]
+   F --> P[torchaudio]
+   G --> Q[diffusers]
+   Q --> J
+   A --> R[Uvicorn]
+   R --> S[ASGI Server]
+   A --> T[API Endpoint: /v1/completions]
+   T --> U[Pipes.get_response]
+   U --> V{completion_type}
+   V -->|completion| W[LLM.completion]
+   V -->|chat| X[LLM.chat]
+   X --> Y[LLM.generate]
+   W --> Y
+   Y --> Z[LLM.create_completion]
+   Z --> AA[Return response]
+   AA --> AB{stream}
+   AB -->|True| AC[StreamingResponse]
+   AB -->|False| AD[JSON response]
+   U --> AE[Audio transcription]
+   AE --> AF{audio_format}
+   AF -->|Exists| AG[Transcribe audio]
+   AG --> E
+   AF -->|None| AH[Skip transcription]
+   U --> AI[Audio generation]
+   AI --> AJ{voice}
+   AJ -->|Exists| AK[Generate audio]
+   AK --> F
+   AK --> AL{stream}
+   AL -->|True| AM[StreamingResponse]
+   AL -->|False| AN[JSON response with audio URL]
+   AJ -->|None| AO[Skip audio generation]
+   U --> AP[Image generation]
+   AP --> AQ{IMG enabled}
+   AQ -->|True| AR[Generate image]
+   AR --> G
+   AR --> AS[Append image URL to response]
+   AQ -->|False| AT[Skip image generation]
+   A --> AU[API Endpoint: /v1/chat/completions]
+   AU --> U
+   A --> AV[API Endpoint: /v1/embeddings]
+   AV --> AW[LLM.embedding]
+   AW --> AX[LLM.create_embedding]
+   AX --> AY[Return embedding]
+   A --> AZ[API Endpoint: /v1/audio/transcriptions]
+   AZ --> BA[STT.transcribe_audio]
+   BA --> BB[Return transcription]
+   A --> BC[API Endpoint: /v1/audio/generation]
+   BC --> BD[CTTS.generate]
+   BD --> BE[Return audio URL or base64 audio]
+   A --> BF[API Endpoint: /v1/models]
+   BF --> BG[LLM.models]
+   BG --> BH[Return available models]
+   A --> BI[CORS Middleware]
+   BJ[.env] --> BK[Environment Variables]
+   BK --> A
+   BL[setup.py] --> BM[ezlocalai package]
+   BM --> BN[LLM]
+   BM --> BO[STT]
+   BM --> BP[CTTS]
+   BM --> BQ[IMG]
+   A --> BR[API Key Verification]
+   BR --> BS[verify_api_key]
+   A --> BT[Static Files]
+   BT --> BU[API Endpoint: /outputs]
+   A --> BV[Ngrok]
+   BV --> BW[Public URL]
+```
