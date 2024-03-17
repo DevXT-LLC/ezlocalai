@@ -19,3 +19,4 @@ pyaudio==0.2.14
 pyngrok==7.1.0
 accelerate==0.27.2
 diffusers==0.26.3
+python-multipart
