@@ -10,3 +10,4 @@ tests/*.wav
 .env.local
 test.ipynb
 output.md
+ezlocalai.yml

@@ -28,6 +28,8 @@ class STT:
         temperature=0.0,
         translate=False,
     ):
+        if "/" in audio_format:
+            audio_format = audio_format.split("/")[1]
         filename = f"{uuid.uuid4().hex}.wav"
         file_path = os.path.join(os.getcwd(), "outputs", filename)
         audio_data = base64.b64decode(base64_audio)

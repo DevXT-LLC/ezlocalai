@@ -1,10 +1,20 @@
-from fastapi import FastAPI, Depends, HTTPException, Header, Request
+from fastapi import (
+    FastAPI,
+    Depends,
+    HTTPException,
+    Header,
+    Request,
+    Form,
+    UploadFile,
+    File,
+)
 from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from typing import List, Dict, Union, Optional
 from Pipes import Pipes
+import base64
 import os
 import logging
 from dotenv import load_dotenv
@@ -226,43 +236,33 @@ async def embedding(embedding: EmbeddingModel, user=Depends(verify_api_key)):
 
 # Audio Transcription endpoint
 # https://platform.openai.com/docs/api-reference/audio/createTranscription
-class SpeechToText(BaseModel):
-    file: str  # The base64 encoded audio file
-    audio_format: Optional[str] = "wav"
-    model: Optional[str] = WHISPER_MODEL
-    language: Optional[str] = None
-    prompt: Optional[str] = None
-    response_format: Optional[str] = "json"
-    temperature: Optional[float] = 0.0
-    timestamp_granularities: Optional[List[str]] = ["segment"]
-    user: Optional[str] = None
-
-
 @app.post(
     "/v1/audio/transcriptions",
     tags=["Audio"],
     dependencies=[Depends(verify_api_key)],
 )
-async def speech_to_text(stt: SpeechToText, user=Depends(verify_api_key)):
+async def speech_to_text(
+    file: UploadFile = File(...),
+    model: str = Form(WHISPER_MODEL),
+    language: Optional[str] = Form(None),
+    prompt: Optional[str] = Form(None),
+    response_format: Optional[str] = Form("json"),
+    temperature: Optional[float] = Form(0.0),
+    timestamp_granularities: Optional[List[str]] = Form(["segment"]),
+    user: str = Depends(verify_api_key),
+):
     response = await pipe.stt.transcribe_audio(
-        base64_audio=stt.file,
-        audio_format=stt.audio_format,
-        language=stt.language,
-        prompt=stt.prompt,
-        temperature=stt.temperature,
+        base64_audio=base64.b64encode(await file.read()).decode("utf-8"),
+        audio_format=file.content_type,
+        language=language,
+        prompt=prompt,
+        temperature=temperature,
     )
     return {"text": response}
 
 
 # Audio Translation endpoint
 # https://platform.openai.com/docs/api-reference/audio/createTranslation
-class Translations(BaseModel):
-    file: str  # The base64 encoded audio file
-    audio_format: Optional[str] = "wav"
-    model: Optional[str] = "base"
-    prompt: Optional[str] = None
-    response_format: Optional[str] = "json"
-    temperature: Optional[float] = 0.0
 
 
 @app.post(
@@ -270,12 +270,22 @@ class Translations(BaseModel):
     tags=["Audio"],
     dependencies=[Depends(verify_api_key)],
 )
-async def audio_translations(stt: Translations, user=Depends(verify_api_key)):
+async def audio_translations(
+    file: UploadFile = File(...),
+    model: str = Form(WHISPER_MODEL),
+    language: Optional[str] = Form(None),
+    prompt: Optional[str] = Form(None),
+    response_format: Optional[str] = Form("json"),
+    temperature: Optional[float] = Form(0.0),
+    user=Depends(verify_api_key),
+):
     response = await pipe.stt.transcribe_audio(
-        base64_audio=stt.file,
-        audio_format=stt.audio_format,
-        prompt=stt.prompt,
-        temperature=stt.temperature,
+        base64_audio=base64.b64encode(await file.read()).decode("utf-8"),
+        audio_format=file.content_type,
+        language=language,
+        prompt=prompt,
+        temperature=temperature,
+        translate=True,
     )
     return {"text": response}
 
