@@ -226,15 +226,6 @@ class EmbeddingResponse(BaseModel):
 
 
 @app.post(
-    "/v1/engines/{model_name}/embeddings",
-    tags=["Embeddings"],
-    dependencies=[Depends(verify_api_key)],
-)
-async def embedding(embedding: EmbeddingModel, user=Depends(verify_api_key)):
-    return pipe.llm.embedding(input=embedding.input)
-
-
-@app.post(
     "/v1/embeddings",
     tags=["Embeddings"],
     dependencies=[Depends(verify_api_key)],
@@ -300,22 +291,23 @@ async def audio_translations(
 
 
 class TextToSpeech(BaseModel):
-    text: str
+    input: str
+    model: Optional[str] = "tts-1"
     voice: Optional[str] = "default"
     language: Optional[str] = "en"
     user: Optional[str] = None
 
 
 @app.post(
-    "/v1/audio/generation",
+    "/v1/audio/speech",
     tags=["Audio"],
     dependencies=[Depends(verify_api_key)],
 )
 async def text_to_speech(tts: TextToSpeech, user=Depends(verify_api_key)):
     audio = await pipe.ctts.generate(
-        text=tts.text, voice=tts.voice, language=tts.language
+        text=tts.input, voice=tts.voice, language=tts.language
     )
-    return {"data": audio}
+    return audio
 
 
 @app.get(
