@@ -317,3 +317,26 @@ async def text_to_speech(tts: TextToSpeech, user=Depends(verify_api_key)):
 )
 async def get_voices(user=Depends(verify_api_key)):
     return {"voices": pipe.ctts.voices}
+
+
+@app.post(
+    "/v1/audio/voices",
+    tags=["Audio"],
+    dependencies=[Depends(verify_api_key)],
+)
+async def upload_voice(
+    voice: str = Form("default"),
+    file: UploadFile = File(...),
+    user=Depends(verify_api_key),
+):
+    voice_name = voice
+    file_path = os.path.join(os.getcwd(), "voices", f"{voice}.wav")
+    if os.path.exists(file_path):
+        i = 1
+        while os.path.exists(file_path):
+            file_path = os.path.join(os.getcwd(), "voices", f"{voice}-{i}.wav")
+            voice_name = f"{voice}-{i}"
+            i += 1
+    with open(file_path, "wb") as audio_file:
+        audio_file.write(await file.read())
+    return {"detail": f"Voice {voice_name} has been uploaded."}
