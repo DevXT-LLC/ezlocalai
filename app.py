@@ -216,15 +216,6 @@ class EmbeddingResponse(BaseModel):
 
 
 @app.post(
-    "/v1/engines/{model_name}/embeddings",
-    tags=["Embeddings"],
-    dependencies=[Depends(verify_api_key)],
-)
-async def embedding(embedding: EmbeddingModel, user=Depends(verify_api_key)):
-    return pipe.llm.embedding(input=embedding.input)
-
-
-@app.post(
     "/v1/embeddings",
     tags=["Embeddings"],
     dependencies=[Depends(verify_api_key)],
@@ -233,23 +224,60 @@ async def embedding(embedding: EmbeddingModel, user=Depends(verify_api_key)):
     return pipe.llm.embedding(input=embedding.input)
 
 
+# Audio Transcription endpoint
+# https://platform.openai.com/docs/api-reference/audio/createTranscription
 class SpeechToText(BaseModel):
     file: str  # The base64 encoded audio file
     audio_format: Optional[str] = "wav"
     model: Optional[str] = WHISPER_MODEL
+    language: Optional[str] = None
+    prompt: Optional[str] = None
+    response_format: Optional[str] = "json"
+    temperature: Optional[float] = 0.0
+    timestamp_granularities: Optional[List[str]] = ["segment"]
     user: Optional[str] = None
 
 
 @app.post(
     "/v1/audio/transcriptions",
-    tags=["Speech to Text"],
+    tags=["Audio"],
     dependencies=[Depends(verify_api_key)],
 )
 async def speech_to_text(stt: SpeechToText, user=Depends(verify_api_key)):
     response = await pipe.stt.transcribe_audio(
-        base64_audio=stt.file, audio_format=stt.audio_format
+        base64_audio=stt.file,
+        audio_format=stt.audio_format,
+        language=stt.language,
+        prompt=stt.prompt,
+        temperature=stt.temperature,
     )
-    return {"data": response}
+    return {"text": response}
+
+
+# Audio Translation endpoint
+# https://platform.openai.com/docs/api-reference/audio/createTranslation
+class Translations(BaseModel):
+    file: str  # The base64 encoded audio file
+    audio_format: Optional[str] = "wav"
+    model: Optional[str] = "base"
+    prompt: Optional[str] = None
+    response_format: Optional[str] = "json"
+    temperature: Optional[float] = 0.0
+
+
+@app.post(
+    "/v1/audio/translations",
+    tags=["Audio"],
+    dependencies=[Depends(verify_api_key)],
+)
+async def audio_translations(stt: Translations, user=Depends(verify_api_key)):
+    response = await pipe.stt.transcribe_audio(
+        base64_audio=stt.file,
+        audio_format=stt.audio_format,
+        prompt=stt.prompt,
+        temperature=stt.temperature,
+    )
+    return {"text": response}
 
 
 class TextToSpeech(BaseModel):
@@ -261,7 +289,7 @@ class TextToSpeech(BaseModel):
 
 @app.post(
     "/v1/audio/generation",
-    tags=["Text to Speech"],
+    tags=["Audio"],
     dependencies=[Depends(verify_api_key)],
 )
 async def text_to_speech(tts: TextToSpeech, user=Depends(verify_api_key)):
@@ -273,7 +301,7 @@ async def text_to_speech(tts: TextToSpeech, user=Depends(verify_api_key)):
 
 @app.get(
     "/v1/audio/voices",
-    tags=["Text to Speech"],
+    tags=["Audio"],
     dependencies=[Depends(verify_api_key)],
 )
 async def get_voices(user=Depends(verify_api_key)):

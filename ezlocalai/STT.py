@@ -19,7 +19,15 @@ class STT:
         self.audio = pyaudio.PyAudio()
         self.wake_functions = wake_functions
 
-    async def transcribe_audio(self, base64_audio, audio_format="wav"):
+    async def transcribe_audio(
+        self,
+        base64_audio,
+        audio_format="wav",
+        language=None,
+        prompt=None,
+        temperature=0.0,
+        translate=False,
+    ):
         filename = f"{uuid.uuid4().hex}.wav"
         file_path = os.path.join(os.getcwd(), "outputs", filename)
         audio_data = base64.b64decode(base64_audio)
@@ -30,25 +38,21 @@ class STT:
         audio_segment.export(file_path, format="wav")
         if not os.path.exists(file_path):
             raise RuntimeError(f"Failed to load audio.")
-        segments, _  = self.w.transcribe(file_path, vad_filter=True,
+        segments, _ = self.w.transcribe(
+            file_path,
+            task="transcribe" if not translate else "translate",
+            vad_filter=True,
             vad_parameters=dict(min_silence_duration_ms=500),
+            initial_prompt=prompt,
+            language=language,
+            temperature=temperature,
         )
         segments = list(segments)
         user_input = ""
         for segment in segments:
             user_input += segment.text
         logging.info(f"[STT] Transcribed User Input: {user_input}")
-        user_input = user_input.replace("[BLANK_AUDIO]", "")
         os.remove(file_path)
-        if self.wake_functions != {}:
-            for wake_word, wake_function in self.wake_functions.items():
-                if wake_word.lower() in user_input.lower():
-                    print("Wake word detected! Executing wake function...")
-                    if wake_function:
-                        try:
-                            return wake_function(user_input)
-                        except Exception as e:
-                            logging.error(f"Failed to execute wake function: {e}")
         return user_input
 
     def listen(self):

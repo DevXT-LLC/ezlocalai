@@ -7,3 +7,6 @@ whispercpp
 outputs/*
 audio_response.wav
 tests/*.wav
+.env.local
+test.ipynb
+output.md

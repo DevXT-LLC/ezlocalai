@@ -58,13 +58,14 @@ class Pipes:
     async def get_response(self, data, completion_type="chat"):
         data["local_uri"] = self.local_uri
         image_url = None
-        if isinstance(data["messages"][-1]["content"], list):
-            if data["messages"][-1]["content"]["type"] == "image_url":
-                image_url = data["messages"][-1]["content"]["image_url"]["url"]
-            if data["messages"][-1]["content"]["type"] == "text":
-                data["messages"][-1]["content"] = data["messages"][-1]["content"][
-                    "text"
-                ]
+        if "messages" in data:
+            if isinstance(data["messages"][-1]["content"], list):
+                if data["messages"][-1]["content"]["type"] == "image_url":
+                    image_url = data["messages"][-1]["content"]["image_url"]["url"]
+                if data["messages"][-1]["content"]["type"] == "text":
+                    data["messages"][-1]["content"] = data["messages"][-1]["content"][
+                        "text"
+                    ]
 
         if data["model"]:
             if self.current_llm != data["model"]:
