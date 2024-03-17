@@ -226,6 +226,15 @@ class EmbeddingResponse(BaseModel):
 
 
 @app.post(
+    "/v1/engines/{model_name}/embeddings",
+    tags=["Embeddings"],
+    dependencies=[Depends(verify_api_key)],
+)
+async def embedding(embedding: EmbeddingModel, user=Depends(verify_api_key)):
+    return pipe.llm.embedding(input=embedding.input)
+
+
+@app.post(
     "/v1/embeddings",
     tags=["Embeddings"],
     dependencies=[Depends(verify_api_key)],
