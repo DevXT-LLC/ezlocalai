@@ -485,7 +485,6 @@ class LLM:
         )
         messages.append({"role": "assistant", "content": message})
         data["messages"] = messages
-        del data["choices"]
         return data
 
     def embedding(self, input):

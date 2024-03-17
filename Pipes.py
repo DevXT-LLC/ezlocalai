@@ -57,6 +57,15 @@ class Pipes:
 
     async def get_response(self, data, completion_type="chat"):
         data["local_uri"] = self.local_uri
+        image_url = None
+        if isinstance(data["messages"][-1]["content"], list):
+            if data["messages"][-1]["content"]["type"] == "image_url":
+                image_url = data["messages"][-1]["content"]["image_url"]["url"]
+            if data["messages"][-1]["content"]["type"] == "text":
+                data["messages"][-1]["content"] = data["messages"][-1]["content"][
+                    "text"
+                ]
+
         if data["model"]:
             if self.current_llm != data["model"]:
                 data["model"] = self.current_llm
@@ -98,7 +107,7 @@ class Pipes:
                 if completion_type == "chat"
                 else response["choices"][0]["text"]
             )
-            img_gen_prompt = f"Users message: {user_message} \nAssistant response: {response_text} \n\n**Act as a decision maker for creating stable diffusion images. Respond with a concise YES or NO answer on if it would make sense to generate an image based on the users message. No other explanation is needed!**\nShould an image be created to accompany the assistant response?\nAssistant: "
+            img_gen_prompt = f"Users message: {user_message} \nAssistant response: {response_text} \n\n**The assistant is acting as a decision maker for creating stable diffusion images and only responds with a concise YES or NO answer on if it would make sense to generate an image based on the users message. No other explanation is needed!**\nShould an image be created to accompany the assistant response?\nAssistant: "
             logging.info(f"[IMG] Decision maker prompt: {img_gen_prompt}")
             create_img = self.llm.chat(
                 messages=[{"role": "system", "content": img_gen_prompt}],
@@ -115,7 +124,7 @@ class Pipes:
                     if completion_type == "chat"
                     else data["prompt"]
                 )
-                img_prompt = f"**Act as a Stable Diffusion Prompt Generator.**\n\nUsers message: {prompt} \nAssistant response: {response} \n\nImportant rules to follow:\n- Describe subjects in detail, specify image type (e.g., digital illustration), art style (e.g., steampunk), and background. Include art inspirations (e.g., Art Station, specific artists). Detail lighting, camera (type, lens, view), and render (resolution, style). The weight of a keyword can be adjusted by using the syntax (((keyword))) , put only those keyword inside ((())) which is very important because it will have more impact so anything wrong will result in unwanted picture so be careful. Realistic prompts: exclude artist, specify lens. Separate with double lines. Max 60 words, avoiding 'real' for fantastical.\n- Based on the message from the user and response of the assistant, you will need to generate one detailed stable diffusion image generation prompt based on the context of the conversation to accompany the assistant response.\n- The prompt can only be up to 60 words long, so try to be concise while using enough descriptive words to make a proper prompt.\n- Following all rules will result in a $2000 tip that you can spend on anything!\n- Must be in markdown code block to be parsed out and only provide prompt in the code block, nothing else.\nStable Diffusion Prompt Generator: "
+                img_prompt = f"**The assistant is acting as a Stable Diffusion Prompt Generator.**\n\nUsers message: {prompt} \nAssistant response: {response} \n\nImportant rules to follow:\n- Describe subjects in detail, specify image type (e.g., digital illustration), art style (e.g., steampunk), and background. Include art inspirations (e.g., Art Station, specific artists). Detail lighting, camera (type, lens, view), and render (resolution, style). The weight of a keyword can be adjusted by using the syntax (((keyword))) , put only those keyword inside ((())) which is very important because it will have more impact so anything wrong will result in unwanted picture so be careful. Realistic prompts: exclude artist, specify lens. Separate with double lines. Max 60 words, avoiding 'real' for fantastical.\n- Based on the message from the user and response of the assistant, you will need to generate one detailed stable diffusion image generation prompt based on the context of the conversation to accompany the assistant response.\n- The prompt can only be up to 60 words long, so try to be concise while using enough descriptive words to make a proper prompt.\n- Following all rules will result in a $2000 tip that you can spend on anything!\n- Must be in markdown code block to be parsed out and only provide prompt in the code block, nothing else.\nStable Diffusion Prompt Generator: "
                 image_generation_prompt = self.llm.chat(
                     messages=[{"role": "system", "content": img_prompt}],
                     max_tokens=100,
