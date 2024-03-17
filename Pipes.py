@@ -83,6 +83,10 @@ class Pipes:
         else:
             response = self.llm.completion(**data)
         generated_image = None
+        if "temperature" not in data:
+            data["temperature"] = 0.5
+        if "top_p" not in data:
+            data["top_p"] = 0.9
         if self.img and img_import_success:
             user_message = (
                 data["messages"][-1]["content"]
