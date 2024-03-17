@@ -1,6 +1,5 @@
 import os
 import base64
-import io
 import uuid
 import logging
 import webrtcvad
@@ -10,7 +9,6 @@ import threading
 import numpy as np
 from io import BytesIO
 from faster_whisper import WhisperModel
-from pydub import AudioSegment
 
 
 class STT:
@@ -33,11 +31,8 @@ class STT:
         filename = f"{uuid.uuid4().hex}.wav"
         file_path = os.path.join(os.getcwd(), "outputs", filename)
         audio_data = base64.b64decode(base64_audio)
-        audio_segment = AudioSegment.from_file(
-            io.BytesIO(audio_data), format=audio_format.lower()
-        )
-        audio_segment = audio_segment.set_frame_rate(16000)
-        audio_segment.export(file_path, format="wav")
+        with open(file_path, "wb") as audio_file:
+            audio_file.write(audio_data)
         if not os.path.exists(file_path):
             raise RuntimeError(f"Failed to load audio.")
         segments, _ = self.w.transcribe(
