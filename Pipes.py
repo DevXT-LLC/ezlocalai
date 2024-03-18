@@ -53,9 +53,12 @@ class Pipes:
         logging.info(f"[STT] {self.current_stt} model loaded successfully.")
         DEFAULT_MODEL = os.getenv("DEFAULT_MODEL", "phi-2-dpo")
         self.current_llm = DEFAULT_MODEL if DEFAULT_MODEL else "phi-2-dpo"
-        logging.info(f"[LLM] {self.current_llm} model loading. Please wait...")
-        self.llm = LLM(model=self.current_llm)
-        logging.info(f"[LLM] {self.current_llm} model loaded successfully.")
+        if self.vlm is not None:
+            self.llm = self.vlm
+        else:
+            logging.info(f"[LLM] {self.current_llm} model loading. Please wait...")
+            self.llm = LLM(model=self.current_llm)
+            logging.info(f"[LLM] {self.current_llm} model loaded successfully.")
 
         NGROK_TOKEN = os.environ.get("NGROK_TOKEN", "")
         if NGROK_TOKEN:

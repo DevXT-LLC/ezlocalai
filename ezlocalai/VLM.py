@@ -18,6 +18,7 @@ def get_tokens(text: str) -> int:
 class VLM:
     def __init__(self, model="deepseek-ai/deepseek-vl-1.3b-chat"):
         self.model = model.split("/")[-1]
+        self.params = {}
         os.makedirs(os.path.join(os.getcwd(), "outputs"), exist_ok=True)
         try:
             self.vl_chat_processor = VLChatProcessor.from_pretrained(model)
@@ -101,6 +102,35 @@ class VLM:
                 "completion_tokens": completion_tokens,
                 "prompt_tokens": prompt_tokens,
                 "total_tokens": total_tokens,
+            },
+        }
+        return data
+
+    def completion(self, prompt, **kwargs):
+        messages = [
+            {"role": "User", "content": prompt},
+        ]
+        completion = self.chat(
+            messages=messages,
+            max_tokens=kwargs["max_tokens"] if "max_tokens" in kwargs else 1024,
+        )
+        data = {
+            "choices": [
+                {
+                    "finish_reason": "length",
+                    "index": 0,
+                    "logprobs": None,
+                    "text": completion["choices"][0]["message"]["content"],
+                }
+            ],
+            "created": datetime.now().isoformat(),
+            "id": f"cmpl-{uuid.uuid4().hex}",
+            "model": self.model,
+            "object": "text_completion",
+            "usage": {
+                "completion_tokens": completion["usage"]["completion_tokens"],
+                "prompt_tokens": completion["usage"]["prompt_tokens"],
+                "total_tokens": completion["usage"]["total_tokens"],
             },
         }
         return data
