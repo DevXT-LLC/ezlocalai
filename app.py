@@ -20,7 +20,7 @@ import logging
 from dotenv import load_dotenv
 
 load_dotenv()
-DEFAULT_MODEL = os.getenv("DEFAULT_MODEL", "phi-2-dpo")
+DEFAULT_MODEL = os.getenv("DEFAULT_MODEL", "mistral-vlm-7b")
 WHISPER_MODEL = os.getenv("WHISPER_MODEL", "base")
 logging.basicConfig(
     level=os.environ.get("LOGLEVEL", "INFO"),

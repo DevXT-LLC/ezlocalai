@@ -11,11 +11,12 @@ import torch
 import logging
 
 
-DEFAULT_MODEL = os.environ.get("DEFAULT_MODEL", "phi-2-dpo")
+DEFAULT_MODEL = os.environ.get("DEFAULT_MODEL", "mistral-vlm-7b")
 
 
 def get_vision_models():
     return [
+        {"mistral-vlm-7b": "JoshXT/mistral-vlm-7b"},
         {"bakllava-1-7b": "mys/ggml_bakllava-1"},
         {"llava-v1.5-7b": "mys/ggml_llava-v1.5-7b"},
         {"llava-v1.5-13b": "mys/ggml_llava-v1.5-13b"},
@@ -78,7 +79,7 @@ def get_tokens(text: str) -> int:
     return int(num_tokens)
 
 
-def get_model_name(model_url="TheBloke/phi-2-dpo-GGUF"):
+def get_model_name(model_url="JoshXT/mistral-vlm-7b"):
     model_name = model_url.split("/")[-1].replace("-GGUF", "").lower()
     return model_name
 
@@ -151,6 +152,11 @@ def download_llm(model_name="", models_dir="models"):
             url = (
                 f"https://huggingface.co/{model_url}/resolve/main/ggml-model-q5_k.gguf"
             )
+            clip_url = (
+                f"https://huggingface.co/{model_url}/resolve/main/mmproj-model-f16.gguf"
+            )
+        elif model_url.startswith("JoshXT/"):
+            url = f"https://huggingface.co/{model_url}/resolve/main/mistral-vlm-7b.Q5_K_M.gguf"
             clip_url = (
                 f"https://huggingface.co/{model_url}/resolve/main/mmproj-model-f16.gguf"
             )
@@ -359,8 +365,12 @@ class LLM:
         else:
             self.params["n_batch"] = 1024
         if self.model_name != "":
-            logging.info(f"[LLM] Parameters: {self.params}")
-            self.lcpp = Llama(**self.params, embedding=True, chat_handler=chat_handler)
+            self.lcpp = Llama(
+                **self.params,
+                embedding=True,
+                chat_handler=chat_handler,
+                logits_all=True if chat_handler else False,
+            )
         else:
             self.lcpp = None
         self.model_list = get_models()
@@ -368,7 +378,6 @@ class LLM:
     def generate(
         self,
         prompt,
-        format_prompt: bool = True,
         max_tokens=None,
         temperature=None,
         top_p=None,
@@ -405,16 +414,8 @@ class LLM:
                     "content": prompt,
                 },
             )
-        if format_prompt:
-            formatted_prompt = custom_format_prompt(
-                prompt=prompt,
-                prompt_template=self.prompt_template,
-                system_message=(
-                    self.system_message if system_message is None else system_message
-                ),
-            )
-        data = self.lcpp.create_completion(
-            prompt=formatted_prompt if format_prompt else prompt,
+        data = self.lcpp.create_chat_completion(
+            messages=messages,
             max_tokens=(
                 self.params["max_tokens"] if max_tokens is None else int(max_tokens)
             ),
@@ -449,37 +450,22 @@ class LLM:
         data["model"] = self.model_name
         return data
 
-    def completion(self, prompt, format_prompt: bool = True, **kwargs):
-        data = self.generate(prompt=prompt, format_prompt=format_prompt, **kwargs)
-        data["choices"][0]["text"] = clean(
-            message=data["choices"][0]["text"], stop_tokens=self.params["stop"]
+    def completion(self, prompt, **kwargs):
+        data = self.generate(prompt=prompt, **kwargs)
+        data["choices"][0]["message"]["content"] = clean(
+            message=data["choices"][0]["message"]["content"],
+            stop_tokens=self.params["stop"],
         )
+        data["choices"][0]["text"] = data["choices"][0]["message"]["content"]
         return data
 
     def chat(self, messages, **kwargs):
-        prompt = ""
-        if len(messages) > 1:
-            for message in messages:
-                if message["role"] == "system":
-                    kwargs["system_message"] = message["content"]
-                elif message["role"] == "user":
-                    prompt += f"USER: {message['content']}"
-                elif message["role"] == "assistant":
-                    prompt += f"ASSISTANT: {message['content']}"
-                prompt += "\n"
-        else:
-            try:
-                prompt = messages[0]["content"]
-            except:
-                prompt = str(messages)
-        data = self.generate(prompt=prompt, **kwargs)
-        messages = [{"role": "user", "content": prompt}]
-        message = clean(
-            message=data["choices"][0]["text"], stop_tokens=self.params["stop"]
+        user_input = messages[-1]["content"]
+        data = self.generate(prompt=user_input, **kwargs)
+        data["choices"][0]["message"]["content"] = clean(
+            message=data["choices"][0]["message"]["content"],
+            stop_tokens=self.params["stop"],
         )
-        data["choices"][0]["message"] = {"content": message}
-        messages.append({"role": "assistant", "content": message})
-        data["messages"] = messages
         return data
 
     def embedding(self, input):
