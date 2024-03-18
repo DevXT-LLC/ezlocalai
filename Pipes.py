@@ -5,6 +5,8 @@ from ezlocalai.LLM import LLM
 from ezlocalai.STT import STT
 from ezlocalai.CTTS import CTTS
 from pyngrok import ngrok
+import requests
+import base64
 
 try:
     from ezlocalai.IMG import IMG
@@ -12,6 +14,11 @@ try:
     img_import_success = True
 except ImportError:
     img_import_success = False
+
+try:
+    from ezlocalai.VLM import VLM
+except ImportError:
+    VLM = None
 
 
 class Pipes:
@@ -43,8 +50,15 @@ class Pipes:
         logging.info(f"[LLM] {self.current_llm} model loaded successfully.")
         self.current_vlm = os.getenv("VISION_MODEL", "")
         self.vlm = None
-        if self.current_vlm != "":
-            self.vlm = LLM(model=self.current_vlm)  # bakllava-1-7b
+        if self.current_vlm != "" and VLM is not None:
+            try:
+                self.vlm = VLM(model="deepseek-ai/deepseek-vl-1.3b-chat")
+            except Exception as e:
+                logging.error(f"[VLM] Failed to load the model: {e}")
+                self.vlm = None
+            if self.vlm.vl_gpt is None:
+                self.vlm = None
+        if self.vlm is not None:
             logging.info(f"[ezlocalai] Vision is enabled.")
         NGROK_TOKEN = os.environ.get("NGROK_TOKEN", "")
         if NGROK_TOKEN:
@@ -57,7 +71,48 @@ class Pipes:
 
     async def get_response(self, data, completion_type="chat"):
         data["local_uri"] = self.local_uri
-
+        if "messages" in data:
+            if isinstance(data["messages"][-1]["content"], list):
+                message = data["messages"][-1]["content"][0]
+                prompt = message["text"] if "text" in message else ""
+                for item in message:
+                    if "audio_url" in item:
+                        audio_url = (
+                            message["audio_url"]["url"]
+                            if "url" in message["audio_url"]
+                            else message["audio_url"]
+                        )
+                        audio_format = "wav"
+                        if audio_url.startswith("data:"):
+                            audio_url = audio_url.split(",")[1]
+                            audio_format = audio_url.split(";")[0]
+                        else:
+                            audio_url = requests.get(audio_url).content
+                            audio_url = base64.b64encode(audio_url).decode("utf-8")
+                        transcribed_audio = self.stt.transcribe_audio(
+                            base64_audio=audio_url, audio_format=audio_format
+                        )
+                        prompt = (
+                            f"{transcribed_audio}\n\n{prompt}"
+                            if prompt
+                            else transcribed_audio
+                        )
+                for item in message:
+                    if "image_url" in item:
+                        image_url = (
+                            message["image_url"]["url"]
+                            if "url" in message["image_url"]
+                            else message["image_url"]
+                        )
+                        if self.vlm is None:
+                            prompt = f"Image URL: {image_url}.\n\n{prompt}"
+                        else:
+                            image_description = self.vlm.describe_image(image_url)
+                            prompt = f"Visual description of image at {image_url}: {image_description}\n\n{prompt}"
+                if completion_type == "chat":
+                    data["messages"][-1]["content"] = prompt
+                else:
+                    data["prompt"] = prompt
         if data["model"]:
             if self.current_llm != data["model"]:
                 data["model"] = self.current_llm
