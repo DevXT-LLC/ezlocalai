@@ -16,10 +16,12 @@ DEFAULT_MODEL = os.environ.get("DEFAULT_MODEL", "phi-2-dpo")
 
 def get_vision_models():
     return [
+        {"mistral-vlm-7b": "JoshXT/mistral-vlm-7b"},
         {"bakllava-1-7b": "mys/ggml_bakllava-1"},
         {"llava-v1.5-7b": "mys/ggml_llava-v1.5-7b"},
         {"llava-v1.5-13b": "mys/ggml_llava-v1.5-13b"},
         {"yi-vl-6b": "cmp-nct/Yi-VL-6B-GGUF"},
+        {"sharegpt4v-7b": "cmp-nct/ShareGPT4V-7B-quant-gguf"},
     ]
 
 
@@ -101,30 +103,6 @@ def get_readme(model_name="", models_dir="models"):
     return readme
 
 
-def get_max_tokens(model_name="", models_dir="models"):
-    if model_name == "":
-        global DEFAULT_MODEL
-        model_name = DEFAULT_MODEL
-    readme = get_readme(model_name=model_name, models_dir=models_dir)
-    if "200k" in readme:
-        return 200000
-    if "131072" in readme or "128k" in readme:
-        return 131072
-    if "65536" in readme or "64k" in readme:
-        return 65536
-    if "32768" in readme or "32k" in readme:
-        return 32768
-    if "16384" in readme or "16k" in readme:
-        return 16384
-    if "8192" in readme or "8k" in readme:
-        return 8192
-    if "4096" in readme or "4k" in readme:
-        return 4096
-    if "2048" in readme or "2k" in readme:
-        return 2048
-    return 8192
-
-
 def get_prompt(model_name="", models_dir="models"):
     if model_name == "":
         global DEFAULT_MODEL
@@ -184,6 +162,12 @@ def download_llm(model_name="", models_dir="models"):
                 f"https://huggingface.co/{model_url}/resolve/main/ggml-model-Q5_K.gguf"
             )
             clip_url = f"https://huggingface.co/{model_url}/resolve/main/mmproj-model-f16-q6_k.gguf"
+        elif model_url == "cmp-nct/ShareGPT4V-7B-quant-gguf":
+            url = f"https://huggingface.co/cmp-nct/ShareGPT4V-7B-quant-gguf/resolve/main/ggml-model-q5_k?"
+            clip_url = f"https://huggingface.co/cmp-nct/ShareGPT4V-7B-quant-gguf/resolve/main/mmproj-model-f16.gguf"
+        elif model_url == "JoshXT/mistral-vlm-7b":
+            url = f"https://huggingface.co/JoshXT/mistral-vlm-7b/resolve/main/mistral-vlm-7b.Q5_K_M.gguf"
+            clip_url = f"https://huggingface.co/JoshXT/mistral-vlm-7b/resolve/main/mmproj-model-f16.gguf"
         else:
             url = (
                 (
@@ -263,6 +247,7 @@ def clean(
         "</s>",
         "<s>",
         "User:",
+        "### \n###",
     ],
 ):
     if message == "":
@@ -323,9 +308,7 @@ class LLM:
                 model_name=self.model_name, models_dir=models_dir
             )
             if max_tokens != 0:
-                self.params["max_tokens"] = get_max_tokens(
-                    model_name=self.model_name, models_dir=models_dir
-                )
+                self.params["max_tokens"] = 4096
             else:
                 self.params["max_tokens"] = max_tokens
             self.prompt_template = get_prompt(
@@ -355,6 +338,7 @@ class LLM:
             "</s>",
             "<s>",
             "User:",
+            "### \n###",
         ]
         if stop != []:
             if isinstance(stop, str):
@@ -377,7 +361,7 @@ class LLM:
         self.params["frequency_penalty"] = (
             frequency_penalty if frequency_penalty else 0.0
         )
-        self.params["repetition_penalty"] = 1.0
+        self.params["repetition_penalty"] = 1.2
         self.params["logit_bias"] = logit_bias if logit_bias else None
         self.params["n_gpu_layers"] = int(GPU_LAYERS) if GPU_LAYERS else 0
         self.params["main_gpu"] = int(MAIN_GPU) if MAIN_GPU else 0
