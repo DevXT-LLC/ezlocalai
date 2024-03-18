@@ -16,12 +16,9 @@ DEFAULT_MODEL = os.environ.get("DEFAULT_MODEL", "phi-2-dpo")
 
 def get_vision_models():
     return [
-        {"mistral-vlm-7b": "JoshXT/mistral-vlm-7b"},
         {"bakllava-1-7b": "mys/ggml_bakllava-1"},
         {"llava-v1.5-7b": "mys/ggml_llava-v1.5-7b"},
         {"llava-v1.5-13b": "mys/ggml_llava-v1.5-13b"},
-        {"yi-vl-6b": "cmp-nct/Yi-VL-6B-GGUF"},
-        {"sharegpt4v-7b": "cmp-nct/ShareGPT4V-7B-quant-gguf"},
     ]
 
 
@@ -157,17 +154,6 @@ def download_llm(model_name="", models_dir="models"):
             clip_url = (
                 f"https://huggingface.co/{model_url}/resolve/main/mmproj-model-f16.gguf"
             )
-        elif model_url == "cmp-nct/Yi-VL-6B-GGUF":
-            url = (
-                f"https://huggingface.co/{model_url}/resolve/main/ggml-model-Q5_K.gguf"
-            )
-            clip_url = f"https://huggingface.co/{model_url}/resolve/main/mmproj-model-f16-q6_k.gguf"
-        elif model_url == "cmp-nct/ShareGPT4V-7B-quant-gguf":
-            url = f"https://huggingface.co/cmp-nct/ShareGPT4V-7B-quant-gguf/resolve/main/ggml-model-q5_k?"
-            clip_url = f"https://huggingface.co/cmp-nct/ShareGPT4V-7B-quant-gguf/resolve/main/mmproj-model-f16.gguf"
-        elif model_url == "JoshXT/mistral-vlm-7b":
-            url = f"https://huggingface.co/JoshXT/mistral-vlm-7b/resolve/main/mistral-vlm-7b.Q5_K_M.gguf"
-            clip_url = f"https://huggingface.co/JoshXT/mistral-vlm-7b/resolve/main/mmproj-model-f16.gguf"
         else:
             url = (
                 (
@@ -303,6 +289,7 @@ class LLM:
         )
         self.params = {}
         self.model_name = DEFAULT_MODEL
+        chat_handler = None
         if self.model_name != "":
             self.params["model_path"] = download_llm(
                 model_name=self.model_name, models_dir=models_dir
@@ -319,7 +306,7 @@ class LLM:
                     model_name=self.model_name, models_dir=models_dir
                 )
                 if clip_path != "":
-                    self.params["chat_handler"] = llama_chat_format.Llava15ChatHandler(
+                    chat_handler = llama_chat_format.Llava15ChatHandler(
                         clip_model_path=clip_path, verbose=True
                     )
         else:
@@ -372,7 +359,8 @@ class LLM:
         else:
             self.params["n_batch"] = 1024
         if self.model_name != "":
-            self.lcpp = Llama(**self.params, embedding=True)
+            logging.info(f"[LLM] Parameters: {self.params}")
+            self.lcpp = Llama(**self.params, embedding=True, chat_handler=chat_handler)
         else:
             self.lcpp = None
         self.model_list = get_models()
@@ -395,6 +383,28 @@ class LLM:
         system_message=None,
         **kwargs,
     ):
+        messages = [
+            {
+                "role": "system",
+                "content": (
+                    self.system_message if system_message is None else system_message
+                ),
+            }
+        ]
+        if isinstance(prompt, list):
+            messages.append(
+                {
+                    "role": "user",
+                    "content": prompt,
+                },
+            )
+        else:
+            messages.append(
+                {
+                    "role": "user",
+                    "content": prompt,
+                },
+            )
         if format_prompt:
             formatted_prompt = custom_format_prompt(
                 prompt=prompt,
@@ -467,6 +477,7 @@ class LLM:
         message = clean(
             message=data["choices"][0]["text"], stop_tokens=self.params["stop"]
         )
+        data["choices"][0]["message"]["content"] = message
         messages.append({"role": "assistant", "content": message})
         data["messages"] = messages
         return data
