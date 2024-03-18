@@ -61,7 +61,7 @@ class VLM:
                             }
                         )
         conversation[-1]["images"] = images
-        conversation.append({"role": "Asistant", "content": ""})
+        conversation.append({"role": "Assistant", "content": ""})
         prepare_inputs = self.vl_chat_processor(
             conversations=conversation, images=pil_images, force_batchify=True
         ).to(self.vl_gpt.device)
