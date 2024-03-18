@@ -95,9 +95,9 @@ class Pipes:
                 else data["prompt"]
             )
             response_text = (
-                response["messages"][1]["content"]
-                if completion_type == "chat"
-                else response["choices"][0]["text"]
+                response["choices"][0]["text"]
+                if completion_type != "chat"
+                else response["choices"][0]["message"]["content"]
             )
             img_gen_prompt = f"Users message: {user_message} \nAssistant response: {response_text} \n\n**The assistant is acting as a decision maker for creating stable diffusion images and only responds with a concise YES or NO answer on if it would make sense to generate an image based on the users message. No other explanation is needed!**\nShould an image be created to accompany the assistant response?\nAssistant: "
             logging.info(f"[IMG] Decision maker prompt: {img_gen_prompt}")
@@ -107,7 +107,7 @@ class Pipes:
                 temperature=data["temperature"],
                 top_p=data["top_p"],
             )
-            create_img = str(create_img["messages"][1]["content"]).lower()
+            create_img = str(create_img["choices"][0]["message"]["content"]).lower()
             logging.info(f"[IMG] Decision maker response: {create_img}")
             if "yes" in create_img or "es," in create_img:
 
@@ -123,11 +123,8 @@ class Pipes:
                     temperature=data["temperature"],
                     top_p=data["top_p"],
                 )
-                logging.info(
-                    f"[IMG] Image generation prompt: {image_generation_prompt}"
-                )
                 image_generation_prompt = str(
-                    image_generation_prompt["messages"][1]["content"]
+                    image_generation_prompt["choices"][0]["message"]["content"]
                 )
                 logging.info(
                     f"[IMG] Image generation response: {image_generation_prompt}"
@@ -142,10 +139,11 @@ class Pipes:
                 )
         audio_response = None
         if "voice" in data:
-            if completion_type == "chat":
-                text_response = response["messages"][1]["content"]
-            else:
-                text_response = response["choices"][0]["text"]
+            text_response = (
+                response["choices"][0]["text"]
+                if completion_type != "chat"
+                else response["choices"][0]["message"]["content"]
+            )
             language = data["language"] if "language" in data else "en"
             audio_response = await self.ctts.generate(
                 text=text_response,
@@ -153,15 +151,15 @@ class Pipes:
                 language=language,
                 local_uri=self.local_uri,
             )
-            if completion_type == "chat":
-                response["messages"][1][
+            if completion_type != "chat":
+                response["choices"][0]["text"] = f"{text_response}\n{audio_response}"
+            else:
+                response["choices"][0]["message"][
                     "content"
                 ] = f"{text_response}\n{audio_response}"
-            else:
-                response["choices"][0]["text"] = f"{text_response}\n{audio_response}"
         if generated_image:
-            if completion_type == "chat":
-                response["messages"][1]["content"] += f"\n\n{generated_image}"
-            else:
+            if completion_type != "chat":
                 response["choices"][0]["text"] += f"\n\n{generated_image}"
+            else:
+                response["choices"][0]["message"]["content"] += f"\n\n{generated_image}"
         return response, audio_response
