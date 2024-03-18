@@ -477,7 +477,7 @@ class LLM:
         message = clean(
             message=data["choices"][0]["text"], stop_tokens=self.params["stop"]
         )
-        data["choices"][0]["message"]["content"] = message
+        data["choices"][0]["message"] = {"content": message}
         messages.append({"role": "assistant", "content": message})
         data["messages"] = messages
         return data
