@@ -2,21 +2,17 @@ from llama_cpp import Llama, llama_chat_format
 from bs4 import BeautifulSoup
 from typing import List, Optional, Dict
 import os
-import re
 import requests
-import tiktoken
-import json
 import psutil
 import torch
 import logging
 
 
-DEFAULT_MODEL = os.environ.get("DEFAULT_MODEL", "mistral-vlm-7b")
+DEFAULT_MODEL = os.environ.get("DEFAULT_MODEL", "phi-2-dpo")
 
 
 def get_vision_models():
     return [
-        {"mistral-vlm-7b": "JoshXT/mistral-vlm-7b"},
         {"bakllava-1-7b": "mys/ggml_bakllava-1"},
         {"llava-v1.5-7b": "mys/ggml_llava-v1.5-7b"},
         {"llava-v1.5-13b": "mys/ggml_llava-v1.5-13b"},
@@ -73,62 +69,6 @@ def get_model_url(model_name=""):
     return model_url
 
 
-def get_tokens(text: str) -> int:
-    encoding = tiktoken.get_encoding("cl100k_base")
-    num_tokens = len(encoding.encode(text))
-    return int(num_tokens)
-
-
-def get_model_name(model_url="JoshXT/mistral-vlm-7b"):
-    model_name = model_url.split("/")[-1].replace("-GGUF", "").lower()
-    return model_name
-
-
-def get_readme(model_name="", models_dir="models"):
-    if model_name == "":
-        global DEFAULT_MODEL
-        model_name = DEFAULT_MODEL
-    model_url = get_model_url(model_name=model_name)
-    model_name = model_name.lower()
-    if not os.path.exists(f"{models_dir}/{model_name}/README.md"):
-        readme_url = f"https://huggingface.co/{model_url}/raw/main/README.md"
-        with requests.get(readme_url, stream=True, allow_redirects=True) as r:
-            with open(f"{models_dir}/{model_name}/README.md", "wb") as f:
-                for chunk in r.iter_content(chunk_size=8192):
-                    f.write(chunk)
-    with open(f"{models_dir}/{model_name}/README.md", "r", encoding="utf-8") as f:
-        readme = f.read()
-    return readme
-
-
-def get_prompt(model_name="", models_dir="models"):
-    if model_name == "":
-        global DEFAULT_MODEL
-        model_name = DEFAULT_MODEL
-    model_name = model_name.lower()
-    if os.path.exists(f"{models_dir}/{model_name}/prompt.txt"):
-        with open(f"{models_dir}/{model_name}/prompt.txt", "r") as f:
-            prompt_template = f.read()
-        return prompt_template
-    readme = get_readme(model_name=model_name, models_dir=models_dir)
-    try:
-        prompt_template = readme.split("prompt_template: '")[1].split("'")[0]
-    except:
-        prompt_template = ""
-    if prompt_template == "":
-        prompt_template = (
-            "## SYSTEM\n{system_message}\n## USER\n{prompt}\n## ASSISTANT\n"
-        )
-    if "{system_message}" not in prompt_template:
-        if "<|system|>" in prompt_template:
-            prompt_template = prompt_template.replace(
-                "<|system|>", "<|system|>\n{system_message}"
-            )
-        else:
-            prompt_template = "## SYSTEM\n{system_message}\n" + prompt_template
-    return prompt_template
-
-
 def download_llm(model_name="", models_dir="models"):
     if model_name != "":
         global DEFAULT_MODEL
@@ -152,11 +92,6 @@ def download_llm(model_name="", models_dir="models"):
             url = (
                 f"https://huggingface.co/{model_url}/resolve/main/ggml-model-q5_k.gguf"
             )
-            clip_url = (
-                f"https://huggingface.co/{model_url}/resolve/main/mmproj-model-f16.gguf"
-            )
-        elif model_url.startswith("JoshXT/"):
-            url = f"https://huggingface.co/{model_url}/resolve/main/mistral-vlm-7b.Q5_K_M.gguf"
             clip_url = (
                 f"https://huggingface.co/{model_url}/resolve/main/mmproj-model-f16.gguf"
             )
@@ -195,39 +130,6 @@ def get_clip_path(model_name="", models_dir="models"):
         return f"{models_dir}/{model_name}/mmproj-model-f16.gguf"
     else:
         return ""
-
-
-def custom_format(string, **kwargs):
-    if isinstance(string, list):
-        string = "".join(str(x) for x in string)
-
-    def replace(match):
-        key = match.group(1)
-        value = kwargs.get(key, match.group(0))
-        if isinstance(value, list):
-            return "".join(str(x) for x in value)
-        else:
-            return str(value)
-
-    pattern = r"(?<!{){([^{}\n]+)}(?!})"
-    result = re.sub(pattern, replace, string)
-    return result
-
-
-def custom_format_prompt(prompt, prompt_template, system_message=""):
-    formatted_prompt = custom_format(
-        string=prompt_template, prompt=prompt, system_message=system_message
-    )
-    return formatted_prompt
-
-
-async def streaming_generation(data):
-    yield "data: {}\n".format(json.dumps(data))
-    for line in data.iter_lines():
-        if line:
-            decoded_line = line.decode("utf-8")
-            current_data = json.loads(decoded_line[6:])
-            yield "data: {}\n".format(json.dumps(current_data))
 
 
 def clean(
@@ -304,9 +206,6 @@ class LLM:
                 self.params["max_tokens"] = 4096
             else:
                 self.params["max_tokens"] = max_tokens
-            self.prompt_template = get_prompt(
-                model_name=self.model_name, models_dir=models_dir
-            )
             if is_vision_model(model_name=self.model_name):
                 clip_path = get_clip_path(
                     model_name=self.model_name, models_dir=models_dir
@@ -318,7 +217,6 @@ class LLM:
         else:
             self.params["model_path"] = ""
             self.params["max_tokens"] = 8192
-            self.prompt_template = "{system_message}\n\n{prompt}"
         self.params["n_ctx"] = int(os.environ.get("LLM_MAX_TOKENS", 0))
         self.params["verbose"] = True
         self.system_message = system_message

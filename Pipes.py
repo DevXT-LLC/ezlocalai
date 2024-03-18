@@ -36,8 +36,8 @@ class Pipes:
         logging.info(f"[STT] {self.current_stt} model loading. Please wait...")
         self.stt = STT(model=self.current_stt)
         logging.info(f"[STT] {self.current_stt} model loaded successfully.")
-        DEFAULT_MODEL = os.getenv("DEFAULT_MODEL", "mistral-vlm-7b")
-        self.current_llm = DEFAULT_MODEL if DEFAULT_MODEL else "mistral-vlm-7b"
+        DEFAULT_MODEL = os.getenv("DEFAULT_MODEL", "phi-2-dpo")
+        self.current_llm = DEFAULT_MODEL if DEFAULT_MODEL else "phi-2-dpo"
         logging.info(f"[LLM] {self.current_llm} model loading. Please wait...")
         self.llm = LLM(model=self.current_llm)
         logging.info(f"[LLM] {self.current_llm} model loaded successfully.")
@@ -110,7 +110,6 @@ class Pipes:
             create_img = str(create_img["choices"][0]["message"]["content"]).lower()
             logging.info(f"[IMG] Decision maker response: {create_img}")
             if "yes" in create_img or "es," in create_img:
-
                 prompt = (
                     data["messages"][-1]["content"]
                     if completion_type == "chat"
