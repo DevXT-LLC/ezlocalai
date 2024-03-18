@@ -142,6 +142,7 @@ def clean(
         "<s>",
         "User:",
         "### \n###",
+        "[/INST]",
     ],
 ):
     if message == "":
@@ -230,6 +231,7 @@ class LLM:
             "<s>",
             "User:",
             "### \n###",
+            "[/INST]",
         ]
         if stop != []:
             if isinstance(stop, str):

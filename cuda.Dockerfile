@@ -15,11 +15,10 @@ COPY cuda-requirements.txt .
 RUN python3 -m pip install --upgrade pip cmake scikit-build setuptools wheel --no-cache-dir && \
     CMAKE_ARGS="-DLLAMA_CUBLAS=on" FORCE_CMAKE=1 pip install llama-cpp-python==0.2.55 --no-cache-dir && \
     pip install --no-cache-dir -r cuda-requirements.txt
-RUN git clone https://github.com/deepseek-ai/DeepSeek-VL deepseek-vl && \
-    cd deepseek-vl && \
+RUN git clone https://github.com/deepseek-ai/DeepSeek-VL deepseek && \
+    cd deepseek && \
     pip install --no-cache-dir -e . && \
-    cd .. && \
-    rm -rf deepseek-vl
+    cd ..
 COPY . .
 EXPOSE 8091
 ENTRYPOINT ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8091", "--workers", "1", "--proxy-headers"]

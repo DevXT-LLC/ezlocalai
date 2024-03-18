@@ -15,15 +15,23 @@ try:
 except ImportError:
     img_import_success = False
 
-try:
-    from ezlocalai.VLM import VLM
-except ImportError:
-    VLM = None
+from ezlocalai.VLM import VLM
 
 
 class Pipes:
     def __init__(self):
         load_dotenv()
+        self.current_vlm = os.getenv("VISION_MODEL", "")
+        logging.info(f"[VLM] {self.current_vlm} model loading. Please wait...")
+        self.vlm = None
+        if self.current_vlm != "":
+            try:
+                self.vlm = VLM(model=self.current_vlm)
+            except Exception as e:
+                logging.error(f"[VLM] Failed to load the model: {e}")
+                self.vlm = None
+        if self.vlm is not None:
+            logging.info(f"[ezlocalai] Vision is enabled.")
         self.img_enabled = os.getenv("IMG_ENABLED", "false").lower() == "true"
         self.img = None
         if self.img_enabled and img_import_success:
@@ -48,18 +56,7 @@ class Pipes:
         logging.info(f"[LLM] {self.current_llm} model loading. Please wait...")
         self.llm = LLM(model=self.current_llm)
         logging.info(f"[LLM] {self.current_llm} model loaded successfully.")
-        self.current_vlm = os.getenv("VISION_MODEL", "")
-        self.vlm = None
-        if self.current_vlm != "" and VLM is not None:
-            try:
-                self.vlm = VLM(model="deepseek-ai/deepseek-vl-1.3b-chat")
-            except Exception as e:
-                logging.error(f"[VLM] Failed to load the model: {e}")
-                self.vlm = None
-            if self.vlm.vl_gpt is None:
-                self.vlm = None
-        if self.vlm is not None:
-            logging.info(f"[ezlocalai] Vision is enabled.")
+
         NGROK_TOKEN = os.environ.get("NGROK_TOKEN", "")
         if NGROK_TOKEN:
             ngrok.set_auth_token(NGROK_TOKEN)
@@ -73,10 +70,12 @@ class Pipes:
         data["local_uri"] = self.local_uri
         if "messages" in data:
             if isinstance(data["messages"][-1]["content"], list):
-                message = data["messages"][-1]["content"][0]
-                prompt = message["text"] if "text" in message else ""
-                for item in message:
-                    if "audio_url" in item:
+                messages = data["messages"][-1]["content"]
+                for message in messages:
+                    if "text" in message:
+                        prompt = message["text"]
+                for message in messages:
+                    if "audio_url" in message:
                         audio_url = (
                             message["audio_url"]["url"]
                             if "url" in message["audio_url"]
@@ -92,13 +91,9 @@ class Pipes:
                         transcribed_audio = self.stt.transcribe_audio(
                             base64_audio=audio_url, audio_format=audio_format
                         )
-                        prompt = (
-                            f"{transcribed_audio}\n\n{prompt}"
-                            if prompt
-                            else transcribed_audio
-                        )
-                for item in message:
-                    if "image_url" in item:
+                        prompt = f"Transcribed Audio: {transcribed_audio}\n\n{prompt}"
+                for message in messages:
+                    if "image_url" in message:
                         image_url = (
                             message["image_url"]["url"]
                             if "url" in message["image_url"]
@@ -109,6 +104,7 @@ class Pipes:
                         else:
                             image_description = self.vlm.describe_image(image_url)
                             prompt = f"Visual description of image at {image_url}: {image_description}\n\n{prompt}"
+                logging.info(f"[LLM] Prompt: {prompt}")
                 if completion_type == "chat":
                     data["messages"][-1]["content"] = prompt
                 else:

@@ -1,7 +1,4 @@
-try:
-    from deepseek_vl.models import VLChatProcessor
-except ImportError:
-    VLChatProcessor = None
+from deepseek_vl.models import VLChatProcessor
 import requests
 import torch
 from transformers import AutoModelForCausalLM
