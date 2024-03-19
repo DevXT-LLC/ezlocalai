@@ -1,4 +1,7 @@
-from deepseek_vl.models import VLChatProcessor
+try:
+    from deepseek_vl.models import VLChatProcessor
+except:
+    VLChatProcessor = None
 from transformers import AutoModelForCausalLM
 from datetime import datetime
 import requests
