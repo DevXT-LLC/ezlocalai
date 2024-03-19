@@ -2,10 +2,7 @@ from llama_cpp import Llama, llama_chat_format
 from bs4 import BeautifulSoup
 from typing import List, Optional, Dict
 import os
-import re
 import requests
-import tiktoken
-import json
 import psutil
 import torch
 import logging
@@ -72,62 +69,6 @@ def get_model_url(model_name=""):
     return model_url
 
 
-def get_tokens(text: str) -> int:
-    encoding = tiktoken.get_encoding("cl100k_base")
-    num_tokens = len(encoding.encode(text))
-    return int(num_tokens)
-
-
-def get_model_name(model_url="TheBloke/phi-2-dpo-GGUF"):
-    model_name = model_url.split("/")[-1].replace("-GGUF", "").lower()
-    return model_name
-
-
-def get_readme(model_name="", models_dir="models"):
-    if model_name == "":
-        global DEFAULT_MODEL
-        model_name = DEFAULT_MODEL
-    model_url = get_model_url(model_name=model_name)
-    model_name = model_name.lower()
-    if not os.path.exists(f"{models_dir}/{model_name}/README.md"):
-        readme_url = f"https://huggingface.co/{model_url}/raw/main/README.md"
-        with requests.get(readme_url, stream=True, allow_redirects=True) as r:
-            with open(f"{models_dir}/{model_name}/README.md", "wb") as f:
-                for chunk in r.iter_content(chunk_size=8192):
-                    f.write(chunk)
-    with open(f"{models_dir}/{model_name}/README.md", "r", encoding="utf-8") as f:
-        readme = f.read()
-    return readme
-
-
-def get_prompt(model_name="", models_dir="models"):
-    if model_name == "":
-        global DEFAULT_MODEL
-        model_name = DEFAULT_MODEL
-    model_name = model_name.lower()
-    if os.path.exists(f"{models_dir}/{model_name}/prompt.txt"):
-        with open(f"{models_dir}/{model_name}/prompt.txt", "r") as f:
-            prompt_template = f.read()
-        return prompt_template
-    readme = get_readme(model_name=model_name, models_dir=models_dir)
-    try:
-        prompt_template = readme.split("prompt_template: '")[1].split("'")[0]
-    except:
-        prompt_template = ""
-    if prompt_template == "":
-        prompt_template = (
-            "## SYSTEM\n{system_message}\n## USER\n{prompt}\n## ASSISTANT\n"
-        )
-    if "{system_message}" not in prompt_template:
-        if "<|system|>" in prompt_template:
-            prompt_template = prompt_template.replace(
-                "<|system|>", "<|system|>\n{system_message}"
-            )
-        else:
-            prompt_template = "## SYSTEM\n{system_message}\n" + prompt_template
-    return prompt_template
-
-
 def download_llm(model_name="", models_dir="models"):
     if model_name != "":
         global DEFAULT_MODEL
@@ -191,39 +132,6 @@ def get_clip_path(model_name="", models_dir="models"):
         return ""
 
 
-def custom_format(string, **kwargs):
-    if isinstance(string, list):
-        string = "".join(str(x) for x in string)
-
-    def replace(match):
-        key = match.group(1)
-        value = kwargs.get(key, match.group(0))
-        if isinstance(value, list):
-            return "".join(str(x) for x in value)
-        else:
-            return str(value)
-
-    pattern = r"(?<!{){([^{}\n]+)}(?!})"
-    result = re.sub(pattern, replace, string)
-    return result
-
-
-def custom_format_prompt(prompt, prompt_template, system_message=""):
-    formatted_prompt = custom_format(
-        string=prompt_template, prompt=prompt, system_message=system_message
-    )
-    return formatted_prompt
-
-
-async def streaming_generation(data):
-    yield "data: {}\n".format(json.dumps(data))
-    for line in data.iter_lines():
-        if line:
-            decoded_line = line.decode("utf-8")
-            current_data = json.loads(decoded_line[6:])
-            yield "data: {}\n".format(json.dumps(current_data))
-
-
 def clean(
     message: str = "",
     stop_tokens: List[str] = [
@@ -234,6 +142,7 @@ def clean(
         "<s>",
         "User:",
         "### \n###",
+        "[/INST]",
     ],
 ):
     if message == "":
@@ -298,9 +207,6 @@ class LLM:
                 self.params["max_tokens"] = 4096
             else:
                 self.params["max_tokens"] = max_tokens
-            self.prompt_template = get_prompt(
-                model_name=self.model_name, models_dir=models_dir
-            )
             if is_vision_model(model_name=self.model_name):
                 clip_path = get_clip_path(
                     model_name=self.model_name, models_dir=models_dir
@@ -312,8 +218,7 @@ class LLM:
         else:
             self.params["model_path"] = ""
             self.params["max_tokens"] = 8192
-            self.prompt_template = "{system_message}\n\n{prompt}"
-        self.params["n_ctx"] = int(os.environ.get("LLM_MAX_TOKENS", 0))
+        self.params["n_ctx"] = int(os.environ.get("LLM_MAX_TOKENS", 4096))
         self.params["verbose"] = True
         self.system_message = system_message
         self.params["mirostat_mode"] = 2
@@ -326,6 +231,7 @@ class LLM:
             "<s>",
             "User:",
             "### \n###",
+            "[/INST]",
         ]
         if stop != []:
             if isinstance(stop, str):
@@ -359,8 +265,12 @@ class LLM:
         else:
             self.params["n_batch"] = 1024
         if self.model_name != "":
-            logging.info(f"[LLM] Parameters: {self.params}")
-            self.lcpp = Llama(**self.params, embedding=True, chat_handler=chat_handler)
+            self.lcpp = Llama(
+                **self.params,
+                embedding=True,
+                chat_handler=chat_handler,
+                logits_all=True if chat_handler else False,
+            )
         else:
             self.lcpp = None
         self.model_list = get_models()
@@ -368,7 +278,6 @@ class LLM:
     def generate(
         self,
         prompt,
-        format_prompt: bool = True,
         max_tokens=None,
         temperature=None,
         top_p=None,
@@ -405,16 +314,8 @@ class LLM:
                     "content": prompt,
                 },
             )
-        if format_prompt:
-            formatted_prompt = custom_format_prompt(
-                prompt=prompt,
-                prompt_template=self.prompt_template,
-                system_message=(
-                    self.system_message if system_message is None else system_message
-                ),
-            )
-        data = self.lcpp.create_completion(
-            prompt=formatted_prompt if format_prompt else prompt,
+        data = self.lcpp.create_chat_completion(
+            messages=messages,
             max_tokens=(
                 self.params["max_tokens"] if max_tokens is None else int(max_tokens)
             ),
@@ -449,37 +350,22 @@ class LLM:
         data["model"] = self.model_name
         return data
 
-    def completion(self, prompt, format_prompt: bool = True, **kwargs):
-        data = self.generate(prompt=prompt, format_prompt=format_prompt, **kwargs)
-        data["choices"][0]["text"] = clean(
-            message=data["choices"][0]["text"], stop_tokens=self.params["stop"]
+    def completion(self, prompt, **kwargs):
+        data = self.generate(prompt=prompt, **kwargs)
+        data["choices"][0]["message"]["content"] = clean(
+            message=data["choices"][0]["message"]["content"],
+            stop_tokens=self.params["stop"],
         )
+        data["choices"][0]["text"] = data["choices"][0]["message"]["content"]
         return data
 
     def chat(self, messages, **kwargs):
-        prompt = ""
-        if len(messages) > 1:
-            for message in messages:
-                if message["role"] == "system":
-                    kwargs["system_message"] = message["content"]
-                elif message["role"] == "user":
-                    prompt += f"USER: {message['content']}"
-                elif message["role"] == "assistant":
-                    prompt += f"ASSISTANT: {message['content']}"
-                prompt += "\n"
-        else:
-            try:
-                prompt = messages[0]["content"]
-            except:
-                prompt = str(messages)
-        data = self.generate(prompt=prompt, **kwargs)
-        messages = [{"role": "user", "content": prompt}]
-        message = clean(
-            message=data["choices"][0]["text"], stop_tokens=self.params["stop"]
+        user_input = messages[-1]["content"]
+        data = self.generate(prompt=user_input, **kwargs)
+        data["choices"][0]["message"]["content"] = clean(
+            message=data["choices"][0]["message"]["content"],
+            stop_tokens=self.params["stop"],
         )
-        data["choices"][0]["message"] = {"content": message}
-        messages.append({"role": "assistant", "content": message})
-        data["messages"] = messages
         return data
 
     def embedding(self, input):

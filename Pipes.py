@@ -1,10 +1,12 @@
 import os
 import logging
 from dotenv import load_dotenv
-from ezlocalai.LLM import LLM
+from ezlocalai.LLM import LLM, is_vision_model
 from ezlocalai.STT import STT
 from ezlocalai.CTTS import CTTS
 from pyngrok import ngrok
+import requests
+import base64
 
 try:
     from ezlocalai.IMG import IMG
@@ -13,10 +15,23 @@ try:
 except ImportError:
     img_import_success = False
 
+from ezlocalai.VLM import VLM
+
 
 class Pipes:
     def __init__(self):
         load_dotenv()
+        self.current_vlm = os.getenv("VISION_MODEL", "")
+        logging.info(f"[VLM] {self.current_vlm} model loading. Please wait...")
+        self.vlm = None
+        if self.current_vlm != "":
+            try:
+                self.vlm = VLM(model=self.current_vlm)
+            except Exception as e:
+                logging.error(f"[VLM] Failed to load the model: {e}")
+                self.vlm = None
+        if self.vlm is not None:
+            logging.info(f"[ezlocalai] Vision is enabled.")
         self.img_enabled = os.getenv("IMG_ENABLED", "false").lower() == "true"
         self.img = None
         if self.img_enabled and img_import_success:
@@ -38,14 +53,15 @@ class Pipes:
         logging.info(f"[STT] {self.current_stt} model loaded successfully.")
         DEFAULT_MODEL = os.getenv("DEFAULT_MODEL", "phi-2-dpo")
         self.current_llm = DEFAULT_MODEL if DEFAULT_MODEL else "phi-2-dpo"
-        logging.info(f"[LLM] {self.current_llm} model loading. Please wait...")
-        self.llm = LLM(model=self.current_llm)
-        logging.info(f"[LLM] {self.current_llm} model loaded successfully.")
-        self.current_vlm = os.getenv("VISION_MODEL", "")
-        self.vlm = None
-        if self.current_vlm != "":
-            self.vlm = LLM(model=self.current_vlm)  # bakllava-1-7b
-            logging.info(f"[ezlocalai] Vision is enabled.")
+        if self.vlm is not None:
+            self.llm = self.vlm
+        else:
+            logging.info(f"[LLM] {self.current_llm} model loading. Please wait...")
+            self.llm = LLM(model=self.current_llm)
+            if is_vision_model(self.current_llm):
+                if self.vlm is None:
+                    self.vlm = self.llm
+            logging.info(f"[LLM] {self.current_llm} model loaded successfully.")
         NGROK_TOKEN = os.environ.get("NGROK_TOKEN", "")
         if NGROK_TOKEN:
             ngrok.set_auth_token(NGROK_TOKEN)
@@ -57,7 +73,30 @@ class Pipes:
 
     async def get_response(self, data, completion_type="chat"):
         data["local_uri"] = self.local_uri
-
+        if "messages" in data:
+            if isinstance(data["messages"][-1]["content"], list):
+                messages = data["messages"][-1]["content"]
+                for message in messages:
+                    if "text" in message:
+                        prompt = message["text"]
+                for message in messages:
+                    if "audio_url" in message:
+                        audio_url = (
+                            message["audio_url"]["url"]
+                            if "url" in message["audio_url"]
+                            else message["audio_url"]
+                        )
+                        audio_format = "wav"
+                        if audio_url.startswith("data:"):
+                            audio_url = audio_url.split(",")[1]
+                            audio_format = audio_url.split(";")[0]
+                        else:
+                            audio_url = requests.get(audio_url).content
+                            audio_url = base64.b64encode(audio_url).decode("utf-8")
+                        transcribed_audio = self.stt.transcribe_audio(
+                            base64_audio=audio_url, audio_format=audio_format
+                        )
+                        prompt = f"Transcribed Audio: {transcribed_audio}\n\n{prompt}"
         if data["model"]:
             if self.current_llm != data["model"]:
                 data["model"] = self.current_llm
@@ -99,7 +138,7 @@ class Pipes:
                 if completion_type != "chat"
                 else response["choices"][0]["message"]["content"]
             )
-            img_gen_prompt = f"Users message: {user_message} \nAssistant response: {response_text} \n\n**The assistant is acting as a decision maker for creating stable diffusion images and only responds with a concise YES or NO answer on if it would make sense to generate an image based on the users message. No other explanation is needed!**\nShould an image be created to accompany the assistant response?\nAssistant: "
+            img_gen_prompt = f"Users message: {user_message} \nAssistant response: {response_text} \n\n**The assistant is acting as sentiment analysis expert and only responds with a concise YES or NO answer on if the user would like an image as visual or a picture generated. No other explanation is needed!**\nShould an image be created to accompany the assistant response?\nAssistant: "
             logging.info(f"[IMG] Decision maker prompt: {img_gen_prompt}")
             create_img = self.llm.chat(
                 messages=[{"role": "system", "content": img_gen_prompt}],
@@ -110,7 +149,6 @@ class Pipes:
             create_img = str(create_img["choices"][0]["message"]["content"]).lower()
             logging.info(f"[IMG] Decision maker response: {create_img}")
             if "yes" in create_img or "es," in create_img:
-
                 prompt = (
                     data["messages"][-1]["content"]
                     if completion_type == "chat"
