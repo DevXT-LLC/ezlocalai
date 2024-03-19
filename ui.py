@@ -21,8 +21,27 @@ HEADERS = {
     "Authorization": f"{EZLOCALAI_API_KEY}",
     "ngrok-skip-browser-warning": "true",
 }
-voices = requests.get(f"{EZLOCALAI_SERVER}/v1/audio/voices", headers=HEADERS)
-voices = voices.json()
+
+
+def get_voices():
+    global EZLOCALAI_SERVER
+    global HEADERS
+    voices = requests.get(f"{EZLOCALAI_SERVER}/v1/audio/voices", headers=HEADERS)
+    return voices.json()
+
+
+waiting_for_server = False
+
+while True:
+    try:
+        voices = get_voices()
+        break
+    except:
+        if waiting_for_server == False:
+            st.spinner("Waiting for server to start...")
+        waiting_for_server = True
+        time.sleep(1)
+waiting_for_server = False
 
 
 def display_content(content):
