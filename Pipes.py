@@ -73,6 +73,7 @@ class Pipes:
 
     async def get_response(self, data, completion_type="chat"):
         data["local_uri"] = self.local_uri
+        images_uploaded = False
         if "messages" in data:
             if isinstance(data["messages"][-1]["content"], list):
                 messages = data["messages"][-1]["content"]
@@ -80,6 +81,8 @@ class Pipes:
                     if "text" in message:
                         prompt = message["text"]
                 for message in messages:
+                    if "image_url" in message:
+                        images_uploaded = True
                     if "audio_url" in message:
                         audio_url = (
                             message["audio_url"]["url"]
@@ -128,11 +131,22 @@ class Pipes:
         if "top_p" not in data:
             data["top_p"] = 0.9
         if self.img and img_import_success:
-            user_message = str(
+            user_message = (
                 data["messages"][-1]["content"]
                 if completion_type == "chat"
                 else data["prompt"]
             )
+            if isinstance(user_message, list):
+                user_message = prompt
+                for message in messages:
+                    if "image_url" in message:
+                        if "url" in message["image_url"]:
+                            if not message["image_url"]["url"].startswith("data:"):
+                                user_message += (
+                                    "Uploaded Image:"
+                                    + message["image_url"]["url"]
+                                    + "\n"
+                                )
             response_text = (
                 response["choices"][0]["text"]
                 if completion_type != "chat"
@@ -142,7 +156,7 @@ class Pipes:
                 user_message = user_message.replace(
                     user_message.split("data:")[1].split("'")[0], ""
                 )
-            img_gen_prompt = f"Users message: {user_message} \n\n**The assistant is acting as sentiment analysis expert and only responds with a concise YES or NO answer on if the user would like an image as visual or a picture generated. No other explanation is needed!**\nWould the user potentially like an image generated based on their message?\nAssistant: "
+            img_gen_prompt = f"Users message: {user_message} \n\n{'The user uploaded an image, one does not need generated unless the user is specifically asking.' if images_uploaded else ''} **The assistant is acting as sentiment analysis expert and only responds with a concise YES or NO answer on if the user would like an image as visual or a picture generated. No other explanation is needed!**\nWould the user potentially like an image generated based on their message?\nAssistant: "
             logging.info(f"[IMG] Decision maker prompt: {img_gen_prompt}")
             create_img = self.llm.chat(
                 messages=[{"role": "system", "content": img_gen_prompt}],

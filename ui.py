@@ -23,15 +23,6 @@ HEADERS = {
 }
 voices = requests.get(f"{EZLOCALAI_SERVER}/v1/audio/voices", headers=HEADERS)
 voices = voices.json()
-while True:
-    try:
-        models = requests.get(f"{EZLOCALAI_SERVER}/v1/models", headers=HEADERS)
-        if models.status_code == 200:
-            break
-    except:
-        pass
-    time.sleep(1)
-models = models.json()
 
 
 def display_content(content):
@@ -84,12 +75,6 @@ with st.form("chat"):
         "Temperature", min_value=0.0, max_value=1.0, value=0.5
     )
     DEFAULT_TOP_P = st.number_input("Top P", min_value=0.0, max_value=1.0, value=0.9)
-    # Default to DEFAULT_LLM if it exists in the models list
-    model_drop_down = st.selectbox(
-        "Select a model",
-        [model for model in models],
-        index=models.index(DEFAULT_LLM) if DEFAULT_LLM in models else 0,
-    )
     voice_drop_down = st.selectbox(
         "Text-to-Speech Response Voice", ["None"] + voices["voices"], index=0
     )
@@ -125,7 +110,7 @@ with st.form("chat"):
             ]
         extra_body = {} if voice_drop_down == "None" else {"voice": voice_drop_down}
         response = openai.chat.completions.create(
-            model=model_drop_down,
+            model=DEFAULT_LLM,
             messages=messages,
             temperature=DEFAULT_TEMPERATURE,
             max_tokens=DEFAULT_MAX_TOKENS,
