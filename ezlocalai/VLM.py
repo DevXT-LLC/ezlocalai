@@ -24,7 +24,9 @@ class VLM:
             self.vl_chat_processor = VLChatProcessor.from_pretrained(model)
             self.tokenizer = self.vl_chat_processor.tokenizer
             self.vl_gpt = AutoModelForCausalLM.from_pretrained(
-                model, trust_remote_code=True
+                model,
+                trust_remote_code=True,
+                cache_dir=os.path.join(os.getcwd(), "models"),
             )
             self.vl_gpt = self.vl_gpt.to(torch.bfloat16).cuda().eval()
         except:
@@ -37,31 +39,55 @@ class VLM:
         images = []
         conversation = []
         for message in messages:
+            if isinstance(message["content"], str):
+                role = message["role"] if "role" in message else "User"
+                if role.lower() == "user":
+                    role = "User"
+                conversation.append(
+                    {
+                        "role": role,
+                        "content": message["content"],
+                    }
+                )
             if isinstance(message["content"], list):
-                if "image_url" in message["content"][0]:
-                    url = message["content"][0]["image_url"]
-                    image_path = f"./outputs/{uuid.uuid4().hex}.jpg"
-                    if url.startswith("http"):
-                        image = requests.get(url).content
-                        with open(image_path, "wb") as f:
-                            f.write(image)
-                        images.append(image_path)
-                    else:
-                        with open(image_path, "wb") as f:
-                            f.write(url)
-                        images.append(image_path)
-                    pil_img = PIL.Image.open(image_path)
-                    pil_img = pil_img.convert("RGB")
-                    pil_images.append(pil_img)
                 for msg in message["content"]:
                     if "text" in msg:
+                        role = message["role"] if "role" in message else "User"
+                        if role.lower() == "user":
+                            role = "User"
                         conversation.append(
                             {
-                                "role": message["role"],
+                                "role": role,
                                 "content": "<image_placeholder>" + msg["text"],
                             }
                         )
-        conversation[-1]["images"] = images
+                    if "image_url" in msg:
+                        url = (
+                            msg["image_url"]["url"]
+                            if "url" in msg["image_url"]
+                            else msg["image_url"]
+                        )
+                        image_path = f"./outputs/{uuid.uuid4().hex}.jpg"
+                        if url.startswith("http"):
+                            image = requests.get(url).content
+                            with open(image_path, "wb") as f:
+                                f.write(image)
+                            images.append(image_path)
+                        else:
+                            with open(image_path, "wb") as f:
+                                f.write(url)
+                            images.append(image_path)
+                        pil_img = PIL.Image.open(image_path)
+                        pil_img = pil_img.convert("RGB")
+                        pil_images.append(pil_img)
+        if conversation == []:
+            conversation.append(
+                {
+                    "role": "User",
+                    "content": messages[0]["content"],
+                }
+            )
+        conversation[0]["images"] = images
         conversation.append({"role": "Assistant", "content": ""})
         prepare_inputs = self.vl_chat_processor(
             conversations=conversation, images=pil_images, force_batchify=True
@@ -73,7 +99,9 @@ class VLM:
             pad_token_id=self.tokenizer.eos_token_id,
             bos_token_id=self.tokenizer.bos_token_id,
             eos_token_id=self.tokenizer.eos_token_id,
-            max_new_tokens=512 if "max_tokens" not in kwargs else kwargs["max_tokens"],
+            max_new_tokens=(
+                512 if "max_tokens" not in kwargs else int(kwargs["max_tokens"])
+            ),
             do_sample=False,
             use_cache=True,
         )
@@ -140,10 +168,7 @@ class VLM:
             {
                 "role": "User",
                 "content": [
-                    {
-                        "type": "image_url",
-                        "image_url": image_url,
-                    },
+                    {"type": "image_url", "image_url": {"url": image_url}},
                     {
                         "type": "text",
                         "text": "Describe each stage of this image.",
@@ -155,3 +180,18 @@ class VLM:
             messages=messages,
         )
         return response["choices"][0]["message"]["content"]
+
+    def embedding(self, input):
+        tokens = get_tokens(input)
+        return {
+            "object": "list",
+            "data": [{"object": "embedding", "index": 0, "embedding": []}],
+            "model": self.model,
+            "usage": {"prompt_tokens": tokens, "total_tokens": tokens},
+        }
+
+    def models(self):
+        return [
+            "deepseek-ai/deepseek-vl-1.3b-chat",
+            "deepseek-ai/deepseek-vl-7b-chat",
+        ]

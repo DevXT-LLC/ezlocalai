@@ -95,23 +95,6 @@ class Pipes:
                             base64_audio=audio_url, audio_format=audio_format
                         )
                         prompt = f"Transcribed Audio: {transcribed_audio}\n\n{prompt}"
-                for message in messages:
-                    if "image_url" in message:
-                        image_url = (
-                            message["image_url"]["url"]
-                            if "url" in message["image_url"]
-                            else message["image_url"]
-                        )
-                        if self.vlm is None:
-                            prompt = f"Image URL: {image_url}.\n\n{prompt}"
-                        else:
-                            image_description = self.vlm.describe_image(image_url)
-                            prompt = f"Visual description of image at {image_url}: {image_description}\n\n{prompt}"
-                logging.info(f"[LLM] Prompt: {prompt}")
-                if completion_type == "chat":
-                    data["messages"][-1]["content"] = prompt
-                else:
-                    data["prompt"] = prompt
         if data["model"]:
             if self.current_llm != data["model"]:
                 data["model"] = self.current_llm
@@ -153,7 +136,7 @@ class Pipes:
                 if completion_type != "chat"
                 else response["choices"][0]["message"]["content"]
             )
-            img_gen_prompt = f"Users message: {user_message} \nAssistant response: {response_text} \n\n**The assistant is acting as a decision maker for creating stable diffusion images and only responds with a concise YES or NO answer on if it would make sense to generate an image based on the users message. No other explanation is needed!**\nShould an image be created to accompany the assistant response?\nAssistant: "
+            img_gen_prompt = f"Users message: {user_message} \nAssistant response: {response_text} \n\n**The assistant is acting as sentiment analysis expert and only responds with a concise YES or NO answer on if the user would like an image as visual or a picture generated. No other explanation is needed!**\nShould an image be created to accompany the assistant response?\nAssistant: "
             logging.info(f"[IMG] Decision maker prompt: {img_gen_prompt}")
             create_img = self.llm.chat(
                 messages=[{"role": "system", "content": img_gen_prompt}],
