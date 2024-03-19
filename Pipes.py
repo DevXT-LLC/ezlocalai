@@ -138,9 +138,7 @@ class Pipes:
                 if completion_type != "chat"
                 else response["choices"][0]["message"]["content"]
             )
-            # Remove data: until the '
             if "data:" in user_message:
-                # Replace the data between data and ' with nothing
                 user_message = user_message.replace(
                     user_message.split("data:")[1].split("'")[0], ""
                 )
