@@ -10,7 +10,6 @@ import PIL.Image
 import uuid
 import tiktoken
 import os
-import logging
 import base64
 
 
@@ -84,7 +83,6 @@ class VLM:
             {"role": "User", "content": prompt, "images": images},
             {"role": "Assistant", "content": ""},
         ]
-        logging.info(f"Conversation: {conversation}")
         prepare_inputs = self.vl_chat_processor(
             conversations=conversation, images=pil_images, force_batchify=True
         ).to(self.vl_gpt.device)

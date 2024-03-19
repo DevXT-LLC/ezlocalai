@@ -96,7 +96,6 @@ with st.form("chat"):
         if SYSTEM_MESSAGE != "":
             messages.append({"role": "system", "content": SYSTEM_MESSAGE})
         if uploaded_file:
-            print(uploaded_file.type)
             messages.append(
                 {
                     "role": "user",
@@ -118,7 +117,6 @@ with st.form("chat"):
             messages = [
                 {"role": "user", "content": prompt},
             ]
-        print(f"Messages: {messages}")
         response = openai.chat.completions.create(
             model=DEFAULT_LLM,
             messages=messages,
