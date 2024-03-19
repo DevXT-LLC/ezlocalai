@@ -67,7 +67,7 @@ Linux:
 sudo pwsh start.ps1
 ```
 
-### Deepseek VL Models
+### Deepseek VL Vision Models
 
 - <https://huggingface.co/deepseek-ai/deepseek-vl-1.3b-chat> (Default)
 - <https://huggingface.co/deepseek-ai/deepseek-vl-7b-chat>
@@ -76,7 +76,7 @@ Functionality and endpoint request/response directly mimics the [OpenAI gpt-4-vi
 
 **Only currently available with CUDA GPU.**
 
-Modify `deepseek.yml` if you want to run the 7b model instead of the 1.3b model or want to change any other settings.
+Modify `deepseek.yml` if you want to run the 7b model instead of the 1.3b model or want to change any other settings. This also has image generation enabled by default, you can disable it by changing `IMG_ENABLED` to `false` in `deepseek.yml` to reduce video RAM usage.
 
 ```bash
 .\deepseek.ps1
