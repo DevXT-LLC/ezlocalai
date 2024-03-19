@@ -100,7 +100,7 @@ with st.form("chat"):
                 {
                     "role": "user",
                     "content": [
-                        {"type": "text", "content": prompt},
+                        {"type": "text", "text": prompt},
                         {
                             "type": f"{uploaded_file.type.split('/')[0]}_url",
                             f"{uploaded_file.type.split('/')[0]}_url": {
