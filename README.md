@@ -67,6 +67,27 @@ Linux:
 sudo pwsh start.ps1
 ```
 
+### Deepseek VL Models
+
+- <https://huggingface.co/deepseek-ai/deepseek-vl-1.3b-chat> (Default)
+- <https://huggingface.co/deepseek-ai/deepseek-vl-7b-chat>
+
+Functionality and endpoint request/response directly mimics the [OpenAI gpt-4-vision API](https://platform.openai.com/docs/guides/vision).
+
+**Only currently available with CUDA GPU.**
+
+Modify `deepseek.yml` if you want to run the 7b model instead of the 1.3b model or want to change any other settings.
+
+```bash
+.\deepseek.ps1
+```
+
+Linux:
+
+```bash
+sudo pwsh deepseek.ps1
+```
+
 For examples on how to use the server to communicate with the models, see the [Examples Jupyter Notebook](tests/tests.ipynb).
 
 ## OpenAI Style Endpoint Usage
