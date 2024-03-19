@@ -94,6 +94,17 @@ For examples on how to use the server to communicate with the models, see the [E
 
 OpenAI Style endpoints available at `http://<YOUR LOCAL IP ADDRESS>:8091/v1/` by default. Documentation can be accessed at that <http://localhost:8091> when the server is running.
 
+## Demo UI
+
+For a basic Demo UI, run the following:
+
+```bash
+pip install streamlit --upgrade
+streamlit run ui.py
+```
+
+You can access the UI at <http://localhost:8501>.
+
 ## Workflow
 
 ```mermaid
