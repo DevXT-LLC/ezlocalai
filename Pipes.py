@@ -128,7 +128,7 @@ class Pipes:
         if "top_p" not in data:
             data["top_p"] = 0.9
         if self.img and img_import_success:
-            user_message = (
+            user_message = str(
                 data["messages"][-1]["content"]
                 if completion_type == "chat"
                 else data["prompt"]
@@ -138,6 +138,13 @@ class Pipes:
                 if completion_type != "chat"
                 else response["choices"][0]["message"]["content"]
             )
+            # Remove data: until the '
+            if "data:" in user_message:
+                # Replace the data between data and ' with nothing
+                user_message = user_message.replace(
+                    user_message.split("data:")[1].split("'")[0], ""
+                )
+
             img_gen_prompt = f"Users message: {user_message} \nAssistant response: {response_text} \n\n**The assistant is acting as sentiment analysis expert and only responds with a concise YES or NO answer on if the user would like an image as visual or a picture generated. No other explanation is needed!**\nShould an image be created to accompany the assistant response?\nAssistant: "
             logging.info(f"[IMG] Decision maker prompt: {img_gen_prompt}")
             create_img = self.llm.chat(

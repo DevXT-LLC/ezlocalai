@@ -10,6 +10,8 @@ import PIL.Image
 import uuid
 import tiktoken
 import os
+import logging
+import base64
 
 
 def get_tokens(text: str) -> int:
@@ -40,30 +42,20 @@ class VLM:
     def chat(self, messages, **kwargs):
         pil_images = []
         images = []
-        conversation = []
+        prompt = ""
         for message in messages:
             if isinstance(message["content"], str):
                 role = message["role"] if "role" in message else "User"
                 if role.lower() == "user":
-                    role = "User"
-                conversation.append(
-                    {
-                        "role": role,
-                        "content": message["content"],
-                    }
-                )
+                    prompt += f"{message['content']}\n\n"
+                if role.lower() == "system":
+                    prompt = f"System: {message['content']}\n\nUser: {prompt}"
             if isinstance(message["content"], list):
                 for msg in message["content"]:
                     if "text" in msg:
                         role = message["role"] if "role" in message else "User"
                         if role.lower() == "user":
-                            role = "User"
-                        conversation.append(
-                            {
-                                "role": role,
-                                "content": "<image_placeholder>" + msg["text"],
-                            }
-                        )
+                            prompt += f"{msg['text']}\n\n"
                     if "image_url" in msg:
                         url = (
                             msg["image_url"]["url"]
@@ -73,25 +65,26 @@ class VLM:
                         image_path = f"./outputs/{uuid.uuid4().hex}.jpg"
                         if url.startswith("http"):
                             image = requests.get(url).content
-                            with open(image_path, "wb") as f:
-                                f.write(image)
-                            images.append(image_path)
                         else:
-                            with open(image_path, "wb") as f:
-                                f.write(url)
-                            images.append(image_path)
+                            file_type = url.split(",")[0].split("/")[1].split(";")[0]
+                            if file_type == "jpeg":
+                                file_type = "jpg"
+                            image_path = f"./outputs/{uuid.uuid4().hex}.{file_type}"
+                            image = base64.b64decode(url.split(",")[1])
+                        with open(image_path, "wb") as f:
+                            f.write(image)
+                        images.append(image_path)
                         pil_img = PIL.Image.open(image_path)
                         pil_img = pil_img.convert("RGB")
                         pil_images.append(pil_img)
-        if conversation == []:
-            conversation.append(
-                {
-                    "role": "User",
-                    "content": messages[0]["content"],
-                }
-            )
-        conversation[0]["images"] = images
-        conversation.append({"role": "Assistant", "content": ""})
+        if len(images) > 0:
+            for image in images:
+                prompt = f"<image_placeholder> {prompt}"
+        conversation = [
+            {"role": "User", "content": prompt, "images": images},
+            {"role": "Assistant", "content": ""},
+        ]
+        logging.info(f"Conversation: {conversation}")
         prepare_inputs = self.vl_chat_processor(
             conversations=conversation, images=pil_images, force_batchify=True
         ).to(self.vl_gpt.device)
