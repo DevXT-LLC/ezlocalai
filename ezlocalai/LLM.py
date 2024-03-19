@@ -218,7 +218,7 @@ class LLM:
         else:
             self.params["model_path"] = ""
             self.params["max_tokens"] = 8192
-        self.params["n_ctx"] = int(os.environ.get("LLM_MAX_TOKENS", 0))
+        self.params["n_ctx"] = int(os.environ.get("LLM_MAX_TOKENS", 4096))
         self.params["verbose"] = True
         self.system_message = system_message
         self.params["mirostat_mode"] = 2
