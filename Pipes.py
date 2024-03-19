@@ -1,7 +1,7 @@
 import os
 import logging
 from dotenv import load_dotenv
-from ezlocalai.LLM import LLM
+from ezlocalai.LLM import LLM, is_vision_model
 from ezlocalai.STT import STT
 from ezlocalai.CTTS import CTTS
 from pyngrok import ngrok
@@ -58,8 +58,10 @@ class Pipes:
         else:
             logging.info(f"[LLM] {self.current_llm} model loading. Please wait...")
             self.llm = LLM(model=self.current_llm)
+            if is_vision_model(self.current_llm):
+                if self.vlm is None:
+                    self.vlm = self.llm
             logging.info(f"[LLM] {self.current_llm} model loaded successfully.")
-
         NGROK_TOKEN = os.environ.get("NGROK_TOKEN", "")
         if NGROK_TOKEN:
             ngrok.set_auth_token(NGROK_TOKEN)
