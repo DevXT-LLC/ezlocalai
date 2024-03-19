@@ -84,7 +84,12 @@ with st.form("chat"):
         "Temperature", min_value=0.0, max_value=1.0, value=0.5
     )
     DEFAULT_TOP_P = st.number_input("Top P", min_value=0.0, max_value=1.0, value=0.9)
-    model_drop_down = st.selectbox("Select a model", [model for model in models])
+    # Default to DEFAULT_LLM if it exists in the models list
+    model_drop_down = st.selectbox(
+        "Select a model",
+        [model for model in models],
+        index=models.index(DEFAULT_LLM) if DEFAULT_LLM in models else 0,
+    )
     voice_drop_down = st.selectbox(
         "Text-to-Speech Response Voice", ["None"] + voices["voices"], index=0
     )
@@ -92,6 +97,8 @@ with st.form("chat"):
     prompt = st.text_area("Your Message:", "Describe each stage of this image.")
     send = st.form_submit_button("Send")
     if prompt != "" and send:
+        st.markdown("---")
+        st.spinner("Thinking...")
         messages = []
         if SYSTEM_MESSAGE != "":
             messages.append({"role": "system", "content": SYSTEM_MESSAGE})
@@ -112,18 +119,19 @@ with st.form("chat"):
             )
             if uploaded_file.type.startswith("image"):
                 st.image(uploaded_file, use_column_width=True)
-        st.spinner("Thinking...")
         if messages == []:
             messages = [
                 {"role": "user", "content": prompt},
             ]
+        extra_body = {} if voice_drop_down == "None" else {"voice": voice_drop_down}
         response = openai.chat.completions.create(
-            model=DEFAULT_LLM,
+            model=model_drop_down,
             messages=messages,
             temperature=DEFAULT_TEMPERATURE,
             max_tokens=DEFAULT_MAX_TOKENS,
             top_p=DEFAULT_TOP_P,
             stream=False,
+            extra_body=extra_body,
         )
         display_content(response.choices[0].message.content)
         st.balloons()
