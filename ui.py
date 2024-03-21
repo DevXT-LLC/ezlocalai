@@ -21,27 +21,27 @@ HEADERS = {
     "Authorization": f"{EZLOCALAI_API_KEY}",
     "ngrok-skip-browser-warning": "true",
 }
+waiting_for_server = False
 
 
+@st.cache_data
 def get_voices():
     global EZLOCALAI_SERVER
     global HEADERS
-    voices = requests.get(f"{EZLOCALAI_SERVER}/v1/audio/voices", headers=HEADERS)
-    return voices.json()
-
-
-waiting_for_server = False
-
-while True:
-    try:
-        voices = get_voices()
-        break
-    except:
-        if waiting_for_server == False:
-            st.spinner("Waiting for server to start...")
-        waiting_for_server = True
-        time.sleep(1)
-waiting_for_server = False
+    global waiting_for_server
+    while True:
+        try:
+            voices = requests.get(
+                f"{EZLOCALAI_SERVER}/v1/audio/voices", headers=HEADERS
+            )
+            voices = voices.json()["voices"]
+            waiting_for_server = False
+            return voices
+        except:
+            if waiting_for_server == False:
+                st.spinner("Waiting for server to start...")
+            waiting_for_server = True
+            time.sleep(1)
 
 
 def display_content(content):
@@ -82,10 +82,13 @@ def display_content(content):
     st.markdown(content, unsafe_allow_html=True)
 
 
-with st.form("chat"):
+show_advanced_options = st.checkbox(
+    "Show Advanced Options", key="show_advanced_options"
+)
+if show_advanced_options:
     SYSTEM_MESSAGE = st.text_area(
         "System Prompt",
-        "The assistant is acting as a creative writer. All of your text responses are transcribed to audio and sent to the user. Be concise with all responses. After the request is fulfilled, end with </s>.",
+        "",
     )
     DEFAULT_MAX_TOKENS = st.number_input(
         "Max Output Tokens", min_value=10, max_value=300000, value=256
@@ -94,8 +97,15 @@ with st.form("chat"):
         "Temperature", min_value=0.0, max_value=1.0, value=0.5
     )
     DEFAULT_TOP_P = st.number_input("Top P", min_value=0.0, max_value=1.0, value=0.9)
+else:
+    SYSTEM_MESSAGE = ""
+    DEFAULT_MAX_TOKENS = 256
+    DEFAULT_TEMPERATURE = 0.5
+    DEFAULT_TOP_P = 0.9
+with st.form("chat"):
+
     voice_drop_down = st.selectbox(
-        "Text-to-Speech Response Voice", ["None"] + voices["voices"], index=0
+        "Text-to-Speech Response Voice", ["None"] + get_voices(), index=0
     )
     uploaded_file = st.file_uploader("Upload an image")
     prompt = st.text_area("Your Message:", "Describe each stage of this image.")
@@ -127,7 +137,7 @@ with st.form("chat"):
             messages = [
                 {"role": "user", "content": prompt},
             ]
-        extra_body = {} if voice_drop_down == "None" else {"voice": voice_drop_down}
+        extra_body = None if voice_drop_down == "None" else {"voice": voice_drop_down}
         response = openai.chat.completions.create(
             model=DEFAULT_LLM,
             messages=messages,
