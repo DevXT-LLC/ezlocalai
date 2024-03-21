@@ -21,4 +21,7 @@ RUN git clone https://github.com/Josh-XT/DeepSeek-VL deepseek && \
     cd ..
 COPY . .
 EXPOSE 8091
-ENTRYPOINT ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8091", "--workers", "1", "--proxy-headers"]
+EXPOSE 8501
+# Run launch.sh
+RUN chmod +x launch.sh
+ENTRYPOINT ["./launch.sh"]

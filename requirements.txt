@@ -1,5 +1,6 @@
 fastapi
 uvicorn
+streamlit
 pydantic==2.6.3
 requests==2.31.0
 tiktoken==0.6.0
@@ -19,3 +20,4 @@ pyngrok==7.1.5
 accelerate==0.27.2
 python-multipart
 llama-cpp-python==0.2.55
+openai

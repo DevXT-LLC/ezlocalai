@@ -1,7 +1,6 @@
 import streamlit as st
 import openai
 import requests
-import time
 import base64
 import os
 import re
@@ -9,7 +8,30 @@ from datetime import datetime
 from dotenv import load_dotenv
 
 load_dotenv()
-st.title("ezLocalai")
+# Show logo but resize to the screen https://devxt.com/wp-content/uploads/2023/01/Logo-1024x316.png
+st.image(
+    "https://devxt.com/wp-content/uploads/2023/01/Logo-1024x316.png",
+    width=300,
+)
+
+
+EZLOCALAI_SERVER = os.getenv("EZLOCALAI_URL", "http://localhost:8091")
+EZLOCALAI_API_KEY = os.getenv("EZLOCALAI_API_KEY", "none")
+DEFAULT_LLM = os.getenv("DEFAULT_LLM", "phi-2-dpo")
+VISION_MODEL = os.getenv("VISION_MODEL", "")
+if VISION_MODEL != "":
+    DEFAULT_LLM = VISION_MODEL
+if "/" in DEFAULT_LLM:
+    link_to_model = f"https://huggingface.co/{DEFAULT_LLM}"
+else:
+    link_to_model = f"https://huggingface.co/models?search={DEFAULT_LLM}"
+st.markdown(
+    f"""
+    [![GitHub](https://img.shields.io/badge/GitHub-ezLocalai-blue?logo=github&style=plastic)](https://github.com/DevXT-LLC/ezlocalai) [![Dockerhub](https://img.shields.io/badge/Docker-ezlocalai-blue?logo=docker&style=plastic)](https://hub.docker.com/r/joshxt/ezlocalai)
+    ## ezLocal.ai Demo
+    **Current model:** [{DEFAULT_LLM}]({link_to_model})
+    """
+)
 
 EZLOCALAI_SERVER = os.getenv("EZLOCALAI_URL", "http://localhost:8091")
 EZLOCALAI_API_KEY = os.getenv("EZLOCALAI_API_KEY", "none")
@@ -24,8 +46,10 @@ HEADERS = {
 waiting_for_server = False
 
 
-@st.cache_data
 def get_voices():
+    return ["DukeNukem", "HAL9000"]
+    # Commented for speed, but this works if we want to get the voices from the server
+    """
     global EZLOCALAI_SERVER
     global HEADERS
     global waiting_for_server
@@ -42,6 +66,7 @@ def get_voices():
                 st.spinner("Waiting for server to start...")
             waiting_for_server = True
             time.sleep(1)
+    """
 
 
 def display_content(content):
@@ -103,7 +128,6 @@ else:
     DEFAULT_TEMPERATURE = 0.5
     DEFAULT_TOP_P = 0.9
 with st.form("chat"):
-
     voice_drop_down = st.selectbox(
         "Text-to-Speech Response Voice", ["None"] + get_voices(), index=0
     )

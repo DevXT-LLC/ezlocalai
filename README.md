@@ -1,6 +1,6 @@
 # ezlocalai
 
-[![GitHub](https://img.shields.io/badge/GitHub-Local%20LLM-blue?logo=github&style=plastic)](https://github.com/DevXT-LLC/ezlocalai) [![Dockerhub](https://img.shields.io/badge/Docker-ezlocalai-blue?logo=docker&style=plastic)](https://hub.docker.com/r/joshxt/ezlocalai)
+[![GitHub](https://img.shields.io/badge/GitHub-ezLocalai-blue?logo=github&style=plastic)](https://github.com/DevXT-LLC/ezlocalai) [![Dockerhub](https://img.shields.io/badge/Docker-ezlocalai-blue?logo=docker&style=plastic)](https://hub.docker.com/r/joshxt/ezlocalai)
 
 ezlocalai is an easy set up artificial intelligence server that allows you to easily run multimodal artificial intelligence from your computer. It is designed to be as easy as possible to get started with running local models. It automatically handles downloading the model of your choice and configuring the server based on your CPU, RAM, and GPU specifications. It also includes [OpenAI Style](https://pypi.org/project/openai/) endpoints for easy integration with other applications using ezlocalai as an OpenAI API proxy with any model. Additional functionality is built in for voice cloning text to speech and a voice to text for easy voice communication as well as image generation entirely offline after the initial setup.
 
@@ -96,14 +96,7 @@ OpenAI Style endpoints available at `http://<YOUR LOCAL IP ADDRESS>:8091/v1/` by
 
 ## Demo UI
 
-For a basic Demo UI, run the following:
-
-```bash
-pip install streamlit --upgrade
-streamlit run ui.py
-```
-
-You can access the UI at <http://localhost:8501>.
+You can access the basic demo UI at <http://localhost:8501>, or your local IP address with port 8501.
 
 ## Workflow
 

@@ -20,3 +20,5 @@ pyngrok==7.1.3
 accelerate
 diffusers
 python-multipart
+streamlit
+openai
