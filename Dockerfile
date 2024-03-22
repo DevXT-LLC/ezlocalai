@@ -11,4 +11,6 @@ RUN --mount=type=cache,target=/root/.cache/pip,sharing=locked \
 COPY . .
 ENV HOST 0.0.0.0
 EXPOSE 8091
-ENTRYPOINT ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8091", "--workers", "1", "--proxy-headers"]
+EXPOSE 8501
+RUN chmod +x /app/launch.sh
+ENTRYPOINT ["/app/launch.sh"]

@@ -22,6 +22,5 @@ RUN git clone https://github.com/Josh-XT/DeepSeek-VL deepseek && \
 COPY . .
 EXPOSE 8091
 EXPOSE 8501
-# Run launch.sh
-RUN chmod +x launch.sh
-ENTRYPOINT ["./launch.sh"]
+RUN chmod +x /app/launch.sh
+ENTRYPOINT ["/app/launch.sh"]

@@ -16,5 +16,8 @@ COPY . .
 RUN python3 -m pip install --upgrade pip cmake scikit-build setuptools wheel --no-cache-dir && \
     CMAKE_ARGS="-DLLAMA_VULKAN=1" FORCE_CMAKE=1 pip install llama-cpp-python --no-cache-dir && \
     pip install --no-cache-dir -r cuda-requirements.txt
+RUN chmod +x /app/launch.sh
 EXPOSE 8091
-ENTRYPOINT ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8091", "--workers", "1", "--proxy-headers"]
+EXPOSE 8501
+RUN chmod +x /app/launch.sh
+ENTRYPOINT ["/app/launch.sh"]
