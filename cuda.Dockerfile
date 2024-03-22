@@ -23,4 +23,4 @@ COPY . .
 EXPOSE 8091
 EXPOSE 8501
 RUN chmod +x /app/launch.sh
-ENTRYPOINT ["/app/launch.sh"]
+CMD ["/app/launch.sh"]
