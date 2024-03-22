@@ -20,7 +20,7 @@ RUN git clone https://github.com/Josh-XT/DeepSeek-VL deepseek && \
     pip install --no-cache-dir -e . && \
     cd ..
 COPY . .
+RUN chmod +x /app/launch.sh
 EXPOSE 8091
 EXPOSE 8501
-RUN chmod +x /app/launch.sh
 ENTRYPOINT ["/app/launch.sh"]
