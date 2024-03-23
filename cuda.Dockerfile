@@ -20,7 +20,6 @@ RUN git clone https://github.com/Josh-XT/DeepSeek-VL deepseek && \
     pip install --no-cache-dir -e . && \
     cd ..
 COPY . .
-RUN chmod +x /app/launch.sh
 EXPOSE 8091
 EXPOSE 8501
-ENTRYPOINT ["streamlit run ui.py --server.headless true --server.port 8501 & uvicorn app:app --host 0.0.0.0 --port 8091 --workers 1 --proxy-headers"]
+CMD streamlit run ui.py --server.headless true --server.port 8501 & uvicorn app:app --host 0.0.0.0 --port 8091 --workers 1 --proxy-headers
