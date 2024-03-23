@@ -13,7 +13,7 @@ services:
       - DEFAULT_MODEL=phi-2-dpo
       - LLM_MAX_TOKENS=0
       - WHISPER_MODEL=base.en
-      - IMG_ENABLED=true
+      - IMG_ENABLED=false
       - SD_MODEL=stabilityai/sdxl-turbo
       - VISION_MODEL=deepseek-ai/deepseek-vl-1.3b-chat
       - CUDA_DOCKER_ARCH=all
