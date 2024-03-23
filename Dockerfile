@@ -12,5 +12,4 @@ COPY . .
 ENV HOST 0.0.0.0
 EXPOSE 8091
 EXPOSE 8501
-RUN chmod +x /app/launch.sh
-ENTRYPOINT ["/app/launch.sh"]
+CMD streamlit run ui.py --server.headless true --server.port 8501 & uvicorn app:app --host 0.0.0.0 --port 8091 --workers 1 --proxy-headers
