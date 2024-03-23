@@ -116,7 +116,7 @@ if show_advanced_options:
         "",
     )
     DEFAULT_MAX_TOKENS = st.number_input(
-        "Max Output Tokens", min_value=10, max_value=300000, value=256
+        "Max Output Tokens", min_value=10, max_value=300000, value=1024
     )
     DEFAULT_TEMPERATURE = st.number_input(
         "Temperature", min_value=0.0, max_value=1.0, value=0.5
@@ -124,7 +124,7 @@ if show_advanced_options:
     DEFAULT_TOP_P = st.number_input("Top P", min_value=0.0, max_value=1.0, value=0.9)
 else:
     SYSTEM_MESSAGE = ""
-    DEFAULT_MAX_TOKENS = 256
+    DEFAULT_MAX_TOKENS = 1024
     DEFAULT_TEMPERATURE = 0.5
     DEFAULT_TOP_P = 0.9
 with st.form("chat"):
