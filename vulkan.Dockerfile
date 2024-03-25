@@ -12,11 +12,14 @@ WORKDIR /app
 ENV HOST=0.0.0.0 \
     CUDA_DOCKER_ARCH=all \
     LLAMA_CUBLAS=1
-COPY . .
 RUN python3 -m pip install --upgrade pip cmake scikit-build setuptools wheel --no-cache-dir && \
     CMAKE_ARGS="-DLLAMA_VULKAN=1" FORCE_CMAKE=1 pip install llama-cpp-python --no-cache-dir && \
     pip install --no-cache-dir -r cuda-requirements.txt
-RUN chmod +x /app/launch.sh
+RUN git clone https://github.com/Josh-XT/DeepSeek-VL deepseek && \
+    cd deepseek && \
+    pip install --no-cache-dir -e . && \
+    cd ..
+COPY . .
 EXPOSE 8091
 EXPOSE 8501
 CMD streamlit run ui.py --server.headless true --server.port 8501 & uvicorn app:app --host 0.0.0.0 --port 8091 --workers 1 --proxy-headers
