@@ -96,7 +96,7 @@ OpenAI Style endpoints available at `http://<YOUR LOCAL IP ADDRESS>:8091/v1/` by
 
 ## Demo UI
 
-You can access the basic demo UI at <http://localhost:8501>, or your local IP address with port 8501.
+You can access the basic demo UI at <http://localhost:8502>, or your local IP address with port 8502.
 
 ## Workflow
 
