@@ -15,7 +15,7 @@ services:
       - WHISPER_MODEL=${WHISPER_MODEL-base.en}
       - IMG_ENABLED=${IMG_ENABLED-false}
       - SD_MODEL=${SD_MODEL-stabilityai/sdxl-turbo}
-      - VISION_MODEL=${VISION_MODEL=deepseek-ai/deepseek-vl-1.3b-chat}
+      - VISION_MODEL=${VISION_MODEL-deepseek-ai/deepseek-vl-1.3b-chat}
       - CUDA_DOCKER_ARCH=all
     restart: unless-stopped
     ports:

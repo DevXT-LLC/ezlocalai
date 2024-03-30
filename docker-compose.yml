@@ -10,6 +10,7 @@ services:
       - LLM_MAX_TOKENS=${LLM_MAX_TOKENS-0}
       - WHISPER_MODEL=${WHISPER_MODEL-base.en}
       - IMG_ENABLED=${IMG_ENABLED-false}
+      - VISION_MODEL=${VISION_MODEL}
       - SD_MODEL=${SD_MODEL}
     restart: unless-stopped
     ports:

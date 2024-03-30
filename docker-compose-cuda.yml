@@ -15,6 +15,7 @@ services:
       - WHISPER_MODEL=${WHISPER_MODEL-base.en}
       - IMG_ENABLED=${IMG_ENABLED-true}
       - SD_MODEL=${SD_MODEL}
+      - VISION_MODEL=${VISION_MODEL}
       - CUDA_DOCKER_ARCH=all
     restart: unless-stopped
     ports:
