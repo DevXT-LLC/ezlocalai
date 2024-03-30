@@ -6,3 +6,7 @@ gatherUsageStats = false
 
 [client]
 toolbarMode="minimal"
+
+[server]
+port = 8502
+headless = true

@@ -20,7 +20,7 @@ services:
     restart: unless-stopped
     ports:
       - "8091:8091"
-      - "8502:8501"
+      - "8502:8502"
     volumes:
       - ./models:/app/models
       - ./outputs:/app/outputs

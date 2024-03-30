@@ -21,5 +21,5 @@ RUN git clone https://github.com/Josh-XT/DeepSeek-VL deepseek && \
     cd ..
 COPY . .
 EXPOSE 8091
-EXPOSE 8501
-CMD streamlit run ui.py --server.headless true --server.port 8501 & uvicorn app:app --host 0.0.0.0 --port 8091 --workers 1 --proxy-headers
+EXPOSE 8502
+CMD streamlit run ui.py & uvicorn app:app --host 0.0.0.0 --port 8091 --workers 1 --proxy-headers
