@@ -144,12 +144,15 @@ class Pipes:
                     {
                         "role": "user",
                         "content": [
-                            {"type": "text", "text": user_message},
+                            {
+                                "type": "text",
+                                "text": "Describe each stage of this image.",
+                            },
                             *image_urls,
                         ],
                     }
                 ],
-                max_tokens=100,
+                max_tokens=1024,
                 temperature=data["temperature"],
                 top_p=data["top_p"],
             )
