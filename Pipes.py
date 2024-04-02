@@ -53,15 +53,15 @@ class Pipes:
         logging.info(f"[STT] {self.current_stt} model loaded successfully.")
         DEFAULT_MODEL = os.getenv("DEFAULT_MODEL", "phi-2-dpo")
         self.current_llm = DEFAULT_MODEL if DEFAULT_MODEL else "phi-2-dpo"
-        if self.vlm is not None:
-            self.llm = self.vlm
-        else:
-            logging.info(f"[LLM] {self.current_llm} model loading. Please wait...")
-            self.llm = LLM(model=self.current_llm)
-            if is_vision_model(self.current_llm):
-                if self.vlm is None:
-                    self.vlm = self.llm
-            logging.info(f"[LLM] {self.current_llm} model loaded successfully.")
+        # if self.vlm is not None:
+        #    self.llm = self.vlm
+        # else:
+        logging.info(f"[LLM] {self.current_llm} model loading. Please wait...")
+        self.llm = LLM(model=self.current_llm)
+        if is_vision_model(self.current_llm):
+            if self.vlm is None:
+                self.vlm = self.llm
+        logging.info(f"[LLM] {self.current_llm} model loaded successfully.")
         NGROK_TOKEN = os.environ.get("NGROK_TOKEN", "")
         if NGROK_TOKEN:
             ngrok.set_auth_token(NGROK_TOKEN)
@@ -116,6 +116,48 @@ class Pipes:
             prompt = await self.stt.transcribe_audio(
                 base64_audio=base64_audio,
                 audio_format=data["audio_format"],
+            )
+            if completion_type == "chat":
+                data["messages"][-1]["content"] = prompt
+            else:
+                data["prompt"] = prompt
+        user_message = (
+            data["messages"][-1]["content"]
+            if completion_type == "chat"
+            else data["prompt"]
+        )
+        image_urls = []
+        if isinstance(user_message, list):
+            user_message = prompt
+            for message in messages:
+                if "image_url" in message:
+                    if "url" in message["image_url"]:
+                        image_urls.append(
+                            {
+                                "type": "image_url",
+                                "image_url": {"url": message["image_url"]["url"]},
+                            }
+                        )
+        if self.vlm and image_urls:
+            image_description = self.vlm.chat(
+                messages=[
+                    {
+                        "role": "user",
+                        "content": [
+                            {"type": "text", "text": user_message},
+                            *image_urls,
+                        ],
+                    }
+                ],
+                max_tokens=100,
+                temperature=data["temperature"],
+                top_p=data["top_p"],
+            )
+            # Add the image description to the prompt
+            prompt = (
+                f"\n\nUploaded Image Description: {image_description['choices'][0]['message']['content']} {data['messages'][-1]['content']}"
+                if completion_type == "chat"
+                else f"\n\nUploaded Image Description: {image_description['choices'][0]['message']['content']} {data['prompt']}"
             )
             if completion_type == "chat":
                 data["messages"][-1]["content"] = prompt
