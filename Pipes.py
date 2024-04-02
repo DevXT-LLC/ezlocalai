@@ -31,7 +31,7 @@ class Pipes:
                 logging.error(f"[VLM] Failed to load the model: {e}")
                 self.vlm = None
         if self.vlm is not None:
-            logging.info(f"[ezlocalai] Vision is enabled.")
+            logging.info(f"[ezlocalai] Vision is enabled with {self.current_vlm}.")
         self.img_enabled = os.getenv("IMG_ENABLED", "false").lower() == "true"
         self.img = None
         if self.img_enabled and img_import_success:
@@ -53,15 +53,15 @@ class Pipes:
         logging.info(f"[STT] {self.current_stt} model loaded successfully.")
         DEFAULT_MODEL = os.getenv("DEFAULT_MODEL", "phi-2-dpo")
         self.current_llm = DEFAULT_MODEL if DEFAULT_MODEL else "phi-2-dpo"
-        if self.vlm is not None:
-            self.llm = self.vlm
-        else:
-            logging.info(f"[LLM] {self.current_llm} model loading. Please wait...")
-            self.llm = LLM(model=self.current_llm)
-            if is_vision_model(self.current_llm):
-                if self.vlm is None:
-                    self.vlm = self.llm
-            logging.info(f"[LLM] {self.current_llm} model loaded successfully.")
+        # if self.vlm is not None:
+        #    self.llm = self.vlm
+        # else:
+        logging.info(f"[LLM] {self.current_llm} model loading. Please wait...")
+        self.llm = LLM(model=self.current_llm)
+        if is_vision_model(self.current_llm):
+            if self.vlm is None:
+                self.vlm = self.llm
+        logging.info(f"[LLM] {self.current_llm} model loaded successfully.")
         NGROK_TOKEN = os.environ.get("NGROK_TOKEN", "")
         if NGROK_TOKEN:
             ngrok.set_auth_token(NGROK_TOKEN)
@@ -73,7 +73,7 @@ class Pipes:
 
     async def get_response(self, data, completion_type="chat"):
         data["local_uri"] = self.local_uri
-        images_uploaded = False
+        images = []
         if "messages" in data:
             if isinstance(data["messages"][-1]["content"], list):
                 messages = data["messages"][-1]["content"]
@@ -82,7 +82,7 @@ class Pipes:
                         prompt = message["text"]
                 for message in messages:
                     if "image_url" in message:
-                        images_uploaded = True
+                        images.append(message)
                     if "audio_url" in message:
                         audio_url = (
                             message["audio_url"]["url"]
@@ -117,6 +117,38 @@ class Pipes:
                 base64_audio=base64_audio,
                 audio_format=data["audio_format"],
             )
+            if completion_type == "chat":
+                data["messages"][-1]["content"] = prompt
+            else:
+                data["prompt"] = prompt
+        user_message = (
+            data["messages"][-1]["content"]
+            if completion_type == "chat"
+            else data["prompt"]
+        )
+        if self.vlm and images:
+            new_messages = [
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": "Describe each stage of this image.",
+                        },
+                    ],
+                }
+            ]
+            new_messages[0]["content"].extend(images)
+            image_description = self.vlm.chat(messages=new_messages)
+            print(
+                f"Image Description: {image_description['choices'][0]['message']['content']}"
+            )
+            prompt = (
+                f"\n\nReference the uploaded image description for any questions about the uploaded image. Act as if you can see it. Uploaded Image Description: {image_description['choices'][0]['message']['content']} {data['messages'][-1]['content'][0]['text']}"
+                if completion_type == "chat"
+                else f"\n\nReference the uploaded image description for any questions about the uploaded image. Act as if you can see it. Uploaded Image Description: {image_description['choices'][0]['message']['content']} {data['prompt']}"
+            )
+            print(f"Full Prompt: {prompt}")
             if completion_type == "chat":
                 data["messages"][-1]["content"] = prompt
             else:
@@ -156,7 +188,7 @@ class Pipes:
                 user_message = user_message.replace(
                     user_message.split("data:")[1].split("'")[0], ""
                 )
-            img_gen_prompt = f"Users message: {user_message} \n\n{'The user uploaded an image, one does not need generated unless the user is specifically asking.' if images_uploaded else ''} **The assistant is acting as sentiment analysis expert and only responds with a concise YES or NO answer on if the user would like an image as visual or a picture generated. No other explanation is needed!**\nWould the user potentially like an image generated based on their message?\nAssistant: "
+            img_gen_prompt = f"Users message: {user_message} \n\n{'The user uploaded an image, one does not need generated unless the user is specifically asking.' if images else ''} **The assistant is acting as sentiment analysis expert and only responds with a concise YES or NO answer on if the user would like an image as visual or a picture generated. No other explanation is needed!**\nWould the user potentially like an image generated based on their message?\nAssistant: "
             logging.info(f"[IMG] Decision maker prompt: {img_gen_prompt}")
             create_img = self.llm.chat(
                 messages=[{"role": "system", "content": img_gen_prompt}],
