@@ -94,7 +94,7 @@ class VLM:
             bos_token_id=self.tokenizer.bos_token_id,
             eos_token_id=self.tokenizer.eos_token_id,
             max_new_tokens=(
-                512 if "max_tokens" not in kwargs else int(kwargs["max_tokens"])
+                1024 if "max_tokens" not in kwargs else int(kwargs["max_tokens"])
             ),
             do_sample=False,
             use_cache=True,
