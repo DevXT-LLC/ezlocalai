@@ -144,9 +144,9 @@ class Pipes:
                 f"Image Description: {image_description['choices'][0]['message']['content']}"
             )
             prompt = (
-                f"\n\nReference the uploaded image description for any questions about the uploaded image. Act as if you can see it. Uploaded Image Description: {image_description['choices'][0]['message']['content']} {data['messages'][-1]['content'][0]['text']}"
+                f"\n\nReference the uploaded image description for any questions about the uploaded image. Act as if you can see it. Uploaded Image Description: {image_description['choices'][0]['message']['content']}\nUser: {data['messages'][-1]['content'][0]['text']}"
                 if completion_type == "chat"
-                else f"\n\nReference the uploaded image description for any questions about the uploaded image. Act as if you can see it. Uploaded Image Description: {image_description['choices'][0]['message']['content']} {data['prompt']}"
+                else f"\n\nReference the uploaded image description for any questions about the uploaded image. Act as if you can see it. Uploaded Image Description: {image_description['choices'][0]['message']['content']}\nUser: {data['prompt']}"
             )
             print(f"Full Prompt: {prompt}")
             if completion_type == "chat":
