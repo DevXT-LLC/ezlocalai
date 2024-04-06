@@ -131,6 +131,16 @@ class Pipes:
             os.remove(audio_path)
         return f"{self.local_uri}/outputs/{title}.wav"
 
+    async def audio_to_audio(self, voice, audio):
+        audio_type = audio.split(",")[0].split(":")[1].split(";")[0]
+        audio_format = audio_type.split("/")[1]
+        audio = audio.split(",")[1]
+        audio = base64.b64decode(audio)
+        text = self.stt.transcribe_audio(base64_audio=audio, audio_format=audio_format)
+        return await self.ctts.generate(
+            text=text, voice=voice, local_uri=self.local_uri
+        )
+
     async def get_response(self, data, completion_type="chat"):
         data["local_uri"] = self.local_uri
         images = []

@@ -314,6 +314,12 @@ async def text_to_speech(tts: TextToSpeech, user=Depends(verify_api_key)):
                 chunk_size=200,
             )
             return audio
+        if "audio/" in tts.input:
+            audio = await pipe.audio_to_audio(
+                voice=tts.voice,
+                audio=tts.input,
+            )
+            return audio
     audio = await pipe.ctts.generate(
         text=tts.input, voice=tts.voice, language=tts.language
     )
