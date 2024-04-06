@@ -126,7 +126,7 @@ class CTTS:
             max_ref_length=self.model.config.max_ref_len,
             sound_norm_refs=self.model.config.sound_norm_refs,
         )
-        if len(text) > 200:
+        if len(text) > 700:
             text_chunks = self.chunk_content(text, 200)
             output_files = []
             for chunk in text_chunks:
