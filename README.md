@@ -7,7 +7,6 @@ ezlocalai is an easy set up artificial intelligence server that allows you to ea
 ## Prerequisites
 
 - [Git](https://git-scm.com/downloads)
-- [PowerShell 7.X](https://learn.microsoft.com/en-us/powershell/scripting/install/installing-powershell?view=powershell-7.4)
 - [Docker Desktop](https://docs.docker.com/docker-for-windows/install/) (Windows or Mac)
 - [CUDA Toolkit](https://developer.nvidia.com/cuda-downloads) (NVIDIA GPU only)
 
@@ -52,47 +51,33 @@ Replace the environment variables with your desired settings. Assumptions will b
 - `MAIN_GPU` (Only applicable to NVIDIA GPU) - The GPU to use for the language model. Default is `0`.
 - `IMG_ENABLED` - If set to true, models will choose to generate images when they want to based on the user input. **This is only available on GPU.** Default is `false`.
 - `SD_MODEL` - The stable diffusion model to use. Default is `stabilityai/sdxl-turbo`.
+- `VISION_MODEL` - The vision model to use. Default is None. Current options are `deepseek-ai/deepseek-vl-1.3b-chat` and `deepseek-ai/deepseek-vl-7b-chat`.
 
 </details>
 
 ## Usage
 
-```bash
-./start.ps1
-```
-
-Linux:
+### NVIDIA GPU
 
 ```bash
-sudo pwsh start.ps1
+docker-compose -f docker-compose-cuda.yml down
+docker-compose -f docker-compose-cuda.yml build
+docker-compose -f docker-compose-cuda.yml up
 ```
 
-### Deepseek VL Vision Models
-
-- <https://huggingface.co/deepseek-ai/deepseek-vl-1.3b-chat> (Default)
-- <https://huggingface.co/deepseek-ai/deepseek-vl-7b-chat>
-
-Functionality and endpoint request/response directly mimics the [OpenAI gpt-4-vision API](https://platform.openai.com/docs/guides/vision).
-
-**Only currently available with CUDA GPU.**
-
-Modify `deepseek.yml` if you want to run the 7b model instead of the 1.3b model or want to change any other settings. This also has image generation enabled by default, you can disable it by changing `IMG_ENABLED` to `false` in `deepseek.yml` to reduce video RAM usage. This configuration will fit on a ~16GB GPU.
+### CPU
 
 ```bash
-.\deepseek.ps1
+docker-compose down
+docker-compose build
+docker-compose up
 ```
-
-Linux:
-
-```bash
-sudo pwsh deepseek.ps1
-```
-
-For examples on how to use the server to communicate with the models, see the [Examples Jupyter Notebook](tests/tests.ipynb).
 
 ## OpenAI Style Endpoint Usage
 
 OpenAI Style endpoints available at `http://<YOUR LOCAL IP ADDRESS>:8091/v1/` by default. Documentation can be accessed at that <http://localhost:8091> when the server is running.
+
+For examples on how to use the server to communicate with the models, see the [Examples Jupyter Notebook](tests/tests.ipynb) once the server is running.
 
 ## Demo UI
 
