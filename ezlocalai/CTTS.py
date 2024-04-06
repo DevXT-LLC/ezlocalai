@@ -8,6 +8,9 @@ import requests
 import logging
 from TTS.tts.configs.xtts_config import XttsConfig
 from TTS.tts.models.xtts import Xtts
+from typing import List
+import spacy
+from pydub import AudioSegment
 
 try:
     import deepspeed
@@ -67,14 +70,42 @@ class CTTS:
                 wav_files.append(file.replace(".wav", ""))
         self.voices = wav_files
 
+    def chunk_content(self, text: str, chunk_size: int) -> List[str]:
+        try:
+            sp = spacy.load("en_core_web_sm")
+        except:
+            spacy.cli.download("en_core_web_sm")
+            sp = spacy.load("en_core_web_sm")
+        sp.max_length = 99999999999999999999999
+        doc = sp(text)
+        sentences = list(doc.sents)
+        content_chunks = []
+        chunk = []
+        chunk_len = 0
+        for sentence in sentences:
+            sentence_tokens = len(sentence)
+            if chunk_len + sentence_tokens > chunk_size and chunk:
+                chunk_text = " ".join(token.text for token in chunk)
+                content_chunks.append((0, chunk_text))
+                chunk = []
+                chunk_len = 0
+            chunk.extend(sentence)
+            chunk_len += sentence_tokens
+        if chunk:
+            chunk_text = " ".join(token.text for token in chunk)
+            content_chunks.append((0, chunk_text))
+        return [chunk_text for score, chunk_text in content_chunks]
+
     async def generate(
         self,
         text,
         voice="default",
         language="en",
         local_uri=None,
+        output_file_name=None,
     ):
-        output_file_name = f"{uuid.uuid4().hex}.wav"
+        if not output_file_name:
+            output_file_name = f"{uuid.uuid4().hex}.wav"
         output_file = os.path.join(self.output_folder, output_file_name)
         cleaned_string = re.sub(r"([!?.])\1+", r"\1", text)
         cleaned_string = re.sub(
@@ -95,20 +126,52 @@ class CTTS:
             max_ref_length=self.model.config.max_ref_len,
             sound_norm_refs=self.model.config.sound_norm_refs,
         )
-        output = self.model.inference(
-            text=text,
-            language=language,
-            gpt_cond_latent=gpt_cond_latent,
-            speaker_embedding=speaker_embedding,
-            temperature=0.7,
-            length_penalty=float(self.model.config.length_penalty),
-            repetition_penalty=10.0,
-            top_k=int(self.model.config.top_k),
-            top_p=float(self.model.config.top_p),
-            enable_text_splitting=True,
-        )
-        torchaudio.save(output_file, torch.tensor(output["wav"]).unsqueeze(0), 24000)
-        torch.cuda.empty_cache()
+        if len(text) > 200:
+            text_chunks = self.chunk_content(text, 200)
+            output_files = []
+            for chunk in text_chunks:
+                output = self.model.inference(
+                    text=chunk,
+                    language=language,
+                    gpt_cond_latent=gpt_cond_latent,
+                    speaker_embedding=speaker_embedding,
+                    temperature=0.7,
+                    length_penalty=float(self.model.config.length_penalty),
+                    repetition_penalty=10.0,
+                    top_k=int(self.model.config.top_k),
+                    top_p=float(self.model.config.top_p),
+                    enable_text_splitting=True,
+                )
+                output_file_name = f"{uuid.uuid4().hex}.wav"
+                output_file = os.path.join(self.output_folder, output_file_name)
+                torchaudio.save(
+                    output_file, torch.tensor(output["wav"]).unsqueeze(0), 24000
+                )
+                output_files.append(output_file)
+                torch.cuda.empty_cache()
+            combined_audio = AudioSegment.empty()
+            for file in output_files:
+                audio = AudioSegment.from_file(file)
+                combined_audio += audio
+                os.remove(file)
+            combined_audio.export(output_file, format="wav")
+        else:
+            output = self.model.inference(
+                text=text,
+                language=language,
+                gpt_cond_latent=gpt_cond_latent,
+                speaker_embedding=speaker_embedding,
+                temperature=0.7,
+                length_penalty=float(self.model.config.length_penalty),
+                repetition_penalty=10.0,
+                top_k=int(self.model.config.top_k),
+                top_p=float(self.model.config.top_p),
+                enable_text_splitting=True,
+            )
+            torchaudio.save(
+                output_file, torch.tensor(output["wav"]).unsqueeze(0), 24000
+            )
+            torch.cuda.empty_cache()
         if local_uri:
             return f"{local_uri}/outputs/{output_file_name}"
         with open(output_file, "rb") as file:

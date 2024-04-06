@@ -7,8 +7,6 @@ from ezlocalai.CTTS import CTTS
 from pyngrok import ngrok
 import requests
 import base64
-from pydub import AudioSegment
-import spacy
 import pdfplumber
 from typing import List
 
@@ -75,32 +73,6 @@ class Pipes:
         else:
             self.local_uri = os.environ.get("EZLOCALAI_URL", "http://localhost:8091")
 
-    def chunk_content(self, text: str, chunk_size: int) -> List[str]:
-        try:
-            sp = spacy.load("en_core_web_sm")
-        except:
-            spacy.cli.download("en_core_web_sm")
-            sp = spacy.load("en_core_web_sm")
-        sp.max_length = 99999999999999999999999
-        doc = sp(text)
-        sentences = list(doc.sents)
-        content_chunks = []
-        chunk = []
-        chunk_len = 0
-        for sentence in sentences:
-            sentence_tokens = len(sentence)
-            if chunk_len + sentence_tokens > chunk_size and chunk:
-                chunk_text = " ".join(token.text for token in chunk)
-                content_chunks.append((0, chunk_text))
-                chunk = []
-                chunk_len = 0
-            chunk.extend(sentence)
-            chunk_len += sentence_tokens
-        if chunk:
-            chunk_text = " ".join(token.text for token in chunk)
-            content_chunks.append((0, chunk_text))
-        return [chunk_text for score, chunk_text in content_chunks]
-
     async def pdf_to_audio(self, title, voice, pdf, chunk_size=200):
         filename = f"{title}.pdf"
         file_path = os.path.join(os.getcwd(), "outputs", filename)
@@ -114,22 +86,12 @@ class Pipes:
                 content = "\n".join([page.extract_text() for page in pdf.pages])
         if not content:
             return
-        chunks = self.chunk_content(text=content, chunk_size=chunk_size)
-        title = "".join(char for char in title if char.isalnum())
-        audio_segments = []
-        for i, chunk in enumerate(chunks):
-            await self.ctts.generate(text=chunk, voice=voice, local_uri=self.local_uri)
-            audio_path = os.path.join(os.getcwd(), "outputs", f"{title}_{i}.wav")
-            audio_segments.append(AudioSegment.from_wav(audio_path))
-        combined_audio = AudioSegment.empty()
-        for segment in audio_segments:
-            combined_audio += segment
-        output_path = os.path.join(os.getcwd(), "outputs", f"{title}.wav")
-        combined_audio.export(output_path, format="wav")
-        for i in range(len(chunks)):
-            audio_path = os.path.join(os.getcwd(), "outputs", f"{title}_{i}.wav")
-            os.remove(audio_path)
-        return f"{self.local_uri}/outputs/{title}.wav"
+        return await self.ctts.generate(
+            text=content,
+            voice=voice,
+            local_uri=self.local_uri,
+            output_file_name=f"{title}.wav",
+        )
 
     async def audio_to_audio(self, voice, audio):
         audio_type = audio.split(",")[0].split(":")[1].split(";")[0]
