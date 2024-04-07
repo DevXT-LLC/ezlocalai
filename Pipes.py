@@ -7,6 +7,8 @@ from ezlocalai.CTTS import CTTS
 from pyngrok import ngrok
 import requests
 import base64
+import pdfplumber
+from typing import List
 
 try:
     from ezlocalai.IMG import IMG
@@ -70,6 +72,36 @@ class Pipes:
             self.local_uri = public_url.public_url
         else:
             self.local_uri = os.environ.get("EZLOCALAI_URL", "http://localhost:8091")
+
+    async def pdf_to_audio(self, title, voice, pdf, chunk_size=200):
+        filename = f"{title}.pdf"
+        file_path = os.path.join(os.getcwd(), "outputs", filename)
+        pdf = pdf.split(",")[1]
+        pdf = base64.b64decode(pdf)
+        with open(file_path, "wb") as pdf_file:
+            pdf_file.write(pdf)
+        content = ""
+        if file_path.endswith(".pdf"):
+            with pdfplumber.open(file_path) as pdf:
+                content = "\n".join([page.extract_text() for page in pdf.pages])
+        if not content:
+            return
+        return await self.ctts.generate(
+            text=content,
+            voice=voice,
+            local_uri=self.local_uri,
+            output_file_name=f"{title}.wav",
+        )
+
+    async def audio_to_audio(self, voice, audio):
+        audio_type = audio.split(",")[0].split(":")[1].split(";")[0]
+        audio_format = audio_type.split("/")[1]
+        audio = audio.split(",")[1]
+        audio = base64.b64decode(audio)
+        text = self.stt.transcribe_audio(base64_audio=audio, audio_format=audio_format)
+        return await self.ctts.generate(
+            text=text, voice=voice, local_uri=self.local_uri
+        )
 
     async def get_response(self, data, completion_type="chat"):
         data["local_uri"] = self.local_uri

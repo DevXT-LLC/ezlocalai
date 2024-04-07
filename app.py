@@ -17,6 +17,7 @@ from Pipes import Pipes
 import base64
 import os
 import logging
+import uuid
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -304,6 +305,21 @@ class TextToSpeech(BaseModel):
     dependencies=[Depends(verify_api_key)],
 )
 async def text_to_speech(tts: TextToSpeech, user=Depends(verify_api_key)):
+    if tts.input.startswith("data:"):
+        if "pdf" in tts.input:
+            audio = await pipe.pdf_to_audio(
+                title=tts.user if tts.user else f"{uuid.uuid4().hex}",
+                voice=tts.voice,
+                pdf=tts.input,
+                chunk_size=200,
+            )
+            return audio
+        if "audio/" in tts.input:
+            audio = await pipe.audio_to_audio(
+                voice=tts.voice,
+                audio=tts.input,
+            )
+            return audio
     audio = await pipe.ctts.generate(
         text=tts.input, voice=tts.voice, language=tts.language
     )
