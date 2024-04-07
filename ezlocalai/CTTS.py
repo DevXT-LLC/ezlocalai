@@ -86,15 +86,15 @@ class CTTS:
             sentence_tokens = len(sentence)
             if chunk_len + sentence_tokens > chunk_size and chunk:
                 chunk_text = " ".join(token.text for token in chunk)
-                content_chunks.append((0, chunk_text))
+                content_chunks.append(chunk_text)
                 chunk = []
                 chunk_len = 0
             chunk.extend(sentence)
             chunk_len += sentence_tokens
         if chunk:
             chunk_text = " ".join(token.text for token in chunk)
-            content_chunks.append((0, chunk_text))
-        return [chunk_text for score, chunk_text in content_chunks]
+            content_chunks.append(chunk_text)
+        return [chunk_text for chunk_text in content_chunks]
 
     async def generate(
         self,
