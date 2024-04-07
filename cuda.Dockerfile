@@ -19,6 +19,8 @@ RUN git clone https://github.com/Josh-XT/DeepSeek-VL deepseek && \
     cd deepseek && \
     pip install --no-cache-dir -e . && \
     cd ..
+RUN pip install spacy && \
+    python -m spacy download en_core_web_sm
 COPY . .
 EXPOSE 8091
 EXPOSE 8502

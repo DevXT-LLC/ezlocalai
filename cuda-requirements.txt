@@ -22,3 +22,5 @@ diffusers
 python-multipart
 streamlit
 openai
+pdfplumber
+spacy
