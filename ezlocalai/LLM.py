@@ -27,7 +27,13 @@ def get_models():
         soup = BeautifulSoup(response.text, "html.parser")
     except:
         soup = None
+
     model_names = get_vision_models()
+    model_names.append(
+        {
+            "zephyr-7b-beta-Mistral-7B-Instruct-v0.2": "MaziyarPanahi/zephyr-7b-beta-Mistral-7B-Instruct-v0.2-GGUF"
+        },
+    )
     if soup:
         for a_tag in soup.find_all("a", href=True):
             href = a_tag["href"]
@@ -88,7 +94,9 @@ def download_llm(model_name="", models_dir="models"):
         os.makedirs(f"{models_dir}/{model_name}")
     if not os.path.exists(file_path):
         clip_url = ""
-        if model_url.startswith("mys/"):
+        if model_url.startswith("MaziyarPanahi/"):
+            url = f"https://huggingface.co/MaziyarPanahi/zephyr-7b-beta-Mistral-7B-Instruct-v0.2-GGUF/resolve/main/zephyr-7b-beta-Mistral-7B-Instruct-v0.2.Q5_K_M.gguf"
+        elif model_url.startswith("mys/"):
             url = (
                 f"https://huggingface.co/{model_url}/resolve/main/ggml-model-q5_k.gguf"
             )
