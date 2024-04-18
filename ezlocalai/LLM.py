@@ -102,6 +102,7 @@ def clean(
         "### \n###",
         "[/INST]",
         "<|eot_id|>",
+        "<|end_of_text|>",
     ],
 ):
     if message == "":
@@ -192,6 +193,7 @@ class LLM:
             "### \n###",
             "[/INST]",
             "<|eot_id|>",
+            "<|end_of_text|>",
         ]
         if stop != []:
             if isinstance(stop, str):
