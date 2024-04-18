@@ -21,7 +21,7 @@ import uuid
 from dotenv import load_dotenv
 
 load_dotenv()
-DEFAULT_MODEL = os.getenv("DEFAULT_MODEL", "TheBloke/phi-2-dpo")
+DEFAULT_MODEL = os.getenv("DEFAULT_MODEL", "TheBloke/phi-2-dpo-GGUF")
 WHISPER_MODEL = os.getenv("WHISPER_MODEL", "base")
 logging.basicConfig(
     level=os.environ.get("LOGLEVEL", "INFO"),

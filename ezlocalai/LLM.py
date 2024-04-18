@@ -9,7 +9,7 @@ import torch
 import logging
 
 
-DEFAULT_MODEL = os.environ.get("DEFAULT_MODEL", "TheBloke/phi-2-dpo")
+DEFAULT_MODEL = os.environ.get("DEFAULT_MODEL", "TheBloke/phi-2-dpo-GGUF")
 
 
 def get_vision_models():
