@@ -1,4 +1,5 @@
 from llama_cpp import Llama, llama_chat_format
+from huggingface_hub import hf_hub_download
 from bs4 import BeautifulSoup
 from typing import List, Optional, Dict
 import os
@@ -8,38 +9,27 @@ import torch
 import logging
 
 
-DEFAULT_MODEL = os.environ.get("DEFAULT_MODEL", "phi-2-dpo")
+DEFAULT_MODEL = os.environ.get("DEFAULT_MODEL", "TheBloke/phi-2-dpo-GGUF")
 
 
 def get_vision_models():
     return [
-        {"bakllava-1-7b": "mys/ggml_bakllava-1"},
-        {"llava-v1.5-7b": "mys/ggml_llava-v1.5-7b"},
-        {"llava-v1.5-13b": "mys/ggml_llava-v1.5-13b"},
+        "mys/ggml_bakllava-1",
+        "mys/ggml_llava-v1.5-7b",
+        "mys/ggml_llava-v1.5-13b",
     ]
 
 
 def get_models():
-    try:
-        response = requests.get(
-            "https://huggingface.co/TheBloke?search_models=GGUF&sort_models=modified"
-        )
-        soup = BeautifulSoup(response.text, "html.parser")
-    except:
-        soup = None
-
-    model_names = get_vision_models()
-    model_names.append(
-        {
-            "zephyr-7b-beta-Mistral-7B-Instruct-v0.2": "MaziyarPanahi/zephyr-7b-beta-Mistral-7B-Instruct-v0.2-GGUF"
-        },
-    )
+    response = requests.get("https://huggingface.co/models?sort=modified&search=gguf")
+    soup = BeautifulSoup(response.text, "html.parser")
+    model_names = []
     if soup:
         for a_tag in soup.find_all("a", href=True):
             href = a_tag["href"]
-            if href.startswith("/TheBloke/") and href.endswith("-GGUF"):
-                base_name = href[10:-5]
-                model_names.append({base_name: href[1:]})
+            if href.endswith("-GGUF"):
+                model_names.append(href[1:])
+    model_names.append(get_vision_models())
     return model_names
 
 
@@ -54,78 +44,39 @@ def is_vision_model(model_name="") -> bool:
     return False
 
 
-def get_model_url(model_name=""):
-    if model_name == "":
-        global DEFAULT_MODEL
-        model_name = DEFAULT_MODEL
-    model_url = ""
-    try:
-        models = get_models()
-        for model in models:
-            for key in model:
-                if model_name.lower() == key.lower():
-                    model_url = model[key]
-                    break
-        if model_url == "":
-            raise Exception(
-                f"Model not found. Choose from one of these models: {', '.join(models.keys())}"
-            )
-    except:
-        model_url = f"https://huggingface.co/TheBloke/{model_name}-GGUF"
-    return model_url
-
-
 def download_llm(model_name="", models_dir="models"):
     if model_name != "":
         global DEFAULT_MODEL
         model_name = DEFAULT_MODEL
+    if "/" not in model_name:
+        model_name = "TheBloke/" + model_name + "-GGUF"
     ram = round(psutil.virtual_memory().total / 1024**3)
     if ram > 16:
         default_quantization_type = "Q5_K_M"
     else:
         default_quantization_type = "Q4_K_M"
     quantization_type = os.environ.get("QUANT_TYPE", default_quantization_type)
-    model_url = get_model_url(model_name=model_name)
-    model_name = model_name.lower()
-    file_path = f"{models_dir}/{model_name}/{model_name}.{quantization_type}.gguf"
-    if not os.path.exists(models_dir):
-        os.makedirs(models_dir)
-    if not os.path.exists(f"{models_dir}/{model_name}"):
-        os.makedirs(f"{models_dir}/{model_name}")
-    if not os.path.exists(file_path):
-        clip_url = ""
-        if model_url.startswith("MaziyarPanahi/"):
-            url = f"https://huggingface.co/MaziyarPanahi/zephyr-7b-beta-Mistral-7B-Instruct-v0.2-GGUF/resolve/main/zephyr-7b-beta-Mistral-7B-Instruct-v0.2.Q5_K_M.gguf"
-        elif model_url.startswith("mys/"):
-            url = (
-                f"https://huggingface.co/{model_url}/resolve/main/ggml-model-q5_k.gguf"
-            )
-            clip_url = (
-                f"https://huggingface.co/{model_url}/resolve/main/mmproj-model-f16.gguf"
-            )
-        else:
-            url = (
-                (
-                    model_url
-                    if "https://" in model_url
-                    else f"https://huggingface.co/{model_url}/resolve/main/{model_name}.{quantization_type}.gguf"
-                )
-                if model_name != "mistrallite-7b"
-                else f"https://huggingface.co/TheBloke/MistralLite-7B-GGUF/resolve/main/mistrallite.{quantization_type}.gguf"
-            )
-        logging.info(f"[LLM] Downloading {model_name}...")
-        with requests.get(url, stream=True, allow_redirects=True) as r:
-            with open(file_path, "wb") as f:
-                for chunk in r.iter_content(chunk_size=8192):
-                    f.write(chunk)
-        if clip_url != "":
-            logging.info(f"[LLM] Downloading {model_name} CLIP...")
-            with requests.get(clip_url, stream=True, allow_redirects=True) as r:
-                with open(
-                    f"{models_dir}/{model_name}/mmproj-model-f16.gguf", "wb"
-                ) as f:
-                    for chunk in r.iter_content(chunk_size=8192):
-                        f.write(chunk)
+    model = model_name.split("/")[-1].replace("-GGUF", "")
+    filename = model + f".{quantization_type}.gguf"
+    models_dir = os.path.join(models_dir, model)
+    os.makedirs(models_dir, exist_ok=True)
+    clip_file = None
+    if model_name.split("/")[0] == "mys":
+        filename = f"ggml-model-q5_k.gguf"
+        clip_file = f"mmproj-model-f16.gguf"
+    file_path = hf_hub_download(
+        repo_id=model_name,
+        filename=filename,
+        local_dir=models_dir,
+        local_dir_use_symlinks=False,
+    )
+    if clip_file:
+        hf_hub_download(
+            repo_id=model_name,
+            filename=clip_file,
+            local_dir=models_dir,
+            local_dir_use_symlinks=False,
+        )
     return file_path
 
 
@@ -133,7 +84,6 @@ def get_clip_path(model_name="", models_dir="models"):
     if model_name == "":
         global DEFAULT_MODEL
         model_name = DEFAULT_MODEL
-    model_name = model_name.lower()
     if os.path.exists(f"{models_dir}/{model_name}/mmproj-model-f16.gguf"):
         return f"{models_dir}/{model_name}/mmproj-model-f16.gguf"
     else:
@@ -151,6 +101,8 @@ def clean(
         "User:",
         "### \n###",
         "[/INST]",
+        "<|eot_id|>",
+        "<|end_of_text|>",
     ],
 ):
     if message == "":
@@ -240,6 +192,8 @@ class LLM:
             "User:",
             "### \n###",
             "[/INST]",
+            "<|eot_id|>",
+            "<|end_of_text|>",
         ]
         if stop != []:
             if isinstance(stop, str):
@@ -382,11 +336,7 @@ class LLM:
         return embeddings
 
     def models(self):
-        model_list = []
-        for model in self.model_list:
-            for key in model:
-                model_list.append(key)
-        return model_list
+        return self.model_list
 
 
 if __name__ == "__main__":

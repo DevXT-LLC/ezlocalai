@@ -23,6 +23,10 @@ from ezlocalai.VLM import VLM
 class Pipes:
     def __init__(self):
         load_dotenv()
+        DEFAULT_MODEL = os.getenv("DEFAULT_MODEL", "TheBloke/phi-2-dpo-GGUF")
+        self.current_llm = DEFAULT_MODEL if DEFAULT_MODEL else "TheBloke/phi-2-dpo-GGUF"
+        logging.info(f"[LLM] {self.current_llm} model loading. Please wait...")
+        self.llm = LLM(model=self.current_llm)
         self.current_vlm = os.getenv("VISION_MODEL", "")
         logging.info(f"[VLM] {self.current_vlm} model loading. Please wait...")
         self.vlm = None
@@ -53,13 +57,6 @@ class Pipes:
         logging.info(f"[STT] {self.current_stt} model loading. Please wait...")
         self.stt = STT(model=self.current_stt)
         logging.info(f"[STT] {self.current_stt} model loaded successfully.")
-        DEFAULT_MODEL = os.getenv("DEFAULT_MODEL", "phi-2-dpo")
-        self.current_llm = DEFAULT_MODEL if DEFAULT_MODEL else "phi-2-dpo"
-        # if self.vlm is not None:
-        #    self.llm = self.vlm
-        # else:
-        logging.info(f"[LLM] {self.current_llm} model loading. Please wait...")
-        self.llm = LLM(model=self.current_llm)
         if is_vision_model(self.current_llm):
             if self.vlm is None:
                 self.vlm = self.llm
