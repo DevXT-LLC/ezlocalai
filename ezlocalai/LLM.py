@@ -31,7 +31,10 @@ def get_models():
     model_names = get_vision_models()
     model_names.append(
         {
-            "zephyr-7b-beta-Mistral-7B-Instruct-v0.2": "MaziyarPanahi/zephyr-7b-beta-Mistral-7B-Instruct-v0.2-GGUF"
+            "zephyr-7b-beta-Mistral-7B-Instruct-v0.2": "MaziyarPanahi/zephyr-7b-beta-Mistral-7B-Instruct-v0.2-GGUF",
+            "Meta-Llama-3-8B-Instruct": "QuantFactory/Meta-Llama-3-8B-Instruct-GGUF",
+            "Meta-Llama-3-8B": "QuantFactory/Meta-Llama-3-8B-GGUF",
+            "Meta-Llama-3-70B-Instruct": "MaziyarPanahi/Meta-Llama-3-70B-Instruct-GGUF",
         },
     )
     if soup:
@@ -94,8 +97,14 @@ def download_llm(model_name="", models_dir="models"):
         os.makedirs(f"{models_dir}/{model_name}")
     if not os.path.exists(file_path):
         clip_url = ""
-        if model_url.startswith("MaziyarPanahi/"):
+        if model_url == "MaziyarPanahi/zephyr-7b-beta-Mistral-7B-Instruct-v0.2-GGUF":
             url = f"https://huggingface.co/MaziyarPanahi/zephyr-7b-beta-Mistral-7B-Instruct-v0.2-GGUF/resolve/main/zephyr-7b-beta-Mistral-7B-Instruct-v0.2.Q5_K_M.gguf"
+        elif model_url == "QuantFactory/Meta-Llama-3-8B-Instruct-GGUF":
+            url = f"https://huggingface.co/QuantFactory/Meta-Llama-3-8B-Instruct-GGUF/blob/main/Meta-Llama-3-8B-Instruct.Q5_K_M.gguf"
+        elif model_url == "QuantFactory/Meta-Llama-3-8B-GGUF":
+            url = f"https://huggingface.co/QuantFactory/Meta-Llama-3-8B-GGUF/blob/main/Meta-Llama-3-8B.Q5_K_M.gguf"
+        elif model_url == "MaziyarPanahi/Meta-Llama-3-70B-Instruct-GGUF":
+            url = f"https://huggingface.co/MaziyarPanahi/Meta-Llama-3-70B-Instruct-GGUF/blob/main/Meta-Llama-3-70B-Instruct.Q3_K_S.gguf"
         elif model_url.startswith("mys/"):
             url = (
                 f"https://huggingface.co/{model_url}/resolve/main/ggml-model-q5_k.gguf"
