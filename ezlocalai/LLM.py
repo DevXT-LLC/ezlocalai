@@ -100,7 +100,7 @@ def download_llm(model_name="", models_dir="models"):
         if model_url == "MaziyarPanahi/zephyr-7b-beta-Mistral-7B-Instruct-v0.2-GGUF":
             url = f"https://huggingface.co/MaziyarPanahi/zephyr-7b-beta-Mistral-7B-Instruct-v0.2-GGUF/resolve/main/zephyr-7b-beta-Mistral-7B-Instruct-v0.2.Q5_K_M.gguf"
         elif model_url == "QuantFactory/Meta-Llama-3-8B-Instruct-GGUF":
-            url = f"https://huggingface.co/QuantFactory/Meta-Llama-3-8B-Instruct-GGUF/blob/main/Meta-Llama-3-8B-Instruct.Q5_K_M.gguf"
+            url = f"https://huggingface.co/QuantFactory/Meta-Llama-3-8B-Instruct-GGUF/blob/main/Meta-Llama-3-8B-Instruct.Q5_K_S.gguf"
         elif model_url == "QuantFactory/Meta-Llama-3-8B-GGUF":
             url = f"https://huggingface.co/QuantFactory/Meta-Llama-3-8B-GGUF/blob/main/Meta-Llama-3-8B.Q5_K_M.gguf"
         elif model_url == "MaziyarPanahi/Meta-Llama-3-70B-Instruct-GGUF":
