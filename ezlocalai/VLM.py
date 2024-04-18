@@ -31,7 +31,6 @@ class VLM:
                 model,
                 trust_remote_code=True,
                 local_dir=os.path.join(os.getcwd(), "models"),
-                cache_dir=os.path.join(os.getcwd(), "models"),
             )
             self.vl_gpt = self.vl_gpt.to(torch.bfloat16).cuda().eval()
         except:
