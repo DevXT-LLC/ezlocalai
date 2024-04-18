@@ -67,13 +67,13 @@ def download_llm(model_name="", models_dir="models"):
     file_path = hf_hub_download(
         repo_id=model_name,
         filename=filename,
-        cache_dir=models_dir,
+        local_dir=models_dir,
     )
     if clip_file:
         hf_hub_download(
             repo_id=model_name,
             filename=clip_file,
-            cache_dir=models_dir,
+            local_dir=models_dir,
         )
     return file_path
 
