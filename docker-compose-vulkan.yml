@@ -10,7 +10,7 @@ services:
       - EZLOCALAI_API_KEY=${EZLOCALAI_API_KEY-}
       - GPU_LAYERS=${GPU_LAYERS-0}
       - MAIN_GPU=${MAIN_GPU-0}
-      - DEFAULT_MODEL=${DEFAULT_MODEL-phi-2-dpo}
+      - DEFAULT_MODEL=${DEFAULT_MODEL-TheBloke/phi-2-dpo}
       - LLM_MAX_TOKENS=${LLM_MAX_TOKENS-0}
       - WHISPER_MODEL=${WHISPER_MODEL-base.en}
       - IMG_ENABLED=${IMG_ENABLED-true}

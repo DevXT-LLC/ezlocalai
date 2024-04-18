@@ -53,8 +53,8 @@ class Pipes:
         logging.info(f"[STT] {self.current_stt} model loading. Please wait...")
         self.stt = STT(model=self.current_stt)
         logging.info(f"[STT] {self.current_stt} model loaded successfully.")
-        DEFAULT_MODEL = os.getenv("DEFAULT_MODEL", "phi-2-dpo")
-        self.current_llm = DEFAULT_MODEL if DEFAULT_MODEL else "phi-2-dpo"
+        DEFAULT_MODEL = os.getenv("DEFAULT_MODEL", "TheBloke/phi-2-dpo")
+        self.current_llm = DEFAULT_MODEL if DEFAULT_MODEL else "TheBloke/phi-2-dpo"
         # if self.vlm is not None:
         #    self.llm = self.vlm
         # else:

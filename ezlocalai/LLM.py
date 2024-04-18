@@ -9,14 +9,14 @@ import torch
 import logging
 
 
-DEFAULT_MODEL = os.environ.get("DEFAULT_MODEL", "phi-2-dpo")
+DEFAULT_MODEL = os.environ.get("DEFAULT_MODEL", "TheBloke/phi-2-dpo")
 
 
 def get_vision_models():
     return [
-        {"bakllava-1-7b": "mys/ggml_bakllava-1"},
-        {"llava-v1.5-7b": "mys/ggml_llava-v1.5-7b"},
-        {"llava-v1.5-13b": "mys/ggml_llava-v1.5-13b"},
+        "mys/ggml_bakllava-1",
+        "mys/ggml_llava-v1.5-7b",
+        "mys/ggml_llava-v1.5-13b",
     ]
 
 
@@ -28,8 +28,7 @@ def get_models():
         for a_tag in soup.find_all("a", href=True):
             href = a_tag["href"]
             if href.endswith("-GGUF"):
-                base_name = href[1:].split("/")[-1].replace("-GGUF", "")
-                model_names.append({base_name: href[1:]})
+                model_names.append(href[1:])
     model_names.append(get_vision_models())
     return model_names
 
@@ -50,12 +49,7 @@ def download_llm(model_name="", models_dir="models"):
         global DEFAULT_MODEL
         model_name = DEFAULT_MODEL
     if "/" not in model_name:
-        models = get_models()
-        for model in models:
-            for key in model:
-                if model_name == key:
-                    model_name = model[key]
-                    break
+        model_name = "TheBloke/" + model_name + "-GGUF"
     ram = round(psutil.virtual_memory().total / 1024**3)
     if ram > 16:
         default_quantization_type = "Q5_K_M"
@@ -336,11 +330,7 @@ class LLM:
         return embeddings
 
     def models(self):
-        model_list = []
-        for model in self.model_list:
-            for key in model:
-                model_list.append(key)
-        return model_list
+        return self.model_list
 
 
 if __name__ == "__main__":
