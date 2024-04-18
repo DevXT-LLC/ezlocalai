@@ -21,29 +21,16 @@ def get_vision_models():
 
 
 def get_models():
-    try:
-        response = requests.get(
-            "https://huggingface.co/TheBloke?search_models=GGUF&sort_models=modified"
-        )
-        soup = BeautifulSoup(response.text, "html.parser")
-    except:
-        soup = None
+    response = requests.get("https://huggingface.co/models?sort=modified&search=gguf")
+    soup = BeautifulSoup(response.text, "html.parser")
     model_names = []
-    model_names.append(
-        {
-            "Meta-Llama-3-8B-Instruct": "QuantFactory/Meta-Llama-3-8B-Instruct-GGUF",
-            "Meta-Llama-3-8B": "QuantFactory/Meta-Llama-3-8B-GGUF",
-            "Meta-Llama-3-70B-Instruct": "MaziyarPanahi/Meta-Llama-3-70B-Instruct-GGUF",
-            "zephyr-7b-beta-Mistral-7B-Instruct-v0.2": "MaziyarPanahi/zephyr-7b-beta-Mistral-7B-Instruct-v0.2-GGUF",
-        },
-    )
-    model_names.append(get_vision_models())
     if soup:
         for a_tag in soup.find_all("a", href=True):
             href = a_tag["href"]
-            if href.startswith("/TheBloke/") and href.endswith("-GGUF"):
-                base_name = href[10:-5]
+            if href.endswith("-GGUF"):
+                base_name = href[1:].split("/")[-1].replace("-GGUF", "")
                 model_names.append({base_name: href[1:]})
+    model_names.append(get_vision_models())
     return model_names
 
 
@@ -63,7 +50,12 @@ def download_llm(model_name="", models_dir="models"):
         global DEFAULT_MODEL
         model_name = DEFAULT_MODEL
     if "/" not in model_name:
-        model_name = "TheBloke/" + model_name + "-GGUF"
+        models = get_models()
+        for model in models:
+            for key in model:
+                if model_name == key:
+                    model_name = model[key]
+                    break
     ram = round(psutil.virtual_memory().total / 1024**3)
     if ram > 16:
         default_quantization_type = "Q5_K_M"
@@ -75,7 +67,7 @@ def download_llm(model_name="", models_dir="models"):
     models_dir = os.path.join(models_dir, model)
     os.makedirs(models_dir, exist_ok=True)
     clip_file = None
-    if model_name.split("/")[0].startswith("mys/"):
+    if model_name.split("/")[0] == "mys":
         filename = f"ggml-model-q5_k.gguf"
         clip_file = f"mmproj-model-f16.gguf"
     file_path = hf_hub_download(
@@ -96,7 +88,6 @@ def get_clip_path(model_name="", models_dir="models"):
     if model_name == "":
         global DEFAULT_MODEL
         model_name = DEFAULT_MODEL
-    model_name = model_name.lower()
     if os.path.exists(f"{models_dir}/{model_name}/mmproj-model-f16.gguf"):
         return f"{models_dir}/{model_name}/mmproj-model-f16.gguf"
     else:
