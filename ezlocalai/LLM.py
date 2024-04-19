@@ -64,19 +64,23 @@ def download_llm(model_name="", models_dir="models"):
     if model_name.split("/")[0] == "mys":
         filename = f"ggml-model-q5_k.gguf"
         clip_file = f"mmproj-model-f16.gguf"
+    # Check if file exists
+    if clip_file:
+        if not os.path.exists(f"{models_dir}/{clip_file}"):
+            hf_hub_download(
+                repo_id=model_name,
+                filename=clip_file,
+                local_dir=models_dir,
+                local_dir_use_symlinks=False,
+            )
+    if os.path.exists(f"{models_dir}/{filename}"):
+        return f"{models_dir}/{filename}"
     file_path = hf_hub_download(
         repo_id=model_name,
         filename=filename,
         local_dir=models_dir,
         local_dir_use_symlinks=False,
     )
-    if clip_file:
-        hf_hub_download(
-            repo_id=model_name,
-            filename=clip_file,
-            local_dir=models_dir,
-            local_dir_use_symlinks=False,
-        )
     return file_path
 
 
