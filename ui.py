@@ -30,9 +30,6 @@ st.markdown(
     """
 )
 
-EZLOCALAI_SERVER = os.getenv("EZLOCALAI_URL", "http://localhost:8091")
-EZLOCALAI_API_KEY = os.getenv("EZLOCALAI_API_KEY", "none")
-DEFAULT_LLM = os.getenv("DEFAULT_LLM", "TheBloke/phi-2-dpo-GGUF")
 openai.base_url = f"{EZLOCALAI_SERVER}/v1/"
 openai.api_key = EZLOCALAI_API_KEY if EZLOCALAI_API_KEY else EZLOCALAI_SERVER
 HEADERS = {
