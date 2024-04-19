@@ -18,9 +18,6 @@ st.image(
 EZLOCALAI_SERVER = os.getenv("EZLOCALAI_URL", "http://localhost:8091")
 EZLOCALAI_API_KEY = os.getenv("EZLOCALAI_API_KEY", "none")
 DEFAULT_LLM = os.getenv("DEFAULT_LLM", "TheBloke/phi-2-dpo-GGUF")
-VISION_MODEL = os.getenv("VISION_MODEL", "")
-if VISION_MODEL != "":
-    DEFAULT_LLM = VISION_MODEL
 if "/" in DEFAULT_LLM:
     link_to_model = f"https://huggingface.co/{DEFAULT_LLM}"
 else:
@@ -47,7 +44,7 @@ waiting_for_server = False
 
 
 def get_voices():
-    return ["DukeNukem", "HAL9000"]
+    return ["Morgan_Freeman", "DukeNukem", "HAL9000"]
     # Commented for speed, but this works if we want to get the voices from the server
     """
     global EZLOCALAI_SERVER
