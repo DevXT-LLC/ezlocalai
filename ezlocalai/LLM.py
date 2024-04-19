@@ -227,7 +227,7 @@ class LLM:
                 int(kwargs["batch_size"]) if kwargs["batch_size"] else 1024
             )
         else:
-            self.params["n_batch"] = os.environ.get("LLM_BATCH_SIZE", 1024)
+            self.params["n_batch"] = int(os.environ.get("LLM_BATCH_SIZE", 1024))
         if self.model_name != "":
             self.lcpp = Llama(
                 **self.params,
