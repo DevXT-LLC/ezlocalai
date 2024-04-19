@@ -6,6 +6,7 @@ import os
 import re
 from datetime import datetime
 from dotenv import load_dotenv
+import time
 
 load_dotenv()
 # Show logo but resize to the screen https://devxt.com/wp-content/uploads/2023/01/Logo-1024x316.png
@@ -144,6 +145,7 @@ with st.form("chat"):
     prompt = st.text_area("Your Message:", "Describe each stage of this image.")
     send = st.form_submit_button("Send")
     if prompt != "" and send:
+        start_time = time.time()
         st.markdown("---")
         st.spinner("Thinking...")
         messages = []
@@ -181,4 +183,13 @@ with st.form("chat"):
             extra_body=extra_body,
         )
         display_content(response.choices[0].message.content)
+        end_time = time.time()  # Record the end time
+        elapsed_time = end_time - start_time
+        # If response time is longer than 60 seconds, split the response time into minutes and seconds
+        if elapsed_time > 60:
+            minutes = int(elapsed_time // 60)
+            seconds = elapsed_time % 60
+            st.success(f"Response time: {minutes} minutes and {seconds:.2f} seconds")
+        else:
+            st.success(f"Response time: {elapsed_time:.2f} seconds")
         st.balloons()

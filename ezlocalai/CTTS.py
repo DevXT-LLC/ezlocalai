@@ -120,12 +120,7 @@ class CTTS:
                 language=language,
                 gpt_cond_latent=gpt_cond_latent,
                 speaker_embedding=speaker_embedding,
-                temperature=0.5,
-                length_penalty=float(self.model.config.length_penalty),
-                repetition_penalty=10.0,
-                top_k=int(self.model.config.top_k),
-                top_p=float(self.model.config.top_p),
-                enable_text_splitting=True,
+                enable_text_splitting=False,
             )
             output_file_name = f"{uuid.uuid4().hex}.wav"
             output_file = os.path.join(self.output_folder, output_file_name)
