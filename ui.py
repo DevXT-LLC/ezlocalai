@@ -17,7 +17,7 @@ st.image(
 
 EZLOCALAI_SERVER = os.getenv("EZLOCALAI_URL", "http://localhost:8091")
 EZLOCALAI_API_KEY = os.getenv("EZLOCALAI_API_KEY", "none")
-DEFAULT_LLM = os.getenv("DEFAULT_LLM", "TheBloke/phi-2-dpo-GGUF")
+DEFAULT_LLM = os.getenv("DEFAULT_MODEL", "TheBloke/phi-2-dpo-GGUF")
 if "/" in DEFAULT_LLM:
     link_to_model = f"https://huggingface.co/{DEFAULT_LLM}"
 else:
