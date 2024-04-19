@@ -3,6 +3,7 @@ from huggingface_hub import hf_hub_download
 from bs4 import BeautifulSoup
 from typing import List, Optional, Dict
 import os
+import re
 import requests
 import psutil
 import torch
@@ -124,6 +125,8 @@ def clean(
         message = message[1:]
     if message.endswith("\n"):
         message = message[:-3]
+    if "[Insert " in message:
+        message = re.sub(r"\[Insert.*?\]", "", message)
     return message
 
 
