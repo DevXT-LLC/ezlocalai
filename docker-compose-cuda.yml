@@ -16,6 +16,7 @@ services:
       - IMG_ENABLED=${IMG_ENABLED-true}
       - SD_MODEL=${SD_MODEL}
       - VISION_MODEL=${VISION_MODEL}
+      - LLM_BATCH_SIZE=${LLM_BATCH_SIZE-1024}
       - CUDA_DOCKER_ARCH=all
     restart: unless-stopped
     ports:
