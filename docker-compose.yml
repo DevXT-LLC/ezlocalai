@@ -6,7 +6,7 @@ services:
     environment:
       - EZLOCALAI_URL=${EZLOCALAI_URL-http://localhost:8091}
       - EZLOCALAI_API_KEY=${EZLOCALAI_API_KEY-}
-      - DEFAULT_MODEL=${DEFAULT_MODEL-TheBloke/phi-2-dpo}
+      - DEFAULT_MODEL=${DEFAULT_MODEL-TheBloke/phi-2-dpo-GGUF}
       - LLM_MAX_TOKENS=${LLM_MAX_TOKENS-0}
       - WHISPER_MODEL=${WHISPER_MODEL-base.en}
       - IMG_ENABLED=${IMG_ENABLED-false}
