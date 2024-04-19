@@ -120,7 +120,7 @@ class CTTS:
                 language=language,
                 gpt_cond_latent=gpt_cond_latent,
                 speaker_embedding=speaker_embedding,
-                temperature=0.6,
+                temperature=0.5,
                 length_penalty=float(self.model.config.length_penalty),
                 repetition_penalty=10.0,
                 top_k=int(self.model.config.top_k),
@@ -134,12 +134,11 @@ class CTTS:
             )
             output_files.append(output_file)
             torch.cuda.empty_cache()
-        silence_duration = 800
         combined_audio = AudioSegment.empty()
         for file in output_files:
             audio = AudioSegment.from_file(file)
             combined_audio += audio
-            combined_audio += AudioSegment.silent(duration=silence_duration)
+            combined_audio += AudioSegment.silent(duration=1000)
             os.remove(file)
         combined_audio.export(output_file, format="wav")
         if local_uri:
