@@ -103,6 +103,7 @@ def clean(
         "[/INST]",
         "<|eot_id|>",
         "<|end_of_text|>",
+        "assistant\n\n",
     ],
 ):
     if message == "":
@@ -194,6 +195,7 @@ class LLM:
             "[/INST]",
             "<|eot_id|>",
             "<|end_of_text|>",
+            "assistant\n\n",
         ]
         if stop != []:
             if isinstance(stop, str):
@@ -225,7 +227,7 @@ class LLM:
                 int(kwargs["batch_size"]) if kwargs["batch_size"] else 1024
             )
         else:
-            self.params["n_batch"] = 1024
+            self.params["n_batch"] = os.environ.get("LLM_BATCH_SIZE", 1024)
         if self.model_name != "":
             self.lcpp = Llama(
                 **self.params,
