@@ -14,10 +14,14 @@ st.image(
     width=300,
 )
 
-
 EZLOCALAI_SERVER = os.getenv("EZLOCALAI_URL", "http://localhost:8091")
 EZLOCALAI_API_KEY = os.getenv("EZLOCALAI_API_KEY", "none")
 DEFAULT_LLM = os.getenv("DEFAULT_MODEL", "TheBloke/phi-2-dpo-GGUF")
+VISION_MODEL = os.getenv("VISION_MODEL", None)
+SD_MODEL = os.getenv("SD_MODEL", "stabilityai/sdxl-turbo")
+IMG_ENABLED = os.getenv("IMG_ENABLED", "false")
+WHISPER_MODEL = os.getenv("WHISPER_MODEL", "base.en")
+
 if "/" in DEFAULT_LLM:
     link_to_model = f"https://huggingface.co/{DEFAULT_LLM}"
 else:
@@ -26,10 +30,21 @@ st.markdown(
     f"""
     [![GitHub](https://img.shields.io/badge/GitHub-ezLocalai-blue?logo=github&style=plastic)](https://github.com/DevXT-LLC/ezlocalai) [![Dockerhub](https://img.shields.io/badge/Docker-ezlocalai-blue?logo=docker&style=plastic)](https://hub.docker.com/r/joshxt/ezlocalai)
     ## ezLocal.ai Demo
-    **Current model:** [{DEFAULT_LLM}]({link_to_model})
+    **Language model:** [{DEFAULT_LLM}]({link_to_model})
     """
 )
-
+if VISION_MODEL:
+    st.markdown(
+        f"""
+        **Vision model:** [{VISION_MODEL}](https://huggingface.co/{VISION_MODEL})
+        """
+    )
+if IMG_ENABLED.lower() == "true":
+    st.markdown(
+        f"""
+        **Image Generation model:** [{SD_MODEL}](https://huggingface.co/{SD_MODEL})
+        """
+    )
 openai.base_url = f"{EZLOCALAI_SERVER}/v1/"
 openai.api_key = EZLOCALAI_API_KEY if EZLOCALAI_API_KEY else EZLOCALAI_SERVER
 HEADERS = {
