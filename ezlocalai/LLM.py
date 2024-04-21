@@ -76,12 +76,21 @@ def download_llm(model_name="", models_dir="models"):
             )
     if os.path.exists(f"{models_dir}/{filename}"):
         return f"{models_dir}/{filename}"
-    file_path = hf_hub_download(
-        repo_id=model_name,
-        filename=filename,
-        local_dir=models_dir,
-        local_dir_use_symlinks=False,
-    )
+    try:
+        file_path = hf_hub_download(
+            repo_id=model_name,
+            filename=filename,
+            local_dir=models_dir,
+            local_dir_use_symlinks=False,
+        )
+    except:
+        filename = model + f".q4_k_m.gguf"
+        file_path = hf_hub_download(
+            repo_id=model_name,
+            filename=filename,
+            local_dir=models_dir,
+            local_dir_use_symlinks=False,
+        )
     return file_path
 
 

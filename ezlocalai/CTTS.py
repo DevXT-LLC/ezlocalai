@@ -120,7 +120,7 @@ class CTTS:
                 language=language,
                 gpt_cond_latent=gpt_cond_latent,
                 speaker_embedding=speaker_embedding,
-                enable_text_splitting=False,
+                enable_text_splitting=True,
                 temperature=0.7,
                 repetition_penalty=10.0,
             )
