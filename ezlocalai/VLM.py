@@ -10,6 +10,7 @@ import PIL.Image
 import uuid
 import os
 import base64
+from ezlocalai.Helpers import get_tokens
 
 
 class VLM:

@@ -6,6 +6,7 @@ import torch
 import torchaudio
 import requests
 import logging
+from ezlocalai.Helpers import chunk_content
 from TTS.tts.configs.xtts_config import XttsConfig
 from TTS.tts.models.xtts import Xtts
 from typing import List
@@ -70,18 +71,6 @@ class CTTS:
                 wav_files.append(file.replace(".wav", ""))
         self.voices = wav_files
 
-    def chunk_content(self, text: str) -> List[str]:
-        try:
-            sp = spacy.load("en_core_web_sm")
-        except:
-            spacy.cli.download("en_core_web_sm")
-            sp = spacy.load("en_core_web_sm")
-        sp.max_length = 99999999999999999999999
-        doc = sp(text)
-        sentences = list(doc.sents)
-        content_chunks = [str(sentence).strip() for sentence in sentences]
-        return content_chunks
-
     async def generate(
         self,
         text,
@@ -112,7 +101,7 @@ class CTTS:
             max_ref_length=self.model.config.max_ref_len,
             sound_norm_refs=self.model.config.sound_norm_refs,
         )
-        text_chunks = self.chunk_content(text)
+        text_chunks = chunk_content(text)
         output_files = []
         for chunk in text_chunks:
             output = self.model.inference(
