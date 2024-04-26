@@ -1,19 +1,23 @@
 from optimum.onnxruntime import ORTModelForFeatureExtraction
 from transformers import AutoTokenizer
 from ezlocalai.Helpers import get_tokens, chunk_content
+from huggingface_hub import snapshot_download
+
 import torch
 import os
 
 
 class Embedding:
     def __init__(self):
+        snapshot_download(repo_id="hooman650/bge-m3-onnx-o4", local_dir="models")
+
         self.model = ORTModelForFeatureExtraction.from_pretrained(
             "hooman650/bge-m3-onnx-o4",
-            cache_dir=os.path.join(os.getcwd(), "models"),
+            local_dir="models",
         )
         self.tokenizer = AutoTokenizer.from_pretrained(
             "hooman650/bge-m3-onnx-o4",
-            cache_dir=os.path.join(os.getcwd(), "models"),
+            local_dir="models",
         )
 
     def get_embeddings(self, input):
