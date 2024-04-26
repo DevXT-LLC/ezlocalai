@@ -58,14 +58,16 @@ class Embedding:
         ).to("cuda" if torch.cuda.is_available() else "cpu")
         out = self.model(**encoded_input, return_dict=True).last_hidden_state
         dense_vecs = torch.nn.functional.normalize(out[:, 0], dim=-1)
+        embeddings = dense_vecs.cpu().detach().numpy().tolist()
         return {
             "object": "list",
             "data": [
                 {
                     "object": "embedding",
-                    "index": 0,
-                    "embedding": dense_vecs.cpu().detach().numpy().tolist()[0],
+                    "index": i,
+                    "embedding": embeddings[i],
                 }
+                for i in len(embeddings)
             ],
             "model": "bge-m3",
             "usage": {"prompt_tokens": tokens, "total_tokens": tokens},
