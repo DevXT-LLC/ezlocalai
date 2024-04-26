@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 from ezlocalai.LLM import LLM, is_vision_model
 from ezlocalai.STT import STT
 from ezlocalai.CTTS import CTTS
+from ezlocalai.Embedding import Embedding
 from pyngrok import ngrok
 import requests
 import base64
@@ -27,6 +28,8 @@ class Pipes:
         self.current_llm = DEFAULT_MODEL if DEFAULT_MODEL else "TheBloke/phi-2-dpo-GGUF"
         logging.info(f"[LLM] {self.current_llm} model loading. Please wait...")
         self.llm = LLM(model=self.current_llm)
+        logging.info(f"[LLM] {self.current_llm} model loaded successfully.")
+        self.embedder = Embedding()
         self.current_vlm = os.getenv("VISION_MODEL", "")
         logging.info(f"[VLM] {self.current_vlm} model loading. Please wait...")
         self.vlm = None
@@ -60,7 +63,6 @@ class Pipes:
         if is_vision_model(self.current_llm):
             if self.vlm is None:
                 self.vlm = self.llm
-        logging.info(f"[LLM] {self.current_llm} model loaded successfully.")
         NGROK_TOKEN = os.environ.get("NGROK_TOKEN", "")
         if NGROK_TOKEN:
             ngrok.set_auth_token(NGROK_TOKEN)

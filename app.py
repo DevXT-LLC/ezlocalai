@@ -232,7 +232,7 @@ class EmbeddingResponse(BaseModel):
     dependencies=[Depends(verify_api_key)],
 )
 async def embedding(embedding: EmbeddingModel, user=Depends(verify_api_key)):
-    return pipe.llm.embedding(input=embedding.input)
+    return pipe.embedder.get_embeddings(input=embedding.input)
 
 
 # Audio Transcription endpoint

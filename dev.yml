@@ -4,7 +4,7 @@ services:
   ezlocalai:
     build: 
       context: .
-      dockerfile: vulkan.Dockerfile
+      dockerfile: Dockerfile
     environment:
       - EZLOCALAI_URL=${EZLOCALAI_URL-http://localhost:8091}
       - EZLOCALAI_API_KEY=${EZLOCALAI_API_KEY-}
@@ -28,10 +28,3 @@ services:
       - ./voices:/app/voices
       - ./whispercpp:/app/whispercpp
       - ./xttsv2_2.0.2:/app/xttsv2_2.0.2
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: all
-              capabilities: [ gpu ]
