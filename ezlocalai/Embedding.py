@@ -1,7 +1,7 @@
 from optimum.onnxruntime import ORTModelForFeatureExtraction
 from transformers import AutoTokenizer
 from ezlocalai.Helpers import get_tokens, chunk_content
-from huggingface_hub import snapshot_download
+from huggingface_hub import hf_hub_download
 
 import torch
 import os
@@ -9,21 +9,45 @@ import os
 
 class Embedding:
     def __init__(self):
-        snapshot_download(
-            repo_id="hooman650/bge-m3-onnx-o4",
-            cache_dir=os.path.join(os.getcwd(), "models"),
-            local_dir_use_symlinks=False,
+        model_dir = os.path.join(
+            os.getcwd(),
+            "models",
+            "models--hooman650--bge-m3-onnx-o4",
+            "snapshots",
+            "848e8bc2408aad2c8849c7be9475f7aec3ee781a",
         )
-
+        if not os.path.exists(model_dir):
+            os.makedirs(model_dir, exist_ok=True)
+        # if model_optimized.onnx.data does not exist, download the model.
+        files = [
+            "config.json",
+            "model_optimized.onnx",
+            "model_optimized.onnx.data",
+            "ort_config.json",
+            "sentencepiece.bpe.model",
+            "special_tokens_map.json",
+            "tokenizer.json",
+            "tokenizer_config.json",
+        ]
+        for file in files:
+            if not os.path.exists(os.path.join(model_dir, file)):
+                hf_hub_download(
+                    repo_id="hooman650/bge-m3-onnx-o4",
+                    filename=file,
+                    local_dir=model_dir,
+                    local_dir_use_symlinks=False,
+                )
         self.model = ORTModelForFeatureExtraction.from_pretrained(
             "hooman650/bge-m3-onnx-o4",
-            cache_dir=os.path.join(os.getcwd(), "models"),
+            local_dir=model_dir,
             local_dir_use_symlinks=False,
+            cache_dir=os.path.join(os.getcwd(), "models"),
         )
         self.tokenizer = AutoTokenizer.from_pretrained(
             "hooman650/bge-m3-onnx-o4",
-            cache_dir=os.path.join(os.getcwd(), "models"),
+            local_dir=model_dir,
             local_dir_use_symlinks=False,
+            cache_dir=os.path.join(os.getcwd(), "models"),
         )
 
     def get_embeddings(self, input):
@@ -36,7 +60,13 @@ class Embedding:
         dense_vecs = torch.nn.functional.normalize(out[:, 0], dim=-1)
         return {
             "object": "list",
-            "data": [{"object": "embedding", "index": 0, "embedding": dense_vecs}],
+            "data": [
+                {
+                    "object": "embedding",
+                    "index": 0,
+                    "embedding": dense_vecs.cpu().detach().numpy().tolist(),
+                }
+            ],
             "model": "bge-m3",
             "usage": {"prompt_tokens": tokens, "total_tokens": tokens},
         }
