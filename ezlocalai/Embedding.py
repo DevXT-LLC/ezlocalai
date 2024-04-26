@@ -64,7 +64,7 @@ class Embedding:
                 {
                     "object": "embedding",
                     "index": 0,
-                    "embedding": dense_vecs.cpu().detach().numpy().tolist(),
+                    "embedding": dense_vecs.cpu().detach().numpy().tolist()[0],
                 }
             ],
             "model": "bge-m3",
