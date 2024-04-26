@@ -24,3 +24,4 @@ openai
 pdfplumber
 spacy
 optimum
+onnx
