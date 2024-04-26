@@ -17,11 +17,6 @@ class Embedding:
     def __init__(self):
         self.model = ORTModelForFeatureExtraction.from_pretrained(
             "hooman650/bge-m3-onnx-o4",
-            provider=(
-                "CUDAExecutionProvider"
-                if torch.cuda.is_available()
-                else "CPUExecutionProvider"
-            ),
             cache_dir=os.path.join(os.getcwd(), "models"),
         )
         self.tokenizer = AutoTokenizer.from_pretrained(
