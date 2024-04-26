@@ -9,15 +9,19 @@ import os
 
 class Embedding:
     def __init__(self):
-        snapshot_download(repo_id="hooman650/bge-m3-onnx-o4", local_dir="models")
+        snapshot_download(
+            repo_id="hooman650/bge-m3-onnx-o4",
+            cache_dir=os.path.join(os.getcwd(), "models"),
+            local_dir_use_symlinks=False,
+        )
 
         self.model = ORTModelForFeatureExtraction.from_pretrained(
             "hooman650/bge-m3-onnx-o4",
-            local_dir="models",
+            cache_dir=os.path.join(os.getcwd(), "models"),
         )
         self.tokenizer = AutoTokenizer.from_pretrained(
             "hooman650/bge-m3-onnx-o4",
-            local_dir="models",
+            cache_dir=os.path.join(os.getcwd(), "models"),
         )
 
     def get_embeddings(self, input):
