@@ -59,16 +59,18 @@ class Embedding:
         out = self.model(**encoded_input, return_dict=True).last_hidden_state
         dense_vecs = torch.nn.functional.normalize(out[:, 0], dim=-1)
         embeddings = dense_vecs.cpu().detach().numpy().tolist()
-        return {
-            "object": "list",
-            "data": [
+        data = []
+        for i, embedding in enumerate(embeddings):
+            data.append(
                 {
                     "object": "embedding",
                     "index": i,
-                    "embedding": embeddings[i],
+                    "embedding": embedding,
                 }
-                for i in len(embeddings)
-            ],
+            )
+        return {
+            "object": "list",
+            "data": data,
             "model": "bge-m3",
             "usage": {"prompt_tokens": tokens, "total_tokens": tokens},
         }
