@@ -24,3 +24,5 @@ streamlit
 openai
 pdfplumber
 spacy
+optimum
+eager

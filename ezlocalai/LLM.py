@@ -247,7 +247,6 @@ class LLM:
         if self.model_name != "":
             self.lcpp = Llama(
                 **self.params,
-                embedding=True,
                 chat_handler=chat_handler,
                 logits_all=True if chat_handler else False,
             )
@@ -347,11 +346,6 @@ class LLM:
             stop_tokens=self.params["stop"],
         )
         return data
-
-    def embedding(self, input):
-        embeddings = self.lcpp.create_embedding(input=input, model=self.model_name)
-        embeddings["model"] = self.model_name
-        return embeddings
 
     def models(self):
         return self.model_list

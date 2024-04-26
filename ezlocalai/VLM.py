@@ -8,15 +8,8 @@ import requests
 import torch
 import PIL.Image
 import uuid
-import tiktoken
 import os
 import base64
-
-
-def get_tokens(text: str) -> int:
-    encoding = tiktoken.get_encoding("cl100k_base")
-    num_tokens = len(encoding.encode(text))
-    return num_tokens
 
 
 class VLM:
@@ -174,15 +167,6 @@ class VLM:
             messages=messages,
         )
         return response["choices"][0]["message"]["content"]
-
-    def embedding(self, input):
-        tokens = get_tokens(input)
-        return {
-            "object": "list",
-            "data": [{"object": "embedding", "index": 0, "embedding": []}],
-            "model": self.model,
-            "usage": {"prompt_tokens": tokens, "total_tokens": tokens},
-        }
 
     def models(self):
         return [
