@@ -18,10 +18,12 @@ class Embedding:
         self.model = ORTModelForFeatureExtraction.from_pretrained(
             "hooman650/bge-m3-onnx-o4",
             cache_dir=os.path.join(os.getcwd(), "models"),
+            local_dir_use_symlinks=False,
         )
         self.tokenizer = AutoTokenizer.from_pretrained(
             "hooman650/bge-m3-onnx-o4",
             cache_dir=os.path.join(os.getcwd(), "models"),
+            local_dir_use_symlinks=False,
         )
 
     def get_embeddings(self, input):
@@ -34,10 +36,7 @@ class Embedding:
         dense_vecs = torch.nn.functional.normalize(out[:, 0], dim=-1)
         return {
             "object": "list",
-            "data": [
-                {"object": "embedding", "index": i, "embedding": dense_vecs[i].tolist()}
-                for i in range(tokens)
-            ],
+            "data": [{"object": "embedding", "index": 0, "embedding": dense_vecs}],
             "model": "bge-m3",
             "usage": {"prompt_tokens": tokens, "total_tokens": tokens},
         }
