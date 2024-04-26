@@ -10,7 +10,7 @@ pydub==0.25.1
 ffmpeg-python==0.2.0
 torch>=2.3.0+cu121
 torchaudio>=2.3.0+cu121
-transformers==4.40.1
+transformers
 TTS==0.22.0
 sounddevice==0.4.6
 deepspeed==0.13.4

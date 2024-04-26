@@ -11,7 +11,7 @@ pydub==0.25.1
 ffmpeg-python==0.2.0
 torch==2.3.0
 torchaudio==2.3.0
-transformers==4.40.1
+transformers
 TTS==0.22.0
 sounddevice==0.4.6
 pyaudio==0.2.14
