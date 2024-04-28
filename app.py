@@ -18,6 +18,7 @@ import base64
 import os
 import logging
 import uuid
+import time
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -356,3 +357,42 @@ async def upload_voice(
     with open(file_path, "wb") as audio_file:
         audio_file.write(await file.read())
     return {"detail": f"Voice {voice_name} has been uploaded."}
+
+
+# Image Generation endpoint
+# https://platform.openai.com/docs/api-reference/images
+
+
+class ImageCreation(BaseModel):
+    prompt: str
+    model: Optional[str] = "stabilityai/sdxl-turbo"
+    n: Optional[int] = 1
+    size: Optional[str] = "1024x1024"
+    quality: Optional[str] = "hd"
+    response_format: Optional[str] = "url"
+    style: Optional[str] = "natural"
+
+
+@app.post(
+    "/v1/images/generations",
+    tags=["Images"],
+    dependencies=[Depends(verify_api_key)],
+)
+async def generate_image(
+    image: ImageCreation,
+    user: str = Depends(verify_api_key),
+):
+    images = []
+    if int(image.n) > 1:
+        for i in range(image.n):
+            image = await pipe.generate_image(prompt=image.prompt)
+            images.append({"url": image})
+        return {
+            "created": int(time.time()),
+            "data": images,
+        }
+    image = await pipe.generate_image(prompt=image.prompt)
+    return {
+        "created": int(time.time()),
+        "data": [{"url": image}],
+    }
