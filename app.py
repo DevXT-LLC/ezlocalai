@@ -367,7 +367,7 @@ class ImageCreation(BaseModel):
     prompt: str
     model: Optional[str] = "stabilityai/sdxl-turbo"
     n: Optional[int] = 1
-    size: Optional[str] = "1024x1024"
+    size: Optional[str] = "512x512"
     quality: Optional[str] = "hd"
     response_format: Optional[str] = "url"
     style: Optional[str] = "natural"
@@ -385,13 +385,19 @@ async def generate_image(
     images = []
     if int(image.n) > 1:
         for i in range(image.n):
-            image = await pipe.generate_image(prompt=image.prompt)
+            image = await pipe.generate_image(
+                prompt=image.prompt,
+                response_format=image.response_format,
+                size=image.size,
+            )
             images.append({"url": image})
         return {
             "created": int(time.time()),
             "data": images,
         }
-    image = await pipe.generate_image(prompt=image.prompt)
+    image = await pipe.generate_image(
+        prompt=image.prompt, response_format=image.response_format, size=image.size
+    )
     return {
         "created": int(time.time()),
         "data": [{"url": image}],

@@ -103,7 +103,7 @@ class Pipes:
             text=text, voice=voice, local_uri=self.local_uri
         )
 
-    async def generate_image(self, prompt, response_format="url", size="1024x1024"):
+    async def generate_image(self, prompt, response_format="url", size="512x512"):
         if self.img:
             return self.img.generate(
                 prompt=prompt,

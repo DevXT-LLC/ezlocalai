@@ -42,7 +42,7 @@ class IMG:
         negative_prompt="low resolution, grainy, distorted",
         num_inference_steps=1,
         guidance_scale=0.0,
-        size="1024x1024",
+        size="512x512",
     ):
         new_file_name = f"outputs/{uuid.uuid4()}.png"
         if self.pipe:
@@ -54,12 +54,14 @@ class IMG:
                 guidance_scale=guidance_scale,
                 generator=generator,
             ).images[0]
-
-            # Upscale the image to the desired size
             width, height = map(int, size.split("x"))
-            upscaled_image = new_image.resize((width, height), resample=Image.LANCZOS)
-
-            upscaled_image.save(new_file_name)
+            if width != 512 and height != 512:
+                upscaled_image = new_image.resize(
+                    (width, height), resample=Image.LANCZOS
+                )
+                upscaled_image.save(new_file_name)
+            else:
+                new_image.save(new_file_name)
             if self.local_uri:
                 return f"{self.local_uri}/{new_file_name}"
             return upscaled_image
