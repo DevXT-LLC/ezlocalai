@@ -379,18 +379,18 @@ class ImageCreation(BaseModel):
     dependencies=[Depends(verify_api_key)],
 )
 async def generate_image(
-    image: ImageCreation,
+    image_creation: ImageCreation,
     user: str = Depends(verify_api_key),
 ):
     images = []
     if int(image.n) > 1:
         for i in range(image.n):
             image = await pipe.generate_image(
-                prompt=image.prompt,
-                response_format=image.response_format,
-                size=image.size,
+                prompt=image_creation.prompt,
+                response_format=image_creation.response_format,
+                size=image_creation.size,
             )
-            if image.response_format == "url":
+            if image_creation.response_format == "url":
                 images.append({"url": image})
             else:
                 images.append({"b64_json": image})
@@ -399,9 +399,11 @@ async def generate_image(
             "data": images,
         }
     image = await pipe.generate_image(
-        prompt=image.prompt, response_format=image.response_format, size=image.size
+        prompt=image_creation.prompt,
+        response_format=image_creation.response_format,
+        size=image_creation.size,
     )
-    if image.response_format == "url":
+    if image_creation.response_format == "url":
         return {
             "created": int(time.time()),
             "data": [{"url": image}],
