@@ -24,6 +24,7 @@ from ezlocalai.VLM import VLM
 class Pipes:
     def __init__(self):
         load_dotenv()
+        global img_import_success
         DEFAULT_MODEL = os.getenv("DEFAULT_MODEL", "TheBloke/phi-2-dpo-GGUF")
         self.current_llm = DEFAULT_MODEL if DEFAULT_MODEL else "TheBloke/phi-2-dpo-GGUF"
         logging.info(f"[LLM] {self.current_llm} model loading. Please wait...")
@@ -41,18 +42,6 @@ class Pipes:
                 self.vlm = None
         if self.vlm is not None:
             logging.info(f"[ezlocalai] Vision is enabled with {self.current_vlm}.")
-        self.img_enabled = os.getenv("IMG_ENABLED", "false").lower() == "true"
-        self.img = None
-        if self.img_enabled and img_import_success:
-            logging.info(f"[IMG] Image generation is enabled.")
-            SD_MODEL = os.getenv("SD_MODEL", "stabilityai/sdxl-turbo")
-            logging.info(f"[IMG] sdxl-turbo model loading. Please wait...")
-            try:
-                self.img = IMG(model=SD_MODEL)
-            except Exception as e:
-                logging.error(f"[IMG] Failed to load the model: {e}")
-                self.img = None
-            logging.info(f"[IMG] sdxl-turbo model loaded successfully.")
         logging.info(f"[CTTS] xttsv2_2.0.2 model loading. Please wait...")
         self.ctts = CTTS()
         logging.info(f"[CTTS] xttsv2_2.0.2 model loaded successfully.")
@@ -71,6 +60,19 @@ class Pipes:
             self.local_uri = public_url.public_url
         else:
             self.local_uri = os.environ.get("EZLOCALAI_URL", "http://localhost:8091")
+        self.img_enabled = os.getenv("IMG_ENABLED", "false").lower() == "true"
+        self.img = None
+        if img_import_success:
+            logging.info(f"[IMG] Image generation is enabled.")
+            SD_MODEL = os.getenv("SD_MODEL", "")  # stabilityai/sdxl-turbo
+            if SD_MODEL:
+                logging.info(f"[IMG] {SD_MODEL} model loading. Please wait...")
+                try:
+                    self.img = IMG(model=SD_MODEL, local_uri=self.local_uri)
+                except Exception as e:
+                    logging.error(f"[IMG] Failed to load the model: {e}")
+                    self.img = None
+            logging.info(f"[IMG] {SD_MODEL} model loaded successfully.")
 
     async def pdf_to_audio(self, title, voice, pdf, chunk_size=200):
         filename = f"{title}.pdf"
@@ -101,6 +103,17 @@ class Pipes:
         return await self.ctts.generate(
             text=text, voice=voice, local_uri=self.local_uri
         )
+
+    async def generate_image(self, prompt, response_format="url", size="512x512"):
+        if self.img:
+            self.img.local_uri = self.local_uri if response_format == "url" else None
+            new_image = self.img.generate(
+                prompt=prompt,
+                size=size,
+            )
+            self.img.local_uri = self.local_uri
+            return new_image
+        return "Sorry, image generation is not enabled on this server."
 
     async def get_response(self, data, completion_type="chat"):
         data["local_uri"] = self.local_uri
@@ -248,9 +261,7 @@ class Pipes:
                         "```markdown"
                     )[1]
                     image_generation_prompt = image_generation_prompt.split("```")[0]
-                generated_image = self.img.generate(
-                    prompt=image_generation_prompt, local_uri=self.local_uri
-                )
+                generated_image = self.img.generate(prompt=image_generation_prompt)
         audio_response = None
         if "voice" in data:
             text_response = (
