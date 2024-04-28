@@ -383,8 +383,8 @@ async def generate_image(
     user: str = Depends(verify_api_key),
 ):
     images = []
-    if int(image.n) > 1:
-        for i in range(image.n):
+    if int(image_creation.n) > 1:
+        for i in range(image_creation.n):
             image = await pipe.generate_image(
                 prompt=image_creation.prompt,
                 response_format=image_creation.response_format,
