@@ -113,7 +113,7 @@ class Pipes:
             )
             self.img.local_uri = self.local_uri
             return new_image
-        return "Sorry, image generation is not enabled on this server."
+        return ""
 
     async def get_response(self, data, completion_type="chat"):
         data["local_uri"] = self.local_uri
@@ -206,7 +206,7 @@ class Pipes:
             data["temperature"] = 0.5
         if "top_p" not in data:
             data["top_p"] = 0.9
-        if self.img and img_import_success:
+        if self.img_enabled and img_import_success and self.img:
             user_message = (
                 data["messages"][-1]["content"]
                 if completion_type == "chat"
