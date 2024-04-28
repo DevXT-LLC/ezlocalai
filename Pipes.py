@@ -105,11 +105,13 @@ class Pipes:
 
     async def generate_image(self, prompt, response_format="url", size="512x512"):
         if self.img:
-            return self.img.generate(
+            self.img.local_uri = self.local_uri if response_format == "url" else None
+            new_image = self.img.generate(
                 prompt=prompt,
-                local_uri=self.local_uri if response_format == "url" else None,
                 size=size,
             )
+            self.img.local_uri = self.local_uri
+            return new_image
         return ""
 
     async def get_response(self, data, completion_type="chat"):
