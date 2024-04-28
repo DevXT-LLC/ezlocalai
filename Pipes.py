@@ -64,14 +64,15 @@ class Pipes:
         self.img = None
         if img_import_success:
             logging.info(f"[IMG] Image generation is enabled.")
-            SD_MODEL = os.getenv("SD_MODEL", "stabilityai/sdxl-turbo")
-            logging.info(f"[IMG] sdxl-turbo model loading. Please wait...")
-            try:
-                self.img = IMG(model=SD_MODEL, local_uri=self.local_uri)
-            except Exception as e:
-                logging.error(f"[IMG] Failed to load the model: {e}")
-                self.img = None
-            logging.info(f"[IMG] sdxl-turbo model loaded successfully.")
+            SD_MODEL = os.getenv("SD_MODEL", "")  # stabilityai/sdxl-turbo
+            if SD_MODEL:
+                logging.info(f"[IMG] {SD_MODEL} model loading. Please wait...")
+                try:
+                    self.img = IMG(model=SD_MODEL, local_uri=self.local_uri)
+                except Exception as e:
+                    logging.error(f"[IMG] Failed to load the model: {e}")
+                    self.img = None
+            logging.info(f"[IMG] {SD_MODEL} model loaded successfully.")
 
     async def pdf_to_audio(self, title, voice, pdf, chunk_size=200):
         filename = f"{title}.pdf"
@@ -112,7 +113,7 @@ class Pipes:
             )
             self.img.local_uri = self.local_uri
             return new_image
-        return ""
+        return "Sorry, image generation is not enabled on this server."
 
     async def get_response(self, data, completion_type="chat"):
         data["local_uri"] = self.local_uri
