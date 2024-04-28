@@ -390,7 +390,10 @@ async def generate_image(
                 response_format=image.response_format,
                 size=image.size,
             )
-            images.append({"url": image})
+            if image.response_format == "url":
+                images.append({"url": image})
+            else:
+                images.append({"b64_json": image})
         return {
             "created": int(time.time()),
             "data": images,
@@ -398,7 +401,12 @@ async def generate_image(
     image = await pipe.generate_image(
         prompt=image.prompt, response_format=image.response_format, size=image.size
     )
+    if image.response_format == "url":
+        return {
+            "created": int(time.time()),
+            "data": [{"url": image}],
+        }
     return {
         "created": int(time.time()),
-        "data": [{"url": image}],
+        "data": [{"b64_json": image}],
     }
