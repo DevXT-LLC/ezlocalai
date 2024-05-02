@@ -9,8 +9,6 @@ import logging
 from ezlocalai.Helpers import chunk_content
 from TTS.tts.configs.xtts_config import XttsConfig
 from TTS.tts.models.xtts import Xtts
-from typing import List
-import spacy
 from pydub import AudioSegment
 
 try:
