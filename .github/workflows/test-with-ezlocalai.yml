@@ -4,14 +4,14 @@ on:
     inputs:
       notebook:
         type: string
-        required: true
         description: file to run (ending in .ipynb), can be directory to batch run (without trailing slash)
         default: "tests.ipynb"
       image:
         type: string
-        required: true
+        default: joshxt/ezlocalai:main
       port:
         type: string
+        default: "8091"
       port-mapping:
         type: string
       image-options:
