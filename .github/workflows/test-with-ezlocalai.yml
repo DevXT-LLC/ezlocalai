@@ -1,4 +1,4 @@
-name: Test with ezLocalai
+name: Test with ezlocalai
 on:
   workflow_call:
     inputs:
@@ -10,6 +10,10 @@ on:
       image:
         type: string
         required: true
+      port:
+        type: string
+      port-mapping:
+        type: string
       image-options:
         type: string
         description: like --entrypoint, --command
@@ -43,9 +47,9 @@ jobs:
       service-under-test:
         image: ${{ inputs.image }}
         env:
-          DEFAULT_MODEL: "MaziyarPanahi/Meta-Llama-3-8B-Instruct-GGUF"
+          DEFAULT_MODEL: "MaziyarPanahi/Meta-Llama-3-8B-Instruct-GGUF" 
         ports:
-          - 8091:8091
+          - ${{ inputs.port-mapping || format('{0}:{1}', inputs.port, inputs.port) }}
 
     steps:
       - uses: actions/setup-python@v5
@@ -72,7 +76,7 @@ jobs:
 
       - name: Install additional dependencies for notebooks
         if: inputs.additional-python-dependencies
-        run: pip3 install requests ${{ inputs.additional-python-dependencies }}
+        run: pip3 install ${{ inputs.additional-python-dependencies }}
 
       - name: Set notebook and artifact files
         run: |
