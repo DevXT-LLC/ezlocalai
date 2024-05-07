@@ -76,7 +76,7 @@ jobs:
 
       - name: Install additional dependencies for notebooks
         if: inputs.additional-python-dependencies
-        run: pip3 install ${{ inputs.additional-python-dependencies }}
+        run: pip3 install requests ${{ inputs.additional-python-dependencies }}
 
       - name: Set notebook and artifact files
         run: |
