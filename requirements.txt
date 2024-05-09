@@ -21,7 +21,6 @@ accelerate
 python-multipart
 openai
 pdfplumber
-spacy==3.7.4
 optimum
 onnx
 llama-cpp-python==0.2.71

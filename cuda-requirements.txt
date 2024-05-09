@@ -5,7 +5,7 @@ requests==2.31.0
 tiktoken==0.6.0
 python-dotenv==1.0.1
 beautifulsoup4==4.12.3
-faster-whisper==1.0.1
+faster-whisper==1.0.2
 pydub==0.25.1
 ffmpeg-python==0.2.0
 torch>=2.3.0+cu121
@@ -23,7 +23,6 @@ python-multipart
 streamlit
 openai
 pdfplumber
-spacy
 optimum
 eager
 onnx

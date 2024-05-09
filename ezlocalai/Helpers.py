@@ -1,5 +1,12 @@
+try:
+    import spacy
+except:
+    import sys
+    import subprocess
+
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "spacy"])
+    import spacy
 from typing import List
-import spacy
 import tiktoken
 
 
