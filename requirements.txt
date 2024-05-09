@@ -19,7 +19,7 @@ webrtcvad==2.0.10
 pyngrok==7.1.6
 accelerate
 python-multipart
-llama-cpp-python==0.2.70
+llama-cpp-python==0.2.71
 openai
 pdfplumber
 spacy
