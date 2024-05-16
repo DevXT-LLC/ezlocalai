@@ -24,4 +24,4 @@ openai
 pdfplumber
 optimum
 onnx
-llama-cpp-python==0.2.74
+llama-cpp-python==0.2.75
