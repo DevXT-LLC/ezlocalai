@@ -57,7 +57,7 @@ def download_llm(model_name="", models_dir="models"):
     else:
         default_quantization_type = "Q4_K_M"
     quantization_type = os.environ.get("QUANT_TYPE", default_quantization_type)
-    model = model_name.split("/")[-1].replace("-GGUF", "")
+    model = model_name.split("/")[-1].split("-GGUF")[0]
     filename = model + f".{quantization_type}.gguf"
     models_dir = os.path.join(models_dir, model)
     os.makedirs(models_dir, exist_ok=True)
