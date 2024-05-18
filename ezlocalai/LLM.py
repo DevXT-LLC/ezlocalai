@@ -69,7 +69,7 @@ def download_llm(model_name="", models_dir="models"):
                     local_dir_use_symlinks=False,
                 )
             except Exception as e:
-                logging.warning(f"Failed to download {clip_file}: {e}")
+                pass
     potential_filenames = [
         f"{model}.{quantization_type}.gguf",
         f"{model}-{quantization_type}.gguf",
@@ -98,7 +98,7 @@ def download_llm(model_name="", models_dir="models"):
             logging.info(f"[LLM] {model} downloaded.")
             return filepath
         except Exception as e:
-            logging.warning(f"Failed to download {filename}: {e}")
+            pass
     raise FileNotFoundError("No suitable quantization file found.")
 
 
