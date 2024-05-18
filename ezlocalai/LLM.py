@@ -94,7 +94,7 @@ def download_llm(model_name="", models_dir="models"):
                 filename=filename,
                 local_dir=models_dir,
             )
-            logging.info(f"[LLM] {model} downloaded.")
+            logging.info(f"[LLM] Downloaded {model} successfully!")
             return filepath
         except Exception as e:
             pass
@@ -105,8 +105,13 @@ def get_clip_path(model_name="", models_dir="models"):
     if model_name == "":
         global DEFAULT_MODEL
         model_name = DEFAULT_MODEL
-    if os.path.exists(f"{models_dir}/{model_name}/mmproj-model-f16.gguf"):
-        return f"{models_dir}/{model_name}/mmproj-model-f16.gguf"
+    potential_clip_files = [
+        "mmproj-model-f16.gguf",
+        f"{model_name.split('/')[-1]}-mmproj-f16.gguf",
+    ]
+    for clip_file in potential_clip_files:
+        if os.path.exists(f"{models_dir}/{model_name}/{clip_file}"):
+            return f"{models_dir}/{model_name}/{clip_file}"
     else:
         return ""
 
