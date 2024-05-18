@@ -35,18 +35,15 @@ class Embedding:
                     repo_id="hooman650/bge-m3-onnx-o4",
                     filename=file,
                     local_dir=model_dir,
-                    local_dir_use_symlinks=False,
                 )
         self.model = ORTModelForFeatureExtraction.from_pretrained(
             "hooman650/bge-m3-onnx-o4",
             local_dir=model_dir,
-            local_dir_use_symlinks=False,
             cache_dir=os.path.join(os.getcwd(), "models"),
         )
         self.tokenizer = AutoTokenizer.from_pretrained(
             "hooman650/bge-m3-onnx-o4",
             local_dir=model_dir,
-            local_dir_use_symlinks=False,
             cache_dir=os.path.join(os.getcwd(), "models"),
         )
 

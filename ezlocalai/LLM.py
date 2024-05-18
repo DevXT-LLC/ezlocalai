@@ -46,78 +46,72 @@ def is_vision_model(model_name="") -> bool:
 
 
 def download_llm(model_name="", models_dir="models"):
-    if model_name != "":
-        global DEFAULT_MODEL
-        model_name = DEFAULT_MODEL
+    global DEFAULT_MODEL
+    model_name = model_name if model_name else DEFAULT_MODEL
     if "/" not in model_name:
         model_name = "TheBloke/" + model_name + "-GGUF"
     ram = round(psutil.virtual_memory().total / 1024**3)
-    if ram > 16:
-        default_quantization_type = "Q5_K_M"
-    else:
-        default_quantization_type = "Q4_K_M"
-    quantization_type = os.environ.get("QUANT_TYPE", default_quantization_type)
+    quantization_type = os.environ.get("QUANT_TYPE", "Q5_K_M" if ram > 16 else "Q4_K_M")
     model = model_name.split("/")[-1].split("-GGUF")[0]
-    filename = model + f".{quantization_type}.gguf"
     models_dir = os.path.join(models_dir, model)
     os.makedirs(models_dir, exist_ok=True)
-    clip_file = None
-    if model_name.split("/")[0] == "mys":
-        filename = f"ggml-model-q5_k.gguf"
-        clip_file = f"mmproj-model-f16.gguf"
-    # Check if file exists
-    if clip_file:
+    potential_clip_files = [
+        "mmproj-model-f16.gguf",
+        f"{model}-mmproj-f16.gguf",
+    ]
+    for clip_file in potential_clip_files:
         if not os.path.exists(f"{models_dir}/{clip_file}"):
-            hf_hub_download(
-                repo_id=model_name,
-                filename=clip_file,
-                local_dir=models_dir,
-                local_dir_use_symlinks=False,
-            )
-    if os.path.exists(f"{models_dir}/{filename}"):
-        return f"{models_dir}/{filename}"
-    try:
-        file_path = hf_hub_download(
-            repo_id=model_name,
-            filename=filename,
-            local_dir=models_dir,
-            local_dir_use_symlinks=False,
-        )
-    except:
+            try:
+                hf_hub_download(
+                    repo_id=model_name,
+                    filename=clip_file,
+                    local_dir=models_dir,
+                )
+            except Exception as e:
+                pass
+    potential_filenames = [
+        f"{model}.{quantization_type}.gguf",
+        f"{model}-{quantization_type}.gguf",
+        f"{model}.{quantization_type.lower()}.gguf",
+        f"{model}-{quantization_type.lower()}.gguf",
+        f"{model}.Q4_K_M.gguf",
+        f"{model}.q4_k_m.gguf",
+        f"{model}-Q4_K_M.gguf",
+        f"{model}-q4_k_m.gguf",
+        "ggml-model-q5_k.gguf",
+        "ggml-model-f16.gguf",
+    ]
+    for filename in potential_filenames:
+        filepath = os.path.join(models_dir, filename)
+        if os.path.exists(filepath):
+            return filepath
+    logging.info(f"[LLM] Downloading {model}...")
+    for filename in potential_filenames:
+        filepath = os.path.join(models_dir, filename)
         try:
-            filename = model + f"-{quantization_type}.gguf"
-            file_path = hf_hub_download(
+            hf_hub_download(
                 repo_id=model_name,
                 filename=filename,
                 local_dir=models_dir,
-                local_dir_use_symlinks=False,
             )
-        except:
-            try:
-                filename = model + f".{quantization_type.lower()}.gguf"
-                file_path = hf_hub_download(
-                    repo_id=model_name,
-                    filename=filename,
-                    local_dir=models_dir,
-                    local_dir_use_symlinks=False,
-                )
-            except:
-                filename = model + f"-{quantization_type.lower()}.gguf"
-                file_path = hf_hub_download(
-                    repo_id=model_name,
-                    filename=filename,
-                    local_dir=models_dir,
-                    local_dir_use_symlinks=False,
-                )
-    return file_path
+            logging.info(f"[LLM] Downloaded {model} successfully!")
+            return filepath
+        except Exception as e:
+            pass
+    raise FileNotFoundError("No suitable quantization file found.")
 
 
 def get_clip_path(model_name="", models_dir="models"):
     if model_name == "":
         global DEFAULT_MODEL
         model_name = DEFAULT_MODEL
-    if os.path.exists(f"{models_dir}/{model_name}/mmproj-model-f16.gguf"):
-        return f"{models_dir}/{model_name}/mmproj-model-f16.gguf"
+    potential_clip_files = [
+        "mmproj-model-f16.gguf",
+        f"{model_name.split('/')[-1]}-mmproj-f16.gguf",
+    ]
+    for clip_file in potential_clip_files:
+        if os.path.exists(f"{models_dir}/{model_name}/{clip_file}"):
+            return f"{models_dir}/{model_name}/{clip_file}"
     else:
         return ""
 
