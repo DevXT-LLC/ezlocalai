@@ -88,6 +88,7 @@ def download_llm(model_name="", models_dir="models"):
             return filepath
     logging.info(f"[LLM] Downloading {model}...")
     for filename in potential_filenames:
+        filepath = os.path.join(models_dir, filename)
         try:
             hf_hub_download(
                 repo_id=model_name,
