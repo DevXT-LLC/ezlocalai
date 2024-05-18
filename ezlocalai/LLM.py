@@ -66,7 +66,6 @@ def download_llm(model_name="", models_dir="models"):
                     repo_id=model_name,
                     filename=clip_file,
                     local_dir=models_dir,
-                    local_dir_use_symlinks=False,
                 )
             except Exception as e:
                 pass
@@ -94,7 +93,6 @@ def download_llm(model_name="", models_dir="models"):
                 repo_id=model_name,
                 filename=filename,
                 local_dir=models_dir,
-                local_dir_use_symlinks=False,
             )
             logging.info(f"[LLM] {model} downloaded.")
             return filepath
