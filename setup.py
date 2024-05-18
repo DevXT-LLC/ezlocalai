@@ -10,7 +10,7 @@ with open(os.path.join(this_directory, "requirements.txt")) as f:
 
 setup(
     name="ezlocalai",
-    version="0.1.10",
+    version="0.1.11",
     description="ezlocalai is an easy to set up local multimodal artificial intelligence server with OpenAI Style Endpoints.",
     long_description=long_description,
     long_description_content_type="text/markdown",
