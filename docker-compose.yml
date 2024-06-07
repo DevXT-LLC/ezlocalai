@@ -10,6 +10,7 @@ services:
       - LLM_MAX_TOKENS=${LLM_MAX_TOKENS-0}
       - WHISPER_MODEL=${WHISPER_MODEL-base.en}
       - IMG_ENABLED=${IMG_ENABLED-false}
+      - IMG_DEVICE=${IMG_DEVICE-cpu}
       - VISION_MODEL=${VISION_MODEL}
       - LLM_BATCH_SIZE=${LLM_BATCH_SIZE-1024}
       - SD_MODEL=${SD_MODEL}

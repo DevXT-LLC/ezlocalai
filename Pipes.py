@@ -9,7 +9,7 @@ from pyngrok import ngrok
 import requests
 import base64
 import pdfplumber
-from typing import List
+import torch
 
 try:
     from ezlocalai.IMG import IMG
@@ -67,8 +67,13 @@ class Pipes:
             SD_MODEL = os.getenv("SD_MODEL", "")  # stabilityai/sdxl-turbo
             if SD_MODEL:
                 logging.info(f"[IMG] {SD_MODEL} model loading. Please wait...")
+                img_device = os.getenv(
+                    "IMG_DEVICE", "cuda" if torch.cuda.is_available() else "cpu"
+                )
                 try:
-                    self.img = IMG(model=SD_MODEL, local_uri=self.local_uri)
+                    self.img = IMG(
+                        model=SD_MODEL, local_uri=self.local_uri, device=img_device
+                    )
                 except Exception as e:
                     logging.error(f"[IMG] Failed to load the model: {e}")
                     self.img = None
