@@ -114,6 +114,7 @@ def display_content(content):
             elif url.endswith(".wav"):
                 content = content.replace(url, "")
                 st.audio(data, format="audio/wav", start_time=0)
+                st.markdown(f"[Download Audio]({url})")
     st.markdown(content, unsafe_allow_html=True)
 
 
@@ -137,59 +138,79 @@ else:
     DEFAULT_MAX_TOKENS = 1024
     DEFAULT_TEMPERATURE = 0.5
     DEFAULT_TOP_P = 0.9
-with st.form("chat"):
+mode = st.radio("Mode", ["Example Chat", "PDF to Audio"])
+if mode == "PDF to Audio":
+    st.markdown("# PDF to Audio\n\nUpload a PDF file to convert it to audio.")
     voice_drop_down = st.selectbox(
-        "Text-to-Speech Response Voice", ["None"] + get_voices(), index=0
+        "Text-to-Speech Response Voice", get_voices(), index=0
     )
-    uploaded_file = st.file_uploader("Upload an image")
-    prompt = st.text_area("Your Message:", "Describe each stage of this image.")
-    send = st.form_submit_button("Send")
-    if prompt != "" and send:
-        start_time = time.time()
-        st.markdown("---")
-        st.spinner("Thinking...")
-        messages = []
-        if SYSTEM_MESSAGE != "":
-            messages.append({"role": "system", "content": SYSTEM_MESSAGE})
-        if uploaded_file:
-            messages.append(
-                {
-                    "role": "user",
-                    "content": [
-                        {"type": "text", "text": prompt},
-                        {
-                            "type": f"{uploaded_file.type.split('/')[0]}_url",
-                            f"{uploaded_file.type.split('/')[0]}_url": {
-                                "url": f"data:{uploaded_file.type};base64,{base64.b64encode(uploaded_file.read()).decode('utf-8')}",
-                            },
-                        },
-                    ],
-                },
-            )
-            if uploaded_file.type.startswith("image"):
-                st.image(uploaded_file, use_column_width=True)
-        if messages == []:
-            messages = [
-                {"role": "user", "content": prompt},
-            ]
-        extra_body = None if voice_drop_down == "None" else {"voice": voice_drop_down}
-        response = openai.chat.completions.create(
-            model=DEFAULT_LLM,
-            messages=messages,
-            temperature=DEFAULT_TEMPERATURE,
-            max_tokens=DEFAULT_MAX_TOKENS,
-            top_p=DEFAULT_TOP_P,
-            stream=False,
-            extra_body=extra_body,
+    uploaded_file = st.file_uploader("Choose a PDF file", type="pdf")
+    if uploaded_file:
+        tts_response = openai.audio.speech.create(
+            model="tts",
+            voice=voice_drop_down,
+            input=f"data:application/pdf;base64,{base64.b64encode(uploaded_file.read()).decode('utf-8')}",
         )
-        display_content(response.choices[0].message.content)
-        end_time = time.time()  # Record the end time
-        elapsed_time = end_time - start_time
-        # If response time is longer than 60 seconds, split the response time into minutes and seconds
-        if elapsed_time > 60:
-            minutes = int(elapsed_time // 60)
-            seconds = elapsed_time % 60
-            st.success(f"Response time: {minutes} minutes and {seconds:.2f} seconds")
-        else:
-            st.success(f"Response time: {elapsed_time:.2f} seconds")
-        st.balloons()
+        new_audio_url = tts_response.content.decode("utf-8")
+        display_content(new_audio_url)
+else:
+    with st.form("chat"):
+        voice_drop_down = st.selectbox(
+            "Text-to-Speech Response Voice", ["None"] + get_voices(), index=0
+        )
+        uploaded_file = st.file_uploader("Upload an image")
+        prompt = st.text_area("Your Message:", "Describe each stage of this image.")
+        send = st.form_submit_button("Send")
+        if prompt != "" and send:
+            start_time = time.time()
+            st.markdown("---")
+            st.spinner("Thinking...")
+            messages = []
+            if SYSTEM_MESSAGE != "":
+                messages.append({"role": "system", "content": SYSTEM_MESSAGE})
+            if uploaded_file:
+                messages.append(
+                    {
+                        "role": "user",
+                        "content": [
+                            {"type": "text", "text": prompt},
+                            {
+                                "type": f"{uploaded_file.type.split('/')[0]}_url",
+                                f"{uploaded_file.type.split('/')[0]}_url": {
+                                    "url": f"data:{uploaded_file.type};base64,{base64.b64encode(uploaded_file.read()).decode('utf-8')}",
+                                },
+                            },
+                        ],
+                    },
+                )
+                if uploaded_file.type.startswith("image"):
+                    st.image(uploaded_file, use_column_width=True)
+            if messages == []:
+                messages = [
+                    {"role": "user", "content": prompt},
+                ]
+            extra_body = (
+                None if voice_drop_down == "None" else {"voice": voice_drop_down}
+            )
+            response = openai.chat.completions.create(
+                model=DEFAULT_LLM,
+                messages=messages,
+                temperature=DEFAULT_TEMPERATURE,
+                max_tokens=DEFAULT_MAX_TOKENS,
+                top_p=DEFAULT_TOP_P,
+                stream=False,
+                extra_body=extra_body,
+            )
+            display_content(response.choices[0].message.content)
+            end_time = time.time()  # Record the end time
+            elapsed_time = end_time - start_time
+            # If response time is longer than 60 seconds, split the response time into minutes and seconds
+            if elapsed_time > 60:
+                minutes = int(elapsed_time // 60)
+                seconds = elapsed_time % 60
+                st.success(
+                    f"Response time: {minutes} minutes and {seconds:.2f} seconds"
+                )
+            else:
+                st.success(f"Response time: {elapsed_time:.2f} seconds")
+            st.balloons()
