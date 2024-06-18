@@ -118,42 +118,61 @@ def display_content(content):
     st.markdown(content, unsafe_allow_html=True)
 
 
-show_advanced_options = st.checkbox(
-    "Show Advanced Options", key="show_advanced_options"
+mode = st.radio(
+    "Choose which ezLocalai example to try",
+    ["Multimodal Interaction Example", "PDF to Audio Example"],
 )
-if show_advanced_options:
-    SYSTEM_MESSAGE = st.text_area(
-        "System Prompt",
-        "",
-    )
-    DEFAULT_MAX_TOKENS = st.number_input(
-        "Max Output Tokens", min_value=10, max_value=300000, value=1024
-    )
-    DEFAULT_TEMPERATURE = st.number_input(
-        "Temperature", min_value=0.0, max_value=1.0, value=0.5
-    )
-    DEFAULT_TOP_P = st.number_input("Top P", min_value=0.0, max_value=1.0, value=0.9)
-else:
-    SYSTEM_MESSAGE = ""
-    DEFAULT_MAX_TOKENS = 1024
-    DEFAULT_TEMPERATURE = 0.5
-    DEFAULT_TOP_P = 0.9
-mode = st.radio("Mode", ["Example Chat", "PDF to Audio"])
-if mode == "PDF to Audio":
+if mode == "PDF to Audio Example":
     st.markdown("# PDF to Audio\n\nUpload a PDF file to convert it to audio.")
-    voice_drop_down = st.selectbox(
-        "Text-to-Speech Response Voice", get_voices(), index=0
-    )
+    voice_drop_down = st.selectbox("Text-to-Speech Voice", get_voices(), index=0)
     uploaded_file = st.file_uploader("Choose a PDF file", type="pdf")
     if uploaded_file:
+        start_time = time.time()
+        st.markdown("---")
+        st.spinner("Thinking...")
         tts_response = openai.audio.speech.create(
             model="tts",
             voice=voice_drop_down,
             input=f"data:application/pdf;base64,{base64.b64encode(uploaded_file.read()).decode('utf-8')}",
         )
         new_audio_url = tts_response.content.decode("utf-8")
+        end_time = time.time()  # Record the end time
+        elapsed_time = end_time - start_time
+        # If response time is longer than 60 seconds, split the response time into minutes and seconds
+        if elapsed_time > 60:
+            minutes = int(elapsed_time // 60)
+            seconds = elapsed_time % 60
+            st.success(f"Response time: {minutes} minutes and {seconds:.2f} seconds")
+        else:
+            st.success(f"Response time: {elapsed_time:.2f} seconds")
         display_content(new_audio_url)
+        st.balloons()
 else:
+    st.markdown(
+        "# Multimodal Interaction Example\n\nThis is a multimodal interaction example. You can upload an image and describe it in the text box. The model will generate a response based on the image and text input.\n\nNote: This is a single interaction example, it is not a conversation, the model will not remember the last thing you said."
+    )
+    show_advanced_options = st.checkbox(
+        "Show Advanced Options", key="show_advanced_options"
+    )
+    if show_advanced_options:
+        SYSTEM_MESSAGE = st.text_area(
+            "System Prompt",
+            "",
+        )
+        DEFAULT_MAX_TOKENS = st.number_input(
+            "Max Output Tokens", min_value=10, max_value=300000, value=1024
+        )
+        DEFAULT_TEMPERATURE = st.number_input(
+            "Temperature", min_value=0.0, max_value=1.0, value=0.5
+        )
+        DEFAULT_TOP_P = st.number_input(
+            "Top P", min_value=0.0, max_value=1.0, value=0.9
+        )
+    else:
+        SYSTEM_MESSAGE = ""
+        DEFAULT_MAX_TOKENS = 1024
+        DEFAULT_TEMPERATURE = 0.5
+        DEFAULT_TOP_P = 0.9
     with st.form("chat"):
         voice_drop_down = st.selectbox(
             "Text-to-Speech Response Voice", ["None"] + get_voices(), index=0
