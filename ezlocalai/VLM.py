@@ -50,7 +50,7 @@ class VLM:
                         if role.lower() == "user":
                             prompt += f"{msg['text']}\n\n"
                     if "image_url" in msg:
-                        url = (
+                        url = str(
                             msg["image_url"]["url"]
                             if "url" in msg["image_url"]
                             else msg["image_url"]
@@ -63,7 +63,10 @@ class VLM:
                             if file_type == "jpeg":
                                 file_type = "jpg"
                             image_path = f"./outputs/{uuid.uuid4().hex}.{file_type}"
-                            image = base64.b64decode(url.split(",")[1])
+                            if "," in url:
+                                image = base64.b64decode(url.split(",")[1])
+                            else:
+                                image = base64.b64decode(url)
                         with open(image_path, "wb") as f:
                             f.write(image)
                         images.append(image_path)
