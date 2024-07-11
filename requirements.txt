@@ -24,4 +24,5 @@ openai
 pdfplumber
 optimum
 onnx
-llama-cpp-python==0.2.79
+diffusers[torch]
+llama-cpp-python==0.2.82
