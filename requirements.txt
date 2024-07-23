@@ -7,7 +7,7 @@ requests==2.32.0
 tiktoken==0.6.0
 python-dotenv==1.0.1
 beautifulsoup4==4.12.3
-faster-whisper==1.0.2
+faster-whisper==1.0.3
 pydub==0.25.1
 ffmpeg-python==0.2.0
 torch==2.3.1
@@ -25,4 +25,4 @@ pdfplumber
 optimum
 onnx
 diffusers[torch]
-llama-cpp-python==0.2.82
+llama-cpp-python==0.2.83
