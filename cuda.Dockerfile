@@ -13,10 +13,10 @@ ENV HOST=0.0.0.0 \
     CUDA_DOCKER_ARCH=all \
     LLAMA_CUBLAS=1 \ 
     GGML_CUDA=1
+RUN pip install torch==2.3.1+cu121 torchaudio==2.3.1+cu121 --index-url https://download.pytorch.org/whl/cu121    
+RUN CMAKE_ARGS="-DLLAMA_CUDA=on" FORCE_CMAKE=1 pip install llama-cpp-python==0.2.82 --no-cache-dir
 COPY cuda-requirements.txt .
-RUN pip install torch==2.3.1+cu121 torchaudio==2.3.1+cu121 --index-url https://download.pytorch.org/whl/cu121 && \
-    CMAKE_ARGS="-DLLAMA_CUDA=on" FORCE_CMAKE=1 pip install llama-cpp-python==0.2.83 --no-cache-dir \
-    pip install --no-cache-dir -r cuda-requirements.txt
+RUN pip install --no-cache-dir -r cuda-requirements.txt
 RUN git clone https://github.com/Josh-XT/DeepSeek-VL deepseek && \
     cd deepseek && \
     pip install --no-cache-dir -e . && \
