@@ -13,9 +13,9 @@ ENV HOST=0.0.0.0 \
     LLAMA_CUBLAS=1
 COPY cuda-requirements.txt .
 RUN python3 -m pip install --upgrade pip cmake scikit-build setuptools wheel --no-cache-dir && \
-    pip install https://download.pytorch.org/whl/nightly/pytorch_triton-2.1.0%2B6e4932cda8-cp310-cp310-linux_x86_64.whl && \
-    pip install https://download.pytorch.org/whl/nightly/cu121/torch-2.2.0.dev20231010%2Bcu121-cp310-cp310-linux_x86_64.whl && \
-    pip install https://download.pytorch.org/whl/nightly/cu121/torchaudio-2.2.0.dev20231010%2Bcu121-cp310-cp310-linux_x86_64.whl && \
+    pip install https://download.pytorch.org/whl/nightly/pytorch_triton-3.0.0%2Bdedb7bdf33-cp310-cp310-linux_x86_64.whl && \
+    pip install https://download.pytorch.org/whl/nightly/cu121/torch-2.4.0.dev20240603%2Bcu121-cp310-cp310-linux_x86_64.whl && \
+    pip install https://download.pytorch.org/whl/nightly/cu121/torchaudio-2.4.0.dev20240622%2Bcu121-cp310-cp310-linux_x86_64.whl && \
     pip install llama-cpp-python --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cu123 && \
     pip install --no-cache-dir -r cuda-requirements.txt
 RUN git clone https://github.com/Josh-XT/DeepSeek-VL deepseek && \
