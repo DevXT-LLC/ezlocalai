@@ -13,7 +13,9 @@ ENV HOST=0.0.0.0 \
     LLAMA_CUBLAS=1
 COPY cuda-requirements.txt .
 RUN python3 -m pip install --upgrade pip cmake scikit-build setuptools wheel --no-cache-dir && \
-    CMAKE_ARGS="-DLLAMA_CUDA=on" FORCE_CMAKE=1 pip install llama-cpp-python==0.2.83 --no-cache-dir && \
+    pip install https://download.pytorch.org/whl/nightly/cu121/torch-2.2.0.dev20231010%2Bcu121-cp310-cp310-linux_x86_64.whl && \
+    pip install https://download.pytorch.org/whl/nightly/cu121/torchaudio-2.2.0.dev20231010%2Bcu121-cp310-cp310-linux_x86_64.whl && \
+    pip install llama-cpp-python --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cu123 && \
     pip install --no-cache-dir -r cuda-requirements.txt
 RUN git clone https://github.com/Josh-XT/DeepSeek-VL deepseek && \
     cd deepseek && \
@@ -23,5 +25,4 @@ RUN pip install spacy==3.7.4 && \
     python -m spacy download en_core_web_sm
 COPY . .
 EXPOSE 8091
-EXPOSE 8502
-CMD streamlit run ui.py & uvicorn app:app --host 0.0.0.0 --port 8091 --workers 1 --proxy-headers
+CMD uvicorn app:app --host 0.0.0.0 --port 8091 --workers 1 --proxy-headers
