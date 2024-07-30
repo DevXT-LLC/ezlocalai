@@ -4,14 +4,14 @@ uvicorn
 streamlit
 pydantic
 requests==2.32.0
-tiktoken==0.7.0
+tiktoken==0.6.0
 python-dotenv==1.0.1
 beautifulsoup4==4.12.3
 faster-whisper==1.0.3
 pydub==0.25.1
 ffmpeg-python==0.2.0
 torch==2.3.1
-torchaudio
+torchaudio==2.3.1
 transformers
 TTS==0.22.0
 sounddevice==0.4.6
