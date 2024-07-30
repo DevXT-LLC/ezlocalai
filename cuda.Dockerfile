@@ -5,17 +5,17 @@ RUN apt-get update --fix-missing && \
     mkdir -p /etc/OpenCL/vendors && echo "libnvidia-opencl.so.1" > /etc/OpenCL/vendors/nvidia.icd && \
     ln -s /usr/bin/python3 /usr/bin/python && \
     apt-get clean && \
-    rm -rf /var/lib/apt/lists/* /var/cache/apt/* /tmp/* /var/tmp/*
-
+    rm -rf /var/lib/apt/lists/* /var/cache/apt/* /tmp/* /var/tmp/* && \
+    python3 -m pip install --upgrade pip && \
+    python3 -m pip install --upgrade cmake scikit-build setuptools wheel --no-cache-dir
 WORKDIR /app
 ENV HOST=0.0.0.0 \
     CUDA_DOCKER_ARCH=all \
     LLAMA_CUBLAS=1
 COPY cuda-requirements.txt .
-RUN python3 -m pip install --upgrade pip cmake scikit-build setuptools wheel --no-cache-dir && \
-    pip install https://download.pytorch.org/whl/nightly/pytorch_triton-3.0.0%2Bdedb7bdf33-cp310-cp310-linux_x86_64.whl && \
+RUN pip install https://download.pytorch.org/whl/nightly/pytorch_triton-3.0.0%2B45fff310c8-cp310-cp310-linux_x86_64.whl && \
     pip install https://download.pytorch.org/whl/nightly/cu121/torch-2.4.0.dev20240603%2Bcu121-cp310-cp310-linux_x86_64.whl && \
-    pip install https://download.pytorch.org/whl/nightly/cu121/torchaudio-2.4.0.dev20240622%2Bcu121-cp310-cp310-linux_x86_64.whl && \
+    pip install torchaudio && \
     pip install llama-cpp-python --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cu123 && \
     pip install --no-cache-dir -r cuda-requirements.txt
 RUN git clone https://github.com/Josh-XT/DeepSeek-VL deepseek && \
