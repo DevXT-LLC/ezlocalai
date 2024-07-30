@@ -10,8 +10,8 @@ beautifulsoup4==4.12.3
 faster-whisper==1.0.3
 pydub==0.25.1
 ffmpeg-python==0.2.0
-torch==2.4.0
-torchaudio==2.4.0
+torch==2.3.1
+torchaudio==2.3.1
 transformers
 TTS==0.22.0
 sounddevice==0.4.6
@@ -25,4 +25,4 @@ pdfplumber
 optimum
 onnx
 diffusers[torch]
-llama-cpp-python==0.2.84
+llama-cpp-python==0.2.83
