@@ -25,3 +25,7 @@ pdfplumber
 optimum
 eager
 onnx
+timm>=0.9.16
+sentencepiece
+attrdict
+einops
