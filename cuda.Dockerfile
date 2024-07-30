@@ -16,7 +16,7 @@ COPY cuda-requirements.txt .
 RUN pip install https://download.pytorch.org/whl/nightly/pytorch_triton-3.0.0%2B45fff310c8-cp310-cp310-linux_x86_64.whl && \
     pip install https://download.pytorch.org/whl/nightly/cu121/torch-2.4.0.dev20240603%2Bcu121-cp310-cp310-linux_x86_64.whl && \
     pip install torchaudio && \
-    pip install CMAKE_ARGS="-DGGML_CUDA=on" FORCE_CMAKE=1 pip install llama-cpp-python==0.2.84 --no-cache-dir \
+    pip install CMAKE_ARGS="-DLLAMA_CUDA=on" FORCE_CMAKE=1 pip install llama-cpp-python==0.2.83 --no-cache-dir \
     pip install --no-cache-dir -r cuda-requirements.txt
 RUN git clone https://github.com/Josh-XT/DeepSeek-VL deepseek && \
     cd deepseek && \
