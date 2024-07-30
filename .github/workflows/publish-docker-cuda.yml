@@ -1,4 +1,4 @@
-name: Build and Test
+name: Build CU123 Docker Image
 
 on:
   push:
@@ -41,7 +41,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: ./Dockerfile
+          file: ./cuda.Dockerfile
           platforms: linux/amd64
           push: true
           cache-from: type=gha
