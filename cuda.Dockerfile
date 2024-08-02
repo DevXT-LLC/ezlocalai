@@ -1,4 +1,4 @@
-FROM nvidia/cuda:12.2.0-devel-ubuntu22.04
+FROM nvidia/cuda:12.4.0-devel-ubuntu22.04
 RUN apt-get update --fix-missing && \
     apt-get upgrade -y && \
     apt-get install -y --fix-missing --no-install-recommends git build-essential cmake gcc g++ portaudio19-dev ffmpeg libportaudio2 libasound-dev python3 python3-pip wget ocl-icd-opencl-dev opencl-headers clinfo libclblast-dev libopenblas-dev ninja-build python3.10-dev && \
@@ -13,7 +13,7 @@ ENV HOST=0.0.0.0 \
     CUDA_DOCKER_ARCH=all \
     LLAMA_CUBLAS=1 \ 
     GGML_CUDA=1
-RUN CMAKE_ARGS="-DLLAMA_CUDA=on" FORCE_CMAKE=1 pip install llama-cpp-python==0.2.82 --no-cache-dir
+RUN CMAKE_ARGS="-DGGML_CUDA=on" FORCE_CMAKE=1 pip install llama-cpp-python==0.2.85 --no-cache-dir
 RUN git clone https://github.com/Josh-XT/DeepSeek-VL deepseek
 RUN pip install torch==2.3.1+cu121 torchaudio==2.3.1+cu121 --index-url https://download.pytorch.org/whl/cu121
 COPY cuda-requirements.txt .
