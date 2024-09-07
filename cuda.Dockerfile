@@ -22,4 +22,5 @@ RUN pip install spacy==3.7.4 && \
     python -m spacy download en_core_web_sm
 COPY . .
 EXPOSE 8091
-CMD uvicorn app:app --host 0.0.0.0 --port 8091 --workers 1 --proxy-headers
+EXPOSE 8502
+CMD streamlit run ui.py & uvicorn app:app --host 0.0.0.0 --port 8091 --workers 1 --proxy-headers
