@@ -1,6 +1,6 @@
 services:
   ezlocalai:
-    build: 
+    build:
       context: .
       dockerfile: cuda.Dockerfile
     environment:
@@ -17,6 +17,7 @@ services:
       - VISION_MODEL=${VISION_MODEL}
       - LLM_BATCH_SIZE=${LLM_BATCH_SIZE-1024}
       - CUDA_DOCKER_ARCH=all
+      - TENSOR_SPLIT=${TENSOR_SPLIT-}
     restart: unless-stopped
     ports:
       - "8091:8091"
@@ -33,4 +34,4 @@ services:
           devices:
             - driver: nvidia
               count: all
-              capabilities: [ gpu ]
+              capabilities: [gpu]
