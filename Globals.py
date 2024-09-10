@@ -9,7 +9,7 @@ def getenv(var_name: str):
         "EZLOCALAI_URL": "http://localhost:8091",
         "EZLOCALAI_API_KEY": "none",
         "ALLOWED_DOMAINS": "*",
-        "DEFAULT_MODEL": "bartowski/Phi-3.5-mini-instruct-GGUF",
+        "DEFAULT_MODEL": "TheBloke/phi-2-dpo-GGUF",
         "WHISPER_MODEL": "base.en",
         "VISION_MODEL": "",
         "SD_MODEL": "",
