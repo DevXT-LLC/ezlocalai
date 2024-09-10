@@ -171,6 +171,7 @@ class LLM:
         global DEFAULT_MODEL
         MAIN_GPU = os.environ.get("MAIN_GPU", 0)
         GPU_LAYERS = os.environ.get("GPU_LAYERS", 0)
+        TENSOR_SPLIT = os.environ.get("TENSOR_SPLIT", None)
         if torch.cuda.is_available() and int(GPU_LAYERS) == -1:
             # 5GB VRAM reserved for TTS and STT.
             vram = round(torch.cuda.get_device_properties(0).total_memory / 1024**3) - 5
@@ -186,6 +187,9 @@ class LLM:
             f"[LLM] Loading {DEFAULT_MODEL} with {GPU_LAYERS if GPU_LAYERS != -1 else 'all'} GPU layers. Please wait..."
         )
         self.params = {}
+        self.params["tensor_split"] = [
+            float(weight) for weight in TENSOR_SPLIT.split(",")
+        ]
         self.model_name = DEFAULT_MODEL
         chat_handler = None
         if self.model_name != "":
