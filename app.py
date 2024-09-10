@@ -24,8 +24,8 @@ from Globals import getenv
 DEFAULT_MODEL = getenv("DEFAULT_MODEL")
 WHISPER_MODEL = getenv("WHISPER_MODEL")
 logging.basicConfig(
-    level=getenv("LOGLEVEL"),
-    format="%(asctime)s | %(levelname)s | %(message)s",
+    level=getenv("LOG_LEVEL"),
+    format=getenv("LOG_FORMAT"),
 )
 pipe = Pipes()
 logging.info(f"[ezlocalai] Server is ready.")
