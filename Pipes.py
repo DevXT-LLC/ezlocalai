@@ -28,6 +28,7 @@ class Pipes:
         global img_import_success
         self.current_llm = getenv("DEFAULT_MODEL")
         self.current_vlm = getenv("VISION_MODEL")
+        self.llm = None
         self.vlm = None
         self.ctts = None
         self.stt = None
