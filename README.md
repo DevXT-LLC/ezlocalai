@@ -8,7 +8,7 @@ ezlocalai is an easy set up artificial intelligence server that allows you to ea
 
 - [Git](https://git-scm.com/downloads)
 - [Docker Desktop](https://docs.docker.com/docker-for-windows/install/) (Windows or Mac)
-- [CUDA Toolkit](https://developer.nvidia.com/cuda-downloads) (NVIDIA GPU only)
+- [CUDA Toolkit (May Need 12.4)](https://developer.nvidia.com/cuda-12-4-0-download-archive) (NVIDIA GPU only)
 
 <details>
   <summary>Additional Linux Prerequisites</summary>
@@ -33,7 +33,7 @@ Expand Environment Setup if you would like to modify the default environment var
 <details>
   <summary>Environment Setup (Optional)</summary>
 
-None of the values need modified in order to run the server. If you are using an NVIDIA GPU, I would recommend setting the `GPU_LAYERS` and `MAIN_GPU` environment variables. If you plan to expose the server to the internet, I would recommend setting the `EZLOCALAI_API_KEY` environment variable for security. `THREADS` is set to your CPU thread count minus 2 by default, if this causes significant performance issues, consider setting the `THREADS` environment variable manually to a lower number.
+None of the values need modified in order to run the server. If you are using an NVIDIA GPU, I would recommend setting the `GPU_LAYERS` and `MAIN_GPU` environment variables. If you have multiple GPUs, especially different ones, you should set `TENSOR_SPLIT` to reflect the desired load balance (comma separated decimals totalling 1). If you plan to expose the server to the internet, I would recommend setting the `EZLOCALAI_API_KEY` environment variable for security. `THREADS` is set to your CPU thread count minus 2 by default, if this causes significant performance issues, consider setting the `THREADS` environment variable manually to a lower number.
 
 Modify the `.env` file to your desired settings. Assumptions will be made on all of these values if you choose to accept the defaults.
 
@@ -49,6 +49,7 @@ Replace the environment variables with your desired settings. Assumptions will b
 - `THREADS` - The number of CPU threads ezlocalai is allowed to use. Default is 4.
 - `GPU_LAYERS` (Only applicable to NVIDIA GPU) - The number of layers to use on the GPU. Default is `0`. Your `GPU_LAYERS` will automatically determine a number of layers to use based on your GPU's memory if it is set to `-1` and you have an NVIDIA GPU. If it is set to `-2`, it will use the maximum number of layers requested by the model.
 - `MAIN_GPU` (Only applicable to NVIDIA GPU) - The GPU to use for the language model. Default is `0`.
+- `TENSOR_SPLIT` (Only applicable with multiple CUDA GPUs) - The allocation to each device in CSV format.
 - `IMG_ENABLED` - If set to true, models will choose to generate images when they want to based on the user input. **This is only available on GPU.** Default is `false`.
 - `SD_MODEL` - The stable diffusion model to use. Default is `stabilityai/sdxl-turbo`.
 - `VISION_MODEL` - The vision model to use. Default is None. Current options are `deepseek-ai/deepseek-vl-1.3b-chat` and `deepseek-ai/deepseek-vl-7b-chat`.
