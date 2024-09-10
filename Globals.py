@@ -25,7 +25,7 @@ def getenv(var_name: str):
         "MAIN_GPU": "0",
         "TENSOR_SPLIT": "",
         "QUANT_TYPE": "Q5_K_M",
-        "LLM_MAX_TOKENS": "4096",
+        "LLM_MAX_TOKENS": "2048",
         "LLM_BATCH_SIZE": "16",
     }
     default_value = default_values[var_name] if var_name in default_values else ""
