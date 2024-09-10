@@ -400,7 +400,10 @@ async def generate_image(
     user: str = Depends(verify_api_key),
 ):
     if getenv("SD_MODEL") == "":
-        return {"created": int(time.time()), "data": "Image generation is disabled."}
+        return {
+            "created": int(time.time()),
+            "data": [{"url": "https://demofree.sirv.com/nope-not-here.jpg"}],
+        }
     images = []
     if int(image_creation.n) > 1:
         for i in range(image_creation.n):
