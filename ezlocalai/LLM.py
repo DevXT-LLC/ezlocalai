@@ -8,9 +8,10 @@ import requests
 import psutil
 import torch
 import logging
+from Globals import getenv
 
 
-DEFAULT_MODEL = os.environ.get("DEFAULT_MODEL", "TheBloke/phi-2-dpo-GGUF")
+DEFAULT_MODEL = getenv("DEFAULT_MODEL")
 
 
 def get_vision_models():
@@ -51,7 +52,7 @@ def download_llm(model_name="", models_dir="models"):
     if "/" not in model_name:
         model_name = "TheBloke/" + model_name + "-GGUF"
     ram = round(psutil.virtual_memory().total / 1024**3)
-    quantization_type = os.environ.get("QUANT_TYPE", "Q5_K_M" if ram > 16 else "Q4_K_M")
+    quantization_type = getenv("QUANT_TYPE")
     model = model_name.split("/")[-1].split("-GGUF")[0]
     models_dir = os.path.join(models_dir, model)
     os.makedirs(models_dir, exist_ok=True)
@@ -169,9 +170,9 @@ class LLM:
         **kwargs,
     ):
         global DEFAULT_MODEL
-        MAIN_GPU = os.environ.get("MAIN_GPU", 0)
-        GPU_LAYERS = os.environ.get("GPU_LAYERS", 0)
-        TENSOR_SPLIT = os.environ.get("TENSOR_SPLIT", None)
+        MAIN_GPU = int(getenv("MAIN_GPU"))
+        GPU_LAYERS = int(getenv("GPU_LAYERS"))
+        TENSOR_SPLIT = getenv("TENSOR_SPLIT")
         if torch.cuda.is_available() and int(GPU_LAYERS) == -1:
             # 5GB VRAM reserved for TTS and STT.
             vram = round(torch.cuda.get_device_properties(0).total_memory / 1024**3) - 5
@@ -213,7 +214,7 @@ class LLM:
         else:
             self.params["model_path"] = ""
             self.params["max_tokens"] = 8192
-        self.params["n_ctx"] = int(os.environ.get("LLM_MAX_TOKENS", 4096))
+        self.params["n_ctx"] = int(getenv("LLM_MAX_TOKENS"))
         self.params["verbose"] = True
         self.system_message = system_message
         self.params["mirostat_mode"] = 2
@@ -261,7 +262,7 @@ class LLM:
                 int(kwargs["batch_size"]) if kwargs["batch_size"] else 1024
             )
         else:
-            self.params["n_batch"] = int(os.environ.get("LLM_BATCH_SIZE", 1024))
+            self.params["n_batch"] = int(getenv("LLM_BATCH_SIZE"))
         if self.model_name != "":
             self.lcpp = Llama(
                 **self.params,

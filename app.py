@@ -19,13 +19,12 @@ import os
 import logging
 import uuid
 import time
-from dotenv import load_dotenv
+from Globals import getenv
 
-load_dotenv()
-DEFAULT_MODEL = os.getenv("DEFAULT_MODEL", "TheBloke/phi-2-dpo-GGUF")
-WHISPER_MODEL = os.getenv("WHISPER_MODEL", "base")
+DEFAULT_MODEL = getenv("DEFAULT_MODEL")
+WHISPER_MODEL = getenv("WHISPER_MODEL")
 logging.basicConfig(
-    level=os.environ.get("LOGLEVEL", "INFO"),
+    level=getenv("LOGLEVEL"),
     format="%(asctime)s | %(levelname)s | %(message)s",
 )
 pipe = Pipes()
@@ -39,7 +38,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-NGROK_TOKEN = os.environ.get("NGROK_TOKEN", "")
+NGROK_TOKEN = getenv("NGROK_TOKEN")
 if NGROK_TOKEN:
     from pyngrok import ngrok
 
@@ -62,7 +61,7 @@ app.mount("/outputs", StaticFiles(directory="outputs"), name="outputs")
 
 
 def verify_api_key(authorization: str = Header(None)):
-    encryption_key = os.environ.get("EZLOCALAI_API_KEY", "")
+    encryption_key = getenv("EZLOCALAI_API_KEY")
     if encryption_key:
         if authorization is None:
             raise HTTPException(
@@ -139,25 +138,29 @@ class ChatCompletionsResponse(BaseModel):
 async def chat_completions(
     c: ChatCompletions, request: Request, user=Depends(verify_api_key)
 ):
-    data = await request.json()
-    response, audio_response = await pipe.get_response(
-        data=data, completion_type="chat"
-    )
-    if audio_response:
-        if audio_response.startswith("http"):
-            return response
-    if not c.stream:
-        return response
-    else:
-        if audio_response:
-            return StreamingResponse(
-                content=audio_response,
-                media_type="audio/wav",
-            )
-        return StreamingResponse(
-            content=response["messages"][1]["content"],
-            media_type="text/event-stream",
+
+    if getenv("DEFAULT_MODEL") or getenv("VISION_MODEL"):
+        data = await request.json()
+        response, audio_response = await pipe.get_response(
+            data=data, completion_type="chat"
         )
+        if audio_response:
+            if audio_response.startswith("http"):
+                return response
+        if not c.stream:
+            return response
+        else:
+            if audio_response:
+                return StreamingResponse(
+                    content=audio_response,
+                    media_type="audio/wav",
+                )
+            return StreamingResponse(
+                content=response["messages"][1]["content"],
+                media_type="text/event-stream",
+            )
+    else:
+        raise HTTPException(status_code=404, detail="Chat completions are disabled.")
 
 
 # Completions endpoint
@@ -192,24 +195,27 @@ class CompletionsResponse(BaseModel):
     dependencies=[Depends(verify_api_key)],
 )
 async def completions(c: Completions, request: Request, user=Depends(verify_api_key)):
-    response, audio_response = await pipe.get_response(
-        data=await request.json(), completion_type="completion"
-    )
-    if audio_response:
-        if audio_response.startswith("http"):
-            return response
-    if not c.stream:
-        return response
-    else:
-        if audio_response:
-            return StreamingResponse(
-                content=audio_response,
-                media_type="audio/wav",
-            )
-        return StreamingResponse(
-            content=response["choices"][0]["text"],
-            media_type="text/event-stream",
+    if getenv("DEFAULT_MODEL") or getenv("VISION_MODEL"):
+        response, audio_response = await pipe.get_response(
+            data=await request.json(), completion_type="completion"
         )
+        if audio_response:
+            if audio_response.startswith("http"):
+                return response
+        if not c.stream:
+            return response
+        else:
+            if audio_response:
+                return StreamingResponse(
+                    content=audio_response,
+                    media_type="audio/wav",
+                )
+            return StreamingResponse(
+                content=response["choices"][0]["text"],
+                media_type="text/event-stream",
+            )
+    else:
+        raise HTTPException(status_code=404, detail="Completions are disabled.")
 
 
 # Embeddings endpoint
@@ -233,7 +239,10 @@ class EmbeddingResponse(BaseModel):
     dependencies=[Depends(verify_api_key)],
 )
 async def embedding(embedding: EmbeddingModel, user=Depends(verify_api_key)):
-    return pipe.embedder.get_embeddings(input=embedding.input)
+    if getenv("EMBEDDING_ENABLED").lower() == "true":
+        return pipe.embedder.get_embeddings(input=embedding.input)
+    else:
+        raise HTTPException(status_code=404, detail="Embeddings are disabled.")
 
 
 # Audio Transcription endpoint
@@ -253,6 +262,8 @@ async def speech_to_text(
     timestamp_granularities: Optional[List[str]] = Form(["segment"]),
     user: str = Depends(verify_api_key),
 ):
+    if getenv("STT_ENABLED").lower() == "false":
+        raise HTTPException(status_code=404, detail="Speech to text is disabled.")
     response = await pipe.stt.transcribe_audio(
         base64_audio=base64.b64encode(await file.read()).decode("utf-8"),
         audio_format=file.content_type,
@@ -281,6 +292,8 @@ async def audio_translations(
     temperature: Optional[float] = Form(0.0),
     user=Depends(verify_api_key),
 ):
+    if getenv("STT_ENABLED").lower() == "false":
+        raise HTTPException(status_code=404, detail="Speech to text is disabled.")
     response = await pipe.stt.transcribe_audio(
         base64_audio=base64.b64encode(await file.read()).decode("utf-8"),
         audio_format=file.content_type,
@@ -306,6 +319,8 @@ class TextToSpeech(BaseModel):
     dependencies=[Depends(verify_api_key)],
 )
 async def text_to_speech(tts: TextToSpeech, user=Depends(verify_api_key)):
+    if getenv("TTS_ENABLED").lower() == "false":
+        raise HTTPException(status_code=404, detail="Text to speech is disabled.")
     if tts.input.startswith("data:"):
         if "pdf" in tts.input:
             audio = await pipe.pdf_to_audio(
@@ -333,6 +348,8 @@ async def text_to_speech(tts: TextToSpeech, user=Depends(verify_api_key)):
     dependencies=[Depends(verify_api_key)],
 )
 async def get_voices(user=Depends(verify_api_key)):
+    if getenv("TTS_ENABLED").lower() == "false":
+        raise HTTPException(status_code=404, detail="Text to speech is disabled.")
     return {"voices": pipe.ctts.voices}
 
 
@@ -346,6 +363,8 @@ async def upload_voice(
     file: UploadFile = File(...),
     user=Depends(verify_api_key),
 ):
+    if getenv("TTS_ENABLED").lower() == "false":
+        raise HTTPException(status_code=404, detail="Text to speech is disabled.")
     voice_name = voice
     file_path = os.path.join(os.getcwd(), "voices", f"{voice}.wav")
     if os.path.exists(file_path):
@@ -382,6 +401,8 @@ async def generate_image(
     image_creation: ImageCreation,
     user: str = Depends(verify_api_key),
 ):
+    if getenv("SD_MODEL") == "":
+        raise HTTPException(status_code=404, detail="Image generation is disabled.")
     images = []
     if int(image_creation.n) > 1:
         for i in range(image_creation.n):

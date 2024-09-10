@@ -10,6 +10,7 @@ import requests
 import base64
 import pdfplumber
 import torch
+from Globals import getenv
 
 try:
     from ezlocalai.IMG import IMG
@@ -25,51 +26,57 @@ class Pipes:
     def __init__(self):
         load_dotenv()
         global img_import_success
-        DEFAULT_MODEL = os.getenv("DEFAULT_MODEL", "TheBloke/phi-2-dpo-GGUF")
-        self.current_llm = DEFAULT_MODEL if DEFAULT_MODEL else "TheBloke/phi-2-dpo-GGUF"
-        logging.info(f"[LLM] {self.current_llm} model loading. Please wait...")
-        self.llm = LLM(model=self.current_llm)
-        logging.info(f"[LLM] {self.current_llm} model loaded successfully.")
-        self.embedder = Embedding()
-        self.current_vlm = os.getenv("VISION_MODEL", "")
-        logging.info(f"[VLM] {self.current_vlm} model loading. Please wait...")
+        self.current_llm = getenv("DEFAULT_MODEL")
+        self.current_vlm = getenv("VISION_MODEL")
         self.vlm = None
+        self.ctts = None
+        self.stt = None
+        self.embedder = None
+        if self.current_llm.lower() != "none":
+            logging.info(f"[LLM] {self.current_llm} model loading. Please wait...")
+            self.llm = LLM(model=self.current_llm)
+            logging.info(f"[LLM] {self.current_llm} model loaded successfully.")
+        if getenv("EMBEDDING_ENABLED").lower() == "true":
+            self.embedder = Embedding()
         if self.current_vlm != "":
+            logging.info(f"[VLM] {self.current_vlm} model loading. Please wait...")
             try:
                 self.vlm = VLM(model=self.current_vlm)
             except Exception as e:
                 logging.error(f"[VLM] Failed to load the model: {e}")
                 self.vlm = None
-        if self.vlm is not None:
-            logging.info(f"[ezlocalai] Vision is enabled with {self.current_vlm}.")
-        logging.info(f"[CTTS] xttsv2_2.0.2 model loading. Please wait...")
-        self.ctts = CTTS()
-        logging.info(f"[CTTS] xttsv2_2.0.2 model loaded successfully.")
-        self.current_stt = os.getenv("WHISPER_MODEL", "base")
-        logging.info(f"[STT] {self.current_stt} model loading. Please wait...")
-        self.stt = STT(model=self.current_stt)
-        logging.info(f"[STT] {self.current_stt} model loaded successfully.")
+            if self.vlm is not None:
+                logging.info(f"[ezlocalai] Vision is enabled with {self.current_vlm}.")
+        if getenv("TTS_ENABLED").lower() == "true":
+            logging.info(f"[CTTS] xttsv2_2.0.2 model loading. Please wait...")
+            self.ctts = CTTS()
+            logging.info(f"[CTTS] xttsv2_2.0.2 model loaded successfully.")
+        if getenv("STT_ENABLED").lower() == "true":
+            self.current_stt = getenv("WHISPER_MODEL")
+            logging.info(f"[STT] {self.current_stt} model loading. Please wait...")
+            self.stt = STT(model=self.current_stt)
+            logging.info(f"[STT] {self.current_stt} model loaded successfully.")
         if is_vision_model(self.current_llm):
             if self.vlm is None:
                 self.vlm = self.llm
-        NGROK_TOKEN = os.environ.get("NGROK_TOKEN", "")
+        if self.current_llm == "none" and self.vlm is not None:
+            self.llm = self.vlm
+        NGROK_TOKEN = getenv("NGROK_TOKEN")
         if NGROK_TOKEN:
             ngrok.set_auth_token(NGROK_TOKEN)
             public_url = ngrok.connect(8091)
             logging.info(f"[ngrok] Public Tunnel: {public_url.public_url}")
             self.local_uri = public_url.public_url
         else:
-            self.local_uri = os.environ.get("EZLOCALAI_URL", "http://localhost:8091")
-        self.img_enabled = os.getenv("IMG_ENABLED", "false").lower() == "true"
+            self.local_uri = getenv("EZLOCALAI_URL")
+        self.img_enabled = getenv("IMG_ENABLED").lower() == "true"
         self.img = None
         if img_import_success:
             logging.info(f"[IMG] Image generation is enabled.")
-            SD_MODEL = os.getenv("SD_MODEL", "")  # stabilityai/sdxl-turbo
+            SD_MODEL = getenv("SD_MODEL")  # stabilityai/sdxl-turbo
             if SD_MODEL:
                 logging.info(f"[IMG] {SD_MODEL} model loading. Please wait...")
-                img_device = os.getenv(
-                    "IMG_DEVICE", "cuda" if torch.cuda.is_available() else "cpu"
-                )
+                img_device = getenv("IMG_DEVICE")
                 try:
                     self.img = IMG(
                         model=SD_MODEL, local_uri=self.local_uri, device=img_device
