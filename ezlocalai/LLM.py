@@ -188,11 +188,12 @@ class LLM:
             f"[LLM] Loading {DEFAULT_MODEL} with {GPU_LAYERS if GPU_LAYERS != -1 else 'all'} GPU layers. Please wait..."
         )
         self.params = {}
-        self.params["tensor_split"] = (
-            [float(weight) for weight in TENSOR_SPLIT.split(",")]
-            if TENSOR_SPLIT
-            else None
-        )
+        if TENSOR_SPLIT != "":
+            self.params["tensor_split"] = (
+                [float(weight) for weight in TENSOR_SPLIT.split(",")]
+                if TENSOR_SPLIT
+                else None
+            )
         self.model_name = DEFAULT_MODEL
         chat_handler = None
         if self.model_name != "":
