@@ -63,10 +63,8 @@ app.mount("/outputs", StaticFiles(directory="outputs"), name="outputs")
 def verify_api_key(authorization: str = Header(None)):
     encryption_key = getenv("EZLOCALAI_API_KEY")
     if encryption_key:
-        if authorization is None:
-            raise HTTPException(
-                status_code=401, detail="Authorization header is missing"
-            )
+        if encryption_key == "none":
+            return "USER"
         try:
             if "bearer " in authorization.lower():
                 scheme, _, api_key = authorization.partition(" ")
