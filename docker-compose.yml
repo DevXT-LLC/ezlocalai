@@ -18,6 +18,7 @@ services:
       - "8502:8502"
     volumes:
       - ./models:/app/models
+      - ./hf:./root/.cache/huggingface/hub
       - ./outputs:/app/outputs
       - ./voices:/app/voices
       - ./whispercpp:/app/whispercpp
