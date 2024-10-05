@@ -338,12 +338,16 @@ class Pipes:
             return None
 
         for paragraph in paragraphs:
-            prompt = f"""## Paragraph
+            # Inject a list of characters we know so far.
+            prompt = f"""## Characters we know so far:
+{json.dumps(characters, indent=4)}
+
+## Paragraph
 {paragraph}
 
 ## System
 Analyze the text in the paragraph and extract:
-1. All character names and their genders (male, female, or unknown)
+1. All character names and their genders (male, female, or unknown.) Use best judgement based on hisortical uses of a name to determine gender. Attempt to normalize character names to match existing characters if possible.
 2. Lines spoken by each character
 3. Narrator lines (not spoken by any character)
 
