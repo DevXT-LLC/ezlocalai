@@ -5,12 +5,16 @@ from ezlocalai.LLM import LLM, is_vision_model
 from ezlocalai.STT import STT
 from ezlocalai.CTTS import CTTS
 from ezlocalai.Embedding import Embedding
+from ezlocalai.Helpers import chunk_content_by_tokens
+from pydub import AudioSegment
+from Globals import getenv
 from pyngrok import ngrok
 import requests
 import base64
 import pdfplumber
-import torch
-from Globals import getenv
+import random
+import json
+import io
 
 try:
     from ezlocalai.IMG import IMG
@@ -301,3 +305,190 @@ class Pipes:
             else:
                 response["choices"][0]["message"]["content"] += f"\n\n{generated_image}"
         return response, audio_response
+
+    async def create_audiobook(
+        self,
+        book_content,
+        output_file_name,
+        narrator_voice,
+        language="en",
+        translate=False,
+        target_language=None,
+    ):
+        # Step 1: Chunk the book content into paragraphs
+        paragraphs = chunk_content_by_tokens(book_content)
+
+        # Step 2: Extract characters, their lines, genders, and maintain order
+        characters = {}
+        ordered_content = []
+
+        def find_similar_character(name):
+            # Check for exact match first
+            if name in characters:
+                return name
+            # Check for case-insensitive match
+            lower_name = name.lower()
+            for char in characters:
+                if char.lower() == lower_name:
+                    return char
+            # Check for partial matches (e.g., "Mr. Smith" vs "Smith")
+            for char in characters:
+                if name in char or char in name:
+                    return char
+            return None
+
+        for paragraph in paragraphs:
+            prompt = f"""## Paragraph
+{paragraph}
+
+## System
+Analyze the text in the paragraph and extract:
+1. All character names and their genders (male, female, or unknown)
+2. Lines spoken by each character
+3. Narrator lines (not spoken by any character)
+
+Provide the result in JSON format:
+{{
+    "characters": [
+        {{"name": "character1", "gender": "male/female/unknown"}},
+        {{"name": "character2", "gender": "male/female/unknown"}},
+        ...
+    ],
+    "content": [
+        {{"type": "narrator", "text": "narrator line"}},
+        {{"type": "character", "name": "character1", "text": "character1 line"}},
+        {{"type": "narrator", "text": "narrator line"}},
+        {{"type": "character", "name": "character2", "text": "character2 line"}},
+        ...
+    ]
+}}
+Ensure the content array preserves the original order of narration and dialogue."""
+
+            response = await self.llm.completion(prompt=prompt)
+            result_text = response["choices"][0]["text"]
+
+            # Strip out code block markers if present
+            if "```json" in result_text:
+                result_text = result_text.split("```json")[1].split("```")[0]
+            elif "```" in result_text:
+                result_text = result_text.split("```")[1].split("```")[0]
+
+            try:
+                result = json.loads(result_text)
+                for char in result.get("characters", []):
+                    similar_char = find_similar_character(char["name"])
+                    if similar_char:
+                        # Use the existing character name
+                        char["name"] = similar_char
+                    else:
+                        # Add new character
+                        characters[char["name"]] = char["gender"]
+
+                # Update content with potentially merged character names
+                for item in result.get("content", []):
+                    if item["type"] == "character":
+                        similar_char = find_similar_character(item["name"])
+                        if similar_char:
+                            item["name"] = similar_char
+                    ordered_content.append(item)
+
+            except json.JSONDecodeError:
+                logging.error(f"Failed to parse JSON from LLM response: {result_text}")
+                continue
+
+        # Step 3: Translate the content if necessary
+        if translate and target_language:
+            translated_content = []
+            for item in ordered_content:
+                translation_prompt = f"""## Original text:{item['text']}\n\n## System\nTranslate the original text to {target_language}.\nReturn only the translated text without any additional commentary."""
+                translation_response = await self.llm.completion(
+                    prompt=translation_prompt
+                )
+                translated_text = translation_response["choices"][0]["text"].strip()
+                translated_item = item.copy()
+                translated_item["text"] = translated_text
+                translated_content.append(translated_item)
+            ordered_content = translated_content
+
+        # Step 4: Assign voices to characters based on gender
+        character_voices = {}
+        male_voices = [f"male-{i}" for i in range(1, 101)]
+        female_voices = [f"female-{i}" for i in range(1, 101)]
+        unknown_voices = male_voices + female_voices
+        random.shuffle(male_voices)
+        random.shuffle(female_voices)
+        random.shuffle(unknown_voices)
+
+        for character, gender in characters.items():
+            if gender == "male" and male_voices:
+                character_voices[character] = male_voices.pop()
+            elif gender == "female" and female_voices:
+                character_voices[character] = female_voices.pop()
+            elif unknown_voices:
+                character_voices[character] = unknown_voices.pop()
+            else:
+                logging.warning(
+                    f"Ran out of voices. Reusing voices for character: {character}"
+                )
+                character_voices[character] = random.choice(male_voices + female_voices)
+
+        # Step 5: Generate audio for each item in ordered_content
+        audio_segments = []
+        text_output = []
+
+        for item in ordered_content:
+            if item["type"] == "narrator":
+                try:
+                    audio = await self.ctts.generate(
+                        text=item["text"], voice=narrator_voice, language=language
+                    )
+                    audio_segments.append(base64.b64decode(audio))
+                    text_output.append(f"Narrator: {item['text']}")
+                except Exception as e:
+                    logging.error(
+                        f"Failed to generate audio for narrator text: {item['text'][:50]}... Error: {str(e)}"
+                    )
+            elif item["type"] == "character":
+                character_voice = character_voices.get(item["name"], narrator_voice)
+                try:
+                    audio = await self.ctts.generate(
+                        text=item["text"], voice=character_voice, language=language
+                    )
+                    audio_segments.append(base64.b64decode(audio))
+                    text_output.append(f"{item['name']}: {item['text']}")
+                except Exception as e:
+                    logging.error(
+                        f"Failed to generate audio for character {item['name']}: {item['text'][:50]}... Error: {str(e)}"
+                    )
+
+        # Step 6: Combine all audio segments
+        combined_audio = AudioSegment.empty()
+        for audio_data in audio_segments:
+            try:
+                audio = AudioSegment.from_wav(io.BytesIO(audio_data))
+                combined_audio += audio
+                combined_audio += AudioSegment.silent(
+                    duration=500
+                )  # 0.5 second pause between segments
+            except Exception as e:
+                logging.error(f"Failed to process audio segment. Error: {str(e)}")
+        outputs = os.path.join(os.getcwd(), "outputs")
+        # Step 7: Export the final audiobook
+        audio_output_path = os.path.join(outputs, f"{output_file_name}.mp3")
+        combined_audio.export(audio_output_path, format="mp3")
+
+        # Step 8: Save the text output
+        text_output_path = os.path.join(outputs, f"{output_file_name}.txt")
+        with open(text_output_path, "w", encoding="utf-8") as f:
+            f.write("\n\n".join(text_output))
+
+        logging.info(f"Audiobook created successfully: {audio_output_path}")
+        logging.info(f"Text output saved: {text_output_path}")
+
+        return {
+            "audio_file": audio_output_path,
+            "text_file": text_output_path,
+            "original_text": book_content,
+            "translated_text": "\n\n".join([item["text"] for item in ordered_content]),
+            "character_voices": character_voices,
+        }
