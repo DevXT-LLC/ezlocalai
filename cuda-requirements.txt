@@ -29,3 +29,5 @@ timm>=0.9.16
 sentencepiece
 attrdict
 einops
+docx2txt
+pandas

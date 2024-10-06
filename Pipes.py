@@ -7,11 +7,15 @@ from ezlocalai.CTTS import CTTS
 from ezlocalai.Embedding import Embedding
 from ezlocalai.Helpers import chunk_content_by_tokens
 from pydub import AudioSegment
+from datetime import datetime
 from Globals import getenv
 from pyngrok import ngrok
 import requests
 import base64
 import pdfplumber
+import zipfile
+import docx2txt
+import pandas as pd
 import random
 import json
 import io
@@ -24,6 +28,61 @@ except ImportError:
     img_import_success = False
 
 from ezlocalai.VLM import VLM
+
+
+async def file_to_text(file_path: str = ""):
+    """
+    Learn from a file
+
+    Args:
+        file_path (str, optional): Path to the file. Defaults to "".
+
+    Returns:
+        str: Response from the agent
+    """
+    file_content = ""
+    file_name = os.path.basename(file_path)
+    logging.info(f"File path: {file_path}")
+    file_type = file_name.split(".")[-1]
+    if file_type == "pdf":
+        with pdfplumber.open(file_path) as pdf:
+            content = "\n".join([page.extract_text() for page in pdf.pages])
+            file_content += content
+    elif file_path.endswith(".zip"):
+        extracted_zip_folder_name = f"extracted_{file_name.replace('.zip', '_zip')}"
+        new_folder = os.path.join(os.path.dirname(file_path), extracted_zip_folder_name)
+        file_content += f"Content from the zip file uploaded named `{file_name}`:\n"
+        with zipfile.ZipFile(file_path, "r") as zipObj:
+            zipObj.extractall(path=new_folder)
+        # Iterate over every file that was extracted including subdirectories
+        for root, dirs, files in os.walk(new_folder):
+            for name in files:
+                file_content += f"Content from file uploaded named `{name}`:\n"
+                file_content += await file_to_text(file_path=os.path.join(root, name))
+        return file_content
+    elif file_path.endswith(".doc") or file_path.endswith(".docx"):
+        file_content = docx2txt.process(file_path)
+    elif file_type == "csv":
+        with open(file_path, "r") as f:
+            file_content = f.read()
+    elif file_type == "xlsx" or file_type == "xls":
+        xl = pd.ExcelFile(file_path)
+        if len(xl.sheet_names) > 1:
+            sheet_count = len(xl.sheet_names)
+            for i, sheet_name in enumerate(xl.sheet_names, 1):
+                df = xl.parse(sheet_name)
+                csv_file_path = file_path.replace(f".{file_type}", f"_{i}.csv")
+                df.to_csv(csv_file_path, index=False)
+        else:
+            df = pd.read_excel(file_path)
+            csv_file_path = file_path.replace(f".{file_type}", ".csv")
+            df.to_csv(csv_file_path, index=False)
+        with open(csv_file_path, "r") as f:
+            file_content = f.read()
+    else:
+        with open(file_path, "r") as f:
+            file_content = f.read()
+    return file_content
 
 
 class Pipes:
@@ -308,15 +367,14 @@ class Pipes:
 
     async def create_audiobook(
         self,
-        book_content,
-        output_file_name,
-        narrator_voice,
+        content,
+        voice,
         language="en",
-        translate=False,
-        target_language=None,
     ):
+        string_timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+        output_file_name = f"audiobook_{string_timestamp}"
         # Step 1: Chunk the book content into paragraphs
-        paragraphs = chunk_content_by_tokens(book_content)
+        paragraphs = chunk_content_by_tokens(content)
 
         # Step 2: Extract characters, their lines, genders, and maintain order
         characters = {}
@@ -401,10 +459,10 @@ Ensure the content array preserves the original order of narration and dialogue.
                 continue
 
         # Step 3: Translate the content if necessary
-        if translate and target_language:
+        if language != "en":
             translated_content = []
             for item in ordered_content:
-                translation_prompt = f"""## Original text:{item['text']}\n\n## System\nTranslate the original text to {target_language}.\nReturn only the translated text without any additional commentary."""
+                translation_prompt = f"""## Original text:{item['text']}\n\n## System\nTranslate the original text to {language}.\nReturn only the translated text without any additional commentary."""
                 translation_response = await self.llm.completion(
                     prompt=translation_prompt
                 )
@@ -444,7 +502,7 @@ Ensure the content array preserves the original order of narration and dialogue.
             if item["type"] == "narrator":
                 try:
                     audio = await self.ctts.generate(
-                        text=item["text"], voice=narrator_voice, language=language
+                        text=item["text"], voice=voice, language=language
                     )
                     audio_segments.append(base64.b64decode(audio))
                     text_output.append(f"Narrator: {item['text']}")
@@ -453,7 +511,7 @@ Ensure the content array preserves the original order of narration and dialogue.
                         f"Failed to generate audio for narrator text: {item['text'][:50]}... Error: {str(e)}"
                     )
             elif item["type"] == "character":
-                character_voice = character_voices.get(item["name"], narrator_voice)
+                character_voice = character_voices.get(item["name"], voice)
                 try:
                     audio = await self.ctts.generate(
                         text=item["text"], voice=character_voice, language=language
@@ -485,14 +543,8 @@ Ensure the content array preserves the original order of narration and dialogue.
         text_output_path = os.path.join(outputs, f"{output_file_name}.txt")
         with open(text_output_path, "w", encoding="utf-8") as f:
             f.write("\n\n".join(text_output))
-
-        logging.info(f"Audiobook created successfully: {audio_output_path}")
-        logging.info(f"Text output saved: {text_output_path}")
-
         return {
-            "audio_file": audio_output_path,
-            "text_file": text_output_path,
-            "original_text": book_content,
-            "translated_text": "\n\n".join([item["text"] for item in ordered_content]),
+            "audio_file": f"{self.local_uri}/outputs/{output_file_name}.mp3",
+            "text_file": f"{self.local_uri}/outputs/{output_file_name}.txt",
             "character_voices": character_voices,
         }
