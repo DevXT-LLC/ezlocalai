@@ -13,7 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from typing import List, Dict, Union, Optional
-from Pipes import Pipes
+from Pipes import Pipes, file_to_text
 import base64
 import os
 import logging
@@ -374,6 +374,41 @@ async def upload_voice(
     with open(file_path, "wb") as audio_file:
         audio_file.write(await file.read())
     return {"detail": f"Voice {voice_name} has been uploaded."}
+
+
+class BookToSpeech(BaseModel):
+    voice: Optional[str] = "default"
+    language: Optional[str] = "en"
+
+
+class BookToSpeechResponse(BaseModel):
+    audio_file: str
+    text_file: str
+
+
+@app.post(
+    "/v1/audio/book",
+    tags=["Audio"],
+    dependencies=[Depends(verify_api_key)],
+)
+async def book_to_speech(
+    book: BookToSpeech,
+    file: UploadFile = File(...),
+    user=Depends(verify_api_key),
+):
+    if getenv("TTS_ENABLED").lower() == "false":
+        raise HTTPException(status_code=404, detail="Text to speech is disabled.")
+    file_type = file.filename.split(".")[-1]
+    file_path = os.path.join(os.getcwd(), "outputs", f"{uuid.uuid4().hex}.{file_type}")
+    with open(file_path, "wb") as audio_file:
+        audio_file.write(await file.read())
+    file_content = await file_to_text(file_path=file_path)
+    audiobook = await pipe.create_audiobook(
+        voice=book.voice, language=book.language, content=file_content
+    )
+    return BookToSpeechResponse(
+        audio_file=audiobook["audio_file"], text_file=audiobook["text_file"]
+    )
 
 
 # Image Generation endpoint
