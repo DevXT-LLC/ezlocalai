@@ -12,7 +12,7 @@ ffmpeg-python==0.2.0
 transformers
 TTS==0.22.0
 sounddevice==0.4.6
-deepspeed==0.13.4
+deepspeed==0.15.1
 webrtcvad==2.0.10
 pyaudio==0.2.14
 pyngrok==7.1.6
