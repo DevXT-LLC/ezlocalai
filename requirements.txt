@@ -25,4 +25,4 @@ optimum
 onnx
 diffusers[torch]
 torchaudio==2.3.1
-llama-cpp-python==0.3.1
+llama-cpp-python==0.3.2
