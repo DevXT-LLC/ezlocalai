@@ -1,5 +1,5 @@
 try:
-    from deepseek.deepseek_vl.models import VLChatProcessor
+    from deepseek_vl.models import VLChatProcessor
 except:
     VLChatProcessor = None
 from transformers import AutoModelForCausalLM
