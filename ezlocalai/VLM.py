@@ -27,7 +27,8 @@ class VLM:
                 cache_dir=os.path.join(os.getcwd(), "models"),
             )
             self.vl_gpt = self.vl_gpt.to(torch.bfloat16).cuda().eval()
-        except:
+        except Exception as e:
+            print(f"[VLM] Error: {e}")
             self.vl_chat_processor = None
             self.tokenizer = None
             self.vl_gpt = None
