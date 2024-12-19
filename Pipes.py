@@ -45,7 +45,7 @@ class Pipes:
             and getenv("LLM_ENABLED").lower() == "true"
         ):
             self.embedder = Embedding()
-        if self.current_vlm != "" and getenv("VISION_ENABLED").lower() == "true":
+        if getenv("STT_ENABLED").lower() == "true":
             logging.info(f"[VLM] {self.current_vlm} model loading. Please wait...")
             try:
                 self.vlm = VLM(model=self.current_vlm)
