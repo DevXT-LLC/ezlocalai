@@ -33,13 +33,13 @@ class Pipes:
         self.ctts = None
         self.stt = None
         self.embedder = None
-        if self.current_llm.lower() != "none":
+if self.current_llm.lower() != "none" and not self.disable_llm:
             logging.info(f"[LLM] {self.current_llm} model loading. Please wait...")
             self.llm = LLM(model=self.current_llm)
             logging.info(f"[LLM] {self.current_llm} model loaded successfully.")
-        if getenv("EMBEDDING_ENABLED").lower() == "true":
+if getenv("EMBEDDING_ENABLED").lower() == "true" and not self.disable_llm:
             self.embedder = Embedding()
-        if self.current_vlm != "":
+if self.current_vlm != "" and not self.disable_vision_model:
             logging.info(f"[VLM] {self.current_vlm} model loading. Please wait...")
             try:
                 self.vlm = VLM(model=self.current_vlm)
@@ -48,11 +48,11 @@ class Pipes:
                 self.vlm = None
             if self.vlm is not None:
                 logging.info(f"[ezlocalai] Vision is enabled with {self.current_vlm}.")
-        if getenv("TTS_ENABLED").lower() == "true":
+if getenv("TTS_ENABLED").lower() == "true" and not self.disable_tts:
             logging.info(f"[CTTS] xttsv2_2.0.2 model loading. Please wait...")
             self.ctts = CTTS()
             logging.info(f"[CTTS] xttsv2_2.0.2 model loaded successfully.")
-        if getenv("STT_ENABLED").lower() == "true":
+if getenv("STT_ENABLED").lower() == "true" and not self.disable_stt:
             self.current_stt = getenv("WHISPER_MODEL")
             logging.info(f"[STT] {self.current_stt} model loading. Please wait...")
             self.stt = STT(model=self.current_stt)
@@ -72,7 +72,7 @@ class Pipes:
             self.local_uri = getenv("EZLOCALAI_URL")
         self.img_enabled = getenv("IMG_ENABLED").lower() == "true"
         self.img = None
-        if img_import_success:
+if img_import_success and not self.disable_image_generation:
             logging.info(f"[IMG] Image generation is enabled.")
             SD_MODEL = getenv("SD_MODEL")  # stabilityai/sdxl-turbo
             if SD_MODEL:
@@ -86,6 +86,13 @@ class Pipes:
                     logging.error(f"[IMG] Failed to load the model: {e}")
                     self.img = None
             logging.info(f"[IMG] {SD_MODEL} model loaded successfully.")
+
+    # Check for environment variables to disable functionalities
+            self.disable_llm = os.getenv("DISABLE_LLM", "false").lower() == "true"
+            self.disable_vision_model = os.getenv("DISABLE_VISION_MODEL", "false").lower() == "true"
+            self.disable_image_generation = os.getenv("DISABLE_IMAGE_GENERATION", "false").lower() == "true"
+            self.disable_tts = os.getenv("DISABLE_TTS", "false").lower() == "true"
+            self.disable_stt = os.getenv("DISABLE_STT", "false").lower() == "true"
 
     async def pdf_to_audio(self, title, voice, pdf, chunk_size=200):
         filename = f"{title}.pdf"
