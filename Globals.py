@@ -37,3 +37,9 @@ def getenv(var_name: str):
     "IMG_ENABLED": "true",
     "TTS_ENABLED": "true",
     "STT_ENABLED": "true",
+
+"LLM_ENABLED": "true",
+    "VISION_ENABLED": "true",
+    "IMG_ENABLED": "true",
+    "TTS_ENABLED": "true",
+    "STT_ENABLED": "true",
