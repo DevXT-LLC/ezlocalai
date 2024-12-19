@@ -31,3 +31,9 @@ def getenv(var_name: str):
     }
     default_value = default_values[var_name] if var_name in default_values else ""
     return os.getenv(var_name, default_value)
+
+"LLM_ENABLED": "true",
+    "VISION_ENABLED": "true",
+    "IMG_ENABLED": "true",
+    "TTS_ENABLED": "true",
+    "STT_ENABLED": "true",
