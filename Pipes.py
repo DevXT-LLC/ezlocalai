@@ -39,7 +39,7 @@ class Pipes:
         ):
             logging.info(f"[LLM] {self.current_llm} model loading. Please wait...")
             self.llm = LLM(model=self.current_llm)
-            logging.info(f"[LLM] {self.current_llm} model loaded successfully.")
+            if getenv("STT_ENABLED").lower() == "true":
         if (
             getenv("EMBEDDING_ENABLED").lower() == "true"
             and getenv("LLM_ENABLED").lower() == "true"
