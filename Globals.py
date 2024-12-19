@@ -7,16 +7,11 @@ load_dotenv()
 def getenv(var_name: str):
     default_values = {
         "EZLOCALAI_URL": "http://localhost:8091",
-        "EZLOCALAI_API_KEY": "none",
         "ALLOWED_DOMAINS": "*",
         "DEFAULT_MODEL": "TheBloke/phi-2-dpo-GGUF",
         "WHISPER_MODEL": "base.en",
         "VISION_MODEL": "",
         "SD_MODEL": "",
-        "EMBEDDING_ENABLED": "true",
-        "IMG_ENABLED": "false",
-        "TTS_ENABLED": "true",
-        "STT_ENABLED": "true",
         "IMG_DEVICE": "cpu",
         "NGROK_TOKEN": "",
         "LOG_LEVEL": "INFO",
