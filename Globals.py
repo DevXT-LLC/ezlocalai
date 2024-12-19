@@ -5,6 +5,16 @@ load_dotenv()
 
 
 def getenv(var_name: str):
+
+# Define new environment variables for model functionalities
+default_values.update({
+    "LLM_ENABLED": "true",
+    "VISION_ENABLED": "true",
+    "IMG_ENABLED": "true",
+    "TTS_ENABLED": "true",
+    "STT_ENABLED": "true",
+})
+
 default_values = {
 "EZLOCALAI_URL": "http://localhost:8091",
 "ALLOWED_DOMAINS": "*",
