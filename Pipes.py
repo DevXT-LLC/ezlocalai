@@ -45,7 +45,7 @@ class Pipes:
             and getenv("LLM_ENABLED").lower() == "true"
         ):
             self.embedder = Embedding()
-        if (getenv("STT_ENABLED").lower() == "true"):
+        if getenv("VISION_ENABLED").lower() == "true":
             logging.info(f"[VLM] {self.current_vlm} model loading. Please wait...")
             try:
                 self.vlm = VLM(model=self.current_vlm)
@@ -82,7 +82,7 @@ class Pipes:
             self.local_uri = public_url.public_url
         else:
             self.local_uri = getenv("EZLOCALAI_URL")
-        if (getenv("VISION_MODEL") and getenv("VISION_ENABLED").lower() == "true"):
+        if getenv("TTS_ENABLED").lower() == "true":
         self.img = None
         if img_import_success:
             logging.info(f"[IMG] Image generation is enabled.")
