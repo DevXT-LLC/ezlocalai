@@ -23,11 +23,6 @@ default_values = {
 "QUANT_TYPE": "Q4_K_M",
 "LLM_MAX_TOKENS": "2048",
 "LLM_BATCH_SIZE": "16",
-"LLM_ENABLED": "true",
-"VISION_ENABLED": "true",
-"IMG_ENABLED": "true",
-"TTS_ENABLED": "true",
-"STT_ENABLED": "true",
 }
 default_value = default_values[var_name] if var_name in default_values else ""
 return os.getenv(var_name, default_value)
