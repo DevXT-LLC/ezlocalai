@@ -33,13 +33,19 @@ class Pipes:
         self.ctts = None
         self.stt = None
         self.embedder = None
-        if self.current_llm.lower() != "none":
+        if (
+            self.current_llm.lower() != "none"
+            and getenv("LLM_ENABLED").lower() == "true"
+        ):
             logging.info(f"[LLM] {self.current_llm} model loading. Please wait...")
             self.llm = LLM(model=self.current_llm)
             logging.info(f"[LLM] {self.current_llm} model loaded successfully.")
-        if getenv("EMBEDDING_ENABLED").lower() == "true":
+        if (
+            getenv("EMBEDDING_ENABLED").lower() == "true"
+            and getenv("LLM_ENABLED").lower() == "true"
+        ):
             self.embedder = Embedding()
-        if self.current_vlm != "":
+        if self.current_vlm != "" and getenv("VISION_ENABLED").lower() == "true":
             logging.info(f"[VLM] {self.current_vlm} model loading. Please wait...")
             try:
                 self.vlm = VLM(model=self.current_vlm)
@@ -48,11 +54,17 @@ class Pipes:
                 self.vlm = None
             if self.vlm is not None:
                 logging.info(f"[ezlocalai] Vision is enabled with {self.current_vlm}.")
-        if getenv("TTS_ENABLED").lower() == "true":
+        if (
+            getenv("TTS_ENABLED").lower() == "true"
+            and getenv("TTS_ENABLED").lower() == "true"
+        ):
             logging.info(f"[CTTS] xttsv2_2.0.2 model loading. Please wait...")
             self.ctts = CTTS()
             logging.info(f"[CTTS] xttsv2_2.0.2 model loaded successfully.")
-        if getenv("STT_ENABLED").lower() == "true":
+        if (
+            getenv("STT_ENABLED").lower() == "true"
+            and getenv("STT_ENABLED").lower() == "true"
+        ):
             self.current_stt = getenv("WHISPER_MODEL")
             logging.info(f"[STT] {self.current_stt} model loading. Please wait...")
             self.stt = STT(model=self.current_stt)
