@@ -23,9 +23,9 @@ COPY cuda-requirements.txt .
 RUN pip install --no-cache-dir -r cuda-requirements.txt
 RUN pip install spacy==3.7.4 && \
     python -m spacy download en_core_web_sm
-RUN git clone https://github.com/Josh-XT/llama-cpp-python.git && \
+RUN git clone https://github.com/Josh-XT/llama-cpp-python.git --recurse-submodules && \
     cd llama-cpp-python && \
-    CMAKE_ARGS="-DGGML_CUDA=on" pip install --no-cache-dir -e --recurse-submodules . && \
+    CMAKE_ARGS="-DGGML_CUDA=on" pip install --no-cache-dir -e . && \
     cd ..
 COPY . .
 EXPOSE 8091
