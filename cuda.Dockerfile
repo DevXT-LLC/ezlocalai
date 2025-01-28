@@ -25,7 +25,7 @@ RUN pip install spacy==3.7.4 && \
     python -m spacy download en_core_web_sm
 RUN git clone https://github.com/Josh-XT/llama-cpp-python.git && \
     cd llama-cpp-python && \
-    CMAKE_ARGS="-DGGML_CUDA=on" pip install . --no-cache-dir && \
+    CMAKE_ARGS="-DGGML_CUDA=on" pip install --no-cache-dir -e --recurse-submodules . && \
     cd ..
 COPY . .
 EXPOSE 8091
