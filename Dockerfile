@@ -7,16 +7,15 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
 WORKDIR /app
 COPY requirements.txt .
 RUN --mount=type=cache,target=/root/.cache/pip,sharing=locked \
-    python3 -m pip install --no-cache-dir -r requirements.txt && \
+    pip install --no-cache-dir torch==2.3.1 torchaudio==2.3.1 -f https://download.pytorch.org/whl/torch_stable.html && \
+    pip install diffusers[torch] --no-cache-dir && \
+    pip install spacy==3.7.4 && \
+    python -m spacy download en_core_web_sm && \
     git clone https://github.com/Josh-XT/DeepSeek-VL deepseek && \
     cd deepseek && \
     pip install --no-cache-dir -e . && \
     cd .. && \
-    pip uninstall -y torchaudio && \
-    pip install --no-cache-dir torchaudio==2.3.1 -f https://download.pytorch.org/whl/torch_stable.html && \
-    pip install diffusers --no-cache-dir && \
-    pip install spacy==3.7.4 && \
-    python -m spacy download en_core_web_sm
+    python3 -m pip install --no-cache-dir -r requirements.txt
 COPY . .
 ENV HOST 0.0.0.0
 EXPOSE 8091
