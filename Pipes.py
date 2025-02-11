@@ -196,20 +196,24 @@ class Pipes:
                 }
             ]
             new_messages[0]["content"].extend(images)
-            image_description = self.vlm.chat(messages=new_messages)
-            print(
-                f"Image Description: {image_description['choices'][0]['message']['content']}"
-            )
-            prompt = (
-                f"\n\nSee the uploaded image description for any questions about the uploaded image. Act as if you can see the image based on the description. Do not mention 'uploaded image description' in response. Uploaded Image Description: {image_description['choices'][0]['message']['content']}\n\n{data['messages'][-1]['content'][0]['text']}"
-                if completion_type == "chat"
-                else f"\n\nSee the uploaded image description for any questions about the uploaded image. Act as if you can see the image based on the description. Do not mention 'uploaded image description' in response. Uploaded Image Description: {image_description['choices'][0]['message']['content']}\n\n{data['prompt']}"
-            )
-            print(f"Full Prompt: {prompt}")
-            if completion_type == "chat":
-                data["messages"][-1]["content"] = prompt
-            else:
-                data["prompt"] = prompt
+            try:
+                image_description = self.vlm.chat(messages=new_messages)
+                print(
+                    f"Image Description: {image_description['choices'][0]['message']['content']}"
+                )
+                prompt = (
+                    f"\n\nSee the uploaded image description for any questions about the uploaded image. Act as if you can see the image based on the description. Do not mention 'uploaded image description' in response. Uploaded Image Description: {image_description['choices'][0]['message']['content']}\n\n{data['messages'][-1]['content'][0]['text']}"
+                    if completion_type == "chat"
+                    else f"\n\nSee the uploaded image description for any questions about the uploaded image. Act as if you can see the image based on the description. Do not mention 'uploaded image description' in response. Uploaded Image Description: {image_description['choices'][0]['message']['content']}\n\n{data['prompt']}"
+                )
+                print(f"Full Prompt: {prompt}")
+                if completion_type == "chat":
+                    data["messages"][-1]["content"] = prompt
+                else:
+                    data["prompt"] = prompt
+            except:
+                logging.warning(f"[VLM] Unable to read image from URL.")
+                pass
         if completion_type == "chat":
             response = self.llm.chat(**data)
         else:
