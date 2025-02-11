@@ -19,13 +19,17 @@ try:
 except ImportError:
     img_import_success = False
 
+from ezlocalai.VLM import VLM
+
 
 class Pipes:
     def __init__(self):
         load_dotenv()
         global img_import_success
         self.current_llm = getenv("DEFAULT_MODEL")
+        self.current_vlm = getenv("VISION_MODEL")
         self.llm = None
+        self.vlm = None
         self.ctts = None
         self.stt = None
         self.embedder = None
@@ -35,6 +39,15 @@ class Pipes:
             logging.info(f"[LLM] {self.current_llm} model loaded successfully.")
         if getenv("EMBEDDING_ENABLED").lower() == "true":
             self.embedder = Embedding()
+        if self.current_vlm != "":
+            logging.info(f"[VLM] {self.current_vlm} model loading. Please wait...")
+            try:
+                self.vlm = VLM(model=self.current_vlm)
+            except Exception as e:
+                logging.error(f"[VLM] Failed to load the model: {e}")
+                self.vlm = None
+            if self.vlm is not None:
+                logging.info(f"[ezlocalai] Vision is enabled with {self.current_vlm}.")
         if getenv("TTS_ENABLED").lower() == "true":
             logging.info(f"[CTTS] xttsv2_2.0.2 model loading. Please wait...")
             self.ctts = CTTS()
@@ -44,6 +57,11 @@ class Pipes:
             logging.info(f"[STT] {self.current_stt} model loading. Please wait...")
             self.stt = STT(model=self.current_stt)
             logging.info(f"[STT] {self.current_stt} model loaded successfully.")
+        if is_vision_model(self.current_llm):
+            if self.vlm is None:
+                self.vlm = self.llm
+        if self.current_llm == "none" and self.vlm is not None:
+            self.llm = self.vlm
         NGROK_TOKEN = getenv("NGROK_TOKEN")
         if NGROK_TOKEN:
             ngrok.set_auth_token(NGROK_TOKEN)
@@ -165,20 +183,39 @@ class Pipes:
             if completion_type == "chat"
             else data["prompt"]
         )
-        if images:
-            data["messages"][-1]["content"] = [
+        if self.vlm and images:
+            new_messages = [
                 {
-                    "type": "text",
-                    "text": user_message,
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": "Describe each stage of this image.",
+                        },
+                    ],
                 }
             ]
-            data["messages"][-1]["content"].extend(images)
-        if completion_type == "chat":
+            new_messages[0]["content"].extend(images)
             try:
-                response = self.llm.chat(**data)
+                image_description = self.vlm.chat(messages=new_messages)
+                print(
+                    f"Image Description: {image_description['choices'][0]['message']['content']}"
+                )
+                prompt = (
+                    f"\n\nSee the uploaded image description for any questions about the uploaded image. Act as if you can see the image based on the description. Do not mention 'uploaded image description' in response. Uploaded Image Description: {image_description['choices'][0]['message']['content']}\n\n{data['messages'][-1]['content'][0]['text']}"
+                    if completion_type == "chat"
+                    else f"\n\nSee the uploaded image description for any questions about the uploaded image. Act as if you can see the image based on the description. Do not mention 'uploaded image description' in response. Uploaded Image Description: {image_description['choices'][0]['message']['content']}\n\n{data['prompt']}"
+                )
+                print(f"Full Prompt: {prompt}")
+                if completion_type == "chat":
+                    data["messages"][-1]["content"] = prompt
+                else:
+                    data["prompt"] = prompt
             except:
-                data["messages"][-1]["content"] = user_message
-                response = self.llm.chat(**data)
+                logging.warning(f"[VLM] Unable to read image from URL.")
+                pass
+        if completion_type == "chat":
+            response = self.llm.chat(**data)
         else:
             response = self.llm.completion(**data)
         generated_image = None

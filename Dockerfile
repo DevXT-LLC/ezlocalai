@@ -8,6 +8,10 @@ WORKDIR /app
 COPY requirements.txt .
 RUN --mount=type=cache,target=/root/.cache/pip,sharing=locked \
     python3 -m pip install --no-cache-dir -r requirements.txt && \
+    git clone https://github.com/Josh-XT/DeepSeek-VL deepseek && \
+    cd deepseek && \
+    pip install --no-cache-dir -e . && \
+    cd .. && \
     pip uninstall -y torch torchvision torchaudio && \
     pip install torch==2.3.1 torchaudio==2.3.1 torchvision==0.18.1 --no-cache-dir && \
     pip install spacy==3.7.4 && \
