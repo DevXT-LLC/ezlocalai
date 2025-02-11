@@ -26,7 +26,10 @@ class VLM:
                 trust_remote_code=True,
                 cache_dir=os.path.join(os.getcwd(), "models"),
             )
-            self.vl_gpt = self.vl_gpt.to(torch.bfloat16).cuda().eval()
+            if torch.cuda.is_available():
+                self.vl_gpt = self.vl_gpt.to(torch.bfloat16).cuda().eval()
+            else:
+                self.vl_gpt = self.vl_gpt.eval()
         except Exception as e:
             print(f"[VLM] Error: {e}")
             self.vl_chat_processor = None
