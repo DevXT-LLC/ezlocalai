@@ -1,21 +1,20 @@
 FROM python:3.10-bullseye
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     apt-get update --fix-missing  && apt-get upgrade -y && \
-    apt-get install -y --fix-missing --no-install-recommends git build-essential gcc g++ portaudio19-dev ffmpeg libportaudio2 libasound-dev python3 python3-pip gcc wget libsndfile1 cmake && \
+    apt-get install -y --fix-missing --no-install-recommends git build-essential gcc g++ portaudio19-dev ffmpeg libportaudio2 libasound-dev python3 python3-pip gcc wget && \
     apt-get clean && rm -rf /var/lib/apt/lists/* && \
     python3 -m pip install --upgrade pip --no-cache-dir
 WORKDIR /app
 COPY requirements.txt .
 RUN --mount=type=cache,target=/root/.cache/pip,sharing=locked \
-    pip install --no-cache-dir torch==2.3.1 torchaudio==2.3.1 -f https://download.pytorch.org/whl/torch_stable.html && \
-    pip install diffusers[torch] --no-cache-dir && \
-    pip install spacy==3.7.4 && \
-    python -m spacy download en_core_web_sm && \
+    python3 -m pip install --no-cache-dir -r requirements.txt && \
     git clone https://github.com/Josh-XT/DeepSeek-VL deepseek && \
     cd deepseek && \
     pip install --no-cache-dir -e . && \
     cd .. && \
-    python3 -m pip install --no-cache-dir -r requirements.txt
+    pip install -U torch torchaudio --no-cache-dir && \
+    pip install spacy==3.7.4 && \
+    python -m spacy download en_core_web_sm
 COPY . .
 ENV HOST 0.0.0.0
 EXPOSE 8091
