@@ -23,7 +23,7 @@ COPY cuda-requirements.txt .
 RUN pip install --no-cache-dir -r cuda-requirements.txt
 RUN pip install spacy==3.7.4 && \
     python -m spacy download en_core_web_sm
-RUN CMAKE_ARGS="-DGGML_CUDA=on" pip install --no-cache-dir -e llama-cpp-python==0.3.7
+RUN CMAKE_ARGS="-DGGML_CUDA=on" pip install llama-cpp-python==0.3.7 --no-cache-dir
 COPY . .
 EXPOSE 8091
 EXPOSE 8502
