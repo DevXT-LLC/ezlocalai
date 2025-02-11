@@ -63,7 +63,7 @@ jobs:
           repository: ${{ vars.DOCKERHUB_USERNAME }}/ezlocalai
 
   test-ezlocalai:
-    uses: josh-xt/AGiXT/.github/workflows/operation-test-with-jupyter.yml@main
+    uses: ./.github/workflows/test-with-ezlocalai.yml
     with:
       notebook: tests.ipynb
       image: ghcr.io/devxt-llc/ezlocalai:main
