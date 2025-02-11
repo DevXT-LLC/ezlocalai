@@ -12,7 +12,8 @@ RUN --mount=type=cache,target=/root/.cache/pip,sharing=locked \
     cd deepseek && \
     pip install --no-cache-dir -e . && \
     cd .. && \
-    pip install -U torch torchaudio --no-cache-dir && \
+    pip uninstall -y torch torchvision torchaudio && \
+    pip install -U torch==2.3.1 torchaudio==2.3.1 torchvision==2.3.1 --no-cache-dir && \
     pip install spacy==3.7.4 && \
     python -m spacy download en_core_web_sm
 COPY . .
