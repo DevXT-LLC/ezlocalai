@@ -58,6 +58,7 @@ class CTTS:
             checkpoint_dir=str(checkpoint_dir),
             vocab_path=str(os.path.join(checkpoint_dir, "vocab.json")),
             use_deepspeed=deepspeed_available,
+            weights_only=False,
         )
         self.model.to(self.device)
         self.output_folder = os.path.join(os.getcwd(), "outputs")
