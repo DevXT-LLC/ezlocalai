@@ -22,5 +22,4 @@ openai
 pdfplumber
 optimum
 onnx
-diffusers[torch]
 llama-cpp-python==0.3.7

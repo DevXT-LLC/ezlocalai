@@ -13,7 +13,8 @@ RUN git clone https://github.com/Josh-XT/DeepSeek-VL deepseek && \
     pip install --no-cache-dir -e . && \
     cd ..
 RUN pip uninstall -y torchaudio && \
-    pip install --no-cache-dir torchaudio==2.3.1 -f https://download.pytorch.org/whl/torch_stable.html
+    pip install --no-cache-dir torchaudio==2.3.1 -f https://download.pytorch.org/whl/torch_stable.html && \
+    pip install diffusers
 RUN pip install spacy==3.7.4 && \
     python -m spacy download en_core_web_sm
 COPY . .
