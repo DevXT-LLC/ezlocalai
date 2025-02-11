@@ -7,8 +7,8 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
 WORKDIR /app
 COPY requirements.txt .
 RUN --mount=type=cache,target=/root/.cache/pip,sharing=locked \
-    python3 -m pip install --no-cache-dir -r requirements.txt
-RUN git clone https://github.com/Josh-XT/DeepSeek-VL deepseek && \
+    python3 -m pip install --no-cache-dir -r requirements.txt && \
+    git clone https://github.com/Josh-XT/DeepSeek-VL deepseek && \
     cd deepseek && \
     pip install --no-cache-dir -e . && \
     cd .. && \
