@@ -9,7 +9,6 @@ services:
       - WHISPER_MODEL=${WHISPER_MODEL-base.en}
       - IMG_ENABLED=${IMG_ENABLED-false}
       - IMG_DEVICE=${IMG_DEVICE-cpu}
-      - VISION_MODEL=${VISION_MODEL}
       - LLM_BATCH_SIZE=${LLM_BATCH_SIZE-1024}
       - SD_MODEL=${SD_MODEL}
     restart: unless-stopped
