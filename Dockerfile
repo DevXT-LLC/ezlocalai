@@ -17,7 +17,8 @@ RUN --mount=type=cache,target=/root/.cache/pip,sharing=locked \
     pip install spacy==3.7.4 && \
     python -m spacy download en_core_web_sm
 COPY . .
-ENV HOST 0.0.0.0
+ENV HOST 0.0.0.0 \
+    TOKENIZERS_PARALLELISM=false
 EXPOSE 8091
 EXPOSE 8502
 CMD streamlit run ui.py & uvicorn app:app --host 0.0.0.0 --port 8091 --workers 1 --proxy-headers

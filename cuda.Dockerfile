@@ -25,6 +25,7 @@ RUN pip install spacy==3.7.4 && \
     python -m spacy download en_core_web_sm
 RUN CMAKE_ARGS="-DGGML_CUDA=on" pip install llama-cpp-python==0.3.7 --no-cache-dir
 COPY . .
+ENV TOKENIZERS_PARALLELISM=false
 EXPOSE 8091
 EXPOSE 8502
 CMD streamlit run ui.py & uvicorn app:app --host 0.0.0.0 --port 8091 --workers 1 --proxy-headers
