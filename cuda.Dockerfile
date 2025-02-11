@@ -12,14 +12,18 @@ WORKDIR /app
 ENV HOST=0.0.0.0 \
     CUDA_DOCKER_ARCH=all \
     LLAMA_CUBLAS=1 \ 
-    GGML_CUDA=1
-RUN pip install llama-cpp-python==0.2.90 --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cu124 --no-cache-dir
-RUN git clone https://github.com/Josh-XT/DeepSeek-VL deepseek
+    GGML_CUDA=1 \
+    CMAKE_ARGS="-DGGML_CUDA=on"
 RUN pip install torch==2.3.1+cu121 torchaudio==2.3.1+cu121 --index-url https://download.pytorch.org/whl/cu121
+RUN git clone https://github.com/Josh-XT/DeepSeek-VL deepseek && \
+    cd deepseek && \
+    pip install --no-cache-dir -e . && \
+    cd ..
 COPY cuda-requirements.txt .
 RUN pip install --no-cache-dir -r cuda-requirements.txt
 RUN pip install spacy==3.7.4 && \
     python -m spacy download en_core_web_sm
+RUN CMAKE_ARGS="-DGGML_CUDA=on" pip install llama-cpp-python==0.3.7 --no-cache-dir
 COPY . .
 EXPOSE 8091
 EXPOSE 8502
