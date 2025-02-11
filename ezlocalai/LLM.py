@@ -43,8 +43,6 @@ def is_vision_model(model_name="") -> bool:
         for key in model:
             if model_name == key.lower():
                 return True
-    if "-vl-" in model_name.lower():
-        return True
     return False
 
 

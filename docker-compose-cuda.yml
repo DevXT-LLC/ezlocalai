@@ -18,6 +18,7 @@ services:
       - LLM_BATCH_SIZE=${LLM_BATCH_SIZE-1024}
       - CUDA_DOCKER_ARCH=all
       - TENSOR_SPLIT=${TENSOR_SPLIT-}
+      - TOKENIZERS_PARALLELISM=false
     restart: unless-stopped
     ports:
       - "8091:8091"
