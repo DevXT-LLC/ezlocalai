@@ -15,10 +15,6 @@ RUN git clone https://github.com/Josh-XT/DeepSeek-VL deepseek && \
 RUN pip install -U torch torchaudio --no-cache-dir
 RUN pip install spacy==3.7.4 && \
     python -m spacy download en_core_web_sm
-RUN git clone https://github.com/Josh-XT/llama-cpp-python.git --recurse-submodules && \
-    cd llama-cpp-python && \
-    pip install --no-cache-dir -e . && \
-    cd ..
 COPY . .
 ENV HOST 0.0.0.0
 EXPOSE 8091
