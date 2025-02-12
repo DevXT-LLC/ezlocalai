@@ -87,6 +87,20 @@ class Pipes:
                     self.img = None
             logging.info(f"[IMG] {SD_MODEL} model loaded successfully.")
 
+    async def fallback_inference(self, messages):
+        fallback_server = getenv("FALLBACK_SERVER")
+        fallback_model = getenv("FALLBACK_MODEL")
+        fallback_api_key = getenv("FALLBACK_API_KEY")
+        if fallback_server == "":
+            return "Unable to process request. Please try again later."
+        from openai import Client
+
+        client = Client(api_key=fallback_api_key, base_url=fallback_server)
+        response = client.chat.completions.create(
+            model=fallback_model, messages=messages
+        )
+        return response.choices[0].message.content
+
     async def pdf_to_audio(self, title, voice, pdf, chunk_size=200):
         filename = f"{title}.pdf"
         file_path = os.path.join(os.getcwd(), "outputs", filename)
@@ -197,7 +211,10 @@ class Pipes:
             ]
             new_messages[0]["content"].extend(images)
             try:
-                image_description = self.vlm.chat(messages=new_messages)
+                try:
+                    image_description = self.vlm.chat(messages=new_messages)
+                except:
+                    image_description = await self.fallback_inference(new_messages)
                 print(
                     f"Image Description: {image_description['choices'][0]['message']['content']}"
                 )
@@ -215,7 +232,10 @@ class Pipes:
                 logging.warning(f"[VLM] Unable to read image from URL.")
                 pass
         if completion_type == "chat":
-            response = self.llm.chat(**data)
+            try:
+                response = self.llm.chat(**data)
+            except:
+                response = await self.fallback_inference(data["messages"])
         else:
             response = self.llm.completion(**data)
         generated_image = None
@@ -251,22 +271,32 @@ class Pipes:
                 )
             img_gen_prompt = f"Users message: {user_message} \n\n{'The user uploaded an image, one does not need generated unless the user is specifically asking.' if images else ''} **The assistant is acting as sentiment analysis expert and only responds with a concise YES or NO answer on if the user would like an image as visual or a picture generated. No other explanation is needed!**\nWould the user potentially like an image generated based on their message?\nAssistant: "
             logging.info(f"[IMG] Decision maker prompt: {img_gen_prompt}")
-            create_img = self.llm.chat(
-                messages=[{"role": "system", "content": img_gen_prompt}],
-                max_tokens=10,
-                temperature=data["temperature"],
-                top_p=data["top_p"],
-            )
+            try:
+                create_img = self.llm.chat(
+                    messages=[{"role": "system", "content": img_gen_prompt}],
+                    max_tokens=10,
+                    temperature=data["temperature"],
+                    top_p=data["top_p"],
+                )
+            except:
+                create_img = await self.fallback_inference(
+                    [{"role": "system", "content": img_gen_prompt}]
+                )
             create_img = str(create_img["choices"][0]["message"]["content"]).lower()
             logging.info(f"[IMG] Decision maker response: {create_img}")
             if "yes" in create_img or "es," in create_img:
                 img_prompt = f"**The assistant is acting as a Stable Diffusion Prompt Generator.**\n\nUsers message: {user_message} \nAssistant response: {response_text} \n\nImportant rules to follow:\n- Describe subjects in detail, specify image type (e.g., digital illustration), art style (e.g., steampunk), and background. Include art inspirations (e.g., Art Station, specific artists). Detail lighting, camera (type, lens, view), and render (resolution, style). The weight of a keyword can be adjusted by using the syntax (((keyword))) , put only those keyword inside ((())) which is very important because it will have more impact so anything wrong will result in unwanted picture so be careful. Realistic prompts: exclude artist, specify lens. Separate with double lines. Max 60 words, avoiding 'real' for fantastical.\n- Based on the message from the user and response of the assistant, you will need to generate one detailed stable diffusion image generation prompt based on the context of the conversation to accompany the assistant response.\n- The prompt can only be up to 60 words long, so try to be concise while using enough descriptive words to make a proper prompt.\n- Following all rules will result in a $2000 tip that you can spend on anything!\n- Must be in markdown code block to be parsed out and only provide prompt in the code block, nothing else.\nStable Diffusion Prompt Generator: "
-                image_generation_prompt = self.llm.chat(
-                    messages=[{"role": "system", "content": img_prompt}],
-                    max_tokens=100,
-                    temperature=data["temperature"],
-                    top_p=data["top_p"],
-                )
+                try:
+                    image_generation_prompt = self.llm.chat(
+                        messages=[{"role": "system", "content": img_prompt}],
+                        max_tokens=100,
+                        temperature=data["temperature"],
+                        top_p=data["top_p"],
+                    )
+                except:
+                    image_generation_prompt = await self.fallback_inference(
+                        [{"role": "system", "content": img_prompt}]
+                    )
                 image_generation_prompt = str(
                     image_generation_prompt["choices"][0]["message"]["content"]
                 )
