@@ -228,8 +228,11 @@ class Pipes:
                     data["messages"][-1]["content"] = prompt
                 else:
                     data["prompt"] = prompt
-            except:
-                logging.warning(f"[VLM] Unable to read image from URL.")
+            except Exception as e:
+                import traceback
+
+                traceback.print_exc()
+                logging.error(f"[VLM] Failed to get image description: {e}")
                 pass
         if completion_type == "chat":
             try:
