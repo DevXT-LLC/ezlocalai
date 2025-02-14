@@ -334,4 +334,5 @@ class Pipes:
                 response["choices"][0]["text"] += f"\n\n{generated_image}"
             else:
                 response["choices"][0]["message"]["content"] += f"\n\n{generated_image}"
+        logging.info(f"[ezlocalai] {response}")
         return response, audio_response
