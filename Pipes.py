@@ -215,9 +215,7 @@ class Pipes:
                     image_description = self.vlm.chat(messages=new_messages)
                 except:
                     image_description = await self.fallback_inference(new_messages)
-                print(
-                    f"Image Description: {image_description['choices'][0]['message']['content']}"
-                )
+                print(f"Image Description: {image_description}")
                 prompt = (
                     f"\n\nSee the uploaded image description for any questions about the uploaded image. Act as if you can see the image based on the description. Do not mention 'uploaded image description' in response. Uploaded Image Description: {image_description['choices'][0]['message']['content']}\n\n{data['messages'][-1]['content'][0]['text']}"
                     if completion_type == "chat"
