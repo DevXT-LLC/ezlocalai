@@ -1,20 +1,23 @@
-FROM nvidia/cuda:12.4.0-devel-ubuntu22.04
+FROM nvidia/cuda:12.4.1-devel-ubuntu22.04
+ENV CUDA_PATH=/usr/local/cuda \
+    CUDA_HOME=/usr/local/cuda \
+    CUDA_TOOLKIT_ROOT_DIR=/usr/local/cuda \
+    LD_LIBRARY_PATH=/usr/local/cuda/lib64:$LD_LIBRARY_PATH
 RUN apt-get update --fix-missing && \
     apt-get upgrade -y && \
-    apt-get install -y --fix-missing --no-install-recommends git build-essential cmake gcc g++ portaudio19-dev ffmpeg libportaudio2 libasound-dev python3 python3-pip wget ocl-icd-opencl-dev opencl-headers clinfo libclblast-dev libopenblas-dev ninja-build python3.10-dev && \
-    mkdir -p /etc/OpenCL/vendors && echo "libnvidia-opencl.so.1" > /etc/OpenCL/vendors/nvidia.icd && \
+    apt-get install -y --no-install-recommends \
+       git build-essential cmake gcc g++ ninja-build \
+       portaudio19-dev ffmpeg libportaudio2 libasound-dev \
+       python3 python3-pip wget ocl-icd-opencl-dev opencl-headers \
+       clinfo libclblast-dev libopenblas-dev python3.10-dev unzip && \
+    mkdir -p /etc/OpenCL/vendors && \
+    echo "libnvidia-opencl.so.1" > /etc/OpenCL/vendors/nvidia.icd && \
     ln -s /usr/bin/python3 /usr/bin/python && \
     apt-get clean && \
-    rm -rf /var/lib/apt/lists/* /var/cache/apt/* /tmp/* /var/tmp/* && \
-    python3 -m pip install --upgrade pip && \
+    rm -rf /var/lib/apt/lists/* /var/cache/apt/* /tmp/* /var/tmp/*
+RUN python3 -m pip install --upgrade pip && \
     python3 -m pip install --upgrade cmake scikit-build setuptools wheel --no-cache-dir
 WORKDIR /app
-ENV HOST=0.0.0.0 \
-    CUDA_DOCKER_ARCH=all \
-    LLAMA_CUBLAS=1 \ 
-    GGML_CUDA=1 \
-    CMAKE_ARGS="-DGGML_CUDA=on"
-RUN CMAKE_ARGS="-DGGML_CUDA=on" pip install llama-cpp-python==0.3.2 --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cu124 --no-cache-dir
 RUN pip install torch==2.3.1+cu121 torchaudio==2.3.1+cu121 --index-url https://download.pytorch.org/whl/cu121
 RUN git clone https://github.com/Josh-XT/DeepSeek-VL deepseek && \
     cd deepseek && \
@@ -24,6 +27,14 @@ COPY cuda-requirements.txt .
 RUN pip install --no-cache-dir -r cuda-requirements.txt
 RUN pip install spacy==3.7.4 && \
     python -m spacy download en_core_web_sm
+ENV HOST=0.0.0.0 \
+    CUDA_DOCKER_ARCH=all \
+    LLAMA_CUBLAS=1 \
+    GGML_CUDA=on \
+    CUDAVER=12.4.1 \
+    AVXVER=basic
+RUN CMAKE_ARGS="-DGGML_CUDA=on -DGGML_CUDA_FORCE_MMQ=ON -DGGML_AVX2=off -DGGML_FMA=off -DGGML_F16C=off -DCMAKE_CUDA_ARCHITECTURES=52;75;80" \
+    pip install llama-cpp-python==0.3.7 --no-cache-dir
 COPY . .
 EXPOSE 8091
 EXPOSE 8502
