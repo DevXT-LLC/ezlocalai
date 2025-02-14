@@ -9,7 +9,7 @@ from pyngrok import ngrok
 import requests
 import base64
 import pdfplumber
-import torch
+import json
 from Globals import getenv
 
 try:
@@ -334,5 +334,5 @@ class Pipes:
                 response["choices"][0]["text"] += f"\n\n{generated_image}"
             else:
                 response["choices"][0]["message"]["content"] += f"\n\n{generated_image}"
-        logging.info(f"[ezlocalai] {response}")
+        logging.info(f"[ezlocalai] {json.dumps(response, indent=2)}")
         return response, audio_response
