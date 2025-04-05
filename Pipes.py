@@ -5,6 +5,7 @@ from ezlocalai.LLM import LLM, is_vision_model
 from ezlocalai.STT import STT
 from ezlocalai.CTTS import CTTS
 from ezlocalai.Embedding import Embedding
+from urllib.parse import urlparse
 from pyngrok import ngrok
 import requests
 import base64
@@ -165,8 +166,12 @@ class Pipes:
                             audio_url = audio_url.split(",")[1]
                             audio_format = audio_url.split(";")[0]
                         else:
-                            audio_url = requests.get(audio_url).content
-                            audio_url = base64.b64encode(audio_url).decode("utf-8")
+                            parsed_url = urlparse(audio_url)
+                            if parsed_url.scheme in ["http", "https"]:
+                                audio_url = requests.get(audio_url).content
+                                audio_url = base64.b64encode(audio_url).decode("utf-8")
+                            else:
+                                raise ValueError("Invalid audio URL")
                         transcribed_audio = self.stt.transcribe_audio(
                             base64_audio=audio_url, audio_format=audio_format
                         )
