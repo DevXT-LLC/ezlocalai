@@ -2,7 +2,7 @@ spacy==3.7.4
 fastapi
 uvicorn
 pydantic
-requests==2.32.0
+requests==2.32.4
 tiktoken==0.7.0
 python-dotenv==1.0.1
 beautifulsoup4==4.12.3
