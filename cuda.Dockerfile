@@ -34,7 +34,7 @@ ENV HOST=0.0.0.0 \
     CUDAVER=12.4.1 \
     AVXVER=basic
 RUN CMAKE_ARGS="-DGGML_CUDA=on -DGGML_CUDA_FORCE_MMQ=ON -DGGML_AVX2=off -DGGML_FMA=off -DGGML_F16C=off -DCMAKE_CUDA_ARCHITECTURES=86;89" \
-    pip install llama-cpp-python==0.3.7 --no-cache-dir
+    pip install llama-cpp-python==0.3.14 --no-cache-dir
 COPY . .
 EXPOSE 8091
 EXPOSE 8502
