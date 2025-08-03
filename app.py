@@ -154,7 +154,7 @@ async def chat_completions(
                     media_type="audio/wav",
                 )
             return StreamingResponse(
-                content=response["messages"][1]["content"],
+                content=response["choices"][0]["message"]["content"],
                 media_type="text/event-stream",
             )
     else:
