@@ -157,14 +157,36 @@ async def chat_completions(
             # Create a generator that extracts content from streaming chunks
             def generate_stream():
                 try:
+                    logging.info(
+                        f"[STREAMING] Starting stream with response type: {type(response)}"
+                    )
+                    chunk_count = 0
                     for chunk in response:
+                        chunk_count += 1
+                        logging.debug(f"[STREAMING] Chunk {chunk_count}: {chunk}")
                         if "choices" in chunk and len(chunk["choices"]) > 0:
                             delta = chunk["choices"][0].get("delta", {})
                             if "content" in delta:
-                                yield delta["content"]
+                                content = delta["content"]
+                                logging.debug(
+                                    f"[STREAMING] Yielding content: {content}"
+                                )
+                                yield content
+                        else:
+                            logging.debug(
+                                f"[STREAMING] Chunk {chunk_count} has no choices or content"
+                            )
+                    logging.info(
+                        f"[STREAMING] Stream completed with {chunk_count} chunks"
+                    )
                 except Exception as e:
-                    logging.error(f"Streaming error: {e}")
-                    yield f'data: {{"error": "Streaming failed: {str(e)}"}}\n\n'
+                    import traceback
+
+                    logging.error(f"[STREAMING] Streaming error: {e}")
+                    logging.error(
+                        f"[STREAMING] Full traceback: {traceback.format_exc()}"
+                    )
+                    yield f'data: {{"error": "Streaming failed: {str(e)}"}}\\n\\n'
 
             return StreamingResponse(
                 content=generate_stream(),

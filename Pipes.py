@@ -235,10 +235,25 @@ class Pipes:
         if completion_type == "chat":
             try:
                 response = self.llm.chat(**data)
-            except:
+            except Exception as e:
+                import traceback
+
+                logging.error(f"[LLM] Chat completion failed: {e}")
+                logging.error(f"[LLM] Full traceback: {traceback.format_exc()}")
+                logging.error(f"[LLM] Data that caused failure: {data}")
                 response = await self.fallback_inference(data["messages"])
         else:
-            response = self.llm.completion(**data)
+            try:
+                response = self.llm.completion(**data)
+            except Exception as e:
+                import traceback
+
+                logging.error(f"[LLM] Completion failed: {e}")
+                logging.error(f"[LLM] Full traceback: {traceback.format_exc()}")
+                logging.error(f"[LLM] Data that caused failure: {data}")
+                response = await self.fallback_inference(
+                    [{"role": "user", "content": data.get("prompt", "")}]
+                )
         generated_image = None
         if "temperature" not in data:
             data["temperature"] = 0.5
