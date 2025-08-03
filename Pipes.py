@@ -148,6 +148,7 @@ class Pipes:
         if "messages" in data:
             if isinstance(data["messages"][-1]["content"], list):
                 messages = data["messages"][-1]["content"]
+                prompt = ""
                 for message in messages:
                     if "text" in message:
                         prompt = message["text"]
@@ -171,6 +172,8 @@ class Pipes:
                             base64_audio=audio_url, audio_format=audio_format
                         )
                         prompt = f"Transcribed Audio: {transcribed_audio}\n\n{prompt}"
+                # Convert list content back to string for LLM compatibility
+                data["messages"][-1]["content"] = prompt
         if data["model"]:
             if self.current_llm != data["model"]:
                 data["model"] = self.current_llm
