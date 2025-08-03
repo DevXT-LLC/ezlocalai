@@ -154,9 +154,11 @@ async def chat_completions(
                     media_type="audio/wav",
                 )
 
-            # Create a generator that extracts content from streaming chunks
+            # Create a generator that yields properly formatted SSE chunks
             def generate_stream():
                 try:
+                    import json
+
                     logging.info(
                         f"[STREAMING] Starting stream with response type: {type(response)}"
                     )
@@ -164,18 +166,10 @@ async def chat_completions(
                     for chunk in response:
                         chunk_count += 1
                         logging.debug(f"[STREAMING] Chunk {chunk_count}: {chunk}")
-                        if "choices" in chunk and len(chunk["choices"]) > 0:
-                            delta = chunk["choices"][0].get("delta", {})
-                            if "content" in delta:
-                                content = delta["content"]
-                                logging.debug(
-                                    f"[STREAMING] Yielding content: {content}"
-                                )
-                                yield content
-                        else:
-                            logging.debug(
-                                f"[STREAMING] Chunk {chunk_count} has no choices or content"
-                            )
+                        # Yield the complete chunk in SSE format
+                        yield f"data: {json.dumps(chunk)}\n\n"
+                    # Send the final [DONE] message
+                    yield "data: [DONE]\n\n"
                     logging.info(
                         f"[STREAMING] Stream completed with {chunk_count} chunks"
                     )
@@ -186,7 +180,7 @@ async def chat_completions(
                     logging.error(
                         f"[STREAMING] Full traceback: {traceback.format_exc()}"
                     )
-                    yield f'data: {{"error": "Streaming failed: {str(e)}"}}\\n\\n'
+                    yield f'data: {{"error": "Streaming failed: {str(e)}"}}\n\n'
 
             return StreamingResponse(
                 content=generate_stream(),
