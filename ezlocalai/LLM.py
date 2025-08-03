@@ -370,7 +370,20 @@ class LLM:
         for message in messages:
             if message.get("role") == "system":
                 has_system = True
-            formatted_messages.append(message)
+            
+            # Handle messages with list content (multimodal)
+            formatted_message = message.copy()
+            if isinstance(message.get("content"), list):
+                # Extract text from list content for text-only models
+                text_content = ""
+                for content_item in message["content"]:
+                    if isinstance(content_item, dict) and content_item.get("type") == "text":
+                        text_content += content_item.get("text", "")
+                    elif isinstance(content_item, str):
+                        text_content += content_item
+                formatted_message["content"] = text_content
+            
+            formatted_messages.append(formatted_message)
         
         # If no system message exists, add default one
         if not has_system:

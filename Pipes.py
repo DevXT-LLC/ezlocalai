@@ -146,6 +146,42 @@ class Pipes:
         data["local_uri"] = self.local_uri
         images = []
         if "messages" in data:
+            # First, ensure all messages have string content, not list content
+            for i, message in enumerate(data["messages"]):
+                if isinstance(message.get("content"), list):
+                    # Extract text content from list format
+                    text_content = ""
+                    message_images = []
+                    for content_item in message["content"]:
+                        if isinstance(content_item, dict):
+                            if content_item.get("type") == "text":
+                                text_content += content_item.get("text", "")
+                            elif "image_url" in content_item:
+                                message_images.append(content_item)
+                                images.extend(message_images)
+                            elif "audio_url" in content_item:
+                                audio_url = (
+                                    content_item["audio_url"]["url"]
+                                    if "url" in content_item["audio_url"]
+                                    else content_item["audio_url"]
+                                )
+                                audio_format = "wav"
+                                if audio_url.startswith("data:"):
+                                    audio_url = audio_url.split(",")[1]
+                                    audio_format = audio_url.split(";")[0]
+                                else:
+                                    audio_url = requests.get(audio_url).content
+                                    audio_url = base64.b64encode(audio_url).decode("utf-8")
+                                transcribed_audio = self.stt.transcribe_audio(
+                                    base64_audio=audio_url, audio_format=audio_format
+                                )
+                                text_content = f"Transcribed Audio: {transcribed_audio}\n\n{text_content}"
+                        elif isinstance(content_item, str):
+                            text_content += content_item
+                    # Convert list content back to string for LLM compatibility
+                    data["messages"][i]["content"] = text_content
+            
+            # Legacy handling for the old format (keeping for backward compatibility)
             if isinstance(data["messages"][-1]["content"], list):
                 messages = data["messages"][-1]["content"]
                 prompt = ""
