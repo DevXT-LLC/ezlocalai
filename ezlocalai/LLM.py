@@ -352,20 +352,24 @@ class LLM:
 
     def completion(self, prompt, **kwargs):
         data = self.generate(prompt=prompt, **kwargs)
-        data["choices"][0]["message"]["content"] = clean(
-            message=data["choices"][0]["message"]["content"],
-            stop_tokens=self.params["stop"],
-        )
-        data["choices"][0]["text"] = data["choices"][0]["message"]["content"]
+        # Only clean content if data is not a generator (streaming mode)
+        if not hasattr(data, "__next__"):
+            data["choices"][0]["message"]["content"] = clean(
+                message=data["choices"][0]["message"]["content"],
+                stop_tokens=self.params["stop"],
+            )
+            data["choices"][0]["text"] = data["choices"][0]["message"]["content"]
         return data
 
     def chat(self, messages, **kwargs):
         user_input = messages[-1]["content"]
         data = self.generate(prompt=user_input, **kwargs)
-        data["choices"][0]["message"]["content"] = clean(
-            message=data["choices"][0]["message"]["content"],
-            stop_tokens=self.params["stop"],
-        )
+        # Only clean content if data is not a generator (streaming mode)
+        if not hasattr(data, "__next__"):
+            data["choices"][0]["message"]["content"] = clean(
+                message=data["choices"][0]["message"]["content"],
+                stop_tokens=self.params["stop"],
+            )
         return data
 
     def models(self):
