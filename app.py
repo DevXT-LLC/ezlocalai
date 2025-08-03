@@ -153,8 +153,13 @@ async def chat_completions(
                     content=audio_response,
                     media_type="audio/wav",
                 )
+            # Check if response is a string (direct content) or dict (structured response)
+            if isinstance(response, str):
+                content = response
+            else:
+                content = response["choices"][0]["message"]["content"]
             return StreamingResponse(
-                content=response["choices"][0]["message"]["content"],
+                content=content,
                 media_type="text/event-stream",
             )
     else:
