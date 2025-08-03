@@ -171,7 +171,9 @@ class Pipes:
                                     audio_format = audio_url.split(";")[0]
                                 else:
                                     audio_url = requests.get(audio_url).content
-                                    audio_url = base64.b64encode(audio_url).decode("utf-8")
+                                    audio_url = base64.b64encode(audio_url).decode(
+                                        "utf-8"
+                                    )
                                 transcribed_audio = self.stt.transcribe_audio(
                                     base64_audio=audio_url, audio_format=audio_format
                                 )
@@ -180,7 +182,7 @@ class Pipes:
                             text_content += content_item
                     # Convert list content back to string for LLM compatibility
                     data["messages"][i]["content"] = text_content
-            
+
             # Legacy handling for the old format (keeping for backward compatibility)
             if isinstance(data["messages"][-1]["content"], list):
                 messages = data["messages"][-1]["content"]

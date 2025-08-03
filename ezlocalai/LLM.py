@@ -366,32 +366,34 @@ class LLM:
         # Ensure we have a system message at the beginning
         formatted_messages = []
         has_system = False
-        
+
         for message in messages:
             if message.get("role") == "system":
                 has_system = True
-            
+
             # Handle messages with list content (multimodal)
             formatted_message = message.copy()
             if isinstance(message.get("content"), list):
                 # Extract text from list content for text-only models
                 text_content = ""
                 for content_item in message["content"]:
-                    if isinstance(content_item, dict) and content_item.get("type") == "text":
+                    if (
+                        isinstance(content_item, dict)
+                        and content_item.get("type") == "text"
+                    ):
                         text_content += content_item.get("text", "")
                     elif isinstance(content_item, str):
                         text_content += content_item
                 formatted_message["content"] = text_content
-            
+
             formatted_messages.append(formatted_message)
-        
+
         # If no system message exists, add default one
         if not has_system:
-            formatted_messages.insert(0, {
-                "role": "system", 
-                "content": self.system_message
-            })
-        
+            formatted_messages.insert(
+                0, {"role": "system", "content": self.system_message}
+            )
+
         # Use llama-cpp-python's chat completion directly with full message history
         data = self.lcpp.create_chat_completion(
             messages=formatted_messages,
@@ -402,12 +404,16 @@ class LLM:
             top_k=kwargs.get("top_k", self.params["top_k"]),
             logit_bias=kwargs.get("logit_bias", self.params["logit_bias"]),
             mirostat_mode=kwargs.get("mirostat_mode", self.params["mirostat_mode"]),
-            frequency_penalty=kwargs.get("frequency_penalty", self.params["frequency_penalty"]),
-            presence_penalty=kwargs.get("presence_penalty", self.params["presence_penalty"]),
+            frequency_penalty=kwargs.get(
+                "frequency_penalty", self.params["frequency_penalty"]
+            ),
+            presence_penalty=kwargs.get(
+                "presence_penalty", self.params["presence_penalty"]
+            ),
             stream=kwargs.get("stream", self.params["stream"]),
-            stop=kwargs.get("stop", self.params["stop"])
+            stop=kwargs.get("stop", self.params["stop"]),
         )
-        
+
         # Only clean content if data is not a generator (streaming mode)
         if not hasattr(data, "__next__"):
             data["choices"][0]["message"]["content"] = clean(
