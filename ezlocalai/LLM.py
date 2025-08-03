@@ -345,7 +345,9 @@ class LLM:
             stream=self.params["stream"] if stream is None else stream,
             model=self.model_name if model is None else model,
         )
-        data["model"] = self.model_name
+        # Only assign model if data is not a generator (streaming mode)
+        if not hasattr(data, "__next__"):
+            data["model"] = self.model_name
         return data
 
     def completion(self, prompt, **kwargs):
