@@ -362,8 +362,39 @@ class LLM:
         return data
 
     def chat(self, messages, **kwargs):
-        user_input = messages[-1]["content"]
-        data = self.generate(prompt=user_input, **kwargs)
+        # Handle the full conversation history instead of just the last message
+        # Ensure we have a system message at the beginning
+        formatted_messages = []
+        has_system = False
+        
+        for message in messages:
+            if message.get("role") == "system":
+                has_system = True
+            formatted_messages.append(message)
+        
+        # If no system message exists, add default one
+        if not has_system:
+            formatted_messages.insert(0, {
+                "role": "system", 
+                "content": self.system_message
+            })
+        
+        # Use llama-cpp-python's chat completion directly with full message history
+        data = self.lcpp.create_chat_completion(
+            messages=formatted_messages,
+            max_tokens=kwargs.get("max_tokens", self.params["max_tokens"]),
+            temperature=kwargs.get("temperature", self.params["temperature"]),
+            top_p=kwargs.get("top_p", self.params["top_p"]),
+            min_p=kwargs.get("min_p", self.params["min_p"]),
+            top_k=kwargs.get("top_k", self.params["top_k"]),
+            logit_bias=kwargs.get("logit_bias", self.params["logit_bias"]),
+            mirostat_mode=kwargs.get("mirostat_mode", self.params["mirostat_mode"]),
+            frequency_penalty=kwargs.get("frequency_penalty", self.params["frequency_penalty"]),
+            presence_penalty=kwargs.get("presence_penalty", self.params["presence_penalty"]),
+            stream=kwargs.get("stream", self.params["stream"]),
+            stop=kwargs.get("stop", self.params["stop"])
+        )
+        
         # Only clean content if data is not a generator (streaming mode)
         if not hasattr(data, "__next__"):
             data["choices"][0]["message"]["content"] = clean(
