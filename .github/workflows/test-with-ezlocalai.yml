@@ -30,9 +30,15 @@ jobs:
       service-under-test:
         image: ${{ inputs.image }}
         env:
-          DEFAULT_MODEL: "bartowski/Qwen2.5-3B-Instruct-GGUF" 
+          DEFAULT_MODEL: "unsloth/Qwen3-1.7B-GGUF"
         ports:
           - ${{ inputs.port-mapping || format('{0}:{1}', inputs.port, inputs.port) }}
+        options: >-
+          --health-cmd "curl -f http://localhost:${{ inputs.port }}"
+          --health-interval 10s
+          --health-timeout 500s
+          --health-retries 5
+          --health-start-period 5m
 
     steps:
       - uses: actions/setup-python@v5
