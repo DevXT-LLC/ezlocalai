@@ -153,13 +153,21 @@ async def chat_completions(
                     content=audio_response,
                     media_type="audio/wav",
                 )
-            # Check if response is a string (direct content) or dict (structured response)
-            if isinstance(response, str):
-                content = response
-            else:
-                content = response["choices"][0]["message"]["content"]
+
+            # Create a generator that extracts content from streaming chunks
+            def generate_stream():
+                try:
+                    for chunk in response:
+                        if "choices" in chunk and len(chunk["choices"]) > 0:
+                            delta = chunk["choices"][0].get("delta", {})
+                            if "content" in delta:
+                                yield delta["content"]
+                except Exception as e:
+                    logging.error(f"Streaming error: {e}")
+                    yield f'data: {{"error": "Streaming failed: {str(e)}"}}\n\n'
+
             return StreamingResponse(
-                content=content,
+                content=generate_stream(),
                 media_type="text/event-stream",
             )
     else:
