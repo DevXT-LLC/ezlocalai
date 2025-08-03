@@ -353,5 +353,9 @@ class Pipes:
                 response["choices"][0]["text"] += f"\n\n{generated_image}"
             else:
                 response["choices"][0]["message"]["content"] += f"\n\n{generated_image}"
-        logging.info(f"[ezlocalai] {json.dumps(response, indent=2)}")
+        # Only log JSON if response is not a generator (streaming mode)
+        if not hasattr(response, "__next__"):
+            logging.info(f"[ezlocalai] {json.dumps(response, indent=2)}")
+        else:
+            logging.info(f"[ezlocalai] Streaming response generated")
         return response, audio_response
