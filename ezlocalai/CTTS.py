@@ -46,8 +46,6 @@ class CTTS:
     def __init__(self):
         global deepspeed_available
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
-        if self.device == "cuda":
-            torch.cuda.empty_cache()
         checkpoint_dir = os.path.join(os.getcwd(), "xttsv2_2.0.2")
         download_xtts()
         config = XttsConfig()
@@ -57,9 +55,13 @@ class CTTS:
             config,
             checkpoint_dir=str(checkpoint_dir),
             vocab_path=str(os.path.join(checkpoint_dir, "vocab.json")),
-            use_deepspeed=deepspeed_available,
+            use_deepspeed=deepspeed_available and self.device == "cuda",
         )
         self.model.to(self.device)
+
+        # Fix for CPU mode: ensure the model is properly set to eval mode
+        # This helps with the gpt_inference initialization on CPU
+        self.model.eval()
         self.output_folder = os.path.join(os.getcwd(), "outputs")
         os.makedirs(self.output_folder, exist_ok=True)
         self.voices_path = os.path.join(os.getcwd(), "voices")
@@ -102,22 +104,33 @@ class CTTS:
         text_chunks = chunk_content(text)
         output_files = []
         for chunk in text_chunks:
-            output = self.model.inference(
-                text=chunk,
-                language=language,
-                gpt_cond_latent=gpt_cond_latent,
-                speaker_embedding=speaker_embedding,
-                enable_text_splitting=True,
-                temperature=0.7,
-                repetition_penalty=10.0,
-            )
+            # Use different parameters for CPU vs GPU to avoid the generate method issue
+            if self.device == "cpu":
+                output = self.model.inference(
+                    text=chunk,
+                    language=language,
+                    gpt_cond_latent=gpt_cond_latent,
+                    speaker_embedding=speaker_embedding,
+                    enable_text_splitting=False,  # Disable text splitting on CPU
+                    temperature=0.7,
+                    repetition_penalty=10.0,
+                )
+            else:
+                output = self.model.inference(
+                    text=chunk,
+                    language=language,
+                    gpt_cond_latent=gpt_cond_latent,
+                    speaker_embedding=speaker_embedding,
+                    enable_text_splitting=True,
+                    temperature=0.7,
+                    repetition_penalty=10.0,
+                )
             output_file_name = f"{uuid.uuid4().hex}.wav"
             output_file = os.path.join(self.output_folder, output_file_name)
             torchaudio.save(
                 output_file, torch.tensor(output["wav"]).unsqueeze(0), 24000
             )
             output_files.append(output_file)
-            torch.cuda.empty_cache()
         combined_audio = AudioSegment.empty()
         for file in output_files:
             audio = AudioSegment.from_file(file)
