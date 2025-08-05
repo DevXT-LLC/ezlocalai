@@ -14,11 +14,13 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from typing import List, Dict, Union, Optional
 from Pipes import Pipes
+from RequestQueue import RequestQueue
 import base64
 import os
 import logging
 import uuid
 import time
+import asyncio
 from Globals import getenv
 
 DEFAULT_MODEL = getenv("DEFAULT_MODEL")
@@ -27,10 +29,42 @@ logging.basicConfig(
     level=getenv("LOG_LEVEL"),
     format=getenv("LOG_FORMAT"),
 )
+
+# Initialize request queue
+MAX_CONCURRENT_REQUESTS = int(getenv("MAX_CONCURRENT_REQUESTS", "1"))
+MAX_QUEUE_SIZE = int(getenv("MAX_QUEUE_SIZE", "100"))
+request_queue = RequestQueue(
+    max_concurrent_requests=MAX_CONCURRENT_REQUESTS,
+    max_queue_size=MAX_QUEUE_SIZE
+)
+
 pipe = Pipes()
 logging.info(f"[ezlocalai] Server is ready.")
 
 app = FastAPI(title="ezlocalai Server", docs_url="/")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Queue management
+@app.on_event("startup")
+async def startup_event():
+    await request_queue.start()
+    logging.info("[ezlocalai] Request queue started")
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    await request_queue.stop()
+    logging.info("[ezlocalai] Request queue stopped")
+
+# Async wrapper for pipe.get_response
+async def process_request_async(data: Dict, completion_type: str):
+    """Async wrapper for pipe.get_response to handle it in the queue."""
+    return await pipe.get_response(data, completion_type)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -139,9 +173,36 @@ async def chat_completions(
 
     if getenv("DEFAULT_MODEL") or getenv("VISION_MODEL"):
         data = await request.json()
-        response, audio_response = await pipe.get_response(
-            data=data, completion_type="chat"
-        )
+        
+        # Add request timeout (configurable via environment variable)
+        request_timeout = float(getenv("REQUEST_TIMEOUT", "300"))  # 5 minutes default
+        
+        try:
+            # Enqueue the request
+            request_id = await request_queue.enqueue_request(
+                data=data,
+                completion_type="chat",
+                processor_func=process_request_async
+            )
+            
+            # Wait for the result
+            response, audio_response = await request_queue.wait_for_result(
+                request_id, 
+                timeout=request_timeout
+            )
+            
+        except HTTPException:
+            # Re-raise HTTP exceptions (queue full, etc.)
+            raise
+        except asyncio.TimeoutError:
+            raise HTTPException(
+                status_code=408, 
+                detail=f"Request timed out after {request_timeout} seconds"
+            )
+        except Exception as e:
+            logging.error(f"[Chat Completions] Unexpected error: {e}")
+            raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+        
         if audio_response:
             if audio_response.startswith("http"):
                 return response
@@ -223,9 +284,37 @@ class CompletionsResponse(BaseModel):
 )
 async def completions(c: Completions, request: Request, user=Depends(verify_api_key)):
     if getenv("DEFAULT_MODEL") or getenv("VISION_MODEL"):
-        response, audio_response = await pipe.get_response(
-            data=await request.json(), completion_type="completion"
-        )
+        data = await request.json()
+        
+        # Add request timeout (configurable via environment variable)
+        request_timeout = float(getenv("REQUEST_TIMEOUT", "300"))  # 5 minutes default
+        
+        try:
+            # Enqueue the request
+            request_id = await request_queue.enqueue_request(
+                data=data,
+                completion_type="completion",
+                processor_func=process_request_async
+            )
+            
+            # Wait for the result
+            response, audio_response = await request_queue.wait_for_result(
+                request_id, 
+                timeout=request_timeout
+            )
+            
+        except HTTPException:
+            # Re-raise HTTP exceptions (queue full, etc.)
+            raise
+        except asyncio.TimeoutError:
+            raise HTTPException(
+                status_code=408, 
+                detail=f"Request timed out after {request_timeout} seconds"
+            )
+        except Exception as e:
+            logging.error(f"[Completions] Unexpected error: {e}")
+            raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+        
         if audio_response:
             if audio_response.startswith("http"):
                 return response
@@ -463,3 +552,27 @@ async def generate_image(
         "created": int(time.time()),
         "data": [{"b64_json": image}],
     }
+
+
+# Queue management endpoints
+@app.get(
+    "/v1/queue/status",
+    tags=["Queue Management"],
+    dependencies=[Depends(verify_api_key)],
+)
+async def get_queue_status(user=Depends(verify_api_key)):
+    """Get current queue status and metrics."""
+    return request_queue.get_queue_status()
+
+
+@app.get(
+    "/v1/queue/request/{request_id}",
+    tags=["Queue Management"],
+    dependencies=[Depends(verify_api_key)],
+)
+async def get_request_status(request_id: str, user=Depends(verify_api_key)):
+    """Get status of a specific request."""
+    status = request_queue.get_request_status(request_id)
+    if status is None:
+        raise HTTPException(status_code=404, detail=f"Request {request_id} not found")
+    return status
