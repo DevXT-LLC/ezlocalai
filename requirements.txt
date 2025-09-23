@@ -10,7 +10,7 @@ faster-whisper==1.0.3
 pydub==0.25.1
 ffmpeg-python==0.2.0
 torch==2.3.1
-transformers
+transformers>=4.32.0
 TTS==0.22.0
 sounddevice==0.4.6
 pyaudio==0.2.14
@@ -20,9 +20,10 @@ accelerate
 python-multipart
 openai
 pdfplumber
-optimum[onnxruntime]
-onnxruntime
+optimum[onnxruntime]>=1.16.0
+onnxruntime>=1.16.0
 onnx
 diffusers[torch]
 torchaudio==2.3.1
 llama-cpp-python==0.3.16
+eager
