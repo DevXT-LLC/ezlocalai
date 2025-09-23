@@ -23,6 +23,6 @@ pdfplumber
 optimum[onnxruntime]==1.21.4
 onnxruntime==1.18.1
 onnx
-diffusers[torch]
+diffusers[torch]==0.29.2
 torchaudio==2.3.1
 llama-cpp-python==0.3.16
