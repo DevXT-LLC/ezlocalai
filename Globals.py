@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
-def getenv(var_name: str):
+def getenv(var_name: str, default_value: str = None) -> str:
     default_values = {
         "EZLOCALAI_URL": "http://localhost:8091",
         "EZLOCALAI_API_KEY": "none",
@@ -33,5 +33,6 @@ def getenv(var_name: str):
         "MAX_QUEUE_SIZE": "100",
         "REQUEST_TIMEOUT": "300",
     }
-    default_value = default_values[var_name] if var_name in default_values else ""
+    if not default_value:
+        default_value = default_values[var_name] if var_name in default_values else ""
     return os.getenv(var_name, default_value)
