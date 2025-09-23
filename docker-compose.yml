@@ -12,6 +12,9 @@ services:
       - VISION_MODEL=${VISION_MODEL}
       - LLM_BATCH_SIZE=${LLM_BATCH_SIZE-1024}
       - SD_MODEL=${SD_MODEL}
+      - MAX_CONCURRENT_REQUESTS=${MAX_CONCURRENT_REQUESTS-1}
+      - MAX_QUEUE_SIZE=${MAX_QUEUE_SIZE-100}
+      - REQUEST_TIMEOUT=${REQUEST_TIMEOUT-300}
     restart: unless-stopped
     ports:
       - "8091:8091"
