@@ -20,7 +20,8 @@ accelerate
 python-multipart
 openai
 pdfplumber
-optimum
+optimum[onnxruntime]
+onnxruntime
 onnx
 diffusers[torch]
 torchaudio==2.3.1
