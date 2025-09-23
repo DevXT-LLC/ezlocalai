@@ -9,7 +9,7 @@ beautifulsoup4==4.12.3
 faster-whisper==1.2.0
 pydub==0.25.1
 ffmpeg-python==0.2.0
-transformers>=4.32.0
+transformers==4.44.2
 TTS==0.22.0
 sounddevice==0.4.6
 deepspeed==0.15.1
@@ -22,11 +22,10 @@ python-multipart
 streamlit
 openai
 pdfplumber
-optimum[onnxruntime]>=1.16.0
-onnxruntime>=1.16.0
+optimum[onnxruntime]==1.21.4
+onnxruntime==1.18.1
 onnx
 timm>=0.9.16
 sentencepiece
 attrdict
 einops
-eager
