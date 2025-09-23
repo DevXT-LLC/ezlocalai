@@ -7,6 +7,7 @@ import torchaudio
 import requests
 import logging
 from ezlocalai.Helpers import chunk_content
+from ezlocalai.AudioCache import AudioCache
 from TTS.tts.configs.xtts_config import XttsConfig
 from TTS.tts.models.xtts import Xtts
 from pydub import AudioSegment
@@ -43,7 +44,7 @@ def download_xtts():
 
 
 class CTTS:
-    def __init__(self):
+    def __init__(self, cache_config=None):
         global deepspeed_available
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         checkpoint_dir = os.path.join(os.getcwd(), "xttsv2_2.0.2")
@@ -71,6 +72,15 @@ class CTTS:
                 wav_files.append(file.replace(".wav", ""))
         self.voices = wav_files
 
+        # Initialize audio cache
+        self.cache = AudioCache(cache_config)
+
+        # Cache statistics tracking
+        self.use_cache = cache_config.get("enabled", True) if cache_config else True
+        logging.info(
+            f"[CTTS] Audio caching {'enabled' if self.use_cache else 'disabled'}"
+        )
+
     async def generate(
         self,
         text,
@@ -78,10 +88,13 @@ class CTTS:
         language="en",
         local_uri=None,
         output_file_name=None,
+        use_cache=None,  # Allow override of cache usage
     ):
-        if not output_file_name:
-            output_file_name = f"{uuid.uuid4().hex}.wav"
-        output_file = os.path.join(self.output_folder, output_file_name)
+        # Use cache setting from init if not explicitly overridden
+        if use_cache is None:
+            use_cache = self.use_cache
+
+        # Clean and normalize text
         cleaned_string = re.sub(r"([!?.])\1+", r"\1", text)
         cleaned_string = re.sub(
             r'[^a-zA-Z0-9\s\.,;:!?\-\'"\u0400-\u04FFÀ-ÿ\u0150\u0151\u0170\u0171]\$',
@@ -90,34 +103,133 @@ class CTTS:
         )
         cleaned_string = re.sub(r"\n+", " ", cleaned_string)
         text = cleaned_string.replace("#", "")
+
+        # Normalize voice name
+        voice_name = voice
         if not voice.endswith(".wav"):
             voice = f"{voice}.wav"
+
+        # Check cache first if enabled
+        if use_cache:
+            cache_key = self.cache.generate_cache_key(text, voice_name, language)
+
+            # Check if cached file exists
+            cached_file_path = os.path.join(
+                self.output_folder, "cache", "audio", f"{cache_key}.wav"
+            )
+
+            if os.path.exists(cached_file_path):
+                # Update cache statistics
+                cached_audio = self.cache.get_cached_audio(cache_key)
+
+                if cached_audio:
+                    if local_uri:
+                        # Return URL to existing cached file
+                        return f"{local_uri}/outputs/cache/audio/{cache_key}.wav"
+                    else:
+                        # Return base64 encoded
+                        return base64.b64encode(cached_audio).decode("utf-8")
+
+        # If not cached or cache disabled, generate new audio
         audio_path = os.path.join(self.voices_path, voice)
         if not os.path.exists(audio_path):
             audio_path = os.path.join(self.voices_path, "default.wav")
+
+        # Get conditioning latents
         gpt_cond_latent, speaker_embedding = self.model.get_conditioning_latents(
             audio_path=[f"{audio_path}"],
             gpt_cond_len=self.model.config.gpt_cond_len,
             max_ref_length=self.model.config.max_ref_len,
             sound_norm_refs=self.model.config.sound_norm_refs,
         )
+
+        # Split text into chunks
         text_chunks = chunk_content(text)
-        output_files = []
+
+        # Process chunks with cache optimization
+        all_chunks_audio = []
+
         for chunk in text_chunks:
-            # Use different parameters for CPU vs GPU to avoid the generate method issue
+            if use_cache and len(chunk.strip()) > 0:
+                # For caching, generate multiple samples and select best
+                chunk_audio = await self._generate_with_cache_optimization(
+                    chunk, language, gpt_cond_latent, speaker_embedding, voice_name
+                )
+            else:
+                # Generate single sample without cache
+                chunk_audio = self._generate_single_sample(
+                    chunk, language, gpt_cond_latent, speaker_embedding
+                )
+            all_chunks_audio.append(chunk_audio)
+
+        # Combine all chunks
+        combined_audio = AudioSegment.empty()
+        for audio_data in all_chunks_audio:
+            # Convert bytes to AudioSegment
+            temp_file = os.path.join(self.output_folder, f"temp_{uuid.uuid4().hex}.wav")
+            with open(temp_file, "wb") as f:
+                f.write(audio_data)
+            audio = AudioSegment.from_file(temp_file)
+            combined_audio += audio
+            combined_audio += AudioSegment.silent(duration=1000)
+            os.remove(temp_file)
+
+        # Export final audio
+        if not output_file_name:
+            output_file_name = f"{uuid.uuid4().hex}.wav"
+        output_file = os.path.join(self.output_folder, output_file_name)
+        combined_audio.export(output_file, format="wav")
+
+        # Read final audio data
+        with open(output_file, "rb") as file:
+            final_audio_data = file.read()
+
+        # Store in cache if enabled (for the complete text)
+        if use_cache and len(text_chunks) == 1:  # Only cache single-chunk audio
+            cache_key = self.cache.generate_cache_key(text, voice_name, language)
+            metadata = {
+                "text": text,
+                "voice": voice_name,
+                "language": language,
+                "duration_ms": len(combined_audio),
+                "generation_method": "single_generation",
+            }
+            self.cache.store_cached_audio(cache_key, final_audio_data, metadata)
+
+        # Return result
+        if local_uri:
+            return f"{local_uri}/outputs/{output_file_name}"
+        else:
+            os.remove(output_file)
+            return base64.b64encode(final_audio_data).decode("utf-8")
+
+    async def _generate_with_cache_optimization(
+        self, text, language, gpt_cond_latent, speaker_embedding, voice_name
+    ):
+        """Generate audio with multi-sample optimization for caching."""
+        # Check if this specific chunk is already cached
+        cache_key = self.cache.generate_cache_key(text, voice_name, language)
+        cached_audio = self.cache.get_cached_audio(cache_key)
+
+        if cached_audio:
+            return cached_audio
+
+        # Generate multiple samples using the cache's selection logic
+        def generation_func(text, language, **kwargs):
+            """Wrapper function for audio generation."""
             if self.device == "cpu":
                 output = self.model.inference(
-                    text=chunk,
+                    text=text,
                     language=language,
                     gpt_cond_latent=gpt_cond_latent,
                     speaker_embedding=speaker_embedding,
-                    enable_text_splitting=False,  # Disable text splitting on CPU
+                    enable_text_splitting=False,
                     temperature=0.7,
                     repetition_penalty=10.0,
                 )
             else:
                 output = self.model.inference(
-                    text=chunk,
+                    text=text,
                     language=language,
                     gpt_cond_latent=gpt_cond_latent,
                     speaker_embedding=speaker_embedding,
@@ -125,25 +237,77 @@ class CTTS:
                     temperature=0.7,
                     repetition_penalty=10.0,
                 )
-            output_file_name = f"{uuid.uuid4().hex}.wav"
-            output_file = os.path.join(self.output_folder, output_file_name)
-            torchaudio.save(
-                output_file, torch.tensor(output["wav"]).unsqueeze(0), 24000
+
+            # Save to temporary file and return bytes
+            temp_file = os.path.join(self.output_folder, f"temp_{uuid.uuid4().hex}.wav")
+            torchaudio.save(temp_file, torch.tensor(output["wav"]).unsqueeze(0), 24000)
+            with open(temp_file, "rb") as f:
+                audio_data = f.read()
+            os.remove(temp_file)
+            return audio_data
+
+        # Generate and select best audio
+        generation_params = {
+            "text": text,
+            "language": language,
+        }
+
+        best_audio, metadata = self.cache.select_best_audio(
+            [], generation_func, generation_params
+        )
+
+        # Add voice info to metadata and store in cache
+        metadata["text"] = text
+        metadata["voice"] = voice_name
+        metadata["language"] = language
+
+        self.cache.store_cached_audio(cache_key, best_audio, metadata)
+
+        return best_audio
+
+    def _generate_single_sample(
+        self, text, language, gpt_cond_latent, speaker_embedding
+    ):
+        """Generate a single audio sample without caching."""
+        if self.device == "cpu":
+            output = self.model.inference(
+                text=text,
+                language=language,
+                gpt_cond_latent=gpt_cond_latent,
+                speaker_embedding=speaker_embedding,
+                enable_text_splitting=False,
+                temperature=0.7,
+                repetition_penalty=10.0,
             )
-            output_files.append(output_file)
-        combined_audio = AudioSegment.empty()
-        for file in output_files:
-            audio = AudioSegment.from_file(file)
-            combined_audio += audio
-            combined_audio += AudioSegment.silent(duration=1000)
-            os.remove(file)
-        combined_audio.export(output_file, format="wav")
-        if local_uri:
-            return f"{local_uri}/outputs/{output_file_name}"
-        with open(output_file, "rb") as file:
-            audio_data = file.read()
-        os.remove(output_file)
-        return base64.b64encode(audio_data).decode("utf-8")
+        else:
+            output = self.model.inference(
+                text=text,
+                language=language,
+                gpt_cond_latent=gpt_cond_latent,
+                speaker_embedding=speaker_embedding,
+                enable_text_splitting=True,
+                temperature=0.7,
+                repetition_penalty=10.0,
+            )
+
+        # Save to temporary file and return bytes
+        temp_file = os.path.join(self.output_folder, f"temp_{uuid.uuid4().hex}.wav")
+        torchaudio.save(temp_file, torch.tensor(output["wav"]).unsqueeze(0), 24000)
+        with open(temp_file, "rb") as f:
+            audio_data = f.read()
+        os.remove(temp_file)
+        return audio_data
+
+    def get_cache_stats(self):
+        """Get cache statistics."""
+        return self.cache.get_stats()
+
+    def clear_cache(self, voice=None):
+        """Clear the audio cache."""
+        self.cache.clear_cache(voice=voice)
+        logging.info(
+            f"[CTTS] Cache cleared for {'voice: ' + voice if voice else 'all voices'}"
+        )
 
 
 if __name__ == "__main__":
