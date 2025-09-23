@@ -25,8 +25,8 @@ RUN git clone https://github.com/Josh-XT/DeepSeek-VL deepseek && \
     cd ..
 COPY cuda-requirements.txt .
 RUN pip install --no-cache-dir -r cuda-requirements.txt
-RUN pip install spacy==3.7.4 && \
-    python -m spacy download en_core_web_sm
+RUN pip install spacy spacy-legacy spacy-loggers && \
+    pip install https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.7.1/en_core_web_sm-3.7.1-py3-none-any.whl
 ENV HOST=0.0.0.0 \
     CUDA_DOCKER_ARCH=all \
     LLAMA_CUBLAS=1 \
@@ -34,7 +34,7 @@ ENV HOST=0.0.0.0 \
     CUDAVER=12.4.1 \
     AVXVER=basic
 RUN CMAKE_ARGS="-DGGML_CUDA=on -DGGML_CUDA_FORCE_MMQ=ON -DGGML_AVX2=off -DGGML_FMA=off -DGGML_F16C=off -DCMAKE_CUDA_ARCHITECTURES=86;89" \
-    pip install llama-cpp-python==0.3.14 --no-cache-dir
+    pip install llama-cpp-python==0.3.16 --no-cache-dir
 COPY . .
 EXPOSE 8091
 EXPOSE 8502

@@ -14,8 +14,8 @@ RUN --mount=type=cache,target=/root/.cache/pip,sharing=locked \
     cd .. && \
     pip uninstall -y torch torchvision torchaudio && \
     pip install torch==2.3.1 torchaudio==2.3.1 torchvision==0.18.1 --no-cache-dir && \
-    pip install spacy==3.7.4 && \
-    python -m spacy download en_core_web_sm
+    pip install spacy spacy-legacy spacy-loggers && \
+    pip install https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.7.1/en_core_web_sm-3.7.1-py3-none-any.whl
 COPY . .
 ENV HOST 0.0.0.0 \
     TOKENIZERS_PARALLELISM=false
