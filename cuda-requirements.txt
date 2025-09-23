@@ -9,7 +9,7 @@ beautifulsoup4==4.12.3
 faster-whisper==1.2.0
 pydub==0.25.1
 ffmpeg-python==0.2.0
-transformers==4.44.2
+transformers==4.43.4
 TTS==0.22.0
 sounddevice==0.4.6
 deepspeed==0.15.1
