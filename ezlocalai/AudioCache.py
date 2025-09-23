@@ -29,7 +29,7 @@ class AudioCache:
             "cache_dir": os.path.join(os.getcwd(), "outputs", "cache"),
             "max_size_mb": 500,
             "ttl_days": 30,
-            "generation_count": 5,
+            "generation_count": 2,
             "selection_method": "shortest",
             "warm_cache_on_init": False,
             "common_phrases": ["Hello", "Goodbye", "Thank you", "Yes", "No"],
