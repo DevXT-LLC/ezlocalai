@@ -8,7 +8,7 @@ from fastapi import (
     UploadFile,
     File,
 )
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -462,10 +462,12 @@ async def text_to_speech(tts: TextToSpeech, user=Depends(verify_api_key)):
             )
             return audio
     tts_model = pipe._get_tts()
-    audio = await tts_model.generate(
+    audio_b64 = await tts_model.generate(
         text=tts.input, voice=tts.voice, language=tts.language
     )
-    return audio
+    # OpenAI SDK expects raw binary audio, not base64 JSON
+    audio_bytes = base64.b64decode(audio_b64)
+    return Response(content=audio_bytes, media_type="audio/wav")
 
 
 @app.get(
