@@ -106,7 +106,7 @@ def download_model(model_name: str = "", models_dir: str = "models") -> tuple:
     """
     Download a model from HuggingFace Hub.
     Returns tuple of (model_path, mmproj_path) where mmproj_path may be None.
-    
+
     First checks if any GGUF file already exists in the model directory (from startup download),
     and uses that to avoid downloading a different quantization.
     """
@@ -114,7 +114,7 @@ def download_model(model_name: str = "", models_dir: str = "models") -> tuple:
     model_name = model_name if model_name else DEFAULT_MODEL
 
     if "/" not in model_name:
-        model_name = "TheBloke/" + model_name + "-GGUF"
+        model_name = "unsloth/" + model_name + "-GGUF"
 
     quantization_type = getenv("QUANT_TYPE")
     model = model_name.split("/")[-1].split("-GGUF")[0]
@@ -156,7 +156,8 @@ def download_model(model_name: str = "", models_dir: str = "models") -> tuple:
     # This ensures we use whatever was downloaded at startup rather than re-downloading
     if os.path.exists(model_dir):
         existing_gguf_files = [
-            f for f in os.listdir(model_dir)
+            f
+            for f in os.listdir(model_dir)
             if f.endswith(".gguf") and "mmproj" not in f.lower()
         ]
         if existing_gguf_files:
