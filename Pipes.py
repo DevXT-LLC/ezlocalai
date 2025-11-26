@@ -407,9 +407,19 @@ class Pipes:
                 if not gguf_files:
                     return None
 
-                # Prefer Q4_K variants, then any quantized version
+                # Prefer QUANT_TYPE from env, then fall back to common quantizations
+                quant_type = getenv("QUANT_TYPE")
                 best_file = None
-                for pattern in ["Q4_K_XL", "Q4_K_M", "Q4_K", "Q5_K", "Q6_K", "Q8"]:
+                patterns = [
+                    quant_type,
+                    "Q4_K_M",
+                    "Q4_K_XL",
+                    "Q4_K",
+                    "Q5_K",
+                    "Q6_K",
+                    "Q8",
+                ]
+                for pattern in patterns:
                     for f in gguf_files:
                         if pattern in f:
                             best_file = f

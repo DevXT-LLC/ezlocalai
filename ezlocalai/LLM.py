@@ -106,6 +106,9 @@ def download_model(model_name: str = "", models_dir: str = "models") -> tuple:
     """
     Download a model from HuggingFace Hub.
     Returns tuple of (model_path, mmproj_path) where mmproj_path may be None.
+    
+    First checks if any GGUF file already exists in the model directory (from startup download),
+    and uses that to avoid downloading a different quantization.
     """
     global DEFAULT_MODEL
     model_name = model_name if model_name else DEFAULT_MODEL
@@ -149,7 +152,21 @@ def download_model(model_name: str = "", models_dir: str = "models") -> tuple:
         except Exception:
             pass
 
-    # Look for the main model file
+    # First, check if any GGUF model file already exists in the directory
+    # This ensures we use whatever was downloaded at startup rather than re-downloading
+    if os.path.exists(model_dir):
+        existing_gguf_files = [
+            f for f in os.listdir(model_dir)
+            if f.endswith(".gguf") and "mmproj" not in f.lower()
+        ]
+        if existing_gguf_files:
+            # Use the first existing model file (there should typically be only one)
+            existing_file = existing_gguf_files[0]
+            filepath = os.path.join(model_dir, existing_file)
+            logging.info(f"[LLM] Using existing model: {existing_file}")
+            return filepath, mmproj_path
+
+    # No existing model found - download based on QUANT_TYPE preference
     potential_filenames = [
         f"{model}.{quantization_type}.gguf",
         f"{model}-{quantization_type}.gguf",
@@ -162,12 +179,6 @@ def download_model(model_name: str = "", models_dir: str = "models") -> tuple:
         "ggml-model-q5_k.gguf",
         "ggml-model-f16.gguf",
     ]
-
-    # Check if model already exists
-    for filename in potential_filenames:
-        filepath = os.path.join(model_dir, filename)
-        if os.path.exists(filepath):
-            return filepath, mmproj_path
 
     # Download the model
     logging.info(f"[LLM] Downloading {model}...")
