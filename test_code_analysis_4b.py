@@ -8,7 +8,9 @@ import sys
 with open("Pipes.py", "r") as f:
     code_content = f.read()
 
-print(f"Code size: {len(code_content):,} chars, ~{len(code_content)//4:,} tokens estimate")
+print(
+    f"Code size: {len(code_content):,} chars, ~{len(code_content)//4:,} tokens estimate"
+)
 
 # Use 4B model for code analysis
 prompt = f"""Here is the complete Pipes.py code from ezlocalai:
@@ -37,9 +39,9 @@ resp = requests.post(
         "model": "unsloth/Qwen3-VL-4B-Instruct-GGUF",
         "messages": [{"role": "user", "content": prompt}],
         "max_tokens": 1000,
-        "temperature": 0.3
+        "temperature": 0.3,
     },
-    timeout=600
+    timeout=600,
 )
 elapsed = time.time() - start
 
@@ -48,21 +50,21 @@ if resp.status_code == 200:
     usage = data.get("usage", {})
     timings = data.get("timings", {})
     content = data["choices"][0]["message"]["content"]
-    
+
     prompt_tokens = usage.get("prompt_tokens", 0)
     completion_tokens = usage.get("completion_tokens", 0)
-    
+
     print(f"=== 4B Model with Dynamic Context ===")
     print(f"Prompt tokens: {prompt_tokens:,}")
     print(f"Completion tokens: {completion_tokens:,}")
     print(f"Total time: {elapsed:.1f}s")
     print(f"Generation speed: {completion_tokens/elapsed:.1f} tok/s overall")
-    
+
     if timings:
         print(f"\nLLM Timings:")
         print(f"  Prompt processing: {timings.get('prompt_per_second', 0):.1f} tok/s")
         print(f"  Generation: {timings.get('predicted_per_second', 0):.1f} tok/s")
-    
+
     print(f"\n{'='*60}")
     print(f"RESPONSE:")
     print(f"{'='*60}\n")

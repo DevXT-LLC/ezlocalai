@@ -24,7 +24,9 @@ def get_models():
                     model_name = model_entry.rsplit("@", 1)[0]
                 else:
                     model_name = model_entry
-                models.append({"id": model_name, "object": "model", "owned_by": "ezlocalai"})
+                models.append(
+                    {"id": model_name, "object": "model", "owned_by": "ezlocalai"}
+                )
     return models
 
 
@@ -226,7 +228,9 @@ class LLM:
         self.params["frequency_penalty"] = frequency_penalty
         self.params["logit_bias"] = logit_bias
         # Use provided max_tokens, or fall back to env var
-        effective_max_tokens = max_tokens if max_tokens > 0 else int(getenv("LLM_MAX_TOKENS"))
+        effective_max_tokens = (
+            max_tokens if max_tokens > 0 else int(getenv("LLM_MAX_TOKENS"))
+        )
         self.params["max_tokens"] = effective_max_tokens
         self.params["top_k"] = kwargs.get("top_k", 20)
 
@@ -236,7 +240,9 @@ class LLM:
         )
 
         # Initialize xllamacpp
-        logging.info(f"[LLM] Loading {self.model_name} with xllamacpp (context: {effective_max_tokens})...")
+        logging.info(
+            f"[LLM] Loading {self.model_name} with xllamacpp (context: {effective_max_tokens})..."
+        )
 
         self.xlc_params = xlc.CommonParams()
         self.xlc_params.model.path = model_path
@@ -255,17 +261,21 @@ class LLM:
 
         # Create the server instance
         self.server = xlc.Server(self.xlc_params)
-        
+
         # Verify server initialized correctly with a minimal test completion
         try:
-            test_result = self.server.handle_completions({
-                "prompt": "Hi",
-                "max_tokens": 1,
-            })
+            test_result = self.server.handle_completions(
+                {
+                    "prompt": "Hi",
+                    "max_tokens": 1,
+                }
+            )
             if isinstance(test_result, dict) and "error" in test_result:
                 raise RuntimeError(f"LLM server test failed: {test_result}")
         except Exception as e:
-            raise RuntimeError(f"Failed to initialize LLM server for {self.model_name}: {e}")
+            raise RuntimeError(
+                f"Failed to initialize LLM server for {self.model_name}: {e}"
+            )
 
         self.model_list = get_models()
         logging.info(f"[LLM] {self.model_name} loaded successfully with xllamacpp.")

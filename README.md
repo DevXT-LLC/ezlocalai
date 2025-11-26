@@ -6,6 +6,8 @@ ezlocalai is an easy set up artificial intelligence server that allows you to ea
 
 ## Prerequisites
 
+> **Note:** If using the CLI (`pip install ezlocalai`), prerequisites are auto-installed on Linux. Skip to [Quick Start](#quick-start-recommended).
+
 - [Git](https://git-scm.com/downloads)
 - [Docker Desktop](https://docs.docker.com/docker-for-windows/install/) (Windows or Mac)
 - [CUDA Toolkit (May Need 12.4)](https://developer.nvidia.com/cuda-12-4-0-download-archive) (NVIDIA GPU only)
@@ -19,7 +21,66 @@ ezlocalai is an easy set up artificial intelligence server that allows you to ea
 
 </details>
 
-## Installation
+## Quick Start (Recommended)
+
+Install the CLI and start ezlocalai with a single command:
+
+```bash
+pip install ezlocalai
+ezlocalai start
+```
+
+That's it! The CLI will:
+- Auto-detect your GPU (NVIDIA) or fall back to CPU mode
+- Install Docker if not present (Linux only)
+- Install NVIDIA Container Toolkit if needed (Linux only)
+- Pull and start the appropriate container
+- Download models automatically on first run
+
+### CLI Commands
+
+```bash
+# Start with defaults (auto-detects GPU, uses Qwen3-VL-4B)
+ezlocalai start
+
+# Start with a specific model
+ezlocalai start --model unsloth/gemma-3-4b-it-GGUF
+
+# Start with custom options
+ezlocalai start --model unsloth/Qwen3-VL-4B-Instruct-GGUF \
+                --uri http://localhost:8091 \
+                --api-key my-secret-key \
+                --ngrok <your-ngrok-token>
+
+# Disable TTS/STT (saves ~3GB VRAM)
+ezlocalai start --whisper ""
+
+# Disable image generation
+ezlocalai start --img-model ""
+
+# Other commands
+ezlocalai stop      # Stop the container
+ezlocalai restart   # Restart the container
+ezlocalai status    # Check if running and show health
+ezlocalai logs      # Show container logs (use -f to follow)
+```
+
+### CLI Options
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--model` | `unsloth/Qwen3-VL-4B-Instruct-GGUF` | HuggingFace model path |
+| `--uri` | `http://localhost:8091` | Server URL |
+| `--api-key` | None | API key for authentication |
+| `--ngrok` | None | ngrok token for public URL |
+| `--whisper` | `base.en` | Whisper model (empty to disable) |
+| `--img-model` | `ByteDance/SDXL-Lightning` | Image model (empty to disable) |
+
+---
+
+## Manual Installation
+
+If you prefer manual setup or need more control:
 
 ```bash
 git clone https://github.com/DevXT-LLC/ezlocalai
@@ -76,6 +137,17 @@ docker-compose down
 docker-compose build
 docker-compose up
 ```
+
+## Benchmarks
+
+Performance tested with `unsloth/Qwen3-VL-4B-Instruct-GGUF` (4-bit quantized):
+
+| Hardware | LLM Speed | LLM Peak | TTS Preload | TTS Generation |
+|----------|-----------|----------|-------------|----------------|
+| **NVIDIA RTX 3090 (24GB)** | 186.3 tok/s | 215.9 tok/s | 5.6s | 1.4-3.7s |
+| **Intel i7-13700K (CPU)** | 12.2 tok/s | 14.6 tok/s | 37.6s | 4.5s |
+
+**GPU provides ~15x speedup for LLM inference.**
 
 ## OpenAI Style Endpoint Usage
 
