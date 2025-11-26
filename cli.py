@@ -33,7 +33,7 @@ from pathlib import Path
 from typing import Optional
 
 # Version
-__version__ = "1.0.0"
+__version__ = "1.0.2"
 
 # Configuration
 DOCKER_IMAGE = "joshxt/ezlocalai:latest"
