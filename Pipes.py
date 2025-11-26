@@ -32,15 +32,44 @@ except ImportError:
     xllamacpp_available = False
 
 
-def get_available_vram_gb() -> float:
-    """Get available VRAM in GB, rounded down to nearest 1GB for safety margin."""
+def get_gpu_count() -> int:
+    """Get the number of available CUDA GPUs."""
     if torch.cuda.is_available():
-        # Get total VRAM and subtract a small buffer for system/driver overhead
-        total = torch.cuda.get_device_properties(0).total_memory
-        # Round down to nearest GB to leave headroom
-        total_gb = total / (1024**3)
-        return math.floor(total_gb)
+        return torch.cuda.device_count()
+    return 0
+
+
+def get_available_vram_gb(gpu_index: int = None) -> float:
+    """Get available VRAM in GB, rounded down to nearest 1GB for safety margin.
+
+    Args:
+        gpu_index: Specific GPU index, or None to sum all GPUs for multi-GPU setups.
+    """
+    if torch.cuda.is_available():
+        if gpu_index is not None:
+            # Single GPU
+            if gpu_index < torch.cuda.device_count():
+                total = torch.cuda.get_device_properties(gpu_index).total_memory
+                return math.floor(total / (1024**3))
+            return 0.0
+        else:
+            # Sum all GPUs for total available VRAM budget
+            total_vram = 0.0
+            for i in range(torch.cuda.device_count()):
+                total_vram += torch.cuda.get_device_properties(i).total_memory
+            return math.floor(total_vram / (1024**3))
     return 0.0
+
+
+def get_per_gpu_vram_gb() -> list:
+    """Get VRAM for each GPU as a list of GB values."""
+    if torch.cuda.is_available():
+        vram_list = []
+        for i in range(torch.cuda.device_count()):
+            vram_gb = torch.cuda.get_device_properties(i).total_memory / (1024**3)
+            vram_list.append(math.floor(vram_gb))
+        return vram_list
+    return []
 
 
 def round_context_to_32k(token_count: int) -> int:
@@ -48,18 +77,62 @@ def round_context_to_32k(token_count: int) -> int:
     return math.ceil(token_count / 32768) * 32768
 
 
-def get_vram_usage_gb() -> float:
-    """Get current VRAM usage in GB."""
-    if torch.cuda.is_available():
-        return torch.cuda.memory_allocated() / (1024**3)
+def get_vram_usage_gb(gpu_index: int = 0) -> float:
+    """Get current VRAM usage in GB for a specific GPU."""
+    if torch.cuda.is_available() and gpu_index < torch.cuda.device_count():
+        return torch.cuda.memory_allocated(gpu_index) / (1024**3)
     return 0.0
 
 
-def get_total_vram_gb() -> float:
-    """Get total VRAM in GB."""
+def get_total_vram_gb(gpu_index: int = None) -> float:
+    """Get total VRAM in GB.
+
+    Args:
+        gpu_index: Specific GPU index, or None to sum all GPUs.
+    """
     if torch.cuda.is_available():
-        return torch.cuda.get_device_properties(0).total_memory / (1024**3)
+        if gpu_index is not None:
+            if gpu_index < torch.cuda.device_count():
+                return torch.cuda.get_device_properties(gpu_index).total_memory / (
+                    1024**3
+                )
+            return 0.0
+        else:
+            # Sum all GPUs
+            total = 0.0
+            for i in range(torch.cuda.device_count()):
+                total += torch.cuda.get_device_properties(i).total_memory
+            return total / (1024**3)
     return 0.0
+
+
+def calculate_tensor_split() -> list:
+    """Calculate tensor split ratios based on available VRAM per GPU.
+
+    Returns a list of 128 floats (xllamacpp expects exactly 128).
+    Non-zero values indicate relative VRAM proportions for each GPU.
+    """
+    if not torch.cuda.is_available():
+        return [0.0] * 128
+
+    gpu_count = torch.cuda.device_count()
+    if gpu_count <= 1:
+        return [0.0] * 128
+
+    # Get VRAM for each GPU
+    vram_per_gpu = []
+    for i in range(gpu_count):
+        vram = torch.cuda.get_device_properties(i).total_memory
+        vram_per_gpu.append(vram)
+
+    total_vram = sum(vram_per_gpu)
+
+    # Calculate proportional splits
+    tensor_split = [0.0] * 128
+    for i, vram in enumerate(vram_per_gpu):
+        tensor_split[i] = vram / total_vram if total_vram > 0 else 0.0
+
+    return tensor_split
 
 
 # Model-specific config overrides for optimal inference settings
@@ -93,10 +166,27 @@ class Pipes:
         load_dotenv()
         global img_import_success
 
-        # Auto-detect VRAM budget (rounded down to nearest 1GB for safety margin)
+        # Auto-detect multi-GPU configuration
+        self.gpu_count = get_gpu_count()
+        self.per_gpu_vram = get_per_gpu_vram_gb()
+
+        # Auto-detect total VRAM budget across all GPUs (rounded down to nearest 1GB for safety margin)
         self.vram_budget_gb = get_available_vram_gb()
+
+        # Calculate tensor split for multi-GPU
+        self.tensor_split = calculate_tensor_split()
+
         if self.vram_budget_gb > 0:
-            logging.info(f"[VRAM] Auto-detected {self.vram_budget_gb}GB VRAM budget")
+            if self.gpu_count > 1:
+                logging.info(
+                    f"[VRAM] Multi-GPU detected: {self.gpu_count} GPUs, "
+                    f"{self.vram_budget_gb}GB total VRAM budget "
+                    f"(per GPU: {self.per_gpu_vram})"
+                )
+            else:
+                logging.info(
+                    f"[VRAM] Auto-detected {self.vram_budget_gb}GB VRAM budget"
+                )
 
         # Parse model list: "model1,model2" (simple comma-separated)
         model_config = getenv("DEFAULT_MODEL")

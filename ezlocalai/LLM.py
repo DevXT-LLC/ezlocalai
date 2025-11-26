@@ -6,9 +6,81 @@ import re
 import torch
 import logging
 import json
+import math
 from Globals import getenv
 
 DEFAULT_MODEL = getenv("DEFAULT_MODEL")
+
+
+def get_gpu_count() -> int:
+    """Get the number of available CUDA GPUs."""
+    if torch.cuda.is_available():
+        return torch.cuda.device_count()
+    return 0
+
+
+def get_total_vram_all_gpus() -> float:
+    """Get total VRAM across all GPUs in GB."""
+    if torch.cuda.is_available():
+        total = 0.0
+        for i in range(torch.cuda.device_count()):
+            total += torch.cuda.get_device_properties(i).total_memory
+        return total / (1024**3)
+    return 0.0
+
+
+def calculate_tensor_split() -> list:
+    """Calculate tensor split ratios based on available VRAM per GPU.
+
+    Returns a list of 128 floats (xllamacpp expects exactly 128).
+    Non-zero values indicate relative VRAM proportions for each GPU.
+    """
+    if not torch.cuda.is_available():
+        return [0.0] * 128
+
+    gpu_count = torch.cuda.device_count()
+    if gpu_count <= 1:
+        return [0.0] * 128
+
+    # Get VRAM for each GPU
+    vram_per_gpu = []
+    for i in range(gpu_count):
+        vram = torch.cuda.get_device_properties(i).total_memory
+        vram_per_gpu.append(vram)
+
+    total_vram = sum(vram_per_gpu)
+
+    # Calculate proportional splits
+    tensor_split = [0.0] * 128
+    for i, vram in enumerate(vram_per_gpu):
+        tensor_split[i] = vram / total_vram if total_vram > 0 else 0.0
+
+    return tensor_split
+
+
+def parse_tensor_split_env() -> list:
+    """Parse TENSOR_SPLIT environment variable.
+
+    Format: comma-separated floats, e.g., "0.5,0.5" for two equal GPUs.
+    Returns None if not set or empty, otherwise returns 128-element list.
+    """
+    tensor_split_str = getenv("TENSOR_SPLIT")
+    if not tensor_split_str or tensor_split_str.strip() == "":
+        return None
+
+    try:
+        values = [float(v.strip()) for v in tensor_split_str.split(",") if v.strip()]
+        if not values:
+            return None
+
+        # Pad to 128 elements
+        tensor_split = [0.0] * 128
+        for i, v in enumerate(values[:128]):
+            tensor_split[i] = v
+        return tensor_split
+    except ValueError:
+        logging.warning(f"[LLM] Invalid TENSOR_SPLIT format: {tensor_split_str}")
+        return None
 
 
 def get_models():
@@ -182,14 +254,32 @@ class LLM:
             # Auto-detect: use -1 which triggers VRAM-based calculation on GPU, 0 on CPU
             GPU_LAYERS = -1 if torch.cuda.is_available() else 0
 
+        # Multi-GPU detection and tensor split calculation
+        self.gpu_count = get_gpu_count()
+        self.tensor_split = None
+
         if torch.cuda.is_available() and GPU_LAYERS == -1:
-            # Reserve 5GB VRAM for TTS and STT
-            vram = round(torch.cuda.get_device_properties(0).total_memory / 1024**3) - 5
+            # Get total VRAM across all GPUs, reserve 5GB for TTS and STT
+            total_vram = get_total_vram_all_gpus()
+            vram = round(total_vram) - 5
             if vram == 3:
                 vram = 1
             if vram <= 0:
                 vram = 0
-            logging.info(f"[LLM] {vram}GB of available VRAM detected.")
+
+            if self.gpu_count > 1:
+                logging.info(
+                    f"[LLM] Multi-GPU detected: {self.gpu_count} GPUs with {round(total_vram)}GB total VRAM ({vram}GB available after reservation)"
+                )
+                # Calculate tensor split for multi-GPU
+                self.tensor_split = parse_tensor_split_env() or calculate_tensor_split()
+                if self.tensor_split:
+                    logging.info(
+                        f"[LLM] Tensor split ratios: {self.tensor_split[:self.gpu_count]}"
+                    )
+            else:
+                logging.info(f"[LLM] {vram}GB of available VRAM detected.")
+
             GPU_LAYERS = vram - 1 if vram > 0 else 0
         if GPU_LAYERS == -2:
             GPU_LAYERS = -1
@@ -251,6 +341,16 @@ class LLM:
         self.xlc_params.n_gpu_layers = GPU_LAYERS
         self.xlc_params.main_gpu = MAIN_GPU
         self.xlc_params.warmup = True
+
+        # Apply tensor split for multi-GPU setups
+        if self.tensor_split and self.gpu_count > 1:
+            try:
+                # xllamacpp expects tensor_split as a list of 128 floats
+                for i, ratio in enumerate(self.tensor_split):
+                    self.xlc_params.tensor_split[i] = ratio
+                logging.info(f"[LLM] Applied tensor split across {self.gpu_count} GPUs")
+            except Exception as e:
+                logging.warning(f"[LLM] Failed to set tensor_split: {e}")
 
         # Set multimodal projector path if available (for vision models)
         self.is_vision = False
