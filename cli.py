@@ -660,9 +660,20 @@ def start_container(
 
 
 def stop_container() -> None:
-    """Stop the ezlocalai container."""
+    """Stop and remove the ezlocalai container."""
     if not is_container_running():
-        print("ℹ️  ezlocalai is not running")
+        # Check if stopped container exists and remove it
+        status = get_container_status()
+        if status:
+            print("🧹 Removing stopped container...")
+            subprocess.run(
+                ["docker", "rm", "-f", CONTAINER_NAME],
+                capture_output=True,
+                check=False,
+            )
+            print("✅ Container removed")
+        else:
+            print("ℹ️  ezlocalai is not running")
         return
 
     print("🛑 Stopping ezlocalai...")
@@ -674,6 +685,12 @@ def stop_container() -> None:
     )
 
     if result.returncode == 0:
+        # Also remove the container to clean up
+        subprocess.run(
+            ["docker", "rm", "-f", CONTAINER_NAME],
+            capture_output=True,
+            check=False,
+        )
         print("✅ ezlocalai stopped")
     else:
         print(f"❌ Failed to stop container: {result.stderr}")
