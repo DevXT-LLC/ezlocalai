@@ -6,9 +6,7 @@ ezlocalai is an easy set up artificial intelligence server that allows you to ea
 
 ## Prerequisites
 
-> **Note:** If using the CLI (`pip install ezlocalai`), prerequisites are auto-installed on Linux. Skip to [Quick Start](#quick-start-recommended).
-
-- [Git](https://git-scm.com/downloads)
+- [Python 3.10+](https://www.python.org/downloads/)
 - [Docker Desktop](https://docs.docker.com/docker-for-windows/install/) (Windows or Mac)
 - [CUDA Toolkit (May Need 12.4)](https://developer.nvidia.com/cuda-12-4-0-download-archive) (NVIDIA GPU only)
 
@@ -30,12 +28,7 @@ pip install ezlocalai
 ezlocalai start
 ```
 
-That's it! The CLI will:
-- Auto-detect your GPU (NVIDIA) or fall back to CPU mode
-- Install Docker if not present (Linux only)
-- Install NVIDIA Container Toolkit if needed (Linux only)
-- Pull and start the appropriate container
-- Download models automatically on first run
+It will take several minutes to download the models on the first run. Once running, access the API at <http://localhost:8091>.
 
 ### CLI Commands
 
@@ -58,7 +51,33 @@ ezlocalai restart   # Restart the container
 ezlocalai status    # Check if running and show configuration
 ezlocalai logs      # Show container logs (use -f to follow)
 ezlocalai update    # Pull/rebuild latest images
+
+# Send prompts directly from the CLI
+ezlocalai prompt "Hello, world!"
+ezlocalai prompt "What's in this image?" -image ./photo.jpg
+ezlocalai prompt "Explain quantum computing" -m unsloth/Qwen3-VL-4B-Instruct-GGUF -temp 0.7
 ```
+
+### CLI Options
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--model`, `-m` | `unsloth/Qwen3-VL-4B-Instruct-GGUF` | HuggingFace GGUF model(s), comma-separated |
+| `--uri` | `http://localhost:8091` | Server URL |
+| `--api-key` | None | API key for authentication |
+| `--ngrok` | None | ngrok token for public URL |
+
+### Prompt Command Options
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `-m`, `--model` | Auto-detected | Model to use for the prompt |
+| `-temp`, `--temperature` | Model default | Temperature for response generation (0.0-2.0) |
+| `-tp`, `--top-p` | Model default | Top-p (nucleus) sampling parameter (0.0-1.0) |
+| `-image`, `--image` | None | Path to local image file or URL to include with prompt |
+| `-stats`, `--stats` | Off | Show statistics (tokens, speed, timing) after response |
+
+For additional options (Whisper, image model, etc.), edit `~/.ezlocalai/.env`:
 
 ### Data Persistence
 
@@ -73,87 +92,6 @@ All data is stored in `~/.ezlocalai/`:
 | `~/.ezlocalai/.env` | Your configuration |
 
 Models persist across container updates - you won't re-download them when updating the CLI or rebuilding the CUDA image.
-
-### CLI Options
-
-| Option | Default | Description |
-|--------|---------|-------------|
-| `--model`, `-m` | `unsloth/Qwen3-VL-4B-Instruct-GGUF` | HuggingFace GGUF model(s), comma-separated |
-| `--uri` | `http://localhost:8091` | Server URL |
-| `--api-key` | None | API key for authentication |
-| `--ngrok` | None | ngrok token for public URL |
-
-For additional options (Whisper, image model, etc.), edit `~/.ezlocalai/.env`:
-
-```bash
-# Example .env configuration
-DEFAULT_MODEL="unsloth/Qwen3-VL-4B-Instruct-GGUF"
-WHISPER_MODEL="base"           # Speech-to-text (empty to disable)
-IMG_MODEL=""                   # Image generation (empty to disable)
-EZLOCALAI_API_KEY=""           # API authentication
-```
-
----
-
-## Manual Installation
-
-If you prefer manual setup or need more control:
-
-```bash
-git clone https://github.com/DevXT-LLC/ezlocalai
-cd ezlocalai
-```
-
-### Environment Setup
-
-Expand Environment Setup if you would like to modify the default environment variables, otherwise skip to Usage. All environment variables are optional and have useful defaults. Change the default model that starts with ezlocalai in your `.env` file.
-
-<details>
-  <summary>Environment Setup (Optional)</summary>
-
-None of the values need modified in order to run the server. If you are using an NVIDIA GPU, I would recommend setting the `GPU_LAYERS` and `MAIN_GPU` environment variables. If you have multiple GPUs, especially different ones, you should set `TENSOR_SPLIT` to reflect the desired load balance (comma separated decimals totalling 1). If you plan to expose the server to the internet, I would recommend setting the `EZLOCALAI_API_KEY` environment variable for security. `THREADS` is set to your CPU thread count minus 2 by default, if this causes significant performance issues, consider setting the `THREADS` environment variable manually to a lower number.
-
-Modify the `.env` file to your desired settings. Assumptions will be made on all of these values if you choose to accept the defaults.
-
-Replace the environment variables with your desired settings. Assumptions will be made on all of these values if you choose to accept the defaults.
-
-- `EZLOCALAI_URL` - The URL to use for the server. Default is `http://localhost:8091`.
-- `EZLOCALAI_API_KEY` - The API key to use for the server. If not set, the server will not require an API key when accepting requests.
-- `NGROK_TOKEN` - The ngrok token to use for the server. If not set, ngrok will not be used. Using ngrok will allow you to expose your ezlocalai server to the public with as simple as an API key. [Get your free NGROK_TOKEN here.](https://dashboard.ngrok.com/get-started/your-authtoken)
-- `DEFAULT_MODEL` - The default model(s) to load. Comma-separated list of HuggingFace model paths. First model loads at startup, others swap on demand. Default is `unsloth/Qwen3-VL-4B-Instruct-GGUF`.
-- `WHISPER_MODEL` - The model to use for speech-to-text. Default is `base.en`.
-- `AUTO_UPDATE` - Whether or not to automatically update ezlocalai. Default is `true`.
-- `THREADS` - The number of CPU threads ezlocalai is allowed to use. Default is 4.
-- `MAIN_GPU` (Only applicable to NVIDIA GPU) - The GPU to use for the language model. Default is `0`.
-- `TENSOR_SPLIT` (Only applicable with multiple CUDA GPUs) - The allocation to each device in CSV format.
-- `IMG_MODEL` - The image generation model to use. Leave empty to disable image generation. Example: `ByteDance/SDXL-Lightning`.
-
-**Auto-configured (no env vars needed):**
-- **VRAM Budget** - Automatically detected from GPU
-- **GPU Layers** - Auto-calibrated based on VRAM budget
-- **Context Size** - Dynamic, rounds up to nearest 32k based on prompt size
-- **Image Device** - Auto-detects CUDA availability
-- **Vision** - Handled by main LLM if it has mmproj (e.g., Qwen3-VL models)
-
-</details>
-
-## Usage
-
-### NVIDIA GPU
-
-```bash
-docker-compose -f docker-compose-cuda.yml down
-docker-compose -f docker-compose-cuda.yml build
-docker-compose -f docker-compose-cuda.yml up
-```
-
-### CPU
-
-```bash
-docker-compose down
-docker-compose build
-docker-compose up
-```
 
 ## Benchmarks
 
@@ -170,11 +108,37 @@ Both models pre-calibrate at startup and hot-swap in ~1 second.
 
 OpenAI Style endpoints available at `http://<YOUR LOCAL IP ADDRESS>:8091/v1/` by default. Documentation can be accessed at that <http://localhost:8091> when the server is running.
 
+```python
+import requests
+
+response = requests.post(
+    "http://localhost:8091/v1/chat/completions",
+    headers={"Authorization": "Bearer your-api-key"},  # Change this if you configured an API key
+    json={
+        "model": "unsloth/Qwen3-VL-4B-Instruct-GGUF",
+        "messages": [
+            {
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": "Describe each stage of this image."},
+                    {
+                        "type": "image_url",
+                        "image_url": {
+                            "url": "https://www.visualwatermark.com/images/add-text-to-photos/add-text-to-image-3.webp"
+                        },
+                    },
+                ],
+            },
+        ],
+        "max_tokens": 8192,
+        "temperature": 0.7,
+        "top_p": 0.8,
+    },
+)
+print(response.json()["choices"][0]["message"]["content"])
+```
+
 For examples on how to use the server to communicate with the models, see the [Examples Jupyter Notebook](tests.ipynb) once the server is running. We also have an [example to use in Google Colab](ezlocalai-ngrok.ipynb).
-
-## Demo UI
-
-You can access the basic demo UI at <http://localhost:8502>, or your local IP address with port 8502.
 
 ## Workflow
 

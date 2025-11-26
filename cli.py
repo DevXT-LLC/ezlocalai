@@ -11,11 +11,14 @@ Usage:
     ezlocalai restart [--model MODEL] [--uri URI] [--api-key KEY] [--ngrok TOKEN]
     ezlocalai status
     ezlocalai logs [-f]
+    ezlocalai prompt "your prompt" [-m MODEL] [-temp TEMPERATURE] [-tp TOP_P] [-image PATH]
 """
 
 from __future__ import annotations
 
 import argparse
+import base64
+import json
 import os
 import platform
 import re
@@ -24,6 +27,8 @@ import signal
 import subprocess
 import sys
 import time
+import urllib.error
+import urllib.request
 from pathlib import Path
 from typing import Optional
 
@@ -492,7 +497,7 @@ def get_default_env() -> dict:
     return {
         "EZLOCALAI_URL": f"http://localhost:{DEFAULT_PORT}",
         "EZLOCALAI_API_KEY": "",
-        "DEFAULT_MODEL": "unsloth/Qwen3-VL-4B-Instruct-GGUF,unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF",
+        "DEFAULT_MODEL": "unsloth/Qwen3-4B-Instruct-2507-GGUF,unsloth/Qwen3-VL-4B-Instruct-GGUF,unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF",
         "WHISPER_MODEL": "base",
         "IMG_MODEL": "",
         "NGROK_TOKEN": "",
@@ -720,7 +725,11 @@ def show_status() -> None:
     print(f"\n   ⚙️  Configuration:")
 
     # LLM models
-    models = env_vars.get("DEFAULT_MODEL", "unsloth/Qwen3-VL-4B-Instruct-GGUF")
+    models = env_vars.get("DEFAULT_MODEL", None)
+    if not models:
+        # Get models from the list
+        env = get_default_env()
+        models = env.get("DEFAULT_MODEL", "unsloth/Qwen3-4B-Instruct-2507-GGUF")
     configured = [m.strip() for m in models.split(",")]
     print(f"      LLM models:")
     for m in configured:
@@ -791,6 +800,196 @@ def update_images() -> None:
     print("   Run 'ezlocalai restart' to use the new version.")
 
 
+def encode_image_to_base64(image_path: str) -> str:
+    """Encode a local image file to base64."""
+    with open(image_path, "rb") as f:
+        return base64.b64encode(f.read()).decode("utf-8")
+
+
+def get_image_mime_type(image_path: str) -> str:
+    """Get the MIME type based on file extension."""
+    ext = Path(image_path).suffix.lower()
+    mime_types = {
+        ".jpg": "image/jpeg",
+        ".jpeg": "image/jpeg",
+        ".png": "image/png",
+        ".gif": "image/gif",
+        ".webp": "image/webp",
+        ".bmp": "image/bmp",
+    }
+    return mime_types.get(ext, "image/jpeg")
+
+
+def is_url(path: str) -> bool:
+    """Check if the path is a URL."""
+    return path.startswith("http://") or path.startswith("https://")
+
+
+def send_prompt(
+    prompt_text: str,
+    model: Optional[str] = None,
+    temperature: Optional[float] = None,
+    top_p: Optional[float] = None,
+    image_path: Optional[str] = None,
+    show_stats: bool = False,
+) -> None:
+    """Send a prompt to the ezlocalai server and print the response."""
+    # Check if server is running
+    if not is_container_running():
+        print("❌ ezlocalai is not running. Start it with: ezlocalai start")
+        sys.exit(1)
+
+    # Load env to get API key and default model if set
+    env_vars = load_env_file()
+    api_key = env_vars.get("EZLOCALAI_API_KEY", "")
+
+    # Get default model from running server if not specified
+    if not model:
+        try:
+            models_url = f"http://localhost:{DEFAULT_PORT}/v1/models"
+            req = urllib.request.Request(models_url)
+            with urllib.request.urlopen(req, timeout=10) as response:
+                models_data = json.loads(response.read().decode("utf-8"))
+                if models_data.get("data"):
+                    model = models_data["data"][0].get("id")
+        except Exception:
+            # Fall back to configured default model
+            default_models = env_vars.get("DEFAULT_MODEL", "")
+            if default_models:
+                model = default_models.split(",")[0].strip()
+
+    # Build the messages array
+    content = []
+
+    # Handle image if provided
+    if image_path:
+        if is_url(image_path):
+            # Image URL - use directly
+            content.append(
+                {
+                    "type": "image_url",
+                    "image_url": {"url": image_path},
+                }
+            )
+        else:
+            # Local file - encode to base64
+            image_file = Path(image_path)
+            if not image_file.exists():
+                print(f"❌ Image file not found: {image_path}")
+                sys.exit(1)
+
+            mime_type = get_image_mime_type(image_path)
+            base64_image = encode_image_to_base64(image_path)
+            content.append(
+                {
+                    "type": "image_url",
+                    "image_url": {"url": f"data:{mime_type};base64,{base64_image}"},
+                }
+            )
+
+    # Add the text prompt
+    content.append({"type": "text", "text": prompt_text})
+
+    messages = [{"role": "user", "content": content}]
+
+    # Build the request payload
+    payload = {
+        "messages": messages,
+        "stream": False,
+    }
+
+    # Add optional parameters
+    if model:
+        payload["model"] = model
+    if temperature is not None:
+        payload["temperature"] = temperature
+    if top_p is not None:
+        payload["top_p"] = top_p
+
+    # Build headers
+    headers = {"Content-Type": "application/json"}
+    if api_key:
+        headers["Authorization"] = f"Bearer {api_key}"
+
+    # Make the request
+    url = f"http://localhost:{DEFAULT_PORT}/v1/chat/completions"
+
+    try:
+        data = json.dumps(payload).encode("utf-8")
+        req = urllib.request.Request(url, data=data, headers=headers, method="POST")
+
+        print("⏳ Waiting for response...")
+
+        start_time = time.time()
+        with urllib.request.urlopen(req, timeout=300) as response:
+            result = json.loads(response.read().decode("utf-8"))
+        elapsed = time.time() - start_time
+
+        # Extract and print the response
+        if "choices" in result and len(result["choices"]) > 0:
+            message = result["choices"][0].get("message", {})
+            content = message.get("content", "")
+            if content:
+                print("\n" + content)
+            else:
+                print("⚠️  Empty response received")
+
+            # Show stats if requested
+            if show_stats:
+                usage = result.get("usage", {})
+                timings = result.get("timings", {})
+
+                prompt_tokens = usage.get("prompt_tokens", 0)
+                completion_tokens = usage.get("completion_tokens", 0)
+                total_tokens = usage.get(
+                    "total_tokens", prompt_tokens + completion_tokens
+                )
+
+                # Get the actual model used from the response
+                actual_model = result.get("model", "unknown")
+
+                print(f"\n{'─' * 50}")
+                print(f"📊 Statistics")
+                print(f"{'─' * 50}")
+                print(f"   Model: {actual_model}")
+                print(f"   Prompt tokens: {prompt_tokens:,}")
+                print(f"   Completion tokens: {completion_tokens:,}")
+                print(f"   Total tokens: {total_tokens:,}")
+                print(f"   Total time: {elapsed:.1f}s")
+
+                if completion_tokens > 0:
+                    overall_speed = completion_tokens / elapsed
+                    print(f"   Overall speed: {overall_speed:.1f} tok/s")
+
+                if timings:
+                    prompt_speed = timings.get("prompt_per_second", 0)
+                    gen_speed = timings.get("predicted_per_second", 0)
+                    if prompt_speed > 0:
+                        print(f"   Prompt processing: {prompt_speed:.1f} tok/s")
+                    if gen_speed > 0:
+                        print(f"   Generation speed: {gen_speed:.1f} tok/s")
+        else:
+            print(f"⚠️  Unexpected response format: {result}")
+
+    except urllib.error.HTTPError as e:
+        error_body = e.read().decode("utf-8") if e.fp else ""
+        print(f"❌ HTTP Error {e.code}: {e.reason}")
+        if error_body:
+            try:
+                error_json = json.loads(error_body)
+                print(f"   {error_json.get('detail', error_body)}")
+            except json.JSONDecodeError:
+                print(f"   {error_body}")
+        sys.exit(1)
+    except urllib.error.URLError as e:
+        print(f"❌ Connection error: {e.reason}")
+        print("   Is ezlocalai running? Check with: ezlocalai status")
+        sys.exit(1)
+    except TimeoutError:
+        print("❌ Request timed out after 300 seconds")
+        sys.exit(1)
+
+
 def main():
     """Main entry point for the CLI."""
     parser = argparse.ArgumentParser(
@@ -804,6 +1003,8 @@ Examples:
   ezlocalai stop                            Stop the server
   ezlocalai status                          Show server status
   ezlocalai logs -f                         Follow logs
+  ezlocalai prompt "Hello, world!"          Send a prompt to the AI
+  ezlocalai prompt "What's in this image?" -image ./photo.jpg
 
 Environment:
   Configuration is stored in ~/.ezlocalai/.env
@@ -886,6 +1087,47 @@ Environment:
         help="Follow log output",
     )
 
+    # Prompt command
+    prompt_parser = subparsers.add_parser(
+        "prompt", help="Send a prompt to the AI and get a response"
+    )
+    prompt_parser.add_argument(
+        "text",
+        help="The prompt text to send to the AI",
+    )
+    prompt_parser.add_argument(
+        "-m",
+        "--model",
+        help="Model to use for the prompt",
+        default=None,
+    )
+    prompt_parser.add_argument(
+        "-temp",
+        "--temperature",
+        type=float,
+        help="Temperature for response generation (0.0-2.0)",
+        default=None,
+    )
+    prompt_parser.add_argument(
+        "-tp",
+        "--top-p",
+        type=float,
+        help="Top-p (nucleus) sampling parameter (0.0-1.0)",
+        default=None,
+    )
+    prompt_parser.add_argument(
+        "-image",
+        "--image",
+        help="Path to an image file or URL to include with the prompt",
+        default=None,
+    )
+    prompt_parser.add_argument(
+        "-stats",
+        "--stats",
+        action="store_true",
+        help="Show statistics (tokens, speed, timing) after the response",
+    )
+
     args = parser.parse_args()
 
     if not args.command:
@@ -935,6 +1177,16 @@ Environment:
 
     elif args.command == "logs":
         show_logs(follow=args.follow)
+
+    elif args.command == "prompt":
+        send_prompt(
+            prompt_text=args.text,
+            model=args.model,
+            temperature=args.temperature,
+            top_p=args.top_p,
+            image_path=args.image,
+            show_stats=args.stats,
+        )
 
 
 if __name__ == "__main__":

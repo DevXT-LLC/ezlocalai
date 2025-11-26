@@ -317,6 +317,10 @@ class LLM:
                 stop_tokens=self.params["stop"],
             )
 
+        # Ensure the response contains the actual model name used
+        if isinstance(result, dict):
+            result["model"] = self.model_name
+
         return result
 
     def completion(self, prompt: str, **kwargs) -> dict:
@@ -349,6 +353,10 @@ class LLM:
                 message=text,
                 stop_tokens=self.params["stop"],
             )
+
+        # Ensure the response contains the actual model name used
+        if isinstance(result, dict):
+            result["model"] = self.model_name
 
         return result
 
