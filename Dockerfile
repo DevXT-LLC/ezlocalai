@@ -25,5 +25,4 @@ COPY . .
 ENV HOST 0.0.0.0 \
     TOKENIZERS_PARALLELISM=false
 EXPOSE 8091
-EXPOSE 8502
-CMD streamlit run ui.py & uvicorn app:app --host 0.0.0.0 --port 8091 --workers 1 --proxy-headers
+CMD uvicorn app:app --host 0.0.0.0 --port 8091 --workers 1 --proxy-headers

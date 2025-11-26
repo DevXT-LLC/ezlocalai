@@ -40,7 +40,6 @@ DOCKER_IMAGE = "joshxt/ezlocalai:latest"
 DOCKER_IMAGE_CUDA = "ezlocalai:cuda"  # Built locally, not from DockerHub
 CONTAINER_NAME = "ezlocalai"
 DEFAULT_PORT = 8091
-UI_PORT = 8502
 STATE_DIR = Path.home() / ".ezlocalai"
 STATE_DIR.mkdir(parents=True, exist_ok=True)
 ENV_FILE = STATE_DIR / ".env"
@@ -521,7 +520,6 @@ def start_container(
     if is_container_running():
         print(f"✅ ezlocalai is already running!")
         print(f"   API: http://localhost:{DEFAULT_PORT}")
-        print(f"   UI:  http://localhost:{UI_PORT}")
         return
 
     # Load existing env or defaults
@@ -567,8 +565,6 @@ def start_container(
         CONTAINER_NAME,
         "-p",
         f"{DEFAULT_PORT}:{DEFAULT_PORT}",
-        "-p",
-        f"{UI_PORT}:{UI_PORT}",
         "-v",
         f"{data_dir / 'models'}:/app/models",
         "-v",
@@ -646,7 +642,6 @@ def start_container(
                 if response.status == 200:
                     print("\n✅ ezlocalai is ready!")
                     print(f"\n   🌐 API: http://localhost:{DEFAULT_PORT}")
-                    print(f"   🖥️  UI:  http://localhost:{UI_PORT}")
                     print(f"\n   📖 API Docs: http://localhost:{DEFAULT_PORT}/docs")
                     return
         except Exception:
@@ -662,7 +657,6 @@ def start_container(
     print("   This is normal for first-time model downloads.")
     print(f"   Check logs with: ezlocalai logs")
     print(f"\n   🌐 API: http://localhost:{DEFAULT_PORT}")
-    print(f"   🖥️  UI:  http://localhost:{UI_PORT}")
 
 
 def stop_container() -> None:
@@ -701,7 +695,6 @@ def show_status() -> None:
         print(f"✅ ezlocalai is running")
         print(f"   Status: {status}")
         print(f"\n   🌐 API: http://localhost:{DEFAULT_PORT}")
-        print(f"   🖥️  UI:  http://localhost:{UI_PORT}")
 
         # Show loaded model from API
         try:

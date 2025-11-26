@@ -18,7 +18,6 @@ pyngrok==7.1.6
 accelerate
 diffusers>=0.29.0
 python-multipart
-streamlit
 openai
 pdfplumber
 sentence-transformers

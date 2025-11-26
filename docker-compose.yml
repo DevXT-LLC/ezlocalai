@@ -14,7 +14,6 @@ services:
     restart: unless-stopped
     ports:
       - "8091:8091"
-      - "8502:8502"
     volumes:
       - ./models:/app/models
       - ./hf:/home/root/.cache/huggingface/hub

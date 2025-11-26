@@ -32,5 +32,4 @@ ENV HOST=0.0.0.0 \
 RUN pip install xllamacpp --force-reinstall --index-url https://xorbitsai.github.io/xllamacpp/whl/cu124 --no-cache-dir
 COPY . .
 EXPOSE 8091
-EXPOSE 8502
-CMD streamlit run ui.py & uvicorn app:app --host 0.0.0.0 --port 8091 --workers 1 --proxy-headers
+CMD uvicorn app:app --host 0.0.0.0 --port 8091 --workers 1 --proxy-headers
