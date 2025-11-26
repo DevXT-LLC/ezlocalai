@@ -743,10 +743,6 @@ def show_status() -> None:
     else:
         print(f"      Image generation: disabled")
 
-    # API key
-    if env_vars.get("EZLOCALAI_API_KEY"):
-        print(f"      API key: ****{env_vars['EZLOCALAI_API_KEY'][-4:]}")
-
     print(f"\n   💡 To change settings:")
     print(f"      ezlocalai start --model <model>")
     print(f"      Or edit ~/.ezlocalai/.env")
