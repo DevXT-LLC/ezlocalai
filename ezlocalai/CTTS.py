@@ -113,7 +113,7 @@ class CTTS:
         if not output_file_name:
             output_file_name = f"{uuid.uuid4().hex}.wav"
         output_file = os.path.join(self.output_folder, output_file_name)
-        
+
         with open(output_file, "wb") as f:
             f.write(audio_data)
 

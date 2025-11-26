@@ -266,7 +266,11 @@ class LLM:
             raise Exception(result.get("error", {}).get("message", "Unknown error"))
 
         # Clean the response content
-        if isinstance(result, dict) and result.get("choices") and not kwargs.get("stream", False):
+        if (
+            isinstance(result, dict)
+            and result.get("choices")
+            and not kwargs.get("stream", False)
+        ):
             content = result["choices"][0].get("message", {}).get("content", "")
             result["choices"][0]["message"]["content"] = clean(
                 message=content,
@@ -292,7 +296,11 @@ class LLM:
             raise Exception(result.get("error", {}).get("message", "Unknown error"))
 
         # Clean the response text and add text field for compatibility
-        if isinstance(result, dict) and result.get("choices") and not kwargs.get("stream", False):
+        if (
+            isinstance(result, dict)
+            and result.get("choices")
+            and not kwargs.get("stream", False)
+        ):
             text = result["choices"][0].get("text", "")
             if not text:
                 # If text is empty, try to get from message content

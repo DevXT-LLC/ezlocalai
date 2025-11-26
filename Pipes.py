@@ -163,14 +163,19 @@ class Pipes:
                                 text_content = f"Transcribed Audio: {transcribed_audio}\n\n{text_content}"
                         elif isinstance(content_item, str):
                             text_content += content_item
-                    
+
                     # Collect images for later processing
                     if message_images:
                         images.extend(message_images)
-                    
+
                     # For non-vision models or non-user messages, convert to string
                     # For vision models with the last user message, we'll handle this later
-                    if not (self.llm and self.llm.is_vision and message_images and i == len(data["messages"]) - 1):
+                    if not (
+                        self.llm
+                        and self.llm.is_vision
+                        and message_images
+                        and i == len(data["messages"]) - 1
+                    ):
                         data["messages"][i]["content"] = text_content
 
             # Legacy handling for the old format (keeping for backward compatibility)
@@ -235,95 +240,142 @@ class Pipes:
             # Convert any remote URLs to base64 data URLs, and convert WebP/other formats to PNG
             from PIL import Image as PILImage
             from io import BytesIO
-            
+
             processed_images = []
             for img in images:
                 if "image_url" in img:
-                    img_url = img["image_url"].get("url", "") if isinstance(img["image_url"], dict) else img["image_url"]
+                    img_url = (
+                        img["image_url"].get("url", "")
+                        if isinstance(img["image_url"], dict)
+                        else img["image_url"]
+                    )
                     if img_url and not img_url.startswith("data:"):
                         # Fetch remote image and convert to base64
                         try:
                             headers = {
                                 "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
                             }
-                            img_response = requests.get(img_url, timeout=30, headers=headers)
+                            img_response = requests.get(
+                                img_url, timeout=30, headers=headers
+                            )
                             img_response.raise_for_status()
-                            content_type = img_response.headers.get("Content-Type", "image/jpeg")
-                            
+                            content_type = img_response.headers.get(
+                                "Content-Type", "image/jpeg"
+                            )
+
                             # llama.cpp mmproj only supports certain formats (not WebP)
                             # Convert any non-standard format to PNG
-                            if content_type in ["image/webp", "image/gif", "image/bmp", "image/tiff", "image/avif"]:
+                            if content_type in [
+                                "image/webp",
+                                "image/gif",
+                                "image/bmp",
+                                "image/tiff",
+                                "image/avif",
+                            ]:
                                 try:
-                                    pil_img = PILImage.open(BytesIO(img_response.content))
+                                    pil_img = PILImage.open(
+                                        BytesIO(img_response.content)
+                                    )
                                     # Convert to RGB if necessary (for RGBA or palette images)
-                                    if pil_img.mode in ('RGBA', 'P', 'LA'):
-                                        pil_img = pil_img.convert('RGB')
+                                    if pil_img.mode in ("RGBA", "P", "LA"):
+                                        pil_img = pil_img.convert("RGB")
                                     buffer = BytesIO()
-                                    pil_img.save(buffer, format='PNG')
+                                    pil_img.save(buffer, format="PNG")
                                     img_bytes = buffer.getvalue()
                                     content_type = "image/png"
-                                    logging.info(f"[Vision] Converted {img_response.headers.get('Content-Type', 'unknown')} to PNG")
+                                    logging.info(
+                                        f"[Vision] Converted {img_response.headers.get('Content-Type', 'unknown')} to PNG"
+                                    )
                                 except Exception as conv_err:
-                                    logging.error(f"[Vision] Failed to convert image: {conv_err}")
+                                    logging.error(
+                                        f"[Vision] Failed to convert image: {conv_err}"
+                                    )
                                     img_bytes = img_response.content
                             else:
                                 img_bytes = img_response.content
-                                
+
                             if not content_type.startswith("image/"):
                                 content_type = "image/jpeg"
                             img_base64 = base64.b64encode(img_bytes).decode("utf-8")
-                            processed_images.append({
-                                "type": "image_url",
-                                "image_url": {"url": f"data:{content_type};base64,{img_base64}"}
-                            })
-                            logging.info(f"[Vision] Converted remote image to base64 ({len(img_base64)} chars)")
+                            processed_images.append(
+                                {
+                                    "type": "image_url",
+                                    "image_url": {
+                                        "url": f"data:{content_type};base64,{img_base64}"
+                                    },
+                                }
+                            )
+                            logging.info(
+                                f"[Vision] Converted remote image to base64 ({len(img_base64)} chars)"
+                            )
                         except Exception as e:
-                            logging.error(f"[Vision] Failed to fetch remote image {img_url}: {e}")
+                            logging.error(
+                                f"[Vision] Failed to fetch remote image {img_url}: {e}"
+                            )
                             continue
                     else:
                         # Already a data URL - check if it needs conversion
-                        if img_url.startswith("data:image/webp") or img_url.startswith("data:image/gif"):
+                        if img_url.startswith("data:image/webp") or img_url.startswith(
+                            "data:image/gif"
+                        ):
                             try:
                                 # Extract base64 data and convert
                                 header, encoded = img_url.split(",", 1)
                                 img_bytes = base64.b64decode(encoded)
                                 pil_img = PILImage.open(BytesIO(img_bytes))
-                                if pil_img.mode in ('RGBA', 'P', 'LA'):
-                                    pil_img = pil_img.convert('RGB')
+                                if pil_img.mode in ("RGBA", "P", "LA"):
+                                    pil_img = pil_img.convert("RGB")
                                 buffer = BytesIO()
-                                pil_img.save(buffer, format='PNG')
-                                img_base64 = base64.b64encode(buffer.getvalue()).decode("utf-8")
-                                processed_images.append({
-                                    "type": "image_url",
-                                    "image_url": {"url": f"data:image/png;base64,{img_base64}"}
-                                })
-                                logging.info(f"[Vision] Converted data URL WebP/GIF to PNG")
+                                pil_img.save(buffer, format="PNG")
+                                img_base64 = base64.b64encode(buffer.getvalue()).decode(
+                                    "utf-8"
+                                )
+                                processed_images.append(
+                                    {
+                                        "type": "image_url",
+                                        "image_url": {
+                                            "url": f"data:image/png;base64,{img_base64}"
+                                        },
+                                    }
+                                )
+                                logging.info(
+                                    f"[Vision] Converted data URL WebP/GIF to PNG"
+                                )
                             except Exception as conv_err:
-                                logging.error(f"[Vision] Failed to convert data URL: {conv_err}")
+                                logging.error(
+                                    f"[Vision] Failed to convert data URL: {conv_err}"
+                                )
                                 processed_images.append(img)
                         else:
                             processed_images.append(img)
-            
+
             if completion_type == "chat":
                 # Build proper multimodal message with text + images
                 user_text = data["messages"][-1]["content"]
                 if isinstance(user_text, list):
                     # Extract text from list content format
-                    user_text = " ".join([
-                        item.get("text", "") for item in user_text 
-                        if isinstance(item, dict) and item.get("type") == "text"
-                    ])
-                
+                    user_text = " ".join(
+                        [
+                            item.get("text", "")
+                            for item in user_text
+                            if isinstance(item, dict) and item.get("type") == "text"
+                        ]
+                    )
+
                 if processed_images:
                     # Create message with text + images in xllamacpp expected format
                     multimodal_content = [{"type": "text", "text": user_text}]
                     multimodal_content.extend(processed_images)
                     data["messages"][-1]["content"] = multimodal_content
-                    logging.info(f"[Vision] Sending multimodal message with {len(processed_images)} image(s)")
+                    logging.info(
+                        f"[Vision] Sending multimodal message with {len(processed_images)} image(s)"
+                    )
                 else:
                     # No images could be processed, fall back to text-only
                     data["messages"][-1]["content"] = user_text
-                    logging.warning(f"[Vision] No images could be processed, falling back to text-only")
+                    logging.warning(
+                        f"[Vision] No images could be processed, falling back to text-only"
+                    )
         if completion_type == "chat":
             try:
                 response = self.llm.chat(**data)
