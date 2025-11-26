@@ -39,3 +39,4 @@ ezlocalai = "cli:main"
 
 [tool.setuptools]
 py-modules = ["cli"]
+packages = ["ezlocalai"]
