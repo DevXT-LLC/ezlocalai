@@ -409,7 +409,7 @@ def get_default_env() -> dict:
     return {
         "EZLOCALAI_URL": f"http://localhost:{DEFAULT_PORT}",
         "EZLOCALAI_API_KEY": "",
-        "DEFAULT_MODEL": "unsloth/Qwen3-VL-4B-Instruct-GGUF",
+        "DEFAULT_MODEL": "unsloth/Qwen3-VL-4B-Instruct-GGUF,unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF",
         "WHISPER_MODEL": "base",
         "IMG_MODEL": "",
         "NGROK_TOKEN": "",
