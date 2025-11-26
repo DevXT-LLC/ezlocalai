@@ -20,7 +20,7 @@ def getenv(var_name: str, default_value: str = None) -> str:
         "UVICORN_WORKERS": 10,
         "MAIN_GPU": "0",
         "TENSOR_SPLIT": "",
-        "QUANT_TYPE": "Q4_K_M",
+        "QUANT_TYPE": "Q4_K_XL",
         "LLM_BATCH_SIZE": "2048",
         # Queue system defaults
         "MAX_CONCURRENT_REQUESTS": "1",
