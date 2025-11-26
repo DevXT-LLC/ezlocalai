@@ -1,7 +1,7 @@
 import os
 import logging
 from dotenv import load_dotenv
-from ezlocalai.LLM import LLM, is_vision_model
+from ezlocalai.LLM import LLM
 from ezlocalai.STT import STT
 from ezlocalai.CTTS import CTTS
 from ezlocalai.Embedding import Embedding
@@ -19,17 +19,13 @@ try:
 except ImportError:
     img_import_success = False
 
-from ezlocalai.VLM import VLM
-
 
 class Pipes:
     def __init__(self):
         load_dotenv()
         global img_import_success
         self.current_llm = getenv("DEFAULT_MODEL")
-        self.current_vlm = getenv("VISION_MODEL")
         self.llm = None
-        self.vlm = None
         self.ctts = None
         self.stt = None
         self.embedder = None
@@ -37,17 +33,10 @@ class Pipes:
             logging.info(f"[LLM] {self.current_llm} model loading. Please wait...")
             self.llm = LLM(model=self.current_llm)
             logging.info(f"[LLM] {self.current_llm} model loaded successfully.")
+            if self.llm.is_vision:
+                logging.info(f"[LLM] Vision capability enabled for {self.current_llm}.")
         if getenv("EMBEDDING_ENABLED").lower() == "true":
             self.embedder = Embedding()
-        if self.current_vlm != "":
-            logging.info(f"[VLM] {self.current_vlm} model loading. Please wait...")
-            try:
-                self.vlm = VLM(model=self.current_vlm)
-            except Exception as e:
-                logging.error(f"[VLM] Failed to load the model: {e}")
-                self.vlm = None
-            if self.vlm is not None:
-                logging.info(f"[ezlocalai] Vision is enabled with {self.current_vlm}.")
         if getenv("TTS_ENABLED").lower() == "true":
             logging.info(f"[CTTS] xttsv2_2.0.2 model loading. Please wait...")
             self.ctts = CTTS()
@@ -57,11 +46,6 @@ class Pipes:
             logging.info(f"[STT] {self.current_stt} model loading. Please wait...")
             self.stt = STT(model=self.current_stt)
             logging.info(f"[STT] {self.current_stt} model loaded successfully.")
-        if is_vision_model(self.current_llm):
-            if self.vlm is None:
-                self.vlm = self.llm
-        if self.current_llm == "none" and self.vlm is not None:
-            self.llm = self.vlm
         NGROK_TOKEN = getenv("NGROK_TOKEN")
         if NGROK_TOKEN:
             ngrok.set_auth_token(NGROK_TOKEN)
@@ -146,10 +130,10 @@ class Pipes:
         data["local_uri"] = self.local_uri
         images = []
         if "messages" in data:
-            # First, ensure all messages have string content, not list content
+            # Process messages to extract images and handle content types
             for i, message in enumerate(data["messages"]):
                 if isinstance(message.get("content"), list):
-                    # Extract text content from list format
+                    # Extract text content and images from list format
                     text_content = ""
                     message_images = []
                     for content_item in message["content"]:
@@ -158,7 +142,6 @@ class Pipes:
                                 text_content += content_item.get("text", "")
                             elif "image_url" in content_item:
                                 message_images.append(content_item)
-                                images.extend(message_images)
                             elif "audio_url" in content_item:
                                 audio_url = (
                                     content_item["audio_url"]["url"]
@@ -180,11 +163,19 @@ class Pipes:
                                 text_content = f"Transcribed Audio: {transcribed_audio}\n\n{text_content}"
                         elif isinstance(content_item, str):
                             text_content += content_item
-                    # Convert list content back to string for LLM compatibility
-                    data["messages"][i]["content"] = text_content
+                    
+                    # Collect images for later processing
+                    if message_images:
+                        images.extend(message_images)
+                    
+                    # For non-vision models or non-user messages, convert to string
+                    # For vision models with the last user message, we'll handle this later
+                    if not (self.llm and self.llm.is_vision and message_images and i == len(data["messages"]) - 1):
+                        data["messages"][i]["content"] = text_content
 
             # Legacy handling for the old format (keeping for backward compatibility)
-            if isinstance(data["messages"][-1]["content"], list):
+            # Skip if we already collected images in the modern format
+            if not images and isinstance(data["messages"][-1]["content"], list):
                 messages = data["messages"][-1]["content"]
                 prompt = ""
                 for message in messages:
@@ -238,41 +229,101 @@ class Pipes:
             if completion_type == "chat"
             else data["prompt"]
         )
-        if self.vlm and images:
-            new_messages = [
-                {
-                    "role": "user",
-                    "content": [
-                        {
-                            "type": "text",
-                            "text": "Describe each stage of this image.",
-                        },
-                    ],
-                }
-            ]
-            new_messages[0]["content"].extend(images)
-            try:
-                try:
-                    image_description = self.vlm.chat(messages=new_messages)
-                except:
-                    image_description = await self.fallback_inference(new_messages)
-                print(f"Image Description: {image_description}")
-                prompt = (
-                    f"\n\nSee the uploaded image description for any questions about the uploaded image. Act as if you can see the image based on the description. Do not mention 'uploaded image description' in response. Uploaded Image Description: {image_description['choices'][0]['message']['content']}\n\n{data['messages'][-1]['content'][0]['text']}"
-                    if completion_type == "chat"
-                    else f"\n\nSee the uploaded image description for any questions about the uploaded image. Act as if you can see the image based on the description. Do not mention 'uploaded image description' in response. Uploaded Image Description: {image_description['choices'][0]['message']['content']}\n\n{data['prompt']}"
-                )
-                print(f"Full Prompt: {prompt}")
-                if completion_type == "chat":
-                    data["messages"][-1]["content"] = prompt
+        # Handle images with vision-capable LLM
+        if self.llm and self.llm.is_vision and images:
+            # xllamacpp expects images in base64 data URL format (PNG or JPEG)
+            # Convert any remote URLs to base64 data URLs, and convert WebP/other formats to PNG
+            from PIL import Image as PILImage
+            from io import BytesIO
+            
+            processed_images = []
+            for img in images:
+                if "image_url" in img:
+                    img_url = img["image_url"].get("url", "") if isinstance(img["image_url"], dict) else img["image_url"]
+                    if img_url and not img_url.startswith("data:"):
+                        # Fetch remote image and convert to base64
+                        try:
+                            headers = {
+                                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+                            }
+                            img_response = requests.get(img_url, timeout=30, headers=headers)
+                            img_response.raise_for_status()
+                            content_type = img_response.headers.get("Content-Type", "image/jpeg")
+                            
+                            # llama.cpp mmproj only supports certain formats (not WebP)
+                            # Convert any non-standard format to PNG
+                            if content_type in ["image/webp", "image/gif", "image/bmp", "image/tiff", "image/avif"]:
+                                try:
+                                    pil_img = PILImage.open(BytesIO(img_response.content))
+                                    # Convert to RGB if necessary (for RGBA or palette images)
+                                    if pil_img.mode in ('RGBA', 'P', 'LA'):
+                                        pil_img = pil_img.convert('RGB')
+                                    buffer = BytesIO()
+                                    pil_img.save(buffer, format='PNG')
+                                    img_bytes = buffer.getvalue()
+                                    content_type = "image/png"
+                                    logging.info(f"[Vision] Converted {img_response.headers.get('Content-Type', 'unknown')} to PNG")
+                                except Exception as conv_err:
+                                    logging.error(f"[Vision] Failed to convert image: {conv_err}")
+                                    img_bytes = img_response.content
+                            else:
+                                img_bytes = img_response.content
+                                
+                            if not content_type.startswith("image/"):
+                                content_type = "image/jpeg"
+                            img_base64 = base64.b64encode(img_bytes).decode("utf-8")
+                            processed_images.append({
+                                "type": "image_url",
+                                "image_url": {"url": f"data:{content_type};base64,{img_base64}"}
+                            })
+                            logging.info(f"[Vision] Converted remote image to base64 ({len(img_base64)} chars)")
+                        except Exception as e:
+                            logging.error(f"[Vision] Failed to fetch remote image {img_url}: {e}")
+                            continue
+                    else:
+                        # Already a data URL - check if it needs conversion
+                        if img_url.startswith("data:image/webp") or img_url.startswith("data:image/gif"):
+                            try:
+                                # Extract base64 data and convert
+                                header, encoded = img_url.split(",", 1)
+                                img_bytes = base64.b64decode(encoded)
+                                pil_img = PILImage.open(BytesIO(img_bytes))
+                                if pil_img.mode in ('RGBA', 'P', 'LA'):
+                                    pil_img = pil_img.convert('RGB')
+                                buffer = BytesIO()
+                                pil_img.save(buffer, format='PNG')
+                                img_base64 = base64.b64encode(buffer.getvalue()).decode("utf-8")
+                                processed_images.append({
+                                    "type": "image_url",
+                                    "image_url": {"url": f"data:image/png;base64,{img_base64}"}
+                                })
+                                logging.info(f"[Vision] Converted data URL WebP/GIF to PNG")
+                            except Exception as conv_err:
+                                logging.error(f"[Vision] Failed to convert data URL: {conv_err}")
+                                processed_images.append(img)
+                        else:
+                            processed_images.append(img)
+            
+            if completion_type == "chat":
+                # Build proper multimodal message with text + images
+                user_text = data["messages"][-1]["content"]
+                if isinstance(user_text, list):
+                    # Extract text from list content format
+                    user_text = " ".join([
+                        item.get("text", "") for item in user_text 
+                        if isinstance(item, dict) and item.get("type") == "text"
+                    ])
+                
+                if processed_images:
+                    # Create message with text + images in xllamacpp expected format
+                    multimodal_content = [{"type": "text", "text": user_text}]
+                    multimodal_content.extend(processed_images)
+                    data["messages"][-1]["content"] = multimodal_content
+                    logging.info(f"[Vision] Sending multimodal message with {len(processed_images)} image(s)")
                 else:
-                    data["prompt"] = prompt
-            except Exception as e:
-                import traceback
-
-                traceback.print_exc()
-                logging.error(f"[VLM] Failed to get image description: {e}")
-                pass
+                    # No images could be processed, fall back to text-only
+                    data["messages"][-1]["content"] = user_text
+                    logging.warning(f"[Vision] No images could be processed, falling back to text-only")
         if completion_type == "chat":
             try:
                 response = self.llm.chat(**data)

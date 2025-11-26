@@ -17,9 +17,9 @@ st.image(
 
 EZLOCALAI_SERVER = os.getenv("EZLOCALAI_URL", "http://localhost:8091")
 EZLOCALAI_API_KEY = os.getenv("EZLOCALAI_API_KEY", "none")
-DEFAULT_LLM = os.getenv("DEFAULT_MODEL", "TheBloke/phi-2-dpo-GGUF")
+DEFAULT_LLM = os.getenv("DEFAULT_MODEL", "unsloth/Qwen3-VL-4B-Instruct-GGUF")
 VISION_MODEL = os.getenv("VISION_MODEL", None)
-SD_MODEL = os.getenv("SD_MODEL", "stabilityai/sdxl-turbo")
+SD_MODEL = os.getenv("SD_MODEL", "ByteDance/SDXL-Lightning")
 IMG_ENABLED = os.getenv("IMG_ENABLED", "false")
 WHISPER_MODEL = os.getenv("WHISPER_MODEL", "base.en")
 
