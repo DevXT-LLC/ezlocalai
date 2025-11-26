@@ -62,6 +62,32 @@ def get_total_vram_gb() -> float:
     return 0.0
 
 
+# Model-specific config overrides for optimal inference settings
+# These override user-provided values for known models
+MODEL_CONFIG_OVERRIDES = {
+    "unsloth/Qwen3-VL-4B-Instruct-GGUF": {
+        "top_p": 0.8,
+        "top_k": 20,
+        "temperature": 0.7,
+        "repetition_penalty": 1.0,
+        "presence_penalty": 1.5,
+    },
+    "unsloth/Qwen3-4B-Instruct-2507-GGUF": {
+        "top_p": 1.0,
+        "top_k": 40,
+        "temperature": 1.0,
+        "repetition_penalty": 1.0,
+        "presence_penalty": 2.0,
+    },
+    "unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF": {
+        "top_p": 0.8,
+        "top_k": 20,
+        "temperature": 0.7,
+        "repetition_penalty": 1.05,
+    },
+}
+
+
 class Pipes:
     def __init__(self):
         load_dotenv()
@@ -887,8 +913,25 @@ class Pipes:
             return new_image
         return ""
 
+    def _apply_model_config_overrides(self, data: dict) -> dict:
+        """Apply model-specific config overrides if the current model has them defined.
+
+        Overrides only apply to parameters defined in MODEL_CONFIG_OVERRIDES for the
+        current model. User-provided values are used for any parameter not in overrides.
+        """
+        if self.current_llm_name and self.current_llm_name in MODEL_CONFIG_OVERRIDES:
+            overrides = MODEL_CONFIG_OVERRIDES[self.current_llm_name]
+            for key, value in overrides.items():
+                data[key] = value
+            logging.debug(
+                f"[Config] Applied model overrides for {self.current_llm_name}: {overrides}"
+            )
+        return data
+
     async def get_response(self, data, completion_type="chat"):
         data["local_uri"] = self.local_uri
+        # Apply model-specific config overrides
+        data = self._apply_model_config_overrides(data)
         images = []
         if "messages" in data:
             # Process messages to extract images and handle content types
