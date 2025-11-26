@@ -8,15 +8,10 @@ services:
     environment:
       - EZLOCALAI_URL=${EZLOCALAI_URL:-http://localhost:8091}
       - EZLOCALAI_API_KEY=${EZLOCALAI_API_KEY:-}
-      - GPU_LAYERS=${GPU_LAYERS:--1}
       - MAIN_GPU=${MAIN_GPU:-0}
       - DEFAULT_MODEL=${DEFAULT_MODEL:-unsloth/Qwen3-VL-4B-Instruct-GGUF}
-      - LLM_MAX_TOKENS=${LLM_MAX_TOKENS:-32768}
       - WHISPER_MODEL=${WHISPER_MODEL:-base.en}
-      - IMG_ENABLED=${IMG_ENABLED:-true}
-      - IMG_DEVICE=${IMG_DEVICE:-cpu}
-      - SD_MODEL=${SD_MODEL:-ByteDance/SDXL-Lightning}
-      - EMBEDDING_ENABLED=${EMBEDDING_ENABLED:-true}
+      - IMG_MODEL=${IMG_MODEL:-}
       - LLM_BATCH_SIZE=${LLM_BATCH_SIZE:-2048}
       - CUDA_DOCKER_ARCH=all
       - TENSOR_SPLIT=${TENSOR_SPLIT:-}
@@ -30,11 +25,10 @@ services:
       - "8502:8502"
     volumes:
       - ./models:/app/models
-      - ./hf:/home/root/.cache/huggingface/hub
+      - ./hf:/root/.cache/huggingface/hub
       - ./outputs:/app/outputs
       - ./voices:/app/voices
       - ./whispercpp:/app/whispercpp
-      - ./xttsv2_2.0.2:/app/xttsv2_2.0.2
     deploy:
       resources:
         reservations:

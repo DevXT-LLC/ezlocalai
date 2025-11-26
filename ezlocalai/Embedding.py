@@ -20,7 +20,8 @@ class Embedding:
         self.model_name = "BAAI/bge-m3"
         cache_dir = os.path.join(os.getcwd(), "models")
         os.makedirs(cache_dir, exist_ok=True)
-        self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        # Always use CPU for embeddings to avoid VRAM conflicts with LLM
+        self.device = "cpu"
 
         self.tokenizer = AutoTokenizer.from_pretrained(
             self.model_name,
@@ -31,8 +32,6 @@ class Embedding:
             cache_dir=cache_dir,
         ).to(self.device)
         self.model.eval()
-        if self.device == "cuda":
-            self.model.half()  # Use fp16 for faster inference on GPU
 
     def get_embeddings(self, input):
         # Handle both string and list inputs

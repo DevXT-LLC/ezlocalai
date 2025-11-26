@@ -355,10 +355,11 @@ class EmbeddingResponse(BaseModel):
     dependencies=[Depends(verify_api_key)],
 )
 async def embedding(embedding: EmbeddingModel, user=Depends(verify_api_key)):
-    if getenv("EMBEDDING_ENABLED").lower() == "true":
-        return pipe.embedder.get_embeddings(input=embedding.input)
-    else:
-        raise HTTPException(status_code=404, detail="Embeddings are disabled.")
+    # Embeddings are always available
+    embedder = pipe._get_embedder()
+    result = embedder.get_embeddings(input=embedding.input)
+    pipe._destroy_embedder()
+    return result
 
 
 # Audio Transcription endpoint
@@ -380,13 +381,15 @@ async def speech_to_text(
 ):
     if getenv("STT_ENABLED").lower() == "false":
         raise HTTPException(status_code=404, detail="Speech to text is disabled.")
-    response = await pipe.stt.transcribe_audio(
+    stt = pipe._get_stt()
+    response = await stt.transcribe_audio(
         base64_audio=base64.b64encode(await file.read()).decode("utf-8"),
         audio_format=file.content_type,
         language=language,
         prompt=prompt,
         temperature=temperature,
     )
+    pipe._destroy_stt()
     return {"text": response}
 
 
@@ -410,7 +413,8 @@ async def audio_translations(
 ):
     if getenv("STT_ENABLED").lower() == "false":
         raise HTTPException(status_code=404, detail="Speech to text is disabled.")
-    response = await pipe.stt.transcribe_audio(
+    stt = pipe._get_stt()
+    response = await stt.transcribe_audio(
         base64_audio=base64.b64encode(await file.read()).decode("utf-8"),
         audio_format=file.content_type,
         language=language,
@@ -418,6 +422,7 @@ async def audio_translations(
         temperature=temperature,
         translate=True,
     )
+    pipe._destroy_stt()
     return {"text": response}
 
 
@@ -452,7 +457,8 @@ async def text_to_speech(tts: TextToSpeech, user=Depends(verify_api_key)):
                 audio=tts.input,
             )
             return audio
-    audio = await pipe.ctts.generate(
+    tts_model = pipe._get_tts()
+    audio = await tts_model.generate(
         text=tts.input, voice=tts.voice, language=tts.language
     )
     return audio
@@ -466,7 +472,8 @@ async def text_to_speech(tts: TextToSpeech, user=Depends(verify_api_key)):
 async def get_voices(user=Depends(verify_api_key)):
     if getenv("TTS_ENABLED").lower() == "false":
         raise HTTPException(status_code=404, detail="Text to speech is disabled.")
-    return {"voices": pipe.ctts.voices}
+    tts_model = pipe._get_tts()
+    return {"voices": tts_model.voices}
 
 
 @app.post(
@@ -517,7 +524,7 @@ async def generate_image(
     image_creation: ImageCreation,
     user: str = Depends(verify_api_key),
 ):
-    if getenv("SD_MODEL") == "":
+    if getenv("IMG_MODEL") == "":
         return {
             "created": int(time.time()),
             "data": [{"url": "https://demofree.sirv.com/nope-not-here.jpg"}],

@@ -1,4 +1,3 @@
-spacy==3.7.4
 fastapi
 uvicorn
 pydantic
@@ -7,6 +6,7 @@ tiktoken==0.7.0
 python-dotenv==1.0.1
 beautifulsoup4==4.12.3
 faster-whisper==1.2.0
+gguf
 pydub==0.25.1
 ffmpeg-python==0.2.0
 transformers==4.46.3

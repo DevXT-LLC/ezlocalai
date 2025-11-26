@@ -8,14 +8,10 @@ services:
     environment:
       - EZLOCALAI_URL=${EZLOCALAI_URL-http://localhost:8091}
       - EZLOCALAI_API_KEY=${EZLOCALAI_API_KEY-}
-      - GPU_LAYERS=${GPU_LAYERS-0}
       - MAIN_GPU=${MAIN_GPU-0}
-      - DEFAULT_MODEL=${DEFAULT_MODEL-TheBloke/phi-2-dpo-GGUF}
-      - LLM_MAX_TOKENS=${LLM_MAX_TOKENS-0}
+      - DEFAULT_MODEL=${DEFAULT_MODEL-unsloth/Qwen3-VL-4B-Instruct-GGUF}
       - WHISPER_MODEL=${WHISPER_MODEL-base.en}
-      - IMG_ENABLED=${IMG_ENABLED-true}
-      - SD_MODEL=${SD_MODEL}
-      - VISION_MODEL=${VISION_MODEL}
+      - IMG_MODEL=${IMG_MODEL-}
       - LLM_BATCH_SIZE=${LLM_BATCH_SIZE-1024}
       - CUDA_DOCKER_ARCH=all
     restart: unless-stopped
@@ -24,7 +20,6 @@ services:
       - "8502:8502"
     volumes:
       - ./models:/app/models
+      - ./hf:/root/.cache/huggingface/hub
       - ./outputs:/app/outputs
       - ./voices:/app/voices
-      - ./whispercpp:/app/whispercpp
-      - ./xttsv2_2.0.2:/app/xttsv2_2.0.2

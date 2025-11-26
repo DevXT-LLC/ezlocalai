@@ -19,8 +19,7 @@ EZLOCALAI_SERVER = os.getenv("EZLOCALAI_URL", "http://localhost:8091")
 EZLOCALAI_API_KEY = os.getenv("EZLOCALAI_API_KEY", "none")
 DEFAULT_LLM = os.getenv("DEFAULT_MODEL", "unsloth/Qwen3-VL-4B-Instruct-GGUF")
 VISION_MODEL = os.getenv("VISION_MODEL", None)
-SD_MODEL = os.getenv("SD_MODEL", "ByteDance/SDXL-Lightning")
-IMG_ENABLED = os.getenv("IMG_ENABLED", "false")
+IMG_MODEL = os.getenv("IMG_MODEL", "")
 WHISPER_MODEL = os.getenv("WHISPER_MODEL", "base.en")
 
 if "/" in DEFAULT_LLM:
@@ -40,10 +39,10 @@ if VISION_MODEL:
         **Vision model:** [{VISION_MODEL}](https://huggingface.co/{VISION_MODEL})
         """
     )
-if IMG_ENABLED.lower() == "true":
+if IMG_MODEL:
     st.markdown(
         f"""
-        **Image Generation model:** [{SD_MODEL}](https://huggingface.co/{SD_MODEL})
+        **Image Generation model:** [{IMG_MODEL}](https://huggingface.co/{IMG_MODEL})
         """
     )
 openai.base_url = f"{EZLOCALAI_SERVER}/v1/"

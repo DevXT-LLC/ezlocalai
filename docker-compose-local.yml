@@ -9,12 +9,8 @@ services:
       - EZLOCALAI_URL=${EZLOCALAI_URL:-http://localhost:8091}
       - EZLOCALAI_API_KEY=${EZLOCALAI_API_KEY:-}
       - DEFAULT_MODEL=${DEFAULT_MODEL:-unsloth/Qwen3-VL-4B-Instruct-GGUF}
-      - LLM_MAX_TOKENS=${LLM_MAX_TOKENS:-32768}
       - WHISPER_MODEL=${WHISPER_MODEL:-base.en}
-      - IMG_ENABLED=${IMG_ENABLED:-true}
-      - IMG_DEVICE=${IMG_DEVICE:-cpu}
-      - SD_MODEL=${SD_MODEL:-ByteDance/SDXL-Lightning}
-      - EMBEDDING_ENABLED=${EMBEDDING_ENABLED:-true}
+      - IMG_MODEL=${IMG_MODEL:-}
       - LLM_BATCH_SIZE=${LLM_BATCH_SIZE:-1024}
       - MAX_CONCURRENT_REQUESTS=${MAX_CONCURRENT_REQUESTS:-1}
       - MAX_QUEUE_SIZE=${MAX_QUEUE_SIZE:-100}
@@ -29,4 +25,3 @@ services:
       - ./outputs:/app/outputs
       - ./voices:/app/voices
       - ./whispercpp:/app/whispercpp
-      - ./xttsv2_2.0.2:/app/xttsv2_2.0.2

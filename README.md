@@ -42,17 +42,20 @@ Replace the environment variables with your desired settings. Assumptions will b
 - `EZLOCALAI_URL` - The URL to use for the server. Default is `http://localhost:8091`.
 - `EZLOCALAI_API_KEY` - The API key to use for the server. If not set, the server will not require an API key when accepting requests.
 - `NGROK_TOKEN` - The ngrok token to use for the server. If not set, ngrok will not be used. Using ngrok will allow you to expose your ezlocalai server to the public with as simple as an API key. [Get your free NGROK_TOKEN here.](https://dashboard.ngrok.com/get-started/your-authtoken)
-- `DEFAULT_MODEL` - The default model to use when no model is specified. Use the Hugging Face path. Default is `TheBloke/phi-2-dpo-GGUF`.
-- `LLM_MAX_TOKENS` - The maximum number of tokens to use for the language model. If set to `0`, it will automatically use the max tokens for the model. Default is `0`.
+- `DEFAULT_MODEL` - The default model(s) to load. Comma-separated list of HuggingFace model paths. First model loads at startup, others swap on demand. Default is `unsloth/Qwen3-VL-4B-Instruct-GGUF`.
 - `WHISPER_MODEL` - The model to use for speech-to-text. Default is `base.en`.
 - `AUTO_UPDATE` - Whether or not to automatically update ezlocalai. Default is `true`.
 - `THREADS` - The number of CPU threads ezlocalai is allowed to use. Default is 4.
-- `GPU_LAYERS` (Only applicable to NVIDIA GPU) - The number of layers to use on the GPU. Default is `0`. Your `GPU_LAYERS` will automatically determine a number of layers to use based on your GPU's memory if it is set to `-1` and you have an NVIDIA GPU. If it is set to `-2`, it will use the maximum number of layers requested by the model.
 - `MAIN_GPU` (Only applicable to NVIDIA GPU) - The GPU to use for the language model. Default is `0`.
 - `TENSOR_SPLIT` (Only applicable with multiple CUDA GPUs) - The allocation to each device in CSV format.
-- `IMG_ENABLED` - If set to true, models will choose to generate images when they want to based on the user input. **This is only available on GPU.** Default is `false`.
-- `SD_MODEL` - The stable diffusion model to use. Default is `stabilityai/sdxl-turbo`.
-- `VISION_MODEL` - The vision model to use. Default is None. Current options are `deepseek-ai/deepseek-vl-1.3b-chat` and `deepseek-ai/deepseek-vl-7b-chat`.
+- `IMG_MODEL` - The image generation model to use. Leave empty to disable image generation. Example: `ByteDance/SDXL-Lightning`.
+
+**Auto-configured (no env vars needed):**
+- **VRAM Budget** - Automatically detected from GPU
+- **GPU Layers** - Auto-calibrated based on VRAM budget
+- **Context Size** - Dynamic, rounds up to nearest 32k based on prompt size
+- **Image Device** - Auto-detects CUDA availability
+- **Vision** - Handled by main LLM if it has mmproj (e.g., Qwen3-VL models)
 
 </details>
 

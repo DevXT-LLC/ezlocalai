@@ -12,10 +12,20 @@ DEFAULT_MODEL = getenv("DEFAULT_MODEL")
 
 
 def get_models():
-    """Return a list of available models."""
-    return [
-        {"id": DEFAULT_MODEL, "object": "model", "owned_by": "ezlocalai"},
-    ]
+    """Return a list of available models from DEFAULT_MODEL config."""
+    model_config = getenv("DEFAULT_MODEL")
+    models = []
+    if model_config.lower() != "none":
+        for model_entry in model_config.split(","):
+            model_entry = model_entry.strip()
+            if model_entry:
+                # Parse model@max_tokens format
+                if "@" in model_entry:
+                    model_name = model_entry.rsplit("@", 1)[0]
+                else:
+                    model_name = model_entry
+                models.append({"id": model_name, "object": "model", "owned_by": "ezlocalai"})
+    return models
 
 
 def download_model(model_name: str = "", models_dir: str = "models") -> tuple:
@@ -154,12 +164,21 @@ class LLM:
         model: str = "",
         models_dir: str = "./models",
         system_message: str = "",
+        gpu_layers: int = None,  # Override GPU_LAYERS env var if provided
         **kwargs,
     ):
         global DEFAULT_MODEL
 
-        MAIN_GPU = int(getenv("MAIN_GPU"))
-        GPU_LAYERS = int(getenv("GPU_LAYERS"))
+        MAIN_GPU = int(getenv("MAIN_GPU", "0"))
+        # Use provided gpu_layers if specified, otherwise fall back to env var or auto-detect
+        gpu_layers_env = getenv("GPU_LAYERS", "")
+        if gpu_layers is not None:
+            GPU_LAYERS = gpu_layers
+        elif gpu_layers_env:
+            GPU_LAYERS = int(gpu_layers_env)
+        else:
+            # Auto-detect: use -1 which triggers VRAM-based calculation on GPU, 0 on CPU
+            GPU_LAYERS = -1 if torch.cuda.is_available() else 0
 
         if torch.cuda.is_available() and GPU_LAYERS == -1:
             # Reserve 5GB VRAM for TTS and STT
@@ -206,9 +225,9 @@ class LLM:
         self.params["presence_penalty"] = presence_penalty
         self.params["frequency_penalty"] = frequency_penalty
         self.params["logit_bias"] = logit_bias
-        self.params["max_tokens"] = (
-            int(getenv("LLM_MAX_TOKENS")) if max_tokens == 0 else max_tokens
-        )
+        # Use provided max_tokens, or fall back to env var
+        effective_max_tokens = max_tokens if max_tokens > 0 else int(getenv("LLM_MAX_TOKENS"))
+        self.params["max_tokens"] = effective_max_tokens
         self.params["top_k"] = kwargs.get("top_k", 20)
 
         # Download model and get paths
@@ -217,11 +236,11 @@ class LLM:
         )
 
         # Initialize xllamacpp
-        logging.info(f"[LLM] Loading {self.model_name} with xllamacpp...")
+        logging.info(f"[LLM] Loading {self.model_name} with xllamacpp (context: {effective_max_tokens})...")
 
         self.xlc_params = xlc.CommonParams()
         self.xlc_params.model.path = model_path
-        self.xlc_params.n_ctx = int(getenv("LLM_MAX_TOKENS"))
+        self.xlc_params.n_ctx = effective_max_tokens
         self.xlc_params.n_batch = int(getenv("LLM_BATCH_SIZE"))
         self.xlc_params.n_gpu_layers = GPU_LAYERS
         self.xlc_params.main_gpu = MAIN_GPU
@@ -236,6 +255,17 @@ class LLM:
 
         # Create the server instance
         self.server = xlc.Server(self.xlc_params)
+        
+        # Verify server initialized correctly with a minimal test completion
+        try:
+            test_result = self.server.handle_completions({
+                "prompt": "Hi",
+                "max_tokens": 1,
+            })
+            if isinstance(test_result, dict) and "error" in test_result:
+                raise RuntimeError(f"LLM server test failed: {test_result}")
+        except Exception as e:
+            raise RuntimeError(f"Failed to initialize LLM server for {self.model_name}: {e}")
 
         self.model_list = get_models()
         logging.info(f"[LLM] {self.model_name} loaded successfully with xllamacpp.")
