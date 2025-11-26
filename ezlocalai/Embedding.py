@@ -1,63 +1,69 @@
-from optimum.onnxruntime import ORTModelForFeatureExtraction
-from transformers import AutoTokenizer
-from ezlocalai.Helpers import get_tokens, chunk_content
-from huggingface_hub import hf_hub_download
-
 import torch
+import torch.nn.functional as F
+from transformers import AutoTokenizer, AutoModel
 import os
+
+
+def mean_pooling(model_output, attention_mask):
+    """Mean pooling - take attention mask into account for correct averaging."""
+    token_embeddings = model_output[0]  # First element is last_hidden_state
+    input_mask_expanded = (
+        attention_mask.unsqueeze(-1).expand(token_embeddings.size()).float()
+    )
+    return torch.sum(token_embeddings * input_mask_expanded, 1) / torch.clamp(
+        input_mask_expanded.sum(1), min=1e-9
+    )
 
 
 class Embedding:
     def __init__(self):
-        model_dir = os.path.join(
-            os.getcwd(),
-            "models",
-            "models--hooman650--bge-m3-onnx-o4",
-            "snapshots",
-            "848e8bc2408aad2c8849c7be9475f7aec3ee781a",
-        )
-        if not os.path.exists(model_dir):
-            os.makedirs(model_dir, exist_ok=True)
-        # if model_optimized.onnx.data does not exist, download the model.
-        files = [
-            "config.json",
-            "model_optimized.onnx",
-            "model_optimized.onnx.data",
-            "ort_config.json",
-            "sentencepiece.bpe.model",
-            "special_tokens_map.json",
-            "tokenizer.json",
-            "tokenizer_config.json",
-        ]
-        for file in files:
-            if not os.path.exists(os.path.join(model_dir, file)):
-                hf_hub_download(
-                    repo_id="hooman650/bge-m3-onnx-o4",
-                    filename=file,
-                    local_dir=model_dir,
-                )
-        self.model = ORTModelForFeatureExtraction.from_pretrained(
-            "hooman650/bge-m3-onnx-o4",
-            local_dir=model_dir,
-            cache_dir=os.path.join(os.getcwd(), "models"),
-        )
+        self.model_name = "BAAI/bge-m3"
+        cache_dir = os.path.join(os.getcwd(), "models")
+        os.makedirs(cache_dir, exist_ok=True)
+        # Always use CPU for embeddings to avoid VRAM conflicts with LLM
+        self.device = "cpu"
+
         self.tokenizer = AutoTokenizer.from_pretrained(
-            "hooman650/bge-m3-onnx-o4",
-            local_dir=model_dir,
-            cache_dir=os.path.join(os.getcwd(), "models"),
+            self.model_name,
+            cache_dir=cache_dir,
         )
+        self.model = AutoModel.from_pretrained(
+            self.model_name,
+            cache_dir=cache_dir,
+        ).to(self.device)
+        self.model.eval()
 
     def get_embeddings(self, input):
-        tokens = get_tokens(input)
-        sentences = chunk_content(input)
-        encoded_input = self.tokenizer(
-            sentences, padding=True, truncation=True, return_tensors="pt"
-        ).to("cuda" if torch.cuda.is_available() else "cpu")
-        out = self.model(**encoded_input, return_dict=True).last_hidden_state
-        dense_vecs = torch.nn.functional.normalize(out[:, 0], dim=-1)
-        embeddings = dense_vecs.cpu().detach().numpy().tolist()
+        # Handle both string and list inputs
+        if isinstance(input, str):
+            texts = [input]
+        else:
+            texts = input
+
+        # Tokenize inputs
+        batch_dict = self.tokenizer(
+            texts,
+            padding=True,
+            truncation=True,
+            max_length=8192,
+            return_tensors="pt",
+        )
+        batch_dict = {k: v.to(self.device) for k, v in batch_dict.items()}
+
+        # Count tokens for usage
+        total_tokens = sum(batch_dict["attention_mask"].sum(dim=1).tolist())
+
+        # Generate embeddings
+        with torch.no_grad():
+            outputs = self.model(**batch_dict)
+            embeddings = mean_pooling(outputs, batch_dict["attention_mask"])
+            # Normalize embeddings
+            embeddings = F.normalize(embeddings, p=2, dim=1)
+
+        embeddings_list = embeddings.float().cpu().numpy().tolist()
+
         data = []
-        for i, embedding in enumerate(embeddings):
+        for i, embedding in enumerate(embeddings_list):
             data.append(
                 {
                     "object": "embedding",
@@ -69,5 +75,8 @@ class Embedding:
             "object": "list",
             "data": data,
             "model": "bge-m3",
-            "usage": {"prompt_tokens": tokens, "total_tokens": tokens},
+            "usage": {
+                "prompt_tokens": int(total_tokens),
+                "total_tokens": int(total_tokens),
+            },
         }

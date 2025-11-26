@@ -30,7 +30,7 @@ jobs:
       service-under-test:
         image: ${{ inputs.image }}
         env:
-          DEFAULT_MODEL: "unsloth/Qwen3-1.7B-GGUF"
+          DEFAULT_MODEL: "unsloth/Qwen3-VL-2B-Instruct-GGUF"
         ports:
           - ${{ inputs.port-mapping || format('{0}:{1}', inputs.port, inputs.port) }}
         options: >-

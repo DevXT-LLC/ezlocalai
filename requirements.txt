@@ -9,9 +9,6 @@ beautifulsoup4==4.12.3
 faster-whisper==1.0.3
 pydub==0.25.1
 ffmpeg-python==0.2.0
-torch==2.3.1
-transformers==4.43.4
-TTS==0.22.0
 sounddevice==0.4.6
 pyaudio==0.2.14
 webrtcvad==2.0.10
@@ -20,9 +17,10 @@ accelerate
 python-multipart
 openai
 pdfplumber
-optimum[onnxruntime]==1.21.4
-onnxruntime==1.18.1
-onnx
-diffusers[torch]==0.29.2
-torchaudio==2.3.1
-llama-cpp-python==0.3.16
+huggingface_hub
+safetensors
+sentence-transformers
+# Chatterbox TTS - pins diffusers==0.29.0 and transformers==4.46.3
+chatterbox-tts
+resemble-perth
+# Note: xllamacpp is installed separately in Dockerfile

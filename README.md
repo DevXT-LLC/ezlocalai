@@ -6,6 +6,8 @@ ezlocalai is an easy set up artificial intelligence server that allows you to ea
 
 ## Prerequisites
 
+> **Note:** If using the CLI (`pip install ezlocalai`), prerequisites are auto-installed on Linux. Skip to [Quick Start](#quick-start-recommended).
+
 - [Git](https://git-scm.com/downloads)
 - [Docker Desktop](https://docs.docker.com/docker-for-windows/install/) (Windows or Mac)
 - [CUDA Toolkit (May Need 12.4)](https://developer.nvidia.com/cuda-12-4-0-download-archive) (NVIDIA GPU only)
@@ -19,7 +21,83 @@ ezlocalai is an easy set up artificial intelligence server that allows you to ea
 
 </details>
 
-## Installation
+## Quick Start (Recommended)
+
+Install the CLI and start ezlocalai with a single command:
+
+```bash
+pip install ezlocalai
+ezlocalai start
+```
+
+That's it! The CLI will:
+- Auto-detect your GPU (NVIDIA) or fall back to CPU mode
+- Install Docker if not present (Linux only)
+- Install NVIDIA Container Toolkit if needed (Linux only)
+- Pull and start the appropriate container
+- Download models automatically on first run
+
+### CLI Commands
+
+```bash
+# Start with defaults (auto-detects GPU, uses Qwen3-VL-4B)
+ezlocalai start
+
+# Start with a specific model
+ezlocalai start --model unsloth/gemma-3-4b-it-GGUF
+
+# Start with custom options
+ezlocalai start --model unsloth/Qwen3-VL-4B-Instruct-GGUF \
+                --uri http://localhost:8091 \
+                --api-key my-secret-key \
+                --ngrok <your-ngrok-token>
+
+# Other commands
+ezlocalai stop      # Stop the container
+ezlocalai restart   # Restart the container
+ezlocalai status    # Check if running and show configuration
+ezlocalai logs      # Show container logs (use -f to follow)
+ezlocalai update    # Pull/rebuild latest images
+```
+
+### Data Persistence
+
+All data is stored in `~/.ezlocalai/`:
+
+| Directory | Contents |
+|-----------|----------|
+| `~/.ezlocalai/data/models/` | Downloaded GGUF model files |
+| `~/.ezlocalai/data/hf/` | HuggingFace cache |
+| `~/.ezlocalai/data/voices/` | Voice cloning samples |
+| `~/.ezlocalai/data/outputs/` | Generated images/audio |
+| `~/.ezlocalai/.env` | Your configuration |
+
+Models persist across container updates - you won't re-download them when updating the CLI or rebuilding the CUDA image.
+
+### CLI Options
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--model`, `-m` | `unsloth/Qwen3-VL-4B-Instruct-GGUF` | HuggingFace GGUF model(s), comma-separated |
+| `--uri` | `http://localhost:8091` | Server URL |
+| `--api-key` | None | API key for authentication |
+| `--ngrok` | None | ngrok token for public URL |
+
+For additional options (Whisper, image model, etc.), edit `~/.ezlocalai/.env`:
+
+```bash
+# Example .env configuration
+DEFAULT_MODEL="unsloth/Qwen3-VL-4B-Instruct-GGUF"
+WHISPER_MODEL="base"           # Speech-to-text (empty to disable)
+IMG_MODEL=""                   # Image generation (empty to disable)
+EZLOCALAI_API_KEY=""           # API authentication
+```
+
+---
+
+## Manual Installation
+
+If you prefer manual setup or need more control:
 
 ```bash
 git clone https://github.com/DevXT-LLC/ezlocalai
@@ -42,17 +120,20 @@ Replace the environment variables with your desired settings. Assumptions will b
 - `EZLOCALAI_URL` - The URL to use for the server. Default is `http://localhost:8091`.
 - `EZLOCALAI_API_KEY` - The API key to use for the server. If not set, the server will not require an API key when accepting requests.
 - `NGROK_TOKEN` - The ngrok token to use for the server. If not set, ngrok will not be used. Using ngrok will allow you to expose your ezlocalai server to the public with as simple as an API key. [Get your free NGROK_TOKEN here.](https://dashboard.ngrok.com/get-started/your-authtoken)
-- `DEFAULT_MODEL` - The default model to use when no model is specified. Use the Hugging Face path. Default is `TheBloke/phi-2-dpo-GGUF`.
-- `LLM_MAX_TOKENS` - The maximum number of tokens to use for the language model. If set to `0`, it will automatically use the max tokens for the model. Default is `0`.
+- `DEFAULT_MODEL` - The default model(s) to load. Comma-separated list of HuggingFace model paths. First model loads at startup, others swap on demand. Default is `unsloth/Qwen3-VL-4B-Instruct-GGUF`.
 - `WHISPER_MODEL` - The model to use for speech-to-text. Default is `base.en`.
 - `AUTO_UPDATE` - Whether or not to automatically update ezlocalai. Default is `true`.
 - `THREADS` - The number of CPU threads ezlocalai is allowed to use. Default is 4.
-- `GPU_LAYERS` (Only applicable to NVIDIA GPU) - The number of layers to use on the GPU. Default is `0`. Your `GPU_LAYERS` will automatically determine a number of layers to use based on your GPU's memory if it is set to `-1` and you have an NVIDIA GPU. If it is set to `-2`, it will use the maximum number of layers requested by the model.
 - `MAIN_GPU` (Only applicable to NVIDIA GPU) - The GPU to use for the language model. Default is `0`.
 - `TENSOR_SPLIT` (Only applicable with multiple CUDA GPUs) - The allocation to each device in CSV format.
-- `IMG_ENABLED` - If set to true, models will choose to generate images when they want to based on the user input. **This is only available on GPU.** Default is `false`.
-- `SD_MODEL` - The stable diffusion model to use. Default is `stabilityai/sdxl-turbo`.
-- `VISION_MODEL` - The vision model to use. Default is None. Current options are `deepseek-ai/deepseek-vl-1.3b-chat` and `deepseek-ai/deepseek-vl-7b-chat`.
+- `IMG_MODEL` - The image generation model to use. Leave empty to disable image generation. Example: `ByteDance/SDXL-Lightning`.
+
+**Auto-configured (no env vars needed):**
+- **VRAM Budget** - Automatically detected from GPU
+- **GPU Layers** - Auto-calibrated based on VRAM budget
+- **Context Size** - Dynamic, rounds up to nearest 32k based on prompt size
+- **Image Device** - Auto-detects CUDA availability
+- **Vision** - Handled by main LLM if it has mmproj (e.g., Qwen3-VL models)
 
 </details>
 
@@ -73,6 +154,17 @@ docker-compose down
 docker-compose build
 docker-compose up
 ```
+
+## Benchmarks
+
+Performance tested on Intel i9-12900KS + RTX 4090 (24GB):
+
+| Model | Size | Speed | Notes |
+|-------|------|-------|-------|
+| **Qwen3-VL-4B** | 4B | ~210 tok/s | Vision-capable, great for chat |
+| **Qwen3-Coder-30B** | 30B (MoE) | ~65 tok/s | Coding model, hot-swappable |
+
+Both models pre-calibrate at startup and hot-swap in ~1 second.
 
 ## OpenAI Style Endpoint Usage
 

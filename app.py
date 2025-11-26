@@ -34,8 +34,7 @@ logging.basicConfig(
 MAX_CONCURRENT_REQUESTS = int(getenv("MAX_CONCURRENT_REQUESTS", "1"))
 MAX_QUEUE_SIZE = int(getenv("MAX_QUEUE_SIZE", "100"))
 request_queue = RequestQueue(
-    max_concurrent_requests=MAX_CONCURRENT_REQUESTS,
-    max_queue_size=MAX_QUEUE_SIZE
+    max_concurrent_requests=MAX_CONCURRENT_REQUESTS, max_queue_size=MAX_QUEUE_SIZE
 )
 
 pipe = Pipes()
@@ -50,21 +49,26 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 # Queue management
 @app.on_event("startup")
 async def startup_event():
     await request_queue.start()
     logging.info("[ezlocalai] Request queue started")
 
+
 @app.on_event("shutdown")
 async def shutdown_event():
     await request_queue.stop()
     logging.info("[ezlocalai] Request queue stopped")
 
+
 # Async wrapper for pipe.get_response
 async def process_request_async(data: Dict, completion_type: str):
     """Async wrapper for pipe.get_response to handle it in the queue."""
     return await pipe.get_response(data, completion_type)
+
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -173,36 +177,35 @@ async def chat_completions(
 
     if getenv("DEFAULT_MODEL") or getenv("VISION_MODEL"):
         data = await request.json()
-        
+
         # Add request timeout (configurable via environment variable)
         request_timeout = float(getenv("REQUEST_TIMEOUT", "300"))  # 5 minutes default
-        
+
         try:
             # Enqueue the request
             request_id = await request_queue.enqueue_request(
-                data=data,
-                completion_type="chat",
-                processor_func=process_request_async
+                data=data, completion_type="chat", processor_func=process_request_async
             )
-            
+
             # Wait for the result
             response, audio_response = await request_queue.wait_for_result(
-                request_id, 
-                timeout=request_timeout
+                request_id, timeout=request_timeout
             )
-            
+
         except HTTPException:
             # Re-raise HTTP exceptions (queue full, etc.)
             raise
         except asyncio.TimeoutError:
             raise HTTPException(
-                status_code=408, 
-                detail=f"Request timed out after {request_timeout} seconds"
+                status_code=408,
+                detail=f"Request timed out after {request_timeout} seconds",
             )
         except Exception as e:
             logging.error(f"[Chat Completions] Unexpected error: {e}")
-            raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
-        
+            raise HTTPException(
+                status_code=500, detail=f"Internal server error: {str(e)}"
+            )
+
         if audio_response:
             if audio_response.startswith("http"):
                 return response
@@ -285,36 +288,37 @@ class CompletionsResponse(BaseModel):
 async def completions(c: Completions, request: Request, user=Depends(verify_api_key)):
     if getenv("DEFAULT_MODEL") or getenv("VISION_MODEL"):
         data = await request.json()
-        
+
         # Add request timeout (configurable via environment variable)
         request_timeout = float(getenv("REQUEST_TIMEOUT", "300"))  # 5 minutes default
-        
+
         try:
             # Enqueue the request
             request_id = await request_queue.enqueue_request(
                 data=data,
                 completion_type="completion",
-                processor_func=process_request_async
+                processor_func=process_request_async,
             )
-            
+
             # Wait for the result
             response, audio_response = await request_queue.wait_for_result(
-                request_id, 
-                timeout=request_timeout
+                request_id, timeout=request_timeout
             )
-            
+
         except HTTPException:
             # Re-raise HTTP exceptions (queue full, etc.)
             raise
         except asyncio.TimeoutError:
             raise HTTPException(
-                status_code=408, 
-                detail=f"Request timed out after {request_timeout} seconds"
+                status_code=408,
+                detail=f"Request timed out after {request_timeout} seconds",
             )
         except Exception as e:
             logging.error(f"[Completions] Unexpected error: {e}")
-            raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
-        
+            raise HTTPException(
+                status_code=500, detail=f"Internal server error: {str(e)}"
+            )
+
         if audio_response:
             if audio_response.startswith("http"):
                 return response
@@ -355,10 +359,11 @@ class EmbeddingResponse(BaseModel):
     dependencies=[Depends(verify_api_key)],
 )
 async def embedding(embedding: EmbeddingModel, user=Depends(verify_api_key)):
-    if getenv("EMBEDDING_ENABLED").lower() == "true":
-        return pipe.embedder.get_embeddings(input=embedding.input)
-    else:
-        raise HTTPException(status_code=404, detail="Embeddings are disabled.")
+    # Embeddings are always available
+    embedder = pipe._get_embedder()
+    result = embedder.get_embeddings(input=embedding.input)
+    pipe._destroy_embedder()
+    return result
 
 
 # Audio Transcription endpoint
@@ -380,13 +385,15 @@ async def speech_to_text(
 ):
     if getenv("STT_ENABLED").lower() == "false":
         raise HTTPException(status_code=404, detail="Speech to text is disabled.")
-    response = await pipe.stt.transcribe_audio(
+    stt = pipe._get_stt()
+    response = await stt.transcribe_audio(
         base64_audio=base64.b64encode(await file.read()).decode("utf-8"),
         audio_format=file.content_type,
         language=language,
         prompt=prompt,
         temperature=temperature,
     )
+    pipe._destroy_stt()
     return {"text": response}
 
 
@@ -410,7 +417,8 @@ async def audio_translations(
 ):
     if getenv("STT_ENABLED").lower() == "false":
         raise HTTPException(status_code=404, detail="Speech to text is disabled.")
-    response = await pipe.stt.transcribe_audio(
+    stt = pipe._get_stt()
+    response = await stt.transcribe_audio(
         base64_audio=base64.b64encode(await file.read()).decode("utf-8"),
         audio_format=file.content_type,
         language=language,
@@ -418,6 +426,7 @@ async def audio_translations(
         temperature=temperature,
         translate=True,
     )
+    pipe._destroy_stt()
     return {"text": response}
 
 
@@ -452,7 +461,8 @@ async def text_to_speech(tts: TextToSpeech, user=Depends(verify_api_key)):
                 audio=tts.input,
             )
             return audio
-    audio = await pipe.ctts.generate(
+    tts_model = pipe._get_tts()
+    audio = await tts_model.generate(
         text=tts.input, voice=tts.voice, language=tts.language
     )
     return audio
@@ -466,7 +476,8 @@ async def text_to_speech(tts: TextToSpeech, user=Depends(verify_api_key)):
 async def get_voices(user=Depends(verify_api_key)):
     if getenv("TTS_ENABLED").lower() == "false":
         raise HTTPException(status_code=404, detail="Text to speech is disabled.")
-    return {"voices": pipe.ctts.voices}
+    tts_model = pipe._get_tts()
+    return {"voices": tts_model.voices}
 
 
 @app.post(
@@ -517,7 +528,7 @@ async def generate_image(
     image_creation: ImageCreation,
     user: str = Depends(verify_api_key),
 ):
-    if getenv("SD_MODEL") == "":
+    if getenv("IMG_MODEL") == "":
         return {
             "created": int(time.time()),
             "data": [{"url": "https://demofree.sirv.com/nope-not-here.jpg"}],

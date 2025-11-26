@@ -18,23 +18,18 @@ RUN apt-get update --fix-missing && \
 RUN python3 -m pip install --upgrade pip && \
     python3 -m pip install --upgrade cmake scikit-build setuptools wheel --no-cache-dir
 WORKDIR /app
-RUN pip install torch==2.3.1+cu121 torchaudio==2.3.1+cu121 --index-url https://download.pytorch.org/whl/cu121
-RUN git clone https://github.com/Josh-XT/DeepSeek-VL deepseek && \
-    cd deepseek && \
-    pip install --no-cache-dir -e . && \
-    cd ..
+RUN pip install torch==2.6.0+cu124 torchaudio==2.6.0+cu124 --index-url https://download.pytorch.org/whl/cu124
+# Install numpy and Cython for pkuseg (required by chatterbox-tts)
+RUN pip install numpy==1.25.2 Cython --no-cache-dir
+# Install pkuseg separately (required by chatterbox-tts)
+RUN pip install pkuseg==0.0.25 --no-build-isolation --no-cache-dir
 COPY cuda-requirements.txt .
 RUN pip install --no-cache-dir -r cuda-requirements.txt
-RUN pip install spacy spacy-legacy spacy-loggers && \
-    pip install https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.7.1/en_core_web_sm-3.7.1-py3-none-any.whl
 ENV HOST=0.0.0.0 \
     CUDA_DOCKER_ARCH=all \
-    LLAMA_CUBLAS=1 \
-    GGML_CUDA=on \
-    CUDAVER=12.4.1 \
-    AVXVER=basic
-RUN CMAKE_ARGS="-DGGML_CUDA=on -DGGML_CUDA_FORCE_MMQ=ON -DGGML_AVX2=off -DGGML_FMA=off -DGGML_F16C=off -DCMAKE_CUDA_ARCHITECTURES=86;89" \
-    pip install llama-cpp-python==0.3.16 --no-cache-dir
+    CUDAVER=12.4.1
+# Install xllamacpp with CUDA 12.4 support
+RUN pip install xllamacpp --force-reinstall --index-url https://xorbitsai.github.io/xllamacpp/whl/cu124 --no-cache-dir
 COPY . .
 EXPOSE 8091
 EXPOSE 8502

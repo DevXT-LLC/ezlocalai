@@ -1,2 +1,41 @@
 [build-system]
-requires = ["setuptools", "wheel"]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ezlocalai"
+version = "1.0.0"
+description = "Local AI inference made easy - LLM, Vision, TTS, STT, and Image Generation"
+readme = "README.md"
+license = {text = "MIT"}
+authors = [
+    {name = "Josh XT", email = "josh@devxt.com"}
+]
+keywords = ["ai", "llm", "local", "inference", "tts", "stt", "vision", "docker"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+requires-python = ">=3.8"
+dependencies = []  # No dependencies - just needs Python and Docker
+
+[project.urls]
+Homepage = "https://github.com/DevXT-LLC/ezlocalai"
+Documentation = "https://github.com/DevXT-LLC/ezlocalai#readme"
+Repository = "https://github.com/DevXT-LLC/ezlocalai"
+Issues = "https://github.com/DevXT-LLC/ezlocalai/issues"
+
+[project.scripts]
+ezlocalai = "cli:main"
+
+[tool.setuptools]
+py-modules = ["cli"]

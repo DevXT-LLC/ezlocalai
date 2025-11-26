@@ -1,75 +1,83 @@
-from llama_cpp import Llama, llama_chat_format
+import xllamacpp as xlc
 from huggingface_hub import hf_hub_download
-from bs4 import BeautifulSoup
 from typing import List, Optional, Dict
 import os
 import re
-import requests
-import psutil
 import torch
 import logging
+import json
 from Globals import getenv
-
 
 DEFAULT_MODEL = getenv("DEFAULT_MODEL")
 
 
-def get_vision_models():
-    return [
-        "mys/ggml_bakllava-1",
-        "mys/ggml_llava-v1.5-7b",
-        "mys/ggml_llava-v1.5-13b",
-    ]
-
-
 def get_models():
-    response = requests.get("https://huggingface.co/models?sort=modified&search=gguf")
-    soup = BeautifulSoup(response.text, "html.parser")
-    model_names = []
-    if soup:
-        for a_tag in soup.find_all("a", href=True):
-            href = a_tag["href"]
-            if href.endswith("-GGUF"):
-                model_names.append(href[1:])
-    model_names.append(get_vision_models())
-    return model_names
+    """Return a list of available models from DEFAULT_MODEL config."""
+    model_config = getenv("DEFAULT_MODEL")
+    models = []
+    if model_config.lower() != "none":
+        for model_entry in model_config.split(","):
+            model_entry = model_entry.strip()
+            if model_entry:
+                # Parse model@max_tokens format
+                if "@" in model_entry:
+                    model_name = model_entry.rsplit("@", 1)[0]
+                else:
+                    model_name = model_entry
+                models.append(
+                    {"id": model_name, "object": "model", "owned_by": "ezlocalai"}
+                )
+    return models
 
 
-def is_vision_model(model_name="") -> bool:
-    if model_name == "":
-        return False
-    model_name = model_name.lower()
-    for model in get_vision_models():
-        for key in model:
-            if model_name == key.lower():
-                return True
-    return False
-
-
-def download_llm(model_name="", models_dir="models"):
+def download_model(model_name: str = "", models_dir: str = "models") -> tuple:
+    """
+    Download a model from HuggingFace Hub.
+    Returns tuple of (model_path, mmproj_path) where mmproj_path may be None.
+    """
     global DEFAULT_MODEL
     model_name = model_name if model_name else DEFAULT_MODEL
+
     if "/" not in model_name:
         model_name = "TheBloke/" + model_name + "-GGUF"
-    ram = round(psutil.virtual_memory().total / 1024**3)
+
     quantization_type = getenv("QUANT_TYPE")
     model = model_name.split("/")[-1].split("-GGUF")[0]
-    models_dir = os.path.join(models_dir, model)
-    os.makedirs(models_dir, exist_ok=True)
-    potential_clip_files = [
+    model_dir = os.path.join(models_dir, model)
+    os.makedirs(model_dir, exist_ok=True)
+
+    # Try to find or download multimodal projector files (for vision models)
+    mmproj_path = None
+    potential_mmproj_files = [
+        # Common naming conventions for vision model projectors
+        "mmproj-F16.gguf",
+        "mmproj-BF16.gguf",
+        "mmproj-F32.gguf",
+        "mmproj-f16.gguf",
         "mmproj-model-f16.gguf",
         f"{model}-mmproj-f16.gguf",
+        "mmproj.gguf",
+        f"{model.lower()}-mmproj-f16.gguf",
     ]
-    for clip_file in potential_clip_files:
-        if not os.path.exists(f"{models_dir}/{clip_file}"):
-            try:
-                hf_hub_download(
-                    repo_id=model_name,
-                    filename=clip_file,
-                    local_dir=models_dir,
-                )
-            except Exception as e:
-                pass
+
+    for mmproj_file in potential_mmproj_files:
+        mmproj_filepath = os.path.join(model_dir, mmproj_file)
+        if os.path.exists(mmproj_filepath):
+            mmproj_path = mmproj_filepath
+            break
+        try:
+            hf_hub_download(
+                repo_id=model_name,
+                filename=mmproj_file,
+                local_dir=model_dir,
+            )
+            mmproj_path = mmproj_filepath
+            logging.info(f"[LLM] Downloaded mmproj: {mmproj_file}")
+            break
+        except Exception:
+            pass
+
+    # Look for the main model file
     potential_filenames = [
         f"{model}.{quantization_type}.gguf",
         f"{model}-{quantization_type}.gguf",
@@ -82,39 +90,29 @@ def download_llm(model_name="", models_dir="models"):
         "ggml-model-q5_k.gguf",
         "ggml-model-f16.gguf",
     ]
+
+    # Check if model already exists
     for filename in potential_filenames:
-        filepath = os.path.join(models_dir, filename)
+        filepath = os.path.join(model_dir, filename)
         if os.path.exists(filepath):
-            return filepath
+            return filepath, mmproj_path
+
+    # Download the model
     logging.info(f"[LLM] Downloading {model}...")
     for filename in potential_filenames:
-        filepath = os.path.join(models_dir, filename)
+        filepath = os.path.join(model_dir, filename)
         try:
             hf_hub_download(
                 repo_id=model_name,
                 filename=filename,
-                local_dir=models_dir,
+                local_dir=model_dir,
             )
             logging.info(f"[LLM] Downloaded {model} successfully!")
-            return filepath
-        except Exception as e:
+            return filepath, mmproj_path
+        except Exception:
             pass
-    raise FileNotFoundError("No suitable quantization file found.")
 
-
-def get_clip_path(model_name="", models_dir="models"):
-    if model_name == "":
-        global DEFAULT_MODEL
-        model_name = DEFAULT_MODEL
-    potential_clip_files = [
-        "mmproj-model-f16.gguf",
-        f"{model_name.split('/')[-1]}-mmproj-f16.gguf",
-    ]
-    for clip_file in potential_clip_files:
-        if os.path.exists(f"{models_dir}/{model_name}/{clip_file}"):
-            return f"{models_dir}/{model_name}/{clip_file}"
-    else:
-        return ""
+    raise FileNotFoundError(f"No suitable model file found for {model_name}")
 
 
 def clean(
@@ -132,8 +130,9 @@ def clean(
         "<|end_of_text|>",
         "assistant\n\n",
     ],
-):
-    if message == "":
+) -> str:
+    """Clean up generated text by removing stop tokens and extra whitespace."""
+    if not message:
         return message
     for token in stop_tokens:
         if token in message:
@@ -167,14 +166,24 @@ class LLM:
         model: str = "",
         models_dir: str = "./models",
         system_message: str = "",
+        gpu_layers: int = None,  # Override GPU_LAYERS env var if provided
         **kwargs,
     ):
         global DEFAULT_MODEL
-        MAIN_GPU = int(getenv("MAIN_GPU"))
-        GPU_LAYERS = int(getenv("GPU_LAYERS"))
-        TENSOR_SPLIT = getenv("TENSOR_SPLIT")
-        if torch.cuda.is_available() and int(GPU_LAYERS) == -1:
-            # 5GB VRAM reserved for TTS and STT.
+
+        MAIN_GPU = int(getenv("MAIN_GPU", "0"))
+        # Use provided gpu_layers if specified, otherwise fall back to env var or auto-detect
+        gpu_layers_env = getenv("GPU_LAYERS", "")
+        if gpu_layers is not None:
+            GPU_LAYERS = gpu_layers
+        elif gpu_layers_env:
+            GPU_LAYERS = int(gpu_layers_env)
+        else:
+            # Auto-detect: use -1 which triggers VRAM-based calculation on GPU, 0 on CPU
+            GPU_LAYERS = -1 if torch.cuda.is_available() else 0
+
+        if torch.cuda.is_available() and GPU_LAYERS == -1:
+            # Reserve 5GB VRAM for TTS and STT
             vram = round(torch.cuda.get_device_properties(0).total_memory / 1024**3) - 5
             if vram == 3:
                 vram = 1
@@ -184,41 +193,12 @@ class LLM:
             GPU_LAYERS = vram - 1 if vram > 0 else 0
         if GPU_LAYERS == -2:
             GPU_LAYERS = -1
-        logging.info(
-            f"[LLM] Loading {DEFAULT_MODEL} with {GPU_LAYERS if GPU_LAYERS != -1 else 'all'} GPU layers. Please wait..."
-        )
-        self.params = {}
-        if str(TENSOR_SPLIT) != "" and TENSOR_SPLIT.lower() != "none":
-            if "," in str(TENSOR_SPLIT):
-                self.params["tensor_split"] = [
-                    float(weight) for weight in TENSOR_SPLIT.split(",")
-                ]
-        self.model_name = DEFAULT_MODEL
-        chat_handler = None
-        if self.model_name != "":
-            self.params["model_path"] = download_llm(
-                model_name=self.model_name, models_dir=models_dir
-            )
-            if max_tokens != 0:
-                self.params["max_tokens"] = 4096
-            else:
-                self.params["max_tokens"] = max_tokens
-            if is_vision_model(model_name=self.model_name):
-                clip_path = get_clip_path(
-                    model_name=self.model_name, models_dir=models_dir
-                )
-                if clip_path != "":
-                    chat_handler = llama_chat_format.Llava15ChatHandler(
-                        clip_model_path=clip_path, verbose=True
-                    )
-        else:
-            self.params["model_path"] = ""
-            self.params["max_tokens"] = 8192
-        self.params["n_ctx"] = int(getenv("LLM_MAX_TOKENS"))
-        self.params["verbose"] = True
+
+        self.model_name = model if model else DEFAULT_MODEL
         self.system_message = system_message
-        self.params["mirostat_mode"] = 2
-        self.params["top_k"] = 20 if "top_k" not in kwargs else kwargs["top_k"]
+        self.params = {}
+
+        # Initialize stop tokens
         self.params["stop"] = [
             "<|im_end|",
             "<|im_end|>",
@@ -232,200 +212,158 @@ class LLM:
             "<|end_of_text|>",
             "assistant\n\n",
         ]
-        if stop != []:
+        if stop:
             if isinstance(stop, str):
                 self.params["stop"].append(stop)
             else:
-                try:
-                    for stop_string in stop:
-                        if stop_string not in self.params["stop"]:
-                            if stop_string != None:
-                                self.params["stop"].append(stop_string)
-                except:
-                    if stop != None:
-                        self.params["stop"].append(stop)
+                for stop_string in stop:
+                    if stop_string and stop_string not in self.params["stop"]:
+                        self.params["stop"].append(stop_string)
 
         self.params["temperature"] = temperature if temperature else 1.31
         self.params["top_p"] = top_p if top_p else 0.95
         self.params["min_p"] = min_p if min_p else 0.05
-        self.params["stream"] = stream if stream else False
-        self.params["presence_penalty"] = presence_penalty if presence_penalty else 0.0
-        self.params["frequency_penalty"] = (
-            frequency_penalty if frequency_penalty else 0.0
+        self.params["stream"] = stream
+        self.params["presence_penalty"] = presence_penalty
+        self.params["frequency_penalty"] = frequency_penalty
+        self.params["logit_bias"] = logit_bias
+        # Use provided max_tokens, or fall back to env var
+        effective_max_tokens = (
+            max_tokens if max_tokens > 0 else int(getenv("LLM_MAX_TOKENS"))
         )
-        self.params["repetition_penalty"] = 1.2
-        self.params["logit_bias"] = logit_bias if logit_bias else None
-        self.params["n_gpu_layers"] = int(GPU_LAYERS) if GPU_LAYERS else 0
-        self.params["main_gpu"] = int(MAIN_GPU) if MAIN_GPU else 0
-        if "batch_size" in kwargs:
-            self.params["n_batch"] = (
-                int(kwargs["batch_size"]) if kwargs["batch_size"] else 1024
+        self.params["max_tokens"] = effective_max_tokens
+        self.params["top_k"] = kwargs.get("top_k", 20)
+
+        # Download model and get paths
+        model_path, mmproj_path = download_model(
+            model_name=self.model_name, models_dir=models_dir
+        )
+
+        # Initialize xllamacpp
+        logging.info(
+            f"[LLM] Loading {self.model_name} with xllamacpp (context: {effective_max_tokens})..."
+        )
+
+        self.xlc_params = xlc.CommonParams()
+        self.xlc_params.model.path = model_path
+        self.xlc_params.n_ctx = effective_max_tokens
+        self.xlc_params.n_batch = int(getenv("LLM_BATCH_SIZE"))
+        self.xlc_params.n_gpu_layers = GPU_LAYERS
+        self.xlc_params.main_gpu = MAIN_GPU
+        self.xlc_params.warmup = True
+
+        # Set multimodal projector path if available (for vision models)
+        self.is_vision = False
+        if mmproj_path:
+            self.xlc_params.mmproj.path = mmproj_path
+            self.is_vision = True
+            logging.info(f"[LLM] Vision enabled with mmproj: {mmproj_path}")
+
+        # Create the server instance
+        self.server = xlc.Server(self.xlc_params)
+
+        # Verify server initialized correctly with a minimal test completion
+        try:
+            test_result = self.server.handle_completions(
+                {
+                    "prompt": "Hi",
+                    "max_tokens": 1,
+                }
             )
-        else:
-            self.params["n_batch"] = int(getenv("LLM_BATCH_SIZE"))
-        if self.model_name != "":
-            self.lcpp = Llama(
-                **self.params,
-                chat_handler=chat_handler,
-                logits_all=True if chat_handler else False,
+            if isinstance(test_result, dict) and "error" in test_result:
+                raise RuntimeError(f"LLM server test failed: {test_result}")
+        except Exception as e:
+            raise RuntimeError(
+                f"Failed to initialize LLM server for {self.model_name}: {e}"
             )
-        else:
-            self.lcpp = None
+
         self.model_list = get_models()
+        logging.info(f"[LLM] {self.model_name} loaded successfully with xllamacpp.")
 
-    def generate(
-        self,
-        prompt,
-        max_tokens=None,
-        temperature=None,
-        top_p=None,
-        min_p=None,
-        top_k=None,
-        logit_bias=None,
-        mirostat_mode=None,
-        frequency_penalty=None,
-        presence_penalty=None,
-        stream=None,
-        model=None,
-        system_message=None,
-        **kwargs,
-    ):
-        messages = [
-            {
-                "role": "system",
-                "content": (
-                    self.system_message if system_message is None else system_message
-                ),
-            }
-        ]
-        if isinstance(prompt, list):
-            messages.append(
-                {
-                    "role": "user",
-                    "content": prompt,
-                },
-            )
-        else:
-            messages.append(
-                {
-                    "role": "user",
-                    "content": prompt,
-                },
-            )
-        data = self.lcpp.create_chat_completion(
-            messages=messages,
-            max_tokens=(
-                self.params["max_tokens"] if max_tokens is None else int(max_tokens)
-            ),
-            temperature=(
-                self.params["temperature"]
-                if temperature is None
-                else float(temperature)
-            ),
-            top_p=self.params["top_p"] if top_p is None else float(top_p),
-            min_p=self.params["min_p"] if min_p is None else float(min_p),
-            stop=self.params["stop"],
-            top_k=self.params["top_k"] if top_k is None else int(top_k),
-            logit_bias=self.params["logit_bias"] if logit_bias is None else logit_bias,
-            mirostat_mode=(
-                self.params["mirostat_mode"]
-                if mirostat_mode is None
-                else int(mirostat_mode)
-            ),
-            frequency_penalty=(
-                self.params["frequency_penalty"]
-                if frequency_penalty is None
-                else float(frequency_penalty)
-            ),
-            presence_penalty=(
-                self.params["presence_penalty"]
-                if presence_penalty is None
-                else float(presence_penalty)
-            ),
-            stream=self.params["stream"] if stream is None else stream,
-            model=self.model_name if model is None else model,
-        )
-        # Only assign model if data is not a generator (streaming mode)
-        if not hasattr(data, "__next__"):
-            data["model"] = self.model_name
-        return data
+    def chat(self, messages: List[Dict], **kwargs) -> dict:
+        """Handle chat completions using xllamacpp server."""
+        # Build the request payload
+        chat_request = {
+            "messages": messages,
+            "max_tokens": kwargs.get("max_tokens", self.params["max_tokens"]),
+            "temperature": kwargs.get("temperature", self.params["temperature"]),
+            "top_p": kwargs.get("top_p", self.params["top_p"]),
+            "stream": kwargs.get("stream", False),
+        }
 
-    def completion(self, prompt, **kwargs):
-        data = self.generate(prompt=prompt, **kwargs)
-        # Only clean content if data is not a generator (streaming mode)
-        if not hasattr(data, "__next__"):
-            data["choices"][0]["message"]["content"] = clean(
-                message=data["choices"][0]["message"]["content"],
+        # Add system message if not present
+        has_system = any(m.get("role") == "system" for m in messages)
+        if not has_system and self.system_message:
+            chat_request["messages"] = [
+                {"role": "system", "content": self.system_message}
+            ] + messages
+
+        # Call xllamacpp server
+        result = self.server.handle_chat_completions(chat_request)
+
+        if isinstance(result, dict) and "error" in result:
+            logging.error(f"[LLM] Chat completion error: {result}")
+            raise Exception(result.get("error", {}).get("message", "Unknown error"))
+
+        # Clean the response content
+        if (
+            isinstance(result, dict)
+            and result.get("choices")
+            and not kwargs.get("stream", False)
+        ):
+            content = result["choices"][0].get("message", {}).get("content", "")
+            result["choices"][0]["message"]["content"] = clean(
+                message=content,
                 stop_tokens=self.params["stop"],
             )
-            data["choices"][0]["text"] = data["choices"][0]["message"]["content"]
-        return data
 
-    def chat(self, messages, **kwargs):
-        # Handle the full conversation history instead of just the last message
-        # Ensure we have a system message at the beginning
-        formatted_messages = []
-        has_system = False
+        return result
 
-        for message in messages:
-            if message.get("role") == "system":
-                has_system = True
+    def completion(self, prompt: str, **kwargs) -> dict:
+        """Handle text completions using xllamacpp server."""
+        completion_request = {
+            "prompt": prompt,
+            "max_tokens": kwargs.get("max_tokens", self.params["max_tokens"]),
+            "temperature": kwargs.get("temperature", self.params["temperature"]),
+            "top_p": kwargs.get("top_p", self.params["top_p"]),
+            "stream": kwargs.get("stream", False),
+        }
 
-            # Handle messages with list content (multimodal)
-            formatted_message = message.copy()
-            if isinstance(message.get("content"), list):
-                # Extract text from list content for text-only models
-                text_content = ""
-                for content_item in message["content"]:
-                    if (
-                        isinstance(content_item, dict)
-                        and content_item.get("type") == "text"
-                    ):
-                        text_content += content_item.get("text", "")
-                    elif isinstance(content_item, str):
-                        text_content += content_item
-                formatted_message["content"] = text_content
+        result = self.server.handle_completions(completion_request)
 
-            formatted_messages.append(formatted_message)
+        if isinstance(result, dict) and "error" in result:
+            logging.error(f"[LLM] Completion error: {result}")
+            raise Exception(result.get("error", {}).get("message", "Unknown error"))
 
-        # If no system message exists, add default one
-        if not has_system:
-            formatted_messages.insert(
-                0, {"role": "system", "content": self.system_message}
-            )
-
-        # Use llama-cpp-python's chat completion directly with full message history
-        data = self.lcpp.create_chat_completion(
-            messages=formatted_messages,
-            max_tokens=kwargs.get("max_tokens", self.params["max_tokens"]),
-            temperature=kwargs.get("temperature", self.params["temperature"]),
-            top_p=kwargs.get("top_p", self.params["top_p"]),
-            min_p=kwargs.get("min_p", self.params["min_p"]),
-            top_k=kwargs.get("top_k", self.params["top_k"]),
-            logit_bias=kwargs.get("logit_bias", self.params["logit_bias"]),
-            mirostat_mode=kwargs.get("mirostat_mode", self.params["mirostat_mode"]),
-            frequency_penalty=kwargs.get(
-                "frequency_penalty", self.params["frequency_penalty"]
-            ),
-            presence_penalty=kwargs.get(
-                "presence_penalty", self.params["presence_penalty"]
-            ),
-            stream=kwargs.get("stream", self.params["stream"]),
-            stop=kwargs.get("stop", self.params["stop"]),
-        )
-
-        # Only clean content if data is not a generator (streaming mode)
-        if not hasattr(data, "__next__"):
-            data["choices"][0]["message"]["content"] = clean(
-                message=data["choices"][0]["message"]["content"],
+        # Clean the response text and add text field for compatibility
+        if (
+            isinstance(result, dict)
+            and result.get("choices")
+            and not kwargs.get("stream", False)
+        ):
+            text = result["choices"][0].get("text", "")
+            if not text:
+                # If text is empty, try to get from message content
+                text = result["choices"][0].get("message", {}).get("content", "")
+            result["choices"][0]["text"] = clean(
+                message=text,
                 stop_tokens=self.params["stop"],
             )
-        return data
 
-    def models(self):
+        return result
+
+    def generate(self, prompt, **kwargs) -> dict:
+        """Generate text using chat format."""
+        messages = [{"role": "user", "content": prompt}]
+        if self.system_message:
+            messages.insert(0, {"role": "system", "content": self.system_message})
+        return self.chat(messages=messages, **kwargs)
+
+    def models(self) -> List[dict]:
+        """Return list of available models."""
         return self.model_list
 
 
 if __name__ == "__main__":
     logging.info(f"[LLM] Downloading {DEFAULT_MODEL} model...")
-    download_llm(model_name=DEFAULT_MODEL, models_dir="models")
+    download_model(model_name=DEFAULT_MODEL, models_dir="models")

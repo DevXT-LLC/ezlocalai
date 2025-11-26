@@ -3,36 +3,32 @@ services:
     build:
       context: .
       dockerfile: cuda.Dockerfile
+    env_file:
+      - .env
     environment:
-      - EZLOCALAI_URL=${EZLOCALAI_URL-http://localhost:8091}
-      - EZLOCALAI_API_KEY=${EZLOCALAI_API_KEY-}
-      - GPU_LAYERS=${GPU_LAYERS-0}
-      - MAIN_GPU=${MAIN_GPU-0}
-      - DEFAULT_MODEL=${DEFAULT_MODEL-TheBloke/phi-2-dpo-GGUF}
-      - LLM_MAX_TOKENS=${LLM_MAX_TOKENS-0}
-      - WHISPER_MODEL=${WHISPER_MODEL-base.en}
-      - IMG_ENABLED=${IMG_ENABLED-true}
-      - IMG_DEVICE=${IMG_DEVICE-cpu}
-      - SD_MODEL=${SD_MODEL}
-      - VISION_MODEL=${VISION_MODEL}
-      - LLM_BATCH_SIZE=${LLM_BATCH_SIZE-1024}
+      - EZLOCALAI_URL=${EZLOCALAI_URL:-http://localhost:8091}
+      - EZLOCALAI_API_KEY=${EZLOCALAI_API_KEY:-}
+      - MAIN_GPU=${MAIN_GPU:-0}
+      - DEFAULT_MODEL=${DEFAULT_MODEL:-unsloth/Qwen3-VL-4B-Instruct-GGUF}
+      - WHISPER_MODEL=${WHISPER_MODEL:-base.en}
+      - IMG_MODEL=${IMG_MODEL:-}
+      - LLM_BATCH_SIZE=${LLM_BATCH_SIZE:-2048}
       - CUDA_DOCKER_ARCH=all
-      - TENSOR_SPLIT=${TENSOR_SPLIT-}
+      - TENSOR_SPLIT=${TENSOR_SPLIT:-}
       - TOKENIZERS_PARALLELISM=false
-      - MAX_CONCURRENT_REQUESTS=${MAX_CONCURRENT_REQUESTS-1}
-      - MAX_QUEUE_SIZE=${MAX_QUEUE_SIZE-100}
-      - REQUEST_TIMEOUT=${REQUEST_TIMEOUT-300}
+      - MAX_CONCURRENT_REQUESTS=${MAX_CONCURRENT_REQUESTS:-1}
+      - MAX_QUEUE_SIZE=${MAX_QUEUE_SIZE:-100}
+      - REQUEST_TIMEOUT=${REQUEST_TIMEOUT:-300}
     restart: unless-stopped
     ports:
       - "8091:8091"
       - "8502:8502"
     volumes:
       - ./models:/app/models
-      - ./hf:/home/root/.cache/huggingface/hub
+      - ./hf:/root/.cache/huggingface/hub
       - ./outputs:/app/outputs
       - ./voices:/app/voices
       - ./whispercpp:/app/whispercpp
-      - ./xttsv2_2.0.2:/app/xttsv2_2.0.2
     deploy:
       resources:
         reservations:
