@@ -52,29 +52,46 @@ ezlocalai start --model unsloth/Qwen3-VL-4B-Instruct-GGUF \
                 --api-key my-secret-key \
                 --ngrok <your-ngrok-token>
 
-# Disable TTS/STT (saves ~3GB VRAM)
-ezlocalai start --whisper ""
-
-# Disable image generation
-ezlocalai start --img-model ""
-
 # Other commands
 ezlocalai stop      # Stop the container
 ezlocalai restart   # Restart the container
-ezlocalai status    # Check if running and show health
+ezlocalai status    # Check if running and show configuration
 ezlocalai logs      # Show container logs (use -f to follow)
+ezlocalai update    # Pull/rebuild latest images
 ```
+
+### Data Persistence
+
+All data is stored in `~/.ezlocalai/`:
+
+| Directory | Contents |
+|-----------|----------|
+| `~/.ezlocalai/data/models/` | Downloaded GGUF model files |
+| `~/.ezlocalai/data/hf/` | HuggingFace cache |
+| `~/.ezlocalai/data/voices/` | Voice cloning samples |
+| `~/.ezlocalai/data/outputs/` | Generated images/audio |
+| `~/.ezlocalai/.env` | Your configuration |
+
+Models persist across container updates - you won't re-download them when updating the CLI or rebuilding the CUDA image.
 
 ### CLI Options
 
 | Option | Default | Description |
 |--------|---------|-------------|
-| `--model` | `unsloth/Qwen3-VL-4B-Instruct-GGUF` | HuggingFace model path |
+| `--model`, `-m` | `unsloth/Qwen3-VL-4B-Instruct-GGUF` | HuggingFace GGUF model(s), comma-separated |
 | `--uri` | `http://localhost:8091` | Server URL |
 | `--api-key` | None | API key for authentication |
 | `--ngrok` | None | ngrok token for public URL |
-| `--whisper` | `base.en` | Whisper model (empty to disable) |
-| `--img-model` | `ByteDance/SDXL-Lightning` | Image model (empty to disable) |
+
+For additional options (Whisper, image model, etc.), edit `~/.ezlocalai/.env`:
+
+```bash
+# Example .env configuration
+DEFAULT_MODEL="unsloth/Qwen3-VL-4B-Instruct-GGUF"
+WHISPER_MODEL="base"           # Speech-to-text (empty to disable)
+IMG_MODEL=""                   # Image generation (empty to disable)
+EZLOCALAI_API_KEY=""           # API authentication
+```
 
 ---
 
@@ -140,14 +157,14 @@ docker-compose up
 
 ## Benchmarks
 
-Performance tested with `unsloth/Qwen3-VL-4B-Instruct-GGUF` (4-bit quantized):
+Performance tested on Intel i9-12900KS + RTX 4090 (24GB):
 
-| Hardware | LLM Speed | LLM Peak | TTS Preload | TTS Generation |
-|----------|-----------|----------|-------------|----------------|
-| **NVIDIA RTX 3090 (24GB)** | 186.3 tok/s | 215.9 tok/s | 5.6s | 1.4-3.7s |
-| **Intel i7-13700K (CPU)** | 12.2 tok/s | 14.6 tok/s | 37.6s | 4.5s |
+| Model | Size | Speed | Notes |
+|-------|------|-------|-------|
+| **Qwen3-VL-4B** | 4B | ~210 tok/s | Vision-capable, great for chat |
+| **Qwen3-Coder-30B** | 30B (MoE) | ~65 tok/s | Coding model, hot-swappable |
 
-**GPU provides ~15x speedup for LLM inference.**
+Both models pre-calibrate at startup and hot-swap in ~1 second.
 
 ## OpenAI Style Endpoint Usage
 

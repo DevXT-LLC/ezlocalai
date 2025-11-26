@@ -32,7 +32,7 @@ __version__ = "1.0.0"
 
 # Configuration
 DOCKER_IMAGE = "joshxt/ezlocalai:latest"
-DOCKER_IMAGE_CUDA = "joshxt/ezlocalai:cuda"
+DOCKER_IMAGE_CUDA = "ezlocalai:cuda"  # Built locally, not from DockerHub
 CONTAINER_NAME = "ezlocalai"
 DEFAULT_PORT = 8091
 UI_PORT = 8502
@@ -40,6 +40,8 @@ STATE_DIR = Path.home() / ".ezlocalai"
 STATE_DIR.mkdir(parents=True, exist_ok=True)
 ENV_FILE = STATE_DIR / ".env"
 LOG_FILE = STATE_DIR / "ezlocalai.log"
+REPO_URL = "https://github.com/DevXT-LLC/ezlocalai.git"
+REPO_DIR = STATE_DIR / "repo"
 
 
 class CLIError(RuntimeError):
@@ -157,6 +159,90 @@ def prompt_user(prompt: str, default: str = "") -> str:
     else:
         user_input = input(f"{prompt}: ").strip()
     return user_input if user_input else default
+
+
+def clone_or_update_repo() -> bool:
+    """Clone or update the ezlocalai repository for building CUDA image."""
+    if REPO_DIR.exists():
+        print("📦 Updating ezlocalai repository...")
+        result = subprocess.run(
+            ["git", "pull"],
+            cwd=REPO_DIR,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if result.returncode != 0:
+            print(f"⚠️  Failed to update repo: {result.stderr}")
+            # Try to continue with existing repo
+            return True
+        print("✅ Repository updated")
+        return True
+    else:
+        print("📦 Cloning ezlocalai repository...")
+        result = subprocess.run(
+            ["git", "clone", REPO_URL, str(REPO_DIR)],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if result.returncode != 0:
+            print(f"❌ Failed to clone repo: {result.stderr}")
+            return False
+        print("✅ Repository cloned")
+        return True
+
+
+def build_cuda_image() -> bool:
+    """Build the CUDA Docker image from source using docker-compose."""
+    if not clone_or_update_repo():
+        return False
+
+    print("\n🔨 Building CUDA image (this may take 10-20 minutes)...")
+    print("   Building from: docker-compose-cuda.yml")
+
+    # Build using docker-compose (handles complex builds better)
+    result = subprocess.run(
+        ["docker", "compose", "-f", "docker-compose-cuda.yml", "build"],
+        cwd=REPO_DIR,
+        check=False,
+    )
+
+    if result.returncode != 0:
+        print("❌ Failed to build CUDA image")
+        return False
+
+    # Tag the image with our expected name
+    # docker-compose names it based on folder: repo-ezlocalai
+    print("   Tagging image as ezlocalai:cuda...")
+    tag_result = subprocess.run(
+        ["docker", "tag", "repo-ezlocalai:latest", DOCKER_IMAGE_CUDA],
+        check=False,
+    )
+
+    if tag_result.returncode != 0:
+        print("⚠️  Failed to tag image, trying alternative name...")
+        # Try with the folder name from REPO_DIR
+        folder_name = REPO_DIR.name
+        alt_name = f"{folder_name}-ezlocalai:latest"
+        tag_result = subprocess.run(
+            ["docker", "tag", alt_name, DOCKER_IMAGE_CUDA],
+            check=False,
+        )
+
+    print("✅ CUDA image built successfully")
+    return True
+
+
+def cuda_image_exists() -> bool:
+    """Check if the CUDA image exists locally."""
+    result = subprocess.run(
+        ["docker", "images", "-q", DOCKER_IMAGE_CUDA],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    return bool(result.stdout.strip())
 
 
 def install_docker_linux() -> bool:
@@ -488,7 +574,7 @@ def start_container(
         "-v",
         f"{data_dir / 'voices'}:/app/voices",
         "-v",
-        f"{data_dir / 'hf'}:/home/root/.cache/huggingface/hub",
+        f"{data_dir / 'hf'}:/root/.cache/huggingface/hub",
         "--restart",
         "unless-stopped",
     ]
@@ -505,16 +591,33 @@ def start_container(
     # Add image
     cmd.append(image)
 
-    # Pull latest image
-    print(f"\n📦 Pulling latest image: {image}")
-    pull_result = subprocess.run(
-        ["docker", "pull", image],
-        capture_output=True,
-        text=True,
-        check=False,
-    )
-    if pull_result.returncode != 0:
-        print(f"⚠️  Failed to pull latest image, using cached version if available")
+    # Handle image: pull for CPU, build for CUDA
+    if use_gpu:
+        # CUDA image must be built locally (too large for DockerHub)
+        if not cuda_image_exists():
+            print("\n🔨 CUDA image not found, building from source...")
+            if not build_cuda_image():
+                print("❌ Failed to build CUDA image. Falling back to CPU mode.")
+                use_gpu = False
+                image = DOCKER_IMAGE
+                cmd[-1] = image  # Update image in command
+                # Remove --gpus flag
+                if "--gpus" in cmd:
+                    idx = cmd.index("--gpus")
+                    cmd.pop(idx)  # Remove --gpus
+                    cmd.pop(idx)  # Remove "all"
+        # Note: We don't auto-rebuild on start - use 'ezlocalai update' to rebuild
+    else:
+        # CPU image: pull from DockerHub
+        print(f"\n📦 Pulling latest image: {image}")
+        pull_result = subprocess.run(
+            ["docker", "pull", image],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if pull_result.returncode != 0:
+            print(f"⚠️  Failed to pull latest image, using cached version if available")
 
     # Start container
     mode = "GPU" if use_gpu else "CPU"
@@ -584,17 +687,21 @@ def show_status() -> None:
     """Show ezlocalai status."""
     status = get_container_status()
 
+    # Load config (saved or defaults)
+    env_vars = load_env_file()
+    if not env_vars:
+        env_vars = get_default_env()
+
     if not status:
         print("ℹ️  ezlocalai container not found")
-        return
-
-    if is_container_running():
+        print("   Run 'ezlocalai start' to start the server")
+    elif is_container_running():
         print(f"✅ ezlocalai is running")
         print(f"   Status: {status}")
         print(f"\n   🌐 API: http://localhost:{DEFAULT_PORT}")
         print(f"   🖥️  UI:  http://localhost:{UI_PORT}")
 
-        # Show loaded model if available
+        # Show loaded model from API
         try:
             import urllib.request
             import json
@@ -604,12 +711,45 @@ def show_status() -> None:
                 data = json.loads(response.read().decode())
                 models = [m.get("id") for m in data.get("data", [])]
                 if models:
-                    print(f"\n   📦 Loaded models: {', '.join(models)}")
+                    print(f"\n   🧠 Active model: {models[0]}")
         except Exception:
             pass
     else:
         print(f"❌ ezlocalai is not running")
         print(f"   Status: {status}")
+        print("   Run 'ezlocalai start' to start the server")
+
+    # Always show configuration
+    print(f"\n   ⚙️  Configuration:")
+
+    # LLM models
+    models = env_vars.get("DEFAULT_MODEL", "unsloth/Qwen3-VL-4B-Instruct-GGUF")
+    configured = [m.strip() for m in models.split(",")]
+    print(f"      LLM models:")
+    for m in configured:
+        print(f"        - {m}")
+
+    # Whisper
+    whisper = env_vars.get("WHISPER_MODEL", "base")
+    if whisper:
+        print(f"      Speech-to-text: {whisper}")
+    else:
+        print(f"      Speech-to-text: disabled")
+
+    # Image model
+    img_model = env_vars.get("IMG_MODEL", "")
+    if img_model:
+        print(f"      Image generation: {img_model}")
+    else:
+        print(f"      Image generation: disabled")
+
+    # API key
+    if env_vars.get("EZLOCALAI_API_KEY"):
+        print(f"      API key: ****{env_vars['EZLOCALAI_API_KEY'][-4:]}")
+
+    print(f"\n   💡 To change settings:")
+    print(f"      ezlocalai start --model <model>")
+    print(f"      Or edit ~/.ezlocalai/.env")
 
 
 def show_logs(follow: bool = False) -> None:
@@ -627,6 +767,35 @@ def show_logs(follow: bool = False) -> None:
         subprocess.run(cmd, check=False)
     except KeyboardInterrupt:
         pass
+
+
+def update_images() -> None:
+    """Pull latest CPU image and rebuild CUDA image."""
+    print("📦 Updating ezlocalai...")
+
+    # Pull CPU image from DockerHub
+    print(f"\n📥 Pulling {DOCKER_IMAGE}...")
+    result = subprocess.run(
+        ["docker", "pull", DOCKER_IMAGE],
+        check=False,
+    )
+    if result.returncode != 0:
+        print(f"   ⚠️  Failed to pull CPU image")
+    else:
+        print(f"   ✅ CPU image updated")
+
+    # Build CUDA image from source
+    if has_nvidia_gpu():
+        print(f"\n🔨 Building CUDA image from source...")
+        if build_cuda_image():
+            print("   ✅ CUDA image rebuilt")
+        else:
+            print("   ⚠️  Failed to build CUDA image")
+    else:
+        print("\nℹ️  No NVIDIA GPU detected, skipping CUDA image build")
+
+    print("\n✅ Update complete!")
+    print("   Run 'ezlocalai restart' to use the new version.")
 
 
 def main():
@@ -712,6 +881,9 @@ Environment:
     # Status command
     subparsers.add_parser("status", help="Show server status")
 
+    # Update command
+    subparsers.add_parser("update", help="Pull latest Docker image")
+
     # Logs command
     logs_parser = subparsers.add_parser("logs", help="Show server logs")
     logs_parser.add_argument(
@@ -764,6 +936,9 @@ Environment:
 
     elif args.command == "status":
         show_status()
+
+    elif args.command == "update":
+        update_images()
 
     elif args.command == "logs":
         show_logs(follow=args.follow)
