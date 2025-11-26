@@ -314,20 +314,28 @@ class Pipes:
         # Get GPU info
         devices = get_device_info()
         gpus = []
+        gpu_idx = 0
         for dev in devices:
             # Check if it's a GPU device
             dev_type = str(dev.get("type", ""))
             if "GPU" in dev_type:
-                # Use VRAM budget as available memory for estimation
-                # This is the target we want to fit within, not current free memory
-                budget_bytes = self.vram_budget_gb * 1024 * 1024 * 1024
+                # Use per-GPU VRAM budget, not total budget
+                # self.per_gpu_vram has the individual VRAM for each GPU
+                if gpu_idx < len(self.per_gpu_vram):
+                    per_gpu_budget = self.per_gpu_vram[gpu_idx]
+                else:
+                    per_gpu_budget = self.vram_budget_gb / max(
+                        1, len(self.per_gpu_vram)
+                    )
+                budget_bytes = per_gpu_budget * 1024 * 1024 * 1024
                 gpus.append(
                     {
                         "name": dev["name"],
-                        "memory_free": budget_bytes,  # Use budget, not actual free
+                        "memory_free": budget_bytes,  # Use per-GPU budget
                         "memory_total": dev["memory_total"],
                     }
                 )
+                gpu_idx += 1
 
         if not gpus:
             logging.warning("[Calibration] No GPU devices found for estimation")
