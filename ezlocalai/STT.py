@@ -7,13 +7,57 @@ import pyaudio
 import wave
 import threading
 import numpy as np
+import gc
+import torch
 from io import BytesIO
 from faster_whisper import WhisperModel
 
 
+def get_available_vram_mb():
+    """Get available VRAM in MB."""
+    if torch.cuda.is_available():
+        try:
+            free_memory = torch.cuda.get_device_properties(
+                0
+            ).total_memory - torch.cuda.memory_allocated(0)
+            return free_memory / (1024 * 1024)
+        except:
+            return 0
+    return 0
+
+
 class STT:
     def __init__(self, model="base", wake_functions={}):
-        self.w = WhisperModel(model, download_root="models", device="cpu")
+        # Check if there's enough VRAM for STT (need at least 1GB free)
+        available_vram = get_available_vram_mb()
+        min_vram_mb = 1000  # 1GB minimum for Whisper
+
+        if torch.cuda.is_available() and available_vram >= min_vram_mb:
+            device = "cuda"
+        else:
+            device = "cpu"
+            if torch.cuda.is_available():
+                logging.info(
+                    f"[STT] Only {available_vram:.0f}MB VRAM available, using CPU (need {min_vram_mb}MB)"
+                )
+
+        logging.info(f"[STT] Loading Whisper {model} on {device}")
+        self.device = device
+        self.model_name = model
+
+        try:
+            self.w = WhisperModel(model, download_root="models", device=device)
+        except (torch.cuda.OutOfMemoryError, RuntimeError) as e:
+            if "out of memory" in str(e).lower() or "cuda" in str(e).lower():
+                logging.warning(f"[STT] GPU OOM during init, falling back to CPU: {e}")
+                gc.collect()
+                if torch.cuda.is_available():
+                    torch.cuda.empty_cache()
+                self.device = "cpu"
+                self.w = WhisperModel(model, download_root="models", device="cpu")
+            else:
+                raise
+
         self.audio = pyaudio.PyAudio()
         self.wake_functions = wake_functions
 
@@ -35,16 +79,56 @@ class STT:
             audio_file.write(audio_data)
         if not os.path.exists(file_path):
             raise RuntimeError(f"Failed to load audio.")
-        segments, _ = self.w.transcribe(
-            file_path,
-            task="transcribe" if not translate else "translate",
-            vad_filter=True,
-            vad_parameters=dict(min_silence_duration_ms=500),
-            initial_prompt=prompt,
-            language=language,
-            temperature=temperature,
-        )
-        segments = list(segments)
+
+        try:
+            segments, _ = self.w.transcribe(
+                file_path,
+                task="transcribe" if not translate else "translate",
+                vad_filter=True,
+                vad_parameters=dict(min_silence_duration_ms=500),
+                initial_prompt=prompt,
+                language=language,
+                temperature=temperature,
+            )
+            segments = list(segments)
+        except (torch.cuda.OutOfMemoryError, RuntimeError) as e:
+            error_str = str(e).lower()
+            if "out of memory" in error_str or "cuda" in error_str:
+                logging.warning(
+                    f"[STT] GPU OOM during transcription, reloading on CPU: {e}"
+                )
+                # Free GPU memory
+                gc.collect()
+                if torch.cuda.is_available():
+                    torch.cuda.empty_cache()
+
+                # Reload model on CPU
+                del self.w
+                gc.collect()
+                if torch.cuda.is_available():
+                    torch.cuda.empty_cache()
+
+                self.device = "cpu"
+                self.w = WhisperModel(
+                    self.model_name, download_root="models", device="cpu"
+                )
+                logging.info("[STT] Model reloaded on CPU, retrying transcription...")
+
+                # Retry on CPU
+                segments, _ = self.w.transcribe(
+                    file_path,
+                    task="transcribe" if not translate else "translate",
+                    vad_filter=True,
+                    vad_parameters=dict(min_silence_duration_ms=500),
+                    initial_prompt=prompt,
+                    language=language,
+                    temperature=temperature,
+                )
+                segments = list(segments)
+            else:
+                os.remove(file_path)
+                raise
+
         user_input = ""
         for segment in segments:
             user_input += segment.text

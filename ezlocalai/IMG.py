@@ -104,6 +104,8 @@ class IMG:
         guidance_scale=0,
         size="1024x1024",
     ):
+        import gc
+
         new_file_name = f"outputs/{uuid.uuid4()}.png"
         if self.pipe:
             # Use the step count the model was loaded with
@@ -111,15 +113,46 @@ class IMG:
             generator = torch.Generator(device=self.device).manual_seed(0)
             width, height = map(int, size.split("x"))
 
-            new_image = self.pipe(
-                prompt=prompt,
-                negative_prompt=negative_prompt if guidance_scale > 0 else None,
-                num_inference_steps=steps,
-                guidance_scale=guidance_scale,
-                width=min(width, 1024),
-                height=min(height, 1024),
-                generator=generator,
-            ).images[0]
+            try:
+                new_image = self.pipe(
+                    prompt=prompt,
+                    negative_prompt=negative_prompt if guidance_scale > 0 else None,
+                    num_inference_steps=steps,
+                    guidance_scale=guidance_scale,
+                    width=min(width, 1024),
+                    height=min(height, 1024),
+                    generator=generator,
+                ).images[0]
+            except (torch.cuda.OutOfMemoryError, RuntimeError) as e:
+                error_str = str(e).lower()
+                if "out of memory" in error_str or "cuda" in error_str:
+                    logging.warning(
+                        f"[IMG] GPU OOM during generation, attempting CPU fallback: {e}"
+                    )
+                    # Free GPU memory
+                    gc.collect()
+                    if torch.cuda.is_available():
+                        torch.cuda.empty_cache()
+
+                    # Try with CPU generator
+                    try:
+                        generator = torch.Generator(device="cpu").manual_seed(0)
+                        new_image = self.pipe(
+                            prompt=prompt,
+                            negative_prompt=(
+                                negative_prompt if guidance_scale > 0 else None
+                            ),
+                            num_inference_steps=steps,
+                            guidance_scale=guidance_scale,
+                            width=min(width, 1024),
+                            height=min(height, 1024),
+                            generator=generator,
+                        ).images[0]
+                    except Exception as cpu_error:
+                        logging.error(f"[IMG] CPU fallback also failed: {cpu_error}")
+                        return None
+                else:
+                    raise
 
             # Resize if requested size differs from generation size
             if width != new_image.width or height != new_image.height:

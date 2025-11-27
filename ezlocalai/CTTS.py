@@ -5,21 +5,60 @@ import base64
 import torch
 import torchaudio
 import logging
+import gc
 from ezlocalai.AudioCache import AudioCache
 
 from chatterbox.tts import ChatterboxTTS
 
 
+def get_available_vram_mb():
+    """Get available VRAM in MB."""
+    if torch.cuda.is_available():
+        try:
+            free_memory = torch.cuda.get_device_properties(
+                0
+            ).total_memory - torch.cuda.memory_allocated(0)
+            return free_memory / (1024 * 1024)
+        except:
+            return 0
+    return 0
+
+
 class CTTS:
     """
     Chatterbox TTS wrapper with voice cloning support.
+    Automatically falls back to CPU if GPU memory is insufficient.
     """
 
     def __init__(self, cache_config=None):
-        self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        # Check if there's enough VRAM for TTS (need at least 2GB free)
+        available_vram = get_available_vram_mb()
+        min_vram_mb = 2000  # 2GB minimum for TTS
+
+        if torch.cuda.is_available() and available_vram >= min_vram_mb:
+            self.device = "cuda"
+        else:
+            self.device = "cpu"
+            if torch.cuda.is_available():
+                logging.info(
+                    f"[CTTS] Only {available_vram:.0f}MB VRAM available, using CPU (need {min_vram_mb}MB)"
+                )
+
         logging.info(f"[CTTS] Initializing Chatterbox TTS on {self.device}")
 
-        self.model = ChatterboxTTS.from_pretrained(device=self.device)
+        try:
+            self.model = ChatterboxTTS.from_pretrained(device=self.device)
+        except (torch.cuda.OutOfMemoryError, RuntimeError) as e:
+            if "out of memory" in str(e).lower() or "cuda" in str(e).lower():
+                logging.warning(f"[CTTS] GPU OOM during init, falling back to CPU: {e}")
+                gc.collect()
+                if torch.cuda.is_available():
+                    torch.cuda.empty_cache()
+                self.device = "cpu"
+                self.model = ChatterboxTTS.from_pretrained(device="cpu")
+            else:
+                raise
+
         self.sample_rate = self.model.sr
 
         self.output_folder = os.path.join(os.getcwd(), "outputs")
@@ -136,15 +175,48 @@ class CTTS:
             return base64.b64encode(audio_data).decode("utf-8")
 
     def _generate_single_sample(self, text, audio_path):
-        """Generate a single audio sample using Chatterbox."""
+        """Generate a single audio sample using Chatterbox.
+
+        Automatically falls back to CPU if GPU runs out of memory.
+        """
         try:
             if audio_path and os.path.exists(audio_path):
                 wav = self.model.generate(text, audio_prompt_path=audio_path)
             else:
                 wav = self.model.generate(text)
+        except (torch.cuda.OutOfMemoryError, RuntimeError) as e:
+            error_str = str(e).lower()
+            if "out of memory" in error_str or "cuda" in error_str:
+                logging.warning(
+                    f"[CTTS] GPU OOM during generation, reloading model on CPU: {e}"
+                )
+                # Free GPU memory
+                gc.collect()
+                if torch.cuda.is_available():
+                    torch.cuda.empty_cache()
 
-            temp_file = os.path.join(self.output_folder, f"temp_{uuid.uuid4().hex}.wav")
+                # Reload model on CPU
+                del self.model
+                gc.collect()
+                if torch.cuda.is_available():
+                    torch.cuda.empty_cache()
 
+                self.device = "cpu"
+                self.model = ChatterboxTTS.from_pretrained(device="cpu")
+                self.sample_rate = self.model.sr
+                logging.info("[CTTS] Model reloaded on CPU, retrying generation...")
+
+                # Retry on CPU
+                if audio_path and os.path.exists(audio_path):
+                    wav = self.model.generate(text, audio_prompt_path=audio_path)
+                else:
+                    wav = self.model.generate(text)
+            else:
+                raise
+
+        temp_file = os.path.join(self.output_folder, f"temp_{uuid.uuid4().hex}.wav")
+
+        try:
             if isinstance(wav, torch.Tensor):
                 if wav.dim() == 1:
                     wav = wav.unsqueeze(0)
