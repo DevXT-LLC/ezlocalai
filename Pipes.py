@@ -1454,23 +1454,38 @@ class Pipes:
                 except Exception as e:
                     error_msg = str(e)
                     if _is_context_error(error_msg) and attempt < max_retries - 1:
-                        # Try to extract required context from error if possible
+                        # Try to extract n_prompt_tokens from error message
+                        # Format: "... [n_prompt_tokens=21922, n_ctx=16384]"
                         import re
 
-                        numbers = re.findall(r"(\d+)\s*tokens?", error_msg.lower())
-                        if numbers:
-                            # Use the largest number as required context
-                            needed_tokens = max(int(n) for n in numbers)
+                        prompt_tokens_match = re.search(
+                            r"n_prompt_tokens=(\d+)", error_msg
+                        )
+                        if prompt_tokens_match:
+                            needed_tokens = int(prompt_tokens_match.group(1))
+                            logging.info(
+                                f"[LLM] Extracted n_prompt_tokens={needed_tokens} from error"
+                            )
                         else:
-                            # Double current context
-                            needed_tokens = current_context * 2
+                            # Fallback: try to find any large number
+                            numbers = re.findall(r"(\d+)", error_msg)
+                            if numbers:
+                                # Use the largest number as required context
+                                needed_tokens = max(int(n) for n in numbers)
+                            else:
+                                # Double current context as fallback
+                                needed_tokens = current_context * 2
 
-                        # Round up to next 16k and add buffer
-                        new_context = round_context_to_16k(needed_tokens + 4000)
+                        # Add buffer for max_tokens generation
+                        max_tokens = data.get("max_tokens", 2048)
+                        total_needed = needed_tokens + max_tokens + 1000
+
+                        # Round up to next 16k
+                        new_context = round_context_to_16k(total_needed)
 
                         if new_context > current_context:
                             logging.warning(
-                                f"[LLM] Context error detected, reloading with {new_context//1024}k context..."
+                                f"[LLM] Context error detected ({needed_tokens} prompt tokens), reloading with {new_context//1024}k context..."
                             )
                             self._ensure_context_size(new_context)
                             current_context = new_context

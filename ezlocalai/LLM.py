@@ -415,7 +415,12 @@ class LLM:
 
         if isinstance(result, dict) and "error" in result:
             logging.error(f"[LLM] Chat completion error: {result}")
-            raise Exception(result.get("error", {}).get("message", "Unknown error"))
+            error_info = result.get("error", {})
+            error_msg = error_info.get("message", "Unknown error")
+            # Include token counts in error message for context size handling
+            if "n_prompt_tokens" in error_info:
+                error_msg = f"{error_msg} [n_prompt_tokens={error_info['n_prompt_tokens']}, n_ctx={error_info.get('n_ctx', 'unknown')}]"
+            raise Exception(error_msg)
 
         # Clean the response content
         if (
@@ -449,7 +454,12 @@ class LLM:
 
         if isinstance(result, dict) and "error" in result:
             logging.error(f"[LLM] Completion error: {result}")
-            raise Exception(result.get("error", {}).get("message", "Unknown error"))
+            error_info = result.get("error", {})
+            error_msg = error_info.get("message", "Unknown error")
+            # Include token counts in error message for context size handling
+            if "n_prompt_tokens" in error_info:
+                error_msg = f"{error_msg} [n_prompt_tokens={error_info['n_prompt_tokens']}, n_ctx={error_info.get('n_ctx', 'unknown')}]"
+            raise Exception(error_msg)
 
         # Clean the response text and add text field for compatibility
         if (
