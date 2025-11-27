@@ -22,10 +22,16 @@ def getenv(var_name: str, default_value: str = None) -> str:
         "TENSOR_SPLIT": "",
         "QUANT_TYPE": "Q4_K_XL",
         "LLM_BATCH_SIZE": "2048",
-        # Queue system defaults
-        "MAX_CONCURRENT_REQUESTS": "1",
+        "LLM_MAX_TOKENS": "16384",
+        # Queue system defaults - supports concurrent requests with resource fallback
+        "MAX_CONCURRENT_REQUESTS": "5",
         "MAX_QUEUE_SIZE": "100",
         "REQUEST_TIMEOUT": "300",
+        # Fallback server for when local resources are exhausted
+        # Set these to use an external API when local model loading fails
+        "FALLBACK_SERVER": "",  # e.g., "https://api.openai.com/v1"
+        "FALLBACK_MODEL": "",  # e.g., "gpt-4o-mini"
+        "FALLBACK_API_KEY": "",  # API key for fallback server
     }
     if not default_value:
         default_value = default_values[var_name] if var_name in default_values else ""

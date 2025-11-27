@@ -72,9 +72,9 @@ def get_per_gpu_vram_gb() -> list:
     return []
 
 
-def round_context_to_32k(token_count: int) -> int:
-    """Round up token count to nearest 32k for context sizing."""
-    return math.ceil(token_count / 32768) * 32768
+def round_context_to_16k(token_count: int) -> int:
+    """Round up token count to nearest 16k for context sizing."""
+    return math.ceil(token_count / 16384) * 16384
 
 
 def get_vram_usage_gb(gpu_index: int = 0) -> float:
@@ -205,13 +205,13 @@ class Pipes:
                 if model_name and model_name not in self.available_models:
                     self.available_models.append(model_name)
 
-            # Pre-calibrate models at 32k context (baseline) if VRAM available
+            # Pre-calibrate models at 16k context (baseline) if VRAM available
             if (
                 self.vram_budget_gb > 0
                 and torch.cuda.is_available()
                 and self.available_models
             ):
-                base_context = 32768
+                base_context = 16384
                 logging.info(
                     f"[Calibration] Pre-calibrating {len(self.available_models)} models at {base_context//1000}k context..."
                 )
@@ -224,10 +224,10 @@ class Pipes:
                     f"[Calibration] Models calibrated at {base_context//1000}k: {[(m, self.calibrated_gpu_layers[m][base_context]) for m in self.available_models]}"
                 )
 
-            # Load the first model with baseline 32k context
+            # Load the first model with baseline 16k context
             if self.available_models:
                 first_model = self.available_models[0]
-                base_context = 32768
+                base_context = 16384
                 gpu_layers = self.calibrated_gpu_layers.get(first_model, {}).get(
                     base_context
                 )
@@ -235,8 +235,10 @@ class Pipes:
                     f"[LLM] {first_model} loading (context: {base_context//1000}k, gpu_layers: {gpu_layers or 'auto'}). Please wait..."
                 )
                 start_time = time.time()
-                self.llm = LLM(
-                    model=first_model, max_tokens=base_context, gpu_layers=gpu_layers
+                self.llm = self._load_llm_resilient(
+                    model_name=first_model,
+                    max_tokens=base_context,
+                    gpu_layers=gpu_layers,
                 )
                 load_time = time.time() - start_time
                 self.current_llm_name = first_model
@@ -281,6 +283,74 @@ class Pipes:
             self.local_uri = getenv("EZLOCALAI_URL")
 
         logging.info(f"[Server] Ready!")
+
+    def _load_llm_resilient(
+        self,
+        model_name: str,
+        max_tokens: int,
+        gpu_layers: int = None,
+    ) -> "LLM":
+        """Load an LLM with resilient fallback to CPU when GPU resources are exhausted.
+
+        This method attempts to load the model with GPU acceleration first.
+        If that fails due to resource exhaustion (VRAM), it retries with CPU-only mode.
+        The system's page file/swap will handle RAM overflow automatically.
+
+        Args:
+            model_name: Name of the model to load
+            max_tokens: Context size for the model
+            gpu_layers: Number of GPU layers (None for auto-detect)
+
+        Returns:
+            LLM instance
+
+        Raises:
+            Exception: Only if both GPU and CPU loading fail completely
+        """
+        # First attempt: Try with specified/auto GPU layers
+        try:
+            logging.info(
+                f"[LLM] Attempting to load {model_name} with {gpu_layers or 'auto'} GPU layers..."
+            )
+            llm = LLM(model=model_name, max_tokens=max_tokens, gpu_layers=gpu_layers)
+            return llm
+        except Exception as gpu_error:
+            error_str = str(gpu_error).lower()
+            # Check if this is a resource exhaustion error
+            is_resource_error = any(
+                x in error_str
+                for x in [
+                    "out of memory",
+                    "cuda",
+                    "vram",
+                    "gpu",
+                    "allocat",
+                    "memory",
+                    "resource",
+                ]
+            )
+
+            if is_resource_error and gpu_layers != 0:
+                logging.warning(
+                    f"[LLM] GPU loading failed for {model_name}: {gpu_error}"
+                )
+                logging.info(f"[LLM] Falling back to CPU-only mode (gpu_layers=0)...")
+
+                # Second attempt: Force CPU-only mode
+                try:
+                    llm = LLM(model=model_name, max_tokens=max_tokens, gpu_layers=0)
+                    logging.info(
+                        f"[LLM] {model_name} loaded successfully in CPU-only mode"
+                    )
+                    return llm
+                except Exception as cpu_error:
+                    logging.error(
+                        f"[LLM] CPU fallback also failed for {model_name}: {cpu_error}"
+                    )
+                    raise cpu_error
+            else:
+                # Not a resource error, or already at gpu_layers=0
+                raise gpu_error
 
     def _calibrate_model(self, model_name: str, max_tokens: int) -> int:
         """Calibrate a single model to find optimal GPU layers.
@@ -505,7 +575,7 @@ class Pipes:
             logging.info(
                 f"[Vision Fallback] Swapping to {vision_model} to describe {len(images)} image(s)"
             )
-            self._swap_llm(vision_model, 32768)  # Use 32k context for image description
+            self._swap_llm(vision_model, 16384)  # Use 16k context for image description
 
             if not self.llm.is_vision:
                 logging.error(
@@ -722,9 +792,9 @@ class Pipes:
     def _ensure_context_size(self, required_context: int):
         """Reload LLM with larger context if needed.
 
-        Context is rounded up to nearest 32k to avoid frequent reloads.
+        Context is rounded up to nearest 16k to avoid frequent reloads.
         """
-        rounded_context = round_context_to_32k(required_context)
+        rounded_context = round_context_to_16k(required_context)
 
         if self.current_context and self.current_context >= rounded_context:
             # Current context is sufficient
@@ -748,8 +818,10 @@ class Pipes:
 
         # Load with new context
         start_time = time.time()
-        self.llm = LLM(
-            model=model_name, max_tokens=rounded_context, gpu_layers=gpu_layers
+        self.llm = self._load_llm_resilient(
+            model_name=model_name,
+            max_tokens=rounded_context,
+            gpu_layers=gpu_layers,
         )
         self.current_context = rounded_context
         load_time = time.time() - start_time
@@ -762,7 +834,7 @@ class Pipes:
 
         Args:
             requested_model: Model name to swap to
-            required_context: Minimum context size needed (will be rounded up to 32k)
+            required_context: Minimum context size needed (will be rounded up to 16k)
         """
         # Check if this is a known model
         target_model = None
@@ -782,9 +854,9 @@ class Pipes:
             # Model not in available list, use current
             return
 
-        # Determine context size (round up to nearest 32k)
+        # Determine context size (round up to nearest 16k)
         target_context = (
-            round_context_to_32k(required_context) if required_context else 32768
+            round_context_to_16k(required_context) if required_context else 16384
         )
 
         # Check if we already have this model loaded with sufficient context
@@ -806,7 +878,7 @@ class Pipes:
 
         # Store old model info in case we need to rollback
         old_model_name = self.current_llm_name
-        old_context = self.current_context or 32768
+        old_context = self.current_context or 16384
         old_gpu_layers = (
             self._get_gpu_layers_for_model(old_model_name, old_context)
             if old_model_name
@@ -824,8 +896,8 @@ class Pipes:
 
         # Try to load new LLM
         try:
-            self.llm = LLM(
-                model=target_model,
+            self.llm = self._load_llm_resilient(
+                model_name=target_model,
                 max_tokens=target_context,
                 gpu_layers=target_gpu_layers,
             )
@@ -840,8 +912,8 @@ class Pipes:
             # Rollback to old model
             logging.info(f"[LLM] Rolling back to {old_model_name}...")
             try:
-                self.llm = LLM(
-                    model=old_model_name,
+                self.llm = self._load_llm_resilient(
+                    model_name=old_model_name,
                     max_tokens=old_context,
                     gpu_layers=old_gpu_layers,
                 )
@@ -852,16 +924,17 @@ class Pipes:
                 logging.error(
                     f"[LLM] CRITICAL: Failed to rollback to {old_model_name}: {rollback_error}"
                 )
-                # Last resort - try to load first available model at 32k
+                # Last resort - try to load first available model at 16k with CPU fallback
                 for model_name in self.available_models:
                     try:
-                        gpu_layers = self._get_gpu_layers_for_model(model_name, 32768)
-                        self.llm = LLM(
-                            model=model_name, max_tokens=32768, gpu_layers=gpu_layers
+                        self.llm = self._load_llm_resilient(
+                            model_name=model_name,
+                            max_tokens=16384,
+                            gpu_layers=0,  # Force CPU to maximize chance of success
                         )
                         self.current_llm_name = model_name
-                        self.current_context = 32768
-                        logging.info(f"[LLM] Recovered with {model_name}")
+                        self.current_context = 16384
+                        logging.info(f"[LLM] Recovered with {model_name} (CPU mode)")
                         break
                     except:
                         continue
@@ -1346,7 +1419,22 @@ class Pipes:
                     "[Vision Fallback] Could not get image description, proceeding without images"
                 )
 
-        if completion_type == "chat":
+        # Check if local LLM is available, if not use fallback server
+        if self.llm is None:
+            logging.warning("[LLM] No local model available, using fallback server...")
+            if completion_type == "chat":
+                response = await self.fallback_inference(data["messages"])
+                # Wrap in expected format
+                response = {
+                    "choices": [{"message": {"content": response}}],
+                    "model": "fallback",
+                }
+            else:
+                response = await self.fallback_inference(
+                    [{"role": "user", "content": data.get("prompt", "")}]
+                )
+                response = {"choices": [{"text": response}], "model": "fallback"}
+        elif completion_type == "chat":
             try:
                 response = self.llm.chat(**data)
             except Exception as e:
