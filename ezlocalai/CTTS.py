@@ -6,9 +6,89 @@ import torch
 import torchaudio
 import logging
 import gc
+import io
 from ezlocalai.AudioCache import AudioCache
 
 from chatterbox.tts import ChatterboxTTS
+
+# Maximum characters per chunk for TTS generation
+# Chatterbox struggles with long text, so we split into sentences
+MAX_CHUNK_CHARS = 250
+
+
+def split_text_into_chunks(text: str, max_chars: int = MAX_CHUNK_CHARS) -> list:
+    """
+    Split text into sentence-based chunks for TTS generation.
+    Chatterbox TTS produces nonsense/hallucinations on long text,
+    so we need to process it in smaller chunks.
+    """
+    if len(text) <= max_chars:
+        return [text]
+
+    # Split on sentence boundaries (. ! ?)
+    sentence_pattern = r"(?<=[.!?])\s+"
+    sentences = re.split(sentence_pattern, text)
+
+    chunks = []
+    current_chunk = ""
+
+    for sentence in sentences:
+        sentence = sentence.strip()
+        if not sentence:
+            continue
+
+        # If adding this sentence would exceed max, save current chunk and start new one
+        if current_chunk and len(current_chunk) + len(sentence) + 1 > max_chars:
+            chunks.append(current_chunk.strip())
+            current_chunk = sentence
+        else:
+            if current_chunk:
+                current_chunk += " " + sentence
+            else:
+                current_chunk = sentence
+
+    # Add the last chunk
+    if current_chunk.strip():
+        chunks.append(current_chunk.strip())
+
+    # Handle case where a single sentence is too long - split on commas or force split
+    final_chunks = []
+    for chunk in chunks:
+        if len(chunk) <= max_chars:
+            final_chunks.append(chunk)
+        else:
+            # Try splitting on commas
+            comma_parts = chunk.split(",")
+            sub_chunk = ""
+            for part in comma_parts:
+                part = part.strip()
+                if not part:
+                    continue
+                if sub_chunk and len(sub_chunk) + len(part) + 2 > max_chars:
+                    final_chunks.append(sub_chunk.strip())
+                    sub_chunk = part
+                else:
+                    if sub_chunk:
+                        sub_chunk += ", " + part
+                    else:
+                        sub_chunk = part
+            if sub_chunk.strip():
+                # Force split if still too long
+                if len(sub_chunk) > max_chars:
+                    words = sub_chunk.split()
+                    word_chunk = ""
+                    for word in words:
+                        if word_chunk and len(word_chunk) + len(word) + 1 > max_chars:
+                            final_chunks.append(word_chunk.strip())
+                            word_chunk = word
+                        else:
+                            word_chunk = (word_chunk + " " + word).strip()
+                    if word_chunk:
+                        final_chunks.append(word_chunk.strip())
+                else:
+                    final_chunks.append(sub_chunk.strip())
+
+    return final_chunks if final_chunks else [text[:max_chars]]
 
 
 def get_available_vram_mb():
@@ -141,11 +221,40 @@ class CTTS:
                 )
                 audio_path = None
 
-        # Generate audio directly (Chatterbox handles long text well)
-        audio_data = self._generate_single_sample(text, audio_path)
+        # Split long text into chunks to prevent hallucinations
+        chunks = split_text_into_chunks(text)
+        if len(chunks) > 1:
+            logging.info(f"[CTTS] Split text into {len(chunks)} chunks for generation")
+
+        # Generate audio for each chunk and concatenate
+        all_audio_tensors = []
+        for i, chunk in enumerate(chunks):
+            if len(chunks) > 1:
+                logging.debug(
+                    f"[CTTS] Generating chunk {i+1}/{len(chunks)}: {chunk[:50]}..."
+                )
+            chunk_audio = self._generate_single_sample(chunk, audio_path)
+            if chunk_audio:
+                # Convert bytes to tensor for concatenation
+                chunk_tensor = self._bytes_to_tensor(chunk_audio)
+                if chunk_tensor is not None:
+                    all_audio_tensors.append(chunk_tensor)
+
+        if not all_audio_tensors:
+            logging.warning("[CTTS] No audio generated")
+            return ""
+
+        # Concatenate all audio chunks
+        if len(all_audio_tensors) == 1:
+            final_tensor = all_audio_tensors[0]
+        else:
+            final_tensor = torch.cat(all_audio_tensors, dim=1)
+
+        # Convert back to bytes
+        audio_data = self._tensor_to_bytes(final_tensor)
 
         if not audio_data:
-            logging.warning("[CTTS] No audio generated")
+            logging.warning("[CTTS] Failed to convert audio to bytes")
             return ""
 
         # Export final audio
@@ -164,6 +273,7 @@ class CTTS:
                 "voice": voice_name,
                 "language": language,
                 "generation_method": "chatterbox",
+                "chunks": len(chunks),
             }
             self.cache.store_cached_audio(cache_key, audio_data, metadata)
 
@@ -174,8 +284,48 @@ class CTTS:
             os.remove(output_file)
             return base64.b64encode(audio_data).decode("utf-8")
 
+    def _bytes_to_tensor(self, audio_bytes):
+        """Convert audio bytes to a torch tensor."""
+        try:
+            temp_file = os.path.join(
+                self.output_folder, f"temp_read_{uuid.uuid4().hex}.wav"
+            )
+            with open(temp_file, "wb") as f:
+                f.write(audio_bytes)
+            waveform, sr = torchaudio.load(temp_file)
+            os.remove(temp_file)
+            # Resample if needed
+            if sr != self.sample_rate:
+                resampler = torchaudio.transforms.Resample(sr, self.sample_rate)
+                waveform = resampler(waveform)
+            return waveform
+        except Exception as e:
+            logging.error(f"[CTTS] Error converting bytes to tensor: {e}")
+            return None
+
+    def _tensor_to_bytes(self, tensor):
+        """Convert a torch tensor to audio bytes."""
+        try:
+            temp_file = os.path.join(
+                self.output_folder, f"temp_write_{uuid.uuid4().hex}.wav"
+            )
+            if tensor.dim() == 1:
+                tensor = tensor.unsqueeze(0)
+            torchaudio.save(temp_file, tensor.cpu(), self.sample_rate)
+            with open(temp_file, "rb") as f:
+                audio_data = f.read()
+            os.remove(temp_file)
+            return audio_data
+        except Exception as e:
+            logging.error(f"[CTTS] Error converting tensor to bytes: {e}")
+            return None
+
     def _generate_single_sample(self, text, audio_path):
-        """Generate a single audio sample using Chatterbox.
+        """Generate a single audio sample using Chatterbox for a short text chunk.
+
+        This method should be called with short text (< 250 chars) to avoid
+        hallucinations. For longer text, use the generate() method which
+        automatically chunks the text.
 
         Automatically falls back to CPU if GPU runs out of memory.
         """
