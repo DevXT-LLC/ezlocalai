@@ -413,14 +413,29 @@ class LLM:
         # Call xllamacpp server
         result = self.server.handle_chat_completions(chat_request)
 
-        if isinstance(result, dict) and "error" in result:
-            logging.error(f"[LLM] Chat completion error: {result}")
-            error_info = result.get("error", {})
-            error_msg = error_info.get("message", "Unknown error")
-            # Include token counts in error message for context size handling
-            if "n_prompt_tokens" in error_info:
-                error_msg = f"{error_msg} [n_prompt_tokens={error_info['n_prompt_tokens']}, n_ctx={error_info.get('n_ctx', 'unknown')}]"
-            raise Exception(error_msg)
+        # Check for error - xllamacpp can return errors in two formats:
+        # 1. {"error": {"message": "...", "n_prompt_tokens": ...}}
+        # 2. {"code": 400, "message": "...", "n_prompt_tokens": ...}  (top-level)
+        if isinstance(result, dict):
+            error_info = None
+            if "error" in result:
+                error_info = result.get("error", {})
+            elif (
+                result.get("code") == 400
+                or result.get("type") == "exceed_context_size_error"
+            ):
+                # Error at top level
+                error_info = result
+
+            if error_info:
+                logging.error(f"[LLM] Chat completion error: {result}")
+                error_msg = error_info.get("message", "Unknown error")
+                # Include token counts in error message for context size handling
+                n_prompt_tokens = error_info.get("n_prompt_tokens")
+                n_ctx = error_info.get("n_ctx")
+                if n_prompt_tokens:
+                    error_msg = f"{error_msg} [n_prompt_tokens={n_prompt_tokens}, n_ctx={n_ctx or 'unknown'}]"
+                raise Exception(error_msg)
 
         # Clean the response content
         if (
@@ -452,14 +467,29 @@ class LLM:
 
         result = self.server.handle_completions(completion_request)
 
-        if isinstance(result, dict) and "error" in result:
-            logging.error(f"[LLM] Completion error: {result}")
-            error_info = result.get("error", {})
-            error_msg = error_info.get("message", "Unknown error")
-            # Include token counts in error message for context size handling
-            if "n_prompt_tokens" in error_info:
-                error_msg = f"{error_msg} [n_prompt_tokens={error_info['n_prompt_tokens']}, n_ctx={error_info.get('n_ctx', 'unknown')}]"
-            raise Exception(error_msg)
+        # Check for error - xllamacpp can return errors in two formats:
+        # 1. {"error": {"message": "...", "n_prompt_tokens": ...}}
+        # 2. {"code": 400, "message": "...", "n_prompt_tokens": ...}  (top-level)
+        if isinstance(result, dict):
+            error_info = None
+            if "error" in result:
+                error_info = result.get("error", {})
+            elif (
+                result.get("code") == 400
+                or result.get("type") == "exceed_context_size_error"
+            ):
+                # Error at top level
+                error_info = result
+
+            if error_info:
+                logging.error(f"[LLM] Completion error: {result}")
+                error_msg = error_info.get("message", "Unknown error")
+                # Include token counts in error message for context size handling
+                n_prompt_tokens = error_info.get("n_prompt_tokens")
+                n_ctx = error_info.get("n_ctx")
+                if n_prompt_tokens:
+                    error_msg = f"{error_msg} [n_prompt_tokens={n_prompt_tokens}, n_ctx={n_ctx or 'unknown'}]"
+                raise Exception(error_msg)
 
         # Clean the response text and add text field for compatibility
         if (
