@@ -1448,7 +1448,12 @@ class Pipes:
             for attempt in range(max_retries):
                 try:
                     if chat_mode:
-                        return self.llm.chat(**data)
+                        logging.info(
+                            f"[Pipes] About to call self.llm.chat with stream={data.get('stream', False)}"
+                        )
+                        result = self.llm.chat(**data)
+                        logging.info(f"[Pipes] llm.chat returned type: {type(result)}")
+                        return result
                     else:
                         return self.llm.completion(**data)
                 except Exception as e:

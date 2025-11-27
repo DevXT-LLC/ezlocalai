@@ -400,6 +400,9 @@ class LLM:
             generator: Streaming response yielding chunk dicts when stream=True
         """
         stream = kwargs.get("stream", False)
+        logging.info(
+            f"[LLM] chat() called with stream={stream}, kwargs keys: {kwargs.keys()}"
+        )
 
         # Build the request payload
         chat_request = {
@@ -419,6 +422,7 @@ class LLM:
 
         # Handle streaming with callback
         if stream:
+            logging.info(f"[LLM] Calling _chat_stream for streaming response")
             return self._chat_stream(chat_request)
 
         # Non-streaming call
@@ -496,8 +500,8 @@ class LLM:
                 False to continue receiving chunks, True to stop early
             """
             try:
-                logging.debug(
-                    f"[LLM] Stream callback received: type={type(chunk_data)}"
+                logging.info(
+                    f"[LLM] !!! CALLBACK INVOKED !!! Stream callback received: type={type(chunk_data)}"
                 )
 
                 # Check for error response
@@ -510,11 +514,12 @@ class LLM:
 
                 # xllamacpp returns a list of deltas for streaming
                 if isinstance(chunk_data, list):
-                    logging.debug(f"[LLM] Received {len(chunk_data)} chunks in array")
+                    logging.info(f"[LLM] Received {len(chunk_data)} chunks in array")
                     for chunk in chunk_data:
                         chunk_queue.put(chunk)
                 else:
                     # Single chunk
+                    logging.info(f"[LLM] Received single chunk")
                     chunk_queue.put(chunk_data)
 
                 return False  # Continue receiving chunks
@@ -529,13 +534,35 @@ class LLM:
                 # Ensure stream=True in the request
                 request_copy = chat_request.copy()
                 request_copy["stream"] = True
-                logging.debug(f"[LLM] Starting streaming inference")
+                logging.info(f"[LLM] Starting streaming inference with callback")
+                logging.info(f"[LLM] Request keys: {request_copy.keys()}")
                 # Pass callback as second positional argument (not keyword)
                 # xllamacpp will call streaming_callback for each chunk/batch
-                self.server.handle_chat_completions(request_copy, streaming_callback)
-                logging.debug("[LLM] Streaming inference completed")
+                result = self.server.handle_chat_completions(
+                    request_copy, streaming_callback
+                )
+                logging.info(
+                    f"[LLM] handle_chat_completions returned: type={type(result)}, value={result}"
+                )
+
+                # Check if result is iterable (generator)
+                if hasattr(result, "__iter__") and not isinstance(result, (str, dict)):
+                    logging.info(f"[LLM] Result is iterable, consuming it...")
+                    for idx, item in enumerate(result):
+                        logging.info(f"[LLM] Got item {idx} from result: {type(item)}")
+                        chunk_queue.put(item)
+                elif isinstance(result, dict):
+                    logging.info(f"[LLM] Result is a dict, putting in queue")
+                    chunk_queue.put(result)
+                else:
+                    logging.warning(f"[LLM] Unexpected result type: {type(result)}")
+
+                logging.info(f"[LLM] Streaming inference completed")
             except Exception as e:
                 logging.error(f"[LLM] Streaming inference error: {e}")
+                import traceback
+
+                logging.error(f"[LLM] Traceback: {traceback.format_exc()}")
                 error_holder[0] = e
             finally:
                 generation_complete.set()
