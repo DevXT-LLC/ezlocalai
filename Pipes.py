@@ -1199,7 +1199,7 @@ class Pipes:
                 data["messages"][-1]["content"] = prompt
 
         # Estimate token count for context sizing
-        # Rough estimate: 4 chars per token + max_tokens for generation headroom
+        # Conservative estimate: ~2.5 chars per token (tokens average 2-4 chars, but include special tokens)
         total_chars = 0
         if completion_type == "chat" and "messages" in data:
             for msg in data["messages"]:
@@ -1213,10 +1213,13 @@ class Pipes:
         elif "prompt" in data:
             total_chars = len(data.get("prompt", ""))
 
-        # Estimate tokens (4 chars/token) + generation tokens + buffer
-        estimated_prompt_tokens = total_chars // 4
+        # Estimate tokens (2.5 chars/token is more accurate than 4) + generation tokens + buffer
+        # Using int division by 2.5 = multiply by 2 then divide by 5
+        estimated_prompt_tokens = (total_chars * 2) // 5
         max_tokens = data.get("max_tokens", 2048)
-        required_context = estimated_prompt_tokens + max_tokens + 1000  # 1k buffer
+        required_context = (
+            estimated_prompt_tokens + max_tokens + 2000
+        )  # 2k buffer for safety
 
         if data["model"]:
             # Check if we need to swap to a different model (with context size)
@@ -1419,6 +1422,69 @@ class Pipes:
                     "[Vision Fallback] Could not get image description, proceeding without images"
                 )
 
+        # Helper function to detect context size errors and retry with larger context
+        def _is_context_error(error_msg: str) -> bool:
+            error_lower = error_msg.lower()
+            return any(
+                pattern in error_lower
+                for pattern in [
+                    "context size",
+                    "context length",
+                    "exceeds",
+                    "too long",
+                    "token limit",
+                    "max_tokens",
+                    "maximum context",
+                ]
+            )
+
+        async def _try_inference_with_context_retry(
+            chat_mode: bool, data: dict
+        ) -> dict:
+            """Try inference, and if context error occurs, reload model with larger context and retry."""
+            max_retries = 3
+            current_context = self.current_context or 16384
+
+            for attempt in range(max_retries):
+                try:
+                    if chat_mode:
+                        return self.llm.chat(**data)
+                    else:
+                        return self.llm.completion(**data)
+                except Exception as e:
+                    error_msg = str(e)
+                    if _is_context_error(error_msg) and attempt < max_retries - 1:
+                        # Try to extract required context from error if possible
+                        import re
+
+                        numbers = re.findall(r"(\d+)\s*tokens?", error_msg.lower())
+                        if numbers:
+                            # Use the largest number as required context
+                            needed_tokens = max(int(n) for n in numbers)
+                        else:
+                            # Double current context
+                            needed_tokens = current_context * 2
+
+                        # Round up to next 16k and add buffer
+                        new_context = round_context_to_16k(needed_tokens + 4000)
+
+                        if new_context > current_context:
+                            logging.warning(
+                                f"[LLM] Context error detected, reloading with {new_context//1024}k context..."
+                            )
+                            self._ensure_context_size(new_context)
+                            current_context = new_context
+                            continue
+
+                    # Not a context error or max retries reached, raise
+                    raise
+
+            # Should not reach here, but just in case
+            if chat_mode:
+                return self.llm.chat(**data)
+            else:
+                return self.llm.completion(**data)
+
         # Check if local LLM is available, if not use fallback server
         if self.llm is None:
             logging.warning("[LLM] No local model available, using fallback server...")
@@ -1436,7 +1502,9 @@ class Pipes:
                 response = {"choices": [{"text": response}], "model": "fallback"}
         elif completion_type == "chat":
             try:
-                response = self.llm.chat(**data)
+                response = await _try_inference_with_context_retry(
+                    chat_mode=True, data=data
+                )
             except Exception as e:
                 import traceback
 
@@ -1446,7 +1514,9 @@ class Pipes:
                 response = await self.fallback_inference(data["messages"])
         else:
             try:
-                response = self.llm.completion(**data)
+                response = await _try_inference_with_context_retry(
+                    chat_mode=False, data=data
+                )
             except Exception as e:
                 import traceback
 
