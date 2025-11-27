@@ -535,28 +535,16 @@ class LLM:
                 request_copy = chat_request.copy()
                 request_copy["stream"] = True
                 logging.info(f"[LLM] Starting streaming inference with callback")
-                logging.info(f"[LLM] Request keys: {request_copy.keys()}")
                 # Pass callback as second positional argument (not keyword)
                 # xllamacpp will call streaming_callback for each chunk/batch
                 result = self.server.handle_chat_completions(
                     request_copy, streaming_callback
                 )
                 logging.info(
-                    f"[LLM] handle_chat_completions returned: type={type(result)}, value={result}"
+                    f"[LLM] handle_chat_completions returned: type={type(result)}"
                 )
 
-                # Check if result is iterable (generator)
-                if hasattr(result, "__iter__") and not isinstance(result, (str, dict)):
-                    logging.info(f"[LLM] Result is iterable, consuming it...")
-                    for idx, item in enumerate(result):
-                        logging.info(f"[LLM] Got item {idx} from result: {type(item)}")
-                        chunk_queue.put(item)
-                elif isinstance(result, dict):
-                    logging.info(f"[LLM] Result is a dict, putting in queue")
-                    chunk_queue.put(result)
-                else:
-                    logging.warning(f"[LLM] Unexpected result type: {type(result)}")
-
+                # No need to check result since xllamacpp calls the callback directly
                 logging.info(f"[LLM] Streaming inference completed")
             except Exception as e:
                 logging.error(f"[LLM] Streaming inference error: {e}")
