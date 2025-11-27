@@ -392,15 +392,22 @@ class LLM:
         self.model_list = get_models()
         logging.info(f"[LLM] {self.model_name} loaded successfully with xllamacpp.")
 
-    def chat(self, messages: List[Dict], **kwargs) -> dict:
-        """Handle chat completions using xllamacpp server."""
+    def chat(self, messages: List[Dict], **kwargs):
+        """Handle chat completions using xllamacpp server.
+
+        Returns:
+            dict: Non-streaming response with choices
+            generator: Streaming response yielding chunk dicts when stream=True
+        """
+        stream = kwargs.get("stream", False)
+
         # Build the request payload
         chat_request = {
             "messages": messages,
             "max_tokens": kwargs.get("max_tokens", self.params["max_tokens"]),
             "temperature": kwargs.get("temperature", self.params["temperature"]),
             "top_p": kwargs.get("top_p", self.params["top_p"]),
-            "stream": kwargs.get("stream", False),
+            "stream": stream,
         }
 
         # Add system message if not present
@@ -410,7 +417,11 @@ class LLM:
                 {"role": "system", "content": self.system_message}
             ] + messages
 
-        # Call xllamacpp server
+        # Handle streaming with callback
+        if stream:
+            return self._chat_stream(chat_request)
+
+        # Non-streaming call
         result = self.server.handle_chat_completions(chat_request)
 
         # Check for error - xllamacpp can return errors in two formats:
@@ -437,12 +448,8 @@ class LLM:
                     error_msg = f"{error_msg} [n_prompt_tokens={n_prompt_tokens}, n_ctx={n_ctx or 'unknown'}]"
                 raise Exception(error_msg)
 
-        # Clean the response content
-        if (
-            isinstance(result, dict)
-            and result.get("choices")
-            and not kwargs.get("stream", False)
-        ):
+        # Clean the response content (only for non-streaming)
+        if isinstance(result, dict) and result.get("choices"):
             content = result["choices"][0].get("message", {}).get("content", "")
             result["choices"][0]["message"]["content"] = clean(
                 message=content,
@@ -454,6 +461,184 @@ class LLM:
             result["model"] = self.model_name
 
         return result
+
+    def _chat_stream(self, chat_request: dict):
+        """Handle streaming chat completions using xllamacpp callback.
+
+        Returns a generator that yields OpenAI-compatible chunk dicts.
+
+        xllamacpp's handle_chat_completions is synchronous - it blocks and calls
+        the callback with chunks during execution. The callback receives either:
+        - An array of chunk dicts (for streaming responses)
+        - A single dict (for partial/final responses)
+
+        We use a thread to run it and a queue to collect chunks for the generator to yield.
+        """
+        import queue
+        import threading
+        import time
+
+        # Queue to collect chunks from callback
+        chunk_queue = queue.Queue()
+        generation_complete = threading.Event()
+        error_holder = [None]  # Use list to allow modification in nested function
+
+        def streaming_callback(chunk_data):
+            """Callback function called by xllamacpp for streaming chunks.
+
+            Args:
+                chunk_data: Can be:
+                    - A list of chunk dicts (xllamacpp bundles streaming deltas)
+                    - A single chunk dict
+                    - An error dict with 'code' key
+
+            Returns:
+                False to continue receiving chunks, True to stop early
+            """
+            try:
+                logging.debug(
+                    f"[LLM] Stream callback received: type={type(chunk_data)}"
+                )
+
+                # Check for error response
+                if isinstance(chunk_data, dict) and "code" in chunk_data:
+                    logging.error(f"[LLM] Stream callback error: {chunk_data}")
+                    error_holder[0] = Exception(
+                        chunk_data.get("message", str(chunk_data))
+                    )
+                    return True  # Stop on error
+
+                # xllamacpp returns a list of deltas for streaming
+                if isinstance(chunk_data, list):
+                    logging.debug(f"[LLM] Received {len(chunk_data)} chunks in array")
+                    for chunk in chunk_data:
+                        chunk_queue.put(chunk)
+                else:
+                    # Single chunk
+                    chunk_queue.put(chunk_data)
+
+                return False  # Continue receiving chunks
+            except Exception as e:
+                logging.error(f"[LLM] Streaming callback error: {e}")
+                error_holder[0] = e
+                return True  # Stop on error
+
+        def run_inference():
+            """Run the inference in a separate thread."""
+            try:
+                # Ensure stream=True in the request
+                request_copy = chat_request.copy()
+                request_copy["stream"] = True
+                logging.debug(f"[LLM] Starting streaming inference")
+                # Pass callback as second positional argument (not keyword)
+                # xllamacpp will call streaming_callback for each chunk/batch
+                self.server.handle_chat_completions(request_copy, streaming_callback)
+                logging.debug("[LLM] Streaming inference completed")
+            except Exception as e:
+                logging.error(f"[LLM] Streaming inference error: {e}")
+                error_holder[0] = e
+            finally:
+                generation_complete.set()
+
+        # Start inference in background thread
+        inference_thread = threading.Thread(target=run_inference, daemon=True)
+        inference_thread.start()
+
+        # Yield chunks as they come in
+        chunk_id = f"chatcmpl-{int(time.time())}"
+        created = int(time.time())
+        chunks_yielded = 0
+
+        while not generation_complete.is_set() or not chunk_queue.empty():
+            try:
+                chunk_data = chunk_queue.get(timeout=0.05)
+                chunks_yielded += 1
+                logging.debug(
+                    f"[LLM] Processing chunk {chunks_yielded}: {type(chunk_data)}"
+                )
+
+                # Check if this is already in OpenAI format
+                if isinstance(chunk_data, dict):
+                    if "choices" in chunk_data:
+                        # Already in correct format, yield directly
+                        logging.debug(
+                            f"[LLM] Yielding OpenAI format chunk with choices"
+                        )
+                        yield chunk_data
+                    elif "content" in chunk_data or "delta" in chunk_data:
+                        # Wrap in OpenAI format
+                        content = chunk_data.get(
+                            "content", chunk_data.get("delta", {}).get("content", "")
+                        )
+                        yield {
+                            "id": chunk_id,
+                            "object": "chat.completion.chunk",
+                            "created": created,
+                            "model": self.model_name,
+                            "choices": [
+                                {
+                                    "index": 0,
+                                    "delta": {"content": content},
+                                    "finish_reason": None,
+                                }
+                            ],
+                        }
+                    else:
+                        # Unknown dict format, log it
+                        logging.debug(f"[LLM] Unknown chunk dict format: {chunk_data}")
+                elif isinstance(chunk_data, str):
+                    # JSON string - parse it
+                    try:
+                        import json
+
+                        parsed = json.loads(chunk_data)
+                        if "choices" in parsed:
+                            yield parsed
+                        else:
+                            logging.debug(
+                                f"[LLM] Parsed JSON without choices: {parsed}"
+                            )
+                    except json.JSONDecodeError:
+                        # Raw text chunk
+                        yield {
+                            "id": chunk_id,
+                            "object": "chat.completion.chunk",
+                            "created": created,
+                            "model": self.model_name,
+                            "choices": [
+                                {
+                                    "index": 0,
+                                    "delta": {"content": chunk_data},
+                                    "finish_reason": None,
+                                }
+                            ],
+                        }
+                else:
+                    logging.debug(f"[LLM] Unexpected chunk type: {type(chunk_data)}")
+            except queue.Empty:
+                continue
+            except Exception as e:
+                logging.error(f"[LLM] Error processing stream chunk: {e}")
+                continue
+
+        # Wait for thread to complete
+        inference_thread.join(timeout=5.0)
+
+        logging.debug(f"[LLM] Stream complete, yielded {chunks_yielded} chunks")
+
+        # Check for errors
+        if error_holder[0]:
+            raise error_holder[0]
+
+        # Only yield final stop chunk if we didn't get one from xllamacpp
+        # The last chunk from xllamacpp should have finish_reason set
+        yield {
+            "id": chunk_id,
+            "object": "chat.completion.chunk",
+            "created": created,
+            "model": self.model_name,
+            "choices": [{"index": 0, "delta": {}, "finish_reason": "stop"}],
+        }
 
     def completion(self, prompt: str, **kwargs) -> dict:
         """Handle text completions using xllamacpp server."""
