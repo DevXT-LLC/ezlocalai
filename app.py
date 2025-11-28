@@ -123,7 +123,7 @@ def verify_api_key(authorization: str = Header(None)):
     dependencies=[Depends(verify_api_key)],
 )
 async def models(user=Depends(verify_api_key)):
-    return pipe.llm.models()
+    return pipe.get_models()
 
 
 # For the completions and chat completions endpoints, we use extra_json for additional parameters.

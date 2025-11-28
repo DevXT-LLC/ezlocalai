@@ -224,34 +224,12 @@ class Pipes:
                     f"[Calibration] Models calibrated at {base_context//1000}k: {[(m, self.calibrated_gpu_layers[m][base_context]) for m in self.available_models]}"
                 )
 
-            # Load the first model with baseline 16k context
+            # LLM is now lazy-loaded on first request and destroyed after each inference
+            # This ensures VRAM is freed between requests
             if self.available_models:
-                first_model = self.available_models[0]
-                base_context = 16384
-                gpu_layers = self.calibrated_gpu_layers.get(first_model, {}).get(
-                    base_context
-                )
                 logging.info(
-                    f"[LLM] {first_model} loading (context: {base_context//1000}k, gpu_layers: {gpu_layers or 'auto'}). Please wait..."
+                    f"[LLM] Available models: {', '.join(self.available_models)} (will lazy-load on first request)"
                 )
-                start_time = time.time()
-                self.llm = self._load_llm_resilient(
-                    model_name=first_model,
-                    max_tokens=base_context,
-                    gpu_layers=gpu_layers,
-                )
-                load_time = time.time() - start_time
-                self.current_llm_name = first_model
-                self.current_context = base_context
-                logging.info(f"[LLM] {first_model} loaded in {load_time:.2f}s.")
-                if self.llm.is_vision:
-                    logging.info(f"[LLM] Vision capability enabled for {first_model}.")
-
-                # Log available models
-                if len(self.available_models) > 1:
-                    logging.info(
-                        f"[LLM] Available models: {', '.join(self.available_models)}"
-                    )
 
         # Preload TTS to warm the cache, then unload to free VRAM
         # This way TTS loads fast (~5s) when needed via lazy loading
@@ -566,16 +544,12 @@ class Pipes:
             )
             return None
 
-        # Remember current model
-        original_model = self.current_llm_name
-        original_context = self.current_context
-
         try:
-            # Swap to vision model temporarily
+            # Load vision model (will destroy any current model first)
             logging.info(
-                f"[Vision Fallback] Swapping to {vision_model} to describe {len(images)} image(s)"
+                f"[Vision Fallback] Loading {vision_model} to describe {len(images)} image(s)"
             )
-            self._swap_llm(vision_model, 16384)  # Use 16k context for image description
+            self._get_llm(vision_model, 16384)  # Use 16k context for image description
 
             if not self.llm.is_vision:
                 logging.error(
@@ -676,11 +650,7 @@ class Pipes:
         except Exception as e:
             logging.error(f"[Vision Fallback] Failed to describe images: {e}")
             return None
-        finally:
-            # Swap back to original model
-            if original_model and original_model != self.current_llm_name:
-                logging.info(f"[Vision Fallback] Swapping back to {original_model}")
-                self._swap_llm(original_model, original_context)
+        # Note: LLM will be destroyed at the end of get_response() - no need to swap back
 
     def _calibrate_binary_search(self, model_name: str, max_tokens: int) -> int:
         """Calibrate using binary search (fallback method).
@@ -788,6 +758,15 @@ class Pipes:
         self.calibrated_gpu_layers[model_name][context_size] = calibrated
 
         return calibrated
+
+    def get_models(self):
+        """Return list of available models without loading the LLM.
+
+        This allows /v1/models endpoint to work even when LLM is not loaded.
+        """
+        from ezlocalai.LLM import get_models
+
+        return get_models()
 
     def _ensure_context_size(self, required_context: int):
         """Reload LLM with larger context if needed.
@@ -1015,6 +994,74 @@ class Pipes:
                 torch.cuda.empty_cache()
             logging.info("[IMG] SDXL-Lightning unloaded to free resources.")
 
+    def _get_llm(self, model_name: str = None, context_size: int = 16384):
+        """Lazy load LLM on demand.
+
+        This follows the same pattern as TTS, STT, IMG - load on demand, destroy after use.
+        This ensures VRAM is freed between requests.
+        """
+        if model_name is None:
+            model_name = self.available_models[0] if self.available_models else None
+
+        if model_name is None:
+            logging.warning("[LLM] No model available to load")
+            return None
+
+        # Check if we already have the right model loaded with sufficient context
+        if (
+            self.llm is not None
+            and self.current_llm_name == model_name
+            and self.current_context
+            and self.current_context >= context_size
+        ):
+            return self.llm
+
+        # Need to load/reload model - destroy existing first
+        if self.llm is not None:
+            self._destroy_llm()
+
+        # Get calibrated GPU layers
+        gpu_layers = self._get_gpu_layers_for_model(model_name, context_size)
+
+        logging.info(
+            f"[LLM] Loading {model_name} on demand (context: {context_size//1000}k, gpu_layers: {gpu_layers or 'auto'})..."
+        )
+        start_time = time.time()
+
+        self.llm = self._load_llm_resilient(
+            model_name=model_name,
+            max_tokens=context_size,
+            gpu_layers=gpu_layers,
+        )
+        self.current_llm_name = model_name
+        self.current_context = context_size
+
+        load_time = time.time() - start_time
+        logging.info(f"[LLM] {model_name} loaded in {load_time:.2f}s.")
+        if self.llm.is_vision:
+            logging.info(f"[LLM] Vision capability enabled for {model_name}.")
+
+        return self.llm
+
+    def _destroy_llm(self):
+        """Destroy LLM to free VRAM.
+
+        This is called after each inference to ensure VRAM is freed.
+        The model will be reloaded on the next request via _get_llm().
+        """
+        if self.llm is not None:
+            model_name = self.current_llm_name or "LLM"
+            logging.info(f"[LLM] Unloading {model_name} to free VRAM...")
+            del self.llm
+            self.llm = None
+            self.current_llm_name = None
+            self.current_context = None
+            gc.collect()
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+                torch.cuda.synchronize()
+            logging.info(f"[LLM] {model_name} unloaded, VRAM freed.")
+
     def _get_tts(self):
         """Lazy load TTS model on demand."""
         if self.ctts is None:
@@ -1221,13 +1268,30 @@ class Pipes:
             estimated_prompt_tokens + max_tokens + 2000
         )  # 2k buffer for safety
 
-        if data["model"]:
-            # Check if we need to swap to a different model (with context size)
-            self._swap_llm(data["model"], required_context)
-            data["model"] = self.current_llm_name
-        else:
-            # Same model, but maybe need larger context
-            self._ensure_context_size(required_context)
+        # Lazy load LLM with requested model and context size
+        # Determine target model
+        target_model = data.get("model") or (
+            self.available_models[0] if self.available_models else None
+        )
+        if target_model:
+            # Find matching model name from available models
+            for model_name in self.available_models:
+                short_name = model_name.split("/")[-1].lower()
+                requested_short = target_model.split("/")[-1].lower()
+                if (
+                    model_name.lower() == target_model.lower()
+                    or short_name == requested_short
+                ):
+                    target_model = model_name
+                    break
+
+        # Round context to 16k increments
+        rounded_context = round_context_to_16k(required_context)
+
+        # Lazy load the LLM
+        self._get_llm(target_model, rounded_context)
+        data["model"] = self.current_llm_name
+
         if "stop" in data:
             new_stop = self.llm.params["stop"]
             new_stop.append(data["stop"])
@@ -1645,9 +1709,31 @@ class Pipes:
                 response["choices"][0]["text"] += f"\n\n{generated_image}"
             else:
                 response["choices"][0]["message"]["content"] += f"\n\n{generated_image}"
+
         # Only log JSON if response is not a generator (streaming mode)
-        if not hasattr(response, "__next__"):
+        is_streaming = (
+            hasattr(response, "__next__")
+            or hasattr(response, "__iter__")
+            and not isinstance(response, (dict, list))
+        )
+
+        if not is_streaming:
             logging.info(f"[ezlocalai] {json.dumps(response, indent=2)}")
+            # Destroy LLM after non-streaming inference to free VRAM
+            self._destroy_llm()
         else:
             logging.info(f"[ezlocalai] Streaming response generated")
+            # For streaming, wrap the generator to destroy LLM after consumption
+            original_response = response
+
+            def streaming_wrapper():
+                try:
+                    for chunk in original_response:
+                        yield chunk
+                finally:
+                    # Destroy LLM after streaming is complete
+                    self._destroy_llm()
+
+            response = streaming_wrapper()
+
         return response, audio_response
