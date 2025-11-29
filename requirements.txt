@@ -23,3 +23,4 @@ sentence-transformers
 chatterbox-tts
 resemble-perth
 # Note: xllamacpp is installed separately in Dockerfile
+transformers==4.53.0
