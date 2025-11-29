@@ -23,6 +23,7 @@ on:
 
 permissions:
   contents: read
+  packages: read
 
 jobs:
   jupyter-test-job:
