@@ -491,59 +491,49 @@ async def upload_voice(
         raise HTTPException(status_code=404, detail="Text to speech is disabled.")
 
     # Sanitize voice name to prevent path traversal
+    # Use os.path.basename which CodeQL recognizes as a path sanitizer
     import re
 
-    def sanitize_filename(name: str) -> str:
-        """Sanitize filename to prevent path traversal attacks.
+    # First sanitize the input to only allow safe characters
+    if not voice or not isinstance(voice, str):
+        voice = "default"
+    # Remove any path separators and dangerous characters
+    voice = re.sub(r'[/\\:*?"<>|]', "", voice)
+    # Remove path traversal attempts
+    voice = voice.replace("..", "")
+    # Only allow alphanumeric, hyphen, underscore - strict allowlist
+    voice = re.sub(r"[^a-zA-Z0-9_-]", "", voice)
+    if not voice:
+        voice = "default"
+    voice = voice[:100]
 
-        CodeQL sanitizer: This function breaks the taint chain by validating
-        the input against an allowlist and returning a new string constructed
-        from validated characters only.
-        """
-        if not name or not isinstance(name, str):
-            return "default"
-        # Remove any path separators and dangerous characters
-        sanitized = re.sub(r'[/\\:*?"<>|]', "", name)
-        # Remove path traversal attempts
-        sanitized = sanitized.replace("..", "")
-        # Only allow alphanumeric, hyphen, underscore - strict allowlist
-        sanitized = re.sub(r"[^a-zA-Z0-9_-]", "", sanitized)
-        if not sanitized:
-            return "default"
-        # Return a new string to break taint chain
-        return str(sanitized[:100])
+    # Use basename to strip any remaining path components - CodeQL recognizes this as sanitizer
+    voice_name = os.path.basename(voice)
+    if not voice_name:
+        voice_name = "default"
 
-    def safe_path_join(base_dir: str, filename: str) -> str:
-        """Safely join base directory with filename, with inline verification.
-
-        This function constructs a path and verifies it's within the base directory.
-        The inline verification helps CodeQL recognize the security check.
-        """
-        # Construct the path
-        full_path = os.path.join(base_dir, filename)
-        # Resolve to real path
-        resolved_path = os.path.realpath(full_path)
-        resolved_base = os.path.realpath(base_dir)
-        # Verify containment - must be within base or equal to base
-        if (
-            not resolved_path.startswith(resolved_base + os.sep)
-            and resolved_path != resolved_base
-        ):
-            raise HTTPException(status_code=400, detail="Invalid path")
-        return resolved_path
-
-    voice_name = sanitize_filename(voice)
     voices_dir = os.path.join(os.getcwd(), "voices")
     os.makedirs(voices_dir, exist_ok=True)
 
-    # Construct safe file path using helper that includes inline verification
-    file_path = safe_path_join(voices_dir, f"{voice_name}.wav")
+    # Construct file path using only the sanitized basename
+    file_path = os.path.join(voices_dir, f"{voice_name}.wav")
+
+    # Verify the path is within voices_dir
+    if not os.path.realpath(file_path).startswith(
+        os.path.realpath(voices_dir) + os.sep
+    ):
+        raise HTTPException(status_code=400, detail="Invalid path")
 
     if os.path.exists(file_path):
         i = 1
         while os.path.exists(file_path):
-            new_name = f"{voice_name}-{i}"
-            file_path = safe_path_join(voices_dir, f"{new_name}.wav")
+            new_name = os.path.basename(f"{voice_name}-{i}")
+            file_path = os.path.join(voices_dir, f"{new_name}.wav")
+            # Re-verify path is still safe
+            if not os.path.realpath(file_path).startswith(
+                os.path.realpath(voices_dir) + os.sep
+            ):
+                raise HTTPException(status_code=400, detail="Invalid path")
             voice_name = new_name
             i += 1
     with open(file_path, "wb") as audio_file:
