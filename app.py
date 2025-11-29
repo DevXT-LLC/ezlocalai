@@ -235,7 +235,8 @@ async def chat_completions(
                     logging.error(
                         f"[STREAMING] Full traceback: {traceback.format_exc()}"
                     )
-                    yield f'data: {{"error": "Streaming failed: {str(e)}"}}\n\n'
+                    # Don't expose exception details to client
+                    yield f'data: {{"error": "Streaming failed"}}\n\n'
 
             return StreamingResponse(
                 content=generate_stream(),
@@ -488,13 +489,43 @@ async def upload_voice(
 ):
     if getenv("TTS_ENABLED").lower() == "false":
         raise HTTPException(status_code=404, detail="Text to speech is disabled.")
-    voice_name = voice
-    file_path = os.path.join(os.getcwd(), "voices", f"{voice}.wav")
+
+    # Sanitize voice name to prevent path traversal
+    import re
+
+    def sanitize_filename(name: str) -> str:
+        """Sanitize filename to prevent path traversal attacks"""
+        if not name or not isinstance(name, str):
+            return "default"
+        # Remove any path separators and dangerous characters
+        sanitized = re.sub(r'[/\\:*?"<>|]', "", name)
+        # Remove path traversal attempts
+        sanitized = sanitized.replace("..", "")
+        # Only allow alphanumeric, hyphen, underscore
+        sanitized = re.sub(r"[^a-zA-Z0-9_-]", "", sanitized)
+        if not sanitized:
+            return "default"
+        return sanitized[:100]  # Limit length
+
+    voice_name = sanitize_filename(voice)
+    voices_dir = os.path.join(os.getcwd(), "voices")
+    os.makedirs(voices_dir, exist_ok=True)
+
+    # Construct safe file path
+    file_path = os.path.join(voices_dir, f"{voice_name}.wav")
+    # Verify the resolved path is within the voices directory
+    if not os.path.realpath(file_path).startswith(os.path.realpath(voices_dir)):
+        raise HTTPException(status_code=400, detail="Invalid voice name")
+
     if os.path.exists(file_path):
         i = 1
         while os.path.exists(file_path):
-            file_path = os.path.join(os.getcwd(), "voices", f"{voice}-{i}.wav")
-            voice_name = f"{voice}-{i}"
+            new_name = f"{voice_name}-{i}"
+            file_path = os.path.join(voices_dir, f"{new_name}.wav")
+            # Re-verify path is still safe
+            if not os.path.realpath(file_path).startswith(os.path.realpath(voices_dir)):
+                raise HTTPException(status_code=400, detail="Invalid voice name")
+            voice_name = new_name
             i += 1
     with open(file_path, "wb") as audio_file:
         audio_file.write(await file.read())

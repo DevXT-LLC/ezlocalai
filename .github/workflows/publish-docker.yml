@@ -7,6 +7,10 @@ on:
     types: [published]
   workflow_dispatch:
 
+permissions:
+  contents: read
+  packages: write
+
 jobs:
   build-ezlocalai:
     runs-on: ubuntu-latest
