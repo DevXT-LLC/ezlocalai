@@ -1274,20 +1274,30 @@ class Pipes:
 
         # Lazy load LLM with requested model and context size
         # Determine target model
-        target_model = data.get("model") or (
-            self.available_models[0] if self.available_models else None
-        )
-        if target_model:
+        requested_model = data.get("model")
+        target_model = None
+
+        if requested_model and self.available_models:
             # Find matching model name from available models
             for model_name in self.available_models:
                 short_name = model_name.split("/")[-1].lower()
-                requested_short = target_model.split("/")[-1].lower()
+                requested_short = requested_model.split("/")[-1].lower()
                 if (
-                    model_name.lower() == target_model.lower()
+                    model_name.lower() == requested_model.lower()
                     or short_name == requested_short
                 ):
                     target_model = model_name
                     break
+
+            # If requested model not found in available models, fallback to first available
+            if target_model is None:
+                target_model = self.available_models[0]
+                logging.info(
+                    f"[LLM] Requested model '{requested_model}' not available, using '{target_model}'"
+                )
+        elif self.available_models:
+            # No model requested, use first available
+            target_model = self.available_models[0]
 
         # Round context to 16k increments
         rounded_context = round_context_to_16k(required_context)
