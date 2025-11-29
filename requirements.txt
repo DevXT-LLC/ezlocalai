@@ -21,6 +21,8 @@ safetensors
 sentence-transformers
 # Note: chatterbox-tts is installed with --no-deps in Dockerfile to allow transformers upgrade
 # Note: xllamacpp is installed separately in Dockerfile
+# s3tokenizer is a chatterbox-tts dependency that must be installed manually since we use --no-deps
+s3tokenizer
 resemble-perth
 transformers==4.53.0
 diffusers>=0.29.0
