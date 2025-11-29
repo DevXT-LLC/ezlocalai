@@ -9,8 +9,7 @@ faster-whisper==1.2.0
 gguf
 pydub==0.25.1
 ffmpeg-python==0.2.0
-transformers==4.46.3
-chatterbox-tts
+transformers==4.53.0
 sounddevice==0.4.6
 webrtcvad==2.0.10
 pyaudio==0.2.14
@@ -23,3 +22,13 @@ pdfplumber
 sentence-transformers
 sentencepiece
 safetensors
+huggingface_hub
+# Note: chatterbox-tts is installed with --no-deps in Dockerfile to allow transformers upgrade
+# chatterbox-tts dependencies that must be installed manually since we use --no-deps:
+s3tokenizer
+conformer
+pykakasi
+resemble-perth
+einops
+librosa
+tokenizers>=0.20,<0.22
