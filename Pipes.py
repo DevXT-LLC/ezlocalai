@@ -550,9 +550,6 @@ class Pipes:
 
         try:
             # Load vision model (will destroy any current model first)
-            logging.info(
-                f"[Vision Fallback] Loading {vision_model} to describe {len(images)} image(s)"
-            )
             self._get_llm(vision_model, 16384)  # Use 16k context for image description
 
             if not self.llm.is_vision:
@@ -646,9 +643,6 @@ class Pipes:
             else:
                 description = str(response)
 
-            logging.info(
-                f"[Vision Fallback] Got image description ({len(description)} chars)"
-            )
             return description
 
         except Exception as e:
