@@ -72,9 +72,13 @@ def get_per_gpu_vram_gb() -> list:
     return []
 
 
-def round_context_to_16k(token_count: int) -> int:
-    """Round up token count to nearest 16k for context sizing."""
-    return math.ceil(token_count / 16384) * 16384
+def calculate_context_size(estimated_prompt_tokens: int) -> int:
+    """Calculate context size with fixed 16k headspace for generation.
+
+    Simply adds 16k to the estimated prompt tokens to provide headspace
+    for response generation without over-allocating.
+    """
+    return estimated_prompt_tokens + 16384
 
 
 def get_vram_usage_gb(gpu_index: int = 0) -> float:
@@ -769,23 +773,18 @@ class Pipes:
         return get_models()
 
     def _ensure_context_size(self, required_context: int):
-        """Reload LLM with larger context if needed.
-
-        Context is rounded up to nearest 16k to avoid frequent reloads.
-        """
-        rounded_context = round_context_to_16k(required_context)
-
-        if self.current_context and self.current_context >= rounded_context:
+        """Reload LLM with larger context if needed."""
+        if self.current_context and self.current_context >= required_context:
             # Current context is sufficient
             return
 
         # Need to reload with larger context
         logging.info(
-            f"[LLM] Context {self.current_context//1000 if self.current_context else 0}k insufficient for {required_context:,} tokens, reloading at {rounded_context//1000}k..."
+            f"[LLM] Context {self.current_context//1000 if self.current_context else 0}k insufficient for {required_context:,} tokens, reloading at {required_context//1000}k..."
         )
 
         model_name = self.current_llm_name
-        gpu_layers = self._get_gpu_layers_for_model(model_name, rounded_context)
+        gpu_layers = self._get_gpu_layers_for_model(model_name, required_context)
 
         # Unload current model
         if self.llm:
@@ -799,13 +798,13 @@ class Pipes:
         start_time = time.time()
         self.llm = self._load_llm_resilient(
             model_name=model_name,
-            max_tokens=rounded_context,
+            max_tokens=required_context,
             gpu_layers=gpu_layers,
         )
-        self.current_context = rounded_context
+        self.current_context = required_context
         load_time = time.time() - start_time
         logging.info(
-            f"[LLM] {model_name} reloaded at {rounded_context//1000}k context ({gpu_layers} GPU layers) in {load_time:.2f}s"
+            f"[LLM] {model_name} reloaded at {required_context//1000}k context ({gpu_layers} GPU layers) in {load_time:.2f}s"
         )
 
     def _swap_llm(self, requested_model: str, required_context: int = None):
@@ -813,7 +812,7 @@ class Pipes:
 
         Args:
             requested_model: Model name to swap to
-            required_context: Minimum context size needed (will be rounded up to 16k)
+            required_context: Minimum context size needed
         """
         # Check if this is a known model
         target_model = None
@@ -833,10 +832,8 @@ class Pipes:
             # Model not in available list, use current
             return
 
-        # Determine context size (round up to nearest 16k)
-        target_context = (
-            round_context_to_16k(required_context) if required_context else 16384
-        )
+        # Determine context size
+        target_context = required_context if required_context else 16384
 
         # Check if we already have this model loaded with sufficient context
         if (
@@ -1264,13 +1261,11 @@ class Pipes:
         elif "prompt" in data:
             total_chars = len(data.get("prompt", ""))
 
-        # Estimate tokens (2.5 chars/token is more accurate than 4) + generation tokens + buffer
+        # Estimate tokens (2.5 chars/token is more accurate than 4)
         # Using int division by 2.5 = multiply by 2 then divide by 5
         estimated_prompt_tokens = (total_chars * 2) // 5
-        max_tokens = data.get("max_tokens", 2048)
-        required_context = (
-            estimated_prompt_tokens + max_tokens + 2000
-        )  # 2k buffer for safety
+        # Add fixed 16k headspace for generation - simple and predictable
+        required_context = calculate_context_size(estimated_prompt_tokens)
 
         # Lazy load LLM with requested model and context size
         # Determine target model
@@ -1299,11 +1294,8 @@ class Pipes:
             # No model requested, use first available
             target_model = self.available_models[0]
 
-        # Round context to 16k increments
-        rounded_context = round_context_to_16k(required_context)
-
-        # Lazy load the LLM
-        self._get_llm(target_model, rounded_context)
+        # Lazy load the LLM with calculated context (estimated prompt tokens + 16k headspace)
+        self._get_llm(target_model, required_context)
         data["model"] = self.current_llm_name
 
         if "stop" in data:
@@ -1559,12 +1551,8 @@ class Pipes:
                                 # Double current context as fallback
                                 needed_tokens = current_context * 2
 
-                        # Add buffer for max_tokens generation
-                        max_tokens = data.get("max_tokens", 2048)
-                        total_needed = needed_tokens + max_tokens + 1000
-
-                        # Round up to next 16k
-                        new_context = round_context_to_16k(total_needed)
+                        # Calculate new context: actual tokens needed + 16k headspace
+                        new_context = calculate_context_size(needed_tokens)
 
                         if new_context > current_context:
                             logging.warning(
