@@ -18,6 +18,10 @@ COPY requirements.txt .
 RUN --mount=type=cache,target=/root/.cache/pip,sharing=locked \
     python3 -m pip install --no-cache-dir -r requirements.txt
 
+# Install chatterbox-tts with --no-deps to bypass transformers==4.46.3 pin
+# This allows us to use transformers>=4.53.0 for security fixes
+RUN pip install chatterbox-tts --no-deps --no-cache-dir
+
 # Install xllamacpp CPU version  
 RUN pip install xllamacpp --force-reinstall --no-cache-dir
 

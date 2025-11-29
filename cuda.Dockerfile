@@ -25,6 +25,9 @@ RUN pip install numpy==1.25.2 Cython --no-cache-dir
 RUN pip install pkuseg==0.0.25 --no-build-isolation --no-cache-dir
 COPY cuda-requirements.txt .
 RUN pip install --no-cache-dir -r cuda-requirements.txt
+# Install chatterbox-tts with --no-deps to bypass transformers==4.46.3 pin
+# This allows us to use transformers>=4.53.0 for security fixes
+RUN pip install chatterbox-tts --no-deps --no-cache-dir
 ENV HOST=0.0.0.0 \
     CUDA_DOCKER_ARCH=all \
     CUDAVER=12.4.1

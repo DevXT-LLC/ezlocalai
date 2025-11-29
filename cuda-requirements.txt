@@ -10,7 +10,6 @@ gguf
 pydub==0.25.1
 ffmpeg-python==0.2.0
 transformers==4.53.0
-chatterbox-tts
 sounddevice==0.4.6
 webrtcvad==2.0.10
 pyaudio==0.2.14
@@ -23,3 +22,9 @@ pdfplumber
 sentence-transformers
 sentencepiece
 safetensors
+huggingface_hub
+# Note: chatterbox-tts is installed with --no-deps in Dockerfile to allow transformers upgrade
+resemble-perth
+einops
+librosa
+tokenizers>=0.20,<0.22

@@ -19,8 +19,13 @@ pdfplumber
 huggingface_hub
 safetensors
 sentence-transformers
-# Chatterbox TTS - pins diffusers==0.29.0 and transformers==4.46.3
-chatterbox-tts
-resemble-perth
+# Note: chatterbox-tts is installed with --no-deps in Dockerfile to allow transformers upgrade
 # Note: xllamacpp is installed separately in Dockerfile
+resemble-perth
 transformers==4.53.0
+diffusers>=0.29.0
+einops
+librosa
+tokenizers>=0.20,<0.22
+sentencepiece
+gguf
