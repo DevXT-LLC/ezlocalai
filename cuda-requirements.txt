@@ -24,8 +24,10 @@ sentencepiece
 safetensors
 huggingface_hub
 # Note: chatterbox-tts is installed with --no-deps in Dockerfile to allow transformers upgrade
-# s3tokenizer is a chatterbox-tts dependency that must be installed manually since we use --no-deps
+# chatterbox-tts dependencies that must be installed manually since we use --no-deps:
 s3tokenizer
+conformer
+pykakasi
 resemble-perth
 einops
 librosa
