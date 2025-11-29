@@ -465,6 +465,7 @@ async def text_to_speech(tts: TextToSpeech, user=Depends(verify_api_key)):
     audio_b64 = await tts_model.generate(
         text=tts.input, voice=tts.voice, language=tts.language
     )
+    pipe._destroy_tts()
     # OpenAI SDK expects raw binary audio, not base64 JSON
     audio_bytes = base64.b64decode(audio_b64)
     return Response(content=audio_bytes, media_type="audio/wav")
@@ -479,7 +480,9 @@ async def get_voices(user=Depends(verify_api_key)):
     if getenv("TTS_ENABLED").lower() == "false":
         raise HTTPException(status_code=404, detail="Text to speech is disabled.")
     tts_model = pipe._get_tts()
-    return {"voices": tts_model.voices}
+    voices = tts_model.voices
+    pipe._destroy_tts()
+    return {"voices": voices}
 
 
 @app.post(

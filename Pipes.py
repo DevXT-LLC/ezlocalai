@@ -1111,12 +1111,14 @@ class Pipes:
         if not content:
             return
         tts = self._get_tts()
-        return await tts.generate(
+        result = await tts.generate(
             text=content,
             voice=voice,
             local_uri=self.local_uri,
             output_file_name=f"{title}.wav",
         )
+        self._destroy_tts()
+        return result
 
     async def audio_to_audio(self, voice, audio):
         audio_type = audio.split(",")[0].split(":")[1].split(";")[0]
@@ -1127,7 +1129,9 @@ class Pipes:
         text = stt.transcribe_audio(base64_audio=audio, audio_format=audio_format)
         self._destroy_stt()
         tts = self._get_tts()
-        return await tts.generate(text=text, voice=voice, local_uri=self.local_uri)
+        result = await tts.generate(text=text, voice=voice, local_uri=self.local_uri)
+        self._destroy_tts()
+        return result
 
     async def generate_image(self, prompt, response_format="url", size="512x512"):
         img = self._get_img()
@@ -1683,6 +1687,8 @@ class Pipes:
                     )[1]
                     image_generation_prompt = image_generation_prompt.split("```")[0]
                 generated_image = self.img.generate(prompt=image_generation_prompt)
+            # Destroy IMG model after use to free VRAM (even if no image was generated)
+            self._destroy_img()
         audio_response = None
         if "voice" in data:
             text_response = (
@@ -1698,6 +1704,7 @@ class Pipes:
                 language=language,
                 local_uri=self.local_uri,
             )
+            self._destroy_tts()
             if completion_type != "chat":
                 response["choices"][0]["text"] = f"{text_response}\n{audio_response}"
             else:
