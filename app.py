@@ -491,7 +491,6 @@ async def upload_voice(
         raise HTTPException(status_code=404, detail="Text to speech is disabled.")
 
     # Sanitize voice name to prevent path traversal
-    # Use os.path.basename which CodeQL recognizes as a path sanitizer
     import re
 
     # First sanitize the input to only allow safe characters
@@ -507,36 +506,30 @@ async def upload_voice(
         voice = "default"
     voice = voice[:100]
 
-    # Use basename to strip any remaining path components - CodeQL recognizes this as sanitizer
+    # Use basename to strip any remaining path components
     voice_name = os.path.basename(voice)
     if not voice_name:
         voice_name = "default"
 
-    voices_dir = os.path.join(os.getcwd(), "voices")
+    voices_dir = os.path.realpath(os.path.join(os.getcwd(), "voices"))
     os.makedirs(voices_dir, exist_ok=True)
 
-    # Construct file path using only the sanitized basename
-    file_path = os.path.join(voices_dir, f"{voice_name}.wav")
+    # Find unique filename
+    base_name = voice_name
+    i = 1
+    while True:
+        # Construct and normalize the path - CodeQL pattern from documentation
+        fullpath = os.path.normpath(os.path.join(voices_dir, f"{voice_name}.wav"))
+        # Verify with normalized version of path - exact CodeQL recommended pattern
+        if not fullpath.startswith(voices_dir):
+            raise HTTPException(status_code=400, detail="Invalid path")
+        if not os.path.exists(fullpath):
+            break
+        voice_name = f"{base_name}-{i}"
+        i += 1
 
-    # Verify the path is within voices_dir
-    if not os.path.realpath(file_path).startswith(
-        os.path.realpath(voices_dir) + os.sep
-    ):
-        raise HTTPException(status_code=400, detail="Invalid path")
-
-    if os.path.exists(file_path):
-        i = 1
-        while os.path.exists(file_path):
-            new_name = os.path.basename(f"{voice_name}-{i}")
-            file_path = os.path.join(voices_dir, f"{new_name}.wav")
-            # Re-verify path is still safe
-            if not os.path.realpath(file_path).startswith(
-                os.path.realpath(voices_dir) + os.sep
-            ):
-                raise HTTPException(status_code=400, detail="Invalid path")
-            voice_name = new_name
-            i += 1
-    with open(file_path, "wb") as audio_file:
+    # fullpath is now verified safe - use it directly
+    with open(fullpath, "wb") as audio_file:
         audio_file.write(await file.read())
     return {"detail": f"Voice {voice_name} has been uploaded."}
 

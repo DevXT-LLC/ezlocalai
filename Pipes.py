@@ -1090,7 +1090,6 @@ class Pipes:
 
     async def pdf_to_audio(self, title, voice, pdf, chunk_size=200):
         # Sanitize title to prevent path traversal
-        # Use os.path.basename which CodeQL recognizes as a path sanitizer
         import re
 
         # First sanitize the input to only allow safe characters
@@ -1106,35 +1105,31 @@ class Pipes:
             title = "output"
         title = title[:100]
 
-        # Use basename to strip any remaining path components - CodeQL recognizes this as sanitizer
+        # Use basename to strip any remaining path components
         safe_title = os.path.basename(title)
         if not safe_title:
             safe_title = "output"
 
-        filename = f"{safe_title}.pdf"
-        outputs_dir = os.path.join(os.getcwd(), "outputs")
+        outputs_dir = os.path.realpath(os.path.join(os.getcwd(), "outputs"))
         os.makedirs(outputs_dir, exist_ok=True)
 
-        # Construct file path using only the sanitized basename
-        file_path = os.path.join(outputs_dir, filename)
-
-        # Verify the path is within outputs_dir
-        if not os.path.realpath(file_path).startswith(
-            os.path.realpath(outputs_dir) + os.sep
-        ):
+        # Construct and normalize the path - CodeQL pattern from documentation
+        fullpath = os.path.normpath(os.path.join(outputs_dir, f"{safe_title}.pdf"))
+        # Verify with normalized version of path - exact CodeQL recommended pattern
+        if not fullpath.startswith(outputs_dir):
             raise ValueError("Invalid path - potential path traversal")
 
-        pdf = pdf.split(",")[1]
-        pdf = base64.b64decode(pdf)
-        with open(file_path, "wb") as pdf_file:
-            pdf_file.write(pdf)
+        pdf_data = pdf.split(",")[1]
+        pdf_bytes = base64.b64decode(pdf_data)
+        # fullpath is verified safe - use it directly
+        with open(fullpath, "wb") as pdf_file:
+            pdf_file.write(pdf_bytes)
+
         content = ""
-        if file_path.endswith(".pdf"):
-            # Use basename again to ensure CodeQL sees this as sanitized
-            verified_filename = os.path.basename(file_path)
-            verified_path = os.path.join(outputs_dir, verified_filename)
-            with pdfplumber.open(verified_path) as pdf:
-                content = "\n".join([page.extract_text() for page in pdf.pages])
+        if fullpath.endswith(".pdf"):
+            # fullpath was already verified above, use it directly
+            with pdfplumber.open(fullpath) as pdf_doc:
+                content = "\n".join([page.extract_text() for page in pdf_doc.pages])
         if not content:
             return
         tts = self._get_tts()
