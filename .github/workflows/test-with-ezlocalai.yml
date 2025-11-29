@@ -21,6 +21,10 @@ on:
       api-key:
         description: Optional api-key available as os.getenv('API_KEY') in your notebook
 
+permissions:
+  contents: read
+  packages: read
+
 jobs:
   jupyter-test-job:
     runs-on: ubuntu-latest

@@ -1089,8 +1089,33 @@ class Pipes:
         return response.choices[0].message.content
 
     async def pdf_to_audio(self, title, voice, pdf, chunk_size=200):
-        filename = f"{title}.pdf"
-        file_path = os.path.join(os.getcwd(), "outputs", filename)
+        # Sanitize title to prevent path traversal
+        import re
+
+        def sanitize_filename(name: str) -> str:
+            """Sanitize filename to prevent path traversal attacks"""
+            if not name or not isinstance(name, str):
+                return "output"
+            # Remove any path separators and dangerous characters
+            sanitized = re.sub(r'[/\\:*?"<>|]', "", name)
+            # Remove path traversal attempts
+            sanitized = sanitized.replace("..", "")
+            # Only allow alphanumeric, hyphen, underscore, space
+            sanitized = re.sub(r"[^a-zA-Z0-9_\- ]", "", sanitized)
+            if not sanitized:
+                return "output"
+            return sanitized[:100]  # Limit length
+
+        safe_title = sanitize_filename(title)
+        filename = f"{safe_title}.pdf"
+        outputs_dir = os.path.join(os.getcwd(), "outputs")
+        os.makedirs(outputs_dir, exist_ok=True)
+        file_path = os.path.join(outputs_dir, filename)
+
+        # Verify the resolved path is within the outputs directory
+        if not os.path.realpath(file_path).startswith(os.path.realpath(outputs_dir)):
+            raise ValueError("Invalid title for file path")
+
         pdf = pdf.split(",")[1]
         pdf = base64.b64decode(pdf)
         with open(file_path, "wb") as pdf_file:
@@ -1106,7 +1131,7 @@ class Pipes:
             text=content,
             voice=voice,
             local_uri=self.local_uri,
-            output_file_name=f"{title}.wav",
+            output_file_name=f"{safe_title}.wav",
         )
         self._destroy_tts()
         return result
