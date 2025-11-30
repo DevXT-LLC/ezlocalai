@@ -48,26 +48,41 @@ REPO_URL = "https://github.com/DevXT-LLC/ezlocalai.git"
 REPO_DIR = STATE_DIR / "repo"
 
 
+def is_ezlocalai_folder(folder: Path) -> bool:
+    """Check if the given folder is the ezlocalai source folder.
+
+    Detects the ezlocalai folder by checking for key files that exist
+    in the source repository but not in typical installation locations.
+    """
+    key_files = [
+        "docker-compose.yml",
+        "docker-compose-cuda.yml",
+        "Dockerfile",
+        "cuda.Dockerfile",
+        "app.py",  # Main app file
+    ]
+    key_dirs = [
+        "ezlocalai",  # Python module folder
+    ]
+    files_exist = all((folder / f).exists() for f in key_files)
+    dirs_exist = all((folder / d).is_dir() for d in key_dirs)
+    return files_exist and dirs_exist
+
+
+def get_ezlocalai_source_dir() -> Optional[Path]:
+    """Get the ezlocalai source directory if running from within it.
+
+    Returns the current working directory if it's the ezlocalai folder,
+    otherwise returns None.
+    """
+    cwd = Path.cwd()
+    if is_ezlocalai_folder(cwd):
+        return cwd
+    return None
+
+
 class CLIError(RuntimeError):
     """Raised for recoverable CLI errors."""
-
-
-def print_banner():
-    """Print the ezLocalai banner ascii art banner"""
-    print(
-        """
-╔════════════════════════════════════════════════════════════════════════╗
-║                                                                        ║
-║  ███████╗███████╗██╗      ██████╗  ██████╗ █████╗ ██╗      █████╗ ██╗  ║
-║  ██╔════╝╚══███╔╝██║     ██╔═══██╗██╔════╝██╔══██╗██║     ██╔══██╗██║  ║
-║  █████╗    ███╔╝ ██║     ██║   ██║██║     ███████║██║     ███████║██║  ║
-║  ██╔══╝   ███╔╝  ██║     ██║   ██║██║     ██╔══██║██║     ██╔══██║██║  ║
-║  ███████╗███████╗███████╗╚██████╔╝╚██████╗██║  ██║███████╗██║  ██║██║  ║
-║  ╚══════╝╚══════╝╚══════╝ ╚═════╝  ╚═════╝╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝╚═╝  ║
-║                                                                        ║
-╚════════════════════════════════════════════════════════════════════════╝
-"""
-    )
 
 
 def is_tool_installed(tool: str) -> bool:
@@ -162,8 +177,19 @@ def prompt_user(prompt: str, default: str = "") -> str:
     return user_input if user_input else default
 
 
-def clone_or_update_repo() -> bool:
-    """Clone or update the ezlocalai repository for building CUDA image."""
+def clone_or_update_repo() -> Path:
+    """Clone or update the ezlocalai repository for building CUDA image.
+
+    Returns the path to the ezlocalai source directory (either local or cloned).
+    """
+    # First check if we're running from within the ezlocalai folder
+    local_source = get_ezlocalai_source_dir()
+    if local_source:
+        print("📦 Using local ezlocalai source folder...")
+        print(f"   Path: {local_source}")
+        return local_source
+
+    # Fall back to cloning/updating the repo
     if REPO_DIR.exists():
         print("📦 Updating ezlocalai repository...")
         result = subprocess.run(
@@ -176,9 +202,9 @@ def clone_or_update_repo() -> bool:
         if result.returncode != 0:
             print(f"⚠️  Failed to update repo: {result.stderr}")
             # Try to continue with existing repo
-            return True
+            return REPO_DIR
         print("✅ Repository updated")
-        return True
+        return REPO_DIR
     else:
         print("📦 Cloning ezlocalai repository...")
         result = subprocess.run(
@@ -189,23 +215,25 @@ def clone_or_update_repo() -> bool:
         )
         if result.returncode != 0:
             print(f"❌ Failed to clone repo: {result.stderr}")
-            return False
+            return None
         print("✅ Repository cloned")
-        return True
+        return REPO_DIR
 
 
 def build_cuda_image() -> bool:
     """Build the CUDA Docker image from source using docker-compose."""
-    if not clone_or_update_repo():
+    source_dir = clone_or_update_repo()
+    if not source_dir:
         return False
 
     print("\n🔨 Building CUDA image (this may take 10-20 minutes)...")
     print("   Building from: docker-compose-cuda.yml")
+    print(f"   Source directory: {source_dir}")
 
     # Build using docker-compose (handles complex builds better)
     result = subprocess.run(
         ["docker", "compose", "-f", "docker-compose-cuda.yml", "build"],
-        cwd=REPO_DIR,
+        cwd=source_dir,
         check=False,
     )
 
@@ -214,22 +242,46 @@ def build_cuda_image() -> bool:
         return False
 
     # Tag the image with our expected name
-    # docker-compose names it based on folder: repo-ezlocalai
+    # docker-compose names it based on folder name
     print("   Tagging image as ezlocalai:cuda...")
-    tag_result = subprocess.run(
-        ["docker", "tag", "repo-ezlocalai:latest", DOCKER_IMAGE_CUDA],
-        check=False,
-    )
 
-    if tag_result.returncode != 0:
-        print("⚠️  Failed to tag image, trying alternative name...")
-        # Try with the folder name from REPO_DIR
-        folder_name = REPO_DIR.name
-        alt_name = f"{folder_name}-ezlocalai:latest"
+    # Determine the expected image name based on folder
+    folder_name = source_dir.name
+    expected_names = [
+        f"{folder_name}-ezlocalai:latest",
+        "repo-ezlocalai:latest",
+        f"{folder_name}_ezlocalai:latest",
+    ]
+
+    tagged = False
+    for expected_name in expected_names:
         tag_result = subprocess.run(
-            ["docker", "tag", alt_name, DOCKER_IMAGE_CUDA],
+            ["docker", "tag", expected_name, DOCKER_IMAGE_CUDA],
+            capture_output=True,
             check=False,
         )
+        if tag_result.returncode == 0:
+            tagged = True
+            break
+
+    if not tagged:
+        print("⚠️  Could not tag image, trying to find it...")
+        # List images and try to find one that matches
+        list_result = subprocess.run(
+            ["docker", "images", "--format", "{{.Repository}}:{{.Tag}}"],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if list_result.returncode == 0:
+            for line in list_result.stdout.splitlines():
+                if "ezlocalai" in line.lower() and "cuda" not in line:
+                    subprocess.run(
+                        ["docker", "tag", line.strip(), DOCKER_IMAGE_CUDA],
+                        check=False,
+                    )
+                    tagged = True
+                    break
 
     print("✅ CUDA image built successfully")
     return True
@@ -785,6 +837,11 @@ def update_images() -> None:
     """Pull latest CPU image and rebuild CUDA image."""
     print("📦 Updating ezlocalai...")
 
+    # Check if we're in the ezlocalai source folder
+    local_source = get_ezlocalai_source_dir()
+    if local_source:
+        print(f"ℹ️  Running from ezlocalai source folder: {local_source}")
+
     # Pull CPU image from DockerHub
     print(f"\n📥 Pulling {DOCKER_IMAGE}...")
     result = subprocess.run(
@@ -1141,13 +1198,8 @@ Environment:
     args = parser.parse_args()
 
     if not args.command:
-        print_banner()
         parser.print_help()
         sys.exit(0)
-
-    # Print banner for main commands
-    if args.command in ("start", "restart"):
-        print_banner()
 
     # Check prerequisites for start/restart
     gpu_available = False
