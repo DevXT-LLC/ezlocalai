@@ -525,12 +525,15 @@ class Pipes:
     def __init__(self):
         load_dotenv()
         global img_import_success
-        
+
         # Check if precache already ran (models already downloaded/warmed)
         from pathlib import Path
+
         precache_done = Path("/tmp/ezlocalai_precache.done").exists()
         if precache_done:
-            logging.info("[Init] Precache completed, skipping redundant warmup operations")
+            logging.info(
+                "[Init] Precache completed, skipping redundant warmup operations"
+            )
 
         # Auto-detect multi-GPU configuration
         self.gpu_count = get_gpu_count()
@@ -571,31 +574,12 @@ class Pipes:
                 if model_name and model_name not in self.available_models:
                     self.available_models.append(model_name)
 
-            # Pre-calibrate models at 16k context (baseline) if VRAM available
-            # This uses xllamacpp estimation (no actual model loading) so it's fast
-            if (
-                self.vram_budget_gb > 0
-                and torch.cuda.is_available()
-                and self.available_models
-            ):
-                base_context = 16384
-                logging.info(
-                    f"[Calibration] Pre-calibrating {len(self.available_models)} models at {base_context//1000}k context..."
-                )
-                for model_name in self.available_models:
-                    if model_name not in self.calibrated_gpu_layers:
-                        self.calibrated_gpu_layers[model_name] = {}
-                    calibrated = self._calibrate_model(model_name, base_context)
-                    self.calibrated_gpu_layers[model_name][base_context] = calibrated
-                logging.info(
-                    f"[Calibration] Models calibrated at {base_context//1000}k: {[(m, self.calibrated_gpu_layers[m][base_context]) for m in self.available_models]}"
-                )
-
-            # LLM is now lazy-loaded on first request and destroyed after each inference
-            # This ensures VRAM is freed between requests
+            # GPU layer calibration is now done lazily at inference time
+            # This avoids redundant calibration across multiple workers
             if self.available_models:
                 logging.info(
-                    f"[LLM] Available models: {', '.join(self.available_models)} (will lazy-load on first request)"
+                    f"[LLM] Available models: {', '.join(self.available_models)} "
+                    f"(will calibrate and lazy-load on first request)"
                 )
 
         # TTS initialization - skip warmup if precache already did it
@@ -603,7 +587,9 @@ class Pipes:
         if getenv("TTS_ENABLED").lower() == "true":
             if precache_done:
                 # Precache already warmed the TTS cache, skip loading/unloading
-                logging.info("[CTTS] TTS cache already warmed by precache, will lazy-load on first request")
+                logging.info(
+                    "[CTTS] TTS cache already warmed by precache, will lazy-load on first request"
+                )
             else:
                 # No precache - warm the cache now (first run or single-worker mode)
                 logging.info("[CTTS] Preloading Chatterbox TTS to warm cache...")
@@ -614,7 +600,9 @@ class Pipes:
                     f"[CTTS] Chatterbox TTS preloaded in {load_time:.2f}s, unloading to free VRAM..."
                 )
                 self._destroy_tts()
-                logging.info("[CTTS] TTS unloaded, will lazy-load on first TTS request.")
+                logging.info(
+                    "[CTTS] TTS unloaded, will lazy-load on first TTS request."
+                )
 
         # Lazy-loaded models (loaded on first use, destroyed after)
         self.stt = None
