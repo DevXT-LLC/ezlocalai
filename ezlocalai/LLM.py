@@ -1,6 +1,6 @@
 import xllamacpp as xlc
 from huggingface_hub import hf_hub_download
-from typing import List, Optional, Dict
+from typing import List, Optional, Dict, Tuple
 import os
 import re
 import torch
@@ -19,6 +19,34 @@ def get_gpu_count() -> int:
     return 0
 
 
+def get_free_vram_per_gpu() -> List[float]:
+    """Get FREE (available) VRAM for each GPU in GB.
+
+    Uses torch.cuda.mem_get_info() which returns actual free memory
+    accounting for other processes using the GPU.
+    """
+    if not torch.cuda.is_available():
+        return []
+
+    free_vram = []
+    for i in range(torch.cuda.device_count()):
+        free, total = torch.cuda.mem_get_info(i)
+        free_vram.append(free / (1024**3))
+    return free_vram
+
+
+def get_total_vram_per_gpu() -> List[float]:
+    """Get total VRAM for each GPU in GB."""
+    if not torch.cuda.is_available():
+        return []
+
+    total_vram = []
+    for i in range(torch.cuda.device_count()):
+        total = torch.cuda.get_device_properties(i).total_memory
+        total_vram.append(total / (1024**3))
+    return total_vram
+
+
 def get_total_vram_all_gpus() -> float:
     """Get total VRAM across all GPUs in GB."""
     if torch.cuda.is_available():
@@ -29,8 +57,41 @@ def get_total_vram_all_gpus() -> float:
     return 0.0
 
 
+def get_total_free_vram() -> float:
+    """Get total FREE VRAM across all GPUs in GB."""
+    return sum(get_free_vram_per_gpu())
+
+
+def calculate_tensor_split_from_free_vram() -> list:
+    """Calculate tensor split ratios based on FREE (available) VRAM per GPU.
+
+    Returns a list of 128 floats (xllamacpp expects exactly 128).
+    Non-zero values indicate relative FREE VRAM proportions for each GPU.
+    """
+    if not torch.cuda.is_available():
+        return [0.0] * 128
+
+    gpu_count = torch.cuda.device_count()
+    if gpu_count <= 1:
+        return [0.0] * 128
+
+    # Get FREE VRAM for each GPU
+    free_vram_per_gpu = get_free_vram_per_gpu()
+    total_free_vram = sum(free_vram_per_gpu)
+
+    # Calculate proportional splits based on FREE VRAM
+    tensor_split = [0.0] * 128
+    for i, free_vram in enumerate(free_vram_per_gpu):
+        tensor_split[i] = free_vram / total_free_vram if total_free_vram > 0 else 0.0
+
+    return tensor_split
+
+
 def calculate_tensor_split() -> list:
     """Calculate tensor split ratios based on available VRAM per GPU.
+
+    DEPRECATED: Use calculate_tensor_split_from_free_vram() for accurate splits.
+    This function uses total VRAM which doesn't account for other processes.
 
     Returns a list of 128 floats (xllamacpp expects exactly 128).
     Non-zero values indicate relative VRAM proportions for each GPU.
@@ -251,11 +312,15 @@ class LLM:
         models_dir: str = "./models",
         system_message: str = "",
         gpu_layers: int = None,  # Override GPU_LAYERS env var if provided
+        main_gpu: int = None,  # Override MAIN_GPU env var if provided
+        tensor_split: list = None,  # Override tensor split if provided
         **kwargs,
     ):
         global DEFAULT_MODEL
 
-        MAIN_GPU = int(getenv("MAIN_GPU", "0"))
+        # Use provided main_gpu if specified, otherwise fall back to env var
+        MAIN_GPU = main_gpu if main_gpu is not None else int(getenv("MAIN_GPU", "0"))
+
         # Use provided gpu_layers if specified, otherwise fall back to env var or auto-detect
         gpu_layers_env = getenv("GPU_LAYERS", "")
         if gpu_layers is not None:
@@ -266,33 +331,49 @@ class LLM:
             # Auto-detect: use -1 which triggers VRAM-based calculation on GPU, 0 on CPU
             GPU_LAYERS = -1 if torch.cuda.is_available() else 0
 
-        # Multi-GPU detection and tensor split calculation
+        # Multi-GPU detection and smart GPU selection
         self.gpu_count = get_gpu_count()
-        self.tensor_split = None
+        self.tensor_split = tensor_split  # Allow external tensor_split to be passed
+        self.main_gpu = MAIN_GPU
 
         if torch.cuda.is_available() and GPU_LAYERS == -1:
-            # Get total VRAM across all GPUs, reserve 5GB for TTS and STT
+            # Get FREE VRAM per GPU (not total) - this accounts for other processes
+            free_vram_per_gpu = get_free_vram_per_gpu()
+            total_free_vram = sum(free_vram_per_gpu)
             total_vram = get_total_vram_all_gpus()
-            vram = round(total_vram) - 5
-            if vram == 3:
-                vram = 1
-            if vram <= 0:
-                vram = 0
+
+            # Reserve 5GB for TTS/STT
+            reserved_vram = 5
+            available_vram = max(0, total_free_vram - reserved_vram)
 
             if self.gpu_count > 1:
+                logging.info(f"[LLM] Multi-GPU detected: {self.gpu_count} GPUs")
+                for i, free in enumerate(free_vram_per_gpu):
+                    total_gpu = torch.cuda.get_device_properties(i).total_memory / (
+                        1024**3
+                    )
+                    logging.info(
+                        f"[LLM]   GPU {i}: {free:.1f}GB free / {total_gpu:.1f}GB total"
+                    )
                 logging.info(
-                    f"[LLM] Multi-GPU detected: {self.gpu_count} GPUs with {round(total_vram)}GB total VRAM ({vram}GB available after reservation)"
+                    f"[LLM] Total: {total_free_vram:.1f}GB free / {round(total_vram)}GB total ({available_vram:.1f}GB available after reservation)"
                 )
-                # Calculate tensor split for multi-GPU
-                self.tensor_split = parse_tensor_split_env() or calculate_tensor_split()
+
+                # Smart GPU selection will be done at Pipes level
+                # Here we just set up tensor split if provided externally or from env
+                if self.tensor_split is None:
+                    self.tensor_split = parse_tensor_split_env()
+
                 if self.tensor_split:
                     logging.info(
                         f"[LLM] Tensor split ratios: {self.tensor_split[:self.gpu_count]}"
                     )
             else:
-                logging.info(f"[LLM] {vram}GB of available VRAM detected.")
+                logging.info(
+                    f"[LLM] {available_vram:.1f}GB of available VRAM detected (free: {total_free_vram:.1f}GB)."
+                )
 
-            GPU_LAYERS = vram - 1 if vram > 0 else 0
+            GPU_LAYERS = int(available_vram) if available_vram > 0 else 0
         if GPU_LAYERS == -2:
             GPU_LAYERS = -1
 
@@ -351,7 +432,9 @@ class LLM:
         self.xlc_params.n_ctx = effective_max_tokens
         self.xlc_params.n_batch = int(getenv("LLM_BATCH_SIZE"))
         self.xlc_params.n_gpu_layers = GPU_LAYERS
-        self.xlc_params.main_gpu = MAIN_GPU
+        self.xlc_params.main_gpu = (
+            self.main_gpu
+        )  # Use self.main_gpu which may be overridden
         self.xlc_params.warmup = True
 
         # Apply tensor split for multi-GPU setups
@@ -360,9 +443,13 @@ class LLM:
                 # xllamacpp expects tensor_split as a list of 128 floats
                 for i, ratio in enumerate(self.tensor_split):
                     self.xlc_params.tensor_split[i] = ratio
-                logging.info(f"[LLM] Applied tensor split across {self.gpu_count} GPUs")
+                logging.info(
+                    f"[LLM] Applied tensor split across {self.gpu_count} GPUs (main_gpu={self.main_gpu})"
+                )
             except Exception as e:
                 logging.warning(f"[LLM] Failed to set tensor_split: {e}")
+        else:
+            logging.info(f"[LLM] Loading on GPU {self.main_gpu} only (no tensor split)")
 
         # Set multimodal projector path if available (for vision models)
         self.is_vision = False

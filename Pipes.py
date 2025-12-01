@@ -3,7 +3,12 @@ import logging
 import time
 import math
 from dotenv import load_dotenv
-from ezlocalai.LLM import LLM
+from ezlocalai.LLM import (
+    LLM,
+    get_free_vram_per_gpu,
+    get_total_vram_per_gpu,
+    calculate_tensor_split_from_free_vram,
+)
 from ezlocalai.CTTS import CTTS
 from pyngrok import ngrok
 import requests
@@ -13,6 +18,7 @@ import json
 from Globals import getenv
 import gc
 import torch
+from typing import Tuple, Optional, Dict, Any, List
 
 try:
     from ezlocalai.IMG import IMG
@@ -61,6 +67,28 @@ def get_available_vram_gb(gpu_index: int = None) -> float:
     return 0.0
 
 
+def get_free_vram_gb(gpu_index: int = None) -> float:
+    """Get FREE (available) VRAM in GB, accounting for other processes.
+
+    Args:
+        gpu_index: Specific GPU index, or None to sum all GPUs.
+    """
+    if not torch.cuda.is_available():
+        return 0.0
+
+    if gpu_index is not None:
+        if gpu_index < torch.cuda.device_count():
+            free, _ = torch.cuda.mem_get_info(gpu_index)
+            return free / (1024**3)
+        return 0.0
+    else:
+        total_free = 0.0
+        for i in range(torch.cuda.device_count()):
+            free, _ = torch.cuda.mem_get_info(i)
+            total_free += free
+        return total_free / (1024**3)
+
+
 def get_per_gpu_vram_gb() -> list:
     """Get VRAM for each GPU as a list of GB values."""
     if torch.cuda.is_available():
@@ -69,6 +97,20 @@ def get_per_gpu_vram_gb() -> list:
             vram_gb = torch.cuda.get_device_properties(i).total_memory / (1024**3)
             vram_list.append(math.floor(vram_gb))
         return vram_list
+    return []
+
+
+def get_per_gpu_free_vram_gb() -> list:
+    """Get FREE VRAM for each GPU as a list of GB values.
+
+    Uses torch.cuda.mem_get_info() which accounts for other processes.
+    """
+    if torch.cuda.is_available():
+        free_list = []
+        for i in range(torch.cuda.device_count()):
+            free, _ = torch.cuda.mem_get_info(i)
+            free_list.append(free / (1024**3))
+        return free_list
     return []
 
 
@@ -113,6 +155,8 @@ def get_total_vram_gb(gpu_index: int = None) -> float:
 def calculate_tensor_split() -> list:
     """Calculate tensor split ratios based on available VRAM per GPU.
 
+    DEPRECATED: Use calculate_tensor_split_from_free_vram() for accurate splits.
+
     Returns a list of 128 floats (xllamacpp expects exactly 128).
     Non-zero values indicate relative VRAM proportions for each GPU.
     """
@@ -137,6 +181,318 @@ def calculate_tensor_split() -> list:
         tensor_split[i] = vram / total_vram if total_vram > 0 else 0.0
 
     return tensor_split
+
+
+def extract_gpu_generation_score(gpu_name: str) -> Tuple[int, int, int]:
+    """Extract a capability score from NVIDIA GPU name.
+
+    Parses GPU names like "NVIDIA GeForce RTX 5090", "NVIDIA GeForce RTX 3090",
+    "NVIDIA A100", etc. and returns a tuple for comparison.
+
+    Returns:
+        Tuple of (generation, tier, variant) where higher is better.
+        - generation: 50 for 5000 series, 40 for 4000 series, etc.
+        - tier: 90 for x090, 80 for x080, 70 for x070, etc.
+        - variant: Ti/Super variants get bonus points
+    """
+    import re
+
+    gpu_name_upper = gpu_name.upper()
+
+    # Default low score for unknown GPUs
+    generation = 0
+    tier = 0
+    variant = 0
+
+    # Check for datacenter/professional cards first (A100, H100, etc.)
+    datacenter_match = re.search(r"\b([AH])(\d{2,3})\b", gpu_name_upper)
+    if datacenter_match:
+        prefix = datacenter_match.group(1)
+        number = int(datacenter_match.group(2))
+        # H100 > A100 > A40, etc.
+        if prefix == "H":
+            generation = 100
+        elif prefix == "A":
+            generation = 90
+        tier = number
+        return (generation, tier, variant)
+
+    # RTX/GTX consumer cards - extract the model number
+    # Matches: RTX 5090, RTX 4090, RTX 3090, GTX 1080, etc.
+    rtx_match = re.search(r"\b(?:RTX|GTX)\s*(\d)(\d{2,3})\b", gpu_name_upper)
+    if rtx_match:
+        gen_digit = int(rtx_match.group(1))  # 5, 4, 3, 2, 1
+        tier_digits = rtx_match.group(2)  # 090, 080, 070, 80, 70
+
+        # Normalize generation (5xxx = 50, 4xxx = 40, etc.)
+        generation = gen_digit * 10
+
+        # Normalize tier (90, 80, 70, 60, 50)
+        if len(tier_digits) == 3:
+            tier = int(tier_digits[0:2])  # 090 -> 90
+        else:
+            tier = int(tier_digits)  # 80 -> 80
+
+        # Check for Ti/Super variants
+        if "TI" in gpu_name_upper:
+            variant = 5
+        elif "SUPER" in gpu_name_upper:
+            variant = 3
+
+    # Quadro cards
+    quadro_match = re.search(r"QUADRO\s*(?:RTX\s*)?(\d+)", gpu_name_upper)
+    if quadro_match:
+        number = int(quadro_match.group(1))
+        generation = 35  # Place between GTX and newer RTX
+        tier = number // 100 if number >= 1000 else number // 10
+
+    return (generation, tier, variant)
+
+
+def get_gpu_capability_ranking() -> List[Tuple[int, float, str]]:
+    """Get GPUs ranked by capability (most powerful first).
+
+    Returns:
+        List of tuples: (gpu_index, capability_score, gpu_name)
+        Sorted by capability_score descending (most powerful first).
+    """
+    if not torch.cuda.is_available():
+        return []
+
+    gpu_info = []
+    for i in range(torch.cuda.device_count()):
+        props = torch.cuda.get_device_properties(i)
+        gpu_name = props.name
+
+        # Get generation/tier score from name
+        gen_score = extract_gpu_generation_score(gpu_name)
+
+        # Also factor in compute capability and VRAM as tiebreakers
+        compute_capability = props.major * 10 + props.minor
+        total_vram_gb = props.total_memory / (1024**3)
+
+        # Combined score: prioritize generation, then tier, then variant,
+        # then compute capability, then VRAM
+        # Score = gen*10000 + tier*100 + variant*10 + compute_cap + vram/100
+        capability_score = (
+            gen_score[0] * 10000
+            + gen_score[1] * 100
+            + gen_score[2] * 10
+            + compute_capability
+            + total_vram_gb / 100
+        )
+
+        gpu_info.append((i, capability_score, gpu_name))
+
+    # Sort by capability score descending
+    gpu_info.sort(key=lambda x: x[1], reverse=True)
+
+    return gpu_info
+
+
+def get_gpus_by_priority() -> List[int]:
+    """Get GPU indices ordered by capability (most powerful first).
+
+    Returns:
+        List of GPU indices, ordered from most to least capable.
+    """
+    ranking = get_gpu_capability_ranking()
+    return [gpu_idx for gpu_idx, _, _ in ranking]
+
+
+def estimate_model_vram_requirement(
+    model_path: str, context_size: int, projectors: list = None
+) -> float:
+    """Estimate VRAM requirement for a model in GB.
+
+    Uses xllamacpp's estimate_gpu_layers to get memory estimates.
+    Returns estimated VRAM in GB, or a conservative estimate if xllamacpp is unavailable.
+    """
+    if not xllamacpp_available:
+        # Conservative fallback: assume 0.5GB per 1K context + base model size
+        # This is very rough but better than nothing
+        return 8.0 + (context_size / 1000) * 0.5
+
+    try:
+        # Create a fake GPU with unlimited memory to get total requirement
+        fake_gpu = {
+            "name": "Virtual GPU",
+            "memory_free": 1024 * 1024 * 1024 * 1024,  # 1TB
+            "memory_total": 1024 * 1024 * 1024 * 1024,
+        }
+
+        result = estimate_gpu_layers(
+            gpus=[fake_gpu],
+            model_path=model_path,
+            projectors=projectors or [],
+            context_length=context_size,
+            batch_size=2048,
+            num_parallel=1,
+            kv_cache_type="f16",
+        )
+
+        # Extract memory requirement
+        if hasattr(result, "memory"):
+            return result.memory / (1024**3)
+        elif isinstance(result, dict) and "memory" in result:
+            return result["memory"] / (1024**3)
+
+        # Fallback estimation
+        return 8.0 + (context_size / 1000) * 0.5
+
+    except Exception as e:
+        logging.warning(f"[GPU Selection] Failed to estimate VRAM: {e}")
+        return 8.0 + (context_size / 1000) * 0.5
+
+
+def determine_gpu_strategy(
+    model_path: str,
+    context_size: int,
+    projectors: list = None,
+    reserved_vram: float = 5.0,
+) -> Dict[str, Any]:
+    """Determine optimal GPU loading strategy based on available VRAM and GPU capability.
+
+    Smart GPU selection logic (GPUs ordered by capability, not nvidia-smi index):
+    1. If the most powerful GPU has enough free VRAM → load on it only
+    2. If combined GPUs have enough → tensor split across them (weighted by free VRAM)
+    3. If most powerful is full but another GPU has enough → load on that GPU only
+    4. Otherwise → fall back to CPU
+
+    Args:
+        model_path: Path to the model file
+        context_size: Context window size
+        projectors: List of projector paths (for vision models)
+        reserved_vram: VRAM to reserve for TTS/STT (default 5GB)
+
+    Returns:
+        Dict with keys:
+        - main_gpu: GPU index to use as primary (0, 1, etc.)
+        - tensor_split: List of 128 floats for tensor splitting, or None for single GPU
+        - gpu_layers: Number of GPU layers, or 0 for CPU-only
+        - strategy: Description of the strategy ("gpu0", "gpu1", "tensor_split", "cpu")
+    """
+    gpu_count = get_gpu_count()
+
+    if gpu_count == 0 or not torch.cuda.is_available():
+        return {"main_gpu": 0, "tensor_split": None, "gpu_layers": 0, "strategy": "cpu"}
+
+    # Get GPU capability ranking (most powerful first)
+    gpu_ranking = get_gpu_capability_ranking()
+    gpus_by_priority = [gpu_idx for gpu_idx, _, _ in gpu_ranking]
+
+    # Log GPU ranking
+    logging.info(f"[GPU Selection] GPU capability ranking (most powerful first):")
+    for gpu_idx, score, name in gpu_ranking:
+        logging.info(f"[GPU Selection]   GPU {gpu_idx}: {name} (score: {score:.1f})")
+
+    # Get free VRAM for each GPU
+    free_vram = get_per_gpu_free_vram_gb()
+    total_vram = get_per_gpu_vram_gb()
+
+    # Estimate model VRAM requirement
+    estimated_vram = estimate_model_vram_requirement(
+        model_path, context_size, projectors
+    )
+
+    # Account for reserved VRAM (distribute across GPUs proportionally)
+    reserved_per_gpu = reserved_vram / gpu_count if gpu_count > 0 else 0
+    available_vram = [max(0, free - reserved_per_gpu) for free in free_vram]
+
+    logging.info(
+        f"[GPU Selection] Model VRAM estimate: {estimated_vram:.1f}GB for {context_size//1000}k context"
+    )
+    for i in range(gpu_count):
+        logging.info(
+            f"[GPU Selection]   GPU {i}: {free_vram[i]:.1f}GB free, "
+            f"{available_vram[i]:.1f}GB available after {reserved_per_gpu:.1f}GB reservation"
+        )
+
+    # Single GPU case
+    if gpu_count == 1:
+        if available_vram[0] >= estimated_vram:
+            return {
+                "main_gpu": 0,
+                "tensor_split": None,
+                "gpu_layers": -1,  # Auto-detect
+                "strategy": "gpu0",
+            }
+        else:
+            # Not enough VRAM, fall back to CPU
+            logging.warning(
+                f"[GPU Selection] GPU 0 has {available_vram[0]:.1f}GB available, "
+                f"need {estimated_vram:.1f}GB, falling back to CPU"
+            )
+            return {
+                "main_gpu": 0,
+                "tensor_split": None,
+                "gpu_layers": 0,
+                "strategy": "cpu",
+            }
+
+    # Multi-GPU case - use capability ranking
+    # Strategy 1: Try most powerful GPU alone
+    primary_gpu = gpus_by_priority[0]
+    primary_name = gpu_ranking[0][2]
+
+    if available_vram[primary_gpu] >= estimated_vram:
+        logging.info(
+            f"[GPU Selection] Primary GPU {primary_gpu} ({primary_name}) has {available_vram[primary_gpu]:.1f}GB available, "
+            f"sufficient for {estimated_vram:.1f}GB model - loading on GPU {primary_gpu} only"
+        )
+        return {
+            "main_gpu": primary_gpu,
+            "tensor_split": None,
+            "gpu_layers": -1,
+            "strategy": f"gpu{primary_gpu}",
+        }
+
+    # Strategy 2: Try tensor split across all GPUs
+    total_available = sum(available_vram)
+    if total_available >= estimated_vram:
+        # Calculate tensor split based on FREE VRAM proportions
+        tensor_split = [0.0] * 128
+        for i, avail in enumerate(available_vram):
+            tensor_split[i] = avail / total_available if total_available > 0 else 0.0
+
+        logging.info(
+            f"[GPU Selection] Tensor splitting across {gpu_count} GPUs "
+            f"(total: {total_available:.1f}GB available, need: {estimated_vram:.1f}GB)"
+        )
+        logging.info(f"[GPU Selection] Split ratios: {tensor_split[:gpu_count]}")
+
+        # Use the most powerful GPU as main_gpu for tensor split
+        return {
+            "main_gpu": primary_gpu,
+            "tensor_split": tensor_split,
+            "gpu_layers": -1,
+            "strategy": "tensor_split",
+        }
+
+    # Strategy 3: Try other GPUs in order of capability
+    for gpu_idx in gpus_by_priority[1:]:  # Skip the primary GPU we already tried
+        if available_vram[gpu_idx] >= estimated_vram:
+            gpu_name = next(
+                (name for idx, _, name in gpu_ranking if idx == gpu_idx),
+                f"GPU {gpu_idx}",
+            )
+            logging.info(
+                f"[GPU Selection] Primary GPU {primary_gpu} full ({available_vram[primary_gpu]:.1f}GB), "
+                f"but GPU {gpu_idx} ({gpu_name}) has {available_vram[gpu_idx]:.1f}GB - loading on GPU {gpu_idx} only"
+            )
+            return {
+                "main_gpu": gpu_idx,
+                "tensor_split": None,
+                "gpu_layers": -1,
+                "strategy": f"gpu{gpu_idx}",
+            }
+
+    # Strategy 4: Fall back to CPU
+    logging.warning(
+        f"[GPU Selection] Insufficient VRAM across all GPUs "
+        f"(need {estimated_vram:.1f}GB, have {total_available:.1f}GB), falling back to CPU"
+    )
+    return {"main_gpu": 0, "tensor_split": None, "gpu_layers": 0, "strategy": "cpu"}
 
 
 # Model-specific config overrides for optimal inference settings
@@ -271,30 +627,80 @@ class Pipes:
         model_name: str,
         max_tokens: int,
         gpu_layers: int = None,
+        main_gpu: int = None,
+        tensor_split: list = None,
     ) -> "LLM":
-        """Load an LLM with resilient fallback to CPU when GPU resources are exhausted.
+        """Load an LLM with smart GPU selection and resilient fallback.
 
-        This method attempts to load the model with GPU acceleration first.
-        If that fails due to resource exhaustion (VRAM), it retries with CPU-only mode.
-        The system's page file/swap will handle RAM overflow automatically.
+        This method uses smart GPU selection to determine the optimal loading strategy:
+        1. If GPU 0 has enough VRAM → load on GPU 0 only
+        2. If GPU 0 + GPU 1 together have enough → tensor split across both
+        3. If GPU 0 is full but GPU 1 has enough → load on GPU 1 only
+        4. Otherwise → fall back to CPU
 
         Args:
             model_name: Name of the model to load
             max_tokens: Context size for the model
-            gpu_layers: Number of GPU layers (None for auto-detect)
+            gpu_layers: Number of GPU layers (None for smart auto-detect)
+            main_gpu: Primary GPU index (None for smart auto-detect)
+            tensor_split: Tensor split ratios (None for smart auto-detect)
 
         Returns:
             LLM instance
 
         Raises:
-            Exception: Only if both GPU and CPU loading fail completely
+            Exception: Only if all loading strategies fail
         """
-        # First attempt: Try with specified/auto GPU layers
+        # Get model path for VRAM estimation
+        from ezlocalai.LLM import download_model
+
+        try:
+            model_path, mmproj_path = download_model(
+                model_name=model_name, models_dir="./models"
+            )
+            projectors = [mmproj_path] if mmproj_path else []
+        except Exception as e:
+            logging.warning(f"[LLM] Could not get model path for estimation: {e}")
+            model_path = None
+            projectors = []
+
+        # Use smart GPU selection if no explicit configuration provided
+        if (
+            gpu_layers is None
+            and main_gpu is None
+            and tensor_split is None
+            and model_path
+        ):
+            strategy = determine_gpu_strategy(
+                model_path=model_path,
+                context_size=max_tokens,
+                projectors=projectors,
+                reserved_vram=5.0,  # Reserve 5GB for TTS/STT
+            )
+
+            gpu_layers = strategy["gpu_layers"]
+            main_gpu = strategy["main_gpu"]
+            tensor_split = strategy["tensor_split"]
+
+            logging.info(
+                f"[LLM] Smart GPU selection: strategy='{strategy['strategy']}', "
+                f"main_gpu={main_gpu}, gpu_layers={gpu_layers}, "
+                f"tensor_split={'enabled' if tensor_split else 'disabled'}"
+            )
+
+        # First attempt: Try with determined/specified configuration
         try:
             logging.info(
-                f"[LLM] Attempting to load {model_name} with {gpu_layers or 'auto'} GPU layers..."
+                f"[LLM] Attempting to load {model_name} (main_gpu={main_gpu}, "
+                f"gpu_layers={gpu_layers or 'auto'}, tensor_split={'yes' if tensor_split else 'no'})..."
             )
-            llm = LLM(model=model_name, max_tokens=max_tokens, gpu_layers=gpu_layers)
+            llm = LLM(
+                model=model_name,
+                max_tokens=max_tokens,
+                gpu_layers=gpu_layers,
+                main_gpu=main_gpu,
+                tensor_split=tensor_split,
+            )
             return llm
         except Exception as gpu_error:
             error_str = str(gpu_error).lower()
@@ -767,7 +1173,7 @@ class Pipes:
         return get_models()
 
     def _ensure_context_size(self, required_context: int):
-        """Reload LLM with larger context if needed."""
+        """Reload LLM with larger context if needed using smart GPU selection."""
         if self.current_context and self.current_context >= required_context:
             # Current context is sufficient
             return
@@ -778,7 +1184,6 @@ class Pipes:
         )
 
         model_name = self.current_llm_name
-        gpu_layers = self._get_gpu_layers_for_model(model_name, required_context)
 
         # Unload current model
         if self.llm:
@@ -788,21 +1193,21 @@ class Pipes:
             if torch.cuda.is_available():
                 torch.cuda.empty_cache()
 
-        # Load with new context
+        # Load with new context - let smart GPU selection determine configuration
         start_time = time.time()
         self.llm = self._load_llm_resilient(
             model_name=model_name,
             max_tokens=required_context,
-            gpu_layers=gpu_layers,
+            # gpu_layers, main_gpu, tensor_split determined by smart selection
         )
         self.current_context = required_context
         load_time = time.time() - start_time
         logging.info(
-            f"[LLM] {model_name} reloaded at {required_context//1000}k context ({gpu_layers} GPU layers) in {load_time:.2f}s"
+            f"[LLM] {model_name} reloaded at {required_context//1000}k context in {load_time:.2f}s"
         )
 
     def _swap_llm(self, requested_model: str, required_context: int = None):
-        """Hot-swap to a different LLM if needed.
+        """Hot-swap to a different LLM if needed with smart GPU selection.
 
         Args:
             requested_model: Model name to swap to
@@ -837,23 +1242,15 @@ class Pipes:
         ):
             return
 
-        # Get calibrated GPU layers for target context
-        target_gpu_layers = self._get_gpu_layers_for_model(target_model, target_context)
-
         # Swap models - must unload old model first to free VRAM
         logging.info(
-            f"[LLM] Swapping to {target_model} at {target_context//1000}k context ({target_gpu_layers} GPU layers)..."
+            f"[LLM] Swapping to {target_model} at {target_context//1000}k context..."
         )
         start_time = time.time()
 
         # Store old model info in case we need to rollback
         old_model_name = self.current_llm_name
         old_context = self.current_context or 16384
-        old_gpu_layers = (
-            self._get_gpu_layers_for_model(old_model_name, old_context)
-            if old_model_name
-            else None
-        )
 
         # Destroy current LLM first to free VRAM
         if self.llm:
@@ -864,12 +1261,12 @@ class Pipes:
             if torch.cuda.is_available():
                 torch.cuda.empty_cache()
 
-        # Try to load new LLM
+        # Try to load new LLM with smart GPU selection
         try:
             self.llm = self._load_llm_resilient(
                 model_name=target_model,
                 max_tokens=target_context,
-                gpu_layers=target_gpu_layers,
+                # Let smart GPU selection handle gpu_layers, main_gpu, tensor_split
             )
             self.current_llm_name = target_model
             self.current_context = target_context
@@ -879,13 +1276,13 @@ class Pipes:
                 logging.info(f"[LLM] Vision capability enabled for {target_model}.")
         except Exception as e:
             logging.error(f"[LLM] Failed to load {target_model}: {e}")
-            # Rollback to old model
+            # Rollback to old model with smart GPU selection
             logging.info(f"[LLM] Rolling back to {old_model_name}...")
             try:
                 self.llm = self._load_llm_resilient(
                     model_name=old_model_name,
                     max_tokens=old_context,
-                    gpu_layers=old_gpu_layers,
+                    # Let smart GPU selection handle configuration
                 )
                 self.current_llm_name = old_model_name
                 self.current_context = old_context
@@ -986,10 +1383,16 @@ class Pipes:
             logging.info("[IMG] SDXL-Lightning unloaded to free resources.")
 
     def _get_llm(self, model_name: str = None, context_size: int = 16384):
-        """Lazy load LLM on demand.
+        """Lazy load LLM on demand with smart GPU selection.
 
         This follows the same pattern as TTS, STT, IMG - load on demand, destroy after use.
         This ensures VRAM is freed between requests.
+
+        Uses smart GPU selection to determine optimal loading strategy:
+        - GPU 0 only if it has enough VRAM
+        - Tensor split if GPU 0 needs help from other GPUs
+        - GPU 1 alone if GPU 0 is fully occupied
+        - CPU fallback if no GPU has sufficient VRAM
         """
         if model_name is None:
             model_name = self.available_models[0] if self.available_models else None
@@ -1011,18 +1414,16 @@ class Pipes:
         if self.llm is not None:
             self._destroy_llm()
 
-        # Get calibrated GPU layers
-        gpu_layers = self._get_gpu_layers_for_model(model_name, context_size)
-
         logging.info(
-            f"[LLM] Loading {model_name} on demand (context: {context_size//1000}k, gpu_layers: {gpu_layers or 'auto'})..."
+            f"[LLM] Loading {model_name} on demand (context: {context_size//1000}k)..."
         )
         start_time = time.time()
 
+        # Let _load_llm_resilient handle smart GPU selection
         self.llm = self._load_llm_resilient(
             model_name=model_name,
             max_tokens=context_size,
-            gpu_layers=gpu_layers,
+            # gpu_layers, main_gpu, tensor_split will be determined by smart selection
         )
         self.current_llm_name = model_name
         self.current_context = context_size
