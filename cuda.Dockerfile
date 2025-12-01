@@ -1,4 +1,4 @@
-FROM nvidia/cuda:12.4.1-devel-ubuntu22.04
+FROM nvidia/cuda:12.8.1-devel-ubuntu22.04
 ENV CUDA_PATH=/usr/local/cuda \
     CUDA_HOME=/usr/local/cuda \
     CUDA_TOOLKIT_ROOT_DIR=/usr/local/cuda \
@@ -18,7 +18,7 @@ RUN apt-get update --fix-missing && \
 RUN python3 -m pip install --upgrade pip && \
     python3 -m pip install --upgrade cmake scikit-build setuptools wheel --no-cache-dir
 WORKDIR /app
-RUN pip install torch==2.6.0+cu124 torchaudio==2.6.0+cu124 --index-url https://download.pytorch.org/whl/cu124
+RUN pip install torch==2.7.0+cu128 torchaudio==2.7.0+cu128 --index-url https://download.pytorch.org/whl/cu128
 # Install numpy and Cython for pkuseg (required by chatterbox-tts)
 RUN pip install numpy==1.25.2 Cython --no-cache-dir
 # Install pkuseg separately (required by chatterbox-tts)
@@ -30,9 +30,9 @@ RUN pip install --no-cache-dir -r cuda-requirements.txt
 RUN pip install chatterbox-tts --no-deps --no-cache-dir
 ENV HOST=0.0.0.0 \
     CUDA_DOCKER_ARCH=all \
-    CUDAVER=12.4.1
-# Install xllamacpp with CUDA 12.4 support
-RUN pip install xllamacpp --force-reinstall --index-url https://xorbitsai.github.io/xllamacpp/whl/cu124 --no-cache-dir
+    CUDAVER=12.8.1
+# Install xllamacpp with CUDA 12.8 support
+RUN pip install xllamacpp --force-reinstall --index-url https://xorbitsai.github.io/xllamacpp/whl/cu128 --no-cache-dir
 COPY . .
 EXPOSE 8091
 CMD uvicorn app:app --host 0.0.0.0 --port 8091 --workers 1 --proxy-headers
