@@ -22,7 +22,8 @@ RUN curl -LsSf https://astral.sh/uv/install.sh | sh && \
 WORKDIR /app
 RUN uv pip install torch==2.7.0+cu128 torchaudio==2.7.0+cu128 --index-url https://download.pytorch.org/whl/cu128
 # Install numpy and Cython for pkuseg (required by chatterbox-tts)
-RUN uv pip install numpy==1.25.2 Cython
+# numpy>=1.26.0 required for Python 3.12 compatibility
+RUN uv pip install "numpy>=1.26.0" Cython
 # Install pkuseg separately (required by chatterbox-tts)
 RUN uv pip install pkuseg==0.0.25 --no-build-isolation
 COPY cuda-requirements.txt .
