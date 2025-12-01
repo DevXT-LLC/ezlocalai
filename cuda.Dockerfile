@@ -3,8 +3,8 @@ ENV CUDA_PATH=/usr/local/cuda \
     CUDA_HOME=/usr/local/cuda \
     CUDA_TOOLKIT_ROOT_DIR=/usr/local/cuda \
     LD_LIBRARY_PATH=/usr/local/cuda/lib64:$LD_LIBRARY_PATH \
-    UV_SYSTEM_PYTHON=1 \
-    UV_NO_CACHE=1
+    VIRTUAL_ENV=/opt/venv \
+    PATH="/opt/venv/bin:/root/.local/bin:$PATH"
 RUN apt-get update --fix-missing && \
     apt-get upgrade -y && \
     apt-get install -y --no-install-recommends \
@@ -14,12 +14,11 @@ RUN apt-get update --fix-missing && \
        clinfo libclblast-dev libopenblas-dev python3-dev unzip curl && \
     mkdir -p /etc/OpenCL/vendors && \
     echo "libnvidia-opencl.so.1" > /etc/OpenCL/vendors/nvidia.icd && \
-    ln -s /usr/bin/python3 /usr/bin/python && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* /var/cache/apt/* /tmp/* /var/tmp/*
-# Install uv for fast package management
-RUN curl -LsSf https://astral.sh/uv/install.sh | sh
-ENV PATH="/root/.local/bin:$PATH"
+# Install uv and create venv
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh && \
+    /root/.local/bin/uv venv /opt/venv
 WORKDIR /app
 RUN uv pip install torch==2.7.0+cu128 torchaudio==2.7.0+cu128 --index-url https://download.pytorch.org/whl/cu128
 # Install numpy and Cython for pkuseg (required by chatterbox-tts)
@@ -38,4 +37,4 @@ ENV HOST=0.0.0.0 \
 RUN uv pip install xllamacpp --reinstall --index-url https://xorbitsai.github.io/xllamacpp/whl/cu128
 COPY . .
 EXPOSE 8091
-CMD uvicorn app:app --host 0.0.0.0 --port 8091 --workers 1 --proxy-headers
+CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8091", "--workers", "1", "--proxy-headers"]
