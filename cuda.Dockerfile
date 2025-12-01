@@ -38,4 +38,5 @@ ENV HOST=0.0.0.0 \
 RUN uv pip install xllamacpp --reinstall --index-url https://xorbitsai.github.io/xllamacpp/whl/cu128
 COPY . .
 EXPOSE 8091
-CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8091", "--workers", "1", "--proxy-headers"]
+# Use start.py which runs precache once, then starts uvicorn workers
+CMD ["python", "start.py"]

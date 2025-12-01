@@ -525,6 +525,12 @@ class Pipes:
     def __init__(self):
         load_dotenv()
         global img_import_success
+        
+        # Check if precache already ran (models already downloaded/warmed)
+        from pathlib import Path
+        precache_done = Path("/tmp/ezlocalai_precache.done").exists()
+        if precache_done:
+            logging.info("[Init] Precache completed, skipping redundant warmup operations")
 
         # Auto-detect multi-GPU configuration
         self.gpu_count = get_gpu_count()
@@ -566,6 +572,7 @@ class Pipes:
                     self.available_models.append(model_name)
 
             # Pre-calibrate models at 16k context (baseline) if VRAM available
+            # This uses xllamacpp estimation (no actual model loading) so it's fast
             if (
                 self.vram_budget_gb > 0
                 and torch.cuda.is_available()
@@ -591,19 +598,23 @@ class Pipes:
                     f"[LLM] Available models: {', '.join(self.available_models)} (will lazy-load on first request)"
                 )
 
-        # Preload TTS to warm the cache, then unload to free VRAM
-        # This way TTS loads fast (~5s) when needed via lazy loading
+        # TTS initialization - skip warmup if precache already did it
         self.ctts = None
         if getenv("TTS_ENABLED").lower() == "true":
-            logging.info("[CTTS] Preloading Chatterbox TTS to warm cache...")
-            start_time = time.time()
-            self.ctts = CTTS()
-            load_time = time.time() - start_time
-            logging.info(
-                f"[CTTS] Chatterbox TTS preloaded in {load_time:.2f}s, unloading to free VRAM..."
-            )
-            self._destroy_tts()
-            logging.info("[CTTS] TTS unloaded, will lazy-load on first TTS request.")
+            if precache_done:
+                # Precache already warmed the TTS cache, skip loading/unloading
+                logging.info("[CTTS] TTS cache already warmed by precache, will lazy-load on first request")
+            else:
+                # No precache - warm the cache now (first run or single-worker mode)
+                logging.info("[CTTS] Preloading Chatterbox TTS to warm cache...")
+                start_time = time.time()
+                self.ctts = CTTS()
+                load_time = time.time() - start_time
+                logging.info(
+                    f"[CTTS] Chatterbox TTS preloaded in {load_time:.2f}s, unloading to free VRAM..."
+                )
+                self._destroy_tts()
+                logging.info("[CTTS] TTS unloaded, will lazy-load on first TTS request.")
 
         # Lazy-loaded models (loaded on first use, destroyed after)
         self.stt = None

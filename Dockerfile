@@ -29,4 +29,5 @@ COPY . .
 ENV HOST 0.0.0.0 \
     TOKENIZERS_PARALLELISM=false
 EXPOSE 8091
-CMD uvicorn app:app --host 0.0.0.0 --port 8091 --workers 1 --proxy-headers
+# Use start.py which runs precache once, then starts uvicorn workers
+CMD ["python", "start.py"]
