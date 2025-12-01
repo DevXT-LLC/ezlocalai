@@ -381,10 +381,10 @@ def determine_gpu_strategy(
     gpu_ranking = get_gpu_capability_ranking()
     gpus_by_priority = [gpu_idx for gpu_idx, _, _ in gpu_ranking]
 
-    # Log GPU ranking
-    logging.info(f"[GPU Selection] GPU capability ranking (most powerful first):")
+    # Log GPU ranking (debug-level to reduce noise)
+    logging.debug(f"[GPU Selection] GPU capability ranking (most powerful first):")
     for gpu_idx, score, name in gpu_ranking:
-        logging.info(f"[GPU Selection]   GPU {gpu_idx}: {name} (score: {score:.1f})")
+        logging.debug(f"[GPU Selection]   GPU {gpu_idx}: {name} (score: {score:.1f})")
 
     # Get free VRAM for each GPU
     free_vram = get_per_gpu_free_vram_gb()
@@ -399,11 +399,11 @@ def determine_gpu_strategy(
     reserved_per_gpu = reserved_vram / gpu_count if gpu_count > 0 else 0
     available_vram = [max(0, free - reserved_per_gpu) for free in free_vram]
 
-    logging.info(
+    logging.debug(
         f"[GPU Selection] Model VRAM estimate: {estimated_vram:.1f}GB for {context_size//1000}k context"
     )
     for i in range(gpu_count):
-        logging.info(
+        logging.debug(
             f"[GPU Selection]   GPU {i}: {free_vram[i]:.1f}GB free, "
             f"{available_vram[i]:.1f}GB available after {reserved_per_gpu:.1f}GB reservation"
         )
@@ -436,7 +436,7 @@ def determine_gpu_strategy(
     primary_name = gpu_ranking[0][2]
 
     if available_vram[primary_gpu] >= estimated_vram:
-        logging.info(
+        logging.debug(
             f"[GPU Selection] Primary GPU {primary_gpu} ({primary_name}) has {available_vram[primary_gpu]:.1f}GB available, "
             f"sufficient for {estimated_vram:.1f}GB model - loading on GPU {primary_gpu} only"
         )
@@ -455,11 +455,11 @@ def determine_gpu_strategy(
         for i, avail in enumerate(available_vram):
             tensor_split[i] = avail / total_available if total_available > 0 else 0.0
 
-        logging.info(
+        logging.debug(
             f"[GPU Selection] Tensor splitting across {gpu_count} GPUs "
             f"(total: {total_available:.1f}GB available, need: {estimated_vram:.1f}GB)"
         )
-        logging.info(f"[GPU Selection] Split ratios: {tensor_split[:gpu_count]}")
+        logging.debug(f"[GPU Selection] Split ratios: {tensor_split[:gpu_count]}")
 
         # Use the most powerful GPU as main_gpu for tensor split
         return {
@@ -476,7 +476,7 @@ def determine_gpu_strategy(
                 (name for idx, _, name in gpu_ranking if idx == gpu_idx),
                 f"GPU {gpu_idx}",
             )
-            logging.info(
+            logging.debug(
                 f"[GPU Selection] Primary GPU {primary_gpu} full ({available_vram[primary_gpu]:.1f}GB), "
                 f"but GPU {gpu_idx} ({gpu_name}) has {available_vram[gpu_idx]:.1f}GB - loading on GPU {gpu_idx} only"
             )
@@ -531,7 +531,7 @@ class Pipes:
 
         precache_done = Path("/tmp/ezlocalai_precache.done").exists()
         if precache_done:
-            logging.info(
+            logging.debug(
                 "[Init] Precache completed, skipping redundant warmup operations"
             )
 
@@ -547,13 +547,13 @@ class Pipes:
 
         if self.vram_budget_gb > 0:
             if self.gpu_count > 1:
-                logging.info(
+                logging.debug(
                     f"[VRAM] Multi-GPU detected: {self.gpu_count} GPUs, "
                     f"{self.vram_budget_gb}GB total VRAM budget "
                     f"(per GPU: {self.per_gpu_vram})"
                 )
             else:
-                logging.info(
+                logging.debug(
                     f"[VRAM] Auto-detected {self.vram_budget_gb}GB VRAM budget"
                 )
 
@@ -577,7 +577,7 @@ class Pipes:
             # GPU layer calibration is now done lazily at inference time
             # This avoids redundant calibration across multiple workers
             if self.available_models:
-                logging.info(
+                logging.debug(
                     f"[LLM] Available models: {', '.join(self.available_models)} "
                     f"(will calibrate and lazy-load on first request)"
                 )
@@ -587,20 +587,20 @@ class Pipes:
         if getenv("TTS_ENABLED").lower() == "true":
             if precache_done:
                 # Precache already warmed the TTS cache, skip loading/unloading
-                logging.info(
+                logging.debug(
                     "[CTTS] TTS cache already warmed by precache, will lazy-load on first request"
                 )
             else:
                 # No precache - warm the cache now (first run or single-worker mode)
-                logging.info("[CTTS] Preloading Chatterbox TTS to warm cache...")
+                logging.debug("[CTTS] Preloading Chatterbox TTS to warm cache...")
                 start_time = time.time()
                 self.ctts = CTTS()
                 load_time = time.time() - start_time
-                logging.info(
+                logging.debug(
                     f"[CTTS] Chatterbox TTS preloaded in {load_time:.2f}s, unloading to free VRAM..."
                 )
                 self._destroy_tts()
-                logging.info(
+                logging.debug(
                     "[CTTS] TTS unloaded, will lazy-load on first TTS request."
                 )
 
@@ -681,7 +681,7 @@ class Pipes:
             main_gpu = strategy["main_gpu"]
             tensor_split = strategy["tensor_split"]
 
-            logging.info(
+            logging.debug(
                 f"[LLM] Smart GPU selection: strategy='{strategy['strategy']}', "
                 f"main_gpu={main_gpu}, gpu_layers={gpu_layers}, "
                 f"tensor_split={'enabled' if tensor_split else 'disabled'}"
@@ -689,7 +689,7 @@ class Pipes:
 
         # First attempt: Try with determined/specified configuration
         try:
-            logging.info(
+            logging.debug(
                 f"[LLM] Attempting to load {model_name} (main_gpu={main_gpu}, "
                 f"gpu_layers={gpu_layers or 'auto'}, tensor_split={'yes' if tensor_split else 'no'})..."
             )
@@ -721,12 +721,12 @@ class Pipes:
                 logging.warning(
                     f"[LLM] GPU loading failed for {model_name}: {gpu_error}"
                 )
-                logging.info(f"[LLM] Falling back to CPU-only mode (gpu_layers=0)...")
+                logging.debug(f"[LLM] Falling back to CPU-only mode (gpu_layers=0)...")
 
                 # Second attempt: Force CPU-only mode
                 try:
                     llm = LLM(model=model_name, max_tokens=max_tokens, gpu_layers=0)
-                    logging.info(
+                    logging.debug(
                         f"[LLM] {model_name} loaded successfully in CPU-only mode"
                     )
                     return llm

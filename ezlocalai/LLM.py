@@ -347,15 +347,15 @@ class LLM:
             available_vram = max(0, total_free_vram - reserved_vram)
 
             if self.gpu_count > 1:
-                logging.info(f"[LLM] Multi-GPU detected: {self.gpu_count} GPUs")
+                logging.debug(f"[LLM] Multi-GPU detected: {self.gpu_count} GPUs")
                 for i, free in enumerate(free_vram_per_gpu):
                     total_gpu = torch.cuda.get_device_properties(i).total_memory / (
                         1024**3
                     )
-                    logging.info(
+                    logging.debug(
                         f"[LLM]   GPU {i}: {free:.1f}GB free / {total_gpu:.1f}GB total"
                     )
-                logging.info(
+                logging.debug(
                     f"[LLM] Total: {total_free_vram:.1f}GB free / {round(total_vram)}GB total ({available_vram:.1f}GB available after reservation)"
                 )
 
@@ -365,11 +365,11 @@ class LLM:
                     self.tensor_split = parse_tensor_split_env()
 
                 if self.tensor_split:
-                    logging.info(
+                    logging.debug(
                         f"[LLM] Tensor split ratios: {self.tensor_split[:self.gpu_count]}"
                     )
             else:
-                logging.info(
+                logging.debug(
                     f"[LLM] {available_vram:.1f}GB of available VRAM detected (free: {total_free_vram:.1f}GB)."
                 )
 
@@ -443,20 +443,22 @@ class LLM:
                 # xllamacpp expects tensor_split as a list of 128 floats
                 for i, ratio in enumerate(self.tensor_split):
                     self.xlc_params.tensor_split[i] = ratio
-                logging.info(
+                logging.debug(
                     f"[LLM] Applied tensor split across {self.gpu_count} GPUs (main_gpu={self.main_gpu})"
                 )
             except Exception as e:
                 logging.warning(f"[LLM] Failed to set tensor_split: {e}")
         else:
-            logging.info(f"[LLM] Loading on GPU {self.main_gpu} only (no tensor split)")
+            logging.debug(
+                f"[LLM] Loading on GPU {self.main_gpu} only (no tensor split)"
+            )
 
         # Set multimodal projector path if available (for vision models)
         self.is_vision = False
         if mmproj_path:
             self.xlc_params.mmproj.path = mmproj_path
             self.is_vision = True
-            logging.info(f"[LLM] Vision enabled with mmproj: {mmproj_path}")
+            logging.debug(f"[LLM] Vision enabled with mmproj: {mmproj_path}")
 
         # Create the server instance
         self.server = xlc.Server(self.xlc_params)
@@ -477,7 +479,7 @@ class LLM:
             )
 
         self.model_list = get_models()
-        logging.info(f"[LLM] {self.model_name} loaded successfully with xllamacpp.")
+        logging.debug(f"[LLM] {self.model_name} loaded successfully with xllamacpp.")
 
     def chat(self, messages: List[Dict], **kwargs):
         """Handle chat completions using xllamacpp server.
@@ -487,7 +489,7 @@ class LLM:
             generator: Streaming response yielding chunk dicts when stream=True
         """
         stream = kwargs.get("stream", False)
-        logging.info(
+        logging.debug(
             f"[LLM] chat() called with stream={stream}, kwargs keys: {kwargs.keys()}"
         )
 
@@ -509,7 +511,7 @@ class LLM:
 
         # Handle streaming with callback
         if stream:
-            logging.info(f"[LLM] Calling _chat_stream for streaming response")
+            logging.debug(f"[LLM] Calling _chat_stream for streaming response")
             return self._chat_stream(chat_request)
 
         # Non-streaming call
@@ -587,8 +589,8 @@ class LLM:
                 False to continue receiving chunks, True to stop early
             """
             try:
-                logging.info(
-                    f"[LLM] !!! CALLBACK INVOKED !!! Stream callback received: type={type(chunk_data)}"
+                logging.debug(
+                    f"[LLM] Stream callback received: type={type(chunk_data)}"
                 )
 
                 # Check for error response
@@ -601,12 +603,12 @@ class LLM:
 
                 # xllamacpp returns a list of deltas for streaming
                 if isinstance(chunk_data, list):
-                    logging.info(f"[LLM] Received {len(chunk_data)} chunks in array")
+                    logging.debug(f"[LLM] Received {len(chunk_data)} chunks in array")
                     for chunk in chunk_data:
                         chunk_queue.put(chunk)
                 else:
                     # Single chunk
-                    logging.info(f"[LLM] Received single chunk")
+                    logging.debug(f"[LLM] Received single chunk")
                     chunk_queue.put(chunk_data)
 
                 return False  # Continue receiving chunks
@@ -621,18 +623,18 @@ class LLM:
                 # Ensure stream=True in the request
                 request_copy = chat_request.copy()
                 request_copy["stream"] = True
-                logging.info(f"[LLM] Starting streaming inference with callback")
+                logging.debug(f"[LLM] Starting streaming inference with callback")
                 # Pass callback as second positional argument (not keyword)
                 # xllamacpp will call streaming_callback for each chunk/batch
                 result = self.server.handle_chat_completions(
                     request_copy, streaming_callback
                 )
-                logging.info(
+                logging.debug(
                     f"[LLM] handle_chat_completions returned: type={type(result)}"
                 )
 
                 # No need to check result since xllamacpp calls the callback directly
-                logging.info(f"[LLM] Streaming inference completed")
+                logging.debug(f"[LLM] Streaming inference completed")
             except Exception as e:
                 logging.error(f"[LLM] Streaming inference error: {e}")
                 import traceback

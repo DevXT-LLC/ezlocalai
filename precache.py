@@ -14,12 +14,16 @@ import os
 import sys
 import time
 import logging
+import warnings
 from pathlib import Path
 
-# Setup logging
+# Suppress SyntaxWarnings from third-party packages
+warnings.filterwarnings("ignore", category=SyntaxWarning)
+
+# Setup logging - minimal format for cleaner output
 logging.basicConfig(
     level=os.getenv("LOG_LEVEL", "INFO"),
-    format="%(asctime)s | %(levelname)s | %(message)s",
+    format="%(message)s",
 )
 
 # Add the current directory to path for imports
@@ -42,7 +46,6 @@ def precache_llm_models():
 
     model_config = getenv("DEFAULT_MODEL")
     if model_config.lower() == "none":
-        logging.info("[Precache] No LLM models configured")
         return
 
     quant_type = getenv("QUANT_TYPE")
@@ -55,7 +58,6 @@ def precache_llm_models():
         if not model_name or "/" not in model_name:
             continue
 
-        logging.info(f"[Precache] Downloading LLM: {model_name}")
         start_time = time.time()
 
         try:
@@ -64,7 +66,7 @@ def precache_llm_models():
             gguf_files = [f for f in files if f.endswith(".gguf")]
 
             if not gguf_files:
-                logging.warning(f"[Precache] No GGUF files found in {model_name}")
+                logging.warning(f"[ezlocalai] No GGUF files in {model_name}")
                 continue
 
             # Find best quantization
@@ -84,9 +86,7 @@ def precache_llm_models():
             # Download the model file
             model_path = hf_hub_download(model_name, best_file)
             elapsed = time.time() - start_time
-            logging.info(
-                f"[Precache] Downloaded {model_name}/{best_file} in {elapsed:.1f}s"
-            )
+            logging.info(f"  ✓ {model_name} ({elapsed:.1f}s)")
 
             # Also download vision projector if it exists
             mmproj_files = [
@@ -95,19 +95,16 @@ def precache_llm_models():
             if mmproj_files:
                 proj_file = mmproj_files[0]
                 hf_hub_download(model_name, proj_file)
-                logging.info(f"[Precache] Downloaded vision projector: {proj_file}")
 
         except Exception as e:
-            logging.error(f"[Precache] Failed to download {model_name}: {e}")
+            logging.error(f"  ✗ {model_name}: {e}")
 
 
 def precache_tts():
     """Download and warm TTS models."""
     if getenv("TTS_ENABLED").lower() != "true":
-        logging.info("[Precache] TTS disabled, skipping")
         return
 
-    logging.info("[Precache] Warming TTS cache...")
     start_time = time.time()
 
     try:
@@ -116,7 +113,7 @@ def precache_tts():
         # Initialize TTS - this downloads models
         ctts = CTTS()
         elapsed = time.time() - start_time
-        logging.info(f"[Precache] TTS warmed in {elapsed:.1f}s")
+        logging.info(f"  ✓ TTS models ({elapsed:.1f}s)")
 
         # Clean up
         del ctts
@@ -134,24 +131,19 @@ def precache_tts():
         except:
             pass
 
-        logging.info("[Precache] TTS cache warmed and unloaded")
-
     except Exception as e:
-        logging.error(f"[Precache] TTS warmup failed: {e}")
+        logging.debug(f"  - TTS: {e}")
 
 
 def precache_stt():
     """Download STT/Whisper models."""
     if getenv("STT_ENABLED").lower() != "true":
-        logging.info("[Precache] STT disabled, skipping")
         return
 
     whisper_model = getenv("WHISPER_MODEL")
     if not whisper_model:
-        logging.info("[Precache] No Whisper model configured")
         return
 
-    logging.info(f"[Precache] Downloading Whisper model: {whisper_model}")
     start_time = time.time()
 
     try:
@@ -160,7 +152,7 @@ def precache_stt():
         # Download model (compute_type doesn't matter for download)
         model = WhisperModel(whisper_model, device="cpu", compute_type="int8")
         elapsed = time.time() - start_time
-        logging.info(f"[Precache] Whisper model downloaded in {elapsed:.1f}s")
+        logging.info(f"  ✓ Whisper/{whisper_model} ({elapsed:.1f}s)")
 
         # Clean up
         del model
@@ -170,17 +162,14 @@ def precache_stt():
         gc.collect()
 
     except Exception as e:
-        logging.error(f"[Precache] Whisper download failed: {e}")
+        logging.error(f"  ✗ Whisper: {e}")
 
 
 def precache_image_model():
     """Download image generation models if configured."""
     img_model = getenv("IMG_MODEL")
     if not img_model:
-        logging.info("[Precache] No image model configured, skipping")
         return
-
-    logging.info(f"[Precache] Downloading image model: {img_model}")
 
     try:
         from huggingface_hub import snapshot_download
@@ -189,17 +178,16 @@ def precache_image_model():
         start_time = time.time()
         snapshot_download(img_model)
         elapsed = time.time() - start_time
-        logging.info(f"[Precache] Image model downloaded in {elapsed:.1f}s")
+        logging.info(f"  ✓ {img_model} ({elapsed:.1f}s)")
 
     except Exception as e:
-        logging.error(f"[Precache] Image model download failed: {e}")
+        logging.error(f"  ✗ Image model: {e}")
 
 
 def run_precache():
     """Run all precache operations."""
     # Check if already done
     if PRECACHE_DONE.exists():
-        logging.info("[Precache] Already completed, skipping")
         return True
 
     # Acquire lock to prevent concurrent runs
@@ -210,17 +198,16 @@ def run_precache():
         os.close(fd)
     except FileExistsError:
         # Another process is running precache
-        logging.info("[Precache] Another process is running precache, waiting...")
+        logging.info("[ezlocalai] Waiting for model cache...")
         while PRECACHE_LOCK.exists() and not PRECACHE_DONE.exists():
             time.sleep(1)
         if PRECACHE_DONE.exists():
-            logging.info("[Precache] Completed by another process")
             return True
         # Lock file exists but done file doesn't - stale lock?
-        logging.warning("[Precache] Stale lock detected, proceeding anyway")
+        pass
 
     try:
-        logging.info("[Precache] Starting model precache...")
+        logging.info("[ezlocalai] Caching models...")
         total_start = time.time()
 
         # Run all precache operations
@@ -230,14 +217,14 @@ def run_precache():
         precache_image_model()
 
         total_elapsed = time.time() - total_start
-        logging.info(f"[Precache] All models cached in {total_elapsed:.1f}s")
+        logging.info(f"[ezlocalai] Models cached in {total_elapsed:.1f}s")
 
         # Mark as done
         PRECACHE_DONE.touch()
         return True
 
     except Exception as e:
-        logging.error(f"[Precache] Failed: {e}")
+        logging.error(f"[ezlocalai] Cache failed: {e}")
         return False
 
     finally:

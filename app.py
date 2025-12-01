@@ -1,3 +1,8 @@
+import warnings
+
+# Suppress SyntaxWarnings from third-party packages (e.g., pydub regex patterns)
+warnings.filterwarnings("ignore", category=SyntaxWarning)
+
 from fastapi import (
     FastAPI,
     Depends,
@@ -38,7 +43,6 @@ request_queue = RequestQueue(
 )
 
 pipe = Pipes()
-logging.info(f"[ezlocalai] Server is ready.")
 
 app = FastAPI(title="ezlocalai Server", docs_url="/")
 app.add_middleware(
@@ -54,13 +58,11 @@ app.add_middleware(
 @app.on_event("startup")
 async def startup_event():
     await request_queue.start()
-    logging.info("[ezlocalai] Request queue started")
 
 
 @app.on_event("shutdown")
 async def shutdown_event():
     await request_queue.stop()
-    logging.info("[ezlocalai] Request queue stopped")
 
 
 # Async wrapper for pipe.get_response

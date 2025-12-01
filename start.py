@@ -12,24 +12,25 @@ This ensures models are only downloaded once, not per-worker.
 import os
 import sys
 import subprocess
+import warnings
+
+# Suppress SyntaxWarnings from third-party packages (e.g., pydub regex patterns)
+warnings.filterwarnings("ignore", category=SyntaxWarning)
 
 
 def main():
-    # Run precache first
-    print("[Startup] Running precache to download models...")
+    # Run precache first (quietly - it has its own logging)
     precache_result = subprocess.run(
         [sys.executable, "precache.py"], cwd=os.path.dirname(os.path.abspath(__file__))
     )
 
     if precache_result.returncode != 0:
-        print("[Startup] WARNING: Precache had errors, continuing anyway...")
+        print("[ezlocalai] Warning: Precache had errors, continuing anyway...")
 
     # Get worker count from environment
     workers = os.getenv("UVICORN_WORKERS", "1")
     host = os.getenv("HOST", "0.0.0.0")
     port = os.getenv("PORT", "8091")
-
-    print(f"[Startup] Starting uvicorn with {workers} workers on {host}:{port}")
 
     # Start uvicorn
     cmd = [
