@@ -139,7 +139,7 @@ def has_nvidia_container_toolkit() -> bool:
                 "--rm",
                 "--gpus",
                 "all",
-                "nvidia/cuda:12.8.1-base-ubuntu22.04",
+                "nvidia/cuda:12.8.1-base-ubuntu24.04",
                 "nvidia-smi",
             ],
             capture_output=True,
