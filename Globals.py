@@ -10,7 +10,7 @@ def getenv(var_name: str, default_value: str = None) -> str:
         "EZLOCALAI_API_KEY": "none",
         "ALLOWED_DOMAINS": "*",
         "DEFAULT_MODEL": "unsloth/Qwen3-VL-4B-Instruct-GGUF",
-        "WHISPER_MODEL": "base.en",
+        "WHISPER_MODEL": "large-v3",
         "IMG_MODEL": "",  # Empty = disabled, set to e.g. "ByteDance/SDXL-Lightning" to enable
         "TTS_ENABLED": "true",
         "STT_ENABLED": "true",

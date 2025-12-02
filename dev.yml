@@ -10,7 +10,7 @@ services:
       - EZLOCALAI_API_KEY=${EZLOCALAI_API_KEY-}
       - MAIN_GPU=${MAIN_GPU-0}
       - DEFAULT_MODEL=${DEFAULT_MODEL-unsloth/Qwen3-VL-4B-Instruct-GGUF}
-      - WHISPER_MODEL=${WHISPER_MODEL-base.en}
+      - WHISPER_MODEL=${WHISPER_MODEL-large-v3}
       - IMG_MODEL=${IMG_MODEL-}
       - LLM_BATCH_SIZE=${LLM_BATCH_SIZE-1024}
       - CUDA_DOCKER_ARCH=all

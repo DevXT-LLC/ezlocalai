@@ -714,7 +714,7 @@ def get_default_env() -> dict:
         "EZLOCALAI_URL": f"http://localhost:{DEFAULT_PORT}",
         "EZLOCALAI_API_KEY": "",
         "DEFAULT_MODEL": "unsloth/Qwen3-4B-Instruct-2507-GGUF,unsloth/Qwen3-VL-4B-Instruct-GGUF,unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF",
-        "WHISPER_MODEL": "base",
+        "WHISPER_MODEL": "large-v3",
         "IMG_MODEL": "",
         "NGROK_TOKEN": "",
         "MAIN_GPU": "0",
@@ -1011,7 +1011,7 @@ def show_status() -> None:
         print(f"        - {m}")
 
     # Whisper
-    whisper = env_vars.get("WHISPER_MODEL", "base")
+    whisper = env_vars.get("WHISPER_MODEL", "large-v3")
     if whisper:
         print(f"      Speech-to-text: {whisper}")
     else:
