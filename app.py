@@ -23,6 +23,7 @@ from RequestQueue import RequestQueue
 import base64
 import os
 import logging
+import re
 import uuid
 import time
 import asyncio
@@ -496,32 +497,76 @@ async def audio_translations(
     return {"text": response}
 
 
-# Helper function for translating subtitle segments
-async def translate_segment(text: str, source_lang: str, target_lang: str) -> str:
-    """Translate a single subtitle segment using the LLM."""
-    messages = [
-        {
-            "role": "system",
-            "content": f"You are a professional subtitle translator. Translate the following text from {source_lang} to {target_lang}. Keep the translation concise and natural for subtitles. Return ONLY the translated text, nothing else.",
-        },
-        {"role": "user", "content": text},
-    ]
+# Helper function for batch translating subtitle segments
+async def translate_segments_batch(
+    segments: list, source_lang: str, target_lang: str, batch_size: int = 25
+) -> list:
+    """
+    Translate multiple subtitle segments using the LLM in batches.
+    Processes segments in groups to reduce API calls while staying within context limits.
+    """
+    translated_segments = []
 
-    # Call LLM for translation
-    response, _ = await pipe.get_response(
-        data={
-            "model": getenv("DEFAULT_MODEL"),
-            "messages": messages,
-            "temperature": 0.3,
-            "max_tokens": 500,
-        },
-        completion_type="chat",
-    )
+    for i in range(0, len(segments), batch_size):
+        batch = segments[i : i + batch_size]
 
-    # Extract translated text from response
-    if isinstance(response, dict) and "choices" in response:
-        return response["choices"][0]["message"]["content"].strip()
-    return text  # Fallback to original if translation fails
+        # Build numbered text block for batch translation
+        text_block = "\n".join(
+            [f"[{j+1}] {seg['text']}" for j, seg in enumerate(batch)]
+        )
+
+        messages = [
+            {
+                "role": "system",
+                "content": f"""You are a professional subtitle translator. Translate the numbered subtitle lines from {source_lang} to {target_lang}.
+Keep translations concise and natural for subtitles.
+Maintain the exact same numbering format [N] for each line.
+Return ONLY the translated lines with their numbers, nothing else.""",
+            },
+            {"role": "user", "content": text_block},
+        ]
+
+        # Call LLM for batch translation - let model defaults handle temperature/max_tokens
+        response, _ = await pipe.get_response(
+            data={
+                "model": getenv("DEFAULT_MODEL"),
+                "messages": messages,
+            },
+            completion_type="chat",
+        )
+
+        # Parse response and map back to segments
+        translated_text = ""
+        if isinstance(response, dict) and "choices" in response:
+            translated_text = response["choices"][0]["message"]["content"].strip()
+
+        # Parse the numbered responses
+        translations = {}
+        for line in translated_text.split("\n"):
+            match = re.match(r"\[(\d+)\]\s*(.+)", line.strip())
+            if match:
+                num = int(match.group(1))
+                text = match.group(2).strip()
+                translations[num] = text
+
+        # Map translations back to segments
+        for j, seg in enumerate(batch):
+            translated_segments.append(
+                {
+                    "id": seg["id"],
+                    "start": seg["start"],
+                    "end": seg["end"],
+                    "text": translations.get(
+                        j + 1, seg["text"]
+                    ),  # Fallback to original
+                }
+            )
+
+        logging.info(
+            f"Translated batch {i//batch_size + 1}/{(len(segments) + batch_size - 1)//batch_size} ({len(batch)} segments)"
+        )
+
+    return translated_segments
 
 
 @app.post(
@@ -578,22 +623,13 @@ async def generate_subtitles(
             # No translation needed - use original segments
             translated_segments = source_segments
         else:
-            # Translate each segment while preserving timing
-            translated_segments = []
-            for seg in source_segments:
-                translated_text = await translate_segment(
-                    text=seg["text"],
-                    source_lang=detected_language,
-                    target_lang=target_lang,
-                )
-                translated_segments.append(
-                    {
-                        "id": seg["id"],
-                        "start": seg["start"],
-                        "end": seg["end"],
-                        "text": translated_text,
-                    }
-                )
+            # Batch translate segments while preserving timing
+            translated_segments = await translate_segments_batch(
+                segments=source_segments,
+                source_lang=detected_language,
+                target_lang=target_lang,
+                batch_size=25,
+            )
 
         # Format output
         if format == "json":
