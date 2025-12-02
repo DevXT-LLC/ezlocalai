@@ -1,0 +1,34 @@
+fastapi
+uvicorn
+pydantic
+requests==2.32.4
+tiktoken==0.7.0
+python-dotenv==1.0.1
+beautifulsoup4==4.12.3
+faster-whisper==1.2.0
+gguf
+pydub==0.25.1
+ffmpeg-python==0.2.0
+transformers==4.53.0
+sounddevice==0.4.6
+webrtcvad==2.0.10
+pyaudio==0.2.14
+pyngrok==7.1.6
+accelerate
+diffusers>=0.29.0
+python-multipart
+openai
+pdfplumber
+sentence-transformers
+sentencepiece
+safetensors
+huggingface_hub
+# Note: chatterbox-tts is installed with --no-deps in Dockerfile to allow transformers upgrade
+# chatterbox-tts dependencies that must be installed manually since we use --no-deps:
+s3tokenizer
+conformer
+pykakasi
+resemble-perth
+einops
+librosa
+tokenizers>=0.20,<0.22

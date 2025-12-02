@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ezlocalai"
-version = "1.0.4"
+version = "1.0.5"
 description = "Local AI inference made easy - LLM, Vision, TTS, STT, and Image Generation"
 readme = "README.md"
 license = {text = "MIT"}

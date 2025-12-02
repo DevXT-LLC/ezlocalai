@@ -44,7 +44,6 @@ def main():
         port,
         "--workers",
         workers,
-        "--proxy-headers",
     ]
 
     os.execvp(sys.executable, cmd)

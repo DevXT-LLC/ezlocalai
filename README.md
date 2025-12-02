@@ -9,6 +9,7 @@ ezlocalai is an easy set up artificial intelligence server that allows you to ea
 - [Python 3.10+](https://www.python.org/downloads/)
 - [Docker Desktop](https://docs.docker.com/docker-for-windows/install/) (Windows or Mac)
 - [CUDA Toolkit (May Need 12.4)](https://developer.nvidia.com/cuda-12-4-0-download-archive) (NVIDIA GPU only)
+- [ROCm](https://rocm.docs.amd.com/projects/install-on-linux/en/latest/index.html) (AMD GPU only - Linux)
 
 <details>
   <summary>Additional Linux Prerequisites</summary>
@@ -16,6 +17,7 @@ ezlocalai is an easy set up artificial intelligence server that allows you to ea
 - [Docker](https://docs.docker.com/get-docker/)
 - [Docker Compose](https://docs.docker.com/compose/install/)
 - [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html) (NVIDIA GPU only)
+- [ROCm](https://rocm.docs.amd.com/projects/install-on-linux/en/latest/index.html) (AMD GPU only - Radeon RX 6000/7000/9000 series, Radeon PRO, and Ryzen APUs)
 
 </details>
 

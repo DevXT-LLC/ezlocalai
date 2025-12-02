@@ -190,6 +190,9 @@ def run_precache():
     if PRECACHE_DONE.exists():
         return True
 
+    # Ensure outputs directory exists for static file mounting
+    os.makedirs("outputs", exist_ok=True)
+
     # Acquire lock to prevent concurrent runs
     try:
         # Create lock file atomically
