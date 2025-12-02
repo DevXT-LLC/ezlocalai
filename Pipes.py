@@ -620,13 +620,25 @@ class Pipes:
                 if model_name and model_name not in self.available_models:
                     self.available_models.append(model_name)
 
-            # GPU layer calibration is now done lazily at inference time
-            # This avoids redundant calibration across multiple workers
+            # Pre-load the first LLM to avoid slow first request
+            # This is especially important for CPU-only environments
             if self.available_models:
-                logging.debug(
-                    f"[LLM] Available models: {', '.join(self.available_models)} "
-                    f"(will calibrate and lazy-load on first request)"
-                )
+                first_model = self.available_models[0]
+                default_context = int(getenv("LLM_MAX_TOKENS", "8192"))
+                logging.info(f"[LLM] Pre-loading {first_model}...")
+                start_time = time.time()
+                try:
+                    self.llm = self._load_llm_resilient(
+                        model_name=first_model,
+                        max_tokens=default_context,
+                    )
+                    self.current_llm_name = first_model
+                    self.current_context = default_context
+                    load_time = time.time() - start_time
+                    logging.info(f"[LLM] {first_model} loaded in {load_time:.1f}s")
+                except Exception as e:
+                    logging.warning(f"[LLM] Failed to pre-load {first_model}: {e}")
+                    logging.debug("[LLM] Will attempt lazy-load on first request")
 
         # TTS initialization - skip warmup if precache already did it
         self.ctts = None
