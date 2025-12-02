@@ -1,7 +1,7 @@
 FROM python:3.10-bullseye
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     apt-get update --fix-missing  && apt-get upgrade -y && \
-    apt-get install -y --fix-missing --no-install-recommends git build-essential gcc g++ portaudio19-dev ffmpeg libportaudio2 libasound-dev python3 python3-pip gcc wget && \
+    apt-get install -y --fix-missing --no-install-recommends git build-essential gcc g++ portaudio19-dev ffmpeg libportaudio2 libasound-dev python3 python3-pip gcc wget curl && \
     apt-get clean && rm -rf /var/lib/apt/lists/* && \
     python3 -m pip install --upgrade pip --no-cache-dir
 WORKDIR /app
@@ -26,7 +26,7 @@ RUN pip install chatterbox-tts --no-deps --no-cache-dir
 RUN pip install xllamacpp --force-reinstall --no-cache-dir
 
 COPY . .
-ENV HOST 0.0.0.0 \
+ENV HOST=0.0.0.0 \
     TOKENIZERS_PARALLELISM=false
 EXPOSE 8091
 # Use start.py which runs precache once, then starts uvicorn workers
