@@ -1,0 +1,41 @@
+services:
+  ezlocalai:
+    build:
+      context: .
+      dockerfile: rocm.Dockerfile
+    env_file:
+      - .env
+    environment:
+      - EZLOCALAI_URL=${EZLOCALAI_URL:-http://localhost:8091}
+      - EZLOCALAI_API_KEY=${EZLOCALAI_API_KEY:-}
+      - DEFAULT_MODEL=${DEFAULT_MODEL:-unsloth/Qwen3-VL-4B-Instruct-GGUF}
+      - WHISPER_MODEL=${WHISPER_MODEL:-base.en}
+      - IMG_MODEL=${IMG_MODEL:-}
+      - LLM_BATCH_SIZE=${LLM_BATCH_SIZE:-2048}
+      - TOKENIZERS_PARALLELISM=false
+      - MAX_CONCURRENT_REQUESTS=${MAX_CONCURRENT_REQUESTS:-1}
+      - MAX_QUEUE_SIZE=${MAX_QUEUE_SIZE:-100}
+      - REQUEST_TIMEOUT=${REQUEST_TIMEOUT:-300}
+      # ROCm specific environment variables
+      - HSA_OVERRIDE_GFX_VERSION=${HSA_OVERRIDE_GFX_VERSION:-11.0.0}
+      - ROCM_PATH=/opt/rocm
+      - HIP_VISIBLE_DEVICES=${HIP_VISIBLE_DEVICES:-0}
+    restart: unless-stopped
+    ports:
+      - "8091:8091"
+    volumes:
+      - ./models:/app/models
+      - ./hf:/root/.cache/huggingface/hub
+      - ./outputs:/app/outputs
+      - ./voices:/app/voices
+      - ./whispercpp:/app/whispercpp
+    devices:
+      - /dev/kfd:/dev/kfd
+      - /dev/dri:/dev/dri
+    group_add:
+      - video
+      - render
+    security_opt:
+      - seccomp=unconfined
+    cap_add:
+      - SYS_PTRACE

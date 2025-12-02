@@ -38,6 +38,7 @@ __version__ = "1.0.4"
 # Configuration
 DOCKER_IMAGE = "joshxt/ezlocalai:latest"
 DOCKER_IMAGE_CUDA = "ezlocalai:cuda"  # Built locally, not from DockerHub
+DOCKER_IMAGE_ROCM = "ezlocalai:rocm"  # Built locally for AMD GPUs
 CONTAINER_NAME = "ezlocalai"
 DEFAULT_PORT = 8091
 STATE_DIR = Path.home() / ".ezlocalai"
@@ -163,6 +164,75 @@ def get_nvidia_gpu_info() -> Optional[str]:
         )
         if result.returncode == 0:
             return result.stdout.strip()
+    except FileNotFoundError:
+        pass
+    return None
+
+
+def has_amd_gpu() -> bool:
+    """Check if AMD GPU is available via ROCm."""
+    try:
+        result = subprocess.run(
+            ["rocm-smi", "--showproductname"],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if result.returncode == 0 and result.stdout.strip():
+            return True
+    except FileNotFoundError:
+        pass
+    # Also check for /dev/kfd which indicates ROCm-capable hardware
+    if Path("/dev/kfd").exists() and Path("/dev/dri").exists():
+        return True
+    return False
+
+
+def has_rocm_support() -> bool:
+    """Check if ROCm is properly installed and functional."""
+    try:
+        result = subprocess.run(
+            ["rocminfo"],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if result.returncode == 0 and "Agent" in result.stdout:
+            return True
+    except FileNotFoundError:
+        pass
+    return False
+
+
+def get_amd_gpu_info() -> Optional[str]:
+    """Get AMD GPU information."""
+    try:
+        result = subprocess.run(
+            ["rocm-smi", "--showproductname"],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if result.returncode == 0:
+            # Parse the output to get GPU name
+            for line in result.stdout.splitlines():
+                if "GPU" in line or "Card" in line:
+                    return line.strip()
+            return result.stdout.strip()
+    except FileNotFoundError:
+        pass
+    # Fallback: try lspci
+    try:
+        result = subprocess.run(
+            ["lspci"],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if result.returncode == 0:
+            for line in result.stdout.splitlines():
+                if "VGA" in line and ("AMD" in line or "Radeon" in line):
+                    return line.split(":")[-1].strip()
     except FileNotFoundError:
         pass
     return None
@@ -298,6 +368,84 @@ def cuda_image_exists() -> bool:
     return bool(result.stdout.strip())
 
 
+def rocm_image_exists() -> bool:
+    """Check if the ROCm image exists locally."""
+    result = subprocess.run(
+        ["docker", "images", "-q", DOCKER_IMAGE_ROCM],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    return bool(result.stdout.strip())
+
+
+def build_rocm_image() -> bool:
+    """Build the ROCm Docker image from source using docker-compose."""
+    source_dir = clone_or_update_repo()
+    if not source_dir:
+        return False
+
+    print("\n🔨 Building ROCm image (this may take 10-20 minutes)...")
+    print("   Building from: docker-compose-rocm.yml")
+    print(f"   Source directory: {source_dir}")
+
+    # Build using docker-compose (handles complex builds better)
+    result = subprocess.run(
+        ["docker", "compose", "-f", "docker-compose-rocm.yml", "build"],
+        cwd=source_dir,
+        check=False,
+    )
+
+    if result.returncode != 0:
+        print("❌ Failed to build ROCm image")
+        return False
+
+    # Tag the image with our expected name
+    # docker-compose names it based on folder name
+    print("   Tagging image as ezlocalai:rocm...")
+
+    # Determine the expected image name based on folder
+    folder_name = source_dir.name
+    expected_names = [
+        f"{folder_name}-ezlocalai:latest",
+        "repo-ezlocalai:latest",
+        f"{folder_name}_ezlocalai:latest",
+    ]
+
+    tagged = False
+    for expected_name in expected_names:
+        tag_result = subprocess.run(
+            ["docker", "tag", expected_name, DOCKER_IMAGE_ROCM],
+            capture_output=True,
+            check=False,
+        )
+        if tag_result.returncode == 0:
+            tagged = True
+            break
+
+    if not tagged:
+        print("⚠️  Could not tag image, trying to find it...")
+        # List images and try to find one that matches
+        list_result = subprocess.run(
+            ["docker", "images", "--format", "{{.Repository}}:{{.Tag}}"],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if list_result.returncode == 0:
+            for line in list_result.stdout.splitlines():
+                if "ezlocalai" in line.lower() and "rocm" not in line:
+                    subprocess.run(
+                        ["docker", "tag", line.strip(), DOCKER_IMAGE_ROCM],
+                        check=False,
+                    )
+                    tagged = True
+                    break
+
+    print("✅ ROCm image built successfully")
+    return True
+
+
 def install_docker_linux() -> bool:
     """Attempt to install Docker on Linux."""
     system = platform.system().lower()
@@ -418,12 +566,12 @@ def install_nvidia_container_toolkit() -> bool:
         return False
 
 
-def check_prerequisites() -> tuple[bool, bool]:
+def check_prerequisites() -> tuple[bool, str]:
     """
     Check and install prerequisites.
 
     Returns:
-        Tuple of (docker_available, gpu_available)
+        Tuple of (docker_available, gpu_type) where gpu_type is 'nvidia', 'amd', or 'cpu'
     """
     system = platform.system().lower()
 
@@ -455,19 +603,20 @@ def check_prerequisites() -> tuple[bool, bool]:
 
     print("✅ Docker is installed and running")
 
-    # Check GPU
-    gpu_available = False
+    # Check for NVIDIA GPU first
+    gpu_type = "cpu"
     if has_nvidia_gpu():
         gpu_info = get_nvidia_gpu_info()
         print(f"✅ NVIDIA GPU detected: {gpu_info}")
 
         if has_nvidia_container_toolkit():
             print("✅ NVIDIA Container Toolkit is installed")
-            gpu_available = True
+            gpu_type = "nvidia"
         else:
             if system == "linux":
                 if install_nvidia_container_toolkit():
-                    gpu_available = has_nvidia_container_toolkit()
+                    if has_nvidia_container_toolkit():
+                        gpu_type = "nvidia"
                 else:
                     print("⚠️  Running on CPU (GPU acceleration not available)")
             else:
@@ -477,10 +626,26 @@ def check_prerequisites() -> tuple[bool, bool]:
                     "   https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html"
                 )
                 print("   Continuing with CPU mode...")
-    else:
-        print("ℹ️  No NVIDIA GPU detected, running on CPU")
+    # Check for AMD GPU if no NVIDIA GPU
+    elif has_amd_gpu():
+        gpu_info = get_amd_gpu_info()
+        print(f"✅ AMD GPU detected: {gpu_info}")
 
-    return True, gpu_available
+        if has_rocm_support():
+            print("✅ ROCm is installed and functional")
+            gpu_type = "amd"
+        else:
+            print("⚠️  ROCm not detected or not functional.")
+            if system == "linux":
+                print("   For AMD GPU acceleration, install ROCm:")
+                print(
+                    "   https://rocm.docs.amd.com/projects/install-on-linux/en/latest/"
+                )
+            print("   Continuing with CPU mode...")
+    else:
+        print("ℹ️  No GPU detected, running on CPU")
+
+    return True, gpu_type
 
 
 def is_container_running() -> bool:
@@ -564,7 +729,7 @@ def start_container(
     uri: Optional[str] = None,
     api_key: Optional[str] = None,
     ngrok: Optional[str] = None,
-    use_gpu: bool = False,
+    gpu_type: str = "cpu",
 ) -> None:
     """Start the ezlocalai container."""
 
@@ -605,8 +770,13 @@ def start_container(
         check=False,
     )
 
-    # Select image
-    image = DOCKER_IMAGE_CUDA if use_gpu else DOCKER_IMAGE
+    # Select image based on GPU type
+    if gpu_type == "nvidia":
+        image = DOCKER_IMAGE_CUDA
+    elif gpu_type == "amd":
+        image = DOCKER_IMAGE_ROCM
+    else:
+        image = DOCKER_IMAGE
 
     # Build docker run command
     cmd = [
@@ -629,26 +799,46 @@ def start_container(
         "unless-stopped",
     ]
 
-    # Add GPU flag if available
-    if use_gpu:
+    # Add GPU-specific flags
+    if gpu_type == "nvidia":
         cmd.extend(["--gpus", "all"])
+    elif gpu_type == "amd":
+        # ROCm requires access to specific devices
+        cmd.extend(
+            [
+                "--device=/dev/kfd",
+                "--device=/dev/dri",
+                "--group-add",
+                "video",
+                "--group-add",
+                "render",
+                "--security-opt",
+                "seccomp=unconfined",
+            ]
+        )
 
     # Add environment variables
     for key, value in env_vars.items():
         if value:  # Only add non-empty values
             cmd.extend(["-e", f"{key}={value}"])
 
+    # Add ROCm-specific environment variables
+    if gpu_type == "amd":
+        # HSA_OVERRIDE_GFX_VERSION helps with newer APUs like Radeon 880M
+        if "HSA_OVERRIDE_GFX_VERSION" not in env_vars:
+            cmd.extend(["-e", "HSA_OVERRIDE_GFX_VERSION=11.0.0"])
+
     # Add image
     cmd.append(image)
 
-    # Handle image: pull for CPU, build for CUDA
-    if use_gpu:
+    # Handle image: pull for CPU, build for CUDA/ROCm
+    if gpu_type == "nvidia":
         # CUDA image must be built locally (too large for DockerHub)
         if not cuda_image_exists():
             print("\n🔨 CUDA image not found, building from source...")
             if not build_cuda_image():
                 print("❌ Failed to build CUDA image. Falling back to CPU mode.")
-                use_gpu = False
+                gpu_type = "cpu"
                 image = DOCKER_IMAGE
                 cmd[-1] = image  # Update image in command
                 # Remove --gpus flag
@@ -656,7 +846,29 @@ def start_container(
                     idx = cmd.index("--gpus")
                     cmd.pop(idx)  # Remove --gpus
                     cmd.pop(idx)  # Remove "all"
-        # Note: We don't auto-rebuild on start - use 'ezlocalai update' to rebuild
+    elif gpu_type == "amd":
+        # ROCm image must be built locally
+        if not rocm_image_exists():
+            print("\n🔨 ROCm image not found, building from source...")
+            if not build_rocm_image():
+                print("❌ Failed to build ROCm image. Falling back to CPU mode.")
+                gpu_type = "cpu"
+                image = DOCKER_IMAGE
+                cmd[-1] = image  # Update image in command
+                # Remove ROCm-specific flags
+                rocm_flags = [
+                    "--device=/dev/kfd",
+                    "--device=/dev/dri",
+                    "--group-add",
+                    "video",
+                    "--group-add",
+                    "render",
+                    "--security-opt",
+                    "seccomp=unconfined",
+                ]
+                for flag in rocm_flags:
+                    if flag in cmd:
+                        cmd.remove(flag)
     else:
         # CPU image: pull from DockerHub
         print(f"\n📦 Pulling latest image: {image}")
@@ -670,7 +882,8 @@ def start_container(
             print(f"⚠️  Failed to pull latest image, using cached version if available")
 
     # Start container
-    mode = "GPU" if use_gpu else "CPU"
+    mode_names = {"nvidia": "NVIDIA GPU", "amd": "AMD GPU", "cpu": "CPU"}
+    mode = mode_names.get(gpu_type, "CPU")
     print(f"\n🚀 Starting ezlocalai ({mode} mode)...")
     print(f"   Model: {env_vars.get('DEFAULT_MODEL', 'default')}")
 
@@ -834,7 +1047,7 @@ def show_logs(follow: bool = False) -> None:
 
 
 def update_images() -> None:
-    """Pull latest CPU image and rebuild CUDA image."""
+    """Pull latest CPU image and rebuild CUDA/ROCm image."""
     print("📦 Updating ezlocalai...")
 
     # Check if we're in the ezlocalai source folder
@@ -853,7 +1066,7 @@ def update_images() -> None:
     else:
         print(f"   ✅ CPU image updated")
 
-    # Build CUDA image from source
+    # Build CUDA image from source if NVIDIA GPU available
     if has_nvidia_gpu():
         print(f"\n🔨 Building CUDA image from source...")
         if build_cuda_image():
@@ -862,6 +1075,16 @@ def update_images() -> None:
             print("   ⚠️  Failed to build CUDA image")
     else:
         print("\nℹ️  No NVIDIA GPU detected, skipping CUDA image build")
+
+    # Build ROCm image from source if AMD GPU available
+    if has_amd_gpu():
+        print(f"\n🔨 Building ROCm image from source...")
+        if build_rocm_image():
+            print("   ✅ ROCm image rebuilt")
+        else:
+            print("   ⚠️  Failed to build ROCm image")
+    else:
+        print("\nℹ️  No AMD GPU detected, skipping ROCm image build")
 
     print("\n✅ Update complete!")
     print("   Run 'ezlocalai restart' to use the new version.")
@@ -1202,9 +1425,9 @@ Environment:
         sys.exit(0)
 
     # Check prerequisites for start/restart
-    gpu_available = False
+    gpu_type = "cpu"
     if args.command in ("start", "restart"):
-        _, gpu_available = check_prerequisites()
+        _, gpu_type = check_prerequisites()
         print()
 
     # Execute command
@@ -1214,7 +1437,7 @@ Environment:
             uri=args.uri,
             api_key=args.api_key,
             ngrok=args.ngrok,
-            use_gpu=gpu_available,
+            gpu_type=gpu_type,
         )
 
     elif args.command == "stop":
@@ -1228,7 +1451,7 @@ Environment:
             uri=args.uri,
             api_key=args.api_key,
             ngrok=args.ngrok,
-            use_gpu=gpu_available,
+            gpu_type=gpu_type,
         )
 
     elif args.command == "status":
