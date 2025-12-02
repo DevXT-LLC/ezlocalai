@@ -108,6 +108,8 @@ class STT:
         temperature=0.0,
         translate=False,
         return_segments=False,
+        beam_size=5,
+        condition_on_previous_text=True,
     ):
         if "/" in audio_format:
             audio_format = audio_format.split("/")[1]
@@ -129,6 +131,8 @@ class STT:
                 initial_prompt=prompt,
                 language=language,
                 temperature=temperature,
+                beam_size=beam_size,
+                condition_on_previous_text=condition_on_previous_text,
             )
             segments = list(segments)
         except (torch.cuda.OutOfMemoryError, RuntimeError, OSError) as e:
@@ -174,6 +178,8 @@ class STT:
                     initial_prompt=prompt,
                     language=language,
                     temperature=temperature,
+                    beam_size=beam_size,
+                    condition_on_previous_text=condition_on_previous_text,
                 )
                 segments = list(segments)
             else:

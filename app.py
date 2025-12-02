@@ -499,17 +499,37 @@ async def audio_translations(
 
 # Helper function for batch translating subtitle segments
 async def translate_segments_batch(
-    segments: list, source_lang: str, target_lang: str, batch_size: int = 25
+    segments: list, source_lang: str, target_lang: str, max_words: int = 4000
 ) -> list:
     """
     Translate multiple subtitle segments using the LLM in batches.
-    Processes segments in groups to reduce API calls while staying within context limits.
+    Batches are sized by word count (~4000 words) to stay within context limits
+    while minimizing the number of API calls.
     """
     translated_segments = []
 
-    for i in range(0, len(segments), batch_size):
-        batch = segments[i : i + batch_size]
+    # Build batches based on word count, not fixed segment count
+    batches = []
+    current_batch = []
+    current_word_count = 0
 
+    for seg in segments:
+        seg_words = len(seg["text"].split())
+        if current_word_count + seg_words > max_words and current_batch:
+            batches.append(current_batch)
+            current_batch = []
+            current_word_count = 0
+        current_batch.append(seg)
+        current_word_count += seg_words
+
+    if current_batch:
+        batches.append(current_batch)
+
+    logging.info(
+        f"Translating {len(segments)} segments in {len(batches)} batches (~{max_words} words each)"
+    )
+
+    for batch_idx, batch in enumerate(batches):
         # Build numbered text block for batch translation
         text_block = "\n".join(
             [f"[{j+1}] {seg['text']}" for j, seg in enumerate(batch)]
@@ -526,7 +546,7 @@ Return ONLY the translated lines with their numbers, nothing else.""",
             {"role": "user", "content": text_block},
         ]
 
-        # Call LLM for batch translation - let model defaults handle temperature/max_tokens
+        # Call LLM for batch translation
         response, _ = await pipe.get_response(
             data={
                 "model": getenv("DEFAULT_MODEL"),
@@ -563,7 +583,7 @@ Return ONLY the translated lines with their numbers, nothing else.""",
             )
 
         logging.info(
-            f"Translated batch {i//batch_size + 1}/{(len(segments) + batch_size - 1)//batch_size} ({len(batch)} segments)"
+            f"Translated batch {batch_idx + 1}/{len(batches)} ({len(batch)} segments, ~{sum(len(s['text'].split()) for s in batch)} words)"
         )
 
     return translated_segments
@@ -582,6 +602,8 @@ async def generate_subtitles(
     format: str = Form("vtt"),
     prompt: Optional[str] = Form(None),
     temperature: Optional[float] = Form(0.0),
+    beam_size: int = Form(5),
+    fast_mode: bool = Form(False),
     user: str = Depends(verify_api_key),
 ):
     """
@@ -591,6 +613,10 @@ async def generate_subtitles(
     - Translates segments to each target language while preserving timing
     - Returns subtitles in requested format (srt, vtt, json)
 
+    Parameters:
+    - beam_size: Beam size for decoding (1=fastest, 5=default, higher=more accurate)
+    - fast_mode: If True, uses beam_size=1 and disables context conditioning for ~2-3x speed
+
     Example: target_languages="en,ru" returns both English and Russian subtitles
     with synchronized timestamps.
     """
@@ -598,6 +624,13 @@ async def generate_subtitles(
         raise HTTPException(status_code=404, detail="Speech to text is disabled.")
 
     languages = [lang.strip() for lang in target_languages.split(",")]
+
+    # Apply fast mode settings
+    if fast_mode:
+        beam_size = 1
+        condition_on_previous = False
+    else:
+        condition_on_previous = True
 
     # Step 1: Transcribe audio to get segments with timing
     stt = pipe._get_stt()
@@ -609,6 +642,8 @@ async def generate_subtitles(
         prompt=prompt,
         temperature=temperature,
         return_segments=True,
+        beam_size=beam_size,
+        condition_on_previous_text=condition_on_previous,
     )
     pipe._destroy_stt()
 
@@ -617,21 +652,27 @@ async def generate_subtitles(
 
     result = {"source_language": detected_language, "subtitles": {}}
 
-    # Step 2: Generate subtitles for each target language
-    for target_lang in languages:
+    # Step 2: Generate subtitles for each target language IN PARALLEL
+    async def process_language(target_lang: str):
         if target_lang == detected_language:
             # No translation needed - use original segments
-            translated_segments = source_segments
+            return target_lang, source_segments
         else:
             # Batch translate segments while preserving timing
-            translated_segments = await translate_segments_batch(
+            # Uses ~4000 word batches to minimize API calls
+            translated = await translate_segments_batch(
                 segments=source_segments,
                 source_lang=detected_language,
                 target_lang=target_lang,
-                batch_size=25,
             )
+            return target_lang, translated
 
-        # Format output
+    # Run all language translations in parallel
+    translation_tasks = [process_language(lang) for lang in languages]
+    translations = await asyncio.gather(*translation_tasks)
+
+    # Format outputs
+    for target_lang, translated_segments in translations:
         if format == "json":
             result["subtitles"][target_lang] = translated_segments
         elif format == "srt":
