@@ -1,4 +1,4 @@
-FROM nvidia/cuda:12.8.1-devel-ubuntu24.04
+FROM nvidia/cuda:12.8.1-cudnn-devel-ubuntu24.04
 ENV CUDA_PATH=/usr/local/cuda \
     CUDA_HOME=/usr/local/cuda \
     CUDA_TOOLKIT_ROOT_DIR=/usr/local/cuda \

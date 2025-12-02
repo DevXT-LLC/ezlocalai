@@ -12,6 +12,20 @@ import torch
 from io import BytesIO
 from faster_whisper import WhisperModel
 
+# Suppress ALSA warnings in Docker containers without sound cards
+os.environ.setdefault("PYTHONWARNINGS", "ignore")
+
+
+def _check_cudnn_available():
+    """Check if cuDNN is available for CTranslate2/faster-whisper."""
+    if not torch.cuda.is_available():
+        return False
+    try:
+        # Try to check if cuDNN is available via torch
+        return torch.backends.cudnn.is_available()
+    except:
+        return False
+
 
 def get_available_vram_mb():
     """Get available VRAM in MB."""
@@ -32,24 +46,48 @@ class STT:
         available_vram = get_available_vram_mb()
         min_vram_mb = 1000  # 1GB minimum for Whisper
 
-        if torch.cuda.is_available() and available_vram >= min_vram_mb:
+        # Check both VRAM availability and cuDNN availability
+        cudnn_available = _check_cudnn_available()
+
+        if (
+            torch.cuda.is_available()
+            and available_vram >= min_vram_mb
+            and cudnn_available
+        ):
             device = "cuda"
         else:
             device = "cpu"
             if torch.cuda.is_available():
-                logging.debug(
-                    f"[STT] Only {available_vram:.0f}MB VRAM available, using CPU (need {min_vram_mb}MB)"
-                )
+                if not cudnn_available:
+                    logging.warning(
+                        "[STT] cuDNN not available, using CPU for Whisper (faster-whisper requires cuDNN for GPU)"
+                    )
+                elif available_vram < min_vram_mb:
+                    logging.debug(
+                        f"[STT] Only {available_vram:.0f}MB VRAM available, using CPU (need {min_vram_mb}MB)"
+                    )
 
-        logging.debug(f"[STT] Loading Whisper {model} on {device}")
+        logging.info(f"[STT] Loading Whisper {model} on {device}")
         self.device = device
         self.model_name = model
 
         try:
             self.w = WhisperModel(model, download_root="models", device=device)
-        except (torch.cuda.OutOfMemoryError, RuntimeError) as e:
-            if "out of memory" in str(e).lower() or "cuda" in str(e).lower():
-                logging.warning(f"[STT] GPU OOM during init, falling back to CPU: {e}")
+        except (torch.cuda.OutOfMemoryError, RuntimeError, OSError) as e:
+            error_str = str(e).lower()
+            # Check for various GPU-related errors including cuDNN issues
+            is_gpu_error = any(
+                x in error_str
+                for x in [
+                    "out of memory",
+                    "cuda",
+                    "cudnn",
+                    "libcudnn",
+                    "invalid handle",
+                ]
+            )
+            if is_gpu_error and device == "cuda":
+                logging.warning(f"[STT] GPU loading failed, falling back to CPU: {e}")
                 gc.collect()
                 if torch.cuda.is_available():
                     torch.cuda.empty_cache()
@@ -91,11 +129,22 @@ class STT:
                 temperature=temperature,
             )
             segments = list(segments)
-        except (torch.cuda.OutOfMemoryError, RuntimeError) as e:
+        except (torch.cuda.OutOfMemoryError, RuntimeError, OSError) as e:
             error_str = str(e).lower()
-            if "out of memory" in error_str or "cuda" in error_str:
+            # Check for various GPU-related errors including cuDNN issues
+            is_gpu_error = any(
+                x in error_str
+                for x in [
+                    "out of memory",
+                    "cuda",
+                    "cudnn",
+                    "libcudnn",
+                    "invalid handle",
+                ]
+            )
+            if is_gpu_error and self.device == "cuda":
                 logging.warning(
-                    f"[STT] GPU OOM during transcription, reloading on CPU: {e}"
+                    f"[STT] GPU error during transcription, reloading on CPU: {e}"
                 )
                 # Free GPU memory
                 gc.collect()
