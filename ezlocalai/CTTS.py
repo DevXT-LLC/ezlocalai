@@ -120,11 +120,11 @@ class CTTS:
         else:
             self.device = "cpu"
             if torch.cuda.is_available():
-                logging.info(
+                logging.debug(
                     f"[CTTS] Only {available_vram:.0f}MB VRAM available, using CPU (need {min_vram_mb}MB)"
                 )
 
-        logging.info(f"[CTTS] Initializing Chatterbox TTS on {self.device}")
+        logging.debug(f"[CTTS] Initializing Chatterbox TTS on {self.device}")
 
         try:
             self.model = ChatterboxTTS.from_pretrained(device=self.device)
@@ -150,17 +150,17 @@ class CTTS:
             if file.endswith(".wav"):
                 wav_files.append(file.replace(".wav", ""))
         self.voices = wav_files
-        logging.info(f"[CTTS] Found {len(self.voices)} voice(s): {self.voices}")
+        logging.debug(f"[CTTS] Found {len(self.voices)} voice(s): {self.voices}")
 
         # Initialize audio cache
         self.cache = AudioCache(cache_config)
 
         # Cache statistics tracking
         self.use_cache = cache_config.get("enabled", True) if cache_config else True
-        logging.info(
+        logging.debug(
             f"[CTTS] Audio caching {'enabled' if self.use_cache else 'disabled'}"
         )
-        logging.info("[CTTS] Chatterbox TTS initialized successfully")
+        logging.debug("[CTTS] Chatterbox TTS initialized successfully")
 
     async def generate(
         self,
@@ -224,7 +224,7 @@ class CTTS:
         # Split long text into chunks to prevent hallucinations
         chunks = split_text_into_chunks(text)
         if len(chunks) > 1:
-            logging.info(f"[CTTS] Split text into {len(chunks)} chunks for generation")
+            logging.debug(f"[CTTS] Split text into {len(chunks)} chunks for generation")
 
         # Generate audio for each chunk and concatenate
         all_audio_tensors = []
@@ -354,7 +354,7 @@ class CTTS:
                 self.device = "cpu"
                 self.model = ChatterboxTTS.from_pretrained(device="cpu")
                 self.sample_rate = self.model.sr
-                logging.info("[CTTS] Model reloaded on CPU, retrying generation...")
+                logging.debug("[CTTS] Model reloaded on CPU, retrying generation...")
 
                 # Retry on CPU
                 if audio_path and os.path.exists(audio_path):
@@ -394,6 +394,6 @@ class CTTS:
     def clear_cache(self, voice=None):
         """Clear the audio cache."""
         self.cache.clear_cache(voice=voice)
-        logging.info(
+        logging.debug(
             f"[CTTS] Cache cleared for {'voice: ' + voice if voice else 'all voices'}"
         )

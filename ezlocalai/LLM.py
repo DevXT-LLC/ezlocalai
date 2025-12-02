@@ -208,7 +208,7 @@ def download_model(model_name: str = "", models_dir: str = "models") -> tuple:
                 local_dir=model_dir,
             )
             mmproj_path = mmproj_filepath
-            logging.info(f"[LLM] Downloaded mmproj: {mmproj_file}")
+            logging.debug(f"[LLM] Downloaded mmproj: {mmproj_file}")
             break
         except Exception:
             pass
@@ -225,7 +225,7 @@ def download_model(model_name: str = "", models_dir: str = "models") -> tuple:
             # Use the first existing model file (there should typically be only one)
             existing_file = existing_gguf_files[0]
             filepath = os.path.join(model_dir, existing_file)
-            logging.info(f"[LLM] Using existing model: {existing_file}")
+            logging.debug(f"[LLM] Using existing model: {existing_file}")
             return filepath, mmproj_path
 
     # No existing model found - download based on QUANT_TYPE preference
@@ -243,7 +243,7 @@ def download_model(model_name: str = "", models_dir: str = "models") -> tuple:
     ]
 
     # Download the model
-    logging.info(f"[LLM] Downloading {model}...")
+    logging.debug(f"[LLM] Downloading {model}...")
     for filename in potential_filenames:
         filepath = os.path.join(model_dir, filename)
         try:
@@ -252,7 +252,7 @@ def download_model(model_name: str = "", models_dir: str = "models") -> tuple:
                 filename=filename,
                 local_dir=model_dir,
             )
-            logging.info(f"[LLM] Downloaded {model} successfully!")
+            logging.debug(f"[LLM] Downloaded {model} successfully!")
             return filepath, mmproj_path
         except Exception:
             pass
@@ -423,8 +423,8 @@ class LLM:
         )
 
         # Initialize xllamacpp
-        logging.info(
-            f"[LLM] Loading {self.model_name} with xllamacpp (context: {effective_max_tokens})..."
+        logging.debug(
+            f"[LLM] Loading {self.model_name} with xllamacpp (context: {effective_max_tokens})"
         )
 
         self.xlc_params = xlc.CommonParams()
@@ -814,5 +814,5 @@ class LLM:
 
 
 if __name__ == "__main__":
-    logging.info(f"[LLM] Downloading {DEFAULT_MODEL} model...")
+    logging.debug(f"[LLM] Downloading {DEFAULT_MODEL} model...")
     download_model(model_name=DEFAULT_MODEL, models_dir="models")

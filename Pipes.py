@@ -2,6 +2,8 @@ import os
 import logging
 import time
 import math
+import threading
+import queue
 from dotenv import load_dotenv
 from ezlocalai.LLM import (
     LLM,
@@ -26,6 +28,50 @@ try:
     img_import_success = True
 except ImportError:
     img_import_success = False
+
+# Background cleanup queue for async model unloading
+_cleanup_queue = queue.Queue()
+_cleanup_thread = None
+_cleanup_thread_lock = threading.Lock()
+
+
+def _cleanup_worker():
+    """Background worker thread that handles model cleanup asynchronously.
+
+    This allows responses to be returned to the user immediately while
+    model unloading and VRAM cleanup happens in the background.
+    """
+    while True:
+        try:
+            cleanup_task = _cleanup_queue.get(timeout=1.0)
+            if cleanup_task is None:
+                # Shutdown signal
+                break
+
+            cleanup_func, args, kwargs = cleanup_task
+            try:
+                cleanup_func(*args, **kwargs)
+            except Exception as e:
+                logging.error(f"[Cleanup] Background cleanup error: {e}")
+        except queue.Empty:
+            continue
+
+
+def _ensure_cleanup_thread():
+    """Ensure the background cleanup thread is running."""
+    global _cleanup_thread
+    with _cleanup_thread_lock:
+        if _cleanup_thread is None or not _cleanup_thread.is_alive():
+            _cleanup_thread = threading.Thread(target=_cleanup_worker, daemon=True)
+            _cleanup_thread.start()
+            logging.debug("[Cleanup] Background cleanup thread started")
+
+
+def _schedule_cleanup(cleanup_func, *args, **kwargs):
+    """Schedule a cleanup function to run in the background."""
+    _ensure_cleanup_thread()
+    _cleanup_queue.put((cleanup_func, args, kwargs))
+
 
 # xllamacpp memory estimation
 try:
@@ -764,8 +810,8 @@ class Pipes:
 
         Returns optimal GPU layers or None if estimation fails.
         """
-        logging.info(
-            f"[Calibration] Using native estimation for {model_name} (budget: {self.vram_budget_gb}GB)..."
+        logging.debug(
+            f"[Calibration] Using native estimation for {model_name} (budget: {self.vram_budget_gb}GB)"
         )
 
         # Get GPU info
@@ -798,7 +844,7 @@ class Pipes:
             logging.warning("[Calibration] No GPU devices found for estimation")
             return None
 
-        logging.info(
+        logging.debug(
             f"[Calibration] GPUs: {[g['name'] + ' (' + str(round(g['memory_free']/1e9, 1)) + 'GB budget)' for g in gpus]}"
         )
 
@@ -808,7 +854,7 @@ class Pipes:
             if not model_path:
                 return None
 
-            logging.info(f"[Calibration] Model path: {model_path}")
+            logging.debug(f"[Calibration] Model path: {model_path}")
 
             # Get projector if this might be a vision model
             projectors = []
@@ -827,7 +873,7 @@ class Pipes:
                 kv_cache_type="f16",
             )
 
-            logging.info(f"[Calibration] Native estimation result: {result}")
+            logging.debug(f"[Calibration] Native estimation result: {result}")
 
             # Extract layer count from result
             # xllamacpp returns MemoryEstimate object with .layers attribute
@@ -845,7 +891,7 @@ class Pipes:
                 )
                 return None
 
-            logging.info(
+            logging.debug(
                 f"[Calibration] {model_name} estimated to {gpu_layers} GPU layers (native)"
             )
             return gpu_layers
@@ -935,6 +981,16 @@ class Pipes:
         """Find a vision-capable model from available models."""
         for model_name in self.available_models:
             if self._is_vision_model(model_name):
+                return model_name
+        return None
+
+    def _find_non_vision_model(self) -> str:
+        """Find the first non-vision model from available models.
+
+        Returns None if all models are vision models.
+        """
+        for model_name in self.available_models:
+            if not self._is_vision_model(model_name):
                 return model_name
         return None
 
@@ -1066,8 +1122,8 @@ class Pipes:
         high = 70
         best_layers = 0  # Default to CPU if nothing works
 
-        logging.info(
-            f"[Calibration] Binary search for {model_name} (budget: {self.vram_budget_gb}GB)..."
+        logging.debug(
+            f"[Calibration] Binary search for {model_name} (budget: {self.vram_budget_gb}GB)"
         )
 
         while low <= high:
@@ -1080,8 +1136,8 @@ class Pipes:
                     torch.cuda.empty_cache()
                     torch.cuda.synchronize()
 
-                logging.info(
-                    f"[Calibration] Testing {model_name} with {mid} GPU layers..."
+                logging.debug(
+                    f"[Calibration] Testing {model_name} with {mid} GPU layers"
                 )
 
                 # Try to load the model
@@ -1099,14 +1155,14 @@ class Pipes:
                 if vram_used <= self.vram_budget_gb:
                     # Fits! Try higher
                     best_layers = mid
-                    logging.info(
-                        f"[Calibration] {mid} layers OK ({vram_used:.1f}GB), trying higher..."
+                    logging.debug(
+                        f"[Calibration] {mid} layers OK ({vram_used:.1f}GB), trying higher"
                     )
                     low = mid + 1
                 else:
                     # Too much VRAM, try lower
-                    logging.info(
-                        f"[Calibration] {mid} layers too high ({vram_used:.1f}GB), trying lower..."
+                    logging.debug(
+                        f"[Calibration] {mid} layers too high ({vram_used:.1f}GB), trying lower"
                     )
                     high = mid - 1
 
@@ -1131,7 +1187,7 @@ class Pipes:
                 # OOM means too many layers
                 high = mid - 1
 
-        logging.info(
+        logging.debug(
             f"[Calibration] {model_name} calibrated to {best_layers} GPU layers"
         )
         return best_layers
@@ -1150,8 +1206,8 @@ class Pipes:
                 return self.calibrated_gpu_layers[model_name][context_size]
 
         # Need to calibrate for this context size
-        logging.info(
-            f"[Calibration] Calibrating {model_name} for {context_size//1000}k context..."
+        logging.debug(
+            f"[Calibration] Calibrating {model_name} for {context_size//1000}k context"
         )
         calibrated = self._calibrate_model(model_name, context_size)
 
@@ -1178,8 +1234,8 @@ class Pipes:
             return
 
         # Need to reload with larger context
-        logging.info(
-            f"[LLM] Context {self.current_context//1000 if self.current_context else 0}k insufficient for {required_context:,} tokens, reloading at {required_context//1000}k..."
+        logging.debug(
+            f"[LLM] Context {self.current_context//1000 if self.current_context else 0}k insufficient for {required_context:,} tokens, reloading at {required_context//1000}k"
         )
 
         model_name = self.current_llm_name
@@ -1201,7 +1257,7 @@ class Pipes:
         )
         self.current_context = required_context
         load_time = time.time() - start_time
-        logging.info(
+        logging.debug(
             f"[LLM] {model_name} reloaded at {required_context//1000}k context in {load_time:.2f}s"
         )
 
@@ -1242,8 +1298,8 @@ class Pipes:
             return
 
         # Swap models - must unload old model first to free VRAM
-        logging.info(
-            f"[LLM] Swapping to {target_model} at {target_context//1000}k context..."
+        logging.debug(
+            f"[LLM] Swapping to {target_model} at {target_context//1000}k context"
         )
         start_time = time.time()
 
@@ -1253,7 +1309,7 @@ class Pipes:
 
         # Destroy current LLM first to free VRAM
         if self.llm:
-            logging.info(f"[LLM] Unloading {old_model_name} to free VRAM...")
+            logging.debug(f"[LLM] Unloading {old_model_name} to free VRAM")
             del self.llm
             self.llm = None
             gc.collect()
@@ -1270,13 +1326,13 @@ class Pipes:
             self.current_llm_name = target_model
             self.current_context = target_context
             load_time = time.time() - start_time
-            logging.info(f"[LLM] {target_model} loaded in {load_time:.2f}s.")
+            logging.debug(f"[LLM] {target_model} loaded in {load_time:.2f}s")
             if self.llm.is_vision:
-                logging.info(f"[LLM] Vision capability enabled for {target_model}.")
+                logging.debug(f"[LLM] Vision capability enabled for {target_model}")
         except Exception as e:
             logging.error(f"[LLM] Failed to load {target_model}: {e}")
             # Rollback to old model with smart GPU selection
-            logging.info(f"[LLM] Rolling back to {old_model_name}...")
+            logging.debug(f"[LLM] Rolling back to {old_model_name}")
             try:
                 self.llm = self._load_llm_resilient(
                     model_name=old_model_name,
@@ -1285,7 +1341,7 @@ class Pipes:
                 )
                 self.current_llm_name = old_model_name
                 self.current_context = old_context
-                logging.info(f"[LLM] Rolled back to {old_model_name}")
+                logging.debug(f"[LLM] Rolled back to {old_model_name}")
             except Exception as rollback_error:
                 logging.error(
                     f"[LLM] CRITICAL: Failed to rollback to {old_model_name}: {rollback_error}"
@@ -1300,7 +1356,7 @@ class Pipes:
                         )
                         self.current_llm_name = model_name
                         self.current_context = 16384
-                        logging.info(f"[LLM] Recovered with {model_name} (CPU mode)")
+                        logging.debug(f"[LLM] Recovered with {model_name} (CPU mode)")
                         break
                     except:
                         continue
@@ -1310,44 +1366,74 @@ class Pipes:
         if self.embedder is None:
             from ezlocalai.Embedding import Embedding
 
-            logging.info("[Embedding] Loading BGE-M3 on demand...")
+            logging.debug("[Embedding] Loading BGE-M3 on demand")
             start_time = time.time()
             self.embedder = Embedding()
-            logging.info(
-                f"[Embedding] BGE-M3 loaded in {time.time() - start_time:.2f}s."
+            logging.debug(
+                f"[Embedding] BGE-M3 loaded in {time.time() - start_time:.2f}s"
             )
         return self.embedder
 
-    def _destroy_embedder(self):
-        """Destroy embedding model to free resources."""
-        if self.embedder is not None:
-            del self.embedder
-            self.embedder = None
+    def _destroy_embedder_sync(self, embedder_ref):
+        """Synchronous embedder destruction."""
+        try:
+            start_time = time.time()
+            del embedder_ref
             gc.collect()
             if torch.cuda.is_available():
                 torch.cuda.empty_cache()
-            logging.info("[Embedding] BGE-M3 unloaded to free resources.")
+            cleanup_time = time.time() - start_time
+            logging.debug(f"[Embedding] BGE-M3 unloaded in {cleanup_time:.2f}s")
+        except Exception as e:
+            logging.error(f"[Embedding] Error during cleanup: {e}")
+
+    def _destroy_embedder(self, async_cleanup: bool = True):
+        """Destroy embedding model to free resources."""
+        if self.embedder is not None:
+            embedder_ref = self.embedder
+            self.embedder = None
+
+            if async_cleanup:
+                logging.debug("[Embedding] Scheduling async unload...")
+                _schedule_cleanup(self._destroy_embedder_sync, embedder_ref)
+            else:
+                self._destroy_embedder_sync(embedder_ref)
 
     def _get_stt(self):
         """Lazy load STT model on demand."""
         if self.stt is None:
             from ezlocalai.STT import STT
 
-            logging.info(f"[STT] Loading {self.current_stt} on demand...")
+            logging.debug(f"[STT] Loading {self.current_stt} on demand")
             start_time = time.time()
             self.stt = STT(model=self.current_stt)
-            logging.info(
-                f"[STT] {self.current_stt} loaded in {time.time() - start_time:.2f}s."
+            logging.debug(
+                f"[STT] {self.current_stt} loaded in {time.time() - start_time:.2f}s"
             )
         return self.stt
 
-    def _destroy_stt(self):
+    def _destroy_stt_sync(self, stt_ref):
+        """Synchronous STT destruction."""
+        try:
+            start_time = time.time()
+            del stt_ref
+            gc.collect()
+            cleanup_time = time.time() - start_time
+            logging.debug(f"[STT] Whisper unloaded in {cleanup_time:.2f}s")
+        except Exception as e:
+            logging.error(f"[STT] Error during cleanup: {e}")
+
+    def _destroy_stt(self, async_cleanup: bool = True):
         """Destroy STT model to free resources."""
         if self.stt is not None:
-            del self.stt
+            stt_ref = self.stt
             self.stt = None
-            gc.collect()
-            logging.info("[STT] Whisper unloaded to free resources.")
+
+            if async_cleanup:
+                logging.debug("[STT] Scheduling async unload...")
+                _schedule_cleanup(self._destroy_stt_sync, stt_ref)
+            else:
+                self._destroy_stt_sync(stt_ref)
 
     def _get_img(self):
         """Lazy load IMG model on demand."""
@@ -1355,7 +1441,7 @@ class Pipes:
         if self.img is None and img_import_success:
             IMG_MODEL = getenv("IMG_MODEL")
             if IMG_MODEL:
-                logging.info(f"[IMG] Loading {IMG_MODEL} on demand...")
+                logging.debug(f"[IMG] Loading {IMG_MODEL} on demand")
                 start_time = time.time()
                 # Auto-detect CUDA for image generation
                 img_device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -1363,23 +1449,38 @@ class Pipes:
                     self.img = IMG(
                         model=IMG_MODEL, local_uri=self.local_uri, device=img_device
                     )
-                    logging.info(
-                        f"[IMG] {IMG_MODEL} loaded on {img_device} in {time.time() - start_time:.2f}s."
+                    logging.debug(
+                        f"[IMG] {IMG_MODEL} loaded on {img_device} in {time.time() - start_time:.2f}s"
                     )
                 except Exception as e:
                     logging.error(f"[IMG] Failed to load the model: {e}")
                     self.img = None
         return self.img
 
-    def _destroy_img(self):
-        """Destroy IMG model to free resources."""
-        if self.img is not None:
-            del self.img
-            self.img = None
+    def _destroy_img_sync(self, img_ref):
+        """Synchronous IMG destruction."""
+        try:
+            start_time = time.time()
+            del img_ref
             gc.collect()
             if torch.cuda.is_available():
                 torch.cuda.empty_cache()
-            logging.info("[IMG] SDXL-Lightning unloaded to free resources.")
+            cleanup_time = time.time() - start_time
+            logging.debug(f"[IMG] SDXL-Lightning unloaded in {cleanup_time:.2f}s")
+        except Exception as e:
+            logging.error(f"[IMG] Error during cleanup: {e}")
+
+    def _destroy_img(self, async_cleanup: bool = True):
+        """Destroy IMG model to free resources."""
+        if self.img is not None:
+            img_ref = self.img
+            self.img = None
+
+            if async_cleanup:
+                logging.debug("[IMG] Scheduling async unload...")
+                _schedule_cleanup(self._destroy_img_sync, img_ref)
+            else:
+                self._destroy_img_sync(img_ref)
 
     def _get_llm(self, model_name: str = None, context_size: int = 16384):
         """Lazy load LLM on demand with smart GPU selection.
@@ -1413,8 +1514,8 @@ class Pipes:
         if self.llm is not None:
             self._destroy_llm()
 
-        logging.info(
-            f"[LLM] Loading {model_name} on demand (context: {context_size//1000}k)..."
+        logging.debug(
+            f"[LLM] Loading {model_name} on demand (context: {context_size//1000}k)"
         )
         start_time = time.time()
 
@@ -1428,51 +1529,92 @@ class Pipes:
         self.current_context = context_size
 
         load_time = time.time() - start_time
-        logging.info(f"[LLM] {model_name} loaded in {load_time:.2f}s.")
+        logging.debug(f"[LLM] {model_name} loaded in {load_time:.2f}s")
         if self.llm.is_vision:
-            logging.info(f"[LLM] Vision capability enabled for {model_name}.")
+            logging.debug(f"[LLM] Vision capability enabled for {model_name}")
 
         return self.llm
 
-    def _destroy_llm(self):
-        """Destroy LLM to free VRAM.
+    def _destroy_llm_sync(self, llm_ref, model_name: str):
+        """Synchronous LLM destruction - runs the actual cleanup.
 
-        This is called after each inference to ensure VRAM is freed.
-        The model will be reloaded on the next request via _get_llm().
+        This is called either directly or from a background thread.
         """
-        if self.llm is not None:
-            model_name = self.current_llm_name or "LLM"
-            logging.info(f"[LLM] Unloading {model_name} to free VRAM...")
-            del self.llm
-            self.llm = None
-            self.current_llm_name = None
-            self.current_context = None
+        try:
+            start_time = time.time()
+            del llm_ref
             gc.collect()
             if torch.cuda.is_available():
                 torch.cuda.empty_cache()
                 torch.cuda.synchronize()
-            logging.info(f"[LLM] {model_name} unloaded, VRAM freed.")
+            cleanup_time = time.time() - start_time
+            logging.debug(
+                f"[LLM] {model_name} unloaded, VRAM freed in {cleanup_time:.2f}s"
+            )
+        except Exception as e:
+            logging.error(f"[LLM] Error during cleanup of {model_name}: {e}")
+
+    def _destroy_llm(self, async_cleanup: bool = True):
+        """Destroy LLM to free VRAM.
+
+        This is called after each inference to ensure VRAM is freed.
+        The model will be reloaded on the next request via _get_llm().
+
+        Args:
+            async_cleanup: If True (default), run cleanup in background thread
+                          for faster response times. If False, run synchronously.
+        """
+        if self.llm is not None:
+            model_name = self.current_llm_name or "LLM"
+            llm_ref = self.llm
+
+            # Clear references immediately so new requests can load fresh
+            self.llm = None
+            self.current_llm_name = None
+            self.current_context = None
+
+            if async_cleanup:
+                logging.debug(f"[LLM] Scheduling async unload of {model_name}")
+                _schedule_cleanup(self._destroy_llm_sync, llm_ref, model_name)
+            else:
+                logging.debug(f"[LLM] Unloading {model_name} synchronously")
+                self._destroy_llm_sync(llm_ref, model_name)
 
     def _get_tts(self):
         """Lazy load TTS model on demand."""
         if self.ctts is None:
-            logging.info("[CTTS] Loading Chatterbox TTS on demand...")
+            logging.debug("[CTTS] Loading Chatterbox TTS on demand")
             start_time = time.time()
             self.ctts = CTTS()
-            logging.info(
-                f"[CTTS] Chatterbox TTS loaded in {time.time() - start_time:.2f}s."
+            logging.debug(
+                f"[CTTS] Chatterbox TTS loaded in {time.time() - start_time:.2f}s"
             )
         return self.ctts
 
-    def _destroy_tts(self):
-        """Destroy TTS model to free resources."""
-        if self.ctts is not None:
-            del self.ctts
-            self.ctts = None
+    def _destroy_tts_sync(self, tts_ref):
+        """Synchronous TTS destruction."""
+        try:
+            start_time = time.time()
+            del tts_ref
             gc.collect()
             if torch.cuda.is_available():
                 torch.cuda.empty_cache()
-            logging.info("[CTTS] Chatterbox TTS unloaded to free resources.")
+            cleanup_time = time.time() - start_time
+            logging.debug(f"[CTTS] Chatterbox TTS unloaded in {cleanup_time:.2f}s")
+        except Exception as e:
+            logging.error(f"[CTTS] Error during TTS cleanup: {e}")
+
+    def _destroy_tts(self, async_cleanup: bool = True):
+        """Destroy TTS model to free resources."""
+        if self.ctts is not None:
+            tts_ref = self.ctts
+            self.ctts = None
+
+            if async_cleanup:
+                logging.debug("[CTTS] Scheduling async unload...")
+                _schedule_cleanup(self._destroy_tts_sync, tts_ref)
+            else:
+                self._destroy_tts_sync(tts_ref)
 
     async def fallback_inference(self, messages):
         fallback_server = getenv("FALLBACK_SERVER")
@@ -1712,12 +1854,24 @@ class Pipes:
             # If requested model not found in available models, fallback to first available
             if target_model is None:
                 target_model = self.available_models[0]
-                logging.info(
+                logging.debug(
                     f"[LLM] Requested model '{requested_model}' not available, using '{target_model}'"
                 )
         elif self.available_models:
             # No model requested, use first available
             target_model = self.available_models[0]
+
+        # Vision model fallback: If the target model is a vision model but no images
+        # are in the request, fall back to a non-vision model if one is available.
+        # This optimizes resource usage since vision models are heavier.
+        if target_model and not images and self._is_vision_model(target_model):
+            non_vision_model = self._find_non_vision_model()
+            if non_vision_model:
+                logging.debug(
+                    f"[LLM] Request to vision model '{target_model}' has no images, "
+                    f"falling back to non-vision model '{non_vision_model}'"
+                )
+                target_model = non_vision_model
 
         # Lazy load the LLM with calculated context (estimated prompt tokens + 16k headspace)
         self._get_llm(target_model, required_context)
@@ -1797,7 +1951,7 @@ class Pipes:
                                     pil_img.save(buffer, format="PNG")
                                     img_bytes = buffer.getvalue()
                                     content_type = "image/png"
-                                    logging.info(
+                                    logging.debug(
                                         f"[Vision] Converted {img_response.headers.get('Content-Type', 'unknown')} to PNG"
                                     )
                                 except Exception as conv_err:
@@ -1819,7 +1973,7 @@ class Pipes:
                                     },
                                 }
                             )
-                            logging.info(
+                            logging.debug(
                                 f"[Vision] Converted remote image to base64 ({len(img_base64)} chars)"
                             )
                         except Exception as e:
@@ -1852,7 +2006,7 @@ class Pipes:
                                         },
                                     }
                                 )
-                                logging.info(
+                                logging.debug(
                                     f"[Vision] Converted data URL WebP/GIF to PNG"
                                 )
                             except Exception as conv_err:
@@ -1881,7 +2035,7 @@ class Pipes:
                     multimodal_content = [{"type": "text", "text": user_text}]
                     multimodal_content.extend(processed_images)
                     data["messages"][-1]["content"] = multimodal_content
-                    logging.info(
+                    logging.debug(
                         f"[Vision] Sending multimodal message with {len(processed_images)} image(s)"
                     )
                 else:
@@ -1892,7 +2046,7 @@ class Pipes:
                     )
         elif images and self.llm and not self.llm.is_vision:
             # Non-vision model received images - use vision model fallback
-            logging.info(
+            logging.debug(
                 f"[Vision Fallback] Non-vision model {self.current_llm_name} received {len(images)} image(s), using vision fallback"
             )
             user_text = (
@@ -1911,7 +2065,9 @@ class Pipes:
                     data["messages"][-1]["content"] = enhanced_message
                 else:
                     data["prompt"] = enhanced_message
-                logging.info("[Vision Fallback] Enhanced prompt with image description")
+                logging.debug(
+                    "[Vision Fallback] Enhanced prompt with image description"
+                )
             else:
                 logging.warning(
                     "[Vision Fallback] Could not get image description, proceeding without images"
@@ -1943,11 +2099,11 @@ class Pipes:
             for attempt in range(max_retries):
                 try:
                     if chat_mode:
-                        logging.info(
-                            f"[Pipes] About to call self.llm.chat with stream={data.get('stream', False)}"
+                        logging.debug(
+                            f"[Pipes] Calling self.llm.chat with stream={data.get('stream', False)}"
                         )
                         result = self.llm.chat(**data)
-                        logging.info(f"[Pipes] llm.chat returned type: {type(result)}")
+                        logging.debug(f"[Pipes] llm.chat returned type: {type(result)}")
                         return result
                     else:
                         return self.llm.completion(**data)
@@ -1963,7 +2119,7 @@ class Pipes:
                         )
                         if prompt_tokens_match:
                             needed_tokens = int(prompt_tokens_match.group(1))
-                            logging.info(
+                            logging.debug(
                                 f"[LLM] Extracted n_prompt_tokens={needed_tokens} from error"
                             )
                         else:
@@ -2071,7 +2227,7 @@ class Pipes:
                     user_message.split("data:")[1].split("'")[0], ""
                 )
             img_gen_prompt = f"Users message: {user_message} \n\n{'The user uploaded an image, one does not need generated unless the user is specifically asking.' if images else ''} **The assistant is acting as sentiment analysis expert and only responds with a concise YES or NO answer on if the user would like an image as visual or a picture generated. No other explanation is needed!**\nWould the user potentially like an image generated based on their message?\nAssistant: "
-            logging.info(f"[IMG] Decision maker prompt: {img_gen_prompt}")
+            logging.debug(f"[IMG] Decision maker prompt: {img_gen_prompt}")
             try:
                 create_img = self.llm.chat(
                     messages=[{"role": "system", "content": img_gen_prompt}],
@@ -2084,7 +2240,7 @@ class Pipes:
                     [{"role": "system", "content": img_gen_prompt}]
                 )
             create_img = str(create_img["choices"][0]["message"]["content"]).lower()
-            logging.info(f"[IMG] Decision maker response: {create_img}")
+            logging.debug(f"[IMG] Decision maker response: {create_img}")
             if "yes" in create_img or "es," in create_img:
                 img_prompt = f"**The assistant is acting as a Stable Diffusion Prompt Generator.**\n\nUsers message: {user_message} \nAssistant response: {response_text} \n\nImportant rules to follow:\n- Describe subjects in detail, specify image type (e.g., digital illustration), art style (e.g., steampunk), and background. Include art inspirations (e.g., Art Station, specific artists). Detail lighting, camera (type, lens, view), and render (resolution, style). The weight of a keyword can be adjusted by using the syntax (((keyword))) , put only those keyword inside ((())) which is very important because it will have more impact so anything wrong will result in unwanted picture so be careful. Realistic prompts: exclude artist, specify lens. Separate with double lines. Max 60 words, avoiding 'real' for fantastical.\n- Based on the message from the user and response of the assistant, you will need to generate one detailed stable diffusion image generation prompt based on the context of the conversation to accompany the assistant response.\n- The prompt can only be up to 60 words long, so try to be concise while using enough descriptive words to make a proper prompt.\n- Following all rules will result in a $2000 tip that you can spend on anything!\n- Must be in markdown code block to be parsed out and only provide prompt in the code block, nothing else.\nStable Diffusion Prompt Generator: "
                 try:
@@ -2101,7 +2257,7 @@ class Pipes:
                 image_generation_prompt = str(
                     image_generation_prompt["choices"][0]["message"]["content"]
                 )
-                logging.info(
+                logging.debug(
                     f"[IMG] Image generation response: {image_generation_prompt}"
                 )
                 if "```markdown" in image_generation_prompt:
@@ -2148,11 +2304,11 @@ class Pipes:
         )
 
         if not is_streaming:
-            logging.info(f"[ezlocalai] {json.dumps(response, indent=2)}")
-            # Destroy LLM after non-streaming inference to free VRAM
+            logging.debug(f"[ezlocalai] {json.dumps(response, indent=2)}")
+            # Destroy LLM after non-streaming inference to free VRAM (async for faster response)
             self._destroy_llm()
         else:
-            logging.info(f"[ezlocalai] Streaming response generated")
+            logging.debug(f"[ezlocalai] Streaming response generated")
             # For streaming, wrap the generator to destroy LLM after consumption
             original_response = response
 
@@ -2161,7 +2317,7 @@ class Pipes:
                     for chunk in original_response:
                         yield chunk
                 finally:
-                    # Destroy LLM after streaming is complete
+                    # Destroy LLM after streaming is complete (async cleanup)
                     self._destroy_llm()
 
             response = streaming_wrapper()

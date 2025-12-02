@@ -37,11 +37,11 @@ class STT:
         else:
             device = "cpu"
             if torch.cuda.is_available():
-                logging.info(
+                logging.debug(
                     f"[STT] Only {available_vram:.0f}MB VRAM available, using CPU (need {min_vram_mb}MB)"
                 )
 
-        logging.info(f"[STT] Loading Whisper {model} on {device}")
+        logging.debug(f"[STT] Loading Whisper {model} on {device}")
         self.device = device
         self.model_name = model
 
@@ -112,7 +112,7 @@ class STT:
                 self.w = WhisperModel(
                     self.model_name, download_root="models", device="cpu"
                 )
-                logging.info("[STT] Model reloaded on CPU, retrying transcription...")
+                logging.debug("[STT] Model reloaded on CPU, retrying transcription...")
 
                 # Retry on CPU
                 segments, _ = self.w.transcribe(
@@ -132,7 +132,7 @@ class STT:
         user_input = ""
         for segment in segments:
             user_input += segment.text
-        logging.info(f"[STT] Transcribed User Input: {user_input}")
+        logging.debug(f"[STT] Transcribed User Input: {user_input}")
         os.remove(file_path)
         return user_input
 

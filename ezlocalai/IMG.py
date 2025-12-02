@@ -44,7 +44,7 @@ class IMG:
                 base = "stabilityai/stable-diffusion-xl-base-1.0"
                 repo = "ByteDance/SDXL-Lightning"
 
-                logging.info(
+                logging.debug(
                     f"[IMG] Loading SDXL-Lightning {self.num_steps}-step on {device} with {self.dtype}..."
                 )
 
@@ -84,7 +84,7 @@ class IMG:
 
                 self.pipe.enable_attention_slicing()
                 self.pipe.safety_checker = None
-                logging.info(
+                logging.debug(
                     f"[IMG] SDXL-Lightning {self.num_steps}-step model loaded successfully on {device}."
                 )
             except Exception as e:

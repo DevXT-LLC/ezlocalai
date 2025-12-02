@@ -54,7 +54,7 @@ class AudioCache:
             self._cleanup_expired_cache()
             self._check_cache_size()
 
-        logging.info(f"[AudioCache] Initialized with cache dir: {self.cache_dir}")
+        logging.debug(f"[AudioCache] Initialized with cache dir: {self.cache_dir}")
 
     def generate_cache_key(
         self,
@@ -152,7 +152,7 @@ class AudioCache:
                 audio_data = f.read()
 
             self._record_stats("hit")
-            logging.info(f"[AudioCache] Cache hit for key: {cache_key[:8]}...")
+            logging.debug(f"[AudioCache] Cache hit for key: {cache_key[:8]}...")
             return audio_data
 
         except Exception as e:
@@ -196,7 +196,7 @@ class AudioCache:
                 json.dump(metadata, f, indent=2)
 
             self._record_stats("store")
-            logging.info(f"[AudioCache] Stored cache entry: {cache_key[:8]}...")
+            logging.debug(f"[AudioCache] Stored cache entry: {cache_key[:8]}...")
 
             # Check cache size after storing
             self._check_cache_size()
@@ -227,7 +227,7 @@ class AudioCache:
         samples = []
         durations = []
 
-        logging.info(
+        logging.debug(
             f"[AudioCache] Generating {generation_count} samples for selection..."
         )
 
@@ -254,7 +254,7 @@ class AudioCache:
                 # Clean up temp file
                 temp_path.unlink()
 
-                logging.info(f"[AudioCache] Sample {i+1}: duration = {duration_ms}ms")
+                logging.debug(f"[AudioCache] Sample {i+1}: duration = {duration_ms}ms")
 
             except Exception as e:
                 logging.error(f"[AudioCache] Error generating sample {i+1}: {e}")
@@ -289,7 +289,7 @@ class AudioCache:
             "max_duration_ms": max(durations),
         }
 
-        logging.info(
+        logging.debug(
             f"[AudioCache] Selected sample {best_sample['index']+1} "
             f"(duration: {best_sample['duration_ms']}ms)"
         )
@@ -321,7 +321,7 @@ class AudioCache:
                 logging.error(f"[AudioCache] Error checking expiry: {e}")
 
         if removed_count > 0:
-            logging.info(f"[AudioCache] Removed {removed_count} expired entries")
+            logging.debug(f"[AudioCache] Removed {removed_count} expired entries")
 
     def _check_cache_size(self):
         """Check and enforce cache size limit."""
@@ -360,7 +360,7 @@ class AudioCache:
 
         # Remove oldest entries if size exceeded
         if total_size > max_size_bytes:
-            logging.info(
+            logging.debug(
                 f"[AudioCache] Cache size ({total_size/1024/1024:.2f}MB) "
                 f"exceeds limit ({max_size_mb}MB)"
             )
@@ -374,7 +374,7 @@ class AudioCache:
                 self._remove_cache_entry(entry["key"])
                 total_size -= entry["size"]
 
-            logging.info(
+            logging.debug(
                 f"[AudioCache] Cache size after cleanup: {total_size/1024/1024:.2f}MB"
             )
 
@@ -492,7 +492,7 @@ class AudioCache:
             }
             self._save_stats()
 
-        logging.info("[AudioCache] Cache cleared")
+        logging.debug("[AudioCache] Cache cleared")
 
     def warm_cache(
         self,
@@ -515,7 +515,7 @@ class AudioCache:
         if not self.config["enabled"] or not self.config["warm_cache_on_init"]:
             return
 
-        logging.info(f"[AudioCache] Warming cache with {len(phrases)} phrases...")
+        logging.debug(f"[AudioCache] Warming cache with {len(phrases)} phrases...")
 
         for phrase in phrases:
             cache_key = self.generate_cache_key(phrase, voice, language)
@@ -548,4 +548,4 @@ class AudioCache:
             except Exception as e:
                 logging.error(f"[AudioCache] Error warming cache for '{phrase}': {e}")
 
-        logging.info("[AudioCache] Cache warming complete")
+        logging.debug("[AudioCache] Cache warming complete")
