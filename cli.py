@@ -1185,7 +1185,7 @@ def send_prompt(
     # Build the request payload
     payload = {
         "messages": messages,
-        "stream": False,
+        "stream": True,
     }
 
     # Add optional parameters
@@ -1208,58 +1208,93 @@ def send_prompt(
         data = json.dumps(payload).encode("utf-8")
         req = urllib.request.Request(url, data=data, headers=headers, method="POST")
 
-        print("⏳ Waiting for response...")
-
         start_time = time.time()
+        print()  # Start on a new line for streaming output
+
+        # Track streaming statistics
+        completion_tokens = 0
+        prompt_tokens = 0
+        actual_model = model or "unknown"
+        full_content = ""
+
         with urllib.request.urlopen(req, timeout=300) as response:
-            result = json.loads(response.read().decode("utf-8"))
+            # Process Server-Sent Events (SSE) stream
+            buffer = ""
+            for chunk in iter(lambda: response.read(1024).decode("utf-8"), ""):
+                if not chunk:
+                    break
+                buffer += chunk
+
+                # Process complete SSE messages
+                while "\n\n" in buffer or "\r\n\r\n" in buffer:
+                    # Split on either \n\n or \r\n\r\n
+                    if "\r\n\r\n" in buffer:
+                        message, buffer = buffer.split("\r\n\r\n", 1)
+                    else:
+                        message, buffer = buffer.split("\n\n", 1)
+
+                    # Process each line in the message
+                    for line in message.split("\n"):
+                        line = line.strip()
+                        if line.startswith("data: "):
+                            json_data = line[6:]  # Remove "data: " prefix
+
+                            # Check for stream end
+                            if json_data == "[DONE]":
+                                continue
+
+                            try:
+                                chunk_data = json.loads(json_data)
+
+                                # Get model from first chunk
+                                if chunk_data.get("model"):
+                                    actual_model = chunk_data["model"]
+
+                                # Extract and print delta content
+                                choices = chunk_data.get("choices", [])
+                                if choices:
+                                    delta = choices[0].get("delta", {})
+                                    content = delta.get("content", "")
+                                    if content:
+                                        print(content, end="", flush=True)
+                                        full_content += content
+                                        completion_tokens += (
+                                            1  # Approximate token count
+                                        )
+
+                                # Get usage from final chunk if available
+                                usage = chunk_data.get("usage")
+                                if usage:
+                                    prompt_tokens = usage.get("prompt_tokens", 0)
+                                    completion_tokens = usage.get(
+                                        "completion_tokens", completion_tokens
+                                    )
+
+                            except json.JSONDecodeError:
+                                pass  # Skip malformed JSON
+
         elapsed = time.time() - start_time
+        print()  # End with newline
 
-        # Extract and print the response
-        if "choices" in result and len(result["choices"]) > 0:
-            message = result["choices"][0].get("message", {})
-            content = message.get("content", "")
-            if content:
-                print("\n" + content)
-            else:
-                print("⚠️  Empty response received")
+        if not full_content:
+            print("⚠️  Empty response received")
 
-            # Show stats if requested
-            if show_stats:
-                usage = result.get("usage", {})
-                timings = result.get("timings", {})
+        # Show stats if requested
+        if show_stats:
+            total_tokens = prompt_tokens + completion_tokens
 
-                prompt_tokens = usage.get("prompt_tokens", 0)
-                completion_tokens = usage.get("completion_tokens", 0)
-                total_tokens = usage.get(
-                    "total_tokens", prompt_tokens + completion_tokens
-                )
+            print(f"\n{'─' * 50}")
+            print(f"📊 Statistics")
+            print(f"{'─' * 50}")
+            print(f"   Model: {actual_model}")
+            print(f"   Prompt tokens: {prompt_tokens:,}")
+            print(f"   Completion tokens: {completion_tokens:,}")
+            print(f"   Total tokens: {total_tokens:,}")
+            print(f"   Total time: {elapsed:.1f}s")
 
-                # Get the actual model used from the response
-                actual_model = result.get("model", "unknown")
-
-                print(f"\n{'─' * 50}")
-                print(f"📊 Statistics")
-                print(f"{'─' * 50}")
-                print(f"   Model: {actual_model}")
-                print(f"   Prompt tokens: {prompt_tokens:,}")
-                print(f"   Completion tokens: {completion_tokens:,}")
-                print(f"   Total tokens: {total_tokens:,}")
-                print(f"   Total time: {elapsed:.1f}s")
-
-                if completion_tokens > 0:
-                    overall_speed = completion_tokens / elapsed
-                    print(f"   Overall speed: {overall_speed:.1f} tok/s")
-
-                if timings:
-                    prompt_speed = timings.get("prompt_per_second", 0)
-                    gen_speed = timings.get("predicted_per_second", 0)
-                    if prompt_speed > 0:
-                        print(f"   Prompt processing: {prompt_speed:.1f} tok/s")
-                    if gen_speed > 0:
-                        print(f"   Generation speed: {gen_speed:.1f} tok/s")
-        else:
-            print(f"⚠️  Unexpected response format: {result}")
+            if completion_tokens > 0:
+                overall_speed = completion_tokens / elapsed
+                print(f"   Overall speed: {overall_speed:.1f} tok/s")
 
     except urllib.error.HTTPError as e:
         error_body = e.read().decode("utf-8") if e.fp else ""
