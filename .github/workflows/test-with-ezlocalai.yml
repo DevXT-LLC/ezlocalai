@@ -78,7 +78,7 @@ jobs:
       - name: Execute notebook
         env:
           API_KEY: ${{ secrets.api-key }}
-        run: python3 -m nbconvert --execute --log-level DEBUG --to pdf  ${{ env.notebook-file }}
+        run: python3 -m nbconvert --execute --ExecutePreprocessor.timeout=600 --log-level DEBUG --to pdf  ${{ env.notebook-file }}
 
       - uses: actions/upload-artifact@v4
         with:
