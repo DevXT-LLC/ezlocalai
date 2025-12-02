@@ -97,7 +97,6 @@ else:
         return "http://localhost:8091"
 
 
-os.makedirs("outputs", exist_ok=True)
 app.mount("/outputs", StaticFiles(directory="outputs"), name="outputs")
 
 
