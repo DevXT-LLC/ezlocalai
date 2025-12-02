@@ -20,8 +20,8 @@ RUN apt-get update --fix-missing && \
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh && \
     /root/.local/bin/uv venv /opt/venv
 WORKDIR /app
-# Install PyTorch with ROCm 6.4 support
-RUN uv pip install torch==2.7.0+rocm6.4 torchaudio==2.7.0+rocm6.4 --index-url https://download.pytorch.org/whl/rocm6.4
+# Install PyTorch with ROCm 6.4 support (stable version 2.9.1)
+RUN uv pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/rocm6.4
 # Install numpy and Cython for pkuseg (required by chatterbox-tts)
 # numpy>=1.26.0 required for Python 3.12 compatibility
 RUN uv pip install "numpy>=1.26.0" Cython
