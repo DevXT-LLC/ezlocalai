@@ -107,6 +107,7 @@ class STT:
         prompt=None,
         temperature=0.0,
         translate=False,
+        return_segments=False,
     ):
         if "/" in audio_format:
             audio_format = audio_format.split("/")[1]
@@ -118,8 +119,9 @@ class STT:
         if not os.path.exists(file_path):
             raise RuntimeError(f"Failed to load audio.")
 
+        transcribe_info = None
         try:
-            segments, _ = self.w.transcribe(
+            segments, transcribe_info = self.w.transcribe(
                 file_path,
                 task="transcribe" if not translate else "translate",
                 vad_filter=True,
@@ -164,7 +166,7 @@ class STT:
                 logging.debug("[STT] Model reloaded on CPU, retrying transcription...")
 
                 # Retry on CPU
-                segments, _ = self.w.transcribe(
+                segments, transcribe_info = self.w.transcribe(
                     file_path,
                     task="transcribe" if not translate else "translate",
                     vad_filter=True,
@@ -178,11 +180,33 @@ class STT:
                 os.remove(file_path)
                 raise
 
+        # Build full text and segment data
         user_input = ""
-        for segment in segments:
+        segment_data = []
+        for i, segment in enumerate(segments):
             user_input += segment.text
+            segment_data.append(
+                {
+                    "id": i,
+                    "start": segment.start,
+                    "end": segment.end,
+                    "text": segment.text.strip(),
+                }
+            )
         logging.debug(f"[STT] Transcribed User Input: {user_input}")
         os.remove(file_path)
+
+        if return_segments:
+            detected_language = None
+            if transcribe_info and hasattr(transcribe_info, "language"):
+                detected_language = transcribe_info.language
+            elif language:
+                detected_language = language
+            return {
+                "text": user_input.strip(),
+                "segments": segment_data,
+                "language": detected_language,
+            }
         return user_input
 
     def listen(self):

@@ -35,6 +35,51 @@ logging.basicConfig(
     format=getenv("LOG_FORMAT"),
 )
 
+
+# SRT/VTT timestamp formatting helpers
+def format_timestamp_srt(seconds: float) -> str:
+    """Convert seconds to SRT timestamp format: HH:MM:SS,mmm"""
+    hours = int(seconds // 3600)
+    minutes = int((seconds % 3600) // 60)
+    secs = int(seconds % 60)
+    millis = int((seconds - int(seconds)) * 1000)
+    return f"{hours:02d}:{minutes:02d}:{secs:02d},{millis:03d}"
+
+
+def format_timestamp_vtt(seconds: float) -> str:
+    """Convert seconds to VTT timestamp format: HH:MM:SS.mmm"""
+    hours = int(seconds // 3600)
+    minutes = int((seconds % 3600) // 60)
+    secs = int(seconds % 60)
+    millis = int((seconds - int(seconds)) * 1000)
+    return f"{hours:02d}:{minutes:02d}:{secs:02d}.{millis:03d}"
+
+
+def segments_to_srt(segments: list) -> str:
+    """Convert segments to SRT format."""
+    srt_lines = []
+    for i, seg in enumerate(segments, 1):
+        start = format_timestamp_srt(seg["start"])
+        end = format_timestamp_srt(seg["end"])
+        srt_lines.append(f"{i}")
+        srt_lines.append(f"{start} --> {end}")
+        srt_lines.append(seg["text"])
+        srt_lines.append("")
+    return "\n".join(srt_lines)
+
+
+def segments_to_vtt(segments: list) -> str:
+    """Convert segments to WebVTT format."""
+    vtt_lines = ["WEBVTT", ""]
+    for seg in segments:
+        start = format_timestamp_vtt(seg["start"])
+        end = format_timestamp_vtt(seg["end"])
+        vtt_lines.append(f"{start} --> {end}")
+        vtt_lines.append(seg["text"])
+        vtt_lines.append("")
+    return "\n".join(vtt_lines)
+
+
 # Initialize request queue
 MAX_CONCURRENT_REQUESTS = int(getenv("MAX_CONCURRENT_REQUESTS", "1"))
 MAX_QUEUE_SIZE = int(getenv("MAX_QUEUE_SIZE", "100"))
@@ -379,16 +424,43 @@ async def speech_to_text(
 ):
     if getenv("STT_ENABLED").lower() == "false":
         raise HTTPException(status_code=404, detail="Speech to text is disabled.")
+
     stt = pipe._get_stt()
+
+    # Determine if we need segments based on response_format
+    need_segments = response_format in ["verbose_json", "srt", "vtt"]
+
     response = await stt.transcribe_audio(
         base64_audio=base64.b64encode(await file.read()).decode("utf-8"),
         audio_format=file.content_type,
         language=language,
         prompt=prompt,
         temperature=temperature,
+        return_segments=need_segments,
     )
     pipe._destroy_stt()
-    return {"text": response}
+
+    # Format response based on response_format
+    if response_format == "text":
+        text_content = response["text"] if isinstance(response, dict) else response
+        return Response(content=text_content, media_type="text/plain")
+
+    elif response_format == "verbose_json":
+        # Already in correct format with segments
+        return response
+
+    elif response_format == "srt":
+        srt_content = segments_to_srt(response["segments"])
+        return Response(content=srt_content, media_type="text/plain")
+
+    elif response_format == "vtt":
+        vtt_content = segments_to_vtt(response["segments"])
+        return Response(content=vtt_content, media_type="text/vtt")
+
+    else:  # json (default)
+        if isinstance(response, dict):
+            return {"text": response["text"]}
+        return {"text": response}
 
 
 # Audio Translation endpoint
@@ -422,6 +494,116 @@ async def audio_translations(
     )
     pipe._destroy_stt()
     return {"text": response}
+
+
+# Helper function for translating subtitle segments
+async def translate_segment(text: str, source_lang: str, target_lang: str) -> str:
+    """Translate a single subtitle segment using the LLM."""
+    messages = [
+        {
+            "role": "system",
+            "content": f"You are a professional subtitle translator. Translate the following text from {source_lang} to {target_lang}. Keep the translation concise and natural for subtitles. Return ONLY the translated text, nothing else.",
+        },
+        {"role": "user", "content": text},
+    ]
+
+    # Call LLM for translation
+    response, _ = await pipe.get_response(
+        data={
+            "model": getenv("DEFAULT_MODEL"),
+            "messages": messages,
+            "temperature": 0.3,
+            "max_tokens": 500,
+        },
+        completion_type="chat",
+    )
+
+    # Extract translated text from response
+    if isinstance(response, dict) and "choices" in response:
+        return response["choices"][0]["message"]["content"].strip()
+    return text  # Fallback to original if translation fails
+
+
+@app.post(
+    "/v1/audio/subtitles",
+    tags=["Audio"],
+    dependencies=[Depends(verify_api_key)],
+)
+async def generate_subtitles(
+    file: UploadFile = File(...),
+    model: str = Form(WHISPER_MODEL),
+    source_language: Optional[str] = Form(None),
+    target_languages: str = Form("en"),
+    format: str = Form("vtt"),
+    prompt: Optional[str] = Form(None),
+    temperature: Optional[float] = Form(0.0),
+    user: str = Depends(verify_api_key),
+):
+    """
+    Generate subtitles in multiple languages from audio.
+
+    - Transcribes audio to source language (or auto-detects)
+    - Translates segments to each target language while preserving timing
+    - Returns subtitles in requested format (srt, vtt, json)
+
+    Example: target_languages="en,ru" returns both English and Russian subtitles
+    with synchronized timestamps.
+    """
+    if getenv("STT_ENABLED").lower() == "false":
+        raise HTTPException(status_code=404, detail="Speech to text is disabled.")
+
+    languages = [lang.strip() for lang in target_languages.split(",")]
+
+    # Step 1: Transcribe audio to get segments with timing
+    stt = pipe._get_stt()
+    audio_bytes = await file.read()
+    transcription = await stt.transcribe_audio(
+        base64_audio=base64.b64encode(audio_bytes).decode("utf-8"),
+        audio_format=file.content_type,
+        language=source_language,
+        prompt=prompt,
+        temperature=temperature,
+        return_segments=True,
+    )
+    pipe._destroy_stt()
+
+    detected_language = transcription.get("language") or source_language or "en"
+    source_segments = transcription["segments"]
+
+    result = {"source_language": detected_language, "subtitles": {}}
+
+    # Step 2: Generate subtitles for each target language
+    for target_lang in languages:
+        if target_lang == detected_language:
+            # No translation needed - use original segments
+            translated_segments = source_segments
+        else:
+            # Translate each segment while preserving timing
+            translated_segments = []
+            for seg in source_segments:
+                translated_text = await translate_segment(
+                    text=seg["text"],
+                    source_lang=detected_language,
+                    target_lang=target_lang,
+                )
+                translated_segments.append(
+                    {
+                        "id": seg["id"],
+                        "start": seg["start"],
+                        "end": seg["end"],
+                        "text": translated_text,
+                    }
+                )
+
+        # Format output
+        if format == "json":
+            result["subtitles"][target_lang] = translated_segments
+        elif format == "srt":
+            result["subtitles"][target_lang] = segments_to_srt(translated_segments)
+        elif format == "vtt":
+            result["subtitles"][target_lang] = segments_to_vtt(translated_segments)
+
+    return result
 
 
 class TextToSpeech(BaseModel):
