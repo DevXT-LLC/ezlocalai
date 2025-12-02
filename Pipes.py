@@ -391,6 +391,69 @@ def estimate_model_vram_requirement(
         return 8.0 + (context_size / 1000) * 0.5
 
 
+def _estimate_optimal_layers(
+    model_path: str,
+    context_size: int,
+    projectors: list = None,
+    available_vram_per_gpu: list = None,
+) -> int:
+    """Estimate optimal number of GPU layers for partial offloading.
+
+    Uses xllamacpp's estimate_gpu_layers to determine how many layers
+    can fit in the available VRAM.
+
+    Args:
+        model_path: Path to the model file
+        context_size: Context window size
+        projectors: List of projector paths (for vision models)
+        available_vram_per_gpu: List of available VRAM per GPU in GB
+
+    Returns:
+        Number of layers that can fit on GPU, or 0 if estimation fails
+    """
+    if not xllamacpp_available or not available_vram_per_gpu:
+        return 0
+
+    try:
+        # Build GPU info list for xllamacpp
+        gpus = []
+        for i, avail_gb in enumerate(available_vram_per_gpu):
+            avail_bytes = int(avail_gb * 1024 * 1024 * 1024)
+            gpus.append(
+                {
+                    "name": f"GPU {i}",
+                    "memory_free": avail_bytes,
+                    "memory_total": avail_bytes,  # Use available as total for estimation
+                }
+            )
+
+        result = estimate_gpu_layers(
+            gpus=gpus,
+            model_path=model_path,
+            projectors=projectors or [],
+            context_length=context_size,
+            batch_size=2048,
+            num_parallel=1,
+            kv_cache_type="f16",
+        )
+
+        # Extract layer count from result
+        if hasattr(result, "layers"):
+            return result.layers
+        elif isinstance(result, dict):
+            return result.get(
+                "layers", result.get("gpu_layers", result.get("n_gpu_layers", 0))
+            )
+        elif isinstance(result, int):
+            return result
+
+        return 0
+
+    except Exception as e:
+        logging.warning(f"[GPU Selection] Failed to estimate optimal layers: {e}")
+        return 0
+
+
 def determine_gpu_strategy(
     model_path: str,
     context_size: int,
@@ -460,21 +523,38 @@ def determine_gpu_strategy(
             return {
                 "main_gpu": 0,
                 "tensor_split": None,
-                "gpu_layers": -1,  # Auto-detect
+                "gpu_layers": -1,  # Auto-detect (all layers on GPU)
                 "strategy": "gpu0",
             }
         else:
-            # Not enough VRAM, fall back to CPU
-            logging.warning(
-                f"[GPU Selection] GPU 0 has {available_vram[0]:.1f}GB available, "
-                f"need {estimated_vram:.1f}GB, falling back to CPU"
+            # Not enough VRAM for full model - try partial offloading
+            # Use xllamacpp to estimate how many layers can fit
+            optimal_layers = _estimate_optimal_layers(
+                model_path, context_size, projectors, [available_vram[0]]
             )
-            return {
-                "main_gpu": 0,
-                "tensor_split": None,
-                "gpu_layers": 0,
-                "strategy": "cpu",
-            }
+            if optimal_layers and optimal_layers > 0:
+                logging.info(
+                    f"[GPU Selection] GPU 0 has {available_vram[0]:.1f}GB available, "
+                    f"need {estimated_vram:.1f}GB - using partial offload ({optimal_layers} layers on GPU)"
+                )
+                return {
+                    "main_gpu": 0,
+                    "tensor_split": None,
+                    "gpu_layers": optimal_layers,
+                    "strategy": "gpu0_partial",
+                }
+            else:
+                # Fall back to CPU
+                logging.warning(
+                    f"[GPU Selection] GPU 0 has {available_vram[0]:.1f}GB available, "
+                    f"need {estimated_vram:.1f}GB, falling back to CPU"
+                )
+                return {
+                    "main_gpu": 0,
+                    "tensor_split": None,
+                    "gpu_layers": 0,
+                    "strategy": "cpu",
+                }
 
     # Multi-GPU case - use capability ranking
     # Strategy 1: Try most powerful GPU alone
@@ -533,7 +613,31 @@ def determine_gpu_strategy(
                 "strategy": f"gpu{gpu_idx}",
             }
 
-    # Strategy 4: Fall back to CPU
+    # Strategy 4: Try partial offloading with tensor split
+    # Model doesn't fit entirely but we can offload some layers to GPUs
+    total_available = sum(available_vram)
+    if total_available > 2:  # At least 2GB available across all GPUs
+        optimal_layers = _estimate_optimal_layers(
+            model_path, context_size, projectors, available_vram
+        )
+        if optimal_layers and optimal_layers > 0:
+            # Calculate tensor split for partial offloading
+            tensor_split = [0.0] * 128
+            for i, avail in enumerate(available_vram):
+                tensor_split[i] = avail / total_available if total_available > 0 else 0.0
+
+            logging.info(
+                f"[GPU Selection] Partial offload: {optimal_layers} layers across {gpu_count} GPUs "
+                f"(total: {total_available:.1f}GB available, need: {estimated_vram:.1f}GB for full model)"
+            )
+            return {
+                "main_gpu": primary_gpu,
+                "tensor_split": tensor_split,
+                "gpu_layers": optimal_layers,
+                "strategy": "tensor_split_partial",
+            }
+
+    # Strategy 5: Fall back to CPU
     logging.warning(
         f"[GPU Selection] Insufficient VRAM across all GPUs "
         f"(need {estimated_vram:.1f}GB, have {total_available:.1f}GB), falling back to CPU"

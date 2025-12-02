@@ -650,10 +650,20 @@ async def generate_subtitles(
     detected_language = transcription.get("language") or source_language or "en"
     source_segments = transcription["segments"]
 
+    logging.info(
+        f"[Subtitles] Detected language: {detected_language}, "
+        f"Target languages: {languages}, "
+        f"Segments: {len(source_segments)}"
+    )
+
     result = {"source_language": detected_language, "subtitles": {}}
 
     # Step 2: Generate subtitles for each target language IN PARALLEL
     async def process_language(target_lang: str):
+        logging.info(
+            f"[Subtitles] Processing language: {target_lang}, "
+            f"needs_translation: {target_lang != detected_language}"
+        )
         if target_lang == detected_language:
             # No translation needed - use original segments
             return target_lang, source_segments

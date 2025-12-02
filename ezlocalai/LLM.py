@@ -373,7 +373,9 @@ class LLM:
                     f"[LLM] {available_vram:.1f}GB of available VRAM detected (free: {total_free_vram:.1f}GB)."
                 )
 
-            GPU_LAYERS = int(available_vram) if available_vram > 0 else 0
+            # -1 means "offload all layers to GPU" in xllamacpp
+            # Only fall back to CPU (0) if there's essentially no VRAM
+            GPU_LAYERS = -1 if available_vram > 1 else 0
         if GPU_LAYERS == -2:
             GPU_LAYERS = -1
 
