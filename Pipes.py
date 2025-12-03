@@ -624,7 +624,9 @@ def determine_gpu_strategy(
             # Calculate tensor split for partial offloading
             tensor_split = [0.0] * 128
             for i, avail in enumerate(available_vram):
-                tensor_split[i] = avail / total_available if total_available > 0 else 0.0
+                tensor_split[i] = (
+                    avail / total_available if total_available > 0 else 0.0
+                )
 
             logging.info(
                 f"[GPU Selection] Partial offload: {optimal_layers} layers across {gpu_count} GPUs "
