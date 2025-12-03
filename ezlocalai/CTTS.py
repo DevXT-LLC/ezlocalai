@@ -131,8 +131,14 @@ class CTTS:
         except (torch.cuda.OutOfMemoryError, RuntimeError) as e:
             error_str = str(e).lower()
             # Check for OOM, CUDA errors, or cuDNN errors (version mismatch, etc.)
-            if "out of memory" in error_str or "cuda" in error_str or "cudnn" in error_str:
-                logging.warning(f"[CTTS] GPU error during init, falling back to CPU: {e}")
+            if (
+                "out of memory" in error_str
+                or "cuda" in error_str
+                or "cudnn" in error_str
+            ):
+                logging.warning(
+                    f"[CTTS] GPU error during init, falling back to CPU: {e}"
+                )
                 gc.collect()
                 if torch.cuda.is_available():
                     torch.cuda.empty_cache()
@@ -339,7 +345,11 @@ class CTTS:
         except (torch.cuda.OutOfMemoryError, RuntimeError) as e:
             error_str = str(e).lower()
             # Check for OOM, CUDA errors, or cuDNN errors (version mismatch, etc.)
-            if "out of memory" in error_str or "cuda" in error_str or "cudnn" in error_str:
+            if (
+                "out of memory" in error_str
+                or "cuda" in error_str
+                or "cudnn" in error_str
+            ):
                 logging.warning(
                     f"[CTTS] GPU error during generation, reloading model on CPU: {e}"
                 )
