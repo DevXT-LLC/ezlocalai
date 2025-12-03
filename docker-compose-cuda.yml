@@ -20,6 +20,9 @@ services:
       - MAX_QUEUE_SIZE=${MAX_QUEUE_SIZE:-100}
       - REQUEST_TIMEOUT=${REQUEST_TIMEOUT:-300}
     restart: unless-stopped
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
     ports:
       - "8091:8091"
     volumes:
