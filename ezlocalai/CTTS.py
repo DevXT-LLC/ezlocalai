@@ -129,8 +129,10 @@ class CTTS:
         try:
             self.model = ChatterboxTTS.from_pretrained(device=self.device)
         except (torch.cuda.OutOfMemoryError, RuntimeError) as e:
-            if "out of memory" in str(e).lower() or "cuda" in str(e).lower():
-                logging.warning(f"[CTTS] GPU OOM during init, falling back to CPU: {e}")
+            error_str = str(e).lower()
+            # Check for OOM, CUDA errors, or cuDNN errors (version mismatch, etc.)
+            if "out of memory" in error_str or "cuda" in error_str or "cudnn" in error_str:
+                logging.warning(f"[CTTS] GPU error during init, falling back to CPU: {e}")
                 gc.collect()
                 if torch.cuda.is_available():
                     torch.cuda.empty_cache()
@@ -336,9 +338,10 @@ class CTTS:
                 wav = self.model.generate(text)
         except (torch.cuda.OutOfMemoryError, RuntimeError) as e:
             error_str = str(e).lower()
-            if "out of memory" in error_str or "cuda" in error_str:
+            # Check for OOM, CUDA errors, or cuDNN errors (version mismatch, etc.)
+            if "out of memory" in error_str or "cuda" in error_str or "cudnn" in error_str:
                 logging.warning(
-                    f"[CTTS] GPU OOM during generation, reloading model on CPU: {e}"
+                    f"[CTTS] GPU error during generation, reloading model on CPU: {e}"
                 )
                 # Free GPU memory
                 gc.collect()
