@@ -1415,7 +1415,7 @@ class Pipes:
 
     def _ensure_context_size(self, required_context: int):
         """Reload LLM with larger context if needed using smart GPU selection.
-        
+
         Thread-safe: Uses _model_lock to prevent race conditions.
         """
         with self._model_lock:
@@ -1549,7 +1549,9 @@ class Pipes:
                             )
                             self.current_llm_name = model_name
                             self.current_context = 16384
-                            logging.debug(f"[LLM] Recovered with {model_name} (CPU mode)")
+                            logging.debug(
+                                f"[LLM] Recovered with {model_name} (CPU mode)"
+                            )
                             break
                         except:
                             continue
@@ -1687,7 +1689,7 @@ class Pipes:
         - Tensor split if GPU 0 needs help from other GPUs
         - GPU 1 alone if GPU 0 is fully occupied
         - CPU fallback if no GPU has sufficient VRAM
-        
+
         Thread-safe: Uses _model_lock to prevent race conditions when multiple
         requests try to access/load models simultaneously.
         """
@@ -1726,7 +1728,9 @@ class Pipes:
             # Check if this is one of our persistent models
             is_primary = model_name == self.primary_llm_name
             is_vision = model_name == self.vision_llm_name
-            logging.debug(f"[LLM _get_llm] is_primary={is_primary}, is_vision={is_vision}")
+            logging.debug(
+                f"[LLM _get_llm] is_primary={is_primary}, is_vision={is_vision}"
+            )
 
             # If we were using a large model, unload it first
             if self._using_large_model and self.llm is not None:
@@ -1738,7 +1742,10 @@ class Pipes:
 
             # Try to use persistent models
             if is_primary and self.primary_llm is not None:
-                if self.primary_llm_context and self.primary_llm_context >= context_size:
+                if (
+                    self.primary_llm_context
+                    and self.primary_llm_context >= context_size
+                ):
                     logging.debug(f"[LLM] Using persistent primary model: {model_name}")
                     self.llm = self.primary_llm
                     self.current_llm_name = model_name
@@ -1793,7 +1800,9 @@ class Pipes:
                     torch.cuda.empty_cache()
                 self._using_large_model = True
 
-            logging.debug(f"[LLM] Loading {model_name} (context: {context_size//1000}k)")
+            logging.debug(
+                f"[LLM] Loading {model_name} (context: {context_size//1000}k)"
+            )
             start_time = time.time()
 
             # Let _load_llm_resilient handle smart GPU selection
@@ -1825,7 +1834,7 @@ class Pipes:
 
     def _destroy_llm_temp(self):
         """Destroy temporary (large) LLM without affecting persistent models.
-        
+
         Note: This method should only be called while holding _model_lock.
         """
         if self.llm is not None and self._using_large_model:
@@ -1843,7 +1852,7 @@ class Pipes:
 
     def _reload_persistent_models(self):
         """Reload persistent models after using a large model.
-        
+
         Thread-safe: Uses _model_lock to prevent race conditions.
         """
         with self._model_lock:
