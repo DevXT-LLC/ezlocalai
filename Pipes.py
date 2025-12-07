@@ -678,6 +678,12 @@ class Pipes:
         load_dotenv()
         global img_import_success
 
+        # Lock for model access - prevents race conditions when multiple
+        # requests try to load/switch models simultaneously
+        self._model_lock = threading.Lock()
+        # Track if inference is currently in progress
+        self._inference_in_progress = False
+
         # Check if precache already ran (models already downloaded/warmed)
         from pathlib import Path
 
@@ -1408,138 +1414,145 @@ class Pipes:
         return get_models()
 
     def _ensure_context_size(self, required_context: int):
-        """Reload LLM with larger context if needed using smart GPU selection."""
-        if self.current_context and self.current_context >= required_context:
-            # Current context is sufficient
-            return
+        """Reload LLM with larger context if needed using smart GPU selection.
+        
+        Thread-safe: Uses _model_lock to prevent race conditions.
+        """
+        with self._model_lock:
+            if self.current_context and self.current_context >= required_context:
+                # Current context is sufficient
+                return
 
-        # Need to reload with larger context
-        logging.debug(
-            f"[LLM] Context {self.current_context//1000 if self.current_context else 0}k insufficient for {required_context:,} tokens, reloading at {required_context//1000}k"
-        )
+            # Need to reload with larger context
+            logging.debug(
+                f"[LLM] Context {self.current_context//1000 if self.current_context else 0}k insufficient for {required_context:,} tokens, reloading at {required_context//1000}k"
+            )
 
-        model_name = self.current_llm_name
+            model_name = self.current_llm_name
 
-        # Unload current model
-        if self.llm:
-            del self.llm
-            self.llm = None
-            gc.collect()
-            if torch.cuda.is_available():
-                torch.cuda.empty_cache()
+            # Unload current model
+            if self.llm:
+                del self.llm
+                self.llm = None
+                gc.collect()
+                if torch.cuda.is_available():
+                    torch.cuda.empty_cache()
 
-        # Load with new context - let smart GPU selection determine configuration
-        start_time = time.time()
-        self.llm = self._load_llm_resilient(
-            model_name=model_name,
-            max_tokens=required_context,
-            # gpu_layers, main_gpu, tensor_split determined by smart selection
-        )
-        self.current_context = required_context
-        load_time = time.time() - start_time
-        logging.debug(
-            f"[LLM] {model_name} reloaded at {required_context//1000}k context in {load_time:.2f}s"
-        )
+            # Load with new context - let smart GPU selection determine configuration
+            start_time = time.time()
+            self.llm = self._load_llm_resilient(
+                model_name=model_name,
+                max_tokens=required_context,
+                # gpu_layers, main_gpu, tensor_split determined by smart selection
+            )
+            self.current_context = required_context
+            load_time = time.time() - start_time
+            logging.debug(
+                f"[LLM] {model_name} reloaded at {required_context//1000}k context in {load_time:.2f}s"
+            )
 
     def _swap_llm(self, requested_model: str, required_context: int = None):
         """Hot-swap to a different LLM if needed with smart GPU selection.
+
+        Thread-safe: Uses _model_lock to prevent race conditions.
 
         Args:
             requested_model: Model name to swap to
             required_context: Minimum context size needed
         """
-        # Check if this is a known model
-        target_model = None
+        with self._model_lock:
+            # Check if this is a known model
+            target_model = None
 
-        for model_name in self.available_models:
-            # Match by exact name or by the short name (last part after /)
-            short_name = model_name.split("/")[-1].lower()
-            requested_short = requested_model.split("/")[-1].lower()
+            for model_name in self.available_models:
+                # Match by exact name or by the short name (last part after /)
+                short_name = model_name.split("/")[-1].lower()
+                requested_short = requested_model.split("/")[-1].lower()
+                if (
+                    model_name.lower() == requested_model.lower()
+                    or short_name == requested_short
+                ):
+                    target_model = model_name
+                    break
+
+            if target_model is None:
+                # Model not in available list, use current
+                return
+
+            # Determine context size
+            target_context = required_context if required_context else 16384
+
+            # Check if we already have this model loaded with sufficient context
             if (
-                model_name.lower() == requested_model.lower()
-                or short_name == requested_short
+                self.current_llm_name == target_model
+                and self.current_context
+                and self.current_context >= target_context
             ):
-                target_model = model_name
-                break
+                return
 
-        if target_model is None:
-            # Model not in available list, use current
-            return
-
-        # Determine context size
-        target_context = required_context if required_context else 16384
-
-        # Check if we already have this model loaded with sufficient context
-        if (
-            self.current_llm_name == target_model
-            and self.current_context
-            and self.current_context >= target_context
-        ):
-            return
-
-        # Swap models - must unload old model first to free VRAM
-        logging.debug(
-            f"[LLM] Swapping to {target_model} at {target_context//1000}k context"
-        )
-        start_time = time.time()
-
-        # Store old model info in case we need to rollback
-        old_model_name = self.current_llm_name
-        old_context = self.current_context or 16384
-
-        # Destroy current LLM first to free VRAM
-        if self.llm:
-            logging.debug(f"[LLM] Unloading {old_model_name} to free VRAM")
-            del self.llm
-            self.llm = None
-            gc.collect()
-            if torch.cuda.is_available():
-                torch.cuda.empty_cache()
-
-        # Try to load new LLM with smart GPU selection
-        try:
-            self.llm = self._load_llm_resilient(
-                model_name=target_model,
-                max_tokens=target_context,
-                # Let smart GPU selection handle gpu_layers, main_gpu, tensor_split
+            # Swap models - must unload old model first to free VRAM
+            logging.debug(
+                f"[LLM] Swapping to {target_model} at {target_context//1000}k context"
             )
-            self.current_llm_name = target_model
-            self.current_context = target_context
-            load_time = time.time() - start_time
-            logging.debug(f"[LLM] {target_model} loaded in {load_time:.2f}s")
-            if self.llm.is_vision:
-                logging.debug(f"[LLM] Vision capability enabled for {target_model}")
-        except Exception as e:
-            logging.error(f"[LLM] Failed to load {target_model}: {e}")
-            # Rollback to old model with smart GPU selection
-            logging.debug(f"[LLM] Rolling back to {old_model_name}")
+            start_time = time.time()
+
+            # Store old model info in case we need to rollback
+            old_model_name = self.current_llm_name
+            old_context = self.current_context or 16384
+
+            # Destroy current LLM first to free VRAM
+            if self.llm:
+                logging.debug(f"[LLM] Unloading {old_model_name} to free VRAM")
+                del self.llm
+                self.llm = None
+                gc.collect()
+                if torch.cuda.is_available():
+                    torch.cuda.empty_cache()
+
+            # Try to load new LLM with smart GPU selection
             try:
                 self.llm = self._load_llm_resilient(
-                    model_name=old_model_name,
-                    max_tokens=old_context,
-                    # Let smart GPU selection handle configuration
+                    model_name=target_model,
+                    max_tokens=target_context,
+                    # Let smart GPU selection handle gpu_layers, main_gpu, tensor_split
                 )
-                self.current_llm_name = old_model_name
-                self.current_context = old_context
-                logging.debug(f"[LLM] Rolled back to {old_model_name}")
-            except Exception as rollback_error:
-                logging.error(
-                    f"[LLM] CRITICAL: Failed to rollback to {old_model_name}: {rollback_error}"
-                )
-                # Last resort - try to load first available model at 16k with CPU fallback
-                for model_name in self.available_models:
-                    try:
-                        self.llm = self._load_llm_resilient(
-                            model_name=model_name,
-                            max_tokens=16384,
-                            gpu_layers=0,  # Force CPU to maximize chance of success
-                        )
-                        self.current_llm_name = model_name
-                        self.current_context = 16384
-                        logging.debug(f"[LLM] Recovered with {model_name} (CPU mode)")
-                        break
-                    except:
-                        continue
+                self.current_llm_name = target_model
+                self.current_context = target_context
+                load_time = time.time() - start_time
+                logging.debug(f"[LLM] {target_model} loaded in {load_time:.2f}s")
+                if self.llm.is_vision:
+                    logging.debug(f"[LLM] Vision capability enabled for {target_model}")
+            except Exception as e:
+                logging.error(f"[LLM] Failed to load {target_model}: {e}")
+                # Rollback to old model with smart GPU selection
+                logging.debug(f"[LLM] Rolling back to {old_model_name}")
+                try:
+                    self.llm = self._load_llm_resilient(
+                        model_name=old_model_name,
+                        max_tokens=old_context,
+                        # Let smart GPU selection handle configuration
+                    )
+                    self.current_llm_name = old_model_name
+                    self.current_context = old_context
+                    logging.debug(f"[LLM] Rolled back to {old_model_name}")
+                except Exception as rollback_error:
+                    logging.error(
+                        f"[LLM] CRITICAL: Failed to rollback to {old_model_name}: {rollback_error}"
+                    )
+                    # Last resort - try to load first available model at 16k with CPU fallback
+                    for model_name in self.available_models:
+                        try:
+                            self.llm = self._load_llm_resilient(
+                                model_name=model_name,
+                                max_tokens=16384,
+                                gpu_layers=0,  # Force CPU to maximize chance of success
+                            )
+                            self.current_llm_name = model_name
+                            self.current_context = 16384
+                            logging.debug(f"[LLM] Recovered with {model_name} (CPU mode)")
+                            break
+                        except:
+                            continue
 
     def _get_embedder(self):
         """Lazy load embedding model on demand."""
@@ -1674,6 +1687,9 @@ class Pipes:
         - Tensor split if GPU 0 needs help from other GPUs
         - GPU 1 alone if GPU 0 is fully occupied
         - CPU fallback if no GPU has sufficient VRAM
+        
+        Thread-safe: Uses _model_lock to prevent race conditions when multiple
+        requests try to access/load models simultaneously.
         """
         if model_name is None:
             model_name = self.available_models[0] if self.available_models else None
@@ -1682,131 +1698,136 @@ class Pipes:
             logging.warning("[LLM] No model available to load")
             return None
 
-        logging.debug(
-            f"[LLM _get_llm] Requested model='{model_name}', context={context_size}"
-        )
-        logging.debug(
-            f"[LLM _get_llm] Current: llm={self.llm is not None}, name='{self.current_llm_name}', ctx={self.current_context}"
-        )
-        logging.debug(
-            f"[LLM _get_llm] Primary: llm={self.primary_llm is not None}, name='{self.primary_llm_name}', ctx={self.primary_llm_context}"
-        )
-        logging.debug(
-            f"[LLM _get_llm] Vision: llm={self.vision_llm is not None}, name='{self.vision_llm_name}', ctx={self.vision_llm_context}"
-        )
+        # Acquire lock to prevent race conditions during model check/load
+        with self._model_lock:
+            logging.debug(
+                f"[LLM _get_llm] Requested model='{model_name}', context={context_size}"
+            )
+            logging.debug(
+                f"[LLM _get_llm] Current: llm={self.llm is not None}, name='{self.current_llm_name}', ctx={self.current_context}"
+            )
+            logging.debug(
+                f"[LLM _get_llm] Primary: llm={self.primary_llm is not None}, name='{self.primary_llm_name}', ctx={self.primary_llm_context}"
+            )
+            logging.debug(
+                f"[LLM _get_llm] Vision: llm={self.vision_llm is not None}, name='{self.vision_llm_name}', ctx={self.vision_llm_context}"
+            )
 
-        # Check if we already have the right model loaded with sufficient context
-        if (
-            self.llm is not None
-            and self.current_llm_name == model_name
-            and self.current_context
-            and self.current_context >= context_size
-        ):
-            logging.debug(f"[LLM _get_llm] Using current self.llm (already loaded)")
+            # Check if we already have the right model loaded with sufficient context
+            if (
+                self.llm is not None
+                and self.current_llm_name == model_name
+                and self.current_context
+                and self.current_context >= context_size
+            ):
+                logging.debug(f"[LLM _get_llm] Using current self.llm (already loaded)")
+                return self.llm
+
+            # Check if this is one of our persistent models
+            is_primary = model_name == self.primary_llm_name
+            is_vision = model_name == self.vision_llm_name
+            logging.debug(f"[LLM _get_llm] is_primary={is_primary}, is_vision={is_vision}")
+
+            # If we were using a large model, unload it first
+            if self._using_large_model and self.llm is not None:
+                logging.debug(
+                    f"[LLM] Unloading large model to switch back to persistent model"
+                )
+                self._destroy_llm_temp()
+                self._using_large_model = False
+
+            # Try to use persistent models
+            if is_primary and self.primary_llm is not None:
+                if self.primary_llm_context and self.primary_llm_context >= context_size:
+                    logging.debug(f"[LLM] Using persistent primary model: {model_name}")
+                    self.llm = self.primary_llm
+                    self.current_llm_name = model_name
+                    self.current_context = self.primary_llm_context
+                    return self.llm
+                else:
+                    # Need to reload primary with larger context
+                    logging.info(
+                        f"[LLM] Reloading primary model with larger context: {context_size//1000}k (had {self.primary_llm_context})"
+                    )
+                    del self.primary_llm
+                    self.primary_llm = None
+                    gc.collect()
+                    if torch.cuda.is_available():
+                        torch.cuda.empty_cache()
+
+            if is_vision and self.vision_llm is not None:
+                if self.vision_llm_context and self.vision_llm_context >= context_size:
+                    logging.debug(f"[LLM] Using persistent vision model: {model_name}")
+                    self.llm = self.vision_llm
+                    self.current_llm_name = model_name
+                    self.current_context = self.vision_llm_context
+                    return self.llm
+                else:
+                    # Need to reload vision with larger context
+                    logging.info(
+                        f"[LLM] Reloading vision model with larger context: {context_size//1000}k (had {self.vision_llm_context})"
+                    )
+                    del self.vision_llm
+                    self.vision_llm = None
+                    gc.collect()
+                    if torch.cuda.is_available():
+                        torch.cuda.empty_cache()
+
+            # Loading a new model - check if it's a "large" model (not primary or vision)
+            is_large_model = not is_primary and not is_vision
+            logging.debug(f"[LLM] Loading new model - is_large_model={is_large_model}")
+
+            if is_large_model:
+                # Unload persistent models temporarily to make room for large model
+                logging.debug(
+                    f"[LLM] Loading large model {model_name}, temporarily unloading persistent models"
+                )
+                if self.primary_llm is not None:
+                    del self.primary_llm
+                    self.primary_llm = None
+                if self.vision_llm is not None:
+                    del self.vision_llm
+                    self.vision_llm = None
+                gc.collect()
+                if torch.cuda.is_available():
+                    torch.cuda.empty_cache()
+                self._using_large_model = True
+
+            logging.debug(f"[LLM] Loading {model_name} (context: {context_size//1000}k)")
+            start_time = time.time()
+
+            # Let _load_llm_resilient handle smart GPU selection
+            new_llm = self._load_llm_resilient(
+                model_name=model_name,
+                max_tokens=context_size,
+            )
+
+            # Store in appropriate slot
+            if is_primary:
+                self.primary_llm = new_llm
+                self.primary_llm_name = model_name
+                self.primary_llm_context = context_size
+            elif is_vision:
+                self.vision_llm = new_llm
+                self.vision_llm_name = model_name
+                self.vision_llm_context = context_size
+
+            self.llm = new_llm
+            self.current_llm_name = model_name
+            self.current_context = context_size
+
+            load_time = time.time() - start_time
+            logging.debug(f"[LLM] {model_name} loaded in {load_time:.2f}s")
+            if self.llm.is_vision:
+                logging.debug(f"[LLM] Vision capability enabled for {model_name}")
+
             return self.llm
 
-        # Check if this is one of our persistent models
-        is_primary = model_name == self.primary_llm_name
-        is_vision = model_name == self.vision_llm_name
-        logging.debug(f"[LLM _get_llm] is_primary={is_primary}, is_vision={is_vision}")
-
-        # If we were using a large model, unload it first
-        if self._using_large_model and self.llm is not None:
-            logging.debug(
-                f"[LLM] Unloading large model to switch back to persistent model"
-            )
-            self._destroy_llm_temp()
-            self._using_large_model = False
-
-        # Try to use persistent models
-        if is_primary and self.primary_llm is not None:
-            if self.primary_llm_context and self.primary_llm_context >= context_size:
-                logging.debug(f"[LLM] Using persistent primary model: {model_name}")
-                self.llm = self.primary_llm
-                self.current_llm_name = model_name
-                self.current_context = self.primary_llm_context
-                return self.llm
-            else:
-                # Need to reload primary with larger context
-                logging.info(
-                    f"[LLM] Reloading primary model with larger context: {context_size//1000}k (had {self.primary_llm_context})"
-                )
-                del self.primary_llm
-                self.primary_llm = None
-                gc.collect()
-                if torch.cuda.is_available():
-                    torch.cuda.empty_cache()
-
-        if is_vision and self.vision_llm is not None:
-            if self.vision_llm_context and self.vision_llm_context >= context_size:
-                logging.debug(f"[LLM] Using persistent vision model: {model_name}")
-                self.llm = self.vision_llm
-                self.current_llm_name = model_name
-                self.current_context = self.vision_llm_context
-                return self.llm
-            else:
-                # Need to reload vision with larger context
-                logging.info(
-                    f"[LLM] Reloading vision model with larger context: {context_size//1000}k (had {self.vision_llm_context})"
-                )
-                del self.vision_llm
-                self.vision_llm = None
-                gc.collect()
-                if torch.cuda.is_available():
-                    torch.cuda.empty_cache()
-
-        # Loading a new model - check if it's a "large" model (not primary or vision)
-        is_large_model = not is_primary and not is_vision
-        logging.debug(f"[LLM] Loading new model - is_large_model={is_large_model}")
-
-        if is_large_model:
-            # Unload persistent models temporarily to make room for large model
-            logging.debug(
-                f"[LLM] Loading large model {model_name}, temporarily unloading persistent models"
-            )
-            if self.primary_llm is not None:
-                del self.primary_llm
-                self.primary_llm = None
-            if self.vision_llm is not None:
-                del self.vision_llm
-                self.vision_llm = None
-            gc.collect()
-            if torch.cuda.is_available():
-                torch.cuda.empty_cache()
-            self._using_large_model = True
-
-        logging.debug(f"[LLM] Loading {model_name} (context: {context_size//1000}k)")
-        start_time = time.time()
-
-        # Let _load_llm_resilient handle smart GPU selection
-        new_llm = self._load_llm_resilient(
-            model_name=model_name,
-            max_tokens=context_size,
-        )
-
-        # Store in appropriate slot
-        if is_primary:
-            self.primary_llm = new_llm
-            self.primary_llm_name = model_name
-            self.primary_llm_context = context_size
-        elif is_vision:
-            self.vision_llm = new_llm
-            self.vision_llm_name = model_name
-            self.vision_llm_context = context_size
-
-        self.llm = new_llm
-        self.current_llm_name = model_name
-        self.current_context = context_size
-
-        load_time = time.time() - start_time
-        logging.debug(f"[LLM] {model_name} loaded in {load_time:.2f}s")
-        if self.llm.is_vision:
-            logging.debug(f"[LLM] Vision capability enabled for {model_name}")
-
-        return self.llm
-
     def _destroy_llm_temp(self):
-        """Destroy temporary (large) LLM without affecting persistent models."""
+        """Destroy temporary (large) LLM without affecting persistent models.
+        
+        Note: This method should only be called while holding _model_lock.
+        """
         if self.llm is not None and self._using_large_model:
             logging.debug(
                 f"[LLM] Unloading temporary large model: {self.current_llm_name}"
@@ -1821,41 +1842,45 @@ class Pipes:
             self._using_large_model = False
 
     def _reload_persistent_models(self):
-        """Reload persistent models after using a large model."""
-        default_context = int(getenv("LLM_MAX_TOKENS", "8192"))
+        """Reload persistent models after using a large model.
+        
+        Thread-safe: Uses _model_lock to prevent race conditions.
+        """
+        with self._model_lock:
+            default_context = int(getenv("LLM_MAX_TOKENS", "8192"))
 
-        # Reload primary if it was set
-        if self.primary_llm_name and self.primary_llm is None:
-            logging.debug(
-                f"[LLM] Reloading persistent primary model: {self.primary_llm_name}"
-            )
-            try:
-                self.primary_llm = self._load_llm_resilient(
-                    model_name=self.primary_llm_name,
-                    max_tokens=self.primary_llm_context or default_context,
+            # Reload primary if it was set
+            if self.primary_llm_name and self.primary_llm is None:
+                logging.debug(
+                    f"[LLM] Reloading persistent primary model: {self.primary_llm_name}"
                 )
-                self.llm = self.primary_llm
-                self.current_llm_name = self.primary_llm_name
-                self.current_context = self.primary_llm_context or default_context
-            except Exception as e:
-                logging.warning(f"[LLM] Failed to reload primary model: {e}")
+                try:
+                    self.primary_llm = self._load_llm_resilient(
+                        model_name=self.primary_llm_name,
+                        max_tokens=self.primary_llm_context or default_context,
+                    )
+                    self.llm = self.primary_llm
+                    self.current_llm_name = self.primary_llm_name
+                    self.current_context = self.primary_llm_context or default_context
+                except Exception as e:
+                    logging.warning(f"[LLM] Failed to reload primary model: {e}")
 
-        # Reload vision if it was set and different from primary
-        if (
-            self.vision_llm_name
-            and self.vision_llm is None
-            and self.vision_llm_name != self.primary_llm_name
-        ):
-            logging.debug(
-                f"[LLM] Reloading persistent vision model: {self.vision_llm_name}"
-            )
-            try:
-                self.vision_llm = self._load_llm_resilient(
-                    model_name=self.vision_llm_name,
-                    max_tokens=self.vision_llm_context or default_context,
+            # Reload vision if it was set and different from primary
+            if (
+                self.vision_llm_name
+                and self.vision_llm is None
+                and self.vision_llm_name != self.primary_llm_name
+            ):
+                logging.debug(
+                    f"[LLM] Reloading persistent vision model: {self.vision_llm_name}"
                 )
-            except Exception as e:
-                logging.warning(f"[LLM] Failed to reload vision model: {e}")
+                try:
+                    self.vision_llm = self._load_llm_resilient(
+                        model_name=self.vision_llm_name,
+                        max_tokens=self.vision_llm_context or default_context,
+                    )
+                except Exception as e:
+                    logging.warning(f"[LLM] Failed to reload vision model: {e}")
 
     def _destroy_llm_sync(self, llm_ref, model_name: str):
         """Synchronous LLM destruction - runs the actual cleanup.
@@ -1882,25 +1907,28 @@ class Pipes:
         This is called after each inference to ensure VRAM is freed.
         The model will be reloaded on the next request via _get_llm().
 
+        Thread-safe: Uses _model_lock to prevent race conditions.
+
         Args:
             async_cleanup: If True (default), run cleanup in background thread
                           for faster response times. If False, run synchronously.
         """
-        if self.llm is not None:
-            model_name = self.current_llm_name or "LLM"
-            llm_ref = self.llm
+        with self._model_lock:
+            if self.llm is not None:
+                model_name = self.current_llm_name or "LLM"
+                llm_ref = self.llm
 
-            # Clear references immediately so new requests can load fresh
-            self.llm = None
-            self.current_llm_name = None
-            self.current_context = None
+                # Clear references immediately so new requests can load fresh
+                self.llm = None
+                self.current_llm_name = None
+                self.current_context = None
 
-            if async_cleanup:
-                logging.debug(f"[LLM] Scheduling async unload of {model_name}")
-                _schedule_cleanup(self._destroy_llm_sync, llm_ref, model_name)
-            else:
-                logging.debug(f"[LLM] Unloading {model_name} synchronously")
-                self._destroy_llm_sync(llm_ref, model_name)
+                if async_cleanup:
+                    logging.debug(f"[LLM] Scheduling async unload of {model_name}")
+                    _schedule_cleanup(self._destroy_llm_sync, llm_ref, model_name)
+                else:
+                    logging.debug(f"[LLM] Unloading {model_name} synchronously")
+                    self._destroy_llm_sync(llm_ref, model_name)
 
     def _get_tts(self):
         """Lazy load TTS model on demand."""
