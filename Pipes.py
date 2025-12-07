@@ -161,12 +161,12 @@ def get_per_gpu_free_vram_gb() -> list:
 
 
 def calculate_context_size(estimated_prompt_tokens: int) -> int:
-    """Calculate context size with fixed 16k headspace for generation.
+    """Calculate context size with fixed 8k headspace for generation.
 
-    Simply adds 16k to the estimated prompt tokens to provide headspace
+    Simply adds 8k to the estimated prompt tokens to provide headspace
     for response generation without over-allocating.
     """
-    return estimated_prompt_tokens + 16384
+    return estimated_prompt_tokens + 8192
 
 
 def get_vram_usage_gb(gpu_index: int = 0) -> float:
@@ -2172,26 +2172,15 @@ class Pipes:
                 # Convert list content back to string for LLM compatibility
                 data["messages"][-1]["content"] = prompt
 
-        # Estimate token count for context sizing
-        # Conservative estimate: ~2.5 chars per token (tokens average 2-4 chars, but include special tokens)
-        total_chars = 0
-        if completion_type == "chat" and "messages" in data:
-            for msg in data["messages"]:
-                content = msg.get("content", "")
-                if isinstance(content, str):
-                    total_chars += len(content)
-                elif isinstance(content, list):
-                    for item in content:
-                        if isinstance(item, dict) and item.get("type") == "text":
-                            total_chars += len(item.get("text", ""))
-        elif "prompt" in data:
-            total_chars = len(data.get("prompt", ""))
-
-        # Estimate tokens (2.5 chars/token is more accurate than 4)
-        # Using int division by 2.5 = multiply by 2 then divide by 5
-        estimated_prompt_tokens = (total_chars * 2) // 5
-        # Add fixed 16k headspace for generation - simple and predictable
-        required_context = calculate_context_size(estimated_prompt_tokens)
+        # Use current context size - don't pre-estimate tokens
+        # The model's actual tokenizer will determine if context is sufficient
+        # If context is exceeded, error handling will reload with larger context
+        # This avoids inaccurate character-based estimation causing unnecessary reloads
+        required_context = (
+            self.current_context
+            if self.current_context
+            else int(getenv("LLM_MAX_TOKENS", "16384"))
+        )
 
         # Lazy load LLM with requested model and context size
         # Determine target model
