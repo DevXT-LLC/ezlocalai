@@ -225,7 +225,16 @@ class RequestQueue:
 
             request.status = RequestStatus.COMPLETED
             request.result = result
-            request.future.set_result(result)
+
+            # Check if future is still valid before setting result
+            # (may have been cancelled due to timeout or client disconnect)
+            if request.future and not request.future.done():
+                request.future.set_result(result)
+            elif request.future and request.future.done():
+                logging.debug(
+                    f"[RequestQueue] Request {request.id} future already done (likely timed out), skipping set_result"
+                )
+
             self.total_processed += 1
 
             processing_time = time.time() - start_time
@@ -236,7 +245,16 @@ class RequestQueue:
         except Exception as e:
             request.status = RequestStatus.FAILED
             request.error = str(e)
-            request.future.set_exception(e)
+
+            # Check if future is still valid before setting exception
+            # (may have been cancelled due to timeout or client disconnect)
+            if request.future and not request.future.done():
+                request.future.set_exception(e)
+            elif request.future and request.future.done():
+                logging.debug(
+                    f"[RequestQueue] Request {request.id} future already done (likely timed out), skipping set_exception"
+                )
+
             self.total_failed += 1
 
             processing_time = time.time() - start_time
