@@ -1417,6 +1417,10 @@ class Pipes:
         """Reload LLM with larger context if needed using smart GPU selection.
 
         Thread-safe: Uses _model_lock to prevent race conditions.
+
+        IMPORTANT: When increasing context size, we must unload ALL models (including
+        vision model) to free GPU VRAM before reloading. Otherwise the GPU will be
+        full and the model will fall back to CPU, which is very slow.
         """
         with self._model_lock:
             if self.current_context and self.current_context >= required_context:
@@ -1424,19 +1428,50 @@ class Pipes:
                 return
 
             # Need to reload with larger context
-            logging.debug(
+            logging.info(
                 f"[LLM] Context {self.current_context//1000 if self.current_context else 0}k insufficient for {required_context:,} tokens, reloading at {required_context//1000}k"
             )
 
             model_name = self.current_llm_name
 
-            # Unload current model
+            # Store which models were loaded so we know what to potentially reload later
+            had_vision_model = self.vision_llm is not None
+            vision_model_name = self.vision_llm_name
+
+            # Unload ALL models to free GPU VRAM for the larger context
+            logging.info(
+                "[LLM] Unloading all models to free GPU VRAM for larger context..."
+            )
+
+            # Unload vision model first
+            if self.vision_llm:
+                logging.debug(f"[LLM] Unloading vision model {self.vision_llm_name}")
+                del self.vision_llm
+                self.vision_llm = None
+                self.vision_llm_name = None
+                self.vision_llm_context = None
+
+            # Unload primary model
+            if self.primary_llm:
+                logging.debug(f"[LLM] Unloading primary model {self.primary_llm_name}")
+                del self.primary_llm
+                self.primary_llm = None
+                self.primary_llm_name = None
+                self.primary_llm_context = None
+
+            # Unload current active model (might be same as primary)
             if self.llm:
                 del self.llm
                 self.llm = None
-                gc.collect()
-                if torch.cuda.is_available():
-                    torch.cuda.empty_cache()
+
+            # Force garbage collection and clear CUDA cache
+            gc.collect()
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+                torch.cuda.synchronize()  # Wait for CUDA operations to complete
+                # Log available VRAM after cleanup
+                free_vram = get_free_vram_gb()
+                logging.info(f"[LLM] After cleanup: {free_vram:.1f}GB VRAM free")
 
             # Load with new context - let smart GPU selection determine configuration
             start_time = time.time()
@@ -1445,11 +1480,27 @@ class Pipes:
                 max_tokens=required_context,
                 # gpu_layers, main_gpu, tensor_split determined by smart selection
             )
+            self.current_llm_name = model_name
             self.current_context = required_context
+
+            # Also update primary model reference if this was the primary
+            if (
+                model_name == self.available_models[0]
+                if self.available_models
+                else None
+            ):
+                self.primary_llm = self.llm
+                self.primary_llm_name = model_name
+                self.primary_llm_context = required_context
+
             load_time = time.time() - start_time
-            logging.debug(
+            logging.info(
                 f"[LLM] {model_name} reloaded at {required_context//1000}k context in {load_time:.2f}s"
             )
+
+            # Note: We intentionally do NOT reload the vision model here.
+            # It will be lazy-loaded on demand if needed, keeping VRAM available
+            # for the large context model.
 
     def _swap_llm(self, requested_model: str, required_context: int = None):
         """Hot-swap to a different LLM if needed with smart GPU selection.
@@ -2437,21 +2488,95 @@ class Pipes:
                 ]
             )
 
+        def _estimate_prompt_tokens(messages_or_prompt, completion_type: str) -> int:
+            """Estimate prompt tokens using character count approximation.
+
+            This is intentionally aggressive to ensure we pre-allocate enough context
+            for streaming requests where lazy errors can't be retried.
+
+            We use chars/2.5 (instead of chars/4) because:
+            - Code and technical content tokenizes at higher rates
+            - Chat templates add overhead (role markers, special tokens)
+            - Better to overestimate and have headroom than underestimate and fail
+            """
+            total_chars = 0
+            if completion_type == "chat" and isinstance(messages_or_prompt, list):
+                for msg in messages_or_prompt:
+                    content = msg.get("content", "")
+                    if isinstance(content, str):
+                        total_chars += len(content)
+                    elif isinstance(content, list):
+                        # Multimodal content
+                        for item in content:
+                            if isinstance(item, dict):
+                                if item.get("type") == "text":
+                                    total_chars += len(item.get("text", ""))
+                                elif "image_url" in item:
+                                    # Images add significant tokens for vision models
+                                    # Estimate ~1000 tokens per image
+                                    total_chars += 4000
+                            elif isinstance(item, str):
+                                total_chars += len(item)
+                    # Add role overhead (special tokens, markers)
+                    total_chars += 50  # More realistic overhead per message
+            else:
+                # Completion mode or string content
+                total_chars = len(str(messages_or_prompt))
+
+            # Aggressive estimate: chars/2.5 + 20% buffer for chat template overhead
+            # This ensures we don't underestimate for code/technical content
+            estimated_tokens = int((total_chars / 2.5) * 1.2)
+            return estimated_tokens
+
         async def _try_inference_with_context_retry(
             chat_mode: bool, data: dict
         ) -> dict:
-            """Try inference, and if context error occurs, reload model with larger context and retry."""
+            """Try inference, and if context error occurs, reload model with larger context and retry.
+
+            For streaming requests, we pre-estimate tokens and ensure sufficient context
+            BEFORE starting the stream, since streaming errors occur lazily during iteration
+            and cannot be retried mid-stream.
+            """
             max_retries = 3
             current_context = self.current_context or 16384
+            is_streaming = data.get("stream", False)
+
+            # For streaming requests, pre-estimate tokens and ensure context size
+            # This prevents the lazy context error during stream iteration
+            if is_streaming:
+                messages_or_prompt = (
+                    data.get("messages") if chat_mode else data.get("prompt", "")
+                )
+                estimated_tokens = _estimate_prompt_tokens(
+                    messages_or_prompt, "chat" if chat_mode else "completion"
+                )
+                required_context = calculate_context_size(estimated_tokens)
+
+                logging.info(
+                    f"[LLM] Streaming pre-check: estimated {estimated_tokens:,} tokens, "
+                    f"required context {required_context:,}, current context {current_context:,}"
+                )
+
+                if required_context > current_context:
+                    logging.info(
+                        f"[LLM] Streaming request: estimated {estimated_tokens:,} tokens, "
+                        f"pre-loading {required_context//1024}k context (current: {current_context//1024}k)"
+                    )
+                    self._ensure_context_size(required_context)
+                    current_context = required_context
+            else:
+                logging.info(
+                    f"[LLM] Non-streaming request, stream={data.get('stream')}"
+                )
 
             for attempt in range(max_retries):
                 try:
                     if chat_mode:
-                        logging.debug(
-                            f"[Pipes] Calling self.llm.chat with stream={data.get('stream', False)}"
+                        logging.info(
+                            f"[LLM] Calling llm.chat with stream={data.get('stream', False)}, context={self.current_context}"
                         )
                         result = self.llm.chat(**data)
-                        logging.debug(f"[Pipes] llm.chat returned type: {type(result)}")
+                        logging.info(f"[LLM] llm.chat returned type: {type(result)}")
                         return result
                     else:
                         return self.llm.completion(**data)
@@ -2653,26 +2778,51 @@ class Pipes:
 
         if not is_streaming:
             logging.debug(f"[ezlocalai] {json.dumps(response, indent=2)}")
-            # Only destroy LLM if we're using a large (non-persistent) model
-            if self._using_large_model:
-                self._destroy_llm_temp()
-                # Reload persistent models for next request
-                self._reload_persistent_models()
+            # Keep the model loaded - no need to reload after each request
+            # The higher context model works fine for smaller prompts too
         else:
             logging.debug(f"[ezlocalai] Streaming response generated")
             # For streaming, wrap the generator to handle cleanup after consumption
             original_response = response
             using_large = self._using_large_model
+            pipes_self = self  # Capture self for use in wrapper
+            data_copy = data.copy()  # Capture data for potential retry
 
             def streaming_wrapper():
                 try:
                     for chunk in original_response:
                         yield chunk
-                finally:
-                    # Only destroy if using large model
-                    if using_large:
-                        self._destroy_llm_temp()
-                        self._reload_persistent_models()
+                except Exception as e:
+                    error_msg = str(e)
+                    # Check if this is a context size error
+                    if _is_context_error(error_msg):
+                        # Extract token count from error if available
+                        import re
+
+                        prompt_tokens_match = re.search(
+                            r"n_prompt_tokens=(\d+)", error_msg
+                        )
+                        if prompt_tokens_match:
+                            needed_tokens = int(prompt_tokens_match.group(1))
+                        else:
+                            # Try to find any number that looks like a token count
+                            numbers = re.findall(r"(\d{4,})", error_msg)  # 4+ digits
+                            needed_tokens = (
+                                max(int(n) for n in numbers) if numbers else 0
+                            )
+
+                        logging.error(
+                            f"[STREAMING] Context size error during streaming. "
+                            f"Prompt required {needed_tokens:,} tokens but context was insufficient. "
+                            f"The model will be reloaded with larger context for the next request."
+                        )
+                        # Pre-load larger context for next request
+                        if needed_tokens > 0:
+                            new_context = calculate_context_size(needed_tokens)
+                            pipes_self._ensure_context_size(new_context)
+                    # Re-raise the error to let caller handle it
+                    raise
+                # No cleanup needed - keep the model loaded for subsequent requests
 
             response = streaming_wrapper()
 

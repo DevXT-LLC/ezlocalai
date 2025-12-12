@@ -271,9 +271,17 @@ async def chat_completions(
                 try:
                     import json
 
+                    chunk_count = 0
+                    logging.info(
+                        f"[STREAMING] Starting to iterate over response generator"
+                    )
                     for chunk in response:
+                        chunk_count += 1
+                        if chunk_count <= 3 or chunk_count % 50 == 0:
+                            logging.info(f"[STREAMING] Yielding chunk {chunk_count}")
                         # Yield the complete chunk in SSE format
                         yield f"data: {json.dumps(chunk)}\n\n"
+                    logging.info(f"[STREAMING] Finished streaming {chunk_count} chunks")
                     # Send the final [DONE] message
                     yield "data: [DONE]\n\n"
                 except Exception as e:

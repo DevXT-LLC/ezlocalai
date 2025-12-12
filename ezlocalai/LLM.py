@@ -314,6 +314,7 @@ class LLM:
         gpu_layers: int = None,  # Override GPU_LAYERS env var if provided
         main_gpu: int = None,  # Override MAIN_GPU env var if provided
         tensor_split: list = None,  # Override tensor split if provided
+        batch_size: int = None,  # Override LLM_BATCH_SIZE env var if provided
         **kwargs,
     ):
         global DEFAULT_MODEL
@@ -432,7 +433,21 @@ class LLM:
         self.xlc_params = xlc.CommonParams()
         self.xlc_params.model.path = model_path
         self.xlc_params.n_ctx = effective_max_tokens
-        self.xlc_params.n_batch = int(getenv("LLM_BATCH_SIZE"))
+        # Use provided batch_size, or scale dynamically based on context size
+        if batch_size is not None:
+            self.xlc_params.n_batch = batch_size
+        else:
+            default_batch = int(getenv("LLM_BATCH_SIZE", "2048"))
+            # Scale batch size for large contexts: use at least 4096 for >32k context
+            if effective_max_tokens > 32768:
+                self.xlc_params.n_batch = max(
+                    default_batch, min(8192, effective_max_tokens // 8)
+                )
+            else:
+                self.xlc_params.n_batch = default_batch
+        logging.debug(
+            f"[LLM] Batch size: {self.xlc_params.n_batch} for context {effective_max_tokens}"
+        )
         self.xlc_params.n_gpu_layers = GPU_LAYERS
         self.xlc_params.main_gpu = (
             self.main_gpu
@@ -598,9 +613,13 @@ class LLM:
                 # Check for error response
                 if isinstance(chunk_data, dict) and "code" in chunk_data:
                     logging.error(f"[LLM] Stream callback error: {chunk_data}")
-                    error_holder[0] = Exception(
-                        chunk_data.get("message", str(chunk_data))
-                    )
+                    # Include token counts in error message for context size handling
+                    error_msg = chunk_data.get("message", str(chunk_data))
+                    n_prompt_tokens = chunk_data.get("n_prompt_tokens")
+                    n_ctx = chunk_data.get("n_ctx")
+                    if n_prompt_tokens:
+                        error_msg = f"{error_msg} [n_prompt_tokens={n_prompt_tokens}, n_ctx={n_ctx or 'unknown'}]"
+                    error_holder[0] = Exception(error_msg)
                     return True  # Stop on error
 
                 # xllamacpp returns a list of deltas for streaming
@@ -654,10 +673,12 @@ class LLM:
         chunk_id = f"chatcmpl-{int(time.time())}"
         created = int(time.time())
         chunks_yielded = 0
+        last_keepalive = time.time()
+        keepalive_interval = 5.0  # Send keepalive every 5 seconds during processing
 
         while not generation_complete.is_set() or not chunk_queue.empty():
             try:
-                chunk_data = chunk_queue.get(timeout=0.05)
+                chunk_data = chunk_queue.get(timeout=0.1)
                 chunks_yielded += 1
                 logging.debug(
                     f"[LLM] Processing chunk {chunks_yielded}: {type(chunk_data)}"
@@ -722,6 +743,25 @@ class LLM:
                 else:
                     logging.debug(f"[LLM] Unexpected chunk type: {type(chunk_data)}")
             except queue.Empty:
+                # Send keepalive during long waits (e.g., prompt processing)
+                # This prevents client timeouts during the initial processing phase
+                now = time.time()
+                if now - last_keepalive >= keepalive_interval:
+                    last_keepalive = now
+                    # Yield an empty delta chunk as keepalive
+                    yield {
+                        "id": chunk_id,
+                        "object": "chat.completion.chunk",
+                        "created": created,
+                        "model": self.model_name,
+                        "choices": [
+                            {
+                                "index": 0,
+                                "delta": {},  # Empty delta acts as keepalive
+                                "finish_reason": None,
+                            }
+                        ],
+                    }
                 continue
             except Exception as e:
                 logging.error(f"[LLM] Error processing stream chunk: {e}")
