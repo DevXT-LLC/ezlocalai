@@ -22,7 +22,7 @@ def getenv(var_name: str, default_value: str = None) -> str:
         "TENSOR_SPLIT": "",
         "QUANT_TYPE": "Q4_K_XL",
         "LLM_BATCH_SIZE": "2048",
-        "LLM_MAX_TOKENS": "16384",
+        "LLM_MAX_TOKENS": "40000",
         # Queue system defaults - supports concurrent requests with resource fallback
         "MAX_CONCURRENT_REQUESTS": "5",
         "MAX_QUEUE_SIZE": "100",

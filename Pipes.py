@@ -684,6 +684,16 @@ class Pipes:
         # Track if inference is currently in progress
         self._inference_in_progress = False
 
+        # Track context reset state for auto-optimization
+        # When we increase context for a large request, we schedule a reset
+        # back to optimal context after a cooldown period
+        self._context_reset_timer = None
+        self._context_reset_lock = threading.Lock()
+        self._optimal_context = int(
+            getenv("LLM_MAX_TOKENS", "40000")
+        )  # Default optimal context
+        self._context_reset_cooldown = 60  # Seconds to wait before resetting context
+
         # Check if precache already ran (models already downloaded/warmed)
         from pathlib import Path
 
@@ -750,9 +760,9 @@ class Pipes:
 
             # Pre-load persistent LLMs (primary + vision if different)
             if self.available_models:
-                # Pre-load with 32k context to avoid reloads on typical requests
-                # (requests add estimated prompt tokens + 16k headroom, so need buffer)
-                default_context = int(getenv("LLM_MAX_TOKENS", "32768"))
+                # Pre-load with optimal context (default 40k) to maximize GPU layers
+                # while providing reasonable context for most requests
+                default_context = self._optimal_context
 
                 # Find primary (first non-vision) and vision models
                 primary_model = None
@@ -1502,6 +1512,119 @@ class Pipes:
             # It will be lazy-loaded on demand if needed, keeping VRAM available
             # for the large context model.
 
+            # If we increased beyond optimal context, schedule a reset
+            if required_context > self._optimal_context:
+                self._schedule_context_reset()
+
+    def _schedule_context_reset(self):
+        """Schedule a reset back to optimal context after a cooldown period.
+
+        This ensures that after handling a large context request, we eventually
+        reload the model at the optimal context size to maximize GPU layers.
+        The cooldown prevents constant reloading if multiple large requests come in.
+        """
+        with self._context_reset_lock:
+            # Cancel any existing timer
+            if self._context_reset_timer is not None:
+                self._context_reset_timer.cancel()
+                self._context_reset_timer = None
+
+            logging.info(
+                f"[LLM] Scheduling context reset to {self._optimal_context//1000}k in {self._context_reset_cooldown}s"
+            )
+
+            # Schedule new reset
+            self._context_reset_timer = threading.Timer(
+                self._context_reset_cooldown, self._perform_context_reset
+            )
+            self._context_reset_timer.daemon = True
+            self._context_reset_timer.start()
+
+    def _cancel_context_reset(self):
+        """Cancel any pending context reset."""
+        with self._context_reset_lock:
+            if self._context_reset_timer is not None:
+                self._context_reset_timer.cancel()
+                self._context_reset_timer = None
+                logging.debug("[LLM] Context reset cancelled")
+
+    def _perform_context_reset(self):
+        """Reset the model back to optimal context size.
+
+        This runs in a background thread after the cooldown period.
+        It reloads the model at the optimal context size to maximize GPU layers.
+        """
+        with self._context_reset_lock:
+            self._context_reset_timer = None
+
+        # Check if reset is still needed
+        if (
+            self.current_context is None
+            or self.current_context <= self._optimal_context
+        ):
+            logging.debug("[LLM] Context reset not needed, already at optimal or lower")
+            return
+
+        # Check if inference is in progress - if so, reschedule
+        if self._inference_in_progress:
+            logging.debug("[LLM] Inference in progress, rescheduling context reset")
+            self._schedule_context_reset()
+            return
+
+        logging.info(
+            f"[LLM] Performing context reset: {self.current_context//1000}k -> {self._optimal_context//1000}k"
+        )
+
+        try:
+            with self._model_lock:
+                model_name = self.current_llm_name
+
+                if model_name is None:
+                    logging.debug("[LLM] No model loaded, skipping context reset")
+                    return
+
+                # Unload current model
+                if self.llm:
+                    logging.debug(f"[LLM] Unloading {model_name} for context reset")
+                    del self.llm
+                    self.llm = None
+
+                if self.primary_llm:
+                    del self.primary_llm
+                    self.primary_llm = None
+
+                # Force garbage collection
+                gc.collect()
+                if torch.cuda.is_available():
+                    torch.cuda.empty_cache()
+                    torch.cuda.synchronize()
+                    free_vram = get_free_vram_gb()
+                    logging.info(f"[LLM] After cleanup: {free_vram:.1f}GB VRAM free")
+
+                # Reload at optimal context
+                start_time = time.time()
+                self.llm = self._load_llm_resilient(
+                    model_name=model_name,
+                    max_tokens=self._optimal_context,
+                )
+                self.current_llm_name = model_name
+                self.current_context = self._optimal_context
+
+                # Update primary model reference
+                if self.available_models and model_name == self.available_models[0]:
+                    self.primary_llm = self.llm
+                    self.primary_llm_name = model_name
+                    self.primary_llm_context = self._optimal_context
+
+                load_time = time.time() - start_time
+                logging.info(
+                    f"[LLM] Context reset complete: {model_name} at {self._optimal_context//1000}k context in {load_time:.2f}s"
+                )
+
+        except Exception as e:
+            logging.error(f"[LLM] Context reset failed: {e}")
+            # Don't retry on failure - the model will be reloaded on next request
+
     def _swap_llm(self, requested_model: str, required_context: int = None):
         """Hot-swap to a different LLM if needed with smart GPU selection.
 
@@ -1907,7 +2030,7 @@ class Pipes:
         Thread-safe: Uses _model_lock to prevent race conditions.
         """
         with self._model_lock:
-            default_context = int(getenv("LLM_MAX_TOKENS", "8192"))
+            default_context = self._optimal_context
 
             # Reload primary if it was set
             if self.primary_llm_name and self.primary_llm is None:
@@ -2135,6 +2258,24 @@ class Pipes:
         return data
 
     async def get_response(self, data, completion_type="chat"):
+        # Cancel any pending context reset since we're handling a request
+        self._cancel_context_reset()
+
+        # Mark inference as in progress to prevent context reset during processing
+        self._inference_in_progress = True
+
+        try:
+            return await self._get_response_internal(data, completion_type)
+        finally:
+            # Mark inference as complete
+            self._inference_in_progress = False
+
+            # If we're at a larger-than-optimal context, schedule a reset
+            if self.current_context and self.current_context > self._optimal_context:
+                self._schedule_context_reset()
+
+    async def _get_response_internal(self, data, completion_type="chat"):
+        """Internal implementation of get_response."""
         data["local_uri"] = self.local_uri
         # Apply model-specific config overrides
         data = self._apply_model_config_overrides(data)
@@ -2228,9 +2369,7 @@ class Pipes:
         # If context is exceeded, error handling will reload with larger context
         # This avoids inaccurate character-based estimation causing unnecessary reloads
         required_context = (
-            self.current_context
-            if self.current_context
-            else int(getenv("LLM_MAX_TOKENS", "16384"))
+            self.current_context if self.current_context else self._optimal_context
         )
 
         # Lazy load LLM with requested model and context size
