@@ -805,16 +805,21 @@ class Pipes:
                     )
 
                 # Load vision model if different from primary
+                # Vision models don't need large context - they process images and generate
+                # relatively short descriptions. Use smaller context to maximize GPU layer offload.
+                vision_context = int(getenv("VLM_MAX_TOKENS", "8192"))
                 if vision_model and vision_model != primary_model:
-                    logging.info(f"[LLM] Pre-loading vision model: {vision_model}...")
+                    logging.info(
+                        f"[LLM] Pre-loading vision model: {vision_model} (context: {vision_context})..."
+                    )
                     start_time = time.time()
                     try:
                         self.vision_llm = self._load_llm_resilient(
                             model_name=vision_model,
-                            max_tokens=default_context,
+                            max_tokens=vision_context,
                         )
                         self.vision_llm_name = vision_model
-                        self.vision_llm_context = default_context
+                        self.vision_llm_context = vision_context
                         load_time = time.time() - start_time
                         logging.info(
                             f"[LLM] Vision model {vision_model} loaded in {load_time:.1f}s"

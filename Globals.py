@@ -23,6 +23,7 @@ def getenv(var_name: str, default_value: str = None) -> str:
         "QUANT_TYPE": "Q4_K_XL",
         "LLM_BATCH_SIZE": "2048",
         "LLM_MAX_TOKENS": "40000",
+        "VLM_MAX_TOKENS": "8192",  # Vision models don't need large context
         # Queue system defaults - supports concurrent requests with resource fallback
         "MAX_CONCURRENT_REQUESTS": "5",
         "MAX_QUEUE_SIZE": "100",
