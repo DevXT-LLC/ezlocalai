@@ -96,7 +96,9 @@ class IMG:
             # Z-Image works best with bfloat16, but fall back to float16 if not supported
             if device == "cpu":
                 dtype = torch.float32
-            elif torch.cuda.is_available() and torch.cuda.get_device_capability()[0] >= 8:
+            elif (
+                torch.cuda.is_available() and torch.cuda.get_device_capability()[0] >= 8
+            ):
                 # bfloat16 supported on Ampere (SM 8.0) and newer
                 dtype = torch.bfloat16
             else:
@@ -118,12 +120,16 @@ class IMG:
                 if torch.cuda.is_available():
                     free_vram_gb = torch.cuda.mem_get_info()[0] / (1024**3)
                     total_vram_gb = torch.cuda.mem_get_info()[1] / (1024**3)
-                    logging.debug(f"[IMG] VRAM: {free_vram_gb:.1f}GB free / {total_vram_gb:.1f}GB total")
+                    logging.debug(
+                        f"[IMG] VRAM: {free_vram_gb:.1f}GB free / {total_vram_gb:.1f}GB total"
+                    )
 
                     if free_vram_gb < 18:
                         # Use sequential CPU offload - moves each layer to GPU only when needed
                         # This is slower but works with limited VRAM
-                        logging.debug("[IMG] Limited VRAM, enabling sequential CPU offload...")
+                        logging.debug(
+                            "[IMG] Limited VRAM, enabling sequential CPU offload..."
+                        )
                         self.pipe.enable_sequential_cpu_offload()
                     else:
                         self.pipe.to(device)
@@ -146,7 +152,9 @@ class IMG:
 
             self.model_type = "zimage"
             self.num_steps = 9  # Z-Image uses 9 steps (results in 8 DiT forwards)
-            logging.debug(f"[IMG] Z-Image-Turbo loaded successfully on {device} with dtype {dtype}")
+            logging.debug(
+                f"[IMG] Z-Image-Turbo loaded successfully on {device} with dtype {dtype}"
+            )
 
         except Exception as e:
             logging.error(f"[IMG] Failed to load Z-Image-Turbo: {e}")
@@ -320,7 +328,9 @@ class IMG:
 
         return result.images[0]
 
-    def _generate_sdxl(self, prompt, negative_prompt, width, height, steps, guidance_scale):
+    def _generate_sdxl(
+        self, prompt, negative_prompt, width, height, steps, guidance_scale
+    ):
         """Generate image using SDXL-Lightning."""
         generator = torch.Generator(device=self.device).manual_seed(42)
 
@@ -347,7 +357,7 @@ class IMG:
 
         try:
             # Enable more aggressive sequential offloading
-            if hasattr(self.pipe, 'enable_sequential_cpu_offload'):
+            if hasattr(self.pipe, "enable_sequential_cpu_offload"):
                 try:
                     self.pipe.enable_sequential_cpu_offload()
                 except Exception:
