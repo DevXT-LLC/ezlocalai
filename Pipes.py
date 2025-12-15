@@ -1278,8 +1278,40 @@ class Pipes:
                             )
                             continue
                     else:
-                        # Already a data URL
-                        processed_images.append(img)
+                        # Already a data URL - check if it needs conversion
+                        if img_url.startswith("data:image/webp") or img_url.startswith(
+                            "data:image/gif"
+                        ):
+                            try:
+                                # Extract base64 data and convert
+                                header, encoded = img_url.split(",", 1)
+                                img_bytes = base64.b64decode(encoded)
+                                pil_img = PILImage.open(BytesIO(img_bytes))
+                                if pil_img.mode in ("RGBA", "P", "LA"):
+                                    pil_img = pil_img.convert("RGB")
+                                buffer = BytesIO()
+                                pil_img.save(buffer, format="PNG")
+                                img_base64 = base64.b64encode(buffer.getvalue()).decode(
+                                    "utf-8"
+                                )
+                                processed_images.append(
+                                    {
+                                        "type": "image_url",
+                                        "image_url": {
+                                            "url": f"data:image/png;base64,{img_base64}"
+                                        },
+                                    }
+                                )
+                                logging.debug(
+                                    f"[Vision Fallback] Converted data URL WebP/GIF to PNG"
+                                )
+                            except Exception as conv_err:
+                                logging.error(
+                                    f"[Vision Fallback] Failed to convert data URL: {conv_err}"
+                                )
+                                processed_images.append(img)
+                        else:
+                            processed_images.append(img)
 
             if not processed_images:
                 return None
