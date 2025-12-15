@@ -2848,7 +2848,13 @@ class Pipes:
         if "top_p" not in data:
             data["top_p"] = 0.9
         # IMG is lazy loaded - try to get it if IMG_MODEL is configured
-        img = self._get_img() if getenv("IMG_MODEL") else None
+        # Skip image generation for streaming responses (response is a generator, not dict)
+        is_streaming_response = data.get("stream", False)
+        img = (
+            self._get_img()
+            if getenv("IMG_MODEL") and not is_streaming_response
+            else None
+        )
         if img_import_success and img:
             user_message = (
                 data["messages"][-1]["content"]
