@@ -1872,7 +1872,7 @@ class Pipes:
             if torch.cuda.is_available():
                 torch.cuda.empty_cache()
             cleanup_time = time.time() - start_time
-            logging.debug(f"[IMG] SDXL-Lightning unloaded in {cleanup_time:.2f}s")
+            logging.debug(f"[IMG] Image model unloaded in {cleanup_time:.2f}s")
         except Exception as e:
             logging.error(f"[IMG] Error during cleanup: {e}")
 

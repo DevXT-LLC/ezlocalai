@@ -27,7 +27,7 @@ conformer
 pykakasi
 resemble-perth
 transformers==4.53.0
-diffusers>=0.29.0
+diffusers @ git+https://github.com/huggingface/diffusers
 einops
 librosa
 tokenizers>=0.20,<0.22
