@@ -3129,7 +3129,7 @@ class Pipes:
 
         If FALLBACK_SERVER is an ezlocalai instance (detected by /v1/resources endpoint),
         uses full ezlocalai forwarding. Otherwise, uses OpenAI-compatible client with
-        FALLBACK_MODEL.
+        the originally requested model (pass-through).
 
         Args:
             messages: The messages list for chat completion
@@ -3141,11 +3141,19 @@ class Pipes:
             logging.warning("[Fallback] No fallback server configured")
             return "Unable to process request. Local resources exhausted and no fallback server configured."
 
+        # Get the requested model from data, or use FALLBACK_MODEL as override, or DEFAULT_MODEL as last resort
+        requested_model = None
+        if data and "model" in data:
+            requested_model = data["model"]
+
+        # FALLBACK_MODEL env var can be used to override the model for non-ezlocalai servers
+        fallback_model_override = getenv("FALLBACK_MODEL")
+
         # Check if fallback is an ezlocalai instance (has resources endpoint)
         available, reason = await fallback_client.check_availability()
 
         if available:
-            # It's an ezlocalai instance - use full forwarding
+            # It's an ezlocalai instance - use full forwarding with original request
             logging.info(
                 f"[Fallback] Using ezlocalai server: {fallback_client.base_url}"
             )
@@ -3153,7 +3161,10 @@ class Pipes:
                 request_data = (
                     data
                     if data
-                    else {"messages": messages, "model": getenv("DEFAULT_MODEL")}
+                    else {
+                        "messages": messages,
+                        "model": requested_model or getenv("DEFAULT_MODEL"),
+                    }
                 )
                 response = await fallback_client.forward_chat_completion(
                     request_data, stream=False
@@ -3167,13 +3178,13 @@ class Pipes:
                 )
 
         # Use OpenAI-compatible client (for non-ezlocalai servers or when ezlocalai forwarding fails)
-        fallback_model = getenv("FALLBACK_MODEL")
-        if not fallback_model:
-            # For ezlocalai servers without FALLBACK_MODEL, use DEFAULT_MODEL
-            fallback_model = getenv("DEFAULT_MODEL")
+        # Priority: FALLBACK_MODEL override > requested model > DEFAULT_MODEL
+        model_to_use = (
+            fallback_model_override or requested_model or getenv("DEFAULT_MODEL")
+        )
 
         logging.info(
-            f"[Fallback] Using OpenAI-compatible client: {fallback_client.base_url} with model {fallback_model}"
+            f"[Fallback] Using OpenAI-compatible client: {fallback_client.base_url} with model {model_to_use}"
         )
 
         try:
@@ -3183,7 +3194,7 @@ class Pipes:
                 api_key=fallback_client.api_key, base_url=fallback_client.base_url
             )
             response = client.chat.completions.create(
-                model=fallback_model, messages=messages
+                model=model_to_use, messages=messages
             )
             return response.choices[0].message.content
         except Exception as e:

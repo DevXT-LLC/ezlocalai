@@ -128,15 +128,16 @@ FALLBACK_SERVER=http://192.168.1.100:8091  # Another ezlocalai instance
 # Authentication for the fallback server
 FALLBACK_API_KEY=your-api-key
 
-# Model to use for legacy fallback (only used for OpenAI-compatible APIs)
-FALLBACK_MODEL=gpt-4o-mini
+# Optional: Override model for OpenAI-compatible fallback (pass-through by default)
+# If not set, the originally requested model is passed through to the fallback server
+# FALLBACK_MODEL=gpt-4o-mini
 
 # Combined memory threshold (VRAM + RAM) in GB - fallback triggers when below this
 # Models can offload to system RAM, so combined memory is more accurate than VRAM alone
 FALLBACK_MEMORY_THRESHOLD=8.0
 ```
 
-The system automatically detects whether `FALLBACK_SERVER` points to another ezlocalai instance or an OpenAI-compatible API by checking for the `/v1/resources` endpoint. If it's another ezlocalai server, full endpoint forwarding is used. Otherwise, it falls back to standard OpenAI API calls using `FALLBACK_MODEL`.
+The system automatically detects whether `FALLBACK_SERVER` points to another ezlocalai instance or an OpenAI-compatible API by checking for the `/v1/resources` endpoint. If it's another ezlocalai server, full endpoint forwarding is used (preserving the original request). Otherwise, it falls back to standard OpenAI API calls, passing through the originally requested model (or using `FALLBACK_MODEL` if set as an override).
 
 ### Example: Two-Machine Setup
 
