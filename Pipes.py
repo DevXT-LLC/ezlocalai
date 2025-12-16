@@ -330,6 +330,377 @@ def get_resource_manager() -> ResourceManager:
         return _resource_manager
 
 
+# =============================================================================
+# Fallback ezlocalai Client
+# =============================================================================
+
+
+class EzlocalaiClient:
+    """Client for forwarding requests to another ezlocalai instance when local resources are exhausted.
+    
+    This enables a distributed setup where multiple ezlocalai servers can fall back to each other,
+    providing redundancy and load balancing based on resource availability (VRAM/RAM).
+    
+    The client auto-detects if FALLBACK_SERVER is an ezlocalai instance by checking for
+    the /v1/resources endpoint.
+    """
+
+    def __init__(self, base_url: str = None, api_key: str = None):
+        """Initialize the ezlocalai fallback client.
+        
+        Args:
+            base_url: URL of the fallback server (e.g., "http://192.168.1.100:8091")
+            api_key: API key for the fallback server (uses local key if not provided)
+        """
+        self.base_url = (base_url or getenv("FALLBACK_SERVER")).rstrip("/") if (base_url or getenv("FALLBACK_SERVER")) else ""
+        self.api_key = api_key or getenv("FALLBACK_API_KEY") or getenv("EZLOCALAI_API_KEY")
+        self._session = None
+        self._available = None  # Cache availability check
+        self._last_check = 0
+        self._check_interval = 30  # Re-check availability every 30 seconds
+
+    @property
+    def is_configured(self) -> bool:
+        """Check if a fallback server is configured."""
+        return bool(self.base_url)
+
+    def _get_headers(self) -> dict:
+        """Get request headers with authentication."""
+        headers = {"Content-Type": "application/json"}
+        if self.api_key and self.api_key != "none":
+            headers["Authorization"] = f"Bearer {self.api_key}"
+        return headers
+
+    async def check_availability(self) -> Tuple[bool, str]:
+        """Check if the fallback server is available and has resources.
+        
+        Returns:
+            Tuple of (is_available, reason)
+        """
+        if not self.is_configured:
+            return False, "No fallback server configured"
+
+        # Use cached result if recent
+        current_time = time.time()
+        if self._available is not None and (current_time - self._last_check) < self._check_interval:
+            return self._available, "cached"
+
+        try:
+            async with self._get_session() as session:
+                # Check health endpoint
+                async with session.get(
+                    f"{self.base_url}/v1/resources",
+                    headers=self._get_headers(),
+                    timeout=5
+                ) as resp:
+                    if resp.status != 200:
+                        self._available = False
+                        self._last_check = current_time
+                        return False, f"Fallback server returned status {resp.status}"
+                    
+                    data = await resp.json()
+                    free_vram = data.get("free_vram_gb", 0)
+                    
+                    # Check if fallback has enough VRAM
+                    min_vram = float(getenv("FALLBACK_VRAM_THRESHOLD", "2.0"))
+                    if free_vram < min_vram:
+                        self._available = False
+                        self._last_check = current_time
+                        return False, f"Fallback server low on VRAM ({free_vram:.1f}GB < {min_vram}GB)"
+                    
+                    self._available = True
+                    self._last_check = current_time
+                    return True, f"Fallback server available ({free_vram:.1f}GB VRAM free)"
+
+        except Exception as e:
+            self._available = False
+            self._last_check = current_time
+            return False, f"Fallback server unreachable: {str(e)}"
+
+    def _get_session(self):
+        """Get or create an aiohttp session."""
+        import aiohttp
+        return aiohttp.ClientSession()
+
+    async def forward_chat_completion(self, data: dict, stream: bool = False):
+        """Forward a chat completion request to the fallback server.
+        
+        Args:
+            data: The request data dict
+            stream: Whether to stream the response
+            
+        Returns:
+            The response from the fallback server
+        """
+        if not self.is_configured:
+            raise RuntimeError("No fallback server configured")
+
+        import aiohttp
+        
+        logging.info(f"[Fallback] Forwarding chat completion to {self.base_url}")
+        
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.post(
+                    f"{self.base_url}/v1/chat/completions",
+                    json=data,
+                    headers=self._get_headers(),
+                    timeout=aiohttp.ClientTimeout(total=float(getenv("REQUEST_TIMEOUT", "300")))
+                ) as resp:
+                    if resp.status != 200:
+                        error_text = await resp.text()
+                        raise RuntimeError(f"Fallback server error {resp.status}: {error_text}")
+                    
+                    if stream:
+                        # Return async generator for streaming
+                        async def stream_response():
+                            async for line in resp.content:
+                                line_str = line.decode("utf-8").strip()
+                                if line_str.startswith("data: "):
+                                    chunk_data = line_str[6:]
+                                    if chunk_data == "[DONE]":
+                                        break
+                                    try:
+                                        yield json.loads(chunk_data)
+                                    except json.JSONDecodeError:
+                                        continue
+                        return stream_response()
+                    else:
+                        return await resp.json()
+                        
+        except Exception as e:
+            logging.error(f"[Fallback] Chat completion forward failed: {e}")
+            raise
+
+    async def forward_completion(self, data: dict, stream: bool = False):
+        """Forward a completion request to the fallback server."""
+        if not self.is_configured:
+            raise RuntimeError("No fallback server configured")
+
+        import aiohttp
+        
+        logging.info(f"[Fallback] Forwarding completion to {self.base_url}")
+        
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.post(
+                    f"{self.base_url}/v1/completions",
+                    json=data,
+                    headers=self._get_headers(),
+                    timeout=aiohttp.ClientTimeout(total=float(getenv("REQUEST_TIMEOUT", "300")))
+                ) as resp:
+                    if resp.status != 200:
+                        error_text = await resp.text()
+                        raise RuntimeError(f"Fallback server error {resp.status}: {error_text}")
+                    
+                    if stream:
+                        async def stream_response():
+                            async for line in resp.content:
+                                line_str = line.decode("utf-8").strip()
+                                if line_str.startswith("data: "):
+                                    chunk_data = line_str[6:]
+                                    if chunk_data == "[DONE]":
+                                        break
+                                    try:
+                                        yield json.loads(chunk_data)
+                                    except json.JSONDecodeError:
+                                        continue
+                        return stream_response()
+                    else:
+                        return await resp.json()
+                        
+        except Exception as e:
+            logging.error(f"[Fallback] Completion forward failed: {e}")
+            raise
+
+    async def forward_embeddings(self, data: dict):
+        """Forward an embeddings request to the fallback server."""
+        if not self.is_configured:
+            raise RuntimeError("No fallback server configured")
+
+        import aiohttp
+        
+        logging.info(f"[Fallback] Forwarding embeddings to {self.base_url}")
+        
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.post(
+                    f"{self.base_url}/v1/embeddings",
+                    json=data,
+                    headers=self._get_headers(),
+                    timeout=aiohttp.ClientTimeout(total=60)
+                ) as resp:
+                    if resp.status != 200:
+                        error_text = await resp.text()
+                        raise RuntimeError(f"Fallback server error {resp.status}: {error_text}")
+                    return await resp.json()
+                    
+        except Exception as e:
+            logging.error(f"[Fallback] Embeddings forward failed: {e}")
+            raise
+
+    async def forward_transcription(self, file_content: bytes, content_type: str, **params):
+        """Forward a transcription request to the fallback server."""
+        if not self.is_configured:
+            raise RuntimeError("No fallback server configured")
+
+        import aiohttp
+        
+        logging.info(f"[Fallback] Forwarding transcription to {self.base_url}")
+        
+        try:
+            headers = {}
+            if self.api_key and self.api_key != "none":
+                headers["Authorization"] = f"Bearer {self.api_key}"
+
+            # Build multipart form data
+            data = aiohttp.FormData()
+            data.add_field("file", file_content, content_type=content_type, filename="audio.wav")
+            for key, value in params.items():
+                if value is not None:
+                    data.add_field(key, str(value))
+
+            async with aiohttp.ClientSession() as session:
+                async with session.post(
+                    f"{self.base_url}/v1/audio/transcriptions",
+                    data=data,
+                    headers=headers,
+                    timeout=aiohttp.ClientTimeout(total=120)
+                ) as resp:
+                    if resp.status != 200:
+                        error_text = await resp.text()
+                        raise RuntimeError(f"Fallback server error {resp.status}: {error_text}")
+                    return await resp.json()
+                    
+        except Exception as e:
+            logging.error(f"[Fallback] Transcription forward failed: {e}")
+            raise
+
+    async def forward_tts(self, text: str, voice: str = "default", language: str = "en"):
+        """Forward a TTS request to the fallback server."""
+        if not self.is_configured:
+            raise RuntimeError("No fallback server configured")
+
+        import aiohttp
+        
+        logging.info(f"[Fallback] Forwarding TTS to {self.base_url}")
+        
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.post(
+                    f"{self.base_url}/v1/audio/speech",
+                    json={"input": text, "voice": voice, "language": language},
+                    headers=self._get_headers(),
+                    timeout=aiohttp.ClientTimeout(total=120)
+                ) as resp:
+                    if resp.status != 200:
+                        error_text = await resp.text()
+                        raise RuntimeError(f"Fallback server error {resp.status}: {error_text}")
+                    # Return raw audio bytes
+                    return await resp.read()
+                    
+        except Exception as e:
+            logging.error(f"[Fallback] TTS forward failed: {e}")
+            raise
+
+    async def forward_image_generation(self, prompt: str, response_format: str = "url", size: str = "512x512"):
+        """Forward an image generation request to the fallback server."""
+        if not self.is_configured:
+            raise RuntimeError("No fallback server configured")
+
+        import aiohttp
+        
+        logging.info(f"[Fallback] Forwarding image generation to {self.base_url}")
+        
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.post(
+                    f"{self.base_url}/v1/images/generations",
+                    json={"prompt": prompt, "response_format": response_format, "size": size},
+                    headers=self._get_headers(),
+                    timeout=aiohttp.ClientTimeout(total=180)
+                ) as resp:
+                    if resp.status != 200:
+                        error_text = await resp.text()
+                        raise RuntimeError(f"Fallback server error {resp.status}: {error_text}")
+                    return await resp.json()
+                    
+        except Exception as e:
+            logging.error(f"[Fallback] Image generation forward failed: {e}")
+            raise
+
+    async def get_models(self):
+        """Get available models from the fallback server."""
+        if not self.is_configured:
+            return {"data": []}
+
+        import aiohttp
+        
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(
+                    f"{self.base_url}/v1/models",
+                    headers=self._get_headers(),
+                    timeout=aiohttp.ClientTimeout(total=10)
+                ) as resp:
+                    if resp.status != 200:
+                        return {"data": []}
+                    return await resp.json()
+                    
+        except Exception as e:
+            logging.debug(f"[Fallback] Failed to get models: {e}")
+            return {"data": []}
+
+
+# Global fallback client instance
+_fallback_client: Optional[EzlocalaiClient] = None
+_fallback_client_lock = threading.Lock()
+
+
+def get_fallback_client() -> EzlocalaiClient:
+    """Get or create the global fallback client."""
+    global _fallback_client
+    with _fallback_client_lock:
+        if _fallback_client is None:
+            _fallback_client = EzlocalaiClient()
+        return _fallback_client
+
+
+def should_use_ezlocalai_fallback() -> Tuple[bool, str]:
+    """Check if we should use the fallback server based on local resource state.
+    
+    Uses combined VRAM + RAM as the threshold since models can offload layers to system RAM.
+    
+    Returns:
+        Tuple of (should_fallback, reason)
+    """
+    fallback_client = get_fallback_client()
+    
+    if not fallback_client.is_configured:
+        return False, "No fallback server configured"
+    
+    resource_mgr = get_resource_manager()
+    
+    # Get free VRAM
+    free_vram = resource_mgr.get_total_free_vram()
+    
+    # Get free RAM
+    try:
+        import psutil
+        free_ram = psutil.virtual_memory().available / (1024**3)
+    except ImportError:
+        free_ram = 0.0  # If psutil not available, only count VRAM
+    
+    # Combined free memory (VRAM + RAM)
+    free_memory = free_vram + free_ram
+    memory_threshold = float(getenv("FALLBACK_MEMORY_THRESHOLD", "8.0"))
+    
+    if free_memory < memory_threshold:
+        return True, f"Low combined memory ({free_vram:.1f}GB VRAM + {free_ram:.1f}GB RAM = {free_memory:.1f}GB < {memory_threshold}GB threshold)"
+    
+    return False, "Local resources sufficient"
+
+
 # Background cleanup queue for async model unloading
 _cleanup_queue = queue.Queue()
 _cleanup_thread = None
@@ -2702,24 +3073,50 @@ class Pipes:
             else:
                 self._destroy_tts_sync(tts_ref)
 
-    async def fallback_inference(self, messages):
-        """Use fallback server for inference when local resources are exhausted."""
-        fallback_server = getenv("FALLBACK_SERVER")
-        fallback_model = getenv("FALLBACK_MODEL")
-        fallback_api_key = getenv("FALLBACK_API_KEY")
-
-        if not fallback_server:
+    async def fallback_inference(self, messages, data: dict = None):
+        """Use fallback server for inference when local resources are exhausted.
+        
+        If FALLBACK_SERVER is an ezlocalai instance (detected by /v1/resources endpoint),
+        uses full ezlocalai forwarding. Otherwise, uses OpenAI-compatible client with
+        FALLBACK_MODEL.
+        
+        Args:
+            messages: The messages list for chat completion
+            data: Optional full request data dict (used for ezlocalai forwarding)
+        """
+        fallback_client = get_fallback_client()
+        
+        if not fallback_client.is_configured:
             logging.warning("[Fallback] No fallback server configured")
             return "Unable to process request. Local resources exhausted and no fallback server configured."
 
-        logging.info(
-            f"[Fallback] Using fallback server: {fallback_server} with model {fallback_model}"
-        )
+        # Check if fallback is an ezlocalai instance (has resources endpoint)
+        available, reason = await fallback_client.check_availability()
+        
+        if available:
+            # It's an ezlocalai instance - use full forwarding
+            logging.info(f"[Fallback] Using ezlocalai server: {fallback_client.base_url}")
+            try:
+                request_data = data if data else {"messages": messages, "model": getenv("DEFAULT_MODEL")}
+                response = await fallback_client.forward_chat_completion(request_data, stream=False)
+                if isinstance(response, dict) and "choices" in response:
+                    return response["choices"][0]["message"]["content"]
+                return str(response)
+            except Exception as e:
+                logging.warning(f"[Fallback] ezlocalai forwarding failed: {e}, trying OpenAI-compatible client...")
+
+        # Use OpenAI-compatible client (for non-ezlocalai servers or when ezlocalai forwarding fails)
+        fallback_model = getenv("FALLBACK_MODEL")
+        if not fallback_model:
+            # For ezlocalai servers without FALLBACK_MODEL, use DEFAULT_MODEL
+            fallback_model = getenv("DEFAULT_MODEL")
+
+        logging.info(f"[Fallback] Using OpenAI-compatible client: {fallback_client.base_url} with model {fallback_model}")
 
         try:
             from openai import Client
 
-            client = Client(api_key=fallback_api_key, base_url=fallback_server)
+            client = Client(api_key=fallback_client.api_key, base_url=fallback_client.base_url)
             response = client.chat.completions.create(
                 model=fallback_model, messages=messages
             )
@@ -2734,11 +3131,15 @@ class Pipes:
         Returns:
             Tuple of (should_use_fallback, reason)
         """
+        # Check fallback based on resource thresholds
+        should_fallback, reason = should_use_ezlocalai_fallback()
+        if should_fallback:
+            return True, reason
+        
         resource_mgr = get_resource_manager()
 
         # Check if fallback is configured
-        fallback_server = getenv("FALLBACK_SERVER")
-        if not fallback_server:
+        if not get_fallback_client().is_configured:
             return False, "No fallback server configured"
 
         # Check if LLM is available and has sufficient resources
@@ -2747,12 +3148,53 @@ class Pipes:
         if not can_load and device == "fallback":
             return True, reason
 
-        # Check if queue is getting too long (resource contention)
-        # This could indicate we're overwhelmed
-        # Note: This would need access to request_queue, which is in app.py
-        # For now, just use VRAM-based decision
-
         return False, "Local resources available"
+
+    async def forward_to_fallback(self, endpoint: str, data: dict = None, **kwargs):
+        """Forward any request to the fallback server.
+        
+        This is the main entry point for fallback requests. It handles all endpoint types
+        and falls back gracefully if the ezlocalai fallback is unavailable.
+        
+        Args:
+            endpoint: The endpoint type ("chat", "completion", "embeddings", "transcription", "tts", "image")
+            data: The request data dict
+            **kwargs: Additional arguments for specific endpoint types
+            
+        Returns:
+            The response from the fallback server, or None if fallback is unavailable
+        """
+        fallback_client = get_fallback_client()
+        
+        if not fallback_client.is_configured:
+            return None
+        
+        available, reason = await fallback_client.check_availability()
+        if not available:
+            logging.debug(f"[Fallback] ezlocalai fallback not available: {reason}")
+            return None
+        
+        logging.info(f"[Fallback] Forwarding {endpoint} request to fallback server")
+        
+        try:
+            if endpoint == "chat":
+                return await fallback_client.forward_chat_completion(data, stream=kwargs.get("stream", False))
+            elif endpoint == "completion":
+                return await fallback_client.forward_completion(data, stream=kwargs.get("stream", False))
+            elif endpoint == "embeddings":
+                return await fallback_client.forward_embeddings(data)
+            elif endpoint == "transcription":
+                return await fallback_client.forward_transcription(**kwargs)
+            elif endpoint == "tts":
+                return await fallback_client.forward_tts(**kwargs)
+            elif endpoint == "image":
+                return await fallback_client.forward_image_generation(**kwargs)
+            else:
+                logging.warning(f"[Fallback] Unknown endpoint type: {endpoint}")
+                return None
+        except Exception as e:
+            logging.error(f"[Fallback] Forward to fallback failed for {endpoint}: {e}")
+            return None
 
     async def pdf_to_audio(self, title, voice, pdf, chunk_size=200):
         # Sanitize title to prevent path traversal
@@ -2888,6 +3330,34 @@ class Pipes:
             )
 
     async def get_response(self, data, completion_type="chat"):
+        # Check if we should use fallback BEFORE allocating local resources
+        should_fallback, fallback_reason = self.should_use_fallback()
+        if should_fallback:
+            logging.info(f"[Fallback] Pre-check: {fallback_reason}, attempting fallback...")
+            fallback_client = get_fallback_client()
+            if fallback_client.is_configured:
+                available, avail_reason = await fallback_client.check_availability()
+                if available:
+                    logging.info(f"[Fallback] Using ezlocalai fallback for {completion_type}")
+                    try:
+                        endpoint = "chat" if completion_type == "chat" else "completion"
+                        is_streaming = data.get("stream", False)
+                        response = await fallback_client.forward_chat_completion(data, stream=is_streaming) if endpoint == "chat" else await fallback_client.forward_completion(data, stream=is_streaming)
+                        
+                        # For streaming, wrap the async generator appropriately
+                        if is_streaming:
+                            # Convert async generator to sync generator for compatibility
+                            async def async_to_sync_wrapper():
+                                async for chunk in response:
+                                    yield chunk
+                            return async_to_sync_wrapper(), None
+                        else:
+                            return response, None
+                    except Exception as e:
+                        logging.warning(f"[Fallback] ezlocalai fallback failed: {e}, falling back to local processing")
+                else:
+                    logging.debug(f"[Fallback] ezlocalai fallback not available: {avail_reason}")
+        
         # Cancel any pending context reset since we're handling a request
         self._cancel_context_reset()
 

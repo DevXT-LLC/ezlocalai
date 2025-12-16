@@ -106,6 +106,92 @@ Performance tested on Intel i9-12900KS + RTX 4090 (24GB):
 
 Both models pre-calibrate at startup and hot-swap in ~1 second.
 
+## Distributed Fallback / Multi-Machine Setup
+
+ezlocalai supports a distributed fallback system where multiple instances can fall back to each other when local resources (VRAM/RAM) are exhausted, or fall back to any OpenAI-compatible API. This enables:
+
+- **Load balancing**: When one machine is busy, requests automatically route to another
+- **Redundancy**: If one server is overloaded, the fallback handles requests
+- **Resource optimization**: Each machine handles what it can, forwarding the rest
+- **Hybrid deployment**: Mix local ezlocalai instances with cloud APIs
+
+### Configuration
+
+Set these environment variables in your `.env` file or pass them to the container:
+
+```bash
+# Fallback server URL - can be another ezlocalai instance OR any OpenAI-compatible API
+FALLBACK_SERVER=http://192.168.1.100:8091  # Another ezlocalai instance
+# Or use a cloud provider:
+# FALLBACK_SERVER=https://api.openai.com/v1
+
+# Authentication for the fallback server
+FALLBACK_API_KEY=your-api-key
+
+# Model to use for legacy fallback (only used for OpenAI-compatible APIs)
+FALLBACK_MODEL=gpt-4o-mini
+
+# Combined memory threshold (VRAM + RAM) in GB - fallback triggers when below this
+# Models can offload to system RAM, so combined memory is more accurate than VRAM alone
+FALLBACK_MEMORY_THRESHOLD=8.0
+```
+
+The system automatically detects whether `FALLBACK_SERVER` points to another ezlocalai instance or an OpenAI-compatible API by checking for the `/v1/resources` endpoint. If it's another ezlocalai server, full endpoint forwarding is used. Otherwise, it falls back to standard OpenAI API calls using `FALLBACK_MODEL`.
+
+### Example: Two-Machine Setup
+
+**Machine A** (Primary with RTX 4090):
+```bash
+EZLOCALAI_URL=http://0.0.0.0:8091
+EZLOCALAI_API_KEY=shared-key
+FALLBACK_SERVER=http://machine-b:8091
+FALLBACK_API_KEY=shared-key
+```
+
+**Machine B** (Fallback with RTX 3080):
+```bash
+EZLOCALAI_URL=http://0.0.0.0:8091
+EZLOCALAI_API_KEY=shared-key
+FALLBACK_SERVER=http://machine-a:8091
+FALLBACK_API_KEY=shared-key
+```
+
+Both machines fall back to each other - creating a resilient two-node cluster.
+
+### Example: Local + Cloud Hybrid
+
+Run a local ezlocalai with OpenAI as the fallback:
+
+```bash
+EZLOCALAI_URL=http://0.0.0.0:8091
+FALLBACK_SERVER=https://api.openai.com/v1
+FALLBACK_API_KEY=sk-your-openai-key
+FALLBACK_MODEL=gpt-4o-mini
+```
+
+### Monitoring Fallback Status
+
+Check the fallback status via API:
+```bash
+# Get resource status including fallback info
+curl http://localhost:8091/v1/resources
+
+# Check fallback availability and models
+curl http://localhost:8091/v1/fallback/status
+```
+
+### What Gets Forwarded
+
+When fallback is triggered to another ezlocalai instance, these endpoints are automatically forwarded:
+- `/v1/chat/completions` - Chat completions (including streaming)
+- `/v1/completions` - Text completions
+- `/v1/embeddings` - Text embeddings
+- `/v1/audio/transcriptions` - Speech-to-text
+- `/v1/audio/speech` - Text-to-speech
+- `/v1/images/generations` - Image generation
+
+For OpenAI-compatible APIs, only chat completions and embeddings are forwarded.
+
 ## OpenAI Style Endpoint Usage
 
 OpenAI Style endpoints available at `http://<YOUR LOCAL IP ADDRESS>:8091/v1/` by default. Documentation can be accessed at that <http://localhost:8091> when the server is running.

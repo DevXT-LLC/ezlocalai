@@ -28,11 +28,15 @@ def getenv(var_name: str, default_value: str = None) -> str:
         "MAX_CONCURRENT_REQUESTS": "5",
         "MAX_QUEUE_SIZE": "100",
         "REQUEST_TIMEOUT": "300",
-        # Fallback server for when local resources are exhausted
-        # Set these to use an external API when local model loading fails
-        "FALLBACK_SERVER": "",  # e.g., "https://api.openai.com/v1"
-        "FALLBACK_MODEL": "",  # e.g., "gpt-4o-mini"
+        # Fallback server for when local resources are exhausted (VRAM/RAM)
+        # Can be another ezlocalai instance (e.g., "http://192.168.1.100:8091") for full feature parity
+        # Or an OpenAI-compatible API (e.g., "https://api.openai.com/v1") for LLM-only fallback
+        "FALLBACK_SERVER": "",  # e.g., "http://other-machine:8091" or "https://api.openai.com/v1"
         "FALLBACK_API_KEY": "",  # API key for fallback server
+        "FALLBACK_MODEL": "",  # Model to use for non-ezlocalai fallback (e.g., "gpt-4o-mini")
+        # Minimum combined free memory (VRAM + RAM) in GB before falling back to remote server
+        # Models can offload to RAM, so combined memory is more accurate than VRAM alone
+        "FALLBACK_MEMORY_THRESHOLD": "8.0",
     }
     if not default_value:
         default_value = default_values[var_name] if var_name in default_values else ""
