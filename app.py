@@ -181,24 +181,29 @@ async def models(user=Depends(verify_api_key)):
 )
 async def get_resources(user=Depends(verify_api_key)):
     """Get current resource status including VRAM usage, loaded models, and fallback info."""
-    from Pipes import get_resource_manager, get_fallback_client, should_use_ezlocalai_fallback
+    from Pipes import (
+        get_resource_manager,
+        get_fallback_client,
+        should_use_ezlocalai_fallback,
+    )
 
     resource_mgr = get_resource_manager()
     status = resource_mgr.get_status()
-    
+
     # Add fallback information
     fallback_client = get_fallback_client()
     should_fallback, fallback_reason = should_use_ezlocalai_fallback()
-    
+
     # Get combined memory info
     try:
         import psutil
+
         free_ram = psutil.virtual_memory().available / (1024**3)
     except ImportError:
         free_ram = 0.0
-    
+
     free_vram = resource_mgr.get_total_free_vram()
-    
+
     status["fallback"] = {
         "configured": fallback_client.is_configured,
         "url": fallback_client.base_url if fallback_client.is_configured else None,
@@ -209,7 +214,7 @@ async def get_resources(user=Depends(verify_api_key)):
         "free_combined_gb": free_vram + free_ram,
         "memory_threshold_gb": float(getenv("FALLBACK_MEMORY_THRESHOLD", "8.0")),
     }
-    
+
     return status
 
 
@@ -223,7 +228,7 @@ async def get_fallback_status(user=Depends(verify_api_key)):
     from Pipes import get_fallback_client, should_use_ezlocalai_fallback
 
     fallback_client = get_fallback_client()
-    
+
     if not fallback_client.is_configured:
         return {
             "configured": False,
@@ -231,19 +236,22 @@ async def get_fallback_status(user=Depends(verify_api_key)):
             "reason": "No fallback server configured",
             "should_use": False,
         }
-    
+
     available, avail_reason = await fallback_client.check_availability()
     should_fallback, fallback_reason = should_use_ezlocalai_fallback()
-    
+
     # Try to get remote models if available
     remote_models = []
     if available:
         try:
             models_response = await fallback_client.get_models()
-            remote_models = [m.get("id", m.get("name", "unknown")) for m in models_response.get("data", [])]
+            remote_models = [
+                m.get("id", m.get("name", "unknown"))
+                for m in models_response.get("data", [])
+            ]
         except:
             pass
-    
+
     return {
         "configured": True,
         "url": fallback_client.base_url,
@@ -499,7 +507,7 @@ class EmbeddingResponse(BaseModel):
 )
 async def embedding(embedding: EmbeddingModel, user=Depends(verify_api_key)):
     from Pipes import should_use_ezlocalai_fallback, get_fallback_client
-    
+
     # Check if we should use fallback
     should_fallback, reason = should_use_ezlocalai_fallback()
     if should_fallback:
@@ -509,13 +517,15 @@ async def embedding(embedding: EmbeddingModel, user=Depends(verify_api_key)):
             if available:
                 logging.info(f"[Embeddings] Using fallback: {reason}")
                 try:
-                    return await fallback_client.forward_embeddings({
-                        "input": embedding.input,
-                        "model": embedding.model,
-                    })
+                    return await fallback_client.forward_embeddings(
+                        {
+                            "input": embedding.input,
+                            "model": embedding.model,
+                        }
+                    )
                 except Exception as e:
                     logging.warning(f"[Embeddings] Fallback failed: {e}, using local")
-    
+
     # Use local embeddings
     embedder = pipe._get_embedder()
     result = embedder.get_embeddings(input=embedding.input)
@@ -544,10 +554,10 @@ async def speech_to_text(
         raise HTTPException(status_code=404, detail="Speech to text is disabled.")
 
     from Pipes import should_use_ezlocalai_fallback, get_fallback_client
-    
+
     # Read file content first (before any fallback attempts)
     file_content = await file.read()
-    
+
     # Check if we should use fallback
     should_fallback, reason = should_use_ezlocalai_fallback()
     if should_fallback:
@@ -872,9 +882,9 @@ async def text_to_speech(tts: TextToSpeech, user=Depends(verify_api_key)):
                 audio=tts.input,
             )
             return audio
-    
+
     from Pipes import should_use_ezlocalai_fallback, get_fallback_client
-    
+
     # Check if we should use fallback
     should_fallback, reason = should_use_ezlocalai_fallback()
     if should_fallback:
@@ -892,7 +902,7 @@ async def text_to_speech(tts: TextToSpeech, user=Depends(verify_api_key)):
                     return Response(content=audio_bytes, media_type="audio/wav")
                 except Exception as e:
                     logging.warning(f"[TTS] Fallback failed: {e}, using local")
-    
+
     tts_model = pipe._get_tts()
     audio_b64 = await tts_model.generate(
         text=tts.input, voice=tts.voice, language=tts.language
@@ -1000,6 +1010,7 @@ async def generate_image(
     if getenv("IMG_MODEL") == "":
         # Check if fallback can handle image generation
         from Pipes import get_fallback_client
+
         fallback_client = get_fallback_client()
         if fallback_client.is_configured:
             available, _ = await fallback_client.check_availability()
@@ -1017,9 +1028,9 @@ async def generate_image(
             "created": int(time.time()),
             "data": [{"url": "https://demofree.sirv.com/nope-not-here.jpg"}],
         }
-    
+
     from Pipes import should_use_ezlocalai_fallback, get_fallback_client
-    
+
     # Check if we should use fallback (IMG uses a lot of VRAM)
     should_fallback, reason = should_use_ezlocalai_fallback()
     if should_fallback:
@@ -1036,7 +1047,7 @@ async def generate_image(
                     )
                 except Exception as e:
                     logging.warning(f"[IMG] Fallback failed: {e}, using local")
-    
+
     images = []
     if int(image_creation.n) > 1:
         for i in range(image_creation.n):
