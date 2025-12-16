@@ -174,6 +174,29 @@ async def models(user=Depends(verify_api_key)):
     return pipe.get_models()
 
 
+@app.get(
+    "/v1/resources",
+    tags=["System"],
+    dependencies=[Depends(verify_api_key)],
+)
+async def get_resources(user=Depends(verify_api_key)):
+    """Get current resource status including VRAM usage and loaded models."""
+    from Pipes import get_resource_manager
+
+    resource_mgr = get_resource_manager()
+    return resource_mgr.get_status()
+
+
+@app.get(
+    "/v1/queue",
+    tags=["System"],
+    dependencies=[Depends(verify_api_key)],
+)
+async def get_queue_status(user=Depends(verify_api_key)):
+    """Get current request queue status."""
+    return request_queue.get_queue_status()
+
+
 # For the completions and chat completions endpoints, we use extra_json for additional parameters.
 # --------------------------------
 # If `audio_format`` is present, the prompt will be transcribed to text.

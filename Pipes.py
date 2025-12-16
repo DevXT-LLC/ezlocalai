@@ -21,6 +21,8 @@ from Globals import getenv
 import gc
 import torch
 from typing import Tuple, Optional, Dict, Any, List
+from dataclasses import dataclass
+from enum import Enum
 
 try:
     from ezlocalai.IMG import IMG
@@ -28,6 +30,305 @@ try:
     img_import_success = True
 except ImportError:
     img_import_success = False
+
+
+# =============================================================================
+# Resource Management System
+# =============================================================================
+
+
+class ModelType(Enum):
+    """Types of models that can be loaded."""
+
+    LLM = "llm"
+    VISION_LLM = "vision_llm"
+    TTS = "tts"
+    STT = "stt"
+    IMG = "img"
+    EMBEDDING = "embedding"
+
+
+@dataclass
+class ModelResource:
+    """Tracks resource usage for a loaded model."""
+
+    model_type: ModelType
+    name: str
+    vram_gb: float  # Estimated VRAM usage in GB
+    device: str  # "cuda", "cuda:0", "cuda:1", "cpu"
+    in_use: bool = False  # Is the model currently processing a request?
+    last_used: float = 0.0  # Timestamp of last use
+
+
+# Approximate VRAM requirements for different model types (in GB)
+# These are estimates used for planning, actual usage may vary
+MODEL_VRAM_ESTIMATES = {
+    ModelType.LLM: 8.0,  # Varies greatly by model size and context
+    ModelType.VISION_LLM: 6.0,  # Vision models with projector
+    ModelType.TTS: 4.0,  # Chatterbox TTS
+    ModelType.STT: 2.0,  # Whisper (varies by size)
+    ModelType.IMG: 16.0,  # Z-Image-Turbo (can use CPU offload)
+    ModelType.EMBEDDING: 1.5,  # BGE-M3
+}
+
+
+class ResourceManager:
+    """Manages GPU/CPU resources across all models.
+
+    Key principles:
+    1. LLM is the primary workload - keep it loaded when possible
+    2. Auxiliary models (TTS, STT, IMG) can run on CPU if GPU is busy
+    3. Only unload models when we actually need the VRAM
+    4. Fall back to external server when truly resource-exhausted
+    """
+
+    def __init__(self):
+        self._lock = threading.RLock()
+        self._loaded_models: Dict[ModelType, ModelResource] = {}
+        self._model_locks: Dict[ModelType, threading.Lock] = {
+            mt: threading.Lock() for mt in ModelType
+        }
+
+        # Get system resources
+        self.gpu_count = get_gpu_count()
+        self.per_gpu_total_vram = get_per_gpu_vram_gb()
+        self.total_vram = sum(self.per_gpu_total_vram) if self.per_gpu_total_vram else 0
+        self.system_ram_gb = self._get_system_ram_gb()
+
+        # Reserve some VRAM for system overhead
+        self.vram_safety_margin = 1.0  # GB
+
+        logging.info(
+            f"[ResourceManager] Initialized: {self.gpu_count} GPU(s), "
+            f"{self.total_vram:.1f}GB total VRAM, {self.system_ram_gb:.1f}GB system RAM"
+        )
+
+    def _get_system_ram_gb(self) -> float:
+        """Get total system RAM in GB."""
+        try:
+            import psutil
+
+            return psutil.virtual_memory().total / (1024**3)
+        except ImportError:
+            return 128.0  # Assume 128GB if psutil not available
+
+    def get_free_vram(self, gpu_index: int = None) -> float:
+        """Get current free VRAM in GB."""
+        return get_free_vram_gb(gpu_index)
+
+    def get_total_free_vram(self) -> float:
+        """Get total free VRAM across all GPUs."""
+        if self.gpu_count == 0:
+            return 0.0
+        return sum(get_per_gpu_free_vram_gb())
+
+    def is_model_loaded(self, model_type: ModelType) -> bool:
+        """Check if a model type is currently loaded."""
+        with self._lock:
+            return model_type in self._loaded_models
+
+    def is_model_in_use(self, model_type: ModelType) -> bool:
+        """Check if a model is currently processing a request."""
+        with self._lock:
+            resource = self._loaded_models.get(model_type)
+            return resource.in_use if resource else False
+
+    def mark_model_in_use(self, model_type: ModelType, in_use: bool = True):
+        """Mark a model as in-use or idle."""
+        with self._lock:
+            if model_type in self._loaded_models:
+                self._loaded_models[model_type].in_use = in_use
+                if in_use:
+                    self._loaded_models[model_type].last_used = time.time()
+
+    def register_model(
+        self, model_type: ModelType, name: str, device: str, vram_gb: float = None
+    ):
+        """Register a newly loaded model."""
+        with self._lock:
+            if vram_gb is None:
+                vram_gb = MODEL_VRAM_ESTIMATES.get(model_type, 2.0)
+
+            self._loaded_models[model_type] = ModelResource(
+                model_type=model_type,
+                name=name,
+                vram_gb=vram_gb if "cuda" in device else 0.0,
+                device=device,
+                last_used=time.time(),
+            )
+            logging.debug(
+                f"[ResourceManager] Registered {model_type.value}: {name} on {device} "
+                f"({vram_gb:.1f}GB VRAM)"
+            )
+
+    def unregister_model(self, model_type: ModelType):
+        """Unregister a model that's being unloaded."""
+        with self._lock:
+            if model_type in self._loaded_models:
+                resource = self._loaded_models.pop(model_type)
+                logging.debug(
+                    f"[ResourceManager] Unregistered {model_type.value}: {resource.name}"
+                )
+
+    def can_load_model(
+        self, model_type: ModelType, required_vram: float = None
+    ) -> Tuple[bool, str, str]:
+        """Check if we can load a model and determine optimal device.
+
+        Returns:
+            Tuple of (can_load, device, reason)
+            - can_load: True if we can load the model
+            - device: Recommended device ("cuda", "cuda:N", "cpu")
+            - reason: Human-readable explanation
+        """
+        with self._lock:
+            if required_vram is None:
+                required_vram = MODEL_VRAM_ESTIMATES.get(model_type, 2.0)
+
+            free_vram = self.get_total_free_vram()
+
+            # Check if we have enough free VRAM
+            if free_vram >= required_vram + self.vram_safety_margin:
+                # Find the best GPU
+                if self.gpu_count == 1:
+                    return True, "cuda", f"Sufficient VRAM ({free_vram:.1f}GB free)"
+                else:
+                    # Multi-GPU: find GPU with most free VRAM
+                    free_per_gpu = get_per_gpu_free_vram_gb()
+                    best_gpu = max(
+                        range(len(free_per_gpu)), key=lambda i: free_per_gpu[i]
+                    )
+                    if free_per_gpu[best_gpu] >= required_vram:
+                        return (
+                            True,
+                            f"cuda:{best_gpu}",
+                            f"GPU {best_gpu} has {free_per_gpu[best_gpu]:.1f}GB free",
+                        )
+                    # Use tensor split across GPUs
+                    return (
+                        True,
+                        "cuda",
+                        f"Using tensor split ({free_vram:.1f}GB total free)",
+                    )
+
+            # Check if we can free VRAM by unloading idle models
+            idle_vram = 0.0
+            idle_models = []
+            for mt, resource in self._loaded_models.items():
+                if (
+                    not resource.in_use and mt != ModelType.LLM
+                ):  # Never suggest unloading active LLM
+                    idle_vram += resource.vram_gb
+                    idle_models.append(mt)
+
+            if free_vram + idle_vram >= required_vram + self.vram_safety_margin:
+                return (
+                    True,
+                    "cuda",
+                    f"Can free {idle_vram:.1f}GB by unloading {[m.value for m in idle_models]}",
+                )
+
+            # Check if model can run on CPU
+            if model_type in [ModelType.TTS, ModelType.STT, ModelType.EMBEDDING]:
+                return True, "cpu", f"Insufficient VRAM, using CPU (model supports CPU)"
+
+            # IMG can use CPU offload
+            if model_type == ModelType.IMG:
+                return True, "cuda", "Using sequential CPU offload for image generation"
+
+            # LLM - last resort, check if we have fallback
+            fallback_server = getenv("FALLBACK_SERVER")
+            if fallback_server:
+                return (
+                    False,
+                    "fallback",
+                    f"Insufficient VRAM ({free_vram:.1f}GB), will use fallback server",
+                )
+
+            return (
+                False,
+                "none",
+                f"Insufficient VRAM ({free_vram:.1f}GB free, need {required_vram}GB)",
+            )
+
+    def get_models_to_unload(
+        self, required_vram: float, exclude: List[ModelType] = None
+    ) -> List[ModelType]:
+        """Get list of models that should be unloaded to free VRAM.
+
+        Prioritizes unloading:
+        1. Models not currently in use
+        2. Least recently used models
+        3. Models that aren't the primary LLM
+
+        Args:
+            required_vram: Amount of VRAM we need to free
+            exclude: Model types to never unload
+
+        Returns:
+            List of ModelType to unload, in order
+        """
+        with self._lock:
+            if exclude is None:
+                exclude = []
+
+            # Always exclude LLM unless specifically requested
+            exclude = list(exclude) + [ModelType.LLM]
+
+            # Get idle models sorted by last used (oldest first)
+            candidates = []
+            for mt, resource in self._loaded_models.items():
+                if mt not in exclude and not resource.in_use and resource.vram_gb > 0:
+                    candidates.append((mt, resource))
+
+            candidates.sort(key=lambda x: x[1].last_used)
+
+            # Select models to unload until we have enough VRAM
+            to_unload = []
+            freed_vram = 0.0
+            for mt, resource in candidates:
+                if freed_vram >= required_vram:
+                    break
+                to_unload.append(mt)
+                freed_vram += resource.vram_gb
+
+            return to_unload
+
+    def get_status(self) -> Dict[str, Any]:
+        """Get current resource status for monitoring."""
+        with self._lock:
+            return {
+                "gpu_count": self.gpu_count,
+                "total_vram_gb": self.total_vram,
+                "free_vram_gb": self.get_total_free_vram(),
+                "free_per_gpu_gb": get_per_gpu_free_vram_gb(),
+                "system_ram_gb": self.system_ram_gb,
+                "loaded_models": {
+                    mt.value: {
+                        "name": r.name,
+                        "device": r.device,
+                        "vram_gb": r.vram_gb,
+                        "in_use": r.in_use,
+                        "last_used": r.last_used,
+                    }
+                    for mt, r in self._loaded_models.items()
+                },
+            }
+
+
+# Global resource manager instance
+_resource_manager: Optional[ResourceManager] = None
+_resource_manager_lock = threading.Lock()
+
+
+def get_resource_manager() -> ResourceManager:
+    """Get or create the global resource manager."""
+    global _resource_manager
+    with _resource_manager_lock:
+        if _resource_manager is None:
+            _resource_manager = ResourceManager()
+        return _resource_manager
+
 
 # Background cleanup queue for async model unloading
 _cleanup_queue = queue.Queue()
@@ -681,8 +982,10 @@ class Pipes:
         # Lock for model access - prevents race conditions when multiple
         # requests try to load/switch models simultaneously
         self._model_lock = threading.Lock()
-        # Track if inference is currently in progress
-        self._inference_in_progress = False
+        # Track how many inferences are currently in progress (thread-safe counter)
+        # Using a counter instead of boolean allows multiple concurrent requests
+        self._inference_count = 0
+        self._inference_count_lock = threading.Lock()
 
         # Track context reset state for auto-optimization
         # When we increase context for a large request, we schedule a reset
@@ -693,6 +996,10 @@ class Pipes:
             getenv("LLM_MAX_TOKENS", "40000")
         )  # Default optimal context
         self._context_reset_cooldown = 60  # Seconds to wait before resetting context
+
+        # Initialize resource manager for intelligent VRAM management
+        # Use the global singleton so all components share the same state
+        self.resource_manager = get_resource_manager()
 
         # Check if precache already ran (models already downloaded/warmed)
         from pathlib import Path
@@ -799,6 +1106,15 @@ class Pipes:
                     logging.info(
                         f"[LLM] Primary model {primary_model} loaded in {load_time:.1f}s"
                     )
+                    # Register with resource manager
+                    is_vision = self._is_vision_model(primary_model)
+                    model_type = ModelType.VISION_LLM if is_vision else ModelType.LLM
+                    self.resource_manager.register_model(
+                        model_type,
+                        primary_model,
+                        "cuda",
+                        vram_gb=MODEL_VRAM_ESTIMATES.get(model_type, 8.0),
+                    )
                 except Exception as e:
                     logging.warning(
                         f"[LLM] Failed to pre-load primary model {primary_model}: {e}"
@@ -823,6 +1139,13 @@ class Pipes:
                         load_time = time.time() - start_time
                         logging.info(
                             f"[LLM] Vision model {vision_model} loaded in {load_time:.1f}s"
+                        )
+                        # Register with resource manager
+                        self.resource_manager.register_model(
+                            ModelType.VISION_LLM,
+                            vision_model,
+                            "cuda",
+                            vram_gb=MODEL_VRAM_ESTIMATES.get(ModelType.VISION_LLM, 6.0),
                         )
                     except Exception as e:
                         logging.warning(
@@ -1603,7 +1926,7 @@ class Pipes:
             return
 
         # Check if inference is in progress - if so, reschedule
-        if self._inference_in_progress:
+        if self._is_inference_in_progress():
             logging.debug("[LLM] Inference in progress, rescheduling context reset")
             self._schedule_context_reset()
             return
@@ -1614,6 +1937,14 @@ class Pipes:
 
         try:
             with self._model_lock:
+                # Re-check inference status after acquiring lock (another request may have started)
+                if self._is_inference_in_progress():
+                    logging.debug(
+                        "[LLM] Inference started while waiting for lock, aborting context reset"
+                    )
+                    self._schedule_context_reset()
+                    return
+
                 model_name = self.current_llm_name
 
                 if model_name is None:
@@ -1805,17 +2136,46 @@ class Pipes:
             else:
                 self._destroy_embedder_sync(embedder_ref)
 
-    def _get_stt(self):
-        """Lazy load STT model on demand."""
+    def _get_stt(self, force_cpu: bool = False):
+        """Lazy load STT model on demand with smart resource management.
+
+        Args:
+            force_cpu: If True, force CPU mode even if GPU is available
+        """
+        resource_mgr = get_resource_manager()
+
         if self.stt is None:
             from ezlocalai.STT import STT
 
-            logging.debug(f"[STT] Loading {self.current_stt} on demand")
+            # Check resource availability
+            can_load, device, reason = resource_mgr.can_load_model(ModelType.STT)
+
+            if force_cpu or device == "cpu":
+                # STT class handles device selection internally, but we can hint via VRAM check
+                logging.debug(
+                    f"[STT] Loading {self.current_stt} on CPU (reason: {reason})"
+                )
+            else:
+                logging.debug(f"[STT] Loading {self.current_stt} ({reason})")
+
             start_time = time.time()
             self.stt = STT(model=self.current_stt)
-            logging.debug(
-                f"[STT] {self.current_stt} loaded in {time.time() - start_time:.2f}s"
+            load_time = time.time() - start_time
+
+            # Register with resource manager
+            actual_device = getattr(self.stt, "device", "cpu")
+            resource_mgr.register_model(
+                ModelType.STT,
+                self.current_stt,
+                actual_device,
+                vram_gb=2.0 if "cuda" in actual_device else 0.0,
             )
+
+            logging.debug(
+                f"[STT] {self.current_stt} loaded on {actual_device} in {load_time:.2f}s"
+            )
+
+        resource_mgr.mark_model_in_use(ModelType.STT, True)
         return self.stt
 
     def _destroy_stt_sync(self, stt_ref):
@@ -1824,16 +2184,28 @@ class Pipes:
             start_time = time.time()
             del stt_ref
             gc.collect()
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
             cleanup_time = time.time() - start_time
             logging.debug(f"[STT] Whisper unloaded in {cleanup_time:.2f}s")
         except Exception as e:
             logging.error(f"[STT] Error during cleanup: {e}")
 
-    def _destroy_stt(self, async_cleanup: bool = True):
-        """Destroy STT model to free resources."""
+    def _destroy_stt(self, async_cleanup: bool = True, force: bool = False):
+        """Destroy STT model to free resources.
+
+        Args:
+            async_cleanup: If True, run cleanup in background thread
+            force: If True, destroy even if other requests might need it soon
+        """
+        resource_mgr = get_resource_manager()
+        resource_mgr.mark_model_in_use(ModelType.STT, False)
+
+        # Always unload STT after use - loads quickly (~3s) and frees ~3GB VRAM
         if self.stt is not None:
             stt_ref = self.stt
             self.stt = None
+            resource_mgr.unregister_model(ModelType.STT)
 
             if async_cleanup:
                 logging.debug("[STT] Scheduling async unload...")
@@ -1841,26 +2213,59 @@ class Pipes:
             else:
                 self._destroy_stt_sync(stt_ref)
 
-    def _get_img(self):
-        """Lazy load IMG model on demand."""
+    def _get_img(self, force_cpu: bool = False):
+        """Lazy load IMG model on demand with smart resource management.
+
+        Args:
+            force_cpu: If True, force CPU mode (slower but frees GPU for LLM)
+        """
         global img_import_success
+        resource_mgr = get_resource_manager()
+
         if self.img is None and img_import_success:
             IMG_MODEL = getenv("IMG_MODEL")
             if IMG_MODEL:
-                logging.debug(f"[IMG] Loading {IMG_MODEL} on demand")
+                # Check resource availability
+                can_load, device, reason = resource_mgr.can_load_model(
+                    ModelType.IMG, required_vram=16.0
+                )
+
+                if force_cpu:
+                    img_device = "cpu"
+                elif not can_load and device == "fallback":
+                    logging.warning(f"[IMG] {reason} - image generation may be slow")
+                    img_device = "cuda"  # Will use CPU offload
+                elif device == "cpu":
+                    img_device = "cpu"
+                else:
+                    img_device = "cuda"
+
+                logging.debug(f"[IMG] Loading {IMG_MODEL} on {img_device} ({reason})")
                 start_time = time.time()
-                # Auto-detect CUDA for image generation
-                img_device = "cuda" if torch.cuda.is_available() else "cpu"
+
                 try:
                     self.img = IMG(
                         model=IMG_MODEL, local_uri=self.local_uri, device=img_device
                     )
+                    load_time = time.time() - start_time
+
+                    # Register with resource manager (IMG uses CPU offload so may use less VRAM)
+                    actual_vram = (
+                        8.0 if img_device == "cuda" else 0.0
+                    )  # Conservative estimate with offload
+                    resource_mgr.register_model(
+                        ModelType.IMG, IMG_MODEL, img_device, actual_vram
+                    )
+
                     logging.debug(
-                        f"[IMG] {IMG_MODEL} loaded on {img_device} in {time.time() - start_time:.2f}s"
+                        f"[IMG] {IMG_MODEL} loaded on {img_device} in {load_time:.2f}s"
                     )
                 except Exception as e:
                     logging.error(f"[IMG] Failed to load the model: {e}")
                     self.img = None
+
+        if self.img:
+            resource_mgr.mark_model_in_use(ModelType.IMG, True)
         return self.img
 
     def _destroy_img_sync(self, img_ref):
@@ -1876,17 +2281,67 @@ class Pipes:
         except Exception as e:
             logging.error(f"[IMG] Error during cleanup: {e}")
 
-    def _destroy_img(self, async_cleanup: bool = True):
-        """Destroy IMG model to free resources."""
+    def _destroy_img(self, async_cleanup: bool = True, force: bool = False):
+        """Destroy IMG model to free resources.
+
+        Args:
+            async_cleanup: If True, run cleanup in background thread
+            force: If True, destroy even if other requests might need it soon
+        """
+        resource_mgr = get_resource_manager()
+        resource_mgr.mark_model_in_use(ModelType.IMG, False)
+
+        # Always unload IMG after use - uses ~16GB VRAM and loads in ~2-3s
         if self.img is not None:
             img_ref = self.img
             self.img = None
+            resource_mgr.unregister_model(ModelType.IMG)
 
             if async_cleanup:
                 logging.debug("[IMG] Scheduling async unload...")
                 _schedule_cleanup(self._destroy_img_sync, img_ref)
             else:
                 self._destroy_img_sync(img_ref)
+
+    def _free_vram_for_llm(self, required_vram: float):
+        """Free VRAM by unloading idle auxiliary models.
+
+        Called before loading an LLM when VRAM is tight.
+        Unloads TTS, STT, IMG, Embedding models if they're not in use.
+
+        Args:
+            required_vram: Amount of VRAM we need to free in GB
+        """
+        resource_mgr = get_resource_manager()
+
+        # Get models to unload (never unloads LLM)
+        to_unload = resource_mgr.get_models_to_unload(required_vram)
+
+        if not to_unload:
+            logging.debug("[Resource] No idle models to unload")
+            return
+
+        logging.info(
+            f"[Resource] Freeing VRAM by unloading: {[m.value for m in to_unload]}"
+        )
+
+        for model_type in to_unload:
+            if model_type == ModelType.TTS:
+                self._destroy_tts(async_cleanup=False, force=True)
+            elif model_type == ModelType.STT:
+                self._destroy_stt(async_cleanup=False, force=True)
+            elif model_type == ModelType.IMG:
+                self._destroy_img(async_cleanup=False, force=True)
+            elif model_type == ModelType.EMBEDDING:
+                self._destroy_embedder(async_cleanup=False)
+
+        # Force cleanup
+        gc.collect()
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+
+        free_vram = resource_mgr.get_total_free_vram()
+        logging.info(f"[Resource] After cleanup: {free_vram:.1f}GB VRAM free")
 
     def _get_llm(self, model_name: str = None, context_size: int = 16384):
         """Get LLM instance, using persistent models when possible.
@@ -1904,6 +2359,8 @@ class Pipes:
         Thread-safe: Uses _model_lock to prevent race conditions when multiple
         requests try to access/load models simultaneously.
         """
+        resource_mgr = get_resource_manager()
+
         if model_name is None:
             model_name = self.available_models[0] if self.available_models else None
 
@@ -2011,6 +2468,17 @@ class Pipes:
                     torch.cuda.empty_cache()
                 self._using_large_model = True
 
+            # Check if we need to free VRAM before loading
+            estimated_vram = MODEL_VRAM_ESTIMATES.get(ModelType.LLM, 8.0)
+            free_vram = resource_mgr.get_total_free_vram()
+            if free_vram < estimated_vram:
+                logging.debug(
+                    f"[LLM] Low VRAM ({free_vram:.1f}GB), freeing auxiliary models"
+                )
+                self._free_vram_for_llm(
+                    estimated_vram - free_vram + 2.0
+                )  # Extra 2GB buffer
+
             logging.debug(
                 f"[LLM] Loading {model_name} (context: {context_size//1000}k)"
             )
@@ -2027,14 +2495,28 @@ class Pipes:
                 self.primary_llm = new_llm
                 self.primary_llm_name = model_name
                 self.primary_llm_context = context_size
+                # Register primary LLM with resource manager
+                resource_mgr.register_model(
+                    ModelType.LLM, model_name, "cuda", vram_gb=estimated_vram
+                )
             elif is_vision:
                 self.vision_llm = new_llm
                 self.vision_llm_name = model_name
                 self.vision_llm_context = context_size
+                # Register vision LLM with resource manager
+                resource_mgr.register_model(
+                    ModelType.VISION_LLM,
+                    model_name,
+                    "cuda",
+                    vram_gb=MODEL_VRAM_ESTIMATES.get(ModelType.VISION_LLM, 6.0),
+                )
 
             self.llm = new_llm
             self.current_llm_name = model_name
             self.current_context = context_size
+
+            # Mark LLM as in use
+            resource_mgr.mark_model_in_use(ModelType.LLM, True)
 
             load_time = time.time() - start_time
             logging.debug(f"[LLM] {model_name} loaded in {load_time:.2f}s")
@@ -2150,15 +2632,39 @@ class Pipes:
                     logging.debug(f"[LLM] Unloading {model_name} synchronously")
                     self._destroy_llm_sync(llm_ref, model_name)
 
-    def _get_tts(self):
-        """Lazy load TTS model on demand."""
+    def _get_tts(self, force_cpu: bool = False):
+        """Lazy load TTS model on demand with smart resource management.
+
+        Args:
+            force_cpu: If True, force CPU mode (not directly supported by CTTS but affects loading)
+        """
+        resource_mgr = get_resource_manager()
+
         if self.ctts is None:
-            logging.debug("[CTTS] Loading Chatterbox TTS on demand")
+            # Check resource availability
+            can_load, device, reason = resource_mgr.can_load_model(
+                ModelType.TTS, required_vram=4.0
+            )
+
+            logging.debug(f"[CTTS] Loading Chatterbox TTS ({reason})")
             start_time = time.time()
             self.ctts = CTTS()
-            logging.debug(
-                f"[CTTS] Chatterbox TTS loaded in {time.time() - start_time:.2f}s"
+            load_time = time.time() - start_time
+
+            # TTS uses CUDA if available (handled internally by CTTS)
+            actual_device = "cuda" if torch.cuda.is_available() else "cpu"
+            resource_mgr.register_model(
+                ModelType.TTS,
+                "Chatterbox TTS",
+                actual_device,
+                vram_gb=4.0 if actual_device == "cuda" else 0.0,
             )
+
+            logging.debug(
+                f"[CTTS] Chatterbox TTS loaded on {actual_device} in {load_time:.2f}s"
+            )
+
+        resource_mgr.mark_model_in_use(ModelType.TTS, True)
         return self.ctts
 
     def _destroy_tts_sync(self, tts_ref):
@@ -2174,11 +2680,21 @@ class Pipes:
         except Exception as e:
             logging.error(f"[CTTS] Error during TTS cleanup: {e}")
 
-    def _destroy_tts(self, async_cleanup: bool = True):
-        """Destroy TTS model to free resources."""
+    def _destroy_tts(self, async_cleanup: bool = True, force: bool = False):
+        """Destroy TTS model to free resources.
+
+        Args:
+            async_cleanup: If True, run cleanup in background thread
+            force: If True, destroy even if other requests might need it soon
+        """
+        resource_mgr = get_resource_manager()
+        resource_mgr.mark_model_in_use(ModelType.TTS, False)
+
+        # Always unload TTS after use - loads quickly (~1-2s) and frees ~4GB VRAM
         if self.ctts is not None:
             tts_ref = self.ctts
             self.ctts = None
+            resource_mgr.unregister_model(ModelType.TTS)
 
             if async_cleanup:
                 logging.debug("[CTTS] Scheduling async unload...")
@@ -2187,18 +2703,56 @@ class Pipes:
                 self._destroy_tts_sync(tts_ref)
 
     async def fallback_inference(self, messages):
+        """Use fallback server for inference when local resources are exhausted."""
         fallback_server = getenv("FALLBACK_SERVER")
         fallback_model = getenv("FALLBACK_MODEL")
         fallback_api_key = getenv("FALLBACK_API_KEY")
-        if fallback_server == "":
-            return "Unable to process request. Please try again later."
-        from openai import Client
 
-        client = Client(api_key=fallback_api_key, base_url=fallback_server)
-        response = client.chat.completions.create(
-            model=fallback_model, messages=messages
+        if not fallback_server:
+            logging.warning("[Fallback] No fallback server configured")
+            return "Unable to process request. Local resources exhausted and no fallback server configured."
+
+        logging.info(
+            f"[Fallback] Using fallback server: {fallback_server} with model {fallback_model}"
         )
-        return response.choices[0].message.content
+
+        try:
+            from openai import Client
+
+            client = Client(api_key=fallback_api_key, base_url=fallback_server)
+            response = client.chat.completions.create(
+                model=fallback_model, messages=messages
+            )
+            return response.choices[0].message.content
+        except Exception as e:
+            logging.error(f"[Fallback] Fallback server request failed: {e}")
+            return f"Unable to process request. Fallback server error: {str(e)}"
+
+    def should_use_fallback(self) -> Tuple[bool, str]:
+        """Check if we should use fallback server instead of local inference.
+
+        Returns:
+            Tuple of (should_use_fallback, reason)
+        """
+        resource_mgr = get_resource_manager()
+
+        # Check if fallback is configured
+        fallback_server = getenv("FALLBACK_SERVER")
+        if not fallback_server:
+            return False, "No fallback server configured"
+
+        # Check if LLM is available and has sufficient resources
+        can_load, device, reason = resource_mgr.can_load_model(ModelType.LLM)
+
+        if not can_load and device == "fallback":
+            return True, reason
+
+        # Check if queue is getting too long (resource contention)
+        # This could indicate we're overwhelmed
+        # Note: This would need access to request_queue, which is in app.py
+        # For now, just use VRAM-based decision
+
+        return False, "Local resources available"
 
     async def pdf_to_audio(self, title, voice, pdf, chunk_size=200):
         # Sanitize title to prevent path traversal
@@ -2245,12 +2799,16 @@ class Pipes:
         if not content:
             return
         tts = self._get_tts()
-        result = await tts.generate(
-            text=content,
-            voice=voice,
-            local_uri=self.local_uri,
-            output_file_name=f"{safe_title}.wav",
-        )
+        self.resource_manager.mark_model_in_use(ModelType.TTS, True)
+        try:
+            result = await tts.generate(
+                text=content,
+                voice=voice,
+                local_uri=self.local_uri,
+                output_file_name=f"{safe_title}.wav",
+            )
+        finally:
+            self.resource_manager.mark_model_in_use(ModelType.TTS, False)
         self._destroy_tts()
         return result
 
@@ -2260,21 +2818,35 @@ class Pipes:
         audio = audio.split(",")[1]
         audio = base64.b64decode(audio)
         stt = self._get_stt()
-        text = stt.transcribe_audio(base64_audio=audio, audio_format=audio_format)
+        self.resource_manager.mark_model_in_use(ModelType.STT, True)
+        try:
+            text = stt.transcribe_audio(base64_audio=audio, audio_format=audio_format)
+        finally:
+            self.resource_manager.mark_model_in_use(ModelType.STT, False)
         self._destroy_stt()
         tts = self._get_tts()
-        result = await tts.generate(text=text, voice=voice, local_uri=self.local_uri)
+        self.resource_manager.mark_model_in_use(ModelType.TTS, True)
+        try:
+            result = await tts.generate(
+                text=text, voice=voice, local_uri=self.local_uri
+            )
+        finally:
+            self.resource_manager.mark_model_in_use(ModelType.TTS, False)
         self._destroy_tts()
         return result
 
     async def generate_image(self, prompt, response_format="url", size="512x512"):
         img = self._get_img()
         if img:
-            img.local_uri = self.local_uri if response_format == "url" else None
-            new_image = img.generate(
-                prompt=prompt,
-                size=size,
-            )
+            self.resource_manager.mark_model_in_use(ModelType.IMG, True)
+            try:
+                img.local_uri = self.local_uri if response_format == "url" else None
+                new_image = img.generate(
+                    prompt=prompt,
+                    size=size,
+                )
+            finally:
+                self.resource_manager.mark_model_in_use(ModelType.IMG, False)
             self._destroy_img()
             return new_image
         return ""
@@ -2294,22 +2866,53 @@ class Pipes:
             )
         return data
 
+    def _is_inference_in_progress(self) -> bool:
+        """Thread-safe check if any inference is currently in progress."""
+        with self._inference_count_lock:
+            return self._inference_count > 0
+
+    def _increment_inference_count(self):
+        """Thread-safe increment of inference counter."""
+        with self._inference_count_lock:
+            self._inference_count += 1
+            logging.debug(
+                f"[Inference] Started - active count: {self._inference_count}"
+            )
+
+    def _decrement_inference_count(self):
+        """Thread-safe decrement of inference counter."""
+        with self._inference_count_lock:
+            self._inference_count = max(0, self._inference_count - 1)
+            logging.debug(
+                f"[Inference] Completed - active count: {self._inference_count}"
+            )
+
     async def get_response(self, data, completion_type="chat"):
         # Cancel any pending context reset since we're handling a request
         self._cancel_context_reset()
 
         # Mark inference as in progress to prevent context reset during processing
-        self._inference_in_progress = True
+        self._increment_inference_count()
+
+        # Mark LLM as in-use in resource manager
+        llm_model_type = (
+            ModelType.VISION_LLM if (self.llm and self.llm.is_vision) else ModelType.LLM
+        )
+        self.resource_manager.mark_model_in_use(llm_model_type, True)
 
         try:
             return await self._get_response_internal(data, completion_type)
         finally:
-            # Mark inference as complete
-            self._inference_in_progress = False
+            # Mark LLM as no longer in-use
+            self.resource_manager.mark_model_in_use(llm_model_type, False)
 
-            # If we're at a larger-than-optimal context, schedule a reset
+            # Mark inference as complete
+            self._decrement_inference_count()
+
+            # If we're at a larger-than-optimal context and no other inferences running, schedule a reset
             if self.current_context and self.current_context > self._optimal_context:
-                self._schedule_context_reset()
+                if not self._is_inference_in_progress():
+                    self._schedule_context_reset()
 
     async def _get_response_internal(self, data, completion_type="chat"):
         """Internal implementation of get_response."""
@@ -2346,9 +2949,18 @@ class Pipes:
                                         "utf-8"
                                     )
                                 stt = self._get_stt()
-                                transcribed_audio = stt.transcribe_audio(
-                                    base64_audio=audio_url, audio_format=audio_format
+                                self.resource_manager.mark_model_in_use(
+                                    ModelType.STT, True
                                 )
+                                try:
+                                    transcribed_audio = stt.transcribe_audio(
+                                        base64_audio=audio_url,
+                                        audio_format=audio_format,
+                                    )
+                                finally:
+                                    self.resource_manager.mark_model_in_use(
+                                        ModelType.STT, False
+                                    )
                                 self._destroy_stt()
                                 text_content = f"Transcribed Audio: {transcribed_audio}\n\n{text_content}"
                         elif isinstance(content_item, str):
@@ -2393,9 +3005,15 @@ class Pipes:
                             audio_url = requests.get(audio_url).content
                             audio_url = base64.b64encode(audio_url).decode("utf-8")
                         stt = self._get_stt()
-                        transcribed_audio = stt.transcribe_audio(
-                            base64_audio=audio_url, audio_format=audio_format
-                        )
+                        self.resource_manager.mark_model_in_use(ModelType.STT, True)
+                        try:
+                            transcribed_audio = stt.transcribe_audio(
+                                base64_audio=audio_url, audio_format=audio_format
+                            )
+                        finally:
+                            self.resource_manager.mark_model_in_use(
+                                ModelType.STT, False
+                            )
                         self._destroy_stt()
                         prompt = f"Transcribed Audio: {transcribed_audio}\n\n{prompt}"
                 # Convert list content back to string for LLM compatibility
@@ -2463,10 +3081,14 @@ class Pipes:
                 else data["prompt"]
             )
             stt = self._get_stt()
-            prompt = stt.transcribe_audio(
-                base64_audio=base64_audio,
-                audio_format=data["audio_format"],
-            )
+            self.resource_manager.mark_model_in_use(ModelType.STT, True)
+            try:
+                prompt = stt.transcribe_audio(
+                    base64_audio=base64_audio,
+                    audio_format=data["audio_format"],
+                )
+            finally:
+                self.resource_manager.mark_model_in_use(ModelType.STT, False)
             self._destroy_stt()
             if completion_type == "chat":
                 data["messages"][-1]["content"] = prompt
@@ -2862,8 +3484,17 @@ class Pipes:
                 else data["prompt"]
             )
             if isinstance(user_message, list):
-                user_message = prompt
-                for message in messages:
+                # Extract text from list format
+                user_message = ""
+                for item in user_message:
+                    if isinstance(item, dict):
+                        if item.get("type") == "text":
+                            user_message = item.get("text", "")
+                            break
+                        elif "text" in item:
+                            user_message = item["text"]
+                            break
+                for message in user_message if isinstance(user_message, list) else []:
                     if "image_url" in message:
                         if "url" in message["image_url"]:
                             if not message["image_url"]["url"].startswith("data:"):
@@ -2920,7 +3551,11 @@ class Pipes:
                         "```markdown"
                     )[1]
                     image_generation_prompt = image_generation_prompt.split("```")[0]
-                generated_image = self.img.generate(prompt=image_generation_prompt)
+                self.resource_manager.mark_model_in_use(ModelType.IMG, True)
+                try:
+                    generated_image = self.img.generate(prompt=image_generation_prompt)
+                finally:
+                    self.resource_manager.mark_model_in_use(ModelType.IMG, False)
             # Destroy IMG model after use to free VRAM (even if no image was generated)
             self._destroy_img()
         audio_response = None
@@ -2932,12 +3567,16 @@ class Pipes:
             )
             language = data["language"] if "language" in data else "en"
             tts = self._get_tts()
-            audio_response = await tts.generate(
-                text=text_response,
-                voice=data["voice"],
-                language=language,
-                local_uri=self.local_uri,
-            )
+            self.resource_manager.mark_model_in_use(ModelType.TTS, True)
+            try:
+                audio_response = await tts.generate(
+                    text=text_response,
+                    voice=data["voice"],
+                    language=language,
+                    local_uri=self.local_uri,
+                )
+            finally:
+                self.resource_manager.mark_model_in_use(ModelType.TTS, False)
             self._destroy_tts()
             if completion_type != "chat":
                 response["choices"][0]["text"] = f"{text_response}\n{audio_response}"
