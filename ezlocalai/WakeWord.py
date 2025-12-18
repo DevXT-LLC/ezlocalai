@@ -125,7 +125,9 @@ class TrainingJob:
             "current_stage": self.current_stage,
             "error_message": self.error_message,
             "estimated_completion": (
-                self.estimated_completion.isoformat() if self.estimated_completion else None
+                self.estimated_completion.isoformat()
+                if self.estimated_completion
+                else None
             ),
             "model_path": self.model_path,
             "metrics": self.metrics,
@@ -261,7 +263,9 @@ class WakeWordDataset(Dataset):
         features = self.feature_extractor.extract_features(waveform)
 
         if features.shape[1] < self.max_frames:
-            padding = torch.zeros(features.shape[0], self.max_frames - features.shape[1])
+            padding = torch.zeros(
+                features.shape[0], self.max_frames - features.shape[1]
+            )
             features = torch.cat([features, padding], dim=1)
         else:
             features = features[:, : self.max_frames]
@@ -443,7 +447,9 @@ class SampleGenerator:
             self.available_engines.append(TTSEngine.CHATTERBOX)
             logger.info("Chatterbox TTS engine initialized for wake word training")
 
-    async def generate_gtts_sample(self, word: str, lang: str = "en") -> Optional[TTSSample]:
+    async def generate_gtts_sample(
+        self, word: str, lang: str = "en"
+    ) -> Optional[TTSSample]:
         """Generate a sample using Google TTS."""
         try:
             from gtts import gTTS
@@ -517,7 +523,9 @@ class SampleGenerator:
 
             from pydub import AudioSegment
 
-            wav = self.chatterbox_model.generate(word, audio_prompt_path=str(voice_file))
+            wav = self.chatterbox_model.generate(
+                word, audio_prompt_path=str(voice_file)
+            )
 
             temp_path = self.output_dir / f"temp_cb_{uuid.uuid4().hex}.wav"
 
@@ -548,7 +556,10 @@ class SampleGenerator:
             return None
 
     async def generate_samples(
-        self, word: str, target_count: int = 500, progress_callback: Optional[callable] = None
+        self,
+        word: str,
+        target_count: int = 500,
+        progress_callback: Optional[callable] = None,
     ) -> List[TTSSample]:
         """Generate diverse TTS samples for a wake word."""
         samples = []
@@ -568,7 +579,10 @@ class SampleGenerator:
             for voice in self.EDGE_VOICES[:samples_per_engine]:
                 tasks.append(self.generate_edge_sample(word, voice))
 
-        if TTSEngine.CHATTERBOX in self.available_engines and self.chatterbox_voices_dir:
+        if (
+            TTSEngine.CHATTERBOX in self.available_engines
+            and self.chatterbox_voices_dir
+        ):
             voice_files = list(self.chatterbox_voices_dir.glob("*.wav"))
             for voice_file in voice_files[:samples_per_engine]:
                 tasks.append(self.generate_chatterbox_sample(word, voice_file))
@@ -645,7 +659,9 @@ class AudioAugmenter:
     def _change_pitch(self, audio, semitones: int):
         """Shift pitch by semitones."""
         new_sample_rate = int(audio.frame_rate * (2 ** (semitones / 12)))
-        pitched = audio._spawn(audio.raw_data, overrides={"frame_rate": new_sample_rate})
+        pitched = audio._spawn(
+            audio.raw_data, overrides={"frame_rate": new_sample_rate}
+        )
         return pitched.set_frame_rate(audio.frame_rate)
 
     def _add_noise(self, audio, noise_level: float):
@@ -718,7 +734,9 @@ class AudioAugmenter:
             if progress_callback and (i + 1) % 10 == 0:
                 progress_callback(i + 1, total, "augmenting")
 
-        logger.info(f"Created {len(augmented_dataset)} total samples after augmentation")
+        logger.info(
+            f"Created {len(augmented_dataset)} total samples after augmentation"
+        )
         return augmented_dataset
 
 
@@ -779,26 +797,55 @@ class NegativeSampleGenerator:
     ) -> List[Tuple[bytes, Dict]]:
         """Generate samples of similar-sounding words."""
         similar_patterns = [
-            "hey", "hay", "hi", "he", "huh", "ok", "okay", "oh", "ow",
-            "yeah", "yes", "yep", "no", "nope",
-            "the", "a", "is", "it", "to", "and", "what", "that", "this", "there",
-            "one", "two", "three", "four", "five",
+            "hey",
+            "hay",
+            "hi",
+            "he",
+            "huh",
+            "ok",
+            "okay",
+            "oh",
+            "ow",
+            "yeah",
+            "yes",
+            "yep",
+            "no",
+            "nope",
+            "the",
+            "a",
+            "is",
+            "it",
+            "to",
+            "and",
+            "what",
+            "that",
+            "this",
+            "there",
+            "one",
+            "two",
+            "three",
+            "four",
+            "five",
         ]
 
         if len(target_word) > 2:
-            similar_patterns.extend([
-                target_word[:-1],
-                target_word[1:],
-                target_word + "s",
-                target_word + "ing",
-            ])
+            similar_patterns.extend(
+                [
+                    target_word[:-1],
+                    target_word[1:],
+                    target_word + "s",
+                    target_word + "ing",
+                ]
+            )
 
         samples = []
         for word in similar_patterns[:count]:
             try:
                 tts_samples = await tts_generator.generate_samples(word, target_count=2)
                 for sample in tts_samples:
-                    samples.append((sample.audio_data, {"type": "similar_word", "word": word}))
+                    samples.append(
+                        (sample.audio_data, {"type": "similar_word", "word": word})
+                    )
             except Exception as e:
                 logger.debug(f"Could not generate sample for '{word}': {e}")
 
@@ -869,8 +916,12 @@ class WakeWordTrainer:
             dataset, [train_size, val_size]
         )
 
-        train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=0)
-        val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False, num_workers=0)
+        train_loader = DataLoader(
+            train_dataset, batch_size=batch_size, shuffle=True, num_workers=0
+        )
+        val_loader = DataLoader(
+            val_dataset, batch_size=batch_size, shuffle=False, num_workers=0
+        )
 
         optimizer = torch.optim.Adam(self.model.parameters(), lr=learning_rate)
         scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
@@ -1096,7 +1147,9 @@ class WakeWordTrainer:
         trainer = cls(config, device=device)
 
         torch_path = model_dir / "model.pt"
-        checkpoint = torch.load(torch_path, map_location=trainer.device, weights_only=False)
+        checkpoint = torch.load(
+            torch_path, map_location=trainer.device, weights_only=False
+        )
         trainer.model.load_state_dict(checkpoint["model_state_dict"])
 
         return trainer
@@ -1124,8 +1177,12 @@ class WakeWordManager:
     ):
         base_dir = Path(os.getcwd())
 
-        self.models_dir = Path(models_dir) if models_dir else base_dir / "wakeword_models"
-        self.samples_dir = Path(samples_dir) if samples_dir else base_dir / "wakeword_samples"
+        self.models_dir = (
+            Path(models_dir) if models_dir else base_dir / "wakeword_models"
+        )
+        self.samples_dir = (
+            Path(samples_dir) if samples_dir else base_dir / "wakeword_samples"
+        )
         self.jobs_dir = Path(jobs_dir) if jobs_dir else base_dir / "wakeword_jobs"
         self.voices_dir = Path(voices_dir) if voices_dir else base_dir / "voices"
 
@@ -1156,7 +1213,11 @@ class WakeWordManager:
                 job = TrainingJob.from_dict(job_data)
                 self.jobs[job.job_id] = job
 
-                if job.status not in [JobStatus.COMPLETED, JobStatus.FAILED, JobStatus.CANCELLED]:
+                if job.status not in [
+                    JobStatus.COMPLETED,
+                    JobStatus.FAILED,
+                    JobStatus.CANCELLED,
+                ]:
                     self.word_to_job[job.word.lower()] = job.job_id
 
                 logger.info(
@@ -1275,7 +1336,9 @@ class WakeWordManager:
             self.word_to_job[word_lower] = job.job_id
             self._save_job(job)
 
-        task = asyncio.create_task(self._run_training(job, sample_count, epochs, batch_size))
+        task = asyncio.create_task(
+            self._run_training(job, sample_count, epochs, batch_size)
+        )
         self.running_tasks[job.job_id] = task
 
         logger.info(f"Created wake word training job {job.job_id} for word '{word}'")
@@ -1358,7 +1421,9 @@ class WakeWordManager:
                 enable_edge=True,
                 enable_chatterbox=self.chatterbox_model is not None,
                 chatterbox_model=self.chatterbox_model,
-                chatterbox_voices_dir=self.voices_dir if self.chatterbox_model else None,
+                chatterbox_voices_dir=(
+                    self.voices_dir if self.chatterbox_model else None
+                ),
             )
 
             def sample_progress(current, total, stage):
@@ -1372,7 +1437,9 @@ class WakeWordManager:
             )
 
             if len(samples) < 5:
-                raise RuntimeError(f"Only generated {len(samples)} samples, need at least 5")
+                raise RuntimeError(
+                    f"Only generated {len(samples)} samples, need at least 5"
+                )
 
             # Stage 2: Augment samples
             self._update_job(
@@ -1402,7 +1469,9 @@ class WakeWordManager:
             )
 
             neg_generator = NegativeSampleGenerator()
-            noise_samples = neg_generator.generate_noise_samples(count=len(positive_samples) // 4)
+            noise_samples = neg_generator.generate_noise_samples(
+                count=len(positive_samples) // 4
+            )
             similar_samples = await neg_generator.generate_similar_words(
                 word,
                 generator,

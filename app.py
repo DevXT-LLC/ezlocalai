@@ -109,7 +109,9 @@ async def startup_event():
     from Pipes import is_voice_server_mode
 
     if is_voice_server_mode():
-        logging.info("[WakeWord] Voice server mode detected, initializing wake word manager")
+        logging.info(
+            "[WakeWord] Voice server mode detected, initializing wake word manager"
+        )
         try:
             from ezlocalai.WakeWord import WakeWordManager, set_wakeword_manager
             from pathlib import Path
@@ -122,7 +124,9 @@ async def startup_event():
                 tts = pipe._get_tts()
                 if hasattr(tts, "model"):
                     chatterbox_model = tts.model
-                    logging.info("[WakeWord] Chatterbox TTS model available for wake word training")
+                    logging.info(
+                        "[WakeWord] Chatterbox TTS model available for wake word training"
+                    )
             except Exception as e:
                 logging.warning(f"[WakeWord] Could not get Chatterbox model: {e}")
 
@@ -1455,7 +1459,11 @@ async def train_wakeword_model(
 
     # Check if training is already in progress
     existing_job = manager.get_job_for_word(word)
-    if existing_job and existing_job.status.value not in ["completed", "failed", "cancelled"]:
+    if existing_job and existing_job.status.value not in [
+        "completed",
+        "failed",
+        "cancelled",
+    ]:
         return WakeWordTrainResponse(
             job_id=existing_job.job_id,
             word=word,
