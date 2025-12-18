@@ -713,6 +713,277 @@ def get_fallback_client() -> EzlocalaiClient:
         return _fallback_client
 
 
+# =============================================================================
+# Voice Server Client - For offloading TTS/STT to dedicated voice server
+# =============================================================================
+
+
+class VoiceServerClient:
+    """Client for forwarding TTS/STT requests to a dedicated voice server.
+
+    This enables separating voice processing (TTS/STT) from LLM inference,
+    allowing a dedicated GPU (e.g., RTX 3090) to handle voice workloads while
+    the main server focuses on LLM inference.
+
+    Configuration via VOICE_SERVER env var:
+    - Empty (default): Load voice models locally on demand (lazy loading)
+    - URL (e.g., "http://192.168.1.100:8091"): Forward voice requests to voice server
+    - "true": This server IS a voice server - keep TTS/STT loaded, lazy-load LLMs
+    """
+
+    def __init__(self, base_url: str = None, api_key: str = None):
+        """Initialize the voice server client.
+
+        Args:
+            base_url: URL of the voice server (e.g., "http://192.168.1.100:8091")
+            api_key: API key for the voice server (uses local key if not provided)
+        """
+        voice_server = base_url or getenv("VOICE_SERVER")
+        # Handle "true" case - this server IS the voice server
+        if voice_server and voice_server.lower() == "true":
+            self.base_url = ""
+            self.is_voice_server_mode = True
+        else:
+            self.base_url = voice_server.rstrip("/") if voice_server else ""
+            self.is_voice_server_mode = False
+
+        self.api_key = (
+            api_key or getenv("VOICE_SERVER_API_KEY") or getenv("EZLOCALAI_API_KEY")
+        )
+        self._available = None
+        self._last_check = 0
+        self._check_interval = 30  # Re-check availability every 30 seconds
+
+    @property
+    def is_configured(self) -> bool:
+        """Check if a voice server URL is configured (not "true" mode)."""
+        return bool(self.base_url) and not self.is_voice_server_mode
+
+    @property
+    def should_keep_voice_loaded(self) -> bool:
+        """Check if this server should keep voice models loaded (voice server mode)."""
+        return self.is_voice_server_mode
+
+    def _get_headers(self) -> dict:
+        """Get request headers with authentication."""
+        headers = {"Content-Type": "application/json"}
+        if self.api_key and self.api_key != "none":
+            headers["Authorization"] = f"Bearer {self.api_key}"
+        return headers
+
+    async def check_availability(self) -> Tuple[bool, str]:
+        """Check if the voice server is available.
+
+        Returns:
+            Tuple of (is_available, reason)
+        """
+        if not self.is_configured:
+            return False, "No voice server configured"
+
+        # Use cached result if recent
+        current_time = time.time()
+        if (
+            self._available is not None
+            and (current_time - self._last_check) < self._check_interval
+        ):
+            return self._available, "cached"
+
+        try:
+            import aiohttp
+
+            async with aiohttp.ClientSession() as session:
+                # Check if voice server is reachable via /v1/audio/voices endpoint
+                async with session.get(
+                    f"{self.base_url}/v1/audio/voices",
+                    headers=self._get_headers(),
+                    timeout=aiohttp.ClientTimeout(total=5),
+                ) as resp:
+                    if resp.status == 200:
+                        self._available = True
+                        self._last_check = current_time
+                        return True, "Voice server available"
+                    else:
+                        self._available = False
+                        self._last_check = current_time
+                        return False, f"Voice server returned status {resp.status}"
+
+        except Exception as e:
+            self._available = False
+            self._last_check = current_time
+            return False, f"Voice server unreachable: {str(e)}"
+
+    async def forward_tts(
+        self, text: str, voice: str = "default", language: str = "en"
+    ) -> Optional[bytes]:
+        """Forward a TTS request to the voice server.
+
+        Args:
+            text: Text to convert to speech
+            voice: Voice to use
+            language: Language code
+
+        Returns:
+            Audio bytes if successful, None if failed
+        """
+        if not self.is_configured:
+            return None
+
+        import aiohttp
+
+        logging.info(f"[VoiceServer] Forwarding TTS to {self.base_url}")
+
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.post(
+                    f"{self.base_url}/v1/audio/speech",
+                    json={"input": text, "voice": voice, "language": language},
+                    headers=self._get_headers(),
+                    timeout=aiohttp.ClientTimeout(total=120),
+                ) as resp:
+                    if resp.status == 200:
+                        audio_bytes = await resp.read()
+                        logging.debug(
+                            f"[VoiceServer] TTS successful, received {len(audio_bytes)} bytes"
+                        )
+                        return audio_bytes
+                    else:
+                        error_text = await resp.text()
+                        logging.warning(
+                            f"[VoiceServer] TTS failed with status {resp.status}: {error_text}"
+                        )
+                        return None
+
+        except Exception as e:
+            logging.warning(f"[VoiceServer] TTS request failed: {e}")
+            return None
+
+    async def forward_transcription(
+        self,
+        file_content: bytes,
+        content_type: str,
+        model: str = None,
+        language: str = None,
+        prompt: str = None,
+        response_format: str = "json",
+        temperature: float = 0.0,
+    ) -> Optional[dict]:
+        """Forward a transcription request to the voice server.
+
+        Args:
+            file_content: Audio file content
+            content_type: MIME type of the audio
+            model: STT model to use
+            language: Language code
+            prompt: Optional prompt for transcription
+            response_format: Response format
+            temperature: Sampling temperature
+
+        Returns:
+            Transcription result dict if successful, None if failed
+        """
+        if not self.is_configured:
+            return None
+
+        import aiohttp
+
+        logging.info(f"[VoiceServer] Forwarding transcription to {self.base_url}")
+
+        try:
+            headers = {}
+            if self.api_key and self.api_key != "none":
+                headers["Authorization"] = f"Bearer {self.api_key}"
+
+            # Build multipart form data
+            data = aiohttp.FormData()
+            data.add_field(
+                "file", file_content, content_type=content_type, filename="audio.wav"
+            )
+            if model:
+                data.add_field("model", model)
+            if language:
+                data.add_field("language", language)
+            if prompt:
+                data.add_field("prompt", prompt)
+            data.add_field("response_format", response_format)
+            data.add_field("temperature", str(temperature))
+
+            async with aiohttp.ClientSession() as session:
+                async with session.post(
+                    f"{self.base_url}/v1/audio/transcriptions",
+                    data=data,
+                    headers=headers,
+                    timeout=aiohttp.ClientTimeout(total=120),
+                ) as resp:
+                    if resp.status == 200:
+                        if response_format == "text":
+                            text = await resp.text()
+                            return {"text": text}
+                        return await resp.json()
+                    else:
+                        error_text = await resp.text()
+                        logging.warning(
+                            f"[VoiceServer] Transcription failed with status {resp.status}: {error_text}"
+                        )
+                        return None
+
+        except Exception as e:
+            logging.warning(f"[VoiceServer] Transcription request failed: {e}")
+            return None
+
+    async def get_voices(self) -> Optional[dict]:
+        """Get available voices from the voice server.
+
+        Returns:
+            Dict with voices list if successful, None if failed
+        """
+        if not self.is_configured:
+            return None
+
+        import aiohttp
+
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(
+                    f"{self.base_url}/v1/audio/voices",
+                    headers=self._get_headers(),
+                    timeout=aiohttp.ClientTimeout(total=10),
+                ) as resp:
+                    if resp.status == 200:
+                        return await resp.json()
+                    return None
+
+        except Exception as e:
+            logging.debug(f"[VoiceServer] Failed to get voices: {e}")
+            return None
+
+
+# Global voice server client instance
+_voice_server_client: Optional[VoiceServerClient] = None
+_voice_server_client_lock = threading.Lock()
+
+
+def get_voice_server_client() -> VoiceServerClient:
+    """Get or create the global voice server client."""
+    global _voice_server_client
+    with _voice_server_client_lock:
+        if _voice_server_client is None:
+            _voice_server_client = VoiceServerClient()
+        return _voice_server_client
+
+
+def is_voice_server_mode() -> bool:
+    """Check if this server is running in voice server mode (VOICE_SERVER=true).
+
+    In voice server mode:
+    - TTS and STT models are kept loaded (not lazy loaded/unloaded)
+    - LLM models are lazy loaded instead
+
+    Returns:
+        True if VOICE_SERVER env var is set to "true"
+    """
+    return get_voice_server_client().should_keep_voice_loaded
+
+
 def should_use_ezlocalai_fallback() -> Tuple[bool, str]:
     """Check if we should use the fallback server based on local resource state.
 
@@ -1577,7 +1848,20 @@ class Pipes:
         # TTS initialization - skip warmup if precache already did it
         self.ctts = None
         if getenv("TTS_ENABLED").lower() == "true":
-            if precache_done:
+            # Check if we're in voice server mode - keep TTS loaded
+            if is_voice_server_mode():
+                logging.info("[CTTS] Voice server mode - loading TTS to keep resident")
+                start_time = time.time()
+                self.ctts = CTTS()
+                load_time = time.time() - start_time
+                logging.info(f"[CTTS] Chatterbox TTS loaded in {load_time:.2f}s (voice server mode - staying loaded)")
+                self.resource_manager.register_model(
+                    ModelType.TTS,
+                    "Chatterbox TTS",
+                    "cuda" if torch.cuda.is_available() else "cpu",
+                    vram_gb=4.0 if torch.cuda.is_available() else 0.0,
+                )
+            elif precache_done:
                 # Precache already warmed the TTS cache, skip loading/unloading
                 logging.debug(
                     "[CTTS] TTS cache already warmed by precache, will lazy-load on first request"
@@ -1601,6 +1885,22 @@ class Pipes:
         self.embedder = None
         self.img = None
         self.current_stt = getenv("WHISPER_MODEL")
+
+        # In voice server mode, pre-load STT as well
+        if is_voice_server_mode() and getenv("STT_ENABLED").lower() == "true":
+            logging.info("[STT] Voice server mode - loading STT to keep resident")
+            from ezlocalai.STT import STT
+            start_time = time.time()
+            self.stt = STT(model=self.current_stt)
+            load_time = time.time() - start_time
+            actual_device = getattr(self.stt, "device", "cpu")
+            logging.info(f"[STT] {self.current_stt} loaded on {actual_device} in {load_time:.2f}s (voice server mode - staying loaded)")
+            self.resource_manager.register_model(
+                ModelType.STT,
+                self.current_stt,
+                actual_device,
+                vram_gb=2.0 if "cuda" in actual_device else 0.0,
+            )
 
         NGROK_TOKEN = getenv("NGROK_TOKEN")
         if NGROK_TOKEN:
@@ -2623,6 +2923,11 @@ class Pipes:
         resource_mgr = get_resource_manager()
         resource_mgr.mark_model_in_use(ModelType.STT, False)
 
+        # In voice server mode, never unload STT unless forced
+        if is_voice_server_mode() and not force:
+            logging.debug("[STT] Voice server mode - keeping STT loaded")
+            return
+
         # Always unload STT after use - loads quickly (~3s) and frees ~3GB VRAM
         if self.stt is not None:
             stt_ref = self.stt
@@ -3112,6 +3417,11 @@ class Pipes:
         resource_mgr = get_resource_manager()
         resource_mgr.mark_model_in_use(ModelType.TTS, False)
 
+        # In voice server mode, never unload TTS unless forced
+        if is_voice_server_mode() and not force:
+            logging.debug("[CTTS] Voice server mode - keeping TTS loaded")
+            return
+
         # Always unload TTS after use - loads quickly (~1-2s) and frees ~4GB VRAM
         if self.ctts is not None:
             tts_ref = self.ctts
@@ -3331,7 +3641,9 @@ class Pipes:
             )
         finally:
             self.resource_manager.mark_model_in_use(ModelType.TTS, False)
-        self._destroy_tts()
+        # In voice server mode, don't destroy TTS - keep it loaded
+        if not is_voice_server_mode():
+            self._destroy_tts()
         return result
 
     async def audio_to_audio(self, voice, audio):
@@ -3345,7 +3657,9 @@ class Pipes:
             text = stt.transcribe_audio(base64_audio=audio, audio_format=audio_format)
         finally:
             self.resource_manager.mark_model_in_use(ModelType.STT, False)
-        self._destroy_stt()
+        # In voice server mode, don't destroy STT - keep it loaded
+        if not is_voice_server_mode():
+            self._destroy_stt()
         tts = self._get_tts()
         self.resource_manager.mark_model_in_use(ModelType.TTS, True)
         try:
@@ -3354,7 +3668,9 @@ class Pipes:
             )
         finally:
             self.resource_manager.mark_model_in_use(ModelType.TTS, False)
-        self._destroy_tts()
+        # In voice server mode, don't destroy TTS - keep it loaded
+        if not is_voice_server_mode():
+            self._destroy_tts()
         return result
 
     async def generate_image(self, prompt, response_format="url", size="512x512"):

@@ -193,6 +193,60 @@ When fallback is triggered to another ezlocalai instance, these endpoints are au
 
 For OpenAI-compatible APIs, only chat completions and embeddings are forwarded.
 
+## Dedicated Voice Server
+
+ezlocalai supports offloading TTS (text-to-speech) and STT (speech-to-text) processing to a dedicated voice server. This is useful when you want to:
+
+- **Separate workloads**: Run voice models on a dedicated GPU while the main server handles LLMs
+- **Optimize resources**: Keep voice models always loaded on a server with spare VRAM
+- **Reduce latency**: Avoid lazy loading delays for voice requests
+
+### Configuration
+
+Set the `VOICE_SERVER` environment variable:
+
+```bash
+# Option 1: Point to another ezlocalai server for voice processing
+VOICE_SERVER=http://192.168.1.100:8091
+VOICE_SERVER_API_KEY=your-api-key  # Optional, uses EZLOCALAI_API_KEY if not set
+
+# Option 2: Make THIS server the voice server (keeps TTS/STT loaded)
+VOICE_SERVER=true
+```
+
+### Voice Server Mode (`VOICE_SERVER=true`)
+
+When set to `true`, this server becomes a dedicated voice server:
+- TTS (Chatterbox) and STT (Whisper) models are **pre-loaded at startup** and stay resident
+- Voice models are **never unloaded** after requests (no lazy load/unload cycle)
+- LLM models are still lazy-loaded as needed
+- Ideal for a secondary server with a dedicated GPU for voice processing
+
+### Voice Passthrough Mode (`VOICE_SERVER=<url>`)
+
+When set to a URL, voice requests are forwarded to that server:
+- TTS and STT requests first try the voice server
+- If the voice server fails or is unavailable, falls back to local processing
+- LLM models run locally as usual
+- No voice models are loaded locally unless the voice server is unavailable
+
+### Example: Two-Machine Voice Offload Setup
+
+**Machine A** (Main LLM server with RTX 4090):
+```bash
+DEFAULT_MODEL=unsloth/Qwen3-Coder-30B-GGUF
+VOICE_SERVER=http://machine-b:8091
+VOICE_SERVER_API_KEY=shared-key
+```
+
+**Machine B** (Voice server with RTX 3090):
+```bash
+DEFAULT_MODEL=unsloth/Qwen3-4B-Instruct-GGUF  # Smaller LLM for basic tasks
+VOICE_SERVER=true  # Keep voice models loaded
+```
+
+Machine A handles LLM inference while Machine B handles all voice processing with models always ready.
+
 ## OpenAI Style Endpoint Usage
 
 OpenAI Style endpoints available at `http://<YOUR LOCAL IP ADDRESS>:8091/v1/` by default. Documentation can be accessed at that <http://localhost:8091> when the server is running.

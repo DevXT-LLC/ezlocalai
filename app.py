@@ -553,12 +553,40 @@ async def speech_to_text(
     if getenv("STT_ENABLED").lower() == "false":
         raise HTTPException(status_code=404, detail="Speech to text is disabled.")
 
-    from Pipes import should_use_ezlocalai_fallback, get_fallback_client
+    from Pipes import get_voice_server_client, is_voice_server_mode
 
     # Read file content first (before any fallback attempts)
     file_content = await file.read()
 
-    # Check if we should use fallback
+    # Try voice server first if configured (not in voice server mode)
+    if not is_voice_server_mode():
+        voice_client = get_voice_server_client()
+        if voice_client.is_configured:
+            available, reason = await voice_client.check_availability()
+            if available:
+                logging.info(
+                    f"[STT] Forwarding to voice server: {voice_client.base_url}"
+                )
+                response = await voice_client.forward_transcription(
+                    file_content=file_content,
+                    content_type=file.content_type,
+                    model=model,
+                    language=language,
+                    prompt=prompt,
+                    response_format=response_format,
+                    temperature=temperature,
+                )
+                if response:
+                    # Return the response as-is from voice server
+                    if response_format == "text":
+                        text_content = response.get("text", str(response))
+                        return Response(content=text_content, media_type="text/plain")
+                    return response
+                logging.warning("[STT] Voice server failed, falling back to local")
+
+    from Pipes import should_use_ezlocalai_fallback, get_fallback_client
+
+    # Check if we should use fallback (general fallback server)
     should_fallback, reason = should_use_ezlocalai_fallback()
     if should_fallback:
         fallback_client = get_fallback_client()
@@ -597,7 +625,9 @@ async def speech_to_text(
         temperature=temperature,
         return_segments=need_segments,
     )
-    pipe._destroy_stt()
+    # In voice server mode, don't destroy STT - keep it loaded
+    if not is_voice_server_mode():
+        pipe._destroy_stt()
 
     # Format response based on response_format
     if response_format == "text":
@@ -642,6 +672,9 @@ async def audio_translations(
 ):
     if getenv("STT_ENABLED").lower() == "false":
         raise HTTPException(status_code=404, detail="Speech to text is disabled.")
+
+    from Pipes import is_voice_server_mode
+
     stt = pipe._get_stt()
     response = await stt.transcribe_audio(
         base64_audio=base64.b64encode(await file.read()).decode("utf-8"),
@@ -651,7 +684,9 @@ async def audio_translations(
         temperature=temperature,
         translate=True,
     )
-    pipe._destroy_stt()
+    # In voice server mode, don't destroy STT - keep it loaded
+    if not is_voice_server_mode():
+        pipe._destroy_stt()
     return {"text": response}
 
 
@@ -781,6 +816,8 @@ async def generate_subtitles(
     if getenv("STT_ENABLED").lower() == "false":
         raise HTTPException(status_code=404, detail="Speech to text is disabled.")
 
+    from Pipes import is_voice_server_mode
+
     languages = [lang.strip() for lang in target_languages.split(",")]
 
     # Apply fast mode settings
@@ -803,7 +840,9 @@ async def generate_subtitles(
         beam_size=beam_size,
         condition_on_previous_text=condition_on_previous,
     )
-    pipe._destroy_stt()
+    # In voice server mode, don't destroy STT - keep it loaded
+    if not is_voice_server_mode():
+        pipe._destroy_stt()
 
     detected_language = transcription.get("language") or source_language or "en"
     source_segments = transcription["segments"]
@@ -883,9 +922,29 @@ async def text_to_speech(tts: TextToSpeech, user=Depends(verify_api_key)):
             )
             return audio
 
+    from Pipes import get_voice_server_client, is_voice_server_mode
+
+    # Try voice server first if configured (not in voice server mode)
+    if not is_voice_server_mode():
+        voice_client = get_voice_server_client()
+        if voice_client.is_configured:
+            available, reason = await voice_client.check_availability()
+            if available:
+                logging.info(
+                    f"[TTS] Forwarding to voice server: {voice_client.base_url}"
+                )
+                audio_bytes = await voice_client.forward_tts(
+                    text=tts.input,
+                    voice=tts.voice,
+                    language=tts.language,
+                )
+                if audio_bytes:
+                    return Response(content=audio_bytes, media_type="audio/wav")
+                logging.warning("[TTS] Voice server failed, falling back to local")
+
     from Pipes import should_use_ezlocalai_fallback, get_fallback_client
 
-    # Check if we should use fallback
+    # Check if we should use fallback (general fallback server)
     should_fallback, reason = should_use_ezlocalai_fallback()
     if should_fallback:
         fallback_client = get_fallback_client()
@@ -907,7 +966,9 @@ async def text_to_speech(tts: TextToSpeech, user=Depends(verify_api_key)):
     audio_b64 = await tts_model.generate(
         text=tts.input, voice=tts.voice, language=tts.language
     )
-    pipe._destroy_tts()
+    # In voice server mode, don't destroy TTS - keep it loaded
+    if not is_voice_server_mode():
+        pipe._destroy_tts()
     # OpenAI SDK expects raw binary audio, not base64 JSON
     audio_bytes = base64.b64decode(audio_b64)
     return Response(content=audio_bytes, media_type="audio/wav")
@@ -921,9 +982,24 @@ async def text_to_speech(tts: TextToSpeech, user=Depends(verify_api_key)):
 async def get_voices(user=Depends(verify_api_key)):
     if getenv("TTS_ENABLED").lower() == "false":
         raise HTTPException(status_code=404, detail="Text to speech is disabled.")
+
+    from Pipes import get_voice_server_client, is_voice_server_mode
+
+    # Try voice server first if configured (not in voice server mode)
+    if not is_voice_server_mode():
+        voice_client = get_voice_server_client()
+        if voice_client.is_configured:
+            available, reason = await voice_client.check_availability()
+            if available:
+                voices = await voice_client.get_voices()
+                if voices:
+                    return voices
+
     tts_model = pipe._get_tts()
     voices = tts_model.voices
-    pipe._destroy_tts()
+    # In voice server mode, don't destroy TTS - keep it loaded
+    if not is_voice_server_mode():
+        pipe._destroy_tts()
     return {"voices": voices}
 
 
