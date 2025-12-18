@@ -1854,7 +1854,9 @@ class Pipes:
                 start_time = time.time()
                 self.ctts = CTTS()
                 load_time = time.time() - start_time
-                logging.info(f"[CTTS] Chatterbox TTS loaded in {load_time:.2f}s (voice server mode - staying loaded)")
+                logging.info(
+                    f"[CTTS] Chatterbox TTS loaded in {load_time:.2f}s (voice server mode - staying loaded)"
+                )
                 self.resource_manager.register_model(
                     ModelType.TTS,
                     "Chatterbox TTS",
@@ -1890,11 +1892,14 @@ class Pipes:
         if is_voice_server_mode() and getenv("STT_ENABLED").lower() == "true":
             logging.info("[STT] Voice server mode - loading STT to keep resident")
             from ezlocalai.STT import STT
+
             start_time = time.time()
             self.stt = STT(model=self.current_stt)
             load_time = time.time() - start_time
             actual_device = getattr(self.stt, "device", "cpu")
-            logging.info(f"[STT] {self.current_stt} loaded on {actual_device} in {load_time:.2f}s (voice server mode - staying loaded)")
+            logging.info(
+                f"[STT] {self.current_stt} loaded on {actual_device} in {load_time:.2f}s (voice server mode - staying loaded)"
+            )
             self.resource_manager.register_model(
                 ModelType.STT,
                 self.current_stt,

@@ -34,3 +34,10 @@ librosa
 tokenizers>=0.20,<0.22
 sentencepiece
 gguf
+# Wake word detection dependencies
+gTTS>=2.4.0
+edge-tts>=6.1.0
+torchaudio
+onnx>=1.14.0
+onnxruntime>=1.16.0
+scipy>=1.11.0
