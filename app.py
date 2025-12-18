@@ -105,6 +105,44 @@ app.add_middleware(
 async def startup_event():
     await request_queue.start()
 
+    # Initialize wake word manager in voice server mode
+    from Pipes import is_voice_server_mode
+
+    if is_voice_server_mode():
+        logging.info(
+            "[WakeWord] Voice server mode detected, initializing wake word manager"
+        )
+        try:
+            from ezlocalai.WakeWord import WakeWordManager, set_wakeword_manager
+            from pathlib import Path
+
+            # In voice server mode, we can optionally share Chatterbox TTS with wake word training
+            # This allows voice cloning for wake word samples
+            chatterbox_model = None
+            try:
+                # Pre-load TTS to get the Chatterbox model for wake word training
+                tts = pipe._get_tts()
+                if hasattr(tts, "model"):
+                    chatterbox_model = tts.model
+                    logging.info(
+                        "[WakeWord] Chatterbox TTS model available for wake word training"
+                    )
+            except Exception as e:
+                logging.warning(f"[WakeWord] Could not get Chatterbox model: {e}")
+
+            manager = WakeWordManager(
+                chatterbox_model=chatterbox_model,
+                voices_dir=Path(os.getcwd()) / "voices",
+            )
+            set_wakeword_manager(manager)
+            logging.info(
+                f"[WakeWord] Wake word manager initialized. "
+                f"Models dir: {manager.models_dir}, "
+                f"Existing models: {len(manager.list_available_models())}"
+            )
+        except Exception as e:
+            logging.error(f"[WakeWord] Failed to initialize wake word manager: {e}")
+
 
 @app.on_event("shutdown")
 async def shutdown_event():
@@ -1178,3 +1216,494 @@ async def get_request_status(request_id: str, user=Depends(verify_api_key)):
     if status is None:
         raise HTTPException(status_code=404, detail=f"Request {request_id} not found")
     return status
+
+
+# =============================================================================
+# Wake Word Detection Endpoints
+# =============================================================================
+# Available when VOICE_SERVER=true or STT_ENABLED=true
+
+
+class WakeWordTrainRequest(BaseModel):
+    word: str
+    sample_count: int = 500
+    epochs: int = 50
+    batch_size: int = 32
+
+
+class WakeWordTrainResponse(BaseModel):
+    job_id: str
+    word: str
+    status: str
+    message: str
+    estimated_minutes: Optional[int] = None
+    check_status_url: str
+
+
+class WakeWordJobStatusResponse(BaseModel):
+    job_id: str
+    word: str
+    status: str
+    progress: float
+    current_stage: str
+    error_message: Optional[str] = None
+    estimated_completion: Optional[str] = None
+    model_path: Optional[str] = None
+    metrics: dict = {}
+    created_at: str
+    updated_at: str
+
+
+class WakeWordModelInfo(BaseModel):
+    word: str
+    directory: str
+    config: dict
+    files: dict
+    created_at: str
+
+
+class WakeWordPredictRequest(BaseModel):
+    audio_base64: str
+
+
+class WakeWordPredictResponse(BaseModel):
+    detected: bool
+    confidence: float
+    word: str
+
+
+def is_wakeword_enabled() -> bool:
+    """Check if wake word functionality is enabled."""
+    from Pipes import is_voice_server_mode
+
+    # Enable if in voice server mode OR if STT is enabled
+    return is_voice_server_mode() or getenv("STT_ENABLED", "true").lower() == "true"
+
+
+@app.get(
+    "/v1/wakeword/models",
+    tags=["Wake Word"],
+    dependencies=[Depends(verify_api_key)],
+)
+async def list_wakeword_models(user=Depends(verify_api_key)):
+    """List all available trained wake word models."""
+    if not is_wakeword_enabled():
+        raise HTTPException(
+            status_code=404,
+            detail="Wake word detection is disabled. Set VOICE_SERVER=true to enable.",
+        )
+
+    from ezlocalai.WakeWord import get_wakeword_manager
+
+    manager = get_wakeword_manager()
+    models = manager.list_available_models()
+    return {"models": models, "total": len(models)}
+
+
+@app.get(
+    "/v1/wakeword/models/{word}",
+    tags=["Wake Word"],
+    dependencies=[Depends(verify_api_key)],
+)
+async def get_wakeword_model(
+    word: str,
+    format: str = "pytorch",
+    user=Depends(verify_api_key),
+):
+    """
+    Download a trained wake word model.
+
+    Supported formats: pytorch, onnx, tflite
+    """
+    if not is_wakeword_enabled():
+        raise HTTPException(
+            status_code=404,
+            detail="Wake word detection is disabled. Set VOICE_SERVER=true to enable.",
+        )
+
+    from ezlocalai.WakeWord import get_wakeword_manager
+    from fastapi.responses import FileResponse
+
+    manager = get_wakeword_manager()
+    model_dir = manager.get_model_for_word(word)
+
+    if model_dir:
+        format_to_ext = {"pytorch": "pt", "onnx": "onnx", "tflite": "tflite"}
+        ext = format_to_ext.get(format, "pt")
+        model_file = model_dir / f"model.{ext}"
+
+        if not model_file.exists():
+            raise HTTPException(
+                status_code=404,
+                detail=f"Model format '{format}' not available for word '{word}'",
+            )
+
+        word_lower = word.lower().replace(" ", "_")
+        return FileResponse(
+            path=model_file,
+            filename=f"{word_lower}_model.{ext}",
+            media_type="application/octet-stream",
+        )
+
+    # Check if training is in progress
+    job = manager.get_job_for_word(word)
+    if job and job.status.value not in ["completed", "failed", "cancelled"]:
+        return {
+            "status": "training_in_progress",
+            "job_id": job.job_id,
+            "progress": job.progress,
+            "current_stage": job.current_stage,
+            "message": f"Model for '{word}' is being trained. Check back soon.",
+            "check_status_url": f"/v1/wakeword/jobs/{job.job_id}",
+        }
+
+    raise HTTPException(
+        status_code=404,
+        detail=f"No model found for word '{word}'. Use POST /v1/wakeword/train to create one.",
+    )
+
+
+@app.get(
+    "/v1/wakeword/models/{word}/config",
+    tags=["Wake Word"],
+    dependencies=[Depends(verify_api_key)],
+)
+async def get_wakeword_model_config(word: str, user=Depends(verify_api_key)):
+    """Get the configuration for a trained wake word model."""
+    if not is_wakeword_enabled():
+        raise HTTPException(
+            status_code=404,
+            detail="Wake word detection is disabled. Set VOICE_SERVER=true to enable.",
+        )
+
+    from ezlocalai.WakeWord import get_wakeword_manager
+    import json
+
+    manager = get_wakeword_manager()
+    model_dir = manager.get_model_for_word(word)
+
+    if not model_dir:
+        raise HTTPException(status_code=404, detail=f"No model found for word '{word}'")
+
+    config_path = model_dir / "config.json"
+    if not config_path.exists():
+        raise HTTPException(status_code=404, detail="Model config not found")
+
+    with open(config_path, "r") as f:
+        config = json.load(f)
+
+    return config
+
+
+@app.delete(
+    "/v1/wakeword/models/{word}",
+    tags=["Wake Word"],
+    dependencies=[Depends(verify_api_key)],
+)
+async def delete_wakeword_model(word: str, user=Depends(verify_api_key)):
+    """Delete a trained wake word model."""
+    if not is_wakeword_enabled():
+        raise HTTPException(
+            status_code=404,
+            detail="Wake word detection is disabled. Set VOICE_SERVER=true to enable.",
+        )
+
+    from ezlocalai.WakeWord import get_wakeword_manager
+
+    manager = get_wakeword_manager()
+
+    if not manager.delete_model(word):
+        raise HTTPException(status_code=404, detail=f"No model found for word '{word}'")
+
+    return {"message": f"Model for '{word}' deleted successfully"}
+
+
+@app.post(
+    "/v1/wakeword/train",
+    tags=["Wake Word"],
+    dependencies=[Depends(verify_api_key)],
+    response_model=WakeWordTrainResponse,
+)
+async def train_wakeword_model(
+    request: WakeWordTrainRequest,
+    user=Depends(verify_api_key),
+):
+    """
+    Request training of a new wake word model.
+
+    Training typically takes 10-20 minutes depending on sample_count and epochs.
+    The model will use TTS engines (gTTS, Edge TTS, and optionally Chatterbox)
+    to generate diverse training samples automatically.
+    """
+    if not is_wakeword_enabled():
+        raise HTTPException(
+            status_code=404,
+            detail="Wake word detection is disabled. Set VOICE_SERVER=true to enable.",
+        )
+
+    from ezlocalai.WakeWord import get_wakeword_manager
+
+    manager = get_wakeword_manager()
+    word = request.word.strip()
+
+    # Check if model already exists
+    model_dir = manager.get_model_for_word(word)
+    if model_dir:
+        return WakeWordTrainResponse(
+            job_id="",
+            word=word,
+            status="completed",
+            message=f"Model for '{word}' already exists. Use GET /v1/wakeword/models/{word} to download.",
+            check_status_url=f"/v1/wakeword/models/{word}",
+        )
+
+    # Check if training is already in progress
+    existing_job = manager.get_job_for_word(word)
+    if existing_job and existing_job.status.value not in [
+        "completed",
+        "failed",
+        "cancelled",
+    ]:
+        return WakeWordTrainResponse(
+            job_id=existing_job.job_id,
+            word=word,
+            status=existing_job.status.value,
+            message=f"Training already in progress for '{word}'",
+            estimated_minutes=15,
+            check_status_url=f"/v1/wakeword/jobs/{existing_job.job_id}",
+        )
+
+    # Start new training job
+    try:
+        job = await manager.create_job(
+            word=word,
+            sample_count=request.sample_count,
+            epochs=request.epochs,
+            batch_size=request.batch_size,
+        )
+
+        return WakeWordTrainResponse(
+            job_id=job.job_id,
+            word=word,
+            status=job.status.value,
+            message=f"Training started for '{word}'. This typically takes 10-20 minutes.",
+            estimated_minutes=15,
+            check_status_url=f"/v1/wakeword/jobs/{job.job_id}",
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=409, detail=str(e))
+
+
+@app.get(
+    "/v1/wakeword/jobs",
+    tags=["Wake Word"],
+    dependencies=[Depends(verify_api_key)],
+)
+async def list_wakeword_jobs(
+    status: Optional[str] = None,
+    limit: int = 50,
+    user=Depends(verify_api_key),
+):
+    """List wake word training jobs."""
+    if not is_wakeword_enabled():
+        raise HTTPException(
+            status_code=404,
+            detail="Wake word detection is disabled. Set VOICE_SERVER=true to enable.",
+        )
+
+    from ezlocalai.WakeWord import get_wakeword_manager, JobStatus
+
+    manager = get_wakeword_manager()
+
+    status_filter = None
+    if status:
+        try:
+            status_filter = JobStatus(status)
+        except ValueError:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid status. Must be one of: {[s.value for s in JobStatus]}",
+            )
+
+    jobs = manager.list_jobs(status=status_filter, limit=limit)
+
+    return [
+        WakeWordJobStatusResponse(
+            job_id=j.job_id,
+            word=j.word,
+            status=j.status.value,
+            progress=j.progress,
+            current_stage=j.current_stage,
+            error_message=j.error_message,
+            estimated_completion=(
+                j.estimated_completion.isoformat() if j.estimated_completion else None
+            ),
+            model_path=j.model_path,
+            metrics=j.metrics,
+            created_at=j.created_at.isoformat(),
+            updated_at=j.updated_at.isoformat(),
+        )
+        for j in jobs
+    ]
+
+
+@app.get(
+    "/v1/wakeword/jobs/{job_id}",
+    tags=["Wake Word"],
+    dependencies=[Depends(verify_api_key)],
+    response_model=WakeWordJobStatusResponse,
+)
+async def get_wakeword_job(job_id: str, user=Depends(verify_api_key)):
+    """Get status of a specific wake word training job."""
+    if not is_wakeword_enabled():
+        raise HTTPException(
+            status_code=404,
+            detail="Wake word detection is disabled. Set VOICE_SERVER=true to enable.",
+        )
+
+    from ezlocalai.WakeWord import get_wakeword_manager
+
+    manager = get_wakeword_manager()
+    job = manager.get_job(job_id)
+
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+
+    return WakeWordJobStatusResponse(
+        job_id=job.job_id,
+        word=job.word,
+        status=job.status.value,
+        progress=job.progress,
+        current_stage=job.current_stage,
+        error_message=job.error_message,
+        estimated_completion=(
+            job.estimated_completion.isoformat() if job.estimated_completion else None
+        ),
+        model_path=job.model_path,
+        metrics=job.metrics,
+        created_at=job.created_at.isoformat(),
+        updated_at=job.updated_at.isoformat(),
+    )
+
+
+@app.delete(
+    "/v1/wakeword/jobs/{job_id}",
+    tags=["Wake Word"],
+    dependencies=[Depends(verify_api_key)],
+)
+async def cancel_wakeword_job(job_id: str, user=Depends(verify_api_key)):
+    """Cancel a running wake word training job."""
+    if not is_wakeword_enabled():
+        raise HTTPException(
+            status_code=404,
+            detail="Wake word detection is disabled. Set VOICE_SERVER=true to enable.",
+        )
+
+    from ezlocalai.WakeWord import get_wakeword_manager
+
+    manager = get_wakeword_manager()
+    success = await manager.cancel_job(job_id)
+
+    if not success:
+        raise HTTPException(
+            status_code=400,
+            detail="Could not cancel job (may already be completed or cancelled)",
+        )
+
+    return {"message": "Job cancelled successfully"}
+
+
+@app.post(
+    "/v1/wakeword/predict/{word}",
+    tags=["Wake Word"],
+    dependencies=[Depends(verify_api_key)],
+    response_model=WakeWordPredictResponse,
+)
+async def predict_wakeword(
+    word: str,
+    request: WakeWordPredictRequest,
+    user=Depends(verify_api_key),
+):
+    """
+    Predict if audio contains the wake word.
+
+    Requires a trained model for the word.
+    Send audio as base64-encoded WAV data.
+    """
+    if not is_wakeword_enabled():
+        raise HTTPException(
+            status_code=404,
+            detail="Wake word detection is disabled. Set VOICE_SERVER=true to enable.",
+        )
+
+    from ezlocalai.WakeWord import get_wakeword_manager
+
+    manager = get_wakeword_manager()
+    model_dir = manager.get_model_for_word(word)
+
+    if not model_dir:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No model found for word '{word}'. Train one first with POST /v1/wakeword/train",
+        )
+
+    try:
+        audio_bytes = base64.b64decode(request.audio_base64)
+        detected, confidence = manager.predict(word, audio_bytes)
+
+        return WakeWordPredictResponse(
+            detected=detected,
+            confidence=confidence,
+            word=word,
+        )
+    except Exception as e:
+        logging.error(f"Wake word prediction failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Prediction failed: {str(e)}")
+
+
+@app.post(
+    "/v1/wakeword/predict/{word}/file",
+    tags=["Wake Word"],
+    dependencies=[Depends(verify_api_key)],
+    response_model=WakeWordPredictResponse,
+)
+async def predict_wakeword_file(
+    word: str,
+    file: UploadFile = File(...),
+    user=Depends(verify_api_key),
+):
+    """
+    Predict if uploaded audio file contains the wake word.
+
+    Requires a trained model for the word.
+    Accepts audio files (WAV, MP3, etc.).
+    """
+    if not is_wakeword_enabled():
+        raise HTTPException(
+            status_code=404,
+            detail="Wake word detection is disabled. Set VOICE_SERVER=true to enable.",
+        )
+
+    from ezlocalai.WakeWord import get_wakeword_manager
+
+    manager = get_wakeword_manager()
+    model_dir = manager.get_model_for_word(word)
+
+    if not model_dir:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No model found for word '{word}'. Train one first with POST /v1/wakeword/train",
+        )
+
+    try:
+        audio_bytes = await file.read()
+        detected, confidence = manager.predict(word, audio_bytes)
+
+        return WakeWordPredictResponse(
+            detected=detected,
+            confidence=confidence,
+            word=word,
+        )
+    except Exception as e:
+        logging.error(f"Wake word prediction failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Prediction failed: {str(e)}")
