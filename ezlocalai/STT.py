@@ -111,6 +111,9 @@ class STT:
         beam_size=5,
         condition_on_previous_text=True,
     ):
+        # Handle None or empty audio_format - default to wav
+        if not audio_format:
+            audio_format = "wav"
         if "/" in audio_format:
             audio_format = audio_format.split("/")[1]
         filename = f"{uuid.uuid4().hex}.wav"
