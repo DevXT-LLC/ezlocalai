@@ -1759,7 +1759,13 @@ class Pipes:
                     self.available_models.append(model_name)
 
             # Pre-load persistent LLMs (primary + vision if different)
-            if self.available_models:
+            # Skip LLM preloading in voice server mode - only load voice models
+            if is_voice_server_mode():
+                logging.info(
+                    "[LLM] Voice server mode - skipping LLM preload. "
+                    "LLMs will be lazy-loaded on first request."
+                )
+            elif self.available_models:
                 # Pre-load with optimal context (default 40k) to maximize GPU layers
                 # while providing reasonable context for most requests
                 default_context = self._optimal_context
