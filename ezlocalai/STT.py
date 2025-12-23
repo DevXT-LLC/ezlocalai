@@ -17,13 +17,27 @@ os.environ.setdefault("PYTHONWARNINGS", "ignore")
 
 
 def _check_cudnn_available():
-    """Check if cuDNN is available for CTranslate2/faster-whisper."""
+    """Check if cuDNN is available and working for CTranslate2/faster-whisper."""
     if not torch.cuda.is_available():
         return False
     try:
-        # Try to check if cuDNN is available via torch
-        return torch.backends.cudnn.is_available()
-    except:
+        # Check if cuDNN is available via torch
+        if not torch.backends.cudnn.is_available():
+            return False
+        
+        # Actually test cuDNN by running a small convolution
+        # This catches version mismatch issues that is_available() misses
+        test_tensor = torch.randn(1, 1, 8, 8, device='cuda')
+        conv = torch.nn.Conv2d(1, 1, 3, padding=1).cuda()
+        with torch.backends.cudnn.flags(enabled=True):
+            _ = conv(test_tensor)
+        
+        # Clean up
+        del test_tensor, conv
+        torch.cuda.empty_cache()
+        return True
+    except Exception as e:
+        logging.warning(f"[STT] cuDNN test failed: {e}")
         return False
 
 
