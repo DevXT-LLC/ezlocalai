@@ -410,3 +410,108 @@ class CTTS:
         logging.debug(
             f"[CTTS] Cache cleared for {'voice: ' + voice if voice else 'all voices'}"
         )
+
+    async def generate_stream(
+        self,
+        text,
+        voice="default",
+        language="en",
+    ):
+        """
+        Generate TTS audio as a stream of PCM chunks.
+
+        Yields raw PCM audio bytes (24kHz, 16-bit, mono) for each text chunk
+        as it's generated. This enables real-time playback without waiting
+        for the entire audio to be generated.
+
+        The first yield includes audio format info as a header:
+        - 4 bytes: sample rate (uint32, little-endian)
+        - 2 bytes: bits per sample (uint16, little-endian)
+        - 2 bytes: channels (uint16, little-endian)
+
+        Subsequent yields are raw PCM data.
+        """
+        import struct
+
+        # Clean and normalize text
+        cleaned_string = re.sub(r"([!?.])\1+", r"\1", text)
+        cleaned_string = re.sub(
+            r'[^a-zA-Z0-9\s\.,;:!?\-\'"\u0400-\u04FFÀ-ÿ\u0150\u0151\u0170\u0171]\$',
+            "",
+            cleaned_string,
+        )
+        cleaned_string = re.sub(r"\n+", " ", cleaned_string)
+        text = cleaned_string.replace("#", "")
+
+        # Normalize voice name
+        if not voice.endswith(".wav"):
+            voice = f"{voice}.wav"
+
+        audio_path = os.path.join(self.voices_path, voice)
+        if not os.path.exists(audio_path):
+            audio_path = os.path.join(self.voices_path, "default.wav")
+            if not os.path.exists(audio_path):
+                logging.warning(
+                    f"[CTTS] No voice file found for '{voice}' and no default.wav"
+                )
+                audio_path = None
+
+        # Split text into chunks
+        chunks = split_text_into_chunks(text)
+        logging.info(
+            f"[CTTS] Streaming TTS: {len(chunks)} chunks for {len(text)} chars"
+        )
+
+        # Yield header with audio format info (sample_rate=24000, bits=16, channels=1)
+        header = struct.pack("<IHH", self.sample_rate, 16, 1)
+        yield header
+
+        # Generate and yield each chunk
+        for i, chunk in enumerate(chunks):
+            logging.debug(
+                f"[CTTS] Streaming chunk {i+1}/{len(chunks)}: {chunk[:50]}..."
+            )
+
+            try:
+                # Generate audio for this chunk
+                audio_bytes = self._generate_single_sample(chunk, audio_path)
+
+                if audio_bytes:
+                    # Extract raw PCM by finding the "data" chunk in WAV
+                    # WAV files can have variable-length headers with metadata
+                    pcm_data = None
+                    if len(audio_bytes) > 12:
+                        # Search for "data" chunk marker
+                        data_pos = audio_bytes.find(b"data")
+                        if data_pos >= 0 and data_pos + 8 <= len(audio_bytes):
+                            # Read chunk size (4 bytes after "data")
+                            chunk_size = struct.unpack(
+                                "<I", audio_bytes[data_pos + 4 : data_pos + 8]
+                            )[0]
+                            pcm_start = data_pos + 8
+                            if pcm_start + chunk_size <= len(audio_bytes):
+                                pcm_data = audio_bytes[
+                                    pcm_start : pcm_start + chunk_size
+                                ]
+                            else:
+                                # Use remaining bytes if size is wrong
+                                pcm_data = audio_bytes[pcm_start:]
+                        else:
+                            # Fallback: assume 44-byte header
+                            pcm_data = audio_bytes[44:]
+
+                    if pcm_data:
+                        # Yield chunk size followed by PCM data
+                        chunk_header = struct.pack("<I", len(pcm_data))
+                        yield chunk_header + pcm_data
+                        logging.debug(
+                            f"[CTTS] Yielded {len(pcm_data)} bytes for chunk {i+1}"
+                        )
+
+            except Exception as e:
+                logging.error(f"[CTTS] Error generating chunk {i+1}: {e}")
+                continue
+
+        # Yield end marker (zero-length chunk)
+        yield struct.pack("<I", 0)
+        logging.info("[CTTS] Streaming TTS complete")

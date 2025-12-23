@@ -12,12 +12,15 @@ from fastapi import (
     Form,
     UploadFile,
     File,
+    WebSocket,
+    WebSocketDisconnect,
 )
 from fastapi.responses import StreamingResponse, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from typing import List, Dict, Union, Optional
+import struct
 from Pipes import Pipes
 from RequestQueue import RequestQueue
 import base64
@@ -1010,6 +1013,152 @@ async def text_to_speech(tts: TextToSpeech, user=Depends(verify_api_key)):
     # OpenAI SDK expects raw binary audio, not base64 JSON
     audio_bytes = base64.b64decode(audio_b64)
     return Response(content=audio_bytes, media_type="audio/wav")
+
+
+@app.post(
+    "/v1/audio/speech/stream",
+    tags=["Audio"],
+    dependencies=[Depends(verify_api_key)],
+)
+async def text_to_speech_stream(tts: TextToSpeech, user=Depends(verify_api_key)):
+    """
+    Stream TTS audio as it's generated, chunk by chunk.
+
+    This enables real-time playback without waiting for the entire audio
+    to be generated. Dramatically reduces time-to-first-word for long text.
+
+    Response format (binary stream):
+    - Header (8 bytes): sample_rate (uint32), bits (uint16), channels (uint16)
+    - Chunks: chunk_size (uint32) + raw PCM data
+    - End marker: chunk_size = 0
+
+    Audio format: 24kHz, 16-bit, mono PCM
+    """
+    if getenv("TTS_ENABLED").lower() == "false":
+        raise HTTPException(status_code=404, detail="Text to speech is disabled.")
+
+    from Pipes import is_voice_server_mode
+
+    tts_model = pipe._get_tts()
+
+    async def audio_stream_generator():
+        try:
+            async for chunk in tts_model.generate_stream(
+                text=tts.input, voice=tts.voice, language=tts.language
+            ):
+                yield chunk
+        finally:
+            # In voice server mode, don't destroy TTS - keep it loaded
+            if not is_voice_server_mode():
+                pipe._destroy_tts()
+
+    return StreamingResponse(
+        audio_stream_generator(),
+        media_type="application/octet-stream",
+        headers={
+            "X-Audio-Format": "pcm",
+            "X-Sample-Rate": "24000",
+            "X-Bits-Per-Sample": "16",
+            "X-Channels": "1",
+        },
+    )
+
+
+@app.websocket("/v1/audio/speech/ws")
+async def tts_websocket(websocket: WebSocket):
+    """
+    WebSocket endpoint for real-time bidirectional TTS streaming.
+
+    This allows clients to:
+    1. Send text incrementally as it's generated
+    2. Receive audio chunks in real-time as TTS processes them
+
+    Protocol:
+    - Client sends JSON: {"text": "...", "voice": "default", "language": "en", "flush": false}
+    - When "flush": true, generates TTS for accumulated text and streams audio
+    - Server sends binary audio chunks (same format as /v1/audio/speech/stream)
+    - Client can send {"done": true} to close gracefully
+
+    Audio format: 24kHz, 16-bit, mono PCM
+    Binary response format:
+    - First message: 8-byte header (sample_rate u32, bits u16, channels u16)
+    - Subsequent messages: raw PCM audio chunks
+    - Final message: empty bytes to signal end
+    """
+    await websocket.accept()
+
+    if getenv("TTS_ENABLED").lower() == "false":
+        await websocket.close(code=1008, reason="TTS disabled")
+        return
+
+    from Pipes import is_voice_server_mode
+
+    text_buffer = ""
+    voice = "default"
+    language = "en"
+    header_sent = False
+
+    try:
+        tts_model = pipe._get_tts()
+
+        while True:
+            try:
+                # Receive text from client
+                data = await websocket.receive_json()
+
+                if data.get("done"):
+                    # Client signals done - flush any remaining text
+                    if text_buffer.strip():
+                        async for chunk in tts_model.generate_stream(
+                            text=text_buffer.strip(), voice=voice, language=language
+                        ):
+                            if not header_sent:
+                                # Send header first (8 bytes)
+                                await websocket.send_bytes(chunk[:8])
+                                header_sent = True
+                                if len(chunk) > 8:
+                                    await websocket.send_bytes(chunk[8:])
+                            else:
+                                await websocket.send_bytes(chunk)
+                    # Send empty bytes to signal end
+                    await websocket.send_bytes(b"")
+                    break
+
+                # Accumulate text
+                if "text" in data:
+                    text_buffer += data["text"]
+                if "voice" in data:
+                    voice = data["voice"]
+                if "language" in data:
+                    language = data["language"]
+
+                # Check if we should flush (generate TTS for current buffer)
+                if data.get("flush") and text_buffer.strip():
+                    async for chunk in tts_model.generate_stream(
+                        text=text_buffer.strip(), voice=voice, language=language
+                    ):
+                        if not header_sent:
+                            # Send header first (8 bytes)
+                            await websocket.send_bytes(chunk[:8])
+                            header_sent = True
+                            if len(chunk) > 8:
+                                await websocket.send_bytes(chunk[8:])
+                        else:
+                            await websocket.send_bytes(chunk)
+                    text_buffer = ""
+
+            except WebSocketDisconnect:
+                break
+
+    except Exception as e:
+        logging.error(f"TTS WebSocket error: {e}")
+        try:
+            await websocket.close(code=1011, reason=str(e)[:100])
+        except:
+            pass
+    finally:
+        if not is_voice_server_mode():
+            pipe._destroy_tts()
 
 
 @app.get(
