@@ -18,6 +18,7 @@ services:
       - REQUEST_TIMEOUT=${REQUEST_TIMEOUT:-300}
       - VOICE_SERVER=${VOICE_SERVER:-}
       - VOICE_SERVER_API_KEY=${VOICE_SERVER_API_KEY:-}
+      - LAZY_LOAD_VOICE=${LAZY_LOAD_VOICE:-true}
       # ROCm specific environment variables
       - HSA_OVERRIDE_GFX_VERSION=${HSA_OVERRIDE_GFX_VERSION:-11.0.0}
       - ROCM_PATH=/opt/rocm

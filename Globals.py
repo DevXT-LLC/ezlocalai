@@ -43,6 +43,9 @@ def getenv(var_name: str, default_value: str = None) -> str:
         # - "true": This server IS a voice server - keep TTS/STT loaded, lazy-load LLMs instead
         "VOICE_SERVER": "",
         "VOICE_SERVER_API_KEY": "",  # API key for voice server (uses local key if not provided)
+        # Lazy load voice models (TTS/STT) - when false, preload them at startup for faster first response
+        # Default true = lazy load (load on first request), false = preload at startup
+        "LAZY_LOAD_VOICE": "true",
     }
     if not default_value:
         default_value = default_values[var_name] if var_name in default_values else ""

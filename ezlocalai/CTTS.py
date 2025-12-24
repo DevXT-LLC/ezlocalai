@@ -4,6 +4,7 @@ import uuid
 import base64
 import torch
 import torchaudio
+import soundfile as sf
 import logging
 import gc
 import io
@@ -184,14 +185,22 @@ class CTTS:
             use_cache = self.use_cache
 
         # Clean and normalize text
+        # First, remove non-ASCII characters (Chatterbox TTS only handles English well)
+        # This prevents "ba ba ba" garbage audio from Cyrillic, Chinese, etc.
+        text = "".join(char for char in text if ord(char) < 128 or char in ".,;:!?-'\"")
+        
+        # Clean up repeated punctuation
         cleaned_string = re.sub(r"([!?.])\1+", r"\1", text)
+        # Remove any remaining special characters except basic punctuation
         cleaned_string = re.sub(
-            r'[^a-zA-Z0-9\s\.,;:!?\-\'"\u0400-\u04FFÀ-ÿ\u0150\u0151\u0170\u0171]\$',
+            r'[^a-zA-Z0-9\s\.,;:!?\-\'"]',
             "",
             cleaned_string,
         )
         cleaned_string = re.sub(r"\n+", " ", cleaned_string)
-        text = cleaned_string.replace("#", "")
+        # Clean up multiple spaces that may result from removing characters
+        cleaned_string = re.sub(r"\s+", " ", cleaned_string)
+        text = cleaned_string.replace("#", "").strip()
 
         # Normalize voice name
         voice_name = voice
@@ -300,8 +309,15 @@ class CTTS:
             )
             with open(temp_file, "wb") as f:
                 f.write(audio_bytes)
-            waveform, sr = torchaudio.load(temp_file)
+            # Use soundfile instead of torchaudio.load (PyTorch 2.9.1+ requires torchcodec)
+            audio_np, sr = sf.read(temp_file)
             os.remove(temp_file)
+            # Convert to tensor in channels-first format
+            waveform = torch.tensor(audio_np).float()
+            if waveform.ndim == 1:
+                waveform = waveform.unsqueeze(0)  # Add channel dimension
+            elif waveform.ndim == 2:
+                waveform = waveform.T  # Convert from (samples, channels) to (channels, samples)
             # Resample if needed
             if sr != self.sample_rate:
                 resampler = torchaudio.transforms.Resample(sr, self.sample_rate)
@@ -319,7 +335,11 @@ class CTTS:
             )
             if tensor.dim() == 1:
                 tensor = tensor.unsqueeze(0)
-            torchaudio.save(temp_file, tensor.cpu(), self.sample_rate)
+            # Use soundfile directly instead of torchaudio.save (PyTorch 2.9.1+ ignores backend param)
+            audio_np = tensor.cpu().numpy()
+            if audio_np.shape[0] <= 2:  # channels first format
+                audio_np = audio_np.T  # soundfile expects (samples, channels)
+            sf.write(temp_file, audio_np, self.sample_rate)
             with open(temp_file, "rb") as f:
                 audio_data = f.read()
             os.remove(temp_file)
@@ -380,15 +400,20 @@ class CTTS:
         temp_file = os.path.join(self.output_folder, f"temp_{uuid.uuid4().hex}.wav")
 
         try:
+            # Use soundfile directly instead of torchaudio.save (PyTorch 2.9.1+ ignores backend param)
             if isinstance(wav, torch.Tensor):
-                if wav.dim() == 1:
-                    wav = wav.unsqueeze(0)
-                torchaudio.save(temp_file, wav.cpu(), self.sample_rate)
+                audio_np = wav.cpu().numpy()
             else:
-                wav_tensor = torch.tensor(wav)
-                if wav_tensor.dim() == 1:
-                    wav_tensor = wav_tensor.unsqueeze(0)
-                torchaudio.save(temp_file, wav_tensor, self.sample_rate)
+                import numpy as np
+                audio_np = np.array(wav)
+            
+            # Ensure correct shape for soundfile (samples, channels) or (samples,) for mono
+            if audio_np.ndim == 2 and audio_np.shape[0] <= 2:
+                audio_np = audio_np.T  # Convert from (channels, samples) to (samples, channels)
+            elif audio_np.ndim == 1:
+                pass  # Already in correct shape for mono
+            
+            sf.write(temp_file, audio_np, self.sample_rate)
 
             with open(temp_file, "rb") as f:
                 audio_data = f.read()

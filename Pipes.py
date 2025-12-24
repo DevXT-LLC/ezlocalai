@@ -984,6 +984,20 @@ def is_voice_server_mode() -> bool:
     return get_voice_server_client().should_keep_voice_loaded
 
 
+def should_preload_voice() -> bool:
+    """Check if voice models should be preloaded at startup.
+
+    Voice models (TTS/STT) are preloaded when:
+    - LAZY_LOAD_VOICE=false (explicitly requested preload), OR
+    - VOICE_SERVER=true (voice server mode always preloads)
+
+    Returns:
+        True if voice models should be preloaded at startup
+    """
+    lazy_load = getenv("LAZY_LOAD_VOICE").lower()
+    return lazy_load == "false" or is_voice_server_mode()
+
+
 def should_use_ezlocalai_fallback() -> Tuple[bool, str]:
     """Check if we should use the fallback server based on local resource state.
 
@@ -1854,14 +1868,15 @@ class Pipes:
         # TTS initialization - skip warmup if precache already did it
         self.ctts = None
         if getenv("TTS_ENABLED").lower() == "true":
-            # Check if we're in voice server mode - keep TTS loaded
-            if is_voice_server_mode():
-                logging.info("[CTTS] Voice server mode - loading TTS to keep resident")
+            # Check if we should preload TTS (voice server mode OR LAZY_LOAD_VOICE=false)
+            if should_preload_voice():
+                mode_str = "voice server mode" if is_voice_server_mode() else "LAZY_LOAD_VOICE=false"
+                logging.info(f"[CTTS] {mode_str} - loading TTS to keep resident")
                 start_time = time.time()
                 self.ctts = CTTS()
                 load_time = time.time() - start_time
                 logging.info(
-                    f"[CTTS] Chatterbox TTS loaded in {load_time:.2f}s (voice server mode - staying loaded)"
+                    f"[CTTS] Chatterbox TTS loaded in {load_time:.2f}s ({mode_str} - staying loaded)"
                 )
                 self.resource_manager.register_model(
                     ModelType.TTS,
@@ -1894,9 +1909,10 @@ class Pipes:
         self.img = None
         self.current_stt = getenv("WHISPER_MODEL")
 
-        # In voice server mode, pre-load STT as well
-        if is_voice_server_mode() and getenv("STT_ENABLED").lower() == "true":
-            logging.info("[STT] Voice server mode - loading STT to keep resident")
+        # Pre-load STT if preloading is enabled (voice server mode OR LAZY_LOAD_VOICE=false)
+        if should_preload_voice() and getenv("STT_ENABLED").lower() == "true":
+            mode_str = "voice server mode" if is_voice_server_mode() else "LAZY_LOAD_VOICE=false"
+            logging.info(f"[STT] {mode_str} - loading STT to keep resident")
             from ezlocalai.STT import STT
 
             start_time = time.time()
@@ -1904,7 +1920,7 @@ class Pipes:
             load_time = time.time() - start_time
             actual_device = getattr(self.stt, "device", "cpu")
             logging.info(
-                f"[STT] {self.current_stt} loaded on {actual_device} in {load_time:.2f}s (voice server mode - staying loaded)"
+                f"[STT] {self.current_stt} loaded on {actual_device} in {load_time:.2f}s ({mode_str} - staying loaded)"
             )
             self.resource_manager.register_model(
                 ModelType.STT,
@@ -2934,9 +2950,9 @@ class Pipes:
         resource_mgr = get_resource_manager()
         resource_mgr.mark_model_in_use(ModelType.STT, False)
 
-        # In voice server mode, never unload STT unless forced
-        if is_voice_server_mode() and not force:
-            logging.debug("[STT] Voice server mode - keeping STT loaded")
+        # When preloading is enabled (voice server mode OR LAZY_LOAD_VOICE=false), never unload unless forced
+        if should_preload_voice() and not force:
+            logging.debug("[STT] Preload mode - keeping STT loaded")
             return
 
         # Always unload STT after use - loads quickly (~3s) and frees ~3GB VRAM
@@ -3428,9 +3444,9 @@ class Pipes:
         resource_mgr = get_resource_manager()
         resource_mgr.mark_model_in_use(ModelType.TTS, False)
 
-        # In voice server mode, never unload TTS unless forced
-        if is_voice_server_mode() and not force:
-            logging.debug("[CTTS] Voice server mode - keeping TTS loaded")
+        # When preloading is enabled (voice server mode OR LAZY_LOAD_VOICE=false), never unload unless forced
+        if should_preload_voice() and not force:
+            logging.debug("[CTTS] Preload mode - keeping TTS loaded")
             return
 
         # Always unload TTS after use - loads quickly (~1-2s) and frees ~4GB VRAM

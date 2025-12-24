@@ -2,7 +2,7 @@ FROM nvidia/cuda:12.8.1-cudnn-devel-ubuntu24.04
 ENV CUDA_PATH=/usr/local/cuda \
     CUDA_HOME=/usr/local/cuda \
     CUDA_TOOLKIT_ROOT_DIR=/usr/local/cuda \
-    LD_LIBRARY_PATH=/usr/local/cuda/lib64:$LD_LIBRARY_PATH \
+    LD_LIBRARY_PATH=/opt/venv/lib/python3.12/site-packages/nvidia/cudnn/lib:/usr/local/cuda/lib64:$LD_LIBRARY_PATH \
     VIRTUAL_ENV=/opt/venv \
     PATH="/opt/venv/bin:/root/.local/bin:$PATH"
 RUN apt-get update --fix-missing && \
@@ -20,7 +20,10 @@ RUN apt-get update --fix-missing && \
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh && \
     /root/.local/bin/uv venv /opt/venv
 WORKDIR /app
-RUN uv pip install torch==2.7.0+cu128 torchaudio==2.7.0+cu128 --index-url https://download.pytorch.org/whl/cu128
+# Use PyTorch 2.9.1 which is built against cuDNN 9.10.2
+# Install nvidia-cudnn-cu12==9.10.2.21 to get matching cuDNN libraries (overrides system cuDNN 9.8.0)
+RUN uv pip install torch==2.9.1+cu128 torchaudio==2.9.1+cu128 --index-url https://download.pytorch.org/whl/cu128 && \
+    uv pip install nvidia-cudnn-cu12==9.10.2.21
 # Install numpy and Cython for pkuseg (required by chatterbox-tts)
 # numpy>=1.26.0 required for Python 3.12 compatibility
 RUN uv pip install "numpy>=1.26.0" Cython
@@ -34,7 +37,7 @@ RUN uv pip install chatterbox-tts --no-deps
 ENV HOST=0.0.0.0 \
     CUDA_DOCKER_ARCH=all \
     CUDAVER=12.8.1
-# Install xllamacpp with CUDA 12.8 support
+# Install xllamacpp with CUDA 12.8 support (compatible with CUDA 12.9)
 RUN uv pip install xllamacpp --reinstall --index-url https://xorbitsai.github.io/xllamacpp/whl/cu128
 COPY . .
 EXPOSE 8091
