@@ -5,3 +5,4 @@ xttsv2_2.0.2/*
 outputs/*
 hf/*
 .env
+pretrained_models

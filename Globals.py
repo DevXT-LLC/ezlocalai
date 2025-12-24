@@ -13,6 +13,7 @@ def getenv(var_name: str, default_value: str = None) -> str:
         "WHISPER_MODEL": "large-v3",
         "IMG_MODEL": "Tongyi-MAI/Z-Image-Turbo",  # Set to Z-Image-Turbo for image generation, empty string to disable
         "TTS_ENABLED": "true",
+        "TTS_PROVIDER": "chatterbox",  # Chatterbox TTS
         "STT_ENABLED": "true",
         "NGROK_TOKEN": "",
         "LOG_LEVEL": "INFO",

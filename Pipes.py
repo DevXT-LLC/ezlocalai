@@ -857,6 +857,48 @@ class VoiceServerClient:
             logging.warning(f"[VoiceServer] TTS request failed: {e}")
             return None
 
+    async def forward_tts_stream(
+        self, text: str, voice: str = "default", language: str = "en"
+    ):
+        """Forward a streaming TTS request to the voice server.
+
+        Args:
+            text: Text to convert to speech
+            voice: Voice to use
+            language: Language code
+
+        Yields:
+            Audio chunks as they arrive from the voice server
+        """
+        if not self.is_configured:
+            return
+
+        import aiohttp
+
+        logging.info(f"[VoiceServer] Forwarding streaming TTS to {self.base_url}")
+
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.post(
+                    f"{self.base_url}/v1/audio/speech/stream",
+                    json={"input": text, "voice": voice, "language": language},
+                    headers=self._get_headers(),
+                    timeout=aiohttp.ClientTimeout(total=300),
+                ) as resp:
+                    if resp.status == 200:
+                        async for chunk in resp.content.iter_any():
+                            if chunk:
+                                yield chunk
+                        logging.debug("[VoiceServer] TTS stream completed")
+                    else:
+                        error_text = await resp.text()
+                        logging.warning(
+                            f"[VoiceServer] TTS stream failed with status {resp.status}: {error_text}"
+                        )
+
+        except Exception as e:
+            logging.warning(f"[VoiceServer] TTS stream request failed: {e}")
+
     async def forward_transcription(
         self,
         file_content: bytes,
@@ -1865,42 +1907,49 @@ class Pipes:
                             f"[LLM] Failed to pre-load vision model {vision_model}: {e}"
                         )
 
-        # TTS initialization - skip warmup if precache already did it
+        # TTS initialization - Chatterbox TTS
         self.ctts = None
         if getenv("TTS_ENABLED").lower() == "true":
+            tts_name = self._get_tts_name()
+            tts_vram = 4.0  # Chatterbox uses about 4GB VRAM
+
             # Check if we should preload TTS (voice server mode OR LAZY_LOAD_VOICE=false)
             if should_preload_voice():
-                mode_str = "voice server mode" if is_voice_server_mode() else "LAZY_LOAD_VOICE=false"
-                logging.info(f"[CTTS] {mode_str} - loading TTS to keep resident")
+                mode_str = (
+                    "voice server mode"
+                    if is_voice_server_mode()
+                    else "LAZY_LOAD_VOICE=false"
+                )
+                logging.info(f"[TTS] {mode_str} - loading {tts_name} to keep resident")
                 start_time = time.time()
-                self.ctts = CTTS()
+                self.ctts = self._create_tts_model()
                 load_time = time.time() - start_time
                 logging.info(
-                    f"[CTTS] Chatterbox TTS loaded in {load_time:.2f}s ({mode_str} - staying loaded)"
+                    f"[TTS] {tts_name} loaded in {load_time:.2f}s ({mode_str} - staying loaded)"
                 )
                 self.resource_manager.register_model(
                     ModelType.TTS,
-                    "Chatterbox TTS",
+                    tts_name,
                     "cuda" if torch.cuda.is_available() else "cpu",
-                    vram_gb=4.0 if torch.cuda.is_available() else 0.0,
+                    vram_gb=tts_vram if torch.cuda.is_available() else 0.0,
                 )
             elif precache_done:
                 # Precache already warmed the TTS cache, skip loading/unloading
                 logging.debug(
-                    "[CTTS] TTS cache already warmed by precache, will lazy-load on first request"
+                    f"[TTS] {tts_name} cache already warmed by precache, will lazy-load on first request"
                 )
             else:
                 # No precache - warm the cache now (first run or single-worker mode)
-                logging.debug("[CTTS] Preloading Chatterbox TTS to warm cache...")
+                logging.debug(f"[TTS] Preloading {tts_name} to warm cache...")
                 start_time = time.time()
-                self.ctts = CTTS()
+                self.ctts = self._create_tts_model()
                 load_time = time.time() - start_time
                 logging.debug(
-                    f"[CTTS] Chatterbox TTS preloaded in {load_time:.2f}s, unloading to free VRAM..."
+                    f"[TTS] {tts_name} preloaded in {load_time:.2f}s, unloading to free VRAM..."
                 )
                 self._destroy_tts()
                 logging.debug(
-                    "[CTTS] TTS unloaded, will lazy-load on first TTS request."
+                    "[TTS] TTS unloaded, will lazy-load on first TTS request."
                 )
 
         # Lazy-loaded models (loaded on first use, destroyed after)
@@ -1911,7 +1960,11 @@ class Pipes:
 
         # Pre-load STT if preloading is enabled (voice server mode OR LAZY_LOAD_VOICE=false)
         if should_preload_voice() and getenv("STT_ENABLED").lower() == "true":
-            mode_str = "voice server mode" if is_voice_server_mode() else "LAZY_LOAD_VOICE=false"
+            mode_str = (
+                "voice server mode"
+                if is_voice_server_mode()
+                else "LAZY_LOAD_VOICE=false"
+            )
             logging.info(f"[STT] {mode_str} - loading STT to keep resident")
             from ezlocalai.STT import STT
 
@@ -3386,13 +3439,22 @@ class Pipes:
                     logging.debug(f"[LLM] Unloading {model_name} synchronously")
                     self._destroy_llm_sync(llm_ref, model_name)
 
+    def _create_tts_model(self):
+        """Create TTS model (Chatterbox TTS)."""
+        return CTTS()
+
+    def _get_tts_name(self):
+        """Get the human-readable name for the TTS provider."""
+        return "Chatterbox TTS"
+
     def _get_tts(self, force_cpu: bool = False):
         """Lazy load TTS model on demand with smart resource management.
 
         Args:
-            force_cpu: If True, force CPU mode (not directly supported by CTTS but affects loading)
+            force_cpu: If True, force CPU mode (not directly supported but affects loading)
         """
         resource_mgr = get_resource_manager()
+        tts_name = self._get_tts_name()
 
         if self.ctts is None:
             # Check resource availability
@@ -3400,22 +3462,22 @@ class Pipes:
                 ModelType.TTS, required_vram=4.0
             )
 
-            logging.debug(f"[CTTS] Loading Chatterbox TTS ({reason})")
+            logging.debug(f"[TTS] Loading {tts_name} ({reason})")
             start_time = time.time()
-            self.ctts = CTTS()
+            self.ctts = self._create_tts_model()
             load_time = time.time() - start_time
 
-            # TTS uses CUDA if available (handled internally by CTTS)
+            # TTS uses CUDA if available (handled internally by model)
             actual_device = "cuda" if torch.cuda.is_available() else "cpu"
             resource_mgr.register_model(
                 ModelType.TTS,
-                "Chatterbox TTS",
+                tts_name,
                 actual_device,
                 vram_gb=4.0 if actual_device == "cuda" else 0.0,
             )
 
             logging.debug(
-                f"[CTTS] Chatterbox TTS loaded on {actual_device} in {load_time:.2f}s"
+                f"[TTS] {tts_name} loaded on {actual_device} in {load_time:.2f}s"
             )
 
         resource_mgr.mark_model_in_use(ModelType.TTS, True)
@@ -3430,9 +3492,9 @@ class Pipes:
             if torch.cuda.is_available():
                 torch.cuda.empty_cache()
             cleanup_time = time.time() - start_time
-            logging.debug(f"[CTTS] Chatterbox TTS unloaded in {cleanup_time:.2f}s")
+            logging.debug(f"[TTS] TTS model unloaded in {cleanup_time:.2f}s")
         except Exception as e:
-            logging.error(f"[CTTS] Error during TTS cleanup: {e}")
+            logging.error(f"[TTS] Error during TTS cleanup: {e}")
 
     def _destroy_tts(self, async_cleanup: bool = True, force: bool = False):
         """Destroy TTS model to free resources.
@@ -3446,7 +3508,7 @@ class Pipes:
 
         # When preloading is enabled (voice server mode OR LAZY_LOAD_VOICE=false), never unload unless forced
         if should_preload_voice() and not force:
-            logging.debug("[CTTS] Preload mode - keeping TTS loaded")
+            logging.debug("[TTS] Preload mode - keeping TTS loaded")
             return
 
         # Always unload TTS after use - loads quickly (~1-2s) and frees ~4GB VRAM
@@ -3456,7 +3518,7 @@ class Pipes:
             resource_mgr.unregister_model(ModelType.TTS)
 
             if async_cleanup:
-                logging.debug("[CTTS] Scheduling async unload...")
+                logging.debug("[TTS] Scheduling async unload...")
                 _schedule_cleanup(self._destroy_tts_sync, tts_ref)
             else:
                 self._destroy_tts_sync(tts_ref)

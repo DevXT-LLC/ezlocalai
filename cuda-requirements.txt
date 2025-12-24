@@ -33,6 +33,8 @@ einops
 librosa
 omegaconf
 tokenizers>=0.20,<0.22
+soundfile
+pyloudnorm
 # Wake word training dependencies
 gTTS>=2.4.0
 edge-tts>=6.1.0

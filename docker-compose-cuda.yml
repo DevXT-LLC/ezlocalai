@@ -21,7 +21,8 @@ services:
       - REQUEST_TIMEOUT=${REQUEST_TIMEOUT:-300}
       - VOICE_SERVER=${VOICE_SERVER:-}
       - VOICE_SERVER_API_KEY=${VOICE_SERVER_API_KEY:-}
-      - LAZY_LOAD_VOICE=${LAZY_LOAD_VOICE:-true}
+      - LAZY_LOAD_VOICE=${LAZY_LOAD_VOICE:-false}
+      - TTS_PROVIDER=${TTS_PROVIDER:-chatterbox}
     restart: unless-stopped
     dns:
       - 8.8.8.8
@@ -34,6 +35,8 @@ services:
       - ./outputs:/app/outputs
       - ./voices:/app/voices
       - ./whispercpp:/app/whispercpp
+      - ./CosyVoice:/app/CosyVoice
+      - ./pretrained_models:/app/pretrained_models
     deploy:
       resources:
         reservations:

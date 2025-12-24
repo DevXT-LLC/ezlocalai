@@ -1037,7 +1037,37 @@ async def text_to_speech_stream(tts: TextToSpeech, user=Depends(verify_api_key))
     if getenv("TTS_ENABLED").lower() == "false":
         raise HTTPException(status_code=404, detail="Text to speech is disabled.")
 
-    from Pipes import is_voice_server_mode
+    from Pipes import get_voice_server_client, is_voice_server_mode
+
+    # Try voice server first if configured (not in voice server mode)
+    if not is_voice_server_mode():
+        voice_client = get_voice_server_client()
+        if voice_client.is_configured:
+            available, reason = await voice_client.check_availability()
+            if available:
+                logging.info(
+                    f"[TTS Stream] Forwarding to voice server: {voice_client.base_url}"
+                )
+
+                async def voice_server_stream():
+                    async for chunk in voice_client.forward_tts_stream(
+                        text=tts.input,
+                        voice=tts.voice,
+                        language=tts.language,
+                    ):
+                        yield chunk
+
+                return StreamingResponse(
+                    voice_server_stream(),
+                    media_type="application/octet-stream",
+                    headers={
+                        "X-Audio-Format": "pcm",
+                        "X-Sample-Rate": "24000",
+                        "X-Bits-Per-Sample": "16",
+                        "X-Channels": "1",
+                    },
+                )
+            logging.warning("[TTS Stream] Voice server unavailable, using local")
 
     tts_model = pipe._get_tts()
 

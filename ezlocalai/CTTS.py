@@ -8,13 +8,156 @@ import soundfile as sf
 import logging
 import gc
 import io
+from pathlib import Path
+from huggingface_hub import hf_hub_download
 from ezlocalai.AudioCache import AudioCache
 
-from chatterbox.tts import ChatterboxTTS
+# Use Chatterbox Turbo for faster inference (350M vs 500M params, single-step decoder)
+from chatterbox.tts_turbo import ChatterboxTurboTTS
+
+# Turbo model repo ID
+TURBO_REPO_ID = "ResembleAI/chatterbox-turbo"
+# Files needed for Turbo model
+TURBO_FILES = [
+    "ve.safetensors",
+    "t3_turbo_v1.safetensors", 
+    "s3gen_meanflow.safetensors",
+    "vocab.json",
+    "merges.txt",
+    "tokenizer_config.json",
+    "special_tokens_map.json",
+    "added_tokens.json",
+    "conds.pt",
+]
+
+
+def download_turbo_model() -> Path:
+    """Download Chatterbox Turbo model files without requiring HF token."""
+    local_path = None
+    for fpath in TURBO_FILES:
+        try:
+            local_path = hf_hub_download(repo_id=TURBO_REPO_ID, filename=fpath)
+        except Exception as e:
+            logging.warning(f"[CTTS] Could not download {fpath}: {e}")
+            continue
+    if local_path is None:
+        raise RuntimeError("Failed to download any Chatterbox Turbo files")
+    return Path(local_path).parent
 
 # Maximum characters per chunk for TTS generation
 # Chatterbox struggles with long text, so we split into sentences
 MAX_CHUNK_CHARS = 250
+
+# Number to word conversion for TTS
+ONES = ["", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine",
+        "ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen",
+        "seventeen", "eighteen", "nineteen"]
+TENS = ["", "", "twenty", "thirty", "forty", "fifty", "sixty", "seventy", "eighty", "ninety"]
+
+# Cyrillic to Latin transliteration map
+CYRILLIC_TO_LATIN = {
+    # Russian uppercase
+    'А': 'A', 'Б': 'B', 'В': 'V', 'Г': 'G', 'Д': 'D', 'Е': 'E', 'Ё': 'Yo', 'Ж': 'Zh',
+    'З': 'Z', 'И': 'I', 'Й': 'Y', 'К': 'K', 'Л': 'L', 'М': 'M', 'Н': 'N', 'О': 'O',
+    'П': 'P', 'Р': 'R', 'С': 'S', 'Т': 'T', 'У': 'U', 'Ф': 'F', 'Х': 'Kh', 'Ц': 'Ts',
+    'Ч': 'Ch', 'Ш': 'Sh', 'Щ': 'Shch', 'Ъ': '', 'Ы': 'Y', 'Ь': '', 'Э': 'E', 'Ю': 'Yu', 'Я': 'Ya',
+    # Russian lowercase
+    'а': 'a', 'б': 'b', 'в': 'v', 'г': 'g', 'д': 'd', 'е': 'e', 'ё': 'yo', 'ж': 'zh',
+    'з': 'z', 'и': 'i', 'й': 'y', 'к': 'k', 'л': 'l', 'м': 'm', 'н': 'n', 'о': 'o',
+    'п': 'p', 'р': 'r', 'с': 's', 'т': 't', 'у': 'u', 'ф': 'f', 'х': 'kh', 'ц': 'ts',
+    'ч': 'ch', 'ш': 'sh', 'щ': 'shch', 'ъ': '', 'ы': 'y', 'ь': '', 'э': 'e', 'ю': 'yu', 'я': 'ya',
+    # Ukrainian specific
+    'Ї': 'Yi', 'ї': 'yi', 'І': 'I', 'і': 'i', 'Є': 'Ye', 'є': 'ye', 'Ґ': 'G', 'ґ': 'g',
+    # Serbian/Bulgarian specific
+    'Ђ': 'Dj', 'ђ': 'dj', 'Ћ': 'C', 'ћ': 'c', 'Љ': 'Lj', 'љ': 'lj', 'Њ': 'Nj', 'њ': 'nj', 'Џ': 'Dz', 'џ': 'dz',
+}
+
+
+def transliterate_cyrillic(text: str) -> str:
+    """Convert Cyrillic characters to Latin equivalents for better TTS pronunciation."""
+    result = []
+    for char in text:
+        if char in CYRILLIC_TO_LATIN:
+            result.append(CYRILLIC_TO_LATIN[char])
+        else:
+            result.append(char)
+    return ''.join(result)
+
+
+def number_to_words(n: int) -> str:
+    """Convert an integer to English words."""
+    if n < 0:
+        return "negative " + number_to_words(-n)
+    if n == 0:
+        return "zero"
+    if n < 20:
+        return ONES[n]
+    if n < 100:
+        return TENS[n // 10] + ("" if n % 10 == 0 else " " + ONES[n % 10])
+    if n < 1000:
+        return ONES[n // 100] + " hundred" + ("" if n % 100 == 0 else " " + number_to_words(n % 100))
+    if n < 1000000:
+        return number_to_words(n // 1000) + " thousand" + ("" if n % 1000 == 0 else " " + number_to_words(n % 1000))
+    return str(n)  # For very large numbers, just return as-is
+
+
+def normalize_text_for_tts(text: str) -> str:
+    """Normalize text for better TTS output - convert numbers, dates, times to words."""
+    
+    # Convert time formats like "10:30 AM" or "2:45 PM" to words
+    def time_to_words(match):
+        hour = int(match.group(1))
+        minute = int(match.group(2))
+        period = match.group(3).upper() if match.group(3) else ""
+        
+        if minute == 0:
+            time_str = number_to_words(hour) + " o'clock"
+        elif minute < 10:
+            time_str = number_to_words(hour) + " oh " + number_to_words(minute)
+        else:
+            time_str = number_to_words(hour) + " " + number_to_words(minute)
+        
+        if period:
+            time_str += " " + period.replace("AM", "A M").replace("PM", "P M")
+        return time_str
+    
+    text = re.sub(r'(\d{1,2}):(\d{2})\s*(AM|PM|am|pm)?', time_to_words, text)
+    
+    # Convert date formats like "12/24" or "12/24/2025" to words
+    def date_to_words(match):
+        month = int(match.group(1))
+        day = int(match.group(2))
+        year = match.group(3) if match.group(3) else None
+        
+        months = ["", "January", "February", "March", "April", "May", "June",
+                  "July", "August", "September", "October", "November", "December"]
+        
+        # Ordinal suffixes
+        if 10 <= day % 100 <= 20:
+            suffix = "th"
+        else:
+            suffix = {1: "st", 2: "nd", 3: "rd"}.get(day % 10, "th")
+        
+        result = months[month] + " " + number_to_words(day) + suffix
+        if year:
+            year_int = int(year)
+            if year_int >= 2000:
+                result += " " + number_to_words(year_int)
+            else:
+                # Say "nineteen ninety five" for 1995
+                result += " " + number_to_words(year_int // 100) + " " + number_to_words(year_int % 100)
+        return result
+    
+    text = re.sub(r'(\d{1,2})/(\d{1,2})(?:/(\d{4}))?', date_to_words, text)
+    
+    # Convert standalone numbers to words (but not in middle of alphanumeric strings)
+    def num_to_words_replace(match):
+        num = int(match.group(0))
+        return number_to_words(num)
+    
+    text = re.sub(r'\b(\d{1,6})\b', num_to_words_replace, text)
+    
+    return text
 
 
 def split_text_into_chunks(text: str, max_chars: int = MAX_CHUNK_CHARS) -> list:
@@ -107,14 +250,16 @@ def get_available_vram_mb():
 
 class CTTS:
     """
-    Chatterbox TTS wrapper with voice cloning support.
+    Chatterbox Turbo TTS wrapper with voice cloning support.
+    Turbo is a 350M parameter model with single-step decoder for faster inference.
+    Supports paralinguistic tags like [laugh], [cough], [chuckle].
     Automatically falls back to CPU if GPU memory is insufficient.
     """
 
     def __init__(self, cache_config=None):
-        # Check if there's enough VRAM for TTS (need at least 2GB free)
+        # Check if there's enough VRAM for TTS (Turbo needs less VRAM than regular)
         available_vram = get_available_vram_mb()
-        min_vram_mb = 2000  # 2GB minimum for TTS
+        min_vram_mb = 1500  # 1.5GB minimum for Turbo (smaller than regular 500M model)
 
         if torch.cuda.is_available() and available_vram >= min_vram_mb:
             self.device = "cuda"
@@ -125,10 +270,14 @@ class CTTS:
                     f"[CTTS] Only {available_vram:.0f}MB VRAM available, using CPU (need {min_vram_mb}MB)"
                 )
 
-        logging.debug(f"[CTTS] Initializing Chatterbox TTS on {self.device}")
+        logging.debug(f"[CTTS] Initializing Chatterbox Turbo TTS on {self.device}")
+
+        # Download model files manually to avoid HF token requirement
+        model_path = download_turbo_model()
+        logging.debug(f"[CTTS] Model downloaded to {model_path}")
 
         try:
-            self.model = ChatterboxTTS.from_pretrained(device=self.device)
+            self.model = ChatterboxTurboTTS.from_local(model_path, device=self.device)
         except (torch.cuda.OutOfMemoryError, RuntimeError) as e:
             error_str = str(e).lower()
             # Check for OOM, CUDA errors, or cuDNN errors (version mismatch, etc.)
@@ -144,7 +293,7 @@ class CTTS:
                 if torch.cuda.is_available():
                     torch.cuda.empty_cache()
                 self.device = "cpu"
-                self.model = ChatterboxTTS.from_pretrained(device="cpu")
+                self.model = ChatterboxTurboTTS.from_local(model_path, device="cpu")
             else:
                 raise
 
@@ -169,7 +318,20 @@ class CTTS:
         logging.debug(
             f"[CTTS] Audio caching {'enabled' if self.use_cache else 'disabled'}"
         )
-        logging.debug("[CTTS] Chatterbox TTS initialized successfully")
+        
+        # Pre-condition the default voice at load time for faster first request
+        default_voice = os.path.join(self.voices_path, "default.wav")
+        if os.path.exists(default_voice):
+            try:
+                logging.debug("[CTTS] Pre-conditioning default voice...")
+                # prepare_conditionals loads the voice and creates embeddings
+                # norm_loudness=False to work around dtype bug in chatterbox library
+                self.model.prepare_conditionals(default_voice, norm_loudness=False)
+                logging.debug("[CTTS] Default voice pre-conditioned successfully")
+            except Exception as e:
+                logging.warning(f"[CTTS] Could not pre-condition default voice: {e}")
+        
+        logging.debug("[CTTS] Chatterbox Turbo TTS initialized successfully")
 
     async def generate(
         self,
@@ -184,11 +346,17 @@ class CTTS:
         if use_cache is None:
             use_cache = self.use_cache
 
+        # Normalize numbers, dates, times to words for better TTS
+        text = normalize_text_for_tts(text)
+
+        # Transliterate Cyrillic to Latin for better pronunciation
+        text = transliterate_cyrillic(text)
+
         # Clean and normalize text
-        # First, remove non-ASCII characters (Chatterbox TTS only handles English well)
-        # This prevents "ba ba ba" garbage audio from Cyrillic, Chinese, etc.
+        # Remove remaining non-ASCII characters (Chatterbox TTS only handles English well)
+        # This prevents "ba ba ba" garbage audio from Chinese, Arabic, etc.
         text = "".join(char for char in text if ord(char) < 128 or char in ".,;:!?-'\"")
-        
+
         # Clean up repeated punctuation
         cleaned_string = re.sub(r"([!?.])\1+", r"\1", text)
         # Remove any remaining special characters except basic punctuation
@@ -317,7 +485,9 @@ class CTTS:
             if waveform.ndim == 1:
                 waveform = waveform.unsqueeze(0)  # Add channel dimension
             elif waveform.ndim == 2:
-                waveform = waveform.T  # Convert from (samples, channels) to (channels, samples)
+                waveform = (
+                    waveform.T
+                )  # Convert from (samples, channels) to (channels, samples)
             # Resample if needed
             if sr != self.sample_rate:
                 resampler = torchaudio.transforms.Resample(sr, self.sample_rate)
@@ -357,11 +527,19 @@ class CTTS:
 
         Automatically falls back to CPU if GPU runs out of memory.
         """
-        try:
-            if audio_path and os.path.exists(audio_path):
-                wav = self.model.generate(text, audio_prompt_path=audio_path)
+        # Turbo requires an audio prompt for voice cloning
+        # If no audio_path provided, use default voice
+        if not audio_path or not os.path.exists(audio_path):
+            default_voice = os.path.join(self.voices_path, "default.wav")
+            if os.path.exists(default_voice):
+                audio_path = default_voice
             else:
-                wav = self.model.generate(text)
+                raise ValueError("[CTTS] Turbo model requires an audio prompt. No default voice found.")
+        
+        try:
+            # norm_loudness=False to work around dtype bug in chatterbox library
+            # (norm_loudness converts float32 to float64 which breaks mel spectrogram)
+            wav = self.model.generate(text, audio_prompt_path=audio_path, norm_loudness=False)
         except (torch.cuda.OutOfMemoryError, RuntimeError) as e:
             error_str = str(e).lower()
             # Check for OOM, CUDA errors, or cuDNN errors (version mismatch, etc.)
@@ -385,15 +563,13 @@ class CTTS:
                     torch.cuda.empty_cache()
 
                 self.device = "cpu"
-                self.model = ChatterboxTTS.from_pretrained(device="cpu")
+                model_path = download_turbo_model()
+                self.model = ChatterboxTurboTTS.from_local(model_path, device="cpu")
                 self.sample_rate = self.model.sr
                 logging.debug("[CTTS] Model reloaded on CPU, retrying generation...")
 
                 # Retry on CPU
-                if audio_path and os.path.exists(audio_path):
-                    wav = self.model.generate(text, audio_prompt_path=audio_path)
-                else:
-                    wav = self.model.generate(text)
+                wav = self.model.generate(text, audio_prompt_path=audio_path, norm_loudness=False)
             else:
                 raise
 
@@ -405,14 +581,17 @@ class CTTS:
                 audio_np = wav.cpu().numpy()
             else:
                 import numpy as np
+
                 audio_np = np.array(wav)
-            
+
             # Ensure correct shape for soundfile (samples, channels) or (samples,) for mono
             if audio_np.ndim == 2 and audio_np.shape[0] <= 2:
-                audio_np = audio_np.T  # Convert from (channels, samples) to (samples, channels)
+                audio_np = (
+                    audio_np.T
+                )  # Convert from (channels, samples) to (samples, channels)
             elif audio_np.ndim == 1:
                 pass  # Already in correct shape for mono
-            
+
             sf.write(temp_file, audio_np, self.sample_rate)
 
             with open(temp_file, "rb") as f:
@@ -457,6 +636,9 @@ class CTTS:
         Subsequent yields are raw PCM data.
         """
         import struct
+
+        # Normalize numbers, dates, times to words for better TTS
+        text = normalize_text_for_tts(text)
 
         # Clean and normalize text
         cleaned_string = re.sub(r"([!?.])\1+", r"\1", text)
