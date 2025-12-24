@@ -10,10 +10,23 @@ import numpy as np
 import gc
 import torch
 from io import BytesIO
-from faster_whisper import WhisperModel
+from faster_whisper import WhisperModel, BatchedInferencePipeline
 
 # Suppress ALSA warnings in Docker containers without sound cards
 os.environ.setdefault("PYTHONWARNINGS", "ignore")
+
+
+def _get_optimal_cpu_threads():
+    """Get optimal number of CPU threads for whisper inference."""
+    try:
+        import multiprocessing
+
+        # Use half of available cores to leave room for other processes
+        # but at least 2 threads and at most 8 (diminishing returns beyond that)
+        cores = multiprocessing.cpu_count()
+        return max(2, min(8, cores // 2))
+    except:
+        return 4  # Safe default
 
 
 def _check_cudnn_available():
@@ -24,14 +37,14 @@ def _check_cudnn_available():
         # Check if cuDNN is available via torch
         if not torch.backends.cudnn.is_available():
             return False
-        
+
         # Actually test cuDNN by running a small convolution
         # This catches version mismatch issues that is_available() misses
-        test_tensor = torch.randn(1, 1, 8, 8, device='cuda')
+        test_tensor = torch.randn(1, 1, 8, 8, device="cuda")
         conv = torch.nn.Conv2d(1, 1, 3, padding=1).cuda()
         with torch.backends.cudnn.flags(enabled=True):
             _ = conv(test_tensor)
-        
+
         # Clean up
         del test_tensor, conv
         torch.cuda.empty_cache()
@@ -69,8 +82,13 @@ class STT:
             and cudnn_available
         ):
             device = "cuda"
+            # Use float16 for GPU - best balance of speed and accuracy
+            # int8_float16 is slightly faster but may reduce accuracy
+            compute_type = "float16"
         else:
             device = "cpu"
+            # int8 on CPU is much faster than float32 with minimal accuracy loss
+            compute_type = "int8"
             if torch.cuda.is_available():
                 if not cudnn_available:
                     logging.warning(
@@ -81,12 +99,26 @@ class STT:
                         f"[STT] Only {available_vram:.0f}MB VRAM available, using CPU (need {min_vram_mb}MB)"
                     )
 
-        logging.info(f"[STT] Loading Whisper {model} on {device}")
+        # Get optimal CPU threads (only used when device is CPU)
+        cpu_threads = _get_optimal_cpu_threads() if device == "cpu" else 0
+
+        logging.info(
+            f"[STT] Loading Whisper {model} on {device} with compute_type={compute_type}"
+        )
         self.device = device
         self.model_name = model
+        self.compute_type = compute_type
 
         try:
-            self.w = WhisperModel(model, download_root="models", device=device)
+            self.w = WhisperModel(
+                model,
+                download_root="models",
+                device=device,
+                compute_type=compute_type,
+                cpu_threads=cpu_threads,
+            )
+            # Create batched inference pipeline for faster batch processing
+            self.batched_model = BatchedInferencePipeline(model=self.w)
         except (torch.cuda.OutOfMemoryError, RuntimeError, OSError) as e:
             error_str = str(e).lower()
             # Check for various GPU-related errors including cuDNN issues
@@ -106,7 +138,16 @@ class STT:
                 if torch.cuda.is_available():
                     torch.cuda.empty_cache()
                 self.device = "cpu"
-                self.w = WhisperModel(model, download_root="models", device="cpu")
+                self.compute_type = "int8"
+                cpu_threads = _get_optimal_cpu_threads()
+                self.w = WhisperModel(
+                    model,
+                    download_root="models",
+                    device="cpu",
+                    compute_type="int8",
+                    cpu_threads=cpu_threads,
+                )
+                self.batched_model = BatchedInferencePipeline(model=self.w)
             else:
                 raise
 
@@ -122,9 +163,30 @@ class STT:
         temperature=0.0,
         translate=False,
         return_segments=False,
-        beam_size=5,
+        beam_size=1,  # Default to 1 for speed; use 5 for higher accuracy if needed
         condition_on_previous_text=True,
+        use_batched=False,  # Use batched inference for longer audio files
+        batch_size=8,  # Batch size for batched inference
     ):
+        """
+        Transcribe audio to text using faster-whisper.
+
+        Args:
+            base64_audio: Base64 encoded audio data
+            audio_format: Audio format (wav, mp3, etc.)
+            language: Language code (e.g., 'en', 'es') or None for auto-detection
+            prompt: Initial prompt to guide transcription
+            temperature: Sampling temperature (0.0 = greedy decoding)
+            translate: If True, translate to English
+            return_segments: If True, return detailed segment info
+            beam_size: Beam size for decoding (1 = greedy, 5 = more accurate but slower)
+            condition_on_previous_text: Use previous text as context
+            use_batched: Use BatchedInferencePipeline for faster processing of longer audio
+            batch_size: Batch size when using batched inference
+
+        Returns:
+            Transcribed text or dict with segments if return_segments=True
+        """
         # Handle None or empty audio_format - default to wav
         if not audio_format:
             audio_format = "wav"
@@ -140,17 +202,38 @@ class STT:
 
         transcribe_info = None
         try:
-            segments, transcribe_info = self.w.transcribe(
-                file_path,
-                task="transcribe" if not translate else "translate",
-                vad_filter=True,
-                vad_parameters=dict(min_silence_duration_ms=500),
-                initial_prompt=prompt,
-                language=language,
-                temperature=temperature,
-                beam_size=beam_size,
-                condition_on_previous_text=condition_on_previous_text,
-            )
+            # Optimized VAD parameters for better speech detection
+            vad_params = {
+                "min_silence_duration_ms": 500,  # Shorter silence detection
+                "speech_pad_ms": 200,  # Padding around speech
+            }
+
+            if use_batched:
+                # Use batched inference for potentially faster processing
+                # Batched inference uses VAD by default and processes in parallel
+                segments, transcribe_info = self.batched_model.transcribe(
+                    file_path,
+                    task="transcribe" if not translate else "translate",
+                    language=language,
+                    initial_prompt=prompt,
+                    beam_size=beam_size,
+                    temperature=temperature if temperature > 0 else [0.0],
+                    batch_size=batch_size,
+                    vad_parameters=vad_params,
+                )
+            else:
+                # Standard inference - good for shorter audio
+                segments, transcribe_info = self.w.transcribe(
+                    file_path,
+                    task="transcribe" if not translate else "translate",
+                    vad_filter=True,
+                    vad_parameters=vad_params,
+                    initial_prompt=prompt,
+                    language=language,
+                    temperature=temperature,
+                    beam_size=beam_size,
+                    condition_on_previous_text=condition_on_previous_text,
+                )
             segments = list(segments)
         except (torch.cuda.OutOfMemoryError, RuntimeError, OSError) as e:
             error_str = str(e).lower()
@@ -174,24 +257,41 @@ class STT:
                 if torch.cuda.is_available():
                     torch.cuda.empty_cache()
 
-                # Reload model on CPU
+                # Reload model on CPU with optimized settings
                 del self.w
+                if hasattr(self, "batched_model"):
+                    del self.batched_model
                 gc.collect()
                 if torch.cuda.is_available():
                     torch.cuda.empty_cache()
 
                 self.device = "cpu"
+                self.compute_type = "int8"
+                cpu_threads = _get_optimal_cpu_threads()
                 self.w = WhisperModel(
-                    self.model_name, download_root="models", device="cpu"
+                    self.model_name,
+                    download_root="models",
+                    device="cpu",
+                    compute_type="int8",
+                    cpu_threads=cpu_threads,
                 )
-                logging.debug("[STT] Model reloaded on CPU, retrying transcription...")
+                self.batched_model = BatchedInferencePipeline(model=self.w)
+                logging.debug(
+                    "[STT] Model reloaded on CPU with int8, retrying transcription..."
+                )
+
+                # Optimized VAD parameters
+                vad_params = {
+                    "min_silence_duration_ms": 500,
+                    "speech_pad_ms": 200,
+                }
 
                 # Retry on CPU
                 segments, transcribe_info = self.w.transcribe(
                     file_path,
                     task="transcribe" if not translate else "translate",
                     vad_filter=True,
-                    vad_parameters=dict(min_silence_duration_ms=500),
+                    vad_parameters=vad_params,
                     initial_prompt=prompt,
                     language=language,
                     temperature=temperature,
