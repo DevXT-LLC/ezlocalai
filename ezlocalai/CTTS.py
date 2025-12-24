@@ -356,6 +356,17 @@ class CTTS:
                 # norm_loudness=False to work around dtype bug in chatterbox library
                 self.model.prepare_conditionals(default_voice, norm_loudness=False)
                 logging.debug("[CTTS] Default voice pre-conditioned successfully")
+
+                # Do a warmup generation to fully initialize the model pipeline
+                # This eliminates first-request latency from JIT compilation, etc.
+                logging.debug("[CTTS] Warming up TTS with silent generation...")
+                try:
+                    _ = self._generate_single_sample("Hello.", default_voice)
+                    logging.debug("[CTTS] TTS warmup complete")
+                except Exception as warmup_err:
+                    logging.warning(
+                        f"[CTTS] Warmup generation failed (non-fatal): {warmup_err}"
+                    )
             except Exception as e:
                 logging.warning(f"[CTTS] Could not pre-condition default voice: {e}")
 
