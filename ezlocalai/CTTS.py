@@ -20,7 +20,7 @@ TURBO_REPO_ID = "ResembleAI/chatterbox-turbo"
 # Files needed for Turbo model
 TURBO_FILES = [
     "ve.safetensors",
-    "t3_turbo_v1.safetensors", 
+    "t3_turbo_v1.safetensors",
     "s3gen_meanflow.safetensors",
     "vocab.json",
     "merges.txt",
@@ -44,44 +44,46 @@ def download_turbo_model() -> Path:
         raise RuntimeError("Failed to download any Chatterbox Turbo files")
     return Path(local_path).parent
 
+
 # Maximum characters per chunk for TTS generation
 # Chatterbox struggles with long text, so we split into sentences
 MAX_CHUNK_CHARS = 250
 
 # Number to word conversion for TTS
-ONES = ["", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine",
-        "ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen",
-        "seventeen", "eighteen", "nineteen"]
-TENS = ["", "", "twenty", "thirty", "forty", "fifty", "sixty", "seventy", "eighty", "ninety"]
-
-# Cyrillic to Latin transliteration map
-CYRILLIC_TO_LATIN = {
-    # Russian uppercase
-    'А': 'A', 'Б': 'B', 'В': 'V', 'Г': 'G', 'Д': 'D', 'Е': 'E', 'Ё': 'Yo', 'Ж': 'Zh',
-    'З': 'Z', 'И': 'I', 'Й': 'Y', 'К': 'K', 'Л': 'L', 'М': 'M', 'Н': 'N', 'О': 'O',
-    'П': 'P', 'Р': 'R', 'С': 'S', 'Т': 'T', 'У': 'U', 'Ф': 'F', 'Х': 'Kh', 'Ц': 'Ts',
-    'Ч': 'Ch', 'Ш': 'Sh', 'Щ': 'Shch', 'Ъ': '', 'Ы': 'Y', 'Ь': '', 'Э': 'E', 'Ю': 'Yu', 'Я': 'Ya',
-    # Russian lowercase
-    'а': 'a', 'б': 'b', 'в': 'v', 'г': 'g', 'д': 'd', 'е': 'e', 'ё': 'yo', 'ж': 'zh',
-    'з': 'z', 'и': 'i', 'й': 'y', 'к': 'k', 'л': 'l', 'м': 'm', 'н': 'n', 'о': 'o',
-    'п': 'p', 'р': 'r', 'с': 's', 'т': 't', 'у': 'u', 'ф': 'f', 'х': 'kh', 'ц': 'ts',
-    'ч': 'ch', 'ш': 'sh', 'щ': 'shch', 'ъ': '', 'ы': 'y', 'ь': '', 'э': 'e', 'ю': 'yu', 'я': 'ya',
-    # Ukrainian specific
-    'Ї': 'Yi', 'ї': 'yi', 'І': 'I', 'і': 'i', 'Є': 'Ye', 'є': 'ye', 'Ґ': 'G', 'ґ': 'g',
-    # Serbian/Bulgarian specific
-    'Ђ': 'Dj', 'ђ': 'dj', 'Ћ': 'C', 'ћ': 'c', 'Љ': 'Lj', 'љ': 'lj', 'Њ': 'Nj', 'њ': 'nj', 'Џ': 'Dz', 'џ': 'dz',
-}
-
-
-def transliterate_cyrillic(text: str) -> str:
-    """Convert Cyrillic characters to Latin equivalents for better TTS pronunciation."""
-    result = []
-    for char in text:
-        if char in CYRILLIC_TO_LATIN:
-            result.append(CYRILLIC_TO_LATIN[char])
-        else:
-            result.append(char)
-    return ''.join(result)
+ONES = [
+    "",
+    "one",
+    "two",
+    "three",
+    "four",
+    "five",
+    "six",
+    "seven",
+    "eight",
+    "nine",
+    "ten",
+    "eleven",
+    "twelve",
+    "thirteen",
+    "fourteen",
+    "fifteen",
+    "sixteen",
+    "seventeen",
+    "eighteen",
+    "nineteen",
+]
+TENS = [
+    "",
+    "",
+    "twenty",
+    "thirty",
+    "forty",
+    "fifty",
+    "sixty",
+    "seventy",
+    "eighty",
+    "ninety",
+]
 
 
 def number_to_words(n: int) -> str:
@@ -95,49 +97,70 @@ def number_to_words(n: int) -> str:
     if n < 100:
         return TENS[n // 10] + ("" if n % 10 == 0 else " " + ONES[n % 10])
     if n < 1000:
-        return ONES[n // 100] + " hundred" + ("" if n % 100 == 0 else " " + number_to_words(n % 100))
+        return (
+            ONES[n // 100]
+            + " hundred"
+            + ("" if n % 100 == 0 else " " + number_to_words(n % 100))
+        )
     if n < 1000000:
-        return number_to_words(n // 1000) + " thousand" + ("" if n % 1000 == 0 else " " + number_to_words(n % 1000))
+        return (
+            number_to_words(n // 1000)
+            + " thousand"
+            + ("" if n % 1000 == 0 else " " + number_to_words(n % 1000))
+        )
     return str(n)  # For very large numbers, just return as-is
 
 
 def normalize_text_for_tts(text: str) -> str:
     """Normalize text for better TTS output - convert numbers, dates, times to words."""
-    
+
     # Convert time formats like "10:30 AM" or "2:45 PM" to words
     def time_to_words(match):
         hour = int(match.group(1))
         minute = int(match.group(2))
         period = match.group(3).upper() if match.group(3) else ""
-        
+
         if minute == 0:
             time_str = number_to_words(hour) + " o'clock"
         elif minute < 10:
             time_str = number_to_words(hour) + " oh " + number_to_words(minute)
         else:
             time_str = number_to_words(hour) + " " + number_to_words(minute)
-        
+
         if period:
             time_str += " " + period.replace("AM", "A M").replace("PM", "P M")
         return time_str
-    
-    text = re.sub(r'(\d{1,2}):(\d{2})\s*(AM|PM|am|pm)?', time_to_words, text)
-    
+
+    text = re.sub(r"(\d{1,2}):(\d{2})\s*(AM|PM|am|pm)?", time_to_words, text)
+
     # Convert date formats like "12/24" or "12/24/2025" to words
     def date_to_words(match):
         month = int(match.group(1))
         day = int(match.group(2))
         year = match.group(3) if match.group(3) else None
-        
-        months = ["", "January", "February", "March", "April", "May", "June",
-                  "July", "August", "September", "October", "November", "December"]
-        
+
+        months = [
+            "",
+            "January",
+            "February",
+            "March",
+            "April",
+            "May",
+            "June",
+            "July",
+            "August",
+            "September",
+            "October",
+            "November",
+            "December",
+        ]
+
         # Ordinal suffixes
         if 10 <= day % 100 <= 20:
             suffix = "th"
         else:
             suffix = {1: "st", 2: "nd", 3: "rd"}.get(day % 10, "th")
-        
+
         result = months[month] + " " + number_to_words(day) + suffix
         if year:
             year_int = int(year)
@@ -145,18 +168,23 @@ def normalize_text_for_tts(text: str) -> str:
                 result += " " + number_to_words(year_int)
             else:
                 # Say "nineteen ninety five" for 1995
-                result += " " + number_to_words(year_int // 100) + " " + number_to_words(year_int % 100)
+                result += (
+                    " "
+                    + number_to_words(year_int // 100)
+                    + " "
+                    + number_to_words(year_int % 100)
+                )
         return result
-    
-    text = re.sub(r'(\d{1,2})/(\d{1,2})(?:/(\d{4}))?', date_to_words, text)
-    
+
+    text = re.sub(r"(\d{1,2})/(\d{1,2})(?:/(\d{4}))?", date_to_words, text)
+
     # Convert standalone numbers to words (but not in middle of alphanumeric strings)
     def num_to_words_replace(match):
         num = int(match.group(0))
         return number_to_words(num)
-    
-    text = re.sub(r'\b(\d{1,6})\b', num_to_words_replace, text)
-    
+
+    text = re.sub(r"\b(\d{1,6})\b", num_to_words_replace, text)
+
     return text
 
 
@@ -318,7 +346,7 @@ class CTTS:
         logging.debug(
             f"[CTTS] Audio caching {'enabled' if self.use_cache else 'disabled'}"
         )
-        
+
         # Pre-condition the default voice at load time for faster first request
         default_voice = os.path.join(self.voices_path, "default.wav")
         if os.path.exists(default_voice):
@@ -330,7 +358,7 @@ class CTTS:
                 logging.debug("[CTTS] Default voice pre-conditioned successfully")
             except Exception as e:
                 logging.warning(f"[CTTS] Could not pre-condition default voice: {e}")
-        
+
         logging.debug("[CTTS] Chatterbox Turbo TTS initialized successfully")
 
     async def generate(
@@ -348,9 +376,6 @@ class CTTS:
 
         # Normalize numbers, dates, times to words for better TTS
         text = normalize_text_for_tts(text)
-
-        # Transliterate Cyrillic to Latin for better pronunciation
-        text = transliterate_cyrillic(text)
 
         # Clean and normalize text
         # Remove remaining non-ASCII characters (Chatterbox TTS only handles English well)
@@ -534,12 +559,16 @@ class CTTS:
             if os.path.exists(default_voice):
                 audio_path = default_voice
             else:
-                raise ValueError("[CTTS] Turbo model requires an audio prompt. No default voice found.")
-        
+                raise ValueError(
+                    "[CTTS] Turbo model requires an audio prompt. No default voice found."
+                )
+
         try:
             # norm_loudness=False to work around dtype bug in chatterbox library
             # (norm_loudness converts float32 to float64 which breaks mel spectrogram)
-            wav = self.model.generate(text, audio_prompt_path=audio_path, norm_loudness=False)
+            wav = self.model.generate(
+                text, audio_prompt_path=audio_path, norm_loudness=False
+            )
         except (torch.cuda.OutOfMemoryError, RuntimeError) as e:
             error_str = str(e).lower()
             # Check for OOM, CUDA errors, or cuDNN errors (version mismatch, etc.)
@@ -569,7 +598,9 @@ class CTTS:
                 logging.debug("[CTTS] Model reloaded on CPU, retrying generation...")
 
                 # Retry on CPU
-                wav = self.model.generate(text, audio_prompt_path=audio_path, norm_loudness=False)
+                wav = self.model.generate(
+                    text, audio_prompt_path=audio_path, norm_loudness=False
+                )
             else:
                 raise
 
