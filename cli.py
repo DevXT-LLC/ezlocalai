@@ -1110,6 +1110,29 @@ def get_image_mime_type(image_path: str) -> str:
     return mime_types.get(ext, "image/jpeg")
 
 
+def get_video_mime_type(video_path: str) -> str:
+    """Get the MIME type based on video file extension."""
+    ext = Path(video_path).suffix.lower()
+    mime_types = {
+        ".mp4": "video/mp4",
+        ".webm": "video/webm",
+        ".avi": "video/x-msvideo",
+        ".mov": "video/quicktime",
+        ".mkv": "video/x-matroska",
+        ".m4v": "video/mp4",
+        ".wmv": "video/x-ms-wmv",
+        ".flv": "video/x-flv",
+    }
+    return mime_types.get(ext, "video/mp4")
+
+
+def is_video_file(path: str) -> bool:
+    """Check if the path is a video file based on extension."""
+    ext = Path(path).suffix.lower()
+    video_extensions = {".mp4", ".webm", ".avi", ".mov", ".mkv", ".m4v", ".wmv", ".flv"}
+    return ext in video_extensions
+
+
 def is_url(path: str) -> bool:
     """Check if the path is a URL."""
     return path.startswith("http://") or path.startswith("https://")
@@ -1121,6 +1144,7 @@ def send_prompt(
     temperature: Optional[float] = None,
     top_p: Optional[float] = None,
     image_path: Optional[str] = None,
+    video_path: Optional[str] = None,
     show_stats: bool = False,
 ) -> None:
     """Send a prompt to the ezlocalai server and print the response."""
@@ -1174,6 +1198,38 @@ def send_prompt(
                 {
                     "type": "image_url",
                     "image_url": {"url": f"data:{mime_type};base64,{base64_image}"},
+                }
+            )
+
+    # Handle video if provided
+    if video_path:
+        if is_url(video_path):
+            # Video URL - pass directly, server will handle frame extraction
+            content.append(
+                {
+                    "type": "video_url",
+                    "video_url": {"url": video_path},
+                }
+            )
+            print(f"📹 Processing video from URL...")
+        else:
+            # Local file - check it exists and pass the path
+            # The server will extract frames from the local path
+            video_file = Path(video_path)
+            if not video_file.exists():
+                print(f"❌ Video file not found: {video_path}")
+                sys.exit(1)
+
+            # For local files, we encode to base64 data URL
+            print(f"📹 Processing video: {video_path}")
+            mime_type = get_video_mime_type(video_path)
+            base64_video = encode_image_to_base64(
+                video_path
+            )  # Same function works for any file
+            content.append(
+                {
+                    "type": "video_url",
+                    "video_url": {"url": f"data:{mime_type};base64,{base64_video}"},
                 }
             )
 
@@ -1330,6 +1386,7 @@ Examples:
   ezlocalai logs -f                         Follow logs
   ezlocalai prompt "Hello, world!"          Send a prompt to the AI
   ezlocalai prompt "What's in this image?" -image ./photo.jpg
+  ezlocalai prompt "Describe this video" -video ./clip.mp4
 
 Environment:
   Configuration is stored in ~/.ezlocalai/.env
@@ -1447,6 +1504,12 @@ Environment:
         default=None,
     )
     prompt_parser.add_argument(
+        "-video",
+        "--video",
+        help="Path to a video file or URL to include with the prompt (frames will be extracted)",
+        default=None,
+    )
+    prompt_parser.add_argument(
         "-stats",
         "--stats",
         action="store_true",
@@ -1505,6 +1568,7 @@ Environment:
             temperature=args.temperature,
             top_p=args.top_p,
             image_path=args.image,
+            video_path=args.video,
             show_stats=args.stats,
         )
 

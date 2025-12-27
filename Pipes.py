@@ -4,6 +4,7 @@ import time
 import math
 import threading
 import queue
+import tempfile
 from dotenv import load_dotenv
 from ezlocalai.LLM import (
     LLM,
@@ -30,6 +31,158 @@ try:
     img_import_success = True
 except ImportError:
     img_import_success = False
+
+
+# =============================================================================
+# Video Processing Helpers
+# =============================================================================
+
+
+def extract_frames_from_video(
+    video_source: str,
+    fps: float = 1.0,
+    max_frames: int = 16,
+) -> List[str]:
+    """Extract frames from a video and return as base64-encoded images.
+
+    Args:
+        video_source: Either a URL, file path, or base64 data URL of the video
+        fps: Frames per second to extract (default 1.0 = 1 frame per second)
+        max_frames: Maximum number of frames to extract (default 16)
+
+    Returns:
+        List of base64 data URLs in format "data:image/jpeg;base64,..."
+    """
+    try:
+        import cv2
+        from PIL import Image as PILImage
+        from io import BytesIO
+    except ImportError:
+        logging.error("[Video] OpenCV (cv2) is required for video processing. Install with: pip install opencv-python")
+        return []
+
+    temp_file = None
+    frames_base64 = []
+
+    try:
+        # Handle different video source types
+        if video_source.startswith("data:"):
+            # Base64 data URL - extract and save to temp file
+            try:
+                header, encoded = video_source.split(",", 1)
+                video_bytes = base64.b64decode(encoded)
+                temp_file = tempfile.NamedTemporaryFile(suffix=".mp4", delete=False)
+                temp_file.write(video_bytes)
+                temp_file.close()
+                video_path = temp_file.name
+            except Exception as e:
+                logging.error(f"[Video] Failed to decode base64 video: {e}")
+                return []
+        elif video_source.startswith("http://") or video_source.startswith("https://"):
+            # URL - download to temp file
+            try:
+                headers = {"User-Agent": "Mozilla/5.0"}
+                response = requests.get(video_source, timeout=60, headers=headers, stream=True)
+                response.raise_for_status()
+                temp_file = tempfile.NamedTemporaryFile(suffix=".mp4", delete=False)
+                for chunk in response.iter_content(chunk_size=8192):
+                    temp_file.write(chunk)
+                temp_file.close()
+                video_path = temp_file.name
+            except Exception as e:
+                logging.error(f"[Video] Failed to download video from URL: {e}")
+                return []
+        else:
+            # Local file path
+            video_path = video_source
+            if not os.path.exists(video_path):
+                logging.error(f"[Video] Video file not found: {video_path}")
+                return []
+
+        # Open video with OpenCV
+        cap = cv2.VideoCapture(video_path)
+        if not cap.isOpened():
+            logging.error(f"[Video] Failed to open video: {video_path}")
+            return []
+
+        # Get video properties
+        video_fps = cap.get(cv2.CAP_PROP_FPS)
+        total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        duration = total_frames / video_fps if video_fps > 0 else 0
+
+        logging.debug(f"[Video] Video properties: {video_fps:.1f} fps, {total_frames} frames, {duration:.1f}s duration")
+
+        # Calculate frame interval based on requested fps
+        frame_interval = int(video_fps / fps) if fps > 0 else int(video_fps)
+        frame_interval = max(1, frame_interval)  # At least 1 frame interval
+
+        # Calculate total frames to extract
+        estimated_frames = total_frames // frame_interval
+        if estimated_frames > max_frames:
+            # Adjust interval to get approximately max_frames
+            frame_interval = total_frames // max_frames
+
+        frame_count = 0
+        extracted_count = 0
+
+        while True:
+            ret, frame = cap.read()
+            if not ret:
+                break
+
+            # Extract frame at specified intervals
+            if frame_count % frame_interval == 0 and extracted_count < max_frames:
+                try:
+                    # Convert BGR (OpenCV) to RGB (PIL)
+                    frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                    pil_img = PILImage.fromarray(frame_rgb)
+
+                    # Resize if too large (max 1024px on longest side) to save tokens
+                    max_dim = max(pil_img.size)
+                    if max_dim > 1024:
+                        scale = 1024 / max_dim
+                        new_size = (int(pil_img.size[0] * scale), int(pil_img.size[1] * scale))
+                        pil_img = pil_img.resize(new_size, PILImage.Resampling.LANCZOS)
+
+                    # DEBUG: Save first frame for verification
+                    if extracted_count == 0:
+                        debug_path = "/app/outputs/debug_frame_0.png"
+                        try:
+                            pil_img.save(debug_path)
+                            logging.info(f"[Video DEBUG] Saved first frame to {debug_path}, size={pil_img.size}")
+                        except Exception as save_err:
+                            logging.warning(f"[Video DEBUG] Could not save debug frame: {save_err}")
+
+                    # Convert to base64 JPEG
+                    buffer = BytesIO()
+                    pil_img.save(buffer, format="JPEG", quality=85)
+                    img_base64 = base64.b64encode(buffer.getvalue()).decode("utf-8")
+                    frames_base64.append(f"data:image/jpeg;base64,{img_base64}")
+                    extracted_count += 1
+
+                    # Calculate timestamp for this frame
+                    timestamp = frame_count / video_fps if video_fps > 0 else 0
+                    logging.debug(f"[Video] Extracted frame {extracted_count} at {timestamp:.1f}s")
+
+                except Exception as e:
+                    logging.error(f"[Video] Failed to process frame {frame_count}: {e}")
+
+            frame_count += 1
+
+        cap.release()
+        logging.info(f"[Video] Extracted {extracted_count} frames from video ({duration:.1f}s)")
+
+    except Exception as e:
+        logging.error(f"[Video] Error processing video: {e}")
+    finally:
+        # Clean up temp file
+        if temp_file and os.path.exists(temp_file.name):
+            try:
+                os.unlink(temp_file.name)
+            except Exception:
+                pass
+
+    return frames_base64
 
 
 # =============================================================================
@@ -3905,6 +4058,39 @@ class Pipes:
                                 text_content += content_item.get("text", "")
                             elif "image_url" in content_item:
                                 message_images.append(content_item)
+                            elif "video_url" in content_item or content_item.get("type") == "video":
+                                # Extract video URL from different formats
+                                video_url = None
+                                if "video_url" in content_item:
+                                    video_url = (
+                                        content_item["video_url"].get("url", "")
+                                        if isinstance(content_item["video_url"], dict)
+                                        else content_item["video_url"]
+                                    )
+                                elif "video" in content_item:
+                                    video_url = content_item["video"]
+
+                                if video_url:
+                                    logging.info(f"[Video] Processing video input")
+                                    # Extract frames from video and convert to images
+                                    video_fps = float(getenv("VIDEO_FPS", "1.0"))
+                                    video_max_frames = int(getenv("VIDEO_MAX_FRAMES", "16"))
+                                    frame_urls = extract_frames_from_video(
+                                        video_url,
+                                        fps=video_fps,
+                                        max_frames=video_max_frames
+                                    )
+                                    if frame_urls:
+                                        # Add frame number info to help the model understand sequence
+                                        for idx, frame_url in enumerate(frame_urls):
+                                            message_images.append({
+                                                "type": "image_url",
+                                                "image_url": {"url": frame_url}
+                                            })
+                                        text_content = f"[Video with {len(frame_urls)} frames extracted at {video_fps} fps]\n{text_content}"
+                                        logging.info(f"[Video] Extracted {len(frame_urls)} frames for vision processing")
+                                    else:
+                                        logging.warning("[Video] No frames could be extracted from video")
                             elif "audio_url" in content_item:
                                 audio_url = (
                                     content_item["audio_url"]["url"]
@@ -3963,6 +4149,35 @@ class Pipes:
                 for message in messages:
                     if "image_url" in message:
                         images.append(message)
+                    if "video_url" in message or message.get("type") == "video":
+                        # Extract video URL from different formats
+                        video_url = None
+                        if "video_url" in message:
+                            video_url = (
+                                message["video_url"].get("url", "")
+                                if isinstance(message["video_url"], dict)
+                                else message["video_url"]
+                            )
+                        elif "video" in message:
+                            video_url = message["video"]
+
+                        if video_url:
+                            logging.info(f"[Video] Processing video input (legacy format)")
+                            video_fps = float(getenv("VIDEO_FPS", "1.0"))
+                            video_max_frames = int(getenv("VIDEO_MAX_FRAMES", "16"))
+                            frame_urls = extract_frames_from_video(
+                                video_url,
+                                fps=video_fps,
+                                max_frames=video_max_frames
+                            )
+                            if frame_urls:
+                                for frame_url in frame_urls:
+                                    images.append({
+                                        "type": "image_url",
+                                        "image_url": {"url": frame_url}
+                                    })
+                                prompt = f"[Video with {len(frame_urls)} frames]\n{prompt}"
+                                logging.info(f"[Video] Extracted {len(frame_urls)} frames for vision processing")
                     if "audio_url" in message:
                         audio_url = (
                             message["audio_url"]["url"]

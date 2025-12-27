@@ -41,3 +41,5 @@ torchaudio
 onnx>=1.14.0
 onnxruntime>=1.16.0
 scipy>=1.11.0
+# Video processing dependencies
+opencv-python>=4.8.0
