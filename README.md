@@ -247,6 +247,122 @@ VOICE_SERVER=true  # Keep voice models loaded
 
 Machine A handles LLM inference while Machine B handles all voice processing with models always ready.
 
+## Wake Word Detection and Training
+
+ezlocalai includes a complete wake word training and inference system that enables custom voice activation for AI assistants. When `VOICE_SERVER=true`, the wake word endpoints are enabled.
+
+### Custom Wake Word Architecture
+
+ezlocalai trains wake word models using TTS-generated samples and exports them in multiple formats for cross-platform deployment:
+
+```mermaid
+graph LR
+    A[User selects wake word] --> B[ezlocalai trains model]
+    B --> C[Export: PyTorch .pt]
+    B --> D[Export: ONNX .onnx]
+    B --> E[Export: ESPDL .espdl]
+    C --> F[Server inference]
+    D --> G[Mobile App<br/>ONNX Runtime Mobile]
+    E --> H[ESP32-S3<br/>ESP-DL Framework]
+```
+
+### Supported Export Formats
+
+| Format | Extension | Size | Target Platform | Framework |
+|--------|-----------|------|-----------------|-----------|
+| **PyTorch** | `.pt` | ~1.7MB | Server | PyTorch |
+| **ONNX** | `.onnx` | ~1.7MB | Mobile | ONNX Runtime Mobile |
+| **ESPDL** | `.espdl` | ~460KB | ESP32-S3 | ESP-DL v2.0+ |
+
+The ESPDL format is quantized to int8 for efficient inference on microcontrollers, reducing the model size by ~75% while maintaining accuracy.
+
+### Model Architecture
+
+- **Input**: 40 MFCC coefficients × 150 frames (1.5 seconds of audio at 16kHz)
+- **Architecture**: Compact CNN with 3 conv layers + batch norm + max pooling
+- **Output**: Single sigmoid probability [0.0, 1.0]
+- **Typical Accuracy**: 95-98% validation accuracy
+
+### API Endpoints
+
+```bash
+# Train a new wake word model
+curl -X POST "http://localhost:8091/v1/wakeword/train" \
+  -H "Authorization: Bearer your-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{"word": "hey jarvis"}'
+
+# Check training status
+curl "http://localhost:8091/v1/wakeword/jobs/{job_id}" \
+  -H "Authorization: Bearer your-api-key"
+
+# List available models
+curl "http://localhost:8091/v1/wakeword/models" \
+  -H "Authorization: Bearer your-api-key"
+
+# Download model for mobile (ONNX format)
+curl "http://localhost:8091/v1/wakeword/models/hey%20jarvis?format=onnx" \
+  -H "Authorization: Bearer your-api-key" \
+  -o hey_jarvis_model.onnx
+
+# Download model for ESP32-S3 (ESPDL format)
+curl "http://localhost:8091/v1/wakeword/models/hey%20jarvis?format=espdl" \
+  -H "Authorization: Bearer your-api-key" \
+  -o hey_jarvis_model.espdl
+
+# Download PyTorch model for server-side inference
+curl "http://localhost:8091/v1/wakeword/models/hey%20jarvis?format=pytorch" \
+  -H "Authorization: Bearer your-api-key" \
+  -o hey_jarvis_model.pt
+```
+
+### Client Integration
+
+**Mobile App (Flutter/Dart):**
+```dart
+// Download model from ezlocalai
+final response = await http.get(
+  Uri.parse('$serverUrl/v1/wakeword/models/$wakeWord?format=onnx'),
+  headers: {'Authorization': 'Bearer $apiKey'},
+);
+// Save and load with ONNX Runtime Mobile
+final session = await OrtSession.create(modelPath);
+```
+
+**ESP32-S3 (C with ESP-DL):**
+```c
+#include "custom_wakeword.h"
+
+// Initialize the custom wake word system
+custom_wakeword_init();
+
+// Download model from server (stores in NVS)
+custom_wakeword_download_model(
+    "http://192.168.1.100:8091",  // ezlocalai server URL
+    "your-api-key",               // API key (or NULL)
+    "hey jarvis"                  // Wake word to download
+);
+
+// Start detection with callback
+void on_wake_word(const char *word, float confidence, void *ctx) {
+    printf("Wake word '%s' detected (%.2f confidence)\n", word, confidence);
+}
+custom_wakeword_start(on_wake_word, NULL);
+```
+
+### Training Process
+
+The wake word trainer:
+1. **Generates TTS samples** using gTTS, Edge-TTS, and Chatterbox with various voices
+2. **Applies audio augmentation** (noise injection, speed/pitch variations, reverb)
+3. **Trains a CNN model** with MFCC features (40 coefficients)
+4. **Exports to all formats**:
+   - PyTorch (.pt) - full precision for server
+   - ONNX (.onnx) - for mobile deployment
+   - ESPDL (.espdl) - int8 quantized for ESP32
+
+Training typically takes 3-5 minutes depending on your hardware.
+
 ## OpenAI Style Endpoint Usage
 
 OpenAI Style endpoints available at `http://<YOUR LOCAL IP ADDRESS>:8091/v1/` by default. Documentation can be accessed at that <http://localhost:8091> when the server is running.

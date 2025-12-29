@@ -5,6 +5,11 @@ Provides wake word model training, inference, and management functionality.
 When VOICE_SERVER=true, these features are enabled alongside TTS/STT.
 
 Based on the WakeWord project: https://github.com/Josh-XT/wakeword
+
+Supported export formats:
+- PyTorch (.pt) - For server-side inference
+- ONNX (.onnx) - For mobile apps via ONNX Runtime Mobile
+- ESPDL (.espdl) - For ESP32-S3 via ESP-DL framework
 """
 
 import os
@@ -21,6 +26,7 @@ from datetime import datetime, timedelta
 from enum import Enum
 from concurrent.futures import ThreadPoolExecutor
 import threading
+import tempfile
 
 import numpy as np
 import torch
@@ -29,6 +35,15 @@ import torch.nn.functional as F
 from torch.utils.data import Dataset, DataLoader
 import torchaudio
 import torchaudio.transforms as T
+
+# Optional ESP-PPQ for ESPDL export (ESP32)
+try:
+    from esp_ppq.api import espdl_quantize_onnx
+    from esp_ppq import TargetPlatform
+
+    ESP_PPQ_AVAILABLE = True
+except ImportError:
+    ESP_PPQ_AVAILABLE = False
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -307,9 +322,9 @@ class WakeWordCNN(nn.Module):
 
         h = n_mfcc // 8
         w = max_frames // 8
-        flat_size = 64 * h * w
+        self.flat_size = 64 * h * w
 
-        self.fc1 = nn.Linear(flat_size, hidden_size)
+        self.fc1 = nn.Linear(self.flat_size, hidden_size)
         self.dropout = nn.Dropout(dropout)
         self.fc2 = nn.Linear(hidden_size, 1)
 
@@ -321,7 +336,8 @@ class WakeWordCNN(nn.Module):
         x = self.pool2(F.relu(self.bn2(self.conv2(x))))
         x = self.pool3(F.relu(self.bn3(self.conv3(x))))
 
-        x = x.view(x.size(0), -1)
+        # Use flatten instead of view for ESP-PPQ compatibility
+        x = torch.flatten(x, start_dim=1)
         x = F.relu(self.fc1(x))
         x = self.dropout(x)
         x = torch.sigmoid(self.fc2(x))
@@ -1083,55 +1099,81 @@ class WakeWordTrainer:
             )
             saved_files["onnx"] = onnx_path
             logger.info(f"Saved ONNX model to {onnx_path}")
+
+            # Export to ESPDL for ESP32-S3 (requires ONNX first)
+            try:
+                espdl_path = self._export_espdl(output_dir, onnx_path)
+                if espdl_path:
+                    saved_files["espdl"] = espdl_path
+            except Exception as e:
+                logger.warning(f"Could not export ESPDL: {e}")
+
         except Exception as e:
             logger.warning(f"Could not export ONNX: {e}")
-
-        # Export to TFLite
-        try:
-            tflite_path = self._export_tflite(output_dir)
-            if tflite_path:
-                saved_files["tflite"] = tflite_path
-        except Exception as e:
-            logger.warning(f"Could not export TFLite: {e}")
 
         logger.info(f"Model saved to {output_dir}")
         return saved_files
 
-    def _export_tflite(self, output_dir: Path) -> Optional[Path]:
-        """Export model to TensorFlow Lite format."""
-        try:
-            import tensorflow as tf
-            import onnx
-            from onnx_tf.backend import prepare
+    def _export_espdl(self, output_dir: Path, onnx_path: Path) -> Optional[Path]:
+        """Export model to ESPDL format for ESP32-S3 via ESP-DL framework.
 
-            onnx_path = output_dir / "model.onnx"
-            if not onnx_path.exists():
-                return None
+        Uses ESP-PPQ to quantize the ONNX model to 8-bit integers optimized
+        for the ESP32-S3's vector instructions.
 
-            onnx_model = onnx.load(str(onnx_path))
-            tf_rep = prepare(onnx_model)
+        Args:
+            output_dir: Directory to save the .espdl file
+            onnx_path: Path to the source ONNX model
 
-            saved_model_dir = output_dir / "saved_model"
-            tf_rep.export_graph(str(saved_model_dir))
-
-            converter = tf.lite.TFLiteConverter.from_saved_model(str(saved_model_dir))
-            converter.optimizations = [tf.lite.Optimize.DEFAULT]
-            converter.target_spec.supported_types = [tf.float16]
-
-            tflite_model = converter.convert()
-
-            tflite_path = output_dir / "model.tflite"
-            with open(tflite_path, "wb") as f:
-                f.write(tflite_model)
-
-            logger.info(f"Saved TFLite model to {tflite_path}")
-            return tflite_path
-
-        except ImportError:
-            logger.warning("TensorFlow not available for TFLite export")
+        Returns:
+            Path to the exported .espdl file, or None if export failed
+        """
+        if not ESP_PPQ_AVAILABLE:
+            logger.info("ESP-PPQ not available - ESPDL export skipped")
             return None
+
+        logger.info("Exporting to ESPDL format for ESP32-S3...")
+
+        try:
+            espdl_path = output_dir / "model.espdl"
+
+            # Generate calibration data using random samples matching our input shape
+            # Input shape: (1, n_mfcc, max_frames) = (1, 40, 150)
+            calib_data = [
+                torch.randn(1, self.config.n_mfcc, MAX_FRAMES, dtype=torch.float32)
+                for _ in range(32)
+            ]
+
+            def collate_fn(batch):
+                """Collate function for calibration data."""
+                if isinstance(batch, torch.Tensor):
+                    return batch
+                return batch
+
+            # Quantize ONNX to ESPDL
+            # Target ESP32-S3 which uses ROUND_HALF_UP
+            quant_graph = espdl_quantize_onnx(
+                onnx_import_file=str(onnx_path),
+                espdl_export_file=str(espdl_path),
+                calib_dataloader=calib_data,
+                calib_steps=32,
+                input_shape=[1, self.config.n_mfcc, MAX_FRAMES],
+                target="esp32s3",  # Target ESP32-S3 chip
+                num_of_bits=8,  # 8-bit quantization
+                collate_fn=collate_fn,
+                device="cpu",  # Use CPU for quantization
+                error_report=False,  # Skip error analysis for speed
+                export_test_values=True,  # Include test data for verification
+                verbose=0,
+            )
+
+            logger.info(f"Saved ESPDL model to {espdl_path}")
+            return espdl_path
+
         except Exception as e:
-            logger.warning(f"TFLite export failed: {e}")
+            logger.warning(f"ESPDL export failed: {e}")
+            import traceback
+
+            logger.debug(traceback.format_exc())
             return None
 
     @classmethod
@@ -1279,7 +1321,7 @@ class WakeWordManager:
                         config = json.load(f)
 
                 files = {}
-                for ext in ["pt", "onnx", "tflite"]:
+                for ext in ["pt", "onnx", "espdl"]:
                     file_path = model_dir / f"model.{ext}"
                     if file_path.exists():
                         files[ext] = {

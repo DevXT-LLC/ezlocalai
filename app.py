@@ -1492,7 +1492,10 @@ async def get_wakeword_model(
     """
     Download a trained wake word model.
 
-    Supported formats: pytorch, onnx, tflite
+    Supported formats:
+    - pytorch: PyTorch model (.pt) for server-side inference
+    - onnx: ONNX model (.onnx) for mobile apps via ONNX Runtime Mobile
+    - espdl: ESP-DL model (.espdl) for ESP32-S3 devices
     """
     if not is_wakeword_enabled():
         raise HTTPException(
@@ -1507,7 +1510,7 @@ async def get_wakeword_model(
     model_dir = manager.get_model_for_word(word)
 
     if model_dir:
-        format_to_ext = {"pytorch": "pt", "onnx": "onnx", "tflite": "tflite"}
+        format_to_ext = {"pytorch": "pt", "onnx": "onnx", "espdl": "espdl"}
         ext = format_to_ext.get(format, "pt")
         model_file = model_dir / f"model.{ext}"
 

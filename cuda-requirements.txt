@@ -43,5 +43,8 @@ onnxscript>=0.1.0
 onnxruntime>=1.16.0
 scipy>=1.11.0
 torchcodec>=0.1.0
+esp-ppq>=0.2.0  # ESP32 model quantization - converts ONNX to .espdl format
+# Note: TFLite export disabled due to onnx2tf/tensorflow version conflicts
+# ESPDL export enabled for ESP32-S3 via ESP-DL framework
 # Video processing
 opencv-python-headless>=4.8.0

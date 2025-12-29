@@ -10,15 +10,15 @@ RUN apt-get update --fix-missing && \
     apt-get install -y --no-install-recommends \
        git build-essential cmake gcc g++ ninja-build \
        portaudio19-dev ffmpeg libportaudio2 libasound-dev \
-       python3 python3-pip python3-venv wget ocl-icd-opencl-dev opencl-headers \
-       clinfo libclblast-dev libopenblas-dev python3-dev unzip curl && \
+       wget ocl-icd-opencl-dev opencl-headers \
+       clinfo libclblast-dev libopenblas-dev unzip curl && \
     mkdir -p /etc/OpenCL/vendors && \
     echo "libnvidia-opencl.so.1" > /etc/OpenCL/vendors/nvidia.icd && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* /var/cache/apt/* /tmp/* /var/tmp/*
-# Install uv and create venv
+# Install uv and create venv with Python 3.12
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh && \
-    /root/.local/bin/uv venv /opt/venv
+    /root/.local/bin/uv venv /opt/venv --python 3.12
 WORKDIR /app
 # Use PyTorch 2.9.1 which is built against cuDNN 9.10.2
 # Install nvidia-cudnn-cu12==9.10.2.21 to get matching cuDNN libraries (overrides system cuDNN 9.8.0)
@@ -26,7 +26,7 @@ RUN uv pip install torch==2.9.1+cu128 torchaudio==2.9.1+cu128 --index-url https:
     uv pip install nvidia-cudnn-cu12==9.10.2.21
 # Install numpy and Cython for pkuseg (required by chatterbox-tts)
 # numpy>=1.26.0 required for Python 3.12 compatibility
-RUN uv pip install "numpy>=1.26.0" Cython
+RUN uv pip install "numpy>=1.26.0" Cython setuptools
 # Install pkuseg separately (required by chatterbox-tts)
 RUN uv pip install pkuseg==0.0.25 --no-build-isolation
 COPY cuda-requirements.txt .
