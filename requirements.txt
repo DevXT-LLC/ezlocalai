@@ -38,8 +38,10 @@ gguf
 gTTS>=2.4.0
 edge-tts>=6.1.0
 torchaudio
-onnx>=1.14.0
+onnx>=1.16.0
+onnxscript>=0.1.0
 onnxruntime>=1.16.0
 scipy>=1.11.0
+torchcodec>=0.1.0
 # Video processing dependencies
 opencv-python>=4.8.0
