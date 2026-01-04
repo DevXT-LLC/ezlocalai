@@ -1196,6 +1196,19 @@ def is_voice_server_mode() -> bool:
     return get_voice_server_client().should_keep_voice_loaded
 
 
+def has_voice_server_url() -> bool:
+    """Check if a voice server URL is configured (not 'true' mode, but actual URL).
+
+    When a voice server URL is configured:
+    - Voice requests (TTS/STT) are forwarded to the voice server
+    - Local voice models should NOT be loaded at all
+
+    Returns:
+        True if VOICE_SERVER is set to a URL (not empty, not 'true')
+    """
+    return get_voice_server_client().is_configured
+
+
 def should_preload_voice() -> bool:
     """Check if voice models should be preloaded at startup.
 
@@ -2083,8 +2096,14 @@ class Pipes:
             tts_name = self._get_tts_name()
             tts_vram = 4.0  # Chatterbox uses about 4GB VRAM
 
+            # Skip local TTS loading if voice server URL is configured (passthrough mode)
+            if has_voice_server_url():
+                voice_url = getenv("VOICE_SERVER")
+                logging.info(
+                    f"[TTS] Voice server configured ({voice_url}) - skipping local model loading"
+                )
             # Check if we should preload TTS (voice server mode OR LAZY_LOAD_VOICE=false)
-            if should_preload_voice():
+            elif should_preload_voice():
                 mode_str = (
                     "voice server mode"
                     if is_voice_server_mode()
@@ -2129,7 +2148,12 @@ class Pipes:
         self.current_stt = getenv("WHISPER_MODEL")
 
         # Pre-load STT if preloading is enabled (voice server mode OR LAZY_LOAD_VOICE=false)
-        if should_preload_voice() and getenv("STT_ENABLED").lower() == "true":
+        # Skip if voice server URL is configured (passthrough mode)
+        if (
+            should_preload_voice()
+            and getenv("STT_ENABLED").lower() == "true"
+            and not has_voice_server_url()
+        ):
             mode_str = (
                 "voice server mode"
                 if is_voice_server_mode()
@@ -2150,6 +2174,11 @@ class Pipes:
                 self.current_stt,
                 actual_device,
                 vram_gb=2.0 if "cuda" in actual_device else 0.0,
+            )
+        elif has_voice_server_url() and getenv("STT_ENABLED").lower() == "true":
+            voice_url = getenv("VOICE_SERVER")
+            logging.info(
+                f"[STT] Voice server configured ({voice_url}) - skipping local model loading"
             )
 
         NGROK_TOKEN = getenv("NGROK_TOKEN")

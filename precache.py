@@ -35,6 +35,27 @@ load_dotenv()
 
 from Globals import getenv
 
+
+def has_voice_server_url() -> bool:
+    """Check if a voice server URL is configured (not 'true' mode, but actual URL).
+
+    When a voice server URL is configured:
+    - Voice requests (TTS/STT) are forwarded to the voice server
+    - Local voice models should NOT be loaded/cached at all
+
+    Returns:
+        True if VOICE_SERVER is set to a URL (not empty, not 'true')
+    """
+    voice_server = getenv("VOICE_SERVER")
+    if not voice_server:
+        return False
+    # If it's set to "true", this server IS the voice server, so we DO need local models
+    if voice_server.lower() == "true":
+        return False
+    # Otherwise it's a URL to another voice server
+    return True
+
+
 # Lock file to prevent multiple precache runs
 PRECACHE_LOCK = Path("/tmp/ezlocalai_precache.lock")
 PRECACHE_DONE = Path("/tmp/ezlocalai_precache.done")
@@ -105,6 +126,12 @@ def precache_tts():
     if getenv("TTS_ENABLED").lower() != "true":
         return
 
+    # Skip if voice server URL is configured (voice passthrough mode)
+    if has_voice_server_url():
+        voice_url = getenv("VOICE_SERVER")
+        logging.info(f"  - TTS: Skipped (voice server: {voice_url})")
+        return
+
     start_time = time.time()
 
     try:
@@ -138,6 +165,12 @@ def precache_tts():
 def precache_stt():
     """Download STT/Whisper models."""
     if getenv("STT_ENABLED").lower() != "true":
+        return
+
+    # Skip if voice server URL is configured (voice passthrough mode)
+    if has_voice_server_url():
+        voice_url = getenv("VOICE_SERVER")
+        logging.info(f"  - STT: Skipped (voice server: {voice_url})")
         return
 
     whisper_model = getenv("WHISPER_MODEL")
