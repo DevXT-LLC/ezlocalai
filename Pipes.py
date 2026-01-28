@@ -13,6 +13,7 @@ from ezlocalai.LLM import (
     calculate_tensor_split_from_free_vram,
 )
 from ezlocalai.CTTS import CTTS
+from precache import has_voice_server_url
 from pyngrok import ngrok
 import requests
 import base64
@@ -1587,10 +1588,41 @@ def estimate_model_vram_requirement(
     Uses xllamacpp's estimate_gpu_layers to get memory estimates.
     Returns estimated VRAM in GB, or a conservative estimate if xllamacpp is unavailable.
     """
+
+    # Better fallback estimation formula based on actual llama.cpp memory usage:
+    # - KV cache (F16): context_size * 2 bytes * 2 (K+V) * n_layer * n_embd / n_head
+    #   For typical models: ~0.14GB per 1K context for 4B models, ~0.35GB for larger
+    # - Model weights: varies by quantization
+    # - Compute buffers: ~0.5GB
+    # Simplified: model_base + (context/1000) * kv_factor
+    def fallback_estimate(ctx_size: int) -> float:
+        # Get model file size to estimate base requirement
+        model_size_gb = 4.0  # Default assumption for 4B Q4 models
+        try:
+            if model_path and os.path.exists(model_path):
+                model_size_gb = (
+                    os.path.getsize(model_path) / (1024**3) * 1.2
+                )  # 20% overhead
+        except Exception:
+            pass
+
+        # KV cache estimate: ~0.14GB per 1K context for 4B models (36 layers, 2560 dim)
+        # Scales roughly linearly with model size
+        kv_factor = 0.14 * (model_size_gb / 2.5)  # Normalize to 2.5GB base model
+        kv_estimate = (ctx_size / 1000) * kv_factor
+
+        # Compute buffers and overhead: ~1GB
+        overhead = 1.0
+
+        total = model_size_gb + kv_estimate + overhead
+        logging.debug(
+            f"[GPU Selection] Fallback VRAM estimate: {total:.1f}GB "
+            f"(model={model_size_gb:.1f}GB, KV={kv_estimate:.1f}GB, overhead={overhead:.1f}GB)"
+        )
+        return total
+
     if not xllamacpp_available:
-        # Conservative fallback: assume 0.5GB per 1K context + base model size
-        # This is very rough but better than nothing
-        return 8.0 + (context_size / 1000) * 0.5
+        return fallback_estimate(context_size)
 
     try:
         # Create a fake GPU with unlimited memory to get total requirement
@@ -1611,17 +1643,35 @@ def estimate_model_vram_requirement(
         )
 
         # Extract memory requirement
+        estimated_gb = None
         if hasattr(result, "memory"):
-            return result.memory / (1024**3)
+            estimated_gb = result.memory / (1024**3)
         elif isinstance(result, dict) and "memory" in result:
-            return result["memory"] / (1024**3)
+            estimated_gb = result["memory"] / (1024**3)
+
+        if estimated_gb is not None:
+            # Sanity check: xllamacpp sometimes overestimates significantly
+            # Compare with our fallback and use the lower of the two if xllamacpp
+            # returns more than 2x our estimate
+            fallback = fallback_estimate(context_size)
+            if estimated_gb > fallback * 2.5:
+                logging.warning(
+                    f"[GPU Selection] xllamacpp estimate ({estimated_gb:.1f}GB) seems too high, "
+                    f"using adjusted estimate ({fallback * 1.3:.1f}GB)"
+                )
+                return fallback * 1.3  # Add 30% safety margin to fallback
+            logging.debug(
+                f"[GPU Selection] xllamacpp VRAM estimate: {estimated_gb:.1f}GB "
+                f"(fallback would be {fallback:.1f}GB)"
+            )
+            return estimated_gb
 
         # Fallback estimation
-        return 8.0 + (context_size / 1000) * 0.5
+        return fallback_estimate(context_size)
 
     except Exception as e:
         logging.warning(f"[GPU Selection] Failed to estimate VRAM: {e}")
-        return 8.0 + (context_size / 1000) * 0.5
+        return fallback_estimate(context_size)
 
 
 def _estimate_optimal_layers(
@@ -1741,11 +1791,11 @@ def determine_gpu_strategy(
     reserved_per_gpu = reserved_vram / gpu_count if gpu_count > 0 else 0
     available_vram = [max(0, free - reserved_per_gpu) for free in free_vram]
 
-    logging.debug(
+    logging.info(
         f"[GPU Selection] Model VRAM estimate: {estimated_vram:.1f}GB for {context_size//1000}k context"
     )
     for i in range(gpu_count):
-        logging.debug(
+        logging.info(
             f"[GPU Selection]   GPU {i}: {free_vram[i]:.1f}GB free, "
             f"{available_vram[i]:.1f}GB available after {reserved_per_gpu:.1f}GB reservation"
         )
@@ -2241,11 +2291,14 @@ class Pipes:
             and tensor_split is None
             and model_path
         ):
+            # Only reserve VRAM for TTS/STT if running locally (no voice server URL)
+            # When a voice server URL is configured, voice models are NOT loaded locally
+            reserved_vram = 0.0 if has_voice_server_url() else 5.0
             strategy = determine_gpu_strategy(
                 model_path=model_path,
                 context_size=max_tokens,
                 projectors=projectors,
-                reserved_vram=5.0,  # Reserve 5GB for TTS/STT
+                reserved_vram=reserved_vram,
             )
 
             gpu_layers = strategy["gpu_layers"]
