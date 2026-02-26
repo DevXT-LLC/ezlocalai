@@ -93,11 +93,21 @@ class IMG:
 
             logging.debug(f"[IMG] Loading Z-Image-Turbo ({model}) on {device}...")
 
+            # Parse GPU index from device string (e.g. "cuda:1" -> 1)
+            gpu_idx = 0
+            is_cuda = device.startswith("cuda")
+            if ":" in device:
+                try:
+                    gpu_idx = int(device.split(":")[1])
+                except (ValueError, IndexError):
+                    pass
+
             # Z-Image works best with bfloat16, but fall back to float16 if not supported
             if device == "cpu":
                 dtype = torch.float32
             elif (
-                torch.cuda.is_available() and torch.cuda.get_device_capability()[0] >= 8
+                torch.cuda.is_available()
+                and torch.cuda.get_device_capability(gpu_idx)[0] >= 8
             ):
                 # bfloat16 supported on Ampere (SM 8.0) and newer
                 dtype = torch.bfloat16
@@ -112,25 +122,25 @@ class IMG:
                 cache_dir="models",
             )
 
-            if device == "cuda":
+            if is_cuda:
                 # Z-Image-Turbo needs ~16GB VRAM. With other models loaded,
                 # we almost always need CPU offloading for efficient memory use.
                 # Sequential CPU offload is more aggressive but allows running
                 # with other models loaded in VRAM.
                 if torch.cuda.is_available():
-                    free_vram_gb = torch.cuda.mem_get_info()[0] / (1024**3)
-                    total_vram_gb = torch.cuda.mem_get_info()[1] / (1024**3)
+                    free_vram_gb = torch.cuda.mem_get_info(gpu_idx)[0] / (1024**3)
+                    total_vram_gb = torch.cuda.mem_get_info(gpu_idx)[1] / (1024**3)
                     logging.debug(
-                        f"[IMG] VRAM: {free_vram_gb:.1f}GB free / {total_vram_gb:.1f}GB total"
+                        f"[IMG] GPU {gpu_idx} VRAM: {free_vram_gb:.1f}GB free / {total_vram_gb:.1f}GB total"
                     )
 
                     if free_vram_gb < 18:
                         # Use sequential CPU offload - moves each layer to GPU only when needed
                         # This is slower but works with limited VRAM
                         logging.debug(
-                            "[IMG] Limited VRAM, enabling sequential CPU offload..."
+                            f"[IMG] Limited VRAM on GPU {gpu_idx}, enabling sequential CPU offload..."
                         )
-                        self.pipe.enable_sequential_cpu_offload()
+                        self.pipe.enable_sequential_cpu_offload(gpu_id=gpu_idx)
                     else:
                         self.pipe.to(device)
                 else:

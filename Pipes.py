@@ -364,8 +364,22 @@ class ResourceManager:
                 if self.gpu_count == 1:
                     return True, "cuda", f"Sufficient VRAM ({free_vram:.1f}GB free)"
                 else:
-                    # Multi-GPU: find GPU with most free VRAM
+                    # Multi-GPU: for non-LLM models, prefer the secondary (less
+                    # powerful) GPU so the primary stays free for the LLM.
                     free_per_gpu = get_per_gpu_free_vram_gb()
+                    primary = get_primary_gpu()
+                    secondary = get_secondary_gpu()
+
+                    if model_type != ModelType.LLM and secondary is not None:
+                        # Try secondary GPU first for non-LLM models
+                        if free_per_gpu[secondary] >= required_vram:
+                            return (
+                                True,
+                                f"cuda:{secondary}",
+                                f"Secondary GPU {secondary} has {free_per_gpu[secondary]:.1f}GB free (primary reserved for LLM)",
+                            )
+
+                    # Fall back to GPU with most free VRAM
                     best_gpu = max(
                         range(len(free_per_gpu)), key=lambda i: free_per_gpu[i]
                     )
@@ -1580,6 +1594,21 @@ def get_gpus_by_priority() -> List[int]:
     return [gpu_idx for gpu_idx, _, _ in ranking]
 
 
+def get_primary_gpu() -> int:
+    """Get the index of the most powerful GPU (for LLM loading)."""
+    gpus = get_gpus_by_priority()
+    return gpus[0] if gpus else 0
+
+
+def get_secondary_gpu() -> Optional[int]:
+    """Get the index of the second most powerful GPU (for image gen / non-LLM models).
+
+    Returns None if only one GPU is available.
+    """
+    gpus = get_gpus_by_priority()
+    return gpus[1] if len(gpus) > 1 else None
+
+
 def estimate_model_vram_requirement(
     model_path: str, context_size: int, projectors: list = None
 ) -> float:
@@ -1821,18 +1850,27 @@ def determine_gpu_strategy(
         model_path, context_size, projectors
     )
 
-    # Account for reserved VRAM (distribute across GPUs proportionally)
-    reserved_per_gpu = reserved_vram / gpu_count if gpu_count > 0 else 0
+    # Account for reserved VRAM
+    # For single-GPU: reserve on the only GPU
+    # For multi-GPU: initial estimate uses even distribution; the multi-GPU section
+    # below recalculates to reserve only on secondary GPUs
+    if gpu_count == 1:
+        reserved_per_gpu = reserved_vram
+    else:
+        reserved_per_gpu = 0  # Multi-GPU path recalculates below
     available_vram = [max(0, free - reserved_per_gpu) for free in free_vram]
 
     logging.info(
         f"[GPU Selection] Model VRAM estimate: {estimated_vram:.1f}GB for {context_size//1000}k context"
     )
     for i in range(gpu_count):
-        logging.info(
-            f"[GPU Selection]   GPU {i}: {free_vram[i]:.1f}GB free, "
-            f"{available_vram[i]:.1f}GB available after {reserved_per_gpu:.1f}GB reservation"
-        )
+        if reserved_per_gpu > 0:
+            logging.info(
+                f"[GPU Selection]   GPU {i}: {free_vram[i]:.1f}GB free, "
+                f"{available_vram[i]:.1f}GB available after {reserved_per_gpu:.1f}GB reservation"
+            )
+        else:
+            logging.info(f"[GPU Selection]   GPU {i}: {free_vram[i]:.1f}GB free")
 
     # Single GPU case
     if gpu_count == 1:
@@ -1944,12 +1982,37 @@ def determine_gpu_strategy(
                 }
 
     # Multi-GPU case - use capability ranking
-    # Strategy 1: Try most powerful GPU alone
+    # The primary GPU (most powerful) is dedicated to the LLM.
+    # Non-LLM models (image gen, TTS, STT) go on secondary GPUs.
+    # Only reserve VRAM on the secondary GPU(s), not on the primary.
     primary_gpu = gpus_by_priority[0]
     primary_name = gpu_ranking[0][2]
 
+    # Recalculate available VRAM: reserve only on non-primary GPUs
+    available_vram = list(free_vram)  # Start with raw free VRAM
+    for i in range(gpu_count):
+        if i != primary_gpu:
+            available_vram[i] = max(0, free_vram[i] - reserved_vram)
+        # Primary GPU gets full free VRAM — non-LLM models go elsewhere
+
+    logging.info(
+        f"[GPU Selection] Multi-GPU: primary=GPU {primary_gpu} ({primary_name}), "
+        f"reserve {reserved_vram:.1f}GB on secondary GPUs only"
+    )
+    for i in range(gpu_count):
+        logging.info(
+            f"[GPU Selection]   GPU {i}: {free_vram[i]:.1f}GB free, "
+            f"{available_vram[i]:.1f}GB available"
+            + (
+                " [PRIMARY - no reservation]"
+                if i == primary_gpu
+                else f" [reserved {reserved_vram:.1f}GB]"
+            )
+        )
+
+    # Strategy 1: Try most powerful GPU alone (most common for high-end GPUs)
     if available_vram[primary_gpu] >= estimated_vram:
-        logging.debug(
+        logging.info(
             f"[GPU Selection] Primary GPU {primary_gpu} ({primary_name}) has {available_vram[primary_gpu]:.1f}GB available, "
             f"sufficient for {estimated_vram:.1f}GB model - loading on GPU {primary_gpu} only"
         )
@@ -1960,7 +2023,67 @@ def determine_gpu_strategy(
             "strategy": f"gpu{primary_gpu}",
         }
 
-    # Strategy 2: Try tensor split across all GPUs
+    # Strategy 1b: Optimistic file-size check on primary GPU
+    # The VRAM estimate can be wrong for newer quant types. If model weights + KV + overhead
+    # fit on the primary GPU, try loading there before falling back to tensor split.
+    try:
+        if model_path and os.path.exists(model_path):
+            file_size_gb = os.path.getsize(model_path) / (1024**3)
+            kv_gb = (context_size * 6000) / (1024**3)
+            mmproj_gb = (
+                sum(
+                    os.path.getsize(p) / (1024**3)
+                    for p in (projectors or [])
+                    if p and os.path.exists(p)
+                )
+                if projectors
+                else 0.0
+            )
+            actual_need = file_size_gb + kv_gb + mmproj_gb + 0.5  # +0.5 for compute/RS
+            if available_vram[primary_gpu] >= actual_need:
+                logging.info(
+                    f"[GPU Selection] VRAM estimate ({estimated_vram:.1f}GB) exceeds primary GPU VRAM "
+                    f"({available_vram[primary_gpu]:.1f}GB), but detailed check shows "
+                    f"model({file_size_gb:.1f}GB) + KV({kv_gb:.2f}GB) + mmproj({mmproj_gb:.1f}GB) = "
+                    f"{actual_need:.1f}GB fits - loading on GPU {primary_gpu} only"
+                )
+                return {
+                    "main_gpu": primary_gpu,
+                    "tensor_split": None,
+                    "gpu_layers": -1,
+                    "strategy": f"gpu{primary_gpu}_optimistic",
+                }
+            elif available_vram[primary_gpu] > file_size_gb:
+                # Model fits but not all overhead — partial offload on primary GPU
+                shortfall_gb = actual_need - available_vram[primary_gpu]
+                n_layers = 41  # Default
+                try:
+                    import gguf
+
+                    reader = gguf.GGUFReader(model_path)
+                    for kv in reader.fields.values():
+                        if kv.name and "block_count" in kv.name:
+                            n_layers = int(kv.parts[-1][0]) + 1
+                            break
+                except Exception:
+                    pass
+                gb_per_layer = file_size_gb / n_layers
+                layers_to_offload = int(shortfall_gb / gb_per_layer) + 2  # +2 safety
+                gpu_layers = max(1, n_layers - layers_to_offload)
+                logging.info(
+                    f"[GPU Selection] Primary GPU needs {shortfall_gb:.1f}GB more. "
+                    f"Partial offload: {gpu_layers}/{n_layers} layers on GPU {primary_gpu}"
+                )
+                return {
+                    "main_gpu": primary_gpu,
+                    "tensor_split": None,
+                    "gpu_layers": gpu_layers,
+                    "strategy": f"gpu{primary_gpu}_partial_optimistic",
+                }
+    except Exception as e:
+        logging.debug(f"[GPU Selection] Optimistic check failed: {e}")
+
+    # Strategy 2: Try tensor split across all GPUs (primary + secondary)
     total_available = sum(available_vram)
     if total_available >= estimated_vram:
         # Calculate tensor split based on FREE VRAM proportions
@@ -1968,7 +2091,7 @@ def determine_gpu_strategy(
         for i, avail in enumerate(available_vram):
             tensor_split[i] = avail / total_available if total_available > 0 else 0.0
 
-        logging.debug(
+        logging.info(
             f"[GPU Selection] Tensor splitting across {gpu_count} GPUs "
             f"(total: {total_available:.1f}GB available, need: {estimated_vram:.1f}GB)"
         )
@@ -1989,7 +2112,7 @@ def determine_gpu_strategy(
                 (name for idx, _, name in gpu_ranking if idx == gpu_idx),
                 f"GPU {gpu_idx}",
             )
-            logging.debug(
+            logging.info(
                 f"[GPU Selection] Primary GPU {primary_gpu} full ({available_vram[primary_gpu]:.1f}GB), "
                 f"but GPU {gpu_idx} ({gpu_name}) has {available_vram[gpu_idx]:.1f}GB - loading on GPU {gpu_idx} only"
             )
@@ -3467,6 +3590,18 @@ class Pipes:
         if self.img is None and img_import_success:
             IMG_MODEL = getenv("IMG_MODEL")
             if IMG_MODEL:
+                # Determine target GPU: prefer secondary GPU so LLM stays on primary
+                secondary = get_secondary_gpu()
+                if secondary is not None:
+                    # Multi-GPU: load image model on the less powerful GPU
+                    target_device = f"cuda:{secondary}"
+                    logging.info(
+                        f"[IMG] Multi-GPU: routing image model to secondary GPU {secondary} "
+                        f"(primary GPU reserved for LLM)"
+                    )
+                else:
+                    target_device = None  # Single GPU - use resource manager
+
                 # Check resource availability
                 can_load, device, reason = resource_mgr.can_load_model(
                     ModelType.IMG, required_vram=16.0
@@ -3474,6 +3609,9 @@ class Pipes:
 
                 if force_cpu:
                     img_device = "cpu"
+                elif target_device is not None:
+                    # Multi-GPU: always use the secondary GPU
+                    img_device = target_device
                 elif not can_load and device == "fallback":
                     logging.warning(f"[IMG] {reason} - image generation may be slow")
                     img_device = "cuda"  # Will use CPU offload
@@ -4565,9 +4703,12 @@ class Pipes:
         self._get_llm(target_model, required_context)
         data["model"] = self.current_llm_name
 
-        if "stop" in data:
-            new_stop = self.llm.params["stop"]
-            new_stop.append(data["stop"])
+        if "stop" in data and data["stop"]:
+            new_stop = list(self.llm.params.get("stop", []))
+            if isinstance(data["stop"], list):
+                new_stop.extend(data["stop"])
+            else:
+                new_stop.append(data["stop"])
             data["stop"] = new_stop
         if "audio_format" in data:
             base64_audio = (
