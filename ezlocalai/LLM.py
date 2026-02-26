@@ -469,16 +469,32 @@ class LLM:
         # Apply tensor split for multi-GPU setups
         if self.tensor_split and self.gpu_count > 1:
             try:
-                # xllamacpp expects tensor_split as a list of 128 floats
-                for i, ratio in enumerate(self.tensor_split):
-                    self.xlc_params.tensor_split[i] = ratio
-                # Disable llama.cpp's auto-fit which overrides our tensor_split
-                # and redistributes across all GPUs ignoring our explicit split.
-                self.xlc_params.fit_params = False
-                logging.info(
-                    f"[LLM] Applied tensor split across {self.gpu_count} GPUs "
-                    f"(main_gpu={self.main_gpu}, fit_params=off)"
+                # Check if this is a single-GPU tensor_split (only one GPU has weight > 0)
+                active_gpus = sum(
+                    1 for i in range(self.gpu_count) if self.tensor_split[i] > 0
                 )
+                if active_gpus <= 1:
+                    # Single-GPU: use SPLIT_MODE_NONE to load entire model on main_gpu.
+                    # SPLIT_MODE_LAYER (default) would still distribute KV/compute
+                    # across all visible GPUs even with tensor_split=[1,0,...].
+                    self.xlc_params.split_mode = (
+                        xlc.llama_split_mode.LLAMA_SPLIT_MODE_NONE
+                    )
+                    logging.info(
+                        f"[LLM] Single-GPU mode: entire model on GPU {self.main_gpu} "
+                        f"(split_mode=NONE, fit_params=off)"
+                    )
+                else:
+                    # Multi-GPU tensor split: set ratios for layer distribution
+                    for i, ratio in enumerate(self.tensor_split):
+                        self.xlc_params.tensor_split[i] = ratio
+                    logging.info(
+                        f"[LLM] Tensor split across {active_gpus} GPUs "
+                        f"(main_gpu={self.main_gpu}, fit_params=off)"
+                    )
+                # Disable llama.cpp's auto-fit which overrides our split config
+                # and redistributes across all GPUs ignoring our explicit settings.
+                self.xlc_params.fit_params = False
             except Exception as e:
                 logging.warning(f"[LLM] Failed to set tensor_split: {e}")
         else:
