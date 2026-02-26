@@ -2082,12 +2082,15 @@ MODEL_CONFIG_OVERRIDES = {
     # Only 10/40 layers use standard attention (2 KV heads), so KV cache is tiny.
     # Recommended coding-mode params from HuggingFace model card.
     "unsloth/Qwen3.5-35B-A3B-GGUF": {
-        "temperature": 0.6,
-        "top_p": 0.95,
+        "temperature": 0.7,
+        "top_p": 0.8,
         "top_k": 20,
         "min_p": 0.0,
-        "presence_penalty": 0.0,
+        "presence_penalty": 1.5,
         "repetition_penalty": 1.0,
+        # Non-thinking mode by default; send chat_template_kwargs={"enable_thinking": True}
+        # in the request to enable thinking (uses <think> tags).
+        "chat_template_kwargs": {"enable_thinking": False},
     },
 }
 
@@ -4214,12 +4217,21 @@ class Pipes:
         """Apply model-specific config overrides if the current model has them defined.
 
         Overrides only apply to parameters defined in MODEL_CONFIG_OVERRIDES for the
-        current model. User-provided values are used for any parameter not in overrides.
+        current model. For dict values (e.g. chat_template_kwargs), model defaults
+        are merged with user-provided values, with user values taking priority.
         """
         if self.current_llm_name and self.current_llm_name in MODEL_CONFIG_OVERRIDES:
             overrides = MODEL_CONFIG_OVERRIDES[self.current_llm_name]
             for key, value in overrides.items():
-                data[key] = value
+                if isinstance(value, dict):
+                    # Deep-merge: model defaults first, then user overrides on top
+                    merged = dict(value)
+                    user_val = data.get(key, {})
+                    if isinstance(user_val, dict):
+                        merged.update(user_val)
+                    data[key] = merged
+                else:
+                    data[key] = value
             logging.debug(
                 f"[Config] Applied model overrides for {self.current_llm_name}: {overrides}"
             )

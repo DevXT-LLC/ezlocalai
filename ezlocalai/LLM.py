@@ -529,6 +529,11 @@ class LLM:
             "stream": stream,
         }
 
+        # Forward chat_template_kwargs for thinking mode control
+        # e.g. {"enable_thinking": False} to disable <think> tags
+        if "chat_template_kwargs" in kwargs:
+            chat_request["chat_template_kwargs"] = kwargs["chat_template_kwargs"]
+
         # Add system message if not present
         has_system = any(m.get("role") == "system" for m in messages)
         if not has_system and self.system_message:

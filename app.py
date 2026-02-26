@@ -19,7 +19,7 @@ from fastapi.responses import StreamingResponse, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
-from typing import List, Dict, Union, Optional
+from typing import Any, List, Dict, Union, Optional
 import struct
 from Pipes import Pipes
 from RequestQueue import RequestQueue
@@ -343,6 +343,7 @@ class ChatCompletions(BaseModel):
     frequency_penalty: Optional[float] = 0.0
     logit_bias: Optional[Dict[str, float]] = None
     user: Optional[str] = None
+    chat_template_kwargs: Optional[Dict[str, Any]] = None
 
 
 class ChatCompletionsResponse(BaseModel):
