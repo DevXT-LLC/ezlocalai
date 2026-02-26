@@ -1606,9 +1606,12 @@ def estimate_model_vram_requirement(
         except Exception:
             pass
 
-        # KV cache estimate: ~0.14GB per 1K context for 4B models (36 layers, 2560 dim)
-        # Scales roughly linearly with model size
-        kv_factor = 0.14 * (model_size_gb / 2.5)  # Normalize to 2.5GB base model
+        # KV cache estimate: scales with context size but NOT linearly with model size.
+        # Modern models use GQA/MQA (fewer KV heads than Q heads), so KV cache is much
+        # smaller than the model weight size would suggest. Cap the factor to prevent
+        # wild overestimates (e.g., 80GB estimate for a model that actually needs 21GB).
+        # 0.1 GB/1K is conservative enough for most models up to ~70B.
+        kv_factor = min(0.14 * (model_size_gb / 2.5), 0.1)
         kv_estimate = (ctx_size / 1000) * kv_factor
 
         # Compute buffers and overhead: ~1GB
@@ -1639,7 +1642,7 @@ def estimate_model_vram_requirement(
             context_length=context_size,
             batch_size=2048,
             num_parallel=1,
-            kv_cache_type="f16",
+            kv_cache_type="q4_0",
         )
 
         # Extract memory requirement
@@ -1671,6 +1674,22 @@ def estimate_model_vram_requirement(
 
     except Exception as e:
         logging.warning(f"[GPU Selection] Failed to estimate VRAM: {e}")
+        # When xllamacpp estimation fails (e.g., unknown quantization type like Q4_K_XL),
+        # use a simple file-size-based estimate instead of the formula which can wildly
+        # overestimate KV cache for GQA/MQA models.
+        try:
+            if model_path and os.path.exists(model_path):
+                file_size_gb = os.path.getsize(model_path) / (1024**3)
+                # Model weights ≈ file size. Add modest overhead for KV cache + buffers.
+                # With q8_0 KV cache, overhead is typically 5-10% of model size.
+                estimate = file_size_gb * 1.15
+                logging.info(
+                    f"[GPU Selection] Using file-size estimate: {estimate:.1f}GB "
+                    f"(file={file_size_gb:.1f}GB, xllamacpp estimation failed)"
+                )
+                return estimate
+        except Exception:
+            pass
         return fallback_estimate(context_size)
 
 
@@ -1717,7 +1736,7 @@ def _estimate_optimal_layers(
             context_length=context_size,
             batch_size=2048,
             num_parallel=1,
-            kv_cache_type="f16",
+            kv_cache_type="q4_0",
         )
 
         # Extract layer count from result
@@ -1827,6 +1846,28 @@ def determine_gpu_strategy(
                     "strategy": "gpu0_partial",
                 }
             else:
+                # Check if this might be a bad estimate: if the model file itself fits
+                # in VRAM, try full GPU offload anyway. The VRAM estimate can be wildly
+                # wrong for newer quant types or GQA/MQA models. The resilient loader
+                # will fall back to CPU if GPU loading actually fails with OOM.
+                try:
+                    if model_path and os.path.exists(model_path):
+                        file_size_gb = os.path.getsize(model_path) / (1024**3)
+                        if available_vram[0] > file_size_gb:
+                            logging.info(
+                                f"[GPU Selection] VRAM estimate ({estimated_vram:.1f}GB) exceeds "
+                                f"available ({available_vram[0]:.1f}GB), but model file "
+                                f"({file_size_gb:.1f}GB) fits - trying full GPU offload"
+                            )
+                            return {
+                                "main_gpu": 0,
+                                "tensor_split": None,
+                                "gpu_layers": -1,
+                                "strategy": "gpu0_optimistic",
+                            }
+                except Exception:
+                    pass
+
                 # Fall back to CPU
                 logging.warning(
                     f"[GPU Selection] GPU 0 has {available_vram[0]:.1f}GB available, "
@@ -1922,7 +1963,28 @@ def determine_gpu_strategy(
                 "strategy": "tensor_split_partial",
             }
 
-    # Strategy 5: Fall back to CPU
+    # Strategy 5: File-size safety check before CPU fallback
+    # If the model file fits in total available VRAM, try full offload.
+    # VRAM estimates can be wrong for newer quant types; let llama.cpp decide.
+    try:
+        if model_path and os.path.exists(model_path):
+            file_size_gb = os.path.getsize(model_path) / (1024**3)
+            if total_available > file_size_gb:
+                logging.info(
+                    f"[GPU Selection] VRAM estimate ({estimated_vram:.1f}GB) exceeds "
+                    f"available ({total_available:.1f}GB), but model file "
+                    f"({file_size_gb:.1f}GB) fits - trying full GPU offload"
+                )
+                return {
+                    "main_gpu": primary_gpu,
+                    "tensor_split": None,
+                    "gpu_layers": -1,
+                    "strategy": f"gpu{primary_gpu}_optimistic",
+                }
+    except Exception:
+        pass
+
+    # Strategy 6: Fall back to CPU
     logging.warning(
         f"[GPU Selection] Insufficient VRAM across all GPUs "
         f"(need {estimated_vram:.1f}GB, have {total_available:.1f}GB), falling back to CPU"
@@ -1952,6 +2014,17 @@ MODEL_CONFIG_OVERRIDES = {
         "top_k": 20,
         "temperature": 0.7,
         "repetition_penalty": 1.05,
+    },
+    # Qwen3.5 models use hybrid Gated DeltaNet + sparse MoE architecture.
+    # Only 10/40 layers use standard attention (2 KV heads), so KV cache is tiny.
+    # Recommended coding-mode params from HuggingFace model card.
+    "unsloth/Qwen3.5-35B-A3B-GGUF": {
+        "temperature": 0.6,
+        "top_p": 0.95,
+        "top_k": 20,
+        "min_p": 0.0,
+        "presence_penalty": 0.0,
+        "repetition_penalty": 1.0,
     },
 }
 
@@ -2448,7 +2521,7 @@ class Pipes:
                 context_length=max_tokens,
                 batch_size=2048,
                 num_parallel=1,
-                kv_cache_type="f16",
+                kv_cache_type="q4_0",
             )
 
             logging.debug(f"[Calibration] Native estimation result: {result}")

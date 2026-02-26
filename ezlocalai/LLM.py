@@ -438,21 +438,31 @@ class LLM:
             self.xlc_params.n_batch = batch_size
         else:
             default_batch = int(getenv("LLM_BATCH_SIZE", "2048"))
-            # Scale batch size for large contexts: use at least 4096 for >32k context
-            if effective_max_tokens > 32768:
-                self.xlc_params.n_batch = max(
-                    default_batch, min(8192, effective_max_tokens // 8)
-                )
-            else:
-                self.xlc_params.n_batch = default_batch
+            self.xlc_params.n_batch = default_batch
+        # Set n_ubatch (physical micro-batch / compute graph size) to reduce
+        # compute buffer VRAM usage. Default 512 -> 493MB compute buffer.
+        # Reducing to 256 roughly halves it, giving more room for KV/mmproj.
+        default_ubatch = int(getenv("LLM_UBATCH_SIZE", "256"))
+        self.xlc_params.n_ubatch = min(default_ubatch, self.xlc_params.n_batch)
         logging.debug(
-            f"[LLM] Batch size: {self.xlc_params.n_batch} for context {effective_max_tokens}"
+            f"[LLM] Batch size: {self.xlc_params.n_batch}, ubatch: {self.xlc_params.n_ubatch} for context {effective_max_tokens}"
         )
         self.xlc_params.n_gpu_layers = GPU_LAYERS
         self.xlc_params.main_gpu = (
             self.main_gpu
         )  # Use self.main_gpu which may be overridden
         self.xlc_params.warmup = True
+
+        # Enable flash attention for significantly faster inference on CUDA
+        self.xlc_params.flash_attn_type = (
+            xlc.llama_flash_attn_type.LLAMA_FLASH_ATTN_TYPE_ENABLED
+        )
+
+        # Quantize KV cache to reduce VRAM usage (~8x savings vs f16)
+        # q4_0 enables full 262K context on 24GB GPUs for models like Qwen3.5
+        # where only 10/40 layers use standard attention (rest are DeltaNet state-space)
+        self.xlc_params.cache_type_k = xlc.ggml_type.GGML_TYPE_Q4_0
+        self.xlc_params.cache_type_v = xlc.ggml_type.GGML_TYPE_Q4_0
 
         # Apply tensor split for multi-GPU setups
         if self.tensor_split and self.gpu_count > 1:

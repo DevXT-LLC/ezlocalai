@@ -37,8 +37,26 @@ RUN uv pip install chatterbox-tts --no-deps
 ENV HOST=0.0.0.0 \
     CUDA_DOCKER_ARCH=all \
     CUDAVER=12.8.1
-# Install xllamacpp with CUDA 12.8 support (compatible with CUDA 12.9)
-RUN uv pip install xllamacpp --reinstall --index-url https://xorbitsai.github.io/xllamacpp/whl/cu128
+# Install xllamacpp from fork (includes latest llama.cpp for Qwen3.5 support)
+# Step 1: Install build deps + Rust for llguidance (cached)
+RUN apt-get update && apt-get install -y --no-install-recommends libssl-dev pkg-config ccache && \
+    apt-get clean && rm -rf /var/lib/apt/lists/* && \
+    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+ENV PATH="/root/.cargo/bin:$PATH"
+# Step 2: Clone repo at pinned commit (cache busts only when XLLAMACPP_COMMIT changes)
+ARG XLLAMACPP_COMMIT=7a8ebf5
+RUN git clone https://github.com/Josh-XT/xllamacpp.git /tmp/xllamacpp && \
+    cd /tmp/xllamacpp && \
+    git checkout ${XLLAMACPP_COMMIT} && \
+    git submodule update --init --recursive
+# Step 3: Build llama.cpp (cached unless clone layer changes)
+ENV XLLAMACPP_BUILD_CUDA=1
+RUN cd /tmp/xllamacpp && \
+    bash scripts/setup.sh
+# Step 4: Install Python package (fast)
+# Symlink lib64->lib so setup.py's CUDA_PATH/lib finds the libraries
+RUN ln -sf /usr/local/cuda/lib64 /usr/local/cuda/lib && \
+    cd /tmp/xllamacpp && uv pip install . && rm -rf /tmp/xllamacpp
 COPY . .
 EXPOSE 8091
 # Use start.py which runs precache once, then starts uvicorn workers
