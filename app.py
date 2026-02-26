@@ -434,6 +434,12 @@ async def chat_completions(
                     )
                     # Don't expose exception details to client
                     yield f'data: {{"error": "Streaming failed"}}\n\n'
+                finally:
+                    # Close the underlying response generator so that
+                    # GeneratorExit propagates down to LLM._chat_stream(),
+                    # which sets cancel_event and frees the inference slot.
+                    if hasattr(response, "close"):
+                        response.close()
 
             return StreamingResponse(
                 content=generate_stream(),

@@ -472,8 +472,12 @@ class LLM:
                 # xllamacpp expects tensor_split as a list of 128 floats
                 for i, ratio in enumerate(self.tensor_split):
                     self.xlc_params.tensor_split[i] = ratio
-                logging.debug(
-                    f"[LLM] Applied tensor split across {self.gpu_count} GPUs (main_gpu={self.main_gpu})"
+                # Disable llama.cpp's auto-fit which overrides our tensor_split
+                # and redistributes across all GPUs ignoring our explicit split.
+                self.xlc_params.fit_params = False
+                logging.info(
+                    f"[LLM] Applied tensor split across {self.gpu_count} GPUs "
+                    f"(main_gpu={self.main_gpu}, fit_params=off)"
                 )
             except Exception as e:
                 logging.warning(f"[LLM] Failed to set tensor_split: {e}")
@@ -608,6 +612,9 @@ class LLM:
         # Queue to collect chunks from callback
         chunk_queue = queue.Queue()
         generation_complete = threading.Event()
+        cancel_event = (
+            threading.Event()
+        )  # Set when generator is closed to stop inference
         error_holder = [None]  # Use list to allow modification in nested function
 
         def streaming_callback(chunk_data):
@@ -623,6 +630,13 @@ class LLM:
                 False to continue receiving chunks, True to stop early
             """
             try:
+                # If the generator consumer closed us, stop generating immediately.
+                # Returning True makes the C++ process_handler_response() exit,
+                # which destroys the response object and frees the inference slot.
+                if cancel_event.is_set():
+                    logging.info("[LLM] cancel_event set, stopping stream callback")
+                    return True
+
                 logging.debug(
                     f"[LLM] Stream callback received: type={type(chunk_data)}"
                 )
@@ -693,57 +707,85 @@ class LLM:
         last_keepalive = time.time()
         keepalive_interval = 5.0  # Send keepalive every 5 seconds during processing
 
-        while not generation_complete.is_set() or not chunk_queue.empty():
-            try:
-                chunk_data = chunk_queue.get(timeout=0.1)
-                chunks_yielded += 1
-                logging.debug(
-                    f"[LLM] Processing chunk {chunks_yielded}: {type(chunk_data)}"
-                )
+        try:
+            while not generation_complete.is_set() or not chunk_queue.empty():
+                try:
+                    chunk_data = chunk_queue.get(timeout=0.1)
+                    chunks_yielded += 1
+                    logging.debug(
+                        f"[LLM] Processing chunk {chunks_yielded}: {type(chunk_data)}"
+                    )
 
-                # Check if this is already in OpenAI format
-                if isinstance(chunk_data, dict):
-                    if "choices" in chunk_data:
-                        # Already in correct format, yield directly
-                        logging.debug(
-                            f"[LLM] Yielding OpenAI format chunk with choices"
-                        )
-                        yield chunk_data
-                    elif "content" in chunk_data or "delta" in chunk_data:
-                        # Wrap in OpenAI format
-                        content = chunk_data.get(
-                            "content", chunk_data.get("delta", {}).get("content", "")
-                        )
-                        yield {
-                            "id": chunk_id,
-                            "object": "chat.completion.chunk",
-                            "created": created,
-                            "model": self.model_name,
-                            "choices": [
-                                {
-                                    "index": 0,
-                                    "delta": {"content": content},
-                                    "finish_reason": None,
-                                }
-                            ],
-                        }
-                    else:
-                        # Unknown dict format, log it
-                        logging.debug(f"[LLM] Unknown chunk dict format: {chunk_data}")
-                elif isinstance(chunk_data, str):
-                    # JSON string - parse it
-                    try:
-                        import json
-
-                        parsed = json.loads(chunk_data)
-                        if "choices" in parsed:
-                            yield parsed
-                        else:
+                    # Check if this is already in OpenAI format
+                    if isinstance(chunk_data, dict):
+                        if "choices" in chunk_data:
+                            # Already in correct format, yield directly
                             logging.debug(
-                                f"[LLM] Parsed JSON without choices: {parsed}"
+                                f"[LLM] Yielding OpenAI format chunk with choices"
                             )
-                    except json.JSONDecodeError:
-                        # Raw text chunk
+                            yield chunk_data
+                        elif "content" in chunk_data or "delta" in chunk_data:
+                            # Wrap in OpenAI format
+                            content = chunk_data.get(
+                                "content",
+                                chunk_data.get("delta", {}).get("content", ""),
+                            )
+                            yield {
+                                "id": chunk_id,
+                                "object": "chat.completion.chunk",
+                                "created": created,
+                                "model": self.model_name,
+                                "choices": [
+                                    {
+                                        "index": 0,
+                                        "delta": {"content": content},
+                                        "finish_reason": None,
+                                    }
+                                ],
+                            }
+                        else:
+                            # Unknown dict format, log it
+                            logging.debug(
+                                f"[LLM] Unknown chunk dict format: {chunk_data}"
+                            )
+                    elif isinstance(chunk_data, str):
+                        # JSON string - parse it
+                        try:
+                            import json
+
+                            parsed = json.loads(chunk_data)
+                            if "choices" in parsed:
+                                yield parsed
+                            else:
+                                logging.debug(
+                                    f"[LLM] Parsed JSON without choices: {parsed}"
+                                )
+                        except json.JSONDecodeError:
+                            # Raw text chunk
+                            yield {
+                                "id": chunk_id,
+                                "object": "chat.completion.chunk",
+                                "created": created,
+                                "model": self.model_name,
+                                "choices": [
+                                    {
+                                        "index": 0,
+                                        "delta": {"content": chunk_data},
+                                        "finish_reason": None,
+                                    }
+                                ],
+                            }
+                    else:
+                        logging.debug(
+                            f"[LLM] Unexpected chunk type: {type(chunk_data)}"
+                        )
+                except queue.Empty:
+                    # Send keepalive during long waits (e.g., prompt processing)
+                    # This prevents client timeouts during the initial processing phase
+                    now = time.time()
+                    if now - last_keepalive >= keepalive_interval:
+                        last_keepalive = now
+                        # Yield an empty delta chunk as keepalive
                         yield {
                             "id": chunk_id,
                             "object": "chat.completion.chunk",
@@ -752,37 +794,29 @@ class LLM:
                             "choices": [
                                 {
                                     "index": 0,
-                                    "delta": {"content": chunk_data},
+                                    "delta": {},  # Empty delta acts as keepalive
                                     "finish_reason": None,
                                 }
                             ],
                         }
-                else:
-                    logging.debug(f"[LLM] Unexpected chunk type: {type(chunk_data)}")
-            except queue.Empty:
-                # Send keepalive during long waits (e.g., prompt processing)
-                # This prevents client timeouts during the initial processing phase
-                now = time.time()
-                if now - last_keepalive >= keepalive_interval:
-                    last_keepalive = now
-                    # Yield an empty delta chunk as keepalive
-                    yield {
-                        "id": chunk_id,
-                        "object": "chat.completion.chunk",
-                        "created": created,
-                        "model": self.model_name,
-                        "choices": [
-                            {
-                                "index": 0,
-                                "delta": {},  # Empty delta acts as keepalive
-                                "finish_reason": None,
-                            }
-                        ],
-                    }
-                continue
-            except Exception as e:
-                logging.error(f"[LLM] Error processing stream chunk: {e}")
-                continue
+                    continue
+                except Exception as e:
+                    logging.error(f"[LLM] Error processing stream chunk: {e}")
+                    continue
+
+        except GeneratorExit:
+            # Consumer closed the generator (e.g., client disconnected or AGiXT
+            # broke out of the streaming loop for continuation).
+            # Signal the callback to return True on its next invocation, which
+            # makes the C++ process_handler_response() exit -> handle_chat_completions()
+            # returns -> the C++ response object is destroyed -> slot freed.
+            logging.info(
+                "[LLM] GeneratorExit received, setting cancel_event to free slot"
+            )
+            cancel_event.set()
+            # Wait briefly for the inference thread to notice and finish
+            inference_thread.join(timeout=5.0)
+            return
 
         # Wait for thread to complete
         inference_thread.join(timeout=5.0)

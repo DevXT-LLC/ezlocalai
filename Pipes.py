@@ -5287,6 +5287,11 @@ class Pipes:
                             pipes_self._ensure_context_size(new_context)
                     # Re-raise the error to let caller handle it
                     raise
+                finally:
+                    # Close the original LLM generator so GeneratorExit propagates
+                    # to _chat_stream(), which sets cancel_event to free the slot.
+                    if hasattr(original_response, "close"):
+                        original_response.close()
                 # No cleanup needed - keep the model loaded for subsequent requests
 
             response = streaming_wrapper()
