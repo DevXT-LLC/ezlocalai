@@ -343,10 +343,6 @@ class LLM:
             total_free_vram = sum(free_vram_per_gpu)
             total_vram = get_total_vram_all_gpus()
 
-            # Reserve 5GB for TTS/STT
-            reserved_vram = 5
-            available_vram = max(0, total_free_vram - reserved_vram)
-
             if self.gpu_count > 1:
                 logging.debug(f"[LLM] Multi-GPU detected: {self.gpu_count} GPUs")
                 for i, free in enumerate(free_vram_per_gpu):
@@ -357,11 +353,12 @@ class LLM:
                         f"[LLM]   GPU {i}: {free:.1f}GB free / {total_gpu:.1f}GB total"
                     )
                 logging.debug(
-                    f"[LLM] Total: {total_free_vram:.1f}GB free / {round(total_vram)}GB total ({available_vram:.1f}GB available after reservation)"
+                    f"[LLM] Total: {total_free_vram:.1f}GB free / {round(total_vram)}GB total"
                 )
 
-                # Smart GPU selection will be done at Pipes level
-                # Here we just set up tensor split if provided externally or from env
+                # GPU strategy is managed by Pipes.determine_gpu_strategy.
+                # Only fall back to env-based tensor split if no strategy was provided
+                # (i.e. LLM was created directly without going through _load_llm_resilient).
                 if self.tensor_split is None:
                     self.tensor_split = parse_tensor_split_env()
 
@@ -369,14 +366,19 @@ class LLM:
                     logging.debug(
                         f"[LLM] Tensor split ratios: {self.tensor_split[:self.gpu_count]}"
                     )
+                else:
+                    logging.warning(
+                        f"[LLM] Multi-GPU detected but no tensor_split set - "
+                        f"llama.cpp will auto-distribute across all GPUs by VRAM ratio"
+                    )
             else:
                 logging.debug(
-                    f"[LLM] {available_vram:.1f}GB of available VRAM detected (free: {total_free_vram:.1f}GB)."
+                    f"[LLM] {total_free_vram:.1f}GB of available VRAM detected."
                 )
 
             # -1 means "offload all layers to GPU" in xllamacpp
             # Only fall back to CPU (0) if there's essentially no VRAM
-            GPU_LAYERS = -1 if available_vram > 1 else 0
+            GPU_LAYERS = -1 if total_free_vram > 1 else 0
         if GPU_LAYERS == -2:
             GPU_LAYERS = -1
 

@@ -1981,6 +1981,14 @@ def determine_gpu_strategy(
                     "strategy": "cpu",
                 }
 
+    # Helper: create tensor_split that routes 100% to a single GPU.
+    # llama.cpp treats all-zeros tensor_split as "auto-distribute by VRAM",
+    # so we MUST set an explicit split when we want single-GPU loading on multi-GPU systems.
+    def make_single_gpu_split(target_gpu: int) -> list:
+        ts = [0.0] * 128
+        ts[target_gpu] = 1.0
+        return ts
+
     # Multi-GPU case - use capability ranking
     # The primary GPU (most powerful) is dedicated to the LLM.
     # Non-LLM models (image gen, TTS, STT) go on secondary GPUs.
@@ -2018,7 +2026,7 @@ def determine_gpu_strategy(
         )
         return {
             "main_gpu": primary_gpu,
-            "tensor_split": None,
+            "tensor_split": make_single_gpu_split(primary_gpu),
             "gpu_layers": -1,
             "strategy": f"gpu{primary_gpu}",
         }
@@ -2049,7 +2057,7 @@ def determine_gpu_strategy(
                 )
                 return {
                     "main_gpu": primary_gpu,
-                    "tensor_split": None,
+                    "tensor_split": make_single_gpu_split(primary_gpu),
                     "gpu_layers": -1,
                     "strategy": f"gpu{primary_gpu}_optimistic",
                 }
@@ -2076,7 +2084,7 @@ def determine_gpu_strategy(
                 )
                 return {
                     "main_gpu": primary_gpu,
-                    "tensor_split": None,
+                    "tensor_split": make_single_gpu_split(primary_gpu),
                     "gpu_layers": gpu_layers,
                     "strategy": f"gpu{primary_gpu}_partial_optimistic",
                 }
@@ -2118,7 +2126,7 @@ def determine_gpu_strategy(
             )
             return {
                 "main_gpu": gpu_idx,
-                "tensor_split": None,
+                "tensor_split": make_single_gpu_split(gpu_idx),
                 "gpu_layers": -1,
                 "strategy": f"gpu{gpu_idx}",
             }
@@ -2163,7 +2171,7 @@ def determine_gpu_strategy(
                 )
                 return {
                     "main_gpu": primary_gpu,
-                    "tensor_split": None,
+                    "tensor_split": make_single_gpu_split(primary_gpu),
                     "gpu_layers": -1,
                     "strategy": f"gpu{primary_gpu}_optimistic",
                 }
@@ -2567,10 +2575,10 @@ class Pipes:
             main_gpu = strategy["main_gpu"]
             tensor_split = strategy["tensor_split"]
 
-            logging.debug(
+            logging.info(
                 f"[LLM] Smart GPU selection: strategy='{strategy['strategy']}', "
                 f"main_gpu={main_gpu}, gpu_layers={gpu_layers}, "
-                f"tensor_split={'enabled' if tensor_split else 'disabled'}"
+                f"tensor_split={tensor_split[:get_gpu_count()] if tensor_split else 'none'}"
             )
 
         # First attempt: Try with determined/specified configuration
