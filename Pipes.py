@@ -4772,13 +4772,13 @@ class Pipes:
         def _estimate_prompt_tokens(messages_or_prompt, completion_type: str) -> int:
             """Estimate prompt tokens using character count approximation.
 
-            This is intentionally aggressive to ensure we pre-allocate enough context
-            for streaming requests where lazy errors can't be retried.
-
-            We use chars/2.5 (instead of chars/4) because:
-            - Code and technical content tokenizes at higher rates
-            - Chat templates add overhead (role markers, special tokens)
-            - Better to overestimate and have headroom than underestimate and fail
+            We use chars/3.5 with a 10% buffer, which balances accuracy vs safety:
+            - English text averages ~4 chars/token
+            - Code/technical content averages ~3-3.5 chars/token
+            - Chat templates add modest overhead (role markers, special tokens)
+            - Over-estimating by too much forces unnecessary context scaling which
+              pushes layers to CPU, dramatically hurting performance
+            - Under-estimating is handled by the retry mechanism in the caller
             """
             total_chars = 0
             if completion_type == "chat" and isinstance(messages_or_prompt, list):
@@ -4804,9 +4804,9 @@ class Pipes:
                 # Completion mode or string content
                 total_chars = len(str(messages_or_prompt))
 
-            # Aggressive estimate: chars/2.5 + 20% buffer for chat template overhead
-            # This ensures we don't underestimate for code/technical content
-            estimated_tokens = int((total_chars / 2.5) * 1.2)
+            # Moderate estimate: chars/3.5 + 10% buffer for chat template overhead
+            # This avoids over-estimating by 2x which forces context scaling and CPU offload
+            estimated_tokens = int((total_chars / 3.5) * 1.1)
             return estimated_tokens
 
         async def _try_inference_with_context_retry(
