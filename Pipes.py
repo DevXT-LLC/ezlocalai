@@ -1675,17 +1675,32 @@ def estimate_model_vram_requirement(
     except Exception as e:
         logging.warning(f"[GPU Selection] Failed to estimate VRAM: {e}")
         # When xllamacpp estimation fails (e.g., unknown quantization type like Q4_K_XL),
-        # use a simple file-size-based estimate instead of the formula which can wildly
-        # overestimate KV cache for GQA/MQA models.
+        # use a file-size-based estimate plus context-dependent KV/overhead costs.
         try:
             if model_path and os.path.exists(model_path):
                 file_size_gb = os.path.getsize(model_path) / (1024**3)
-                # Model weights ≈ file size. Add modest overhead for KV cache + buffers.
-                # With q8_0 KV cache, overhead is typically 5-10% of model size.
-                estimate = file_size_gb * 1.15
+                # Model weights ~ file size. Add context-dependent costs:
+                # - KV cache (q4_0): ~5.5 KB/token for hybrid models with few attn layers
+                #   For standard models it would be higher. Use 6KB as conservative default.
+                # - mmproj/CLIP: ~0.86 GB if projector exists
+                # - Compute buffers: ~0.3-0.5 GB
+                # - RS (recurrent state for SSM): ~0.065 GB
+                kv_gb = (context_size * 6000) / (1024**3)
+                mmproj_gb = 0.0
+                if projectors:
+                    for proj in projectors:
+                        try:
+                            if proj and os.path.exists(proj):
+                                mmproj_gb += os.path.getsize(proj) / (1024**3)
+                        except Exception:
+                            mmproj_gb += 0.86  # Conservative default
+                overhead_gb = 0.5  # compute buffers, RS, misc
+                estimate = file_size_gb + kv_gb + mmproj_gb + overhead_gb
                 logging.info(
                     f"[GPU Selection] Using file-size estimate: {estimate:.1f}GB "
-                    f"(file={file_size_gb:.1f}GB, xllamacpp estimation failed)"
+                    f"(model={file_size_gb:.1f}GB, KV={kv_gb:.2f}GB, "
+                    f"mmproj={mmproj_gb:.1f}GB, overhead={overhead_gb:.1f}GB) "
+                    f"for {context_size//1024}k context"
                 )
                 return estimate
         except Exception:
@@ -1849,21 +1864,69 @@ def determine_gpu_strategy(
                 # Check if this might be a bad estimate: if the model file itself fits
                 # in VRAM, try full GPU offload anyway. The VRAM estimate can be wildly
                 # wrong for newer quant types or GQA/MQA models. The resilient loader
-                # will fall back to CPU if GPU loading actually fails with OOM.
+                # will fall back to partial offload if GPU loading actually fails with OOM.
                 try:
                     if model_path and os.path.exists(model_path):
                         file_size_gb = os.path.getsize(model_path) / (1024**3)
-                        if available_vram[0] > file_size_gb:
+                        vram_after_model = available_vram[0] - file_size_gb
+                        # Estimate non-model costs (KV, mmproj, compute, RS)
+                        kv_gb = (context_size * 6000) / (1024**3)
+                        mmproj_gb = (
+                            sum(
+                                os.path.getsize(p) / (1024**3)
+                                for p in (projectors or [])
+                                if p and os.path.exists(p)
+                            )
+                            if projectors
+                            else 0.0
+                        )
+                        non_model_gb = kv_gb + mmproj_gb + 0.5  # +0.5 for compute/RS
+                        if vram_after_model >= non_model_gb:
                             logging.info(
                                 f"[GPU Selection] VRAM estimate ({estimated_vram:.1f}GB) exceeds "
-                                f"available ({available_vram[0]:.1f}GB), but model file "
-                                f"({file_size_gb:.1f}GB) fits - trying full GPU offload"
+                                f"available ({available_vram[0]:.1f}GB), but detailed check shows "
+                                f"model({file_size_gb:.1f}GB) + KV({kv_gb:.2f}GB) + "
+                                f"mmproj({mmproj_gb:.1f}GB) fits - trying full GPU offload"
                             )
                             return {
                                 "main_gpu": 0,
                                 "tensor_split": None,
                                 "gpu_layers": -1,
                                 "strategy": "gpu0_optimistic",
+                            }
+                        elif available_vram[0] > file_size_gb:
+                            # Model fits but not everything else — partial offload
+                            # Estimate how many layers to offload to CPU to free VRAM
+                            shortfall_gb = (
+                                file_size_gb + non_model_gb
+                            ) - available_vram[0]
+                            # Each layer is roughly model_size / n_layers
+                            n_layers = 41  # Default
+                            try:
+                                import gguf
+
+                                reader = gguf.GGUFReader(model_path)
+                                for kv in reader.fields.values():
+                                    if kv.name and "block_count" in kv.name:
+                                        n_layers = int(kv.parts[-1][0]) + 1
+                                        break
+                            except Exception:
+                                pass
+                            gb_per_layer = file_size_gb / n_layers
+                            layers_to_offload = (
+                                int(shortfall_gb / gb_per_layer) + 2
+                            )  # +2 safety margin
+                            gpu_layers = max(1, n_layers - layers_to_offload)
+                            logging.info(
+                                f"[GPU Selection] Need {shortfall_gb:.1f}GB more than available. "
+                                f"Offloading {layers_to_offload} layers to CPU, keeping "
+                                f"{gpu_layers}/{n_layers} on GPU"
+                            )
+                            return {
+                                "main_gpu": 0,
+                                "tensor_split": None,
+                                "gpu_layers": gpu_layers,
+                                "strategy": "gpu0_partial_optimistic",
                             }
                 except Exception:
                     pass
@@ -2418,20 +2481,61 @@ class Pipes:
                 logging.warning(
                     f"[LLM] GPU loading failed for {model_name}: {gpu_error}"
                 )
-                logging.debug(f"[LLM] Falling back to CPU-only mode (gpu_layers=0)...")
-
-                # Second attempt: Force CPU-only mode
+                # Progressive fallback: try reducing GPU layers before going full CPU
+                # This keeps most layers on GPU for speed while offloading some to
+                # CPU/RAM to free VRAM for the larger KV cache at higher context sizes.
+                total_layers = 41  # Default for most models
                 try:
-                    llm = LLM(model=model_name, max_tokens=max_tokens, gpu_layers=0)
-                    logging.debug(
-                        f"[LLM] {model_name} loaded successfully in CPU-only mode"
+                    # Try to get actual layer count from model metadata
+                    import gguf
+
+                    if model_path:
+                        reader = gguf.GGUFReader(model_path)
+                        for kv in reader.fields.values():
+                            if kv.name and "block_count" in kv.name:
+                                total_layers = (
+                                    int(kv.parts[-1][0]) + 1
+                                )  # +1 for output layer
+                                break
+                except Exception:
+                    pass
+
+                # Try reducing layers: 75% -> 50% -> 25% -> CPU
+                for fraction in [0.75, 0.5, 0.25, 0.0]:
+                    try_layers = max(0, int(total_layers * fraction))
+                    label = (
+                        f"{try_layers}/{total_layers} layers on GPU"
+                        if try_layers > 0
+                        else "CPU-only"
                     )
-                    return llm
-                except Exception as cpu_error:
-                    logging.error(
-                        f"[LLM] CPU fallback also failed for {model_name}: {cpu_error}"
+                    logging.info(
+                        f"[LLM] Trying {label} for {max_tokens//1024}k context..."
                     )
-                    raise cpu_error
+                    try:
+                        llm = LLM(
+                            model=model_name,
+                            max_tokens=max_tokens,
+                            gpu_layers=try_layers,
+                            main_gpu=main_gpu,
+                        )
+                        logging.info(f"[LLM] {model_name} loaded with {label}")
+                        return llm
+                    except Exception as partial_error:
+                        partial_str = str(partial_error).lower()
+                        is_mem_error = any(
+                            x in partial_str
+                            for x in ["out of memory", "cuda", "alloc", "memory"]
+                        )
+                        if is_mem_error and try_layers > 0:
+                            logging.warning(f"[LLM] {label} failed: {partial_error}")
+                            continue
+                        elif try_layers == 0:
+                            logging.error(
+                                f"[LLM] CPU fallback also failed for {model_name}: {partial_error}"
+                            )
+                            raise partial_error
+                        else:
+                            raise partial_error
             else:
                 # Not a resource error, or already at gpu_layers=0
                 raise gpu_error
@@ -2918,6 +3022,9 @@ class Pipes:
         IMPORTANT: When increasing context size, we must unload ALL models (including
         vision model) to free GPU VRAM before reloading. Otherwise the GPU will be
         full and the model will fall back to CPU, which is very slow.
+
+        If the requested context exceeds what fits fully on GPU, layers will be
+        partially offloaded to CPU/RAM rather than capping the context.
         """
         with self._model_lock:
             if self.current_context and self.current_context >= required_context:
