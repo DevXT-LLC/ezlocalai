@@ -450,6 +450,7 @@ class LLM:
             f"[LLM] Batch size: {self.xlc_params.n_batch}, ubatch: {self.xlc_params.n_ubatch} for context {effective_max_tokens}"
         )
         self.xlc_params.n_gpu_layers = GPU_LAYERS
+        self.gpu_layers = GPU_LAYERS  # Expose for runtime inspection
         self.xlc_params.main_gpu = (
             self.main_gpu
         )  # Use self.main_gpu which may be overridden

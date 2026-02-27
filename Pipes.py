@@ -3148,6 +3148,146 @@ class Pipes:
 
         return get_models()
 
+    def _reduce_gpu_layers(self) -> bool:
+        """Reduce GPU layers to offload model weight to CPU/RAM when VRAM is exhausted.
+
+        Uses progressive reduction: tries 75% → 50% → 25% → 0% of total layers.
+        Reloads the model with fewer GPU layers while keeping the same context size.
+
+        Returns:
+            True if successfully reloaded with fewer layers, False if already at 0 or failed.
+        """
+        if self.llm is None:
+            return False
+
+        model_name = self.current_llm_name
+        context_size = self.current_context or 16384
+
+        # Get current GPU layers from the loaded model
+        current_layers = getattr(self.llm, "gpu_layers", None)
+        if current_layers is None:
+            # Try to get from xlc_params
+            current_layers = getattr(
+                getattr(self.llm, "xlc_params", None), "n_gpu_layers", None
+            )
+        if current_layers is None or current_layers == -1:
+            # -1 means "all layers" — we need to know the actual count
+            current_layers = 999  # Will be bounded by total_layers below
+
+        if current_layers == 0:
+            logging.warning("[LLM] Already at 0 GPU layers (CPU-only), cannot reduce further")
+            return False
+
+        # Get total layer count from model metadata
+        total_layers = 41  # Default for most models
+        try:
+            from ezlocalai.LLM import download_model
+
+            model_path, _ = download_model(model_name=model_name, models_dir="./models")
+            if model_path:
+                import gguf
+
+                reader = gguf.GGUFReader(model_path)
+                for kv in reader.fields.values():
+                    if kv.name and "block_count" in kv.name:
+                        total_layers = int(kv.parts[-1][0]) + 1
+                        break
+        except Exception:
+            pass
+
+        # Determine next step down
+        # Progressive: 75% → 50% → 25% → 0% of total layers
+        fractions = [0.75, 0.5, 0.25, 0.0]
+        effective_current = min(current_layers, total_layers)
+        target_layers = None
+
+        for fraction in fractions:
+            candidate = max(0, int(total_layers * fraction))
+            if candidate < effective_current:
+                target_layers = candidate
+                break
+
+        if target_layers is None:
+            target_layers = 0
+
+        label = (
+            f"{target_layers}/{total_layers} layers on GPU"
+            if target_layers > 0
+            else "CPU-only (0 layers on GPU)"
+        )
+        logging.warning(
+            f"[LLM] Reducing GPU layers: {effective_current}/{total_layers} → {label} "
+            f"(context: {context_size//1024}k)"
+        )
+
+        with self._model_lock:
+            # Unload all models to free VRAM
+            if self.vision_llm:
+                del self.vision_llm
+                self.vision_llm = None
+                self.vision_llm_name = None
+                self.vision_llm_context = None
+
+            if self.primary_llm:
+                del self.primary_llm
+                self.primary_llm = None
+                self.primary_llm_name = None
+                self.primary_llm_context = None
+
+            if self.llm:
+                del self.llm
+                self.llm = None
+
+            gc.collect()
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+                torch.cuda.synchronize()
+                free_vram = get_free_vram_gb()
+                logging.info(f"[LLM] After cleanup for layer reduction: {free_vram:.1f}GB VRAM free")
+
+            try:
+                from ezlocalai.LLM import LLM
+
+                self.llm = LLM(
+                    model=model_name,
+                    max_tokens=context_size,
+                    gpu_layers=target_layers,
+                )
+                self.current_llm_name = model_name
+                self.current_context = context_size
+
+                if self.available_models and model_name == self.available_models[0]:
+                    self.primary_llm = self.llm
+                    self.primary_llm_name = model_name
+                    self.primary_llm_context = context_size
+
+                logging.info(f"[LLM] Successfully reloaded {model_name} with {label}")
+                return True
+            except Exception as e:
+                logging.error(f"[LLM] Failed to reload with {target_layers} GPU layers: {e}")
+                # Try CPU-only as last resort if we weren't already trying that
+                if target_layers > 0:
+                    try:
+                        logging.info(f"[LLM] Last resort: trying CPU-only (0 layers)...")
+                        self.llm = LLM(
+                            model=model_name,
+                            max_tokens=context_size,
+                            gpu_layers=0,
+                        )
+                        self.current_llm_name = model_name
+                        self.current_context = context_size
+
+                        if self.available_models and model_name == self.available_models[0]:
+                            self.primary_llm = self.llm
+                            self.primary_llm_name = model_name
+                            self.primary_llm_context = context_size
+
+                        logging.info(f"[LLM] Reloaded {model_name} with CPU-only (0 GPU layers)")
+                        return True
+                    except Exception as cpu_error:
+                        logging.error(f"[LLM] CPU-only fallback also failed: {cpu_error}")
+                return False
+
     def _ensure_context_size(self, required_context: int):
         """Reload LLM with larger context if needed using smart GPU selection.
 
@@ -4951,6 +5091,25 @@ class Pipes:
                 ]
             )
 
+        def _is_memory_error(error_msg: str) -> bool:
+            """Detect GPU/VRAM out-of-memory errors during inference."""
+            error_lower = error_msg.lower()
+            return any(
+                pattern in error_lower
+                for pattern in [
+                    "out of memory",
+                    "cuda error",
+                    "cuda out of memory",
+                    "failed to allocate",
+                    "alloc_buffer",
+                    "ggml_backend",
+                    "insufficient memory",
+                    "vram",
+                    "cublas",
+                    "cudamalloc",
+                ]
+            )
+
         def _estimate_prompt_tokens(messages_or_prompt, completion_type: str) -> int:
             """Estimate prompt tokens using character count approximation.
 
@@ -4994,7 +5153,11 @@ class Pipes:
         async def _try_inference_with_context_retry(
             chat_mode: bool, data: dict
         ) -> dict:
-            """Try inference, and if context error occurs, reload model with larger context and retry.
+            """Try inference, and if context/memory error occurs, adapt and retry.
+
+            Handles two types of errors:
+            1. Context size errors: Reload model with larger context
+            2. Memory/OOM errors: Reduce GPU layers (offload to CPU/RAM) and retry
 
             For streaming requests, we pre-estimate tokens and ensure sufficient context
             BEFORE starting the stream, since streaming errors occur lazily during iteration
@@ -5045,6 +5208,8 @@ class Pipes:
                         return self.llm.completion(**data)
                 except Exception as e:
                     error_msg = str(e)
+
+                    # --- Handle context size errors ---
                     if _is_context_error(error_msg) and attempt < max_retries - 1:
                         # Try to extract n_prompt_tokens from error message
                         # Format: "... [n_prompt_tokens=21922, n_ctx=16384]"
@@ -5079,7 +5244,23 @@ class Pipes:
                             current_context = new_context
                             continue
 
-                    # Not a context error or max retries reached, raise
+                    # --- Handle GPU memory errors ---
+                    if _is_memory_error(error_msg) and attempt < max_retries - 1:
+                        logging.warning(
+                            f"[LLM] GPU memory error during inference (attempt {attempt + 1}/{max_retries}): {error_msg}"
+                        )
+                        reduced = self._reduce_gpu_layers()
+                        if reduced:
+                            logging.info(
+                                f"[LLM] Reduced GPU layers, retrying inference..."
+                            )
+                            continue
+                        else:
+                            logging.warning(
+                                f"[LLM] Cannot reduce GPU layers further (already at 0 or model not loaded)"
+                            )
+
+                    # Not a recoverable error or max retries reached, raise
                     raise
 
             # Should not reach here, but just in case
@@ -5112,8 +5293,17 @@ class Pipes:
                 logging.error(f"[LLM] Chat completion failed: {e}")
                 logging.error(f"[LLM] Full traceback: {traceback.format_exc()}")
                 logging.error(f"[LLM] Data that caused failure: {data}")
-                fallback_result = await self.fallback_inference(data["messages"])
-                response = fallback_result
+                # Try reducing GPU layers before resorting to fallback
+                error_msg = str(e)
+                if _is_memory_error(error_msg) and self._reduce_gpu_layers():
+                    logging.info("[LLM] Retrying chat after GPU layer reduction...")
+                    try:
+                        response = self.llm.chat(**data)
+                    except Exception:
+                        logging.error("[LLM] Retry after layer reduction also failed, using fallback")
+                        response = await self.fallback_inference(data["messages"])
+                else:
+                    response = await self.fallback_inference(data["messages"])
         else:
             try:
                 response = await _try_inference_with_context_retry(
@@ -5125,13 +5315,27 @@ class Pipes:
                 logging.error(f"[LLM] Completion failed: {e}")
                 logging.error(f"[LLM] Full traceback: {traceback.format_exc()}")
                 logging.error(f"[LLM] Data that caused failure: {data}")
-                response = await self.fallback_inference(
-                    [{"role": "user", "content": data.get("prompt", "")}]
-                )
-                # Convert chat-format response to completion-format
-                if isinstance(response, dict) and "choices" in response:
-                    content = response["choices"][0].get("message", {}).get("content", "")
-                    response = {"choices": [{"text": content}], "model": response.get("model", "fallback")}
+                # Try reducing GPU layers before resorting to fallback
+                error_msg = str(e)
+                if _is_memory_error(error_msg) and self._reduce_gpu_layers():
+                    logging.info("[LLM] Retrying completion after GPU layer reduction...")
+                    try:
+                        response = self.llm.completion(**data)
+                    except Exception:
+                        logging.error("[LLM] Retry after layer reduction also failed, using fallback")
+                        response = await self.fallback_inference(
+                            [{"role": "user", "content": data.get("prompt", "")}]
+                        )
+                        if isinstance(response, dict) and "choices" in response:
+                            content = response["choices"][0].get("message", {}).get("content", "")
+                            response = {"choices": [{"text": content}], "model": response.get("model", "fallback")}
+                else:
+                    response = await self.fallback_inference(
+                        [{"role": "user", "content": data.get("prompt", "")}]
+                    )
+                    if isinstance(response, dict) and "choices" in response:
+                        content = response["choices"][0].get("message", {}).get("content", "")
+                        response = {"choices": [{"text": content}], "model": response.get("model", "fallback")}
         generated_image = None
         if "temperature" not in data:
             data["temperature"] = 0.5
