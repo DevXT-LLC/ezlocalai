@@ -23,7 +23,7 @@ RUN --mount=type=cache,target=/root/.cache/pip,sharing=locked \
 RUN pip install chatterbox-tts --no-deps --no-cache-dir
 
 # Install xllamacpp CPU version
-RUN pip install xllamacpp --force-reinstall --no-cache-dir
+RUN pip install xllamacpp==0.2.12 --force-reinstall --no-cache-dir
 
 COPY . .
 ENV HOST=0.0.0.0 \

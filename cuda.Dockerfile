@@ -38,7 +38,7 @@ ENV HOST=0.0.0.0 \
     CUDA_DOCKER_ARCH=all \
     CUDAVER=12.8.1
 # Install xllamacpp with CUDA 12.8 support (compatible with CUDA 12.9)
-RUN uv pip install xllamacpp --reinstall --index-url https://xorbitsai.github.io/xllamacpp/whl/cu128
+RUN uv pip install xllamacpp==0.2.12 --reinstall --index-url https://xorbitsai.github.io/xllamacpp/whl/cu128
 COPY . .
 EXPOSE 8091
 # Use start.py which runs precache once, then starts uvicorn workers

@@ -35,7 +35,7 @@ RUN uv pip install chatterbox-tts --no-deps
 ENV HOST=0.0.0.0 \
     ROCM_VER=6.4.1
 # Install xllamacpp with ROCm 6.4.1 support
-RUN uv pip install xllamacpp --reinstall --index-url https://xorbitsai.github.io/xllamacpp/whl/rocm-6.4.1
+RUN uv pip install xllamacpp==0.2.12 --reinstall --index-url https://xorbitsai.github.io/xllamacpp/whl/rocm-6.4.1
 COPY . .
 EXPOSE 8091
 # Use start.py which runs precache once, then starts uvicorn workers
