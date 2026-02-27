@@ -22,23 +22,8 @@ RUN --mount=type=cache,target=/root/.cache/pip,sharing=locked \
 # This allows us to use transformers>=4.53.0 for security fixes
 RUN pip install chatterbox-tts --no-deps --no-cache-dir
 
-# Install xllamacpp from fork (includes latest llama.cpp for Qwen3.5 support)
-# Step 1: Install build deps + Rust for llguidance (cached)
-RUN apt-get update && apt-get install -y --no-install-recommends cmake libssl-dev pkg-config ccache && \
-    apt-get clean && rm -rf /var/lib/apt/lists/* && \
-    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-ENV PATH="/root/.cargo/bin:$PATH"
-# Step 2: Clone repo at pinned commit (cache busts only when XLLAMACPP_COMMIT changes)
-ARG XLLAMACPP_COMMIT=7a8ebf5
-RUN git clone https://github.com/Josh-XT/xllamacpp.git /tmp/xllamacpp && \
-    cd /tmp/xllamacpp && \
-    git checkout ${XLLAMACPP_COMMIT} && \
-    git submodule update --init --recursive
-# Step 3: Build llama.cpp (cached unless clone layer changes)
-RUN cd /tmp/xllamacpp && \
-    bash scripts/setup.sh
-# Step 4: Install Python package (fast)
-RUN cd /tmp/xllamacpp && pip install . --no-cache-dir && rm -rf /tmp/xllamacpp
+# Install xllamacpp CPU version
+RUN pip install xllamacpp --force-reinstall --no-cache-dir
 
 COPY . .
 ENV HOST=0.0.0.0 \
