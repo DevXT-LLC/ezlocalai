@@ -4119,7 +4119,17 @@ class Pipes:
 
         if not fallback_client.is_configured:
             logging.warning("[Fallback] No fallback server configured")
-            return "Unable to process request. Local resources exhausted and no fallback server configured."
+            return {
+                "choices": [{
+                    "message": {
+                        "role": "assistant",
+                        "content": "Unable to process request. Local resources exhausted and no fallback server configured."
+                    },
+                    "finish_reason": "stop",
+                    "index": 0,
+                }],
+                "model": "fallback",
+            }
 
         # Get the requested model from data, or use FALLBACK_MODEL as override, or DEFAULT_MODEL as last resort
         requested_model = None
@@ -4150,8 +4160,12 @@ class Pipes:
                     request_data, stream=False
                 )
                 if isinstance(response, dict) and "choices" in response:
-                    return response["choices"][0]["message"]["content"]
-                return str(response)
+                    return response
+                content = str(response)
+                return {
+                    "choices": [{"message": {"role": "assistant", "content": content}, "finish_reason": "stop", "index": 0}],
+                    "model": "fallback",
+                }
             except Exception as e:
                 logging.warning(
                     f"[Fallback] ezlocalai forwarding failed: {e}, trying OpenAI-compatible client..."
@@ -4176,10 +4190,17 @@ class Pipes:
             response = client.chat.completions.create(
                 model=model_to_use, messages=messages
             )
-            return response.choices[0].message.content
+            content = response.choices[0].message.content
+            return {
+                "choices": [{"message": {"role": "assistant", "content": content}, "finish_reason": "stop", "index": 0}],
+                "model": model_to_use,
+            }
         except Exception as e:
             logging.error(f"[Fallback] Fallback server request failed: {e}")
-            return f"Unable to process request. Fallback server error: {str(e)}"
+            return {
+                "choices": [{"message": {"role": "assistant", "content": f"Unable to process request. Fallback server error: {str(e)}"}, "finish_reason": "stop", "index": 0}],
+                "model": "fallback",
+            }
 
     def should_use_fallback(self) -> Tuple[bool, str]:
         """Check if we should use fallback server instead of local inference.
@@ -5072,16 +5093,14 @@ class Pipes:
             logging.warning("[LLM] No local model available, using fallback server...")
             if completion_type == "chat":
                 response = await self.fallback_inference(data["messages"])
-                # Wrap in expected format
-                response = {
-                    "choices": [{"message": {"content": response}}],
-                    "model": "fallback",
-                }
             else:
                 response = await self.fallback_inference(
                     [{"role": "user", "content": data.get("prompt", "")}]
                 )
-                response = {"choices": [{"text": response}], "model": "fallback"}
+                # Convert chat-format response to completion-format
+                if isinstance(response, dict) and "choices" in response:
+                    content = response["choices"][0].get("message", {}).get("content", "")
+                    response = {"choices": [{"text": content}], "model": response.get("model", "fallback")}
         elif completion_type == "chat":
             try:
                 response = await _try_inference_with_context_retry(
@@ -5093,7 +5112,8 @@ class Pipes:
                 logging.error(f"[LLM] Chat completion failed: {e}")
                 logging.error(f"[LLM] Full traceback: {traceback.format_exc()}")
                 logging.error(f"[LLM] Data that caused failure: {data}")
-                response = await self.fallback_inference(data["messages"])
+                fallback_result = await self.fallback_inference(data["messages"])
+                response = fallback_result
         else:
             try:
                 response = await _try_inference_with_context_retry(
@@ -5108,6 +5128,10 @@ class Pipes:
                 response = await self.fallback_inference(
                     [{"role": "user", "content": data.get("prompt", "")}]
                 )
+                # Convert chat-format response to completion-format
+                if isinstance(response, dict) and "choices" in response:
+                    content = response["choices"][0].get("message", {}).get("content", "")
+                    response = {"choices": [{"text": content}], "model": response.get("model", "fallback")}
         generated_image = None
         if "temperature" not in data:
             data["temperature"] = 0.5
@@ -5147,11 +5171,19 @@ class Pipes:
                                     + message["image_url"]["url"]
                                     + "\n"
                                 )
-            response_text = (
-                response["choices"][0]["text"]
-                if completion_type != "chat"
-                else response["choices"][0]["message"]["content"]
-            )
+            response_text = ""
+            if isinstance(response, dict) and "choices" in response:
+                choice = response["choices"][0] if response["choices"] else {}
+                if completion_type != "chat":
+                    response_text = choice.get("text", "")
+                else:
+                    msg = choice.get("message", {})
+                    if isinstance(msg, dict):
+                        response_text = msg.get("content", "")
+                    else:
+                        response_text = str(msg)
+            elif isinstance(response, str):
+                response_text = response
             if "data:" in user_message:
                 user_message = user_message.replace(
                     user_message.split("data:")[1].split("'")[0], ""
@@ -5169,7 +5201,12 @@ class Pipes:
                 create_img = await self.fallback_inference(
                     [{"role": "system", "content": img_gen_prompt}]
                 )
-            create_img = str(create_img["choices"][0]["message"]["content"]).lower()
+            if isinstance(create_img, str):
+                create_img = create_img.lower()
+            elif isinstance(create_img, dict):
+                create_img = str(create_img.get("choices", [{}])[0].get("message", {}).get("content", "")).lower()
+            else:
+                create_img = str(create_img).lower()
             logging.debug(f"[IMG] Decision maker response: {create_img}")
             if "yes" in create_img or "es," in create_img:
                 img_prompt = f"**The assistant is acting as a Stable Diffusion Prompt Generator.**\n\nUsers message: {user_message} \nAssistant response: {response_text} \n\nImportant rules to follow:\n- Describe subjects in detail, specify image type (e.g., digital illustration), art style (e.g., steampunk), and background. Include art inspirations (e.g., Art Station, specific artists). Detail lighting, camera (type, lens, view), and render (resolution, style). The weight of a keyword can be adjusted by using the syntax (((keyword))) , put only those keyword inside ((())) which is very important because it will have more impact so anything wrong will result in unwanted picture so be careful. Realistic prompts: exclude artist, specify lens. Separate with double lines. Max 60 words, avoiding 'real' for fantastical.\n- Based on the message from the user and response of the assistant, you will need to generate one detailed stable diffusion image generation prompt based on the context of the conversation to accompany the assistant response.\n- The prompt can only be up to 60 words long, so try to be concise while using enough descriptive words to make a proper prompt.\n- Following all rules will result in a $2000 tip that you can spend on anything!\n- Must be in markdown code block to be parsed out and only provide prompt in the code block, nothing else.\nStable Diffusion Prompt Generator: "
@@ -5184,9 +5221,14 @@ class Pipes:
                     image_generation_prompt = await self.fallback_inference(
                         [{"role": "system", "content": img_prompt}]
                     )
-                image_generation_prompt = str(
-                    image_generation_prompt["choices"][0]["message"]["content"]
-                )
+                if isinstance(image_generation_prompt, str):
+                    pass  # Already a string
+                elif isinstance(image_generation_prompt, dict):
+                    image_generation_prompt = str(
+                        image_generation_prompt.get("choices", [{}])[0].get("message", {}).get("content", "")
+                    )
+                else:
+                    image_generation_prompt = str(image_generation_prompt)
                 logging.debug(
                     f"[IMG] Image generation response: {image_generation_prompt}"
                 )
@@ -5204,11 +5246,17 @@ class Pipes:
             self._destroy_img()
         audio_response = None
         if "voice" in data:
-            text_response = (
-                response["choices"][0]["text"]
-                if completion_type != "chat"
-                else response["choices"][0]["message"]["content"]
-            )
+            if isinstance(response, dict) and "choices" in response:
+                choice = response["choices"][0] if response["choices"] else {}
+                if completion_type != "chat":
+                    text_response = choice.get("text", "")
+                else:
+                    msg = choice.get("message", {})
+                    text_response = msg.get("content", "") if isinstance(msg, dict) else str(msg)
+            elif isinstance(response, str):
+                text_response = response
+            else:
+                text_response = ""
             language = data["language"] if "language" in data else "en"
             tts = self._get_tts()
             self.resource_manager.mark_model_in_use(ModelType.TTS, True)
@@ -5222,17 +5270,24 @@ class Pipes:
             finally:
                 self.resource_manager.mark_model_in_use(ModelType.TTS, False)
             self._destroy_tts()
-            if completion_type != "chat":
-                response["choices"][0]["text"] = f"{text_response}\n{audio_response}"
-            else:
-                response["choices"][0]["message"][
-                    "content"
-                ] = f"{text_response}\n{audio_response}"
+            if isinstance(response, dict) and "choices" in response and response["choices"]:
+                if completion_type != "chat":
+                    response["choices"][0]["text"] = f"{text_response}\n{audio_response}"
+                else:
+                    if isinstance(response["choices"][0].get("message"), dict):
+                        response["choices"][0]["message"]["content"] = f"{text_response}\n{audio_response}"
+                    else:
+                        response["choices"][0]["message"] = {"content": f"{text_response}\n{audio_response}"}
         if generated_image:
-            if completion_type != "chat":
-                response["choices"][0]["text"] += f"\n\n{generated_image}"
-            else:
-                response["choices"][0]["message"]["content"] += f"\n\n{generated_image}"
+            if isinstance(response, dict) and "choices" in response and response["choices"]:
+                if completion_type != "chat":
+                    response["choices"][0]["text"] = response["choices"][0].get("text", "") + f"\n\n{generated_image}"
+                else:
+                    msg = response["choices"][0].get("message", {})
+                    if isinstance(msg, dict):
+                        msg["content"] = msg.get("content", "") + f"\n\n{generated_image}"
+                    else:
+                        response["choices"][0]["message"] = {"content": f"\n\n{generated_image}"}
 
         # Only log JSON if response is not a generator (streaming mode)
         is_streaming = (
