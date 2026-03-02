@@ -37,7 +37,7 @@ def getenv(var_name: str, default_value: str = None) -> str:
         "FALLBACK_MODEL": "",  # Model to use for non-ezlocalai fallback (e.g., "gpt-4o-mini")
         # Minimum combined free memory (VRAM + RAM) in GB before falling back to remote server
         # Models can offload to RAM, so combined memory is more accurate than VRAM alone
-        "FALLBACK_MEMORY_THRESHOLD": "8.0",
+        "FALLBACK_MEMORY_THRESHOLD": "1.0",
         # Voice server URL for offloading TTS/STT requests
         # - Empty (default): Load voice models locally on demand (lazy loading)
         # - URL (e.g., "http://192.168.1.100:8091"): Forward voice requests to another ezlocalai server
