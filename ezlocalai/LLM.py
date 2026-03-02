@@ -456,6 +456,17 @@ class LLM:
         )  # Use self.main_gpu which may be overridden
         self.xlc_params.warmup = True
 
+        # Set reasoning budget to limit thinking tokens per response
+        # -1 = unlimited (default), 0 = disable thinking, N = max thinking tokens
+        reasoning_budget = int(getenv("REASONING_BUDGET", "-1"))
+        if reasoning_budget >= 0:
+            self.xlc_params.reasoning_budget = reasoning_budget
+            logging.info(
+                f"[LLM] Reasoning budget set to {reasoning_budget} tokens"
+            )
+        else:
+            logging.debug("[LLM] Reasoning budget unlimited (default)")
+
         # Enable flash attention for significantly faster inference on CUDA
         self.xlc_params.flash_attn_type = (
             xlc.llama_flash_attn_type.LLAMA_FLASH_ATTN_TYPE_ENABLED
