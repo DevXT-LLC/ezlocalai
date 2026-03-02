@@ -3202,7 +3202,9 @@ class Pipes:
             current_layers = 999  # Will be bounded by total_layers below
 
         if current_layers == 0:
-            logging.warning("[LLM] Already at 0 GPU layers (CPU-only), cannot reduce further")
+            logging.warning(
+                "[LLM] Already at 0 GPU layers (CPU-only), cannot reduce further"
+            )
             return False
 
         # Get total layer count from model metadata
@@ -3270,7 +3272,9 @@ class Pipes:
                 torch.cuda.empty_cache()
                 torch.cuda.synchronize()
                 free_vram = get_free_vram_gb()
-                logging.info(f"[LLM] After cleanup for layer reduction: {free_vram:.1f}GB VRAM free")
+                logging.info(
+                    f"[LLM] After cleanup for layer reduction: {free_vram:.1f}GB VRAM free"
+                )
 
             try:
                 from ezlocalai.LLM import LLM
@@ -3291,11 +3295,15 @@ class Pipes:
                 logging.info(f"[LLM] Successfully reloaded {model_name} with {label}")
                 return True
             except Exception as e:
-                logging.error(f"[LLM] Failed to reload with {target_layers} GPU layers: {e}")
+                logging.error(
+                    f"[LLM] Failed to reload with {target_layers} GPU layers: {e}"
+                )
                 # Try CPU-only as last resort if we weren't already trying that
                 if target_layers > 0:
                     try:
-                        logging.info(f"[LLM] Last resort: trying CPU-only (0 layers)...")
+                        logging.info(
+                            f"[LLM] Last resort: trying CPU-only (0 layers)..."
+                        )
                         self.llm = LLM(
                             model=model_name,
                             max_tokens=context_size,
@@ -3304,15 +3312,22 @@ class Pipes:
                         self.current_llm_name = model_name
                         self.current_context = context_size
 
-                        if self.available_models and model_name == self.available_models[0]:
+                        if (
+                            self.available_models
+                            and model_name == self.available_models[0]
+                        ):
                             self.primary_llm = self.llm
                             self.primary_llm_name = model_name
                             self.primary_llm_context = context_size
 
-                        logging.info(f"[LLM] Reloaded {model_name} with CPU-only (0 GPU layers)")
+                        logging.info(
+                            f"[LLM] Reloaded {model_name} with CPU-only (0 GPU layers)"
+                        )
                         return True
                     except Exception as cpu_error:
-                        logging.error(f"[LLM] CPU-only fallback also failed: {cpu_error}")
+                        logging.error(
+                            f"[LLM] CPU-only fallback also failed: {cpu_error}"
+                        )
                 return False
 
     def _ensure_context_size(self, required_context: int):
@@ -4287,14 +4302,16 @@ class Pipes:
         if not fallback_client.is_configured:
             logging.warning("[Fallback] No fallback server configured")
             return {
-                "choices": [{
-                    "message": {
-                        "role": "assistant",
-                        "content": "Unable to process request. Local resources exhausted and no fallback server configured."
-                    },
-                    "finish_reason": "stop",
-                    "index": 0,
-                }],
+                "choices": [
+                    {
+                        "message": {
+                            "role": "assistant",
+                            "content": "Unable to process request. Local resources exhausted and no fallback server configured.",
+                        },
+                        "finish_reason": "stop",
+                        "index": 0,
+                    }
+                ],
                 "model": "fallback",
             }
 
@@ -4330,7 +4347,13 @@ class Pipes:
                     return response
                 content = str(response)
                 return {
-                    "choices": [{"message": {"role": "assistant", "content": content}, "finish_reason": "stop", "index": 0}],
+                    "choices": [
+                        {
+                            "message": {"role": "assistant", "content": content},
+                            "finish_reason": "stop",
+                            "index": 0,
+                        }
+                    ],
                     "model": "fallback",
                 }
             except Exception as e:
@@ -4359,13 +4382,28 @@ class Pipes:
             )
             content = response.choices[0].message.content
             return {
-                "choices": [{"message": {"role": "assistant", "content": content}, "finish_reason": "stop", "index": 0}],
+                "choices": [
+                    {
+                        "message": {"role": "assistant", "content": content},
+                        "finish_reason": "stop",
+                        "index": 0,
+                    }
+                ],
                 "model": model_to_use,
             }
         except Exception as e:
             logging.error(f"[Fallback] Fallback server request failed: {e}")
             return {
-                "choices": [{"message": {"role": "assistant", "content": f"Unable to process request. Fallback server error: {str(e)}"}, "finish_reason": "stop", "index": 0}],
+                "choices": [
+                    {
+                        "message": {
+                            "role": "assistant",
+                            "content": f"Unable to process request. Fallback server error: {str(e)}",
+                        },
+                        "finish_reason": "stop",
+                        "index": 0,
+                    }
+                ],
                 "model": "fallback",
             }
 
@@ -5307,8 +5345,13 @@ class Pipes:
                 )
                 # Convert chat-format response to completion-format
                 if isinstance(response, dict) and "choices" in response:
-                    content = response["choices"][0].get("message", {}).get("content", "")
-                    response = {"choices": [{"text": content}], "model": response.get("model", "fallback")}
+                    content = (
+                        response["choices"][0].get("message", {}).get("content", "")
+                    )
+                    response = {
+                        "choices": [{"text": content}],
+                        "model": response.get("model", "fallback"),
+                    }
         elif completion_type == "chat":
             try:
                 response = await _try_inference_with_context_retry(
@@ -5327,7 +5370,9 @@ class Pipes:
                     try:
                         response = self.llm.chat(**data)
                     except Exception:
-                        logging.error("[LLM] Retry after layer reduction also failed, using fallback")
+                        logging.error(
+                            "[LLM] Retry after layer reduction also failed, using fallback"
+                        )
                         response = await self.fallback_inference(data["messages"])
                 else:
                     response = await self.fallback_inference(data["messages"])
@@ -5345,24 +5390,40 @@ class Pipes:
                 # Try reducing GPU layers before resorting to fallback
                 error_msg = str(e)
                 if _is_memory_error(error_msg) and self._reduce_gpu_layers():
-                    logging.info("[LLM] Retrying completion after GPU layer reduction...")
+                    logging.info(
+                        "[LLM] Retrying completion after GPU layer reduction..."
+                    )
                     try:
                         response = self.llm.completion(**data)
                     except Exception:
-                        logging.error("[LLM] Retry after layer reduction also failed, using fallback")
+                        logging.error(
+                            "[LLM] Retry after layer reduction also failed, using fallback"
+                        )
                         response = await self.fallback_inference(
                             [{"role": "user", "content": data.get("prompt", "")}]
                         )
                         if isinstance(response, dict) and "choices" in response:
-                            content = response["choices"][0].get("message", {}).get("content", "")
-                            response = {"choices": [{"text": content}], "model": response.get("model", "fallback")}
+                            content = (
+                                response["choices"][0]
+                                .get("message", {})
+                                .get("content", "")
+                            )
+                            response = {
+                                "choices": [{"text": content}],
+                                "model": response.get("model", "fallback"),
+                            }
                 else:
                     response = await self.fallback_inference(
                         [{"role": "user", "content": data.get("prompt", "")}]
                     )
                     if isinstance(response, dict) and "choices" in response:
-                        content = response["choices"][0].get("message", {}).get("content", "")
-                        response = {"choices": [{"text": content}], "model": response.get("model", "fallback")}
+                        content = (
+                            response["choices"][0].get("message", {}).get("content", "")
+                        )
+                        response = {
+                            "choices": [{"text": content}],
+                            "model": response.get("model", "fallback"),
+                        }
         generated_image = None
         if "temperature" not in data:
             data["temperature"] = 0.5
@@ -5435,7 +5496,11 @@ class Pipes:
             if isinstance(create_img, str):
                 create_img = create_img.lower()
             elif isinstance(create_img, dict):
-                create_img = str(create_img.get("choices", [{}])[0].get("message", {}).get("content", "")).lower()
+                create_img = str(
+                    create_img.get("choices", [{}])[0]
+                    .get("message", {})
+                    .get("content", "")
+                ).lower()
             else:
                 create_img = str(create_img).lower()
             logging.debug(f"[IMG] Decision maker response: {create_img}")
@@ -5456,7 +5521,9 @@ class Pipes:
                     pass  # Already a string
                 elif isinstance(image_generation_prompt, dict):
                     image_generation_prompt = str(
-                        image_generation_prompt.get("choices", [{}])[0].get("message", {}).get("content", "")
+                        image_generation_prompt.get("choices", [{}])[0]
+                        .get("message", {})
+                        .get("content", "")
                     )
                 else:
                     image_generation_prompt = str(image_generation_prompt)
@@ -5483,7 +5550,9 @@ class Pipes:
                     text_response = choice.get("text", "")
                 else:
                     msg = choice.get("message", {})
-                    text_response = msg.get("content", "") if isinstance(msg, dict) else str(msg)
+                    text_response = (
+                        msg.get("content", "") if isinstance(msg, dict) else str(msg)
+                    )
             elif isinstance(response, str):
                 text_response = response
             else:
@@ -5501,24 +5570,45 @@ class Pipes:
             finally:
                 self.resource_manager.mark_model_in_use(ModelType.TTS, False)
             self._destroy_tts()
-            if isinstance(response, dict) and "choices" in response and response["choices"]:
+            if (
+                isinstance(response, dict)
+                and "choices" in response
+                and response["choices"]
+            ):
                 if completion_type != "chat":
-                    response["choices"][0]["text"] = f"{text_response}\n{audio_response}"
+                    response["choices"][0][
+                        "text"
+                    ] = f"{text_response}\n{audio_response}"
                 else:
                     if isinstance(response["choices"][0].get("message"), dict):
-                        response["choices"][0]["message"]["content"] = f"{text_response}\n{audio_response}"
+                        response["choices"][0]["message"][
+                            "content"
+                        ] = f"{text_response}\n{audio_response}"
                     else:
-                        response["choices"][0]["message"] = {"content": f"{text_response}\n{audio_response}"}
+                        response["choices"][0]["message"] = {
+                            "content": f"{text_response}\n{audio_response}"
+                        }
         if generated_image:
-            if isinstance(response, dict) and "choices" in response and response["choices"]:
+            if (
+                isinstance(response, dict)
+                and "choices" in response
+                and response["choices"]
+            ):
                 if completion_type != "chat":
-                    response["choices"][0]["text"] = response["choices"][0].get("text", "") + f"\n\n{generated_image}"
+                    response["choices"][0]["text"] = (
+                        response["choices"][0].get("text", "")
+                        + f"\n\n{generated_image}"
+                    )
                 else:
                     msg = response["choices"][0].get("message", {})
                     if isinstance(msg, dict):
-                        msg["content"] = msg.get("content", "") + f"\n\n{generated_image}"
+                        msg["content"] = (
+                            msg.get("content", "") + f"\n\n{generated_image}"
+                        )
                     else:
-                        response["choices"][0]["message"] = {"content": f"\n\n{generated_image}"}
+                        response["choices"][0]["message"] = {
+                            "content": f"\n\n{generated_image}"
+                        }
 
         # Only log JSON if response is not a generator (streaming mode)
         is_streaming = (

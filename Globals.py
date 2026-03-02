@@ -9,7 +9,7 @@ def getenv(var_name: str, default_value: str = None) -> str:
         "EZLOCALAI_URL": "http://localhost:8091",
         "EZLOCALAI_API_KEY": "none",
         "ALLOWED_DOMAINS": "*",
-        "DEFAULT_MODEL": "unsloth/Qwen3-VL-4B-Instruct-GGUF",
+        "DEFAULT_MODEL": "unsloth/Qwen3.5-4B-GGUF",
         "WHISPER_MODEL": "large-v3",
         "IMG_MODEL": "Tongyi-MAI/Z-Image-Turbo",  # Set to Z-Image-Turbo for image generation, empty string to disable
         "TTS_ENABLED": "true",
