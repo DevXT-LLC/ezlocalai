@@ -461,9 +461,7 @@ class LLM:
         reasoning_budget = int(getenv("REASONING_BUDGET", "-1"))
         if reasoning_budget >= 0:
             self.xlc_params.reasoning_budget = reasoning_budget
-            logging.info(
-                f"[LLM] Reasoning budget set to {reasoning_budget} tokens"
-            )
+            logging.info(f"[LLM] Reasoning budget set to {reasoning_budget} tokens")
         else:
             logging.debug("[LLM] Reasoning budget unlimited (default)")
 
