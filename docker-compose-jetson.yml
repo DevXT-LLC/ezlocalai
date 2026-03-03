@@ -1,0 +1,59 @@
+# Jetson (ARM64 + CUDA) Docker Compose
+#
+# Prerequisites:
+#   - NVIDIA Jetson (Orin NX, AGX Orin, Xavier NX, etc.)
+#   - JetPack 5.1+ (L4T R35+) with Docker + NVIDIA Container Runtime
+#   - Docker: sudo apt-get install nvidia-container
+#
+# Build (must be done ON the Jetson — no cross-compilation):
+#   docker compose -f docker-compose-jetson.yml build
+#
+# Run:
+#   docker compose -f docker-compose-jetson.yml up -d
+#
+# For JetPack 5.1 (L4T R35), build with:
+#   L4T_TAG=r35.4.1 docker compose -f docker-compose-jetson.yml build
+#
+# CUDA architecture by Jetson model:
+#   - Jetson Orin NX / AGX Orin: 87
+#   - Jetson Xavier NX / AGX Xavier: 72
+#   - Jetson Nano: 53
+#
+services:
+  ezlocalai:
+    build:
+      context: .
+      dockerfile: jetson.Dockerfile
+      args:
+        L4T_TAG: ${L4T_TAG:-r36.4.0}
+        CUDA_ARCH: ${CUDA_ARCH:-87}
+        TORCH_INDEX: ${TORCH_INDEX:-https://pypi.jetson-ai-lab.dev/simple/}
+    environment:
+      - EZLOCALAI_URL=${EZLOCALAI_URL:-http://localhost:8091}
+      - EZLOCALAI_API_KEY=${EZLOCALAI_API_KEY:-}
+      - DEFAULT_MODEL=${DEFAULT_MODEL:-unsloth/Qwen3.5-4B-GGUF}
+      - WHISPER_MODEL=${WHISPER_MODEL:-large-v3}
+      - IMG_MODEL=${IMG_MODEL:-}
+      - LLM_BATCH_SIZE=${LLM_BATCH_SIZE:-2048}
+      - LLM_MAX_TOKENS=${LLM_MAX_TOKENS:-40000}
+      - CUDA_DOCKER_ARCH=all
+      - TOKENIZERS_PARALLELISM=false
+      - UVICORN_WORKERS=${UVICORN_WORKERS:-1}
+      - MAX_CONCURRENT_REQUESTS=${MAX_CONCURRENT_REQUESTS:-1}
+      - MAX_QUEUE_SIZE=${MAX_QUEUE_SIZE:-100}
+      - REQUEST_TIMEOUT=${REQUEST_TIMEOUT:-300}
+      - TTS_ENABLED=${TTS_ENABLED:-true}
+      - STT_ENABLED=${STT_ENABLED:-true}
+      - VOICE_SERVER=${VOICE_SERVER:-}
+      - VOICE_SERVER_API_KEY=${VOICE_SERVER_API_KEY:-}
+      - LAZY_LOAD_VOICE=${LAZY_LOAD_VOICE:-true}
+    restart: unless-stopped
+    runtime: nvidia
+    ports:
+      - "8091:8091"
+    volumes:
+      - ./models:/app/models
+      - ./hf:/root/.cache/huggingface/hub
+      - ./outputs:/app/outputs
+      - ./voices:/app/voices
+      - ./whispercpp:/app/whispercpp

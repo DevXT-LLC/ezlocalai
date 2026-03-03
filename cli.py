@@ -40,6 +40,7 @@ __version__ = "1.0.5"
 DOCKER_IMAGE = "joshxt/ezlocalai:latest"
 DOCKER_IMAGE_CUDA = "ezlocalai:cuda"  # Built locally, not from DockerHub
 DOCKER_IMAGE_ROCM = "ezlocalai:rocm"  # Built locally for AMD GPUs
+DOCKER_IMAGE_JETSON = "ezlocalai:jetson"  # Built locally on Jetson ARM64+CUDA
 CONTAINER_NAME = "ezlocalai"
 DEFAULT_PORT = 8091
 STATE_DIR = Path.home() / ".ezlocalai"
@@ -456,14 +457,34 @@ def should_use_native_mode(force_native: bool = False) -> bool:
 
     Native mode is used when:
     - --native flag is passed
-    - Running on ARM64 where our Docker image doesn't have an ARM64 manifest
-    - Docker is not available
+    - Docker is not available or not running
+    - On Jetson without Docker + nvidia-container-runtime
+
+    On Jetson with Docker available, we prefer Docker mode using the
+    locally-built Jetson image (avoids ARM64 dependency hell).
     """
     if force_native:
         return True
-    if is_arm64():
-        return True
     if not is_tool_installed("docker") or not is_docker_running():
+        return True
+    # Jetson with Docker: use Docker mode if nvidia-container-runtime is available
+    if is_arm64() and is_jetson():
+        # Check for NVIDIA container runtime (required for GPU access in Docker)
+        result = subprocess.run(
+            ["docker", "info"],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if result.returncode == 0 and "nvidia" in result.stdout.lower():
+            return False  # Docker mode with Jetson image
+        # No NVIDIA runtime — fall back to native
+        print("⚠️  Docker found but no NVIDIA container runtime.")
+        print("   Install with: sudo apt-get install nvidia-container")
+        print("   Falling back to native mode...")
+        return True
+    # Non-Jetson ARM64 without a Docker image
+    if is_arm64():
         return True
     return False
 
@@ -839,6 +860,104 @@ def rocm_image_exists() -> bool:
     return bool(result.stdout.strip())
 
 
+def jetson_image_exists() -> bool:
+    """Check if the Jetson image exists locally."""
+    result = subprocess.run(
+        ["docker", "images", "-q", DOCKER_IMAGE_JETSON],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    return bool(result.stdout.strip())
+
+
+def build_jetson_image() -> bool:
+    """Build the Jetson Docker image from source using docker-compose.
+
+    Must be run ON the Jetson itself (ARM64 native build).
+    Detects JetPack version and CUDA architecture automatically.
+    """
+    source_dir = clone_or_update_repo()
+    if not source_dir:
+        return False
+
+    # Auto-detect L4T tag and CUDA arch
+    l4t_tag = "r36.4.0"  # Default: JetPack 6
+    cuda_arch = "87"  # Default: Orin
+
+    jp_ver = _detect_jetpack_version()
+    if jp_ver:
+        jp_major = int(jp_ver[0])
+        if jp_major == 5:
+            l4t_tag = "r35.4.1"  # JetPack 5.1
+        elif jp_major == 6:
+            l4t_tag = "r36.4.0"  # JetPack 6
+
+    detected_arch = detect_jetson_cuda_arch()
+    if detected_arch:
+        cuda_arch = detected_arch
+
+    print(f"\n🔨 Building Jetson image (this may take 15-30 minutes)...")
+    print(f"   Building from: docker-compose-jetson.yml")
+    print(f"   L4T base: {l4t_tag}, CUDA arch: {cuda_arch}")
+    print(f"   Source directory: {source_dir}")
+
+    build_env = os.environ.copy()
+    build_env["L4T_TAG"] = l4t_tag
+    build_env["CUDA_ARCH"] = cuda_arch
+
+    result = subprocess.run(
+        ["docker", "compose", "-f", "docker-compose-jetson.yml", "build"],
+        cwd=source_dir,
+        env=build_env,
+        check=False,
+    )
+
+    if result.returncode != 0:
+        print("❌ Failed to build Jetson image")
+        return False
+
+    # Tag the image with our expected name
+    print("   Tagging image as ezlocalai:jetson...")
+    folder_name = source_dir.name
+    expected_names = [
+        f"{folder_name}-ezlocalai:latest",
+        "repo-ezlocalai:latest",
+        f"{folder_name}_ezlocalai:latest",
+    ]
+
+    tagged = False
+    for expected_name in expected_names:
+        tag_result = subprocess.run(
+            ["docker", "tag", expected_name, DOCKER_IMAGE_JETSON],
+            capture_output=True,
+            check=False,
+        )
+        if tag_result.returncode == 0:
+            tagged = True
+            break
+
+    if not tagged:
+        list_result = subprocess.run(
+            ["docker", "images", "--format", "{{.Repository}}:{{.Tag}}"],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if list_result.returncode == 0:
+            for line in list_result.stdout.splitlines():
+                if "ezlocalai" in line.lower():
+                    subprocess.run(
+                        ["docker", "tag", line.strip(), DOCKER_IMAGE_JETSON],
+                        check=False,
+                    )
+                    tagged = True
+                    break
+
+    print("✅ Jetson image built successfully")
+    return True
+
+
 def build_rocm_image() -> bool:
     """Build the ROCm Docker image from source using docker-compose."""
     source_dir = clone_or_update_repo()
@@ -1090,7 +1209,11 @@ def check_prerequisites(native_mode: bool = False) -> tuple[bool, str]:
 
     # Check for NVIDIA GPU first
     gpu_type = "cpu"
-    if has_nvidia_gpu():
+    if is_jetson() and has_jetson_cuda():
+        # Jetson detected with CUDA — use the Jetson Docker image
+        print("✅ NVIDIA Jetson detected with CUDA support")
+        gpu_type = "jetson"
+    elif has_nvidia_gpu():
         gpu_info = get_nvidia_gpu_info()
         print(f"✅ NVIDIA GPU detected: {gpu_info}")
 
@@ -2315,6 +2438,8 @@ def start_container(
     # Select image based on GPU type
     if gpu_type == "nvidia":
         image = DOCKER_IMAGE_CUDA
+    elif gpu_type == "jetson":
+        image = DOCKER_IMAGE_JETSON
     elif gpu_type == "amd":
         image = DOCKER_IMAGE_ROCM
     else:
@@ -2344,6 +2469,9 @@ def start_container(
     # Add GPU-specific flags
     if gpu_type == "nvidia":
         cmd.extend(["--gpus", "all"])
+    elif gpu_type == "jetson":
+        # Jetson uses --runtime nvidia instead of --gpus
+        cmd.extend(["--runtime", "nvidia"])
     elif gpu_type == "amd":
         # ROCm requires access to specific devices
         cmd.extend(
@@ -2373,7 +2501,7 @@ def start_container(
     # Add image
     cmd.append(image)
 
-    # Handle image: pull for CPU, build for CUDA/ROCm
+    # Handle image: pull for CPU, build for CUDA/ROCm/Jetson
     if gpu_type == "nvidia":
         # CUDA image must be built locally (too large for DockerHub)
         if not cuda_image_exists():
@@ -2388,6 +2516,15 @@ def start_container(
                     idx = cmd.index("--gpus")
                     cmd.pop(idx)  # Remove --gpus
                     cmd.pop(idx)  # Remove "all"
+    elif gpu_type == "jetson":
+        # Jetson image must be built locally on the Jetson
+        if not jetson_image_exists():
+            print("\n🔨 Jetson image not found, building from source...")
+            print("   (This is a one-time build, may take 15-30 minutes)")
+            if not build_jetson_image():
+                print("❌ Failed to build Jetson image. Falling back to native mode.")
+                print("   Try: ezlocalai start --native")
+                sys.exit(1)
     elif gpu_type == "amd":
         # ROCm image must be built locally
         if not rocm_image_exists():
@@ -2424,7 +2561,12 @@ def start_container(
             print(f"⚠️  Failed to pull latest image, using cached version if available")
 
     # Start container
-    mode_names = {"nvidia": "NVIDIA GPU", "amd": "AMD GPU", "cpu": "CPU"}
+    mode_names = {
+        "nvidia": "NVIDIA GPU",
+        "jetson": "Jetson GPU",
+        "amd": "AMD GPU",
+        "cpu": "CPU",
+    }
     mode = mode_names.get(gpu_type, "CPU")
     print(f"\n🚀 Starting ezlocalai ({mode} mode)...")
     print(f"   Model: {env_vars.get('DEFAULT_MODEL', 'default')}")
@@ -2729,6 +2871,9 @@ def auto_update_docker(gpu_type: str = "cpu") -> None:
     if gpu_type == "nvidia":
         print("   Rebuilding CUDA image...")
         build_cuda_image()
+    elif gpu_type == "jetson":
+        print("   Rebuilding Jetson image...")
+        build_jetson_image()
     elif gpu_type == "amd":
         print("   Rebuilding ROCm image...")
         build_rocm_image()
