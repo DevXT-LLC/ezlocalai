@@ -17,7 +17,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
 # Install system dependencies + build deps for Python 3.10 from source
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-        git build-essential cmake gcc g++ \
+        git build-essential gcc g++ \
         ffmpeg libsndfile1 libopenblas-dev \
         curl wget unzip \
         zlib1g-dev libffi-dev libssl-dev libbz2-dev \
@@ -40,7 +40,9 @@ RUN wget -q https://www.python.org/ftp/python/${PYTHON_VERSION}/Python-${PYTHON_
 # Create virtual environment with Python 3.10
 # Use --system-site-packages to inherit JetPack's CUDA bindings
 RUN python3.10 -m venv --system-site-packages /opt/venv && \
-    pip install --upgrade pip setuptools wheel
+    pip install --upgrade pip setuptools wheel && \
+    pip install cmake --no-cache-dir && \
+    cmake --version
 
 # Install uv for fast package management
 RUN pip install uv
