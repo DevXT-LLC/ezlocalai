@@ -97,7 +97,8 @@ ENV XLLAMACPP_BUILD_CUDA=1 \
     CMAKE_CUDA_ARCHITECTURES=${CUDA_ARCH} \
     CMAKE_BUILD_PARALLEL_LEVEL=4 \
     CUDA_ARCHITECTURES=${CUDA_ARCH} \
-    CUDA_PATH=/usr/local/cuda
+    CUDA_PATH=/usr/local/cuda \
+    LIBRARY_PATH="/usr/local/cuda/lib64/stubs:/usr/local/cuda/lib64:${LIBRARY_PATH}"
 
 # Build xllamacpp: run cmake directly (setup.sh swallows errors) with FA disabled for CUDA 11.x compat
 RUN set -e && \
