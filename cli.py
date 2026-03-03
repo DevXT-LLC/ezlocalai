@@ -2,13 +2,14 @@
 """
 ezlocalai CLI - Run local AI inference with ease.
 
-This lightweight CLI manages Docker containers for local LLM, TTS, STT, and image generation.
-It automatically detects GPU availability and runs the appropriate container.
+This CLI manages local LLM, TTS, STT, and image generation.
+Supports Docker mode (default on x86_64) and native mode (ARM64/Jetson or --native flag).
+Automatically detects GPU availability and architecture to pick the best mode.
 
 Usage:
-    ezlocalai start [--model MODEL] [--uri URI] [--api-key KEY] [--ngrok TOKEN]
+    ezlocalai start [--model MODEL] [--uri URI] [--api-key KEY] [--ngrok TOKEN] [--native]
     ezlocalai stop
-    ezlocalai restart [--model MODEL] [--uri URI] [--api-key KEY] [--ngrok TOKEN]
+    ezlocalai restart [--model MODEL] [--uri URI] [--api-key KEY] [--ngrok TOKEN] [--native]
     ezlocalai status
     ezlocalai logs [-f]
     ezlocalai prompt "your prompt" [-m MODEL] [-temp TEMPERATURE] [-tp TOP_P] [-image PATH]
@@ -45,8 +46,63 @@ STATE_DIR = Path.home() / ".ezlocalai"
 STATE_DIR.mkdir(parents=True, exist_ok=True)
 ENV_FILE = STATE_DIR / ".env"
 LOG_FILE = STATE_DIR / "ezlocalai.log"
+PID_FILE = STATE_DIR / "ezlocalai.pid"
 REPO_URL = "https://github.com/DevXT-LLC/ezlocalai.git"
 REPO_DIR = STATE_DIR / "repo"
+
+
+def is_arm64() -> bool:
+    """Check if running on ARM64/aarch64 architecture."""
+    machine = platform.machine().lower()
+    return machine in ("aarch64", "arm64")
+
+
+def is_jetson() -> bool:
+    """Check if running on an NVIDIA Jetson device."""
+    # Check for Jetson-specific files
+    if Path("/etc/nv_tegra_release").exists():
+        return True
+    try:
+        model_path = Path("/proc/device-tree/model")
+        if model_path.exists():
+            model = model_path.read_text(errors="ignore").lower()
+            if "jetson" in model or "tegra" in model:
+                return True
+    except Exception:
+        pass
+    return False
+
+
+def has_jetson_cuda() -> bool:
+    """Check if CUDA is available on Jetson (via JetPack/tegrastats)."""
+    # Jetson doesn't have nvidia-smi, check for CUDA libraries
+    cuda_paths = [
+        Path("/usr/local/cuda"),
+        Path("/usr/lib/aarch64-linux-gnu/libcuda.so"),
+    ]
+    if any(p.exists() for p in cuda_paths):
+        return True
+    # Check tegrastats
+    if shutil.which("tegrastats"):
+        return True
+    return False
+
+
+def should_use_native_mode(force_native: bool = False) -> bool:
+    """Determine if native mode should be used instead of Docker.
+
+    Native mode is used when:
+    - --native flag is passed
+    - Running on ARM64 where our Docker image doesn't have an ARM64 manifest
+    - Docker is not available
+    """
+    if force_native:
+        return True
+    if is_arm64():
+        return True
+    if not is_tool_installed("docker") or not is_docker_running():
+        return True
+    return False
 
 
 def is_ezlocalai_folder(folder: Path) -> bool:
@@ -566,16 +622,41 @@ def install_nvidia_container_toolkit() -> bool:
         return False
 
 
-def check_prerequisites() -> tuple[bool, str]:
+def check_prerequisites(native_mode: bool = False) -> tuple[bool, str]:
     """
     Check and install prerequisites.
+
+    Args:
+        native_mode: If True, skip Docker checks (running start.py directly).
 
     Returns:
         Tuple of (docker_available, gpu_type) where gpu_type is 'nvidia', 'amd', or 'cpu'
     """
     system = platform.system().lower()
 
-    # Check Docker
+    if native_mode:
+        # Native mode: skip Docker, just detect GPU
+        print("ℹ️  Running in native mode (no Docker)")
+
+        gpu_type = "cpu"
+        # Check for NVIDIA GPU (nvidia-smi or Jetson)
+        if has_nvidia_gpu():
+            gpu_info = get_nvidia_gpu_info()
+            print(f"✅ NVIDIA GPU detected: {gpu_info}")
+            gpu_type = "nvidia"
+        elif is_jetson() and has_jetson_cuda():
+            print("✅ NVIDIA Jetson detected with CUDA support")
+            gpu_type = "nvidia"
+        elif has_amd_gpu() and has_rocm_support():
+            gpu_info = get_amd_gpu_info()
+            print(f"✅ AMD GPU detected: {gpu_info}")
+            gpu_type = "amd"
+        else:
+            print("ℹ️  No GPU detected, running on CPU")
+
+        return True, gpu_type
+
+    # Docker mode: check Docker
     if not is_tool_installed("docker"):
         print("❌ Docker is not installed.")
         if system == "linux":
@@ -722,6 +803,645 @@ def get_default_env() -> dict:
         "MAX_QUEUE_SIZE": "100",
         "REQUEST_TIMEOUT": "300",
     }
+
+
+# ── Native mode process management ──────────────────────────────────────────
+
+
+def get_native_pid() -> Optional[int]:
+    """Get the PID of the running native ezlocalai process."""
+    if not PID_FILE.exists():
+        return None
+    try:
+        pid = int(PID_FILE.read_text().strip())
+        # Check if process is actually running
+        os.kill(pid, 0)
+        return pid
+    except (ValueError, ProcessLookupError, PermissionError):
+        # PID file is stale
+        PID_FILE.unlink(missing_ok=True)
+        return None
+
+
+def is_native_running() -> bool:
+    """Check if ezlocalai is running in native mode."""
+    return get_native_pid() is not None
+
+
+def get_source_dir_for_native() -> Path:
+    """Get the ezlocalai source directory for native mode.
+
+    Checks (in order):
+    1. Current working directory (if it's the ezlocalai folder)
+    2. Cloned repo in ~/.ezlocalai/repo
+    """
+    local_source = get_ezlocalai_source_dir()
+    if local_source:
+        return local_source
+    if REPO_DIR.exists() and is_ezlocalai_folder(REPO_DIR):
+        return REPO_DIR
+    return None
+
+
+def get_cuda_version() -> Optional[str]:
+    """Detect the installed CUDA toolkit version.
+
+    Returns a string like '12.8' or '12.4', or None if not found.
+    """
+    # Try nvcc first
+    try:
+        result = subprocess.run(
+            ["nvcc", "--version"],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if result.returncode == 0:
+            # Parse "release 12.8" or "V12.8.93"
+            match = re.search(r"(?:release |V)(\d+\.\d+)", result.stdout)
+            if match:
+                return match.group(1)
+    except FileNotFoundError:
+        pass
+
+    # Try reading from CUDA path
+    for cuda_dir in [
+        Path("/usr/local/cuda"),
+        Path("/usr/local/cuda-12.8"),
+        Path("/usr/local/cuda-12.4"),
+    ]:
+        version_file = cuda_dir / "version.json"
+        if version_file.exists():
+            try:
+                data = json.loads(version_file.read_text())
+                ver = data.get("cuda", {}).get("version", "")
+                if ver:
+                    parts = ver.split(".")
+                    return f"{parts[0]}.{parts[1]}" if len(parts) >= 2 else ver
+            except Exception:
+                pass
+        version_txt = cuda_dir / "version.txt"
+        if version_txt.exists():
+            try:
+                match = re.search(r"(\d+\.\d+)", version_txt.read_text())
+                if match:
+                    return match.group(1)
+            except Exception:
+                pass
+
+    return None
+
+
+def get_rocm_version() -> Optional[str]:
+    """Detect the installed ROCm version.
+
+    Returns a string like '6.4.1' or '6.3.4', or None if not found.
+    """
+    # Check /opt/rocm/.info/version
+    version_file = Path("/opt/rocm/.info/version")
+    if version_file.exists():
+        try:
+            ver = version_file.read_text().strip()
+            if ver:
+                return ver
+        except Exception:
+            pass
+
+    # Try rocm-smi
+    try:
+        result = subprocess.run(
+            ["rocm-smi", "--showdriverversion"],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if result.returncode == 0:
+            match = re.search(r"(\d+\.\d+\.\d+)", result.stdout)
+            if match:
+                return match.group(1)
+    except FileNotFoundError:
+        pass
+
+    return None
+
+
+XLLAMACPP_REPO = "https://github.com/xorbitsai/xllamacpp.git"
+XLLAMACPP_BUILD_DIR = STATE_DIR / "xllamacpp-build"
+
+
+def build_xllamacpp_from_source(gpu_type: str = "nvidia") -> list[str]:
+    """Build xllamacpp from source for platforms without prebuilt GPU wheels (e.g. Jetson ARM64).
+
+    Clones the repo, sets the appropriate build env vars, and does 'pip install .'.
+    Returns the pip install command list (for compatibility with get_xllamacpp_install_cmd),
+    but actually performs the build inline and returns an empty install command.
+    """
+    python = sys.executable
+
+    # Check for build prerequisites
+    if not shutil.which("cmake"):
+        print("   ⚠️  cmake not found, attempting to install...")
+        subprocess.run(
+            ["sudo", "apt-get", "install", "-y", "cmake", "build-essential"],
+            check=False,
+        )
+
+    # Check for Rust (required by xllamacpp build)
+    if not shutil.which("rustc"):
+        print("   ⚠️  Rust toolchain not found, installing...")
+        result = subprocess.run(
+            [
+                "sh",
+                "-c",
+                "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y",
+            ],
+            check=False,
+        )
+        if result.returncode != 0:
+            print("   ❌ Failed to install Rust. xllamacpp will fall back to CPU.")
+            return [python, "-m", "pip", "install", "xllamacpp", "-q"]
+        # Add cargo to PATH for this session
+        cargo_bin = Path.home() / ".cargo" / "bin"
+        os.environ["PATH"] = f"{cargo_bin}:{os.environ.get('PATH', '')}"
+
+    # Clone or update xllamacpp source
+    if XLLAMACPP_BUILD_DIR.exists():
+        print("   Updating xllamacpp source...")
+        subprocess.run(
+            ["git", "pull"],
+            cwd=XLLAMACPP_BUILD_DIR,
+            capture_output=True,
+            check=False,
+        )
+    else:
+        print("   Cloning xllamacpp source...")
+        result = subprocess.run(
+            ["git", "clone", "--recursive", XLLAMACPP_REPO, str(XLLAMACPP_BUILD_DIR)],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if result.returncode != 0:
+            print(f"   ❌ Failed to clone xllamacpp: {result.stderr.strip()}")
+            print("   Falling back to CPU-only aarch64 wheel from PyPI...")
+            return [python, "-m", "pip", "install", "xllamacpp", "-q"]
+
+    # Ensure submodules are initialized
+    subprocess.run(
+        ["git", "submodule", "update", "--init", "--recursive"],
+        cwd=XLLAMACPP_BUILD_DIR,
+        capture_output=True,
+        check=False,
+    )
+
+    # Set build environment for CUDA
+    build_env = os.environ.copy()
+    if gpu_type == "nvidia":
+        build_env["XLLAMACPP_BUILD_CUDA"] = "1"
+        # Detect CUDA arch for Jetson (e.g. sm_72 for Xavier, sm_87 for Orin)
+        cuda_arch = detect_jetson_cuda_arch()
+        if cuda_arch:
+            build_env["CMAKE_CUDA_ARCHITECTURES"] = cuda_arch
+            print(f"   Building with CUDA arch: {cuda_arch}")
+
+    # Build and install
+    print("   Building xllamacpp from source (this may take several minutes)...")
+    result = subprocess.run(
+        [
+            python,
+            "-m",
+            "pip",
+            "install",
+            ".",
+            "--force-reinstall",
+            "--no-build-isolation",
+            "-q",
+        ],
+        cwd=XLLAMACPP_BUILD_DIR,
+        env=build_env,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    if result.returncode != 0:
+        print(f"   ❌ Source build failed:")
+        for line in result.stderr.splitlines()[-10:]:
+            print(f"      {line}")
+        print("   Falling back to CPU-only aarch64 wheel from PyPI...")
+        return [python, "-m", "pip", "install", "xllamacpp", "-q"]
+
+    print("   ✅ xllamacpp built from source with CUDA support")
+    # Return a no-op command since we already installed
+    return [python, "-c", "pass"]
+
+
+def detect_jetson_cuda_arch() -> Optional[str]:
+    """Detect the CUDA compute capability for Jetson devices.
+
+    Returns the SM architecture string (e.g. '72' for Xavier, '87' for Orin).
+    """
+    # Known Jetson models and their CUDA architectures
+    jetson_archs = {
+        "nano": "53",
+        "tx1": "53",
+        "tx2": "62",
+        "xavier": "72",
+        "agx xavier": "72",
+        "xavier nx": "72",
+        "orin": "87",
+        "agx orin": "87",
+        "orin nx": "87",
+        "orin nano": "87",
+    }
+
+    # Try reading device model
+    try:
+        model_path = Path("/proc/device-tree/model")
+        if model_path.exists():
+            model = model_path.read_text(errors="ignore").lower().strip("\x00").strip()
+            for name, arch in jetson_archs.items():
+                if name in model:
+                    return arch
+    except Exception:
+        pass
+
+    # Try checking /etc/nv_tegra_release for SoC info
+    try:
+        tegra_path = Path("/etc/nv_tegra_release")
+        if tegra_path.exists():
+            content = tegra_path.read_text().lower()
+            # R36 = Orin, R35 = Orin, R32 = Xavier/Nano
+            if "r36" in content or "r35" in content:
+                return "87"
+            elif "r32" in content:
+                return "72"
+    except Exception:
+        pass
+
+    return None
+
+
+def get_xllamacpp_install_cmd(gpu_type: str = "cpu") -> list[str]:
+    """Build the pip install command for xllamacpp based on GPU type.
+
+    Returns the full command list for subprocess.run().
+    Uses GPU-specific index URLs for CUDA/ROCm wheels, or plain PyPI for CPU/ARM64.
+    """
+    python = sys.executable
+    base_cmd = [python, "-m", "pip", "install", "xllamacpp"]
+
+    if gpu_type == "nvidia" and not is_arm64():
+        # x86_64 NVIDIA: use CUDA index URL
+        cuda_ver = get_cuda_version()
+        if cuda_ver:
+            major_minor = cuda_ver  # e.g. "12.8"
+            major, minor = major_minor.split(".")
+            if int(major) >= 12 and int(minor) >= 8:
+                index_url = "https://xorbitsai.github.io/xllamacpp/whl/cu128"
+            elif int(major) >= 12 and int(minor) >= 4:
+                index_url = "https://xorbitsai.github.io/xllamacpp/whl/cu124"
+            else:
+                # Older CUDA, try cu124 as closest
+                print(f"   ⚠️  CUDA {cuda_ver} detected, trying cu124 wheel...")
+                index_url = "https://xorbitsai.github.io/xllamacpp/whl/cu124"
+            base_cmd.extend(["--force-reinstall", "--index-url", index_url])
+            print(f"   Using CUDA {cuda_ver} wheel from {index_url}")
+        else:
+            print("   ⚠️  Could not detect CUDA version, installing CPU xllamacpp")
+
+    elif gpu_type == "nvidia" and is_arm64():
+        # ARM64 + NVIDIA (Jetson): no prebuilt CUDA wheels for aarch64
+        # Must build from source with CUDA enabled
+        print("   ARM64 + CUDA detected (Jetson) — building xllamacpp from source...")
+        return build_xllamacpp_from_source(gpu_type="nvidia")
+
+    elif gpu_type == "amd":
+        # AMD ROCm: use ROCm index URL
+        rocm_ver = get_rocm_version()
+        if rocm_ver:
+            # Map to nearest supported version
+            major_minor_patch = rocm_ver.split(".")
+            ver_tuple = tuple(int(x) for x in major_minor_patch[:3])
+            if ver_tuple >= (6, 4, 0):
+                index_url = "https://xorbitsai.github.io/xllamacpp/whl/rocm-6.4.1"
+            else:
+                index_url = "https://xorbitsai.github.io/xllamacpp/whl/rocm-6.3.4"
+            base_cmd.extend(["--force-reinstall", "--index-url", index_url])
+            print(f"   Using ROCm {rocm_ver} wheel from {index_url}")
+        else:
+            print("   ⚠️  Could not detect ROCm version, installing CPU xllamacpp")
+
+    # CPU or ARM64: plain PyPI install (aarch64 CPU wheels available on PyPI)
+    base_cmd.append("-q")
+    return base_cmd
+
+
+def install_native_dependencies(source_dir: Path, gpu_type: str = "cpu") -> bool:
+    """Install Python dependencies for native mode.
+
+    Uses the source directory's requirements files. On Jetson/ARM64 with CUDA,
+    installs cuda-requirements.txt; otherwise uses requirements.txt.
+    Installs xllamacpp with the correct GPU-specific wheel (CUDA/ROCm index URLs).
+    """
+    python = sys.executable
+
+    # Determine which requirements file to use
+    if gpu_type == "nvidia" or (is_jetson() and has_jetson_cuda()):
+        req_file = source_dir / "cuda-requirements.txt"
+        if not req_file.exists():
+            req_file = source_dir / "requirements.txt"
+        print("📦 Installing CUDA dependencies (this may take several minutes)...")
+    else:
+        req_file = source_dir / "requirements.txt"
+        print("📦 Installing dependencies...")
+
+    # Install xllamacpp with correct GPU backend
+    print("   Installing xllamacpp...")
+    xllamacpp_cmd = get_xllamacpp_install_cmd(gpu_type)
+    result = subprocess.run(
+        xllamacpp_cmd,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if result.returncode != 0:
+        print(f"⚠️  xllamacpp install warning: {result.stderr.strip()}")
+        if gpu_type in ("nvidia", "amd"):
+            print("   Falling back to CPU-only xllamacpp...")
+            result = subprocess.run(
+                [python, "-m", "pip", "install", "xllamacpp", "-q"],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            if result.returncode != 0:
+                print(f"⚠️  xllamacpp CPU fallback also failed: {result.stderr.strip()}")
+
+    # Install chatterbox-tts with --no-deps (same as Dockerfile)
+    print("   Installing chatterbox-tts...")
+    result = subprocess.run(
+        [python, "-m", "pip", "install", "chatterbox-tts", "--no-deps", "-q"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if result.returncode != 0:
+        print(f"⚠️  chatterbox-tts install warning: {result.stderr.strip()}")
+
+    # Install main requirements
+    print(f"   Installing from {req_file.name}...")
+    result = subprocess.run(
+        [python, "-m", "pip", "install", "-r", str(req_file), "-q"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if result.returncode != 0:
+        print(f"⚠️  Some dependencies failed to install:")
+        # Show only errors, not warnings
+        for line in result.stderr.splitlines():
+            if "error" in line.lower():
+                print(f"      {line.strip()}")
+        print("   Continuing anyway — some features may be unavailable.")
+
+    print("✅ Dependencies installed")
+    return True
+
+
+def start_native(
+    model: Optional[str] = None,
+    uri: Optional[str] = None,
+    api_key: Optional[str] = None,
+    ngrok: Optional[str] = None,
+    gpu_type: str = "cpu",
+) -> None:
+    """Start ezlocalai in native mode (directly running start.py)."""
+
+    # Check if already running
+    if is_native_running():
+        print(f"✅ ezlocalai is already running (native mode, PID {get_native_pid()})!")
+        print(f"   API: http://localhost:{DEFAULT_PORT}")
+        return
+
+    # Also check if Docker container is running
+    try:
+        if is_container_running():
+            print("⚠️  ezlocalai Docker container is already running.")
+            print("   Stop it first with 'ezlocalai stop' before using native mode.")
+            return
+    except Exception:
+        pass  # Docker not available, which is expected in native mode
+
+    # Find source directory
+    source_dir = get_source_dir_for_native()
+    if not source_dir:
+        # Need to clone
+        print("📦 ezlocalai source not found, cloning...")
+        source_dir = clone_or_update_repo()
+        if not source_dir:
+            print("❌ Failed to get ezlocalai source code.")
+            sys.exit(1)
+
+    # Load existing env or defaults
+    env_vars = get_default_env()
+    saved_env = load_env_file()
+    env_vars.update(saved_env)
+
+    # Apply command line overrides
+    if model:
+        env_vars["DEFAULT_MODEL"] = model
+    if uri:
+        env_vars["EZLOCALAI_URL"] = uri
+    if api_key:
+        env_vars["EZLOCALAI_API_KEY"] = api_key
+    if ngrok:
+        env_vars["NGROK_TOKEN"] = ngrok
+
+    # Save updated env
+    save_env_file(env_vars)
+
+    # Install dependencies if needed (check for a marker)
+    deps_marker = STATE_DIR / ".deps_installed"
+    if not deps_marker.exists():
+        install_native_dependencies(source_dir, gpu_type)
+        deps_marker.write_text("1")
+    else:
+        print(
+            "✅ Dependencies already installed (delete ~/.ezlocalai/.deps_installed to reinstall)"
+        )
+
+    # Prepare data directories (same as Docker mode)
+    data_dir = STATE_DIR / "data"
+    for d in ["models", "outputs", "voices", "hf"]:
+        (data_dir / d).mkdir(parents=True, exist_ok=True)
+
+    # Build environment for the subprocess
+    proc_env = os.environ.copy()
+    proc_env.update(env_vars)
+    proc_env["HOST"] = "0.0.0.0"
+    proc_env["PORT"] = str(DEFAULT_PORT)
+    # Point model/data paths to our state directory
+    proc_env["MODELS_PATH"] = str(data_dir / "models")
+    proc_env["HF_HOME"] = str(data_dir / "hf")
+
+    mode = (
+        "Jetson CUDA"
+        if is_jetson()
+        else ("NVIDIA GPU" if gpu_type == "nvidia" else "CPU")
+    )
+    print(f"\n🚀 Starting ezlocalai in native mode ({mode})...")
+    print(f"   Model: {env_vars.get('DEFAULT_MODEL', 'default')}")
+    print(f"   Source: {source_dir}")
+
+    # Start start.py as a background process
+    log_file = open(LOG_FILE, "a")
+    proc = subprocess.Popen(
+        [sys.executable, "start.py"],
+        cwd=str(source_dir),
+        env=proc_env,
+        stdout=log_file,
+        stderr=subprocess.STDOUT,
+        start_new_session=True,  # Detach from terminal
+    )
+
+    # Save PID
+    PID_FILE.write_text(str(proc.pid))
+    print(f"   PID: {proc.pid}")
+
+    # Wait for server to be ready
+    print("\n⏳ Waiting for server to be ready...")
+    max_wait = 300
+    start_time = time.time()
+
+    while time.time() - start_time < max_wait:
+        # Check if process died
+        if proc.poll() is not None:
+            print(f"\n❌ ezlocalai process exited with code {proc.returncode}")
+            print(f"   Check logs: cat {LOG_FILE}")
+            PID_FILE.unlink(missing_ok=True)
+            sys.exit(1)
+
+        try:
+            req = urllib.request.Request(f"http://localhost:{DEFAULT_PORT}/v1/models")
+            with urllib.request.urlopen(req, timeout=5) as response:
+                if response.status == 200:
+                    print("\n✅ ezlocalai is ready! (native mode)")
+                    print(f"\n   🌐 API: http://localhost:{DEFAULT_PORT}")
+                    print(f"\n   📖 API Docs: http://localhost:{DEFAULT_PORT}/docs")
+                    print(f"   📋 Logs: {LOG_FILE}")
+                    return
+        except Exception:
+            pass
+
+        elapsed = int(time.time() - start_time)
+        if elapsed % 10 == 0 and elapsed > 0:
+            print(f"   Still loading... ({elapsed}s)")
+        time.sleep(2)
+
+    print("\n⚠️  Server started but not responding yet.")
+    print("   This is normal for first-time model downloads.")
+    print(f"   Check logs: tail -f {LOG_FILE}")
+    print(f"\n   🌐 API: http://localhost:{DEFAULT_PORT}")
+
+
+def stop_native() -> None:
+    """Stop the native ezlocalai process."""
+    pid = get_native_pid()
+    if not pid:
+        print("ℹ️  ezlocalai is not running in native mode")
+        return
+
+    print(f"🛑 Stopping ezlocalai (PID {pid})...")
+    try:
+        # Send SIGTERM for graceful shutdown
+        os.kill(pid, signal.SIGTERM)
+        # Wait up to 10 seconds for graceful shutdown
+        for _ in range(20):
+            time.sleep(0.5)
+            try:
+                os.kill(pid, 0)
+            except ProcessLookupError:
+                break
+        else:
+            # Force kill if still running
+            print("   Force killing...")
+            os.kill(pid, signal.SIGKILL)
+            time.sleep(1)
+    except ProcessLookupError:
+        pass  # Already dead
+    except PermissionError:
+        print(f"❌ Permission denied. Try: sudo kill {pid}")
+        return
+
+    PID_FILE.unlink(missing_ok=True)
+    print("✅ ezlocalai stopped")
+
+
+def show_native_status() -> None:
+    """Show status of native ezlocalai process."""
+    pid = get_native_pid()
+    env_vars = load_env_file()
+    if not env_vars:
+        env_vars = get_default_env()
+
+    if pid:
+        print(f"✅ ezlocalai is running (native mode, PID {pid})")
+        print(f"\n   🌐 API: http://localhost:{DEFAULT_PORT}")
+
+        # Show loaded model from API
+        try:
+            req = urllib.request.Request(f"http://localhost:{DEFAULT_PORT}/v1/models")
+            with urllib.request.urlopen(req, timeout=5) as response:
+                data = json.loads(response.read().decode())
+                models = [m.get("id") for m in data.get("data", [])]
+                if models:
+                    print(f"\n   🧠 Active model: {models[0]}")
+        except Exception:
+            print("   ⚠️  Server not responding (may still be loading)")
+    else:
+        print("ℹ️  ezlocalai is not running in native mode")
+        print("   Run 'ezlocalai start --native' to start in native mode")
+
+    # Show config
+    print(f"\n   ⚙️  Configuration:")
+    models = env_vars.get("DEFAULT_MODEL", "unsloth/Qwen3.5-4B-GGUF")
+    configured = [m.strip() for m in models.split(",")]
+    print(f"      LLM models:")
+    for m in configured:
+        print(f"        - {m}")
+
+    whisper = env_vars.get("WHISPER_MODEL", "large-v3")
+    print(f"      Speech-to-text: {whisper if whisper else 'disabled'}")
+    img_model = env_vars.get("IMG_MODEL", "")
+    print(f"      Image generation: {img_model if img_model else 'disabled'}")
+
+    print(f"\n   📋 Logs: {LOG_FILE}")
+
+
+def show_native_logs(follow: bool = False) -> None:
+    """Show logs from native mode."""
+    if not LOG_FILE.exists():
+        print("ℹ️  No log file found")
+        return
+
+    if follow:
+        try:
+            subprocess.run(["tail", "-f", str(LOG_FILE)], check=False)
+        except KeyboardInterrupt:
+            pass
+    else:
+        # Show last 100 lines
+        try:
+            subprocess.run(["tail", "-n", "100", str(LOG_FILE)], check=False)
+        except FileNotFoundError:
+            # Windows fallback
+            lines = LOG_FILE.read_text(encoding="utf-8", errors="replace").splitlines()
+            for line in lines[-100:]:
+                print(line)
+
+
+# ── Docker mode functions ───────────────────────────────────────────────────
 
 
 def start_container(
@@ -1148,8 +1868,14 @@ def send_prompt(
     show_stats: bool = False,
 ) -> None:
     """Send a prompt to the ezlocalai server and print the response."""
-    # Check if server is running
-    if not is_container_running():
+    # Check if server is running (Docker or native)
+    running = is_native_running()
+    if not running:
+        try:
+            running = is_container_running()
+        except Exception:
+            pass
+    if not running:
         print("❌ ezlocalai is not running. Start it with: ezlocalai start")
         sys.exit(1)
 
@@ -1378,7 +2104,8 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  ezlocalai start                           Start with default settings
+  ezlocalai start                           Start with default settings (Docker)
+  ezlocalai start --native                  Start in native mode (no Docker)
   ezlocalai start --model unsloth/Qwen3-4B  Start with specific model
   ezlocalai restart                         Restart the server
   ezlocalai stop                            Stop the server
@@ -1387,6 +2114,10 @@ Examples:
   ezlocalai prompt "Hello, world!"          Send a prompt to the AI
   ezlocalai prompt "What's in this image?" -image ./photo.jpg
   ezlocalai prompt "Describe this video" -video ./clip.mp4
+
+Modes:
+  Docker (default on x86_64): Runs in a Docker container
+  Native (default on ARM64):  Runs start.py directly, auto-detected on ARM64/Jetson
 
 Environment:
   Configuration is stored in ~/.ezlocalai/.env
@@ -1426,6 +2157,11 @@ Environment:
         help="Ngrok token for public URL",
         default=None,
     )
+    start_parser.add_argument(
+        "--native",
+        action="store_true",
+        help="Run in native mode (directly, without Docker). Auto-enabled on ARM64/Jetson.",
+    )
 
     # Stop command
     subparsers.add_parser("stop", help="Stop ezlocalai server")
@@ -1452,6 +2188,11 @@ Environment:
         "--ngrok",
         help="Ngrok token for public URL",
         default=None,
+    )
+    restart_parser.add_argument(
+        "--native",
+        action="store_true",
+        help="Run in native mode (directly, without Docker). Auto-enabled on ARM64/Jetson.",
     )
 
     # Status command
@@ -1522,44 +2263,82 @@ Environment:
         parser.print_help()
         sys.exit(0)
 
+    # Determine if we should use native mode
+    native = False
+    if args.command in ("start", "restart"):
+        native = should_use_native_mode(force_native=args.native)
+
+    # For stop/status/logs, auto-detect which mode is active
+    if args.command in ("stop", "status", "logs"):
+        native = is_native_running()
+
     # Check prerequisites for start/restart
     gpu_type = "cpu"
     if args.command in ("start", "restart"):
-        _, gpu_type = check_prerequisites()
+        _, gpu_type = check_prerequisites(native_mode=native)
         print()
 
     # Execute command
     if args.command == "start":
-        start_container(
-            model=args.model,
-            uri=args.uri,
-            api_key=args.api_key,
-            ngrok=args.ngrok,
-            gpu_type=gpu_type,
-        )
+        if native:
+            start_native(
+                model=args.model,
+                uri=args.uri,
+                api_key=args.api_key,
+                ngrok=args.ngrok,
+                gpu_type=gpu_type,
+            )
+        else:
+            start_container(
+                model=args.model,
+                uri=args.uri,
+                api_key=args.api_key,
+                ngrok=args.ngrok,
+                gpu_type=gpu_type,
+            )
 
     elif args.command == "stop":
-        stop_container()
+        if native:
+            stop_native()
+        else:
+            stop_container()
 
     elif args.command == "restart":
-        stop_container()
-        time.sleep(2)
-        start_container(
-            model=args.model,
-            uri=args.uri,
-            api_key=args.api_key,
-            ngrok=args.ngrok,
-            gpu_type=gpu_type,
-        )
+        if native:
+            stop_native()
+            time.sleep(2)
+            start_native(
+                model=args.model,
+                uri=args.uri,
+                api_key=args.api_key,
+                ngrok=args.ngrok,
+                gpu_type=gpu_type,
+            )
+        else:
+            stop_container()
+            time.sleep(2)
+            start_container(
+                model=args.model,
+                uri=args.uri,
+                api_key=args.api_key,
+                ngrok=args.ngrok,
+                gpu_type=gpu_type,
+            )
 
     elif args.command == "status":
-        show_status()
+        if native:
+            show_native_status()
+        else:
+            show_status()
 
     elif args.command == "update":
         update_images()
 
     elif args.command == "logs":
-        show_logs(follow=args.follow)
+        if native:
+            show_native_logs(follow=args.follow)
+        else:
+            show_logs(follow=args.follow)
 
     elif args.command == "prompt":
         send_prompt(
