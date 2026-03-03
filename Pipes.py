@@ -280,6 +280,19 @@ class ResourceManager:
             f"[ResourceManager] Initialized: {self.gpu_count} GPU(s), "
             f"{self.total_vram:.1f}GB total VRAM, {self.system_ram_gb:.1f}GB system RAM"
         )
+        # Detect Jetson unified memory for better diagnostics
+        try:
+            jetson_detected = os.path.exists("/etc/nv_tegra_release")
+            if not jetson_detected and os.path.exists("/proc/device-tree/model"):
+                with open("/proc/device-tree/model", "r", errors="ignore") as f:
+                    jetson_detected = "jetson" in f.read().lower()
+            if jetson_detected:
+                logging.info(
+                    f"[ResourceManager] Jetson detected — using unified memory "
+                    f"(GPU shares {self.system_ram_gb:.1f}GB system RAM)"
+                )
+        except Exception:
+            pass
 
     def _get_system_ram_gb(self) -> float:
         """Get total system RAM in GB."""
@@ -2598,6 +2611,18 @@ class Pipes:
             # Only reserve VRAM for TTS/STT if running locally (no voice server URL)
             # When a voice server URL is configured, voice models are NOT loaded locally
             reserved_vram = 0.0 if has_voice_server_url() else 5.0
+
+            # On Jetson or other low-VRAM devices, reduce reservation proportionally
+            # Jetson uses unified memory (shared CPU/GPU) so total VRAM is limited
+            if reserved_vram > 0:
+                total_vram = sum(get_per_gpu_vram_gb()) if get_gpu_count() > 0 else 0
+                if 0 < total_vram < 12:
+                    # Scale reservation: 5GB for 24GB+ GPUs → 1-2GB for 8GB Jetson
+                    reserved_vram = max(1.0, total_vram * 0.15)
+                    logging.info(
+                        f"[GPU Selection] Low VRAM detected ({total_vram:.0f}GB), "
+                        f"reduced TTS/STT reservation to {reserved_vram:.1f}GB"
+                    )
             strategy = determine_gpu_strategy(
                 model_path=model_path,
                 context_size=max_tokens,

@@ -50,6 +50,111 @@ PID_FILE = STATE_DIR / "ezlocalai.pid"
 REPO_URL = "https://github.com/DevXT-LLC/ezlocalai.git"
 REPO_DIR = STATE_DIR / "repo"
 
+# Cache for uv availability (checked once per process)
+_uv_available: Optional[bool] = None
+
+
+def _ensure_uv_installed() -> bool:
+    """Ensure uv is installed. Installs it if missing.
+
+    uv is a fast Python package manager (10-100x faster than pip).
+    Used as a drop-in replacement for 'pip install' throughout the CLI.
+    Falls back to pip if uv cannot be installed.
+
+    Returns True if uv is available.
+    """
+    global _uv_available
+    if _uv_available is not None:
+        return _uv_available
+
+    if shutil.which("uv"):
+        _uv_available = True
+        return True
+
+    # Try installing uv via pip (fastest, doesn't need curl/sudo)
+    python = sys.executable
+    result = subprocess.run(
+        [python, "-m", "pip", "install", "uv", "-q"],
+        capture_output=True,
+        check=False,
+    )
+    if result.returncode == 0 and shutil.which("uv"):
+        _uv_available = True
+        print("⚡ Installed uv for faster package management")
+        return True
+
+    # Try the official installer as fallback
+    try:
+        result = subprocess.run(
+            ["sh", "-c", "curl -LsSf https://astral.sh/uv/install.sh | sh"],
+            capture_output=True,
+            check=False,
+        )
+        # uv installs to ~/.local/bin or ~/.cargo/bin
+        for uv_dir in [
+            Path.home() / ".local" / "bin",
+            Path.home() / ".cargo" / "bin",
+        ]:
+            uv_path = uv_dir / "uv"
+            if uv_path.exists():
+                if str(uv_dir) not in os.environ.get("PATH", ""):
+                    os.environ["PATH"] = f"{uv_dir}:{os.environ.get('PATH', '')}"
+                _uv_available = True
+                print("⚡ Installed uv for faster package management")
+                return True
+    except Exception:
+        pass
+
+    _uv_available = False
+    return False
+
+
+def _get_pip_cmd(python: str = None) -> list[str]:
+    """Get the pip install command prefix.
+
+    Returns ['uv', 'pip'] if uv is available (10-100x faster),
+    otherwise falls back to [python, '-m', 'pip'].
+
+    The returned list can be extended with install/uninstall args.
+    """
+    if python is None:
+        python = sys.executable
+    if _uv_available or _ensure_uv_installed():
+        return ["uv", "pip", "--python", python]
+    return [python, "-m", "pip"]
+
+
+def _pip_install(
+    packages: list[str],
+    python: str = None,
+    extra_args: list[str] = None,
+    **kwargs,
+) -> subprocess.CompletedProcess:
+    """Install packages using uv (fast) or pip (fallback).
+
+    Args:
+        packages: List of package specs (e.g. ['torch', 'numpy>=1.20'])
+        python: Python executable path. Defaults to sys.executable.
+        extra_args: Additional args like ['--no-deps', '--index-url', '...']
+        **kwargs: Passed to subprocess.run (e.g. capture_output, cwd, env)
+    """
+    cmd = _get_pip_cmd(python) + ["install"] + packages
+    if extra_args:
+        cmd.extend(extra_args)
+    kwargs.setdefault("check", False)
+    return subprocess.run(cmd, **kwargs)
+
+
+def _pip_uninstall(
+    packages: list[str],
+    python: str = None,
+    **kwargs,
+) -> subprocess.CompletedProcess:
+    """Uninstall packages using uv (fast) or pip (fallback)."""
+    cmd = _get_pip_cmd(python) + ["uninstall"] + packages + ["-y"]
+    kwargs.setdefault("check", False)
+    return subprocess.run(cmd, **kwargs)
+
 
 def is_arm64() -> bool:
     """Check if running on ARM64/aarch64 architecture."""
@@ -86,6 +191,183 @@ def has_jetson_cuda() -> bool:
     if shutil.which("tegrastats"):
         return True
     return False
+
+
+def _detect_jetpack_version() -> Optional[str]:
+    """Detect the JetPack version on a Jetson device.
+
+    Returns a version string like '60' (JetPack 6.0) or '61' (JetPack 6.1)
+    suitable for constructing NVIDIA wheel download URLs. Returns None if
+    detection fails.
+    """
+    # Method 1: dpkg query for nvidia-jetpack meta-package
+    try:
+        result = subprocess.run(
+            ["dpkg-query", "--showformat=${Version}", "-W", "nvidia-jetpack"],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if result.returncode == 0 and result.stdout.strip():
+            ver = result.stdout.strip()
+            # Parse "6.0-b123" or "6.1.1-b456" -> major.minor
+            match = re.match(r"(\d+)\.(\d+)", ver)
+            if match:
+                return f"{match.group(1)}{match.group(2)}"
+    except FileNotFoundError:
+        pass
+
+    # Method 2: dpkg query for nvidia-l4t-core (L4T version -> JetPack mapping)
+    try:
+        result = subprocess.run(
+            ["dpkg-query", "--showformat=${Version}", "-W", "nvidia-l4t-core"],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if result.returncode == 0 and result.stdout.strip():
+            ver = result.stdout.strip()
+            match = re.match(r"(\d+)\.(\d+)", ver)
+            if match:
+                l4t_major, l4t_minor = int(match.group(1)), int(match.group(2))
+                # L4T R36.x = JetPack 6.x
+                if l4t_major == 36:
+                    if l4t_minor >= 4:
+                        return "61"
+                    return "60"
+                # L4T R35.x = JetPack 5.1
+                if l4t_major == 35:
+                    return "51"
+                # L4T R34.x = JetPack 5.0
+                if l4t_major == 34:
+                    return "50"
+    except FileNotFoundError:
+        pass
+
+    # Method 3: Use CUDA version as a rough proxy
+    cuda_ver = get_cuda_version()
+    if cuda_ver:
+        cuda_major_minor = tuple(int(x) for x in cuda_ver.split(".")[:2])
+        if cuda_major_minor >= (12, 6):
+            return "61"
+        if cuda_major_minor >= (12, 2):
+            return "60"
+        if cuda_major_minor >= (11, 4):
+            return "51"
+
+    return None
+
+
+def _install_jetson_torch(python: str) -> bool:
+    """Install NVIDIA's CUDA-enabled PyTorch on Jetson.
+
+    PyPI's torch package is CPU-only on aarch64. NVIDIA provides JetPack-
+    compatible wheels with CUDA/cuDNN acceleration at their redistribution
+    site. This function detects the JetPack version, finds the latest
+    matching wheel for the current Python version, and installs it.
+
+    Must be called BEFORE installing other requirements so that transitive
+    torch dependencies don't pull in the CPU-only version from PyPI.
+
+    Returns True if a CUDA-enabled torch was installed, False otherwise.
+    """
+    import urllib.request
+    from html.parser import HTMLParser
+
+    jp_ver = _detect_jetpack_version()
+    if not jp_ver:
+        print(
+            "⚠️  Could not detect JetPack version — "
+            "skipping NVIDIA PyTorch install (torch will be CPU-only)"
+        )
+        return False
+
+    py_tag = f"cp{sys.version_info.major}{sys.version_info.minor}"
+    base_url = (
+        f"https://developer.download.nvidia.com/compute/redist/"
+        f"jp/v{jp_ver}/pytorch/"
+    )
+
+    print(f"🔍 Detected JetPack {jp_ver[0]}.{jp_ver[1:]}, Python {py_tag}")
+    print(f"📦 Fetching NVIDIA PyTorch wheel listing from {base_url} ...")
+
+    # Parse the flat HTML directory listing for wheel filenames
+    class _WheelLinkParser(HTMLParser):
+        def __init__(self):
+            super().__init__()
+            self.wheels: list[str] = []
+
+        def handle_starttag(self, tag, attrs):
+            if tag == "a":
+                for attr_name, attr_val in attrs:
+                    if attr_name == "href" and attr_val and attr_val.endswith(".whl"):
+                        self.wheels.append(attr_val)
+
+    try:
+        req = urllib.request.Request(base_url, headers={"User-Agent": "ezlocalai"})
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            html = resp.read().decode("utf-8", errors="replace")
+    except Exception as exc:
+        print(f"⚠️  Failed to fetch wheel listing: {exc}")
+        return False
+
+    parser = _WheelLinkParser()
+    parser.feed(html)
+
+    # Filter for wheels matching our Python version and architecture
+    matching = [
+        w
+        for w in parser.wheels
+        if f"-{py_tag}-" in w and "linux_aarch64" in w
+    ]
+
+    if not matching:
+        print(
+            f"⚠️  No PyTorch wheel found for {py_tag} in JetPack {jp_ver} — "
+            f"available wheels: {parser.wheels or 'none'}"
+        )
+        print(
+            "   Jetson NVIDIA torch wheels are typically built for Python 3.10 (cp310)."
+        )
+        print("   torch will fall back to CPU-only from PyPI.")
+        return False
+
+    # Pick the latest wheel (last in the sorted list — NVIDIA names sort by version)
+    matching.sort()
+    wheel_name = matching[-1]
+
+    # Build absolute URL if the href is relative
+    if wheel_name.startswith("http"):
+        wheel_url = wheel_name
+    else:
+        wheel_url = base_url + wheel_name
+
+    print(f"⬇️  Installing NVIDIA PyTorch: {wheel_name}")
+
+    # Uninstall any existing CPU-only torch first to avoid conflicts
+    _pip_uninstall(["torch"], python=python, capture_output=True)
+
+    result = _pip_install(
+        [wheel_url], python=python, extra_args=["--no-cache-dir"],
+    )
+
+    if result.returncode != 0:
+        print("⚠️  Failed to install NVIDIA PyTorch wheel")
+        return False
+
+    # Verify CUDA is now available
+    verify = subprocess.run(
+        [python, "-c", "import torch; print('CUDA available:', torch.cuda.is_available()); print('GPU:', torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'none')"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if verify.returncode == 0:
+        print(f"✅ {verify.stdout.strip()}")
+    else:
+        print(f"⚠️  torch import test: {verify.stderr.strip()}")
+
+    return True
 
 
 def should_use_native_mode(force_native: bool = False) -> bool:
@@ -1005,17 +1287,16 @@ def build_xllamacpp_from_source(gpu_type: str = "nvidia") -> list[str]:
         )
         if result.returncode != 0:
             print("   ❌ Failed to install Rust. xllamacpp will fall back to CPU.")
-            return [python, "-m", "pip", "install", "xllamacpp", "-q"]
+            return _get_pip_cmd(python) + ["install", "xllamacpp", "-q"]
         # Add cargo to PATH for this session
         if cargo_bin.exists() and str(cargo_bin) not in os.environ.get("PATH", ""):
             os.environ["PATH"] = f"{cargo_bin}:{os.environ.get('PATH', '')}"
 
     # Install build dependencies (cython, setuptools needed for xllamacpp)
     print("   Installing build dependencies...")
-    subprocess.run(
-        [python, "-m", "pip", "install", "cython", "setuptools", "wheel", "-q"],
-        capture_output=True,
-        check=False,
+    _pip_install(
+        ["cython", "setuptools", "wheel"], python=python,
+        extra_args=["-q"], capture_output=True,
     )
 
     # Clone or update xllamacpp source
@@ -1038,7 +1319,7 @@ def build_xllamacpp_from_source(gpu_type: str = "nvidia") -> list[str]:
         if result.returncode != 0:
             print(f"   ❌ Failed to clone xllamacpp: {result.stderr.strip()}")
             print("   Falling back to CPU-only aarch64 wheel from PyPI...")
-            return [python, "-m", "pip", "install", "xllamacpp", "-q"]
+            return _get_pip_cmd(python) + ["install", "xllamacpp", "-q"]
 
     # Ensure submodules are initialized
     subprocess.run(
@@ -1051,10 +1332,9 @@ def build_xllamacpp_from_source(gpu_type: str = "nvidia") -> list[str]:
     # Install xllamacpp's own build requirements if present
     xllamacpp_reqs = XLLAMACPP_BUILD_DIR / "requirements.txt"
     if xllamacpp_reqs.exists():
-        subprocess.run(
-            [python, "-m", "pip", "install", "-r", str(xllamacpp_reqs), "-q"],
-            capture_output=True,
-            check=False,
+        _pip_install(
+            ["-r", str(xllamacpp_reqs)], python=python,
+            extra_args=["-q"], capture_output=True,
         )
 
     # Set build environment for CUDA
@@ -1067,7 +1347,7 @@ def build_xllamacpp_from_source(gpu_type: str = "nvidia") -> list[str]:
             build_env["CMAKE_CUDA_ARCHITECTURES"] = cuda_arch
             print(f"   Building with CUDA arch: {cuda_arch}")
 
-    # Build and install
+    # Build and install (use pip for source builds — uv doesn't support build envs well)
     print("   Building xllamacpp from source (this may take several minutes)...")
     result = subprocess.run(
         [
@@ -1091,7 +1371,7 @@ def build_xllamacpp_from_source(gpu_type: str = "nvidia") -> list[str]:
         for line in result.stderr.splitlines()[-10:]:
             print(f"      {line}")
         print("   Falling back to CPU-only aarch64 wheel from PyPI...")
-        return [python, "-m", "pip", "install", "xllamacpp", "-q"]
+        return _get_pip_cmd(python) + ["install", "xllamacpp", "-q"]
 
     print("   ✅ xllamacpp built from source with CUDA support")
     # Return a no-op command since we already installed
@@ -1151,7 +1431,7 @@ def get_xllamacpp_install_cmd(gpu_type: str = "cpu") -> list[str]:
     Uses GPU-specific index URLs for CUDA/ROCm wheels, or plain PyPI for CPU/ARM64.
     """
     python = sys.executable
-    base_cmd = [python, "-m", "pip", "install", "xllamacpp"]
+    base_cmd = _get_pip_cmd(python) + ["install", "xllamacpp"]
 
     if gpu_type == "nvidia" and not is_arm64():
         # x86_64 NVIDIA: use CUDA index URL
@@ -1211,6 +1491,14 @@ def install_native_dependencies(source_dir: Path, gpu_type: str = "cpu") -> bool
     """
     python = sys.executable
 
+    # Ensure uv is available for fast package installation
+    _ensure_uv_installed()
+
+    # On Jetson, install NVIDIA's CUDA-enabled PyTorch BEFORE other packages
+    # PyPI's torch is CPU-only; Jetson needs the JetPack-compatible wheel
+    if is_jetson() and has_jetson_cuda():
+        _install_jetson_torch(python)
+
     # Determine which requirements file to use
     if gpu_type == "nvidia" or (is_jetson() and has_jetson_cuda()):
         req_file = source_dir / "cuda-requirements.txt"
@@ -1234,22 +1522,18 @@ def install_native_dependencies(source_dir: Path, gpu_type: str = "cpu") -> bool
         print(f"⚠️  xllamacpp install warning: {result.stderr.strip()}")
         if gpu_type in ("nvidia", "amd"):
             print("   Falling back to CPU-only xllamacpp...")
-            result = subprocess.run(
-                [python, "-m", "pip", "install", "xllamacpp", "-q"],
-                capture_output=True,
-                text=True,
-                check=False,
+            result = _pip_install(
+                ["xllamacpp"], python=python,
+                extra_args=["-q"], capture_output=True, text=True,
             )
             if result.returncode != 0:
                 print(f"⚠️  xllamacpp CPU fallback also failed: {result.stderr.strip()}")
 
     # Install chatterbox-tts with --no-deps (same as Dockerfile)
     print("   Installing chatterbox-tts...")
-    result = subprocess.run(
-        [python, "-m", "pip", "install", "chatterbox-tts", "--no-deps", "-q"],
-        capture_output=True,
-        text=True,
-        check=False,
+    result = _pip_install(
+        ["chatterbox-tts"], python=python,
+        extra_args=["--no-deps", "-q"], capture_output=True, text=True,
     )
     if result.returncode != 0:
         print(f"⚠️  chatterbox-tts install warning: {result.stderr.strip()}")
@@ -1263,11 +1547,9 @@ def install_native_dependencies(source_dir: Path, gpu_type: str = "cpu") -> bool
         _install_requirements_individually(python, req_file)
     else:
         # On x86_64, install all at once (faster, all wheels available)
-        result = subprocess.run(
-            [python, "-m", "pip", "install", "-r", str(req_file), "-q"],
-            capture_output=True,
-            text=True,
-            check=False,
+        result = _pip_install(
+            ["-r", str(req_file)], python=python,
+            extra_args=["-q"], capture_output=True, text=True,
         )
         if result.returncode != 0:
             print(f"⚠️  Some dependencies failed to install:")
@@ -1286,15 +1568,35 @@ def _install_requirements_individually(python: str, req_file: Path) -> None:
     Strategy: try batch install first (preserves pip's version resolver for
     compatible huggingface_hub/transformers/diffusers versions). If batch fails,
     identify failing packages and install the rest individually.
+
+    On Jetson with NVIDIA torch installed, packages that have strict torch
+    version coupling (torchaudio, torchcodec) are installed with --no-deps
+    to prevent pip from replacing the NVIDIA CUDA-enabled torch with PyPI's
+    CPU-only version.
     """
-    # First, try batch install — this keeps pip's dependency resolver intact
-    result = subprocess.run(
-        [python, "-m", "pip", "install", "-r", str(req_file), "-q"],
-        capture_output=True,
-        text=True,
-        check=False,
+    jetson_with_cuda = is_jetson() and has_jetson_cuda()
+
+    # Packages that have exact torch version constraints (e.g. torch==2.4.0)
+    # which would cause pip to replace our NVIDIA CUDA torch with CPU-only PyPI torch
+    TORCH_COUPLED_PKGS = {"torch", "torchaudio", "torchcodec", "torchvision"}
+
+    # First, try batch install — this keeps the dependency resolver intact
+    result = _pip_install(
+        ["-r", str(req_file)], python=python,
+        extra_args=["-q"], capture_output=True, text=True,
     )
     if result.returncode == 0:
+        if jetson_with_cuda:
+            # Verify NVIDIA torch wasn't overwritten
+            verify = subprocess.run(
+                [python, "-c", "import torch; assert torch.cuda.is_available(), 'CUDA lost'"],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            if verify.returncode != 0:
+                print("⚠️  Batch install replaced NVIDIA torch — reinstalling CUDA torch...")
+                _install_jetson_torch(python)
         print("   All packages installed successfully (batch).")
         return
 
@@ -1317,20 +1619,41 @@ def _install_requirements_individually(python: str, req_file: Path) -> None:
     # Identify which packages can't be installed individually
     failed = []
     succeeded = []
+    skipped = []
     total = len(packages)
     for i, pkg in enumerate(packages, 1):
         display_name = re.split(r"[>=<\[@ ]", pkg)[0]
-        result = subprocess.run(
-            [python, "-m", "pip", "install", pkg, "-q"],
-            capture_output=True,
-            text=True,
-            check=False,
+
+        # On Jetson with CUDA, skip packages that would replace NVIDIA torch
+        if jetson_with_cuda and display_name.lower() in TORCH_COUPLED_PKGS:
+            if display_name.lower() == "torch":
+                skipped.append(display_name)
+                continue  # Already installed from NVIDIA
+            # For torchaudio/torchcodec/torchvision, try --no-deps to avoid
+            # pip pulling in CPU-only torch from PyPI
+            result = _pip_install(
+                [pkg], python=python,
+                extra_args=["--no-deps", "-q"], capture_output=True, text=True,
+            )
+            if result.returncode != 0:
+                skipped.append(display_name)
+            else:
+                succeeded.append(display_name)
+            continue
+
+        result = _pip_install(
+            [pkg], python=python,
+            extra_args=["-q"], capture_output=True, text=True,
         )
         if result.returncode != 0:
             failed.append(display_name)
         else:
             succeeded.append(display_name)
 
+    if skipped:
+        print(f"   ℹ️  {len(skipped)} torch-coupled package(s) handled separately on Jetson:")
+        for name in skipped:
+            print(f"      - {name}")
     if failed:
         print(f"   ⚠️  {len(failed)} package(s) skipped (no ARM64 wheel):")
         for name in failed:
@@ -1338,7 +1661,7 @@ def _install_requirements_individually(python: str, req_file: Path) -> None:
         print(f"   {len(succeeded)}/{total} packages installed successfully.")
         print("   Non-critical features may be unavailable.")
     else:
-        print(f"   All {total} packages installed successfully.")
+        print(f"   All {total - len(skipped)} packages installed successfully.")
 
 
 def start_native(
@@ -2157,11 +2480,9 @@ def auto_update_native(source_dir: Path, gpu_type: str = "cpu") -> None:
 
     # Reinstall package
     python = sys.executable
-    subprocess.run(
-        [python, "-m", "pip", "install", "-e", ".", "-q"],
-        cwd=source_dir,
-        capture_output=True,
-        check=False,
+    _pip_install(
+        ["-e", "."], python=python,
+        extra_args=["-q"], capture_output=True, cwd=source_dir,
     )
 
     # Reinstall deps if requirements changed
@@ -2264,15 +2585,12 @@ def update_native() -> None:
     # Reinstall package in editable mode
     print("\n📦 Reinstalling ezlocalai...")
     python = sys.executable
-    result = subprocess.run(
-        [python, "-m", "pip", "install", "-e", ".", "-q"],
-        cwd=source_dir,
-        capture_output=True,
-        text=True,
-        check=False,
+    result = _pip_install(
+        ["-e", "."], python=python,
+        extra_args=["-q"], capture_output=True, text=True, cwd=source_dir,
     )
     if result.returncode != 0:
-        print(f"   ❌ pip install -e . failed: {result.stderr.strip()}")
+        print(f"   ❌ install -e . failed: {result.stderr.strip()}")
         return
     print("   ✅ ezlocalai reinstalled")
 
