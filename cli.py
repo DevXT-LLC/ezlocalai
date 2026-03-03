@@ -109,19 +109,31 @@ def _ensure_uv_installed() -> bool:
     return False
 
 
-def _get_pip_cmd(python: str = None) -> list[str]:
-    """Get the pip install command prefix.
+def _get_pip_cmd(python: str = None, subcommand: str = None) -> list[str]:
+    """Get the pip command prefix with optional subcommand.
 
-    Returns ['uv', 'pip'] if uv is available (10-100x faster),
-    otherwise falls back to [python, '-m', 'pip'].
+    Returns ['uv', 'pip'] or [python, '-m', 'pip'] as the base.
+    If subcommand is given (e.g. 'install', 'uninstall'), it is appended
+    along with --python for uv (which requires it after the subcommand).
 
-    The returned list can be extended with install/uninstall args.
+    Examples:
+        _get_pip_cmd(python)              -> ['uv', 'pip'] or [python, '-m', 'pip']
+        _get_pip_cmd(python, 'install')   -> ['uv', 'pip', 'install', '--python', python]
+                                          or [python, '-m', 'pip', 'install']
     """
     if python is None:
         python = sys.executable
-    if _uv_available or _ensure_uv_installed():
-        return ["uv", "pip", "--python", python]
-    return [python, "-m", "pip"]
+    use_uv = _uv_available or _ensure_uv_installed()
+    if use_uv:
+        cmd = ["uv", "pip"]
+        if subcommand:
+            cmd.append(subcommand)
+            cmd.extend(["--python", python])
+        return cmd
+    cmd = [python, "-m", "pip"]
+    if subcommand:
+        cmd.append(subcommand)
+    return cmd
 
 
 def _pip_install(
@@ -138,7 +150,9 @@ def _pip_install(
         extra_args: Additional args like ['--no-deps', '--index-url', '...']
         **kwargs: Passed to subprocess.run (e.g. capture_output, cwd, env)
     """
-    cmd = _get_pip_cmd(python) + ["install"] + packages
+    if python is None:
+        python = sys.executable
+    cmd = _get_pip_cmd(python, "install") + packages
     if extra_args:
         cmd.extend(extra_args)
     kwargs.setdefault("check", False)
@@ -151,7 +165,9 @@ def _pip_uninstall(
     **kwargs,
 ) -> subprocess.CompletedProcess:
     """Uninstall packages using uv (fast) or pip (fallback)."""
-    cmd = _get_pip_cmd(python) + ["uninstall"] + packages + ["-y"]
+    if python is None:
+        python = sys.executable
+    cmd = _get_pip_cmd(python, "uninstall") + packages + ["-y"]
     kwargs.setdefault("check", False)
     return subprocess.run(cmd, **kwargs)
 
@@ -315,11 +331,7 @@ def _install_jetson_torch(python: str) -> bool:
     parser.feed(html)
 
     # Filter for wheels matching our Python version and architecture
-    matching = [
-        w
-        for w in parser.wheels
-        if f"-{py_tag}-" in w and "linux_aarch64" in w
-    ]
+    matching = [w for w in parser.wheels if f"-{py_tag}-" in w and "linux_aarch64" in w]
 
     if not matching:
         print(
@@ -348,7 +360,9 @@ def _install_jetson_torch(python: str) -> bool:
     _pip_uninstall(["torch"], python=python, capture_output=True)
 
     result = _pip_install(
-        [wheel_url], python=python, extra_args=["--no-cache-dir"],
+        [wheel_url],
+        python=python,
+        extra_args=["--no-cache-dir"],
     )
 
     if result.returncode != 0:
@@ -357,7 +371,11 @@ def _install_jetson_torch(python: str) -> bool:
 
     # Verify CUDA is now available
     verify = subprocess.run(
-        [python, "-c", "import torch; print('CUDA available:', torch.cuda.is_available()); print('GPU:', torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'none')"],
+        [
+            python,
+            "-c",
+            "import torch; print('CUDA available:', torch.cuda.is_available()); print('GPU:', torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'none')",
+        ],
         capture_output=True,
         text=True,
         check=False,
@@ -1287,7 +1305,7 @@ def build_xllamacpp_from_source(gpu_type: str = "nvidia") -> list[str]:
         )
         if result.returncode != 0:
             print("   ❌ Failed to install Rust. xllamacpp will fall back to CPU.")
-            return _get_pip_cmd(python) + ["install", "xllamacpp", "-q"]
+            return _get_pip_cmd(python, "install") + ["xllamacpp", "-q"]
         # Add cargo to PATH for this session
         if cargo_bin.exists() and str(cargo_bin) not in os.environ.get("PATH", ""):
             os.environ["PATH"] = f"{cargo_bin}:{os.environ.get('PATH', '')}"
@@ -1295,8 +1313,10 @@ def build_xllamacpp_from_source(gpu_type: str = "nvidia") -> list[str]:
     # Install build dependencies (cython, setuptools needed for xllamacpp)
     print("   Installing build dependencies...")
     _pip_install(
-        ["cython", "setuptools", "wheel"], python=python,
-        extra_args=["-q"], capture_output=True,
+        ["cython", "setuptools", "wheel"],
+        python=python,
+        extra_args=["-q"],
+        capture_output=True,
     )
 
     # Clone or update xllamacpp source
@@ -1319,7 +1339,7 @@ def build_xllamacpp_from_source(gpu_type: str = "nvidia") -> list[str]:
         if result.returncode != 0:
             print(f"   ❌ Failed to clone xllamacpp: {result.stderr.strip()}")
             print("   Falling back to CPU-only aarch64 wheel from PyPI...")
-            return _get_pip_cmd(python) + ["install", "xllamacpp", "-q"]
+            return _get_pip_cmd(python, "install") + ["xllamacpp", "-q"]
 
     # Ensure submodules are initialized
     subprocess.run(
@@ -1333,8 +1353,10 @@ def build_xllamacpp_from_source(gpu_type: str = "nvidia") -> list[str]:
     xllamacpp_reqs = XLLAMACPP_BUILD_DIR / "requirements.txt"
     if xllamacpp_reqs.exists():
         _pip_install(
-            ["-r", str(xllamacpp_reqs)], python=python,
-            extra_args=["-q"], capture_output=True,
+            ["-r", str(xllamacpp_reqs)],
+            python=python,
+            extra_args=["-q"],
+            capture_output=True,
         )
 
     # Set build environment for CUDA
@@ -1371,7 +1393,7 @@ def build_xllamacpp_from_source(gpu_type: str = "nvidia") -> list[str]:
         for line in result.stderr.splitlines()[-10:]:
             print(f"      {line}")
         print("   Falling back to CPU-only aarch64 wheel from PyPI...")
-        return _get_pip_cmd(python) + ["install", "xllamacpp", "-q"]
+        return _get_pip_cmd(python, "install") + ["xllamacpp", "-q"]
 
     print("   ✅ xllamacpp built from source with CUDA support")
     # Return a no-op command since we already installed
@@ -1431,7 +1453,7 @@ def get_xllamacpp_install_cmd(gpu_type: str = "cpu") -> list[str]:
     Uses GPU-specific index URLs for CUDA/ROCm wheels, or plain PyPI for CPU/ARM64.
     """
     python = sys.executable
-    base_cmd = _get_pip_cmd(python) + ["install", "xllamacpp"]
+    base_cmd = _get_pip_cmd(python, "install") + ["xllamacpp"]
 
     if gpu_type == "nvidia" and not is_arm64():
         # x86_64 NVIDIA: use CUDA index URL
@@ -1523,8 +1545,11 @@ def install_native_dependencies(source_dir: Path, gpu_type: str = "cpu") -> bool
         if gpu_type in ("nvidia", "amd"):
             print("   Falling back to CPU-only xllamacpp...")
             result = _pip_install(
-                ["xllamacpp"], python=python,
-                extra_args=["-q"], capture_output=True, text=True,
+                ["xllamacpp"],
+                python=python,
+                extra_args=["-q"],
+                capture_output=True,
+                text=True,
             )
             if result.returncode != 0:
                 print(f"⚠️  xllamacpp CPU fallback also failed: {result.stderr.strip()}")
@@ -1532,8 +1557,11 @@ def install_native_dependencies(source_dir: Path, gpu_type: str = "cpu") -> bool
     # Install chatterbox-tts with --no-deps (same as Dockerfile)
     print("   Installing chatterbox-tts...")
     result = _pip_install(
-        ["chatterbox-tts"], python=python,
-        extra_args=["--no-deps", "-q"], capture_output=True, text=True,
+        ["chatterbox-tts"],
+        python=python,
+        extra_args=["--no-deps", "-q"],
+        capture_output=True,
+        text=True,
     )
     if result.returncode != 0:
         print(f"⚠️  chatterbox-tts install warning: {result.stderr.strip()}")
@@ -1548,8 +1576,11 @@ def install_native_dependencies(source_dir: Path, gpu_type: str = "cpu") -> bool
     else:
         # On x86_64, install all at once (faster, all wheels available)
         result = _pip_install(
-            ["-r", str(req_file)], python=python,
-            extra_args=["-q"], capture_output=True, text=True,
+            ["-r", str(req_file)],
+            python=python,
+            extra_args=["-q"],
+            capture_output=True,
+            text=True,
         )
         if result.returncode != 0:
             print(f"⚠️  Some dependencies failed to install:")
@@ -1582,20 +1613,29 @@ def _install_requirements_individually(python: str, req_file: Path) -> None:
 
     # First, try batch install — this keeps the dependency resolver intact
     result = _pip_install(
-        ["-r", str(req_file)], python=python,
-        extra_args=["-q"], capture_output=True, text=True,
+        ["-r", str(req_file)],
+        python=python,
+        extra_args=["-q"],
+        capture_output=True,
+        text=True,
     )
     if result.returncode == 0:
         if jetson_with_cuda:
             # Verify NVIDIA torch wasn't overwritten
             verify = subprocess.run(
-                [python, "-c", "import torch; assert torch.cuda.is_available(), 'CUDA lost'"],
+                [
+                    python,
+                    "-c",
+                    "import torch; assert torch.cuda.is_available(), 'CUDA lost'",
+                ],
                 capture_output=True,
                 text=True,
                 check=False,
             )
             if verify.returncode != 0:
-                print("⚠️  Batch install replaced NVIDIA torch — reinstalling CUDA torch...")
+                print(
+                    "⚠️  Batch install replaced NVIDIA torch — reinstalling CUDA torch..."
+                )
                 _install_jetson_torch(python)
         print("   All packages installed successfully (batch).")
         return
@@ -1632,8 +1672,11 @@ def _install_requirements_individually(python: str, req_file: Path) -> None:
             # For torchaudio/torchcodec/torchvision, try --no-deps to avoid
             # pip pulling in CPU-only torch from PyPI
             result = _pip_install(
-                [pkg], python=python,
-                extra_args=["--no-deps", "-q"], capture_output=True, text=True,
+                [pkg],
+                python=python,
+                extra_args=["--no-deps", "-q"],
+                capture_output=True,
+                text=True,
             )
             if result.returncode != 0:
                 skipped.append(display_name)
@@ -1642,8 +1685,11 @@ def _install_requirements_individually(python: str, req_file: Path) -> None:
             continue
 
         result = _pip_install(
-            [pkg], python=python,
-            extra_args=["-q"], capture_output=True, text=True,
+            [pkg],
+            python=python,
+            extra_args=["-q"],
+            capture_output=True,
+            text=True,
         )
         if result.returncode != 0:
             failed.append(display_name)
@@ -1651,7 +1697,9 @@ def _install_requirements_individually(python: str, req_file: Path) -> None:
             succeeded.append(display_name)
 
     if skipped:
-        print(f"   ℹ️  {len(skipped)} torch-coupled package(s) handled separately on Jetson:")
+        print(
+            f"   ℹ️  {len(skipped)} torch-coupled package(s) handled separately on Jetson:"
+        )
         for name in skipped:
             print(f"      - {name}")
     if failed:
@@ -1849,7 +1897,9 @@ def _get_process_tree(root_pid: int) -> list[int]:
                 # Need to handle comm with spaces/parens: find last ')' then split
                 last_paren = stat.rfind(")")
                 fields_after = stat[last_paren + 2 :].split()
-                ppid = int(fields_after[1])  # ppid is field index 3, but index 1 after ')'
+                ppid = int(
+                    fields_after[1]
+                )  # ppid is field index 3, but index 1 after ')'
                 pid_val = int(entry.name)
                 children_map.setdefault(ppid, []).append(pid_val)
             except (OSError, ValueError, IndexError):
@@ -2481,8 +2531,11 @@ def auto_update_native(source_dir: Path, gpu_type: str = "cpu") -> None:
     # Reinstall package
     python = sys.executable
     _pip_install(
-        ["-e", "."], python=python,
-        extra_args=["-q"], capture_output=True, cwd=source_dir,
+        ["-e", "."],
+        python=python,
+        extra_args=["-q"],
+        capture_output=True,
+        cwd=source_dir,
     )
 
     # Reinstall deps if requirements changed
@@ -2586,8 +2639,12 @@ def update_native() -> None:
     print("\n📦 Reinstalling ezlocalai...")
     python = sys.executable
     result = _pip_install(
-        ["-e", "."], python=python,
-        extra_args=["-q"], capture_output=True, text=True, cwd=source_dir,
+        ["-e", "."],
+        python=python,
+        extra_args=["-q"],
+        capture_output=True,
+        text=True,
+        cwd=source_dir,
     )
     if result.returncode != 0:
         print(f"   ❌ install -e . failed: {result.stderr.strip()}")
