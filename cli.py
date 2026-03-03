@@ -1453,36 +1453,79 @@ def start_native(
 
 
 def stop_native() -> None:
-    """Stop the native ezlocalai process."""
+    """Stop the native ezlocalai process and all its children.
+
+    Since start_native() uses start_new_session=True, the process runs in its
+    own process group. We kill the entire process group to ensure uvicorn,
+    xllamacpp, and any other child processes are terminated.
+    """
     pid = get_native_pid()
     if not pid:
-        print("ℹ️  ezlocalai is not running in native mode")
+        # PID file missing or stale — try to find and kill any orphaned processes
+        _kill_orphaned_ezlocalai()
         return
 
     print(f"🛑 Stopping ezlocalai (PID {pid})...")
     try:
-        # Send SIGTERM for graceful shutdown
-        os.kill(pid, signal.SIGTERM)
+        # Kill the entire process group (negative PID = process group)
+        # This ensures uvicorn, xllamacpp, and all children are killed
+        pgid = os.getpgid(pid)
+        os.killpg(pgid, signal.SIGTERM)
+
         # Wait up to 10 seconds for graceful shutdown
         for _ in range(20):
             time.sleep(0.5)
             try:
-                os.kill(pid, 0)
+                os.kill(pid, 0)  # Check if main process is still alive
             except ProcessLookupError:
                 break
         else:
-            # Force kill if still running
-            print("   Force killing...")
-            os.kill(pid, signal.SIGKILL)
+            # Force kill the process group if still running
+            print("   Force killing process group...")
+            try:
+                os.killpg(pgid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
             time.sleep(1)
     except ProcessLookupError:
         pass  # Already dead
     except PermissionError:
-        print(f"❌ Permission denied. Try: sudo kill {pid}")
+        print(f"❌ Permission denied. Try: sudo kill -- -{pid}")
         return
+
+    # Also kill any orphaned children that might have escaped the process group
+    _kill_orphaned_ezlocalai()
 
     PID_FILE.unlink(missing_ok=True)
     print("✅ ezlocalai stopped")
+
+
+def _kill_orphaned_ezlocalai() -> None:
+    """Find and kill any orphaned ezlocalai-related processes.
+
+    Catches processes that survived process group kill or were started
+    outside the tracked PID (e.g. stale uvicorn or xllamacpp-server).
+    """
+    try:
+        # Find processes running start.py or uvicorn from the ezlocalai dir
+        result = subprocess.run(
+            ["pgrep", "-f", "ezlocalai.*(start\\.py|uvicorn|xllamacpp)"],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if result.returncode == 0 and result.stdout.strip():
+            pids = result.stdout.strip().split("\n")
+            my_pid = str(os.getpid())
+            for p in pids:
+                p = p.strip()
+                if p and p != my_pid:
+                    try:
+                        os.kill(int(p), signal.SIGTERM)
+                    except (ProcessLookupError, PermissionError, ValueError):
+                        pass
+    except FileNotFoundError:
+        pass  # pgrep not available
 
 
 def show_native_status() -> None:
