@@ -275,19 +275,21 @@ def _detect_jetpack_version() -> Optional[str]:
 
 
 def _install_jetson_torch(python: str) -> bool:
-    """Install NVIDIA's CUDA-enabled PyTorch on Jetson.
+    """Install CUDA-enabled PyTorch on Jetson.
 
-    PyPI's torch package is CPU-only on aarch64. NVIDIA provides JetPack-
-    compatible wheels with CUDA/cuDNN acceleration at their redistribution
-    site. This function detects the JetPack version, finds the latest
-    matching wheel for the current Python version, and installs it.
+    PyPI's torch package is CPU-only on aarch64. This function tries multiple
+    sources to find a CUDA-enabled wheel that matches the device's JetPack
+    version and Python version:
+
+    1. NVIDIA's official redistribution index (cp38/cp310 only typically)
+    2. PyTorch's own CUDA index (https://download.pytorch.org/whl/cuXXX)
+    3. Jetson AI Lab community index (https://pypi.jetson-ai-lab.dev/simple/)
 
     Must be called BEFORE installing other requirements so that transitive
     torch dependencies don't pull in the CPU-only version from PyPI.
 
     Returns True if a CUDA-enabled torch was installed, False otherwise.
     """
-    import urllib.request
     from html.parser import HTMLParser
 
     jp_ver = _detect_jetpack_version()
@@ -299,15 +301,15 @@ def _install_jetson_torch(python: str) -> bool:
         return False
 
     py_tag = f"cp{sys.version_info.major}{sys.version_info.minor}"
+    print(f"🔍 Detected JetPack {jp_ver[0]}.{jp_ver[1:]}, Python {py_tag}")
+
+    # --- Source 1: NVIDIA official wheel index ---
     base_url = (
         f"https://developer.download.nvidia.com/compute/redist/"
         f"jp/v{jp_ver}/pytorch/"
     )
+    print(f"📦 Checking NVIDIA PyTorch wheels at {base_url} ...")
 
-    print(f"🔍 Detected JetPack {jp_ver[0]}.{jp_ver[1:]}, Python {py_tag}")
-    print(f"📦 Fetching NVIDIA PyTorch wheel listing from {base_url} ...")
-
-    # Parse the flat HTML directory listing for wheel filenames
     class _WheelLinkParser(HTMLParser):
         def __init__(self):
             super().__init__()
@@ -319,73 +321,134 @@ def _install_jetson_torch(python: str) -> bool:
                     if attr_name == "href" and attr_val and attr_val.endswith(".whl"):
                         self.wheels.append(attr_val)
 
+    nvidia_wheel_url = None
     try:
         req = urllib.request.Request(base_url, headers={"User-Agent": "ezlocalai"})
         with urllib.request.urlopen(req, timeout=30) as resp:
             html = resp.read().decode("utf-8", errors="replace")
+        parser = _WheelLinkParser()
+        parser.feed(html)
+        matching = [
+            w for w in parser.wheels if f"-{py_tag}-" in w and "linux_aarch64" in w
+        ]
+        if matching:
+            matching.sort()
+            wheel_name = matching[-1]
+            nvidia_wheel_url = (
+                wheel_name if wheel_name.startswith("http") else base_url + wheel_name
+            )
+            print(f"   Found NVIDIA wheel: {wheel_name}")
+        else:
+            available_tags = set()
+            for w in parser.wheels:
+                m = re.search(r"-(cp\d+)-", w)
+                if m:
+                    available_tags.add(m.group(1))
+            print(
+                f"   No {py_tag} wheel on NVIDIA index "
+                f"(available: {', '.join(sorted(available_tags)) or 'none'})"
+            )
     except Exception as exc:
-        print(f"⚠️  Failed to fetch wheel listing: {exc}")
-        return False
+        print(f"   NVIDIA index unavailable: {exc}")
 
-    parser = _WheelLinkParser()
-    parser.feed(html)
-
-    # Filter for wheels matching our Python version and architecture
-    matching = [w for w in parser.wheels if f"-{py_tag}-" in w and "linux_aarch64" in w]
-
-    if not matching:
-        print(
-            f"⚠️  No PyTorch wheel found for {py_tag} in JetPack {jp_ver} — "
-            f"available wheels: {parser.wheels or 'none'}"
+    if nvidia_wheel_url:
+        print(f"⬇️  Installing NVIDIA PyTorch: {nvidia_wheel_url.split('/')[-1]}")
+        _pip_uninstall(["torch"], python=python, capture_output=True)
+        result = _pip_install(
+            [nvidia_wheel_url], python=python, extra_args=["--no-cache-dir"]
         )
-        print(
-            "   Jetson NVIDIA torch wheels are typically built for Python 3.10 (cp310)."
+        if result.returncode == 0 and _verify_torch_cuda(python):
+            return True
+        print("   NVIDIA wheel installation failed, trying alternatives...")
+
+    # --- Source 2: PyTorch's official CUDA index ---
+    # Map JetPack CUDA version to PyTorch's index URL
+    cuda_ver = get_cuda_version()
+    cuda_index_tag = None
+    if cuda_ver:
+        cv = tuple(int(x) for x in cuda_ver.split(".")[:2])
+        # Match to closest PyTorch CUDA index
+        if cv >= (12, 6):
+            cuda_index_tag = "cu126"
+        elif cv >= (12, 4):
+            cuda_index_tag = "cu124"
+        elif cv >= (12, 1):
+            cuda_index_tag = "cu121"
+        elif cv >= (11, 8):
+            cuda_index_tag = "cu118"
+        elif cv >= (11, 4):
+            cuda_index_tag = "cu118"  # closest available
+
+    if cuda_index_tag:
+        pytorch_index = f"https://download.pytorch.org/whl/{cuda_index_tag}"
+        print(f"📦 Trying PyTorch CUDA index ({cuda_index_tag})...")
+        _pip_uninstall(["torch"], python=python, capture_output=True)
+        result = _pip_install(
+            ["torch"],
+            python=python,
+            extra_args=["--index-url", pytorch_index, "--no-cache-dir"],
+            capture_output=True,
         )
-        print("   torch will fall back to CPU-only from PyPI.")
-        return False
+        if result.returncode == 0 and _verify_torch_cuda(python):
+            return True
+        print(f"   No matching aarch64+CUDA wheel on PyTorch {cuda_index_tag} index")
 
-    # Pick the latest wheel (last in the sorted list — NVIDIA names sort by version)
-    matching.sort()
-    wheel_name = matching[-1]
-
-    # Build absolute URL if the href is relative
-    if wheel_name.startswith("http"):
-        wheel_url = wheel_name
-    else:
-        wheel_url = base_url + wheel_name
-
-    print(f"⬇️  Installing NVIDIA PyTorch: {wheel_name}")
-
-    # Uninstall any existing CPU-only torch first to avoid conflicts
+    # --- Source 3: Jetson AI Lab community index ---
+    jetson_index = "https://pypi.jetson-ai-lab.dev/simple/"
+    print(f"📦 Trying Jetson AI Lab community index...")
     _pip_uninstall(["torch"], python=python, capture_output=True)
-
     result = _pip_install(
-        [wheel_url],
+        ["torch"],
         python=python,
-        extra_args=["--no-cache-dir"],
+        extra_args=["--extra-index-url", jetson_index, "--no-cache-dir"],
+        capture_output=True,
     )
+    if result.returncode == 0 and _verify_torch_cuda(python):
+        return True
+    print("   No matching wheel on Jetson AI Lab index")
 
-    if result.returncode != 0:
-        print("⚠️  Failed to install NVIDIA PyTorch wheel")
-        return False
+    # --- Source 4: PyPI default (CPU-only, last resort) ---
+    print("⚠️  No CUDA-enabled PyTorch wheel found for this platform.")
+    print("   Installing CPU-only torch from PyPI as fallback...")
+    _pip_uninstall(["torch"], python=python, capture_output=True)
+    result = _pip_install(
+        ["torch"], python=python, extra_args=["--no-cache-dir"], capture_output=True
+    )
+    if result.returncode == 0:
+        print("   torch installed (CPU-only). GPU inference will be slower.")
+        return True
 
-    # Verify CUDA is now available
-    verify = subprocess.run(
+    print("   ❌ Failed to install torch from any source")
+    return False
+
+
+def _verify_torch_cuda(python: str) -> bool:
+    """Verify that torch is installed and CUDA-enabled."""
+    result = subprocess.run(
         [
             python,
             "-c",
-            "import torch; print('CUDA available:', torch.cuda.is_available()); print('GPU:', torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'none')",
+            (
+                "import torch; "
+                "cuda = torch.cuda.is_available(); "
+                "print('CUDA available:', cuda); "
+                "print('GPU:', torch.cuda.get_device_name(0) if cuda else 'none')"
+            ),
         ],
         capture_output=True,
         text=True,
         check=False,
     )
-    if verify.returncode == 0:
-        print(f"✅ {verify.stdout.strip()}")
+    if result.returncode == 0 and "CUDA available: True" in result.stdout:
+        print(f"   ✅ {result.stdout.strip()}")
+        return True
+    if result.returncode == 0:
+        # torch imported but CUDA not available
+        print(f"   ⚠️  {result.stdout.strip()}")
     else:
-        print(f"⚠️  torch import test: {verify.stderr.strip()}")
-
-    return True
+        stderr = result.stderr.strip().split("\n")[-1] if result.stderr else "unknown"
+        print(f"   ⚠️  torch import failed: {stderr}")
+    return False
 
 
 def should_use_native_mode(force_native: bool = False) -> bool:
@@ -1369,6 +1432,38 @@ def build_xllamacpp_from_source(gpu_type: str = "nvidia") -> list[str]:
             build_env["CMAKE_CUDA_ARCHITECTURES"] = cuda_arch
             print(f"   Building with CUDA arch: {cuda_arch}")
 
+        # Ensure nvcc is available
+        nvcc = shutil.which("nvcc")
+        if not nvcc:
+            cuda_bin = Path("/usr/local/cuda/bin")
+            if cuda_bin.exists():
+                build_env["PATH"] = f"{cuda_bin}:{build_env.get('PATH', '')}"
+                print(f"   Added {cuda_bin} to PATH for nvcc")
+            else:
+                print("   ⚠️  nvcc not found — CUDA build may fail")
+                print("   Try: sudo apt-get install nvidia-cuda-toolkit")
+
+    # On memory-constrained devices (e.g. Jetson), limit parallel compile jobs
+    # to avoid OOM kills. Jetson Orin NX 16GB shares RAM with GPU.
+    try:
+        import multiprocessing
+
+        total_ram_gb = (
+            os.sysconf("SC_PAGE_SIZE") * os.sysconf("SC_PHYS_PAGES") / (1024**3)
+        )
+        cpus = multiprocessing.cpu_count()
+        if total_ram_gb < 24:
+            # ~2GB per compile job is safe for CUDA builds
+            max_jobs = max(1, min(cpus, int(total_ram_gb / 2.5)))
+            build_env["CMAKE_BUILD_PARALLEL_LEVEL"] = str(max_jobs)
+            build_env["MAKEFLAGS"] = f"-j{max_jobs}"
+            print(
+                f"   Limiting to {max_jobs} parallel compile jobs "
+                f"({total_ram_gb:.0f}GB RAM, {cpus} CPUs)"
+            )
+    except Exception:
+        pass
+
     # Build and install (use pip for source builds — uv doesn't support build envs well)
     print("   Building xllamacpp from source (this may take several minutes)...")
     result = subprocess.run(
@@ -1379,7 +1474,8 @@ def build_xllamacpp_from_source(gpu_type: str = "nvidia") -> list[str]:
             "install",
             ".",
             "--force-reinstall",
-            "-q",
+            "--no-build-isolation",
+            "-v",
         ],
         cwd=XLLAMACPP_BUILD_DIR,
         env=build_env,
@@ -1389,9 +1485,51 @@ def build_xllamacpp_from_source(gpu_type: str = "nvidia") -> list[str]:
     )
 
     if result.returncode != 0:
-        print(f"   ❌ Source build failed:")
-        for line in result.stderr.splitlines()[-10:]:
-            print(f"      {line}")
+        # Capture the actual compilation error — look for g++/nvcc errors
+        all_output = (result.stderr or "") + "\n" + (result.stdout or "")
+        error_lines = []
+        for line in all_output.splitlines():
+            low = line.lower()
+            if any(
+                kw in low
+                for kw in [
+                    "error:",
+                    "fatal error",
+                    "cannot find",
+                    "no such file",
+                    "killed",
+                    "oom",
+                    "out of memory",
+                    "failed",
+                ]
+            ):
+                error_lines.append(line.strip())
+
+        print("   ❌ Source build failed:")
+        if error_lines:
+            # Show unique, deduplicated error lines (up to 20)
+            seen = set()
+            for line in error_lines:
+                if line not in seen:
+                    seen.add(line)
+                    print(f"      {line}")
+                    if len(seen) >= 20:
+                        break
+        else:
+            # Fall back to last N lines of stderr
+            for line in (result.stderr or "").splitlines()[-15:]:
+                print(f"      {line}")
+
+        # Check for common fixable issues
+        if "cuda_runtime" in all_output or "cuda.h" in all_output:
+            print(
+                "   💡 Missing CUDA headers. Try: sudo apt-get install nvidia-cuda-toolkit nvidia-cuda-dev"
+            )
+        if "killed" in all_output.lower() or "cannot allocate" in all_output.lower():
+            print(
+                "   💡 Build killed (likely OOM). Try closing other apps or reducing GPU memory usage."
+            )
+
         print("   Falling back to CPU-only aarch64 wheel from PyPI...")
         return _get_pip_cmd(python, "install") + ["xllamacpp", "-q"]
 
