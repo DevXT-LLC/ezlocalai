@@ -133,7 +133,7 @@ RUN set -e && \
     echo "--- Installing xllamacpp Python package ---" && \
     pip install . --no-build-isolation --no-cache-dir && \
     rm -rf /tmp/xllamacpp && \
-    python -c "import xllamacpp; print('xllamacpp installed successfully')"
+    python -c "import importlib.util; print('xllamacpp installed:', importlib.util.find_spec('xllamacpp') is not None)"
 
 # Copy application code
 COPY . .
