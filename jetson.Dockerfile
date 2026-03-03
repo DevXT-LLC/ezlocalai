@@ -64,8 +64,8 @@ RUN python3 -c "import torch; print('PyTorch', torch.__version__); \
     print('GPU:', torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'N/A')" \
     || echo "WARNING: torch CUDA not available, will use CPU"
 
-# Install numpy and Cython for pkuseg
-RUN pip install numpy Cython --no-cache-dir
+# Install numpy, Cython, and build tools needed by xllamacpp
+RUN pip install numpy Cython setuptools wheel --no-cache-dir
 
 # Copy and install requirements (skip packages without ARM64 wheels)
 COPY cuda-requirements.txt .
@@ -84,28 +84,24 @@ RUN pip install chatterbox-tts --no-deps --no-cache-dir 2>/dev/null || \
 
 # Build xllamacpp from source with CUDA for Jetson
 # xllamacpp is a HARD requirement (LLM.py imports it directly) — fail build if it can't be built
-# Step 1: Pre-build llama.cpp with cmake to generate required headers (index.html.gz.hpp etc.)
-# Step 2: pip install xllamacpp which compiles the Python extension using those headers
-RUN pip install cython setuptools wheel scikit-build-core cmake 2>/dev/null || true
+# Uses xllamacpp's own build system: scripts/setup.sh (cmake + copy_libs) → setup.py
+# Requires Rust for llguidance static library
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y && \
+    . "$HOME/.cargo/env" && rustc --version
+ENV PATH="/root/.cargo/bin:${PATH}"
+
 ARG CUDA_ARCH=87
 ENV XLLAMACPP_BUILD_CUDA=1 \
     CMAKE_CUDA_ARCHITECTURES=${CUDA_ARCH} \
-    CMAKE_BUILD_PARALLEL_LEVEL=4
+    CMAKE_BUILD_PARALLEL_LEVEL=4 \
+    CUDA_ARCHITECTURES=${CUDA_ARCH}
 RUN echo "=== Building xllamacpp from source (CUDA arch: ${CUDA_ARCH}) ===" && \
     echo "nvcc: $(nvcc --version 2>&1 | tail -1)" && \
     git clone --recursive https://github.com/xorbitsai/xllamacpp.git /tmp/xllamacpp && \
-    echo "--- Pre-building llama.cpp to generate server headers ---" && \
-    cd /tmp/xllamacpp/thirdparty/llama.cpp && \
-    mkdir -p build && cd build && \
-    cmake .. \
-        -DGGML_CUDA=ON \
-        -DCMAKE_CUDA_ARCHITECTURES=${CUDA_ARCH} \
-        -DCMAKE_BUILD_TYPE=Release \
-        -DLLAMA_BUILD_TESTS=OFF \
-        -DLLAMA_BUILD_EXAMPLES=OFF && \
-    cmake --build . -j4 && \
-    echo "--- Building xllamacpp Python extension ---" && \
     cd /tmp/xllamacpp && \
+    echo "--- Running xllamacpp build system (setup.sh → cmake → copy_libs) ---" && \
+    bash scripts/setup.sh && \
+    echo "--- Installing xllamacpp Python package ---" && \
     pip install . --no-build-isolation --no-cache-dir && \
     rm -rf /tmp/xllamacpp && \
     python -c "import xllamacpp; print('xllamacpp installed successfully')" || \
