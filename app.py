@@ -1220,6 +1220,8 @@ async def get_voices(user=Depends(verify_api_key)):
                     return voices
 
     tts_model = pipe._get_tts()
+    if tts_model is None:
+        return {"voices": []}
     voices = tts_model.voices
     # In voice server mode, don't destroy TTS - keep it loaded
     if not is_voice_server_mode():
