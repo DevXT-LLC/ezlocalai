@@ -938,6 +938,11 @@ def build_xllamacpp_from_source(gpu_type: str = "nvidia") -> list[str]:
     """
     python = sys.executable
 
+    # Ensure ~/.cargo/bin is in PATH (Rust may already be installed)
+    cargo_bin = Path.home() / ".cargo" / "bin"
+    if cargo_bin.exists() and str(cargo_bin) not in os.environ.get("PATH", ""):
+        os.environ["PATH"] = f"{cargo_bin}:{os.environ.get('PATH', '')}"
+
     # Check for build prerequisites
     if not shutil.which("cmake"):
         print("   ⚠️  cmake not found, attempting to install...")
@@ -961,8 +966,16 @@ def build_xllamacpp_from_source(gpu_type: str = "nvidia") -> list[str]:
             print("   ❌ Failed to install Rust. xllamacpp will fall back to CPU.")
             return [python, "-m", "pip", "install", "xllamacpp", "-q"]
         # Add cargo to PATH for this session
-        cargo_bin = Path.home() / ".cargo" / "bin"
-        os.environ["PATH"] = f"{cargo_bin}:{os.environ.get('PATH', '')}"
+        if cargo_bin.exists() and str(cargo_bin) not in os.environ.get("PATH", ""):
+            os.environ["PATH"] = f"{cargo_bin}:{os.environ.get('PATH', '')}"
+
+    # Install build dependencies (cython, setuptools needed for xllamacpp)
+    print("   Installing build dependencies...")
+    subprocess.run(
+        [python, "-m", "pip", "install", "cython", "setuptools", "wheel", "-q"],
+        capture_output=True,
+        check=False,
+    )
 
     # Clone or update xllamacpp source
     if XLLAMACPP_BUILD_DIR.exists():
@@ -994,6 +1007,15 @@ def build_xllamacpp_from_source(gpu_type: str = "nvidia") -> list[str]:
         check=False,
     )
 
+    # Install xllamacpp's own build requirements if present
+    xllamacpp_reqs = XLLAMACPP_BUILD_DIR / "requirements.txt"
+    if xllamacpp_reqs.exists():
+        subprocess.run(
+            [python, "-m", "pip", "install", "-r", str(xllamacpp_reqs), "-q"],
+            capture_output=True,
+            check=False,
+        )
+
     # Set build environment for CUDA
     build_env = os.environ.copy()
     if gpu_type == "nvidia":
@@ -1014,7 +1036,6 @@ def build_xllamacpp_from_source(gpu_type: str = "nvidia") -> list[str]:
             "install",
             ".",
             "--force-reinstall",
-            "--no-build-isolation",
             "-q",
         ],
         cwd=XLLAMACPP_BUILD_DIR,
@@ -1143,6 +1164,9 @@ def install_native_dependencies(source_dir: Path, gpu_type: str = "cpu") -> bool
     Uses the source directory's requirements files. On Jetson/ARM64 with CUDA,
     installs cuda-requirements.txt; otherwise uses requirements.txt.
     Installs xllamacpp with the correct GPU-specific wheel (CUDA/ROCm index URLs).
+
+    On ARM64, installs packages one-by-one to avoid a single missing wheel
+    (e.g. torchcodec) from blocking all other dependencies.
     """
     python = sys.executable
 
@@ -1176,7 +1200,9 @@ def install_native_dependencies(source_dir: Path, gpu_type: str = "cpu") -> bool
                 check=False,
             )
             if result.returncode != 0:
-                print(f"⚠️  xllamacpp CPU fallback also failed: {result.stderr.strip()}")
+                print(
+                    f"⚠️  xllamacpp CPU fallback also failed: {result.stderr.strip()}"
+                )
 
     # Install chatterbox-tts with --no-deps (same as Dockerfile)
     print("   Installing chatterbox-tts...")
@@ -1191,22 +1217,68 @@ def install_native_dependencies(source_dir: Path, gpu_type: str = "cpu") -> bool
 
     # Install main requirements
     print(f"   Installing from {req_file.name}...")
-    result = subprocess.run(
-        [python, "-m", "pip", "install", "-r", str(req_file), "-q"],
-        capture_output=True,
-        text=True,
-        check=False,
-    )
-    if result.returncode != 0:
-        print(f"⚠️  Some dependencies failed to install:")
-        # Show only errors, not warnings
-        for line in result.stderr.splitlines():
-            if "error" in line.lower():
-                print(f"      {line.strip()}")
-        print("   Continuing anyway — some features may be unavailable.")
+
+    if is_arm64():
+        # On ARM64, install packages one-by-one so a missing wheel for one package
+        # (e.g. torchcodec) doesn't prevent all other deps from being installed.
+        _install_requirements_individually(python, req_file)
+    else:
+        # On x86_64, install all at once (faster, all wheels available)
+        result = subprocess.run(
+            [python, "-m", "pip", "install", "-r", str(req_file), "-q"],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if result.returncode != 0:
+            print(f"⚠️  Some dependencies failed to install:")
+            for line in result.stderr.splitlines():
+                if "error" in line.lower():
+                    print(f"      {line.strip()}")
+            print("   Continuing anyway — some features may be unavailable.")
 
     print("✅ Dependencies installed")
     return True
+
+
+def _install_requirements_individually(python: str, req_file: Path) -> None:
+    """Install requirements one package at a time, skipping failures.
+
+    This is used on ARM64 where some packages (torchcodec, etc.) don't have
+    aarch64 wheels. Installing individually prevents one missing package from
+    blocking all other dependencies.
+    """
+    failed = []
+    lines = req_file.read_text(encoding="utf-8").splitlines()
+
+    # Parse requirements lines (skip comments, blank lines)
+    packages = []
+    for line in lines:
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        packages.append(line)
+
+    total = len(packages)
+    for i, pkg in enumerate(packages, 1):
+        # Extract package name for display (before any version specifier)
+        display_name = re.split(r"[>=<\[@ ]", pkg)[0]
+        result = subprocess.run(
+            [python, "-m", "pip", "install", pkg, "-q"],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if result.returncode != 0:
+            failed.append(display_name)
+
+    if failed:
+        print(f"   ⚠️  {len(failed)} package(s) skipped (no ARM64 wheel):")
+        for name in failed:
+            print(f"      - {name}")
+        print("   Non-critical features may be unavailable.")
+    else:
+        print(f"   All {total} packages installed successfully.")
 
 
 def start_native(
