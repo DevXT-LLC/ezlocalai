@@ -17,7 +17,7 @@ accelerate
 python-multipart
 openai
 pdfplumber
-huggingface_hub
+huggingface_hub>=0.26.0,<1.0
 safetensors
 sentence-transformers
 # Note: chatterbox-tts is installed with --no-deps in Dockerfile to allow transformers upgrade

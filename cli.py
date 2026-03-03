@@ -1200,9 +1200,7 @@ def install_native_dependencies(source_dir: Path, gpu_type: str = "cpu") -> bool
                 check=False,
             )
             if result.returncode != 0:
-                print(
-                    f"⚠️  xllamacpp CPU fallback also failed: {result.stderr.strip()}"
-                )
+                print(f"⚠️  xllamacpp CPU fallback also failed: {result.stderr.strip()}")
 
     # Install chatterbox-tts with --no-deps (same as Dockerfile)
     print("   Installing chatterbox-tts...")
@@ -1242,16 +1240,27 @@ def install_native_dependencies(source_dir: Path, gpu_type: str = "cpu") -> bool
 
 
 def _install_requirements_individually(python: str, req_file: Path) -> None:
-    """Install requirements one package at a time, skipping failures.
+    """Install requirements with ARM64 resilience.
 
-    This is used on ARM64 where some packages (torchcodec, etc.) don't have
-    aarch64 wheels. Installing individually prevents one missing package from
-    blocking all other dependencies.
+    Strategy: try batch install first (preserves pip's version resolver for
+    compatible huggingface_hub/transformers/diffusers versions). If batch fails,
+    identify failing packages and install the rest individually.
     """
-    failed = []
-    lines = req_file.read_text(encoding="utf-8").splitlines()
+    # First, try batch install — this keeps pip's dependency resolver intact
+    result = subprocess.run(
+        [python, "-m", "pip", "install", "-r", str(req_file), "-q"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if result.returncode == 0:
+        print("   All packages installed successfully (batch).")
+        return
 
-    # Parse requirements lines (skip comments, blank lines)
+    print("   Batch install failed, falling back to individual package install...")
+
+    # Parse requirements
+    lines = req_file.read_text(encoding="utf-8").splitlines()
     packages = []
     for line in lines:
         line = line.strip()
@@ -1259,9 +1268,11 @@ def _install_requirements_individually(python: str, req_file: Path) -> None:
             continue
         packages.append(line)
 
+    # Identify which packages can't be installed individually
+    failed = []
+    succeeded = []
     total = len(packages)
     for i, pkg in enumerate(packages, 1):
-        # Extract package name for display (before any version specifier)
         display_name = re.split(r"[>=<\[@ ]", pkg)[0]
         result = subprocess.run(
             [python, "-m", "pip", "install", pkg, "-q"],
@@ -1271,11 +1282,14 @@ def _install_requirements_individually(python: str, req_file: Path) -> None:
         )
         if result.returncode != 0:
             failed.append(display_name)
+        else:
+            succeeded.append(display_name)
 
     if failed:
         print(f"   ⚠️  {len(failed)} package(s) skipped (no ARM64 wheel):")
         for name in failed:
             print(f"      - {name}")
+        print(f"   {len(succeeded)}/{total} packages installed successfully.")
         print("   Non-critical features may be unavailable.")
     else:
         print(f"   All {total} packages installed successfully.")

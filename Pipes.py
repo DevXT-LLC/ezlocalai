@@ -36,7 +36,8 @@ try:
     from ezlocalai.IMG import IMG
 
     img_import_success = True
-except ImportError:
+except (ImportError, RuntimeError, Exception) as e:
+    logging.warning(f"[Pipes] IMG import failed ({e}), image generation disabled.")
     img_import_success = False
 
 

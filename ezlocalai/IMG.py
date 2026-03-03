@@ -14,7 +14,7 @@ try:
 
     ZIMAGE_AVAILABLE = True
     import_success = True
-except ImportError:
+except (ImportError, RuntimeError, Exception) as e:
     try:
         # Fallback to older SDXL-Lightning if ZImagePipeline not available
         from diffusers import (
@@ -31,9 +31,10 @@ except ImportError:
             "[IMG] ZImagePipeline not available, will use SDXL-Lightning fallback. "
             "For Z-Image support, install diffusers from source: pip install git+https://github.com/huggingface/diffusers"
         )
-    except ImportError:
+    except (ImportError, RuntimeError, Exception) as inner_e:
         logging.error(
-            "Failed to import diffusers. Please install diffusers using 'pip install git+https://github.com/huggingface/diffusers'"
+            f"Failed to import diffusers ({inner_e}). Image generation will be unavailable. "
+            "Install diffusers using 'pip install git+https://github.com/huggingface/diffusers'"
         )
         import_success = False
 
