@@ -1,0 +1,40 @@
+# Raspberry Pi 5 / ARM64 Docker Compose
+#
+# Prerequisites:
+#   - Raspberry Pi 5 with 8GB RAM recommended
+#   - 64-bit Raspberry Pi OS (Bookworm or later)
+#   - Docker installed: curl -fsSL https://get.docker.com | sh
+#
+# Usage:
+#   docker compose -f docker-compose-rpi.yml up -d
+#
+# Any GGUF model from HuggingFace works - just change DEFAULT_MODEL.
+# Recommended models for Pi 5 (8GB):
+#   - unsloth/Qwen3.5-0.6B-GGUF  (fastest, ~400MB RAM)
+#   - unsloth/Qwen3.5-1.7B-GGUF  (good balance, ~1.2GB RAM)
+#   - unsloth/Qwen3.5-4B-GGUF    (best quality that fits, ~3GB RAM)
+#
+services:
+  ezlocalai:
+    image: joshxt/ezlocalai:rpi
+    environment:
+      - EZLOCALAI_URL=${EZLOCALAI_URL-http://localhost:8091}
+      - EZLOCALAI_API_KEY=${EZLOCALAI_API_KEY-}
+      - DEFAULT_MODEL=${DEFAULT_MODEL-unsloth/Qwen3.5-0.6B-GGUF}
+      - WHISPER_MODEL=${WHISPER_MODEL-small}
+      - IMG_MODEL=
+      - LLM_BATCH_SIZE=${LLM_BATCH_SIZE-512}
+      - LLM_MAX_TOKENS=${LLM_MAX_TOKENS-8192}
+      - UVICORN_WORKERS=${UVICORN_WORKERS-2}
+      - MAX_CONCURRENT_REQUESTS=${MAX_CONCURRENT_REQUESTS-1}
+      - MAX_QUEUE_SIZE=${MAX_QUEUE_SIZE-10}
+      - REQUEST_TIMEOUT=${REQUEST_TIMEOUT-600}
+    restart: unless-stopped
+    ports:
+      - "8091:8091"
+    volumes:
+      - ./models:/app/models
+      - ./hf:/home/root/.cache/huggingface/hub
+      - ./outputs:/app/outputs
+      - ./voices:/app/voices
+      - ./whispercpp:/app/whispercpp

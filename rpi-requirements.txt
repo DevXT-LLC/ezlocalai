@@ -1,0 +1,27 @@
+# Raspberry Pi 5 / ARM64 requirements
+# Lightweight subset - no GPU deps, no chatterbox TTS, no image generation
+# TTS and STT disabled by default (can be enabled if deps are installed)
+fastapi
+uvicorn
+pydantic
+requests==2.32.4
+aiohttp
+tiktoken==0.6.0
+python-dotenv==1.0.1
+beautifulsoup4==4.12.3
+pydub==0.25.1
+ffmpeg-python==0.2.0
+pyngrok==7.1.6
+python-multipart
+openai
+pdfplumber
+huggingface_hub
+safetensors
+sentence-transformers
+transformers==4.53.0
+einops
+librosa
+tokenizers>=0.20,<0.22
+sentencepiece
+gguf
+opencv-python>=4.8.0

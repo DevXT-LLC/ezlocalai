@@ -66,6 +66,55 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
           repository: ${{ vars.DOCKERHUB_USERNAME }}/ezlocalai
 
+  build-ezlocalai-rpi:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Extract GitHub info
+        run: |
+          echo "BRANCH_NAME=$(echo ${GITHUB_REF#refs/heads/} | sed 's/[^a-zA-Z0-9._-]/-/g')" >> $GITHUB_ENV
+          echo "ORG_NAME=$(echo ${{ github.repository }} | cut -d'/' -f 1 | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+          echo "GITHUB_USER=$(echo ${{ github.actor }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+          echo "REPO_NAME=$(echo ${{ github.repository }} | cut -d'/' -f 2 | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: linux/arm64
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to DockerHub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ vars.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ env.GITHUB_USER }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push RPi Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./rpi.Dockerfile
+          platforms: linux/arm64
+          push: true
+          cache-from: type=gha,scope=rpi
+          cache-to: type=gha,mode=max,scope=rpi
+          tags: |
+            ${{ vars.DOCKERHUB_USERNAME }}/${{ env.REPO_NAME }}:rpi
+            ${{ vars.DOCKERHUB_USERNAME }}/${{ env.REPO_NAME }}:rpi-${{ env.BRANCH_NAME }}
+            ghcr.io/${{ env.ORG_NAME }}/${{ env.REPO_NAME }}:rpi
+            ghcr.io/${{ env.ORG_NAME }}/${{ env.REPO_NAME }}:rpi-${{ env.BRANCH_NAME }}
+
   test-ezlocalai:
     uses: ./.github/workflows/test-with-ezlocalai.yml
     with:

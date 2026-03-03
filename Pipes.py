@@ -12,7 +12,13 @@ from ezlocalai.LLM import (
     get_total_vram_per_gpu,
     calculate_tensor_split_from_free_vram,
 )
-from ezlocalai.CTTS import CTTS
+
+try:
+    from ezlocalai.CTTS import CTTS
+
+    ctts_import_success = True
+except ImportError:
+    ctts_import_success = False
 from precache import has_voice_server_url
 from pyngrok import ngrok
 import requests
@@ -4204,6 +4210,9 @@ class Pipes:
 
     def _create_tts_model(self):
         """Create TTS model (Chatterbox TTS)."""
+        if not ctts_import_success:
+            logging.warning("[TTS] Chatterbox TTS not available (missing dependencies)")
+            return None
         return CTTS()
 
     def _get_tts_name(self):
