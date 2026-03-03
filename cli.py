@@ -1766,9 +1766,77 @@ def show_logs(follow: bool = False) -> None:
         pass
 
 
+def update_native() -> None:
+    """Update native mode installation: git pull + pip install -e . + reinstall deps."""
+    print("📦 Updating ezlocalai (native mode)...")
+
+    source_dir = get_ezlocalai_source_dir()
+    if not source_dir:
+        # Check if REPO_DIR exists
+        if REPO_DIR.exists() and is_ezlocalai_folder(REPO_DIR):
+            source_dir = REPO_DIR
+        else:
+            print("❌ Cannot find ezlocalai source directory.")
+            print("   Run from within the ezlocalai folder, or clone it first.")
+            return
+
+    print(f"   Source: {source_dir}")
+
+    # Git pull
+    print("\n📥 Pulling latest changes...")
+    result = subprocess.run(
+        ["git", "pull", "--ff-only"],
+        cwd=source_dir,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if result.returncode != 0:
+        print(f"   ⚠️  git pull failed: {result.stderr.strip()}")
+        print("   Continuing with current code...")
+    else:
+        output = result.stdout.strip()
+        if "Already up to date" in output:
+            print("   Already up to date.")
+        else:
+            print(f"   ✅ Updated: {output.splitlines()[-1] if output else 'done'}")
+
+    # Reinstall package in editable mode
+    print("\n📦 Reinstalling ezlocalai...")
+    python = sys.executable
+    result = subprocess.run(
+        [python, "-m", "pip", "install", "-e", ".", "-q"],
+        cwd=source_dir,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if result.returncode != 0:
+        print(f"   ❌ pip install -e . failed: {result.stderr.strip()}")
+        return
+    print("   ✅ ezlocalai reinstalled")
+
+    # Reinstall dependencies (clear marker to force reinstall)
+    deps_marker = STATE_DIR / ".deps_installed"
+    deps_marker.unlink(missing_ok=True)
+
+    # Detect GPU type for dependency install
+    gpu_type = "cpu"
+    if has_nvidia_gpu() or (is_jetson() and has_jetson_cuda()):
+        gpu_type = "nvidia"
+    elif has_amd_gpu() and has_rocm_support():
+        gpu_type = "amd"
+
+    install_native_dependencies(source_dir, gpu_type)
+    deps_marker.write_text("1")
+
+    print("\n✅ Update complete!")
+    print("   Run 'ezlocalai restart' to use the new version.")
+
+
 def update_images() -> None:
-    """Pull latest CPU image and rebuild CUDA/ROCm image."""
-    print("📦 Updating ezlocalai...")
+    """Pull latest CPU image and rebuild CUDA/ROCm image (Docker mode)."""
+    print("📦 Updating ezlocalai (Docker mode)...")
 
     # Check if we're in the ezlocalai source folder
     local_source = get_ezlocalai_source_dir()
@@ -2268,9 +2336,9 @@ Environment:
     if args.command in ("start", "restart"):
         native = should_use_native_mode(force_native=args.native)
 
-    # For stop/status/logs, auto-detect which mode is active
-    if args.command in ("stop", "status", "logs"):
-        native = is_native_running()
+    # For stop/status/logs/update, auto-detect which mode is active
+    if args.command in ("stop", "status", "logs", "update"):
+        native = is_native_running() or should_use_native_mode()
 
     # Check prerequisites for start/restart
     gpu_type = "cpu"
@@ -2332,7 +2400,10 @@ Environment:
             show_status()
 
     elif args.command == "update":
-        update_images()
+        if native:
+            update_native()
+        else:
+            update_images()
 
     elif args.command == "logs":
         if native:
