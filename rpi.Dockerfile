@@ -31,7 +31,7 @@ COPY . .
 # Pi 5 appropriate defaults
 ENV HOST=0.0.0.0 \
     TOKENIZERS_PARALLELISM=false \
-    UVICORN_WORKERS=2 \
+    UVICORN_WORKERS=1 \
     LLM_BATCH_SIZE=512 \
     LLM_MAX_TOKENS=8192 \
     TTS_ENABLED=false \
