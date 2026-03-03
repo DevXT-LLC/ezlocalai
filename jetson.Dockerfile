@@ -94,18 +94,43 @@ ARG CUDA_ARCH=87
 ENV XLLAMACPP_BUILD_CUDA=1 \
     CMAKE_CUDA_ARCHITECTURES=${CUDA_ARCH} \
     CMAKE_BUILD_PARALLEL_LEVEL=4 \
-    CUDA_ARCHITECTURES=${CUDA_ARCH}
-RUN echo "=== Building xllamacpp from source (CUDA arch: ${CUDA_ARCH}) ===" && \
+    CUDA_ARCHITECTURES=${CUDA_ARCH} \
+    CUDA_PATH=/usr/local/cuda
+
+# Build xllamacpp: run cmake directly (setup.sh swallows errors) with FA disabled for CUDA 11.x compat
+RUN set -e && \
+    echo "=== Building xllamacpp from source (CUDA arch: ${CUDA_ARCH}) ===" && \
     echo "nvcc: $(nvcc --version 2>&1 | tail -1)" && \
     git clone --recursive https://github.com/xorbitsai/xllamacpp.git /tmp/xllamacpp && \
+    cd /tmp/xllamacpp/thirdparty/llama.cpp && mkdir -p build && cd build && \
+    echo "--- Configuring cmake ---" && \
+    cmake .. \
+        -DBUILD_SHARED_LIBS=OFF \
+        -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
+        -DCMAKE_INSTALL_LIBDIR=lib \
+        -DLLAMA_CURL=OFF \
+        -DLLAMA_LLGUIDANCE=ON \
+        -DLLAMA_OPENSSL=ON \
+        -DLLAMA_BUILD_BORINGSSL=OFF \
+        -DGGML_NATIVE=OFF \
+        -DGGML_CUDA=ON \
+        -DGGML_CUDA_FORCE_MMQ=ON \
+        -DGGML_CUDA_FA_ALL_QUANTS=OFF \
+        -DCMAKE_CUDA_ARCHITECTURES=${CUDA_ARCH} && \
+    echo "--- Building cmake targets ---" && \
+    cmake --build . --config Release -j$(nproc) \
+        --target common llama ggml ggml-cpu ggml-cuda mtmd cpp-httplib server-context llama-server && \
+    echo "--- Verifying generated headers ---" && \
+    ls tools/server/index.html.gz.hpp && \
+    echo "--- Copying libs ---" && \
     cd /tmp/xllamacpp && \
-    echo "--- Running xllamacpp build system (setup.sh → cmake → copy_libs) ---" && \
-    bash scripts/setup.sh && \
+    python scripts/copy_libs.py && \
+    echo "--- Verifying static libs ---" && \
+    ls src/llama.cpp/lib/libllama.a src/llama.cpp/lib/libggml-cuda.a && \
     echo "--- Installing xllamacpp Python package ---" && \
     pip install . --no-build-isolation --no-cache-dir && \
     rm -rf /tmp/xllamacpp && \
-    python -c "import xllamacpp; print('xllamacpp installed successfully')" || \
-    (echo "FATAL: xllamacpp build failed" && rm -rf /tmp/xllamacpp && exit 1)
+    python -c "import xllamacpp; print('xllamacpp installed successfully')"
 
 # Copy application code
 COPY . .
