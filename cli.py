@@ -303,6 +303,45 @@ def prompt_user(prompt: str, default: str = "") -> str:
     return user_input if user_input else default
 
 
+def _ensure_git_access(repo_dir: Path) -> None:
+    """Ensure git operations will work in the given directory.
+
+    Fixes two common issues:
+    1. 'dubious ownership' — when repo was cloned with sudo but run as a normal user.
+       Adds the directory to git's global safe.directory list.
+    2. File ownership — chowns the directory to the current user if not writable.
+    """
+    if not (repo_dir / ".git").exists():
+        return
+
+    # Add to safe.directory if not already there
+    result = subprocess.run(
+        ["git", "config", "--global", "--get-all", "safe.directory"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    safe_dirs = result.stdout.strip().splitlines() if result.returncode == 0 else []
+    repo_str = str(repo_dir)
+    if repo_str not in safe_dirs:
+        subprocess.run(
+            ["git", "config", "--global", "--add", "safe.directory", repo_str],
+            capture_output=True,
+            check=False,
+        )
+
+    # Fix ownership if directory is not writable by current user
+    if not os.access(repo_dir, os.W_OK):
+        import getpass
+
+        user = getpass.getuser()
+        subprocess.run(
+            ["sudo", "chown", "-R", f"{user}:{user}", repo_str],
+            capture_output=True,
+            check=False,
+        )
+
+
 def clone_or_update_repo() -> Path:
     """Clone or update the ezlocalai repository for building CUDA image.
 
@@ -313,10 +352,12 @@ def clone_or_update_repo() -> Path:
     if local_source:
         print("📦 Using local ezlocalai source folder...")
         print(f"   Path: {local_source}")
+        _ensure_git_access(local_source)
         return local_source
 
     # Fall back to cloning/updating the repo
     if REPO_DIR.exists():
+        _ensure_git_access(REPO_DIR)
         print("📦 Updating ezlocalai repository...")
         result = subprocess.run(
             ["git", "pull"],
@@ -1334,6 +1375,9 @@ def start_native(
             print("❌ Failed to get ezlocalai source code.")
             sys.exit(1)
 
+    # Auto-update: check for new commits and pull if available
+    auto_update_native(source_dir, gpu_type)
+
     # Load existing env or defaults
     env_vars = get_default_env()
     saved_env = load_env_file()
@@ -1640,6 +1684,9 @@ def start_container(
         check=False,
     )
 
+    # Auto-update: pull latest image or rebuild GPU image if source changed
+    auto_update_docker(gpu_type)
+
     # Select image based on GPU type
     if gpu_type == "nvidia":
         image = DOCKER_IMAGE_CUDA
@@ -1916,6 +1963,153 @@ def show_logs(follow: bool = False) -> None:
         pass
 
 
+def _check_for_updates(source_dir: Path) -> bool:
+    """Check if the remote repo has new commits.
+
+    Returns True if updates are available, False otherwise.
+    """
+    if not (source_dir / ".git").exists():
+        return False
+
+    _ensure_git_access(source_dir)
+
+    # Fetch remote quietly
+    result = subprocess.run(
+        ["git", "fetch", "--quiet"],
+        cwd=source_dir,
+        capture_output=True,
+        check=False,
+    )
+    if result.returncode != 0:
+        return False
+
+    # Check if local is behind remote
+    result = subprocess.run(
+        ["git", "rev-list", "--count", "HEAD..@{u}"],
+        cwd=source_dir,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if result.returncode != 0:
+        return False
+
+    behind = int(result.stdout.strip() or "0")
+    return behind > 0
+
+
+def auto_update_native(source_dir: Path, gpu_type: str = "cpu") -> None:
+    """Auto-update native mode: git pull + pip install -e . + reinstall deps if needed."""
+    if not _check_for_updates(source_dir):
+        return
+
+    print("📦 New version available, auto-updating...")
+
+    # Git pull
+    result = subprocess.run(
+        ["git", "pull", "--ff-only"],
+        cwd=source_dir,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if result.returncode != 0:
+        print(f"   ⚠️  git pull failed: {result.stderr.strip()}")
+        print("   Continuing with current version...")
+        return
+
+    output = result.stdout.strip()
+    print(f"   ✅ Updated: {output.splitlines()[-1] if output else 'done'}")
+
+    # Check if requirements changed
+    result = subprocess.run(
+        ["git", "diff", "HEAD~1", "--name-only"],
+        cwd=source_dir,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    changed_files = result.stdout.strip().splitlines() if result.returncode == 0 else []
+
+    deps_changed = any(
+        f in changed_files
+        for f in [
+            "requirements.txt",
+            "cuda-requirements.txt",
+            "pyproject.toml",
+            "setup.py",
+        ]
+    )
+
+    # Reinstall package
+    python = sys.executable
+    subprocess.run(
+        [python, "-m", "pip", "install", "-e", ".", "-q"],
+        cwd=source_dir,
+        capture_output=True,
+        check=False,
+    )
+
+    # Reinstall deps if requirements changed
+    if deps_changed:
+        print("   Dependencies changed, reinstalling...")
+        deps_marker = STATE_DIR / ".deps_installed"
+        deps_marker.unlink(missing_ok=True)
+        install_native_dependencies(source_dir, gpu_type)
+        deps_marker.write_text("1")
+
+    print("   ✅ Auto-update complete\n")
+
+
+def auto_update_docker(gpu_type: str = "cpu") -> None:
+    """Auto-update Docker mode: pull latest image, rebuild CUDA/ROCm if source changed."""
+    # For CPU image: quick pull check
+    if gpu_type == "cpu":
+        print("🔄 Checking for image updates...")
+        result = subprocess.run(
+            ["docker", "pull", DOCKER_IMAGE],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if result.returncode == 0 and "up to date" not in result.stdout.lower():
+            print("   ✅ New image pulled")
+        return
+
+    # For GPU images: check if source repo has updates and rebuild if so
+    source_dir = get_ezlocalai_source_dir()
+    if not source_dir:
+        if REPO_DIR.exists() and is_ezlocalai_folder(REPO_DIR):
+            source_dir = REPO_DIR
+        else:
+            return  # No source dir, can't auto-update GPU images
+
+    if not _check_for_updates(source_dir):
+        return
+
+    print("📦 New version available, updating source and rebuilding image...")
+    result = subprocess.run(
+        ["git", "pull", "--ff-only"],
+        cwd=source_dir,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if result.returncode != 0:
+        print(f"   ⚠️  git pull failed, continuing with current image...")
+        return
+
+    # Rebuild the appropriate GPU image
+    if gpu_type == "nvidia":
+        print("   Rebuilding CUDA image...")
+        build_cuda_image()
+    elif gpu_type == "amd":
+        print("   Rebuilding ROCm image...")
+        build_rocm_image()
+
+    print("   ✅ Auto-update complete\n")
+
+
 def update_native() -> None:
     """Update native mode installation: git pull + pip install -e . + reinstall deps."""
     print("📦 Updating ezlocalai (native mode)...")
@@ -1931,6 +2125,8 @@ def update_native() -> None:
             return
 
     print(f"   Source: {source_dir}")
+
+    _ensure_git_access(source_dir)
 
     # Git pull
     print("\n📥 Pulling latest changes...")

@@ -7,7 +7,7 @@ name = "ezlocalai"
 version = "1.0.5"
 description = "Local AI inference made easy - LLM, Vision, TTS, STT, and Image Generation"
 readme = "README.md"
-license = {text = "MIT"}
+license = "MIT"
 authors = [
     {name = "Josh XT", email = "josh@devxt.com"}
 ]
@@ -15,7 +15,6 @@ keywords = ["ai", "llm", "local", "inference", "tts", "stt", "vision", "docker"]
 classifiers = [
     "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.8",
