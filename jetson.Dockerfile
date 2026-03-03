@@ -4,7 +4,7 @@
 #
 # Supports JetPack 5.1 (L4T R35) and 6.x (L4T R36) via build arg.
 # Note: L4T base images ship Python 3.8 which is too old for xllamacpp (>=3.10).
-# We install Python 3.10 from deadsnakes PPA and use it for the venv.
+# We build Python 3.10 from source (deadsnakes PPA lacks ARM64 packages for focal).
 ARG L4T_TAG=r36.4.0
 FROM nvcr.io/nvidia/l4t-jetpack:${L4T_TAG}
 
@@ -14,21 +14,31 @@ ENV DEBIAN_FRONTEND=noninteractive \
     LD_LIBRARY_PATH="/usr/local/cuda/lib64:${LD_LIBRARY_PATH}" \
     CUDA_HOME=/usr/local/cuda
 
-# Install system dependencies + Python 3.10 from deadsnakes (L4T base has 3.8)
+# Install system dependencies + build deps for Python 3.10 from source
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends software-properties-common && \
-    add-apt-repository -y ppa:deadsnakes/ppa && \
-    apt-get update && \
     apt-get install -y --no-install-recommends \
-        python3.10 python3.10-venv python3.10-dev \
         git build-essential cmake gcc g++ \
         ffmpeg libsndfile1 libopenblas-dev \
-        curl wget unzip && \
+        curl wget unzip \
+        zlib1g-dev libffi-dev libssl-dev libbz2-dev \
+        libreadline-dev libsqlite3-dev liblzma-dev \
+        libncurses5-dev libncursesw5-dev uuid-dev && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
+# Build Python 3.10 from source (~5 min on Jetson Orin NX)
+ARG PYTHON_VERSION=3.10.16
+RUN wget -q https://www.python.org/ftp/python/${PYTHON_VERSION}/Python-${PYTHON_VERSION}.tgz && \
+    tar xzf Python-${PYTHON_VERSION}.tgz && \
+    cd Python-${PYTHON_VERSION} && \
+    ./configure --enable-optimizations --with-ensurepip=install --prefix=/usr/local 2>&1 | tail -5 && \
+    make -j$(nproc) 2>&1 | tail -5 && \
+    make altinstall && \
+    cd / && rm -rf Python-${PYTHON_VERSION} Python-${PYTHON_VERSION}.tgz && \
+    ln -sf /usr/local/bin/python3.10 /usr/local/bin/python3
+
 # Create virtual environment with Python 3.10
-# Use --system-site-packages to inherit JetPack's CUDA bindings (linked to system Python)
+# Use --system-site-packages to inherit JetPack's CUDA bindings
 RUN python3.10 -m venv --system-site-packages /opt/venv && \
     pip install --upgrade pip setuptools wheel
 
