@@ -1261,14 +1261,27 @@ def start_native(
     # Save updated env
     save_env_file(env_vars)
 
-    # Install dependencies if needed (check for a marker)
+    # Install dependencies if needed — verify critical imports actually work
     deps_marker = STATE_DIR / ".deps_installed"
-    if not deps_marker.exists():
+    needs_deps = not deps_marker.exists()
+    if not needs_deps:
+        # Verify critical modules are actually importable
+        python = sys.executable
+        check = subprocess.run(
+            [python, "-c", "import uvicorn; import dotenv; import fastapi"],
+            capture_output=True,
+            check=False,
+        )
+        if check.returncode != 0:
+            print("⚠️  Missing critical dependencies, reinstalling...")
+            needs_deps = True
+
+    if needs_deps:
         install_native_dependencies(source_dir, gpu_type)
         deps_marker.write_text("1")
     else:
         print(
-            "✅ Dependencies already installed (delete ~/.ezlocalai/.deps_installed to reinstall)"
+            "✅ Dependencies verified (delete ~/.ezlocalai/.deps_installed to force reinstall)"
         )
 
     # Prepare data directories (same as Docker mode)
