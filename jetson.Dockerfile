@@ -3,7 +3,8 @@
 # Build ON the Jetson itself: docker compose -f docker-compose-jetson.yml build
 #
 # Supports JetPack 5.1 (L4T R35) and 6.x (L4T R36) via build arg.
-# Default: JetPack 6 (r36.4.0) which includes CUDA 12.2, cuDNN 8.9, Python 3.10
+# Note: L4T base images ship Python 3.8 which is too old for xllamacpp (>=3.10).
+# We install Python 3.10 from deadsnakes PPA and use it for the venv.
 ARG L4T_TAG=r36.4.0
 FROM nvcr.io/nvidia/l4t-jetpack:${L4T_TAG}
 
@@ -13,18 +14,22 @@ ENV DEBIAN_FRONTEND=noninteractive \
     LD_LIBRARY_PATH="/usr/local/cuda/lib64:${LD_LIBRARY_PATH}" \
     CUDA_HOME=/usr/local/cuda
 
-# Install system dependencies
+# Install system dependencies + Python 3.10 from deadsnakes (L4T base has 3.8)
 RUN apt-get update && \
+    apt-get install -y --no-install-recommends software-properties-common && \
+    add-apt-repository -y ppa:deadsnakes/ppa && \
+    apt-get update && \
     apt-get install -y --no-install-recommends \
-        python3 python3-pip python3-venv python3-dev \
+        python3.10 python3.10-venv python3.10-dev \
         git build-essential cmake gcc g++ \
         ffmpeg libsndfile1 libopenblas-dev \
         curl wget unzip && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-# Create virtual environment using system Python (matches JetPack's CUDA bindings)
-RUN python3 -m venv --system-site-packages /opt/venv && \
+# Create virtual environment with Python 3.10
+# Use --system-site-packages to inherit JetPack's CUDA bindings (linked to system Python)
+RUN python3.10 -m venv --system-site-packages /opt/venv && \
     pip install --upgrade pip setuptools wheel
 
 # Install uv for fast package management
@@ -78,8 +83,8 @@ RUN git clone --recursive https://github.com/xorbitsai/xllamacpp.git /tmp/xllama
     CMAKE_BUILD_PARALLEL_LEVEL=4 \
     pip install . --no-build-isolation --no-cache-dir && \
     rm -rf /tmp/xllamacpp || \
-    (echo "xllamacpp source build failed, installing CPU-only..." && \
-     pip install xllamacpp --no-cache-dir)
+    (echo "WARNING: xllamacpp source build failed — GGUF inference will not be available" && \
+     rm -rf /tmp/xllamacpp)
 
 # Copy application code
 COPY . .
