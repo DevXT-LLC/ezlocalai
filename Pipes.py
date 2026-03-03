@@ -2846,8 +2846,6 @@ class Pipes:
                 best_file = None
                 patterns = [
                     quant_type,
-                    "Q4_K_M",
-                    "Q4_K_XL",
                     "Q4_K",
                     "Q5_K",
                     "Q6_K",

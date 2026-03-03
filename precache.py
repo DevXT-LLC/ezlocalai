@@ -92,7 +92,7 @@ def precache_llm_models():
 
             # Find best quantization
             best_file = None
-            patterns = [quant_type, "Q4_K_M", "Q4_K_XL", "Q4_K", "Q5_K", "Q6_K", "Q8"]
+            patterns = [quant_type, "Q4_K", "Q5_K", "Q6_K", "Q8"]
             for pattern in patterns:
                 for f in gguf_files:
                     if pattern in f:

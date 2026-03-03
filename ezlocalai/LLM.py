@@ -1,5 +1,5 @@
 import xllamacpp as xlc
-from huggingface_hub import hf_hub_download
+from huggingface_hub import hf_hub_download, list_repo_files
 from typing import List, Optional, Dict, Tuple
 import os
 import re
@@ -228,34 +228,39 @@ def download_model(model_name: str = "", models_dir: str = "models") -> tuple:
             logging.debug(f"[LLM] Using existing model: {existing_file}")
             return filepath, mmproj_path
 
-    # No existing model found - download based on QUANT_TYPE preference
-    potential_filenames = [
-        f"{model}.{quantization_type}.gguf",
-        f"{model}-{quantization_type}.gguf",
-        f"{model}.{quantization_type.lower()}.gguf",
-        f"{model}-{quantization_type.lower()}.gguf",
-        f"{model}.Q4_K_M.gguf",
-        f"{model}.q4_k_m.gguf",
-        f"{model}-Q4_K_M.gguf",
-        f"{model}-q4_k_m.gguf",
-        "ggml-model-q5_k.gguf",
-        "ggml-model-f16.gguf",
-    ]
-
-    # Download the model
+    # No existing model found - use list_repo_files + pattern matching
+    # to find the best quantization, consistent with precache.py and Pipes.py
     logging.debug(f"[LLM] Downloading {model}...")
-    for filename in potential_filenames:
-        filepath = os.path.join(model_dir, filename)
-        try:
+    try:
+        files = list_repo_files(model_name)
+        gguf_files = [
+            f for f in files if f.endswith(".gguf") and "mmproj" not in f.lower()
+        ]
+
+        if gguf_files:
+            best_file = None
+            patterns = [quantization_type, "Q4_K", "Q5_K", "Q6_K", "Q8"]
+            for pattern in patterns:
+                for f in gguf_files:
+                    if pattern in f:
+                        best_file = f
+                        break
+                if best_file:
+                    break
+
+            if not best_file:
+                best_file = gguf_files[0]
+
+            filepath = os.path.join(model_dir, best_file)
             hf_hub_download(
                 repo_id=model_name,
-                filename=filename,
+                filename=best_file,
                 local_dir=model_dir,
             )
-            logging.debug(f"[LLM] Downloaded {model} successfully!")
+            logging.debug(f"[LLM] Downloaded {model} ({best_file}) successfully!")
             return filepath, mmproj_path
-        except Exception:
-            pass
+    except Exception as e:
+        logging.error(f"[LLM] Failed to list/download from {model_name}: {e}")
 
     raise FileNotFoundError(f"No suitable model file found for {model_name}")
 

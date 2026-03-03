@@ -1266,6 +1266,11 @@ def _install_requirements_individually(python: str, req_file: Path) -> None:
         line = line.strip()
         if not line or line.startswith("#"):
             continue
+        # Strip inline comments (e.g. "esp-ppq>=0.2.0  # ESP32 quantization")
+        if " #" in line:
+            line = line[: line.index(" #")].strip()
+        if not line:
+            continue
         packages.append(line)
 
     # Identify which packages can't be installed individually
@@ -1374,6 +1379,9 @@ def start_native(
     data_dir = STATE_DIR / "data"
     for d in ["models", "outputs", "voices", "hf"]:
         (data_dir / d).mkdir(parents=True, exist_ok=True)
+
+    # Ensure outputs dir exists in source_dir (app.py mounts it as static files)
+    (source_dir / "outputs").mkdir(parents=True, exist_ok=True)
 
     # Build environment for the subprocess
     proc_env = os.environ.copy()
