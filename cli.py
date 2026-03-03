@@ -1516,8 +1516,8 @@ def stop_native() -> None:
         pgid = os.getpgid(pid)
         os.killpg(pgid, signal.SIGTERM)
 
-        # Wait up to 10 seconds for graceful shutdown
-        for _ in range(20):
+        # Wait up to 5 seconds for graceful shutdown
+        for _ in range(10):
             time.sleep(0.5)
             try:
                 os.kill(pid, 0)  # Check if main process is still alive
@@ -1534,10 +1534,9 @@ def stop_native() -> None:
     except ProcessLookupError:
         pass  # Already dead
     except PermissionError:
-        print(f"❌ Permission denied. Try: sudo kill -- -{pid}")
-        return
+        print(f"⚠️  Permission denied for PID {pid}, trying alternatives...")
 
-    # Also kill any orphaned children that might have escaped the process group
+    # Always kill any orphaned children and anything holding the port
     _kill_orphaned_ezlocalai()
 
     PID_FILE.unlink(missing_ok=True)
@@ -1549,27 +1548,80 @@ def _kill_orphaned_ezlocalai() -> None:
 
     Catches processes that survived process group kill or were started
     outside the tracked PID (e.g. stale uvicorn or xllamacpp-server).
+    Uses multiple strategies to ensure everything is stopped.
     """
+    killed_any = False
+
+    # Strategy 1: pgrep for known process patterns
+    patterns = [
+        "ezlocalai.*start\\.py",
+        "uvicorn.*app:app",
+        "xllamacpp",
+        "python.*start\\.py",
+    ]
+    my_pid = str(os.getpid())
+
+    for pattern in patterns:
+        try:
+            result = subprocess.run(
+                ["pgrep", "-f", pattern],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            if result.returncode == 0 and result.stdout.strip():
+                for p in result.stdout.strip().split("\n"):
+                    p = p.strip()
+                    if p and p != my_pid:
+                        try:
+                            os.kill(int(p), signal.SIGKILL)
+                            killed_any = True
+                        except (ProcessLookupError, PermissionError, ValueError):
+                            pass
+        except FileNotFoundError:
+            break  # pgrep not available
+
+    # Strategy 2: kill whatever is holding our port
     try:
-        # Find processes running start.py or uvicorn from the ezlocalai dir
         result = subprocess.run(
-            ["pgrep", "-f", "ezlocalai.*(start\\.py|uvicorn|xllamacpp)"],
+            ["fuser", f"{DEFAULT_PORT}/tcp"],
             capture_output=True,
             text=True,
             check=False,
         )
         if result.returncode == 0 and result.stdout.strip():
-            pids = result.stdout.strip().split("\n")
-            my_pid = str(os.getpid())
+            pids = result.stdout.strip().split()
             for p in pids:
                 p = p.strip()
                 if p and p != my_pid:
                     try:
-                        os.kill(int(p), signal.SIGTERM)
+                        os.kill(int(p), signal.SIGKILL)
+                        killed_any = True
                     except (ProcessLookupError, PermissionError, ValueError):
                         pass
     except FileNotFoundError:
-        pass  # pgrep not available
+        # fuser not available, try lsof
+        try:
+            result = subprocess.run(
+                ["lsof", "-ti", f":{DEFAULT_PORT}"],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            if result.returncode == 0 and result.stdout.strip():
+                for p in result.stdout.strip().split("\n"):
+                    p = p.strip()
+                    if p and p != my_pid:
+                        try:
+                            os.kill(int(p), signal.SIGKILL)
+                            killed_any = True
+                        except (ProcessLookupError, PermissionError, ValueError):
+                            pass
+        except FileNotFoundError:
+            pass  # Neither fuser nor lsof available
+
+    if killed_any:
+        time.sleep(1)  # Give OS time to release the port
 
 
 def show_native_status() -> None:
