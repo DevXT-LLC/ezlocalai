@@ -475,11 +475,21 @@ class LLM:
             xlc.llama_flash_attn_type.LLAMA_FLASH_ATTN_TYPE_ENABLED
         )
 
-        # Quantize KV cache to reduce VRAM usage (~8x savings vs f16)
-        # q4_0 enables full 262K context on 24GB GPUs for models like Qwen3.5
-        # where only 10/40 layers use standard attention (rest are DeltaNet state-space)
-        self.xlc_params.cache_type_k = xlc.ggml_type.GGML_TYPE_Q4_0
-        self.xlc_params.cache_type_v = xlc.ggml_type.GGML_TYPE_Q4_0
+        # KV cache type: q4_0 saves ~8x VRAM vs f16, but requires FA_ALL_QUANTS
+        # compiled into the CUDA backend. Use f16 on Jetson/embedded where FA_ALL_QUANTS
+        # may not be available, or q4_0 on desktop GPUs with ample VRAM.
+        kv_cache_type = getenv("KV_CACHE_TYPE", "q4_0").lower().strip()
+        kv_type_map = {
+            "f16": xlc.ggml_type.GGML_TYPE_F16,
+            "f32": xlc.ggml_type.GGML_TYPE_F32,
+            "q8_0": xlc.ggml_type.GGML_TYPE_Q8_0,
+            "q4_0": xlc.ggml_type.GGML_TYPE_Q4_0,
+        }
+        kv_type = kv_type_map.get(kv_cache_type, xlc.ggml_type.GGML_TYPE_Q4_0)
+        self.xlc_params.cache_type_k = kv_type
+        self.xlc_params.cache_type_v = kv_type
+        if kv_cache_type != "q4_0":
+            logging.info(f"[LLM] KV cache type: {kv_cache_type}")
 
         # Apply tensor split for multi-GPU setups
         if self.tensor_split and self.gpu_count > 1:

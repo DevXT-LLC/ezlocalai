@@ -117,7 +117,6 @@ RUN set -e && \
         -DLLAMA_BUILD_BORINGSSL=OFF \
         -DGGML_NATIVE=OFF \
         -DGGML_CUDA=ON \
-        -DGGML_CUDA_FA_ALL_QUANTS=OFF \
         -DCMAKE_CUDA_ARCHITECTURES=${CUDA_ARCH} && \
     echo "--- Building cmake targets ---" && \
     cmake --build . --config Release -j$(nproc) \
