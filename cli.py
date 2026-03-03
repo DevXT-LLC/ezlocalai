@@ -1496,6 +1496,58 @@ def start_native(
     print(f"\n   🌐 API: http://localhost:{DEFAULT_PORT}")
 
 
+def _pid_alive(pid: int) -> bool:
+    """Check if a process is still running."""
+    try:
+        os.kill(pid, 0)
+        return True
+    except (ProcessLookupError, PermissionError):
+        return False
+
+
+def _get_process_tree(root_pid: int) -> list[int]:
+    """Get a list of all PIDs in a process tree (parent + all descendants).
+
+    Uses /proc on Linux to walk the process tree without external tools.
+    Returns pids in child-first order so children are killed before parents.
+    """
+    all_pids = {root_pid}
+
+    try:
+        # Read all /proc/[pid]/stat to build parent->children map
+        children_map: dict[int, list[int]] = {}
+        proc = Path("/proc")
+        for entry in proc.iterdir():
+            if not entry.name.isdigit():
+                continue
+            try:
+                stat = (entry / "stat").read_text()
+                # Format: pid (comm) state ppid ...
+                # Need to handle comm with spaces/parens: find last ')' then split
+                last_paren = stat.rfind(")")
+                fields_after = stat[last_paren + 2 :].split()
+                ppid = int(fields_after[1])  # ppid is field index 3, but index 1 after ')'
+                pid_val = int(entry.name)
+                children_map.setdefault(ppid, []).append(pid_val)
+            except (OSError, ValueError, IndexError):
+                continue
+
+        # BFS from root_pid to find all descendants
+        queue = [root_pid]
+        while queue:
+            current = queue.pop(0)
+            for child in children_map.get(current, []):
+                all_pids.add(child)
+                queue.append(child)
+    except OSError:
+        pass
+
+    # Return children first, parent last
+    result = sorted(all_pids)
+    result.reverse()
+    return result
+
+
 def stop_native() -> None:
     """Stop the native ezlocalai process and all its children.
 
@@ -1510,33 +1562,43 @@ def stop_native() -> None:
         return
 
     print(f"🛑 Stopping ezlocalai (PID {pid})...")
-    try:
-        # Kill the entire process group (negative PID = process group)
-        # This ensures uvicorn, xllamacpp, and all children are killed
-        pgid = os.getpgid(pid)
-        os.killpg(pgid, signal.SIGTERM)
 
-        # Wait up to 5 seconds for graceful shutdown
-        for _ in range(10):
-            time.sleep(0.5)
-            try:
-                os.kill(pid, 0)  # Check if main process is still alive
-            except ProcessLookupError:
-                break
-        else:
-            # Force kill the process group if still running
-            print("   Force killing process group...")
-            try:
-                os.killpg(pgid, signal.SIGKILL)
-            except ProcessLookupError:
-                pass
+    # Collect all PIDs to kill: the tracked PID + all its descendants
+    pids_to_kill = _get_process_tree(pid)
+
+    # First try graceful SIGTERM on all of them
+    for p in pids_to_kill:
+        try:
+            os.kill(p, signal.SIGTERM)
+        except (ProcessLookupError, PermissionError):
+            pass
+
+    # Wait up to 3 seconds for graceful shutdown
+    for _ in range(6):
+        time.sleep(0.5)
+        alive = [p for p in pids_to_kill if _pid_alive(p)]
+        if not alive:
+            break
+    else:
+        # Force kill anything still alive
+        alive = [p for p in pids_to_kill if _pid_alive(p)]
+        if alive:
+            print(f"   Force killing {len(alive)} remaining process(es)...")
+            for p in alive:
+                try:
+                    os.kill(p, signal.SIGKILL)
+                except (ProcessLookupError, PermissionError):
+                    pass
             time.sleep(1)
-    except ProcessLookupError:
-        pass  # Already dead
-    except PermissionError:
-        print(f"⚠️  Permission denied for PID {pid}, trying alternatives...")
 
-    # Always kill any orphaned children and anything holding the port
+    # Also try process group kill as a belt-and-suspenders measure
+    try:
+        pgid = os.getpgid(pid)
+        os.killpg(pgid, signal.SIGKILL)
+    except (ProcessLookupError, PermissionError, OSError):
+        pass
+
+    # Final cleanup: kill anything still holding the port
     _kill_orphaned_ezlocalai()
 
     PID_FILE.unlink(missing_ok=True)
