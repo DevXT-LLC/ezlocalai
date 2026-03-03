@@ -2953,13 +2953,35 @@ def update_native() -> None:
 
 
 def update_images() -> None:
-    """Pull latest CPU image and rebuild CUDA/ROCm image (Docker mode)."""
+    """Pull latest CPU image and rebuild CUDA/ROCm/Jetson image (Docker mode)."""
     print("📦 Updating ezlocalai (Docker mode)...")
 
     # Check if we're in the ezlocalai source folder
     local_source = get_ezlocalai_source_dir()
     if local_source:
         print(f"ℹ️  Running from ezlocalai source folder: {local_source}")
+
+    # Jetson: skip CPU pull (no ARM64 manifest on DockerHub), rebuild Jetson image
+    if is_jetson():
+        print(f"\n🔨 Jetson detected — rebuilding Jetson Docker image from source...")
+        # Update source first
+        source_dir = local_source or (REPO_DIR if REPO_DIR.exists() else None)
+        if source_dir:
+            print("📥 Pulling latest source...")
+            subprocess.run(
+                ["git", "pull", "--ff-only"],
+                cwd=source_dir,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+        if build_jetson_image():
+            print("   ✅ Jetson image rebuilt")
+        else:
+            print("   ⚠️  Failed to build Jetson image")
+        print("\n✅ Update complete!")
+        print("   Run 'ezlocalai restart' to use the new version.")
+        return
 
     # Pull CPU image from DockerHub
     print(f"\n📥 Pulling {DOCKER_IMAGE}...")
