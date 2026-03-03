@@ -83,24 +83,33 @@ RUN pip install chatterbox-tts --no-deps --no-cache-dir 2>/dev/null || \
     echo "SKIP: chatterbox-tts (optional)"
 
 # Build xllamacpp from source with CUDA for Jetson
-# This is a compile step (~5-15 min on Jetson Orin NX)
 # xllamacpp is a HARD requirement (LLM.py imports it directly) — fail build if it can't be built
+# Step 1: Pre-build llama.cpp with cmake to generate required headers (index.html.gz.hpp etc.)
+# Step 2: pip install xllamacpp which compiles the Python extension using those headers
 RUN pip install cython setuptools wheel scikit-build-core cmake 2>/dev/null || true
 ARG CUDA_ARCH=87
 ENV XLLAMACPP_BUILD_CUDA=1 \
     CMAKE_CUDA_ARCHITECTURES=${CUDA_ARCH} \
     CMAKE_BUILD_PARALLEL_LEVEL=4
 RUN echo "=== Building xllamacpp from source (CUDA arch: ${CUDA_ARCH}) ===" && \
-    echo "nvcc path: $(which nvcc 2>/dev/null || echo 'NOT FOUND')" && \
-    nvcc --version 2>/dev/null || echo "WARNING: nvcc not found" && \
+    echo "nvcc: $(nvcc --version 2>&1 | tail -1)" && \
     git clone --recursive https://github.com/xorbitsai/xllamacpp.git /tmp/xllamacpp && \
+    echo "--- Pre-building llama.cpp to generate server headers ---" && \
+    cd /tmp/xllamacpp/thirdparty/llama.cpp && \
+    mkdir -p build && cd build && \
+    cmake .. \
+        -DGGML_CUDA=ON \
+        -DCMAKE_CUDA_ARCHITECTURES=${CUDA_ARCH} \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DLLAMA_BUILD_TESTS=OFF \
+        -DLLAMA_BUILD_EXAMPLES=OFF && \
+    cmake --build . -j4 && \
+    echo "--- Building xllamacpp Python extension ---" && \
     cd /tmp/xllamacpp && \
     pip install . --no-build-isolation --no-cache-dir && \
     rm -rf /tmp/xllamacpp && \
     python -c "import xllamacpp; print('xllamacpp installed successfully')" || \
-    (echo "FATAL: xllamacpp build failed — this is required for GGUF inference" && \
-     echo "Check that CUDA toolkit is properly installed and nvcc is on PATH" && \
-     rm -rf /tmp/xllamacpp && exit 1)
+    (echo "FATAL: xllamacpp build failed" && rm -rf /tmp/xllamacpp && exit 1)
 
 # Copy application code
 COPY . .
