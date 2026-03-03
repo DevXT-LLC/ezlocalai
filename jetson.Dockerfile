@@ -10,7 +10,7 @@ FROM nvcr.io/nvidia/l4t-jetpack:${L4T_TAG}
 
 ENV DEBIAN_FRONTEND=noninteractive \
     VIRTUAL_ENV=/opt/venv \
-    PATH="/opt/venv/bin:/root/.local/bin:$PATH" \
+    PATH="/opt/venv/bin:/usr/local/cuda/bin:/root/.local/bin:$PATH" \
     LD_LIBRARY_PATH="/usr/local/cuda/lib64:${LD_LIBRARY_PATH}" \
     CUDA_HOME=/usr/local/cuda
 
@@ -84,17 +84,23 @@ RUN pip install chatterbox-tts --no-deps --no-cache-dir 2>/dev/null || \
 
 # Build xllamacpp from source with CUDA for Jetson
 # This is a compile step (~5-15 min on Jetson Orin NX)
-RUN pip install cython setuptools wheel rust-setuptools 2>/dev/null || true
+# xllamacpp is a HARD requirement (LLM.py imports it directly) — fail build if it can't be built
+RUN pip install cython setuptools wheel scikit-build-core cmake 2>/dev/null || true
 ARG CUDA_ARCH=87
-RUN git clone --recursive https://github.com/xorbitsai/xllamacpp.git /tmp/xllamacpp && \
-    cd /tmp/xllamacpp && \
-    XLLAMACPP_BUILD_CUDA=1 \
+ENV XLLAMACPP_BUILD_CUDA=1 \
     CMAKE_CUDA_ARCHITECTURES=${CUDA_ARCH} \
-    CMAKE_BUILD_PARALLEL_LEVEL=4 \
+    CMAKE_BUILD_PARALLEL_LEVEL=4
+RUN echo "=== Building xllamacpp from source (CUDA arch: ${CUDA_ARCH}) ===" && \
+    echo "nvcc path: $(which nvcc 2>/dev/null || echo 'NOT FOUND')" && \
+    nvcc --version 2>/dev/null || echo "WARNING: nvcc not found" && \
+    git clone --recursive https://github.com/xorbitsai/xllamacpp.git /tmp/xllamacpp && \
+    cd /tmp/xllamacpp && \
     pip install . --no-build-isolation --no-cache-dir && \
-    rm -rf /tmp/xllamacpp || \
-    (echo "WARNING: xllamacpp source build failed — GGUF inference will not be available" && \
-     rm -rf /tmp/xllamacpp)
+    rm -rf /tmp/xllamacpp && \
+    python -c "import xllamacpp; print('xllamacpp installed successfully')" || \
+    (echo "FATAL: xllamacpp build failed — this is required for GGUF inference" && \
+     echo "Check that CUDA toolkit is properly installed and nvcc is on PATH" && \
+     rm -rf /tmp/xllamacpp && exit 1)
 
 # Copy application code
 COPY . .
