@@ -2630,12 +2630,23 @@ def _cleanup_all_ezlocalai_containers(
     """Remove all stopped ezlocalai containers (compose and docker-run)."""
     # Remove any stopped containers matching the name
     result = subprocess.run(
-        ["docker", "ps", "-a", "-q", "-f", f"name={CONTAINER_NAME}", "-f", "status=exited"],
+        [
+            "docker",
+            "ps",
+            "-a",
+            "-q",
+            "-f",
+            f"name={CONTAINER_NAME}",
+            "-f",
+            "status=exited",
+        ],
         capture_output=True,
         text=True,
         check=False,
     )
-    stopped_ids = [cid.strip() for cid in result.stdout.strip().splitlines() if cid.strip()]
+    stopped_ids = [
+        cid.strip() for cid in result.stdout.strip().splitlines() if cid.strip()
+    ]
     if stopped_ids:
         for cid in stopped_ids:
             subprocess.run(
