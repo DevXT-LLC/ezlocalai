@@ -21,6 +21,7 @@
 #
 services:
   ezlocalai:
+    container_name: ezlocalai
     build:
       context: .
       dockerfile: jetson.Dockerfile

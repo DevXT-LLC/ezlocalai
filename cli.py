@@ -2600,12 +2600,49 @@ def start_container(
         elapsed = int(time.time() - start_time)
         if elapsed % 10 == 0 and elapsed > 0:
             print(f"   Still loading... ({elapsed}s)")
+            # After 60s, show a tail of the logs to help debug
+            if elapsed == 60:
+                print("\n   📋 Recent container logs:")
+                log_result = subprocess.run(
+                    ["docker", "logs", "--tail", "15", CONTAINER_NAME],
+                    capture_output=True,
+                    text=True,
+                    check=False,
+                )
+                if log_result.stdout:
+                    for line in log_result.stdout.strip().splitlines()[-10:]:
+                        print(f"      {line}")
+                elif log_result.stderr:
+                    for line in log_result.stderr.strip().splitlines()[-10:]:
+                        print(f"      {line}")
+                print()
         time.sleep(2)
 
     print("\n⚠️  Container started but server not responding yet.")
     print("   This is normal for first-time model downloads.")
     print(f"   Check logs with: ezlocalai logs")
     print(f"\n   🌐 API: http://localhost:{DEFAULT_PORT}")
+
+
+def _cleanup_all_ezlocalai_containers(
+    source_dir: Optional[Path] = None, compose_file: str = ""
+) -> None:
+    """Remove all stopped ezlocalai containers (compose and docker-run)."""
+    # Remove any stopped containers matching the name
+    result = subprocess.run(
+        ["docker", "ps", "-a", "-q", "-f", f"name={CONTAINER_NAME}", "-f", "status=exited"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    stopped_ids = [cid.strip() for cid in result.stdout.strip().splitlines() if cid.strip()]
+    if stopped_ids:
+        for cid in stopped_ids:
+            subprocess.run(
+                ["docker", "rm", "-f", cid],
+                capture_output=True,
+                check=False,
+            )
 
 
 def stop_container() -> None:
@@ -2617,27 +2654,11 @@ def stop_container() -> None:
     gpu_type = saved_env.get("_GPU_TYPE", "cpu")
     compose_file = _get_compose_file(gpu_type)
 
+    # Always clean up any old containers (from prior docker-run or compose)
+    _cleanup_all_ezlocalai_containers(source_dir, compose_file)
+
     if not is_container_running():
-        # Clean up any stopped containers
-        status = get_container_status()
-        if status:
-            print("🧹 Removing stopped container...")
-            if source_dir and (source_dir / compose_file).exists():
-                subprocess.run(
-                    ["docker", "compose", "-f", compose_file, "down", "--remove-orphans"],
-                    cwd=source_dir,
-                    capture_output=True,
-                    check=False,
-                )
-            else:
-                subprocess.run(
-                    ["docker", "rm", "-f", CONTAINER_NAME],
-                    capture_output=True,
-                    check=False,
-                )
-            print("✅ Container removed")
-        else:
-            print("ℹ️  ezlocalai is not running")
+        print("ℹ️  ezlocalai is not running")
         return
 
     print("🛑 Stopping ezlocalai...")

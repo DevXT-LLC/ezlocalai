@@ -1,5 +1,6 @@
 services:
   ezlocalai:
+    container_name: ezlocalai
     image: joshxt/ezlocalai:latest
     environment:
       - EZLOCALAI_URL=${EZLOCALAI_URL-http://localhost:8091}
