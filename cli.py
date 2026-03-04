@@ -1257,7 +1257,12 @@ def check_prerequisites(native_mode: bool = False) -> tuple[bool, str]:
 
 
 def is_container_running() -> bool:
-    """Check if ezlocalai container is running."""
+    """Check if any ezlocalai container is running.
+
+    Uses docker ps name filter (substring match) so it catches both
+    'docker run --name ezlocalai' and compose-created containers like
+    'ezlocalai-ezlocalai-1'.
+    """
     try:
         result = subprocess.run(
             ["docker", "ps", "-q", "-f", f"name={CONTAINER_NAME}"],
@@ -1268,6 +1273,18 @@ def is_container_running() -> bool:
         return bool(result.stdout.strip())
     except FileNotFoundError:
         return False
+
+
+def _wait_for_container_stop(timeout: int = 30) -> bool:
+    """Wait until no ezlocalai container is running.
+
+    Returns True if the container stopped within the timeout, False otherwise.
+    """
+    for _ in range(timeout):
+        if not is_container_running():
+            return True
+        time.sleep(1)
+    return False
 
 
 def get_container_status() -> Optional[str]:
@@ -2600,47 +2617,49 @@ def stop_container() -> None:
     gpu_type = saved_env.get("_GPU_TYPE", "cpu")
     compose_file = _get_compose_file(gpu_type)
 
-    # Try Docker Compose down if we have a source dir
-    if source_dir and (source_dir / compose_file).exists():
-        if not is_container_running():
-            print("ℹ️  ezlocalai is not running")
-            return
-
-        print("🛑 Stopping ezlocalai...")
-        result = subprocess.run(
-            ["docker", "compose", "-f", compose_file, "down"],
-            cwd=source_dir,
-            capture_output=True,
-            text=True,
-            check=False,
-        )
-        if result.returncode == 0:
-            print("✅ ezlocalai stopped")
-        else:
-            print(f"⚠️  Compose down failed, trying direct stop...")
-            subprocess.run(
-                ["docker", "rm", "-f", CONTAINER_NAME],
-                capture_output=True,
-                check=False,
-            )
-            print("✅ ezlocalai stopped")
-    else:
-        # Fallback: direct docker stop/rm if no compose dir
-        if not is_container_running():
-            status = get_container_status()
-            if status:
-                print("🧹 Removing stopped container...")
+    if not is_container_running():
+        # Clean up any stopped containers
+        status = get_container_status()
+        if status:
+            print("🧹 Removing stopped container...")
+            if source_dir and (source_dir / compose_file).exists():
+                subprocess.run(
+                    ["docker", "compose", "-f", compose_file, "down", "--remove-orphans"],
+                    cwd=source_dir,
+                    capture_output=True,
+                    check=False,
+                )
+            else:
                 subprocess.run(
                     ["docker", "rm", "-f", CONTAINER_NAME],
                     capture_output=True,
                     check=False,
                 )
-                print("✅ Container removed")
-            else:
-                print("ℹ️  ezlocalai is not running")
-            return
+            print("✅ Container removed")
+        else:
+            print("ℹ️  ezlocalai is not running")
+        return
 
-        print("🛑 Stopping ezlocalai...")
+    print("🛑 Stopping ezlocalai...")
+
+    # Try Docker Compose down if we have a source dir
+    if source_dir and (source_dir / compose_file).exists():
+        result = subprocess.run(
+            ["docker", "compose", "-f", compose_file, "down", "--remove-orphans"],
+            cwd=source_dir,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if result.returncode != 0:
+            print(f"⚠️  Compose down failed, trying direct stop...")
+            subprocess.run(
+                ["docker", "stop", CONTAINER_NAME],
+                capture_output=True,
+                check=False,
+            )
+    else:
+        # Fallback: direct docker stop/rm
         subprocess.run(
             ["docker", "stop", CONTAINER_NAME],
             capture_output=True,
@@ -2651,7 +2670,32 @@ def stop_container() -> None:
             capture_output=True,
             check=False,
         )
+
+    # Wait until the container is actually gone
+    if _wait_for_container_stop(timeout=30):
         print("✅ ezlocalai stopped")
+    else:
+        # Force kill anything remaining
+        subprocess.run(
+            ["docker", "rm", "-f", CONTAINER_NAME],
+            capture_output=True,
+            check=False,
+        )
+        # Also kill any compose-named containers
+        result = subprocess.run(
+            ["docker", "ps", "-q", "-f", f"name={CONTAINER_NAME}"],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        for cid in result.stdout.strip().splitlines():
+            if cid:
+                subprocess.run(
+                    ["docker", "rm", "-f", cid],
+                    capture_output=True,
+                    check=False,
+                )
+        print("✅ ezlocalai stopped (forced)")
 
 
 def show_status() -> None:
@@ -3533,7 +3577,6 @@ Environment:
             )
         else:
             stop_container()
-            time.sleep(2)
             start_container(
                 model=args.model,
                 uri=args.uri,
