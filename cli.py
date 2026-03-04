@@ -1316,6 +1316,54 @@ def save_env_file(env_vars: dict) -> None:
     ENV_FILE.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
+def _get_compose_file(gpu_type: str) -> str:
+    """Return the docker-compose filename for the given GPU type."""
+    return {
+        "nvidia": "docker-compose-cuda.yml",
+        "jetson": "docker-compose-jetson.yml",
+        "amd": "docker-compose-rocm.yml",
+        "cpu": "docker-compose.yml",
+    }.get(gpu_type, "docker-compose.yml")
+
+
+def _get_compose_source_dir() -> Optional[Path]:
+    """Get the source directory where docker-compose files live.
+
+    Returns the local source dir if running from within it,
+    otherwise the cloned repo dir if it exists, or the editable
+    install location (pip install -e .), or None.
+    """
+    local = get_ezlocalai_source_dir()
+    if local:
+        return local
+    if REPO_DIR.exists() and is_ezlocalai_folder(REPO_DIR):
+        return REPO_DIR
+    # Check editable install location (pip install -e . stores __file__ path)
+    try:
+        import ezlocalai as _pkg
+
+        pkg_dir = Path(_pkg.__file__).resolve().parent.parent
+        if is_ezlocalai_folder(pkg_dir):
+            return pkg_dir
+    except Exception:
+        pass
+    return None
+
+
+def _write_compose_env(source_dir: Path, env_vars: dict) -> None:
+    """Write env vars to the source directory .env for Docker Compose.
+
+    Docker Compose reads .env from the project directory (where the
+    compose file lives). This ensures the compose services pick up
+    CLI-managed configuration.
+    """
+    env_file = source_dir / ".env"
+    lines = ["# Managed by ezlocalai CLI — do not edit manually"]
+    for key, value in sorted(env_vars.items()):
+        lines.append(f"{key}={value}")
+    env_file.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
 def get_default_env() -> dict:
     """Get default environment variables."""
     return {
@@ -2393,7 +2441,7 @@ def start_container(
     ngrok: Optional[str] = None,
     gpu_type: str = "cpu",
 ) -> None:
-    """Start the ezlocalai container."""
+    """Start the ezlocalai container via Docker Compose."""
 
     # Check if already running
     if is_container_running():
@@ -2416,151 +2464,72 @@ def start_container(
     if ngrok:
         env_vars["NGROK_TOKEN"] = ngrok
 
-    # Save updated env
+    # Save GPU type so stop/restart can find the right compose file
+    env_vars["_GPU_TYPE"] = gpu_type
+
+    # Save to CLI state
     save_env_file(env_vars)
 
-    # Prepare data directories
-    data_dir = STATE_DIR / "data"
-    dirs = ["models", "outputs", "voices", "hf"]
-    for d in dirs:
-        (data_dir / d).mkdir(parents=True, exist_ok=True)
+    # Resolve source directory (contains compose files)
+    source_dir = _get_compose_source_dir()
+    if not source_dir:
+        print("📦 ezlocalai source not found, cloning...")
+        source_dir = clone_or_update_repo()
+        if not source_dir:
+            print("❌ Failed to get ezlocalai source code.")
+            sys.exit(1)
 
-    # Remove existing stopped container
-    subprocess.run(
-        ["docker", "rm", "-f", CONTAINER_NAME],
-        capture_output=True,
-        check=False,
-    )
+    compose_file = _get_compose_file(gpu_type)
+    compose_path = source_dir / compose_file
+    if not compose_path.exists():
+        print(f"❌ Compose file not found: {compose_path}")
+        sys.exit(1)
+
+    # Write env vars to source dir so Docker Compose picks them up
+    _write_compose_env(source_dir, env_vars)
 
     # Auto-update: pull latest image or rebuild GPU image if source changed
     auto_update_docker(gpu_type)
 
-    # Select image based on GPU type
+    # Ensure image exists — build if needed for GPU types
     if gpu_type == "nvidia":
-        image = DOCKER_IMAGE_CUDA
-    elif gpu_type == "jetson":
-        image = DOCKER_IMAGE_JETSON
-    elif gpu_type == "amd":
-        image = DOCKER_IMAGE_ROCM
-    else:
-        image = DOCKER_IMAGE
-
-    # Build docker run command
-    cmd = [
-        "docker",
-        "run",
-        "-d",
-        "--name",
-        CONTAINER_NAME,
-        "-p",
-        f"{DEFAULT_PORT}:{DEFAULT_PORT}",
-        "-v",
-        f"{data_dir / 'models'}:/app/models",
-        "-v",
-        f"{data_dir / 'outputs'}:/app/outputs",
-        "-v",
-        f"{data_dir / 'voices'}:/app/voices",
-        "-v",
-        f"{data_dir / 'hf'}:/root/.cache/huggingface/hub",
-        "--restart",
-        "unless-stopped",
-    ]
-
-    # Add GPU-specific flags
-    if gpu_type == "nvidia":
-        cmd.extend(["--gpus", "all"])
-    elif gpu_type == "jetson":
-        # Jetson uses --runtime nvidia instead of --gpus
-        cmd.extend(["--runtime", "nvidia"])
-    elif gpu_type == "amd":
-        # ROCm requires access to specific devices
-        cmd.extend(
-            [
-                "--device=/dev/kfd",
-                "--device=/dev/dri",
-                "--group-add",
-                "video",
-                "--group-add",
-                "render",
-                "--security-opt",
-                "seccomp=unconfined",
-            ]
-        )
-
-    # Add environment variables
-    for key, value in env_vars.items():
-        if value:  # Only add non-empty values
-            cmd.extend(["-e", f"{key}={value}"])
-
-    # Add ROCm-specific environment variables
-    if gpu_type == "amd":
-        # HSA_OVERRIDE_GFX_VERSION helps with newer APUs like Radeon 880M
-        if "HSA_OVERRIDE_GFX_VERSION" not in env_vars:
-            cmd.extend(["-e", "HSA_OVERRIDE_GFX_VERSION=11.0.0"])
-
-    # Add image
-    cmd.append(image)
-
-    # Handle image: pull for CPU, build for CUDA/ROCm/Jetson
-    if gpu_type == "nvidia":
-        # CUDA image must be built locally (too large for DockerHub)
         if not cuda_image_exists():
             print("\n🔨 CUDA image not found, building from source...")
             if not build_cuda_image():
                 print("❌ Failed to build CUDA image. Falling back to CPU mode.")
                 gpu_type = "cpu"
-                image = DOCKER_IMAGE
-                cmd[-1] = image  # Update image in command
-                # Remove --gpus flag
-                if "--gpus" in cmd:
-                    idx = cmd.index("--gpus")
-                    cmd.pop(idx)  # Remove --gpus
-                    cmd.pop(idx)  # Remove "all"
+                compose_file = _get_compose_file(gpu_type)
+                env_vars["_GPU_TYPE"] = gpu_type
+                save_env_file(env_vars)
+                _write_compose_env(source_dir, env_vars)
     elif gpu_type == "jetson":
-        # Jetson image must be built locally on the Jetson
         if not jetson_image_exists():
             print("\n🔨 Jetson image not found, building from source...")
             print("   (This is a one-time build, may take 15-30 minutes)")
             if not build_jetson_image():
-                print("❌ Failed to build Jetson image. Falling back to native mode.")
-                print("   Try: ezlocalai start --native")
+                print("❌ Failed to build Jetson image.")
                 sys.exit(1)
     elif gpu_type == "amd":
-        # ROCm image must be built locally
         if not rocm_image_exists():
             print("\n🔨 ROCm image not found, building from source...")
             if not build_rocm_image():
                 print("❌ Failed to build ROCm image. Falling back to CPU mode.")
                 gpu_type = "cpu"
-                image = DOCKER_IMAGE
-                cmd[-1] = image  # Update image in command
-                # Remove ROCm-specific flags
-                rocm_flags = [
-                    "--device=/dev/kfd",
-                    "--device=/dev/dri",
-                    "--group-add",
-                    "video",
-                    "--group-add",
-                    "render",
-                    "--security-opt",
-                    "seccomp=unconfined",
-                ]
-                for flag in rocm_flags:
-                    if flag in cmd:
-                        cmd.remove(flag)
+                compose_file = _get_compose_file(gpu_type)
+                env_vars["_GPU_TYPE"] = gpu_type
+                save_env_file(env_vars)
+                _write_compose_env(source_dir, env_vars)
     else:
         # CPU image: pull from DockerHub
-        print(f"\n📦 Pulling latest image: {image}")
-        pull_result = subprocess.run(
-            ["docker", "pull", image],
+        print(f"\n📦 Pulling latest CPU image...")
+        subprocess.run(
+            ["docker", "pull", DOCKER_IMAGE],
             capture_output=True,
             text=True,
             check=False,
         )
-        if pull_result.returncode != 0:
-            print(f"⚠️  Failed to pull latest image, using cached version if available")
 
-    # Start container
+    # Start via Docker Compose
     mode_names = {
         "nvidia": "NVIDIA GPU",
         "jetson": "Jetson GPU",
@@ -2570,8 +2539,22 @@ def start_container(
     mode = mode_names.get(gpu_type, "CPU")
     print(f"\n🚀 Starting ezlocalai ({mode} mode)...")
     print(f"   Model: {env_vars.get('DEFAULT_MODEL', 'default')}")
+    print(f"   Compose: {compose_file}")
 
-    result = subprocess.run(cmd, capture_output=True, text=True, check=False)
+    # Build compose env for Jetson build args
+    compose_env = os.environ.copy()
+    for key, value in env_vars.items():
+        if value and not key.startswith("_"):
+            compose_env[key] = value
+
+    result = subprocess.run(
+        ["docker", "compose", "-f", compose_file, "up", "-d"],
+        cwd=source_dir,
+        env=compose_env,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
 
     if result.returncode != 0:
         print(f"❌ Failed to start container: {result.stderr}")
@@ -2609,40 +2592,66 @@ def start_container(
 
 
 def stop_container() -> None:
-    """Stop and remove the ezlocalai container."""
-    if not is_container_running():
-        # Check if stopped container exists and remove it
-        status = get_container_status()
-        if status:
-            print("🧹 Removing stopped container...")
+    """Stop and remove the ezlocalai container via Docker Compose."""
+    source_dir = _get_compose_source_dir()
+
+    # Determine GPU type from saved env
+    saved_env = load_env_file()
+    gpu_type = saved_env.get("_GPU_TYPE", "cpu")
+    compose_file = _get_compose_file(gpu_type)
+
+    # Try Docker Compose down if we have a source dir
+    if source_dir and (source_dir / compose_file).exists():
+        if not is_container_running():
+            print("ℹ️  ezlocalai is not running")
+            return
+
+        print("🛑 Stopping ezlocalai...")
+        result = subprocess.run(
+            ["docker", "compose", "-f", compose_file, "down"],
+            cwd=source_dir,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if result.returncode == 0:
+            print("✅ ezlocalai stopped")
+        else:
+            print(f"⚠️  Compose down failed, trying direct stop...")
             subprocess.run(
                 ["docker", "rm", "-f", CONTAINER_NAME],
                 capture_output=True,
                 check=False,
             )
-            print("✅ Container removed")
-        else:
-            print("ℹ️  ezlocalai is not running")
-        return
+            print("✅ ezlocalai stopped")
+    else:
+        # Fallback: direct docker stop/rm if no compose dir
+        if not is_container_running():
+            status = get_container_status()
+            if status:
+                print("🧹 Removing stopped container...")
+                subprocess.run(
+                    ["docker", "rm", "-f", CONTAINER_NAME],
+                    capture_output=True,
+                    check=False,
+                )
+                print("✅ Container removed")
+            else:
+                print("ℹ️  ezlocalai is not running")
+            return
 
-    print("🛑 Stopping ezlocalai...")
-    result = subprocess.run(
-        ["docker", "stop", CONTAINER_NAME],
-        capture_output=True,
-        text=True,
-        check=False,
-    )
-
-    if result.returncode == 0:
-        # Also remove the container to clean up
+        print("🛑 Stopping ezlocalai...")
+        subprocess.run(
+            ["docker", "stop", CONTAINER_NAME],
+            capture_output=True,
+            check=False,
+        )
         subprocess.run(
             ["docker", "rm", "-f", CONTAINER_NAME],
             capture_output=True,
             check=False,
         )
         print("✅ ezlocalai stopped")
-    else:
-        print(f"❌ Failed to stop container: {result.stderr}")
 
 
 def show_status() -> None:
