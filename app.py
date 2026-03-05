@@ -60,26 +60,32 @@ def format_timestamp_vtt(seconds: float) -> str:
 
 
 def segments_to_srt(segments: list) -> str:
-    """Convert segments to SRT format."""
+    """Convert segments to SRT format, including speaker labels if present."""
     srt_lines = []
     for i, seg in enumerate(segments, 1):
         start = format_timestamp_srt(seg["start"])
         end = format_timestamp_srt(seg["end"])
         srt_lines.append(f"{i}")
         srt_lines.append(f"{start} --> {end}")
-        srt_lines.append(seg["text"])
+        text = seg["text"]
+        if "speaker" in seg:
+            text = f"[{seg['speaker']}]: {text}"
+        srt_lines.append(text)
         srt_lines.append("")
     return "\n".join(srt_lines)
 
 
 def segments_to_vtt(segments: list) -> str:
-    """Convert segments to WebVTT format."""
+    """Convert segments to WebVTT format, including speaker labels if present."""
     vtt_lines = ["WEBVTT", ""]
     for seg in segments:
         start = format_timestamp_vtt(seg["start"])
         end = format_timestamp_vtt(seg["end"])
         vtt_lines.append(f"{start} --> {end}")
-        vtt_lines.append(seg["text"])
+        text = seg["text"]
+        if "speaker" in seg:
+            text = f"<v {seg['speaker']}>{text}"
+        vtt_lines.append(text)
         vtt_lines.append("")
     return "\n".join(vtt_lines)
 
@@ -597,6 +603,8 @@ async def speech_to_text(
     response_format: Optional[str] = Form("json"),
     temperature: Optional[float] = Form(0.0),
     timestamp_granularities: Optional[List[str]] = Form(["segment"]),
+    enable_diarization: Optional[bool] = Form(False),
+    num_speakers: Optional[int] = Form(None),
     user: str = Depends(verify_api_key),
 ):
     if getenv("STT_ENABLED").lower() == "false":
@@ -663,8 +671,8 @@ async def speech_to_text(
 
     stt = pipe._get_stt()
 
-    # Determine if we need segments based on response_format
-    need_segments = response_format in ["verbose_json", "srt", "vtt"]
+    # Determine if we need segments based on response_format or diarization
+    need_segments = response_format in ["verbose_json", "srt", "vtt"] or enable_diarization
 
     response = await stt.transcribe_audio(
         base64_audio=base64.b64encode(file_content).decode("utf-8"),
@@ -673,6 +681,8 @@ async def speech_to_text(
         prompt=prompt,
         temperature=temperature,
         return_segments=need_segments,
+        enable_diarization=enable_diarization,
+        num_speakers=num_speakers,
     )
     # In voice server mode, don't destroy STT - keep it loaded
     if not is_voice_server_mode():

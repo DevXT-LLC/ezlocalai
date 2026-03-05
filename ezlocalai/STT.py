@@ -154,6 +154,78 @@ class STT:
         self.audio = pyaudio.PyAudio()
         self.wake_functions = wake_functions
 
+    def _diarize_segments(self, file_path, segments, num_speakers=None):
+        """
+        Assign speaker labels to transcription segments using audio feature clustering.
+
+        Uses MFCC features from librosa and agglomerative clustering from scipy
+        to identify different speakers in the audio.
+
+        Args:
+            file_path: Path to the audio file
+            segments: List of segment dicts with 'start' and 'end' keys
+            num_speakers: Optional number of speakers (auto-detect if None)
+
+        Returns:
+            segments with 'speaker' key added to each segment
+        """
+        import librosa
+        from scipy.cluster.hierarchy import linkage, fcluster
+        from scipy.spatial.distance import pdist
+
+        try:
+            audio, sr = librosa.load(file_path, sr=16000)
+        except Exception as e:
+            logging.warning(f"[STT] Failed to load audio for diarization: {e}")
+            for seg in segments:
+                seg["speaker"] = "SPEAKER_00"
+            return segments
+
+        segment_features = []
+        valid_indices = []
+
+        for i, seg in enumerate(segments):
+            start_sample = int(seg["start"] * sr)
+            end_sample = int(seg["end"] * sr)
+            segment_audio = audio[start_sample:end_sample]
+
+            # Skip very short segments (< 100ms)
+            if len(segment_audio) < int(sr * 0.1):
+                continue
+
+            try:
+                mfccs = librosa.feature.mfcc(y=segment_audio, sr=sr, n_mfcc=20)
+                feature = np.concatenate(
+                    [np.mean(mfccs, axis=1), np.std(mfccs, axis=1)]
+                )
+                segment_features.append(feature)
+                valid_indices.append(i)
+            except Exception as e:
+                logging.debug(f"[STT] Failed to extract features for segment {i}: {e}")
+
+        if len(segment_features) < 2:
+            for seg in segments:
+                seg["speaker"] = "SPEAKER_00"
+            return segments
+
+        features = np.array(segment_features)
+        distances = pdist(features, metric="cosine")
+        linkage_matrix = linkage(distances, method="average")
+
+        if num_speakers and num_speakers > 0:
+            labels = fcluster(linkage_matrix, t=num_speakers, criterion="maxclust")
+        else:
+            labels = fcluster(linkage_matrix, t=0.5, criterion="distance")
+
+        for idx, label in zip(valid_indices, labels):
+            segments[idx]["speaker"] = f"SPEAKER_{int(label) - 1:02d}"
+
+        for seg in segments:
+            if "speaker" not in seg:
+                seg["speaker"] = "SPEAKER_00"
+
+        return segments
+
     async def transcribe_audio(
         self,
         base64_audio,
@@ -167,6 +239,8 @@ class STT:
         condition_on_previous_text=True,
         use_batched=False,  # Use batched inference for longer audio files
         batch_size=8,  # Batch size for batched inference
+        enable_diarization=False,
+        num_speakers=None,
     ):
         """
         Transcribe audio to text using faster-whisper.
@@ -183,6 +257,8 @@ class STT:
             condition_on_previous_text: Use previous text as context
             use_batched: Use BatchedInferencePipeline for faster processing of longer audio
             batch_size: Batch size when using batched inference
+            enable_diarization: If True, perform speaker diarization on segments
+            num_speakers: Optional number of speakers for diarization (auto-detect if None)
 
         Returns:
             Transcribed text or dict with segments if return_segments=True
@@ -316,6 +392,24 @@ class STT:
                     "text": segment.text.strip(),
                 }
             )
+
+        # Perform speaker diarization if requested
+        if enable_diarization and segment_data:
+            logging.info("[STT] Performing speaker diarization...")
+            segment_data = self._diarize_segments(
+                file_path, segment_data, num_speakers=num_speakers
+            )
+            # Build speaker-attributed text
+            user_input = ""
+            current_speaker = None
+            for seg in segment_data:
+                speaker = seg.get("speaker", "SPEAKER_00")
+                if speaker != current_speaker:
+                    current_speaker = speaker
+                    user_input += f"\n[{speaker}]: "
+                user_input += seg["text"] + " "
+            user_input = user_input.strip()
+
         logging.debug(f"[STT] Transcribed User Input: {user_input}")
         os.remove(file_path)
 
