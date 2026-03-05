@@ -170,7 +170,7 @@ class STT:
             segments with 'speaker' key added to each segment
         """
         import librosa
-        from scipy.cluster.hierarchy import linkage, fcluster
+        from scipy.cluster.hierarchy import linkage, fcluster, inconsistent
         from scipy.spatial.distance import pdist
 
         try:
@@ -215,10 +215,22 @@ class STT:
         if num_speakers and num_speakers > 0:
             labels = fcluster(linkage_matrix, t=num_speakers, criterion="maxclust")
         else:
-            labels = fcluster(linkage_matrix, t=0.5, criterion="distance")
+            # Auto-detect number of speakers using inconsistency coefficient
+            depth = min(3, len(segment_features) - 1)
+            incon = inconsistent(linkage_matrix, d=depth)
+            # Count merges with high inconsistency from the top of the tree
+            detected = 1
+            for i in range(len(incon) - 1, -1, -1):
+                if incon[i, 3] > 1.0:
+                    detected += 1
+                else:
+                    break
+            detected = max(1, min(detected, len(segment_features)))
+            logging.info(f"[STT] Auto-detected {detected} speaker(s)")
+            labels = fcluster(linkage_matrix, t=max(1, detected), criterion="maxclust")
 
         for idx, label in zip(valid_indices, labels):
-            segments[idx]["speaker"] = f"SPEAKER_{int(label) - 1:02d}"
+            segments[idx]["speaker"] = f"SPEAKER_{max(0, int(label) - 1):02d}"
 
         for seg in segments:
             if "speaker" not in seg:

@@ -84,7 +84,7 @@ def segments_to_vtt(segments: list) -> str:
         vtt_lines.append(f"{start} --> {end}")
         text = seg["text"]
         if "speaker" in seg:
-            text = f"<v {seg['speaker']}>{text}"
+            text = f"<v {seg['speaker']}>{text}</v>"
         vtt_lines.append(text)
         vtt_lines.append("")
     return "\n".join(vtt_lines)
