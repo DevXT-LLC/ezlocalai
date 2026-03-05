@@ -605,6 +605,7 @@ async def speech_to_text(
     timestamp_granularities: Optional[List[str]] = Form(["segment"]),
     enable_diarization: Optional[bool] = Form(False),
     num_speakers: Optional[int] = Form(None),
+    session_id: Optional[str] = Form(None),
     user: str = Depends(verify_api_key),
 ):
     if getenv("STT_ENABLED").lower() == "false":
@@ -672,7 +673,9 @@ async def speech_to_text(
     stt = pipe._get_stt()
 
     # Determine if we need segments based on response_format or diarization
-    need_segments = response_format in ["verbose_json", "srt", "vtt"] or enable_diarization
+    need_segments = (
+        response_format in ["verbose_json", "srt", "vtt"] or enable_diarization
+    )
 
     response = await stt.transcribe_audio(
         base64_audio=base64.b64encode(file_content).decode("utf-8"),
@@ -683,6 +686,7 @@ async def speech_to_text(
         return_segments=need_segments,
         enable_diarization=enable_diarization,
         num_speakers=num_speakers,
+        session_id=session_id,
     )
     # In voice server mode, don't destroy STT - keep it loaded
     if not is_voice_server_mode():

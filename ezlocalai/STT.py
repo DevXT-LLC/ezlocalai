@@ -2,6 +2,7 @@ import os
 import base64
 import uuid
 import logging
+import time
 import webrtcvad
 import pyaudio
 import wave
@@ -11,6 +12,96 @@ import gc
 import torch
 from io import BytesIO
 from faster_whisper import WhisperModel, BatchedInferencePipeline
+
+
+class VoicePrintStore:
+    """
+    Stores speaker voice prints (MFCC centroids) keyed by session_id and
+    speaker UUID so that the same physical speaker gets a consistent ID
+    across multiple transcription chunks within the same session.
+
+    Voice prints are NOT listed as available TTS voices.
+    Sessions auto-expire after `ttl_seconds` (default 24 hours).
+    """
+
+    def __init__(self, ttl_seconds: int = 86400):
+        # { session_id: { speaker_uuid: { "centroid": np.ndarray, "count": int } } }
+        self._prints: dict = {}
+        self._timestamps: dict = {}  # { session_id: last_access_time }
+        self._ttl = ttl_seconds
+
+    def _prune_expired(self):
+        """Remove sessions that haven't been accessed within the TTL."""
+        now = time.time()
+        expired = [sid for sid, ts in self._timestamps.items() if now - ts > self._ttl]
+        for sid in expired:
+            del self._prints[sid]
+            del self._timestamps[sid]
+        if expired:
+            logging.debug(f"[VoicePrintStore] Pruned {len(expired)} expired session(s)")
+
+    def get_session_prints(self, session_id: str) -> dict:
+        """Return stored voice prints for a session, or empty dict."""
+        self._prune_expired()
+        self._timestamps[session_id] = time.time()
+        return self._prints.get(session_id, {})
+
+    def update_speaker(
+        self, session_id: str, speaker_uuid: str, centroid: np.ndarray, count: int = 1
+    ):
+        """Update or create a voice print entry for a speaker in a session."""
+        if session_id not in self._prints:
+            self._prints[session_id] = {}
+        if speaker_uuid in self._prints[session_id]:
+            existing = self._prints[session_id][speaker_uuid]
+            # Running weighted average of centroid
+            old_count = existing["count"]
+            new_count = old_count + count
+            existing["centroid"] = (
+                existing["centroid"] * old_count + centroid * count
+            ) / new_count
+            existing["count"] = new_count
+        else:
+            self._prints[session_id][speaker_uuid] = {
+                "centroid": centroid.copy(),
+                "count": count,
+            }
+        self._timestamps[session_id] = time.time()
+
+    def match_centroid(
+        self, session_id: str, centroid: np.ndarray, threshold: float = 0.3
+    ) -> str | None:
+        """
+        Find the best-matching stored voice print for this centroid.
+        Returns the speaker UUID if cosine similarity exceeds (1 - threshold),
+        otherwise None (meaning this is a new speaker).
+        """
+        prints = self.get_session_prints(session_id)
+        if not prints:
+            return None
+
+        best_uuid = None
+        best_similarity = -1.0
+
+        for spk_uuid, data in prints.items():
+            stored = data["centroid"]
+            # Cosine similarity
+            dot = np.dot(centroid, stored)
+            norm = np.linalg.norm(centroid) * np.linalg.norm(stored)
+            if norm == 0:
+                continue
+            similarity = dot / norm
+            if similarity > best_similarity:
+                best_similarity = similarity
+                best_uuid = spk_uuid
+
+        if best_similarity >= (1.0 - threshold):
+            return best_uuid
+        return None
+
+
+# Global voice print store shared across all STT instances
+_voice_print_store = VoicePrintStore()
 
 # Suppress ALSA warnings in Docker containers without sound cards
 os.environ.setdefault("PYTHONWARNINGS", "ignore")
@@ -154,17 +245,26 @@ class STT:
         self.audio = pyaudio.PyAudio()
         self.wake_functions = wake_functions
 
-    def _diarize_segments(self, file_path, segments, num_speakers=None):
+    def _diarize_segments(
+        self, file_path, segments, num_speakers=None, session_id=None
+    ):
         """
         Assign speaker labels to transcription segments using audio feature clustering.
 
         Uses MFCC features from librosa and agglomerative clustering from scipy
         to identify different speakers in the audio.
 
+        When a session_id is provided, speaker voice prints (MFCC centroids) are
+        persisted so that the same physical speaker receives a consistent UUID-based
+        ID across multiple chunks within the same recording session.
+
         Args:
             file_path: Path to the audio file
             segments: List of segment dicts with 'start' and 'end' keys
             num_speakers: Optional number of speakers (auto-detect if None)
+            session_id: Optional session identifier for cross-chunk speaker
+                        consistency. When provided, speakers are assigned
+                        persistent UUIDs instead of SPEAKER_00 numbering.
 
         Returns:
             segments with 'speaker' key added to each segment
@@ -204,8 +304,25 @@ class STT:
                 logging.debug(f"[STT] Failed to extract features for segment {i}: {e}")
 
         if len(segment_features) < 2:
-            for seg in segments:
-                seg["speaker"] = "SPEAKER_00"
+            # Only one segment — try to match against stored voice prints
+            if session_id and len(segment_features) == 1:
+                spk_uuid = _voice_print_store.match_centroid(
+                    session_id, segment_features[0]
+                )
+                if spk_uuid is None:
+                    spk_uuid = uuid.uuid4().hex[:12]
+                    _voice_print_store.update_speaker(
+                        session_id, spk_uuid, segment_features[0]
+                    )
+                else:
+                    _voice_print_store.update_speaker(
+                        session_id, spk_uuid, segment_features[0]
+                    )
+                for seg in segments:
+                    seg["speaker"] = f"SPK_{spk_uuid}"
+            else:
+                for seg in segments:
+                    seg["speaker"] = "SPEAKER_00"
             return segments
 
         features = np.array(segment_features)
@@ -229,12 +346,59 @@ class STT:
             logging.info(f"[STT] Auto-detected {detected} speaker(s)")
             labels = fcluster(linkage_matrix, t=max(1, detected), criterion="maxclust")
 
-        for idx, label in zip(valid_indices, labels):
-            segments[idx]["speaker"] = f"SPEAKER_{max(0, int(label) - 1):02d}"
+        if session_id:
+            # --- Voice-print-based persistent speaker IDs ---
+            # Compute a centroid for each cluster
+            unique_labels = set(labels)
+            cluster_centroids = {}
+            cluster_members = {}
+            for feat, lbl in zip(segment_features, labels):
+                lbl_int = int(lbl)
+                if lbl_int not in cluster_centroids:
+                    cluster_centroids[lbl_int] = []
+                cluster_centroids[lbl_int].append(feat)
+            for lbl_int, feats in cluster_centroids.items():
+                cluster_centroids[lbl_int] = np.mean(feats, axis=0)
+                cluster_members[lbl_int] = len(feats)
 
-        for seg in segments:
-            if "speaker" not in seg:
-                seg["speaker"] = "SPEAKER_00"
+            # Match each cluster centroid against stored voice prints
+            cluster_to_uuid = {}
+            for lbl_int in sorted(unique_labels):
+                centroid = cluster_centroids[int(lbl_int)]
+                matched_uuid = _voice_print_store.match_centroid(session_id, centroid)
+                if matched_uuid is None:
+                    # New speaker — assign a fresh UUID
+                    matched_uuid = uuid.uuid4().hex[:12]
+                cluster_to_uuid[int(lbl_int)] = matched_uuid
+                # Update the stored voice print with the new centroid data
+                _voice_print_store.update_speaker(
+                    session_id,
+                    matched_uuid,
+                    centroid,
+                    count=cluster_members[int(lbl_int)],
+                )
+
+            # Assign persistent speaker IDs to segments
+            for idx, label in zip(valid_indices, labels):
+                spk_uuid = cluster_to_uuid[int(label)]
+                segments[idx]["speaker"] = f"SPK_{spk_uuid}"
+
+            for seg in segments:
+                if "speaker" not in seg:
+                    seg["speaker"] = f"SPK_{cluster_to_uuid.get(1, 'unknown')}"
+
+            n_stored = len(_voice_print_store.get_session_prints(session_id))
+            logging.info(
+                f"[STT] Session {session_id[:8]}... has {n_stored} stored voice print(s)"
+            )
+        else:
+            # No session — use plain SPEAKER_XX numbering
+            for idx, label in zip(valid_indices, labels):
+                segments[idx]["speaker"] = f"SPEAKER_{max(0, int(label) - 1):02d}"
+
+            for seg in segments:
+                if "speaker" not in seg:
+                    seg["speaker"] = "SPEAKER_00"
 
         return segments
 
@@ -253,6 +417,7 @@ class STT:
         batch_size=8,  # Batch size for batched inference
         enable_diarization=False,
         num_speakers=None,
+        session_id=None,
     ):
         """
         Transcribe audio to text using faster-whisper.
@@ -271,6 +436,10 @@ class STT:
             batch_size: Batch size when using batched inference
             enable_diarization: If True, perform speaker diarization on segments
             num_speakers: Optional number of speakers for diarization (auto-detect if None)
+            session_id: Optional session identifier for persistent speaker IDs across
+                        multiple transcription chunks. When provided, speakers receive
+                        consistent UUID-based IDs (e.g. SPK_a1b2c3d4e5f6) instead of
+                        SPEAKER_00 numbering.
 
         Returns:
             Transcribed text or dict with segments if return_segments=True
@@ -407,9 +576,15 @@ class STT:
 
         # Perform speaker diarization if requested
         if enable_diarization and segment_data:
-            logging.info("[STT] Performing speaker diarization...")
+            logging.info(
+                f"[STT] Performing speaker diarization"
+                f"{' (session=' + session_id[:8] + '...)' if session_id else ''}..."
+            )
             segment_data = self._diarize_segments(
-                file_path, segment_data, num_speakers=num_speakers
+                file_path,
+                segment_data,
+                num_speakers=num_speakers,
+                session_id=session_id,
             )
             # Build speaker-attributed text
             user_input = ""
