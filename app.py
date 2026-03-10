@@ -374,6 +374,13 @@ async def chat_completions(
     if getenv("DEFAULT_MODEL") or getenv("VISION_MODEL"):
         data = await request.json()
 
+        # Ensure max_tokens has a sensible default when not provided by client.
+        # Without this, LLM.chat() falls back to self.params["max_tokens"] which
+        # equals the context size (LLM_MAX_TOKENS), causing the model to generate
+        # up to 40K output tokens per request (runaway generation).
+        if "max_tokens" not in data:
+            data["max_tokens"] = c.max_tokens  # Pydantic default: 8192
+
         # Add request timeout (configurable via environment variable)
         request_timeout = float(getenv("REQUEST_TIMEOUT", "300"))  # 5 minutes default
 
@@ -490,6 +497,10 @@ class CompletionsResponse(BaseModel):
 async def completions(c: Completions, request: Request, user=Depends(verify_api_key)):
     if getenv("DEFAULT_MODEL") or getenv("VISION_MODEL"):
         data = await request.json()
+
+        # Ensure max_tokens has a sensible default when not provided by client.
+        if "max_tokens" not in data:
+            data["max_tokens"] = c.max_tokens  # Pydantic default: 8192
 
         # Add request timeout (configurable via environment variable)
         request_timeout = float(getenv("REQUEST_TIMEOUT", "300"))  # 5 minutes default

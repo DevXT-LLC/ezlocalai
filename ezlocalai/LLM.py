@@ -420,11 +420,15 @@ class LLM:
         self.params["presence_penalty"] = presence_penalty
         self.params["frequency_penalty"] = frequency_penalty
         self.params["logit_bias"] = logit_bias
-        # Use provided max_tokens, or fall back to env var
+        # Context size for the model (how much input it can accept)
         effective_max_tokens = (
             max_tokens if max_tokens > 0 else int(getenv("LLM_MAX_TOKENS"))
         )
-        self.params["max_tokens"] = effective_max_tokens
+        # Default output limit (how many tokens the model can generate per request).
+        # This is separate from context size — context_size controls n_ctx (input),
+        # while this controls the default max_tokens for generation (output).
+        # Using context_size as output limit causes runaway generation (40K+ tokens).
+        self.params["max_tokens"] = int(getenv("LLM_MAX_OUTPUT_TOKENS", "8192"))
         self.params["top_k"] = kwargs.get("top_k", 20)
 
         # Download model and get paths
