@@ -1629,6 +1629,38 @@ def get_secondary_gpu() -> Optional[int]:
     return gpus[1] if len(gpus) > 1 else None
 
 
+def _is_qwen35_hybrid(model_path: str) -> bool:
+    """Detect Qwen3.5 hybrid models that use Gated DeltaNet + sparse MoE.
+
+    These models have only 10/40 layers with standard attention (2 KV heads each),
+    so their KV cache is dramatically smaller than standard transformers.
+    The other 30 layers use DeltaNet with a tiny fixed-size recurrent state.
+    """
+    if not model_path:
+        return False
+    name = os.path.basename(model_path).lower()
+    # Also check full path in case model_path is a directory or repo name
+    path_lower = model_path.lower()
+    return "qwen3.5" in name or "qwen3.5" in path_lower
+
+
+def _qwen35_kv_bytes_per_token() -> int:
+    """KV cache bytes per token for Qwen3.5 hybrid models.
+
+    Qwen3.5 architecture: 40 layers total, only 10 use standard attention
+    with 2 KV heads and head_dim=128. With FP16 KV cache:
+      2 (K+V) * 2 (KV heads) * 128 (head_dim) * 10 (attn layers) * 2 (FP16) = 10,240 bytes/token
+    With q4_0 KV cache:
+      2 * 2 * 128 * 10 * 0.5 = 2,560 bytes/token
+
+    Empirically validated: Qwen3.5-35B-A3B uses ~29.5GB at 1M context
+    (model weights ~20GB + ~8.5GB KV + ~1GB overhead), confirming ~8,500 bytes/token
+    which aligns with FP16 KV (10,240) minus q4_0 KV quantization savings.
+    Use 10,240 (FP16 estimate) as conservative default.
+    """
+    return 10240
+
+
 def estimate_model_vram_requirement(
     model_path: str, context_size: int, projectors: list = None
 ) -> float:
@@ -1637,6 +1669,7 @@ def estimate_model_vram_requirement(
     Uses xllamacpp's estimate_gpu_layers to get memory estimates.
     Returns estimated VRAM in GB, or a conservative estimate if xllamacpp is unavailable.
     """
+    is_qwen35 = _is_qwen35_hybrid(model_path)
 
     # Better fallback estimation formula based on actual llama.cpp memory usage:
     # - KV cache (F16): context_size * 2 bytes * 2 (K+V) * n_layer * n_embd / n_head
@@ -1649,22 +1682,31 @@ def estimate_model_vram_requirement(
         model_size_gb = 4.0  # Default assumption for 4B Q4 models
         try:
             if model_path and os.path.exists(model_path):
-                model_size_gb = (
-                    os.path.getsize(model_path) / (1024**3) * 1.2
-                )  # 20% overhead
+                file_size_raw = os.path.getsize(model_path) / (1024**3)
+                # MoE/hybrid models don't need as much overhead on weights
+                overhead_mult = 1.05 if is_qwen35 else 1.2
+                model_size_gb = file_size_raw * overhead_mult
         except Exception:
             pass
 
-        # KV cache estimate: scales with context size but NOT linearly with model size.
-        # Modern models use GQA/MQA (fewer KV heads than Q heads), so KV cache is much
-        # smaller than the model weight size would suggest. Cap the factor to prevent
-        # wild overestimates (e.g., 80GB estimate for a model that actually needs 21GB).
-        # 0.1 GB/1K is conservative enough for most models up to ~70B.
-        kv_factor = min(0.14 * (model_size_gb / 2.5), 0.1)
-        kv_estimate = (ctx_size / 1000) * kv_factor
-
-        # Compute buffers and overhead: ~1GB
-        overhead = 1.0
+        if is_qwen35:
+            # Qwen3.5 hybrid: only 10/40 layers use attention (2 KV heads, head_dim=128).
+            # KV cache is ~10KB/token (FP16) vs ~60KB+ for standard transformers.
+            # DeltaNet recurrent state is fixed ~65MB regardless of context.
+            # Empirically validated: 35B-A3B runs 1M context at 29.5GB total.
+            kv_estimate = (ctx_size * _qwen35_kv_bytes_per_token()) / (1024**3)
+            deltanet_state = 0.065  # Fixed recurrent state for 30 DeltaNet layers
+            overhead = 0.5 + deltanet_state
+        else:
+            # Standard transformer KV cache estimate.
+            # Scales with context size but NOT linearly with model size.
+            # Modern models use GQA/MQA (fewer KV heads than Q heads), so KV cache is much
+            # smaller than the model weight size would suggest. Cap the factor to prevent
+            # wild overestimates (e.g., 80GB estimate for a model that actually needs 21GB).
+            # 0.1 GB/1K is conservative enough for most models up to ~70B.
+            kv_factor = min(0.14 * (model_size_gb / 2.5), 0.1)
+            kv_estimate = (ctx_size / 1000) * kv_factor
+            overhead = 1.0
 
         total = model_size_gb + kv_estimate + overhead
         logging.debug(
@@ -1706,7 +1748,17 @@ def estimate_model_vram_requirement(
             # Compare with our fallback and use the lower of the two if xllamacpp
             # returns more than 2x our estimate
             fallback = fallback_estimate(context_size)
-            if estimated_gb > fallback * 2.5:
+            if is_qwen35 and estimated_gb > fallback * 1.2:
+                # For Qwen3.5 hybrid models, xllamacpp doesn't understand the hybrid
+                # DeltaNet architecture and dramatically overestimates KV cache needs.
+                # Our fallback is calibrated against empirical measurements, so prefer it.
+                logging.info(
+                    f"[GPU Selection] Qwen3.5 hybrid: xllamacpp estimate ({estimated_gb:.1f}GB) "
+                    f"overestimates KV cache (doesn't account for DeltaNet layers), "
+                    f"using empirical estimate ({fallback:.1f}GB)"
+                )
+                return fallback
+            elif estimated_gb > fallback * 2.5:
                 logging.warning(
                     f"[GPU Selection] xllamacpp estimate ({estimated_gb:.1f}GB) seems too high, "
                     f"using adjusted estimate ({fallback * 1.3:.1f}GB)"
@@ -1728,13 +1780,15 @@ def estimate_model_vram_requirement(
         try:
             if model_path and os.path.exists(model_path):
                 file_size_gb = os.path.getsize(model_path) / (1024**3)
-                # Model weights ~ file size. Add context-dependent costs:
-                # - KV cache (q4_0): ~5.5 KB/token for hybrid models with few attn layers
-                #   For standard models it would be higher. Use 6KB as conservative default.
-                # - mmproj/CLIP: ~0.86 GB if projector exists
-                # - Compute buffers: ~0.3-0.5 GB
-                # - RS (recurrent state for SSM): ~0.065 GB
-                kv_gb = (context_size * 6000) / (1024**3)
+                # Model weights ~ file size. Add context-dependent costs.
+                # Qwen3.5 hybrid models have only 10/40 attn layers → much smaller KV.
+                if is_qwen35:
+                    kv_bytes_per_token = _qwen35_kv_bytes_per_token()
+                else:
+                    kv_bytes_per_token = (
+                        6000  # Conservative default for standard models
+                    )
+                kv_gb = (context_size * kv_bytes_per_token) / (1024**3)
                 mmproj_gb = 0.0
                 if projectors:
                     for proj in projectors:
@@ -1928,7 +1982,9 @@ def determine_gpu_strategy(
                         file_size_gb = os.path.getsize(model_path) / (1024**3)
                         vram_after_model = available_vram[0] - file_size_gb
                         # Estimate non-model costs (KV, mmproj, compute, RS)
-                        kv_gb = (context_size * 6000) / (1024**3)
+                        _is_q35 = _is_qwen35_hybrid(model_path)
+                        kv_bpt = _qwen35_kv_bytes_per_token() if _is_q35 else 6000
+                        kv_gb = (context_size * kv_bpt) / (1024**3)
                         mmproj_gb = (
                             sum(
                                 os.path.getsize(p) / (1024**3)
@@ -1959,7 +2015,7 @@ def determine_gpu_strategy(
                                 file_size_gb + non_model_gb
                             ) - available_vram[0]
                             # Each layer is roughly model_size / n_layers
-                            n_layers = 41  # Default
+                            n_layers = 40 if _is_q35 else 41  # Default
                             try:
                                 import gguf
 
@@ -2057,7 +2113,9 @@ def determine_gpu_strategy(
     try:
         if model_path and os.path.exists(model_path):
             file_size_gb = os.path.getsize(model_path) / (1024**3)
-            kv_gb = (context_size * 6000) / (1024**3)
+            _is_q35 = _is_qwen35_hybrid(model_path)
+            kv_bpt = _qwen35_kv_bytes_per_token() if _is_q35 else 6000
+            kv_gb = (context_size * kv_bpt) / (1024**3)
             mmproj_gb = (
                 sum(
                     os.path.getsize(p) / (1024**3)

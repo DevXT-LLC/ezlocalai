@@ -126,6 +126,9 @@ RUN set -e && \
     echo "--- Copying libs ---" && \
     cd /tmp/xllamacpp && \
     python scripts/copy_libs.py && \
+    echo "--- Copying system OpenSSL static libs (not handled by copy_libs.py) ---" && \
+    cp $(find /usr/lib -name 'libssl.a' | head -1) src/llama.cpp/lib/libssl.a && \
+    cp $(find /usr/lib -name 'libcrypto.a' | head -1) src/llama.cpp/lib/libcrypto.a && \
     echo "--- Verifying static libs ---" && \
     ls src/llama.cpp/lib/libllama.a src/llama.cpp/lib/libggml-cuda.a && \
     echo "--- Installing xllamacpp Python package ---" && \
