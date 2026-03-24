@@ -1644,20 +1644,21 @@ def _is_qwen35_hybrid(model_path: str) -> bool:
     return "qwen3.5" in name or "qwen3.5" in path_lower
 
 
-def _qwen35_kv_bytes_per_token() -> int:
+def _qwen35_kv_bytes_per_token(kv_cache_type: str = "fp16") -> int:
     """KV cache bytes per token for Qwen3.5 hybrid models.
 
     Qwen3.5 architecture: 40 layers total, only 10 use standard attention
-    with 2 KV heads and head_dim=128. With FP16 KV cache:
-      2 (K+V) * 2 (KV heads) * 128 (head_dim) * 10 (attn layers) * 2 (FP16) = 10,240 bytes/token
-    With q4_0 KV cache:
-      2 * 2 * 128 * 10 * 0.5 = 2,560 bytes/token
+    with 2 KV heads and head_dim=128.
+      FP16: 2 (K+V) * 2 (KV heads) * 128 (head_dim) * 10 (attn layers) * 2 = 10,240 bytes/token
+      q4_0: 2 (K+V) * 2 (KV heads) * 128 (head_dim) * 10 (attn layers) * 0.5625 = 2,880 bytes/token
 
-    Empirically validated: Qwen3.5-35B-A3B uses ~29.5GB at 1M context
-    (model weights ~20GB + ~8.5GB KV + ~1GB overhead), confirming ~8,500 bytes/token
-    which aligns with FP16 KV (10,240) minus q4_0 KV quantization savings.
-    Use 10,240 (FP16 estimate) as conservative default.
+    ezlocalai defaults to q4_0 KV cache (env KV_CACHE_TYPE), so use that for VRAM
+    planning when we know the cache type. Use FP16 as conservative fallback.
     """
+    if kv_cache_type == "q4_0":
+        # q4_0 ≈ 4.5 bits/value, so 0.5625 bytes/value
+        return 2880
+    # FP16 conservative default
     return 10240
 
 
@@ -1691,10 +1692,10 @@ def estimate_model_vram_requirement(
 
         if is_qwen35:
             # Qwen3.5 hybrid: only 10/40 layers use attention (2 KV heads, head_dim=128).
-            # KV cache is ~10KB/token (FP16) vs ~60KB+ for standard transformers.
+            # KV cache is tiny vs standard transformers.
             # DeltaNet recurrent state is fixed ~65MB regardless of context.
-            # Empirically validated: 35B-A3B runs 1M context at 29.5GB total.
-            kv_estimate = (ctx_size * _qwen35_kv_bytes_per_token()) / (1024**3)
+            # Use q4_0 estimate since that's ezlocalai's default KV cache type.
+            kv_estimate = (ctx_size * _qwen35_kv_bytes_per_token("q4_0")) / (1024**3)
             deltanet_state = 0.065  # Fixed recurrent state for 30 DeltaNet layers
             overhead = 0.5 + deltanet_state
         else:
@@ -1783,7 +1784,7 @@ def estimate_model_vram_requirement(
                 # Model weights ~ file size. Add context-dependent costs.
                 # Qwen3.5 hybrid models have only 10/40 attn layers → much smaller KV.
                 if is_qwen35:
-                    kv_bytes_per_token = _qwen35_kv_bytes_per_token()
+                    kv_bytes_per_token = _qwen35_kv_bytes_per_token("q4_0")
                 else:
                     kv_bytes_per_token = (
                         6000  # Conservative default for standard models
@@ -1957,6 +1958,37 @@ def determine_gpu_strategy(
             }
         else:
             # Not enough VRAM for full model - try partial offloading
+
+            # For Qwen3.5 hybrid models, xllamacpp doesn't understand the tiny KV
+            # cache (only 10/40 layers use attention). Do our own check using the
+            # raw file size + empirical KV estimate against actual free VRAM.
+            # Use q4_0 KV estimate since that's the default KV cache type in ezlocalai.
+            if _is_qwen35_hybrid(model_path):
+                try:
+                    if model_path and os.path.exists(model_path):
+                        file_size_gb = os.path.getsize(model_path) / (1024**3)
+                        kv_gb = (context_size * _qwen35_kv_bytes_per_token("q4_0")) / (
+                            1024**3
+                        )
+                        # DeltaNet state (~65MB) + compute buffers (~0.5GB)
+                        overhead_gb = 0.57
+                        total_need = file_size_gb + kv_gb + overhead_gb
+                        if free_vram[0] >= total_need:
+                            logging.info(
+                                f"[GPU Selection] Qwen3.5 hybrid: file({file_size_gb:.1f}GB) + "
+                                f"KV({kv_gb:.2f}GB) + overhead({overhead_gb:.1f}GB) = "
+                                f"{total_need:.1f}GB fits in {free_vram[0]:.1f}GB free VRAM "
+                                f"- loading all layers on GPU"
+                            )
+                            return {
+                                "main_gpu": 0,
+                                "tensor_split": None,
+                                "gpu_layers": -1,
+                                "strategy": "gpu0_qwen35_hybrid",
+                            }
+                except Exception as e:
+                    logging.debug(f"[GPU Selection] Qwen3.5 hybrid check failed: {e}")
+
             # Use xllamacpp to estimate how many layers can fit
             optimal_layers = _estimate_optimal_layers(
                 model_path, context_size, projectors, [available_vram[0]]
@@ -1983,7 +2015,7 @@ def determine_gpu_strategy(
                         vram_after_model = available_vram[0] - file_size_gb
                         # Estimate non-model costs (KV, mmproj, compute, RS)
                         _is_q35 = _is_qwen35_hybrid(model_path)
-                        kv_bpt = _qwen35_kv_bytes_per_token() if _is_q35 else 6000
+                        kv_bpt = _qwen35_kv_bytes_per_token("q4_0") if _is_q35 else 6000
                         kv_gb = (context_size * kv_bpt) / (1024**3)
                         mmproj_gb = (
                             sum(
@@ -2114,7 +2146,7 @@ def determine_gpu_strategy(
         if model_path and os.path.exists(model_path):
             file_size_gb = os.path.getsize(model_path) / (1024**3)
             _is_q35 = _is_qwen35_hybrid(model_path)
-            kv_bpt = _qwen35_kv_bytes_per_token() if _is_q35 else 6000
+            kv_bpt = _qwen35_kv_bytes_per_token("q4_0") if _is_q35 else 6000
             kv_gb = (context_size * kv_bpt) / (1024**3)
             mmproj_gb = (
                 sum(
