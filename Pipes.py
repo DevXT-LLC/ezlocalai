@@ -2666,21 +2666,30 @@ class Pipes:
             and tensor_split is None
             and model_path
         ):
-            # Only reserve VRAM for TTS/STT if running locally (no voice server URL)
-            # When a voice server URL is configured, voice models are NOT loaded locally
-            reserved_vram = 0.0 if has_voice_server_url() else 5.0
-
-            # On Jetson or other low-VRAM devices, reduce reservation proportionally
-            # Jetson uses unified memory (shared CPU/GPU) so total VRAM is limited
-            if reserved_vram > 0:
+            # Reserve VRAM for TTS/STT only when they'll actually be loaded on GPU.
+            # - Voice server URL configured → voice handled remotely, no local VRAM needed
+            # - LAZY_LOAD_VOICE=true (default) → voice models load on first request and
+            #   unload after use, so don't penalize the LLM's GPU layer budget upfront.
+            #   The resilient fallback handles OOM if voice later contends for VRAM.
+            # - should_preload_voice() (LAZY_LOAD_VOICE=false or voice server mode) →
+            #   voice models stay resident, so reserve VRAM for them.
+            if has_voice_server_url():
+                reserved_vram = 0.0
+            elif should_preload_voice():
+                # TTS ~4GB + STT ~2GB when preloaded; scale for low-VRAM devices
                 total_vram = sum(get_per_gpu_vram_gb()) if get_gpu_count() > 0 else 0
                 if 0 < total_vram < 12:
-                    # Scale reservation: 5GB for 24GB+ GPUs → 1-2GB for 8GB Jetson
                     reserved_vram = max(1.0, total_vram * 0.15)
                     logging.info(
                         f"[GPU Selection] Low VRAM detected ({total_vram:.0f}GB), "
                         f"reduced TTS/STT reservation to {reserved_vram:.1f}GB"
                     )
+                else:
+                    reserved_vram = 5.0
+            else:
+                # Lazy voice loading (default): voice models aren't loaded yet and will
+                # be loaded/unloaded on demand. Don't reserve VRAM — let the LLM use it.
+                reserved_vram = 0.0
             strategy = determine_gpu_strategy(
                 model_path=model_path,
                 context_size=max_tokens,
