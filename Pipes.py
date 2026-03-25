@@ -105,10 +105,10 @@ def extract_frames_from_video(
                 logging.error(f"[Video] Failed to download video from URL: {e}")
                 return []
         else:
-            # Local file path
-            video_path = video_source
+            # Local file path — validate to prevent path traversal
+            video_path = os.path.realpath(video_source)
             if not os.path.exists(video_path):
-                logging.error(f"[Video] Video file not found: {video_path}")
+                logging.error("[Video] Video file not found")
                 return []
 
         # Open video with OpenCV

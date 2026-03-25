@@ -519,9 +519,7 @@ async def chat_completions(
             )
         except Exception as e:
             logging.error(f"[Chat Completions] Unexpected error: {e}")
-            raise HTTPException(
-                status_code=500, detail=f"Internal server error: {str(e)}"
-            )
+            raise HTTPException(status_code=500, detail="Internal server error")
 
         if audio_response:
             if audio_response.startswith("http"):
@@ -629,9 +627,7 @@ async def completions(c: Completions, request: Request, user=Depends(verify_api_
             )
         except Exception as e:
             logging.error(f"[Completions] Unexpected error: {e}")
-            raise HTTPException(
-                status_code=500, detail=f"Internal server error: {str(e)}"
-            )
+            raise HTTPException(status_code=500, detail="Internal server error")
 
         if audio_response:
             if audio_response.startswith("http"):

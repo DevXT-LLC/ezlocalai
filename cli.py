@@ -1382,12 +1382,14 @@ def _write_compose_env(source_dir: Path, env_vars: dict) -> None:
     content = "\n".join(lines) + "\n"
     try:
         env_file.write_text(content, encoding="utf-8")
+        os.chmod(str(env_file), 0o600)
     except PermissionError:
         # Try with sudo-like workaround: write to temp then move
         import tempfile
 
         try:
             fd, tmp_path = tempfile.mkstemp(suffix=".env", dir=str(source_dir))
+            os.fchmod(fd, 0o600)
             os.write(fd, content.encode("utf-8"))
             os.close(fd)
             os.replace(tmp_path, str(env_file))
