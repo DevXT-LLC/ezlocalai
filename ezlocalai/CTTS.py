@@ -12,6 +12,29 @@ from pathlib import Path
 from huggingface_hub import hf_hub_download
 from ezlocalai.AudioCache import AudioCache
 
+# Ensure perth watermarker is available before importing chatterbox.
+# perth silently sets PerthImplicitWatermarker = None on ImportError,
+# which causes chatterbox to crash with "NoneType is not callable".
+import perth
+
+if perth.PerthImplicitWatermarker is None:
+    logging.warning(
+        "[TTS] perth.PerthImplicitWatermarker unavailable, using no-op watermarker"
+    )
+
+    class _NoOpWatermarker:
+        """Dummy watermarker that returns audio unchanged."""
+
+        def apply_watermark(self, signal, sample_rate, **_):
+            return signal
+
+        def get_watermark(self, signal, sample_rate, **_):
+            import numpy as np
+
+            return np.zeros(0)
+
+    perth.PerthImplicitWatermarker = _NoOpWatermarker
+
 # Use Chatterbox Turbo for faster inference (350M vs 500M params, single-step decoder)
 from chatterbox.tts_turbo import ChatterboxTurboTTS
 
