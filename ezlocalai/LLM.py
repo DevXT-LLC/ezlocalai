@@ -320,6 +320,7 @@ class LLM:
         main_gpu: int = None,  # Override MAIN_GPU env var if provided
         tensor_split: list = None,  # Override tensor split if provided
         batch_size: int = None,  # Override LLM_BATCH_SIZE env var if provided
+        n_parallel: int = None,  # Override N_PARALLEL env var if provided
         **kwargs,
     ):
         global DEFAULT_MODEL
@@ -494,6 +495,38 @@ class LLM:
         self.xlc_params.cache_type_v = kv_type
         if kv_cache_type != "q4_0":
             logging.info(f"[LLM] KV cache type: {kv_cache_type}")
+
+        # Parallel inference: n_parallel creates multiple KV cache slots within
+        # one model load. The total KV cache (n_ctx) is divided across slots, so
+        # VRAM stays constant — only per-slot context shrinks.
+        # 0 = auto-scale, 1 = single slot, N = fixed.
+        if n_parallel is not None:
+            resolved_parallel = n_parallel
+        else:
+            resolved_parallel = int(getenv("N_PARALLEL", "0"))
+
+        if resolved_parallel == 0:
+            # Auto-scale: target ~32K tokens per slot to handle most conversations
+            # comfortably, capped at 16 to balance parallelism vs per-slot context.
+            # VRAM is constant regardless of n_parallel — only per-slot context changes.
+            target_per_slot = 32768
+            auto_parallel = max(1, effective_max_tokens // target_per_slot)
+            resolved_parallel = min(auto_parallel, 16)
+
+        self.n_parallel = resolved_parallel
+        self.xlc_params.n_parallel = resolved_parallel
+        # cont_batching is True by default in xllamacpp, but be explicit
+        self.xlc_params.cont_batching = True
+
+        if resolved_parallel > 1:
+            per_slot_ctx = effective_max_tokens // resolved_parallel
+            logging.info(
+                f"[LLM] Parallel inference: {resolved_parallel} slots, "
+                f"{per_slot_ctx:,} tokens/slot "
+                f"(total context: {effective_max_tokens:,})"
+            )
+        else:
+            logging.debug("[LLM] Single inference slot")
 
         # Apply tensor split for multi-GPU setups
         if self.tensor_split and self.gpu_count > 1:
@@ -675,11 +708,8 @@ class LLM:
                 False to continue receiving chunks, True to stop early
             """
             try:
-                # If the generator consumer closed us, stop generating immediately.
-                # Returning True makes the C++ process_handler_response() exit,
-                # which destroys the response object and frees the inference slot.
                 if cancel_event.is_set():
-                    logging.info("[LLM] cancel_event set, stopping stream callback")
+                    logging.debug("[LLM] cancel_event set, stopping stream callback")
                     return True
 
                 logging.debug(

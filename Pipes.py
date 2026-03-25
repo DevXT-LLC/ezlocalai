@@ -5347,6 +5347,22 @@ class Pipes:
             estimated_tokens = int((total_chars / 3.5) * 1.1)
             return estimated_tokens
 
+        def _log_inference_summary(result: dict):
+            """Log a single INFO line with token counts and speed."""
+            usage = result.get("usage", {})
+            timings = result.get("timings", {})
+            prompt_tok = usage.get("prompt_tokens", 0)
+            completion_tok = usage.get("completion_tokens", 0)
+            speed = timings.get("predicted_per_second", 0)
+            prompt_speed = timings.get("prompt_per_second", 0)
+            parts = [f"in={prompt_tok}"]
+            if prompt_speed:
+                parts.append(f"({prompt_speed:.0f} t/s)")
+            parts.append(f"out={completion_tok}")
+            if speed:
+                parts.append(f"({speed:.0f} t/s)")
+            logging.info(f"[LLM] {' '.join(parts)}")
+
         async def _try_inference_with_context_retry(
             chat_mode: bool, data: dict
         ) -> dict:
@@ -5375,7 +5391,7 @@ class Pipes:
                 )
                 required_context = calculate_context_size(estimated_tokens)
 
-                logging.info(
+                logging.debug(
                     f"[LLM] Streaming pre-check: estimated {estimated_tokens:,} tokens, "
                     f"required context {required_context:,}, current context {current_context:,}"
                 )
@@ -5388,21 +5404,27 @@ class Pipes:
                     self._ensure_context_size(required_context)
                     current_context = required_context
             else:
-                logging.info(
+                logging.debug(
                     f"[LLM] Non-streaming request, stream={data.get('stream')}"
                 )
 
             for attempt in range(max_retries):
                 try:
                     if chat_mode:
-                        logging.info(
+                        logging.debug(
                             f"[LLM] Calling llm.chat with stream={data.get('stream', False)}, context={self.current_context}"
                         )
                         result = self.llm.chat(**data)
-                        logging.info(f"[LLM] llm.chat returned type: {type(result)}")
+                        logging.debug(f"[LLM] llm.chat returned type: {type(result)}")
+                        # Log token/speed summary for non-streaming
+                        if isinstance(result, dict) and not data.get("stream"):
+                            _log_inference_summary(result)
                         return result
                     else:
-                        return self.llm.completion(**data)
+                        result = self.llm.completion(**data)
+                        if isinstance(result, dict) and not data.get("stream"):
+                            _log_inference_summary(result)
+                        return result
                 except Exception as e:
                     error_msg = str(e)
 

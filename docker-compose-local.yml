@@ -19,6 +19,21 @@ services:
       - VOICE_SERVER_API_KEY=${VOICE_SERVER_API_KEY:-}
       - LAZY_LOAD_VOICE=${LAZY_LOAD_VOICE:-true}
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8091/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 120s
+    logging:
+      driver: json-file
+      options:
+        max-size: "500m"
+        max-file: "5"
+    ulimits:
+      nofile:
+        soft: 65535
+        hard: 65535
     ports:
       - "8091:8091"
     volumes:

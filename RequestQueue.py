@@ -24,6 +24,7 @@ class QueuedRequest:
     result: Any = None
     error: Optional[str] = None
     future: Optional[asyncio.Future] = None
+    cancelled: bool = False
 
 
 class RequestQueue:
@@ -48,6 +49,7 @@ class RequestQueue:
         self.total_processed = 0
         self.total_failed = 0
         self.total_queued = 0
+        self._history_max = 1000  # Cap request_history to prevent memory leak
 
         logging.debug(
             f"[RequestQueue] Initialized with max_concurrent={max_concurrent_requests}, max_queue_size={max_queue_size}"
@@ -211,6 +213,11 @@ class RequestQueue:
 
     async def _process_request(self, request: QueuedRequest):
         """Process a single request."""
+        # Skip if request was cancelled (e.g., forwarded to fallback server)
+        if request.cancelled:
+            self.active_requests.pop(request.id, None)
+            return
+
         self.processing_count += 1
         request.status = RequestStatus.PROCESSING
 
@@ -242,6 +249,15 @@ class RequestQueue:
                 f"[RequestQueue] Request {request.id} completed in {processing_time:.2f}s"
             )
 
+            # Prune oldest entries when history exceeds cap
+            if len(self.request_history) > self._history_max:
+                to_remove = sorted(
+                    self.request_history,
+                    key=lambda k: self.request_history[k].timestamp,
+                )[: len(self.request_history) - self._history_max]
+                for k in to_remove:
+                    del self.request_history[k]
+
         except Exception as e:
             request.status = RequestStatus.FAILED
             request.error = str(e)
@@ -264,6 +280,22 @@ class RequestQueue:
 
         finally:
             self.processing_count -= 1
+
+    def is_still_queued(self, request_id: str) -> bool:
+        """Check if a request is still waiting in queue (not yet processing)."""
+        request = self.active_requests.get(request_id)
+        return request is not None and request.status == RequestStatus.QUEUED
+
+    def cancel_request(self, request_id: str) -> bool:
+        """Mark a queued request as cancelled. The processor will skip it when dequeued."""
+        request = self.active_requests.get(request_id)
+        if request is None or request.status != RequestStatus.QUEUED:
+            return False
+        request.cancelled = True
+        request.status = RequestStatus.FAILED
+        request.error = "Cancelled — forwarded to fallback"
+        self.active_requests.pop(request_id, None)
+        return True
 
     def get_queue_status(self) -> Dict[str, Any]:
         """Get current queue status and metrics."""

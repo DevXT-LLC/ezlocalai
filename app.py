@@ -90,14 +90,26 @@ def segments_to_vtt(segments: list) -> str:
     return "\n".join(vtt_lines)
 
 
-# Initialize request queue
-MAX_CONCURRENT_REQUESTS = int(getenv("MAX_CONCURRENT_REQUESTS", "1"))
+# Initialize request queue — initial value; updated after Pipes init to match n_parallel
+MAX_CONCURRENT_REQUESTS = int(getenv("MAX_CONCURRENT_REQUESTS", "5"))
 MAX_QUEUE_SIZE = int(getenv("MAX_QUEUE_SIZE", "100"))
 request_queue = RequestQueue(
     max_concurrent_requests=MAX_CONCURRENT_REQUESTS, max_queue_size=MAX_QUEUE_SIZE
 )
 
 pipe = Pipes()
+
+# Align queue concurrency with the LLM's actual n_parallel.
+# The LLM can handle n_parallel requests simultaneously via continuous batching,
+# so the queue should allow at least that many through.
+if pipe.llm and hasattr(pipe.llm, "n_parallel") and pipe.llm.n_parallel > 1:
+    effective_concurrent = max(MAX_CONCURRENT_REQUESTS, pipe.llm.n_parallel)
+    if effective_concurrent != request_queue.max_concurrent_requests:
+        request_queue.max_concurrent_requests = effective_concurrent
+        logging.info(
+            f"[Queue] Aligned max_concurrent_requests={effective_concurrent} "
+            f"with LLM n_parallel={pipe.llm.n_parallel}"
+        )
 
 app = FastAPI(title="ezlocalai Server", docs_url="/")
 app.add_middleware(
@@ -164,6 +176,91 @@ async def process_request_async(data: Dict, completion_type: str):
     return await pipe.get_response(data, completion_type)
 
 
+async def _enqueue_with_fallback(
+    data: Dict, completion_type: str, request_timeout: float
+):
+    """Enqueue a request with optional queue-wait fallback routing.
+
+    If QUEUE_WAIT_TIMEOUT > 0 and a fallback server is configured:
+    1. Wait up to QUEUE_WAIT_TIMEOUT for a slot to free up
+    2. If still queued after that, cancel and forward to fallback server
+    3. If fallback fails or is unavailable, continue waiting locally
+    """
+    from Pipes import get_fallback_client
+    from RequestQueue import RequestStatus
+
+    queue_wait_timeout = float(getenv("QUEUE_WAIT_TIMEOUT", "30"))
+
+    request_id = await request_queue.enqueue_request(
+        data=data,
+        completion_type=completion_type,
+        processor_func=process_request_async,
+    )
+
+    fallback_client = get_fallback_client()
+    use_fallback = queue_wait_timeout > 0 and fallback_client.is_configured
+
+    if not use_fallback:
+        return await request_queue.wait_for_result(request_id, timeout=request_timeout)
+
+    # Two-phase wait: short queue timeout → fallback → remaining timeout
+    request = request_queue.active_requests.get(request_id)
+    if not request:
+        raise HTTPException(status_code=500, detail="Request lost from queue")
+
+    # Phase 1: poll the future for queue_wait_timeout seconds without cancelling it
+    deadline = time.time() + queue_wait_timeout
+    while time.time() < deadline:
+        if request.future.done():
+            break
+        await asyncio.sleep(0.25)
+
+    if request.future.done():
+        # Completed (or failed) within queue-wait timeout
+        result = request.future.result()
+    else:
+        # Still queued — try fallback if request hasn't started processing
+        if request.status == RequestStatus.QUEUED:
+            logging.info(
+                f"[Queue] Request {request_id} queued >{queue_wait_timeout}s, trying fallback"
+            )
+            try:
+                available, reason = await fallback_client.check_availability()
+                if available:
+                    is_streaming = data.get("stream", False)
+                    if completion_type == "chat":
+                        fb_response = await fallback_client.forward_chat_completion(
+                            data, stream=is_streaming
+                        )
+                    else:
+                        fb_response = await fallback_client.forward_completion(
+                            data, stream=is_streaming
+                        )
+                    request_queue.cancel_request(request_id)
+                    return fb_response, None
+            except Exception as e:
+                logging.warning(
+                    f"[Queue] Fallback failed ({e}), continuing to wait locally"
+                )
+
+        # Fallback failed/unavailable or request already processing — wait remaining time
+        remaining = max(1.0, request_timeout - queue_wait_timeout)
+        try:
+            result = await asyncio.wait_for(request.future, timeout=remaining)
+        except asyncio.TimeoutError:
+            request_queue.active_requests.pop(request_id, None)
+            raise
+
+    if request.status == RequestStatus.FAILED:
+        raise HTTPException(status_code=500, detail=request.error)
+
+    # Clean up
+    request_queue.request_history[request_id] = request_queue.active_requests.pop(
+        request_id, None
+    )
+    return result
+
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -222,6 +319,14 @@ async def models(user=Depends(verify_api_key)):
     return pipe.get_models()
 
 
+@app.get("/health", tags=["System"])
+async def health_check():
+    """Health check for load balancers and container orchestrators."""
+    if request_queue._task and not request_queue._task.done():
+        return {"status": "healthy"}
+    raise HTTPException(status_code=503, detail="Queue processor not running")
+
+
 @app.get(
     "/v1/resources",
     tags=["System"],
@@ -261,6 +366,19 @@ async def get_resources(user=Depends(verify_api_key)):
         "free_ram_gb": free_ram,
         "free_combined_gb": free_vram + free_ram,
         "memory_threshold_gb": float(getenv("FALLBACK_MEMORY_THRESHOLD", "8.0")),
+    }
+
+    # Add parallel inference info
+    n_parallel = getattr(pipe.llm, "n_parallel", 1) if pipe.llm else 1
+    n_ctx = getattr(pipe.llm, "xlc_params", None)
+    n_ctx_val = n_ctx.n_ctx if n_ctx else 0
+    queue_wait_timeout = float(getenv("QUEUE_WAIT_TIMEOUT", "30"))
+    status["parallel"] = {
+        "n_parallel": n_parallel,
+        "n_ctx": n_ctx_val,
+        "per_slot_context": n_ctx_val // n_parallel if n_parallel > 0 else n_ctx_val,
+        "max_concurrent_requests": request_queue.max_concurrent_requests,
+        "queue_wait_timeout": queue_wait_timeout if queue_wait_timeout > 0 else None,
     }
 
     return status
@@ -385,14 +503,10 @@ async def chat_completions(
         request_timeout = float(getenv("REQUEST_TIMEOUT", "300"))  # 5 minutes default
 
         try:
-            # Enqueue the request
-            request_id = await request_queue.enqueue_request(
-                data=data, completion_type="chat", processor_func=process_request_async
-            )
-
-            # Wait for the result
-            response, audio_response = await request_queue.wait_for_result(
-                request_id, timeout=request_timeout
+            response, audio_response = await _enqueue_with_fallback(
+                data=data,
+                completion_type="chat",
+                request_timeout=request_timeout,
             )
 
         except HTTPException:
@@ -427,17 +541,10 @@ async def chat_completions(
                     import json
 
                     chunk_count = 0
-                    logging.info(
-                        f"[STREAMING] Starting to iterate over response generator"
-                    )
                     for chunk in response:
                         chunk_count += 1
-                        if chunk_count <= 3 or chunk_count % 50 == 0:
-                            logging.info(f"[STREAMING] Yielding chunk {chunk_count}")
-                        # Yield the complete chunk in SSE format
                         yield f"data: {json.dumps(chunk)}\n\n"
-                    logging.info(f"[STREAMING] Finished streaming {chunk_count} chunks")
-                    # Send the final [DONE] message
+                    logging.debug(f"[STREAMING] Finished {chunk_count} chunks")
                     yield "data: [DONE]\n\n"
                 except Exception as e:
                     import traceback
@@ -506,16 +613,10 @@ async def completions(c: Completions, request: Request, user=Depends(verify_api_
         request_timeout = float(getenv("REQUEST_TIMEOUT", "300"))  # 5 minutes default
 
         try:
-            # Enqueue the request
-            request_id = await request_queue.enqueue_request(
+            response, audio_response = await _enqueue_with_fallback(
                 data=data,
                 completion_type="completion",
-                processor_func=process_request_async,
-            )
-
-            # Wait for the result
-            response, audio_response = await request_queue.wait_for_result(
-                request_id, timeout=request_timeout
+                request_timeout=request_timeout,
             )
 
         except HTTPException:

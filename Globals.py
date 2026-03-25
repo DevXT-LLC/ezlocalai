@@ -18,18 +18,25 @@ def getenv(var_name: str, default_value: str = None) -> str:
         "NGROK_TOKEN": "",
         "LOG_LEVEL": "INFO",
         "LOG_FORMAT": "%(asctime)s | %(levelname)s | %(message)s",
-        "UVICORN_WORKERS": 10,
+        "UVICORN_WORKERS": 1,  # GPU inference: 1 worker to avoid duplicate model loads
         "MAIN_GPU": "0",
         "TENSOR_SPLIT": "",
         "QUANT_TYPE": "Q4_K_XL",
         "LLM_BATCH_SIZE": "2048",
         "LLM_MAX_TOKENS": "40000",
         "REASONING_BUDGET": "-1",  # Max thinking tokens per response (-1 = unlimited, 0 = disabled, N = limit)
+        # Parallel inference slots — 0 = auto-scale (targets ~32K per slot, max 16),
+        # 1 = single slot (legacy), N = fixed number of parallel slots.
+        # Each slot gets n_ctx / n_parallel tokens of context. VRAM is constant.
+        "N_PARALLEL": "0",
         "VLM_MAX_TOKENS": "8192",  # Vision models don't need large context
         # Queue system defaults - supports concurrent requests with resource fallback
-        "MAX_CONCURRENT_REQUESTS": "5",
+        "MAX_CONCURRENT_REQUESTS": "16",
         "MAX_QUEUE_SIZE": "100",
-        "REQUEST_TIMEOUT": "300",
+        "REQUEST_TIMEOUT": "120",
+        # How long (seconds) a request waits in queue before trying fallback server.
+        # 0 = disabled (wait full REQUEST_TIMEOUT). Only applies when FALLBACK_SERVER is set.
+        "QUEUE_WAIT_TIMEOUT": "10",
         # Fallback server for when local resources are exhausted (VRAM/RAM)
         # Can be another ezlocalai instance (e.g., "http://192.168.1.100:8091") for full feature parity
         # Or an OpenAI-compatible API (e.g., "https://api.openai.com/v1") for LLM-only fallback

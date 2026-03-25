@@ -30,6 +30,17 @@ services:
       - MAX_QUEUE_SIZE=${MAX_QUEUE_SIZE-10}
       - REQUEST_TIMEOUT=${REQUEST_TIMEOUT-600}
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8091/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 180s
+    logging:
+      driver: json-file
+      options:
+        max-size: "100m"
+        max-file: "3"
     ports:
       - "8091:8091"
     volumes:

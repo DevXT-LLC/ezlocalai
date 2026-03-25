@@ -17,14 +17,29 @@ services:
       - CUDA_DOCKER_ARCH=all
       - TENSOR_SPLIT=${TENSOR_SPLIT:-}
       - TOKENIZERS_PARALLELISM=false
-      - MAX_CONCURRENT_REQUESTS=${MAX_CONCURRENT_REQUESTS:-1}
+      - MAX_CONCURRENT_REQUESTS=${MAX_CONCURRENT_REQUESTS:-16}
       - MAX_QUEUE_SIZE=${MAX_QUEUE_SIZE:-100}
-      - REQUEST_TIMEOUT=${REQUEST_TIMEOUT:-300}
+      - REQUEST_TIMEOUT=${REQUEST_TIMEOUT:-120}
       - VOICE_SERVER=${VOICE_SERVER:-}
       - VOICE_SERVER_API_KEY=${VOICE_SERVER_API_KEY:-}
       - LAZY_LOAD_VOICE=${LAZY_LOAD_VOICE:-false}
       - TTS_PROVIDER=${TTS_PROVIDER:-chatterbox}
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8091/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 120s
+    logging:
+      driver: json-file
+      options:
+        max-size: "500m"
+        max-file: "5"
+    ulimits:
+      nofile:
+        soft: 65535
+        hard: 65535
     dns:
       - 8.8.8.8
       - 8.8.4.4
