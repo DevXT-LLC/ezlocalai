@@ -4,19 +4,17 @@ import torch
 import gc
 
 # LTX-2 requires diffusers with LTX2Pipeline support
-LTX2_AVAILABLE = False
+import_success = False
 
 try:
     from diffusers import LTX2Pipeline
 
-    LTX2_AVAILABLE = True
     import_success = True
 except (ImportError, RuntimeError, Exception) as e:
     logging.warning(
         f"[VIDEO] LTX2Pipeline not available ({e}). Video generation will be unavailable. "
         "Install diffusers from source: pip install git+https://github.com/huggingface/diffusers"
     )
-    import_success = False
 
 
 class VIDEO:

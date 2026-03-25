@@ -1416,7 +1416,7 @@ def get_default_env() -> dict:
         "WHISPER_MODEL": "large-v3",
         "IMG_MODEL": "",
         "VIDEO_MODEL": "",
-        "MAIN_GPU": "0",
+        "NGROK_TOKEN": "",
         "MAX_CONCURRENT_REQUESTS": "2",
         "MAX_QUEUE_SIZE": "100",
         "REQUEST_TIMEOUT": "300",
