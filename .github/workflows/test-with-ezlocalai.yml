@@ -37,6 +37,8 @@ jobs:
         env:
           DEFAULT_MODEL: "unsloth/Qwen3.5-0.8B-GGUF"
           LLM_MAX_TOKENS: "8192"
+          TTS_ENABLED: "false"
+          STT_ENABLED: "false"
         ports:
           - ${{ inputs.port-mapping || format('{0}:{1}', inputs.port, inputs.port) }}
         options: >-

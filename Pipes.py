@@ -105,18 +105,10 @@ def extract_frames_from_video(
                 logging.error(f"[Video] Failed to download video from URL: {e}")
                 return []
         else:
-            # Local file path — validate to prevent path traversal
-            video_path = os.path.realpath(video_source)
-            allowed_dirs = [os.path.realpath(os.getcwd()), os.path.realpath("/tmp")]
-            if not any(
-                video_path.startswith(d + os.sep) or video_path == d
-                for d in allowed_dirs
-            ):
-                logging.error("[Video] Video path outside allowed directory")
-                return []
-            if not os.path.exists(video_path):
-                logging.error("[Video] Video file not found")
-                return []
+            # Reject local file paths from user-provided data — only URLs
+            # and base64 data URIs are accepted from external input.
+            logging.error("[Video] Local file paths are not accepted for video input")
+            return []
 
         # Open video with OpenCV
         cap = cv2.VideoCapture(video_path)
@@ -640,9 +632,10 @@ class EzlocalaiClient:
                     )
 
         except Exception as e:
+            logging.debug(f"[Fallback] Health check failed: {e}")
             self._available = False
             self._last_check = current_time
-            return False, f"Fallback server unreachable: {str(e)}"
+            return False, "Fallback server unreachable"
 
     def _get_session(self):
         """Get or create an aiohttp session."""
@@ -1020,9 +1013,10 @@ class VoiceServerClient:
                         return False, f"Voice server returned status {resp.status}"
 
         except Exception as e:
+            logging.debug(f"[Voice] Health check failed: {e}")
             self._available = False
             self._last_check = current_time
-            return False, f"Voice server unreachable: {str(e)}"
+            return False, "Voice server unreachable"
 
     async def forward_tts(
         self, text: str, voice: str = "default", language: str = "en"
