@@ -175,7 +175,10 @@ def extract_audio_from_video(video_path: str) -> Optional[str]:
         )
         if result.returncode != 0:
             # Check if there's simply no audio stream
-            if "does not contain any stream" in result.stderr or "Output file is empty" in result.stderr:
+            if (
+                "does not contain any stream" in result.stderr
+                or "Output file is empty" in result.stderr
+            ):
                 logging.debug("[Video] Video has no audio track")
             else:
                 logging.warning(
@@ -5121,10 +5124,12 @@ class Pipes:
                                                         ModelType.STT, True
                                                     )
                                                     try:
-                                                        transcript = await stt.transcribe_audio(
-                                                            base64_audio=audio_b64,
-                                                            audio_format="wav",
-                                                            return_segments=True,
+                                                        transcript = (
+                                                            await stt.transcribe_audio(
+                                                                base64_audio=audio_b64,
+                                                                audio_format="wav",
+                                                                return_segments=True,
+                                                            )
                                                         )
                                                     finally:
                                                         self.resource_manager.mark_model_in_use(
@@ -5132,7 +5137,9 @@ class Pipes:
                                                         )
                                                         self._destroy_stt()
                                                 if transcript:
-                                                    formatted = _format_transcript_with_timestamps(transcript)
+                                                    formatted = _format_transcript_with_timestamps(
+                                                        transcript
+                                                    )
                                                     if formatted:
                                                         video_header += f"\n[Video Audio Transcript:\n{formatted}\n]"
                                                     logging.info(
@@ -5147,9 +5154,7 @@ class Pipes:
                                                     audio_path
                                                 ):
                                                     os.unlink(audio_path)
-                                        text_content = (
-                                            f"{video_header}\n{text_content}"
-                                        )
+                                        text_content = f"{video_header}\n{text_content}"
                                         logging.info(
                                             f"[Video] Extracted {len(frame_urls)} frames for vision processing"
                                         )
@@ -5286,7 +5291,11 @@ class Pipes:
                                                 )
                                                 self._destroy_stt()
                                         if transcript:
-                                            formatted = _format_transcript_with_timestamps(transcript)
+                                            formatted = (
+                                                _format_transcript_with_timestamps(
+                                                    transcript
+                                                )
+                                            )
                                             if formatted:
                                                 video_header += f"\n[Video Audio Transcript:\n{formatted}\n]"
                                             logging.info(
@@ -5904,7 +5913,12 @@ class Pipes:
         # IMG is lazy loaded - try to get it if IMG_MODEL is configured
         # Skip image generation for streaming responses (response is a generator, not dict)
         is_streaming_response = data.get("stream", False)
-        if getenv("IMG_MODEL") and getenv("IMG_MODEL").lower() != "none" and not is_streaming_response and img_import_success:
+        if (
+            getenv("IMG_MODEL")
+            and getenv("IMG_MODEL").lower() != "none"
+            and not is_streaming_response
+            and img_import_success
+        ):
             async with self._img_lock:
                 img = self._get_img()
                 if img:
