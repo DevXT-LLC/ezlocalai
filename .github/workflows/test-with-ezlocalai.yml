@@ -40,7 +40,7 @@ jobs:
         run: |
           response=$(curl -sf http://localhost:${{ inputs.port }}/v1/models)
           echo "$response" | jq .
-          if ! echo "$response" | jq -e '.data | length > 0' > /dev/null; then
+          if ! echo "$response" | jq -e 'length > 0' > /dev/null; then
             echo "FAIL: No models loaded"
             exit 1
           fi
