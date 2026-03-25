@@ -55,167 +55,358 @@ except (ImportError, RuntimeError, Exception) as e:
 # =============================================================================
 
 
+def _download_video_to_temp(video_source: str) -> Optional[str]:
+    """Download or decode a video source to a temporary file.
+
+    Args:
+        video_source: URL or base64 data URL of the video
+
+    Returns:
+        Path to temporary file, or None on failure.
+        Caller is responsible for cleaning up the temp file.
+    """
+    if video_source.startswith("data:"):
+        try:
+            header, encoded = video_source.split(",", 1)
+            video_bytes = base64.b64decode(encoded)
+            tf = tempfile.NamedTemporaryFile(suffix=".mp4", delete=False)
+            tf.write(video_bytes)
+            tf.close()
+            return tf.name
+        except Exception as e:
+            logging.error(f"[Video] Failed to decode base64 video: {e}")
+            return None
+    elif video_source.startswith("http://") or video_source.startswith("https://"):
+        try:
+            headers = {"User-Agent": "Mozilla/5.0"}
+            response = requests.get(
+                video_source, timeout=60, headers=headers, stream=True
+            )
+            response.raise_for_status()
+            tf = tempfile.NamedTemporaryFile(suffix=".mp4", delete=False)
+            for chunk in response.iter_content(chunk_size=8192):
+                tf.write(chunk)
+            tf.close()
+            return tf.name
+        except Exception as e:
+            logging.error(f"[Video] Failed to download video from URL: {e}")
+            return None
+    else:
+        logging.error("[Video] Local file paths are not accepted for video input")
+        return None
+
+
+def _detect_scene_changes(video_path: str, threshold: float = 30.0) -> List[float]:
+    """Detect scene changes in a video using frame differencing.
+
+    Args:
+        video_path: Path to video file
+        threshold: Mean absolute difference threshold to consider a scene change
+
+    Returns:
+        List of timestamps (seconds) where scene changes occur
+    """
+    try:
+        import cv2
+    except ImportError:
+        return []
+
+    cap = cv2.VideoCapture(video_path)
+    if not cap.isOpened():
+        return []
+
+    video_fps = cap.get(cv2.CAP_PROP_FPS)
+    if video_fps <= 0:
+        cap.release()
+        return []
+
+    scene_changes = [0.0]  # Always include the first frame
+    prev_gray = None
+    frame_idx = 0
+    # Sample every 0.5s for scene detection to keep it fast
+    sample_interval = max(1, int(video_fps * 0.5))
+
+    while True:
+        ret, frame = cap.read()
+        if not ret:
+            break
+        if frame_idx % sample_interval == 0:
+            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+            # Downscale for speed
+            gray = cv2.resize(gray, (160, 90))
+            if prev_gray is not None:
+                diff = cv2.absdiff(prev_gray, gray)
+                mean_diff = diff.mean()
+                if mean_diff > threshold:
+                    ts = frame_idx / video_fps
+                    scene_changes.append(ts)
+            prev_gray = gray
+        frame_idx += 1
+
+    cap.release()
+    return scene_changes
+
+
+def extract_audio_from_video(video_path: str) -> Optional[str]:
+    """Extract audio track from a video file using ffmpeg.
+
+    Args:
+        video_path: Path to the video file
+
+    Returns:
+        Path to extracted WAV file, or None if no audio or extraction failed.
+        Caller is responsible for cleaning up the temp file.
+    """
+    import subprocess
+
+    audio_file = tempfile.NamedTemporaryFile(suffix=".wav", delete=False)
+    audio_file.close()
+    try:
+        result = subprocess.run(
+            [
+                "ffmpeg",
+                "-i",
+                video_path,
+                "-vn",  # no video
+                "-acodec",
+                "pcm_s16le",
+                "-ar",
+                "16000",  # 16kHz for Whisper
+                "-ac",
+                "1",  # mono
+                "-y",
+                audio_file.name,
+            ],
+            capture_output=True,
+            text=True,
+            timeout=120,
+        )
+        if result.returncode != 0:
+            # Check if there's simply no audio stream
+            if (
+                "does not contain any stream" in result.stderr
+                or "Output file is empty" in result.stderr
+            ):
+                logging.debug("[Video] Video has no audio track")
+            else:
+                logging.warning(
+                    f"[Video] ffmpeg audio extraction failed: {result.stderr[:200]}"
+                )
+            os.unlink(audio_file.name)
+            return None
+
+        # Verify the file has content
+        if os.path.getsize(audio_file.name) < 1000:
+            logging.debug("[Video] Extracted audio file is too small, likely silent")
+            os.unlink(audio_file.name)
+            return None
+
+        return audio_file.name
+    except FileNotFoundError:
+        logging.warning("[Video] ffmpeg not found, cannot extract audio")
+        os.unlink(audio_file.name)
+        return None
+    except subprocess.TimeoutExpired:
+        logging.warning("[Video] ffmpeg audio extraction timed out")
+        os.unlink(audio_file.name)
+        return None
+    except Exception as e:
+        logging.error(f"[Video] Audio extraction error: {e}")
+        if os.path.exists(audio_file.name):
+            os.unlink(audio_file.name)
+        return None
+
+
+def _format_transcript_with_timestamps(transcript_result: dict) -> str:
+    """Format STT transcript result (with segments) into timestamped text.
+
+    Args:
+        transcript_result: Dict from STT.transcribe_audio(return_segments=True)
+            with keys: text, segments, language
+
+    Returns:
+        Human-readable timestamped transcript string
+    """
+    segments = transcript_result.get("segments", [])
+    if not segments:
+        text = transcript_result.get("text", "").strip()
+        return text if text else ""
+
+    lines = []
+    for seg in segments:
+        start = seg.get("start", 0)
+        end = seg.get("end", 0)
+        text = seg.get("text", "").strip()
+        speaker = seg.get("speaker")
+        if not text:
+            continue
+        ts = f"[{start:.1f}s - {end:.1f}s]"
+        if speaker:
+            lines.append(f"{ts} {speaker}: {text}")
+        else:
+            lines.append(f"{ts} {text}")
+    return "\n".join(lines)
+
+
 def extract_frames_from_video(
     video_source: str,
     fps: float = 1.0,
     max_frames: int = 16,
-) -> List[str]:
-    """Extract frames from a video and return as base64-encoded images.
+    scene_detect: bool = True,
+) -> dict:
+    """Extract frames from a video with scene-aware sampling and audio extraction.
+
+    Uses scene-change detection to ensure important visual transitions are captured,
+    then fills remaining budget with uniformly-spaced frames. Also extracts the
+    audio track for separate transcription.
 
     Args:
-        video_source: Either a URL, file path, or base64 data URL of the video
-        fps: Frames per second to extract (default 1.0 = 1 frame per second)
+        video_source: URL or base64 data URL of the video
+        fps: Frames per second to extract (default 1.0)
         max_frames: Maximum number of frames to extract (default 16)
+        scene_detect: Whether to use scene-change detection (default True)
 
     Returns:
-        List of base64 data URLs in format "data:image/jpeg;base64,..."
+        Dict with keys:
+            "frames": List of base64 data URLs
+            "timestamps": List of float timestamps (seconds) per frame
+            "duration": Video duration in seconds
+            "audio_path": Path to extracted audio WAV (caller must clean up), or None
     """
+    result = {"frames": [], "timestamps": [], "duration": 0.0, "audio_path": None}
+
     try:
         import cv2
         from PIL import Image as PILImage
         from io import BytesIO
     except ImportError:
         logging.error(
-            "[Video] OpenCV (cv2) is required for video processing. Install with: pip install opencv-python"
+            "[Video] OpenCV (cv2) is required for video processing. "
+            "Install with: pip install opencv-python"
         )
-        return []
+        return result
 
-    temp_file = None
-    frames_base64 = []
+    video_path = _download_video_to_temp(video_source)
+    if not video_path:
+        return result
 
     try:
-        # Handle different video source types
-        if video_source.startswith("data:"):
-            # Base64 data URL - extract and save to temp file
-            try:
-                header, encoded = video_source.split(",", 1)
-                video_bytes = base64.b64decode(encoded)
-                temp_file = tempfile.NamedTemporaryFile(suffix=".mp4", delete=False)
-                temp_file.write(video_bytes)
-                temp_file.close()
-                video_path = temp_file.name
-            except Exception as e:
-                logging.error(f"[Video] Failed to decode base64 video: {e}")
-                return []
-        elif video_source.startswith("http://") or video_source.startswith("https://"):
-            # URL - download to temp file
-            try:
-                headers = {"User-Agent": "Mozilla/5.0"}
-                response = requests.get(
-                    video_source, timeout=60, headers=headers, stream=True
-                )
-                response.raise_for_status()
-                temp_file = tempfile.NamedTemporaryFile(suffix=".mp4", delete=False)
-                for chunk in response.iter_content(chunk_size=8192):
-                    temp_file.write(chunk)
-                temp_file.close()
-                video_path = temp_file.name
-            except Exception as e:
-                logging.error(f"[Video] Failed to download video from URL: {e}")
-                return []
-        else:
-            # Reject local file paths from user-provided data — only URLs
-            # and base64 data URIs are accepted from external input.
-            logging.error("[Video] Local file paths are not accepted for video input")
-            return []
+        # Extract audio track in parallel (ffmpeg is fast)
+        audio_path = extract_audio_from_video(video_path)
+        result["audio_path"] = audio_path
 
         # Open video with OpenCV
         cap = cv2.VideoCapture(video_path)
         if not cap.isOpened():
             logging.error(f"[Video] Failed to open video: {video_path}")
-            return []
+            return result
 
-        # Get video properties
         video_fps = cap.get(cv2.CAP_PROP_FPS)
         total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
         duration = total_frames / video_fps if video_fps > 0 else 0
+        result["duration"] = duration
 
-        logging.debug(
-            f"[Video] Video properties: {video_fps:.1f} fps, {total_frames} frames, {duration:.1f}s duration"
+        logging.info(
+            f"[Video] Video: {video_fps:.1f} fps, {total_frames} frames, "
+            f"{duration:.1f}s duration, audio={'yes' if audio_path else 'no'}"
         )
 
-        # Calculate frame interval based on requested fps
-        frame_interval = int(video_fps / fps) if fps > 0 else int(video_fps)
-        frame_interval = max(1, frame_interval)  # At least 1 frame interval
+        if total_frames == 0 or video_fps <= 0:
+            cap.release()
+            return result
 
-        # Calculate total frames to extract
-        estimated_frames = total_frames // frame_interval
-        if estimated_frames > max_frames:
-            # Adjust interval to get approximately max_frames
-            frame_interval = total_frames // max_frames
+        # Build target timestamp list using scene-change detection + uniform fill
+        target_timestamps = set()
 
-        frame_count = 0
-        extracted_count = 0
+        if scene_detect and duration > 2.0:
+            scene_times = _detect_scene_changes(video_path, threshold=30.0)
+            # Cap scene-change frames at half the budget so uniform frames get space too
+            scene_budget = max_frames // 2
+            if len(scene_times) > scene_budget:
+                # Keep evenly spaced subset of scene changes
+                step = len(scene_times) / scene_budget
+                scene_times = [scene_times[int(i * step)] for i in range(scene_budget)]
+            for ts in scene_times:
+                if 0 <= ts <= duration:
+                    target_timestamps.add(round(ts, 2))
+            logging.debug(
+                f"[Video] Scene detection found {len(target_timestamps)} key moments"
+            )
 
-        while True:
+        # Fill remaining budget with uniformly-spaced frames
+        remaining_budget = max_frames - len(target_timestamps)
+        if remaining_budget > 0:
+            if duration <= 0:
+                uniform_step = 1.0
+            else:
+                uniform_step = duration / remaining_budget
+            for i in range(remaining_budget):
+                ts = round(i * uniform_step, 2)
+                if ts <= duration:
+                    target_timestamps.add(ts)
+
+        # Sort and deduplicate timestamps, convert to frame numbers
+        sorted_timestamps = sorted(target_timestamps)[:max_frames]
+        target_frame_numbers = {}
+        for ts in sorted_timestamps:
+            frame_num = min(int(ts * video_fps), total_frames - 1)
+            if frame_num not in target_frame_numbers:
+                target_frame_numbers[frame_num] = ts
+
+        # Extract frames at target positions using seeking for efficiency
+        frames_base64 = []
+        frame_timestamps = []
+
+        for frame_num in sorted(target_frame_numbers.keys()):
+            cap.set(cv2.CAP_PROP_POS_FRAMES, frame_num)
             ret, frame = cap.read()
             if not ret:
-                break
+                continue
 
-            # Extract frame at specified intervals
-            if frame_count % frame_interval == 0 and extracted_count < max_frames:
-                try:
-                    # Convert BGR (OpenCV) to RGB (PIL)
-                    frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                    pil_img = PILImage.fromarray(frame_rgb)
+            try:
+                frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                pil_img = PILImage.fromarray(frame_rgb)
 
-                    # Resize if too large (max 1024px on longest side) to save tokens
-                    max_dim = max(pil_img.size)
-                    if max_dim > 1024:
-                        scale = 1024 / max_dim
-                        new_size = (
-                            int(pil_img.size[0] * scale),
-                            int(pil_img.size[1] * scale),
-                        )
-                        pil_img = pil_img.resize(new_size, PILImage.Resampling.LANCZOS)
-
-                    # DEBUG: Save first frame for verification
-                    if extracted_count == 0:
-                        debug_path = "/app/outputs/debug_frame_0.png"
-                        try:
-                            pil_img.save(debug_path)
-                            logging.info(
-                                f"[Video DEBUG] Saved first frame to {debug_path}, size={pil_img.size}"
-                            )
-                        except Exception as save_err:
-                            logging.warning(
-                                f"[Video DEBUG] Could not save debug frame: {save_err}"
-                            )
-
-                    # Convert to base64 JPEG
-                    buffer = BytesIO()
-                    pil_img.save(buffer, format="JPEG", quality=85)
-                    img_base64 = base64.b64encode(buffer.getvalue()).decode("utf-8")
-                    frames_base64.append(f"data:image/jpeg;base64,{img_base64}")
-                    extracted_count += 1
-
-                    # Calculate timestamp for this frame
-                    timestamp = frame_count / video_fps if video_fps > 0 else 0
-                    logging.debug(
-                        f"[Video] Extracted frame {extracted_count} at {timestamp:.1f}s"
+                # Resize if too large (max 1024px on longest side)
+                max_dim = max(pil_img.size)
+                if max_dim > 1024:
+                    scale = 1024 / max_dim
+                    new_size = (
+                        int(pil_img.size[0] * scale),
+                        int(pil_img.size[1] * scale),
                     )
+                    pil_img = pil_img.resize(new_size, PILImage.Resampling.LANCZOS)
 
-                except Exception as e:
-                    logging.error(f"[Video] Failed to process frame {frame_count}: {e}")
-
-            frame_count += 1
+                buffer = BytesIO()
+                pil_img.save(buffer, format="JPEG", quality=85)
+                img_base64 = base64.b64encode(buffer.getvalue()).decode("utf-8")
+                frames_base64.append(f"data:image/jpeg;base64,{img_base64}")
+                frame_timestamps.append(target_frame_numbers[frame_num])
+            except Exception as e:
+                logging.error(f"[Video] Failed to process frame {frame_num}: {e}")
 
         cap.release()
+
+        result["frames"] = frames_base64
+        result["timestamps"] = frame_timestamps
+
         logging.info(
-            f"[Video] Extracted {extracted_count} frames from video ({duration:.1f}s)"
+            f"[Video] Extracted {len(frames_base64)} frames "
+            f"({'scene-aware' if scene_detect else 'uniform'}) "
+            f"from {duration:.1f}s video"
         )
 
     except Exception as e:
         logging.error(f"[Video] Error processing video: {e}")
     finally:
-        # Clean up temp file
-        if temp_file and os.path.exists(temp_file.name):
+        # Clean up the video temp file (but NOT audio — caller handles that)
+        if os.path.exists(video_path):
             try:
-                os.unlink(temp_file.name)
+                os.unlink(video_path)
             except Exception:
                 pass
 
-    return frames_base64
+    return result
 
 
 # =============================================================================
@@ -5103,18 +5294,21 @@ class Pipes:
 
                                 if video_url:
                                     logging.info(f"[Video] Processing video input")
-                                    # Extract frames from video and convert to images
                                     video_fps = float(getenv("VIDEO_FPS", "1.0"))
                                     video_max_frames = int(
                                         getenv("VIDEO_MAX_FRAMES", "16")
                                     )
-                                    frame_urls = extract_frames_from_video(
+                                    video_result = extract_frames_from_video(
                                         video_url,
                                         fps=video_fps,
                                         max_frames=video_max_frames,
                                     )
+                                    frame_urls = video_result["frames"]
+                                    frame_timestamps = video_result["timestamps"]
+                                    video_duration = video_result["duration"]
+                                    audio_path = video_result["audio_path"]
+
                                     if frame_urls:
-                                        # Add frame number info to help the model understand sequence
                                         for idx, frame_url in enumerate(frame_urls):
                                             message_images.append(
                                                 {
@@ -5122,11 +5316,71 @@ class Pipes:
                                                     "image_url": {"url": frame_url},
                                                 }
                                             )
-                                        text_content = f"[Video with {len(frame_urls)} frames extracted at {video_fps} fps]\n{text_content}"
+
+                                        # Build frame timestamp info
+                                        frame_info_parts = []
+                                        for idx, ts in enumerate(frame_timestamps):
+                                            frame_info_parts.append(
+                                                f"Frame {idx + 1}: {ts:.1f}s"
+                                            )
+                                        frame_info = ", ".join(frame_info_parts)
+
+                                        video_header = (
+                                            f"[Video: {video_duration:.1f}s duration, "
+                                            f"{len(frame_urls)} frames extracted]\n"
+                                            f"[Frame timestamps: {frame_info}]"
+                                        )
+
+                                        # Transcribe audio if available
+                                        if audio_path:
+                                            try:
+                                                with open(audio_path, "rb") as af:
+                                                    audio_b64 = base64.b64encode(
+                                                        af.read()
+                                                    ).decode("utf-8")
+                                                async with self._stt_lock:
+                                                    stt = self._get_stt()
+                                                    self.resource_manager.mark_model_in_use(
+                                                        ModelType.STT, True
+                                                    )
+                                                    try:
+                                                        transcript = (
+                                                            await stt.transcribe_audio(
+                                                                base64_audio=audio_b64,
+                                                                audio_format="wav",
+                                                                return_segments=True,
+                                                            )
+                                                        )
+                                                    finally:
+                                                        self.resource_manager.mark_model_in_use(
+                                                            ModelType.STT, False
+                                                        )
+                                                        self._destroy_stt()
+                                                if transcript:
+                                                    formatted = _format_transcript_with_timestamps(
+                                                        transcript
+                                                    )
+                                                    if formatted:
+                                                        video_header += f"\n[Video Audio Transcript:\n{formatted}\n]"
+                                                    logging.info(
+                                                        "[Video] Audio transcribed successfully"
+                                                    )
+                                            except Exception as e:
+                                                logging.warning(
+                                                    f"[Video] Audio transcription failed: {e}"
+                                                )
+                                            finally:
+                                                if audio_path and os.path.exists(
+                                                    audio_path
+                                                ):
+                                                    os.unlink(audio_path)
+                                        text_content = f"{video_header}\n{text_content}"
                                         logging.info(
                                             f"[Video] Extracted {len(frame_urls)} frames for vision processing"
                                         )
                                     else:
+                                        if audio_path and os.path.exists(audio_path):
+                                            os.unlink(audio_path)
                                         logging.warning(
                                             "[Video] No frames could be extracted from video"
                                         )
@@ -5168,15 +5422,10 @@ class Pipes:
                     if message_images:
                         images.extend(message_images)
 
-                    # For non-vision models or non-user messages, convert to string
-                    # For vision models with the last user message, we'll handle this later
-                    if not (
-                        self.llm
-                        and self.llm.is_vision
-                        and message_images
-                        and i == len(data["messages"]) - 1
-                    ):
-                        data["messages"][i]["content"] = text_content
+                    # Always write the enriched text_content back to the message.
+                    # Video processing and audio transcription prepend metadata to
+                    # text_content that must reach the LLM.
+                    data["messages"][i]["content"] = text_content
 
             # Legacy handling for the old format (keeping for backward compatibility)
             # Skip if we already collected images in the modern format
@@ -5207,9 +5456,14 @@ class Pipes:
                             )
                             video_fps = float(getenv("VIDEO_FPS", "1.0"))
                             video_max_frames = int(getenv("VIDEO_MAX_FRAMES", "16"))
-                            frame_urls = extract_frames_from_video(
+                            video_result = extract_frames_from_video(
                                 video_url, fps=video_fps, max_frames=video_max_frames
                             )
+                            frame_urls = video_result["frames"]
+                            frame_timestamps = video_result["timestamps"]
+                            video_duration = video_result["duration"]
+                            audio_path = video_result["audio_path"]
+
                             if frame_urls:
                                 for frame_url in frame_urls:
                                     images.append(
@@ -5218,12 +5472,69 @@ class Pipes:
                                             "image_url": {"url": frame_url},
                                         }
                                     )
-                                prompt = (
-                                    f"[Video with {len(frame_urls)} frames]\n{prompt}"
+
+                                # Build frame timestamp info
+                                frame_info_parts = []
+                                for idx, ts in enumerate(frame_timestamps):
+                                    frame_info_parts.append(
+                                        f"Frame {idx + 1}: {ts:.1f}s"
+                                    )
+                                frame_info = ", ".join(frame_info_parts)
+
+                                video_header = (
+                                    f"[Video: {video_duration:.1f}s duration, "
+                                    f"{len(frame_urls)} frames extracted]\n"
+                                    f"[Frame timestamps: {frame_info}]"
                                 )
+
+                                # Transcribe audio if available
+                                if audio_path:
+                                    try:
+                                        with open(audio_path, "rb") as af:
+                                            audio_b64 = base64.b64encode(
+                                                af.read()
+                                            ).decode("utf-8")
+                                        async with self._stt_lock:
+                                            stt = self._get_stt()
+                                            self.resource_manager.mark_model_in_use(
+                                                ModelType.STT, True
+                                            )
+                                            try:
+                                                transcript = await stt.transcribe_audio(
+                                                    base64_audio=audio_b64,
+                                                    audio_format="wav",
+                                                    return_segments=True,
+                                                )
+                                            finally:
+                                                self.resource_manager.mark_model_in_use(
+                                                    ModelType.STT, False
+                                                )
+                                                self._destroy_stt()
+                                        if transcript:
+                                            formatted = (
+                                                _format_transcript_with_timestamps(
+                                                    transcript
+                                                )
+                                            )
+                                            if formatted:
+                                                video_header += f"\n[Video Audio Transcript:\n{formatted}\n]"
+                                            logging.info(
+                                                "[Video] Audio transcribed successfully"
+                                            )
+                                    except Exception as e:
+                                        logging.warning(
+                                            f"[Video] Audio transcription failed: {e}"
+                                        )
+                                    finally:
+                                        if audio_path and os.path.exists(audio_path):
+                                            os.unlink(audio_path)
+                                prompt = f"{video_header}\n{prompt}"
                                 logging.info(
                                     f"[Video] Extracted {len(frame_urls)} frames for vision processing"
                                 )
+                            else:
+                                if audio_path and os.path.exists(audio_path):
+                                    os.unlink(audio_path)
                     if "audio_url" in message:
                         audio_url = (
                             message["audio_url"]["url"]
@@ -5822,7 +6133,12 @@ class Pipes:
         # IMG is lazy loaded - try to get it if IMG_MODEL is configured
         # Skip image generation for streaming responses (response is a generator, not dict)
         is_streaming_response = data.get("stream", False)
-        if getenv("IMG_MODEL") and getenv("IMG_MODEL").lower() != "none" and not is_streaming_response and img_import_success:
+        if (
+            getenv("IMG_MODEL")
+            and getenv("IMG_MODEL").lower() != "none"
+            and not is_streaming_response
+            and img_import_success
+        ):
             async with self._img_lock:
                 img = self._get_img()
                 if img:
