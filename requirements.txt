@@ -1,7 +1,7 @@
 fastapi
 uvicorn
 pydantic
-setuptools<78
+setuptools>=70.0,<78
 requests==2.32.4
 aiohttp
 tiktoken==0.6.0

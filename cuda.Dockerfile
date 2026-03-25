@@ -26,8 +26,9 @@ RUN uv pip install torch==2.9.1+cu128 torchaudio==2.9.1+cu128 --index-url https:
     uv pip install nvidia-cudnn-cu12==9.10.2.21
 # Install numpy and Cython for pkuseg (required by chatterbox-tts)
 # numpy>=1.26.0 required for Python 3.12 compatibility
-# Pin setuptools<78 to retain pkg_resources (needed by webrtcvad)
-RUN uv pip install "numpy>=1.26.0" Cython "setuptools<78"
+# Pin setuptools>=70.0,<78 to retain pkg_resources (needed by webrtcvad)
+# while including the CVE-2024-6345 path traversal fix (>=70.0)
+RUN uv pip install "numpy>=1.26.0" Cython "setuptools>=70.0,<78"
 # Install pkuseg separately (required by chatterbox-tts)
 RUN uv pip install pkuseg==0.0.25 --no-build-isolation
 COPY cuda-requirements.txt .
