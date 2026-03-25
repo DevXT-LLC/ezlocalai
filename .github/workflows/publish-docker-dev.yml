@@ -93,8 +93,6 @@ jobs:
   test-ezlocalai:
     uses: ./.github/workflows/test-with-ezlocalai.yml
     with:
-      notebook: tests.ipynb
       image: ghcr.io/devxt-llc/ezlocalai:dev
       port: "8091"
-      additional-python-dependencies: openai requests python-dotenv
     needs: build-ezlocalai
