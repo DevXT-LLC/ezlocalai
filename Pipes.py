@@ -2,6 +2,7 @@ import os
 import logging
 import time
 import math
+import asyncio
 import threading
 import queue
 import tempfile
@@ -2372,6 +2373,11 @@ class Pipes:
         # Lock for model access - prevents race conditions when multiple
         # requests try to load/switch models simultaneously
         self._model_lock = threading.Lock()
+        # Per-model-type async locks for non-LLM inference serialization
+        self._stt_lock = asyncio.Lock()
+        self._tts_lock = asyncio.Lock()
+        self._img_lock = asyncio.Lock()
+        self._embedder_lock = asyncio.Lock()
         # Track how many inferences are currently in progress (thread-safe counter)
         # Using a counter instead of boolean allows multiple concurrent requests
         self._inference_count = 0
@@ -4659,20 +4665,21 @@ class Pipes:
                 content = "\n".join([page.extract_text() for page in pdf_doc.pages])
         if not content:
             return
-        tts = self._get_tts()
-        self.resource_manager.mark_model_in_use(ModelType.TTS, True)
-        try:
-            result = await tts.generate(
-                text=content,
-                voice=voice,
-                local_uri=self.local_uri,
-                output_file_name=f"{safe_title}.wav",
-            )
-        finally:
-            self.resource_manager.mark_model_in_use(ModelType.TTS, False)
-        # In voice server mode, don't destroy TTS - keep it loaded
-        if not is_voice_server_mode():
-            self._destroy_tts()
+        async with self._tts_lock:
+            tts = self._get_tts()
+            self.resource_manager.mark_model_in_use(ModelType.TTS, True)
+            try:
+                result = await tts.generate(
+                    text=content,
+                    voice=voice,
+                    local_uri=self.local_uri,
+                    output_file_name=f"{safe_title}.wav",
+                )
+            finally:
+                self.resource_manager.mark_model_in_use(ModelType.TTS, False)
+            # In voice server mode, don't destroy TTS - keep it loaded
+            if not is_voice_server_mode():
+                self._destroy_tts()
         return result
 
     async def audio_to_audio(self, voice, audio):
@@ -4680,42 +4687,47 @@ class Pipes:
         audio_format = audio_type.split("/")[1]
         audio = audio.split(",")[1]
         audio = base64.b64decode(audio)
-        stt = self._get_stt()
-        self.resource_manager.mark_model_in_use(ModelType.STT, True)
-        try:
-            text = stt.transcribe_audio(base64_audio=audio, audio_format=audio_format)
-        finally:
-            self.resource_manager.mark_model_in_use(ModelType.STT, False)
-        # In voice server mode, don't destroy STT - keep it loaded
-        if not is_voice_server_mode():
-            self._destroy_stt()
-        tts = self._get_tts()
-        self.resource_manager.mark_model_in_use(ModelType.TTS, True)
-        try:
-            result = await tts.generate(
-                text=text, voice=voice, local_uri=self.local_uri
-            )
-        finally:
-            self.resource_manager.mark_model_in_use(ModelType.TTS, False)
-        # In voice server mode, don't destroy TTS - keep it loaded
-        if not is_voice_server_mode():
-            self._destroy_tts()
+        async with self._stt_lock:
+            stt = self._get_stt()
+            self.resource_manager.mark_model_in_use(ModelType.STT, True)
+            try:
+                text = stt.transcribe_audio(
+                    base64_audio=audio, audio_format=audio_format
+                )
+            finally:
+                self.resource_manager.mark_model_in_use(ModelType.STT, False)
+            # In voice server mode, don't destroy STT - keep it loaded
+            if not is_voice_server_mode():
+                self._destroy_stt()
+        async with self._tts_lock:
+            tts = self._get_tts()
+            self.resource_manager.mark_model_in_use(ModelType.TTS, True)
+            try:
+                result = await tts.generate(
+                    text=text, voice=voice, local_uri=self.local_uri
+                )
+            finally:
+                self.resource_manager.mark_model_in_use(ModelType.TTS, False)
+            # In voice server mode, don't destroy TTS - keep it loaded
+            if not is_voice_server_mode():
+                self._destroy_tts()
         return result
 
     async def generate_image(self, prompt, response_format="url", size="512x512"):
-        img = self._get_img()
-        if img:
-            self.resource_manager.mark_model_in_use(ModelType.IMG, True)
-            try:
-                img.local_uri = self.local_uri if response_format == "url" else None
-                new_image = img.generate(
-                    prompt=prompt,
-                    size=size,
-                )
-            finally:
-                self.resource_manager.mark_model_in_use(ModelType.IMG, False)
-            self._destroy_img()
-            return new_image
+        async with self._img_lock:
+            img = self._get_img()
+            if img:
+                self.resource_manager.mark_model_in_use(ModelType.IMG, True)
+                try:
+                    img.local_uri = self.local_uri if response_format == "url" else None
+                    new_image = img.generate(
+                        prompt=prompt,
+                        size=size,
+                    )
+                finally:
+                    self.resource_manager.mark_model_in_use(ModelType.IMG, False)
+                self._destroy_img()
+                return new_image
         return ""
 
     def _apply_model_config_overrides(self, data: dict) -> dict:
@@ -4913,20 +4925,21 @@ class Pipes:
                                     audio_url = base64.b64encode(audio_url).decode(
                                         "utf-8"
                                     )
-                                stt = self._get_stt()
-                                self.resource_manager.mark_model_in_use(
-                                    ModelType.STT, True
-                                )
-                                try:
-                                    transcribed_audio = stt.transcribe_audio(
-                                        base64_audio=audio_url,
-                                        audio_format=audio_format,
-                                    )
-                                finally:
+                                async with self._stt_lock:
+                                    stt = self._get_stt()
                                     self.resource_manager.mark_model_in_use(
-                                        ModelType.STT, False
+                                        ModelType.STT, True
                                     )
-                                self._destroy_stt()
+                                    try:
+                                        transcribed_audio = stt.transcribe_audio(
+                                            base64_audio=audio_url,
+                                            audio_format=audio_format,
+                                        )
+                                    finally:
+                                        self.resource_manager.mark_model_in_use(
+                                            ModelType.STT, False
+                                        )
+                                    self._destroy_stt()
                                 text_content = f"Transcribed Audio: {transcribed_audio}\n\n{text_content}"
                         elif isinstance(content_item, str):
                             text_content += content_item
@@ -5004,17 +5017,18 @@ class Pipes:
                         else:
                             audio_url = requests.get(audio_url).content
                             audio_url = base64.b64encode(audio_url).decode("utf-8")
-                        stt = self._get_stt()
-                        self.resource_manager.mark_model_in_use(ModelType.STT, True)
-                        try:
-                            transcribed_audio = stt.transcribe_audio(
-                                base64_audio=audio_url, audio_format=audio_format
-                            )
-                        finally:
-                            self.resource_manager.mark_model_in_use(
-                                ModelType.STT, False
-                            )
-                        self._destroy_stt()
+                        async with self._stt_lock:
+                            stt = self._get_stt()
+                            self.resource_manager.mark_model_in_use(ModelType.STT, True)
+                            try:
+                                transcribed_audio = stt.transcribe_audio(
+                                    base64_audio=audio_url, audio_format=audio_format
+                                )
+                            finally:
+                                self.resource_manager.mark_model_in_use(
+                                    ModelType.STT, False
+                                )
+                            self._destroy_stt()
                         prompt = f"Transcribed Audio: {transcribed_audio}\n\n{prompt}"
                 # Convert list content back to string for LLM compatibility
                 data["messages"][-1]["content"] = prompt
@@ -5083,16 +5097,17 @@ class Pipes:
                 if completion_type == "chat"
                 else data["prompt"]
             )
-            stt = self._get_stt()
-            self.resource_manager.mark_model_in_use(ModelType.STT, True)
-            try:
-                prompt = stt.transcribe_audio(
-                    base64_audio=base64_audio,
-                    audio_format=data["audio_format"],
-                )
-            finally:
-                self.resource_manager.mark_model_in_use(ModelType.STT, False)
-            self._destroy_stt()
+            async with self._stt_lock:
+                stt = self._get_stt()
+                self.resource_manager.mark_model_in_use(ModelType.STT, True)
+                try:
+                    prompt = stt.transcribe_audio(
+                        base64_audio=base64_audio,
+                        audio_format=data["audio_format"],
+                    )
+                finally:
+                    self.resource_manager.mark_model_in_use(ModelType.STT, False)
+                self._destroy_stt()
             if completion_type == "chat":
                 data["messages"][-1]["content"] = prompt
             else:
@@ -5587,116 +5602,124 @@ class Pipes:
         # IMG is lazy loaded - try to get it if IMG_MODEL is configured
         # Skip image generation for streaming responses (response is a generator, not dict)
         is_streaming_response = data.get("stream", False)
-        img = (
-            self._get_img()
-            if getenv("IMG_MODEL") and not is_streaming_response
-            else None
-        )
-        if img_import_success and img:
-            user_message = (
-                data["messages"][-1]["content"]
-                if completion_type == "chat"
-                else data["prompt"]
-            )
-            if isinstance(user_message, list):
-                # Extract text from list format
-                user_message = ""
-                for item in user_message:
-                    if isinstance(item, dict):
-                        if item.get("type") == "text":
-                            user_message = item.get("text", "")
-                            break
-                        elif "text" in item:
-                            user_message = item["text"]
-                            break
-                for message in user_message if isinstance(user_message, list) else []:
-                    if "image_url" in message:
-                        if "url" in message["image_url"]:
-                            if not message["image_url"]["url"].startswith("data:"):
-                                user_message += (
-                                    "Uploaded Image:"
-                                    + message["image_url"]["url"]
-                                    + "\n"
-                                )
-            response_text = ""
-            if isinstance(response, dict) and "choices" in response:
-                choice = response["choices"][0] if response["choices"] else {}
-                if completion_type != "chat":
-                    response_text = choice.get("text", "")
-                else:
-                    msg = choice.get("message", {})
-                    if isinstance(msg, dict):
-                        response_text = msg.get("content", "")
+        if getenv("IMG_MODEL") and not is_streaming_response and img_import_success:
+            async with self._img_lock:
+                img = self._get_img()
+                if img:
+                    user_message = (
+                        data["messages"][-1]["content"]
+                        if completion_type == "chat"
+                        else data["prompt"]
+                    )
+                    if isinstance(user_message, list):
+                        # Extract text from list format
+                        user_message = ""
+                        for item in user_message:
+                            if isinstance(item, dict):
+                                if item.get("type") == "text":
+                                    user_message = item.get("text", "")
+                                    break
+                                elif "text" in item:
+                                    user_message = item["text"]
+                                    break
+                        for message in (
+                            user_message if isinstance(user_message, list) else []
+                        ):
+                            if "image_url" in message:
+                                if "url" in message["image_url"]:
+                                    if not message["image_url"]["url"].startswith(
+                                        "data:"
+                                    ):
+                                        user_message += (
+                                            "Uploaded Image:"
+                                            + message["image_url"]["url"]
+                                            + "\n"
+                                        )
+                    response_text = ""
+                    if isinstance(response, dict) and "choices" in response:
+                        choice = response["choices"][0] if response["choices"] else {}
+                        if completion_type != "chat":
+                            response_text = choice.get("text", "")
+                        else:
+                            msg = choice.get("message", {})
+                            if isinstance(msg, dict):
+                                response_text = msg.get("content", "")
+                            else:
+                                response_text = str(msg)
+                    elif isinstance(response, str):
+                        response_text = response
+                    if "data:" in user_message:
+                        user_message = user_message.replace(
+                            user_message.split("data:")[1].split("'")[0], ""
+                        )
+                    img_gen_prompt = f"Users message: {user_message} \n\n{'The user uploaded an image, one does not need generated unless the user is specifically asking.' if images else ''} **The assistant is acting as sentiment analysis expert and only responds with a concise YES or NO answer on if the user would like an image as visual or a picture generated. No other explanation is needed!**\nWould the user potentially like an image generated based on their message?\nAssistant: "
+                    logging.debug(f"[IMG] Decision maker prompt: {img_gen_prompt}")
+                    try:
+                        create_img = self.llm.chat(
+                            messages=[{"role": "system", "content": img_gen_prompt}],
+                            max_tokens=10,
+                            temperature=data["temperature"],
+                            top_p=data["top_p"],
+                        )
+                    except:
+                        create_img = await self.fallback_inference(
+                            [{"role": "system", "content": img_gen_prompt}]
+                        )
+                    if isinstance(create_img, str):
+                        create_img = create_img.lower()
+                    elif isinstance(create_img, dict):
+                        create_img = str(
+                            create_img.get("choices", [{}])[0]
+                            .get("message", {})
+                            .get("content", "")
+                        ).lower()
                     else:
-                        response_text = str(msg)
-            elif isinstance(response, str):
-                response_text = response
-            if "data:" in user_message:
-                user_message = user_message.replace(
-                    user_message.split("data:")[1].split("'")[0], ""
-                )
-            img_gen_prompt = f"Users message: {user_message} \n\n{'The user uploaded an image, one does not need generated unless the user is specifically asking.' if images else ''} **The assistant is acting as sentiment analysis expert and only responds with a concise YES or NO answer on if the user would like an image as visual or a picture generated. No other explanation is needed!**\nWould the user potentially like an image generated based on their message?\nAssistant: "
-            logging.debug(f"[IMG] Decision maker prompt: {img_gen_prompt}")
-            try:
-                create_img = self.llm.chat(
-                    messages=[{"role": "system", "content": img_gen_prompt}],
-                    max_tokens=10,
-                    temperature=data["temperature"],
-                    top_p=data["top_p"],
-                )
-            except:
-                create_img = await self.fallback_inference(
-                    [{"role": "system", "content": img_gen_prompt}]
-                )
-            if isinstance(create_img, str):
-                create_img = create_img.lower()
-            elif isinstance(create_img, dict):
-                create_img = str(
-                    create_img.get("choices", [{}])[0]
-                    .get("message", {})
-                    .get("content", "")
-                ).lower()
-            else:
-                create_img = str(create_img).lower()
-            logging.debug(f"[IMG] Decision maker response: {create_img}")
-            if "yes" in create_img or "es," in create_img:
-                img_prompt = f"**The assistant is acting as a Stable Diffusion Prompt Generator.**\n\nUsers message: {user_message} \nAssistant response: {response_text} \n\nImportant rules to follow:\n- Describe subjects in detail, specify image type (e.g., digital illustration), art style (e.g., steampunk), and background. Include art inspirations (e.g., Art Station, specific artists). Detail lighting, camera (type, lens, view), and render (resolution, style). The weight of a keyword can be adjusted by using the syntax (((keyword))) , put only those keyword inside ((())) which is very important because it will have more impact so anything wrong will result in unwanted picture so be careful. Realistic prompts: exclude artist, specify lens. Separate with double lines. Max 60 words, avoiding 'real' for fantastical.\n- Based on the message from the user and response of the assistant, you will need to generate one detailed stable diffusion image generation prompt based on the context of the conversation to accompany the assistant response.\n- The prompt can only be up to 60 words long, so try to be concise while using enough descriptive words to make a proper prompt.\n- Following all rules will result in a $2000 tip that you can spend on anything!\n- Must be in markdown code block to be parsed out and only provide prompt in the code block, nothing else.\nStable Diffusion Prompt Generator: "
-                try:
-                    image_generation_prompt = self.llm.chat(
-                        messages=[{"role": "system", "content": img_prompt}],
-                        max_tokens=100,
-                        temperature=data["temperature"],
-                        top_p=data["top_p"],
-                    )
-                except:
-                    image_generation_prompt = await self.fallback_inference(
-                        [{"role": "system", "content": img_prompt}]
-                    )
-                if isinstance(image_generation_prompt, str):
-                    pass  # Already a string
-                elif isinstance(image_generation_prompt, dict):
-                    image_generation_prompt = str(
-                        image_generation_prompt.get("choices", [{}])[0]
-                        .get("message", {})
-                        .get("content", "")
-                    )
-                else:
-                    image_generation_prompt = str(image_generation_prompt)
-                logging.debug(
-                    f"[IMG] Image generation response: {image_generation_prompt}"
-                )
-                if "```markdown" in image_generation_prompt:
-                    image_generation_prompt = image_generation_prompt.split(
-                        "```markdown"
-                    )[1]
-                    image_generation_prompt = image_generation_prompt.split("```")[0]
-                self.resource_manager.mark_model_in_use(ModelType.IMG, True)
-                try:
-                    generated_image = self.img.generate(prompt=image_generation_prompt)
-                finally:
-                    self.resource_manager.mark_model_in_use(ModelType.IMG, False)
-            # Destroy IMG model after use to free VRAM (even if no image was generated)
-            self._destroy_img()
+                        create_img = str(create_img).lower()
+                    logging.debug(f"[IMG] Decision maker response: {create_img}")
+                    if "yes" in create_img or "es," in create_img:
+                        img_prompt = f"**The assistant is acting as a Stable Diffusion Prompt Generator.**\n\nUsers message: {user_message} \nAssistant response: {response_text} \n\nImportant rules to follow:\n- Describe subjects in detail, specify image type (e.g., digital illustration), art style (e.g., steampunk), and background. Include art inspirations (e.g., Art Station, specific artists). Detail lighting, camera (type, lens, view), and render (resolution, style). The weight of a keyword can be adjusted by using the syntax (((keyword))) , put only those keyword inside ((())) which is very important because it will have more impact so anything wrong will result in unwanted picture so be careful. Realistic prompts: exclude artist, specify lens. Separate with double lines. Max 60 words, avoiding 'real' for fantastical.\n- Based on the message from the user and response of the assistant, you will need to generate one detailed stable diffusion image generation prompt based on the context of the conversation to accompany the assistant response.\n- The prompt can only be up to 60 words long, so try to be concise while using enough descriptive words to make a proper prompt.\n- Following all rules will result in a $2000 tip that you can spend on anything!\n- Must be in markdown code block to be parsed out and only provide prompt in the code block, nothing else.\nStable Diffusion Prompt Generator: "
+                        try:
+                            image_generation_prompt = self.llm.chat(
+                                messages=[{"role": "system", "content": img_prompt}],
+                                max_tokens=100,
+                                temperature=data["temperature"],
+                                top_p=data["top_p"],
+                            )
+                        except:
+                            image_generation_prompt = await self.fallback_inference(
+                                [{"role": "system", "content": img_prompt}]
+                            )
+                        if isinstance(image_generation_prompt, str):
+                            pass  # Already a string
+                        elif isinstance(image_generation_prompt, dict):
+                            image_generation_prompt = str(
+                                image_generation_prompt.get("choices", [{}])[0]
+                                .get("message", {})
+                                .get("content", "")
+                            )
+                        else:
+                            image_generation_prompt = str(image_generation_prompt)
+                        logging.debug(
+                            f"[IMG] Image generation response: {image_generation_prompt}"
+                        )
+                        if "```markdown" in image_generation_prompt:
+                            image_generation_prompt = image_generation_prompt.split(
+                                "```markdown"
+                            )[1]
+                            image_generation_prompt = image_generation_prompt.split(
+                                "```"
+                            )[0]
+                        self.resource_manager.mark_model_in_use(ModelType.IMG, True)
+                        try:
+                            generated_image = self.img.generate(
+                                prompt=image_generation_prompt
+                            )
+                        finally:
+                            self.resource_manager.mark_model_in_use(
+                                ModelType.IMG, False
+                            )
+                    # Destroy IMG model after use to free VRAM (even if no image was generated)
+                    self._destroy_img()
         audio_response = None
         if "voice" in data:
             if isinstance(response, dict) and "choices" in response:
@@ -5713,18 +5736,19 @@ class Pipes:
             else:
                 text_response = ""
             language = data["language"] if "language" in data else "en"
-            tts = self._get_tts()
-            self.resource_manager.mark_model_in_use(ModelType.TTS, True)
-            try:
-                audio_response = await tts.generate(
-                    text=text_response,
-                    voice=data["voice"],
-                    language=language,
-                    local_uri=self.local_uri,
-                )
-            finally:
-                self.resource_manager.mark_model_in_use(ModelType.TTS, False)
-            self._destroy_tts()
+            async with self._tts_lock:
+                tts = self._get_tts()
+                self.resource_manager.mark_model_in_use(ModelType.TTS, True)
+                try:
+                    audio_response = await tts.generate(
+                        text=text_response,
+                        voice=data["voice"],
+                        language=language,
+                        local_uri=self.local_uri,
+                    )
+                finally:
+                    self.resource_manager.mark_model_in_use(ModelType.TTS, False)
+                self._destroy_tts()
             if (
                 isinstance(response, dict)
                 and "choices" in response

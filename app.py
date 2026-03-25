@@ -691,9 +691,10 @@ async def embedding(embedding: EmbeddingModel, user=Depends(verify_api_key)):
                     logging.warning(f"[Embeddings] Fallback failed: {e}, using local")
 
     # Use local embeddings
-    embedder = pipe._get_embedder()
-    result = embedder.get_embeddings(input=embedding.input)
-    pipe._destroy_embedder()
+    async with pipe._embedder_lock:
+        embedder = pipe._get_embedder()
+        result = embedder.get_embeddings(input=embedding.input)
+        pipe._destroy_embedder()
     return result
 
 
@@ -779,27 +780,28 @@ async def speech_to_text(
                 except Exception as e:
                     logging.warning(f"[STT] Fallback failed: {e}, using local")
 
-    stt = pipe._get_stt()
+    async with pipe._stt_lock:
+        stt = pipe._get_stt()
 
-    # Determine if we need segments based on response_format or diarization
-    need_segments = (
-        response_format in ["verbose_json", "srt", "vtt"] or enable_diarization
-    )
+        # Determine if we need segments based on response_format or diarization
+        need_segments = (
+            response_format in ["verbose_json", "srt", "vtt"] or enable_diarization
+        )
 
-    response = await stt.transcribe_audio(
-        base64_audio=base64.b64encode(file_content).decode("utf-8"),
-        audio_format=file.content_type,
-        language=language,
-        prompt=prompt,
-        temperature=temperature,
-        return_segments=need_segments,
-        enable_diarization=enable_diarization,
-        num_speakers=num_speakers,
-        session_id=session_id,
-    )
-    # In voice server mode, don't destroy STT - keep it loaded
-    if not is_voice_server_mode():
-        pipe._destroy_stt()
+        response = await stt.transcribe_audio(
+            base64_audio=base64.b64encode(file_content).decode("utf-8"),
+            audio_format=file.content_type,
+            language=language,
+            prompt=prompt,
+            temperature=temperature,
+            return_segments=need_segments,
+            enable_diarization=enable_diarization,
+            num_speakers=num_speakers,
+            session_id=session_id,
+        )
+        # In voice server mode, don't destroy STT - keep it loaded
+        if not is_voice_server_mode():
+            pipe._destroy_stt()
 
     # Format response based on response_format
     if response_format == "text":
@@ -847,18 +849,19 @@ async def audio_translations(
 
     from Pipes import is_voice_server_mode
 
-    stt = pipe._get_stt()
-    response = await stt.transcribe_audio(
-        base64_audio=base64.b64encode(await file.read()).decode("utf-8"),
-        audio_format=file.content_type,
-        language=language,
-        prompt=prompt,
-        temperature=temperature,
-        translate=True,
-    )
-    # In voice server mode, don't destroy STT - keep it loaded
-    if not is_voice_server_mode():
-        pipe._destroy_stt()
+    async with pipe._stt_lock:
+        stt = pipe._get_stt()
+        response = await stt.transcribe_audio(
+            base64_audio=base64.b64encode(await file.read()).decode("utf-8"),
+            audio_format=file.content_type,
+            language=language,
+            prompt=prompt,
+            temperature=temperature,
+            translate=True,
+        )
+        # In voice server mode, don't destroy STT - keep it loaded
+        if not is_voice_server_mode():
+            pipe._destroy_stt()
     return {"text": response}
 
 
@@ -1000,21 +1003,22 @@ async def generate_subtitles(
         condition_on_previous = True
 
     # Step 1: Transcribe audio to get segments with timing
-    stt = pipe._get_stt()
-    audio_bytes = await file.read()
-    transcription = await stt.transcribe_audio(
-        base64_audio=base64.b64encode(audio_bytes).decode("utf-8"),
-        audio_format=file.content_type,
-        language=source_language,
-        prompt=prompt,
-        temperature=temperature,
-        return_segments=True,
-        beam_size=beam_size,
-        condition_on_previous_text=condition_on_previous,
-    )
-    # In voice server mode, don't destroy STT - keep it loaded
-    if not is_voice_server_mode():
-        pipe._destroy_stt()
+    async with pipe._stt_lock:
+        stt = pipe._get_stt()
+        audio_bytes = await file.read()
+        transcription = await stt.transcribe_audio(
+            base64_audio=base64.b64encode(audio_bytes).decode("utf-8"),
+            audio_format=file.content_type,
+            language=source_language,
+            prompt=prompt,
+            temperature=temperature,
+            return_segments=True,
+            beam_size=beam_size,
+            condition_on_previous_text=condition_on_previous,
+        )
+        # In voice server mode, don't destroy STT - keep it loaded
+        if not is_voice_server_mode():
+            pipe._destroy_stt()
 
     detected_language = transcription.get("language") or source_language or "en"
     source_segments = transcription["segments"]
@@ -1134,13 +1138,14 @@ async def text_to_speech(tts: TextToSpeech, user=Depends(verify_api_key)):
                 except Exception as e:
                     logging.warning(f"[TTS] Fallback failed: {e}, using local")
 
-    tts_model = pipe._get_tts()
-    audio_b64 = await tts_model.generate(
-        text=tts.input, voice=tts.voice, language=tts.language
-    )
-    # In voice server mode, don't destroy TTS - keep it loaded
-    if not is_voice_server_mode():
-        pipe._destroy_tts()
+    async with pipe._tts_lock:
+        tts_model = pipe._get_tts()
+        audio_b64 = await tts_model.generate(
+            text=tts.input, voice=tts.voice, language=tts.language
+        )
+        # In voice server mode, don't destroy TTS - keep it loaded
+        if not is_voice_server_mode():
+            pipe._destroy_tts()
     # OpenAI SDK expects raw binary audio, not base64 JSON
     audio_bytes = base64.b64decode(audio_b64)
     return Response(content=audio_bytes, media_type="audio/wav")
@@ -1200,18 +1205,18 @@ async def text_to_speech_stream(tts: TextToSpeech, user=Depends(verify_api_key))
                 )
             logging.warning("[TTS Stream] Voice server unavailable, using local")
 
-    tts_model = pipe._get_tts()
-
     async def audio_stream_generator():
-        try:
-            async for chunk in tts_model.generate_stream(
-                text=tts.input, voice=tts.voice, language=tts.language
-            ):
-                yield chunk
-        finally:
-            # In voice server mode, don't destroy TTS - keep it loaded
-            if not is_voice_server_mode():
-                pipe._destroy_tts()
+        async with pipe._tts_lock:
+            tts_model = pipe._get_tts()
+            try:
+                async for chunk in tts_model.generate_stream(
+                    text=tts.input, voice=tts.voice, language=tts.language
+                ):
+                    yield chunk
+            finally:
+                # In voice server mode, don't destroy TTS - keep it loaded
+                if not is_voice_server_mode():
+                    pipe._destroy_tts()
 
     return StreamingResponse(
         audio_stream_generator(),
@@ -1260,16 +1265,42 @@ async def tts_websocket(websocket: WebSocket):
     header_sent = False
 
     try:
-        tts_model = pipe._get_tts()
+        async with pipe._tts_lock:
+            tts_model = pipe._get_tts()
 
-        while True:
-            try:
-                # Receive text from client
-                data = await websocket.receive_json()
+            while True:
+                try:
+                    # Receive text from client
+                    data = await websocket.receive_json()
 
-                if data.get("done"):
-                    # Client signals done - flush any remaining text
-                    if text_buffer.strip():
+                    if data.get("done"):
+                        # Client signals done - flush any remaining text
+                        if text_buffer.strip():
+                            async for chunk in tts_model.generate_stream(
+                                text=text_buffer.strip(), voice=voice, language=language
+                            ):
+                                if not header_sent:
+                                    # Send header first (8 bytes)
+                                    await websocket.send_bytes(chunk[:8])
+                                    header_sent = True
+                                    if len(chunk) > 8:
+                                        await websocket.send_bytes(chunk[8:])
+                                else:
+                                    await websocket.send_bytes(chunk)
+                        # Send empty bytes to signal end
+                        await websocket.send_bytes(b"")
+                        break
+
+                    # Accumulate text
+                    if "text" in data:
+                        text_buffer += data["text"]
+                    if "voice" in data:
+                        voice = data["voice"]
+                    if "language" in data:
+                        language = data["language"]
+
+                    # Check if we should flush (generate TTS for current buffer)
+                    if data.get("flush") and text_buffer.strip():
                         async for chunk in tts_model.generate_stream(
                             text=text_buffer.strip(), voice=voice, language=language
                         ):
@@ -1281,35 +1312,10 @@ async def tts_websocket(websocket: WebSocket):
                                     await websocket.send_bytes(chunk[8:])
                             else:
                                 await websocket.send_bytes(chunk)
-                    # Send empty bytes to signal end
-                    await websocket.send_bytes(b"")
+                        text_buffer = ""
+
+                except WebSocketDisconnect:
                     break
-
-                # Accumulate text
-                if "text" in data:
-                    text_buffer += data["text"]
-                if "voice" in data:
-                    voice = data["voice"]
-                if "language" in data:
-                    language = data["language"]
-
-                # Check if we should flush (generate TTS for current buffer)
-                if data.get("flush") and text_buffer.strip():
-                    async for chunk in tts_model.generate_stream(
-                        text=text_buffer.strip(), voice=voice, language=language
-                    ):
-                        if not header_sent:
-                            # Send header first (8 bytes)
-                            await websocket.send_bytes(chunk[:8])
-                            header_sent = True
-                            if len(chunk) > 8:
-                                await websocket.send_bytes(chunk[8:])
-                        else:
-                            await websocket.send_bytes(chunk)
-                    text_buffer = ""
-
-            except WebSocketDisconnect:
-                break
 
     except Exception as e:
         logging.error(f"TTS WebSocket error: {e}")
@@ -1343,13 +1349,14 @@ async def get_voices(user=Depends(verify_api_key)):
                 if voices:
                     return voices
 
-    tts_model = pipe._get_tts()
-    if tts_model is None:
-        return {"voices": []}
-    voices = tts_model.voices
-    # In voice server mode, don't destroy TTS - keep it loaded
-    if not is_voice_server_mode():
-        pipe._destroy_tts()
+    async with pipe._tts_lock:
+        tts_model = pipe._get_tts()
+        if tts_model is None:
+            return {"voices": []}
+        voices = tts_model.voices
+        # In voice server mode, don't destroy TTS - keep it loaded
+        if not is_voice_server_mode():
+            pipe._destroy_tts()
     return {"voices": voices}
 
 
