@@ -11,7 +11,12 @@ import numpy as np
 import gc
 import torch
 from io import BytesIO
-from faster_whisper import WhisperModel, BatchedInferencePipeline
+from faster_whisper import WhisperModel
+
+try:
+    from faster_whisper import BatchedInferencePipeline
+except ImportError:
+    BatchedInferencePipeline = None
 
 
 class VoicePrintStore:
@@ -209,7 +214,7 @@ class STT:
                 cpu_threads=cpu_threads,
             )
             # Create batched inference pipeline for faster batch processing
-            self.batched_model = BatchedInferencePipeline(model=self.w)
+            self.batched_model = BatchedInferencePipeline(model=self.w) if BatchedInferencePipeline else self.w
         except (torch.cuda.OutOfMemoryError, RuntimeError, OSError) as e:
             error_str = str(e).lower()
             # Check for various GPU-related errors including cuDNN issues
@@ -238,7 +243,7 @@ class STT:
                     compute_type="int8",
                     cpu_threads=cpu_threads,
                 )
-                self.batched_model = BatchedInferencePipeline(model=self.w)
+                self.batched_model = BatchedInferencePipeline(model=self.w) if BatchedInferencePipeline else self.w
             else:
                 raise
 
@@ -532,7 +537,7 @@ class STT:
                     compute_type="int8",
                     cpu_threads=cpu_threads,
                 )
-                self.batched_model = BatchedInferencePipeline(model=self.w)
+                self.batched_model = BatchedInferencePipeline(model=self.w) if BatchedInferencePipeline else self.w
                 logging.debug(
                     "[STT] Model reloaded on CPU with int8, retrying transcription..."
                 )

@@ -10,7 +10,8 @@ WORKDIR /app
 RUN pip install torch==2.6.0 torchaudio==2.6.0 --index-url https://download.pytorch.org/whl/cpu --no-cache-dir
 
 # Install numpy and Cython for pkuseg (required by chatterbox-tts)
-RUN pip install numpy==1.25.2 Cython setuptools --no-cache-dir
+# Pin setuptools<78 to retain pkg_resources (needed by webrtcvad)
+RUN pip install numpy==1.25.2 Cython "setuptools<78" --no-cache-dir
 # Install pkuseg separately (required by chatterbox-tts)
 RUN pip install pkuseg==0.0.25 --no-build-isolation --no-cache-dir
 
