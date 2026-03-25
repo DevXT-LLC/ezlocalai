@@ -12,6 +12,7 @@ def getenv(var_name: str, default_value: str = None) -> str:
         "DEFAULT_MODEL": "unsloth/Qwen3.5-4B-GGUF",
         "WHISPER_MODEL": "large-v3",
         "IMG_MODEL": "Tongyi-MAI/Z-Image-Turbo",  # Set to Z-Image-Turbo for image generation, "none" or empty string to disable
+        "VIDEO_MODEL": "none",  # Set to "Lightricks/LTX-2" to enable video generation, "none" or empty string to disable
         "TTS_ENABLED": "true",
         "TTS_PROVIDER": "chatterbox",  # Chatterbox TTS
         "STT_ENABLED": "true",

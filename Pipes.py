@@ -41,6 +41,14 @@ except (ImportError, RuntimeError, Exception) as e:
     logging.warning(f"[Pipes] IMG import failed ({e}), image generation disabled.")
     img_import_success = False
 
+try:
+    from ezlocalai.VIDEO import VIDEO
+
+    video_import_success = True
+except (ImportError, RuntimeError, Exception) as e:
+    logging.warning(f"[Pipes] VIDEO import failed ({e}), video generation disabled.")
+    video_import_success = False
+
 
 # =============================================================================
 # Video Processing Helpers
@@ -223,6 +231,7 @@ class ModelType(Enum):
     TTS = "tts"
     STT = "stt"
     IMG = "img"
+    VIDEO = "video"
     EMBEDDING = "embedding"
 
 
@@ -246,6 +255,7 @@ MODEL_VRAM_ESTIMATES = {
     ModelType.TTS: 4.0,  # Chatterbox TTS
     ModelType.STT: 2.0,  # Whisper (varies by size)
     ModelType.IMG: 16.0,  # Z-Image-Turbo (can use CPU offload)
+    ModelType.VIDEO: 24.0,  # LTX-2 video generation (can use CPU offload)
     ModelType.EMBEDDING: 1.5,  # BGE-M3
 }
 
@@ -440,6 +450,10 @@ class ResourceManager:
             # IMG can use CPU offload
             if model_type == ModelType.IMG:
                 return True, "cuda", "Using sequential CPU offload for image generation"
+
+            # VIDEO can use CPU offload
+            if model_type == ModelType.VIDEO:
+                return True, "cuda", "Using sequential CPU offload for video generation"
 
             # LLM - last resort, check if we have fallback
             fallback_server = getenv("FALLBACK_SERVER")
@@ -880,6 +894,51 @@ class EzlocalaiClient:
 
         except Exception as e:
             logging.error(f"[Fallback] Image generation forward failed: {e}")
+            raise
+
+    async def forward_video_generation(
+        self,
+        prompt: str,
+        response_format: str = "url",
+        size: str = "768x512",
+        num_frames: int = 121,
+        num_inference_steps: int = 40,
+        guidance_scale: float = 4.0,
+        frame_rate: int = 24,
+    ):
+        """Forward a video generation request to the fallback server."""
+        if not self.is_configured:
+            raise RuntimeError("No fallback server configured")
+
+        import aiohttp
+
+        logging.info(f"[Fallback] Forwarding video generation to {self.base_url}")
+
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.post(
+                    f"{self.base_url}/v1/videos/generations",
+                    json={
+                        "prompt": prompt,
+                        "response_format": response_format,
+                        "size": size,
+                        "num_frames": num_frames,
+                        "num_inference_steps": num_inference_steps,
+                        "guidance_scale": guidance_scale,
+                        "frame_rate": frame_rate,
+                    },
+                    headers=self._get_headers(),
+                    timeout=aiohttp.ClientTimeout(total=600),
+                ) as resp:
+                    if resp.status != 200:
+                        error_text = await resp.text()
+                        raise RuntimeError(
+                            f"Fallback server error {resp.status}: {error_text}"
+                        )
+                    return await resp.json()
+
+        except Exception as e:
+            logging.error(f"[Fallback] Video generation forward failed: {e}")
             raise
 
     async def get_models(self):
@@ -2377,6 +2436,7 @@ class Pipes:
         self._stt_lock = asyncio.Lock()
         self._tts_lock = asyncio.Lock()
         self._img_lock = asyncio.Lock()
+        self._video_lock = asyncio.Lock()
         self._embedder_lock = asyncio.Lock()
         # Track how many inferences are currently in progress (thread-safe counter)
         # Using a counter instead of boolean allows multiple concurrent requests
@@ -2609,6 +2669,7 @@ class Pipes:
         self.stt = None
         self.embedder = None
         self.img = None
+        self.video = None
         self.current_stt = getenv("WHISPER_MODEL")
 
         # Pre-load STT if preloading is enabled (voice server mode OR LAZY_LOAD_VOICE=false)
@@ -4009,6 +4070,117 @@ class Pipes:
             else:
                 self._destroy_img_sync(img_ref)
 
+    def _get_video(self, force_cpu: bool = False):
+        """Lazy load VIDEO model on demand with smart resource management.
+
+        Args:
+            force_cpu: If True, force CPU mode (slower but frees GPU for LLM)
+        """
+        global video_import_success
+        resource_mgr = get_resource_manager()
+
+        if self.video is None and video_import_success:
+            VIDEO_MODEL = getenv("VIDEO_MODEL")
+            if VIDEO_MODEL and VIDEO_MODEL.lower() != "none":
+                # Determine target GPU: prefer secondary GPU so LLM stays on primary
+                secondary = get_secondary_gpu()
+                if secondary is not None:
+                    target_device = f"cuda:{secondary}"
+                    logging.info(
+                        f"[VIDEO] Multi-GPU: routing video model to secondary GPU {secondary} "
+                        f"(primary GPU reserved for LLM)"
+                    )
+                else:
+                    target_device = None  # Single GPU - use resource manager
+
+                # Check resource availability
+                can_load, device, reason = resource_mgr.can_load_model(
+                    ModelType.VIDEO, required_vram=24.0
+                )
+
+                if force_cpu:
+                    video_device = "cpu"
+                elif target_device is not None:
+                    video_device = target_device
+                elif not can_load and device == "fallback":
+                    logging.warning(
+                        f"[VIDEO] {reason} - video generation may be slow"
+                    )
+                    video_device = "cuda"  # Will use CPU offload
+                elif device == "cpu":
+                    video_device = "cpu"
+                else:
+                    video_device = "cuda"
+
+                logging.debug(
+                    f"[VIDEO] Loading {VIDEO_MODEL} on {video_device} ({reason})"
+                )
+                start_time = time.time()
+
+                try:
+                    self.video = VIDEO(
+                        model=VIDEO_MODEL,
+                        local_uri=self.local_uri,
+                        device=video_device,
+                    )
+                    load_time = time.time() - start_time
+
+                    # Register with resource manager (VIDEO uses CPU offload so may use less VRAM)
+                    actual_vram = (
+                        12.0 if video_device == "cuda" else 0.0
+                    )  # Conservative estimate with offload
+                    resource_mgr.register_model(
+                        ModelType.VIDEO, VIDEO_MODEL, video_device, actual_vram
+                    )
+
+                    logging.debug(
+                        f"[VIDEO] {VIDEO_MODEL} loaded on {video_device} in {load_time:.2f}s"
+                    )
+                except Exception as e:
+                    logging.error(f"[VIDEO] Failed to load the model: {e}")
+                    self.video = None
+
+        if self.video:
+            resource_mgr.mark_model_in_use(ModelType.VIDEO, True)
+        return self.video
+
+    def _destroy_video_sync(self, video_ref):
+        """Synchronous VIDEO destruction."""
+        try:
+            start_time = time.time()
+            del video_ref
+            gc.collect()
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+            cleanup_time = time.time() - start_time
+            logging.debug(
+                f"[VIDEO] Video model unloaded in {cleanup_time:.2f}s"
+            )
+        except Exception as e:
+            logging.error(f"[VIDEO] Error during cleanup: {e}")
+
+    def _destroy_video(self, async_cleanup: bool = True, force: bool = False):
+        """Destroy VIDEO model to free resources.
+
+        Args:
+            async_cleanup: If True, run cleanup in background thread
+            force: If True, destroy even if other requests might need it soon
+        """
+        resource_mgr = get_resource_manager()
+        resource_mgr.mark_model_in_use(ModelType.VIDEO, False)
+
+        # Always unload VIDEO after use - uses ~24GB VRAM
+        if self.video is not None:
+            video_ref = self.video
+            self.video = None
+            resource_mgr.unregister_model(ModelType.VIDEO)
+
+            if async_cleanup:
+                logging.debug("[VIDEO] Scheduling async unload...")
+                _schedule_cleanup(self._destroy_video_sync, video_ref)
+            else:
+                self._destroy_video_sync(video_ref)
+
     def _free_vram_for_llm(self, required_vram: float):
         """Free VRAM by unloading idle auxiliary models.
 
@@ -4038,6 +4210,8 @@ class Pipes:
                 self._destroy_stt(async_cleanup=False, force=True)
             elif model_type == ModelType.IMG:
                 self._destroy_img(async_cleanup=False, force=True)
+            elif model_type == ModelType.VIDEO:
+                self._destroy_video(async_cleanup=False, force=True)
             elif model_type == ModelType.EMBEDDING:
                 self._destroy_embedder(async_cleanup=False)
 
@@ -4728,6 +4902,52 @@ class Pipes:
                     self.resource_manager.mark_model_in_use(ModelType.IMG, False)
                 self._destroy_img()
                 return new_image
+        return ""
+
+    async def generate_video(
+        self,
+        prompt,
+        response_format="url",
+        size="768x512",
+        num_frames=121,
+        num_inference_steps=40,
+        guidance_scale=4.0,
+        frame_rate=24,
+    ):
+        async with self._video_lock:
+            video = self._get_video()
+            if video:
+                self.resource_manager.mark_model_in_use(ModelType.VIDEO, True)
+                try:
+                    video.local_uri = (
+                        self.local_uri if response_format == "url" else None
+                    )
+                    result = video.generate(
+                        prompt=prompt,
+                        size=size,
+                        num_frames=num_frames,
+                        num_inference_steps=num_inference_steps,
+                        guidance_scale=guidance_scale,
+                        frame_rate=frame_rate,
+                    )
+                finally:
+                    self.resource_manager.mark_model_in_use(ModelType.VIDEO, False)
+                self._destroy_video()
+                if response_format != "url" and result:
+                    # Return base64 encoded video
+                    import base64
+
+                    try:
+                        # result is a file path
+                        video_path = result
+                        if self.local_uri and result.startswith(self.local_uri):
+                            video_path = result[len(self.local_uri) + 1 :]
+                        with open(video_path, "rb") as f:
+                            return base64.b64encode(f.read()).decode("utf-8")
+                    except Exception as e:
+                        logging.error(f"[VIDEO] Failed to encode video: {e}")
+                        return ""
+                return result
         return ""
 
     def _apply_model_config_overrides(self, data: dict) -> dict:

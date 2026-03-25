@@ -1513,6 +1513,120 @@ async def generate_image(
     }
 
 
+class VideoCreation(BaseModel):
+    prompt: str
+    model: Optional[str] = "Lightricks/LTX-2"
+    n: Optional[int] = 1
+    size: Optional[str] = "768x512"
+    num_frames: Optional[int] = 121
+    num_inference_steps: Optional[int] = 40
+    guidance_scale: Optional[float] = 4.0
+    frame_rate: Optional[int] = 24
+    response_format: Optional[str] = "url"
+
+
+@app.post(
+    "/v1/videos/generations",
+    tags=["Videos"],
+    dependencies=[Depends(verify_api_key)],
+)
+async def generate_video(
+    video_creation: VideoCreation,
+    user: str = Depends(verify_api_key),
+):
+    if getenv("VIDEO_MODEL") == "" or getenv("VIDEO_MODEL").lower() == "none":
+        # Check if fallback can handle video generation
+        from Pipes import get_fallback_client
+
+        fallback_client = get_fallback_client()
+        if fallback_client.is_configured:
+            available, _ = await fallback_client.check_availability()
+            if available:
+                logging.info("[VIDEO] No local model, using fallback")
+                try:
+                    return await fallback_client.forward_video_generation(
+                        prompt=video_creation.prompt,
+                        response_format=video_creation.response_format,
+                        size=video_creation.size,
+                        num_frames=video_creation.num_frames,
+                        num_inference_steps=video_creation.num_inference_steps,
+                        guidance_scale=video_creation.guidance_scale,
+                        frame_rate=video_creation.frame_rate,
+                    )
+                except Exception as e:
+                    logging.warning(f"[VIDEO] Fallback failed: {e}")
+        return {
+            "created": int(time.time()),
+            "data": [
+                {
+                    "error": "Video generation not available. Set VIDEO_MODEL to enable."
+                }
+            ],
+        }
+
+    from Pipes import should_use_ezlocalai_fallback, get_fallback_client
+
+    # Check if we should use fallback (VIDEO uses a lot of VRAM)
+    should_fallback, reason = should_use_ezlocalai_fallback()
+    if should_fallback:
+        fallback_client = get_fallback_client()
+        if fallback_client.is_configured:
+            available, _ = await fallback_client.check_availability()
+            if available:
+                logging.info(f"[VIDEO] Using fallback: {reason}")
+                try:
+                    return await fallback_client.forward_video_generation(
+                        prompt=video_creation.prompt,
+                        response_format=video_creation.response_format,
+                        size=video_creation.size,
+                        num_frames=video_creation.num_frames,
+                        num_inference_steps=video_creation.num_inference_steps,
+                        guidance_scale=video_creation.guidance_scale,
+                        frame_rate=video_creation.frame_rate,
+                    )
+                except Exception as e:
+                    logging.warning(f"[VIDEO] Fallback failed: {e}, using local")
+
+    videos = []
+    if int(video_creation.n) > 1:
+        for i in range(video_creation.n):
+            video = await pipe.generate_video(
+                prompt=video_creation.prompt,
+                response_format=video_creation.response_format,
+                size=video_creation.size,
+                num_frames=video_creation.num_frames,
+                num_inference_steps=video_creation.num_inference_steps,
+                guidance_scale=video_creation.guidance_scale,
+                frame_rate=video_creation.frame_rate,
+            )
+            if video_creation.response_format == "url":
+                videos.append({"url": video})
+            else:
+                videos.append({"b64_json": video})
+        return {
+            "created": int(time.time()),
+            "data": videos,
+        }
+    video = await pipe.generate_video(
+        prompt=video_creation.prompt,
+        response_format=video_creation.response_format,
+        size=video_creation.size,
+        num_frames=video_creation.num_frames,
+        num_inference_steps=video_creation.num_inference_steps,
+        guidance_scale=video_creation.guidance_scale,
+        frame_rate=video_creation.frame_rate,
+    )
+    if video_creation.response_format == "url":
+        return {
+            "created": int(time.time()),
+            "data": [{"url": video}],
+        }
+    return {
+        "created": int(time.time()),
+        "data": [{"b64_json": video}],
+    }
+
+
 # Queue management endpoints
 @app.get(
     "/v1/queue/status",

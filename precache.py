@@ -217,6 +217,24 @@ def precache_image_model():
         logging.error(f"  ✗ Image model: {e}")
 
 
+def precache_video_model():
+    """Download video generation models if configured."""
+    video_model = getenv("VIDEO_MODEL")
+    if not video_model or video_model.lower() == "none":
+        return
+
+    try:
+        from huggingface_hub import snapshot_download
+
+        start_time = time.time()
+        snapshot_download(video_model)
+        elapsed = time.time() - start_time
+        logging.info(f"  ✓ {video_model} ({elapsed:.1f}s)")
+
+    except Exception as e:
+        logging.error(f"  ✗ Video model: {e}")
+
+
 def run_precache():
     """Run all precache operations."""
     # Check if already done
@@ -251,6 +269,7 @@ def run_precache():
         precache_tts()
         precache_stt()
         precache_image_model()
+        precache_video_model()
 
         total_elapsed = time.time() - total_start
         logging.info(f"[ezlocalai] Models cached in {total_elapsed:.1f}s")
