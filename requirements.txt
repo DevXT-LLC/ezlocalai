@@ -27,6 +27,8 @@ s3tokenizer
 conformer
 pykakasi
 resemble-perth
+pyloudnorm
+omegaconf
 transformers==4.53.0
 diffusers @ git+https://github.com/huggingface/diffusers
 einops
