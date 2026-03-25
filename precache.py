@@ -201,7 +201,7 @@ def precache_stt():
 def precache_image_model():
     """Download image generation models if configured."""
     img_model = getenv("IMG_MODEL")
-    if not img_model:
+    if not img_model or img_model.lower() == "none":
         return
 
     try:

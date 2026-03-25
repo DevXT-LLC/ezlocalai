@@ -25,7 +25,7 @@ jobs:
           LLM_MAX_TOKENS: "8192"
           TTS_ENABLED: "false"
           STT_ENABLED: "false"
-          IMG_MODEL: ""
+          IMG_MODEL: "none"
         ports:
           - ${{ inputs.port }}:${{ inputs.port }}
         options: >-

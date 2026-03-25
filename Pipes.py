@@ -3915,7 +3915,7 @@ class Pipes:
 
         if self.img is None and img_import_success:
             IMG_MODEL = getenv("IMG_MODEL")
-            if IMG_MODEL:
+            if IMG_MODEL and IMG_MODEL.lower() != "none":
                 # Determine target GPU: prefer secondary GPU so LLM stays on primary
                 secondary = get_secondary_gpu()
                 if secondary is not None:
@@ -5602,7 +5602,7 @@ class Pipes:
         # IMG is lazy loaded - try to get it if IMG_MODEL is configured
         # Skip image generation for streaming responses (response is a generator, not dict)
         is_streaming_response = data.get("stream", False)
-        if getenv("IMG_MODEL") and not is_streaming_response and img_import_success:
+        if getenv("IMG_MODEL") and getenv("IMG_MODEL").lower() != "none" and not is_streaming_response and img_import_success:
             async with self._img_lock:
                 img = self._get_img()
                 if img:
