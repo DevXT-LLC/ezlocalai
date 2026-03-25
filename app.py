@@ -252,7 +252,8 @@ async def _enqueue_with_fallback(
             raise
 
     if request.status == RequestStatus.FAILED:
-        raise HTTPException(status_code=500, detail=request.error)
+        logging.error(f"[Queue] Request failed: {request.error}")
+        raise HTTPException(status_code=500, detail="Internal server error")
 
     # Clean up
     request_queue.request_history[request_id] = request_queue.active_requests.pop(
@@ -1805,7 +1806,10 @@ async def train_wakeword_model(
             check_status_url=f"/v1/wakeword/jobs/{job.job_id}",
         )
     except ValueError as e:
-        raise HTTPException(status_code=409, detail=str(e))
+        logging.warning(f"[WakeWord] Training conflict: {e}")
+        raise HTTPException(
+            status_code=409, detail="Training conflict or invalid request"
+        )
 
 
 @app.get(
@@ -1972,7 +1976,7 @@ async def predict_wakeword(
         )
     except Exception as e:
         logging.error(f"Wake word prediction failed: {e}")
-        raise HTTPException(status_code=500, detail=f"Prediction failed: {str(e)}")
+        raise HTTPException(status_code=500, detail="Prediction failed")
 
 
 @app.post(
@@ -2020,4 +2024,4 @@ async def predict_wakeword_file(
         )
     except Exception as e:
         logging.error(f"Wake word prediction failed: {e}")
-        raise HTTPException(status_code=500, detail=f"Prediction failed: {str(e)}")
+        raise HTTPException(status_code=500, detail="Prediction failed")

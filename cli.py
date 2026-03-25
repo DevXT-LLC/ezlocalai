@@ -1375,14 +1375,20 @@ def _write_compose_env(source_dir: Path, env_vars: dict) -> None:
     CLI-managed configuration.
     """
     env_file = source_dir / ".env"
+    # Sensitive keys are passed via process environment to docker compose,
+    # so exclude them from the on-disk .env file to avoid clear-text storage.
+    _sensitive_suffixes = ("_KEY", "_TOKEN", "_SECRET", "_PASSWORD")
     lines = ["# Managed by ezlocalai CLI — do not edit manually"]
     for key, value in sorted(env_vars.items()):
-        if not key.startswith("_"):
+        if not key.startswith("_") and not key.upper().endswith(_sensitive_suffixes):
             lines.append(f"{key}={value}")
     content = "\n".join(lines) + "\n"
     try:
-        env_file.write_text(content, encoding="utf-8")
-        os.chmod(str(env_file), 0o600)
+        fd = os.open(str(env_file), os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+        try:
+            os.write(fd, content.encode("utf-8"))
+        finally:
+            os.close(fd)
     except PermissionError:
         # Try with sudo-like workaround: write to temp then move
         import tempfile

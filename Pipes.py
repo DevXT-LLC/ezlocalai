@@ -107,6 +107,13 @@ def extract_frames_from_video(
         else:
             # Local file path — validate to prevent path traversal
             video_path = os.path.realpath(video_source)
+            allowed_dirs = [os.path.realpath(os.getcwd()), os.path.realpath("/tmp")]
+            if not any(
+                video_path.startswith(d + os.sep) or video_path == d
+                for d in allowed_dirs
+            ):
+                logging.error("[Video] Video path outside allowed directory")
+                return []
             if not os.path.exists(video_path):
                 logging.error("[Video] Video file not found")
                 return []
