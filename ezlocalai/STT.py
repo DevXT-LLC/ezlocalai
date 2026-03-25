@@ -3,6 +3,7 @@ import base64
 import uuid
 import logging
 import time
+
 try:
     import webrtcvad
 except ImportError:
@@ -635,7 +636,9 @@ class STT:
 
     def listen(self):
         if webrtcvad is None:
-            raise RuntimeError("webrtcvad is required for live listening but failed to import")
+            raise RuntimeError(
+                "webrtcvad is required for live listening but failed to import"
+            )
         print("Listening for wake word...")
         vad = webrtcvad.Vad(1)
         stream = self.audio.open(
