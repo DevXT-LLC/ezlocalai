@@ -3,7 +3,10 @@ import base64
 import uuid
 import logging
 import time
-import webrtcvad
+try:
+    import webrtcvad
+except ImportError:
+    webrtcvad = None
 import pyaudio
 import wave
 import threading
@@ -631,6 +634,8 @@ class STT:
         return user_input
 
     def listen(self):
+        if webrtcvad is None:
+            raise RuntimeError("webrtcvad is required for live listening but failed to import")
         print("Listening for wake word...")
         vad = webrtcvad.Vad(1)
         stream = self.audio.open(
