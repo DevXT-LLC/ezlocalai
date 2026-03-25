@@ -29,6 +29,7 @@ pykakasi
 resemble-perth
 pyloudnorm
 omegaconf
+soundfile
 transformers==4.53.0
 diffusers @ git+https://github.com/huggingface/diffusers
 einops
