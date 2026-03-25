@@ -23,8 +23,6 @@ jobs:
         env:
           DEFAULT_MODEL: "unsloth/Qwen3.5-0.8B-GGUF"
           LLM_MAX_TOKENS: "8192"
-          TTS_ENABLED: "false"
-          STT_ENABLED: "false"
           IMG_MODEL: "none"
         ports:
           - ${{ inputs.port }}:${{ inputs.port }}
@@ -87,3 +85,40 @@ jobs:
             exit 1
           fi
           echo "PASS: Vision completion returned content (${#content} chars)"
+
+      - name: List voices
+        run: |
+          response=$(curl -sf http://localhost:${{ inputs.port }}/v1/audio/voices)
+          echo "$response" | jq .
+          if ! echo "$response" | jq -e '.voices | length > 0' > /dev/null; then
+            echo "FAIL: No voices returned"
+            exit 1
+          fi
+          echo "PASS: Voices endpoint returned data"
+
+      - name: Text to speech
+        run: |
+          curl -sf --max-time 120 http://localhost:${{ inputs.port }}/v1/audio/speech \
+            -H "Content-Type: application/json" \
+            -d '{"input": "Hello, this is a test of text to speech.", "model": "tts-1", "voice": "default"}' \
+            --output /tmp/tts_output.wav
+          filesize=$(stat -c%s /tmp/tts_output.wav)
+          if [ "$filesize" -lt 1000 ]; then
+            echo "FAIL: TTS output too small (${filesize} bytes)"
+            exit 1
+          fi
+          echo "PASS: TTS returned audio file (${filesize} bytes)"
+
+      - name: Speech to text
+        run: |
+          response=$(curl -sf --max-time 120 http://localhost:${{ inputs.port }}/v1/audio/transcriptions \
+            -F "file=@/tmp/tts_output.wav" \
+            -F "model=base" \
+            -F "response_format=json")
+          echo "$response" | jq .
+          text=$(echo "$response" | jq -r '.text')
+          if [ -z "$text" ] || [ "$text" = "null" ]; then
+            echo "FAIL: No transcription text returned"
+            exit 1
+          fi
+          echo "PASS: STT transcribed audio: $text"
