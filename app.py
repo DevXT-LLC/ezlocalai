@@ -37,6 +37,7 @@ WHISPER_MODEL = getenv("WHISPER_MODEL")
 logging.basicConfig(
     level=getenv("LOG_LEVEL"),
     format=getenv("LOG_FORMAT"),
+    force=True,
 )
 
 
@@ -1515,7 +1516,7 @@ async def generate_image(
 
 class VideoCreation(BaseModel):
     prompt: str
-    model: Optional[str] = "Lightricks/LTX-2"
+    model: Optional[str] = "unsloth/LTX-2.3-GGUF"
     n: Optional[int] = 1
     size: Optional[str] = "768x512"
     num_frames: Optional[int] = 121
@@ -1558,9 +1559,7 @@ async def generate_video(
         return {
             "created": int(time.time()),
             "data": [
-                {
-                    "error": "Video generation not available. Set VIDEO_MODEL to enable."
-                }
+                {"error": "Video generation not available. Set VIDEO_MODEL to enable."}
             ],
         }
 

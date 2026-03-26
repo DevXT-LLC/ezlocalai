@@ -53,3 +53,4 @@ esp-ppq>=0.2.0  # ESP32 model quantization - converts ONNX to .espdl format
 # Video processing dependencies
 opencv-python>=4.8.0
 imageio>=2.9.0
+imageio-ffmpeg>=0.4.0

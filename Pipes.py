@@ -446,7 +446,7 @@ MODEL_VRAM_ESTIMATES = {
     ModelType.TTS: 4.0,  # Chatterbox TTS
     ModelType.STT: 2.0,  # Whisper (varies by size)
     ModelType.IMG: 16.0,  # Z-Image-Turbo (can use CPU offload)
-    ModelType.VIDEO: 24.0,  # LTX-2 video generation (can use CPU offload)
+    ModelType.VIDEO: 12.0,  # LTX-2.3 GGUF video generation (uses sequential CPU offload)
     ModelType.EMBEDDING: 1.5,  # BGE-M3
 }
 
@@ -4286,7 +4286,7 @@ class Pipes:
 
                 # Check resource availability
                 can_load, device, reason = resource_mgr.can_load_model(
-                    ModelType.VIDEO, required_vram=24.0
+                    ModelType.VIDEO, required_vram=12.0
                 )
 
                 if force_cpu:
@@ -4294,9 +4294,7 @@ class Pipes:
                 elif target_device is not None:
                     video_device = target_device
                 elif not can_load and device == "fallback":
-                    logging.warning(
-                        f"[VIDEO] {reason} - video generation may be slow"
-                    )
+                    logging.warning(f"[VIDEO] {reason} - video generation may be slow")
                     video_device = "cuda"  # Will use CPU offload
                 elif device == "cpu":
                     video_device = "cpu"
@@ -4344,9 +4342,7 @@ class Pipes:
             if torch.cuda.is_available():
                 torch.cuda.empty_cache()
             cleanup_time = time.time() - start_time
-            logging.debug(
-                f"[VIDEO] Video model unloaded in {cleanup_time:.2f}s"
-            )
+            logging.debug(f"[VIDEO] Video model unloaded in {cleanup_time:.2f}s")
         except Exception as e:
             logging.error(f"[VIDEO] Error during cleanup: {e}")
 
@@ -5123,7 +5119,8 @@ class Pipes:
                     )
                 finally:
                     self.resource_manager.mark_model_in_use(ModelType.VIDEO, False)
-                self._destroy_video()
+                # Keep video model loaded - reloading the 24GB text encoder each
+                # time is slow (~10s) and causes dangerous memory spikes.
                 if response_format != "url" and result:
                     # Return base64 encoded video
                     import base64

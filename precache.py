@@ -218,16 +218,34 @@ def precache_image_model():
 
 
 def precache_video_model():
-    """Download video generation models if configured."""
+    """Download video generation GGUF transformer if configured.
+
+    Only downloads the GGUF file during precache.  Pipeline components
+    (text_encoder, vae, etc.) are downloaded on first inference by
+    LTX2Pipeline.from_pretrained which is smarter about fetching only
+    the files each component actually needs.
+    """
     video_model = getenv("VIDEO_MODEL")
     if not video_model or video_model.lower() == "none":
         return
 
     try:
-        from huggingface_hub import snapshot_download
+        from huggingface_hub import hf_hub_download
 
         start_time = time.time()
-        snapshot_download(video_model)
+
+        # Download GGUF transformer file
+        gguf_filename = "ltx-2.3-22b-dev-Q4_K_M.gguf"
+        logging.info(f"  Downloading {video_model}/{gguf_filename}...")
+        hf_hub_download(video_model, filename=gguf_filename, cache_dir="models")
+
+        # Download matching connector text projections from unsloth
+        connector_file = (
+            "text_encoders/ltx-2.3-22b-dev_embeddings_connectors.safetensors"
+        )
+        logging.info(f"  Downloading {video_model}/{connector_file}...")
+        hf_hub_download(video_model, filename=connector_file, cache_dir="models")
+
         elapsed = time.time() - start_time
         logging.info(f"  ✓ {video_model} ({elapsed:.1f}s)")
 
