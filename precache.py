@@ -199,22 +199,76 @@ def precache_stt():
 
 
 def precache_image_model():
-    """Download image generation models if configured."""
+    """Download image generation GGUF transformer and pipeline components if configured.
+
+    Downloads the GGUF file during precache. Pipeline components
+    (text_encoder, vae, etc.) are downloaded on first inference by
+    Flux2KleinPipeline.from_pretrained.
+    """
     img_model = getenv("IMG_MODEL")
     if not img_model or img_model.lower() == "none":
         return
 
     try:
-        from huggingface_hub import snapshot_download
+        from huggingface_hub import hf_hub_download
 
-        # Download the model
         start_time = time.time()
-        snapshot_download(img_model)
+
+        # For GGUF models, download just the quantized transformer file
+        if "gguf" in img_model.lower() or "FLUX.2-klein" in img_model:
+            gguf_filename = "flux-2-klein-4b-Q4_K_M.gguf"
+            repo = (
+                img_model
+                if "gguf" in img_model.lower()
+                else "unsloth/FLUX.2-klein-4B-GGUF"
+            )
+            hf_hub_download(repo, filename=gguf_filename, cache_dir="models")
+        else:
+            from huggingface_hub import snapshot_download
+
+            snapshot_download(img_model)
+
         elapsed = time.time() - start_time
         logging.info(f"  ✓ {img_model} ({elapsed:.1f}s)")
 
     except Exception as e:
         logging.error(f"  ✗ Image model: {e}")
+
+
+def precache_video_model():
+    """Download video generation GGUF transformer if configured.
+
+    Only downloads the GGUF file during precache.  Pipeline components
+    (text_encoder, vae, etc.) are downloaded on first inference by
+    LTX2Pipeline.from_pretrained which is smarter about fetching only
+    the files each component actually needs.
+    """
+    video_model = getenv("VIDEO_MODEL")
+    if not video_model or video_model.lower() == "none":
+        return
+
+    try:
+        from huggingface_hub import hf_hub_download
+
+        start_time = time.time()
+
+        # Download GGUF transformer file
+        gguf_filename = "ltx-2.3-22b-dev-Q4_K_M.gguf"
+        logging.info(f"  Downloading {video_model}/{gguf_filename}...")
+        hf_hub_download(video_model, filename=gguf_filename, cache_dir="models")
+
+        # Download matching connector text projections from unsloth
+        connector_file = (
+            "text_encoders/ltx-2.3-22b-dev_embeddings_connectors.safetensors"
+        )
+        logging.info(f"  Downloading {video_model}/{connector_file}...")
+        hf_hub_download(video_model, filename=connector_file, cache_dir="models")
+
+        elapsed = time.time() - start_time
+        logging.info(f"  ✓ {video_model} ({elapsed:.1f}s)")
+
+    except Exception as e:
+        logging.error(f"  ✗ Video model: {e}")
 
 
 def run_precache():
@@ -251,6 +305,7 @@ def run_precache():
         precache_tts()
         precache_stt()
         precache_image_model()
+        precache_video_model()
 
         total_elapsed = time.time() - total_start
         logging.info(f"[ezlocalai] Models cached in {total_elapsed:.1f}s")

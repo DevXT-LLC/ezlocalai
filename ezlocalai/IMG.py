@@ -1,62 +1,88 @@
 import logging
+import os
 import uuid
 import torch
 from PIL import Image
 import gc
+import io
+import base64
+import requests as http_requests
 
-# Z-Image requires the latest diffusers from source with ZImagePipeline support
+# FLUX.2-klein-4B requires diffusers from source with Flux2KleinPipeline support
 # pip install git+https://github.com/huggingface/diffusers
-ZIMAGE_AVAILABLE = False
-SDXL_AVAILABLE = False
+import_success = False
 
 try:
-    from diffusers import ZImagePipeline
+    from diffusers import Flux2KleinPipeline, Flux2Transformer2DModel
+    from diffusers.quantizers.quantization_config import GGUFQuantizationConfig
 
-    ZIMAGE_AVAILABLE = True
+    # Patch GGUFParameter to work with accelerate's cpu_offload.
+    # accelerate moves parameters to meta device which loses quant_type,
+    # causing KeyError(None) in GGML_QUANT_SIZES lookup.
+    from diffusers.quantizers.gguf.utils import GGUFParameter
+
+    _original_gguf_new = GGUFParameter.__new__
+
+    def _patched_gguf_new(cls, data, requires_grad=False, quant_type=None):
+        if quant_type is None:
+            return torch.nn.Parameter.__new__(cls, data, requires_grad=requires_grad)
+        return _original_gguf_new(
+            cls, data, requires_grad=requires_grad, quant_type=quant_type
+        )
+
+    GGUFParameter.__new__ = _patched_gguf_new
+
     import_success = True
 except (ImportError, RuntimeError, Exception) as e:
-    try:
-        # Fallback to older SDXL-Lightning if ZImagePipeline not available
-        from diffusers import (
-            StableDiffusionXLPipeline,
-            UNet2DConditionModel,
-            EulerDiscreteScheduler,
-        )
-        from huggingface_hub import hf_hub_download
-        from safetensors.torch import load_file
+    logging.error(
+        f"Failed to import Flux2KleinPipeline ({e}). Image generation will be unavailable. "
+        "Install diffusers using 'pip install git+https://github.com/huggingface/diffusers'"
+    )
 
-        SDXL_AVAILABLE = True
-        import_success = True
-        logging.warning(
-            "[IMG] ZImagePipeline not available, will use SDXL-Lightning fallback. "
-            "For Z-Image support, install diffusers from source: pip install git+https://github.com/huggingface/diffusers"
-        )
-    except (ImportError, RuntimeError, Exception) as inner_e:
-        logging.error(
-            f"Failed to import diffusers ({inner_e}). Image generation will be unavailable. "
-            "Install diffusers using 'pip install git+https://github.com/huggingface/diffusers'"
-        )
-        import_success = False
+# GGUF quant files available in unsloth/FLUX.2-klein-4B-GGUF
+GGUF_QUANT_FILES = {
+    "Q2_K": "flux-2-klein-4b-Q2_K.gguf",
+    "Q3_K_S": "flux-2-klein-4b-Q3_K_S.gguf",
+    "Q3_K_M": "flux-2-klein-4b-Q3_K_M.gguf",
+    "Q4_0": "flux-2-klein-4b-Q4_0.gguf",
+    "Q4_1": "flux-2-klein-4b-Q4_1.gguf",
+    "Q4_K_S": "flux-2-klein-4b-Q4_K_S.gguf",
+    "Q4_K_M": "flux-2-klein-4b-Q4_K_M.gguf",
+    "Q5_0": "flux-2-klein-4b-Q5_0.gguf",
+    "Q5_1": "flux-2-klein-4b-Q5_1.gguf",
+    "Q5_K_S": "flux-2-klein-4b-Q5_K_S.gguf",
+    "Q5_K_M": "flux-2-klein-4b-Q5_K_M.gguf",
+    "Q6_K": "flux-2-klein-4b-Q6_K.gguf",
+    "Q8_0": "flux-2-klein-4b-Q8_0.gguf",
+    "BF16": "flux-2-klein-4b-BF16.gguf",
+    "F16": "flux-2-klein-4b-F16.gguf",
+}
+DEFAULT_GGUF_QUANT = "Q4_K_M"
+# Full-precision pipeline config repo (text_encoder, vae, scheduler, tokenizer)
+FLUX2_KLEIN_CONFIG_REPO = "black-forest-labs/FLUX.2-klein-4B"
+# Unsloth repo for GGUF quantized transformer files
+UNSLOTH_REPO = "unsloth/FLUX.2-klein-4B-GGUF"
 
 
 class IMG:
-    """Image generation using Z-Image-Turbo or SDXL-Lightning fallback.
+    """Image generation and editing using FLUX.2-klein-4B with GGUF quantization.
 
-    Z-Image-Turbo is a highly efficient 6B parameter image generation model from Tongyi-MAI.
-    It offers sub-second inference on high-end GPUs and fits within 16GB VRAM.
+    FLUX.2-klein-4B is a fast 4B parameter image model from Black Forest Labs.
+    It unifies text-to-image generation and image editing in a single architecture.
 
     Features:
-    - Fast generation with only 8 inference steps
-    - High quality photorealistic images
-    - Bilingual text rendering (English & Chinese)
+    - Sub-second inference on high-end GPUs with only 4 steps
+    - Text-to-image generation and image editing (image + text to image)
+    - GGUF quantization for efficient memory usage (~2.6GB for Q4_K_M)
     - CPU offloading for memory-constrained devices
+    - Runs on consumer GPUs (RTX 3090/4070 with ~13GB VRAM at full precision)
 
-    Model: https://huggingface.co/Tongyi-MAI/Z-Image-Turbo
+    Model: https://huggingface.co/unsloth/FLUX.2-klein-4B-GGUF
     """
 
     def __init__(
         self,
-        model="Tongyi-MAI/Z-Image-Turbo",
+        model="unsloth/FLUX.2-klein-4B-GGUF",
         device="cpu",
         local_uri=None,
     ):
@@ -64,37 +90,20 @@ class IMG:
         self.local_uri = local_uri
         self.device = device
         self.pipe = None
-        self.model_type = None  # "zimage" or "sdxl_lightning"
-        self.num_steps = 9  # Default for Z-Image
 
         if not import_success:
             return
 
-        # Check if we should use Z-Image or fallback to SDXL-Lightning
-        # Z-Image model names contain "Z-Image" or use default Tongyi-MAI model
-        is_zimage_model = (
-            "z-image" in model.lower()
-            or "zimage" in model.lower()
-            or model == "Tongyi-MAI/Z-Image-Turbo"
-        )
+        self._load_pipeline(model, device)
 
-        if is_zimage_model and ZIMAGE_AVAILABLE:
-            self._load_zimage(model, device)
-        elif SDXL_AVAILABLE:
-            # Use SDXL-Lightning as fallback
-            self._load_sdxl_lightning(device)
-        else:
-            logging.error("[IMG] No image generation backend available")
-            self.pipe = None
-
-    def _load_zimage(self, model: str, device: str):
-        """Load Z-Image-Turbo model using diffusers ZImagePipeline."""
+    def _load_pipeline(self, model: str, device: str):
+        """Load FLUX.2-klein-4B pipeline with GGUF-quantized transformer."""
         try:
-            from diffusers import ZImagePipeline
+            from huggingface_hub import hf_hub_download
 
-            logging.debug(f"[IMG] Loading Z-Image-Turbo ({model}) on {device}...")
+            logging.info(f"[IMG] Loading FLUX.2-klein-4B GGUF ({model}) on {device}...")
 
-            # Parse GPU index from device string (e.g. "cuda:1" -> 1)
+            # Parse GPU index
             gpu_idx = 0
             is_cuda = device.startswith("cuda")
             if ":" in device:
@@ -103,144 +112,103 @@ class IMG:
                 except (ValueError, IndexError):
                     pass
 
-            # Z-Image works best with bfloat16, but fall back to float16 if not supported
+            # Determine dtype
             if device == "cpu":
                 dtype = torch.float32
             elif (
                 torch.cuda.is_available()
                 and torch.cuda.get_device_capability(gpu_idx)[0] >= 8
             ):
-                # bfloat16 supported on Ampere (SM 8.0) and newer
                 dtype = torch.bfloat16
             else:
                 dtype = torch.float16
 
             self.dtype = dtype
 
-            self.pipe = ZImagePipeline.from_pretrained(
-                model,
+            # Download the GGUF transformer file
+            gguf_filename = GGUF_QUANT_FILES.get(
+                DEFAULT_GGUF_QUANT, GGUF_QUANT_FILES["Q4_K_M"]
+            )
+
+            logging.info(
+                f"[IMG] Downloading GGUF transformer: {UNSLOTH_REPO}/{gguf_filename}"
+            )
+            gguf_path = hf_hub_download(
+                UNSLOTH_REPO, filename=gguf_filename, cache_dir="models"
+            )
+
+            # Load GGUF-quantized transformer
+            # We must download the transformer config from the klein repo first,
+            # otherwise from_single_file auto-detects the GGUF as FLUX.2-dev (gated)
+            logging.info("[IMG] Loading GGUF transformer...")
+            config_path = hf_hub_download(
+                FLUX2_KLEIN_CONFIG_REPO,
+                "transformer/config.json",
+                cache_dir="models",
+            )
+
+            config_dir = os.path.dirname(config_path)
+
+            transformer = Flux2Transformer2DModel.from_single_file(
+                gguf_path,
+                quantization_config=GGUFQuantizationConfig(compute_dtype=dtype),
+                torch_dtype=dtype,
+                config=config_dir,
+            )
+
+            # Load the pipeline with our GGUF transformer, pulling other
+            # components (text_encoder, vae, scheduler, tokenizer) from config repo
+            logging.info(
+                f"[IMG] Loading pipeline components from {FLUX2_KLEIN_CONFIG_REPO}..."
+            )
+            self.pipe = Flux2KleinPipeline.from_pretrained(
+                FLUX2_KLEIN_CONFIG_REPO,
+                transformer=transformer,
                 torch_dtype=dtype,
                 cache_dir="models",
             )
 
             if is_cuda:
-                # Z-Image-Turbo needs ~16GB VRAM. With other models loaded,
-                # we almost always need CPU offloading for efficient memory use.
-                # Sequential CPU offload is more aggressive but allows running
-                # with other models loaded in VRAM.
-                if torch.cuda.is_available():
-                    free_vram_gb = torch.cuda.mem_get_info(gpu_idx)[0] / (1024**3)
-                    total_vram_gb = torch.cuda.mem_get_info(gpu_idx)[1] / (1024**3)
-                    logging.debug(
-                        f"[IMG] GPU {gpu_idx} VRAM: {free_vram_gb:.1f}GB free / {total_vram_gb:.1f}GB total"
+                try:
+                    self.pipe.enable_sequential_cpu_offload(gpu_id=gpu_idx)
+                    logging.info(
+                        f"[IMG] Sequential CPU offload enabled on GPU {gpu_idx}"
                     )
-
-                    if free_vram_gb < 18:
-                        # Use sequential CPU offload - moves each layer to GPU only when needed
-                        # This is slower but works with limited VRAM
-                        logging.debug(
-                            f"[IMG] Limited VRAM on GPU {gpu_idx}, enabling sequential CPU offload..."
-                        )
-                        self.pipe.enable_sequential_cpu_offload(gpu_id=gpu_idx)
-                    else:
-                        self.pipe.to(device)
-                else:
-                    self.pipe.to(device)
+                except Exception as e:
+                    logging.warning(
+                        f"[IMG] Sequential CPU offload failed ({e}), "
+                        "falling back to CPU"
+                    )
+                    for name, component in self.pipe.components.items():
+                        if isinstance(component, torch.nn.Module):
+                            try:
+                                component.to("cpu")
+                            except Exception:
+                                pass
             else:
-                self.pipe.to(device)
+                for name, component in self.pipe.components.items():
+                    if isinstance(component, torch.nn.Module):
+                        try:
+                            component.to("cpu")
+                        except Exception:
+                            pass
 
-            # Enable memory efficient attention if available
             try:
                 self.pipe.enable_attention_slicing()
             except Exception:
-                pass  # Not all pipelines support this
+                pass
 
-            # Enable VAE slicing for memory efficiency
             try:
                 self.pipe.enable_vae_slicing()
             except Exception:
                 pass
 
-            self.model_type = "zimage"
-            self.num_steps = 9  # Z-Image uses 9 steps (results in 8 DiT forwards)
-            logging.debug(
-                f"[IMG] Z-Image-Turbo loaded successfully on {device} with dtype {dtype}"
+            logging.info(
+                f"[IMG] FLUX.2-klein-4B GGUF loaded successfully on {device} with dtype {dtype}"
             )
 
         except Exception as e:
-            logging.error(f"[IMG] Failed to load Z-Image-Turbo: {e}")
-            import traceback
-
-            traceback.print_exc()
-            self.pipe = None
-
-    def _load_sdxl_lightning(self, device: str):
-        """Fallback: Load SDXL-Lightning model."""
-        try:
-            from diffusers import (
-                StableDiffusionXLPipeline,
-                UNet2DConditionModel,
-                EulerDiscreteScheduler,
-            )
-            from huggingface_hub import hf_hub_download
-            from safetensors.torch import load_file
-
-            # 4-step is more stable than 2-step, especially on CPU
-            self.num_steps = 4 if device == "cpu" else 2
-            ckpt = f"sdxl_lightning_{self.num_steps}step_unet.safetensors"
-
-            # CPU requires float32, GPU can use float16
-            self.dtype = torch.float32 if device == "cpu" else torch.float16
-
-            base = "stabilityai/stable-diffusion-xl-base-1.0"
-            repo = "ByteDance/SDXL-Lightning"
-
-            logging.debug(
-                f"[IMG] Loading SDXL-Lightning {self.num_steps}-step on {device} with {self.dtype}..."
-            )
-
-            # Load UNet with SDXL-Lightning weights
-            unet = UNet2DConditionModel.from_config(
-                base,
-                subfolder="unet",
-                cache_dir="models",
-            ).to(device, self.dtype)
-
-            unet.load_state_dict(
-                load_file(
-                    hf_hub_download(repo, ckpt, cache_dir="models"),
-                    device="cpu",
-                )
-            )
-
-            # Build pipeline kwargs based on device
-            pipe_kwargs = {
-                "unet": unet,
-                "torch_dtype": self.dtype,
-                "cache_dir": "models",
-            }
-            if device != "cpu":
-                pipe_kwargs["variant"] = "fp16"
-
-            # Load pipeline with Lightning UNet
-            self.pipe = StableDiffusionXLPipeline.from_pretrained(
-                base,
-                **pipe_kwargs,
-            ).to(device)
-
-            # Configure scheduler for Lightning (trailing timesteps)
-            self.pipe.scheduler = EulerDiscreteScheduler.from_config(
-                self.pipe.scheduler.config, timestep_spacing="trailing"
-            )
-
-            self.pipe.enable_attention_slicing()
-            self.pipe.safety_checker = None
-            self.model_type = "sdxl_lightning"
-            logging.debug(
-                f"[IMG] SDXL-Lightning {self.num_steps}-step model loaded successfully on {device}."
-            )
-        except Exception as e:
-            logging.error(f"[IMG] Failed to load SDXL-Lightning: {e}")
+            logging.error(f"[IMG] Failed to load FLUX.2-klein-4B: {e}")
             import traceback
 
             traceback.print_exc()
@@ -249,23 +217,26 @@ class IMG:
     def generate(
         self,
         prompt,
-        negative_prompt="low resolution, grainy, distorted, blurry, ugly",
+        negative_prompt=None,
         num_inference_steps=None,
         guidance_scale=None,
         size="1024x1024",
+        image=None,
     ):
-        """Generate an image from a text prompt.
+        """Generate an image from a text prompt, or edit an image with a text prompt.
 
         Args:
-            prompt: Text description of the image to generate
-            negative_prompt: Things to avoid (only used with guidance_scale > 0)
-            num_inference_steps: Number of denoising steps (default: auto based on model)
-            guidance_scale: CFG scale (Z-Image uses 0.0, SDXL-Lightning uses 0)
+            prompt: Text description of the image to generate or editing instruction
+            negative_prompt: Unused (FLUX.2-klein does not use negative prompts)
+            num_inference_steps: Number of denoising steps (default: 4)
+            guidance_scale: CFG scale (default: 4.0)
             size: Output image size as "WIDTHxHEIGHT"
+            image: Optional input image for editing (PIL Image, base64 string, or URL)
 
         Returns:
             Path to saved image or PIL Image object, or None on failure
         """
+        os.makedirs("outputs", exist_ok=True)
         new_file_name = f"outputs/{uuid.uuid4()}.png"
 
         if not self.pipe:
@@ -274,28 +245,21 @@ class IMG:
         # Parse size
         width, height = map(int, size.split("x"))
 
-        # Set model-specific defaults
-        if self.model_type == "zimage":
-            steps = num_inference_steps if num_inference_steps else 9
-            cfg = guidance_scale if guidance_scale is not None else 0.0
-            # Z-Image supports larger sizes natively
-            max_size = 2048
-        else:
-            steps = num_inference_steps if num_inference_steps else self.num_steps
-            cfg = guidance_scale if guidance_scale is not None else 0
-            max_size = 1024
+        # FLUX.2-klein defaults: 4 steps, guidance_scale 4.0
+        steps = num_inference_steps if num_inference_steps else 4
+        cfg = guidance_scale if guidance_scale is not None else 4.0
 
         # Clamp dimensions
-        width = min(width, max_size)
-        height = min(height, max_size)
+        width = min(width, 1024)
+        height = min(height, 1024)
+
+        # Load input image if provided (for image editing)
+        input_image = self._load_image(image) if image else None
 
         try:
-            if self.model_type == "zimage":
-                new_image = self._generate_zimage(prompt, width, height, steps, cfg)
-            else:
-                new_image = self._generate_sdxl(
-                    prompt, negative_prompt, width, height, steps, cfg
-                )
+            new_image = self._generate_flux2klein(
+                prompt, width, height, steps, cfg, input_image
+            )
 
             if new_image is None:
                 return None
@@ -314,51 +278,88 @@ class IMG:
             if "out of memory" in error_str or "cuda" in error_str:
                 logging.warning(f"[IMG] GPU OOM during generation: {e}")
                 return self._generate_cpu_fallback(
-                    prompt, negative_prompt, width, height, steps, cfg, new_file_name
+                    prompt, width, height, steps, cfg, input_image, new_file_name
                 )
             raise
 
-    def _generate_zimage(self, prompt, width, height, steps, guidance_scale):
-        """Generate image using Z-Image-Turbo."""
+    def _load_image(self, image_source):
+        """Load an image from various sources (PIL, base64, URL).
+
+        Args:
+            image_source: PIL Image, base64 string, data URL, or HTTP URL
+
+        Returns:
+            PIL Image or None
+        """
+        if isinstance(image_source, Image.Image):
+            return image_source.convert("RGB")
+
+        if isinstance(image_source, str):
+            # Base64 data URL
+            if image_source.startswith("data:"):
+                try:
+                    header, encoded = image_source.split(",", 1)
+                    img_bytes = base64.b64decode(encoded)
+                    return Image.open(io.BytesIO(img_bytes)).convert("RGB")
+                except Exception as e:
+                    logging.error(f"[IMG] Failed to decode base64 image: {e}")
+                    return None
+
+            # HTTP URL
+            if image_source.startswith("http://") or image_source.startswith(
+                "https://"
+            ):
+                try:
+                    response = http_requests.get(
+                        image_source,
+                        timeout=30,
+                        headers={"User-Agent": "Mozilla/5.0"},
+                    )
+                    response.raise_for_status()
+                    return Image.open(io.BytesIO(response.content)).convert("RGB")
+                except Exception as e:
+                    logging.error(f"[IMG] Failed to download image from URL: {e}")
+                    return None
+
+            # Try raw base64
+            try:
+                img_bytes = base64.b64decode(image_source)
+                return Image.open(io.BytesIO(img_bytes)).convert("RGB")
+            except Exception:
+                pass
+
+        logging.error(f"[IMG] Unsupported image source type: {type(image_source)}")
+        return None
+
+    def _generate_flux2klein(
+        self, prompt, width, height, steps, guidance_scale, image=None
+    ):
+        """Generate or edit an image using FLUX.2-klein-4B."""
         # Determine device for generator
         gen_device = self.device
-        if self.device == "cuda" and hasattr(self.pipe, "_offload_gpu_id"):
-            # When using CPU offload, generator should be on CUDA
+        if self.device.startswith("cuda") and hasattr(self.pipe, "_offload_gpu_id"):
             gen_device = "cuda"
 
         generator = torch.Generator(device=gen_device).manual_seed(42)
 
-        result = self.pipe(
-            prompt=prompt,
-            height=height,
-            width=width,
-            num_inference_steps=steps,
-            guidance_scale=guidance_scale,
-            generator=generator,
-        )
+        kwargs = {
+            "prompt": prompt,
+            "height": height,
+            "width": width,
+            "num_inference_steps": steps,
+            "guidance_scale": guidance_scale,
+            "generator": generator,
+        }
 
-        return result.images[0]
+        # If image provided, pass it for editing mode
+        if image is not None:
+            kwargs["image"] = image
 
-    def _generate_sdxl(
-        self, prompt, negative_prompt, width, height, steps, guidance_scale
-    ):
-        """Generate image using SDXL-Lightning."""
-        generator = torch.Generator(device=self.device).manual_seed(42)
-
-        result = self.pipe(
-            prompt=prompt,
-            negative_prompt=negative_prompt if guidance_scale > 0 else None,
-            num_inference_steps=steps,
-            guidance_scale=guidance_scale,
-            width=width,
-            height=height,
-            generator=generator,
-        )
-
+        result = self.pipe(**kwargs)
         return result.images[0]
 
     def _generate_cpu_fallback(
-        self, prompt, negative_prompt, width, height, steps, cfg, output_file
+        self, prompt, width, height, steps, cfg, image, output_file
     ):
         """Attempt generation with sequential CPU offload on OOM."""
         logging.warning("[IMG] Attempting sequential CPU offload fallback...")
@@ -367,7 +368,6 @@ class IMG:
             torch.cuda.empty_cache()
 
         try:
-            # Enable more aggressive sequential offloading
             if hasattr(self.pipe, "enable_sequential_cpu_offload"):
                 try:
                     self.pipe.enable_sequential_cpu_offload()
@@ -376,26 +376,19 @@ class IMG:
 
             generator = torch.Generator(device="cpu").manual_seed(42)
 
-            if self.model_type == "zimage":
-                result = self.pipe(
-                    prompt=prompt,
-                    height=height,
-                    width=width,
-                    num_inference_steps=steps,
-                    guidance_scale=cfg,
-                    generator=generator,
-                )
-            else:
-                result = self.pipe(
-                    prompt=prompt,
-                    negative_prompt=negative_prompt if cfg > 0 else None,
-                    num_inference_steps=steps,
-                    guidance_scale=cfg,
-                    width=width,
-                    height=height,
-                    generator=generator,
-                )
+            kwargs = {
+                "prompt": prompt,
+                "height": height,
+                "width": width,
+                "num_inference_steps": steps,
+                "guidance_scale": cfg,
+                "generator": generator,
+            }
 
+            if image is not None:
+                kwargs["image"] = image
+
+            result = self.pipe(**kwargs)
             new_image = result.images[0]
             new_image.save(output_file)
 

@@ -11,7 +11,8 @@ def getenv(var_name: str, default_value: str = None) -> str:
         "ALLOWED_DOMAINS": "*",
         "DEFAULT_MODEL": "unsloth/Qwen3.5-4B-GGUF",
         "WHISPER_MODEL": "large-v3",
-        "IMG_MODEL": "Tongyi-MAI/Z-Image-Turbo",  # Set to Z-Image-Turbo for image generation, "none" or empty string to disable
+        "IMG_MODEL": "unsloth/FLUX.2-klein-4B-GGUF",  # Set to FLUX.2-klein-4B GGUF for image generation + editing, "none" or empty string to disable
+        "VIDEO_MODEL": "none",  # Set to "unsloth/LTX-2.3-GGUF" to enable video generation, "none" or empty string to disable
         "TTS_ENABLED": "true",
         "TTS_PROVIDER": "chatterbox",  # Chatterbox TTS
         "STT_ENABLED": "true",

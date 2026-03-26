@@ -1415,8 +1415,8 @@ def get_default_env() -> dict:
         "DEFAULT_MODEL": "unsloth/Qwen3.5-4B-GGUF",
         "WHISPER_MODEL": "large-v3",
         "IMG_MODEL": "",
+        "VIDEO_MODEL": "",
         "NGROK_TOKEN": "",
-        "MAIN_GPU": "0",
         "MAX_CONCURRENT_REQUESTS": "2",
         "MAX_QUEUE_SIZE": "100",
         "REQUEST_TIMEOUT": "300",
@@ -2448,6 +2448,8 @@ def show_native_status() -> None:
     print(f"      Speech-to-text: {whisper if whisper else 'disabled'}")
     img_model = env_vars.get("IMG_MODEL", "")
     print(f"      Image generation: {img_model if img_model else 'disabled'}")
+    video_model = env_vars.get("VIDEO_MODEL", "")
+    print(f"      Video generation: {video_model if video_model else 'disabled'}")
 
     print(f"\n   📋 Logs: {LOG_FILE}")
 
@@ -2818,6 +2820,13 @@ def show_status() -> None:
         print(f"      Image generation: {img_model}")
     else:
         print(f"      Image generation: disabled")
+
+    # Video model
+    video_model = env_vars.get("VIDEO_MODEL", "")
+    if video_model:
+        print(f"      Video generation: {video_model}")
+    else:
+        print(f"      Video generation: disabled")
 
     print(f"\n   💡 To change settings:")
     print(f"      ezlocalai start --model <model>")

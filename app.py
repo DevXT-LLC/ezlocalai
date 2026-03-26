@@ -37,6 +37,7 @@ WHISPER_MODEL = getenv("WHISPER_MODEL")
 logging.basicConfig(
     level=getenv("LOG_LEVEL"),
     format=getenv("LOG_FORMAT"),
+    force=True,
 )
 
 
@@ -1423,9 +1424,9 @@ async def upload_voice(
 
 class ImageCreation(BaseModel):
     prompt: str
-    model: Optional[str] = "stabilityai/sdxl-turbo"
+    model: Optional[str] = "unsloth/FLUX.2-klein-4B-GGUF"
     n: Optional[int] = 1
-    size: Optional[str] = "512x512"
+    size: Optional[str] = "1024x1024"
     quality: Optional[str] = "hd"
     response_format: Optional[str] = "url"
     style: Optional[str] = "natural"
@@ -1511,6 +1512,216 @@ async def generate_image(
         "created": int(time.time()),
         "data": [{"b64_json": image}],
     }
+
+
+# Image Editing endpoint (image + text to image)
+# https://platform.openai.com/docs/api-reference/images/createEdit
+
+
+class ImageEdit(BaseModel):
+    image: str  # base64-encoded image, data URL, or HTTP URL
+    prompt: str
+    model: Optional[str] = "unsloth/FLUX.2-klein-4B-GGUF"
+    n: Optional[int] = 1
+    size: Optional[str] = "1024x1024"
+    response_format: Optional[str] = "url"
+
+
+@app.post(
+    "/v1/images/edits",
+    tags=["Images"],
+    dependencies=[Depends(verify_api_key)],
+)
+async def edit_image(
+    image_edit: ImageEdit,
+    user: str = Depends(verify_api_key),
+):
+    if getenv("IMG_MODEL") == "":
+        from Pipes import get_fallback_client
+
+        fallback_client = get_fallback_client()
+        if fallback_client.is_configured:
+            available, _ = await fallback_client.check_availability()
+            if available:
+                logging.info("[IMG] No local model, using fallback for edit")
+                try:
+                    return await fallback_client.forward_image_generation(
+                        prompt=image_edit.prompt,
+                        response_format=image_edit.response_format,
+                        size=image_edit.size,
+                    )
+                except Exception as e:
+                    logging.warning(f"[IMG] Fallback failed: {e}")
+        return {
+            "created": int(time.time()),
+            "data": [{"url": "https://demofree.sirv.com/nope-not-here.jpg"}],
+        }
+
+    images = []
+    for i in range(int(image_edit.n)):
+        image = await pipe.generate_image(
+            prompt=image_edit.prompt,
+            response_format=image_edit.response_format,
+            size=image_edit.size,
+            image=image_edit.image,
+        )
+        if image_edit.response_format == "url":
+            images.append({"url": image})
+        else:
+            images.append({"b64_json": image})
+    return {
+        "created": int(time.time()),
+        "data": images,
+    }
+
+
+class VideoConditionFrame(BaseModel):
+    image: str  # base64-encoded image or URL
+    index: Optional[int] = 0  # frame index (supports negative indexing)
+    strength: Optional[float] = 1.0  # conditioning strength 0.0-1.0
+
+
+class VideoCreation(BaseModel):
+    prompt: Optional[str] = ""
+    model: Optional[str] = "unsloth/LTX-2.3-GGUF"
+    n: Optional[int] = 1
+    size: Optional[str] = "768x512"
+    num_frames: Optional[int] = 121
+    num_inference_steps: Optional[int] = 40
+    guidance_scale: Optional[float] = 4.0
+    frame_rate: Optional[int] = 24
+    response_format: Optional[str] = "url"
+    image: Optional[str] = None  # base64-encoded image for image-to-video
+    conditions: Optional[list[VideoConditionFrame]] = (
+        None  # conditioning frames for video-to-video
+    )
+
+
+@app.post(
+    "/v1/videos/generations",
+    tags=["Videos"],
+    dependencies=[Depends(verify_api_key)],
+)
+async def generate_video(
+    video_creation: VideoCreation,
+    user: str = Depends(verify_api_key),
+):
+    if getenv("VIDEO_MODEL") == "" or getenv("VIDEO_MODEL").lower() == "none":
+        # Check if fallback can handle video generation
+        from Pipes import get_fallback_client
+
+        fallback_client = get_fallback_client()
+        if fallback_client.is_configured:
+            available, _ = await fallback_client.check_availability()
+            if available:
+                logging.info("[VIDEO] No local model, using fallback")
+                try:
+                    return await fallback_client.forward_video_generation(
+                        prompt=video_creation.prompt,
+                        response_format=video_creation.response_format,
+                        size=video_creation.size,
+                        num_frames=video_creation.num_frames,
+                        num_inference_steps=video_creation.num_inference_steps,
+                        guidance_scale=video_creation.guidance_scale,
+                        frame_rate=video_creation.frame_rate,
+                    )
+                except Exception as e:
+                    logging.warning(f"[VIDEO] Fallback failed: {e}")
+        return {
+            "created": int(time.time()),
+            "data": [
+                {"error": "Video generation not available. Set VIDEO_MODEL to enable."}
+            ],
+        }
+
+    from Pipes import should_use_ezlocalai_fallback, get_fallback_client
+
+    # Check if we should use fallback (VIDEO uses a lot of VRAM)
+    should_fallback, reason = should_use_ezlocalai_fallback()
+    if should_fallback:
+        fallback_client = get_fallback_client()
+        if fallback_client.is_configured:
+            available, _ = await fallback_client.check_availability()
+            if available:
+                logging.info(f"[VIDEO] Using fallback: {reason}")
+                try:
+                    return await fallback_client.forward_video_generation(
+                        prompt=video_creation.prompt,
+                        response_format=video_creation.response_format,
+                        size=video_creation.size,
+                        num_frames=video_creation.num_frames,
+                        num_inference_steps=video_creation.num_inference_steps,
+                        guidance_scale=video_creation.guidance_scale,
+                        frame_rate=video_creation.frame_rate,
+                    )
+                except Exception as e:
+                    logging.warning(f"[VIDEO] Fallback failed: {e}, using local")
+
+    # Decode image input (base64 or URL) for image-to-video mode
+    pil_image = None
+    if video_creation.image:
+        pil_image = _decode_video_image(video_creation.image)
+
+    # Build condition frames for video-to-video mode
+    cond_list = None
+    if video_creation.conditions:
+        cond_list = []
+        for cond in video_creation.conditions:
+            cond_list.append(
+                {
+                    "image": _decode_video_image(cond.image),
+                    "index": cond.index,
+                    "strength": cond.strength,
+                }
+            )
+
+    gen_kwargs = dict(
+        prompt=video_creation.prompt,
+        response_format=video_creation.response_format,
+        size=video_creation.size,
+        num_frames=video_creation.num_frames,
+        num_inference_steps=video_creation.num_inference_steps,
+        guidance_scale=video_creation.guidance_scale,
+        frame_rate=video_creation.frame_rate,
+        image=pil_image,
+        conditions=cond_list,
+    )
+
+    videos = []
+    if int(video_creation.n) > 1:
+        for i in range(video_creation.n):
+            video = await pipe.generate_video(**gen_kwargs)
+            if video_creation.response_format == "url":
+                videos.append({"url": video})
+            else:
+                videos.append({"b64_json": video})
+        return {
+            "created": int(time.time()),
+            "data": videos,
+        }
+    video = await pipe.generate_video(**gen_kwargs)
+    if video_creation.response_format == "url":
+        return {
+            "created": int(time.time()),
+            "data": [{"url": video}],
+        }
+    return {
+        "created": int(time.time()),
+        "data": [{"b64_json": video}],
+    }
+
+
+def _decode_video_image(image_input: str):
+    """Decode a base64-encoded image string or data URL to PIL Image."""
+    import base64
+    from io import BytesIO
+    from PIL import Image
+
+    if image_input.startswith("data:"):
+        # data:image/png;base64,...
+        image_input = image_input.split(",", 1)[1]
+    raw = base64.b64decode(image_input)
+    return Image.open(BytesIO(raw)).convert("RGB")
 
 
 # Queue management endpoints
