@@ -1424,9 +1424,9 @@ async def upload_voice(
 
 class ImageCreation(BaseModel):
     prompt: str
-    model: Optional[str] = "stabilityai/sdxl-turbo"
+    model: Optional[str] = "unsloth/FLUX.2-klein-4B-GGUF"
     n: Optional[int] = 1
-    size: Optional[str] = "512x512"
+    size: Optional[str] = "1024x1024"
     quality: Optional[str] = "hd"
     response_format: Optional[str] = "url"
     style: Optional[str] = "natural"
@@ -1511,6 +1511,67 @@ async def generate_image(
     return {
         "created": int(time.time()),
         "data": [{"b64_json": image}],
+    }
+
+
+# Image Editing endpoint (image + text to image)
+# https://platform.openai.com/docs/api-reference/images/createEdit
+
+
+class ImageEdit(BaseModel):
+    image: str  # base64-encoded image, data URL, or HTTP URL
+    prompt: str
+    model: Optional[str] = "unsloth/FLUX.2-klein-4B-GGUF"
+    n: Optional[int] = 1
+    size: Optional[str] = "1024x1024"
+    response_format: Optional[str] = "url"
+
+
+@app.post(
+    "/v1/images/edits",
+    tags=["Images"],
+    dependencies=[Depends(verify_api_key)],
+)
+async def edit_image(
+    image_edit: ImageEdit,
+    user: str = Depends(verify_api_key),
+):
+    if getenv("IMG_MODEL") == "":
+        from Pipes import get_fallback_client
+
+        fallback_client = get_fallback_client()
+        if fallback_client.is_configured:
+            available, _ = await fallback_client.check_availability()
+            if available:
+                logging.info("[IMG] No local model, using fallback for edit")
+                try:
+                    return await fallback_client.forward_image_generation(
+                        prompt=image_edit.prompt,
+                        response_format=image_edit.response_format,
+                        size=image_edit.size,
+                    )
+                except Exception as e:
+                    logging.warning(f"[IMG] Fallback failed: {e}")
+        return {
+            "created": int(time.time()),
+            "data": [{"url": "https://demofree.sirv.com/nope-not-here.jpg"}],
+        }
+
+    images = []
+    for i in range(int(image_edit.n)):
+        image = await pipe.generate_image(
+            prompt=image_edit.prompt,
+            response_format=image_edit.response_format,
+            size=image_edit.size,
+            image=image_edit.image,
+        )
+        if image_edit.response_format == "url":
+            images.append({"url": image})
+        else:
+            images.append({"b64_json": image})
+    return {
+        "created": int(time.time()),
+        "data": images,
     }
 
 

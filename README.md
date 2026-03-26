@@ -190,6 +190,7 @@ When fallback is triggered to another ezlocalai instance, these endpoints are au
 - `/v1/audio/transcriptions` - Speech-to-text
 - `/v1/audio/speech` - Text-to-speech
 - `/v1/images/generations` - Image generation
+- `/v1/images/edits` - Image editing (image + text to image)
 
 For OpenAI-compatible APIs, only chat completions and embeddings are forwarded.
 

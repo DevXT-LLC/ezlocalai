@@ -199,17 +199,35 @@ def precache_stt():
 
 
 def precache_image_model():
-    """Download image generation models if configured."""
+    """Download image generation GGUF transformer and pipeline components if configured.
+
+    Downloads the GGUF file during precache. Pipeline components
+    (text_encoder, vae, etc.) are downloaded on first inference by
+    Flux2KleinPipeline.from_pretrained.
+    """
     img_model = getenv("IMG_MODEL")
     if not img_model or img_model.lower() == "none":
         return
 
     try:
-        from huggingface_hub import snapshot_download
+        from huggingface_hub import hf_hub_download
 
-        # Download the model
         start_time = time.time()
-        snapshot_download(img_model)
+
+        # For GGUF models, download just the quantized transformer file
+        if "gguf" in img_model.lower() or "FLUX.2-klein" in img_model:
+            gguf_filename = "flux-2-klein-4b-Q4_K_M.gguf"
+            repo = (
+                img_model
+                if "gguf" in img_model.lower()
+                else "unsloth/FLUX.2-klein-4B-GGUF"
+            )
+            hf_hub_download(repo, filename=gguf_filename, cache_dir="models")
+        else:
+            from huggingface_hub import snapshot_download
+
+            snapshot_download(img_model)
+
         elapsed = time.time() - start_time
         logging.info(f"  ✓ {img_model} ({elapsed:.1f}s)")
 

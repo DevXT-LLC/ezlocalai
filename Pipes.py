@@ -4182,7 +4182,7 @@ class Pipes:
 
                 # Check resource availability
                 can_load, device, reason = resource_mgr.can_load_model(
-                    ModelType.IMG, required_vram=16.0
+                    ModelType.IMG, required_vram=6.0
                 )
 
                 if force_cpu:
@@ -4207,10 +4207,10 @@ class Pipes:
                     )
                     load_time = time.time() - start_time
 
-                    # Register with resource manager (IMG uses CPU offload so may use less VRAM)
+                    # Register with resource manager (GGUF + CPU offload uses less VRAM)
                     actual_vram = (
-                        8.0 if img_device == "cuda" else 0.0
-                    )  # Conservative estimate with offload
+                        4.0 if img_device == "cuda" else 0.0
+                    )  # Conservative estimate with GGUF Q4 + offload
                     resource_mgr.register_model(
                         ModelType.IMG, IMG_MODEL, img_device, actual_vram
                     )
@@ -5074,7 +5074,9 @@ class Pipes:
                 self._destroy_tts()
         return result
 
-    async def generate_image(self, prompt, response_format="url", size="512x512"):
+    async def generate_image(
+        self, prompt, response_format="url", size="512x512", image=None
+    ):
         async with self._img_lock:
             img = self._get_img()
             if img:
@@ -5084,6 +5086,7 @@ class Pipes:
                     new_image = img.generate(
                         prompt=prompt,
                         size=size,
+                        image=image,
                     )
                 finally:
                     self.resource_manager.mark_model_in_use(ModelType.IMG, False)
