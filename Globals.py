@@ -53,6 +53,18 @@ def getenv(var_name: str, default_value: str = None) -> str:
         # - "true": This server IS a voice server - keep TTS/STT loaded, lazy-load LLMs instead
         "VOICE_SERVER": "",
         "VOICE_SERVER_API_KEY": "",  # API key for voice server (uses local key if not provided)
+        # Image server URL for offloading image/video generation requests
+        # - Empty (default): Load image/video models locally on demand (lazy loading)
+        # - URL (e.g., "http://192.168.1.100:8091"): Forward image/video requests to another ezlocalai server
+        # - "true": This server IS an image server - keep image/video models loaded, skip LLMs
+        "IMAGE_SERVER": "",
+        "IMAGE_SERVER_API_KEY": "",  # API key for image server (uses local key if not provided)
+        # Text server URL for offloading LLM text completion requests
+        # - Empty (default): Determined automatically - acts as text server unless IMAGE_SERVER or VOICE_SERVER is "true"
+        # - URL (e.g., "http://192.168.1.100:8091"): Forward text requests to another ezlocalai server
+        # - "true": This server IS a text server (explicit)
+        "TEXT_SERVER": "",
+        "TEXT_SERVER_API_KEY": "",  # API key for text server (uses local key if not provided)
         # Lazy load voice models (TTS/STT) - when false, preload them at startup for faster first response
         # Default true = lazy load (load on first request), false = preload at startup
         "LAZY_LOAD_VOICE": "true",

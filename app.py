@@ -490,6 +490,21 @@ class ChatCompletionsResponse(BaseModel):
 async def chat_completions(
     c: ChatCompletions, request: Request, user=Depends(verify_api_key)
 ):
+    # Check if text server is configured - forward if so
+    from Pipes import get_text_server_client
+
+    text_client = get_text_server_client()
+    if text_client.is_configured:
+        available, _ = await text_client.check_availability()
+        if available:
+            data = await request.json()
+            logging.info("[Chat] Forwarding to text server")
+            try:
+                result = await text_client.forward_chat_completions(data)
+                if result is not None:
+                    return result
+            except Exception as e:
+                logging.warning(f"[Chat] Text server forward failed: {e}, using local")
 
     if getenv("DEFAULT_MODEL") or getenv("VISION_MODEL"):
         data = await request.json()
@@ -602,6 +617,24 @@ class CompletionsResponse(BaseModel):
     dependencies=[Depends(verify_api_key)],
 )
 async def completions(c: Completions, request: Request, user=Depends(verify_api_key)):
+    # Check if text server is configured - forward if so
+    from Pipes import get_text_server_client
+
+    text_client = get_text_server_client()
+    if text_client.is_configured:
+        available, _ = await text_client.check_availability()
+        if available:
+            data = await request.json()
+            logging.info("[Completions] Forwarding to text server")
+            try:
+                result = await text_client.forward_completions(data)
+                if result is not None:
+                    return result
+            except Exception as e:
+                logging.warning(
+                    f"[Completions] Text server forward failed: {e}, using local"
+                )
+
     if getenv("DEFAULT_MODEL") or getenv("VISION_MODEL"):
         data = await request.json()
 
@@ -671,6 +704,25 @@ class EmbeddingResponse(BaseModel):
     dependencies=[Depends(verify_api_key)],
 )
 async def embedding(embedding: EmbeddingModel, user=Depends(verify_api_key)):
+    # Check if text server is configured - forward if so
+    from Pipes import get_text_server_client
+
+    text_client = get_text_server_client()
+    if text_client.is_configured:
+        available, _ = await text_client.check_availability()
+        if available:
+            logging.info("[Embeddings] Forwarding to text server")
+            try:
+                result = await text_client.forward_embeddings(
+                    {"input": embedding.input, "model": embedding.model}
+                )
+                if result is not None:
+                    return result
+            except Exception as e:
+                logging.warning(
+                    f"[Embeddings] Text server forward failed: {e}, using local"
+                )
+
     from Pipes import should_use_ezlocalai_fallback, get_fallback_client
 
     # Check if we should use fallback
@@ -1441,6 +1493,26 @@ async def generate_image(
     image_creation: ImageCreation,
     user: str = Depends(verify_api_key),
 ):
+    # Check if image server is configured - forward if so
+    from Pipes import get_image_server_client
+
+    image_client = get_image_server_client()
+    if image_client.is_configured:
+        available, _ = await image_client.check_availability()
+        if available:
+            logging.info("[IMG] Forwarding to image server")
+            try:
+                result = await image_client.forward_image_generation(
+                    prompt=image_creation.prompt,
+                    response_format=image_creation.response_format,
+                    size=image_creation.size,
+                    n=image_creation.n,
+                )
+                if result is not None:
+                    return result
+            except Exception as e:
+                logging.warning(f"[IMG] Image server forward failed: {e}, using local")
+
     if getenv("IMG_MODEL") == "":
         # Check if fallback can handle image generation
         from Pipes import get_fallback_client
@@ -1536,6 +1608,27 @@ async def edit_image(
     image_edit: ImageEdit,
     user: str = Depends(verify_api_key),
 ):
+    # Check if image server is configured - forward if so
+    from Pipes import get_image_server_client
+
+    image_client = get_image_server_client()
+    if image_client.is_configured:
+        available, _ = await image_client.check_availability()
+        if available:
+            logging.info("[IMG] Forwarding edit to image server")
+            try:
+                result = await image_client.forward_image_generation(
+                    prompt=image_edit.prompt,
+                    response_format=image_edit.response_format,
+                    size=image_edit.size,
+                    n=image_edit.n,
+                    image=image_edit.image,
+                )
+                if result is not None:
+                    return result
+            except Exception as e:
+                logging.warning(f"[IMG] Image server forward failed: {e}, using local")
+
     if getenv("IMG_MODEL") == "":
         from Pipes import get_fallback_client
 
@@ -1606,6 +1699,32 @@ async def generate_video(
     video_creation: VideoCreation,
     user: str = Depends(verify_api_key),
 ):
+    # Check if image server is configured - forward if so (image server handles video too)
+    from Pipes import get_image_server_client
+
+    image_client = get_image_server_client()
+    if image_client.is_configured:
+        available, _ = await image_client.check_availability()
+        if available:
+            logging.info("[VIDEO] Forwarding to image server")
+            try:
+                result = await image_client.forward_video_generation(
+                    prompt=video_creation.prompt,
+                    response_format=video_creation.response_format,
+                    size=video_creation.size,
+                    num_frames=video_creation.num_frames,
+                    num_inference_steps=video_creation.num_inference_steps,
+                    guidance_scale=video_creation.guidance_scale,
+                    frame_rate=video_creation.frame_rate,
+                    image=video_creation.image,
+                )
+                if result is not None:
+                    return result
+            except Exception as e:
+                logging.warning(
+                    f"[VIDEO] Image server forward failed: {e}, using local"
+                )
+
     if getenv("VIDEO_MODEL") == "" or getenv("VIDEO_MODEL").lower() == "none":
         # Check if fallback can handle video generation
         from Pipes import get_fallback_client

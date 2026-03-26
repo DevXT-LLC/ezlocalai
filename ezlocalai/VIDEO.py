@@ -41,6 +41,52 @@ except (ImportError, RuntimeError, Exception) as e:
         "Install diffusers from source: pip install git+https://github.com/huggingface/diffusers"
     )
 
+
+class _CPUEncoderBridge(torch.nn.Module):
+    """Wraps a CPU-resident quantized text encoder for a GPU-offloaded pipeline.
+
+    ``enable_sequential_cpu_offload`` sets the pipeline's execution device to
+    GPU, so input_ids arrive on cuda.  This bridge transparently moves them to
+    CPU for the real encoder, then moves output hidden_states back to GPU.
+    The real encoder is stored outside ``nn.Module`` registration so the
+    pipeline's offload hooks never inspect (or break) its quantized weights.
+    """
+
+    def __init__(self, encoder, target_device):
+        super().__init__()
+        # Store encoder outside nn.Module submodule registry
+        object.__setattr__(self, "_cpu_encoder", encoder)
+        object.__setattr__(self, "_target_device", target_device)
+
+    # Forward proxy attributes the pipeline may inspect.
+    @property
+    def config(self):
+        return self._cpu_encoder.config
+
+    @property
+    def dtype(self):
+        return self._cpu_encoder.dtype
+
+    @property
+    def device(self):
+        return torch.device("cpu")
+
+    def forward(self, input_ids=None, attention_mask=None, **kwargs):
+        if input_ids is not None:
+            input_ids = input_ids.cpu()
+        if attention_mask is not None:
+            attention_mask = attention_mask.cpu()
+        out = self._cpu_encoder(
+            input_ids=input_ids, attention_mask=attention_mask, **kwargs
+        )
+        # Move hidden_states to GPU so the transformer can consume them.
+        if hasattr(out, "hidden_states") and out.hidden_states is not None:
+            out["hidden_states"] = tuple(
+                h.to(self._target_device) for h in out.hidden_states
+            )
+        return out
+
+
 # GGUF quant files available in unsloth/LTX-2.3-GGUF
 GGUF_QUANT_FILES = {
     "Q4_K_M": "ltx-2.3-22b-dev-Q4_K_M.gguf",
@@ -112,7 +158,7 @@ class VIDEO:
 
             # Determine dtype
             if device == "cpu":
-                dtype = torch.float32
+                dtype = torch.bfloat16
             elif (
                 torch.cuda.is_available()
                 and torch.cuda.get_device_capability(gpu_idx)[0] >= 8
@@ -183,19 +229,99 @@ class VIDEO:
             logging.info("[VIDEO] Loading LTX-2.3 connectors from GGUF...")
             connectors = self._load_connectors_from_gguf(gguf_path, dtype)
 
-            # Load text encoder on CPU (Gemma 3 12B is ~24GB in bf16)
-            logging.info("[VIDEO] Loading text encoder on CPU (no quantization)...")
+            # Load text encoder (Gemma 3 12B).
+            # Strategy hierarchy:
+            #  1. GPU BNB 4-bit (~3GB VRAM) when >=12GB free VRAM
+            #  2. CPU quanto INT8 (~12GB RAM) — fast, uses VNNI/AVX-512
+            #  3. CPU bfloat16 (~24GB RAM) — fallback if quanto unavailable
             from transformers import Gemma3ForConditionalGeneration
 
-            text_encoder = Gemma3ForConditionalGeneration.from_pretrained(
-                LTX2_CONFIG_REPO,
-                subfolder="text_encoder",
-                torch_dtype=dtype,
-                cache_dir="models",
+            text_encoder = None
+            if is_cuda:
+                free_mem, _ = torch.cuda.mem_get_info(gpu_idx)
+                free_gb = free_mem / (1024**3)
+                logging.info(f"[VIDEO] GPU {gpu_idx} has {free_gb:.1f}GB free VRAM")
+                if free_gb >= 12.0:
+                    try:
+                        from transformers import BitsAndBytesConfig
+
+                        bnb_config = BitsAndBytesConfig(
+                            load_in_4bit=True,
+                            bnb_4bit_compute_dtype=dtype,
+                            bnb_4bit_quant_type="nf4",
+                            bnb_4bit_use_double_quant=True,
+                        )
+                        logging.info(
+                            "[VIDEO] Loading text encoder with bitsandbytes 4-bit (~3GB)..."
+                        )
+                        text_encoder = Gemma3ForConditionalGeneration.from_pretrained(
+                            LTX2_CONFIG_REPO,
+                            subfolder="text_encoder",
+                            quantization_config=bnb_config,
+                            torch_dtype=dtype,
+                            device_map={"": f"cuda:{gpu_idx}"},
+                            cache_dir="models",
+                        )
+                        logging.info(
+                            "[VIDEO] Text encoder loaded with 4-bit quantization"
+                        )
+                    except Exception as e:
+                        logging.warning(
+                            f"[VIDEO] bitsandbytes 4-bit failed ({e}), "
+                            "falling back to CPU text encoder"
+                        )
+                        text_encoder = None
+                else:
+                    logging.info(
+                        f"[VIDEO] Only {free_gb:.1f}GB free VRAM, skipping "
+                        "bitsandbytes (need 12GB). Using CPU text encoder."
+                    )
+
+            # CPU path: try quanto INT8 first (~12GB), fall back to bf16 (~24GB)
+            if text_encoder is None:
+                try:
+                    from transformers import QuantoConfig
+
+                    quanto_config = QuantoConfig(weights="int8")
+                    logging.info(
+                        "[VIDEO] Loading text encoder on CPU with "
+                        "quanto INT8 (~12GB)..."
+                    )
+                    text_encoder = Gemma3ForConditionalGeneration.from_pretrained(
+                        LTX2_CONFIG_REPO,
+                        subfolder="text_encoder",
+                        quantization_config=quanto_config,
+                        torch_dtype=dtype,
+                        cache_dir="models",
+                    )
+                    logging.info("[VIDEO] Text encoder loaded with quanto INT8")
+                except Exception as e:
+                    logging.warning(
+                        f"[VIDEO] quanto INT8 failed ({e}), "
+                        "falling back to bf16 on CPU"
+                    )
+                    text_encoder = None
+
+            if text_encoder is None:
+                logging.info("[VIDEO] Loading text encoder on CPU (bf16, ~24GB)...")
+                text_encoder = Gemma3ForConditionalGeneration.from_pretrained(
+                    LTX2_CONFIG_REPO,
+                    subfolder="text_encoder",
+                    torch_dtype=dtype,
+                    cache_dir="models",
+                )
+
+            # Track whether text encoder uses BNB 4-bit (GPU-resident) or
+            # quanto INT8 (CPU-resident).  Both use custom tensor types that
+            # cannot survive the meta-device round-trip from sequential offload.
+            text_encoder_is_bnb = getattr(
+                text_encoder, "is_loaded_in_4bit", False
+            ) or getattr(text_encoder, "is_loaded_in_8bit", False)
+            text_encoder_is_quanto = not text_encoder_is_bnb and getattr(
+                text_encoder, "is_quantized", False
             )
 
-            # Load the rest of the pipeline from the config repo,
-            # passing our GGUF transformer, custom connectors, and CPU text encoder.
+            # Load the rest of the pipeline from the config repo.
             logging.info(
                 f"[VIDEO] Loading pipeline components from {LTX2_CONFIG_REPO}..."
             )
@@ -222,6 +348,12 @@ class VIDEO:
                 # one at a time (~300MB each), allowing a 14GB Q4_K_M model to run
                 # on a GPU with only ~8GB free VRAM.
                 # Requires the GGUFParameter monkey-patch above.
+                if text_encoder_is_bnb or text_encoder_is_quanto:
+                    # Both BNB and quanto use custom tensor types that cannot
+                    # survive the meta-device round-trip that sequential offload
+                    # uses.  Swap out the text encoder so it isn't touched.
+                    saved_te = self.pipe.text_encoder
+                    self.pipe.text_encoder = None
                 try:
                     self.pipe.enable_sequential_cpu_offload(gpu_id=gpu_idx)
                     logging.info(
@@ -241,6 +373,24 @@ class VIDEO:
                                 component.to("cpu")
                             except Exception:
                                 pass
+
+                if text_encoder_is_bnb:
+                    # Restore the BNB text encoder (stays on GPU at ~3GB)
+                    self.pipe.text_encoder = saved_te
+                    logging.info(
+                        f"[VIDEO] BNB text encoder kept on cuda:{gpu_idx} (~3GB)"
+                    )
+                elif text_encoder_is_quanto:
+                    # Wrap quanto encoder in a bridge that moves tensors
+                    # between CPU (where quanto lives) and GPU (where the
+                    # pipeline's execution device is set by offload hooks).
+                    self.pipe.text_encoder = _CPUEncoderBridge(
+                        saved_te, torch.device(f"cuda:{gpu_idx}")
+                    )
+                    logging.info(
+                        "[VIDEO] Quanto INT8 text encoder bridged "
+                        f"(CPU → cuda:{gpu_idx})"
+                    )
             else:
                 for name, component in self.pipe.components.items():
                     if isinstance(component, torch.nn.Module):

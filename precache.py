@@ -56,6 +56,72 @@ def has_voice_server_url() -> bool:
     return True
 
 
+def has_image_server_url() -> bool:
+    """Check if an image server URL is configured (not 'true' mode, but actual URL).
+
+    When an image server URL is configured:
+    - Image/video requests are forwarded to the image server
+    - Local image/video models should NOT be loaded/cached at all
+
+    Returns:
+        True if IMAGE_SERVER is set to a URL (not empty, not 'true')
+    """
+    image_server = getenv("IMAGE_SERVER")
+    if not image_server:
+        return False
+    if image_server.lower() == "true":
+        return False
+    return True
+
+
+def has_text_server_url() -> bool:
+    """Check if a text server URL is configured (not 'true' mode, but actual URL).
+
+    When a text server URL is configured:
+    - Text completions are forwarded to the text server
+    - Local LLM models should NOT be loaded/cached at all
+
+    Returns:
+        True if TEXT_SERVER is set to a URL (not empty, not 'true')
+    """
+    text_server = getenv("TEXT_SERVER")
+    if not text_server:
+        return False
+    if text_server.lower() == "true":
+        return False
+    return True
+
+
+def is_image_server_mode() -> bool:
+    """Check if this server IS the image server (IMAGE_SERVER=true).
+
+    Returns:
+        True if IMAGE_SERVER env var is set to 'true'
+    """
+    return getenv("IMAGE_SERVER").lower() == "true"
+
+
+def is_text_server_mode() -> bool:
+    """Check if this server should act as a text server.
+
+    A server acts as a text server when:
+    - TEXT_SERVER is explicitly set to 'true', OR
+    - Neither IMAGE_SERVER nor VOICE_SERVER is set to 'true' (default behavior)
+
+    Returns:
+        True if this server should load and serve LLM models
+    """
+    text_server = getenv("TEXT_SERVER")
+    if text_server and text_server.lower() == "true":
+        return True
+    # Default: act as text server unless this is a dedicated image or voice server
+    if is_image_server_mode():
+        return False
+    if getenv("VOICE_SERVER").lower() == "true":
+        return False
+    return True
+
+
 # Lock file to prevent multiple precache runs
 PRECACHE_LOCK = Path("/tmp/ezlocalai_precache.lock")
 PRECACHE_DONE = Path("/tmp/ezlocalai_precache.done")
@@ -63,6 +129,17 @@ PRECACHE_DONE = Path("/tmp/ezlocalai_precache.done")
 
 def precache_llm_models():
     """Download and calibrate all configured LLM models."""
+    # Skip if text server URL is configured (text passthrough mode)
+    if has_text_server_url():
+        text_url = getenv("TEXT_SERVER")
+        logging.info(f"  - LLM: Skipped (text server: {text_url})")
+        return
+
+    # Skip if this is a dedicated image or voice server (not a text server)
+    if not is_text_server_mode():
+        logging.info("  - LLM: Skipped (not a text server)")
+        return
+
     from huggingface_hub import hf_hub_download, list_repo_files
 
     model_config = getenv("DEFAULT_MODEL")
@@ -205,6 +282,18 @@ def precache_image_model():
     (text_encoder, vae, etc.) are downloaded on first inference by
     Flux2KleinPipeline.from_pretrained.
     """
+    # Skip if image server URL is configured (image passthrough mode)
+    if has_image_server_url():
+        image_url = getenv("IMAGE_SERVER")
+        logging.info(f"  - Image: Skipped (image server: {image_url})")
+        return
+
+    # Skip if this is a dedicated text or voice server (not loading image models)
+    if is_text_server_mode() and not is_image_server_mode():
+        # Text servers that aren't also image servers still load image models locally
+        # unless they have an image server URL configured (handled above)
+        pass
+
     img_model = getenv("IMG_MODEL")
     if not img_model or img_model.lower() == "none":
         return
@@ -243,6 +332,12 @@ def precache_video_model():
     LTX2Pipeline.from_pretrained which is smarter about fetching only
     the files each component actually needs.
     """
+    # Skip if image server URL is configured (image/video passthrough mode)
+    if has_image_server_url():
+        image_url = getenv("IMAGE_SERVER")
+        logging.info(f"  - Video: Skipped (image server: {image_url})")
+        return
+
     video_model = getenv("VIDEO_MODEL")
     if not video_model or video_model.lower() == "none":
         return

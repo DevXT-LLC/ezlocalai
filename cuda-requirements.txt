@@ -51,3 +51,4 @@ opencv-python-headless>=4.8.0
 imageio>=2.9.0
 imageio-ffmpeg>=0.4.0
 bitsandbytes>=0.43.0
+optimum-quanto>=0.2.0

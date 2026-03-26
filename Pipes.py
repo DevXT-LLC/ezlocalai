@@ -1549,6 +1549,423 @@ def should_use_ezlocalai_fallback() -> Tuple[bool, str]:
     return False, "Local resources sufficient"
 
 
+# =============================================================================
+# Image Server Client - For offloading image/video generation to dedicated server
+# =============================================================================
+
+
+class ImageServerClient:
+    """Client for forwarding image/video requests to a dedicated image server.
+
+    Configuration via IMAGE_SERVER env var:
+    - Empty (default): Load image/video models locally on demand (lazy loading)
+    - URL (e.g., "http://192.168.1.100:8091"): Forward image/video requests to image server
+    - "true": This server IS an image server - keep image/video models available, skip LLMs
+    """
+
+    def __init__(self, base_url: str = None, api_key: str = None):
+        image_server = base_url or getenv("IMAGE_SERVER")
+        if image_server and image_server.lower() == "true":
+            self.base_url = ""
+            self.is_image_server_mode = True
+        else:
+            self.base_url = image_server.rstrip("/") if image_server else ""
+            self.is_image_server_mode = False
+
+        self.api_key = (
+            api_key or getenv("IMAGE_SERVER_API_KEY") or getenv("EZLOCALAI_API_KEY")
+        )
+        self._available = None
+        self._last_check = 0
+        self._check_interval = 30
+
+    @property
+    def is_configured(self) -> bool:
+        """Check if an image server URL is configured (not 'true' mode)."""
+        return bool(self.base_url) and not self.is_image_server_mode
+
+    def _get_headers(self) -> dict:
+        headers = {"Content-Type": "application/json"}
+        if self.api_key and self.api_key != "none":
+            headers["Authorization"] = f"Bearer {self.api_key}"
+        return headers
+
+    async def check_availability(self) -> Tuple[bool, str]:
+        if not self.is_configured:
+            return False, "No image server configured"
+
+        current_time = time.time()
+        if (
+            self._available is not None
+            and (current_time - self._last_check) < self._check_interval
+        ):
+            return self._available, "cached"
+
+        try:
+            import aiohttp
+
+            async with aiohttp.ClientSession() as session:
+                async with session.get(
+                    f"{self.base_url}/v1/models",
+                    headers=self._get_headers(),
+                    timeout=aiohttp.ClientTimeout(total=5),
+                ) as resp:
+                    if resp.status == 200:
+                        self._available = True
+                        self._last_check = current_time
+                        return True, "Image server available"
+                    else:
+                        self._available = False
+                        self._last_check = current_time
+                        return False, f"Image server returned status {resp.status}"
+        except Exception as e:
+            logging.debug(f"[ImageServer] Health check failed: {e}")
+            self._available = False
+            self._last_check = current_time
+            return False, "Image server unreachable"
+
+    async def forward_image_generation(
+        self,
+        prompt: str,
+        response_format: str = "url",
+        size: str = "1024x1024",
+        n: int = 1,
+        image: str = None,
+    ) -> Optional[dict]:
+        if not self.is_configured:
+            return None
+
+        import aiohttp
+
+        logging.info(f"[ImageServer] Forwarding image generation to {self.base_url}")
+
+        try:
+            payload = {
+                "prompt": prompt,
+                "response_format": response_format,
+                "size": size,
+                "n": n,
+            }
+            if image:
+                payload["image"] = image
+
+            async with aiohttp.ClientSession() as session:
+                endpoint = (
+                    f"{self.base_url}/v1/images/edits"
+                    if image
+                    else f"{self.base_url}/v1/images/generations"
+                )
+                async with session.post(
+                    endpoint,
+                    json=payload,
+                    headers=self._get_headers(),
+                    timeout=aiohttp.ClientTimeout(total=300),
+                ) as resp:
+                    if resp.status == 200:
+                        return await resp.json()
+                    else:
+                        error_text = await resp.text()
+                        logging.warning(
+                            f"[ImageServer] Image generation failed with status {resp.status}: {error_text}"
+                        )
+                        return None
+        except Exception as e:
+            logging.warning(f"[ImageServer] Image generation request failed: {e}")
+            return None
+
+    async def forward_video_generation(
+        self,
+        prompt: str = "",
+        response_format: str = "url",
+        size: str = "768x512",
+        num_frames: int = 121,
+        num_inference_steps: int = 40,
+        guidance_scale: float = 4.0,
+        frame_rate: int = 24,
+        image: str = None,
+        conditions: list = None,
+    ) -> Optional[dict]:
+        if not self.is_configured:
+            return None
+
+        import aiohttp
+
+        logging.info(f"[ImageServer] Forwarding video generation to {self.base_url}")
+
+        try:
+            payload = {
+                "prompt": prompt,
+                "response_format": response_format,
+                "size": size,
+                "num_frames": num_frames,
+                "num_inference_steps": num_inference_steps,
+                "guidance_scale": guidance_scale,
+                "frame_rate": frame_rate,
+            }
+            if image:
+                payload["image"] = image
+            if conditions:
+                payload["conditions"] = [
+                    {"image": c.get("image", ""), "index": c.get("index", 0), "strength": c.get("strength", 1.0)}
+                    for c in conditions
+                ]
+
+            async with aiohttp.ClientSession() as session:
+                async with session.post(
+                    f"{self.base_url}/v1/videos/generations",
+                    json=payload,
+                    headers=self._get_headers(),
+                    timeout=aiohttp.ClientTimeout(total=600),
+                ) as resp:
+                    if resp.status == 200:
+                        return await resp.json()
+                    else:
+                        error_text = await resp.text()
+                        logging.warning(
+                            f"[ImageServer] Video generation failed with status {resp.status}: {error_text}"
+                        )
+                        return None
+        except Exception as e:
+            logging.warning(f"[ImageServer] Video generation request failed: {e}")
+            return None
+
+
+# Global image server client instance
+_image_server_client: Optional[ImageServerClient] = None
+_image_server_client_lock = threading.Lock()
+
+
+def get_image_server_client() -> ImageServerClient:
+    """Get or create the global image server client."""
+    global _image_server_client
+    with _image_server_client_lock:
+        if _image_server_client is None:
+            _image_server_client = ImageServerClient()
+        return _image_server_client
+
+
+def is_image_server_mode() -> bool:
+    """Check if this server is running in image server mode (IMAGE_SERVER=true).
+
+    In image server mode:
+    - Image and video models are kept available
+    - LLM models are skipped (not loaded)
+    """
+    return get_image_server_client().is_image_server_mode
+
+
+def has_image_server_url() -> bool:
+    """Check if an image server URL is configured (not 'true' mode, but actual URL).
+
+    When an image server URL is configured:
+    - Image/video requests are forwarded to the image server
+    - Local image/video models should NOT be loaded at all
+    """
+    return get_image_server_client().is_configured
+
+
+# =============================================================================
+# Text Server Client - For offloading LLM text requests to dedicated server
+# =============================================================================
+
+
+class TextServerClient:
+    """Client for forwarding text completion requests to a dedicated text server.
+
+    Configuration via TEXT_SERVER env var:
+    - Empty (default): Determined automatically based on IMAGE_SERVER/VOICE_SERVER
+    - URL (e.g., "http://192.168.1.100:8091"): Forward text requests to text server
+    - "true": This server IS a text server (explicit)
+    """
+
+    def __init__(self, base_url: str = None, api_key: str = None):
+        text_server = base_url or getenv("TEXT_SERVER")
+        if text_server and text_server.lower() == "true":
+            self.base_url = ""
+            self.is_text_server_mode = True
+        else:
+            self.base_url = text_server.rstrip("/") if text_server else ""
+            self.is_text_server_mode = False
+
+        self.api_key = (
+            api_key or getenv("TEXT_SERVER_API_KEY") or getenv("EZLOCALAI_API_KEY")
+        )
+        self._available = None
+        self._last_check = 0
+        self._check_interval = 30
+
+    @property
+    def is_configured(self) -> bool:
+        """Check if a text server URL is configured (not 'true' mode)."""
+        return bool(self.base_url) and not self.is_text_server_mode
+
+    def _get_headers(self) -> dict:
+        headers = {"Content-Type": "application/json"}
+        if self.api_key and self.api_key != "none":
+            headers["Authorization"] = f"Bearer {self.api_key}"
+        return headers
+
+    async def check_availability(self) -> Tuple[bool, str]:
+        if not self.is_configured:
+            return False, "No text server configured"
+
+        current_time = time.time()
+        if (
+            self._available is not None
+            and (current_time - self._last_check) < self._check_interval
+        ):
+            return self._available, "cached"
+
+        try:
+            import aiohttp
+
+            async with aiohttp.ClientSession() as session:
+                async with session.get(
+                    f"{self.base_url}/v1/models",
+                    headers=self._get_headers(),
+                    timeout=aiohttp.ClientTimeout(total=5),
+                ) as resp:
+                    if resp.status == 200:
+                        self._available = True
+                        self._last_check = current_time
+                        return True, "Text server available"
+                    else:
+                        self._available = False
+                        self._last_check = current_time
+                        return False, f"Text server returned status {resp.status}"
+        except Exception as e:
+            logging.debug(f"[TextServer] Health check failed: {e}")
+            self._available = False
+            self._last_check = current_time
+            return False, "Text server unreachable"
+
+    async def forward_chat_completions(self, data: dict) -> Optional[dict]:
+        if not self.is_configured:
+            return None
+
+        import aiohttp
+
+        logging.info(f"[TextServer] Forwarding chat completions to {self.base_url}")
+
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.post(
+                    f"{self.base_url}/v1/chat/completions",
+                    json=data,
+                    headers=self._get_headers(),
+                    timeout=aiohttp.ClientTimeout(total=300),
+                ) as resp:
+                    if resp.status == 200:
+                        return await resp.json()
+                    else:
+                        error_text = await resp.text()
+                        logging.warning(
+                            f"[TextServer] Chat completions failed with status {resp.status}: {error_text}"
+                        )
+                        return None
+        except Exception as e:
+            logging.warning(f"[TextServer] Chat completions request failed: {e}")
+            return None
+
+    async def forward_completions(self, data: dict) -> Optional[dict]:
+        if not self.is_configured:
+            return None
+
+        import aiohttp
+
+        logging.info(f"[TextServer] Forwarding completions to {self.base_url}")
+
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.post(
+                    f"{self.base_url}/v1/completions",
+                    json=data,
+                    headers=self._get_headers(),
+                    timeout=aiohttp.ClientTimeout(total=300),
+                ) as resp:
+                    if resp.status == 200:
+                        return await resp.json()
+                    else:
+                        error_text = await resp.text()
+                        logging.warning(
+                            f"[TextServer] Completions failed with status {resp.status}: {error_text}"
+                        )
+                        return None
+        except Exception as e:
+            logging.warning(f"[TextServer] Completions request failed: {e}")
+            return None
+
+    async def forward_embeddings(self, data: dict) -> Optional[dict]:
+        if not self.is_configured:
+            return None
+
+        import aiohttp
+
+        logging.info(f"[TextServer] Forwarding embeddings to {self.base_url}")
+
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.post(
+                    f"{self.base_url}/v1/embeddings",
+                    json=data,
+                    headers=self._get_headers(),
+                    timeout=aiohttp.ClientTimeout(total=120),
+                ) as resp:
+                    if resp.status == 200:
+                        return await resp.json()
+                    else:
+                        error_text = await resp.text()
+                        logging.warning(
+                            f"[TextServer] Embeddings failed with status {resp.status}: {error_text}"
+                        )
+                        return None
+        except Exception as e:
+            logging.warning(f"[TextServer] Embeddings request failed: {e}")
+            return None
+
+
+# Global text server client instance
+_text_server_client: Optional[TextServerClient] = None
+_text_server_client_lock = threading.Lock()
+
+
+def get_text_server_client() -> TextServerClient:
+    """Get or create the global text server client."""
+    global _text_server_client
+    with _text_server_client_lock:
+        if _text_server_client is None:
+            _text_server_client = TextServerClient()
+        return _text_server_client
+
+
+def has_text_server_url() -> bool:
+    """Check if a text server URL is configured (not 'true' mode, but actual URL).
+
+    When a text server URL is configured:
+    - Text completion requests are forwarded to the text server
+    - Local LLM models should NOT be loaded at all
+    """
+    return get_text_server_client().is_configured
+
+
+def is_text_server_mode() -> bool:
+    """Check if this server should act as a text server.
+
+    A server acts as a text server when:
+    - TEXT_SERVER is explicitly set to 'true', OR
+    - Neither IMAGE_SERVER nor VOICE_SERVER is set to 'true' (default behavior)
+    """
+    text_server = getenv("TEXT_SERVER")
+    if text_server and text_server.lower() == "true":
+        return True
+    # Default: act as text server unless this is a dedicated image or voice server
+    if is_image_server_mode():
+        return False
+    if is_voice_server_mode():
+        return False
+    return True
+
+
 # Background cleanup queue for async model unloading
 _cleanup_queue = queue.Queue()
 _cleanup_thread = None
@@ -2714,10 +3131,21 @@ class Pipes:
 
             # Pre-load persistent LLMs (primary + vision if different)
             # Skip LLM preloading in voice server mode - only load voice models
-            if is_voice_server_mode():
+            # Skip LLM preloading in image server mode - only load image/video models
+            if is_voice_server_mode() and not is_text_server_mode():
                 logging.info(
                     "[LLM] Voice server mode - skipping LLM preload. "
                     "LLMs will be lazy-loaded on first request."
+                )
+            elif is_image_server_mode():
+                logging.info(
+                    "[LLM] Image server mode - skipping LLM preload. "
+                    "LLMs will be lazy-loaded on first request."
+                )
+            elif has_text_server_url():
+                logging.info(
+                    f"[LLM] Text server configured ({getenv('TEXT_SERVER')}) - skipping LLM preload. "
+                    "Text requests will be forwarded."
                 )
             elif self.available_models:
                 # Pre-load with optimal context (default 40k) to maximize GPU layers
@@ -4165,6 +4593,11 @@ class Pipes:
         global img_import_success
         resource_mgr = get_resource_manager()
 
+        # Skip loading if image server URL is configured (passthrough mode)
+        if has_image_server_url():
+            logging.debug("[IMG] Image server configured - skipping local model load")
+            return None
+
         if self.img is None and img_import_success:
             IMG_MODEL = getenv("IMG_MODEL")
             if IMG_MODEL and IMG_MODEL.lower() != "none":
@@ -4269,6 +4702,13 @@ class Pipes:
         """
         global video_import_success
         resource_mgr = get_resource_manager()
+
+        # Skip loading if image server URL is configured (passthrough mode)
+        if has_image_server_url():
+            logging.debug(
+                "[VIDEO] Image server configured - skipping local model load"
+            )
+            return None
 
         if self.video is None and video_import_success:
             VIDEO_MODEL = getenv("VIDEO_MODEL")

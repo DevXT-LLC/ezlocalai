@@ -51,6 +51,10 @@ services:
       - STT_ENABLED=${STT_ENABLED:-true}
       - VOICE_SERVER=${VOICE_SERVER:-}
       - VOICE_SERVER_API_KEY=${VOICE_SERVER_API_KEY:-}
+      - IMAGE_SERVER=${IMAGE_SERVER:-}
+      - IMAGE_SERVER_API_KEY=${IMAGE_SERVER_API_KEY:-}
+      - TEXT_SERVER=${TEXT_SERVER:-}
+      - TEXT_SERVER_API_KEY=${TEXT_SERVER_API_KEY:-}
       - LAZY_LOAD_VOICE=${LAZY_LOAD_VOICE:-true}
     restart: unless-stopped
     healthcheck:
