@@ -2,12 +2,20 @@ import logging
 import uuid
 import torch
 import gc
+import os
 
 # LTX-2.3 requires diffusers with LTX2Pipeline and GGUF support
 import_success = False
 
 try:
     from diffusers import LTX2Pipeline, LTX2VideoTransformer3DModel
+    from diffusers.pipelines.ltx2.pipeline_ltx2_image2video import (
+        LTX2ImageToVideoPipeline,
+    )
+    from diffusers.pipelines.ltx2.pipeline_ltx2_condition import (
+        LTX2ConditionPipeline,
+        LTX2VideoCondition,
+    )
     from diffusers.quantizers.quantization_config import GGUFQuantizationConfig
 
     # Patch GGUFParameter to work with accelerate's cpu_offload.
@@ -51,12 +59,21 @@ UNSLOTH_CONNECTOR_FILE = (
 class VIDEO:
     """Video generation using LTX-2.3 with GGUF-quantized transformer.
 
+    Supports multiple generation modes:
+      - Text-to-video (+ audio): prompt only
+      - Image-to-video (+ audio): image + optional prompt
+      - Video-to-video (+ audio): conditioning frames at arbitrary indices + optional prompt
+
+    All modes produce both video frames and synchronized audio.
+
     Uses a Q4_K_M GGUF transformer from unsloth/LTX-2.3-GGUF for efficient
     inference, combined with the full pipeline components from Lightricks/LTX-2.
     Sequential CPU offload keeps peak VRAM usage low.
 
     Model: https://huggingface.co/unsloth/LTX-2.3-GGUF
     """
+
+    AUDIO_SAMPLE_RATE = 24000
 
     def __init__(
         self,
@@ -67,7 +84,9 @@ class VIDEO:
         global import_success
         self.local_uri = local_uri
         self.device = device
-        self.pipe = None
+        self.pipe = None  # LTX2Pipeline (text-to-video)
+        self.pipe_i2v = None  # LTX2ImageToVideoPipeline
+        self.pipe_cond = None  # LTX2ConditionPipeline
         self.dtype = None
 
         if not import_success:
@@ -236,6 +255,18 @@ class VIDEO:
                 self.pipe.enable_vae_slicing()
             except Exception:
                 pass
+
+            # Build image-to-video and condition pipelines from the same components.
+            # They share all weights (no extra memory), just different __call__ logic.
+            components = self.pipe.components
+            self.pipe_i2v = LTX2ImageToVideoPipeline(**components)
+            self.pipe_cond = LTX2ConditionPipeline(
+                **{k: v for k, v in components.items() if k != "processor"}
+            )
+            # Copy over accelerate hooks so offloading works on all pipelines
+            if hasattr(self.pipe, "_all_hooks") and self.pipe._all_hooks:
+                self.pipe_i2v._all_hooks = self.pipe._all_hooks
+                self.pipe_cond._all_hooks = self.pipe._all_hooks
 
             logging.info(
                 f"[VIDEO] LTX-2.3 GGUF loaded successfully on {device} with dtype {dtype}"
@@ -435,11 +466,18 @@ class VIDEO:
         num_frames=121,
         frame_rate=24,
         size="768x512",
+        image=None,
+        conditions=None,
     ):
-        """Generate a video from a text prompt.
+        """Generate a video, optionally conditioned on image/video frames.
+
+        Args:
+            image: PIL Image for image-to-video mode. First frame stays fixed.
+            conditions: List of dicts with keys 'image' (PIL or path), 'index' (int),
+                        'strength' (float 0-1) for multi-frame conditioning (video-to-video).
 
         Returns:
-            Path to saved video file or None on failure
+            Path to saved video file (MP4 with audio) or None on failure
         """
         new_file_name = f"outputs/{uuid.uuid4()}.mp4"
 
@@ -466,16 +504,27 @@ class VIDEO:
         # when shift_terminal is configured with the flow matching scheduler)
         num_inference_steps = max(num_inference_steps, 2)
 
+        # Determine generation mode
+        if conditions and self.pipe_cond:
+            mode = "condition"
+        elif image is not None and self.pipe_i2v:
+            mode = "i2v"
+        else:
+            mode = "t2v"
+
         try:
-            result = self._generate_ltx2(
-                prompt,
-                negative_prompt,
-                width,
-                height,
-                num_inference_steps,
-                guidance_scale,
-                num_frames,
-                frame_rate,
+            result = self._run_pipeline(
+                mode=mode,
+                prompt=prompt,
+                negative_prompt=negative_prompt,
+                width=width,
+                height=height,
+                num_inference_steps=num_inference_steps,
+                guidance_scale=guidance_scale,
+                num_frames=num_frames,
+                frame_rate=frame_rate,
+                image=image,
+                conditions=conditions,
             )
 
             if result is None:
@@ -504,8 +553,9 @@ class VIDEO:
                 )
             raise
 
-    def _generate_ltx2(
+    def _run_pipeline(
         self,
+        mode,
         prompt,
         negative_prompt,
         width,
@@ -514,13 +564,13 @@ class VIDEO:
         guidance_scale,
         num_frames,
         frame_rate,
+        image=None,
+        conditions=None,
     ):
-        """Generate video using LTX-2 pipeline."""
-        # Always use CPU generator - avoids device mismatches with CPU offload
-        # and CPU-only mode (GGUF parameters stay on CPU regardless)
+        """Run the appropriate LTX-2.3 pipeline based on mode."""
         generator = torch.Generator(device="cpu").manual_seed(42)
 
-        result = self.pipe(
+        common_kwargs = dict(
             prompt=prompt,
             negative_prompt=negative_prompt,
             width=width,
@@ -532,14 +582,64 @@ class VIDEO:
             generator=generator,
         )
 
-        return result
+        if mode == "i2v":
+            logging.info("[VIDEO] Running image-to-video pipeline")
+            return self.pipe_i2v(image=image, **common_kwargs)
+        elif mode == "condition":
+            logging.info("[VIDEO] Running condition pipeline (video-to-video)")
+            ltx_conditions = self._build_conditions(conditions)
+            return self.pipe_cond(conditions=ltx_conditions, **common_kwargs)
+        else:
+            logging.info("[VIDEO] Running text-to-video pipeline")
+            return self.pipe(**common_kwargs)
+
+    @staticmethod
+    def _build_conditions(conditions):
+        """Convert condition dicts to LTX2VideoCondition objects."""
+        from PIL import Image
+
+        ltx_conditions = []
+        for cond in conditions:
+            frames = cond.get("image") or cond.get("frames")
+            if isinstance(frames, str):
+                frames = Image.open(frames).convert("RGB")
+            ltx_conditions.append(
+                LTX2VideoCondition(
+                    frames=frames,
+                    index=cond.get("index", 0),
+                    strength=cond.get("strength", 1.0),
+                )
+            )
+        return ltx_conditions
 
     def _export_video(self, result, output_path, fps):
-        """Export pipeline result to a video file."""
+        """Export pipeline result to a video file, with audio if available."""
+        has_audio = hasattr(result, "audio") and result.audio is not None
+        frames = result.frames[0]
+
+        if has_audio:
+            # Use PyAV to mux video + audio into a single MP4
+            try:
+                from diffusers.pipelines.ltx2.export_utils import encode_video
+
+                encode_video(
+                    video=frames,
+                    fps=fps,
+                    audio=result.audio,
+                    audio_sample_rate=self.AUDIO_SAMPLE_RATE,
+                    output_path=output_path,
+                )
+                return
+            except Exception as e:
+                logging.warning(
+                    f"[VIDEO] encode_video (audio+video) failed: {e}, "
+                    "falling back to video-only export"
+                )
+
+        # Video-only export
         try:
             from diffusers.utils import export_to_video
 
-            frames = result.frames[0]
             export_to_video(frames, output_path, fps=fps)
             return
         except (ImportError, AttributeError, Exception) as e:
@@ -550,7 +650,6 @@ class VIDEO:
             import cv2
             import numpy as np
 
-            frames = result.frames[0]
             if not frames:
                 return
 

@@ -1514,8 +1514,14 @@ async def generate_image(
     }
 
 
+class VideoConditionFrame(BaseModel):
+    image: str  # base64-encoded image or URL
+    index: Optional[int] = 0  # frame index (supports negative indexing)
+    strength: Optional[float] = 1.0  # conditioning strength 0.0-1.0
+
+
 class VideoCreation(BaseModel):
-    prompt: str
+    prompt: Optional[str] = ""
     model: Optional[str] = "unsloth/LTX-2.3-GGUF"
     n: Optional[int] = 1
     size: Optional[str] = "768x512"
@@ -1524,6 +1530,10 @@ class VideoCreation(BaseModel):
     guidance_scale: Optional[float] = 4.0
     frame_rate: Optional[int] = 24
     response_format: Optional[str] = "url"
+    image: Optional[str] = None  # base64-encoded image for image-to-video
+    conditions: Optional[list[VideoConditionFrame]] = (
+        None  # conditioning frames for video-to-video
+    )
 
 
 @app.post(
@@ -1586,18 +1596,40 @@ async def generate_video(
                 except Exception as e:
                     logging.warning(f"[VIDEO] Fallback failed: {e}, using local")
 
+    # Decode image input (base64 or URL) for image-to-video mode
+    pil_image = None
+    if video_creation.image:
+        pil_image = _decode_video_image(video_creation.image)
+
+    # Build condition frames for video-to-video mode
+    cond_list = None
+    if video_creation.conditions:
+        cond_list = []
+        for cond in video_creation.conditions:
+            cond_list.append(
+                {
+                    "image": _decode_video_image(cond.image),
+                    "index": cond.index,
+                    "strength": cond.strength,
+                }
+            )
+
+    gen_kwargs = dict(
+        prompt=video_creation.prompt,
+        response_format=video_creation.response_format,
+        size=video_creation.size,
+        num_frames=video_creation.num_frames,
+        num_inference_steps=video_creation.num_inference_steps,
+        guidance_scale=video_creation.guidance_scale,
+        frame_rate=video_creation.frame_rate,
+        image=pil_image,
+        conditions=cond_list,
+    )
+
     videos = []
     if int(video_creation.n) > 1:
         for i in range(video_creation.n):
-            video = await pipe.generate_video(
-                prompt=video_creation.prompt,
-                response_format=video_creation.response_format,
-                size=video_creation.size,
-                num_frames=video_creation.num_frames,
-                num_inference_steps=video_creation.num_inference_steps,
-                guidance_scale=video_creation.guidance_scale,
-                frame_rate=video_creation.frame_rate,
-            )
+            video = await pipe.generate_video(**gen_kwargs)
             if video_creation.response_format == "url":
                 videos.append({"url": video})
             else:
@@ -1606,15 +1638,7 @@ async def generate_video(
             "created": int(time.time()),
             "data": videos,
         }
-    video = await pipe.generate_video(
-        prompt=video_creation.prompt,
-        response_format=video_creation.response_format,
-        size=video_creation.size,
-        num_frames=video_creation.num_frames,
-        num_inference_steps=video_creation.num_inference_steps,
-        guidance_scale=video_creation.guidance_scale,
-        frame_rate=video_creation.frame_rate,
-    )
+    video = await pipe.generate_video(**gen_kwargs)
     if video_creation.response_format == "url":
         return {
             "created": int(time.time()),
@@ -1624,6 +1648,19 @@ async def generate_video(
         "created": int(time.time()),
         "data": [{"b64_json": video}],
     }
+
+
+def _decode_video_image(image_input: str):
+    """Decode a base64-encoded image string or data URL to PIL Image."""
+    import base64
+    from io import BytesIO
+    from PIL import Image
+
+    if image_input.startswith("data:"):
+        # data:image/png;base64,...
+        image_input = image_input.split(",", 1)[1]
+    raw = base64.b64decode(image_input)
+    return Image.open(BytesIO(raw)).convert("RGB")
 
 
 # Queue management endpoints

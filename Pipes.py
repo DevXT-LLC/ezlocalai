@@ -5100,6 +5100,8 @@ class Pipes:
         num_inference_steps=40,
         guidance_scale=4.0,
         frame_rate=24,
+        image=None,
+        conditions=None,
     ):
         async with self._video_lock:
             video = self._get_video()
@@ -5116,6 +5118,8 @@ class Pipes:
                         num_inference_steps=num_inference_steps,
                         guidance_scale=guidance_scale,
                         frame_rate=frame_rate,
+                        image=image,
+                        conditions=conditions,
                     )
                 finally:
                     self.resource_manager.mark_model_in_use(ModelType.VIDEO, False)
