@@ -1831,11 +1831,17 @@ async def generate_video(
 
 
 def _decode_video_image(image_input: str):
-    """Decode a base64-encoded image string or data URL to PIL Image."""
+    """Decode an image string (base64, data URL, or HTTP URL) to PIL Image."""
     import base64
     from io import BytesIO
     from PIL import Image
 
+    if image_input.startswith(("http://", "https://")):
+        import requests as _requests
+
+        resp = _requests.get(image_input, timeout=30)
+        resp.raise_for_status()
+        return Image.open(BytesIO(resp.content)).convert("RGB")
     if image_input.startswith("data:"):
         # data:image/png;base64,...
         image_input = image_input.split(",", 1)[1]
