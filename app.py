@@ -1720,9 +1720,12 @@ async def generate_video(
                 )
                 if result is not None:
                     return result
+                logging.warning(
+                    "[VIDEO] Image server returned None (non-200 or timeout)"
+                )
             except Exception as e:
                 logging.warning(
-                    f"[VIDEO] Image server forward failed: {e}, using local"
+                    f"[VIDEO] Image server forward failed: {e}, trying fallback"
                 )
 
     if getenv("VIDEO_MODEL") == "" or getenv("VIDEO_MODEL").lower() == "none":

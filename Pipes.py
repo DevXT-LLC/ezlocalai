@@ -1719,7 +1719,7 @@ class ImageServerClient:
                     f"{self.base_url}/v1/videos/generations",
                     json=payload,
                     headers=self._get_headers(),
-                    timeout=aiohttp.ClientTimeout(total=600),
+                    timeout=aiohttp.ClientTimeout(total=1800),
                 ) as resp:
                     if resp.status == 200:
                         return await resp.json()

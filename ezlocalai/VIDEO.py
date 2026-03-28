@@ -406,6 +406,12 @@ class VIDEO:
             except Exception:
                 pass
 
+            try:
+                self.pipe.enable_vae_tiling()
+                logging.info("[VIDEO] VAE tiling enabled (reduces decode VRAM)")
+            except Exception:
+                pass
+
             # Build image-to-video and condition pipelines from the same components.
             # They share all weights (no extra memory), just different __call__ logic.
             components = self.pipe.components
@@ -831,14 +837,59 @@ class VIDEO:
         frame_rate,
         output_file,
     ):
-        """Attempt generation fully on CPU after GPU OOM."""
+        """Attempt generation with reduced resolution/frames or VAE decode on CPU after GPU OOM."""
+        logging.warning("[VIDEO] Attempting reduced-resolution GPU retry...")
+        gc.collect()
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+
+        # First try: reduce resolution and frame count to fit in VRAM
+        reduced_width = min(width, 512)
+        reduced_height = min(height, 320)
+        reduced_frames = min(num_frames, 41)  # 5*8+1
+        if (reduced_frames - 1) % 8 != 0:
+            reduced_frames = ((reduced_frames - 1) // 8) * 8 + 1
+
+        try:
+            logging.info(
+                f"[VIDEO] Retrying at {reduced_width}x{reduced_height}, "
+                f"{reduced_frames} frames (down from {width}x{height}, {num_frames})"
+            )
+            generator = torch.Generator(device="cpu").manual_seed(42)
+
+            result = self.pipe(
+                prompt=prompt,
+                negative_prompt=negative_prompt,
+                width=reduced_width,
+                height=reduced_height,
+                num_frames=reduced_frames,
+                frame_rate=frame_rate,
+                num_inference_steps=num_inference_steps,
+                guidance_scale=guidance_scale,
+                generator=generator,
+            )
+
+            self._export_video(result, output_file, frame_rate)
+
+            if self.local_uri:
+                return f"{self.local_uri}/{output_file}"
+            return output_file
+
+        except (torch.cuda.OutOfMemoryError, RuntimeError) as retry_error:
+            error_str = str(retry_error).lower()
+            if "out of memory" not in error_str and "cuda" not in error_str:
+                raise
+            logging.warning(
+                f"[VIDEO] Reduced resolution also OOM'd: {retry_error}"
+            )
+
+        # Second try: full CPU fallback
         logging.warning("[VIDEO] Attempting full CPU fallback...")
         gc.collect()
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
 
         try:
-            # Remove all accelerate hooks (from sequential/model CPU offload)
             self.pipe.remove_all_hooks()
 
             for _, component in self.pipe.components.items():
@@ -857,9 +908,9 @@ class VIDEO:
             result = self.pipe(
                 prompt=prompt,
                 negative_prompt=negative_prompt,
-                width=width,
-                height=height,
-                num_frames=num_frames,
+                width=reduced_width,
+                height=reduced_height,
+                num_frames=reduced_frames,
                 frame_rate=frame_rate,
                 num_inference_steps=num_inference_steps,
                 guidance_scale=guidance_scale,
