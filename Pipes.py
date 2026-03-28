@@ -1706,7 +1706,11 @@ class ImageServerClient:
                 payload["image"] = image
             if conditions:
                 payload["conditions"] = [
-                    {"image": c.get("image", ""), "index": c.get("index", 0), "strength": c.get("strength", 1.0)}
+                    {
+                        "image": c.get("image", ""),
+                        "index": c.get("index", 0),
+                        "strength": c.get("strength", 1.0),
+                    }
                     for c in conditions
                 ]
 
@@ -4682,6 +4686,11 @@ class Pipes:
         resource_mgr = get_resource_manager()
         resource_mgr.mark_model_in_use(ModelType.IMG, False)
 
+        # In image server mode, keep IMG loaded unless forced
+        if is_image_server_mode() and not force:
+            logging.debug("[IMG] Image server mode - keeping IMG loaded")
+            return
+
         # Always unload IMG after use - uses ~16GB VRAM and loads in ~2-3s
         if self.img is not None:
             img_ref = self.img
@@ -4705,9 +4714,7 @@ class Pipes:
 
         # Skip loading if image server URL is configured (passthrough mode)
         if has_image_server_url():
-            logging.debug(
-                "[VIDEO] Image server configured - skipping local model load"
-            )
+            logging.debug("[VIDEO] Image server configured - skipping local model load")
             return None
 
         if self.video is None and video_import_success:
@@ -4795,6 +4802,11 @@ class Pipes:
         """
         resource_mgr = get_resource_manager()
         resource_mgr.mark_model_in_use(ModelType.VIDEO, False)
+
+        # In image server mode, keep VIDEO loaded unless forced
+        if is_image_server_mode() and not force:
+            logging.debug("[VIDEO] Image server mode - keeping VIDEO loaded")
+            return
 
         # Always unload VIDEO after use - uses ~24GB VRAM
         if self.video is not None:
