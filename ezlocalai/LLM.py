@@ -889,8 +889,11 @@ class LLM:
                 "[LLM] GeneratorExit received, setting cancel_event to free slot"
             )
             cancel_event.set()
-            # Wait briefly for the inference thread to notice and finish
-            inference_thread.join(timeout=5.0)
+            # Wait briefly for the inference thread to notice and finish,
+            # but only if we're not already on that thread (which can happen
+            # when close() propagates through nested generators).
+            if threading.current_thread() is not inference_thread:
+                inference_thread.join(timeout=5.0)
             return
 
         # Wait for thread to complete
