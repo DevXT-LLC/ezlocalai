@@ -344,13 +344,16 @@ class VIDEO:
             )
 
             if is_cuda:
-                # Choose offload strategy based on available VRAM:
-                #  - >=20GB free: model CPU offload (moves whole modules, fast)
-                #  - <20GB free: sequential CPU offload (moves individual layers,
-                #    ~300MB each, slower but works with only ~8GB free VRAM)
-                free_mem_now, _ = torch.cuda.mem_get_info(gpu_idx)
-                free_gb_now = free_mem_now / (1024**3)
-                use_model_offload = free_gb_now >= 20.0
+                # Choose offload strategy based on total GPU capacity:
+                #  - >=20GB total: model CPU offload (moves whole modules, fast)
+                #  - <20GB total: sequential CPU offload (moves individual layers,
+                #    ~300MB each, slower but works with only ~8GB VRAM GPUs)
+                # We use total VRAM, not free, because model_cpu_offload moves
+                # modules to CPU after setup. Free VRAM during loading is
+                # misleadingly low due to temporary allocations.
+                _, total_mem = torch.cuda.mem_get_info(gpu_idx)
+                total_gb = total_mem / (1024**3)
+                use_model_offload = total_gb >= 20.0
 
                 if text_encoder_is_bnb or text_encoder_is_quanto:
                     # Both BNB and quanto use custom tensor types that cannot
@@ -363,13 +366,13 @@ class VIDEO:
                         self.pipe.enable_model_cpu_offload(gpu_id=gpu_idx)
                         logging.info(
                             f"[VIDEO] Model CPU offload enabled on GPU {gpu_idx} "
-                            f"({free_gb_now:.1f}GB free - whole-module transfers)"
+                            f"({total_gb:.1f}GB total - whole-module transfers)"
                         )
                     else:
                         self.pipe.enable_sequential_cpu_offload(gpu_id=gpu_idx)
                         logging.info(
                             f"[VIDEO] Sequential CPU offload enabled on GPU {gpu_idx} "
-                            f"({free_gb_now:.1f}GB free - per-layer transfers)"
+                            f"({total_gb:.1f}GB total - per-layer transfers)"
                         )
                 except Exception as e:
                     offload_type = "Model" if use_model_offload else "Sequential"

@@ -3329,35 +3329,11 @@ class Pipes:
                 f"[STT] Voice server configured ({voice_url}) - skipping local model loading"
             )
 
-        # Pre-load IMG and VIDEO models in image server mode to avoid cold-start delays.
-        # In image server mode, these models are kept resident after first use anyway,
-        # so pre-loading them at startup eliminates the 10+ minute wait on the first request.
+        # Pre-load VIDEO and IMG models in image server mode to avoid cold-start delays.
+        # VIDEO loads first because it benefits most from model CPU offload (moves
+        # whole modules vs individual layers) and needs maximum free VRAM during
+        # pipeline setup. IMG loads second since it's smaller (~4GB GGUF).
         if is_image_server_mode():
-            IMG_MODEL = getenv("IMG_MODEL")
-            if IMG_MODEL and IMG_MODEL.lower() != "none" and img_import_success:
-                logging.info(
-                    f"[IMG] Image server mode - pre-loading {IMG_MODEL} to keep resident"
-                )
-                start_time = time.time()
-                try:
-                    self.img = IMG(
-                        model=IMG_MODEL,
-                        local_uri=getenv("EZLOCALAI_URL"),
-                        device="cuda",
-                    )
-                    load_time = time.time() - start_time
-                    logging.info(
-                        f"[IMG] {IMG_MODEL} loaded in {load_time:.1f}s (image server mode - staying loaded)"
-                    )
-                    self.resource_manager.register_model(
-                        ModelType.IMG, IMG_MODEL, "cuda", vram_gb=4.0
-                    )
-                except Exception as e:
-                    logging.warning(
-                        f"[IMG] Failed to pre-load {IMG_MODEL}: {e}. Will lazy-load on first request."
-                    )
-                    self.img = None
-
             VIDEO_MODEL = getenv("VIDEO_MODEL")
             if VIDEO_MODEL and VIDEO_MODEL.lower() != "none" and video_import_success:
                 logging.info(
@@ -3382,6 +3358,31 @@ class Pipes:
                         f"[VIDEO] Failed to pre-load {VIDEO_MODEL}: {e}. Will lazy-load on first request."
                     )
                     self.video = None
+
+            IMG_MODEL = getenv("IMG_MODEL")
+            if IMG_MODEL and IMG_MODEL.lower() != "none" and img_import_success:
+                logging.info(
+                    f"[IMG] Image server mode - pre-loading {IMG_MODEL} to keep resident"
+                )
+                start_time = time.time()
+                try:
+                    self.img = IMG(
+                        model=IMG_MODEL,
+                        local_uri=getenv("EZLOCALAI_URL"),
+                        device="cuda",
+                    )
+                    load_time = time.time() - start_time
+                    logging.info(
+                        f"[IMG] {IMG_MODEL} loaded in {load_time:.1f}s (image server mode - staying loaded)"
+                    )
+                    self.resource_manager.register_model(
+                        ModelType.IMG, IMG_MODEL, "cuda", vram_gb=4.0
+                    )
+                except Exception as e:
+                    logging.warning(
+                        f"[IMG] Failed to pre-load {IMG_MODEL}: {e}. Will lazy-load on first request."
+                    )
+                    self.img = None
 
         NGROK_TOKEN = getenv("NGROK_TOKEN")
         if NGROK_TOKEN:
@@ -5613,6 +5614,16 @@ class Pipes:
         conditions=None,
     ):
         async with self._video_lock:
+            # Temporarily unload IMG model to free VRAM for video generation.
+            # Video inference needs the full transformer on GPU (~14GB for Q4)
+            # and benefits greatly from having maximum headroom.
+            img_was_loaded = self.img is not None
+            if img_was_loaded:
+                logging.info(
+                    "[VIDEO] Temporarily unloading IMG to free VRAM for video generation"
+                )
+                self._destroy_img(async_cleanup=False, force=True)
+
             video = self._get_video()
             if video:
                 self.resource_manager.mark_model_in_use(ModelType.VIDEO, True)
@@ -5632,6 +5643,27 @@ class Pipes:
                     )
                 finally:
                     self.resource_manager.mark_model_in_use(ModelType.VIDEO, False)
+                    # Reload IMG if it was loaded before
+                    if img_was_loaded and self.img is None:
+                        try:
+                            IMG_MODEL = getenv("IMG_MODEL")
+                            if IMG_MODEL and IMG_MODEL.lower() != "none":
+                                logging.info(
+                                    "[IMG] Reloading after video generation"
+                                )
+                                self.img = IMG(
+                                    model=IMG_MODEL,
+                                    local_uri=self.local_uri,
+                                    device="cuda" if torch.cuda.is_available() else "cpu",
+                                )
+                                self.resource_manager.register_model(
+                                    ModelType.IMG, IMG_MODEL, "cuda", vram_gb=4.0
+                                )
+                        except Exception as e:
+                            logging.warning(
+                                f"[IMG] Failed to reload after video: {e}. "
+                                "Will lazy-load on next image request."
+                            )
                 # Keep video model loaded - reloading the 24GB text encoder each
                 # time is slow (~10s) and causes dangerous memory spikes.
                 if response_format != "url" and result:
