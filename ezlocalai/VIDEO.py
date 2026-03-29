@@ -870,13 +870,18 @@ class VIDEO:
         frame_rate,
         output_file,
     ):
-        """Attempt generation with reduced resolution/frames or VAE decode on CPU after GPU OOM."""
+        """Attempt generation at reduced resolution after GPU OOM.
+
+        Only retries at lower resolution on GPU.  Does NOT attempt full CPU
+        fallback because BNB 4-bit text encoder tensors are GPU-only and
+        moving them to CPU produces corrupted/garbage output.
+        """
         logging.warning("[VIDEO] Attempting reduced-resolution GPU retry...")
         gc.collect()
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
 
-        # First try: reduce resolution and frame count to fit in VRAM
+        # Reduce resolution and frame count to fit in VRAM
         reduced_width = min(width, 512)
         reduced_height = min(height, 320)
         reduced_frames = min(num_frames, 41)  # 5*8+1
@@ -908,54 +913,9 @@ class VIDEO:
                 return f"{self.local_uri}/{output_file}"
             return output_file
 
-        except (torch.cuda.OutOfMemoryError, RuntimeError) as retry_error:
-            error_str = str(retry_error).lower()
-            if "out of memory" not in error_str and "cuda" not in error_str:
-                raise
-            logging.warning(
-                f"[VIDEO] Reduced resolution also OOM'd: {retry_error}"
+        except Exception as retry_error:
+            logging.error(
+                f"[VIDEO] Reduced resolution also failed: {retry_error}. "
+                "Cannot fall back to CPU (BNB 4-bit text encoder is GPU-only)."
             )
-
-        # Second try: full CPU fallback
-        logging.warning("[VIDEO] Attempting full CPU fallback...")
-        gc.collect()
-        if torch.cuda.is_available():
-            torch.cuda.empty_cache()
-
-        try:
-            self.pipe.remove_all_hooks()
-
-            for _, component in self.pipe.components.items():
-                if isinstance(component, torch.nn.Module):
-                    try:
-                        component.to("cpu")
-                    except Exception:
-                        pass
-
-            gc.collect()
-            if torch.cuda.is_available():
-                torch.cuda.empty_cache()
-
-            generator = torch.Generator(device="cpu").manual_seed(42)
-
-            result = self.pipe(
-                prompt=prompt,
-                negative_prompt=negative_prompt,
-                width=reduced_width,
-                height=reduced_height,
-                num_frames=reduced_frames,
-                frame_rate=frame_rate,
-                num_inference_steps=num_inference_steps,
-                guidance_scale=guidance_scale,
-                generator=generator,
-            )
-
-            self._export_video(result, output_file, frame_rate)
-
-            if self.local_uri:
-                return f"{self.local_uri}/{output_file}"
-            return output_file
-
-        except Exception as cpu_error:
-            logging.error(f"[VIDEO] CPU fallback also failed: {cpu_error}")
             return None
