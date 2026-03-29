@@ -4,6 +4,12 @@ import torch
 import gc
 import os
 
+# Enable expandable segments to reduce CUDA memory fragmentation.
+# This is critical for sequential CPU offload where layers are repeatedly
+# moved to/from GPU, causing fragmentation over 40+ inference steps.
+if "PYTORCH_CUDA_ALLOC_CONF" not in os.environ:
+    os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
+
 # LTX-2.3 requires diffusers with LTX2Pipeline and GGUF support
 import_success = False
 
@@ -345,15 +351,16 @@ class VIDEO:
 
             if is_cuda:
                 # Choose offload strategy based on total GPU capacity:
-                #  - >=20GB total: model CPU offload (moves whole modules, fast)
-                #  - <20GB total: sequential CPU offload (moves individual layers,
-                #    ~300MB each, slower but works with only ~8GB VRAM GPUs)
-                # We use total VRAM, not free, because model_cpu_offload moves
-                # modules to CPU after setup. Free VRAM during loading is
-                # misleadingly low due to temporary allocations.
+                #  - >=40GB total: model CPU offload (moves whole modules, fast)
+                #  - <40GB total: sequential CPU offload (moves individual layers,
+                #    ~300MB each, slower but fits in limited VRAM)
+                # The Q4_K_M GGUF transformer is ~14GB. Model CPU offload loads
+                # the entire module onto GPU during forward pass, so you need
+                # the 14GB model + activation memory + text encoder + VAE.
+                # 24GB GPUs OOM with model offload; 40GB+ (A100, A6000) can use it.
                 _, total_mem = torch.cuda.mem_get_info(gpu_idx)
                 total_gb = total_mem / (1024**3)
-                use_model_offload = total_gb >= 20.0
+                use_model_offload = total_gb >= 40.0
 
                 if text_encoder_is_bnb or text_encoder_is_quanto:
                     # Both BNB and quanto use custom tensor types that cannot
