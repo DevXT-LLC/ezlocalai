@@ -1205,14 +1205,14 @@ def check_prerequisites(native_mode: bool = False) -> tuple[bool, str]:
         # Check for NVIDIA GPU (nvidia-smi or Jetson)
         if has_nvidia_gpu():
             gpu_info = get_nvidia_gpu_info()
-            print(f"✅ NVIDIA GPU detected: {gpu_info}")
+            print(f"NVIDIA GPU detected: {gpu_info}")
             gpu_type = "nvidia"
         elif is_jetson() and has_jetson_cuda():
-            print("✅ NVIDIA Jetson detected with CUDA support")
+            print("NVIDIA Jetson detected with CUDA support")
             gpu_type = "nvidia"
         elif has_amd_gpu() and has_rocm_support():
             gpu_info = get_amd_gpu_info()
-            print(f"✅ AMD GPU detected: {gpu_info}")
+            print(f"AMD GPU detected: {gpu_info}")
             gpu_type = "amd"
         else:
             print("ℹ️  No GPU detected, running on CPU")
@@ -1251,11 +1251,11 @@ def check_prerequisites(native_mode: bool = False) -> tuple[bool, str]:
     gpu_type = "cpu"
     if is_jetson() and has_jetson_cuda():
         # Jetson detected with CUDA — use the Jetson Docker image
-        print("✅ NVIDIA Jetson detected with CUDA support")
+        print("NVIDIA Jetson detected with CUDA support")
         gpu_type = "jetson"
     elif has_nvidia_gpu():
         gpu_info = get_nvidia_gpu_info()
-        print(f"✅ NVIDIA GPU detected: {gpu_info}")
+        print(f"NVIDIA GPU detected: {gpu_info}")
 
         if has_nvidia_container_toolkit():
             # print("✅ NVIDIA Container Toolkit is installed")
@@ -2568,7 +2568,7 @@ def start_container(
 
     # Check if already running
     if is_container_running():
-        print(f"   ezLocalai is online at {_get_effective_url()}")
+        print(f"ezLocalai is online at {_get_effective_url()}")
         return
 
     # Load existing env or defaults
