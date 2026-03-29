@@ -344,10 +344,14 @@ class VIDEO:
             )
 
             if is_cuda:
-                # Sequential CPU offload moves individual transformer layers to GPU
-                # one at a time (~300MB each), allowing a 14GB Q4_K_M model to run
-                # on a GPU with only ~8GB free VRAM.
-                # Requires the GGUFParameter monkey-patch above.
+                # Choose offload strategy based on available VRAM:
+                #  - >=20GB free: model CPU offload (moves whole modules, fast)
+                #  - <20GB free: sequential CPU offload (moves individual layers,
+                #    ~300MB each, slower but works with only ~8GB free VRAM)
+                free_mem_now, _ = torch.cuda.mem_get_info(gpu_idx)
+                free_gb_now = free_mem_now / (1024**3)
+                use_model_offload = free_gb_now >= 20.0
+
                 if text_encoder_is_bnb or text_encoder_is_quanto:
                     # Both BNB and quanto use custom tensor types that cannot
                     # survive the meta-device round-trip that sequential offload
@@ -355,13 +359,22 @@ class VIDEO:
                     saved_te = self.pipe.text_encoder
                     self.pipe.text_encoder = None
                 try:
-                    self.pipe.enable_sequential_cpu_offload(gpu_id=gpu_idx)
-                    logging.info(
-                        f"[VIDEO] Sequential CPU offload enabled on GPU {gpu_idx}"
-                    )
+                    if use_model_offload:
+                        self.pipe.enable_model_cpu_offload(gpu_id=gpu_idx)
+                        logging.info(
+                            f"[VIDEO] Model CPU offload enabled on GPU {gpu_idx} "
+                            f"({free_gb_now:.1f}GB free - whole-module transfers)"
+                        )
+                    else:
+                        self.pipe.enable_sequential_cpu_offload(gpu_id=gpu_idx)
+                        logging.info(
+                            f"[VIDEO] Sequential CPU offload enabled on GPU {gpu_idx} "
+                            f"({free_gb_now:.1f}GB free - per-layer transfers)"
+                        )
                 except Exception as e:
+                    offload_type = "Model" if use_model_offload else "Sequential"
                     logging.warning(
-                        f"[VIDEO] Sequential CPU offload failed ({e}), "
+                        f"[VIDEO] {offload_type} CPU offload failed ({e}), "
                         "falling back to CPU"
                     )
                     import traceback

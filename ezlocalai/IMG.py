@@ -169,14 +169,30 @@ class IMG:
             )
 
             if is_cuda:
+                # Choose offload strategy based on available VRAM:
+                #  - >=10GB free: model CPU offload (moves whole modules, fast)
+                #  - <10GB free: sequential CPU offload (per-layer, slower)
+                free_mem_now, _ = torch.cuda.mem_get_info(gpu_idx)
+                free_gb_now = free_mem_now / (1024**3)
+                use_model_offload = free_gb_now >= 10.0
+
                 try:
-                    self.pipe.enable_sequential_cpu_offload(gpu_id=gpu_idx)
-                    logging.info(
-                        f"[IMG] Sequential CPU offload enabled on GPU {gpu_idx}"
-                    )
+                    if use_model_offload:
+                        self.pipe.enable_model_cpu_offload(gpu_id=gpu_idx)
+                        logging.info(
+                            f"[IMG] Model CPU offload enabled on GPU {gpu_idx} "
+                            f"({free_gb_now:.1f}GB free - whole-module transfers)"
+                        )
+                    else:
+                        self.pipe.enable_sequential_cpu_offload(gpu_id=gpu_idx)
+                        logging.info(
+                            f"[IMG] Sequential CPU offload enabled on GPU {gpu_idx} "
+                            f"({free_gb_now:.1f}GB free - per-layer transfers)"
+                        )
                 except Exception as e:
+                    offload_type = "Model" if use_model_offload else "Sequential"
                     logging.warning(
-                        f"[IMG] Sequential CPU offload failed ({e}), "
+                        f"[IMG] {offload_type} CPU offload failed ({e}), "
                         "falling back to CPU"
                     )
                     for name, component in self.pipe.components.items():
