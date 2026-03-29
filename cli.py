@@ -49,6 +49,7 @@ STATE_DIR.mkdir(parents=True, exist_ok=True)
 ENV_FILE = STATE_DIR / ".env"
 LOG_FILE = STATE_DIR / "ezlocalai.log"
 PID_FILE = STATE_DIR / "ezlocalai.pid"
+SOURCE_DIR_FILE = STATE_DIR / "source_dir"
 REPO_URL = "https://github.com/DevXT-LLC/ezlocalai.git"
 REPO_DIR = STATE_DIR / "repo"
 
@@ -531,14 +532,33 @@ def is_ezlocalai_folder(folder: Path) -> bool:
 
 
 def get_ezlocalai_source_dir() -> Optional[Path]:
-    """Get the ezlocalai source directory if running from within it.
+    """Get the ezlocalai source directory.
 
-    Returns the current working directory if it's the ezlocalai folder,
-    otherwise returns None.
+    Checks (in order):
+    1. Current working directory (if it's the ezlocalai folder)
+    2. Persisted source directory from ~/.ezlocalai/source_dir
+
+    When found via cwd, the path is persisted so future invocations
+    from other directories still find the source .env and compose files.
     """
     cwd = Path.cwd()
     if is_ezlocalai_folder(cwd):
+        # Persist for future use from other directories
+        try:
+            SOURCE_DIR_FILE.write_text(str(cwd), encoding="utf-8")
+        except OSError:
+            pass
         return cwd
+
+    # Check persisted path
+    if SOURCE_DIR_FILE.exists():
+        try:
+            saved = Path(SOURCE_DIR_FILE.read_text(encoding="utf-8").strip())
+            if saved.exists() and is_ezlocalai_folder(saved):
+                return saved
+        except (OSError, ValueError):
+            pass
+
     return None
 
 
