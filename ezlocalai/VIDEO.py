@@ -431,7 +431,17 @@ class VIDEO:
 
             try:
                 self.pipe.enable_vae_tiling()
-                logging.info("[VIDEO] VAE tiling enabled (reduces decode VRAM)")
+                logging.info("[VIDEO] VAE spatial tiling enabled (reduces decode VRAM)")
+            except Exception:
+                pass
+
+            # Enable framewise (temporal) decoding — decodes frames in chunks
+            # instead of all 121 at once.  Without this, VAE decode tries to
+            # allocate ~19GB for the full frame tensor, causing OOM on 24GB GPUs.
+            try:
+                self.pipe.vae.use_framewise_decoding = True
+                self.pipe.vae.use_framewise_encoding = True
+                logging.info("[VIDEO] VAE framewise decoding enabled (temporal tiling)")
             except Exception:
                 pass
 
