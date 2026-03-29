@@ -11,7 +11,7 @@ def getenv(var_name: str, default_value: str = None) -> str:
         "ALLOWED_DOMAINS": "*",
         "DEFAULT_MODEL": "unsloth/Qwen3.5-4B-GGUF",
         "WHISPER_MODEL": "large-v3",
-        "IMG_MODEL": "unsloth/FLUX.2-klein-4B-GGUF",  # Set to FLUX.2-klein-4B GGUF for image generation + editing, "none" or empty string to disable
+        "IMG_MODEL": "none",  # Set to "unsloth/FLUX.2-klein-4B-GGUF" for image generation + editing, "none" or empty string to disable
         "VIDEO_MODEL": "none",  # Set to "unsloth/LTX-2.3-GGUF" to enable video generation, "none" or empty string to disable
         "TTS_ENABLED": "true",
         "TTS_PROVIDER": "chatterbox",  # Chatterbox TTS
@@ -24,15 +24,15 @@ def getenv(var_name: str, default_value: str = None) -> str:
         "TENSOR_SPLIT": "",
         "QUANT_TYPE": "Q4_K_XL",
         "LLM_BATCH_SIZE": "2048",
-        "LLM_MAX_TOKENS": "40000",
+        "LLM_MAX_TOKENS": "65536",
         "REASONING_BUDGET": "-1",  # Max thinking tokens per response (-1 = unlimited, 0 = disabled, N = limit)
-        # Parallel inference slots — 0 = auto-scale (targets ~32K per slot, max 16),
-        # 1 = single slot (legacy), N = fixed number of parallel slots.
+        # Parallel inference slots — 1 = single slot (default),
+        # N = fixed number of parallel slots.
         # Each slot gets n_ctx / n_parallel tokens of context. VRAM is constant.
-        "N_PARALLEL": "0",
+        "N_PARALLEL": "1",
         "VLM_MAX_TOKENS": "8192",  # Vision models don't need large context
-        # Queue system defaults - supports concurrent requests with resource fallback
-        "MAX_CONCURRENT_REQUESTS": "16",
+        # Queue system defaults - MAX_CONCURRENT_REQUESTS should match N_PARALLEL
+        "MAX_CONCURRENT_REQUESTS": "1",
         "MAX_QUEUE_SIZE": "100",
         "REQUEST_TIMEOUT": "120",
         # How long (seconds) a request waits in queue before trying fallback server.

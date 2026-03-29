@@ -25,6 +25,7 @@ import platform
 import re
 import shutil
 import signal
+import socket
 import subprocess
 import sys
 import time
@@ -53,6 +54,25 @@ REPO_DIR = STATE_DIR / "repo"
 
 # Cache for uv availability (checked once per process)
 _uv_available: Optional[bool] = None
+
+
+def get_local_ip() -> str:
+    """Detect the local network IP address.
+
+    Uses a UDP socket trick to find the IP of the interface that would
+    route to the internet, without actually sending any data.
+    Falls back to 'localhost' if detection fails.
+    """
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        try:
+            s.connect(("8.8.8.8", 80))
+            ip = s.getsockname()[0]
+        finally:
+            s.close()
+        return ip
+    except Exception:
+        return "localhost"
 
 
 def _ensure_uv_installed() -> bool:
@@ -1205,7 +1225,7 @@ def check_prerequisites(native_mode: bool = False) -> tuple[bool, str]:
             print("   Try: sudo systemctl start docker")
         sys.exit(1)
 
-    print("✅ Docker is installed and running")
+    # print("✅ Docker is installed and running")
 
     # Check for NVIDIA GPU first
     gpu_type = "cpu"
@@ -1218,7 +1238,7 @@ def check_prerequisites(native_mode: bool = False) -> tuple[bool, str]:
         print(f"✅ NVIDIA GPU detected: {gpu_info}")
 
         if has_nvidia_container_toolkit():
-            print("✅ NVIDIA Container Toolkit is installed")
+            # print("✅ NVIDIA Container Toolkit is installed")
             gpu_type = "nvidia"
         else:
             if system == "linux":
@@ -1309,11 +1329,11 @@ def get_container_status() -> Optional[str]:
         return None
 
 
-def load_env_file() -> dict:
-    """Load environment variables from state file."""
+def _parse_env_file(path: Path) -> dict:
+    """Parse a .env file and return key-value pairs."""
     env_vars = {}
-    if ENV_FILE.exists():
-        for line in ENV_FILE.read_text(encoding="utf-8").splitlines():
+    if path.exists():
+        for line in path.read_text(encoding="utf-8").splitlines():
             line = line.strip()
             if not line or line.startswith("#"):
                 continue
@@ -1322,6 +1342,24 @@ def load_env_file() -> dict:
                 # Remove quotes
                 value = value.strip().strip('"').strip("'")
                 env_vars[key.strip()] = value
+    return env_vars
+
+
+def load_env_file() -> dict:
+    """Load environment variables, preferring the source directory .env.
+
+    Priority (highest wins):
+    1. .env in the ezlocalai source directory (if running from within it)
+    2. ~/.ezlocalai/.env (CLI state file)
+    """
+    env_vars = {}
+    # Start with CLI state file
+    env_vars.update(_parse_env_file(ENV_FILE))
+    # Override with source directory .env if available
+    source_dir = get_ezlocalai_source_dir()
+    if source_dir:
+        local_env = source_dir / ".env"
+        env_vars.update(_parse_env_file(local_env))
     return env_vars
 
 
@@ -1408,19 +1446,36 @@ def _write_compose_env(source_dir: Path, env_vars: dict) -> None:
 
 
 def get_default_env() -> dict:
-    """Get default environment variables."""
+    """Get default environment variables.
+
+    These should match the defaults in Globals.py so Docker and native
+    modes behave identically when no .env is present.
+    """
     return {
-        "EZLOCALAI_URL": f"http://localhost:{DEFAULT_PORT}",
+        "EZLOCALAI_URL": f"http://{get_local_ip()}:{DEFAULT_PORT}",
         "EZLOCALAI_API_KEY": "",
         "DEFAULT_MODEL": "unsloth/Qwen3.5-4B-GGUF",
         "WHISPER_MODEL": "large-v3",
-        "IMG_MODEL": "",
-        "VIDEO_MODEL": "",
+        "IMG_MODEL": "none",
+        "VIDEO_MODEL": "none",
         "NGROK_TOKEN": "",
-        "MAX_CONCURRENT_REQUESTS": "2",
+        "MAX_CONCURRENT_REQUESTS": "1",
         "MAX_QUEUE_SIZE": "100",
         "REQUEST_TIMEOUT": "300",
     }
+
+
+def _get_effective_url(env_vars: dict = None) -> str:
+    """Get the effective ezlocalai URL from env vars or defaults.
+
+    Loads env vars if not provided, falls back to default.
+    """
+    if env_vars is None:
+        env_vars = load_env_file()
+    url = env_vars.get("EZLOCALAI_URL", "")
+    if not url:
+        url = f"http://{get_local_ip()}:{DEFAULT_PORT}"
+    return url.rstrip("/")
 
 
 # ── Native mode process management ──────────────────────────────────────────
@@ -2076,7 +2131,7 @@ def start_native(
     # Check if already running
     if is_native_running():
         print(f"✅ ezlocalai is already running (native mode, PID {get_native_pid()})!")
-        print(f"   API: http://localhost:{DEFAULT_PORT}")
+        print(f"   ezLocalai is online at {_get_effective_url()}")
         return
 
     # Also check if Docker container is running
@@ -2197,12 +2252,13 @@ def start_native(
             sys.exit(1)
 
         try:
-            req = urllib.request.Request(f"http://localhost:{DEFAULT_PORT}/v1/models")
+            ezlocalai_url = _get_effective_url(env_vars)
+            req = urllib.request.Request(f"{ezlocalai_url}/v1/models")
             with urllib.request.urlopen(req, timeout=5) as response:
                 if response.status == 200:
                     print("\n✅ ezlocalai is ready! (native mode)")
-                    print(f"\n   🌐 API: http://localhost:{DEFAULT_PORT}")
-                    print(f"\n   📖 API Docs: http://localhost:{DEFAULT_PORT}/docs")
+                    print(f"\n   ezLocalai is online at {ezlocalai_url}")
+                    print(f"   📖 API Docs: {ezlocalai_url}/docs")
                     print(f"   📋 Logs: {LOG_FILE}")
                     return
         except Exception:
@@ -2216,7 +2272,7 @@ def start_native(
     print("\n⚠️  Server started but not responding yet.")
     print("   This is normal for first-time model downloads.")
     print(f"   Check logs: tail -f {LOG_FILE}")
-    print(f"\n   🌐 API: http://localhost:{DEFAULT_PORT}")
+    print(f"\n   ezLocalai is online at {_get_effective_url(env_vars)}")
 
 
 def _pid_alive(pid: int) -> bool:
@@ -2418,13 +2474,15 @@ def show_native_status() -> None:
     if not env_vars:
         env_vars = get_default_env()
 
+    ezlocalai_url = _get_effective_url(env_vars)
+
     if pid:
         print(f"✅ ezlocalai is running (native mode, PID {pid})")
-        print(f"\n   🌐 API: http://localhost:{DEFAULT_PORT}")
+        print(f"\n   ezLocalai is online at {ezlocalai_url}")
 
         # Show loaded model from API
         try:
-            req = urllib.request.Request(f"http://localhost:{DEFAULT_PORT}/v1/models")
+            req = urllib.request.Request(f"{ezlocalai_url}/v1/models")
             with urllib.request.urlopen(req, timeout=5) as response:
                 data = json.loads(response.read().decode())
                 models = [m.get("id") for m in data.get("data", [])]
@@ -2490,8 +2548,7 @@ def start_container(
 
     # Check if already running
     if is_container_running():
-        print(f"✅ ezlocalai is already running!")
-        print(f"   API: http://localhost:{DEFAULT_PORT}")
+        print(f"   ezLocalai is online at {_get_effective_url()}")
         return
 
     # Load existing env or defaults
@@ -2614,12 +2671,13 @@ def start_container(
         try:
             import urllib.request
 
-            req = urllib.request.Request(f"http://localhost:{DEFAULT_PORT}/v1/models")
+            ezlocalai_url = _get_effective_url(env_vars)
+            req = urllib.request.Request(f"{ezlocalai_url}/v1/models")
             with urllib.request.urlopen(req, timeout=5) as response:
                 if response.status == 200:
                     print("\n✅ ezlocalai is ready!")
-                    print(f"\n   🌐 API: http://localhost:{DEFAULT_PORT}")
-                    print(f"\n   📖 API Docs: http://localhost:{DEFAULT_PORT}/docs")
+                    print(f"\n   ezLocalai is online at {ezlocalai_url}")
+                    print(f"   📖 API Docs: {ezlocalai_url}/docs")
                     return
         except Exception:
             pass
@@ -2649,7 +2707,7 @@ def start_container(
     print("\n⚠️  Container started but server not responding yet.")
     print("   This is normal for first-time model downloads.")
     print(f"   Check logs with: ezlocalai logs")
-    print(f"\n   🌐 API: http://localhost:{DEFAULT_PORT}")
+    print(f"\n   ezLocalai is online at {_get_effective_url(env_vars)}")
 
 
 def _cleanup_all_ezlocalai_containers(
@@ -2767,20 +2825,22 @@ def show_status() -> None:
     if not env_vars:
         env_vars = get_default_env()
 
+    ezlocalai_url = _get_effective_url(env_vars)
+
     if not status:
         print("ℹ️  ezlocalai container not found")
         print("   Run 'ezlocalai start' to start the server")
     elif is_container_running():
         print(f"✅ ezlocalai is running")
         print(f"   Status: {status}")
-        print(f"\n   🌐 API: http://localhost:{DEFAULT_PORT}")
+        print(f"\n   ezLocalai is online at {ezlocalai_url}")
 
         # Show loaded model from API
         try:
             import urllib.request
             import json
 
-            req = urllib.request.Request(f"http://localhost:{DEFAULT_PORT}/v1/models")
+            req = urllib.request.Request(f"{ezlocalai_url}/v1/models")
             with urllib.request.urlopen(req, timeout=5) as response:
                 data = json.loads(response.read().decode())
                 models = [m.get("id") for m in data.get("data", [])]
@@ -3210,11 +3270,12 @@ def send_prompt(
     # Load env to get API key and default model if set
     env_vars = load_env_file()
     api_key = env_vars.get("EZLOCALAI_API_KEY", "")
+    ezlocalai_url = _get_effective_url(env_vars)
 
     # Get default model from running server if not specified
     if not model:
         try:
-            models_url = f"http://localhost:{DEFAULT_PORT}/v1/models"
+            models_url = f"{ezlocalai_url}/v1/models"
             req = urllib.request.Request(models_url)
             with urllib.request.urlopen(req, timeout=10) as response:
                 models_data = json.loads(response.read().decode("utf-8"))
@@ -3312,7 +3373,7 @@ def send_prompt(
         headers["Authorization"] = f"Bearer {api_key}"
 
     # Make the request
-    url = f"http://localhost:{DEFAULT_PORT}/v1/chat/completions"
+    url = f"{ezlocalai_url}/v1/chat/completions"
 
     try:
         data = json.dumps(payload).encode("utf-8")
