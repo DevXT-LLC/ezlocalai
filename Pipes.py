@@ -3329,6 +3329,60 @@ class Pipes:
                 f"[STT] Voice server configured ({voice_url}) - skipping local model loading"
             )
 
+        # Pre-load IMG and VIDEO models in image server mode to avoid cold-start delays.
+        # In image server mode, these models are kept resident after first use anyway,
+        # so pre-loading them at startup eliminates the 10+ minute wait on the first request.
+        if is_image_server_mode():
+            IMG_MODEL = getenv("IMG_MODEL")
+            if IMG_MODEL and IMG_MODEL.lower() != "none" and img_import_success:
+                logging.info(
+                    f"[IMG] Image server mode - pre-loading {IMG_MODEL} to keep resident"
+                )
+                start_time = time.time()
+                try:
+                    self.img = IMG(
+                        model=IMG_MODEL,
+                        local_uri=getenv("EZLOCALAI_URL"),
+                        device="cuda",
+                    )
+                    load_time = time.time() - start_time
+                    logging.info(
+                        f"[IMG] {IMG_MODEL} loaded in {load_time:.1f}s (image server mode - staying loaded)"
+                    )
+                    self.resource_manager.register_model(
+                        ModelType.IMG, IMG_MODEL, "cuda", vram_gb=4.0
+                    )
+                except Exception as e:
+                    logging.warning(
+                        f"[IMG] Failed to pre-load {IMG_MODEL}: {e}. Will lazy-load on first request."
+                    )
+                    self.img = None
+
+            VIDEO_MODEL = getenv("VIDEO_MODEL")
+            if VIDEO_MODEL and VIDEO_MODEL.lower() != "none" and video_import_success:
+                logging.info(
+                    f"[VIDEO] Image server mode - pre-loading {VIDEO_MODEL} to keep resident"
+                )
+                start_time = time.time()
+                try:
+                    self.video = VIDEO(
+                        model=VIDEO_MODEL,
+                        local_uri=getenv("EZLOCALAI_URL"),
+                        device="cuda",
+                    )
+                    load_time = time.time() - start_time
+                    logging.info(
+                        f"[VIDEO] {VIDEO_MODEL} loaded in {load_time:.1f}s (image server mode - staying loaded)"
+                    )
+                    self.resource_manager.register_model(
+                        ModelType.VIDEO, VIDEO_MODEL, "cuda", vram_gb=12.0
+                    )
+                except Exception as e:
+                    logging.warning(
+                        f"[VIDEO] Failed to pre-load {VIDEO_MODEL}: {e}. Will lazy-load on first request."
+                    )
+                    self.video = None
+
         NGROK_TOKEN = getenv("NGROK_TOKEN")
         if NGROK_TOKEN:
             ngrok.set_auth_token(NGROK_TOKEN)
