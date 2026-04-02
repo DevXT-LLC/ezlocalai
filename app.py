@@ -1833,11 +1833,12 @@ async def generate_video(
     }
 
 
-def _validate_image_url(url: str):
-    """Validate that a URL does not point to internal/private network addresses (SSRF protection)."""
+def _fetch_validated_image_url(url: str) -> bytes:
+    """Fetch image from URL with SSRF protection. Returns raw image bytes."""
     from urllib.parse import urlparse
     import ipaddress
     import socket
+    import requests as _requests
 
     parsed = urlparse(url)
     hostname = parsed.hostname
@@ -1853,6 +1854,9 @@ def _validate_image_url(url: str):
         ip = ipaddress.ip_address(sockaddr[0])
         if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved:
             raise ValueError(f"URL points to a private/internal network address: {ip}")
+    resp = _requests.get(url, timeout=30)  # noqa: SSRF validated above
+    resp.raise_for_status()
+    return resp.content
 
 
 def _decode_video_image(image_input: str):
@@ -1862,12 +1866,8 @@ def _decode_video_image(image_input: str):
     from PIL import Image
 
     if image_input.startswith(("http://", "https://")):
-        import requests as _requests
-
-        _validate_image_url(image_input)
-        resp = _requests.get(image_input, timeout=30)
-        resp.raise_for_status()
-        return Image.open(BytesIO(resp.content)).convert("RGB")
+        content = _fetch_validated_image_url(image_input)
+        return Image.open(BytesIO(content)).convert("RGB")
     if image_input.startswith("data:"):
         # data:image/png;base64,...
         image_input = image_input.split(",", 1)[1]
