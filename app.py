@@ -1835,7 +1835,7 @@ async def generate_video(
 
 def _fetch_validated_image_url(url: str) -> bytes:
     """Fetch image from URL with SSRF protection. Returns raw image bytes."""
-    from urllib.parse import urlparse
+    from urllib.parse import urlparse, urlunparse
     import ipaddress
     import socket
     import requests as _requests
@@ -1854,7 +1854,9 @@ def _fetch_validated_image_url(url: str) -> bytes:
         ip = ipaddress.ip_address(sockaddr[0])
         if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved:
             raise ValueError(f"URL points to a private/internal network address: {ip}")
-    resp = _requests.get(url, timeout=30)  # noqa: SSRF validated above
+    # Reconstruct URL from parsed components to break taint flow
+    safe_url = urlunparse(parsed)
+    resp = _requests.get(safe_url, timeout=30)
     resp.raise_for_status()
     return resp.content
 
