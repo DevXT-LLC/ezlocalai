@@ -1833,6 +1833,28 @@ async def generate_video(
     }
 
 
+def _validate_image_url(url: str):
+    """Validate that a URL does not point to internal/private network addresses (SSRF protection)."""
+    from urllib.parse import urlparse
+    import ipaddress
+    import socket
+
+    parsed = urlparse(url)
+    hostname = parsed.hostname
+    if not hostname:
+        raise ValueError("Invalid URL: no hostname found.")
+    if parsed.scheme not in ("http", "https"):
+        raise ValueError(f"Invalid URL scheme: {parsed.scheme}")
+    try:
+        resolved_ips = socket.getaddrinfo(hostname, None)
+    except socket.gaierror:
+        raise ValueError(f"Could not resolve hostname: {hostname}")
+    for family, _, _, _, sockaddr in resolved_ips:
+        ip = ipaddress.ip_address(sockaddr[0])
+        if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved:
+            raise ValueError(f"URL points to a private/internal network address: {ip}")
+
+
 def _decode_video_image(image_input: str):
     """Decode an image string (base64, data URL, or HTTP URL) to PIL Image."""
     import base64
@@ -1842,6 +1864,7 @@ def _decode_video_image(image_input: str):
     if image_input.startswith(("http://", "https://")):
         import requests as _requests
 
+        _validate_image_url(image_input)
         resp = _requests.get(image_input, timeout=30)
         resp.raise_for_status()
         return Image.open(BytesIO(resp.content)).convert("RGB")
