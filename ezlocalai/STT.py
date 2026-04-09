@@ -466,7 +466,21 @@ class STT:
             audio_format = "wav"
         if "/" in audio_format:
             audio_format = audio_format.split("/")[1]
-        filename = f"{uuid.uuid4().hex}.wav"
+        # Map codec names to proper file extensions
+        ext_map = {
+            "webm": "webm",
+            "ogg": "ogg",
+            "mpeg": "mp3",
+            "mp4": "mp4",
+            "x-wav": "wav",
+            "x-m4a": "m4a",
+            "m4a": "m4a",
+            "flac": "flac",
+            "wav": "wav",
+            "mp3": "mp3",
+        }
+        file_ext = ext_map.get(audio_format, audio_format)
+        filename = f"{uuid.uuid4().hex}.{file_ext}"
         file_path = os.path.join(os.getcwd(), "outputs", filename)
         audio_data = base64.b64decode(base64_audio)
         with open(file_path, "wb") as audio_file:
