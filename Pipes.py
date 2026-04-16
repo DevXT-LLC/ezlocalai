@@ -2303,24 +2303,30 @@ def get_secondary_gpu() -> Optional[int]:
 
 
 def _is_qwen35_hybrid(model_path: str) -> bool:
-    """Detect Qwen3.5 hybrid models that use Gated DeltaNet + sparse MoE.
+    """Detect Qwen3.5/3.6 hybrid models that use Gated DeltaNet + sparse MoE.
 
     These models have only 10/40 layers with standard attention (2 KV heads each),
     so their KV cache is dramatically smaller than standard transformers.
     The other 30 layers use DeltaNet with a tiny fixed-size recurrent state.
+    Qwen3.6 shares the same hybrid architecture as Qwen3.5.
     """
     if not model_path:
         return False
     name = os.path.basename(model_path).lower()
     # Also check full path in case model_path is a directory or repo name
     path_lower = model_path.lower()
-    return "qwen3.5" in name or "qwen3.5" in path_lower
+    return (
+        "qwen3.5" in name
+        or "qwen3.5" in path_lower
+        or "qwen3.6" in name
+        or "qwen3.6" in path_lower
+    )
 
 
 def _qwen35_kv_bytes_per_token(kv_cache_type: str = "fp16") -> int:
-    """KV cache bytes per token for Qwen3.5 hybrid models.
+    """KV cache bytes per token for Qwen3.5/3.6 hybrid models.
 
-    Qwen3.5 architecture: 40 layers total, only 10 use standard attention
+    Qwen3.5/3.6 architecture: 40 layers total, only 10 use standard attention
     with 2 KV heads and head_dim=128.
       FP16: 2 (K+V) * 2 (KV heads) * 128 (head_dim) * 10 (attn layers) * 2 = 10,240 bytes/token
       q4_0: 2 (K+V) * 2 (KV heads) * 128 (head_dim) * 10 (attn layers) * 0.5625 = 2,880 bytes/token
@@ -2364,7 +2370,7 @@ def estimate_model_vram_requirement(
             pass
 
         if is_qwen35:
-            # Qwen3.5 hybrid: only 10/40 layers use attention (2 KV heads, head_dim=128).
+            # Qwen3.5/3.6 hybrid: only 10/40 layers use attention (2 KV heads, head_dim=128).
             # KV cache is tiny vs standard transformers.
             # DeltaNet recurrent state is fixed ~65MB regardless of context.
             # Use q4_0 estimate since that's ezlocalai's default KV cache type.
@@ -2423,11 +2429,11 @@ def estimate_model_vram_requirement(
             # returns more than 2x our estimate
             fallback = fallback_estimate(context_size)
             if is_qwen35 and estimated_gb > fallback * 1.2:
-                # For Qwen3.5 hybrid models, xllamacpp doesn't understand the hybrid
+                # For Qwen3.5/3.6 hybrid models, xllamacpp doesn't understand the hybrid
                 # DeltaNet architecture and dramatically overestimates KV cache needs.
                 # Our fallback is calibrated against empirical measurements, so prefer it.
                 logging.info(
-                    f"[GPU Selection] Qwen3.5 hybrid: xllamacpp estimate ({estimated_gb:.1f}GB) "
+                    f"[GPU Selection] Qwen3.5/3.6 hybrid: xllamacpp estimate ({estimated_gb:.1f}GB) "
                     f"overestimates KV cache (doesn't account for DeltaNet layers), "
                     f"using empirical estimate ({fallback:.1f}GB)"
                 )
@@ -2455,7 +2461,7 @@ def estimate_model_vram_requirement(
             if model_path and os.path.exists(model_path):
                 file_size_gb = os.path.getsize(model_path) / (1024**3)
                 # Model weights ~ file size. Add context-dependent costs.
-                # Qwen3.5 hybrid models have only 10/40 attn layers → much smaller KV.
+                # Qwen3.5/3.6 hybrid models have only 10/40 attn layers → much smaller KV.
                 if is_qwen35:
                     kv_bytes_per_token = _qwen35_kv_bytes_per_token("q4_0")
                 else:
@@ -2632,7 +2638,7 @@ def determine_gpu_strategy(
         else:
             # Not enough VRAM for full model - try partial offloading
 
-            # For Qwen3.5 hybrid models, xllamacpp doesn't understand the tiny KV
+            # For Qwen3.5/3.6 hybrid models, xllamacpp doesn't understand the tiny KV
             # cache (only 10/40 layers use attention). Do our own check using the
             # raw file size + empirical KV estimate against actual free VRAM.
             # Use q4_0 KV estimate since that's the default KV cache type in ezlocalai.
@@ -2648,7 +2654,7 @@ def determine_gpu_strategy(
                         total_need = file_size_gb + kv_gb + overhead_gb
                         if free_vram[0] >= total_need:
                             logging.info(
-                                f"[GPU Selection] Qwen3.5 hybrid: file({file_size_gb:.1f}GB) + "
+                                f"[GPU Selection] Qwen3.5/3.6 hybrid: file({file_size_gb:.1f}GB) + "
                                 f"KV({kv_gb:.2f}GB) + overhead({overhead_gb:.1f}GB) = "
                                 f"{total_need:.1f}GB fits in {free_vram[0]:.1f}GB free VRAM "
                                 f"- loading all layers on GPU"
@@ -2660,7 +2666,9 @@ def determine_gpu_strategy(
                                 "strategy": "gpu0_qwen35_hybrid",
                             }
                 except Exception as e:
-                    logging.debug(f"[GPU Selection] Qwen3.5 hybrid check failed: {e}")
+                    logging.debug(
+                        f"[GPU Selection] Qwen3.5/3.6 hybrid check failed: {e}"
+                    )
 
             # Use xllamacpp to estimate how many layers can fit
             optimal_layers = _estimate_optimal_layers(
@@ -3025,6 +3033,18 @@ MODEL_CONFIG_OVERRIDES = {
         "chat_template_kwargs": {"enable_thinking": False},
     },
     "unsloth/Qwen3.5-0.8B-GGUF": {
+        "temperature": 1.0,
+        "top_p": 0.95,
+        "top_k": 20,
+        "min_p": 0.0,
+        "presence_penalty": 1.5,
+        "repetition_penalty": 1.0,
+        "chat_template_kwargs": {"enable_thinking": False},
+    },
+    # Qwen3.6 models share the same hybrid Gated DeltaNet + sparse MoE architecture
+    # as Qwen3.5. Only 10/40 layers use standard attention, so KV cache is tiny.
+    # Recommended thinking-mode params from HuggingFace model card.
+    "unsloth/Qwen3.6-35B-A3B-GGUF": {
         "temperature": 1.0,
         "top_p": 0.95,
         "top_k": 20,
@@ -5648,13 +5668,13 @@ class Pipes:
                         try:
                             IMG_MODEL = getenv("IMG_MODEL")
                             if IMG_MODEL and IMG_MODEL.lower() != "none":
-                                logging.info(
-                                    "[IMG] Reloading after video generation"
-                                )
+                                logging.info("[IMG] Reloading after video generation")
                                 self.img = IMG(
                                     model=IMG_MODEL,
                                     local_uri=self.local_uri,
-                                    device="cuda" if torch.cuda.is_available() else "cpu",
+                                    device=(
+                                        "cuda" if torch.cuda.is_available() else "cpu"
+                                    ),
                                 )
                                 self.resource_manager.register_model(
                                     ModelType.IMG, IMG_MODEL, "cuda", vram_gb=4.0
