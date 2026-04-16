@@ -158,41 +158,76 @@ def precache_llm_models():
 
         start_time = time.time()
 
+        # Use the same local_dir as download_model() in LLM.py so that
+        # the file is found on disk during model loading without re-downloading.
+        model_short = model_name.split("/")[-1].split("-GGUF")[0]
+        model_dir = os.path.join("models", model_short)
+        os.makedirs(model_dir, exist_ok=True)
+
         try:
-            # Get list of files in repo
-            files = list_repo_files(model_name)
-            gguf_files = [f for f in files if f.endswith(".gguf")]
+            files = None  # Will be populated if we need to query the repo
 
-            if not gguf_files:
-                logging.warning(f"[ezlocalai] No GGUF files in {model_name}")
-                continue
+            # Check if a model GGUF already exists in the target directory
+            existing_gguf = [
+                f
+                for f in os.listdir(model_dir)
+                if f.endswith(".gguf") and "mmproj" not in f.lower()
+            ]
+            if existing_gguf:
+                elapsed = time.time() - start_time
+                logging.info(
+                    f"  ✓ {model_name} (cached: {existing_gguf[0]}, {elapsed:.1f}s)"
+                )
+                # Still check for vision projector below
+            else:
+                # Get list of files in repo
+                files = list_repo_files(model_name)
+                gguf_files = [f for f in files if f.endswith(".gguf")]
 
-            # Find best quantization
-            best_file = None
-            patterns = [quant_type, "Q4_K", "Q5_K", "Q6_K", "Q8"]
-            for pattern in patterns:
-                for f in gguf_files:
-                    if pattern in f:
-                        best_file = f
+                if not gguf_files:
+                    logging.warning(f"[ezlocalai] No GGUF files in {model_name}")
+                    continue
+
+                # Find best quantization
+                best_file = None
+                patterns = [quant_type, "Q4_K", "Q5_K", "Q6_K", "Q8"]
+                for pattern in patterns:
+                    for f in gguf_files:
+                        if pattern in f:
+                            best_file = f
+                            break
+                    if best_file:
                         break
-                if best_file:
-                    break
 
-            if not best_file:
-                best_file = gguf_files[0]
+                if not best_file:
+                    best_file = gguf_files[0]
 
-            # Download the model file
-            model_path = hf_hub_download(model_name, best_file)
-            elapsed = time.time() - start_time
-            logging.info(f"  ✓ {model_name} ({elapsed:.1f}s)")
+                # Download the model file to the same local_dir that LLM.py expects
+                model_path = hf_hub_download(
+                    model_name, best_file, local_dir=model_dir
+                )
+                elapsed = time.time() - start_time
+                logging.info(f"  ✓ {model_name} ({elapsed:.1f}s)")
 
             # Also download vision projector if it exists
-            mmproj_files = [
-                f for f in files if "mmproj" in f.lower() and f.endswith(".gguf")
-            ]
-            if mmproj_files:
-                proj_file = mmproj_files[0]
-                hf_hub_download(model_name, proj_file)
+            mmproj_exists = any(
+                f
+                for f in os.listdir(model_dir)
+                if "mmproj" in f.lower() and f.endswith(".gguf")
+            )
+            if not mmproj_exists:
+                if files is None:
+                    files = list_repo_files(model_name)
+                mmproj_files = [
+                    f
+                    for f in files
+                    if "mmproj" in f.lower() and f.endswith(".gguf")
+                ]
+                if mmproj_files:
+                    proj_file = mmproj_files[0]
+                    hf_hub_download(
+                        model_name, proj_file, local_dir=model_dir
+                    )
 
         except Exception as e:
             logging.error(f"  ✗ {model_name}: {e}")
