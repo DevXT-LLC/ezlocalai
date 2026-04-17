@@ -173,12 +173,21 @@ def precache_llm_models():
                 for f in os.listdir(model_dir)
                 if f.endswith(".gguf") and "mmproj" not in f.lower()
             ]
-            if existing_gguf:
+            # Prefer an existing file that matches the requested QUANT_TYPE.
+            # If none matches, we need to download the correct quant.
+            matching_gguf = [f for f in existing_gguf if quant_type and quant_type in f]
+            if matching_gguf:
+                elapsed = time.time() - start_time
+                logging.info(
+                    f"  ✓ {model_name} (cached: {matching_gguf[0]}, {elapsed:.1f}s)"
+                )
+                # Still check for vision projector below
+            elif existing_gguf and not quant_type:
+                # No specific quant requested, use whatever exists
                 elapsed = time.time() - start_time
                 logging.info(
                     f"  ✓ {model_name} (cached: {existing_gguf[0]}, {elapsed:.1f}s)"
                 )
-                # Still check for vision projector below
             else:
                 # Get list of files in repo
                 files = list_repo_files(model_name)
@@ -203,9 +212,7 @@ def precache_llm_models():
                     best_file = gguf_files[0]
 
                 # Download the model file to the same local_dir that LLM.py expects
-                model_path = hf_hub_download(
-                    model_name, best_file, local_dir=model_dir
-                )
+                model_path = hf_hub_download(model_name, best_file, local_dir=model_dir)
                 elapsed = time.time() - start_time
                 logging.info(f"  ✓ {model_name} ({elapsed:.1f}s)")
 
@@ -219,15 +226,11 @@ def precache_llm_models():
                 if files is None:
                     files = list_repo_files(model_name)
                 mmproj_files = [
-                    f
-                    for f in files
-                    if "mmproj" in f.lower() and f.endswith(".gguf")
+                    f for f in files if "mmproj" in f.lower() and f.endswith(".gguf")
                 ]
                 if mmproj_files:
                     proj_file = mmproj_files[0]
-                    hf_hub_download(
-                        model_name, proj_file, local_dir=model_dir
-                    )
+                    hf_hub_download(model_name, proj_file, local_dir=model_dir)
 
         except Exception as e:
             logging.error(f"  ✗ {model_name}: {e}")

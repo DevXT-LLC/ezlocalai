@@ -222,11 +222,24 @@ def download_model(model_name: str = "", models_dir: str = "models") -> tuple:
             if f.endswith(".gguf") and "mmproj" not in f.lower()
         ]
         if existing_gguf_files:
-            # Use the first existing model file (there should typically be only one)
-            existing_file = existing_gguf_files[0]
-            filepath = os.path.join(model_dir, existing_file)
-            logging.debug(f"[LLM] Using existing model: {existing_file}")
-            return filepath, mmproj_path
+            # Prefer a file that matches the requested QUANT_TYPE
+            matching_files = [
+                f
+                for f in existing_gguf_files
+                if quantization_type and quantization_type in f
+            ]
+            if matching_files:
+                existing_file = matching_files[0]
+            elif not quantization_type:
+                # No specific quant requested, use whatever exists
+                existing_file = existing_gguf_files[0]
+            else:
+                # Existing files don't match requested quant - need to download
+                existing_file = None
+            if existing_file:
+                filepath = os.path.join(model_dir, existing_file)
+                logging.debug(f"[LLM] Using existing model: {existing_file}")
+                return filepath, mmproj_path
 
     # No existing model found - use list_repo_files + pattern matching
     # to find the best quantization, consistent with precache.py and Pipes.py
