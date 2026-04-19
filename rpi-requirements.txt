@@ -18,7 +18,7 @@ pdfplumber
 huggingface_hub
 safetensors
 sentence-transformers
-transformers==4.53.0
+transformers>=5.0.0rc3
 einops
 librosa
 tokenizers>=0.20,<0.22

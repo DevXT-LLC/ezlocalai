@@ -9,7 +9,7 @@ faster-whisper==1.2.0
 gguf
 pydub==0.25.1
 ffmpeg-python==0.2.0
-transformers==4.53.0
+transformers>=5.0.0rc3
 sounddevice==0.4.6
 webrtcvad==2.0.10
 pyaudio==0.2.14
@@ -38,7 +38,7 @@ pyloudnorm
 # Wake word training dependencies
 gTTS>=2.4.0
 edge-tts>=6.1.0
-onnx>=1.16.0
+onnx>=1.21.0
 onnxscript>=0.1.0
 onnxruntime>=1.16.0
 scipy>=1.11.0
