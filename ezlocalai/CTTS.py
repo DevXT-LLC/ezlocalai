@@ -18,9 +18,6 @@ from ezlocalai.AudioCache import AudioCache
 import perth
 
 if perth.PerthImplicitWatermarker is None:
-    logging.warning(
-        "[TTS] perth.PerthImplicitWatermarker unavailable, using no-op watermarker"
-    )
 
     class _NoOpWatermarker:
         """Dummy watermarker that returns audio unchanged."""
