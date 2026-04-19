@@ -31,4 +31,4 @@ pykakasi
 resemble-perth
 einops
 librosa
-tokenizers>=0.20,<0.22
+tokenizers>=0.21

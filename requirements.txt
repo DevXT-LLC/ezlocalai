@@ -18,7 +18,7 @@ accelerate
 python-multipart
 openai
 pdfplumber
-huggingface_hub>=0.26.0,<1.0
+huggingface_hub>=1.3.0
 safetensors
 sentence-transformers
 # Note: chatterbox-tts is installed with --no-deps in Dockerfile to allow transformers upgrade
@@ -35,7 +35,7 @@ transformers>=5.0.0rc3
 diffusers @ git+https://github.com/huggingface/diffusers
 einops
 librosa
-tokenizers>=0.20,<0.22
+tokenizers>=0.21
 sentencepiece
 gguf
 # Wake word detection dependencies
