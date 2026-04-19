@@ -29,11 +29,11 @@ import threading
 import tempfile
 
 import numpy as np
+import soundfile as sf
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import Dataset, DataLoader
-import torchaudio
 import torchaudio.transforms as T
 
 # Optional ESP-PPQ for ESPDL export (ESP32)
@@ -216,10 +216,10 @@ class AudioFeatureExtractor:
 
     def load_audio(self, audio_path: Path) -> torch.Tensor:
         """Load and preprocess audio file."""
-        waveform, sr = torchaudio.load(str(audio_path))
-
-        if waveform.shape[0] > 1:
-            waveform = waveform.mean(dim=0, keepdim=True)
+        audio_np, sr = sf.read(str(audio_path), dtype="float32")
+        if audio_np.ndim > 1:
+            audio_np = audio_np.mean(axis=1)
+        waveform = torch.from_numpy(audio_np).unsqueeze(0)
 
         if sr != self.sample_rate:
             resampler = T.Resample(sr, self.sample_rate)
@@ -231,10 +231,10 @@ class AudioFeatureExtractor:
     def load_audio_bytes(self, audio_bytes: bytes) -> torch.Tensor:
         """Load audio from bytes."""
         buffer = io.BytesIO(audio_bytes)
-        waveform, sr = torchaudio.load(buffer)
-
-        if waveform.shape[0] > 1:
-            waveform = waveform.mean(dim=0, keepdim=True)
+        audio_np, sr = sf.read(buffer, dtype="float32")
+        if audio_np.ndim > 1:
+            audio_np = audio_np.mean(axis=1)
+        waveform = torch.from_numpy(audio_np).unsqueeze(0)
 
         if sr != self.sample_rate:
             resampler = T.Resample(sr, self.sample_rate)
@@ -548,7 +548,8 @@ class SampleGenerator:
             if isinstance(wav, torch.Tensor):
                 if wav.dim() == 1:
                     wav = wav.unsqueeze(0)
-                torchaudio.save(str(temp_path), wav.cpu(), self.chatterbox_model.sr)
+                wav_np = wav.cpu().squeeze(0).numpy()
+                sf.write(str(temp_path), wav_np, self.chatterbox_model.sr)
 
             audio = AudioSegment.from_wav(str(temp_path))
             audio = audio.set_frame_rate(16000).set_channels(1)

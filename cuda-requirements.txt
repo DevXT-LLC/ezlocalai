@@ -42,7 +42,6 @@ onnx>=1.21.0
 onnxscript>=0.1.0
 onnxruntime>=1.16.0
 scipy>=1.11.0
-torchcodec>=0.1.0
 # Note: esp-ppq is installed with --no-deps in Dockerfile to bypass onnx<1.18.0 pin
 # esp-ppq dependencies that must be installed manually since we use --no-deps:
 cryptography>=46.0.5
