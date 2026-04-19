@@ -135,10 +135,12 @@ def precache_llm_models():
         logging.info(f"  - LLM: Skipped (text server: {text_url})")
         return
 
-    # Skip if this is a dedicated image or voice server (not a text server)
+    # Skip if this is a dedicated image or voice server with no LLM configured
     if not is_text_server_mode():
-        logging.info("  - LLM: Skipped (not a text server)")
-        return
+        model_check = getenv("DEFAULT_MODEL")
+        if model_check.lower() == "none":
+            logging.info("  - LLM: Skipped (not a text server)")
+            return
 
     from huggingface_hub import hf_hub_download, list_repo_files
 

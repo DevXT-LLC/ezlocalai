@@ -3161,7 +3161,7 @@ class Pipes:
                     "[LLM] Voice server mode - skipping LLM preload. "
                     "LLMs will be lazy-loaded on first request."
                 )
-            elif is_image_server_mode():
+            elif is_image_server_mode() and not self.available_models:
                 logging.info(
                     "[LLM] Image server mode - skipping LLM preload. "
                     "LLMs will be lazy-loaded on first request."
