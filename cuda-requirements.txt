@@ -9,7 +9,7 @@ faster-whisper==1.2.0
 gguf
 pydub==0.25.1
 ffmpeg-python==0.2.0
-transformers==4.53.0
+transformers>=5.0.0rc3
 sounddevice==0.4.6
 webrtcvad==2.0.10
 pyaudio==0.2.14
@@ -32,18 +32,21 @@ resemble-perth
 einops
 librosa
 omegaconf
-tokenizers>=0.20,<0.22
+tokenizers>=0.21
 soundfile
 pyloudnorm
 # Wake word training dependencies
 gTTS>=2.4.0
 edge-tts>=6.1.0
-onnx>=1.16.0
+onnx>=1.21.0
 onnxscript>=0.1.0
 onnxruntime>=1.16.0
 scipy>=1.11.0
 torchcodec>=0.1.0
-esp-ppq>=0.2.0  # ESP32 model quantization - converts ONNX to .espdl format
+# Note: esp-ppq is installed with --no-deps in Dockerfile to bypass onnx<1.18.0 pin
+# esp-ppq dependencies that must be installed manually since we use --no-deps:
+cryptography>=46.0.5
+flatbuffers>=25.2.10
 # Note: TFLite export disabled due to onnx2tf/tensorflow version conflicts
 # ESPDL export enabled for ESP32-S3 via ESP-DL framework
 # Video processing

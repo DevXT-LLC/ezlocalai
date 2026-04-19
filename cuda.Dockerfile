@@ -34,6 +34,10 @@ RUN uv pip install -r cuda-requirements.txt
 # Install chatterbox-tts with --no-deps to bypass transformers==4.46.3 pin
 # This allows us to use transformers>=4.53.0 for security fixes
 RUN uv pip install chatterbox-tts --no-deps
+
+# Install esp-ppq with --no-deps to bypass onnx<1.18.0 pin
+# This allows us to use onnx>=1.21.0 for security fixes
+RUN uv pip install esp-ppq --no-deps
 ENV HOST=0.0.0.0 \
     CUDA_DOCKER_ARCH=all \
     CUDAVER=12.8.1

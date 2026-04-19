@@ -22,6 +22,10 @@ RUN --mount=type=cache,target=/root/.cache/pip,sharing=locked \
 # This allows us to use transformers>=4.53.0 for security fixes
 RUN pip install chatterbox-tts --no-deps --no-cache-dir
 
+# Install esp-ppq with --no-deps to bypass onnx<1.18.0 pin
+# This allows us to use onnx>=1.21.0 for security fixes
+RUN pip install esp-ppq --no-deps --no-cache-dir
+
 # Install xllamacpp CPU version
 RUN pip install xllamacpp==0.2.12 --force-reinstall --no-cache-dir
 

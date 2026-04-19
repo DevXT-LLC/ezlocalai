@@ -18,10 +18,10 @@ pdfplumber
 huggingface_hub
 safetensors
 sentence-transformers
-transformers==4.53.0
+transformers>=5.0.0rc3
 einops
 librosa
-tokenizers>=0.20,<0.22
+tokenizers>=0.21
 sentencepiece
 gguf
 opencv-python>=4.8.0
