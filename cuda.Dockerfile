@@ -23,7 +23,8 @@ WORKDIR /app
 # Use PyTorch 2.9.1 which is built against cuDNN 9.10.2
 # Install nvidia-cudnn-cu12==9.10.2.21 to get matching cuDNN libraries (overrides system cuDNN 9.8.0)
 RUN uv pip install torch==2.9.1+cu128 torchaudio==2.9.1+cu128 --index-url https://download.pytorch.org/whl/cu128 && \
-    uv pip install nvidia-cudnn-cu12==9.10.2.21
+    uv pip install nvidia-cudnn-cu12==9.10.2.21 && \
+    uv pip uninstall torchcodec -y 2>/dev/null || true
 # Install numpy and Cython for pkuseg (required by chatterbox-tts)
 # numpy>=1.26.0 required for Python 3.12 compatibility
 RUN uv pip install "numpy>=1.26.0" Cython "setuptools>=78.1.1"
