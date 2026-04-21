@@ -3080,9 +3080,19 @@ class Pipes:
         # back to optimal context after a cooldown period
         self._context_reset_timer = None
         self._context_reset_lock = threading.Lock()
-        self._optimal_context = int(
-            getenv("LLM_MAX_TOKENS", "40000")
-        )  # Default optimal context
+        # LLM_MAX_TOKENS may be a comma-separated list (one per model in DEFAULT_MODEL).
+        # Use the maximum value as the optimal context fallback so context-reset logic
+        # never under-allocates for the largest configured model.
+        _max_tokens_raw = getenv("LLM_MAX_TOKENS", "40000")
+        try:
+            _max_tokens_values = [
+                int(v.strip()) for v in str(_max_tokens_raw).split(",") if v.strip()
+            ]
+            self._optimal_context = (
+                max(_max_tokens_values) if _max_tokens_values else 40000
+            )
+        except (ValueError, TypeError):
+            self._optimal_context = 40000  # Default optimal context
         self._context_reset_cooldown = 60  # Seconds to wait before resetting context
 
         # Initialize resource manager for intelligent VRAM management
