@@ -100,16 +100,23 @@ request_queue = RequestQueue(
 
 pipe = Pipes()
 
-# Align queue concurrency with the LLM's actual n_parallel.
-# The LLM can handle n_parallel requests simultaneously via continuous batching,
-# so the queue should allow at least that many through.
-if pipe.llm and hasattr(pipe.llm, "n_parallel") and pipe.llm.n_parallel > 1:
-    effective_concurrent = max(MAX_CONCURRENT_REQUESTS, pipe.llm.n_parallel)
+# Align queue concurrency with the total n_parallel across all persistent models.
+# Each persistent model can handle its own n_parallel requests simultaneously,
+# so the queue should allow the sum of all models' n_parallel through.
+total_n_parallel = 0
+for model_name, llm_instance in pipe.persistent_llms.items():
+    if hasattr(llm_instance, "n_parallel"):
+        total_n_parallel += llm_instance.n_parallel
+if total_n_parallel == 0 and pipe.llm and hasattr(pipe.llm, "n_parallel"):
+    total_n_parallel = pipe.llm.n_parallel
+if total_n_parallel > 1:
+    effective_concurrent = max(MAX_CONCURRENT_REQUESTS, total_n_parallel)
     if effective_concurrent != request_queue.max_concurrent_requests:
         request_queue.max_concurrent_requests = effective_concurrent
         logging.info(
             f"[Queue] Aligned max_concurrent_requests={effective_concurrent} "
-            f"with LLM n_parallel={pipe.llm.n_parallel}"
+            f"with total n_parallel={total_n_parallel} across "
+            f"{len(pipe.persistent_llms)} persistent model(s)"
         )
 
 app = FastAPI(title="ezlocalai Server", docs_url="/")

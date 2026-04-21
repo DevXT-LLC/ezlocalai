@@ -148,15 +148,18 @@ def precache_llm_models():
     if model_config.lower() == "none":
         return
 
-    quant_type = getenv("QUANT_TYPE")
+    quant_values = [v.strip() for v in getenv("QUANT_TYPE", "Q4_K_XL").split(",")]
 
-    for model_entry in model_config.split(","):
+    for i, model_entry in enumerate(model_config.split(",")):
         model_name = model_entry.strip()
         if "@" in model_name:
             model_name = model_name.rsplit("@", 1)[0]
 
         if not model_name or "/" not in model_name:
             continue
+
+        quant_type = quant_values[i] if i < len(quant_values) else quant_values[-1]
+        quant_type = quant_type if quant_type else None
 
         start_time = time.time()
 

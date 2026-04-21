@@ -163,7 +163,9 @@ def get_models():
     return models
 
 
-def download_model(model_name: str = "", models_dir: str = "models") -> tuple:
+def download_model(
+    model_name: str = "", models_dir: str = "models", quantization_type: str = None
+) -> tuple:
     """
     Download a model from HuggingFace Hub.
     Returns tuple of (model_path, mmproj_path) where mmproj_path may be None.
@@ -177,7 +179,12 @@ def download_model(model_name: str = "", models_dir: str = "models") -> tuple:
     if "/" not in model_name:
         model_name = "unsloth/" + model_name + "-GGUF"
 
-    quantization_type = getenv("QUANT_TYPE")
+    if quantization_type is None:
+        quantization_type = getenv("QUANT_TYPE")
+    if quantization_type and "," in quantization_type:
+        # If QUANT_TYPE is comma-separated and no explicit per-model override
+        # was provided, default to the first value for backward compatibility.
+        quantization_type = quantization_type.split(",", 1)[0].strip()
     model = model_name.split("/")[-1].split("-GGUF")[0]
     model_dir = os.path.join(models_dir, model)
     os.makedirs(model_dir, exist_ok=True)
@@ -334,6 +341,7 @@ class LLM:
         tensor_split: list = None,  # Override tensor split if provided
         batch_size: int = None,  # Override LLM_BATCH_SIZE env var if provided
         n_parallel: int = None,  # Override N_PARALLEL env var if provided
+        quant_type: str = None,  # Override QUANT_TYPE env var if provided
         **kwargs,
     ):
         global DEFAULT_MODEL
@@ -447,7 +455,9 @@ class LLM:
 
         # Download model and get paths
         model_path, mmproj_path = download_model(
-            model_name=self.model_name, models_dir=models_dir
+            model_name=self.model_name,
+            models_dir=models_dir,
+            quantization_type=quant_type,
         )
 
         # Initialize xllamacpp
