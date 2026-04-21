@@ -3123,7 +3123,20 @@ class Pipes:
         # Parse model list: "model1,model2" (simple comma-separated)
         model_config = getenv("DEFAULT_MODEL")
         self.available_models = []  # List of model names
+        # Internal mapping for duplicate model entries.
+        # Example: {"unsloth/Qwen...#2": "unsloth/Qwen..."}
+        self.model_sources = {}
+        # Source model -> ordered list of internal replica IDs
+        self.model_replicas = {}
         self.calibrated_gpu_layers = {}  # {model_name: {context: gpu_layers}}
+
+        # Per-model configs parsed from comma-separated env vars
+        # {model_name: {main_gpu, max_tokens, n_parallel, max_concurrent_requests}}
+        self.model_configs = {}
+
+        # All persistent LLM instances keyed by model name
+        # {model_name: LLM_instance}
+        self.persistent_llms = {}
 
         # Persistent LLM instances (kept loaded to avoid reload overhead)
         self.primary_llm = (
@@ -3145,15 +3158,26 @@ class Pipes:
         self._using_large_model = False
 
         if model_config.lower() != "none":
+            model_counts = {}
             for model_entry in model_config.split(","):
                 model_name = model_entry.strip()
                 # Strip any legacy @tokens suffix for backward compat
                 if "@" in model_name:
                     model_name = model_name.rsplit("@", 1)[0]
-                if model_name and model_name not in self.available_models:
-                    self.available_models.append(model_name)
+                if model_name:
+                    count = model_counts.get(model_name, 0) + 1
+                    model_counts[model_name] = count
+                    model_id = model_name if count == 1 else f"{model_name}#{count}"
+                    self.available_models.append(model_id)
+                    self.model_sources[model_id] = model_name
+                    if model_name not in self.model_replicas:
+                        self.model_replicas[model_name] = []
+                    self.model_replicas[model_name].append(model_id)
 
-            # Pre-load persistent LLMs (primary + vision if different)
+            # Parse per-model configs from comma-separated env vars
+            self._parse_per_model_configs()
+
+            # Pre-load persistent LLMs
             # Skip LLM preloading in voice server mode - only load voice models
             # Skip LLM preloading in image server mode - only load image/video models
             if is_voice_server_mode() and not is_text_server_mode():
@@ -3172,11 +3196,7 @@ class Pipes:
                     "Text requests will be forwarded."
                 )
             elif self.available_models:
-                # Pre-load with optimal context (default 40k) to maximize GPU layers
-                # while providing reasonable context for most requests
-                default_context = self._optimal_context
-
-                # Find primary (first non-vision) and vision models
+                # Identify primary (first non-vision) and vision models for backward compat
                 primary_model = None
                 vision_model = None
 
@@ -3187,74 +3207,68 @@ class Pipes:
                     if not is_vision and primary_model is None:
                         primary_model = model_name
 
-                # If no non-vision model, use first model as primary
                 if primary_model is None:
                     primary_model = self.available_models[0]
-                    # If primary is vision, don't load it twice
                     if primary_model == vision_model:
                         vision_model = None
 
-                # Load primary model
-                logging.info(f"[LLM] Pre-loading primary model: {primary_model}...")
-                start_time = time.time()
-                try:
-                    self.primary_llm = self._load_llm_resilient(
-                        model_name=primary_model,
-                        max_tokens=default_context,
-                    )
-                    self.primary_llm_name = primary_model
-                    self.primary_llm_context = default_context
-                    self.llm = self.primary_llm
-                    self.current_llm_name = primary_model
-                    self.current_context = default_context
-                    load_time = time.time() - start_time
-                    logging.info(
-                        f"[LLM] Primary model {primary_model} loaded in {load_time:.1f}s"
-                    )
-                    # Register with resource manager
-                    is_vision = self._is_vision_model(primary_model)
-                    model_type = ModelType.VISION_LLM if is_vision else ModelType.LLM
-                    self.resource_manager.register_model(
-                        model_type,
-                        primary_model,
-                        "cuda",
-                        vram_gb=MODEL_VRAM_ESTIMATES.get(model_type, 8.0),
-                    )
-                except Exception as e:
-                    logging.warning(
-                        f"[LLM] Failed to pre-load primary model {primary_model}: {e}"
-                    )
+                # Load ALL models as persistent with per-model configs
+                for model_name in self.available_models:
+                    cfg = self.model_configs.get(model_name, {})
+                    model_context = cfg.get("max_tokens", self._optimal_context)
+                    model_main_gpu = cfg.get("main_gpu")
+                    model_tensor_split = cfg.get("tensor_split")
+                    model_n_parallel = cfg.get("n_parallel")
+                    model_quant_type = cfg.get("quant_type")
 
-                # Load vision model if different from primary
-                # Vision models don't need large context - they process images and generate
-                # relatively short descriptions. Use smaller context to maximize GPU layer offload.
-                vision_context = int(getenv("VLM_MAX_TOKENS", "8192"))
-                if vision_model and vision_model != primary_model:
+                    # Vision models use VLM_MAX_TOKENS unless per-model config overrides
+                    if self._is_vision_model(model_name) and "max_tokens" not in cfg:
+                        model_context = int(getenv("VLM_MAX_TOKENS", "8192"))
+
                     logging.info(
-                        f"[LLM] Pre-loading vision model: {vision_model} (context: {vision_context})..."
+                        f"[LLM] Pre-loading model: {model_name} "
+                        f"(GPU {model_main_gpu}, context {model_context//1000}k, "
+                        f"n_parallel={model_n_parallel}, quant={model_quant_type})..."
                     )
                     start_time = time.time()
                     try:
-                        self.vision_llm = self._load_llm_resilient(
-                            model_name=vision_model,
-                            max_tokens=vision_context,
+                        llm_instance = self._load_llm_resilient(
+                            model_name=model_name,
+                            max_tokens=model_context,
+                            main_gpu=model_main_gpu,
+                            tensor_split=model_tensor_split,
+                            n_parallel=model_n_parallel,
+                            quant_type=model_quant_type,
                         )
-                        self.vision_llm_name = vision_model
-                        self.vision_llm_context = vision_context
+                        self.persistent_llms[model_name] = llm_instance
+
+                        # Set primary/vision pointers for backward compat
+                        if model_name == primary_model:
+                            self.primary_llm = llm_instance
+                            self.primary_llm_name = model_name
+                            self.primary_llm_context = model_context
+                            self.llm = llm_instance
+                            self.current_llm_name = model_name
+                            self.current_context = model_context
+                        elif model_name == vision_model:
+                            self.vision_llm = llm_instance
+                            self.vision_llm_name = model_name
+                            self.vision_llm_context = model_context
+
                         load_time = time.time() - start_time
-                        logging.info(
-                            f"[LLM] Vision model {vision_model} loaded in {load_time:.1f}s"
-                        )
+                        logging.info(f"[LLM] {model_name} loaded in {load_time:.1f}s")
                         # Register with resource manager
+                        is_vis = self._is_vision_model(model_name)
+                        model_type = ModelType.VISION_LLM if is_vis else ModelType.LLM
                         self.resource_manager.register_model(
-                            ModelType.VISION_LLM,
-                            vision_model,
+                            model_type,
+                            model_name,
                             "cuda",
-                            vram_gb=MODEL_VRAM_ESTIMATES.get(ModelType.VISION_LLM, 6.0),
+                            vram_gb=MODEL_VRAM_ESTIMATES.get(model_type, 8.0),
                         )
                     except Exception as e:
                         logging.warning(
-                            f"[LLM] Failed to pre-load vision model {vision_model}: {e}"
+                            f"[LLM] Failed to pre-load model {model_name}: {e}"
                         )
 
         # TTS initialization - Chatterbox TTS
@@ -3415,6 +3429,97 @@ class Pipes:
 
         logging.info(f"[Server] Ready!")
 
+    def _parse_per_model_configs(self):
+        """Parse comma-separated per-model configs from env vars.
+
+        MAIN_GPU, LLM_MAX_TOKENS, N_PARALLEL, MAX_CONCURRENT_REQUESTS, and QUANT_TYPE can be
+        comma-separated to match DEFAULT_MODEL order. A single value applies to all models.
+        When a specific MAIN_GPU is set per-model, a tensor_split is generated to force
+        loading entirely on that GPU (SPLIT_MODE_NONE).
+        """
+
+        def _split_csv(key, default):
+            val = getenv(key, default)
+            return [v.strip() for v in val.split(",")]
+
+        main_gpus = _split_csv("MAIN_GPU", "0")
+        max_tokens_list = _split_csv("LLM_MAX_TOKENS", "65536")
+        n_parallels = _split_csv("N_PARALLEL", "1")
+        max_requests_list = _split_csv("MAX_CONCURRENT_REQUESTS", "1")
+        quant_types = _split_csv("QUANT_TYPE", "Q4_K_XL")
+
+        gpu_count = get_gpu_count()
+
+        for i, model_name in enumerate(self.available_models):
+            mgpu = int(main_gpus[i]) if i < len(main_gpus) else int(main_gpus[-1])
+            mtokens = (
+                int(max_tokens_list[i])
+                if i < len(max_tokens_list)
+                else int(max_tokens_list[-1])
+            )
+            npar = int(n_parallels[i]) if i < len(n_parallels) else int(n_parallels[-1])
+            mcr = (
+                int(max_requests_list[i])
+                if i < len(max_requests_list)
+                else int(max_requests_list[-1])
+            )
+            qtype = quant_types[i] if i < len(quant_types) else quant_types[-1]
+            qtype = qtype.strip() if qtype else None
+            if qtype == "":
+                qtype = None
+
+            # Generate a tensor_split that isolates the model to its target GPU
+            # when multiple GPUs exist and a specific GPU is assigned.
+            ts = None
+            if gpu_count > 1 and len(self.available_models) > 1:
+                ts = [0.0] * 128
+                ts[mgpu] = 1.0
+
+            self.model_configs[model_name] = {
+                "main_gpu": mgpu,
+                "max_tokens": mtokens,
+                "n_parallel": npar,
+                "max_concurrent_requests": mcr,
+                "quant_type": qtype,
+                "tensor_split": ts,
+            }
+
+        if len(self.model_configs) > 1:
+            for name, cfg in self.model_configs.items():
+                logging.info(
+                    f"[Config] {name}: GPU {cfg['main_gpu']}, "
+                    f"context {cfg['max_tokens']//1000}k, "
+                    f"n_parallel={cfg['n_parallel']}, "
+                    f"max_requests={cfg['max_concurrent_requests']}, "
+                    f"quant={cfg['quant_type']}"
+                )
+
+    def _resolve_source_model(self, model_name: str) -> str:
+        """Resolve an internal model ID back to the source HF model name."""
+        return self.model_sources.get(model_name, model_name)
+
+    def _resolve_requested_model_id(self, requested_model: str) -> str:
+        """Resolve a requested public model name to the primary internal model ID."""
+        if not requested_model:
+            return None
+
+        req = requested_model.lower()
+        req_short = requested_model.split("/")[-1].lower()
+
+        # Match by source model names first (public API behavior)
+        for source_name, replicas in self.model_replicas.items():
+            source_short = source_name.split("/")[-1].lower()
+            if source_name.lower() == req or source_short == req_short:
+                return replicas[0] if replicas else source_name
+
+        # Backward compatibility: allow explicit internal IDs if provided
+        for model_id in self.available_models:
+            internal_short = model_id.split("/")[-1].lower()
+            if model_id.lower() == req or internal_short == req_short:
+                return model_id
+
+        return None
+
     def _load_llm_resilient(
         self,
         model_name: str,
@@ -3422,6 +3527,8 @@ class Pipes:
         gpu_layers: int = None,
         main_gpu: int = None,
         tensor_split: list = None,
+        n_parallel: int = None,
+        quant_type: str = None,
     ) -> "LLM":
         """Load an LLM with smart GPU selection and resilient fallback.
 
@@ -3437,6 +3544,8 @@ class Pipes:
             gpu_layers: Number of GPU layers (None for smart auto-detect)
             main_gpu: Primary GPU index (None for smart auto-detect)
             tensor_split: Tensor split ratios (None for smart auto-detect)
+            n_parallel: Number of parallel inference slots (None for env default)
+            quant_type: Quantization preference (None for env default)
 
         Returns:
             LLM instance
@@ -3447,9 +3556,13 @@ class Pipes:
         # Get model path for VRAM estimation
         from ezlocalai.LLM import download_model
 
+        source_model_name = self._resolve_source_model(model_name)
+
         try:
             model_path, mmproj_path = download_model(
-                model_name=model_name, models_dir="./models"
+                model_name=source_model_name,
+                models_dir="./models",
+                quantization_type=quant_type,
             )
             projectors = [mmproj_path] if mmproj_path else []
         except Exception as e:
@@ -3512,11 +3625,13 @@ class Pipes:
                 f"gpu_layers={gpu_layers or 'auto'}, tensor_split={'yes' if tensor_split else 'no'})..."
             )
             llm = LLM(
-                model=model_name,
+                model=source_model_name,
                 max_tokens=max_tokens,
                 gpu_layers=gpu_layers,
                 main_gpu=main_gpu,
                 tensor_split=tensor_split,
+                n_parallel=n_parallel,
+                quant_type=quant_type,
             )
             return llm
         except Exception as gpu_error:
@@ -3571,10 +3686,12 @@ class Pipes:
                     )
                     try:
                         llm = LLM(
-                            model=model_name,
+                            model=source_model_name,
                             max_tokens=max_tokens,
                             gpu_layers=try_layers,
                             main_gpu=main_gpu,
+                            n_parallel=n_parallel,
+                            quant_type=quant_type,
                         )
                         logging.info(f"[LLM] {model_name} loaded with {label}")
                         return llm
@@ -4066,9 +4183,19 @@ class Pipes:
 
         This allows /v1/models endpoint to work even when LLM is not loaded.
         """
-        from ezlocalai.LLM import get_models
+        seen = set()
+        public_models = []
+        for model_name in self.available_models:
+            source_name = self._resolve_source_model(model_name)
+            if source_name not in seen:
+                seen.add(source_name)
+                public_models.append(source_name)
 
-        return get_models()
+        models = [
+            {"id": model_name, "object": "model", "owned_by": "ezlocalai"}
+            for model_name in public_models
+        ]
+        return {"object": "list", "data": models}
 
     def _reduce_gpu_layers(self) -> bool:
         """Reduce GPU layers to offload model weight to CPU/RAM when VRAM is exhausted.
@@ -4107,7 +4234,14 @@ class Pipes:
         try:
             from ezlocalai.LLM import download_model
 
-            model_path, _ = download_model(model_name=model_name, models_dir="./models")
+            cfg = self.model_configs.get(model_name, {})
+            source_model_name = self._resolve_source_model(model_name)
+
+            model_path, _ = download_model(
+                model_name=source_model_name,
+                models_dir="./models",
+                quantization_type=cfg.get("quant_type"),
+            )
             if model_path:
                 import gguf
 
@@ -4288,15 +4422,20 @@ class Pipes:
                 free_vram = get_free_vram_gb()
                 logging.info(f"[LLM] After cleanup: {free_vram:.1f}GB VRAM free")
 
-            # Load with new context - let smart GPU selection determine configuration
+            # Load with new context using per-model config
+            cfg = self.model_configs.get(model_name, {})
             start_time = time.time()
             self.llm = self._load_llm_resilient(
                 model_name=model_name,
                 max_tokens=required_context,
-                # gpu_layers, main_gpu, tensor_split determined by smart selection
+                main_gpu=cfg.get("main_gpu"),
+                tensor_split=cfg.get("tensor_split"),
+                n_parallel=cfg.get("n_parallel"),
+                quant_type=cfg.get("quant_type"),
             )
             self.current_llm_name = model_name
             self.current_context = required_context
+            self.persistent_llms[model_name] = self.llm
 
             # Also update primary model reference if this was the primary
             if (
@@ -4414,16 +4553,22 @@ class Pipes:
                     free_vram = get_free_vram_gb()
                     logging.info(f"[LLM] After cleanup: {free_vram:.1f}GB VRAM free")
 
-                # Reload at optimal context
+                # Reload at optimal context with per-model config
+                cfg = self.model_configs.get(model_name, {})
                 start_time = time.time()
                 self.llm = self._load_llm_resilient(
                     model_name=model_name,
                     max_tokens=self._optimal_context,
+                    main_gpu=cfg.get("main_gpu"),
+                    tensor_split=cfg.get("tensor_split"),
+                    n_parallel=cfg.get("n_parallel"),
+                    quant_type=cfg.get("quant_type"),
                 )
                 self.current_llm_name = model_name
                 self.current_context = self._optimal_context
 
-                # Update primary model reference
+                # Update persistent model references
+                self.persistent_llms[model_name] = self.llm
                 if self.available_models and model_name == self.available_models[0]:
                     self.primary_llm = self.llm
                     self.primary_llm_name = model_name
@@ -4449,18 +4594,7 @@ class Pipes:
         """
         with self._model_lock:
             # Check if this is a known model
-            target_model = None
-
-            for model_name in self.available_models:
-                # Match by exact name or by the short name (last part after /)
-                short_name = model_name.split("/")[-1].lower()
-                requested_short = requested_model.split("/")[-1].lower()
-                if (
-                    model_name.lower() == requested_model.lower()
-                    or short_name == requested_short
-                ):
-                    target_model = model_name
-                    break
+            target_model = self._resolve_requested_model_id(requested_model)
 
             if target_model is None:
                 # Model not in available list, use current
@@ -4476,6 +4610,22 @@ class Pipes:
                 and self.current_context >= target_context
             ):
                 return
+
+            # Check persistent_llms for an already-loaded instance
+            if (
+                target_model in self.persistent_llms
+                and self.persistent_llms[target_model] is not None
+            ):
+                cfg = self.model_configs.get(target_model, {})
+                loaded_context = cfg.get("max_tokens", self._optimal_context)
+                if loaded_context >= target_context:
+                    logging.debug(
+                        f"[LLM] Switching to persistent model: {target_model}"
+                    )
+                    self.llm = self.persistent_llms[target_model]
+                    self.current_llm_name = target_model
+                    self.current_context = loaded_context
+                    return
 
             # Swap models - must unload old model first to free VRAM
             logging.debug(
@@ -4496,12 +4646,16 @@ class Pipes:
                 if torch.cuda.is_available():
                     torch.cuda.empty_cache()
 
-            # Try to load new LLM with smart GPU selection
+            # Try to load new LLM with smart GPU selection and per-model config
+            cfg = self.model_configs.get(target_model, {})
             try:
                 self.llm = self._load_llm_resilient(
                     model_name=target_model,
                     max_tokens=target_context,
-                    # Let smart GPU selection handle gpu_layers, main_gpu, tensor_split
+                    main_gpu=cfg.get("main_gpu"),
+                    tensor_split=cfg.get("tensor_split"),
+                    n_parallel=cfg.get("n_parallel"),
+                    quant_type=cfg.get("quant_type"),
                 )
                 self.current_llm_name = target_model
                 self.current_context = target_context
@@ -4511,13 +4665,17 @@ class Pipes:
                     logging.debug(f"[LLM] Vision capability enabled for {target_model}")
             except Exception as e:
                 logging.error(f"[LLM] Failed to load {target_model}: {e}")
-                # Rollback to old model with smart GPU selection
+                # Rollback to old model with per-model config
                 logging.debug(f"[LLM] Rolling back to {old_model_name}")
+                old_cfg = self.model_configs.get(old_model_name, {})
                 try:
                     self.llm = self._load_llm_resilient(
                         model_name=old_model_name,
                         max_tokens=old_context,
-                        # Let smart GPU selection handle configuration
+                        main_gpu=old_cfg.get("main_gpu"),
+                        tensor_split=old_cfg.get("tensor_split"),
+                        n_parallel=old_cfg.get("n_parallel"),
+                        quant_type=old_cfg.get("quant_type"),
                     )
                     self.current_llm_name = old_model_name
                     self.current_context = old_context
@@ -4529,10 +4687,12 @@ class Pipes:
                     # Last resort - try to load first available model at 16k with CPU fallback
                     for model_name in self.available_models:
                         try:
+                            fallback_cfg = self.model_configs.get(model_name, {})
                             self.llm = self._load_llm_resilient(
                                 model_name=model_name,
                                 max_tokens=16384,
                                 gpu_layers=0,  # Force CPU to maximize chance of success
+                                quant_type=fallback_cfg.get("quant_type"),
                             )
                             self.current_llm_name = model_name
                             self.current_context = 16384
@@ -4987,7 +5147,70 @@ class Pipes:
                 logging.debug(f"[LLM _get_llm] Using current self.llm (already loaded)")
                 return self.llm
 
-            # Check if this is one of our persistent models
+            # Replica spillover: if this source model has multiple loaded replicas,
+            # route to another replica when the currently active one is saturated.
+            source_name = self._resolve_source_model(model_name)
+            replica_ids = self.model_replicas.get(source_name, [model_name])
+
+            if len(replica_ids) > 1:
+                current_id = self.current_llm_name
+                current_cfg = (
+                    self.model_configs.get(current_id, {}) if current_id else {}
+                )
+                current_capacity = max(1, int(current_cfg.get("n_parallel", 1)))
+
+                current_is_same_source = current_id in replica_ids
+                saturated = (
+                    current_is_same_source and self._inference_count >= current_capacity
+                )
+
+                if saturated:
+                    for replica_id in replica_ids:
+                        if replica_id == current_id:
+                            continue
+                        replica_llm = self.persistent_llms.get(replica_id)
+                        if replica_llm is None:
+                            continue
+                        replica_cfg = self.model_configs.get(replica_id, {})
+                        replica_ctx = replica_cfg.get(
+                            "max_tokens", self._optimal_context
+                        )
+                        if replica_ctx >= context_size:
+                            self.llm = replica_llm
+                            self.current_llm_name = replica_id
+                            self.current_context = replica_ctx
+                            logging.info(
+                                f"[LLM] Replica spillover: {source_name} -> {replica_id} "
+                                f"(active={self._inference_count}, capacity={current_capacity})"
+                            )
+                            return self.llm
+
+            # Check persistent_llms dict (all pre-loaded models)
+            if model_name in self.persistent_llms:
+                persistent = self.persistent_llms[model_name]
+                if persistent is not None:
+                    # Get the context this model was loaded with
+                    cfg = self.model_configs.get(model_name, {})
+                    loaded_context = cfg.get("max_tokens", self._optimal_context)
+                    if loaded_context >= context_size:
+                        logging.debug(
+                            f"[LLM] Switching to persistent model: {model_name}"
+                        )
+                        self.llm = persistent
+                        self.current_llm_name = model_name
+                        self.current_context = loaded_context
+                        return self.llm
+                    else:
+                        logging.info(
+                            f"[LLM] Persistent model {model_name} has {loaded_context//1000}k context, "
+                            f"need {context_size//1000}k — reloading with larger context"
+                        )
+                        del self.persistent_llms[model_name]
+                        gc.collect()
+                        if torch.cuda.is_available():
+                            torch.cuda.empty_cache()
+
+            # Check if this is one of our persistent models (backward compat pointers)
             is_primary = model_name == self.primary_llm_name
             is_vision = model_name == self.vision_llm_name
             logging.debug(
@@ -5079,12 +5302,19 @@ class Pipes:
             start_time = time.time()
 
             # Let _load_llm_resilient handle smart GPU selection
+            # Use per-model config if available
+            cfg = self.model_configs.get(model_name, {})
             new_llm = self._load_llm_resilient(
                 model_name=model_name,
                 max_tokens=context_size,
+                main_gpu=cfg.get("main_gpu"),
+                tensor_split=cfg.get("tensor_split"),
+                n_parallel=cfg.get("n_parallel"),
+                quant_type=cfg.get("quant_type"),
             )
 
-            # Store in appropriate slot
+            # Store in appropriate slot and persistent_llms
+            self.persistent_llms[model_name] = new_llm
             if is_primary:
                 self.primary_llm = new_llm
                 self.primary_llm_name = model_name
@@ -5145,38 +5375,38 @@ class Pipes:
         with self._model_lock:
             default_context = self._optimal_context
 
-            # Reload primary if it was set
-            if self.primary_llm_name and self.primary_llm is None:
-                logging.debug(
-                    f"[LLM] Reloading persistent primary model: {self.primary_llm_name}"
-                )
-                try:
-                    self.primary_llm = self._load_llm_resilient(
-                        model_name=self.primary_llm_name,
-                        max_tokens=self.primary_llm_context or default_context,
-                    )
-                    self.llm = self.primary_llm
-                    self.current_llm_name = self.primary_llm_name
-                    self.current_context = self.primary_llm_context or default_context
-                except Exception as e:
-                    logging.warning(f"[LLM] Failed to reload primary model: {e}")
+            # Reload all persistent models that were unloaded
+            for model_name in list(self.available_models):
+                if (
+                    model_name in self.persistent_llms
+                    and self.persistent_llms[model_name] is not None
+                ):
+                    continue  # Already loaded
 
-            # Reload vision if it was set and different from primary
-            if (
-                self.vision_llm_name
-                and self.vision_llm is None
-                and self.vision_llm_name != self.primary_llm_name
-            ):
-                logging.debug(
-                    f"[LLM] Reloading persistent vision model: {self.vision_llm_name}"
-                )
+                cfg = self.model_configs.get(model_name, {})
+                model_context = cfg.get("max_tokens", default_context)
+                logging.debug(f"[LLM] Reloading persistent model: {model_name}")
                 try:
-                    self.vision_llm = self._load_llm_resilient(
-                        model_name=self.vision_llm_name,
-                        max_tokens=self.vision_llm_context or default_context,
+                    llm_instance = self._load_llm_resilient(
+                        model_name=model_name,
+                        max_tokens=model_context,
+                        main_gpu=cfg.get("main_gpu"),
+                        tensor_split=cfg.get("tensor_split"),
+                        n_parallel=cfg.get("n_parallel"),
+                        quant_type=cfg.get("quant_type"),
                     )
+                    self.persistent_llms[model_name] = llm_instance
+
+                    # Update backward compat pointers
+                    if model_name == self.primary_llm_name:
+                        self.primary_llm = llm_instance
+                        self.llm = llm_instance
+                        self.current_llm_name = model_name
+                        self.current_context = model_context
+                    elif model_name == self.vision_llm_name:
+                        self.vision_llm = llm_instance
                 except Exception as e:
-                    logging.warning(f"[LLM] Failed to reload vision model: {e}")
+                    logging.warning(f"[LLM] Failed to reload model {model_name}: {e}")
 
     def _destroy_llm_sync(self, llm_ref, model_name: str):
         """Synchronous LLM destruction - runs the actual cleanup.
@@ -6140,16 +6370,8 @@ class Pipes:
         target_model = None
 
         if requested_model and self.available_models:
-            # Find matching model name from available models
-            for model_name in self.available_models:
-                short_name = model_name.split("/")[-1].lower()
-                requested_short = requested_model.split("/")[-1].lower()
-                if (
-                    model_name.lower() == requested_model.lower()
-                    or short_name == requested_short
-                ):
-                    target_model = model_name
-                    break
+            # Resolve requested public model name to internal model ID
+            target_model = self._resolve_requested_model_id(requested_model)
 
             # If requested model not found in available models, fallback to first available
             if target_model is None:
@@ -6175,7 +6397,7 @@ class Pipes:
 
         # Lazy load the LLM with calculated context (estimated prompt tokens + 16k headspace)
         self._get_llm(target_model, required_context)
-        data["model"] = self.current_llm_name
+        data["model"] = self._resolve_source_model(self.current_llm_name)
 
         if "stop" in data and data["stop"]:
             new_stop = list(self.llm.params.get("stop", []))

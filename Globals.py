@@ -20,18 +20,27 @@ def getenv(var_name: str, default_value: str = None) -> str:
         "LOG_LEVEL": "INFO",
         "LOG_FORMAT": "%(asctime)s | %(levelname)s | %(message)s",
         "UVICORN_WORKERS": 1,  # GPU inference: 1 worker to avoid duplicate model loads
+        # GPU assignment — comma-separated to match DEFAULT_MODEL order.
+        # e.g., DEFAULT_MODEL="model_a,model_b" with MAIN_GPU="0,1" loads model_a on GPU 0, model_b on GPU 1.
+        # Single value applies to all models.
         "MAIN_GPU": "0",
         "TENSOR_SPLIT": "",
+        # Quantization preference — comma-separated to match DEFAULT_MODEL order.
+        # e.g., QUANT_TYPE="Q4_K_XL,Q3_K_XL" picks per-model quants.
+        # Single value applies to all models.
         "QUANT_TYPE": "Q4_K_XL",
         "LLM_BATCH_SIZE": "2048",
+        # Context size — comma-separated to match DEFAULT_MODEL order.
+        # e.g., LLM_MAX_TOKENS="65536,262144" gives model_a 65k and model_b 262k context.
         "LLM_MAX_TOKENS": "65536",
         "REASONING_BUDGET": "-1",  # Max thinking tokens per response (-1 = unlimited, 0 = disabled, N = limit)
-        # Parallel inference slots — 1 = single slot (default),
-        # N = fixed number of parallel slots.
+        # Parallel inference slots — comma-separated to match DEFAULT_MODEL order.
+        # 1 = single slot (default), N = fixed number of parallel slots.
         # Each slot gets n_ctx / n_parallel tokens of context. VRAM is constant.
         "N_PARALLEL": "1",
         "VLM_MAX_TOKENS": "8192",  # Vision models don't need large context
-        # Queue system defaults - MAX_CONCURRENT_REQUESTS should match N_PARALLEL
+        # Queue system defaults — comma-separated to match DEFAULT_MODEL order.
+        # MAX_CONCURRENT_REQUESTS should match N_PARALLEL per model.
         "MAX_CONCURRENT_REQUESTS": "1",
         "MAX_QUEUE_SIZE": "100",
         "REQUEST_TIMEOUT": "120",
