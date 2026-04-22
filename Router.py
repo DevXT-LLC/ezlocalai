@@ -554,9 +554,22 @@ class WorkerInfo:
     def is_alive(self, ttl: float) -> bool:
         return (time.time() - self.last_heartbeat) <= ttl
 
+    def effective_busy(self) -> int:
+        """Best estimate of in-flight work right now.
+
+        ``queue_depth`` only refreshes on heartbeat (every ~10s) so during a
+        burst it lags reality. ``in_flight`` is incremented synchronously by
+        the proxy as soon as a request is dispatched, so it's the freshest
+        signal between heartbeats. We take the max so neither source can
+        under-count actual load.
+        """
+        return max(int(self.queue_depth), int(self.in_flight))
+
     def has_capacity(self) -> bool:
-        # A worker is considered "free" if it has queue room and at least some VRAM
-        return self.queue_depth < max(1, self.queue_capacity)
+        # A worker is considered "free" if it has at least one open slot,
+        # using whichever busy-signal is higher (router-side in-flight or
+        # last heartbeat queue depth).
+        return self.effective_busy() < max(1, self.queue_capacity)
 
     def score(self) -> float:
         """Higher = better worker to send the next request to.
@@ -571,7 +584,8 @@ class WorkerInfo:
         sitting idle, but a heavily loaded fast GPU can lose to an idle slower
         one because the load penalty grows with in-flight requests.
         """
-        slots_left = max(0, self.queue_capacity - self.queue_depth)
+        busy = self.effective_busy()
+        slots_left = max(0, self.queue_capacity - busy)
         # Failure penalty decays as the counter grows (caps the impact). New
         # failures bias routing away briefly without permanently sidelining
         # a high-tier worker that may have just had a transient hiccup.
@@ -580,7 +594,7 @@ class WorkerInfo:
             self.best_tier * 10.0
             + slots_left * 5.0
             + self.free_vram_gb
-            - self.in_flight * 4.0
+            - busy * 4.0
             - failure_penalty
         )
 
@@ -760,22 +774,57 @@ class Router:
             preferred = _has_capacity(model_servers)
             if preferred:
                 preferred.sort(key=lambda w: w.score(), reverse=True)
-                return preferred[0]
+                winner = preferred[0]
+                logging.info(
+                    f"[Router] select model={model!r} cap={capability} -> {winner.label} "
+                    f"(score={winner.score():.1f}, busy={winner.effective_busy()}/{winner.queue_capacity}); "
+                    f"same-model candidates: "
+                    + ", ".join(
+                        f"{w.label}(busy={w.effective_busy()}/{w.queue_capacity},score={w.score():.1f})"
+                        for w in model_servers
+                    )
+                )
+                return winner
             # Same-model workers exist but are saturated. During the grace
             # period (allow_cross_model=False) refuse to cross over so the
             # caller can briefly wait for a slot. After the grace period
             # expires the caller flips this flag and we cross-model fall
             # back to the highest-tier alternative.
             if model_servers and not allow_cross_model:
+                logging.info(
+                    f"[Router] select model={model!r} cap={capability}: same-model workers all "
+                    f"saturated, waiting for capacity; "
+                    + ", ".join(
+                        f"{w.label}(busy={w.effective_busy()}/{w.queue_capacity})"
+                        for w in model_servers
+                    )
+                )
                 return None
             if not allow_cross_model:
-                # No same-model worker even exists yet — let caller wait
-                # in case one registers shortly.
+                logging.info(
+                    f"[Router] select model={model!r} cap={capability}: no same-model worker "
+                    f"registered yet, waiting"
+                )
                 return None
             fallback = _has_capacity(all_alive)
             if fallback:
                 fallback.sort(key=lambda w: w.score(), reverse=True)
-                return fallback[0]
+                winner = fallback[0]
+                logging.warning(
+                    f"[Router] select model={model!r} cap={capability}: NO same-model worker "
+                    f"available after grace period -> CROSS-MODEL fallback to {winner.label} "
+                    f"(advertises {winner.models}, score={winner.score():.1f}). "
+                    f"Same-model workers were: "
+                    + ", ".join(
+                        f"{w.label}(busy={w.effective_busy()}/{w.queue_capacity})"
+                        for w in model_servers
+                    )
+                    + (" (none registered)" if not model_servers else "")
+                )
+                return winner
+            logging.warning(
+                f"[Router] select model={model!r} cap={capability}: NO worker available at all"
+            )
             return None
 
         # No model filter — best-scoring capability match with capacity.
