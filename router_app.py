@@ -246,6 +246,9 @@ async def router_register(
         model_context={
             str(k): int(v) for k, v in (payload.get("model_context") or {}).items()
         },
+        model_quant={
+            str(k): str(v) for k, v in (payload.get("model_quant") or {}).items() if v
+        },
         extra={
             k: v
             for k, v in payload.items()
@@ -267,6 +270,7 @@ async def router_register(
                 "gpus",
                 "best_tier",
                 "model_context",
+                "model_quant",
             }
         },
     )
@@ -429,8 +433,12 @@ def _aggregate_dashboard() -> Dict[str, Any]:
                     "context": ctx,
                     "slots_left": slots_left,
                     "queue_capacity": w.queue_capacity,
+                    "quant": w.model_quant.get(model, ""),
                 }
             )
+            q = w.model_quant.get(model)
+            if q:
+                entry.setdefault("quants", set()).add(q)
 
     # Per-capability rollup
     cap_rollup: Dict[str, Dict[str, Any]] = {}
@@ -453,9 +461,6 @@ def _aggregate_dashboard() -> Dict[str, Any]:
     return {
         "generated_at": time.time(),
         "router": {
-            "register_key_set": bool(_expected_register_key()),
-            "client_key_set": bool(_expected_client_key()),
-            "open_pool": not _expected_register_key(),
             "ttl_seconds": registry.ttl,
             "wait_timeout": _wait_timeout(),
         },
@@ -472,7 +477,10 @@ def _aggregate_dashboard() -> Dict[str, Any]:
         },
         "capabilities": sorted(cap_rollup.values(), key=lambda x: x["capability"]),
         "models": sorted(
-            model_rollup.values(),
+            [
+                {**m, "quants": sorted(m.get("quants", set()))}
+                for m in model_rollup.values()
+            ],
             key=lambda x: (-x["best_tier"], x["model"]),
         ),
         "workers": [w.to_public() for w in alive]
@@ -489,12 +497,6 @@ async def router_dashboard_json(_: str = Depends(verify_client)):
 def _render_dashboard_html(data: Dict[str, Any]) -> str:
     totals = data["totals"]
     router_meta = data["router"]
-    open_pool_banner = (
-        '<div class="banner warn">⚠ OPEN POOL — anyone reachable can register '
-        "as a worker. Set <code>ROUTER_REGISTER_KEY</code> for production.</div>"
-        if router_meta["open_pool"]
-        else ""
-    )
 
     # Capability cards
     cap_cards = (
@@ -516,11 +518,12 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
     # Model rows
     def _model_row(m: Dict[str, Any]) -> str:
         worker_pills = "".join(
-            f'<span class="pill" title="tier {w["best_tier"]} · {w["slots_left"]}/{w["queue_capacity"]} slots free · ctx {w["context"] or "?"}">'
-            f'{w["label"]}</span>'
+            f'<span class="pill" title="tier {w["best_tier"]} · {w["slots_left"]}/{w["queue_capacity"]} slots free · ctx {w["context"] or "?"} · quant {w.get("quant") or "?"}">'
+            f'{w["label"]}{(" " + w["quant"]) if w.get("quant") else ""}</span>'
             for w in m["workers"]
         )
         ctx = f"{m['max_context']:,}" if m["max_context"] else "?"
+        quants = ", ".join(m.get("quants") or []) or "—"
         return f"""
         <tr>
           <td class="mono">{m['model']}</td>
@@ -528,13 +531,14 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
           <td class="num">{m['total_capacity']}</td>
           <td class="num">{m['available_slots']}</td>
           <td class="num">{ctx}</td>
+          <td class="mono small">{quants}</td>
           <td class="num">{m['best_tier']}</td>
           <td>{worker_pills}</td>
         </tr>
         """
 
     model_rows = "".join(_model_row(m) for m in data["models"]) or (
-        '<tr><td colspan="7" class="muted">No models loaded across the pool.</td></tr>'
+        '<tr><td colspan="8" class="muted">No models loaded across the pool.</td></tr>'
     )
 
     # Worker rows
@@ -547,7 +551,13 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
             )
             or "—"
         )
-        models = ", ".join(w.get("models") or []) or "—"
+        mq = w.get("model_quant") or {}
+        models = (
+            ", ".join(
+                f"{m} ({mq[m]})" if mq.get(m) else m for m in (w.get("models") or [])
+            )
+            or "—"
+        )
         slots_left = max(
             0, int(w.get("queue_capacity", 1)) - int(w.get("queue_depth", 0))
         )
@@ -644,11 +654,7 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
       <div class="meta">TTL {router_meta['ttl_seconds']:.0f}s · wait timeout {router_meta['wait_timeout']:.0f}s
       · auto-refresh 5s</div>
     </div>
-    <div class="meta">register key: {'set' if router_meta['register_key_set'] else 'unset'}
-      · client key: {'set' if router_meta['client_key_set'] else 'unset'}</div>
   </div>
-
-  {open_pool_banner}
 
   <div class="grid">
     <div class="card stat"><div class="label">Workers</div>
@@ -676,7 +682,7 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
     <thead><tr>
       <th>Model</th><th class="num">Workers</th><th class="num">Total parallel</th>
       <th class="num">Available now</th><th class="num">Max context</th>
-      <th class="num">Best tier</th><th>Hosted by</th>
+      <th>Quant(s)</th><th class="num">Best tier</th><th>Hosted by</th>
     </tr></thead>
     <tbody>{model_rows}</tbody>
   </table>

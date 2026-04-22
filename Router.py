@@ -26,6 +26,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import os
+import re
 import socket
 import time
 import uuid
@@ -50,6 +51,12 @@ def detect_local_capabilities() -> List[str]:
 
     Reads the same env vars the rest of the app uses so a worker advertises
     itself accurately based on its existing config (no extra env required).
+
+    Important semantic of the *_SERVER env vars (matches Globals.py docs):
+        ""     → load locally on demand (this worker provides the capability)
+        "true" → this worker IS a dedicated server for that capability
+        URL    → this worker DELEGATES that capability to a remote server,
+                 so it should NOT advertise the capability itself.
     """
     caps: List[str] = []
     default_model = (getenv("DEFAULT_MODEL") or "").strip()
@@ -61,30 +68,38 @@ def detect_local_capabilities() -> List[str]:
     tts_enabled = (getenv("TTS_ENABLED") or "true").strip().lower() == "true"
     stt_enabled = (getenv("STT_ENABLED") or "true").strip().lower() == "true"
 
-    # Text/vision: any server that loads an LLM (and isn't dedicated to
-    # voice/image only) can answer text. Vision is detected from common model
-    # name hints.
+    def _is_url(v: str) -> bool:
+        return v.startswith("http://") or v.startswith("https://")
+
+    voice_delegated = _is_url(voice_server)
+    image_delegated = _is_url(image_server)
+    text_delegated = _is_url(text_server)
+
     is_dedicated_voice = voice_server == "true"
     is_dedicated_image = image_server == "true"
-    if default_model and not (is_dedicated_voice or is_dedicated_image):
+
+    # Text/vision: any worker that has DEFAULT_MODEL loaded can answer text,
+    # *unless* it's explicitly delegating text elsewhere. Even dedicated
+    # voice/image servers may also serve text if they loaded an LLM, so we
+    # no longer exclude them here.
+    if default_model and not text_delegated:
         caps.append("text")
         lowered = default_model.lower()
         if any(tag in lowered for tag in ("vl", "vision", "qwen3.6", "qwen3.5-vl")):
             caps.append("vision")
-    if (
-        (
-            text_server == "true"
-            or (text_server == "" and not is_dedicated_voice and not is_dedicated_image)
-        )
-        and "text" not in caps
-        and default_model
-    ):
+    elif text_server == "true" and "text" not in caps and default_model:
         caps.append("text")
 
-    if tts_enabled or stt_enabled or voice_server == "true":
+    # Voice: claim it only if we actually serve it locally — TTS/STT enabled
+    # and not delegating to a remote voice server.
+    if not voice_delegated and (tts_enabled or stt_enabled or is_dedicated_voice):
         caps.append("voice")
 
-    if (img_model and img_model not in ("none", "")) or image_server == "true":
+    # Image: claim it only if we actually generate locally — img_model set or
+    # this is a dedicated image server, and we're not delegating elsewhere.
+    if not image_delegated and (
+        (img_model and img_model not in ("none", "")) or is_dedicated_image
+    ):
         caps.append("image")
     if video_model and video_model not in ("none", ""):
         caps.append("video")
@@ -244,6 +259,8 @@ class WorkerInfo:
     best_tier: int = TIER_CPU
     # Per-model context window (max_tokens). Auto-reported when available.
     model_context: Dict[str, int] = field(default_factory=dict)
+    # Per-model quantization (e.g. "Q4_K_XL"). Auto-reported when available.
+    model_quant: Dict[str, str] = field(default_factory=dict)
     last_heartbeat: float = field(default_factory=time.time)
     registered_at: float = field(default_factory=time.time)
     extra: Dict[str, Any] = field(default_factory=dict)
@@ -264,6 +281,7 @@ class WorkerInfo:
             "gpus": list(self.gpus),
             "best_tier": self.best_tier,
             "model_context": dict(self.model_context),
+            "model_quant": dict(self.model_quant),
             "age_seconds": time.time() - self.registered_at,
             "last_heartbeat_age": time.time() - self.last_heartbeat,
             "extra": self.extra,
@@ -350,6 +368,10 @@ class WorkerRegistry:
             ):
                 worker.model_context = {
                     str(k): int(v) for k, v in payload["model_context"].items()
+                }
+            if "model_quant" in payload and isinstance(payload["model_quant"], dict):
+                worker.model_quant = {
+                    str(k): str(v) for k, v in payload["model_quant"].items() if v
                 }
             if "extra" in payload and isinstance(payload["extra"], dict):
                 worker.extra.update(payload["extra"])
@@ -493,6 +515,7 @@ class WorkerHeartbeatClient:
         queue_capacity = 1
         in_flight = 0
         model_context: Dict[str, int] = {}
+        model_quant: Dict[str, str] = {}
         try:
             from Pipes import get_resource_manager  # local import: optional dep
 
@@ -531,6 +554,39 @@ class WorkerHeartbeatClient:
                             n_ctx = 0
                     if n_ctx > 0:
                         model_context[str(name)] = n_ctx
+                    # Best-effort quant extraction from gguf filename
+                    try:
+                        model_path = ""
+                        if xlc is not None:
+                            mp = getattr(xlc, "model", None)
+                            model_path = getattr(mp, "path", "") or ""
+                        fname = os.path.basename(model_path).upper()
+                        m = re.search(r"(I?Q\d[A-Z0-9_]*?)(?=\.GGUF|$|-)", fname)
+                        if m:
+                            model_quant[str(name)] = m.group(1)
+                    except Exception:
+                        pass
+        except Exception:
+            pass
+        # Fallback: fill missing quants from QUANT_TYPE env aligned with DEFAULT_MODEL
+        try:
+            default_models = [
+                m.strip()
+                for m in (os.environ.get("DEFAULT_MODEL") or "").split(",")
+                if m.strip()
+            ]
+            quants = [
+                q.strip()
+                for q in (os.environ.get("QUANT_TYPE") or "").split(",")
+                if q.strip()
+            ]
+            for idx, mname in enumerate(default_models):
+                if mname in model_quant:
+                    continue
+                if idx < len(quants):
+                    model_quant[mname] = quants[idx]
+                elif quants:
+                    model_quant[mname] = quants[0]
         except Exception:
             pass
         try:
@@ -558,6 +614,7 @@ class WorkerHeartbeatClient:
             "gpus": gpus,
             "best_tier": best_gpu_tier(gpus),
             "model_context": model_context,
+            "model_quant": model_quant,
         }
 
     async def _post(self, path: str, payload: Dict[str, Any]) -> Tuple[bool, Any]:
