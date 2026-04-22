@@ -181,9 +181,12 @@ class UsageTracker:
 
     def __init__(self, path: str) -> None:
         self._path = path
+        # History persists next to the usage file (same directory + suffix).
+        base, ext = os.path.splitext(path)
+        self._history_path = f"{base}.history{ext or '.json'}"
         self._lock: Optional[asyncio.Lock] = None
         self._data: Dict[str, Any] = {}
-        # Capped in-memory ring buffer of recent LLM requests.  Each entry:
+        # Capped ring buffer of recent LLM requests, persisted to disk.  Each entry:
         # {ts, worker, model, prompt_tokens, completion_tokens,
         #  prompt_ms, predicted_ms, prompt_tps, predicted_tps}
         self._history: List[Dict[str, Any]] = []
@@ -213,6 +216,25 @@ class UsageTracker:
             logging.warning(
                 f"[Usage] Failed to load {self._path}: {e} — starting fresh"
             )
+        # History is persisted as a list of dict entries.
+        try:
+            with open(self._history_path) as fh:
+                hist = json.load(fh)
+            if isinstance(hist, list):
+                # Trim if the file grew beyond the configured cap.
+                self._history = hist[-self._history_max :]
+                logging.info(
+                    f"[Usage] Loaded {len(self._history)} history entries from "
+                    f"{self._history_path}"
+                )
+        except FileNotFoundError:
+            self._history = []
+        except Exception as e:
+            self._history = []
+            logging.warning(
+                f"[Usage] Failed to load history {self._history_path}: {e} — "
+                "starting fresh"
+            )
 
     def _save_sync(self) -> None:
         """Write atomically (tmp → rename). Runs in a thread executor — never call
@@ -233,11 +255,13 @@ class UsageTracker:
             if not self._dirty:
                 return
             data_snapshot = json.loads(json.dumps(self._data))
+            history_snapshot = list(self._history)
             self._dirty = False
         loop = asyncio.get_event_loop()
-        # Capture snapshot for the thread; no lock needed once we have our copy.
         _snap = data_snapshot
+        _hist = history_snapshot
         _path = self._path
+        _hist_path = self._history_path
 
         def _write() -> None:
             try:
@@ -248,6 +272,11 @@ class UsageTracker:
             with open(tmp, "w") as fh:
                 json.dump(_snap, fh, indent=2)
             os.replace(tmp, _path)
+            # Persist history (no indent — it can grow large).
+            tmp_h = _hist_path + ".tmp"
+            with open(tmp_h, "w") as fh:
+                json.dump(_hist, fh)
+            os.replace(tmp_h, _hist_path)
 
         await loop.run_in_executor(None, _write)
 
