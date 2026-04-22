@@ -122,7 +122,7 @@ RUN set -e && \
     cmake --build . --config Release -j$(nproc) \
         --target common llama ggml ggml-cpu ggml-cuda mtmd cpp-httplib server-context llama-server && \
     echo "--- Verifying generated headers ---" && \
-    ls tools/server/index.html.gz.hpp && \
+    (ls tools/server/index.html.gz.hpp 2>/dev/null || ls tools/server/index.html.hpp) && \
     echo "--- Copying libs ---" && \
     cd /tmp/xllamacpp && \
     python scripts/copy_libs.py && \
