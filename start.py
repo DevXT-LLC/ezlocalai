@@ -19,13 +19,21 @@ warnings.filterwarnings("ignore", category=SyntaxWarning)
 
 
 def main():
-    # Run precache first (quietly - it has its own logging)
-    precache_result = subprocess.run(
-        [sys.executable, "precache.py"], cwd=os.path.dirname(os.path.abspath(__file__))
-    )
+    router_mode = (os.getenv("ROUTER_MODE", "false") or "").strip().lower() == "true"
 
-    if precache_result.returncode != 0:
-        print("[ezlocalai] Warning: Precache had errors, continuing anyway...")
+    if router_mode:
+        # Router has no models to precache and uses a separate FastAPI app
+        print("[ezlocalai] Starting in ROUTER mode (no local models)")
+        app_target = "router_app:app"
+    else:
+        # Run precache first (quietly - it has its own logging)
+        precache_result = subprocess.run(
+            [sys.executable, "precache.py"],
+            cwd=os.path.dirname(os.path.abspath(__file__)),
+        )
+        if precache_result.returncode != 0:
+            print("[ezlocalai] Warning: Precache had errors, continuing anyway...")
+        app_target = "app:app"
 
     # Get worker count from environment
     workers = os.getenv("UVICORN_WORKERS", "1")
@@ -37,7 +45,7 @@ def main():
         sys.executable,
         "-m",
         "uvicorn",
-        "app:app",
+        app_target,
         "--host",
         host,
         "--port",

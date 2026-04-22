@@ -1,0 +1,31 @@
+services:
+  ezlocalai-router:
+    container_name: ezlocalai-router
+    image: joshxt/ezlocalai:latest
+    environment:
+      - ROUTER_MODE=true
+      - EZLOCALAI_API_KEY=${EZLOCALAI_API_KEY-}
+      # Optional: distinct shared secret workers must present.
+      # Defaults to EZLOCALAI_API_KEY when empty.
+      - ROUTER_REGISTER_KEY=${ROUTER_REGISTER_KEY-}
+      # How long since the last heartbeat before a worker is considered dead.
+      - ROUTER_WORKER_TTL=${ROUTER_WORKER_TTL-30}
+      # How long the router waits for a free worker before returning 503.
+      - ROUTER_WAIT_TIMEOUT=${ROUTER_WAIT_TIMEOUT-120}
+      - LOG_LEVEL=${LOG_LEVEL-INFO}
+      - HOST=0.0.0.0
+      - PORT=8092
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8092/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    logging:
+      driver: json-file
+      options:
+        max-size: "100m"
+        max-file: "3"
+    ports:
+      - "8092:8092"
