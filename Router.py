@@ -526,6 +526,8 @@ class WorkerInfo:
     extra: Dict[str, Any] = field(default_factory=dict)
     # Consecutive connection failures from the router side (not the worker heartbeat)
     connection_failures: int = 0
+    # Git commit hash of the ezlocalai repo running on this worker (short SHA)
+    version: str = ""
 
     def to_public(self) -> Dict[str, Any]:
         return {
@@ -548,6 +550,7 @@ class WorkerInfo:
             "cap_models": dict(self.cap_models),
             "age_seconds": time.time() - self.registered_at,
             "last_heartbeat_age": time.time() - self.last_heartbeat,
+            "version": self.version,
             "extra": self.extra,
         }
 
@@ -663,6 +666,8 @@ class WorkerRegistry:
                 worker.cap_models = {
                     str(k): str(v) for k, v in payload["cap_models"].items() if v
                 }
+            if payload.get("version"):
+                worker.version = str(payload["version"])
             if "extra" in payload and isinstance(payload["extra"], dict):
                 worker.extra.update(payload["extra"])
             worker.last_heartbeat = time.time()
@@ -1061,6 +1066,28 @@ class WorkerHeartbeatClient:
 
         gpus = detect_local_gpus()
         # Capability-specific model names (sent to the router for display)
+        # Detect the git commit of the running ezlocalai repo
+        version = ""
+        try:
+            import subprocess
+
+            result = subprocess.run(
+                [
+                    "git",
+                    "-C",
+                    os.path.dirname(os.path.abspath(__file__)),
+                    "rev-parse",
+                    "--short",
+                    "HEAD",
+                ],
+                capture_output=True,
+                text=True,
+                timeout=3,
+            )
+            if result.returncode == 0:
+                version = result.stdout.strip()
+        except Exception:
+            pass
         cap_models: Dict[str, str] = {}
         for _cap in self.capabilities:
             if _cap == "tts":
@@ -1091,6 +1118,7 @@ class WorkerHeartbeatClient:
             "model_context": model_context,
             "model_quant": model_quant,
             "cap_models": cap_models,
+            "version": version,
         }
 
     async def _post(self, path: str, payload: Dict[str, Any]) -> Tuple[bool, Any]:

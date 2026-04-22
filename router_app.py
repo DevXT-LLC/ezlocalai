@@ -582,6 +582,7 @@ async def router_register(
         cap_models={
             str(k): str(v) for k, v in (payload.get("cap_models") or {}).items() if v
         },
+        version=str(payload.get("version") or ""),
         extra={
             k: v
             for k, v in payload.items()
@@ -606,6 +607,7 @@ async def router_register(
                 "model_context",
                 "model_quant",
                 "cap_models",
+                "version",
             }
         },
     )
@@ -1037,6 +1039,14 @@ _HEALTH_STYLE = {
 }
 
 
+def _version_link(version: str) -> str:
+    """Render a commit SHA as a link to the GitHub repo. Empty string -> dash."""
+    if not version:
+        return "—"
+    url = f"https://github.com/DevXT-LLC/ezlocalai/commit/{version}"
+    return f'<a href="{url}" target="_blank" rel="noopener">{version}</a>'
+
+
 def _render_dashboard_html(data: Dict[str, Any]) -> str:
     totals = data["totals"]
     router_meta = data["router"]
@@ -1185,11 +1195,12 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
           <td class="small">{cap_pills}</td>
           <td class="small mono">{models}</td>
           <td class="num small">{last_hb:.0f}s</td>
+          <td class="mono small">{_version_link(w.get('version') or '')}</td>
         </tr>
         """
 
     worker_rows = "".join(_worker_row(w) for w in data["workers"]) or (
-        '<tr><td colspan="9" class="muted">No workers registered.</td></tr>'
+        '<tr><td colspan="10" class="muted">No workers registered.</td></tr>'
     )
 
     # Usage section — per-worker historical stats
@@ -1481,7 +1492,7 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
     <thead><tr>
       <th>Label</th><th>Status</th><th>URL</th><th>GPUs</th>
       <th>Free VRAM</th><th>Slots free</th><th>Capabilities</th>
-      <th>Models</th><th class="num">Last hb</th>
+      <th>Models</th><th class="num">Last hb</th><th>Version</th>
     </tr></thead>
     <tbody>{worker_rows}</tbody>
   </table>
