@@ -19,3 +19,4 @@ hf/*
 *.egg-info
 *.tar.gz
 pretrained_models
+usage.json
