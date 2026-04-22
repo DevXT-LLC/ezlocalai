@@ -445,7 +445,7 @@ MODEL_VRAM_ESTIMATES = {
     ModelType.VISION_LLM: 6.0,  # Vision models with projector
     ModelType.TTS: 4.0,  # Chatterbox TTS
     ModelType.STT: 2.0,  # Whisper (varies by size)
-    ModelType.IMG: 16.0,  # Z-Image-Turbo (can use CPU offload)
+    ModelType.IMG: 6.0,  # FLUX.2-klein GGUF with CPU offload typically needs ~4-6GB
     ModelType.VIDEO: 12.0,  # LTX-2.3 GGUF video generation (uses sequential CPU offload)
     ModelType.EMBEDDING: 1.5,  # BGE-M3
 }
@@ -5680,12 +5680,22 @@ class Pipes:
         Returns:
             Tuple of (should_use_fallback, reason)
         """
+        resource_mgr = get_resource_manager()
+
+        # Hybrid hosts may intentionally keep a small text model resident while
+        # also serving image/video workloads. If a local LLM is already loaded,
+        # prefer using it instead of asking whether we have enough free VRAM to
+        # load yet another copy. Queue/backpressure is handled separately by the
+        # request queue layer.
+        if resource_mgr.is_model_loaded(ModelType.LLM) or resource_mgr.is_model_loaded(
+            ModelType.VISION_LLM
+        ):
+            return False, "Local LLM already loaded"
+
         # Check fallback based on resource thresholds
         should_fallback, reason = should_use_ezlocalai_fallback()
         if should_fallback:
             return True, reason
-
-        resource_mgr = get_resource_manager()
 
         # Check if fallback is configured
         if not get_fallback_client().is_configured:
