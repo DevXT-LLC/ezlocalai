@@ -260,6 +260,85 @@ _usage = UsageTracker(getenv("USAGE_FILE", "/data/usage.json"))
 
 
 # ---------------------------------------------------------------------------
+# Streaming SSE token extractor
+# ---------------------------------------------------------------------------
+
+
+def _extract_tokens_from_sse_event(data_bytes: bytes, pt: int, ct: int) -> tuple:
+    """Pull token counts out of a single decoded SSE ``data:`` payload.
+
+    Supports both OpenAI's ``usage`` block (when the backend honors
+    ``stream_options.include_usage``) and llama.cpp/xllamacpp's ``timings``
+    block (which is emitted on the final chunk by default).
+    """
+    try:
+        obj = json.loads(data_bytes)
+    except Exception:
+        return pt, ct
+    u = obj.get("usage")
+    if isinstance(u, dict):
+        pt = int(u.get("prompt_tokens") or pt)
+        ct = int(u.get("completion_tokens") or ct)
+    t = obj.get("timings")
+    if isinstance(t, dict):
+        pt = int(t.get("prompt_n") or pt)
+        ct = int(t.get("predicted_n") or ct)
+    return pt, ct
+
+
+async def _stream_with_token_extraction(
+    body_iterator,
+    record_callback,
+):
+    """Wrap an SSE body_iterator, pass chunks through unchanged, and call
+    ``record_callback(prompt_tokens, completion_tokens)`` exactly once when
+    the stream ends.
+
+    The router cannot rely on aiohttp giving us SSE-aligned chunks — a single
+    network read may contain partial events or several events.  We keep a
+    small text buffer split on the standard SSE event delimiter (``\\n\\n``)
+    so the token-bearing event is parsed even when it straddles a network
+    chunk boundary (which is the normal case for long-running 30B+ models).
+    """
+    pt = 0
+    ct = 0
+    buf = b""
+    try:
+        async for chunk in body_iterator:
+            if not chunk:
+                continue
+            yield chunk
+            buf += chunk
+            # Process any complete SSE events in the buffer
+            while b"\n\n" in buf:
+                event, buf = buf.split(b"\n\n", 1)
+                # An event may have multiple lines (data:, event:, id:, ...).
+                # We only care about ``data:`` lines.
+                for line in event.split(b"\n"):
+                    s = line.strip()
+                    if not s.startswith(b"data:"):
+                        continue
+                    payload = s[5:].lstrip()
+                    if not payload or payload == b"[DONE]":
+                        continue
+                    pt, ct = _extract_tokens_from_sse_event(payload, pt, ct)
+            # Cap buffer growth — only the most recent event matters for
+            # token extraction, so trim aggressively if no delimiters appear.
+            if len(buf) > 65536:
+                buf = buf[-32768:]
+        # Trailing data without a terminating ``\n\n``
+        if buf:
+            for line in buf.split(b"\n"):
+                s = line.strip()
+                if s.startswith(b"data:"):
+                    payload = s[5:].lstrip()
+                    if payload and payload != b"[DONE]":
+                        pt, ct = _extract_tokens_from_sse_event(payload, pt, ct)
+    finally:
+        await record_callback(pt, ct)
+
+
+# ---------------------------------------------------------------------------
 # Background pruner + usage flusher
 # ---------------------------------------------------------------------------
 
@@ -1567,32 +1646,21 @@ async def chat_completions(payload: Dict[str, Any], _: str = Depends(verify_clie
             pass
         await _usage.record_llm(worker.label, model, pt, ct)
         return resp
-    # Streaming: wrap the generator to sniff each chunk for the usage object
-    # that OpenAI-compatible backends emit in the final data chunk before [DONE].
+    # Streaming: wrap the generator to extract real token counts from the
+    # backend.  xllamacpp (used by ezlocalai workers) emits a chunk with a
+    # ``timings`` block containing ``prompt_n`` (real prompt token count) and
+    # ``predicted_n`` (real completion token count).  If the backend instead
+    # emits an OpenAI-spec ``usage`` block (when stream_options.include_usage
+    # is honored), we use that.
     _wlabel, _model = worker.label, model
-    orig = resp.body_iterator
 
-    async def _chat_gen():
-        pt, ct = 0, 0
-        try:
-            async for chunk in orig:
-                if b'"usage"' in chunk:
-                    try:
-                        for line in chunk.split(b"\n"):
-                            s = line.strip()
-                            if s.startswith(b"data: ") and b"[DONE]" not in s:
-                                obj = json.loads(s[6:])
-                                u = obj.get("usage") or {}
-                                if u:
-                                    pt = int(u.get("prompt_tokens") or 0)
-                                    ct = int(u.get("completion_tokens") or 0)
-                    except Exception:
-                        pass
-                yield chunk
-        finally:
-            await _usage.record_llm(_wlabel, _model, pt, ct)
+    async def _record(pt: int, ct: int):
+        await _usage.record_llm(_wlabel, _model, pt, ct)
 
-    return StreamingResponse(_chat_gen(), media_type=resp.media_type)
+    return StreamingResponse(
+        _stream_with_token_extraction(resp.body_iterator, _record),
+        media_type=resp.media_type,
+    )
 
 
 @app.post("/v1/completions", tags=["Completions"])
@@ -1612,29 +1680,14 @@ async def completions(payload: Dict[str, Any], _: str = Depends(verify_client)):
         await _usage.record_llm(worker.label, model, pt, ct)
         return resp
     _wlabel, _model = worker.label, model
-    orig = resp.body_iterator
 
-    async def _comp_gen():
-        pt, ct = 0, 0
-        try:
-            async for chunk in orig:
-                if b'"usage"' in chunk:
-                    try:
-                        for line in chunk.split(b"\n"):
-                            s = line.strip()
-                            if s.startswith(b"data: ") and b"[DONE]" not in s:
-                                obj = json.loads(s[6:])
-                                u = obj.get("usage") or {}
-                                if u:
-                                    pt = int(u.get("prompt_tokens") or 0)
-                                    ct = int(u.get("completion_tokens") or 0)
-                    except Exception:
-                        pass
-                yield chunk
-        finally:
-            await _usage.record_llm(_wlabel, _model, pt, ct)
+    async def _record(pt: int, ct: int):
+        await _usage.record_llm(_wlabel, _model, pt, ct)
 
-    return StreamingResponse(_comp_gen(), media_type=resp.media_type)
+    return StreamingResponse(
+        _stream_with_token_extraction(resp.body_iterator, _record),
+        media_type=resp.media_type,
+    )
 
 
 @app.post("/v1/embeddings", tags=["Embeddings"])
