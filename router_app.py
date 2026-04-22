@@ -397,6 +397,7 @@ async def health():
 _CAP_LABELS: Dict[str, str] = {
     "text": "Text",
     "vision": "Vision",
+    "text+vision": "Text + Vision",
     "image": "Image Generation",
     "tts": "Text-to-Speech",
     "stt": "Speech-to-Text",
@@ -461,6 +462,8 @@ def _aggregate_dashboard() -> Dict[str, Any]:
                 entry["max_context"] = ctx
             if w.best_tier > entry["best_tier"]:
                 entry["best_tier"] = w.best_tier
+            if "vision" in w.capabilities and entry["type"] == "text":
+                entry["type"] = "text+vision"
             entry["workers"].append(
                 {
                     "label": w.label,
@@ -585,6 +588,7 @@ async def router_dashboard_json(_: str = Depends(verify_client)):
 _CAP_PILL_CLASS: Dict[str, str] = {
     "text": "cap-text",
     "vision": "cap-vision",
+    "text+vision": "cap-vision",
     "image": "cap-image",
     "tts": "cap-tts",
     "stt": "cap-stt",
@@ -659,12 +663,7 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
             for w in m["workers"]
         )
         mtype = m.get("type", "text")
-        type_badge = (
-            f'<span class="pill" style="background:rgba(240,136,62,0.15);border-color:rgba(240,136,62,0.4);font-size:10px">'
-            f"{_cap_label(mtype)}</span> "
-            if mtype != "text"
-            else ""
-        )
+        type_badge = _cap_pill(mtype) + " "
         ctx = f"{m['max_context']:,}" if m["max_context"] else "—"
         quants = ", ".join(m.get("quants") or []) or "—"
         return f"""
@@ -673,8 +672,8 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
           <td class="num">{m['worker_count']}</td>
           <td class="num">{m['total_capacity']}</td>
           <td class="num">{m['available_slots']}</td>
-          <td class="num">{'—' if mtype not in ('text', 'vision', 'embedding') else ctx}</td>
-          <td class="mono small">{'—' if mtype not in ('text', 'vision', 'embedding') else quants}</td>
+          <td class="num">{'—' if mtype not in ('text', 'text+vision', 'vision', 'embedding') else ctx}</td>
+          <td class="mono small">{'—' if mtype not in ('text', 'text+vision', 'vision', 'embedding') else quants}</td>
           <td class="num">{m['best_tier']}</td>
           <td>{worker_pills}</td>
         </tr>
