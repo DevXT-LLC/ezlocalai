@@ -9,7 +9,7 @@ services:
       # Defaults to EZLOCALAI_API_KEY when empty.
       - ROUTER_REGISTER_KEY=${ROUTER_REGISTER_KEY-}
       # How long since the last heartbeat before a worker is considered dead.
-      - ROUTER_WORKER_TTL=${ROUTER_WORKER_TTL-30}
+      - ROUTER_WORKER_TTL=${ROUTER_WORKER_TTL-60}
       # How long the router waits for a free worker before returning 503.
       - ROUTER_WAIT_TIMEOUT=${ROUTER_WAIT_TIMEOUT-120}
       - LOG_LEVEL=${LOG_LEVEL-INFO}
