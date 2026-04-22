@@ -6752,7 +6752,9 @@ class Pipes:
                         f"[LLM] Streaming request: estimated {estimated_tokens:,} tokens, "
                         f"pre-loading {required_context//1024}k context (current: {current_context//1024}k)"
                     )
-                    self._ensure_context_size(required_context)
+                    # Run blocking model reload in a thread so the event loop
+                    # stays free to accept other connections / heartbeats.
+                    await asyncio.to_thread(self._ensure_context_size, required_context)
                     current_context = required_context
             else:
                 logging.debug(
@@ -6765,14 +6767,19 @@ class Pipes:
                         logging.debug(
                             f"[LLM] Calling llm.chat with stream={data.get('stream', False)}, context={self.current_context}"
                         )
-                        result = self.llm.chat(**data)
+                        # Offload the blocking llama.cpp call to a thread so
+                        # uvicorn's event loop stays responsive (otherwise
+                        # /health, heartbeats, and new connections all stall
+                        # while a large prefill or non-streaming generation
+                        # runs, causing the router to see TCP connect failures).
+                        result = await asyncio.to_thread(self.llm.chat, **data)
                         logging.debug(f"[LLM] llm.chat returned type: {type(result)}")
                         # Log token/speed summary for non-streaming
                         if isinstance(result, dict) and not data.get("stream"):
                             _log_inference_summary(result)
                         return result
                     else:
-                        result = self.llm.completion(**data)
+                        result = await asyncio.to_thread(self.llm.completion, **data)
                         if isinstance(result, dict) and not data.get("stream"):
                             _log_inference_summary(result)
                         return result
@@ -6810,7 +6817,9 @@ class Pipes:
                             logging.warning(
                                 f"[LLM] Context error detected ({needed_tokens} prompt tokens), reloading with {new_context//1024}k context..."
                             )
-                            self._ensure_context_size(new_context)
+                            await asyncio.to_thread(
+                                self._ensure_context_size, new_context
+                            )
                             current_context = new_context
                             continue
 
@@ -6835,9 +6844,9 @@ class Pipes:
 
             # Should not reach here, but just in case
             if chat_mode:
-                return self.llm.chat(**data)
+                return await asyncio.to_thread(self.llm.chat, **data)
             else:
-                return self.llm.completion(**data)
+                return await asyncio.to_thread(self.llm.completion, **data)
 
         # Check if local LLM is available, if not use fallback server
         if self.llm is None:
@@ -6870,10 +6879,12 @@ class Pipes:
                 logging.error(f"[LLM] Data that caused failure: {data}")
                 # Try reducing GPU layers before resorting to fallback
                 error_msg = str(e)
-                if _is_memory_error(error_msg) and self._reduce_gpu_layers():
+                if _is_memory_error(error_msg) and await asyncio.to_thread(
+                    self._reduce_gpu_layers
+                ):
                     logging.info("[LLM] Retrying chat after GPU layer reduction...")
                     try:
-                        response = self.llm.chat(**data)
+                        response = await asyncio.to_thread(self.llm.chat, **data)
                     except Exception:
                         logging.error(
                             "[LLM] Retry after layer reduction also failed, using fallback"
@@ -6894,12 +6905,14 @@ class Pipes:
                 logging.error(f"[LLM] Data that caused failure: {data}")
                 # Try reducing GPU layers before resorting to fallback
                 error_msg = str(e)
-                if _is_memory_error(error_msg) and self._reduce_gpu_layers():
+                if _is_memory_error(error_msg) and await asyncio.to_thread(
+                    self._reduce_gpu_layers
+                ):
                     logging.info(
                         "[LLM] Retrying completion after GPU layer reduction..."
                     )
                     try:
-                        response = self.llm.completion(**data)
+                        response = await asyncio.to_thread(self.llm.completion, **data)
                     except Exception:
                         logging.error(
                             "[LLM] Retry after layer reduction also failed, using fallback"

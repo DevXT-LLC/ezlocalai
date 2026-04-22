@@ -572,12 +572,16 @@ class WorkerInfo:
         one because the load penalty grows with in-flight requests.
         """
         slots_left = max(0, self.queue_capacity - self.queue_depth)
+        # Failure penalty decays as the counter grows (caps the impact). New
+        # failures bias routing away briefly without permanently sidelining
+        # a high-tier worker that may have just had a transient hiccup.
+        failure_penalty = min(self.connection_failures, 3) * 5.0
         return (
             self.best_tier * 10.0
             + slots_left * 5.0
             + self.free_vram_gb
             - self.in_flight * 4.0
-            - self.connection_failures * 20.0
+            - failure_penalty
         )
 
 
@@ -677,31 +681,24 @@ class WorkerRegistry:
             if w is not None:
                 w.in_flight = max(0, w.in_flight + delta)
 
-    def record_connection_failure(self, worker_id: str, max_failures: int = 3) -> None:
-        """Increment the failure counter for a worker.
+    def record_connection_failure(self, worker_id: str) -> int:
+        """Increment the failure counter for a worker (for visibility + scoring).
 
-        After ``max_failures`` consecutive connection failures the worker's
-        last_heartbeat is pushed far into the past so the pruner TTL expires it
-        immediately, removing it from routing until it re-registers.
+        Does NOT expire the worker — workers manage their own queues and may
+        be temporarily unable to accept connections under load. Routing should
+        prefer healthier workers via the score penalty, and the caller should
+        failover to another worker for this request.
         """
         with self._lock:
             w = self._workers.get(worker_id)
             if w is None:
-                return
+                return 0
             w.connection_failures += 1
             logging.warning(
                 f"[Router] Worker {w.label} ({w.url}) connection failure "
-                f"#{w.connection_failures}/{max_failures}"
+                f"#{w.connection_failures}"
             )
-            if w.connection_failures >= max_failures:
-                # Force TTL expiry so the pruner removes this worker on its
-                # next pass.  The worker will re-register automatically once
-                # it recovers and its heartbeat reaches the router again.
-                logging.warning(
-                    f"[Router] Worker {w.label} exceeded max connection failures — "
-                    "marking for expiry (will re-register once reachable)"
-                )
-                w.last_heartbeat = 0.0
+            return w.connection_failures
 
 
 # ---------------------------------------------------------------------------
