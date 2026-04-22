@@ -1214,6 +1214,53 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
           <td class="num">{vid_reqs:,}</td>
         </tr>"""
 
+    # ---- Recent request history -------------------------------------------
+    history = data.get("history") or []
+
+    def _fmt_tps(v: float) -> str:
+        if not v or v <= 0:
+            return "—"
+        return f"{v:,.1f}"
+
+    # Per (worker, canonical model) speed averages — only entries with non-zero
+    # timing data contribute (so we don't dilute averages with non-llama.cpp
+    # backends that didn't report ``timings``).
+    speed_by_wm: Dict[tuple, Dict[str, float]] = {}
+    for h in history:
+        key = (
+            h.get("worker") or "unknown",
+            _normalize_model_name(h.get("model") or ""),
+        )
+        s = speed_by_wm.setdefault(
+            key,
+            {
+                "prompt_tps_sum": 0.0,
+                "prompt_tps_n": 0,
+                "predicted_tps_sum": 0.0,
+                "predicted_tps_n": 0,
+            },
+        )
+        ptps = float(h.get("prompt_tps") or 0.0)
+        if ptps > 0:
+            s["prompt_tps_sum"] += ptps
+            s["prompt_tps_n"] += 1
+        dtps = float(h.get("predicted_tps") or 0.0)
+        if dtps > 0:
+            s["predicted_tps_sum"] += dtps
+            s["predicted_tps_n"] += 1
+
+    def _avg_tps(key: tuple) -> tuple:
+        s = speed_by_wm.get(key)
+        if not s:
+            return 0.0, 0.0
+        ap = (s["prompt_tps_sum"] / s["prompt_tps_n"]) if s["prompt_tps_n"] else 0.0
+        ad = (
+            (s["predicted_tps_sum"] / s["predicted_tps_n"])
+            if s["predicted_tps_n"]
+            else 0.0
+        )
+        return ap, ad
+
     def _usage_model_rows(label: str, wdata: Dict[str, Any]) -> str:
         llm = wdata.get("llm") or {}
         # Merge variants that normalize to the same canonical name
@@ -1235,6 +1282,7 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
             reqs = mdata.get("requests", 0)
             pt = mdata.get("prompt_tokens", 0)
             ct = mdata.get("completion_tokens", 0)
+            avg_p, avg_d = _avg_tps((label, model))
             rows += f"""
         <tr>
           <td class="muted small">{label}</td>
@@ -1243,6 +1291,8 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
           <td class="num small">{pt:,}</td>
           <td class="num small">{ct:,}</td>
           <td class="num small">{pt + ct:,}</td>
+          <td class="num small">{_fmt_tps(avg_p)}</td>
+          <td class="num small">{_fmt_tps(avg_d)}</td>
         </tr>"""
         return rows
 
@@ -1257,76 +1307,7 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
             for lbl, wd in sorted(usage_data.items())
             if wd.get("llm")
         )
-        or '<tr><td colspan="6" class="muted">No LLM usage recorded yet.</td></tr>'
-    )
-
-    # ---- Recent request history + per-worker speed averages -----------------
-    history = data.get("history") or []
-
-    def _fmt_tps(v: float) -> str:
-        if not v or v <= 0:
-            return "—"
-        return f"{v:,.1f}"
-
-    # Per-worker averages (only entries with non-zero timing data contribute)
-    worker_speed: Dict[str, Dict[str, Any]] = {}
-    for h in history:
-        wkr = h.get("worker") or "unknown"
-        s = worker_speed.setdefault(
-            wkr,
-            {
-                "requests": 0,
-                "prompt_tokens": 0,
-                "completion_tokens": 0,
-                "prompt_tps_sum": 0.0,
-                "prompt_tps_n": 0,
-                "predicted_tps_sum": 0.0,
-                "predicted_tps_n": 0,
-                "models": set(),
-            },
-        )
-        s["requests"] += 1
-        s["prompt_tokens"] += int(h.get("prompt_tokens") or 0)
-        s["completion_tokens"] += int(h.get("completion_tokens") or 0)
-        if h.get("model"):
-            s["models"].add(h["model"])
-        ptps = float(h.get("prompt_tps") or 0.0)
-        if ptps > 0:
-            s["prompt_tps_sum"] += ptps
-            s["prompt_tps_n"] += 1
-        dtps = float(h.get("predicted_tps") or 0.0)
-        if dtps > 0:
-            s["predicted_tps_sum"] += dtps
-            s["predicted_tps_n"] += 1
-
-    def _speed_row(label: str, s: Dict[str, Any]) -> str:
-        avg_p = (s["prompt_tps_sum"] / s["prompt_tps_n"]) if s["prompt_tps_n"] else 0.0
-        avg_d = (
-            (s["predicted_tps_sum"] / s["predicted_tps_n"])
-            if s["predicted_tps_n"]
-            else 0.0
-        )
-        models = ", ".join(sorted(s["models"])) or "—"
-        return f"""
-        <tr>
-          <td><b>{label}</b></td>
-          <td class="num">{s['requests']:,}</td>
-          <td class="num">{s['prompt_tokens']:,}</td>
-          <td class="num">{s['completion_tokens']:,}</td>
-          <td class="num">{_fmt_tps(avg_p)}</td>
-          <td class="num">{_fmt_tps(avg_d)}</td>
-          <td class="mono small">{models}</td>
-        </tr>"""
-
-    speed_rows = (
-        "".join(
-            _speed_row(lbl, s)
-            for lbl, s in sorted(
-                worker_speed.items(),
-                key=lambda kv: -kv[1].get("predicted_tps_sum", 0),
-            )
-        )
-        or '<tr><td colspan="7" class="muted">No request history yet.</td></tr>'
+        or '<tr><td colspan="8" class="muted">No LLM usage recorded yet.</td></tr>'
     )
 
     # Recent requests table (newest first, capped for display)
@@ -1355,7 +1336,6 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
 <head>
 <meta charset="utf-8" />
 <title>ezlocalai Router</title>
-<meta http-equiv="refresh" content="5" />
 <style>
   :root {{
     --bg: #0f1419; --fg: #e6edf3; --muted: #8b949e; --card: #161b22;
@@ -1446,6 +1426,7 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
 </style>
 </head>
 <body>
+  <div id="dash">
   <div class="header">
     <div>
       <h1>ezlocalai router</h1>
@@ -1518,22 +1499,9 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
       <th>Worker</th><th>Model</th>
       <th class="num">Requests</th><th class="num">Prompt tokens</th>
       <th class="num">Completion tokens</th><th class="num">Total tokens</th>
+      <th class="num">Avg prompt t/s</th><th class="num">Avg output t/s</th>
     </tr></thead>
     <tbody>{usage_model_rows}</tbody>
-  </table>
-
-  <h2>Worker speed (recent history)</h2>
-  <table>
-    <thead><tr>
-      <th>Worker</th>
-      <th class="num">Reqs</th>
-      <th class="num">Prompt tok</th>
-      <th class="num">Completion tok</th>
-      <th class="num">Avg prompt t/s</th>
-      <th class="num">Avg output t/s</th>
-      <th>Models</th>
-    </tr></thead>
-    <tbody>{speed_rows}</tbody>
   </table>
 
   <h2>Recent requests</h2>
@@ -1545,6 +1513,36 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
     </tr></thead>
     <tbody>{history_rows}</tbody>
   </table>
+  </div>
+<script>
+(function() {{
+  // In-place dashboard refresh: fetch the same page, parse it, and swap the
+  // contents of #dash. Keeps scroll position and avoids the white flash you
+  // get from <meta refresh>.
+  var INTERVAL_MS = 5000;
+  var inFlight = false;
+  function tick() {{
+    if (inFlight || document.hidden) return;
+    inFlight = true;
+    fetch(window.location.pathname + '?_=' + Date.now(), {{
+      cache: 'no-store',
+      credentials: 'same-origin',
+      headers: {{ 'X-Dashboard-Refresh': '1' }}
+    }})
+      .then(function(r) {{ return r.ok ? r.text() : null; }})
+      .then(function(html) {{
+        if (!html) return;
+        var doc = new DOMParser().parseFromString(html, 'text/html');
+        var fresh = doc.getElementById('dash');
+        var current = document.getElementById('dash');
+        if (fresh && current) current.innerHTML = fresh.innerHTML;
+      }})
+      .catch(function() {{}})
+      .finally(function() {{ inFlight = false; }});
+  }}
+  setInterval(tick, INTERVAL_MS);
+}})();
+</script>
 </body>
 </html>"""
 
