@@ -1532,44 +1532,92 @@ async def chat_completions(payload: Dict[str, Any], _: str = Depends(verify_clie
             break
     capability = "vision" if needs_vision else "text"
     worker = await _pick(capability, model)
+    is_stream = bool(payload.get("stream"))
     resp = await _proxy_json(
         worker,
         "/v1/chat/completions",
         payload,
-        stream=bool(payload.get("stream")),
+        stream=is_stream,
     )
-    # Record usage — extract token counts from non-streaming responses
-    prompt_tokens, completion_tokens = 0, 0
-    if isinstance(resp, Response):
+    if not is_stream:
+        # Non-streaming: body is fully buffered — extract tokens directly
+        pt, ct = 0, 0
         try:
-            data = json.loads(resp.body)
-            u = data.get("usage") or {}
-            prompt_tokens = int(u.get("prompt_tokens") or 0)
-            completion_tokens = int(u.get("completion_tokens") or 0)
+            u = json.loads(resp.body).get("usage") or {}
+            pt = int(u.get("prompt_tokens") or 0)
+            ct = int(u.get("completion_tokens") or 0)
         except Exception:
             pass
-    await _usage.record_llm(worker.label, model, prompt_tokens, completion_tokens)
-    return resp
+        await _usage.record_llm(worker.label, model, pt, ct)
+        return resp
+    # Streaming: wrap the generator to sniff each chunk for the usage object
+    # that OpenAI-compatible backends emit in the final data chunk before [DONE].
+    _wlabel, _model = worker.label, model
+    orig = resp.body_iterator
+
+    async def _chat_gen():
+        pt, ct = 0, 0
+        try:
+            async for chunk in orig:
+                if b'"usage"' in chunk:
+                    try:
+                        for line in chunk.split(b"\n"):
+                            s = line.strip()
+                            if s.startswith(b"data: ") and b"[DONE]" not in s:
+                                obj = json.loads(s[6:])
+                                u = obj.get("usage") or {}
+                                if u:
+                                    pt = int(u.get("prompt_tokens") or 0)
+                                    ct = int(u.get("completion_tokens") or 0)
+                    except Exception:
+                        pass
+                yield chunk
+        finally:
+            await _usage.record_llm(_wlabel, _model, pt, ct)
+
+    return StreamingResponse(_chat_gen(), media_type=resp.media_type)
 
 
 @app.post("/v1/completions", tags=["Completions"])
 async def completions(payload: Dict[str, Any], _: str = Depends(verify_client)):
     model = payload.get("model") or "unknown"
     worker = await _pick("text", model)
-    resp = await _proxy_json(
-        worker, "/v1/completions", payload, stream=bool(payload.get("stream"))
-    )
-    prompt_tokens, completion_tokens = 0, 0
-    if isinstance(resp, Response):
+    is_stream = bool(payload.get("stream"))
+    resp = await _proxy_json(worker, "/v1/completions", payload, stream=is_stream)
+    if not is_stream:
+        pt, ct = 0, 0
         try:
-            data = json.loads(resp.body)
-            u = data.get("usage") or {}
-            prompt_tokens = int(u.get("prompt_tokens") or 0)
-            completion_tokens = int(u.get("completion_tokens") or 0)
+            u = json.loads(resp.body).get("usage") or {}
+            pt = int(u.get("prompt_tokens") or 0)
+            ct = int(u.get("completion_tokens") or 0)
         except Exception:
             pass
-    await _usage.record_llm(worker.label, model, prompt_tokens, completion_tokens)
-    return resp
+        await _usage.record_llm(worker.label, model, pt, ct)
+        return resp
+    _wlabel, _model = worker.label, model
+    orig = resp.body_iterator
+
+    async def _comp_gen():
+        pt, ct = 0, 0
+        try:
+            async for chunk in orig:
+                if b'"usage"' in chunk:
+                    try:
+                        for line in chunk.split(b"\n"):
+                            s = line.strip()
+                            if s.startswith(b"data: ") and b"[DONE]" not in s:
+                                obj = json.loads(s[6:])
+                                u = obj.get("usage") or {}
+                                if u:
+                                    pt = int(u.get("prompt_tokens") or 0)
+                                    ct = int(u.get("completion_tokens") or 0)
+                    except Exception:
+                        pass
+                yield chunk
+        finally:
+            await _usage.record_llm(_wlabel, _model, pt, ct)
+
+    return StreamingResponse(_comp_gen(), media_type=resp.media_type)
 
 
 @app.post("/v1/embeddings", tags=["Embeddings"])
