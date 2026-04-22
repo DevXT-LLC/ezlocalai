@@ -1364,7 +1364,8 @@ async def _proxy_json(
         )
     url = f"{worker.url}{path}"
     request_timeout = aiohttp.ClientTimeout(
-        total=timeout or float(getenv("REQUEST_TIMEOUT", "300"))
+        total=timeout or float(getenv("REQUEST_TIMEOUT", "300")),
+        connect=10,  # fail fast on connection errors, don't wait the full timeout
     )
     registry = get_registry()
     registry.increment_in_flight(worker.worker_id, 1)
@@ -1413,7 +1414,7 @@ async def _proxy_get(worker: WorkerInfo, path: str) -> Response:
             worker, "GET", path, headers=headers, body=None, stream=False, timeout=30
         )
     url = f"{worker.url}{path}"
-    request_timeout = aiohttp.ClientTimeout(total=30)
+    request_timeout = aiohttp.ClientTimeout(total=30, connect=10)
     try:
         async with aiohttp.ClientSession(timeout=request_timeout) as session:
             async with session.get(url, headers=headers) as resp:
@@ -1443,7 +1444,8 @@ async def _proxy_multipart(
     """
     headers = _worker_headers(worker)
     request_timeout = aiohttp.ClientTimeout(
-        total=timeout or float(getenv("REQUEST_TIMEOUT", "300"))
+        total=timeout or float(getenv("REQUEST_TIMEOUT", "300")),
+        connect=10,
     )
     if is_tunnel_url(worker.url):
         # Build the multipart body with stdlib so we can ship it as a single
