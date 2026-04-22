@@ -25,6 +25,20 @@ services:
       - TEXT_SERVER=${TEXT_SERVER:-}
       - TEXT_SERVER_API_KEY=${TEXT_SERVER_API_KEY:-}
       - LAZY_LOAD_VOICE=${LAZY_LOAD_VOICE:-true}
+      - TTS_ENABLED=${TTS_ENABLED:-true}
+      - STT_ENABLED=${STT_ENABLED:-true}
+      - TTS_PROVIDER=${TTS_PROVIDER:-chatterbox}
+      - QUANT_TYPE=${QUANT_TYPE:-Q4_K_XL}
+      - N_PARALLEL=${N_PARALLEL:-1}
+      - FALLBACK_SERVER=${FALLBACK_SERVER:-}
+      - FALLBACK_API_KEY=${FALLBACK_API_KEY:-}
+      - FALLBACK_MODEL=${FALLBACK_MODEL:-}
+      # Optional: register with a router/load balancer
+      - ROUTER_URL=${ROUTER_URL:-}
+      - ROUTER_API_KEY=${ROUTER_API_KEY:-}
+      - WORKER_LABEL=${WORKER_LABEL:-}
+      - WORKER_HEARTBEAT_INTERVAL=${WORKER_HEARTBEAT_INTERVAL:-10}
+      - WORKER_TUNNEL=${WORKER_TUNNEL:-}
       # ROCm specific environment variables
       - HSA_OVERRIDE_GFX_VERSION=${HSA_OVERRIDE_GFX_VERSION:-11.0.0}
       - ROCM_PATH=/opt/rocm

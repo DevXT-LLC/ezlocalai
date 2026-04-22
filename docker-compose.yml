@@ -2,29 +2,41 @@ services:
   ezlocalai:
     container_name: ezlocalai
     image: joshxt/ezlocalai:latest
+    env_file:
+      - path: .env
+        required: false
     environment:
-      - EZLOCALAI_URL=${EZLOCALAI_URL-http://localhost:8091}
-      - EZLOCALAI_API_KEY=${EZLOCALAI_API_KEY-}
-      - DEFAULT_MODEL=${DEFAULT_MODEL-unsloth/Qwen3.5-4B-GGUF}
-      - WHISPER_MODEL=${WHISPER_MODEL-large-v3}
-      - IMG_MODEL=${IMG_MODEL-}
-      - VIDEO_MODEL=${VIDEO_MODEL-}
-      - LLM_BATCH_SIZE=${LLM_BATCH_SIZE-1024}
-      - MAX_CONCURRENT_REQUESTS=${MAX_CONCURRENT_REQUESTS-1}
-      - MAX_QUEUE_SIZE=${MAX_QUEUE_SIZE-100}
-      - REQUEST_TIMEOUT=${REQUEST_TIMEOUT-300}
-      - VOICE_SERVER=${VOICE_SERVER-}
-      - VOICE_SERVER_API_KEY=${VOICE_SERVER_API_KEY-}
-      - IMAGE_SERVER=${IMAGE_SERVER-}
-      - IMAGE_SERVER_API_KEY=${IMAGE_SERVER_API_KEY-}
-      - TEXT_SERVER=${TEXT_SERVER-}
-      - TEXT_SERVER_API_KEY=${TEXT_SERVER_API_KEY-}
-      - LAZY_LOAD_VOICE=${LAZY_LOAD_VOICE-true}
+      - EZLOCALAI_URL=${EZLOCALAI_URL:-http://localhost:8091}
+      - EZLOCALAI_API_KEY=${EZLOCALAI_API_KEY:-}
+      - DEFAULT_MODEL=${DEFAULT_MODEL:-unsloth/Qwen3.5-4B-GGUF}
+      - WHISPER_MODEL=${WHISPER_MODEL:-large-v3}
+      - IMG_MODEL=${IMG_MODEL:-}
+      - VIDEO_MODEL=${VIDEO_MODEL:-}
+      - LLM_BATCH_SIZE=${LLM_BATCH_SIZE:-1024}
+      - QUANT_TYPE=${QUANT_TYPE:-Q4_K_XL}
+      - N_PARALLEL=${N_PARALLEL:-1}
+      - MAX_CONCURRENT_REQUESTS=${MAX_CONCURRENT_REQUESTS:-1}
+      - MAX_QUEUE_SIZE=${MAX_QUEUE_SIZE:-100}
+      - REQUEST_TIMEOUT=${REQUEST_TIMEOUT:-300}
+      - TTS_ENABLED=${TTS_ENABLED:-true}
+      - STT_ENABLED=${STT_ENABLED:-true}
+      - TTS_PROVIDER=${TTS_PROVIDER:-chatterbox}
+      - VOICE_SERVER=${VOICE_SERVER:-}
+      - VOICE_SERVER_API_KEY=${VOICE_SERVER_API_KEY:-}
+      - IMAGE_SERVER=${IMAGE_SERVER:-}
+      - IMAGE_SERVER_API_KEY=${IMAGE_SERVER_API_KEY:-}
+      - TEXT_SERVER=${TEXT_SERVER:-}
+      - TEXT_SERVER_API_KEY=${TEXT_SERVER_API_KEY:-}
+      - LAZY_LOAD_VOICE=${LAZY_LOAD_VOICE:-true}
+      - FALLBACK_SERVER=${FALLBACK_SERVER:-}
+      - FALLBACK_API_KEY=${FALLBACK_API_KEY:-}
+      - FALLBACK_MODEL=${FALLBACK_MODEL:-}
       # Optional: register with a router/load balancer
-      - ROUTER_URL=${ROUTER_URL-}
-      - ROUTER_API_KEY=${ROUTER_API_KEY-}
-      - WORKER_LABEL=${WORKER_LABEL-}
-      - WORKER_HEARTBEAT_INTERVAL=${WORKER_HEARTBEAT_INTERVAL-10}
+      - ROUTER_URL=${ROUTER_URL:-}
+      - ROUTER_API_KEY=${ROUTER_API_KEY:-}
+      - WORKER_LABEL=${WORKER_LABEL:-}
+      - WORKER_HEARTBEAT_INTERVAL=${WORKER_HEARTBEAT_INTERVAL:-10}
+      - WORKER_TUNNEL=${WORKER_TUNNEL:-}
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-sf", "http://localhost:8091/health"]
