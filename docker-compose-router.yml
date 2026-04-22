@@ -29,3 +29,6 @@ services:
         max-file: "3"
     ports:
       - "8092:8092"
+    volumes:
+      - ./Router.py:/app/Router.py:ro
+      - ./router_app.py:/app/router_app.py:ro
