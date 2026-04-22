@@ -714,8 +714,12 @@ class Router:
         self,
         capability: str,
         model: Optional[str] = None,
+        exclude: Optional[set] = None,
     ) -> Optional[WorkerInfo]:
         """Pick the best worker matching capability + (optionally) model.
+
+        ``exclude`` is an optional set of ``worker_id``s to skip (used by the
+        retry path so a failed worker isn't picked again immediately).
 
         If a ``model`` is requested but no live worker advertises it, fall
         back to the best-scoring worker that supports the capability — the
@@ -723,10 +727,11 @@ class Router:
         useful when a smaller or differently-named model is requested but
         only larger / equivalent ones are loaded somewhere in the pool.
         """
+        excluded = exclude or set()
         all_alive = [
             w
             for w in self.registry.list_workers(alive_only=True)
-            if capability in w.capabilities
+            if capability in w.capabilities and w.worker_id not in excluded
         ]
 
         def _has_capacity(workers):
@@ -770,11 +775,12 @@ class Router:
         model: Optional[str],
         timeout: float,
         poll_interval: float = 0.5,
+        exclude: Optional[set] = None,
     ) -> Optional[WorkerInfo]:
         """Block up to ``timeout`` seconds waiting for a free worker."""
         deadline = time.time() + max(0.0, timeout)
         while True:
-            worker = self.select_worker(capability, model)
+            worker = self.select_worker(capability, model, exclude=exclude)
             if worker is not None:
                 return worker
             if time.time() >= deadline:

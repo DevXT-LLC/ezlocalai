@@ -1540,9 +1540,15 @@ def _wait_timeout() -> float:
     return float(getenv("ROUTER_WAIT_TIMEOUT", "120"))
 
 
-async def _pick(capability: str, model: Optional[str] = None) -> WorkerInfo:
+async def _pick(
+    capability: str,
+    model: Optional[str] = None,
+    exclude: Optional[set] = None,
+) -> WorkerInfo:
     router = get_router()
-    worker = await router.wait_for_worker(capability, model, timeout=_wait_timeout())
+    worker = await router.wait_for_worker(
+        capability, model, timeout=_wait_timeout(), exclude=exclude
+    )
     if worker is None:
         raise HTTPException(
             status_code=503,
@@ -1552,6 +1558,19 @@ async def _pick(capability: str, model: Optional[str] = None) -> WorkerInfo:
             ),
         )
     return worker
+
+
+def _max_retries() -> int:
+    """Number of additional workers to try on transient failure (default 2)."""
+    try:
+        return max(0, int(getenv("ROUTER_MAX_RETRIES", "2")))
+    except (TypeError, ValueError):
+        return 2
+
+
+def _is_transient_failure(status: int) -> bool:
+    """5xx and 408 are worth retrying on a different worker; 4xx are client errors."""
+    return status == 408 or 500 <= status <= 599
 
 
 def _worker_headers(worker: WorkerInfo) -> Dict[str, str]:
@@ -1831,66 +1850,119 @@ async def chat_completions(payload: Dict[str, Any], _: str = Depends(verify_clie
         if needs_vision:
             break
     capability = "vision" if needs_vision else "text"
-    worker = await _pick(capability, model)
     is_stream = bool(payload.get("stream"))
-    resp = await _proxy_json(
-        worker,
-        "/v1/chat/completions",
-        payload,
-        stream=is_stream,
-    )
-    if not is_stream:
-        # Non-streaming: body is fully buffered — extract tokens directly
-        pt, ct = 0, 0
-        try:
-            u = json.loads(resp.body).get("usage") or {}
-            pt = int(u.get("prompt_tokens") or 0)
-            ct = int(u.get("completion_tokens") or 0)
-        except Exception:
-            pass
-        await _usage.record_llm(worker.label, model, pt, ct)
-        return resp
-    # Streaming: wrap the generator to extract real token counts from the
-    # backend.  xllamacpp (used by ezlocalai workers) emits a chunk with a
-    # ``timings`` block containing ``prompt_n`` (real prompt token count) and
-    # ``predicted_n`` (real completion token count).  If the backend instead
-    # emits an OpenAI-spec ``usage`` block (when stream_options.include_usage
-    # is honored), we use that.
-    _wlabel, _model = worker.label, model
-
-    async def _record(pt: int, ct: int, timings: Dict[str, float]):
-        await _usage.record_llm(_wlabel, _model, pt, ct, timings)
-
-    return StreamingResponse(
-        _stream_with_token_extraction(resp.body_iterator, _record),
-        media_type=resp.media_type,
+    return await _llm_proxy_with_retry(
+        capability=capability,
+        path="/v1/chat/completions",
+        payload=payload,
+        model=model,
+        is_stream=is_stream,
     )
 
 
 @app.post("/v1/completions", tags=["Completions"])
 async def completions(payload: Dict[str, Any], _: str = Depends(verify_client)):
     model = payload.get("model") or "unknown"
-    worker = await _pick("text", model)
     is_stream = bool(payload.get("stream"))
-    resp = await _proxy_json(worker, "/v1/completions", payload, stream=is_stream)
-    if not is_stream:
-        pt, ct = 0, 0
+    return await _llm_proxy_with_retry(
+        capability="text",
+        path="/v1/completions",
+        payload=payload,
+        model=model,
+        is_stream=is_stream,
+    )
+
+
+async def _llm_proxy_with_retry(
+    *,
+    capability: str,
+    path: str,
+    payload: Dict[str, Any],
+    model: str,
+    is_stream: bool,
+):
+    """Forward an LLM request, retrying on a different worker if the first
+    pick fails connection-level or returns a transient (5xx) status. Once a
+    streaming worker has started writing bytes back to the client we cannot
+    safely retry — at that point we just record the partial usage and let
+    the client see whatever the worker produced.
+    """
+    tried: set = set()
+    last_error: Optional[Exception] = None
+    last_status: Optional[int] = None
+    max_attempts = 1 + _max_retries()
+    for attempt in range(max_attempts):
+        worker = await _pick(capability, model, exclude=tried)
+        tried.add(worker.worker_id)
         try:
-            u = json.loads(resp.body).get("usage") or {}
-            pt = int(u.get("prompt_tokens") or 0)
-            ct = int(u.get("completion_tokens") or 0)
-        except Exception:
-            pass
-        await _usage.record_llm(worker.label, model, pt, ct)
-        return resp
-    _wlabel, _model = worker.label, model
+            resp = await _proxy_json(worker, path, payload, stream=is_stream)
+        except Exception as e:
+            last_error = e
+            logging.warning(
+                f"[Router] {path} attempt {attempt + 1}/{max_attempts} via "
+                f"{worker.label} raised {type(e).__name__}: {e}"
+            )
+            continue
 
-    async def _record(pt: int, ct: int, timings: Dict[str, float]):
-        await _usage.record_llm(_wlabel, _model, pt, ct, timings)
+        if not is_stream:
+            status = getattr(resp, "status_code", 200)
+            if _is_transient_failure(status) and attempt + 1 < max_attempts:
+                last_status = status
+                logging.warning(
+                    f"[Router] {path} attempt {attempt + 1}/{max_attempts} via "
+                    f"{worker.label} returned {status}; retrying on next worker"
+                )
+                continue
+            # Final non-streaming response — extract tokens & timings if any
+            pt, ct = 0, 0
+            timings: Dict[str, float] = {}
+            try:
+                obj = json.loads(resp.body)
+                u = obj.get("usage") or {}
+                pt = int(u.get("prompt_tokens") or 0)
+                ct = int(u.get("completion_tokens") or 0)
+                t = obj.get("timings")
+                if isinstance(t, dict):
+                    if not pt:
+                        pt = int(t.get("prompt_n") or 0)
+                    if not ct:
+                        ct = int(t.get("predicted_n") or 0)
+                    for k in ("prompt_ms", "predicted_ms"):
+                        v = t.get(k)
+                        if isinstance(v, (int, float)):
+                            timings[k] = float(v)
+            except Exception:
+                pass
+            await _usage.record_llm(worker.label, model, pt, ct, timings)
+            return resp
 
-    return StreamingResponse(
-        _stream_with_token_extraction(resp.body_iterator, _record),
-        media_type=resp.media_type,
+        # Streaming: we cannot retry once bytes are flowing.  Wrap the
+        # generator so token + timing extraction still happens.
+        _wlabel, _model = worker.label, model
+
+        async def _record(pt: int, ct: int, timings: Dict[str, float]):
+            await _usage.record_llm(_wlabel, _model, pt, ct, timings)
+
+        return StreamingResponse(
+            _stream_with_token_extraction(resp.body_iterator, _record),
+            media_type=resp.media_type,
+        )
+
+    # Exhausted retries
+    if last_error is not None:
+        raise HTTPException(
+            status_code=502,
+            detail=(
+                f"All {max_attempts} worker attempts failed for {path}: "
+                f"{type(last_error).__name__}: {last_error}"
+            ),
+        )
+    raise HTTPException(
+        status_code=502,
+        detail=(
+            f"All {max_attempts} worker attempts returned transient errors "
+            f"(last status {last_status}) for {path}"
+        ),
     )
 
 
