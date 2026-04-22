@@ -522,30 +522,56 @@ def _aggregate_dashboard() -> Dict[str, Any]:
                 }
             )
 
-    # Per-capability rollup
+    # Per-capability rollup — text + vision are merged into a single "text+vision" entry
+    # when a worker has both, to avoid double-counting on the dashboard.
+    _CAP_DISPLAY_ORDER = [
+        "text+vision",
+        "text",
+        "embedding",
+        "image",
+        "tts",
+        "stt",
+        "video",
+    ]
     cap_rollup: Dict[str, Dict[str, Any]] = {}
     for w in alive:
+        has_text = "text" in w.capabilities
+        has_vision = "vision" in w.capabilities
         for cap in w.capabilities:
-            cap_slots = _cap_capacity(cap, w.queue_capacity)
-            # Approximate in-flight per capability: assume in_flight is all on text,
-            # so non-text caps treat in_flight as 0.
-            cap_in_flight = w.in_flight if cap in ("text", "vision", "embedding") else 0
+            # Skip the bare "vision" entry when the worker also does text;
+            # it will be represented under "text+vision" instead.
+            if cap == "vision" and has_text:
+                continue
+            merged_cap = "text+vision" if (cap == "text" and has_vision) else cap
+            # Use the underlying text capacity for text+vision
+            cap_slots = _cap_capacity(
+                "text" if merged_cap == "text+vision" else merged_cap, w.queue_capacity
+            )
+            cap_in_flight = (
+                w.in_flight if merged_cap in ("text", "text+vision", "embedding") else 0
+            )
             cap_slots_left = max(0, cap_slots - cap_in_flight)
             entry = cap_rollup.setdefault(
-                cap,
+                merged_cap,
                 {
-                    "capability": cap,
+                    "capability": merged_cap,
                     "worker_count": 0,
                     "total_capacity": 0,
                     "available_slots": 0,
+                    "worker_labels": [],
                 },
             )
             entry["worker_count"] += 1
             entry["total_capacity"] += cap_slots
             entry["available_slots"] += cap_slots_left
+            entry["worker_labels"].append(w.label)
 
+    pool_health = (
+        "offline" if len(alive) == 0 else "degraded" if len(stale) > 0 else "healthy"
+    )
     return {
         "generated_at": time.time(),
+        "pool_health": pool_health,
         "router": {
             "ttl_seconds": registry.ttl,
             "wait_timeout": _wait_timeout(),
@@ -561,7 +587,17 @@ def _aggregate_dashboard() -> Dict[str, Any]:
             "total_vram_gb": round(total_vram, 2),
             "unique_models": len(model_rollup),
         },
-        "capabilities": sorted(cap_rollup.values(), key=lambda x: x["capability"]),
+        "capabilities": sorted(
+            cap_rollup.values(),
+            key=lambda x: (
+                (
+                    _CAP_DISPLAY_ORDER.index(x["capability"])
+                    if x["capability"] in _CAP_DISPLAY_ORDER
+                    else 99
+                ),
+                x["capability"],
+            ),
+        ),
         "models": sorted(
             [
                 {**m, "quants": sorted(m.get("quants", set()))}
@@ -633,25 +669,42 @@ def _usage_bar(used_pct: float, width: str = "100%") -> str:
     )
 
 
+_HEALTH_STYLE = {
+    "healthy": ("health-ok", "● Healthy"),
+    "degraded": ("health-warn", "◐ Degraded"),
+    "offline": ("health-crit", "○ Offline"),
+}
+
+
 def _render_dashboard_html(data: Dict[str, Any]) -> str:
     totals = data["totals"]
     router_meta = data["router"]
+    pool_health = data.get("pool_health", "healthy")
+    health_cls, health_label = _HEALTH_STYLE.get(
+        pool_health, ("health-ok", "● Healthy")
+    )
 
     # Capability cards
-    cap_cards = (
-        "".join(
-            f"""
+    def _cap_card(c: Dict[str, Any]) -> str:
+        worker_pills = " ".join(
+            f'<span class="pill cap-worker" title="{lbl}">{lbl}</span>'
+            for lbl in c.get("worker_labels", [])
+        )
+        used_pct = 100 * (1 - c["available_slots"] / max(c["total_capacity"], 1))
+        return f"""
         <div class="card cap">
           <div class="cap-header">{_cap_pill(c['capability'])}</div>
           <div class="cap-stats">
             <span><b>{c['worker_count']}</b> worker{'s' if c['worker_count'] != 1 else ''}</span>
             <span><b>{c['available_slots']}</b>/{c['total_capacity']} slots free</span>
           </div>
-          {_usage_bar(100 * (1 - c['available_slots'] / max(c['total_capacity'], 1)), '100%')}
+          {_usage_bar(used_pct, '100%')}
+          {("<div class='cap-workers'>" + worker_pills + "</div>") if worker_pills else ""}
         </div>
         """
-            for c in data["capabilities"]
-        )
+
+    cap_cards = (
+        "".join(_cap_card(c) for c in data["capabilities"])
         or '<div class="muted">No capabilities advertised yet.</div>'
     )
 
@@ -659,7 +712,7 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
     def _model_row(m: Dict[str, Any]) -> str:
         worker_pills = "".join(
             f'<span class="pill" title="tier {w["best_tier"]} · {w["slots_left"]}/{w["queue_capacity"]} slots free · ctx {w["context"] or "?"} · quant {w.get("quant") or "?"}">'
-            f'{w["label"]}{(" " + w["quant"]) if w.get("quant") else ""}</span>'
+            f'{w["label"]}</span>'
             for w in m["workers"]
         )
         mtype = m.get("type", "text")
@@ -751,7 +804,15 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
         bar = f'<div class="bar"><div class="bar-fill" style="width:{slot_pct:.0f}%"></div></div>'
         last_hb = w.get("last_heartbeat_age", 0)
         status = "🔴 stale" if stale else ("🟢 ready" if slots_left > 0 else "🟡 full")
-        cap_pills = " ".join(_cap_pill(c) for c in (w.get("capabilities") or [])) or "—"
+        raw_caps = w.get("capabilities") or []
+        # Merge text + vision into a single "text+vision" pill on the worker row
+        if "text" in raw_caps and "vision" in raw_caps:
+            display_caps = [
+                "text+vision" if c == "text" else c for c in raw_caps if c != "vision"
+            ]
+        else:
+            display_caps = raw_caps
+        cap_pills = " ".join(_cap_pill(c) for c in display_caps) or "—"
         return f"""
         <tr class="{'stale' if stale else ''}">
           <td><b>{w['label']}</b><div class="muted small">{w['worker_id']}</div></td>
@@ -849,19 +910,29 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
   .usage-fill.good {{ background: var(--ok); }}
   .usage-fill.warn {{ background: var(--warn); }}
   .usage-fill.crit {{ background: var(--crit); }}
+  /* Capability card worker labels */
+  .cap-workers {{ margin-top: 8px; }}
+  .cap-worker {{ background: rgba(110,118,129,0.12) !important; border-color: rgba(110,118,129,0.3) !important;
+                 font-size: 10px !important; }}
   /* Header */
   .header {{ display: flex; justify-content: space-between; align-items: baseline;
              flex-wrap: wrap; gap: 12px; }}
   .header .meta {{ color: var(--muted); font-size: 12px; }}
+  /* Pool health badge */
+  .health-ok   {{ font-size: 14px; font-weight: 600; color: var(--ok); }}
+  .health-warn {{ font-size: 14px; font-weight: 600; color: var(--warn); }}
+  .health-crit {{ font-size: 14px; font-weight: 600; color: var(--crit); }}
 </style>
 </head>
 <body>
   <div class="header">
     <div>
       <h1>ezlocalai router</h1>
-      <div class="meta">TTL {router_meta['ttl_seconds']:.0f}s · wait timeout {router_meta['wait_timeout']:.0f}s
+      <div class="meta">{totals['alive_workers']} worker{'s' if totals['alive_workers'] != 1 else ''} online
+      · TTL {router_meta['ttl_seconds']:.0f}s · wait timeout {router_meta['wait_timeout']:.0f}s
       · auto-refresh 5s</div>
     </div>
+    <span class="{health_cls}">{health_label}</span>
   </div>
 
     <div class="grid">
@@ -892,7 +963,7 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
     <thead><tr>
       <th>Model</th><th class="num">Workers</th><th class="num">Total parallel</th>
       <th class="num">Available now</th><th class="num">Max context</th>
-      <th>Quant(s)</th><th class="num">Best tier</th><th>Hosted by</th>
+      <th>Quant(s)</th><th class="num">Best tier</th><th>Served by</th>
     </tr></thead>
     <tbody>{model_rows}</tbody>
   </table>
