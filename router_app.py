@@ -552,25 +552,22 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
             or "—"
         )
         mq = w.get("model_quant") or {}
-        models = (
-            ", ".join(
-                f"{m} ({mq[m]})" if mq.get(m) else m for m in (w.get("models") or [])
-            )
-            or "—"
-        )
+        mc = w.get("model_context") or {}
+
+        def _fmt(name: str) -> str:
+            ctx = int(mc.get(name, 0) or 0)
+            quant = mq.get(name) or ""
+            ctx_part = f" @ {ctx:,}" if ctx else ""
+            quant_part = f" ({quant})" if quant else ""
+            return f"{name}{ctx_part}{quant_part}"
+
+        models = "<br>".join(_fmt(m) for m in (w.get("models") or [])) or "—"
         slots_left = max(
             0, int(w.get("queue_capacity", 1)) - int(w.get("queue_depth", 0))
         )
         slots_total = int(w.get("queue_capacity", 1))
         slot_pct = 0 if slots_total == 0 else (1 - slots_left / slots_total) * 100
         bar = f'<div class="bar"><div class="bar-fill" style="width:{slot_pct:.0f}%"></div></div>'
-        ctx_summary = (
-            ", ".join(
-                f"{name}={ctx:,}"
-                for name, ctx in (w.get("model_context") or {}).items()
-            )
-            or "—"
-        )
         last_hb = w.get("last_heartbeat_age", 0)
         status = "🔴 stale" if stale else ("🟢 ready" if slots_left > 0 else "🟡 full")
         return f"""
@@ -583,13 +580,12 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
           <td>{slots_left}/{slots_total} {bar}<div class="muted small">{w.get('in_flight', 0)} in flight</div></td>
           <td class="small">{', '.join(w.get('capabilities') or []) or '—'}</td>
           <td class="small mono">{models}</td>
-          <td class="small mono">{ctx_summary}</td>
           <td class="num small">{last_hb:.0f}s</td>
         </tr>
         """
 
     worker_rows = "".join(_worker_row(w) for w in data["workers"]) or (
-        '<tr><td colspan="10" class="muted">No workers registered.</td></tr>'
+        '<tr><td colspan="9" class="muted">No workers registered.</td></tr>'
     )
 
     return f"""<!doctype html>
@@ -692,7 +688,7 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
     <thead><tr>
       <th>Label</th><th>Status</th><th>URL</th><th>GPUs</th>
       <th>Free VRAM</th><th>Slots free</th><th>Capabilities</th>
-      <th>Models</th><th>Context (per model)</th><th class="num">Last hb</th>
+      <th>Models</th><th class="num">Last hb</th>
     </tr></thead>
     <tbody>{worker_rows}</tbody>
   </table>

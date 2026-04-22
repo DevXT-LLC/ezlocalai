@@ -552,8 +552,21 @@ class WorkerHeartbeatClient:
                             n_ctx = int(inst.n_ctx)
                         except Exception:
                             n_ctx = 0
+                    # Each parallel slot gets n_ctx / n_parallel tokens, so
+                    # report the per-request usable context, not the raw total.
+                    n_par = 1
+                    try:
+                        n_par = int(
+                            getattr(inst, "n_parallel", None)
+                            or getattr(xlc, "n_parallel", 0)
+                            or 1
+                        )
+                    except Exception:
+                        n_par = 1
+                    if n_par < 1:
+                        n_par = 1
                     if n_ctx > 0:
-                        model_context[str(name)] = n_ctx
+                        model_context[str(name)] = n_ctx // n_par
                     # Best-effort quant extraction from gguf filename
                     try:
                         model_path = ""
