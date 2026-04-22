@@ -1020,23 +1020,23 @@ async def embeddings(payload: Dict[str, Any], _: str = Depends(verify_client)):
 
 @app.post("/v1/audio/speech", tags=["Audio"])
 async def audio_speech(payload: Dict[str, Any], _: str = Depends(verify_client)):
-    worker = await _pick("voice", payload.get("model"))
+    worker = await _pick("tts", payload.get("model"))
     return await _proxy_json(worker, "/v1/audio/speech", payload, stream=False)
 
 
 @app.post("/v1/audio/speech/stream", tags=["Audio"])
 async def audio_speech_stream(payload: Dict[str, Any], _: str = Depends(verify_client)):
-    worker = await _pick("voice", payload.get("model"))
+    worker = await _pick("tts", payload.get("model"))
     return await _proxy_json(worker, "/v1/audio/speech/stream", payload, stream=True)
 
 
 @app.get("/v1/audio/voices", tags=["Audio"])
 async def audio_voices(_: str = Depends(verify_client)):
-    # Aggregate voices from any voice-capable worker
+    # Aggregate voices from any tts-capable worker
     voices: List[Dict[str, Any]] = []
     seen = set()
     for w in get_registry().list_workers(alive_only=True):
-        if "voice" not in w.capabilities:
+        if "tts" not in w.capabilities:
             continue
         try:
             resp = await _proxy_get(w, "/v1/audio/voices")
@@ -1062,7 +1062,7 @@ async def audio_transcriptions(
     timestamps: Optional[bool] = Form(None),
     _: str = Depends(verify_client),
 ):
-    worker = await _pick("voice", model)
+    worker = await _pick("stt", model)
     content = await file.read()
     return await _proxy_multipart(
         worker,

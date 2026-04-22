@@ -43,7 +43,7 @@ from Globals import getenv
 # Capability detection
 # ---------------------------------------------------------------------------
 
-ALL_CAPABILITIES = {"text", "vision", "voice", "image", "video", "embedding"}
+ALL_CAPABILITIES = {"text", "vision", "tts", "stt", "image", "video", "embedding"}
 
 
 def detect_local_capabilities() -> List[str]:
@@ -90,10 +90,13 @@ def detect_local_capabilities() -> List[str]:
     elif text_server == "true" and "text" not in caps and default_model:
         caps.append("text")
 
-    # Voice: claim it only if we actually serve it locally — TTS/STT enabled
-    # and not delegating to a remote voice server.
-    if not voice_delegated and (tts_enabled or stt_enabled or is_dedicated_voice):
-        caps.append("voice")
+    # TTS: claim if we serve speech synthesis locally.
+    if not voice_delegated and (tts_enabled or is_dedicated_voice):
+        caps.append("tts")
+
+    # STT: claim if we serve transcription locally.
+    if not voice_delegated and (stt_enabled or is_dedicated_voice):
+        caps.append("stt")
 
     # Image: claim it only if we actually generate locally — img_model set or
     # this is a dedicated image server, and we're not delegating elsewhere.
@@ -581,17 +584,15 @@ class WorkerHeartbeatClient:
                         pass
         except Exception:
             pass
-        # Fallback: fill missing quants from QUANT_TYPE env aligned with DEFAULT_MODEL
+        # Fallback: fill missing quants from QUANT_TYPE env (uses getenv default Q4_K_XL)
         try:
             default_models = [
                 m.strip()
-                for m in (os.environ.get("DEFAULT_MODEL") or "").split(",")
+                for m in (getenv("DEFAULT_MODEL") or "").split(",")
                 if m.strip()
             ]
             quants = [
-                q.strip()
-                for q in (os.environ.get("QUANT_TYPE") or "").split(",")
-                if q.strip()
+                q.strip() for q in (getenv("QUANT_TYPE") or "").split(",") if q.strip()
             ]
             for idx, mname in enumerate(default_models):
                 if mname in model_quant:
