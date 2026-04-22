@@ -40,6 +40,7 @@ import json
 import logging
 import os
 import time
+from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 import aiohttp
@@ -182,6 +183,11 @@ class UsageTracker:
         self._path = path
         self._lock: Optional[asyncio.Lock] = None
         self._data: Dict[str, Any] = {}
+        # Capped in-memory ring buffer of recent LLM requests.  Each entry:
+        # {ts, worker, model, prompt_tokens, completion_tokens,
+        #  prompt_ms, predicted_ms, prompt_tps, predicted_tps}
+        self._history: List[Dict[str, Any]] = []
+        self._history_max = int(getenv("USAGE_HISTORY_MAX", "500"))
         self._dirty: bool = False
 
     @property
@@ -251,8 +257,15 @@ class UsageTracker:
         model: str,
         prompt_tokens: int,
         completion_tokens: int,
+        timings: Optional[Dict[str, float]] = None,
     ) -> None:
         model = _normalize_model_name(model)
+        prompt_ms = float((timings or {}).get("prompt_ms") or 0.0)
+        predicted_ms = float((timings or {}).get("predicted_ms") or 0.0)
+        prompt_tps = (prompt_tokens / (prompt_ms / 1000.0)) if prompt_ms > 0 else 0.0
+        predicted_tps = (
+            (completion_tokens / (predicted_ms / 1000.0)) if predicted_ms > 0 else 0.0
+        )
         async with self._alock:
             w = self._data.setdefault(label, {})
             llm = w.setdefault("llm", {})
@@ -263,6 +276,23 @@ class UsageTracker:
             m["requests"] += 1
             m["prompt_tokens"] += prompt_tokens
             m["completion_tokens"] += completion_tokens
+            self._history.append(
+                {
+                    "ts": time.time(),
+                    "worker": label,
+                    "model": model,
+                    "prompt_tokens": int(prompt_tokens),
+                    "completion_tokens": int(completion_tokens),
+                    "prompt_ms": prompt_ms,
+                    "predicted_ms": predicted_ms,
+                    "prompt_tps": prompt_tps,
+                    "predicted_tps": predicted_tps,
+                }
+            )
+            if len(self._history) > self._history_max:
+                # Drop oldest in chunks to avoid O(n) churn on every insert.
+                drop = len(self._history) - self._history_max
+                del self._history[:drop]
             self._dirty = True
 
     async def record_cap(self, label: str, cap: str) -> None:
@@ -276,6 +306,12 @@ class UsageTracker:
         """Return a copy of the current stats (no lock needed for reads)."""
         return json.loads(json.dumps(self._data))
 
+    def history_snapshot(self, limit: Optional[int] = None) -> List[Dict[str, Any]]:
+        """Return the most recent ``limit`` LLM request entries (newest last)."""
+        if limit is None or limit >= len(self._history):
+            return list(self._history)
+        return list(self._history[-int(limit) :])
+
 
 _usage = UsageTracker(getenv("USAGE_FILE", "/data/usage.json"))
 
@@ -285,12 +321,18 @@ _usage = UsageTracker(getenv("USAGE_FILE", "/data/usage.json"))
 # ---------------------------------------------------------------------------
 
 
-def _extract_tokens_from_sse_event(data_bytes: bytes, pt: int, ct: int) -> tuple:
-    """Pull token counts out of a single decoded SSE ``data:`` payload.
+def _extract_tokens_from_sse_event(
+    data_bytes: bytes, pt: int, ct: int, timings: Optional[Dict[str, float]] = None
+) -> tuple:
+    """Pull token counts (and optional timing data) out of a single decoded
+    SSE ``data:`` payload.
 
     Supports both OpenAI's ``usage`` block (when the backend honors
     ``stream_options.include_usage``) and llama.cpp/xllamacpp's ``timings``
     block (which is emitted on the final chunk by default).
+
+    If ``timings`` (a mutable dict) is provided, llama.cpp's millisecond
+    counters are merged into it so the caller can derive tokens/sec.
     """
     try:
         obj = json.loads(data_bytes)
@@ -304,6 +346,11 @@ def _extract_tokens_from_sse_event(data_bytes: bytes, pt: int, ct: int) -> tuple
     if isinstance(t, dict):
         pt = int(t.get("prompt_n") or pt)
         ct = int(t.get("predicted_n") or ct)
+        if timings is not None:
+            for k in ("prompt_ms", "predicted_ms"):
+                v = t.get(k)
+                if isinstance(v, (int, float)):
+                    timings[k] = float(v)
     return pt, ct
 
 
@@ -312,17 +359,13 @@ async def _stream_with_token_extraction(
     record_callback,
 ):
     """Wrap an SSE body_iterator, pass chunks through unchanged, and call
-    ``record_callback(prompt_tokens, completion_tokens)`` exactly once when
-    the stream ends.
-
-    The router cannot rely on aiohttp giving us SSE-aligned chunks — a single
-    network read may contain partial events or several events.  We keep a
-    small text buffer split on the standard SSE event delimiter (``\\n\\n``)
-    so the token-bearing event is parsed even when it straddles a network
-    chunk boundary (which is the normal case for long-running 30B+ models).
+    ``record_callback(prompt_tokens, completion_tokens, timings)`` exactly
+    once when the stream ends. ``timings`` is a dict that may contain
+    ``prompt_ms`` / ``predicted_ms`` if the backend emitted them.
     """
     pt = 0
     ct = 0
+    timings: Dict[str, float] = {}
     buf = b""
     try:
         async for chunk in body_iterator:
@@ -342,7 +385,7 @@ async def _stream_with_token_extraction(
                     payload = s[5:].lstrip()
                     if not payload or payload == b"[DONE]":
                         continue
-                    pt, ct = _extract_tokens_from_sse_event(payload, pt, ct)
+                    pt, ct = _extract_tokens_from_sse_event(payload, pt, ct, timings)
             # Cap buffer growth — only the most recent event matters for
             # token extraction, so trim aggressively if no delimiters appear.
             if len(buf) > 65536:
@@ -354,9 +397,11 @@ async def _stream_with_token_extraction(
                 if s.startswith(b"data:"):
                     payload = s[5:].lstrip()
                     if payload and payload != b"[DONE]":
-                        pt, ct = _extract_tokens_from_sse_event(payload, pt, ct)
+                        pt, ct = _extract_tokens_from_sse_event(
+                            payload, pt, ct, timings
+                        )
     finally:
-        await record_callback(pt, ct)
+        await record_callback(pt, ct, timings)
 
 
 # ---------------------------------------------------------------------------
@@ -870,6 +915,7 @@ def _aggregate_dashboard() -> Dict[str, Any]:
             key=lambda x: -x.get("best_tier", 0),
         ),
         "usage": _usage.snapshot(),
+        "history": _usage.history_snapshot(),
     }
 
 
@@ -883,6 +929,17 @@ async def router_dashboard_json(_: str = Depends(verify_client)):
 async def router_usage(_: str = Depends(verify_client)):
     """Historical per-worker usage stats (persisted across restarts)."""
     return _usage.snapshot()
+
+
+@app.get("/v1/router/history", tags=["Router"])
+async def router_history(limit: int = 200, _: str = Depends(verify_client)):
+    """Recent LLM request history (in-memory ring buffer, newest last).
+
+    Each entry contains: ``ts``, ``worker``, ``model``, ``prompt_tokens``,
+    ``completion_tokens``, ``prompt_ms``, ``predicted_ms``, ``prompt_tps``,
+    ``predicted_tps``.
+    """
+    return {"history": _usage.history_snapshot(limit=limit)}
 
 
 # ---------------------------------------------------------------------------
@@ -1174,6 +1231,96 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
         or '<tr><td colspan="6" class="muted">No LLM usage recorded yet.</td></tr>'
     )
 
+    # ---- Recent request history + per-worker speed averages -----------------
+    history = data.get("history") or []
+
+    def _fmt_tps(v: float) -> str:
+        if not v or v <= 0:
+            return "—"
+        return f"{v:,.1f}"
+
+    # Per-worker averages (only entries with non-zero timing data contribute)
+    worker_speed: Dict[str, Dict[str, Any]] = {}
+    for h in history:
+        wkr = h.get("worker") or "unknown"
+        s = worker_speed.setdefault(
+            wkr,
+            {
+                "requests": 0,
+                "prompt_tokens": 0,
+                "completion_tokens": 0,
+                "prompt_tps_sum": 0.0,
+                "prompt_tps_n": 0,
+                "predicted_tps_sum": 0.0,
+                "predicted_tps_n": 0,
+                "models": set(),
+            },
+        )
+        s["requests"] += 1
+        s["prompt_tokens"] += int(h.get("prompt_tokens") or 0)
+        s["completion_tokens"] += int(h.get("completion_tokens") or 0)
+        if h.get("model"):
+            s["models"].add(h["model"])
+        ptps = float(h.get("prompt_tps") or 0.0)
+        if ptps > 0:
+            s["prompt_tps_sum"] += ptps
+            s["prompt_tps_n"] += 1
+        dtps = float(h.get("predicted_tps") or 0.0)
+        if dtps > 0:
+            s["predicted_tps_sum"] += dtps
+            s["predicted_tps_n"] += 1
+
+    def _speed_row(label: str, s: Dict[str, Any]) -> str:
+        avg_p = (s["prompt_tps_sum"] / s["prompt_tps_n"]) if s["prompt_tps_n"] else 0.0
+        avg_d = (
+            (s["predicted_tps_sum"] / s["predicted_tps_n"])
+            if s["predicted_tps_n"]
+            else 0.0
+        )
+        models = ", ".join(sorted(s["models"])) or "—"
+        return f"""
+        <tr>
+          <td><b>{label}</b></td>
+          <td class="num">{s['requests']:,}</td>
+          <td class="num">{s['prompt_tokens']:,}</td>
+          <td class="num">{s['completion_tokens']:,}</td>
+          <td class="num">{_fmt_tps(avg_p)}</td>
+          <td class="num">{_fmt_tps(avg_d)}</td>
+          <td class="mono small">{models}</td>
+        </tr>"""
+
+    speed_rows = (
+        "".join(
+            _speed_row(lbl, s)
+            for lbl, s in sorted(
+                worker_speed.items(),
+                key=lambda kv: -kv[1].get("predicted_tps_sum", 0),
+            )
+        )
+        or '<tr><td colspan="7" class="muted">No request history yet.</td></tr>'
+    )
+
+    # Recent requests table (newest first, capped for display)
+    def _hist_row(h: Dict[str, Any]) -> str:
+        ts = h.get("ts") or 0
+        when = datetime.fromtimestamp(ts).strftime("%H:%M:%S") if ts else "—"
+        return f"""
+        <tr>
+          <td class="muted small">{when}</td>
+          <td class="small"><b>{h.get('worker', '—')}</b></td>
+          <td class="mono small">{h.get('model', '—')}</td>
+          <td class="num small">{int(h.get('prompt_tokens') or 0):,}</td>
+          <td class="num small">{int(h.get('completion_tokens') or 0):,}</td>
+          <td class="num small">{_fmt_tps(float(h.get('prompt_tps') or 0))}</td>
+          <td class="num small">{_fmt_tps(float(h.get('predicted_tps') or 0))}</td>
+        </tr>"""
+
+    recent = list(reversed(history))[:50]
+    history_rows = (
+        "".join(_hist_row(h) for h in recent)
+        or '<tr><td colspan="7" class="muted">No requests yet.</td></tr>'
+    )
+
     return f"""<!doctype html>
 <html lang="en">
 <head>
@@ -1344,6 +1491,30 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
       <th class="num">Completion tokens</th><th class="num">Total tokens</th>
     </tr></thead>
     <tbody>{usage_model_rows}</tbody>
+  </table>
+
+  <h2>Worker speed (recent history)</h2>
+  <table>
+    <thead><tr>
+      <th>Worker</th>
+      <th class="num">Reqs</th>
+      <th class="num">Prompt tok</th>
+      <th class="num">Completion tok</th>
+      <th class="num">Avg prompt t/s</th>
+      <th class="num">Avg output t/s</th>
+      <th>Models</th>
+    </tr></thead>
+    <tbody>{speed_rows}</tbody>
+  </table>
+
+  <h2>Recent requests</h2>
+  <table>
+    <thead><tr>
+      <th>Time</th><th>Worker</th><th>Model</th>
+      <th class="num">Prompt tok</th><th class="num">Output tok</th>
+      <th class="num">Prompt t/s</th><th class="num">Output t/s</th>
+    </tr></thead>
+    <tbody>{history_rows}</tbody>
   </table>
 </body>
 </html>"""
@@ -1687,8 +1858,8 @@ async def chat_completions(payload: Dict[str, Any], _: str = Depends(verify_clie
     # is honored), we use that.
     _wlabel, _model = worker.label, model
 
-    async def _record(pt: int, ct: int):
-        await _usage.record_llm(_wlabel, _model, pt, ct)
+    async def _record(pt: int, ct: int, timings: Dict[str, float]):
+        await _usage.record_llm(_wlabel, _model, pt, ct, timings)
 
     return StreamingResponse(
         _stream_with_token_extraction(resp.body_iterator, _record),
@@ -1714,8 +1885,8 @@ async def completions(payload: Dict[str, Any], _: str = Depends(verify_client)):
         return resp
     _wlabel, _model = worker.label, model
 
-    async def _record(pt: int, ct: int):
-        await _usage.record_llm(_wlabel, _model, pt, ct)
+    async def _record(pt: int, ct: int, timings: Dict[str, float]):
+        await _usage.record_llm(_wlabel, _model, pt, ct, timings)
 
     return StreamingResponse(
         _stream_with_token_extraction(resp.body_iterator, _record),
