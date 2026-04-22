@@ -195,9 +195,18 @@ GPU_TIERS: List[Tuple[str, int]] = [
     ("1080 ti", 14),
     ("1080", 12),
     ("1070", 10),
-    # Jetson
-    ("orin", 18),
-    ("xavier", 8),
+    # Jetson (ordered most → least powerful; match "orin nx" before generic "orin")
+    ("agx orin", 35),
+    ("orin nx 16g", 25),
+    ("orin nx", 22),
+    ("orin nano", 12),
+    ("orin", 20),
+    ("agx xavier", 16),
+    ("xavier nx 16g", 14),
+    ("xavier nx", 12),
+    ("xavier", 10),
+    ("tx2", 6),
+    ("nano", 4),
     # AMD Instinct (datacenter)
     ("mi300x", 90),
     ("mi300", 85),
@@ -395,6 +404,41 @@ def detect_local_gpus() -> List[Dict[str, Any]]:
                 )
         except Exception as e:
             logging.debug(f"[Router] rocm-smi enumeration failed: {e}")
+
+    # --- Jetson / Tegra (unified memory; CUDA may be unavailable inside the container) ---
+    # Detect via /proc/device-tree/model which is always present on Jetson boards.
+    if not gpus:
+        try:
+            with open("/proc/device-tree/model") as _f:
+                _model = _f.read().rstrip("\x00").strip()
+            if "jetson" in _model.lower() or "tegra" in _model.lower():
+                _jtier = gpu_tier_for_name(_model)
+                # Unified memory — report it as "VRAM" so the dashboard shows it
+                _jtotal = 0.0
+                try:
+                    import psutil as _ps
+
+                    _jtotal = _ps.virtual_memory().total / (1024**3)
+                except Exception:
+                    try:
+                        with open("/proc/meminfo") as _mf:
+                            for _line in _mf:
+                                if _line.startswith("MemTotal"):
+                                    _jtotal = int(_line.split()[1]) / (1024**2)
+                                    break
+                    except Exception:
+                        pass
+                gpus.append(
+                    {
+                        "index": 0,
+                        "name": _model,
+                        "total_vram_gb": round(_jtotal, 2),
+                        "tier": _jtier,
+                        "backend": "cuda",
+                    }
+                )
+        except Exception as _e:
+            logging.debug(f"[Router] Jetson detection failed: {_e}")
 
     # --- CPU-only fallback ---
     # Always include a CPU entry so the router sees compute even on CPU workers.
@@ -750,7 +794,24 @@ class WorkerHeartbeatClient:
             free_ram = vm.available / (1024**3)
             total_ram = vm.total / (1024**3)
         except Exception:
-            pass
+            # Fallback: /proc/meminfo — always available on Linux, no packages needed
+            try:
+                _mem: Dict[str, int] = {}
+                with open("/proc/meminfo") as _f:
+                    for _line in _f:
+                        _k, _, _v = _line.partition(":")
+                        _parts = _v.split()
+                        if _parts:
+                            _mem[_k.strip()] = int(_parts[0])
+                total_ram = _mem.get("MemTotal", 0) / (1024**2)  # kB → GB
+                _avail = _mem.get("MemAvailable") or (
+                    _mem.get("MemFree", 0)
+                    + _mem.get("Buffers", 0)
+                    + _mem.get("Cached", 0)
+                )
+                free_ram = _avail / (1024**2)
+            except Exception:
+                pass
         try:
             # Pull model list from the local Pipes singleton if available
             from app import pipe  # type: ignore
@@ -973,7 +1034,7 @@ _heartbeat_client: Optional[WorkerHeartbeatClient] = None
 def get_registry() -> WorkerRegistry:
     global _registry
     if _registry is None:
-        _registry = WorkerRegistry(ttl_seconds=float(getenv("ROUTER_WORKER_TTL", "30")))
+        _registry = WorkerRegistry(ttl_seconds=float(getenv("ROUTER_WORKER_TTL", "60")))
     return _registry
 
 
