@@ -130,6 +130,26 @@ def verify_worker(authorization: Optional[str] = Header(None)) -> str:
     return "WORKER"
 
 
+def _normalize_model_name(model: Optional[str]) -> str:
+    """Collapse minor naming variants so usage stats aggregate correctly.
+
+    Treats ``unsloth/Foo-GGUF`` and ``unsloth/Foo`` as the same model — the
+    ``-GGUF`` suffix only describes the on-disk weight format and clients
+    request both forms interchangeably.
+    """
+    if not model:
+        return "unknown"
+    m = str(model).strip()
+    # Strip a trailing -GGUF / .GGUF (case-insensitive) so quantized and
+    # non-quantized references collapse into one bucket.
+    low = m.lower()
+    for suffix in ("-gguf", ".gguf"):
+        if low.endswith(suffix):
+            m = m[: -len(suffix)]
+            break
+    return m
+
+
 # ---------------------------------------------------------------------------
 # Usage tracking
 # ---------------------------------------------------------------------------
@@ -232,6 +252,7 @@ class UsageTracker:
         prompt_tokens: int,
         completion_tokens: int,
     ) -> None:
+        model = _normalize_model_name(model)
         async with self._alock:
             w = self._data.setdefault(label, {})
             llm = w.setdefault("llm", {})
@@ -1109,9 +1130,21 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
 
     def _usage_model_rows(label: str, wdata: Dict[str, Any]) -> str:
         llm = wdata.get("llm") or {}
+        # Merge variants that normalize to the same canonical name
+        # (e.g. ``Foo`` and ``Foo-GGUF``) so the breakdown shows one row.
+        merged: Dict[str, Dict[str, int]] = {}
+        for raw_name, mdata in llm.items():
+            canon = _normalize_model_name(raw_name)
+            agg = merged.setdefault(
+                canon,
+                {"requests": 0, "prompt_tokens": 0, "completion_tokens": 0},
+            )
+            agg["requests"] += int(mdata.get("requests", 0) or 0)
+            agg["prompt_tokens"] += int(mdata.get("prompt_tokens", 0) or 0)
+            agg["completion_tokens"] += int(mdata.get("completion_tokens", 0) or 0)
         rows = ""
         for model, mdata in sorted(
-            llm.items(), key=lambda kv: -kv[1].get("requests", 0)
+            merged.items(), key=lambda kv: -kv[1].get("requests", 0)
         ):
             reqs = mdata.get("requests", 0)
             pt = mdata.get("prompt_tokens", 0)

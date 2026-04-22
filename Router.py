@@ -715,20 +715,50 @@ class Router:
         capability: str,
         model: Optional[str] = None,
     ) -> Optional[WorkerInfo]:
-        """Pick the best worker matching capability + (optionally) model."""
-        candidates = []
-        for worker in self.registry.list_workers(alive_only=True):
-            if capability not in worker.capabilities:
-                continue
-            if model and worker.models and model not in worker.models:
-                # Allow base-name match (strip org prefix)
-                base = model.split("/")[-1].lower()
-                if not any(base in m.lower() for m in worker.models):
-                    continue
-            if not worker.has_capacity():
-                continue
-            candidates.append(worker)
+        """Pick the best worker matching capability + (optionally) model.
 
+        If a ``model`` is requested but no live worker advertises it, fall
+        back to the best-scoring worker that supports the capability — the
+        client gets *some* compute instead of a 503.  This keeps the router
+        useful when a smaller or differently-named model is requested but
+        only larger / equivalent ones are loaded somewhere in the pool.
+        """
+        all_alive = [
+            w
+            for w in self.registry.list_workers(alive_only=True)
+            if capability in w.capabilities
+        ]
+
+        def _has_capacity(workers):
+            return [w for w in workers if w.has_capacity()]
+
+        def _model_match(worker: WorkerInfo) -> bool:
+            if not model:
+                return True
+            if not worker.models:
+                # Worker did not advertise its model list — let it through;
+                # selection is still bounded by capability + capacity.
+                return True
+            if model in worker.models:
+                return True
+            base = model.split("/")[-1].lower()
+            return any(base in m.lower() for m in worker.models)
+
+        # First pass: workers that explicitly serve the requested model.
+        if model:
+            preferred = _has_capacity([w for w in all_alive if _model_match(w)])
+            if preferred:
+                preferred.sort(key=lambda w: w.score(), reverse=True)
+                return preferred[0]
+            # Fallback: any capability-matching worker with capacity.
+            fallback = _has_capacity(all_alive)
+            if fallback:
+                fallback.sort(key=lambda w: w.score(), reverse=True)
+                return fallback[0]
+            return None
+
+        # No model filter — best-scoring capability match with capacity.
+        candidates = _has_capacity(all_alive)
         if not candidates:
             return None
         candidates.sort(key=lambda w: w.score(), reverse=True)
