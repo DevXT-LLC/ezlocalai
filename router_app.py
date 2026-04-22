@@ -1378,6 +1378,10 @@ async def _proxy_json(
                     return Response(
                         content=body, status_code=resp.status, media_type=media_type
                     )
+        except Exception as e:
+            logging.warning(f"[Router] POST {worker.url}{path} failed: {e}")
+            registry.record_connection_failure(worker.worker_id)
+            raise
         finally:
             registry.increment_in_flight(worker.worker_id, -1)
 
@@ -1394,6 +1398,7 @@ async def _proxy_json(
                 resp.release()
         except Exception as e:
             logging.warning(f"[Router] Stream from {worker.url}{path} failed: {e}")
+            registry.record_connection_failure(worker.worker_id)
         finally:
             await session.close()
             registry.increment_in_flight(worker.worker_id, -1)
@@ -1409,13 +1414,19 @@ async def _proxy_get(worker: WorkerInfo, path: str) -> Response:
         )
     url = f"{worker.url}{path}"
     request_timeout = aiohttp.ClientTimeout(total=30)
-    async with aiohttp.ClientSession(timeout=request_timeout) as session:
-        async with session.get(url, headers=headers) as resp:
-            body = await resp.read()
-            media_type = resp.headers.get("Content-Type", "application/json")
-            return Response(
-                content=body, status_code=resp.status, media_type=media_type
-            )
+    try:
+        async with aiohttp.ClientSession(timeout=request_timeout) as session:
+            async with session.get(url, headers=headers) as resp:
+                body = await resp.read()
+                media_type = resp.headers.get("Content-Type", "application/json")
+                return Response(
+                    content=body, status_code=resp.status, media_type=media_type
+                )
+    except Exception as e:
+        logging.warning(f"[Router] GET {worker.url}{path} failed: {e}")
+        registry = get_registry()
+        registry.record_connection_failure(worker.worker_id)
+        raise
 
 
 async def _proxy_multipart(
@@ -1492,6 +1503,10 @@ async def _proxy_multipart(
                 return Response(
                     content=body, status_code=resp.status, media_type=media_type
                 )
+    except Exception as e:
+        logging.warning(f"[Router] Multipart POST {worker.url}{path} failed: {e}")
+        registry.record_connection_failure(worker.worker_id)
+        raise
     finally:
         registry.increment_in_flight(worker.worker_id, -1)
 

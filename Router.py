@@ -524,6 +524,8 @@ class WorkerInfo:
     last_heartbeat: float = field(default_factory=time.time)
     registered_at: float = field(default_factory=time.time)
     extra: Dict[str, Any] = field(default_factory=dict)
+    # Consecutive connection failures from the router side (not the worker heartbeat)
+    connection_failures: int = 0
 
     def to_public(self) -> Dict[str, Any]:
         return {
@@ -575,6 +577,7 @@ class WorkerInfo:
             + slots_left * 5.0
             + self.free_vram_gb
             - self.in_flight * 4.0
+            - self.connection_failures * 20.0
         )
 
 
@@ -645,6 +648,7 @@ class WorkerRegistry:
             if "extra" in payload and isinstance(payload["extra"], dict):
                 worker.extra.update(payload["extra"])
             worker.last_heartbeat = time.time()
+            worker.connection_failures = 0  # Reset on successful heartbeat
             return worker
 
     def deregister(self, worker_id: str) -> bool:
@@ -672,6 +676,32 @@ class WorkerRegistry:
             w = self._workers.get(worker_id)
             if w is not None:
                 w.in_flight = max(0, w.in_flight + delta)
+
+    def record_connection_failure(self, worker_id: str, max_failures: int = 3) -> None:
+        """Increment the failure counter for a worker.
+
+        After ``max_failures`` consecutive connection failures the worker's
+        last_heartbeat is pushed far into the past so the pruner TTL expires it
+        immediately, removing it from routing until it re-registers.
+        """
+        with self._lock:
+            w = self._workers.get(worker_id)
+            if w is None:
+                return
+            w.connection_failures += 1
+            logging.warning(
+                f"[Router] Worker {w.label} ({w.url}) connection failure "
+                f"#{w.connection_failures}/{max_failures}"
+            )
+            if w.connection_failures >= max_failures:
+                # Force TTL expiry so the pruner removes this worker on its
+                # next pass.  The worker will re-register automatically once
+                # it recovers and its heartbeat reaches the router again.
+                logging.warning(
+                    f"[Router] Worker {w.label} exceeded max connection failures — "
+                    "marking for expiry (will re-register once reachable)"
+                )
+                w.last_heartbeat = 0.0
 
 
 # ---------------------------------------------------------------------------
