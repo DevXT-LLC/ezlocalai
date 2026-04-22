@@ -136,13 +136,20 @@ async def startup_event():
 
     # Start router heartbeat client if ROUTER_URL is configured
     try:
-        from Router import get_heartbeat_client
+        from Router import get_heartbeat_client, get_tunnel_client
 
         hb = get_heartbeat_client()
         if hb is not None:
             hb.start()
             logging.info(
                 f"[Heartbeat] Worker registration loop started for router {hb.router_url}"
+            )
+        # Start reverse tunnel client too when WORKER_TUNNEL=true
+        tc = get_tunnel_client()
+        if tc is not None:
+            tc.start()
+            logging.info(
+                f"[Tunnel] Reverse tunnel client started -> {tc.router_ws_url}"
             )
     except Exception as e:
         logging.warning(f"[Heartbeat] Failed to start worker heartbeat: {e}")
@@ -191,11 +198,14 @@ async def shutdown_event():
     await request_queue.stop()
     # Best-effort deregister from router
     try:
-        from Router import get_heartbeat_client
+        from Router import get_heartbeat_client, get_tunnel_client
 
         hb = get_heartbeat_client()
         if hb is not None:
             await hb.stop()
+        tc = get_tunnel_client()
+        if tc is not None:
+            await tc.stop()
     except Exception as e:
         logging.debug(f"[Heartbeat] shutdown error: {e}")
 

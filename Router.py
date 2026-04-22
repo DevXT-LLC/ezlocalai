@@ -689,6 +689,11 @@ def is_router_mode() -> bool:
     return (getenv("ROUTER_MODE", "false") or "").strip().lower() == "true"
 
 
+def is_tunnel_mode() -> bool:
+    """Worker should open a reverse WS tunnel to the router."""
+    return (getenv("WORKER_TUNNEL", "false") or "").strip().lower() == "true"
+
+
 def get_heartbeat_client() -> Optional[WorkerHeartbeatClient]:
     """Build (or return cached) heartbeat client when ROUTER_URL is configured."""
     global _heartbeat_client
@@ -700,22 +705,88 @@ def get_heartbeat_client() -> Optional[WorkerHeartbeatClient]:
     if is_router_mode():
         # A router does not register with itself
         return None
-    # Use EZLOCALAI_URL as the worker's public callback URL. If unset or
-    # loopback, the router substitutes the connection source IP automatically
-    # (works for any LAN worker behind no NAT).
-    worker_url = (getenv("EZLOCALAI_URL") or "").strip()
     api_key = (getenv("ROUTER_API_KEY") or "").strip() or (
         getenv("EZLOCALAI_API_KEY") or ""
     )
     label = (getenv("WORKER_LABEL") or "").strip() or socket.gethostname()
     capabilities = detect_local_capabilities()
     interval = float(getenv("WORKER_HEARTBEAT_INTERVAL", "10"))
-    _heartbeat_client = WorkerHeartbeatClient(
-        router_url=router_url,
-        worker_url=worker_url,
-        api_key=api_key,
-        label=label,
-        capabilities=capabilities,
-        interval=interval,
-    )
+    if is_tunnel_mode():
+        # Register with sentinel URL — router will route through the WS tunnel
+        # instead of dialing back. EZLOCALAI_URL is irrelevant in this mode.
+        from Tunnel import tunnel_url
+
+        worker_id = f"{label}-{uuid.uuid4().hex[:8]}"
+        worker_url = tunnel_url(worker_id)
+        _heartbeat_client = WorkerHeartbeatClient(
+            router_url=router_url,
+            worker_url=worker_url,
+            api_key=api_key,
+            label=label,
+            capabilities=capabilities,
+            interval=interval,
+            worker_id=worker_id,
+        )
+    else:
+        # Use EZLOCALAI_URL as the worker's public callback URL. If unset or
+        # loopback, the router substitutes the connection source IP automatically
+        # (works for any LAN worker behind no NAT).
+        worker_url = (getenv("EZLOCALAI_URL") or "").strip()
+        _heartbeat_client = WorkerHeartbeatClient(
+            router_url=router_url,
+            worker_url=worker_url,
+            api_key=api_key,
+            label=label,
+            capabilities=capabilities,
+            interval=interval,
+        )
     return _heartbeat_client
+
+
+_tunnel_client = None
+
+
+def get_tunnel_client():
+    """Build (or return cached) outbound tunnel client.
+
+    Created only when both ROUTER_URL and WORKER_TUNNEL=true are set, and we
+    are not running in router mode. The client opens a persistent WebSocket
+    to the router so it can dispatch inbound requests through it.
+    """
+    global _tunnel_client
+    if _tunnel_client is not None:
+        return _tunnel_client
+    if is_router_mode() or not is_tunnel_mode():
+        return None
+    router_url = (getenv("ROUTER_URL") or "").strip()
+    if not router_url:
+        return None
+    hb = get_heartbeat_client()
+    if hb is None:
+        return None
+    # Convert http(s)://router/ → ws(s)://router/v1/router/tunnel
+    base = router_url.rstrip("/")
+    if base.startswith("https://"):
+        ws_base = "wss://" + base[len("https://") :]
+    elif base.startswith("http://"):
+        ws_base = "ws://" + base[len("http://") :]
+    else:
+        ws_base = base
+    ws_url = f"{ws_base}/v1/router/tunnel"
+    local_url = (
+        f"http://127.0.0.1:{getenv('PORT', '8091')}"
+        if not (getenv("EZLOCALAI_URL") or "").strip()
+        else (getenv("EZLOCALAI_URL") or "").strip()
+    )
+    api_key = (getenv("ROUTER_API_KEY") or "").strip() or (
+        getenv("EZLOCALAI_API_KEY") or ""
+    )
+    from Tunnel import TunnelClient
+
+    _tunnel_client = TunnelClient(
+        router_ws_url=ws_url,
+        worker_id=hb.worker_id,
+        local_url=local_url,
+        api_key=api_key,
+    )
+    return _tunnel_client

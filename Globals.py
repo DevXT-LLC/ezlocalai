@@ -107,6 +107,11 @@ def getenv(var_name: str, default_value: str = None) -> str:
         "WORKER_LABEL": "",
         # Heartbeat interval in seconds.
         "WORKER_HEARTBEAT_INTERVAL": "10",
+        # Open a reverse WebSocket tunnel to the router so the router can dispatch
+        # inference requests back through it. Required when this worker has no
+        # public IP (CGNAT, friend's home box, etc). When true, the router will
+        # use the tunnel instead of trying to call EZLOCALAI_URL directly.
+        "WORKER_TUNNEL": "false",
     }
     if not default_value:
         default_value = default_values[var_name] if var_name in default_values else ""

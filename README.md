@@ -260,6 +260,7 @@ Every worker just needs `ROUTER_URL` (and optionally `WORKER_LABEL`):
 | Voice server          | `192.168.1.82:8091`  | TTS/STT/wake word             | `ROUTER_URL=...` `WORKER_LABEL=voice`                                        |
 | Small + image         | `192.168.1.214:8091` | small text + image gen        | `ROUTER_URL=...` `WORKER_LABEL=img-small`                                    |
 | Friend's 3090         | external             | text/vision                   | `ROUTER_URL=https://router.you.com:8092` (set `EZLOCALAI_URL=https://gpu.friend.com:8091` so the router can reach back) |
+| Friend's 3090 (CGNAT) | no public IP         | text/vision                   | `ROUTER_URL=https://router.you.com:8092` `WORKER_TUNNEL=true` (worker dials out, no port forwarding needed) |
 
 Clients then point to the router as if it were a single ezlocalai server:
 
@@ -271,6 +272,20 @@ curl https://router.you.com:8092/v1/chat/completions \
 ```
 
 The router will pick the highest-scoring text-capable worker that has the requested model loaded; if none is currently free, it queues until one becomes available (up to `ROUTER_WAIT_TIMEOUT`).
+
+### Reverse tunnel (workers without a public IP)
+
+Some workers (CGNAT, friend's home machines, anything you can't port-forward) have no inbound network path the router can dial. Set `WORKER_TUNNEL=true` on the worker and that's it — the worker dials *out* over WebSocket to `wss://<router>/v1/router/tunnel` and the router multiplexes inference requests back through the same connection. No public IP, no port forward, no extra container.
+
+```bash
+# On the worker (only env vars required):
+ROUTER_URL=https://router.you.com:8092
+WORKER_TUNNEL=true
+WORKER_LABEL=friend-3090            # optional
+ROUTER_API_KEY=shared-key           # optional, must match router's EZLOCALAI_API_KEY
+```
+
+The worker registers with a sentinel URL `tunnel://<worker_id>`; you'll see it in `/v1/router/workers` and the dashboard like any other worker. Reconnects with exponential backoff (2s → 60s) are automatic. Streaming endpoints (chat SSE, audio) flow through unchanged. The only requirement is the worker can make outbound HTTPS to the router — same direction as the existing heartbeat.
 
 ### Selection algorithm
 

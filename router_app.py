@@ -51,6 +51,8 @@ from fastapi import (
     HTTPException,
     Request,
     UploadFile,
+    WebSocket,
+    WebSocketDisconnect,
 )
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse, Response, StreamingResponse
@@ -63,6 +65,12 @@ from Router import (
     best_gpu_tier,
     get_registry,
     get_router,
+)
+from Tunnel import (
+    TunnelConnection,
+    get_tunnel_hub,
+    is_tunnel_url,
+    worker_id_from_tunnel_url,
 )
 
 
@@ -324,6 +332,45 @@ async def router_health():
         "alive_workers": len(workers),
         "ttl_seconds": get_registry().ttl,
     }
+
+
+@app.websocket("/v1/router/tunnel")
+async def router_tunnel(websocket: WebSocket):
+    """Reverse tunnel endpoint.
+
+    A worker dials this URL with ``?worker_id=<id>`` and an
+    ``Authorization: Bearer <key>`` header (when ROUTER_REGISTER_KEY /
+    EZLOCALAI_API_KEY is set). The router multiplexes inbound HTTP requests
+    to the worker through the resulting WebSocket — no inbound network
+    access is required on the worker side.
+    """
+    expected = _expected_register_key()
+    if expected:
+        auth = websocket.headers.get("authorization") or ""
+        provided = ""
+        if auth.lower().startswith("bearer "):
+            provided = auth.split(" ", 1)[1].strip()
+        if provided != expected:
+            await websocket.close(code=4401)
+            return
+    worker_id = websocket.query_params.get("worker_id") or ""
+    if not worker_id:
+        await websocket.close(code=4400)
+        return
+    await websocket.accept()
+    hub = get_tunnel_hub()
+    conn = TunnelConnection(worker_id=worker_id, ws=websocket, hub=hub)
+    await hub.attach(conn)
+    logging.info(f"[Router] Tunnel connected: {worker_id}")
+    try:
+        await conn.reader_loop()
+    except WebSocketDisconnect:
+        pass
+    except Exception as e:
+        logging.warning(f"[Router] Tunnel {worker_id} error: {e}")
+    finally:
+        await conn.close(reason="ws closed")
+        logging.info(f"[Router] Tunnel disconnected: {worker_id}")
 
 
 @app.get("/health", tags=["System"])
@@ -693,6 +740,65 @@ def _worker_headers(worker: WorkerInfo) -> Dict[str, str]:
 # ---------------------------------------------------------------------------
 
 
+async def _proxy_via_tunnel(
+    worker: WorkerInfo,
+    method: str,
+    path: str,
+    *,
+    headers: Dict[str, str],
+    body: Optional[bytes],
+    stream: bool,
+    timeout: Optional[float],
+):
+    """Route a request to a tunneled worker through its open WebSocket."""
+    hub = get_tunnel_hub()
+    wid = worker_id_from_tunnel_url(worker.url)
+    conn = hub.get(wid)
+    if conn is None or conn.closed:
+        raise HTTPException(
+            status_code=503,
+            detail=f"Tunnel for worker {worker.label} ({wid}) is not connected",
+        )
+    registry = get_registry()
+    registry.increment_in_flight(worker.worker_id, 1)
+    request_timeout = timeout or float(getenv("REQUEST_TIMEOUT", "300"))
+    try:
+        status, resp_headers, chunks = await conn.request(
+            method,
+            path,
+            headers=headers,
+            body=body,
+            stream=stream,
+            timeout=request_timeout,
+        )
+    except Exception:
+        registry.increment_in_flight(worker.worker_id, -1)
+        raise
+
+    media_type = resp_headers.get("Content-Type") or resp_headers.get("content-type")
+    if not stream:
+        try:
+            buf = bytearray()
+            async for c in chunks:
+                buf.extend(c)
+            return Response(
+                content=bytes(buf),
+                status_code=status,
+                media_type=media_type or "application/json",
+            )
+        finally:
+            registry.increment_in_flight(worker.worker_id, -1)
+
+    async def gen():
+        try:
+            async for c in chunks:
+                yield c
+        finally:
+            registry.increment_in_flight(worker.worker_id, -1)
+
+    return StreamingResponse(gen(), media_type=media_type or "text/event-stream")
+
+
 async def _proxy_json(
     worker: WorkerInfo,
     path: str,
@@ -702,8 +808,18 @@ async def _proxy_json(
     timeout: Optional[float] = None,
 ):
     """Forward a JSON POST to a worker. Returns either a dict or a StreamingResponse."""
-    url = f"{worker.url}{path}"
     headers = {"Content-Type": "application/json", **_worker_headers(worker)}
+    if is_tunnel_url(worker.url):
+        return await _proxy_via_tunnel(
+            worker,
+            "POST",
+            path,
+            headers=headers,
+            body=json.dumps(payload).encode("utf-8"),
+            stream=stream,
+            timeout=timeout,
+        )
+    url = f"{worker.url}{path}"
     request_timeout = aiohttp.ClientTimeout(
         total=timeout or float(getenv("REQUEST_TIMEOUT", "300"))
     )
@@ -743,8 +859,12 @@ async def _proxy_json(
 
 
 async def _proxy_get(worker: WorkerInfo, path: str) -> Response:
-    url = f"{worker.url}{path}"
     headers = _worker_headers(worker)
+    if is_tunnel_url(worker.url):
+        return await _proxy_via_tunnel(
+            worker, "GET", path, headers=headers, body=None, stream=False, timeout=30
+        )
+    url = f"{worker.url}{path}"
     request_timeout = aiohttp.ClientTimeout(total=30)
     async with aiohttp.ClientSession(timeout=request_timeout) as session:
         async with session.get(url, headers=headers) as resp:
@@ -767,20 +887,61 @@ async def _proxy_multipart(
 
     ``files`` is ``{field_name: (filename, content_bytes, content_type)}``.
     """
-    url = f"{worker.url}{path}"
     headers = _worker_headers(worker)
     request_timeout = aiohttp.ClientTimeout(
         total=timeout or float(getenv("REQUEST_TIMEOUT", "300"))
     )
+    if is_tunnel_url(worker.url):
+        # Build the multipart body with stdlib so we can ship it as a single
+        # binary payload through the tunnel (no streaming MultipartWriter quirks).
+        import secrets
+
+        boundary = "----ezlocalai" + secrets.token_hex(12)
+        parts: List[bytes] = []
+        for k, v in fields.items():
+            if v is None:
+                continue
+            parts.append(
+                f'--{boundary}\r\nContent-Disposition: form-data; name="{k}"\r\n\r\n'.encode()
+            )
+            parts.append(str(v).encode("utf-8"))
+            parts.append(b"\r\n")
+        for name, (fname, content, ctype) in files.items():
+            parts.append(
+                (
+                    f"--{boundary}\r\n"
+                    f'Content-Disposition: form-data; name="{name}"; filename="{fname}"\r\n'
+                    f"Content-Type: {ctype}\r\n\r\n"
+                ).encode()
+            )
+            parts.append(content)
+            parts.append(b"\r\n")
+        parts.append(f"--{boundary}--\r\n".encode())
+        body_bytes = b"".join(parts)
+        mp_headers = dict(headers)
+        mp_headers["Content-Type"] = f"multipart/form-data; boundary={boundary}"
+        return await _proxy_via_tunnel(
+            worker,
+            "POST",
+            path,
+            headers=mp_headers,
+            body=body_bytes,
+            stream=False,
+            timeout=timeout,
+        )
+
+    # Direct (non-tunneled) multipart upload via aiohttp.
+    data = aiohttp.FormData()
+    for name, (fname, content, ctype) in files.items():
+        data.add_field(name, content, filename=fname, content_type=ctype)
+    for k, v in fields.items():
+        if v is not None:
+            data.add_field(k, str(v))
+
+    url = f"{worker.url}{path}"
     registry = get_registry()
     registry.increment_in_flight(worker.worker_id, 1)
     try:
-        data = aiohttp.FormData()
-        for name, (fname, content, ctype) in files.items():
-            data.add_field(name, content, filename=fname, content_type=ctype)
-        for k, v in fields.items():
-            if v is not None:
-                data.add_field(k, str(v))
         async with aiohttp.ClientSession(timeout=request_timeout) as session:
             async with session.post(url, data=data, headers=headers) as resp:
                 body = await resp.read()
