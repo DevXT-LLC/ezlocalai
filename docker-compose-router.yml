@@ -32,3 +32,4 @@ services:
     volumes:
       - ./Router.py:/app/Router.py:ro
       - ./router_app.py:/app/router_app.py:ro
+      - ./data:/data

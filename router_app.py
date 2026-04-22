@@ -38,6 +38,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import os
 import time
 from typing import Any, Dict, List, Optional
 
@@ -130,6 +131,108 @@ def verify_worker(authorization: Optional[str] = Header(None)) -> str:
 
 
 # ---------------------------------------------------------------------------
+# Usage tracking
+# ---------------------------------------------------------------------------
+
+
+class UsageTracker:
+    """Persists per-worker, per-model usage stats to a JSON file.
+
+    Data shape::
+
+        {
+          "WorkerLabel": {
+            "llm": {
+              "ModelName": {
+                "requests": 42,
+                "prompt_tokens": 12000,
+                "completion_tokens": 8000
+              }
+            },
+            "tts":   {"requests": 15},
+            "stt":   {"requests": 7},
+            "image": {"requests": 3},
+            "video": {"requests": 0},
+            "embedding": {"requests": 5}
+          }
+        }
+    """
+
+    def __init__(self, path: str) -> None:
+        self._path = path
+        self._lock: Optional[asyncio.Lock] = None
+        self._data: Dict[str, Any] = {}
+
+    @property
+    def _alock(self) -> asyncio.Lock:
+        """Lazily created so it lives inside the running event loop."""
+        if self._lock is None:
+            self._lock = asyncio.Lock()
+        return self._lock
+
+    def load(self) -> None:
+        """Load existing stats from disk (call at startup)."""
+        try:
+            with open(self._path) as fh:
+                self._data = json.load(fh)
+            logging.info(f"[Usage] Loaded stats from {self._path}")
+        except FileNotFoundError:
+            self._data = {}
+            logging.info(
+                f"[Usage] No existing stats file at {self._path}, starting fresh"
+            )
+        except Exception as e:
+            self._data = {}
+            logging.warning(
+                f"[Usage] Failed to load {self._path}: {e} — starting fresh"
+            )
+
+    def _save_sync(self) -> None:
+        """Write atomically (tmp → rename). Caller must hold the lock."""
+        try:
+            os.makedirs(os.path.dirname(self._path) or ".", exist_ok=True)
+        except Exception:
+            pass
+        tmp = self._path + ".tmp"
+        with open(tmp, "w") as fh:
+            json.dump(self._data, fh, indent=2)
+        os.replace(tmp, self._path)
+
+    async def record_llm(
+        self,
+        label: str,
+        model: str,
+        prompt_tokens: int,
+        completion_tokens: int,
+    ) -> None:
+        async with self._alock:
+            w = self._data.setdefault(label, {})
+            llm = w.setdefault("llm", {})
+            m = llm.setdefault(
+                model,
+                {"requests": 0, "prompt_tokens": 0, "completion_tokens": 0},
+            )
+            m["requests"] += 1
+            m["prompt_tokens"] += prompt_tokens
+            m["completion_tokens"] += completion_tokens
+            self._save_sync()
+
+    async def record_cap(self, label: str, cap: str) -> None:
+        async with self._alock:
+            w = self._data.setdefault(label, {})
+            c = w.setdefault(cap, {"requests": 0})
+            c["requests"] += 1
+            self._save_sync()
+
+    def snapshot(self) -> Dict[str, Any]:
+        """Return a copy of the current stats (no lock needed for reads)."""
+        return json.loads(json.dumps(self._data))
+
+
+_usage = UsageTracker(getenv("USAGE_FILE", "/data/usage.json"))
+
+
+# ---------------------------------------------------------------------------
 # Background pruner
 # ---------------------------------------------------------------------------
 
@@ -152,6 +255,7 @@ async def _pruner_loop():
 @app.on_event("startup")
 async def _startup():
     global _pruner_task
+    _usage.load()
     if _pruner_task is None or _pruner_task.done():
         _pruner_task = asyncio.create_task(_pruner_loop())
     register_key = _expected_register_key()
@@ -620,6 +724,7 @@ def _aggregate_dashboard() -> Dict[str, Any]:
             [{**w.to_public(), "stale": True} for w in stale],
             key=lambda x: -x.get("best_tier", 0),
         ),
+        "usage": _usage.snapshot(),
     }
 
 
@@ -627,6 +732,12 @@ def _aggregate_dashboard() -> Dict[str, Any]:
 async def router_dashboard_json(_: str = Depends(verify_client)):
     """JSON form of the dashboard data."""
     return _aggregate_dashboard()
+
+
+@app.get("/v1/router/usage", tags=["Router"])
+async def router_usage(_: str = Depends(verify_client)):
+    """Historical per-worker usage stats (persisted across restarts)."""
+    return _usage.snapshot()
 
 
 # ---------------------------------------------------------------------------
@@ -844,6 +955,68 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
         '<tr><td colspan="9" class="muted">No workers registered.</td></tr>'
     )
 
+    # Usage section — per-worker historical stats
+    usage_data = data.get("usage") or {}
+
+    def _usage_summary_row(label: str, wdata: Dict[str, Any]) -> str:
+        llm = wdata.get("llm") or {}
+        llm_reqs = sum(m.get("requests", 0) for m in llm.values())
+        prompt_tok = sum(m.get("prompt_tokens", 0) for m in llm.values())
+        comp_tok = sum(m.get("completion_tokens", 0) for m in llm.values())
+        tts_reqs = (wdata.get("tts") or {}).get("requests", 0)
+        stt_reqs = (wdata.get("stt") or {}).get("requests", 0)
+        img_reqs = (wdata.get("image") or {}).get("requests", 0)
+        vid_reqs = (wdata.get("video") or {}).get("requests", 0)
+        emb_reqs = (wdata.get("embedding") or {}).get("requests", 0)
+        total_tok = prompt_tok + comp_tok
+        return f"""
+        <tr>
+          <td><b>{label}</b></td>
+          <td class="num">{llm_reqs:,}</td>
+          <td class="num">{prompt_tok:,}</td>
+          <td class="num">{comp_tok:,}</td>
+          <td class="num {'tok-hi' if total_tok > 0 else ''}">{total_tok:,}</td>
+          <td class="num">{emb_reqs:,}</td>
+          <td class="num">{tts_reqs:,}</td>
+          <td class="num">{stt_reqs:,}</td>
+          <td class="num">{img_reqs:,}</td>
+          <td class="num">{vid_reqs:,}</td>
+        </tr>"""
+
+    def _usage_model_rows(label: str, wdata: Dict[str, Any]) -> str:
+        llm = wdata.get("llm") or {}
+        rows = ""
+        for model, mdata in sorted(
+            llm.items(), key=lambda kv: -kv[1].get("requests", 0)
+        ):
+            reqs = mdata.get("requests", 0)
+            pt = mdata.get("prompt_tokens", 0)
+            ct = mdata.get("completion_tokens", 0)
+            rows += f"""
+        <tr>
+          <td class="muted small">{label}</td>
+          <td class="mono small">{model}</td>
+          <td class="num small">{reqs:,}</td>
+          <td class="num small">{pt:,}</td>
+          <td class="num small">{ct:,}</td>
+          <td class="num small">{pt + ct:,}</td>
+        </tr>"""
+        return rows
+
+    usage_summary_rows = (
+        "".join(_usage_summary_row(lbl, wd) for lbl, wd in sorted(usage_data.items()))
+        or '<tr><td colspan="10" class="muted">No usage recorded yet.</td></tr>'
+    )
+
+    usage_model_rows = (
+        "".join(
+            _usage_model_rows(lbl, wd)
+            for lbl, wd in sorted(usage_data.items())
+            if wd.get("llm")
+        )
+        or '<tr><td colspan="6" class="muted">No LLM usage recorded yet.</td></tr>'
+    )
+
     return f"""<!doctype html>
 <html lang="en">
 <head>
@@ -935,6 +1108,8 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
   .health-ok   {{ font-size: 14px; font-weight: 600; color: var(--ok); }}
   .health-warn {{ font-size: 14px; font-weight: 600; color: var(--warn); }}
   .health-crit {{ font-size: 14px; font-weight: 600; color: var(--crit); }}
+  /* Usage table */
+  .tok-hi {{ color: var(--accent); font-weight: 600; }}
 </style>
 </head>
 <body>
@@ -989,6 +1164,29 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
       <th>Models</th><th class="num">Last hb</th>
     </tr></thead>
     <tbody>{worker_rows}</tbody>
+  </table>
+
+  <h2>Usage history</h2>
+  <table>
+    <thead><tr>
+      <th>Worker</th>
+      <th class="num">LLM reqs</th><th class="num">Prompt tok</th>
+      <th class="num">Completion tok</th><th class="num">Total tokens</th>
+      <th class="num">Embedding reqs</th>
+      <th class="num">TTS reqs</th><th class="num">STT reqs</th>
+      <th class="num">Image reqs</th><th class="num">Video reqs</th>
+    </tr></thead>
+    <tbody>{usage_summary_rows}</tbody>
+  </table>
+
+  <h2>LLM model breakdown</h2>
+  <table>
+    <thead><tr>
+      <th>Worker</th><th>Model</th>
+      <th class="num">Requests</th><th class="num">Prompt tokens</th>
+      <th class="num">Completion tokens</th><th class="num">Total tokens</th>
+    </tr></thead>
+    <tbody>{usage_model_rows}</tbody>
   </table>
 </body>
 </html>"""
@@ -1272,7 +1470,7 @@ async def models(_: str = Depends(verify_client)):
 
 @app.post("/v1/chat/completions", tags=["Chat"])
 async def chat_completions(payload: Dict[str, Any], _: str = Depends(verify_client)):
-    model = payload.get("model")
+    model = payload.get("model") or "unknown"
     # Vision detection: any message with image_url content -> vision
     needs_vision = False
     for msg in payload.get("messages", []) or []:
@@ -1289,20 +1487,48 @@ async def chat_completions(payload: Dict[str, Any], _: str = Depends(verify_clie
             break
     capability = "vision" if needs_vision else "text"
     worker = await _pick(capability, model)
-    return await _proxy_json(
+    resp = await _proxy_json(
         worker,
         "/v1/chat/completions",
         payload,
         stream=bool(payload.get("stream")),
     )
+    # Record usage — extract token counts from non-streaming responses
+    prompt_tokens, completion_tokens = 0, 0
+    if isinstance(resp, Response):
+        try:
+            data = json.loads(resp.body)
+            u = data.get("usage") or {}
+            prompt_tokens = int(u.get("prompt_tokens") or 0)
+            completion_tokens = int(u.get("completion_tokens") or 0)
+        except Exception:
+            pass
+    asyncio.create_task(
+        _usage.record_llm(worker.label, model, prompt_tokens, completion_tokens)
+    )
+    return resp
 
 
 @app.post("/v1/completions", tags=["Completions"])
 async def completions(payload: Dict[str, Any], _: str = Depends(verify_client)):
-    worker = await _pick("text", payload.get("model"))
-    return await _proxy_json(
+    model = payload.get("model") or "unknown"
+    worker = await _pick("text", model)
+    resp = await _proxy_json(
         worker, "/v1/completions", payload, stream=bool(payload.get("stream"))
     )
+    prompt_tokens, completion_tokens = 0, 0
+    if isinstance(resp, Response):
+        try:
+            data = json.loads(resp.body)
+            u = data.get("usage") or {}
+            prompt_tokens = int(u.get("prompt_tokens") or 0)
+            completion_tokens = int(u.get("completion_tokens") or 0)
+        except Exception:
+            pass
+    asyncio.create_task(
+        _usage.record_llm(worker.label, model, prompt_tokens, completion_tokens)
+    )
+    return resp
 
 
 @app.post("/v1/embeddings", tags=["Embeddings"])
@@ -1313,19 +1539,25 @@ async def embeddings(payload: Dict[str, Any], _: str = Depends(verify_client)):
         if any("embedding" in w.capabilities for w in get_registry().list_workers())
         else await _pick("text", payload.get("model"))
     )
-    return await _proxy_json(worker, "/v1/embeddings", payload, stream=False)
+    resp = await _proxy_json(worker, "/v1/embeddings", payload, stream=False)
+    asyncio.create_task(_usage.record_cap(worker.label, "embedding"))
+    return resp
 
 
 @app.post("/v1/audio/speech", tags=["Audio"])
 async def audio_speech(payload: Dict[str, Any], _: str = Depends(verify_client)):
     worker = await _pick("tts", payload.get("model"))
-    return await _proxy_json(worker, "/v1/audio/speech", payload, stream=False)
+    resp = await _proxy_json(worker, "/v1/audio/speech", payload, stream=False)
+    asyncio.create_task(_usage.record_cap(worker.label, "tts"))
+    return resp
 
 
 @app.post("/v1/audio/speech/stream", tags=["Audio"])
 async def audio_speech_stream(payload: Dict[str, Any], _: str = Depends(verify_client)):
     worker = await _pick("tts", payload.get("model"))
-    return await _proxy_json(worker, "/v1/audio/speech/stream", payload, stream=True)
+    resp = await _proxy_json(worker, "/v1/audio/speech/stream", payload, stream=True)
+    asyncio.create_task(_usage.record_cap(worker.label, "tts"))
+    return resp
 
 
 @app.get("/v1/audio/voices", tags=["Audio"])
@@ -1362,7 +1594,7 @@ async def audio_transcriptions(
 ):
     worker = await _pick("stt", model)
     content = await file.read()
-    return await _proxy_multipart(
+    resp = await _proxy_multipart(
         worker,
         "/v1/audio/transcriptions",
         files={
@@ -1381,12 +1613,16 @@ async def audio_transcriptions(
             "timestamps": timestamps,
         },
     )
+    asyncio.create_task(_usage.record_cap(worker.label, "stt"))
+    return resp
 
 
 @app.post("/v1/images/generations", tags=["Images"])
 async def images_generations(payload: Dict[str, Any], _: str = Depends(verify_client)):
     worker = await _pick("image", payload.get("model"))
-    return await _proxy_json(worker, "/v1/images/generations", payload, stream=False)
+    resp = await _proxy_json(worker, "/v1/images/generations", payload, stream=False)
+    asyncio.create_task(_usage.record_cap(worker.label, "image"))
+    return resp
 
 
 @app.post("/v1/images/edits", tags=["Images"])
@@ -1406,18 +1642,22 @@ async def images_edits(request: Request, _: str = Depends(verify_client)):
         else:
             fields[key] = str(value)
     worker = await _pick("image", fields.get("model"))
-    return await _proxy_multipart(
+    resp = await _proxy_multipart(
         worker, "/v1/images/edits", files=files, fields=fields
     )
+    asyncio.create_task(_usage.record_cap(worker.label, "image"))
+    return resp
 
 
 @app.post("/v1/videos/generations", tags=["Videos"])
 async def videos_generations(payload: Dict[str, Any], _: str = Depends(verify_client)):
     worker = await _pick("video", payload.get("model"))
-    return await _proxy_json(
+    resp = await _proxy_json(
         worker,
         "/v1/videos/generations",
         payload,
         stream=False,
         timeout=float(getenv("REQUEST_TIMEOUT", "1800")),
     )
+    asyncio.create_task(_usage.record_cap(worker.label, "video"))
+    return resp
