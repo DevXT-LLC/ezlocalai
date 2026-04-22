@@ -519,6 +519,8 @@ class WorkerInfo:
     model_context: Dict[str, int] = field(default_factory=dict)
     # Per-model quantization (e.g. "Q4_K_XL"). Auto-reported when available.
     model_quant: Dict[str, str] = field(default_factory=dict)
+    # Capability-specific model names: {"tts": "Chatterbox TTS", "stt": "Whisper large-v3", ...}
+    cap_models: Dict[str, str] = field(default_factory=dict)
     last_heartbeat: float = field(default_factory=time.time)
     registered_at: float = field(default_factory=time.time)
     extra: Dict[str, Any] = field(default_factory=dict)
@@ -541,6 +543,7 @@ class WorkerInfo:
             "best_tier": self.best_tier,
             "model_context": dict(self.model_context),
             "model_quant": dict(self.model_quant),
+            "cap_models": dict(self.cap_models),
             "age_seconds": time.time() - self.registered_at,
             "last_heartbeat_age": time.time() - self.last_heartbeat,
             "extra": self.extra,
@@ -634,6 +637,10 @@ class WorkerRegistry:
             if "model_quant" in payload and isinstance(payload["model_quant"], dict):
                 worker.model_quant = {
                     str(k): str(v) for k, v in payload["model_quant"].items() if v
+                }
+            if "cap_models" in payload and isinstance(payload["cap_models"], dict):
+                worker.cap_models = {
+                    str(k): str(v) for k, v in payload["cap_models"].items() if v
                 }
             if "extra" in payload and isinstance(payload["extra"], dict):
                 worker.extra.update(payload["extra"])
@@ -904,6 +911,22 @@ class WorkerHeartbeatClient:
             pass
 
         gpus = detect_local_gpus()
+        # Capability-specific model names (sent to the router for display)
+        cap_models: Dict[str, str] = {}
+        for _cap in self.capabilities:
+            if _cap == "tts":
+                cap_models["tts"] = "Chatterbox TTS"
+            elif _cap == "stt":
+                _wm = (getenv("WHISPER_MODEL") or "large-v3").strip()
+                cap_models["stt"] = f"Whisper {_wm}"
+            elif _cap == "image":
+                _im = (getenv("IMG_MODEL") or "").strip()
+                if _im:
+                    cap_models["image"] = _im
+            elif _cap == "video":
+                _vm = (getenv("VIDEO_MODEL") or "").strip()
+                if _vm:
+                    cap_models["video"] = _vm
         return {
             "free_vram_gb": free_vram,
             "total_vram_gb": total_vram,
@@ -918,6 +941,7 @@ class WorkerHeartbeatClient:
             "best_tier": best_gpu_tier(gpus),
             "model_context": model_context,
             "model_quant": model_quant,
+            "cap_models": cap_models,
         }
 
     async def _post(self, path: str, payload: Dict[str, Any]) -> Tuple[bool, Any]:

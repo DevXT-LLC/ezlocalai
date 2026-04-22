@@ -250,6 +250,9 @@ async def router_register(
         model_quant={
             str(k): str(v) for k, v in (payload.get("model_quant") or {}).items() if v
         },
+        cap_models={
+            str(k): str(v) for k, v in (payload.get("cap_models") or {}).items() if v
+        },
         extra={
             k: v
             for k, v in payload.items()
@@ -273,6 +276,7 @@ async def router_register(
                 "best_tier",
                 "model_context",
                 "model_quant",
+                "cap_models",
             }
         },
     )
@@ -481,12 +485,14 @@ def _aggregate_dashboard() -> Dict[str, Any]:
             if cap not in _NON_TEXT_CAPS:
                 continue
             cap_label = _cap_label(cap)
-            # Use worker label as the display name so it's clear which machine
+            # Use the actual model name the worker reported for this capability,
+            # falling back to the capability label if not reported yet.
+            model_name = w.cap_models.get(cap) or cap_label
             key = f"{cap}::{w.label}"
             entry = model_rollup.setdefault(
                 key,
                 {
-                    "model": f"{w.label} ({cap_label})",
+                    "model": model_name,
                     "type": cap,
                     "worker_count": 0,
                     "total_capacity": 0,
@@ -571,6 +577,58 @@ async def router_dashboard_json(_: str = Depends(verify_client)):
     return _aggregate_dashboard()
 
 
+# ---------------------------------------------------------------------------
+# Dashboard visual helpers
+# ---------------------------------------------------------------------------
+
+# Per-capability CSS class names
+_CAP_PILL_CLASS: Dict[str, str] = {
+    "text": "cap-text",
+    "vision": "cap-vision",
+    "image": "cap-image",
+    "tts": "cap-tts",
+    "stt": "cap-stt",
+    "video": "cap-video",
+    "embedding": "cap-embedding",
+}
+
+
+def _cap_pill(cap: str) -> str:
+    """Colored pill span for a capability."""
+    cls = _CAP_PILL_CLASS.get(cap, "")
+    return f'<span class="pill {cls}">{_cap_label(cap)}</span>'
+
+
+def _tier_badge(tier: int) -> str:
+    """Color-coded tier indicator."""
+    if tier >= 80:
+        cls, star = "tier-gold", "⭐ "
+    elif tier >= 50:
+        cls, star = "tier-blue", ""
+    elif tier >= 20:
+        cls, star = "tier-green", ""
+    elif tier >= 5:
+        cls, star = "tier-warn", ""
+    else:
+        cls, star = "tier-muted", ""
+    return f'<span class="{cls}">{star}tier {tier}</span>'
+
+
+def _usage_bar(used_pct: float, width: str = "100%") -> str:
+    """Mini horizontal usage bar. used_pct 0-100."""
+    if used_pct >= 85:
+        fill_cls = "crit"
+    elif used_pct >= 60:
+        fill_cls = "warn"
+    else:
+        fill_cls = "good"
+    return (
+        f'<div class="usage-bar" style="width:{width}">'
+        f'<div class="usage-fill {fill_cls}" style="width:{used_pct:.0f}%"></div>'
+        f"</div>"
+    )
+
+
 def _render_dashboard_html(data: Dict[str, Any]) -> str:
     totals = data["totals"]
     router_meta = data["router"]
@@ -580,11 +638,12 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
         "".join(
             f"""
         <div class="card cap">
-          <div class="cap-name">{_cap_label(c['capability'])}</div>
+          <div class="cap-header">{_cap_pill(c['capability'])}</div>
           <div class="cap-stats">
-            <span><b>{c['worker_count']}</b> workers</span>
+            <span><b>{c['worker_count']}</b> worker{'s' if c['worker_count'] != 1 else ''}</span>
             <span><b>{c['available_slots']}</b>/{c['total_capacity']} slots free</span>
           </div>
+          {_usage_bar(100 * (1 - c['available_slots'] / max(c['total_capacity'], 1)), '100%')}
         </div>
         """
             for c in data["capabilities"]
@@ -655,14 +714,25 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
             )
             or "CPU"
         )
-        # VRAM cell: show vram/total if available, else free RAM
+        # VRAM / RAM cell with usage bar
         free_vram = float(w.get("free_vram_gb") or 0)
         total_vram = float(w.get("total_vram_gb") or 0)
         free_ram = float(w.get("free_ram_gb") or 0)
+        total_ram = float(w.get("total_ram_gb") or 0)
         if total_vram > 0:
-            mem_cell = f"{free_vram:.1f}/{total_vram:.0f} GB VRAM"
+            used_pct = max(0.0, min(100.0, (1 - free_vram / total_vram) * 100))
+            mem_cell = (
+                f"{free_vram:.1f}/{total_vram:.0f} GB VRAM"
+                f"{_usage_bar(used_pct, '80px')}"
+            )
+        elif total_ram > 0:
+            used_pct = max(0.0, min(100.0, (1 - free_ram / total_ram) * 100))
+            mem_cell = (
+                f"{free_ram:.1f}/{total_ram:.0f} GB RAM"
+                f"{_usage_bar(used_pct, '80px')}"
+            )
         else:
-            mem_cell = f"{free_ram:.1f} GB RAM free"
+            mem_cell = f"{free_ram:.1f} GB RAM free" if free_ram else "—"
         mq = w.get("model_quant") or {}
         mc = w.get("model_context") or {}
 
@@ -682,15 +752,16 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
         bar = f'<div class="bar"><div class="bar-fill" style="width:{slot_pct:.0f}%"></div></div>'
         last_hb = w.get("last_heartbeat_age", 0)
         status = "🔴 stale" if stale else ("🟢 ready" if slots_left > 0 else "🟡 full")
+        cap_pills = " ".join(_cap_pill(c) for c in (w.get("capabilities") or [])) or "—"
         return f"""
         <tr class="{'stale' if stale else ''}">
           <td><b>{w['label']}</b><div class="muted small">{w['worker_id']}</div></td>
           <td>{status}</td>
           <td class="mono small">{w['url']}</td>
-          <td>{gpus}<div class="muted small">tier {w.get('best_tier', 0)}</div></td>
+          <td>{gpus}<div class="muted small">{_tier_badge(w.get('best_tier', 0))}</div></td>
           <td class="num small">{mem_cell}</td>
           <td>{slots_left}/{slots_total} {bar}<div class="muted small">{w.get('in_flight', 0)} in flight</div></td>
-          <td class="small">{', '.join(_cap_label(c) for c in (w.get('capabilities') or [])) or '—'}</td>
+          <td class="small">{cap_pills}</td>
           <td class="small mono">{models}</td>
           <td class="num small">{last_hb:.0f}s</td>
         </tr>
@@ -710,6 +781,7 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
   :root {{
     --bg: #0f1419; --fg: #e6edf3; --muted: #8b949e; --card: #161b22;
     --border: #30363d; --accent: #58a6ff; --warn: #f0883e; --ok: #3fb950;
+    --crit: #f85149;
   }}
   * {{ box-sizing: border-box; }}
   body {{ background: var(--bg); color: var(--fg); font: 14px/1.45 -apple-system,
@@ -724,32 +796,61 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
   code {{ background: rgba(110,118,129,0.2); padding: 1px 6px; border-radius: 4px; }}
   .banner {{ padding: 10px 14px; border-radius: 6px; margin-bottom: 16px; }}
   .banner.warn {{ background: rgba(240,136,62,0.15); border: 1px solid var(--warn); }}
-  .grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(180px,1fr));
-           gap: 12px; }}
+  /* Layout */
+  .grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(180px,1fr)); gap: 12px; }}
   .card {{ background: var(--card); border: 1px solid var(--border);
            border-radius: 8px; padding: 14px 16px; }}
+  /* Stat cards */
   .stat .label {{ color: var(--muted); font-size: 11px; text-transform: uppercase;
                   letter-spacing: 0.05em; }}
-  .stat .value {{ font-size: 24px; font-weight: 600; margin-top: 4px; }}
+  .stat .value {{ font-size: 28px; font-weight: 700; margin-top: 4px;
+                  background: linear-gradient(135deg, var(--fg), var(--accent));
+                  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+                  background-clip: text; }}
   .stat .sub {{ color: var(--muted); font-size: 12px; margin-top: 2px; }}
-  .cap .cap-name {{ font-weight: 600; }}
+  /* Capability cards */
+  .cap .cap-header {{ margin-bottom: 8px; }}
   .cap .cap-stats {{ display: flex; gap: 14px; margin-top: 6px;
                      color: var(--muted); font-size: 12px; }}
+  /* Tables */
   table {{ width: 100%; border-collapse: collapse; background: var(--card);
            border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }}
   th, td {{ padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--border); }}
   th {{ background: rgba(110,118,129,0.1); font-size: 11px; text-transform: uppercase;
         letter-spacing: 0.05em; color: var(--muted); }}
   tr:last-child td {{ border-bottom: none; }}
-  tr.stale {{ opacity: 0.55; }}
+  tr.stale {{ opacity: 0.5; }}
+  tr:not(.stale):hover {{ background: rgba(88,166,255,0.04); }}
   td.num, th.num {{ text-align: right; font-variant-numeric: tabular-nums; }}
-  .pill {{ display: inline-block; padding: 2px 8px; margin: 2px;
-           border-radius: 999px; background: rgba(88,166,255,0.15);
-           border: 1px solid rgba(88,166,255,0.4); font-size: 11px; }}
+  /* Capability pills */
+  .pill {{ display: inline-block; padding: 2px 9px; margin: 2px;
+           border-radius: 999px; font-size: 11px; border: 1px solid; }}
+  .cap-text    {{ background: rgba(88,166,255,0.15);  border-color: rgba(88,166,255,0.45); }}
+  .cap-vision  {{ background: rgba(160,110,255,0.15); border-color: rgba(160,110,255,0.45); }}
+  .cap-image   {{ background: rgba(240,136,62,0.15);  border-color: rgba(240,136,62,0.45); }}
+  .cap-tts     {{ background: rgba(63,185,80,0.15);   border-color: rgba(63,185,80,0.45); }}
+  .cap-stt     {{ background: rgba(50,200,180,0.15);  border-color: rgba(50,200,180,0.45); }}
+  .cap-video   {{ background: rgba(245,80,80,0.15);   border-color: rgba(245,80,80,0.45); }}
+  .cap-embedding {{ background: rgba(130,130,130,0.15); border-color: rgba(130,130,130,0.45); }}
+  /* Tier badges */
+  .tier-gold  {{ color: #ffd700; font-weight: 600; }}
+  .tier-blue  {{ color: #58a6ff; }}
+  .tier-green {{ color: #3fb950; }}
+  .tier-warn  {{ color: #f0883e; }}
+  .tier-muted {{ color: #8b949e; }}
+  /* Usage / slot bars */
   .bar {{ display: inline-block; width: 80px; height: 6px; margin-left: 6px;
           background: rgba(110,118,129,0.25); border-radius: 3px;
           vertical-align: middle; overflow: hidden; }}
   .bar-fill {{ height: 100%; background: linear-gradient(90deg, var(--ok), var(--warn)); }}
+  .usage-bar {{ width: 100%; height: 4px; background: rgba(110,118,129,0.2);
+                border-radius: 2px; margin-top: 8px; overflow: hidden;
+                display: block; }}
+  .usage-fill {{ height: 100%; border-radius: 2px; transition: width 0.3s; }}
+  .usage-fill.good {{ background: var(--ok); }}
+  .usage-fill.warn {{ background: var(--warn); }}
+  .usage-fill.crit {{ background: var(--crit); }}
+  /* Header */
   .header {{ display: flex; justify-content: space-between; align-items: baseline;
              flex-wrap: wrap; gap: 12px; }}
   .header .meta {{ color: var(--muted); font-size: 12px; }}
@@ -764,7 +865,7 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
     </div>
   </div>
 
-  <div class="grid">
+    <div class="grid">
     <div class="card stat"><div class="label">Workers</div>
       <div class="value">{totals['alive_workers']}</div>
       <div class="sub">{totals['stale_workers']} stale</div></div>
@@ -774,8 +875,10 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
     <div class="card stat"><div class="label">In flight</div>
       <div class="value">{totals['total_in_flight']}</div>
       <div class="sub">{totals['total_queue_depth']} queued</div></div>
-    <div class="card stat"><div class="label">Free VRAM</div>
+    <div class="card stat">
+      <div class="label">Free VRAM</div>
       <div class="value">{totals['total_free_vram_gb']:.0f} GB</div>
+      {_usage_bar(100 * (1 - totals['total_free_vram_gb'] / max(totals['total_vram_gb'], 0.1)))}
       <div class="sub">of {totals['total_vram_gb']:.0f} GB total</div></div>
     <div class="card stat"><div class="label">Unique models</div>
       <div class="value">{totals['unique_models']}</div>
