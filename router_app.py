@@ -491,7 +491,9 @@ def _aggregate_dashboard() -> Dict[str, Any]:
             # Use the actual model name the worker reported for this capability,
             # falling back to the capability label if not reported yet.
             model_name = w.cap_models.get(cap) or cap_label
-            key = f"{cap}::{w.label}"
+            # Key by cap+model_name so multiple workers running the same
+            # model (e.g. two nodes both serving Chatterbox TTS) share one row.
+            key = f"{cap}::{model_name}"
             entry = model_rollup.setdefault(
                 key,
                 {
@@ -499,7 +501,7 @@ def _aggregate_dashboard() -> Dict[str, Any]:
                     "type": cap,
                     "worker_count": 0,
                     "total_capacity": 0,
-                    "available_slots": _cap_capacity(cap, w.queue_capacity),
+                    "available_slots": 0,
                     "max_context": 0,
                     "best_tier": 0,
                     "workers": [],
@@ -508,6 +510,7 @@ def _aggregate_dashboard() -> Dict[str, Any]:
             )
             entry["worker_count"] += 1
             entry["total_capacity"] += _cap_capacity(cap, w.queue_capacity)
+            entry["available_slots"] += _cap_capacity(cap, w.queue_capacity)
             if w.best_tier > entry["best_tier"]:
                 entry["best_tier"] = w.best_tier
             entry["workers"].append(
@@ -603,10 +606,20 @@ def _aggregate_dashboard() -> Dict[str, Any]:
                 {**m, "quants": sorted(m.get("quants", set()))}
                 for m in model_rollup.values()
             ],
-            key=lambda x: (-x["best_tier"], x["model"]),
+            key=lambda x: (
+                # Text/vision models first, then non-text by cap type, then alpha by name
+                0 if x["type"] in ("text", "text+vision", "vision", "embedding") else 1,
+                x.get("type", ""),
+                x["model"].lower(),
+            ),
         ),
-        "workers": [w.to_public() for w in alive]
-        + [{**w.to_public(), "stale": True} for w in stale],
+        "workers": sorted(
+            [w.to_public() for w in alive], key=lambda x: -x.get("best_tier", 0)
+        )
+        + sorted(
+            [{**w.to_public(), "stale": True} for w in stale],
+            key=lambda x: -x.get("best_tier", 0),
+        ),
     }
 
 
