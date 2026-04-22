@@ -575,8 +575,9 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
                     f" ({g.get('total_vram_gb', 0):.0f}GB VRAM)"
                     if g.get("total_vram_gb")
                     else (
-                        f" ({w.get('total_ram_gb', 0):.0f}GB RAM)"
-                        if g.get("backend") == "cpu" and w.get("total_ram_gb")
+                        f" ({w.get('total_ram_gb') or w.get('free_ram_gb') or 0:.0f}GB RAM)"
+                        if g.get("backend") == "cpu"
+                        and (w.get("total_ram_gb") or w.get("free_ram_gb"))
                         else ""
                     )
                 )

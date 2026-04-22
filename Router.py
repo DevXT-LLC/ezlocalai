@@ -85,7 +85,36 @@ def detect_local_capabilities() -> List[str]:
     if default_model and not text_delegated:
         caps.append("text")
         lowered = default_model.lower()
-        if any(tag in lowered for tag in ("vl", "vision", "qwen3.6", "qwen3.5-vl")):
+        is_vision = any(
+            tag in lowered
+            for tag in (
+                "-vl",
+                "-vlm",
+                "vision",
+                "qwen3.6",
+                "qvq",
+                "minicpm-v",
+                "llava",
+                "bakllava",
+                "moondream",
+                "cogvlm",
+                "internvl",
+                "idefics",
+            )
+        )
+        # Definitive check: mmproj file exists on disk for this model
+        if not is_vision:
+            try:
+                model_basename = default_model.split("/")[-1].split("-GGUF")[0]
+                model_dir = os.path.join("models", model_basename)
+                if os.path.isdir(model_dir):
+                    is_vision = any(
+                        "mmproj" in f.lower() and f.endswith(".gguf")
+                        for f in os.listdir(model_dir)
+                    )
+            except Exception:
+                pass
+        if is_vision:
             caps.append("vision")
     elif text_server == "true" and "text" not in caps and default_model:
         caps.append("text")
@@ -759,7 +788,16 @@ class WorkerHeartbeatClient:
                         n_par = 1
                     if n_ctx > 0:
                         model_context[str(name)] = n_ctx // n_par
-                    # Best-effort quant extraction from gguf filename
+                    # Vision: check if mmproj is loaded on this instance
+                    try:
+                        mmproj_path = ""
+                        if xlc is not None:
+                            mmp = getattr(xlc, "mmproj", None)
+                            mmproj_path = getattr(mmp, "path", "") or ""
+                        if mmproj_path and "vision" not in self.capabilities:
+                            self.capabilities = list(self.capabilities) + ["vision"]
+                    except Exception:
+                        pass
                     try:
                         model_path = ""
                         if xlc is not None:
