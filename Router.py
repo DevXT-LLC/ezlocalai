@@ -48,8 +48,8 @@ ALL_CAPABILITIES = {"text", "vision", "voice", "image", "video", "embedding"}
 def detect_local_capabilities() -> List[str]:
     """Best-effort guess at what this ezlocalai instance can serve.
 
-    Reads the same env vars the rest of the app uses so a worker can advertise
-    itself accurately without manual configuration.
+    Reads the same env vars the rest of the app uses so a worker advertises
+    itself accurately based on its existing config (no extra env required).
     """
     caps: List[str] = []
     default_model = (getenv("DEFAULT_MODEL") or "").strip()
@@ -63,7 +63,7 @@ def detect_local_capabilities() -> List[str]:
 
     # Text/vision: any server that loads an LLM (and isn't dedicated to
     # voice/image only) can answer text. Vision is detected from common model
-    # name hints — workers can override via WORKER_CAPABILITIES.
+    # name hints.
     is_dedicated_voice = voice_server == "true"
     is_dedicated_image = image_server == "true"
     if default_model and not (is_dedicated_voice or is_dedicated_image):
@@ -97,15 +97,6 @@ def detect_local_capabilities() -> List[str]:
             seen.add(c)
             deduped.append(c)
     return deduped
-
-
-def parse_capabilities(value: str) -> List[str]:
-    """Parse WORKER_CAPABILITIES env var into a clean list."""
-    value = (value or "").strip()
-    if not value or value.lower() == "auto":
-        return detect_local_capabilities()
-    parts = [p.strip().lower() for p in value.split(",") if p.strip()]
-    return [p for p in parts if p in ALL_CAPABILITIES]
 
 
 # ---------------------------------------------------------------------------
@@ -709,16 +700,15 @@ def get_heartbeat_client() -> Optional[WorkerHeartbeatClient]:
     if is_router_mode():
         # A router does not register with itself
         return None
-    worker_url = (getenv("WORKER_PUBLIC_URL") or "").strip() or (
-        getenv("EZLOCALAI_URL") or ""
-    ).strip()
-    # If still empty, leave it empty so the router substitutes the connection's
-    # source IP (works automatically for LAN workers behind no NAT).
+    # Use EZLOCALAI_URL as the worker's public callback URL. If unset or
+    # loopback, the router substitutes the connection source IP automatically
+    # (works for any LAN worker behind no NAT).
+    worker_url = (getenv("EZLOCALAI_URL") or "").strip()
     api_key = (getenv("ROUTER_API_KEY") or "").strip() or (
         getenv("EZLOCALAI_API_KEY") or ""
     )
     label = (getenv("WORKER_LABEL") or "").strip() or socket.gethostname()
-    capabilities = parse_capabilities(getenv("WORKER_CAPABILITIES", "auto"))
+    capabilities = detect_local_capabilities()
     interval = float(getenv("WORKER_HEARTBEAT_INTERVAL", "10"))
     _heartbeat_client = WorkerHeartbeatClient(
         router_url=router_url,

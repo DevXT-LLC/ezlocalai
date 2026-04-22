@@ -231,7 +231,7 @@ The router listens on port `8092` by default and exposes the same OpenAI-compati
 
 ### Point a worker at the router
 
-For most setups, **`ROUTER_URL` is the only env var you need to add** to a worker. The worker self-reports its capabilities, GPUs (model names + VRAM), loaded models, and per-model context windows. The router infers the callback URL from the registration's source IP, so LAN workers don't need `WORKER_PUBLIC_URL`.
+For most setups, **`ROUTER_URL` is the only env var you need to add** to a worker. The worker self-reports its capabilities, GPUs (model names + VRAM), loaded models, and per-model context windows. The router uses the worker's existing `EZLOCALAI_URL` as the callback address, falling back to the connection source IP when that isn't reachable from the router.
 
 Minimum config:
 
@@ -244,16 +244,14 @@ Optional overrides:
 ```bash
 ROUTER_API_KEY=shared-key             # match the router's EZLOCALAI_API_KEY (or ROUTER_REGISTER_KEY)
 WORKER_LABEL=main-5090                # friendly name (defaults to hostname)
-WORKER_CAPABILITIES=auto              # override auto-detect: e.g. "text,vision" / "voice"
-WORKER_PUBLIC_URL=https://gpu1.you.com:8091  # required only when behind NAT/Cloudflare/ngrok
 WORKER_HEARTBEAT_INTERVAL=10          # seconds between heartbeats
 ```
 
-> **Behind NAT or a tunnel?** Set `WORKER_PUBLIC_URL` so the router calls back on the public address. Otherwise the router will use the source IP it sees on the registration, which is what you want for LAN workers.
+> **Behind NAT or a tunnel?** Set `EZLOCALAI_URL` to the public callback address (this is the same env var the worker already uses to advertise itself). Otherwise the router uses the source IP it sees on the registration, which is what you want for LAN workers.
 
 ### Example: your current setup
 
-With auto-detection, every worker just needs `ROUTER_URL` (and optionally `WORKER_LABEL`):
+Every worker just needs `ROUTER_URL` (and optionally `WORKER_LABEL`):
 
 | Machine               | Address              | Role                          | Env additions                                                                |
 |-----------------------|----------------------|-------------------------------|------------------------------------------------------------------------------|
@@ -261,7 +259,7 @@ With auto-detection, every worker just needs `ROUTER_URL` (and optionally `WORKE
 | Fallback GPU (4090)   | `192.168.1.243:8091` | text/vision (Qwen3.6-35B-A3B) | `ROUTER_URL=...` `WORKER_LABEL=fallback-4090`                                |
 | Voice server          | `192.168.1.82:8091`  | TTS/STT/wake word             | `ROUTER_URL=...` `WORKER_LABEL=voice`                                        |
 | Small + image         | `192.168.1.214:8091` | small text + image gen        | `ROUTER_URL=...` `WORKER_LABEL=img-small`                                    |
-| Friend's 3090         | external             | text/vision                   | `ROUTER_URL=https://router.you.com:8092` `WORKER_PUBLIC_URL=https://gpu.friend.com:8091` |
+| Friend's 3090         | external             | text/vision                   | `ROUTER_URL=https://router.you.com:8092` (set `EZLOCALAI_URL=https://gpu.friend.com:8091` so the router can reach back) |
 
 Clients then point to the router as if it were a single ezlocalai server:
 
