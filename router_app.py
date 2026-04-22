@@ -53,7 +53,7 @@ from fastapi import (
     UploadFile,
 )
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse, Response, StreamingResponse
+from fastapi.responses import HTMLResponse, JSONResponse, Response, StreamingResponse
 
 from Globals import getenv
 from Router import (
@@ -329,6 +329,333 @@ async def router_health():
 @app.get("/health", tags=["System"])
 async def health():
     return {"status": "healthy"}
+
+
+# ---------------------------------------------------------------------------
+# Dashboard
+# ---------------------------------------------------------------------------
+
+
+def _aggregate_dashboard() -> Dict[str, Any]:
+    """Build a JSON-serialisable summary of the entire pool."""
+    registry = get_registry()
+    alive = registry.list_workers(alive_only=True)
+    stale = [w for w in registry.list_workers(alive_only=False) if w not in alive]
+
+    total_capacity = sum(max(1, w.queue_capacity) for w in alive)
+    total_in_flight = sum(max(0, w.in_flight) for w in alive)
+    total_queue_depth = sum(max(0, w.queue_depth) for w in alive)
+    total_slots_left = sum(max(0, w.queue_capacity - w.queue_depth) for w in alive)
+    total_free_vram = sum(w.free_vram_gb for w in alive)
+    total_vram = sum(w.total_vram_gb for w in alive)
+
+    # Per-model rollup: which workers serve it, total parallel slots, max ctx
+    model_rollup: Dict[str, Dict[str, Any]] = {}
+    for w in alive:
+        slots_left = max(0, w.queue_capacity - w.queue_depth)
+        for model in w.models:
+            entry = model_rollup.setdefault(
+                model,
+                {
+                    "model": model,
+                    "worker_count": 0,
+                    "total_capacity": 0,
+                    "available_slots": 0,
+                    "max_context": 0,
+                    "best_tier": 0,
+                    "workers": [],
+                },
+            )
+            entry["worker_count"] += 1
+            entry["total_capacity"] += max(1, w.queue_capacity)
+            entry["available_slots"] += slots_left
+            ctx = int(w.model_context.get(model, 0) or 0)
+            if ctx > entry["max_context"]:
+                entry["max_context"] = ctx
+            if w.best_tier > entry["best_tier"]:
+                entry["best_tier"] = w.best_tier
+            entry["workers"].append(
+                {
+                    "label": w.label,
+                    "worker_id": w.worker_id,
+                    "best_tier": w.best_tier,
+                    "context": ctx,
+                    "slots_left": slots_left,
+                    "queue_capacity": w.queue_capacity,
+                }
+            )
+
+    # Per-capability rollup
+    cap_rollup: Dict[str, Dict[str, Any]] = {}
+    for w in alive:
+        slots_left = max(0, w.queue_capacity - w.queue_depth)
+        for cap in w.capabilities:
+            entry = cap_rollup.setdefault(
+                cap,
+                {
+                    "capability": cap,
+                    "worker_count": 0,
+                    "total_capacity": 0,
+                    "available_slots": 0,
+                },
+            )
+            entry["worker_count"] += 1
+            entry["total_capacity"] += max(1, w.queue_capacity)
+            entry["available_slots"] += slots_left
+
+    return {
+        "generated_at": time.time(),
+        "router": {
+            "register_key_set": bool(_expected_register_key()),
+            "client_key_set": bool(_expected_client_key()),
+            "open_pool": not _expected_register_key(),
+            "ttl_seconds": registry.ttl,
+            "wait_timeout": _wait_timeout(),
+        },
+        "totals": {
+            "alive_workers": len(alive),
+            "stale_workers": len(stale),
+            "total_parallel_capacity": total_capacity,
+            "total_in_flight": total_in_flight,
+            "total_queue_depth": total_queue_depth,
+            "total_available_slots": total_slots_left,
+            "total_free_vram_gb": round(total_free_vram, 2),
+            "total_vram_gb": round(total_vram, 2),
+            "unique_models": len(model_rollup),
+        },
+        "capabilities": sorted(cap_rollup.values(), key=lambda x: x["capability"]),
+        "models": sorted(
+            model_rollup.values(),
+            key=lambda x: (-x["best_tier"], x["model"]),
+        ),
+        "workers": [w.to_public() for w in alive]
+        + [{**w.to_public(), "stale": True} for w in stale],
+    }
+
+
+@app.get("/v1/router/dashboard", tags=["Router"])
+async def router_dashboard_json(_: str = Depends(verify_client)):
+    """JSON form of the dashboard data."""
+    return _aggregate_dashboard()
+
+
+def _render_dashboard_html(data: Dict[str, Any]) -> str:
+    totals = data["totals"]
+    router_meta = data["router"]
+    open_pool_banner = (
+        '<div class="banner warn">⚠ OPEN POOL — anyone reachable can register '
+        "as a worker. Set <code>ROUTER_REGISTER_KEY</code> for production.</div>"
+        if router_meta["open_pool"]
+        else ""
+    )
+
+    # Capability cards
+    cap_cards = (
+        "".join(
+            f"""
+        <div class="card cap">
+          <div class="cap-name">{c['capability']}</div>
+          <div class="cap-stats">
+            <span><b>{c['worker_count']}</b> workers</span>
+            <span><b>{c['available_slots']}</b>/{c['total_capacity']} slots free</span>
+          </div>
+        </div>
+        """
+            for c in data["capabilities"]
+        )
+        or '<div class="muted">No capabilities advertised yet.</div>'
+    )
+
+    # Model rows
+    def _model_row(m: Dict[str, Any]) -> str:
+        worker_pills = "".join(
+            f'<span class="pill" title="tier {w["best_tier"]} · {w["slots_left"]}/{w["queue_capacity"]} slots free · ctx {w["context"] or "?"}">'
+            f'{w["label"]}</span>'
+            for w in m["workers"]
+        )
+        ctx = f"{m['max_context']:,}" if m["max_context"] else "?"
+        return f"""
+        <tr>
+          <td class="mono">{m['model']}</td>
+          <td class="num">{m['worker_count']}</td>
+          <td class="num">{m['total_capacity']}</td>
+          <td class="num">{m['available_slots']}</td>
+          <td class="num">{ctx}</td>
+          <td class="num">{m['best_tier']}</td>
+          <td>{worker_pills}</td>
+        </tr>
+        """
+
+    model_rows = "".join(_model_row(m) for m in data["models"]) or (
+        '<tr><td colspan="7" class="muted">No models loaded across the pool.</td></tr>'
+    )
+
+    # Worker rows
+    def _worker_row(w: Dict[str, Any]) -> str:
+        stale = w.get("stale")
+        gpus = (
+            ", ".join(
+                f"{g.get('name', '?')} ({g.get('total_vram_gb', 0):.0f}GB)"
+                for g in w.get("gpus", [])
+            )
+            or "—"
+        )
+        models = ", ".join(w.get("models") or []) or "—"
+        slots_left = max(
+            0, int(w.get("queue_capacity", 1)) - int(w.get("queue_depth", 0))
+        )
+        slots_total = int(w.get("queue_capacity", 1))
+        slot_pct = 0 if slots_total == 0 else (1 - slots_left / slots_total) * 100
+        bar = f'<div class="bar"><div class="bar-fill" style="width:{slot_pct:.0f}%"></div></div>'
+        ctx_summary = (
+            ", ".join(
+                f"{name}={ctx:,}"
+                for name, ctx in (w.get("model_context") or {}).items()
+            )
+            or "—"
+        )
+        last_hb = w.get("last_heartbeat_age", 0)
+        status = "🔴 stale" if stale else ("🟢 ready" if slots_left > 0 else "🟡 full")
+        return f"""
+        <tr class="{'stale' if stale else ''}">
+          <td><b>{w['label']}</b><div class="muted small">{w['worker_id']}</div></td>
+          <td>{status}</td>
+          <td class="mono small">{w['url']}</td>
+          <td>{gpus}<div class="muted small">tier {w.get('best_tier', 0)}</div></td>
+          <td class="num">{w.get('free_vram_gb', 0):.1f}/{w.get('total_vram_gb', 0):.0f} GB</td>
+          <td>{slots_left}/{slots_total} {bar}<div class="muted small">{w.get('in_flight', 0)} in flight</div></td>
+          <td class="small">{', '.join(w.get('capabilities') or []) or '—'}</td>
+          <td class="small mono">{models}</td>
+          <td class="small mono">{ctx_summary}</td>
+          <td class="num small">{last_hb:.0f}s</td>
+        </tr>
+        """
+
+    worker_rows = "".join(_worker_row(w) for w in data["workers"]) or (
+        '<tr><td colspan="10" class="muted">No workers registered.</td></tr>'
+    )
+
+    return f"""<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>ezlocalai Router</title>
+<meta http-equiv="refresh" content="5" />
+<style>
+  :root {{
+    --bg: #0f1419; --fg: #e6edf3; --muted: #8b949e; --card: #161b22;
+    --border: #30363d; --accent: #58a6ff; --warn: #f0883e; --ok: #3fb950;
+  }}
+  * {{ box-sizing: border-box; }}
+  body {{ background: var(--bg); color: var(--fg); font: 14px/1.45 -apple-system,
+         BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; margin: 0;
+         padding: 24px; }}
+  h1 {{ margin: 0 0 4px; font-size: 22px; }}
+  h2 {{ margin: 32px 0 12px; font-size: 16px; color: var(--muted);
+        text-transform: uppercase; letter-spacing: 0.05em; }}
+  .muted {{ color: var(--muted); }}
+  .small {{ font-size: 12px; }}
+  .mono {{ font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }}
+  code {{ background: rgba(110,118,129,0.2); padding: 1px 6px; border-radius: 4px; }}
+  .banner {{ padding: 10px 14px; border-radius: 6px; margin-bottom: 16px; }}
+  .banner.warn {{ background: rgba(240,136,62,0.15); border: 1px solid var(--warn); }}
+  .grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(180px,1fr));
+           gap: 12px; }}
+  .card {{ background: var(--card); border: 1px solid var(--border);
+           border-radius: 8px; padding: 14px 16px; }}
+  .stat .label {{ color: var(--muted); font-size: 11px; text-transform: uppercase;
+                  letter-spacing: 0.05em; }}
+  .stat .value {{ font-size: 24px; font-weight: 600; margin-top: 4px; }}
+  .stat .sub {{ color: var(--muted); font-size: 12px; margin-top: 2px; }}
+  .cap .cap-name {{ font-weight: 600; text-transform: capitalize; }}
+  .cap .cap-stats {{ display: flex; gap: 14px; margin-top: 6px;
+                     color: var(--muted); font-size: 12px; }}
+  table {{ width: 100%; border-collapse: collapse; background: var(--card);
+           border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }}
+  th, td {{ padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--border); }}
+  th {{ background: rgba(110,118,129,0.1); font-size: 11px; text-transform: uppercase;
+        letter-spacing: 0.05em; color: var(--muted); }}
+  tr:last-child td {{ border-bottom: none; }}
+  tr.stale {{ opacity: 0.55; }}
+  td.num, th.num {{ text-align: right; font-variant-numeric: tabular-nums; }}
+  .pill {{ display: inline-block; padding: 2px 8px; margin: 2px;
+           border-radius: 999px; background: rgba(88,166,255,0.15);
+           border: 1px solid rgba(88,166,255,0.4); font-size: 11px; }}
+  .bar {{ display: inline-block; width: 80px; height: 6px; margin-left: 6px;
+          background: rgba(110,118,129,0.25); border-radius: 3px;
+          vertical-align: middle; overflow: hidden; }}
+  .bar-fill {{ height: 100%; background: linear-gradient(90deg, var(--ok), var(--warn)); }}
+  .header {{ display: flex; justify-content: space-between; align-items: baseline;
+             flex-wrap: wrap; gap: 12px; }}
+  .header .meta {{ color: var(--muted); font-size: 12px; }}
+</style>
+</head>
+<body>
+  <div class="header">
+    <div>
+      <h1>ezlocalai router</h1>
+      <div class="meta">TTL {router_meta['ttl_seconds']:.0f}s · wait timeout {router_meta['wait_timeout']:.0f}s
+      · auto-refresh 5s</div>
+    </div>
+    <div class="meta">register key: {'set' if router_meta['register_key_set'] else 'unset'}
+      · client key: {'set' if router_meta['client_key_set'] else 'unset'}</div>
+  </div>
+
+  {open_pool_banner}
+
+  <div class="grid">
+    <div class="card stat"><div class="label">Workers</div>
+      <div class="value">{totals['alive_workers']}</div>
+      <div class="sub">{totals['stale_workers']} stale</div></div>
+    <div class="card stat"><div class="label">Parallel capacity</div>
+      <div class="value">{totals['total_parallel_capacity']}</div>
+      <div class="sub">{totals['total_available_slots']} slots free now</div></div>
+    <div class="card stat"><div class="label">In flight</div>
+      <div class="value">{totals['total_in_flight']}</div>
+      <div class="sub">{totals['total_queue_depth']} queued</div></div>
+    <div class="card stat"><div class="label">Free VRAM</div>
+      <div class="value">{totals['total_free_vram_gb']:.0f} GB</div>
+      <div class="sub">of {totals['total_vram_gb']:.0f} GB total</div></div>
+    <div class="card stat"><div class="label">Unique models</div>
+      <div class="value">{totals['unique_models']}</div>
+      <div class="sub">across the pool</div></div>
+  </div>
+
+  <h2>Capabilities</h2>
+  <div class="grid">{cap_cards}</div>
+
+  <h2>Models</h2>
+  <table>
+    <thead><tr>
+      <th>Model</th><th class="num">Workers</th><th class="num">Total parallel</th>
+      <th class="num">Available now</th><th class="num">Max context</th>
+      <th class="num">Best tier</th><th>Hosted by</th>
+    </tr></thead>
+    <tbody>{model_rows}</tbody>
+  </table>
+
+  <h2>Workers</h2>
+  <table>
+    <thead><tr>
+      <th>Label</th><th>Status</th><th>URL</th><th>GPUs</th>
+      <th>Free VRAM</th><th>Slots free</th><th>Capabilities</th>
+      <th>Models</th><th>Context (per model)</th><th class="num">Last hb</th>
+    </tr></thead>
+    <tbody>{worker_rows}</tbody>
+  </table>
+</body>
+</html>"""
+
+
+@app.get("/dashboard", tags=["Router"], response_class=HTMLResponse)
+async def router_dashboard():
+    """Human-friendly HTML dashboard. Auto-refreshes every 5 seconds.
+
+    Intentionally unauthenticated so the router operator can drop it on a
+    private network without juggling browser auth — gate it at the reverse
+    proxy layer if you expose the router publicly.
+    """
+    return HTMLResponse(_render_dashboard_html(_aggregate_dashboard()))
 
 
 # ---------------------------------------------------------------------------

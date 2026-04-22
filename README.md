@@ -223,6 +223,8 @@ docker compose -f docker-compose-router.yml up -d
 
 The router listens on port `8092` by default and exposes the same OpenAI-compatible endpoints as a normal ezlocalai server, plus:
 
+- `GET  /dashboard`         — live HTML dashboard (auto-refresh, no auth)
+- `GET  /v1/router/dashboard` — same data as JSON (requires client key)
 - `GET  /v1/router/workers` — list registered workers and their live state
 - `GET  /v1/router/health`  — router health + live worker count
 - `POST /v1/router/register` / `heartbeat` / `deregister` — worker protocol
