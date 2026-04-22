@@ -39,6 +39,7 @@ import asyncio
 import json
 import logging
 import os
+import re
 import time
 from datetime import datetime
 from typing import Any, Dict, List, Optional
@@ -58,6 +59,7 @@ from fastapi import (
 )
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse, Response, StreamingResponse
+from fastapi.staticfiles import StaticFiles
 
 from Globals import getenv
 from Router import (
@@ -91,6 +93,14 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Persisted asset storage — the router downloads any image/video/audio file
+# referenced in a worker response into this directory and serves it back
+# under /outputs/<filename> so clients have a stable URL even when the
+# originating worker is on a private network or behind a tunnel.
+_OUTPUTS_DIR = os.path.abspath(os.environ.get("ROUTER_OUTPUTS_DIR", "outputs"))
+os.makedirs(_OUTPUTS_DIR, exist_ok=True)
+app.mount("/outputs", StaticFiles(directory=_OUTPUTS_DIR), name="outputs")
 
 
 # ---------------------------------------------------------------------------
@@ -1778,6 +1788,138 @@ async def _proxy_get(worker: WorkerInfo, path: str) -> Response:
         raise
 
 
+# Matches absolute URLs that point at a worker's /outputs/<file> static mount.
+# Filenames are restricted to a safe character set to prevent path traversal
+# when we save them locally.
+_ASSET_URL_RE = re.compile(
+    r'(https?://[^\s"\'<>]+?/outputs/[A-Za-z0-9._/-]+)',
+    re.IGNORECASE,
+)
+
+
+def _safe_outputs_path(rel_path: str) -> Optional[str]:
+    """Resolve ``outputs/<rel>`` and reject anything escaping the outputs dir."""
+    rel_path = rel_path.lstrip("/")
+    if not rel_path.startswith("outputs/"):
+        return None
+    target = os.path.abspath(os.path.join(_OUTPUTS_DIR, rel_path[len("outputs/") :]))
+    if not target.startswith(_OUTPUTS_DIR + os.sep) and target != _OUTPUTS_DIR:
+        return None
+    return target
+
+
+async def _fetch_asset(worker: WorkerInfo, path: str) -> Optional[bytes]:
+    """Download a single asset from a worker (tunnel or direct). Returns
+    ``None`` on any error so the caller can fall back to the original URL."""
+    headers = _worker_headers(worker)
+    try:
+        if is_tunnel_url(worker.url):
+            resp = await _proxy_via_tunnel(
+                worker,
+                "GET",
+                path,
+                headers=headers,
+                body=None,
+                stream=False,
+                timeout=120,
+            )
+            status = getattr(resp, "status_code", 200)
+            if status != 200:
+                logging.warning(
+                    f"[Router] Asset fetch {worker.label}{path} -> HTTP {status}"
+                )
+                return None
+            return bytes(getattr(resp, "body", b""))
+        url = f"{worker.url}{path}"
+        request_timeout = aiohttp.ClientTimeout(total=120, connect=10)
+        async with aiohttp.ClientSession(timeout=request_timeout) as session:
+            async with session.get(url, headers=headers) as resp_g:
+                if resp_g.status != 200:
+                    logging.warning(
+                        f"[Router] Asset fetch {url} -> HTTP {resp_g.status}"
+                    )
+                    return None
+                return await resp_g.read()
+    except Exception as e:
+        logging.warning(f"[Router] Asset fetch from {worker.label} failed: {e}")
+        return None
+
+
+async def _persist_response_assets(
+    worker: WorkerInfo,
+    resp: Response,
+    request: Optional[Request] = None,
+) -> Response:
+    """Scan a JSON response body for worker asset URLs (``.../outputs/<file>``),
+    download each one, save it to the router's local ``outputs/`` directory,
+    and rewrite the URL to point at the router's own ``/outputs/<file>`` mount.
+
+    Returns the (possibly modified) response. Non-JSON or empty responses
+    pass through untouched.
+    """
+    if os.environ.get("ROUTER_PERSIST_ASSETS", "true").lower() in ("0", "false", "no"):
+        return resp
+    body = getattr(resp, "body", None)
+    if not body:
+        return resp
+    try:
+        text = body.decode("utf-8")
+    except (UnicodeDecodeError, AttributeError):
+        return resp
+    if "/outputs/" not in text:
+        return resp
+    urls = list({m for m in _ASSET_URL_RE.findall(text)})
+    if not urls:
+        return resp
+
+    # Build the public base URL for rewrites — prefer the request's own
+    # base URL so links work behind reverse proxies; fall back to a
+    # configured ROUTER_PUBLIC_URL or relative paths.
+    base = ""
+    if request is not None:
+        base = str(request.base_url).rstrip("/")
+    if not base:
+        base = (os.environ.get("ROUTER_PUBLIC_URL") or "").rstrip("/")
+
+    rewrites: Dict[str, str] = {}
+    for url in urls:
+        idx = url.lower().find("/outputs/")
+        if idx < 0:
+            continue
+        worker_path = url[idx:]  # /outputs/<rest>
+        local_target = _safe_outputs_path("outputs" + worker_path[len("/outputs") :])
+        if local_target is None:
+            logging.warning(f"[Router] Refusing unsafe asset path: {url}")
+            continue
+        # If we already have it cached, just rewrite without re-downloading.
+        if not os.path.exists(local_target):
+            content = await _fetch_asset(worker, worker_path)
+            if content is None:
+                continue
+            try:
+                os.makedirs(os.path.dirname(local_target), exist_ok=True)
+                with open(local_target, "wb") as fh:
+                    fh.write(content)
+            except OSError as e:
+                logging.warning(f"[Router] Failed to write {local_target}: {e}")
+                continue
+        rewrites[url] = f"{base}{worker_path}" if base else worker_path
+
+    if not rewrites:
+        return resp
+    for old, new in rewrites.items():
+        text = text.replace(old, new)
+    new_body = text.encode("utf-8")
+    media_type = (
+        getattr(resp, "media_type", None)
+        or resp.headers.get("Content-Type")
+        or "application/json"
+    )
+    return Response(
+        content=new_body, status_code=resp.status_code, media_type=media_type
+    )
+
+
 async def _proxy_multipart(
     worker: WorkerInfo,
     path: str,
@@ -2026,11 +2168,15 @@ async def embeddings(payload: Dict[str, Any], _: str = Depends(verify_client)):
 
 
 @app.post("/v1/audio/speech", tags=["Audio"])
-async def audio_speech(payload: Dict[str, Any], _: str = Depends(verify_client)):
+async def audio_speech(
+    payload: Dict[str, Any],
+    request: Request,
+    _: str = Depends(verify_client),
+):
     worker = await _pick("tts", payload.get("model"))
     resp = await _proxy_json(worker, "/v1/audio/speech", payload, stream=False)
     await _usage.record_cap(worker.label, "tts")
-    return resp
+    return await _persist_response_assets(worker, resp, request)
 
 
 @app.post("/v1/audio/speech/stream", tags=["Audio"])
@@ -2099,11 +2245,15 @@ async def audio_transcriptions(
 
 
 @app.post("/v1/images/generations", tags=["Images"])
-async def images_generations(payload: Dict[str, Any], _: str = Depends(verify_client)):
+async def images_generations(
+    payload: Dict[str, Any],
+    request: Request,
+    _: str = Depends(verify_client),
+):
     worker = await _pick("image", payload.get("model"))
     resp = await _proxy_json(worker, "/v1/images/generations", payload, stream=False)
     await _usage.record_cap(worker.label, "image")
-    return resp
+    return await _persist_response_assets(worker, resp, request)
 
 
 @app.post("/v1/images/edits", tags=["Images"])
@@ -2127,11 +2277,15 @@ async def images_edits(request: Request, _: str = Depends(verify_client)):
         worker, "/v1/images/edits", files=files, fields=fields
     )
     await _usage.record_cap(worker.label, "image")
-    return resp
+    return await _persist_response_assets(worker, resp, request)
 
 
 @app.post("/v1/videos/generations", tags=["Videos"])
-async def videos_generations(payload: Dict[str, Any], _: str = Depends(verify_client)):
+async def videos_generations(
+    payload: Dict[str, Any],
+    request: Request,
+    _: str = Depends(verify_client),
+):
     worker = await _pick("video", payload.get("model"))
     resp = await _proxy_json(
         worker,
@@ -2141,4 +2295,4 @@ async def videos_generations(payload: Dict[str, Any], _: str = Depends(verify_cl
         timeout=float(getenv("REQUEST_TIMEOUT", "1800")),
     )
     await _usage.record_cap(worker.label, "video")
-    return resp
+    return await _persist_response_assets(worker, resp, request)
