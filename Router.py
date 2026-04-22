@@ -435,6 +435,7 @@ class WorkerInfo:
     free_vram_gb: float = 0.0
     total_vram_gb: float = 0.0
     free_ram_gb: float = 0.0
+    total_ram_gb: float = 0.0
     queue_depth: int = 0
     queue_capacity: int = 1
     in_flight: int = 0
@@ -459,6 +460,7 @@ class WorkerInfo:
             "free_vram_gb": self.free_vram_gb,
             "total_vram_gb": self.total_vram_gb,
             "free_ram_gb": self.free_ram_gb,
+            "total_ram_gb": self.total_ram_gb,
             "queue_depth": self.queue_depth,
             "queue_capacity": self.queue_capacity,
             "in_flight": self.in_flight,
@@ -535,6 +537,9 @@ class WorkerRegistry:
                 payload.get("total_vram_gb", worker.total_vram_gb)
             )
             worker.free_ram_gb = float(payload.get("free_ram_gb", worker.free_ram_gb))
+            worker.total_ram_gb = float(
+                payload.get("total_ram_gb", worker.total_ram_gb)
+            )
             worker.queue_depth = int(payload.get("queue_depth", worker.queue_depth))
             worker.queue_capacity = int(
                 payload.get("queue_capacity", worker.queue_capacity)
@@ -694,6 +699,7 @@ class WorkerHeartbeatClient:
         free_vram = 0.0
         total_vram = 0.0
         free_ram = 0.0
+        total_ram = 0.0
         models: List[str] = []
         queue_depth = 0
         queue_capacity = 1
@@ -711,7 +717,9 @@ class WorkerHeartbeatClient:
         try:
             import psutil
 
-            free_ram = psutil.virtual_memory().available / (1024**3)
+            vm = psutil.virtual_memory()
+            free_ram = vm.available / (1024**3)
+            total_ram = vm.total / (1024**3)
         except Exception:
             pass
         try:
@@ -801,6 +809,7 @@ class WorkerHeartbeatClient:
             "free_vram_gb": free_vram,
             "total_vram_gb": total_vram,
             "free_ram_gb": free_ram,
+            "total_ram_gb": total_ram,
             "queue_depth": queue_depth,
             "queue_capacity": queue_capacity,
             "in_flight": in_flight,

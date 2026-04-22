@@ -238,6 +238,7 @@ async def router_register(
         free_vram_gb=float(payload.get("free_vram_gb", 0.0) or 0.0),
         total_vram_gb=float(payload.get("total_vram_gb", 0.0) or 0.0),
         free_ram_gb=float(payload.get("free_ram_gb", 0.0) or 0.0),
+        total_ram_gb=float(payload.get("total_ram_gb", 0.0) or 0.0),
         queue_depth=int(payload.get("queue_depth", 0) or 0),
         queue_capacity=int(payload.get("queue_capacity", 1) or 1),
         in_flight=int(payload.get("in_flight", 0) or 0),
@@ -264,6 +265,7 @@ async def router_register(
                 "free_vram_gb",
                 "total_vram_gb",
                 "free_ram_gb",
+                "total_ram_gb",
                 "queue_depth",
                 "queue_capacity",
                 "in_flight",
@@ -570,9 +572,13 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
             ", ".join(
                 f"{g.get('name', '?')}"
                 + (
-                    f" ({g.get('total_vram_gb', 0):.0f}GB)"
+                    f" ({g.get('total_vram_gb', 0):.0f}GB VRAM)"
                     if g.get("total_vram_gb")
-                    else ""
+                    else (
+                        f" ({w.get('total_ram_gb', 0):.0f}GB RAM)"
+                        if g.get("backend") == "cpu" and w.get("total_ram_gb")
+                        else ""
+                    )
                 )
                 + (
                     f" [{g.get('backend','')}]"
