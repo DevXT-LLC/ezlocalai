@@ -715,17 +715,22 @@ class Router:
         capability: str,
         model: Optional[str] = None,
         exclude: Optional[set] = None,
+        allow_cross_model: bool = True,
     ) -> Optional[WorkerInfo]:
         """Pick the best worker matching capability + (optionally) model.
 
         ``exclude`` is an optional set of ``worker_id``s to skip (used by the
         retry path so a failed worker isn't picked again immediately).
 
-        If a ``model`` is requested but no live worker advertises it, fall
-        back to the best-scoring worker that supports the capability — the
-        client gets *some* compute instead of a 503.  This keeps the router
-        useful when a smaller or differently-named model is requested but
-        only larger / equivalent ones are loaded somewhere in the pool.
+        ``allow_cross_model`` controls what happens when a ``model`` is
+        requested but no same-model worker has capacity right now:
+
+        * ``True``  — fall back to the best-scoring worker that supports the
+          capability so the client gets *some* compute instead of a 503.
+          Tier dominates ``score()`` (×10), so a free 5090 will outrank a
+          free 3090Ti even when both are running a different model.
+        * ``False`` — return ``None`` so the caller (``wait_for_worker``)
+          can poll for a same-model worker to free up before crossing over.
         """
         excluded = exclude or set()
         all_alive = [
@@ -756,15 +761,17 @@ class Router:
             if preferred:
                 preferred.sort(key=lambda w: w.score(), reverse=True)
                 return preferred[0]
-            # If at least one live worker advertises this model but none have
-            # capacity right now, do NOT fall back to a different model — let
-            # the caller wait for a slot to free up. Falling back would route
-            # e.g. a small-model request onto a much larger model.
-            if model_servers:
+            # Same-model workers exist but are saturated. During the grace
+            # period (allow_cross_model=False) refuse to cross over so the
+            # caller can briefly wait for a slot. After the grace period
+            # expires the caller flips this flag and we cross-model fall
+            # back to the highest-tier alternative.
+            if model_servers and not allow_cross_model:
                 return None
-            # Fallback: NO live worker advertises this model — pick any
-            # capability-matching worker with capacity so the client gets
-            # *some* compute instead of a 503.
+            if not allow_cross_model:
+                # No same-model worker even exists yet — let caller wait
+                # in case one registers shortly.
+                return None
             fallback = _has_capacity(all_alive)
             if fallback:
                 fallback.sort(key=lambda w: w.score(), reverse=True)
@@ -785,14 +792,35 @@ class Router:
         timeout: float,
         poll_interval: float = 0.5,
         exclude: Optional[set] = None,
+        cross_model_grace: Optional[float] = None,
     ) -> Optional[WorkerInfo]:
-        """Block up to ``timeout`` seconds waiting for a free worker."""
-        deadline = time.time() + max(0.0, timeout)
+        """Block up to ``timeout`` seconds waiting for a free worker.
+
+        For ``cross_model_grace`` seconds at the start (default from
+        ``ROUTER_CROSS_MODEL_GRACE`` env, 8s), only same-model workers are
+        considered. After that we allow cross-model fallback so a client
+        isn't stuck waiting for a busy small model when a larger one is
+        idle.
+        """
+        if cross_model_grace is None:
+            try:
+                cross_model_grace = float(
+                    os.environ.get("ROUTER_CROSS_MODEL_GRACE", "8")
+                )
+            except (TypeError, ValueError):
+                cross_model_grace = 8.0
+        start = time.time()
+        deadline = start + max(0.0, timeout)
+        grace_deadline = start + max(0.0, cross_model_grace)
         while True:
-            worker = self.select_worker(capability, model, exclude=exclude)
+            now = time.time()
+            allow_cross = now >= grace_deadline
+            worker = self.select_worker(
+                capability, model, exclude=exclude, allow_cross_model=allow_cross
+            )
             if worker is not None:
                 return worker
-            if time.time() >= deadline:
+            if now >= deadline:
                 return None
             await asyncio.sleep(poll_interval)
 
