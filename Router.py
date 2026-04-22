@@ -751,11 +751,20 @@ class Router:
 
         # First pass: workers that explicitly serve the requested model.
         if model:
-            preferred = _has_capacity([w for w in all_alive if _model_match(w)])
+            model_servers = [w for w in all_alive if _model_match(w)]
+            preferred = _has_capacity(model_servers)
             if preferred:
                 preferred.sort(key=lambda w: w.score(), reverse=True)
                 return preferred[0]
-            # Fallback: any capability-matching worker with capacity.
+            # If at least one live worker advertises this model but none have
+            # capacity right now, do NOT fall back to a different model — let
+            # the caller wait for a slot to free up. Falling back would route
+            # e.g. a small-model request onto a much larger model.
+            if model_servers:
+                return None
+            # Fallback: NO live worker advertises this model — pick any
+            # capability-matching worker with capacity so the client gets
+            # *some* compute instead of a 503.
             fallback = _has_capacity(all_alive)
             if fallback:
                 fallback.sort(key=lambda w: w.score(), reverse=True)

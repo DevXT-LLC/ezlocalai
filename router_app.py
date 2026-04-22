@@ -288,6 +288,12 @@ class UsageTracker:
         completion_tokens: int,
         timings: Optional[Dict[str, float]] = None,
     ) -> None:
+        # Skip recording when we got nothing back — usually means the response
+        # was an error (4xx/5xx) or the stream was aborted before the worker
+        # emitted a usage/timings event. Recording 0/0 entries pollutes the
+        # history with meaningless rows and drags down per-model averages.
+        if int(prompt_tokens or 0) == 0 and int(completion_tokens or 0) == 0:
+            return
         model = _normalize_model_name(model)
         prompt_ms = float((timings or {}).get("prompt_ms") or 0.0)
         predicted_ms = float((timings or {}).get("predicted_ms") or 0.0)
