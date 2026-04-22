@@ -1368,6 +1368,8 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
         text-transform: uppercase; letter-spacing: 0.05em; }}
   .muted {{ color: var(--muted); }}
   .small {{ font-size: 12px; }}
+  a {{ color: var(--accent); text-decoration: none; }}
+  a:hover {{ text-decoration: underline; }}
   .mono {{ font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }}
   code {{ background: rgba(110,118,129,0.2); padding: 1px 6px; border-radius: 4px; }}
   .banner {{ padding: 10px 14px; border-radius: 6px; margin-bottom: 16px; }}
