@@ -389,6 +389,22 @@ async def health():
 # ---------------------------------------------------------------------------
 
 
+# Human-readable labels for capability names used throughout the dashboard.
+_CAP_LABELS: Dict[str, str] = {
+    "text": "Text",
+    "vision": "Vision",
+    "image": "Image Generation",
+    "tts": "Text-to-Speech",
+    "stt": "Speech-to-Text",
+    "embedding": "Embedding",
+    "video": "Video",
+}
+
+
+def _cap_label(cap: str) -> str:
+    return _CAP_LABELS.get(cap, cap.replace("-", " ").title())
+
+
 def _cap_capacity(cap: str, worker_capacity: int) -> int:
     """Return the realistic concurrency for a given capability on one worker.
 
@@ -424,6 +440,7 @@ def _aggregate_dashboard() -> Dict[str, Any]:
                 model,
                 {
                     "model": model,
+                    "type": "text",
                     "worker_count": 0,
                     "total_capacity": 0,
                     "available_slots": 0,
@@ -454,6 +471,47 @@ def _aggregate_dashboard() -> Dict[str, Any]:
             q = w.model_quant.get(model)
             if q:
                 entry.setdefault("quants", set()).add(q)
+
+    # Non-text capability model entries: image, tts, stt, video workers
+    # Each worker that has one of these caps gets a synthetic model row so the
+    # Models section shows *all* running AI models, not just LLMs.
+    _NON_TEXT_CAPS = ("image", "tts", "stt", "video")
+    for w in alive:
+        for cap in w.capabilities:
+            if cap not in _NON_TEXT_CAPS:
+                continue
+            cap_label = _cap_label(cap)
+            # Use worker label as the display name so it's clear which machine
+            key = f"{cap}::{w.label}"
+            entry = model_rollup.setdefault(
+                key,
+                {
+                    "model": f"{w.label} ({cap_label})",
+                    "type": cap,
+                    "worker_count": 0,
+                    "total_capacity": 0,
+                    "available_slots": _cap_capacity(cap, w.queue_capacity),
+                    "max_context": 0,
+                    "best_tier": 0,
+                    "workers": [],
+                    "quants": set(),
+                },
+            )
+            entry["worker_count"] += 1
+            entry["total_capacity"] += _cap_capacity(cap, w.queue_capacity)
+            if w.best_tier > entry["best_tier"]:
+                entry["best_tier"] = w.best_tier
+            entry["workers"].append(
+                {
+                    "label": w.label,
+                    "worker_id": w.worker_id,
+                    "best_tier": w.best_tier,
+                    "context": 0,
+                    "slots_left": _cap_capacity(cap, w.queue_capacity),
+                    "queue_capacity": _cap_capacity(cap, w.queue_capacity),
+                    "quant": "",
+                }
+            )
 
     # Per-capability rollup
     cap_rollup: Dict[str, Dict[str, Any]] = {}
@@ -522,7 +580,7 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
         "".join(
             f"""
         <div class="card cap">
-          <div class="cap-name">{c['capability']}</div>
+          <div class="cap-name">{_cap_label(c['capability'])}</div>
           <div class="cap-stats">
             <span><b>{c['worker_count']}</b> workers</span>
             <span><b>{c['available_slots']}</b>/{c['total_capacity']} slots free</span>
@@ -541,16 +599,23 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
             f'{w["label"]}{(" " + w["quant"]) if w.get("quant") else ""}</span>'
             for w in m["workers"]
         )
-        ctx = f"{m['max_context']:,}" if m["max_context"] else "?"
+        mtype = m.get("type", "text")
+        type_badge = (
+            f'<span class="pill" style="background:rgba(240,136,62,0.15);border-color:rgba(240,136,62,0.4);font-size:10px">'
+            f"{_cap_label(mtype)}</span> "
+            if mtype != "text"
+            else ""
+        )
+        ctx = f"{m['max_context']:,}" if m["max_context"] else "—"
         quants = ", ".join(m.get("quants") or []) or "—"
         return f"""
         <tr>
-          <td class="mono">{m['model']}</td>
+          <td class="mono">{type_badge}{m['model']}</td>
           <td class="num">{m['worker_count']}</td>
           <td class="num">{m['total_capacity']}</td>
           <td class="num">{m['available_slots']}</td>
-          <td class="num">{ctx}</td>
-          <td class="mono small">{quants}</td>
+          <td class="num">{'—' if mtype not in ('text', 'vision', 'embedding') else ctx}</td>
+          <td class="mono small">{'—' if mtype not in ('text', 'vision', 'embedding') else quants}</td>
           <td class="num">{m['best_tier']}</td>
           <td>{worker_pills}</td>
         </tr>
@@ -625,7 +690,7 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
           <td>{gpus}<div class="muted small">tier {w.get('best_tier', 0)}</div></td>
           <td class="num small">{mem_cell}</td>
           <td>{slots_left}/{slots_total} {bar}<div class="muted small">{w.get('in_flight', 0)} in flight</div></td>
-          <td class="small">{', '.join(w.get('capabilities') or []) or '—'}</td>
+          <td class="small">{', '.join(_cap_label(c) for c in (w.get('capabilities') or [])) or '—'}</td>
           <td class="small mono">{models}</td>
           <td class="num small">{last_hb:.0f}s</td>
         </tr>
@@ -667,7 +732,7 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
                   letter-spacing: 0.05em; }}
   .stat .value {{ font-size: 24px; font-weight: 600; margin-top: 4px; }}
   .stat .sub {{ color: var(--muted); font-size: 12px; margin-top: 2px; }}
-  .cap .cap-name {{ font-weight: 600; text-transform: capitalize; }}
+  .cap .cap-name {{ font-weight: 600; }}
   .cap .cap-stats {{ display: flex; gap: 14px; margin-top: 6px;
                      color: var(--muted); font-size: 12px; }}
   table {{ width: 100%; border-collapse: collapse; background: var(--card);
