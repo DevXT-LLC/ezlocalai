@@ -162,6 +162,7 @@ class UsageTracker:
         self._path = path
         self._lock: Optional[asyncio.Lock] = None
         self._data: Dict[str, Any] = {}
+        self._dirty: bool = False
 
     @property
     def _alock(self) -> asyncio.Lock:
@@ -188,7 +189,8 @@ class UsageTracker:
             )
 
     def _save_sync(self) -> None:
-        """Write atomically (tmp → rename). Caller must hold the lock."""
+        """Write atomically (tmp → rename). Runs in a thread executor — never call
+        from the event loop thread directly."""
         try:
             os.makedirs(os.path.dirname(self._path) or ".", exist_ok=True)
         except Exception:
@@ -197,6 +199,31 @@ class UsageTracker:
         with open(tmp, "w") as fh:
             json.dump(self._data, fh, indent=2)
         os.replace(tmp, self._path)
+
+    async def flush(self) -> None:
+        """Write to disk if dirty. Runs the blocking I/O in a thread pool so the
+        event loop is never blocked."""
+        async with self._alock:
+            if not self._dirty:
+                return
+            data_snapshot = json.loads(json.dumps(self._data))
+            self._dirty = False
+        loop = asyncio.get_event_loop()
+        # Capture snapshot for the thread; no lock needed once we have our copy.
+        _snap = data_snapshot
+        _path = self._path
+
+        def _write() -> None:
+            try:
+                os.makedirs(os.path.dirname(_path) or ".", exist_ok=True)
+            except Exception:
+                pass
+            tmp = _path + ".tmp"
+            with open(tmp, "w") as fh:
+                json.dump(_snap, fh, indent=2)
+            os.replace(tmp, _path)
+
+        await loop.run_in_executor(None, _write)
 
     async def record_llm(
         self,
@@ -215,14 +242,14 @@ class UsageTracker:
             m["requests"] += 1
             m["prompt_tokens"] += prompt_tokens
             m["completion_tokens"] += completion_tokens
-            self._save_sync()
+            self._dirty = True
 
     async def record_cap(self, label: str, cap: str) -> None:
         async with self._alock:
             w = self._data.setdefault(label, {})
             c = w.setdefault(cap, {"requests": 0})
             c["requests"] += 1
-            self._save_sync()
+            self._dirty = True
 
     def snapshot(self) -> Dict[str, Any]:
         """Return a copy of the current stats (no lock needed for reads)."""
@@ -233,11 +260,11 @@ _usage = UsageTracker(getenv("USAGE_FILE", "/data/usage.json"))
 
 
 # ---------------------------------------------------------------------------
-# Background pruner
+# Background pruner + usage flusher
 # ---------------------------------------------------------------------------
 
-
 _pruner_task: Optional[asyncio.Task] = None
+_usage_flush_task: Optional[asyncio.Task] = None
 
 
 async def _pruner_loop():
@@ -252,12 +279,24 @@ async def _pruner_loop():
         await asyncio.sleep(max(2.0, registry.ttl / 3))
 
 
+async def _usage_flush_loop():
+    """Flush usage stats to disk every 10 seconds if dirty."""
+    while True:
+        await asyncio.sleep(10)
+        try:
+            await _usage.flush()
+        except Exception as e:
+            logging.warning(f"[Usage] Flush failed: {e}")
+
+
 @app.on_event("startup")
 async def _startup():
-    global _pruner_task
+    global _pruner_task, _usage_flush_task
     _usage.load()
     if _pruner_task is None or _pruner_task.done():
         _pruner_task = asyncio.create_task(_pruner_loop())
+    if _usage_flush_task is None or _usage_flush_task.done():
+        _usage_flush_task = asyncio.create_task(_usage_flush_loop())
     register_key = _expected_register_key()
     client_key = _expected_client_key()
     auth_warnings = []
@@ -279,13 +318,19 @@ async def _startup():
 
 @app.on_event("shutdown")
 async def _shutdown():
-    global _pruner_task
-    if _pruner_task and not _pruner_task.done():
-        _pruner_task.cancel()
-        try:
-            await _pruner_task
-        except (asyncio.CancelledError, Exception):
-            pass
+    global _pruner_task, _usage_flush_task
+    # Flush any pending usage stats before exiting
+    try:
+        await _usage.flush()
+    except Exception:
+        pass
+    for task in (_pruner_task, _usage_flush_task):
+        if task and not task.done():
+            task.cancel()
+            try:
+                await task
+            except (asyncio.CancelledError, Exception):
+                pass
 
 
 # ---------------------------------------------------------------------------
@@ -1503,9 +1548,7 @@ async def chat_completions(payload: Dict[str, Any], _: str = Depends(verify_clie
             completion_tokens = int(u.get("completion_tokens") or 0)
         except Exception:
             pass
-    asyncio.create_task(
-        _usage.record_llm(worker.label, model, prompt_tokens, completion_tokens)
-    )
+    await _usage.record_llm(worker.label, model, prompt_tokens, completion_tokens)
     return resp
 
 
@@ -1525,9 +1568,7 @@ async def completions(payload: Dict[str, Any], _: str = Depends(verify_client)):
             completion_tokens = int(u.get("completion_tokens") or 0)
         except Exception:
             pass
-    asyncio.create_task(
-        _usage.record_llm(worker.label, model, prompt_tokens, completion_tokens)
-    )
+    await _usage.record_llm(worker.label, model, prompt_tokens, completion_tokens)
     return resp
 
 
@@ -1540,7 +1581,7 @@ async def embeddings(payload: Dict[str, Any], _: str = Depends(verify_client)):
         else await _pick("text", payload.get("model"))
     )
     resp = await _proxy_json(worker, "/v1/embeddings", payload, stream=False)
-    asyncio.create_task(_usage.record_cap(worker.label, "embedding"))
+    await _usage.record_cap(worker.label, "embedding")
     return resp
 
 
@@ -1548,7 +1589,7 @@ async def embeddings(payload: Dict[str, Any], _: str = Depends(verify_client)):
 async def audio_speech(payload: Dict[str, Any], _: str = Depends(verify_client)):
     worker = await _pick("tts", payload.get("model"))
     resp = await _proxy_json(worker, "/v1/audio/speech", payload, stream=False)
-    asyncio.create_task(_usage.record_cap(worker.label, "tts"))
+    await _usage.record_cap(worker.label, "tts")
     return resp
 
 
@@ -1556,7 +1597,7 @@ async def audio_speech(payload: Dict[str, Any], _: str = Depends(verify_client))
 async def audio_speech_stream(payload: Dict[str, Any], _: str = Depends(verify_client)):
     worker = await _pick("tts", payload.get("model"))
     resp = await _proxy_json(worker, "/v1/audio/speech/stream", payload, stream=True)
-    asyncio.create_task(_usage.record_cap(worker.label, "tts"))
+    await _usage.record_cap(worker.label, "tts")
     return resp
 
 
@@ -1613,7 +1654,7 @@ async def audio_transcriptions(
             "timestamps": timestamps,
         },
     )
-    asyncio.create_task(_usage.record_cap(worker.label, "stt"))
+    await _usage.record_cap(worker.label, "stt")
     return resp
 
 
@@ -1621,7 +1662,7 @@ async def audio_transcriptions(
 async def images_generations(payload: Dict[str, Any], _: str = Depends(verify_client)):
     worker = await _pick("image", payload.get("model"))
     resp = await _proxy_json(worker, "/v1/images/generations", payload, stream=False)
-    asyncio.create_task(_usage.record_cap(worker.label, "image"))
+    await _usage.record_cap(worker.label, "image")
     return resp
 
 
@@ -1645,7 +1686,7 @@ async def images_edits(request: Request, _: str = Depends(verify_client)):
     resp = await _proxy_multipart(
         worker, "/v1/images/edits", files=files, fields=fields
     )
-    asyncio.create_task(_usage.record_cap(worker.label, "image"))
+    await _usage.record_cap(worker.label, "image")
     return resp
 
 
@@ -1659,5 +1700,5 @@ async def videos_generations(payload: Dict[str, Any], _: str = Depends(verify_cl
         stream=False,
         timeout=float(getenv("REQUEST_TIMEOUT", "1800")),
     )
-    asyncio.create_task(_usage.record_cap(worker.label, "video"))
+    await _usage.record_cap(worker.label, "video")
     return resp
