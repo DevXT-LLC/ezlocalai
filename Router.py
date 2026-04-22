@@ -109,6 +109,126 @@ def parse_capabilities(value: str) -> List[str]:
 
 
 # ---------------------------------------------------------------------------
+# Hardware tier scoring
+# ---------------------------------------------------------------------------
+# Higher tier = faster inference. Used to break ties when load is similar so
+# requests prefer the 5090 over the 4090 over the 3090, etc. Unrecognized GPUs
+# get TIER_DEFAULT_GPU; CPU-only workers get TIER_CPU.
+# Substring match (case-insensitive) on torch's get_device_name() output.
+GPU_TIERS: List[Tuple[str, int]] = [
+    # Datacenter / Hopper / Blackwell
+    ("h200", 100),
+    ("h100", 95),
+    ("b200", 110),
+    ("a100", 80),
+    ("a6000", 70),
+    ("a40", 65),
+    ("l40", 70),
+    # RTX 50-series (Blackwell)
+    ("5090", 90),
+    ("5080", 75),
+    ("5070 ti", 60),
+    ("5070", 55),
+    ("5060", 40),
+    # RTX 40-series (Ada Lovelace)
+    ("4090", 80),
+    ("4080 super", 65),
+    ("4080", 60),
+    ("4070 ti super", 55),
+    ("4070 ti", 50),
+    ("4070", 45),
+    ("4060 ti", 35),
+    ("4060", 30),
+    # RTX 30-series (Ampere)
+    ("3090 ti", 55),
+    ("3090", 50),
+    ("3080 ti", 45),
+    ("3080", 40),
+    ("3070 ti", 32),
+    ("3070", 30),
+    ("3060 ti", 25),
+    ("3060", 22),
+    # RTX 20-series (Turing)
+    ("2080 ti", 28),
+    ("2080", 22),
+    ("2070", 18),
+    ("2060", 15),
+    # GTX
+    ("1080 ti", 14),
+    ("1080", 12),
+    ("1070", 10),
+    # Jetson
+    ("orin", 18),
+    ("xavier", 8),
+    # AMD
+    ("mi300", 80),
+    ("mi250", 65),
+    ("7900", 50),
+    # Apple Silicon
+    ("m3 max", 35),
+    ("m2 max", 30),
+    ("m1 max", 25),
+    ("m3 ultra", 45),
+    ("m2 ultra", 40),
+]
+TIER_DEFAULT_GPU = 20
+TIER_CPU = 1
+
+
+def gpu_tier_for_name(name: str) -> int:
+    """Look up a hardware tier score from a GPU model name string."""
+    if not name:
+        return TIER_CPU
+    lname = name.lower()
+    for needle, tier in GPU_TIERS:
+        if needle in lname:
+            return tier
+    return TIER_DEFAULT_GPU
+
+
+def detect_local_gpus() -> List[Dict[str, Any]]:
+    """Best-effort enumeration of local CUDA devices with name + total VRAM.
+
+    Returns a list like
+    ``[{"index": 0, "name": "NVIDIA GeForce RTX 5090", "total_vram_gb": 32.0,
+        "tier": 90}, ...]``
+    Empty list when no CUDA is available.
+    """
+    gpus: List[Dict[str, Any]] = []
+    try:
+        import torch  # type: ignore
+
+        if not torch.cuda.is_available():
+            return []
+        for i in range(torch.cuda.device_count()):
+            try:
+                props = torch.cuda.get_device_properties(i)
+                name = props.name
+                total_gb = float(props.total_memory) / (1024**3)
+            except Exception:
+                name = f"cuda:{i}"
+                total_gb = 0.0
+            gpus.append(
+                {
+                    "index": i,
+                    "name": name,
+                    "total_vram_gb": round(total_gb, 2),
+                    "tier": gpu_tier_for_name(name),
+                }
+            )
+    except Exception as e:  # pragma: no cover - best effort
+        logging.debug(f"[Router] GPU enumeration failed: {e}")
+    return gpus
+
+
+def best_gpu_tier(gpus: List[Dict[str, Any]]) -> int:
+    """The fastest GPU's tier on this worker. Falls back to CPU tier."""
+    if not gpus:
+        return TIER_CPU
+    return max(int(g.get("tier", TIER_DEFAULT_GPU)) for g in gpus)
+
+
+# ---------------------------------------------------------------------------
 # Worker registry (router-side)
 # ---------------------------------------------------------------------------
 
@@ -128,6 +248,11 @@ class WorkerInfo:
     queue_depth: int = 0
     queue_capacity: int = 1
     in_flight: int = 0
+    # Hardware introspection (auto-reported by the worker)
+    gpus: List[Dict[str, Any]] = field(default_factory=list)
+    best_tier: int = TIER_CPU
+    # Per-model context window (max_tokens). Auto-reported when available.
+    model_context: Dict[str, int] = field(default_factory=dict)
     last_heartbeat: float = field(default_factory=time.time)
     registered_at: float = field(default_factory=time.time)
     extra: Dict[str, Any] = field(default_factory=dict)
@@ -145,6 +270,9 @@ class WorkerInfo:
             "queue_depth": self.queue_depth,
             "queue_capacity": self.queue_capacity,
             "in_flight": self.in_flight,
+            "gpus": list(self.gpus),
+            "best_tier": self.best_tier,
+            "model_context": dict(self.model_context),
             "age_seconds": time.time() - self.registered_at,
             "last_heartbeat_age": time.time() - self.last_heartbeat,
             "extra": self.extra,
@@ -160,12 +288,23 @@ class WorkerInfo:
     def score(self) -> float:
         """Higher = better worker to send the next request to.
 
-        Prefers: more free VRAM, lower queue utilization, fewer in-flight reqs.
+        Combines:
+          * Hardware tier (5090 > 4090 > 3090 > … > CPU) — dominant factor
+          * Free queue slots
+          * Free VRAM
+          * In-flight load penalty
+
+        Tier dominates so a fast GPU sitting idle always beats a slower one
+        sitting idle, but a heavily loaded fast GPU can lose to an idle slower
+        one because the load penalty grows with in-flight requests.
         """
         slots_left = max(0, self.queue_capacity - self.queue_depth)
-        vram_score = self.free_vram_gb  # GB
-        load_penalty = self.in_flight * 2.0
-        return slots_left * 5.0 + vram_score - load_penalty
+        return (
+            self.best_tier * 10.0
+            + slots_left * 5.0
+            + self.free_vram_gb
+            - self.in_flight * 4.0
+        )
 
 
 class WorkerRegistry:
@@ -212,6 +351,15 @@ class WorkerRegistry:
                 worker.models = list(payload["models"])
             if "capabilities" in payload:
                 worker.capabilities = list(payload["capabilities"])
+            if "gpus" in payload and isinstance(payload["gpus"], list):
+                worker.gpus = list(payload["gpus"])
+                worker.best_tier = best_gpu_tier(worker.gpus)
+            if "model_context" in payload and isinstance(
+                payload["model_context"], dict
+            ):
+                worker.model_context = {
+                    str(k): int(v) for k, v in payload["model_context"].items()
+                }
             if "extra" in payload and isinstance(payload["extra"], dict):
                 worker.extra.update(payload["extra"])
             worker.last_heartbeat = time.time()
@@ -310,19 +458,28 @@ class WorkerHeartbeatClient:
     def __init__(
         self,
         router_url: str,
-        worker_url: str,
+        worker_url: str = "",
         api_key: str = "",
         label: str = "",
         capabilities: Optional[List[str]] = None,
         interval: float = 10.0,
         worker_id: Optional[str] = None,
+        worker_port: Optional[int] = None,
     ):
         self.router_url = router_url.rstrip("/")
-        self.worker_url = worker_url.rstrip("/")
+        self.worker_url = (worker_url or "").rstrip("/")
         self.api_key = api_key
         self.label = label or socket.gethostname()
         self.capabilities = capabilities or detect_local_capabilities()
         self.interval = max(2.0, float(interval))
+        # Port used so the router can build http://<source_ip>:<port> if the
+        # worker did not (or could not) provide a public URL.
+        try:
+            self.worker_port = int(
+                worker_port if worker_port is not None else getenv("PORT", "8091")
+            )
+        except (TypeError, ValueError):
+            self.worker_port = 8091
         # Stable per-process ID (re-used across reconnects within the process)
         self.worker_id = worker_id or f"{self.label}-{uuid.uuid4().hex[:8]}"
         self._task: Optional[asyncio.Task] = None
@@ -344,6 +501,7 @@ class WorkerHeartbeatClient:
         queue_depth = 0
         queue_capacity = 1
         in_flight = 0
+        model_context: Dict[str, int] = {}
         try:
             from Pipes import get_resource_manager  # local import: optional dep
 
@@ -362,8 +520,26 @@ class WorkerHeartbeatClient:
             # Pull model list from the local Pipes singleton if available
             from app import pipe  # type: ignore
 
-            data = pipe.get_models() if pipe is not None else {}
-            models = [m.get("id") for m in data.get("data", []) if m.get("id")]
+            if pipe is not None:
+                data = pipe.get_models()
+                models = [m.get("id") for m in data.get("data", []) if m.get("id")]
+                # Per-model context window from any persistent llm instances.
+                # Falls back to the active llm if persistent_llms is empty.
+                instances = dict(getattr(pipe, "persistent_llms", {}) or {})
+                if not instances and getattr(pipe, "llm", None) is not None:
+                    instances = {getattr(pipe.llm, "model_name", "default"): pipe.llm}
+                for name, inst in instances.items():
+                    n_ctx = 0
+                    xlc = getattr(inst, "xlc_params", None)
+                    if xlc is not None and getattr(xlc, "n_ctx", 0):
+                        n_ctx = int(xlc.n_ctx)
+                    elif hasattr(inst, "n_ctx"):
+                        try:
+                            n_ctx = int(inst.n_ctx)
+                        except Exception:
+                            n_ctx = 0
+                    if n_ctx > 0:
+                        model_context[str(name)] = n_ctx
         except Exception:
             pass
         try:
@@ -378,6 +554,7 @@ class WorkerHeartbeatClient:
         except Exception:
             pass
 
+        gpus = detect_local_gpus()
         return {
             "free_vram_gb": free_vram,
             "total_vram_gb": total_vram,
@@ -387,6 +564,9 @@ class WorkerHeartbeatClient:
             "in_flight": in_flight,
             "models": models,
             "capabilities": self.capabilities,
+            "gpus": gpus,
+            "best_tier": best_gpu_tier(gpus),
+            "model_context": model_context,
         }
 
     async def _post(self, path: str, payload: Dict[str, Any]) -> Tuple[bool, Any]:
@@ -419,6 +599,7 @@ class WorkerHeartbeatClient:
             "worker_id": self.worker_id,
             "label": self.label,
             "url": self.worker_url,
+            "port": self.worker_port,
             "api_key": self.api_key,
             **state,
         }
@@ -528,11 +709,11 @@ def get_heartbeat_client() -> Optional[WorkerHeartbeatClient]:
     if is_router_mode():
         # A router does not register with itself
         return None
-    worker_url = (
-        (getenv("WORKER_PUBLIC_URL") or "").strip()
-        or (getenv("EZLOCALAI_URL") or "").strip()
-        or f"http://{socket.gethostname()}:{getenv('PORT', '8091')}"
-    )
+    worker_url = (getenv("WORKER_PUBLIC_URL") or "").strip() or (
+        getenv("EZLOCALAI_URL") or ""
+    ).strip()
+    # If still empty, leave it empty so the router substitutes the connection's
+    # source IP (works automatically for LAN workers behind no NAT).
     api_key = (getenv("ROUTER_API_KEY") or "").strip() or (
         getenv("EZLOCALAI_API_KEY") or ""
     )

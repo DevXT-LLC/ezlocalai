@@ -60,6 +60,7 @@ from Router import (
     Router,
     WorkerInfo,
     WorkerRegistry,
+    best_gpu_tier,
     get_registry,
     get_router,
 )
@@ -145,6 +146,22 @@ async def _startup():
     global _pruner_task
     if _pruner_task is None or _pruner_task.done():
         _pruner_task = asyncio.create_task(_pruner_loop())
+    register_key = _expected_register_key()
+    client_key = _expected_client_key()
+    auth_warnings = []
+    if not register_key or register_key == "none":
+        auth_warnings.append(
+            "ROUTER_REGISTER_KEY/EZLOCALAI_API_KEY is empty — ANY worker that "
+            "can reach this router can join the pool. Set EZLOCALAI_API_KEY (or "
+            "ROUTER_REGISTER_KEY) before exposing the router publicly."
+        )
+    if not client_key or client_key == "none":
+        auth_warnings.append(
+            "EZLOCALAI_API_KEY is empty — ANY client can submit inference "
+            "requests to the router."
+        )
+    for msg in auth_warnings:
+        logging.warning(f"[Router] OPEN POOL: {msg}")
     logging.info(f"[Router] ezlocalai router ready (worker TTL={get_registry().ttl}s)")
 
 
@@ -165,15 +182,48 @@ async def _shutdown():
 
 
 @app.post("/v1/router/register", tags=["Router"])
-async def router_register(payload: Dict[str, Any], _: str = Depends(verify_worker)):
-    required = ("worker_id", "url")
-    for key in required:
-        if not payload.get(key):
-            raise HTTPException(status_code=400, detail=f"Missing field: {key}")
+async def router_register(
+    request: Request,
+    payload: Dict[str, Any],
+    _: str = Depends(verify_worker),
+):
+    if not payload.get("worker_id"):
+        raise HTTPException(status_code=400, detail="Missing field: worker_id")
+
+    # Resolve a URL the router can call back on. Order:
+    # 1. Whatever the worker explicitly reported (if non-loopback).
+    # 2. http://<source-IP>:<reported port> (router fills in the source IP).
+    # 3. Reject — the worker is unreachable.
+    declared_url = str(payload.get("url") or "").strip().rstrip("/")
+    port = int(payload.get("port") or 8091)
+    source_host = request.client.host if request.client else None
+
+    def _is_loopback(u: str) -> bool:
+        u = u.lower()
+        return (
+            "://localhost" in u
+            or "://127.0.0.1" in u
+            or "://0.0.0.0" in u
+            or "://::1" in u
+        )
+
+    url = declared_url
+    if not url or _is_loopback(url):
+        if not source_host:
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    "Worker did not provide a public 'url' and the router "
+                    "could not determine the source IP."
+                ),
+            )
+        url = f"http://{source_host}:{port}"
+
+    gpus = list(payload.get("gpus") or [])
     info = WorkerInfo(
         worker_id=str(payload["worker_id"]),
         label=str(payload.get("label") or payload["worker_id"]),
-        url=str(payload["url"]).rstrip("/"),
+        url=url,
         api_key=str(payload.get("api_key") or ""),
         capabilities=list(payload.get("capabilities") or []),
         models=list(payload.get("models") or []),
@@ -183,6 +233,11 @@ async def router_register(payload: Dict[str, Any], _: str = Depends(verify_worke
         queue_depth=int(payload.get("queue_depth", 0) or 0),
         queue_capacity=int(payload.get("queue_capacity", 1) or 1),
         in_flight=int(payload.get("in_flight", 0) or 0),
+        gpus=gpus,
+        best_tier=int(payload.get("best_tier") or best_gpu_tier(gpus)),
+        model_context={
+            str(k): int(v) for k, v in (payload.get("model_context") or {}).items()
+        },
         extra={
             k: v
             for k, v in payload.items()
@@ -191,6 +246,7 @@ async def router_register(payload: Dict[str, Any], _: str = Depends(verify_worke
                 "worker_id",
                 "label",
                 "url",
+                "port",
                 "api_key",
                 "capabilities",
                 "models",
@@ -200,13 +256,24 @@ async def router_register(payload: Dict[str, Any], _: str = Depends(verify_worke
                 "queue_depth",
                 "queue_capacity",
                 "in_flight",
+                "gpus",
+                "best_tier",
+                "model_context",
             }
         },
     )
     info = get_registry().register(info)
+    gpu_summary = (
+        ", ".join(
+            f"{g.get('name', '?')} ({g.get('total_vram_gb', 0):.0f}GB)"
+            for g in info.gpus
+        )
+        or "no GPU"
+    )
     logging.info(
         f"[Router] Registered worker {info.label} ({info.worker_id}) "
-        f"@ {info.url} caps={info.capabilities}"
+        f"@ {info.url} caps={info.capabilities} tier={info.best_tier} "
+        f"gpus=[{gpu_summary}]"
     )
     return {"ok": True, "worker": info.to_public()}
 
