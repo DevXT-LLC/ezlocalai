@@ -387,6 +387,19 @@ async def health():
 # ---------------------------------------------------------------------------
 
 
+def _cap_capacity(cap: str, worker_capacity: int) -> int:
+    """Return the realistic concurrency for a given capability on one worker.
+
+    image, stt, video: sequential by nature — always 1 slot.
+    tts: fast and low-resource but we have no separate queue depth for it,
+         so report 1 conservative slot (will not starve the text queue).
+    text, vision, embedding: use the reported N_PARALLEL-sized queue capacity.
+    """
+    if cap in ("image", "stt", "video", "tts"):
+        return 1
+    return max(1, worker_capacity)
+
+
 def _aggregate_dashboard() -> Dict[str, Any]:
     """Build a JSON-serialisable summary of the entire pool."""
     registry = get_registry()
@@ -443,8 +456,12 @@ def _aggregate_dashboard() -> Dict[str, Any]:
     # Per-capability rollup
     cap_rollup: Dict[str, Dict[str, Any]] = {}
     for w in alive:
-        slots_left = max(0, w.queue_capacity - w.queue_depth)
         for cap in w.capabilities:
+            cap_slots = _cap_capacity(cap, w.queue_capacity)
+            # Approximate in-flight per capability: assume in_flight is all on text,
+            # so non-text caps treat in_flight as 0.
+            cap_in_flight = w.in_flight if cap in ("text", "vision", "embedding") else 0
+            cap_slots_left = max(0, cap_slots - cap_in_flight)
             entry = cap_rollup.setdefault(
                 cap,
                 {
@@ -455,8 +472,8 @@ def _aggregate_dashboard() -> Dict[str, Any]:
                 },
             )
             entry["worker_count"] += 1
-            entry["total_capacity"] += max(1, w.queue_capacity)
-            entry["available_slots"] += slots_left
+            entry["total_capacity"] += cap_slots
+            entry["available_slots"] += cap_slots_left
 
     return {
         "generated_at": time.time(),
