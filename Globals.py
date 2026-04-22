@@ -77,6 +77,43 @@ def getenv(var_name: str, default_value: str = None) -> str:
         # Lazy load voice models (TTS/STT) - when false, preload them at startup for faster first response
         # Default true = lazy load (load on first request), false = preload at startup
         "LAZY_LOAD_VOICE": "true",
+        # =====================================================================
+        # Router / Load Balancer mode
+        # =====================================================================
+        # When ROUTER_MODE=true, this instance becomes a pure router:
+        #   - No models are loaded locally
+        #   - Worker ezlocalai instances register themselves and send heartbeats
+        #   - Inference requests are proxied to the best available worker
+        # Use start.py to launch; it auto-selects router_app vs app based on this.
+        "ROUTER_MODE": "false",
+        # Shared secret that workers must present to register/heartbeat with the router.
+        # If empty, EZLOCALAI_API_KEY is used as the shared secret.
+        "ROUTER_REGISTER_KEY": "",
+        # How long (seconds) since last heartbeat before a worker is pruned.
+        "ROUTER_WORKER_TTL": "30",
+        # How long (seconds) the router waits for a worker slot before erroring/queuing.
+        "ROUTER_WAIT_TIMEOUT": "120",
+        # =====================================================================
+        # Worker registration (set on each ezlocalai worker instance)
+        # =====================================================================
+        # If set, this ezlocalai instance will register itself with a router and
+        # heartbeat its current state (free VRAM, queue depth, loaded models).
+        # Example: ROUTER_URL="http://192.168.1.50:8092"
+        "ROUTER_URL": "",
+        # API key/shared secret to authenticate with the router. Falls back to
+        # EZLOCALAI_API_KEY if unset.
+        "ROUTER_API_KEY": "",
+        # Public URL the router should call back on for inference. Defaults to
+        # EZLOCALAI_URL. Override when behind NAT/Cloudflare/ngrok.
+        "WORKER_PUBLIC_URL": "",
+        # Friendly name of this worker (shown in router admin). Defaults to hostname.
+        "WORKER_LABEL": "",
+        # Comma-separated capabilities this worker advertises. Use "auto" to
+        # derive from local config (text/vision/voice/image/video).
+        # Examples: "auto", "text,vision", "voice", "image,video"
+        "WORKER_CAPABILITIES": "auto",
+        # Heartbeat interval in seconds.
+        "WORKER_HEARTBEAT_INTERVAL": "10",
     }
     if not default_value:
         default_value = default_values[var_name] if var_name in default_values else ""

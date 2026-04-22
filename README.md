@@ -194,6 +194,86 @@ When fallback is triggered to another ezlocalai instance, these endpoints are au
 
 For OpenAI-compatible APIs, only chat completions and embeddings are forwarded.
 
+## Router / Load Balancer Mode
+
+For setups that outgrow point-to-point fallback (3+ machines, friends contributing GPUs, bittensor miners coming and going), ezlocalai can run as a dedicated **router**. The router itself loads no models — it accepts the normal OpenAI-compatible API and forwards each request to the best registered worker.
+
+### How it works
+
+```
+┌────────────┐  OpenAI API   ┌────────────────────┐   proxied request   ┌─────────────────┐
+│  Client    │ ────────────▶ │  ezlocalai-router  │ ──────────────────▶ │  Worker (5090)  │
+└────────────┘               │   (no models)      │                     ├─────────────────┤
+                             │                    │ ◀── heartbeat ───── │  Worker (4090)  │
+                             │  selects worker    │ ◀── heartbeat ───── │  Worker (voice) │
+                             │  based on free     │ ◀── heartbeat ───── │  Worker (image) │
+                             │  VRAM + queue +    │ ◀── heartbeat ───── │  Friend's 3090  │
+                             │  capability +      │                     └─────────────────┘
+                             │  model availability│
+                             └────────────────────┘
+```
+
+Each worker is a normal `ezlocalai` instance with `ROUTER_URL` set. On startup the worker registers itself, then sends heartbeats every `WORKER_HEARTBEAT_INTERVAL` seconds containing free VRAM, queue depth, loaded models, and advertised capabilities (`text`, `vision`, `voice`, `image`, `video`). Workers that miss `ROUTER_WORKER_TTL` seconds of heartbeats are pruned. If a request arrives and no suitable worker is free, the router waits up to `ROUTER_WAIT_TIMEOUT` seconds before returning `503`.
+
+### Run the router
+
+```bash
+docker compose -f docker-compose-router.yml up -d
+```
+
+The router listens on port `8092` by default and exposes the same OpenAI-compatible endpoints as a normal ezlocalai server, plus:
+
+- `GET  /v1/router/workers` — list registered workers and their live state
+- `GET  /v1/router/health`  — router health + live worker count
+- `POST /v1/router/register` / `heartbeat` / `deregister` — worker protocol
+
+### Point a worker at the router
+
+On every ezlocalai worker (your 5090 box, your 4090 box, your voice/image boxes, friends' machines, miners), add to its env:
+
+```bash
+ROUTER_URL=http://router-host:8092
+ROUTER_API_KEY=shared-key             # must match the router's EZLOCALAI_API_KEY (or ROUTER_REGISTER_KEY)
+WORKER_PUBLIC_URL=http://1.2.3.4:8091 # how the router reaches *this* worker (optional, defaults to EZLOCALAI_URL)
+WORKER_LABEL=main-5090                # friendly name (optional)
+WORKER_CAPABILITIES=auto              # or e.g. "text,vision" / "voice" / "image,video"
+```
+
+### Example: your current setup
+
+| Machine               | Address           | Role                             | Env additions                                                                 |
+|-----------------------|-------------------|----------------------------------|-------------------------------------------------------------------------------|
+| Main GPU (5090+3090Ti)| `192.168.1.135:8091` | text/vision (Qwen3.6-35B-A3B)    | `ROUTER_URL=http://192.168.1.50:8092` `WORKER_LABEL=main-5090`                |
+| Fallback GPU (4090)   | `192.168.1.243:8091` | text/vision (Qwen3.6-35B-A3B)    | `ROUTER_URL=...` `WORKER_LABEL=fallback-4090`                                 |
+| Voice server          | `192.168.1.82:8091`  | TTS/STT/wake word                | `ROUTER_URL=...` `WORKER_LABEL=voice` `WORKER_CAPABILITIES=voice`             |
+| Small + image         | `192.168.1.214:8091` | small text + image gen           | `ROUTER_URL=...` `WORKER_LABEL=img-small` `WORKER_CAPABILITIES=text,image`   |
+| Friend's 3090         | external          | text/vision                      | `ROUTER_URL=https://router.you.com:8092` `WORKER_PUBLIC_URL=https://...`     |
+
+Clients then point to the router as if it were a single ezlocalai server:
+
+```bash
+curl https://router.you.com:8092/v1/chat/completions \
+  -H "Authorization: Bearer shared-key" \
+  -H "Content-Type: application/json" \
+  -d '{"model":"unsloth/Qwen3.6-35B-A3B-GGUF","messages":[{"role":"user","content":"Hi"}]}'
+```
+
+The router will pick the highest-scoring text-capable worker that has the requested model loaded; if none is currently free, it queues until one becomes available (up to `ROUTER_WAIT_TIMEOUT`).
+
+### Selection algorithm
+
+Workers are scored each request as:
+
+```
+score = slots_left * 5  +  free_vram_gb  -  in_flight * 2
+```
+
+Where `slots_left = queue_capacity - queue_depth`. Workers without the required capability or model are filtered out before scoring. Stale workers (heartbeat older than TTL) are excluded.
+
+### Security note
+
+Workers authenticate to the router with `ROUTER_API_KEY` (falls back to `EZLOCALAI_API_KEY`). Inference clients authenticate with the router's own `EZLOCALAI_API_KEY`. Use distinct keys (`ROUTER_REGISTER_KEY` for workers, `EZLOCALAI_API_KEY` for clients) when exposing the router publicly so you can rotate them independently.
+
 ## Dedicated Voice Server
 
 ezlocalai supports offloading TTS (text-to-speech) and STT (speech-to-text) processing to a dedicated voice server. This is useful when you want to:

@@ -134,6 +134,19 @@ app.add_middleware(
 async def startup_event():
     await request_queue.start()
 
+    # Start router heartbeat client if ROUTER_URL is configured
+    try:
+        from Router import get_heartbeat_client
+
+        hb = get_heartbeat_client()
+        if hb is not None:
+            hb.start()
+            logging.info(
+                f"[Heartbeat] Worker registration loop started for router {hb.router_url}"
+            )
+    except Exception as e:
+        logging.warning(f"[Heartbeat] Failed to start worker heartbeat: {e}")
+
     # Initialize wake word manager in voice server mode
     from Pipes import is_voice_server_mode
 
@@ -176,6 +189,15 @@ async def startup_event():
 @app.on_event("shutdown")
 async def shutdown_event():
     await request_queue.stop()
+    # Best-effort deregister from router
+    try:
+        from Router import get_heartbeat_client
+
+        hb = get_heartbeat_client()
+        if hb is not None:
+            await hb.stop()
+    except Exception as e:
+        logging.debug(f"[Heartbeat] shutdown error: {e}")
 
 
 # Async wrapper for pipe.get_response
