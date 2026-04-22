@@ -169,19 +169,61 @@ GPU_TIERS: List[Tuple[str, int]] = [
     # Jetson
     ("orin", 18),
     ("xavier", 8),
-    # AMD
-    ("mi300", 80),
+    # AMD Instinct (datacenter)
+    ("mi300x", 90),
+    ("mi300", 85),
+    ("mi250x", 70),
     ("mi250", 65),
-    ("7900", 50),
+    ("mi210", 55),
+    ("mi100", 45),
+    # AMD Radeon RX
+    ("rx 7900 xtx", 55),
+    ("rx 7900 xt", 50),
+    ("rx 7900", 48),
+    ("rx 7800", 38),
+    ("rx 7700", 30),
+    ("rx 7600", 22),
+    ("rx 6950", 42),
+    ("rx 6900", 38),
+    ("rx 6800", 32),
+    ("rx 6700", 25),
+    ("rx 6600", 18),
+    # AMD Ryzen integrated / APU
+    ("radeon 780m", 8),
+    ("radeon 760m", 6),
+    ("radeon 680m", 5),
+    ("radeon", 4),
     # Apple Silicon
-    ("m3 max", 35),
-    ("m2 max", 30),
-    ("m1 max", 25),
+    ("m4 max", 50),
+    ("m4 ultra", 65),
+    ("m4 pro", 35),
+    ("m4", 25),
     ("m3 ultra", 45),
+    ("m3 max", 38),
+    ("m3 pro", 28),
+    ("m3", 20),
     ("m2 ultra", 40),
+    ("m2 max", 32),
+    ("m2 pro", 22),
+    ("m2", 16),
+    ("m1 ultra", 30),
+    ("m1 max", 25),
+    ("m1 pro", 18),
+    ("m1", 12),
+    # Hailo NPU (Raspberry Pi AI HAT)
+    ("hailo-8l", 6),
+    ("hailo-8", 8),
+    ("hailo", 5),
+    # Generic Intel
+    ("arc a770", 18),
+    ("arc a750", 14),
+    ("arc a380", 8),
+    ("arc", 6),
+    ("xe", 4),
 ]
 TIER_DEFAULT_GPU = 20
-TIER_CPU = 1
+TIER_CPU = 2  # CPU-only is legitimate; score above 1 so it isn't penalised as broken
+TIER_NPU = 5  # Hailo/NPU category when device detection finds it without VRAM info
 
 
 def gpu_tier_for_name(name: str) -> int:
@@ -196,45 +238,184 @@ def gpu_tier_for_name(name: str) -> int:
 
 
 def detect_local_gpus() -> List[Dict[str, Any]]:
-    """Best-effort enumeration of local CUDA devices with name + total VRAM.
+    """Best-effort enumeration of local accelerators: CUDA, ROCm, MPS, Hailo, CPU.
 
-    Returns a list like
-    ``[{"index": 0, "name": "NVIDIA GeForce RTX 5090", "total_vram_gb": 32.0,
-        "tier": 90}, ...]``
-    Empty list when no CUDA is available.
+    Returns a list of dicts with keys: index, name, total_vram_gb, tier, backend.
+    Always returns at least one entry (CPU fallback) so workers are never
+    invisible to the router.
     """
     gpus: List[Dict[str, Any]] = []
+
+    # --- CUDA (NVIDIA) and ROCm (AMD) via PyTorch ---
     try:
         import torch  # type: ignore
 
-        if not torch.cuda.is_available():
-            return []
-        for i in range(torch.cuda.device_count()):
-            try:
-                props = torch.cuda.get_device_properties(i)
-                name = props.name
-                total_gb = float(props.total_memory) / (1024**3)
-            except Exception:
-                name = f"cuda:{i}"
+        if torch.cuda.is_available():
+            backend = "rocm" if getattr(torch.version, "hip", None) else "cuda"
+            for i in range(torch.cuda.device_count()):
+                try:
+                    props = torch.cuda.get_device_properties(i)
+                    name = props.name
+                    total_gb = float(props.total_memory) / (1024**3)
+                except Exception:
+                    name = f"{backend}:{i}"
+                    total_gb = 0.0
+                gpus.append(
+                    {
+                        "index": i,
+                        "name": name,
+                        "total_vram_gb": round(total_gb, 2),
+                        "tier": gpu_tier_for_name(name),
+                        "backend": backend,
+                    }
+                )
+    except Exception as e:
+        logging.debug(f"[Router] CUDA/ROCm enumeration failed: {e}")
+
+    # --- Apple Silicon MPS ---
+    if not gpus:
+        try:
+            import torch  # type: ignore
+
+            if torch.backends.mps.is_available():
+                import platform
+
+                chip = platform.processor() or "Apple Silicon"
+                # Try to get unified memory size via sysctl
                 total_gb = 0.0
-            gpus.append(
-                {
-                    "index": i,
-                    "name": name,
-                    "total_vram_gb": round(total_gb, 2),
-                    "tier": gpu_tier_for_name(name),
-                }
-            )
-    except Exception as e:  # pragma: no cover - best effort
-        logging.debug(f"[Router] GPU enumeration failed: {e}")
+                try:
+                    import subprocess
+
+                    out = subprocess.check_output(
+                        ["sysctl", "-n", "hw.memsize"], timeout=3
+                    )
+                    total_gb = int(out.strip()) / (1024**3)
+                except Exception:
+                    pass
+                name = chip if chip else "Apple Silicon"
+                gpus.append(
+                    {
+                        "index": 0,
+                        "name": name,
+                        "total_vram_gb": round(total_gb, 2),
+                        "tier": gpu_tier_for_name(name),
+                        "backend": "mps",
+                    }
+                )
+        except Exception as e:
+            logging.debug(f"[Router] MPS enumeration failed: {e}")
+
+    # --- Hailo NPU (Raspberry Pi AI HAT 2+ and Hailo-8/8L PCIe cards) ---
+    if not gpus:
+        try:
+            import glob
+            import subprocess
+
+            hailo_devs = glob.glob("/dev/hailo*")
+            if hailo_devs:
+                # Try hailortcli for device info
+                try:
+                    out = subprocess.check_output(
+                        ["hailortcli", "scan"], timeout=5, stderr=subprocess.DEVNULL
+                    ).decode(errors="replace")
+                    # Extract model name from output, e.g. "Hailo-8L"
+                    import re as _re
+
+                    m = _re.search(r"(Hailo-\w+)", out, _re.IGNORECASE)
+                    chip = m.group(1) if m else "Hailo NPU"
+                except Exception:
+                    chip = f"Hailo NPU ({len(hailo_devs)} device(s))"
+                gpus.append(
+                    {
+                        "index": 0,
+                        "name": chip,
+                        "total_vram_gb": 0.0,  # Hailo uses on-chip SRAM, not VRAM
+                        "tier": gpu_tier_for_name(chip),
+                        "backend": "hailo",
+                    }
+                )
+        except Exception as e:
+            logging.debug(f"[Router] Hailo enumeration failed: {e}")
+
+    # --- AMD GPU via rocm-smi (fallback when PyTorch ROCm not installed) ---
+    if not gpus:
+        try:
+            import subprocess
+
+            out = subprocess.check_output(
+                ["rocm-smi", "--showproductname", "--csv"],
+                timeout=5,
+                stderr=subprocess.DEVNULL,
+            ).decode(errors="replace")
+            import re as _re
+
+            for i, line in enumerate(out.splitlines()):
+                if i == 0 or not line.strip():
+                    continue
+                # CSV: GPU_ID,Card_Series,...
+                parts = [p.strip().strip('"') for p in line.split(",")]
+                name = parts[1] if len(parts) > 1 else f"AMD GPU {i}"
+                gpus.append(
+                    {
+                        "index": i - 1,
+                        "name": name,
+                        "total_vram_gb": 0.0,
+                        "tier": gpu_tier_for_name(name),
+                        "backend": "rocm",
+                    }
+                )
+        except Exception as e:
+            logging.debug(f"[Router] rocm-smi enumeration failed: {e}")
+
+    # --- CPU-only fallback ---
+    # Always include a CPU entry so the router sees compute even on CPU workers.
+    # We add it as a supplemental entry only; if real accelerators were found we
+    # still keep them.
+    try:
+        import platform
+
+        cpu_name = platform.processor() or platform.machine() or "CPU"
+        # On Pi, machine() gives 'aarch64'; enrich with /proc/cpuinfo model name
+        try:
+            with open("/proc/cpuinfo") as f:
+                for line in f:
+                    if line.lower().startswith("model name") or line.lower().startswith(
+                        "hardware"
+                    ):
+                        val = line.split(":", 1)[-1].strip()
+                        if val:
+                            cpu_name = val
+                            break
+        except Exception:
+            pass
+        gpus.append(
+            {
+                "index": -1,
+                "name": cpu_name,
+                "total_vram_gb": 0.0,
+                "tier": TIER_CPU,
+                "backend": "cpu",
+            }
+        )
+    except Exception as e:
+        logging.debug(f"[Router] CPU fallback failed: {e}")
+
     return gpus
 
 
 def best_gpu_tier(gpus: List[Dict[str, Any]]) -> int:
-    """The fastest GPU's tier on this worker. Falls back to CPU tier."""
-    if not gpus:
-        return TIER_CPU
-    return max(int(g.get("tier", TIER_DEFAULT_GPU)) for g in gpus)
+    """The best accelerator tier on this worker.
+
+    Excludes the CPU fallback entry (index -1) from the max so that a worker
+    with a real GPU isn't dragged down, but a CPU-only worker still gets
+    TIER_CPU from the CPU entry.
+    """
+    accel = [g for g in gpus if g.get("index", 0) >= 0]
+    if accel:
+        return max(int(g.get("tier", TIER_DEFAULT_GPU)) for g in accel)
+    # CPU-only worker
+    cpu = [g for g in gpus if g.get("backend") == "cpu"]
+    return int(cpu[0]["tier"]) if cpu else TIER_CPU
 
 
 # ---------------------------------------------------------------------------

@@ -561,13 +561,36 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
     # Worker rows
     def _worker_row(w: Dict[str, Any]) -> str:
         stale = w.get("stale")
+        # Build accelerator summary — skip pure CPU entry if real accelerators exist
+        raw_gpus = w.get("gpus") or []
+        accel_gpus = [g for g in raw_gpus if g.get("index", 0) >= 0]
+        cpu_entry = next((g for g in raw_gpus if g.get("backend") == "cpu"), None)
+        display_gpus = accel_gpus if accel_gpus else ([cpu_entry] if cpu_entry else [])
         gpus = (
             ", ".join(
-                f"{g.get('name', '?')} ({g.get('total_vram_gb', 0):.0f}GB)"
-                for g in w.get("gpus", [])
+                f"{g.get('name', '?')}"
+                + (
+                    f" ({g.get('total_vram_gb', 0):.0f}GB)"
+                    if g.get("total_vram_gb")
+                    else ""
+                )
+                + (
+                    f" [{g.get('backend','')}]"
+                    if g.get("backend") not in ("cuda", None, "")
+                    else ""
+                )
+                for g in display_gpus
             )
-            or "—"
+            or "CPU"
         )
+        # VRAM cell: show vram/total if available, else free RAM
+        free_vram = float(w.get("free_vram_gb") or 0)
+        total_vram = float(w.get("total_vram_gb") or 0)
+        free_ram = float(w.get("free_ram_gb") or 0)
+        if total_vram > 0:
+            mem_cell = f"{free_vram:.1f}/{total_vram:.0f} GB VRAM"
+        else:
+            mem_cell = f"{free_ram:.1f} GB RAM free"
         mq = w.get("model_quant") or {}
         mc = w.get("model_context") or {}
 
@@ -593,7 +616,7 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
           <td>{status}</td>
           <td class="mono small">{w['url']}</td>
           <td>{gpus}<div class="muted small">tier {w.get('best_tier', 0)}</div></td>
-          <td class="num">{w.get('free_vram_gb', 0):.1f}/{w.get('total_vram_gb', 0):.0f} GB</td>
+          <td class="num small">{mem_cell}</td>
           <td>{slots_left}/{slots_total} {bar}<div class="muted small">{w.get('in_flight', 0)} in flight</div></td>
           <td class="small">{', '.join(w.get('capabilities') or []) or '—'}</td>
           <td class="small mono">{models}</td>
