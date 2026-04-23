@@ -460,6 +460,84 @@ class LLM:
             quantization_type=quant_type,
         )
 
+        # Auto-prefer fastest single GPU when the model fits on it alone.
+        #
+        # On a mixed-GPU host (e.g. 5090 + 3090) llama.cpp's default behaviour
+        # is to split the model across BOTH cards by VRAM ratio.  That tanks
+        # prompt-processing throughput because every PP step has to wait for
+        # the slowest GPU.  When the model file plus a reasonable margin for
+        # KV + compute buffer fits in the fastest GPU's free VRAM, we restrict
+        # tensor_split to put 100% there and pin main_gpu to that index.
+        #
+        # Disable with LLM_PREFER_FASTEST_GPU=false, or override with explicit
+        # TENSOR_SPLIT or MAIN_GPU env vars.
+        try:
+            prefer_fastest = getenv(
+                "LLM_PREFER_FASTEST_GPU", "true"
+            ).strip().lower() not in ("false", "0", "no")
+            user_split = (getenv("TENSOR_SPLIT") or "").strip()
+            user_main = getenv("MAIN_GPU")
+            if (
+                prefer_fastest
+                and not user_split
+                and user_main is None
+                and self.gpu_count > 1
+                and self.tensor_split is None
+                and torch.cuda.is_available()
+                and os.path.exists(model_path)
+            ):
+                model_bytes = os.path.getsize(model_path)
+                model_gb = model_bytes / (1024**3)
+                # Headroom multiplier: model weights + KV cache + compute buffer.
+                # 1.4x is a reasonable lower bound for typical contexts; users
+                # can tune via LLM_SINGLE_GPU_HEADROOM (e.g. 1.6 for big ctx).
+                try:
+                    headroom = float(getenv("LLM_SINGLE_GPU_HEADROOM", "1.4"))
+                except ValueError:
+                    headroom = 1.4
+                needed_gb = model_gb * headroom
+                # Rank GPUs by compute capability (highest first), tie-break
+                # by free VRAM.
+                free_per_gpu = get_free_vram_per_gpu()
+                ranked = []
+                for i in range(self.gpu_count):
+                    try:
+                        cc = torch.cuda.get_device_capability(i)
+                        cc_num = cc[0] * 10 + cc[1]
+                    except Exception:
+                        cc_num = 0
+                    ranked.append(
+                        (cc_num, free_per_gpu[i] if i < len(free_per_gpu) else 0.0, i)
+                    )
+                ranked.sort(key=lambda x: (-x[0], -x[1]))
+                # Pick the first GPU (by rank) whose free VRAM covers needed_gb
+                chosen = None
+                for cc_num, free_gb, idx in ranked:
+                    if free_gb >= needed_gb:
+                        chosen = (idx, cc_num, free_gb)
+                        break
+                if chosen is not None:
+                    idx, cc_num, free_gb = chosen
+                    split = [0.0] * 128
+                    split[idx] = 1.0
+                    self.tensor_split = split
+                    self.main_gpu = idx
+                    logging.info(
+                        f"[LLM] Single-GPU mode: model {model_gb:.1f}GB * "
+                        f"{headroom:.2f} = {needed_gb:.1f}GB needed, GPU {idx} "
+                        f"(CC {cc_num // 10}.{cc_num % 10}) has {free_gb:.1f}GB "
+                        f"free; pinning to GPU {idx} for max prompt-processing speed"
+                    )
+                else:
+                    logging.info(
+                        f"[LLM] Multi-GPU split required: model {model_gb:.1f}GB * "
+                        f"{headroom:.2f} = {needed_gb:.1f}GB needed, no single GPU "
+                        f"has enough free VRAM (free per GPU: "
+                        f"{[round(f, 1) for f in free_per_gpu[:self.gpu_count]]})"
+                    )
+        except Exception as e:
+            logging.debug(f"[LLM] single-GPU auto-pick skipped: {e}")
+
         # Initialize xllamacpp
         logging.debug(
             f"[LLM] Loading {self.model_name} with xllamacpp (context: {effective_max_tokens})"
