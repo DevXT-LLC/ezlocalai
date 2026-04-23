@@ -474,12 +474,51 @@ class LLM:
         else:
             default_batch = int(getenv("LLM_BATCH_SIZE", "2048"))
             self.xlc_params.n_batch = default_batch
-        # Set n_ubatch (physical micro-batch / compute graph size) to reduce
-        # compute buffer VRAM usage. Default 512 -> 493MB compute buffer.
-        # Reducing to 256 roughly halves it, giving more room for KV/mmproj.
-        default_ubatch = int(getenv("LLM_UBATCH_SIZE", "256"))
+        # Set n_ubatch (physical micro-batch / compute graph size). This is
+        # the dominant prompt-processing throughput knob: larger ubatch means
+        # each compute step processes more tokens, which lets fast GPUs
+        # (4090/5090) actually saturate their tensor cores. Cost: VRAM for
+        # the compute buffer scales roughly linearly with ubatch.
+        #
+        # Auto-scaling: when LLM_UBATCH_SIZE is unset (or "auto"), pick a
+        # value based on the device's compute capability so high-end GPUs
+        # are not bottlenecked at 256 — but stay conservative on older /
+        # smaller cards where the compute buffer matters more.
+        ubatch_env = (getenv("LLM_UBATCH_SIZE") or "auto").strip().lower()
+        if ubatch_env in ("", "auto", "0"):
+            auto_ubatch = 256
+            try:
+                if torch.cuda.is_available():
+                    # Use the GPU we're going to load on (main_gpu) when
+                    # available, else GPU 0.
+                    probe_idx = (
+                        self.main_gpu
+                        if 0 <= self.main_gpu < torch.cuda.device_count()
+                        else 0
+                    )
+                    cc = torch.cuda.get_device_capability(probe_idx)
+                    # cc is (major, minor): 8.6=Ampere(3090), 8.9=Ada(4090),
+                    # 9.0=Hopper(H100), 12.0=Blackwell(5090)
+                    cc_num = cc[0] * 10 + cc[1]
+                    if cc_num >= 89:  # Ada (4090) and newer (Hopper, Blackwell)
+                        auto_ubatch = 1024
+                    elif cc_num >= 80:  # Ampere (3090, A100)
+                        auto_ubatch = 512
+                    else:  # Older Turing/Volta/Pascal
+                        auto_ubatch = 256
+            except Exception as e:
+                logging.debug(f"[LLM] ubatch auto-detect failed: {e}; using 256")
+            default_ubatch = auto_ubatch
+        else:
+            try:
+                default_ubatch = int(ubatch_env)
+            except ValueError:
+                logging.warning(
+                    f"[LLM] Invalid LLM_UBATCH_SIZE={ubatch_env!r}, falling back to 256"
+                )
+                default_ubatch = 256
         self.xlc_params.n_ubatch = min(default_ubatch, self.xlc_params.n_batch)
-        logging.debug(
+        logging.info(
             f"[LLM] Batch size: {self.xlc_params.n_batch}, ubatch: {self.xlc_params.n_ubatch} for context {effective_max_tokens}"
         )
         self.xlc_params.n_gpu_layers = GPU_LAYERS
