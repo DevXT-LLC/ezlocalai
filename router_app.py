@@ -307,6 +307,7 @@ class UsageTracker:
         model = _normalize_model_name(model)
         prompt_ms = float((timings or {}).get("prompt_ms") or 0.0)
         predicted_ms = float((timings or {}).get("predicted_ms") or 0.0)
+        total_ms = float((timings or {}).get("total_ms") or 0.0)
         prompt_tps = (prompt_tokens / (prompt_ms / 1000.0)) if prompt_ms > 0 else 0.0
         predicted_tps = (
             (completion_tokens / (predicted_ms / 1000.0)) if predicted_ms > 0 else 0.0
@@ -330,6 +331,7 @@ class UsageTracker:
                     "completion_tokens": int(completion_tokens),
                     "prompt_ms": prompt_ms,
                     "predicted_ms": predicted_ms,
+                    "total_ms": total_ms,
                     "prompt_tps": prompt_tps,
                     "predicted_tps": predicted_tps,
                 }
@@ -1484,6 +1486,15 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
     def _hist_row(h: Dict[str, Any]) -> str:
         ts = h.get("ts") or 0
         when = datetime.fromtimestamp(ts).strftime("%H:%M:%S") if ts else "—"
+        total_ms = float(h.get("total_ms") or 0.0)
+        if total_ms > 0:
+            total_cell = (
+                f"{total_ms/1000.0:.2f}s"
+                if total_ms < 60_000
+                else f"{total_ms/60000.0:.2f}m"
+            )
+        else:
+            total_cell = '<span class="muted">—</span>'
         return f"""
         <tr>
           <td class="muted small">{when}</td>
@@ -1493,12 +1504,13 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
           <td class="num small">{int(h.get('completion_tokens') or 0):,}</td>
           <td class="num small">{_fmt_tps(float(h.get('prompt_tps') or 0))}</td>
           <td class="num small">{_fmt_tps(float(h.get('predicted_tps') or 0))}</td>
+          <td class="num small">{total_cell}</td>
         </tr>"""
 
     recent = list(reversed(history))[:50]
     history_rows = (
         "".join(_hist_row(h) for h in recent)
-        or '<tr><td colspan="7" class="muted">No requests yet.</td></tr>'
+        or '<tr><td colspan="8" class="muted">No requests yet.</td></tr>'
     )
 
     # Recent errors section
@@ -1707,6 +1719,7 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
       <th>Time</th><th>Worker</th><th>Model</th>
       <th class="num">Prompt tok</th><th class="num">Output tok</th>
       <th class="num">Prompt t/s</th><th class="num">Output t/s</th>
+      <th class="num">Total time</th>
     </tr></thead>
     <tbody>{history_rows}</tbody>
   </table>
@@ -2306,6 +2319,7 @@ async def _llm_proxy_with_retry(
     last_error: Optional[Exception] = None
     last_status: Optional[int] = None
     max_attempts = 1 + _max_retries()
+    request_started = time.monotonic()
     for attempt in range(max_attempts):
         worker = await _pick(capability, model, exclude=tried)
         tried.add(worker.worker_id)
@@ -2363,6 +2377,7 @@ async def _llm_proxy_with_retry(
                             timings[k] = float(v)
             except Exception:
                 pass
+            timings["total_ms"] = (time.monotonic() - request_started) * 1000.0
             await _usage.record_llm(worker.label, model, pt, ct, timings)
             return resp
 
@@ -2371,6 +2386,8 @@ async def _llm_proxy_with_retry(
         _wlabel, _model = worker.label, model
 
         async def _record(pt: int, ct: int, timings: Dict[str, float]):
+            timings = dict(timings or {})
+            timings["total_ms"] = (time.monotonic() - request_started) * 1000.0
             await _usage.record_llm(_wlabel, _model, pt, ct, timings)
 
         return StreamingResponse(
