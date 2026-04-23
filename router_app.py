@@ -1021,6 +1021,13 @@ async def router_tunnels(_: str = Depends(verify_client)):
             continue
         wid = worker_id_from_tunnel_url(w.url)
         connected_at = connected.get(wid)
+        conn = hub.get(wid)
+        last_close_reason = (
+            getattr(conn, "last_close_reason", "") if conn is not None else ""
+        )
+        last_recv_age = None
+        if conn is not None and getattr(conn, "last_recv", None):
+            last_recv_age = round(now - conn.last_recv, 2)
         workers.append(
             {
                 "worker_id": w.worker_id,
@@ -1031,6 +1038,8 @@ async def router_tunnels(_: str = Depends(verify_client)):
                 "connected_for_seconds": (
                     (now - connected_at) if connected_at else None
                 ),
+                "last_recv_age_seconds": last_recv_age,
+                "last_close_reason": last_close_reason,
                 "alive": w.is_alive(get_registry().ttl),
                 "last_heartbeat_age": round(now - w.last_heartbeat, 2),
             }

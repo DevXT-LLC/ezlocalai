@@ -107,25 +107,35 @@ class TunnelHub:
 class TunnelConnection:
     """A single live worker tunnel as seen by the router."""
 
+    # Tunable via env in router_app's WS handler if needed.
+    PING_INTERVAL = 15.0  # send {t:ping} every N seconds
+    PONG_TIMEOUT = 45.0  # close if no frame received in N seconds
+
     def __init__(self, worker_id: str, ws: Any, hub: TunnelHub) -> None:
         self.worker_id = worker_id
         self.ws = ws  # fastapi.WebSocket
         self.hub = hub
         self.connected_at = time.time()
         self.closed = False
+        self.last_recv = time.time()
+        self.last_close_reason: str = ""
         self._pending: Dict[str, _PendingRequest] = {}
         self._send_lock = asyncio.Lock()
+        self._keepalive_task: Optional[asyncio.Task] = None
 
     async def close(self, reason: str = "") -> None:
         if self.closed:
             return
         self.closed = True
+        self.last_close_reason = reason or self.last_close_reason or "closed"
         # Cancel in-flight requests
         for pid, p in list(self._pending.items()):
             p.error = reason or "tunnel closed"
             p.started.set()
             await p.queue.put(None)
         self._pending.clear()
+        if self._keepalive_task and not self._keepalive_task.done():
+            self._keepalive_task.cancel()
         try:
             await self.ws.close()
         except Exception:
@@ -136,11 +146,40 @@ class TunnelConnection:
         async with self._send_lock:
             await self.ws.send_text(json.dumps(msg))
 
+    async def _keepalive_loop(self) -> None:
+        """Periodically ping the worker and close if it goes silent.
+
+        Catches half-open connections (NAT timeout, silent TCP drop) that
+        ``receive_text()`` would otherwise wait on for many minutes.
+        """
+        try:
+            while not self.closed:
+                await asyncio.sleep(self.PING_INTERVAL)
+                if self.closed:
+                    return
+                if time.time() - self.last_recv > self.PONG_TIMEOUT:
+                    self.last_close_reason = f"no frames in {int(time.time() - self.last_recv)}s (pong timeout)"
+                    logging.warning(
+                        f"[Tunnel:{self.worker_id}] {self.last_close_reason}, closing"
+                    )
+                    await self.close(reason=self.last_close_reason)
+                    return
+                try:
+                    await self._send_json({"t": "ping"})
+                except Exception as e:
+                    self.last_close_reason = f"keepalive send failed: {e}"
+                    await self.close(reason=self.last_close_reason)
+                    return
+        except asyncio.CancelledError:
+            pass
+
     async def reader_loop(self) -> None:
         """Consume frames from the worker until the WS closes."""
+        self._keepalive_task = asyncio.create_task(self._keepalive_loop())
         try:
             while True:
                 raw = await self.ws.receive_text()
+                self.last_recv = time.time()
                 try:
                     msg = json.loads(raw)
                 except Exception:
@@ -174,9 +213,12 @@ class TunnelConnection:
                     pending.started.set()
                     await pending.queue.put(None)
         except Exception as e:
-            logging.debug(f"[Tunnel:{self.worker_id}] reader loop ended: {e}")
+            self.last_close_reason = f"reader: {type(e).__name__}: {e}"
+            logging.info(
+                f"[Tunnel:{self.worker_id}] reader loop ended: {self.last_close_reason}"
+            )
         finally:
-            await self.close(reason="reader closed")
+            await self.close(reason=self.last_close_reason or "reader closed")
 
     async def request(
         self,
@@ -305,12 +347,18 @@ class TunnelClient:
     async def _run(self) -> None:
         backoff = 2.0
         while not self._stop.is_set():
+            connected_at = time.time()
             try:
                 await self._connect_once()
-                backoff = 2.0  # reset on clean disconnect
+                # If we held the connection for >30s, treat as healthy and
+                # reset backoff so a single transient drop doesn't push us
+                # into long sleeps.
+                if time.time() - connected_at > 30:
+                    backoff = 2.0
             except Exception as e:
                 logging.warning(
-                    f"[Tunnel] connection to {self.router_ws_url} failed: {e}"
+                    f"[Tunnel] connection to {self.router_ws_url} failed: "
+                    f"{type(e).__name__}: {e}"
                 )
             if self._stop.is_set():
                 break
@@ -318,7 +366,9 @@ class TunnelClient:
                 await asyncio.wait_for(self._stop.wait(), timeout=backoff)
             except asyncio.TimeoutError:
                 pass
-            backoff = min(60.0, backoff * 1.5)
+            # Cap at 15s so a flapping tunnel recovers quickly once the
+            # network stabilizes.
+            backoff = min(15.0, backoff * 1.5)
 
     async def _connect_once(self) -> None:
         headers = {}
@@ -338,6 +388,7 @@ class TunnelClient:
                 logging.info(
                     f"[Tunnel] Connected to {self.router_ws_url} as {self.worker_id}"
                 )
+                close_reason = "clean close"
                 try:
                     async for msg in ws:
                         if msg.type == aiohttp.WSMsgType.TEXT:
@@ -346,15 +397,26 @@ class TunnelClient:
                             except Exception:
                                 continue
                             asyncio.create_task(self._handle(payload))
-                        elif msg.type in (
-                            aiohttp.WSMsgType.CLOSE,
-                            aiohttp.WSMsgType.CLOSED,
-                            aiohttp.WSMsgType.ERROR,
-                        ):
+                        elif msg.type == aiohttp.WSMsgType.PING:
+                            # aiohttp auto-pongs, just note activity
+                            continue
+                        elif msg.type == aiohttp.WSMsgType.CLOSE:
+                            close_reason = (
+                                f"server CLOSE code={ws.close_code} "
+                                f"extra={msg.extra!r}"
+                            )
+                            break
+                        elif msg.type == aiohttp.WSMsgType.CLOSED:
+                            close_reason = f"CLOSED code={ws.close_code}"
+                            break
+                        elif msg.type == aiohttp.WSMsgType.ERROR:
+                            close_reason = f"WS ERROR: {ws.exception()}"
                             break
                 finally:
                     self._ws = None
-                    logging.info(f"[Tunnel] Disconnected from {self.router_ws_url}")
+                    logging.info(
+                        f"[Tunnel] Disconnected from {self.router_ws_url}: {close_reason}"
+                    )
 
     async def _send_json(self, msg: Dict[str, Any]) -> None:
         ws = self._ws
