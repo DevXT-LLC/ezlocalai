@@ -127,6 +127,185 @@ PRECACHE_LOCK = Path("/tmp/ezlocalai_precache.lock")
 PRECACHE_DONE = Path("/tmp/ezlocalai_precache.done")
 
 
+def _format_bytes(num_bytes: float) -> str:
+    """Format a byte count as a human-readable string."""
+    if num_bytes is None:
+        return "?"
+    for unit in ("B", "KB", "MB", "GB", "TB"):
+        if num_bytes < 1024 or unit == "TB":
+            return f"{num_bytes:.2f}{unit}"
+        num_bytes /= 1024
+    return f"{num_bytes:.2f}TB"
+
+
+def _get_remote_size(repo_id: str, filename: str, revision=None) -> int:
+    """Best-effort lookup of a file's total size on the Hugging Face Hub."""
+    try:
+        from huggingface_hub import get_hf_file_metadata, hf_hub_url
+
+        meta = get_hf_file_metadata(hf_hub_url(repo_id, filename, revision=revision))
+        return int(meta.size) if meta and meta.size else 0
+    except Exception:
+        return 0
+
+
+def _scan_downloaded_bytes(local_dir, cache_dir, repo_id: str, filename: str) -> int:
+    """Return the current size of the in-progress or completed download.
+
+    huggingface_hub stages downloads into different locations depending on
+    whether ``local_dir`` is provided:
+      * ``local_dir`` mode: writes to
+        ``<local_dir>/.cache/huggingface/download/<hash>.incomplete``, then
+        moves the final file to ``<local_dir>/<filename>``.
+      * cache_dir mode: writes to
+        ``<cache_dir>/models--<org>--<repo>/blobs/<hash>(.incomplete)``.
+    We probe both and return the largest matching size so progress reflects
+    whichever file is currently growing.
+    """
+    candidates = []
+    if local_dir:
+        candidates.append(os.path.join(local_dir, filename))
+        staging = os.path.join(local_dir, ".cache", "huggingface", "download")
+        if os.path.isdir(staging):
+            for entry in os.listdir(staging):
+                if entry.endswith(".incomplete"):
+                    candidates.append(os.path.join(staging, entry))
+    if cache_dir and repo_id:
+        repo_cache = os.path.join(
+            cache_dir, "models--" + repo_id.replace("/", "--"), "blobs"
+        )
+        if os.path.isdir(repo_cache):
+            for entry in os.listdir(repo_cache):
+                candidates.append(os.path.join(repo_cache, entry))
+
+    largest = 0
+    for path in candidates:
+        try:
+            size = os.path.getsize(path)
+        except OSError:
+            continue
+        if size > largest:
+            largest = size
+    return largest
+
+
+def download_with_progress(repo_id: str, filename: str, **kwargs):
+    """Download a file from the Hugging Face Hub and log progress periodically.
+
+    Wraps ``huggingface_hub.hf_hub_download`` so that long downloads (e.g. multi
+    GB GGUF model files) emit periodic progress lines that survive Docker log
+    aggregation (no carriage returns / TTY required). The underlying download
+    is unchanged — caching, symlinks, and resume behavior are preserved.
+    """
+    import threading
+
+    from huggingface_hub import hf_hub_download
+
+    revision = kwargs.get("revision")
+    total = _get_remote_size(repo_id, filename, revision=revision)
+
+    cache_dir = kwargs.get("cache_dir") or os.environ.get(
+        "HF_HOME", os.path.expanduser("~/.cache/huggingface")
+    )
+    local_dir = kwargs.get("local_dir")
+
+    label = f"{repo_id}/{filename}"
+    total_str = _format_bytes(total) if total else "unknown"
+    logging.info(f"  ⬇ {label} ({total_str})")
+
+    result: dict = {}
+
+    def _do_download():
+        try:
+            result["path"] = hf_hub_download(repo_id, filename, **kwargs)
+        except BaseException as err:  # noqa: BLE001 - re-raised below
+            result["error"] = err
+
+    worker = threading.Thread(target=_do_download, daemon=True)
+    start = time.time()
+    worker.start()
+
+    interval = float(os.getenv("EZLOCALAI_DOWNLOAD_PROGRESS_INTERVAL", "10"))
+    while True:
+        worker.join(timeout=interval)
+        if not worker.is_alive():
+            break
+        downloaded = _scan_downloaded_bytes(local_dir, cache_dir, repo_id, filename)
+        elapsed = max(time.time() - start, 1e-6)
+        rate = downloaded / elapsed
+        if total and downloaded:
+            pct = min(downloaded * 100.0 / total, 99.9)
+            remaining = max(total - downloaded, 0)
+            eta = remaining / rate if rate > 0 else 0
+            logging.info(
+                f"    … {label}: {_format_bytes(downloaded)}/{_format_bytes(total)}"
+                f" ({pct:.1f}%) {_format_bytes(rate)}/s ETA {eta:.0f}s"
+            )
+        else:
+            logging.info(
+                f"    … {label}: {_format_bytes(downloaded)} so far"
+                f" ({_format_bytes(rate)}/s, {elapsed:.0f}s elapsed)"
+            )
+
+    if "error" in result:
+        raise result["error"]
+    return result.get("path")
+
+
+def snapshot_download_with_progress(repo_id: str, **kwargs):
+    """Run ``snapshot_download`` while logging cache growth periodically."""
+    import threading
+
+    from huggingface_hub import snapshot_download
+
+    cache_dir = kwargs.get("cache_dir") or os.environ.get(
+        "HF_HOME", os.path.expanduser("~/.cache/huggingface")
+    )
+    logging.info(f"  ⬇ snapshot {repo_id}")
+
+    result: dict = {}
+
+    def _do_snapshot():
+        try:
+            result["path"] = snapshot_download(repo_id, **kwargs)
+        except BaseException as err:  # noqa: BLE001
+            result["error"] = err
+
+    worker = threading.Thread(target=_do_snapshot, daemon=True)
+    start = time.time()
+    worker.start()
+
+    interval = float(os.getenv("EZLOCALAI_DOWNLOAD_PROGRESS_INTERVAL", "10"))
+
+    def _dir_size(path: str) -> int:
+        total = 0
+        if not path or not os.path.isdir(path):
+            return 0
+        for root, _dirs, files in os.walk(path):
+            for f in files:
+                try:
+                    total += os.path.getsize(os.path.join(root, f))
+                except OSError:
+                    continue
+        return total
+
+    while True:
+        worker.join(timeout=interval)
+        if not worker.is_alive():
+            break
+        size = _dir_size(cache_dir)
+        elapsed = max(time.time() - start, 1e-6)
+        rate = size / elapsed
+        logging.info(
+            f"    … snapshot {repo_id}: {_format_bytes(size)} cached"
+            f" ({_format_bytes(rate)}/s, {elapsed:.0f}s elapsed)"
+        )
+
+    if "error" in result:
+        raise result["error"]
+    return result.get("path")
+
+
 def precache_llm_models():
     """Download and calibrate all configured LLM models."""
     # Skip if text server URL is configured (text passthrough mode)
@@ -217,7 +396,9 @@ def precache_llm_models():
                     best_file = gguf_files[0]
 
                 # Download the model file to the same local_dir that LLM.py expects
-                model_path = hf_hub_download(model_name, best_file, local_dir=model_dir)
+                model_path = download_with_progress(
+                    model_name, best_file, local_dir=model_dir
+                )
                 elapsed = time.time() - start_time
                 logging.info(f"  ✓ {model_name} ({elapsed:.1f}s)")
 
@@ -235,7 +416,7 @@ def precache_llm_models():
                 ]
                 if mmproj_files:
                     proj_file = mmproj_files[0]
-                    hf_hub_download(model_name, proj_file, local_dir=model_dir)
+                    download_with_progress(model_name, proj_file, local_dir=model_dir)
 
         except Exception as e:
             logging.error(f"  ✗ {model_name}: {e}")
@@ -354,11 +535,9 @@ def precache_image_model():
                 if "gguf" in img_model.lower()
                 else "unsloth/FLUX.2-klein-4B-GGUF"
             )
-            hf_hub_download(repo, filename=gguf_filename, cache_dir="models")
+            download_with_progress(repo, filename=gguf_filename, cache_dir="models")
         else:
-            from huggingface_hub import snapshot_download
-
-            snapshot_download(img_model)
+            snapshot_download_with_progress(img_model)
 
         elapsed = time.time() - start_time
         logging.info(f"  ✓ {img_model} ({elapsed:.1f}s)")
@@ -392,15 +571,13 @@ def precache_video_model():
 
         # Download GGUF transformer file
         gguf_filename = "ltx-2.3-22b-dev-Q4_K_M.gguf"
-        logging.info(f"  Downloading {video_model}/{gguf_filename}...")
-        hf_hub_download(video_model, filename=gguf_filename, cache_dir="models")
+        download_with_progress(video_model, filename=gguf_filename, cache_dir="models")
 
         # Download matching connector text projections from unsloth
         connector_file = (
             "text_encoders/ltx-2.3-22b-dev_embeddings_connectors.safetensors"
         )
-        logging.info(f"  Downloading {video_model}/{connector_file}...")
-        hf_hub_download(video_model, filename=connector_file, cache_dir="models")
+        download_with_progress(video_model, filename=connector_file, cache_dir="models")
 
         elapsed = time.time() - start_time
         logging.info(f"  ✓ {video_model} ({elapsed:.1f}s)")

@@ -57,7 +57,6 @@ services:
       - "8091:8091"
     volumes:
       - ./models:/app/models
-      - ./hf:/home/root/.cache/huggingface/hub
       - ./outputs:/app/outputs
       - ./voices:/app/voices
       - ./whispercpp:/app/whispercpp

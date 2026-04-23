@@ -146,7 +146,10 @@ RUN mkdir -p /app/outputs
 ENV HOST=0.0.0.0 \
     TOKENIZERS_PARALLELISM=false \
     UVICORN_WORKERS=1 \
-    CUDA_DOCKER_ARCH=all
+    CUDA_DOCKER_ARCH=all \
+    PYTHONUNBUFFERED=1 \
+    HF_HOME=/app/models \
+    HF_HUB_CACHE=/app/models
 
 EXPOSE 8091
 CMD ["python", "start.py"]

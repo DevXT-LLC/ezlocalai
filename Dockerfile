@@ -31,7 +31,10 @@ RUN pip install xllamacpp==0.2.12 --force-reinstall --no-cache-dir
 
 COPY . .
 ENV HOST=0.0.0.0 \
-    TOKENIZERS_PARALLELISM=false
+    TOKENIZERS_PARALLELISM=false \
+    PYTHONUNBUFFERED=1 \
+    HF_HOME=/app/models \
+    HF_HUB_CACHE=/app/models
 EXPOSE 8091
 # Use start.py which runs precache once, then starts uvicorn workers
 CMD ["python", "start.py"]

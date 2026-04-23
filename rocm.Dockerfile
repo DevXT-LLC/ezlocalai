@@ -33,7 +33,10 @@ RUN uv pip install -r rocm-requirements.txt
 # This allows us to use transformers>=4.53.0 for security fixes
 RUN uv pip install chatterbox-tts --no-deps
 ENV HOST=0.0.0.0 \
-    ROCM_VER=6.4.1
+    ROCM_VER=6.4.1 \
+    PYTHONUNBUFFERED=1 \
+    HF_HOME=/app/models \
+    HF_HUB_CACHE=/app/models
 # Install xllamacpp with ROCm 6.4.1 support
 RUN uv pip install xllamacpp==0.2.12 --reinstall --index-url https://xorbitsai.github.io/xllamacpp/whl/rocm-6.4.1
 COPY . .

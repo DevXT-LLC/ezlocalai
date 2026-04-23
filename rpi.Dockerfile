@@ -37,7 +37,10 @@ ENV HOST=0.0.0.0 \
     TTS_ENABLED=false \
     STT_ENABLED=false \
     IMG_MODEL="" \
-    DEFAULT_MODEL=unsloth/Qwen3.5-0.6B-GGUF
+    DEFAULT_MODEL=unsloth/Qwen3.5-0.6B-GGUF \
+    PYTHONUNBUFFERED=1 \
+    HF_HOME=/app/models \
+    HF_HUB_CACHE=/app/models
 
 EXPOSE 8091
 CMD ["python", "start.py"]
