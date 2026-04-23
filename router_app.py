@@ -963,7 +963,28 @@ def _aggregate_dashboard() -> Dict[str, Any]:
         ),
         "usage": _usage.snapshot(),
         "history": _usage.history_snapshot(),
+        "errors": _aggregate_recent_errors(alive + stale),
     }
+
+
+def _aggregate_recent_errors(workers) -> List[Dict[str, Any]]:
+    """Flatten recent errors from every worker, newest first, capped."""
+    out: List[Dict[str, Any]] = []
+    for w in workers:
+        for ev in getattr(w, "recent_errors", []) or []:
+            out.append(
+                {
+                    "ts": ev.get("ts", 0),
+                    "worker_id": w.worker_id,
+                    "label": w.label,
+                    "kind": ev.get("kind", ""),
+                    "status": ev.get("status"),
+                    "path": ev.get("path", ""),
+                    "message": ev.get("message", ""),
+                }
+            )
+    out.sort(key=lambda x: x.get("ts", 0), reverse=True)
+    return out[:100]
 
 
 @app.get("/v1/router/dashboard", tags=["Router"])
@@ -987,6 +1008,32 @@ async def router_history(limit: int = 200, _: str = Depends(verify_client)):
     ``predicted_tps``.
     """
     return {"history": _usage.history_snapshot(limit=limit)}
+
+
+@app.get("/v1/router/errors", tags=["Router"])
+async def router_errors(_: str = Depends(verify_client)):
+    """Per-worker recent error events plus circuit-breaker state.
+
+    Returns a list of workers with their ``total_errors``, ``circuit_open``,
+    ``circuit_open_until``, and the most recent error events.  Also returns
+    a flat ``errors`` list across all workers, newest first, capped at 100.
+    """
+    registry = get_registry()
+    workers = registry.list_workers(alive_only=False)
+    return {
+        "workers": [
+            {
+                "worker_id": w.worker_id,
+                "label": w.label,
+                "total_errors": w.total_errors,
+                "circuit_open": w.is_circuit_open(),
+                "circuit_open_until": w.circuit_open_until,
+                "recent_errors": list(w.recent_errors or []),
+            }
+            for w in workers
+        ],
+        "errors": _aggregate_recent_errors(workers),
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -1185,6 +1232,20 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
         bar = f'<div class="bar"><div class="bar-fill" style="width:{slot_pct:.0f}%"></div></div>'
         last_hb = w.get("last_heartbeat_age", 0)
         status = "🔴 stale" if stale else ("🟢 ready" if slots_left > 0 else "🟡 full")
+        circuit_open = bool(w.get("circuit_open"))
+        total_errors = int(w.get("total_errors", 0) or 0)
+        if circuit_open:
+            err_cell = (
+                f'<span style="color:#f85149">🔴 OPEN</span>'
+                f'<div class="muted small">{total_errors} total</div>'
+            )
+        elif total_errors:
+            err_cell = (
+                f'<span style="color:#d29922">{total_errors}</span>'
+                f'<div class="muted small">recent ok</div>'
+            )
+        else:
+            err_cell = '<span class="muted">0</span>'
         raw_caps = w.get("capabilities") or []
         # Merge text + vision into a single "text+vision" pill on the worker row
         if "text" in raw_caps and "vision" in raw_caps:
@@ -1206,11 +1267,12 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
           <td class="small mono">{models}</td>
           <td class="num small">{last_hb:.0f}s</td>
           <td class="mono small">{_version_link(w.get('version') or '')}</td>
+          <td class="small">{err_cell}</td>
         </tr>
         """
 
     worker_rows = "".join(_worker_row(w) for w in data["workers"]) or (
-        '<tr><td colspan="10" class="muted">No workers registered.</td></tr>'
+        '<tr><td colspan="11" class="muted">No workers registered.</td></tr>'
     )
 
     # Usage section — per-worker historical stats
@@ -1356,6 +1418,31 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
     history_rows = (
         "".join(_hist_row(h) for h in recent)
         or '<tr><td colspan="7" class="muted">No requests yet.</td></tr>'
+    )
+
+    # Recent errors section
+    errors = data.get("errors") or []
+
+    def _err_row(e: Dict[str, Any]) -> str:
+        ts = e.get("ts") or 0
+        when = datetime.utcfromtimestamp(ts).strftime("%H:%M:%S") if ts else "—"
+        kind = (e.get("kind") or "").replace("_", " ")
+        status = e.get("status")
+        status_cell = f'<span class="mono small">{status}</span>' if status else ""
+        msg = (e.get("message") or "").replace("<", "&lt;").replace(">", "&gt;")
+        return f"""
+        <tr>
+          <td class="muted small">{when}</td>
+          <td class="small"><b>{e.get('label', '—')}</b></td>
+          <td class="small">{kind}</td>
+          <td class="small">{status_cell}</td>
+          <td class="mono small">{e.get('path', '—')}</td>
+          <td class="mono small">{msg}</td>
+        </tr>"""
+
+    error_rows = (
+        "".join(_err_row(e) for e in errors[:50])
+        or '<tr><td colspan="6" class="muted">No errors recorded.</td></tr>'
     )
 
     return f"""<!doctype html>
@@ -1504,7 +1591,7 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
     <thead><tr>
       <th>Label</th><th>Status</th><th>URL</th><th>GPUs</th>
       <th>Free VRAM</th><th>Slots free</th><th>Capabilities</th>
-      <th>Models</th><th class="num">Last hb</th><th>Version</th>
+      <th>Models</th><th class="num">Last hb</th><th>Version</th><th>Errors</th>
     </tr></thead>
     <tbody>{worker_rows}</tbody>
   </table>
@@ -1541,6 +1628,14 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
       <th class="num">Prompt t/s</th><th class="num">Output t/s</th>
     </tr></thead>
     <tbody>{history_rows}</tbody>
+  </table>
+
+  <h2>Recent errors</h2>
+  <table>
+    <thead><tr>
+      <th>Time</th><th>Worker</th><th>Kind</th><th>Status</th><th>Path</th><th>Message</th>
+    </tr></thead>
+    <tbody>{error_rows}</tbody>
   </table>
   </div>
 <script>
@@ -1740,6 +1835,12 @@ async def _proxy_json(
         except Exception as e:
             logging.warning(f"[Router] POST {worker.url}{path} failed: {e}")
             registry.record_connection_failure(worker.worker_id)
+            registry.record_error(
+                worker.worker_id,
+                kind="connection",
+                path=path,
+                message=f"{type(e).__name__}: {e}",
+            )
             raise
         finally:
             registry.increment_in_flight(worker.worker_id, -1)
@@ -1758,6 +1859,12 @@ async def _proxy_json(
         except Exception as e:
             logging.warning(f"[Router] Stream from {worker.url}{path} failed: {e}")
             registry.record_connection_failure(worker.worker_id)
+            registry.record_error(
+                worker.worker_id,
+                kind="stream",
+                path=path,
+                message=f"{type(e).__name__}: {e}",
+            )
         finally:
             await session.close()
             registry.increment_in_flight(worker.worker_id, -1)
@@ -1785,6 +1892,12 @@ async def _proxy_get(worker: WorkerInfo, path: str) -> Response:
         logging.warning(f"[Router] GET {worker.url}{path} failed: {e}")
         registry = get_registry()
         registry.record_connection_failure(worker.worker_id)
+        registry.record_error(
+            worker.worker_id,
+            kind="connection",
+            path=path,
+            message=f"{type(e).__name__}: {e}",
+        )
         raise
 
 
@@ -1998,6 +2111,12 @@ async def _proxy_multipart(
     except Exception as e:
         logging.warning(f"[Router] Multipart POST {worker.url}{path} failed: {e}")
         registry.record_connection_failure(worker.worker_id)
+        registry.record_error(
+            worker.worker_id,
+            kind="connection",
+            path=path,
+            message=f"{type(e).__name__}: {e}",
+        )
         raise
     finally:
         registry.increment_in_flight(worker.worker_id, -1)
@@ -2099,6 +2218,21 @@ async def _llm_proxy_with_retry(
                 logging.warning(
                     f"[Router] {path} attempt {attempt + 1}/{max_attempts} via "
                     f"{worker.label} returned {status}; retrying on next worker"
+                )
+                try:
+                    body_snippet = (
+                        resp.body.decode("utf-8", errors="replace")[:500]
+                        if hasattr(resp, "body")
+                        else ""
+                    )
+                except Exception:
+                    body_snippet = ""
+                get_registry().record_error(
+                    worker.worker_id,
+                    kind="http_5xx",
+                    path=path,
+                    message=body_snippet or f"HTTP {status}",
+                    status=status,
                 )
                 continue
             # Final non-streaming response — extract tokens & timings if any

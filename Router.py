@@ -528,6 +528,14 @@ class WorkerInfo:
     connection_failures: int = 0
     # Git commit hash of the ezlocalai repo running on this worker (short SHA)
     version: str = ""
+    # Recent error events (sliding window; capped). Each entry:
+    # {ts, kind, status, path, message}
+    recent_errors: List[Dict[str, Any]] = field(default_factory=list)
+    # Cumulative count of all errors seen since registration
+    total_errors: int = 0
+    # Circuit breaker: when open, the worker is excluded from selection
+    # until ``circuit_open_until`` (epoch seconds) passes.
+    circuit_open_until: float = 0.0
 
     def to_public(self) -> Dict[str, Any]:
         return {
@@ -551,8 +559,16 @@ class WorkerInfo:
             "age_seconds": time.time() - self.registered_at,
             "last_heartbeat_age": time.time() - self.last_heartbeat,
             "version": self.version,
+            "connection_failures": self.connection_failures,
+            "total_errors": self.total_errors,
+            "recent_errors": list(self.recent_errors),
+            "circuit_open_until": self.circuit_open_until,
+            "circuit_open": self.is_circuit_open(),
             "extra": self.extra,
         }
+
+    def is_circuit_open(self) -> bool:
+        return time.time() < self.circuit_open_until
 
     def is_alive(self, ttl: float) -> bool:
         return (time.time() - self.last_heartbeat) <= ttl
@@ -719,6 +735,69 @@ class WorkerRegistry:
             )
             return w.connection_failures
 
+    def record_error(
+        self,
+        worker_id: str,
+        kind: str,
+        path: str,
+        message: str,
+        status: Optional[int] = None,
+    ) -> None:
+        """Record a per-worker error event and trip the circuit breaker on
+        repeated failures within a short rolling window.
+
+        ``kind`` is a short tag (``connection``, ``http_5xx``, ``timeout``,
+        ``tunnel_disconnect``, etc.). ``message`` is the human-readable
+        diagnostic the dashboard shows.
+
+        Circuit breaker tuning via env:
+          * ``ROUTER_ERROR_WINDOW_SECONDS`` (default 60)
+          * ``ROUTER_ERROR_THRESHOLD``      (default 3)
+          * ``ROUTER_CIRCUIT_COOLDOWN``     (default 30)
+          * ``ROUTER_ERROR_HISTORY_MAX``    (default 50)
+        """
+        try:
+            window = float(os.environ.get("ROUTER_ERROR_WINDOW_SECONDS", "60"))
+            threshold = int(os.environ.get("ROUTER_ERROR_THRESHOLD", "3"))
+            cooldown = float(os.environ.get("ROUTER_CIRCUIT_COOLDOWN", "30"))
+            history_max = int(os.environ.get("ROUTER_ERROR_HISTORY_MAX", "50"))
+        except (TypeError, ValueError):
+            window, threshold, cooldown, history_max = 60.0, 3, 30.0, 50
+        now = time.time()
+        with self._lock:
+            w = self._workers.get(worker_id)
+            if w is None:
+                return
+            event = {
+                "ts": now,
+                "kind": kind,
+                "status": status,
+                "path": path,
+                "message": str(message)[:500],
+            }
+            w.recent_errors.append(event)
+            w.total_errors += 1
+            # Trim history
+            if len(w.recent_errors) > history_max:
+                drop = len(w.recent_errors) - history_max
+                del w.recent_errors[:drop]
+            # Count errors inside the rolling window
+            recent_in_window = sum(
+                1 for e in w.recent_errors if now - e["ts"] <= window
+            )
+            logging.warning(
+                f"[Router] Worker {w.label} error: kind={kind} status={status} "
+                f"path={path} msg={message!r} "
+                f"({recent_in_window} in last {window:.0f}s, total {w.total_errors})"
+            )
+            if recent_in_window >= threshold and not w.is_circuit_open():
+                w.circuit_open_until = now + cooldown
+                logging.error(
+                    f"[Router] Circuit OPEN for {w.label}: {recent_in_window} errors "
+                    f"in {window:.0f}s (threshold {threshold}); excluding for "
+                    f"{cooldown:.0f}s"
+                )
+
 
 # ---------------------------------------------------------------------------
 # Router (selection logic)
@@ -755,7 +834,9 @@ class Router:
         all_alive = [
             w
             for w in self.registry.list_workers(alive_only=True)
-            if capability in w.capabilities and w.worker_id not in excluded
+            if capability in w.capabilities
+            and w.worker_id not in excluded
+            and not w.is_circuit_open()
         ]
 
         def _has_capacity(workers):
