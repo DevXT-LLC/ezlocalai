@@ -955,16 +955,31 @@ def _aggregate_dashboard() -> Dict[str, Any]:
             ),
         ),
         "workers": sorted(
-            [w.to_public() for w in alive], key=lambda x: -x.get("best_tier", 0)
+            [_public_with_tunnel(w) for w in alive],
+            key=lambda x: -x.get("best_tier", 0),
         )
         + sorted(
-            [{**w.to_public(), "stale": True} for w in stale],
+            [{**_public_with_tunnel(w), "stale": True} for w in stale],
             key=lambda x: -x.get("best_tier", 0),
         ),
         "usage": _usage.snapshot(),
         "history": _usage.history_snapshot(),
         "errors": _aggregate_recent_errors(alive + stale),
     }
+
+
+def _public_with_tunnel(w) -> Dict[str, Any]:
+    """Worker.to_public() plus tunnel status for tunneled workers."""
+    pub = w.to_public()
+    if is_tunnel_url(w.url):
+        hub = get_tunnel_hub()
+        wid = worker_id_from_tunnel_url(w.url)
+        pub["tunnel"] = True
+        pub["tunnel_connected"] = hub.is_connected(wid)
+    else:
+        pub["tunnel"] = False
+        pub["tunnel_connected"] = None
+    return pub
 
 
 def _aggregate_recent_errors(workers) -> List[Dict[str, Any]]:
@@ -991,6 +1006,44 @@ def _aggregate_recent_errors(workers) -> List[Dict[str, Any]]:
 async def router_dashboard_json(_: str = Depends(verify_client)):
     """JSON form of the dashboard data."""
     return _aggregate_dashboard()
+
+
+@app.get("/v1/router/tunnels", tags=["Router"])
+async def router_tunnels(_: str = Depends(verify_client)):
+    """Currently connected reverse-tunnel WebSockets and their status
+    correlated to registered workers."""
+    hub = get_tunnel_hub()
+    connected = hub.connected_workers()  # {worker_id: connected_at}
+    now = time.time()
+    workers = []
+    for w in get_registry().list_workers(alive_only=False):
+        if not is_tunnel_url(w.url):
+            continue
+        wid = worker_id_from_tunnel_url(w.url)
+        connected_at = connected.get(wid)
+        workers.append(
+            {
+                "worker_id": w.worker_id,
+                "label": w.label,
+                "tunnel_worker_id": wid,
+                "connected": connected_at is not None,
+                "connected_at": connected_at,
+                "connected_for_seconds": (
+                    (now - connected_at) if connected_at else None
+                ),
+                "alive": w.is_alive(get_registry().ttl),
+                "last_heartbeat_age": round(now - w.last_heartbeat, 2),
+            }
+        )
+    orphans = [
+        {"tunnel_worker_id": wid, "connected_at": ts}
+        for wid, ts in connected.items()
+        if not any(
+            wid == worker_id_from_tunnel_url(w.url)
+            for w in get_registry().list_workers(alive_only=False)
+        )
+    ]
+    return {"workers": workers, "orphan_tunnels": orphans}
 
 
 @app.get("/v1/router/usage", tags=["Router"])
@@ -1231,7 +1284,15 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
         slot_pct = 0 if slots_total == 0 else (1 - slots_left / slots_total) * 100
         bar = f'<div class="bar"><div class="bar-fill" style="width:{slot_pct:.0f}%"></div></div>'
         last_hb = w.get("last_heartbeat_age", 0)
-        status = "🔴 stale" if stale else ("🟢 ready" if slots_left > 0 else "🟡 full")
+        tunnel_connected = w.get("tunnel_connected")
+        if stale:
+            status = "🔴 stale"
+        elif tunnel_connected is False:
+            status = '<span style="color:#f85149">🔌 tunnel-off</span>'
+        elif slots_left > 0:
+            status = "🟢 ready"
+        else:
+            status = "🟡 full"
         circuit_open = bool(w.get("circuit_open"))
         total_errors = int(w.get("total_errors", 0) or 0)
         if circuit_open:
@@ -1255,11 +1316,19 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
         else:
             display_caps = raw_caps
         cap_pills = " ".join(_cap_pill(c) for c in display_caps) or "—"
+        if w.get("tunnel"):
+            url_cell = (
+                f"{w['url']}"
+                f'<div class="muted small">🔌 '
+                f"{'connected' if tunnel_connected else 'disconnected'}</div>"
+            )
+        else:
+            url_cell = w["url"]
         return f"""
         <tr class="{'stale' if stale else ''}">
           <td><b>{w['label']}</b><div class="muted small">{w['worker_id']}</div></td>
           <td>{status}</td>
-          <td class="mono small">{w['url']}</td>
+          <td class="mono small">{url_cell}</td>
           <td>{gpus}<div class="muted small">{_tier_badge(w.get('best_tier', 0))}</div></td>
           <td class="num small">{mem_cell}</td>
           <td>{slots_left}/{slots_total} {bar}<div class="muted small">{w.get('in_flight', 0)} in flight</div></td>
@@ -1697,8 +1766,25 @@ async def _pick(
     exclude: Optional[set] = None,
 ) -> WorkerInfo:
     router = get_router()
+    # Pre-exclude tunneled workers whose WebSocket is not currently connected.
+    # Without this the selector happily hands out a tunnel worker, the proxy
+    # then 503s with "Tunnel ... is not connected", and we burn a retry.
+    hub = get_tunnel_hub()
+    registry = get_registry()
+    pre_exclude = set(exclude or ())
+    unavailable: List[str] = []
+    for w in registry.list_workers(alive_only=True):
+        if is_tunnel_url(w.url):
+            wid = worker_id_from_tunnel_url(w.url)
+            if not hub.is_connected(wid):
+                pre_exclude.add(w.worker_id)
+                unavailable.append(w.label)
+    if unavailable:
+        logging.info(
+            f"[Router] tunnel offline, excluding from selection: {', '.join(unavailable)}"
+        )
     worker = await router.wait_for_worker(
-        capability, model, timeout=_wait_timeout(), exclude=exclude
+        capability, model, timeout=_wait_timeout(), exclude=pre_exclude
     )
     if worker is None:
         raise HTTPException(
@@ -1751,6 +1837,16 @@ async def _proxy_via_tunnel(
     wid = worker_id_from_tunnel_url(worker.url)
     conn = hub.get(wid)
     if conn is None or conn.closed:
+        try:
+            get_registry().record_error(
+                worker.worker_id,
+                kind="tunnel_disconnect",
+                path=path,
+                message=f"Tunnel {wid} not connected",
+                status=503,
+            )
+        except Exception:
+            pass
         raise HTTPException(
             status_code=503,
             detail=f"Tunnel for worker {worker.label} ({wid}) is not connected",
