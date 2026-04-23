@@ -5154,7 +5154,22 @@ class Pipes:
                 and self.current_context
                 and self.current_context >= context_size
             ):
-                logging.debug(f"[LLM _get_llm] Using current self.llm (already loaded)")
+                # Bump to INFO when there are multiple replicas so the user
+                # can verify which one is handling each request from logs.
+                source_name = self._resolve_source_model(model_name)
+                if len(self.model_replicas.get(source_name, [])) > 1:
+                    cfg = self.model_configs.get(model_name, {}) or {}
+                    logging.info(
+                        f"[LLM] Request -> replica {model_name!r} "
+                        f"(GPU {cfg.get('main_gpu', '?')}, "
+                        f"ctx {cfg.get('max_tokens', '?')}, "
+                        f"n_parallel={cfg.get('n_parallel', '?')}, "
+                        f"in_flight={self._inference_count})"
+                    )
+                else:
+                    logging.debug(
+                        f"[LLM _get_llm] Using current self.llm (already loaded)"
+                    )
                 return self.llm
 
             # Replica spillover: if this source model has multiple loaded replicas,
@@ -5203,9 +5218,18 @@ class Pipes:
                     cfg = self.model_configs.get(model_name, {})
                     loaded_context = cfg.get("max_tokens", self._optimal_context)
                     if loaded_context >= context_size:
-                        logging.debug(
-                            f"[LLM] Switching to persistent model: {model_name}"
-                        )
+                        # INFO when this is a switch (replica swap) so we can
+                        # see in logs which GPU is actually serving traffic.
+                        was = self.current_llm_name
+                        if was != model_name:
+                            logging.info(
+                                f"[LLM] Switching active replica: {was!r} -> {model_name!r} "
+                                f"(GPU {cfg.get('main_gpu', '?')}, ctx {loaded_context})"
+                            )
+                        else:
+                            logging.debug(
+                                f"[LLM] Switching to persistent model: {model_name}"
+                            )
                         self.llm = persistent
                         self.current_llm_name = model_name
                         self.current_context = loaded_context
