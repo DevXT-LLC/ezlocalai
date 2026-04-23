@@ -317,11 +317,27 @@ class UsageTracker:
             llm = w.setdefault("llm", {})
             m = llm.setdefault(
                 model,
-                {"requests": 0, "prompt_tokens": 0, "completion_tokens": 0},
+                {
+                    "requests": 0,
+                    "prompt_tokens": 0,
+                    "completion_tokens": 0,
+                    "prompt_tps_sum": 0.0,
+                    "prompt_tps_n": 0,
+                    "predicted_tps_sum": 0.0,
+                    "predicted_tps_n": 0,
+                },
             )
             m["requests"] += 1
             m["prompt_tokens"] += prompt_tokens
             m["completion_tokens"] += completion_tokens
+            if prompt_tps > 0:
+                m["prompt_tps_sum"] = float(m.get("prompt_tps_sum", 0.0)) + prompt_tps
+                m["prompt_tps_n"] = int(m.get("prompt_tps_n", 0)) + 1
+            if predicted_tps > 0:
+                m["predicted_tps_sum"] = (
+                    float(m.get("predicted_tps_sum", 0.0)) + predicted_tps
+                )
+                m["predicted_tps_n"] = int(m.get("predicted_tps_n", 0)) + 1
             self._history.append(
                 {
                     "ts": time.time(),
@@ -1437,16 +1453,30 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
         llm = wdata.get("llm") or {}
         # Merge variants that normalize to the same canonical name
         # (e.g. ``Foo`` and ``Foo-GGUF``) so the breakdown shows one row.
-        merged: Dict[str, Dict[str, int]] = {}
+        merged: Dict[str, Dict[str, float]] = {}
         for raw_name, mdata in llm.items():
             canon = _normalize_model_name(raw_name)
             agg = merged.setdefault(
                 canon,
-                {"requests": 0, "prompt_tokens": 0, "completion_tokens": 0},
+                {
+                    "requests": 0,
+                    "prompt_tokens": 0,
+                    "completion_tokens": 0,
+                    "prompt_tps_sum": 0.0,
+                    "prompt_tps_n": 0,
+                    "predicted_tps_sum": 0.0,
+                    "predicted_tps_n": 0,
+                },
             )
             agg["requests"] += int(mdata.get("requests", 0) or 0)
             agg["prompt_tokens"] += int(mdata.get("prompt_tokens", 0) or 0)
             agg["completion_tokens"] += int(mdata.get("completion_tokens", 0) or 0)
+            agg["prompt_tps_sum"] += float(mdata.get("prompt_tps_sum", 0.0) or 0.0)
+            agg["prompt_tps_n"] += int(mdata.get("prompt_tps_n", 0) or 0)
+            agg["predicted_tps_sum"] += float(
+                mdata.get("predicted_tps_sum", 0.0) or 0.0
+            )
+            agg["predicted_tps_n"] += int(mdata.get("predicted_tps_n", 0) or 0)
         rows = ""
         for model, mdata in sorted(
             merged.items(), key=lambda kv: -kv[1].get("requests", 0)
@@ -1454,7 +1484,20 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
             reqs = mdata.get("requests", 0)
             pt = mdata.get("prompt_tokens", 0)
             ct = mdata.get("completion_tokens", 0)
-            avg_p, avg_d = _avg_tps((label, model))
+            # Prefer cumulative averages from _data; fall back to recent
+            # history (covers entries recorded before the cumulative fields
+            # were added).
+            ptn = int(mdata.get("prompt_tps_n", 0) or 0)
+            dtn = int(mdata.get("predicted_tps_n", 0) or 0)
+            if ptn or dtn:
+                avg_p = (float(mdata["prompt_tps_sum"]) / ptn) if ptn else 0.0
+                avg_d = (float(mdata["predicted_tps_sum"]) / dtn) if dtn else 0.0
+                if not avg_p or not avg_d:
+                    hp, hd = _avg_tps((label, model))
+                    avg_p = avg_p or hp
+                    avg_d = avg_d or hd
+            else:
+                avg_p, avg_d = _avg_tps((label, model))
             rows += f"""
         <tr>
           <td class="muted small">{label}</td>
