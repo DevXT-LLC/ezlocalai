@@ -1028,6 +1028,7 @@ async def router_tunnels(_: str = Depends(verify_client)):
         last_recv_age = None
         if conn is not None and getattr(conn, "last_recv", None):
             last_recv_age = round(now - conn.last_recv, 2)
+        stats = hub.stats(wid)
         workers.append(
             {
                 "worker_id": w.worker_id,
@@ -1040,6 +1041,8 @@ async def router_tunnels(_: str = Depends(verify_client)):
                 ),
                 "last_recv_age_seconds": last_recv_age,
                 "last_close_reason": last_close_reason,
+                "connect_count": stats["connect_count"],
+                "disconnect_history": stats["disconnect_history"],
                 "alive": w.is_alive(get_registry().ttl),
                 "last_heartbeat_age": round(now - w.last_heartbeat, 2),
             }

@@ -75,9 +75,14 @@ class _PendingRequest:
 class TunnelHub:
     """Per-router registry of connected tunnel WebSockets."""
 
+    DISCONNECT_HISTORY_MAX = 20
+
     def __init__(self) -> None:
         self._connections: Dict[str, "TunnelConnection"] = {}
         self._lock = asyncio.Lock()
+        # worker_id -> list[{"at": float, "duration": float, "reason": str}]
+        self._disconnect_history: Dict[str, list] = {}
+        self._connect_count: Dict[str, int] = {}
 
     async def attach(self, conn: "TunnelConnection") -> None:
         async with self._lock:
@@ -85,11 +90,24 @@ class TunnelHub:
             if old and old is not conn:
                 await old.close(reason="superseded")
             self._connections[conn.worker_id] = conn
+            self._connect_count[conn.worker_id] = (
+                self._connect_count.get(conn.worker_id, 0) + 1
+            )
 
     async def detach(self, conn: "TunnelConnection") -> None:
         async with self._lock:
             if self._connections.get(conn.worker_id) is conn:
                 self._connections.pop(conn.worker_id, None)
+            history = self._disconnect_history.setdefault(conn.worker_id, [])
+            history.append(
+                {
+                    "at": time.time(),
+                    "duration": time.time() - conn.connected_at,
+                    "reason": conn.last_close_reason or "unknown",
+                }
+            )
+            if len(history) > self.DISCONNECT_HISTORY_MAX:
+                del history[: -self.DISCONNECT_HISTORY_MAX]
 
     def is_connected(self, worker_id: str) -> bool:
         c = self._connections.get(worker_id)
@@ -101,6 +119,12 @@ class TunnelHub:
     def connected_workers(self) -> Dict[str, float]:
         return {
             wid: c.connected_at for wid, c in self._connections.items() if not c.closed
+        }
+
+    def stats(self, worker_id: str) -> Dict[str, Any]:
+        return {
+            "connect_count": self._connect_count.get(worker_id, 0),
+            "disconnect_history": list(self._disconnect_history.get(worker_id, [])),
         }
 
 
