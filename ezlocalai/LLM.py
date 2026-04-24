@@ -599,6 +599,18 @@ class LLM:
         logging.info(
             f"[LLM] Batch size: {self.xlc_params.n_batch}, ubatch: {self.xlc_params.n_ubatch} for context {effective_max_tokens}"
         )
+        # Prompt cache (host-RAM checkpoint cache).
+        # SWA / hybrid / recurrent models (e.g. Qwen3, Gemma2) cannot reuse
+        # cached prompt state across requests — llama.cpp logs
+        # "forcing full prompt re-processing due to lack of cache data"
+        # every request, and the cache machinery becomes pure overhead
+        # (100-200ms/request + growing host RAM + KV pressure).
+        # Default to disabled; set LLM_PROMPT_CACHE_MIB > 0 to opt in.
+        try:
+            cache_mib = int(getenv("LLM_PROMPT_CACHE_MIB", "0"))
+        except ValueError:
+            cache_mib = 0
+        self.xlc_params.cache_ram_mib = cache_mib
         self.xlc_params.n_gpu_layers = GPU_LAYERS
         self.gpu_layers = GPU_LAYERS  # Expose for runtime inspection
         self.xlc_params.main_gpu = (
