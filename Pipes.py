@@ -3466,9 +3466,10 @@ class Pipes:
         When a specific MAIN_GPU is set per-model, a tensor_split is generated to force
         loading entirely on that GPU (SPLIT_MODE_NONE).
 
-        MAX_CONCURRENT_REQUESTS is parsed only for backwards-compatible logging;
-        the actual request queue capacity is derived from the resolved LLM slot
-        counts after model configuration/load.
+        MAX_CONCURRENT_REQUESTS caps externally advertised/accepted LLM request
+        concurrency when > 0. This lets a worker keep multiple llama.cpp slots
+        configured while running in latency-first mode (for example, one active
+        generation at a time on a 5090).
         """
 
         def _split_csv(key, default):
@@ -6096,7 +6097,17 @@ class Pipes:
                 max_tokens = self._optimal_context
             n_parallel = min(max(1, max_tokens // 32768), 16)
 
-        return max(1, n_parallel)
+        resolved = max(1, n_parallel)
+
+        try:
+            max_requests = int(cfg.get("max_concurrent_requests", 0) or 0)
+        except (TypeError, ValueError):
+            max_requests = 0
+
+        if max_requests > 0:
+            return max(1, min(resolved, max_requests))
+
+        return resolved
 
     def get_text_queue_capacity(self) -> int:
         """Return the automatic local text request queue capacity."""

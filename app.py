@@ -108,7 +108,7 @@ def _sync_request_queue_capacity() -> Dict[str, Any]:
         request_queue.max_concurrent_requests = effective_concurrent
         logging.info(
             f"[Queue] Auto concurrency set to {effective_concurrent} text slot(s) "
-            f"(was {old}) from active model n_parallel values"
+            f"(was {old}) from active model n_parallel/MAX_CONCURRENT_REQUESTS values"
         )
     return slot_snapshot
 
