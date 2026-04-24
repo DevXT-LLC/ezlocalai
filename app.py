@@ -108,7 +108,7 @@ def _sync_request_queue_capacity() -> Dict[str, Any]:
         request_queue.max_concurrent_requests = effective_concurrent
         logging.info(
             f"[Queue] Auto concurrency set to {effective_concurrent} text slot(s) "
-            f"(was {old}) from active model n_parallel/MAX_CONCURRENT_REQUESTS values"
+            f"(was {old}) from active model n_parallel values"
         )
     return slot_snapshot
 
@@ -415,7 +415,7 @@ async def get_resources(user=Depends(verify_api_key)):
         "n_parallel": n_parallel,
         "n_ctx": n_ctx_val,
         "per_slot_context": n_ctx_val // n_parallel if n_parallel > 0 else n_ctx_val,
-        "max_concurrent_requests": request_queue.max_concurrent_requests,
+        "text_queue_capacity": request_queue.max_concurrent_requests,
         "queue_wait_timeout": queue_wait_timeout if queue_wait_timeout > 0 else None,
     }
     status["slots"] = _sync_request_queue_capacity()

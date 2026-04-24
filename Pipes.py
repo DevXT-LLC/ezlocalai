@@ -3160,7 +3160,7 @@ class Pipes:
         self.calibrated_gpu_layers = {}  # {model_name: {context: gpu_layers}}
 
         # Per-model configs parsed from comma-separated env vars
-        # {model_name: {main_gpu, max_tokens, n_parallel, max_concurrent_requests}}
+        # {model_name: {main_gpu, max_tokens, n_parallel, quant_type, tensor_split}}
         self.model_configs = {}
 
         # All persistent LLM instances keyed by model name
@@ -3461,15 +3461,10 @@ class Pipes:
     def _parse_per_model_configs(self):
         """Parse comma-separated per-model configs from env vars.
 
-        MAIN_GPU, LLM_MAX_TOKENS, N_PARALLEL, MAX_CONCURRENT_REQUESTS, and QUANT_TYPE can be
+        MAIN_GPU, LLM_MAX_TOKENS, N_PARALLEL, and QUANT_TYPE can be
         comma-separated to match DEFAULT_MODEL order. A single value applies to all models.
         When a specific MAIN_GPU is set per-model, a tensor_split is generated to force
         loading entirely on that GPU (SPLIT_MODE_NONE).
-
-        MAX_CONCURRENT_REQUESTS caps externally advertised/accepted LLM request
-        concurrency when > 0. This lets a worker keep multiple llama.cpp slots
-        configured while running in latency-first mode (for example, one active
-        generation at a time on a 5090).
         """
 
         def _split_csv(key, default):
@@ -3479,7 +3474,6 @@ class Pipes:
         main_gpus = _split_csv("MAIN_GPU", "0")
         max_tokens_list = _split_csv("LLM_MAX_TOKENS", "65536")
         n_parallels = _split_csv("N_PARALLEL", "1")
-        max_requests_list = _split_csv("MAX_CONCURRENT_REQUESTS", "0")
         quant_types = _split_csv("QUANT_TYPE", "Q4_K_XL")
 
         gpu_count = get_gpu_count()
@@ -3492,11 +3486,6 @@ class Pipes:
                 else int(max_tokens_list[-1])
             )
             npar = int(n_parallels[i]) if i < len(n_parallels) else int(n_parallels[-1])
-            mcr = (
-                int(max_requests_list[i])
-                if i < len(max_requests_list)
-                else int(max_requests_list[-1])
-            )
             qtype = quant_types[i] if i < len(quant_types) else quant_types[-1]
             qtype = qtype.strip() if qtype else None
             if qtype == "":
@@ -3513,7 +3502,6 @@ class Pipes:
                 "main_gpu": mgpu,
                 "max_tokens": mtokens,
                 "n_parallel": npar,
-                "max_concurrent_requests": mcr,
                 "quant_type": qtype,
                 "tensor_split": ts,
             }
@@ -3524,7 +3512,6 @@ class Pipes:
                     f"[Config] {name}: GPU {cfg['main_gpu']}, "
                     f"context {cfg['max_tokens']//1000}k, "
                     f"n_parallel={cfg['n_parallel']}, "
-                    f"max_requests={cfg['max_concurrent_requests']}, "
                     f"quant={cfg['quant_type']}"
                 )
 
@@ -6097,17 +6084,7 @@ class Pipes:
                 max_tokens = self._optimal_context
             n_parallel = min(max(1, max_tokens // 32768), 16)
 
-        resolved = max(1, n_parallel)
-
-        try:
-            max_requests = int(cfg.get("max_concurrent_requests", 0) or 0)
-        except (TypeError, ValueError):
-            max_requests = 0
-
-        if max_requests > 0:
-            return max(1, min(resolved, max_requests))
-
-        return resolved
+        return max(1, n_parallel)
 
     def get_text_queue_capacity(self) -> int:
         """Return the automatic local text request queue capacity."""

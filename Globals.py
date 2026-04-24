@@ -39,9 +39,8 @@ def getenv(var_name: str, default_value: str = None) -> str:
         # Each slot gets n_ctx / n_parallel tokens of context. VRAM is constant.
         "N_PARALLEL": "1",
         "VLM_MAX_TOKENS": "8192",  # Vision models don't need large context
-        # Queue system defaults. MAX_CONCURRENT_REQUESTS is deprecated; the
-        # server derives text queue concurrency from loaded model n_parallel slots.
-        "MAX_CONCURRENT_REQUESTS": "0",
+        # Queue system defaults. Text queue concurrency is derived from loaded
+        # model n_parallel slots.
         "MAX_QUEUE_SIZE": "100",
         "REQUEST_TIMEOUT": "120",
         # How long (seconds) a request waits in queue before trying fallback server.
