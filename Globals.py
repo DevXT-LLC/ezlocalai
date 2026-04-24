@@ -29,7 +29,7 @@ def getenv(var_name: str, default_value: str = None) -> str:
         # e.g., QUANT_TYPE="Q4_K_XL,Q3_K_XL" picks per-model quants.
         # Single value applies to all models.
         "QUANT_TYPE": "Q4_K_XL",
-        "LLM_BATCH_SIZE": "2048",
+        "LLM_BATCH_SIZE": "auto",
         # Context size — comma-separated to match DEFAULT_MODEL order.
         # e.g., LLM_MAX_TOKENS="65536,262144" gives model_a 65k and model_b 262k context.
         "LLM_MAX_TOKENS": "65536",

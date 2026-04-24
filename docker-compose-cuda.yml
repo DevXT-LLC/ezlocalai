@@ -14,7 +14,7 @@ services:
       - WHISPER_MODEL=${WHISPER_MODEL:-large-v3}
       - IMG_MODEL=${IMG_MODEL:-}
       - VIDEO_MODEL=${VIDEO_MODEL:-}
-      - LLM_BATCH_SIZE=${LLM_BATCH_SIZE:-2048}
+      - LLM_BATCH_SIZE=${LLM_BATCH_SIZE:-auto}
       - CUDA_DOCKER_ARCH=all
       - TENSOR_SPLIT=${TENSOR_SPLIT:-}
       - TOKENIZERS_PARALLELISM=false

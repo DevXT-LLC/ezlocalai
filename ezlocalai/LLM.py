@@ -62,6 +62,67 @@ def get_total_free_vram() -> float:
     return sum(get_free_vram_per_gpu())
 
 
+def calculate_auto_batch_sizes(
+    main_gpu: int = 0, effective_max_tokens: int = 0
+) -> Tuple[int, int, str]:
+    """Choose n_batch and n_ubatch from available VRAM and GPU generation.
+
+    ``n_batch`` controls the logical prompt-processing chunk size. ``n_ubatch``
+    controls the physical compute graph size and is the larger VRAM consumer.
+    Bigger values improve prompt/prefill throughput on fast GPUs, but can OOM
+    tight cards. This keeps explicit env overrides available while making the
+    default adapt to the machine instead of using one fixed value everywhere.
+    """
+    if not torch.cuda.is_available():
+        return 1024, 256, "cpu/default"
+
+    try:
+        device_count = torch.cuda.device_count()
+        gpu_idx = main_gpu if 0 <= main_gpu < device_count else 0
+        free_bytes, total_bytes = torch.cuda.mem_get_info(gpu_idx)
+        free_gb = free_bytes / (1024**3)
+        total_gb = total_bytes / (1024**3)
+        cc = torch.cuda.get_device_capability(gpu_idx)
+        cc_num = cc[0] * 10 + cc[1]
+    except Exception as e:
+        logging.debug(f"[LLM] auto batch VRAM probe failed: {e}; using safe defaults")
+        return 2048, 512, "probe-failed/default"
+
+    # Safe defaults for older/smaller GPUs.
+    n_batch = 1024
+    n_ubatch = 256
+
+    if cc_num >= 89:  # Ada / Hopper / Blackwell
+        if free_gb >= 28:
+            n_batch, n_ubatch = 8192, 2048
+        elif free_gb >= 20:
+            n_batch, n_ubatch = 4096, 1024
+        elif free_gb >= 12:
+            n_batch, n_ubatch = 2048, 512
+        elif free_gb >= 8:
+            n_batch, n_ubatch = 1024, 512
+    elif cc_num >= 80:  # Ampere
+        if free_gb >= 22 and effective_max_tokens and effective_max_tokens <= 300_000:
+            n_batch, n_ubatch = 4096, 1024
+        elif free_gb >= 12:
+            n_batch, n_ubatch = 2048, 512
+        elif free_gb >= 8:
+            n_batch, n_ubatch = 1024, 512
+    else:
+        if free_gb >= 16:
+            n_batch, n_ubatch = 2048, 512
+
+    if effective_max_tokens:
+        n_batch = min(n_batch, max(1, int(effective_max_tokens)))
+        n_ubatch = min(n_ubatch, n_batch)
+
+    reason = (
+        f"GPU {gpu_idx}, free={free_gb:.1f}GB/{total_gb:.1f}GB, "
+        f"CC {cc_num // 10}.{cc_num % 10}"
+    )
+    return n_batch, n_ubatch, reason
+
+
 def calculate_tensor_split_from_free_vram() -> list:
     """Calculate tensor split ratios based on FREE (available) VRAM per GPU.
 
@@ -558,12 +619,31 @@ class LLM:
         self.xlc_params = xlc.CommonParams()
         self.xlc_params.model.path = model_path
         self.xlc_params.n_ctx = effective_max_tokens
-        # Use provided batch_size, or scale dynamically based on context size
+
+        auto_batch, auto_ubatch, auto_batch_reason = calculate_auto_batch_sizes(
+            main_gpu=self.main_gpu, effective_max_tokens=effective_max_tokens
+        )
+
+        # Use provided batch_size, explicit LLM_BATCH_SIZE, or auto-size from
+        # available VRAM. ``auto``/``0`` means adapt to the current GPU.
         if batch_size is not None:
             self.xlc_params.n_batch = batch_size
+            batch_source = "override"
         else:
-            default_batch = int(getenv("LLM_BATCH_SIZE", "2048"))
-            self.xlc_params.n_batch = default_batch
+            batch_env = (getenv("LLM_BATCH_SIZE", "auto") or "auto").strip().lower()
+            if batch_env in ("", "auto", "0"):
+                self.xlc_params.n_batch = auto_batch
+                batch_source = f"auto ({auto_batch_reason})"
+            else:
+                try:
+                    self.xlc_params.n_batch = int(batch_env)
+                    batch_source = "env"
+                except ValueError:
+                    self.xlc_params.n_batch = auto_batch
+                    batch_source = f"invalid-env-auto ({auto_batch_reason})"
+                    logging.warning(
+                        f"[LLM] Invalid LLM_BATCH_SIZE={batch_env!r}, using auto"
+                    )
         # Set n_ubatch (physical micro-batch / compute graph size). This is
         # the dominant prompt-processing throughput knob: larger ubatch means
         # each compute step processes more tokens, which lets fast GPUs
@@ -576,40 +656,23 @@ class LLM:
         # smaller cards where the compute buffer matters more.
         ubatch_env = (getenv("LLM_UBATCH_SIZE") or "auto").strip().lower()
         if ubatch_env in ("", "auto", "0"):
-            auto_ubatch = 256
-            try:
-                if torch.cuda.is_available():
-                    # Use the GPU we're going to load on (main_gpu) when
-                    # available, else GPU 0.
-                    probe_idx = (
-                        self.main_gpu
-                        if 0 <= self.main_gpu < torch.cuda.device_count()
-                        else 0
-                    )
-                    cc = torch.cuda.get_device_capability(probe_idx)
-                    # cc is (major, minor): 8.6=Ampere(3090), 8.9=Ada(4090),
-                    # 9.0=Hopper(H100), 12.0=Blackwell(5090)
-                    cc_num = cc[0] * 10 + cc[1]
-                    if cc_num >= 89:  # Ada (4090) and newer (Hopper, Blackwell)
-                        auto_ubatch = 1024
-                    elif cc_num >= 80:  # Ampere (3090, A100)
-                        auto_ubatch = 512
-                    else:  # Older Turing/Volta/Pascal
-                        auto_ubatch = 256
-            except Exception as e:
-                logging.debug(f"[LLM] ubatch auto-detect failed: {e}; using 256")
             default_ubatch = auto_ubatch
+            ubatch_source = f"auto ({auto_batch_reason})"
         else:
             try:
                 default_ubatch = int(ubatch_env)
+                ubatch_source = "env"
             except ValueError:
                 logging.warning(
                     f"[LLM] Invalid LLM_UBATCH_SIZE={ubatch_env!r}, falling back to 256"
                 )
                 default_ubatch = 256
+                ubatch_source = "invalid-env-default"
         self.xlc_params.n_ubatch = min(default_ubatch, self.xlc_params.n_batch)
         logging.info(
-            f"[LLM] Batch size: {self.xlc_params.n_batch}, ubatch: {self.xlc_params.n_ubatch} for context {effective_max_tokens}"
+            f"[LLM] Batch size: {self.xlc_params.n_batch} ({batch_source}), "
+            f"ubatch: {self.xlc_params.n_ubatch} ({ubatch_source}) "
+            f"for context {effective_max_tokens}"
         )
         # Prompt cache (host-RAM checkpoint cache).
         # SWA / hybrid / recurrent models (e.g. Qwen3, Gemma2) cannot reuse
