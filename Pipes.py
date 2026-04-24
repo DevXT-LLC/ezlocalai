@@ -3849,6 +3849,30 @@ class Pipes:
                 parts = model_name.split("/")
                 repo_id = model_name
 
+                quant_type = getenv("QUANT_TYPE")
+                if quant_type and "," in quant_type:
+                    quant_type = quant_type.split(",", 1)[0].strip()
+
+                # Reuse the same on-disk layout that download_model() in LLM.py
+                # populates so we never re-download a GGUF the user already has
+                # at models/<short>/<file>.gguf. Without this, calibration hits
+                # huggingface_hub and pulls the same blob into the HF cache.
+                short = repo_id.split("/")[-1].split("-GGUF")[0]
+                local_dir = os.path.join("models", short)
+                if os.path.isdir(local_dir):
+                    existing = [
+                        f
+                        for f in os.listdir(local_dir)
+                        if f.endswith(".gguf") and "mmproj" not in f.lower()
+                    ]
+                    if existing:
+                        match = next(
+                            (f for f in existing if quant_type and quant_type in f),
+                            None,
+                        )
+                        chosen = match or existing[0]
+                        return os.path.join(local_dir, chosen)
+
                 # Try to find the GGUF file
                 from huggingface_hub import list_repo_files
 
@@ -3859,7 +3883,6 @@ class Pipes:
                     return None
 
                 # Prefer QUANT_TYPE from env, then fall back to common quantizations
-                quant_type = getenv("QUANT_TYPE")
                 best_file = None
                 patterns = [
                     quant_type,
@@ -3879,7 +3902,7 @@ class Pipes:
                 if not best_file:
                     best_file = gguf_files[0]
 
-                return hf_hub_download(repo_id, best_file)
+                return hf_hub_download(repo_id, best_file, local_dir=local_dir)
 
             return None
         except Exception as e:
@@ -3890,6 +3913,16 @@ class Pipes:
         """Get vision projector path if this is a vision model."""
         try:
             if "/" in model_name:
+                # Same convention as download_model() / _get_model_path: prefer
+                # an mmproj already sitting in models/<short>/ instead of
+                # re-fetching from HF.
+                short = model_name.split("/")[-1].split("-GGUF")[0]
+                local_dir = os.path.join("models", short)
+                if os.path.isdir(local_dir):
+                    for fname in os.listdir(local_dir):
+                        if "mmproj" in fname.lower() and fname.endswith(".gguf"):
+                            return os.path.join(local_dir, fname)
+
                 from huggingface_hub import list_repo_files
 
                 files = list_repo_files(model_name)
@@ -3897,9 +3930,9 @@ class Pipes:
                 # Look for mmproj files
                 for f in files:
                     if "mmproj" in f.lower() and f.endswith(".gguf"):
-                        return hf_hub_download(model_name, f)
+                        return hf_hub_download(model_name, f, local_dir=local_dir)
             return None
-        except:
+        except Exception:
             return None
 
     def _is_vision_model(self, model_name: str) -> bool:

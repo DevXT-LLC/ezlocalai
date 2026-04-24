@@ -189,8 +189,19 @@ def download_model(
     model_dir = os.path.join(models_dir, model)
     os.makedirs(model_dir, exist_ok=True)
 
-    # Try to find or download multimodal projector files (for vision models)
+    # Try to find or download multimodal projector files (for vision models).
+    # First scan the local directory for ANY mmproj-like file so a pre-placed
+    # file (e.g. mmproj-BF16.gguf) is recognised even if it isn't the first
+    # entry in our hard-coded preference list. Without this scan the loop
+    # below would issue a HEAD/GET to HF for every variant before reaching
+    # the user's file, redownloading content unnecessarily.
     mmproj_path = None
+    if os.path.isdir(model_dir):
+        for fname in os.listdir(model_dir):
+            if "mmproj" in fname.lower() and fname.endswith(".gguf"):
+                mmproj_path = os.path.join(model_dir, fname)
+                break
+
     potential_mmproj_files = [
         # Common naming conventions for vision model projectors
         "mmproj-F16.gguf",
@@ -203,22 +214,23 @@ def download_model(
         f"{model.lower()}-mmproj-f16.gguf",
     ]
 
-    for mmproj_file in potential_mmproj_files:
-        mmproj_filepath = os.path.join(model_dir, mmproj_file)
-        if os.path.exists(mmproj_filepath):
-            mmproj_path = mmproj_filepath
-            break
-        try:
-            hf_hub_download(
-                repo_id=model_name,
-                filename=mmproj_file,
-                local_dir=model_dir,
-            )
-            mmproj_path = mmproj_filepath
-            logging.debug(f"[LLM] Downloaded mmproj: {mmproj_file}")
-            break
-        except Exception:
-            pass
+    if mmproj_path is None:
+        for mmproj_file in potential_mmproj_files:
+            mmproj_filepath = os.path.join(model_dir, mmproj_file)
+            if os.path.exists(mmproj_filepath):
+                mmproj_path = mmproj_filepath
+                break
+            try:
+                hf_hub_download(
+                    repo_id=model_name,
+                    filename=mmproj_file,
+                    local_dir=model_dir,
+                )
+                mmproj_path = mmproj_filepath
+                logging.debug(f"[LLM] Downloaded mmproj: {mmproj_file}")
+                break
+            except Exception:
+                pass
 
     # First, check if any GGUF model file already exists in the directory
     # This ensures we use whatever was downloaded at startup rather than re-downloading
