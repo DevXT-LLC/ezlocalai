@@ -7,7 +7,7 @@ requests==2.33.0
 aiohttp
 psutil
 tiktoken==0.6.0
-python-dotenv==1.0.1
+python-dotenv==1.2.2
 beautifulsoup4==4.12.3
 faster-whisper==1.0.3
 pydub==0.25.1
