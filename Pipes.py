@@ -435,6 +435,7 @@ class ModelResource:
     vram_gb: float  # Estimated VRAM usage in GB
     device: str  # "cuda", "cuda:0", "cuda:1", "cpu"
     in_use: bool = False  # Is the model currently processing a request?
+    active_requests: int = 0  # Number of active requests using this model
     last_used: float = 0.0  # Timestamp of last use
 
 
@@ -526,12 +527,28 @@ class ResourceManager:
             return resource.in_use if resource else False
 
     def mark_model_in_use(self, model_type: ModelType, in_use: bool = True):
-        """Mark a model as in-use or idle."""
+        """Mark a model as in-use or idle.
+
+        Calls are intentionally reference-counted. Several call paths mark a
+        lazy model as active when it is loaded and again when inference starts;
+        matching ``False`` calls then unwind the counter back to idle without
+        dropping visibility for long-running work in the middle.
+        """
         with self._lock:
             if model_type in self._loaded_models:
-                self._loaded_models[model_type].in_use = in_use
+                resource = self._loaded_models[model_type]
                 if in_use:
-                    self._loaded_models[model_type].last_used = time.time()
+                    resource.active_requests += 1
+                    resource.last_used = time.time()
+                else:
+                    resource.active_requests = max(0, resource.active_requests - 1)
+                resource.in_use = resource.active_requests > 0
+
+    def get_model_active_count(self, model_type: ModelType) -> int:
+        """Return the active request count for a loaded model type."""
+        with self._lock:
+            resource = self._loaded_models.get(model_type)
+            return int(resource.active_requests if resource else 0)
 
     def register_model(
         self, model_type: ModelType, name: str, device: str, vram_gb: float = None
@@ -719,6 +736,7 @@ class ResourceManager:
                         "device": r.device,
                         "vram_gb": r.vram_gb,
                         "in_use": r.in_use,
+                        "active_requests": r.active_requests,
                         "last_used": r.last_used,
                     }
                     for mt, r in self._loaded_models.items()
@@ -3073,6 +3091,7 @@ class Pipes:
         # Track how many inferences are currently in progress (thread-safe counter)
         # Using a counter instead of boolean allows multiple concurrent requests
         self._inference_count = 0
+        self._model_inference_counts: Dict[str, int] = {}
         self._inference_count_lock = threading.Lock()
 
         # Track context reset state for auto-optimization
@@ -3446,6 +3465,10 @@ class Pipes:
         comma-separated to match DEFAULT_MODEL order. A single value applies to all models.
         When a specific MAIN_GPU is set per-model, a tensor_split is generated to force
         loading entirely on that GPU (SPLIT_MODE_NONE).
+
+        MAX_CONCURRENT_REQUESTS is parsed only for backwards-compatible logging;
+        the actual request queue capacity is derived from the resolved LLM slot
+        counts after model configuration/load.
         """
 
         def _split_csv(key, default):
@@ -3455,7 +3478,7 @@ class Pipes:
         main_gpus = _split_csv("MAIN_GPU", "0")
         max_tokens_list = _split_csv("LLM_MAX_TOKENS", "65536")
         n_parallels = _split_csv("N_PARALLEL", "1")
-        max_requests_list = _split_csv("MAX_CONCURRENT_REQUESTS", "1")
+        max_requests_list = _split_csv("MAX_CONCURRENT_REQUESTS", "0")
         quant_types = _split_csv("QUANT_TYPE", "Q4_K_XL")
 
         gpu_count = get_gpu_count()
@@ -6039,18 +6062,199 @@ class Pipes:
         with self._inference_count_lock:
             return self._inference_count > 0
 
-    def _increment_inference_count(self):
+    def _resolve_slot_model(self, data: dict = None) -> Optional[str]:
+        """Resolve request data to the public model name used for slot accounting."""
+        data = data or {}
+        requested_model = data.get("model")
+        target_model = None
+        if requested_model and self.available_models:
+            target_model = self._resolve_requested_model_id(requested_model)
+        if target_model is None and self.available_models:
+            target_model = self.available_models[0]
+        if target_model is None:
+            return None
+        return self._resolve_source_model(target_model)
+
+    def _resolved_parallel_for_model(self, model_id: str, inst=None) -> int:
+        """Return the actual/estimated n_parallel for a configured model."""
+        try:
+            if inst is not None and getattr(inst, "n_parallel", None):
+                return max(1, int(getattr(inst, "n_parallel")))
+        except Exception:
+            pass
+
+        cfg = self.model_configs.get(model_id, {}) or {}
+        try:
+            n_parallel = int(cfg.get("n_parallel", 1))
+        except (TypeError, ValueError):
+            n_parallel = 1
+
+        if n_parallel == 0:
+            try:
+                max_tokens = int(cfg.get("max_tokens", self._optimal_context) or 0)
+            except (TypeError, ValueError):
+                max_tokens = self._optimal_context
+            n_parallel = min(max(1, max_tokens // 32768), 16)
+
+        return max(1, n_parallel)
+
+    def get_text_queue_capacity(self) -> int:
+        """Return the automatic local text request queue capacity."""
+        snapshot = self.get_slot_capacity_snapshot()
+        return max(1, int(snapshot.get("llm_queue_capacity", 1) or 1))
+
+    def get_slot_capacity_snapshot(
+        self, queue_status: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
+        """Return accurate per-capability and per-model slot accounting.
+
+        The router consumes this snapshot so it can route by the slot class that
+        will actually execute the request: text/vision LLM slots from
+        ``n_parallel`` and one-at-a-time auxiliary model locks for image, video,
+        STT, and TTS.
+        """
+
+        def _slot(capacity: int, in_flight: int = 0, queued: int = 0) -> Dict[str, int]:
+            capacity = max(0, int(capacity or 0))
+            in_flight = max(0, int(in_flight or 0))
+            queued = max(0, int(queued or 0))
+            return {
+                "capacity": capacity,
+                "in_flight": in_flight,
+                "queued": queued,
+                "available": max(0, capacity - in_flight - queued),
+            }
+
+        with self._inference_count_lock:
+            model_counts = dict(self._model_inference_counts)
+            total_llm_in_flight = int(self._inference_count)
+
+        queue_status = queue_status or {}
+        queued_text = max(0, int(queue_status.get("queue_size", 0) or 0))
+        processing_text = max(0, int(queue_status.get("processing_count", 0) or 0))
+        total_llm_in_flight = max(total_llm_in_flight, processing_text)
+
+        model_capacities: Dict[str, int] = {}
+        vision_capacity = 0
+        vision_models = set()
+        for model_id in self.available_models:
+            inst = self.persistent_llms.get(model_id)
+            capacity = self._resolved_parallel_for_model(model_id, inst=inst)
+            public_name = self._resolve_source_model(model_id)
+            model_capacities[public_name] = (
+                model_capacities.get(public_name, 0) + capacity
+            )
+            if self._is_vision_model(model_id):
+                vision_capacity += capacity
+                vision_models.add(public_name)
+
+        if not model_capacities and self.llm is not None:
+            model_name = self._resolve_source_model(
+                self.current_llm_name or getattr(self.llm, "model_name", "default")
+            )
+            model_capacities[model_name] = self._resolved_parallel_for_model(
+                self.current_llm_name or model_name, inst=self.llm
+            )
+            if getattr(self.llm, "is_vision", False):
+                vision_capacity = model_capacities[model_name]
+                vision_models.add(model_name)
+
+        llm_capacity = sum(model_capacities.values())
+        model_slots: Dict[str, Dict[str, int]] = {}
+        for model_name, capacity in model_capacities.items():
+            model_slots[model_name] = _slot(
+                capacity=capacity,
+                in_flight=model_counts.get(model_name, 0),
+                queued=0,
+            )
+
+        cap_slots: Dict[str, Dict[str, int]] = {}
+        if llm_capacity > 0:
+            cap_slots["text"] = _slot(
+                capacity=llm_capacity,
+                in_flight=total_llm_in_flight,
+                queued=queued_text,
+            )
+        if vision_capacity > 0:
+            vision_in_flight = sum(model_counts.get(name, 0) for name in vision_models)
+            cap_slots["vision"] = _slot(
+                capacity=vision_capacity,
+                in_flight=vision_in_flight,
+                queued=0,
+            )
+
+        tts_enabled = (getenv("TTS_ENABLED") or "true").strip().lower() == "true"
+        stt_enabled = (getenv("STT_ENABLED") or "true").strip().lower() == "true"
+        img_model = (getenv("IMG_MODEL") or "").strip().lower()
+        video_model = (getenv("VIDEO_MODEL") or "").strip().lower()
+
+        if tts_enabled and not has_voice_server_url():
+            cap_slots["tts"] = _slot(
+                capacity=1,
+                in_flight=self.resource_manager.get_model_active_count(ModelType.TTS),
+            )
+        if stt_enabled and not has_voice_server_url():
+            cap_slots["stt"] = _slot(
+                capacity=1,
+                in_flight=self.resource_manager.get_model_active_count(ModelType.STT),
+            )
+        if img_model and img_model != "none" and not has_image_server_url():
+            cap_slots["image"] = _slot(
+                capacity=1,
+                in_flight=self.resource_manager.get_model_active_count(ModelType.IMG),
+            )
+        if video_model and video_model != "none" and not has_image_server_url():
+            cap_slots["video"] = _slot(
+                capacity=1,
+                in_flight=self.resource_manager.get_model_active_count(ModelType.VIDEO),
+            )
+
+        total_capacity = 0
+        total_in_flight = 0
+        total_queued = 0
+        for cap, state in cap_slots.items():
+            # Vision shares LLM slots with text; do not double-count it in the
+            # machine total when both are advertised.
+            if cap == "vision" and "text" in cap_slots:
+                continue
+            total_capacity += int(state["capacity"])
+            total_in_flight += int(state["in_flight"])
+            total_queued += int(state["queued"])
+
+        return {
+            "cap_slots": cap_slots,
+            "model_slots": model_slots,
+            "llm_queue_capacity": max(1, llm_capacity) if self.available_models else 1,
+            "slot_total_capacity": total_capacity,
+            "slot_total_in_flight": total_in_flight,
+            "slot_total_queued": total_queued,
+            "slot_total_available": max(
+                0, total_capacity - total_in_flight - total_queued
+            ),
+        }
+
+    def _increment_inference_count(self, model_name: Optional[str] = None):
         """Thread-safe increment of inference counter."""
         with self._inference_count_lock:
             self._inference_count += 1
+            if model_name:
+                self._model_inference_counts[model_name] = (
+                    self._model_inference_counts.get(model_name, 0) + 1
+                )
             logging.debug(
                 f"[Inference] Started - active count: {self._inference_count}"
             )
 
-    def _decrement_inference_count(self):
+    def _decrement_inference_count(self, model_name: Optional[str] = None):
         """Thread-safe decrement of inference counter."""
         with self._inference_count_lock:
             self._inference_count = max(0, self._inference_count - 1)
+            if model_name and model_name in self._model_inference_counts:
+                self._model_inference_counts[model_name] = max(
+                    0, self._model_inference_counts[model_name] - 1
+                )
+                if self._model_inference_counts[model_name] == 0:
+                    del self._model_inference_counts[model_name]
             logging.debug(
                 f"[Inference] Completed - active count: {self._inference_count}"
             )
@@ -6105,7 +6309,9 @@ class Pipes:
         self._cancel_context_reset()
 
         # Mark inference as in progress to prevent context reset during processing
-        self._increment_inference_count()
+        # and to expose per-model slot usage to the router heartbeat.
+        slot_model = self._resolve_slot_model(data)
+        self._increment_inference_count(slot_model)
 
         # Mark LLM as in-use in resource manager
         llm_model_type = (
@@ -6120,7 +6326,7 @@ class Pipes:
             self.resource_manager.mark_model_in_use(llm_model_type, False)
 
             # Mark inference as complete
-            self._decrement_inference_count()
+            self._decrement_inference_count(slot_model)
 
             # If we're at a larger-than-optimal context and no other inferences running, schedule a reset
             if self.current_context and self.current_context > self._optimal_context:

@@ -599,6 +599,16 @@ async def router_register(
         queue_depth=int(payload.get("queue_depth", 0) or 0),
         queue_capacity=int(payload.get("queue_capacity", 1) or 1),
         in_flight=int(payload.get("in_flight", 0) or 0),
+        cap_slots={
+            str(k): WorkerInfo._normalize_slot(v)
+            for k, v in (payload.get("cap_slots") or {}).items()
+            if isinstance(v, dict)
+        },
+        model_slots={
+            str(k): WorkerInfo._normalize_slot(v)
+            for k, v in (payload.get("model_slots") or {}).items()
+            if isinstance(v, dict)
+        },
         gpus=gpus,
         best_tier=int(payload.get("best_tier") or best_gpu_tier(gpus)),
         model_context={
@@ -630,6 +640,8 @@ async def router_register(
                 "queue_depth",
                 "queue_capacity",
                 "in_flight",
+                "cap_slots",
+                "model_slots",
                 "gpus",
                 "best_tier",
                 "model_context",
@@ -769,37 +781,25 @@ def _cap_label(cap: str) -> str:
     return _CAP_LABELS.get(cap, cap.replace("-", " ").title())
 
 
-def _cap_capacity(cap: str, worker_capacity: int) -> int:
-    """Return the realistic concurrency for a given capability on one worker.
-
-    image, stt, video: sequential by nature — always 1 slot.
-    tts: fast and low-resource but we have no separate queue depth for it,
-         so report 1 conservative slot (will not starve the text queue).
-    text, vision, embedding: use the reported N_PARALLEL-sized queue capacity.
-    """
-    if cap in ("image", "stt", "video", "tts"):
-        return 1
-    return max(1, worker_capacity)
-
-
 def _aggregate_dashboard() -> Dict[str, Any]:
     """Build a JSON-serialisable summary of the entire pool."""
     registry = get_registry()
     alive = registry.list_workers(alive_only=True)
     stale = [w for w in registry.list_workers(alive_only=False) if w not in alive]
 
-    total_capacity = sum(max(1, w.queue_capacity) for w in alive)
-    total_in_flight = sum(max(0, w.in_flight) for w in alive)
+    total_capacity = sum(max(0, w.total_capacity()) for w in alive)
+    total_in_flight = sum(max(0, w.total_busy()) for w in alive)
     total_queue_depth = sum(max(0, w.queue_depth) for w in alive)
-    total_slots_left = sum(max(0, w.queue_capacity - w.queue_depth) for w in alive)
+    total_slots_left = sum(max(0, w.total_slots_left()) for w in alive)
     total_free_vram = sum(w.free_vram_gb for w in alive)
     total_vram = sum(w.total_vram_gb for w in alive)
 
     # Per-model rollup: which workers serve it, total parallel slots, max ctx
     model_rollup: Dict[str, Dict[str, Any]] = {}
     for w in alive:
-        slots_left = max(0, w.queue_capacity - w.queue_depth)
         for model in w.models:
+            model_capacity = max(1, w.capacity_for("text", model))
+            slots_left = w.slots_left("text", model)
             entry = model_rollup.setdefault(
                 model,
                 {
@@ -814,7 +814,7 @@ def _aggregate_dashboard() -> Dict[str, Any]:
                 },
             )
             entry["worker_count"] += 1
-            entry["total_capacity"] += max(1, w.queue_capacity)
+            entry["total_capacity"] += model_capacity
             entry["available_slots"] += slots_left
             ctx = int(w.model_context.get(model, 0) or 0)
             if ctx > entry["max_context"]:
@@ -830,7 +830,7 @@ def _aggregate_dashboard() -> Dict[str, Any]:
                     "best_tier": w.best_tier,
                     "context": ctx,
                     "slots_left": slots_left,
-                    "queue_capacity": w.queue_capacity,
+                    "queue_capacity": model_capacity,
                     "quant": w.model_quant.get(model, ""),
                 }
             )
@@ -868,8 +868,10 @@ def _aggregate_dashboard() -> Dict[str, Any]:
                 },
             )
             entry["worker_count"] += 1
-            entry["total_capacity"] += _cap_capacity(cap, w.queue_capacity)
-            entry["available_slots"] += _cap_capacity(cap, w.queue_capacity)
+            cap_capacity = max(1, w.capacity_for(cap))
+            cap_slots_left = w.slots_left(cap)
+            entry["total_capacity"] += cap_capacity
+            entry["available_slots"] += cap_slots_left
             if w.best_tier > entry["best_tier"]:
                 entry["best_tier"] = w.best_tier
             entry["workers"].append(
@@ -878,8 +880,8 @@ def _aggregate_dashboard() -> Dict[str, Any]:
                     "worker_id": w.worker_id,
                     "best_tier": w.best_tier,
                     "context": 0,
-                    "slots_left": _cap_capacity(cap, w.queue_capacity),
-                    "queue_capacity": _cap_capacity(cap, w.queue_capacity),
+                    "slots_left": cap_slots_left,
+                    "queue_capacity": cap_capacity,
                     "quant": "",
                 }
             )
@@ -906,13 +908,9 @@ def _aggregate_dashboard() -> Dict[str, Any]:
                 continue
             merged_cap = "text+vision" if (cap == "text" and has_vision) else cap
             # Use the underlying text capacity for text+vision
-            cap_slots = _cap_capacity(
-                "text" if merged_cap == "text+vision" else merged_cap, w.queue_capacity
-            )
-            cap_in_flight = (
-                w.in_flight if merged_cap in ("text", "text+vision", "embedding") else 0
-            )
-            cap_slots_left = max(0, cap_slots - cap_in_flight)
+            cap_key = "text" if merged_cap == "text+vision" else merged_cap
+            cap_slots = max(1, w.capacity_for(cap_key))
+            cap_slots_left = w.slots_left(cap_key)
             entry = cap_rollup.setdefault(
                 merged_cap,
                 {
@@ -1307,10 +1305,11 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
             return f"{name}{ctx_part}{quant_part}"
 
         models = "<br>".join(_fmt(m) for m in (w.get("models") or [])) or "—"
-        slots_left = max(
-            0, int(w.get("queue_capacity", 1)) - int(w.get("queue_depth", 0))
-        )
-        slots_total = int(w.get("queue_capacity", 1))
+        slots_left = int(w.get("slot_total_available", 0) or 0)
+        slots_total = int(w.get("slot_total_capacity", 0) or 0)
+        if slots_total <= 0:
+            slots_total = int(w.get("queue_capacity", 1) or 1)
+            slots_left = max(0, slots_total - int(w.get("queue_depth", 0) or 0))
         slot_pct = 0 if slots_total == 0 else (1 - slots_left / slots_total) * 100
         bar = f'<div class="bar"><div class="bar-fill" style="width:{slot_pct:.0f}%"></div></div>'
         last_hb = w.get("last_heartbeat_age", 0)
@@ -1345,7 +1344,19 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
             ]
         else:
             display_caps = raw_caps
-        cap_pills = " ".join(_cap_pill(c) for c in display_caps) or "—"
+        cap_slots = w.get("cap_slots") or {}
+
+        def _cap_with_title(c: str) -> str:
+            raw = cap_slots.get("text" if c == "text+vision" else c) or {}
+            capacity = int(raw.get("capacity", 0) or 0)
+            available = int(raw.get("available", 0) or 0)
+            title = f"{available}/{capacity} slots free" if capacity else ""
+            pill = _cap_pill(c)
+            return (
+                pill.replace("<span ", f'<span title="{title}" ', 1) if title else pill
+            )
+
+        cap_pills = " ".join(_cap_with_title(c) for c in display_caps) or "—"
         if w.get("tunnel"):
             url_cell = (
                 f"{w['url']}"
@@ -1361,7 +1372,7 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
           <td class="mono small">{url_cell}</td>
           <td>{gpus}<div class="muted small">{_tier_badge(w.get('best_tier', 0))}</div></td>
           <td class="num small">{mem_cell}</td>
-          <td>{slots_left}/{slots_total} {bar}<div class="muted small">{w.get('in_flight', 0)} in flight</div></td>
+          <td>{slots_left}/{slots_total} {bar}<div class="muted small">{w.get('slot_total_busy', w.get('in_flight', 0))} active/queued</div></td>
           <td class="small">{cap_pills}</td>
           <td class="small mono">{models}</td>
           <td class="num small">{last_hb:.0f}s</td>
@@ -1899,6 +1910,8 @@ async def _proxy_via_tunnel(
     body: Optional[bytes],
     stream: bool,
     timeout: Optional[float],
+    capability: Optional[str] = None,
+    model: Optional[str] = None,
 ):
     """Route a request to a tunneled worker through its open WebSocket."""
     hub = get_tunnel_hub()
@@ -1920,7 +1933,9 @@ async def _proxy_via_tunnel(
             detail=f"Tunnel for worker {worker.label} ({wid}) is not connected",
         )
     registry = get_registry()
-    registry.increment_in_flight(worker.worker_id, 1)
+    registry.increment_in_flight(
+        worker.worker_id, 1, capability=capability, model=model
+    )
     request_timeout = timeout or float(getenv("REQUEST_TIMEOUT", "300"))
     try:
         status, resp_headers, chunks = await conn.request(
@@ -1932,7 +1947,9 @@ async def _proxy_via_tunnel(
             timeout=request_timeout,
         )
     except Exception:
-        registry.increment_in_flight(worker.worker_id, -1)
+        registry.increment_in_flight(
+            worker.worker_id, -1, capability=capability, model=model
+        )
         raise
 
     media_type = resp_headers.get("Content-Type") or resp_headers.get("content-type")
@@ -1947,14 +1964,18 @@ async def _proxy_via_tunnel(
                 media_type=media_type or "application/json",
             )
         finally:
-            registry.increment_in_flight(worker.worker_id, -1)
+            registry.increment_in_flight(
+                worker.worker_id, -1, capability=capability, model=model
+            )
 
     async def gen():
         try:
             async for c in chunks:
                 yield c
         finally:
-            registry.increment_in_flight(worker.worker_id, -1)
+            registry.increment_in_flight(
+                worker.worker_id, -1, capability=capability, model=model
+            )
 
     return StreamingResponse(gen(), media_type=media_type or "text/event-stream")
 
@@ -1966,6 +1987,8 @@ async def _proxy_json(
     *,
     stream: bool = False,
     timeout: Optional[float] = None,
+    capability: Optional[str] = None,
+    model: Optional[str] = None,
 ):
     """Forward a JSON POST to a worker. Returns either a dict or a StreamingResponse."""
     headers = {"Content-Type": "application/json", **_worker_headers(worker)}
@@ -1978,6 +2001,8 @@ async def _proxy_json(
             body=json.dumps(payload).encode("utf-8"),
             stream=stream,
             timeout=timeout,
+            capability=capability,
+            model=model,
         )
     url = f"{worker.url}{path}"
     request_timeout = aiohttp.ClientTimeout(
@@ -1985,7 +2010,9 @@ async def _proxy_json(
         connect=10,  # fail fast on connection errors, don't wait the full timeout
     )
     registry = get_registry()
-    registry.increment_in_flight(worker.worker_id, 1)
+    registry.increment_in_flight(
+        worker.worker_id, 1, capability=capability, model=model
+    )
 
     if not stream:
         try:
@@ -2007,7 +2034,9 @@ async def _proxy_json(
             )
             raise
         finally:
-            registry.increment_in_flight(worker.worker_id, -1)
+            registry.increment_in_flight(
+                worker.worker_id, -1, capability=capability, model=model
+            )
 
     async def gen():
         # Open one persistent session for the whole stream
@@ -2031,7 +2060,9 @@ async def _proxy_json(
             )
         finally:
             await session.close()
-            registry.increment_in_flight(worker.worker_id, -1)
+            registry.increment_in_flight(
+                worker.worker_id, -1, capability=capability, model=model
+            )
 
     return StreamingResponse(gen(), media_type="text/event-stream")
 
@@ -2204,6 +2235,8 @@ async def _proxy_multipart(
     files: Dict[str, tuple],
     fields: Dict[str, str],
     timeout: Optional[float] = None,
+    capability: Optional[str] = None,
+    model: Optional[str] = None,
 ) -> Response:
     """Forward a multipart/form-data POST to a worker.
 
@@ -2251,6 +2284,8 @@ async def _proxy_multipart(
             body=body_bytes,
             stream=False,
             timeout=timeout,
+            capability=capability,
+            model=model,
         )
 
     # Direct (non-tunneled) multipart upload via aiohttp.
@@ -2263,7 +2298,9 @@ async def _proxy_multipart(
 
     url = f"{worker.url}{path}"
     registry = get_registry()
-    registry.increment_in_flight(worker.worker_id, 1)
+    registry.increment_in_flight(
+        worker.worker_id, 1, capability=capability, model=model
+    )
     try:
         async with aiohttp.ClientSession(timeout=request_timeout) as session:
             async with session.post(url, data=data, headers=headers) as resp:
@@ -2283,7 +2320,9 @@ async def _proxy_multipart(
         )
         raise
     finally:
-        registry.increment_in_flight(worker.worker_id, -1)
+        registry.increment_in_flight(
+            worker.worker_id, -1, capability=capability, model=model
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -2367,7 +2406,14 @@ async def _llm_proxy_with_retry(
         worker = await _pick(capability, model, exclude=tried)
         tried.add(worker.worker_id)
         try:
-            resp = await _proxy_json(worker, path, payload, stream=is_stream)
+            resp = await _proxy_json(
+                worker,
+                path,
+                payload,
+                stream=is_stream,
+                capability=capability,
+                model=model,
+            )
         except Exception as e:
             last_error = e
             logging.warning(
@@ -2464,7 +2510,14 @@ async def embeddings(payload: Dict[str, Any], _: str = Depends(verify_client)):
         if any("embedding" in w.capabilities for w in get_registry().list_workers())
         else await _pick("text", payload.get("model"))
     )
-    resp = await _proxy_json(worker, "/v1/embeddings", payload, stream=False)
+    resp = await _proxy_json(
+        worker,
+        "/v1/embeddings",
+        payload,
+        stream=False,
+        capability="embedding" if "embedding" in worker.capabilities else "text",
+        model=payload.get("model"),
+    )
     await _usage.record_cap(worker.label, "embedding")
     return resp
 
@@ -2476,7 +2529,9 @@ async def audio_speech(
     _: str = Depends(verify_client),
 ):
     worker = await _pick("tts", payload.get("model"))
-    resp = await _proxy_json(worker, "/v1/audio/speech", payload, stream=False)
+    resp = await _proxy_json(
+        worker, "/v1/audio/speech", payload, stream=False, capability="tts"
+    )
     await _usage.record_cap(worker.label, "tts")
     return await _persist_response_assets(worker, resp, request)
 
@@ -2484,7 +2539,9 @@ async def audio_speech(
 @app.post("/v1/audio/speech/stream", tags=["Audio"])
 async def audio_speech_stream(payload: Dict[str, Any], _: str = Depends(verify_client)):
     worker = await _pick("tts", payload.get("model"))
-    resp = await _proxy_json(worker, "/v1/audio/speech/stream", payload, stream=True)
+    resp = await _proxy_json(
+        worker, "/v1/audio/speech/stream", payload, stream=True, capability="tts"
+    )
     await _usage.record_cap(worker.label, "tts")
     return resp
 
@@ -2541,6 +2598,8 @@ async def audio_transcriptions(
             "temperature": temperature,
             "timestamps": timestamps,
         },
+        capability="stt",
+        model=model,
     )
     await _usage.record_cap(worker.label, "stt")
     return resp
@@ -2553,7 +2612,9 @@ async def images_generations(
     _: str = Depends(verify_client),
 ):
     worker = await _pick("image", payload.get("model"))
-    resp = await _proxy_json(worker, "/v1/images/generations", payload, stream=False)
+    resp = await _proxy_json(
+        worker, "/v1/images/generations", payload, stream=False, capability="image"
+    )
     await _usage.record_cap(worker.label, "image")
     return await _persist_response_assets(worker, resp, request)
 
@@ -2576,7 +2637,11 @@ async def images_edits(request: Request, _: str = Depends(verify_client)):
             fields[key] = str(value)
     worker = await _pick("image", fields.get("model"))
     resp = await _proxy_multipart(
-        worker, "/v1/images/edits", files=files, fields=fields
+        worker,
+        "/v1/images/edits",
+        files=files,
+        fields=fields,
+        capability="image",
     )
     await _usage.record_cap(worker.label, "image")
     return await _persist_response_assets(worker, resp, request)
@@ -2595,6 +2660,7 @@ async def videos_generations(
         payload,
         stream=False,
         timeout=float(getenv("REQUEST_TIMEOUT", "1800")),
+        capability="video",
     )
     await _usage.record_cap(worker.label, "video")
     return await _persist_response_assets(worker, resp, request)

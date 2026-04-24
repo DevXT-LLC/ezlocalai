@@ -21,7 +21,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from typing import Any, List, Dict, Union, Optional
 import struct
-from Pipes import Pipes
+from Pipes import ModelType, Pipes
 from RequestQueue import RequestQueue
 import base64
 import os
@@ -91,33 +91,29 @@ def segments_to_vtt(segments: list) -> str:
     return "\n".join(vtt_lines)
 
 
-# Initialize request queue — initial value; updated after Pipes init to match n_parallel
-MAX_CONCURRENT_REQUESTS = int(getenv("MAX_CONCURRENT_REQUESTS", "5"))
+# Initialize request queue — capacity is auto-derived from Pipes after model config loads.
 MAX_QUEUE_SIZE = int(getenv("MAX_QUEUE_SIZE", "100"))
-request_queue = RequestQueue(
-    max_concurrent_requests=MAX_CONCURRENT_REQUESTS, max_queue_size=MAX_QUEUE_SIZE
-)
+request_queue = RequestQueue(max_concurrent_requests=1, max_queue_size=MAX_QUEUE_SIZE)
 
 pipe = Pipes()
 
-# Align queue concurrency with the total n_parallel across all persistent models.
-# Each persistent model can handle its own n_parallel requests simultaneously,
-# so the queue should allow the sum of all models' n_parallel through.
-total_n_parallel = 0
-for model_name, llm_instance in pipe.persistent_llms.items():
-    if hasattr(llm_instance, "n_parallel"):
-        total_n_parallel += llm_instance.n_parallel
-if total_n_parallel == 0 and pipe.llm and hasattr(pipe.llm, "n_parallel"):
-    total_n_parallel = pipe.llm.n_parallel
-if total_n_parallel > 1:
-    effective_concurrent = max(MAX_CONCURRENT_REQUESTS, total_n_parallel)
+
+def _sync_request_queue_capacity() -> Dict[str, Any]:
+    """Align the local text queue with automatically computed LLM slots."""
+    status = request_queue.get_queue_status()
+    slot_snapshot = pipe.get_slot_capacity_snapshot(queue_status=status)
+    effective_concurrent = max(1, int(slot_snapshot.get("llm_queue_capacity", 1) or 1))
     if effective_concurrent != request_queue.max_concurrent_requests:
+        old = request_queue.max_concurrent_requests
         request_queue.max_concurrent_requests = effective_concurrent
         logging.info(
-            f"[Queue] Aligned max_concurrent_requests={effective_concurrent} "
-            f"with total n_parallel={total_n_parallel} across "
-            f"{len(pipe.persistent_llms)} persistent model(s)"
+            f"[Queue] Auto concurrency set to {effective_concurrent} text slot(s) "
+            f"(was {old}) from active model n_parallel values"
         )
+    return slot_snapshot
+
+
+_sync_request_queue_capacity()
 
 app = FastAPI(title="ezlocalai Server", docs_url="/")
 app.add_middleware(
@@ -230,6 +226,7 @@ async def _enqueue_with_fallback(
     from RequestQueue import RequestStatus
 
     queue_wait_timeout = float(getenv("QUEUE_WAIT_TIMEOUT", "30"))
+    _sync_request_queue_capacity()
 
     request_id = await request_queue.enqueue_request(
         data=data,
@@ -421,6 +418,7 @@ async def get_resources(user=Depends(verify_api_key)):
         "max_concurrent_requests": request_queue.max_concurrent_requests,
         "queue_wait_timeout": queue_wait_timeout if queue_wait_timeout > 0 else None,
     }
+    status["slots"] = _sync_request_queue_capacity()
 
     return status
 
@@ -874,26 +872,28 @@ async def speech_to_text(
 
     async with pipe._stt_lock:
         stt = pipe._get_stt()
+        try:
+            # Determine if we need segments based on response_format or diarization
+            need_segments = (
+                response_format in ["verbose_json", "srt", "vtt"] or enable_diarization
+            )
 
-        # Determine if we need segments based on response_format or diarization
-        need_segments = (
-            response_format in ["verbose_json", "srt", "vtt"] or enable_diarization
-        )
-
-        response = await stt.transcribe_audio(
-            base64_audio=base64.b64encode(file_content).decode("utf-8"),
-            audio_format=file.content_type,
-            language=language,
-            prompt=prompt,
-            temperature=temperature,
-            return_segments=need_segments,
-            enable_diarization=enable_diarization,
-            num_speakers=num_speakers,
-            session_id=session_id,
-        )
-        # In voice server mode, don't destroy STT - keep it loaded
-        if not is_voice_server_mode():
-            pipe._destroy_stt()
+            response = await stt.transcribe_audio(
+                base64_audio=base64.b64encode(file_content).decode("utf-8"),
+                audio_format=file.content_type,
+                language=language,
+                prompt=prompt,
+                temperature=temperature,
+                return_segments=need_segments,
+                enable_diarization=enable_diarization,
+                num_speakers=num_speakers,
+                session_id=session_id,
+            )
+        finally:
+            pipe.resource_manager.mark_model_in_use(ModelType.STT, False)
+            # In voice server mode, don't destroy STT - keep it loaded
+            if not is_voice_server_mode():
+                pipe._destroy_stt()
 
     # Format response based on response_format
     if response_format == "text":
@@ -943,17 +943,20 @@ async def audio_translations(
 
     async with pipe._stt_lock:
         stt = pipe._get_stt()
-        response = await stt.transcribe_audio(
-            base64_audio=base64.b64encode(await file.read()).decode("utf-8"),
-            audio_format=file.content_type,
-            language=language,
-            prompt=prompt,
-            temperature=temperature,
-            translate=True,
-        )
-        # In voice server mode, don't destroy STT - keep it loaded
-        if not is_voice_server_mode():
-            pipe._destroy_stt()
+        try:
+            response = await stt.transcribe_audio(
+                base64_audio=base64.b64encode(await file.read()).decode("utf-8"),
+                audio_format=file.content_type,
+                language=language,
+                prompt=prompt,
+                temperature=temperature,
+                translate=True,
+            )
+        finally:
+            pipe.resource_manager.mark_model_in_use(ModelType.STT, False)
+            # In voice server mode, don't destroy STT - keep it loaded
+            if not is_voice_server_mode():
+                pipe._destroy_stt()
     return {"text": response}
 
 
@@ -1098,19 +1101,22 @@ async def generate_subtitles(
     async with pipe._stt_lock:
         stt = pipe._get_stt()
         audio_bytes = await file.read()
-        transcription = await stt.transcribe_audio(
-            base64_audio=base64.b64encode(audio_bytes).decode("utf-8"),
-            audio_format=file.content_type,
-            language=source_language,
-            prompt=prompt,
-            temperature=temperature,
-            return_segments=True,
-            beam_size=beam_size,
-            condition_on_previous_text=condition_on_previous,
-        )
-        # In voice server mode, don't destroy STT - keep it loaded
-        if not is_voice_server_mode():
-            pipe._destroy_stt()
+        try:
+            transcription = await stt.transcribe_audio(
+                base64_audio=base64.b64encode(audio_bytes).decode("utf-8"),
+                audio_format=file.content_type,
+                language=source_language,
+                prompt=prompt,
+                temperature=temperature,
+                return_segments=True,
+                beam_size=beam_size,
+                condition_on_previous_text=condition_on_previous,
+            )
+        finally:
+            pipe.resource_manager.mark_model_in_use(ModelType.STT, False)
+            # In voice server mode, don't destroy STT - keep it loaded
+            if not is_voice_server_mode():
+                pipe._destroy_stt()
 
     detected_language = transcription.get("language") or source_language or "en"
     source_segments = transcription["segments"]
@@ -1232,12 +1238,15 @@ async def text_to_speech(tts: TextToSpeech, user=Depends(verify_api_key)):
 
     async with pipe._tts_lock:
         tts_model = pipe._get_tts()
-        audio_b64 = await tts_model.generate(
-            text=tts.input, voice=tts.voice, language=tts.language
-        )
-        # In voice server mode, don't destroy TTS - keep it loaded
-        if not is_voice_server_mode():
-            pipe._destroy_tts()
+        try:
+            audio_b64 = await tts_model.generate(
+                text=tts.input, voice=tts.voice, language=tts.language
+            )
+        finally:
+            pipe.resource_manager.mark_model_in_use(ModelType.TTS, False)
+            # In voice server mode, don't destroy TTS - keep it loaded
+            if not is_voice_server_mode():
+                pipe._destroy_tts()
     # OpenAI SDK expects raw binary audio, not base64 JSON
     audio_bytes = base64.b64decode(audio_b64)
     return Response(content=audio_bytes, media_type="audio/wav")
@@ -1306,6 +1315,7 @@ async def text_to_speech_stream(tts: TextToSpeech, user=Depends(verify_api_key))
                 ):
                     yield chunk
             finally:
+                pipe.resource_manager.mark_model_in_use(ModelType.TTS, False)
                 # In voice server mode, don't destroy TTS - keep it loaded
                 if not is_voice_server_mode():
                     pipe._destroy_tts()
@@ -1416,6 +1426,7 @@ async def tts_websocket(websocket: WebSocket):
         except:
             pass
     finally:
+        pipe.resource_manager.mark_model_in_use(ModelType.TTS, False)
         if not is_voice_server_mode():
             pipe._destroy_tts()
 
@@ -1443,12 +1454,15 @@ async def get_voices(user=Depends(verify_api_key)):
 
     async with pipe._tts_lock:
         tts_model = pipe._get_tts()
-        if tts_model is None:
-            return {"voices": []}
-        voices = tts_model.voices
-        # In voice server mode, don't destroy TTS - keep it loaded
-        if not is_voice_server_mode():
-            pipe._destroy_tts()
+        try:
+            if tts_model is None:
+                return {"voices": []}
+            voices = tts_model.voices
+        finally:
+            pipe.resource_manager.mark_model_in_use(ModelType.TTS, False)
+            # In voice server mode, don't destroy TTS - keep it loaded
+            if not is_voice_server_mode():
+                pipe._destroy_tts()
     return {"voices": voices}
 
 

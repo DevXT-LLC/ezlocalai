@@ -512,6 +512,10 @@ class WorkerInfo:
     queue_depth: int = 0
     queue_capacity: int = 1
     in_flight: int = 0
+    # Exact per-capability and per-model slot state from worker heartbeats.
+    # Shape: {"text": {"capacity": 8, "in_flight": 2, "queued": 0, "available": 6}}
+    cap_slots: Dict[str, Dict[str, int]] = field(default_factory=dict)
+    model_slots: Dict[str, Dict[str, int]] = field(default_factory=dict)
     # Hardware introspection (auto-reported by the worker)
     gpus: List[Dict[str, Any]] = field(default_factory=list)
     best_tier: int = TIER_CPU
@@ -551,6 +555,11 @@ class WorkerInfo:
             "queue_depth": self.queue_depth,
             "queue_capacity": self.queue_capacity,
             "in_flight": self.in_flight,
+            "cap_slots": dict(self.cap_slots),
+            "model_slots": dict(self.model_slots),
+            "slot_total_capacity": self.total_capacity(),
+            "slot_total_busy": self.total_busy(),
+            "slot_total_available": self.total_slots_left(),
             "gpus": list(self.gpus),
             "best_tier": self.best_tier,
             "model_context": dict(self.model_context),
@@ -573,7 +582,69 @@ class WorkerInfo:
     def is_alive(self, ttl: float) -> bool:
         return (time.time() - self.last_heartbeat) <= ttl
 
-    def effective_busy(self) -> int:
+    @staticmethod
+    def _normalize_slot(
+        raw: Optional[Dict[str, Any]], fallback_capacity: int = 1
+    ) -> Dict[str, int]:
+        raw = raw or {}
+        capacity = max(0, int(raw.get("capacity", fallback_capacity) or 0))
+        in_flight = max(0, int(raw.get("in_flight", 0) or 0))
+        queued = max(0, int(raw.get("queued", 0) or 0))
+        return {
+            "capacity": capacity,
+            "in_flight": in_flight,
+            "queued": queued,
+            "available": max(0, capacity - in_flight - queued),
+        }
+
+    @staticmethod
+    def _match_name(
+        name: Optional[str], slot_map: Dict[str, Dict[str, int]]
+    ) -> Optional[str]:
+        if not name or not slot_map:
+            return None
+        if name in slot_map:
+            return name
+        base = name.split("/")[-1].lower()
+        for key in slot_map:
+            if key.lower() == name.lower() or key.split("/")[-1].lower() == base:
+                return key
+        for key in slot_map:
+            if base and base in key.lower():
+                return key
+        return None
+
+    def slot_state(
+        self, capability: Optional[str] = None, model: Optional[str] = None
+    ) -> Dict[str, int]:
+        """Return the most specific live slot state for a route decision."""
+        if model:
+            model_key = self._match_name(model, self.model_slots)
+            if model_key:
+                return self._normalize_slot(self.model_slots.get(model_key))
+
+        if capability:
+            if capability in self.cap_slots:
+                return self._normalize_slot(self.cap_slots.get(capability))
+            if capability == "vision" and "text" in self.cap_slots:
+                return self._normalize_slot(self.cap_slots.get("text"))
+
+        fallback_capacity = max(1, int(self.queue_capacity or 1))
+        if capability in ("image", "stt", "video", "tts"):
+            fallback_capacity = 1
+        busy = self.effective_busy()
+        return self._normalize_slot(
+            {
+                "capacity": fallback_capacity,
+                "in_flight": min(busy, fallback_capacity),
+                "queued": max(0, busy - fallback_capacity),
+            },
+            fallback_capacity=fallback_capacity,
+        )
+
+    def effective_busy(
+        self, capability: Optional[str] = None, model: Optional[str] = None
+    ) -> int:
         """Best estimate of in-flight work right now.
 
         ``queue_depth`` only refreshes on heartbeat (every ~10s) so during a
@@ -582,15 +653,66 @@ class WorkerInfo:
         signal between heartbeats. We take the max so neither source can
         under-count actual load.
         """
+        if capability or model:
+            state = self.slot_state(capability=capability, model=model)
+            return int(state.get("in_flight", 0)) + int(state.get("queued", 0))
         return max(int(self.queue_depth), int(self.in_flight))
 
-    def has_capacity(self) -> bool:
+    def capacity_for(
+        self, capability: Optional[str] = None, model: Optional[str] = None
+    ) -> int:
+        return int(
+            self.slot_state(capability=capability, model=model).get("capacity", 0)
+        )
+
+    def slots_left(
+        self, capability: Optional[str] = None, model: Optional[str] = None
+    ) -> int:
+        state = self.slot_state(capability=capability, model=model)
+        return max(
+            0,
+            int(state.get("capacity", 0))
+            - int(state.get("in_flight", 0))
+            - int(state.get("queued", 0)),
+        )
+
+    def has_capacity(
+        self, capability: Optional[str] = None, model: Optional[str] = None
+    ) -> bool:
         # A worker is considered "free" if it has at least one open slot,
         # using whichever busy-signal is higher (router-side in-flight or
         # last heartbeat queue depth).
-        return self.effective_busy() < max(1, self.queue_capacity)
+        return self.slots_left(capability=capability, model=model) > 0
 
-    def score(self) -> float:
+    def total_capacity(self) -> int:
+        if not self.cap_slots:
+            return max(1, int(self.queue_capacity or 1))
+        total = 0
+        for cap, state in self.cap_slots.items():
+            if cap == "vision" and "text" in self.cap_slots:
+                continue
+            total += int(self._normalize_slot(state).get("capacity", 0))
+        return total
+
+    def total_busy(self) -> int:
+        if not self.cap_slots:
+            return self.effective_busy()
+        total = 0
+        for cap, state in self.cap_slots.items():
+            if cap == "vision" and "text" in self.cap_slots:
+                continue
+            normalized = self._normalize_slot(state)
+            total += int(normalized.get("in_flight", 0)) + int(
+                normalized.get("queued", 0)
+            )
+        return total
+
+    def total_slots_left(self) -> int:
+        return max(0, self.total_capacity() - self.total_busy())
+
+    def score(
+        self, capability: Optional[str] = None, model: Optional[str] = None
+    ) -> float:
         """Higher = better worker to send the next request to.
 
         Combines:
@@ -603,8 +725,8 @@ class WorkerInfo:
         sitting idle, but a heavily loaded fast GPU can lose to an idle slower
         one because the load penalty grows with in-flight requests.
         """
-        busy = self.effective_busy()
-        slots_left = max(0, self.queue_capacity - busy)
+        busy = self.effective_busy(capability=capability, model=model)
+        slots_left = self.slots_left(capability=capability, model=model)
         # Failure penalty decays as the counter grows (caps the impact). New
         # failures bias routing away briefly without permanently sidelining
         # a high-tier worker that may have just had a transient hiccup.
@@ -661,6 +783,18 @@ class WorkerRegistry:
                 payload.get("queue_capacity", worker.queue_capacity)
             )
             worker.in_flight = int(payload.get("in_flight", worker.in_flight))
+            if "cap_slots" in payload and isinstance(payload["cap_slots"], dict):
+                worker.cap_slots = {
+                    str(k): WorkerInfo._normalize_slot(v)
+                    for k, v in payload["cap_slots"].items()
+                    if isinstance(v, dict)
+                }
+            if "model_slots" in payload and isinstance(payload["model_slots"], dict):
+                worker.model_slots = {
+                    str(k): WorkerInfo._normalize_slot(v)
+                    for k, v in payload["model_slots"].items()
+                    if isinstance(v, dict)
+                }
             if "models" in payload:
                 worker.models = list(payload["models"])
             if "capabilities" in payload:
@@ -710,11 +844,41 @@ class WorkerRegistry:
             workers = [w for w in workers if w.is_alive(self._ttl)]
         return workers
 
-    def increment_in_flight(self, worker_id: str, delta: int = 1) -> None:
+    def increment_in_flight(
+        self,
+        worker_id: str,
+        delta: int = 1,
+        capability: Optional[str] = None,
+        model: Optional[str] = None,
+    ) -> None:
         with self._lock:
             w = self._workers.get(worker_id)
             if w is not None:
                 w.in_flight = max(0, w.in_flight + delta)
+
+                def _bump(slot_map: Dict[str, Dict[str, int]], key: str, capacity: int):
+                    state = WorkerInfo._normalize_slot(slot_map.get(key), capacity)
+                    state["in_flight"] = max(0, int(state.get("in_flight", 0)) + delta)
+                    state["available"] = max(
+                        0,
+                        int(state.get("capacity", 0))
+                        - int(state.get("in_flight", 0))
+                        - int(state.get("queued", 0)),
+                    )
+                    slot_map[key] = state
+
+                if capability:
+                    cap_key = capability
+                    if (
+                        cap_key not in w.cap_slots
+                        and cap_key == "vision"
+                        and "text" in w.cap_slots
+                    ):
+                        cap_key = "text"
+                    _bump(w.cap_slots, cap_key, w.capacity_for(capability=capability))
+                if model:
+                    model_key = WorkerInfo._match_name(model, w.model_slots) or model
+                    _bump(w.model_slots, model_key, w.capacity_for(model=model))
 
     def record_connection_failure(self, worker_id: str) -> int:
         """Increment the failure counter for a worker (for visibility + scoring).
@@ -839,8 +1003,12 @@ class Router:
             and not w.is_circuit_open()
         ]
 
-        def _has_capacity(workers):
-            return [w for w in workers if w.has_capacity()]
+        def _has_capacity(workers, *, use_model: bool = True):
+            return [
+                w
+                for w in workers
+                if w.has_capacity(capability, model if use_model else None)
+            ]
 
         def _model_match(worker: WorkerInfo) -> bool:
             if not model:
@@ -859,14 +1027,20 @@ class Router:
             model_servers = [w for w in all_alive if _model_match(w)]
             preferred = _has_capacity(model_servers)
             if preferred:
-                preferred.sort(key=lambda w: w.score(), reverse=True)
+                preferred.sort(
+                    key=lambda w: w.score(capability=capability, model=model),
+                    reverse=True,
+                )
                 winner = preferred[0]
                 logging.info(
                     f"[Router] select model={model!r} cap={capability} -> {winner.label} "
-                    f"(score={winner.score():.1f}, busy={winner.effective_busy()}/{winner.queue_capacity}); "
+                    f"(score={winner.score(capability=capability, model=model):.1f}, "
+                    f"busy={winner.effective_busy(capability, model)}/{winner.capacity_for(capability, model)}); "
                     f"same-model candidates: "
                     + ", ".join(
-                        f"{w.label}(busy={w.effective_busy()}/{w.queue_capacity},score={w.score():.1f})"
+                        f"{w.label}(busy={w.effective_busy(capability, model)}/"
+                        f"{w.capacity_for(capability, model)},"
+                        f"score={w.score(capability=capability, model=model):.1f})"
                         for w in model_servers
                     )
                 )
@@ -881,7 +1055,8 @@ class Router:
                     f"[Router] select model={model!r} cap={capability}: same-model workers all "
                     f"saturated, waiting for capacity; "
                     + ", ".join(
-                        f"{w.label}(busy={w.effective_busy()}/{w.queue_capacity})"
+                        f"{w.label}(busy={w.effective_busy(capability, model)}/"
+                        f"{w.capacity_for(capability, model)})"
                         for w in model_servers
                     )
                 )
@@ -892,17 +1067,20 @@ class Router:
                     f"registered yet, waiting"
                 )
                 return None
-            fallback = _has_capacity(all_alive)
+            fallback = _has_capacity(all_alive, use_model=False)
             if fallback:
-                fallback.sort(key=lambda w: w.score(), reverse=True)
+                fallback.sort(
+                    key=lambda w: w.score(capability=capability), reverse=True
+                )
                 winner = fallback[0]
                 logging.warning(
                     f"[Router] select model={model!r} cap={capability}: NO same-model worker "
                     f"available after grace period -> CROSS-MODEL fallback to {winner.label} "
-                    f"(advertises {winner.models}, score={winner.score():.1f}). "
+                    f"(advertises {winner.models}, score={winner.score(capability=capability):.1f}). "
                     f"Same-model workers were: "
                     + ", ".join(
-                        f"{w.label}(busy={w.effective_busy()}/{w.queue_capacity})"
+                        f"{w.label}(busy={w.effective_busy(capability, model)}/"
+                        f"{w.capacity_for(capability, model)})"
                         for w in model_servers
                     )
                     + (" (none registered)" if not model_servers else "")
@@ -917,7 +1095,7 @@ class Router:
         candidates = _has_capacity(all_alive)
         if not candidates:
             return None
-        candidates.sort(key=lambda w: w.score(), reverse=True)
+        candidates.sort(key=lambda w: w.score(capability=capability), reverse=True)
         return candidates[0]
 
     async def wait_for_worker(
@@ -1021,6 +1199,7 @@ class WorkerHeartbeatClient:
         in_flight = 0
         model_context: Dict[str, int] = {}
         model_quant: Dict[str, str] = {}
+        slot_snapshot: Dict[str, Any] = {}
         try:
             from Pipes import get_resource_manager  # local import: optional dep
 
@@ -1135,6 +1314,7 @@ class WorkerHeartbeatClient:
             pass
         try:
             from app import request_queue  # type: ignore
+            from app import pipe  # type: ignore
 
             status = request_queue.get_queue_status() if request_queue else {}
             queue_depth = int(status.get("queue_size", 0)) + int(
@@ -1142,6 +1322,14 @@ class WorkerHeartbeatClient:
             )
             queue_capacity = int(status.get("max_concurrent", queue_capacity))
             in_flight = int(status.get("processing_count", 0))
+            if pipe is not None and hasattr(pipe, "get_slot_capacity_snapshot"):
+                slot_snapshot = pipe.get_slot_capacity_snapshot(queue_status=status)
+                queue_capacity = int(
+                    slot_snapshot.get("llm_queue_capacity", queue_capacity)
+                    or queue_capacity
+                )
+                if "slot_total_in_flight" in slot_snapshot:
+                    in_flight = int(slot_snapshot.get("slot_total_in_flight", 0) or 0)
         except Exception:
             pass
 
@@ -1192,6 +1380,8 @@ class WorkerHeartbeatClient:
             "queue_depth": queue_depth,
             "queue_capacity": queue_capacity,
             "in_flight": in_flight,
+            "cap_slots": slot_snapshot.get("cap_slots", {}),
+            "model_slots": slot_snapshot.get("model_slots", {}),
             "models": models,
             "capabilities": self.capabilities,
             "gpus": gpus,

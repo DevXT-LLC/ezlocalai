@@ -1479,7 +1479,7 @@ def get_default_env() -> dict:
         "IMG_MODEL": "none",
         "VIDEO_MODEL": "none",
         "NGROK_TOKEN": "",
-        "MAX_CONCURRENT_REQUESTS": "1",
+        "MAX_CONCURRENT_REQUESTS": "0",
         "MAX_QUEUE_SIZE": "100",
         "REQUEST_TIMEOUT": "300",
     }
