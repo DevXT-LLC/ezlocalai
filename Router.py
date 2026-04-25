@@ -972,6 +972,73 @@ class Router:
     def __init__(self, registry: WorkerRegistry):
         self.registry = registry
 
+    @staticmethod
+    def _idle_tier_window() -> int:
+        """Tier gap where an idle worker beats adding parallel work.
+
+        Example with the default 20-point window: if a 5090 (tier 90) is
+        already decoding and an idle 4090 (tier 80) can serve the same model,
+        route to the 4090. If the only idle alternative is a 3090 (tier 55),
+        keep using an available 5090 slot because the tier gap is too large.
+        """
+        try:
+            return max(0, int(getenv("ROUTER_IDLE_TIER_WINDOW", "20")))
+        except (TypeError, ValueError):
+            return 20
+
+    def _rank_candidates(
+        self,
+        candidates: List[WorkerInfo],
+        capability: str,
+        model: Optional[str] = None,
+    ) -> Tuple[Optional[WorkerInfo], str]:
+        """Rank workers with tier-aware spillover before parallel decode.
+
+        The score still handles normal ordering, failure penalties, and VRAM,
+        but before blindly adding a second/third request to the fastest worker,
+        prefer an idle same-model worker within ``ROUTER_IDLE_TIER_WINDOW`` tier
+        points of the fastest available candidate.
+        """
+        if not candidates:
+            return None, "no-candidates"
+
+        scored = sorted(
+            candidates,
+            key=lambda w: w.score(capability=capability, model=model),
+            reverse=True,
+        )
+        fastest_tier = max(int(w.best_tier or 0) for w in candidates)
+        fastest_candidates = [
+            w for w in candidates if int(w.best_tier or 0) == fastest_tier
+        ]
+        fastest_busy = min(
+            w.effective_busy(capability=capability, model=model)
+            for w in fastest_candidates
+        )
+        window = self._idle_tier_window()
+
+        if fastest_busy > 0 and window > 0:
+            idle_near = [
+                w
+                for w in candidates
+                if w.effective_busy(capability=capability, model=model) == 0
+                and int(w.best_tier or 0) >= fastest_tier - window
+            ]
+            if idle_near:
+                idle_near.sort(
+                    key=lambda w: (
+                        int(w.best_tier or 0),
+                        w.score(capability=capability, model=model),
+                    ),
+                    reverse=True,
+                )
+                return idle_near[0], (
+                    f"idle-near-tier(window={window}, fastest_tier={fastest_tier}, "
+                    f"fastest_busy={fastest_busy})"
+                )
+
+        return scored[0], "score"
+
     def select_worker(
         self,
         capability: str,
@@ -1027,14 +1094,13 @@ class Router:
             model_servers = [w for w in all_alive if _model_match(w)]
             preferred = _has_capacity(model_servers)
             if preferred:
-                preferred.sort(
-                    key=lambda w: w.score(capability=capability, model=model),
-                    reverse=True,
+                winner, route_reason = self._rank_candidates(
+                    preferred, capability=capability, model=model
                 )
-                winner = preferred[0]
                 logging.info(
                     f"[Router] select model={model!r} cap={capability} -> {winner.label} "
-                    f"(score={winner.score(capability=capability, model=model):.1f}, "
+                    f"(reason={route_reason}, "
+                    f"score={winner.score(capability=capability, model=model):.1f}, "
                     f"busy={winner.effective_busy(capability, model)}/{winner.capacity_for(capability, model)}); "
                     f"same-model candidates: "
                     + ", ".join(
@@ -1069,14 +1135,14 @@ class Router:
                 return None
             fallback = _has_capacity(all_alive, use_model=False)
             if fallback:
-                fallback.sort(
-                    key=lambda w: w.score(capability=capability), reverse=True
+                winner, route_reason = self._rank_candidates(
+                    fallback, capability=capability
                 )
-                winner = fallback[0]
                 logging.warning(
                     f"[Router] select model={model!r} cap={capability}: NO same-model worker "
                     f"available after grace period -> CROSS-MODEL fallback to {winner.label} "
-                    f"(advertises {winner.models}, score={winner.score(capability=capability):.1f}). "
+                    f"(reason={route_reason}, advertises {winner.models}, "
+                    f"score={winner.score(capability=capability):.1f}). "
                     f"Same-model workers were: "
                     + ", ".join(
                         f"{w.label}(busy={w.effective_busy(capability, model)}/"
@@ -1095,8 +1161,8 @@ class Router:
         candidates = _has_capacity(all_alive)
         if not candidates:
             return None
-        candidates.sort(key=lambda w: w.score(capability=capability), reverse=True)
-        return candidates[0]
+        winner, _ = self._rank_candidates(candidates, capability=capability)
+        return winner
 
     async def wait_for_worker(
         self,
