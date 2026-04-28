@@ -44,6 +44,7 @@ from Globals import getenv
 # ---------------------------------------------------------------------------
 
 ALL_CAPABILITIES = {"text", "vision", "tts", "stt", "image", "video", "embedding"}
+MODEL_STRICT_CAPABILITIES = {"text", "vision", "embedding"}
 
 
 def detect_local_capabilities() -> List[str]:
@@ -1052,7 +1053,8 @@ class Router:
         retry path so a failed worker isn't picked again immediately).
 
         ``allow_cross_model`` controls what happens when a ``model`` is
-        requested but no same-model worker has capacity right now:
+        requested for a model-strict capability but no same-model worker has
+        capacity right now:
 
         * ``True``  — fall back to the best-scoring worker that supports the
           capability so the client gets *some* compute instead of a 503.
@@ -1060,6 +1062,11 @@ class Router:
           free 3090Ti even when both are running a different model.
         * ``False`` — return ``None`` so the caller (``wait_for_worker``)
           can poll for a same-model worker to free up before crossing over.
+
+        Non-text media capabilities (TTS, STT, image, video) are routed by
+        capability regardless of the client-supplied OpenAI model alias. A
+        request for ``whisper-1`` should reach any STT-capable worker, and a
+        request for ``tts-1`` should reach any TTS-capable worker.
         """
         excluded = exclude or set()
         all_alive = [
@@ -1076,6 +1083,24 @@ class Router:
                 for w in workers
                 if w.has_capacity(capability, model if use_model else None)
             ]
+
+        if capability not in MODEL_STRICT_CAPABILITIES:
+            candidates = _has_capacity(all_alive, use_model=False)
+            if not candidates:
+                logging.warning(
+                    f"[Router] select model={model!r} cap={capability}: NO worker available at all"
+                )
+                return None
+            winner, route_reason = self._rank_candidates(
+                candidates, capability=capability
+            )
+            logging.info(
+                f"[Router] select model={model!r} cap={capability} -> {winner.label} "
+                f"(reason={route_reason}, capability-only, "
+                f"score={winner.score(capability=capability):.1f}, "
+                f"busy={winner.effective_busy(capability)}/{winner.capacity_for(capability)})"
+            )
+            return winner
 
         def _model_match(worker: WorkerInfo) -> bool:
             if not model:
