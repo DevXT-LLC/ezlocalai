@@ -85,14 +85,18 @@ class TunnelHub:
         self._connect_count: Dict[str, int] = {}
 
     async def attach(self, conn: "TunnelConnection") -> None:
+        old: Optional["TunnelConnection"] = None
         async with self._lock:
             old = self._connections.get(conn.worker_id)
-            if old and old is not conn:
-                await old.close(reason="superseded")
             self._connections[conn.worker_id] = conn
             self._connect_count[conn.worker_id] = (
                 self._connect_count.get(conn.worker_id, 0) + 1
             )
+        # Close the replaced socket outside the hub lock. ``close()`` calls
+        # back into ``detach()``, so awaiting it while locked can deadlock the
+        # entire tunnel hub during reconnects.
+        if old and old is not conn:
+            await old.close(reason="superseded")
 
     async def detach(self, conn: "TunnelConnection") -> None:
         async with self._lock:
@@ -159,12 +163,16 @@ class TunnelConnection:
             await p.queue.put(None)
         self._pending.clear()
         if self._keepalive_task and not self._keepalive_task.done():
-            self._keepalive_task.cancel()
+            current_task = asyncio.current_task()
+            if self._keepalive_task is not current_task:
+                self._keepalive_task.cancel()
         try:
-            await self.ws.close()
-        except Exception:
-            pass
-        await self.hub.detach(self)
+            try:
+                await self.ws.close()
+            except Exception:
+                pass
+        finally:
+            await self.hub.detach(self)
 
     async def _send_json(self, msg: Dict[str, Any]) -> None:
         async with self._send_lock:
