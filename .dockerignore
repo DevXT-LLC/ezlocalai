@@ -1,5 +1,9 @@
 # Version control and CI metadata
-.git/
+.git/*
+!.git/HEAD
+!.git/refs/
+!.git/refs/**
+!.git/packed-refs
 .github/
 .gitignore
 .dockerignore

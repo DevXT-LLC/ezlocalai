@@ -28,6 +28,7 @@ import logging
 import os
 import re
 import socket
+import subprocess
 import time
 import uuid
 from dataclasses import dataclass, field
@@ -45,6 +46,133 @@ from Globals import getenv
 
 ALL_CAPABILITIES = {"text", "vision", "tts", "stt", "image", "video", "embedding"}
 MODEL_STRICT_CAPABILITIES = {"text", "vision", "embedding"}
+_RUNTIME_VERSION_CACHE: Optional[str] = None
+
+
+def _clean_version(value: Optional[str]) -> str:
+    value = (value or "").strip()
+    if not value or value.lower() in {"none", "null", "unknown", "undefined"}:
+        return ""
+    return value[:80]
+
+
+def _read_first_line(path: str) -> str:
+    try:
+        with open(path, encoding="utf-8", errors="replace") as fh:
+            return fh.readline().strip()
+    except Exception:
+        return ""
+
+
+def _version_from_packed_refs(packed_refs_path: str, ref: str) -> str:
+    try:
+        with open(packed_refs_path, encoding="utf-8", errors="replace") as fh:
+            for line in fh:
+                line = line.strip()
+                if not line or line.startswith("#") or line.startswith("^"):
+                    continue
+                parts = line.split()
+                if len(parts) >= 2 and parts[1] == ref:
+                    return parts[0]
+    except Exception:
+        pass
+    return ""
+
+
+def _version_from_git_metadata(repo_dir: str) -> str:
+    """Read a short commit SHA from lightweight .git metadata.
+
+    Docker images intentionally exclude .git objects, but keeping HEAD, refs,
+    and packed-refs is enough for dashboard version reporting.
+    """
+    git_dir = os.path.join(repo_dir, ".git")
+    if os.path.isfile(git_dir):
+        git_file = _read_first_line(git_dir)
+        if git_file.startswith("gitdir:"):
+            git_dir = git_file.split(":", 1)[1].strip()
+            if not os.path.isabs(git_dir):
+                git_dir = os.path.normpath(os.path.join(repo_dir, git_dir))
+
+    if not os.path.isdir(git_dir):
+        return ""
+
+    head = _read_first_line(os.path.join(git_dir, "HEAD"))
+    if not head:
+        return ""
+
+    sha = head
+    if head.startswith("ref:"):
+        ref = head.split(":", 1)[1].strip()
+        sha = _read_first_line(os.path.normpath(os.path.join(git_dir, ref)))
+        if not sha:
+            sha = _version_from_packed_refs(os.path.join(git_dir, "packed-refs"), ref)
+
+    if re.fullmatch(r"[0-9a-fA-F]{7,40}", sha or ""):
+        return sha[:7].lower()
+    return ""
+
+
+def get_runtime_version(repo_dir: Optional[str] = None) -> str:
+    """Best-effort runtime version shown by the router dashboard."""
+    global _RUNTIME_VERSION_CACHE
+    if repo_dir is None and _RUNTIME_VERSION_CACHE is not None:
+        return _RUNTIME_VERSION_CACHE
+
+    repo_dir = repo_dir or os.path.dirname(os.path.abspath(__file__))
+
+    for env_name in ("EZLOCALAI_VERSION", "EZLOCALAI_COMMIT", "GIT_COMMIT"):
+        version = _clean_version(os.getenv(env_name))
+        if version:
+            if repo_dir == os.path.dirname(os.path.abspath(__file__)):
+                _RUNTIME_VERSION_CACHE = version
+            return version
+
+    for filename in (".ezlocalai-version", "VERSION"):
+        version = _clean_version(_read_first_line(os.path.join(repo_dir, filename)))
+        if version:
+            if repo_dir == os.path.dirname(os.path.abspath(__file__)):
+                _RUNTIME_VERSION_CACHE = version
+            return version
+
+    try:
+        result = subprocess.run(
+            ["git", "-C", repo_dir, "rev-parse", "--short", "HEAD"],
+            capture_output=True,
+            text=True,
+            timeout=3,
+        )
+        if result.returncode == 0:
+            version = _clean_version(result.stdout)
+            if version:
+                if repo_dir == os.path.dirname(os.path.abspath(__file__)):
+                    _RUNTIME_VERSION_CACHE = version
+                return version
+    except Exception:
+        pass
+
+    version = _version_from_git_metadata(repo_dir)
+    if version:
+        if repo_dir == os.path.dirname(os.path.abspath(__file__)):
+            _RUNTIME_VERSION_CACHE = version
+        return version
+
+    try:
+        from importlib.metadata import PackageNotFoundError, version as pkg_version
+
+        try:
+            version = _clean_version(pkg_version("ezlocalai"))
+        except PackageNotFoundError:
+            version = ""
+        if version:
+            if repo_dir == os.path.dirname(os.path.abspath(__file__)):
+                _RUNTIME_VERSION_CACHE = version
+            return version
+    except Exception:
+        pass
+
+    if repo_dir == os.path.dirname(os.path.abspath(__file__)):
+        _RUNTIME_VERSION_CACHE = ""
+    return ""
 
 
 def detect_local_capabilities() -> List[str]:
@@ -531,7 +659,7 @@ class WorkerInfo:
     extra: Dict[str, Any] = field(default_factory=dict)
     # Consecutive connection failures from the router side (not the worker heartbeat)
     connection_failures: int = 0
-    # Git commit hash of the ezlocalai repo running on this worker (short SHA)
+    # Runtime version identifier of the ezlocalai code running on this worker.
     version: str = ""
     # Recent error events (sliding window; capped). Each entry:
     # {ts, kind, status, path, message}
@@ -1426,28 +1554,7 @@ class WorkerHeartbeatClient:
 
         gpus = detect_local_gpus()
         # Capability-specific model names (sent to the router for display)
-        # Detect the git commit of the running ezlocalai repo
-        version = ""
-        try:
-            import subprocess
-
-            result = subprocess.run(
-                [
-                    "git",
-                    "-C",
-                    os.path.dirname(os.path.abspath(__file__)),
-                    "rev-parse",
-                    "--short",
-                    "HEAD",
-                ],
-                capture_output=True,
-                text=True,
-                timeout=3,
-            )
-            if result.returncode == 0:
-                version = result.stdout.strip()
-        except Exception:
-            pass
+        version = get_runtime_version()
         cap_models: Dict[str, str] = {}
         for _cap in self.capabilities:
             if _cap == "tts":

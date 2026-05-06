@@ -1,6 +1,8 @@
+import os
+import tempfile
 import unittest
 
-from Router import Router, WorkerInfo, WorkerRegistry
+from Router import Router, WorkerInfo, WorkerRegistry, _version_from_git_metadata
 
 
 class RouterSelectionTests(unittest.TestCase):
@@ -65,6 +67,35 @@ class RouterSelectionTests(unittest.TestCase):
         )
 
         self.assertIsNone(worker)
+
+
+class RuntimeVersionTests(unittest.TestCase):
+    def test_version_from_lightweight_git_ref_metadata(self):
+        sha = "0123456789abcdef0123456789abcdef01234567"
+        with tempfile.TemporaryDirectory() as tmp:
+            refs_dir = os.path.join(tmp, ".git", "refs", "heads")
+            os.makedirs(refs_dir)
+            with open(os.path.join(tmp, ".git", "HEAD"), "w", encoding="utf-8") as fh:
+                fh.write("ref: refs/heads/main\n")
+            with open(os.path.join(refs_dir, "main"), "w", encoding="utf-8") as fh:
+                fh.write(f"{sha}\n")
+
+            self.assertEqual(_version_from_git_metadata(tmp), sha[:7])
+
+    def test_version_from_lightweight_packed_refs_metadata(self):
+        sha = "abcdef0123456789abcdef0123456789abcdef01"
+        with tempfile.TemporaryDirectory() as tmp:
+            git_dir = os.path.join(tmp, ".git")
+            os.makedirs(git_dir)
+            with open(os.path.join(git_dir, "HEAD"), "w", encoding="utf-8") as fh:
+                fh.write("ref: refs/heads/main\n")
+            with open(
+                os.path.join(git_dir, "packed-refs"), "w", encoding="utf-8"
+            ) as fh:
+                fh.write("# pack-refs with: peeled fully-peeled sorted\n")
+                fh.write(f"{sha} refs/heads/main\n")
+
+            self.assertEqual(_version_from_git_metadata(tmp), sha[:7])
 
 
 if __name__ == "__main__":

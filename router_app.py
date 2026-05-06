@@ -36,6 +36,7 @@ OpenAI-compatible (proxied)
 from __future__ import annotations
 
 import asyncio
+import html
 import json
 import logging
 import os
@@ -1178,11 +1179,15 @@ _HEALTH_STYLE = {
 
 
 def _version_link(version: str) -> str:
-    """Render a commit SHA as a link to the GitHub repo. Empty string -> dash."""
+    """Render commit SHAs as links; other version IDs as plain text."""
+    version = str(version or "").strip()
     if not version:
         return "—"
+    safe_version = html.escape(version)
+    if not re.fullmatch(r"[0-9a-fA-F]{7,40}", version):
+        return safe_version
     url = f"https://github.com/DevXT-LLC/ezlocalai/commit/{version}"
-    return f'<a href="{url}" target="_blank" rel="noopener">{version}</a>'
+    return f'<a href="{url}" target="_blank" rel="noopener">{safe_version}</a>'
 
 
 def _render_dashboard_html(data: Dict[str, Any]) -> str:
