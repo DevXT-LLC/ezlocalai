@@ -2,7 +2,14 @@ import os
 import tempfile
 import unittest
 
-from Router import Router, WorkerInfo, WorkerRegistry, _version_from_git_metadata
+from Router import (
+    Router,
+    WorkerInfo,
+    WorkerRegistry,
+    _configured_contexts_from_pipe,
+    _usable_context_from_config,
+    _version_from_git_metadata,
+)
 
 
 class RouterSelectionTests(unittest.TestCase):
@@ -96,6 +103,31 @@ class RuntimeVersionTests(unittest.TestCase):
                 fh.write(f"{sha} refs/heads/main\n")
 
             self.assertEqual(_version_from_git_metadata(tmp), sha[:7])
+
+
+class ConfiguredContextTests(unittest.TestCase):
+    def test_context_from_config_divides_by_parallel_slots(self):
+        self.assertEqual(_usable_context_from_config("1010000", "4"), 252500)
+
+    def test_context_from_config_matches_auto_parallel(self):
+        self.assertEqual(_usable_context_from_config("65536", "0"), 32768)
+
+    def test_configured_contexts_from_pipe_use_unloaded_model_configs(self):
+        class FakePipe:
+            available_models = ["model-a", "model-a#2", "model-b"]
+            model_configs = {
+                "model-a": {"max_tokens": 100000, "n_parallel": 2},
+                "model-a#2": {"max_tokens": 200000, "n_parallel": 4},
+                "model-b": {"max_tokens": 65536, "n_parallel": 0},
+            }
+
+            def _resolve_source_model(self, model_name):
+                return model_name.split("#", 1)[0]
+
+        self.assertEqual(
+            _configured_contexts_from_pipe(FakePipe()),
+            {"model-a": 50000, "model-b": 32768},
+        )
 
 
 if __name__ == "__main__":

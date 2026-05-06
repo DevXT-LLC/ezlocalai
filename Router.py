@@ -175,6 +175,103 @@ def get_runtime_version(repo_dir: Optional[str] = None) -> str:
     return ""
 
 
+def _usable_context_from_config(
+    max_tokens_value: Any, n_parallel_value: Any = 1
+) -> int:
+    try:
+        max_tokens = int(max_tokens_value or 0)
+    except (TypeError, ValueError):
+        return 0
+    if max_tokens <= 0:
+        return 0
+
+    try:
+        if n_parallel_value is None or n_parallel_value == "":
+            n_parallel = 1
+        else:
+            n_parallel = int(n_parallel_value)
+    except (TypeError, ValueError):
+        n_parallel = 1
+    if n_parallel == 0:
+        n_parallel = min(max(1, max_tokens // 32768), 16)
+    if n_parallel < 1:
+        n_parallel = 1
+
+    return max(1, max_tokens // n_parallel)
+
+
+def _resolve_public_model_name(pipe: Any, model_name: str) -> str:
+    if pipe is not None:
+        try:
+            resolver = getattr(pipe, "_resolve_source_model", None)
+            if resolver is not None:
+                return str(resolver(model_name))
+        except Exception:
+            pass
+    if "#" in model_name:
+        return model_name.split("#", 1)[0]
+    return model_name
+
+
+def _configured_contexts_from_pipe(pipe: Any) -> Dict[str, int]:
+    contexts: Dict[str, int] = {}
+    if pipe is None:
+        return contexts
+
+    available_models = list(getattr(pipe, "available_models", []) or [])
+    model_configs = dict(getattr(pipe, "model_configs", {}) or {})
+    for model_id in available_models:
+        cfg = model_configs.get(model_id, {}) or {}
+        context = _usable_context_from_config(
+            cfg.get("max_tokens"), cfg.get("n_parallel", 1)
+        )
+        if context <= 0:
+            continue
+        public_name = _resolve_public_model_name(pipe, str(model_id))
+        contexts[public_name] = max(contexts.get(public_name, 0), context)
+    return contexts
+
+
+def _split_env_csv(key: str, default: str) -> List[str]:
+    value = getenv(key, default)
+    return [part.strip() for part in str(value or "").split(",") if part.strip()]
+
+
+def _csv_value(values: List[str], index: int, default: str) -> str:
+    if index < len(values):
+        return values[index]
+    if values:
+        return values[-1]
+    return default
+
+
+def _configured_contexts_from_env() -> Dict[str, int]:
+    contexts: Dict[str, int] = {}
+    model_entries = _split_env_csv("DEFAULT_MODEL", "")
+    max_tokens = _split_env_csv("LLM_MAX_TOKENS", "65536")
+    n_parallels = _split_env_csv("N_PARALLEL", "1")
+
+    for index, model_name in enumerate(model_entries):
+        if "@" in model_name:
+            model_name = model_name.rsplit("@", 1)[0]
+        if not model_name or model_name.lower() == "none":
+            continue
+        context = _usable_context_from_config(
+            _csv_value(max_tokens, index, "65536"),
+            _csv_value(n_parallels, index, "1"),
+        )
+        if context > 0:
+            contexts[model_name] = max(contexts.get(model_name, 0), context)
+    return contexts
+
+
+def configured_model_contexts(pipe: Any = None) -> Dict[str, int]:
+    contexts = _configured_contexts_from_pipe(pipe)
+    if contexts:
+        return contexts
+    return _configured_contexts_from_env()
+
+
 def detect_local_capabilities() -> List[str]:
     """Best-effort guess at what this ezlocalai instance can serve.
 
@@ -1419,6 +1516,7 @@ class WorkerHeartbeatClient:
         model_context: Dict[str, int] = {}
         model_quant: Dict[str, str] = {}
         slot_snapshot: Dict[str, Any] = {}
+        local_pipe = None
         try:
             from Pipes import get_resource_manager  # local import: optional dep
 
@@ -1456,6 +1554,7 @@ class WorkerHeartbeatClient:
             # Pull model list from the local Pipes singleton if available
             from app import pipe  # type: ignore
 
+            local_pipe = pipe
             if pipe is not None:
                 data = pipe.get_models()
                 models = [m.get("id") for m in data.get("data", []) if m.get("id")]
@@ -1488,7 +1587,8 @@ class WorkerHeartbeatClient:
                     if n_par < 1:
                         n_par = 1
                     if n_ctx > 0:
-                        model_context[str(name)] = n_ctx // n_par
+                        public_name = _resolve_public_model_name(pipe, str(name))
+                        model_context[public_name] = n_ctx // n_par
                     # Vision: check if mmproj is loaded on this instance
                     try:
                         mmproj_path = ""
@@ -1510,6 +1610,11 @@ class WorkerHeartbeatClient:
                             model_quant[str(name)] = m.group(1)
                     except Exception:
                         pass
+        except Exception:
+            pass
+        try:
+            for model_name, context in configured_model_contexts(local_pipe).items():
+                model_context.setdefault(model_name, context)
         except Exception:
             pass
         # Fallback: fill missing quants from QUANT_TYPE env (uses getenv default Q4_K_XL)
