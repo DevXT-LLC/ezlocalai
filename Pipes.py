@@ -2323,9 +2323,9 @@ def get_secondary_gpu() -> Optional[int]:
 def _is_qwen35_hybrid(model_path: str) -> bool:
     """Detect Qwen3.5/3.6 hybrid models that use Gated DeltaNet + sparse MoE.
 
-    These models have only 10/40 layers with standard attention (2 KV heads each),
-    so their KV cache is dramatically smaller than standard transformers.
-    The other 30 layers use DeltaNet with a tiny fixed-size recurrent state.
+    These models use standard attention only on periodic layers, so their KV
+    cache is dramatically smaller than standard transformers.
+    The other layers use DeltaNet with a tiny fixed-size recurrent state.
     Qwen3.6 shares the same hybrid architecture as Qwen3.5.
     """
     if not model_path:
@@ -2341,22 +2341,137 @@ def _is_qwen35_hybrid(model_path: str) -> bool:
     )
 
 
-def _qwen35_kv_bytes_per_token(kv_cache_type: str = "fp16") -> int:
+_QWEN35_KV_BPT_CACHE = {}
+
+
+def _gguf_field_value(reader, key: str):
+    """Return a scalar/string GGUF metadata value."""
+    field = reader.fields.get(key)
+    if field is None or not field.parts:
+        return None
+
+    value = field.parts[-1]
+    if hasattr(value, "tolist"):
+        value = value.tolist()
+
+    if isinstance(value, list):
+        if len(value) == 1:
+            return value[0]
+        if all(isinstance(item, int) and 0 <= item <= 255 for item in value):
+            try:
+                return bytes(value).decode("utf-8")
+            except UnicodeDecodeError:
+                return value
+    return value
+
+
+def _qwen35_kv_bytes_per_token(
+    model_path: str = None, kv_cache_type: str = "fp16"
+) -> int:
     """KV cache bytes per token for Qwen3.5/3.6 hybrid models.
 
-    Qwen3.5/3.6 architecture: 40 layers total, only 10 use standard attention
-    with 2 KV heads and head_dim=128.
-      FP16: 2 (K+V) * 2 (KV heads) * 128 (head_dim) * 10 (attn layers) * 2 = 10,240 bytes/token
-      q4_0: 2 (K+V) * 2 (KV heads) * 128 (head_dim) * 10 (attn layers) * 0.5625 = 2,880 bytes/token
+    Qwen3.5/3.6 GGUF variants share the hybrid architecture, but their KV shape
+    differs by size. Read GGUF metadata when possible:
+      bytes/token = (key_length + value_length) * kv_heads * attention_layers * bytes/value
 
     ezlocalai defaults to q4_0 KV cache (env KV_CACHE_TYPE), so use that for VRAM
-    planning when we know the cache type. Use FP16 as conservative fallback.
+    planning when we know the cache type. Use conservative metadata-free defaults.
     """
-    if kv_cache_type == "q4_0":
-        # q4_0 ≈ 4.5 bits/value, so 0.5625 bytes/value
-        return 2880
-    # FP16 conservative default
-    return 10240
+    kv_cache_type = (kv_cache_type or "fp16").lower().strip()
+    cache_key = (model_path, kv_cache_type)
+    if cache_key in _QWEN35_KV_BPT_CACHE:
+        return _QWEN35_KV_BPT_CACHE[cache_key]
+
+    bytes_per_value = {
+        "q4_0": 0.5625,  # q4_0 is approximately 4.5 bits/value
+        "q8_0": 1.0,
+        "f16": 2.0,
+        "fp16": 2.0,
+        "f32": 4.0,
+        "fp32": 4.0,
+    }.get(kv_cache_type, 2.0)
+
+    # Conservative defaults for Qwen3.5/3.6 27B when metadata is unavailable.
+    default_attention_layers = 16
+    kv_heads = 4
+    key_length = 256
+    value_length = 256
+    attention_layers = None
+
+    if model_path and os.path.exists(model_path):
+        try:
+            import gguf
+
+            reader = gguf.GGUFReader(model_path)
+            architecture = _gguf_field_value(reader, "general.architecture")
+            prefixes = []
+            if architecture:
+                prefixes.append(str(architecture))
+            prefixes.extend(["qwen35", "qwen35moe"])
+
+            for prefix in dict.fromkeys(prefixes):
+                block_count = _gguf_field_value(reader, f"{prefix}.block_count")
+                full_attention_interval = _gguf_field_value(
+                    reader, f"{prefix}.full_attention_interval"
+                )
+                metadata_kv_heads = _gguf_field_value(
+                    reader, f"{prefix}.attention.head_count_kv"
+                )
+                metadata_key_length = _gguf_field_value(
+                    reader, f"{prefix}.attention.key_length"
+                )
+                metadata_value_length = _gguf_field_value(
+                    reader, f"{prefix}.attention.value_length"
+                )
+
+                if metadata_kv_heads:
+                    kv_heads = int(metadata_kv_heads)
+                if metadata_key_length:
+                    key_length = int(metadata_key_length)
+                if metadata_value_length:
+                    value_length = int(metadata_value_length)
+                if block_count and full_attention_interval:
+                    attention_layers = max(
+                        1, int(block_count) // int(full_attention_interval)
+                    )
+                if metadata_kv_heads or block_count:
+                    break
+
+            # Fallback for unusual GGUFs: count full-attention output tensors.
+            if not attention_layers:
+                tensor_attention_layers = sum(
+                    1
+                    for tensor in reader.tensors
+                    if ".attn_output.weight" in tensor.name
+                )
+                if tensor_attention_layers:
+                    attention_layers = tensor_attention_layers
+
+            if not attention_layers:
+                attention_layers = default_attention_layers
+
+            logging.debug(
+                "[GPU Selection] Qwen3.5/3.6 KV metadata for %s: "
+                "attention_layers=%s, kv_heads=%s, key_length=%s, value_length=%s",
+                os.path.basename(model_path),
+                attention_layers,
+                kv_heads,
+                key_length,
+                value_length,
+            )
+        except Exception as e:
+            logging.debug(
+                f"[GPU Selection] Failed to read Qwen3.5/3.6 GGUF KV metadata: {e}"
+            )
+
+    if not attention_layers:
+        attention_layers = default_attention_layers
+
+    bytes_per_token = math.ceil(
+        (key_length + value_length) * kv_heads * attention_layers * bytes_per_value
+    )
+    _QWEN35_KV_BPT_CACHE[cache_key] = bytes_per_token
+    return bytes_per_token
 
 
 def estimate_model_vram_requirement(
@@ -2388,12 +2503,14 @@ def estimate_model_vram_requirement(
             pass
 
         if is_qwen35:
-            # Qwen3.5/3.6 hybrid: only 10/40 layers use attention (2 KV heads, head_dim=128).
-            # KV cache is tiny vs standard transformers.
-            # DeltaNet recurrent state is fixed ~65MB regardless of context.
+            # Qwen3.5/3.6 hybrid: only every Nth layer uses standard attention.
+            # KV cache is tiny vs standard transformers, and sized from GGUF metadata.
+            # DeltaNet recurrent state is fixed-size rather than context-scaled.
             # Use q4_0 estimate since that's ezlocalai's default KV cache type.
-            kv_estimate = (ctx_size * _qwen35_kv_bytes_per_token("q4_0")) / (1024**3)
-            deltanet_state = 0.065  # Fixed recurrent state for 30 DeltaNet layers
+            kv_estimate = (
+                ctx_size * _qwen35_kv_bytes_per_token(model_path, "q4_0")
+            ) / (1024**3)
+            deltanet_state = 0.065  # Small fixed recurrent state
             overhead = 0.5 + deltanet_state
         else:
             # Standard transformer KV cache estimate.
@@ -2479,9 +2596,10 @@ def estimate_model_vram_requirement(
             if model_path and os.path.exists(model_path):
                 file_size_gb = os.path.getsize(model_path) / (1024**3)
                 # Model weights ~ file size. Add context-dependent costs.
-                # Qwen3.5/3.6 hybrid models have only 10/40 attn layers → much smaller KV.
+                # Qwen3.5/3.6 hybrid models use sparse full-attention layers,
+                # so size KV from GGUF metadata.
                 if is_qwen35:
-                    kv_bytes_per_token = _qwen35_kv_bytes_per_token("q4_0")
+                    kv_bytes_per_token = _qwen35_kv_bytes_per_token(model_path, "q4_0")
                 else:
                     kv_bytes_per_token = (
                         6000  # Conservative default for standard models
@@ -2657,16 +2775,17 @@ def determine_gpu_strategy(
             # Not enough VRAM for full model - try partial offloading
 
             # For Qwen3.5/3.6 hybrid models, xllamacpp doesn't understand the tiny KV
-            # cache (only 10/40 layers use attention). Do our own check using the
+            # cache from sparse full-attention layers. Do our own check using the
             # raw file size + empirical KV estimate against actual free VRAM.
             # Use q4_0 KV estimate since that's the default KV cache type in ezlocalai.
             if _is_qwen35_hybrid(model_path):
                 try:
                     if model_path and os.path.exists(model_path):
                         file_size_gb = os.path.getsize(model_path) / (1024**3)
-                        kv_gb = (context_size * _qwen35_kv_bytes_per_token("q4_0")) / (
-                            1024**3
-                        )
+                        kv_gb = (
+                            context_size
+                            * _qwen35_kv_bytes_per_token(model_path, "q4_0")
+                        ) / (1024**3)
                         # DeltaNet state (~65MB) + compute buffers (~0.5GB)
                         overhead_gb = 0.57
                         total_need = file_size_gb + kv_gb + overhead_gb
@@ -2714,7 +2833,11 @@ def determine_gpu_strategy(
                         vram_after_model = available_vram[0] - file_size_gb
                         # Estimate non-model costs (KV, mmproj, compute, RS)
                         _is_q35 = _is_qwen35_hybrid(model_path)
-                        kv_bpt = _qwen35_kv_bytes_per_token("q4_0") if _is_q35 else 6000
+                        kv_bpt = (
+                            _qwen35_kv_bytes_per_token(model_path, "q4_0")
+                            if _is_q35
+                            else 6000
+                        )
                         kv_gb = (context_size * kv_bpt) / (1024**3)
                         mmproj_gb = (
                             sum(
@@ -2845,7 +2968,7 @@ def determine_gpu_strategy(
         if model_path and os.path.exists(model_path):
             file_size_gb = os.path.getsize(model_path) / (1024**3)
             _is_q35 = _is_qwen35_hybrid(model_path)
-            kv_bpt = _qwen35_kv_bytes_per_token("q4_0") if _is_q35 else 6000
+            kv_bpt = _qwen35_kv_bytes_per_token(model_path, "q4_0") if _is_q35 else 6000
             kv_gb = (context_size * kv_bpt) / (1024**3)
             mmproj_gb = (
                 sum(
@@ -3019,7 +3142,7 @@ MODEL_CONFIG_OVERRIDES = {
         "repetition_penalty": 1.05,
     },
     # Qwen3.5 models use hybrid Gated DeltaNet + sparse MoE architecture.
-    # Only 10/40 layers use standard attention (2 KV heads), so KV cache is tiny.
+    # Only periodic layers use standard attention, so KV cache is tiny.
     # Recommended coding-mode params from HuggingFace model card.
     "unsloth/Qwen3.5-35B-A3B-GGUF": {
         "temperature": 0.7,
@@ -3030,6 +3153,15 @@ MODEL_CONFIG_OVERRIDES = {
         "repetition_penalty": 1.0,
         # Non-thinking mode by default; send chat_template_kwargs={"enable_thinking": True}
         # in the request to enable thinking (uses <think> tags).
+        "chat_template_kwargs": {"enable_thinking": False},
+    },
+    "unsloth/Qwen3.5-27B-GGUF": {
+        "temperature": 0.7,
+        "top_p": 0.8,
+        "top_k": 20,
+        "min_p": 0.0,
+        "presence_penalty": 1.5,
+        "repetition_penalty": 1.0,
         "chat_template_kwargs": {"enable_thinking": False},
     },
     "unsloth/Qwen3.5-4B-GGUF": {
@@ -3060,11 +3192,20 @@ MODEL_CONFIG_OVERRIDES = {
         "chat_template_kwargs": {"enable_thinking": False},
     },
     # Qwen3.6 models share the same hybrid Gated DeltaNet + sparse MoE architecture
-    # as Qwen3.5. Only 10/40 layers use standard attention, so KV cache is tiny.
+    # as Qwen3.5. Only periodic layers use standard attention, so KV cache is tiny.
     # Recommended thinking-mode params from HuggingFace model card.
     "unsloth/Qwen3.6-35B-A3B-GGUF": {
         "temperature": 1.0,
         "top_p": 0.95,
+        "top_k": 20,
+        "min_p": 0.0,
+        "presence_penalty": 1.5,
+        "repetition_penalty": 1.0,
+        "chat_template_kwargs": {"enable_thinking": False},
+    },
+    "unsloth/Qwen3.6-27B-GGUF": {
+        "temperature": 0.7,
+        "top_p": 0.8,
         "top_k": 20,
         "min_p": 0.0,
         "presence_penalty": 1.5,
