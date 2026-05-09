@@ -3164,6 +3164,15 @@ MODEL_CONFIG_OVERRIDES = {
         "repetition_penalty": 1.0,
         "chat_template_kwargs": {"enable_thinking": False},
     },
+    "unsloth/Qwen3.5-9B-GGUF": {
+        "temperature": 1.0,
+        "top_p": 0.95,
+        "top_k": 20,
+        "min_p": 0.0,
+        "presence_penalty": 1.5,
+        "repetition_penalty": 1.0,
+        "chat_template_kwargs": {"enable_thinking": False},
+    },
     "unsloth/Qwen3.5-4B-GGUF": {
         "temperature": 1.0,
         "top_p": 0.95,
