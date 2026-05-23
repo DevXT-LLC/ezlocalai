@@ -2238,7 +2238,7 @@ async def _proxy_multipart(
     path: str,
     *,
     files: Dict[str, tuple],
-    fields: Dict[str, str],
+    fields: Dict[str, Any],
     timeout: Optional[float] = None,
     capability: Optional[str] = None,
     model: Optional[str] = None,
@@ -2262,11 +2262,15 @@ async def _proxy_multipart(
         for k, v in fields.items():
             if v is None:
                 continue
-            parts.append(
-                f'--{boundary}\r\nContent-Disposition: form-data; name="{k}"\r\n\r\n'.encode()
-            )
-            parts.append(str(v).encode("utf-8"))
-            parts.append(b"\r\n")
+            values = v if isinstance(v, (list, tuple, set)) else [v]
+            for item in values:
+                if item is None:
+                    continue
+                parts.append(
+                    f'--{boundary}\r\nContent-Disposition: form-data; name="{k}"\r\n\r\n'.encode()
+                )
+                parts.append(str(item).encode("utf-8"))
+                parts.append(b"\r\n")
         for name, (fname, content, ctype) in files.items():
             parts.append(
                 (
@@ -2298,8 +2302,12 @@ async def _proxy_multipart(
     for name, (fname, content, ctype) in files.items():
         data.add_field(name, content, filename=fname, content_type=ctype)
     for k, v in fields.items():
-        if v is not None:
-            data.add_field(k, str(v))
+        if v is None:
+            continue
+        values = v if isinstance(v, (list, tuple, set)) else [v]
+        for item in values:
+            if item is not None:
+                data.add_field(k, str(item))
 
     url = f"{worker.url}{path}"
     registry = get_registry()
@@ -2581,10 +2589,15 @@ async def audio_transcriptions(
     response_format: Optional[str] = Form("json"),
     temperature: Optional[float] = Form(0.0),
     timestamps: Optional[bool] = Form(None),
+    timestamp_granularities: Optional[List[str]] = Form(None),
+    timestamp_granularities_bracketed: Optional[List[str]] = Form(
+        None, alias="timestamp_granularities[]"
+    ),
     _: str = Depends(verify_client),
 ):
     worker = await _pick("stt", model)
     content = await file.read()
+    granularities = timestamp_granularities_bracketed or timestamp_granularities
     resp = await _proxy_multipart(
         worker,
         "/v1/audio/transcriptions",
@@ -2602,6 +2615,7 @@ async def audio_transcriptions(
             "response_format": response_format,
             "temperature": temperature,
             "timestamps": timestamps,
+            "timestamp_granularities[]": granularities,
         },
         capability="stt",
         model=model,
