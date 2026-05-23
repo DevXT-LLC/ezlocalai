@@ -1020,7 +1020,16 @@ class EzlocalaiClient:
             )
             for key, value in params.items():
                 if value is not None:
-                    data.add_field(key, str(value))
+                    field_name = (
+                        "timestamp_granularities[]"
+                        if key == "timestamp_granularities"
+                        else key
+                    )
+                    if isinstance(value, (list, tuple, set)):
+                        for item in value:
+                            data.add_field(field_name, str(item))
+                    else:
+                        data.add_field(field_name, str(value))
 
             async with aiohttp.ClientSession() as session:
                 async with session.post(
@@ -1383,6 +1392,7 @@ class VoiceServerClient:
         prompt: str = None,
         response_format: str = "json",
         temperature: float = 0.0,
+        timestamp_granularities: list = None,
     ) -> Optional[dict]:
         """Forward a transcription request to the voice server.
 
@@ -1423,6 +1433,8 @@ class VoiceServerClient:
                 data.add_field("prompt", prompt)
             data.add_field("response_format", response_format)
             data.add_field("temperature", str(temperature))
+            for granularity in timestamp_granularities or []:
+                data.add_field("timestamp_granularities[]", str(granularity))
 
             async with aiohttp.ClientSession() as session:
                 async with session.post(

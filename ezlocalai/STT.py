@@ -428,6 +428,7 @@ class STT:
         temperature=0.0,
         translate=False,
         return_segments=False,
+        timestamp_granularities=None,
         beam_size=1,  # Default to 1 for speed; use 5 for higher accuracy if needed
         condition_on_previous_text=True,
         use_batched=False,  # Use batched inference for longer audio files
@@ -447,6 +448,9 @@ class STT:
             temperature: Sampling temperature (0.0 = greedy decoding)
             translate: If True, translate to English
             return_segments: If True, return detailed segment info
+            timestamp_granularities: OpenAI-compatible timestamp granularities.
+                Include "word" to return word-level timestamps when supported by
+                the active Whisper backend.
             beam_size: Beam size for decoding (1 = greedy, 5 = more accurate but slower)
             condition_on_previous_text: Use previous text as context
             use_batched: Use BatchedInferencePipeline for faster processing of longer audio
@@ -490,6 +494,12 @@ class STT:
 
         transcribe_info = None
         try:
+            granularities = timestamp_granularities or []
+            if isinstance(granularities, str):
+                granularities = [granularities]
+            want_word_timestamps = any(
+                str(granularity).lower() == "word" for granularity in granularities
+            )
             # Optimized VAD parameters for better speech detection
             vad_params = {
                 "min_silence_duration_ms": 500,  # Shorter silence detection
@@ -507,6 +517,7 @@ class STT:
                     beam_size=beam_size,
                     temperature=temperature if temperature > 0 else [0.0],
                     batch_size=batch_size,
+                    word_timestamps=want_word_timestamps,
                     vad_parameters=vad_params,
                 )
             else:
@@ -521,6 +532,7 @@ class STT:
                     temperature=temperature,
                     beam_size=beam_size,
                     condition_on_previous_text=condition_on_previous_text,
+                    word_timestamps=want_word_timestamps,
                 )
             segments = list(segments)
         except (torch.cuda.OutOfMemoryError, RuntimeError, OSError) as e:
@@ -589,6 +601,7 @@ class STT:
                     temperature=temperature,
                     beam_size=beam_size,
                     condition_on_previous_text=condition_on_previous_text,
+                    word_timestamps=want_word_timestamps,
                 )
                 segments = list(segments)
             else:
@@ -600,14 +613,24 @@ class STT:
         segment_data = []
         for i, segment in enumerate(segments):
             user_input += segment.text
-            segment_data.append(
-                {
-                    "id": i,
-                    "start": segment.start,
-                    "end": segment.end,
-                    "text": segment.text.strip(),
-                }
-            )
+            entry = {
+                "id": i,
+                "start": segment.start,
+                "end": segment.end,
+                "text": segment.text.strip(),
+            }
+            words = getattr(segment, "words", None)
+            if words:
+                entry["words"] = [
+                    {
+                        "word": getattr(word, "word", "").strip(),
+                        "start": getattr(word, "start", None),
+                        "end": getattr(word, "end", None),
+                    }
+                    for word in words
+                    if getattr(word, "word", "").strip()
+                ]
+            segment_data.append(entry)
 
         # Perform speaker diarization if requested
         if enable_diarization and segment_data:

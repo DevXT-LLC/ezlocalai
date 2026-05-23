@@ -802,7 +802,10 @@ async def speech_to_text(
     prompt: Optional[str] = Form(None),
     response_format: Optional[str] = Form("json"),
     temperature: Optional[float] = Form(0.0),
-    timestamp_granularities: Optional[List[str]] = Form(["segment"]),
+    timestamp_granularities: Optional[List[str]] = Form(None),
+    timestamp_granularities_bracketed: Optional[List[str]] = Form(
+        None, alias="timestamp_granularities[]"
+    ),
     enable_diarization: Optional[bool] = Form(False),
     num_speakers: Optional[int] = Form(None),
     session_id: Optional[str] = Form(None),
@@ -812,6 +815,10 @@ async def speech_to_text(
         raise HTTPException(status_code=404, detail="Speech to text is disabled.")
 
     from Pipes import get_voice_server_client, is_voice_server_mode
+
+    timestamp_granularities = (
+        timestamp_granularities_bracketed or timestamp_granularities or ["segment"]
+    )
 
     # Read file content first (before any fallback attempts)
     file_content = await file.read()
@@ -833,6 +840,7 @@ async def speech_to_text(
                     prompt=prompt,
                     response_format=response_format,
                     temperature=temperature,
+                    timestamp_granularities=timestamp_granularities,
                 )
                 if response:
                     # Return the response as-is from voice server
@@ -861,6 +869,7 @@ async def speech_to_text(
                         prompt=prompt,
                         response_format=response_format,
                         temperature=temperature,
+                        timestamp_granularities=timestamp_granularities,
                     )
                     # Return the response as-is from fallback
                     if response_format == "text":
@@ -885,6 +894,7 @@ async def speech_to_text(
                 prompt=prompt,
                 temperature=temperature,
                 return_segments=need_segments,
+                timestamp_granularities=timestamp_granularities,
                 enable_diarization=enable_diarization,
                 num_speakers=num_speakers,
                 session_id=session_id,
