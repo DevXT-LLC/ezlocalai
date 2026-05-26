@@ -38,6 +38,8 @@ def getenv(var_name: str, default_value: str = None) -> str:
         # 1 = single slot (default), N = fixed number of parallel slots.
         # Each slot gets n_ctx / n_parallel tokens of context. VRAM is constant.
         "N_PARALLEL": "1",
+        # MTP speculative decoding: require draft tokens to have at least this probability.
+        "MTP_SPEC_DRAFT_P_MIN": "0.25",
         "VLM_MAX_TOKENS": "8192",  # Vision models don't need large context
         # Queue system defaults. Text queue concurrency is derived from loaded
         # model n_parallel slots.

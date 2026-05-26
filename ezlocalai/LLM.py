@@ -10,6 +10,7 @@ import math
 from Globals import getenv
 
 DEFAULT_MODEL = getenv("DEFAULT_MODEL")
+MTP_SPEC_DRAFT_P_MIN_DEFAULT = 0.25
 
 
 def get_gpu_count() -> int:
@@ -61,6 +62,31 @@ def get_mtp_spec_draft_n_max(main_gpu: int = 0) -> Tuple[int, float]:
     gpu_idx = main_gpu if 0 <= main_gpu < len(total_vram) else 0
     card_vram_gb = total_vram[gpu_idx]
     return (3 if card_vram_gb > 24 else 2), card_vram_gb
+
+
+def get_mtp_spec_draft_p_min() -> float:
+    """Minimum draft token probability used for MTP speculative decoding."""
+    raw_value = getenv("MTP_SPEC_DRAFT_P_MIN", str(MTP_SPEC_DRAFT_P_MIN_DEFAULT))
+    try:
+        value = float(raw_value)
+    except (TypeError, ValueError):
+        logging.warning(
+            "[LLM] Invalid MTP_SPEC_DRAFT_P_MIN=%r; using %.2f",
+            raw_value,
+            MTP_SPEC_DRAFT_P_MIN_DEFAULT,
+        )
+        return MTP_SPEC_DRAFT_P_MIN_DEFAULT
+
+    if value < 0.0 or value > 1.0:
+        clamped = min(max(value, 0.0), 1.0)
+        logging.warning(
+            "[LLM] MTP_SPEC_DRAFT_P_MIN=%s is outside 0.0-1.0; using %.2f",
+            raw_value,
+            clamped,
+        )
+        return clamped
+
+    return value
 
 
 def get_total_vram_all_gpus() -> float:
@@ -770,13 +796,16 @@ class LLM:
 
         if is_mtp_model(self.model_name):
             spec_draft_n_max, card_vram_gb = get_mtp_spec_draft_n_max(self.main_gpu)
+            spec_draft_p_min = get_mtp_spec_draft_p_min()
             self.xlc_params.speculative.types = [
                 xlc.common_speculative_type.COMMON_SPECULATIVE_TYPE_DRAFT_MTP
             ]
             self.xlc_params.speculative.draft.n_max = spec_draft_n_max
+            self.xlc_params.speculative.draft.p_min = spec_draft_p_min
             logging.info(
                 f"[LLM] MTP speculative decoding enabled: spec_type=draft-mtp, "
-                f"spec_draft_n_max={spec_draft_n_max} "
+                f"spec_draft_n_max={spec_draft_n_max}, "
+                f"spec_draft_p_min={spec_draft_p_min:.2f} "
                 f"(GPU {self.main_gpu}, total VRAM {card_vram_gb:.1f}GB)"
             )
 
