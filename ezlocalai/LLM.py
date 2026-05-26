@@ -47,6 +47,22 @@ def get_total_vram_per_gpu() -> List[float]:
     return total_vram
 
 
+def is_mtp_model(model_name: str) -> bool:
+    """Return True for GGUF repos with built-in multi-token prediction heads."""
+    return "-mtp" in (model_name or "").lower()
+
+
+def get_mtp_spec_draft_n_max(main_gpu: int = 0) -> Tuple[int, float]:
+    """Choose MTP draft length from the primary GPU's total VRAM."""
+    total_vram = get_total_vram_per_gpu()
+    if not total_vram:
+        return 2, 0.0
+
+    gpu_idx = main_gpu if 0 <= main_gpu < len(total_vram) else 0
+    card_vram_gb = total_vram[gpu_idx]
+    return (3 if card_vram_gb > 24 else 2), card_vram_gb
+
+
 def get_total_vram_all_gpus() -> float:
     """Get total VRAM across all GPUs in GB."""
     if torch.cuda.is_available():
@@ -740,10 +756,29 @@ class LLM:
             auto_parallel = max(1, effective_max_tokens // target_per_slot)
             resolved_parallel = min(auto_parallel, 16)
 
+        if is_mtp_model(self.model_name) and resolved_parallel != 1:
+            logging.info(
+                f"[LLM] MTP model detected; forcing n_parallel=1 "
+                f"(requested {resolved_parallel})"
+            )
+            resolved_parallel = 1
+
         self.n_parallel = resolved_parallel
         self.xlc_params.n_parallel = resolved_parallel
         # cont_batching is True by default in xllamacpp, but be explicit
         self.xlc_params.cont_batching = True
+
+        if is_mtp_model(self.model_name):
+            spec_draft_n_max, card_vram_gb = get_mtp_spec_draft_n_max(self.main_gpu)
+            self.xlc_params.speculative.types = [
+                xlc.common_speculative_type.COMMON_SPECULATIVE_TYPE_DRAFT_MTP
+            ]
+            self.xlc_params.speculative.draft.n_max = spec_draft_n_max
+            logging.info(
+                f"[LLM] MTP speculative decoding enabled: spec_type=draft-mtp, "
+                f"spec_draft_n_max={spec_draft_n_max} "
+                f"(GPU {self.main_gpu}, total VRAM {card_vram_gb:.1f}GB)"
+            )
 
         if resolved_parallel > 1:
             per_slot_ctx = effective_max_tokens // resolved_parallel
@@ -819,6 +854,19 @@ class LLM:
         self.model_list = get_models()
         logging.debug(f"[LLM] {self.model_name} loaded successfully with xllamacpp.")
 
+    def _apply_sampling_kwargs(self, request: dict, kwargs: dict) -> dict:
+        """Forward llama.cpp sampling knobs accepted outside the OpenAI subset."""
+        for key in ("top_k", "min_p", "presence_penalty", "frequency_penalty"):
+            if key in kwargs:
+                request[key] = kwargs[key]
+
+        if "repeat_penalty" in kwargs:
+            request["repeat_penalty"] = kwargs["repeat_penalty"]
+        elif "repetition_penalty" in kwargs:
+            request["repeat_penalty"] = kwargs["repetition_penalty"]
+
+        return request
+
     def chat(self, messages: List[Dict], **kwargs):
         """Handle chat completions using xllamacpp server.
 
@@ -839,6 +887,7 @@ class LLM:
             "top_p": kwargs.get("top_p", self.params["top_p"]),
             "stream": stream,
         }
+        chat_request = self._apply_sampling_kwargs(chat_request, kwargs)
 
         # Forward chat_template_kwargs for thinking mode control
         # e.g. {"enable_thinking": False} to disable <think> tags
@@ -1151,6 +1200,7 @@ class LLM:
             "top_p": kwargs.get("top_p", self.params["top_p"]),
             "stream": kwargs.get("stream", False),
         }
+        completion_request = self._apply_sampling_kwargs(completion_request, kwargs)
 
         result = self.server.handle_completions(completion_request)
 

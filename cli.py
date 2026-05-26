@@ -1619,6 +1619,8 @@ def get_rocm_version() -> Optional[str]:
 
 XLLAMACPP_REPO = "https://github.com/xorbitsai/xllamacpp.git"
 XLLAMACPP_BUILD_DIR = STATE_DIR / "xllamacpp-build"
+XLLAMACPP_VERSION = "2026.5.9294"
+XLLAMACPP_SOURCE_REF = f"v{XLLAMACPP_VERSION}-cu128"
 
 
 def build_xllamacpp_from_source(gpu_type: str = "nvidia") -> list[str]:
@@ -1656,7 +1658,10 @@ def build_xllamacpp_from_source(gpu_type: str = "nvidia") -> list[str]:
         )
         if result.returncode != 0:
             print("   ❌ Failed to install Rust. xllamacpp will fall back to CPU.")
-            return _get_pip_cmd(python, "install") + ["xllamacpp", "-q"]
+            return _get_pip_cmd(python, "install") + [
+                f"xllamacpp=={XLLAMACPP_VERSION}",
+                "-q",
+            ]
         # Add cargo to PATH for this session
         if cargo_bin.exists() and str(cargo_bin) not in os.environ.get("PATH", ""):
             os.environ["PATH"] = f"{cargo_bin}:{os.environ.get('PATH', '')}"
@@ -1690,7 +1695,33 @@ def build_xllamacpp_from_source(gpu_type: str = "nvidia") -> list[str]:
         if result.returncode != 0:
             print(f"   ❌ Failed to clone xllamacpp: {result.stderr.strip()}")
             print("   Falling back to CPU-only aarch64 wheel from PyPI...")
-            return _get_pip_cmd(python, "install") + ["xllamacpp", "-q"]
+            return _get_pip_cmd(python, "install") + [
+                f"xllamacpp=={XLLAMACPP_VERSION}",
+                "-q",
+            ]
+
+    # Pin source builds to the same release used by the Docker images.
+    checkout_result = subprocess.run(
+        ["git", "fetch", "--tags", "origin"],
+        cwd=XLLAMACPP_BUILD_DIR,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if checkout_result.returncode != 0:
+        print(f"   ⚠️  Failed to fetch xllamacpp tags: {checkout_result.stderr.strip()}")
+    checkout_result = subprocess.run(
+        ["git", "checkout", XLLAMACPP_SOURCE_REF],
+        cwd=XLLAMACPP_BUILD_DIR,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if checkout_result.returncode != 0:
+        print(
+            f"   ⚠️  Failed to checkout {XLLAMACPP_SOURCE_REF}: "
+            f"{checkout_result.stderr.strip()}"
+        )
 
     # Ensure submodules are initialized
     subprocess.run(
@@ -1819,7 +1850,10 @@ def build_xllamacpp_from_source(gpu_type: str = "nvidia") -> list[str]:
             )
 
         print("   Falling back to CPU-only aarch64 wheel from PyPI...")
-        return _get_pip_cmd(python, "install") + ["xllamacpp", "-q"]
+        return _get_pip_cmd(python, "install") + [
+            f"xllamacpp=={XLLAMACPP_VERSION}",
+            "-q",
+        ]
 
     print("   ✅ xllamacpp built from source with CUDA support")
     # Return a no-op command since we already installed
@@ -1879,7 +1913,7 @@ def get_xllamacpp_install_cmd(gpu_type: str = "cpu") -> list[str]:
     Uses GPU-specific index URLs for CUDA/ROCm wheels, or plain PyPI for CPU/ARM64.
     """
     python = sys.executable
-    base_cmd = _get_pip_cmd(python, "install") + ["xllamacpp"]
+    base_cmd = _get_pip_cmd(python, "install") + [f"xllamacpp=={XLLAMACPP_VERSION}"]
 
     if gpu_type == "nvidia" and not is_arm64():
         # x86_64 NVIDIA: use CUDA index URL
@@ -1971,7 +2005,7 @@ def install_native_dependencies(source_dir: Path, gpu_type: str = "cpu") -> bool
         if gpu_type in ("nvidia", "amd"):
             print("   Falling back to CPU-only xllamacpp...")
             result = _pip_install(
-                ["xllamacpp"],
+                [f"xllamacpp=={XLLAMACPP_VERSION}"],
                 python=python,
                 extra_args=["-q"],
                 capture_output=True,

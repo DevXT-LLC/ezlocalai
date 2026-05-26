@@ -12,6 +12,7 @@ from ezlocalai.LLM import (
     get_free_vram_per_gpu,
     get_total_vram_per_gpu,
     calculate_tensor_split_from_free_vram,
+    is_mtp_model,
 )
 
 try:
@@ -3236,6 +3237,36 @@ MODEL_CONFIG_OVERRIDES = {
 }
 
 
+def _copy_model_config(model_name: str) -> dict:
+    return {
+        key: dict(value) if isinstance(value, dict) else value
+        for key, value in MODEL_CONFIG_OVERRIDES[model_name].items()
+    }
+
+
+for mtp_model_name, base_model_name in {
+    "unsloth/Qwen3.6-35B-A3B-MTP-GGUF": "unsloth/Qwen3.6-35B-A3B-GGUF",
+    "unsloth/Qwen3.6-27B-MTP-GGUF": "unsloth/Qwen3.6-27B-GGUF",
+    "unsloth/Qwen3.5-9B-MTP-GGUF": "unsloth/Qwen3.5-9B-GGUF",
+    "unsloth/Qwen3.5-4B-MTP-GGUF": "unsloth/Qwen3.5-4B-GGUF",
+}.items():
+    MODEL_CONFIG_OVERRIDES[mtp_model_name] = _copy_model_config(base_model_name)
+
+for mtp_model_name in (
+    "unsloth/Qwen3.5-2B-MTP-GGUF",
+    "unsloth/Qwen3.5-0.8B-MTP-GGUF",
+):
+    MODEL_CONFIG_OVERRIDES[mtp_model_name] = {
+        "temperature": 0.7,
+        "top_p": 0.8,
+        "top_k": 20,
+        "min_p": 0.0,
+        "presence_penalty": 1.5,
+        "repetition_penalty": 1.0,
+        "chat_template_kwargs": {"enable_thinking": False},
+    }
+
+
 class Pipes:
     def __init__(self):
         load_dotenv()
@@ -3652,6 +3683,13 @@ class Pipes:
             qtype = qtype.strip() if qtype else None
             if qtype == "":
                 qtype = None
+            source_model_name = self._resolve_source_model(model_name)
+            if is_mtp_model(source_model_name) and npar != 1:
+                logging.info(
+                    f"[Config] {source_model_name} is an MTP model; "
+                    f"forcing n_parallel=1 (configured {npar})"
+                )
+                npar = 1
 
             # Generate a tensor_split that isolates the model to its target GPU
             # when multiple GPUs exist and a specific GPU is assigned.
@@ -5388,7 +5426,7 @@ class Pipes:
                 current_cfg = (
                     self.model_configs.get(current_id, {}) if current_id else {}
                 )
-                current_capacity = max(1, int(current_cfg.get("n_parallel", 1)))
+                current_capacity = self._resolved_parallel_for_model(current_id)
 
                 current_is_same_source = current_id in replica_ids
                 saturated = (
@@ -6227,6 +6265,9 @@ class Pipes:
 
     def _resolved_parallel_for_model(self, model_id: str, inst=None) -> int:
         """Return the actual/estimated n_parallel for a configured model."""
+        if is_mtp_model(self._resolve_source_model(model_id)):
+            return 1
+
         try:
             if inst is not None and getattr(inst, "n_parallel", None):
                 return max(1, int(getattr(inst, "n_parallel")))

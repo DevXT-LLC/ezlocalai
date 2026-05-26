@@ -93,6 +93,7 @@ RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y && \
 ENV PATH="/root/.cargo/bin:${PATH}"
 
 ARG CUDA_ARCH=87
+ARG XLLAMACPP_SOURCE_REF=v2026.5.9294-cu128
 ENV XLLAMACPP_BUILD_CUDA=1 \
     CMAKE_CUDA_ARCHITECTURES=${CUDA_ARCH} \
     CMAKE_BUILD_PARALLEL_LEVEL=4 \
@@ -105,6 +106,9 @@ RUN set -e && \
     echo "=== Building xllamacpp from source (CUDA arch: ${CUDA_ARCH}) ===" && \
     echo "nvcc: $(nvcc --version 2>&1 | tail -1)" && \
     git clone --recursive https://github.com/xorbitsai/xllamacpp.git /tmp/xllamacpp && \
+    cd /tmp/xllamacpp && \
+    git checkout ${XLLAMACPP_SOURCE_REF} && \
+    git submodule update --init --recursive && \
     cd /tmp/xllamacpp/thirdparty/llama.cpp && mkdir -p build && cd build && \
     echo "--- Configuring cmake ---" && \
     cmake .. \
