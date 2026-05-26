@@ -91,10 +91,9 @@ def get_mtp_spec_draft_n_max(
     model_size_b = get_model_size_billions(model_name)
     if 0 < model_size_b <= 4 and card_vram_gb >= 20:
         return 4, card_vram_gb
-    if card_vram_gb >= 32:
-        return 4, card_vram_gb
-    if card_vram_gb > 24:
-        return 3, card_vram_gb
+
+    # Large MTP models lose acceptance quickly with deeper drafts. In practice
+    # the 35B-A3B 5090/4090/3090 tests favored n_max=2 even when VRAM had room.
     return 2, card_vram_gb
 
 
