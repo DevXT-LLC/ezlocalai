@@ -40,6 +40,9 @@ def getenv(var_name: str, default_value: str = None) -> str:
         "N_PARALLEL": "1",
         # MTP speculative decoding: require draft tokens to have at least this probability.
         "MTP_SPEC_DRAFT_P_MIN": "0.25",
+        # MTP draft length. auto = 2 on large models with 24GB cards, 3 on
+        # 25-31GB, 4 on 32GB+ or <=4B models with at least 20GB VRAM.
+        "MTP_SPEC_DRAFT_N_MAX": "auto",
         "VLM_MAX_TOKENS": "8192",  # Vision models don't need large context
         # Queue system defaults. Text queue concurrency is derived from loaded
         # model n_parallel slots.

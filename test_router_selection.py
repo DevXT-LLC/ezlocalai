@@ -34,6 +34,41 @@ class RouterSelectionTests(unittest.TestCase):
         )
         return Router(registry)
 
+    def _text_worker(
+        self,
+        worker_id: str,
+        model: str,
+        *,
+        best_tier: int,
+        capacity: int = 1,
+        busy: int = 0,
+    ) -> WorkerInfo:
+        return WorkerInfo(
+            worker_id=worker_id,
+            label=worker_id,
+            url=f"http://{worker_id}.local",
+            capabilities=["text"],
+            models=[model],
+            best_tier=best_tier,
+            free_vram_gb=24.0,
+            cap_slots={
+                "text": {
+                    "capacity": capacity,
+                    "in_flight": busy,
+                    "queued": 0,
+                    "available": max(0, capacity - busy),
+                }
+            },
+            model_slots={
+                model: {
+                    "capacity": capacity,
+                    "in_flight": busy,
+                    "queued": 0,
+                    "available": max(0, capacity - busy),
+                }
+            },
+        )
+
     def test_stt_routes_by_capability_when_model_alias_is_not_advertised(self):
         router = self._router_with_worker("stt")
 
@@ -71,6 +106,101 @@ class RouterSelectionTests(unittest.TestCase):
 
         worker = router.select_worker(
             "text", "different-text-model", allow_cross_model=False
+        )
+
+        self.assertIsNone(worker)
+
+    def test_text_prefers_mtp_variant_for_base_model_request(self):
+        registry = WorkerRegistry(ttl_seconds=60)
+        registry.register(
+            self._text_worker(
+                "non-mtp-5090",
+                "unsloth/Qwen3.6-35B-A3B-GGUF",
+                best_tier=90,
+            )
+        )
+        registry.register(
+            self._text_worker(
+                "mtp-3090",
+                "unsloth/Qwen3.6-35B-A3B-MTP-GGUF",
+                best_tier=50,
+            )
+        )
+        router = Router(registry)
+
+        worker = router.select_worker(
+            "text", "Qwen3.6-35B-A3B", allow_cross_model=False
+        )
+
+        self.assertIsNotNone(worker)
+        self.assertEqual(worker.worker_id, "mtp-3090")
+
+    def test_text_prefers_mtp_variant_for_non_mtp_gguf_request(self):
+        registry = WorkerRegistry(ttl_seconds=60)
+        registry.register(
+            self._text_worker(
+                "non-mtp-5090",
+                "unsloth/Qwen3.6-35B-A3B-GGUF",
+                best_tier=90,
+            )
+        )
+        registry.register(
+            self._text_worker(
+                "mtp-3090",
+                "unsloth/Qwen3.6-35B-A3B-MTP-GGUF",
+                best_tier=50,
+            )
+        )
+        router = Router(registry)
+
+        worker = router.select_worker(
+            "text", "unsloth/Qwen3.6-35B-A3B-GGUF", allow_cross_model=False
+        )
+
+        self.assertIsNotNone(worker)
+        self.assertEqual(worker.worker_id, "mtp-3090")
+
+    def test_text_uses_non_mtp_variant_when_mtp_is_saturated(self):
+        registry = WorkerRegistry(ttl_seconds=60)
+        registry.register(
+            self._text_worker(
+                "non-mtp-5090",
+                "unsloth/Qwen3.6-35B-A3B-GGUF",
+                best_tier=90,
+            )
+        )
+        registry.register(
+            self._text_worker(
+                "mtp-3090",
+                "unsloth/Qwen3.6-35B-A3B-MTP-GGUF",
+                best_tier=50,
+                busy=1,
+            )
+        )
+        router = Router(registry)
+
+        worker = router.select_worker(
+            "text", "Qwen3.6-35B-A3B", allow_cross_model=False
+        )
+
+        self.assertIsNotNone(worker)
+        self.assertEqual(worker.worker_id, "non-mtp-5090")
+
+    def test_explicit_mtp_request_does_not_count_non_mtp_as_same_model(self):
+        registry = WorkerRegistry(ttl_seconds=60)
+        registry.register(
+            self._text_worker(
+                "non-mtp-5090",
+                "unsloth/Qwen3.6-35B-A3B-GGUF",
+                best_tier=90,
+            )
+        )
+        router = Router(registry)
+
+        worker = router.select_worker(
+            "text",
+            "unsloth/Qwen3.6-35B-A3B-MTP-GGUF",
+            allow_cross_model=False,
         )
 
         self.assertIsNone(worker)

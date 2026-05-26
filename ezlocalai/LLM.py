@@ -11,6 +11,7 @@ from Globals import getenv
 
 DEFAULT_MODEL = getenv("DEFAULT_MODEL")
 MTP_SPEC_DRAFT_P_MIN_DEFAULT = 0.25
+MTP_SPEC_DRAFT_N_MAX_MAX = 16
 
 
 def get_gpu_count() -> int:
@@ -53,15 +54,48 @@ def is_mtp_model(model_name: str) -> bool:
     return "-mtp" in (model_name or "").lower()
 
 
-def get_mtp_spec_draft_n_max(main_gpu: int = 0) -> Tuple[int, float]:
+def get_model_size_billions(model_name: str) -> float:
+    """Best-effort parse of the largest parameter-size marker from a model name."""
+    sizes = [
+        float(match)
+        for match in re.findall(
+            r"(?<![a-z0-9])(\d+(?:\.\d+)?)b(?:[^a-z0-9]|$)",
+            (model_name or "").lower(),
+        )
+    ]
+    return max(sizes) if sizes else 0.0
+
+
+def get_mtp_spec_draft_n_max(
+    main_gpu: int = 0, model_name: str = ""
+) -> Tuple[int, float]:
     """Choose MTP draft length from the primary GPU's total VRAM."""
     total_vram = get_total_vram_per_gpu()
-    if not total_vram:
-        return 2, 0.0
+    raw_override = str(getenv("MTP_SPEC_DRAFT_N_MAX", "auto") or "auto").strip()
 
-    gpu_idx = main_gpu if 0 <= main_gpu < len(total_vram) else 0
-    card_vram_gb = total_vram[gpu_idx]
-    return (3 if card_vram_gb > 24 else 2), card_vram_gb
+    card_vram_gb = 0.0
+    if total_vram:
+        gpu_idx = main_gpu if 0 <= main_gpu < len(total_vram) else 0
+        card_vram_gb = total_vram[gpu_idx]
+
+    if raw_override.lower() not in {"", "auto", "0"}:
+        try:
+            override = int(raw_override)
+        except (TypeError, ValueError):
+            logging.warning(
+                "[LLM] Invalid MTP_SPEC_DRAFT_N_MAX=%r; using auto", raw_override
+            )
+        else:
+            return min(max(1, override), MTP_SPEC_DRAFT_N_MAX_MAX), card_vram_gb
+
+    model_size_b = get_model_size_billions(model_name)
+    if 0 < model_size_b <= 4 and card_vram_gb >= 20:
+        return 4, card_vram_gb
+    if card_vram_gb >= 32:
+        return 4, card_vram_gb
+    if card_vram_gb > 24:
+        return 3, card_vram_gb
+    return 2, card_vram_gb
 
 
 def get_mtp_spec_draft_p_min() -> float:
@@ -795,7 +829,9 @@ class LLM:
         self.xlc_params.cont_batching = True
 
         if is_mtp_model(self.model_name):
-            spec_draft_n_max, card_vram_gb = get_mtp_spec_draft_n_max(self.main_gpu)
+            spec_draft_n_max, card_vram_gb = get_mtp_spec_draft_n_max(
+                self.main_gpu, self.model_name
+            )
             spec_draft_p_min = get_mtp_spec_draft_p_min()
             self.xlc_params.speculative.types = [
                 xlc.common_speculative_type.COMMON_SPECULATIVE_TYPE_DRAFT_MTP

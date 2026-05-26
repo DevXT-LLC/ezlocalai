@@ -49,6 +49,67 @@ MODEL_STRICT_CAPABILITIES = {"text", "vision", "embedding"}
 _RUNTIME_VERSION_CACHE: Optional[str] = None
 
 
+def is_mtp_model_name(model_name: Optional[str]) -> bool:
+    """Return True for model names that advertise an MTP variant."""
+    return "-mtp" in _formatless_model_basename(model_name)
+
+
+def _formatless_model_basename(model_name: Optional[str]) -> str:
+    """Lowercase model basename without repo, quant format, or replica suffix."""
+    if not model_name:
+        return ""
+    name = str(model_name).strip()
+    if "@" in name:
+        name = name.rsplit("@", 1)[0]
+    if "#" in name:
+        name = name.split("#", 1)[0]
+    name = name.split("/")[-1].lower()
+    for suffix in ("-gguf", ".gguf"):
+        if name.endswith(suffix):
+            name = name[: -len(suffix)]
+            break
+    return name
+
+
+def _model_family_key(model_name: Optional[str]) -> str:
+    """Canonical model family key where MTP/non-MTP variants are compatible."""
+    base = _formatless_model_basename(model_name)
+    if not base:
+        return ""
+    return base.replace("-mtp", "")
+
+
+def _model_name_matches(requested: Optional[str], served: Optional[str]) -> bool:
+    """Return True when a served model is compatible with the requested model.
+
+    A base/non-MTP request can run on an MTP model of the same family. An
+    explicit MTP request still requires an MTP model to count as a same-model
+    match; broader cross-model fallback happens later in the router.
+    """
+    if not requested:
+        return True
+    if not served:
+        return False
+
+    req = str(requested).strip().lower()
+    srv = str(served).strip().lower()
+    req_short = _formatless_model_basename(requested)
+    srv_short = _formatless_model_basename(served)
+    if req == srv or (req_short and req_short == srv_short):
+        return True
+
+    req_family = _model_family_key(requested)
+    srv_family = _model_family_key(served)
+    if req_family and srv_family and req_family == srv_family:
+        if is_mtp_model_name(requested) and not is_mtp_model_name(served):
+            return False
+        return True
+
+    # Preserve the router's historical loose alias behavior: a short model name
+    # such as "Qwen3.6-35B-A3B" should match a full HF repo id.
+    return bool(req_short and req_short in srv)
+
+
 def _clean_version(value: Optional[str]) -> str:
     value = (value or "").strip()
     if not value or value.lower() in {"none", "null", "unknown", "undefined"}:
@@ -836,6 +897,9 @@ class WorkerInfo:
             if key.lower() == name.lower() or key.split("/")[-1].lower() == base:
                 return key
         for key in slot_map:
+            if _model_name_matches(name, key):
+                return key
+        for key in slot_map:
             if base and base in key.lower():
                 return key
         return None
@@ -1334,19 +1398,28 @@ class Router:
                 # Worker did not advertise its model list — let it through;
                 # selection is still bounded by capability + capacity.
                 return True
-            if model in worker.models:
-                return True
-            base = model.split("/")[-1].lower()
-            return any(base in m.lower() for m in worker.models)
+            return any(_model_name_matches(model, m) for m in worker.models)
+
+        def _has_mtp_variant(worker: WorkerInfo) -> bool:
+            if not model or not worker.models:
+                return False
+            return any(
+                is_mtp_model_name(m) and _model_name_matches(model, m)
+                for m in worker.models
+            )
 
         # First pass: workers that explicitly serve the requested model.
         if model:
             model_servers = [w for w in all_alive if _model_match(w)]
             preferred = _has_capacity(model_servers)
             if preferred:
+                mtp_preferred = [w for w in preferred if _has_mtp_variant(w)]
+                rank_pool = mtp_preferred or preferred
                 winner, route_reason = self._rank_candidates(
-                    preferred, capability=capability, model=model
+                    rank_pool, capability=capability, model=model
                 )
+                if mtp_preferred:
+                    route_reason = f"mtp-preferred/{route_reason}"
                 logging.info(
                     f"[Router] select model={model!r} cap={capability} -> {winner.label} "
                     f"(reason={route_reason}, "
