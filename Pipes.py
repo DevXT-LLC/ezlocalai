@@ -781,13 +781,14 @@ class EzlocalaiClient:
             base_url: URL of the fallback server (e.g., "http://192.168.1.100:8091")
             api_key: API key for the fallback server (uses local key if not provided)
         """
-        self.base_url = (
-            (base_url or getenv("FALLBACK_SERVER")).rstrip("/")
-            if (base_url or getenv("FALLBACK_SERVER"))
-            else ""
+        configured_base_url = (
+            getenv("FALLBACK_SERVER") if base_url is None else base_url
         )
+        self.base_url = configured_base_url.rstrip("/") if configured_base_url else ""
         self.api_key = (
-            api_key or getenv("FALLBACK_API_KEY") or getenv("EZLOCALAI_API_KEY")
+            api_key
+            if api_key is not None
+            else (getenv("FALLBACK_API_KEY") or getenv("EZLOCALAI_API_KEY"))
         )
         self._session = None
         self._available = None  # Cache availability check
@@ -861,6 +862,44 @@ class EzlocalaiClient:
             self._available = False
             self._last_check = current_time
             return False, "Fallback server unreachable"
+
+    async def check_router_availability(self) -> Tuple[bool, str]:
+        """Check whether this client points at a healthy ezlocalai router."""
+        if not self.is_configured:
+            return False, "No router configured"
+
+        current_time = time.time()
+        if (
+            self._available is not None
+            and (current_time - self._last_check) < self._check_interval
+        ):
+            return self._available, "cached"
+
+        try:
+            async with self._get_session() as session:
+                async with session.get(
+                    f"{self.base_url}/v1/router/health",
+                    headers=self._get_headers(),
+                    timeout=5,
+                ) as resp:
+                    if resp.status != 200:
+                        self._available = False
+                        self._last_check = current_time
+                        return False, f"Router returned status {resp.status}"
+
+                    data = await resp.json()
+                    alive_workers = int(data.get("alive_workers", 0) or 0)
+                    self._available = alive_workers > 0
+                    self._last_check = current_time
+                    if self._available:
+                        return True, f"Router available ({alive_workers} workers alive)"
+                    return False, "Router has no live workers"
+
+        except Exception as e:
+            logging.debug(f"[RouterForward] Health check failed: {e}")
+            self._available = False
+            self._last_check = current_time
+            return False, "Router unreachable"
 
     def _get_session(self):
         """Get or create an aiohttp session."""
@@ -1044,6 +1083,8 @@ class EzlocalaiClient:
                         raise RuntimeError(
                             f"Fallback server error {resp.status}: {error_text}"
                         )
+                    if params.get("response_format") == "text":
+                        return {"text": await resp.text()}
                     return await resp.json()
 
         except Exception as e:
@@ -1081,8 +1122,45 @@ class EzlocalaiClient:
             logging.error(f"[Fallback] TTS forward failed: {e}")
             raise
 
+    async def forward_tts_stream(
+        self, text: str, voice: str = "default", language: str = "en"
+    ):
+        """Forward a streaming TTS request to the fallback/router server."""
+        if not self.is_configured:
+            return
+
+        import aiohttp
+
+        logging.info(f"[Fallback] Forwarding streaming TTS to {self.base_url}")
+
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.post(
+                    f"{self.base_url}/v1/audio/speech/stream",
+                    json={"input": text, "voice": voice, "language": language},
+                    headers=self._get_headers(),
+                    timeout=aiohttp.ClientTimeout(total=300),
+                ) as resp:
+                    if resp.status != 200:
+                        error_text = await resp.text()
+                        raise RuntimeError(
+                            f"Fallback server error {resp.status}: {error_text}"
+                        )
+                    async for chunk in resp.content.iter_any():
+                        if chunk:
+                            yield chunk
+
+        except Exception as e:
+            logging.error(f"[Fallback] Streaming TTS forward failed: {e}")
+            raise
+
     async def forward_image_generation(
-        self, prompt: str, response_format: str = "url", size: str = "512x512"
+        self,
+        prompt: str,
+        response_format: str = "url",
+        size: str = "512x512",
+        n: int = 1,
+        image: str = None,
     ):
         """Forward an image generation request to the fallback server."""
         if not self.is_configured:
@@ -1094,13 +1172,22 @@ class EzlocalaiClient:
 
         try:
             async with aiohttp.ClientSession() as session:
+                payload = {
+                    "prompt": prompt,
+                    "response_format": response_format,
+                    "size": size,
+                    "n": n,
+                }
+                if image:
+                    payload["image"] = image
+                endpoint = (
+                    f"{self.base_url}/v1/images/edits"
+                    if image
+                    else f"{self.base_url}/v1/images/generations"
+                )
                 async with session.post(
-                    f"{self.base_url}/v1/images/generations",
-                    json={
-                        "prompt": prompt,
-                        "response_format": response_format,
-                        "size": size,
-                    },
+                    endpoint,
+                    json=payload,
                     headers=self._get_headers(),
                     timeout=aiohttp.ClientTimeout(total=180),
                 ) as resp:
@@ -1124,6 +1211,8 @@ class EzlocalaiClient:
         num_inference_steps: int = 40,
         guidance_scale: float = 4.0,
         frame_rate: int = 24,
+        image: str = None,
+        conditions: list = None,
     ):
         """Forward a video generation request to the fallback server."""
         if not self.is_configured:
@@ -1135,17 +1224,22 @@ class EzlocalaiClient:
 
         try:
             async with aiohttp.ClientSession() as session:
+                payload = {
+                    "prompt": prompt,
+                    "response_format": response_format,
+                    "size": size,
+                    "num_frames": num_frames,
+                    "num_inference_steps": num_inference_steps,
+                    "guidance_scale": guidance_scale,
+                    "frame_rate": frame_rate,
+                }
+                if image:
+                    payload["image"] = image
+                if conditions:
+                    payload["conditions"] = conditions
                 async with session.post(
                     f"{self.base_url}/v1/videos/generations",
-                    json={
-                        "prompt": prompt,
-                        "response_format": response_format,
-                        "size": size,
-                        "num_frames": num_frames,
-                        "num_inference_steps": num_inference_steps,
-                        "guidance_scale": guidance_scale,
-                        "frame_rate": frame_rate,
-                    },
+                    json=payload,
                     headers=self._get_headers(),
                     timeout=aiohttp.ClientTimeout(total=600),
                 ) as resp:
@@ -1186,6 +1280,8 @@ class EzlocalaiClient:
 # Global fallback client instance
 _fallback_client: Optional[EzlocalaiClient] = None
 _fallback_client_lock = threading.Lock()
+_router_dispatch_client: Optional[EzlocalaiClient] = None
+_router_dispatch_client_lock = threading.Lock()
 
 
 def get_fallback_client() -> EzlocalaiClient:
@@ -1195,6 +1291,26 @@ def get_fallback_client() -> EzlocalaiClient:
         if _fallback_client is None:
             _fallback_client = EzlocalaiClient()
         return _fallback_client
+
+
+def get_router_dispatch_client() -> EzlocalaiClient:
+    """Get a client that forwards direct worker misses back to ROUTER_URL."""
+    global _router_dispatch_client
+    with _router_dispatch_client_lock:
+        if _router_dispatch_client is None:
+            router_url = (getenv("ROUTER_URL") or "").strip()
+            if (getenv("ROUTER_MODE", "false") or "").strip().lower() == "true":
+                router_url = ""
+            api_key = (
+                (getenv("ROUTER_CLIENT_API_KEY") or "").strip()
+                or (getenv("EZLOCALAI_API_KEY") or "").strip()
+                or (getenv("ROUTER_API_KEY") or "").strip()
+            )
+            _router_dispatch_client = EzlocalaiClient(
+                base_url=router_url,
+                api_key=api_key,
+            )
+        return _router_dispatch_client
 
 
 # =============================================================================

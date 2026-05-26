@@ -2641,6 +2641,16 @@ async def images_generations(
 @app.post("/v1/images/edits", tags=["Images"])
 async def images_edits(request: Request, _: str = Depends(verify_client)):
     """Image edits use multipart; forward all parts as-is."""
+    content_type = (request.headers.get("content-type") or "").lower()
+    if "application/json" in content_type:
+        payload = await request.json()
+        worker = await _pick("image", payload.get("model"))
+        resp = await _proxy_json(
+            worker, "/v1/images/edits", payload, stream=False, capability="image"
+        )
+        await _usage.record_cap(worker.label, "image")
+        return await _persist_response_assets(worker, resp, request)
+
     form = await request.form()
     files: Dict[str, tuple] = {}
     fields: Dict[str, str] = {}

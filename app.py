@@ -125,6 +125,48 @@ app.add_middleware(
 )
 
 
+def _local_capabilities() -> set:
+    """Return the capabilities this worker advertises to the router."""
+    try:
+        from Router import detect_local_capabilities
+
+        return set(detect_local_capabilities())
+    except Exception as e:
+        logging.debug(f"[RouterForward] Local capability detection failed: {e}")
+        return set()
+
+
+def _has_local_capability(capability: str) -> bool:
+    caps = _local_capabilities()
+    if capability == "embedding" and "text" in caps:
+        return True
+    return capability in caps
+
+
+async def _router_client_for_unserved_capability(capability: str):
+    """Return a ROUTER_URL client when this worker cannot serve a capability."""
+    if _has_local_capability(capability):
+        return None
+
+    from Pipes import get_router_dispatch_client
+
+    router_client = get_router_dispatch_client()
+    if not router_client.is_configured:
+        return None
+
+    available, reason = await router_client.check_router_availability()
+    if not available:
+        logging.warning(
+            f"[RouterForward] Local {capability} unavailable, but router is not available: {reason}"
+        )
+        return None
+
+    logging.info(
+        f"[RouterForward] Local {capability} unavailable; forwarding request to router"
+    )
+    return router_client
+
+
 # Queue management
 @app.on_event("startup")
 async def startup_event():
@@ -811,9 +853,6 @@ async def speech_to_text(
     session_id: Optional[str] = Form(None),
     user: str = Depends(verify_api_key),
 ):
-    if getenv("STT_ENABLED").lower() == "false":
-        raise HTTPException(status_code=404, detail="Speech to text is disabled.")
-
     from Pipes import get_voice_server_client, is_voice_server_mode
 
     timestamp_granularities = (
@@ -822,6 +861,30 @@ async def speech_to_text(
 
     # Read file content first (before any fallback attempts)
     file_content = await file.read()
+
+    if getenv("STT_ENABLED").lower() == "false":
+        router_client = await _router_client_for_unserved_capability("stt")
+        if router_client:
+            try:
+                response = await router_client.forward_transcription(
+                    file_content=file_content,
+                    content_type=file.content_type or "audio/wav",
+                    model=model,
+                    language=language,
+                    prompt=prompt,
+                    response_format=response_format,
+                    temperature=temperature,
+                    timestamp_granularities=timestamp_granularities,
+                )
+                if response_format == "text":
+                    return Response(
+                        content=response.get("text", str(response)),
+                        media_type="text/plain",
+                    )
+                return response
+            except Exception as e:
+                logging.warning(f"[STT] Router forward failed: {e}")
+        raise HTTPException(status_code=404, detail="Speech to text is disabled.")
 
     # Try voice server first if configured (not in voice server mode)
     if not is_voice_server_mode():
@@ -849,6 +912,28 @@ async def speech_to_text(
                         return Response(content=text_content, media_type="text/plain")
                     return response
                 logging.warning("[STT] Voice server failed, falling back to local")
+
+    router_client = await _router_client_for_unserved_capability("stt")
+    if router_client:
+        try:
+            response = await router_client.forward_transcription(
+                file_content=file_content,
+                content_type=file.content_type or "audio/wav",
+                model=model,
+                language=language,
+                prompt=prompt,
+                response_format=response_format,
+                temperature=temperature,
+                timestamp_granularities=timestamp_granularities,
+            )
+            if response_format == "text":
+                return Response(
+                    content=response.get("text", str(response)),
+                    media_type="text/plain",
+                )
+            return response
+        except Exception as e:
+            logging.warning(f"[STT] Router forward failed: {e}, using local")
 
     from Pipes import should_use_ezlocalai_fallback, get_fallback_client
 
@@ -1189,6 +1274,17 @@ class TextToSpeech(BaseModel):
 )
 async def text_to_speech(tts: TextToSpeech, user=Depends(verify_api_key)):
     if getenv("TTS_ENABLED").lower() == "false":
+        router_client = await _router_client_for_unserved_capability("tts")
+        if router_client:
+            try:
+                audio_bytes = await router_client.forward_tts(
+                    text=tts.input,
+                    voice=tts.voice,
+                    language=tts.language,
+                )
+                return Response(content=audio_bytes, media_type="audio/wav")
+            except Exception as e:
+                logging.warning(f"[TTS] Router forward failed: {e}")
         raise HTTPException(status_code=404, detail="Text to speech is disabled.")
     if tts.input.startswith("data:"):
         if "pdf" in tts.input:
@@ -1225,6 +1321,18 @@ async def text_to_speech(tts: TextToSpeech, user=Depends(verify_api_key)):
                 if audio_bytes:
                     return Response(content=audio_bytes, media_type="audio/wav")
                 logging.warning("[TTS] Voice server failed, falling back to local")
+
+    router_client = await _router_client_for_unserved_capability("tts")
+    if router_client:
+        try:
+            audio_bytes = await router_client.forward_tts(
+                text=tts.input,
+                voice=tts.voice,
+                language=tts.language,
+            )
+            return Response(content=audio_bytes, media_type="audio/wav")
+        except Exception as e:
+            logging.warning(f"[TTS] Router forward failed: {e}, using local")
 
     from Pipes import should_use_ezlocalai_fallback, get_fallback_client
 
@@ -1282,6 +1390,27 @@ async def text_to_speech_stream(tts: TextToSpeech, user=Depends(verify_api_key))
     Audio format: 24kHz, 16-bit, mono PCM
     """
     if getenv("TTS_ENABLED").lower() == "false":
+        router_client = await _router_client_for_unserved_capability("tts")
+        if router_client:
+
+            async def disabled_router_stream():
+                async for chunk in router_client.forward_tts_stream(
+                    text=tts.input,
+                    voice=tts.voice,
+                    language=tts.language,
+                ):
+                    yield chunk
+
+            return StreamingResponse(
+                disabled_router_stream(),
+                media_type="application/octet-stream",
+                headers={
+                    "X-Audio-Format": "pcm",
+                    "X-Sample-Rate": "24000",
+                    "X-Bits-Per-Sample": "16",
+                    "X-Channels": "1",
+                },
+            )
         raise HTTPException(status_code=404, detail="Text to speech is disabled.")
 
     from Pipes import get_voice_server_client, is_voice_server_mode
@@ -1315,6 +1444,28 @@ async def text_to_speech_stream(tts: TextToSpeech, user=Depends(verify_api_key))
                     },
                 )
             logging.warning("[TTS Stream] Voice server unavailable, using local")
+
+    router_client = await _router_client_for_unserved_capability("tts")
+    if router_client:
+
+        async def router_stream():
+            async for chunk in router_client.forward_tts_stream(
+                text=tts.input,
+                voice=tts.voice,
+                language=tts.language,
+            ):
+                yield chunk
+
+        return StreamingResponse(
+            router_stream(),
+            media_type="application/octet-stream",
+            headers={
+                "X-Audio-Format": "pcm",
+                "X-Sample-Rate": "24000",
+                "X-Bits-Per-Sample": "16",
+                "X-Channels": "1",
+            },
+        )
 
     async def audio_stream_generator():
         async with pipe._tts_lock:
@@ -1576,7 +1727,21 @@ async def generate_image(
             except Exception as e:
                 logging.warning(f"[IMG] Image server forward failed: {e}, using local")
 
-    if getenv("IMG_MODEL") == "":
+    router_client = await _router_client_for_unserved_capability("image")
+    if router_client:
+        try:
+            result = await router_client.forward_image_generation(
+                prompt=image_creation.prompt,
+                response_format=image_creation.response_format,
+                size=image_creation.size,
+                n=image_creation.n,
+            )
+            if result is not None:
+                return result
+        except Exception as e:
+            logging.warning(f"[IMG] Router forward failed: {e}, using local")
+
+    if not _has_local_capability("image"):
         # Check if fallback can handle image generation
         from Pipes import get_fallback_client
 
@@ -1692,7 +1857,22 @@ async def edit_image(
             except Exception as e:
                 logging.warning(f"[IMG] Image server forward failed: {e}, using local")
 
-    if getenv("IMG_MODEL") == "":
+    router_client = await _router_client_for_unserved_capability("image")
+    if router_client:
+        try:
+            result = await router_client.forward_image_generation(
+                prompt=image_edit.prompt,
+                response_format=image_edit.response_format,
+                size=image_edit.size,
+                n=image_edit.n,
+                image=image_edit.image,
+            )
+            if result is not None:
+                return result
+        except Exception as e:
+            logging.warning(f"[IMG] Router forward failed: {e}, using local")
+
+    if not _has_local_capability("image"):
         from Pipes import get_fallback_client
 
         fallback_client = get_fallback_client()
@@ -1791,7 +1971,29 @@ async def generate_video(
                     f"[VIDEO] Image server forward failed: {e}, trying fallback"
                 )
 
-    if getenv("VIDEO_MODEL") == "" or getenv("VIDEO_MODEL").lower() == "none":
+    router_client = await _router_client_for_unserved_capability("video")
+    if router_client:
+        try:
+            result = await router_client.forward_video_generation(
+                prompt=video_creation.prompt,
+                response_format=video_creation.response_format,
+                size=video_creation.size,
+                num_frames=video_creation.num_frames,
+                num_inference_steps=video_creation.num_inference_steps,
+                guidance_scale=video_creation.guidance_scale,
+                frame_rate=video_creation.frame_rate,
+                image=video_creation.image,
+                conditions=[
+                    c.model_dump() if hasattr(c, "model_dump") else c
+                    for c in (video_creation.conditions or [])
+                ],
+            )
+            if result is not None:
+                return result
+        except Exception as e:
+            logging.warning(f"[VIDEO] Router forward failed: {e}, using local")
+
+    if not _has_local_capability("video"):
         # Check if fallback can handle video generation
         from Pipes import get_fallback_client
 

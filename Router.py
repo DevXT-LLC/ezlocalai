@@ -362,14 +362,13 @@ def detect_local_capabilities() -> List[str]:
     image_delegated = _is_url(image_server)
     text_delegated = _is_url(text_server)
 
-    is_dedicated_voice = voice_server == "true"
     is_dedicated_image = image_server == "true"
 
     # Text/vision: any worker that has DEFAULT_MODEL loaded can answer text,
     # *unless* it's explicitly delegating text elsewhere. Even dedicated
     # voice/image servers may also serve text if they loaded an LLM, so we
     # no longer exclude them here.
-    if default_model and not text_delegated:
+    if default_model and default_model.lower() != "none" and not text_delegated:
         caps.append("text")
         lowered = default_model.lower()
         is_vision = any(
@@ -403,15 +402,20 @@ def detect_local_capabilities() -> List[str]:
                 pass
         if is_vision:
             caps.append("vision")
-    elif text_server == "true" and "text" not in caps and default_model:
+    elif (
+        text_server == "true"
+        and "text" not in caps
+        and default_model
+        and default_model.lower() != "none"
+    ):
         caps.append("text")
 
     # TTS: claim if we serve speech synthesis locally.
-    if not voice_delegated and (tts_enabled or is_dedicated_voice):
+    if not voice_delegated and tts_enabled:
         caps.append("tts")
 
     # STT: claim if we serve transcription locally.
-    if not voice_delegated and (stt_enabled or is_dedicated_voice):
+    if not voice_delegated and stt_enabled:
         caps.append("stt")
 
     # Image: claim it only if we actually generate locally — img_model set or

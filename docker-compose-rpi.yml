@@ -50,6 +50,7 @@ services:
       # Optional: register with a router/load balancer
       - ROUTER_URL=${ROUTER_URL:-}
       - ROUTER_API_KEY=${ROUTER_API_KEY:-}
+      - ROUTER_CLIENT_API_KEY=${ROUTER_CLIENT_API_KEY:-}
       - WORKER_LABEL=${WORKER_LABEL:-}
       - WORKER_HEARTBEAT_INTERVAL=${WORKER_HEARTBEAT_INTERVAL:-10}
       - WORKER_TUNNEL=${WORKER_TUNNEL:-}

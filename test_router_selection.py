@@ -1,6 +1,7 @@
 import os
 import tempfile
 import unittest
+from unittest.mock import patch
 
 from Router import (
     Router,
@@ -9,6 +10,7 @@ from Router import (
     _configured_contexts_from_pipe,
     _usable_context_from_config,
     _version_from_git_metadata,
+    detect_local_capabilities,
 )
 
 
@@ -258,6 +260,42 @@ class ConfiguredContextTests(unittest.TestCase):
             _configured_contexts_from_pipe(FakePipe()),
             {"model-a": 50000, "model-b": 32768},
         )
+
+
+class CapabilityDetectionTests(unittest.TestCase):
+    def _env(self, **overrides):
+        env = {
+            "DEFAULT_MODEL": "none",
+            "VOICE_SERVER": "",
+            "IMAGE_SERVER": "",
+            "TEXT_SERVER": "",
+            "IMG_MODEL": "",
+            "VIDEO_MODEL": "",
+            "TTS_ENABLED": "true",
+            "STT_ENABLED": "true",
+        }
+        env.update(overrides)
+        return patch.dict(os.environ, env, clear=True)
+
+    def test_default_model_none_does_not_advertise_text(self):
+        with self._env(DEFAULT_MODEL="none"):
+            caps = detect_local_capabilities()
+
+        self.assertNotIn("text", caps)
+
+    def test_disabled_tts_is_not_advertised(self):
+        with self._env(TTS_ENABLED="false", STT_ENABLED="true"):
+            caps = detect_local_capabilities()
+
+        self.assertNotIn("tts", caps)
+        self.assertIn("stt", caps)
+
+    def test_voice_server_mode_does_not_override_disabled_voice_services(self):
+        with self._env(VOICE_SERVER="true", TTS_ENABLED="false", STT_ENABLED="false"):
+            caps = detect_local_capabilities()
+
+        self.assertNotIn("tts", caps)
+        self.assertNotIn("stt", caps)
 
 
 if __name__ == "__main__":

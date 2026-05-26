@@ -107,6 +107,10 @@ def getenv(var_name: str, default_value: str = None) -> str:
         # API key/shared secret to authenticate with the router. Falls back to
         # EZLOCALAI_API_KEY if unset.
         "ROUTER_API_KEY": "",
+        # API key to use when a worker forwards a direct client request back to
+        # ROUTER_URL because the worker does not serve the requested capability.
+        # Falls back to EZLOCALAI_API_KEY, then ROUTER_API_KEY if unset.
+        "ROUTER_CLIENT_API_KEY": "",
         # Friendly name of this worker (shown in router admin). Defaults to hostname.
         "WORKER_LABEL": "",
         # Heartbeat interval in seconds.
