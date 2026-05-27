@@ -283,16 +283,20 @@ def split_text_into_chunks(text: str, max_chars: int = MAX_CHUNK_CHARS) -> list:
     return final_chunks if final_chunks else [text[:max_chars]]
 
 
-def get_available_vram_mb():
-    """Get available VRAM in MB."""
+def get_available_vram_mb(gpu_index: int = 0):
+    """Get available VRAM in MB, accounting for non-PyTorch CUDA allocations."""
     if torch.cuda.is_available():
         try:
-            free_memory = torch.cuda.get_device_properties(
-                0
-            ).total_memory - torch.cuda.memory_allocated(0)
+            free_memory, _ = torch.cuda.mem_get_info(gpu_index)
             return free_memory / (1024 * 1024)
-        except:
-            return 0
+        except Exception:
+            try:
+                free_memory = torch.cuda.get_device_properties(
+                    gpu_index
+                ).total_memory - torch.cuda.memory_allocated(gpu_index)
+                return free_memory / (1024 * 1024)
+            except Exception:
+                return 0
     return 0
 
 
@@ -304,18 +308,37 @@ class CTTS:
     Automatically falls back to CPU if GPU memory is insufficient.
     """
 
-    def __init__(self, cache_config=None):
+    def __init__(self, cache_config=None, device=None):
         # Check if there's enough VRAM for TTS (Turbo needs less VRAM than regular)
-        available_vram = get_available_vram_mb()
+        requested_device = str(device or "").lower()
+        gpu_index = 0
+        if requested_device.startswith("cuda:"):
+            try:
+                gpu_index = int(requested_device.split(":", 1)[1])
+            except (TypeError, ValueError):
+                gpu_index = 0
+        available_vram = get_available_vram_mb(gpu_index)
         min_vram_mb = 1500  # 1.5GB minimum for Turbo (smaller than regular 500M model)
 
-        if torch.cuda.is_available() and available_vram >= min_vram_mb:
+        if requested_device == "cpu":
+            self.device = "cpu"
+        elif (
+            torch.cuda.is_available()
+            and requested_device.startswith("cuda")
+            and available_vram >= min_vram_mb
+        ):
+            self.device = requested_device
+        elif (
+            torch.cuda.is_available()
+            and not requested_device
+            and available_vram >= min_vram_mb
+        ):
             self.device = "cuda"
         else:
             self.device = "cpu"
             if torch.cuda.is_available():
                 logging.debug(
-                    f"[CTTS] Only {available_vram:.0f}MB VRAM available, using CPU (need {min_vram_mb}MB)"
+                    f"[CTTS] Only {available_vram:.0f}MB VRAM available on GPU {gpu_index}, using CPU (need {min_vram_mb}MB)"
                 )
 
         logging.debug(f"[CTTS] Initializing Chatterbox Turbo TTS on {self.device}")
@@ -391,6 +414,19 @@ class CTTS:
                 logging.warning(f"[CTTS] Could not pre-condition default voice: {e}")
 
         logging.debug("[CTTS] Chatterbox Turbo TTS initialized successfully")
+
+    def _release_generation_memory(self):
+        """Release transient tensors/cached CUDA blocks after a TTS generation."""
+        gc.collect()
+        if (
+            str(getattr(self, "device", "")).startswith("cuda")
+            and torch.cuda.is_available()
+        ):
+            try:
+                torch.cuda.empty_cache()
+                torch.cuda.ipc_collect()
+            except Exception as e:
+                logging.debug(f"[CTTS] CUDA cache cleanup skipped: {e}")
 
     async def generate(
         self,
@@ -555,6 +591,8 @@ class CTTS:
 
     def _tensor_to_bytes(self, tensor):
         """Convert a torch tensor to audio bytes."""
+        temp_file = None
+        audio_np = None
         try:
             temp_file = os.path.join(
                 self.output_folder, f"temp_write_{uuid.uuid4().hex}.wav"
@@ -562,17 +600,23 @@ class CTTS:
             if tensor.dim() == 1:
                 tensor = tensor.unsqueeze(0)
             # Use soundfile directly instead of torchaudio.save (PyTorch 2.9.1+ ignores backend param)
-            audio_np = tensor.cpu().numpy()
+            audio_np = tensor.detach().cpu().numpy()
             if audio_np.shape[0] <= 2:  # channels first format
                 audio_np = audio_np.T  # soundfile expects (samples, channels)
             sf.write(temp_file, audio_np, self.sample_rate)
             with open(temp_file, "rb") as f:
                 audio_data = f.read()
-            os.remove(temp_file)
             return audio_data
         except Exception as e:
             logging.error(f"[CTTS] Error converting tensor to bytes: {e}")
             return None
+        finally:
+            if temp_file and os.path.exists(temp_file):
+                try:
+                    os.remove(temp_file)
+                except OSError:
+                    pass
+            audio_np = None
 
     def _generate_single_sample(self, text, audio_path):
         """Generate a single audio sample using Chatterbox for a short text chunk.
@@ -594,53 +638,59 @@ class CTTS:
                     "[CTTS] Turbo model requires an audio prompt. No default voice found."
                 )
 
-        try:
-            # norm_loudness=False to work around dtype bug in chatterbox library
-            # (norm_loudness converts float32 to float64 which breaks mel spectrogram)
-            wav = self.model.generate(
-                text, audio_prompt_path=audio_path, norm_loudness=False
-            )
-        except (torch.cuda.OutOfMemoryError, RuntimeError) as e:
-            error_str = str(e).lower()
-            # Check for OOM, CUDA errors, or cuDNN errors (version mismatch, etc.)
-            if (
-                "out of memory" in error_str
-                or "cuda" in error_str
-                or "cudnn" in error_str
-            ):
-                logging.warning(
-                    f"[CTTS] GPU error during generation, reloading model on CPU: {e}"
-                )
-                # Free GPU memory
-                gc.collect()
-                if torch.cuda.is_available():
-                    torch.cuda.empty_cache()
-
-                # Reload model on CPU
-                del self.model
-                gc.collect()
-                if torch.cuda.is_available():
-                    torch.cuda.empty_cache()
-
-                self.device = "cpu"
-                model_path = download_turbo_model()
-                self.model = ChatterboxTurboTTS.from_local(model_path, device="cpu")
-                self.sample_rate = self.model.sr
-                logging.debug("[CTTS] Model reloaded on CPU, retrying generation...")
-
-                # Retry on CPU
-                wav = self.model.generate(
-                    text, audio_prompt_path=audio_path, norm_loudness=False
-                )
-            else:
-                raise
-
+        wav = None
+        audio_np = None
         temp_file = os.path.join(self.output_folder, f"temp_{uuid.uuid4().hex}.wav")
 
         try:
+            # norm_loudness=False to work around dtype bug in chatterbox library
+            # (norm_loudness converts float32 to float64 which breaks mel spectrogram)
+            try:
+                with torch.inference_mode():
+                    wav = self.model.generate(
+                        text, audio_prompt_path=audio_path, norm_loudness=False
+                    )
+            except (torch.cuda.OutOfMemoryError, RuntimeError) as e:
+                error_str = str(e).lower()
+                # Check for OOM, CUDA errors, or cuDNN errors (version mismatch, etc.)
+                if (
+                    "out of memory" in error_str
+                    or "cuda" in error_str
+                    or "cudnn" in error_str
+                ):
+                    logging.warning(
+                        f"[CTTS] GPU error during generation, reloading model on CPU: {e}"
+                    )
+                    # Free GPU memory
+                    gc.collect()
+                    if torch.cuda.is_available():
+                        torch.cuda.empty_cache()
+
+                    # Reload model on CPU
+                    del self.model
+                    gc.collect()
+                    if torch.cuda.is_available():
+                        torch.cuda.empty_cache()
+
+                    self.device = "cpu"
+                    model_path = download_turbo_model()
+                    self.model = ChatterboxTurboTTS.from_local(model_path, device="cpu")
+                    self.sample_rate = self.model.sr
+                    logging.debug(
+                        "[CTTS] Model reloaded on CPU, retrying generation..."
+                    )
+
+                    # Retry on CPU
+                    with torch.inference_mode():
+                        wav = self.model.generate(
+                            text, audio_prompt_path=audio_path, norm_loudness=False
+                        )
+                else:
+                    raise
+
             # Use soundfile directly instead of torchaudio.save (PyTorch 2.9.1+ ignores backend param)
             if isinstance(wav, torch.Tensor):
-                audio_np = wav.cpu().numpy()
+                audio_np = wav.detach().cpu().numpy()
             else:
                 import numpy as np
 
@@ -658,13 +708,21 @@ class CTTS:
 
             with open(temp_file, "rb") as f:
                 audio_data = f.read()
-            os.remove(temp_file)
 
             return audio_data
 
         except Exception as e:
             logging.error(f"[CTTS] Error generating audio: {e}")
             raise
+        finally:
+            if temp_file and os.path.exists(temp_file):
+                try:
+                    os.remove(temp_file)
+                except OSError:
+                    pass
+            audio_np = None
+            wav = None
+            self._release_generation_memory()
 
     def get_cache_stats(self):
         """Get cache statistics."""

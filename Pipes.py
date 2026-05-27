@@ -516,6 +516,35 @@ class ResourceManager:
             return 0.0
         return sum(get_per_gpu_free_vram_gb())
 
+    def get_torch_cuda_memory_stats(self) -> List[Dict[str, float]]:
+        """Get PyTorch CUDA allocator stats for diagnosing resident model growth."""
+        if not torch.cuda.is_available():
+            return []
+
+        stats = []
+        for i in range(torch.cuda.device_count()):
+            try:
+                free_bytes, total_bytes = torch.cuda.mem_get_info(i)
+                stats.append(
+                    {
+                        "index": i,
+                        "allocated_gb": round(
+                            torch.cuda.memory_allocated(i) / (1024**3), 3
+                        ),
+                        "reserved_gb": round(
+                            torch.cuda.memory_reserved(i) / (1024**3), 3
+                        ),
+                        "max_allocated_gb": round(
+                            torch.cuda.max_memory_allocated(i) / (1024**3), 3
+                        ),
+                        "free_gb": round(free_bytes / (1024**3), 3),
+                        "total_gb": round(total_bytes / (1024**3), 3),
+                    }
+                )
+            except Exception as e:
+                stats.append({"index": i, "error": str(e)})
+        return stats
+
     def is_model_loaded(self, model_type: ModelType) -> bool:
         """Check if a model type is currently loaded."""
         with self._lock:
@@ -730,6 +759,7 @@ class ResourceManager:
                 "total_vram_gb": self.total_vram,
                 "free_vram_gb": self.get_total_free_vram(),
                 "free_per_gpu_gb": get_per_gpu_free_vram_gb(),
+                "torch_cuda": self.get_torch_cuda_memory_stats(),
                 "system_ram_gb": self.system_ram_gb,
                 "loaded_models": {
                     mt.value: {
@@ -3630,16 +3660,21 @@ class Pipes:
                 )
                 logging.info(f"[TTS] {mode_str} - loading {tts_name} to keep resident")
                 start_time = time.time()
-                self.ctts = self._create_tts_model()
+                can_load, tts_device, reason = self.resource_manager.can_load_model(
+                    ModelType.TTS, required_vram=tts_vram
+                )
+                logging.info(f"[TTS] {mode_str} - {reason}")
+                self.ctts = self._create_tts_model(device=tts_device)
                 load_time = time.time() - start_time
+                actual_device = getattr(self.ctts, "device", tts_device)
                 logging.info(
-                    f"[TTS] {tts_name} loaded in {load_time:.2f}s ({mode_str} - staying loaded)"
+                    f"[TTS] {tts_name} loaded on {actual_device} in {load_time:.2f}s ({mode_str} - staying loaded)"
                 )
                 self.resource_manager.register_model(
                     ModelType.TTS,
                     tts_name,
-                    "cuda" if torch.cuda.is_available() else "cpu",
-                    vram_gb=tts_vram if torch.cuda.is_available() else 0.0,
+                    actual_device,
+                    vram_gb=tts_vram if "cuda" in actual_device else 0.0,
                 )
             elif precache_done:
                 # Precache already warmed the TTS cache, skip loading/unloading
@@ -3650,7 +3685,11 @@ class Pipes:
                 # No precache - warm the cache now (first run or single-worker mode)
                 logging.debug(f"[TTS] Preloading {tts_name} to warm cache...")
                 start_time = time.time()
-                self.ctts = self._create_tts_model()
+                can_load, tts_device, reason = self.resource_manager.can_load_model(
+                    ModelType.TTS, required_vram=tts_vram
+                )
+                logging.debug(f"[TTS] Cache warmup loading decision: {reason}")
+                self.ctts = self._create_tts_model(device=tts_device)
                 load_time = time.time() - start_time
                 logging.debug(
                     f"[TTS] {tts_name} preloaded in {load_time:.2f}s, unloading to free VRAM..."
@@ -5850,12 +5889,12 @@ class Pipes:
                     logging.debug(f"[LLM] Unloading {model_name} synchronously")
                     self._destroy_llm_sync(llm_ref, model_name)
 
-    def _create_tts_model(self):
+    def _create_tts_model(self, device: str = None, force_cpu: bool = False):
         """Create TTS model (Chatterbox TTS)."""
         if not ctts_import_success:
             logging.warning("[TTS] Chatterbox TTS not available (missing dependencies)")
             return None
-        return CTTS()
+        return CTTS(device="cpu" if force_cpu else device)
 
     def _get_tts_name(self):
         """Get the human-readable name for the TTS provider."""
@@ -5878,16 +5917,16 @@ class Pipes:
 
             logging.debug(f"[TTS] Loading {tts_name} ({reason})")
             start_time = time.time()
-            self.ctts = self._create_tts_model()
+            self.ctts = self._create_tts_model(device=device)
             load_time = time.time() - start_time
 
-            # TTS uses CUDA if available (handled internally by model)
-            actual_device = "cuda" if torch.cuda.is_available() else "cpu"
+            # TTS may fall back to CPU if CUDA headroom is too low.
+            actual_device = getattr(self.ctts, "device", device or "cpu")
             resource_mgr.register_model(
                 ModelType.TTS,
                 tts_name,
                 actual_device,
-                vram_gb=4.0 if actual_device == "cuda" else 0.0,
+                vram_gb=4.0 if "cuda" in actual_device else 0.0,
             )
 
             logging.debug(
