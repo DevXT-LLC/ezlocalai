@@ -162,6 +162,20 @@ def _normalize_model_name(model: Optional[str]) -> str:
     return m
 
 
+def _pretty_model_name(model: Optional[str]) -> str:
+    """Display-only cleanup: drop the ``vendor/`` prefix and the trailing
+    ``-GGUF`` suffix so the UI can show ``Qwen3-30B-A3B`` instead of
+    ``unsloth/Qwen3-30B-A3B-GGUF``. The raw model id is still used
+    everywhere internally — this is purely cosmetic.
+    """
+    if not model:
+        return "—"
+    m = _normalize_model_name(model)
+    if "/" in m:
+        m = m.rsplit("/", 1)[-1]
+    return m
+
+
 # ---------------------------------------------------------------------------
 # Usage tracking
 # ---------------------------------------------------------------------------
@@ -1193,18 +1207,8 @@ def _cap_pill(cap: str) -> str:
 
 
 def _tier_badge(tier: int) -> str:
-    """Color-coded tier indicator."""
-    if tier >= 80:
-        cls, star = "tier-gold", "⭐ "
-    elif tier >= 50:
-        cls, star = "tier-blue", ""
-    elif tier >= 20:
-        cls, star = "tier-green", ""
-    elif tier >= 5:
-        cls, star = "tier-warn", ""
-    else:
-        cls, star = "tier-muted", ""
-    return f'<span class="{cls}">{star}tier {tier}</span>'
+    """Plain tier indicator — higher tiers get requests first."""
+    return f'<span class="tier-muted">tier {tier}</span>'
 
 
 def _slot_prefix(available: int, capacity: int) -> str:
@@ -1292,8 +1296,9 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
         )
         model_cell = (
             f'{_slot_prefix(m["available_slots"], m["total_capacity"])}'
-            f'<span class="mono">{html.escape(str(m["model"]))}</span>'
-            f'{worker_sub}'
+            f'<span class="mono" title="{html.escape(str(m["model"]))}">'
+            f'{html.escape(_pretty_model_name(m["model"]))}</span>'
+            f"{worker_sub}"
         )
 
         def _per_worker(w: Dict[str, Any]) -> str:
@@ -1390,9 +1395,11 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
             prefix = _slot_prefix(
                 int(ms.get("available", 0) or 0), int(ms.get("capacity", 0) or 0)
             )
+            display = html.escape(_pretty_model_name(name))
             return (
-                f'{_cap_pill(lbl)} {prefix}'
-                f'<span class="mono small">{name}{ctx_part}{quant_part}</span>'
+                f"{_cap_pill(lbl)} {prefix}"
+                f'<span class="mono small" title="{html.escape(name)}">'
+                f"{display}{quant_part}{ctx_part}</span>"
             )
 
         model_lines = [_fmt_llm(m) for m in (w.get("models") or [])]
@@ -1403,7 +1410,9 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
                 int(cs.get("available", 0) or 0), int(cs.get("capacity", 0) or 0)
             )
             model_lines.append(
-                f'{_cap_pill("embedding")} {prefix}<span class="mono small">{emb_name}</span>'
+                f'{_cap_pill("embedding")} {prefix}'
+                f'<span class="mono small" title="{html.escape(emb_name)}">'
+                f'{html.escape(_pretty_model_name(emb_name))}</span>'
             )
         for cap in ("image", "tts", "stt", "video"):
             if cap in raw_caps_for_models:
@@ -1415,7 +1424,9 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
                     int(cs.get("available", 0) or 0), int(cs.get("capacity", 0) or 0)
                 )
                 model_lines.append(
-                    f'{_cap_pill(cap)} {prefix}<span class="mono small">{cap_name}</span>'
+                    f'{_cap_pill(cap)} {prefix}'
+                    f'<span class="mono small" title="{html.escape(cap_name)}">'
+                    f'{html.escape(_pretty_model_name(cap_name))}</span>'
                 )
         models = "<br>".join(model_lines) or "—"
         slots_left = int(w.get("slot_total_available", 0) or 0)
@@ -1661,12 +1672,14 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
         else:
             total_cell = '<span class="muted">—</span>'
         worker = html.escape(str(h.get("worker") or "—"))
-        model = html.escape(str(h.get("model") or "—"))
+        raw_model = str(h.get("model") or "—")
+        model = html.escape(_pretty_model_name(raw_model)) if raw_model != "—" else "—"
+        model_title = html.escape(raw_model)
         return f"""
-        <tr class="req-row" data-ts="{ts:.0f}" data-worker="{worker}" data-model="{model}">
+        <tr class="req-row" data-ts="{ts:.0f}" data-worker="{worker}" data-model="{model_title}">
           <td class="muted small ts-cell" data-ts="{ts:.0f}">{when}</td>
           <td class="small"><b>{worker}</b></td>
-          <td class="mono small">{model}</td>
+          <td class="mono small" title="{model_title}">{model}</td>
           <td class="num small">{int(h.get('prompt_tokens') or 0):,}</td>
           <td class="num small">{int(h.get('completion_tokens') or 0):,}</td>
           <td class="num small">{_fmt_tps(float(h.get('prompt_tps') or 0))}</td>

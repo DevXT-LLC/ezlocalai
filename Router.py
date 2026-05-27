@@ -1739,7 +1739,7 @@ class WorkerHeartbeatClient:
         cap_models: Dict[str, str] = {}
         for _cap in self.capabilities:
             if _cap == "tts":
-                cap_models["tts"] = "Chatterbox TTS"
+                cap_models["tts"] = "chatterbox-turbo"
             elif _cap == "stt":
                 _wm = (getenv("WHISPER_MODEL") or "large-v3").strip()
                 cap_models["stt"] = _wm
