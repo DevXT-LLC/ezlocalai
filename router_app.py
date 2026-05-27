@@ -980,6 +980,9 @@ def _aggregate_dashboard() -> Dict[str, Any]:
             key=lambda x: -x.get("best_tier", 0),
         ),
         "usage": _usage.snapshot(),
+        "usage_24h": _usage_from_history(
+            _usage.history_snapshot(), since=time.time() - 86400
+        ),
         "history": _usage.history_snapshot(),
         "errors": _aggregate_recent_errors(alive + stale),
     }
@@ -997,6 +1000,50 @@ def _public_with_tunnel(w) -> Dict[str, Any]:
         pub["tunnel"] = False
         pub["tunnel_connected"] = None
     return pub
+
+
+def _usage_from_history(
+    history: List[Dict[str, Any]], since: Optional[float] = None
+) -> Dict[str, Any]:
+    """Reconstruct per-worker usage stats from the LLM history ring buffer.
+
+    Only LLM entries are tracked in history, so non-LLM caps (tts/stt/image/
+    video/embedding) come back as zeroed counters — callers that need those
+    should fall back to the cumulative ``UsageTracker`` snapshot.
+    """
+    out: Dict[str, Any] = {}
+    for h in history:
+        ts = float(h.get("ts") or 0)
+        if since is not None and ts < since:
+            continue
+        worker = h.get("worker") or "unknown"
+        model = _normalize_model_name(h.get("model") or "")
+        w = out.setdefault(worker, {"llm": {}})
+        llm = w.setdefault("llm", {})
+        m = llm.setdefault(
+            model,
+            {
+                "requests": 0,
+                "prompt_tokens": 0,
+                "completion_tokens": 0,
+                "prompt_tps_sum": 0.0,
+                "prompt_tps_n": 0,
+                "predicted_tps_sum": 0.0,
+                "predicted_tps_n": 0,
+            },
+        )
+        m["requests"] += 1
+        m["prompt_tokens"] += int(h.get("prompt_tokens") or 0)
+        m["completion_tokens"] += int(h.get("completion_tokens") or 0)
+        ptps = float(h.get("prompt_tps") or 0.0)
+        if ptps > 0:
+            m["prompt_tps_sum"] += ptps
+            m["prompt_tps_n"] += 1
+        dtps = float(h.get("predicted_tps") or 0.0)
+        if dtps > 0:
+            m["predicted_tps_sum"] += dtps
+            m["predicted_tps_n"] += 1
+    return out
 
 
 def _aggregate_recent_errors(workers) -> List[Dict[str, Any]]:
@@ -1198,51 +1245,43 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
         pool_health, ("health-ok", "● Healthy")
     )
 
-    # Capability cards
-    def _cap_card(c: Dict[str, Any]) -> str:
-        worker_pills = " ".join(
-            f'<span class="pill cap-worker" title="{lbl}">{lbl}</span>'
-            for lbl in c.get("worker_labels", [])
-        )
-        used_pct = 100 * (1 - c["available_slots"] / max(c["total_capacity"], 1))
-        return f"""
-        <div class="card cap">
-          <div class="cap-header">{_cap_pill(c['capability'])}</div>
-          <div class="cap-stats">
-            <span><b>{c['worker_count']}</b> worker{'s' if c['worker_count'] != 1 else ''}</span>
-            <span><b>{c['available_slots']}</b>/{c['total_capacity']} slots free</span>
-          </div>
-          {_usage_bar(used_pct, '100%')}
-          {("<div class='cap-workers'>" + worker_pills + "</div>") if worker_pills else ""}
-        </div>
-        """
-
-    cap_cards = (
-        "".join(_cap_card(c) for c in data["capabilities"])
-        or '<div class="muted">No capabilities advertised yet.</div>'
-    )
+    # Capability cards removed — per-capability info is now folded into the
+    # Models section (each model row shows its type badge and the workers
+    # serving it).
 
     # Model rows
     def _model_row(m: Dict[str, Any]) -> str:
-        worker_pills = "".join(
-            f'<span class="pill" title="tier {w["best_tier"]} · {w["slots_left"]}/{w["queue_capacity"]} slots free · ctx {w["context"] or "?"} · quant {w.get("quant") or "?"}">'
-            f'{w["label"]}</span>'
-            for w in m["workers"]
-        )
         mtype = m.get("type", "text")
-        type_badge = _cap_pill(mtype) + " "
+        type_badge = _cap_pill(mtype)
         ctx = f"{m['max_context']:,}" if m["max_context"] else "—"
         quants = ", ".join(m.get("quants") or []) or "—"
+
+        def _per_worker(w: Dict[str, Any]) -> str:
+            parts: List[str] = []
+            q = w.get("quant")
+            if q:
+                parts.append(html.escape(str(q)))
+            cval = int(w.get("context") or 0)
+            if cval:
+                parts.append(f"ctx {cval:,}")
+            parts.append(f'{w["slots_left"]}/{w["queue_capacity"]} slots free')
+            return (
+                f'<span class="pill cap-worker" title="tier {w["best_tier"]}">'
+                f'{html.escape(str(w["label"]))}</span> '
+                f'<span class="muted small">{" · ".join(parts)}</span>'
+            )
+
+        per_worker = "<br>".join(_per_worker(w) for w in m["workers"])
         return f"""
         <tr>
-          <td class="mono">{type_badge}{m['model']}</td>
+          <td>{type_badge}</td>
+          <td class="mono">{m['model']}</td>
           <td class="num">{m['worker_count']}</td>
           <td class="num">{m['total_capacity']}</td>
           <td class="num">{m['available_slots']}</td>
           <td class="num">{'—' if mtype not in ('text', 'text+vision', 'vision', 'embedding') else ctx}</td>
           <td class="mono small">{'—' if mtype not in ('text', 'text+vision', 'vision', 'embedding') else quants}</td>
-          <td class="num">{m['best_tier']}</td>
-          <td>{worker_pills}</td>
+          <td class="small">{per_worker or '—'}</td>
         </tr>
         """
 
@@ -1301,15 +1340,33 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
             mem_cell = f"{free_ram:.1f} GB RAM free" if free_ram else "—"
         mq = w.get("model_quant") or {}
         mc = w.get("model_context") or {}
+        raw_caps_for_models = w.get("capabilities") or []
+        has_vision_for_models = "vision" in raw_caps_for_models
+        cap_models_map = w.get("cap_models") or {}
 
-        def _fmt(name: str) -> str:
+        def _fmt_llm(name: str) -> str:
             ctx = int(mc.get(name, 0) or 0)
             quant = mq.get(name) or ""
             ctx_part = f" @ {ctx:,}" if ctx else ""
             quant_part = f" ({quant})" if quant else ""
-            return f"{name}{ctx_part}{quant_part}"
+            lbl = "text+vision" if has_vision_for_models else "text"
+            return (
+                f'{_cap_pill(lbl)} <span class="mono small">{name}{ctx_part}{quant_part}</span>'
+            )
 
-        models = "<br>".join(_fmt(m) for m in (w.get("models") or [])) or "—"
+        model_lines = [_fmt_llm(m) for m in (w.get("models") or [])]
+        if "embedding" in raw_caps_for_models:
+            emb_name = cap_models_map.get("embedding") or "embedding"
+            model_lines.append(
+                f'{_cap_pill("embedding")} <span class="mono small">{emb_name}</span>'
+            )
+        for cap in ("image", "tts", "stt", "video"):
+            if cap in raw_caps_for_models:
+                cap_name = cap_models_map.get(cap) or _cap_label(cap)
+                model_lines.append(
+                    f'{_cap_pill(cap)} <span class="mono small">{cap_name}</span>'
+                )
+        models = "<br>".join(model_lines) or "—"
         slots_left = int(w.get("slot_total_available", 0) or 0)
         slots_total = int(w.get("slot_total_capacity", 0) or 0)
         if slots_total <= 0:
@@ -1361,25 +1418,22 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
                 pill.replace("<span ", f'<span title="{title}" ', 1) if title else pill
             )
 
-        cap_pills = " ".join(_cap_with_title(c) for c in display_caps) or "—"
+        # cap_pills kept available via the merged Models column (per-line label pills)
         if w.get("tunnel"):
-            url_cell = (
-                f"{w['url']}"
-                f'<div class="muted small">🔌 '
+            tunnel_sub = (
+                '<div class="muted small">🔌 '
                 f"{'connected' if tunnel_connected else 'disconnected'}</div>"
             )
         else:
-            url_cell = w["url"]
+            tunnel_sub = ""
         return f"""
         <tr class="{'stale' if stale else ''}">
-          <td><b>{w['label']}</b><div class="muted small">{w['worker_id']}</div></td>
-          <td>{status}</td>
-          <td class="mono small">{url_cell}</td>
+          <td><b>{w['label']}</b></td>
+          <td>{status}{tunnel_sub}</td>
           <td>{gpus}<div class="muted small">{_tier_badge(w.get('best_tier', 0))}</div></td>
           <td class="num small">{mem_cell}</td>
           <td>{slots_left}/{slots_total} {bar}<div class="muted small">{w.get('slot_total_busy', w.get('in_flight', 0))} active/queued</div></td>
-          <td class="small">{cap_pills}</td>
-          <td class="small mono">{models}</td>
+          <td class="small">{models}</td>
           <td class="num small">{last_hb:.0f}s</td>
           <td class="mono small">{_version_link(w.get('version') or '')}</td>
           <td class="small">{err_cell}</td>
@@ -1387,7 +1441,7 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
         """
 
     worker_rows = "".join(_worker_row(w) for w in data["workers"]) or (
-        '<tr><td colspan="11" class="muted">No workers registered.</td></tr>'
+        '<tr><td colspan="9" class="muted">No workers registered.</td></tr>'
     )
 
     # Usage section — per-worker historical stats
@@ -1465,44 +1519,51 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
         )
         return ap, ad
 
-    def _usage_model_rows(label: str, wdata: Dict[str, Any]) -> str:
-        llm = wdata.get("llm") or {}
-        # Merge variants that normalize to the same canonical name
-        # (e.g. ``Foo`` and ``Foo-GGUF``) so the breakdown shows one row.
-        merged: Dict[str, Dict[str, float]] = {}
-        for raw_name, mdata in llm.items():
-            canon = _normalize_model_name(raw_name)
-            agg = merged.setdefault(
-                canon,
-                {
-                    "requests": 0,
-                    "prompt_tokens": 0,
-                    "completion_tokens": 0,
-                    "prompt_tps_sum": 0.0,
-                    "prompt_tps_n": 0,
-                    "predicted_tps_sum": 0.0,
-                    "predicted_tps_n": 0,
-                },
-            )
-            agg["requests"] += int(mdata.get("requests", 0) or 0)
-            agg["prompt_tokens"] += int(mdata.get("prompt_tokens", 0) or 0)
-            agg["completion_tokens"] += int(mdata.get("completion_tokens", 0) or 0)
-            agg["prompt_tps_sum"] += float(mdata.get("prompt_tps_sum", 0.0) or 0.0)
-            agg["prompt_tps_n"] += int(mdata.get("prompt_tps_n", 0) or 0)
-            agg["predicted_tps_sum"] += float(
-                mdata.get("predicted_tps_sum", 0.0) or 0.0
-            )
-            agg["predicted_tps_n"] += int(mdata.get("predicted_tps_n", 0) or 0)
+    def _build_summary_rows(usage_src: Dict[str, Any]) -> str:
+        return (
+            "".join(_usage_summary_row(lbl, wd) for lbl, wd in sorted(usage_src.items()))
+            or '<tr><td colspan="10" class="muted">No usage recorded in this window.</td></tr>'
+        )
+
+    def _build_breakdown_rows(usage_src: Dict[str, Any]) -> str:
+        # Flatten (worker, model) pairs across all workers, then sort by
+        # requests descending so the busiest models surface first regardless
+        # of which worker served them.
+        flat: List[tuple] = []
+        for label, wdata in usage_src.items():
+            llm = wdata.get("llm") or {}
+            merged: Dict[str, Dict[str, float]] = {}
+            for raw_name, mdata in llm.items():
+                canon = _normalize_model_name(raw_name)
+                agg = merged.setdefault(
+                    canon,
+                    {
+                        "requests": 0,
+                        "prompt_tokens": 0,
+                        "completion_tokens": 0,
+                        "prompt_tps_sum": 0.0,
+                        "prompt_tps_n": 0,
+                        "predicted_tps_sum": 0.0,
+                        "predicted_tps_n": 0,
+                    },
+                )
+                agg["requests"] += int(mdata.get("requests", 0) or 0)
+                agg["prompt_tokens"] += int(mdata.get("prompt_tokens", 0) or 0)
+                agg["completion_tokens"] += int(mdata.get("completion_tokens", 0) or 0)
+                agg["prompt_tps_sum"] += float(mdata.get("prompt_tps_sum", 0.0) or 0.0)
+                agg["prompt_tps_n"] += int(mdata.get("prompt_tps_n", 0) or 0)
+                agg["predicted_tps_sum"] += float(
+                    mdata.get("predicted_tps_sum", 0.0) or 0.0
+                )
+                agg["predicted_tps_n"] += int(mdata.get("predicted_tps_n", 0) or 0)
+            for model, mdata in merged.items():
+                flat.append((label, model, mdata))
+        flat.sort(key=lambda x: -int(x[2].get("requests", 0) or 0))
         rows = ""
-        for model, mdata in sorted(
-            merged.items(), key=lambda kv: -kv[1].get("requests", 0)
-        ):
+        for label, model, mdata in flat:
             reqs = mdata.get("requests", 0)
             pt = mdata.get("prompt_tokens", 0)
             ct = mdata.get("completion_tokens", 0)
-            # Prefer cumulative averages from _data; fall back to recent
-            # history (covers entries recorded before the cumulative fields
-            # were added).
             ptn = int(mdata.get("prompt_tps_n", 0) or 0)
             dtn = int(mdata.get("predicted_tps_n", 0) or 0)
             if ptn or dtn:
@@ -1525,23 +1586,18 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
           <td class="num small">{_fmt_tps(avg_p)}</td>
           <td class="num small">{_fmt_tps(avg_d)}</td>
         </tr>"""
-        return rows
-
-    usage_summary_rows = (
-        "".join(_usage_summary_row(lbl, wd) for lbl, wd in sorted(usage_data.items()))
-        or '<tr><td colspan="10" class="muted">No usage recorded yet.</td></tr>'
-    )
-
-    usage_model_rows = (
-        "".join(
-            _usage_model_rows(lbl, wd)
-            for lbl, wd in sorted(usage_data.items())
-            if wd.get("llm")
+        return (
+            rows
+            or '<tr><td colspan="8" class="muted">No LLM usage in this window.</td></tr>'
         )
-        or '<tr><td colspan="8" class="muted">No LLM usage recorded yet.</td></tr>'
-    )
 
-    # Recent requests table (newest first, capped for display)
+    usage_24h_data = data.get("usage_24h") or {}
+    usage_summary_rows_all = _build_summary_rows(usage_data)
+    usage_summary_rows_24h = _build_summary_rows(usage_24h_data)
+    usage_model_rows_all = _build_breakdown_rows(usage_data)
+    usage_model_rows_24h = _build_breakdown_rows(usage_24h_data)
+
+    # Recent requests table (newest first)
     def _hist_row(h: Dict[str, Any]) -> str:
         ts = h.get("ts") or 0
         when = datetime.fromtimestamp(ts).strftime("%H:%M:%S") if ts else "—"
@@ -1554,11 +1610,13 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
             )
         else:
             total_cell = '<span class="muted">—</span>'
+        worker = html.escape(str(h.get("worker") or "—"))
+        model = html.escape(str(h.get("model") or "—"))
         return f"""
-        <tr>
+        <tr class="req-row" data-ts="{ts:.0f}" data-worker="{worker}" data-model="{model}">
           <td class="muted small">{when}</td>
-          <td class="small"><b>{h.get('worker', '—')}</b></td>
-          <td class="mono small">{h.get('model', '—')}</td>
+          <td class="small"><b>{worker}</b></td>
+          <td class="mono small">{model}</td>
           <td class="num small">{int(h.get('prompt_tokens') or 0):,}</td>
           <td class="num small">{int(h.get('completion_tokens') or 0):,}</td>
           <td class="num small">{_fmt_tps(float(h.get('prompt_tps') or 0))}</td>
@@ -1566,10 +1624,19 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
           <td class="num small">{total_cell}</td>
         </tr>"""
 
-    recent = list(reversed(history))[:50]
+    recent = list(reversed(history))
     history_rows = (
         "".join(_hist_row(h) for h in recent)
         or '<tr><td colspan="8" class="muted">No requests yet.</td></tr>'
+    )
+    # Filter dropdown options
+    req_workers = sorted({str(h.get("worker") or "") for h in history if h.get("worker")})
+    req_models = sorted({str(h.get("model") or "") for h in history if h.get("model")})
+    req_worker_opts = "".join(
+        f'<option value="{html.escape(w)}">{html.escape(w)}</option>' for w in req_workers
+    )
+    req_model_opts = "".join(
+        f'<option value="{html.escape(m)}">{html.escape(m)}</option>' for m in req_models
     )
 
     # Recent errors section
@@ -1596,6 +1663,17 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
         "".join(_err_row(e) for e in errors[:50])
         or '<tr><td colspan="6" class="muted">No errors recorded.</td></tr>'
     )
+    if errors:
+        errors_section = f"""
+  <h2>Recent errors</h2>
+  <table>
+    <thead><tr>
+      <th>Time</th><th>Worker</th><th>Kind</th><th>Status</th><th>Path</th><th>Message</th>
+    </tr></thead>
+    <tbody>{error_rows}</tbody>
+  </table>"""
+    else:
+        errors_section = ""
 
     return f"""<!doctype html>
 <html lang="en">
@@ -1691,6 +1769,21 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
   .health-crit {{ font-size: 14px; font-weight: 600; color: var(--crit); }}
   /* Usage table */
   .tok-hi {{ color: var(--accent); font-weight: 600; }}
+  /* Filter bar */
+  .filter-bar {{ display: flex; flex-wrap: wrap; gap: 12px; align-items: center;
+                 margin: 6px 0 10px; font-size: 12px; color: var(--muted); }}
+  .filter-bar label {{ display: inline-flex; align-items: center; gap: 6px; }}
+  .filter-bar select {{ background: var(--card); color: var(--fg);
+                         border: 1px solid var(--border); border-radius: 4px;
+                         padding: 3px 6px; font-size: 12px; }}
+  .filter-bar .pager {{ display: inline-flex; align-items: center; gap: 8px;
+                         margin-left: auto; }}
+  .filter-bar button.page-btn {{ background: var(--card); color: var(--fg);
+                                  border: 1px solid var(--border); border-radius: 4px;
+                                  padding: 3px 10px; font-size: 12px; cursor: pointer; }}
+  .filter-bar button.page-btn:hover:not(:disabled) {{ border-color: var(--accent);
+                                                       color: var(--accent); }}
+  .filter-bar button.page-btn:disabled {{ opacity: 0.4; cursor: not-allowed; }}
 </style>
 </head>
 <body>
@@ -1725,15 +1818,12 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
       <div class="sub">across the pool</div></div>
   </div>
 
-  <h2>Capabilities</h2>
-  <div class="grid">{cap_cards}</div>
-
   <h2>Models</h2>
   <table>
     <thead><tr>
-      <th>Model</th><th class="num">Workers</th><th class="num">Total parallel</th>
+      <th>Type</th><th>Model</th><th class="num">Workers</th><th class="num">Total parallel</th>
       <th class="num">Available now</th><th class="num">Max context</th>
-      <th>Quant(s)</th><th class="num">Best tier</th><th>Served by</th>
+      <th>Quant(s)</th><th>Served by</th>
     </tr></thead>
     <tbody>{model_rows}</tbody>
   </table>
@@ -1741,14 +1831,22 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
   <h2>Workers</h2>
   <table>
     <thead><tr>
-      <th>Label</th><th>Status</th><th>URL</th><th>GPUs</th>
-      <th>Free VRAM</th><th>Slots free</th><th>Capabilities</th>
+      <th>Label</th><th>Status</th><th>GPUs</th>
+      <th>Free VRAM</th><th>Slots free</th>
       <th>Models</th><th class="num">Last hb</th><th>Version</th><th>Errors</th>
     </tr></thead>
     <tbody>{worker_rows}</tbody>
   </table>
 
-  <h2>Usage history</h2>
+  <h2>Usage history <span class="muted small" id="usage-window-label"></span></h2>
+  <div class="filter-bar">
+    <label>Window:
+      <select id="usage-window" class="filter">
+        <option value="all">All time</option>
+        <option value="24h">Past 24 hours</option>
+      </select>
+    </label>
+  </div>
   <table>
     <thead><tr>
       <th>Worker</th>
@@ -1758,10 +1856,19 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
       <th class="num">TTS reqs</th><th class="num">STT reqs</th>
       <th class="num">Image reqs</th><th class="num">Video reqs</th>
     </tr></thead>
-    <tbody>{usage_summary_rows}</tbody>
+    <tbody class="usage-tbody" data-window="all">{usage_summary_rows_all}</tbody>
+    <tbody class="usage-tbody" data-window="24h" style="display:none">{usage_summary_rows_24h}</tbody>
   </table>
 
   <h2>LLM model breakdown</h2>
+  <div class="filter-bar">
+    <label>Window:
+      <select id="breakdown-window" class="filter">
+        <option value="all">All time</option>
+        <option value="24h">Past 24 hours</option>
+      </select>
+    </label>
+  </div>
   <table>
     <thead><tr>
       <th>Worker</th><th>Model</th>
@@ -1769,33 +1876,171 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
       <th class="num">Completion tokens</th><th class="num">Total tokens</th>
       <th class="num">Avg prompt t/s</th><th class="num">Avg output t/s</th>
     </tr></thead>
-    <tbody>{usage_model_rows}</tbody>
+    <tbody class="breakdown-tbody" data-window="all">{usage_model_rows_all}</tbody>
+    <tbody class="breakdown-tbody" data-window="24h" style="display:none">{usage_model_rows_24h}</tbody>
   </table>
 
   <h2>Recent requests</h2>
-  <table>
+  <div class="filter-bar">
+    <label>Worker:
+      <select id="req-worker" class="filter">
+        <option value="">All workers</option>
+        {req_worker_opts}
+      </select>
+    </label>
+    <label>Model:
+      <select id="req-model" class="filter">
+        <option value="">All models</option>
+        {req_model_opts}
+      </select>
+    </label>
+    <label>Window:
+      <select id="req-window" class="filter">
+        <option value="all">All time</option>
+        <option value="24h">Past 24 hours</option>
+        <option value="1h">Past hour</option>
+      </select>
+    </label>
+    <label>Per page:
+      <select id="req-page-size" class="filter">
+        <option value="25">25</option>
+        <option value="50" selected>50</option>
+        <option value="100">100</option>
+        <option value="250">250</option>
+      </select>
+    </label>
+    <span class="pager">
+      <button class="page-btn" data-page="prev" type="button">‹ Prev</button>
+      <span id="req-page-info" class="muted small">—</span>
+      <button class="page-btn" data-page="next" type="button">Next ›</button>
+    </span>
+  </div>
+  <table id="recent-requests-table">
     <thead><tr>
       <th>Time</th><th>Worker</th><th>Model</th>
       <th class="num">Prompt tok</th><th class="num">Output tok</th>
       <th class="num">Prompt t/s</th><th class="num">Output t/s</th>
       <th class="num">Total time</th>
     </tr></thead>
-    <tbody>{history_rows}</tbody>
+    <tbody id="recent-requests-tbody">{history_rows}</tbody>
   </table>
 
-  <h2>Recent errors</h2>
-  <table>
-    <thead><tr>
-      <th>Time</th><th>Worker</th><th>Kind</th><th>Status</th><th>Path</th><th>Message</th>
-    </tr></thead>
-    <tbody>{error_rows}</tbody>
-  </table>
+  {errors_section}
   </div>
 <script>
 (function() {{
-  // In-place dashboard refresh: fetch the same page, parse it, and swap the
-  // contents of #dash. Keeps scroll position and avoids the white flash you
-  // get from <meta refresh>.
+  // ----- Filter state persisted in localStorage -----
+  var STORE_KEY = 'ezlocalai_dash_filters_v1';
+  function loadState() {{
+    try {{ return JSON.parse(localStorage.getItem(STORE_KEY)) || {{}}; }}
+    catch (e) {{ return {{}}; }}
+  }}
+  function saveState(s) {{
+    try {{ localStorage.setItem(STORE_KEY, JSON.stringify(s)); }} catch (e) {{}}
+  }}
+  var state = Object.assign({{
+    usage_window: 'all',
+    breakdown_window: 'all',
+    req_worker: '',
+    req_model: '',
+    req_window: 'all',
+    req_page_size: 50,
+    req_page: 1
+  }}, loadState());
+
+  function applyUsageFilter() {{
+    document.querySelectorAll('.usage-tbody').forEach(function(tb) {{
+      tb.style.display = (tb.dataset.window === state.usage_window) ? '' : 'none';
+    }});
+    document.querySelectorAll('.breakdown-tbody').forEach(function(tb) {{
+      tb.style.display = (tb.dataset.window === state.breakdown_window) ? '' : 'none';
+    }});
+  }}
+
+  function applyRequestFilter() {{
+    var rows = document.querySelectorAll('#recent-requests-tbody tr.req-row');
+    var now = Date.now() / 1000;
+    var cutoff = 0;
+    if (state.req_window === '24h') cutoff = now - 86400;
+    else if (state.req_window === '1h') cutoff = now - 3600;
+    var visible = [];
+    rows.forEach(function(tr) {{
+      var ts = parseFloat(tr.dataset.ts || '0');
+      var w = tr.dataset.worker || '';
+      var m = tr.dataset.model || '';
+      var ok = (cutoff === 0 || ts >= cutoff)
+        && (!state.req_worker || w === state.req_worker)
+        && (!state.req_model || m === state.req_model);
+      if (ok) visible.push(tr);
+      tr.style.display = 'none';
+    }});
+    var pageSize = parseInt(state.req_page_size, 10) || 50;
+    var totalPages = Math.max(1, Math.ceil(visible.length / pageSize));
+    if (state.req_page > totalPages) state.req_page = totalPages;
+    if (state.req_page < 1) state.req_page = 1;
+    var start = (state.req_page - 1) * pageSize;
+    var end = start + pageSize;
+    visible.slice(start, end).forEach(function(tr) {{ tr.style.display = ''; }});
+    var info = document.getElementById('req-page-info');
+    if (info) {{
+      if (visible.length === 0) {{
+        info.textContent = 'No matching requests';
+      }} else {{
+        info.textContent =
+          (start + 1) + '–' + Math.min(end, visible.length) + ' of '
+          + visible.length + ' · page ' + state.req_page + '/' + totalPages;
+      }}
+    }}
+    var prev = document.querySelector('button.page-btn[data-page="prev"]');
+    var next = document.querySelector('button.page-btn[data-page="next"]');
+    if (prev) prev.disabled = state.req_page <= 1;
+    if (next) next.disabled = state.req_page >= totalPages;
+  }}
+
+  function applyAll() {{ applyUsageFilter(); applyRequestFilter(); }}
+
+  function setSelect(id, val) {{
+    var el = document.getElementById(id);
+    if (el) el.value = val;
+  }}
+
+  function bindControls() {{
+    // Re-bind on every refresh because innerHTML swap replaces nodes.
+    setSelect('usage-window', state.usage_window);
+    setSelect('breakdown-window', state.breakdown_window);
+    setSelect('req-worker', state.req_worker);
+    setSelect('req-model', state.req_model);
+    setSelect('req-window', state.req_window);
+    setSelect('req-page-size', String(state.req_page_size));
+
+    var uw = document.getElementById('usage-window');
+    if (uw) uw.onchange = function() {{ state.usage_window = uw.value; saveState(state); applyUsageFilter(); }};
+    var bw = document.getElementById('breakdown-window');
+    if (bw) bw.onchange = function() {{ state.breakdown_window = bw.value; saveState(state); applyUsageFilter(); }};
+    var rw = document.getElementById('req-worker');
+    if (rw) rw.onchange = function() {{ state.req_worker = rw.value; state.req_page = 1; saveState(state); applyRequestFilter(); }};
+    var rm = document.getElementById('req-model');
+    if (rm) rm.onchange = function() {{ state.req_model = rm.value; state.req_page = 1; saveState(state); applyRequestFilter(); }};
+    var rwn = document.getElementById('req-window');
+    if (rwn) rwn.onchange = function() {{ state.req_window = rwn.value; state.req_page = 1; saveState(state); applyRequestFilter(); }};
+    var rps = document.getElementById('req-page-size');
+    if (rps) rps.onchange = function() {{ state.req_page_size = parseInt(rps.value, 10) || 50; state.req_page = 1; saveState(state); applyRequestFilter(); }};
+    document.querySelectorAll('button.page-btn').forEach(function(b) {{
+      b.onclick = function() {{
+        if (b.dataset.page === 'prev') state.req_page = Math.max(1, state.req_page - 1);
+        else state.req_page = state.req_page + 1;
+        saveState(state);
+        applyRequestFilter();
+      }};
+    }});
+  }}
+
+  function init() {{ bindControls(); applyAll(); }}
+  if (document.readyState === 'loading') {{
+    document.addEventListener('DOMContentLoaded', init);
+  }} else {{ init(); }}
+
+  // ----- In-place dashboard refresh -----
   var INTERVAL_MS = 5000;
   var inFlight = false;
   function tick() {{
@@ -1812,7 +2057,11 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
         var doc = new DOMParser().parseFromString(html, 'text/html');
         var fresh = doc.getElementById('dash');
         var current = document.getElementById('dash');
-        if (fresh && current) current.innerHTML = fresh.innerHTML;
+        if (fresh && current) {{
+          current.innerHTML = fresh.innerHTML;
+          bindControls();
+          applyAll();
+        }}
       }})
       .catch(function() {{}})
       .finally(function() {{ inFlight = false; }});
