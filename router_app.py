@@ -70,6 +70,7 @@ from Router import (
     best_gpu_tier,
     get_registry,
     get_router,
+    get_runtime_version,
 )
 from Tunnel import (
     TunnelConnection,
@@ -77,7 +78,6 @@ from Tunnel import (
     is_tunnel_url,
     worker_id_from_tunnel_url,
 )
-
 
 logging.basicConfig(
     level=getenv("LOG_LEVEL"),
@@ -851,6 +851,10 @@ def _aggregate_dashboard() -> Dict[str, Any]:
             # Use the actual model name the worker reported for this capability,
             # falling back to the capability label if not reported yet.
             model_name = w.cap_models.get(cap) or cap_label
+            # Whisper STT reports like "Whisper large-v3"; the "Whisper "
+            # prefix is redundant with the STT capability pill.
+            if cap == "stt" and model_name.lower().startswith("whisper "):
+                model_name = model_name[len("Whisper "):]
             # Key by cap+model_name so multiple workers running the same
             # model (e.g. two nodes both serving Chatterbox TTS) share one row.
             key = f"{cap}::{model_name}"
@@ -1244,6 +1248,15 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
     health_cls, health_label = _HEALTH_STYLE.get(
         pool_health, ("health-ok", "● Healthy")
     )
+    try:
+        router_version = get_runtime_version()
+    except Exception:
+        router_version = ""
+    router_version_html = (
+        f'<div class="mono small" style="margin-top:4px">{_version_link(router_version)}</div>'
+        if router_version
+        else ""
+    )
 
     # Capability cards removed — per-capability info is now folded into the
     # Models section (each model row shows its type badge and the workers
@@ -1255,30 +1268,24 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
         type_badge = _cap_pill(mtype)
         ctx = f"{m['max_context']:,}" if m["max_context"] else "—"
         quants = ", ".join(m.get("quants") or []) or "—"
+        slots_cell = (
+            f'{m["available_slots"]}/{m["total_capacity"]} '
+            f'<span class="muted small">({m["worker_count"]} '
+            f'worker{"s" if m["worker_count"] != 1 else ""})</span>'
+        )
 
         def _per_worker(w: Dict[str, Any]) -> str:
-            parts: List[str] = []
-            q = w.get("quant")
-            if q:
-                parts.append(html.escape(str(q)))
-            cval = int(w.get("context") or 0)
-            if cval:
-                parts.append(f"ctx {cval:,}")
-            parts.append(f'{w["slots_left"]}/{w["queue_capacity"]} slots free')
             return (
                 f'<span class="pill cap-worker" title="tier {w["best_tier"]}">'
-                f'{html.escape(str(w["label"]))}</span> '
-                f'<span class="muted small">{" · ".join(parts)}</span>'
+                f'{html.escape(str(w["label"]))}</span>'
             )
 
-        per_worker = "<br>".join(_per_worker(w) for w in m["workers"])
+        per_worker = " ".join(_per_worker(w) for w in m["workers"])
         return f"""
         <tr>
           <td>{type_badge}</td>
           <td class="mono">{m['model']}</td>
-          <td class="num">{m['worker_count']}</td>
-          <td class="num">{m['total_capacity']}</td>
-          <td class="num">{m['available_slots']}</td>
+          <td class="num">{slots_cell}</td>
           <td class="num">{'—' if mtype not in ('text', 'text+vision', 'vision', 'embedding') else ctx}</td>
           <td class="mono small">{'—' if mtype not in ('text', 'text+vision', 'vision', 'embedding') else quants}</td>
           <td class="small">{per_worker or '—'}</td>
@@ -1286,7 +1293,7 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
         """
 
     model_rows = "".join(_model_row(m) for m in data["models"]) or (
-        '<tr><td colspan="8" class="muted">No models loaded across the pool.</td></tr>'
+        '<tr><td colspan="6" class="muted">No models loaded across the pool.</td></tr>'
     )
 
     # Worker rows
@@ -1343,6 +1350,21 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
         raw_caps_for_models = w.get("capabilities") or []
         has_vision_for_models = "vision" in raw_caps_for_models
         cap_models_map = w.get("cap_models") or {}
+        model_slots_map = w.get("model_slots") or {}
+        cap_slots_map = w.get("cap_slots") or {}
+
+        def _slots_pill(available: int, capacity: int) -> str:
+            if capacity <= 0:
+                return ""
+            return (
+                f' <span class="muted small">{available}/{capacity} slots</span>'
+            )
+
+        def _strip_whisper(name: str) -> str:
+            # "Whisper large-v3" → "large-v3"
+            if name.lower().startswith("whisper "):
+                return name[len("Whisper "):]
+            return name
 
         def _fmt_llm(name: str) -> str:
             ctx = int(mc.get(name, 0) or 0)
@@ -1350,21 +1372,36 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
             ctx_part = f" @ {ctx:,}" if ctx else ""
             quant_part = f" ({quant})" if quant else ""
             lbl = "text+vision" if has_vision_for_models else "text"
+            ms = model_slots_map.get(name) or {}
+            slots = _slots_pill(
+                int(ms.get("available", 0) or 0), int(ms.get("capacity", 0) or 0)
+            )
             return (
                 f'{_cap_pill(lbl)} <span class="mono small">{name}{ctx_part}{quant_part}</span>'
+                f'{slots}'
             )
 
         model_lines = [_fmt_llm(m) for m in (w.get("models") or [])]
         if "embedding" in raw_caps_for_models:
             emb_name = cap_models_map.get("embedding") or "embedding"
+            cs = cap_slots_map.get("embedding") or {}
+            slots = _slots_pill(
+                int(cs.get("available", 0) or 0), int(cs.get("capacity", 0) or 0)
+            )
             model_lines.append(
-                f'{_cap_pill("embedding")} <span class="mono small">{emb_name}</span>'
+                f'{_cap_pill("embedding")} <span class="mono small">{emb_name}</span>{slots}'
             )
         for cap in ("image", "tts", "stt", "video"):
             if cap in raw_caps_for_models:
                 cap_name = cap_models_map.get(cap) or _cap_label(cap)
+                if cap == "stt":
+                    cap_name = _strip_whisper(cap_name)
+                cs = cap_slots_map.get(cap) or {}
+                slots = _slots_pill(
+                    int(cs.get("available", 0) or 0), int(cs.get("capacity", 0) or 0)
+                )
                 model_lines.append(
-                    f'{_cap_pill(cap)} <span class="mono small">{cap_name}</span>'
+                    f'{_cap_pill(cap)} <span class="mono small">{cap_name}</span>{slots}'
                 )
         models = "<br>".join(model_lines) or "—"
         slots_left = int(w.get("slot_total_available", 0) or 0)
@@ -1372,8 +1409,6 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
         if slots_total <= 0:
             slots_total = int(w.get("queue_capacity", 1) or 1)
             slots_left = max(0, slots_total - int(w.get("queue_depth", 0) or 0))
-        slot_pct = 0 if slots_total == 0 else (1 - slots_left / slots_total) * 100
-        bar = f'<div class="bar"><div class="bar-fill" style="width:{slot_pct:.0f}%"></div></div>'
         last_hb = w.get("last_heartbeat_age", 0)
         tunnel_connected = w.get("tunnel_connected")
         if stale:
@@ -1432,7 +1467,6 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
           <td>{status}{tunnel_sub}</td>
           <td>{gpus}<div class="muted small">{_tier_badge(w.get('best_tier', 0))}</div></td>
           <td class="num small">{mem_cell}</td>
-          <td>{slots_left}/{slots_total} {bar}<div class="muted small">{w.get('slot_total_busy', w.get('in_flight', 0))} active/queued</div></td>
           <td class="small">{models}</td>
           <td class="num small">{last_hb:.0f}s</td>
           <td class="mono small">{_version_link(w.get('version') or '')}</td>
@@ -1441,7 +1475,7 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
         """
 
     worker_rows = "".join(_worker_row(w) for w in data["workers"]) or (
-        '<tr><td colspan="9" class="muted">No workers registered.</td></tr>'
+        '<tr><td colspan="8" class="muted">No workers registered.</td></tr>'
     )
 
     # Usage section — per-worker historical stats
@@ -1450,21 +1484,15 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
     def _usage_summary_row(label: str, wdata: Dict[str, Any]) -> str:
         llm = wdata.get("llm") or {}
         llm_reqs = sum(m.get("requests", 0) for m in llm.values())
-        prompt_tok = sum(m.get("prompt_tokens", 0) for m in llm.values())
-        comp_tok = sum(m.get("completion_tokens", 0) for m in llm.values())
         tts_reqs = (wdata.get("tts") or {}).get("requests", 0)
         stt_reqs = (wdata.get("stt") or {}).get("requests", 0)
         img_reqs = (wdata.get("image") or {}).get("requests", 0)
         vid_reqs = (wdata.get("video") or {}).get("requests", 0)
         emb_reqs = (wdata.get("embedding") or {}).get("requests", 0)
-        total_tok = prompt_tok + comp_tok
         return f"""
         <tr>
           <td><b>{label}</b></td>
           <td class="num">{llm_reqs:,}</td>
-          <td class="num">{prompt_tok:,}</td>
-          <td class="num">{comp_tok:,}</td>
-          <td class="num {'tok-hi' if total_tok > 0 else ''}">{total_tok:,}</td>
           <td class="num">{emb_reqs:,}</td>
           <td class="num">{tts_reqs:,}</td>
           <td class="num">{stt_reqs:,}</td>
@@ -1520,9 +1548,18 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
         return ap, ad
 
     def _build_summary_rows(usage_src: Dict[str, Any]) -> str:
+        def _llm_reqs(wd: Dict[str, Any]) -> int:
+            return sum(
+                int(m.get("requests", 0) or 0)
+                for m in (wd.get("llm") or {}).values()
+            )
+
+        ordered = sorted(
+            usage_src.items(), key=lambda kv: (-_llm_reqs(kv[1]), kv[0])
+        )
         return (
-            "".join(_usage_summary_row(lbl, wd) for lbl, wd in sorted(usage_src.items()))
-            or '<tr><td colspan="10" class="muted">No usage recorded in this window.</td></tr>'
+            "".join(_usage_summary_row(lbl, wd) for lbl, wd in ordered)
+            or '<tr><td colspan="7" class="muted">No usage recorded in this window.</td></tr>'
         )
 
     def _build_breakdown_rows(usage_src: Dict[str, Any]) -> str:
@@ -1630,13 +1667,17 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
         or '<tr><td colspan="8" class="muted">No requests yet.</td></tr>'
     )
     # Filter dropdown options
-    req_workers = sorted({str(h.get("worker") or "") for h in history if h.get("worker")})
+    req_workers = sorted(
+        {str(h.get("worker") or "") for h in history if h.get("worker")}
+    )
     req_models = sorted({str(h.get("model") or "") for h in history if h.get("model")})
     req_worker_opts = "".join(
-        f'<option value="{html.escape(w)}">{html.escape(w)}</option>' for w in req_workers
+        f'<option value="{html.escape(w)}">{html.escape(w)}</option>'
+        for w in req_workers
     )
     req_model_opts = "".join(
-        f'<option value="{html.escape(m)}">{html.escape(m)}</option>' for m in req_models
+        f'<option value="{html.escape(m)}">{html.escape(m)}</option>'
+        for m in req_models
     )
 
     # Recent errors section
@@ -1795,7 +1836,7 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
       · TTL {router_meta['ttl_seconds']:.0f}s · wait timeout {router_meta['wait_timeout']:.0f}s
       · auto-refresh 5s</div>
     </div>
-    <span class="{health_cls}">{health_label}</span>
+    <span class="{health_cls}" style="text-align:right">{health_label}{router_version_html}</span>
   </div>
 
     <div class="grid">
@@ -1821,8 +1862,8 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
   <h2>Models</h2>
   <table>
     <thead><tr>
-      <th>Type</th><th>Model</th><th class="num">Workers</th><th class="num">Total parallel</th>
-      <th class="num">Available now</th><th class="num">Max context</th>
+      <th>Type</th><th>Model</th><th class="num">Slots</th>
+      <th class="num">Max context</th>
       <th>Quant(s)</th><th>Served by</th>
     </tr></thead>
     <tbody>{model_rows}</tbody>
@@ -1832,7 +1873,7 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
   <table>
     <thead><tr>
       <th>Label</th><th>Status</th><th>GPUs</th>
-      <th>Free VRAM</th><th>Slots free</th>
+      <th>Free VRAM</th>
       <th>Models</th><th class="num">Last hb</th><th>Version</th><th>Errors</th>
     </tr></thead>
     <tbody>{worker_rows}</tbody>
@@ -1850,8 +1891,7 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
   <table>
     <thead><tr>
       <th>Worker</th>
-      <th class="num">LLM reqs</th><th class="num">Prompt tok</th>
-      <th class="num">Completion tok</th><th class="num">Total tokens</th>
+      <th class="num">LLM reqs</th>
       <th class="num">Embedding reqs</th>
       <th class="num">TTS reqs</th><th class="num">STT reqs</th>
       <th class="num">Image reqs</th><th class="num">Video reqs</th>

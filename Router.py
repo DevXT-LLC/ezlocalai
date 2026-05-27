@@ -1743,7 +1743,7 @@ class WorkerHeartbeatClient:
                 cap_models["tts"] = "Chatterbox TTS"
             elif _cap == "stt":
                 _wm = (getenv("WHISPER_MODEL") or "large-v3").strip()
-                cap_models["stt"] = f"Whisper {_wm}"
+                cap_models["stt"] = _wm
             elif _cap == "image":
                 _im = (getenv("IMG_MODEL") or "").strip()
                 if _im:
