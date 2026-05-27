@@ -111,6 +111,16 @@ def is_image_server_mode() -> bool:
     return getenv("IMAGE_SERVER").lower() == "true"
 
 
+def is_image_enabled() -> bool:
+    """Check if this worker should cache and serve local image generation."""
+    return (getenv("IMAGE_ENABLED") or "false").strip().lower() == "true"
+
+
+def is_video_enabled() -> bool:
+    """Check if this worker should cache and serve local video generation."""
+    return (getenv("VIDEO_ENABLED") or "false").strip().lower() == "true"
+
+
 def is_text_server_mode() -> bool:
     """Check if this server should act as a text server.
 
@@ -582,6 +592,10 @@ def precache_image_model():
     (text_encoder, vae, etc.) are downloaded on first inference by
     Flux2KleinPipeline.from_pretrained.
     """
+    if not is_image_enabled():
+        logging.info("  - Image: Skipped (disabled)")
+        return
+
     # Skip if image server URL is configured (image passthrough mode)
     if has_image_server_url():
         image_url = getenv("IMAGE_SERVER")
@@ -630,6 +644,10 @@ def precache_video_model():
     LTX2Pipeline.from_pretrained which is smarter about fetching only
     the files each component actually needs.
     """
+    if not is_video_enabled():
+        logging.info("  - Video: Skipped (disabled)")
+        return
+
     # Skip if image server URL is configured (image/video passthrough mode)
     if has_image_server_url():
         image_url = getenv("IMAGE_SERVER")

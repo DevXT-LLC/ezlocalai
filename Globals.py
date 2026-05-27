@@ -11,11 +11,15 @@ def getenv(var_name: str, default_value: str = None) -> str:
         "ALLOWED_DOMAINS": "*",
         "DEFAULT_MODEL": "unsloth/Qwen3.5-4B-GGUF",
         "WHISPER_MODEL": "large-v3",
+        "IMAGE_ENABLED": "false",  # Set true to serve and warm-load IMG_MODEL locally
         "IMG_MODEL": "none",  # Set to "unsloth/FLUX.2-klein-4B-GGUF" for image generation + editing, "none" or empty string to disable
+        "VIDEO_ENABLED": "false",  # Set true to serve and warm-load VIDEO_MODEL locally
         "VIDEO_MODEL": "none",  # Set to "unsloth/LTX-2.3-GGUF" to enable video generation, "none" or empty string to disable
         "TTS_ENABLED": "true",
+        "TTS_N_PARALLEL": "1",  # Number of local TTS model instances/slots to load
         "TTS_PROVIDER": "chatterbox",  # Chatterbox TTS
         "STT_ENABLED": "true",
+        "STT_N_PARALLEL": "1",  # Number of local STT model instances/slots to load
         "NGROK_TOKEN": "",
         "LOG_LEVEL": "INFO",
         "LOG_FORMAT": "%(asctime)s | %(levelname)s | %(message)s",

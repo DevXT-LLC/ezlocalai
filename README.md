@@ -213,10 +213,29 @@ EMBEDDING_KV_CACHE_TYPE=f16
 When using the router, workers advertise the `embedding` capability only when
 `EMBEDDING_ENABLED=true`, so embedding requests route to workers that can serve
 them and the dashboard shows the active embedding model. `EMBEDDING_N_PARALLEL`
-controls the number of embedding slots reported to the router; `EMBEDDING_CONTEXT_LENGTH`
-is kept as the per-request context window. With `EMBEDDING_GPU_LAYERS=auto`,
-ezlocalai estimates the 32k embedding cache footprint and partially offloads
-layers to CPU when VRAM is tight.
+controls how many full-context embedding model instances are loaded and reported
+to the router; each instance keeps the full `EMBEDDING_CONTEXT_LENGTH` per request
+instead of splitting the context across internal xllamacpp slots. With
+`EMBEDDING_GPU_LAYERS=auto`, ezlocalai estimates the 32k embedding cache footprint
+for each instance and partially offloads layers to CPU when VRAM is tight.
+
+## Image And Video
+
+Image and video workers are opt-in so setting `IMG_MODEL` or `VIDEO_MODEL` alone
+does not warm-load or advertise those capabilities:
+
+```bash
+IMAGE_ENABLED=false
+IMG_MODEL=
+VIDEO_ENABLED=false
+VIDEO_MODEL=
+```
+
+Set `IMAGE_ENABLED=true` with `IMG_MODEL` to serve local image generation, or
+`VIDEO_ENABLED=true` with `VIDEO_MODEL` to serve local video generation. Enabled
+media models warm-load at startup, stay resident between requests, and report
+`image` or `video` capacity to the router. Workers with an `IMAGE_SERVER` URL
+configured still delegate media requests instead of loading local models.
 
 ## Router / Load Balancer Mode
 
@@ -357,6 +376,10 @@ VOICE_SERVER_API_KEY=your-api-key  # Optional, uses EZLOCALAI_API_KEY if not set
 
 # Option 2: Make THIS server the voice server (keeps TTS/STT loaded)
 VOICE_SERVER=true
+
+# Optional: load/report multiple local voice model instances
+TTS_N_PARALLEL=1
+STT_N_PARALLEL=1
 ```
 
 ### Voice Server Mode (`VOICE_SERVER=true`)
@@ -366,6 +389,12 @@ When set to `true`, this server becomes a dedicated voice server:
 - Voice models are **never unloaded** after requests (no lazy load/unload cycle)
 - LLM models are still lazy-loaded as needed
 - Ideal for a secondary server with a dedicated GPU for voice processing
+
+`TTS_N_PARALLEL` and `STT_N_PARALLEL` control how many separate local voice model
+instances are available. In voice server mode, or when `LAZY_LOAD_VOICE=false`,
+ezlocalai warm-loads that many resident instances and reports that capacity to
+the router. With lazy voice loading, the same values cap how many transient local
+TTS/STT instances may run at once.
 
 ### Voice Passthrough Mode (`VOICE_SERVER=<url>`)
 

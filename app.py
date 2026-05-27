@@ -207,7 +207,14 @@ async def startup_event():
             chatterbox_model = None
             try:
                 # Pre-load TTS to get the Chatterbox model for wake word training
-                tts = pipe._get_tts()
+                tts = pipe.ctts or (
+                    pipe.tts_instances[0]
+                    if getattr(pipe, "tts_instances", None)
+                    else None
+                )
+                if tts is None:
+                    tts = pipe._get_tts()
+                    pipe._destroy_tts()
                 if hasattr(tts, "model"):
                     chatterbox_model = tts.model
                     logging.info(
@@ -842,25 +849,21 @@ async def embedding(embedding: EmbeddingModel, user=Depends(verify_api_key)):
     # Use local embeddings
     from Pipes import ModelType, get_resource_manager
 
-    async with pipe._embedder_lock:
-        embedder = pipe._get_embedder()
-
-    async with pipe._embedder_semaphore:
-        resource_mgr = get_resource_manager()
-        resource_mgr.mark_model_in_use(ModelType.EMBEDDING, True)
-        try:
-            result = await asyncio.to_thread(
-                embedder.get_embeddings,
-                input=embedding.input,
-                model=embedding.model,
-                dimensions=embedding.dimensions,
-            )
-        except ValueError as e:
-            raise HTTPException(status_code=400, detail=str(e))
-        finally:
-            resource_mgr.mark_model_in_use(ModelType.EMBEDDING, False)
-            if getenv("EMBEDDING_KEEP_LOADED", "true").lower() != "true":
-                pipe._destroy_embedder()
+    embedder = await pipe.acquire_embedder()
+    resource_mgr = get_resource_manager()
+    resource_mgr.mark_model_in_use(ModelType.EMBEDDING, True)
+    try:
+        result = await asyncio.to_thread(
+            embedder.get_embeddings,
+            input=embedding.input,
+            model=embedding.model,
+            dimensions=embedding.dimensions,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    finally:
+        resource_mgr.mark_model_in_use(ModelType.EMBEDDING, False)
+        await pipe.release_embedder(embedder)
     return result
 
 
@@ -2051,7 +2054,9 @@ async def generate_video(
         return {
             "created": int(time.time()),
             "data": [
-                {"error": "Video generation not available. Set VIDEO_MODEL to enable."}
+                {
+                    "error": "Video generation not available. Set VIDEO_ENABLED=true and VIDEO_MODEL to enable."
+                }
             ],
         }
 

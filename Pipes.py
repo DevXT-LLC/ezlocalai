@@ -33,6 +33,7 @@ import torch
 from typing import Tuple, Optional, Dict, Any, List
 from dataclasses import dataclass
 from enum import Enum
+from collections import deque
 
 try:
     from ezlocalai.IMG import IMG
@@ -588,11 +589,14 @@ class ResourceManager:
             if vram_gb is None:
                 vram_gb = MODEL_VRAM_ESTIMATES.get(model_type, 2.0)
 
+            existing = self._loaded_models.get(model_type)
             self._loaded_models[model_type] = ModelResource(
                 model_type=model_type,
                 name=name,
                 vram_gb=vram_gb if "cuda" in device else 0.0,
                 device=device,
+                in_use=existing.in_use if existing else False,
+                active_requests=existing.active_requests if existing else 0,
                 last_used=time.time(),
             )
             logging.debug(
@@ -1945,6 +1949,16 @@ def has_image_server_url() -> bool:
     return get_image_server_client().is_configured
 
 
+def is_image_enabled() -> bool:
+    """Check if local image generation is enabled for this worker."""
+    return (getenv("IMAGE_ENABLED") or "false").strip().lower() == "true"
+
+
+def is_video_enabled() -> bool:
+    """Check if local video generation is enabled for this worker."""
+    return (getenv("VIDEO_ENABLED") or "false").strip().lower() == "true"
+
+
 # =============================================================================
 # Embedding Server Client - For offloading embeddings to dedicated server
 # =============================================================================
@@ -2074,13 +2088,37 @@ def is_embedding_server_mode() -> bool:
 
 
 def get_embedding_parallel_slots() -> int:
-    """Return configured concurrent embedding slots."""
+    """Return configured number of full-context embedding instances."""
     try:
         return max(1, int(getenv("EMBEDDING_N_PARALLEL", "1")))
     except (TypeError, ValueError):
         logging.warning(
             "[Embedding] Invalid EMBEDDING_N_PARALLEL=%r; using 1",
             getenv("EMBEDDING_N_PARALLEL", "1"),
+        )
+        return 1
+
+
+def get_tts_parallel_slots() -> int:
+    """Return configured number of local TTS model instances."""
+    try:
+        return max(1, int(getenv("TTS_N_PARALLEL", "1")))
+    except (TypeError, ValueError):
+        logging.warning(
+            "[TTS] Invalid TTS_N_PARALLEL=%r; using 1",
+            getenv("TTS_N_PARALLEL", "1"),
+        )
+        return 1
+
+
+def get_stt_parallel_slots() -> int:
+    """Return configured number of local STT model instances."""
+    try:
+        return max(1, int(getenv("STT_N_PARALLEL", "1")))
+    except (TypeError, ValueError):
+        logging.warning(
+            "[STT] Invalid STT_N_PARALLEL=%r; using 1",
+            getenv("STT_N_PARALLEL", "1"),
         )
         return 1
 
@@ -3562,12 +3600,22 @@ class Pipes:
         # requests try to load/switch models simultaneously
         self._model_lock = threading.Lock()
         # Per-model-type async locks for non-LLM inference serialization
-        self._stt_lock = asyncio.Lock()
-        self._tts_lock = asyncio.Lock()
+        self._stt_pool_size = get_stt_parallel_slots()
+        self._tts_pool_size = get_tts_parallel_slots()
+        self._stt_lock = asyncio.Semaphore(self._stt_pool_size)
+        self._tts_lock = asyncio.Semaphore(self._tts_pool_size)
         self._img_lock = asyncio.Lock()
         self._video_lock = asyncio.Lock()
         self._embedder_lock = asyncio.Lock()
-        self._embedder_semaphore = asyncio.Semaphore(get_embedding_parallel_slots())
+        self._embedding_pool_size = get_embedding_parallel_slots()
+        self._embedder_semaphore = asyncio.Semaphore(self._embedding_pool_size)
+        self._embedder_available = asyncio.Queue(maxsize=self._embedding_pool_size)
+        self._stt_pool_lock = threading.RLock()
+        self._tts_pool_lock = threading.RLock()
+        self._stt_available = deque()
+        self._tts_available = deque()
+        self._stt_active_leases = {}
+        self._tts_active_leases = {}
         # Track how many inferences are currently in progress (thread-safe counter)
         # Using a counter instead of boolean allows multiple concurrent requests
         self._inference_count = 0
@@ -3782,6 +3830,8 @@ class Pipes:
 
         # TTS initialization - Chatterbox TTS
         self.ctts = None
+        self.tts_instances = []
+        self._transient_tts_instances = []
         if getenv("TTS_ENABLED").lower() == "true":
             tts_name = self._get_tts_name()
             tts_vram = 4.0  # Chatterbox uses about 4GB VRAM
@@ -3799,24 +3849,7 @@ class Pipes:
                     if is_voice_server_mode()
                     else "LAZY_LOAD_VOICE=false"
                 )
-                logging.info(f"[TTS] {mode_str} - loading {tts_name} to keep resident")
-                start_time = time.time()
-                can_load, tts_device, reason = self.resource_manager.can_load_model(
-                    ModelType.TTS, required_vram=tts_vram
-                )
-                logging.info(f"[TTS] {mode_str} - {reason}")
-                self.ctts = self._create_tts_model(device=tts_device)
-                load_time = time.time() - start_time
-                actual_device = getattr(self.ctts, "device", tts_device)
-                logging.info(
-                    f"[TTS] {tts_name} loaded on {actual_device} in {load_time:.2f}s ({mode_str} - staying loaded)"
-                )
-                self.resource_manager.register_model(
-                    ModelType.TTS,
-                    tts_name,
-                    actual_device,
-                    vram_gb=tts_vram if "cuda" in actual_device else 0.0,
-                )
+                self._warm_load_tts_pool(mode_str=mode_str)
             elif precache_done:
                 # Precache already warmed the TTS cache, skip loading/unloading
                 logging.debug(
@@ -3842,7 +3875,11 @@ class Pipes:
 
         # Lazy-loaded models (loaded on first use, destroyed after)
         self.stt = None
+        self.stt_instances = []
+        self._transient_stt_instances = []
         self.embedder = None
+        self.embedders = []
+        self._transient_embedders = []
         self.img = None
         self.video = None
         self.current_stt = getenv("WHISPER_MODEL")
@@ -3859,37 +3896,40 @@ class Pipes:
                 if is_voice_server_mode()
                 else "LAZY_LOAD_VOICE=false"
             )
-            logging.info(f"[STT] {mode_str} - loading STT to keep resident")
-            from ezlocalai.STT import STT
-
-            start_time = time.time()
-            self.stt = STT(model=self.current_stt)
-            load_time = time.time() - start_time
-            actual_device = getattr(self.stt, "device", "cpu")
-            logging.info(
-                f"[STT] {self.current_stt} loaded on {actual_device} in {load_time:.2f}s ({mode_str} - staying loaded)"
-            )
-            self.resource_manager.register_model(
-                ModelType.STT,
-                self.current_stt,
-                actual_device,
-                vram_gb=2.0 if "cuda" in actual_device else 0.0,
-            )
+            self._warm_load_stt_pool(mode_str=mode_str)
         elif has_voice_server_url() and getenv("STT_ENABLED").lower() == "true":
             voice_url = getenv("VOICE_SERVER")
             logging.info(
                 f"[STT] Voice server configured ({voice_url}) - skipping local model loading"
             )
 
-        # Pre-load VIDEO and IMG models in image server mode to avoid cold-start delays.
+        if (
+            (getenv("EMBEDDING_ENABLED") or "true").strip().lower() == "true"
+            and not has_embedding_server_url()
+            and (getenv("EMBEDDING_KEEP_LOADED", "true") or "true").strip().lower()
+            == "true"
+        ):
+            self._warm_load_embedder_pool()
+
+        # Pre-load enabled VIDEO and IMG models to avoid cold-start delays.
         # VIDEO loads first because it benefits most from model CPU offload (moves
         # whole modules vs individual layers) and needs maximum free VRAM during
         # pipeline setup. IMG loads second since it's smaller (~4GB GGUF).
-        if is_image_server_mode():
+        if (is_video_enabled() or is_image_enabled()) and not has_image_server_url():
+            preload_reason = (
+                "image server mode"
+                if is_image_server_mode()
+                else "enabled local media model"
+            )
             VIDEO_MODEL = getenv("VIDEO_MODEL")
-            if VIDEO_MODEL and VIDEO_MODEL.lower() != "none" and video_import_success:
+            if (
+                is_video_enabled()
+                and VIDEO_MODEL
+                and VIDEO_MODEL.lower() != "none"
+                and video_import_success
+            ):
                 logging.info(
-                    f"[VIDEO] Image server mode - pre-loading {VIDEO_MODEL} to keep resident"
+                    f"[VIDEO] {preload_reason} - pre-loading {VIDEO_MODEL} to keep resident"
                 )
                 start_time = time.time()
                 try:
@@ -3900,7 +3940,7 @@ class Pipes:
                     )
                     load_time = time.time() - start_time
                     logging.info(
-                        f"[VIDEO] {VIDEO_MODEL} loaded in {load_time:.1f}s (image server mode - staying loaded)"
+                        f"[VIDEO] {VIDEO_MODEL} loaded in {load_time:.1f}s ({preload_reason} - staying loaded)"
                     )
                     self.resource_manager.register_model(
                         ModelType.VIDEO, VIDEO_MODEL, "cuda", vram_gb=12.0
@@ -3912,9 +3952,14 @@ class Pipes:
                     self.video = None
 
             IMG_MODEL = getenv("IMG_MODEL")
-            if IMG_MODEL and IMG_MODEL.lower() != "none" and img_import_success:
+            if (
+                is_image_enabled()
+                and IMG_MODEL
+                and IMG_MODEL.lower() != "none"
+                and img_import_success
+            ):
                 logging.info(
-                    f"[IMG] Image server mode - pre-loading {IMG_MODEL} to keep resident"
+                    f"[IMG] {preload_reason} - pre-loading {IMG_MODEL} to keep resident"
                 )
                 start_time = time.time()
                 try:
@@ -3925,7 +3970,7 @@ class Pipes:
                     )
                     load_time = time.time() - start_time
                     logging.info(
-                        f"[IMG] {IMG_MODEL} loaded in {load_time:.1f}s (image server mode - staying loaded)"
+                        f"[IMG] {IMG_MODEL} loaded in {load_time:.1f}s ({preload_reason} - staying loaded)"
                     )
                     self.resource_manager.register_model(
                         ModelType.IMG, IMG_MODEL, "cuda", vram_gb=4.0
@@ -5253,43 +5298,160 @@ class Pipes:
                         except:
                             continue
 
+    def _embedding_keep_loaded(self) -> bool:
+        return (
+            getenv("EMBEDDING_KEEP_LOADED", "true") or "true"
+        ).strip().lower() == "true"
+
+    def _load_embedder_instance(self, slot_index: int = 1):
+        """Load one full-context embedding model instance."""
+        from ezlocalai.Embedding import Embedding
+
+        resource_mgr = get_resource_manager()
+        _, device, reason = resource_mgr.can_load_model(ModelType.EMBEDDING)
+        # The GGUF embedder can partially offload layers to CPU, so let its
+        # own estimator choose GPU/partial/CPU instead of forcing CPU just
+        # because the coarse resource estimate is tight.
+        force_cpu = False
+        main_gpu = None
+        if device.startswith("cuda:"):
+            try:
+                main_gpu = int(device.split(":", 1)[1])
+            except (IndexError, ValueError):
+                main_gpu = None
+
+        logging.info(
+            "[Embedding] Loading %s instance %s/%s (%s)",
+            getenv("EMBEDDING_MODEL"),
+            slot_index,
+            self._embedding_pool_size,
+            reason,
+        )
+        start_time = time.time()
+        embedder = Embedding(force_cpu=force_cpu, main_gpu=main_gpu)
+        logging.info(
+            "[Embedding] %s instance %s loaded in %.2fs",
+            getenv("EMBEDDING_MODEL"),
+            slot_index,
+            time.time() - start_time,
+        )
+        return embedder
+
+    def _register_embedding_pool_resource(self, extra_embedder=None):
+        loaded = list(getattr(self, "embedders", []) or [])
+        loaded.extend(getattr(self, "_transient_embedders", []) or [])
+        if extra_embedder is not None:
+            loaded.append(extra_embedder)
+        if not loaded:
+            try:
+                get_resource_manager().unregister_model(ModelType.EMBEDDING)
+            except Exception:
+                pass
+            return
+
+        any_cuda = any("cuda" in getattr(embedder, "device", "") for embedder in loaded)
+        total_vram = sum(
+            float(getattr(embedder, "estimated_gpu_vram_gb", 0.0) or 0.0)
+            for embedder in loaded
+        )
+        first = loaded[0]
+        get_resource_manager().register_model(
+            ModelType.EMBEDDING,
+            getattr(first, "model_name", getenv("EMBEDDING_MODEL")),
+            "cuda" if any_cuda else getattr(first, "device", "cpu"),
+            total_vram,
+        )
+
+    def _warm_load_embedder_pool(self):
+        """Warm-load the configured number of full-context embedding instances."""
+        target = max(1, int(getattr(self, "_embedding_pool_size", 1) or 1))
+        if target <= len(self.embedders):
+            return
+
+        logging.info(
+            "[Embedding] Warm-loading %s full-context embedding instance(s)",
+            target,
+        )
+        for slot_index in range(len(self.embedders) + 1, target + 1):
+            try:
+                embedder = self._load_embedder_instance(slot_index=slot_index)
+                self.embedders.append(embedder)
+                self.embedder = self.embedders[0]
+                self._register_embedding_pool_resource()
+                self._embedder_available.put_nowait(embedder)
+            except Exception as e:
+                logging.warning(
+                    "[Embedding] Failed to warm-load instance %s/%s: %s",
+                    slot_index,
+                    target,
+                    e,
+                )
+                break
+
     def _get_embedder(self):
-        """Lazy load embedding model on demand."""
+        """Return a local embedder, loading one full-context instance if needed."""
         if self.embedder is None:
-            from ezlocalai.Embedding import Embedding
-
-            resource_mgr = get_resource_manager()
-            can_load, device, reason = resource_mgr.can_load_model(ModelType.EMBEDDING)
-            # The GGUF embedder can partially offload layers to CPU, so let its
-            # own estimator choose GPU/partial/CPU instead of forcing CPU just
-            # because the coarse resource estimate is tight.
-            force_cpu = False
-            main_gpu = None
-            if device.startswith("cuda:"):
-                try:
-                    main_gpu = int(device.split(":", 1)[1])
-                except (IndexError, ValueError):
-                    main_gpu = None
-
-            logging.debug(
-                f"[Embedding] Loading {getenv('EMBEDDING_MODEL')} on demand ({reason})"
-            )
-            start_time = time.time()
-            self.embedder = Embedding(force_cpu=force_cpu, main_gpu=main_gpu)
-            resource_mgr.register_model(
-                ModelType.EMBEDDING,
-                getattr(self.embedder, "model_name", getenv("EMBEDDING_MODEL")),
-                getattr(self.embedder, "device", device),
-                getattr(
-                    self.embedder,
-                    "estimated_gpu_vram_gb",
-                    MODEL_VRAM_ESTIMATES.get(ModelType.EMBEDDING, 2.0),
-                ),
-            )
-            logging.debug(
-                f"[Embedding] {getenv('EMBEDDING_MODEL')} loaded in {time.time() - start_time:.2f}s"
-            )
+            self.embedder = self._load_embedder_instance(slot_index=1)
+            self.embedders.append(self.embedder)
+            self._register_embedding_pool_resource()
         return self.embedder
+
+    async def acquire_embedder(self):
+        """Lease one full-context embedding instance for a request."""
+        await self._embedder_semaphore.acquire()
+        try:
+            if not self._embedding_keep_loaded():
+                embedder = await asyncio.to_thread(
+                    self._load_embedder_instance,
+                    len(self.embedders) + len(self._transient_embedders) + 1,
+                )
+                self._transient_embedders.append(embedder)
+                self._register_embedding_pool_resource()
+                return embedder
+
+            try:
+                return self._embedder_available.get_nowait()
+            except asyncio.QueueEmpty:
+                pass
+
+            async with self._embedder_lock:
+                try:
+                    return self._embedder_available.get_nowait()
+                except asyncio.QueueEmpty:
+                    pass
+
+                if len(self.embedders) < self._embedding_pool_size:
+                    embedder = await asyncio.to_thread(
+                        self._load_embedder_instance, len(self.embedders) + 1
+                    )
+                    self.embedders.append(embedder)
+                    self.embedder = self.embedders[0]
+                    self._register_embedding_pool_resource()
+                    return embedder
+
+            return await self._embedder_available.get()
+        except Exception:
+            self._embedder_semaphore.release()
+            raise
+
+    async def release_embedder(self, embedder):
+        """Return or unload a leased embedding instance."""
+        try:
+            if self._embedding_keep_loaded() and embedder in self.embedders:
+                self._embedder_available.put_nowait(embedder)
+            else:
+                try:
+                    if embedder in self.embedders:
+                        self.embedders.remove(embedder)
+                        self.embedder = self.embedders[0] if self.embedders else None
+                    if embedder in self._transient_embedders:
+                        self._transient_embedders.remove(embedder)
+                except ValueError:
+                    pass
+                self._register_embedding_pool_resource()
+                await asyncio.to_thread(self._destroy_embedder_sync, embedder)
+        finally:
+            self._embedder_semaphore.release()
 
     def _destroy_embedder_sync(self, embedder_ref):
         """Synchronous embedder destruction."""
@@ -5305,62 +5467,156 @@ class Pipes:
             logging.error(f"[Embedding] Error during cleanup: {e}")
 
     def _destroy_embedder(self, async_cleanup: bool = True):
-        """Destroy embedding model to free resources."""
-        if self.embedder is not None:
-            embedder_ref = self.embedder
+        """Destroy all loaded embedding model instances to free resources."""
+        refs = list(getattr(self, "embedders", []) or [])
+        refs.extend(getattr(self, "_transient_embedders", []) or [])
+        if self.embedder is not None and self.embedder not in refs:
+            refs.append(self.embedder)
+        if refs:
+            self.embedders = []
+            self._transient_embedders = []
             self.embedder = None
+            while True:
+                try:
+                    self._embedder_available.get_nowait()
+                except asyncio.QueueEmpty:
+                    break
             try:
                 get_resource_manager().unregister_model(ModelType.EMBEDDING)
             except Exception:
                 pass
 
-            if async_cleanup:
-                logging.debug("[Embedding] Scheduling async unload...")
-                _schedule_cleanup(self._destroy_embedder_sync, embedder_ref)
-            else:
-                self._destroy_embedder_sync(embedder_ref)
+            for embedder_ref in refs:
+                if async_cleanup:
+                    logging.debug("[Embedding] Scheduling async unload...")
+                    _schedule_cleanup(self._destroy_embedder_sync, embedder_ref)
+                else:
+                    self._destroy_embedder_sync(embedder_ref)
+
+    def _lease_key(self):
+        try:
+            task = asyncio.current_task()
+        except RuntimeError:
+            task = None
+        return task if task is not None else ("thread", threading.get_ident())
+
+    def _load_stt_instance(self, slot_index: int = 1, force_cpu: bool = False):
+        """Load one STT model instance."""
+        from ezlocalai.STT import STT
+
+        _, device, reason = self.resource_manager.can_load_model(ModelType.STT)
+        if force_cpu or device == "cpu":
+            logging.info(
+                "[STT] Loading %s instance %s/%s on CPU (%s)",
+                self.current_stt,
+                slot_index,
+                self._stt_pool_size,
+                reason,
+            )
+        else:
+            logging.info(
+                "[STT] Loading %s instance %s/%s (%s)",
+                self.current_stt,
+                slot_index,
+                self._stt_pool_size,
+                reason,
+            )
+
+        start_time = time.time()
+        stt = STT(model=self.current_stt)
+        actual_device = getattr(stt, "device", "cpu")
+        logging.info(
+            "[STT] %s instance %s loaded on %s in %.2fs",
+            self.current_stt,
+            slot_index,
+            actual_device,
+            time.time() - start_time,
+        )
+        return stt
+
+    def _register_stt_pool_resource(self):
+        loaded = list(getattr(self, "stt_instances", []) or [])
+        loaded.extend(getattr(self, "_transient_stt_instances", []) or [])
+        if not loaded:
+            self.resource_manager.unregister_model(ModelType.STT)
+            return
+
+        any_cuda = any("cuda" in getattr(stt, "device", "") for stt in loaded)
+        total_vram = sum(
+            2.0 if "cuda" in getattr(stt, "device", "") else 0.0 for stt in loaded
+        )
+        self.resource_manager.register_model(
+            ModelType.STT,
+            self.current_stt,
+            "cuda" if any_cuda else getattr(loaded[0], "device", "cpu"),
+            total_vram,
+        )
+
+    def _warm_load_stt_pool(self, mode_str: str):
+        """Warm-load resident STT instances."""
+        target = max(1, int(getattr(self, "_stt_pool_size", 1) or 1))
+        logging.info(
+            "[STT] %s - warm-loading %s %s instance(s)",
+            mode_str,
+            target,
+            self.current_stt,
+        )
+        for slot_index in range(len(self.stt_instances) + 1, target + 1):
+            try:
+                stt = self._load_stt_instance(slot_index=slot_index)
+                self.stt_instances.append(stt)
+                self.stt = self.stt_instances[0]
+                self._stt_available.append(stt)
+                self._register_stt_pool_resource()
+            except Exception as e:
+                logging.warning(
+                    "[STT] Failed to warm-load instance %s/%s: %s",
+                    slot_index,
+                    target,
+                    e,
+                )
+                break
 
     def _get_stt(self, force_cpu: bool = False):
-        """Lazy load STT model on demand with smart resource management.
+        """Lease an STT model instance for the current request."""
+        key = self._lease_key()
+        with self._stt_pool_lock:
+            leased = self._stt_active_leases.get(key)
+            if leased is not None:
+                self.resource_manager.mark_model_in_use(ModelType.STT, True)
+                return leased
 
-        Args:
-            force_cpu: If True, force CPU mode even if GPU is available
-        """
-        resource_mgr = get_resource_manager()
-
-        if self.stt is None:
-            from ezlocalai.STT import STT
-
-            # Check resource availability
-            can_load, device, reason = resource_mgr.can_load_model(ModelType.STT)
-
-            if force_cpu or device == "cpu":
-                # STT class handles device selection internally, but we can hint via VRAM check
-                logging.debug(
-                    f"[STT] Loading {self.current_stt} on CPU (reason: {reason})"
-                )
+            if self._stt_available:
+                stt = self._stt_available.popleft()
+            elif should_preload_voice():
+                if len(self.stt_instances) < self._stt_pool_size:
+                    stt = self._load_stt_instance(
+                        slot_index=len(self.stt_instances) + 1,
+                        force_cpu=force_cpu,
+                    )
+                    self.stt_instances.append(stt)
+                    self.stt = self.stt_instances[0]
+                    self._register_stt_pool_resource()
+                elif self.stt_instances:
+                    stt = self.stt_instances[0]
+                else:
+                    stt = self._load_stt_instance(force_cpu=force_cpu)
+                    self.stt_instances.append(stt)
+                    self.stt = stt
+                    self._register_stt_pool_resource()
             else:
-                logging.debug(f"[STT] Loading {self.current_stt} ({reason})")
+                stt = self._load_stt_instance(
+                    slot_index=len(self._transient_stt_instances) + 1,
+                    force_cpu=force_cpu,
+                )
+                self._transient_stt_instances.append(stt)
+                self.stt = self.stt or stt
+                self._register_stt_pool_resource()
 
-            start_time = time.time()
-            self.stt = STT(model=self.current_stt)
-            load_time = time.time() - start_time
+            self._stt_active_leases[key] = stt
 
-            # Register with resource manager
-            actual_device = getattr(self.stt, "device", "cpu")
-            resource_mgr.register_model(
-                ModelType.STT,
-                self.current_stt,
-                actual_device,
-                vram_gb=2.0 if "cuda" in actual_device else 0.0,
-            )
-
-            logging.debug(
-                f"[STT] {self.current_stt} loaded on {actual_device} in {load_time:.2f}s"
-            )
-
-        resource_mgr.mark_model_in_use(ModelType.STT, True)
-        return self.stt
+        self.resource_manager.mark_model_in_use(ModelType.STT, True)
+        return stt
 
     def _destroy_stt_sync(self, stt_ref):
         """Synchronous STT destruction."""
@@ -5382,20 +5638,41 @@ class Pipes:
             async_cleanup: If True, run cleanup in background thread
             force: If True, destroy even if other requests might need it soon
         """
-        resource_mgr = get_resource_manager()
-        resource_mgr.mark_model_in_use(ModelType.STT, False)
+        self.resource_manager.mark_model_in_use(ModelType.STT, False)
 
-        # When preloading is enabled (voice server mode OR LAZY_LOAD_VOICE=false), never unload unless forced
-        if should_preload_voice() and not force:
-            logging.debug("[STT] Preload mode - keeping STT loaded")
-            return
+        key = self._lease_key()
+        refs = []
+        with self._stt_pool_lock:
+            stt_ref = self._stt_active_leases.pop(key, None)
+            if stt_ref is not None and should_preload_voice() and not force:
+                self._stt_available.append(stt_ref)
+                logging.debug("[STT] Preload mode - returning STT instance to pool")
+                return
 
-        # Always unload STT after use - loads quickly (~3s) and frees ~3GB VRAM
-        if self.stt is not None:
-            stt_ref = self.stt
-            self.stt = None
-            resource_mgr.unregister_model(ModelType.STT)
+            if force and stt_ref is None:
+                refs = list(self.stt_instances) + list(self._transient_stt_instances)
+                self.stt_instances = []
+                self._transient_stt_instances = []
+                self._stt_available.clear()
+                self.stt = None
+                self._register_stt_pool_resource()
+            elif stt_ref is not None:
+                if stt_ref in self.stt_instances:
+                    self.stt_instances.remove(stt_ref)
+                if stt_ref in self._transient_stt_instances:
+                    self._transient_stt_instances.remove(stt_ref)
+                self.stt = self.stt_instances[0] if self.stt_instances else None
+                self._register_stt_pool_resource()
+                refs = [stt_ref]
+            elif self.stt is not None:
+                stt_ref = self.stt
+                if stt_ref in self.stt_instances:
+                    self.stt_instances.remove(stt_ref)
+                self.stt = self.stt_instances[0] if self.stt_instances else None
+                self._register_stt_pool_resource()
+                refs = [stt_ref]
 
+        for stt_ref in refs:
             if async_cleanup:
                 logging.debug("[STT] Scheduling async unload...")
                 _schedule_cleanup(self._destroy_stt_sync, stt_ref)
@@ -5414,6 +5691,10 @@ class Pipes:
         # Skip loading if image server URL is configured (passthrough mode)
         if has_image_server_url():
             logging.debug("[IMG] Image server configured - skipping local model load")
+            return None
+
+        if not is_image_enabled():
+            logging.debug("[IMG] IMAGE_ENABLED=false - skipping local model load")
             return None
 
         if self.img is None and img_import_success:
@@ -5500,9 +5781,9 @@ class Pipes:
         resource_mgr = get_resource_manager()
         resource_mgr.mark_model_in_use(ModelType.IMG, False)
 
-        # In image server mode, keep IMG loaded unless forced
-        if is_image_server_mode() and not force:
-            logging.debug("[IMG] Image server mode - keeping IMG loaded")
+        # Keep enabled local image models resident unless explicitly forced out.
+        if is_image_enabled() and not force:
+            logging.debug("[IMG] IMAGE_ENABLED=true - keeping IMG loaded")
             return
 
         # Always unload IMG after use - uses ~16GB VRAM and loads in ~2-3s
@@ -5529,6 +5810,10 @@ class Pipes:
         # Skip loading if image server URL is configured (passthrough mode)
         if has_image_server_url():
             logging.debug("[VIDEO] Image server configured - skipping local model load")
+            return None
+
+        if not is_video_enabled():
+            logging.debug("[VIDEO] VIDEO_ENABLED=false - skipping local model load")
             return None
 
         if self.video is None and video_import_success:
@@ -5617,9 +5902,9 @@ class Pipes:
         resource_mgr = get_resource_manager()
         resource_mgr.mark_model_in_use(ModelType.VIDEO, False)
 
-        # In image server mode, keep VIDEO loaded unless forced
-        if is_image_server_mode() and not force:
-            logging.debug("[VIDEO] Image server mode - keeping VIDEO loaded")
+        # Keep enabled local video models resident unless explicitly forced out.
+        if is_video_enabled() and not force:
+            logging.debug("[VIDEO] VIDEO_ENABLED=true - keeping VIDEO loaded")
             return
 
         # Always unload VIDEO after use - uses ~24GB VRAM
@@ -6070,41 +6355,116 @@ class Pipes:
         """Get the human-readable name for the TTS provider."""
         return "Chatterbox TTS"
 
-    def _get_tts(self, force_cpu: bool = False):
-        """Lazy load TTS model on demand with smart resource management.
-
-        Args:
-            force_cpu: If True, force CPU mode (not directly supported but affects loading)
-        """
-        resource_mgr = get_resource_manager()
+    def _load_tts_instance(self, slot_index: int = 1, force_cpu: bool = False):
+        """Load one TTS model instance."""
         tts_name = self._get_tts_name()
+        _, device, reason = self.resource_manager.can_load_model(
+            ModelType.TTS, required_vram=4.0
+        )
+        if force_cpu:
+            device = "cpu"
+        logging.info(
+            "[TTS] Loading %s instance %s/%s (%s)",
+            tts_name,
+            slot_index,
+            self._tts_pool_size,
+            reason,
+        )
+        start_time = time.time()
+        tts = self._create_tts_model(device=device)
+        actual_device = getattr(tts, "device", device or "cpu")
+        logging.info(
+            "[TTS] %s instance %s loaded on %s in %.2fs",
+            tts_name,
+            slot_index,
+            actual_device,
+            time.time() - start_time,
+        )
+        return tts
 
-        if self.ctts is None:
-            # Check resource availability
-            can_load, device, reason = resource_mgr.can_load_model(
-                ModelType.TTS, required_vram=4.0
-            )
+    def _register_tts_pool_resource(self):
+        loaded = list(getattr(self, "tts_instances", []) or [])
+        loaded.extend(getattr(self, "_transient_tts_instances", []) or [])
+        if not loaded:
+            self.resource_manager.unregister_model(ModelType.TTS)
+            return
 
-            logging.debug(f"[TTS] Loading {tts_name} ({reason})")
-            start_time = time.time()
-            self.ctts = self._create_tts_model(device=device)
-            load_time = time.time() - start_time
+        any_cuda = any("cuda" in getattr(tts, "device", "") for tts in loaded)
+        total_vram = sum(
+            4.0 if "cuda" in getattr(tts, "device", "") else 0.0 for tts in loaded
+        )
+        self.resource_manager.register_model(
+            ModelType.TTS,
+            self._get_tts_name(),
+            "cuda" if any_cuda else getattr(loaded[0], "device", "cpu"),
+            total_vram,
+        )
 
-            # TTS may fall back to CPU if CUDA headroom is too low.
-            actual_device = getattr(self.ctts, "device", device or "cpu")
-            resource_mgr.register_model(
-                ModelType.TTS,
-                tts_name,
-                actual_device,
-                vram_gb=4.0 if "cuda" in actual_device else 0.0,
-            )
+    def _warm_load_tts_pool(self, mode_str: str):
+        """Warm-load resident TTS instances."""
+        target = max(1, int(getattr(self, "_tts_pool_size", 1) or 1))
+        logging.info(
+            "[TTS] %s - warm-loading %s %s instance(s)",
+            mode_str,
+            target,
+            self._get_tts_name(),
+        )
+        for slot_index in range(len(self.tts_instances) + 1, target + 1):
+            try:
+                tts = self._load_tts_instance(slot_index=slot_index)
+                self.tts_instances.append(tts)
+                self.ctts = self.tts_instances[0]
+                self._tts_available.append(tts)
+                self._register_tts_pool_resource()
+            except Exception as e:
+                logging.warning(
+                    "[TTS] Failed to warm-load instance %s/%s: %s",
+                    slot_index,
+                    target,
+                    e,
+                )
+                break
 
-            logging.debug(
-                f"[TTS] {tts_name} loaded on {actual_device} in {load_time:.2f}s"
-            )
+    def _get_tts(self, force_cpu: bool = False):
+        """Lease a TTS model instance for the current request."""
+        key = self._lease_key()
+        with self._tts_pool_lock:
+            leased = self._tts_active_leases.get(key)
+            if leased is not None:
+                self.resource_manager.mark_model_in_use(ModelType.TTS, True)
+                return leased
 
-        resource_mgr.mark_model_in_use(ModelType.TTS, True)
-        return self.ctts
+            if self._tts_available:
+                tts = self._tts_available.popleft()
+            elif should_preload_voice():
+                if len(self.tts_instances) < self._tts_pool_size:
+                    tts = self._load_tts_instance(
+                        slot_index=len(self.tts_instances) + 1,
+                        force_cpu=force_cpu,
+                    )
+                    self.tts_instances.append(tts)
+                    self.ctts = self.tts_instances[0]
+                    self._register_tts_pool_resource()
+                elif self.tts_instances:
+                    tts = self.tts_instances[0]
+                else:
+                    tts = self._load_tts_instance(force_cpu=force_cpu)
+                    self.tts_instances.append(tts)
+                    self.ctts = tts
+                    self._register_tts_pool_resource()
+            else:
+                tts = self._load_tts_instance(
+                    slot_index=len(self._transient_tts_instances) + 1,
+                    force_cpu=force_cpu,
+                )
+                self._transient_tts_instances.append(tts)
+                self.ctts = self.ctts or tts
+                self._register_tts_pool_resource()
+
+            self._tts_active_leases[key] = tts
+
+        self.resource_manager.mark_model_in_use(ModelType.TTS, True)
+        return tts
 
     def _destroy_tts_sync(self, tts_ref):
         """Synchronous TTS destruction."""
@@ -6126,20 +6486,41 @@ class Pipes:
             async_cleanup: If True, run cleanup in background thread
             force: If True, destroy even if other requests might need it soon
         """
-        resource_mgr = get_resource_manager()
-        resource_mgr.mark_model_in_use(ModelType.TTS, False)
+        self.resource_manager.mark_model_in_use(ModelType.TTS, False)
 
-        # When preloading is enabled (voice server mode OR LAZY_LOAD_VOICE=false), never unload unless forced
-        if should_preload_voice() and not force:
-            logging.debug("[TTS] Preload mode - keeping TTS loaded")
-            return
+        key = self._lease_key()
+        refs = []
+        with self._tts_pool_lock:
+            tts_ref = self._tts_active_leases.pop(key, None)
+            if tts_ref is not None and should_preload_voice() and not force:
+                self._tts_available.append(tts_ref)
+                logging.debug("[TTS] Preload mode - returning TTS instance to pool")
+                return
 
-        # Always unload TTS after use - loads quickly (~1-2s) and frees ~4GB VRAM
-        if self.ctts is not None:
-            tts_ref = self.ctts
-            self.ctts = None
-            resource_mgr.unregister_model(ModelType.TTS)
+            if force and tts_ref is None:
+                refs = list(self.tts_instances) + list(self._transient_tts_instances)
+                self.tts_instances = []
+                self._transient_tts_instances = []
+                self._tts_available.clear()
+                self.ctts = None
+                self._register_tts_pool_resource()
+            elif tts_ref is not None:
+                if tts_ref in self.tts_instances:
+                    self.tts_instances.remove(tts_ref)
+                if tts_ref in self._transient_tts_instances:
+                    self._transient_tts_instances.remove(tts_ref)
+                self.ctts = self.tts_instances[0] if self.tts_instances else None
+                self._register_tts_pool_resource()
+                refs = [tts_ref]
+            elif self.ctts is not None:
+                tts_ref = self.ctts
+                if tts_ref in self.tts_instances:
+                    self.tts_instances.remove(tts_ref)
+                self.ctts = self.tts_instances[0] if self.tts_instances else None
+                self._register_tts_pool_resource()
+                refs = [tts_ref]
 
+        for tts_ref in refs:
             if async_cleanup:
                 logging.debug("[TTS] Scheduling async unload...")
                 _schedule_cleanup(self._destroy_tts_sync, tts_ref)
@@ -6507,7 +6888,7 @@ class Pipes:
                 finally:
                     self.resource_manager.mark_model_in_use(ModelType.VIDEO, False)
                     # Reload IMG if it was loaded before
-                    if img_was_loaded and self.img is None:
+                    if img_was_loaded and self.img is None and is_image_enabled():
                         try:
                             IMG_MODEL = getenv("IMG_MODEL")
                             if IMG_MODEL and IMG_MODEL.lower() != "none":
@@ -6704,25 +7085,37 @@ class Pipes:
         embedding_enabled = (
             getenv("EMBEDDING_ENABLED") or "true"
         ).strip().lower() == "true"
+        image_enabled = is_image_enabled()
+        video_enabled = is_video_enabled()
         img_model = (getenv("IMG_MODEL") or "").strip().lower()
         video_model = (getenv("VIDEO_MODEL") or "").strip().lower()
 
         if tts_enabled and not has_voice_server_url():
             cap_slots["tts"] = _slot(
-                capacity=1,
+                capacity=get_tts_parallel_slots(),
                 in_flight=self.resource_manager.get_model_active_count(ModelType.TTS),
             )
         if stt_enabled and not has_voice_server_url():
             cap_slots["stt"] = _slot(
-                capacity=1,
+                capacity=get_stt_parallel_slots(),
                 in_flight=self.resource_manager.get_model_active_count(ModelType.STT),
             )
-        if img_model and img_model != "none" and not has_image_server_url():
+        if (
+            image_enabled
+            and img_model
+            and img_model != "none"
+            and not has_image_server_url()
+        ):
             cap_slots["image"] = _slot(
                 capacity=1,
                 in_flight=self.resource_manager.get_model_active_count(ModelType.IMG),
             )
-        if video_model and video_model != "none" and not has_image_server_url():
+        if (
+            video_enabled
+            and video_model
+            and video_model != "none"
+            and not has_image_server_url()
+        ):
             cap_slots["video"] = _slot(
                 capacity=1,
                 in_flight=self.resource_manager.get_model_active_count(ModelType.VIDEO),

@@ -1478,17 +1478,17 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
         if total_vram > 0:
             used_pct = max(0.0, min(100.0, (1 - free_vram / total_vram) * 100))
             mem_cell = (
-                f"{free_vram:.1f}/{total_vram:.0f} GB VRAM"
+                f"{free_vram:.1f}/{total_vram:.0f} GB Free"
                 f"{_usage_bar(used_pct, '80px')}"
             )
         elif total_ram > 0:
             used_pct = max(0.0, min(100.0, (1 - free_ram / total_ram) * 100))
             mem_cell = (
-                f"{free_ram:.1f}/{total_ram:.0f} GB RAM"
+                f"{free_ram:.1f}/{total_ram:.0f} GB Free"
                 f"{_usage_bar(used_pct, '80px')}"
             )
         else:
-            mem_cell = f"{free_ram:.1f} GB RAM free" if free_ram else "—"
+            mem_cell = f"{free_ram:.1f} GB free" if free_ram else "—"
         mq = w.get("model_quant") or {}
         mc = w.get("model_context") or {}
         raw_caps_for_models = w.get("capabilities") or []
@@ -1605,25 +1605,31 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
         if w.get("tunnel"):
             tunnel_sub = (
                 '<div class="muted small">🔌 '
-                f"{'connected' if tunnel_connected else 'disconnected'}</div>"
+                f"{'remote' if tunnel_connected else 'disconnected'}</div>"
             )
         else:
             tunnel_sub = ""
+        version_sub = (
+            f'<div class="mono small muted">{_version_link(w.get("version") or "")}</div>'
+            if w.get("version")
+            else ""
+        )
+        tier_sub = (
+            f'<div class="muted small">{_tier_badge(w.get("best_tier", 0))}</div>'
+        )
         return f"""
         <tr class="{'stale' if stale else ''}">
-          <td><b>{w['label']}</b></td>
+          <td><b>{w['label']}</b>{tier_sub}{version_sub}</td>
           <td>{status}{tunnel_sub}</td>
-          <td>{gpus}<div class="muted small">{_tier_badge(w.get('best_tier', 0))}</div></td>
-          <td class="num small">{mem_cell}</td>
+          <td>{gpus}<div class="num small">{mem_cell}</div></td>
           <td class="small">{models}</td>
           <td class="num small">{last_hb:.0f}s</td>
-          <td class="mono small">{_version_link(w.get('version') or '')}</td>
           <td class="small">{err_cell}</td>
         </tr>
         """
 
     worker_rows = "".join(_worker_row(w) for w in data["workers"]) or (
-        '<tr><td colspan="8" class="muted">No workers registered.</td></tr>'
+        '<tr><td colspan="6" class="muted">No workers registered.</td></tr>'
     )
 
     # Usage section — per-worker historical stats
@@ -2069,8 +2075,7 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
   <table>
     <thead><tr>
       <th>Label</th><th>Status</th><th>GPUs</th>
-      <th>Free VRAM</th>
-      <th>Models</th><th class="num">Last hb</th><th>Version</th><th>Errors</th>
+      <th>Models</th><th class="num">Last hb</th><th>Errors</th>
     </tr></thead>
     <tbody>{worker_rows}</tbody>
   </table>

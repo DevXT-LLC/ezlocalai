@@ -354,6 +354,8 @@ def detect_local_capabilities() -> List[str]:
     video_model = (getenv("VIDEO_MODEL") or "").strip().lower()
     tts_enabled = (getenv("TTS_ENABLED") or "true").strip().lower() == "true"
     stt_enabled = (getenv("STT_ENABLED") or "true").strip().lower() == "true"
+    image_enabled = (getenv("IMAGE_ENABLED") or "false").strip().lower() == "true"
+    video_enabled = (getenv("VIDEO_ENABLED") or "false").strip().lower() == "true"
     embedding_enabled = (
         getenv("EMBEDDING_ENABLED") or "true"
     ).strip().lower() == "true"
@@ -424,11 +426,18 @@ def detect_local_capabilities() -> List[str]:
 
     # Image: claim it only if we actually generate locally — img_model set or
     # this is a dedicated image server, and we're not delegating elsewhere.
-    if not image_delegated and (
-        (img_model and img_model not in ("none", "")) or is_dedicated_image
+    if (
+        image_enabled
+        and not image_delegated
+        and ((img_model and img_model not in ("none", "")) or is_dedicated_image)
     ):
         caps.append("image")
-    if video_model and video_model not in ("none", ""):
+    if (
+        video_enabled
+        and not image_delegated
+        and video_model
+        and video_model not in ("none", "")
+    ):
         caps.append("video")
 
     if embedding_enabled and not embedding_delegated:

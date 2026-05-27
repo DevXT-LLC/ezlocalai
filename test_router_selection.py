@@ -279,10 +279,14 @@ class CapabilityDetectionTests(unittest.TestCase):
             "VOICE_SERVER": "",
             "IMAGE_SERVER": "",
             "TEXT_SERVER": "",
+            "IMAGE_ENABLED": "false",
             "IMG_MODEL": "",
+            "VIDEO_ENABLED": "false",
             "VIDEO_MODEL": "",
             "TTS_ENABLED": "true",
+            "TTS_N_PARALLEL": "1",
             "STT_ENABLED": "true",
+            "STT_N_PARALLEL": "1",
             "EMBEDDING_ENABLED": "true",
         }
         env.update(overrides)
@@ -313,6 +317,30 @@ class CapabilityDetectionTests(unittest.TestCase):
             caps = detect_local_capabilities()
 
         self.assertNotIn("embedding", caps)
+
+    def test_disabled_image_model_is_not_advertised(self):
+        with self._env(IMAGE_ENABLED="false", IMG_MODEL="unsloth/FLUX.2-klein-4B-GGUF"):
+            caps = detect_local_capabilities()
+
+        self.assertNotIn("image", caps)
+
+    def test_enabled_image_model_is_advertised(self):
+        with self._env(IMAGE_ENABLED="true", IMG_MODEL="unsloth/FLUX.2-klein-4B-GGUF"):
+            caps = detect_local_capabilities()
+
+        self.assertIn("image", caps)
+
+    def test_disabled_video_model_is_not_advertised(self):
+        with self._env(VIDEO_ENABLED="false", VIDEO_MODEL="unsloth/LTX-2.3-GGUF"):
+            caps = detect_local_capabilities()
+
+        self.assertNotIn("video", caps)
+
+    def test_enabled_video_model_is_advertised(self):
+        with self._env(VIDEO_ENABLED="true", VIDEO_MODEL="unsloth/LTX-2.3-GGUF"):
+            caps = detect_local_capabilities()
+
+        self.assertIn("video", caps)
 
     def test_text_delegation_does_not_disable_embeddings(self):
         with self._env(TEXT_SERVER="http://text.local:8091"):

@@ -184,7 +184,11 @@ class Embedding:
         self.model_alias = getenv("EMBEDDING_MODEL_ALIAS") or self.model_name
         self.quant_type = getenv("EMBEDDING_QUANT_TYPE", "Q8_0")
         self.context_length = _get_int_env("EMBEDDING_CONTEXT_LENGTH", 32768)
-        self.n_parallel = max(1, _get_int_env("EMBEDDING_N_PARALLEL", 1))
+        self.pool_size = max(1, _get_int_env("EMBEDDING_N_PARALLEL", 1))
+        # Keep each xllamacpp embedding server at a single full-context slot.
+        # EMBEDDING_N_PARALLEL is handled by Pipes as separate model instances
+        # so one request never loses context to internal slot splitting.
+        self.n_parallel = 1
         self.batch_size = min(
             _get_int_env("EMBEDDING_BATCH_SIZE", 512), self.context_length
         )
@@ -279,13 +283,13 @@ class Embedding:
             )
             try:
                 logging.info(
-                    "[Embedding] Loading %s (%s, ctx=%s/slot, slots=%s, "
-                    "total_ctx=%s, batch=%s, ubatch=%s, gpu_layers=%s, device=%s)",
+                    "[Embedding] Loading %s (%s, ctx=%s, pool_size=%s, "
+                    "server_parallel=%s, batch=%s, ubatch=%s, gpu_layers=%s, device=%s)",
                     self.model_name,
                     self.quant_type,
                     self.context_length,
+                    self.pool_size,
                     self.n_parallel,
-                    params.n_ctx,
                     self.batch_size,
                     self.ubatch_size,
                     self.gpu_layers,
@@ -393,7 +397,7 @@ class Embedding:
         params = xlc.CommonParams()
         params.model.path = model_path
         params.embedding = True
-        params.n_ctx = self.context_length * self.n_parallel
+        params.n_ctx = self.context_length
         params.n_batch = self.batch_size
         params.n_ubatch = self.ubatch_size
         params.n_parallel = self.n_parallel
