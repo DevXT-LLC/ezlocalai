@@ -854,7 +854,7 @@ def _aggregate_dashboard() -> Dict[str, Any]:
             # Whisper STT reports like "Whisper large-v3"; the "Whisper "
             # prefix is redundant with the STT capability pill.
             if cap == "stt" and model_name.lower().startswith("whisper "):
-                model_name = model_name[len("Whisper "):]
+                model_name = model_name[len("Whisper ") :]
             # Key by cap+model_name so multiple workers running the same
             # model (e.g. two nodes both serving Chatterbox TTS) share one row.
             key = f"{cap}::{model_name}"
@@ -1207,6 +1207,23 @@ def _tier_badge(tier: int) -> str:
     return f'<span class="{cls}">{star}tier {tier}</span>'
 
 
+def _slot_prefix(available: int, capacity: int) -> str:
+    """Render an ``{in_use}/{total}`` prefix that precedes a model name.
+
+    Bold + accent-coloured when something is actually in use, muted when
+    fully idle so the eye is drawn to active models.  Returns an empty
+    string (no trailing space) when capacity is unknown.
+    """
+    if capacity <= 0:
+        return ""
+    available = max(0, min(available, capacity))
+    in_use = capacity - available
+    text = f"{in_use}/{capacity}"
+    if in_use > 0:
+        return f'<b class="slot-busy" title="{in_use} in use of {capacity}">{text}</b> '
+    return f'<span class="slot-idle muted" title="{capacity} free">{text}</span> '
+
+
 def _usage_bar(used_pct: float, width: str = "100%") -> str:
     """Mini horizontal usage bar. used_pct 0-100."""
     if used_pct >= 85:
@@ -1268,10 +1285,15 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
         type_badge = _cap_pill(mtype)
         ctx = f"{m['max_context']:,}" if m["max_context"] else "—"
         quants = ", ".join(m.get("quants") or []) or "—"
-        slots_cell = (
-            f'{m["available_slots"]}/{m["total_capacity"]} '
-            f'<span class="muted small">({m["worker_count"]} '
-            f'worker{"s" if m["worker_count"] != 1 else ""})</span>'
+        worker_count = m.get("worker_count", 0)
+        worker_sub = (
+            f' <span class="muted small">({worker_count} '
+            f'worker{"s" if worker_count != 1 else ""})</span>'
+        )
+        model_cell = (
+            f'{_slot_prefix(m["available_slots"], m["total_capacity"])}'
+            f'<span class="mono">{html.escape(str(m["model"]))}</span>'
+            f'{worker_sub}'
         )
 
         def _per_worker(w: Dict[str, Any]) -> str:
@@ -1284,8 +1306,7 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
         return f"""
         <tr>
           <td>{type_badge}</td>
-          <td class="mono">{m['model']}</td>
-          <td class="num">{slots_cell}</td>
+          <td>{model_cell}</td>
           <td class="num">{'—' if mtype not in ('text', 'text+vision', 'vision', 'embedding') else ctx}</td>
           <td class="mono small">{'—' if mtype not in ('text', 'text+vision', 'vision', 'embedding') else quants}</td>
           <td class="small">{per_worker or '—'}</td>
@@ -1293,7 +1314,7 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
         """
 
     model_rows = "".join(_model_row(m) for m in data["models"]) or (
-        '<tr><td colspan="6" class="muted">No models loaded across the pool.</td></tr>'
+        '<tr><td colspan="5" class="muted">No models loaded across the pool.</td></tr>'
     )
 
     # Worker rows
@@ -1353,17 +1374,10 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
         model_slots_map = w.get("model_slots") or {}
         cap_slots_map = w.get("cap_slots") or {}
 
-        def _slots_pill(available: int, capacity: int) -> str:
-            if capacity <= 0:
-                return ""
-            return (
-                f' <span class="muted small">{available}/{capacity} slots</span>'
-            )
-
         def _strip_whisper(name: str) -> str:
             # "Whisper large-v3" → "large-v3"
             if name.lower().startswith("whisper "):
-                return name[len("Whisper "):]
+                return name[len("Whisper ") :]
             return name
 
         def _fmt_llm(name: str) -> str:
@@ -1373,23 +1387,23 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
             quant_part = f" ({quant})" if quant else ""
             lbl = "text+vision" if has_vision_for_models else "text"
             ms = model_slots_map.get(name) or {}
-            slots = _slots_pill(
+            prefix = _slot_prefix(
                 int(ms.get("available", 0) or 0), int(ms.get("capacity", 0) or 0)
             )
             return (
-                f'{_cap_pill(lbl)} <span class="mono small">{name}{ctx_part}{quant_part}</span>'
-                f'{slots}'
+                f'{_cap_pill(lbl)} {prefix}'
+                f'<span class="mono small">{name}{ctx_part}{quant_part}</span>'
             )
 
         model_lines = [_fmt_llm(m) for m in (w.get("models") or [])]
         if "embedding" in raw_caps_for_models:
             emb_name = cap_models_map.get("embedding") or "embedding"
             cs = cap_slots_map.get("embedding") or {}
-            slots = _slots_pill(
+            prefix = _slot_prefix(
                 int(cs.get("available", 0) or 0), int(cs.get("capacity", 0) or 0)
             )
             model_lines.append(
-                f'{_cap_pill("embedding")} <span class="mono small">{emb_name}</span>{slots}'
+                f'{_cap_pill("embedding")} {prefix}<span class="mono small">{emb_name}</span>'
             )
         for cap in ("image", "tts", "stt", "video"):
             if cap in raw_caps_for_models:
@@ -1397,11 +1411,11 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
                 if cap == "stt":
                     cap_name = _strip_whisper(cap_name)
                 cs = cap_slots_map.get(cap) or {}
-                slots = _slots_pill(
+                prefix = _slot_prefix(
                     int(cs.get("available", 0) or 0), int(cs.get("capacity", 0) or 0)
                 )
                 model_lines.append(
-                    f'{_cap_pill(cap)} <span class="mono small">{cap_name}</span>{slots}'
+                    f'{_cap_pill(cap)} {prefix}<span class="mono small">{cap_name}</span>'
                 )
         models = "<br>".join(model_lines) or "—"
         slots_left = int(w.get("slot_total_available", 0) or 0)
@@ -1550,13 +1564,10 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
     def _build_summary_rows(usage_src: Dict[str, Any]) -> str:
         def _llm_reqs(wd: Dict[str, Any]) -> int:
             return sum(
-                int(m.get("requests", 0) or 0)
-                for m in (wd.get("llm") or {}).values()
+                int(m.get("requests", 0) or 0) for m in (wd.get("llm") or {}).values()
             )
 
-        ordered = sorted(
-            usage_src.items(), key=lambda kv: (-_llm_reqs(kv[1]), kv[0])
-        )
+        ordered = sorted(usage_src.items(), key=lambda kv: (-_llm_reqs(kv[1]), kv[0]))
         return (
             "".join(_usage_summary_row(lbl, wd) for lbl, wd in ordered)
             or '<tr><td colspan="7" class="muted">No usage recorded in this window.</td></tr>'
@@ -1637,6 +1648,8 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
     # Recent requests table (newest first)
     def _hist_row(h: Dict[str, Any]) -> str:
         ts = h.get("ts") or 0
+        # Server-side fallback (UTC); the dashboard JS rewrites .ts-cell
+        # contents to the browser's local timezone after each refresh.
         when = datetime.fromtimestamp(ts).strftime("%H:%M:%S") if ts else "—"
         total_ms = float(h.get("total_ms") or 0.0)
         if total_ms > 0:
@@ -1651,7 +1664,7 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
         model = html.escape(str(h.get("model") or "—"))
         return f"""
         <tr class="req-row" data-ts="{ts:.0f}" data-worker="{worker}" data-model="{model}">
-          <td class="muted small">{when}</td>
+          <td class="muted small ts-cell" data-ts="{ts:.0f}">{when}</td>
           <td class="small"><b>{worker}</b></td>
           <td class="mono small">{model}</td>
           <td class="num small">{int(h.get('prompt_tokens') or 0):,}</td>
@@ -1810,6 +1823,9 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
   .health-crit {{ font-size: 14px; font-weight: 600; color: var(--crit); }}
   /* Usage table */
   .tok-hi {{ color: var(--accent); font-weight: 600; }}
+  /* Slot prefix: bold accent when in use, muted when idle. */
+  .slot-busy {{ color: var(--warn); font-weight: 700; }}
+  .slot-idle {{ font-weight: 400; }}
   /* Filter bar */
   .filter-bar {{ display: flex; flex-wrap: wrap; gap: 12px; align-items: center;
                  margin: 6px 0 10px; font-size: 12px; color: var(--muted); }}
@@ -1862,7 +1878,7 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
   <h2>Models</h2>
   <table>
     <thead><tr>
-      <th>Type</th><th>Model</th><th class="num">Slots</th>
+      <th>Type</th><th>Model</th>
       <th class="num">Max context</th>
       <th>Quant(s)</th><th>Served by</th>
     </tr></thead>
@@ -2037,7 +2053,22 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
     if (next) next.disabled = state.req_page >= totalPages;
   }}
 
-  function applyAll() {{ applyUsageFilter(); applyRequestFilter(); }}
+  function applyAll() {{ applyUsageFilter(); applyRequestFilter(); localizeTimestamps(); }}
+
+  function localizeTimestamps() {{
+    // Convert any server-rendered .ts-cell from UTC string to the
+    // browser's local-time HH:MM:SS using the data-ts unix epoch.
+    document.querySelectorAll('.ts-cell').forEach(function(el) {{
+      var ts = parseFloat(el.getAttribute('data-ts') || '0');
+      if (!ts) return;
+      var d = new Date(ts * 1000);
+      var hh = String(d.getHours()).padStart(2, '0');
+      var mm = String(d.getMinutes()).padStart(2, '0');
+      var ss = String(d.getSeconds()).padStart(2, '0');
+      el.textContent = hh + ':' + mm + ':' + ss;
+      if (!el.title) el.title = d.toLocaleString();
+    }});
+  }}
 
   function setSelect(id, val) {{
     var el = document.getElementById(id);
