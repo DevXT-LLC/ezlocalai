@@ -1363,13 +1363,10 @@ def _tier_badge(worker: Dict[str, Any]) -> str:
     best_tier = _safe_int(worker.get("best_tier"), 0)
     priority_tier = _worker_priority_tier(worker)
     if priority_tier != best_tier:
-        title = (
-            f"priority tier {priority_tier}; hardware tier {best_tier}; "
-            f"tunnel penalty -{TUNNEL_TIER_PENALTY}"
-        )
+        title = f"tier {priority_tier}" f"tunnel penalty -{TUNNEL_TIER_PENALTY}"
         return (
             f'<span class="tier-muted" title="{html.escape(title)}">'
-            f"priority tier {priority_tier} (hw {best_tier})</span>"
+            f"tier {priority_tier}</span>"
         )
     return f'<span class="tier-muted">tier {best_tier}</span>'
 
