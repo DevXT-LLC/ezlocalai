@@ -65,6 +65,7 @@ from fastapi.staticfiles import StaticFiles
 from Globals import getenv
 from Router import (
     Router,
+    TUNNEL_TIER_PENALTY,
     WorkerInfo,
     WorkerRegistry,
     best_gpu_tier,
@@ -910,6 +911,7 @@ def _aggregate_dashboard() -> Dict[str, Any]:
                     "available_slots": 0,
                     "max_context": 0,
                     "best_tier": 0,
+                    "priority_tier": 0,
                     "workers": [],
                 },
             )
@@ -921,6 +923,8 @@ def _aggregate_dashboard() -> Dict[str, Any]:
                 entry["max_context"] = ctx
             if w.best_tier > entry["best_tier"]:
                 entry["best_tier"] = w.best_tier
+            if w.priority_tier > entry["priority_tier"]:
+                entry["priority_tier"] = w.priority_tier
             if "vision" in w.capabilities and entry["type"] == "text":
                 entry["type"] = "text+vision"
             entry["workers"].append(
@@ -928,6 +932,8 @@ def _aggregate_dashboard() -> Dict[str, Any]:
                     "label": w.label,
                     "worker_id": w.worker_id,
                     "best_tier": w.best_tier,
+                    "priority_tier": w.priority_tier,
+                    "tunnel": is_tunnel_url(w.url),
                     "context": ctx,
                     "slots_left": slots_left,
                     "queue_capacity": model_capacity,
@@ -967,6 +973,7 @@ def _aggregate_dashboard() -> Dict[str, Any]:
                     "available_slots": 0,
                     "max_context": 0,
                     "best_tier": 0,
+                    "priority_tier": 0,
                     "workers": [],
                     "quants": set(),
                 },
@@ -984,11 +991,15 @@ def _aggregate_dashboard() -> Dict[str, Any]:
                 entry.setdefault("quants", set()).add(q)
             if w.best_tier > entry["best_tier"]:
                 entry["best_tier"] = w.best_tier
+            if w.priority_tier > entry["priority_tier"]:
+                entry["priority_tier"] = w.priority_tier
             entry["workers"].append(
                 {
                     "label": w.label,
                     "worker_id": w.worker_id,
                     "best_tier": w.best_tier,
+                    "priority_tier": w.priority_tier,
+                    "tunnel": is_tunnel_url(w.url),
                     "context": ctx,
                     "slots_left": cap_slots_left,
                     "queue_capacity": cap_capacity,
@@ -1082,11 +1093,11 @@ def _aggregate_dashboard() -> Dict[str, Any]:
         ),
         "workers": sorted(
             [_public_with_tunnel(w) for w in alive],
-            key=lambda x: -x.get("best_tier", 0),
+            key=lambda x: -_worker_priority_tier(x),
         )
         + sorted(
             [{**_public_with_tunnel(w), "stale": True} for w in stale],
-            key=lambda x: -x.get("best_tier", 0),
+            key=lambda x: -_worker_priority_tier(x),
         ),
         "usage": _usage.snapshot(),
         "usage_24h": _usage_from_history(
@@ -1108,6 +1119,13 @@ def _public_with_tunnel(w) -> Dict[str, Any]:
     else:
         pub["tunnel"] = False
         pub["tunnel_connected"] = None
+    try:
+        pub["priority_tier"] = int(w.priority_tier)
+    except Exception:
+        best_tier = _safe_int(pub.get("best_tier"), 0)
+        pub["priority_tier"] = (
+            best_tier - TUNNEL_TIER_PENALTY if pub.get("tunnel") else best_tier
+        )
     return pub
 
 
@@ -1324,9 +1342,36 @@ def _cap_pill(cap: str) -> str:
     return f'<span class="pill {cls}">{_cap_label(cap)}</span>'
 
 
-def _tier_badge(tier: int) -> str:
-    """Plain tier indicator — higher tiers get requests first."""
-    return f'<span class="tier-muted">tier {tier}</span>'
+def _safe_int(value: Any, default: int = 0) -> int:
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def _worker_priority_tier(worker: Dict[str, Any]) -> int:
+    best_tier = _safe_int(worker.get("best_tier"), 0)
+    if "priority_tier" in worker:
+        return _safe_int(worker.get("priority_tier"), best_tier)
+    if worker.get("tunnel"):
+        return best_tier - TUNNEL_TIER_PENALTY
+    return best_tier
+
+
+def _tier_badge(worker: Dict[str, Any]) -> str:
+    """Visible routing tier, with raw hardware tier noted when adjusted."""
+    best_tier = _safe_int(worker.get("best_tier"), 0)
+    priority_tier = _worker_priority_tier(worker)
+    if priority_tier != best_tier:
+        title = (
+            f"priority tier {priority_tier}; hardware tier {best_tier}; "
+            f"tunnel penalty -{TUNNEL_TIER_PENALTY}"
+        )
+        return (
+            f'<span class="tier-muted" title="{html.escape(title)}">'
+            f"priority tier {priority_tier} (hw {best_tier})</span>"
+        )
+    return f'<span class="tier-muted">tier {best_tier}</span>'
 
 
 def _slot_prefix(available: int, capacity: int) -> str:
@@ -1420,9 +1465,15 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
         )
 
         def _per_worker(w: Dict[str, Any]) -> str:
+            best_tier = _safe_int(w.get("best_tier"), 0)
+            priority_tier = _worker_priority_tier(w)
+            title = f"priority tier {priority_tier}"
+            if priority_tier != best_tier:
+                title += f"; hardware tier {best_tier}; tunnel penalty -{TUNNEL_TIER_PENALTY}"
             return (
-                f'<span class="pill cap-worker" title="tier {w["best_tier"]}">'
-                f'{html.escape(str(w["label"]))}</span>'
+                f'<span class="pill cap-worker" title="{html.escape(title)}">'
+                f'{html.escape(str(w["label"]))}'
+                f'<span class="muted small"> t{priority_tier}</span></span>'
             )
 
         per_worker = " ".join(_per_worker(w) for w in m["workers"])
@@ -1614,9 +1665,7 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
             if w.get("version")
             else ""
         )
-        tier_sub = (
-            f'<div class="muted small">{_tier_badge(w.get("best_tier", 0))}</div>'
-        )
+        tier_sub = f'<div class="muted small">{_tier_badge(w)}</div>'
         return f"""
         <tr class="{'stale' if stale else ''}">
           <td><b>{w['label']}</b>{tier_sub}{version_sub}</td>
