@@ -38,6 +38,7 @@ from typing import Any, Dict, List, Optional, Tuple
 import aiohttp
 
 from Globals import getenv
+from Tunnel import is_tunnel_url
 
 # ---------------------------------------------------------------------------
 # Capability detection
@@ -569,6 +570,7 @@ GPU_TIERS: List[Tuple[str, int]] = [
 TIER_DEFAULT_GPU = 20
 TIER_CPU = 2  # CPU-only is legitimate; score above 1 so it isn't penalised as broken
 TIER_NPU = 5  # Hailo/NPU category when device detection finds it without VRAM info
+TUNNEL_TIER_PENALTY = 5
 
 
 def gpu_tier_for_name(name: str) -> int:
@@ -869,6 +871,7 @@ class WorkerInfo:
             "slot_total_available": self.total_slots_left(),
             "gpus": list(self.gpus),
             "best_tier": self.best_tier,
+            "priority_tier": self.priority_tier,
             "model_context": dict(self.model_context),
             "model_quant": dict(self.model_quant),
             "cap_models": dict(self.cap_models),
@@ -1020,6 +1023,14 @@ class WorkerInfo:
     def total_slots_left(self) -> int:
         return max(0, self.total_capacity() - self.total_busy())
 
+    @property
+    def priority_tier(self) -> int:
+        """Tier used for routing priority after transport-specific adjustments."""
+        tier = int(self.best_tier or 0)
+        if is_tunnel_url(self.url):
+            tier -= TUNNEL_TIER_PENALTY
+        return tier
+
     def score(
         self, capability: Optional[str] = None, model: Optional[str] = None
     ) -> float:
@@ -1042,7 +1053,7 @@ class WorkerInfo:
         # a high-tier worker that may have just had a transient hiccup.
         failure_penalty = min(self.connection_failures, 3) * 5.0
         return (
-            self.best_tier * 10.0
+            self.priority_tier * 10.0
             + slots_left * 5.0
             + self.free_vram_gb
             - busy * 4.0
@@ -1317,10 +1328,8 @@ class Router:
             key=lambda w: w.score(capability=capability, model=model),
             reverse=True,
         )
-        fastest_tier = max(int(w.best_tier or 0) for w in candidates)
-        fastest_candidates = [
-            w for w in candidates if int(w.best_tier or 0) == fastest_tier
-        ]
+        fastest_tier = max(w.priority_tier for w in candidates)
+        fastest_candidates = [w for w in candidates if w.priority_tier == fastest_tier]
         fastest_busy = min(
             w.effective_busy(capability=capability, model=model)
             for w in fastest_candidates
@@ -1332,12 +1341,12 @@ class Router:
                 w
                 for w in candidates
                 if w.effective_busy(capability=capability, model=model) == 0
-                and int(w.best_tier or 0) >= fastest_tier - window
+                and w.priority_tier >= fastest_tier - window
             ]
             if idle_near:
                 idle_near.sort(
                     key=lambda w: (
-                        int(w.best_tier or 0),
+                        w.priority_tier,
                         w.score(capability=capability, model=model),
                     ),
                     reverse=True,

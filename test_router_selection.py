@@ -44,11 +44,12 @@ class RouterSelectionTests(unittest.TestCase):
         best_tier: int,
         capacity: int = 1,
         busy: int = 0,
+        url=None,
     ) -> WorkerInfo:
         return WorkerInfo(
             worker_id=worker_id,
             label=worker_id,
-            url=f"http://{worker_id}.local",
+            url=url or f"http://{worker_id}.local",
             capabilities=["text"],
             models=[model],
             best_tier=best_tier,
@@ -70,6 +71,45 @@ class RouterSelectionTests(unittest.TestCase):
                 }
             },
         )
+
+    def test_tunneled_worker_priority_tier_is_penalized(self):
+        registry = WorkerRegistry(ttl_seconds=60)
+        registry.register(self._text_worker("direct-86", "model-a", best_tier=86))
+        tunnel_worker = registry.register(
+            self._text_worker(
+                "tunnel-90",
+                "model-a",
+                best_tier=90,
+                url="tunnel://tunnel-90",
+            )
+        )
+        router = Router(registry)
+
+        worker = router.select_worker("text", "model-a", allow_cross_model=False)
+
+        self.assertIsNotNone(worker)
+        self.assertEqual(worker.worker_id, "direct-86")
+        self.assertEqual(tunnel_worker.priority_tier, 85)
+
+    def test_tunneled_worker_penalty_applies_to_idle_spillover_window(self):
+        registry = WorkerRegistry(ttl_seconds=60)
+        registry.register(
+            self._text_worker(
+                "tunnel-90",
+                "model-a",
+                best_tier=90,
+                capacity=2,
+                busy=1,
+                url="tunnel://tunnel-90",
+            )
+        )
+        registry.register(self._text_worker("direct-66", "model-a", best_tier=66))
+        router = Router(registry)
+
+        worker = router.select_worker("text", "model-a", allow_cross_model=False)
+
+        self.assertIsNotNone(worker)
+        self.assertEqual(worker.worker_id, "direct-66")
 
     def test_stt_routes_by_capability_when_model_alias_is_not_advertised(self):
         router = self._router_with_worker("stt")

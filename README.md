@@ -335,10 +335,11 @@ The worker registers with a sentinel URL `tunnel://<worker_id>`; you'll see it i
 Workers are scored each request as:
 
 ```
-score = best_tier * 10  +  slots_left * 5  +  free_vram_gb  -  in_flight * 4
+priority_tier = best_tier - 5 if tunneled else best_tier
+score = priority_tier * 10  +  slots_left * 5  +  free_vram_gb  -  in_flight * 4
 ```
 
-`best_tier` is derived from the worker's fastest GPU model (e.g. RTX 5090 ≈ 90, RTX 4090 = 80, RTX 3090 = 50, CPU = 1) and dominates the score, so an idle 5090 always beats an idle 3090. The load penalty (`in_flight * 4`) lets a busy 5090 lose to an idle 4090 once it has a few requests in flight, which keeps the pool balanced under burst load.
+`best_tier` is derived from the worker's fastest GPU model (e.g. RTX 5090 ≈ 90, RTX 4090 = 80, RTX 3090 = 50, CPU = 2) and dominates the score, so an idle 5090 always beats an idle 3090. Tunneled workers keep their reported `best_tier` but receive a 5-point priority-tier penalty so similarly capable direct workers are preferred. The load penalty (`in_flight * 4`) lets a busy 5090 lose to an idle 4090 once it has a few requests in flight, which keeps the pool balanced under burst load.
 
 Workers missing the required capability (`text` / `vision` / `voice` / `image` / `video`) or the requested model are filtered out before scoring. Stale workers (no heartbeat for `ROUTER_WORKER_TTL` seconds) are also excluded.
 
