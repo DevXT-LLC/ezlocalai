@@ -199,7 +199,14 @@ class UsageTracker:
             "stt":   {"requests": 7},
             "image": {"requests": 3},
             "video": {"requests": 0},
-            "embedding": {"requests": 5}
+            "embedding": {"requests": 5},
+            "embedding_models": {
+              "Qwen3-Embedding-0.6B": {
+                "requests": 5,
+                "prompt_tokens": 1200,
+                "vectors": 10
+              }
+            }
           }
         }
     """
@@ -356,6 +363,7 @@ class UsageTracker:
             self._history.append(
                 {
                     "ts": time.time(),
+                    "kind": "llm",
                     "worker": label,
                     "model": model,
                     "prompt_tokens": int(prompt_tokens),
@@ -369,6 +377,83 @@ class UsageTracker:
             )
             if len(self._history) > self._history_max:
                 # Drop oldest in chunks to avoid O(n) churn on every insert.
+                drop = len(self._history) - self._history_max
+                del self._history[:drop]
+            self._dirty = True
+
+    async def record_embedding(
+        self,
+        label: str,
+        model: str,
+        prompt_tokens: int,
+        vectors: int,
+        total_ms: float,
+    ) -> None:
+        model = _normalize_model_name(model)
+        prompt_tokens = int(prompt_tokens or 0)
+        vectors = int(vectors or 0)
+        total_ms = float(total_ms or 0.0)
+        prompt_tps = (
+            (prompt_tokens / (total_ms / 1000.0))
+            if prompt_tokens > 0 and total_ms > 0
+            else 0.0
+        )
+        vectors_per_second = (
+            (vectors / (total_ms / 1000.0)) if vectors > 0 and total_ms > 0 else 0.0
+        )
+
+        async with self._alock:
+            w = self._data.setdefault(label, {})
+            cap = w.setdefault("embedding", {"requests": 0})
+            cap["requests"] = int(cap.get("requests", 0) or 0) + 1
+
+            models = w.setdefault("embedding_models", {})
+            m = models.setdefault(
+                model,
+                {
+                    "requests": 0,
+                    "prompt_tokens": 0,
+                    "vectors": 0,
+                    "prompt_tps_sum": 0.0,
+                    "prompt_tps_n": 0,
+                    "vectors_per_second_sum": 0.0,
+                    "vectors_per_second_n": 0,
+                    "total_ms_sum": 0.0,
+                },
+            )
+            m["requests"] += 1
+            m["prompt_tokens"] += prompt_tokens
+            m["vectors"] += vectors
+            m["total_ms_sum"] = float(m.get("total_ms_sum", 0.0)) + total_ms
+            if prompt_tps > 0:
+                m["prompt_tps_sum"] = float(m.get("prompt_tps_sum", 0.0)) + prompt_tps
+                m["prompt_tps_n"] = int(m.get("prompt_tps_n", 0) or 0) + 1
+            if vectors_per_second > 0:
+                m["vectors_per_second_sum"] = (
+                    float(m.get("vectors_per_second_sum", 0.0)) + vectors_per_second
+                )
+                m["vectors_per_second_n"] = (
+                    int(m.get("vectors_per_second_n", 0) or 0) + 1
+                )
+
+            self._history.append(
+                {
+                    "ts": time.time(),
+                    "kind": "embedding",
+                    "worker": label,
+                    "model": model,
+                    "prompt_tokens": prompt_tokens,
+                    "completion_tokens": 0,
+                    "vectors": vectors,
+                    "prompt_ms": total_ms,
+                    "predicted_ms": 0.0,
+                    "total_ms": total_ms,
+                    "prompt_tps": prompt_tps,
+                    "predicted_tps": 0.0,
+                    "vectors_per_second": vectors_per_second,
+                }
+            )
+            if len(self._history) > self._history_max:
                 drop = len(self._history) - self._history_max
                 del self._history[:drop]
             self._dirty = True
@@ -853,10 +938,10 @@ def _aggregate_dashboard() -> Dict[str, Any]:
             if q:
                 entry.setdefault("quants", set()).add(q)
 
-    # Non-text capability model entries: image, tts, stt, video workers
+    # Non-text capability model entries: embedding, image, tts, stt, video workers
     # Each worker that has one of these caps gets a synthetic model row so the
     # Models section shows *all* running AI models, not just LLMs.
-    _NON_TEXT_CAPS = ("image", "tts", "stt", "video")
+    _NON_TEXT_CAPS = ("embedding", "image", "tts", "stt", "video")
     for w in alive:
         for cap in w.capabilities:
             if cap not in _NON_TEXT_CAPS:
@@ -891,6 +976,12 @@ def _aggregate_dashboard() -> Dict[str, Any]:
             cap_slots_left = w.slots_left(cap)
             entry["total_capacity"] += cap_capacity
             entry["available_slots"] += cap_slots_left
+            ctx = int(w.model_context.get(model_name, 0) or 0)
+            if ctx > entry["max_context"]:
+                entry["max_context"] = ctx
+            q = w.model_quant.get(model_name)
+            if q:
+                entry.setdefault("quants", set()).add(q)
             if w.best_tier > entry["best_tier"]:
                 entry["best_tier"] = w.best_tier
             entry["workers"].append(
@@ -898,10 +989,10 @@ def _aggregate_dashboard() -> Dict[str, Any]:
                     "label": w.label,
                     "worker_id": w.worker_id,
                     "best_tier": w.best_tier,
-                    "context": 0,
+                    "context": ctx,
                     "slots_left": cap_slots_left,
                     "queue_capacity": cap_capacity,
-                    "quant": "",
+                    "quant": q or "",
                 }
             )
 
@@ -1023,12 +1114,7 @@ def _public_with_tunnel(w) -> Dict[str, Any]:
 def _usage_from_history(
     history: List[Dict[str, Any]], since: Optional[float] = None
 ) -> Dict[str, Any]:
-    """Reconstruct per-worker usage stats from the LLM history ring buffer.
-
-    Only LLM entries are tracked in history, so non-LLM caps (tts/stt/image/
-    video/embedding) come back as zeroed counters — callers that need those
-    should fall back to the cumulative ``UsageTracker`` snapshot.
-    """
+    """Reconstruct per-worker usage stats from the request history ring buffer."""
     out: Dict[str, Any] = {}
     for h in history:
         ts = float(h.get("ts") or 0)
@@ -1037,6 +1123,38 @@ def _usage_from_history(
         worker = h.get("worker") or "unknown"
         model = _normalize_model_name(h.get("model") or "")
         w = out.setdefault(worker, {"llm": {}})
+        kind = h.get("kind") or "llm"
+        if kind == "embedding":
+            cap = w.setdefault("embedding", {"requests": 0})
+            cap["requests"] += 1
+            models = w.setdefault("embedding_models", {})
+            m = models.setdefault(
+                model,
+                {
+                    "requests": 0,
+                    "prompt_tokens": 0,
+                    "vectors": 0,
+                    "prompt_tps_sum": 0.0,
+                    "prompt_tps_n": 0,
+                    "vectors_per_second_sum": 0.0,
+                    "vectors_per_second_n": 0,
+                    "total_ms_sum": 0.0,
+                },
+            )
+            m["requests"] += 1
+            m["prompt_tokens"] += int(h.get("prompt_tokens") or 0)
+            m["vectors"] += int(h.get("vectors") or 0)
+            m["total_ms_sum"] += float(h.get("total_ms") or 0.0)
+            ptps = float(h.get("prompt_tps") or 0.0)
+            if ptps > 0:
+                m["prompt_tps_sum"] += ptps
+                m["prompt_tps_n"] += 1
+            vps = float(h.get("vectors_per_second") or 0.0)
+            if vps > 0:
+                m["vectors_per_second_sum"] += vps
+                m["vectors_per_second_n"] += 1
+            continue
+
         llm = w.setdefault("llm", {})
         m = llm.setdefault(
             model,
@@ -1405,6 +1523,10 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
         model_lines = [_fmt_llm(m) for m in (w.get("models") or [])]
         if "embedding" in raw_caps_for_models:
             emb_name = cap_models_map.get("embedding") or "embedding"
+            emb_ctx = int(mc.get(emb_name, 0) or 0)
+            emb_quant = mq.get(emb_name) or ""
+            emb_ctx_part = f" @ {emb_ctx:,}" if emb_ctx else ""
+            emb_quant_part = f" ({emb_quant})" if emb_quant else ""
             cs = cap_slots_map.get("embedding") or {}
             prefix = _slot_prefix(
                 int(cs.get("available", 0) or 0), int(cs.get("capacity", 0) or 0)
@@ -1412,7 +1534,8 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
             model_lines.append(
                 f'{_cap_pill("embedding")} {prefix}'
                 f'<span class="mono small" title="{html.escape(emb_name)}">'
-                f'{html.escape(_pretty_model_name(emb_name))}</span>'
+                f"{html.escape(_pretty_model_name(emb_name))}"
+                f"{emb_quant_part}{emb_ctx_part}</span>"
             )
         for cap in ("image", "tts", "stt", "video"):
             if cap in raw_caps_for_models:
@@ -1424,9 +1547,9 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
                     int(cs.get("available", 0) or 0), int(cs.get("capacity", 0) or 0)
                 )
                 model_lines.append(
-                    f'{_cap_pill(cap)} {prefix}'
+                    f"{_cap_pill(cap)} {prefix}"
                     f'<span class="mono small" title="{html.escape(cap_name)}">'
-                    f'{html.escape(_pretty_model_name(cap_name))}</span>'
+                    f"{html.escape(_pretty_model_name(cap_name))}</span>"
                 )
         models = "<br>".join(model_lines) or "—"
         slots_left = int(w.get("slot_total_available", 0) or 0)
@@ -1533,12 +1656,13 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
             return "—"
         return f"{v:,.1f}"
 
-    # Per (worker, canonical model) speed averages — only entries with non-zero
+    # Per (kind, worker, canonical model) speed averages — only entries with non-zero
     # timing data contribute (so we don't dilute averages with non-llama.cpp
     # backends that didn't report ``timings``).
     speed_by_wm: Dict[tuple, Dict[str, float]] = {}
     for h in history:
         key = (
+            h.get("kind") or "llm",
             h.get("worker") or "unknown",
             _normalize_model_name(h.get("model") or ""),
         )
@@ -1549,6 +1673,8 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
                 "prompt_tps_n": 0,
                 "predicted_tps_sum": 0.0,
                 "predicted_tps_n": 0,
+                "vectors_per_second_sum": 0.0,
+                "vectors_per_second_n": 0,
             },
         )
         ptps = float(h.get("prompt_tps") or 0.0)
@@ -1559,26 +1685,42 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
         if dtps > 0:
             s["predicted_tps_sum"] += dtps
             s["predicted_tps_n"] += 1
+        vps = float(h.get("vectors_per_second") or 0.0)
+        if vps > 0:
+            s["vectors_per_second_sum"] += vps
+            s["vectors_per_second_n"] += 1
 
     def _avg_tps(key: tuple) -> tuple:
         s = speed_by_wm.get(key)
         if not s:
             return 0.0, 0.0
         ap = (s["prompt_tps_sum"] / s["prompt_tps_n"]) if s["prompt_tps_n"] else 0.0
-        ad = (
-            (s["predicted_tps_sum"] / s["predicted_tps_n"])
-            if s["predicted_tps_n"]
-            else 0.0
-        )
+        if key and key[0] == "embedding":
+            ad = (
+                s["vectors_per_second_sum"] / s["vectors_per_second_n"]
+                if s["vectors_per_second_n"]
+                else 0.0
+            )
+        else:
+            ad = (
+                (s["predicted_tps_sum"] / s["predicted_tps_n"])
+                if s["predicted_tps_n"]
+                else 0.0
+            )
         return ap, ad
 
     def _build_summary_rows(usage_src: Dict[str, Any]) -> str:
-        def _llm_reqs(wd: Dict[str, Any]) -> int:
-            return sum(
+        def _total_reqs(wd: Dict[str, Any]) -> int:
+            llm_reqs = sum(
                 int(m.get("requests", 0) or 0) for m in (wd.get("llm") or {}).values()
             )
+            cap_reqs = sum(
+                int((wd.get(cap) or {}).get("requests", 0) or 0)
+                for cap in ("embedding", "tts", "stt", "image", "video")
+            )
+            return llm_reqs + cap_reqs
 
-        ordered = sorted(usage_src.items(), key=lambda kv: (-_llm_reqs(kv[1]), kv[0]))
+        ordered = sorted(usage_src.items(), key=lambda kv: (-_total_reqs(kv[1]), kv[0]))
         return (
             "".join(_usage_summary_row(lbl, wd) for lbl, wd in ordered)
             or '<tr><td colspan="7" class="muted">No usage recorded in this window.</td></tr>'
@@ -1616,38 +1758,63 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
                 )
                 agg["predicted_tps_n"] += int(mdata.get("predicted_tps_n", 0) or 0)
             for model, mdata in merged.items():
-                flat.append((label, model, mdata))
-        flat.sort(key=lambda x: -int(x[2].get("requests", 0) or 0))
+                flat.append(("text", label, model, mdata))
+
+            embedding_models = wdata.get("embedding_models") or {}
+            for raw_name, mdata in embedding_models.items():
+                canon = _normalize_model_name(raw_name)
+                flat.append(("embedding", label, canon, mdata))
+
+        flat.sort(key=lambda x: -int(x[3].get("requests", 0) or 0))
         rows = ""
-        for label, model, mdata in flat:
+        for kind, label, model, mdata in flat:
             reqs = mdata.get("requests", 0)
             pt = mdata.get("prompt_tokens", 0)
-            ct = mdata.get("completion_tokens", 0)
             ptn = int(mdata.get("prompt_tps_n", 0) or 0)
-            dtn = int(mdata.get("predicted_tps_n", 0) or 0)
-            if ptn or dtn:
-                avg_p = (float(mdata["prompt_tps_sum"]) / ptn) if ptn else 0.0
-                avg_d = (float(mdata["predicted_tps_sum"]) / dtn) if dtn else 0.0
-                if not avg_p or not avg_d:
-                    hp, hd = _avg_tps((label, model))
+            avg_p = (float(mdata.get("prompt_tps_sum", 0.0)) / ptn) if ptn else 0.0
+
+            if kind == "embedding":
+                output_count = int(mdata.get("vectors", 0) or 0)
+                out_n = int(mdata.get("vectors_per_second_n", 0) or 0)
+                avg_out = (
+                    float(mdata.get("vectors_per_second_sum", 0.0)) / out_n
+                    if out_n
+                    else 0.0
+                )
+                if not avg_p or not avg_out:
+                    hp, hd = _avg_tps(("embedding", label, model))
                     avg_p = avg_p or hp
-                    avg_d = avg_d or hd
+                    avg_out = avg_out or hd
+                total_display = f"{pt:,}"
+                output_title = f"{output_count:,}"
             else:
-                avg_p, avg_d = _avg_tps((label, model))
+                output_count = int(mdata.get("completion_tokens", 0) or 0)
+                out_n = int(mdata.get("predicted_tps_n", 0) or 0)
+                avg_out = (
+                    float(mdata.get("predicted_tps_sum", 0.0)) / out_n if out_n else 0.0
+                )
+                if not avg_p or not avg_out:
+                    hp, hd = _avg_tps(("llm", label, model))
+                    avg_p = avg_p or hp
+                    avg_out = avg_out or hd
+                total_display = f"{pt + output_count:,}"
+                output_title = f"{output_count:,}"
+
             rows += f"""
         <tr>
-          <td class="muted small">{label}</td>
-          <td class="mono small">{model}</td>
+          <td>{_cap_pill(kind)}</td>
+          <td class="muted small">{html.escape(str(label))}</td>
+          <td class="mono small">{html.escape(str(model))}</td>
           <td class="num small">{reqs:,}</td>
           <td class="num small">{pt:,}</td>
-          <td class="num small">{ct:,}</td>
-          <td class="num small">{pt + ct:,}</td>
+          <td class="num small">{output_title}</td>
+          <td class="num small">{total_display}</td>
           <td class="num small">{_fmt_tps(avg_p)}</td>
-          <td class="num small">{_fmt_tps(avg_d)}</td>
+          <td class="num small">{_fmt_tps(avg_out)}</td>
         </tr>"""
         return (
             rows
-            or '<tr><td colspan="8" class="muted">No LLM usage in this window.</td></tr>'
+            or '<tr><td colspan="9" class="muted">No model usage in this window.</td></tr>'
         )
 
     usage_24h_data = data.get("usage_24h") or {}
@@ -1929,7 +2096,7 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
     <tbody class="usage-tbody" data-window="24h" style="display:none">{usage_summary_rows_24h}</tbody>
   </table>
 
-  <h2>LLM model breakdown</h2>
+  <h2>Model Breakdown</h2>
   <div class="filter-bar">
     <label>Window:
       <select id="breakdown-window" class="filter">
@@ -1940,10 +2107,10 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
   </div>
   <table>
     <thead><tr>
-      <th>Worker</th><th>Model</th>
-      <th class="num">Requests</th><th class="num">Prompt tokens</th>
-      <th class="num">Completion tokens</th><th class="num">Total tokens</th>
-      <th class="num">Avg prompt t/s</th><th class="num">Avg output t/s</th>
+      <th>Type</th><th>Worker</th><th>Model</th>
+      <th class="num">Requests</th><th class="num">Input tokens</th>
+      <th class="num">Output / vectors</th><th class="num">Total tokens</th>
+      <th class="num">Avg input t/s</th><th class="num">Avg output / vectors/s</th>
     </tr></thead>
     <tbody class="breakdown-tbody" data-window="all">{usage_model_rows_all}</tbody>
     <tbody class="breakdown-tbody" data-window="24h" style="display:none">{usage_model_rows_24h}</tbody>
@@ -2685,6 +2852,19 @@ async def models(_: str = Depends(verify_client)):
             seen.setdefault(
                 m, {"id": m, "object": "model", "owned_by": "ezlocalai", "workers": []}
             )["workers"].append(w.label)
+        if "embedding" in w.capabilities:
+            embedding_model = w.cap_models.get("embedding")
+            if embedding_model:
+                seen.setdefault(
+                    embedding_model,
+                    {
+                        "id": embedding_model,
+                        "object": "model",
+                        "owned_by": "ezlocalai",
+                        "workers": [],
+                        "capability": "embedding",
+                    },
+                )["workers"].append(w.label)
     return {"object": "list", "data": list(seen.values())}
 
 
@@ -2850,21 +3030,37 @@ async def _llm_proxy_with_retry(
 
 @app.post("/v1/embeddings", tags=["Embeddings"])
 async def embeddings(payload: Dict[str, Any], _: str = Depends(verify_client)):
-    # Embeddings count as text capability for now (most ezlocalai workers serve both)
-    worker = (
-        await _pick("embedding", payload.get("model"))
-        if any("embedding" in w.capabilities for w in get_registry().list_workers())
-        else await _pick("text", payload.get("model"))
-    )
+    worker = await _pick("embedding", payload.get("model"))
+    start = time.perf_counter()
     resp = await _proxy_json(
         worker,
         "/v1/embeddings",
         payload,
         stream=False,
-        capability="embedding" if "embedding" in worker.capabilities else "text",
+        capability="embedding",
         model=payload.get("model"),
     )
-    await _usage.record_cap(worker.label, "embedding")
+    total_ms = (time.perf_counter() - start) * 1000.0
+    if int(getattr(resp, "status_code", 200) or 200) < 400:
+        try:
+            body = json.loads(bytes(getattr(resp, "body", b"") or b"{}"))
+            usage = body.get("usage") or {}
+            prompt_tokens = int(
+                usage.get("prompt_tokens") or usage.get("total_tokens") or 0
+            )
+            vectors = len(body.get("data") or [])
+            model_name = (
+                worker.cap_models.get("embedding")
+                or body.get("model")
+                or payload.get("model")
+                or "embedding"
+            )
+            await _usage.record_embedding(
+                worker.label, model_name, prompt_tokens, vectors, total_ms
+            )
+        except Exception as e:
+            logging.debug(f"[Usage] Failed to record embedding timing: {e}")
+            await _usage.record_cap(worker.label, "embedding")
     return resp
 
 

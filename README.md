@@ -194,6 +194,30 @@ When fallback is triggered to another ezlocalai instance, these endpoints are au
 
 For OpenAI-compatible APIs, only chat completions and embeddings are forwarded.
 
+## Embeddings
+
+ezlocalai serves `/v1/embeddings` with a dedicated GGUF embedding model, independent
+of `TEXT_SERVER`. By default it uses Qwen3-Embedding-0.6B Q8_0 with a 32k context:
+
+```bash
+EMBEDDING_ENABLED=true
+EMBEDDING_MODEL=Qwen/Qwen3-Embedding-0.6B-GGUF
+EMBEDDING_MODEL_ALIAS=Qwen3-Embedding-0.6B
+EMBEDDING_QUANT_TYPE=Q8_0
+EMBEDDING_CONTEXT_LENGTH=32768
+EMBEDDING_N_PARALLEL=1
+EMBEDDING_GPU_LAYERS=auto
+EMBEDDING_KV_CACHE_TYPE=f16
+```
+
+When using the router, workers advertise the `embedding` capability only when
+`EMBEDDING_ENABLED=true`, so embedding requests route to workers that can serve
+them and the dashboard shows the active embedding model. `EMBEDDING_N_PARALLEL`
+controls the number of embedding slots reported to the router; `EMBEDDING_CONTEXT_LENGTH`
+is kept as the per-request context window. With `EMBEDDING_GPU_LAYERS=auto`,
+ezlocalai estimates the 32k embedding cache footprint and partially offloads
+layers to CPU when VRAM is tight.
+
 ## Router / Load Balancer Mode
 
 For setups that outgrow point-to-point fallback (3+ machines, friends contributing GPUs, bittensor miners coming and going), ezlocalai can run as a dedicated **router**. The router itself loads no models — it accepts the normal OpenAI-compatible API and forwards each request to the best registered worker.
@@ -213,7 +237,7 @@ For setups that outgrow point-to-point fallback (3+ machines, friends contributi
                              └────────────────────┘
 ```
 
-Each worker is a normal `ezlocalai` instance with `ROUTER_URL` set. On startup the worker registers itself, then sends heartbeats every `WORKER_HEARTBEAT_INTERVAL` seconds containing free VRAM, queue depth, loaded models, and advertised capabilities (`text`, `vision`, `voice`, `image`, `video`). Workers that miss `ROUTER_WORKER_TTL` seconds of heartbeats are pruned. If a request arrives and no suitable worker is free, the router waits up to `ROUTER_WAIT_TIMEOUT` seconds before returning `503`.
+Each worker is a normal `ezlocalai` instance with `ROUTER_URL` set. On startup the worker registers itself, then sends heartbeats every `WORKER_HEARTBEAT_INTERVAL` seconds containing free VRAM, queue depth, loaded models, and advertised capabilities (`text`, `vision`, `tts`, `stt`, `embedding`, `image`, `video`). Workers that miss `ROUTER_WORKER_TTL` seconds of heartbeats are pruned. If a request arrives and no suitable worker is free, the router waits up to `ROUTER_WAIT_TIMEOUT` seconds before returning `503`.
 
 ### Run the router
 

@@ -78,6 +78,25 @@ def getenv(var_name: str, default_value: str = None) -> str:
         # - "true": This server IS a text server (explicit)
         "TEXT_SERVER": "",
         "TEXT_SERVER_API_KEY": "",  # API key for text server (uses local key if not provided)
+        # Embedding server URL for offloading /v1/embeddings requests
+        # - Empty (default): Load the local embedding model on demand
+        # - URL (e.g., "http://192.168.1.100:8091"): Forward embeddings to another ezlocalai server
+        # - "true": This server IS an embedding server (explicit)
+        "EMBEDDING_ENABLED": "true",
+        "EMBEDDING_SERVER": "",
+        "EMBEDDING_SERVER_API_KEY": "",  # API key for embedding server (uses local key if not provided)
+        "EMBEDDING_MODEL": "Qwen/Qwen3-Embedding-0.6B-GGUF",
+        "EMBEDDING_MODEL_ALIAS": "Qwen3-Embedding-0.6B",
+        "EMBEDDING_QUANT_TYPE": "Q8_0",
+        "EMBEDDING_CONTEXT_LENGTH": "32768",
+        "EMBEDDING_N_PARALLEL": "1",
+        "EMBEDDING_BATCH_SIZE": "512",
+        "EMBEDDING_UBATCH_SIZE": "512",
+        "EMBEDDING_GPU_LAYERS": "auto",
+        "EMBEDDING_VRAM_SAFETY_MARGIN": "0.75",
+        "EMBEDDING_KV_CACHE_TYPE": "f16",
+        "EMBEDDING_KEEP_LOADED": "true",
+        "EMBEDDING_DIMENSIONS": "",
         # Lazy load voice models (TTS/STT) - when false, preload them at startup for faster first response
         # Default true = lazy load (load on first request), false = preload at startup
         "LAZY_LOAD_VOICE": "true",

@@ -92,6 +92,16 @@ def has_text_server_url() -> bool:
     return True
 
 
+def has_embedding_server_url() -> bool:
+    """Check if an embedding server URL is configured."""
+    embedding_server = getenv("EMBEDDING_SERVER")
+    if not embedding_server:
+        return False
+    if embedding_server.lower() == "true":
+        return False
+    return True
+
+
 def is_image_server_mode() -> bool:
     """Check if this server IS the image server (IMAGE_SERVER=true).
 
@@ -422,6 +432,72 @@ def precache_llm_models():
             logging.error(f"  ✗ {model_name}: {e}")
 
 
+def precache_embedding_model():
+    """Download the configured GGUF embedding model."""
+    if getenv("EMBEDDING_ENABLED").lower() != "true":
+        logging.info("  - Embedding: Skipped (disabled)")
+        return
+
+    if has_embedding_server_url():
+        embedding_url = getenv("EMBEDDING_SERVER")
+        logging.info(f"  - Embedding: Skipped (embedding server: {embedding_url})")
+        return
+
+    model_name = getenv("EMBEDDING_MODEL")
+    if not model_name or model_name.lower() == "none":
+        return
+
+    if "/" not in model_name:
+        model_name = "Qwen/" + model_name
+
+    quant_type = getenv("EMBEDDING_QUANT_TYPE", "Q8_0") or "Q8_0"
+    model_short = model_name.split("/")[-1].split("-GGUF")[0]
+    model_dir = os.path.join("models", model_short)
+    os.makedirs(model_dir, exist_ok=True)
+
+    start_time = time.time()
+    try:
+        from huggingface_hub import list_repo_files
+
+        existing_gguf = [
+            f
+            for f in os.listdir(model_dir)
+            if f.endswith(".gguf") and "mmproj" not in f.lower()
+        ]
+        matching_gguf = [f for f in existing_gguf if quant_type and quant_type in f]
+        if matching_gguf:
+            elapsed = time.time() - start_time
+            logging.info(
+                f"  ✓ {model_name} embedding (cached: {matching_gguf[0]}, {elapsed:.1f}s)"
+            )
+            return
+
+        files = list_repo_files(model_name)
+        gguf_files = [
+            f for f in files if f.endswith(".gguf") and "mmproj" not in f.lower()
+        ]
+        if not gguf_files:
+            logging.warning(f"[ezlocalai] No GGUF files in {model_name}")
+            return
+
+        best_file = None
+        for pattern in (quant_type, "Q8_0", "Q6_K", "Q5_K", "Q4_K"):
+            for filename in gguf_files:
+                if pattern and pattern in filename:
+                    best_file = filename
+                    break
+            if best_file:
+                break
+        if not best_file:
+            best_file = gguf_files[0]
+
+        download_with_progress(model_name, best_file, local_dir=model_dir)
+        elapsed = time.time() - start_time
+        logging.info(f"  ✓ {model_name} embedding ({elapsed:.1f}s)")
+    except Exception as e:
+        logging.error(f"  ✗ Embedding model: {e}")
+
+
 def precache_tts():
     """Download and warm TTS models."""
     if getenv("TTS_ENABLED").lower() != "true":
@@ -617,6 +693,7 @@ def run_precache():
 
         # Run all precache operations
         precache_llm_models()
+        precache_embedding_model()
         precache_tts()
         precache_stt()
         precache_image_model()

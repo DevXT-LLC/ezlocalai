@@ -449,7 +449,7 @@ MODEL_VRAM_ESTIMATES = {
     ModelType.STT: 2.0,  # Whisper (varies by size)
     ModelType.IMG: 6.0,  # FLUX.2-klein GGUF with CPU offload typically needs ~4-6GB
     ModelType.VIDEO: 12.0,  # LTX-2.3 GGUF video generation (uses sequential CPU offload)
-    ModelType.EMBEDDING: 1.5,  # BGE-M3
+    ModelType.EMBEDDING: 2.0,  # Coarse gate; embedder refines GPU/CPU layer split
 }
 
 
@@ -1946,6 +1946,146 @@ def has_image_server_url() -> bool:
 
 
 # =============================================================================
+# Embedding Server Client - For offloading embeddings to dedicated server
+# =============================================================================
+
+
+class EmbeddingServerClient:
+    """Client for forwarding embedding requests to a dedicated embedding server.
+
+    Configuration via EMBEDDING_SERVER env var:
+    - Empty (default): Load local embedding model on demand
+    - URL (e.g., "http://192.168.1.100:8091"): Forward embeddings
+    - "true": This server IS an embedding server (explicit)
+    """
+
+    def __init__(self, base_url: str = None, api_key: str = None):
+        embedding_server = base_url or getenv("EMBEDDING_SERVER")
+        if embedding_server and embedding_server.lower() == "true":
+            self.base_url = ""
+            self.is_embedding_server_mode = True
+        else:
+            self.base_url = embedding_server.rstrip("/") if embedding_server else ""
+            self.is_embedding_server_mode = False
+
+        self.api_key = (
+            api_key or getenv("EMBEDDING_SERVER_API_KEY") or getenv("EZLOCALAI_API_KEY")
+        )
+        self._available = None
+        self._last_check = 0
+        self._check_interval = 30
+
+    @property
+    def is_configured(self) -> bool:
+        """Check if an embedding server URL is configured (not 'true' mode)."""
+        return bool(self.base_url) and not self.is_embedding_server_mode
+
+    def _get_headers(self) -> dict:
+        headers = {"Content-Type": "application/json"}
+        if self.api_key and self.api_key != "none":
+            headers["Authorization"] = f"Bearer {self.api_key}"
+        return headers
+
+    async def check_availability(self) -> Tuple[bool, str]:
+        if not self.is_configured:
+            return False, "No embedding server configured"
+
+        current_time = time.time()
+        if (
+            self._available is not None
+            and (current_time - self._last_check) < self._check_interval
+        ):
+            return self._available, "cached"
+
+        try:
+            import aiohttp
+
+            async with aiohttp.ClientSession() as session:
+                async with session.get(
+                    f"{self.base_url}/v1/models",
+                    headers=self._get_headers(),
+                    timeout=aiohttp.ClientTimeout(total=5),
+                ) as resp:
+                    if resp.status == 200:
+                        self._available = True
+                        self._last_check = current_time
+                        return True, "Embedding server available"
+                    self._available = False
+                    self._last_check = current_time
+                    return False, f"Embedding server returned status {resp.status}"
+        except Exception as e:
+            logging.debug(f"[EmbeddingServer] Health check failed: {e}")
+            self._available = False
+            self._last_check = current_time
+            return False, "Embedding server unreachable"
+
+    async def forward_embeddings(self, data: dict) -> Optional[dict]:
+        if not self.is_configured:
+            return None
+
+        import aiohttp
+
+        logging.info(f"[EmbeddingServer] Forwarding embeddings to {self.base_url}")
+
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.post(
+                    f"{self.base_url}/v1/embeddings",
+                    json=data,
+                    headers=self._get_headers(),
+                    timeout=aiohttp.ClientTimeout(total=120),
+                ) as resp:
+                    if resp.status == 200:
+                        return await resp.json()
+                    error_text = await resp.text()
+                    logging.warning(
+                        f"[EmbeddingServer] Embeddings failed with status {resp.status}: {error_text}"
+                    )
+                    return None
+        except Exception as e:
+            logging.warning(f"[EmbeddingServer] Embeddings request failed: {e}")
+            return None
+
+
+_embedding_server_client: Optional[EmbeddingServerClient] = None
+_embedding_server_client_lock = threading.Lock()
+
+
+def get_embedding_server_client() -> EmbeddingServerClient:
+    """Get or create the global embedding server client."""
+    global _embedding_server_client
+    with _embedding_server_client_lock:
+        if _embedding_server_client is None:
+            _embedding_server_client = EmbeddingServerClient()
+        return _embedding_server_client
+
+
+def has_embedding_server_url() -> bool:
+    """Check if an embedding server URL is configured."""
+    return get_embedding_server_client().is_configured
+
+
+def is_embedding_server_mode() -> bool:
+    """Check if this server should act as an embedding server."""
+    embedding_server = getenv("EMBEDDING_SERVER")
+    if embedding_server and embedding_server.lower() == "true":
+        return True
+    return not has_embedding_server_url()
+
+
+def get_embedding_parallel_slots() -> int:
+    """Return configured concurrent embedding slots."""
+    try:
+        return max(1, int(getenv("EMBEDDING_N_PARALLEL", "1")))
+    except (TypeError, ValueError):
+        logging.warning(
+            "[Embedding] Invalid EMBEDDING_N_PARALLEL=%r; using 1",
+            getenv("EMBEDDING_N_PARALLEL", "1"),
+        )
+        return 1
+
+
+# =============================================================================
 # Text Server Client - For offloading LLM text requests to dedicated server
 # =============================================================================
 
@@ -3427,6 +3567,7 @@ class Pipes:
         self._img_lock = asyncio.Lock()
         self._video_lock = asyncio.Lock()
         self._embedder_lock = asyncio.Lock()
+        self._embedder_semaphore = asyncio.Semaphore(get_embedding_parallel_slots())
         # Track how many inferences are currently in progress (thread-safe counter)
         # Using a counter instead of boolean allows multiple concurrent requests
         self._inference_count = 0
@@ -5117,11 +5258,36 @@ class Pipes:
         if self.embedder is None:
             from ezlocalai.Embedding import Embedding
 
-            logging.debug("[Embedding] Loading BGE-M3 on demand")
-            start_time = time.time()
-            self.embedder = Embedding()
+            resource_mgr = get_resource_manager()
+            can_load, device, reason = resource_mgr.can_load_model(ModelType.EMBEDDING)
+            # The GGUF embedder can partially offload layers to CPU, so let its
+            # own estimator choose GPU/partial/CPU instead of forcing CPU just
+            # because the coarse resource estimate is tight.
+            force_cpu = False
+            main_gpu = None
+            if device.startswith("cuda:"):
+                try:
+                    main_gpu = int(device.split(":", 1)[1])
+                except (IndexError, ValueError):
+                    main_gpu = None
+
             logging.debug(
-                f"[Embedding] BGE-M3 loaded in {time.time() - start_time:.2f}s"
+                f"[Embedding] Loading {getenv('EMBEDDING_MODEL')} on demand ({reason})"
+            )
+            start_time = time.time()
+            self.embedder = Embedding(force_cpu=force_cpu, main_gpu=main_gpu)
+            resource_mgr.register_model(
+                ModelType.EMBEDDING,
+                getattr(self.embedder, "model_name", getenv("EMBEDDING_MODEL")),
+                getattr(self.embedder, "device", device),
+                getattr(
+                    self.embedder,
+                    "estimated_gpu_vram_gb",
+                    MODEL_VRAM_ESTIMATES.get(ModelType.EMBEDDING, 2.0),
+                ),
+            )
+            logging.debug(
+                f"[Embedding] {getenv('EMBEDDING_MODEL')} loaded in {time.time() - start_time:.2f}s"
             )
         return self.embedder
 
@@ -5134,7 +5300,7 @@ class Pipes:
             if torch.cuda.is_available():
                 torch.cuda.empty_cache()
             cleanup_time = time.time() - start_time
-            logging.debug(f"[Embedding] BGE-M3 unloaded in {cleanup_time:.2f}s")
+            logging.debug(f"[Embedding] model unloaded in {cleanup_time:.2f}s")
         except Exception as e:
             logging.error(f"[Embedding] Error during cleanup: {e}")
 
@@ -5143,6 +5309,10 @@ class Pipes:
         if self.embedder is not None:
             embedder_ref = self.embedder
             self.embedder = None
+            try:
+                get_resource_manager().unregister_model(ModelType.EMBEDDING)
+            except Exception:
+                pass
 
             if async_cleanup:
                 logging.debug("[Embedding] Scheduling async unload...")
@@ -6531,6 +6701,9 @@ class Pipes:
 
         tts_enabled = (getenv("TTS_ENABLED") or "true").strip().lower() == "true"
         stt_enabled = (getenv("STT_ENABLED") or "true").strip().lower() == "true"
+        embedding_enabled = (
+            getenv("EMBEDDING_ENABLED") or "true"
+        ).strip().lower() == "true"
         img_model = (getenv("IMG_MODEL") or "").strip().lower()
         video_model = (getenv("VIDEO_MODEL") or "").strip().lower()
 
@@ -6553,6 +6726,13 @@ class Pipes:
             cap_slots["video"] = _slot(
                 capacity=1,
                 in_flight=self.resource_manager.get_model_active_count(ModelType.VIDEO),
+            )
+        if embedding_enabled and not has_embedding_server_url():
+            cap_slots["embedding"] = _slot(
+                capacity=get_embedding_parallel_slots(),
+                in_flight=self.resource_manager.get_model_active_count(
+                    ModelType.EMBEDDING
+                ),
             )
 
         total_capacity = 0

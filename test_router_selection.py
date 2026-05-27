@@ -103,6 +103,16 @@ class RouterSelectionTests(unittest.TestCase):
         self.assertIsNotNone(worker)
         self.assertEqual(worker.label, "VIDEO Worker")
 
+    def test_embedding_routes_by_capability_when_model_alias_is_not_advertised(self):
+        router = self._router_with_worker("embedding")
+
+        worker = router.select_worker(
+            "embedding", "text-embedding-3-large", allow_cross_model=False
+        )
+
+        self.assertIsNotNone(worker)
+        self.assertEqual(worker.label, "EMBEDDING Worker")
+
     def test_text_still_waits_for_requested_model_during_grace_period(self):
         router = self._router_with_worker("text")
 
@@ -273,6 +283,7 @@ class CapabilityDetectionTests(unittest.TestCase):
             "VIDEO_MODEL": "",
             "TTS_ENABLED": "true",
             "STT_ENABLED": "true",
+            "EMBEDDING_ENABLED": "true",
         }
         env.update(overrides)
         return patch.dict(os.environ, env, clear=True)
@@ -296,6 +307,18 @@ class CapabilityDetectionTests(unittest.TestCase):
 
         self.assertNotIn("tts", caps)
         self.assertNotIn("stt", caps)
+
+    def test_disabled_embeddings_are_not_advertised(self):
+        with self._env(EMBEDDING_ENABLED="false"):
+            caps = detect_local_capabilities()
+
+        self.assertNotIn("embedding", caps)
+
+    def test_text_delegation_does_not_disable_embeddings(self):
+        with self._env(TEXT_SERVER="http://text.local:8091"):
+            caps = detect_local_capabilities()
+
+        self.assertIn("embedding", caps)
 
 
 if __name__ == "__main__":

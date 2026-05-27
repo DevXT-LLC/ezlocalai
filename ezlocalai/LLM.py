@@ -300,7 +300,10 @@ def get_models():
 
 
 def download_model(
-    model_name: str = "", models_dir: str = "models", quantization_type: str = None
+    model_name: str = "",
+    models_dir: str = "models",
+    quantization_type: str = None,
+    skip_mmproj: bool = False,
 ) -> tuple:
     """
     Download a model from HuggingFace Hub.
@@ -332,7 +335,7 @@ def download_model(
     # below would issue a HEAD/GET to HF for every variant before reaching
     # the user's file, redownloading content unnecessarily.
     mmproj_path = None
-    if os.path.isdir(model_dir):
+    if not skip_mmproj and os.path.isdir(model_dir):
         for fname in os.listdir(model_dir):
             if "mmproj" in fname.lower() and fname.endswith(".gguf"):
                 mmproj_path = os.path.join(model_dir, fname)
@@ -350,7 +353,7 @@ def download_model(
         f"{model.lower()}-mmproj-f16.gguf",
     ]
 
-    if mmproj_path is None:
+    if not skip_mmproj and mmproj_path is None:
         for mmproj_file in potential_mmproj_files:
             mmproj_filepath = os.path.join(model_dir, mmproj_file)
             if os.path.exists(mmproj_filepath):

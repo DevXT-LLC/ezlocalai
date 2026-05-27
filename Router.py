@@ -44,7 +44,7 @@ from Globals import getenv
 # ---------------------------------------------------------------------------
 
 ALL_CAPABILITIES = {"text", "vision", "tts", "stt", "image", "video", "embedding"}
-MODEL_STRICT_CAPABILITIES = {"text", "vision", "embedding"}
+MODEL_STRICT_CAPABILITIES = {"text", "vision"}
 _RUNTIME_VERSION_CACHE: Optional[str] = None
 
 
@@ -349,10 +349,14 @@ def detect_local_capabilities() -> List[str]:
     voice_server = (getenv("VOICE_SERVER") or "").strip().lower()
     image_server = (getenv("IMAGE_SERVER") or "").strip().lower()
     text_server = (getenv("TEXT_SERVER") or "").strip().lower()
+    embedding_server = (getenv("EMBEDDING_SERVER") or "").strip().lower()
     img_model = (getenv("IMG_MODEL") or "").strip().lower()
     video_model = (getenv("VIDEO_MODEL") or "").strip().lower()
     tts_enabled = (getenv("TTS_ENABLED") or "true").strip().lower() == "true"
     stt_enabled = (getenv("STT_ENABLED") or "true").strip().lower() == "true"
+    embedding_enabled = (
+        getenv("EMBEDDING_ENABLED") or "true"
+    ).strip().lower() == "true"
 
     def _is_url(v: str) -> bool:
         return v.startswith("http://") or v.startswith("https://")
@@ -360,6 +364,7 @@ def detect_local_capabilities() -> List[str]:
     voice_delegated = _is_url(voice_server)
     image_delegated = _is_url(image_server)
     text_delegated = _is_url(text_server)
+    embedding_delegated = _is_url(embedding_server)
 
     is_dedicated_image = image_server == "true"
 
@@ -425,6 +430,9 @@ def detect_local_capabilities() -> List[str]:
         caps.append("image")
     if video_model and video_model not in ("none", ""):
         caps.append("video")
+
+    if embedding_enabled and not embedding_delegated:
+        caps.append("embedding")
 
     # De-dup, preserve order
     seen = set()
@@ -1693,6 +1701,25 @@ class WorkerHeartbeatClient:
                 model_context.setdefault(model_name, context)
         except Exception:
             pass
+        try:
+            embedding_server = (getenv("EMBEDDING_SERVER") or "").strip().lower()
+            embedding_delegated = embedding_server.startswith(("http://", "https://"))
+            embedding_model = (getenv("EMBEDDING_MODEL") or "").strip()
+            embedding_alias = (getenv("EMBEDDING_MODEL_ALIAS") or "").strip()
+            embedding_enabled = (
+                getenv("EMBEDDING_ENABLED") or "true"
+            ).strip().lower() == "true"
+            if not embedding_delegated and embedding_enabled and embedding_model:
+                for name in (embedding_model, embedding_alias):
+                    if name:
+                        model_context.setdefault(
+                            name, int(getenv("EMBEDDING_CONTEXT_LENGTH", "32768"))
+                        )
+                        model_quant.setdefault(
+                            name, getenv("EMBEDDING_QUANT_TYPE", "Q8_0")
+                        )
+        except Exception:
+            pass
         # Fallback: fill missing quants from QUANT_TYPE env (uses getenv default Q4_K_XL)
         try:
             default_models = [
@@ -1751,6 +1778,12 @@ class WorkerHeartbeatClient:
                 _vm = (getenv("VIDEO_MODEL") or "").strip()
                 if _vm:
                     cap_models["video"] = _vm
+            elif _cap == "embedding":
+                _em = (getenv("EMBEDDING_MODEL_ALIAS") or "").strip() or (
+                    getenv("EMBEDDING_MODEL") or ""
+                ).strip()
+                if _em:
+                    cap_models["embedding"] = _em
         return {
             "free_vram_gb": free_vram,
             "total_vram_gb": total_vram,

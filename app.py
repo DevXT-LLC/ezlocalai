@@ -33,6 +33,7 @@ import asyncio
 from Globals import getenv
 
 DEFAULT_MODEL = getenv("DEFAULT_MODEL")
+EMBEDDING_MODEL = getenv("EMBEDDING_MODEL")
 WHISPER_MODEL = getenv("WHISPER_MODEL")
 logging.basicConfig(
     level=getenv("LOG_LEVEL"),
@@ -138,8 +139,6 @@ def _local_capabilities() -> set:
 
 def _has_local_capability(capability: str) -> bool:
     caps = _local_capabilities()
-    if capability == "embedding" and "text" in caps:
-        return True
     return capability in caps
 
 
@@ -766,8 +765,10 @@ async def completions(c: Completions, request: Request, user=Depends(verify_api_
 # https://platform.openai.com/docs/api-reference/embeddings
 class EmbeddingModel(BaseModel):
     input: Union[str, List[str]]
-    model: Optional[str] = DEFAULT_MODEL
+    model: Optional[str] = EMBEDDING_MODEL
     user: Optional[str] = None
+    dimensions: Optional[int] = None
+    encoding_format: Optional[str] = None
 
 
 class EmbeddingResponse(BaseModel):
@@ -783,23 +784,37 @@ class EmbeddingResponse(BaseModel):
     dependencies=[Depends(verify_api_key)],
 )
 async def embedding(embedding: EmbeddingModel, user=Depends(verify_api_key)):
-    # Check if text server is configured - forward if so
-    from Pipes import get_text_server_client
+    from Pipes import get_embedding_server_client
 
-    text_client = get_text_server_client()
-    if text_client.is_configured:
-        available, _ = await text_client.check_availability()
-        if available:
-            logging.info("[Embeddings] Forwarding to text server")
+    data = (
+        embedding.model_dump(exclude_none=True)
+        if hasattr(embedding, "model_dump")
+        else embedding.dict(exclude_none=True)
+    )
+
+    if getenv("EMBEDDING_ENABLED").lower() == "false":
+        router_client = await _router_client_for_unserved_capability("embedding")
+        if router_client:
             try:
-                result = await text_client.forward_embeddings(
-                    {"input": embedding.input, "model": embedding.model}
-                )
+                result = await router_client.forward_embeddings(data)
+                if result is not None:
+                    return result
+            except Exception as e:
+                logging.warning(f"[Embeddings] Router forward failed: {e}")
+        raise HTTPException(status_code=404, detail="Embeddings are disabled.")
+
+    embedding_client = get_embedding_server_client()
+    if embedding_client.is_configured:
+        available, _ = await embedding_client.check_availability()
+        if available:
+            logging.info("[Embeddings] Forwarding to embedding server")
+            try:
+                result = await embedding_client.forward_embeddings(data)
                 if result is not None:
                     return result
             except Exception as e:
                 logging.warning(
-                    f"[Embeddings] Text server forward failed: {e}, using local"
+                    f"[Embeddings] Embedding server forward failed: {e}, using local"
                 )
 
     from Pipes import should_use_ezlocalai_fallback, get_fallback_client
@@ -817,16 +832,35 @@ async def embedding(embedding: EmbeddingModel, user=Depends(verify_api_key)):
                         {
                             "input": embedding.input,
                             "model": embedding.model,
+                            "dimensions": embedding.dimensions,
+                            "encoding_format": embedding.encoding_format,
                         }
                     )
                 except Exception as e:
                     logging.warning(f"[Embeddings] Fallback failed: {e}, using local")
 
     # Use local embeddings
+    from Pipes import ModelType, get_resource_manager
+
     async with pipe._embedder_lock:
         embedder = pipe._get_embedder()
-        result = embedder.get_embeddings(input=embedding.input)
-        pipe._destroy_embedder()
+
+    async with pipe._embedder_semaphore:
+        resource_mgr = get_resource_manager()
+        resource_mgr.mark_model_in_use(ModelType.EMBEDDING, True)
+        try:
+            result = await asyncio.to_thread(
+                embedder.get_embeddings,
+                input=embedding.input,
+                model=embedding.model,
+                dimensions=embedding.dimensions,
+            )
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail=str(e))
+        finally:
+            resource_mgr.mark_model_in_use(ModelType.EMBEDDING, False)
+            if getenv("EMBEDDING_KEEP_LOADED", "true").lower() != "true":
+                pipe._destroy_embedder()
     return result
 
 
