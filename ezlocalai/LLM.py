@@ -1,6 +1,6 @@
 import xllamacpp as xlc
 from huggingface_hub import hf_hub_download, list_repo_files
-from typing import List, Optional, Dict, Tuple
+from typing import Any, List, Optional, Dict, Tuple
 import os
 import re
 import torch
@@ -12,6 +12,21 @@ from Globals import getenv
 DEFAULT_MODEL = getenv("DEFAULT_MODEL")
 MTP_SPEC_DRAFT_P_MIN_DEFAULT = 0.25
 MTP_SPEC_DRAFT_N_MAX_MAX = 16
+
+
+def normalize_stream_chunk_delta(chunk_data: Dict[str, Any]) -> Dict[str, Any]:
+    """Normalize raw streaming chunk content into an OpenAI delta object."""
+    raw_delta = chunk_data.get("delta", {})
+    if not isinstance(raw_delta, dict):
+        raw_delta = {}
+    delta: Dict[str, Any] = {}
+    content = chunk_data.get("content", raw_delta.get("content"))
+    reasoning = chunk_data.get("reasoning_content", raw_delta.get("reasoning_content"))
+    if content:
+        delta["content"] = content
+    elif reasoning:
+        delta["reasoning_content"] = reasoning
+    return delta
 
 
 def get_gpu_count() -> int:
@@ -1142,12 +1157,17 @@ class LLM:
                                 f"[LLM] Yielding OpenAI format chunk with choices"
                             )
                             yield chunk_data
-                        elif "content" in chunk_data or "delta" in chunk_data:
-                            # Wrap in OpenAI format
-                            content = chunk_data.get(
-                                "content",
-                                chunk_data.get("delta", {}).get("content", ""),
-                            )
+                        elif (
+                            "content" in chunk_data
+                            or "reasoning_content" in chunk_data
+                            or "delta" in chunk_data
+                        ):
+                            # Wrap in OpenAI format while preserving reasoning
+                            # deltas. Some llama.cpp/xllamacpp builds stream
+                            # reasoning_content separately from answer content;
+                            # dropping it creates empty visible streams for
+                            # clients that know how to render thinking.
+                            delta = normalize_stream_chunk_delta(chunk_data)
                             yield {
                                 "id": chunk_id,
                                 "object": "chat.completion.chunk",
@@ -1156,8 +1176,10 @@ class LLM:
                                 "choices": [
                                     {
                                         "index": 0,
-                                        "delta": {"content": content},
-                                        "finish_reason": None,
+                                        "delta": delta,
+                                        "finish_reason": chunk_data.get(
+                                            "finish_reason"
+                                        ),
                                     }
                                 ],
                             }
