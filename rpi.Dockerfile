@@ -24,7 +24,7 @@ RUN --mount=type=cache,target=/root/.cache/pip,sharing=locked \
     python3 -m pip install --no-cache-dir -r rpi-requirements.txt
 
 # Install xllamacpp - prebuilt aarch64 wheels available on PyPI
-RUN pip install xllamacpp==2026.5.9294 --force-reinstall --no-cache-dir
+RUN pip install xllamacpp==2026.6.9538 --force-reinstall --no-cache-dir
 
 COPY . .
 

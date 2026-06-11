@@ -1619,7 +1619,7 @@ def get_rocm_version() -> Optional[str]:
 
 XLLAMACPP_REPO = "https://github.com/xorbitsai/xllamacpp.git"
 XLLAMACPP_BUILD_DIR = STATE_DIR / "xllamacpp-build"
-XLLAMACPP_VERSION = "2026.5.9294"
+XLLAMACPP_VERSION = "2026.6.9538"
 XLLAMACPP_SOURCE_REF = f"v{XLLAMACPP_VERSION}-cu128"
 
 
@@ -1709,7 +1709,9 @@ def build_xllamacpp_from_source(gpu_type: str = "nvidia") -> list[str]:
         check=False,
     )
     if checkout_result.returncode != 0:
-        print(f"   ⚠️  Failed to fetch xllamacpp tags: {checkout_result.stderr.strip()}")
+        print(
+            f"   ⚠️  Failed to fetch xllamacpp tags: {checkout_result.stderr.strip()}"
+        )
     checkout_result = subprocess.run(
         ["git", "checkout", XLLAMACPP_SOURCE_REF],
         cwd=XLLAMACPP_BUILD_DIR,
@@ -2012,7 +2014,9 @@ def install_native_dependencies(source_dir: Path, gpu_type: str = "cpu") -> bool
                 text=True,
             )
             if result.returncode != 0:
-                print(f"⚠️  xllamacpp CPU fallback also failed: {result.stderr.strip()}")
+                print(
+                    f"⚠️  xllamacpp CPU fallback also failed: {result.stderr.strip()}"
+                )
 
     # Install chatterbox-tts with --no-deps (same as Dockerfile)
     print("   Installing chatterbox-tts...")

@@ -27,7 +27,7 @@ RUN pip install chatterbox-tts --no-deps --no-cache-dir
 RUN pip install esp-ppq --no-deps --no-cache-dir
 
 # Install xllamacpp CPU version
-RUN pip install xllamacpp==2026.5.9294 --force-reinstall --no-cache-dir
+RUN pip install xllamacpp==2026.6.9538 --force-reinstall --no-cache-dir
 
 COPY . .
 ENV HOST=0.0.0.0 \
