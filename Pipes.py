@@ -7,6 +7,10 @@ import threading
 import queue
 import tempfile
 from dotenv import load_dotenv
+from ezlocalai.context_retry import (
+    context_reload_can_help,
+    parse_context_error_limits,
+)
 from ezlocalai.LLM import (
     LLM,
     get_free_vram_per_gpu,
@@ -7972,18 +7976,17 @@ class Pipes:
                     if _is_context_error(error_msg) and attempt < max_retries - 1:
                         # Try to extract n_prompt_tokens from error message
                         # Format: "... [n_prompt_tokens=21922, n_ctx=16384]"
-                        import re
-
-                        prompt_tokens_match = re.search(
-                            r"n_prompt_tokens=(\d+)", error_msg
+                        needed_tokens, actual_context = parse_context_error_limits(
+                            error_msg
                         )
-                        if prompt_tokens_match:
-                            needed_tokens = int(prompt_tokens_match.group(1))
+                        if needed_tokens:
                             logging.debug(
                                 f"[LLM] Extracted n_prompt_tokens={needed_tokens} from error"
                             )
                         else:
                             # Fallback: try to find any large number
+                            import re
+
                             numbers = re.findall(r"(\d+)", error_msg)
                             if numbers:
                                 # Use the largest number as required context
@@ -7996,6 +7999,23 @@ class Pipes:
                         new_context = calculate_context_size(needed_tokens)
 
                         if new_context > current_context:
+                            if not context_reload_can_help(
+                                error_msg, current_context, new_context
+                            ):
+                                logging.error(
+                                    "[LLM] Context error requires %s prompt tokens, but "
+                                    "llama.cpp reported actual n_ctx=%s while current "
+                                    "requested context is %s. Skipping impossible reload "
+                                    "and preserving the original context error.",
+                                    f"{needed_tokens:,}",
+                                    (
+                                        f"{actual_context:,}"
+                                        if actual_context
+                                        else "unknown"
+                                    ),
+                                    f"{current_context:,}",
+                                )
+                                raise
                             logging.warning(
                                 f"[LLM] Context error detected ({needed_tokens} prompt tokens), reloading with {new_context//1024}k context..."
                             )
@@ -8228,12 +8248,10 @@ class Pipes:
                         # Extract token count from error if available
                         import re
 
-                        prompt_tokens_match = re.search(
-                            r"n_prompt_tokens=(\d+)", error_msg
+                        needed_tokens, actual_context = parse_context_error_limits(
+                            error_msg
                         )
-                        if prompt_tokens_match:
-                            needed_tokens = int(prompt_tokens_match.group(1))
-                        else:
+                        if not needed_tokens:
                             # Try to find any number that looks like a token count
                             numbers = re.findall(r"(\d{4,})", error_msg)  # 4+ digits
                             needed_tokens = (
@@ -8248,7 +8266,24 @@ class Pipes:
                         # Pre-load larger context for next request
                         if needed_tokens > 0:
                             new_context = calculate_context_size(needed_tokens)
-                            pipes_self._ensure_context_size(new_context)
+                            current_context = pipes_self.current_context or 16384
+                            if context_reload_can_help(
+                                error_msg, current_context, new_context
+                            ):
+                                pipes_self._ensure_context_size(new_context)
+                            else:
+                                logging.error(
+                                    "[STREAMING] Skipping context reload because "
+                                    "llama.cpp reported actual n_ctx=%s after "
+                                    "requested context %s; larger reload would "
+                                    "not fix this prompt.",
+                                    (
+                                        f"{actual_context:,}"
+                                        if actual_context
+                                        else "unknown"
+                                    ),
+                                    f"{current_context:,}",
+                                )
                     # Re-raise the error to let caller handle it
                     raise
                 finally:
