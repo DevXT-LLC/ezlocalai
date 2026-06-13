@@ -2525,9 +2525,25 @@ async def _proxy_via_tunnel(
             )
 
     async def gen():
+        sent_any = False
         try:
             async for c in chunks:
+                sent_any = True
                 yield c
+        except Exception as e:
+            logging.warning(
+                f"[Router] Tunnel stream from {worker.label}{path} failed: {e}"
+            )
+            error = {
+                "error": {
+                    "message": (
+                        f"Worker stream failed after proxying {int(sent_any)} chunk(s): "
+                        f"{type(e).__name__}: {e}"
+                    ),
+                    "type": "worker_stream_error",
+                }
+            }
+            yield f"data: {json.dumps(error)}\n\n".encode("utf-8")
         finally:
             registry.increment_in_flight(
                 worker.worker_id, -1, capability=capability, model=model
@@ -2561,10 +2577,21 @@ async def _proxy_json(
             model=model,
         )
     url = f"{worker.url}{path}"
-    request_timeout = aiohttp.ClientTimeout(
-        total=timeout or float(getenv("REQUEST_TIMEOUT", "300")),
-        connect=10,  # fail fast on connection errors, don't wait the full timeout
-    )
+    timeout_seconds = timeout or float(getenv("REQUEST_TIMEOUT", "300"))
+    if stream:
+        # Long-horizon agent runs can legitimately stream for many minutes.
+        # Treat the timeout as an idle/read timeout, not a total wall-clock cap.
+        request_timeout = aiohttp.ClientTimeout(
+            total=None,
+            connect=10,
+            sock_connect=10,
+            sock_read=timeout_seconds,
+        )
+    else:
+        request_timeout = aiohttp.ClientTimeout(
+            total=timeout_seconds,
+            connect=10,  # fail fast on connection errors, don't wait the full timeout
+        )
     registry = get_registry()
     registry.increment_in_flight(
         worker.worker_id, 1, capability=capability, model=model
@@ -2597,11 +2624,13 @@ async def _proxy_json(
     async def gen():
         # Open one persistent session for the whole stream
         session = aiohttp.ClientSession(timeout=request_timeout)
+        sent_any = False
         try:
             resp = await session.post(url, json=payload, headers=headers)
             try:
                 async for chunk in resp.content.iter_any():
                     if chunk:
+                        sent_any = True
                         yield chunk
             finally:
                 resp.release()
@@ -2614,6 +2643,16 @@ async def _proxy_json(
                 path=path,
                 message=f"{type(e).__name__}: {e}",
             )
+            error = {
+                "error": {
+                    "message": (
+                        f"Worker stream failed after proxying {int(sent_any)} chunk(s): "
+                        f"{type(e).__name__}: {e}"
+                    ),
+                    "type": "worker_stream_error",
+                }
+            }
+            yield f"data: {json.dumps(error)}\n\n".encode("utf-8")
         finally:
             await session.close()
             registry.increment_in_flight(

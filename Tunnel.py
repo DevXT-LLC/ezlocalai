@@ -482,7 +482,13 @@ class TunnelClient:
         body_b64 = msg.get("body_b64")
         body = base64.b64decode(body_b64) if body_b64 else None
         url = f"{self.local_url}{path}"
-        timeout = aiohttp.ClientTimeout(total=600)
+        if bool(msg.get("stream")):
+            # Streaming inference can legitimately run far longer than 10
+            # minutes. Use read-idle timeouts so keepalive chunks keep the
+            # tunnel open without imposing a total wall-clock cap.
+            timeout = aiohttp.ClientTimeout(total=None, sock_connect=15, sock_read=600)
+        else:
+            timeout = aiohttp.ClientTimeout(total=600)
         try:
             async with aiohttp.ClientSession(timeout=timeout) as session:
                 async with session.request(

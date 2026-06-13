@@ -14,19 +14,101 @@ MTP_SPEC_DRAFT_P_MIN_DEFAULT = 0.25
 MTP_SPEC_DRAFT_N_MAX_MAX = 16
 
 
+STREAM_CONTENT_KEYS = (
+    "content",
+    "text",
+    "token",
+    "response",
+    "output",
+    "output_text",
+    "generated_text",
+)
+STREAM_REASONING_KEYS = ("reasoning_content", "reasoning", "thinking")
+
+
+def _stream_text_value(value: Any) -> str:
+    if isinstance(value, str):
+        return value
+    if isinstance(value, list):
+        return "".join(_stream_text_value(item) for item in value)
+    if isinstance(value, dict):
+        for key in (*STREAM_CONTENT_KEYS, *STREAM_REASONING_KEYS):
+            text = _stream_text_value(value.get(key))
+            if text:
+                return text
+    return ""
+
+
+def _first_stream_text(mapping: Dict[str, Any], keys: Tuple[str, ...]) -> str:
+    for key in keys:
+        text = _stream_text_value(mapping.get(key))
+        if text:
+            return text
+    return ""
+
+
 def normalize_stream_chunk_delta(chunk_data: Dict[str, Any]) -> Dict[str, Any]:
     """Normalize raw streaming chunk content into an OpenAI delta object."""
     raw_delta = chunk_data.get("delta", {})
     if not isinstance(raw_delta, dict):
         raw_delta = {}
     delta: Dict[str, Any] = {}
-    content = chunk_data.get("content", raw_delta.get("content"))
-    reasoning = chunk_data.get("reasoning_content", raw_delta.get("reasoning_content"))
+    content = _first_stream_text(chunk_data, STREAM_CONTENT_KEYS) or _first_stream_text(
+        raw_delta, STREAM_CONTENT_KEYS
+    )
+    reasoning = _first_stream_text(
+        chunk_data, STREAM_REASONING_KEYS
+    ) or _first_stream_text(raw_delta, STREAM_REASONING_KEYS)
     if content:
         delta["content"] = content
     elif reasoning:
         delta["reasoning_content"] = reasoning
     return delta
+
+
+def stream_chunk_has_assistant_text(chunk_data: Any) -> bool:
+    """Return True when a streaming chunk contains content or reasoning text."""
+    if isinstance(chunk_data, dict):
+        choices = chunk_data.get("choices")
+        if isinstance(choices, list):
+            for choice in choices:
+                if isinstance(choice, dict):
+                    if stream_chunk_has_assistant_text(choice.get("delta", {})):
+                        return True
+                    if stream_chunk_has_assistant_text(choice.get("message", {})):
+                        return True
+                    if normalize_stream_chunk_delta(choice):
+                        return True
+            return False
+        return bool(normalize_stream_chunk_delta(chunk_data))
+    if isinstance(chunk_data, str):
+        if not chunk_data.strip():
+            return False
+        try:
+            return stream_chunk_has_assistant_text(json.loads(chunk_data))
+        except Exception:
+            return True
+    return False
+
+
+def stream_chunk_finish_reason(chunk_data: Any) -> str:
+    if isinstance(chunk_data, dict):
+        choices = chunk_data.get("choices")
+        if isinstance(choices, list):
+            for choice in choices:
+                if isinstance(choice, dict):
+                    reason = choice.get("finish_reason")
+                    if reason:
+                        return str(reason)
+            return ""
+        reason = chunk_data.get("finish_reason")
+        return str(reason) if reason else ""
+    if isinstance(chunk_data, str) and chunk_data.strip():
+        try:
+            return stream_chunk_finish_reason(json.loads(chunk_data))
+        except Exception:
+            return ""
+    return ""
 
 
 def get_gpu_count() -> int:
@@ -1137,6 +1219,8 @@ class LLM:
         chunk_id = f"chatcmpl-{int(time.time())}"
         created = int(time.time())
         chunks_yielded = 0
+        assistant_chunks_yielded = 0
+        pending_final_chunk = None
         last_keepalive = time.time()
         keepalive_interval = 5.0  # Send keepalive every 5 seconds during processing
 
@@ -1156,18 +1240,30 @@ class LLM:
                             logging.debug(
                                 f"[LLM] Yielding OpenAI format chunk with choices"
                             )
+                            has_assistant_text = stream_chunk_has_assistant_text(
+                                chunk_data
+                            )
+                            if has_assistant_text:
+                                assistant_chunks_yielded += 1
+                            if not has_assistant_text and stream_chunk_finish_reason(
+                                chunk_data
+                            ):
+                                pending_final_chunk = chunk_data
+                                continue
                             yield chunk_data
-                        elif (
-                            "content" in chunk_data
-                            or "reasoning_content" in chunk_data
-                            or "delta" in chunk_data
-                        ):
+                        else:
                             # Wrap in OpenAI format while preserving reasoning
                             # deltas. Some llama.cpp/xllamacpp builds stream
                             # reasoning_content separately from answer content;
                             # dropping it creates empty visible streams for
                             # clients that know how to render thinking.
                             delta = normalize_stream_chunk_delta(chunk_data)
+                            if not delta:
+                                logging.warning(
+                                    f"[LLM] Unknown stream chunk dict format without assistant text: {chunk_data}"
+                                )
+                                continue
+                            assistant_chunks_yielded += 1
                             yield {
                                 "id": chunk_id,
                                 "object": "chat.completion.chunk",
@@ -1183,11 +1279,6 @@ class LLM:
                                     }
                                 ],
                             }
-                        else:
-                            # Unknown dict format, log it
-                            logging.debug(
-                                f"[LLM] Unknown chunk dict format: {chunk_data}"
-                            )
                     elif isinstance(chunk_data, str):
                         # JSON string - parse it
                         try:
@@ -1195,13 +1286,44 @@ class LLM:
 
                             parsed = json.loads(chunk_data)
                             if "choices" in parsed:
+                                has_assistant_text = stream_chunk_has_assistant_text(
+                                    parsed
+                                )
+                                if has_assistant_text:
+                                    assistant_chunks_yielded += 1
+                                if (
+                                    not has_assistant_text
+                                    and stream_chunk_finish_reason(parsed)
+                                ):
+                                    pending_final_chunk = parsed
+                                    continue
                                 yield parsed
                             else:
-                                logging.debug(
-                                    f"[LLM] Parsed JSON without choices: {parsed}"
-                                )
+                                delta = normalize_stream_chunk_delta(parsed)
+                                if delta:
+                                    assistant_chunks_yielded += 1
+                                    yield {
+                                        "id": chunk_id,
+                                        "object": "chat.completion.chunk",
+                                        "created": created,
+                                        "model": self.model_name,
+                                        "choices": [
+                                            {
+                                                "index": 0,
+                                                "delta": delta,
+                                                "finish_reason": parsed.get(
+                                                    "finish_reason"
+                                                ),
+                                            }
+                                        ],
+                                    }
+                                else:
+                                    logging.warning(
+                                        f"[LLM] Parsed JSON stream chunk without assistant text: {parsed}"
+                                    )
                         except json.JSONDecodeError:
                             # Raw text chunk
+                            assistant_chunks_yielded += 1
                             yield {
                                 "id": chunk_id,
                                 "object": "chat.completion.chunk",
@@ -1270,8 +1392,25 @@ class LLM:
         if error_holder[0]:
             raise error_holder[0]
 
-        # Only yield final stop chunk if we didn't get one from xllamacpp
-        # The last chunk from xllamacpp should have finish_reason set
+        if assistant_chunks_yielded == 0:
+            message = (
+                "LLM stream completed without any assistant text. "
+                f"raw_chunks={chunks_yielded}; model={self.model_name}"
+            )
+            logging.error(f"[LLM] {message}")
+            yield {
+                "error": {
+                    "message": message,
+                    "type": "empty_stream",
+                }
+            }
+            return
+
+        if pending_final_chunk is not None:
+            yield pending_final_chunk
+            return
+
+        # Only synthesize a final stop chunk if xllamacpp did not send one.
         yield {
             "id": chunk_id,
             "object": "chat.completion.chunk",
