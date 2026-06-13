@@ -12,6 +12,9 @@ from Globals import getenv
 DEFAULT_MODEL = getenv("DEFAULT_MODEL")
 MTP_SPEC_DRAFT_P_MIN_DEFAULT = 0.25
 MTP_SPEC_DRAFT_N_MAX_MAX = 16
+PROMPT_CACHE_AUTO_MIN_MIB = 8192
+PROMPT_CACHE_AUTO_MAX_MIB = 32768
+PROMPT_CACHE_AUTO_CONTEXT_DIVISOR = 16
 
 
 STREAM_CONTENT_KEYS = (
@@ -161,6 +164,55 @@ def get_model_size_billions(model_name: str) -> float:
         )
     ]
     return max(sizes) if sizes else 0.0
+
+
+def _round_up_to_step(value: int, step: int) -> int:
+    if value <= 0:
+        return 0
+    return ((value + step - 1) // step) * step
+
+
+def resolve_prompt_cache_mib(
+    raw_value: str,
+    model_name: str = "",
+    effective_max_tokens: int = 0,
+) -> Tuple[int, str]:
+    """Resolve host-RAM prompt-cache size.
+
+    llama.cpp's host-memory prompt cache is meant to reduce re-prefill work for
+    long, repeated prefixes. Keep this enabled by default and let operators set
+    LLM_PROMPT_CACHE_MIB=0/off to disable it if a specific backend regresses.
+    """
+    value = str(raw_value if raw_value is not None else "auto").strip().lower()
+    if value in {"", "auto"}:
+        context_tokens = max(0, int(effective_max_tokens))
+        if context_tokens >= 500_000:
+            context_scaled = PROMPT_CACHE_AUTO_MAX_MIB
+        else:
+            context_scaled = _round_up_to_step(
+                context_tokens // PROMPT_CACHE_AUTO_CONTEXT_DIVISOR,
+                1024,
+            )
+        resolved = min(
+            PROMPT_CACHE_AUTO_MAX_MIB,
+            max(PROMPT_CACHE_AUTO_MIN_MIB, context_scaled),
+        )
+        return (
+            resolved,
+            f"auto for {int(effective_max_tokens or 0):,} context tokens",
+        )
+    if value in {"0", "false", "no", "off", "disabled", "none"}:
+        return 0, "disabled by LLM_PROMPT_CACHE_MIB"
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError):
+        return (
+            PROMPT_CACHE_AUTO_MIN_MIB,
+            f"invalid LLM_PROMPT_CACHE_MIB={raw_value!r}; using safe auto minimum",
+        )
+    if parsed <= 0:
+        return 0, "disabled by non-positive LLM_PROMPT_CACHE_MIB"
+    return parsed, "explicit LLM_PROMPT_CACHE_MIB"
 
 
 def get_mtp_spec_draft_n_max(
@@ -849,18 +901,25 @@ class LLM:
             f"ubatch: {self.xlc_params.n_ubatch} ({ubatch_source}) "
             f"for context {effective_max_tokens}"
         )
-        # Prompt cache (host-RAM checkpoint cache).
-        # SWA / hybrid / recurrent models (e.g. Qwen3, Gemma2) cannot reuse
-        # cached prompt state across requests — llama.cpp logs
-        # "forcing full prompt re-processing due to lack of cache data"
-        # every request, and the cache machinery becomes pure overhead
-        # (100-200ms/request + growing host RAM + KV pressure).
-        # Default to disabled; set LLM_PROMPT_CACHE_MIB > 0 to opt in.
-        try:
-            cache_mib = int(getenv("LLM_PROMPT_CACHE_MIB", "0"))
-        except ValueError:
-            cache_mib = 0
+        # Prompt cache (host-RAM checkpoint cache). Keep this enabled by
+        # default for long-horizon agent traffic; stable WorkConductor prompt
+        # prefixes and llama.cpp host-memory prompt caching can avoid expensive
+        # repeated prefill. Operators can set LLM_PROMPT_CACHE_MIB=0/off when
+        # diagnosing a backend-specific cache regression.
+        cache_mib, cache_reason = resolve_prompt_cache_mib(
+            getenv("LLM_PROMPT_CACHE_MIB", "auto"),
+            self.model_name,
+            effective_max_tokens,
+        )
         self.xlc_params.cache_ram_mib = cache_mib
+        if cache_mib > 0:
+            logging.info(
+                "[LLM] Prompt cache: %s MiB (%s). Set LLM_PROMPT_CACHE_MIB=0 to disable.",
+                cache_mib,
+                cache_reason,
+            )
+        else:
+            logging.info("[LLM] Prompt cache disabled (%s).", cache_reason)
         self.xlc_params.n_gpu_layers = GPU_LAYERS
         self.gpu_layers = GPU_LAYERS  # Expose for runtime inspection
         self.xlc_params.main_gpu = (

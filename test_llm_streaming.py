@@ -32,6 +32,7 @@ sys.modules.setdefault("torch", types.SimpleNamespace(cuda=_FakeCuda()))
 from ezlocalai.LLM import (
     LLM,
     normalize_stream_chunk_delta,
+    resolve_prompt_cache_mib,
     stream_chunk_finish_reason,
     stream_chunk_has_assistant_text,
 )
@@ -56,6 +57,16 @@ def _fake_llm(chunks):
 
 
 class LlmStreamingTests(unittest.TestCase):
+    def test_prompt_cache_auto_scales_with_context(self):
+        self.assertEqual(resolve_prompt_cache_mib("auto", "qwen", 65_536)[0], 8192)
+        self.assertEqual(resolve_prompt_cache_mib("auto", "qwen", 262_144)[0], 16384)
+        self.assertEqual(resolve_prompt_cache_mib("auto", "qwen", 500_000)[0], 32768)
+
+    def test_prompt_cache_can_be_disabled_or_explicit(self):
+        self.assertEqual(resolve_prompt_cache_mib("off", "qwen", 262_144)[0], 0)
+        self.assertEqual(resolve_prompt_cache_mib("0", "qwen", 262_144)[0], 0)
+        self.assertEqual(resolve_prompt_cache_mib("12288", "qwen", 262_144)[0], 12288)
+
     def test_reasoning_delta_is_preserved_when_wrapping_chunk(self):
         delta = normalize_stream_chunk_delta(
             {"delta": {"reasoning_content": "I need to inspect this."}}

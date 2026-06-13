@@ -34,6 +34,9 @@ def getenv(var_name: str, default_value: str = None) -> str:
         # Single value applies to all models.
         "QUANT_TYPE": "Q4_K_XL",
         "LLM_BATCH_SIZE": "auto",
+        # Host-RAM prompt cache for repeated long prompt prefixes.
+        # auto scales with context size; set 0/off to disable for diagnostics.
+        "LLM_PROMPT_CACHE_MIB": "auto",
         # Context size — comma-separated to match DEFAULT_MODEL order.
         # e.g., LLM_MAX_TOKENS="65536,262144" gives model_a 65k and model_b 262k context.
         "LLM_MAX_TOKENS": "65536",
