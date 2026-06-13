@@ -1156,13 +1156,31 @@ class LLM:
                     f"[LLM] Stream callback received: type={type(chunk_data)}"
                 )
 
-                # Check for error response
-                if isinstance(chunk_data, dict) and "code" in chunk_data:
+                # Check for error response. xllamacpp can deliver streaming
+                # errors either at the top level or nested under "error".
+                # Treat both as hard stream errors so clients see the real
+                # cause instead of a misleading empty-stream retry loop.
+                error_info = None
+                if isinstance(chunk_data, dict):
+                    if "error" in chunk_data:
+                        nested_error = chunk_data.get("error")
+                        error_info = (
+                            nested_error
+                            if isinstance(nested_error, dict)
+                            else {"message": nested_error}
+                        )
+                    elif (
+                        "code" in chunk_data
+                        or chunk_data.get("type") == "exceed_context_size_error"
+                    ):
+                        error_info = chunk_data
+
+                if error_info is not None:
                     logging.error(f"[LLM] Stream callback error: {chunk_data}")
                     # Include token counts in error message for context size handling
-                    error_msg = chunk_data.get("message", str(chunk_data))
-                    n_prompt_tokens = chunk_data.get("n_prompt_tokens")
-                    n_ctx = chunk_data.get("n_ctx")
+                    error_msg = error_info.get("message", str(error_info))
+                    n_prompt_tokens = error_info.get("n_prompt_tokens")
+                    n_ctx = error_info.get("n_ctx")
                     if n_prompt_tokens:
                         error_msg = f"{error_msg} [n_prompt_tokens={n_prompt_tokens}, n_ctx={n_ctx or 'unknown'}]"
                     error_holder[0] = Exception(error_msg)

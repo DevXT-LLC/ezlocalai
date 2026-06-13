@@ -653,8 +653,14 @@ async def chat_completions(
                     logging.error(
                         f"[STREAMING] Full traceback: {traceback.format_exc()}"
                     )
-                    # Don't expose exception details to client
-                    yield f'data: {{"error": "Streaming failed"}}\n\n'
+                    error_message = str(e)[:1000] or "Streaming failed"
+                    error_payload = {
+                        "error": {
+                            "message": error_message,
+                            "type": "streaming_error",
+                        }
+                    }
+                    yield f"data: {json.dumps(error_payload)}\n\n"
                 finally:
                     # Close the underlying response generator so that
                     # GeneratorExit propagates down to LLM._chat_stream(),

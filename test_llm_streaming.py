@@ -141,6 +141,25 @@ class LlmStreamingTests(unittest.TestCase):
         self.assertEqual(outputs[0], chunks[0])
         self.assertEqual(outputs[-1]["error"]["type"], "empty_stream")
 
+    def test_nested_stream_error_raises_real_context_message(self):
+        chunks = [
+            {
+                "error": {
+                    "code": 400,
+                    "message": (
+                        "request (262146 tokens) exceeds the available context size "
+                        "(262144 tokens), try increasing it"
+                    ),
+                    "type": "exceed_context_size_error",
+                    "n_prompt_tokens": 262146,
+                    "n_ctx": 262144,
+                }
+            }
+        ]
+
+        with self.assertRaisesRegex(Exception, "262146.*262144"):
+            list(_fake_llm(chunks)._chat_stream({"messages": []}))
+
     def test_stream_with_text_yields_deferred_final_once(self):
         final_chunk = {"choices": [{"index": 0, "delta": {}, "finish_reason": "stop"}]}
         chunks = [

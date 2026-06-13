@@ -43,7 +43,7 @@ import os
 import re
 import time
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, AsyncIterator, Dict, List, Optional
 
 import aiohttp
 from fastapi import (
@@ -483,6 +483,154 @@ _usage = UsageTracker(getenv("USAGE_FILE", "/data/usage.json"))
 # ---------------------------------------------------------------------------
 # Streaming SSE token extractor
 # ---------------------------------------------------------------------------
+
+STREAM_CONTENT_KEYS = (
+    "content",
+    "text",
+    "token",
+    "response",
+    "output",
+    "output_text",
+    "generated_text",
+)
+STREAM_REASONING_KEYS = ("reasoning_content", "reasoning", "thinking")
+
+
+class _WorkerAttemptError(Exception):
+    def __init__(
+        self,
+        message: str,
+        *,
+        retryable: bool = True,
+        status: Optional[int] = None,
+    ):
+        super().__init__(message)
+        self.retryable = retryable
+        self.status = status
+
+
+def _stream_text_value(value: Any) -> str:
+    if isinstance(value, str):
+        return value
+    if isinstance(value, list):
+        return "".join(_stream_text_value(item) for item in value)
+    if isinstance(value, dict):
+        for key in (*STREAM_CONTENT_KEYS, *STREAM_REASONING_KEYS):
+            text = _stream_text_value(value.get(key))
+            if text:
+                return text
+    return ""
+
+
+def _stream_mapping_text(mapping: Dict[str, Any], keys: tuple) -> str:
+    for key in keys:
+        text = _stream_text_value(mapping.get(key))
+        if text:
+            return text
+    return ""
+
+
+def _stream_json_has_assistant_text(obj: Any) -> bool:
+    if not isinstance(obj, dict):
+        return bool(str(obj or "").strip())
+    choices = obj.get("choices")
+    if isinstance(choices, list):
+        for choice in choices:
+            if not isinstance(choice, dict):
+                continue
+            if _stream_json_has_assistant_text(choice.get("delta", {})):
+                return True
+            if _stream_json_has_assistant_text(choice.get("message", {})):
+                return True
+            if _stream_mapping_text(
+                choice, (*STREAM_CONTENT_KEYS, *STREAM_REASONING_KEYS)
+            ):
+                return True
+        return False
+    return bool(_stream_mapping_text(obj, (*STREAM_CONTENT_KEYS, *STREAM_REASONING_KEYS)))
+
+
+def _stream_json_finish_reason(obj: Any) -> str:
+    if not isinstance(obj, dict):
+        return ""
+    choices = obj.get("choices")
+    if isinstance(choices, list):
+        for choice in choices:
+            if isinstance(choice, dict) and choice.get("finish_reason"):
+                return str(choice["finish_reason"])
+        return ""
+    reason = obj.get("finish_reason")
+    return str(reason) if reason else ""
+
+
+def _stream_json_error_message(obj: Any) -> str:
+    if not isinstance(obj, dict):
+        return ""
+    error = obj.get("error")
+    if isinstance(error, dict):
+        message = error.get("message") or error.get("type") or error
+        return str(message)
+    if error:
+        return str(error)
+    return ""
+
+
+def _sse_event_payloads(event: bytes) -> List[bytes]:
+    payloads: List[bytes] = []
+    for line in event.splitlines():
+        line = line.strip()
+        if line.startswith(b"data:"):
+            payloads.append(line[5:].lstrip())
+    return payloads
+
+
+def _classify_sse_event(event: bytes) -> Dict[str, Any]:
+    """Classify one complete SSE event for streaming failover decisions."""
+    payloads = _sse_event_payloads(event)
+    saw_choices = False
+    has_text = False
+    finish_reason = ""
+    error_message = ""
+    done = False
+    parsed_payloads: List[Any] = []
+    for payload in payloads:
+        if not payload:
+            continue
+        if payload == b"[DONE]":
+            done = True
+            continue
+        try:
+            obj = json.loads(payload)
+        except Exception:
+            if payload.strip():
+                has_text = True
+            continue
+        parsed_payloads.append(obj)
+        message = _stream_json_error_message(obj)
+        if message:
+            error_message = message
+        if _stream_json_has_assistant_text(obj):
+            has_text = True
+        reason = _stream_json_finish_reason(obj)
+        if reason:
+            finish_reason = reason
+        if isinstance(obj, dict) and isinstance(obj.get("choices"), list):
+            saw_choices = True
+    terminal = bool(error_message or finish_reason or done)
+    return {
+        "has_text": has_text,
+        "terminal": terminal,
+        "safe_keepalive": bool(saw_choices and not has_text and not terminal),
+        "finish_reason": finish_reason,
+        "error_message": error_message,
+        "done": done,
+        "parsed_payloads": parsed_payloads,
+    }
+
+
+def _sse_error_event(message: str, error_type: str = "worker_stream_error") -> bytes:
+    payload = {"error": {"message": message, "type": error_type}}
+    return f"data: {json.dumps(payload)}\n\n".encode("utf-8")
 
 
 def _extract_tokens_from_sse_event(
@@ -1363,7 +1511,11 @@ def _tier_badge(worker: Dict[str, Any]) -> str:
     best_tier = _safe_int(worker.get("best_tier"), 0)
     priority_tier = _worker_priority_tier(worker)
     if priority_tier != best_tier:
-        title = f"tier {priority_tier}" f"tunnel penalty -{TUNNEL_TIER_PENALTY}"
+        title = (
+            f"priority tier {priority_tier}; "
+            f"hw {best_tier}; "
+            f"tunnel penalty -{TUNNEL_TIER_PENALTY}"
+        )
         return (
             f'<span class="tier-muted" title="{html.escape(title)}">'
             f"tier {priority_tier}</span>"
@@ -2662,6 +2814,304 @@ async def _proxy_json(
     return StreamingResponse(gen(), media_type="text/event-stream")
 
 
+def _stream_max_attempts(capability: str) -> int:
+    """Try the currently eligible worker pool for streaming LLM failover."""
+    try:
+        pool_size = len(
+            [
+                w
+                for w in get_registry().list_workers(alive_only=True)
+                if capability in w.capabilities and not w.is_circuit_open()
+            ]
+        )
+    except Exception:
+        pool_size = 0
+    return max(1 + _max_retries(), pool_size, 1)
+
+
+async def _read_stream_snippet(chunks, limit: int = 4096) -> str:
+    body = bytearray()
+    try:
+        async for chunk in chunks:
+            if chunk:
+                body.extend(chunk)
+                if len(body) >= limit:
+                    break
+    except Exception as e:
+        if not body:
+            return f"{type(e).__name__}: {e}"
+    return bytes(body[:limit]).decode("utf-8", errors="replace")
+
+
+async def _iter_worker_stream_bytes(
+    worker: WorkerInfo,
+    path: str,
+    payload: Dict[str, Any],
+    *,
+    capability: Optional[str] = None,
+    model: Optional[str] = None,
+) -> AsyncIterator[bytes]:
+    """Open one worker streaming request and yield raw SSE bytes."""
+    registry = get_registry()
+    registry.increment_in_flight(worker.worker_id, 1, capability=capability, model=model)
+    timeout_seconds = float(getenv("REQUEST_TIMEOUT", "300"))
+    try:
+        if is_tunnel_url(worker.url):
+            hub = get_tunnel_hub()
+            wid = worker_id_from_tunnel_url(worker.url)
+            conn = hub.get(wid)
+            if conn is None or conn.closed:
+                message = f"Tunnel for worker {worker.label} ({wid}) is not connected"
+                registry.record_error(
+                    worker.worker_id,
+                    kind="tunnel_disconnect",
+                    path=path,
+                    message=message,
+                    status=503,
+                )
+                raise _WorkerAttemptError(message, retryable=True, status=503)
+            try:
+                status, _resp_headers, chunks = await conn.request(
+                    "POST",
+                    path,
+                    headers={"Content-Type": "application/json", **_worker_headers(worker)},
+                    body=json.dumps(payload).encode("utf-8"),
+                    stream=True,
+                    timeout=timeout_seconds,
+                )
+            except Exception as e:
+                registry.record_connection_failure(worker.worker_id)
+                registry.record_error(
+                    worker.worker_id,
+                    kind="connection",
+                    path=path,
+                    message=f"{type(e).__name__}: {e}",
+                )
+                raise _WorkerAttemptError(f"{type(e).__name__}: {e}") from e
+            if status and status >= 400:
+                body = await _read_stream_snippet(chunks)
+                retryable = _is_transient_failure(status)
+                registry.record_error(
+                    worker.worker_id,
+                    kind="http_5xx" if retryable else "http_error",
+                    path=path,
+                    message=body or f"HTTP {status}",
+                    status=status,
+                )
+                raise _WorkerAttemptError(
+                    body or f"Worker returned HTTP {status}",
+                    retryable=retryable,
+                    status=status,
+                )
+            async for chunk in chunks:
+                if chunk:
+                    yield chunk
+            return
+
+        url = f"{worker.url}{path}"
+        request_timeout = aiohttp.ClientTimeout(
+            total=None,
+            connect=10,
+            sock_connect=10,
+            sock_read=timeout_seconds,
+        )
+        session = aiohttp.ClientSession(timeout=request_timeout)
+        resp = None
+        try:
+            resp = await session.post(
+                url,
+                json=payload,
+                headers={"Content-Type": "application/json", **_worker_headers(worker)},
+            )
+            if resp.status >= 400:
+                body = await resp.text()
+                retryable = _is_transient_failure(resp.status)
+                registry.record_error(
+                    worker.worker_id,
+                    kind="http_5xx" if retryable else "http_error",
+                    path=path,
+                    message=body or f"HTTP {resp.status}",
+                    status=resp.status,
+                )
+                raise _WorkerAttemptError(
+                    body or f"Worker returned HTTP {resp.status}",
+                    retryable=retryable,
+                    status=resp.status,
+                )
+            async for chunk in resp.content.iter_any():
+                if chunk:
+                    yield chunk
+        except _WorkerAttemptError:
+            raise
+        except Exception as e:
+            registry.record_connection_failure(worker.worker_id)
+            registry.record_error(
+                worker.worker_id,
+                kind="stream",
+                path=path,
+                message=f"{type(e).__name__}: {e}",
+            )
+            raise _WorkerAttemptError(f"{type(e).__name__}: {e}") from e
+        finally:
+            if resp is not None:
+                resp.release()
+            await session.close()
+    finally:
+        registry.increment_in_flight(
+            worker.worker_id, -1, capability=capability, model=model
+        )
+
+
+async def _llm_stream_with_worker_failover(
+    *,
+    capability: str,
+    path: str,
+    payload: Dict[str, Any],
+    model: str,
+    request_started: float,
+) -> AsyncIterator[bytes]:
+    tried: set = set()
+    max_attempts = _stream_max_attempts(capability)
+    last_error = ""
+    for attempt in range(max_attempts):
+        try:
+            worker = await _pick(capability, model, exclude=tried)
+        except Exception as e:
+            last_error = f"{type(e).__name__}: {e}"
+            logging.warning(
+                f"[Router] {path} stream attempt {attempt + 1}/{max_attempts} "
+                f"could not pick another worker: {last_error}"
+            )
+            break
+        tried.add(worker.worker_id)
+        assistant_seen = False
+        pt = 0
+        ct = 0
+        timings: Dict[str, float] = {}
+        buf = b""
+        retry_reason = ""
+        stream = _iter_worker_stream_bytes(
+            worker, path, payload, capability=capability, model=model
+        )
+        try:
+            async for chunk in stream:
+                buf += chunk
+                while b"\n\n" in buf:
+                    event, buf = buf.split(b"\n\n", 1)
+                    event_bytes = event + b"\n\n"
+                    event_info = _classify_sse_event(event)
+                    for payload_bytes in _sse_event_payloads(event):
+                        if payload_bytes and payload_bytes != b"[DONE]":
+                            pt, ct = _extract_tokens_from_sse_event(
+                                payload_bytes, pt, ct, timings
+                            )
+                    if event_info["has_text"]:
+                        assistant_seen = True
+                        yield event_bytes
+                        continue
+                    if assistant_seen:
+                        yield event_bytes
+                        continue
+                    if event_info["error_message"]:
+                        retry_reason = str(event_info["error_message"])
+                        break
+                    if event_info["finish_reason"] or event_info["done"]:
+                        retry_reason = (
+                            f"stream ended before assistant text"
+                            + (
+                                f" (finish_reason={event_info['finish_reason']})"
+                                if event_info["finish_reason"]
+                                else ""
+                            )
+                        )
+                        break
+                    if event_info["safe_keepalive"]:
+                        yield event_bytes
+                if retry_reason:
+                    break
+            if retry_reason:
+                await stream.aclose()
+                get_registry().record_error(
+                    worker.worker_id,
+                    kind="empty_stream",
+                    path=path,
+                    message=retry_reason,
+                )
+                logging.warning(
+                    f"[Router] {path} attempt {attempt + 1}/{max_attempts} via "
+                    f"{worker.label} produced no assistant text: {retry_reason}; "
+                    "trying next worker"
+                )
+                last_error = retry_reason
+                continue
+            if buf:
+                event_info = _classify_sse_event(buf)
+                for payload_bytes in _sse_event_payloads(buf):
+                    if payload_bytes and payload_bytes != b"[DONE]":
+                        pt, ct = _extract_tokens_from_sse_event(
+                            payload_bytes, pt, ct, timings
+                        )
+                if event_info["has_text"]:
+                    assistant_seen = True
+                    yield buf
+                elif assistant_seen:
+                    yield buf
+                elif event_info["error_message"]:
+                    last_error = str(event_info["error_message"])
+                    get_registry().record_error(
+                        worker.worker_id,
+                        kind="empty_stream",
+                        path=path,
+                        message=last_error,
+                    )
+                    logging.warning(
+                        f"[Router] {path} attempt {attempt + 1}/{max_attempts} via "
+                        f"{worker.label} ended with pre-text error: {last_error}; "
+                        "trying next worker"
+                    )
+                    continue
+            if assistant_seen:
+                timings["total_ms"] = (time.monotonic() - request_started) * 1000.0
+                await _usage.record_llm(worker.label, model, pt, ct, timings)
+                return
+            last_error = "worker stream completed without assistant text"
+            get_registry().record_error(
+                worker.worker_id,
+                kind="empty_stream",
+                path=path,
+                message=last_error,
+            )
+            logging.warning(
+                f"[Router] {path} attempt {attempt + 1}/{max_attempts} via "
+                f"{worker.label} completed without assistant text; trying next worker"
+            )
+        except _WorkerAttemptError as e:
+            last_error = str(e)
+            logging.warning(
+                f"[Router] {path} stream attempt {attempt + 1}/{max_attempts} via "
+                f"{worker.label} failed: {type(e).__name__}: {e}"
+            )
+            if assistant_seen:
+                yield _sse_error_event(str(e), "worker_stream_error")
+                return
+            if not e.retryable:
+                yield _sse_error_event(str(e), "worker_stream_error")
+                return
+        finally:
+            try:
+                await stream.aclose()
+            except Exception:
+                pass
+
+    yield _sse_error_event(
+        (
+            f"All {max_attempts} eligible worker stream attempts completed without "
+            f"assistant text for {path}: {last_error or 'unknown error'}"
+        ),
+        "empty_stream",
+    )
+
+
 async def _proxy_get(worker: WorkerInfo, path: str) -> Response:
     headers = _worker_headers(worker)
     if is_tunnel_url(worker.url):
@@ -3007,12 +3457,19 @@ async def _llm_proxy_with_retry(
     model: str,
     is_stream: bool,
 ):
-    """Forward an LLM request, retrying on a different worker if the first
-    pick fails connection-level or returns a transient (5xx) status. Once a
-    streaming worker has started writing bytes back to the client we cannot
-    safely retry — at that point we just record the partial usage and let
-    the client see whatever the worker produced.
-    """
+    """Forward an LLM request, retrying unhealthy workers before replying."""
+    if is_stream:
+        return StreamingResponse(
+            _llm_stream_with_worker_failover(
+                capability=capability,
+                path=path,
+                payload=payload,
+                model=model,
+                request_started=time.monotonic(),
+            ),
+            media_type="text/event-stream",
+        )
+
     tried: set = set()
     last_error: Optional[Exception] = None
     last_status: Optional[int] = None
@@ -3085,20 +3542,6 @@ async def _llm_proxy_with_retry(
             timings["total_ms"] = (time.monotonic() - request_started) * 1000.0
             await _usage.record_llm(worker.label, model, pt, ct, timings)
             return resp
-
-        # Streaming: we cannot retry once bytes are flowing.  Wrap the
-        # generator so token + timing extraction still happens.
-        _wlabel, _model = worker.label, model
-
-        async def _record(pt: int, ct: int, timings: Dict[str, float]):
-            timings = dict(timings or {})
-            timings["total_ms"] = (time.monotonic() - request_started) * 1000.0
-            await _usage.record_llm(_wlabel, _model, pt, ct, timings)
-
-        return StreamingResponse(
-            _stream_with_token_extraction(resp.body_iterator, _record),
-            media_type=resp.media_type,
-        )
 
     # Exhausted retries
     if last_error is not None:
