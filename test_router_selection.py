@@ -111,6 +111,74 @@ class RouterSelectionTests(unittest.TestCase):
         self.assertIsNotNone(worker)
         self.assertEqual(worker.worker_id, "direct-66")
 
+    def test_busy_high_tier_spills_to_idle_lower_tier_worker(self):
+        registry = WorkerRegistry(ttl_seconds=60)
+        registry.register(
+            self._text_worker(
+                "busy-5090",
+                "model-a",
+                best_tier=90,
+                capacity=3,
+                busy=1,
+            )
+        )
+        registry.register(self._text_worker("idle-3090", "model-a", best_tier=55))
+        router = Router(registry)
+
+        worker = router.select_worker("text", "model-a", allow_cross_model=False)
+
+        self.assertIsNotNone(worker)
+        self.assertEqual(worker.worker_id, "idle-3090")
+
+    def test_all_busy_text_workers_queue_even_with_open_parallel_slots(self):
+        registry = WorkerRegistry(ttl_seconds=60)
+        registry.register(
+            self._text_worker(
+                "busy-5090",
+                "model-a",
+                best_tier=90,
+                capacity=3,
+                busy=1,
+            )
+        )
+        registry.register(
+            self._text_worker(
+                "busy-4090",
+                "model-a",
+                best_tier=80,
+                capacity=2,
+                busy=1,
+            )
+        )
+        router = Router(registry)
+
+        worker = router.select_worker("text", "model-a", allow_cross_model=False)
+
+        self.assertIsNone(worker)
+
+    def test_busy_slot_fallback_can_restore_capacity_routing(self):
+        registry = WorkerRegistry(ttl_seconds=60)
+        registry.register(
+            self._text_worker(
+                "busy-5090",
+                "model-a",
+                best_tier=90,
+                capacity=3,
+                busy=1,
+            )
+        )
+        registry.register(self._text_worker("idle-3090", "model-a", best_tier=55))
+        router = Router(registry)
+
+        with patch.dict(
+            os.environ,
+            {"ROUTER_BUSY_SLOT_FALLBACK": "true", "ROUTER_IDLE_TIER_WINDOW": "0"},
+        ):
+            worker = router.select_worker("text", "model-a", allow_cross_model=False)
+
+        self.assertIsNotNone(worker)
+        self.assertEqual(worker.worker_id, "busy-5090")
+
     def test_stt_routes_by_capability_when_model_alias_is_not_advertised(self):
         router = self._router_with_worker("stt")
 

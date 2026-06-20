@@ -314,7 +314,7 @@ curl https://router.you.com:8092/v1/chat/completions \
   -d '{"model":"unsloth/Qwen3.6-35B-A3B-GGUF","messages":[{"role":"user","content":"Hi"}]}'
 ```
 
-The router will pick the highest-scoring text-capable worker that has the requested model loaded; if none is currently free, it queues until one becomes available (up to `ROUTER_WAIT_TIMEOUT`).
+The router will pick the highest-scoring idle text-capable worker that has the requested model loaded. If the fastest worker is already handling a request, the router spills over to another idle compatible worker. If every compatible text/vision worker is busy, it waits up to `ROUTER_WAIT_TIMEOUT` seconds before returning `503`.
 
 ### Reverse tunnel (workers without a public IP)
 
@@ -340,6 +340,8 @@ score = priority_tier * 10  +  slots_left * 5  +  free_vram_gb  -  in_flight * 4
 ```
 
 `best_tier` is derived from the worker's fastest GPU model (e.g. RTX 5090 ≈ 90, RTX 4090 = 80, RTX 3090 = 50, CPU = 2) and dominates the score, so an idle 5090 always beats an idle 3090. Tunneled workers keep their reported `best_tier` but receive a 5-point priority-tier penalty so similarly capable direct workers are preferred. The load penalty (`in_flight * 4`) lets a busy 5090 lose to an idle 4090 once it has a few requests in flight, which keeps the pool balanced under burst load.
+
+By default, text/vision routing requires an idle worker, so one long-running request on the 5090 sends the next compatible request to an idle 4090/3090 instead of stacking it onto the 5090. Set `ROUTER_BUSY_SLOT_FALLBACK=true` to restore slot-based routing when every compatible text/vision worker is already busy. When that fallback is enabled, `ROUTER_IDLE_TIER_WINDOW=100` covers the normal GPU tier range and makes any idle compatible node beat adding another request to a busy top-tier node; set the window lower to only spill over to nearby tiers, or `0` to use pure score/capacity routing.
 
 Workers missing the required capability (`text` / `vision` / `voice` / `image` / `video`) or the requested model are filtered out before scoring. Stale workers (no heartbeat for `ROUTER_WORKER_TTL` seconds) are also excluded.
 
