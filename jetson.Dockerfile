@@ -93,7 +93,7 @@ RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y && \
 ENV PATH="/root/.cargo/bin:${PATH}"
 
 ARG CUDA_ARCH=87
-ARG XLLAMACPP_SOURCE_REF=v2026.6.9538-cu128
+ARG XLLAMACPP_SOURCE_REF=v2026.6.9713-cu128
 ENV XLLAMACPP_BUILD_CUDA=1 \
     CMAKE_CUDA_ARCHITECTURES=${CUDA_ARCH} \
     CMAKE_BUILD_PARALLEL_LEVEL=4 \

@@ -38,7 +38,7 @@ ENV HOST=0.0.0.0 \
     HF_HOME=/app/models \
     HF_HUB_CACHE=/app/models
 # Install xllamacpp with ROCm 6.4.1 support
-RUN uv pip install xllamacpp==2026.6.9538 --reinstall --index-url https://xorbitsai.github.io/xllamacpp/whl/rocm-6.4.1
+RUN uv pip install xllamacpp==2026.6.9713 --reinstall --index-url https://xorbitsai.github.io/xllamacpp/whl/rocm-6.4.1
 COPY . .
 EXPOSE 8091
 # Use start.py which runs precache once, then starts uvicorn workers
