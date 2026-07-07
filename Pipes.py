@@ -6807,7 +6807,7 @@ class Pipes:
             stt = self._get_stt()
             self.resource_manager.mark_model_in_use(ModelType.STT, True)
             try:
-                text = stt.transcribe_audio(
+                text = await stt.transcribe_audio(
                     base64_audio=audio, audio_format=audio_format
                 )
             finally:
@@ -7403,7 +7403,7 @@ class Pipes:
                                         ModelType.STT, True
                                     )
                                     try:
-                                        transcribed_audio = stt.transcribe_audio(
+                                        transcribed_audio = await stt.transcribe_audio(
                                             base64_audio=audio_url,
                                             audio_format=audio_format,
                                         )
@@ -7550,7 +7550,7 @@ class Pipes:
                             stt = self._get_stt()
                             self.resource_manager.mark_model_in_use(ModelType.STT, True)
                             try:
-                                transcribed_audio = stt.transcribe_audio(
+                                transcribed_audio = await stt.transcribe_audio(
                                     base64_audio=audio_url, audio_format=audio_format
                                 )
                             finally:
@@ -7622,7 +7622,7 @@ class Pipes:
                 stt = self._get_stt()
                 self.resource_manager.mark_model_in_use(ModelType.STT, True)
                 try:
-                    prompt = stt.transcribe_audio(
+                    prompt = await stt.transcribe_audio(
                         base64_audio=base64_audio,
                         audio_format=data["audio_format"],
                     )

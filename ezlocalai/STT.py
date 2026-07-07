@@ -1,4 +1,5 @@
 import os
+import asyncio
 import base64
 import uuid
 import logging
@@ -433,6 +434,43 @@ class STT:
         condition_on_previous_text=True,
         use_batched=False,  # Use batched inference for longer audio files
         batch_size=8,  # Batch size for batched inference
+        enable_diarization=False,
+        num_speakers=None,
+        session_id=None,
+    ):
+        return await asyncio.to_thread(
+            self._transcribe_audio_sync,
+            base64_audio=base64_audio,
+            audio_format=audio_format,
+            language=language,
+            prompt=prompt,
+            temperature=temperature,
+            translate=translate,
+            return_segments=return_segments,
+            timestamp_granularities=timestamp_granularities,
+            beam_size=beam_size,
+            condition_on_previous_text=condition_on_previous_text,
+            use_batched=use_batched,
+            batch_size=batch_size,
+            enable_diarization=enable_diarization,
+            num_speakers=num_speakers,
+            session_id=session_id,
+        )
+
+    def _transcribe_audio_sync(
+        self,
+        base64_audio,
+        audio_format="wav",
+        language=None,
+        prompt=None,
+        temperature=0.0,
+        translate=False,
+        return_segments=False,
+        timestamp_granularities=None,
+        beam_size=1,
+        condition_on_previous_text=True,
+        use_batched=False,
+        batch_size=8,
         enable_diarization=False,
         num_speakers=None,
         session_id=None,
