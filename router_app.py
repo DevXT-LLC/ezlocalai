@@ -547,7 +547,9 @@ def _stream_json_has_assistant_text(obj: Any) -> bool:
             ):
                 return True
         return False
-    return bool(_stream_mapping_text(obj, (*STREAM_CONTENT_KEYS, *STREAM_REASONING_KEYS)))
+    return bool(
+        _stream_mapping_text(obj, (*STREAM_CONTENT_KEYS, *STREAM_REASONING_KEYS))
+    )
 
 
 def _stream_json_finish_reason(obj: Any) -> str:
@@ -2597,6 +2599,22 @@ def _is_transient_failure(status: int) -> bool:
     return status == 408 or 500 <= status <= 599
 
 
+def _float_env(name: str, default: float) -> float:
+    try:
+        return float(getenv(name, str(default)))
+    except (TypeError, ValueError):
+        return default
+
+
+def _request_timeout(default: float = 300.0) -> float:
+    return _float_env("REQUEST_TIMEOUT", default)
+
+
+def _stt_timeout() -> float:
+    """Transcription jobs can legitimately run far longer than JSON requests."""
+    return _float_env("ROUTER_STT_TIMEOUT", max(_request_timeout(), 7200.0))
+
+
 def _worker_headers(worker: WorkerInfo) -> Dict[str, str]:
     h = {}
     if worker.api_key and worker.api_key != "none":
@@ -2853,7 +2871,9 @@ async def _iter_worker_stream_bytes(
 ) -> AsyncIterator[bytes]:
     """Open one worker streaming request and yield raw SSE bytes."""
     registry = get_registry()
-    registry.increment_in_flight(worker.worker_id, 1, capability=capability, model=model)
+    registry.increment_in_flight(
+        worker.worker_id, 1, capability=capability, model=model
+    )
     timeout_seconds = float(getenv("REQUEST_TIMEOUT", "300"))
     try:
         if is_tunnel_url(worker.url):
@@ -2874,7 +2894,10 @@ async def _iter_worker_stream_bytes(
                 status, _resp_headers, chunks = await conn.request(
                     "POST",
                     path,
-                    headers={"Content-Type": "application/json", **_worker_headers(worker)},
+                    headers={
+                        "Content-Type": "application/json",
+                        **_worker_headers(worker),
+                    },
                     body=json.dumps(payload).encode("utf-8"),
                     stream=True,
                     timeout=timeout_seconds,
@@ -3016,13 +3039,10 @@ async def _llm_stream_with_worker_failover(
                         retry_reason = str(event_info["error_message"])
                         break
                     if event_info["finish_reason"] or event_info["done"]:
-                        retry_reason = (
-                            f"stream ended before assistant text"
-                            + (
-                                f" (finish_reason={event_info['finish_reason']})"
-                                if event_info["finish_reason"]
-                                else ""
-                            )
+                        retry_reason = f"stream ended before assistant text" + (
+                            f" (finish_reason={event_info['finish_reason']})"
+                            if event_info["finish_reason"]
+                            else ""
                         )
                         break
                     if event_info["safe_keepalive"]:
@@ -3289,7 +3309,7 @@ async def _proxy_multipart(
     """
     headers = _worker_headers(worker)
     request_timeout = aiohttp.ClientTimeout(
-        total=timeout or float(getenv("REQUEST_TIMEOUT", "300")),
+        total=timeout or _request_timeout(),
         connect=10,
     )
     if is_tunnel_url(worker.url):
@@ -3679,6 +3699,7 @@ async def audio_transcriptions(
             "timestamps": timestamps,
             "timestamp_granularities[]": granularities,
         },
+        timeout=_stt_timeout(),
         capability="stt",
         model=model,
     )

@@ -46,6 +46,7 @@ from Tunnel import is_tunnel_url
 
 ALL_CAPABILITIES = {"text", "vision", "tts", "stt", "image", "video", "embedding"}
 MODEL_STRICT_CAPABILITIES = {"text", "vision"}
+DEFAULT_DEDICATED_CAPABILITY_PREFERENCES = {"stt", "tts"}
 _RUNTIME_VERSION_CACHE: Optional[str] = None
 
 
@@ -1315,6 +1316,36 @@ class Router:
         value = str(getenv("ROUTER_BUSY_SLOT_FALLBACK", "false") or "").strip().lower()
         return value in {"1", "true", "yes", "on"}
 
+    @staticmethod
+    def _dedicated_preference_capabilities() -> set:
+        """Capabilities that should prefer workers not also serving LLM traffic."""
+        raw = str(
+            getenv(
+                "ROUTER_PREFER_DEDICATED_CAPABILITIES",
+                ",".join(sorted(DEFAULT_DEDICATED_CAPABILITY_PREFERENCES)),
+            )
+            or ""
+        ).strip()
+        if raw.lower() in {"", "0", "false", "none", "off", "no"}:
+            return set()
+        return {part.strip().lower() for part in raw.split(",") if part.strip()}
+
+    def _prefer_dedicated_capability_workers(
+        self, capability: str, candidates: List[WorkerInfo]
+    ) -> Tuple[List[WorkerInfo], str]:
+        """Prefer media/voice workers that are not also serving text/vision."""
+        if capability not in self._dedicated_preference_capabilities():
+            return candidates, ""
+
+        dedicated = [
+            w
+            for w in candidates
+            if not (MODEL_STRICT_CAPABILITIES & set(w.capabilities))
+        ]
+        if not dedicated:
+            return candidates, ""
+        return dedicated, "dedicated-capability/"
+
     def _filter_idle_tier_window(
         self,
         candidates: List[WorkerInfo],
@@ -1458,9 +1489,14 @@ class Router:
                     f"[Router] select model={model!r} cap={capability}: NO worker available at all"
                 )
                 return None
+            candidates, reason_prefix = self._prefer_dedicated_capability_workers(
+                capability, candidates
+            )
             winner, route_reason = self._rank_candidates(
                 candidates, capability=capability
             )
+            if reason_prefix:
+                route_reason = f"{reason_prefix}{route_reason}"
             logging.info(
                 f"[Router] select model={model!r} cap={capability} -> {winner.label} "
                 f"(reason={route_reason}, capability-only, "

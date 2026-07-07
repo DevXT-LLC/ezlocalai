@@ -55,6 +55,8 @@ def getenv(var_name: str, default_value: str = None) -> str:
         # model n_parallel slots.
         "MAX_QUEUE_SIZE": "100",
         "REQUEST_TIMEOUT": "120",
+        "ROUTER_STT_TIMEOUT": "7200",
+        "ROUTER_PREFER_DEDICATED_CAPABILITIES": "stt,tts",
         # How long (seconds) a request waits in queue before trying fallback server.
         # 0 = disabled (wait full REQUEST_TIMEOUT). Only applies when FALLBACK_SERVER is set.
         "QUEUE_WAIT_TIMEOUT": "10",

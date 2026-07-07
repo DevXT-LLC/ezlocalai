@@ -343,7 +343,9 @@ score = priority_tier * 10  +  slots_left * 5  +  free_vram_gb  -  in_flight * 4
 
 By default, text/vision routing requires an idle worker, so one long-running request on the 5090 sends the next compatible request to an idle 4090/3090 instead of stacking it onto the 5090. Set `ROUTER_BUSY_SLOT_FALLBACK=true` to restore slot-based routing when every compatible text/vision worker is already busy. When that fallback is enabled, `ROUTER_IDLE_TIER_WINDOW=100` covers the normal GPU tier range and makes any idle compatible node beat adding another request to a busy top-tier node; set the window lower to only spill over to nearby tiers, or `0` to use pure score/capacity routing.
 
-Workers missing the required capability (`text` / `vision` / `voice` / `image` / `video`) or the requested model are filtered out before scoring. Stale workers (no heartbeat for `ROUTER_WORKER_TTL` seconds) are also excluded.
+For capability-only voice routing, the router defaults `ROUTER_PREFER_DEDICATED_CAPABILITIES=stt,tts`, which means STT/TTS requests prefer workers that are not also serving `text` or `vision` before falling back to mixed-capability workers. Large transcription jobs also use `ROUTER_STT_TIMEOUT` (default `7200` seconds) instead of the generic `REQUEST_TIMEOUT`.
+
+Workers missing the required capability (`text` / `vision` / `tts` / `stt` / `embedding` / `image` / `video`) or the requested model are filtered out before scoring. Stale workers (no heartbeat for `ROUTER_WORKER_TTL` seconds) are also excluded.
 
 You can inspect the live registry, including each worker's reported GPUs, tier, free VRAM, queue depth, and per-model context windows:
 

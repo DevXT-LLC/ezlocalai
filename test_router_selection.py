@@ -72,6 +72,35 @@ class RouterSelectionTests(unittest.TestCase):
             },
         )
 
+    def _capability_worker(
+        self,
+        worker_id: str,
+        capabilities,
+        *,
+        best_tier: int,
+        busy_by_cap=None,
+    ) -> WorkerInfo:
+        busy_by_cap = busy_by_cap or {}
+        cap_slots = {}
+        for cap in capabilities:
+            busy = int(busy_by_cap.get(cap, 0))
+            cap_slots[cap] = {
+                "capacity": 1,
+                "in_flight": busy,
+                "queued": 0,
+                "available": max(0, 1 - busy),
+            }
+        return WorkerInfo(
+            worker_id=worker_id,
+            label=worker_id,
+            url=f"http://{worker_id}.local",
+            capabilities=list(capabilities),
+            models=["model-a"] if "text" in capabilities else [],
+            best_tier=best_tier,
+            free_vram_gb=24.0,
+            cap_slots=cap_slots,
+        )
+
     def test_tunneled_worker_priority_tier_is_penalized(self):
         registry = WorkerRegistry(ttl_seconds=60)
         registry.register(self._text_worker("direct-86", "model-a", best_tier=86))
@@ -226,6 +255,63 @@ class RouterSelectionTests(unittest.TestCase):
         self.assertIsNotNone(worker)
         self.assertEqual(worker.label, "STT Worker")
 
+    def test_stt_prefers_dedicated_voice_worker_over_high_tier_text_worker(self):
+        registry = WorkerRegistry(ttl_seconds=60)
+        registry.register(
+            self._capability_worker(
+                "mixed-5090", ["text", "vision", "stt"], best_tier=90
+            )
+        )
+        registry.register(
+            self._capability_worker("voice-3090", ["tts", "stt"], best_tier=55)
+        )
+        router = Router(registry)
+
+        worker = router.select_worker("stt", "whisper-1", allow_cross_model=False)
+
+        self.assertIsNotNone(worker)
+        self.assertEqual(worker.worker_id, "voice-3090")
+
+    def test_stt_falls_back_to_mixed_worker_when_dedicated_voice_is_busy(self):
+        registry = WorkerRegistry(ttl_seconds=60)
+        registry.register(
+            self._capability_worker(
+                "mixed-5090", ["text", "vision", "stt"], best_tier=90
+            )
+        )
+        registry.register(
+            self._capability_worker(
+                "voice-3090",
+                ["tts", "stt"],
+                best_tier=55,
+                busy_by_cap={"stt": 1},
+            )
+        )
+        router = Router(registry)
+
+        worker = router.select_worker("stt", "whisper-1", allow_cross_model=False)
+
+        self.assertIsNotNone(worker)
+        self.assertEqual(worker.worker_id, "mixed-5090")
+
+    def test_dedicated_voice_preference_can_be_disabled(self):
+        registry = WorkerRegistry(ttl_seconds=60)
+        registry.register(
+            self._capability_worker(
+                "mixed-5090", ["text", "vision", "stt"], best_tier=90
+            )
+        )
+        registry.register(
+            self._capability_worker("voice-3090", ["tts", "stt"], best_tier=55)
+        )
+        router = Router(registry)
+
+        with patch.dict(os.environ, {"ROUTER_PREFER_DEDICATED_CAPABILITIES": "none"}):
+            worker = router.select_worker("stt", "whisper-1", allow_cross_model=False)
+
+        self.assertIsNotNone(worker)
+        self.assertEqual(worker.worker_id, "mixed-5090")
+
     def test_tts_routes_by_capability_when_model_alias_is_not_advertised(self):
         router = self._router_with_worker("tts")
 
@@ -233,6 +319,23 @@ class RouterSelectionTests(unittest.TestCase):
 
         self.assertIsNotNone(worker)
         self.assertEqual(worker.label, "TTS Worker")
+
+    def test_tts_prefers_dedicated_voice_worker_over_high_tier_text_worker(self):
+        registry = WorkerRegistry(ttl_seconds=60)
+        registry.register(
+            self._capability_worker(
+                "mixed-5090", ["text", "vision", "tts"], best_tier=90
+            )
+        )
+        registry.register(
+            self._capability_worker("voice-3090", ["tts", "stt"], best_tier=55)
+        )
+        router = Router(registry)
+
+        worker = router.select_worker("tts", "tts-1", allow_cross_model=False)
+
+        self.assertIsNotNone(worker)
+        self.assertEqual(worker.worker_id, "voice-3090")
 
     def test_image_routes_by_capability_when_model_alias_is_not_advertised(self):
         router = self._router_with_worker("image")

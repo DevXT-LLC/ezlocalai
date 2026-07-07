@@ -12,6 +12,11 @@ services:
       - ROUTER_WORKER_TTL=${ROUTER_WORKER_TTL-60}
       # How long the router waits for a free worker before returning 503.
       - ROUTER_WAIT_TIMEOUT=${ROUTER_WAIT_TIMEOUT-120}
+      # Generic worker proxy timeout, plus a longer window for large STT jobs.
+      - REQUEST_TIMEOUT=${REQUEST_TIMEOUT-300}
+      - ROUTER_STT_TIMEOUT=${ROUTER_STT_TIMEOUT-7200}
+      # Prefer voice/media workers for STT/TTS before mixed text/vision workers.
+      - ROUTER_PREFER_DEDICATED_CAPABILITIES=${ROUTER_PREFER_DEDICATED_CAPABILITIES-stt,tts}
       # false = text/vision requests wait once every compatible node is busy.
       # true = after idle spillover, fill remaining parallel slots on busy nodes.
       - ROUTER_BUSY_SLOT_FALLBACK=${ROUTER_BUSY_SLOT_FALLBACK-false}

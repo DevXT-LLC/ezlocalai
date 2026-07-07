@@ -1,6 +1,8 @@
+import os
 import pathlib
 import sys
 import unittest
+from unittest.mock import patch
 
 
 ROOT = pathlib.Path(__file__).resolve().parent
@@ -84,6 +86,19 @@ class RouterStreamingTests(unittest.IsolatedAsyncioTestCase):
         body = b"".join(chunks).decode("utf-8")
         self.assertIn('"content":"ok"', body)
         self.assertNotIn("request exceeds context", body)
+
+
+class RouterTimeoutTests(unittest.TestCase):
+    def test_stt_timeout_defaults_to_large_transcription_window(self):
+        with patch.dict(
+            os.environ,
+            {"REQUEST_TIMEOUT": "300", "ROUTER_STT_TIMEOUT": ""},
+        ):
+            self.assertEqual(router_app._stt_timeout(), 7200.0)
+
+    def test_stt_timeout_can_be_overridden(self):
+        with patch.dict(os.environ, {"ROUTER_STT_TIMEOUT": "900"}):
+            self.assertEqual(router_app._stt_timeout(), 900.0)
 
 
 if __name__ == "__main__":
