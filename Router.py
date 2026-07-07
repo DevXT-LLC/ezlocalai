@@ -1297,22 +1297,44 @@ class Router:
     def _idle_tier_window() -> int:
         """Tier gap where an idle worker beats adding parallel work.
 
-        The default is intentionally wider than the current GPU tier range so
-        a busy high-tier worker spills to any idle compatible node before it
-        takes another parallel request when busy-slot fallback is enabled.
-        Set ``ROUTER_IDLE_TIER_WINDOW=0`` to disable this and route only by
-        score/capacity.
+        Example with the default 20-point window: if a 5090 (tier 90) is
+        already decoding and an idle 4090 (tier 80) can serve the same model,
+        route to the 4090. If the only idle alternative is a 3090 (tier 55),
+        keep the request on the high-tier pool instead of spilling it to a
+        much slower node. Set ``ROUTER_IDLE_TIER_WINDOW=0`` to disable the
+        tier-window filter and route only by score/capacity.
         """
         try:
-            return max(0, int(getenv("ROUTER_IDLE_TIER_WINDOW", "100")))
+            return max(0, int(getenv("ROUTER_IDLE_TIER_WINDOW", "20")))
         except (TypeError, ValueError):
-            return 100
+            return 20
 
     @staticmethod
     def _busy_slot_fallback_enabled() -> bool:
         """Allow text/vision routing to fill busy workers' remaining slots."""
         value = str(getenv("ROUTER_BUSY_SLOT_FALLBACK", "false") or "").strip().lower()
         return value in {"1", "true", "yes", "on"}
+
+    def _filter_idle_tier_window(
+        self,
+        candidates: List[WorkerInfo],
+        reference_workers: List[WorkerInfo],
+    ) -> List[WorkerInfo]:
+        """Keep idle spillover within range of the fastest compatible tier.
+
+        This prevents a long text/vision request from jumping to a 3090 just
+        because the 4090/5090 pool is momentarily busy. If the high-tier nodes
+        disappear from the registry, the lower-tier nodes naturally become the
+        reference tier and are used again.
+        """
+        if not candidates or not reference_workers:
+            return candidates
+        window = self._idle_tier_window()
+        if window <= 0:
+            return candidates
+        fastest_tier = max(w.priority_tier for w in reference_workers)
+        floor = fastest_tier - window
+        return [w for w in candidates if w.priority_tier >= floor]
 
     def _rank_candidates(
         self,
@@ -1325,9 +1347,7 @@ class Router:
         The score still handles normal ordering, failure penalties, and VRAM,
         but before blindly adding a second/third request to the fastest worker,
         prefer an idle same-model worker within ``ROUTER_IDLE_TIER_WINDOW`` tier
-        points of the fastest available candidate. The default window covers
-        the full GPU tier range so requests fan out across idle nodes before
-        piling onto a busy fastest node.
+        points of the fastest available candidate.
         """
         if not candidates:
             return None, "no-candidates"
@@ -1409,7 +1429,13 @@ class Router:
             and not self._busy_slot_fallback_enabled()
         )
 
-        def _has_capacity(workers, *, use_model: bool = True, idle_only: bool = False):
+        def _has_capacity(
+            workers,
+            *,
+            use_model: bool = True,
+            idle_only: bool = False,
+            tier_reference: Optional[List[WorkerInfo]] = None,
+        ):
             capacity_model = model if use_model else None
             candidates = [
                 w for w in workers if w.has_capacity(capability, capacity_model)
@@ -1420,6 +1446,9 @@ class Router:
                     for w in candidates
                     if w.effective_busy(capability, capacity_model) == 0
                 ]
+                candidates = self._filter_idle_tier_window(
+                    candidates, tier_reference or workers
+                )
             return candidates
 
         if capability not in MODEL_STRICT_CAPABILITIES:
@@ -1460,15 +1489,23 @@ class Router:
         # First pass: workers that explicitly serve the requested model.
         if model:
             model_servers = [w for w in all_alive if _model_match(w)]
-            preferred = _has_capacity(model_servers, idle_only=require_idle_worker)
-            if preferred:
-                mtp_preferred = [w for w in preferred if _has_mtp_variant(w)]
-                rank_pool = mtp_preferred or preferred
-                winner, route_reason = self._rank_candidates(
-                    rank_pool, capability=capability, model=model
+            mtp_model_servers = [w for w in model_servers if _has_mtp_variant(w)]
+
+            def _select_preferred(
+                pool: List[WorkerInfo], reason_prefix: str = ""
+            ) -> Optional[WorkerInfo]:
+                preferred = _has_capacity(
+                    pool,
+                    idle_only=require_idle_worker,
+                    tier_reference=pool,
                 )
-                if mtp_preferred:
-                    route_reason = f"mtp-preferred/{route_reason}"
+                if not preferred:
+                    return None
+                winner, route_reason = self._rank_candidates(
+                    preferred, capability=capability, model=model
+                )
+                if reason_prefix:
+                    route_reason = f"{reason_prefix}{route_reason}"
                 logging.info(
                     f"[Router] select model={model!r} cap={capability} -> {winner.label} "
                     f"(reason={route_reason}, "
@@ -1482,6 +1519,17 @@ class Router:
                         for w in model_servers
                     )
                 )
+                return winner
+
+            if mtp_model_servers:
+                winner = _select_preferred(
+                    mtp_model_servers, reason_prefix="mtp-preferred/"
+                )
+                if winner is not None:
+                    return winner
+
+            winner = _select_preferred(model_servers)
+            if winner is not None:
                 return winner
             # Same-model workers exist but are busy or saturated. During the grace
             # period (allow_cross_model=False) refuse to cross over so the
@@ -1506,7 +1554,10 @@ class Router:
                 )
                 return None
             fallback = _has_capacity(
-                all_alive, use_model=False, idle_only=require_idle_worker
+                all_alive,
+                use_model=False,
+                idle_only=require_idle_worker,
+                tier_reference=model_servers or all_alive,
             )
             if fallback:
                 winner, route_reason = self._rank_candidates(
@@ -1532,7 +1583,9 @@ class Router:
             return None
 
         # No model filter — best-scoring capability match with capacity.
-        candidates = _has_capacity(all_alive, idle_only=require_idle_worker)
+        candidates = _has_capacity(
+            all_alive, idle_only=require_idle_worker, tier_reference=all_alive
+        )
         if not candidates:
             return None
         winner, _ = self._rank_candidates(candidates, capability=capability)
