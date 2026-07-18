@@ -32,6 +32,9 @@ RUN uv pip install "numpy>=1.26.0" Cython "setuptools>=78.1.1"
 RUN uv pip install pkuseg==0.0.25 --no-build-isolation
 COPY cuda-requirements.txt .
 RUN uv pip install -r cuda-requirements.txt
+# ezlocalai imports gTTS as a library. Install it outside the main solve because
+# its CLI click<8.2 constraint conflicts with the current Hugging Face stack.
+RUN uv pip install "gTTS>=2.4.0" --no-deps
 # Install chatterbox-tts with --no-deps to bypass transformers==4.46.3 pin
 # This allows us to use transformers>=4.53.0 for security fixes
 RUN uv pip install chatterbox-tts --no-deps

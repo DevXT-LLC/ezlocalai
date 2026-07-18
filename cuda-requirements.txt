@@ -36,7 +36,8 @@ tokenizers>=0.21
 soundfile
 pyloudnorm
 # Wake word training dependencies
-gTTS>=2.4.0
+# gTTS is installed with --no-deps in cuda.Dockerfile because its CLI
+# click<8.2 constraint conflicts with current huggingface-hub.
 edge-tts>=6.1.0
 onnx>=1.21.0
 onnxscript>=0.1.0
