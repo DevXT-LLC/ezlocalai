@@ -1619,7 +1619,7 @@ def get_rocm_version() -> Optional[str]:
 
 XLLAMACPP_REPO = "https://github.com/xorbitsai/xllamacpp.git"
 XLLAMACPP_BUILD_DIR = STATE_DIR / "xllamacpp-build"
-XLLAMACPP_VERSION = "2026.6.9538"
+XLLAMACPP_VERSION = "2026.7.10068"
 XLLAMACPP_SOURCE_REF = f"v{XLLAMACPP_VERSION}-cu128"
 
 
@@ -1709,9 +1709,7 @@ def build_xllamacpp_from_source(gpu_type: str = "nvidia") -> list[str]:
         check=False,
     )
     if checkout_result.returncode != 0:
-        print(
-            f"   ⚠️  Failed to fetch xllamacpp tags: {checkout_result.stderr.strip()}"
-        )
+        print(f"   ⚠️  Failed to fetch xllamacpp tags: {checkout_result.stderr.strip()}")
     checkout_result = subprocess.run(
         ["git", "checkout", XLLAMACPP_SOURCE_REF],
         cwd=XLLAMACPP_BUILD_DIR,
@@ -1923,14 +1921,14 @@ def get_xllamacpp_install_cmd(gpu_type: str = "cpu") -> list[str]:
         if cuda_ver:
             major_minor = cuda_ver  # e.g. "12.8"
             major, minor = major_minor.split(".")
-            if int(major) >= 12 and int(minor) >= 8:
+            if int(major) >= 13 and int(minor) >= 2:
+                index_url = "https://xorbitsai.github.io/xllamacpp/whl/cu132"
+            elif int(major) >= 12 and int(minor) >= 8:
                 index_url = "https://xorbitsai.github.io/xllamacpp/whl/cu128"
-            elif int(major) >= 12 and int(minor) >= 4:
-                index_url = "https://xorbitsai.github.io/xllamacpp/whl/cu124"
             else:
-                # Older CUDA, try cu124 as closest
-                print(f"   ⚠️  CUDA {cuda_ver} detected, trying cu124 wheel...")
-                index_url = "https://xorbitsai.github.io/xllamacpp/whl/cu124"
+                # Older CUDA, try the oldest current xllamacpp CUDA wheel.
+                print(f"   ⚠️  CUDA {cuda_ver} detected, trying cu128 wheel...")
+                index_url = "https://xorbitsai.github.io/xllamacpp/whl/cu128"
             base_cmd.extend(["--force-reinstall", "--index-url", index_url])
             print(f"   Using CUDA {cuda_ver} wheel from {index_url}")
         else:
@@ -1952,7 +1950,8 @@ def get_xllamacpp_install_cmd(gpu_type: str = "cpu") -> list[str]:
             if ver_tuple >= (6, 4, 0):
                 index_url = "https://xorbitsai.github.io/xllamacpp/whl/rocm-6.4.1"
             else:
-                index_url = "https://xorbitsai.github.io/xllamacpp/whl/rocm-6.3.4"
+                print(f"   ⚠️  ROCm {rocm_ver} detected, trying rocm-6.4.1 wheel...")
+                index_url = "https://xorbitsai.github.io/xllamacpp/whl/rocm-6.4.1"
             base_cmd.extend(["--force-reinstall", "--index-url", index_url])
             print(f"   Using ROCm {rocm_ver} wheel from {index_url}")
         else:
@@ -2014,9 +2013,7 @@ def install_native_dependencies(source_dir: Path, gpu_type: str = "cpu") -> bool
                 text=True,
             )
             if result.returncode != 0:
-                print(
-                    f"⚠️  xllamacpp CPU fallback also failed: {result.stderr.strip()}"
-                )
+                print(f"⚠️  xllamacpp CPU fallback also failed: {result.stderr.strip()}")
 
     # Install chatterbox-tts with --no-deps (same as Dockerfile)
     print("   Installing chatterbox-tts...")
