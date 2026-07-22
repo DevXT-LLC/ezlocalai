@@ -10,8 +10,15 @@ services:
       - ROUTER_REGISTER_KEY=${ROUTER_REGISTER_KEY-}
       # How long since the last heartbeat before a worker is considered dead.
       - ROUTER_WORKER_TTL=${ROUTER_WORKER_TTL-60}
-      # How long the router waits for a free worker before returning 503.
-      - ROUTER_WAIT_TIMEOUT=${ROUTER_WAIT_TIMEOUT-120}
+      # Optional: set a positive cap for queue wait before returning 503.
+      # Omitted/default in current code means queue until a worker becomes available.
+      # - ROUTER_WAIT_TIMEOUT=${ROUTER_WAIT_TIMEOUT}
+      # 0 = pick the best currently available worker immediately.
+      # Positive values briefly wait for same-model workers before cross-model fallback.
+      - ROUTER_CROSS_MODEL_GRACE=${ROUTER_CROSS_MODEL_GRACE-0}
+      # 0 = no tier-window holdback; use any compatible idle worker.
+      # Positive values only spill to idle workers within this many tier points.
+      - ROUTER_IDLE_TIER_WINDOW=${ROUTER_IDLE_TIER_WINDOW-0}
       # Generic worker proxy timeout, plus a longer window for large STT jobs.
       - REQUEST_TIMEOUT=${REQUEST_TIMEOUT-300}
       - ROUTER_STT_TIMEOUT=${ROUTER_STT_TIMEOUT-7200}

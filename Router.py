@@ -1298,17 +1298,15 @@ class Router:
     def _idle_tier_window() -> int:
         """Tier gap where an idle worker beats adding parallel work.
 
-        Example with the default 20-point window: if a 5090 (tier 90) is
-        already decoding and an idle 4090 (tier 80) can serve the same model,
-        route to the 4090. If the only idle alternative is a 3090 (tier 55),
-        keep the request on the high-tier pool instead of spilling it to a
-        much slower node. Set ``ROUTER_IDLE_TIER_WINDOW=0`` to disable the
-        tier-window filter and route only by score/capacity.
+        The default ``0`` disables the tier-window filter so routing uses the
+        best currently available compatible worker instead of waiting for a
+        higher-tier worker to free up. Set a positive value to keep idle
+        spillover within that many tier points of the fastest compatible tier.
         """
         try:
-            return max(0, int(getenv("ROUTER_IDLE_TIER_WINDOW", "20")))
+            return max(0, int(getenv("ROUTER_IDLE_TIER_WINDOW", "0")))
         except (TypeError, ValueError):
-            return 20
+            return 0
 
     @staticmethod
     def _busy_slot_fallback_enabled() -> bool:
@@ -1601,7 +1599,7 @@ class Router:
                 )
                 logging.warning(
                     f"[Router] select model={model!r} cap={capability}: NO same-model worker "
-                    f"available after grace period -> CROSS-MODEL fallback to {winner.label} "
+                    f"currently available -> CROSS-MODEL fallback to {winner.label} "
                     f"(reason={route_reason}, advertises {winner.models}, "
                     f"score={winner.score(capability=capability):.1f}). "
                     f"Same-model workers were: "
@@ -1638,21 +1636,23 @@ class Router:
     ) -> Optional[WorkerInfo]:
         """Block up to ``timeout`` seconds waiting for a free worker.
 
-        For ``cross_model_grace`` seconds at the start (default from
-        ``ROUTER_CROSS_MODEL_GRACE`` env, 8s), only same-model workers are
-        considered. After that we allow cross-model fallback so a client
-        isn't stuck waiting for a busy small model when a larger one is
-        idle.
+        ``timeout <= 0`` means wait without a router-side deadline; client or
+        proxy timeouts may still close the request.
+
+        By default ``cross_model_grace`` is ``0`` so the first selection pass
+        uses the best worker that is actually free right now. Set
+        ``ROUTER_CROSS_MODEL_GRACE`` to a positive number to briefly wait for
+        same-model workers before allowing cross-model fallback.
         """
         if cross_model_grace is None:
             try:
                 cross_model_grace = float(
-                    os.environ.get("ROUTER_CROSS_MODEL_GRACE", "8")
+                    os.environ.get("ROUTER_CROSS_MODEL_GRACE", "0")
                 )
             except (TypeError, ValueError):
-                cross_model_grace = 8.0
+                cross_model_grace = 0.0
         start = time.time()
-        deadline = start + max(0.0, timeout)
+        deadline = None if timeout <= 0 else start + timeout
         grace_deadline = start + max(0.0, cross_model_grace)
         while True:
             now = time.time()
@@ -1662,7 +1662,7 @@ class Router:
             )
             if worker is not None:
                 return worker
-            if now >= deadline:
+            if deadline is not None and now >= deadline:
                 return None
             await asyncio.sleep(poll_interval)
 
