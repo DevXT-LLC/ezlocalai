@@ -390,7 +390,7 @@ STT_N_PARALLEL=1
 ### Voice Server Mode (`VOICE_SERVER=true`)
 
 When set to `true`, this server becomes a dedicated voice server:
-- TTS (Chatterbox) and STT (Whisper) models are **pre-loaded at startup** and stay resident
+- TTS (Qwen-TTS) and STT (Whisper) models are **pre-loaded at startup** and stay resident
 - Voice models are **never unloaded** after requests (no lazy load/unload cycle)
 - LLM models are still lazy-loaded as needed
 - Ideal for a secondary server with a dedicated GPU for voice processing
@@ -400,6 +400,11 @@ instances are available. In voice server mode, or when `LAZY_LOAD_VOICE=false`,
 ezlocalai warm-loads that many resident instances and reports that capacity to
 the router. With lazy voice loading, the same values cap how many transient local
 TTS/STT instances may run at once.
+
+Qwen-TTS voices live in the `voices/` directory as `.wav` reference samples. If a
+same-name `.txt` transcript exists, ezlocalai uses it for transcript-conditioned
+voice cloning; custom voices without a transcript automatically fall back to
+speaker-embedding-only cloning.
 
 ### Voice Passthrough Mode (`VOICE_SERVER=<url>`)
 
@@ -532,7 +537,7 @@ custom_wakeword_start(on_wake_word, NULL);
 ### Training Process
 
 The wake word trainer:
-1. **Generates TTS samples** using gTTS, Edge-TTS, and Chatterbox with various voices
+1. **Generates TTS samples** using gTTS and Edge-TTS with various voices
 2. **Applies audio augmentation** (noise injection, speed/pitch variations, reverb)
 3. **Trains a CNN model** with MFCC features (40 coefficients)
 4. **Exports to all formats**:

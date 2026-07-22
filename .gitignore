@@ -20,3 +20,4 @@ hf/*
 *.tar.gz
 pretrained_models
 usage.json
+.env.bak

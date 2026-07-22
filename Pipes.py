@@ -450,7 +450,7 @@ class ModelResource:
 MODEL_VRAM_ESTIMATES = {
     ModelType.LLM: 8.0,  # Varies greatly by model size and context
     ModelType.VISION_LLM: 6.0,  # Vision models with projector
-    ModelType.TTS: 4.0,  # Chatterbox TTS
+    ModelType.TTS: 4.0,  # Qwen-TTS 0.6B Base
     ModelType.STT: 2.0,  # Whisper (varies by size)
     ModelType.IMG: 6.0,  # FLUX.2-klein GGUF with CPU offload typically needs ~4-6GB
     ModelType.VIDEO: 12.0,  # LTX-2.3 GGUF video generation (uses sequential CPU offload)
@@ -3832,13 +3832,13 @@ class Pipes:
                             f"[LLM] Failed to pre-load model {model_name}: {e}"
                         )
 
-        # TTS initialization - Chatterbox TTS
+        # TTS initialization - Qwen-TTS
         self.ctts = None
         self.tts_instances = []
         self._transient_tts_instances = []
         if getenv("TTS_ENABLED").lower() == "true":
             tts_name = self._get_tts_name()
-            tts_vram = 4.0  # Chatterbox uses about 4GB VRAM
+            tts_vram = 4.0  # Qwen-TTS 0.6B Base uses about 4GB VRAM
 
             # Skip local TTS loading if voice server URL is configured (passthrough mode)
             if has_voice_server_url():
@@ -6349,15 +6349,16 @@ class Pipes:
                     self._destroy_llm_sync(llm_ref, model_name)
 
     def _create_tts_model(self, device: str = None, force_cpu: bool = False):
-        """Create TTS model (Chatterbox TTS)."""
+        """Create TTS model (Qwen-TTS)."""
         if not ctts_import_success:
-            logging.warning("[TTS] Chatterbox TTS not available (missing dependencies)")
+            logging.warning("[TTS] Qwen-TTS not available (missing dependencies)")
             return None
         return CTTS(device="cpu" if force_cpu else device)
 
     def _get_tts_name(self):
         """Get the human-readable name for the TTS provider."""
-        return "Chatterbox TTS"
+        model_name = getenv("QWEN_TTS_MODEL") or "Qwen/Qwen3-TTS-12Hz-0.6B-Base"
+        return f"Qwen-TTS ({model_name})"
 
     def _load_tts_instance(self, slot_index: int = 1, force_cpu: bool = False):
         """Load one TTS model instance."""

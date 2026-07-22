@@ -1111,7 +1111,7 @@ def _aggregate_dashboard() -> Dict[str, Any]:
             if cap == "stt" and model_name.lower().startswith("whisper "):
                 model_name = model_name[len("Whisper ") :]
             # Key by cap+model_name so multiple workers running the same
-            # model (e.g. two nodes both serving Chatterbox TTS) share one row.
+            # model (e.g. two nodes both serving Qwen-TTS) share one row.
             key = f"{cap}::{model_name}"
             entry = model_rollup.setdefault(
                 key,

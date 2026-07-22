@@ -833,7 +833,7 @@ class WorkerInfo:
     model_context: Dict[str, int] = field(default_factory=dict)
     # Per-model quantization (e.g. "Q4_K_XL"). Auto-reported when available.
     model_quant: Dict[str, str] = field(default_factory=dict)
-    # Capability-specific model names: {"tts": "Chatterbox TTS", "stt": "Whisper large-v3", ...}
+    # Capability-specific model names: {"tts": "Qwen-TTS", "stt": "Whisper large-v3", ...}
     cap_models: Dict[str, str] = field(default_factory=dict)
     last_heartbeat: float = field(default_factory=time.time)
     registered_at: float = field(default_factory=time.time)
@@ -1895,7 +1895,9 @@ class WorkerHeartbeatClient:
         cap_models: Dict[str, str] = {}
         for _cap in self.capabilities:
             if _cap == "tts":
-                cap_models["tts"] = "chatterbox-turbo"
+                cap_models["tts"] = (
+                    getenv("QWEN_TTS_MODEL") or "Qwen/Qwen3-TTS-12Hz-0.6B-Base"
+                ).strip()
             elif _cap == "stt":
                 _wm = (getenv("WHISPER_MODEL") or "large-v3").strip()
                 cap_models["stt"] = _wm

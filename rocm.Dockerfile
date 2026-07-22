@@ -12,7 +12,7 @@ RUN apt-get update --fix-missing && \
     apt-get install -y --no-install-recommends \
        git build-essential cmake gcc g++ ninja-build \
        portaudio19-dev ffmpeg libportaudio2 libasound-dev \
-       python3 python3-pip python3-venv wget python3-dev unzip curl \
+       python3 python3-pip python3-venv wget python3-dev unzip curl sox libsox-dev \
        rocm-hip-runtime rocm-hip-sdk hipblas-dev rocblas-dev && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* /var/cache/apt/* /tmp/* /var/tmp/*
@@ -22,16 +22,11 @@ RUN curl -LsSf https://astral.sh/uv/install.sh | sh && \
 WORKDIR /app
 # Install PyTorch with ROCm 6.4 support (stable version 2.9.1)
 RUN uv pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/rocm6.4
-# Install numpy and Cython for pkuseg (required by chatterbox-tts)
+# Install numpy and Cython for packages that build native extensions
 # numpy>=1.26.0 required for Python 3.12 compatibility
-RUN uv pip install "numpy>=1.26.0" Cython
-# Install pkuseg separately (required by chatterbox-tts)
-RUN uv pip install pkuseg==0.0.25 --no-build-isolation
+RUN uv pip install "numpy>=1.26.0,<2.5" Cython
 COPY rocm-requirements.txt .
 RUN uv pip install -r rocm-requirements.txt
-# Install chatterbox-tts with --no-deps to bypass transformers==4.46.3 pin
-# This allows us to use transformers>=4.53.0 for security fixes
-RUN uv pip install chatterbox-tts --no-deps
 ENV HOST=0.0.0.0 \
     ROCM_VER=6.4.1 \
     PYTHONUNBUFFERED=1 \

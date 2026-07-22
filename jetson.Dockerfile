@@ -18,7 +18,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
         git build-essential gcc g++ \
-        ffmpeg libsndfile1 libopenblas-dev \
+        ffmpeg libsndfile1 libopenblas-dev sox libsox-dev \
         curl wget unzip \
         zlib1g-dev libffi-dev libssl-dev libbz2-dev \
         libreadline-dev libsqlite3-dev liblzma-dev \
@@ -79,10 +79,6 @@ RUN pip install -r cuda-requirements.txt --no-cache-dir 2>/dev/null || \
          pip install "$line" --no-cache-dir 2>/dev/null || \
          echo "SKIP: $line (no ARM64 wheel)"; \
      done < cuda-requirements.txt)
-
-# Install chatterbox-tts with --no-deps to avoid transformers pin
-RUN pip install chatterbox-tts --no-deps --no-cache-dir 2>/dev/null || \
-    echo "SKIP: chatterbox-tts (optional)"
 
 # Build xllamacpp from source with CUDA for Jetson
 # xllamacpp is a HARD requirement (LLM.py imports it directly) — fail build if it can't be built

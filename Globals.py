@@ -17,7 +17,13 @@ def getenv(var_name: str, default_value: str = None) -> str:
         "VIDEO_MODEL": "none",  # Set to "unsloth/LTX-2.3-GGUF" to enable video generation, "none" or empty string to disable
         "TTS_ENABLED": "true",
         "TTS_N_PARALLEL": "1",  # Number of local TTS model instances/slots to load
-        "TTS_PROVIDER": "chatterbox",  # Chatterbox TTS
+        "TTS_PROVIDER": "qwen",  # Qwen-TTS
+        "QWEN_TTS_MODEL": "Qwen/Qwen3-TTS-12Hz-0.6B-Base",
+        "QWEN_TTS_DTYPE": "auto",
+        "QWEN_TTS_ATTENTION": "sdpa",
+        "QWEN_TTS_X_VECTOR_ONLY": "false",
+        "QWEN_TTS_MAX_CHUNK_CHARS": "350",
+        "QWEN_TTS_MIN_VRAM_MB": "3500",
         "STT_ENABLED": "true",
         "STT_N_PARALLEL": "1",  # Number of local STT model instances/slots to load
         "NGROK_TOKEN": "",

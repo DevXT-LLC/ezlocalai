@@ -1,5 +1,5 @@
 # Raspberry Pi 5 / ARM64 requirements
-# Lightweight subset - no GPU deps, no chatterbox TTS, no image generation
+# Lightweight subset - no GPU deps, no local neural TTS, no image generation
 # TTS and STT disabled by default (can be enabled if deps are installed)
 fastapi
 uvicorn
