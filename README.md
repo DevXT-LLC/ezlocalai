@@ -401,6 +401,11 @@ ezlocalai warm-loads that many resident instances and reports that capacity to
 the router. With lazy voice loading, the same values cap how many transient local
 TTS/STT instances may run at once.
 
+Qwen-TTS voices live in the `voices/` directory as `.wav` reference samples. If a
+same-name `.txt` transcript exists, ezlocalai uses it for transcript-conditioned
+voice cloning; custom voices without a transcript automatically fall back to
+speaker-embedding-only cloning.
+
 ### Voice Passthrough Mode (`VOICE_SERVER=<url>`)
 
 When set to a URL, voice requests are forwarded to that server:

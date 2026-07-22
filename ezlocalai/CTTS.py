@@ -1,5 +1,6 @@
 import base64
 import gc
+import hashlib
 import io
 import logging
 import os
@@ -19,6 +20,7 @@ from ezlocalai.AudioCache import AudioCache
 
 QWEN_TTS_MODEL = "Qwen/Qwen3-TTS-12Hz-0.6B-Base"
 MAX_CHUNK_CHARS = 350
+SAFE_FILE_STEM_RE = re.compile(r"[^a-zA-Z0-9_-]")
 
 LANGUAGE_ALIASES = {
     "": "Auto",
@@ -299,6 +301,29 @@ def _contains_cyrillic(text: str) -> bool:
     return any("\u0400" <= char <= "\u04ff" for char in text)
 
 
+def _safe_file_stem(value: Optional[str], default: str = "default") -> str:
+    if not value or not isinstance(value, str):
+        value = default
+    value = value.strip().replace("\\", "/").rsplit("/", 1)[-1]
+    if value.lower().endswith(".wav"):
+        value = value[:-4]
+    value = SAFE_FILE_STEM_RE.sub("", value.replace("..", ""))
+    return (value or default)[:100]
+
+
+def _contained_file_path(
+    base_dir: str, file_stem: Optional[str], extension: str
+) -> str:
+    if extension not in {".wav", ".txt"}:
+        raise ValueError("Invalid file extension")
+    safe_file_name = f"{_safe_file_stem(file_stem)}{extension}"
+    base_path = os.path.realpath(base_dir)
+    full_path = os.path.realpath(os.path.join(base_path, safe_file_name))
+    if full_path != base_path and full_path.startswith(base_path + os.sep):
+        return full_path
+    raise ValueError("Invalid file path")
+
+
 class CTTS:
     """
     Qwen3-TTS wrapper with OpenAI-compatible ezlocalai endpoint behavior.
@@ -307,10 +332,12 @@ class CTTS:
     """
 
     def __init__(self, cache_config=None, device=None):
-        self.model_id = os.getenv("QWEN_TTS_MODEL", QWEN_TTS_MODEL).strip() or QWEN_TTS_MODEL
+        self.model_id = (
+            os.getenv("QWEN_TTS_MODEL", QWEN_TTS_MODEL).strip() or QWEN_TTS_MODEL
+        )
         self.max_chunk_chars = _env_int("QWEN_TTS_MAX_CHUNK_CHARS", MAX_CHUNK_CHARS)
         self.non_streaming_mode = _env_bool("QWEN_TTS_NON_STREAMING_MODE", False)
-        self.default_x_vector_only = _env_bool("QWEN_TTS_X_VECTOR_ONLY", True)
+        self.default_x_vector_only = _env_bool("QWEN_TTS_X_VECTOR_ONLY", False)
         self.generation_kwargs = self._load_generation_kwargs()
 
         self.device = self._select_device(device)
@@ -344,11 +371,15 @@ class CTTS:
 
         self.cache = AudioCache(cache_config)
         self.use_cache = cache_config.get("enabled", True) if cache_config else True
-        logging.info("[QTTS] Audio caching %s", "enabled" if self.use_cache else "disabled")
+        logging.info(
+            "[QTTS] Audio caching %s", "enabled" if self.use_cache else "disabled"
+        )
 
         if os.path.exists(os.path.join(self.voices_path, "default.wav")):
             try:
-                self._generate_single_sample("Hello.", self._voice_audio_path("default"), "English")
+                self._generate_single_sample(
+                    "Hello.", self._voice_audio_path("default"), "English"
+                )
                 logging.info("[QTTS] Warmup generation complete")
             except Exception as e:
                 logging.warning("[QTTS] Warmup generation failed (non-fatal): %s", e)
@@ -374,7 +405,11 @@ class CTTS:
             and available_vram >= min_vram_mb
         ):
             return requested
-        if torch.cuda.is_available() and not requested and available_vram >= min_vram_mb:
+        if (
+            torch.cuda.is_available()
+            and not requested
+            and available_vram >= min_vram_mb
+        ):
             return "cuda:0"
         if torch.cuda.is_available():
             logging.warning(
@@ -439,7 +474,10 @@ class CTTS:
 
     def _release_generation_memory(self):
         gc.collect()
-        if str(getattr(self, "device", "")).startswith("cuda") and torch.cuda.is_available():
+        if (
+            str(getattr(self, "device", "")).startswith("cuda")
+            and torch.cuda.is_available()
+        ):
             try:
                 torch.cuda.empty_cache()
                 torch.cuda.ipc_collect()
@@ -460,15 +498,15 @@ class CTTS:
         return clean_text_for_tts(text)
 
     def _voice_audio_path(self, voice: Optional[str]) -> Optional[str]:
-        voice_name = voice or "default"
-        if not voice_name.lower().endswith(".wav"):
-            voice_name = f"{voice_name}.wav"
-        audio_path = os.path.join(self.voices_path, voice_name)
+        voice_name = _safe_file_stem(voice)
+        audio_path = _contained_file_path(self.voices_path, voice_name, ".wav")
         if os.path.exists(audio_path):
             return audio_path
-        default_voice = os.path.join(self.voices_path, "default.wav")
+        default_voice = _contained_file_path(self.voices_path, "default", ".wav")
         if os.path.exists(default_voice):
-            logging.warning("[QTTS] No voice file found for %r; using default.wav", voice)
+            logging.warning(
+                "[QTTS] No voice file found for %r; using default.wav", voice
+            )
             return default_voice
         logging.warning("[QTTS] No voice file found for %r and no default.wav", voice)
         return None
@@ -476,13 +514,25 @@ class CTTS:
     def _voice_ref_text(self, audio_path: Optional[str]) -> Optional[str]:
         if not audio_path:
             return None
-        sidecar = Path(audio_path).with_suffix(".txt")
-        if sidecar.exists():
+        voice_name = _safe_file_stem(os.path.basename(audio_path))
+        sidecar = _contained_file_path(self.voices_path, voice_name, ".txt")
+        if os.path.exists(sidecar):
             try:
-                return sidecar.read_text(encoding="utf-8").strip() or None
+                with open(sidecar, encoding="utf-8") as f:
+                    return f.read().strip() or None
             except OSError as e:
-                logging.warning("[QTTS] Could not read voice transcript %s: %s", sidecar, e)
+                logging.warning(
+                    "[QTTS] Could not read voice transcript %s: %s", sidecar, e
+                )
         return None
+
+    def _voice_clone_context(
+        self, audio_path: Optional[str]
+    ) -> tuple[Optional[str], bool, str]:
+        ref_text = self._voice_ref_text(audio_path)
+        x_vector_only = self.default_x_vector_only or not ref_text
+        transcript_hash = hashlib.sha256((ref_text or "").encode("utf-8")).hexdigest()
+        return ref_text, x_vector_only, transcript_hash
 
     async def generate(
         self,
@@ -496,13 +546,20 @@ class CTTS:
         if use_cache is None:
             use_cache = self.use_cache
 
-        voice_name = (voice or "default").removesuffix(".wav")
+        voice_name = _safe_file_stem(voice)
         qwen_language = self._resolve_language(language, text)
         text = self._prepare_text(text, qwen_language)
         if not text:
             return ""
 
-        cache_extra = {"engine": "qwen-tts", "model": self.model_id}
+        audio_path = self._voice_audio_path(voice)
+        ref_text, x_vector_only, transcript_hash = self._voice_clone_context(audio_path)
+        cache_extra = {
+            "engine": "qwen-tts",
+            "model": self.model_id,
+            "x_vector_only": x_vector_only,
+            "ref_text_sha256": transcript_hash,
+        }
         if use_cache:
             cache_key = self.cache.generate_cache_key(
                 text,
@@ -520,23 +577,27 @@ class CTTS:
                         return f"{local_uri}/outputs/cache/audio/{cache_key}.wav"
                     return base64.b64encode(cached_audio).decode("utf-8")
 
-        audio_path = self._voice_audio_path(voice)
         chunks = split_text_into_chunks(text, self.max_chunk_chars)
         logging.info(
-            "[QTTS] Generating %s chunk(s), language=%s, voice=%s",
+            "[QTTS] Generating %s chunk(s), language=%s, voice=%s, mode=%s",
             len(chunks),
             qwen_language,
             voice_name,
+            "x-vector" if x_vector_only else "transcript",
         )
 
         audio_chunks = []
         sample_rate = self.sample_rate
         for i, chunk in enumerate(chunks):
-            logging.debug("[QTTS] Generating chunk %s/%s: %s", i + 1, len(chunks), chunk[:80])
+            logging.debug(
+                "[QTTS] Generating chunk %s/%s: %s", i + 1, len(chunks), chunk[:80]
+            )
             wav, sample_rate = self._generate_single_sample(
                 chunk,
                 audio_path,
                 qwen_language,
+                ref_text,
+                x_vector_only,
             )
             if wav is not None and len(wav) > 0:
                 audio_chunks.append(self._to_mono_float32(wav))
@@ -554,12 +615,6 @@ class CTTS:
         audio_data = self._array_to_wav_bytes(final_audio, self.sample_rate)
         if not audio_data:
             return ""
-
-        if not output_file_name:
-            output_file_name = f"{uuid.uuid4().hex}.wav"
-        output_file = os.path.join(self.output_folder, output_file_name)
-        with open(output_file, "wb") as f:
-            f.write(audio_data)
 
         if use_cache:
             cache_key = self.cache.generate_cache_key(
@@ -579,17 +634,23 @@ class CTTS:
             self.cache.store_cached_audio(cache_key, audio_data, metadata)
 
         if local_uri:
+            output_stem = _safe_file_stem(output_file_name, uuid.uuid4().hex)
+            output_file_name = f"{output_stem}.wav"
+            output_file = _contained_file_path(self.output_folder, output_stem, ".wav")
+            with open(output_file, "wb") as f:
+                f.write(audio_data)
             return f"{local_uri}/outputs/{output_file_name}"
-        os.remove(output_file)
         return base64.b64encode(audio_data).decode("utf-8")
 
-    def _generate_single_sample(self, text, audio_path, qwen_language):
+    def _generate_single_sample(
+        self, text, audio_path, qwen_language, ref_text=None, x_vector_only=None
+    ):
         """Generate one Qwen-TTS sample and return (audio_array, sample_rate)."""
         if not audio_path:
             raise ValueError("[QTTS] Qwen Base TTS requires a reference voice wav")
 
-        ref_text = self._voice_ref_text(audio_path)
-        x_vector_only = self.default_x_vector_only or not ref_text
+        if x_vector_only is None:
+            ref_text, x_vector_only, _ = self._voice_clone_context(audio_path)
 
         try:
             with torch.inference_mode():
@@ -691,7 +752,9 @@ class CTTS:
     def clear_cache(self, voice=None):
         """Clear the audio cache."""
         self.cache.clear_cache(voice=voice)
-        logging.info("[QTTS] Cache cleared for %s", f"voice: {voice}" if voice else "all voices")
+        logging.info(
+            "[QTTS] Cache cleared for %s", f"voice: {voice}" if voice else "all voices"
+        )
 
     async def generate_stream(
         self,
@@ -710,13 +773,15 @@ class CTTS:
         qwen_language = self._resolve_language(language, text)
         text = self._prepare_text(text, qwen_language)
         audio_path = self._voice_audio_path(voice)
+        ref_text, x_vector_only, _ = self._voice_clone_context(audio_path)
         chunks = split_text_into_chunks(text, self.max_chunk_chars)
 
         logging.info(
-            "[QTTS] Streaming TTS: %s chunk(s), language=%s, chars=%s",
+            "[QTTS] Streaming TTS: %s chunk(s), language=%s, chars=%s, mode=%s",
             len(chunks),
             qwen_language,
             len(text),
+            "x-vector" if x_vector_only else "transcript",
         )
 
         yield struct.pack("<IHH", self.sample_rate, 16, 1)
@@ -727,12 +792,16 @@ class CTTS:
                     chunk,
                     audio_path,
                     qwen_language,
+                    ref_text,
+                    x_vector_only,
                 )
                 self.sample_rate = int(sample_rate)
                 pcm_data = self._array_to_pcm16_bytes(wav)
                 if pcm_data:
                     yield struct.pack("<I", len(pcm_data)) + pcm_data
-                    logging.debug("[QTTS] Yielded %s bytes for chunk %s", len(pcm_data), i + 1)
+                    logging.debug(
+                        "[QTTS] Yielded %s bytes for chunk %s", len(pcm_data), i + 1
+                    )
             except Exception as e:
                 logging.error("[QTTS] Error generating stream chunk %s: %s", i + 1, e)
                 continue

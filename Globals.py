@@ -21,7 +21,7 @@ def getenv(var_name: str, default_value: str = None) -> str:
         "QWEN_TTS_MODEL": "Qwen/Qwen3-TTS-12Hz-0.6B-Base",
         "QWEN_TTS_DTYPE": "auto",
         "QWEN_TTS_ATTENTION": "sdpa",
-        "QWEN_TTS_X_VECTOR_ONLY": "true",
+        "QWEN_TTS_X_VECTOR_ONLY": "false",
         "QWEN_TTS_MAX_CHUNK_CHARS": "350",
         "QWEN_TTS_MIN_VRAM_MB": "3500",
         "STT_ENABLED": "true",
