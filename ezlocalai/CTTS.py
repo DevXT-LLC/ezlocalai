@@ -1,3 +1,4 @@
+import asyncio
 import base64
 import gc
 import hashlib
@@ -27,6 +28,9 @@ from ezlocalai.AudioCache import AudioCache
 
 QWEN_TTS_MODEL = "Qwen/Qwen3-TTS-12Hz-0.6B-Base"
 MAX_CHUNK_CHARS = 350
+STREAM_CHUNK_TARGET_CHARS = 160
+STREAM_MIN_NEW_TOKENS = 48
+STREAM_TOKEN_PADDING = 24
 SAFE_FILE_STEM_RE = re.compile(r"[^a-zA-Z0-9_-]")
 
 LANGUAGE_ALIASES = {
@@ -197,7 +201,28 @@ def clean_text_for_tts(text: str) -> str:
 
 def split_text_into_chunks(text: str, max_chars: int = MAX_CHUNK_CHARS) -> list[str]:
     """Split text into sentence-sized chunks for lower latency and memory use."""
-    if len(text) <= max_chars:
+    return _split_text_into_chunks(text, max_chars, keep_short_text_together=True)
+
+
+def split_text_into_stream_chunks(
+    text: str, target_chars: int = STREAM_CHUNK_TARGET_CHARS
+) -> list[str]:
+    """Split streaming text by sentence without dropping any input text."""
+    target_chars = max(1, target_chars)
+    chunks = []
+    for sentence in re.split(r"(?<=[.!?。！？])\s+", text):
+        sentence = sentence.strip()
+        if not sentence:
+            continue
+        chunks.extend(split_text_into_chunks(sentence, target_chars))
+    return chunks or ([text] if text else [])
+
+
+def _split_text_into_chunks(
+    text: str, max_chars: int, keep_short_text_together: bool
+) -> list[str]:
+    max_chars = max(1, max_chars)
+    if keep_short_text_together and len(text) <= max_chars:
         return [text] if text else []
 
     sentence_pattern = r"(?<=[.!?。！？])\s+"
@@ -236,7 +261,7 @@ def split_text_into_chunks(text: str, max_chars: int = MAX_CHUNK_CHARS) -> list[
         if sub_chunk:
             final_chunks.extend(_force_split_words(sub_chunk, max_chars))
 
-    return final_chunks or [text[:max_chars]]
+    return final_chunks or ([text] if text else [])
 
 
 def _force_split_words(text: str, max_chars: int) -> list[str]:
@@ -342,7 +367,9 @@ class CTTS:
         self.model_id = (
             os.getenv("QWEN_TTS_MODEL", QWEN_TTS_MODEL).strip() or QWEN_TTS_MODEL
         )
-        self.max_chunk_chars = _env_int("QWEN_TTS_MAX_CHUNK_CHARS", MAX_CHUNK_CHARS)
+        self.max_chunk_chars = max(
+            1, _env_int("QWEN_TTS_MAX_CHUNK_CHARS", MAX_CHUNK_CHARS)
+        )
         self.non_streaming_mode = _env_bool("QWEN_TTS_NON_STREAMING_MODE", False)
         self.default_x_vector_only = _env_bool("QWEN_TTS_X_VECTOR_ONLY", False)
         self.allow_cpu_fallback = _env_bool("QWEN_TTS_ALLOW_CPU_FALLBACK", True)
@@ -548,6 +575,21 @@ class CTTS:
             kwargs["max_new_tokens"] = max_tokens
         return kwargs
 
+    def _stream_generation_kwargs(self, text: str) -> dict:
+        kwargs = dict(self.generation_kwargs)
+        configured = kwargs.get("max_new_tokens")
+        if not isinstance(configured, int) or configured <= 0:
+            configured = _env_int("QWEN_TTS_MAX_NEW_TOKENS", 320)
+
+        compact_len = len(re.sub(r"\s+", "", text))
+        punctuation_count = len(re.findall(r"[.!?。！？,;:，；：]", text))
+        estimated_tokens = int(compact_len * 1.1) + (punctuation_count * 6)
+        estimated_tokens += STREAM_TOKEN_PADDING
+        kwargs["max_new_tokens"] = max(
+            STREAM_MIN_NEW_TOKENS, min(configured, estimated_tokens)
+        )
+        return kwargs
+
     def _release_generation_memory(self):
         gc.collect()
         if (
@@ -668,7 +710,8 @@ class CTTS:
             logging.debug(
                 "[QTTS] Generating chunk %s/%s: %s", i + 1, len(chunks), chunk[:80]
             )
-            wav, sample_rate = self._generate_single_sample(
+            wav, sample_rate = await asyncio.to_thread(
+                self._generate_single_sample,
                 chunk,
                 audio_path,
                 qwen_language,
@@ -867,7 +910,7 @@ class CTTS:
         text = self._prepare_text(text, qwen_language)
         audio_path = self._voice_audio_path(voice)
         ref_text, x_vector_only, _ = self._voice_clone_context(audio_path)
-        chunks = split_text_into_chunks(text, self.max_chunk_chars)
+        chunks = split_text_into_stream_chunks(text)
 
         logging.info(
             "[QTTS] Streaming TTS: %s chunk(s), language=%s, chars=%s, mode=%s",
@@ -881,12 +924,14 @@ class CTTS:
 
         for i, chunk in enumerate(chunks):
             try:
-                wav, sample_rate = self._generate_single_sample(
+                wav, sample_rate = await asyncio.to_thread(
+                    self._generate_single_sample,
                     chunk,
                     audio_path,
                     qwen_language,
                     ref_text,
                     x_vector_only,
+                    self._stream_generation_kwargs(chunk),
                 )
                 self.sample_rate = int(sample_rate)
                 pcm_data = self._array_to_pcm16_bytes(wav)
