@@ -22,6 +22,9 @@ def getenv(var_name: str, default_value: str = None) -> str:
         "QWEN_TTS_DTYPE": "auto",
         "QWEN_TTS_ATTENTION": "sdpa",
         "QWEN_TTS_X_VECTOR_ONLY": "false",
+        "QWEN_TTS_ALLOW_CPU_FALLBACK": "true",
+        "QWEN_TTS_ENABLE_GTTS_FALLBACK": "true",
+        "QWEN_TTS_MAX_NEW_TOKENS": "320",
         "QWEN_TTS_MAX_CHUNK_CHARS": "350",
         "QWEN_TTS_MIN_VRAM_MB": "3500",
         "STT_ENABLED": "true",
@@ -129,8 +132,15 @@ def getenv(var_name: str, default_value: str = None) -> str:
         "ROUTER_REGISTER_KEY": "",
         # How long (seconds) since last heartbeat before a worker is pruned.
         "ROUTER_WORKER_TTL": "30",
-        # How long (seconds) the router waits for a worker slot before erroring/queuing.
-        "ROUTER_WAIT_TIMEOUT": "120",
+        # How long (seconds) the router waits for a worker slot before returning 503.
+        # 0 = keep the request queued until a worker becomes available.
+        "ROUTER_WAIT_TIMEOUT": "0",
+        # 0 = immediately route to the best available compatible worker.
+        # Positive values briefly wait for same-model workers before cross-model fallback.
+        "ROUTER_CROSS_MODEL_GRACE": "0",
+        # 0 = do not hold back lower-tier idle workers while higher-tier workers are busy.
+        # Positive values restrict idle spillover to workers within this tier distance.
+        "ROUTER_IDLE_TIER_WINDOW": "0",
         # =====================================================================
         # Worker registration (set on each ezlocalai worker instance)
         # =====================================================================

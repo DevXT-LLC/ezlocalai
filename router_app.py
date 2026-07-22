@@ -2546,7 +2546,7 @@ async def router_dashboard():
 
 
 def _wait_timeout() -> float:
-    return float(getenv("ROUTER_WAIT_TIMEOUT", "120"))
+    return float(getenv("ROUTER_WAIT_TIMEOUT", "0"))
 
 
 async def _pick(

@@ -27,6 +27,7 @@ RUN uv pip install torch torchvision torchaudio --index-url https://download.pyt
 RUN uv pip install "numpy>=1.26.0,<2.5" Cython
 COPY rocm-requirements.txt .
 RUN uv pip install -r rocm-requirements.txt
+RUN uv pip install qwen-tts==0.1.1 --no-deps
 ENV HOST=0.0.0.0 \
     ROCM_VER=6.4.1 \
     PYTHONUNBUFFERED=1 \

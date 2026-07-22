@@ -1,3 +1,4 @@
+import asyncio
 import os
 import tempfile
 import unittest
@@ -140,7 +141,7 @@ class RouterSelectionTests(unittest.TestCase):
         self.assertIsNotNone(worker)
         self.assertEqual(worker.worker_id, "direct-66")
 
-    def test_busy_high_tier_does_not_spill_to_distant_idle_worker(self):
+    def test_busy_high_tier_spills_to_best_idle_worker_by_default(self):
         registry = WorkerRegistry(ttl_seconds=60)
         registry.register(
             self._text_worker(
@@ -155,6 +156,26 @@ class RouterSelectionTests(unittest.TestCase):
         router = Router(registry)
 
         worker = router.select_worker("text", "model-a", allow_cross_model=False)
+
+        self.assertIsNotNone(worker)
+        self.assertEqual(worker.worker_id, "idle-3090")
+
+    def test_idle_tier_window_can_hold_back_distant_idle_worker(self):
+        registry = WorkerRegistry(ttl_seconds=60)
+        registry.register(
+            self._text_worker(
+                "busy-5090",
+                "model-a",
+                best_tier=90,
+                capacity=3,
+                busy=1,
+            )
+        )
+        registry.register(self._text_worker("idle-3090", "model-a", best_tier=55))
+        router = Router(registry)
+
+        with patch.dict(os.environ, {"ROUTER_IDLE_TIER_WINDOW": "20"}):
+            worker = router.select_worker("text", "model-a", allow_cross_model=False)
 
         self.assertIsNone(worker)
 
@@ -368,6 +389,27 @@ class RouterSelectionTests(unittest.TestCase):
 
         worker = router.select_worker(
             "text", "different-text-model", allow_cross_model=False
+        )
+
+        self.assertIsNone(worker)
+
+    def test_wait_for_worker_uses_available_fallback_without_default_grace(self):
+        router = self._router_with_worker("text")
+
+        worker = asyncio.run(
+            router.wait_for_worker("text", "different-text-model", timeout=0)
+        )
+
+        self.assertIsNotNone(worker)
+        self.assertEqual(worker.label, "TEXT Worker")
+
+    def test_wait_for_worker_positive_timeout_returns_none_when_pool_empty(self):
+        router = Router(WorkerRegistry(ttl_seconds=60))
+
+        worker = asyncio.run(
+            router.wait_for_worker(
+                "text", "model-a", timeout=0.01, poll_interval=0.001
+            )
         )
 
         self.assertIsNone(worker)

@@ -30,6 +30,7 @@ RUN uv pip install torch==2.9.1+cu128 torchaudio==2.9.1+cu128 --index-url https:
 RUN uv pip install "numpy>=1.26.0,<2.5" Cython "setuptools>=78.1.1"
 COPY cuda-requirements.txt .
 RUN uv pip install -r cuda-requirements.txt
+RUN uv pip install qwen-tts==0.1.1 --no-deps
 # ezlocalai imports gTTS as a library. Install it outside the main solve because
 # its CLI click<8.2 constraint conflicts with the current Hugging Face stack.
 RUN uv pip install "gTTS>=2.4.0" --no-deps

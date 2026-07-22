@@ -256,7 +256,7 @@ For setups that outgrow point-to-point fallback (3+ machines, friends contributi
                              └────────────────────┘
 ```
 
-Each worker is a normal `ezlocalai` instance with `ROUTER_URL` set. On startup the worker registers itself, then sends heartbeats every `WORKER_HEARTBEAT_INTERVAL` seconds containing free VRAM, queue depth, loaded models, and advertised capabilities (`text`, `vision`, `tts`, `stt`, `embedding`, `image`, `video`). Workers that miss `ROUTER_WORKER_TTL` seconds of heartbeats are pruned. If a request arrives and no suitable worker is free, the router waits up to `ROUTER_WAIT_TIMEOUT` seconds before returning `503`.
+Each worker is a normal `ezlocalai` instance with `ROUTER_URL` set. On startup the worker registers itself, then sends heartbeats every `WORKER_HEARTBEAT_INTERVAL` seconds containing free VRAM, queue depth, loaded models, and advertised capabilities (`text`, `vision`, `tts`, `stt`, `embedding`, `image`, `video`). Workers that miss `ROUTER_WORKER_TTL` seconds of heartbeats are pruned. If a request arrives and no suitable worker is free, the router keeps it queued until a worker becomes available when `ROUTER_WAIT_TIMEOUT=0`, or waits up to the configured positive timeout before returning `503`.
 
 ### Run the router
 
@@ -314,7 +314,7 @@ curl https://router.you.com:8092/v1/chat/completions \
   -d '{"model":"unsloth/Qwen3.6-35B-A3B-GGUF","messages":[{"role":"user","content":"Hi"}]}'
 ```
 
-The router will pick the highest-scoring idle text-capable worker that has the requested model loaded. If the fastest worker is already handling a request, the router spills over to another idle compatible worker. If every compatible text/vision worker is busy, it waits up to `ROUTER_WAIT_TIMEOUT` seconds before returning `503`.
+The router picks the highest-scoring idle compatible worker at request time. If the fastest worker is already handling a request, the router spills over immediately to the best idle worker that can serve the request. If no compatible text/vision worker is free, it queues the request until a worker becomes available when `ROUTER_WAIT_TIMEOUT=0`, or waits up to the configured positive timeout before returning `503`.
 
 ### Reverse tunnel (workers without a public IP)
 
@@ -339,9 +339,9 @@ priority_tier = best_tier - 5 if tunneled else best_tier
 score = priority_tier * 10  +  slots_left * 5  +  free_vram_gb  -  in_flight * 4
 ```
 
-`best_tier` is derived from the worker's fastest GPU model (e.g. RTX 5090 ≈ 90, RTX 4090 = 80, RTX 3090 = 50, CPU = 2) and dominates the score, so an idle 5090 always beats an idle 3090. Tunneled workers keep their reported `best_tier` but receive a 5-point priority-tier penalty so similarly capable direct workers are preferred. The load penalty (`in_flight * 4`) lets a busy 5090 lose to an idle 4090 once it has a few requests in flight, which keeps the pool balanced under burst load.
+`best_tier` is derived from the worker's fastest GPU model (e.g. RTX 5090 ≈ 90, RTX 4090 = 80, RTX 3090 = 50, CPU = 2) and dominates the score, so an idle 5090 beats an idle 3090. Tunneled workers keep their reported `best_tier` but receive a 5-point priority-tier penalty so similarly capable direct workers are preferred. The load penalty (`in_flight * 4`) and idle-worker requirement keep burst traffic from stacking on a busy top-tier GPU while another compatible worker is free.
 
-By default, text/vision routing requires an idle worker, so one long-running request on the 5090 sends the next compatible request to an idle 4090/3090 instead of stacking it onto the 5090. Set `ROUTER_BUSY_SLOT_FALLBACK=true` to restore slot-based routing when every compatible text/vision worker is already busy. When that fallback is enabled, `ROUTER_IDLE_TIER_WINDOW=100` covers the normal GPU tier range and makes any idle compatible node beat adding another request to a busy top-tier node; set the window lower to only spill over to nearby tiers, or `0` to use pure score/capacity routing.
+By default, text/vision routing requires an idle worker, so one long-running request on the 5090 sends the next compatible request to an idle 4090/3090 instead of stacking it onto the 5090. `ROUTER_CROSS_MODEL_GRACE=0` means the router does not wait for a busy same-model worker before using the best available compatible fallback. `ROUTER_IDLE_TIER_WINDOW=0` means the router does not hold back lower-tier idle workers while a higher-tier worker is busy; set a positive value to restrict idle spillover to workers within that many tier points of the fastest compatible tier. Set `ROUTER_BUSY_SLOT_FALLBACK=true` to restore slot-based routing when every compatible text/vision worker is already busy.
 
 For capability-only voice routing, the router defaults `ROUTER_PREFER_DEDICATED_CAPABILITIES=stt,tts`, which means STT/TTS requests prefer workers that are not also serving `text` or `vision` before falling back to mixed-capability workers. Large transcription jobs also use `ROUTER_STT_TIMEOUT` (default `7200` seconds) instead of the generic `REQUEST_TIMEOUT`.
 
