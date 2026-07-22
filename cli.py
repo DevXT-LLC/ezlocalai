@@ -2015,18 +2015,6 @@ def install_native_dependencies(source_dir: Path, gpu_type: str = "cpu") -> bool
             if result.returncode != 0:
                 print(f"⚠️  xllamacpp CPU fallback also failed: {result.stderr.strip()}")
 
-    # Install chatterbox-tts with --no-deps (same as Dockerfile)
-    print("   Installing chatterbox-tts...")
-    result = _pip_install(
-        ["chatterbox-tts"],
-        python=python,
-        extra_args=["--no-deps", "-q"],
-        capture_output=True,
-        text=True,
-    )
-    if result.returncode != 0:
-        print(f"⚠️  chatterbox-tts install warning: {result.stderr.strip()}")
-
     # Install main requirements
     print(f"   Installing from {req_file.name}...")
 

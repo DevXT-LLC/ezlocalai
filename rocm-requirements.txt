@@ -1,6 +1,7 @@
 fastapi
 uvicorn
 pydantic
+numpy>=1.26.0,<2.5
 requests==2.33.0
 tiktoken==0.7.0
 python-dotenv==1.2.2
@@ -9,26 +10,24 @@ faster-whisper==1.2.0
 gguf
 pydub==0.25.1
 ffmpeg-python==0.2.0
-transformers>=5.0.0rc3
+transformers==4.57.3
 sounddevice==0.4.6
 webrtcvad==2.0.10
 pyaudio==0.2.14
 pyngrok==7.1.6
-accelerate
-diffusers @ git+https://github.com/huggingface/diffusers
+accelerate==1.12.0
+diffusers==0.39.0
 python-multipart
 openai
 pdfplumber
 sentence-transformers
 sentencepiece
 safetensors
-huggingface_hub
-# Note: chatterbox-tts is installed with --no-deps in Dockerfile to allow transformers upgrade
-# chatterbox-tts dependencies that must be installed manually since we use --no-deps:
-s3tokenizer
-conformer
-pykakasi
-resemble-perth
+huggingface_hub>=0.34.0,<1.0
+qwen-tts==0.1.1
 einops
 librosa
+numba==0.66.0
 tokenizers>=0.21
+soundfile
+sox

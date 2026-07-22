@@ -390,7 +390,7 @@ STT_N_PARALLEL=1
 ### Voice Server Mode (`VOICE_SERVER=true`)
 
 When set to `true`, this server becomes a dedicated voice server:
-- TTS (Chatterbox) and STT (Whisper) models are **pre-loaded at startup** and stay resident
+- TTS (Qwen-TTS) and STT (Whisper) models are **pre-loaded at startup** and stay resident
 - Voice models are **never unloaded** after requests (no lazy load/unload cycle)
 - LLM models are still lazy-loaded as needed
 - Ideal for a secondary server with a dedicated GPU for voice processing
@@ -532,7 +532,7 @@ custom_wakeword_start(on_wake_word, NULL);
 ### Training Process
 
 The wake word trainer:
-1. **Generates TTS samples** using gTTS, Edge-TTS, and Chatterbox with various voices
+1. **Generates TTS samples** using gTTS and Edge-TTS with various voices
 2. **Applies audio augmentation** (noise injection, speed/pitch variations, reverb)
 3. **Trains a CNN model** with MFCC features (40 coefficients)
 4. **Exports to all formats**:

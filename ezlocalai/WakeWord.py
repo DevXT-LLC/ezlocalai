@@ -77,7 +77,6 @@ class JobStatus(Enum):
 class TTSEngine(Enum):
     GTTS = "gtts"
     EDGE = "edge"
-    CHATTERBOX = "chatterbox"
 
 
 @dataclass
@@ -421,18 +420,12 @@ class SampleGenerator:
         output_dir: Path,
         enable_gtts: bool = True,
         enable_edge: bool = True,
-        enable_chatterbox: bool = False,
-        chatterbox_model=None,
-        chatterbox_voices_dir: Optional[Path] = None,
     ):
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
         self.enable_gtts = enable_gtts
         self.enable_edge = enable_edge
-        self.enable_chatterbox = enable_chatterbox
-        self.chatterbox_model = chatterbox_model
-        self.chatterbox_voices_dir = chatterbox_voices_dir
 
         self.executor = ThreadPoolExecutor(max_workers=8)
         self._init_engines()
@@ -458,10 +451,6 @@ class SampleGenerator:
                 logger.info("Edge TTS engine initialized for wake word training")
             except ImportError:
                 logger.warning("edge-tts not available for wake word training")
-
-        if self.enable_chatterbox and self.chatterbox_model:
-            self.available_engines.append(TTSEngine.CHATTERBOX)
-            logger.info("Chatterbox TTS engine initialized for wake word training")
 
     async def generate_gtts_sample(
         self, word: str, lang: str = "en"
@@ -529,49 +518,6 @@ class SampleGenerator:
             logger.error(f"Edge TTS generation failed for voice {voice}: {e}")
             return None
 
-    async def generate_chatterbox_sample(
-        self, word: str, voice_file: Path
-    ) -> Optional[TTSSample]:
-        """Generate a sample using Chatterbox TTS with voice cloning."""
-        try:
-            if not self.chatterbox_model:
-                return None
-
-            from pydub import AudioSegment
-
-            wav = self.chatterbox_model.generate(
-                word, audio_prompt_path=str(voice_file)
-            )
-
-            temp_path = self.output_dir / f"temp_cb_{uuid.uuid4().hex}.wav"
-
-            if isinstance(wav, torch.Tensor):
-                if wav.dim() == 1:
-                    wav = wav.unsqueeze(0)
-                wav_np = wav.cpu().squeeze(0).numpy()
-                sf.write(str(temp_path), wav_np, self.chatterbox_model.sr)
-
-            audio = AudioSegment.from_wav(str(temp_path))
-            audio = audio.set_frame_rate(16000).set_channels(1)
-
-            wav_buffer = io.BytesIO()
-            audio.export(wav_buffer, format="wav")
-            wav_buffer.seek(0)
-
-            temp_path.unlink(missing_ok=True)
-
-            return TTSSample(
-                audio_data=wav_buffer.read(),
-                sample_rate=16000,
-                engine=TTSEngine.CHATTERBOX,
-                voice=voice_file.stem,
-                word=word,
-                variation="cloned",
-            )
-        except Exception as e:
-            logger.error(f"Chatterbox generation failed: {e}")
-            return None
-
     async def generate_samples(
         self,
         word: str,
@@ -595,14 +541,6 @@ class SampleGenerator:
         if TTSEngine.EDGE in self.available_engines:
             for voice in self.EDGE_VOICES[:samples_per_engine]:
                 tasks.append(self.generate_edge_sample(word, voice))
-
-        if (
-            TTSEngine.CHATTERBOX in self.available_engines
-            and self.chatterbox_voices_dir
-        ):
-            voice_files = list(self.chatterbox_voices_dir.glob("*.wav"))
-            for voice_file in voice_files[:samples_per_engine]:
-                tasks.append(self.generate_chatterbox_sample(word, voice_file))
 
         logger.info(f"Generating {len(tasks)} base samples for '{word}'...")
 
@@ -1215,7 +1153,6 @@ class WakeWordManager:
         models_dir: Optional[Path] = None,
         samples_dir: Optional[Path] = None,
         jobs_dir: Optional[Path] = None,
-        chatterbox_model=None,
         voices_dir: Optional[Path] = None,
     ):
         base_dir = Path(os.getcwd())
@@ -1232,8 +1169,6 @@ class WakeWordManager:
         self.models_dir.mkdir(parents=True, exist_ok=True)
         self.samples_dir.mkdir(parents=True, exist_ok=True)
         self.jobs_dir.mkdir(parents=True, exist_ok=True)
-
-        self.chatterbox_model = chatterbox_model
 
         # Job tracking
         self.jobs: Dict[str, TrainingJob] = {}
@@ -1462,11 +1397,6 @@ class WakeWordManager:
                 output_dir=self.samples_dir / word_dir,
                 enable_gtts=True,
                 enable_edge=True,
-                enable_chatterbox=self.chatterbox_model is not None,
-                chatterbox_model=self.chatterbox_model,
-                chatterbox_voices_dir=(
-                    self.voices_dir if self.chatterbox_model else None
-                ),
             )
 
             def sample_progress(current, total, stage):
@@ -1663,7 +1593,7 @@ def get_wakeword_manager() -> WakeWordManager:
 
 
 def set_wakeword_manager(manager: WakeWordManager):
-    """Set a custom wake word manager (e.g., with Chatterbox model)."""
+    """Set a custom wake word manager."""
     global _wakeword_manager
     with _wakeword_manager_lock:
         _wakeword_manager = manager

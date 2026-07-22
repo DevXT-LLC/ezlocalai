@@ -10,7 +10,7 @@ RUN apt-get update --fix-missing && \
     apt-get install -y --no-install-recommends \
        git build-essential cmake gcc g++ ninja-build \
        portaudio19-dev ffmpeg libportaudio2 libasound-dev \
-       wget ocl-icd-opencl-dev opencl-headers \
+       wget ocl-icd-opencl-dev opencl-headers sox libsox-dev \
        clinfo libclblast-dev libopenblas-dev unzip curl && \
     mkdir -p /etc/OpenCL/vendors && \
     echo "libnvidia-opencl.so.1" > /etc/OpenCL/vendors/nvidia.icd && \
@@ -25,20 +25,14 @@ WORKDIR /app
 RUN uv pip install torch==2.9.1+cu128 torchaudio==2.9.1+cu128 --index-url https://download.pytorch.org/whl/cu128 && \
     uv pip install nvidia-cudnn-cu12==9.10.2.21 && \
     uv pip uninstall torchcodec -y 2>/dev/null || true
-# Install numpy and Cython for pkuseg (required by chatterbox-tts)
+# Install numpy and Cython for packages that build native extensions
 # numpy>=1.26.0 required for Python 3.12 compatibility
-RUN uv pip install "numpy>=1.26.0" Cython "setuptools>=78.1.1"
-# Install pkuseg separately (required by chatterbox-tts)
-RUN uv pip install pkuseg==0.0.25 --no-build-isolation
+RUN uv pip install "numpy>=1.26.0,<2.5" Cython "setuptools>=78.1.1"
 COPY cuda-requirements.txt .
 RUN uv pip install -r cuda-requirements.txt
 # ezlocalai imports gTTS as a library. Install it outside the main solve because
 # its CLI click<8.2 constraint conflicts with the current Hugging Face stack.
 RUN uv pip install "gTTS>=2.4.0" --no-deps
-# Install chatterbox-tts with --no-deps to bypass transformers==4.46.3 pin
-# This allows us to use transformers>=4.53.0 for security fixes
-RUN uv pip install chatterbox-tts --no-deps
-
 # Install esp-ppq with --no-deps to bypass onnx<1.18.0 pin
 # This allows us to use onnx>=1.21.0 for security fixes
 RUN uv pip install esp-ppq --no-deps

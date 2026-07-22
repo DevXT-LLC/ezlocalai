@@ -46,7 +46,7 @@ services:
       - TTS_N_PARALLEL=${TTS_N_PARALLEL:-1}
       - STT_ENABLED=${STT_ENABLED:-true}
       - STT_N_PARALLEL=${STT_N_PARALLEL:-1}
-      - TTS_PROVIDER=${TTS_PROVIDER:-chatterbox}
+      - TTS_PROVIDER=${TTS_PROVIDER:-qwen}
       - QUANT_TYPE=${QUANT_TYPE:-Q4_K_XL}
       - N_PARALLEL=${N_PARALLEL:-1}
       - MTP_SPEC_DRAFT_P_MIN=${MTP_SPEC_DRAFT_P_MIN:-0.25}

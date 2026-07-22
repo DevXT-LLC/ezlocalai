@@ -202,29 +202,7 @@ async def startup_event():
             from ezlocalai.WakeWord import WakeWordManager, set_wakeword_manager
             from pathlib import Path
 
-            # In voice server mode, we can optionally share Chatterbox TTS with wake word training
-            # This allows voice cloning for wake word samples
-            chatterbox_model = None
-            try:
-                # Pre-load TTS to get the Chatterbox model for wake word training
-                tts = pipe.ctts or (
-                    pipe.tts_instances[0]
-                    if getattr(pipe, "tts_instances", None)
-                    else None
-                )
-                if tts is None:
-                    tts = pipe._get_tts()
-                    pipe._destroy_tts()
-                if hasattr(tts, "model"):
-                    chatterbox_model = tts.model
-                    logging.info(
-                        "[WakeWord] Chatterbox TTS model available for wake word training"
-                    )
-            except Exception as e:
-                logging.warning(f"[WakeWord] Could not get Chatterbox model: {e}")
-
             manager = WakeWordManager(
-                chatterbox_model=chatterbox_model,
                 voices_dir=Path(os.getcwd()) / "voices",
             )
             set_wakeword_manager(manager)
@@ -1306,7 +1284,7 @@ class TextToSpeech(BaseModel):
     input: str
     model: Optional[str] = "tts-1"
     voice: Optional[str] = "default"
-    language: Optional[str] = "en"
+    language: Optional[str] = "auto"
     user: Optional[str] = None
 
 
@@ -2428,7 +2406,7 @@ async def train_wakeword_model(
     Request training of a new wake word model.
 
     Training typically takes 10-20 minutes depending on sample_count and epochs.
-    The model will use TTS engines (gTTS, Edge TTS, and optionally Chatterbox)
+    The model will use TTS engines (gTTS and Edge TTS)
     to generate diverse training samples automatically.
     """
     if not is_wakeword_enabled():
