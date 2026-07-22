@@ -29,8 +29,6 @@ from ezlocalai.AudioCache import AudioCache
 QWEN_TTS_MODEL = "Qwen/Qwen3-TTS-12Hz-0.6B-Base"
 MAX_CHUNK_CHARS = 350
 STREAM_CHUNK_TARGET_CHARS = 160
-STREAM_MIN_NEW_TOKENS = 48
-STREAM_TOKEN_PADDING = 24
 SAFE_FILE_STEM_RE = re.compile(r"[^a-zA-Z0-9_-]")
 
 LANGUAGE_ALIASES = {
@@ -575,21 +573,6 @@ class CTTS:
             kwargs["max_new_tokens"] = max_tokens
         return kwargs
 
-    def _stream_generation_kwargs(self, text: str) -> dict:
-        kwargs = dict(self.generation_kwargs)
-        configured = kwargs.get("max_new_tokens")
-        if not isinstance(configured, int) or configured <= 0:
-            configured = _env_int("QWEN_TTS_MAX_NEW_TOKENS", 320)
-
-        compact_len = len(re.sub(r"\s+", "", text))
-        punctuation_count = len(re.findall(r"[.!?。！？,;:，；：]", text))
-        estimated_tokens = int(compact_len * 1.1) + (punctuation_count * 6)
-        estimated_tokens += STREAM_TOKEN_PADDING
-        kwargs["max_new_tokens"] = max(
-            STREAM_MIN_NEW_TOKENS, min(configured, estimated_tokens)
-        )
-        return kwargs
-
     def _release_generation_memory(self):
         gc.collect()
         if (
@@ -931,7 +914,6 @@ class CTTS:
                     qwen_language,
                     ref_text,
                     x_vector_only,
-                    self._stream_generation_kwargs(chunk),
                 )
                 self.sample_rate = int(sample_rate)
                 pcm_data = self._array_to_pcm16_bytes(wav)
