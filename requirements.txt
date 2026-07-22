@@ -21,11 +21,10 @@ accelerate==1.12.0
 python-multipart
 openai
 pdfplumber
-huggingface_hub>=0.34.0,<1.0
+huggingface_hub>=1.24.0,<2.0
 safetensors
 sentence-transformers
-# Note: xllamacpp is installed separately in Dockerfile
-qwen-tts==0.1.1
+# Note: xllamacpp, qwen-tts, and gTTS are installed separately with Docker/CLI flags.
 soundfile
 transformers==5.5.0
 diffusers==0.39.0
@@ -37,7 +36,8 @@ sox
 sentencepiece
 gguf
 # Wake word detection dependencies
-gTTS>=2.4.0
+# gTTS is installed separately with --no-deps because its CLI click<8.2
+# constraint conflicts with current huggingface-hub.
 edge-tts>=6.1.0
 torchaudio
 onnx>=1.21.0

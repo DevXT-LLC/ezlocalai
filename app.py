@@ -24,12 +24,15 @@ import struct
 from Pipes import ModelType, Pipes
 from RequestQueue import RequestQueue
 import base64
+import io
 import os
 import logging
 import re
+import subprocess
 import uuid
 import time
 import asyncio
+from pathlib import Path
 from Globals import getenv
 
 DEFAULT_MODEL = getenv("DEFAULT_MODEL")
@@ -200,7 +203,6 @@ async def startup_event():
         )
         try:
             from ezlocalai.WakeWord import WakeWordManager, set_wakeword_manager
-            from pathlib import Path
 
             manager = WakeWordManager(
                 voices_dir=Path(os.getcwd()) / "voices",
@@ -1288,6 +1290,94 @@ class TextToSpeech(BaseModel):
     user: Optional[str] = None
 
 
+def _local_voice_names() -> List[str]:
+    voices_dir = Path(os.getcwd()) / "voices"
+    try:
+        voices_dir.mkdir(parents=True, exist_ok=True)
+        return sorted(path.stem for path in voices_dir.glob("*.wav"))
+    except OSError as e:
+        logging.warning(f"[TTS] Could not list local voices: {e}")
+        return []
+
+
+def _contains_cyrillic(text: str) -> bool:
+    return any("\u0400" <= char <= "\u04ff" for char in text)
+
+
+def _gtts_language(language: Optional[str], text: str) -> str:
+    requested = str(language or "").strip().lower()
+    aliases = {
+        "ru": "ru",
+        "rus": "ru",
+        "russian": "ru",
+        "en": "en",
+        "eng": "en",
+        "english": "en",
+    }
+    if requested in aliases:
+        return aliases[requested]
+    if _contains_cyrillic(text):
+        return "ru"
+    return "en"
+
+
+def _allow_gtts_fallback() -> bool:
+    return getenv("QWEN_TTS_ENABLE_GTTS_FALLBACK", "true").strip().lower() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }
+
+
+def _should_try_gtts_fallback(exc: Exception) -> bool:
+    if not _allow_gtts_fallback():
+        return False
+    message = str(exc).lower()
+    return (
+        "qwen_tts_allow_cpu_fallback" in message
+        or "needs cuda vram" in message
+        or "cuda is not available" in message
+        or "gpu load failed" in message
+        or "gpu generation failed" in message
+    )
+
+
+def _generate_gtts_wav_sync(text: str, language: Optional[str]) -> bytes:
+    from gtts import gTTS
+
+    mp3_buffer = io.BytesIO()
+    gTTS(text=text, lang=_gtts_language(language, text), slow=False).write_to_fp(
+        mp3_buffer
+    )
+    result = subprocess.run(
+        [
+            "ffmpeg",
+            "-hide_banner",
+            "-loglevel",
+            "error",
+            "-i",
+            "pipe:0",
+            "-ar",
+            "24000",
+            "-ac",
+            "1",
+            "-f",
+            "wav",
+            "pipe:1",
+        ],
+        input=mp3_buffer.getvalue(),
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=True,
+    )
+    return result.stdout
+
+
+async def _generate_gtts_wav(text: str, language: Optional[str]) -> bytes:
+    return await asyncio.to_thread(_generate_gtts_wav_sync, text, language)
+
+
 @app.post(
     "/v1/audio/speech",
     tags=["Audio"],
@@ -1375,19 +1465,29 @@ async def text_to_speech(tts: TextToSpeech, user=Depends(verify_api_key)):
                 except Exception as e:
                     logging.warning(f"[TTS] Fallback failed: {e}, using local")
 
+    audio_bytes = None
     async with pipe._tts_lock:
-        tts_model = pipe._get_tts()
+        tts_model = None
         try:
+            tts_model = pipe._get_tts()
             audio_b64 = await tts_model.generate(
                 text=tts.input, voice=tts.voice, language=tts.language
             )
+            audio_bytes = base64.b64decode(audio_b64)
+        except Exception as e:
+            if _should_try_gtts_fallback(e):
+                logging.warning(
+                    "[TTS] Qwen-TTS unavailable, using gTTS fallback: %s", e
+                )
+                audio_bytes = await _generate_gtts_wav(tts.input, tts.language)
+            else:
+                raise
         finally:
             pipe.resource_manager.mark_model_in_use(ModelType.TTS, False)
             # In voice server mode, don't destroy TTS - keep it loaded
-            if not is_voice_server_mode():
+            if tts_model is not None and not is_voice_server_mode():
                 pipe._destroy_tts()
     # OpenAI SDK expects raw binary audio, not base64 JSON
-    audio_bytes = base64.b64decode(audio_b64)
     return Response(content=audio_bytes, media_type="audio/wav")
 
 
@@ -1634,18 +1734,7 @@ async def get_voices(user=Depends(verify_api_key)):
                 if voices:
                     return voices
 
-    async with pipe._tts_lock:
-        tts_model = pipe._get_tts()
-        try:
-            if tts_model is None:
-                return {"voices": []}
-            voices = tts_model.voices
-        finally:
-            pipe.resource_manager.mark_model_in_use(ModelType.TTS, False)
-            # In voice server mode, don't destroy TTS - keep it loaded
-            if not is_voice_server_mode():
-                pipe._destroy_tts()
-    return {"voices": voices}
+    return {"voices": _local_voice_names()}
 
 
 @app.post(

@@ -24,6 +24,7 @@ jobs:
           DEFAULT_MODEL: "unsloth/Qwen3.5-0.8B-GGUF"
           LLM_MAX_TOKENS: "8192"
           IMG_MODEL: "none"
+          QWEN_TTS_ALLOW_CPU_FALLBACK: "false"
         ports:
           - ${{ inputs.port }}:${{ inputs.port }}
         options: >-

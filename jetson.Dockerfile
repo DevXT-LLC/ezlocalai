@@ -79,6 +79,8 @@ RUN pip install -r cuda-requirements.txt --no-cache-dir 2>/dev/null || \
          pip install "$line" --no-cache-dir 2>/dev/null || \
          echo "SKIP: $line (no ARM64 wheel)"; \
      done < cuda-requirements.txt)
+RUN pip install qwen-tts==0.1.1 --no-deps --no-cache-dir 2>/dev/null || \
+    echo "SKIP: qwen-tts (no ARM64 wheel)"
 
 # Build xllamacpp from source with CUDA for Jetson
 # xllamacpp is a HARD requirement (LLM.py imports it directly) — fail build if it can't be built

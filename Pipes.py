@@ -6368,6 +6368,15 @@ class Pipes:
         )
         if force_cpu:
             device = "cpu"
+        allow_cpu_fallback = getenv(
+            "QWEN_TTS_ALLOW_CPU_FALLBACK", "true"
+        ).strip().lower() in {"1", "true", "yes", "on"}
+        if device == "cpu" and not force_cpu and not allow_cpu_fallback:
+            raise RuntimeError(
+                f"{tts_name} needs CUDA VRAM for reliable generation; {reason}. "
+                "Reduce TTS_N_PARALLEL, free VRAM, or set "
+                "QWEN_TTS_ALLOW_CPU_FALLBACK=true to try CPU generation."
+            )
         logging.info(
             "[TTS] Loading %s instance %s/%s (%s)",
             tts_name,

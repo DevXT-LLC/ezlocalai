@@ -23,8 +23,9 @@ pdfplumber
 sentence-transformers
 sentencepiece
 safetensors
-huggingface_hub>=0.34.0,<1.0
-qwen-tts==0.1.1
+huggingface_hub>=1.24.0,<2.0
+# qwen-tts is installed separately with --no-deps because 0.1.1 pins
+# transformers==4.57.3 in package metadata.
 einops
 librosa
 numba==0.66.0

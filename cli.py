@@ -52,6 +52,8 @@ PID_FILE = STATE_DIR / "ezlocalai.pid"
 SOURCE_DIR_FILE = STATE_DIR / "source_dir"
 REPO_URL = "https://github.com/DevXT-LLC/ezlocalai.git"
 REPO_DIR = STATE_DIR / "repo"
+QWEN_TTS_VERSION = "0.1.1"
+GTTS_VERSION_SPEC = "gTTS>=2.4.0"
 
 # Cache for uv availability (checked once per process)
 _uv_available: Optional[bool] = None
@@ -2038,8 +2040,45 @@ def install_native_dependencies(source_dir: Path, gpu_type: str = "cpu") -> bool
                     print(f"      {line.strip()}")
             print("   Continuing anyway — some features may be unavailable.")
 
+    _install_gtts_no_deps(python)
+    _install_qwen_tts_no_deps(python)
+
     print("✅ Dependencies installed")
     return True
+
+
+def _install_gtts_no_deps(python: str) -> None:
+    """Install gTTS without its stale click dependency cap."""
+    print("   Installing gTTS...")
+    result = _pip_install(
+        [GTTS_VERSION_SPEC],
+        python=python,
+        extra_args=["--no-deps", "-q"],
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode != 0:
+        print("⚠️  gTTS install failed; wake word sample generation may be unavailable.")
+        for line in result.stderr.splitlines():
+            if "error" in line.lower():
+                print(f"      {line.strip()}")
+
+
+def _install_qwen_tts_no_deps(python: str) -> None:
+    """Install qwen-tts without its stale Transformers dependency pin."""
+    print("   Installing Qwen-TTS...")
+    result = _pip_install(
+        [f"qwen-tts=={QWEN_TTS_VERSION}"],
+        python=python,
+        extra_args=["--no-deps", "-q"],
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode != 0:
+        print("⚠️  Qwen-TTS install failed; local neural TTS may be unavailable.")
+        for line in result.stderr.splitlines():
+            if "error" in line.lower():
+                print(f"      {line.strip()}")
 
 
 def _install_requirements_individually(python: str, req_file: Path) -> None:

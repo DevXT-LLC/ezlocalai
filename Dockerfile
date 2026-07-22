@@ -15,6 +15,8 @@ RUN pip install numpy==1.25.2 Cython "setuptools>=78.1.1" --no-cache-dir
 COPY requirements.txt .
 RUN --mount=type=cache,target=/root/.cache/pip,sharing=locked \
     python3 -m pip install --no-cache-dir -r requirements.txt
+RUN python3 -m pip install qwen-tts==0.1.1 --no-deps --no-cache-dir
+RUN python3 -m pip install "gTTS>=2.4.0" --no-deps --no-cache-dir
 
 # Install esp-ppq with --no-deps to bypass onnx<1.18.0 pin
 # This allows us to use onnx>=1.21.0 for security fixes

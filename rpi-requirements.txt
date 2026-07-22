@@ -15,7 +15,7 @@ pyngrok==7.1.6
 python-multipart
 openai
 pdfplumber
-huggingface_hub
+huggingface_hub>=1.24.0,<2.0
 safetensors
 sentence-transformers
 transformers>=5.5.0

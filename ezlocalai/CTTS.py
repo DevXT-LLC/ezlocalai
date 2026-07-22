@@ -13,6 +13,13 @@ import numpy as np
 import soundfile as sf
 import torch
 import torchaudio
+
+from ezlocalai.qwen_tts_compat import (
+    apply_qwen_tts_transformers_compat,
+    repair_qwen_tts_rotary_buffers,
+)
+
+apply_qwen_tts_transformers_compat()
 from qwen_tts import Qwen3TTSModel
 
 from ezlocalai.AudioCache import AudioCache
@@ -338,6 +345,7 @@ class CTTS:
         self.max_chunk_chars = _env_int("QWEN_TTS_MAX_CHUNK_CHARS", MAX_CHUNK_CHARS)
         self.non_streaming_mode = _env_bool("QWEN_TTS_NON_STREAMING_MODE", False)
         self.default_x_vector_only = _env_bool("QWEN_TTS_X_VECTOR_ONLY", False)
+        self.allow_cpu_fallback = _env_bool("QWEN_TTS_ALLOW_CPU_FALLBACK", True)
         self.generation_kwargs = self._load_generation_kwargs()
 
         self.device = self._select_device(device)
@@ -378,7 +386,10 @@ class CTTS:
         if os.path.exists(os.path.join(self.voices_path, "default.wav")):
             try:
                 self._generate_single_sample(
-                    "Hello.", self._voice_audio_path("default"), "English"
+                    "Hello.",
+                    self._voice_audio_path("default"),
+                    "English",
+                    generation_kwargs=self._warmup_generation_kwargs(),
                 )
                 logging.info("[QTTS] Warmup generation complete")
             except Exception as e:
@@ -399,11 +410,15 @@ class CTTS:
         available_vram = get_available_vram_mb(gpu_index)
         if requested == "cpu":
             return "cpu"
-        if (
-            torch.cuda.is_available()
-            and requested.startswith("cuda")
-            and available_vram >= min_vram_mb
-        ):
+        if torch.cuda.is_available() and requested.startswith("cuda"):
+            if available_vram < min_vram_mb:
+                logging.warning(
+                    "[QTTS] Only %.0fMB VRAM available on GPU %s (preferred %sMB); "
+                    "trying requested CUDA device first",
+                    available_vram,
+                    gpu_index,
+                    min_vram_mb,
+                )
             return requested
         if (
             torch.cuda.is_available()
@@ -411,12 +426,28 @@ class CTTS:
             and available_vram >= min_vram_mb
         ):
             return "cuda:0"
+        if torch.cuda.is_available() and not self.allow_cpu_fallback:
+            logging.warning(
+                "[QTTS] Only %.0fMB VRAM available on GPU %s (preferred %sMB); "
+                "trying CUDA because Qwen-TTS CPU fallback is disabled",
+                available_vram,
+                gpu_index,
+                min_vram_mb,
+            )
+            return "cuda:0"
         if torch.cuda.is_available():
             logging.warning(
                 "[QTTS] Only %.0fMB VRAM available on GPU %s, using CPU (need %sMB)",
                 available_vram,
                 gpu_index,
                 min_vram_mb,
+            )
+            return "cpu"
+        if not self.allow_cpu_fallback:
+            raise RuntimeError(
+                "[QTTS] CUDA is not available and QWEN_TTS_ALLOW_CPU_FALLBACK is "
+                "not enabled. Set QWEN_TTS_ALLOW_CPU_FALLBACK=true or request "
+                "device='cpu' to try CPU generation."
             )
         return "cpu"
 
@@ -434,7 +465,9 @@ class CTTS:
             load_kwargs["attn_implementation"] = attn_implementation
 
         try:
-            return Qwen3TTSModel.from_pretrained(self.model_id, **load_kwargs)
+            return self._prepare_loaded_model(
+                Qwen3TTSModel.from_pretrained(self.model_id, **load_kwargs)
+            )
         except (torch.cuda.OutOfMemoryError, RuntimeError) as e:
             error = str(e).lower()
             if "flash_attention_2" in error or "flash-attn" in error:
@@ -444,33 +477,76 @@ class CTTS:
                     e,
                 )
                 load_kwargs["attn_implementation"] = "eager"
-                return Qwen3TTSModel.from_pretrained(self.model_id, **load_kwargs)
+                return self._prepare_loaded_model(
+                    Qwen3TTSModel.from_pretrained(self.model_id, **load_kwargs)
+                )
             if "out of memory" in error or "cuda" in error or "cudnn" in error:
+                if not self.allow_cpu_fallback:
+                    raise RuntimeError(
+                        "[QTTS] GPU load failed and QWEN_TTS_ALLOW_CPU_FALLBACK is "
+                        "not enabled. Reduce TTS_N_PARALLEL, free VRAM, or set "
+                        "QWEN_TTS_ALLOW_CPU_FALLBACK=true to try CPU generation."
+                    ) from e
                 logging.warning("[QTTS] GPU load failed, falling back to CPU: %s", e)
                 self._release_generation_memory()
                 self.device = "cpu"
-                return Qwen3TTSModel.from_pretrained(
-                    self.model_id,
-                    device_map="cpu",
-                    dtype=torch.float32,
-                    attn_implementation="eager",
+                return self._prepare_loaded_model(
+                    Qwen3TTSModel.from_pretrained(
+                        self.model_id,
+                        device_map="cpu",
+                        dtype=torch.float32,
+                        attn_implementation="eager",
+                    )
                 )
             raise
 
+    def _prepare_loaded_model(self, model: Qwen3TTSModel) -> Qwen3TTSModel:
+        repair_qwen_tts_rotary_buffers(model)
+        return model
+
     def _load_generation_kwargs(self) -> dict:
         raw = os.getenv("QWEN_TTS_GENERATE_KWARGS", "").strip()
+        kwargs = {}
         if not raw:
-            return {}
-        try:
-            import json
+            parsed = {}
+        else:
+            try:
+                import json
 
-            parsed = json.loads(raw)
-            if isinstance(parsed, dict):
-                return parsed
-            logging.warning("[QTTS] QWEN_TTS_GENERATE_KWARGS must be a JSON object")
-        except Exception as e:
-            logging.warning("[QTTS] Could not parse QWEN_TTS_GENERATE_KWARGS: %s", e)
-        return {}
+                parsed = json.loads(raw)
+                if not isinstance(parsed, dict):
+                    logging.warning(
+                        "[QTTS] QWEN_TTS_GENERATE_KWARGS must be a JSON object"
+                    )
+                    parsed = {}
+            except Exception as e:
+                logging.warning(
+                    "[QTTS] Could not parse QWEN_TTS_GENERATE_KWARGS: %s", e
+                )
+                parsed = {}
+
+        kwargs.update(parsed)
+        max_tokens = _env_int("QWEN_TTS_MAX_NEW_TOKENS", 320)
+        if (
+            max_tokens > 0
+            and "max_new_tokens" not in kwargs
+            and "max_length" not in kwargs
+        ):
+            kwargs["max_new_tokens"] = max_tokens
+        return kwargs
+
+    def _warmup_generation_kwargs(self) -> dict:
+        kwargs = dict(self.generation_kwargs)
+        max_tokens = _env_int("QWEN_TTS_WARMUP_MAX_NEW_TOKENS", 32)
+        if max_tokens <= 0:
+            return kwargs
+
+        configured = kwargs.get("max_new_tokens")
+        if isinstance(configured, int) and configured > 0:
+            kwargs["max_new_tokens"] = min(configured, max_tokens)
+        else:
+            kwargs["max_new_tokens"] = max_tokens
+        return kwargs
 
     def _release_generation_memory(self):
         gc.collect()
@@ -643,7 +719,13 @@ class CTTS:
         return base64.b64encode(audio_data).decode("utf-8")
 
     def _generate_single_sample(
-        self, text, audio_path, qwen_language, ref_text=None, x_vector_only=None
+        self,
+        text,
+        audio_path,
+        qwen_language,
+        ref_text=None,
+        x_vector_only=None,
+        generation_kwargs=None,
     ):
         """Generate one Qwen-TTS sample and return (audio_array, sample_rate)."""
         if not audio_path:
@@ -651,6 +733,9 @@ class CTTS:
 
         if x_vector_only is None:
             ref_text, x_vector_only, _ = self._voice_clone_context(audio_path)
+        kwargs = (
+            self.generation_kwargs if generation_kwargs is None else generation_kwargs
+        )
 
         try:
             with torch.inference_mode():
@@ -661,12 +746,18 @@ class CTTS:
                     ref_text=ref_text,
                     x_vector_only_mode=x_vector_only,
                     non_streaming_mode=self.non_streaming_mode,
-                    **self.generation_kwargs,
+                    **kwargs,
                 )
             return wavs[0], int(sample_rate)
         except (torch.cuda.OutOfMemoryError, RuntimeError) as e:
             error = str(e).lower()
             if "out of memory" in error or "cuda" in error or "cudnn" in error:
+                if not self.allow_cpu_fallback:
+                    raise RuntimeError(
+                        "[QTTS] GPU generation failed and QWEN_TTS_ALLOW_CPU_FALLBACK "
+                        "is not enabled. Reduce TTS_N_PARALLEL, free VRAM, or set "
+                        "QWEN_TTS_ALLOW_CPU_FALLBACK=true to try CPU generation."
+                    ) from e
                 logging.warning("[QTTS] GPU generation failed, reloading on CPU: %s", e)
                 self._reload_on_cpu()
                 with torch.inference_mode():
@@ -677,7 +768,7 @@ class CTTS:
                         ref_text=ref_text,
                         x_vector_only_mode=x_vector_only,
                         non_streaming_mode=self.non_streaming_mode,
-                        **self.generation_kwargs,
+                        **kwargs,
                     )
                 return wavs[0], int(sample_rate)
             logging.error("[QTTS] Error generating audio: %s", e)
@@ -692,11 +783,13 @@ class CTTS:
             pass
         self._release_generation_memory()
         self.device = "cpu"
-        self.model = Qwen3TTSModel.from_pretrained(
-            self.model_id,
-            device_map="cpu",
-            dtype=torch.float32,
-            attn_implementation="eager",
+        self.model = self._prepare_loaded_model(
+            Qwen3TTSModel.from_pretrained(
+                self.model_id,
+                device_map="cpu",
+                dtype=torch.float32,
+                attn_implementation="eager",
+            )
         )
 
     def _to_mono_float32(self, wav) -> np.ndarray:
