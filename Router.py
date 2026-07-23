@@ -46,7 +46,7 @@ from Tunnel import is_tunnel_url
 
 ALL_CAPABILITIES = {"text", "vision", "tts", "stt", "image", "video", "embedding"}
 MODEL_STRICT_CAPABILITIES = {"text", "vision"}
-DEFAULT_DEDICATED_CAPABILITY_PREFERENCES = {"stt", "tts"}
+DEFAULT_DEDICATED_CAPABILITY_PREFERENCES = {"stt"}
 _RUNTIME_VERSION_CACHE: Optional[str] = None
 
 

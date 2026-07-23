@@ -341,7 +341,7 @@ class RouterSelectionTests(unittest.TestCase):
         self.assertIsNotNone(worker)
         self.assertEqual(worker.label, "TTS Worker")
 
-    def test_tts_prefers_dedicated_voice_worker_over_high_tier_text_worker(self):
+    def test_tts_prefers_high_tier_worker_over_dedicated_voice_worker_by_default(self):
         registry = WorkerRegistry(ttl_seconds=60)
         registry.register(
             self._capability_worker(
@@ -354,6 +354,24 @@ class RouterSelectionTests(unittest.TestCase):
         router = Router(registry)
 
         worker = router.select_worker("tts", "tts-1", allow_cross_model=False)
+
+        self.assertIsNotNone(worker)
+        self.assertEqual(worker.worker_id, "mixed-5090")
+
+    def test_tts_dedicated_voice_preference_can_be_enabled(self):
+        registry = WorkerRegistry(ttl_seconds=60)
+        registry.register(
+            self._capability_worker(
+                "mixed-5090", ["text", "vision", "tts"], best_tier=90
+            )
+        )
+        registry.register(
+            self._capability_worker("voice-3090", ["tts", "stt"], best_tier=55)
+        )
+        router = Router(registry)
+
+        with patch.dict(os.environ, {"ROUTER_PREFER_DEDICATED_CAPABILITIES": "tts"}):
+            worker = router.select_worker("tts", "tts-1", allow_cross_model=False)
 
         self.assertIsNotNone(worker)
         self.assertEqual(worker.worker_id, "voice-3090")
@@ -407,9 +425,7 @@ class RouterSelectionTests(unittest.TestCase):
         router = Router(WorkerRegistry(ttl_seconds=60))
 
         worker = asyncio.run(
-            router.wait_for_worker(
-                "text", "model-a", timeout=0.01, poll_interval=0.001
-            )
+            router.wait_for_worker("text", "model-a", timeout=0.01, poll_interval=0.001)
         )
 
         self.assertIsNone(worker)

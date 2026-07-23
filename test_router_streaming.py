@@ -87,6 +87,56 @@ class RouterStreamingTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn('"content":"ok"', body)
         self.assertNotIn("request exceeds context", body)
 
+    async def test_audio_speech_stream_uses_binary_pcm_response_metadata(self):
+        worker = WorkerInfo(
+            worker_id="tts-worker",
+            label="tts-worker",
+            url="http://tts-worker",
+            capabilities=["tts"],
+            models=[],
+        )
+        captured = {}
+        original_pick = router_app._pick
+        original_proxy = router_app._proxy_json
+        original_record_cap = router_app._usage.record_cap
+
+        async def fake_pick(capability, model, exclude=None):
+            self.assertEqual(capability, "tts")
+            return worker
+
+        async def fake_proxy(worker_arg, path, payload, **kwargs):
+            captured.update(kwargs)
+            captured["path"] = path
+            captured["payload"] = payload
+            return router_app.Response(
+                content=b"", media_type=kwargs["stream_media_type"]
+            )
+
+        async def fake_record_cap(label, capability):
+            captured["usage"] = (label, capability)
+
+        try:
+            router_app._pick = fake_pick
+            router_app._proxy_json = fake_proxy
+            router_app._usage.record_cap = fake_record_cap
+
+            response = await router_app.audio_speech_stream(
+                {"model": "tts-1", "input": "Hello."}, _="test-client"
+            )
+        finally:
+            router_app._pick = original_pick
+            router_app._proxy_json = original_proxy
+            router_app._usage.record_cap = original_record_cap
+
+        self.assertEqual(captured["path"], "/v1/audio/speech/stream")
+        self.assertTrue(captured["stream"])
+        self.assertEqual(captured["capability"], "tts")
+        self.assertEqual(captured["stream_media_type"], "application/octet-stream")
+        self.assertEqual(captured["stream_headers"]["X-Audio-Format"], "pcm")
+        self.assertEqual(captured["stream_headers"]["X-Sample-Rate"], "24000")
+        self.assertEqual(response.media_type, "application/octet-stream")
+        self.assertEqual(captured["usage"], ("tts-worker", "tts"))
+
 
 class RouterTimeoutTests(unittest.TestCase):
     def test_stt_timeout_defaults_to_large_transcription_window(self):

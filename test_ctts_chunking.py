@@ -21,15 +21,30 @@ class CTTSChunkingTests(unittest.TestCase):
             "Hello. Привет, как дела? Повтори слово спасибо. Now say it slowly."
         )
 
-        chunks = split_text_into_stream_chunks(text, target_chars=40)
+        chunks = split_text_into_stream_chunks(text, target_chars=50)
 
         self.assertEqual(
             chunks,
             [
-                "Hello.",
-                "Привет, как дела?",
-                "Повтори слово спасибо.",
-                "Now say it slowly.",
+                "Hello. Привет, как дела?",
+                "Повтори слово спасибо. Now say it slowly.",
+            ],
+        )
+        self.assertEqual(" ".join(chunks), text)
+
+    def test_stream_chunks_pair_short_sentences_for_natural_playback(self):
+        text = clean_text_for_tts(
+            "Hello. This is the second sentence. "
+            "Here is Russian: Привет, как дела? Now this is the final sentence."
+        )
+
+        chunks = split_text_into_stream_chunks(text, target_chars=160)
+
+        self.assertEqual(
+            chunks,
+            [
+                "Hello. This is the second sentence.",
+                "Here is Russian: Привет, как дела? Now this is the final sentence.",
             ],
         )
         self.assertEqual(" ".join(chunks), text)
