@@ -26,7 +26,7 @@ safetensors
 sentence-transformers
 # Note: xllamacpp, qwen-tts, and gTTS are installed separately with Docker/CLI flags.
 soundfile
-transformers==4.57.3
+transformers==5.5.0
 diffusers==0.39.0
 einops
 librosa
