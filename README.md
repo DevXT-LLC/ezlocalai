@@ -343,7 +343,7 @@ score = priority_tier * 10  +  slots_left * 5  +  free_vram_gb  -  in_flight * 4
 
 By default, text/vision routing requires an idle worker, so one long-running request on the 5090 sends the next compatible request to an idle 4090/3090 instead of stacking it onto the 5090. `ROUTER_CROSS_MODEL_GRACE=0` means the router does not wait for a busy same-model worker before using the best available compatible fallback. `ROUTER_IDLE_TIER_WINDOW=0` means the router does not hold back lower-tier idle workers while a higher-tier worker is busy; set a positive value to restrict idle spillover to workers within that many tier points of the fastest compatible tier. Set `ROUTER_BUSY_SLOT_FALLBACK=true` to restore slot-based routing when every compatible text/vision worker is already busy.
 
-For capability-only voice routing, the router defaults `ROUTER_PREFER_DEDICATED_CAPABILITIES=stt,tts`, which means STT/TTS requests prefer workers that are not also serving `text` or `vision` before falling back to mixed-capability workers. Large transcription jobs also use `ROUTER_STT_TIMEOUT` (default `7200` seconds) instead of the generic `REQUEST_TIMEOUT`.
+For capability-only voice routing, the router defaults `ROUTER_PREFER_DEDICATED_CAPABILITIES=stt`, so large STT transcription jobs prefer workers that are not also serving `text` or `vision`. TTS routes by the normal score/tier calculation by default so low-latency playback can use faster mixed-capability workers. Stale `ROUTER_PREFER_DEDICATED_CAPABILITIES=stt,tts` values are treated as STT-only for TTS unless `ROUTER_ALLOW_DEDICATED_TTS_PREFERENCE=true` is also set. Large transcription jobs also use `ROUTER_STT_TIMEOUT` (default `7200` seconds) instead of the generic `REQUEST_TIMEOUT`.
 
 Workers missing the required capability (`text` / `vision` / `tts` / `stt` / `embedding` / `image` / `video`) or the requested model are filtered out before scoring. Stale workers (no heartbeat for `ROUTER_WORKER_TTL` seconds) are also excluded.
 
@@ -405,6 +405,16 @@ Qwen-TTS voices live in the `voices/` directory as `.wav` reference samples. If 
 same-name `.txt` transcript exists, ezlocalai uses it for transcript-conditioned
 voice cloning; custom voices without a transcript automatically fall back to
 speaker-embedding-only cloning.
+
+Streaming Qwen-TTS sends one generated PCM block per text chunk. The default
+chunking keeps the first chunk short for fast startup
+(`QWEN_TTS_STREAM_FIRST_CHUNK_CHARS=120`) and uses longer follow-up chunks
+(`QWEN_TTS_STREAM_CHUNK_CHARS=280`, capped by `QWEN_TTS_MAX_CHUNK_CHARS`) so
+playback has more audio buffered while Qwen generates the next block. PCM frames
+are flushed to clients in `QWEN_TTS_STREAM_WRITE_BYTES=16384` byte writes with a
+short `QWEN_TTS_STREAM_FRAME_DRAIN_SECONDS=0.1` handoff and an
+`QWEN_TTS_STREAM_FLUSH_SILENCE_MS=80` valid-silence frame so the next Qwen
+generation does not hold the previous frame tail in server buffers.
 
 ### Voice Passthrough Mode (`VOICE_SERVER=<url>`)
 

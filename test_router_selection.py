@@ -358,7 +358,9 @@ class RouterSelectionTests(unittest.TestCase):
         self.assertIsNotNone(worker)
         self.assertEqual(worker.worker_id, "mixed-5090")
 
-    def test_tts_dedicated_voice_preference_can_be_enabled(self):
+    def test_tts_ignores_stale_dedicated_voice_preference_without_explicit_opt_in(
+        self,
+    ):
         registry = WorkerRegistry(ttl_seconds=60)
         registry.register(
             self._capability_worker(
@@ -370,7 +372,37 @@ class RouterSelectionTests(unittest.TestCase):
         )
         router = Router(registry)
 
-        with patch.dict(os.environ, {"ROUTER_PREFER_DEDICATED_CAPABILITIES": "tts"}):
+        with patch.dict(
+            os.environ,
+            {
+                "ROUTER_PREFER_DEDICATED_CAPABILITIES": "stt,tts",
+                "ROUTER_ALLOW_DEDICATED_TTS_PREFERENCE": "false",
+            },
+        ):
+            worker = router.select_worker("tts", "tts-1", allow_cross_model=False)
+
+        self.assertIsNotNone(worker)
+        self.assertEqual(worker.worker_id, "mixed-5090")
+
+    def test_tts_dedicated_voice_preference_requires_explicit_opt_in(self):
+        registry = WorkerRegistry(ttl_seconds=60)
+        registry.register(
+            self._capability_worker(
+                "mixed-5090", ["text", "vision", "tts"], best_tier=90
+            )
+        )
+        registry.register(
+            self._capability_worker("voice-3090", ["tts", "stt"], best_tier=55)
+        )
+        router = Router(registry)
+
+        with patch.dict(
+            os.environ,
+            {
+                "ROUTER_PREFER_DEDICATED_CAPABILITIES": "tts",
+                "ROUTER_ALLOW_DEDICATED_TTS_PREFERENCE": "true",
+            },
+        ):
             worker = router.select_worker("tts", "tts-1", allow_cross_model=False)
 
         self.assertIsNotNone(worker)
