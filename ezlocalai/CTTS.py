@@ -29,6 +29,8 @@ from ezlocalai.AudioCache import AudioCache
 QWEN_TTS_MODEL = "Qwen/Qwen3-TTS-12Hz-0.6B-Base"
 MAX_CHUNK_CHARS = 350
 STREAM_CHUNK_TARGET_CHARS = 160
+STREAM_FIRST_CHUNK_TARGET_CHARS = 60
+STREAM_MIN_FIRST_CHUNK_CHARS = 24
 SAFE_FILE_STEM_RE = re.compile(r"[^a-zA-Z0-9_-]")
 
 LANGUAGE_ALIASES = {
@@ -207,7 +209,8 @@ def split_text_into_stream_chunks(
 ) -> list[str]:
     """Split streaming text into natural speech units without dropping text."""
     target_chars = max(1, target_chars)
-    sentence_pair_size = 2
+    first_target_chars = min(target_chars, STREAM_FIRST_CHUNK_TARGET_CHARS)
+    min_first_chars = min(first_target_chars, STREAM_MIN_FIRST_CHUNK_CHARS)
     chunks = []
     current_chunk = ""
     current_sentences = 0
@@ -224,20 +227,28 @@ def split_text_into_stream_chunks(
         if not sentence:
             continue
 
+        if not chunks and current_chunk and len(current_chunk) >= min_first_chars:
+            flush_current()
+
         if len(sentence) > target_chars:
             flush_current()
             chunks.extend(split_text_into_chunks(sentence, target_chars))
             continue
 
+        active_target = first_target_chars if not chunks else target_chars
         would_exceed = (
-            current_chunk and len(current_chunk) + len(sentence) + 1 > target_chars
+            current_chunk and len(current_chunk) + len(sentence) + 1 > active_target
         )
-        if current_sentences >= sentence_pair_size or would_exceed:
+        if would_exceed:
             flush_current()
 
         current_chunk = (current_chunk + " " + sentence).strip()
         current_sentences += 1
-        if current_sentences >= sentence_pair_size:
+        if (
+            not chunks
+            and len(current_chunk) >= min_first_chars
+            and (current_sentences > 1 or len(current_chunk) >= first_target_chars)
+        ):
             flush_current()
 
     flush_current()

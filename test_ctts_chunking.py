@@ -49,6 +49,23 @@ class CTTSChunkingTests(unittest.TestCase):
         )
         self.assertEqual(" ".join(chunks), text)
 
+    def test_stream_chunks_start_with_one_substantive_sentence_for_low_latency(self):
+        text = clean_text_for_tts(
+            "WorkConductor routed TTS probe. "
+            "Here is Russian: Привет, как дела? Probe complete."
+        )
+
+        chunks = split_text_into_stream_chunks(text, target_chars=160)
+
+        self.assertEqual(
+            chunks,
+            [
+                "WorkConductor routed TTS probe.",
+                "Here is Russian: Привет, как дела? Probe complete.",
+            ],
+        )
+        self.assertEqual(" ".join(chunks), text)
+
     def test_stream_chunks_do_not_truncate_long_text(self):
         text = clean_text_for_tts(
             " ".join(
