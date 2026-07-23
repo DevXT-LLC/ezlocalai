@@ -368,7 +368,7 @@ class CTTS:
         self.max_chunk_chars = max(
             1, _env_int("QWEN_TTS_MAX_CHUNK_CHARS", MAX_CHUNK_CHARS)
         )
-        self.non_streaming_mode = _env_bool("QWEN_TTS_NON_STREAMING_MODE", False)
+        self.non_streaming_mode = _env_bool("QWEN_TTS_NON_STREAMING_MODE", True)
         self.default_x_vector_only = _env_bool("QWEN_TTS_X_VECTOR_ONLY", False)
         self.allow_cpu_fallback = _env_bool("QWEN_TTS_ALLOW_CPU_FALLBACK", True)
         self.generation_kwargs = self._load_generation_kwargs()

@@ -15,10 +15,10 @@ pyngrok==7.1.6
 python-multipart
 openai
 pdfplumber
-huggingface_hub>=1.24.0,<2.0
+huggingface_hub==0.36.2
 safetensors
 sentence-transformers
-transformers>=5.5.0
+transformers==4.57.3
 einops
 librosa
 tokenizers>=0.21
