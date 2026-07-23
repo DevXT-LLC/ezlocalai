@@ -24,6 +24,7 @@ services:
       - ROUTER_STT_TIMEOUT=${ROUTER_STT_TIMEOUT-7200}
       # Prefer dedicated media workers for STT. TTS routes by score/tier by default.
       - ROUTER_PREFER_DEDICATED_CAPABILITIES=${ROUTER_PREFER_DEDICATED_CAPABILITIES-stt}
+      - ROUTER_ALLOW_DEDICATED_TTS_PREFERENCE=${ROUTER_ALLOW_DEDICATED_TTS_PREFERENCE-false}
       # false = text/vision requests wait once every compatible node is busy.
       # true = after idle spillover, fill remaining parallel slots on busy nodes.
       - ROUTER_BUSY_SLOT_FALLBACK=${ROUTER_BUSY_SLOT_FALLBACK-false}

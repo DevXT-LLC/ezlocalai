@@ -1315,6 +1315,16 @@ class Router:
         return value in {"1", "true", "yes", "on"}
 
     @staticmethod
+    def _dedicated_tts_preference_enabled() -> bool:
+        """Require a separate opt-in before TTS can prefer slower dedicated nodes."""
+        value = (
+            str(getenv("ROUTER_ALLOW_DEDICATED_TTS_PREFERENCE", "false") or "")
+            .strip()
+            .lower()
+        )
+        return value in {"1", "true", "yes", "on"}
+
+    @staticmethod
     def _dedicated_preference_capabilities() -> set:
         """Capabilities that should prefer workers not also serving LLM traffic."""
         raw = str(
@@ -1326,7 +1336,10 @@ class Router:
         ).strip()
         if raw.lower() in {"", "0", "false", "none", "off", "no"}:
             return set()
-        return {part.strip().lower() for part in raw.split(",") if part.strip()}
+        capabilities = {part.strip().lower() for part in raw.split(",") if part.strip()}
+        if "tts" in capabilities and not Router._dedicated_tts_preference_enabled():
+            capabilities.discard("tts")
+        return capabilities
 
     def _prefer_dedicated_capability_workers(
         self, capability: str, candidates: List[WorkerInfo]

@@ -26,6 +26,12 @@ def getenv(var_name: str, default_value: str = None) -> str:
         "QWEN_TTS_ENABLE_GTTS_FALLBACK": "true",
         "QWEN_TTS_MAX_NEW_TOKENS": "320",
         "QWEN_TTS_MAX_CHUNK_CHARS": "350",
+        "QWEN_TTS_STREAM_CHUNK_CHARS": "280",
+        "QWEN_TTS_STREAM_FIRST_CHUNK_CHARS": "120",
+        "QWEN_TTS_STREAM_MIN_FIRST_CHUNK_CHARS": "50",
+        "QWEN_TTS_STREAM_WRITE_BYTES": "16384",
+        "QWEN_TTS_STREAM_FRAME_DRAIN_SECONDS": "0.1",
+        "QWEN_TTS_STREAM_FLUSH_SILENCE_MS": "80",
         "QWEN_TTS_MIN_VRAM_MB": "3500",
         "STT_ENABLED": "true",
         "STT_N_PARALLEL": "1",  # Number of local STT model instances/slots to load
@@ -66,6 +72,7 @@ def getenv(var_name: str, default_value: str = None) -> str:
         "REQUEST_TIMEOUT": "120",
         "ROUTER_STT_TIMEOUT": "7200",
         "ROUTER_PREFER_DEDICATED_CAPABILITIES": "stt",
+        "ROUTER_ALLOW_DEDICATED_TTS_PREFERENCE": "false",
         # How long (seconds) a request waits in queue before trying fallback server.
         # 0 = disabled (wait full REQUEST_TIMEOUT). Only applies when FALLBACK_SERVER is set.
         "QUEUE_WAIT_TIMEOUT": "10",

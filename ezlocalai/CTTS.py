@@ -28,9 +28,12 @@ from ezlocalai.AudioCache import AudioCache
 
 QWEN_TTS_MODEL = "Qwen/Qwen3-TTS-12Hz-0.6B-Base"
 MAX_CHUNK_CHARS = 350
-STREAM_CHUNK_TARGET_CHARS = 160
-STREAM_FIRST_CHUNK_TARGET_CHARS = 60
-STREAM_MIN_FIRST_CHUNK_CHARS = 24
+STREAM_CHUNK_TARGET_CHARS = 280
+STREAM_FIRST_CHUNK_TARGET_CHARS = 120
+STREAM_MIN_FIRST_CHUNK_CHARS = 50
+STREAM_WRITE_BYTES = 16384
+STREAM_FRAME_DRAIN_SECONDS = 0.1
+STREAM_FLUSH_SILENCE_MS = 80
 SAFE_FILE_STEM_RE = re.compile(r"[^a-zA-Z0-9_-]")
 
 LANGUAGE_ALIASES = {
@@ -205,12 +208,35 @@ def split_text_into_chunks(text: str, max_chars: int = MAX_CHUNK_CHARS) -> list[
 
 
 def split_text_into_stream_chunks(
-    text: str, target_chars: int = STREAM_CHUNK_TARGET_CHARS
+    text: str,
+    target_chars: int = STREAM_CHUNK_TARGET_CHARS,
+    first_target_chars: Optional[int] = None,
+    min_first_chars: Optional[int] = None,
 ) -> list[str]:
     """Split streaming text into natural speech units without dropping text."""
     target_chars = max(1, target_chars)
-    first_target_chars = min(target_chars, STREAM_FIRST_CHUNK_TARGET_CHARS)
-    min_first_chars = min(first_target_chars, STREAM_MIN_FIRST_CHUNK_CHARS)
+    first_target_chars = min(
+        target_chars,
+        max(
+            1,
+            (
+                first_target_chars
+                if first_target_chars is not None
+                else STREAM_FIRST_CHUNK_TARGET_CHARS
+            ),
+        ),
+    )
+    min_first_chars = min(
+        first_target_chars,
+        max(
+            1,
+            (
+                min_first_chars
+                if min_first_chars is not None
+                else STREAM_MIN_FIRST_CHUNK_CHARS
+            ),
+        ),
+    )
     chunks = []
     current_chunk = ""
     current_sentences = 0
@@ -227,7 +253,7 @@ def split_text_into_stream_chunks(
         if not sentence:
             continue
 
-        if not chunks and current_chunk and len(current_chunk) >= min_first_chars:
+        if not chunks and current_chunk and len(current_chunk) >= first_target_chars:
             flush_current()
 
         if len(sentence) > target_chars:
@@ -350,6 +376,17 @@ def _env_int(name: str, default: int) -> int:
         return default
 
 
+def _env_float(name: str, default: float) -> float:
+    value = os.getenv(name)
+    if value is None:
+        return default
+    try:
+        return float(value)
+    except ValueError:
+        logging.warning("[QTTS] Invalid %s=%r; using %s", name, value, default)
+        return default
+
+
 def _dtype_from_name(name: str, device: str) -> torch.dtype:
     normalized = (name or "").strip().lower()
     if normalized in {"auto", ""}:
@@ -406,6 +443,45 @@ class CTTS:
         )
         self.max_chunk_chars = max(
             1, _env_int("QWEN_TTS_MAX_CHUNK_CHARS", MAX_CHUNK_CHARS)
+        )
+        self.stream_chunk_target_chars = min(
+            self.max_chunk_chars,
+            max(
+                1,
+                _env_int("QWEN_TTS_STREAM_CHUNK_CHARS", STREAM_CHUNK_TARGET_CHARS),
+            ),
+        )
+        self.stream_first_chunk_target_chars = min(
+            self.stream_chunk_target_chars,
+            max(
+                1,
+                _env_int(
+                    "QWEN_TTS_STREAM_FIRST_CHUNK_CHARS",
+                    STREAM_FIRST_CHUNK_TARGET_CHARS,
+                ),
+            ),
+        )
+        self.stream_min_first_chunk_chars = min(
+            self.stream_first_chunk_target_chars,
+            max(
+                1,
+                _env_int(
+                    "QWEN_TTS_STREAM_MIN_FIRST_CHUNK_CHARS",
+                    STREAM_MIN_FIRST_CHUNK_CHARS,
+                ),
+            ),
+        )
+        self.stream_write_bytes = max(
+            1024, _env_int("QWEN_TTS_STREAM_WRITE_BYTES", STREAM_WRITE_BYTES)
+        )
+        self.stream_frame_drain_seconds = max(
+            0.0,
+            _env_float(
+                "QWEN_TTS_STREAM_FRAME_DRAIN_SECONDS", STREAM_FRAME_DRAIN_SECONDS
+            ),
+        )
+        self.stream_flush_silence_ms = max(
+            0, _env_int("QWEN_TTS_STREAM_FLUSH_SILENCE_MS", STREAM_FLUSH_SILENCE_MS)
         )
         self.non_streaming_mode = _env_bool("QWEN_TTS_NON_STREAMING_MODE", True)
         self.default_x_vector_only = _env_bool("QWEN_TTS_X_VECTOR_ONLY", False)
@@ -932,13 +1008,22 @@ class CTTS:
         text = self._prepare_text(text, qwen_language)
         audio_path = self._voice_audio_path(voice)
         ref_text, x_vector_only, _ = self._voice_clone_context(audio_path)
-        chunks = split_text_into_stream_chunks(text)
+        chunks = split_text_into_stream_chunks(
+            text,
+            target_chars=self.stream_chunk_target_chars,
+            first_target_chars=self.stream_first_chunk_target_chars,
+            min_first_chars=self.stream_min_first_chunk_chars,
+        )
 
         logging.info(
-            "[QTTS] Streaming TTS: %s chunk(s), language=%s, chars=%s, mode=%s",
+            "[QTTS] Streaming TTS: %s chunk(s), language=%s, chars=%s, "
+            "stream_targets=%s/%s/%s, mode=%s",
             len(chunks),
             qwen_language,
             len(text),
+            self.stream_first_chunk_target_chars,
+            self.stream_chunk_target_chars,
+            self.stream_min_first_chunk_chars,
             "x-vector" if x_vector_only else "transcript",
         )
 
@@ -957,7 +1042,19 @@ class CTTS:
                 self.sample_rate = int(sample_rate)
                 pcm_data = self._array_to_pcm16_bytes(wav)
                 if pcm_data:
-                    yield struct.pack("<I", len(pcm_data)) + pcm_data
+                    yield struct.pack("<I", len(pcm_data))
+                    for offset in range(0, len(pcm_data), self.stream_write_bytes):
+                        yield pcm_data[offset : offset + self.stream_write_bytes]
+                        await asyncio.sleep(0)
+                    if i < len(chunks) - 1 and self.stream_flush_silence_ms > 0:
+                        silence_samples = max(
+                            1,
+                            int(self.sample_rate * self.stream_flush_silence_ms / 1000),
+                        )
+                        silence_data = b"\x00\x00" * silence_samples
+                        yield struct.pack("<I", len(silence_data)) + silence_data
+                    if self.stream_frame_drain_seconds > 0:
+                        await asyncio.sleep(self.stream_frame_drain_seconds)
                     logging.debug(
                         "[QTTS] Yielded %s bytes for chunk %s", len(pcm_data), i + 1
                     )
