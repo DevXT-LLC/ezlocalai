@@ -2638,6 +2638,8 @@ async def _proxy_via_tunnel(
     timeout: Optional[float],
     capability: Optional[str] = None,
     model: Optional[str] = None,
+    stream_media_type: Optional[str] = None,
+    stream_headers: Optional[Dict[str, str]] = None,
 ):
     """Route a request to a tunneled worker through its open WebSocket."""
     hub = get_tunnel_hub()
@@ -2719,7 +2721,11 @@ async def _proxy_via_tunnel(
                 worker.worker_id, -1, capability=capability, model=model
             )
 
-    return StreamingResponse(gen(), media_type=media_type or "text/event-stream")
+    return StreamingResponse(
+        gen(),
+        media_type=stream_media_type or media_type or "text/event-stream",
+        headers=stream_headers,
+    )
 
 
 async def _proxy_json(
@@ -2731,6 +2737,8 @@ async def _proxy_json(
     timeout: Optional[float] = None,
     capability: Optional[str] = None,
     model: Optional[str] = None,
+    stream_media_type: Optional[str] = None,
+    stream_headers: Optional[Dict[str, str]] = None,
 ):
     """Forward a JSON POST to a worker. Returns either a dict or a StreamingResponse."""
     headers = {"Content-Type": "application/json", **_worker_headers(worker)}
@@ -2745,6 +2753,8 @@ async def _proxy_json(
             timeout=timeout,
             capability=capability,
             model=model,
+            stream_media_type=stream_media_type,
+            stream_headers=stream_headers,
         )
     url = f"{worker.url}{path}"
     timeout_seconds = timeout or float(getenv("REQUEST_TIMEOUT", "300"))
@@ -2829,7 +2839,11 @@ async def _proxy_json(
                 worker.worker_id, -1, capability=capability, model=model
             )
 
-    return StreamingResponse(gen(), media_type="text/event-stream")
+    return StreamingResponse(
+        gen(),
+        media_type=stream_media_type or "text/event-stream",
+        headers=stream_headers,
+    )
 
 
 def _stream_max_attempts(capability: str) -> int:
@@ -3635,7 +3649,18 @@ async def audio_speech(
 async def audio_speech_stream(payload: Dict[str, Any], _: str = Depends(verify_client)):
     worker = await _pick("tts", payload.get("model"))
     resp = await _proxy_json(
-        worker, "/v1/audio/speech/stream", payload, stream=True, capability="tts"
+        worker,
+        "/v1/audio/speech/stream",
+        payload,
+        stream=True,
+        capability="tts",
+        stream_media_type="application/octet-stream",
+        stream_headers={
+            "X-Audio-Format": "pcm",
+            "X-Sample-Rate": "24000",
+            "X-Bits-Per-Sample": "16",
+            "X-Channels": "1",
+        },
     )
     await _usage.record_cap(worker.label, "tts")
     return resp

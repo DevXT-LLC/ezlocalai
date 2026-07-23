@@ -205,14 +205,42 @@ def split_text_into_chunks(text: str, max_chars: int = MAX_CHUNK_CHARS) -> list[
 def split_text_into_stream_chunks(
     text: str, target_chars: int = STREAM_CHUNK_TARGET_CHARS
 ) -> list[str]:
-    """Split streaming text by sentence without dropping any input text."""
+    """Split streaming text into natural speech units without dropping text."""
     target_chars = max(1, target_chars)
+    sentence_pair_size = 2
     chunks = []
+    current_chunk = ""
+    current_sentences = 0
+
+    def flush_current():
+        nonlocal current_chunk, current_sentences
+        if current_chunk:
+            chunks.append(current_chunk.strip())
+        current_chunk = ""
+        current_sentences = 0
+
     for sentence in re.split(r"(?<=[.!?。！？])\s+", text):
         sentence = sentence.strip()
         if not sentence:
             continue
-        chunks.extend(split_text_into_chunks(sentence, target_chars))
+
+        if len(sentence) > target_chars:
+            flush_current()
+            chunks.extend(split_text_into_chunks(sentence, target_chars))
+            continue
+
+        would_exceed = (
+            current_chunk and len(current_chunk) + len(sentence) + 1 > target_chars
+        )
+        if current_sentences >= sentence_pair_size or would_exceed:
+            flush_current()
+
+        current_chunk = (current_chunk + " " + sentence).strip()
+        current_sentences += 1
+        if current_sentences >= sentence_pair_size:
+            flush_current()
+
+    flush_current()
     return chunks or ([text] if text else [])
 
 
