@@ -300,6 +300,14 @@ curl http://localhost:8091/v1/audio/music \
   }'
 ```
 
+The OpenAI-style `model` field is optional for music requests. If it is omitted
+or names an alias this worker does not advertise, ezlocalai uses the configured
+available music model (`MUSIC_MODEL`, default
+`Serveurperso/ACE-Step-1.5-GGUF`) instead of rejecting the request. Generation
+controls such as `duration`, `seed`, `bpm`, `keyscale`, `timesignature`,
+`vocal_language`, `inference_steps`, `guidance_scale`, `shift`, `solver`,
+`lm_model`, and `synth_model` are optional per-request overrides.
+
 For a live proof test against the internal or external ACE-Step server:
 
 ```bash

@@ -39,6 +39,22 @@ ACE_STEP_AUDIO_TYPES = {
 _ACE_STEP_PROCESS: Optional[subprocess.Popen] = None
 
 
+def _music_model_key(model: Optional[str]) -> str:
+    if not model:
+        return ""
+    name = str(model).strip().lower()
+    if "@" in name:
+        name = name.rsplit("@", 1)[0]
+    if "#" in name:
+        name = name.split("#", 1)[0]
+    name = name.split("/")[-1]
+    for suffix in ("-gguf", ".gguf"):
+        if name.endswith(suffix):
+            name = name[: -len(suffix)]
+            break
+    return name
+
+
 def ace_step_internal_url() -> str:
     host = (
         getenv("ACE_STEP_HOST", ACE_STEP_DEFAULT_HOST) or ACE_STEP_DEFAULT_HOST
@@ -264,6 +280,29 @@ class MUSIC:
             "ACE_STEP_DIT_MODEL", ACE_STEP_DEFAULT_DIT_MODEL
         )
 
+    def resolve_model(self, requested_model: Optional[str] = None) -> str:
+        """Return the available music model to report for this request.
+
+        The OpenAI-style ``model`` field is treated as a routing hint. If a
+        client asks for an alias this worker does not advertise, generate with
+        the configured ACE-Step model instead of failing or echoing an
+        unavailable model name.
+        """
+        available = self.model or ACE_STEP_DEFAULT_MODEL
+        requested = (requested_model or "").strip()
+        if not requested:
+            return available
+        if requested == available:
+            return requested
+        if _music_model_key(requested) == _music_model_key(available):
+            return available
+        logging.info(
+            "[MUSIC] Requested model %r is not available locally; using %r",
+            requested,
+            available,
+        )
+        return available
+
     async def health(self) -> bool:
         try:
             async with aiohttp.ClientSession() as session:
@@ -368,7 +407,7 @@ class MUSIC:
         **kwargs: Any,
     ) -> Dict[str, Any]:
         response_format = self._normalize_response_format(response_format)
-        display_model = model or self.model
+        display_model = self.resolve_model(model)
         ace_request = self.build_request(
             prompt=prompt,
             lyrics=lyrics,

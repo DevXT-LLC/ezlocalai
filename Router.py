@@ -12,7 +12,7 @@ Two pieces live here:
 The router exposes the same OpenAI-compatible API surface as a normal
 ezlocalai server but does no inference itself. It selects a worker based on:
 
-* Capability match (text / vision / voice / image / video / embedding)
+* Capability match (text / vision / voice / image / video / music / embedding)
 * Whether the worker has the requested model
 * Free VRAM and queue depth (more free, less queued = better score)
 * Liveness (recent heartbeat)
@@ -1465,10 +1465,11 @@ class Router:
         * ``False`` — return ``None`` so the caller (``wait_for_worker``)
           can poll for a same-model worker to free up before crossing over.
 
-        Non-text media capabilities (TTS, STT, image, video) are routed by
-        capability regardless of the client-supplied OpenAI model alias. A
-        request for ``whisper-1`` should reach any STT-capable worker, and a
-        request for ``tts-1`` should reach any TTS-capable worker.
+        Non-text media capabilities (TTS, STT, image, video, music) are routed
+        by capability regardless of the client-supplied OpenAI model alias. A
+        request for ``whisper-1`` should reach any STT-capable worker, a
+        request for ``tts-1`` should reach any TTS-capable worker, and a
+        request for ``music-1`` should reach any music-capable worker.
         """
         excluded = exclude or set()
         all_alive = [

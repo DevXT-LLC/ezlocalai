@@ -166,6 +166,58 @@ class MusicClientTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(audio, b"ID3fake-song")
         self.assertEqual(result["data"][0]["content_type"], "audio/mpeg")
 
+    async def test_generate_uses_available_model_when_request_alias_differs(self):
+        class FakeMusic(MUSIC):
+            def __init__(self):
+                super().__init__("http://ace.local")
+                self.calls = []
+
+            async def _run_json_job(self, endpoint, payload):
+                self.calls.append((endpoint, payload))
+                if endpoint == "/lm":
+                    return (
+                        json.dumps(
+                            {
+                                "caption": payload["caption"],
+                                "lyrics": payload["lyrics"],
+                                "audio_codes": "5,6,7",
+                                "duration": payload["duration"],
+                                "bpm": payload["bpm"],
+                                "vocal_language": payload["vocal_language"],
+                            }
+                        ).encode("utf-8"),
+                        "application/json",
+                    )
+                if endpoint == "/synth":
+                    return b"RIFFfake-wav", "audio/wav"
+                raise AssertionError(f"Unexpected endpoint {endpoint}")
+
+        music = FakeMusic()
+
+        result = await music.generate(
+            model="music-1",
+            prompt=HEAVY_METAL_PROMPT,
+            lyrics=PYTHAGOREAN_LYRICS,
+            duration=45,
+            response_format="b64_json",
+            output_format="wav16",
+            bpm=128,
+            vocal_language="en",
+            lm_model="acestep-5Hz-lm-4B-Q8_0.gguf",
+            synth_model="acestep-v15-turbo-Q4_K_M.gguf",
+            guidance_scale=1.0,
+        )
+
+        lm_payload = music.calls[0][1]
+        self.assertEqual(result["model"], "Serveurperso/ACE-Step-1.5-GGUF")
+        self.assertEqual(lm_payload["bpm"], 128)
+        self.assertEqual(lm_payload["vocal_language"], "en")
+        self.assertEqual(lm_payload["lm_model"], "acestep-5Hz-lm-4B-Q8_0.gguf")
+        self.assertEqual(
+            lm_payload["synth_model"], "acestep-v15-turbo-Q4_K_M.gguf"
+        )
+        self.assertEqual(lm_payload["guidance_scale"], 1.0)
+
 
 class MusicRouterTests(unittest.TestCase):
     def test_music_routes_by_capability_when_model_alias_is_not_advertised(self):
@@ -188,9 +240,7 @@ class MusicRouterTests(unittest.TestCase):
         )
         router = Router(registry)
 
-        worker = router.select_worker(
-            "music", "Serveurperso/ACE-Step-1.5-GGUF", allow_cross_model=False
-        )
+        worker = router.select_worker("music", "music-1", allow_cross_model=False)
 
         self.assertIsNotNone(worker)
         self.assertEqual(worker.label, "MUSIC Worker")
