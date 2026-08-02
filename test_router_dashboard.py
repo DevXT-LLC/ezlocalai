@@ -1,7 +1,38 @@
 import unittest
 
 from Router import WorkerInfo
-from router_app import _public_with_tunnel, _tier_badge, _worker_priority_tier
+from router_app import (
+    _public_with_tunnel,
+    _render_dashboard_html,
+    _tier_badge,
+    _worker_priority_tier,
+)
+
+
+def _dashboard_data(**overrides):
+    data = {
+        "pool_health": "healthy",
+        "router": {"ttl_seconds": 60, "wait_timeout": 30},
+        "totals": {
+            "alive_workers": 1,
+            "stale_workers": 0,
+            "total_parallel_capacity": 1,
+            "total_available_slots": 1,
+            "total_in_flight": 0,
+            "total_queue_depth": 0,
+            "total_free_vram_gb": 0,
+            "total_vram_gb": 0,
+            "unique_models": 0,
+        },
+        "models": [],
+        "workers": [],
+        "usage": {},
+        "usage_24h": {},
+        "history": [],
+        "errors": [],
+    }
+    data.update(overrides)
+    return data
 
 
 class RouterDashboardTierTests(unittest.TestCase):
@@ -33,6 +64,43 @@ class RouterDashboardTierTests(unittest.TestCase):
         self.assertIn("priority tier 50", badge)
         self.assertIn("hw 55", badge)
         self.assertIn("tunnel penalty -5", badge)
+
+    def test_worker_models_column_shows_music_model(self):
+        worker = WorkerInfo(
+            worker_id="music-1",
+            label="Studio",
+            url="http://studio.local",
+            capabilities=["music"],
+            cap_models={"music": "Serveurperso/ACE-Step-1.5-GGUF"},
+            cap_slots={
+                "music": {
+                    "capacity": 1,
+                    "in_flight": 0,
+                    "queued": 0,
+                    "available": 1,
+                }
+            },
+        )
+        html = _render_dashboard_html(
+            _dashboard_data(workers=[_public_with_tunnel(worker)])
+        )
+
+        self.assertIn('title="Serveurperso/ACE-Step-1.5-GGUF"', html)
+        self.assertIn(">ACE-Step-1.5</span>", html)
+
+    def test_usage_summary_shows_music_requests(self):
+        html = _render_dashboard_html(
+            _dashboard_data(
+                usage={
+                    "Studio": {
+                        "music": {"requests": 3},
+                    }
+                }
+            )
+        )
+
+        self.assertIn("Music reqs", html)
+        self.assertIn('<td class="num">3</td>', html)
 
 
 if __name__ == "__main__":
