@@ -292,21 +292,21 @@ curl http://localhost:8091/v1/audio/music \
   -d '{
     "prompt": "Heavy metal anthem about the Pythagorean theorem, double-kick drums, distorted guitars, soaring vocals, and a triumphant chorus.",
     "lyrics": "[Verse]\nOn a right triangle battlefield\nTwo short sides raise their shields\n\n[Chorus]\nA squared plus B squared, lightning in the night\nEquals C squared, hypotenuse burning bright",
-    "duration": 10,
-    "output_format": "mp3",
-    "response_format": "url",
-    "inference_steps": 8,
-    "shift": 3.0
+    "duration": 45,
+    "keyscale": "E minor"
   }'
 ```
 
-The OpenAI-style `model` field is optional for music requests. If it is omitted
-or names an alias this worker does not advertise, ezlocalai uses the configured
-available music model (`MUSIC_MODEL`, default
-`Serveurperso/ACE-Step-1.5-GGUF`) instead of rejecting the request. Generation
-controls such as `duration`, `seed`, `bpm`, `keyscale`, `timesignature`,
-`vocal_language`, `inference_steps`, `guidance_scale`, `shift`, `solver`,
-`lm_model`, and `synth_model` are optional per-request overrides.
+Music requests require `prompt`, `lyrics`, `duration`, and `keyscale`. The
+OpenAI-style `model` field is optional; if it is omitted or names an alias this
+worker does not advertise, ezlocalai uses the configured available music model
+(`MUSIC_MODEL`, default `Serveurperso/ACE-Step-1.5-GGUF`) instead of rejecting
+the request. Generation controls such as `seed`, `bpm`, `timesignature`,
+`vocal_language`, `response_format`, `output_format`, `inference_steps`,
+`guidance_scale`, `shift`, `solver`, `lm_model`, and `synth_model` are optional
+per-request overrides. Defaults are `response_format=url`, `output_format=wav16`,
+`bpm=128`, `timesignature=4/4`, `vocal_language=en`, `inference_steps=16`,
+`guidance_scale=1.0`, `shift=3.0`, and `solver=euler`.
 
 For a live proof test against the internal or external ACE-Step server:
 

@@ -34,6 +34,18 @@ import time
 import asyncio
 from pathlib import Path
 from Globals import getenv
+from ezlocalai.MUSIC import (
+    ACE_STEP_DEFAULT_BPM,
+    ACE_STEP_DEFAULT_GUIDANCE_SCALE,
+    ACE_STEP_DEFAULT_INFERENCE_STEPS,
+    ACE_STEP_DEFAULT_MODEL as ACE_STEP_DEFAULT_MUSIC_MODEL,
+    ACE_STEP_DEFAULT_OUTPUT_FORMAT,
+    ACE_STEP_DEFAULT_RESPONSE_FORMAT,
+    ACE_STEP_DEFAULT_SHIFT,
+    ACE_STEP_DEFAULT_SOLVER,
+    ACE_STEP_DEFAULT_TIMESIGNATURE,
+    ACE_STEP_DEFAULT_VOCAL_LANGUAGE,
+)
 
 DEFAULT_MODEL = getenv("DEFAULT_MODEL")
 EMBEDDING_MODEL = getenv("EMBEDDING_MODEL")
@@ -1639,22 +1651,22 @@ async def text_to_speech_stream(tts: TextToSpeech, user=Depends(verify_api_key))
 
 class MusicCreation(BaseModel):
     prompt: str
-    model: Optional[str] = "Serveurperso/ACE-Step-1.5-GGUF"
-    lyrics: Optional[str] = None
+    lyrics: str
+    duration: float
+    keyscale: str
+    model: Optional[str] = ACE_STEP_DEFAULT_MUSIC_MODEL
     instrumental: Optional[bool] = False
     n: Optional[int] = 1
-    response_format: Optional[str] = "url"
-    output_format: Optional[str] = "mp3"
-    duration: Optional[float] = None
+    response_format: Optional[str] = ACE_STEP_DEFAULT_RESPONSE_FORMAT
+    output_format: Optional[str] = ACE_STEP_DEFAULT_OUTPUT_FORMAT
     seed: Optional[int] = None
-    bpm: Optional[int] = None
-    keyscale: Optional[str] = None
-    timesignature: Optional[str] = None
-    vocal_language: Optional[str] = None
-    inference_steps: Optional[int] = None
-    guidance_scale: Optional[float] = None
-    shift: Optional[float] = None
-    solver: Optional[str] = None
+    bpm: Optional[int] = ACE_STEP_DEFAULT_BPM
+    timesignature: Optional[str] = ACE_STEP_DEFAULT_TIMESIGNATURE
+    vocal_language: Optional[str] = ACE_STEP_DEFAULT_VOCAL_LANGUAGE
+    inference_steps: Optional[int] = ACE_STEP_DEFAULT_INFERENCE_STEPS
+    guidance_scale: Optional[float] = ACE_STEP_DEFAULT_GUIDANCE_SCALE
+    shift: Optional[float] = ACE_STEP_DEFAULT_SHIFT
+    solver: Optional[str] = ACE_STEP_DEFAULT_SOLVER
     lm_model: Optional[str] = None
     synth_model: Optional[str] = None
     audio_codes: Optional[str] = None
@@ -1676,6 +1688,14 @@ async def generate_music(
     user: str = Depends(verify_api_key),
 ):
     payload = _pydantic_payload(music_creation)
+    for field in ("prompt", "lyrics", "keyscale"):
+        if not str(payload.get(field) or "").strip():
+            raise HTTPException(status_code=400, detail=f"{field} is required")
+    try:
+        if float(payload.get("duration", 0) or 0) <= 0:
+            raise ValueError
+    except (TypeError, ValueError):
+        raise HTTPException(status_code=400, detail="duration must be greater than 0")
 
     router_client = await _router_client_for_unserved_capability("music")
     if router_client:

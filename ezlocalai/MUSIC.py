@@ -27,6 +27,15 @@ ACE_STEP_DEFAULT_LM_MODEL = "acestep-5Hz-lm-4B-Q8_0.gguf"
 ACE_STEP_DEFAULT_TEXT_ENCODER_MODEL = "Qwen3-Embedding-0.6B-Q8_0.gguf"
 ACE_STEP_DEFAULT_DIT_MODEL = "acestep-v15-turbo-Q4_K_M.gguf"
 ACE_STEP_DEFAULT_VAE_MODEL = "vae-BF16.gguf"
+ACE_STEP_DEFAULT_RESPONSE_FORMAT = "url"
+ACE_STEP_DEFAULT_OUTPUT_FORMAT = "wav16"
+ACE_STEP_DEFAULT_BPM = 128
+ACE_STEP_DEFAULT_TIMESIGNATURE = "4/4"
+ACE_STEP_DEFAULT_VOCAL_LANGUAGE = "en"
+ACE_STEP_DEFAULT_INFERENCE_STEPS = 16
+ACE_STEP_DEFAULT_GUIDANCE_SCALE = 1.0
+ACE_STEP_DEFAULT_SHIFT = 3.0
+ACE_STEP_DEFAULT_SOLVER = "euler"
 ACE_STEP_OUTPUT_FORMATS = {"mp3", "wav16", "wav24", "wav32"}
 ACE_STEP_RESPONSE_FORMATS = {"url", "b64_json"}
 ACE_STEP_AUDIO_TYPES = {
@@ -333,18 +342,18 @@ class MUSIC:
         prompt: str,
         lyrics: Optional[str] = None,
         instrumental: bool = False,
-        output_format: str = "mp3",
+        output_format: str = ACE_STEP_DEFAULT_OUTPUT_FORMAT,
         duration: Optional[float] = None,
         seed: Optional[int] = None,
         n: int = 1,
-        bpm: Optional[int] = None,
+        bpm: Optional[int] = ACE_STEP_DEFAULT_BPM,
         keyscale: Optional[str] = None,
-        timesignature: Optional[str] = None,
-        vocal_language: Optional[str] = None,
-        inference_steps: Optional[int] = None,
-        guidance_scale: Optional[float] = None,
-        shift: Optional[float] = None,
-        solver: Optional[str] = None,
+        timesignature: Optional[str] = ACE_STEP_DEFAULT_TIMESIGNATURE,
+        vocal_language: Optional[str] = ACE_STEP_DEFAULT_VOCAL_LANGUAGE,
+        inference_steps: Optional[int] = ACE_STEP_DEFAULT_INFERENCE_STEPS,
+        guidance_scale: Optional[float] = ACE_STEP_DEFAULT_GUIDANCE_SCALE,
+        shift: Optional[float] = ACE_STEP_DEFAULT_SHIFT,
+        solver: Optional[str] = ACE_STEP_DEFAULT_SOLVER,
         lm_model: Optional[str] = None,
         synth_model: Optional[str] = None,
         audio_codes: Optional[str] = None,
@@ -400,8 +409,8 @@ class MUSIC:
         prompt: str,
         lyrics: Optional[str] = None,
         instrumental: bool = False,
-        response_format: str = "url",
-        output_format: str = "mp3",
+        response_format: str = ACE_STEP_DEFAULT_RESPONSE_FORMAT,
+        output_format: str = ACE_STEP_DEFAULT_OUTPUT_FORMAT,
         model: Optional[str] = None,
         n: int = 1,
         **kwargs: Any,
@@ -625,7 +634,7 @@ class MUSIC:
         return item
 
     def _normalize_output_format(self, output_format: Optional[str]) -> str:
-        output_format = (output_format or "mp3").strip().lower()
+        output_format = (output_format or ACE_STEP_DEFAULT_OUTPUT_FORMAT).strip().lower()
         if output_format not in ACE_STEP_OUTPUT_FORMATS:
             raise ValueError(
                 f"output_format must be one of {sorted(ACE_STEP_OUTPUT_FORMATS)}"
@@ -633,7 +642,9 @@ class MUSIC:
         return output_format
 
     def _normalize_response_format(self, response_format: Optional[str]) -> str:
-        response_format = (response_format or "url").strip().lower()
+        response_format = (
+            response_format or ACE_STEP_DEFAULT_RESPONSE_FORMAT
+        ).strip().lower()
         if response_format not in ACE_STEP_RESPONSE_FORMATS:
             raise ValueError(
                 f"response_format must be one of {sorted(ACE_STEP_RESPONSE_FORMATS)}"

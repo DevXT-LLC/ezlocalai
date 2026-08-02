@@ -100,6 +100,29 @@ class MusicClientTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(request["shift"], 3.0)
         self.assertEqual(request["lm_temperature"], 0.7)
 
+    def test_build_request_fills_agent_friendly_defaults(self):
+        music = MUSIC("http://ace.local")
+
+        request = music.build_request(
+            prompt=HEAVY_METAL_PROMPT,
+            lyrics=PYTHAGOREAN_LYRICS,
+            duration=45,
+            keyscale="E minor",
+        )
+
+        self.assertEqual(request["output_format"], "wav16")
+        self.assertEqual(request["duration"], 45)
+        self.assertEqual(request["keyscale"], "E minor")
+        self.assertEqual(request["bpm"], 128)
+        self.assertEqual(request["timesignature"], "4/4")
+        self.assertEqual(request["vocal_language"], "en")
+        self.assertEqual(request["inference_steps"], 16)
+        self.assertEqual(request["guidance_scale"], 1.0)
+        self.assertEqual(request["shift"], 3.0)
+        self.assertEqual(request["solver"], "euler")
+        self.assertEqual(request["lm_model"], "acestep-5Hz-lm-4B-Q8_0.gguf")
+        self.assertEqual(request["synth_model"], "acestep-v15-turbo-Q4_K_M.gguf")
+
     def test_parse_synth_multipart_extracts_audio_and_ignores_latents(self):
         music = MUSIC("http://ace.local")
         body = (
