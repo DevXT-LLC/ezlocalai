@@ -15,6 +15,26 @@ def getenv(var_name: str, default_value: str = None) -> str:
         "IMG_MODEL": "none",  # Set to "unsloth/FLUX.2-klein-4B-GGUF" for image generation + editing, "none" or empty string to disable
         "VIDEO_ENABLED": "false",  # Set true to serve and warm-load VIDEO_MODEL locally
         "VIDEO_MODEL": "none",  # Set to "unsloth/LTX-2.3-GGUF" to enable video generation, "none" or empty string to disable
+        "MUSIC_ENABLED": "false",  # Set true to serve ACE-Step music generation from the internal ACE server
+        "MUSIC_MODEL": "Serveurperso/ACE-Step-1.5-GGUF",
+        "ACE_STEP_SERVER_URL": "",  # Optional external acestep.cpp URL. Empty = auto-start internal server.
+        "ACE_STEP_AUTO_START": "true",
+        "ACE_STEP_BIN": "/opt/acestep.cpp/build/ace-server",
+        "ACE_STEP_HOST": "127.0.0.1",
+        "ACE_STEP_PORT": "8085",
+        "ACE_STEP_MODELS_DIR": "models/ace-step",
+        "ACE_STEP_MODEL_REPO": "Serveurperso/ACE-Step-1.5-GGUF",
+        "ACE_STEP_TEXT_ENCODER_MODEL": "Qwen3-Embedding-0.6B-Q8_0.gguf",
+        "ACE_STEP_LM_MODEL": "acestep-5Hz-lm-0.6B-Q8_0.gguf",
+        "ACE_STEP_DIT_MODEL": "acestep-v15-turbo-Q4_K_M.gguf",
+        "ACE_STEP_VAE_MODEL": "vae-BF16.gguf",
+        "ACE_STEP_PRECACHE": "true",
+        "ACE_STEP_TIMEOUT": "1800",
+        "ACE_STEP_POLL_INTERVAL": "1.0",
+        "ACE_STEP_STARTUP_TIMEOUT": "30",
+        "MUSIC_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "MUSIC_RELOAD_LLM_AFTER_GENERATION": "true",
+        "MUSIC_WAIT_FOR_LLM_IDLE_TIMEOUT": "60",
         "TTS_ENABLED": "true",
         "TTS_N_PARALLEL": "1",  # Number of local TTS model instances/slots to load
         "TTS_PROVIDER": "qwen",  # Qwen-TTS

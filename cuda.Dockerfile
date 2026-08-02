@@ -20,6 +20,15 @@ RUN apt-get update --fix-missing && \
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh && \
     /root/.local/bin/uv venv /opt/venv --python 3.12
 WORKDIR /app
+ARG ACESTEP_CPP_REF=master
+ARG ACESTEP_CUDA_ARCHITECTURES=75-virtual;80-virtual;86-real;89-real
+RUN ln -sf /usr/local/cuda/lib64/stubs/libcuda.so /usr/local/cuda/lib64/stubs/libcuda.so.1 && \
+    git clone --depth 1 --recurse-submodules https://github.com/ServeurpersoCom/acestep.cpp.git /opt/acestep.cpp && \
+    cd /opt/acestep.cpp && \
+    git checkout "$ACESTEP_CPP_REF" && \
+    git submodule update --init --recursive && \
+    cmake -B build -DGGML_CUDA=ON -DCMAKE_CUDA_COMPILER=/usr/local/cuda/bin/nvcc -DCMAKE_CUDA_ARCHITECTURES="${ACESTEP_CUDA_ARCHITECTURES}" -DCMAKE_EXE_LINKER_FLAGS="-L/usr/local/cuda/lib64/stubs -Wl,-rpath-link,/usr/local/cuda/lib64/stubs" -DCMAKE_BUILD_TYPE=Release && \
+    cmake --build build --config Release --parallel "$(nproc)" --target ace-server
 # Use PyTorch 2.9.1 which is built against cuDNN 9.10.2
 # Install nvidia-cudnn-cu12==9.10.2.21 to get matching cuDNN libraries (overrides system cuDNN 9.8.0)
 RUN uv pip install torch==2.9.1+cu128 torchaudio==2.9.1+cu128 --index-url https://download.pytorch.org/whl/cu128 && \
@@ -42,7 +51,8 @@ ENV HOST=0.0.0.0 \
     CUDAVER=12.8.1 \
     PYTHONUNBUFFERED=1 \
     HF_HOME=/app/models \
-    HF_HUB_CACHE=/app/models
+    HF_HUB_CACHE=/app/models \
+    ACE_STEP_BIN=/opt/acestep.cpp/build/ace-server
 # Install xllamacpp with CUDA 12.8 support (compatible with CUDA 12.9)
 RUN uv pip install xllamacpp==2026.7.10068 --reinstall --index-url https://xorbitsai.github.io/xllamacpp/whl/cu128
 COPY . .
