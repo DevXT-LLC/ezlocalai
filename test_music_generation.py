@@ -292,6 +292,30 @@ class MusicRouterTests(unittest.TestCase):
 
         self.assertIn("music", caps)
 
+    def test_enabled_music_advertises_default_when_model_env_is_blank(self):
+        with patch.dict(
+            os.environ,
+            {
+                "DEFAULT_MODEL": "none",
+                "VOICE_SERVER": "",
+                "IMAGE_SERVER": "",
+                "TEXT_SERVER": "",
+                "EMBEDDING_SERVER": "",
+                "TTS_ENABLED": "false",
+                "STT_ENABLED": "false",
+                "EMBEDDING_ENABLED": "false",
+                "IMAGE_ENABLED": "false",
+                "VIDEO_ENABLED": "false",
+                "MUSIC_ENABLED": "true",
+                "MUSIC_MODEL": "",
+                "ACE_STEP_SERVER_URL": "",
+            },
+            clear=True,
+        ):
+            caps = detect_local_capabilities()
+
+        self.assertIn("music", caps)
+
     def test_music_generation_slot_state_makes_text_unavailable(self):
         registry = WorkerRegistry(ttl_seconds=60)
         registry.register(

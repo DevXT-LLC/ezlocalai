@@ -1743,7 +1743,7 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
                 f"{html.escape(_pretty_model_name(emb_name))}"
                 f"{emb_quant_part}{emb_ctx_part}</span>"
             )
-        for cap in ("image", "tts", "stt", "video"):
+        for cap in ("image", "tts", "stt", "video", "music"):
             if cap in raw_caps_for_models:
                 cap_name = cap_models_map.get(cap) or _cap_label(cap)
                 if cap == "stt":
@@ -1846,6 +1846,7 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
         stt_reqs = (wdata.get("stt") or {}).get("requests", 0)
         img_reqs = (wdata.get("image") or {}).get("requests", 0)
         vid_reqs = (wdata.get("video") or {}).get("requests", 0)
+        music_reqs = (wdata.get("music") or {}).get("requests", 0)
         emb_reqs = (wdata.get("embedding") or {}).get("requests", 0)
         return f"""
         <tr>
@@ -1856,6 +1857,7 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
           <td class="num">{stt_reqs:,}</td>
           <td class="num">{img_reqs:,}</td>
           <td class="num">{vid_reqs:,}</td>
+          <td class="num">{music_reqs:,}</td>
         </tr>"""
 
     # ---- Recent request history -------------------------------------------
@@ -1926,14 +1928,14 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
             )
             cap_reqs = sum(
                 int((wd.get(cap) or {}).get("requests", 0) or 0)
-                for cap in ("embedding", "tts", "stt", "image", "video")
+                for cap in ("embedding", "tts", "stt", "image", "video", "music")
             )
             return llm_reqs + cap_reqs
 
         ordered = sorted(usage_src.items(), key=lambda kv: (-_total_reqs(kv[1]), kv[0]))
         return (
             "".join(_usage_summary_row(lbl, wd) for lbl, wd in ordered)
-            or '<tr><td colspan="7" class="muted">No usage recorded in this window.</td></tr>'
+            or '<tr><td colspan="8" class="muted">No usage recorded in this window.</td></tr>'
         )
 
     def _build_breakdown_rows(usage_src: Dict[str, Any]) -> str:
@@ -2301,6 +2303,7 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
       <th class="num">Embedding reqs</th>
       <th class="num">TTS reqs</th><th class="num">STT reqs</th>
       <th class="num">Image reqs</th><th class="num">Video reqs</th>
+      <th class="num">Music reqs</th>
     </tr></thead>
     <tbody class="usage-tbody" data-window="all">{usage_summary_rows_all}</tbody>
     <tbody class="usage-tbody" data-window="24h" style="display:none">{usage_summary_rows_24h}</tbody>

@@ -39,6 +39,7 @@ import aiohttp
 
 from Globals import getenv
 from Tunnel import is_tunnel_url
+from ezlocalai.MUSIC import ACE_STEP_DEFAULT_MODEL as ACE_STEP_DEFAULT_MUSIC_MODEL
 
 # ---------------------------------------------------------------------------
 # Capability detection
@@ -363,7 +364,10 @@ def detect_local_capabilities() -> List[str]:
     embedding_server = (getenv("EMBEDDING_SERVER") or "").strip().lower()
     img_model = (getenv("IMG_MODEL") or "").strip().lower()
     video_model = (getenv("VIDEO_MODEL") or "").strip().lower()
-    music_model = (getenv("MUSIC_MODEL") or "").strip().lower()
+    music_model = (
+        getenv("MUSIC_MODEL", ACE_STEP_DEFAULT_MUSIC_MODEL)
+        or ACE_STEP_DEFAULT_MUSIC_MODEL
+    ).strip().lower()
     tts_enabled = (getenv("TTS_ENABLED") or "true").strip().lower() == "true"
     stt_enabled = (getenv("STT_ENABLED") or "true").strip().lower() == "true"
     image_enabled = (getenv("IMAGE_ENABLED") or "false").strip().lower() == "true"
@@ -1937,8 +1941,11 @@ class WorkerHeartbeatClient:
                 if _vm:
                     cap_models["video"] = _vm
             elif _cap == "music":
-                _mm = (getenv("MUSIC_MODEL") or "").strip()
-                if _mm:
+                _mm = (
+                    getenv("MUSIC_MODEL", ACE_STEP_DEFAULT_MUSIC_MODEL)
+                    or ACE_STEP_DEFAULT_MUSIC_MODEL
+                ).strip()
+                if _mm and _mm.lower() != "none":
                     cap_models["music"] = _mm
             elif _cap == "embedding":
                 _em = (getenv("EMBEDDING_MODEL_ALIAS") or "").strip() or (
