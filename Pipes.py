@@ -55,6 +55,18 @@ except (ImportError, RuntimeError, Exception) as e:
     logging.warning(f"[Pipes] VIDEO import failed ({e}), video generation disabled.")
     video_import_success = False
 
+try:
+    from ezlocalai.MUSIC import (
+        MUSIC,
+        ace_step_server_url,
+        start_internal_ace_step_server,
+    )
+
+    music_import_success = True
+except (ImportError, RuntimeError, Exception) as e:
+    logging.warning(f"[Pipes] MUSIC import failed ({e}), music generation disabled.")
+    music_import_success = False
+
 
 # =============================================================================
 # Video Processing Helpers
@@ -429,6 +441,7 @@ class ModelType(Enum):
     STT = "stt"
     IMG = "img"
     VIDEO = "video"
+    MUSIC = "music"
     EMBEDDING = "embedding"
 
 
@@ -454,6 +467,7 @@ MODEL_VRAM_ESTIMATES = {
     ModelType.STT: 2.0,  # Whisper (varies by size)
     ModelType.IMG: 6.0,  # FLUX.2-klein GGUF with CPU offload typically needs ~4-6GB
     ModelType.VIDEO: 12.0,  # LTX-2.3 GGUF video generation (uses sequential CPU offload)
+    ModelType.MUSIC: 0.0,  # ACE-Step GGUF is served by the acestep.cpp sidecar process
     ModelType.EMBEDDING: 2.0,  # Coarse gate; embedder refines GPU/CPU layer split
 }
 
@@ -1292,6 +1306,39 @@ class EzlocalaiClient:
             logging.error(f"[Fallback] Video generation forward failed: {e}")
             raise
 
+    async def forward_music_generation(self, payload: dict):
+        """Forward a music generation request to another ezlocalai server."""
+        if not self.is_configured:
+            raise RuntimeError("No fallback server configured")
+
+        import aiohttp
+
+        logging.info(f"[Fallback] Forwarding music generation to {self.base_url}")
+
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.post(
+                    f"{self.base_url}/v1/audio/music",
+                    json=payload,
+                    headers=self._get_headers(),
+                    timeout=aiohttp.ClientTimeout(
+                        total=max(
+                            float(getenv("REQUEST_TIMEOUT", "1800")),
+                            float(getenv("ACE_STEP_TIMEOUT", "1800")),
+                        )
+                    ),
+                ) as resp:
+                    if resp.status != 200:
+                        error_text = await resp.text()
+                        raise RuntimeError(
+                            f"Fallback server error {resp.status}: {error_text}"
+                        )
+                    return await resp.json()
+
+        except Exception as e:
+            logging.error(f"[Fallback] Music generation forward failed: {e}")
+            raise
+
     async def get_models(self):
         """Get available models from the fallback server."""
         if not self.is_configured:
@@ -1951,6 +1998,18 @@ def has_image_server_url() -> bool:
     - Local image/video models should NOT be loaded at all
     """
     return get_image_server_client().is_configured
+
+
+def is_music_enabled() -> bool:
+    """Check if this worker should serve local music generation."""
+    return (getenv("MUSIC_ENABLED") or "false").strip().lower() == "true"
+
+
+def has_ace_step_server_url() -> bool:
+    """Check if an ACE-Step server URL is configured or can be derived internally."""
+    if not music_import_success:
+        return False
+    return bool(ace_step_server_url())
 
 
 def is_image_enabled() -> bool:
@@ -3610,6 +3669,7 @@ class Pipes:
         self._tts_lock = asyncio.Semaphore(self._tts_pool_size)
         self._img_lock = asyncio.Lock()
         self._video_lock = asyncio.Lock()
+        self._music_lock = asyncio.Lock()
         self._embedder_lock = asyncio.Lock()
         self._embedding_pool_size = get_embedding_parallel_slots()
         self._embedder_semaphore = asyncio.Semaphore(self._embedding_pool_size)
@@ -3717,6 +3777,7 @@ class Pipes:
 
         # Track if we're using a "large" model that should be unloaded after use
         self._using_large_model = False
+        self._llm_temporarily_unavailable = False
 
         if model_config.lower() != "none":
             model_counts = {}
@@ -3886,6 +3947,7 @@ class Pipes:
         self._transient_embedders = []
         self.img = None
         self.video = None
+        self.music = None
         self.current_stt = getenv("WHISPER_MODEL")
 
         # Pre-load STT if preloading is enabled (voice server mode OR LAZY_LOAD_VOICE=false)
@@ -5923,6 +5985,121 @@ class Pipes:
             else:
                 self._destroy_video_sync(video_ref)
 
+    def _get_music(self):
+        """Lazy initialize the ACE-Step music client."""
+        global music_import_success
+        resource_mgr = get_resource_manager()
+
+        if not is_music_enabled():
+            logging.debug("[MUSIC] MUSIC_ENABLED=false - skipping local music client")
+            return None
+
+        if not has_ace_step_server_url():
+            logging.debug("[MUSIC] ACE_STEP_SERVER_URL is not configured")
+            return None
+
+        if self.music is None and music_import_success:
+            start_internal_ace_step_server()
+            server_url = ace_step_server_url()
+            logging.info(f"[MUSIC] Connecting to ACE-Step server at {server_url}")
+            self.music = MUSIC(
+                server_url=server_url,
+                local_uri=self.local_uri,
+                timeout=float(getenv("ACE_STEP_TIMEOUT", "1800")),
+                poll_interval=float(getenv("ACE_STEP_POLL_INTERVAL", "1.0")),
+                model=(getenv("MUSIC_MODEL") or "").strip(),
+                lm_model=(getenv("ACE_STEP_LM_MODEL") or "").strip(),
+                synth_model=(getenv("ACE_STEP_DIT_MODEL") or "").strip(),
+            )
+            resource_mgr.register_model(
+                ModelType.MUSIC,
+                getenv("MUSIC_MODEL") or "Serveurperso/ACE-Step-1.5-GGUF",
+                "external",
+                vram_gb=0.0,
+            )
+
+        if self.music:
+            resource_mgr.mark_model_in_use(ModelType.MUSIC, True)
+        return self.music
+
+    def _music_should_unload_llm_for_generation(self) -> bool:
+        mode = (
+            (getenv("MUSIC_UNLOAD_LLM_DURING_GENERATION", "auto") or "auto")
+            .strip()
+            .lower()
+        )
+        if mode in {"0", "false", "no", "off"}:
+            return False
+        if mode in {"1", "true", "yes", "on"}:
+            return True
+        # Auto mode only unloads local LLMs when ACE-Step is container-local.
+        return not bool((getenv("ACE_STEP_SERVER_URL") or "").strip())
+
+    async def _wait_for_llm_idle_for_music(self):
+        timeout = float(getenv("MUSIC_WAIT_FOR_LLM_IDLE_TIMEOUT", "60"))
+        deadline = time.monotonic() + max(0.0, timeout)
+        while self._is_inference_in_progress():
+            if timeout <= 0 or time.monotonic() >= deadline:
+                raise RuntimeError(
+                    "LLM inference is active; music generation cannot unload the LLM yet"
+                )
+            await asyncio.sleep(0.5)
+
+    def _unload_llms_for_music(self) -> bool:
+        """Temporarily unload resident LLMs so ACE-Step can use the GPU."""
+        if not self._music_should_unload_llm_for_generation():
+            return False
+
+        refs = []
+        with self._model_lock:
+            self._llm_temporarily_unavailable = True
+            seen_ids = set()
+
+            for model_name, llm_ref in list(self.persistent_llms.items()):
+                if llm_ref is None:
+                    continue
+                refs.append((model_name, llm_ref))
+                seen_ids.add(id(llm_ref))
+                self.persistent_llms[model_name] = None
+
+            if self.llm is not None and id(self.llm) not in seen_ids:
+                refs.append((self.current_llm_name or "LLM", self.llm))
+
+            self.primary_llm = None
+            self.vision_llm = None
+            self.llm = None
+            self.current_llm_name = None
+            self.current_context = None
+
+            self.resource_manager.unregister_model(ModelType.LLM)
+            self.resource_manager.unregister_model(ModelType.VISION_LLM)
+
+        if not refs:
+            logging.info("[MUSIC] LLM marked unavailable; no resident LLMs to unload")
+            return True
+
+        logging.info(
+            "[MUSIC] Temporarily unloading LLMs for ACE-Step generation: "
+            f"{[name for name, _ in refs]}"
+        )
+        for model_name, llm_ref in refs:
+            self._destroy_llm_sync(llm_ref, model_name)
+        return True
+
+    def _restore_llms_after_music(self, llm_was_unloaded: bool):
+        if not llm_was_unloaded:
+            return
+
+        reload_after = (
+            getenv("MUSIC_RELOAD_LLM_AFTER_GENERATION", "true") or "true"
+        ).strip().lower() not in {"0", "false", "no", "off"}
+        try:
+            if reload_after and self.available_models:
+                logging.info("[MUSIC] Reloading LLMs after ACE-Step generation")
+                self._reload_persistent_models()
+        finally:
+            self._llm_temporarily_unavailable = False
+
     def _free_vram_for_llm(self, required_vram: float):
         """Free VRAM by unloading idle auxiliary models.
 
@@ -6740,6 +6917,8 @@ class Pipes:
                 return await fallback_client.forward_tts(**kwargs)
             elif endpoint == "image":
                 return await fallback_client.forward_image_generation(**kwargs)
+            elif endpoint == "music":
+                return await fallback_client.forward_music_generation(data or kwargs)
             else:
                 logging.warning(f"[Fallback] Unknown endpoint type: {endpoint}")
                 return None
@@ -6941,6 +7120,23 @@ class Pipes:
                 return result
         return ""
 
+    async def generate_music(self, **kwargs):
+        async with self._music_lock:
+            if self._music_should_unload_llm_for_generation():
+                await self._wait_for_llm_idle_for_music()
+
+            music = self._get_music()
+            if music:
+                llm_was_unloaded = False
+                try:
+                    llm_was_unloaded = self._unload_llms_for_music()
+                    music.local_uri = self.local_uri
+                    return await music.generate(**kwargs)
+                finally:
+                    self.resource_manager.mark_model_in_use(ModelType.MUSIC, False)
+                    self._restore_llms_after_music(llm_was_unloaded)
+        return None
+
     def _apply_model_config_overrides(self, data: dict) -> dict:
         """Apply model-specific config overrides if the current model has them defined.
 
@@ -7048,18 +7244,23 @@ class Pipes:
         model_capacities: Dict[str, int] = {}
         vision_capacity = 0
         vision_models = set()
-        for model_id in self.available_models:
-            inst = self.persistent_llms.get(model_id)
-            capacity = self._resolved_parallel_for_model(model_id, inst=inst)
-            public_name = self._resolve_source_model(model_id)
-            model_capacities[public_name] = (
-                model_capacities.get(public_name, 0) + capacity
-            )
-            if self._is_vision_model(model_id):
-                vision_capacity += capacity
-                vision_models.add(public_name)
+        if not self._llm_temporarily_unavailable:
+            for model_id in self.available_models:
+                inst = self.persistent_llms.get(model_id)
+                capacity = self._resolved_parallel_for_model(model_id, inst=inst)
+                public_name = self._resolve_source_model(model_id)
+                model_capacities[public_name] = (
+                    model_capacities.get(public_name, 0) + capacity
+                )
+                if self._is_vision_model(model_id):
+                    vision_capacity += capacity
+                    vision_models.add(public_name)
 
-        if not model_capacities and self.llm is not None:
+        if (
+            not self._llm_temporarily_unavailable
+            and not model_capacities
+            and self.llm is not None
+        ):
             model_name = self._resolve_source_model(
                 self.current_llm_name or getattr(self.llm, "model_name", "default")
             )
@@ -7078,8 +7279,17 @@ class Pipes:
                 in_flight=model_counts.get(model_name, 0),
                 queued=0,
             )
+        if self._llm_temporarily_unavailable:
+            for model_id in self.available_models:
+                model_slots[self._resolve_source_model(model_id)] = _slot(capacity=0)
 
         cap_slots: Dict[str, Dict[str, int]] = {}
+        if self._llm_temporarily_unavailable and self.available_models:
+            cap_slots["text"] = _slot(capacity=0)
+            if any(
+                self._is_vision_model(model_id) for model_id in self.available_models
+            ):
+                cap_slots["vision"] = _slot(capacity=0)
         if llm_capacity > 0:
             cap_slots["text"] = _slot(
                 capacity=llm_capacity,
@@ -7101,8 +7311,10 @@ class Pipes:
         ).strip().lower() == "true"
         image_enabled = is_image_enabled()
         video_enabled = is_video_enabled()
+        music_enabled = is_music_enabled()
         img_model = (getenv("IMG_MODEL") or "").strip().lower()
         video_model = (getenv("VIDEO_MODEL") or "").strip().lower()
+        music_model = (getenv("MUSIC_MODEL") or "").strip().lower()
 
         if tts_enabled and not has_voice_server_url():
             cap_slots["tts"] = _slot(
@@ -7133,6 +7345,24 @@ class Pipes:
             cap_slots["video"] = _slot(
                 capacity=1,
                 in_flight=self.resource_manager.get_model_active_count(ModelType.VIDEO),
+            )
+        if (
+            music_enabled
+            and music_model
+            and music_model != "none"
+            and has_ace_step_server_url()
+        ):
+            music_in_flight = self.resource_manager.get_model_active_count(
+                ModelType.MUSIC
+            )
+            if (
+                self._music_should_unload_llm_for_generation()
+                and total_llm_in_flight > 0
+            ):
+                music_in_flight = max(music_in_flight, 1)
+            cap_slots["music"] = _slot(
+                capacity=1,
+                in_flight=music_in_flight,
             )
         if embedding_enabled and not has_embedding_server_url():
             cap_slots["embedding"] = _slot(
@@ -7193,6 +7423,32 @@ class Pipes:
             )
 
     async def get_response(self, data, completion_type="chat"):
+        if self._llm_temporarily_unavailable:
+            fallback_client = get_fallback_client()
+            if fallback_client.is_configured:
+                available, _ = await fallback_client.check_availability()
+                if available:
+                    logging.info(
+                        "[MUSIC] LLM temporarily unavailable during music generation; forwarding text request"
+                    )
+                    is_streaming = data.get("stream", False)
+                    response = (
+                        await fallback_client.forward_chat_completion(
+                            data, stream=is_streaming
+                        )
+                        if completion_type == "chat"
+                        else await fallback_client.forward_completion(
+                            data, stream=is_streaming
+                        )
+                    )
+                    return response, None
+            return {
+                "error": {
+                    "message": "LLM temporarily unavailable while this node is generating music.",
+                    "type": "temporarily_unavailable",
+                }
+            }, None
+
         # Check if we should use fallback BEFORE allocating local resources
         should_fallback, fallback_reason = self.should_use_fallback()
         if should_fallback:

@@ -121,6 +121,11 @@ def is_video_enabled() -> bool:
     return (getenv("VIDEO_ENABLED") or "false").strip().lower() == "true"
 
 
+def is_music_enabled() -> bool:
+    """Check if this worker should cache and serve local music generation."""
+    return (getenv("MUSIC_ENABLED") or "false").strip().lower() == "true"
+
+
 def is_text_server_mode() -> bool:
     """Check if this server should act as a text server.
 
@@ -680,6 +685,63 @@ def precache_video_model():
         logging.error(f"  ✗ Video model: {e}")
 
 
+def precache_music_model():
+    """Download the ACE-Step GGUF files required by the internal music server."""
+    if not is_music_enabled():
+        logging.info("  - Music: Skipped (disabled)")
+        return
+
+    if (getenv("ACE_STEP_PRECACHE", "true") or "true").strip().lower() in {
+        "0",
+        "false",
+        "no",
+        "off",
+    }:
+        logging.info("  - Music: Skipped (ACE_STEP_PRECACHE=false)")
+        return
+
+    # A configured URL means another ACE-Step process owns its model directory.
+    if (getenv("ACE_STEP_SERVER_URL") or "").strip():
+        logging.info(
+            f"  - Music: Skipped (external ACE-Step server: {getenv('ACE_STEP_SERVER_URL')})"
+        )
+        return
+
+    try:
+        from ezlocalai.MUSIC import ace_step_models_dir, selected_ace_step_model_files
+
+        repo = (
+            getenv("ACE_STEP_MODEL_REPO", "Serveurperso/ACE-Step-1.5-GGUF")
+            or "Serveurperso/ACE-Step-1.5-GGUF"
+        ).strip()
+        model_dir = ace_step_models_dir()
+        selected_files = selected_ace_step_model_files()
+        if not repo or not selected_files:
+            logging.info("  - Music: Skipped (no ACE-Step files configured)")
+            return
+
+        os.makedirs(model_dir, exist_ok=True)
+        start_time = time.time()
+        downloaded = 0
+        cached = 0
+        for filename in selected_files:
+            local_path = os.path.join(model_dir, filename)
+            if os.path.exists(local_path):
+                cached += 1
+                logging.info(f"  ✓ {filename} (cached)")
+                continue
+            download_with_progress(repo, filename=filename, local_dir=model_dir)
+            downloaded += 1
+
+        elapsed = time.time() - start_time
+        logging.info(
+            f"  ✓ ACE-Step music models ({downloaded} downloaded, {cached} cached, {elapsed:.1f}s)"
+        )
+
+    except Exception as e:
+        logging.error(f"  ✗ Music model: {e}")
+
+
 def run_precache():
     """Run all precache operations."""
     # Check if already done
@@ -716,6 +778,7 @@ def run_precache():
         precache_stt()
         precache_image_model()
         precache_video_model()
+        precache_music_model()
 
         total_elapsed = time.time() - total_start
         logging.info(f"[ezlocalai] Models cached in {total_elapsed:.1f}s")

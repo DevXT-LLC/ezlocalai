@@ -189,8 +189,10 @@ When fallback is triggered to another ezlocalai instance, these endpoints are au
 - `/v1/embeddings` - Text embeddings
 - `/v1/audio/transcriptions` - Speech-to-text
 - `/v1/audio/speech` - Text-to-speech
+- `/v1/audio/music` - Music generation
 - `/v1/images/generations` - Image generation
 - `/v1/images/edits` - Image editing (image + text to image)
+- `/v1/videos/generations` - Video generation
 
 For OpenAI-compatible APIs, only chat completions and embeddings are forwarded.
 
@@ -237,6 +239,81 @@ media models warm-load at startup, stay resident between requests, and report
 `image` or `video` capacity to the router. Workers with an `IMAGE_SERVER` URL
 configured still delegate media requests instead of loading local models.
 
+## Music Generation
+
+ezlocalai serves `/v1/audio/music` and `/v1/audio/music/generations` by
+starting an internal ACE-Step 1.5 `acestep.cpp` server inside the same Docker
+container. The GGUF model files are downloaded from
+`Serveurperso/ACE-Step-1.5-GGUF` into `models/ace-step`; `acestep.cpp` expects
+one LM GGUF, one Qwen3 embedding/text encoder GGUF, one DiT GGUF, and
+`vae-BF16.gguf` in that directory.
+
+For the normal container-local setup, enable music on a worker with:
+
+```bash
+MUSIC_ENABLED=true
+```
+
+With no other music environment variables set, ezlocalai downloads and serves
+these ACE-Step 1.5 GGUF files:
+
+```bash
+MUSIC_MODEL=Serveurperso/ACE-Step-1.5-GGUF
+ACE_STEP_SERVER_URL=
+ACE_STEP_AUTO_START=true
+ACE_STEP_MODELS_DIR=models/ace-step
+ACE_STEP_LM_MODEL=acestep-5Hz-lm-4B-Q8_0.gguf
+ACE_STEP_TEXT_ENCODER_MODEL=Qwen3-Embedding-0.6B-Q8_0.gguf
+ACE_STEP_DIT_MODEL=acestep-v15-turbo-Q4_K_M.gguf
+ACE_STEP_VAE_MODEL=vae-BF16.gguf
+ACE_STEP_TIMEOUT=1800
+```
+
+The default LM is the 4B Q8 model for better music planning and lyric
+structure. Smaller nodes can override `ACE_STEP_LM_MODEL` to
+`acestep-5Hz-lm-0.6B-Q8_0.gguf` to save disk, RAM, and VRAM at the cost of
+quality.
+
+Set `ACE_STEP_SERVER_URL` only if you intentionally run an external
+`acestep.cpp` process. When it is empty, ezlocalai starts
+`/opt/acestep.cpp/build/ace-server` on `127.0.0.1:8085` during startup.
+
+On smaller single-GPU nodes, leave
+`MUSIC_UNLOAD_LLM_DURING_GENERATION=auto`. For container-local ACE-Step this
+marks the worker's text/vision slots unavailable, unloads resident LLMs before
+generation, runs the music job, then reloads persistent LLMs when
+`MUSIC_RELOAD_LLM_AFTER_GENERATION=true`.
+
+Example request:
+
+```bash
+curl http://localhost:8091/v1/audio/music \
+  -H "Content-Type: application/json" \
+  -d '{
+    "prompt": "Heavy metal anthem about the Pythagorean theorem, double-kick drums, distorted guitars, soaring vocals, and a triumphant chorus.",
+    "lyrics": "[Verse]\nOn a right triangle battlefield\nTwo short sides raise their shields\n\n[Chorus]\nA squared plus B squared, lightning in the night\nEquals C squared, hypotenuse burning bright",
+    "duration": 45,
+    "keyscale": "E minor"
+  }'
+```
+
+Music requests require `prompt`, `lyrics`, `duration`, and `keyscale`. The
+OpenAI-style `model` field is optional; if it is omitted or names an alias this
+worker does not advertise, ezlocalai uses the configured available music model
+(`MUSIC_MODEL`, default `Serveurperso/ACE-Step-1.5-GGUF`) instead of rejecting
+the request. Generation controls such as `seed`, `bpm`, `timesignature`,
+`vocal_language`, `response_format`, `output_format`, `inference_steps`,
+`guidance_scale`, `shift`, `solver`, `lm_model`, and `synth_model` are optional
+per-request overrides. Defaults are `response_format=url`, `output_format=wav16`,
+`bpm=128`, `timesignature=4/4`, `vocal_language=en`, `inference_steps=16`,
+`guidance_scale=1.0`, `shift=3.0`, and `solver=euler`.
+
+For a live proof test against the internal or external ACE-Step server:
+
+```bash
+ACE_STEP_LIVE_TEST=true python -m unittest test_music_generation.LiveAceStepMusicProofTest
+```
+
 ## Router / Load Balancer Mode
 
 For setups that outgrow point-to-point fallback (3+ machines, friends contributing GPUs, bittensor miners coming and going), ezlocalai can run as a dedicated **router**. The router itself loads no models — it accepts the normal OpenAI-compatible API and forwards each request to the best registered worker.
@@ -256,7 +333,7 @@ For setups that outgrow point-to-point fallback (3+ machines, friends contributi
                              └────────────────────┘
 ```
 
-Each worker is a normal `ezlocalai` instance with `ROUTER_URL` set. On startup the worker registers itself, then sends heartbeats every `WORKER_HEARTBEAT_INTERVAL` seconds containing free VRAM, queue depth, loaded models, and advertised capabilities (`text`, `vision`, `tts`, `stt`, `embedding`, `image`, `video`). Workers that miss `ROUTER_WORKER_TTL` seconds of heartbeats are pruned. If a request arrives and no suitable worker is free, the router keeps it queued until a worker becomes available when `ROUTER_WAIT_TIMEOUT=0`, or waits up to the configured positive timeout before returning `503`.
+Each worker is a normal `ezlocalai` instance with `ROUTER_URL` set. On startup the worker registers itself, then sends heartbeats every `WORKER_HEARTBEAT_INTERVAL` seconds containing free VRAM, queue depth, loaded models, and advertised capabilities (`text`, `vision`, `tts`, `stt`, `embedding`, `image`, `video`, `music`). Workers that miss `ROUTER_WORKER_TTL` seconds of heartbeats are pruned. If a request arrives and no suitable worker is free, the router keeps it queued until a worker becomes available when `ROUTER_WAIT_TIMEOUT=0`, or waits up to the configured positive timeout before returning `503`.
 
 ### Run the router
 
@@ -345,7 +422,7 @@ By default, text/vision routing requires an idle worker, so one long-running req
 
 For capability-only voice routing, the router defaults `ROUTER_PREFER_DEDICATED_CAPABILITIES=stt`, so large STT transcription jobs prefer workers that are not also serving `text` or `vision`. TTS routes by the normal score/tier calculation by default so low-latency playback can use faster mixed-capability workers. Stale `ROUTER_PREFER_DEDICATED_CAPABILITIES=stt,tts` values are treated as STT-only for TTS unless `ROUTER_ALLOW_DEDICATED_TTS_PREFERENCE=true` is also set. Large transcription jobs also use `ROUTER_STT_TIMEOUT` (default `7200` seconds) instead of the generic `REQUEST_TIMEOUT`.
 
-Workers missing the required capability (`text` / `vision` / `tts` / `stt` / `embedding` / `image` / `video`) or the requested model are filtered out before scoring. Stale workers (no heartbeat for `ROUTER_WORKER_TTL` seconds) are also excluded.
+Workers missing the required capability (`text` / `vision` / `tts` / `stt` / `embedding` / `image` / `video` / `music`) or the requested model are filtered out before scoring. Stale workers (no heartbeat for `ROUTER_WORKER_TTL` seconds) are also excluded.
 
 You can inspect the live registry, including each worker's reported GPUs, tier, free VRAM, queue depth, and per-model context windows:
 

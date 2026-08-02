@@ -26,6 +26,7 @@ OpenAI-compatible (proxied)
     * ``POST /v1/embeddings``
     * ``POST /v1/audio/speech``
     * ``POST /v1/audio/speech/stream``
+    * ``POST /v1/audio/music``
     * ``POST /v1/audio/transcriptions``
     * ``GET  /v1/audio/voices``
     * ``POST /v1/images/generations``
@@ -1025,6 +1026,7 @@ _CAP_LABELS: Dict[str, str] = {
     "stt": "Speech-to-Text",
     "embedding": "Embedding",
     "video": "Video",
+    "music": "Music",
 }
 
 
@@ -1094,10 +1096,10 @@ def _aggregate_dashboard() -> Dict[str, Any]:
             if q:
                 entry.setdefault("quants", set()).add(q)
 
-    # Non-text capability model entries: embedding, image, tts, stt, video workers
+    # Non-text capability model entries: embedding, image, tts, stt, video, music workers
     # Each worker that has one of these caps gets a synthetic model row so the
     # Models section shows *all* running AI models, not just LLMs.
-    _NON_TEXT_CAPS = ("embedding", "image", "tts", "stt", "video")
+    _NON_TEXT_CAPS = ("embedding", "image", "tts", "stt", "video", "music")
     for w in alive:
         for cap in w.capabilities:
             if cap not in _NON_TEXT_CAPS:
@@ -1167,6 +1169,7 @@ def _aggregate_dashboard() -> Dict[str, Any]:
         "tts",
         "stt",
         "video",
+        "music",
     ]
     cap_rollup: Dict[str, Dict[str, Any]] = {}
     for w in alive:
@@ -1482,6 +1485,7 @@ _CAP_PILL_CLASS: Dict[str, str] = {
     "tts": "cap-tts",
     "stt": "cap-stt",
     "video": "cap-video",
+    "music": "cap-music",
     "embedding": "cap-embedding",
 }
 
@@ -2176,6 +2180,7 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
   .cap-tts     {{ background: rgba(63,185,80,0.15);   border-color: rgba(63,185,80,0.45); }}
   .cap-stt     {{ background: rgba(50,200,180,0.15);  border-color: rgba(50,200,180,0.45); }}
   .cap-video   {{ background: rgba(245,80,80,0.15);   border-color: rgba(245,80,80,0.45); }}
+  .cap-music   {{ background: rgba(180,92,230,0.15);  border-color: rgba(180,92,230,0.45); }}
   .cap-embedding {{ background: rgba(130,130,130,0.15); border-color: rgba(130,130,130,0.45); }}
   /* Tier badges */
   .tier-gold  {{ color: #ffd700; font-weight: 600; }}
@@ -3426,19 +3431,20 @@ async def models(_: str = Depends(verify_client)):
             seen.setdefault(
                 m, {"id": m, "object": "model", "owned_by": "ezlocalai", "workers": []}
             )["workers"].append(w.label)
-        if "embedding" in w.capabilities:
-            embedding_model = w.cap_models.get("embedding")
-            if embedding_model:
-                seen.setdefault(
-                    embedding_model,
-                    {
-                        "id": embedding_model,
-                        "object": "model",
-                        "owned_by": "ezlocalai",
-                        "workers": [],
-                        "capability": "embedding",
-                    },
-                )["workers"].append(w.label)
+        for capability in ("embedding", "image", "tts", "stt", "video", "music"):
+            if capability in w.capabilities:
+                capability_model = w.cap_models.get(capability)
+                if capability_model:
+                    seen.setdefault(
+                        capability_model,
+                        {
+                            "id": capability_model,
+                            "object": "model",
+                            "owned_by": "ezlocalai",
+                            "workers": [],
+                            "capability": capability,
+                        },
+                    )["workers"].append(w.label)
     return {"object": "list", "data": list(seen.values())}
 
 
@@ -3664,6 +3670,29 @@ async def audio_speech_stream(payload: Dict[str, Any], _: str = Depends(verify_c
     )
     await _usage.record_cap(worker.label, "tts")
     return resp
+
+
+@app.post("/v1/audio/music", tags=["Audio"])
+@app.post("/v1/audio/music/generations", tags=["Audio"])
+async def audio_music(
+    payload: Dict[str, Any],
+    request: Request,
+    _: str = Depends(verify_client),
+):
+    worker = await _pick("music", payload.get("model"))
+    resp = await _proxy_json(
+        worker,
+        "/v1/audio/music",
+        payload,
+        stream=False,
+        timeout=max(
+            float(getenv("REQUEST_TIMEOUT", "1800")),
+            float(getenv("ACE_STEP_TIMEOUT", "1800")),
+        ),
+        capability="music",
+    )
+    await _usage.record_cap(worker.label, "music")
+    return await _persist_response_assets(worker, resp, request)
 
 
 @app.get("/v1/audio/voices", tags=["Audio"])

@@ -34,6 +34,18 @@ import time
 import asyncio
 from pathlib import Path
 from Globals import getenv
+from ezlocalai.MUSIC import (
+    ACE_STEP_DEFAULT_BPM,
+    ACE_STEP_DEFAULT_GUIDANCE_SCALE,
+    ACE_STEP_DEFAULT_INFERENCE_STEPS,
+    ACE_STEP_DEFAULT_MODEL as ACE_STEP_DEFAULT_MUSIC_MODEL,
+    ACE_STEP_DEFAULT_OUTPUT_FORMAT,
+    ACE_STEP_DEFAULT_RESPONSE_FORMAT,
+    ACE_STEP_DEFAULT_SHIFT,
+    ACE_STEP_DEFAULT_SOLVER,
+    ACE_STEP_DEFAULT_TIMESIGNATURE,
+    ACE_STEP_DEFAULT_VOCAL_LANGUAGE,
+)
 
 DEFAULT_MODEL = getenv("DEFAULT_MODEL")
 EMBEDDING_MODEL = getenv("EMBEDDING_MODEL")
@@ -100,6 +112,12 @@ MAX_QUEUE_SIZE = int(getenv("MAX_QUEUE_SIZE", "100"))
 request_queue = RequestQueue(max_concurrent_requests=1, max_queue_size=MAX_QUEUE_SIZE)
 
 pipe = Pipes()
+
+
+def _pydantic_payload(model: BaseModel) -> Dict[str, Any]:
+    if hasattr(model, "model_dump"):
+        return model.model_dump(exclude_none=True)
+    return model.dict(exclude_none=True)
 
 
 def _sync_request_queue_capacity() -> Dict[str, Any]:
@@ -382,7 +400,24 @@ def verify_api_key(authorization: str = Header(None)):
     dependencies=[Depends(verify_api_key)],
 )
 async def models(user=Depends(verify_api_key)):
-    return pipe.get_models()
+    data = pipe.get_models()
+    if _has_local_capability("music"):
+        music_model = (
+            getenv("MUSIC_MODEL") or "Serveurperso/ACE-Step-1.5-GGUF"
+        ).strip()
+        if music_model:
+            models_data = data.setdefault("data", [])
+            seen = {item.get("id") for item in models_data if isinstance(item, dict)}
+            if music_model not in seen:
+                models_data.append(
+                    {
+                        "id": music_model,
+                        "object": "model",
+                        "owned_by": "ezlocalai",
+                        "capability": "music",
+                    }
+                )
+    return data
 
 
 @app.get("/health", tags=["System"])
@@ -1612,6 +1647,100 @@ async def text_to_speech_stream(tts: TextToSpeech, user=Depends(verify_api_key))
             "X-Channels": "1",
         },
     )
+
+
+class MusicCreation(BaseModel):
+    prompt: str
+    lyrics: str
+    duration: float
+    keyscale: str
+    model: Optional[str] = ACE_STEP_DEFAULT_MUSIC_MODEL
+    instrumental: Optional[bool] = False
+    n: Optional[int] = 1
+    response_format: Optional[str] = ACE_STEP_DEFAULT_RESPONSE_FORMAT
+    output_format: Optional[str] = ACE_STEP_DEFAULT_OUTPUT_FORMAT
+    seed: Optional[int] = None
+    bpm: Optional[int] = ACE_STEP_DEFAULT_BPM
+    timesignature: Optional[str] = ACE_STEP_DEFAULT_TIMESIGNATURE
+    vocal_language: Optional[str] = ACE_STEP_DEFAULT_VOCAL_LANGUAGE
+    inference_steps: Optional[int] = ACE_STEP_DEFAULT_INFERENCE_STEPS
+    guidance_scale: Optional[float] = ACE_STEP_DEFAULT_GUIDANCE_SCALE
+    shift: Optional[float] = ACE_STEP_DEFAULT_SHIFT
+    solver: Optional[str] = ACE_STEP_DEFAULT_SOLVER
+    lm_model: Optional[str] = None
+    synth_model: Optional[str] = None
+    audio_codes: Optional[str] = None
+    extra_parameters: Optional[Dict[str, Any]] = None
+
+
+@app.post(
+    "/v1/audio/music",
+    tags=["Audio"],
+    dependencies=[Depends(verify_api_key)],
+)
+@app.post(
+    "/v1/audio/music/generations",
+    tags=["Audio"],
+    dependencies=[Depends(verify_api_key)],
+)
+async def generate_music(
+    music_creation: MusicCreation,
+    user: str = Depends(verify_api_key),
+):
+    payload = _pydantic_payload(music_creation)
+    for field in ("prompt", "lyrics", "keyscale"):
+        if not str(payload.get(field) or "").strip():
+            raise HTTPException(status_code=400, detail=f"{field} is required")
+    try:
+        if float(payload.get("duration", 0) or 0) <= 0:
+            raise ValueError
+    except (TypeError, ValueError):
+        raise HTTPException(status_code=400, detail="duration must be greater than 0")
+
+    router_client = await _router_client_for_unserved_capability("music")
+    if router_client:
+        try:
+            return await router_client.forward_music_generation(payload)
+        except Exception as e:
+            logging.warning(f"[MUSIC] Router forward failed: {e}, using local")
+
+    if not _has_local_capability("music"):
+        from Pipes import get_fallback_client
+
+        fallback_client = get_fallback_client()
+        if fallback_client.is_configured:
+            available, _ = await fallback_client.check_availability()
+            if available:
+                logging.info("[MUSIC] No local ACE-Step server, using fallback")
+                try:
+                    return await fallback_client.forward_music_generation(payload)
+                except Exception as e:
+                    logging.warning(f"[MUSIC] Fallback failed: {e}")
+        return {
+            "created": int(time.time()),
+            "model": music_creation.model,
+            "data": [
+                {
+                    "error": "Music generation not available. Set MUSIC_ENABLED=true to use the internal ACE-Step server, or set ACE_STEP_SERVER_URL to an external acestep.cpp server."
+                }
+            ],
+        }
+
+    try:
+        extra = payload.pop("extra_parameters", None) or None
+        result = await pipe.generate_music(**payload, extra=extra)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logging.exception(f"[MUSIC] Generation failed: {e}")
+        raise HTTPException(status_code=502, detail=f"Music generation failed: {e}")
+
+    if result is None:
+        raise HTTPException(
+            status_code=503,
+            detail="Music generation is enabled but ACE-Step is not configured or reachable.",
+        )
+    return result
 
 
 @app.websocket("/v1/audio/speech/ws")

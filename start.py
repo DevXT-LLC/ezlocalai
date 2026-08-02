@@ -33,6 +33,12 @@ def main():
         )
         if precache_result.returncode != 0:
             print("[ezlocalai] Warning: Precache had errors, continuing anyway...")
+        try:
+            from ezlocalai.MUSIC import start_internal_ace_step_server
+
+            start_internal_ace_step_server()
+        except Exception as e:
+            print(f"[ezlocalai] Warning: ACE-Step startup failed: {e}")
         app_target = "app:app"
 
     # Get worker count from environment

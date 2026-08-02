@@ -12,7 +12,7 @@ Two pieces live here:
 The router exposes the same OpenAI-compatible API surface as a normal
 ezlocalai server but does no inference itself. It selects a worker based on:
 
-* Capability match (text / vision / voice / image / video / embedding)
+* Capability match (text / vision / voice / image / video / music / embedding)
 * Whether the worker has the requested model
 * Free VRAM and queue depth (more free, less queued = better score)
 * Liveness (recent heartbeat)
@@ -44,7 +44,16 @@ from Tunnel import is_tunnel_url
 # Capability detection
 # ---------------------------------------------------------------------------
 
-ALL_CAPABILITIES = {"text", "vision", "tts", "stt", "image", "video", "embedding"}
+ALL_CAPABILITIES = {
+    "text",
+    "vision",
+    "tts",
+    "stt",
+    "image",
+    "video",
+    "music",
+    "embedding",
+}
 MODEL_STRICT_CAPABILITIES = {"text", "vision"}
 DEFAULT_DEDICATED_CAPABILITY_PREFERENCES = {"stt"}
 _RUNTIME_VERSION_CACHE: Optional[str] = None
@@ -354,10 +363,12 @@ def detect_local_capabilities() -> List[str]:
     embedding_server = (getenv("EMBEDDING_SERVER") or "").strip().lower()
     img_model = (getenv("IMG_MODEL") or "").strip().lower()
     video_model = (getenv("VIDEO_MODEL") or "").strip().lower()
+    music_model = (getenv("MUSIC_MODEL") or "").strip().lower()
     tts_enabled = (getenv("TTS_ENABLED") or "true").strip().lower() == "true"
     stt_enabled = (getenv("STT_ENABLED") or "true").strip().lower() == "true"
     image_enabled = (getenv("IMAGE_ENABLED") or "false").strip().lower() == "true"
     video_enabled = (getenv("VIDEO_ENABLED") or "false").strip().lower() == "true"
+    music_enabled = (getenv("MUSIC_ENABLED") or "false").strip().lower() == "true"
     embedding_enabled = (
         getenv("EMBEDDING_ENABLED") or "true"
     ).strip().lower() == "true"
@@ -441,6 +452,8 @@ def detect_local_capabilities() -> List[str]:
         and video_model not in ("none", "")
     ):
         caps.append("video")
+    if music_enabled and music_model and music_model not in ("none", ""):
+        caps.append("music")
 
     if embedding_enabled and not embedding_delegated:
         caps.append("embedding")
@@ -944,7 +957,7 @@ class WorkerInfo:
                 return self._normalize_slot(self.cap_slots.get("text"))
 
         fallback_capacity = max(1, int(self.queue_capacity or 1))
-        if capability in ("image", "stt", "video", "tts"):
+        if capability in ("image", "stt", "video", "tts", "music"):
             fallback_capacity = 1
         busy = self.effective_busy()
         return self._normalize_slot(
@@ -1452,10 +1465,11 @@ class Router:
         * ``False`` — return ``None`` so the caller (``wait_for_worker``)
           can poll for a same-model worker to free up before crossing over.
 
-        Non-text media capabilities (TTS, STT, image, video) are routed by
-        capability regardless of the client-supplied OpenAI model alias. A
-        request for ``whisper-1`` should reach any STT-capable worker, and a
-        request for ``tts-1`` should reach any TTS-capable worker.
+        Non-text media capabilities (TTS, STT, image, video, music) are routed
+        by capability regardless of the client-supplied OpenAI model alias. A
+        request for ``whisper-1`` should reach any STT-capable worker, a
+        request for ``tts-1`` should reach any TTS-capable worker, and a
+        request for ``music-1`` should reach any music-capable worker.
         """
         excluded = exclude or set()
         all_alive = [
@@ -1922,6 +1936,10 @@ class WorkerHeartbeatClient:
                 _vm = (getenv("VIDEO_MODEL") or "").strip()
                 if _vm:
                     cap_models["video"] = _vm
+            elif _cap == "music":
+                _mm = (getenv("MUSIC_MODEL") or "").strip()
+                if _mm:
+                    cap_models["music"] = _mm
             elif _cap == "embedding":
                 _em = (getenv("EMBEDDING_MODEL_ALIAS") or "").strip() or (
                     getenv("EMBEDDING_MODEL") or ""

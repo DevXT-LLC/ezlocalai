@@ -1,10 +1,19 @@
-FROM python:3.10-bullseye
+FROM python:3.10-bookworm
+ENV DEBIAN_FRONTEND=noninteractive
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     apt-get update --fix-missing  && apt-get upgrade -y && \
-    apt-get install -y --fix-missing --no-install-recommends git build-essential gcc g++ portaudio19-dev ffmpeg libportaudio2 libasound-dev python3 python3-pip gcc wget curl sox libsox-dev && \
+    apt-get install -y --fix-missing --no-install-recommends git build-essential cmake gcc g++ ninja-build libopenblas-dev portaudio19-dev ffmpeg libportaudio2 libasound-dev python3 python3-pip gcc wget curl sox libsox-dev && \
     apt-get clean && rm -rf /var/lib/apt/lists/* && \
     python3 -m pip install --upgrade pip --no-cache-dir
 WORKDIR /app
+
+ARG ACESTEP_CPP_REF=master
+RUN git clone --depth 1 --recurse-submodules https://github.com/ServeurpersoCom/acestep.cpp.git /opt/acestep.cpp && \
+    cd /opt/acestep.cpp && \
+    git checkout "$ACESTEP_CPP_REF" && \
+    git submodule update --init --recursive && \
+    cmake -B build -DGGML_BLAS=ON -DCMAKE_BUILD_TYPE=Release && \
+    cmake --build build --config Release --parallel "$(nproc)" --target ace-server
 
 # Install PyTorch CPU version
 RUN pip install torch==2.6.0 torchaudio==2.6.0 --index-url https://download.pytorch.org/whl/cpu --no-cache-dir
@@ -30,7 +39,8 @@ ENV HOST=0.0.0.0 \
     TOKENIZERS_PARALLELISM=false \
     PYTHONUNBUFFERED=1 \
     HF_HOME=/app/models \
-    HF_HUB_CACHE=/app/models
+    HF_HUB_CACHE=/app/models \
+    ACE_STEP_BIN=/opt/acestep.cpp/build/ace-server
 EXPOSE 8091
 # Use start.py which runs precache once, then starts uvicorn workers
 CMD ["python", "start.py"]
