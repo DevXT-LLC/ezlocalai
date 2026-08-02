@@ -39,7 +39,6 @@ import aiohttp
 
 from Globals import getenv
 from Tunnel import is_tunnel_url
-from ezlocalai.MUSIC import ACE_STEP_DEFAULT_MODEL as ACE_STEP_DEFAULT_MUSIC_MODEL
 
 # ---------------------------------------------------------------------------
 # Capability detection
@@ -57,6 +56,7 @@ ALL_CAPABILITIES = {
 }
 MODEL_STRICT_CAPABILITIES = {"text", "vision"}
 DEFAULT_DEDICATED_CAPABILITY_PREFERENCES = {"stt"}
+ACE_STEP_DEFAULT_MUSIC_MODEL = "Serveurperso/ACE-Step-1.5-GGUF"
 _RUNTIME_VERSION_CACHE: Optional[str] = None
 
 
