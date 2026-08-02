@@ -248,19 +248,31 @@ container. The GGUF model files are downloaded from
 one LM GGUF, one Qwen3 embedding/text encoder GGUF, one DiT GGUF, and
 `vae-BF16.gguf` in that directory.
 
+For the normal container-local setup, enable music on a worker with:
+
 ```bash
 MUSIC_ENABLED=true
+```
+
+With no other music environment variables set, ezlocalai downloads and serves
+these ACE-Step 1.5 GGUF files:
+
+```bash
 MUSIC_MODEL=Serveurperso/ACE-Step-1.5-GGUF
 ACE_STEP_SERVER_URL=
 ACE_STEP_AUTO_START=true
 ACE_STEP_MODELS_DIR=models/ace-step
-ACE_STEP_LM_MODEL=acestep-5Hz-lm-0.6B-Q8_0.gguf
+ACE_STEP_LM_MODEL=acestep-5Hz-lm-4B-Q8_0.gguf
 ACE_STEP_TEXT_ENCODER_MODEL=Qwen3-Embedding-0.6B-Q8_0.gguf
 ACE_STEP_DIT_MODEL=acestep-v15-turbo-Q4_K_M.gguf
 ACE_STEP_VAE_MODEL=vae-BF16.gguf
 ACE_STEP_TIMEOUT=1800
-REQUEST_TIMEOUT=1800
 ```
+
+The default LM is the 4B Q8 model for better music planning and lyric
+structure. Smaller nodes can override `ACE_STEP_LM_MODEL` to
+`acestep-5Hz-lm-0.6B-Q8_0.gguf` to save disk, RAM, and VRAM at the cost of
+quality.
 
 Set `ACE_STEP_SERVER_URL` only if you intentionally run an external
 `acestep.cpp` process. When it is empty, ezlocalai starts

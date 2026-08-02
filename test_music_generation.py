@@ -47,7 +47,7 @@ class MusicClientTests(unittest.IsolatedAsyncioTestCase):
             os.environ,
             {
                 "ACE_STEP_TEXT_ENCODER_MODEL": "Qwen3-Embedding-0.6B-Q8_0.gguf",
-                "ACE_STEP_LM_MODEL": "acestep-5Hz-lm-0.6B-Q8_0.gguf",
+                "ACE_STEP_LM_MODEL": "acestep-5Hz-lm-4B-Q8_0.gguf",
                 "ACE_STEP_DIT_MODEL": "acestep-v15-turbo-Q4_K_M.gguf",
                 "ACE_STEP_VAE_MODEL": "vae-BF16.gguf",
             },
@@ -59,11 +59,20 @@ class MusicClientTests(unittest.IsolatedAsyncioTestCase):
             files,
             [
                 "Qwen3-Embedding-0.6B-Q8_0.gguf",
-                "acestep-5Hz-lm-0.6B-Q8_0.gguf",
+                "acestep-5Hz-lm-4B-Q8_0.gguf",
                 "acestep-v15-turbo-Q4_K_M.gguf",
                 "vae-BF16.gguf",
             ],
         )
+
+    def test_music_enabled_only_uses_4b_lm_default(self):
+        with patch.dict(os.environ, {"MUSIC_ENABLED": "true"}, clear=True):
+            files = selected_ace_step_model_files()
+            music = MUSIC("http://ace.local")
+
+        self.assertIn("acestep-5Hz-lm-4B-Q8_0.gguf", files)
+        self.assertNotIn("acestep-5Hz-lm-0.6B-Q8_0.gguf", files)
+        self.assertEqual(music.lm_model, "acestep-5Hz-lm-4B-Q8_0.gguf")
 
     def test_build_request_for_heavy_metal_pythagorean_song(self):
         music = MUSIC("http://ace.local")
