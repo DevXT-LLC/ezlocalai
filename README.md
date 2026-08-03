@@ -230,14 +230,35 @@ does not warm-load or advertise those capabilities:
 IMAGE_ENABLED=false
 IMG_MODEL=
 VIDEO_ENABLED=false
-VIDEO_MODEL=
+VIDEO_MODEL=unsloth/LTX-2.3-GGUF
 ```
 
 Set `IMAGE_ENABLED=true` with `IMG_MODEL` to serve local image generation, or
-`VIDEO_ENABLED=true` with `VIDEO_MODEL` to serve local video generation. Enabled
-media models warm-load at startup, stay resident between requests, and report
-`image` or `video` capacity to the router. Workers with an `IMAGE_SERVER` URL
-configured still delegate media requests instead of loading local models.
+`VIDEO_ENABLED=true` to serve local video generation. When `VIDEO_MODEL` is
+omitted or blank, ezlocalai defaults to `unsloth/LTX-2.3-GGUF`. Enabled media
+models report `image` or `video` capacity to the router. They warm-load and stay
+resident when enough GPU headroom is available; on single-GPU LLM workers, video
+can lazy-load after the LLM handoff so LTX initializes with freed VRAM. Workers
+with an `IMAGE_SERVER` URL configured still delegate media requests instead of
+loading local models.
+
+On a single-GPU worker, leave `VIDEO_UNLOAD_LLM_DURING_GENERATION=auto`. When a
+resident LLM is occupying the only GPU, ezlocalai marks the text/vision slots
+temporarily unavailable, unloads the LLM plus idle aux GPU models, initializes
+LTX-2.3 with the freed VRAM, runs generation, unloads video if needed, and
+reloads persistent LLMs when `VIDEO_RELOAD_LLM_AFTER_GENERATION=true`.
+`VIDEO_GPU_RESIDENCY=auto` chooses full GPU residency only on very large GPUs,
+model CPU offload when enough VRAM was freed for the requested clip size, and
+sequential CPU offload as the constrained fallback for long scenes. Short clips
+can use model offload when at least `VIDEO_SHORT_MODEL_OFFLOAD_MIN_FREE_GB`
+remains after LTX loads; longer scenes stay sequential unless
+`VIDEO_MODEL_OFFLOAD_MIN_FREE_GB`/`VIDEO_FULL_GPU_MIN_FREE_GB` say the GPU has
+room. If a more aggressive mode OOMs,
+`VIDEO_RETRY_SEQUENTIAL_ON_OOM=true` reloads LTX with sequential offload and
+retries once. Set `VIDEO_GPU_RESIDENCY=full` to force a full-GPU attempt.
+
+LTX-2.3 requires dimensions divisible by 32 and frame counts in the `8n+1`
+pattern. The music-video helper handles frame planning automatically.
 
 ## Music Generation
 
@@ -314,6 +335,63 @@ For a live proof test against the internal or external ACE-Step server:
 ACE_STEP_LIVE_TEST=true python -m unittest test_music_generation.LiveAceStepMusicProofTest
 ```
 
+## Music Video Generation
+
+Workers that have both `MUSIC_ENABLED=true` and `VIDEO_ENABLED=true` advertise a
+combined `music_video` capability to the router. The router dashboard lists the
+combined music and video models next to that worker, and requests are routed to a
+worker that can perform both parts locally.
+
+```bash
+MUSIC_ENABLED=true
+VIDEO_ENABLED=true
+```
+
+The music-video endpoint first generates the song with ACE-Step, then generates
+one or more LTX-2.3 video scenes in a single video session and muxes the
+generated song audio into the final MP4:
+
+```bash
+curl http://localhost:8091/v1/videos/music \
+  -H "Content-Type: application/json" \
+  -d '{
+    "prompt": "Heavy metal song about the Pythagorean theorem",
+    "lyrics": "[Verse]\nA squared roars, B squared screams\n[Chorus]\nC squared lights the hypotenuse",
+    "duration": 30,
+    "keyscale": "E minor"
+  }'
+```
+
+The required fields are `prompt`, `lyrics`, `duration`, and `keyscale`.
+Optional fields include `model`, `music_model`, `video_model`, `video_prompt`,
+`scene_prompts`, `scene_duration`, `size`, `frame_rate`, `num_inference_steps`,
+`guidance_scale`, `video_guidance_scale`, `response_format`, `seed`,
+`music_seed`, `audio_url`, `include_scene_audio`, `storyboard`,
+`scene_images`, `bpm`, `timesignature`, `vocal_language`, `inference_steps`,
+`music_inference_steps`,
+`music_guidance_scale`, `shift`, `solver`, `lm_model`, `synth_model`,
+`audio_codes`, `image`, and `conditions`.
+When `audio_url` points at an existing ezlocalai `outputs/` audio file, the
+endpoint skips ACE-Step audio generation and only renders/muxes the video.
+Intermediate scene clips are video-only by default; set
+`include_scene_audio=true` only when debugging LTX's own generated audio.
+The final mux trims or pads the audio stream to the requested `duration`.
+
+Music-video scenes use `storyboard=true` by default. When no explicit image is
+provided, ezlocalai draws deterministic first-frame storyboards from the prompt
+and lyrics, then uses LTX image-to-video so each scene has visible lyric/thematic
+anchors instead of drifting into generic concert footage. For maximum control,
+pass `scene_images` as base64/data-URL/HTTP images, one per planned scene.
+Pythagorean-theorem storyboards also burn in an exact `a squared + b squared =
+c squared` equation overlay using superscript-style exponents, since generated
+video models are unreliable at preserving formula text frame to frame.
+
+LTX-2.3 audio-to-video is documented for roughly 20 seconds per request, with
+longer videos created by chaining clips. ezlocalai therefore defaults
+`MUSIC_VIDEO_SCENE_DURATION=5` and caps each planned scene with
+`MUSIC_VIDEO_MAX_SCENE_DURATION=20`; the final response includes the generated
+song URL, each scene URL, the scene plan, and the final MP4 URL.
+
 ## Router / Load Balancer Mode
 
 For setups that outgrow point-to-point fallback (3+ machines, friends contributing GPUs, bittensor miners coming and going), ezlocalai can run as a dedicated **router**. The router itself loads no models — it accepts the normal OpenAI-compatible API and forwards each request to the best registered worker.
@@ -333,7 +411,7 @@ For setups that outgrow point-to-point fallback (3+ machines, friends contributi
                              └────────────────────┘
 ```
 
-Each worker is a normal `ezlocalai` instance with `ROUTER_URL` set. On startup the worker registers itself, then sends heartbeats every `WORKER_HEARTBEAT_INTERVAL` seconds containing free VRAM, queue depth, loaded models, and advertised capabilities (`text`, `vision`, `tts`, `stt`, `embedding`, `image`, `video`, `music`). Workers that miss `ROUTER_WORKER_TTL` seconds of heartbeats are pruned. If a request arrives and no suitable worker is free, the router keeps it queued until a worker becomes available when `ROUTER_WAIT_TIMEOUT=0`, or waits up to the configured positive timeout before returning `503`.
+Each worker is a normal `ezlocalai` instance with `ROUTER_URL` set. On startup the worker registers itself, then sends heartbeats every `WORKER_HEARTBEAT_INTERVAL` seconds containing free VRAM, queue depth, loaded models, and advertised capabilities (`text`, `vision`, `tts`, `stt`, `embedding`, `image`, `video`, `music`, `music_video`). Workers that miss `ROUTER_WORKER_TTL` seconds of heartbeats are pruned. If a request arrives and no suitable worker is free, the router keeps it queued until a worker becomes available when `ROUTER_WAIT_TIMEOUT=0`, or waits up to the configured positive timeout before returning `503`.
 
 ### Run the router
 

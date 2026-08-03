@@ -424,6 +424,16 @@ class RouterSelectionTests(unittest.TestCase):
         self.assertIsNotNone(worker)
         self.assertEqual(worker.label, "VIDEO Worker")
 
+    def test_music_video_routes_by_combined_capability(self):
+        router = self._router_with_worker("music_video")
+
+        worker = router.select_worker(
+            "music_video", "music-video-1", allow_cross_model=False
+        )
+
+        self.assertIsNotNone(worker)
+        self.assertEqual(worker.label, "MUSIC_VIDEO Worker")
+
     def test_embedding_routes_by_capability_when_model_alias_is_not_advertised(self):
         router = self._router_with_worker("embedding")
 
@@ -681,6 +691,25 @@ class CapabilityDetectionTests(unittest.TestCase):
             caps = detect_local_capabilities()
 
         self.assertIn("video", caps)
+
+    def test_enabled_video_uses_ltx23_default_when_model_env_is_blank(self):
+        with self._env(VIDEO_ENABLED="true", VIDEO_MODEL=""):
+            caps = detect_local_capabilities()
+
+        self.assertIn("video", caps)
+
+    def test_music_video_is_advertised_when_music_and_video_are_enabled(self):
+        with self._env(
+            VIDEO_ENABLED="true",
+            VIDEO_MODEL="",
+            MUSIC_ENABLED="true",
+            MUSIC_MODEL="",
+        ):
+            caps = detect_local_capabilities()
+
+        self.assertIn("music", caps)
+        self.assertIn("video", caps)
+        self.assertIn("music_video", caps)
 
     def test_text_delegation_does_not_disable_embeddings(self):
         with self._env(TEXT_SERVER="http://text.local:8091"):

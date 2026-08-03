@@ -52,11 +52,13 @@ ALL_CAPABILITIES = {
     "image",
     "video",
     "music",
+    "music_video",
     "embedding",
 }
 MODEL_STRICT_CAPABILITIES = {"text", "vision"}
 DEFAULT_DEDICATED_CAPABILITY_PREFERENCES = {"stt"}
 ACE_STEP_DEFAULT_MUSIC_MODEL = "Serveurperso/ACE-Step-1.5-GGUF"
+DEFAULT_VIDEO_MODEL = "unsloth/LTX-2.3-GGUF"
 _RUNTIME_VERSION_CACHE: Optional[str] = None
 
 
@@ -363,7 +365,9 @@ def detect_local_capabilities() -> List[str]:
     text_server = (getenv("TEXT_SERVER") or "").strip().lower()
     embedding_server = (getenv("EMBEDDING_SERVER") or "").strip().lower()
     img_model = (getenv("IMG_MODEL") or "").strip().lower()
-    video_model = (getenv("VIDEO_MODEL") or "").strip().lower()
+    video_model = (
+        getenv("VIDEO_MODEL", DEFAULT_VIDEO_MODEL) or DEFAULT_VIDEO_MODEL
+    ).strip().lower()
     music_model = (
         getenv("MUSIC_MODEL", ACE_STEP_DEFAULT_MUSIC_MODEL)
         or ACE_STEP_DEFAULT_MUSIC_MODEL
@@ -456,6 +460,11 @@ def detect_local_capabilities() -> List[str]:
         and video_model not in ("none", "")
     ):
         caps.append("video")
+    if "video" in caps and music_enabled and music_model and music_model not in (
+        "none",
+        "",
+    ):
+        caps.append("music_video")
     if music_enabled and music_model and music_model not in ("none", ""):
         caps.append("music")
 
@@ -961,7 +970,7 @@ class WorkerInfo:
                 return self._normalize_slot(self.cap_slots.get("text"))
 
         fallback_capacity = max(1, int(self.queue_capacity or 1))
-        if capability in ("image", "stt", "video", "tts", "music"):
+        if capability in ("image", "stt", "video", "tts", "music", "music_video"):
             fallback_capacity = 1
         busy = self.effective_busy()
         return self._normalize_slot(
@@ -1469,11 +1478,12 @@ class Router:
         * ``False`` — return ``None`` so the caller (``wait_for_worker``)
           can poll for a same-model worker to free up before crossing over.
 
-        Non-text media capabilities (TTS, STT, image, video, music) are routed
-        by capability regardless of the client-supplied OpenAI model alias. A
-        request for ``whisper-1`` should reach any STT-capable worker, a
-        request for ``tts-1`` should reach any TTS-capable worker, and a
-        request for ``music-1`` should reach any music-capable worker.
+        Non-text media capabilities (TTS, STT, image, video, music,
+        music_video) are routed by capability regardless of the client-supplied
+        OpenAI model alias. A request for ``whisper-1`` should reach any
+        STT-capable worker, a request for ``tts-1`` should reach any
+        TTS-capable worker, and a request for ``music-1`` should reach any
+        music-capable worker.
         """
         excluded = exclude or set()
         all_alive = [
@@ -1937,9 +1947,21 @@ class WorkerHeartbeatClient:
                 if _im:
                     cap_models["image"] = _im
             elif _cap == "video":
-                _vm = (getenv("VIDEO_MODEL") or "").strip()
-                if _vm:
+                _vm = (
+                    getenv("VIDEO_MODEL", DEFAULT_VIDEO_MODEL) or DEFAULT_VIDEO_MODEL
+                ).strip()
+                if _vm and _vm.lower() != "none":
                     cap_models["video"] = _vm
+            elif _cap == "music_video":
+                _vm = (
+                    getenv("VIDEO_MODEL", DEFAULT_VIDEO_MODEL) or DEFAULT_VIDEO_MODEL
+                ).strip()
+                _mm = (
+                    getenv("MUSIC_MODEL", ACE_STEP_DEFAULT_MUSIC_MODEL)
+                    or ACE_STEP_DEFAULT_MUSIC_MODEL
+                ).strip()
+                if _vm and _mm and _vm.lower() != "none" and _mm.lower() != "none":
+                    cap_models["music_video"] = f"{_mm} + {_vm}"
             elif _cap == "music":
                 _mm = (
                     getenv("MUSIC_MODEL", ACE_STEP_DEFAULT_MUSIC_MODEL)
