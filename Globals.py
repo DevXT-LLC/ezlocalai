@@ -10,7 +10,7 @@ def getenv(var_name: str, default_value: str = None) -> str:
         "EZLOCALAI_API_KEY": "none",
         "ALLOWED_DOMAINS": "*",
         "DEFAULT_MODEL": "unsloth/Qwen3.5-4B-GGUF",
-        "WHISPER_MODEL": "large-v3",
+        "WHISPER_MODEL": "large-v3-turbo",
         "IMAGE_ENABLED": "false",  # Set true to serve and warm-load IMG_MODEL locally
         "IMG_MODEL": "none",  # Set to "unsloth/FLUX.2-klein-4B-GGUF" for image generation + editing, "none" or empty string to disable
         "VIDEO_ENABLED": "false",  # Set true to serve and warm-load VIDEO_MODEL locally

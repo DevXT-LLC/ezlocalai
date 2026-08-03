@@ -366,12 +366,18 @@ def detect_local_capabilities() -> List[str]:
     embedding_server = (getenv("EMBEDDING_SERVER") or "").strip().lower()
     img_model = (getenv("IMG_MODEL") or "").strip().lower()
     video_model = (
-        getenv("VIDEO_MODEL", DEFAULT_VIDEO_MODEL) or DEFAULT_VIDEO_MODEL
-    ).strip().lower()
+        (getenv("VIDEO_MODEL", DEFAULT_VIDEO_MODEL) or DEFAULT_VIDEO_MODEL)
+        .strip()
+        .lower()
+    )
     music_model = (
-        getenv("MUSIC_MODEL", ACE_STEP_DEFAULT_MUSIC_MODEL)
-        or ACE_STEP_DEFAULT_MUSIC_MODEL
-    ).strip().lower()
+        (
+            getenv("MUSIC_MODEL", ACE_STEP_DEFAULT_MUSIC_MODEL)
+            or ACE_STEP_DEFAULT_MUSIC_MODEL
+        )
+        .strip()
+        .lower()
+    )
     tts_enabled = (getenv("TTS_ENABLED") or "true").strip().lower() == "true"
     stt_enabled = (getenv("STT_ENABLED") or "true").strip().lower() == "true"
     image_enabled = (getenv("IMAGE_ENABLED") or "false").strip().lower() == "true"
@@ -460,9 +466,15 @@ def detect_local_capabilities() -> List[str]:
         and video_model not in ("none", "")
     ):
         caps.append("video")
-    if "video" in caps and music_enabled and music_model and music_model not in (
-        "none",
-        "",
+    if (
+        "video" in caps
+        and music_enabled
+        and music_model
+        and music_model
+        not in (
+            "none",
+            "",
+        )
     ):
         caps.append("music_video")
     if music_enabled and music_model and music_model not in ("none", ""):
@@ -1940,7 +1952,7 @@ class WorkerHeartbeatClient:
                     getenv("QWEN_TTS_MODEL") or "Qwen/Qwen3-TTS-12Hz-0.6B-Base"
                 ).strip()
             elif _cap == "stt":
-                _wm = (getenv("WHISPER_MODEL") or "large-v3").strip()
+                _wm = (getenv("WHISPER_MODEL") or "large-v3-turbo").strip()
                 cap_models["stt"] = _wm
             elif _cap == "image":
                 _im = (getenv("IMG_MODEL") or "").strip()

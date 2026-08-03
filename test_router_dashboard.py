@@ -181,7 +181,7 @@ class RouterDashboardTierTests(unittest.TestCase):
                         },
                         "stt": {"requests": 1},
                         "stt_models": {
-                            "Whisper large-v3": {
+                            "Whisper large-v3-turbo": {
                                 "requests": 1,
                                 "outputs": 1,
                                 "total_ms_sum": 5000,
@@ -293,9 +293,7 @@ class UsageTrackerMediaTests(unittest.IsolatedAsyncioTestCase):
 
         rebuilt = _usage_from_history(history)
         self.assertEqual(
-            rebuilt["Studio"]["image_models"]["unsloth/FLUX.2-klein-4B"][
-                "requests"
-            ],
+            rebuilt["Studio"]["image_models"]["unsloth/FLUX.2-klein-4B"]["requests"],
             1,
         )
 
