@@ -149,7 +149,8 @@ def _normalize_model_name(model: Optional[str]) -> str:
 
     Treats ``unsloth/Foo-GGUF`` and ``unsloth/Foo`` as the same model — the
     ``-GGUF`` suffix only describes the on-disk weight format and clients
-    request both forms interchangeably.
+    request both forms interchangeably. Also folds MTP/non-MTP variants into
+    one UI usage bucket; routing still keeps explicit MTP requests strict.
     """
     if not model:
         return "unknown"
@@ -161,6 +162,7 @@ def _normalize_model_name(model: Optional[str]) -> str:
         if low.endswith(suffix):
             m = m[: -len(suffix)]
             break
+    m = re.sub(r"(?i)-mtp$", "", m)
     return m
 
 
@@ -220,9 +222,8 @@ class UsageTracker:
         self._history_path = f"{base}.history{ext or '.json'}"
         self._lock: Optional[asyncio.Lock] = None
         self._data: Dict[str, Any] = {}
-        # Capped ring buffer of recent LLM requests, persisted to disk.  Each entry:
-        # {ts, worker, model, prompt_tokens, completion_tokens,
-        #  prompt_ms, predicted_ms, prompt_tps, predicted_tps}
+        # Capped ring buffer of recent requests, persisted to disk. Text entries
+        # carry token/timing fields; media entries carry capability/output/time.
         self._history: List[Dict[str, Any]] = []
         self._history_max = int(getenv("USAGE_HISTORY_MAX", "500"))
         self._dirty: bool = False
@@ -460,11 +461,53 @@ class UsageTracker:
                 del self._history[:drop]
             self._dirty = True
 
-    async def record_cap(self, label: str, cap: str) -> None:
+    async def record_cap(
+        self,
+        label: str,
+        cap: str,
+        model: Optional[str] = None,
+        total_ms: float = 0.0,
+        outputs: int = 0,
+    ) -> None:
+        cap = str(cap or "unknown").strip().lower() or "unknown"
+        model_name = _normalize_model_name(model or cap)
+        total_ms = float(total_ms or 0.0)
+        outputs = int(outputs or 0)
         async with self._alock:
             w = self._data.setdefault(label, {})
             c = w.setdefault(cap, {"requests": 0})
             c["requests"] += 1
+            models = w.setdefault(f"{cap}_models", {})
+            m = models.setdefault(
+                model_name,
+                {
+                    "requests": 0,
+                    "outputs": 0,
+                    "total_ms_sum": 0.0,
+                },
+            )
+            m["requests"] = int(m.get("requests", 0) or 0) + 1
+            m["outputs"] = int(m.get("outputs", 0) or 0) + outputs
+            m["total_ms_sum"] = float(m.get("total_ms_sum", 0.0) or 0.0) + total_ms
+            self._history.append(
+                {
+                    "ts": time.time(),
+                    "kind": cap,
+                    "worker": label,
+                    "model": model_name,
+                    "prompt_tokens": 0,
+                    "completion_tokens": 0,
+                    "outputs": outputs,
+                    "prompt_ms": 0.0,
+                    "predicted_ms": 0.0,
+                    "total_ms": total_ms,
+                    "prompt_tps": 0.0,
+                    "predicted_tps": 0.0,
+                }
+            )
+            if len(self._history) > self._history_max:
+                drop = len(self._history) - self._history_max
+                del self._history[:drop]
             self._dirty = True
 
     def snapshot(self) -> Dict[str, Any]:
@@ -472,7 +515,7 @@ class UsageTracker:
         return json.loads(json.dumps(self._data))
 
     def history_snapshot(self, limit: Optional[int] = None) -> List[Dict[str, Any]]:
-        """Return the most recent ``limit`` LLM request entries (newest last)."""
+        """Return the most recent ``limit`` request entries (newest last)."""
         if limit is None or limit >= len(self._history):
             return list(self._history)
         return list(self._history[-int(limit) :])
@@ -1067,12 +1110,13 @@ def _aggregate_dashboard() -> Dict[str, Any]:
     model_rollup: Dict[str, Dict[str, Any]] = {}
     for w in alive:
         for model in w.models:
+            canonical_model = _normalize_model_name(model)
             model_capacity = max(1, w.capacity_for("text", model))
             slots_left = w.slots_left("text", model)
             entry = model_rollup.setdefault(
-                model,
+                canonical_model,
                 {
-                    "model": model,
+                    "model": canonical_model,
                     "type": "text",
                     "worker_count": 0,
                     "total_capacity": 0,
@@ -1142,6 +1186,7 @@ def _aggregate_dashboard() -> Dict[str, Any]:
             # prefix is redundant with the STT capability pill.
             if cap == "stt" and model_name.lower().startswith("whisper "):
                 model_name = model_name[len("Whisper ") :]
+            model_name = _normalize_model_name(model_name)
             # Key by cap+model_name so multiple workers running the same
             # model (e.g. two nodes both serving Qwen-TTS) share one row.
             key = f"{cap}::{model_name}"
@@ -1357,6 +1402,23 @@ def _usage_from_history(
                 m["vectors_per_second_n"] += 1
             continue
 
+        if kind != "llm":
+            cap = w.setdefault(kind, {"requests": 0})
+            cap["requests"] += 1
+            models = w.setdefault(f"{kind}_models", {})
+            m = models.setdefault(
+                model,
+                {
+                    "requests": 0,
+                    "outputs": 0,
+                    "total_ms_sum": 0.0,
+                },
+            )
+            m["requests"] += 1
+            m["outputs"] += int(h.get("outputs") or 0)
+            m["total_ms_sum"] += float(h.get("total_ms") or 0.0)
+            continue
+
         llm = w.setdefault("llm", {})
         m = llm.setdefault(
             model,
@@ -1468,11 +1530,11 @@ async def router_usage(_: str = Depends(verify_client)):
 
 @app.get("/v1/router/history", tags=["Router"])
 async def router_history(limit: int = 200, _: str = Depends(verify_client)):
-    """Recent LLM request history (in-memory ring buffer, newest last).
+    """Recent request history (in-memory ring buffer, newest last).
 
-    Each entry contains: ``ts``, ``worker``, ``model``, ``prompt_tokens``,
-    ``completion_tokens``, ``prompt_ms``, ``predicted_ms``, ``prompt_tps``,
-    ``predicted_tps``.
+    Text and embedding entries include token/vector timing fields. Media
+    entries include their capability ``kind``, model, output count, and elapsed
+    wall time.
     """
     return {"history": _usage.history_snapshot(limit=limit)}
 
@@ -1517,7 +1579,7 @@ _CAP_PILL_CLASS: Dict[str, str] = {
     "stt": "cap-stt",
     "video": "cap-video",
     "music": "cap-music",
-    "music_video": "cap-music",
+    "music_video": "cap-video",
     "embedding": "cap-embedding",
 }
 
@@ -1906,6 +1968,24 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
             return "—"
         return f"{v:,.1f}"
 
+    def _fmt_count(value: int) -> str:
+        return f"{int(value):,}" if int(value or 0) > 0 else "—"
+
+    def _fmt_duration_ms(ms: float) -> str:
+        ms = float(ms or 0.0)
+        if ms <= 0:
+            return "—"
+        if ms < 60_000:
+            return f"{ms / 1000.0:.2f}s"
+        return f"{ms / 60000.0:.2f}m"
+
+    def _display_usage_kind(kind: str) -> str:
+        if kind == "llm":
+            return "text"
+        if kind == "music_video":
+            return "video"
+        return kind
+
     # Per (kind, worker, canonical model) speed averages — only entries with non-zero
     # timing data contribute (so we don't dilute averages with non-llama.cpp
     # backends that didn't report ``timings``).
@@ -2023,11 +2103,42 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
                 canon = _normalize_model_name(raw_name)
                 flat.append(("embedding", label, canon, mdata))
 
+            media_merged: Dict[tuple, Dict[str, float]] = {}
+            for cap in ("tts", "stt", "image", "video", "music", "music_video"):
+                models = wdata.get(f"{cap}_models") or {}
+                if not models and cap in wdata:
+                    cap_data = wdata.get(cap) or {}
+                    models = {
+                        cap: {
+                            "requests": int(cap_data.get("requests", 0) or 0),
+                            "outputs": 0,
+                            "total_ms_sum": 0.0,
+                        }
+                    }
+                for raw_name, mdata in models.items():
+                    canon = _normalize_model_name(raw_name)
+                    display_kind = _display_usage_kind(cap)
+                    agg = media_merged.setdefault(
+                        (display_kind, canon),
+                        {
+                            "requests": 0,
+                            "outputs": 0,
+                            "total_ms_sum": 0.0,
+                        },
+                    )
+                    agg["requests"] += int(mdata.get("requests", 0) or 0)
+                    agg["outputs"] += int(mdata.get("outputs", 0) or 0)
+                    agg["total_ms_sum"] += float(
+                        mdata.get("total_ms_sum", 0.0) or 0.0
+                    )
+            for (kind, model), mdata in media_merged.items():
+                flat.append((kind, label, model, mdata))
+
         flat.sort(key=lambda x: -int(x[3].get("requests", 0) or 0))
         rows = ""
         for kind, label, model, mdata in flat:
             reqs = mdata.get("requests", 0)
-            pt = mdata.get("prompt_tokens", 0)
+            pt = int(mdata.get("prompt_tokens", 0) or 0)
             ptn = int(mdata.get("prompt_tps_n", 0) or 0)
             avg_p = (float(mdata.get("prompt_tps_sum", 0.0)) / ptn) if ptn else 0.0
 
@@ -2045,7 +2156,10 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
                     avg_out = avg_out or hd
                 total_display = f"{pt:,}"
                 output_title = f"{output_count:,}"
-            else:
+                input_display = f"{pt:,}"
+                avg_p_display = _fmt_tps(avg_p)
+                avg_out_display = _fmt_tps(avg_out)
+            elif kind == "text":
                 output_count = int(mdata.get("completion_tokens", 0) or 0)
                 out_n = int(mdata.get("predicted_tps_n", 0) or 0)
                 avg_out = (
@@ -2057,6 +2171,16 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
                     avg_out = avg_out or hd
                 total_display = f"{pt + output_count:,}"
                 output_title = f"{output_count:,}"
+                input_display = f"{pt:,}"
+                avg_p_display = _fmt_tps(avg_p)
+                avg_out_display = _fmt_tps(avg_out)
+            else:
+                output_count = int(mdata.get("outputs", 0) or 0)
+                total_display = _fmt_duration_ms(float(mdata.get("total_ms_sum") or 0.0))
+                output_title = _fmt_count(output_count)
+                input_display = "—"
+                avg_p_display = "—"
+                avg_out_display = "—"
 
             rows += f"""
         <tr>
@@ -2064,11 +2188,11 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
           <td class="muted small">{html.escape(str(label))}</td>
           <td class="mono small">{html.escape(str(model))}</td>
           <td class="num small">{reqs:,}</td>
-          <td class="num small">{pt:,}</td>
+          <td class="num small">{input_display}</td>
           <td class="num small">{output_title}</td>
           <td class="num small">{total_display}</td>
-          <td class="num small">{_fmt_tps(avg_p)}</td>
-          <td class="num small">{_fmt_tps(avg_out)}</td>
+          <td class="num small">{avg_p_display}</td>
+          <td class="num small">{avg_out_display}</td>
         </tr>"""
         return (
             rows
@@ -2098,36 +2222,60 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
             total_cell = '<span class="muted">—</span>'
         worker = html.escape(str(h.get("worker") or "—"))
         raw_model = str(h.get("model") or "—")
-        model = html.escape(_pretty_model_name(raw_model)) if raw_model != "—" else "—"
+        canonical_model = _normalize_model_name(raw_model) if raw_model != "—" else "—"
+        model = (
+            html.escape(_pretty_model_name(canonical_model))
+            if canonical_model != "—"
+            else "—"
+        )
         model_title = html.escape(raw_model)
+        kind = _display_usage_kind(str(h.get("kind") or "llm"))
+        if kind == "embedding":
+            input_cell = f"{int(h.get('prompt_tokens') or 0):,}"
+            output_cell = _fmt_count(int(h.get("vectors") or 0))
+            input_rate = _fmt_tps(float(h.get("prompt_tps") or 0))
+            output_rate = _fmt_tps(float(h.get("vectors_per_second") or 0))
+        elif kind == "text":
+            input_cell = f"{int(h.get('prompt_tokens') or 0):,}"
+            output_cell = f"{int(h.get('completion_tokens') or 0):,}"
+            input_rate = _fmt_tps(float(h.get("prompt_tps") or 0))
+            output_rate = _fmt_tps(float(h.get("predicted_tps") or 0))
+        else:
+            input_cell = "—"
+            output_cell = _fmt_count(int(h.get("outputs") or 0))
+            input_rate = "—"
+            output_rate = "—"
         return f"""
-        <tr class="req-row" data-ts="{ts:.0f}" data-worker="{worker}" data-model="{model_title}">
+        <tr class="req-row" data-ts="{ts:.0f}" data-worker="{worker}" data-model="{html.escape(canonical_model)}">
           <td class="muted small ts-cell" data-ts="{ts:.0f}">{when}</td>
           <td class="small"><b>{worker}</b></td>
+          <td>{_cap_pill(kind)}</td>
           <td class="mono small" title="{model_title}">{model}</td>
-          <td class="num small">{int(h.get('prompt_tokens') or 0):,}</td>
-          <td class="num small">{int(h.get('completion_tokens') or 0):,}</td>
-          <td class="num small">{_fmt_tps(float(h.get('prompt_tps') or 0))}</td>
-          <td class="num small">{_fmt_tps(float(h.get('predicted_tps') or 0))}</td>
+          <td class="num small">{input_cell}</td>
+          <td class="num small">{output_cell}</td>
+          <td class="num small">{input_rate}</td>
+          <td class="num small">{output_rate}</td>
           <td class="num small">{total_cell}</td>
         </tr>"""
 
     recent = list(reversed(history))
     history_rows = (
         "".join(_hist_row(h) for h in recent)
-        or '<tr><td colspan="8" class="muted">No requests yet.</td></tr>'
+        or '<tr><td colspan="9" class="muted">No requests yet.</td></tr>'
     )
     # Filter dropdown options
     req_workers = sorted(
         {str(h.get("worker") or "") for h in history if h.get("worker")}
     )
-    req_models = sorted({str(h.get("model") or "") for h in history if h.get("model")})
+    req_models = sorted(
+        {_normalize_model_name(h.get("model") or "") for h in history if h.get("model")}
+    )
     req_worker_opts = "".join(
         f'<option value="{html.escape(w)}">{html.escape(w)}</option>'
         for w in req_workers
     )
     req_model_opts = "".join(
-        f'<option value="{html.escape(m)}">{html.escape(m)}</option>'
+        f'<option value="{html.escape(m)}">{html.escape(_pretty_model_name(m))}</option>'
         for m in req_models
     )
 
@@ -2367,9 +2515,9 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
   <table>
     <thead><tr>
       <th>Type</th><th>Worker</th><th>Model</th>
-      <th class="num">Requests</th><th class="num">Input tokens</th>
-      <th class="num">Output / vectors</th><th class="num">Total tokens</th>
-      <th class="num">Avg input t/s</th><th class="num">Avg output / vectors/s</th>
+      <th class="num">Requests</th><th class="num">Input</th>
+      <th class="num">Output / vectors</th><th class="num">Total / elapsed</th>
+      <th class="num">Avg input/s</th><th class="num">Avg output/s</th>
     </tr></thead>
     <tbody class="breakdown-tbody" data-window="all">{usage_model_rows_all}</tbody>
     <tbody class="breakdown-tbody" data-window="24h" style="display:none">{usage_model_rows_24h}</tbody>
@@ -2412,9 +2560,9 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
   </div>
   <table id="recent-requests-table">
     <thead><tr>
-      <th>Time</th><th>Worker</th><th>Model</th>
-      <th class="num">Prompt tok</th><th class="num">Output tok</th>
-      <th class="num">Prompt t/s</th><th class="num">Output t/s</th>
+      <th>Time</th><th>Worker</th><th>Type</th><th>Model</th>
+      <th class="num">Input</th><th class="num">Output</th>
+      <th class="num">Input/s</th><th class="num">Output/s</th>
       <th class="num">Total time</th>
     </tr></thead>
     <tbody id="recent-requests-tbody">{history_rows}</tbody>
@@ -2667,6 +2815,56 @@ def _request_timeout(default: float = 300.0) -> float:
 def _stt_timeout() -> float:
     """Transcription jobs can legitimately run far longer than JSON requests."""
     return _float_env("ROUTER_STT_TIMEOUT", max(_request_timeout(), 7200.0))
+
+
+def _capability_usage_model(
+    worker: WorkerInfo,
+    capability: str,
+    requested_model: Optional[str] = None,
+) -> str:
+    if capability == "music_video":
+        return (
+            worker.cap_models.get("video")
+            or worker.cap_models.get("music_video")
+            or requested_model
+            or _cap_label(capability)
+        )
+    return (
+        worker.cap_models.get(capability)
+        or requested_model
+        or _cap_label(capability)
+    )
+
+
+def _json_response_output_count(resp: Response, default: int = 1) -> int:
+    try:
+        body = bytes(getattr(resp, "body", b"") or b"")
+        if not body:
+            return default
+        obj = json.loads(body)
+        data = obj.get("data") if isinstance(obj, dict) else None
+        if isinstance(data, list):
+            return len(data)
+    except Exception:
+        pass
+    return default
+
+
+async def _record_cap_success(
+    worker: WorkerInfo,
+    capability: str,
+    *,
+    requested_model: Optional[str] = None,
+    total_ms: float = 0.0,
+    outputs: int = 0,
+) -> None:
+    await _usage.record_cap(
+        worker.label,
+        capability,
+        model=_capability_usage_model(worker, capability, requested_model),
+        total_ms=total_ms,
+        outputs=outputs,
+    )
 
 
 def _worker_headers(worker: WorkerInfo) -> Dict[str, str]:
@@ -3706,16 +3904,26 @@ async def audio_speech(
     _: str = Depends(verify_client),
 ):
     worker = await _pick("tts", payload.get("model"))
+    start = time.perf_counter()
     resp = await _proxy_json(
         worker, "/v1/audio/speech", payload, stream=False, capability="tts"
     )
-    await _usage.record_cap(worker.label, "tts")
+    total_ms = (time.perf_counter() - start) * 1000.0
+    if int(getattr(resp, "status_code", 200) or 200) < 400:
+        await _record_cap_success(
+            worker,
+            "tts",
+            requested_model=payload.get("model"),
+            total_ms=total_ms,
+            outputs=1,
+        )
     return await _persist_response_assets(worker, resp, request)
 
 
 @app.post("/v1/audio/speech/stream", tags=["Audio"])
 async def audio_speech_stream(payload: Dict[str, Any], _: str = Depends(verify_client)):
     worker = await _pick("tts", payload.get("model"))
+    start = time.perf_counter()
     resp = await _proxy_json(
         worker,
         "/v1/audio/speech/stream",
@@ -3730,7 +3938,15 @@ async def audio_speech_stream(payload: Dict[str, Any], _: str = Depends(verify_c
             "X-Channels": "1",
         },
     )
-    await _usage.record_cap(worker.label, "tts")
+    total_ms = (time.perf_counter() - start) * 1000.0
+    if int(getattr(resp, "status_code", 200) or 200) < 400:
+        await _record_cap_success(
+            worker,
+            "tts",
+            requested_model=payload.get("model"),
+            total_ms=total_ms,
+            outputs=1,
+        )
     return resp
 
 
@@ -3742,6 +3958,7 @@ async def audio_music(
     _: str = Depends(verify_client),
 ):
     worker = await _pick("music", payload.get("model"))
+    start = time.perf_counter()
     resp = await _proxy_json(
         worker,
         "/v1/audio/music",
@@ -3753,7 +3970,15 @@ async def audio_music(
         ),
         capability="music",
     )
-    await _usage.record_cap(worker.label, "music")
+    total_ms = (time.perf_counter() - start) * 1000.0
+    if int(getattr(resp, "status_code", 200) or 200) < 400:
+        await _record_cap_success(
+            worker,
+            "music",
+            requested_model=payload.get("model"),
+            total_ms=total_ms,
+            outputs=_json_response_output_count(resp),
+        )
     return await _persist_response_assets(worker, resp, request)
 
 
@@ -3796,6 +4021,7 @@ async def audio_transcriptions(
     worker = await _pick("stt", model)
     content = await file.read()
     granularities = timestamp_granularities_bracketed or timestamp_granularities
+    start = time.perf_counter()
     resp = await _proxy_multipart(
         worker,
         "/v1/audio/transcriptions",
@@ -3819,7 +4045,15 @@ async def audio_transcriptions(
         capability="stt",
         model=model,
     )
-    await _usage.record_cap(worker.label, "stt")
+    total_ms = (time.perf_counter() - start) * 1000.0
+    if int(getattr(resp, "status_code", 200) or 200) < 400:
+        await _record_cap_success(
+            worker,
+            "stt",
+            requested_model=model,
+            total_ms=total_ms,
+            outputs=1,
+        )
     return resp
 
 
@@ -3830,10 +4064,19 @@ async def images_generations(
     _: str = Depends(verify_client),
 ):
     worker = await _pick("image", payload.get("model"))
+    start = time.perf_counter()
     resp = await _proxy_json(
         worker, "/v1/images/generations", payload, stream=False, capability="image"
     )
-    await _usage.record_cap(worker.label, "image")
+    total_ms = (time.perf_counter() - start) * 1000.0
+    if int(getattr(resp, "status_code", 200) or 200) < 400:
+        await _record_cap_success(
+            worker,
+            "image",
+            requested_model=payload.get("model"),
+            total_ms=total_ms,
+            outputs=_json_response_output_count(resp),
+        )
     return await _persist_response_assets(worker, resp, request)
 
 
@@ -3844,10 +4087,19 @@ async def images_edits(request: Request, _: str = Depends(verify_client)):
     if "application/json" in content_type:
         payload = await request.json()
         worker = await _pick("image", payload.get("model"))
+        start = time.perf_counter()
         resp = await _proxy_json(
             worker, "/v1/images/edits", payload, stream=False, capability="image"
         )
-        await _usage.record_cap(worker.label, "image")
+        total_ms = (time.perf_counter() - start) * 1000.0
+        if int(getattr(resp, "status_code", 200) or 200) < 400:
+            await _record_cap_success(
+                worker,
+                "image",
+                requested_model=payload.get("model"),
+                total_ms=total_ms,
+                outputs=_json_response_output_count(resp),
+            )
         return await _persist_response_assets(worker, resp, request)
 
     form = await request.form()
@@ -3864,6 +4116,7 @@ async def images_edits(request: Request, _: str = Depends(verify_client)):
         else:
             fields[key] = str(value)
     worker = await _pick("image", fields.get("model"))
+    start = time.perf_counter()
     resp = await _proxy_multipart(
         worker,
         "/v1/images/edits",
@@ -3871,7 +4124,15 @@ async def images_edits(request: Request, _: str = Depends(verify_client)):
         fields=fields,
         capability="image",
     )
-    await _usage.record_cap(worker.label, "image")
+    total_ms = (time.perf_counter() - start) * 1000.0
+    if int(getattr(resp, "status_code", 200) or 200) < 400:
+        await _record_cap_success(
+            worker,
+            "image",
+            requested_model=fields.get("model"),
+            total_ms=total_ms,
+            outputs=_json_response_output_count(resp),
+        )
     return await _persist_response_assets(worker, resp, request)
 
 
@@ -3882,6 +4143,7 @@ async def videos_generations(
     _: str = Depends(verify_client),
 ):
     worker = await _pick("video", payload.get("model"))
+    start = time.perf_counter()
     resp = await _proxy_json(
         worker,
         "/v1/videos/generations",
@@ -3890,7 +4152,15 @@ async def videos_generations(
         timeout=float(getenv("REQUEST_TIMEOUT", "1800")),
         capability="video",
     )
-    await _usage.record_cap(worker.label, "video")
+    total_ms = (time.perf_counter() - start) * 1000.0
+    if int(getattr(resp, "status_code", 200) or 200) < 400:
+        await _record_cap_success(
+            worker,
+            "video",
+            requested_model=payload.get("model"),
+            total_ms=total_ms,
+            outputs=_json_response_output_count(resp),
+        )
     return await _persist_response_assets(worker, resp, request)
 
 
@@ -3904,6 +4174,7 @@ async def music_videos_generations(
     worker = await _pick(
         "music_video", payload.get("video_model") or payload.get("model")
     )
+    start = time.perf_counter()
     resp = await _proxy_json(
         worker,
         "/v1/videos/music",
@@ -3915,5 +4186,13 @@ async def music_videos_generations(
         ),
         capability="music_video",
     )
-    await _usage.record_cap(worker.label, "music_video")
+    total_ms = (time.perf_counter() - start) * 1000.0
+    if int(getattr(resp, "status_code", 200) or 200) < 400:
+        await _record_cap_success(
+            worker,
+            "music_video",
+            requested_model=payload.get("video_model") or payload.get("model"),
+            total_ms=total_ms,
+            outputs=_json_response_output_count(resp),
+        )
     return await _persist_response_assets(worker, resp, request)

@@ -112,8 +112,8 @@ class RouterStreamingTests(unittest.IsolatedAsyncioTestCase):
                 content=b"", media_type=kwargs["stream_media_type"]
             )
 
-        async def fake_record_cap(label, capability):
-            captured["usage"] = (label, capability)
+        async def fake_record_cap(label, capability, **kwargs):
+            captured["usage"] = (label, capability, kwargs)
 
         try:
             router_app._pick = fake_pick
@@ -135,7 +135,9 @@ class RouterStreamingTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(captured["stream_headers"]["X-Audio-Format"], "pcm")
         self.assertEqual(captured["stream_headers"]["X-Sample-Rate"], "24000")
         self.assertEqual(response.media_type, "application/octet-stream")
-        self.assertEqual(captured["usage"], ("tts-worker", "tts"))
+        self.assertEqual(captured["usage"][0:2], ("tts-worker", "tts"))
+        self.assertEqual(captured["usage"][2]["model"], "tts-1")
+        self.assertEqual(captured["usage"][2]["outputs"], 1)
 
 
 class RouterTimeoutTests(unittest.TestCase):
