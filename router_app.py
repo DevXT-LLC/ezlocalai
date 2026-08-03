@@ -1027,12 +1027,27 @@ _CAP_LABELS: Dict[str, str] = {
     "embedding": "Embedding",
     "video": "Video",
     "music": "Music",
-    "music_video": "Music Video",
+    "music_video": "Video",
 }
 
 
 def _cap_label(cap: str) -> str:
     return _CAP_LABELS.get(cap, cap.replace("-", " ").title())
+
+
+def _dashboard_capabilities(capabilities: List[str]) -> List[str]:
+    """Capabilities shown on the dashboard, with composite video folded into Video."""
+    raw = list(capabilities or [])
+    visible = []
+    has_video = "video" in raw
+    for cap in raw:
+        if cap == "music_video":
+            if has_video:
+                continue
+            cap = "video"
+        if cap not in visible:
+            visible.append(cap)
+    return visible
 
 
 def _aggregate_dashboard() -> Dict[str, Any]:
@@ -1110,13 +1125,19 @@ def _aggregate_dashboard() -> Dict[str, Any]:
         "music_video",
     )
     for w in alive:
-        for cap in w.capabilities:
-            if cap not in _NON_TEXT_CAPS:
+        visible_caps = _dashboard_capabilities(w.capabilities)
+        for raw_cap in w.capabilities:
+            if raw_cap not in _NON_TEXT_CAPS:
+                continue
+            if raw_cap == "music_video" and "video" in w.capabilities:
+                continue
+            cap = "video" if raw_cap == "music_video" else raw_cap
+            if cap not in visible_caps:
                 continue
             cap_label = _cap_label(cap)
             # Use the actual model name the worker reported for this capability,
             # falling back to the capability label if not reported yet.
-            model_name = w.cap_models.get(cap) or cap_label
+            model_name = w.cap_models.get(raw_cap) or cap_label
             # Whisper STT reports like "Whisper large-v3"; the "Whisper "
             # prefix is redundant with the STT capability pill.
             if cap == "stt" and model_name.lower().startswith("whisper "):
@@ -1140,8 +1161,8 @@ def _aggregate_dashboard() -> Dict[str, Any]:
                 },
             )
             entry["worker_count"] += 1
-            cap_capacity = max(1, w.capacity_for(cap))
-            cap_slots_left = w.slots_left(cap)
+            cap_capacity = max(1, w.capacity_for(raw_cap))
+            cap_slots_left = w.slots_left(raw_cap)
             entry["total_capacity"] += cap_capacity
             entry["available_slots"] += cap_slots_left
             ctx = int(w.model_context.get(model_name, 0) or 0)
@@ -1185,7 +1206,7 @@ def _aggregate_dashboard() -> Dict[str, Any]:
     for w in alive:
         has_text = "text" in w.capabilities
         has_vision = "vision" in w.capabilities
-        for cap in w.capabilities:
+        for cap in _dashboard_capabilities(w.capabilities):
             # Skip the bare "vision" entry when the worker also does text;
             # it will be represented under "text+vision" instead.
             if cap == "vision" and has_text:
@@ -1709,6 +1730,7 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
         mq = w.get("model_quant") or {}
         mc = w.get("model_context") or {}
         raw_caps_for_models = w.get("capabilities") or []
+        visible_caps_for_models = _dashboard_capabilities(raw_caps_for_models)
         has_vision_for_models = "vision" in raw_caps_for_models
         cap_models_map = w.get("cap_models") or {}
         model_slots_map = w.get("model_slots") or {}
@@ -1754,8 +1776,8 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
                 f"{html.escape(_pretty_model_name(emb_name))}"
                 f"{emb_quant_part}{emb_ctx_part}</span>"
             )
-        for cap in ("image", "tts", "stt", "video", "music", "music_video"):
-            if cap in raw_caps_for_models:
+        for cap in ("image", "tts", "stt", "video", "music"):
+            if cap in visible_caps_for_models:
                 cap_name = cap_models_map.get(cap) or _cap_label(cap)
                 if cap == "stt":
                     cap_name = _strip_whisper(cap_name)
@@ -1799,13 +1821,16 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
         else:
             err_cell = '<span class="muted">0</span>'
         raw_caps = w.get("capabilities") or []
+        visible_caps = _dashboard_capabilities(raw_caps)
         # Merge text + vision into a single "text+vision" pill on the worker row
-        if "text" in raw_caps and "vision" in raw_caps:
+        if "text" in visible_caps and "vision" in visible_caps:
             display_caps = [
-                "text+vision" if c == "text" else c for c in raw_caps if c != "vision"
+                "text+vision" if c == "text" else c
+                for c in visible_caps
+                if c != "vision"
             ]
         else:
-            display_caps = raw_caps
+            display_caps = visible_caps
         cap_slots = w.get("cap_slots") or {}
 
         def _cap_with_title(c: str) -> str:
@@ -1856,9 +1881,10 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
         tts_reqs = (wdata.get("tts") or {}).get("requests", 0)
         stt_reqs = (wdata.get("stt") or {}).get("requests", 0)
         img_reqs = (wdata.get("image") or {}).get("requests", 0)
-        vid_reqs = (wdata.get("video") or {}).get("requests", 0)
+        vid_reqs = (wdata.get("video") or {}).get("requests", 0) + (
+            wdata.get("music_video") or {}
+        ).get("requests", 0)
         music_reqs = (wdata.get("music") or {}).get("requests", 0)
-        music_video_reqs = (wdata.get("music_video") or {}).get("requests", 0)
         emb_reqs = (wdata.get("embedding") or {}).get("requests", 0)
         return f"""
         <tr>
@@ -1870,7 +1896,6 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
           <td class="num">{img_reqs:,}</td>
           <td class="num">{vid_reqs:,}</td>
           <td class="num">{music_reqs:,}</td>
-          <td class="num">{music_video_reqs:,}</td>
         </tr>"""
 
     # ---- Recent request history -------------------------------------------
@@ -1956,7 +1981,7 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
         ordered = sorted(usage_src.items(), key=lambda kv: (-_total_reqs(kv[1]), kv[0]))
         return (
             "".join(_usage_summary_row(lbl, wd) for lbl, wd in ordered)
-            or '<tr><td colspan="9" class="muted">No usage recorded in this window.</td></tr>'
+            or '<tr><td colspan="8" class="muted">No usage recorded in this window.</td></tr>'
         )
 
     def _build_breakdown_rows(usage_src: Dict[str, Any]) -> str:
@@ -2324,7 +2349,7 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
       <th class="num">Embedding reqs</th>
       <th class="num">TTS reqs</th><th class="num">STT reqs</th>
       <th class="num">Image reqs</th><th class="num">Video reqs</th>
-      <th class="num">Music reqs</th><th class="num">Music video reqs</th>
+      <th class="num">Music reqs</th>
     </tr></thead>
     <tbody class="usage-tbody" data-window="all">{usage_summary_rows_all}</tbody>
     <tbody class="usage-tbody" data-window="24h" style="display:none">{usage_summary_rows_24h}</tbody>
@@ -3465,8 +3490,13 @@ async def models(_: str = Depends(verify_client)):
             "music_video",
         ):
             if capability in w.capabilities:
+                if capability == "music_video" and "video" in w.capabilities:
+                    continue
                 capability_model = w.cap_models.get(capability)
                 if capability_model:
+                    display_capability = (
+                        "video" if capability == "music_video" else capability
+                    )
                     seen.setdefault(
                         capability_model,
                         {
@@ -3474,7 +3504,7 @@ async def models(_: str = Depends(verify_client)):
                             "object": "model",
                             "owned_by": "ezlocalai",
                             "workers": [],
-                            "capability": capability,
+                            "capability": display_capability,
                         },
                     )["workers"].append(w.label)
     return {"object": "list", "data": list(seen.values())}
