@@ -32,7 +32,7 @@ RUN python3 -m pip install "gTTS>=2.4.0" --no-deps --no-cache-dir
 RUN pip install esp-ppq --no-deps --no-cache-dir
 
 # Install xllamacpp CPU version
-RUN pip install xllamacpp==2026.7.10068 --force-reinstall --no-cache-dir
+RUN pip install xllamacpp==2026.8.10229 --force-reinstall --no-cache-dir
 
 COPY . .
 ENV HOST=0.0.0.0 \

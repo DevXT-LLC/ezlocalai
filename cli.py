@@ -1621,7 +1621,7 @@ def get_rocm_version() -> Optional[str]:
 
 XLLAMACPP_REPO = "https://github.com/xorbitsai/xllamacpp.git"
 XLLAMACPP_BUILD_DIR = STATE_DIR / "xllamacpp-build"
-XLLAMACPP_VERSION = "2026.7.10068"
+XLLAMACPP_VERSION = "2026.8.10229"
 XLLAMACPP_SOURCE_REF = f"v{XLLAMACPP_VERSION}-cu128"
 
 
