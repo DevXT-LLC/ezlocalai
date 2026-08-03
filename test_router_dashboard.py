@@ -2,9 +2,12 @@ import unittest
 
 from Router import WorkerInfo
 from router_app import (
+    UsageTracker,
+    _normalize_model_name,
     _public_with_tunnel,
     _render_dashboard_html,
     _tier_badge,
+    _usage_from_history,
     _worker_priority_tier,
 )
 
@@ -154,6 +157,147 @@ class RouterDashboardTierTests(unittest.TestCase):
         self.assertIn("Video reqs", html)
         self.assertNotIn("Music video reqs", html)
         self.assertIn('<td class="num">5</td>', html)
+
+    def test_model_breakdown_shows_media_capability_models(self):
+        html = _render_dashboard_html(
+            _dashboard_data(
+                usage={
+                    "Studio": {
+                        "tts": {"requests": 2},
+                        "tts_models": {
+                            "Qwen/Qwen3-TTS-12Hz-0.6B-Base": {
+                                "requests": 2,
+                                "outputs": 2,
+                                "total_ms_sum": 2500,
+                            }
+                        },
+                        "image": {"requests": 1},
+                        "image_models": {
+                            "unsloth/FLUX.2-klein-4B-GGUF": {
+                                "requests": 1,
+                                "outputs": 1,
+                                "total_ms_sum": 10_000,
+                            }
+                        },
+                        "stt": {"requests": 1},
+                        "stt_models": {
+                            "Whisper large-v3": {
+                                "requests": 1,
+                                "outputs": 1,
+                                "total_ms_sum": 5000,
+                            }
+                        },
+                        "music": {"requests": 1},
+                        "music_models": {
+                            "Serveurperso/ACE-Step-1.5-GGUF": {
+                                "requests": 1,
+                                "outputs": 1,
+                                "total_ms_sum": 120_000,
+                            }
+                        },
+                    }
+                }
+            )
+        )
+
+        self.assertIn("Text-to-Speech", html)
+        self.assertIn("Image Generation", html)
+        self.assertIn("Speech-to-Text", html)
+        self.assertIn("Music", html)
+        self.assertIn("Qwen3-TTS-12Hz-0.6B-Base", html)
+        self.assertIn("FLUX.2-klein-4B", html)
+        self.assertIn("ACE-Step-1.5", html)
+        self.assertIn("2.00m", html)
+
+    def test_recent_requests_show_media_rows(self):
+        html = _render_dashboard_html(
+            _dashboard_data(
+                history=[
+                    {
+                        "ts": 1000,
+                        "kind": "image",
+                        "worker": "Studio",
+                        "model": "unsloth/FLUX.2-klein-4B-GGUF",
+                        "outputs": 2,
+                        "total_ms": 2500,
+                    },
+                    {
+                        "ts": 1001,
+                        "kind": "music_video",
+                        "worker": "Studio",
+                        "model": "unsloth/LTX-2.3-GGUF",
+                        "outputs": 1,
+                        "total_ms": 142_700,
+                    },
+                ]
+            )
+        )
+
+        self.assertIn("<th>Time</th><th>Worker</th><th>Type</th><th>Model</th>", html)
+        self.assertIn("Image Generation", html)
+        self.assertIn("Video", html)
+        self.assertIn("FLUX.2-klein-4B", html)
+        self.assertIn("LTX-2.3", html)
+        self.assertIn("2.38m", html)
+
+    def test_mtp_and_non_mtp_models_share_usage_bucket(self):
+        self.assertEqual(
+            _normalize_model_name("unsloth/Qwen3.6-35B-A3B-MTP-GGUF"),
+            "unsloth/Qwen3.6-35B-A3B",
+        )
+        html = _render_dashboard_html(
+            _dashboard_data(
+                usage={
+                    "Studio": {
+                        "llm": {
+                            "unsloth/Qwen3.6-35B-A3B-MTP-GGUF": {
+                                "requests": 1,
+                                "prompt_tokens": 10,
+                                "completion_tokens": 2,
+                            },
+                            "unsloth/Qwen3.6-35B-A3B-GGUF": {
+                                "requests": 2,
+                                "prompt_tokens": 20,
+                                "completion_tokens": 4,
+                            },
+                        }
+                    }
+                }
+            )
+        )
+
+        self.assertIn("Qwen3.6-35B-A3B", html)
+        self.assertIn('<td class="num small">3</td>', html)
+        self.assertNotIn("Qwen3.6-35B-A3B-MTP", html)
+
+
+class UsageTrackerMediaTests(unittest.IsolatedAsyncioTestCase):
+    async def test_record_cap_adds_media_model_stats_and_history(self):
+        tracker = UsageTracker("/tmp/ezlocalai-test-usage.json")
+
+        await tracker.record_cap(
+            "Studio",
+            "image",
+            model="unsloth/FLUX.2-klein-4B-GGUF",
+            total_ms=1234,
+            outputs=2,
+        )
+
+        snapshot = tracker.snapshot()
+        model_stats = snapshot["Studio"]["image_models"]["unsloth/FLUX.2-klein-4B"]
+        self.assertEqual(model_stats["requests"], 1)
+        self.assertEqual(model_stats["outputs"], 2)
+        history = tracker.history_snapshot()
+        self.assertEqual(history[0]["kind"], "image")
+        self.assertEqual(history[0]["model"], "unsloth/FLUX.2-klein-4B")
+
+        rebuilt = _usage_from_history(history)
+        self.assertEqual(
+            rebuilt["Studio"]["image_models"]["unsloth/FLUX.2-klein-4B"][
+                "requests"
+            ],
+            1,
+        )
 
 
 if __name__ == "__main__":
