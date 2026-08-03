@@ -88,6 +88,43 @@ class RouterDashboardTierTests(unittest.TestCase):
         self.assertIn('title="Serveurperso/ACE-Step-1.5-GGUF"', html)
         self.assertIn(">ACE-Step-1.5</span>", html)
 
+    def test_worker_models_column_hides_music_video_duplicate_when_video_exists(self):
+        worker = WorkerInfo(
+            worker_id="video-1",
+            label="Stage",
+            url="http://stage.local",
+            capabilities=["video", "music", "music_video"],
+            cap_models={
+                "video": "unsloth/LTX-2.3-GGUF",
+                "music": "Serveurperso/ACE-Step-1.5-GGUF",
+                "music_video": (
+                    "Serveurperso/ACE-Step-1.5-GGUF + unsloth/LTX-2.3-GGUF"
+                ),
+            },
+            cap_slots={
+                "video": {"capacity": 1, "in_flight": 0, "queued": 0, "available": 1},
+                "music": {"capacity": 1, "in_flight": 0, "queued": 0, "available": 1},
+                "music_video": {
+                    "capacity": 1,
+                    "in_flight": 0,
+                    "queued": 0,
+                    "available": 1,
+                },
+            },
+        )
+
+        html = _render_dashboard_html(
+            _dashboard_data(workers=[_public_with_tunnel(worker)])
+        )
+
+        self.assertIn('title="unsloth/LTX-2.3-GGUF"', html)
+        self.assertIn('title="Serveurperso/ACE-Step-1.5-GGUF"', html)
+        self.assertNotIn("Music Video", html)
+        self.assertNotIn(
+            'title="Serveurperso/ACE-Step-1.5-GGUF + unsloth/LTX-2.3-GGUF"',
+            html,
+        )
+
     def test_usage_summary_shows_music_requests(self):
         html = _render_dashboard_html(
             _dashboard_data(
@@ -101,6 +138,22 @@ class RouterDashboardTierTests(unittest.TestCase):
 
         self.assertIn("Music reqs", html)
         self.assertIn('<td class="num">3</td>', html)
+
+    def test_usage_summary_counts_music_video_requests_as_video(self):
+        html = _render_dashboard_html(
+            _dashboard_data(
+                usage={
+                    "Studio": {
+                        "video": {"requests": 2},
+                        "music_video": {"requests": 3},
+                    }
+                }
+            )
+        )
+
+        self.assertIn("Video reqs", html)
+        self.assertNotIn("Music video reqs", html)
+        self.assertIn('<td class="num">5</td>', html)
 
 
 if __name__ == "__main__":
