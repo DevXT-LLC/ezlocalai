@@ -14,7 +14,7 @@ def getenv(var_name: str, default_value: str = None) -> str:
         "IMAGE_ENABLED": "false",  # Set true to serve and warm-load IMG_MODEL locally
         "IMG_MODEL": "none",  # Set to "unsloth/FLUX.2-klein-4B-GGUF" for image generation + editing, "none" or empty string to disable
         "VIDEO_ENABLED": "false",  # Set true to serve and warm-load VIDEO_MODEL locally
-        "VIDEO_MODEL": "none",  # Set to "unsloth/LTX-2.3-GGUF" to enable video generation, "none" or empty string to disable
+        "VIDEO_MODEL": "unsloth/LTX-2.3-GGUF",  # Default local GGUF model when VIDEO_ENABLED=true
         "MUSIC_ENABLED": "false",  # Set true to serve ACE-Step music generation from the internal ACE server
         "MUSIC_MODEL": "Serveurperso/ACE-Step-1.5-GGUF",
         "ACE_STEP_SERVER_URL": "",  # Optional external acestep.cpp URL. Empty = auto-start internal server.
@@ -35,6 +35,19 @@ def getenv(var_name: str, default_value: str = None) -> str:
         "MUSIC_UNLOAD_LLM_DURING_GENERATION": "auto",
         "MUSIC_RELOAD_LLM_AFTER_GENERATION": "true",
         "MUSIC_WAIT_FOR_LLM_IDLE_TIMEOUT": "60",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "VIDEO_RELOAD_LLM_AFTER_GENERATION": "true",
+        "VIDEO_WAIT_FOR_LLM_IDLE_TIMEOUT": "60",
+        "VIDEO_GPU_RESIDENCY": "auto",
+        "VIDEO_MODEL_OFFLOAD_MIN_FREE_GB": "16",
+        "VIDEO_FULL_GPU_MIN_FREE_GB": "30",
+        "VIDEO_SHORT_MODEL_OFFLOAD_MIN_FREE_GB": "12",
+        "VIDEO_MODEL_OFFLOAD_MAX_FRAMES": "129",
+        "VIDEO_MODEL_OFFLOAD_MAX_PIXELS": "262144",
+        "VIDEO_RETRY_SEQUENTIAL_ON_OOM": "true",
+        "VIDEO_CONNECTORS_SOURCE": "diffusers",
+        "MUSIC_VIDEO_SCENE_DURATION": "5",
+        "MUSIC_VIDEO_MAX_SCENE_DURATION": "20",
         "TTS_ENABLED": "true",
         "TTS_N_PARALLEL": "1",  # Number of local TTS model instances/slots to load
         "TTS_PROVIDER": "qwen",  # Qwen-TTS

@@ -35,6 +35,8 @@ load_dotenv()
 
 from Globals import getenv
 
+DEFAULT_VIDEO_MODEL = "unsloth/LTX-2.3-GGUF"
+
 
 def has_voice_server_url() -> bool:
     """Check if a voice server URL is configured (not 'true' mode, but actual URL).
@@ -659,7 +661,7 @@ def precache_video_model():
         logging.info(f"  - Video: Skipped (image server: {image_url})")
         return
 
-    video_model = getenv("VIDEO_MODEL")
+    video_model = getenv("VIDEO_MODEL", DEFAULT_VIDEO_MODEL) or DEFAULT_VIDEO_MODEL
     if not video_model or video_model.lower() == "none":
         return
 

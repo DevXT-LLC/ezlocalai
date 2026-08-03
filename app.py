@@ -50,6 +50,7 @@ from ezlocalai.MUSIC import (
 DEFAULT_MODEL = getenv("DEFAULT_MODEL")
 EMBEDDING_MODEL = getenv("EMBEDDING_MODEL")
 WHISPER_MODEL = getenv("WHISPER_MODEL")
+DEFAULT_VIDEO_MODEL = "unsloth/LTX-2.3-GGUF"
 logging.basicConfig(
     level=getenv("LOG_LEVEL"),
     format=getenv("LOG_FORMAT"),
@@ -401,22 +402,28 @@ def verify_api_key(authorization: str = Header(None)):
 )
 async def models(user=Depends(verify_api_key)):
     data = pipe.get_models()
-    if _has_local_capability("music"):
-        music_model = (
-            getenv("MUSIC_MODEL") or "Serveurperso/ACE-Step-1.5-GGUF"
-        ).strip()
-        if music_model:
-            models_data = data.setdefault("data", [])
-            seen = {item.get("id") for item in models_data if isinstance(item, dict)}
-            if music_model not in seen:
-                models_data.append(
-                    {
-                        "id": music_model,
-                        "object": "model",
-                        "owned_by": "ezlocalai",
-                        "capability": "music",
-                    }
-                )
+    capability_models = {
+        "video": (getenv("VIDEO_MODEL", DEFAULT_VIDEO_MODEL) or DEFAULT_VIDEO_MODEL),
+        "music": (getenv("MUSIC_MODEL") or "Serveurperso/ACE-Step-1.5-GGUF"),
+        "music_video": (
+            f"{getenv('MUSIC_MODEL') or 'Serveurperso/ACE-Step-1.5-GGUF'} + "
+            f"{getenv('VIDEO_MODEL', DEFAULT_VIDEO_MODEL) or DEFAULT_VIDEO_MODEL}"
+        ),
+    }
+    models_data = data.setdefault("data", [])
+    seen = {item.get("id") for item in models_data if isinstance(item, dict)}
+    for capability, model_id in capability_models.items():
+        model_id = str(model_id or "").strip()
+        if _has_local_capability(capability) and model_id and model_id not in seen:
+            models_data.append(
+                {
+                    "id": model_id,
+                    "object": "model",
+                    "owned_by": "ezlocalai",
+                    "capability": capability,
+                }
+            )
+            seen.add(model_id)
     return data
 
 
@@ -2156,9 +2163,145 @@ class VideoConditionFrame(BaseModel):
     strength: Optional[float] = 1.0  # conditioning strength 0.0-1.0
 
 
+class MusicVideoCreation(BaseModel):
+    prompt: str
+    lyrics: str
+    duration: float
+    keyscale: str
+    model: Optional[str] = None
+    music_model: Optional[str] = ACE_STEP_DEFAULT_MUSIC_MODEL
+    video_model: Optional[str] = DEFAULT_VIDEO_MODEL
+    video_prompt: Optional[str] = None
+    scene_prompts: Optional[List[str]] = None
+    scene_duration: Optional[float] = None
+    size: Optional[str] = "768x512"
+    num_inference_steps: Optional[int] = 40
+    guidance_scale: Optional[float] = 4.0
+    video_guidance_scale: Optional[float] = None
+    frame_rate: Optional[int] = 24
+    response_format: Optional[str] = "url"
+    instrumental: Optional[bool] = False
+    seed: Optional[int] = None
+    music_seed: Optional[int] = None
+    music_output_format: Optional[str] = ACE_STEP_DEFAULT_OUTPUT_FORMAT
+    audio_url: Optional[str] = None
+    include_scene_audio: Optional[bool] = False
+    storyboard: Optional[bool] = True
+    scene_images: Optional[List[str]] = None
+    bpm: Optional[int] = ACE_STEP_DEFAULT_BPM
+    timesignature: Optional[str] = ACE_STEP_DEFAULT_TIMESIGNATURE
+    vocal_language: Optional[str] = ACE_STEP_DEFAULT_VOCAL_LANGUAGE
+    inference_steps: Optional[int] = ACE_STEP_DEFAULT_INFERENCE_STEPS
+    music_inference_steps: Optional[int] = None
+    music_guidance_scale: Optional[float] = ACE_STEP_DEFAULT_GUIDANCE_SCALE
+    shift: Optional[float] = ACE_STEP_DEFAULT_SHIFT
+    solver: Optional[str] = ACE_STEP_DEFAULT_SOLVER
+    lm_model: Optional[str] = None
+    synth_model: Optional[str] = None
+    audio_codes: Optional[str] = None
+    image: Optional[str] = None
+    conditions: Optional[list[VideoConditionFrame]] = None
+
+
+@app.post(
+    "/v1/videos/music",
+    tags=["Videos"],
+    dependencies=[Depends(verify_api_key)],
+)
+@app.post(
+    "/v1/videos/music/generations",
+    tags=["Videos"],
+    dependencies=[Depends(verify_api_key)],
+)
+async def generate_music_video(
+    music_video_creation: MusicVideoCreation,
+    user: str = Depends(verify_api_key),
+):
+    payload = _pydantic_payload(music_video_creation)
+    for field in ("prompt", "lyrics", "keyscale"):
+        if not str(payload.get(field) or "").strip():
+            raise HTTPException(status_code=400, detail=f"{field} is required")
+    try:
+        if float(payload.get("duration", 0) or 0) <= 0:
+            raise ValueError
+    except (TypeError, ValueError):
+        raise HTTPException(status_code=400, detail="duration must be greater than 0")
+    if payload.get("scene_duration") is not None:
+        try:
+            if float(payload["scene_duration"]) <= 0:
+                raise ValueError
+        except (TypeError, ValueError):
+            raise HTTPException(
+                status_code=400, detail="scene_duration must be greater than 0"
+            )
+
+    router_client = await _router_client_for_unserved_capability("music_video")
+    if router_client:
+        try:
+            return await router_client.forward_music_video_generation(payload)
+        except Exception as e:
+            logging.warning(f"[MUSIC_VIDEO] Router forward failed: {e}, using local")
+
+    if not _has_local_capability("music_video"):
+        from Pipes import get_fallback_client
+
+        fallback_client = get_fallback_client()
+        if fallback_client.is_configured:
+            available, _ = await fallback_client.check_availability()
+            if available:
+                try:
+                    return await fallback_client.forward_music_video_generation(payload)
+                except Exception as e:
+                    logging.warning(f"[MUSIC_VIDEO] Fallback failed: {e}")
+        return {
+            "created": int(time.time()),
+            "model": {
+                "music": music_video_creation.music_model,
+                "video": music_video_creation.video_model,
+            },
+            "data": [
+                {
+                    "error": "Music video generation not available. Set MUSIC_ENABLED=true and VIDEO_ENABLED=true on the same worker."
+                }
+            ],
+        }
+
+    if payload.get("image"):
+        payload["image"] = _decode_video_image(payload["image"])
+    if payload.get("scene_images"):
+        payload["scene_images"] = [
+            _decode_video_image(scene_image)
+            for scene_image in payload["scene_images"]
+            if scene_image
+        ]
+    if payload.get("conditions"):
+        payload["conditions"] = [
+            {
+                "image": _decode_video_image(
+                    c.get("image", "") if isinstance(c, dict) else c.image
+                ),
+                "index": c.get("index", 0) if isinstance(c, dict) else c.index,
+                "strength": (
+                    c.get("strength", 1.0) if isinstance(c, dict) else c.strength
+                ),
+            }
+            for c in payload["conditions"]
+        ]
+
+    try:
+        return await pipe.generate_music_video(**payload)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logging.exception(f"[MUSIC_VIDEO] Generation failed: {e}")
+        raise HTTPException(
+            status_code=502, detail=f"Music video generation failed: {e}"
+        )
+
+
 class VideoCreation(BaseModel):
     prompt: Optional[str] = ""
-    model: Optional[str] = "unsloth/LTX-2.3-GGUF"
+    model: Optional[str] = DEFAULT_VIDEO_MODEL
     n: Optional[int] = 1
     size: Optional[str] = "768x512"
     num_frames: Optional[int] = 121

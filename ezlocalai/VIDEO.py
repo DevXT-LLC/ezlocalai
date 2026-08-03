@@ -3,6 +3,7 @@ import uuid
 import torch
 import gc
 import os
+from ezlocalai.VIDEO_UTILS import choose_video_gpu_residency
 
 # Enable expandable segments to reduce CUDA memory fragmentation.
 # This is critical for sequential CPU offload where layers are repeatedly
@@ -12,6 +13,11 @@ if "PYTORCH_CUDA_ALLOC_CONF" not in os.environ:
 
 # LTX-2.3 requires diffusers with LTX2Pipeline and GGUF support
 import_success = False
+
+
+class VideoGenerationOutOfMemory(RuntimeError):
+    """Raised when LTX should be retried with a more conservative residency."""
+
 
 try:
     from diffusers import LTX2Pipeline, LTX2VideoTransformer3DModel
@@ -100,7 +106,7 @@ GGUF_QUANT_FILES = {
 }
 DEFAULT_GGUF_QUANT = "Q4_K_M"
 # Full-precision pipeline config repo (text_encoder, vae, scheduler, etc.)
-LTX2_CONFIG_REPO = "Lightricks/LTX-2"
+LTX2_CONFIG_REPO = os.getenv("LTX2_CONFIG_REPO", "diffusers/LTX-2.3-Diffusers")
 # Unsloth repo for GGUF + matching connector text projections
 UNSLOTH_REPO = "unsloth/LTX-2.3-GGUF"
 UNSLOTH_CONNECTOR_FILE = (
@@ -132,10 +138,13 @@ class VIDEO:
         model="unsloth/LTX-2.3-GGUF",
         device="cpu",
         local_uri=None,
+        generation_hint=None,
     ):
         global import_success
         self.local_uri = local_uri
         self.device = device
+        self.generation_hint = generation_hint or {}
+        self.gpu_residency = "cpu"
         self.pipe = None  # LTX2Pipeline (text-to-video)
         self.pipe_i2v = None  # LTX2ImageToVideoPipeline
         self.pipe_cond = None  # LTX2ConditionPipeline
@@ -189,8 +198,8 @@ class VIDEO:
             #  - cross_attn_mod/audio_cross_attn_mod: 9 mod params vs 6
             #  - gated_attn/audio_gated_attn: gate logits in attention layers
             #  - use_prompt_embeddings=False: uses connectors instead of caption_projection
-            #  - rope_type="interleaved" instead of "split"
-            # We must override the config from Lightricks/LTX-2 (which is LTX-2.0)
+            #  - uses connectors instead of caption_projection
+            # Prefer the official LTX-2.3 diffusers config when available.
             logging.info("[VIDEO] Loading GGUF transformer...")
             config_path = hf_hub_download(
                 LTX2_CONFIG_REPO,
@@ -203,13 +212,16 @@ class VIDEO:
             with open(config_path) as f:
                 transformer_config = json.load(f)
 
-            # LTX-2.3 config overrides
-            transformer_config["cross_attn_mod"] = True
-            transformer_config["audio_cross_attn_mod"] = True
-            transformer_config["gated_attn"] = True
-            transformer_config["audio_gated_attn"] = True
-            transformer_config["use_prompt_embeddings"] = False
-            transformer_config["rope_type"] = "interleaved"
+            # Keep the official LTX-2.3 diffusers config intact when available.
+            # Older component repos did not carry these 2.3 keys, so set them as
+            # compatibility defaults without changing published values.
+            transformer_config.setdefault("cross_attn_mod", True)
+            transformer_config.setdefault("audio_cross_attn_mod", True)
+            transformer_config.setdefault("gated_attn", True)
+            transformer_config.setdefault("audio_gated_attn", True)
+            transformer_config.setdefault("perturbed_attn", True)
+            transformer_config.setdefault("use_prompt_embeddings", False)
+            transformer_config.setdefault("rope_type", "split")
 
             # Write modified config to a local directory (from_single_file needs a path)
             config_dir = os.path.join("models", "_ltx23_transformer_config")
@@ -227,13 +239,20 @@ class VIDEO:
                 config=config_dir,
             )
 
-            # Load LTX-2.3 connectors from GGUF + unsloth text projections.
-            # The Lightricks/LTX-2 HF repo has LTX-2.0 connectors (3840-dim)
-            # but LTX-2.3 uses 4096-dim video / 2048-dim audio connectors.
-            # The GGUF contains the connector attention blocks (removed by the
-            # diffusers conversion fn). Unsloth provides matching text projections.
-            logging.info("[VIDEO] Loading LTX-2.3 connectors from GGUF...")
-            connectors = self._load_connectors_from_gguf(gguf_path, dtype)
+            # Prefer the official LTX-2.3 diffusers connectors. The GGUF also
+            # contains connector blocks, and VIDEO_CONNECTORS_SOURCE=gguf keeps
+            # that path available for debugging, but the published diffusers
+            # connector weights avoid hand-reconstructing this part of the model.
+            connectors = None
+            connectors_source = os.getenv("VIDEO_CONNECTORS_SOURCE", "diffusers")
+            connectors_source = (connectors_source or "diffusers").strip().lower()
+            if connectors_source == "gguf":
+                logging.info("[VIDEO] Loading LTX-2.3 connectors from GGUF...")
+                connectors = self._load_connectors_from_gguf(gguf_path, dtype)
+            else:
+                logging.info(
+                    f"[VIDEO] Loading LTX-2.3 connectors from {LTX2_CONFIG_REPO}"
+                )
 
             # Load text encoder (Gemma 3 12B).
             # Strategy hierarchy:
@@ -331,10 +350,8 @@ class VIDEO:
             logging.info(
                 f"[VIDEO] Loading pipeline components from {LTX2_CONFIG_REPO}..."
             )
-            self.pipe = LTX2Pipeline.from_pretrained(
-                LTX2_CONFIG_REPO,
+            pipeline_kwargs = dict(
                 transformer=transformer,
-                connectors=connectors,
                 text_encoder=text_encoder,
                 torch_dtype=dtype,
                 cache_dir="models",
@@ -342,71 +359,158 @@ class VIDEO:
                     "transformer/diffusion_pytorch_model*",
                     "text_encoder/diffusion_pytorch_model*",
                     "text_encoder/model-*",
-                    "connectors/diffusion_pytorch_model*",
                     "latent_upsampler/*",
                     "*.mp4",
                     "ltx-2-*.safetensors",
                 ],
             )
+            if connectors is not None:
+                pipeline_kwargs["connectors"] = connectors
+                pipeline_kwargs["ignore_patterns"].append(
+                    "connectors/diffusion_pytorch_model*"
+                )
+            self.pipe = LTX2Pipeline.from_pretrained(
+                LTX2_CONFIG_REPO,
+                **pipeline_kwargs,
+            )
 
             if is_cuda:
-                # Choose offload strategy based on total GPU capacity:
-                #  - >=40GB total: model CPU offload (moves whole modules, fast)
-                #  - <40GB total: sequential CPU offload (moves individual layers,
-                #    ~300MB each, slower but fits in limited VRAM)
-                # The Q4_K_M GGUF transformer is ~14GB. Model CPU offload loads
-                # the entire module onto GPU during forward pass, so you need
-                # the 14GB model + activation memory + text encoder + VAE.
-                # 24GB GPUs OOM with model offload; 40GB+ (A100, A6000) can use it.
-                _, total_mem = torch.cuda.mem_get_info(gpu_idx)
+                free_after_load, total_mem = torch.cuda.mem_get_info(gpu_idx)
                 total_gb = total_mem / (1024**3)
-                use_model_offload = total_gb >= 40.0
-
-                if text_encoder_is_bnb or text_encoder_is_quanto:
-                    # Both BNB and quanto use custom tensor types that cannot
-                    # survive the meta-device round-trip that sequential offload
-                    # uses.  Swap out the text encoder so it isn't touched.
-                    saved_te = self.pipe.text_encoder
-                    self.pipe.text_encoder = None
+                free_after_load_gb = free_after_load / (1024**3)
                 try:
-                    if use_model_offload:
-                        self.pipe.enable_model_cpu_offload(gpu_id=gpu_idx)
-                        logging.info(
-                            f"[VIDEO] Model CPU offload enabled on GPU {gpu_idx} "
-                            f"({total_gb:.1f}GB total - whole-module transfers)"
-                        )
-                    else:
-                        self.pipe.enable_sequential_cpu_offload(gpu_id=gpu_idx)
-                        logging.info(
-                            f"[VIDEO] Sequential CPU offload enabled on GPU {gpu_idx} "
-                            f"({total_gb:.1f}GB total - per-layer transfers)"
-                        )
-                except Exception as e:
-                    offload_type = "Model" if use_model_offload else "Sequential"
-                    logging.warning(
-                        f"[VIDEO] {offload_type} CPU offload failed ({e}), "
-                        "falling back to CPU"
+                    model_offload_min_free_gb = float(
+                        os.getenv("VIDEO_MODEL_OFFLOAD_MIN_FREE_GB", "16")
                     )
-                    import traceback
+                except ValueError:
+                    model_offload_min_free_gb = 16.0
+                try:
+                    full_gpu_min_free_gb = float(
+                        os.getenv("VIDEO_FULL_GPU_MIN_FREE_GB", "30")
+                    )
+                except ValueError:
+                    full_gpu_min_free_gb = 30.0
+                try:
+                    short_model_offload_min_free_gb = float(
+                        os.getenv("VIDEO_SHORT_MODEL_OFFLOAD_MIN_FREE_GB", "10")
+                    )
+                except ValueError:
+                    short_model_offload_min_free_gb = 10.0
+                try:
+                    model_offload_max_frames = int(
+                        os.getenv("VIDEO_MODEL_OFFLOAD_MAX_FRAMES", "129")
+                    )
+                except ValueError:
+                    model_offload_max_frames = 129
+                try:
+                    model_offload_max_pixels = int(
+                        os.getenv("VIDEO_MODEL_OFFLOAD_MAX_PIXELS", "262144")
+                    )
+                except ValueError:
+                    model_offload_max_pixels = 262144
 
-                    traceback.print_exc()
-                    for name, component in self.pipe.components.items():
-                        if isinstance(component, torch.nn.Module):
+                residency = choose_video_gpu_residency(
+                    configured_mode=os.getenv("VIDEO_GPU_RESIDENCY", "auto"),
+                    total_gb=total_gb,
+                    free_gb=free_after_load_gb,
+                    text_encoder_on_gpu=text_encoder_is_bnb,
+                    num_frames=self.generation_hint.get("num_frames"),
+                    width=self.generation_hint.get("width"),
+                    height=self.generation_hint.get("height"),
+                    model_offload_min_free_gb=model_offload_min_free_gb,
+                    full_gpu_min_free_gb=full_gpu_min_free_gb,
+                    short_model_offload_min_free_gb=(
+                        short_model_offload_min_free_gb
+                    ),
+                    model_offload_max_frames=model_offload_max_frames,
+                    model_offload_max_pixels=model_offload_max_pixels,
+                )
+                logging.info(
+                    "[VIDEO] GPU residency policy: %s "
+                    "(%.1fGB free after load, %.1fGB total, hint=%sx%s/%s frames)",
+                    residency,
+                    free_after_load_gb,
+                    total_gb,
+                    self.generation_hint.get("width") or "?",
+                    self.generation_hint.get("height") or "?",
+                    self.generation_hint.get("num_frames") or "?",
+                )
+                self.gpu_residency = residency
+
+                saved_te = None
+                if residency == "full":
+                    try:
+                        self.pipe.to(torch.device(f"cuda:{gpu_idx}"))
+                        logging.info(
+                            f"[VIDEO] Full GPU residency enabled on cuda:{gpu_idx}"
+                        )
+                    except Exception as e:
+                        logging.warning(
+                            f"[VIDEO] Full GPU residency failed ({e}), "
+                            "falling back to model CPU offload"
+                        )
+                        residency = "model_offload"
+                        gc.collect()
+                        torch.cuda.empty_cache()
+
+                if residency in {"model_offload", "sequential"}:
+                    if text_encoder_is_bnb or text_encoder_is_quanto:
+                        # BNB and quanto use custom tensor types that cannot
+                        # survive the meta-device round-trip that offload hooks use.
+                        saved_te = self.pipe.text_encoder
+                        self.pipe.text_encoder = None
+                    try:
+                        if residency == "model_offload":
+                            self.pipe.enable_model_cpu_offload(gpu_id=gpu_idx)
+                            logging.info(
+                                f"[VIDEO] Model CPU offload enabled on GPU {gpu_idx} "
+                                "(whole-module transfers)"
+                            )
+                        else:
+                            self.pipe.enable_sequential_cpu_offload(gpu_id=gpu_idx)
+                            logging.info(
+                                f"[VIDEO] Sequential CPU offload enabled on GPU {gpu_idx} "
+                                "(per-layer transfers)"
+                            )
+                    except Exception as e:
+                        if residency == "model_offload":
+                            logging.warning(
+                                f"[VIDEO] Model CPU offload failed ({e}), "
+                                "falling back to sequential CPU offload"
+                            )
                             try:
-                                component.to("cpu")
-                            except Exception:
-                                pass
+                                self.pipe.enable_sequential_cpu_offload(gpu_id=gpu_idx)
+                                residency = "sequential"
+                                logging.info(
+                                    f"[VIDEO] Sequential CPU offload enabled on GPU {gpu_idx} "
+                                    "after model-offload failure"
+                                )
+                            except Exception as seq_error:
+                                logging.warning(
+                                    f"[VIDEO] Sequential CPU offload failed ({seq_error}), "
+                                    "falling back to CPU"
+                                )
+                        else:
+                            logging.warning(
+                                f"[VIDEO] Sequential CPU offload failed ({e}), "
+                                "falling back to CPU"
+                            )
+                        import traceback
 
-                if text_encoder_is_bnb:
-                    # Restore the BNB text encoder (stays on GPU at ~3GB)
+                        traceback.print_exc()
+                        for name, component in self.pipe.components.items():
+                            if isinstance(component, torch.nn.Module):
+                                try:
+                                    component.to("cpu")
+                                except Exception:
+                                    pass
+
+                if saved_te is not None and text_encoder_is_bnb:
                     self.pipe.text_encoder = saved_te
                     logging.info(
                         f"[VIDEO] BNB text encoder kept on cuda:{gpu_idx} (~3GB)"
                     )
-                elif text_encoder_is_quanto:
-                    # Wrap quanto encoder in a bridge that moves tensors
-                    # between CPU (where quanto lives) and GPU (where the
-                    # pipeline's execution device is set by offload hooks).
+                elif saved_te is not None and text_encoder_is_quanto:
                     self.pipe.text_encoder = _CPUEncoderBridge(
                         saved_te, torch.device(f"cuda:{gpu_idx}")
                     )
@@ -414,7 +518,9 @@ class VIDEO:
                         "[VIDEO] Quanto INT8 text encoder bridged "
                         f"(CPU → cuda:{gpu_idx})"
                     )
+                self.gpu_residency = residency
             else:
+                self.gpu_residency = "cpu"
                 for name, component in self.pipe.components.items():
                     if isinstance(component, torch.nn.Module):
                         component.to("cpu")
@@ -586,7 +692,7 @@ class VIDEO:
             rope_theta=10000.0,
             rope_double_precision=True,
             causal_temporal_positioning=False,
-            rope_type="interleaved",
+            rope_type="split",
             per_modality_projections=True,
             video_hidden_dim=4096,
             audio_hidden_dim=2048,
@@ -646,6 +752,23 @@ class VIDEO:
             if cfg.get("checkpoint_mapping_fn") is original_fn:
                 cfg["checkpoint_mapping_fn"] = patched_convert
 
+    def _release_pipeline_refs(self):
+        """Drop pipeline objects before an external retry reloads LTX."""
+        self.pipe = None
+        self.pipe_i2v = None
+        self.pipe_cond = None
+        gc.collect()
+        if torch.cuda.is_available():
+            try:
+                torch.cuda.synchronize()
+            except Exception:
+                pass
+            torch.cuda.empty_cache()
+            try:
+                torch.cuda.ipc_collect()
+            except Exception:
+                pass
+
     def generate(
         self,
         prompt,
@@ -657,6 +780,7 @@ class VIDEO:
         size="768x512",
         image=None,
         conditions=None,
+        include_audio=True,
     ):
         """Generate a video, optionally conditioned on image/video frames.
 
@@ -719,7 +843,7 @@ class VIDEO:
             if result is None:
                 return None
 
-            self._export_video(result, new_file_name, frame_rate)
+            self._export_video(result, new_file_name, frame_rate, include_audio)
 
             if self.local_uri:
                 return f"{self.local_uri}/{new_file_name}"
@@ -729,6 +853,15 @@ class VIDEO:
             error_str = str(e).lower()
             if "out of memory" in error_str or "cuda" in error_str:
                 logging.warning(f"[VIDEO] GPU OOM during generation: {e}")
+                retry_sequential = (
+                    os.getenv("VIDEO_RETRY_SEQUENTIAL_ON_OOM", "true")
+                    .strip()
+                    .lower()
+                    in {"1", "true", "yes", "on"}
+                )
+                if retry_sequential and self.gpu_residency != "sequential":
+                    self._release_pipeline_refs()
+                    raise VideoGenerationOutOfMemory(str(e)) from None
                 return self._generate_cpu_fallback(
                     prompt,
                     negative_prompt,
@@ -739,6 +872,7 @@ class VIDEO:
                     num_frames,
                     frame_rate,
                     new_file_name,
+                    include_audio,
                 )
             raise
 
@@ -801,9 +935,11 @@ class VIDEO:
             )
         return ltx_conditions
 
-    def _export_video(self, result, output_path, fps):
+    def _export_video(self, result, output_path, fps, include_audio=True):
         """Export pipeline result to a video file, with audio if available."""
-        has_audio = hasattr(result, "audio") and result.audio is not None
+        has_audio = (
+            include_audio and hasattr(result, "audio") and result.audio is not None
+        )
         frames = result.frames[0]
 
         if has_audio:
@@ -869,6 +1005,7 @@ class VIDEO:
         num_frames,
         frame_rate,
         output_file,
+        include_audio=True,
     ):
         """Attempt generation at reduced resolution after GPU OOM.
 
@@ -907,7 +1044,7 @@ class VIDEO:
                 generator=generator,
             )
 
-            self._export_video(result, output_file, frame_rate)
+            self._export_video(result, output_file, frame_rate, include_audio)
 
             if self.local_uri:
                 return f"{self.local_uri}/{output_file}"

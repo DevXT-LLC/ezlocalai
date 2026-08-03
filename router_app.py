@@ -1027,6 +1027,7 @@ _CAP_LABELS: Dict[str, str] = {
     "embedding": "Embedding",
     "video": "Video",
     "music": "Music",
+    "music_video": "Music Video",
 }
 
 
@@ -1099,7 +1100,15 @@ def _aggregate_dashboard() -> Dict[str, Any]:
     # Non-text capability model entries: embedding, image, tts, stt, video, music workers
     # Each worker that has one of these caps gets a synthetic model row so the
     # Models section shows *all* running AI models, not just LLMs.
-    _NON_TEXT_CAPS = ("embedding", "image", "tts", "stt", "video", "music")
+    _NON_TEXT_CAPS = (
+        "embedding",
+        "image",
+        "tts",
+        "stt",
+        "video",
+        "music",
+        "music_video",
+    )
     for w in alive:
         for cap in w.capabilities:
             if cap not in _NON_TEXT_CAPS:
@@ -1170,6 +1179,7 @@ def _aggregate_dashboard() -> Dict[str, Any]:
         "stt",
         "video",
         "music",
+        "music_video",
     ]
     cap_rollup: Dict[str, Dict[str, Any]] = {}
     for w in alive:
@@ -1486,6 +1496,7 @@ _CAP_PILL_CLASS: Dict[str, str] = {
     "stt": "cap-stt",
     "video": "cap-video",
     "music": "cap-music",
+    "music_video": "cap-music",
     "embedding": "cap-embedding",
 }
 
@@ -1743,7 +1754,7 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
                 f"{html.escape(_pretty_model_name(emb_name))}"
                 f"{emb_quant_part}{emb_ctx_part}</span>"
             )
-        for cap in ("image", "tts", "stt", "video", "music"):
+        for cap in ("image", "tts", "stt", "video", "music", "music_video"):
             if cap in raw_caps_for_models:
                 cap_name = cap_models_map.get(cap) or _cap_label(cap)
                 if cap == "stt":
@@ -1847,6 +1858,7 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
         img_reqs = (wdata.get("image") or {}).get("requests", 0)
         vid_reqs = (wdata.get("video") or {}).get("requests", 0)
         music_reqs = (wdata.get("music") or {}).get("requests", 0)
+        music_video_reqs = (wdata.get("music_video") or {}).get("requests", 0)
         emb_reqs = (wdata.get("embedding") or {}).get("requests", 0)
         return f"""
         <tr>
@@ -1858,6 +1870,7 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
           <td class="num">{img_reqs:,}</td>
           <td class="num">{vid_reqs:,}</td>
           <td class="num">{music_reqs:,}</td>
+          <td class="num">{music_video_reqs:,}</td>
         </tr>"""
 
     # ---- Recent request history -------------------------------------------
@@ -1928,14 +1941,22 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
             )
             cap_reqs = sum(
                 int((wd.get(cap) or {}).get("requests", 0) or 0)
-                for cap in ("embedding", "tts", "stt", "image", "video", "music")
+                for cap in (
+                    "embedding",
+                    "tts",
+                    "stt",
+                    "image",
+                    "video",
+                    "music",
+                    "music_video",
+                )
             )
             return llm_reqs + cap_reqs
 
         ordered = sorted(usage_src.items(), key=lambda kv: (-_total_reqs(kv[1]), kv[0]))
         return (
             "".join(_usage_summary_row(lbl, wd) for lbl, wd in ordered)
-            or '<tr><td colspan="8" class="muted">No usage recorded in this window.</td></tr>'
+            or '<tr><td colspan="9" class="muted">No usage recorded in this window.</td></tr>'
         )
 
     def _build_breakdown_rows(usage_src: Dict[str, Any]) -> str:
@@ -2303,7 +2324,7 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
       <th class="num">Embedding reqs</th>
       <th class="num">TTS reqs</th><th class="num">STT reqs</th>
       <th class="num">Image reqs</th><th class="num">Video reqs</th>
-      <th class="num">Music reqs</th>
+      <th class="num">Music reqs</th><th class="num">Music video reqs</th>
     </tr></thead>
     <tbody class="usage-tbody" data-window="all">{usage_summary_rows_all}</tbody>
     <tbody class="usage-tbody" data-window="24h" style="display:none">{usage_summary_rows_24h}</tbody>
@@ -3434,7 +3455,15 @@ async def models(_: str = Depends(verify_client)):
             seen.setdefault(
                 m, {"id": m, "object": "model", "owned_by": "ezlocalai", "workers": []}
             )["workers"].append(w.label)
-        for capability in ("embedding", "image", "tts", "stt", "video", "music"):
+        for capability in (
+            "embedding",
+            "image",
+            "tts",
+            "stt",
+            "video",
+            "music",
+            "music_video",
+        ):
             if capability in w.capabilities:
                 capability_model = w.cap_models.get(capability)
                 if capability_model:
@@ -3832,4 +3861,29 @@ async def videos_generations(
         capability="video",
     )
     await _usage.record_cap(worker.label, "video")
+    return await _persist_response_assets(worker, resp, request)
+
+
+@app.post("/v1/videos/music", tags=["Videos"])
+@app.post("/v1/videos/music/generations", tags=["Videos"])
+async def music_videos_generations(
+    payload: Dict[str, Any],
+    request: Request,
+    _: str = Depends(verify_client),
+):
+    worker = await _pick(
+        "music_video", payload.get("video_model") or payload.get("model")
+    )
+    resp = await _proxy_json(
+        worker,
+        "/v1/videos/music",
+        payload,
+        stream=False,
+        timeout=max(
+            float(getenv("REQUEST_TIMEOUT", "1800")),
+            float(getenv("ACE_STEP_TIMEOUT", "1800")),
+        ),
+        capability="music_video",
+    )
+    await _usage.record_cap(worker.label, "music_video")
     return await _persist_response_assets(worker, resp, request)

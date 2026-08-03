@@ -6,6 +6,8 @@ import asyncio
 import threading
 import queue
 import tempfile
+import subprocess
+import uuid
 from dotenv import load_dotenv
 from ezlocalai.context_retry import (
     context_reload_can_help,
@@ -38,6 +40,15 @@ from typing import Tuple, Optional, Dict, Any, List
 from dataclasses import dataclass
 from enum import Enum
 from collections import deque
+from ezlocalai.VIDEO_UTILS import (
+    DEFAULT_MUSIC_VIDEO_SCENE_DURATION,
+    DEFAULT_VIDEO_MODEL,
+    ffconcat_quote,
+    is_pythagorean_theorem_request,
+    make_pythagorean_equation_overlay_image,
+    make_music_video_storyboard_image,
+    plan_music_video_scenes,
+)
 
 try:
     from ezlocalai.IMG import IMG
@@ -48,12 +59,13 @@ except (ImportError, RuntimeError, Exception) as e:
     img_import_success = False
 
 try:
-    from ezlocalai.VIDEO import VIDEO
+    from ezlocalai.VIDEO import VIDEO, VideoGenerationOutOfMemory
 
     video_import_success = True
 except (ImportError, RuntimeError, Exception) as e:
     logging.warning(f"[Pipes] VIDEO import failed ({e}), video generation disabled.")
     video_import_success = False
+    VideoGenerationOutOfMemory = RuntimeError
 
 try:
     from ezlocalai.MUSIC import (
@@ -1306,6 +1318,39 @@ class EzlocalaiClient:
             logging.error(f"[Fallback] Video generation forward failed: {e}")
             raise
 
+    async def forward_music_video_generation(self, payload: dict):
+        """Forward a music-video generation request to another ezlocalai server."""
+        if not self.is_configured:
+            raise RuntimeError("No fallback server configured")
+
+        import aiohttp
+
+        logging.info(f"[Fallback] Forwarding music video generation to {self.base_url}")
+
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.post(
+                    f"{self.base_url}/v1/videos/music",
+                    json=payload,
+                    headers=self._get_headers(),
+                    timeout=aiohttp.ClientTimeout(
+                        total=max(
+                            float(getenv("REQUEST_TIMEOUT", "1800")),
+                            float(getenv("ACE_STEP_TIMEOUT", "1800")),
+                        )
+                    ),
+                ) as resp:
+                    if resp.status != 200:
+                        error_text = await resp.text()
+                        raise RuntimeError(
+                            f"Fallback server error {resp.status}: {error_text}"
+                        )
+                    return await resp.json()
+
+        except Exception as e:
+            logging.error(f"[Fallback] Music video generation forward failed: {e}")
+            raise
+
     async def forward_music_generation(self, payload: dict):
         """Forward a music generation request to another ezlocalai server."""
         if not self.is_configured:
@@ -2020,6 +2065,11 @@ def is_image_enabled() -> bool:
 def is_video_enabled() -> bool:
     """Check if local video generation is enabled for this worker."""
     return (getenv("VIDEO_ENABLED") or "false").strip().lower() == "true"
+
+
+def get_video_model_name() -> str:
+    """Configured local video model, defaulting to LTX-2.3 GGUF."""
+    return (getenv("VIDEO_MODEL", DEFAULT_VIDEO_MODEL) or DEFAULT_VIDEO_MODEL).strip()
 
 
 # =============================================================================
@@ -3987,12 +4037,14 @@ class Pipes:
                 if is_image_server_mode()
                 else "enabled local media model"
             )
-            VIDEO_MODEL = getenv("VIDEO_MODEL")
+            VIDEO_MODEL = get_video_model_name()
+            video_needs_llm_handoff = self._video_should_unload_llm_for_generation()
             if (
                 is_video_enabled()
                 and VIDEO_MODEL
                 and VIDEO_MODEL.lower() != "none"
                 and video_import_success
+                and not video_needs_llm_handoff
             ):
                 logging.info(
                     f"[VIDEO] {preload_reason} - pre-loading {VIDEO_MODEL} to keep resident"
@@ -4016,6 +4068,17 @@ class Pipes:
                         f"[VIDEO] Failed to pre-load {VIDEO_MODEL}: {e}. Will lazy-load on first request."
                     )
                     self.video = None
+            elif (
+                is_video_enabled()
+                and VIDEO_MODEL
+                and VIDEO_MODEL.lower() != "none"
+                and video_import_success
+            ):
+                logging.info(
+                    "[VIDEO] Skipping preload because video generation will "
+                    "temporarily unload resident LLMs; LTX will lazy-load after "
+                    "VRAM is freed"
+                )
 
             IMG_MODEL = getenv("IMG_MODEL")
             if (
@@ -5864,11 +5927,16 @@ class Pipes:
             else:
                 self._destroy_img_sync(img_ref)
 
-    def _get_video(self, force_cpu: bool = False):
+    def _get_video(
+        self,
+        force_cpu: bool = False,
+        generation_hint: Dict[str, Any] = None,
+    ):
         """Lazy load VIDEO model on demand with smart resource management.
 
         Args:
             force_cpu: If True, force CPU mode (slower but frees GPU for LLM)
+            generation_hint: Optional dimensions/frame count for GPU residency policy
         """
         global video_import_success
         resource_mgr = get_resource_manager()
@@ -5883,7 +5951,7 @@ class Pipes:
             return None
 
         if self.video is None and video_import_success:
-            VIDEO_MODEL = getenv("VIDEO_MODEL")
+            VIDEO_MODEL = get_video_model_name()
             if VIDEO_MODEL and VIDEO_MODEL.lower() != "none":
                 # Determine target GPU: prefer secondary GPU so LLM stays on primary
                 secondary = get_secondary_gpu()
@@ -5923,6 +5991,7 @@ class Pipes:
                         model=VIDEO_MODEL,
                         local_uri=self.local_uri,
                         device=video_device,
+                        generation_hint=generation_hint,
                     )
                     load_time = time.time() - start_time
 
@@ -5949,10 +6018,21 @@ class Pipes:
         """Synchronous VIDEO destruction."""
         try:
             start_time = time.time()
+            for attr in ("pipe", "pipe_i2v", "pipe_cond"):
+                if hasattr(video_ref, attr):
+                    setattr(video_ref, attr, None)
             del video_ref
             gc.collect()
             if torch.cuda.is_available():
+                try:
+                    torch.cuda.synchronize()
+                except Exception:
+                    pass
                 torch.cuda.empty_cache()
+                try:
+                    torch.cuda.ipc_collect()
+                except Exception:
+                    pass
             cleanup_time = time.time() - start_time
             logging.debug(f"[VIDEO] Video model unloaded in {cleanup_time:.2f}s")
         except Exception as e:
@@ -6099,6 +6179,104 @@ class Pipes:
                 self._reload_persistent_models()
         finally:
             self._llm_temporarily_unavailable = False
+
+    def _video_should_unload_llm_for_generation(self) -> bool:
+        mode = (
+            (getenv("VIDEO_UNLOAD_LLM_DURING_GENERATION", "auto") or "auto")
+            .strip()
+            .lower()
+        )
+        if mode in {"0", "false", "no", "off"}:
+            return False
+        if mode in {"1", "true", "yes", "on"}:
+            return True
+        if has_image_server_url() or get_secondary_gpu() is not None:
+            return False
+        return bool(
+            self.llm is not None
+            or any(llm is not None for llm in self.persistent_llms.values())
+        )
+
+    async def _wait_for_llm_idle_for_video(self):
+        timeout = float(getenv("VIDEO_WAIT_FOR_LLM_IDLE_TIMEOUT", "60"))
+        deadline = time.monotonic() + max(0.0, timeout)
+        while self._is_inference_in_progress():
+            if timeout <= 0 or time.monotonic() >= deadline:
+                raise RuntimeError(
+                    "LLM inference is active; video generation cannot unload the LLM yet"
+                )
+            await asyncio.sleep(0.5)
+
+    def _unload_llms_for_video(self) -> bool:
+        """Temporarily unload resident LLMs so LTX-2.3 can use the GPU."""
+        if not self._video_should_unload_llm_for_generation():
+            return False
+
+        refs = []
+        with self._model_lock:
+            self._llm_temporarily_unavailable = True
+            seen_ids = set()
+
+            for model_name, llm_ref in list(self.persistent_llms.items()):
+                if llm_ref is None:
+                    continue
+                refs.append((model_name, llm_ref))
+                seen_ids.add(id(llm_ref))
+                self.persistent_llms[model_name] = None
+
+            if self.llm is not None and id(self.llm) not in seen_ids:
+                refs.append((self.current_llm_name or "LLM", self.llm))
+
+            self.primary_llm = None
+            self.vision_llm = None
+            self.llm = None
+            self.current_llm_name = None
+            self.current_context = None
+
+            self.resource_manager.unregister_model(ModelType.LLM)
+            self.resource_manager.unregister_model(ModelType.VISION_LLM)
+
+        if not refs:
+            logging.info("[VIDEO] LLM marked unavailable; no resident LLMs to unload")
+            return True
+
+        logging.info(
+            "[VIDEO] Temporarily unloading LLMs for LTX-2.3 generation: "
+            f"{[name for name, _ in refs]}"
+        )
+        for model_name, llm_ref in refs:
+            self._destroy_llm_sync(llm_ref, model_name)
+        return True
+
+    def _restore_llms_after_video(self, llm_was_unloaded: bool):
+        if not llm_was_unloaded:
+            return
+
+        reload_after = (
+            getenv("VIDEO_RELOAD_LLM_AFTER_GENERATION", "true") or "true"
+        ).strip().lower() not in {"0", "false", "no", "off"}
+        try:
+            if reload_after and self.available_models:
+                logging.info("[VIDEO] Reloading LLMs after LTX-2.3 generation")
+                self._reload_persistent_models()
+                if not self._has_loaded_llm():
+                    logging.warning(
+                        "[VIDEO] LLM reload did not restore a resident model; "
+                        "freeing idle media models and retrying"
+                    )
+                    self._destroy_video(async_cleanup=False, force=True)
+                    self._free_vram_for_llm(16.0)
+                    self._reload_persistent_models()
+        finally:
+            self._llm_temporarily_unavailable = False
+
+    def _has_loaded_llm(self) -> bool:
+        return bool(
+            self.llm is not None
+            or self.primary_llm is not None
+            or self.vision_llm is not None
+            or any(llm is not None for llm in self.persistent_llms.values())
+        )
 
     def _free_vram_for_llm(self, required_vram: float):
         """Free VRAM by unloading idle auxiliary models.
@@ -6919,6 +7097,10 @@ class Pipes:
                 return await fallback_client.forward_image_generation(**kwargs)
             elif endpoint == "music":
                 return await fallback_client.forward_music_generation(data or kwargs)
+            elif endpoint == "music_video":
+                return await fallback_client.forward_music_video_generation(
+                    data or kwargs
+                )
             else:
                 logging.warning(f"[Fallback] Unknown endpoint type: {endpoint}")
                 return None
@@ -7038,6 +7220,241 @@ class Pipes:
                 return new_image
         return ""
 
+    def _unload_img_for_video(self) -> bool:
+        """Temporarily unload IMG to leave the video pipeline maximum VRAM headroom."""
+        img_was_loaded = self.img is not None
+        if (
+            img_was_loaded
+            and self.resource_manager.get_model_active_count(ModelType.IMG) > 0
+        ):
+            logging.info("[VIDEO] IMG is active; leaving it loaded for video handoff")
+            return False
+        if img_was_loaded:
+            logging.info(
+                "[VIDEO] Temporarily unloading IMG to free VRAM for video generation"
+            )
+            self._destroy_img(async_cleanup=False, force=True)
+        return img_was_loaded
+
+    def _unload_aux_models_for_video(self) -> Dict[str, bool]:
+        """Unload idle non-LLM GPU residents before LTX is initialized."""
+        unloaded = {"tts": False, "stt": False, "embedding": False, "img": False}
+
+        if (
+            self.resource_manager.get_model_active_count(ModelType.TTS) == 0
+            and (
+                self.ctts is not None
+                or bool(getattr(self, "tts_instances", []))
+                or bool(getattr(self, "_transient_tts_instances", []))
+            )
+        ):
+            logging.info("[VIDEO] Temporarily unloading idle TTS for video generation")
+            self._destroy_tts(async_cleanup=False, force=True)
+            unloaded["tts"] = True
+
+        if (
+            self.resource_manager.get_model_active_count(ModelType.STT) == 0
+            and (
+                self.stt is not None
+                or bool(getattr(self, "stt_instances", []))
+                or bool(getattr(self, "_transient_stt_instances", []))
+            )
+        ):
+            logging.info("[VIDEO] Temporarily unloading idle STT for video generation")
+            self._destroy_stt(async_cleanup=False, force=True)
+            unloaded["stt"] = True
+
+        if (
+            self.resource_manager.get_model_active_count(ModelType.EMBEDDING) == 0
+            and (
+                self.embedder is not None
+                or bool(getattr(self, "embedders", []))
+                or bool(getattr(self, "_transient_embedders", []))
+            )
+        ):
+            logging.info(
+                "[VIDEO] Temporarily unloading idle embeddings for video generation"
+            )
+            self._destroy_embedder(async_cleanup=False)
+            unloaded["embedding"] = True
+
+        unloaded["img"] = self._unload_img_for_video()
+
+        if torch.cuda.is_available():
+            try:
+                torch.cuda.synchronize()
+            except Exception:
+                pass
+            torch.cuda.empty_cache()
+            try:
+                torch.cuda.ipc_collect()
+            except Exception:
+                pass
+        return unloaded
+
+    def _restore_img_after_video(self, img_was_loaded: bool):
+        if not img_was_loaded or self.img is not None or not is_image_enabled():
+            return
+        try:
+            IMG_MODEL = getenv("IMG_MODEL")
+            if IMG_MODEL and IMG_MODEL.lower() != "none":
+                logging.info("[IMG] Reloading after video generation")
+                self.img = IMG(
+                    model=IMG_MODEL,
+                    local_uri=self.local_uri,
+                    device=("cuda" if torch.cuda.is_available() else "cpu"),
+                )
+                self.resource_manager.register_model(
+                    ModelType.IMG, IMG_MODEL, "cuda", vram_gb=4.0
+                )
+        except Exception as e:
+            logging.warning(
+                f"[IMG] Failed to reload after video: {e}. "
+                "Will lazy-load on next image request."
+            )
+
+    def _restore_aux_models_after_video(self, unloaded: Dict[str, bool]):
+        if not unloaded:
+            return
+
+        if (
+            unloaded.get("tts")
+            and should_preload_voice()
+            and (getenv("TTS_ENABLED") or "false").strip().lower() == "true"
+            and not has_voice_server_url()
+        ):
+            self._warm_load_tts_pool(mode_str="after video generation")
+
+        if (
+            unloaded.get("stt")
+            and should_preload_voice()
+            and (getenv("STT_ENABLED") or "false").strip().lower() == "true"
+            and not has_voice_server_url()
+        ):
+            self._warm_load_stt_pool(mode_str="after video generation")
+
+        if (
+            unloaded.get("embedding")
+            and (getenv("EMBEDDING_ENABLED") or "true").strip().lower() == "true"
+            and not has_embedding_server_url()
+            and self._embedding_keep_loaded()
+        ):
+            self._warm_load_embedder_pool()
+
+        self._restore_img_after_video(unloaded.get("img", False))
+
+    def _reload_video_after_vram_handoff(self, llm_was_unloaded: bool):
+        if llm_was_unloaded and self.video is not None:
+            logging.info(
+                "[VIDEO] Reloading LTX after VRAM handoff so it can use the "
+                "freed GPU memory"
+            )
+            self._destroy_video(async_cleanup=False, force=True)
+
+    @staticmethod
+    def _video_generation_hint(size: str, num_frames: int) -> Dict[str, Any]:
+        hint = {"num_frames": num_frames}
+        try:
+            width, height = str(size).lower().split("x", 1)
+            hint["width"] = int(width)
+            hint["height"] = int(height)
+        except (TypeError, ValueError):
+            pass
+        return hint
+
+    @staticmethod
+    def _video_retry_sequential_on_oom() -> bool:
+        return (getenv("VIDEO_RETRY_SEQUENTIAL_ON_OOM") or "true").strip().lower() in {
+            "1",
+            "true",
+            "yes",
+            "on",
+        }
+
+    def _generate_video_once(
+        self,
+        prompt,
+        response_format="url",
+        size="768x512",
+        num_frames=121,
+        num_inference_steps=40,
+        guidance_scale=4.0,
+        frame_rate=24,
+        image=None,
+        conditions=None,
+        include_audio=True,
+    ):
+        """Run one LTX generation against the currently managed video session."""
+        generation_hint = self._video_generation_hint(size, num_frames)
+
+        def run_current_video():
+            video = self._get_video(generation_hint=generation_hint)
+            if not video:
+                return ""
+
+            self.resource_manager.mark_model_in_use(ModelType.VIDEO, True)
+            try:
+                video.local_uri = self.local_uri if response_format == "url" else None
+                return video.generate(
+                    prompt=prompt,
+                    size=size,
+                    num_frames=num_frames,
+                    num_inference_steps=num_inference_steps,
+                    guidance_scale=guidance_scale,
+                    frame_rate=frame_rate,
+                    image=image,
+                    conditions=conditions,
+                    include_audio=include_audio,
+                )
+            finally:
+                self.resource_manager.mark_model_in_use(ModelType.VIDEO, False)
+
+        try:
+            return run_current_video()
+        except VideoGenerationOutOfMemory:
+            if not self._video_retry_sequential_on_oom():
+                raise
+            logging.warning(
+                "[VIDEO] Aggressive GPU residency OOMed; reloading LTX with "
+                "sequential CPU offload and retrying once"
+            )
+            self.resource_manager.mark_model_in_use(ModelType.VIDEO, False)
+            self._destroy_video(async_cleanup=False, force=True)
+            gc.collect()
+            if torch.cuda.is_available():
+                try:
+                    torch.cuda.synchronize()
+                except Exception:
+                    pass
+                torch.cuda.empty_cache()
+                try:
+                    torch.cuda.ipc_collect()
+                except Exception:
+                    pass
+            previous_mode = os.environ.get("VIDEO_GPU_RESIDENCY")
+            os.environ["VIDEO_GPU_RESIDENCY"] = "sequential"
+            try:
+                return run_current_video()
+            finally:
+                if previous_mode is None:
+                    os.environ.pop("VIDEO_GPU_RESIDENCY", None)
+                else:
+                    os.environ["VIDEO_GPU_RESIDENCY"] = previous_mode
+
+    def _format_video_response(self, result: str, response_format: str):
+        if response_format == "url" or not result:
+            return result
+
+        try:
+            video_path = result
+            if self.local_uri and result.startswith(self.local_uri):
+                video_path = result[len(self.local_uri) + 1 :]
+            with open(video_path, "rb") as f:
+                return base64.b64encode(f.read()).decode("utf-8")
+        except Exception as e:
+            logging.error(f"[VIDEO] Failed to encode video: {e}")
+            return ""
+
     async def generate_video(
         self,
         prompt,
@@ -7051,74 +7468,361 @@ class Pipes:
         conditions=None,
     ):
         async with self._video_lock:
-            # Temporarily unload IMG model to free VRAM for video generation.
-            # Video inference needs the full transformer on GPU (~14GB for Q4)
-            # and benefits greatly from having maximum headroom.
-            img_was_loaded = self.img is not None
-            if img_was_loaded:
-                logging.info(
-                    "[VIDEO] Temporarily unloading IMG to free VRAM for video generation"
+            llm_was_unloaded = False
+            aux_unloaded = {}
+            try:
+                if self._video_should_unload_llm_for_generation():
+                    await self._wait_for_llm_idle_for_video()
+                llm_was_unloaded = self._unload_llms_for_video()
+                aux_unloaded = self._unload_aux_models_for_video()
+                self._reload_video_after_vram_handoff(llm_was_unloaded)
+                result = self._generate_video_once(
+                    prompt=prompt,
+                    response_format=response_format,
+                    size=size,
+                    num_frames=num_frames,
+                    num_inference_steps=num_inference_steps,
+                    guidance_scale=guidance_scale,
+                    frame_rate=frame_rate,
+                    image=image,
+                    conditions=conditions,
                 )
-                self._destroy_img(async_cleanup=False, force=True)
 
-            video = self._get_video()
-            if video:
-                self.resource_manager.mark_model_in_use(ModelType.VIDEO, True)
-                try:
-                    video.local_uri = (
-                        self.local_uri if response_format == "url" else None
-                    )
-                    result = video.generate(
-                        prompt=prompt,
-                        size=size,
-                        num_frames=num_frames,
-                        num_inference_steps=num_inference_steps,
-                        guidance_scale=guidance_scale,
-                        frame_rate=frame_rate,
-                        image=image,
-                        conditions=conditions,
-                    )
-                finally:
-                    self.resource_manager.mark_model_in_use(ModelType.VIDEO, False)
-                    # Reload IMG if it was loaded before
-                    if img_was_loaded and self.img is None and is_image_enabled():
-                        try:
-                            IMG_MODEL = getenv("IMG_MODEL")
-                            if IMG_MODEL and IMG_MODEL.lower() != "none":
-                                logging.info("[IMG] Reloading after video generation")
-                                self.img = IMG(
-                                    model=IMG_MODEL,
-                                    local_uri=self.local_uri,
-                                    device=(
-                                        "cuda" if torch.cuda.is_available() else "cpu"
-                                    ),
-                                )
-                                self.resource_manager.register_model(
-                                    ModelType.IMG, IMG_MODEL, "cuda", vram_gb=4.0
-                                )
-                        except Exception as e:
-                            logging.warning(
-                                f"[IMG] Failed to reload after video: {e}. "
-                                "Will lazy-load on next image request."
-                            )
-                # Keep video model loaded - reloading the 24GB text encoder each
-                # time is slow (~10s) and causes dangerous memory spikes.
-                if response_format != "url" and result:
-                    # Return base64 encoded video
-                    import base64
+                if llm_was_unloaded:
+                    self._destroy_video(async_cleanup=False, force=True)
 
-                    try:
-                        # result is a file path
-                        video_path = result
-                        if self.local_uri and result.startswith(self.local_uri):
-                            video_path = result[len(self.local_uri) + 1 :]
-                        with open(video_path, "rb") as f:
-                            return base64.b64encode(f.read()).decode("utf-8")
-                    except Exception as e:
-                        logging.error(f"[VIDEO] Failed to encode video: {e}")
-                        return ""
-                return result
+                return self._format_video_response(result, response_format)
+            finally:
+                self._restore_llms_after_video(llm_was_unloaded)
+                self._restore_aux_models_after_video(aux_unloaded)
         return ""
+
+    def _resolve_local_output_path(self, ref: str) -> str:
+        """Resolve an ezlocalai output URL/path back to a local filesystem path."""
+        if not ref:
+            raise ValueError("Missing output reference")
+        ref = str(ref)
+        if self.local_uri and ref.startswith(self.local_uri.rstrip("/") + "/"):
+            ref = ref[len(self.local_uri.rstrip("/") + "/") :]
+        elif ref.startswith(("http://", "https://")):
+            from urllib.parse import urlparse
+
+            parsed = urlparse(ref)
+            marker = "/outputs/"
+            if marker in parsed.path:
+                ref = "outputs/" + parsed.path.split(marker, 1)[1]
+            else:
+                raise ValueError(f"Cannot resolve non-output URL: {ref}")
+
+        candidate = ref
+        if not os.path.isabs(candidate):
+            candidate = os.path.join(os.getcwd(), candidate)
+        candidate = os.path.normpath(candidate)
+        outputs_dir = os.path.realpath(os.path.join(os.getcwd(), "outputs"))
+        real_candidate = os.path.realpath(candidate)
+        if not real_candidate.startswith(outputs_dir + os.sep):
+            raise ValueError("Output reference resolves outside outputs directory")
+        if not os.path.exists(real_candidate):
+            raise FileNotFoundError(real_candidate)
+        return real_candidate
+
+    def _stitch_music_video(
+        self,
+        scene_paths: List[str],
+        audio_path: str,
+        duration: float,
+        response_format: str,
+        overlay_image=None,
+    ) -> Dict[str, Any]:
+        os.makedirs("outputs", exist_ok=True)
+        output_path = os.path.join("outputs", f"{uuid.uuid4()}.mp4")
+        concat_file = tempfile.NamedTemporaryFile(
+            mode="w", suffix=".ffconcat", delete=False
+        )
+        overlay_path = None
+        try:
+            for scene_path in scene_paths:
+                concat_file.write(f"file {ffconcat_quote(os.path.realpath(scene_path))}\n")
+            concat_file.close()
+
+            if overlay_image is not None:
+                overlay_file = tempfile.NamedTemporaryFile(suffix=".png", delete=False)
+                overlay_path = overlay_file.name
+                overlay_file.close()
+                overlay_image.save(overlay_path)
+
+            cmd = [
+                "ffmpeg",
+                "-y",
+                "-hide_banner",
+                "-loglevel",
+                "error",
+                "-f",
+                "concat",
+                "-safe",
+                "0",
+                "-i",
+                concat_file.name,
+                "-i",
+                audio_path,
+            ]
+            if overlay_path:
+                cmd.extend(
+                    [
+                        "-loop",
+                        "1",
+                        "-i",
+                        overlay_path,
+                        "-filter_complex",
+                        "[0:v:0][2:v:0]overlay=0:0:format=auto:shortest=0[v]",
+                        "-map",
+                        "[v]",
+                        "-map",
+                        "1:a:0",
+                    ]
+                )
+            else:
+                cmd.extend(["-map", "0:v:0", "-map", "1:a:0"])
+            cmd.extend(
+                [
+                "-c:v",
+                "libx264",
+                "-pix_fmt",
+                "yuv420p",
+                "-c:a",
+                "aac",
+                "-af",
+                "apad",
+                "-t",
+                f"{float(duration):.3f}",
+                "-movflags",
+                "+faststart",
+                output_path,
+                ]
+            )
+            completed = subprocess.run(
+                cmd, capture_output=True, text=True, timeout=max(300, int(duration) * 20)
+            )
+            if completed.returncode != 0:
+                raise RuntimeError(completed.stderr.strip() or "ffmpeg failed")
+
+            if response_format == "b64_json":
+                with open(output_path, "rb") as video_file:
+                    return {
+                        "b64_json": base64.b64encode(video_file.read()).decode("utf-8")
+                    }
+            return {
+                "url": f"{self.local_uri}/{output_path}" if self.local_uri else output_path
+            }
+        finally:
+            try:
+                os.unlink(concat_file.name)
+            except Exception:
+                pass
+            if overlay_path:
+                try:
+                    os.unlink(overlay_path)
+                except Exception:
+                    pass
+
+    async def generate_music_video(self, **kwargs):
+        """Generate a song, create short LTX scenes, then mux them into an MP4."""
+        response_format = (kwargs.get("response_format") or "url").strip().lower()
+        if response_format not in {"url", "b64_json"}:
+            raise ValueError("response_format must be 'url' or 'b64_json'")
+
+        duration = float(kwargs.get("duration") or 0)
+        if duration <= 0:
+            raise ValueError("duration must be greater than 0")
+
+        frame_rate = int(kwargs.get("frame_rate") or 24)
+        scene_duration = kwargs.get("scene_duration")
+        scenes = plan_music_video_scenes(duration, scene_duration, frame_rate)
+        if not scenes:
+            raise ValueError("No music-video scenes could be planned")
+
+        prompt = kwargs.get("prompt") or ""
+        lyrics = kwargs.get("lyrics") or ""
+        video_prompt = kwargs.get("video_prompt") or (
+            "cinematic music video visuals for: " + str(prompt)
+        )
+        scene_prompts = list(kwargs.get("scene_prompts") or [])
+        scene_images = list(kwargs.get("scene_images") or [])
+        storyboard_enabled = (
+            str(kwargs.get("storyboard", True)).strip().lower()
+            not in {"0", "false", "no", "off"}
+        )
+        math_overlay_enabled = storyboard_enabled and is_pythagorean_theorem_request(
+            prompt, lyrics
+        )
+
+        audio_url = kwargs.get("audio_url")
+        music_result = None
+        if audio_url:
+            logging.info("[MUSIC_VIDEO] Reusing supplied audio_url for video mux")
+        else:
+            music_payload = {
+                "prompt": prompt,
+                "lyrics": lyrics,
+                "duration": duration,
+                "keyscale": kwargs.get("keyscale"),
+                "model": kwargs.get("music_model") or kwargs.get("model"),
+                "instrumental": kwargs.get("instrumental", False),
+                "n": 1,
+                "response_format": "url",
+                "output_format": kwargs.get("music_output_format") or "wav16",
+                "seed": kwargs.get("music_seed") or kwargs.get("seed"),
+                "bpm": kwargs.get("bpm"),
+                "timesignature": kwargs.get("timesignature"),
+                "vocal_language": kwargs.get("vocal_language"),
+                "inference_steps": kwargs.get("music_inference_steps")
+                or kwargs.get("inference_steps"),
+                "guidance_scale": kwargs.get("music_guidance_scale"),
+                "shift": kwargs.get("shift"),
+                "solver": kwargs.get("solver"),
+                "lm_model": kwargs.get("lm_model"),
+                "synth_model": kwargs.get("synth_model"),
+                "audio_codes": kwargs.get("audio_codes"),
+            }
+            music_payload = {k: v for k, v in music_payload.items() if v is not None}
+            music_result = await self.generate_music(**music_payload)
+            audio_items = (music_result or {}).get("data") or []
+            if not audio_items or not audio_items[0].get("url"):
+                raise RuntimeError("Music generation did not return a URL output")
+            audio_url = audio_items[0]["url"]
+        audio_path = self._resolve_local_output_path(audio_url)
+
+        scene_urls = []
+        scene_paths = []
+        llm_was_unloaded = False
+        aux_unloaded = {}
+        video_destroyed = False
+        async with self._video_lock:
+            try:
+                if self._video_should_unload_llm_for_generation():
+                    await self._wait_for_llm_idle_for_video()
+                llm_was_unloaded = self._unload_llms_for_video()
+                aux_unloaded = self._unload_aux_models_for_video()
+                self._reload_video_after_vram_handoff(llm_was_unloaded)
+
+                for scene in scenes:
+                    idx = int(scene["index"])
+                    start = float(scene["start"])
+                    end = start + float(scene["duration"])
+                    scene_prompt = (
+                        scene_prompts[idx]
+                        if idx < len(scene_prompts) and str(scene_prompts[idx]).strip()
+                        else (
+                            f"{video_prompt}. Scene {idx + 1} of {len(scenes)}, "
+                            f"covering seconds {start:.1f}-{end:.1f}; match the song energy, "
+                            "rhythm, stage lighting, camera motion, and lyrical mood."
+                        )
+                    )
+                    scene_image = (
+                        scene_images[idx]
+                        if idx < len(scene_images) and scene_images[idx] is not None
+                        else kwargs.get("image")
+                    )
+                    if (
+                        scene_image is None
+                        and not kwargs.get("conditions")
+                        and storyboard_enabled
+                    ):
+                        scene_image = make_music_video_storyboard_image(
+                            prompt=prompt,
+                            lyrics=lyrics,
+                            scene_index=idx,
+                            scene_count=len(scenes),
+                            size=kwargs.get("size") or "768x512",
+                            keyscale=kwargs.get("keyscale") or "",
+                        )
+                    if scene_image is not None and not kwargs.get("conditions"):
+                        scene_prompt = (
+                            f"{scene_prompt} Start from the supplied storyboard frame; "
+                            "preserve the visible lyric/theorem graphics on the LED "
+                            "screen, especially the superscript exponent notation for "
+                            "a squared plus b squared equals c squared; do not use "
+                            "caret notation. Animate the band, lights, camera, and crowd "
+                            "around those visual anchors. Do not replace it with "
+                            "generic unrelated concert footage."
+                        )
+                    logging.info(
+                        "[MUSIC_VIDEO] Generating scene %s/%s (%ss, %s frames)",
+                        idx + 1,
+                        len(scenes),
+                        scene["duration"],
+                        scene["num_frames"],
+                    )
+                    scene_ref = self._generate_video_once(
+                        prompt=scene_prompt,
+                        response_format="url",
+                        size=kwargs.get("size") or "768x512",
+                        num_frames=int(scene["num_frames"]),
+                        num_inference_steps=int(
+                            kwargs.get("num_inference_steps") or 40
+                        ),
+                        guidance_scale=float(
+                            kwargs.get("video_guidance_scale")
+                            or kwargs.get("guidance_scale")
+                            or 4.0
+                        ),
+                        frame_rate=frame_rate,
+                        image=scene_image,
+                        conditions=kwargs.get("conditions"),
+                        include_audio=bool(
+                            kwargs.get("include_scene_audio", False)
+                        ),
+                    )
+                    if not scene_ref:
+                        raise RuntimeError(f"Video scene {idx + 1} failed to generate")
+                    scene_urls.append(scene_ref)
+                    scene_paths.append(self._resolve_local_output_path(scene_ref))
+
+                if llm_was_unloaded:
+                    self._destroy_video(async_cleanup=False, force=True)
+                    video_destroyed = True
+            finally:
+                if llm_was_unloaded and not video_destroyed:
+                    self._destroy_video(async_cleanup=False, force=True)
+                self._restore_llms_after_video(llm_was_unloaded)
+                self._restore_aux_models_after_video(aux_unloaded)
+
+        final_item = self._stitch_music_video(
+            scene_paths=scene_paths,
+            audio_path=audio_path,
+            duration=duration,
+            response_format=response_format,
+            overlay_image=(
+                make_pythagorean_equation_overlay_image(kwargs.get("size") or "768x512")
+                if math_overlay_enabled
+                else None
+            ),
+        )
+        final_item.update(
+            {
+                "content_type": "video/mp4",
+                "format": "mp4",
+                "audio_url": audio_url,
+                "scene_urls": scene_urls,
+                "scene_plan": scenes,
+                "scene_count": len(scene_urls),
+                "scene_duration": float(
+                    scene_duration or DEFAULT_MUSIC_VIDEO_SCENE_DURATION
+                ),
+                "storyboard": storyboard_enabled,
+                "math_overlay": math_overlay_enabled,
+            }
+        )
+        return {
+            "created": int(time.time()),
+            "model": {
+                "music": (music_result or {}).get("model")
+                or kwargs.get("music_model")
+                or kwargs.get("model"),
+                "video": get_video_model_name(),
+            },
+            "data": [final_item],
+        }
 
     async def generate_music(self, **kwargs):
         async with self._music_lock:
@@ -7313,7 +8017,7 @@ class Pipes:
         video_enabled = is_video_enabled()
         music_enabled = is_music_enabled()
         img_model = (getenv("IMG_MODEL") or "").strip().lower()
-        video_model = (getenv("VIDEO_MODEL") or "").strip().lower()
+        video_model = get_video_model_name().lower()
         music_model = (getenv("MUSIC_MODEL") or "").strip().lower()
 
         if tts_enabled and not has_voice_server_url():
@@ -7364,6 +8068,19 @@ class Pipes:
                 capacity=1,
                 in_flight=music_in_flight,
             )
+        if (
+            "video" in cap_slots
+            and "music" in cap_slots
+            and video_enabled
+            and music_enabled
+        ):
+            cap_slots["music_video"] = _slot(
+                capacity=1,
+                in_flight=max(
+                    int(cap_slots["video"].get("in_flight", 0) or 0),
+                    int(cap_slots["music"].get("in_flight", 0) or 0),
+                ),
+            )
         if embedding_enabled and not has_embedding_server_url():
             cap_slots["embedding"] = _slot(
                 capacity=get_embedding_parallel_slots(),
@@ -7377,8 +8094,9 @@ class Pipes:
         total_queued = 0
         for cap, state in cap_slots.items():
             # Vision shares LLM slots with text; do not double-count it in the
-            # machine total when both are advertised.
-            if cap == "vision" and "text" in cap_slots:
+            # machine total when both are advertised. Music-video is a composite
+            # of the existing music + video slots.
+            if (cap == "vision" and "text" in cap_slots) or cap == "music_video":
                 continue
             total_capacity += int(state["capacity"])
             total_in_flight += int(state["in_flight"])
