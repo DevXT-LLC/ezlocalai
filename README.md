@@ -746,7 +746,7 @@ response = requests.post(
 print(response.json()["choices"][0]["message"]["content"])
 ```
 
-For examples on how to use the server to communicate with the models, see the [Examples Jupyter Notebook](tests.ipynb) once the server is running. We also have an [example to use in Google Colab](ezlocalai-ngrok.ipynb).
+For examples on how to use the server to communicate with the models, see the [Examples Jupyter Notebook](tests.ipynb) once the server is running. We also have an [example to use in Google Colab](ezlocalai-colab.ipynb).
 
 ## Workflow
 
