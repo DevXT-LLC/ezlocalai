@@ -33,6 +33,7 @@ sys.modules.setdefault("torch", types.SimpleNamespace(cuda=_FakeCuda()))
 from ezlocalai.LLM import (
     LLM,
     calculate_auto_batch_sizes,
+    get_model_image_min_tokens,
     is_mtp_model,
     normalize_stream_chunk_delta,
     resolve_prompt_cache_mib,
@@ -80,6 +81,10 @@ class LlmStreamingTests(unittest.TestCase):
         self.assertTrue(is_mtp_model("models/Qwen3.8-27B-Q4_K_M.gguf"))
         self.assertTrue(is_mtp_model("unsloth/Qwen3.6-27B-MTP-GGUF"))
         self.assertFalse(is_mtp_model("unsloth/Qwen3.6-27B-GGUF"))
+
+    def test_qwen38_reserves_enough_image_tokens_for_grounding(self):
+        self.assertEqual(get_model_image_min_tokens("unsloth/Qwen3.8-27B-GGUF"), 1024)
+        self.assertEqual(get_model_image_min_tokens("unsloth/Qwen3.6-27B-GGUF"), -1)
 
     def test_prompt_cache_auto_scales_with_context(self):
         self.assertEqual(resolve_prompt_cache_mib("auto", "qwen", 65_536)[0], 8192)

@@ -163,6 +163,16 @@ def is_mtp_model(model_name: str) -> bool:
     )
 
 
+def get_model_image_min_tokens(model_name: str) -> int:
+    """Return the minimum image-token budget required by a model family."""
+    normalized_name = (model_name or "").lower()
+    if "qwen3.8-27b" in normalized_name:
+        # llama.cpp warns that Qwen-VL grounding accuracy requires at least
+        # 1,024 image tokens. This only affects requests that include images.
+        return 1024
+    return -1
+
+
 def get_model_size_billions(model_name: str) -> float:
     """Best-effort parse of the largest parameter-size marker from a model name."""
     sizes = [
@@ -1086,6 +1096,14 @@ class LLM:
         self.is_vision = False
         if mmproj_path:
             self.xlc_params.mmproj.path = mmproj_path
+            image_min_tokens = get_model_image_min_tokens(self.model_name)
+            if image_min_tokens > 0:
+                self.xlc_params.image_min_tokens = image_min_tokens
+                logging.info(
+                    "[LLM] Vision image minimum: %s tokens (%s)",
+                    image_min_tokens,
+                    self.model_name,
+                )
             self.is_vision = True
             logging.debug(f"[LLM] Vision enabled with mmproj: {mmproj_path}")
 
