@@ -12,6 +12,7 @@ from Globals import getenv
 DEFAULT_MODEL = getenv("DEFAULT_MODEL")
 MTP_SPEC_DRAFT_P_MIN_DEFAULT = 0.25
 MTP_SPEC_DRAFT_N_MAX_MAX = 16
+BUILT_IN_MTP_MODEL_FAMILIES = ("qwen3.8-27b",)
 PROMPT_CACHE_AUTO_MIN_MIB = 8192
 PROMPT_CACHE_AUTO_MAX_MIB = 32768
 PROMPT_CACHE_AUTO_CONTEXT_DIVISOR = 16
@@ -150,8 +151,16 @@ def get_total_vram_per_gpu() -> List[float]:
 
 
 def is_mtp_model(model_name: str) -> bool:
-    """Return True for GGUF repos with built-in multi-token prediction heads."""
-    return "-mtp" in (model_name or "").lower()
+    """Return True for GGUF repos with built-in multi-token prediction heads.
+
+    Most Unsloth MTP repositories advertise the feature with an ``-MTP``
+    suffix. Qwen3.8-27B is the first supported exception: its standard GGUF
+    repository includes the trained MTP heads without adding that suffix.
+    """
+    normalized_name = (model_name or "").lower()
+    return "-mtp" in normalized_name or any(
+        family in normalized_name for family in BUILT_IN_MTP_MODEL_FAMILIES
+    )
 
 
 def get_model_size_billions(model_name: str) -> float:
@@ -287,7 +296,9 @@ def get_total_free_vram() -> float:
 
 
 def calculate_auto_batch_sizes(
-    main_gpu: int = 0, effective_max_tokens: int = 0
+    main_gpu: int = 0,
+    effective_max_tokens: int = 0,
+    model_name: str = "",
 ) -> Tuple[int, int, str]:
     """Choose n_batch and n_ubatch from available VRAM and GPU generation.
 
@@ -340,10 +351,26 @@ def calculate_auto_batch_sizes(
         n_batch = min(n_batch, max(1, int(effective_max_tokens)))
         n_ubatch = min(n_ubatch, n_batch)
 
+    # MTP creates a second draft context, so its prompt-processing graph is
+    # materially more expensive than a normal single-context load. At 128K+
+    # context, cap the automatic physical batch before model initialization;
+    # explicit LLM_UBATCH_SIZE values still take precedence below.
+    mtp_long_context_cap = False
+    if (
+        model_name
+        and is_mtp_model(model_name)
+        and effective_max_tokens >= 131_072
+        and n_ubatch > 256
+    ):
+        n_ubatch = 256
+        mtp_long_context_cap = True
+
     reason = (
         f"GPU {gpu_idx}, free={free_gb:.1f}GB/{total_gb:.1f}GB, "
         f"CC {cc_num // 10}.{cc_num % 10}"
     )
+    if mtp_long_context_cap:
+        reason += ", MTP long-context cap"
     return n_batch, n_ubatch, reason
 
 
@@ -640,6 +667,7 @@ class LLM:
         main_gpu: int = None,  # Override MAIN_GPU env var if provided
         tensor_split: list = None,  # Override tensor split if provided
         batch_size: int = None,  # Override LLM_BATCH_SIZE env var if provided
+        ubatch_size: int = None,  # Override LLM_UBATCH_SIZE for OOM recovery
         n_parallel: int = None,  # Override N_PARALLEL env var if provided
         quant_type: str = None,  # Override QUANT_TYPE env var if provided
         **kwargs,
@@ -848,7 +876,9 @@ class LLM:
         self.xlc_params.n_ctx = effective_max_tokens
 
         auto_batch, auto_ubatch, auto_batch_reason = calculate_auto_batch_sizes(
-            main_gpu=self.main_gpu, effective_max_tokens=effective_max_tokens
+            main_gpu=self.main_gpu,
+            effective_max_tokens=effective_max_tokens,
+            model_name=self.model_name,
         )
 
         # Use provided batch_size, explicit LLM_BATCH_SIZE, or auto-size from
@@ -882,7 +912,10 @@ class LLM:
         # are not bottlenecked at 256 — but stay conservative on older /
         # smaller cards where the compute buffer matters more.
         ubatch_env = (getenv("LLM_UBATCH_SIZE") or "auto").strip().lower()
-        if ubatch_env in ("", "auto", "0"):
+        if ubatch_size is not None:
+            default_ubatch = max(1, int(ubatch_size))
+            ubatch_source = "override"
+        elif ubatch_env in ("", "auto", "0"):
             default_ubatch = auto_ubatch
             ubatch_source = f"auto ({auto_batch_reason})"
         else:
@@ -1056,6 +1089,15 @@ class LLM:
             self.is_vision = True
             logging.debug(f"[LLM] Vision enabled with mmproj: {mmproj_path}")
 
+        gpu_free_before_load = None
+        if torch.cuda.is_available():
+            try:
+                free_before = get_free_vram_per_gpu()
+                if 0 <= self.main_gpu < len(free_before):
+                    gpu_free_before_load = free_before[self.main_gpu]
+            except Exception:
+                pass
+
         # Create the server instance
         self.server = xlc.Server(self.xlc_params)
 
@@ -1073,6 +1115,31 @@ class LLM:
             raise RuntimeError(
                 f"Failed to initialize LLM server for {self.model_name}: {e}"
             )
+
+        # Report the actual native allocation delta. Quantization tables usually
+        # describe model-weight memory only; this makes the extra cost of context,
+        # compute graphs, MTP, and vision visible without conflating the host-RAM
+        # prompt cache with VRAM.
+        self.vram_load_delta_gb = None
+        if gpu_free_before_load is not None:
+            try:
+                free_after = get_free_vram_per_gpu()[self.main_gpu]
+                self.vram_load_delta_gb = max(0.0, gpu_free_before_load - free_after)
+                components = ["context/KV and compute graphs"]
+                if is_mtp_model(self.model_name):
+                    components.append("MTP draft context")
+                if mmproj_path:
+                    components.append("vision projector")
+                logging.info(
+                    f"[LLM] Native GPU allocation delta: "
+                    f"{self.vram_load_delta_gb:.1f}GB on GPU {self.main_gpu}; "
+                    f"includes model residency, {', '.join(components)} "
+                    f"(context={effective_max_tokens:,}, "
+                    f"ubatch={self.xlc_params.n_ubatch}, "
+                    f"gpu_layers={self.gpu_layers})"
+                )
+            except Exception as error:
+                logging.debug(f"[LLM] GPU allocation reporting skipped: {error}")
 
         self.model_list = get_models()
         logging.debug(f"[LLM] {self.model_name} loaded successfully with xllamacpp.")

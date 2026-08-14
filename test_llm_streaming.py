@@ -2,6 +2,7 @@ import pathlib
 import sys
 import types
 import unittest
+from unittest import mock
 
 
 ROOT = pathlib.Path(__file__).resolve().parent
@@ -31,6 +32,8 @@ sys.modules.setdefault("torch", types.SimpleNamespace(cuda=_FakeCuda()))
 
 from ezlocalai.LLM import (
     LLM,
+    calculate_auto_batch_sizes,
+    is_mtp_model,
     normalize_stream_chunk_delta,
     resolve_prompt_cache_mib,
     stream_chunk_finish_reason,
@@ -57,6 +60,27 @@ def _fake_llm(chunks):
 
 
 class LlmStreamingTests(unittest.TestCase):
+    def test_long_context_mtp_auto_ubatch_is_memory_safe(self):
+        fake_cuda = types.SimpleNamespace(
+            is_available=lambda: True,
+            device_count=lambda: 1,
+            mem_get_info=lambda _index: (22 * 1024**3, 24 * 1024**3),
+            get_device_capability=lambda _index: (8, 6),
+        )
+        with mock.patch("ezlocalai.LLM.torch.cuda", fake_cuda):
+            normal = calculate_auto_batch_sizes(0, 262_144, "Qwen3.6-27B")
+            mtp = calculate_auto_batch_sizes(0, 262_144, "unsloth/Qwen3.8-27B-GGUF")
+
+        self.assertEqual(normal[:2], (4096, 1024))
+        self.assertEqual(mtp[:2], (4096, 256))
+        self.assertIn("MTP long-context cap", mtp[2])
+
+    def test_qwen38_standard_repo_is_recognized_as_built_in_mtp(self):
+        self.assertTrue(is_mtp_model("unsloth/Qwen3.8-27B-GGUF"))
+        self.assertTrue(is_mtp_model("models/Qwen3.8-27B-Q4_K_M.gguf"))
+        self.assertTrue(is_mtp_model("unsloth/Qwen3.6-27B-MTP-GGUF"))
+        self.assertFalse(is_mtp_model("unsloth/Qwen3.6-27B-GGUF"))
+
     def test_prompt_cache_auto_scales_with_context(self):
         self.assertEqual(resolve_prompt_cache_mib("auto", "qwen", 65_536)[0], 8192)
         self.assertEqual(resolve_prompt_cache_mib("auto", "qwen", 262_144)[0], 16384)

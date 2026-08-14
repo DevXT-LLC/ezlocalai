@@ -12,10 +12,14 @@ from Router import (
     _usable_context_from_config,
     _version_from_git_metadata,
     detect_local_capabilities,
+    is_mtp_model_name,
 )
 
 
 class RouterSelectionTests(unittest.TestCase):
+    def test_qwen38_standard_repo_is_recognized_as_mtp(self):
+        self.assertTrue(is_mtp_model_name("unsloth/Qwen3.8-27B-GGUF"))
+
     def _router_with_worker(self, capability: str) -> Router:
         registry = WorkerRegistry(ttl_seconds=60)
         registry.register(
@@ -647,6 +651,13 @@ class CapabilityDetectionTests(unittest.TestCase):
             caps = detect_local_capabilities()
 
         self.assertNotIn("text", caps)
+
+    def test_qwen38_advertises_text_and_vision(self):
+        with self._env(DEFAULT_MODEL="unsloth/Qwen3.8-27B-GGUF"):
+            caps = detect_local_capabilities()
+
+        self.assertIn("text", caps)
+        self.assertIn("vision", caps)
 
     def test_disabled_tts_is_not_advertised(self):
         with self._env(TTS_ENABLED="false", STT_ENABLED="true"):

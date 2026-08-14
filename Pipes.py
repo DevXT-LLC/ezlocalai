@@ -7,6 +7,7 @@ import threading
 import queue
 import tempfile
 import subprocess
+import sys
 import uuid
 from dotenv import load_dotenv
 from ezlocalai.context_retry import (
@@ -15,6 +16,7 @@ from ezlocalai.context_retry import (
 )
 from ezlocalai.LLM import (
     LLM,
+    calculate_auto_batch_sizes,
     get_free_vram_per_gpu,
     get_total_vram_per_gpu,
     calculate_tensor_split_from_free_vram,
@@ -2493,6 +2495,177 @@ except ImportError:
     xllamacpp_available = False
 
 
+GPU_RESOURCE_ERROR_MARKERS = (
+    "out of memory",
+    "cuda",
+    "vram",
+    "gpu",
+    "allocat",
+    "memory",
+    "resource",
+)
+OPAQUE_GPU_INIT_ERROR_MARKERS = (
+    "failed to init server",
+    "failed to initialize llm server",
+    "failed to create context",
+    "failed to create_context",
+)
+
+
+def _is_retryable_gpu_load_error(error: Exception) -> bool:
+    """Recognize both explicit OOMs and xllamacpp's opaque init failure.
+
+    Native llama.cpp diagnostics are written directly to stderr and are not
+    included in the Python exception. A CUDA allocation failure can therefore
+    surface to us only as ``Failed to init server, please check the input
+    params``. Treat that message as retryable while the caller is attempting a
+    GPU load so resilient layer offloading still gets a chance to run.
+    """
+    message = str(error).lower()
+    return any(marker in message for marker in GPU_RESOURCE_ERROR_MARKERS) or any(
+        marker in message for marker in OPAQUE_GPU_INIT_ERROR_MARKERS
+    )
+
+
+def _configured_llm_ubatch(main_gpu: int, max_tokens: int, model_name: str = "") -> int:
+    """Return the micro-batch size used by a normal LLM construction."""
+    _, auto_ubatch, _ = calculate_auto_batch_sizes(
+        main_gpu=main_gpu if main_gpu is not None else 0,
+        effective_max_tokens=max_tokens,
+        model_name=model_name,
+    )
+    configured = (getenv("LLM_UBATCH_SIZE") or "auto").strip().lower()
+    if configured not in ("", "auto", "0"):
+        try:
+            return min(max_tokens, max(1, int(configured)))
+        except ValueError:
+            pass
+    return min(max_tokens, auto_ubatch)
+
+
+def _reduced_ubatch_candidates(initial_ubatch: int) -> List[int]:
+    """Progressively reduce compute-buffer size before offloading weights."""
+    candidates = []
+    current = max(1, int(initial_ubatch))
+    while current > 128:
+        current = max(128, current // 2)
+        candidates.append(current)
+    return candidates
+
+
+def _model_layer_count(model_path: str, default: int = 41) -> int:
+    """Read the block count plus output layer used by llama.cpp n_gpu_layers."""
+    try:
+        import gguf
+
+        reader = gguf.GGUFReader(model_path)
+        for name, field in reader.fields.items():
+            if name.endswith(".block_count"):
+                return int(field.parts[-1][0]) + 1
+    except Exception as error:
+        logging.debug(f"[LLM] Could not read layer count from GGUF: {error}")
+    return default
+
+
+def _cleanup_failed_gpu_load() -> None:
+    """Release Python and torch references between native server load attempts."""
+    gc.collect()
+    if torch.cuda.is_available():
+        try:
+            torch.cuda.empty_cache()
+        except Exception as error:
+            logging.debug(
+                f"[LLM] CUDA cache cleanup after load failure skipped: {error}"
+            )
+
+
+def _probe_llm_gpu_layers(
+    model_name: str,
+    max_tokens: int,
+    gpu_layers: int,
+    main_gpu: int,
+    tensor_split: list,
+    ubatch_size: int,
+    n_parallel: int,
+    quant_type: str,
+) -> bool:
+    """Test a GPU layer count in a child process.
+
+    Some llama.cpp allocation failures (notably a near-limit multimodal
+    projector allocation) call ``GGML_ABORT`` instead of returning an error.
+    Keeping fit probes out of the API process prevents such a native abort from
+    restarting the worker. The child adds a little CUDA-context overhead, which
+    also gives the final in-process load a useful safety margin.
+    """
+    command = [
+        sys.executable,
+        "-m",
+        "ezlocalai.load_probe",
+        "--model",
+        model_name,
+        "--max-tokens",
+        str(max_tokens),
+        "--gpu-layers",
+        str(gpu_layers),
+        "--ubatch-size",
+        str(ubatch_size),
+    ]
+    if main_gpu is not None:
+        command.extend(["--main-gpu", str(main_gpu)])
+    if tensor_split:
+        command.extend(["--tensor-split", json.dumps(tensor_split)])
+    if n_parallel is not None:
+        command.extend(["--n-parallel", str(n_parallel)])
+    if quant_type:
+        command.extend(["--quant-type", quant_type])
+
+    try:
+        timeout = max(30, int(getenv("LLM_LOAD_PROBE_TIMEOUT", "300")))
+    except (TypeError, ValueError):
+        timeout = 300
+
+    try:
+        result = subprocess.run(
+            command,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            timeout=timeout,
+            check=False,
+        )
+    except subprocess.TimeoutExpired:
+        logging.warning(
+            f"[LLM] {gpu_layers}-layer fit probe timed out after {timeout}s"
+        )
+        return False
+
+    if result.returncode == 0:
+        return True
+
+    output_lines = (result.stdout or "").strip().splitlines()
+    diagnostic_markers = (
+        "ggml_assert",
+        "cudamalloc failed",
+        "failed to allocate",
+        "failed to create",
+        "failed to init",
+        "out of memory",
+    )
+    diagnostic = next(
+        (
+            line
+            for line in reversed(output_lines)
+            if any(marker in line.lower() for marker in diagnostic_markers)
+        ),
+        output_lines[-1] if output_lines else "no diagnostic output",
+    )
+    logging.warning(
+        f"[LLM] {gpu_layers}-layer fit probe failed in isolated process "
+        f"(exit={result.returncode}): {diagnostic}"
+    )
+    return False
+
+
 def get_gpu_count() -> int:
     """Get the number of available CUDA GPUs."""
     if torch.cuda.is_available():
@@ -2771,12 +2944,12 @@ def get_secondary_gpu() -> Optional[int]:
 
 
 def _is_qwen35_hybrid(model_path: str) -> bool:
-    """Detect Qwen3.5/3.6 hybrid models that use Gated DeltaNet + sparse MoE.
+    """Detect Qwen3.5/3.6/3.8 models using the Qwen3.5 hybrid architecture.
 
     These models use standard attention only on periodic layers, so their KV
     cache is dramatically smaller than standard transformers.
     The other layers use DeltaNet with a tiny fixed-size recurrent state.
-    Qwen3.6 shares the same hybrid architecture as Qwen3.5.
+    Qwen3.6 and Qwen3.8 share the same hybrid architecture as Qwen3.5.
     """
     if not model_path:
         return False
@@ -2788,6 +2961,8 @@ def _is_qwen35_hybrid(model_path: str) -> bool:
         or "qwen3.5" in path_lower
         or "qwen3.6" in name
         or "qwen3.6" in path_lower
+        or "qwen3.8" in name
+        or "qwen3.8" in path_lower
     )
 
 
@@ -2818,10 +2993,10 @@ def _gguf_field_value(reader, key: str):
 def _qwen35_kv_bytes_per_token(
     model_path: str = None, kv_cache_type: str = "fp16"
 ) -> int:
-    """KV cache bytes per token for Qwen3.5/3.6 hybrid models.
+    """KV cache bytes per token for Qwen3.5/3.6/3.8 hybrid models.
 
-    Qwen3.5/3.6 GGUF variants share the hybrid architecture, but their KV shape
-    differs by size. Read GGUF metadata when possible:
+    These GGUF variants share the hybrid architecture, but their KV shape differs
+    by size. Read GGUF metadata when possible:
       bytes/token = (key_length + value_length) * kv_heads * attention_layers * bytes/value
 
     ezlocalai defaults to q4_0 KV cache (env KV_CACHE_TYPE), so use that for VRAM
@@ -2841,7 +3016,7 @@ def _qwen35_kv_bytes_per_token(
         "fp32": 4.0,
     }.get(kv_cache_type, 2.0)
 
-    # Conservative defaults for Qwen3.5/3.6 27B when metadata is unavailable.
+    # Conservative defaults for Qwen3.5/3.6/3.8 27B when metadata is unavailable.
     default_attention_layers = 16
     kv_heads = 4
     key_length = 256
@@ -2901,7 +3076,7 @@ def _qwen35_kv_bytes_per_token(
                 attention_layers = default_attention_layers
 
             logging.debug(
-                "[GPU Selection] Qwen3.5/3.6 KV metadata for %s: "
+                "[GPU Selection] Qwen3.5/3.6/3.8 KV metadata for %s: "
                 "attention_layers=%s, kv_heads=%s, key_length=%s, value_length=%s",
                 os.path.basename(model_path),
                 attention_layers,
@@ -2911,7 +3086,7 @@ def _qwen35_kv_bytes_per_token(
             )
         except Exception as e:
             logging.debug(
-                f"[GPU Selection] Failed to read Qwen3.5/3.6 GGUF KV metadata: {e}"
+                f"[GPU Selection] Failed to read Qwen3.5/3.6/3.8 GGUF KV metadata: {e}"
             )
 
     if not attention_layers:
@@ -2953,7 +3128,7 @@ def estimate_model_vram_requirement(
             pass
 
         if is_qwen35:
-            # Qwen3.5/3.6 hybrid: only every Nth layer uses standard attention.
+            # Qwen3.5/3.6/3.8 hybrid: only every Nth layer uses standard attention.
             # KV cache is tiny vs standard transformers, and sized from GGUF metadata.
             # DeltaNet recurrent state is fixed-size rather than context-scaled.
             # Use q4_0 estimate since that's ezlocalai's default KV cache type.
@@ -3014,11 +3189,11 @@ def estimate_model_vram_requirement(
             # returns more than 2x our estimate
             fallback = fallback_estimate(context_size)
             if is_qwen35 and estimated_gb > fallback * 1.2:
-                # For Qwen3.5/3.6 hybrid models, xllamacpp doesn't understand the hybrid
+                # For Qwen3.5/3.6/3.8 models, xllamacpp doesn't understand the hybrid
                 # DeltaNet architecture and dramatically overestimates KV cache needs.
                 # Our fallback is calibrated against empirical measurements, so prefer it.
                 logging.info(
-                    f"[GPU Selection] Qwen3.5/3.6 hybrid: xllamacpp estimate ({estimated_gb:.1f}GB) "
+                    f"[GPU Selection] Qwen3.5/3.6/3.8 hybrid: xllamacpp estimate ({estimated_gb:.1f}GB) "
                     f"overestimates KV cache (doesn't account for DeltaNet layers), "
                     f"using empirical estimate ({fallback:.1f}GB)"
                 )
@@ -3046,7 +3221,7 @@ def estimate_model_vram_requirement(
             if model_path and os.path.exists(model_path):
                 file_size_gb = os.path.getsize(model_path) / (1024**3)
                 # Model weights ~ file size. Add context-dependent costs.
-                # Qwen3.5/3.6 hybrid models use sparse full-attention layers,
+                # Qwen3.5/3.6/3.8 hybrid models use sparse full-attention layers,
                 # so size KV from GGUF metadata.
                 if is_qwen35:
                     kv_bytes_per_token = _qwen35_kv_bytes_per_token(model_path, "q4_0")
@@ -3224,7 +3399,7 @@ def determine_gpu_strategy(
         else:
             # Not enough VRAM for full model - try partial offloading
 
-            # For Qwen3.5/3.6 hybrid models, xllamacpp doesn't understand the tiny KV
+            # For Qwen3.5/3.6/3.8 models, xllamacpp doesn't understand the tiny KV
             # cache from sparse full-attention layers. Do our own check using the
             # raw file size + empirical KV estimate against actual free VRAM.
             # Use q4_0 KV estimate since that's the default KV cache type in ezlocalai.
@@ -3241,7 +3416,7 @@ def determine_gpu_strategy(
                         total_need = file_size_gb + kv_gb + overhead_gb
                         if free_vram[0] >= total_need:
                             logging.info(
-                                f"[GPU Selection] Qwen3.5/3.6 hybrid: file({file_size_gb:.1f}GB) + "
+                                f"[GPU Selection] Qwen3.5/3.6/3.8 hybrid: file({file_size_gb:.1f}GB) + "
                                 f"KV({kv_gb:.2f}GB) + overhead({overhead_gb:.1f}GB) = "
                                 f"{total_need:.1f}GB fits in {free_vram[0]:.1f}GB free VRAM "
                                 f"- loading all layers on GPU"
@@ -3254,7 +3429,7 @@ def determine_gpu_strategy(
                             }
                 except Exception as e:
                     logging.debug(
-                        f"[GPU Selection] Qwen3.5/3.6 hybrid check failed: {e}"
+                        f"[GPU Selection] Qwen3.5/3.6/3.8 hybrid check failed: {e}"
                     )
 
             # Use xllamacpp to estimate how many layers can fit
@@ -3670,6 +3845,32 @@ MODEL_CONFIG_OVERRIDES = {
         "presence_penalty": 1.5,
         "repetition_penalty": 1.0,
         "chat_template_kwargs": {"enable_thinking": False},
+    },
+    # Qwen3.8-27B defaults to thinking mode and bundles its MTP heads directly
+    # in the standard GGUF repository (there is no separate -MTP repo suffix).
+    "unsloth/Qwen3.8-27B-GGUF": {
+        "temperature": 1.0,
+        "top_p": 0.95,
+        "top_k": 20,
+        "min_p": 0.0,
+        "presence_penalty": 0.0,
+        "repetition_penalty": 1.0,
+        "chat_template_kwargs": {
+            "enable_thinking": True,
+            "reasoning_effort": "xhigh",
+        },
+    },
+}
+
+
+MODEL_INSTRUCT_CONFIG_OVERRIDES = {
+    "unsloth/Qwen3.8-27B-GGUF": {
+        "temperature": 0.7,
+        "top_p": 0.8,
+        "top_k": 20,
+        "min_p": 0.0,
+        "presence_penalty": 1.5,
+        "repetition_penalty": 1.0,
     },
 }
 
@@ -4326,85 +4527,116 @@ class Pipes:
             )
             return llm
         except Exception as gpu_error:
-            error_str = str(gpu_error).lower()
-            # Check if this is a resource exhaustion error
-            is_resource_error = any(
-                x in error_str
-                for x in [
-                    "out of memory",
-                    "cuda",
-                    "vram",
-                    "gpu",
-                    "allocat",
-                    "memory",
-                    "resource",
-                ]
+            if not _is_retryable_gpu_load_error(gpu_error) or gpu_layers == 0:
+                raise gpu_error
+
+            logging.warning(f"[LLM] GPU loading failed for {model_name}: {gpu_error}")
+            last_error = gpu_error
+
+            # Compute graphs can consume several GiB at large contexts. Reduce the
+            # physical micro-batch first so every model layer can remain on GPU when
+            # weights and KV cache otherwise fit.
+            initial_ubatch = _configured_llm_ubatch(
+                main_gpu, max_tokens, source_model_name
             )
-
-            if is_resource_error and gpu_layers != 0:
-                logging.warning(
-                    f"[LLM] GPU loading failed for {model_name}: {gpu_error}"
+            ubatch_candidates = _reduced_ubatch_candidates(initial_ubatch)
+            for retry_ubatch in ubatch_candidates:
+                _cleanup_failed_gpu_load()
+                logging.info(
+                    f"[LLM] Retrying all GPU layers with ubatch={retry_ubatch} "
+                    f"for {max_tokens//1024}k context..."
                 )
-                # Progressive fallback: try reducing GPU layers before going full CPU
-                # This keeps most layers on GPU for speed while offloading some to
-                # CPU/RAM to free VRAM for the larger KV cache at higher context sizes.
-                total_layers = 41  # Default for most models
                 try:
-                    # Try to get actual layer count from model metadata
-                    import gguf
-
-                    if model_path:
-                        reader = gguf.GGUFReader(model_path)
-                        for kv in reader.fields.values():
-                            if kv.name and "block_count" in kv.name:
-                                total_layers = (
-                                    int(kv.parts[-1][0]) + 1
-                                )  # +1 for output layer
-                                break
-                except Exception:
-                    pass
-
-                # Try reducing layers: 75% -> 50% -> 25% -> CPU
-                for fraction in [0.75, 0.5, 0.25, 0.0]:
-                    try_layers = max(0, int(total_layers * fraction))
-                    label = (
-                        f"{try_layers}/{total_layers} layers on GPU"
-                        if try_layers > 0
-                        else "CPU-only"
+                    llm = LLM(
+                        model=source_model_name,
+                        max_tokens=max_tokens,
+                        gpu_layers=gpu_layers,
+                        main_gpu=main_gpu,
+                        tensor_split=tensor_split,
+                        ubatch_size=retry_ubatch,
+                        n_parallel=n_parallel,
+                        quant_type=quant_type,
                     )
                     logging.info(
-                        f"[LLM] Trying {label} for {max_tokens//1024}k context..."
+                        f"[LLM] {model_name} loaded with all requested GPU layers "
+                        f"at ubatch={retry_ubatch}"
                     )
-                    try:
-                        llm = LLM(
-                            model=source_model_name,
-                            max_tokens=max_tokens,
-                            gpu_layers=try_layers,
-                            main_gpu=main_gpu,
-                            n_parallel=n_parallel,
-                            quant_type=quant_type,
-                        )
-                        logging.info(f"[LLM] {model_name} loaded with {label}")
-                        return llm
-                    except Exception as partial_error:
-                        partial_str = str(partial_error).lower()
-                        is_mem_error = any(
-                            x in partial_str
-                            for x in ["out of memory", "cuda", "alloc", "memory"]
-                        )
-                        if is_mem_error and try_layers > 0:
-                            logging.warning(f"[LLM] {label} failed: {partial_error}")
-                            continue
-                        elif try_layers == 0:
-                            logging.error(
-                                f"[LLM] CPU fallback also failed for {model_name}: {partial_error}"
-                            )
-                            raise partial_error
-                        else:
-                            raise partial_error
-            else:
-                # Not a resource error, or already at gpu_layers=0
-                raise gpu_error
+                    return llm
+                except Exception as retry_error:
+                    if not _is_retryable_gpu_load_error(retry_error):
+                        raise retry_error
+                    last_error = retry_error
+                    logging.warning(
+                        f"[LLM] Full GPU load at ubatch={retry_ubatch} failed: "
+                        f"{retry_error}"
+                    )
+
+            # Full residency still does not fit. Binary-search the highest layer
+            # count that initializes successfully instead of jumping directly to
+            # coarse 75/50/25% steps. This minimizes CPU offload while retaining the
+            # requested context. Use the smallest tested ubatch to maximize the VRAM
+            # available for weights.
+            total_layers = _model_layer_count(model_path) if model_path else 41
+            requested_layers = (
+                total_layers
+                if gpu_layers is None or gpu_layers < 0
+                else min(total_layers, gpu_layers)
+            )
+            low = 0
+            high = max(0, requested_layers - 1)
+            best_layers = None
+            safe_ubatch = ubatch_candidates[-1] if ubatch_candidates else initial_ubatch
+
+            logging.info(
+                f"[LLM] Searching for maximum GPU residency across "
+                f"0-{high}/{total_layers} layers at ubatch={safe_ubatch}..."
+            )
+            while low <= high:
+                try_layers = (low + high) // 2
+                _cleanup_failed_gpu_load()
+                logging.info(
+                    f"[LLM] Probing {try_layers}/{total_layers} layers on GPU "
+                    f"in an isolated process..."
+                )
+                if _probe_llm_gpu_layers(
+                    model_name=source_model_name,
+                    max_tokens=max_tokens,
+                    gpu_layers=try_layers,
+                    main_gpu=main_gpu,
+                    tensor_split=tensor_split,
+                    ubatch_size=safe_ubatch,
+                    n_parallel=n_parallel,
+                    quant_type=quant_type,
+                ):
+                    best_layers = try_layers
+                    low = try_layers + 1
+                else:
+                    high = try_layers - 1
+
+            if best_layers is None:
+                logging.error(
+                    f"[LLM] CPU fallback also failed for {model_name}: {last_error}"
+                )
+                raise last_error
+
+            # The last binary-search probe failed above the best known result, so
+            # reload that exact maximum once after clearing the failed context.
+            _cleanup_failed_gpu_load()
+            llm = LLM(
+                model=source_model_name,
+                max_tokens=max_tokens,
+                gpu_layers=best_layers,
+                main_gpu=main_gpu,
+                tensor_split=tensor_split,
+                ubatch_size=safe_ubatch,
+                n_parallel=n_parallel,
+                quant_type=quant_type,
+            )
+            logging.info(
+                f"[LLM] {model_name} loaded with maximum GPU residency: "
+                f"{best_layers}/{total_layers} layers (ubatch={safe_ubatch})"
+            )
+            return llm
 
     def _calibrate_model(self, model_name: str, max_tokens: int) -> int:
         """Calibrate a single model to find optimal GPU layers.
@@ -7847,11 +8079,33 @@ class Pipes:
         Overrides only apply to parameters defined in MODEL_CONFIG_OVERRIDES for the
         current model. For dict values (e.g. chat_template_kwargs), model defaults
         are merged with user-provided values, with user values taking priority.
+        Models with separate instruct settings select them when the effective chat
+        template configuration disables thinking.
         """
         if self.current_llm_name and self.current_llm_name in MODEL_CONFIG_OVERRIDES:
             overrides = MODEL_CONFIG_OVERRIDES[self.current_llm_name]
+            template_config = dict(overrides.get("chat_template_kwargs", {}))
+            user_template_config = data.get("chat_template_kwargs", {})
+            if isinstance(user_template_config, dict):
+                template_config.update(user_template_config)
+
+            # Qwen3.8 exposes reasoning_effort as a top-level API option, while
+            # llama.cpp consumes it as a chat-template argument.
+            reasoning_effort = data.pop("reasoning_effort", None)
+            if reasoning_effort is not None and "reasoning_effort" in template_config:
+                template_config["reasoning_effort"] = reasoning_effort
+
+            instruct_overrides = MODEL_INSTRUCT_CONFIG_OVERRIDES.get(
+                self.current_llm_name
+            )
+            if instruct_overrides and template_config.get("enable_thinking") is False:
+                overrides = {**overrides, **instruct_overrides}
+                template_config.pop("reasoning_effort", None)
+
             for key, value in overrides.items():
-                if isinstance(value, dict):
+                if key == "chat_template_kwargs":
+                    data[key] = template_config
+                elif isinstance(value, dict):
                     # Deep-merge: model defaults first, then user overrides on top
                     merged = dict(value)
                     user_val = data.get(key, {})

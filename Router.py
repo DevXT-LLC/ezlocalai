@@ -60,11 +60,15 @@ DEFAULT_DEDICATED_CAPABILITY_PREFERENCES = {"stt"}
 ACE_STEP_DEFAULT_MUSIC_MODEL = "Serveurperso/ACE-Step-1.5-GGUF"
 DEFAULT_VIDEO_MODEL = "unsloth/LTX-2.3-GGUF"
 _RUNTIME_VERSION_CACHE: Optional[str] = None
+BUILT_IN_MTP_MODEL_FAMILIES = ("qwen3.8-27b",)
 
 
 def is_mtp_model_name(model_name: Optional[str]) -> bool:
-    """Return True for model names that advertise an MTP variant."""
-    return "-mtp" in _formatless_model_basename(model_name)
+    """Return True for model names that contain usable MTP heads."""
+    basename = _formatless_model_basename(model_name)
+    return "-mtp" in basename or any(
+        family in basename for family in BUILT_IN_MTP_MODEL_FAMILIES
+    )
 
 
 def _formatless_model_basename(model_name: Optional[str]) -> str:
@@ -411,6 +415,7 @@ def detect_local_capabilities() -> List[str]:
                 "-vlm",
                 "vision",
                 "qwen3.6",
+                "qwen3.8",
                 "qvq",
                 "minicpm-v",
                 "llava",
