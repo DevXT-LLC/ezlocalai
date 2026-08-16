@@ -36,7 +36,7 @@ services:
       - EZLOCALAI_URL=${EZLOCALAI_URL:-http://localhost:8091}
       - EZLOCALAI_API_KEY=${EZLOCALAI_API_KEY:-}
       - DEFAULT_MODEL=${DEFAULT_MODEL:-unsloth/Qwen3.5-4B-GGUF}
-      - WHISPER_MODEL=${WHISPER_MODEL:-large-v3}
+      - WHISPER_MODEL=${WHISPER_MODEL:-large-v3-turbo}
       - IMAGE_ENABLED=${IMAGE_ENABLED:-false}
       - IMG_MODEL=${IMG_MODEL:-}
       - VIDEO_ENABLED=${VIDEO_ENABLED:-false}
