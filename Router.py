@@ -865,6 +865,12 @@ class WorkerInfo:
     queue_depth: int = 0
     queue_capacity: int = 1
     in_flight: int = 0
+    # Router-owned reservations are intentionally separate from heartbeat
+    # state. A heartbeat can lag a just-dispatched request and must not erase
+    # the reservation while the proxy stream is still active.
+    router_in_flight: int = 0
+    router_cap_in_flight: Dict[str, int] = field(default_factory=dict)
+    router_model_in_flight: Dict[str, int] = field(default_factory=dict)
     # Exact per-capability and per-model slot state from worker heartbeats.
     # Shape: {"text": {"capacity": 8, "in_flight": 2, "queued": 0, "available": 6}}
     cap_slots: Dict[str, Dict[str, int]] = field(default_factory=dict)
@@ -907,7 +913,11 @@ class WorkerInfo:
             "total_ram_gb": self.total_ram_gb,
             "queue_depth": self.queue_depth,
             "queue_capacity": self.queue_capacity,
-            "in_flight": self.in_flight,
+            "in_flight": self.effective_busy(),
+            "reported_in_flight": self.in_flight,
+            "router_in_flight": self.router_in_flight,
+            "router_cap_in_flight": dict(self.router_cap_in_flight),
+            "router_model_in_flight": dict(self.router_model_in_flight),
             "cap_slots": dict(self.cap_slots),
             "model_slots": dict(self.model_slots),
             "slot_total_capacity": self.total_capacity(),
@@ -1004,16 +1014,34 @@ class WorkerInfo:
     ) -> int:
         """Best estimate of in-flight work right now.
 
-        ``queue_depth`` only refreshes on heartbeat (every ~10s) so during a
-        burst it lags reality. ``in_flight`` is incremented synchronously by
-        the proxy as soon as a request is dispatched, so it's the freshest
-        signal between heartbeats. We take the max so neither source can
-        under-count actual load.
+        Heartbeat state only refreshes periodically and can lag a request that
+        the router just dispatched. Router-owned reservations live separately
+        so a stale heartbeat cannot make an active worker appear idle. We take
+        the max rather than summing because both signals can describe the same
+        request once the worker heartbeat catches up.
         """
         if capability or model:
             state = self.slot_state(capability=capability, model=model)
-            return int(state.get("in_flight", 0)) + int(state.get("queued", 0))
-        return max(int(self.queue_depth), int(self.in_flight))
+            reported_busy = int(state.get("in_flight", 0)) + int(state.get("queued", 0))
+            router_busy: Optional[int] = None
+            if model:
+                model_key = self._match_name(
+                    model, {key: {} for key in self.router_model_in_flight}
+                )
+                if model_key:
+                    router_busy = self.router_model_in_flight.get(model_key, 0)
+            if capability and router_busy is None:
+                cap_key = capability
+                if cap_key == "vision" and "text" in self.router_cap_in_flight:
+                    cap_key = "text"
+                if cap_key in self.router_cap_in_flight:
+                    router_busy = self.router_cap_in_flight.get(cap_key, 0)
+            if router_busy is None:
+                router_busy = self.router_in_flight
+            return max(reported_busy, int(router_busy))
+        return max(
+            int(self.queue_depth), int(self.in_flight), int(self.router_in_flight)
+        )
 
     def capacity_for(
         self, capability: Optional[str] = None, model: Optional[str] = None
@@ -1029,8 +1057,7 @@ class WorkerInfo:
         return max(
             0,
             int(state.get("capacity", 0))
-            - int(state.get("in_flight", 0))
-            - int(state.get("queued", 0)),
+            - self.effective_busy(capability=capability, model=model),
         )
 
     def has_capacity(
@@ -1059,10 +1086,11 @@ class WorkerInfo:
             if cap == "vision" and "text" in self.cap_slots:
                 continue
             normalized = self._normalize_slot(state)
-            total += int(normalized.get("in_flight", 0)) + int(
+            reported_busy = int(normalized.get("in_flight", 0)) + int(
                 normalized.get("queued", 0)
             )
-        return total
+            total += max(reported_busy, int(self.router_cap_in_flight.get(cap, 0)))
+        return max(total, int(self.router_in_flight))
 
     def total_slots_left(self) -> int:
         return max(0, self.total_capacity() - self.total_busy())
@@ -1123,6 +1151,9 @@ class WorkerRegistry:
             if existing:
                 # Preserve registered_at across re-registers
                 info.registered_at = existing.registered_at
+                info.router_in_flight = existing.router_in_flight
+                info.router_cap_in_flight = dict(existing.router_cap_in_flight)
+                info.router_model_in_flight = dict(existing.router_model_in_flight)
             self._workers[info.worker_id] = info
             return info
 
@@ -1219,31 +1250,32 @@ class WorkerRegistry:
         with self._lock:
             w = self._workers.get(worker_id)
             if w is not None:
-                w.in_flight = max(0, w.in_flight + delta)
+                w.router_in_flight = max(0, w.router_in_flight + delta)
 
-                def _bump(slot_map: Dict[str, Dict[str, int]], key: str, capacity: int):
-                    state = WorkerInfo._normalize_slot(slot_map.get(key), capacity)
-                    state["in_flight"] = max(0, int(state.get("in_flight", 0)) + delta)
-                    state["available"] = max(
-                        0,
-                        int(state.get("capacity", 0))
-                        - int(state.get("in_flight", 0))
-                        - int(state.get("queued", 0)),
-                    )
-                    slot_map[key] = state
+                def _bump(counter: Dict[str, int], key: str):
+                    counter[key] = max(0, int(counter.get(key, 0)) + delta)
+                    if counter[key] == 0:
+                        counter.pop(key, None)
 
                 if capability:
                     cap_key = capability
                     if (
-                        cap_key not in w.cap_slots
+                        cap_key not in w.router_cap_in_flight
                         and cap_key == "vision"
-                        and "text" in w.cap_slots
+                        and ("text" in w.router_cap_in_flight or "text" in w.cap_slots)
                     ):
                         cap_key = "text"
-                    _bump(w.cap_slots, cap_key, w.capacity_for(capability=capability))
+                    _bump(w.router_cap_in_flight, cap_key)
                 if model:
-                    model_key = WorkerInfo._match_name(model, w.model_slots) or model
-                    _bump(w.model_slots, model_key, w.capacity_for(model=model))
+                    model_key = WorkerInfo._match_name(
+                        model, {key: {} for key in w.router_model_in_flight}
+                    )
+                    model_key = (
+                        model_key
+                        or WorkerInfo._match_name(model, w.model_slots)
+                        or model
+                    )
+                    _bump(w.router_model_in_flight, model_key)
 
     def record_connection_failure(self, worker_id: str) -> int:
         """Increment the failure counter for a worker (for visibility + scoring).
