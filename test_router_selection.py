@@ -164,6 +164,61 @@ class RouterSelectionTests(unittest.TestCase):
         self.assertIsNotNone(worker)
         self.assertEqual(worker.worker_id, "idle-3090")
 
+    def test_stale_heartbeat_cannot_erase_router_dispatch_reservation(self):
+        registry = WorkerRegistry(ttl_seconds=60)
+        busy_worker = registry.register(
+            self._text_worker("busy-5090", "model-a", best_tier=90)
+        )
+        registry.register(self._text_worker("idle-3090", "model-a", best_tier=55))
+        router = Router(registry)
+
+        registry.increment_in_flight(
+            busy_worker.worker_id,
+            capability="text",
+            model="model-a",
+        )
+        registry.heartbeat(
+            busy_worker.worker_id,
+            {
+                "queue_depth": 0,
+                "in_flight": 0,
+                "cap_slots": {
+                    "text": {
+                        "capacity": 1,
+                        "in_flight": 0,
+                        "queued": 0,
+                        "available": 1,
+                    }
+                },
+                "model_slots": {
+                    "model-a": {
+                        "capacity": 1,
+                        "in_flight": 0,
+                        "queued": 0,
+                        "available": 1,
+                    }
+                },
+            },
+        )
+
+        self.assertEqual(busy_worker.router_in_flight, 1)
+        self.assertEqual(
+            busy_worker.effective_busy(capability="text", model="model-a"), 1
+        )
+        self.assertEqual(busy_worker.slots_left(capability="text", model="model-a"), 0)
+        selected = router.select_worker("text", "model-a", allow_cross_model=False)
+        self.assertIsNotNone(selected)
+        self.assertEqual(selected.worker_id, "idle-3090")
+
+        registry.increment_in_flight(
+            busy_worker.worker_id,
+            delta=-1,
+            capability="text",
+            model="model-a",
+        )
+        self.assertEqual(busy_worker.router_in_flight, 0)
+        self.assertEqual(busy_worker.slots_left(capability="text", model="model-a"), 1)
+
     def test_idle_tier_window_can_hold_back_distant_idle_worker(self):
         registry = WorkerRegistry(ttl_seconds=60)
         registry.register(
