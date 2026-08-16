@@ -11,7 +11,7 @@ services:
       - EZLOCALAI_API_KEY=${EZLOCALAI_API_KEY:-}
       - MAIN_GPU=${MAIN_GPU:-0}
       - DEFAULT_MODEL=${DEFAULT_MODEL:-unsloth/Qwen3.5-4B-GGUF}
-      - WHISPER_MODEL=${WHISPER_MODEL:-large-v3-turbo}
+      - WHISPER_MODEL=${WHISPER_MODEL:-large-v3}
       - IMAGE_ENABLED=${IMAGE_ENABLED:-false}
       - IMG_MODEL=${IMG_MODEL:-}
       - VIDEO_ENABLED=${VIDEO_ENABLED:-false}

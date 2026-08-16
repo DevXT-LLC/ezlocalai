@@ -1989,7 +1989,7 @@ class WorkerHeartbeatClient:
                     getenv("QWEN_TTS_MODEL") or "Qwen/Qwen3-TTS-12Hz-0.6B-Base"
                 ).strip()
             elif _cap == "stt":
-                _wm = (getenv("WHISPER_MODEL") or "large-v3-turbo").strip()
+                _wm = (getenv("WHISPER_MODEL") or "large-v3").strip()
                 cap_models["stt"] = _wm
             elif _cap == "image":
                 _im = (getenv("IMG_MODEL") or "").strip()

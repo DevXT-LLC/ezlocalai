@@ -181,7 +181,7 @@ class RouterDashboardTierTests(unittest.TestCase):
                         },
                         "stt": {"requests": 1},
                         "stt_models": {
-                            "Whisper large-v3-turbo": {
+                            "Whisper large-v3": {
                                 "requests": 1,
                                 "outputs": 1,
                                 "total_ms_sum": 5000,

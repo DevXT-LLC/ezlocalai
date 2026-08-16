@@ -1477,7 +1477,7 @@ def get_default_env() -> dict:
         "EZLOCALAI_URL": f"http://{get_local_ip()}:{DEFAULT_PORT}",
         "EZLOCALAI_API_KEY": "",
         "DEFAULT_MODEL": "unsloth/Qwen3.5-4B-GGUF",
-        "WHISPER_MODEL": "large-v3-turbo",
+        "WHISPER_MODEL": "large-v3",
         "IMG_MODEL": "none",
         "VIDEO_MODEL": "none",
         "NGROK_TOKEN": "",
@@ -1711,9 +1711,7 @@ def build_xllamacpp_from_source(gpu_type: str = "nvidia") -> list[str]:
         check=False,
     )
     if checkout_result.returncode != 0:
-        print(
-            f"   ⚠️  Failed to fetch xllamacpp tags: {checkout_result.stderr.strip()}"
-        )
+        print(f"   ⚠️  Failed to fetch xllamacpp tags: {checkout_result.stderr.strip()}")
     checkout_result = subprocess.run(
         ["git", "checkout", XLLAMACPP_SOURCE_REF],
         cwd=XLLAMACPP_BUILD_DIR,
@@ -2017,9 +2015,7 @@ def install_native_dependencies(source_dir: Path, gpu_type: str = "cpu") -> bool
                 text=True,
             )
             if result.returncode != 0:
-                print(
-                    f"⚠️  xllamacpp CPU fallback also failed: {result.stderr.strip()}"
-                )
+                print(f"⚠️  xllamacpp CPU fallback also failed: {result.stderr.strip()}")
 
     # Install main requirements
     print(f"   Installing from {req_file.name}...")
@@ -2062,9 +2058,7 @@ def _install_gtts_no_deps(python: str) -> None:
         text=True,
     )
     if result.returncode != 0:
-        print(
-            "⚠️  gTTS install failed; wake word sample generation may be unavailable."
-        )
+        print("⚠️  gTTS install failed; wake word sample generation may be unavailable.")
         for line in result.stderr.splitlines():
             if "error" in line.lower():
                 print(f"      {line.strip()}")
@@ -2589,7 +2583,7 @@ def show_native_status() -> None:
     for m in configured:
         print(f"        - {m}")
 
-    whisper = env_vars.get("WHISPER_MODEL", "large-v3-turbo")
+    whisper = env_vars.get("WHISPER_MODEL", "large-v3")
     print(f"      Speech-to-text: {whisper if whisper else 'disabled'}")
     img_model = env_vars.get("IMG_MODEL", "")
     print(f"      Image generation: {img_model if img_model else 'disabled'}")
@@ -2955,7 +2949,7 @@ def show_status() -> None:
         print(f"        - {m}")
 
     # Whisper
-    whisper = env_vars.get("WHISPER_MODEL", "large-v3-turbo")
+    whisper = env_vars.get("WHISPER_MODEL", "large-v3")
     if whisper:
         print(f"      Speech-to-text: {whisper}")
     else:
