@@ -219,6 +219,111 @@ class RouterSelectionTests(unittest.TestCase):
         self.assertEqual(busy_worker.router_in_flight, 0)
         self.assertEqual(busy_worker.slots_left(capability="text", model="model-a"), 1)
 
+    def test_non_llm_dispatch_does_not_create_router_reservation(self):
+        registry = WorkerRegistry(ttl_seconds=60)
+        worker = registry.register(
+            self._capability_worker(
+                "multi-model", ["text", "tts", "stt", "image"], best_tier=90
+            )
+        )
+        router = Router(registry)
+
+        reservation_id = registry.increment_in_flight(
+            worker.worker_id, capability="tts"
+        )
+
+        self.assertIsNone(reservation_id)
+        self.assertEqual(worker.router_in_flight, 0)
+        self.assertEqual(worker.slots_left(capability="tts"), 1)
+        self.assertEqual(worker.slots_left(capability="text", model="model-a"), 1)
+        self.assertEqual(worker.slots_left(capability="stt"), 1)
+        self.assertEqual(worker.slots_left(capability="image"), 1)
+        selected = router.select_worker("text", "model-a", allow_cross_model=False)
+        self.assertIsNotNone(selected)
+        self.assertEqual(selected.worker_id, worker.worker_id)
+
+    def test_router_model_reservation_only_consumes_matching_model_slot(self):
+        idle = {"capacity": 1, "in_flight": 0, "queued": 0, "available": 1}
+        registry = WorkerRegistry(ttl_seconds=60)
+        worker = registry.register(
+            WorkerInfo(
+                worker_id="multi-llm",
+                label="multi-llm",
+                url="http://multi-llm.local",
+                capabilities=["text"],
+                models=["model-a", "model-b"],
+                cap_slots={
+                    "text": {
+                        "capacity": 2,
+                        "in_flight": 0,
+                        "queued": 0,
+                        "available": 2,
+                    }
+                },
+                model_slots={"model-a": dict(idle), "model-b": dict(idle)},
+            )
+        )
+
+        registry.increment_in_flight(
+            worker.worker_id, capability="text", model="model-a"
+        )
+
+        self.assertEqual(worker.slots_left(capability="text", model="model-a"), 0)
+        self.assertEqual(worker.slots_left(capability="text", model="model-b"), 1)
+
+    def test_llm_router_reservation_expires_after_short_lease(self):
+        registry = WorkerRegistry(ttl_seconds=60, reservation_ttl_seconds=15)
+        worker = registry.register(
+            self._text_worker("leased-llm", "model-a", best_tier=90)
+        )
+
+        with patch("Router.time.monotonic", return_value=100.0):
+            reservation_id = registry.increment_in_flight(
+                worker.worker_id, capability="text", model="model-a"
+            )
+            self.assertIsNotNone(reservation_id)
+            self.assertEqual(worker.slots_left(capability="text", model="model-a"), 0)
+
+        with patch("Router.time.monotonic", return_value=115.01):
+            self.assertEqual(worker.slots_left(capability="text", model="model-a"), 1)
+            self.assertEqual(worker.router_in_flight, 0)
+
+    def test_expired_release_does_not_clear_newer_llm_reservation(self):
+        registry = WorkerRegistry(ttl_seconds=60, reservation_ttl_seconds=15)
+        worker = registry.register(
+            self._text_worker("leased-llm", "model-a", best_tier=90)
+        )
+
+        with patch("Router.time.monotonic", return_value=100.0):
+            expired_id = registry.increment_in_flight(
+                worker.worker_id, capability="text", model="model-a"
+            )
+        with patch("Router.time.monotonic", return_value=116.0):
+            current_id = registry.increment_in_flight(
+                worker.worker_id, capability="text", model="model-a"
+            )
+            registry.release_in_flight(worker.worker_id, expired_id)
+
+            self.assertIsNotNone(current_id)
+            self.assertEqual(worker.router_in_flight, 1)
+            self.assertEqual(worker.slots_left(capability="text", model="model-a"), 0)
+
+    def test_unreserved_request_release_does_not_clear_llm_lease(self):
+        registry = WorkerRegistry(ttl_seconds=60, reservation_ttl_seconds=15)
+        worker = registry.register(
+            self._text_worker("leased-llm", "model-a", best_tier=90)
+        )
+
+        llm_id = registry.increment_in_flight(
+            worker.worker_id, capability="text", model="model-a"
+        )
+        non_llm_id = registry.increment_in_flight(worker.worker_id, capability="tts")
+        registry.release_in_flight(worker.worker_id, non_llm_id)
+
+        self.assertIsNotNone(llm_id)
+        self.assertIsNone(non_llm_id)
+        self.assertEqual(worker.router_in_flight, 1)
+
     def test_idle_tier_window_can_hold_back_distant_idle_worker(self):
         registry = WorkerRegistry(ttl_seconds=60)
         registry.register(

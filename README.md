@@ -413,6 +413,12 @@ For setups that outgrow point-to-point fallback (3+ machines, friends contributi
 
 Each worker is a normal `ezlocalai` instance with `ROUTER_URL` set. On startup the worker registers itself, then sends heartbeats every `WORKER_HEARTBEAT_INTERVAL` seconds containing free VRAM, queue depth, loaded models, and advertised capabilities (`text`, `vision`, `tts`, `stt`, `embedding`, `image`, `video`, `music`, `music_video`). Workers that miss `ROUTER_WORKER_TTL` seconds of heartbeats are pruned. If a request arrives and no suitable worker is free, the router keeps it queued until a worker becomes available when `ROUTER_WAIT_TIMEOUT=0`, or waits up to the configured positive timeout before returning `503`.
 
+The router creates a short dispatch lease only for text/vision requests so a
+stale heartbeat cannot immediately send a second LLM request to the same slot.
+The lease expires after `ROUTER_RESERVATION_TTL` seconds (default `15`), after
+which worker heartbeat slot data is authoritative. TTS, STT, embedding, image,
+video, and music requests do not create router-side reservations.
+
 ### Run the router
 
 ```bash

@@ -1,8 +1,10 @@
 import unittest
+from unittest.mock import patch
 
-from Router import WorkerInfo
+from Router import WorkerInfo, WorkerRegistry
 from router_app import (
     UsageTracker,
+    _aggregate_dashboard,
     _normalize_model_name,
     _public_with_tunnel,
     _render_dashboard_html,
@@ -125,6 +127,51 @@ class RouterDashboardTierTests(unittest.TestCase):
         self.assertNotIn("Music Video", html)
         self.assertNotIn(
             'title="Serveurperso/ACE-Step-1.5-GGUF + unsloth/LTX-2.3-GGUF"',
+            html,
+        )
+
+    def test_router_reservation_is_consistent_across_dashboard_sections(self):
+        idle = {"capacity": 1, "in_flight": 0, "queued": 0, "available": 1}
+        registry = WorkerRegistry(ttl_seconds=60)
+        worker = registry.register(
+            WorkerInfo(
+                worker_id="studio-1",
+                label="Studio",
+                url="http://studio.local",
+                capabilities=["text", "tts", "stt"],
+                models=["model-a"],
+                cap_models={"tts": "tts-model", "stt": "stt-model"},
+                cap_slots={
+                    "text": dict(idle),
+                    "tts": dict(idle),
+                    "stt": dict(idle),
+                },
+                model_slots={"model-a": dict(idle)},
+            )
+        )
+        registry.increment_in_flight(
+            worker.worker_id, capability="text", model="model-a"
+        )
+
+        with patch("router_app.get_registry", return_value=registry):
+            data = _aggregate_dashboard()
+
+        models = {(entry["type"], entry["model"]): entry for entry in data["models"]}
+        self.assertEqual(models[("text", "model-a")]["available_slots"], 0)
+        self.assertEqual(models[("tts", "tts-model")]["available_slots"], 1)
+        self.assertEqual(models[("stt", "stt-model")]["available_slots"], 1)
+
+        html = _render_dashboard_html(data)
+        self.assertIn(
+            'title="1 in use of 1">1/1</b> ' '<span class="mono small" title="model-a"',
+            html,
+        )
+        self.assertIn(
+            'title="1 free">0/1</span> ' '<span class="mono small" title="tts-model"',
+            html,
+        )
+        self.assertIn(
+            'title="1 free">0/1</span> ' '<span class="mono small" title="stt-model"',
             html,
         )
 

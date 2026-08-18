@@ -1284,6 +1284,7 @@ def _aggregate_dashboard() -> Dict[str, Any]:
         "pool_health": pool_health,
         "router": {
             "ttl_seconds": registry.ttl,
+            "reservation_ttl_seconds": registry.reservation_ttl,
             "wait_timeout": _wait_timeout(),
         },
         "totals": {
@@ -1795,8 +1796,8 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
         visible_caps_for_models = _dashboard_capabilities(raw_caps_for_models)
         has_vision_for_models = "vision" in raw_caps_for_models
         cap_models_map = w.get("cap_models") or {}
-        model_slots_map = w.get("model_slots") or {}
-        cap_slots_map = w.get("cap_slots") or {}
+        model_slots_map = w.get("effective_model_slots") or w.get("model_slots") or {}
+        cap_slots_map = w.get("effective_cap_slots") or w.get("cap_slots") or {}
 
         def _strip_whisper(name: str) -> str:
             # "Whisper large-v3" → "large-v3"
@@ -2128,9 +2129,7 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
                     )
                     agg["requests"] += int(mdata.get("requests", 0) or 0)
                     agg["outputs"] += int(mdata.get("outputs", 0) or 0)
-                    agg["total_ms_sum"] += float(
-                        mdata.get("total_ms_sum", 0.0) or 0.0
-                    )
+                    agg["total_ms_sum"] += float(mdata.get("total_ms_sum", 0.0) or 0.0)
             for (kind, model), mdata in media_merged.items():
                 flat.append((kind, label, model, mdata))
 
@@ -2176,7 +2175,9 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
                 avg_out_display = _fmt_tps(avg_out)
             else:
                 output_count = int(mdata.get("outputs", 0) or 0)
-                total_display = _fmt_duration_ms(float(mdata.get("total_ms_sum") or 0.0))
+                total_display = _fmt_duration_ms(
+                    float(mdata.get("total_ms_sum") or 0.0)
+                )
                 output_title = _fmt_count(output_count)
                 input_display = "—"
                 avg_p_display = "—"
@@ -2437,6 +2438,7 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
       <h1>ezlocalai router</h1>
       <div class="meta">{totals['alive_workers']} worker{'s' if totals['alive_workers'] != 1 else ''} online
       · TTL {router_meta['ttl_seconds']:.0f}s · wait timeout {router_meta['wait_timeout']:.0f}s
+      · LLM lease {float(router_meta.get('reservation_ttl_seconds', 15)):.0f}s
       · auto-refresh 5s</div>
     </div>
     <span class="{health_cls}" style="text-align:right">{health_label}{router_version_html}</span>
@@ -2830,9 +2832,7 @@ def _capability_usage_model(
             or _cap_label(capability)
         )
     return (
-        worker.cap_models.get(capability)
-        or requested_model
-        or _cap_label(capability)
+        worker.cap_models.get(capability) or requested_model or _cap_label(capability)
     )
 
 
@@ -2913,7 +2913,7 @@ async def _proxy_via_tunnel(
             detail=f"Tunnel for worker {worker.label} ({wid}) is not connected",
         )
     registry = get_registry()
-    registry.increment_in_flight(
+    reservation_id = registry.increment_in_flight(
         worker.worker_id, 1, capability=capability, model=model
     )
     request_timeout = timeout or float(getenv("REQUEST_TIMEOUT", "300"))
@@ -2927,9 +2927,7 @@ async def _proxy_via_tunnel(
             timeout=request_timeout,
         )
     except Exception:
-        registry.increment_in_flight(
-            worker.worker_id, -1, capability=capability, model=model
-        )
+        registry.release_in_flight(worker.worker_id, reservation_id)
         raise
 
     media_type = resp_headers.get("Content-Type") or resp_headers.get("content-type")
@@ -2944,9 +2942,7 @@ async def _proxy_via_tunnel(
                 media_type=media_type or "application/json",
             )
         finally:
-            registry.increment_in_flight(
-                worker.worker_id, -1, capability=capability, model=model
-            )
+            registry.release_in_flight(worker.worker_id, reservation_id)
 
     async def gen():
         sent_any = False
@@ -2969,9 +2965,7 @@ async def _proxy_via_tunnel(
             }
             yield f"data: {json.dumps(error)}\n\n".encode("utf-8")
         finally:
-            registry.increment_in_flight(
-                worker.worker_id, -1, capability=capability, model=model
-            )
+            registry.release_in_flight(worker.worker_id, reservation_id)
 
     return StreamingResponse(
         gen(),
@@ -3025,7 +3019,7 @@ async def _proxy_json(
             connect=10,  # fail fast on connection errors, don't wait the full timeout
         )
     registry = get_registry()
-    registry.increment_in_flight(
+    reservation_id = registry.increment_in_flight(
         worker.worker_id, 1, capability=capability, model=model
     )
 
@@ -3049,9 +3043,7 @@ async def _proxy_json(
             )
             raise
         finally:
-            registry.increment_in_flight(
-                worker.worker_id, -1, capability=capability, model=model
-            )
+            registry.release_in_flight(worker.worker_id, reservation_id)
 
     async def gen():
         # Open one persistent session for the whole stream
@@ -3087,9 +3079,7 @@ async def _proxy_json(
             yield f"data: {json.dumps(error)}\n\n".encode("utf-8")
         finally:
             await session.close()
-            registry.increment_in_flight(
-                worker.worker_id, -1, capability=capability, model=model
-            )
+            registry.release_in_flight(worker.worker_id, reservation_id)
 
     return StreamingResponse(
         gen(),
@@ -3137,7 +3127,7 @@ async def _iter_worker_stream_bytes(
 ) -> AsyncIterator[bytes]:
     """Open one worker streaming request and yield raw SSE bytes."""
     registry = get_registry()
-    registry.increment_in_flight(
+    reservation_id = registry.increment_in_flight(
         worker.worker_id, 1, capability=capability, model=model
     )
     timeout_seconds = float(getenv("REQUEST_TIMEOUT", "300"))
@@ -3246,9 +3236,7 @@ async def _iter_worker_stream_bytes(
                 resp.release()
             await session.close()
     finally:
-        registry.increment_in_flight(
-            worker.worker_id, -1, capability=capability, model=model
-        )
+        registry.release_in_flight(worker.worker_id, reservation_id)
 
 
 async def _llm_stream_with_worker_failover(
@@ -3637,7 +3625,7 @@ async def _proxy_multipart(
 
     url = f"{worker.url}{path}"
     registry = get_registry()
-    registry.increment_in_flight(
+    reservation_id = registry.increment_in_flight(
         worker.worker_id, 1, capability=capability, model=model
     )
     try:
@@ -3659,9 +3647,7 @@ async def _proxy_multipart(
         )
         raise
     finally:
-        registry.increment_in_flight(
-            worker.worker_id, -1, capability=capability, model=model
-        )
+        registry.release_in_flight(worker.worker_id, reservation_id)
 
 
 # ---------------------------------------------------------------------------

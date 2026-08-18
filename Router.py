@@ -865,12 +865,17 @@ class WorkerInfo:
     queue_depth: int = 0
     queue_capacity: int = 1
     in_flight: int = 0
-    # Router-owned reservations are intentionally separate from heartbeat
-    # state. A heartbeat can lag a just-dispatched request and must not erase
-    # the reservation while the proxy stream is still active.
+    # Short router-owned LLM dispatch leases are intentionally separate from
+    # heartbeat state. They cover the brief interval before a worker reports
+    # the request, then expire so heartbeat slot data becomes authoritative.
     router_in_flight: int = 0
     router_cap_in_flight: Dict[str, int] = field(default_factory=dict)
     router_model_in_flight: Dict[str, int] = field(default_factory=dict)
+    # Short-lived, router-owned LLM dispatch leases keyed by request token.
+    # Each value contains ``expires_at``, ``capability``, and ``model``.
+    router_reservations: Dict[str, Dict[str, Any]] = field(
+        default_factory=dict, repr=False
+    )
     # Exact per-capability and per-model slot state from worker heartbeats.
     # Shape: {"text": {"capacity": 8, "in_flight": 2, "queued": 0, "available": 6}}
     cap_slots: Dict[str, Dict[str, int]] = field(default_factory=dict)
@@ -900,7 +905,43 @@ class WorkerInfo:
     # until ``circuit_open_until`` (epoch seconds) passes.
     circuit_open_until: float = 0.0
 
+    def _refresh_router_reservations(self) -> None:
+        """Expire dispatch leases and rebuild their diagnostic counters."""
+        now = time.monotonic()
+        self.router_reservations = {
+            token: reservation
+            for token, reservation in self.router_reservations.items()
+            if float(reservation.get("expires_at", 0.0) or 0.0) > now
+        }
+        cap_counts: Dict[str, int] = {}
+        model_counts: Dict[str, int] = {}
+        for reservation in self.router_reservations.values():
+            capability = str(reservation.get("capability") or "")
+            model = str(reservation.get("model") or "")
+            if capability:
+                cap_counts[capability] = cap_counts.get(capability, 0) + 1
+            if model:
+                model_counts[model] = model_counts.get(model, 0) + 1
+        self.router_in_flight = len(self.router_reservations)
+        self.router_cap_in_flight = cap_counts
+        self.router_model_in_flight = model_counts
+
     def to_public(self) -> Dict[str, Any]:
+        self._refresh_router_reservations()
+        effective_cap_slots: Dict[str, Dict[str, int]] = {}
+        for capability, raw_state in self.cap_slots.items():
+            state = self._normalize_slot(raw_state)
+            state["available"] = self.slots_left(capability=capability)
+            state["effective_busy"] = self.effective_busy(capability=capability)
+            effective_cap_slots[capability] = state
+
+        effective_model_slots: Dict[str, Dict[str, int]] = {}
+        for model, raw_state in self.model_slots.items():
+            state = self._normalize_slot(raw_state)
+            state["available"] = self.slots_left(model=model)
+            state["effective_busy"] = self.effective_busy(model=model)
+            effective_model_slots[model] = state
+
         return {
             "worker_id": self.worker_id,
             "label": self.label,
@@ -920,6 +961,8 @@ class WorkerInfo:
             "router_model_in_flight": dict(self.router_model_in_flight),
             "cap_slots": dict(self.cap_slots),
             "model_slots": dict(self.model_slots),
+            "effective_cap_slots": effective_cap_slots,
+            "effective_model_slots": effective_model_slots,
             "slot_total_capacity": self.total_capacity(),
             "slot_total_busy": self.total_busy(),
             "slot_total_available": self.total_slots_left(),
@@ -1014,29 +1057,40 @@ class WorkerInfo:
     ) -> int:
         """Best estimate of in-flight work right now.
 
-        Heartbeat state only refreshes periodically and can lag a request that
-        the router just dispatched. Router-owned reservations live separately
-        so a stale heartbeat cannot make an active worker appear idle. We take
-        the max rather than summing because both signals can describe the same
-        request once the worker heartbeat catches up.
+        Heartbeat state only refreshes periodically and can lag an LLM request
+        that the router just dispatched. Short router-owned leases bridge that
+        gap. We take the max rather than summing because both signals can
+        describe the same request once the worker heartbeat catches up.
         """
+        self._refresh_router_reservations()
         if capability or model:
             state = self.slot_state(capability=capability, model=model)
             reported_busy = int(state.get("in_flight", 0)) + int(state.get("queued", 0))
-            router_busy: Optional[int] = None
-            if model:
-                model_key = self._match_name(
+            model_slot_key = self._match_name(model, self.model_slots)
+            cap_slot_key: Optional[str] = None
+            if capability:
+                if capability in self.cap_slots:
+                    cap_slot_key = capability
+                elif capability == "vision" and "text" in self.cap_slots:
+                    cap_slot_key = "text"
+
+            # Apply the router reservation at the same specificity as the
+            # heartbeat slot selected above. A reservation for one model or
+            # capability must not consume every unrelated slot on a worker.
+            if model_slot_key:
+                router_model_key = self._match_name(
                     model, {key: {} for key in self.router_model_in_flight}
                 )
-                if model_key:
-                    router_busy = self.router_model_in_flight.get(model_key, 0)
-            if capability and router_busy is None:
-                cap_key = capability
-                if cap_key == "vision" and "text" in self.router_cap_in_flight:
-                    cap_key = "text"
-                if cap_key in self.router_cap_in_flight:
-                    router_busy = self.router_cap_in_flight.get(cap_key, 0)
-            if router_busy is None:
+                router_busy = (
+                    self.router_model_in_flight.get(router_model_key, 0)
+                    if router_model_key
+                    else 0
+                )
+            elif cap_slot_key:
+                router_busy = self.router_cap_in_flight.get(cap_slot_key, 0)
+            else:
+                # Legacy workers without detailed slot maps still rely on the
+                # worker-wide queue and reservation counters.
                 router_busy = self.router_in_flight
             return max(reported_busy, int(router_busy))
         return max(
@@ -1079,6 +1133,7 @@ class WorkerInfo:
         return total
 
     def total_busy(self) -> int:
+        self._refresh_router_reservations()
         if not self.cap_slots:
             return self.effective_busy()
         total = 0
@@ -1136,14 +1191,23 @@ class WorkerInfo:
 class WorkerRegistry:
     """Thread-safe in-memory registry of worker ezlocalai nodes."""
 
-    def __init__(self, ttl_seconds: float):
+    def __init__(
+        self, ttl_seconds: float, reservation_ttl_seconds: Optional[float] = None
+    ):
         self._workers: Dict[str, WorkerInfo] = {}
         self._lock = RLock()
         self._ttl = ttl_seconds
+        if reservation_ttl_seconds is None:
+            reservation_ttl_seconds = float(getenv("ROUTER_RESERVATION_TTL", "15"))
+        self._reservation_ttl = max(0.0, float(reservation_ttl_seconds))
 
     @property
     def ttl(self) -> float:
         return self._ttl
+
+    @property
+    def reservation_ttl(self) -> float:
+        return self._reservation_ttl
 
     def register(self, info: WorkerInfo) -> WorkerInfo:
         with self._lock:
@@ -1151,9 +1215,8 @@ class WorkerRegistry:
             if existing:
                 # Preserve registered_at across re-registers
                 info.registered_at = existing.registered_at
-                info.router_in_flight = existing.router_in_flight
-                info.router_cap_in_flight = dict(existing.router_cap_in_flight)
-                info.router_model_in_flight = dict(existing.router_model_in_flight)
+                info.router_reservations = dict(existing.router_reservations)
+                info._refresh_router_reservations()
             self._workers[info.worker_id] = info
             return info
 
@@ -1218,6 +1281,7 @@ class WorkerRegistry:
                 worker.extra.update(payload["extra"])
             worker.last_heartbeat = time.time()
             worker.connection_failures = 0  # Reset on successful heartbeat
+            worker._refresh_router_reservations()
             return worker
 
     def deregister(self, worker_id: str) -> bool:
@@ -1236,6 +1300,8 @@ class WorkerRegistry:
     def list_workers(self, alive_only: bool = True) -> List[WorkerInfo]:
         with self._lock:
             workers = list(self._workers.values())
+            for worker in workers:
+                worker._refresh_router_reservations()
         if alive_only:
             workers = [w for w in workers if w.is_alive(self._ttl)]
         return workers
@@ -1246,36 +1312,69 @@ class WorkerRegistry:
         delta: int = 1,
         capability: Optional[str] = None,
         model: Optional[str] = None,
-    ) -> None:
+        reservation_id: Optional[str] = None,
+    ) -> Optional[str]:
         with self._lock:
             w = self._workers.get(worker_id)
-            if w is not None:
-                w.router_in_flight = max(0, w.router_in_flight + delta)
+            if w is None:
+                return None
+            w._refresh_router_reservations()
 
-                def _bump(counter: Dict[str, int], key: str):
-                    counter[key] = max(0, int(counter.get(key, 0)) + delta)
-                    if counter[key] == 0:
-                        counter.pop(key, None)
+            cap_key = capability or ""
+            if cap_key == "vision" and "text" in w.cap_slots:
+                cap_key = "text"
+            model_key = WorkerInfo._match_name(model, w.model_slots) or (model or "")
 
-                if capability:
-                    cap_key = capability
-                    if (
-                        cap_key not in w.router_cap_in_flight
-                        and cap_key == "vision"
-                        and ("text" in w.router_cap_in_flight or "text" in w.cap_slots)
-                    ):
-                        cap_key = "text"
-                    _bump(w.router_cap_in_flight, cap_key)
-                if model:
-                    model_key = WorkerInfo._match_name(
-                        model, {key: {} for key in w.router_model_in_flight}
-                    )
-                    model_key = (
-                        model_key
-                        or WorkerInfo._match_name(model, w.model_slots)
-                        or model
-                    )
-                    _bump(w.router_model_in_flight, model_key)
+            if delta > 0:
+                # Worker heartbeats are authoritative for non-LLM services.
+                # Only text/vision dispatches need a short race-prevention lease.
+                if (
+                    capability not in MODEL_STRICT_CAPABILITIES
+                    or self._reservation_ttl <= 0
+                ):
+                    return None
+                token: Optional[str] = None
+                for _ in range(delta):
+                    token = uuid.uuid4().hex
+                    w.router_reservations[token] = {
+                        "expires_at": time.monotonic() + self._reservation_ttl,
+                        "capability": cap_key,
+                        "model": model_key,
+                    }
+                w._refresh_router_reservations()
+                return token
+
+            if delta < 0:
+                if reservation_id:
+                    w.router_reservations.pop(reservation_id, None)
+                else:
+                    # Compatibility path for callers/tests that release by
+                    # capability/model instead of the per-request token.
+                    matches = []
+                    for token, reservation in w.router_reservations.items():
+                        if cap_key and reservation.get("capability") != cap_key:
+                            continue
+                        reserved_model = str(reservation.get("model") or "")
+                        if model_key and not _model_name_matches(
+                            model_key, reserved_model
+                        ):
+                            continue
+                        matches.append(token)
+                    for token in matches[: abs(delta)]:
+                        w.router_reservations.pop(token, None)
+                w._refresh_router_reservations()
+            return None
+
+    def release_in_flight(self, worker_id: str, reservation_id: Optional[str]) -> None:
+        """Release one tokenized dispatch lease; unreserved requests are no-ops."""
+        if not reservation_id:
+            return
+        with self._lock:
+            worker = self._workers.get(worker_id)
+            if worker is None:
+                return
+            worker.router_reservations.pop(reservation_id, None)
+            worker._refresh_router_reservations()
 
     def record_connection_failure(self, worker_id: str) -> int:
         """Increment the failure counter for a worker (for visibility + scoring).
