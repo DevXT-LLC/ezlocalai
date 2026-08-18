@@ -82,6 +82,57 @@ except (ImportError, RuntimeError, Exception) as e:
     music_import_success = False
 
 
+class _TrackedInferenceStream:
+    """Keep inference accounting active for the lifetime of a lazy stream."""
+
+    def __init__(self, source, on_close):
+        self._source = source
+        self._iterator = iter(source)
+        self._on_close = on_close
+        self._closed = False
+        self._close_lock = threading.Lock()
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        if self._closed:
+            raise StopIteration
+        try:
+            return next(self._iterator)
+        except BaseException:
+            self.close()
+            raise
+
+    def close(self):
+        """Close the source and release its slot, safely and exactly once."""
+        with self._close_lock:
+            if self._closed:
+                return
+            self._closed = True
+            source = self._source
+            on_close = self._on_close
+            self._source = None
+            self._iterator = None
+            self._on_close = None
+
+        try:
+            if hasattr(source, "close"):
+                source.close()
+        except Exception as exc:
+            logging.debug("[Inference] Error closing response stream: %s", exc)
+        finally:
+            if on_close is not None:
+                on_close()
+
+    def __del__(self):
+        # Defensive cleanup when a client disconnects before iteration starts.
+        try:
+            self.close()
+        except Exception:
+            pass
+
+
 # =============================================================================
 # Video Processing Helpers
 # =============================================================================
@@ -7472,37 +7523,28 @@ class Pipes:
         """Unload idle non-LLM GPU residents before LTX is initialized."""
         unloaded = {"tts": False, "stt": False, "embedding": False, "img": False}
 
-        if (
-            self.resource_manager.get_model_active_count(ModelType.TTS) == 0
-            and (
-                self.ctts is not None
-                or bool(getattr(self, "tts_instances", []))
-                or bool(getattr(self, "_transient_tts_instances", []))
-            )
+        if self.resource_manager.get_model_active_count(ModelType.TTS) == 0 and (
+            self.ctts is not None
+            or bool(getattr(self, "tts_instances", []))
+            or bool(getattr(self, "_transient_tts_instances", []))
         ):
             logging.info("[VIDEO] Temporarily unloading idle TTS for video generation")
             self._destroy_tts(async_cleanup=False, force=True)
             unloaded["tts"] = True
 
-        if (
-            self.resource_manager.get_model_active_count(ModelType.STT) == 0
-            and (
-                self.stt is not None
-                or bool(getattr(self, "stt_instances", []))
-                or bool(getattr(self, "_transient_stt_instances", []))
-            )
+        if self.resource_manager.get_model_active_count(ModelType.STT) == 0 and (
+            self.stt is not None
+            or bool(getattr(self, "stt_instances", []))
+            or bool(getattr(self, "_transient_stt_instances", []))
         ):
             logging.info("[VIDEO] Temporarily unloading idle STT for video generation")
             self._destroy_stt(async_cleanup=False, force=True)
             unloaded["stt"] = True
 
-        if (
-            self.resource_manager.get_model_active_count(ModelType.EMBEDDING) == 0
-            and (
-                self.embedder is not None
-                or bool(getattr(self, "embedders", []))
-                or bool(getattr(self, "_transient_embedders", []))
-            )
+        if self.resource_manager.get_model_active_count(ModelType.EMBEDDING) == 0 and (
+            self.embedder is not None
+            or bool(getattr(self, "embedders", []))
+            or bool(getattr(self, "_transient_embedders", []))
         ):
             logging.info(
                 "[VIDEO] Temporarily unloading idle embeddings for video generation"
@@ -7774,7 +7816,9 @@ class Pipes:
         overlay_path = None
         try:
             for scene_path in scene_paths:
-                concat_file.write(f"file {ffconcat_quote(os.path.realpath(scene_path))}\n")
+                concat_file.write(
+                    f"file {ffconcat_quote(os.path.realpath(scene_path))}\n"
+                )
             concat_file.close()
 
             if overlay_image is not None:
@@ -7817,23 +7861,26 @@ class Pipes:
                 cmd.extend(["-map", "0:v:0", "-map", "1:a:0"])
             cmd.extend(
                 [
-                "-c:v",
-                "libx264",
-                "-pix_fmt",
-                "yuv420p",
-                "-c:a",
-                "aac",
-                "-af",
-                "apad",
-                "-t",
-                f"{float(duration):.3f}",
-                "-movflags",
-                "+faststart",
-                output_path,
+                    "-c:v",
+                    "libx264",
+                    "-pix_fmt",
+                    "yuv420p",
+                    "-c:a",
+                    "aac",
+                    "-af",
+                    "apad",
+                    "-t",
+                    f"{float(duration):.3f}",
+                    "-movflags",
+                    "+faststart",
+                    output_path,
                 ]
             )
             completed = subprocess.run(
-                cmd, capture_output=True, text=True, timeout=max(300, int(duration) * 20)
+                cmd,
+                capture_output=True,
+                text=True,
+                timeout=max(300, int(duration) * 20),
             )
             if completed.returncode != 0:
                 raise RuntimeError(completed.stderr.strip() or "ffmpeg failed")
@@ -7844,7 +7891,9 @@ class Pipes:
                         "b64_json": base64.b64encode(video_file.read()).decode("utf-8")
                     }
             return {
-                "url": f"{self.local_uri}/{output_path}" if self.local_uri else output_path
+                "url": (
+                    f"{self.local_uri}/{output_path}" if self.local_uri else output_path
+                )
             }
         finally:
             try:
@@ -7880,10 +7929,9 @@ class Pipes:
         )
         scene_prompts = list(kwargs.get("scene_prompts") or [])
         scene_images = list(kwargs.get("scene_images") or [])
-        storyboard_enabled = (
-            str(kwargs.get("storyboard", True)).strip().lower()
-            not in {"0", "false", "no", "off"}
-        )
+        storyboard_enabled = str(
+            kwargs.get("storyboard", True)
+        ).strip().lower() not in {"0", "false", "no", "off"}
         math_overlay_enabled = storyboard_enabled and is_pythagorean_theorem_request(
             prompt, lyrics
         )
@@ -8001,9 +8049,7 @@ class Pipes:
                         frame_rate=frame_rate,
                         image=scene_image,
                         conditions=kwargs.get("conditions"),
-                        include_audio=bool(
-                            kwargs.get("include_scene_audio", False)
-                        ),
+                        include_audio=bool(kwargs.get("include_scene_audio", False)),
                     )
                     if not scene_ref:
                         raise RuntimeError(f"Video scene {idx + 1} failed to generate")
@@ -8480,19 +8526,30 @@ class Pipes:
         )
         self.resource_manager.mark_model_in_use(llm_model_type, True)
 
-        try:
-            return await self._get_response_internal(data, completion_type)
-        finally:
-            # Mark LLM as no longer in-use
-            self.resource_manager.mark_model_in_use(llm_model_type, False)
+        inference_cleanup_deferred = False
 
-            # Mark inference as complete
+        def finish_inference():
+            self.resource_manager.mark_model_in_use(llm_model_type, False)
             self._decrement_inference_count(slot_model)
 
-            # If we're at a larger-than-optimal context and no other inferences running, schedule a reset
             if self.current_context and self.current_context > self._optimal_context:
                 if not self._is_inference_in_progress():
                     self._schedule_context_reset()
+
+        try:
+            response, audio_response = await self._get_response_internal(
+                data, completion_type
+            )
+            if hasattr(response, "__next__"):
+                response = _TrackedInferenceStream(response, finish_inference)
+                inference_cleanup_deferred = True
+            return response, audio_response
+        finally:
+            # Non-streaming calls complete here. Lazy streaming calls transfer
+            # ownership of cleanup to the tracked stream so heartbeats stay busy
+            # until generation actually ends or the client disconnects.
+            if not inference_cleanup_deferred:
+                finish_inference()
 
     async def _get_response_internal(self, data, completion_type="chat"):
         """Internal implementation of get_response."""

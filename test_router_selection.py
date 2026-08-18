@@ -889,5 +889,50 @@ class CapabilityDetectionTests(unittest.TestCase):
         self.assertIn("embedding", caps)
 
 
+class RouterWaitingRequestTests(unittest.IsolatedAsyncioTestCase):
+    async def test_waiting_request_is_counted_until_a_worker_is_available(self):
+        registry = WorkerRegistry(ttl_seconds=60)
+        worker = registry.register(
+            WorkerInfo(
+                worker_id="busy-worker",
+                label="busy-worker",
+                url="http://busy-worker.local",
+                capabilities=["text"],
+                models=["model-a"],
+                best_tier=90,
+                cap_slots={
+                    "text": {
+                        "capacity": 1,
+                        "in_flight": 1,
+                        "queued": 0,
+                        "available": 0,
+                    }
+                },
+                model_slots={
+                    "model-a": {
+                        "capacity": 1,
+                        "in_flight": 1,
+                        "queued": 0,
+                        "available": 0,
+                    }
+                },
+            )
+        )
+        router = Router(registry)
+
+        pending = asyncio.create_task(
+            router.wait_for_worker("text", "model-a", timeout=1, poll_interval=0.01)
+        )
+        await asyncio.sleep(0.03)
+        self.assertEqual(router.waiting_requests, 1)
+
+        worker.cap_slots["text"]["in_flight"] = 0
+        worker.model_slots["model-a"]["in_flight"] = 0
+        selected = await pending
+
+        self.assertIs(selected, worker)
+        self.assertEqual(router.waiting_requests, 0)
+
+
 if __name__ == "__main__":
     unittest.main()

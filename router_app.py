@@ -1101,7 +1101,8 @@ def _aggregate_dashboard() -> Dict[str, Any]:
 
     total_capacity = sum(max(0, w.total_capacity()) for w in alive)
     total_in_flight = sum(max(0, w.total_busy()) for w in alive)
-    total_queue_depth = sum(max(0, w.queue_depth) for w in alive)
+    router_waiting = get_router().waiting_requests
+    total_queue_depth = sum(max(0, w.queue_depth) for w in alive) + router_waiting
     total_slots_left = sum(max(0, w.total_slots_left()) for w in alive)
     total_free_vram = sum(w.free_vram_gb for w in alive)
     total_vram = sum(w.total_vram_gb for w in alive)
@@ -1286,6 +1287,7 @@ def _aggregate_dashboard() -> Dict[str, Any]:
             "ttl_seconds": registry.ttl,
             "reservation_ttl_seconds": registry.reservation_ttl,
             "wait_timeout": _wait_timeout(),
+            "waiting_requests": router_waiting,
         },
         "totals": {
             "alive_workers": len(alive),

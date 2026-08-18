@@ -32,7 +32,7 @@ import subprocess
 import time
 import uuid
 from dataclasses import dataclass, field
-from threading import RLock
+from threading import Lock, RLock
 from typing import Any, Dict, List, Optional, Tuple
 
 import aiohttp
@@ -1467,6 +1467,18 @@ class WorkerRegistry:
 class Router:
     def __init__(self, registry: WorkerRegistry):
         self.registry = registry
+        self._waiting_requests = 0
+        self._waiting_requests_lock = Lock()
+
+    @property
+    def waiting_requests(self) -> int:
+        """Requests currently waiting at the router for a worker slot."""
+        with self._waiting_requests_lock:
+            return self._waiting_requests
+
+    def _change_waiting_requests(self, delta: int) -> None:
+        with self._waiting_requests_lock:
+            self._waiting_requests = max(0, self._waiting_requests + delta)
 
     @staticmethod
     def _idle_tier_window() -> int:
@@ -1843,17 +1855,28 @@ class Router:
         start = time.time()
         deadline = None if timeout <= 0 else start + timeout
         grace_deadline = start + max(0.0, cross_model_grace)
-        while True:
-            now = time.time()
-            allow_cross = now >= grace_deadline
-            worker = self.select_worker(
-                capability, model, exclude=exclude, allow_cross_model=allow_cross
-            )
-            if worker is not None:
-                return worker
-            if deadline is not None and now >= deadline:
-                return None
-            await asyncio.sleep(poll_interval)
+        waiting = False
+        try:
+            while True:
+                now = time.time()
+                allow_cross = now >= grace_deadline
+                worker = self.select_worker(
+                    capability,
+                    model,
+                    exclude=exclude,
+                    allow_cross_model=allow_cross,
+                )
+                if worker is not None:
+                    return worker
+                if deadline is not None and now >= deadline:
+                    return None
+                if not waiting:
+                    self._change_waiting_requests(1)
+                    waiting = True
+                await asyncio.sleep(poll_interval)
+        finally:
+            if waiting:
+                self._change_waiting_requests(-1)
 
 
 # ---------------------------------------------------------------------------

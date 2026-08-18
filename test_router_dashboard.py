@@ -1,4 +1,5 @@
 import unittest
+from types import SimpleNamespace
 from unittest.mock import patch
 
 from Router import WorkerInfo, WorkerRegistry
@@ -41,6 +42,21 @@ def _dashboard_data(**overrides):
 
 
 class RouterDashboardTierTests(unittest.TestCase):
+    def test_router_waiters_are_included_in_total_queue_depth(self):
+        registry = WorkerRegistry(ttl_seconds=60)
+
+        with (
+            patch("router_app.get_registry", return_value=registry),
+            patch(
+                "router_app.get_router",
+                return_value=SimpleNamespace(waiting_requests=3),
+            ),
+        ):
+            data = _aggregate_dashboard()
+
+        self.assertEqual(data["router"]["waiting_requests"], 3)
+        self.assertEqual(data["totals"]["total_queue_depth"], 3)
+
     def test_tunneled_worker_public_data_has_adjusted_priority_tier(self):
         worker = WorkerInfo(
             worker_id="tunnel-90",
