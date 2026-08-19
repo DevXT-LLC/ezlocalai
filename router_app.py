@@ -943,8 +943,10 @@ async def router_register(
                 "model_quant",
                 "cap_models",
                 "version",
+                "extra",
             }
-        },
+        }
+        | dict(payload.get("extra") or {}),
     )
     info = get_registry().register(info)
     gpu_summary = (

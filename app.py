@@ -18,6 +18,7 @@ from fastapi import (
 from fastapi.responses import StreamingResponse, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from starlette.background import BackgroundTask
 from pydantic import BaseModel
 from typing import Any, List, Dict, Literal, Union, Optional
 import struct
@@ -25,6 +26,7 @@ from Pipes import ModelType, Pipes
 from RequestQueue import RequestQueue
 import base64
 import io
+import json
 import os
 import logging
 import re
@@ -489,6 +491,7 @@ async def get_resources(user=Depends(verify_api_key)):
         "queue_wait_timeout": queue_wait_timeout if queue_wait_timeout > 0 else None,
     }
     status["slots"] = _sync_request_queue_capacity()
+    status["model_lifecycle"] = pipe.get_model_lifecycle_snapshot()
 
     return status
 
@@ -694,6 +697,14 @@ async def chat_completions(
             return StreamingResponse(
                 content=generate_stream(),
                 media_type="text/event-stream",
+                # Starlette runs the background callback after normal
+                # completion and client disconnects, including disconnects
+                # that happen before the outer generator is first advanced.
+                background=(
+                    BackgroundTask(response.close)
+                    if hasattr(response, "close")
+                    else None
+                ),
             )
     else:
         raise HTTPException(status_code=404, detail="Chat completions are disabled.")
@@ -788,6 +799,25 @@ async def completions(c: Completions, request: Request, user=Depends(verify_api_
                 return StreamingResponse(
                     content=audio_response,
                     media_type="audio/wav",
+                )
+            if hasattr(response, "__next__"):
+
+                def generate_completion_stream():
+                    try:
+                        for chunk in response:
+                            if isinstance(chunk, (dict, list)):
+                                yield f"data: {json.dumps(chunk)}\n\n"
+                            else:
+                                yield str(chunk)
+                        yield "data: [DONE]\n\n"
+                    finally:
+                        if hasattr(response, "close"):
+                            response.close()
+
+                return StreamingResponse(
+                    content=generate_completion_stream(),
+                    media_type="text/event-stream",
+                    background=BackgroundTask(response.close),
                 )
             return StreamingResponse(
                 content=response["choices"][0]["text"],

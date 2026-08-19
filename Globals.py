@@ -11,8 +11,12 @@ def getenv(var_name: str, default_value: str = None) -> str:
         "ALLOWED_DOMAINS": "*",
         "DEFAULT_MODEL": "unsloth/Qwen3.5-4B-GGUF",
         "WHISPER_MODEL": "large-v3-turbo",
-        "IMAGE_ENABLED": "false",  # Set true to serve and warm-load IMG_MODEL locally
+        "IMAGE_ENABLED": "false",  # Set true to serve IMG_MODEL locally
         "IMG_MODEL": "none",  # Set to "unsloth/FLUX.2-klein-4B-GGUF" for image generation + editing, "none" or empty string to disable
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "IMAGE_RELOAD_LLM_AFTER_GENERATION": "true",
+        "IMAGE_WAIT_FOR_LLM_IDLE_TIMEOUT": "60",
+        "IMAGE_MODEL_MIN_FREE_GB": "6",
         "VIDEO_ENABLED": "false",  # Set true to serve and warm-load VIDEO_MODEL locally
         "VIDEO_MODEL": "unsloth/LTX-2.3-GGUF",  # Default local GGUF model when VIDEO_ENABLED=true
         "MUSIC_ENABLED": "false",  # Set true to serve ACE-Step music generation from the internal ACE server
@@ -82,6 +86,12 @@ def getenv(var_name: str, default_value: str = None) -> str:
         # Single value applies to all models.
         "QUANT_TYPE": "Q4_K_XL",
         "LLM_BATCH_SIZE": "auto",
+        # Multiple DEFAULT_MODEL entries normally stay resident together. In
+        # auto mode ezlocalai estimates their per-GPU footprint and switches to
+        # one-at-a-time residency when they do not fit. "resident" and "swap"
+        # force either behavior.
+        "LLM_MODEL_RESIDENCY": "auto",
+        "LLM_MODEL_RESIDENCY_MARGIN_GB": "1.5",
         # Host-RAM prompt cache for repeated long prompt prefixes.
         # auto scales with context size; set 0/off to disable for diagnostics.
         "LLM_PROMPT_CACHE_MIB": "auto",

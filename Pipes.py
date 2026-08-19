@@ -3987,6 +3987,9 @@ class Pipes:
         self._inference_count = 0
         self._model_inference_counts: Dict[str, int] = {}
         self._inference_count_lock = threading.Lock()
+        self._lifecycle_metrics_lock = threading.Lock()
+        self._lifecycle_events = deque(maxlen=100)
+        self._lifecycle_summary: Dict[str, Dict[str, Any]] = {}
 
         # Track context reset state for auto-optimization
         # When we increase context for a large request, we schedule a reset
@@ -4080,6 +4083,8 @@ class Pipes:
         # Track if we're using a "large" model that should be unloaded after use
         self._using_large_model = False
         self._llm_temporarily_unavailable = False
+        self.llm_model_residency = "resident"
+        self.llm_model_vram_estimates: Dict[str, float] = {}
 
         if model_config.lower() != "none":
             model_counts = {}
@@ -4100,6 +4105,7 @@ class Pipes:
 
             # Parse per-model configs from comma-separated env vars
             self._parse_per_model_configs()
+            self._configure_llm_model_residency()
 
             # Pre-load persistent LLMs
             # Skip LLM preloading in voice server mode - only load voice models
@@ -4136,8 +4142,33 @@ class Pipes:
                     if primary_model == vision_model:
                         vision_model = None
 
-                # Load ALL models as persistent with per-model configs
-                for model_name in self.available_models:
+                # Keep the configured identities even when auto residency elects
+                # to lazy-load all but the first model.
+                self.primary_llm_name = primary_model
+                self.vision_llm_name = vision_model
+                if primary_model:
+                    self.primary_llm_context = self.model_configs.get(
+                        primary_model, {}
+                    ).get("max_tokens", self._optimal_context)
+                if vision_model:
+                    self.vision_llm_context = self.model_configs.get(
+                        vision_model, {}
+                    ).get("max_tokens", self._optimal_context)
+
+                preload_models = list(self.available_models)
+                if self.llm_model_residency == "swap":
+                    preload_models = preload_models[:1]
+                    for deferred_model in self.available_models[1:]:
+                        self.persistent_llms[deferred_model] = None
+                    logging.info(
+                        "[LLM Residency] Swap mode: pre-loading only %s; %s will "
+                        "load on first request",
+                        preload_models[0],
+                        self.available_models[1:],
+                    )
+
+                # Load resident models with their per-model configs.
+                for model_name in preload_models:
                     cfg = self.model_configs.get(model_name, {})
                     model_context = cfg.get("max_tokens", self._optimal_context)
                     model_main_gpu = cfg.get("main_gpu")
@@ -4169,14 +4200,12 @@ class Pipes:
                         # Set primary/vision pointers for backward compat
                         if model_name == primary_model:
                             self.primary_llm = llm_instance
-                            self.primary_llm_name = model_name
                             self.primary_llm_context = model_context
                             self.llm = llm_instance
                             self.current_llm_name = model_name
                             self.current_context = model_context
                         elif model_name == vision_model:
                             self.vision_llm = llm_instance
-                            self.vision_llm_name = model_name
                             self.vision_llm_context = model_context
 
                         load_time = time.time() - start_time
@@ -4188,7 +4217,18 @@ class Pipes:
                             model_type,
                             model_name,
                             "cuda",
-                            vram_gb=MODEL_VRAM_ESTIMATES.get(model_type, 8.0),
+                            vram_gb=max(
+                                float(
+                                    self.llm_model_vram_estimates.get(
+                                        model_name,
+                                        MODEL_VRAM_ESTIMATES.get(model_type, 8.0),
+                                    )
+                                ),
+                                float(
+                                    getattr(llm_instance, "vram_load_delta_gb", 0.0)
+                                    or 0.0
+                                ),
+                            ),
                         )
                     except Exception as e:
                         logging.warning(
@@ -4333,11 +4373,13 @@ class Pipes:
                 )
 
             IMG_MODEL = getenv("IMG_MODEL")
+            image_needs_llm_handoff = self._image_should_unload_llm_for_generation()
             if (
                 is_image_enabled()
                 and IMG_MODEL
                 and IMG_MODEL.lower() != "none"
                 and img_import_success
+                and not image_needs_llm_handoff
             ):
                 logging.info(
                     f"[IMG] {preload_reason} - pre-loading {IMG_MODEL} to keep resident"
@@ -4361,6 +4403,17 @@ class Pipes:
                         f"[IMG] Failed to pre-load {IMG_MODEL}: {e}. Will lazy-load on first request."
                     )
                     self.img = None
+            elif (
+                is_image_enabled()
+                and IMG_MODEL
+                and IMG_MODEL.lower() != "none"
+                and img_import_success
+            ):
+                logging.info(
+                    "[IMG] Skipping preload because image generation will "
+                    "temporarily unload resident LLMs; FLUX will lazy-load after "
+                    "VRAM is freed"
+                )
 
         NGROK_TOKEN = getenv("NGROK_TOKEN")
         if NGROK_TOKEN:
@@ -4437,6 +4490,204 @@ class Pipes:
                     f"quant={cfg['quant_type']}"
                 )
 
+    def _configure_llm_model_residency(self):
+        """Choose whether configured LLMs stay resident together or swap.
+
+        ``auto`` estimates each model's full GPU footprint at its configured
+        context. Models assigned to the same GPU switch to one-at-a-time
+        residency when their combined footprint exceeds that GPU's usable
+        memory. Forced ``resident`` and ``swap`` modes are useful when a model
+        backend's actual footprint differs from the estimate.
+        """
+        requested_mode = (
+            (getenv("LLM_MODEL_RESIDENCY", "auto") or "auto").strip().lower()
+        )
+        if requested_mode not in {"auto", "resident", "swap"}:
+            logging.warning(
+                "[LLM Residency] Unknown LLM_MODEL_RESIDENCY=%r; using auto",
+                requested_mode,
+            )
+            requested_mode = "auto"
+
+        if len(self.available_models) <= 1:
+            self.llm_model_residency = "resident"
+            return
+        if requested_mode in {"resident", "swap"}:
+            self.llm_model_residency = requested_mode
+            logging.info("[LLM Residency] Forced mode: %s", requested_mode)
+            return
+        if not self.per_gpu_vram:
+            self.llm_model_residency = "resident"
+            logging.info(
+                "[LLM Residency] No discrete GPU memory detected; keeping configured "
+                "models resident"
+            )
+            return
+
+        estimates_by_gpu: Dict[int, float] = {}
+        estimate_failed = False
+        for model_id in self.available_models:
+            cfg = self.model_configs.get(model_id, {})
+            try:
+                estimate = self._estimate_configured_llm_vram(model_id)
+                gpu_index = int(cfg.get("main_gpu", 0) or 0)
+                estimates_by_gpu[gpu_index] = (
+                    estimates_by_gpu.get(gpu_index, 0.0) + estimate
+                )
+            except Exception as exc:
+                estimate_failed = True
+                logging.warning(
+                    "[LLM Residency] Could not estimate %s: %s",
+                    model_id,
+                    exc,
+                )
+
+        try:
+            margin_gb = max(0.0, float(getenv("LLM_MODEL_RESIDENCY_MARGIN_GB", "1.5")))
+        except (TypeError, ValueError):
+            margin_gb = 1.5
+
+        overcommitted = False
+        decisions = []
+        for gpu_index, estimated_gb in sorted(estimates_by_gpu.items()):
+            if gpu_index < len(self.per_gpu_vram):
+                usable_gb = max(0.0, float(self.per_gpu_vram[gpu_index]) - margin_gb)
+            else:
+                usable_gb = max(0.0, sum(self.per_gpu_vram) - margin_gb)
+            decisions.append(f"GPU {gpu_index}: {estimated_gb:.1f}/{usable_gb:.1f}GB")
+            if estimated_gb > usable_gb:
+                overcommitted = True
+
+        # A failed estimate should not silently change established multi-model
+        # behavior. Users can force swap if a backend cannot be estimated.
+        self.llm_model_residency = (
+            "swap" if overcommitted and not estimate_failed else "resident"
+        )
+        logging.info(
+            "[LLM Residency] Auto selected %s (%s)",
+            self.llm_model_residency,
+            ", ".join(decisions) or "no estimates",
+        )
+
+    def _estimate_configured_llm_vram(
+        self, model_id: str, context_size: Optional[int] = None
+    ) -> float:
+        """Estimate and cache the target model's full GPU footprint."""
+        cfg = self.model_configs.get(model_id, {}) or {}
+        configured_context = int(cfg.get("max_tokens", self._optimal_context))
+        requested_context = int(context_size or configured_context)
+        cached = self.llm_model_vram_estimates.get(model_id)
+        if cached is not None and requested_context <= configured_context:
+            return max(0.0, float(cached))
+
+        from ezlocalai.LLM import download_model
+
+        source_name = self._resolve_source_model(model_id)
+        model_path, mmproj_path = download_model(
+            model_name=source_name,
+            models_dir="./models",
+            quantization_type=cfg.get("quant_type"),
+        )
+        estimate = max(
+            0.0,
+            float(
+                estimate_model_vram_requirement(
+                    model_path=model_path,
+                    context_size=requested_context,
+                    projectors=[mmproj_path] if mmproj_path else [],
+                )
+            ),
+        )
+        if requested_context <= configured_context:
+            self.llm_model_vram_estimates[model_id] = estimate
+        return estimate
+
+    def _record_model_lifecycle(
+        self,
+        operation: str,
+        model_type: str,
+        model_name: str,
+        duration_seconds: float,
+        success: bool = True,
+    ):
+        """Record bounded load/unload timing data for live benchmarking."""
+        if not hasattr(self, "_lifecycle_metrics_lock"):
+            self._lifecycle_metrics_lock = threading.Lock()
+            self._lifecycle_events = deque(maxlen=100)
+            self._lifecycle_summary = {}
+        duration = max(0.0, float(duration_seconds))
+        event = {
+            "timestamp": time.time(),
+            "operation": str(operation),
+            "model_type": str(model_type),
+            "model": str(model_name or "unknown"),
+            "duration_seconds": round(duration, 4),
+            "success": bool(success),
+        }
+        key = f"{model_type}:{operation}:{model_name}"
+        with self._lifecycle_metrics_lock:
+            self._lifecycle_events.append(event)
+            summary = self._lifecycle_summary.setdefault(
+                key,
+                {
+                    "operation": str(operation),
+                    "model_type": str(model_type),
+                    "model": str(model_name or "unknown"),
+                    "count": 0,
+                    "failures": 0,
+                    "total_seconds": 0.0,
+                    "min_seconds": None,
+                    "max_seconds": 0.0,
+                    "last_seconds": 0.0,
+                },
+            )
+            summary["count"] += 1
+            summary["failures"] += 0 if success else 1
+            summary["total_seconds"] += duration
+            summary["min_seconds"] = (
+                duration
+                if summary["min_seconds"] is None
+                else min(summary["min_seconds"], duration)
+            )
+            summary["max_seconds"] = max(summary["max_seconds"], duration)
+            summary["last_seconds"] = duration
+
+    def get_model_lifecycle_snapshot(self) -> Dict[str, Any]:
+        """Return lifecycle timings and current LLM residency state."""
+        with self._lifecycle_metrics_lock:
+            summaries = []
+            for raw in self._lifecycle_summary.values():
+                item = dict(raw)
+                count = max(1, int(item.get("count", 1)))
+                item["average_seconds"] = round(
+                    float(item.pop("total_seconds", 0.0)) / count, 4
+                )
+                for field in ("min_seconds", "max_seconds", "last_seconds"):
+                    if item.get(field) is not None:
+                        item[field] = round(float(item[field]), 4)
+                summaries.append(item)
+            events = list(self._lifecycle_events)
+        return {
+            "llm_model_residency": getattr(self, "llm_model_residency", "resident"),
+            "configured_llms": [
+                self._resolve_source_model(model_id)
+                for model_id in getattr(self, "available_models", [])
+            ],
+            "loaded_llms": [
+                self._resolve_source_model(model_id)
+                for model_id, instance in getattr(self, "persistent_llms", {}).items()
+                if instance is not None
+            ],
+            "active_llm": (
+                self._resolve_source_model(self.current_llm_name)
+                if getattr(self, "current_llm_name", None)
+                else None
+            ),
+            "vram_estimates_gb": dict(getattr(self, "llm_model_vram_estimates", {})),
+            "summary": summaries,
+            "recent_events": events,
+        }
+
     def _resolve_source_model(self, model_name: str) -> str:
         """Resolve an internal model ID back to the source HF model name."""
         return self.model_sources.get(model_name, model_name)
@@ -4464,6 +4715,45 @@ class Pipes:
         return None
 
     def _load_llm_resilient(
+        self,
+        model_name: str,
+        max_tokens: int,
+        gpu_layers: int = None,
+        main_gpu: int = None,
+        tensor_split: list = None,
+        n_parallel: int = None,
+        quant_type: str = None,
+    ) -> "LLM":
+        """Load an LLM and record a consistent lifecycle benchmark event."""
+        started = time.perf_counter()
+        try:
+            instance = self._load_llm_resilient_impl(
+                model_name=model_name,
+                max_tokens=max_tokens,
+                gpu_layers=gpu_layers,
+                main_gpu=main_gpu,
+                tensor_split=tensor_split,
+                n_parallel=n_parallel,
+                quant_type=quant_type,
+            )
+        except Exception:
+            elapsed = time.perf_counter() - started
+            self._record_model_lifecycle(
+                "load", "llm", model_name, elapsed, success=False
+            )
+            raise
+        elapsed = time.perf_counter() - started
+        actual_vram = getattr(instance, "vram_load_delta_gb", None)
+        if actual_vram is not None:
+            self.llm_model_vram_estimates[model_name] = max(
+                float(actual_vram),
+                float(self.llm_model_vram_estimates.get(model_name, 0.0) or 0.0),
+            )
+        self._record_model_lifecycle("load", "llm", model_name, elapsed)
+        logging.info("[LLM] %s lifecycle load completed in %.2fs", model_name, elapsed)
+        return instance
+
+    def _load_llm_resilient_impl(
         self,
         model_name: str,
         max_tokens: int,
@@ -6150,6 +6440,7 @@ class Pipes:
                         model=IMG_MODEL, local_uri=self.local_uri, device=img_device
                     )
                     load_time = time.time() - start_time
+                    self._record_model_lifecycle("load", "image", IMG_MODEL, load_time)
 
                     # Register with resource manager (GGUF + CPU offload uses less VRAM)
                     actual_vram = (
@@ -6159,10 +6450,17 @@ class Pipes:
                         ModelType.IMG, IMG_MODEL, img_device, actual_vram
                     )
 
-                    logging.debug(
+                    logging.info(
                         f"[IMG] {IMG_MODEL} loaded on {img_device} in {load_time:.2f}s"
                     )
                 except Exception as e:
+                    self._record_model_lifecycle(
+                        "load",
+                        "image",
+                        IMG_MODEL,
+                        time.time() - start_time,
+                        success=False,
+                    )
                     logging.error(f"[IMG] Failed to load the model: {e}")
                     self.img = None
 
@@ -6179,7 +6477,10 @@ class Pipes:
             if torch.cuda.is_available():
                 torch.cuda.empty_cache()
             cleanup_time = time.time() - start_time
-            logging.debug(f"[IMG] Image model unloaded in {cleanup_time:.2f}s")
+            self._record_model_lifecycle(
+                "unload", "image", getenv("IMG_MODEL") or "image", cleanup_time
+            )
+            logging.info(f"[IMG] Image model unloaded in {cleanup_time:.2f}s")
         except Exception as e:
             logging.error(f"[IMG] Error during cleanup: {e}")
 
@@ -6385,6 +6686,145 @@ class Pipes:
             resource_mgr.mark_model_in_use(ModelType.MUSIC, True)
         return self.music
 
+    def _image_should_unload_llm_for_generation(self) -> bool:
+        """Return whether FLUX needs a temporary LLM VRAM handoff."""
+        mode = (
+            (getenv("IMAGE_UNLOAD_LLM_DURING_GENERATION", "auto") or "auto")
+            .strip()
+            .lower()
+        )
+        if mode in {"0", "false", "no", "off"}:
+            return False
+        if mode in {"1", "true", "yes", "on"}:
+            return True
+        if has_image_server_url() or get_secondary_gpu() is not None:
+            return False
+        if self.img is not None or not self._has_loaded_llm():
+            return False
+        try:
+            required_gb = max(0.0, float(getenv("IMAGE_MODEL_MIN_FREE_GB", "6")))
+        except (TypeError, ValueError):
+            required_gb = 6.0
+        free_gb = self.resource_manager.get_total_free_vram()
+        return free_gb < required_gb + self.resource_manager.vram_safety_margin
+
+    async def _wait_for_llm_idle_for_image(self):
+        timeout = float(getenv("IMAGE_WAIT_FOR_LLM_IDLE_TIMEOUT", "60"))
+        deadline = time.monotonic() + max(0.0, timeout)
+        while self._is_inference_in_progress():
+            if timeout <= 0 or time.monotonic() >= deadline:
+                raise RuntimeError(
+                    "LLM inference is active; image generation cannot unload the LLM yet"
+                )
+            await asyncio.sleep(0.5)
+
+    def _destroy_llm_refs_sync(self, refs: List[Tuple[str, Any]], reason: str):
+        """Release a set of already-detached LLM references and benchmark it."""
+        model_names = [name for name, _ in refs]
+        started = time.perf_counter()
+        refs.clear()
+        gc.collect()
+        if torch.cuda.is_available():
+            try:
+                torch.cuda.synchronize()
+            except Exception:
+                pass
+            torch.cuda.empty_cache()
+            try:
+                torch.cuda.ipc_collect()
+            except Exception:
+                pass
+        elapsed = time.perf_counter() - started
+        for model_name in model_names or ["LLM"]:
+            self._record_model_lifecycle(
+                "unload", "llm", model_name, elapsed, success=True
+            )
+        logging.info(
+            "[%s] LLM handoff unloaded %s in %.2fs",
+            reason.upper(),
+            model_names or ["none resident"],
+            elapsed,
+        )
+
+    def _unload_llms_for_service(
+        self, service: str, should_unload: bool
+    ) -> Optional[Dict[str, Any]]:
+        """Detach and synchronously unload resident LLMs for a GPU service."""
+        if not should_unload:
+            return None
+
+        refs: List[Tuple[str, Any]] = []
+        with self._model_lock:
+            state = {
+                "loaded_models": [
+                    model_name
+                    for model_name, instance in self.persistent_llms.items()
+                    if instance is not None
+                ],
+                "active_model": self.current_llm_name,
+                "active_context": self.current_context,
+            }
+            self._llm_temporarily_unavailable = True
+            seen_ids = set()
+
+            for model_name, llm_ref in list(self.persistent_llms.items()):
+                if llm_ref is None:
+                    continue
+                refs.append((model_name, llm_ref))
+                seen_ids.add(id(llm_ref))
+                self.persistent_llms[model_name] = None
+
+            if self.llm is not None and id(self.llm) not in seen_ids:
+                refs.append((self.current_llm_name or "LLM", self.llm))
+                if self.current_llm_name not in state["loaded_models"]:
+                    state["loaded_models"].append(self.current_llm_name)
+
+            self.primary_llm = None
+            self.vision_llm = None
+            self.llm = None
+            self.current_llm_name = None
+            self.current_context = None
+            self._using_large_model = False
+
+            self.resource_manager.unregister_model(ModelType.LLM)
+            self.resource_manager.unregister_model(ModelType.VISION_LLM)
+
+        self._destroy_llm_refs_sync(refs, service)
+        return state
+
+    def _restore_llms_after_service(
+        self,
+        service: str,
+        handoff_state: Optional[Dict[str, Any]],
+        reload_env: str,
+    ):
+        if not handoff_state:
+            return
+        reload_after = (getenv(reload_env, "true") or "true").strip().lower() not in {
+            "0",
+            "false",
+            "no",
+            "off",
+        }
+        try:
+            models_to_restore = [
+                name
+                for name in handoff_state.get("loaded_models", [])
+                if name in self.available_models
+            ]
+            if reload_after and models_to_restore:
+                logging.info(
+                    "[%s] Reloading prior LLM residency: %s",
+                    service.upper(),
+                    models_to_restore,
+                )
+                self._reload_persistent_models(
+                    model_names=models_to_restore,
+                    active_model=handoff_state.get("active_model"),
+                )
+        finally:
+            self._llm_temporarily_unavailable = False
+
     def _music_should_unload_llm_for_generation(self) -> bool:
         mode = (
             (getenv("MUSIC_UNLOAD_LLM_DURING_GENERATION", "auto") or "auto")
@@ -6410,58 +6850,16 @@ class Pipes:
 
     def _unload_llms_for_music(self) -> bool:
         """Temporarily unload resident LLMs so ACE-Step can use the GPU."""
-        if not self._music_should_unload_llm_for_generation():
-            return False
-
-        refs = []
-        with self._model_lock:
-            self._llm_temporarily_unavailable = True
-            seen_ids = set()
-
-            for model_name, llm_ref in list(self.persistent_llms.items()):
-                if llm_ref is None:
-                    continue
-                refs.append((model_name, llm_ref))
-                seen_ids.add(id(llm_ref))
-                self.persistent_llms[model_name] = None
-
-            if self.llm is not None and id(self.llm) not in seen_ids:
-                refs.append((self.current_llm_name or "LLM", self.llm))
-
-            self.primary_llm = None
-            self.vision_llm = None
-            self.llm = None
-            self.current_llm_name = None
-            self.current_context = None
-
-            self.resource_manager.unregister_model(ModelType.LLM)
-            self.resource_manager.unregister_model(ModelType.VISION_LLM)
-
-        if not refs:
-            logging.info("[MUSIC] LLM marked unavailable; no resident LLMs to unload")
-            return True
-
-        logging.info(
-            "[MUSIC] Temporarily unloading LLMs for ACE-Step generation: "
-            f"{[name for name, _ in refs]}"
+        return self._unload_llms_for_service(
+            "music", self._music_should_unload_llm_for_generation()
         )
-        for model_name, llm_ref in refs:
-            self._destroy_llm_sync(llm_ref, model_name)
-        return True
 
     def _restore_llms_after_music(self, llm_was_unloaded: bool):
-        if not llm_was_unloaded:
-            return
-
-        reload_after = (
-            getenv("MUSIC_RELOAD_LLM_AFTER_GENERATION", "true") or "true"
-        ).strip().lower() not in {"0", "false", "no", "off"}
-        try:
-            if reload_after and self.available_models:
-                logging.info("[MUSIC] Reloading LLMs after ACE-Step generation")
-                self._reload_persistent_models()
-        finally:
-            self._llm_temporarily_unavailable = False
+        self._restore_llms_after_service(
+            "music",
+            llm_was_unloaded,
+            "MUSIC_RELOAD_LLM_AFTER_GENERATION",
+        )
 
     def _video_should_unload_llm_for_generation(self) -> bool:
         mode = (
@@ -6492,66 +6890,27 @@ class Pipes:
 
     def _unload_llms_for_video(self) -> bool:
         """Temporarily unload resident LLMs so LTX-2.3 can use the GPU."""
-        if not self._video_should_unload_llm_for_generation():
-            return False
-
-        refs = []
-        with self._model_lock:
-            self._llm_temporarily_unavailable = True
-            seen_ids = set()
-
-            for model_name, llm_ref in list(self.persistent_llms.items()):
-                if llm_ref is None:
-                    continue
-                refs.append((model_name, llm_ref))
-                seen_ids.add(id(llm_ref))
-                self.persistent_llms[model_name] = None
-
-            if self.llm is not None and id(self.llm) not in seen_ids:
-                refs.append((self.current_llm_name or "LLM", self.llm))
-
-            self.primary_llm = None
-            self.vision_llm = None
-            self.llm = None
-            self.current_llm_name = None
-            self.current_context = None
-
-            self.resource_manager.unregister_model(ModelType.LLM)
-            self.resource_manager.unregister_model(ModelType.VISION_LLM)
-
-        if not refs:
-            logging.info("[VIDEO] LLM marked unavailable; no resident LLMs to unload")
-            return True
-
-        logging.info(
-            "[VIDEO] Temporarily unloading LLMs for LTX-2.3 generation: "
-            f"{[name for name, _ in refs]}"
+        return self._unload_llms_for_service(
+            "video", self._video_should_unload_llm_for_generation()
         )
-        for model_name, llm_ref in refs:
-            self._destroy_llm_sync(llm_ref, model_name)
-        return True
 
     def _restore_llms_after_video(self, llm_was_unloaded: bool):
         if not llm_was_unloaded:
             return
-
-        reload_after = (
-            getenv("VIDEO_RELOAD_LLM_AFTER_GENERATION", "true") or "true"
-        ).strip().lower() not in {"0", "false", "no", "off"}
-        try:
-            if reload_after and self.available_models:
-                logging.info("[VIDEO] Reloading LLMs after LTX-2.3 generation")
-                self._reload_persistent_models()
-                if not self._has_loaded_llm():
-                    logging.warning(
-                        "[VIDEO] LLM reload did not restore a resident model; "
-                        "freeing idle media models and retrying"
-                    )
-                    self._destroy_video(async_cleanup=False, force=True)
-                    self._free_vram_for_llm(16.0)
-                    self._reload_persistent_models()
-        finally:
-            self._llm_temporarily_unavailable = False
+        self._restore_llms_after_service(
+            "video", llm_was_unloaded, "VIDEO_RELOAD_LLM_AFTER_GENERATION"
+        )
+        if not self._has_loaded_llm() and llm_was_unloaded.get("loaded_models"):
+            logging.warning(
+                "[VIDEO] LLM reload did not restore a resident model; freeing "
+                "idle media models and retrying"
+            )
+            self._destroy_video(async_cleanup=False, force=True)
+            self._free_vram_for_llm(16.0)
+            self._reload_persistent_models(
+                model_names=llm_was_unloaded.get("loaded_models"),
+                active_model=llm_was_unloaded.get("active_model"),
+            )
 
     def _has_loaded_llm(self) -> bool:
         return bool(
@@ -6603,6 +6962,67 @@ class Pipes:
         free_vram = resource_mgr.get_total_free_vram()
         logging.info(f"[Resource] After cleanup: {free_vram:.1f}GB VRAM free")
 
+    def _unload_other_llms_for_swap_locked(self, target_model: str):
+        """Unload idle non-target LLMs before an exclusive model switch.
+
+        The caller holds ``_model_lock``. Text queue capacity is restricted to
+        one in swap mode, but the inference-count guard also protects direct
+        callers that bypass the HTTP request queue.
+        """
+        if getattr(self, "llm_model_residency", "resident") != "swap":
+            return
+
+        target_source = self._resolve_source_model(target_model)
+        with self._inference_count_lock:
+            conflicting_inference = {
+                name: count
+                for name, count in self._model_inference_counts.items()
+                if count > 0 and name != target_source
+            }
+        if conflicting_inference:
+            raise RuntimeError(
+                "Cannot switch LLMs while another configured model is in use: "
+                f"{conflicting_inference}"
+            )
+
+        refs: List[Tuple[str, Any]] = []
+        seen_ids = set()
+        for model_id, instance in list(self.persistent_llms.items()):
+            if instance is None or model_id == target_model:
+                continue
+            refs.append((model_id, instance))
+            seen_ids.add(id(instance))
+            self.persistent_llms[model_id] = None
+
+        if (
+            self.llm is not None
+            and self.current_llm_name != target_model
+            and id(self.llm) not in seen_ids
+        ):
+            refs.append((self.current_llm_name or "LLM", self.llm))
+            seen_ids.add(id(self.llm))
+
+        if not refs:
+            return
+
+        logging.info(
+            "[LLM Residency] Switching to %s; unloading idle resident model(s) %s",
+            target_model,
+            [name for name, _ in refs],
+        )
+        if self.primary_llm is not None and id(self.primary_llm) in seen_ids:
+            self.primary_llm = None
+        if self.vision_llm is not None and id(self.vision_llm) in seen_ids:
+            self.vision_llm = None
+        if self.llm is not None and id(self.llm) in seen_ids:
+            self.llm = None
+            self.current_llm_name = None
+            self.current_context = None
+        self._using_large_model = False
+        self.resource_manager.unregister_model(ModelType.LLM)
+        self.resource_manager.unregister_model(ModelType.VISION_LLM)
+        self._destroy_llm_refs_sync(refs, "llm-swap")
+
     def _get_llm(self, model_name: str = None, context_size: int = 16384):
         """Get LLM instance, using persistent models when possible.
 
@@ -6642,6 +7062,8 @@ class Pipes:
             logging.debug(
                 f"[LLM _get_llm] Vision: llm={self.vision_llm is not None}, name='{self.vision_llm_name}', ctx={self.vision_llm_context}"
             )
+
+            self._unload_other_llms_for_swap_locked(model_name)
 
             # Check if we already have the right model loaded with sufficient context
             if (
@@ -6815,16 +7237,51 @@ class Pipes:
                     torch.cuda.empty_cache()
                 self._using_large_model = True
 
-            # Check if we need to free VRAM before loading
+            # Check target-specific headroom before entering xllamacpp. Some
+            # native CUDA allocation failures abort the process rather than
+            # raising Python exceptions, so a coarse 8GB estimate is unsafe for
+            # swapping large long-context models after aux models warm-load.
             estimated_vram = MODEL_VRAM_ESTIMATES.get(ModelType.LLM, 8.0)
-            free_vram = resource_mgr.get_total_free_vram()
-            if free_vram < estimated_vram:
-                logging.debug(
-                    f"[LLM] Low VRAM ({free_vram:.1f}GB), freeing auxiliary models"
+            try:
+                estimated_vram = self._estimate_configured_llm_vram(
+                    model_name, context_size=context_size
                 )
-                self._free_vram_for_llm(
-                    estimated_vram - free_vram + 2.0
-                )  # Extra 2GB buffer
+            except Exception as exc:
+                logging.warning(
+                    "[LLM] Could not estimate %s before load: %s; using %.1fGB",
+                    model_name,
+                    exc,
+                    estimated_vram,
+                )
+            cfg = self.model_configs.get(model_name, {}) or {}
+            main_gpu = int(cfg.get("main_gpu", 0) or 0)
+            free_per_gpu = get_per_gpu_free_vram_gb()
+            free_vram = (
+                free_per_gpu[main_gpu]
+                if 0 <= main_gpu < len(free_per_gpu)
+                else resource_mgr.get_total_free_vram()
+            )
+            try:
+                residency_margin = max(
+                    0.0,
+                    float(getenv("LLM_MODEL_RESIDENCY_MARGIN_GB", "1.5")),
+                )
+            except (TypeError, ValueError):
+                residency_margin = 1.5
+            required_headroom = estimated_vram + residency_margin
+            if free_vram < required_headroom:
+                required_to_free = required_headroom - free_vram
+                logging.info(
+                    "[LLM] %s needs %.1fGB + %.1fGB margin; GPU %s has %.1fGB "
+                    "free, unloading %.1fGB of idle auxiliary models",
+                    model_name,
+                    estimated_vram,
+                    residency_margin,
+                    main_gpu,
+                    free_vram,
+                    required_to_free,
+                )
+                self._free_vram_for_llm(required_to_free)
 
             logging.debug(
                 f"[LLM] Loading {model_name} (context: {context_size//1000}k)"
@@ -6833,7 +7290,6 @@ class Pipes:
 
             # Let _load_llm_resilient handle smart GPU selection
             # Use per-model config if available
-            cfg = self.model_configs.get(model_name, {})
             new_llm = self._load_llm_resilient(
                 model_name=model_name,
                 max_tokens=context_size,
@@ -6849,28 +7305,29 @@ class Pipes:
                 self.primary_llm = new_llm
                 self.primary_llm_name = model_name
                 self.primary_llm_context = context_size
-                # Register primary LLM with resource manager
-                resource_mgr.register_model(
-                    ModelType.LLM, model_name, "cuda", vram_gb=estimated_vram
-                )
             elif is_vision:
                 self.vision_llm = new_llm
                 self.vision_llm_name = model_name
                 self.vision_llm_context = context_size
-                # Register vision LLM with resource manager
-                resource_mgr.register_model(
-                    ModelType.VISION_LLM,
-                    model_name,
-                    "cuda",
-                    vram_gb=MODEL_VRAM_ESTIMATES.get(ModelType.VISION_LLM, 6.0),
-                )
+
+            loaded_model_type = (
+                ModelType.VISION_LLM
+                if getattr(new_llm, "is_vision", False)
+                else ModelType.LLM
+            )
+            resource_mgr.register_model(
+                loaded_model_type,
+                model_name,
+                "cuda",
+                vram_gb=max(
+                    float(estimated_vram),
+                    float(getattr(new_llm, "vram_load_delta_gb", 0.0) or 0.0),
+                ),
+            )
 
             self.llm = new_llm
             self.current_llm_name = model_name
             self.current_context = context_size
-
-            # Mark LLM as in use
-            resource_mgr.mark_model_in_use(ModelType.LLM, True)
 
             load_time = time.time() - start_time
             logging.debug(f"[LLM] {model_name} loaded in {load_time:.2f}s")
@@ -6897,16 +7354,33 @@ class Pipes:
                 torch.cuda.empty_cache()
             self._using_large_model = False
 
-    def _reload_persistent_models(self):
+    def _reload_persistent_models(
+        self,
+        model_names: Optional[List[str]] = None,
+        active_model: Optional[str] = None,
+    ):
         """Reload persistent models after using a large model.
 
         Thread-safe: Uses _model_lock to prevent race conditions.
         """
         with self._model_lock:
             default_context = self._optimal_context
+            requested_models = list(model_names or self.available_models)
+            if (
+                getattr(self, "llm_model_residency", "resident") == "swap"
+                and requested_models
+            ):
+                preferred = (
+                    active_model
+                    if active_model in requested_models
+                    else requested_models[0]
+                )
+                requested_models = [preferred]
 
             # Reload all persistent models that were unloaded
-            for model_name in list(self.available_models):
+            for model_name in requested_models:
+                if model_name not in self.available_models:
+                    continue
                 if (
                     model_name in self.persistent_llms
                     and self.persistent_llms[model_name] is not None
@@ -6930,11 +7404,25 @@ class Pipes:
                     # Update backward compat pointers
                     if model_name == self.primary_llm_name:
                         self.primary_llm = llm_instance
+                    elif model_name == self.vision_llm_name:
+                        self.vision_llm = llm_instance
+
+                    if active_model == model_name or self.llm is None:
                         self.llm = llm_instance
                         self.current_llm_name = model_name
                         self.current_context = model_context
-                    elif model_name == self.vision_llm_name:
-                        self.vision_llm = llm_instance
+
+                    model_type = (
+                        ModelType.VISION_LLM
+                        if getattr(llm_instance, "is_vision", False)
+                        else ModelType.LLM
+                    )
+                    self.resource_manager.register_model(
+                        model_type,
+                        model_name,
+                        "cuda",
+                        vram_gb=MODEL_VRAM_ESTIMATES.get(model_type, 8.0),
+                    )
                 except Exception as e:
                     logging.warning(f"[LLM] Failed to reload model {model_name}: {e}")
 
@@ -7487,21 +7975,138 @@ class Pipes:
         self, prompt, response_format="url", size="512x512", image=None
     ):
         async with self._img_lock:
-            img = self._get_img()
-            if img:
-                self.resource_manager.mark_model_in_use(ModelType.IMG, True)
-                try:
-                    img.local_uri = self.local_uri if response_format == "url" else None
-                    new_image = img.generate(
-                        prompt=prompt,
-                        size=size,
-                        image=image,
+            llm_handoff = None
+            aux_unloaded = {}
+            img = None
+            try:
+                if self._image_should_unload_llm_for_generation():
+                    await self._wait_for_llm_idle_for_image()
+                llm_handoff = self._unload_llms_for_service(
+                    "image", self._image_should_unload_llm_for_generation()
+                )
+                aux_unloaded = self._unload_aux_models_for_image()
+                img = self._get_img()
+                if img:
+                    self.resource_manager.mark_model_in_use(ModelType.IMG, True)
+                    try:
+                        img.local_uri = (
+                            self.local_uri if response_format == "url" else None
+                        )
+                        return img.generate(
+                            prompt=prompt,
+                            size=size,
+                            image=image,
+                        )
+                    finally:
+                        self.resource_manager.mark_model_in_use(ModelType.IMG, False)
+            finally:
+                if img is not None:
+                    self._destroy_img(
+                        async_cleanup=False,
+                        force=bool(llm_handoff),
                     )
-                finally:
-                    self.resource_manager.mark_model_in_use(ModelType.IMG, False)
-                self._destroy_img()
-                return new_image
+                self._restore_llms_after_service(
+                    "image",
+                    llm_handoff,
+                    "IMAGE_RELOAD_LLM_AFTER_GENERATION",
+                )
+                self._restore_aux_models_after_image(aux_unloaded)
         return ""
+
+    def _unload_aux_models_for_image(self) -> Dict[str, bool]:
+        """Unload idle GPU residents that would constrain FLUX initialization."""
+        unloaded = {"tts": False, "stt": False, "embedding": False, "video": False}
+
+        if self.resource_manager.get_model_active_count(ModelType.TTS) == 0 and (
+            getattr(self, "ctts", None) is not None
+            or bool(getattr(self, "tts_instances", []))
+            or bool(getattr(self, "_transient_tts_instances", []))
+        ):
+            logging.info("[IMG] Temporarily unloading idle TTS")
+            self._destroy_tts(async_cleanup=False, force=True)
+            unloaded["tts"] = True
+
+        if self.resource_manager.get_model_active_count(ModelType.STT) == 0 and (
+            getattr(self, "stt", None) is not None
+            or bool(getattr(self, "stt_instances", []))
+            or bool(getattr(self, "_transient_stt_instances", []))
+        ):
+            logging.info("[IMG] Temporarily unloading idle STT")
+            self._destroy_stt(async_cleanup=False, force=True)
+            unloaded["stt"] = True
+
+        if self.resource_manager.get_model_active_count(ModelType.EMBEDDING) == 0 and (
+            getattr(self, "embedder", None) is not None
+            or bool(getattr(self, "embedders", []))
+            or bool(getattr(self, "_transient_embedders", []))
+        ):
+            logging.info("[IMG] Temporarily unloading idle embeddings")
+            self._destroy_embedder(async_cleanup=False)
+            unloaded["embedding"] = True
+
+        if (
+            getattr(self, "video", None) is not None
+            and self.resource_manager.get_model_active_count(ModelType.VIDEO) == 0
+        ):
+            logging.info("[IMG] Temporarily unloading idle video model")
+            self._destroy_video(async_cleanup=False, force=True)
+            unloaded["video"] = True
+
+        if torch.cuda.is_available():
+            try:
+                torch.cuda.synchronize()
+            except Exception:
+                pass
+            torch.cuda.empty_cache()
+        return unloaded
+
+    def _restore_aux_models_after_image(self, unloaded: Dict[str, bool]):
+        if not unloaded:
+            return
+        if (
+            unloaded.get("tts")
+            and should_preload_voice()
+            and (getenv("TTS_ENABLED") or "false").strip().lower() == "true"
+            and not has_voice_server_url()
+        ):
+            self._warm_load_tts_pool(mode_str="after image generation")
+        if (
+            unloaded.get("stt")
+            and should_preload_voice()
+            and (getenv("STT_ENABLED") or "false").strip().lower() == "true"
+            and not has_voice_server_url()
+        ):
+            self._warm_load_stt_pool(mode_str="after image generation")
+        if (
+            unloaded.get("embedding")
+            and (getenv("EMBEDDING_ENABLED") or "true").strip().lower() == "true"
+            and not has_embedding_server_url()
+            and self._embedding_keep_loaded()
+        ):
+            self._warm_load_embedder_pool()
+        if (
+            unloaded.get("video")
+            and is_video_enabled()
+            and getattr(self, "video", None) is None
+        ):
+            try:
+                logging.info("[VIDEO] Reloading after image generation")
+                self.video = VIDEO(
+                    model=get_video_model_name(),
+                    local_uri=self.local_uri,
+                    device=("cuda" if torch.cuda.is_available() else "cpu"),
+                )
+                self.resource_manager.register_model(
+                    ModelType.VIDEO,
+                    get_video_model_name(),
+                    "cuda" if torch.cuda.is_available() else "cpu",
+                    vram_gb=12.0,
+                )
+            except Exception as exc:
+                logging.warning(
+                    "[VIDEO] Failed to reload after image generation: %s", exc
+                )
+                self.video = None
 
     def _unload_img_for_video(self) -> bool:
         """Temporarily unload IMG to leave the video pipeline maximum VRAM headroom."""
@@ -8248,16 +8853,30 @@ class Pipes:
         model_capacities: Dict[str, int] = {}
         vision_capacity = 0
         vision_models = set()
+        swap_residency = getattr(self, "llm_model_residency", "resident") == "swap"
         if not self._llm_temporarily_unavailable:
             for model_id in self.available_models:
                 inst = self.persistent_llms.get(model_id)
-                capacity = self._resolved_parallel_for_model(model_id, inst=inst)
-                public_name = self._resolve_source_model(model_id)
-                model_capacities[public_name] = (
-                    model_capacities.get(public_name, 0) + capacity
+                capacity = (
+                    1
+                    if swap_residency
+                    else self._resolved_parallel_for_model(model_id, inst=inst)
                 )
+                public_name = self._resolve_source_model(model_id)
+                if swap_residency:
+                    model_capacities[public_name] = max(
+                        model_capacities.get(public_name, 0), capacity
+                    )
+                else:
+                    model_capacities[public_name] = (
+                        model_capacities.get(public_name, 0) + capacity
+                    )
                 if self._is_vision_model(model_id):
-                    vision_capacity += capacity
+                    vision_capacity = (
+                        max(vision_capacity, capacity)
+                        if swap_residency
+                        else vision_capacity + capacity
+                    )
                     vision_models.add(public_name)
 
         if (
@@ -8275,12 +8894,22 @@ class Pipes:
                 vision_capacity = model_capacities[model_name]
                 vision_models.add(model_name)
 
-        llm_capacity = sum(model_capacities.values())
+        llm_capacity = (
+            min(1, sum(model_capacities.values()))
+            if swap_residency
+            else sum(model_capacities.values())
+        )
         model_slots: Dict[str, Dict[str, int]] = {}
         for model_name, capacity in model_capacities.items():
+            model_in_flight = model_counts.get(model_name, 0)
+            if swap_residency and total_llm_in_flight > 0:
+                # Every configured model depends on the current resident LLM
+                # becoming idle before a switch, so advertise the other model
+                # slots as occupied too.
+                model_in_flight = max(model_in_flight, 1)
             model_slots[model_name] = _slot(
                 capacity=capacity,
-                in_flight=model_counts.get(model_name, 0),
+                in_flight=model_in_flight,
                 queued=0,
             )
         if self._llm_temporarily_unavailable:
@@ -8336,9 +8965,17 @@ class Pipes:
             and img_model != "none"
             and not has_image_server_url()
         ):
+            image_in_flight = self.resource_manager.get_model_active_count(
+                ModelType.IMG
+            )
+            if (
+                self._image_should_unload_llm_for_generation()
+                and total_llm_in_flight > 0
+            ):
+                image_in_flight = max(image_in_flight, 1)
             cap_slots["image"] = _slot(
                 capacity=1,
-                in_flight=self.resource_manager.get_model_active_count(ModelType.IMG),
+                in_flight=image_in_flight,
             )
         if (
             video_enabled
@@ -8346,9 +8983,17 @@ class Pipes:
             and video_model != "none"
             and not has_image_server_url()
         ):
+            video_in_flight = self.resource_manager.get_model_active_count(
+                ModelType.VIDEO
+            )
+            if (
+                self._video_should_unload_llm_for_generation()
+                and total_llm_in_flight > 0
+            ):
+                video_in_flight = max(video_in_flight, 1)
             cap_slots["video"] = _slot(
                 capacity=1,
-                in_flight=self.resource_manager.get_model_active_count(ModelType.VIDEO),
+                in_flight=video_in_flight,
             )
         if (
             music_enabled
@@ -8520,16 +9165,20 @@ class Pipes:
         slot_model = self._resolve_slot_model(data)
         self._increment_inference_count(slot_model)
 
-        # Mark LLM as in-use in resource manager
-        llm_model_type = (
-            ModelType.VISION_LLM if (self.llm and self.llm.is_vision) else ModelType.LLM
+        # Keep resource diagnostics accurate for the common resident-model
+        # path. Swap-mode safety is governed by the inference counter above,
+        # because the model resource itself may be replaced during this call.
+        initial_llm_type = (
+            ModelType.VISION_LLM
+            if (self.llm and getattr(self.llm, "is_vision", False))
+            else ModelType.LLM
         )
-        self.resource_manager.mark_model_in_use(llm_model_type, True)
+        self.resource_manager.mark_model_in_use(initial_llm_type, True)
 
         inference_cleanup_deferred = False
 
         def finish_inference():
-            self.resource_manager.mark_model_in_use(llm_model_type, False)
+            self.resource_manager.mark_model_in_use(initial_llm_type, False)
             self._decrement_inference_count(slot_model)
 
             if self.current_context and self.current_context > self._optimal_context:

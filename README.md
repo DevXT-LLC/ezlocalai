@@ -196,6 +196,38 @@ When fallback is triggered to another ezlocalai instance, these endpoints are au
 
 For OpenAI-compatible APIs, only chat completions and embeddings are forwarded.
 
+## On-Demand LLM Residency
+
+`DEFAULT_MODEL` accepts a comma-separated model list. With
+`LLM_MODEL_RESIDENCY=auto`, ezlocalai estimates each configured model's GPU
+footprint at startup. Models remain resident together when they fit; when models
+assigned to the same GPU exceed its usable VRAM, only the first model is loaded
+at startup. Requesting another configured model unloads the idle resident model,
+loads the requested model, and leaves it resident until a different model is
+requested.
+
+```bash
+DEFAULT_MODEL=unsloth/Qwen3.8-27B-GGUF,unsloth/Qwen3.6-35B-A3B-MTP-GGUF
+LLM_MODEL_RESIDENCY=auto
+LLM_MODEL_RESIDENCY_MARGIN_GB=1.5
+```
+
+Use `LLM_MODEL_RESIDENCY=resident` to force all configured models to load
+together or `LLM_MODEL_RESIDENCY=swap` to force one-at-a-time loading. Swap mode
+serializes local text work so an active model is never unloaded mid-generation.
+The worker continues to advertise every configured model, but its heartbeat
+marks all swap-dependent model slots occupied while the resident model is in
+use.
+
+Model-only load/unload timings are exposed under `model_lifecycle` in
+`GET /v1/resources`. To alternate configured models and print those timings:
+
+```bash
+python benchmark_model_lifecycle.py \
+  --models unsloth/Qwen3.8-27B-GGUF,unsloth/Qwen3.6-35B-A3B-MTP-GGUF \
+  --rounds 2
+```
+
 ## Embeddings
 
 ezlocalai serves `/v1/embeddings` with a dedicated GGUF embedding model, independent
@@ -237,10 +269,26 @@ Set `IMAGE_ENABLED=true` with `IMG_MODEL` to serve local image generation, or
 `VIDEO_ENABLED=true` to serve local video generation. When `VIDEO_MODEL` is
 omitted or blank, ezlocalai defaults to `unsloth/LTX-2.3-GGUF`. Enabled media
 models report `image` or `video` capacity to the router. They warm-load and stay
-resident when enough GPU headroom is available; on single-GPU LLM workers, video
-can lazy-load after the LLM handoff so LTX initializes with freed VRAM. Workers
+resident when enough GPU headroom is available; on single-GPU LLM workers, image
+and video models can lazy-load after an LLM handoff so their pipelines initialize
+with freed VRAM. Workers
 with an `IMAGE_SERVER` URL configured still delegate media requests instead of
 loading local models.
+
+For image generation, the default handoff policy is:
+
+```bash
+IMAGE_UNLOAD_LLM_DURING_GENERATION=auto
+IMAGE_RELOAD_LLM_AFTER_GENERATION=true
+IMAGE_WAIT_FOR_LLM_IDLE_TIMEOUT=60
+IMAGE_MODEL_MIN_FREE_GB=6
+```
+
+In `auto` mode, a single-GPU worker keeps FLUX beside the LLM when there is enough
+free VRAM. Otherwise it waits for active LLM inference to finish, marks text and
+vision temporarily unavailable, unloads the LLM and idle auxiliary GPU models,
+loads FLUX, generates the image, unloads FLUX, and restores the exact LLM
+residency that existed before the handoff.
 
 On a single-GPU worker, leave `VIDEO_UNLOAD_LLM_DURING_GENERATION=auto`. When a
 resident LLM is occupying the only GPU, ezlocalai marks the text/vision slots
@@ -304,6 +352,11 @@ On smaller single-GPU nodes, leave
 marks the worker's text/vision slots unavailable, unloads resident LLMs before
 generation, runs the music job, then reloads persistent LLMs when
 `MUSIC_RELOAD_LLM_AFTER_GENERATION=true`.
+
+Worker heartbeats also mark image, video, music, and combined music-video slots
+busy whenever those services require an LLM handoff and LLM inference is active.
+This prevents the router from dispatching work that cannot begin until the LLM
+becomes idle.
 
 Example request:
 

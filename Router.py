@@ -1086,12 +1086,34 @@ class WorkerInfo:
                     if router_model_key
                     else 0
                 )
+                if self.extra.get("llm_model_residency") == "swap":
+                    text_state = self._normalize_slot(self.cap_slots.get("text"))
+                    reported_busy = max(
+                        reported_busy,
+                        int(text_state.get("in_flight", 0))
+                        + int(text_state.get("queued", 0)),
+                    )
+                    router_busy = max(
+                        router_busy, self.router_cap_in_flight.get("text", 0)
+                    )
             elif cap_slot_key:
                 router_busy = self.router_cap_in_flight.get(cap_slot_key, 0)
             else:
                 # Legacy workers without detailed slot maps still rely on the
                 # worker-wide queue and reservation counters.
                 router_busy = self.router_in_flight
+
+            llm_dependencies = set(
+                self.extra.get("llm_unload_dependent_capabilities", []) or []
+            )
+            if capability in llm_dependencies:
+                text_state = self._normalize_slot(self.cap_slots.get("text"))
+                reported_busy = max(
+                    reported_busy,
+                    int(text_state.get("in_flight", 0))
+                    + int(text_state.get("queued", 0)),
+                )
+                router_busy = max(router_busy, self.router_cap_in_flight.get("text", 0))
             return max(reported_busy, int(router_busy))
         return max(
             int(self.queue_depth), int(self.in_flight), int(self.router_in_flight)
@@ -1941,6 +1963,7 @@ class WorkerHeartbeatClient:
         model_context: Dict[str, int] = {}
         model_quant: Dict[str, str] = {}
         slot_snapshot: Dict[str, Any] = {}
+        extra: Dict[str, Any] = {}
         local_pipe = None
         try:
             from Pipes import get_resource_manager  # local import: optional dep
@@ -2098,6 +2121,41 @@ class WorkerHeartbeatClient:
                 )
                 if "slot_total_in_flight" in slot_snapshot:
                     in_flight = int(slot_snapshot.get("slot_total_in_flight", 0) or 0)
+                llm_dependencies = []
+                if (
+                    hasattr(pipe, "_image_should_unload_llm_for_generation")
+                    and pipe._image_should_unload_llm_for_generation()
+                ):
+                    llm_dependencies.append("image")
+                if (
+                    hasattr(pipe, "_video_should_unload_llm_for_generation")
+                    and pipe._video_should_unload_llm_for_generation()
+                ):
+                    llm_dependencies.append("video")
+                if (
+                    hasattr(pipe, "_music_should_unload_llm_for_generation")
+                    and pipe._music_should_unload_llm_for_generation()
+                ):
+                    llm_dependencies.append("music")
+                if "video" in llm_dependencies and "music" in llm_dependencies:
+                    llm_dependencies.append("music_video")
+                extra = {
+                    "llm_model_residency": getattr(
+                        pipe, "llm_model_residency", "resident"
+                    ),
+                    "loaded_llms": [
+                        _resolve_public_model_name(pipe, str(model_id))
+                        for model_id, instance in dict(
+                            getattr(pipe, "persistent_llms", {}) or {}
+                        ).items()
+                        if instance is not None
+                    ],
+                    "active_llm": _resolve_public_model_name(
+                        pipe, str(getattr(pipe, "current_llm_name", "") or "")
+                    )
+                    or None,
+                    "llm_unload_dependent_capabilities": llm_dependencies,
+                }
         except Exception:
             pass
 
@@ -2164,6 +2222,7 @@ class WorkerHeartbeatClient:
             "model_quant": model_quant,
             "cap_models": cap_models,
             "version": version,
+            "extra": extra,
         }
 
     async def _post(self, path: str, payload: Dict[str, Any]) -> Tuple[bool, Any]:

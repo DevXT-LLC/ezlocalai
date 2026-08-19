@@ -1,4 +1,5 @@
 import asyncio
+import inspect
 import logging
 import time
 import uuid
@@ -241,6 +242,13 @@ class RequestQueue:
                 logging.debug(
                     f"[RequestQueue] Request {request.id} future already done (likely timed out), skipping set_result"
                 )
+                # A local streaming response is lazy: Pipes has already marked
+                # its inference slot active, but generation has not necessarily
+                # started yet. If the HTTP waiter timed out or disconnected,
+                # discarding that response without closing it permanently leaks
+                # the worker's inference/resource counters.
+                await self._close_abandoned_result(result)
+                request.result = None
 
             self.total_processed += 1
 
@@ -280,6 +288,32 @@ class RequestQueue:
 
         finally:
             self.processing_count -= 1
+
+    @staticmethod
+    async def _close_abandoned_result(result: Any):
+        """Close lazy response objects that no longer have an HTTP consumer."""
+        candidates = result if isinstance(result, (tuple, list)) else (result,)
+        seen = set()
+        for candidate in candidates:
+            if candidate is None or id(candidate) in seen:
+                continue
+            seen.add(id(candidate))
+            try:
+                close = getattr(candidate, "close", None)
+                if close is not None:
+                    closed = close()
+                    if inspect.isawaitable(closed):
+                        await closed
+                    continue
+                aclose = getattr(candidate, "aclose", None)
+                if aclose is not None:
+                    closed = aclose()
+                    if inspect.isawaitable(closed):
+                        await closed
+            except Exception as exc:
+                logging.debug(
+                    "[RequestQueue] Failed to close abandoned result: %s", exc
+                )
 
     def is_still_queued(self, request_id: str) -> bool:
         """Check if a request is still waiting in queue (not yet processing)."""
