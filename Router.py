@@ -1220,15 +1220,25 @@ class WorkerInfo:
         """
         busy = self.effective_busy(capability=capability, model=model)
         slots_left = self.slots_left(capability=capability, model=model)
+        # Managed providers advertise large concurrency pools. Capacity must
+        # be enforced and displayed, but it must not overwhelm compute-tier
+        # ordering (e.g. 1,000 t39 slots outranking a t45 provider). Their
+        # tier remains stable until the pool is actually saturated.
+        if self.external_fallback:
+            slot_score = 5.0 if slots_left > 0 else 0.0
+            busy_penalty = 0.0
+        else:
+            slot_score = slots_left * 5.0
+            busy_penalty = busy * 4.0
         # Failure penalty decays as the counter grows (caps the impact). New
         # failures bias routing away briefly without permanently sidelining
         # a high-tier worker that may have just had a transient hiccup.
         failure_penalty = min(self.connection_failures, 3) * 5.0
         return (
             self.priority_tier * 10.0
-            + slots_left * 5.0
+            + slot_score
             + self.free_vram_gb
-            - busy * 4.0
+            - busy_penalty
             - failure_penalty
         )
 

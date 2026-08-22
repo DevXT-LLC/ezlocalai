@@ -501,6 +501,22 @@ so a configured account does not remain at `Balance pending` after deployment.
 A key without account-read permission leaves the balance display pending
 without affecting inference. Chutes is advertised with 100 concurrent slots.
 
+To add a lower-priority OpenRouter overflow pool, configure its key and
+optional model override:
+
+```bash
+OPENROUTER_API_KEY=sk-or-v1-your-key
+OPENROUTER_MODEL=qwen/qwen3.8-27b
+```
+
+The router adds `OpenRouter.ai` as a persistent tier-39 text/vision provider
+with 1,000 tracked concurrent slots. The normal order is internal t45-or-faster
+GPUs, Chutes t45, then OpenRouter t39. OpenRouter request/token usage appears in
+the same dashboard tables, and remaining credits are loaded at startup and
+refreshed after successful OpenRouter requests. Its hosted Qwen model is folded
+into the same `Qwen3.8-27B` dashboard group as the local GGUF and Chutes TEE
+variants.
+
 Clients can opt out of managed fallback for an individual chat completion:
 
 ```json
@@ -511,10 +527,10 @@ Clients can opt out of managed fallback for an individual chat completion:
 }
 ```
 
-With `disable_fallback=true`, the request excludes Chutes and waits without a
-router-side deadline until an internal worker is available. The flag is also
-honored by a directly addressed ezlocalai worker, preventing its configured
-`FALLBACK_SERVER` from being used for that request.
+With `disable_fallback=true`, the request excludes Chutes and OpenRouter and
+waits without a router-side deadline until an internal worker is available.
+The flag is also honored by a directly addressed ezlocalai worker, preventing
+its configured `FALLBACK_SERVER` from being used for that request.
 
 The router listens on port `8092` by default and exposes the same OpenAI-compatible endpoints as a normal ezlocalai server, plus:
 
@@ -566,7 +582,7 @@ curl https://router.you.com:8092/v1/chat/completions \
   -d '{"model":"unsloth/Qwen3.6-35B-A3B-GGUF","messages":[{"role":"user","content":"Hi"}]}'
 ```
 
-The router picks the highest-scoring idle compatible worker at request time. If the fastest worker is already handling a request, the router spills over immediately to the best idle worker that can serve the request. If Chutes is configured, it is an overflow candidate at t45 after comparable or faster internal workers are occupied. If no compatible text/vision worker is free, it queues the request until a worker becomes available when `ROUTER_WAIT_TIMEOUT=0`, or waits up to the configured positive timeout before returning `503`.
+The router picks the highest-scoring idle compatible worker at request time. If the fastest worker is already handling a request, the router spills over immediately to the best idle worker that can serve the request. Chutes is a t45 overflow pool after comparable or faster internal workers are occupied, and OpenRouter is the final managed pool at t39. If no compatible text/vision worker is free, it queues the request until a worker becomes available when `ROUTER_WAIT_TIMEOUT=0`, or waits up to the configured positive timeout before returning `503`.
 
 ### Reverse tunnel (workers without a public IP)
 

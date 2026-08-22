@@ -130,6 +130,9 @@ def getenv(var_name: str, default_value: str = None) -> str:
         # persistent text/vision node at compute tier 45.
         "CHUTES_API_KEY": "",
         "CHUTES_MODEL": "Qwen/Qwen3.8-27B-TEE",
+        # Router-only OpenRouter overflow, below local GPUs and Chutes.
+        "OPENROUTER_API_KEY": "",
+        "OPENROUTER_MODEL": "qwen/qwen3.8-27b",
         # Minimum combined free memory (VRAM + RAM) in GB before falling back to remote server
         # Models can offload to RAM, so combined memory is more accurate than VRAM alone
         "FALLBACK_MEMORY_THRESHOLD": "1.0",

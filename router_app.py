@@ -113,7 +113,15 @@ CHUTES_CHAT_PATH = "/v1/chat/completions"
 CHUTES_ACCOUNT_URL = "https://api.chutes.ai/users/me"
 CHUTES_TIER = 45
 CHUTES_CAPACITY = 100
-_chutes_balance_tasks: set[asyncio.Task] = set()
+OPENROUTER_WORKER_ID = "external-openrouter"
+OPENROUTER_LABEL = "OpenRouter.ai"
+OPENROUTER_BASE_URL = "https://openrouter.ai/api"
+OPENROUTER_CHAT_PATH = "/v1/chat/completions"
+OPENROUTER_CREDITS_URL = "https://openrouter.ai/api/v1/credits"
+OPENROUTER_KEY_URL = "https://openrouter.ai/api/v1/key"
+OPENROUTER_TIER = 39
+OPENROUTER_CAPACITY = 1000
+_external_balance_tasks: set[asyncio.Task] = set()
 
 
 def _truthy(value: Any) -> bool:
@@ -127,6 +135,10 @@ def _truthy(value: Any) -> bool:
 
 def _is_chutes_worker(worker: WorkerInfo) -> bool:
     return str(worker.external_provider or "").lower() == "chutes"
+
+
+def _is_openrouter_worker(worker: WorkerInfo) -> bool:
+    return str(worker.external_provider or "").lower() == "openrouter"
 
 
 def _build_chutes_worker(
@@ -188,12 +200,76 @@ def _sync_chutes_worker() -> Optional[WorkerInfo]:
     return registered
 
 
-async def _initialize_chutes_worker() -> Optional[WorkerInfo]:
-    """Register Chutes and seed its balance before the router becomes ready."""
-    worker = _sync_chutes_worker()
-    if worker is not None:
-        await _refresh_chutes_balance(worker)
-    return worker
+def _build_openrouter_worker(
+    api_key: Optional[str] = None,
+    model: Optional[str] = None,
+) -> Optional[WorkerInfo]:
+    """Build the persistent router-side OpenRouter overflow worker, if enabled."""
+    key = (getenv("OPENROUTER_API_KEY") if api_key is None else api_key) or ""
+    key = str(key).strip()
+    if not key or key.lower() == "none":
+        return None
+    configured_model = (
+        (getenv("OPENROUTER_MODEL") if model is None else model) or ""
+    ).strip() or "qwen/qwen3.8-27b"
+    idle_slot = {
+        "capacity": OPENROUTER_CAPACITY,
+        "in_flight": 0,
+        "queued": 0,
+        "available": OPENROUTER_CAPACITY,
+    }
+    return WorkerInfo(
+        worker_id=OPENROUTER_WORKER_ID,
+        label=OPENROUTER_LABEL,
+        url=OPENROUTER_BASE_URL,
+        api_key=key,
+        capabilities=["text", "vision"],
+        models=[configured_model],
+        queue_capacity=OPENROUTER_CAPACITY,
+        cap_slots={"text": dict(idle_slot), "vision": dict(idle_slot)},
+        model_slots={configured_model: dict(idle_slot)},
+        gpus=[
+            {
+                "index": 0,
+                "name": "OpenRouter API",
+                "total_vram_gb": 0.0,
+                "tier": OPENROUTER_TIER,
+                "backend": "api",
+            }
+        ],
+        best_tier=OPENROUTER_TIER,
+        external_provider="openrouter",
+        external_fallback=True,
+        persistent=True,
+    )
+
+
+def _sync_openrouter_worker() -> Optional[WorkerInfo]:
+    """Register or remove the OpenRouter virtual worker from env config."""
+    registry = get_registry()
+    worker = _build_openrouter_worker()
+    if worker is None:
+        registry.deregister(OPENROUTER_WORKER_ID)
+        return None
+    registered = registry.register(worker)
+    logging.info(
+        f"[Router] OpenRouter overflow enabled: model={registered.models[0]} "
+        f"tier={registered.best_tier} "
+        f"endpoint={OPENROUTER_BASE_URL}{OPENROUTER_CHAT_PATH}"
+    )
+    return registered
+
+
+async def _initialize_external_workers() -> List[WorkerInfo]:
+    """Register managed providers and seed balances before router readiness."""
+    workers = [
+        worker
+        for worker in (_sync_chutes_worker(), _sync_openrouter_worker())
+        if worker is not None
+    ]
+    if workers:
+        await asyncio.gather(*(_refresh_external_balance(worker) for worker in workers))
+    return workers
 
 
 # ---------------------------------------------------------------------------
@@ -896,7 +972,7 @@ async def _usage_flush_loop():
 async def _startup():
     global _pruner_task, _usage_flush_task
     _usage.load()
-    await _initialize_chutes_worker()
+    await _initialize_external_workers()
     if _pruner_task is None or _pruner_task.done():
         _pruner_task = asyncio.create_task(_pruner_loop())
     if _usage_flush_task is None or _usage_flush_task.done():
@@ -3025,48 +3101,97 @@ def _chutes_balance_from_payload(payload: Any) -> Optional[float]:
     return None
 
 
-async def _refresh_chutes_balance(worker: WorkerInfo) -> Optional[float]:
-    """Refresh and cache Chutes USD balance after an inference completes."""
-    if not _is_chutes_worker(worker) or not worker.api_key:
+def _openrouter_balance_from_payload(payload: Any) -> Optional[float]:
+    """Extract remaining USD from OpenRouter credits or current-key data."""
+    data = payload.get("data") if isinstance(payload, dict) else None
+    if not isinstance(data, dict):
+        return None
+
+    def _number(key: str) -> Optional[float]:
+        value = data.get(key)
+        if isinstance(value, bool) or value is None:
+            return None
+        try:
+            parsed = float(value)
+        except (TypeError, ValueError):
+            return None
+        return parsed if parsed == parsed and abs(parsed) != float("inf") else None
+
+    total_credits = _number("total_credits")
+    total_usage = _number("total_usage")
+    if total_credits is not None and total_usage is not None:
+        return total_credits - total_usage
+    limit_remaining = _number("limit_remaining")
+    if limit_remaining is not None:
+        return limit_remaining
+    limit_value = _number("limit")
+    usage = _number("usage")
+    if limit_value is not None and usage is not None:
+        return limit_value - usage
+    return None
+
+
+def _external_balance_endpoints(worker: WorkerInfo) -> List[str]:
+    if _is_chutes_worker(worker):
+        return [CHUTES_ACCOUNT_URL]
+    if _is_openrouter_worker(worker):
+        # Credits is the account balance. Current-key metadata is a fallback
+        # for scoped keys that expose only their own spending limit.
+        return [OPENROUTER_CREDITS_URL, OPENROUTER_KEY_URL]
+    return []
+
+
+def _external_balance_from_payload(worker: WorkerInfo, payload: Any) -> Optional[float]:
+    if _is_chutes_worker(worker):
+        return _chutes_balance_from_payload(payload)
+    if _is_openrouter_worker(worker):
+        return _openrouter_balance_from_payload(payload)
+    return None
+
+
+async def _refresh_external_balance(worker: WorkerInfo) -> Optional[float]:
+    """Refresh and cache managed-provider USD balance."""
+    endpoints = _external_balance_endpoints(worker)
+    if not endpoints or not worker.api_key:
         return None
     timeout = aiohttp.ClientTimeout(total=10, connect=5)
     try:
         async with aiohttp.ClientSession(timeout=timeout) as session:
-            async with session.get(
-                CHUTES_ACCOUNT_URL, headers=_worker_headers(worker)
-            ) as resp:
-                if resp.status >= 400:
-                    logging.info(
-                        f"[Router] Chutes balance refresh returned HTTP {resp.status}; "
-                        "keeping the cached balance"
-                    )
-                    return worker.external_balance_usd
-                payload = await resp.json(content_type=None)
-        balance = _chutes_balance_from_payload(payload)
-        if balance is None:
-            logging.info(
-                "[Router] Chutes balance response had no numeric balance; "
-                "keeping the cached balance"
-            )
-            return worker.external_balance_usd
-        worker.external_balance_usd = balance
-        worker.external_balance_updated_at = time.time()
-        return balance
+            statuses = []
+            for endpoint in endpoints:
+                async with session.get(
+                    endpoint, headers=_worker_headers(worker)
+                ) as resp:
+                    statuses.append(resp.status)
+                    if resp.status >= 400:
+                        continue
+                    payload = await resp.json(content_type=None)
+                balance = _external_balance_from_payload(worker, payload)
+                if balance is not None:
+                    worker.external_balance_usd = balance
+                    worker.external_balance_updated_at = time.time()
+                    return balance
+        logging.info(
+            f"[Router] {worker.label} balance refresh returned no usable balance "
+            f"(statuses={statuses}); keeping the cached balance"
+        )
+        return worker.external_balance_usd
     except Exception as e:
         logging.info(
-            f"[Router] Chutes balance refresh failed ({type(e).__name__}: {e}); "
+            f"[Router] {worker.label} balance refresh failed "
+            f"({type(e).__name__}: {e}); "
             "keeping the cached balance"
         )
         return worker.external_balance_usd
 
 
-def _schedule_chutes_balance_refresh(worker: WorkerInfo) -> None:
+def _schedule_external_balance_refresh(worker: WorkerInfo) -> None:
     """Refresh balance in the background without delaying the client response."""
-    if not _is_chutes_worker(worker):
+    if not worker.external_fallback:
         return
-    task = asyncio.create_task(_refresh_chutes_balance(worker))
-    _chutes_balance_tasks.add(task)
-    task.add_done_callback(_chutes_balance_tasks.discard)
+    task = asyncio.create_task(_refresh_external_balance(worker))
+    _external_balance_tasks.add(task)
+    task.add_done_callback(_external_balance_tasks.discard)
 
 
 def _worker_json_payload(
@@ -3074,15 +3199,22 @@ def _worker_json_payload(
 ) -> Dict[str, Any]:
     """Return the request body adapted for a selected worker."""
     forwarded = dict(payload)
-    if not _is_chutes_worker(worker):
+    if not worker.external_fallback:
         return forwarded
 
     # This flag belongs to ezlocalai routing and is not part of OpenAI's API.
     forwarded.pop("disable_fallback", None)
-    forwarded["model"] = str(
-        worker.models[0] if worker.models else getenv("CHUTES_MODEL")
-    )
-    if path == CHUTES_CHAT_PATH and _truthy(forwarded.get("stream")):
+    if worker.models:
+        forwarded["model"] = str(worker.models[0])
+    elif _is_openrouter_worker(worker):
+        forwarded["model"] = getenv("OPENROUTER_MODEL")
+    else:
+        forwarded["model"] = getenv("CHUTES_MODEL")
+    if (
+        _is_chutes_worker(worker)
+        and path == CHUTES_CHAT_PATH
+        and _truthy(forwarded.get("stream"))
+    ):
         # Ask the OpenAI-compatible stream for the terminal usage block so the
         # normal router accounting records Chutes input/output tokens.
         stream_options = dict(forwarded.get("stream_options") or {})
@@ -3092,7 +3224,7 @@ def _worker_json_payload(
 
 
 def _worker_usage_model(worker: WorkerInfo, requested_model: str) -> str:
-    if _is_chutes_worker(worker):
+    if worker.external_fallback:
         return str(worker.models[0] if worker.models else requested_model)
     return requested_model
 
@@ -3601,7 +3733,7 @@ async def _llm_stream_with_worker_failover(
             if assistant_seen:
                 timings["total_ms"] = (time.monotonic() - request_started) * 1000.0
                 await _record_llm_usage(worker, model, pt, ct, timings)
-                _schedule_chutes_balance_refresh(worker)
+                _schedule_external_balance_refresh(worker)
                 return
             last_error = "worker stream completed without assistant text"
             get_registry().record_error(
@@ -4098,7 +4230,7 @@ async def _llm_proxy_with_retry(
             timings["total_ms"] = (time.monotonic() - request_started) * 1000.0
             if int(status or 0) < 400:
                 await _record_llm_usage(worker, model, pt, ct, timings)
-                _schedule_chutes_balance_refresh(worker)
+                _schedule_external_balance_refresh(worker)
             return resp
 
     # Exhausted retries

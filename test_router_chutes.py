@@ -225,17 +225,18 @@ class ChutesWorkerTests(unittest.TestCase):
 
 
 class ChutesRoutingRequestTests(unittest.IsolatedAsyncioTestCase):
-    async def test_initializer_seeds_balance_after_registration(self):
+    async def test_initializer_seeds_chutes_balance_after_registration(self):
         worker = router_app._build_chutes_worker(api_key="cpk_test")
         refresh = AsyncMock(return_value=14.5)
 
         with (
             patch("router_app._sync_chutes_worker", return_value=worker),
-            patch("router_app._refresh_chutes_balance", refresh),
+            patch("router_app._sync_openrouter_worker", return_value=None),
+            patch("router_app._refresh_external_balance", refresh),
         ):
-            initialized = await router_app._initialize_chutes_worker()
+            initialized = await router_app._initialize_external_workers()
 
-        self.assertIs(initialized, worker)
+        self.assertEqual(initialized, [worker])
         refresh.assert_awaited_once_with(worker)
 
     async def test_balance_refresh_caches_users_me_response(self):
@@ -266,7 +267,7 @@ class ChutesRoutingRequestTests(unittest.IsolatedAsyncioTestCase):
                 return FakeResponse()
 
         with patch("router_app.aiohttp.ClientSession", return_value=FakeSession()):
-            balance = await router_app._refresh_chutes_balance(worker)
+            balance = await router_app._refresh_external_balance(worker)
 
         self.assertEqual(balance, 27.125)
         self.assertEqual(worker.external_balance_usd, 27.125)
@@ -286,7 +287,7 @@ class ChutesRoutingRequestTests(unittest.IsolatedAsyncioTestCase):
             patch("router_app._pick", AsyncMock(return_value=worker)),
             patch("router_app._proxy_json", AsyncMock(return_value=response)),
             patch("router_app._record_llm_usage", AsyncMock()),
-            patch("router_app._schedule_chutes_balance_refresh") as refresh,
+            patch("router_app._schedule_external_balance_refresh") as refresh,
         ):
             result = await router_app._llm_proxy_with_retry(
                 capability="text",

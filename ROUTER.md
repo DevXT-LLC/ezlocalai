@@ -39,9 +39,19 @@ local workers. Internal t45-or-faster workers win while available; Chutes is
 used when they are occupied. The worker row caches the remaining Chutes USD
 balance, seeded at router startup and refreshed after successful Chutes
 inference requests. Its model is advertised with 100 concurrent slots. Send
-`"disable_fallback": true` in a
-`/v1/chat/completions` body to exclude Chutes and wait for internal resources
-without a router-side timeout.
+the OpenRouter key to add a final tier-39 pool with 1,000 slots:
+
+```bash
+OPENROUTER_API_KEY="sk-or-v1-your-key"
+# OPENROUTER_MODEL="qwen/qwen3.8-27b"
+```
+
+OpenRouter receives traffic after internal t45-or-faster GPUs and Chutes. Its
+remaining credits, requests, and tokens use the same dashboard accounting, and
+its Qwen model shares the `Qwen3.8-27B` grouping. Send
+`"disable_fallback": true` in a `/v1/chat/completions` body to exclude both
+managed providers and wait for internal resources without a router-side
+timeout.
 
 Then run the router server
 

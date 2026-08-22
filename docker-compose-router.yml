@@ -34,6 +34,9 @@ services:
       # faster internal workers are occupied.
       - CHUTES_API_KEY=${CHUTES_API_KEY-}
       - CHUTES_MODEL=${CHUTES_MODEL-Qwen/Qwen3.8-27B-TEE}
+      # Lower-priority managed overflow after local GPUs and Chutes.
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY-}
+      - OPENROUTER_MODEL=${OPENROUTER_MODEL-qwen/qwen3.8-27b}
       - LOG_LEVEL=${LOG_LEVEL-INFO}
       - HOST=0.0.0.0
       - PORT=8092
