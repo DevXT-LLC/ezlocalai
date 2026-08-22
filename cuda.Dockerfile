@@ -60,7 +60,7 @@ ENV HOST=0.0.0.0 \
     HF_HUB_CACHE=/app/models \
     ACE_STEP_BIN=/opt/acestep.cpp/build/ace-server
 # Install xllamacpp with CUDA 12.8 support (compatible with CUDA 12.9)
-RUN uv pip install xllamacpp==2026.8.10229 --reinstall --index-url https://xorbitsai.github.io/xllamacpp/whl/cu128
+RUN uv pip install xllamacpp==2026.8.10566 --reinstall --index-url https://xorbitsai.github.io/xllamacpp/whl/cu128
 COPY . .
 EXPOSE 8091
 # Use start.py which runs precache once, then starts uvicorn workers
