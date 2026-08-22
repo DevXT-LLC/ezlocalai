@@ -75,6 +75,24 @@ class Qwen38ModelConfigTests(unittest.TestCase):
             {"enable_thinking": True, "reasoning_effort": "medium"},
         )
 
+    def test_qwen38_standard_reasoning_object_controls_local_thinking(self):
+        configured = self._apply(
+            {"reasoning": {"enabled": False, "effort": "low", "exclude": True}}
+        )
+
+        self.assertEqual(configured["temperature"], 0.7)
+        self.assertEqual(configured["chat_template_kwargs"], {"enable_thinking": False})
+        self.assertEqual(
+            configured["reasoning"],
+            {"enabled": False, "effort": "low", "exclude": True},
+        )
+
+    def test_qwen38_string_false_disables_thinking(self):
+        configured = self._apply({"reasoning": {"enabled": "false"}})
+
+        self.assertFalse(configured["chat_template_kwargs"]["enable_thinking"])
+        self.assertEqual(configured["temperature"], 0.7)
+
     def test_qwen38_uses_recommended_instruct_settings_when_thinking_is_off(self):
         configured = self._apply(
             {

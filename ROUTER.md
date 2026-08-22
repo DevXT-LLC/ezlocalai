@@ -31,6 +31,7 @@ defaults to `Qwen/Qwen3.8-27B-TEE` when omitted:
 ```bash
 CHUTES_API_KEY="cpk_your-chutes-key"
 # CHUTES_MODEL="Qwen/Qwen3.8-27B-TEE"
+# CHUTES_MODEL="Qwen/Qwen3.8-27B-TEE,another/model"
 ```
 
 The router exposes Chutes as a persistent t45 worker on the dashboard and
@@ -44,6 +45,7 @@ the OpenRouter key to add a final tier-39 pool with 1,000 slots:
 ```bash
 OPENROUTER_API_KEY="sk-or-v1-your-key"
 # OPENROUTER_MODEL="qwen/qwen3.8-27b"
+# OPENROUTER_MODEL="qwen/qwen3.8-27b,another/model"
 ```
 
 OpenRouter receives traffic after internal t45-or-faster GPUs and Chutes. Its
@@ -52,6 +54,15 @@ its Qwen model shares the `Qwen3.8-27B` grouping. Send
 `"disable_fallback": true` in a `/v1/chat/completions` body to exclude both
 managed providers and wait for internal resources without a router-side
 timeout.
+
+Both model variables accept deduplicated comma-separated lists. The router
+advertises each model, forwards the exact matching provider model ID, and keeps
+one shared provider capacity pool (100 for Chutes, 1,000 for OpenRouter).
+Chat-generation settings are preserved across fallback. Qwen3.8 receives the
+same local thinking/instruct sampling profile, with `chat_template_kwargs`,
+`reasoning`, and `reasoning_effort` translated to the provider-native thinking
+control. Token limits, streaming, stop/seed, tools, tool choice, structured
+outputs, and other supported sampling options pass through unchanged.
 
 Then run the router server
 

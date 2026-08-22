@@ -53,6 +53,18 @@ class ChutesWorkerTests(unittest.TestCase):
         self.assertIsNone(router_app._build_chutes_worker(api_key=""))
         self.assertIsNone(router_app._build_chutes_worker(api_key="none"))
 
+    def test_comma_separated_models_are_trimmed_deduplicated_and_advertised(self):
+        worker = router_app._build_chutes_worker(
+            api_key="cpk_test",
+            model=" Qwen/Qwen3.8-27B-TEE, Qwen/Qwen3.5-27B, qwen/qwen3.8-27b-tee ",
+        )
+
+        self.assertEqual(
+            worker.models,
+            ["Qwen/Qwen3.8-27B-TEE", "Qwen/Qwen3.5-27B"],
+        )
+        self.assertEqual(set(worker.model_slots), set(worker.models))
+
     def test_local_t50_worker_is_preferred_before_chutes_t45(self):
         registry = WorkerRegistry(ttl_seconds=60)
         local = registry.register(_local_qwen_worker())
@@ -154,6 +166,50 @@ class ChutesWorkerTests(unittest.TestCase):
         self.assertTrue(forwarded["stream_options"]["some_option"])
         self.assertEqual(original["model"], "local/model")
         self.assertIn("disable_fallback", original)
+
+    def test_payload_selects_matching_model_from_configured_list(self):
+        worker = router_app._build_chutes_worker(
+            api_key="cpk_test",
+            model="Qwen/Qwen3.8-27B-TEE,Qwen/Qwen3.5-27B",
+        )
+
+        forwarded = router_app._worker_json_payload(
+            worker,
+            "/v1/chat/completions",
+            {"model": "Qwen/Qwen3.5-27B", "messages": []},
+        )
+
+        self.assertEqual(forwarded["model"], "Qwen/Qwen3.5-27B")
+        self.assertEqual(
+            router_app._worker_usage_model(worker, "Qwen/Qwen3.5-27B"),
+            "Qwen/Qwen3.5-27B",
+        )
+
+    def test_qwen_payload_preserves_profile_and_vllm_thinking_control(self):
+        worker = router_app._build_chutes_worker(api_key="cpk_test")
+
+        forwarded = router_app._worker_json_payload(
+            worker,
+            "/v1/chat/completions",
+            {
+                "model": "qwen/qwen3.8-27b",
+                "messages": [],
+                "reasoning": {"enabled": False, "effort": "low"},
+                "max_tokens": 123,
+                "seed": 42,
+            },
+        )
+
+        self.assertNotIn("reasoning", forwarded)
+        self.assertEqual(forwarded["chat_template_kwargs"], {"enable_thinking": False})
+        self.assertEqual(forwarded["temperature"], 0.7)
+        self.assertEqual(forwarded["top_p"], 0.8)
+        self.assertEqual(forwarded["top_k"], 20)
+        self.assertEqual(forwarded["min_p"], 0.0)
+        self.assertEqual(forwarded["presence_penalty"], 1.5)
+        self.assertEqual(forwarded["repetition_penalty"], 1.0)
+        self.assertEqual(forwarded["max_tokens"], 123)
+        self.assertEqual(forwarded["seed"], 42)
 
     def test_internal_worker_receives_disable_fallback_flag(self):
         internal = _local_qwen_worker()

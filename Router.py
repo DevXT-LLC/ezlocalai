@@ -134,6 +134,11 @@ def _model_name_matches(requested: Optional[str], served: Optional[str]) -> bool
     return bool(req_short and req_short in srv)
 
 
+def model_name_matches(requested: Optional[str], served: Optional[str]) -> bool:
+    """Public model-alias matcher shared with provider request adaptation."""
+    return _model_name_matches(requested, served)
+
+
 def _clean_version(value: Optional[str]) -> str:
     value = (value or "").strip()
     if not value or value.lower() in {"none", "null", "unknown", "undefined"}:
@@ -1109,6 +1114,20 @@ class WorkerInfo:
                     if router_model_key
                     else 0
                 )
+                if self.external_fallback:
+                    # Managed providers expose one shared concurrency pool even
+                    # when several configured model IDs are advertised. A busy
+                    # slot for model A must also consume the provider-wide pool
+                    # seen by model B.
+                    cap_state = self._normalize_slot(
+                        self.cap_slots.get(capability or "text")
+                    )
+                    reported_busy = max(
+                        reported_busy,
+                        int(cap_state.get("in_flight", 0))
+                        + int(cap_state.get("queued", 0)),
+                    )
+                    router_busy = max(router_busy, self.router_in_flight)
                 if self.extra.get("llm_model_residency") == "swap":
                     text_state = self._normalize_slot(self.cap_slots.get("text"))
                     reported_busy = max(

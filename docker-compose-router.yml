@@ -56,6 +56,7 @@ services:
       - "8092:8092"
     volumes:
       - ./Router.py:/app/Router.py:ro
+      - ./ModelSettings.py:/app/ModelSettings.py:ro
       - ./router_app.py:/app/router_app.py:ro
       - ./data:/data
       - ./router-outputs:/app/outputs

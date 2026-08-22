@@ -64,6 +64,7 @@ from fastapi.responses import HTMLResponse, JSONResponse, Response, StreamingRes
 from fastapi.staticfiles import StaticFiles
 
 from Globals import getenv
+from ModelSettings import apply_qwen38_model_settings, is_qwen38_model
 from Router import (
     Router,
     TUNNEL_TIER_PENALTY,
@@ -73,6 +74,7 @@ from Router import (
     get_registry,
     get_router,
     get_runtime_version,
+    model_name_matches,
 )
 from Tunnel import (
     TunnelConnection,
@@ -141,6 +143,32 @@ def _is_openrouter_worker(worker: WorkerInfo) -> bool:
     return str(worker.external_provider or "").lower() == "openrouter"
 
 
+def _configured_models(value: Any, default: str) -> List[str]:
+    """Parse a comma-separated provider model setting, preserving order."""
+    raw_models = str(value or "").split(",")
+    models: List[str] = []
+    seen = set()
+    for raw_model in raw_models:
+        configured = raw_model.strip()
+        lowered = configured.lower()
+        if configured and lowered not in seen:
+            seen.add(lowered)
+            models.append(configured)
+    return models or [default]
+
+
+def _provider_model_for_request(worker: WorkerInfo, requested_model: Any) -> str:
+    """Resolve a request alias to the exact configured managed-provider ID."""
+    requested = str(requested_model or "").strip()
+    for configured in worker.models:
+        if requested and requested.lower() == configured.lower():
+            return str(configured)
+    for configured in worker.models:
+        if model_name_matches(requested, configured):
+            return str(configured)
+    return str(worker.models[0] if worker.models else requested)
+
+
 def _build_chutes_worker(
     api_key: Optional[str] = None,
     model: Optional[str] = None,
@@ -150,9 +178,10 @@ def _build_chutes_worker(
     key = str(key).strip()
     if not key or key.lower() == "none":
         return None
-    configured_model = (
-        (getenv("CHUTES_MODEL") if model is None else model) or ""
-    ).strip() or "Qwen/Qwen3.8-27B-TEE"
+    configured_models = _configured_models(
+        (getenv("CHUTES_MODEL") if model is None else model) or "",
+        "Qwen/Qwen3.8-27B-TEE",
+    )
     idle_slot = {
         "capacity": CHUTES_CAPACITY,
         "in_flight": 0,
@@ -165,10 +194,10 @@ def _build_chutes_worker(
         url=CHUTES_BASE_URL,
         api_key=key,
         capabilities=["text", "vision"],
-        models=[configured_model],
+        models=configured_models,
         queue_capacity=CHUTES_CAPACITY,
         cap_slots={"text": dict(idle_slot), "vision": dict(idle_slot)},
-        model_slots={configured_model: dict(idle_slot)},
+        model_slots={name: dict(idle_slot) for name in configured_models},
         gpus=[
             {
                 "index": 0,
@@ -194,7 +223,7 @@ def _sync_chutes_worker() -> Optional[WorkerInfo]:
         return None
     registered = registry.register(worker)
     logging.info(
-        f"[Router] Chutes overflow enabled: model={registered.models[0]} "
+        f"[Router] Chutes overflow enabled: models={registered.models} "
         f"tier={registered.best_tier} endpoint={CHUTES_BASE_URL}{CHUTES_CHAT_PATH}"
     )
     return registered
@@ -209,9 +238,10 @@ def _build_openrouter_worker(
     key = str(key).strip()
     if not key or key.lower() == "none":
         return None
-    configured_model = (
-        (getenv("OPENROUTER_MODEL") if model is None else model) or ""
-    ).strip() or "qwen/qwen3.8-27b"
+    configured_models = _configured_models(
+        (getenv("OPENROUTER_MODEL") if model is None else model) or "",
+        "qwen/qwen3.8-27b",
+    )
     idle_slot = {
         "capacity": OPENROUTER_CAPACITY,
         "in_flight": 0,
@@ -224,10 +254,10 @@ def _build_openrouter_worker(
         url=OPENROUTER_BASE_URL,
         api_key=key,
         capabilities=["text", "vision"],
-        models=[configured_model],
+        models=configured_models,
         queue_capacity=OPENROUTER_CAPACITY,
         cap_slots={"text": dict(idle_slot), "vision": dict(idle_slot)},
-        model_slots={configured_model: dict(idle_slot)},
+        model_slots={name: dict(idle_slot) for name in configured_models},
         gpus=[
             {
                 "index": 0,
@@ -253,7 +283,7 @@ def _sync_openrouter_worker() -> Optional[WorkerInfo]:
         return None
     registered = registry.register(worker)
     logging.info(
-        f"[Router] OpenRouter overflow enabled: model={registered.models[0]} "
+        f"[Router] OpenRouter overflow enabled: models={registered.models} "
         f"tier={registered.best_tier} "
         f"endpoint={OPENROUTER_BASE_URL}{OPENROUTER_CHAT_PATH}"
     )
@@ -3204,12 +3234,48 @@ def _worker_json_payload(
 
     # This flag belongs to ezlocalai routing and is not part of OpenAI's API.
     forwarded.pop("disable_fallback", None)
+    requested_model = forwarded.get("model")
     if worker.models:
-        forwarded["model"] = str(worker.models[0])
+        forwarded["model"] = _provider_model_for_request(worker, requested_model)
     elif _is_openrouter_worker(worker):
         forwarded["model"] = getenv("OPENROUTER_MODEL")
     else:
         forwarded["model"] = getenv("CHUTES_MODEL")
+
+    if path == CHUTES_CHAT_PATH and is_qwen38_model(forwarded.get("model")):
+        # Apply the same effective profile used by local Qwen3.8 workers before
+        # translating its thinking controls into each provider's API shape.
+        forwarded = apply_qwen38_model_settings(forwarded)
+
+    if path == CHUTES_CHAT_PATH and _is_openrouter_worker(worker):
+        template = forwarded.pop("chat_template_kwargs", None)
+        reasoning = forwarded.get("reasoning")
+        reasoning = dict(reasoning) if isinstance(reasoning, dict) else {}
+        if isinstance(template, dict):
+            enabled = template.get("enable_thinking")
+            effort = template.get("reasoning_effort")
+            if enabled is False:
+                reasoning["enabled"] = False
+                reasoning.pop("effort", None)
+                reasoning.pop("max_tokens", None)
+            elif enabled is True:
+                reasoning.setdefault("enabled", True)
+                if effort is not None:
+                    reasoning.setdefault("effort", effort)
+        forwarded.pop("reasoning_effort", None)
+        if reasoning:
+            forwarded["reasoning"] = reasoning
+        # OpenRouter's live model metadata does not advertise min_p.  A value
+        # of 0 disables it locally, so omitting it preserves the same behavior
+        # without sending an unsupported provider option.
+        forwarded.pop("min_p", None)
+    elif path == CHUTES_CHAT_PATH and _is_chutes_worker(worker):
+        # Chutes serves this model with vLLM, whose native flexible-thinking
+        # control is chat_template_kwargs.  The shared profile already folded
+        # standard reasoning.enabled/effort values into that mapping.
+        forwarded.pop("reasoning", None)
+        forwarded.pop("reasoning_effort", None)
+
     if (
         _is_chutes_worker(worker)
         and path == CHUTES_CHAT_PATH
@@ -3225,7 +3291,7 @@ def _worker_json_payload(
 
 def _worker_usage_model(worker: WorkerInfo, requested_model: str) -> str:
     if worker.external_fallback:
-        return str(worker.models[0] if worker.models else requested_model)
+        return _provider_model_for_request(worker, requested_model)
     return requested_model
 
 

@@ -36,6 +36,14 @@ import base64
 import pdfplumber
 import json
 from Globals import getenv
+from ModelSettings import (
+    QWEN38_INSTRUCT_SETTINGS,
+    QWEN38_MODEL,
+    QWEN38_THINKING_SETTINGS,
+    apply_qwen38_model_settings,
+    copy_settings,
+    is_qwen38_model,
+)
 import gc
 import torch
 from typing import Tuple, Optional, Dict, Any, List
@@ -3911,30 +3919,12 @@ MODEL_CONFIG_OVERRIDES = {
     },
     # Qwen3.8-27B defaults to thinking mode and bundles its MTP heads directly
     # in the standard GGUF repository (there is no separate -MTP repo suffix).
-    "unsloth/Qwen3.8-27B-GGUF": {
-        "temperature": 1.0,
-        "top_p": 0.95,
-        "top_k": 20,
-        "min_p": 0.0,
-        "presence_penalty": 0.0,
-        "repetition_penalty": 1.0,
-        "chat_template_kwargs": {
-            "enable_thinking": True,
-            "reasoning_effort": "xhigh",
-        },
-    },
+    QWEN38_MODEL: copy_settings(QWEN38_THINKING_SETTINGS),
 }
 
 
 MODEL_INSTRUCT_CONFIG_OVERRIDES = {
-    "unsloth/Qwen3.8-27B-GGUF": {
-        "temperature": 0.7,
-        "top_p": 0.8,
-        "top_k": 20,
-        "min_p": 0.0,
-        "presence_penalty": 1.5,
-        "repetition_penalty": 1.0,
-    },
+    QWEN38_MODEL: copy_settings(QWEN38_INSTRUCT_SETTINGS),
 }
 
 
@@ -8745,6 +8735,26 @@ class Pipes:
         Models with separate instruct settings select them when the effective chat
         template configuration disables thinking.
         """
+        if is_qwen38_model(self.current_llm_name):
+            configured = apply_qwen38_model_settings(data)
+            applied_settings = {
+                key: configured.get(key)
+                for key in (
+                    "temperature",
+                    "top_p",
+                    "top_k",
+                    "min_p",
+                    "presence_penalty",
+                    "repetition_penalty",
+                    "chat_template_kwargs",
+                )
+            }
+            logging.debug(
+                f"[Config] Applied shared Qwen3.8 settings for "
+                f"{self.current_llm_name}: {applied_settings}"
+            )
+            return configured
+
         if self.current_llm_name and self.current_llm_name in MODEL_CONFIG_OVERRIDES:
             overrides = MODEL_CONFIG_OVERRIDES[self.current_llm_name]
             template_config = dict(overrides.get("chat_template_kwargs", {}))

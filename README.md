@@ -485,6 +485,7 @@ key to the router's `.env` file. The model override is optional:
 ```bash
 CHUTES_API_KEY=cpk_your-key
 CHUTES_MODEL=Qwen/Qwen3.8-27B-TEE
+# Multiple models are supported: CHUTES_MODEL=model-a,model-b
 ```
 
 When the key is non-empty, the router adds a persistent `Chutes.ai` worker
@@ -500,6 +501,9 @@ the next Chutes request. The cache is also seeded once when the router starts,
 so a configured account does not remain at `Balance pending` after deployment.
 A key without account-read permission leaves the balance display pending
 without affecting inference. Chutes is advertised with 100 concurrent slots.
+`CHUTES_MODEL` accepts a comma-separated list. Every configured model is
+advertised and requests retain the matching exact Chutes model ID; all models
+share the same 100-slot provider pool.
 
 To add a lower-priority OpenRouter overflow pool, configure its key and
 optional model override:
@@ -507,6 +511,7 @@ optional model override:
 ```bash
 OPENROUTER_API_KEY=sk-or-v1-your-key
 OPENROUTER_MODEL=qwen/qwen3.8-27b
+# Multiple models are supported: OPENROUTER_MODEL=model-a,model-b
 ```
 
 The router adds `OpenRouter.ai` as a persistent tier-39 text/vision provider
@@ -516,6 +521,16 @@ the same dashboard tables, and remaining credits are loaded at startup and
 refreshed after successful OpenRouter requests. Its hosted Qwen model is folded
 into the same `Qwen3.8-27B` dashboard group as the local GGUF and Chutes TEE
 variants.
+
+`OPENROUTER_MODEL` also accepts a comma-separated list. Every configured model
+is advertised and dispatched using its matching OpenRouter ID while sharing
+the provider's 1,000 tracked slots. For both managed providers, chat requests
+preserve messages, multimodal content, streaming, token limits, temperature
+and sampling controls, stop/seed settings, tools, tool choice, and structured
+output fields. Qwen3.8 uses the same effective thinking/instruct profile as a
+local worker. The router translates ezlocalai's `chat_template_kwargs` and the
+standard `reasoning`/`reasoning_effort` controls into OpenRouter's unified
+`reasoning` object or Chutes/vLLM's chat-template options as appropriate.
 
 Clients can opt out of managed fallback for an individual chat completion:
 

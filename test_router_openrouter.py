@@ -54,6 +54,41 @@ class OpenRouterWorkerTests(unittest.TestCase):
         self.assertIsNone(router_app._build_openrouter_worker(api_key=""))
         self.assertIsNone(router_app._build_openrouter_worker(api_key="none"))
 
+    def test_comma_separated_models_are_trimmed_deduplicated_and_advertised(self):
+        worker = router_app._build_openrouter_worker(
+            api_key="sk-or-test",
+            model=" qwen/qwen3.8-27b, openai/gpt-5-mini, QWEN/QWEN3.8-27B ",
+        )
+
+        self.assertEqual(
+            worker.models,
+            ["qwen/qwen3.8-27b", "openai/gpt-5-mini"],
+        )
+        self.assertEqual(set(worker.model_slots), set(worker.models))
+        self.assertTrue(
+            all(slot["capacity"] == 1000 for slot in worker.model_slots.values())
+        )
+
+    def test_multiple_models_share_one_provider_capacity_pool(self):
+        registry = WorkerRegistry(ttl_seconds=60)
+        worker = registry.register(
+            router_app._build_openrouter_worker(
+                api_key="sk-or-test",
+                model="qwen/qwen3.8-27b,openai/gpt-5-mini",
+            )
+        )
+
+        reservation = registry.increment_in_flight(
+            worker.worker_id,
+            capability="text",
+            model="qwen/qwen3.8-27b",
+        )
+
+        self.assertIsNotNone(reservation)
+        self.assertEqual(worker.slots_left("text", "openai/gpt-5-mini"), 999)
+        self.assertEqual(worker.total_slots_left(), 999)
+        registry.release_in_flight(worker.worker_id, reservation)
+
     def test_tiers_order_local_then_chutes_then_openrouter(self):
         registry = WorkerRegistry(ttl_seconds=60)
         local = registry.register(_local_qwen_worker())
@@ -131,6 +166,102 @@ class OpenRouterWorkerTests(unittest.TestCase):
         self.assertNotIn("disable_fallback", forwarded)
         self.assertNotIn("stream_options", forwarded)
         self.assertEqual(original["model"], "local/model")
+
+    def test_payload_selects_matching_model_from_configured_list(self):
+        worker = router_app._build_openrouter_worker(
+            api_key="sk-or-test",
+            model="qwen/qwen3.8-27b,openai/gpt-5-mini",
+        )
+
+        forwarded = router_app._worker_json_payload(
+            worker,
+            "/v1/chat/completions",
+            {"model": "openai/gpt-5-mini", "messages": []},
+        )
+
+        self.assertEqual(forwarded["model"], "openai/gpt-5-mini")
+        self.assertEqual(
+            router_app._worker_usage_model(worker, "openai/gpt-5-mini"),
+            "openai/gpt-5-mini",
+        )
+
+    def test_non_qwen_model_preserves_explicit_generation_settings(self):
+        worker = router_app._build_openrouter_worker(
+            api_key="sk-or-test", model="openai/gpt-5-mini"
+        )
+        original = {
+            "model": "openai/gpt-5-mini",
+            "messages": [],
+            "temperature": 0.23,
+            "top_p": 0.81,
+            "max_tokens": 456,
+            "seed": 9,
+        }
+
+        forwarded = router_app._worker_json_payload(
+            worker, "/v1/chat/completions", original
+        )
+
+        for key in ("temperature", "top_p", "max_tokens", "seed"):
+            self.assertEqual(forwarded[key], original[key])
+
+    def test_qwen_payload_preserves_profile_and_translates_thinking_off(self):
+        worker = router_app._build_openrouter_worker(api_key="sk-or-test")
+        original = {
+            "model": "unsloth/Qwen3.8-27B-GGUF",
+            "messages": [{"role": "user", "content": "hello"}],
+            "chat_template_kwargs": {"enable_thinking": False},
+            "temperature": 99.0,
+            "max_tokens": 321,
+            "seed": 7,
+            "stop": ["done"],
+            "tools": [{"type": "function", "function": {"name": "test"}}],
+            "tool_choice": "auto",
+            "response_format": {"type": "json_object"},
+        }
+
+        forwarded = router_app._worker_json_payload(
+            worker, "/v1/chat/completions", original
+        )
+
+        self.assertEqual(forwarded["model"], "qwen/qwen3.8-27b")
+        self.assertEqual(forwarded["reasoning"], {"enabled": False})
+        self.assertNotIn("chat_template_kwargs", forwarded)
+        self.assertNotIn("min_p", forwarded)
+        self.assertEqual(forwarded["temperature"], 0.7)
+        self.assertEqual(forwarded["top_p"], 0.8)
+        self.assertEqual(forwarded["top_k"], 20)
+        self.assertEqual(forwarded["presence_penalty"], 1.5)
+        self.assertEqual(forwarded["repetition_penalty"], 1.0)
+        for key in (
+            "max_tokens",
+            "seed",
+            "stop",
+            "tools",
+            "tool_choice",
+            "response_format",
+        ):
+            self.assertEqual(forwarded[key], original[key])
+        self.assertEqual(original["temperature"], 99.0)
+        self.assertIn("chat_template_kwargs", original)
+
+    def test_qwen_payload_translates_thinking_effort_to_openrouter_reasoning(self):
+        worker = router_app._build_openrouter_worker(api_key="sk-or-test")
+
+        forwarded = router_app._worker_json_payload(
+            worker,
+            "/v1/chat/completions",
+            {
+                "model": "Qwen/Qwen3.8-27B-TEE",
+                "messages": [],
+                "reasoning_effort": "medium",
+            },
+        )
+
+        self.assertEqual(forwarded["reasoning"], {"enabled": True, "effort": "medium"})
+        self.assertNotIn("reasoning_effort", forwarded)
+        self.assertEqual(forwarded["temperature"], 1.0)
+        self.assertEqual(forwarded["top_p"], 0.95)
 
     def test_dashboard_shows_tier_capacity_balance_and_grouped_model(self):
         registry = WorkerRegistry(ttl_seconds=60)
