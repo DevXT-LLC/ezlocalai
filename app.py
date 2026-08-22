@@ -284,7 +284,14 @@ async def _enqueue_with_fallback(
     )
 
     fallback_client = get_fallback_client()
-    use_fallback = queue_wait_timeout > 0 and fallback_client.is_configured
+    disable_fallback = data.get("disable_fallback") is True or str(
+        data.get("disable_fallback", "")
+    ).strip().lower() in {"1", "true", "yes", "on"}
+    use_fallback = (
+        not disable_fallback
+        and queue_wait_timeout > 0
+        and fallback_client.is_configured
+    )
 
     if not use_fallback:
         return await request_queue.wait_for_result(request_id, timeout=request_timeout)
@@ -582,6 +589,7 @@ class ChatCompletions(BaseModel):
     user: Optional[str] = None
     reasoning_effort: Optional[Literal["xhigh", "medium", "low"]] = None
     chat_template_kwargs: Optional[Dict[str, Any]] = None
+    disable_fallback: Optional[bool] = False
 
 
 class ChatCompletionsResponse(BaseModel):

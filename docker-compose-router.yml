@@ -29,6 +29,11 @@ services:
       # false = text/vision requests wait once every compatible node is busy.
       # true = after idle spillover, fill remaining parallel slots on busy nodes.
       - ROUTER_BUSY_SLOT_FALLBACK=${ROUTER_BUSY_SLOT_FALLBACK-false}
+      # Optional managed text/vision overflow. When the key is set, Chutes is
+      # advertised on the dashboard at t50 and used only after comparable or
+      # faster internal workers are occupied.
+      - CHUTES_API_KEY=${CHUTES_API_KEY-}
+      - CHUTES_MODEL=${CHUTES_MODEL-Qwen/Qwen3.8-27B-TEE}
       - LOG_LEVEL=${LOG_LEVEL-INFO}
       - HOST=0.0.0.0
       - PORT=8092

@@ -49,7 +49,7 @@ class RouterStreamingTests(unittest.IsolatedAsyncioTestCase):
         original_iter = router_app._iter_worker_stream_bytes
         original_attempts = router_app._stream_max_attempts
 
-        async def fake_pick(capability, model, exclude=None):
+        async def fake_pick(capability, model, exclude=None, **kwargs):
             for worker in workers:
                 if worker.worker_id not in (exclude or set()):
                     return worker
@@ -67,7 +67,7 @@ class RouterStreamingTests(unittest.IsolatedAsyncioTestCase):
         try:
             router_app._pick = fake_pick
             router_app._iter_worker_stream_bytes = fake_iter
-            router_app._stream_max_attempts = lambda capability: 2
+            router_app._stream_max_attempts = lambda capability, *args: 2
 
             chunks = []
             async for chunk in router_app._llm_stream_with_worker_failover(

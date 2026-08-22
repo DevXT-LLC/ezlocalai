@@ -106,6 +106,80 @@ os.makedirs(_OUTPUTS_DIR, exist_ok=True)
 app.mount("/outputs", StaticFiles(directory=_OUTPUTS_DIR), name="outputs")
 
 
+CHUTES_WORKER_ID = "external-chutes"
+CHUTES_LABEL = "Chutes API"
+CHUTES_BASE_URL = "https://llm.chutes.ai"
+CHUTES_CHAT_PATH = "/v1/chat/completions"
+CHUTES_TIER = 50
+
+
+def _truthy(value: Any) -> bool:
+    return value is True or str(value or "").strip().lower() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }
+
+
+def _is_chutes_worker(worker: WorkerInfo) -> bool:
+    return str(worker.external_provider or "").lower() == "chutes"
+
+
+def _build_chutes_worker(
+    api_key: Optional[str] = None,
+    model: Optional[str] = None,
+) -> Optional[WorkerInfo]:
+    """Build the persistent router-side Chutes overflow worker, if enabled."""
+    key = (getenv("CHUTES_API_KEY") if api_key is None else api_key) or ""
+    key = str(key).strip()
+    if not key or key.lower() == "none":
+        return None
+    configured_model = (
+        (getenv("CHUTES_MODEL") if model is None else model) or ""
+    ).strip() or "Qwen/Qwen3.8-27B-TEE"
+    idle_slot = {"capacity": 1, "in_flight": 0, "queued": 0, "available": 1}
+    return WorkerInfo(
+        worker_id=CHUTES_WORKER_ID,
+        label=CHUTES_LABEL,
+        url=CHUTES_BASE_URL,
+        api_key=key,
+        capabilities=["text", "vision"],
+        models=[configured_model],
+        queue_capacity=1,
+        cap_slots={"text": dict(idle_slot), "vision": dict(idle_slot)},
+        model_slots={configured_model: dict(idle_slot)},
+        gpus=[
+            {
+                "index": 0,
+                "name": "Chutes managed inference",
+                "total_vram_gb": 0.0,
+                "tier": CHUTES_TIER,
+                "backend": "api",
+            }
+        ],
+        best_tier=CHUTES_TIER,
+        external_provider="chutes",
+        external_fallback=True,
+        persistent=True,
+    )
+
+
+def _sync_chutes_worker() -> Optional[WorkerInfo]:
+    """Register or remove the Chutes virtual worker from current env config."""
+    registry = get_registry()
+    worker = _build_chutes_worker()
+    if worker is None:
+        registry.deregister(CHUTES_WORKER_ID)
+        return None
+    registered = registry.register(worker)
+    logging.info(
+        f"[Router] Chutes overflow enabled: model={registered.models[0]} "
+        f"tier={registered.best_tier} endpoint={CHUTES_BASE_URL}{CHUTES_CHAT_PATH}"
+    )
+    return registered
+
+
 # ---------------------------------------------------------------------------
 # Auth helpers
 # ---------------------------------------------------------------------------
@@ -322,12 +396,17 @@ class UsageTracker:
         prompt_tokens: int,
         completion_tokens: int,
         timings: Optional[Dict[str, float]] = None,
+        record_empty: bool = False,
     ) -> None:
         # Skip recording when we got nothing back — usually means the response
         # was an error (4xx/5xx) or the stream was aborted before the worker
         # emitted a usage/timings event. Recording 0/0 entries pollutes the
         # history with meaningless rows and drags down per-model averages.
-        if int(prompt_tokens or 0) == 0 and int(completion_tokens or 0) == 0:
+        if (
+            not record_empty
+            and int(prompt_tokens or 0) == 0
+            and int(completion_tokens or 0) == 0
+        ):
             return
         model = _normalize_model_name(model)
         prompt_ms = float((timings or {}).get("prompt_ms") or 0.0)
@@ -796,6 +875,7 @@ async def _usage_flush_loop():
 async def _startup():
     global _pruner_task, _usage_flush_task
     _usage.load()
+    _sync_chutes_worker()
     if _pruner_task is None or _pruner_task.done():
         _pruner_task = asyncio.create_task(_pruner_loop())
     if _usage_flush_task is None or _usage_flush_task.done():
@@ -1864,6 +1944,8 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
             slots_total = int(w.get("queue_capacity", 1) or 1)
             slots_left = max(0, slots_total - int(w.get("queue_depth", 0) or 0))
         last_hb = w.get("last_heartbeat_age", 0)
+        is_external_fallback = bool(w.get("external_fallback"))
+        last_hb_cell = "API" if is_external_fallback else f"{last_hb:.0f}s"
         tunnel_connected = w.get("tunnel_connected")
         if stale:
             status = "🔴 stale"
@@ -1930,7 +2012,7 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
           <td>{status}{tunnel_sub}</td>
           <td>{gpus}<div class="num small">{mem_cell}</div></td>
           <td class="small">{models}</td>
-          <td class="num small">{last_hb:.0f}s</td>
+          <td class="num small">{last_hb_cell}</td>
           <td class="small">{err_cell}</td>
         </tr>
         """
@@ -2761,6 +2843,8 @@ async def _pick(
     capability: str,
     model: Optional[str] = None,
     exclude: Optional[set] = None,
+    external_fallback_allowed: bool = True,
+    wait_indefinitely: bool = False,
 ) -> WorkerInfo:
     router = get_router()
     # Pre-exclude tunneled workers whose WebSocket is not currently connected.
@@ -2771,6 +2855,9 @@ async def _pick(
     pre_exclude = set(exclude or ())
     unavailable: List[str] = []
     for w in registry.list_workers(alive_only=True):
+        if not external_fallback_allowed and w.external_fallback:
+            pre_exclude.add(w.worker_id)
+            continue
         if is_tunnel_url(w.url):
             wid = worker_id_from_tunnel_url(w.url)
             if not hub.is_connected(wid):
@@ -2781,7 +2868,10 @@ async def _pick(
             f"[Router] tunnel offline, excluding from selection: {', '.join(unavailable)}"
         )
     worker = await router.wait_for_worker(
-        capability, model, timeout=_wait_timeout(), exclude=pre_exclude
+        capability,
+        model,
+        timeout=0 if wait_indefinitely else _wait_timeout(),
+        exclude=pre_exclude,
     )
     if worker is None:
         raise HTTPException(
@@ -2876,6 +2966,51 @@ def _worker_headers(worker: WorkerInfo) -> Dict[str, str]:
     if worker.api_key and worker.api_key != "none":
         h["Authorization"] = f"Bearer {worker.api_key}"
     return h
+
+
+def _worker_json_payload(
+    worker: WorkerInfo, path: str, payload: Dict[str, Any]
+) -> Dict[str, Any]:
+    """Return the request body adapted for a selected worker."""
+    forwarded = dict(payload)
+    if not _is_chutes_worker(worker):
+        return forwarded
+
+    # This flag belongs to ezlocalai routing and is not part of OpenAI's API.
+    forwarded.pop("disable_fallback", None)
+    forwarded["model"] = str(
+        worker.models[0] if worker.models else getenv("CHUTES_MODEL")
+    )
+    if path == CHUTES_CHAT_PATH and _truthy(forwarded.get("stream")):
+        # Ask the OpenAI-compatible stream for the terminal usage block so the
+        # normal router accounting records Chutes input/output tokens.
+        stream_options = dict(forwarded.get("stream_options") or {})
+        stream_options["include_usage"] = True
+        forwarded["stream_options"] = stream_options
+    return forwarded
+
+
+def _worker_usage_model(worker: WorkerInfo, requested_model: str) -> str:
+    if _is_chutes_worker(worker):
+        return str(worker.models[0] if worker.models else requested_model)
+    return requested_model
+
+
+async def _record_llm_usage(
+    worker: WorkerInfo,
+    requested_model: str,
+    prompt_tokens: int,
+    completion_tokens: int,
+    timings: Dict[str, float],
+) -> None:
+    await _usage.record_llm(
+        worker.label,
+        _worker_usage_model(worker, requested_model),
+        prompt_tokens,
+        completion_tokens,
+        timings,
+        record_empty=worker.external_fallback,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -2991,6 +3126,7 @@ async def _proxy_json(
     stream_headers: Optional[Dict[str, str]] = None,
 ):
     """Forward a JSON POST to a worker. Returns either a dict or a StreamingResponse."""
+    payload = _worker_json_payload(worker, path, payload)
     headers = {"Content-Type": "application/json", **_worker_headers(worker)}
     if is_tunnel_url(worker.url):
         return await _proxy_via_tunnel(
@@ -3092,14 +3228,18 @@ async def _proxy_json(
     )
 
 
-def _stream_max_attempts(capability: str) -> int:
+def _stream_max_attempts(
+    capability: str, external_fallback_allowed: bool = True
+) -> int:
     """Try the currently eligible worker pool for streaming LLM failover."""
     try:
         pool_size = len(
             [
                 w
                 for w in get_registry().list_workers(alive_only=True)
-                if capability in w.capabilities and not w.is_circuit_open()
+                if capability in w.capabilities
+                and not w.is_circuit_open()
+                and (external_fallback_allowed or not w.external_fallback)
             ]
         )
     except Exception:
@@ -3130,6 +3270,7 @@ async def _iter_worker_stream_bytes(
     model: Optional[str] = None,
 ) -> AsyncIterator[bytes]:
     """Open one worker streaming request and yield raw SSE bytes."""
+    payload = _worker_json_payload(worker, path, payload)
     registry = get_registry()
     reservation_id = registry.increment_in_flight(
         worker.worker_id, 1, capability=capability, model=model
@@ -3250,13 +3391,21 @@ async def _llm_stream_with_worker_failover(
     payload: Dict[str, Any],
     model: str,
     request_started: float,
+    external_fallback_allowed: bool = True,
+    wait_indefinitely: bool = False,
 ) -> AsyncIterator[bytes]:
     tried: set = set()
-    max_attempts = _stream_max_attempts(capability)
+    max_attempts = _stream_max_attempts(capability, external_fallback_allowed)
     last_error = ""
     for attempt in range(max_attempts):
         try:
-            worker = await _pick(capability, model, exclude=tried)
+            worker = await _pick(
+                capability,
+                model,
+                exclude=tried,
+                external_fallback_allowed=external_fallback_allowed,
+                wait_indefinitely=wait_indefinitely,
+            )
         except Exception as e:
             last_error = f"{type(e).__name__}: {e}"
             logging.warning(
@@ -3350,7 +3499,7 @@ async def _llm_stream_with_worker_failover(
                     continue
             if assistant_seen:
                 timings["total_ms"] = (time.monotonic() - request_started) * 1000.0
-                await _usage.record_llm(worker.label, model, pt, ct, timings)
+                await _record_llm_usage(worker, model, pt, ct, timings)
                 return
             last_error = "worker stream completed without assistant text"
             get_registry().record_error(
@@ -3700,6 +3849,8 @@ async def models(_: str = Depends(verify_client)):
 
 @app.post("/v1/chat/completions", tags=["Chat"])
 async def chat_completions(payload: Dict[str, Any], _: str = Depends(verify_client)):
+    payload = dict(payload)
+    disable_fallback = _truthy(payload.get("disable_fallback"))
     model = payload.get("model") or "unknown"
     # Vision detection: any message with image_url content -> vision
     needs_vision = False
@@ -3723,6 +3874,8 @@ async def chat_completions(payload: Dict[str, Any], _: str = Depends(verify_clie
         payload=payload,
         model=model,
         is_stream=is_stream,
+        external_fallback_allowed=not disable_fallback,
+        wait_indefinitely=disable_fallback,
     )
 
 
@@ -3736,6 +3889,7 @@ async def completions(payload: Dict[str, Any], _: str = Depends(verify_client)):
         payload=payload,
         model=model,
         is_stream=is_stream,
+        external_fallback_allowed=False,
     )
 
 
@@ -3746,6 +3900,8 @@ async def _llm_proxy_with_retry(
     payload: Dict[str, Any],
     model: str,
     is_stream: bool,
+    external_fallback_allowed: bool = True,
+    wait_indefinitely: bool = False,
 ):
     """Forward an LLM request, retrying unhealthy workers before replying."""
     if is_stream:
@@ -3756,6 +3912,8 @@ async def _llm_proxy_with_retry(
                 payload=payload,
                 model=model,
                 request_started=time.monotonic(),
+                external_fallback_allowed=external_fallback_allowed,
+                wait_indefinitely=wait_indefinitely,
             ),
             media_type="text/event-stream",
         )
@@ -3766,7 +3924,13 @@ async def _llm_proxy_with_retry(
     max_attempts = 1 + _max_retries()
     request_started = time.monotonic()
     for attempt in range(max_attempts):
-        worker = await _pick(capability, model, exclude=tried)
+        worker = await _pick(
+            capability,
+            model,
+            exclude=tried,
+            external_fallback_allowed=external_fallback_allowed,
+            wait_indefinitely=wait_indefinitely,
+        )
         tried.add(worker.worker_id)
         try:
             resp = await _proxy_json(
@@ -3830,7 +3994,8 @@ async def _llm_proxy_with_retry(
             except Exception:
                 pass
             timings["total_ms"] = (time.monotonic() - request_started) * 1000.0
-            await _usage.record_llm(worker.label, model, pt, ct, timings)
+            if int(status or 0) < 400:
+                await _record_llm_usage(worker, model, pt, ct, timings)
             return resp
 
     # Exhausted retries

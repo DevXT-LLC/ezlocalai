@@ -52,6 +52,18 @@ from ezlocalai.VIDEO_UTILS import (
     plan_music_video_scenes,
 )
 
+
+def _pop_disable_fallback(data: Dict[str, Any]) -> bool:
+    """Consume ezlocalai's routing-only fallback flag from an LLM request."""
+    value = data.pop("disable_fallback", False)
+    return value is True or str(value or "").strip().lower() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }
+
+
 try:
     from ezlocalai.IMG import IMG
 
@@ -9086,25 +9098,29 @@ class Pipes:
             )
 
     async def get_response(self, data, completion_type="chat"):
+        # This queue/router control is not an inference parameter. Consume it
+        # before the request is expanded into ``LLM.chat(**data)``.
+        disable_fallback = _pop_disable_fallback(data)
         if self._llm_temporarily_unavailable:
-            fallback_client = get_fallback_client()
-            if fallback_client.is_configured:
-                available, _ = await fallback_client.check_availability()
-                if available:
-                    logging.info(
-                        "[MUSIC] LLM temporarily unavailable during music generation; forwarding text request"
-                    )
-                    is_streaming = data.get("stream", False)
-                    response = (
-                        await fallback_client.forward_chat_completion(
-                            data, stream=is_streaming
+            if not disable_fallback:
+                fallback_client = get_fallback_client()
+                if fallback_client.is_configured:
+                    available, _ = await fallback_client.check_availability()
+                    if available:
+                        logging.info(
+                            "[MUSIC] LLM temporarily unavailable during music generation; forwarding text request"
                         )
-                        if completion_type == "chat"
-                        else await fallback_client.forward_completion(
-                            data, stream=is_streaming
+                        is_streaming = data.get("stream", False)
+                        response = (
+                            await fallback_client.forward_chat_completion(
+                                data, stream=is_streaming
+                            )
+                            if completion_type == "chat"
+                            else await fallback_client.forward_completion(
+                                data, stream=is_streaming
+                            )
                         )
-                    )
-                    return response, None
+                        return response, None
             return {
                 "error": {
                     "message": "LLM temporarily unavailable while this node is generating music.",
@@ -9113,7 +9129,11 @@ class Pipes:
             }, None
 
         # Check if we should use fallback BEFORE allocating local resources
-        should_fallback, fallback_reason = self.should_use_fallback()
+        should_fallback, fallback_reason = (
+            (False, "disabled for this request")
+            if disable_fallback
+            else self.should_use_fallback()
+        )
         if should_fallback:
             logging.info(
                 f"[Fallback] Pre-check: {fallback_reason}, attempting fallback..."

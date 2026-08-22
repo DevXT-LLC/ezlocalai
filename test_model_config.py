@@ -11,11 +11,24 @@ from Pipes import (
     Pipes,
     _is_qwen35_hybrid,
     _is_retryable_gpu_load_error,
+    _pop_disable_fallback,
     _reduced_ubatch_candidates,
 )
 
 
 QWEN38_MODEL = "unsloth/Qwen3.8-27B-GGUF"
+
+
+class FallbackControlTests(unittest.TestCase):
+    def test_disable_fallback_is_consumed_before_inference(self):
+        data = {"disable_fallback": True, "messages": []}
+
+        self.assertTrue(_pop_disable_fallback(data))
+        self.assertNotIn("disable_fallback", data)
+
+    def test_disable_fallback_accepts_true_string_only(self):
+        self.assertTrue(_pop_disable_fallback({"disable_fallback": "true"}))
+        self.assertFalse(_pop_disable_fallback({"disable_fallback": "false"}))
 
 
 class Qwen38ModelConfigTests(unittest.TestCase):

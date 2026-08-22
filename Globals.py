@@ -125,6 +125,11 @@ def getenv(var_name: str, default_value: str = None) -> str:
         "FALLBACK_SERVER": "",  # e.g., "http://other-machine:8091" or "https://api.openai.com/v1"
         "FALLBACK_API_KEY": "",  # API key for fallback server
         "FALLBACK_MODEL": "",  # Model to use for non-ezlocalai fallback (e.g., "gpt-4o-mini")
+        # Router-only Chutes overflow for OpenAI-compatible chat completions.
+        # When CHUTES_API_KEY is set, the router advertises this model as a
+        # persistent text/vision node at compute tier 50.
+        "CHUTES_API_KEY": "",
+        "CHUTES_MODEL": "Qwen/Qwen3.8-27B-TEE",
         # Minimum combined free memory (VRAM + RAM) in GB before falling back to remote server
         # Models can offload to RAM, so combined memory is more accurate than VRAM alone
         "FALLBACK_MEMORY_THRESHOLD": "1.0",

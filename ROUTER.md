@@ -25,6 +25,21 @@ touch .env
 EZLOCALAI_API_KEY="The API key that you want to use to access the router"
 ```
 
+To add Chutes as automatic text/vision overflow, set its API key. The model
+defaults to `Qwen/Qwen3.8-27B-TEE` when omitted:
+
+```bash
+CHUTES_API_KEY="cpk_your-chutes-key"
+# CHUTES_MODEL="Qwen/Qwen3.8-27B-TEE"
+```
+
+The router exposes Chutes as a persistent t50 worker on the dashboard and
+tracks its requests and input/output tokens with the same usage accounting as
+local workers. Internal t50-or-faster workers win while available; Chutes is
+used when they are occupied. Send `"disable_fallback": true` in a
+`/v1/chat/completions` body to exclude Chutes and wait for internal resources
+without a router-side timeout.
+
 Then run the router server
 
 ```bash

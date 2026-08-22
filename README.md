@@ -478,6 +478,38 @@ video, and music requests do not create router-side reservations.
 docker compose -f docker-compose-router.yml up -d
 ```
 
+To enable managed text and vision overflow through
+[Chutes](https://chutes.ai/app/chute/chutes-qwen-qwen3-8-27b-tee), add the API
+key to the router's `.env` file. The model override is optional:
+
+```bash
+CHUTES_API_KEY=cpk_your-key
+CHUTES_MODEL=Qwen/Qwen3.8-27B-TEE
+```
+
+When the key is non-empty, the router adds a persistent `Chutes API` worker
+for `/v1/chat/completions` with `text` and `vision` capabilities at compute
+tier 50. Available internal workers at tier 50 or higher are always preferred;
+Chutes handles overflow after those workers are occupied. The virtual worker,
+its tier, request counts, and input/output token totals appear in the normal
+router dashboard and usage endpoints. Streaming Chutes requests automatically
+request the terminal OpenAI usage block so their token counts are captured.
+
+Clients can opt out of managed fallback for an individual chat completion:
+
+```json
+{
+  "model": "unsloth/Qwen3.8-27B-GGUF",
+  "messages": [{"role": "user", "content": "Hello"}],
+  "disable_fallback": true
+}
+```
+
+With `disable_fallback=true`, the request excludes Chutes and waits without a
+router-side deadline until an internal worker is available. The flag is also
+honored by a directly addressed ezlocalai worker, preventing its configured
+`FALLBACK_SERVER` from being used for that request.
+
 The router listens on port `8092` by default and exposes the same OpenAI-compatible endpoints as a normal ezlocalai server, plus:
 
 - `GET  /dashboard`         — live HTML dashboard (auto-refresh, no auth)
@@ -528,7 +560,7 @@ curl https://router.you.com:8092/v1/chat/completions \
   -d '{"model":"unsloth/Qwen3.6-35B-A3B-GGUF","messages":[{"role":"user","content":"Hi"}]}'
 ```
 
-The router picks the highest-scoring idle compatible worker at request time. If the fastest worker is already handling a request, the router spills over immediately to the best idle worker that can serve the request. If no compatible text/vision worker is free, it queues the request until a worker becomes available when `ROUTER_WAIT_TIMEOUT=0`, or waits up to the configured positive timeout before returning `503`.
+The router picks the highest-scoring idle compatible worker at request time. If the fastest worker is already handling a request, the router spills over immediately to the best idle worker that can serve the request. If Chutes is configured, it is an overflow candidate at t50 after comparable or faster internal workers are occupied. If no compatible text/vision worker is free, it queues the request until a worker becomes available when `ROUTER_WAIT_TIMEOUT=0`, or waits up to the configured positive timeout before returning `503`.
 
 ### Reverse tunnel (workers without a public IP)
 

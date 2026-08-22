@@ -81,10 +81,17 @@ def _formatless_model_basename(model_name: Optional[str]) -> str:
     if "#" in name:
         name = name.split("#", 1)[0]
     name = name.split("/")[-1].lower()
-    for suffix in ("-gguf", ".gguf"):
-        if name.endswith(suffix):
-            name = name[: -len(suffix)]
-            break
+    # Serving/weight-format suffixes do not change the underlying model
+    # family.  In particular, Chutes appends ``-TEE`` to confidential-compute
+    # deployments while local workers commonly append ``-GGUF``.
+    changed = True
+    while changed:
+        changed = False
+        for suffix in ("-gguf", ".gguf", "-tee"):
+            if name.endswith(suffix):
+                name = name[: -len(suffix)]
+                changed = True
+                break
     return name
 
 
@@ -892,6 +899,11 @@ class WorkerInfo:
     last_heartbeat: float = field(default_factory=time.time)
     registered_at: float = field(default_factory=time.time)
     extra: Dict[str, Any] = field(default_factory=dict)
+    # Router-created managed providers can be persistent overflow workers.
+    # These fields are not populated by worker registration payloads.
+    external_provider: str = ""
+    external_fallback: bool = False
+    persistent: bool = False
     # Consecutive connection failures from the router side (not the worker heartbeat)
     connection_failures: int = 0
     # Runtime version identifier of the ezlocalai code running on this worker.
@@ -980,6 +992,9 @@ class WorkerInfo:
             "recent_errors": list(self.recent_errors),
             "circuit_open_until": self.circuit_open_until,
             "circuit_open": self.is_circuit_open(),
+            "external_provider": self.external_provider,
+            "external_fallback": self.external_fallback,
+            "persistent": self.persistent,
             "extra": self.extra,
         }
 
@@ -987,6 +1002,8 @@ class WorkerInfo:
         return time.time() < self.circuit_open_until
 
     def is_alive(self, ttl: float) -> bool:
+        if self.persistent:
+            return True
         return (time.time() - self.last_heartbeat) <= ttl
 
     @staticmethod
@@ -1348,6 +1365,11 @@ class WorkerRegistry:
             model_key = WorkerInfo._match_name(model, w.model_slots) or (model or "")
 
             if delta > 0:
+                # Managed APIs can accept concurrent requests independently of
+                # local GPU slots. Keep the synthetic dashboard slot available
+                # so burst traffic can continue spilling over to the provider.
+                if w.external_fallback:
+                    return None
                 # Worker heartbeats are authoritative for non-LLM services.
                 # Only text/vision dispatches need a short race-prevention lease.
                 if (
@@ -1601,6 +1623,18 @@ class Router:
         """
         if not candidates:
             return None, "no-candidates"
+
+        # A managed fallback can deliberately share a display/compute tier
+        # with local hardware while still remaining overflow-only. Prefer an
+        # available internal worker whose raw hardware tier meets or exceeds
+        # the best external tier (e.g. a local t50 RTX 3090 over Chutes t50).
+        external = [w for w in candidates if w.external_fallback]
+        internal = [w for w in candidates if not w.external_fallback]
+        if external and internal:
+            external_tier = max(w.best_tier for w in external)
+            preferred_internal = [w for w in internal if w.best_tier >= external_tier]
+            if preferred_internal:
+                candidates = preferred_internal
 
         scored = sorted(
             candidates,
