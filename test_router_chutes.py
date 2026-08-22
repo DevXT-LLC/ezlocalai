@@ -38,6 +38,10 @@ class ChutesWorkerTests(unittest.TestCase):
         self.assertEqual(worker.best_tier, 45)
         self.assertEqual(worker.priority_tier, 45)
         self.assertEqual(worker.capabilities, ["text", "vision"])
+        self.assertEqual(worker.queue_capacity, 100)
+        self.assertEqual(worker.cap_slots["text"]["capacity"], 100)
+        self.assertEqual(worker.cap_slots["vision"]["available"], 100)
+        self.assertEqual(worker.model_slots[worker.models[0]]["capacity"], 100)
         self.assertTrue(worker.external_fallback)
         self.assertTrue(worker.is_alive(ttl=0))
         self.assertEqual(
@@ -86,7 +90,7 @@ class ChutesWorkerTests(unittest.TestCase):
 
         self.assertIs(selected, chutes)
 
-    def test_chutes_does_not_take_a_local_dispatch_lease(self):
+    def test_chutes_tracks_and_releases_one_of_100_dispatch_slots(self):
         registry = WorkerRegistry(ttl_seconds=60)
         chutes = registry.register(router_app._build_chutes_worker(api_key="cpk_test"))
 
@@ -96,9 +100,38 @@ class ChutesWorkerTests(unittest.TestCase):
             model=chutes.models[0],
         )
 
-        self.assertIsNone(reservation)
-        self.assertEqual(chutes.router_in_flight, 0)
+        self.assertIsNotNone(reservation)
+        self.assertEqual(chutes.router_in_flight, 1)
+        self.assertEqual(chutes.slots_left("vision", chutes.models[0]), 99)
         self.assertTrue(chutes.has_capacity("vision", chutes.models[0]))
+
+        registry.release_in_flight(chutes.worker_id, reservation)
+
+        self.assertEqual(chutes.router_in_flight, 0)
+        self.assertEqual(chutes.slots_left("vision", chutes.models[0]), 100)
+
+    def test_chutes_stops_accepting_requests_at_100_slots(self):
+        registry = WorkerRegistry(ttl_seconds=60)
+        chutes = registry.register(router_app._build_chutes_worker(api_key="cpk_test"))
+        reservations = [
+            registry.increment_in_flight(
+                chutes.worker_id,
+                capability="vision",
+                model=chutes.models[0],
+            )
+            for _ in range(100)
+        ]
+
+        self.assertEqual(chutes.router_in_flight, 100)
+        self.assertFalse(chutes.has_capacity("vision", chutes.models[0]))
+        self.assertIsNone(
+            Router(registry).select_worker(
+                "vision", chutes.models[0], allow_cross_model=False
+            )
+        )
+
+        for reservation in reservations:
+            registry.release_in_flight(chutes.worker_id, reservation)
 
     def test_chutes_payload_uses_provider_model_and_stream_usage(self):
         worker = router_app._build_chutes_worker(
@@ -157,6 +190,7 @@ class ChutesWorkerTests(unittest.TestCase):
         self.assertIn("Chutes API", html)
         self.assertNotIn("Chutes API [api]", html)
         self.assertIn("$12.35 remaining", html)
+        self.assertIn("0/100", html)
 
     def test_chutes_and_local_qwen_share_dashboard_model_group(self):
         registry = WorkerRegistry(ttl_seconds=60)
@@ -191,6 +225,19 @@ class ChutesWorkerTests(unittest.TestCase):
 
 
 class ChutesRoutingRequestTests(unittest.IsolatedAsyncioTestCase):
+    async def test_initializer_seeds_balance_after_registration(self):
+        worker = router_app._build_chutes_worker(api_key="cpk_test")
+        refresh = AsyncMock(return_value=14.5)
+
+        with (
+            patch("router_app._sync_chutes_worker", return_value=worker),
+            patch("router_app._refresh_chutes_balance", refresh),
+        ):
+            initialized = await router_app._initialize_chutes_worker()
+
+        self.assertIs(initialized, worker)
+        refresh.assert_awaited_once_with(worker)
+
     async def test_balance_refresh_caches_users_me_response(self):
         worker = router_app._build_chutes_worker(api_key="cpk_test")
         captured = {}

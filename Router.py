@@ -1376,23 +1376,25 @@ class WorkerRegistry:
             model_key = WorkerInfo._match_name(model, w.model_slots) or (model or "")
 
             if delta > 0:
-                # Managed APIs can accept concurrent requests independently of
-                # local GPU slots. Keep the synthetic dashboard slot available
-                # so burst traffic can continue spilling over to the provider.
-                if w.external_fallback:
-                    return None
                 # Worker heartbeats are authoritative for non-LLM services.
-                # Only text/vision dispatches need a short race-prevention lease.
-                if (
-                    capability not in MODEL_STRICT_CAPABILITIES
-                    or self._reservation_ttl <= 0
-                ):
+                # Only text/vision dispatches need a router reservation.
+                if capability not in MODEL_STRICT_CAPABILITIES:
                     return None
+                # Managed APIs have no heartbeat to replace router state, so
+                # their reservations live until the proxied request releases
+                # them. Local leases remain short and heartbeat-authoritative.
+                if not w.external_fallback and self._reservation_ttl <= 0:
+                    return None
+                expires_at = (
+                    float("inf")
+                    if w.external_fallback
+                    else time.monotonic() + self._reservation_ttl
+                )
                 token: Optional[str] = None
                 for _ in range(delta):
                     token = uuid.uuid4().hex
                     w.router_reservations[token] = {
-                        "expires_at": time.monotonic() + self._reservation_ttl,
+                        "expires_at": expires_at,
                         "capability": cap_key,
                         "model": model_key,
                     }

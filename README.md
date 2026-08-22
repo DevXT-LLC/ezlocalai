@@ -496,8 +496,10 @@ router dashboard and usage endpoints. Streaming Chutes requests automatically
 request the terminal OpenAI usage block so their token counts are captured.
 After each successful Chutes completion, the router refreshes the account's
 USD balance from Chutes in the background and caches it in the worker row until
-the next Chutes request. A key without account-read permission leaves the
-balance display pending without affecting inference.
+the next Chutes request. The cache is also seeded once when the router starts,
+so a configured account does not remain at `Balance pending` after deployment.
+A key without account-read permission leaves the balance display pending
+without affecting inference. Chutes is advertised with 100 concurrent slots.
 
 Clients can opt out of managed fallback for an individual chat completion:
 

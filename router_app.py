@@ -112,6 +112,7 @@ CHUTES_BASE_URL = "https://llm.chutes.ai"
 CHUTES_CHAT_PATH = "/v1/chat/completions"
 CHUTES_ACCOUNT_URL = "https://api.chutes.ai/users/me"
 CHUTES_TIER = 45
+CHUTES_CAPACITY = 100
 _chutes_balance_tasks: set[asyncio.Task] = set()
 
 
@@ -140,7 +141,12 @@ def _build_chutes_worker(
     configured_model = (
         (getenv("CHUTES_MODEL") if model is None else model) or ""
     ).strip() or "Qwen/Qwen3.8-27B-TEE"
-    idle_slot = {"capacity": 1, "in_flight": 0, "queued": 0, "available": 1}
+    idle_slot = {
+        "capacity": CHUTES_CAPACITY,
+        "in_flight": 0,
+        "queued": 0,
+        "available": CHUTES_CAPACITY,
+    }
     return WorkerInfo(
         worker_id=CHUTES_WORKER_ID,
         label=CHUTES_LABEL,
@@ -148,7 +154,7 @@ def _build_chutes_worker(
         api_key=key,
         capabilities=["text", "vision"],
         models=[configured_model],
-        queue_capacity=1,
+        queue_capacity=CHUTES_CAPACITY,
         cap_slots={"text": dict(idle_slot), "vision": dict(idle_slot)},
         model_slots={configured_model: dict(idle_slot)},
         gpus=[
@@ -180,6 +186,14 @@ def _sync_chutes_worker() -> Optional[WorkerInfo]:
         f"tier={registered.best_tier} endpoint={CHUTES_BASE_URL}{CHUTES_CHAT_PATH}"
     )
     return registered
+
+
+async def _initialize_chutes_worker() -> Optional[WorkerInfo]:
+    """Register Chutes and seed its balance before the router becomes ready."""
+    worker = _sync_chutes_worker()
+    if worker is not None:
+        await _refresh_chutes_balance(worker)
+    return worker
 
 
 # ---------------------------------------------------------------------------
@@ -882,7 +896,7 @@ async def _usage_flush_loop():
 async def _startup():
     global _pruner_task, _usage_flush_task
     _usage.load()
-    _sync_chutes_worker()
+    await _initialize_chutes_worker()
     if _pruner_task is None or _pruner_task.done():
         _pruner_task = asyncio.create_task(_pruner_loop())
     if _usage_flush_task is None or _usage_flush_task.done():
