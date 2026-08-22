@@ -127,7 +127,7 @@ def getenv(var_name: str, default_value: str = None) -> str:
         "FALLBACK_MODEL": "",  # Model to use for non-ezlocalai fallback (e.g., "gpt-4o-mini")
         # Router-only Chutes overflow for OpenAI-compatible chat completions.
         # When CHUTES_API_KEY is set, the router advertises this model as a
-        # persistent text/vision node at compute tier 50.
+        # persistent text/vision node at compute tier 45.
         "CHUTES_API_KEY": "",
         "CHUTES_MODEL": "Qwen/Qwen3.8-27B-TEE",
         # Minimum combined free memory (VRAM + RAM) in GB before falling back to remote server

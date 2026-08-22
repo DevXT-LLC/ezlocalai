@@ -107,10 +107,12 @@ app.mount("/outputs", StaticFiles(directory=_OUTPUTS_DIR), name="outputs")
 
 
 CHUTES_WORKER_ID = "external-chutes"
-CHUTES_LABEL = "Chutes API"
+CHUTES_LABEL = "Chutes.ai"
 CHUTES_BASE_URL = "https://llm.chutes.ai"
 CHUTES_CHAT_PATH = "/v1/chat/completions"
-CHUTES_TIER = 50
+CHUTES_ACCOUNT_URL = "https://api.chutes.ai/users/me"
+CHUTES_TIER = 45
+_chutes_balance_tasks: set[asyncio.Task] = set()
 
 
 def _truthy(value: Any) -> bool:
@@ -152,7 +154,7 @@ def _build_chutes_worker(
         gpus=[
             {
                 "index": 0,
-                "name": "Chutes managed inference",
+                "name": "Chutes API",
                 "total_vram_gb": 0.0,
                 "tier": CHUTES_TIER,
                 "backend": "api",
@@ -229,14 +231,19 @@ def _normalize_model_name(model: Optional[str]) -> str:
     if not model:
         return "unknown"
     m = str(model).strip()
-    # Strip a trailing -GGUF / .GGUF (case-insensitive) so quantized and
-    # non-quantized references collapse into one bucket.
-    low = m.lower()
-    for suffix in ("-gguf", ".gguf"):
-        if low.endswith(suffix):
-            m = m[: -len(suffix)]
+    # Strip chained serving/format suffixes so e.g. Qwen3.8-27B-TEE and
+    # Qwen3.8-27B-GGUF collapse into one bucket.
+    while True:
+        normalized = re.sub(r"(?i)(?:-gguf|\.gguf|-tee|-mtp)$", "", m)
+        if normalized == m:
             break
-    m = re.sub(r"(?i)-mtp$", "", m)
+        m = normalized
+
+    # Qwen publishes the hosted checkpoint while local GGUF builds commonly
+    # come from unsloth. Treat these vendor aliases as one dashboard model.
+    basename = m.rsplit("/", 1)[-1]
+    if re.fullmatch(r"(?i)qwen3\.8-27b", basename):
+        return "Qwen3.8-27B"
     return m
 
 
@@ -1828,6 +1835,7 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
     # Worker rows
     def _worker_row(w: Dict[str, Any]) -> str:
         stale = w.get("stale")
+        is_external_fallback = bool(w.get("external_fallback"))
         # Build accelerator summary — skip pure CPU entry if real accelerators exist
         raw_gpus = w.get("gpus") or []
         accel_gpus = [g for g in raw_gpus if g.get("index", 0) >= 0]
@@ -1849,6 +1857,7 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
                 + (
                     f" [{g.get('backend','')}]"
                     if g.get("backend") not in ("cuda", None, "")
+                    and not is_external_fallback
                     else ""
                 )
                 for g in display_gpus
@@ -1860,7 +1869,19 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
         total_vram = float(w.get("total_vram_gb") or 0)
         free_ram = float(w.get("free_ram_gb") or 0)
         total_ram = float(w.get("total_ram_gb") or 0)
-        if total_vram > 0:
+        external_balance = w.get("external_balance_usd")
+        if is_external_fallback:
+            if isinstance(external_balance, (int, float)) and not isinstance(
+                external_balance, bool
+            ):
+                balance = float(external_balance)
+                balance_text = (
+                    f"-${abs(balance):,.2f}" if balance < 0 else f"${balance:,.2f}"
+                )
+                mem_cell = f"{balance_text} remaining"
+            else:
+                mem_cell = '<span class="muted">Balance pending</span>'
+        elif total_vram > 0:
             used_pct = max(0.0, min(100.0, (1 - free_vram / total_vram) * 100))
             mem_cell = (
                 f"{free_vram:.1f}/{total_vram:.0f} GB Free"
@@ -1944,7 +1965,6 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
             slots_total = int(w.get("queue_capacity", 1) or 1)
             slots_left = max(0, slots_total - int(w.get("queue_depth", 0) or 0))
         last_hb = w.get("last_heartbeat_age", 0)
-        is_external_fallback = bool(w.get("external_fallback"))
         last_hb_cell = "API" if is_external_fallback else f"{last_hb:.0f}s"
         tunnel_connected = w.get("tunnel_connected")
         if stale:
@@ -2968,6 +2988,73 @@ def _worker_headers(worker: WorkerInfo) -> Dict[str, str]:
     return h
 
 
+def _chutes_balance_from_payload(payload: Any) -> Optional[float]:
+    """Extract a finite USD balance from current or wrapped account payloads."""
+    candidates = [payload]
+    if isinstance(payload, dict):
+        candidates.extend(
+            payload.get(key) for key in ("data", "user", "current_balance")
+        )
+    for candidate in candidates:
+        if not isinstance(candidate, dict):
+            continue
+        for key in ("balance", "effective_balance"):
+            value = candidate.get(key)
+            if isinstance(value, bool) or value is None:
+                continue
+            try:
+                balance = float(value)
+            except (TypeError, ValueError):
+                continue
+            if balance == balance and abs(balance) != float("inf"):
+                return balance
+    return None
+
+
+async def _refresh_chutes_balance(worker: WorkerInfo) -> Optional[float]:
+    """Refresh and cache Chutes USD balance after an inference completes."""
+    if not _is_chutes_worker(worker) or not worker.api_key:
+        return None
+    timeout = aiohttp.ClientTimeout(total=10, connect=5)
+    try:
+        async with aiohttp.ClientSession(timeout=timeout) as session:
+            async with session.get(
+                CHUTES_ACCOUNT_URL, headers=_worker_headers(worker)
+            ) as resp:
+                if resp.status >= 400:
+                    logging.info(
+                        f"[Router] Chutes balance refresh returned HTTP {resp.status}; "
+                        "keeping the cached balance"
+                    )
+                    return worker.external_balance_usd
+                payload = await resp.json(content_type=None)
+        balance = _chutes_balance_from_payload(payload)
+        if balance is None:
+            logging.info(
+                "[Router] Chutes balance response had no numeric balance; "
+                "keeping the cached balance"
+            )
+            return worker.external_balance_usd
+        worker.external_balance_usd = balance
+        worker.external_balance_updated_at = time.time()
+        return balance
+    except Exception as e:
+        logging.info(
+            f"[Router] Chutes balance refresh failed ({type(e).__name__}: {e}); "
+            "keeping the cached balance"
+        )
+        return worker.external_balance_usd
+
+
+def _schedule_chutes_balance_refresh(worker: WorkerInfo) -> None:
+    """Refresh balance in the background without delaying the client response."""
+    if not _is_chutes_worker(worker):
+        return
+    task = asyncio.create_task(_refresh_chutes_balance(worker))
+    _chutes_balance_tasks.add(task)
+    task.add_done_callback(_chutes_balance_tasks.discard)
+
+
 def _worker_json_payload(
     worker: WorkerInfo, path: str, payload: Dict[str, Any]
 ) -> Dict[str, Any]:
@@ -3500,6 +3587,7 @@ async def _llm_stream_with_worker_failover(
             if assistant_seen:
                 timings["total_ms"] = (time.monotonic() - request_started) * 1000.0
                 await _record_llm_usage(worker, model, pt, ct, timings)
+                _schedule_chutes_balance_refresh(worker)
                 return
             last_error = "worker stream completed without assistant text"
             get_registry().record_error(
@@ -3996,6 +4084,7 @@ async def _llm_proxy_with_retry(
             timings["total_ms"] = (time.monotonic() - request_started) * 1000.0
             if int(status or 0) < 400:
                 await _record_llm_usage(worker, model, pt, ct, timings)
+                _schedule_chutes_balance_refresh(worker)
             return resp
 
     # Exhausted retries

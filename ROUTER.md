@@ -33,10 +33,12 @@ CHUTES_API_KEY="cpk_your-chutes-key"
 # CHUTES_MODEL="Qwen/Qwen3.8-27B-TEE"
 ```
 
-The router exposes Chutes as a persistent t50 worker on the dashboard and
+The router exposes Chutes as a persistent t45 worker on the dashboard and
 tracks its requests and input/output tokens with the same usage accounting as
-local workers. Internal t50-or-faster workers win while available; Chutes is
-used when they are occupied. Send `"disable_fallback": true` in a
+local workers. Internal t45-or-faster workers win while available; Chutes is
+used when they are occupied. The worker row caches the remaining Chutes USD
+balance, refreshed only after successful Chutes inference requests. Send
+`"disable_fallback": true` in a
 `/v1/chat/completions` body to exclude Chutes and wait for internal resources
 without a router-side timeout.
 

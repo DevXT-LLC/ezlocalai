@@ -904,6 +904,10 @@ class WorkerInfo:
     external_provider: str = ""
     external_fallback: bool = False
     persistent: bool = False
+    # Optional account state for managed paid providers. Router-created only;
+    # worker registration payloads cannot populate these fields.
+    external_balance_usd: Optional[float] = None
+    external_balance_updated_at: float = 0.0
     # Consecutive connection failures from the router side (not the worker heartbeat)
     connection_failures: int = 0
     # Runtime version identifier of the ezlocalai code running on this worker.
@@ -995,6 +999,8 @@ class WorkerInfo:
             "external_provider": self.external_provider,
             "external_fallback": self.external_fallback,
             "persistent": self.persistent,
+            "external_balance_usd": self.external_balance_usd,
+            "external_balance_updated_at": self.external_balance_updated_at,
             "extra": self.extra,
         }
 
@@ -1255,6 +1261,11 @@ class WorkerRegistry:
                 # Preserve registered_at across re-registers
                 info.registered_at = existing.registered_at
                 info.router_reservations = dict(existing.router_reservations)
+                if info.external_balance_usd is None:
+                    info.external_balance_usd = existing.external_balance_usd
+                    info.external_balance_updated_at = (
+                        existing.external_balance_updated_at
+                    )
                 info._refresh_router_reservations()
             self._workers[info.worker_id] = info
             return info
@@ -1627,7 +1638,7 @@ class Router:
         # A managed fallback can deliberately share a display/compute tier
         # with local hardware while still remaining overflow-only. Prefer an
         # available internal worker whose raw hardware tier meets or exceeds
-        # the best external tier (e.g. a local t50 RTX 3090 over Chutes t50).
+        # the best external tier (e.g. a t50 RTX 3090 over Chutes t45).
         external = [w for w in candidates if w.external_fallback]
         internal = [w for w in candidates if not w.external_fallback]
         if external and internal:

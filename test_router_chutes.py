@@ -34,8 +34,9 @@ class ChutesWorkerTests(unittest.TestCase):
 
         self.assertIsNotNone(worker)
         self.assertEqual(worker.models, ["Qwen/Qwen3.8-27B-TEE"])
-        self.assertEqual(worker.best_tier, 50)
-        self.assertEqual(worker.priority_tier, 50)
+        self.assertEqual(worker.label, "Chutes.ai")
+        self.assertEqual(worker.best_tier, 45)
+        self.assertEqual(worker.priority_tier, 45)
         self.assertEqual(worker.capabilities, ["text", "vision"])
         self.assertTrue(worker.external_fallback)
         self.assertTrue(worker.is_alive(ttl=0))
@@ -48,7 +49,7 @@ class ChutesWorkerTests(unittest.TestCase):
         self.assertIsNone(router_app._build_chutes_worker(api_key=""))
         self.assertIsNone(router_app._build_chutes_worker(api_key="none"))
 
-    def test_local_t50_worker_is_preferred_before_chutes(self):
+    def test_local_t50_worker_is_preferred_before_chutes_t45(self):
         registry = WorkerRegistry(ttl_seconds=60)
         local = registry.register(_local_qwen_worker())
         chutes = registry.register(router_app._build_chutes_worker(api_key="cpk_test"))
@@ -59,6 +60,20 @@ class ChutesWorkerTests(unittest.TestCase):
 
         self.assertIs(selected, local)
         self.assertIsNot(selected, chutes)
+
+    def test_tunneled_t50_worker_at_adjusted_t45_is_preferred_before_chutes(self):
+        registry = WorkerRegistry(ttl_seconds=60)
+        remote = _local_qwen_worker()
+        remote.url = "tunnel://local-3090"
+        remote = registry.register(remote)
+        chutes = registry.register(router_app._build_chutes_worker(api_key="cpk_test"))
+
+        self.assertEqual(remote.priority_tier, chutes.priority_tier)
+        selected = Router(registry).select_worker(
+            "vision", "Qwen/Qwen3.8-27B-TEE", allow_cross_model=False
+        )
+
+        self.assertIs(selected, remote)
 
     def test_chutes_handles_overflow_when_local_t50_is_busy(self):
         registry = WorkerRegistry(ttl_seconds=60)
@@ -118,9 +133,10 @@ class ChutesWorkerTests(unittest.TestCase):
 
         self.assertTrue(forwarded["disable_fallback"])
 
-    def test_dashboard_includes_chutes_as_t50_vlm(self):
+    def test_dashboard_includes_chutes_as_t45_vlm_with_cached_balance(self):
         registry = WorkerRegistry(ttl_seconds=60)
-        registry.register(router_app._build_chutes_worker(api_key="cpk_test"))
+        chutes = registry.register(router_app._build_chutes_worker(api_key="cpk_test"))
+        chutes.external_balance_usd = 12.345
 
         with (
             patch("router_app.get_registry", return_value=registry),
@@ -132,16 +148,110 @@ class ChutesWorkerTests(unittest.TestCase):
             data = router_app._aggregate_dashboard()
 
         worker = data["workers"][0]
-        self.assertEqual(worker["label"], "Chutes API")
-        self.assertEqual(worker["priority_tier"], 50)
+        self.assertEqual(worker["label"], "Chutes.ai")
+        self.assertEqual(worker["priority_tier"], 45)
         self.assertIn("vision", worker["capabilities"])
         html = router_app._render_dashboard_html(data)
+        self.assertIn("Chutes.ai", html)
+        self.assertIn("tier 45", html)
         self.assertIn("Chutes API", html)
-        self.assertIn("tier 50", html)
-        self.assertIn("Chutes managed inference", html)
+        self.assertNotIn("Chutes API [api]", html)
+        self.assertIn("$12.35 remaining", html)
+
+    def test_chutes_and_local_qwen_share_dashboard_model_group(self):
+        registry = WorkerRegistry(ttl_seconds=60)
+        registry.register(_local_qwen_worker())
+        registry.register(router_app._build_chutes_worker(api_key="cpk_test"))
+
+        with (
+            patch("router_app.get_registry", return_value=registry),
+            patch(
+                "router_app.get_router",
+                return_value=SimpleNamespace(waiting_requests=0),
+            ),
+        ):
+            data = router_app._aggregate_dashboard()
+
+        qwen_models = [m for m in data["models"] if m["model"] == "Qwen3.8-27B"]
+        self.assertEqual(len(qwen_models), 1)
+        self.assertEqual(qwen_models[0]["worker_count"], 2)
+
+    def test_balance_parser_accepts_current_chutes_response(self):
+        self.assertEqual(
+            router_app._chutes_balance_from_payload({"balance": "19.875"}),
+            19.875,
+        )
+        self.assertEqual(
+            router_app._chutes_balance_from_payload(
+                {"current_balance": {"effective_balance": 8.25}}
+            ),
+            8.25,
+        )
+        self.assertIsNone(router_app._chutes_balance_from_payload({"balance": "nan"}))
 
 
 class ChutesRoutingRequestTests(unittest.IsolatedAsyncioTestCase):
+    async def test_balance_refresh_caches_users_me_response(self):
+        worker = router_app._build_chutes_worker(api_key="cpk_test")
+        captured = {}
+
+        class FakeResponse:
+            status = 200
+
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, *_args):
+                return None
+
+            async def json(self, **_kwargs):
+                return {"balance": 27.125}
+
+        class FakeSession:
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, *_args):
+                return None
+
+            def get(self, url, headers):
+                captured.update(url=url, headers=headers)
+                return FakeResponse()
+
+        with patch("router_app.aiohttp.ClientSession", return_value=FakeSession()):
+            balance = await router_app._refresh_chutes_balance(worker)
+
+        self.assertEqual(balance, 27.125)
+        self.assertEqual(worker.external_balance_usd, 27.125)
+        self.assertGreater(worker.external_balance_updated_at, 0)
+        self.assertEqual(captured["url"], "https://api.chutes.ai/users/me")
+        self.assertEqual(captured["headers"], {"Authorization": "Bearer cpk_test"})
+
+    async def test_successful_chutes_completion_schedules_balance_refresh(self):
+        worker = router_app._build_chutes_worker(api_key="cpk_test")
+        response = router_app.Response(
+            content=b'{"usage":{"prompt_tokens":2,"completion_tokens":3}}',
+            status_code=200,
+            media_type="application/json",
+        )
+
+        with (
+            patch("router_app._pick", AsyncMock(return_value=worker)),
+            patch("router_app._proxy_json", AsyncMock(return_value=response)),
+            patch("router_app._record_llm_usage", AsyncMock()),
+            patch("router_app._schedule_chutes_balance_refresh") as refresh,
+        ):
+            result = await router_app._llm_proxy_with_retry(
+                capability="text",
+                path="/v1/chat/completions",
+                payload={"messages": [{"role": "user", "content": "hi"}]},
+                model="Qwen3.8-27B",
+                is_stream=False,
+            )
+
+        self.assertIs(result, response)
+        refresh.assert_called_once_with(worker)
+
     async def test_disable_fallback_excludes_chutes_and_waits_without_deadline(self):
         registry = WorkerRegistry(ttl_seconds=60)
         chutes = registry.register(router_app._build_chutes_worker(api_key="cpk_test"))
@@ -209,7 +319,7 @@ class ChutesRoutingRequestTests(unittest.IsolatedAsyncioTestCase):
             finally:
                 router_app._usage = original_usage
 
-        model_stats = tracker.snapshot()["Chutes API"]["llm"]["Qwen/Qwen3.8-27B-TEE"]
+        model_stats = tracker.snapshot()["Chutes.ai"]["llm"]["Qwen3.8-27B"]
         self.assertEqual(model_stats["requests"], 1)
         self.assertEqual(model_stats["prompt_tokens"], 0)
         self.assertEqual(model_stats["completion_tokens"], 0)

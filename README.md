@@ -487,13 +487,17 @@ CHUTES_API_KEY=cpk_your-key
 CHUTES_MODEL=Qwen/Qwen3.8-27B-TEE
 ```
 
-When the key is non-empty, the router adds a persistent `Chutes API` worker
+When the key is non-empty, the router adds a persistent `Chutes.ai` worker
 for `/v1/chat/completions` with `text` and `vision` capabilities at compute
-tier 50. Available internal workers at tier 50 or higher are always preferred;
+tier 45. Available internal workers at tier 45 or higher are always preferred;
 Chutes handles overflow after those workers are occupied. The virtual worker,
 its tier, request counts, and input/output token totals appear in the normal
 router dashboard and usage endpoints. Streaming Chutes requests automatically
 request the terminal OpenAI usage block so their token counts are captured.
+After each successful Chutes completion, the router refreshes the account's
+USD balance from Chutes in the background and caches it in the worker row until
+the next Chutes request. A key without account-read permission leaves the
+balance display pending without affecting inference.
 
 Clients can opt out of managed fallback for an individual chat completion:
 
@@ -560,7 +564,7 @@ curl https://router.you.com:8092/v1/chat/completions \
   -d '{"model":"unsloth/Qwen3.6-35B-A3B-GGUF","messages":[{"role":"user","content":"Hi"}]}'
 ```
 
-The router picks the highest-scoring idle compatible worker at request time. If the fastest worker is already handling a request, the router spills over immediately to the best idle worker that can serve the request. If Chutes is configured, it is an overflow candidate at t50 after comparable or faster internal workers are occupied. If no compatible text/vision worker is free, it queues the request until a worker becomes available when `ROUTER_WAIT_TIMEOUT=0`, or waits up to the configured positive timeout before returning `503`.
+The router picks the highest-scoring idle compatible worker at request time. If the fastest worker is already handling a request, the router spills over immediately to the best idle worker that can serve the request. If Chutes is configured, it is an overflow candidate at t45 after comparable or faster internal workers are occupied. If no compatible text/vision worker is free, it queues the request until a worker becomes available when `ROUTER_WAIT_TIMEOUT=0`, or waits up to the configured positive timeout before returning `503`.
 
 ### Reverse tunnel (workers without a public IP)
 
