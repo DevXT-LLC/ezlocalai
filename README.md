@@ -626,6 +626,14 @@ score = priority_tier * 10  +  slots_left * 5  +  free_vram_gb  -  in_flight * 4
 
 By default, text/vision routing requires an idle worker, so one long-running request on the 5090 sends the next compatible request to an idle 4090/3090 instead of stacking it onto the 5090. `ROUTER_CROSS_MODEL_GRACE=0` means the router does not wait for a busy same-model worker before using the best available compatible fallback. `ROUTER_IDLE_TIER_WINDOW=0` means the router does not hold back lower-tier idle workers while a higher-tier worker is busy; set a positive value to restrict idle spillover to workers within that many tier points of the fastest compatible tier. Set `ROUTER_BUSY_SLOT_FALLBACK=true` to restore slot-based routing when every compatible text/vision worker is already busy.
 
+Requests that include the same `prompt_cache_key` keep affinity with the worker
+that owns their reusable prompt prefix. If that worker is briefly busy, the
+router waits up to `ROUTER_PROMPT_AFFINITY_WAIT` seconds (default `2`) before
+using another worker. Temporary spillover does not replace the cache-owning
+worker, so later turns return to the warm prefix. The short default covers
+stream-release and heartbeat lag without queueing behind a long generation.
+Set the value to `0` to use immediate spillover.
+
 For capability-only voice routing, the router defaults `ROUTER_PREFER_DEDICATED_CAPABILITIES=stt`, so large STT transcription jobs prefer workers that are not also serving `text` or `vision`. TTS routes by the normal score/tier calculation by default so low-latency playback can use faster mixed-capability workers. Stale `ROUTER_PREFER_DEDICATED_CAPABILITIES=stt,tts` values are treated as STT-only for TTS unless `ROUTER_ALLOW_DEDICATED_TTS_PREFERENCE=true` is also set. Large transcription jobs also use `ROUTER_STT_TIMEOUT` (default `7200` seconds) instead of the generic `REQUEST_TIMEOUT`.
 
 Workers missing the required capability (`text` / `vision` / `tts` / `stt` / `embedding` / `image` / `video` / `music`) or the requested model are filtered out before scoring. Stale workers (no heartbeat for `ROUTER_WORKER_TTL` seconds) are also excluded.

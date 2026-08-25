@@ -29,6 +29,7 @@ services:
       # false = text/vision requests wait once every compatible node is busy.
       # true = after idle spillover, fill remaining parallel slots on busy nodes.
       - ROUTER_BUSY_SLOT_FALLBACK=${ROUTER_BUSY_SLOT_FALLBACK-false}
+      - ROUTER_PROMPT_AFFINITY_WAIT=${ROUTER_PROMPT_AFFINITY_WAIT:-2}
       # Optional managed text/vision overflow. When the key is set, Chutes is
       # advertised on the dashboard at t45 and used only after comparable or
       # faster internal workers are occupied.

@@ -3106,6 +3106,37 @@ def _prune_prompt_affinity(now: float) -> None:
             _prompt_affinity.pop(key, None)
 
 
+def _prompt_affinity_wait_timeout() -> float:
+    """How long to wait for a conversation's cache-owning worker.
+
+    Re-evaluating a long prompt on another worker routinely costs much more
+    than waiting briefly for the worker that already owns its KV prefix. Keep
+    the wait bounded so affinity never defeats worker failover.
+    """
+    return max(0.0, _float_env("ROUTER_PROMPT_AFFINITY_WAIT", 2.0))
+
+
+def _eligible_affinity_worker(
+    worker: Optional[WorkerInfo],
+    capability: str,
+    model: Optional[str],
+    excluded: set,
+) -> bool:
+    if (
+        worker is None
+        or worker.worker_id in excluded
+        or worker.external_fallback
+        or capability not in worker.capabilities
+        or worker.is_circuit_open()
+    ):
+        return False
+    return bool(
+        not model
+        or not worker.models
+        or any(model_name_matches(model, served) for served in worker.models)
+    )
+
+
 async def _pick(
     capability: str,
     model: Optional[str] = None,
@@ -3140,37 +3171,41 @@ async def _pick(
     preferred_id = (
         _prompt_affinity.get(affinity_key, (None, 0.0))[0] if affinity_key else None
     )
-    if preferred_id and preferred_id not in pre_exclude:
-        preferred = next(
-            (
-                worker
-                for worker in registry.list_workers(alive_only=True)
-                if worker.worker_id == preferred_id
-            ),
-            None,
-        )
-        model_matches = bool(
-            preferred
-            and (
-                not model
-                or not preferred.models
-                or any(model_name_matches(model, served) for served in preferred.models)
+    preferred: Optional[WorkerInfo] = None
+    preferred_is_eligible = False
+    if preferred_id:
+        affinity_wait = _prompt_affinity_wait_timeout()
+        affinity_deadline = time.monotonic() + affinity_wait
+        while True:
+            preferred = next(
+                (
+                    worker
+                    for worker in registry.list_workers(alive_only=True)
+                    if worker.worker_id == preferred_id
+                ),
+                None,
             )
-        )
-        if (
-            preferred
-            and not preferred.external_fallback
-            and capability in preferred.capabilities
-            and not preferred.is_circuit_open()
-            and model_matches
-            and preferred.has_capacity(capability, model)
-        ):
-            _prompt_affinity[affinity_key] = (preferred.worker_id, now)
-            logging.info(
-                f"[Router] prompt-cache affinity -> {preferred.label} "
-                f"(model={model!r}, cap={capability})"
+            preferred_is_eligible = _eligible_affinity_worker(
+                preferred, capability, model, pre_exclude
             )
-            return preferred
+            if not preferred_is_eligible:
+                break
+            if preferred.has_capacity(capability, model):
+                _prompt_affinity[affinity_key] = (preferred.worker_id, time.time())
+                logging.info(
+                    f"[Router] prompt-cache affinity -> {preferred.label} "
+                    f"(model={model!r}, cap={capability})"
+                )
+                return preferred
+            remaining = affinity_deadline - time.monotonic()
+            if remaining <= 0:
+                logging.info(
+                    f"[Router] prompt-cache affinity worker {preferred.label} "
+                    f"remained busy for {affinity_wait:.1f}s; "
+                    "using temporary spillover without moving its cache home"
+                )
+                break
+            await asyncio.sleep(min(0.1, remaining))
     worker = await router.wait_for_worker(
         capability,
         model,
@@ -3185,8 +3220,12 @@ async def _pick(
                 + (f" model={model!r}" if model else "")
             ),
         )
-    if affinity_key and not worker.external_fallback:
-        _prompt_affinity[affinity_key] = (worker.worker_id, now)
+    if (
+        affinity_key
+        and not worker.external_fallback
+        and (not preferred_is_eligible or worker.worker_id == preferred_id)
+    ):
+        _prompt_affinity[affinity_key] = (worker.worker_id, time.time())
     return worker
 
 
