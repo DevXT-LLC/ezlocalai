@@ -1,6 +1,7 @@
 import os
 import pathlib
 import sys
+import asyncio
 import unittest
 from unittest.mock import AsyncMock, patch
 
@@ -58,6 +59,92 @@ class RouterStreamingTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(selected_first.worker_id, "first")
         self.assertEqual(selected_second.worker_id, "first")
         router.wait_for_worker.assert_awaited_once()
+
+    async def test_prompt_affinity_waits_for_cached_worker_to_become_available(self):
+        registry = WorkerRegistry(ttl_seconds=60)
+        first = registry.register(
+            WorkerInfo(
+                worker_id="first",
+                label="first",
+                url="http://first",
+                capabilities=["text"],
+                models=["model"],
+            )
+        )
+        router = type(
+            "FakeRouter",
+            (),
+            {"wait_for_worker": AsyncMock(return_value=first)},
+        )()
+        router_app._prompt_affinity.clear()
+
+        with patch("router_app.get_registry", return_value=registry), patch(
+            "router_app.get_router", return_value=router
+        ), patch.dict(os.environ, {"ROUTER_PROMPT_AFFINITY_WAIT": "0.25"}):
+            selected_first = await router_app._pick(
+                "text", "model", affinity_key="text:model:conversation"
+            )
+            first.queue_depth = 1
+
+            async def release_cached_worker():
+                await asyncio.sleep(0.03)
+                first.queue_depth = 0
+
+            release = asyncio.create_task(release_cached_worker())
+            selected_second = await router_app._pick(
+                "text", "model", affinity_key="text:model:conversation"
+            )
+            await release
+
+        self.assertEqual(selected_first.worker_id, "first")
+        self.assertEqual(selected_second.worker_id, "first")
+        router.wait_for_worker.assert_awaited_once()
+
+    async def test_temporary_spillover_does_not_replace_cache_home(self):
+        registry = WorkerRegistry(ttl_seconds=60)
+        first = registry.register(
+            WorkerInfo(
+                worker_id="first",
+                label="first",
+                url="http://first",
+                capabilities=["text"],
+                models=["model"],
+            )
+        )
+        second = registry.register(
+            WorkerInfo(
+                worker_id="second",
+                label="second",
+                url="http://second",
+                capabilities=["text"],
+                models=["model"],
+            )
+        )
+        router = type(
+            "FakeRouter",
+            (),
+            {"wait_for_worker": AsyncMock(side_effect=[first, second])},
+        )()
+        affinity_key = "text:model:conversation"
+        router_app._prompt_affinity.clear()
+
+        with patch("router_app.get_registry", return_value=registry), patch(
+            "router_app.get_router", return_value=router
+        ), patch.dict(os.environ, {"ROUTER_PROMPT_AFFINITY_WAIT": "0.01"}):
+            await router_app._pick("text", "model", affinity_key=affinity_key)
+            first.queue_depth = 1
+            selected_spillover = await router_app._pick(
+                "text", "model", affinity_key=affinity_key
+            )
+            first.queue_depth = 0
+            selected_after_spillover = await router_app._pick(
+                "text", "model", affinity_key=affinity_key
+            )
+
+        self.assertEqual(selected_spillover.worker_id, "second")
+        self.assertEqual(selected_after_spillover.worker_id, "first")
+        self.assertEqual(router_app._prompt_affinity[affinity_key][0], "first")
+        self.assertEqual(router.wait_for_worker.await_count, 2)
 
     def test_llamacpp_timings_report_total_cached_and_evaluated_prompt_tokens(self):
         timings = {}
