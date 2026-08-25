@@ -628,7 +628,7 @@ By default, text/vision routing requires an idle worker, so one long-running req
 
 Requests that include the same `prompt_cache_key` keep affinity with the worker
 that owns their reusable prompt prefix. If that worker is briefly busy, the
-router waits up to `ROUTER_PROMPT_AFFINITY_WAIT` seconds (default `2`) before
+router waits up to `ROUTER_PROMPT_AFFINITY_WAIT` seconds (default `15`) before
 using another worker. Temporary spillover does not replace the cache-owning
 worker, so later turns return to the warm prefix. The short default covers
 stream-release and heartbeat lag without queueing behind a long generation.

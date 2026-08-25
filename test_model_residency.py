@@ -7,7 +7,7 @@ import unittest
 from unittest import mock
 
 from Pipes import ModelType, Pipes
-from Router import WorkerInfo
+from Router import WorkerInfo, WorkerRegistry
 
 
 class LlmResidencyPolicyTests(unittest.TestCase):
@@ -147,6 +147,55 @@ class LlmDependencySlotTests(unittest.TestCase):
         }
 
         self.assertEqual(worker.slots_left(capability="image"), 0)
+
+
+class LlmSwapQueueTests(unittest.IsolatedAsyncioTestCase):
+    async def test_cross_model_request_waits_for_active_stream(self):
+        pipe = Pipes.__new__(Pipes)
+        pipe.llm_model_residency = "swap"
+        pipe._inference_count = 1
+        pipe._model_inference_counts = {"model-a": 1}
+        pipe._inference_count_lock = threading.Lock()
+
+        pending = asyncio.create_task(pipe._acquire_inference_slot("model-b"))
+        await asyncio.sleep(0.02)
+        self.assertFalse(pending.done())
+
+        pipe._decrement_inference_count("model-a")
+        await asyncio.wait_for(pending, timeout=0.5)
+
+        self.assertEqual(pipe._inference_count, 1)
+        self.assertEqual(pipe._model_inference_counts, {"model-b": 1})
+
+
+class RouterReservationTests(unittest.TestCase):
+    def test_atomic_reservation_blocks_cross_model_swap_race(self):
+        registry = WorkerRegistry(ttl_seconds=60, reservation_ttl_seconds=15)
+        registry.register(
+            WorkerInfo(
+                worker_id="worker",
+                label="worker",
+                url="http://worker.local",
+                capabilities=["text"],
+                models=["model-a", "model-b"],
+                cap_slots={"text": {"capacity": 1, "in_flight": 0, "queued": 0}},
+                model_slots={
+                    "model-a": {"capacity": 1, "in_flight": 0, "queued": 0},
+                    "model-b": {"capacity": 1, "in_flight": 0, "queued": 0},
+                },
+                extra={"llm_model_residency": "swap"},
+            )
+        )
+
+        first = registry.try_reserve_in_flight(
+            "worker", capability="text", model="model-a"
+        )
+        second = registry.try_reserve_in_flight(
+            "worker", capability="text", model="model-b"
+        )
+
+        self.assertIsNotNone(first)
+        self.assertIsNone(second)
 
 
 class ImageHandoffTests(unittest.IsolatedAsyncioTestCase):
