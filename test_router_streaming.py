@@ -2,14 +2,14 @@ import os
 import pathlib
 import sys
 import unittest
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
 
 ROOT = pathlib.Path(__file__).resolve().parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from Router import WorkerInfo
+from Router import WorkerInfo, WorkerRegistry
 import router_app
 
 
@@ -18,6 +18,95 @@ def _sse(payload: str) -> bytes:
 
 
 class RouterStreamingTests(unittest.IsolatedAsyncioTestCase):
+    async def test_prompt_affinity_reuses_the_same_available_worker(self):
+        registry = WorkerRegistry(ttl_seconds=60)
+        first = registry.register(
+            WorkerInfo(
+                worker_id="first",
+                label="first",
+                url="http://first",
+                capabilities=["text"],
+                models=["model"],
+            )
+        )
+        second = registry.register(
+            WorkerInfo(
+                worker_id="second",
+                label="second",
+                url="http://second",
+                capabilities=["text"],
+                models=["model"],
+            )
+        )
+        router = type(
+            "FakeRouter",
+            (),
+            {"wait_for_worker": AsyncMock(side_effect=[first, second])},
+        )()
+        router_app._prompt_affinity.clear()
+
+        with patch("router_app.get_registry", return_value=registry), patch(
+            "router_app.get_router", return_value=router
+        ):
+            selected_first = await router_app._pick(
+                "text", "model", affinity_key="text:model:conversation"
+            )
+            selected_second = await router_app._pick(
+                "text", "model", affinity_key="text:model:conversation"
+            )
+
+        self.assertEqual(selected_first.worker_id, "first")
+        self.assertEqual(selected_second.worker_id, "first")
+        router.wait_for_worker.assert_awaited_once()
+
+    def test_llamacpp_timings_report_total_cached_and_evaluated_prompt_tokens(self):
+        timings = {}
+
+        prompt_tokens, completion_tokens = router_app._extract_tokens_from_sse_event(
+            b'{"timings":{"cache_n":53,"prompt_n":4,"predicted_n":7,"prompt_ms":140}}',
+            0,
+            0,
+            timings,
+        )
+
+        self.assertEqual(prompt_tokens, 57)
+        self.assertEqual(completion_tokens, 7)
+        self.assertEqual(timings["cached_prompt_tokens"], 53.0)
+        self.assertEqual(timings["evaluated_prompt_tokens"], 4.0)
+
+    def test_usage_cache_details_survive_partial_timing_data(self):
+        timings = {}
+
+        prompt_tokens, _ = router_app._extract_tokens_from_sse_event(
+            b'{"usage":{"prompt_tokens":100,"prompt_tokens_details":{"cached_tokens":80}},'
+            b'"timings":{"prompt_ms":120}}',
+            0,
+            0,
+            timings,
+        )
+
+        self.assertEqual(prompt_tokens, 100)
+        self.assertEqual(timings["cached_prompt_tokens"], 80.0)
+        self.assertNotIn("evaluated_prompt_tokens", timings)
+
+    def test_router_cache_metadata_is_not_forwarded_to_worker(self):
+        worker = WorkerInfo(
+            worker_id="worker",
+            label="worker",
+            url="http://worker",
+            capabilities=["text"],
+            models=["model"],
+        )
+
+        forwarded = router_app._worker_json_payload(
+            worker,
+            "/v1/chat/completions",
+            {"model": "model", "prompt_cache_key": "conversation-key"},
+        )
+
+        self.assertNotIn("prompt_cache_key", forwarded)
+        self.assertEqual(forwarded["model"], "model")
+
     def test_sse_classifier_detects_nested_error(self):
         event = _sse(
             '{"error":{"message":"request exceeds context","type":"exceed_context_size_error"}}'

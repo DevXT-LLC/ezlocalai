@@ -333,8 +333,67 @@ class RouterDashboardTierTests(unittest.TestCase):
         self.assertIn('<td class="num small">3</td>', html)
         self.assertNotIn("Qwen3.6-35B-A3B-MTP", html)
 
+    def test_dashboard_shows_prompt_cache_hit_ratio(self):
+        html = _render_dashboard_html(
+            _dashboard_data(
+                usage={
+                    "Studio": {
+                        "llm": {
+                            "model": {
+                                "requests": 1,
+                                "prompt_tokens": 100,
+                                "cached_prompt_tokens": 80,
+                                "cache_hits": 1,
+                                "cache_misses": 0,
+                                "completion_tokens": 5,
+                            }
+                        }
+                    }
+                },
+                history=[
+                    {
+                        "ts": 1,
+                        "kind": "llm",
+                        "worker": "Studio",
+                        "model": "model",
+                        "prompt_tokens": 100,
+                        "cached_prompt_tokens": 80,
+                        "cache_status": "hit",
+                        "completion_tokens": 5,
+                    }
+                ],
+            )
+        )
+
+        self.assertIn("100% hit", html)
+        self.assertIn("Hit 80%", html)
+
 
 class UsageTrackerMediaTests(unittest.IsolatedAsyncioTestCase):
+    async def test_record_llm_tracks_cache_hits_and_evaluated_input_rate(self):
+        tracker = UsageTracker("/tmp/ezlocalai-test-cache-usage.json")
+
+        await tracker.record_llm(
+            "Studio",
+            "model",
+            prompt_tokens=100,
+            completion_tokens=5,
+            timings={
+                "cached_prompt_tokens": 80,
+                "evaluated_prompt_tokens": 20,
+                "prompt_ms": 100.0,
+            },
+        )
+
+        stats = tracker.snapshot()["Studio"]["llm"]["model"]
+        self.assertEqual(stats["prompt_tokens"], 100)
+        self.assertEqual(stats["cached_prompt_tokens"], 80)
+        self.assertEqual(stats["evaluated_prompt_tokens"], 20)
+        self.assertEqual(stats["cache_hits"], 1)
+        history = tracker.history_snapshot()[0]
+        self.assertEqual(history["cache_status"], "hit")
+        self.assertEqual(history["prompt_tps"], 200.0)
+
     async def test_record_cap_adds_media_model_stats_and_history(self):
         tracker = UsageTracker("/tmp/ezlocalai-test-usage.json")
 

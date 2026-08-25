@@ -107,6 +107,12 @@ _OUTPUTS_DIR = os.path.abspath(os.environ.get("ROUTER_OUTPUTS_DIR", "outputs"))
 os.makedirs(_OUTPUTS_DIR, exist_ok=True)
 app.mount("/outputs", StaticFiles(directory=_OUTPUTS_DIR), name="outputs")
 
+# Prompt caches live on individual workers. Keep an opaque client-provided
+# cache key sticky to the same worker while that worker remains usable. The
+# model and capability are part of the lookup so lightweight control-model
+# calls cannot displace the main conversation model's affinity.
+_prompt_affinity: Dict[str, tuple[str, float]] = {}
+
 
 CHUTES_WORKER_ID = "external-chutes"
 CHUTES_LABEL = "Chutes.ai"
@@ -539,7 +545,25 @@ class UsageTracker:
         prompt_ms = float((timings or {}).get("prompt_ms") or 0.0)
         predicted_ms = float((timings or {}).get("predicted_ms") or 0.0)
         total_ms = float((timings or {}).get("total_ms") or 0.0)
-        prompt_tps = (prompt_tokens / (prompt_ms / 1000.0)) if prompt_ms > 0 else 0.0
+        cached_prompt_tokens = min(
+            int(prompt_tokens or 0),
+            max(0, int((timings or {}).get("cached_prompt_tokens") or 0)),
+        )
+        evaluated_prompt_tokens = max(
+            0,
+            int(
+                (timings or {}).get("evaluated_prompt_tokens")
+                or (int(prompt_tokens or 0) - cached_prompt_tokens)
+            ),
+        )
+        cache_status = (
+            "hit"
+            if cached_prompt_tokens > 0
+            else ("miss" if int(prompt_tokens or 0) > 0 else "unknown")
+        )
+        prompt_tps = (
+            (evaluated_prompt_tokens / (prompt_ms / 1000.0)) if prompt_ms > 0 else 0.0
+        )
         predicted_tps = (
             (completion_tokens / (predicted_ms / 1000.0)) if predicted_ms > 0 else 0.0
         )
@@ -551,6 +575,10 @@ class UsageTracker:
                 {
                     "requests": 0,
                     "prompt_tokens": 0,
+                    "cached_prompt_tokens": 0,
+                    "evaluated_prompt_tokens": 0,
+                    "cache_hits": 0,
+                    "cache_misses": 0,
                     "completion_tokens": 0,
                     "prompt_tps_sum": 0.0,
                     "prompt_tps_n": 0,
@@ -560,6 +588,16 @@ class UsageTracker:
             )
             m["requests"] += 1
             m["prompt_tokens"] += prompt_tokens
+            m["cached_prompt_tokens"] = (
+                int(m.get("cached_prompt_tokens", 0)) + cached_prompt_tokens
+            )
+            m["evaluated_prompt_tokens"] = (
+                int(m.get("evaluated_prompt_tokens", 0)) + evaluated_prompt_tokens
+            )
+            if cache_status == "hit":
+                m["cache_hits"] = int(m.get("cache_hits", 0)) + 1
+            elif cache_status == "miss":
+                m["cache_misses"] = int(m.get("cache_misses", 0)) + 1
             m["completion_tokens"] += completion_tokens
             if prompt_tps > 0:
                 m["prompt_tps_sum"] = float(m.get("prompt_tps_sum", 0.0)) + prompt_tps
@@ -576,6 +614,9 @@ class UsageTracker:
                     "worker": label,
                     "model": model,
                     "prompt_tokens": int(prompt_tokens),
+                    "cached_prompt_tokens": cached_prompt_tokens,
+                    "evaluated_prompt_tokens": evaluated_prompt_tokens,
+                    "cache_status": cache_status,
                     "completion_tokens": int(completion_tokens),
                     "prompt_ms": prompt_ms,
                     "predicted_ms": predicted_ms,
@@ -902,15 +943,29 @@ def _extract_tokens_from_sse_event(
         obj = json.loads(data_bytes)
     except Exception:
         return pt, ct
+    usage_prompt_tokens = 0
     u = obj.get("usage")
     if isinstance(u, dict):
-        pt = int(u.get("prompt_tokens") or pt)
+        usage_prompt_tokens = int(u.get("prompt_tokens") or 0)
+        if usage_prompt_tokens:
+            pt = usage_prompt_tokens
         ct = int(u.get("completion_tokens") or ct)
+        details = u.get("prompt_tokens_details")
+        if isinstance(details, dict) and timings is not None:
+            cached = int(details.get("cached_tokens") or 0)
+            timings["cached_prompt_tokens"] = float(cached)
     t = obj.get("timings")
     if isinstance(t, dict):
-        pt = int(t.get("prompt_n") or pt)
+        evaluated = int(t.get("prompt_n") or 0)
+        cached = int(t.get("cache_n") or 0)
+        if not usage_prompt_tokens and (evaluated or cached):
+            pt = evaluated + cached
         ct = int(t.get("predicted_n") or ct)
         if timings is not None:
+            if "cache_n" in t:
+                timings["cached_prompt_tokens"] = float(cached)
+            if "prompt_n" in t:
+                timings["evaluated_prompt_tokens"] = float(evaluated)
             for k in ("prompt_ms", "predicted_ms"):
                 v = t.get(k)
                 if isinstance(v, (int, float)):
@@ -1637,6 +1692,10 @@ def _usage_from_history(
             {
                 "requests": 0,
                 "prompt_tokens": 0,
+                "cached_prompt_tokens": 0,
+                "evaluated_prompt_tokens": 0,
+                "cache_hits": 0,
+                "cache_misses": 0,
                 "completion_tokens": 0,
                 "prompt_tps_sum": 0.0,
                 "prompt_tps_n": 0,
@@ -1646,6 +1705,12 @@ def _usage_from_history(
         )
         m["requests"] += 1
         m["prompt_tokens"] += int(h.get("prompt_tokens") or 0)
+        m["cached_prompt_tokens"] += int(h.get("cached_prompt_tokens") or 0)
+        m["evaluated_prompt_tokens"] += int(h.get("evaluated_prompt_tokens") or 0)
+        if h.get("cache_status") == "hit":
+            m["cache_hits"] += 1
+        elif h.get("cache_status") == "miss":
+            m["cache_misses"] += 1
         m["completion_tokens"] += int(h.get("completion_tokens") or 0)
         ptps = float(h.get("prompt_tps") or 0.0)
         if ptps > 0:
@@ -2306,6 +2371,9 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
                     {
                         "requests": 0,
                         "prompt_tokens": 0,
+                        "cached_prompt_tokens": 0,
+                        "cache_hits": 0,
+                        "cache_misses": 0,
                         "completion_tokens": 0,
                         "prompt_tps_sum": 0.0,
                         "prompt_tps_n": 0,
@@ -2315,6 +2383,11 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
                 )
                 agg["requests"] += int(mdata.get("requests", 0) or 0)
                 agg["prompt_tokens"] += int(mdata.get("prompt_tokens", 0) or 0)
+                agg["cached_prompt_tokens"] += int(
+                    mdata.get("cached_prompt_tokens", 0) or 0
+                )
+                agg["cache_hits"] += int(mdata.get("cache_hits", 0) or 0)
+                agg["cache_misses"] += int(mdata.get("cache_misses", 0) or 0)
                 agg["completion_tokens"] += int(mdata.get("completion_tokens", 0) or 0)
                 agg["prompt_tps_sum"] += float(mdata.get("prompt_tps_sum", 0.0) or 0.0)
                 agg["prompt_tps_n"] += int(mdata.get("prompt_tps_n", 0) or 0)
@@ -2382,6 +2455,7 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
                 total_display = f"{pt:,}"
                 output_title = f"{output_count:,}"
                 input_display = f"{pt:,}"
+                cache_display = "—"
                 avg_p_display = _fmt_tps(avg_p)
                 avg_out_display = _fmt_tps(avg_out)
             elif kind == "text":
@@ -2397,6 +2471,20 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
                 total_display = f"{pt + output_count:,}"
                 output_title = f"{output_count:,}"
                 input_display = f"{pt:,}"
+                cached = int(mdata.get("cached_prompt_tokens", 0) or 0)
+                cache_requests = int(mdata.get("cache_hits", 0) or 0) + int(
+                    mdata.get("cache_misses", 0) or 0
+                )
+                cache_hit_rate = (
+                    100.0 * int(mdata.get("cache_hits", 0) or 0) / cache_requests
+                    if cache_requests
+                    else 0.0
+                )
+                cache_display = (
+                    f'{cached:,} <span class="muted">({cache_hit_rate:.0f}% hit)</span>'
+                    if cache_requests
+                    else "—"
+                )
                 avg_p_display = _fmt_tps(avg_p)
                 avg_out_display = _fmt_tps(avg_out)
             else:
@@ -2406,6 +2494,7 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
                 )
                 output_title = _fmt_count(output_count)
                 input_display = "—"
+                cache_display = "—"
                 avg_p_display = "—"
                 avg_out_display = "—"
 
@@ -2416,6 +2505,7 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
           <td class="mono small">{html.escape(str(model))}</td>
           <td class="num small">{reqs:,}</td>
           <td class="num small">{input_display}</td>
+          <td class="num small">{cache_display}</td>
           <td class="num small">{output_title}</td>
           <td class="num small">{total_display}</td>
           <td class="num small">{avg_p_display}</td>
@@ -2423,7 +2513,7 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
         </tr>"""
         return (
             rows
-            or '<tr><td colspan="9" class="muted">No model usage in this window.</td></tr>'
+            or '<tr><td colspan="10" class="muted">No model usage in this window.</td></tr>'
         )
 
     usage_24h_data = data.get("usage_24h") or {}
@@ -2472,6 +2562,19 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
             output_cell = _fmt_count(int(h.get("outputs") or 0))
             input_rate = "—"
             output_rate = "—"
+        cache_status = str(h.get("cache_status") or "unknown")
+        cached = int(h.get("cached_prompt_tokens") or 0)
+        prompt_total = int(h.get("prompt_tokens") or 0)
+        cache_pct = (100.0 * cached / prompt_total) if prompt_total else 0.0
+        if kind == "text" and cache_status in {"hit", "miss"}:
+            cache_label = "Hit" if cache_status == "hit" else "Miss"
+            pct_label = f" {cache_pct:.0f}%" if cached else ""
+            cache_cell = (
+                f'<span class="pill" title="{cached:,} of {prompt_total:,} prompt tokens reused">'
+                f"{cache_label}{pct_label}</span>"
+            )
+        else:
+            cache_cell = '<span class="muted">—</span>'
         return f"""
         <tr class="req-row" data-ts="{ts:.0f}" data-worker="{worker}" data-model="{html.escape(canonical_model)}">
           <td class="muted small ts-cell" data-ts="{ts:.0f}">{when}</td>
@@ -2479,6 +2582,7 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
           <td>{_cap_pill(kind)}</td>
           <td class="mono small" title="{model_title}">{model}</td>
           <td class="num small">{input_cell}</td>
+          <td class="num small">{cache_cell}</td>
           <td class="num small">{output_cell}</td>
           <td class="num small">{input_rate}</td>
           <td class="num small">{output_rate}</td>
@@ -2488,7 +2592,7 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
     recent = list(reversed(history))
     history_rows = (
         "".join(_hist_row(h) for h in recent)
-        or '<tr><td colspan="9" class="muted">No requests yet.</td></tr>'
+        or '<tr><td colspan="10" class="muted">No requests yet.</td></tr>'
     )
     # Filter dropdown options
     req_workers = sorted(
@@ -2744,6 +2848,7 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
     <thead><tr>
       <th>Type</th><th>Worker</th><th>Model</th>
       <th class="num">Requests</th><th class="num">Input</th>
+      <th class="num">Cached</th>
       <th class="num">Output / vectors</th><th class="num">Total / elapsed</th>
       <th class="num">Avg input/s</th><th class="num">Avg output/s</th>
     </tr></thead>
@@ -2789,7 +2894,7 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
   <table id="recent-requests-table">
     <thead><tr>
       <th>Time</th><th>Worker</th><th>Type</th><th>Model</th>
-      <th class="num">Input</th><th class="num">Output</th>
+      <th class="num">Input</th><th class="num">Cache</th><th class="num">Output</th>
       <th class="num">Input/s</th><th class="num">Output/s</th>
       <th class="num">Total time</th>
     </tr></thead>
@@ -2979,12 +3084,35 @@ def _wait_timeout() -> float:
     return float(getenv("ROUTER_WAIT_TIMEOUT", "0"))
 
 
+def _prompt_affinity_key(
+    payload: Dict[str, Any], capability: str, model: Optional[str]
+) -> Optional[str]:
+    raw = payload.get("prompt_cache_key")
+    if not isinstance(raw, str) or not raw.strip():
+        return None
+    # Bound untrusted client input and keep separate model caches independent.
+    return f"{capability}:{_normalize_model_name(model)}:{raw.strip()[:512]}"
+
+
+def _prune_prompt_affinity(now: float) -> None:
+    ttl = max(60.0, _float_env("ROUTER_PROMPT_AFFINITY_TTL", 3600.0))
+    expired = [key for key, (_, seen) in _prompt_affinity.items() if now - seen > ttl]
+    for key in expired:
+        _prompt_affinity.pop(key, None)
+    max_entries = max(100, int(_float_env("ROUTER_PROMPT_AFFINITY_MAX", 10000)))
+    if len(_prompt_affinity) > max_entries:
+        oldest = sorted(_prompt_affinity.items(), key=lambda item: item[1][1])
+        for key, _ in oldest[: len(_prompt_affinity) - max_entries]:
+            _prompt_affinity.pop(key, None)
+
+
 async def _pick(
     capability: str,
     model: Optional[str] = None,
     exclude: Optional[set] = None,
     external_fallback_allowed: bool = True,
     wait_indefinitely: bool = False,
+    affinity_key: Optional[str] = None,
 ) -> WorkerInfo:
     router = get_router()
     # Pre-exclude tunneled workers whose WebSocket is not currently connected.
@@ -3007,6 +3135,42 @@ async def _pick(
         logging.info(
             f"[Router] tunnel offline, excluding from selection: {', '.join(unavailable)}"
         )
+    now = time.time()
+    _prune_prompt_affinity(now)
+    preferred_id = (
+        _prompt_affinity.get(affinity_key, (None, 0.0))[0] if affinity_key else None
+    )
+    if preferred_id and preferred_id not in pre_exclude:
+        preferred = next(
+            (
+                worker
+                for worker in registry.list_workers(alive_only=True)
+                if worker.worker_id == preferred_id
+            ),
+            None,
+        )
+        model_matches = bool(
+            preferred
+            and (
+                not model
+                or not preferred.models
+                or any(model_name_matches(model, served) for served in preferred.models)
+            )
+        )
+        if (
+            preferred
+            and not preferred.external_fallback
+            and capability in preferred.capabilities
+            and not preferred.is_circuit_open()
+            and model_matches
+            and preferred.has_capacity(capability, model)
+        ):
+            _prompt_affinity[affinity_key] = (preferred.worker_id, now)
+            logging.info(
+                f"[Router] prompt-cache affinity -> {preferred.label} "
+                f"(model={model!r}, cap={capability})"
+            )
+            return preferred
     worker = await router.wait_for_worker(
         capability,
         model,
@@ -3021,6 +3185,8 @@ async def _pick(
                 + (f" model={model!r}" if model else "")
             ),
         )
+    if affinity_key and not worker.external_fallback:
+        _prompt_affinity[affinity_key] = (worker.worker_id, now)
     return worker
 
 
@@ -3229,6 +3395,9 @@ def _worker_json_payload(
 ) -> Dict[str, Any]:
     """Return the request body adapted for a selected worker."""
     forwarded = dict(payload)
+    # Router-only metadata. Local and external OpenAI-compatible workers do
+    # not need to know how affinity was selected.
+    forwarded.pop("prompt_cache_key", None)
     if not worker.external_fallback:
         return forwarded
 
@@ -3694,6 +3863,7 @@ async def _llm_stream_with_worker_failover(
     wait_indefinitely: bool = False,
 ) -> AsyncIterator[bytes]:
     tried: set = set()
+    affinity_key = _prompt_affinity_key(payload, capability, model)
     max_attempts = _stream_max_attempts(capability, external_fallback_allowed)
     last_error = ""
     for attempt in range(max_attempts):
@@ -3704,6 +3874,7 @@ async def _llm_stream_with_worker_failover(
                 exclude=tried,
                 external_fallback_allowed=external_fallback_allowed,
                 wait_indefinitely=wait_indefinitely,
+                affinity_key=affinity_key,
             )
         except Exception as e:
             last_error = f"{type(e).__name__}: {e}"
@@ -4219,6 +4390,7 @@ async def _llm_proxy_with_retry(
         )
 
     tried: set = set()
+    affinity_key = _prompt_affinity_key(payload, capability, model)
     last_error: Optional[Exception] = None
     last_status: Optional[int] = None
     max_attempts = 1 + _max_retries()
@@ -4230,6 +4402,7 @@ async def _llm_proxy_with_retry(
             exclude=tried,
             external_fallback_allowed=external_fallback_allowed,
             wait_indefinitely=wait_indefinitely,
+            affinity_key=affinity_key,
         )
         tried.add(worker.worker_id)
         try:
@@ -4277,20 +4450,9 @@ async def _llm_proxy_with_retry(
             pt, ct = 0, 0
             timings: Dict[str, float] = {}
             try:
-                obj = json.loads(resp.body)
-                u = obj.get("usage") or {}
-                pt = int(u.get("prompt_tokens") or 0)
-                ct = int(u.get("completion_tokens") or 0)
-                t = obj.get("timings")
-                if isinstance(t, dict):
-                    if not pt:
-                        pt = int(t.get("prompt_n") or 0)
-                    if not ct:
-                        ct = int(t.get("predicted_n") or 0)
-                    for k in ("prompt_ms", "predicted_ms"):
-                        v = t.get(k)
-                        if isinstance(v, (int, float)):
-                            timings[k] = float(v)
+                pt, ct = _extract_tokens_from_sse_event(
+                    bytes(resp.body), pt, ct, timings
+                )
             except Exception:
                 pass
             timings["total_ms"] = (time.monotonic() - request_started) * 1000.0
