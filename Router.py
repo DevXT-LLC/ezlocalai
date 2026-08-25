@@ -1451,6 +1451,32 @@ class WorkerRegistry:
                 w._refresh_router_reservations()
             return None
 
+    def try_reserve_in_flight(
+        self,
+        worker_id: str,
+        capability: Optional[str] = None,
+        model: Optional[str] = None,
+    ) -> Optional[str]:
+        """Atomically reserve a worker slot if it is still available.
+
+        Selection and dispatch are separate async operations. Without this
+        final locked check, two requests can both observe an idle swap-mode
+        worker and then race to load different LLMs on it.
+        """
+        with self._lock:
+            worker = self._workers.get(worker_id)
+            if worker is None:
+                return None
+            worker._refresh_router_reservations()
+            if not worker.has_capacity(capability=capability, model=model):
+                return None
+            return self.increment_in_flight(
+                worker_id,
+                1,
+                capability=capability,
+                model=model,
+            )
+
     def release_in_flight(self, worker_id: str, reservation_id: Optional[str]) -> None:
         """Release one tokenized dispatch lease; unreserved requests are no-ops."""
         if not reservation_id:

@@ -19,6 +19,11 @@ def _sse(payload: str) -> bytes:
 
 
 class RouterStreamingTests(unittest.IsolatedAsyncioTestCase):
+    def test_prompt_affinity_wait_default_covers_worker_heartbeat_release_lag(self):
+        with patch.dict(os.environ, {}, clear=False):
+            os.environ.pop("ROUTER_PROMPT_AFFINITY_WAIT", None)
+            self.assertEqual(router_app._prompt_affinity_wait_timeout(), 15.0)
+
     async def test_prompt_affinity_reuses_the_same_available_worker(self):
         registry = WorkerRegistry(ttl_seconds=60)
         first = registry.register(
@@ -206,24 +211,30 @@ class RouterStreamingTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(info["error_message"], "request exceeds context")
 
     async def test_stream_failover_retries_empty_worker_before_text(self):
-        first = WorkerInfo(
-            worker_id="first",
-            label="first",
-            url="http://first",
-            capabilities=["text"],
-            models=["model"],
+        registry = WorkerRegistry(ttl_seconds=60)
+        first = registry.register(
+            WorkerInfo(
+                worker_id="first",
+                label="first",
+                url="http://first",
+                capabilities=["text"],
+                models=["model"],
+            )
         )
-        second = WorkerInfo(
-            worker_id="second",
-            label="second",
-            url="http://second",
-            capabilities=["text"],
-            models=["model"],
+        second = registry.register(
+            WorkerInfo(
+                worker_id="second",
+                label="second",
+                url="http://second",
+                capabilities=["text"],
+                models=["model"],
+            )
         )
         workers = [first, second]
         original_pick = router_app._pick
         original_iter = router_app._iter_worker_stream_bytes
         original_attempts = router_app._stream_max_attempts
+        original_registry = router_app.get_registry
 
         async def fake_pick(capability, model, exclude=None, **kwargs):
             for worker in workers:
@@ -231,7 +242,15 @@ class RouterStreamingTests(unittest.IsolatedAsyncioTestCase):
                     return worker
             raise AssertionError("no fake worker left")
 
-        async def fake_iter(worker, path, payload, *, capability=None, model=None):
+        async def fake_iter(
+            worker,
+            path,
+            payload,
+            *,
+            capability=None,
+            model=None,
+            reservation_id=None,
+        ):
             if worker.worker_id == "first":
                 yield _sse(
                     '{"error":{"message":"request exceeds context","type":"exceed_context_size_error"}}'
@@ -244,6 +263,7 @@ class RouterStreamingTests(unittest.IsolatedAsyncioTestCase):
             router_app._pick = fake_pick
             router_app._iter_worker_stream_bytes = fake_iter
             router_app._stream_max_attempts = lambda capability, *args: 2
+            router_app.get_registry = lambda: registry
 
             chunks = []
             async for chunk in router_app._llm_stream_with_worker_failover(
@@ -258,6 +278,7 @@ class RouterStreamingTests(unittest.IsolatedAsyncioTestCase):
             router_app._pick = original_pick
             router_app._iter_worker_stream_bytes = original_iter
             router_app._stream_max_attempts = original_attempts
+            router_app.get_registry = original_registry
 
         body = b"".join(chunks).decode("utf-8")
         self.assertIn('"content":"ok"', body)

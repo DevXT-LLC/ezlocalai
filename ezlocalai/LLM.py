@@ -1194,6 +1194,9 @@ class LLM:
             "temperature": kwargs.get("temperature", self.params["temperature"]),
             "top_p": kwargs.get("top_p", self.params["top_p"]),
             "stream": stream,
+            # WorkConductor keeps its system/ability prefix byte-stable. Make
+            # prefix reuse explicit instead of relying on backend defaults.
+            "cache_prompt": True,
         }
         chat_request = self._apply_sampling_kwargs(chat_request, kwargs)
 

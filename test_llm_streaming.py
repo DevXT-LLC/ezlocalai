@@ -53,6 +53,15 @@ class _FakeStreamingServer:
         return {}
 
 
+class _FakeChatServer:
+    def __init__(self):
+        self.request = None
+
+    def handle_chat_completions(self, request):
+        self.request = request
+        return {"choices": [{"message": {"content": "ok"}}]}
+
+
 def _fake_llm(chunks):
     llm = LLM.__new__(LLM)
     llm.server = _FakeStreamingServer(chunks)
@@ -61,6 +70,22 @@ def _fake_llm(chunks):
 
 
 class LlmStreamingTests(unittest.TestCase):
+    def test_chat_explicitly_enables_prompt_cache_reuse(self):
+        llm = LLM.__new__(LLM)
+        llm.server = _FakeChatServer()
+        llm.model_name = "test-model"
+        llm.system_message = ""
+        llm.params = {
+            "max_tokens": 128,
+            "temperature": 0.0,
+            "top_p": 1.0,
+            "stop": [],
+        }
+
+        llm.chat([{"role": "user", "content": "hello"}])
+
+        self.assertIs(llm.server.request["cache_prompt"], True)
+
     def test_long_context_mtp_auto_ubatch_is_memory_safe(self):
         fake_cuda = types.SimpleNamespace(
             is_available=lambda: True,

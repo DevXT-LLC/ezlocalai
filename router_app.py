@@ -3113,7 +3113,11 @@ def _prompt_affinity_wait_timeout() -> float:
     than waiting briefly for the worker that already owns its KV prefix. Keep
     the wait bounded so affinity never defeats worker failover.
     """
-    return max(0.0, _float_env("ROUTER_PROMPT_AFFINITY_WAIT", 2.0))
+    # Worker heartbeats can retain the just-finished request for several
+    # seconds after the router has released its own reservation. Spilling a
+    # 100k+ token continuation during that small reporting window throws away
+    # the hot KV prefix and costs far more than waiting for the cache owner.
+    return max(0.0, _float_env("ROUTER_PROMPT_AFFINITY_WAIT", 15.0))
 
 
 def _eligible_affinity_worker(
@@ -3538,6 +3542,7 @@ async def _proxy_via_tunnel(
     model: Optional[str] = None,
     stream_media_type: Optional[str] = None,
     stream_headers: Optional[Dict[str, str]] = None,
+    reservation_id: Optional[str] = None,
 ):
     """Route a request to a tunneled worker through its open WebSocket."""
     hub = get_tunnel_hub()
@@ -3559,9 +3564,10 @@ async def _proxy_via_tunnel(
             detail=f"Tunnel for worker {worker.label} ({wid}) is not connected",
         )
     registry = get_registry()
-    reservation_id = registry.increment_in_flight(
-        worker.worker_id, 1, capability=capability, model=model
-    )
+    if reservation_id is None:
+        reservation_id = registry.increment_in_flight(
+            worker.worker_id, 1, capability=capability, model=model
+        )
     request_timeout = timeout or float(getenv("REQUEST_TIMEOUT", "300"))
     try:
         status, resp_headers, chunks = await conn.request(
@@ -3631,6 +3637,7 @@ async def _proxy_json(
     model: Optional[str] = None,
     stream_media_type: Optional[str] = None,
     stream_headers: Optional[Dict[str, str]] = None,
+    reservation_id: Optional[str] = None,
 ):
     """Forward a JSON POST to a worker. Returns either a dict or a StreamingResponse."""
     payload = _worker_json_payload(worker, path, payload)
@@ -3648,6 +3655,7 @@ async def _proxy_json(
             model=model,
             stream_media_type=stream_media_type,
             stream_headers=stream_headers,
+            reservation_id=reservation_id,
         )
     url = f"{worker.url}{path}"
     timeout_seconds = timeout or float(getenv("REQUEST_TIMEOUT", "300"))
@@ -3666,9 +3674,10 @@ async def _proxy_json(
             connect=10,  # fail fast on connection errors, don't wait the full timeout
         )
     registry = get_registry()
-    reservation_id = registry.increment_in_flight(
-        worker.worker_id, 1, capability=capability, model=model
-    )
+    if reservation_id is None:
+        reservation_id = registry.increment_in_flight(
+            worker.worker_id, 1, capability=capability, model=model
+        )
 
     if not stream:
         try:
@@ -3775,13 +3784,15 @@ async def _iter_worker_stream_bytes(
     *,
     capability: Optional[str] = None,
     model: Optional[str] = None,
+    reservation_id: Optional[str] = None,
 ) -> AsyncIterator[bytes]:
     """Open one worker streaming request and yield raw SSE bytes."""
     payload = _worker_json_payload(worker, path, payload)
     registry = get_registry()
-    reservation_id = registry.increment_in_flight(
-        worker.worker_id, 1, capability=capability, model=model
-    )
+    if reservation_id is None:
+        reservation_id = registry.increment_in_flight(
+            worker.worker_id, 1, capability=capability, model=model
+        )
     timeout_seconds = float(getenv("REQUEST_TIMEOUT", "300"))
     try:
         if is_tunnel_url(worker.url):
@@ -3922,6 +3933,18 @@ async def _llm_stream_with_worker_failover(
                 f"could not pick another worker: {last_error}"
             )
             break
+        reservation_id = get_registry().try_reserve_in_flight(
+            worker.worker_id,
+            capability=capability,
+            model=model,
+        )
+        if reservation_id is None:
+            logging.info(
+                "[Router] worker %s lost an LLM dispatch race; selecting again",
+                worker.label,
+            )
+            await asyncio.sleep(0.05)
+            continue
         tried.add(worker.worker_id)
         assistant_seen = False
         pt = 0
@@ -3930,7 +3953,12 @@ async def _llm_stream_with_worker_failover(
         buf = b""
         retry_reason = ""
         stream = _iter_worker_stream_bytes(
-            worker, path, payload, capability=capability, model=model
+            worker,
+            path,
+            payload,
+            capability=capability,
+            model=model,
+            reservation_id=reservation_id,
         )
         try:
             async for chunk in stream:
@@ -4443,6 +4471,18 @@ async def _llm_proxy_with_retry(
             wait_indefinitely=wait_indefinitely,
             affinity_key=affinity_key,
         )
+        reservation_id = get_registry().try_reserve_in_flight(
+            worker.worker_id,
+            capability=capability,
+            model=model,
+        )
+        if reservation_id is None:
+            logging.info(
+                "[Router] worker %s lost an LLM dispatch race; selecting again",
+                worker.label,
+            )
+            await asyncio.sleep(0.05)
+            continue
         tried.add(worker.worker_id)
         try:
             resp = await _proxy_json(
@@ -4452,6 +4492,7 @@ async def _llm_proxy_with_retry(
                 stream=is_stream,
                 capability=capability,
                 model=model,
+                reservation_id=reservation_id,
             )
         except Exception as e:
             last_error = e

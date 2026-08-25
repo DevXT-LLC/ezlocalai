@@ -9093,6 +9093,36 @@ class Pipes:
                 f"[Inference] Started - active count: {self._inference_count}"
             )
 
+    async def _acquire_inference_slot(self, model_name: Optional[str] = None):
+        """Register an inference, waiting before a swap across active models."""
+        waiting_for = None
+        while True:
+            with self._inference_count_lock:
+                conflicts = {
+                    name: count
+                    for name, count in self._model_inference_counts.items()
+                    if count > 0 and name != model_name
+                }
+                if self.llm_model_residency != "swap" or not conflicts:
+                    self._inference_count += 1
+                    if model_name:
+                        self._model_inference_counts[model_name] = (
+                            self._model_inference_counts.get(model_name, 0) + 1
+                        )
+                    logging.debug(
+                        "[Inference] Started - active count: %s",
+                        self._inference_count,
+                    )
+                    return
+            if conflicts != waiting_for:
+                logging.info(
+                    "[LLM Residency] Waiting to switch to %s while %s finishes",
+                    model_name,
+                    conflicts,
+                )
+                waiting_for = conflicts
+            await asyncio.sleep(0.05)
+
     def _decrement_inference_count(self, model_name: Optional[str] = None):
         """Thread-safe decrement of inference counter."""
         with self._inference_count_lock:
@@ -9193,7 +9223,7 @@ class Pipes:
         # Mark inference as in progress to prevent context reset during processing
         # and to expose per-model slot usage to the router heartbeat.
         slot_model = self._resolve_slot_model(data)
-        self._increment_inference_count(slot_model)
+        await self._acquire_inference_slot(slot_model)
 
         # Keep resource diagnostics accurate for the common resident-model
         # path. Swap-mode safety is governed by the inference counter above,
