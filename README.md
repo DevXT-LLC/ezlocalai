@@ -628,10 +628,11 @@ By default, text/vision routing requires an idle worker, so one long-running req
 
 Requests that include the same `prompt_cache_key` keep affinity with the worker
 that owns their reusable prompt prefix. If that worker is briefly busy, the
-router waits up to `ROUTER_PROMPT_AFFINITY_WAIT` seconds (default `30`) before
+router waits up to `ROUTER_PROMPT_AFFINITY_WAIT` seconds (default `2`) before
 using another worker. Temporary spillover does not replace the cache-owning
-worker, so later turns return to the warm prefix. Set the value to `0` to use
-immediate spillover.
+worker, so later turns return to the warm prefix. The short default covers
+stream-release and heartbeat lag without queueing behind a long generation.
+Set the value to `0` to use immediate spillover.
 
 For capability-only voice routing, the router defaults `ROUTER_PREFER_DEDICATED_CAPABILITIES=stt`, so large STT transcription jobs prefer workers that are not also serving `text` or `vision`. TTS routes by the normal score/tier calculation by default so low-latency playback can use faster mixed-capability workers. Stale `ROUTER_PREFER_DEDICATED_CAPABILITIES=stt,tts` values are treated as STT-only for TTS unless `ROUTER_ALLOW_DEDICATED_TTS_PREFERENCE=true` is also set. Large transcription jobs also use `ROUTER_STT_TIMEOUT` (default `7200` seconds) instead of the generic `REQUEST_TIMEOUT`.
 

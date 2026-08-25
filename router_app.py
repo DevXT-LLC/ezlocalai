@@ -3113,7 +3113,7 @@ def _prompt_affinity_wait_timeout() -> float:
     than waiting briefly for the worker that already owns its KV prefix. Keep
     the wait bounded so affinity never defeats worker failover.
     """
-    return max(0.0, _float_env("ROUTER_PROMPT_AFFINITY_WAIT", 30.0))
+    return max(0.0, _float_env("ROUTER_PROMPT_AFFINITY_WAIT", 2.0))
 
 
 def _eligible_affinity_worker(
