@@ -1,10 +1,13 @@
 import asyncio
 import os
+import sys
 import threading
 import time
 import types
 import unittest
 from unittest import mock
+
+sys.modules.setdefault("xllamacpp", types.SimpleNamespace())
 
 from Pipes import ModelType, Pipes, _VoiceSlotGuard
 from Router import WorkerInfo, WorkerRegistry
@@ -212,6 +215,49 @@ class VoiceHandoffTests(unittest.IsolatedAsyncioTestCase):
 
 
 class LlmSwapQueueTests(unittest.IsolatedAsyncioTestCase):
+    @staticmethod
+    def _resident_pipe(n_parallel=1):
+        pipe = Pipes.__new__(Pipes)
+        pipe.llm_model_residency = "resident"
+        pipe.available_models = ["model-a"]
+        pipe.model_sources = {"model-a": "model-a"}
+        pipe.model_configs = {
+            "model-a": {"n_parallel": n_parallel, "max_tokens": 262144}
+        }
+        pipe.persistent_llms = {"model-a": types.SimpleNamespace(n_parallel=n_parallel)}
+        pipe._inference_count = 1
+        pipe._model_inference_counts = {"model-a": 1}
+        pipe._inference_count_lock = threading.Lock()
+        return pipe
+
+    async def test_same_model_request_waits_when_native_slot_is_full(self):
+        pipe = self._resident_pipe(n_parallel=1)
+
+        pending = asyncio.create_task(pipe._acquire_inference_slot("model-a"))
+        await asyncio.sleep(0.02)
+        self.assertFalse(pending.done())
+
+        pipe._decrement_inference_count("model-a")
+        await asyncio.wait_for(pending, timeout=0.5)
+
+        self.assertEqual(pipe._inference_count, 1)
+        self.assertEqual(pipe._model_inference_counts, {"model-a": 1})
+
+    async def test_same_model_request_uses_an_available_parallel_slot(self):
+        pipe = self._resident_pipe(n_parallel=2)
+
+        await asyncio.wait_for(pipe._acquire_inference_slot("model-a"), timeout=0.5)
+
+        self.assertEqual(pipe._inference_count, 2)
+        self.assertEqual(pipe._model_inference_counts, {"model-a": 2})
+
+    def test_configured_context_limit_is_a_hard_ceiling(self):
+        pipe = self._resident_pipe(n_parallel=1)
+        pipe.current_llm_name = "model-a"
+        pipe._optimal_context = 200000
+
+        self.assertEqual(pipe._configured_context_limit_for_model(), 262144)
+
     async def test_cross_model_request_waits_for_active_stream(self):
         pipe = Pipes.__new__(Pipes)
         pipe.llm_model_residency = "swap"
