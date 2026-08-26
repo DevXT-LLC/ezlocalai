@@ -151,6 +151,74 @@ class RouterStreamingTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(router_app._prompt_affinity[affinity_key][0], "first")
         self.assertEqual(router.wait_for_worker.await_count, 2)
 
+    def test_nested_prompt_softly_avoids_parent_cache_worker(self):
+        registry = WorkerRegistry(ttl_seconds=60)
+        registry.register(
+            WorkerInfo(
+                worker_id="parent",
+                label="parent",
+                url="http://parent",
+                capabilities=["text"],
+                models=["model"],
+            )
+        )
+        registry.register(
+            WorkerInfo(
+                worker_id="browser",
+                label="browser",
+                url="http://browser",
+                capabilities=["text"],
+                models=["model"],
+            )
+        )
+        router_app._prompt_affinity.clear()
+        parent_key = router_app._prompt_affinity_key(
+            {"prompt_cache_key": "workconductor:agent:conversation"},
+            "text",
+            "model",
+        )
+        router_app._prompt_affinity[parent_key] = ("parent", router_app.time.time())
+
+        with patch("router_app.get_registry", return_value=registry):
+            avoided = router_app._prompt_cache_avoid_worker_ids(
+                {
+                    "prompt_cache_key": "workconductor-browser:agent:conversation",
+                    "prompt_cache_avoid_key": "workconductor:agent:conversation",
+                },
+                "text",
+                "model",
+            )
+
+        self.assertEqual(avoided, {"parent"})
+
+    def test_nested_prompt_does_not_avoid_only_compatible_worker(self):
+        registry = WorkerRegistry(ttl_seconds=60)
+        registry.register(
+            WorkerInfo(
+                worker_id="parent",
+                label="parent",
+                url="http://parent",
+                capabilities=["text"],
+                models=["model"],
+            )
+        )
+        router_app._prompt_affinity.clear()
+        parent_key = router_app._prompt_affinity_key(
+            {"prompt_cache_key": "workconductor:agent:conversation"},
+            "text",
+            "model",
+        )
+        router_app._prompt_affinity[parent_key] = ("parent", router_app.time.time())
+
+        with patch("router_app.get_registry", return_value=registry):
+            avoided = router_app._prompt_cache_avoid_worker_ids(
+                {"prompt_cache_avoid_key": "workconductor:agent:conversation"},
+                "text",
+                "model",
+            )
+
+        self.assertEqual(avoided, set())
+
     def test_llamacpp_timings_report_total_cached_and_evaluated_prompt_tokens(self):
         timings = {}
 
@@ -193,10 +261,15 @@ class RouterStreamingTests(unittest.IsolatedAsyncioTestCase):
         forwarded = router_app._worker_json_payload(
             worker,
             "/v1/chat/completions",
-            {"model": "model", "prompt_cache_key": "conversation-key"},
+            {
+                "model": "model",
+                "prompt_cache_key": "conversation-key",
+                "prompt_cache_avoid_key": "parent-key",
+            },
         )
 
         self.assertNotIn("prompt_cache_key", forwarded)
+        self.assertNotIn("prompt_cache_avoid_key", forwarded)
         self.assertEqual(forwarded["model"], "model")
 
     def test_sse_classifier_detects_nested_error(self):
