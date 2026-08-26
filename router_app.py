@@ -3141,6 +3141,65 @@ def _eligible_affinity_worker(
     )
 
 
+def _prompt_cache_avoid_worker_ids(
+    payload: Dict[str, Any],
+    capability: str,
+    model: Optional[str],
+    excluded: Optional[set] = None,
+) -> set:
+    """Softly avoid workers that own a nested request's parent KV cache.
+
+    Nested browser planners replace most of their prompt on each page step. If
+    they run on the worker holding a paused long-horizon conversation, that
+    small request can evict a 100k+ token prefix. Avoidance is only applied
+    when another compatible worker exists, so single-worker deployments retain
+    normal behavior.
+    """
+    raw = payload.get("prompt_cache_avoid_key")
+    if not isinstance(raw, str) or not raw.strip():
+        return set()
+
+    _prune_prompt_affinity(time.time())
+    avoid_key = _prompt_affinity_key({"prompt_cache_key": raw}, capability, model)
+    avoid_worker_id = (
+        _prompt_affinity.get(avoid_key, (None, 0.0))[0] if avoid_key else None
+    )
+    if not avoid_worker_id:
+        return set()
+
+    hard_excluded = set(excluded or ())
+    avoided = {avoid_worker_id}
+    tunnel_hub = get_tunnel_hub()
+    has_alternative = any(
+        worker.worker_id not in avoided
+        and _eligible_affinity_worker(
+            worker, capability, model, hard_excluded | avoided
+        )
+        and worker.has_capacity(capability, model)
+        and (
+            not is_tunnel_url(worker.url)
+            or tunnel_hub.is_connected(worker_id_from_tunnel_url(worker.url))
+        )
+        for worker in get_registry().list_workers(alive_only=True)
+    )
+    if has_alternative:
+        logging.info(
+            "[Router] nested prompt will avoid parent cache worker %s "
+            "(model=%r, cap=%s)",
+            avoid_worker_id,
+            model,
+            capability,
+        )
+        return avoided
+    logging.info(
+        "[Router] nested prompt shares its parent cache worker because no "
+        "compatible alternative is available (model=%r, cap=%s)",
+        model,
+        capability,
+    )
+    return set()
+
+
 async def _pick(
     capability: str,
     model: Optional[str] = None,
@@ -3441,6 +3500,7 @@ def _worker_json_payload(
     # Router-only metadata. Local and external OpenAI-compatible workers do
     # not need to know how affinity was selected.
     forwarded.pop("prompt_cache_key", None)
+    forwarded.pop("prompt_cache_avoid_key", None)
     if not worker.external_fallback:
         return forwarded
 
@@ -3914,6 +3974,9 @@ async def _llm_stream_with_worker_failover(
 ) -> AsyncIterator[bytes]:
     tried: set = set()
     affinity_key = _prompt_affinity_key(payload, capability, model)
+    cache_avoid_worker_ids = _prompt_cache_avoid_worker_ids(
+        payload, capability, model, tried
+    )
     max_attempts = _stream_max_attempts(capability, external_fallback_allowed)
     last_error = ""
     for attempt in range(max_attempts):
@@ -3921,7 +3984,7 @@ async def _llm_stream_with_worker_failover(
             worker = await _pick(
                 capability,
                 model,
-                exclude=tried,
+                exclude=tried | (cache_avoid_worker_ids if attempt == 0 else set()),
                 external_fallback_allowed=external_fallback_allowed,
                 wait_indefinitely=wait_indefinitely,
                 affinity_key=affinity_key,
@@ -4458,6 +4521,9 @@ async def _llm_proxy_with_retry(
 
     tried: set = set()
     affinity_key = _prompt_affinity_key(payload, capability, model)
+    cache_avoid_worker_ids = _prompt_cache_avoid_worker_ids(
+        payload, capability, model, tried
+    )
     last_error: Optional[Exception] = None
     last_status: Optional[int] = None
     max_attempts = 1 + _max_retries()
@@ -4466,7 +4532,7 @@ async def _llm_proxy_with_retry(
         worker = await _pick(
             capability,
             model,
-            exclude=tried,
+            exclude=tried | (cache_avoid_worker_ids if attempt == 0 else set()),
             external_fallback_allowed=external_fallback_allowed,
             wait_indefinitely=wait_indefinitely,
             affinity_key=affinity_key,
