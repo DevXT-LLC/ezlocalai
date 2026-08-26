@@ -332,7 +332,8 @@ class ChutesRoutingRequestTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(captured["headers"], {"Authorization": "Bearer cpk_test"})
 
     async def test_successful_chutes_completion_schedules_balance_refresh(self):
-        worker = router_app._build_chutes_worker(api_key="cpk_test")
+        registry = WorkerRegistry(ttl_seconds=60)
+        worker = registry.register(router_app._build_chutes_worker(api_key="cpk_test"))
         response = router_app.Response(
             content=b'{"usage":{"prompt_tokens":2,"completion_tokens":3}}',
             status_code=200,
@@ -340,6 +341,7 @@ class ChutesRoutingRequestTests(unittest.IsolatedAsyncioTestCase):
         )
 
         with (
+            patch("router_app.get_registry", return_value=registry),
             patch("router_app._pick", AsyncMock(return_value=worker)),
             patch("router_app._proxy_json", AsyncMock(return_value=response)),
             patch("router_app._record_llm_usage", AsyncMock()),

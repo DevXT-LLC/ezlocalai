@@ -11,6 +11,7 @@ from Globals import getenv
 
 DEFAULT_MODEL = getenv("DEFAULT_MODEL")
 MTP_SPEC_DRAFT_P_MIN_DEFAULT = 0.25
+QWEN38_MTP_SPEC_DRAFT_P_MIN_DEFAULT = 0.1
 MTP_SPEC_DRAFT_N_MAX_MAX = 16
 BUILT_IN_MTP_MODEL_FAMILIES = ("qwen3.8-27b",)
 PROMPT_CACHE_AUTO_MIN_MIB = 8192
@@ -257,6 +258,11 @@ def get_mtp_spec_draft_n_max(
             return min(max(1, override), MTP_SPEC_DRAFT_N_MAX_MAX), card_vram_gb
 
     model_size_b = get_model_size_billions(model_name)
+    if "qwen3.8-27b" in (model_name or "").lower():
+        # Benchmarked on RTX 3090 Ti with Q3_K_XL at 180K context. Three draft
+        # tokens preserved novel-generation throughput while improving
+        # copy-heavy code generation by about 15% over the old n_max=2 default.
+        return 3, card_vram_gb
     if 0 < model_size_b <= 4 and card_vram_gb >= 20:
         return 4, card_vram_gb
 
@@ -265,18 +271,25 @@ def get_mtp_spec_draft_n_max(
     return 2, card_vram_gb
 
 
-def get_mtp_spec_draft_p_min() -> float:
+def get_mtp_spec_draft_p_min(model_name: str = "") -> float:
     """Minimum draft token probability used for MTP speculative decoding."""
-    raw_value = getenv("MTP_SPEC_DRAFT_P_MIN", str(MTP_SPEC_DRAFT_P_MIN_DEFAULT))
+    model_default = (
+        QWEN38_MTP_SPEC_DRAFT_P_MIN_DEFAULT
+        if "qwen3.8-27b" in (model_name or "").lower()
+        else MTP_SPEC_DRAFT_P_MIN_DEFAULT
+    )
+    raw_value = getenv("MTP_SPEC_DRAFT_P_MIN", "auto")
+    if str(raw_value or "").strip().lower() in {"", "auto"}:
+        return model_default
     try:
         value = float(raw_value)
     except (TypeError, ValueError):
         logging.warning(
             "[LLM] Invalid MTP_SPEC_DRAFT_P_MIN=%r; using %.2f",
             raw_value,
-            MTP_SPEC_DRAFT_P_MIN_DEFAULT,
+            model_default,
         )
-        return MTP_SPEC_DRAFT_P_MIN_DEFAULT
+        return model_default
 
     if value < 0.0 or value > 1.0:
         clamped = min(max(value, 0.0), 1.0)
@@ -362,9 +375,11 @@ def calculate_auto_batch_sizes(
         n_ubatch = min(n_ubatch, n_batch)
 
     # MTP creates a second draft context, so its prompt-processing graph is
-    # materially more expensive than a normal single-context load. At 128K+
-    # context, cap the automatic physical batch before model initialization;
-    # explicit LLM_UBATCH_SIZE values still take precedence below.
+    # materially more expensive than a normal single-context load. Qwen3.8's
+    # hybrid cache is small enough for a larger physical batch: 1024 was stable
+    # and 8.7% faster than 256 on a 24GB 3090 Ti at 180K context. Keep 24GB
+    # cards at 512 above 200K context, while 32GB cards retain 1024. Preserve
+    # the conservative cap for other MTP families until they are benchmarked.
     mtp_long_context_cap = False
     if (
         model_name
@@ -372,8 +387,13 @@ def calculate_auto_batch_sizes(
         and effective_max_tokens >= 131_072
         and n_ubatch > 256
     ):
-        n_ubatch = 256
-        mtp_long_context_cap = True
+        if "qwen3.8-27b" in model_name.lower():
+            cap = 1024 if total_gb >= 28 or effective_max_tokens <= 200_000 else 512
+        else:
+            cap = 256
+        if n_ubatch > cap:
+            n_ubatch = cap
+            mtp_long_context_cap = True
 
     reason = (
         f"GPU {gpu_idx}, free={free_gb:.1f}GB/{total_gb:.1f}GB, "
@@ -1033,7 +1053,7 @@ class LLM:
             spec_draft_n_max, card_vram_gb = get_mtp_spec_draft_n_max(
                 self.main_gpu, self.model_name
             )
-            spec_draft_p_min = get_mtp_spec_draft_p_min()
+            spec_draft_p_min = get_mtp_spec_draft_p_min(self.model_name)
             self.xlc_params.speculative.types = [
                 xlc.common_speculative_type.COMMON_SPECULATIVE_TYPE_DRAFT_MTP
             ]

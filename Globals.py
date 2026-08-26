@@ -86,6 +86,7 @@ def getenv(var_name: str, default_value: str = None) -> str:
         # Single value applies to all models.
         "QUANT_TYPE": "Q4_K_XL",
         "LLM_BATCH_SIZE": "auto",
+        "LLM_UBATCH_SIZE": "auto",
         # Multiple DEFAULT_MODEL entries normally stay resident together. In
         # auto mode ezlocalai estimates their per-GPU footprint and switches to
         # one-at-a-time residency when they do not fit. "resident" and "swap"
@@ -103,10 +104,11 @@ def getenv(var_name: str, default_value: str = None) -> str:
         # 1 = single slot (default), N = fixed number of parallel slots.
         # Each slot gets n_ctx / n_parallel tokens of context. VRAM is constant.
         "N_PARALLEL": "1",
-        # MTP speculative decoding: require draft tokens to have at least this probability.
-        "MTP_SPEC_DRAFT_P_MIN": "0.25",
-        # MTP draft length. auto = 2 for large models, 4 for <=4B models
-        # with at least 20GB VRAM. Set an integer to force deeper drafts.
+        # MTP speculative decoding probability. auto uses a benchmarked
+        # model-family default (0.1 for Qwen3.8-27B, 0.25 otherwise).
+        "MTP_SPEC_DRAFT_P_MIN": "auto",
+        # MTP draft length. auto = 3 for Qwen3.8-27B, 2 for other large
+        # models, or 4 for <=4B models with at least 20GB VRAM.
         "MTP_SPEC_DRAFT_N_MAX": "auto",
         "VLM_MAX_TOKENS": "8192",  # Vision models don't need large context
         # Queue system defaults. Text queue concurrency is derived from loaded

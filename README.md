@@ -228,6 +228,29 @@ python benchmark_model_lifecycle.py \
   --rounds 2
 ```
 
+## Qwen3.8-27B Performance Tuning
+
+Qwen3.8-27B automatically enables its built-in MTP speculative decoder with
+one inference slot. The default MTP settings are `n_max=3` and `p_min=0.1`,
+benchmarked on a 24 GB RTX 3090 Ti with Q3_K_XL. Physical prompt batches are
+hardware- and context-aware: 24 GB cards use an ubatch of 1024 through 200K
+context and 512 above 200K, while 32 GB cards use 1024. Other MTP model
+families retain their conservative defaults.
+
+All values remain operator-overridable:
+
+```bash
+MTP_SPEC_DRAFT_N_MAX=3
+MTP_SPEC_DRAFT_P_MIN=0.1
+LLM_BATCH_SIZE=auto
+LLM_UBATCH_SIZE=auto
+```
+
+Higher MTP draft lengths can substantially accelerate copy-heavy output but
+may slow novel generation and consume more VRAM. Explicit `LLM_UBATCH_SIZE`
+values are attempted first; the resilient loader retries smaller physical
+batches if model initialization runs out of GPU memory.
+
 ## Embeddings
 
 ezlocalai serves `/v1/embeddings` with a dedicated GGUF embedding model, independent

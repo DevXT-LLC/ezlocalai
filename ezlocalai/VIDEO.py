@@ -8,8 +8,8 @@ from ezlocalai.VIDEO_UTILS import choose_video_gpu_residency
 # Enable expandable segments to reduce CUDA memory fragmentation.
 # This is critical for sequential CPU offload where layers are repeatedly
 # moved to/from GPU, causing fragmentation over 40+ inference steps.
-if "PYTORCH_CUDA_ALLOC_CONF" not in os.environ:
-    os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
+if "PYTORCH_ALLOC_CONF" not in os.environ:
+    os.environ["PYTORCH_ALLOC_CONF"] = "expandable_segments:True"
 
 # LTX-2.3 requires diffusers with LTX2Pipeline and GGUF support
 import_success = False
@@ -419,9 +419,7 @@ class VIDEO:
                     height=self.generation_hint.get("height"),
                     model_offload_min_free_gb=model_offload_min_free_gb,
                     full_gpu_min_free_gb=full_gpu_min_free_gb,
-                    short_model_offload_min_free_gb=(
-                        short_model_offload_min_free_gb
-                    ),
+                    short_model_offload_min_free_gb=(short_model_offload_min_free_gb),
                     model_offload_max_frames=model_offload_max_frames,
                     model_offload_max_pixels=model_offload_max_pixels,
                 )
@@ -853,12 +851,9 @@ class VIDEO:
             error_str = str(e).lower()
             if "out of memory" in error_str or "cuda" in error_str:
                 logging.warning(f"[VIDEO] GPU OOM during generation: {e}")
-                retry_sequential = (
-                    os.getenv("VIDEO_RETRY_SEQUENTIAL_ON_OOM", "true")
-                    .strip()
-                    .lower()
-                    in {"1", "true", "yes", "on"}
-                )
+                retry_sequential = os.getenv(
+                    "VIDEO_RETRY_SEQUENTIAL_ON_OOM", "true"
+                ).strip().lower() in {"1", "true", "yes", "on"}
                 if retry_sequential and self.gpu_residency != "sequential":
                     self._release_pipeline_refs()
                     raise VideoGenerationOutOfMemory(str(e)) from None

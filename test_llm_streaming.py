@@ -33,6 +33,8 @@ sys.modules.setdefault("torch", types.SimpleNamespace(cuda=_FakeCuda()))
 from ezlocalai.LLM import (
     LLM,
     calculate_auto_batch_sizes,
+    get_mtp_spec_draft_n_max,
+    get_mtp_spec_draft_p_min,
     get_model_image_min_tokens,
     is_mtp_model,
     normalize_stream_chunk_delta,
@@ -86,20 +88,63 @@ class LlmStreamingTests(unittest.TestCase):
 
         self.assertIs(llm.server.request["cache_prompt"], True)
 
-    def test_long_context_mtp_auto_ubatch_is_memory_safe(self):
-        fake_cuda = types.SimpleNamespace(
+    def test_qwen38_auto_ubatch_uses_benchmarked_hardware_caps(self):
+        ampere_cuda = types.SimpleNamespace(
             is_available=lambda: True,
             device_count=lambda: 1,
             mem_get_info=lambda _index: (22 * 1024**3, 24 * 1024**3),
             get_device_capability=lambda _index: (8, 6),
         )
-        with mock.patch("ezlocalai.LLM.torch.cuda", fake_cuda):
+        blackwell_cuda = types.SimpleNamespace(
+            is_available=lambda: True,
+            device_count=lambda: 1,
+            mem_get_info=lambda _index: (30 * 1024**3, 32 * 1024**3),
+            get_device_capability=lambda _index: (12, 0),
+        )
+        with mock.patch("ezlocalai.LLM.torch.cuda", ampere_cuda):
             normal = calculate_auto_batch_sizes(0, 262_144, "Qwen3.6-27B")
-            mtp = calculate_auto_batch_sizes(0, 262_144, "unsloth/Qwen3.8-27B-GGUF")
+            qwen38_180k = calculate_auto_batch_sizes(
+                0, 180_000, "unsloth/Qwen3.8-27B-GGUF"
+            )
+            qwen38_262k = calculate_auto_batch_sizes(
+                0, 262_144, "unsloth/Qwen3.8-27B-GGUF"
+            )
+            other_mtp = calculate_auto_batch_sizes(
+                0, 262_144, "unsloth/Qwen3.6-27B-MTP-GGUF"
+            )
+        with mock.patch("ezlocalai.LLM.torch.cuda", blackwell_cuda):
+            qwen38_5090 = calculate_auto_batch_sizes(
+                0, 262_144, "unsloth/Qwen3.8-27B-GGUF"
+            )
 
         self.assertEqual(normal[:2], (4096, 1024))
-        self.assertEqual(mtp[:2], (4096, 256))
-        self.assertIn("MTP long-context cap", mtp[2])
+        self.assertEqual(qwen38_180k[:2], (4096, 1024))
+        self.assertEqual(qwen38_262k[:2], (4096, 512))
+        self.assertEqual(qwen38_5090[:2], (8192, 1024))
+        self.assertEqual(other_mtp[:2], (4096, 256))
+        self.assertIn("MTP long-context cap", qwen38_262k[2])
+        self.assertIn("MTP long-context cap", qwen38_5090[2])
+
+    def test_qwen38_uses_benchmarked_mtp_defaults(self):
+        with (
+            mock.patch("ezlocalai.LLM.get_total_vram_per_gpu", return_value=[24.0]),
+            mock.patch("ezlocalai.LLM.getenv", return_value="auto"),
+        ):
+            self.assertEqual(
+                get_mtp_spec_draft_n_max(0, "unsloth/Qwen3.8-27B-GGUF")[0], 3
+            )
+            self.assertEqual(
+                get_mtp_spec_draft_n_max(0, "unsloth/Qwen3.6-27B-MTP-GGUF")[0],
+                2,
+            )
+            self.assertEqual(get_mtp_spec_draft_p_min("unsloth/Qwen3.8-27B-GGUF"), 0.1)
+            self.assertEqual(
+                get_mtp_spec_draft_p_min("unsloth/Qwen3.6-27B-MTP-GGUF"), 0.25
+            )
+
+    def test_explicit_mtp_probability_still_overrides_family_default(self):
+        with mock.patch("ezlocalai.LLM.getenv", return_value="0.4"):
+            self.assertEqual(get_mtp_spec_draft_p_min("unsloth/Qwen3.8-27B-GGUF"), 0.4)
 
     def test_qwen38_standard_repo_is_recognized_as_built_in_mtp(self):
         self.assertTrue(is_mtp_model("unsloth/Qwen3.8-27B-GGUF"))
