@@ -36,6 +36,7 @@ import time
 import asyncio
 from pathlib import Path
 from Globals import getenv
+from ezlocalai.context_retry import classify_inference_capacity_error
 from ezlocalai.MUSIC import (
     ACE_STEP_DEFAULT_BPM,
     ACE_STEP_DEFAULT_GUIDANCE_SCALE,
@@ -139,6 +140,25 @@ def _sync_request_queue_capacity() -> Dict[str, Any]:
 
 
 _sync_request_queue_capacity()
+
+
+def _inference_failure_http_exception(error: Exception) -> Optional[HTTPException]:
+    """Translate actionable inference capacity failures into stable API errors."""
+    classified = classify_inference_capacity_error(str(error or "Inference failed"))
+    if classified is None:
+        return None
+
+    detail = classified["detail"]
+    if detail["type"] == "inference_capacity_error":
+        context_tokens = int(
+            getattr(pipe, "current_context", 0)
+            or getattr(pipe, "_optimal_context", 0)
+            or 0
+        )
+        if context_tokens > 0:
+            detail["n_ctx"] = context_tokens
+    return HTTPException(status_code=classified["status_code"], detail=detail)
+
 
 app = FastAPI(title="ezlocalai Server", docs_url="/")
 app.add_middleware(
@@ -655,6 +675,9 @@ async def chat_completions(
             )
         except Exception as e:
             logging.error(f"[Chat Completions] Unexpected error: {e}")
+            actionable_error = _inference_failure_http_exception(e)
+            if actionable_error is not None:
+                raise actionable_error
             raise HTTPException(status_code=500, detail="Internal server error")
 
         if audio_response:

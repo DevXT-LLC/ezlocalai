@@ -63,6 +63,9 @@ services:
       - QUANT_TYPE=${QUANT_TYPE:-Q3_K_XL}
       - MTP_SPEC_DRAFT_P_MIN=${MTP_SPEC_DRAFT_P_MIN:-auto}
       - MTP_SPEC_DRAFT_N_MAX=${MTP_SPEC_DRAFT_N_MAX:-auto}
+      # Experimental llama.cpp concurrent-stream optimization for single-GPU
+      # token generation. Keep opt-in because the gain is GPU/model specific.
+      - GGML_CUDA_GRAPH_OPT=${GGML_CUDA_GRAPH_OPT:-0}
       - CUDA_DOCKER_ARCH=all
       - TENSOR_SPLIT=${TENSOR_SPLIT:-}
       - TOKENIZERS_PARALLELISM=false

@@ -246,6 +246,12 @@ LLM_BATCH_SIZE=auto
 LLM_UBATCH_SIZE=auto
 ```
 
+Single-GPU NVIDIA workers can also A/B test llama.cpp's experimental concurrent
+CUDA-stream optimization with `GGML_CUDA_GRAPH_OPT=1`. It primarily targets
+token-generation throughput rather than prompt processing. Results vary by GPU
+and model, so leave it disabled unless a representative decode benchmark shows
+a repeatable improvement.
+
 Higher MTP draft lengths can substantially accelerate copy-heavy output but
 may slow novel generation and consume more VRAM. Explicit `LLM_UBATCH_SIZE`
 values are attempted first; the resilient loader retries smaller physical

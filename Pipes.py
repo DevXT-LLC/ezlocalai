@@ -5066,7 +5066,10 @@ class Pipes:
                 logging.error(
                     f"[LLM] CPU fallback also failed for {model_name}: {last_error}"
                 )
-                raise last_error
+                raise RuntimeError(
+                    "Failed to allocate inference capacity for "
+                    f"{model_name} at n_ctx={max_tokens}: {last_error}"
+                ) from last_error
 
             # The last binary-search probe failed above the best known result, so
             # reload that exact maximum once after clearing the failed context.
@@ -9015,6 +9018,35 @@ class Pipes:
 
         return max(1, n_parallel)
 
+    def _inference_capacity_for_model(self, model_name: Optional[str]) -> int:
+        """Return the number of native slots that can serve a public model name."""
+        if not model_name:
+            return 1
+
+        capacity = 0
+        for model_id in getattr(self, "available_models", []):
+            if self._resolve_source_model(model_id) != model_name:
+                continue
+            instance = getattr(self, "persistent_llms", {}).get(model_id)
+            capacity += self._resolved_parallel_for_model(model_id, inst=instance)
+
+        if getattr(self, "llm_model_residency", "resident") == "swap":
+            return min(1, capacity) if capacity > 0 else 1
+        return max(1, capacity)
+
+    def _configured_context_limit_for_model(
+        self, model_id: Optional[str] = None
+    ) -> int:
+        """Return the configured hard context ceiling for a model instance."""
+        model_id = model_id or self.current_llm_name
+        model_configs = getattr(self, "model_configs", {})
+        config = model_configs.get(model_id, {}) if model_id else {}
+        try:
+            configured = int(config.get("max_tokens", self._optimal_context) or 0)
+        except (TypeError, ValueError):
+            configured = int(self._optimal_context or 0)
+        return max(1, configured or int(self._optimal_context or 16384))
+
     def get_text_queue_capacity(self) -> int:
         """Return the automatic local text request queue capacity."""
         snapshot = self.get_slot_capacity_snapshot()
@@ -9289,7 +9321,7 @@ class Pipes:
             )
 
     async def _acquire_inference_slot(self, model_name: Optional[str] = None):
-        """Register an inference, waiting before a swap across active models."""
+        """Register an inference after a real native model slot is available."""
         waiting_for = None
         while True:
             with self._inference_count_lock:
@@ -9301,8 +9333,13 @@ class Pipes:
                     for name, count in self._model_inference_counts.items()
                     if count > 0 and name != model_name
                 }
-                if not handoff_active and (
-                    self.llm_model_residency != "swap" or not conflicts
+                model_in_flight = self._model_inference_counts.get(model_name, 0)
+                model_capacity = self._inference_capacity_for_model(model_name)
+                model_slot_available = model_in_flight < model_capacity
+                if (
+                    not handoff_active
+                    and model_slot_available
+                    and (self.llm_model_residency != "swap" or not conflicts)
                 ):
                     self._inference_count += 1
                     if model_name:
@@ -9314,10 +9351,19 @@ class Pipes:
                         self._inference_count,
                     )
                     return
-            wait_reason = {"shared_gpu_handoff": 1} if handoff_active else conflicts
+            if handoff_active:
+                wait_reason = {"shared_gpu_handoff": 1}
+            elif not model_slot_available:
+                wait_reason = {
+                    "model": model_name or "default",
+                    "in_flight": model_in_flight,
+                    "capacity": model_capacity,
+                }
+            else:
+                wait_reason = conflicts
             if wait_reason != waiting_for:
                 logging.info(
-                    "[LLM Residency] Waiting to use %s while %s finishes",
+                    "[LLM Slots] Waiting to use %s while %s finishes",
                     model_name,
                     wait_reason,
                 )
@@ -10132,6 +10178,15 @@ class Pipes:
                     messages_or_prompt, "chat" if chat_mode else "completion"
                 )
                 required_context = calculate_context_size(estimated_tokens)
+                configured_context_limit = self._configured_context_limit_for_model()
+                if required_context > configured_context_limit:
+                    logging.info(
+                        "[LLM] Streaming estimate requested %s context tokens; "
+                        "clamping allocation to configured model limit %s",
+                        f"{required_context:,}",
+                        f"{configured_context_limit:,}",
+                    )
+                    required_context = configured_context_limit
 
                 logging.debug(
                     f"[LLM] Streaming pre-check: estimated {estimated_tokens:,} tokens, "
@@ -10201,7 +10256,10 @@ class Pipes:
                                 needed_tokens = current_context * 2
 
                         # Calculate new context: actual tokens needed + 16k headspace
-                        new_context = calculate_context_size(needed_tokens)
+                        new_context = min(
+                            calculate_context_size(needed_tokens),
+                            self._configured_context_limit_for_model(),
+                        )
 
                         if new_context > current_context:
                             if not context_reload_can_help(
@@ -10470,7 +10528,10 @@ class Pipes:
                         )
                         # Pre-load larger context for next request
                         if needed_tokens > 0:
-                            new_context = calculate_context_size(needed_tokens)
+                            new_context = min(
+                                calculate_context_size(needed_tokens),
+                                pipes_self._configured_context_limit_for_model(),
+                            )
                             current_context = pipes_self.current_context or 16384
                             if context_reload_can_help(
                                 error_msg, current_context, new_context
