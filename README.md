@@ -710,10 +710,19 @@ When set to `true`, this server becomes a dedicated voice server:
 - Ideal for a secondary server with a dedicated GPU for voice processing
 
 `TTS_N_PARALLEL` and `STT_N_PARALLEL` control how many separate local voice model
-instances are available. In voice server mode, or when `LAZY_LOAD_VOICE=false`,
-ezlocalai warm-loads that many resident instances and reports that capacity to
-the router. With lazy voice loading, the same values cap how many transient local
-TTS/STT instances may run at once.
+instances are available on a dedicated voice worker. A mixed LLM/voice worker
+defaults to `VOICE_UNLOAD_LLM_DURING_GENERATION=auto`: TTS and STT do not stay
+warm beside the LLM. The router treats them as one shared worker slot, waits for
+active LLM work to finish, temporarily unloads the LLM, runs the voice request,
+then unloads the voice model and restores the prior LLM residency. TTS and STT
+also exclude one another during this handoff. Set the option to `false` only when
+the worker has enough independent GPU capacity to keep voice models resident.
+
+`VOICE_WAIT_FOR_LLM_IDLE_TIMEOUT=60` controls the local race-safety timeout, and
+`VOICE_RELOAD_LLM_AFTER_GENERATION=true` controls restoration. Service-specific
+`TTS_...` and `STT_...` forms of these variables override the shared values. In
+voice server mode, ezlocalai instead warm-loads the configured number of resident
+instances and reports that parallel capacity to the router.
 
 Qwen-TTS voices live in the `voices/` directory as `.wav` reference samples. If a
 same-name `.txt` transcript exists, ezlocalai uses it for transcript-conditioned

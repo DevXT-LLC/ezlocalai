@@ -6,7 +6,7 @@ import types
 import unittest
 from unittest import mock
 
-from Pipes import ModelType, Pipes
+from Pipes import ModelType, Pipes, _VoiceSlotGuard
 from Router import WorkerInfo, WorkerRegistry
 
 
@@ -96,13 +96,15 @@ class LlmDependencySlotTests(unittest.TestCase):
         pipe._image_should_unload_llm_for_generation = mock.Mock(return_value=True)
         pipe._video_should_unload_llm_for_generation = mock.Mock(return_value=True)
         pipe._music_should_unload_llm_for_generation = mock.Mock(return_value=True)
+        pipe._voice_should_unload_llm = mock.Mock(return_value=True)
+        pipe._voice_handoff_active = mock.Mock(return_value=False)
 
         with (
             mock.patch.dict(
                 os.environ,
                 {
-                    "TTS_ENABLED": "false",
-                    "STT_ENABLED": "false",
+                    "TTS_ENABLED": "true",
+                    "STT_ENABLED": "true",
                     "EMBEDDING_ENABLED": "false",
                     "IMG_MODEL": "image-model",
                     "MUSIC_MODEL": "music-model",
@@ -123,6 +125,10 @@ class LlmDependencySlotTests(unittest.TestCase):
         self.assertEqual(snapshot["cap_slots"]["image"]["available"], 0)
         self.assertEqual(snapshot["cap_slots"]["video"]["available"], 0)
         self.assertEqual(snapshot["cap_slots"]["music"]["available"], 0)
+        self.assertEqual(snapshot["cap_slots"]["tts"]["capacity"], 1)
+        self.assertEqual(snapshot["cap_slots"]["tts"]["available"], 0)
+        self.assertEqual(snapshot["cap_slots"]["stt"]["capacity"], 1)
+        self.assertEqual(snapshot["cap_slots"]["stt"]["available"], 0)
 
     def test_router_text_reservation_blocks_declared_handoff_service(self):
         worker = WorkerInfo(
@@ -147,6 +153,62 @@ class LlmDependencySlotTests(unittest.TestCase):
         }
 
         self.assertEqual(worker.slots_left(capability="image"), 0)
+
+    def test_voice_reservation_excludes_text_and_sibling_voice_service(self):
+        worker = WorkerInfo(
+            worker_id="worker",
+            label="worker",
+            url="http://worker.local",
+            capabilities=["text", "tts", "stt"],
+            models=["model-a"],
+            cap_slots={
+                "text": {"capacity": 1, "in_flight": 0, "queued": 0},
+                "tts": {"capacity": 1, "in_flight": 0, "queued": 0},
+                "stt": {"capacity": 1, "in_flight": 0, "queued": 0},
+            },
+            model_slots={"model-a": {"capacity": 1, "in_flight": 0, "queued": 0}},
+            extra={"llm_unload_dependent_capabilities": ["tts", "stt"]},
+        )
+        registry = WorkerRegistry(ttl_seconds=60, reservation_ttl_seconds=15)
+        registry.register(worker)
+
+        reservation = registry.try_reserve_in_flight(worker.worker_id, capability="tts")
+
+        self.assertIsNotNone(reservation)
+        self.assertEqual(worker.slots_left(capability="tts"), 0)
+        self.assertEqual(worker.slots_left(capability="stt"), 0)
+        self.assertEqual(worker.slots_left(capability="text", model="model-a"), 0)
+        self.assertEqual(worker.total_capacity(), 1)
+        self.assertEqual(worker.total_busy(), 1)
+
+
+class VoiceHandoffTests(unittest.IsolatedAsyncioTestCase):
+    async def test_voice_slot_unloads_voice_before_restoring_llm(self):
+        pipe = Pipes.__new__(Pipes)
+        pipe._voice_handoff_lock = asyncio.Lock()
+        pipe._voice_handoff_state_lock = threading.Lock()
+        pipe._voice_handoff_counts = {"tts": 0, "stt": 0}
+        pipe._inference_count_lock = threading.Lock()
+        pipe._llm_temporarily_unavailable = False
+        pipe._voice_should_unload_llm = mock.Mock(return_value=True)
+        pipe._wait_for_llm_idle_for_voice = mock.AsyncMock()
+        handoff = {"loaded_models": ["model-a"], "active_model": "model-a"}
+        pipe._unload_llms_for_service = mock.Mock(return_value=handoff)
+        events = []
+        pipe._destroy_tts = mock.Mock(side_effect=lambda **kwargs: events.append("tts"))
+        pipe._destroy_stt = mock.Mock()
+        pipe._restore_llms_after_service = mock.Mock(
+            side_effect=lambda *args: events.append("llm")
+        )
+        guard = _VoiceSlotGuard(pipe, "tts", 1)
+
+        async with guard:
+            self.assertTrue(pipe._llm_temporarily_unavailable)
+            self.assertTrue(pipe._voice_handoff_active("tts"))
+
+        self.assertEqual(events, ["tts", "llm"])
+        self.assertFalse(pipe._llm_temporarily_unavailable)
+        self.assertFalse(pipe._voice_handoff_active())
 
 
 class LlmSwapQueueTests(unittest.IsolatedAsyncioTestCase):

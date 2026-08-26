@@ -3958,6 +3958,99 @@ for mtp_model_name in (
     }
 
 
+class _VoiceSlotGuard:
+    """Serialize a local voice request with the shared LLM GPU residency slot."""
+
+    def __init__(self, pipe: "Pipes", service: str, capacity: int):
+        self.pipe = pipe
+        self.service = service
+        self._semaphore = asyncio.Semaphore(max(1, int(capacity or 1)))
+        self._states: Dict[Any, List[Dict[str, Any]]] = {}
+
+    async def __aenter__(self):
+        key = self.pipe._lease_key()
+        should_handoff = self.pipe._voice_should_unload_llm(self.service)
+        state: Dict[str, Any] = {
+            "handoff": should_handoff,
+            "handoff_state": None,
+            "shared_lock": False,
+            "semaphore": False,
+        }
+
+        try:
+            if should_handoff:
+                await self.pipe._voice_handoff_lock.acquire()
+                state["shared_lock"] = True
+                self.pipe._mark_voice_handoff(self.service, True)
+                # Stop advertising/accepting new local LLM work before waiting
+                # for any already-running generation to drain.
+                with self.pipe._inference_count_lock:
+                    self.pipe._llm_temporarily_unavailable = True
+                await self.pipe._wait_for_llm_idle_for_voice(self.service)
+                state["handoff_state"] = self.pipe._unload_llms_for_service(
+                    self.service, True
+                )
+
+            await self._semaphore.acquire()
+            state["semaphore"] = True
+            self._states.setdefault(key, []).append(state)
+            return self
+        except Exception:
+            try:
+                if should_handoff and state.get("handoff_state"):
+                    if self.service == "tts":
+                        self.pipe._destroy_tts(async_cleanup=False, force=True)
+                    else:
+                        self.pipe._destroy_stt(async_cleanup=False, force=True)
+                    self.pipe._restore_llms_after_service(
+                        self.service,
+                        state["handoff_state"],
+                        f"{self.service.upper()}_RELOAD_LLM_AFTER_GENERATION",
+                    )
+            finally:
+                if should_handoff:
+                    self.pipe._mark_voice_handoff(self.service, False)
+                    with self.pipe._inference_count_lock:
+                        self.pipe._llm_temporarily_unavailable = False
+                if state["shared_lock"]:
+                    self.pipe._voice_handoff_lock.release()
+            raise
+
+    async def __aexit__(self, exc_type, exc_value, traceback):
+        key = self.pipe._lease_key()
+        stack = self._states.get(key, [])
+        state = stack.pop() if stack else {}
+        if not stack:
+            self._states.pop(key, None)
+
+        try:
+            if state.get("handoff"):
+                # The endpoint normally releases its lease first. Force a final
+                # synchronous cleanup here as well so the LLM is never reloaded
+                # while a CUDA-backed voice model is still being destroyed.
+                if self.service == "tts":
+                    self.pipe._destroy_tts(async_cleanup=False, force=True)
+                else:
+                    self.pipe._destroy_stt(async_cleanup=False, force=True)
+                self.pipe._restore_llms_after_service(
+                    self.service,
+                    state.get("handoff_state"),
+                    f"{self.service.upper()}_RELOAD_LLM_AFTER_GENERATION",
+                )
+        finally:
+            if state.get("handoff"):
+                self.pipe._mark_voice_handoff(self.service, False)
+                # Also clears the flag if unloading failed before it produced a
+                # handoff state or if reloading was explicitly disabled.
+                with self.pipe._inference_count_lock:
+                    self.pipe._llm_temporarily_unavailable = False
+            if state.get("semaphore"):
+                self._semaphore.release()
+            if state.get("shared_lock"):
+                self.pipe._voice_handoff_lock.release()
+        return False
+
+
 class Pipes:
     def __init__(self):
         load_dotenv()
@@ -3969,8 +4062,11 @@ class Pipes:
         # Per-model-type async locks for non-LLM inference serialization
         self._stt_pool_size = get_stt_parallel_slots()
         self._tts_pool_size = get_tts_parallel_slots()
-        self._stt_lock = asyncio.Semaphore(self._stt_pool_size)
-        self._tts_lock = asyncio.Semaphore(self._tts_pool_size)
+        self._voice_handoff_lock = asyncio.Lock()
+        self._voice_handoff_state_lock = threading.Lock()
+        self._voice_handoff_counts = {"tts": 0, "stt": 0}
+        self._stt_lock = _VoiceSlotGuard(self, "stt", self._stt_pool_size)
+        self._tts_lock = _VoiceSlotGuard(self, "tts", self._tts_pool_size)
         self._img_lock = asyncio.Lock()
         self._video_lock = asyncio.Lock()
         self._music_lock = asyncio.Lock()
@@ -4252,13 +4348,17 @@ class Pipes:
                     f"[TTS] Voice server configured ({voice_url}) - skipping local model loading"
                 )
             # Check if we should preload TTS (voice server mode OR LAZY_LOAD_VOICE=false)
-            elif should_preload_voice():
+            elif self._voice_should_preload("tts"):
                 mode_str = (
                     "voice server mode"
                     if is_voice_server_mode()
                     else "LAZY_LOAD_VOICE=false"
                 )
                 self._warm_load_tts_pool(mode_str=mode_str)
+            elif self._voice_should_unload_llm("tts"):
+                logging.info(
+                    "[TTS] Sharing the LLM GPU slot; skipping resident voice preload"
+                )
             elif precache_done:
                 # Precache already warmed the TTS cache, skip loading/unloading
                 logging.debug(
@@ -4297,7 +4397,7 @@ class Pipes:
         # Pre-load STT if preloading is enabled (voice server mode OR LAZY_LOAD_VOICE=false)
         # Skip if voice server URL is configured (passthrough mode)
         if (
-            should_preload_voice()
+            self._voice_should_preload("stt")
             and getenv("STT_ENABLED").lower() == "true"
             and not has_voice_server_url()
         ):
@@ -4311,6 +4411,12 @@ class Pipes:
             voice_url = getenv("VOICE_SERVER")
             logging.info(
                 f"[STT] Voice server configured ({voice_url}) - skipping local model loading"
+            )
+        elif getenv("STT_ENABLED").lower() == "true" and self._voice_should_unload_llm(
+            "stt"
+        ):
+            logging.info(
+                "[STT] Sharing the LLM GPU slot; skipping resident voice preload"
             )
 
         if (
@@ -4817,11 +4923,11 @@ class Pipes:
             # - LAZY_LOAD_VOICE=true (default) → voice models load on first request and
             #   unload after use, so don't penalize the LLM's GPU layer budget upfront.
             #   The resilient fallback handles OOM if voice later contends for VRAM.
-            # - should_preload_voice() (LAZY_LOAD_VOICE=false or voice server mode) →
+            # - resident local voice pools →
             #   voice models stay resident, so reserve VRAM for them.
             if has_voice_server_url():
                 reserved_vram = 0.0
-            elif should_preload_voice():
+            elif self._voice_should_preload("tts") or self._voice_should_preload("stt"):
                 # TTS ~4GB + STT ~2GB when preloaded; scale for low-VRAM devices
                 total_vram = sum(get_per_gpu_vram_gb()) if get_gpu_count() > 0 else 0
                 if 0 < total_vram < 12:
@@ -6292,7 +6398,7 @@ class Pipes:
 
             if self._stt_available:
                 stt = self._stt_available.popleft()
-            elif should_preload_voice():
+            elif self._voice_should_preload("stt"):
                 if len(self.stt_instances) < self._stt_pool_size:
                     stt = self._load_stt_instance(
                         slot_index=len(self.stt_instances) + 1,
@@ -6342,13 +6448,16 @@ class Pipes:
             async_cleanup: If True, run cleanup in background thread
             force: If True, destroy even if other requests might need it soon
         """
+        if self._voice_handoff_active("stt"):
+            async_cleanup = False
+            force = True
         self.resource_manager.mark_model_in_use(ModelType.STT, False)
 
         key = self._lease_key()
         refs = []
         with self._stt_pool_lock:
             stt_ref = self._stt_active_leases.pop(key, None)
-            if stt_ref is not None and should_preload_voice() and not force:
+            if stt_ref is not None and self._voice_should_preload("stt") and not force:
                 self._stt_available.append(stt_ref)
                 logging.debug("[STT] Preload mode - returning STT instance to pool")
                 return
@@ -6710,6 +6819,66 @@ class Pipes:
         free_gb = self.resource_manager.get_total_free_vram()
         return free_gb < required_gb + self.resource_manager.vram_safety_margin
 
+    def _voice_should_unload_llm(self, service: str) -> bool:
+        """Return whether local TTS/STT shares the resident LLM GPU slot."""
+        service = str(service or "voice").strip().lower()
+        generic_mode = getenv("VOICE_UNLOAD_LLM_DURING_GENERATION", "auto") or "auto"
+        mode = (
+            (
+                getenv(f"{service.upper()}_UNLOAD_LLM_DURING_GENERATION", generic_mode)
+                or generic_mode
+            )
+            .strip()
+            .lower()
+        )
+        if mode in {"0", "false", "no", "off"}:
+            return False
+        if mode in {"1", "true", "yes", "on"}:
+            return not has_voice_server_url()
+        if has_voice_server_url() or has_text_server_url():
+            return False
+        if is_voice_server_mode() and not is_text_server_mode():
+            return False
+        # Keep this stable while the LLM is temporarily detached: heartbeat
+        # dependency metadata must continue to advertise the shared slot.
+        return bool(getattr(self, "available_models", []))
+
+    def _voice_should_preload(self, service: str) -> bool:
+        return should_preload_voice() and not self._voice_should_unload_llm(service)
+
+    def _mark_voice_handoff(self, service: str, active: bool):
+        service = str(service or "voice").strip().lower()
+        with self._voice_handoff_state_lock:
+            current = int(self._voice_handoff_counts.get(service, 0) or 0)
+            self._voice_handoff_counts[service] = (
+                current + 1 if active else max(0, current - 1)
+            )
+
+    def _voice_handoff_active(self, service: Optional[str] = None) -> bool:
+        state_lock = getattr(self, "_voice_handoff_state_lock", None)
+        counts = getattr(self, "_voice_handoff_counts", {})
+        if state_lock is None:
+            return False
+        with state_lock:
+            if service:
+                return bool(counts.get(service, 0))
+            return any(counts.values())
+
+    async def _wait_for_llm_idle_for_voice(self, service: str):
+        service = str(service or "voice").strip().lower()
+        generic_timeout = getenv("VOICE_WAIT_FOR_LLM_IDLE_TIMEOUT", "60") or "60"
+        timeout = float(
+            getenv(f"{service.upper()}_WAIT_FOR_LLM_IDLE_TIMEOUT", generic_timeout)
+            or generic_timeout
+        )
+        deadline = time.monotonic() + max(0.0, timeout)
+        while self._is_inference_in_progress():
+            if timeout <= 0 or time.monotonic() >= deadline:
+                raise RuntimeError(
+                    f"LLM inference is active; {service.upper()} cannot unload the LLM yet"
+                )
+            await asyncio.sleep(0.1)
+
     async def _wait_for_llm_idle_for_image(self):
         timeout = float(getenv("IMAGE_WAIT_FOR_LLM_IDLE_TIMEOUT", "60"))
         deadline = time.monotonic() + max(0.0, timeout)
@@ -6802,7 +6971,14 @@ class Pipes:
     ):
         if not handoff_state:
             return
-        reload_after = (getenv(reload_env, "true") or "true").strip().lower() not in {
+        reload_default = "true"
+        if service in {"tts", "stt"}:
+            reload_default = (
+                getenv("VOICE_RELOAD_LLM_AFTER_GENERATION", "true") or "true"
+            )
+        reload_after = (
+            getenv(reload_env, reload_default) or reload_default
+        ).strip().lower() not in {
             "0",
             "false",
             "no",
@@ -7578,7 +7754,7 @@ class Pipes:
 
             if self._tts_available:
                 tts = self._tts_available.popleft()
-            elif should_preload_voice():
+            elif self._voice_should_preload("tts"):
                 if len(self.tts_instances) < self._tts_pool_size:
                     tts = self._load_tts_instance(
                         slot_index=len(self.tts_instances) + 1,
@@ -7628,13 +7804,16 @@ class Pipes:
             async_cleanup: If True, run cleanup in background thread
             force: If True, destroy even if other requests might need it soon
         """
+        if self._voice_handoff_active("tts"):
+            async_cleanup = False
+            force = True
         self.resource_manager.mark_model_in_use(ModelType.TTS, False)
 
         key = self._lease_key()
         refs = []
         with self._tts_pool_lock:
             tts_ref = self._tts_active_leases.pop(key, None)
-            if tts_ref is not None and should_preload_voice() and not force:
+            if tts_ref is not None and self._voice_should_preload("tts") and not force:
                 self._tts_available.append(tts_ref)
                 logging.debug("[TTS] Preload mode - returning TTS instance to pool")
                 return
@@ -8067,14 +8246,14 @@ class Pipes:
             return
         if (
             unloaded.get("tts")
-            and should_preload_voice()
+            and self._voice_should_preload("tts")
             and (getenv("TTS_ENABLED") or "false").strip().lower() == "true"
             and not has_voice_server_url()
         ):
             self._warm_load_tts_pool(mode_str="after image generation")
         if (
             unloaded.get("stt")
-            and should_preload_voice()
+            and self._voice_should_preload("stt")
             and (getenv("STT_ENABLED") or "false").strip().lower() == "true"
             and not has_voice_server_url()
         ):
@@ -8200,7 +8379,7 @@ class Pipes:
 
         if (
             unloaded.get("tts")
-            and should_preload_voice()
+            and self._voice_should_preload("tts")
             and (getenv("TTS_ENABLED") or "false").strip().lower() == "true"
             and not has_voice_server_url()
         ):
@@ -8208,7 +8387,7 @@ class Pipes:
 
         if (
             unloaded.get("stt")
-            and should_preload_voice()
+            and self._voice_should_preload("stt")
             and (getenv("STT_ENABLED") or "false").strip().lower() == "true"
             and not has_voice_server_url()
         ):
@@ -8971,15 +9150,31 @@ class Pipes:
         video_model = get_video_model_name().lower()
         music_model = (getenv("MUSIC_MODEL") or "").strip().lower()
 
+        tts_active = self.resource_manager.get_model_active_count(ModelType.TTS)
+        stt_active = self.resource_manager.get_model_active_count(ModelType.STT)
+        tts_shared = tts_enabled and self._voice_should_unload_llm("tts")
+        stt_shared = stt_enabled and self._voice_should_unload_llm("stt")
+        voice_handoff_active = self._voice_handoff_active()
+
         if tts_enabled and not has_voice_server_url():
+            tts_in_flight = tts_active
+            if tts_shared and (
+                total_llm_in_flight > 0 or stt_active > 0 or voice_handoff_active
+            ):
+                tts_in_flight = max(tts_in_flight, 1)
             cap_slots["tts"] = _slot(
-                capacity=get_tts_parallel_slots(),
-                in_flight=self.resource_manager.get_model_active_count(ModelType.TTS),
+                capacity=1 if tts_shared else get_tts_parallel_slots(),
+                in_flight=tts_in_flight,
             )
         if stt_enabled and not has_voice_server_url():
+            stt_in_flight = stt_active
+            if stt_shared and (
+                total_llm_in_flight > 0 or tts_active > 0 or voice_handoff_active
+            ):
+                stt_in_flight = max(stt_in_flight, 1)
             cap_slots["stt"] = _slot(
-                capacity=get_stt_parallel_slots(),
-                in_flight=self.resource_manager.get_model_active_count(ModelType.STT),
+                capacity=1 if stt_shared else get_stt_parallel_slots(),
+                in_flight=stt_in_flight,
             )
         if (
             image_enabled
@@ -9098,12 +9293,17 @@ class Pipes:
         waiting_for = None
         while True:
             with self._inference_count_lock:
+                handoff_active = bool(
+                    getattr(self, "_llm_temporarily_unavailable", False)
+                )
                 conflicts = {
                     name: count
                     for name, count in self._model_inference_counts.items()
                     if count > 0 and name != model_name
                 }
-                if self.llm_model_residency != "swap" or not conflicts:
+                if not handoff_active and (
+                    self.llm_model_residency != "swap" or not conflicts
+                ):
                     self._inference_count += 1
                     if model_name:
                         self._model_inference_counts[model_name] = (
@@ -9114,13 +9314,14 @@ class Pipes:
                         self._inference_count,
                     )
                     return
-            if conflicts != waiting_for:
+            wait_reason = {"shared_gpu_handoff": 1} if handoff_active else conflicts
+            if wait_reason != waiting_for:
                 logging.info(
-                    "[LLM Residency] Waiting to switch to %s while %s finishes",
+                    "[LLM Residency] Waiting to use %s while %s finishes",
                     model_name,
-                    conflicts,
+                    wait_reason,
                 )
-                waiting_for = conflicts
+                waiting_for = wait_reason
             await asyncio.sleep(0.05)
 
     def _decrement_inference_count(self, model_name: Optional[str] = None):
@@ -9148,7 +9349,7 @@ class Pipes:
                     available, _ = await fallback_client.check_availability()
                     if available:
                         logging.info(
-                            "[MUSIC] LLM temporarily unavailable during music generation; forwarding text request"
+                            "[LLM] Temporarily unavailable during a shared GPU handoff; forwarding text request"
                         )
                         is_streaming = data.get("stream", False)
                         response = (
@@ -9163,7 +9364,7 @@ class Pipes:
                         return response, None
             return {
                 "error": {
-                    "message": "LLM temporarily unavailable while this node is generating music.",
+                    "message": "LLM temporarily unavailable while this worker is using its shared GPU slot.",
                     "type": "temporarily_unavailable",
                 }
             }, None

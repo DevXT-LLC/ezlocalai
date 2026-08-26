@@ -1148,14 +1148,32 @@ class WorkerInfo:
             llm_dependencies = set(
                 self.extra.get("llm_unload_dependent_capabilities", []) or []
             )
-            if capability in llm_dependencies:
-                text_state = self._normalize_slot(self.cap_slots.get("text"))
-                reported_busy = max(
-                    reported_busy,
-                    int(text_state.get("in_flight", 0))
-                    + int(text_state.get("queued", 0)),
+            shared_busy: Dict[str, int] = {}
+            for shared_cap in {"text", *llm_dependencies}:
+                shared_state = self._normalize_slot(self.cap_slots.get(shared_cap))
+                shared_busy[shared_cap] = max(
+                    int(shared_state.get("in_flight", 0))
+                    + int(shared_state.get("queued", 0)),
+                    int(self.router_cap_in_flight.get(shared_cap, 0)),
                 )
-                router_busy = max(router_busy, self.router_cap_in_flight.get("text", 0))
+            if capability in llm_dependencies:
+                # Every handoff service needs the whole LLM residency slot, so
+                # text and sibling handoff services all block this capability.
+                conflicting = [
+                    busy
+                    for shared_cap, busy in shared_busy.items()
+                    if shared_cap != capability
+                ]
+                if conflicting:
+                    reported_busy = max(reported_busy, max(conflicting))
+            elif model_slot_key or capability in {"text", "vision"}:
+                # The inverse dependency matters too: once voice/image/video
+                # owns the slot, no new text dispatch may race its LLM unload.
+                dependency_busy = [
+                    shared_busy.get(shared_cap, 0) for shared_cap in llm_dependencies
+                ]
+                if dependency_busy:
+                    reported_busy = max(reported_busy, max(dependency_busy))
             return max(reported_busy, int(router_busy))
         return max(
             int(self.queue_depth), int(self.in_flight), int(self.router_in_flight)
@@ -1190,8 +1208,20 @@ class WorkerInfo:
         if not self.cap_slots:
             return max(1, int(self.queue_capacity or 1))
         total = 0
+        llm_dependencies = set(
+            self.extra.get("llm_unload_dependent_capabilities", []) or []
+        )
+        shared_caps = llm_dependencies.intersection(self.cap_slots)
+        shared_group = set(shared_caps)
+        if shared_caps and "text" in self.cap_slots:
+            shared_group.add("text")
+        if shared_group:
+            total += max(
+                int(self._normalize_slot(self.cap_slots.get(cap)).get("capacity", 0))
+                for cap in shared_group
+            )
         for cap, state in self.cap_slots.items():
-            if cap == "vision" and "text" in self.cap_slots:
+            if cap in shared_group or (cap == "vision" and "text" in self.cap_slots):
                 continue
             total += int(self._normalize_slot(state).get("capacity", 0))
         return total
@@ -1201,8 +1231,17 @@ class WorkerInfo:
         if not self.cap_slots:
             return self.effective_busy()
         total = 0
+        llm_dependencies = set(
+            self.extra.get("llm_unload_dependent_capabilities", []) or []
+        )
+        shared_caps = llm_dependencies.intersection(self.cap_slots)
+        shared_group = set(shared_caps)
+        if shared_caps and "text" in self.cap_slots:
+            shared_group.add("text")
+        if shared_group:
+            total += max(self.effective_busy(capability=cap) for cap in shared_group)
         for cap, state in self.cap_slots.items():
-            if cap == "vision" and "text" in self.cap_slots:
+            if cap in shared_group or (cap == "vision" and "text" in self.cap_slots):
                 continue
             normalized = self._normalize_slot(state)
             reported_busy = int(normalized.get("in_flight", 0)) + int(
@@ -1405,9 +1444,17 @@ class WorkerRegistry:
             model_key = WorkerInfo._match_name(model, w.model_slots) or (model or "")
 
             if delta > 0:
-                # Worker heartbeats are authoritative for non-LLM services.
-                # Only text/vision dispatches need a router reservation.
-                if capability not in MODEL_STRICT_CAPABILITIES:
+                # Heartbeats are normally authoritative for non-LLM services,
+                # but LLM-handoff capabilities also need a short reservation.
+                # Otherwise two router dispatches can both observe the shared
+                # worker as idle before its next heartbeat.
+                llm_dependencies = set(
+                    w.extra.get("llm_unload_dependent_capabilities", []) or []
+                )
+                if (
+                    capability not in MODEL_STRICT_CAPABILITIES
+                    and capability not in llm_dependencies
+                ):
                     return None
                 # Managed APIs have no heartbeat to replace router state, so
                 # their reservations live until the proxied request releases
@@ -2239,6 +2286,18 @@ class WorkerHeartbeatClient:
                     and pipe._music_should_unload_llm_for_generation()
                 ):
                     llm_dependencies.append("music")
+                if (
+                    hasattr(pipe, "_voice_should_unload_llm")
+                    and "tts" in self.capabilities
+                    and pipe._voice_should_unload_llm("tts")
+                ):
+                    llm_dependencies.append("tts")
+                if (
+                    hasattr(pipe, "_voice_should_unload_llm")
+                    and "stt" in self.capabilities
+                    and pipe._voice_should_unload_llm("stt")
+                ):
+                    llm_dependencies.append("stt")
                 if "video" in llm_dependencies and "music" in llm_dependencies:
                     llm_dependencies.append("music_video")
                 extra = {

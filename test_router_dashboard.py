@@ -163,6 +163,7 @@ class RouterDashboardTierTests(unittest.TestCase):
                     "stt": dict(idle),
                 },
                 model_slots={"model-a": dict(idle)},
+                extra={"llm_unload_dependent_capabilities": ["tts", "stt"]},
             )
         )
         registry.increment_in_flight(
@@ -174,8 +175,10 @@ class RouterDashboardTierTests(unittest.TestCase):
 
         models = {(entry["type"], entry["model"]): entry for entry in data["models"]}
         self.assertEqual(models[("text", "model-a")]["available_slots"], 0)
-        self.assertEqual(models[("tts", "tts-model")]["available_slots"], 1)
-        self.assertEqual(models[("stt", "stt-model")]["available_slots"], 1)
+        self.assertEqual(models[("tts", "tts-model")]["available_slots"], 0)
+        self.assertEqual(models[("stt", "stt-model")]["available_slots"], 0)
+        self.assertEqual(data["totals"]["total_parallel_capacity"], 1)
+        self.assertEqual(data["totals"]["total_in_flight"], 1)
 
         html = _render_dashboard_html(data)
         self.assertIn(
@@ -183,11 +186,13 @@ class RouterDashboardTierTests(unittest.TestCase):
             html,
         )
         self.assertIn(
-            'title="1 free">0/1</span> ' '<span class="mono small" title="tts-model"',
+            'title="1 in use of 1">1/1</b> '
+            '<span class="mono small" title="tts-model"',
             html,
         )
         self.assertIn(
-            'title="1 free">0/1</span> ' '<span class="mono small" title="stt-model"',
+            'title="1 in use of 1">1/1</b> '
+            '<span class="mono small" title="stt-model"',
             html,
         )
 
