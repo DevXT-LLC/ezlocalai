@@ -720,9 +720,11 @@ instances are available on a dedicated voice worker. A mixed LLM/voice worker
 defaults to `VOICE_UNLOAD_LLM_DURING_GENERATION=auto`: TTS and STT do not stay
 warm beside the LLM. The router treats them as one shared worker slot, waits for
 active LLM work to finish, temporarily unloads the LLM, runs the voice request,
-then unloads the voice model and restores the prior LLM residency. TTS and STT
-also exclude one another during this handoff. Set the option to `false` only when
-the worker has enough independent GPU capacity to keep voice models resident.
+then unloads the voice model and restores prior LLM availability. The LLM is
+reloaded eagerly only when configured below; otherwise the next text request
+loads it lazily. TTS and STT also exclude one another during this handoff. Set
+the option to `false` only when the worker has enough independent GPU capacity
+to keep voice models resident.
 
 `VOICE_WAIT_FOR_LLM_IDLE_TIMEOUT=60` controls the local race-safety timeout, and
 `VOICE_RELOAD_LLM_AFTER_GENERATION=false` controls eager restoration. It defaults

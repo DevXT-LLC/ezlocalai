@@ -3967,8 +3967,8 @@ class _VoiceSlotGuard:
         self._semaphore = asyncio.Semaphore(max(1, int(capacity or 1)))
         self._states: Dict[Any, List[Dict[str, Any]]] = {}
 
-    async def __aenter__(self):
-        key = self.pipe._lease_key()
+    async def acquire(self) -> Dict[str, Any]:
+        """Acquire a voice lease that may be released from another ASGI task."""
         should_handoff = self.pipe._voice_should_unload_llm(self.service)
         state: Dict[str, Any] = {
             "handoff": should_handoff,
@@ -3993,8 +3993,7 @@ class _VoiceSlotGuard:
 
             await self._semaphore.acquire()
             state["semaphore"] = True
-            self._states.setdefault(key, []).append(state)
-            return self
+            return state
         except Exception:
             try:
                 if should_handoff and state.get("handoff_state"):
@@ -4016,13 +4015,11 @@ class _VoiceSlotGuard:
                     self.pipe._voice_handoff_lock.release()
             raise
 
-    async def __aexit__(self, exc_type, exc_value, traceback):
-        key = self.pipe._lease_key()
-        stack = self._states.get(key, [])
-        state = stack.pop() if stack else {}
-        if not stack:
-            self._states.pop(key, None)
-
+    async def release(self, state: Optional[Dict[str, Any]]) -> None:
+        state = state or {}
+        if state.get("released"):
+            return
+        state["released"] = True
         try:
             if state.get("handoff"):
                 # The endpoint normally releases its lease first. Force a final
@@ -4048,6 +4045,20 @@ class _VoiceSlotGuard:
                 self._semaphore.release()
             if state.get("shared_lock"):
                 self.pipe._voice_handoff_lock.release()
+
+    async def __aenter__(self):
+        key = self.pipe._lease_key()
+        state = await self.acquire()
+        self._states.setdefault(key, []).append(state)
+        return self
+
+    async def __aexit__(self, exc_type, exc_value, traceback):
+        key = self.pipe._lease_key()
+        stack = self._states.get(key, [])
+        state = stack.pop() if stack else {}
+        if not stack:
+            self._states.pop(key, None)
+        await self.release(state)
         return False
 
 
