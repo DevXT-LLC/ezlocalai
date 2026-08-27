@@ -373,6 +373,18 @@ def _normalize_model_name(model: Optional[str]) -> str:
     return m
 
 
+def _worker_model_context(worker: WorkerInfo, model: str) -> int:
+    target = _normalize_model_name(model)
+    return max(
+        (
+            int(context or 0)
+            for name, context in worker.model_context.items()
+            if _normalize_model_name(name) == target
+        ),
+        default=0,
+    )
+
+
 def _pretty_model_name(model: Optional[str]) -> str:
     """Display-only cleanup: drop the ``vendor/`` prefix and the trailing
     ``-GGUF`` suffix so the UI can show ``Qwen3-30B-A3B`` instead of
@@ -868,6 +880,30 @@ def _stream_json_error_message(obj: Any) -> str:
     return ""
 
 
+def _stream_json_error_type(obj: Any) -> str:
+    if not isinstance(obj, dict):
+        return ""
+    error = obj.get("error")
+    if isinstance(error, dict) and error.get("type"):
+        return str(error["type"])
+    return ""
+
+
+def _is_context_capacity_error(message: str, error_type: str = "") -> bool:
+    combined = f"{error_type} {message}".lower()
+    return any(
+        marker in combined
+        for marker in (
+            "context_capacity_error",
+            "exceed_context_size_error",
+            "request exceeds context",
+            "maximum context length",
+            "too many tokens",
+            "input token size",
+        )
+    )
+
+
 def _sse_event_payloads(event: bytes) -> List[bytes]:
     payloads: List[bytes] = []
     for line in event.splitlines():
@@ -884,6 +920,7 @@ def _classify_sse_event(event: bytes) -> Dict[str, Any]:
     has_text = False
     finish_reason = ""
     error_message = ""
+    error_type = ""
     done = False
     parsed_payloads: List[Any] = []
     for payload in payloads:
@@ -902,6 +939,7 @@ def _classify_sse_event(event: bytes) -> Dict[str, Any]:
         message = _stream_json_error_message(obj)
         if message:
             error_message = message
+            error_type = _stream_json_error_type(obj)
         if _stream_json_has_assistant_text(obj):
             has_text = True
         reason = _stream_json_finish_reason(obj)
@@ -916,13 +954,20 @@ def _classify_sse_event(event: bytes) -> Dict[str, Any]:
         "safe_keepalive": bool(saw_choices and not has_text and not terminal),
         "finish_reason": finish_reason,
         "error_message": error_message,
+        "error_type": error_type,
         "done": done,
         "parsed_payloads": parsed_payloads,
     }
 
 
-def _sse_error_event(message: str, error_type: str = "worker_stream_error") -> bytes:
+def _sse_error_event(
+    message: str,
+    error_type: str = "worker_stream_error",
+    details: Optional[Dict[str, Any]] = None,
+) -> bytes:
     payload = {"error": {"message": message, "type": error_type}}
+    if details:
+        payload["error"].update(details)
     return f"data: {json.dumps(payload)}\n\n".encode("utf-8")
 
 
@@ -3979,6 +4024,9 @@ async def _llm_stream_with_worker_failover(
     )
     max_attempts = _stream_max_attempts(capability, external_fallback_allowed)
     last_error = ""
+    pre_text_failures = 0
+    context_capacity_failures = 0
+    attempted_context_windows: List[int] = []
     for attempt in range(max_attempts):
         try:
             worker = await _pick(
@@ -4015,6 +4063,7 @@ async def _llm_stream_with_worker_failover(
         timings: Dict[str, float] = {}
         buf = b""
         retry_reason = ""
+        retry_is_context_capacity = False
         stream = _iter_worker_stream_bytes(
             worker,
             path,
@@ -4044,6 +4093,14 @@ async def _llm_stream_with_worker_failover(
                         continue
                     if event_info["error_message"]:
                         retry_reason = str(event_info["error_message"])
+                        if _is_context_capacity_error(
+                            retry_reason, str(event_info.get("error_type") or "")
+                        ):
+                            retry_is_context_capacity = True
+                            context_capacity_failures += 1
+                            worker_context = _worker_model_context(worker, model)
+                            if worker_context > 0:
+                                attempted_context_windows.append(worker_context)
                         break
                     if event_info["finish_reason"] or event_info["done"]:
                         retry_reason = f"stream ended before assistant text" + (
@@ -4057,10 +4114,15 @@ async def _llm_stream_with_worker_failover(
                 if retry_reason:
                     break
             if retry_reason:
+                pre_text_failures += 1
                 await stream.aclose()
                 get_registry().record_error(
                     worker.worker_id,
-                    kind="empty_stream",
+                    kind=(
+                        "context_capacity"
+                        if retry_is_context_capacity
+                        else "empty_stream"
+                    ),
                     path=path,
                     message=retry_reason,
                 )
@@ -4085,9 +4147,22 @@ async def _llm_stream_with_worker_failover(
                     yield buf
                 elif event_info["error_message"]:
                     last_error = str(event_info["error_message"])
+                    pre_text_failures += 1
+                    buffered_context_capacity = _is_context_capacity_error(
+                        last_error, str(event_info.get("error_type") or "")
+                    )
+                    if buffered_context_capacity:
+                        context_capacity_failures += 1
+                        worker_context = _worker_model_context(worker, model)
+                        if worker_context > 0:
+                            attempted_context_windows.append(worker_context)
                     get_registry().record_error(
                         worker.worker_id,
-                        kind="empty_stream",
+                        kind=(
+                            "context_capacity"
+                            if buffered_context_capacity
+                            else "empty_stream"
+                        ),
                         path=path,
                         message=last_error,
                     )
@@ -4103,6 +4178,7 @@ async def _llm_stream_with_worker_failover(
                 _schedule_external_balance_refresh(worker)
                 return
             last_error = "worker stream completed without assistant text"
+            pre_text_failures += 1
             get_registry().record_error(
                 worker.worker_id,
                 kind="empty_stream",
@@ -4122,6 +4198,12 @@ async def _llm_stream_with_worker_failover(
             if assistant_seen:
                 yield _sse_error_event(str(e), "worker_stream_error")
                 return
+            pre_text_failures += 1
+            if _is_context_capacity_error(last_error):
+                context_capacity_failures += 1
+                worker_context = _worker_model_context(worker, model)
+                if worker_context > 0:
+                    attempted_context_windows.append(worker_context)
             if not e.retryable:
                 yield _sse_error_event(str(e), "worker_stream_error")
                 return
@@ -4131,13 +4213,20 @@ async def _llm_stream_with_worker_failover(
             except Exception:
                 pass
 
-    yield _sse_error_event(
-        (
-            f"All {max_attempts} eligible worker stream attempts completed without "
-            f"assistant text for {path}: {last_error or 'unknown error'}"
-        ),
-        "empty_stream",
+    final_message = (
+        f"All {max_attempts} eligible worker stream attempts completed without "
+        f"assistant text for {path}: {last_error or 'unknown error'}"
     )
+    if context_capacity_failures > 0 and context_capacity_failures == pre_text_failures:
+        details: Dict[str, Any] = {"compact_and_retry": True}
+        if attempted_context_windows:
+            details["n_ctx"] = max(attempted_context_windows)
+            details["attempted_context_windows"] = sorted(
+                set(attempted_context_windows)
+            )
+        yield _sse_error_event(final_message, "context_capacity_error", details)
+        return
+    yield _sse_error_event(final_message, "empty_stream")
 
 
 async def _proxy_get(worker: WorkerInfo, path: str) -> Response:
