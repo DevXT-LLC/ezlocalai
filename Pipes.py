@@ -6435,10 +6435,21 @@ class Pipes:
         """Synchronous STT destruction."""
         try:
             start_time = time.time()
+            close = getattr(stt_ref, "close", None)
+            if callable(close):
+                close()
             del stt_ref
             gc.collect()
             if torch.cuda.is_available():
+                try:
+                    torch.cuda.synchronize()
+                except Exception:
+                    pass
                 torch.cuda.empty_cache()
+                try:
+                    torch.cuda.ipc_collect()
+                except Exception:
+                    pass
             cleanup_time = time.time() - start_time
             logging.debug(f"[STT] Whisper unloaded in {cleanup_time:.2f}s")
         except Exception as e:
@@ -6976,8 +6987,11 @@ class Pipes:
             return
         reload_default = "true"
         if service in {"tts", "stt"}:
+            # A caller-local voice reference may still be unwinding when the
+            # shared slot exits. Restore lazily on the next text request so a
+            # long-context native LLM allocation cannot race voice cleanup.
             reload_default = (
-                getenv("VOICE_RELOAD_LLM_AFTER_GENERATION", "true") or "true"
+                getenv("VOICE_RELOAD_LLM_AFTER_GENERATION", "false") or "false"
             )
         reload_after = (
             getenv(reload_env, reload_default) or reload_default

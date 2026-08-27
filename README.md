@@ -725,7 +725,9 @@ also exclude one another during this handoff. Set the option to `false` only whe
 the worker has enough independent GPU capacity to keep voice models resident.
 
 `VOICE_WAIT_FOR_LLM_IDLE_TIMEOUT=60` controls the local race-safety timeout, and
-`VOICE_RELOAD_LLM_AFTER_GENERATION=true` controls restoration. Service-specific
+`VOICE_RELOAD_LLM_AFTER_GENERATION=false` controls eager restoration. It defaults
+to lazy restoration so native voice resources can fully unwind before the next
+text request reloads its LLM. Service-specific
 `TTS_...` and `STT_...` forms of these variables override the shared values. In
 voice server mode, ezlocalai instead warm-loads the configured number of resident
 instances and reports that parallel capacity to the router.
