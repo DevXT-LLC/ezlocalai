@@ -3701,6 +3701,19 @@ async def _proxy_via_tunnel(
         finally:
             registry.release_in_flight(worker.worker_id, reservation_id)
 
+    if status >= 400:
+        try:
+            buf = bytearray()
+            async for c in chunks:
+                buf.extend(c)
+            return Response(
+                content=bytes(buf),
+                status_code=status,
+                media_type=media_type or "application/json",
+            )
+        finally:
+            registry.release_in_flight(worker.worker_id, reservation_id)
+
     async def gen():
         sent_any = False
         try:
@@ -3711,16 +3724,17 @@ async def _proxy_via_tunnel(
             logging.warning(
                 f"[Router] Tunnel stream from {worker.label}{path} failed: {e}"
             )
-            error = {
-                "error": {
-                    "message": (
-                        f"Worker stream failed after proxying {int(sent_any)} chunk(s): "
-                        f"{type(e).__name__}: {e}"
-                    ),
-                    "type": "worker_stream_error",
+            if (stream_media_type or media_type or "").startswith("text/event-stream"):
+                error = {
+                    "error": {
+                        "message": (
+                            f"Worker stream failed after proxying {int(sent_any)} chunk(s): "
+                            f"{type(e).__name__}: {e}"
+                        ),
+                        "type": "worker_stream_error",
+                    }
                 }
-            }
-            yield f"data: {json.dumps(error)}\n\n".encode("utf-8")
+                yield f"data: {json.dumps(error)}\n\n".encode("utf-8")
         finally:
             registry.release_in_flight(worker.worker_id, reservation_id)
 
@@ -3806,12 +3820,39 @@ async def _proxy_json(
         finally:
             registry.release_in_flight(worker.worker_id, reservation_id)
 
+    # Open the upstream request before committing downstream stream headers so
+    # worker setup failures retain their real HTTP status and JSON body.
+    session = aiohttp.ClientSession(timeout=request_timeout)
+    try:
+        resp = await session.post(url, json=payload, headers=headers)
+    except Exception as e:
+        await session.close()
+        registry.release_in_flight(worker.worker_id, reservation_id)
+        logging.warning(f"[Router] Stream setup from {worker.url}{path} failed: {e}")
+        registry.record_connection_failure(worker.worker_id)
+        registry.record_error(
+            worker.worker_id,
+            kind="connection",
+            path=path,
+            message=f"{type(e).__name__}: {e}",
+        )
+        raise
+
+    if resp.status >= 400:
+        try:
+            body = await resp.read()
+            media_type = resp.headers.get("Content-Type", "application/json")
+            return Response(
+                content=body, status_code=resp.status, media_type=media_type
+            )
+        finally:
+            resp.release()
+            await session.close()
+            registry.release_in_flight(worker.worker_id, reservation_id)
+
     async def gen():
-        # Open one persistent session for the whole stream
-        session = aiohttp.ClientSession(timeout=request_timeout)
         sent_any = False
         try:
-            resp = await session.post(url, json=payload, headers=headers)
             try:
                 async for chunk in resp.content.iter_any():
                     if chunk:
@@ -3828,16 +3869,19 @@ async def _proxy_json(
                 path=path,
                 message=f"{type(e).__name__}: {e}",
             )
-            error = {
-                "error": {
-                    "message": (
-                        f"Worker stream failed after proxying {int(sent_any)} chunk(s): "
-                        f"{type(e).__name__}: {e}"
-                    ),
-                    "type": "worker_stream_error",
+            if (stream_media_type or "text/event-stream").startswith(
+                "text/event-stream"
+            ):
+                error = {
+                    "error": {
+                        "message": (
+                            f"Worker stream failed after proxying {int(sent_any)} chunk(s): "
+                            f"{type(e).__name__}: {e}"
+                        ),
+                        "type": "worker_stream_error",
+                    }
                 }
-            }
-            yield f"data: {json.dumps(error)}\n\n".encode("utf-8")
+                yield f"data: {json.dumps(error)}\n\n".encode("utf-8")
         finally:
             await session.close()
             registry.release_in_flight(worker.worker_id, reservation_id)

@@ -213,6 +213,25 @@ class VoiceHandoffTests(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(pipe._llm_temporarily_unavailable)
         self.assertFalse(pipe._voice_handoff_active())
 
+    async def test_voice_lease_can_be_released_from_a_streaming_task(self):
+        pipe = Pipes.__new__(Pipes)
+        pipe._voice_handoff_lock = asyncio.Lock()
+        pipe._voice_handoff_state_lock = threading.Lock()
+        pipe._voice_handoff_counts = {"tts": 0, "stt": 0}
+        pipe._inference_count_lock = threading.Lock()
+        pipe._llm_temporarily_unavailable = False
+        pipe._voice_should_unload_llm = mock.Mock(return_value=False)
+        guard = _VoiceSlotGuard(pipe, "tts", 1)
+
+        lease = await guard.acquire()
+
+        async def release_from_stream_task():
+            await guard.release(lease)
+
+        await asyncio.create_task(release_from_stream_task())
+        second = await asyncio.wait_for(guard.acquire(), timeout=0.2)
+        await guard.release(second)
+
     def test_voice_handoff_uses_lazy_llm_restore_by_default(self):
         pipe = Pipes.__new__(Pipes)
         pipe.available_models = ["model-a"]

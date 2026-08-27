@@ -1694,19 +1694,29 @@ async def text_to_speech_stream(tts: TextToSpeech, user=Depends(verify_api_key))
             },
         )
 
+    # Acquire the shared GPU slot and load TTS before committing HTTP 200.
+    # StreamingResponse runs its iterator in a separate ASGI task, so transfer
+    # the explicit lease instead of relying on task-local context-manager state.
+    tts_lease = await pipe._tts_lock.acquire()
+    try:
+        tts_model = pipe._get_tts()
+    except Exception:
+        await pipe._tts_lock.release(tts_lease)
+        raise
+
     async def audio_stream_generator():
-        async with pipe._tts_lock:
-            tts_model = pipe._get_tts()
-            try:
-                async for chunk in tts_model.generate_stream(
-                    text=tts.input, voice=tts.voice, language=tts.language
-                ):
-                    yield chunk
-            finally:
-                pipe.resource_manager.mark_model_in_use(ModelType.TTS, False)
-                # In voice server mode, don't destroy TTS - keep it loaded
-                if not is_voice_server_mode():
-                    pipe._destroy_tts()
+        try:
+            async for chunk in tts_model.generate_stream(
+                text=tts.input, voice=tts.voice, language=tts.language
+            ):
+                yield chunk
+        finally:
+            pipe.resource_manager.mark_model_in_use(ModelType.TTS, False)
+            # The handoff lease performs ordered cleanup before restoring the
+            # LLM. Dedicated/non-handoff voice workers retain prior behavior.
+            if not is_voice_server_mode() and not tts_lease.get("handoff"):
+                pipe._destroy_tts()
+            await pipe._tts_lock.release(tts_lease)
 
     return StreamingResponse(
         audio_stream_generator(),

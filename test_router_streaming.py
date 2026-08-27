@@ -19,6 +19,153 @@ def _sse(payload: str) -> bytes:
 
 
 class RouterStreamingTests(unittest.IsolatedAsyncioTestCase):
+    async def test_binary_stream_propagates_upstream_setup_error(self):
+        worker = WorkerInfo(
+            worker_id="tts-worker",
+            label="tts-worker",
+            url="http://tts-worker",
+            capabilities=["tts"],
+            models=[],
+        )
+        registry = WorkerRegistry(ttl_seconds=60)
+        registry.register(worker)
+
+        class FakeResponse:
+            status = 503
+            headers = {"Content-Type": "application/json"}
+
+            async def read(self):
+                return b'{"detail":"TTS model unavailable"}'
+
+            def release(self):
+                return None
+
+        class FakeSession:
+            def __init__(self, **_kwargs):
+                self.closed = False
+
+            async def post(self, *_args, **_kwargs):
+                return FakeResponse()
+
+            async def close(self):
+                self.closed = True
+
+        with patch("router_app.get_registry", return_value=registry), patch(
+            "router_app.aiohttp.ClientSession", FakeSession
+        ):
+            response = await router_app._proxy_json(
+                worker,
+                "/v1/audio/speech/stream",
+                {"input": "Hello"},
+                stream=True,
+                capability="tts",
+                stream_media_type="application/octet-stream",
+            )
+
+        self.assertEqual(response.status_code, 503)
+        self.assertEqual(response.body, b'{"detail":"TTS model unavailable"}')
+        self.assertEqual(worker.router_in_flight, 0)
+
+    async def test_binary_stream_does_not_append_sse_error_payload(self):
+        worker = WorkerInfo(
+            worker_id="tts-worker",
+            label="tts-worker",
+            url="http://tts-worker",
+            capabilities=["tts"],
+            models=[],
+        )
+        registry = WorkerRegistry(ttl_seconds=60)
+        registry.register(worker)
+
+        class FakeContent:
+            async def iter_any(self):
+                yield b"\x01\x02audio"
+                raise RuntimeError("voice worker disconnected")
+
+        class FakeResponse:
+            status = 200
+            headers = {"Content-Type": "application/octet-stream"}
+            content = FakeContent()
+
+            def release(self):
+                return None
+
+        class FakeSession:
+            def __init__(self, **_kwargs):
+                pass
+
+            async def post(self, *_args, **_kwargs):
+                return FakeResponse()
+
+            async def close(self):
+                return None
+
+        with patch("router_app.get_registry", return_value=registry), patch(
+            "router_app.aiohttp.ClientSession", FakeSession
+        ):
+            response = await router_app._proxy_json(
+                worker,
+                "/v1/audio/speech/stream",
+                {"input": "Hello"},
+                stream=True,
+                capability="tts",
+                stream_media_type="application/octet-stream",
+            )
+            body = b"".join([chunk async for chunk in response.body_iterator])
+
+        self.assertEqual(body, b"\x01\x02audio")
+        self.assertNotIn(b"data:", body)
+        self.assertEqual(worker.router_in_flight, 0)
+
+    async def test_tunnel_binary_stream_propagates_upstream_setup_error(self):
+        worker = WorkerInfo(
+            worker_id="tts-worker",
+            label="tts-worker",
+            url="tunnel://tts-worker",
+            capabilities=["tts"],
+            models=[],
+        )
+        registry = WorkerRegistry(ttl_seconds=60)
+        registry.register(worker)
+
+        async def error_chunks():
+            yield b'{"detail":"TTS model unavailable"}'
+
+        connection = type(
+            "Connection",
+            (),
+            {
+                "closed": False,
+                "request": AsyncMock(
+                    return_value=(
+                        503,
+                        {"Content-Type": "application/json"},
+                        error_chunks(),
+                    )
+                ),
+            },
+        )()
+        hub = type("Hub", (), {"get": lambda self, _wid: connection})()
+
+        with patch("router_app.get_registry", return_value=registry), patch(
+            "router_app.get_tunnel_hub", return_value=hub
+        ):
+            response = await router_app._proxy_via_tunnel(
+                worker,
+                "POST",
+                "/v1/audio/speech/stream",
+                headers={"Content-Type": "application/json"},
+                body=b"{}",
+                stream=True,
+                timeout=30,
+                capability="tts",
+                stream_media_type="application/octet-stream",
+            )
+
+        self.assertEqual(response.status_code, 503)
+        self.assertEqual(response.body, b'{"detail":"TTS model unavailable"}')
+        self.assertEqual(worker.router_in_flight, 0)
+
     def test_prompt_affinity_wait_default_covers_worker_heartbeat_release_lag(self):
         with patch.dict(os.environ, {}, clear=False):
             os.environ.pop("ROUTER_PROMPT_AFFINITY_WAIT", None)
