@@ -213,6 +213,35 @@ class VoiceHandoffTests(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(pipe._llm_temporarily_unavailable)
         self.assertFalse(pipe._voice_handoff_active())
 
+    def test_voice_handoff_uses_lazy_llm_restore_by_default(self):
+        pipe = Pipes.__new__(Pipes)
+        pipe.available_models = ["model-a"]
+        pipe._llm_temporarily_unavailable = True
+        pipe._reload_persistent_models = mock.Mock()
+        handoff = {"loaded_models": ["model-a"], "active_model": "model-a"}
+
+        with mock.patch.dict(os.environ, {}, clear=False):
+            os.environ.pop("VOICE_RELOAD_LLM_AFTER_GENERATION", None)
+            os.environ.pop("STT_RELOAD_LLM_AFTER_GENERATION", None)
+            pipe._restore_llms_after_service(
+                "stt", handoff, "STT_RELOAD_LLM_AFTER_GENERATION"
+            )
+
+        pipe._reload_persistent_models.assert_not_called()
+        self.assertFalse(pipe._llm_temporarily_unavailable)
+
+    def test_stt_destroy_closes_native_model_before_cache_cleanup(self):
+        pipe = Pipes.__new__(Pipes)
+        pipe._record_model_lifecycle = mock.Mock()
+        stt = mock.Mock()
+
+        with mock.patch("Pipes.gc.collect"), mock.patch(
+            "Pipes.torch.cuda.is_available", return_value=False
+        ):
+            pipe._destroy_stt_sync(stt)
+
+        stt.close.assert_called_once_with()
+
 
 class LlmSwapQueueTests(unittest.IsolatedAsyncioTestCase):
     @staticmethod

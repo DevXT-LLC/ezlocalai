@@ -1111,6 +1111,8 @@ async def speech_to_text(
                 num_speakers=num_speakers,
                 session_id=session_id,
             )
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
         finally:
             pipe.resource_manager.mark_model_in_use(ModelType.STT, False)
             # In voice server mode, don't destroy STT - keep it loaded
