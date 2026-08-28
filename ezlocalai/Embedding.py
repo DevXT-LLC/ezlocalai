@@ -183,7 +183,7 @@ class Embedding:
         self.model_name = model_name or getenv("EMBEDDING_MODEL")
         self.model_alias = getenv("EMBEDDING_MODEL_ALIAS") or self.model_name
         self.quant_type = getenv("EMBEDDING_QUANT_TYPE", "Q8_0")
-        self.context_length = _get_int_env("EMBEDDING_CONTEXT_LENGTH", 32768)
+        self.context_length = _get_int_env("EMBEDDING_CONTEXT_LENGTH", 8192)
         self.pool_size = max(1, _get_int_env("EMBEDDING_N_PARALLEL", 1))
         # Keep each xllamacpp embedding server at a single full-context slot.
         # EMBEDDING_N_PARALLEL is handled by Pipes as separate model instances
@@ -432,9 +432,19 @@ class Embedding:
             params.embd_normalize = 2
 
         try:
-            params.flash_attn_type = (
-                xlc.llama_flash_attn_type.LLAMA_FLASH_ATTN_TYPE_ENABLED
-            )
+            if gpu_layers == 0:
+                # n_gpu_layers=0 only keeps model weights on the CPU. llama.cpp
+                # otherwise still offloads KV/compute operations and can fail a
+                # nominal CPU fallback when the resident LLM has filled VRAM.
+                params.no_kv_offload = True
+                params.no_op_offload = True
+                params.flash_attn_type = (
+                    xlc.llama_flash_attn_type.LLAMA_FLASH_ATTN_TYPE_DISABLED
+                )
+            else:
+                params.flash_attn_type = (
+                    xlc.llama_flash_attn_type.LLAMA_FLASH_ATTN_TYPE_ENABLED
+                )
         except Exception:
             pass
         return params
