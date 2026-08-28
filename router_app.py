@@ -44,7 +44,7 @@ import os
 import re
 import time
 from datetime import datetime
-from typing import Any, AsyncIterator, Dict, List, Optional
+from typing import Any, AsyncIterator, Awaitable, Callable, Dict, List, Optional
 
 import aiohttp
 from fastapi import (
@@ -3346,8 +3346,8 @@ def _max_retries() -> int:
 
 
 def _is_transient_failure(status: int) -> bool:
-    """5xx and 408 are worth retrying on a different worker; 4xx are client errors."""
-    return status == 408 or 500 <= status <= 599
+    """Worker timeouts, saturation, and 5xx responses are safe to retry."""
+    return status in (408, 429) or 500 <= status <= 599
 
 
 def _float_env(name: str, default: float) -> float:
@@ -4443,6 +4443,7 @@ async def _proxy_multipart(
     timeout: Optional[float] = None,
     capability: Optional[str] = None,
     model: Optional[str] = None,
+    reservation_id: Optional[str] = None,
 ) -> Response:
     """Forward a multipart/form-data POST to a worker.
 
@@ -4496,6 +4497,7 @@ async def _proxy_multipart(
             timeout=timeout,
             capability=capability,
             model=model,
+            reservation_id=reservation_id,
         )
 
     # Direct (non-tunneled) multipart upload via aiohttp.
@@ -4512,9 +4514,10 @@ async def _proxy_multipart(
 
     url = f"{worker.url}{path}"
     registry = get_registry()
-    reservation_id = registry.increment_in_flight(
-        worker.worker_id, 1, capability=capability, model=model
-    )
+    if reservation_id is None:
+        reservation_id = registry.increment_in_flight(
+            worker.worker_id, 1, capability=capability, model=model
+        )
     try:
         async with aiohttp.ClientSession(timeout=request_timeout) as session:
             async with session.post(url, data=data, headers=headers) as resp:
@@ -4535,6 +4538,197 @@ async def _proxy_multipart(
         raise
     finally:
         registry.release_in_flight(worker.worker_id, reservation_id)
+
+
+def _eligible_capability_worker_ids(capability: str) -> set:
+    """Return selectable local/managed workers for retry exclusion rotation."""
+    try:
+        tunnel_hub = get_tunnel_hub()
+        return {
+            worker.worker_id
+            for worker in get_registry().list_workers(alive_only=True)
+            if capability in worker.capabilities
+            and not worker.is_circuit_open()
+            and (
+                not is_tunnel_url(worker.url)
+                or tunnel_hub.is_connected(worker_id_from_tunnel_url(worker.url))
+            )
+        }
+    except Exception:
+        return set()
+
+
+async def _capability_proxy_with_retry(
+    *,
+    capability: str,
+    path: str,
+    model: Optional[str],
+    request_attempt: Callable[[WorkerInfo, Optional[str]], Awaitable[Any]],
+) -> tuple[WorkerInfo, Any]:
+    """Queue and retry a non-LLM capability request across healthy workers.
+
+    Worker selection already waits for advertised capacity. This wrapper also
+    handles the race between selection and dispatch plus transient failures
+    returned after a worker has accepted the request.
+    """
+    registry = get_registry()
+    max_attempts = _stream_max_attempts(capability)
+    tried: set = set()
+    last_error: Optional[Exception] = None
+    last_status: Optional[int] = None
+    attempts = 0
+
+    while attempts < max_attempts:
+        eligible_ids = _eligible_capability_worker_ids(capability)
+        if tried and (not eligible_ids or eligible_ids.issubset(tried)):
+            tried.clear()
+            await asyncio.sleep(min(0.25 * max(1, attempts), 1.0))
+
+        worker = await _pick(capability, model, exclude=tried)
+        reservation_id = registry.try_reserve_in_flight(
+            worker.worker_id,
+            capability=capability,
+            model=model,
+        )
+        llm_dependencies = set(
+            worker.extra.get("llm_unload_dependent_capabilities", []) or []
+        )
+        requires_reservation = capability in ("text", "vision") or (
+            capability in llm_dependencies
+        )
+        if reservation_id is None and requires_reservation:
+            logging.info(
+                "[Router] worker %s lost a %s dispatch race; returning to queue",
+                worker.label,
+                capability,
+            )
+            await asyncio.sleep(0.05)
+            continue
+
+        attempts += 1
+        tried.add(worker.worker_id)
+        try:
+            response = await request_attempt(worker, reservation_id)
+        except Exception as error:
+            last_error = error
+            logging.warning(
+                "[Router] %s attempt %d/%d via %s raised %s: %s; retrying",
+                path,
+                attempts,
+                max_attempts,
+                worker.label,
+                type(error).__name__,
+                error,
+            )
+            continue
+
+        last_error = None
+        status = int(getattr(response, "status_code", 200) or 200)
+        if _is_transient_failure(status):
+            last_status = status
+            try:
+                body_snippet = bytes(getattr(response, "body", b"") or b"").decode(
+                    "utf-8", errors="replace"
+                )[:500]
+            except Exception:
+                body_snippet = ""
+            registry.record_error(
+                worker.worker_id,
+                kind="http_5xx" if status >= 500 else "http_retryable",
+                path=path,
+                message=body_snippet or f"HTTP {status}",
+                status=status,
+            )
+            if attempts < max_attempts:
+                logging.warning(
+                    "[Router] %s attempt %d/%d via %s returned %d; retrying",
+                    path,
+                    attempts,
+                    max_attempts,
+                    worker.label,
+                    status,
+                )
+                continue
+        else:
+            return worker, response
+
+    if last_error is not None:
+        raise HTTPException(
+            status_code=502,
+            detail=(
+                f"All {max_attempts} worker attempts failed for {path}: "
+                f"{type(last_error).__name__}: {last_error}"
+            ),
+        )
+    raise HTTPException(
+        status_code=502,
+        detail=(
+            f"All {max_attempts} worker attempts returned transient errors "
+            f"(last status {last_status}) for {path}"
+        ),
+    )
+
+
+async def _proxy_json_capability_with_retry(
+    *,
+    capability: str,
+    path: str,
+    payload: Dict[str, Any],
+    model: Optional[str] = None,
+    stream: bool = False,
+    timeout: Optional[float] = None,
+    stream_media_type: Optional[str] = None,
+    stream_headers: Optional[Dict[str, str]] = None,
+) -> tuple[WorkerInfo, Any]:
+    async def request_attempt(worker: WorkerInfo, reservation_id: Optional[str]):
+        return await _proxy_json(
+            worker,
+            path,
+            payload,
+            stream=stream,
+            timeout=timeout,
+            capability=capability,
+            model=model,
+            stream_media_type=stream_media_type,
+            stream_headers=stream_headers,
+            reservation_id=reservation_id,
+        )
+
+    return await _capability_proxy_with_retry(
+        capability=capability,
+        path=path,
+        model=model,
+        request_attempt=request_attempt,
+    )
+
+
+async def _proxy_multipart_capability_with_retry(
+    *,
+    capability: str,
+    path: str,
+    files: Dict[str, tuple],
+    fields: Dict[str, Any],
+    model: Optional[str] = None,
+    timeout: Optional[float] = None,
+) -> tuple[WorkerInfo, Response]:
+    async def request_attempt(worker: WorkerInfo, reservation_id: Optional[str]):
+        return await _proxy_multipart(
+            worker,
+            path,
+            files=files,
+            fields=fields,
+            timeout=timeout,
+            capability=capability,
+            model=model,
+            reservation_id=reservation_id,
+        )
+
+    return await _capability_proxy_with_retry(
+        capability=capability,
+        path=path,
+        model=model,
+        request_attempt=request_attempt,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -4760,14 +4954,11 @@ async def _llm_proxy_with_retry(
 
 @app.post("/v1/embeddings", tags=["Embeddings"])
 async def embeddings(payload: Dict[str, Any], _: str = Depends(verify_client)):
-    worker = await _pick("embedding", payload.get("model"))
     start = time.perf_counter()
-    resp = await _proxy_json(
-        worker,
-        "/v1/embeddings",
-        payload,
-        stream=False,
+    worker, resp = await _proxy_json_capability_with_retry(
         capability="embedding",
+        path="/v1/embeddings",
+        payload=payload,
         model=payload.get("model"),
     )
     total_ms = (time.perf_counter() - start) * 1000.0
@@ -4800,10 +4991,12 @@ async def audio_speech(
     request: Request,
     _: str = Depends(verify_client),
 ):
-    worker = await _pick("tts", payload.get("model"))
     start = time.perf_counter()
-    resp = await _proxy_json(
-        worker, "/v1/audio/speech", payload, stream=False, capability="tts"
+    worker, resp = await _proxy_json_capability_with_retry(
+        capability="tts",
+        path="/v1/audio/speech",
+        payload=payload,
+        model=payload.get("model"),
     )
     total_ms = (time.perf_counter() - start) * 1000.0
     if int(getattr(resp, "status_code", 200) or 200) < 400:
@@ -4819,14 +5012,13 @@ async def audio_speech(
 
 @app.post("/v1/audio/speech/stream", tags=["Audio"])
 async def audio_speech_stream(payload: Dict[str, Any], _: str = Depends(verify_client)):
-    worker = await _pick("tts", payload.get("model"))
     start = time.perf_counter()
-    resp = await _proxy_json(
-        worker,
-        "/v1/audio/speech/stream",
-        payload,
-        stream=True,
+    worker, resp = await _proxy_json_capability_with_retry(
         capability="tts",
+        path="/v1/audio/speech/stream",
+        payload=payload,
+        model=payload.get("model"),
+        stream=True,
         stream_media_type="application/octet-stream",
         stream_headers={
             "X-Audio-Format": "pcm",
@@ -4854,18 +5046,16 @@ async def audio_music(
     request: Request,
     _: str = Depends(verify_client),
 ):
-    worker = await _pick("music", payload.get("model"))
     start = time.perf_counter()
-    resp = await _proxy_json(
-        worker,
-        "/v1/audio/music",
-        payload,
-        stream=False,
+    worker, resp = await _proxy_json_capability_with_retry(
+        capability="music",
+        path="/v1/audio/music",
+        payload=payload,
+        model=payload.get("model"),
         timeout=max(
             float(getenv("REQUEST_TIMEOUT", "1800")),
             float(getenv("ACE_STEP_TIMEOUT", "1800")),
         ),
-        capability="music",
     )
     total_ms = (time.perf_counter() - start) * 1000.0
     if int(getattr(resp, "status_code", 200) or 200) < 400:
@@ -4915,13 +5105,12 @@ async def audio_transcriptions(
     ),
     _: str = Depends(verify_client),
 ):
-    worker = await _pick("stt", model)
     content = await file.read()
     granularities = timestamp_granularities_bracketed or timestamp_granularities
     start = time.perf_counter()
-    resp = await _proxy_multipart(
-        worker,
-        "/v1/audio/transcriptions",
+    worker, resp = await _proxy_multipart_capability_with_retry(
+        capability="stt",
+        path="/v1/audio/transcriptions",
         files={
             "file": (
                 file.filename or "audio.wav",
@@ -4939,7 +5128,6 @@ async def audio_transcriptions(
             "timestamp_granularities[]": granularities,
         },
         timeout=_stt_timeout(),
-        capability="stt",
         model=model,
     )
     total_ms = (time.perf_counter() - start) * 1000.0
@@ -4960,10 +5148,12 @@ async def images_generations(
     request: Request,
     _: str = Depends(verify_client),
 ):
-    worker = await _pick("image", payload.get("model"))
     start = time.perf_counter()
-    resp = await _proxy_json(
-        worker, "/v1/images/generations", payload, stream=False, capability="image"
+    worker, resp = await _proxy_json_capability_with_retry(
+        capability="image",
+        path="/v1/images/generations",
+        payload=payload,
+        model=payload.get("model"),
     )
     total_ms = (time.perf_counter() - start) * 1000.0
     if int(getattr(resp, "status_code", 200) or 200) < 400:
@@ -4983,10 +5173,12 @@ async def images_edits(request: Request, _: str = Depends(verify_client)):
     content_type = (request.headers.get("content-type") or "").lower()
     if "application/json" in content_type:
         payload = await request.json()
-        worker = await _pick("image", payload.get("model"))
         start = time.perf_counter()
-        resp = await _proxy_json(
-            worker, "/v1/images/edits", payload, stream=False, capability="image"
+        worker, resp = await _proxy_json_capability_with_retry(
+            capability="image",
+            path="/v1/images/edits",
+            payload=payload,
+            model=payload.get("model"),
         )
         total_ms = (time.perf_counter() - start) * 1000.0
         if int(getattr(resp, "status_code", 200) or 200) < 400:
@@ -5012,14 +5204,13 @@ async def images_edits(request: Request, _: str = Depends(verify_client)):
             )
         else:
             fields[key] = str(value)
-    worker = await _pick("image", fields.get("model"))
     start = time.perf_counter()
-    resp = await _proxy_multipart(
-        worker,
-        "/v1/images/edits",
+    worker, resp = await _proxy_multipart_capability_with_retry(
+        capability="image",
+        path="/v1/images/edits",
         files=files,
         fields=fields,
-        capability="image",
+        model=fields.get("model"),
     )
     total_ms = (time.perf_counter() - start) * 1000.0
     if int(getattr(resp, "status_code", 200) or 200) < 400:
@@ -5039,15 +5230,13 @@ async def videos_generations(
     request: Request,
     _: str = Depends(verify_client),
 ):
-    worker = await _pick("video", payload.get("model"))
     start = time.perf_counter()
-    resp = await _proxy_json(
-        worker,
-        "/v1/videos/generations",
-        payload,
-        stream=False,
-        timeout=float(getenv("REQUEST_TIMEOUT", "1800")),
+    worker, resp = await _proxy_json_capability_with_retry(
         capability="video",
+        path="/v1/videos/generations",
+        payload=payload,
+        model=payload.get("model"),
+        timeout=float(getenv("REQUEST_TIMEOUT", "1800")),
     )
     total_ms = (time.perf_counter() - start) * 1000.0
     if int(getattr(resp, "status_code", 200) or 200) < 400:
@@ -5068,27 +5257,24 @@ async def music_videos_generations(
     request: Request,
     _: str = Depends(verify_client),
 ):
-    worker = await _pick(
-        "music_video", payload.get("video_model") or payload.get("model")
-    )
+    model = payload.get("video_model") or payload.get("model")
     start = time.perf_counter()
-    resp = await _proxy_json(
-        worker,
-        "/v1/videos/music",
-        payload,
-        stream=False,
+    worker, resp = await _proxy_json_capability_with_retry(
+        capability="music_video",
+        path="/v1/videos/music",
+        payload=payload,
+        model=model,
         timeout=max(
             float(getenv("REQUEST_TIMEOUT", "1800")),
             float(getenv("ACE_STEP_TIMEOUT", "1800")),
         ),
-        capability="music_video",
     )
     total_ms = (time.perf_counter() - start) * 1000.0
     if int(getattr(resp, "status_code", 200) or 200) < 400:
         await _record_cap_success(
             worker,
             "music_video",
-            requested_model=payload.get("video_model") or payload.get("model"),
+            requested_model=model,
             total_ms=total_ms,
             outputs=_json_response_output_count(resp),
         )
