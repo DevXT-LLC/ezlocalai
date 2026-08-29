@@ -700,6 +700,23 @@ class CTTS:
             except Exception as e:
                 logging.debug("[QTTS] CUDA cache cleanup skipped: %s", e)
 
+    def close(self):
+        """Release the native TTS model even if callers still hold this wrapper."""
+        model = getattr(self, "model", None)
+        self.model = None
+        del model
+        gc.collect()
+        if torch.cuda.is_available():
+            try:
+                torch.cuda.synchronize()
+            except Exception:
+                pass
+            torch.cuda.empty_cache()
+            try:
+                torch.cuda.ipc_collect()
+            except Exception:
+                pass
+
     def _resolve_language(self, language: Optional[str], text: str) -> str:
         requested = LANGUAGE_ALIASES.get(str(language or "").strip().lower())
         if requested is None:

@@ -729,7 +729,12 @@ to keep voice models resident.
 `VOICE_WAIT_FOR_LLM_IDLE_TIMEOUT=60` controls the local race-safety timeout, and
 `VOICE_RELOAD_LLM_AFTER_GENERATION=false` controls eager restoration. It defaults
 to lazy restoration so native voice resources can fully unwind before the next
-text request reloads its LLM. Service-specific
+text request reloads its LLM. Voice teardown explicitly closes the native model
+even while the request still owns its wrapper. An eager or subsequent restore
+first retries the exact context and GPU-layer residency used before the handoff,
+then uses the normal resilient fallback only if that known-good allocation no
+longer fits. Current context and GPU layers are visible in
+`model_lifecycle.loaded_llm_runtime` from `GET /v1/resources`. Service-specific
 `TTS_...` and `STT_...` forms of these variables override the shared values. In
 voice server mode, ezlocalai instead warm-loads the configured number of resident
 instances and reports that parallel capacity to the router.

@@ -186,6 +186,18 @@ class LlmDependencySlotTests(unittest.TestCase):
 
 
 class VoiceHandoffTests(unittest.IsolatedAsyncioTestCase):
+    async def test_voice_handoff_waits_for_active_llm_inference(self):
+        pipe = Pipes.__new__(Pipes)
+        pipe._is_inference_in_progress = mock.Mock(side_effect=[True, True, False])
+
+        with mock.patch.dict(
+            os.environ, {"VOICE_WAIT_FOR_LLM_IDLE_TIMEOUT": "1"}
+        ), mock.patch("Pipes.asyncio.sleep", new=mock.AsyncMock()) as sleep:
+            await pipe._wait_for_llm_idle_for_voice("tts")
+
+        self.assertEqual(pipe._is_inference_in_progress.call_count, 3)
+        self.assertEqual(sleep.await_count, 2)
+
     async def test_voice_slot_unloads_voice_before_restoring_llm(self):
         pipe = Pipes.__new__(Pipes)
         pipe._voice_handoff_lock = asyncio.Lock()
@@ -260,6 +272,112 @@ class VoiceHandoffTests(unittest.IsolatedAsyncioTestCase):
             pipe._destroy_stt_sync(stt)
 
         stt.close.assert_called_once_with()
+
+    def test_tts_destroy_closes_native_model_before_cache_cleanup(self):
+        pipe = Pipes.__new__(Pipes)
+        tts = mock.Mock()
+
+        with mock.patch("Pipes.gc.collect"), mock.patch(
+            "Pipes.torch.cuda.is_available", return_value=False
+        ):
+            pipe._destroy_tts_sync(tts)
+
+        tts.close.assert_called_once_with()
+
+    def test_voice_handoff_preserves_runtime_gpu_residency(self):
+        pipe = Pipes.__new__(Pipes)
+        resident = types.SimpleNamespace(gpu_layers=57)
+        pipe._model_lock = threading.Lock()
+        pipe.persistent_llms = {"model-a": resident}
+        pipe.model_configs = {"model-a": {"max_tokens": 200000}}
+        pipe._optimal_context = 200000
+        pipe.current_llm_name = "model-a"
+        pipe.current_context = 200000
+        pipe.llm = resident
+        pipe.primary_llm = resident
+        pipe.vision_llm = None
+        pipe._using_large_model = False
+        pipe.resource_manager = mock.Mock()
+        pipe._destroy_llm_refs_sync = mock.Mock()
+
+        state = pipe._unload_llms_for_service("tts", True)
+
+        self.assertEqual(
+            state["runtime_models"]["model-a"],
+            {"context": 200000, "gpu_layers": 57},
+        )
+
+    def test_llm_restore_reuses_pre_handoff_gpu_layers(self):
+        pipe = Pipes.__new__(Pipes)
+        pipe._model_lock = threading.Lock()
+        pipe._optimal_context = 200000
+        pipe.available_models = ["model-a"]
+        pipe.persistent_llms = {"model-a": None}
+        pipe.model_configs = {"model-a": {"max_tokens": 200000}}
+        pipe.llm_model_residency = "resident"
+        pipe.primary_llm_name = "model-a"
+        pipe.vision_llm_name = "vision"
+        pipe.primary_llm = None
+        pipe.vision_llm = None
+        pipe.llm = None
+        pipe.current_llm_name = None
+        pipe.current_context = None
+        pipe.resource_manager = mock.Mock()
+        restored = types.SimpleNamespace(is_vision=False, gpu_layers=57)
+        pipe._load_llm_resilient = mock.Mock(return_value=restored)
+
+        pipe._reload_persistent_models(
+            model_names=["model-a"],
+            active_model="model-a",
+            runtime_models={"model-a": {"context": 200000, "gpu_layers": 57}},
+        )
+
+        pipe._load_llm_resilient.assert_called_once_with(
+            model_name="model-a",
+            max_tokens=200000,
+            gpu_layers=57,
+            main_gpu=None,
+            tensor_split=None,
+            n_parallel=None,
+            quant_type=None,
+        )
+        self.assertIs(pipe.llm, restored)
+
+    def test_lazy_llm_restore_reuses_pre_handoff_gpu_layers(self):
+        pipe = Pipes.__new__(Pipes)
+        pipe._known_llm_runtime_models = {
+            "model-a": {
+                "context": 200000,
+                "gpu_layers": 57,
+                "main_gpu": 1,
+                "tensor_split": [0.4, 0.6],
+            }
+        }
+        pipe.llm_model_vram_estimates = {}
+        pipe._record_model_lifecycle = mock.Mock()
+        restored = types.SimpleNamespace(
+            gpu_layers=57,
+            main_gpu=1,
+            tensor_split=[0.4, 0.6],
+            vram_load_delta_gb=18.0,
+        )
+        pipe._load_llm_resilient_impl = mock.Mock(return_value=restored)
+
+        result = pipe._load_llm_resilient(
+            model_name="model-a",
+            max_tokens=200000,
+        )
+
+        self.assertIs(result, restored)
+        pipe._load_llm_resilient_impl.assert_called_once_with(
+            model_name="model-a",
+            max_tokens=200000,
+            gpu_layers=57,
+            main_gpu=1,
+            tensor_split=[0.4, 0.6],
+            n_parallel=None,
+            quant_type=None,
+        )
 
 
 class LlmSwapQueueTests(unittest.IsolatedAsyncioTestCase):
