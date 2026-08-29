@@ -4164,6 +4164,8 @@ class Pipes:
         # Source model -> ordered list of internal replica IDs
         self.model_replicas = {}
         self.calibrated_gpu_layers = {}  # {model_name: {context: gpu_layers}}
+        # Last successfully loaded runtime shape, retained across voice handoffs.
+        self._known_llm_runtime_models = {}
 
         # Per-model configs parsed from comma-separated env vars
         # {model_name: {main_gpu, max_tokens, n_parallel, quant_type, tensor_split}}
@@ -4802,6 +4804,19 @@ class Pipes:
                 if getattr(self, "current_llm_name", None)
                 else None
             ),
+            "loaded_llm_runtime": [
+                {
+                    "model": self._resolve_source_model(model_id),
+                    **self._llm_runtime_shape(
+                        instance,
+                        (self.model_configs.get(model_id, {}) or {}).get(
+                            "max_tokens", self._optimal_context
+                        ),
+                    ),
+                }
+                for model_id, instance in getattr(self, "persistent_llms", {}).items()
+                if instance is not None
+            ],
             "vram_estimates_gb": dict(getattr(self, "llm_model_vram_estimates", {})),
             "summary": summaries,
             "recent_events": events,
@@ -4810,6 +4825,21 @@ class Pipes:
     def _resolve_source_model(self, model_name: str) -> str:
         """Resolve an internal model ID back to the source HF model name."""
         return self.model_sources.get(model_name, model_name)
+
+    @staticmethod
+    def _llm_runtime_shape(instance: Any, context: int) -> Dict[str, Any]:
+        """Capture the placement needed to reproduce a known-good LLM load."""
+        shape: Dict[str, Any] = {"context": int(context)}
+        gpu_layers = getattr(instance, "gpu_layers", None)
+        main_gpu = getattr(instance, "main_gpu", None)
+        tensor_split = getattr(instance, "tensor_split", None)
+        if gpu_layers is not None:
+            shape["gpu_layers"] = int(gpu_layers)
+        if main_gpu is not None:
+            shape["main_gpu"] = int(main_gpu)
+        if tensor_split:
+            shape["tensor_split"] = [float(value) for value in tensor_split]
+        return shape
 
     def _resolve_requested_model_id(self, requested_model: str) -> str:
         """Resolve a requested public model name to the primary internal model ID."""
@@ -4844,6 +4874,29 @@ class Pipes:
         quant_type: str = None,
     ) -> "LLM":
         """Load an LLM and record a consistent lifecycle benchmark event."""
+        runtime = getattr(self, "_known_llm_runtime_models", {}).get(model_name, {})
+        matching_runtime = int(runtime.get("context", 0) or 0) == int(max_tokens)
+        reused_runtime = False
+        if matching_runtime:
+            if gpu_layers is None and runtime.get("gpu_layers") is not None:
+                gpu_layers = runtime["gpu_layers"]
+                reused_runtime = True
+            if main_gpu is None and runtime.get("main_gpu") is not None:
+                main_gpu = runtime["main_gpu"]
+                reused_runtime = True
+            if tensor_split is None and runtime.get("tensor_split"):
+                tensor_split = runtime["tensor_split"]
+                reused_runtime = True
+        if reused_runtime:
+            logging.info(
+                "[LLM] Reusing known-good residency for %s: context=%s, "
+                "gpu_layers=%s, main_gpu=%s, tensor_split=%s",
+                model_name,
+                max_tokens,
+                gpu_layers,
+                main_gpu,
+                tensor_split or "none",
+            )
         started = time.perf_counter()
         try:
             instance = self._load_llm_resilient_impl(
@@ -4867,6 +4920,13 @@ class Pipes:
             self.llm_model_vram_estimates[model_name] = max(
                 float(actual_vram),
                 float(self.llm_model_vram_estimates.get(model_name, 0.0) or 0.0),
+            )
+        actual_layers = getattr(instance, "gpu_layers", None)
+        if actual_layers is not None:
+            if not hasattr(self, "_known_llm_runtime_models"):
+                self._known_llm_runtime_models = {}
+            self._known_llm_runtime_models[model_name] = self._llm_runtime_shape(
+                instance, max_tokens
             )
         self._record_model_lifecycle("load", "llm", model_name, elapsed)
         logging.info("[LLM] %s lifecycle load completed in %.2fs", model_name, elapsed)
@@ -6951,6 +7011,21 @@ class Pipes:
 
         refs: List[Tuple[str, Any]] = []
         with self._model_lock:
+            runtime_models = {}
+            for model_name, instance in self.persistent_llms.items():
+                if instance is None:
+                    continue
+                cfg = self.model_configs.get(model_name, {}) or {}
+                runtime_models[model_name] = self._llm_runtime_shape(
+                    instance, cfg.get("max_tokens", self._optimal_context)
+                )
+            if self.llm is not None and self.current_llm_name not in runtime_models:
+                runtime_models[self.current_llm_name or "LLM"] = (
+                    self._llm_runtime_shape(
+                        self.llm, self.current_context or self._optimal_context
+                    )
+                )
+            self._known_llm_runtime_models = dict(runtime_models)
             state = {
                 "loaded_models": [
                     model_name
@@ -6959,6 +7034,7 @@ class Pipes:
                 ],
                 "active_model": self.current_llm_name,
                 "active_context": self.current_context,
+                "runtime_models": runtime_models,
             }
             self._llm_temporarily_unavailable = True
             seen_ids = set()
@@ -7027,6 +7103,7 @@ class Pipes:
                 self._reload_persistent_models(
                     model_names=models_to_restore,
                     active_model=handoff_state.get("active_model"),
+                    runtime_models=handoff_state.get("runtime_models"),
                 )
         finally:
             self._llm_temporarily_unavailable = False
@@ -7564,6 +7641,7 @@ class Pipes:
         self,
         model_names: Optional[List[str]] = None,
         active_model: Optional[str] = None,
+        runtime_models: Optional[Dict[str, Dict[str, Any]]] = None,
     ):
         """Reload persistent models after using a large model.
 
@@ -7594,12 +7672,23 @@ class Pipes:
                     continue  # Already loaded
 
                 cfg = self.model_configs.get(model_name, {})
-                model_context = cfg.get("max_tokens", default_context)
-                logging.debug(f"[LLM] Reloading persistent model: {model_name}")
+                runtime = (runtime_models or {}).get(model_name, {})
+                model_context = runtime.get(
+                    "context", cfg.get("max_tokens", default_context)
+                )
+                gpu_layers = runtime.get("gpu_layers")
+                logging.info(
+                    "[LLM] Reloading persistent model %s at context=%s, "
+                    "gpu_layers=%s",
+                    model_name,
+                    model_context,
+                    gpu_layers if gpu_layers is not None else "auto",
+                )
                 try:
                     llm_instance = self._load_llm_resilient(
                         model_name=model_name,
                         max_tokens=model_context,
+                        gpu_layers=gpu_layers,
                         main_gpu=cfg.get("main_gpu"),
                         tensor_split=cfg.get("tensor_split"),
                         n_parallel=cfg.get("n_parallel"),
@@ -7816,10 +7905,21 @@ class Pipes:
         """Synchronous TTS destruction."""
         try:
             start_time = time.time()
+            close = getattr(tts_ref, "close", None)
+            if callable(close):
+                close()
             del tts_ref
             gc.collect()
             if torch.cuda.is_available():
+                try:
+                    torch.cuda.synchronize()
+                except Exception:
+                    pass
                 torch.cuda.empty_cache()
+                try:
+                    torch.cuda.ipc_collect()
+                except Exception:
+                    pass
             cleanup_time = time.time() - start_time
             logging.debug(f"[TTS] TTS model unloaded in {cleanup_time:.2f}s")
         except Exception as e:

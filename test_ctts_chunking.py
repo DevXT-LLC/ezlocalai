@@ -12,10 +12,35 @@ qwen_tts_stub = types.ModuleType("qwen_tts")
 qwen_tts_stub.Qwen3TTSModel = object
 sys.modules.setdefault("qwen_tts", qwen_tts_stub)
 
-from ezlocalai.CTTS import clean_text_for_tts, split_text_into_stream_chunks
+from ezlocalai.CTTS import CTTS, clean_text_for_tts, split_text_into_stream_chunks
 
 
 class CTTSChunkingTests(unittest.TestCase):
+    def test_close_releases_model_held_by_wrapper(self):
+        tts = CTTS.__new__(CTTS)
+        tts.model = object()
+        tts.device = "cuda:0"
+
+        from unittest import mock
+
+        with mock.patch("ezlocalai.CTTS.gc.collect") as collect, mock.patch(
+            "ezlocalai.CTTS.torch.cuda.is_available", return_value=True
+        ), mock.patch(
+            "ezlocalai.CTTS.torch.cuda.synchronize"
+        ) as synchronize, mock.patch(
+            "ezlocalai.CTTS.torch.cuda.empty_cache"
+        ) as empty_cache, mock.patch(
+            "ezlocalai.CTTS.torch.cuda.ipc_collect"
+        ) as ipc_collect:
+            tts.close()
+            tts.close()
+
+        self.assertIsNone(tts.model)
+        self.assertEqual(collect.call_count, 2)
+        self.assertEqual(synchronize.call_count, 2)
+        self.assertEqual(empty_cache.call_count, 2)
+        self.assertEqual(ipc_collect.call_count, 2)
+
     def test_stream_chunks_preserve_multilingual_sentences(self):
         text = clean_text_for_tts(
             "Hello. Привет, как дела? Повтори слово спасибо. Now say it slowly."
