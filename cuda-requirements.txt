@@ -1,5 +1,6 @@
 fastapi
 uvicorn
+websockets
 pydantic
 numpy>=1.26.0,<2.5
 requests==2.33.0
@@ -24,8 +25,7 @@ sentence-transformers
 sentencepiece
 safetensors
 huggingface_hub==0.36.2
-# qwen-tts is installed separately with --no-deps because 0.1.1 pins
-# transformers==4.57.3 in package metadata.
+# Qwen TTS uses the native llama.cpp/libmtmd worker, not qwen-tts.
 einops
 librosa
 numba==0.66.0

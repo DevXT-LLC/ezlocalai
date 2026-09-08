@@ -27,14 +27,16 @@ RUN uv pip install torch torchvision torchaudio --index-url https://download.pyt
 RUN uv pip install "numpy>=1.26.0,<2.5" Cython
 COPY rocm-requirements.txt .
 RUN uv pip install -r rocm-requirements.txt
-RUN uv pip install qwen-tts==0.1.1 --no-deps
 ENV HOST=0.0.0.0 \
     ROCM_VER=6.4.1 \
     PYTHONUNBUFFERED=1 \
     HF_HOME=/app/models \
     HF_HUB_CACHE=/app/models
 # Install xllamacpp with ROCm 6.4.1 support
-RUN uv pip install xllamacpp==2026.8.10566 --reinstall --index-url https://xorbitsai.github.io/xllamacpp/whl/rocm-6.4.1
+RUN uv pip install xllamacpp==2026.9.10809 --reinstall --index-url https://xorbitsai.github.io/xllamacpp/whl/rocm-6.4.1
+COPY native/tts /opt/ezlocalai-tts
+RUN cmake -S /opt/ezlocalai-tts -B /opt/ezlocalai-tts/build -DCMAKE_BUILD_TYPE=Release -DGGML_HIP=ON && \
+    cmake --build /opt/ezlocalai-tts/build --target ezlocalai-tts --parallel 20
 COPY . .
 EXPOSE 8091
 # Use start.py which runs precache once, then starts uvicorn workers

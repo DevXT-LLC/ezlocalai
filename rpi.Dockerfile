@@ -24,7 +24,10 @@ RUN --mount=type=cache,target=/root/.cache/pip,sharing=locked \
     python3 -m pip install --no-cache-dir -r rpi-requirements.txt
 
 # Install xllamacpp - prebuilt aarch64 wheels available on PyPI
-RUN pip install xllamacpp==2026.8.10566 --force-reinstall --no-cache-dir
+RUN pip install xllamacpp==2026.9.10809 --force-reinstall --no-cache-dir
+COPY native/tts /opt/ezlocalai-tts
+RUN cmake -S /opt/ezlocalai-tts -B /opt/ezlocalai-tts/build -DCMAKE_BUILD_TYPE=Release && \
+    cmake --build /opt/ezlocalai-tts/build --target ezlocalai-tts --parallel 4
 
 COPY . .
 

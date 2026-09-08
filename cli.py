@@ -52,7 +52,6 @@ PID_FILE = STATE_DIR / "ezlocalai.pid"
 SOURCE_DIR_FILE = STATE_DIR / "source_dir"
 REPO_URL = "https://github.com/DevXT-LLC/ezlocalai.git"
 REPO_DIR = STATE_DIR / "repo"
-QWEN_TTS_VERSION = "0.1.1"
 GTTS_VERSION_SPEC = "gTTS>=2.4.0"
 
 # Cache for uv availability (checked once per process)
@@ -1621,7 +1620,7 @@ def get_rocm_version() -> Optional[str]:
 
 XLLAMACPP_REPO = "https://github.com/xorbitsai/xllamacpp.git"
 XLLAMACPP_BUILD_DIR = STATE_DIR / "xllamacpp-build"
-XLLAMACPP_VERSION = "2026.8.10229"
+XLLAMACPP_VERSION = "2026.9.10809"
 XLLAMACPP_SOURCE_REF = f"v{XLLAMACPP_VERSION}-cu128"
 
 
@@ -1711,9 +1710,7 @@ def build_xllamacpp_from_source(gpu_type: str = "nvidia") -> list[str]:
         check=False,
     )
     if checkout_result.returncode != 0:
-        print(
-            f"   ⚠️  Failed to fetch xllamacpp tags: {checkout_result.stderr.strip()}"
-        )
+        print(f"   ⚠️  Failed to fetch xllamacpp tags: {checkout_result.stderr.strip()}")
     checkout_result = subprocess.run(
         ["git", "checkout", XLLAMACPP_SOURCE_REF],
         cwd=XLLAMACPP_BUILD_DIR,
@@ -2017,9 +2014,7 @@ def install_native_dependencies(source_dir: Path, gpu_type: str = "cpu") -> bool
                 text=True,
             )
             if result.returncode != 0:
-                print(
-                    f"⚠️  xllamacpp CPU fallback also failed: {result.stderr.strip()}"
-                )
+                print(f"⚠️  xllamacpp CPU fallback also failed: {result.stderr.strip()}")
 
     # Install main requirements
     print(f"   Installing from {req_file.name}...")
@@ -2045,7 +2040,7 @@ def install_native_dependencies(source_dir: Path, gpu_type: str = "cpu") -> bool
             print("   Continuing anyway — some features may be unavailable.")
 
     _install_gtts_no_deps(python)
-    _install_qwen_tts_no_deps(python)
+    _build_native_tts(python, gpu_type, source_dir)
 
     print("✅ Dependencies installed")
     return True
@@ -2062,29 +2057,32 @@ def _install_gtts_no_deps(python: str) -> None:
         text=True,
     )
     if result.returncode != 0:
-        print(
-            "⚠️  gTTS install failed; wake word sample generation may be unavailable."
-        )
+        print("⚠️  gTTS install failed; wake word sample generation may be unavailable.")
         for line in result.stderr.splitlines():
             if "error" in line.lower():
                 print(f"      {line.strip()}")
 
 
-def _install_qwen_tts_no_deps(python: str) -> None:
-    """Install qwen-tts without its stale Transformers dependency pin."""
-    print("   Installing Qwen-TTS...")
-    result = _pip_install(
-        [f"qwen-tts=={QWEN_TTS_VERSION}"],
-        python=python,
-        extra_args=["--no-deps", "-q"],
-        capture_output=True,
-        text=True,
-    )
+def _build_native_tts(python: str, gpu_type: str, source_dir: Path) -> None:
+    """Build the pinned libmtmd worker; qwen-tts is no longer installed."""
+    uninstall = _get_pip_cmd(python, "uninstall")
+    if uninstall[0] != "uv":
+        uninstall.append("-y")
+    subprocess.run(uninstall + ["qwen-tts"], check=False)
+    script = source_dir / "scripts" / "build_tts.py"
+    build_dir = STATE_DIR / "tts-build"
+    cmd = [python, str(script), "--build-dir", str(build_dir)]
+    if gpu_type == "nvidia" or (is_jetson() and has_jetson_cuda()):
+        cmd.append("--cuda")
+    elif gpu_type == "amd":
+        cmd.append("--hip")
+    result = subprocess.run(cmd)
     if result.returncode != 0:
-        print("⚠️  Qwen-TTS install failed; local neural TTS may be unavailable.")
-        for line in result.stderr.splitlines():
-            if "error" in line.lower():
-                print(f"      {line.strip()}")
+        print(
+            "⚠️ Native TTS build failed; install CMake and a C++ compiler, then run scripts/build_tts.py."
+        )
+    else:
+        print(f"   Native TTS ready: {build_dir / 'bin' / 'ezlocalai-tts'}")
 
 
 def _install_requirements_individually(python: str, req_file: Path) -> None:
@@ -2487,6 +2485,7 @@ def _kill_orphaned_ezlocalai() -> None:
         "ezlocalai.*start\\.py",
         "uvicorn.*app:app",
         "xllamacpp",
+        "ezlocalai-tts",
         "python.*start\\.py",
     ]
     my_pid = str(os.getpid())

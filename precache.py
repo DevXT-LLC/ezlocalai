@@ -430,6 +430,11 @@ def precache_llm_models():
                 logging.info(f"  ✓ {model_name} ({elapsed:.1f}s)")
 
             # Also download vision projector if it exists
+            from ezlocalai.Speculative import speculative_backend, download_dflash_model
+
+            if speculative_backend(model_name) == "dflash2":
+                download_dflash_model()
+
             mmproj_exists = any(
                 f
                 for f in os.listdir(model_dir)
@@ -529,15 +534,12 @@ def precache_tts():
     start_time = time.time()
 
     try:
-        from CTTS import CTTS
+        from ezlocalai.LlamaTTS import download_tts_models
 
-        # Initialize TTS - this downloads models
-        ctts = CTTS()
+        # Download only: never take a GPU slot during precache.
+        download_tts_models()
         elapsed = time.time() - start_time
         logging.info(f"  ✓ TTS models ({elapsed:.1f}s)")
-
-        # Clean up
-        del ctts
 
         # Force garbage collection to free memory
         import gc
@@ -553,7 +555,7 @@ def precache_tts():
             pass
 
     except Exception as e:
-        logging.debug(f"  - TTS: {e}")
+        logging.warning(f"  - TTS precache failed: {e}")
 
 
 def precache_stt():

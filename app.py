@@ -34,6 +34,7 @@ import subprocess
 import uuid
 import time
 import asyncio
+from contextlib import aclosing
 from pathlib import Path
 from Globals import getenv
 from ezlocalai.context_retry import classify_inference_capacity_error
@@ -1704,19 +1705,27 @@ async def text_to_speech_stream(tts: TextToSpeech, user=Depends(verify_api_key))
         await pipe._tts_lock.release(tts_lease)
         raise
 
+    tts_owner = pipe._lease_key()
+
     async def audio_stream_generator():
         try:
-            async for chunk in tts_model.generate_stream(
-                text=tts.input, voice=tts.voice, language=tts.language
-            ):
-                yield chunk
+            pipe._transfer_tts_lease(tts_owner)
+            async with aclosing(
+                tts_model.generate_stream(
+                    text=tts.input, voice=tts.voice, language=tts.language
+                )
+            ) as stream:
+                async for chunk in stream:
+                    yield chunk
         finally:
             pipe.resource_manager.mark_model_in_use(ModelType.TTS, False)
             # The handoff lease performs ordered cleanup before restoring the
             # LLM. Dedicated/non-handoff voice workers retain prior behavior.
-            if not is_voice_server_mode() and not tts_lease.get("handoff"):
-                pipe._destroy_tts()
-            await pipe._tts_lock.release(tts_lease)
+            try:
+                if not tts_lease.get("handoff"):
+                    pipe._destroy_tts(async_cleanup=False)
+            finally:
+                await pipe._tts_lock.release(tts_lease)
 
     return StreamingResponse(
         audio_stream_generator(),
@@ -1839,88 +1848,39 @@ async def tts_websocket(websocket: WebSocket):
     - Server sends binary audio chunks (same format as /v1/audio/speech/stream)
     - Client can send {"done": true} to close gracefully
 
-    Audio format: 24kHz, 16-bit, mono PCM
-    Binary response format:
-    - First message: 8-byte header (sample_rate u32, bits u16, channels u16)
-    - Subsequent messages: raw PCM audio chunks
-    - Final message: empty bytes to signal end
+    Authenticate with the same Authorization header as the HTTP API.
+    Binary data uses one 8-byte header, length-prefixed PCM frames, and one
+    zero-length terminator per session, followed by the legacy empty message.
+    Complete sentences auto-flush; explicit flush submits shorter text.
     """
+    try:
+        verify_api_key(websocket.headers.get("authorization"))
+    except HTTPException:
+        await websocket.close(code=1008, reason="Invalid API Key")
+        return
     await websocket.accept()
 
     if getenv("TTS_ENABLED").lower() == "false":
         await websocket.close(code=1008, reason="TTS disabled")
         return
 
-    from Pipes import is_voice_server_mode
-
-    text_buffer = ""
-    voice = "default"
-    language = "en"
-    header_sent = False
+    from ezlocalai.TTSWebSocket import stream_tts_session
 
     try:
-        async with pipe._tts_lock:
-            tts_model = pipe._get_tts()
-
-            while True:
-                try:
-                    # Receive text from client
-                    data = await websocket.receive_json()
-
-                    if data.get("done"):
-                        # Client signals done - flush any remaining text
-                        if text_buffer.strip():
-                            async for chunk in tts_model.generate_stream(
-                                text=text_buffer.strip(), voice=voice, language=language
-                            ):
-                                if not header_sent:
-                                    # Send header first (8 bytes)
-                                    await websocket.send_bytes(chunk[:8])
-                                    header_sent = True
-                                    if len(chunk) > 8:
-                                        await websocket.send_bytes(chunk[8:])
-                                else:
-                                    await websocket.send_bytes(chunk)
-                        # Send empty bytes to signal end
-                        await websocket.send_bytes(b"")
-                        break
-
-                    # Accumulate text
-                    if "text" in data:
-                        text_buffer += data["text"]
-                    if "voice" in data:
-                        voice = data["voice"]
-                    if "language" in data:
-                        language = data["language"]
-
-                    # Check if we should flush (generate TTS for current buffer)
-                    if data.get("flush") and text_buffer.strip():
-                        async for chunk in tts_model.generate_stream(
-                            text=text_buffer.strip(), voice=voice, language=language
-                        ):
-                            if not header_sent:
-                                # Send header first (8 bytes)
-                                await websocket.send_bytes(chunk[:8])
-                                header_sent = True
-                                if len(chunk) > 8:
-                                    await websocket.send_bytes(chunk[8:])
-                            else:
-                                await websocket.send_bytes(chunk)
-                        text_buffer = ""
-
-                except WebSocketDisconnect:
-                    break
-
+        await stream_tts_session(websocket, pipe)
+        await websocket.close(code=1000)
+    except WebSocketDisconnect:
+        pass
+    except (ValueError, asyncio.TimeoutError) as e:
+        await websocket.close(
+            code=1008, reason=str(e)[:100] or "TTS session idle timeout"
+        )
     except Exception as e:
         logging.error(f"TTS WebSocket error: {e}")
         try:
             await websocket.close(code=1011, reason=str(e)[:100])
         except:
             pass
-    finally:
-        pipe.resource_manager.mark_model_in_use(ModelType.TTS, False)
-        if not is_voice_server_mode():
-            pipe._destroy_tts()
 
 
 @app.get(

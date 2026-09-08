@@ -79,8 +79,6 @@ RUN pip install -r cuda-requirements.txt --no-cache-dir 2>/dev/null || \
          pip install "$line" --no-cache-dir 2>/dev/null || \
          echo "SKIP: $line (no ARM64 wheel)"; \
      done < cuda-requirements.txt)
-RUN pip install qwen-tts==0.1.1 --no-deps --no-cache-dir 2>/dev/null || \
-    echo "SKIP: qwen-tts (no ARM64 wheel)"
 
 # Build xllamacpp from source with CUDA for Jetson
 # xllamacpp is a HARD requirement (LLM.py imports it directly) — fail build if it can't be built
@@ -91,7 +89,7 @@ RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y && \
 ENV PATH="/root/.cargo/bin:${PATH}"
 
 ARG CUDA_ARCH=87
-ARG XLLAMACPP_SOURCE_REF=v2026.8.10229-cu128
+ARG XLLAMACPP_SOURCE_REF=v2026.9.10809-cu128
 ENV XLLAMACPP_BUILD_CUDA=1 \
     CMAKE_CUDA_ARCHITECTURES=${CUDA_ARCH} \
     CMAKE_BUILD_PARALLEL_LEVEL=4 \
@@ -103,7 +101,7 @@ ENV XLLAMACPP_BUILD_CUDA=1 \
 RUN set -e && \
     echo "=== Building xllamacpp from source (CUDA arch: ${CUDA_ARCH}) ===" && \
     echo "nvcc: $(nvcc --version 2>&1 | tail -1)" && \
-    git clone --recursive https://github.com/xorbitsai/xllamacpp.git /tmp/xllamacpp && \
+    git clone --branch v2026.9.10809 --recursive https://github.com/xorbitsai/xllamacpp.git /tmp/xllamacpp && \
     cd /tmp/xllamacpp && \
     git checkout ${XLLAMACPP_SOURCE_REF} && \
     git submodule update --init --recursive && \
@@ -139,6 +137,11 @@ RUN set -e && \
     python -c "import importlib.util; print('xllamacpp installed:', importlib.util.find_spec('xllamacpp') is not None)"
 
 # Copy application code
+COPY native/tts /opt/ezlocalai-tts
+RUN cmake -S /opt/ezlocalai-tts -B /opt/ezlocalai-tts/build \
+    -DCMAKE_BUILD_TYPE=Release -DGGML_CUDA=ON -DGGML_CUDA_FA=OFF \
+    -DCMAKE_CUDA_ARCHITECTURES="${CUDA_ARCH}" && \
+    cmake --build /opt/ezlocalai-tts/build --target ezlocalai-tts --parallel 4
 COPY . .
 
 # Create outputs directory

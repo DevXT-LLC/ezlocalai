@@ -20,8 +20,9 @@ from ezlocalai.LLM import (
     get_free_vram_per_gpu,
     get_total_vram_per_gpu,
     calculate_tensor_split_from_free_vram,
-    is_mtp_model,
 )
+from ezlocalai.Speculative import speculative_backend
+from ezlocalai.InferenceSettings import resolve_kv_cache_type
 
 try:
     from ezlocalai.CTTS import CTTS
@@ -3070,8 +3071,8 @@ def _qwen35_kv_bytes_per_token(
     by size. Read GGUF metadata when possible:
       bytes/token = (key_length + value_length) * kv_heads * attention_layers * bytes/value
 
-    ezlocalai defaults to q4_0 KV cache (env KV_CACHE_TYPE), so use that for VRAM
-    planning when we know the cache type. Use conservative metadata-free defaults.
+    Pass the resolved KV_CACHE_TYPE for VRAM planning, including the 5090's
+    Q8 profile. Use conservative metadata-free defaults.
     """
     kv_cache_type = (kv_cache_type or "fp16").lower().strip()
     cache_key = (model_path, kv_cache_type)
@@ -3080,7 +3081,7 @@ def _qwen35_kv_bytes_per_token(
 
     bytes_per_value = {
         "q4_0": 0.5625,  # q4_0 is approximately 4.5 bits/value
-        "q8_0": 1.0,
+        "q8_0": 1.0625,  # 32 int8 values plus a two-byte block scale
         "f16": 2.0,
         "fp16": 2.0,
         "f32": 4.0,
@@ -3171,7 +3172,10 @@ def _qwen35_kv_bytes_per_token(
 
 
 def estimate_model_vram_requirement(
-    model_path: str, context_size: int, projectors: list = None
+    model_path: str,
+    context_size: int,
+    projectors: list = None,
+    main_gpu: Optional[int] = None,
 ) -> float:
     """Estimate VRAM requirement for a model in GB.
 
@@ -3179,6 +3183,7 @@ def estimate_model_vram_requirement(
     Returns estimated VRAM in GB, or a conservative estimate if xllamacpp is unavailable.
     """
     is_qwen35 = _is_qwen35_hybrid(model_path)
+    kv_cache_type = resolve_kv_cache_type(main_gpu, model_path)
 
     # Better fallback estimation formula based on actual llama.cpp memory usage:
     # - KV cache (F16): context_size * 2 bytes * 2 (K+V) * n_layer * n_embd / n_head
@@ -3202,9 +3207,9 @@ def estimate_model_vram_requirement(
             # Qwen3.5/3.6/3.8 hybrid: only every Nth layer uses standard attention.
             # KV cache is tiny vs standard transformers, and sized from GGUF metadata.
             # DeltaNet recurrent state is fixed-size rather than context-scaled.
-            # Use q4_0 estimate since that's ezlocalai's default KV cache type.
+            # Account for the selected precision, not a hard-coded Q4 estimate.
             kv_estimate = (
-                ctx_size * _qwen35_kv_bytes_per_token(model_path, "q4_0")
+                ctx_size * _qwen35_kv_bytes_per_token(model_path, kv_cache_type)
             ) / (1024**3)
             deltanet_state = 0.065  # Small fixed recurrent state
             overhead = 0.5 + deltanet_state
@@ -3244,7 +3249,7 @@ def estimate_model_vram_requirement(
             context_length=context_size,
             batch_size=2048,
             num_parallel=1,
-            kv_cache_type="q4_0",
+            kv_cache_type=kv_cache_type,
         )
 
         # Extract memory requirement
@@ -3295,7 +3300,9 @@ def estimate_model_vram_requirement(
                 # Qwen3.5/3.6/3.8 hybrid models use sparse full-attention layers,
                 # so size KV from GGUF metadata.
                 if is_qwen35:
-                    kv_bytes_per_token = _qwen35_kv_bytes_per_token(model_path, "q4_0")
+                    kv_bytes_per_token = _qwen35_kv_bytes_per_token(
+                        model_path, kv_cache_type
+                    )
                 else:
                     kv_bytes_per_token = (
                         6000  # Conservative default for standard models
@@ -3366,7 +3373,7 @@ def _estimate_optimal_layers(
             context_length=context_size,
             batch_size=2048,
             num_parallel=1,
-            kv_cache_type="q4_0",
+            kv_cache_type=resolve_kv_cache_type(None, model_path),
         )
 
         # Extract layer count from result
@@ -3473,14 +3480,16 @@ def determine_gpu_strategy(
             # For Qwen3.5/3.6/3.8 models, xllamacpp doesn't understand the tiny KV
             # cache from sparse full-attention layers. Do our own check using the
             # raw file size + empirical KV estimate against actual free VRAM.
-            # Use q4_0 KV estimate since that's the default KV cache type in ezlocalai.
+            # Match the actual GPU-specific cache precision.
             if _is_qwen35_hybrid(model_path):
                 try:
                     if model_path and os.path.exists(model_path):
                         file_size_gb = os.path.getsize(model_path) / (1024**3)
                         kv_gb = (
                             context_size
-                            * _qwen35_kv_bytes_per_token(model_path, "q4_0")
+                            * _qwen35_kv_bytes_per_token(
+                                model_path, resolve_kv_cache_type(0, model_path)
+                            )
                         ) / (1024**3)
                         # DeltaNet state (~65MB) + compute buffers (~0.5GB)
                         overhead_gb = 0.57
@@ -3530,7 +3539,9 @@ def determine_gpu_strategy(
                         # Estimate non-model costs (KV, mmproj, compute, RS)
                         _is_q35 = _is_qwen35_hybrid(model_path)
                         kv_bpt = (
-                            _qwen35_kv_bytes_per_token(model_path, "q4_0")
+                            _qwen35_kv_bytes_per_token(
+                                model_path, resolve_kv_cache_type(0, model_path)
+                            )
                             if _is_q35
                             else 6000
                         )
@@ -3664,7 +3675,13 @@ def determine_gpu_strategy(
         if model_path and os.path.exists(model_path):
             file_size_gb = os.path.getsize(model_path) / (1024**3)
             _is_q35 = _is_qwen35_hybrid(model_path)
-            kv_bpt = _qwen35_kv_bytes_per_token(model_path, "q4_0") if _is_q35 else 6000
+            kv_bpt = (
+                _qwen35_kv_bytes_per_token(
+                    model_path, resolve_kv_cache_type(primary_gpu, model_path)
+                )
+                if _is_q35
+                else 6000
+            )
             kv_gb = (context_size * kv_bpt) / (1024**3)
             mmproj_gb = (
                 sum(
@@ -3994,7 +4011,7 @@ class _VoiceSlotGuard:
             await self._semaphore.acquire()
             state["semaphore"] = True
             return state
-        except Exception:
+        except BaseException:
             try:
                 if should_handoff and state.get("handoff_state"):
                     if self.service == "tts":
@@ -4007,7 +4024,7 @@ class _VoiceSlotGuard:
                         f"{self.service.upper()}_RELOAD_LLM_AFTER_GENERATION",
                     )
             finally:
-                if should_handoff:
+                if state["shared_lock"]:
                     self.pipe._mark_voice_handoff(self.service, False)
                     with self.pipe._inference_count_lock:
                         self.pipe._llm_temporarily_unavailable = False
@@ -4580,9 +4597,9 @@ class Pipes:
             if qtype == "":
                 qtype = None
             source_model_name = self._resolve_source_model(model_name)
-            if is_mtp_model(source_model_name) and npar != 1:
+            if speculative_backend(source_model_name) != "none" and npar != 1:
                 logging.info(
-                    f"[Config] {source_model_name} is an MTP model; "
+                    f"[Config] {source_model_name} uses speculative decoding; "
                     f"forcing n_parallel=1 (configured {npar})"
                 )
                 npar = 1
@@ -4716,6 +4733,7 @@ class Pipes:
                     model_path=model_path,
                     context_size=requested_context,
                     projectors=[mmproj_path] if mmproj_path else [],
+                    main_gpu=int(cfg.get("main_gpu", 0)),
                 )
             ),
         )
@@ -5246,7 +5264,7 @@ class Pipes:
                 context_length=max_tokens,
                 batch_size=2048,
                 num_parallel=1,
-                kv_cache_type="q4_0",
+                kv_cache_type=resolve_kv_cache_type(None, model_path),
             )
 
             logging.debug(f"[Calibration] Native estimation result: {result}")
@@ -7778,7 +7796,9 @@ class Pipes:
 
     def _get_tts_name(self):
         """Get the human-readable name for the TTS provider."""
-        model_name = getenv("QWEN_TTS_MODEL") or "Qwen/Qwen3-TTS-12Hz-0.6B-Base"
+        from ezlocalai.LlamaTTS import resolve_tts_model_id
+
+        model_name = resolve_tts_model_id()
         return f"Qwen-TTS ({model_name})"
 
     def _load_tts_instance(self, slot_index: int = 1, force_cpu: bool = False):
@@ -7901,6 +7921,13 @@ class Pipes:
         self.resource_manager.mark_model_in_use(ModelType.TTS, True)
         return tts
 
+    def _transfer_tts_lease(self, owner):
+        """Move an HTTP model lease into StreamingResponse's consumer task."""
+        key = self._lease_key()
+        if key != owner:
+            with self._tts_pool_lock:
+                self._tts_active_leases[key] = self._tts_active_leases.pop(owner)
+
     def _destroy_tts_sync(self, tts_ref):
         """Synchronous TTS destruction."""
         try:
@@ -7941,7 +7968,12 @@ class Pipes:
         refs = []
         with self._tts_pool_lock:
             tts_ref = self._tts_active_leases.pop(key, None)
-            if tts_ref is not None and self._voice_should_preload("tts") and not force:
+            if (
+                tts_ref is not None
+                and self._voice_should_preload("tts")
+                and not force
+                and not getattr(tts_ref, "_closed", False)
+            ):
                 self._tts_available.append(tts_ref)
                 logging.debug("[TTS] Preload mode - returning TTS instance to pool")
                 return
@@ -9119,7 +9151,7 @@ class Pipes:
 
     def _resolved_parallel_for_model(self, model_id: str, inst=None) -> int:
         """Return the actual/estimated n_parallel for a configured model."""
-        if is_mtp_model(self._resolve_source_model(model_id)):
+        if speculative_backend(self._resolve_source_model(model_id)) != "none":
             return 1
 
         try:

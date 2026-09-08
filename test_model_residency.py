@@ -14,6 +14,21 @@ from Router import WorkerInfo, WorkerRegistry
 
 
 class LlmResidencyPolicyTests(unittest.TestCase):
+    def test_q8_memory_planning_includes_extra_kv_capacity(self):
+        from Pipes import estimate_model_vram_requirement, _qwen35_kv_bytes_per_token
+
+        with mock.patch("Pipes.xllamacpp_available", False), mock.patch(
+            "Pipes.resolve_kv_cache_type", side_effect=["q4_0", "q8_0"]
+        ):
+            q4 = estimate_model_vram_requirement("Qwen3.8-27B.gguf", 262144)
+            q8 = estimate_model_vram_requirement("Qwen3.8-27B.gguf", 262144)
+        self.assertAlmostEqual(q8 - q4, 4.0)
+        self.assertAlmostEqual(
+            _qwen35_kv_bytes_per_token(None, "q8_0")
+            / _qwen35_kv_bytes_per_token(None, "q4_0"),
+            34 / 18,
+        )
+
     def test_auto_residency_selects_swap_when_models_overcommit_one_gpu(self):
         pipe = Pipes.__new__(Pipes)
         pipe.available_models = ["model-a", "model-b"]
@@ -225,6 +240,49 @@ class VoiceHandoffTests(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(pipe._llm_temporarily_unavailable)
         self.assertFalse(pipe._voice_handoff_active())
 
+    async def test_cancel_waiting_for_idle_releases_handoff(self):
+        pipe = Pipes.__new__(Pipes)
+        pipe._voice_handoff_lock = asyncio.Lock()
+        pipe._voice_handoff_state_lock = threading.Lock()
+        pipe._voice_handoff_counts = {"tts": 0, "stt": 0}
+        pipe._inference_count_lock = threading.Lock()
+        pipe._llm_temporarily_unavailable = False
+        pipe._voice_should_unload_llm = mock.Mock(return_value=True)
+        waiting = asyncio.Event()
+
+        async def wait_for_idle(service):
+            waiting.set()
+            await asyncio.Event().wait()
+
+        pipe._wait_for_llm_idle_for_voice = wait_for_idle
+        guard = _VoiceSlotGuard(pipe, "tts", 1)
+        task = asyncio.create_task(guard.acquire())
+        await waiting.wait()
+        task.cancel()
+        with self.assertRaises(asyncio.CancelledError):
+            await task
+        self.assertFalse(pipe._voice_handoff_lock.locked())
+        self.assertFalse(pipe._voice_handoff_active())
+        self.assertFalse(pipe._llm_temporarily_unavailable)
+
+    async def test_cancel_queued_handoff_does_not_clear_active_handoff(self):
+        pipe = Pipes.__new__(Pipes)
+        pipe._voice_handoff_lock = asyncio.Lock()
+        await pipe._voice_handoff_lock.acquire()
+        pipe._voice_should_unload_llm = mock.Mock(return_value=True)
+        pipe._mark_voice_handoff = mock.Mock()
+        pipe._llm_temporarily_unavailable = True
+        guard = _VoiceSlotGuard(pipe, "tts", 1)
+        task = asyncio.create_task(guard.acquire())
+        await asyncio.sleep(0)
+        task.cancel()
+        with self.assertRaises(asyncio.CancelledError):
+            await task
+        pipe._mark_voice_handoff.assert_not_called()
+        self.assertTrue(pipe._voice_handoff_lock.locked())
+        self.assertTrue(pipe._llm_temporarily_unavailable)
+        pipe._voice_handoff_lock.release()
+
     async def test_voice_lease_can_be_released_from_a_streaming_task(self):
         pipe = Pipes.__new__(Pipes)
         pipe._voice_handoff_lock = asyncio.Lock()
@@ -243,6 +301,43 @@ class VoiceHandoffTests(unittest.IsolatedAsyncioTestCase):
         await asyncio.create_task(release_from_stream_task())
         second = await asyncio.wait_for(guard.acquire(), timeout=0.2)
         await guard.release(second)
+
+    async def test_http_model_lease_transfers_to_consumer_task(self):
+        pipe = Pipes.__new__(Pipes)
+        pipe._tts_pool_lock = threading.Lock()
+        model = object()
+        owner = pipe._lease_key()
+        pipe._tts_active_leases = {owner: model}
+
+        async def consume():
+            pipe._transfer_tts_lease(owner)
+            self.assertNotIn(owner, pipe._tts_active_leases)
+            self.assertIs(pipe._tts_active_leases.pop(pipe._lease_key()), model)
+
+        await asyncio.create_task(consume())
+        self.assertFalse(pipe._tts_active_leases)
+
+    def test_closed_tts_is_not_returned_to_warm_pool(self):
+        from collections import deque
+
+        pipe = Pipes.__new__(Pipes)
+        model = mock.Mock(_closed=True)
+        pipe._tts_pool_lock = threading.Lock()
+        pipe._tts_active_leases = {pipe._lease_key(): model}
+        pipe._tts_available = deque()
+        pipe.tts_instances = [model]
+        pipe._transient_tts_instances = []
+        pipe.ctts = model
+        pipe._voice_handoff_active = mock.Mock(return_value=False)
+        pipe._voice_should_preload = mock.Mock(return_value=True)
+        pipe.resource_manager = mock.Mock()
+        pipe._register_tts_pool_resource = mock.Mock()
+        pipe._destroy_tts_sync = mock.Mock()
+        pipe._destroy_tts(async_cleanup=False)
+        self.assertFalse(pipe._tts_available)
+        self.assertFalse(pipe.tts_instances)
+        self.assertFalse(pipe._tts_active_leases)
+        pipe._destroy_tts_sync.assert_called_once_with(model)
 
     def test_voice_handoff_uses_lazy_llm_restore_by_default(self):
         pipe = Pipes.__new__(Pipes)

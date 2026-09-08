@@ -230,9 +230,12 @@ python benchmark_model_lifecycle.py \
 
 ## Qwen3.8-27B Performance Tuning
 
-Qwen3.8-27B automatically enables its built-in MTP speculative decoder with
-one inference slot. The default MTP settings are `n_max=3` and `p_min=0.1`,
-benchmarked on a 24 GB RTX 3090 Ti with Q3_K_XL. Physical prompt batches are
+Qwen3.8-27B automatically uses **DFlash2**, through xllamacpp 2026.9.10809,
+with one inference slot. It downloads the revision-pinned
+[Inco Q4_K_M draft](https://huggingface.co/incoai/Qwen3.8-27B-DFlash2-GGUF)
+(about 1.1 GB of weights, plus its runtime buffers) into the shared HF cache.
+The target model and sampling settings are unchanged: draft tokens are verified
+by the target, not accepted unconditionally. Physical prompt batches are
 hardware- and context-aware: 24 GB cards use an ubatch of 1024 through 200K
 context and 512 above 200K, while 32 GB cards use 1024. Other MTP model
 families retain their conservative defaults.
@@ -240,11 +243,57 @@ families retain their conservative defaults.
 All values remain operator-overridable:
 
 ```bash
-MTP_SPEC_DRAFT_N_MAX=3
-MTP_SPEC_DRAFT_P_MIN=0.1
+LLM_SPECULATIVE_TYPE=auto  # auto, dflash2, mtp, none
+DFLASH_SPEC_DRAFT_N_MAX=auto  # 3090: 3; 4090/5090: 4; explicit 1..7 overrides
+DFLASH_SPEC_DRAFT_P_MIN=0.0
 LLM_BATCH_SIZE=auto
 LLM_UBATCH_SIZE=auto
 ```
+
+GPU-aware defaults for Qwen3.8-27B (explicit settings take precedence):
+
+| Worker GPU | DFlash draft maximum | Target K/V cache |
+| --- | --- | --- |
+| RTX 3090 / 3090 Ti | 3 | q4_0 |
+| RTX 4090 | 4 | q4_0 |
+| RTX 5090 (30+ GiB visible) | 4 | q8_0 |
+
+These are starting profiles, not measured optima for every workload. To tune a
+mixed fleet from one configuration, use card-specific overrides such as
+`DFLASH_SPEC_DRAFT_N_MAX_3090=3`, `DFLASH_SPEC_DRAFT_N_MAX_5090=4`, or
+`KV_CACHE_TYPE_5090=q8_0`. Card-specific overrides beat global overrides.
+`KV_CACHE_TYPE=auto` selects the table; an existing explicit
+`KV_CACHE_TYPE=q4_0` still keeps Q4 on every card unless overridden per card.
+Other model families and GPU types retain Q4 by default; Jetson keeps its
+explicit F16 setting. The memory planner uses the resolved cache precision.
+The [local Q3 / 3090 Ti measurements](benchmarks/qwen38-3090ti-20260908.md)
+favor three for long-context work; short thinking requests still favored MTP.
+The 4090/5090 profiles require on-card validation.
+
+For this 27B model, target KV at 262,144 tokens is approximately 4.5 GiB with
+Q4 versus 8.5 GiB with Q8 (excluding recurrent state, weights, draft and compute
+buffers). Q8 therefore needs about 4 GiB extra. It is a precision upgrade, not
+a guaranteed speed improvement. Keep Q4 on 24 GB cards at long context. A
+smaller main-model quant also does not guarantee faster prefill or decode:
+kernel choice, acceptance, cache traffic and prompt content matter.
+
+An isolated sweep on an idle worker can be run with:
+
+```bash
+python benchmark_speculative.py --context 220000 --tokens 256 \
+  --draft-lengths 3,4,5,7 --prompt-chars 0,120000,360000 --repeats 2 \
+  --kv-cache q4_0
+```
+
+The sweep includes no-speculation and MTP controls, real code prefixes, actual
+prompt-token counts, prefill/decode timing, and greedy output hashes. Use the
+same immutable `--prompt-file` for all runs/cards. Allocated context alone is
+not a long-context benchmark: compare actual prompt lengths. Do not run this
+alongside the resident server on the same GPU. Greedy hash checks are a smoke
+test, not a proof of quality or of production-sampling throughput.
+Use `--sampling-profile thinking` or `--sampling-profile instruct` for the
+actual ezlocalai sampling settings; non-greedy runs do not compare output hashes.
+For a focused follow-up, `--backends mtp,dflash2` skips the no-speculation control.
 
 Single-GPU NVIDIA workers can also A/B test llama.cpp's experimental concurrent
 CUDA-stream optimization with `GGML_CUDA_GRAPH_OPT=1`. It primarily targets
@@ -252,10 +301,67 @@ token-generation throughput rather than prompt processing. Results vary by GPU
 and model, so leave it disabled unless a representative decode benchmark shows
 a repeatable improvement.
 
-Higher MTP draft lengths can substantially accelerate copy-heavy output but
-may slow novel generation and consume more VRAM. Explicit `LLM_UBATCH_SIZE`
+Existing `MTP_SPEC_DRAFT_*` settings apply only with the MTP backend; they do
+not tune DFlash2. Set `LLM_SPECULATIVE_TYPE=mtp` for an A/B comparison or `none`
+to disable speculation. Other model families never receive the 27B draft.
+`DFLASH_MODEL_FILE` selects another quant from the same pinned repository;
+`DFLASH_MODEL_PATH` can point to an already downloaded compatible draft.
+
+Benchmark representative prompts on each card: more speculation is not always
+faster, and a draft that forces target layers onto CPU can erase the benefit.
+Explicit `LLM_UBATCH_SIZE`
 values are attempted first; the resilient loader retries smaller physical
 batches if model initialization runs out of GPU memory.
+
+## Qwen TTS with llama.cpp
+
+Local Qwen TTS now uses a persistent, private stdio worker built against the
+same llama.cpp revision as xllamacpp. It uses upstream libmtmd for the speaker
+encoder, talker, code predictor and vocoder. Standard images no longer install
+`qwen-tts` or its dedicated FlashAttention wheel. Torch/Transformers remain
+dependencies of other media models; they are not used for TTS synthesis.
+
+The default retains the **Qwen3-TTS-12Hz-0.6B-Base** model, using the
+[llama.cpp-compatible Q8_0 talker and F16 codec conversion](https://huggingface.co/Mouserat/qwen3-tts-0.6b-base-gguf).
+The old `QWEN_TTS_MODEL=Qwen/Qwen3-TTS-12Hz-0.6B-Base` value is migrated
+automatically. This is a backend/quantization change, not a claim of identical
+audio or verified perceptual-quality parity with the old implementation.
+
+Voice `.wav` references, WAV responses, chunked PCM streaming, audio caching,
+and the existing voice/LLM slot-sharing policy are preserved. The native worker
+stays loaded between chunks and `close()` waits for process exit before the
+LLM can reclaim the slot. **Cloning is audio-only (x-vector)**: `.txt`
+transcripts are preserved on disk but no longer condition generation.
+`auto` language uses script detection for Russian, Chinese, Japanese and Korean,
+otherwise English; specify the language explicitly for other supported languages
+(German, Italian, Portuguese, Spanish and French). Mixed-language synthesis
+should be checked on your actual voice samples.
+
+```bash
+QWEN_TTS_MODEL=Mouserat/qwen3-tts-0.6b-base-gguf
+QWEN_TTS_CONTEXT_SIZE=4096
+QWEN_TTS_THREADS=20
+QWEN_TTS_TIMEOUT=300
+QWEN_TTS_MAX_NEW_TOKENS=320  # audio frames, not text tokens
+```
+
+`QWEN_TTS_MODEL_FILE` and `QWEN_TTS_MMPROJ_FILE` accept filenames in a custom
+GGUF repository or local file paths; both files must be compatible with upstream
+libmtmd. `QWEN_TTS_REVISION` pins a custom repository revision. The old dtype,
+attention, transcript and non-streaming settings do not control the native model.
+`QWEN_TTS_GENERATE_KWARGS` supports `max_new_tokens`, `temperature`, `top_k`,
+`top_p` and `repetition_penalty`; unsupported options fail explicitly.
+
+CUDA images build kernels for 3090/4090/5090 (SM 86/89/120). Native installs
+need CMake, a C++ compiler, and the CUDA toolkit for GPU synthesis:
+
+```bash
+python scripts/build_tts.py --cuda --build-dir /absolute/path/tts-build
+export QWEN_TTS_BIN=/absolute/path/tts-build/bin/ezlocalai-tts
+```
+
+Omit `--cuda` for a CPU build. Model download happens during precache without
+loading a GPU model. Changing the backend uses a new audio-cache namespace.
 
 ## Embeddings
 
@@ -739,20 +845,41 @@ longer fits. Current context and GPU layers are visible in
 voice server mode, ezlocalai instead warm-loads the configured number of resident
 instances and reports that parallel capacity to the router.
 
-Qwen-TTS voices live in the `voices/` directory as `.wav` reference samples. If a
-same-name `.txt` transcript exists, ezlocalai uses it for transcript-conditioned
-voice cloning; custom voices without a transcript automatically fall back to
-speaker-embedding-only cloning.
+Qwen-TTS voices live in the `voices/` directory as `.wav` reference samples.
+The native backend uses audio-only speaker conditioning; matching `.txt`
+transcripts are not consumed.
 
-Streaming Qwen-TTS sends one generated PCM block per text chunk. The default
+Streaming Qwen-TTS now emits native PCM windows while synthesis continues,
+using upstream's unchanged 72-codec-frame vocoder window (about 5.76 seconds of
+audio, generated faster than playback on a suitable GPU). Short segments still
+finish before emitting audio. This is incremental audio output, not token-level
+text input: Qwen requires a complete text segment before starting it. The default
 chunking keeps the first chunk short for fast startup
 (`QWEN_TTS_STREAM_FIRST_CHUNK_CHARS=120`) and uses longer follow-up chunks
 (`QWEN_TTS_STREAM_CHUNK_CHARS=280`, capped by `QWEN_TTS_MAX_CHUNK_CHARS`) so
 playback has more audio buffered while Qwen generates the next block. PCM frames
-are flushed to clients in `QWEN_TTS_STREAM_WRITE_BYTES=16384` byte writes with a
-short `QWEN_TTS_STREAM_FRAME_DRAIN_SECONDS=0.1` handoff and an
-`QWEN_TTS_STREAM_FLUSH_SILENCE_MS=80` valid-silence frame so the next Qwen
-generation does not hold the previous frame tail in server buffers.
+are flushed in `QWEN_TTS_STREAM_WRITE_BYTES=16384` byte writes. Artificial drain
+delays and inter-chunk silence now default to zero; the legacy
+`QWEN_TTS_STREAM_FRAME_DRAIN_SECONDS` and `QWEN_TTS_STREAM_FLUSH_SILENCE_MS`
+overrides remain available.
+
+Direct worker clients can use `/v1/audio/speech/ws` with the same Authorization
+header as HTTP. Send JSON `{"text":"Hello there.","flush":true}` followed by
+more text messages while audio is being generated; finish with `{"done":true}`.
+Without explicit flush, complete sentences are submitted after 50 characters
+(or a word boundary after 350). Input is bounded to four pending segments and
+a 4096-character buffer, with a 30-second input/output inactivity timeout.
+Idle sessions do not reserve the LLM slot. Binary responses form one stream:
+an 8-byte little-endian sample-rate/bit-depth/channel header (`<IHH`), then
+4-byte little-endian PCM byte lengths and their PCM16 bodies, then one zero
+length and a legacy empty WebSocket message. Message boundaries need not match
+audio frame boundaries. Disconnects cancel native generation before releasing
+the voice lease.
+
+The existing HTTP streaming endpoint remains wire-compatible, so WorkConductor's
+PCM consumer benefits without changes. Its sentence-level text scheduling is
+still required; neither WorkConductor nor the router is switched to this direct
+worker WebSocket protocol by this change.
 
 ### Voice Passthrough Mode (`VOICE_SERVER=<url>`)
 

@@ -55,10 +55,10 @@ def getenv(var_name: str, default_value: str = None) -> str:
         "TTS_ENABLED": "true",
         "TTS_N_PARALLEL": "1",  # Number of local TTS model instances/slots to load
         "TTS_PROVIDER": "qwen",  # Qwen-TTS
-        "QWEN_TTS_MODEL": "Qwen/Qwen3-TTS-12Hz-0.6B-Base",
-        "QWEN_TTS_DTYPE": "auto",
-        "QWEN_TTS_ATTENTION": "sdpa",
-        "QWEN_TTS_X_VECTOR_ONLY": "false",
+        "QWEN_TTS_MODEL": "Mouserat/qwen3-tts-0.6b-base-gguf",
+        "QWEN_TTS_CONTEXT_SIZE": "4096",
+        "QWEN_TTS_THREADS": "20",
+        "QWEN_TTS_TIMEOUT": "300",
         "QWEN_TTS_ALLOW_CPU_FALLBACK": "true",
         "QWEN_TTS_ENABLE_GTTS_FALLBACK": "true",
         "QWEN_TTS_MAX_NEW_TOKENS": "320",
@@ -67,8 +67,8 @@ def getenv(var_name: str, default_value: str = None) -> str:
         "QWEN_TTS_STREAM_FIRST_CHUNK_CHARS": "120",
         "QWEN_TTS_STREAM_MIN_FIRST_CHUNK_CHARS": "50",
         "QWEN_TTS_STREAM_WRITE_BYTES": "16384",
-        "QWEN_TTS_STREAM_FRAME_DRAIN_SECONDS": "0.1",
-        "QWEN_TTS_STREAM_FLUSH_SILENCE_MS": "80",
+        "QWEN_TTS_STREAM_FRAME_DRAIN_SECONDS": "0",
+        "QWEN_TTS_STREAM_FLUSH_SILENCE_MS": "0",
         "QWEN_TTS_MIN_VRAM_MB": "3500",
         "STT_ENABLED": "true",
         "STT_N_PARALLEL": "1",  # Number of local STT model instances/slots to load
@@ -104,6 +104,12 @@ def getenv(var_name: str, default_value: str = None) -> str:
         # 1 = single slot (default), N = fixed number of parallel slots.
         # Each slot gets n_ctx / n_parallel tokens of context. VRAM is constant.
         "N_PARALLEL": "1",
+        "LLM_SPECULATIVE_TYPE": "auto",  # DFlash2 for Qwen3.8-27B, MTP elsewhere
+        "DFLASH_SPEC_DRAFT_N_MAX": "auto",  # 3090: 3; 4090/5090 and generic: 4
+        "KV_CACHE_TYPE": "auto",  # Qwen3.8-27B: q8_0 on 32 GB 5090; q4_0 otherwise
+        "DFLASH_SPEC_DRAFT_P_MIN": "0.0",
+        "DFLASH_MODEL_FILE": "Qwen3.8-27B-DFlash2-Q4_K_M.gguf",
+        "DFLASH_MODEL_PATH": "",
         # MTP speculative decoding probability. auto uses a benchmarked
         # model-family default (0.1 for Qwen3.8-27B, 0.25 otherwise).
         "MTP_SPEC_DRAFT_P_MIN": "auto",

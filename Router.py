@@ -2326,9 +2326,9 @@ class WorkerHeartbeatClient:
         cap_models: Dict[str, str] = {}
         for _cap in self.capabilities:
             if _cap == "tts":
-                cap_models["tts"] = (
-                    getenv("QWEN_TTS_MODEL") or "Qwen/Qwen3-TTS-12Hz-0.6B-Base"
-                ).strip()
+                from ezlocalai.LlamaTTS import resolve_tts_model_id
+
+                cap_models["tts"] = resolve_tts_model_id()
             elif _cap == "stt":
                 _wm = (getenv("WHISPER_MODEL") or "large-v3-turbo").strip()
                 cap_models["stt"] = _wm
