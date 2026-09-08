@@ -1,0 +1,21 @@
+cmake_minimum_required(VERSION 3.18)
+project(ezlocalai_tts LANGUAGES C CXX)
+if(POLICY CMP0135)
+    cmake_policy(SET CMP0135 NEW)
+endif()
+
+# Match the llama.cpp submodule in xllamacpp v2026.9.10809.
+include(FetchContent)
+set(LLAMA_BUILD_COMMON ON CACHE BOOL "" FORCE)
+set(LLAMA_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+set(LLAMA_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+set(LLAMA_BUILD_TOOLS ON CACHE BOOL "" FORCE)
+set(GGML_NATIVE OFF CACHE BOOL "" FORCE)
+FetchContent_Declare(llama
+    URL https://github.com/ggml-org/llama.cpp/archive/5266f24da75dc449bd56cbed7addb9c8e4a6a73e.tar.gz)
+FetchContent_MakeAvailable(llama)
+add_executable(ezlocalai-tts worker.cpp)
+set_target_properties(ezlocalai-tts PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
+target_link_libraries(ezlocalai-tts PRIVATE llama llama-common mtmd)
+target_include_directories(ezlocalai-tts PRIVATE ${llama_SOURCE_DIR}/vendor)
+target_compile_features(ezlocalai-tts PRIVATE cxx_std_17)

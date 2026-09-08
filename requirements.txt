@@ -24,7 +24,7 @@ pdfplumber
 huggingface_hub==0.36.2
 safetensors
 sentence-transformers
-# Note: xllamacpp, qwen-tts, and gTTS are installed separately with Docker/CLI flags.
+# xllamacpp and gTTS are installed separately. Qwen TTS uses native libmtmd.
 soundfile
 transformers==4.57.3
 diffusers==0.39.0

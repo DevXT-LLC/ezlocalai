@@ -20,8 +20,8 @@ from ezlocalai.LLM import (
     get_free_vram_per_gpu,
     get_total_vram_per_gpu,
     calculate_tensor_split_from_free_vram,
-    is_mtp_model,
 )
+from ezlocalai.Speculative import speculative_backend
 
 try:
     from ezlocalai.CTTS import CTTS
@@ -3994,7 +3994,7 @@ class _VoiceSlotGuard:
             await self._semaphore.acquire()
             state["semaphore"] = True
             return state
-        except Exception:
+        except BaseException:
             try:
                 if should_handoff and state.get("handoff_state"):
                     if self.service == "tts":
@@ -4007,7 +4007,7 @@ class _VoiceSlotGuard:
                         f"{self.service.upper()}_RELOAD_LLM_AFTER_GENERATION",
                     )
             finally:
-                if should_handoff:
+                if state["shared_lock"]:
                     self.pipe._mark_voice_handoff(self.service, False)
                     with self.pipe._inference_count_lock:
                         self.pipe._llm_temporarily_unavailable = False
@@ -4580,9 +4580,9 @@ class Pipes:
             if qtype == "":
                 qtype = None
             source_model_name = self._resolve_source_model(model_name)
-            if is_mtp_model(source_model_name) and npar != 1:
+            if speculative_backend(source_model_name) != "none" and npar != 1:
                 logging.info(
-                    f"[Config] {source_model_name} is an MTP model; "
+                    f"[Config] {source_model_name} uses speculative decoding; "
                     f"forcing n_parallel=1 (configured {npar})"
                 )
                 npar = 1
@@ -7778,7 +7778,9 @@ class Pipes:
 
     def _get_tts_name(self):
         """Get the human-readable name for the TTS provider."""
-        model_name = getenv("QWEN_TTS_MODEL") or "Qwen/Qwen3-TTS-12Hz-0.6B-Base"
+        from ezlocalai.LlamaTTS import resolve_tts_model_id
+
+        model_name = resolve_tts_model_id()
         return f"Qwen-TTS ({model_name})"
 
     def _load_tts_instance(self, slot_index: int = 1, force_cpu: bool = False):
@@ -7901,6 +7903,13 @@ class Pipes:
         self.resource_manager.mark_model_in_use(ModelType.TTS, True)
         return tts
 
+    def _transfer_tts_lease(self, owner):
+        """Move an HTTP model lease into StreamingResponse's consumer task."""
+        key = self._lease_key()
+        if key != owner:
+            with self._tts_pool_lock:
+                self._tts_active_leases[key] = self._tts_active_leases.pop(owner)
+
     def _destroy_tts_sync(self, tts_ref):
         """Synchronous TTS destruction."""
         try:
@@ -7941,7 +7950,12 @@ class Pipes:
         refs = []
         with self._tts_pool_lock:
             tts_ref = self._tts_active_leases.pop(key, None)
-            if tts_ref is not None and self._voice_should_preload("tts") and not force:
+            if (
+                tts_ref is not None
+                and self._voice_should_preload("tts")
+                and not force
+                and not getattr(tts_ref, "_closed", False)
+            ):
                 self._tts_available.append(tts_ref)
                 logging.debug("[TTS] Preload mode - returning TTS instance to pool")
                 return
@@ -9119,7 +9133,7 @@ class Pipes:
 
     def _resolved_parallel_for_model(self, model_id: str, inst=None) -> int:
         """Return the actual/estimated n_parallel for a configured model."""
-        if is_mtp_model(self._resolve_source_model(model_id)):
+        if speculative_backend(self._resolve_source_model(model_id)) != "none":
             return 1
 
         try:

@@ -8,10 +8,6 @@ ROOT = pathlib.Path(__file__).resolve().parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-qwen_tts_stub = types.ModuleType("qwen_tts")
-qwen_tts_stub.Qwen3TTSModel = object
-sys.modules.setdefault("qwen_tts", qwen_tts_stub)
-
 from ezlocalai.CTTS import CTTS, clean_text_for_tts, split_text_into_stream_chunks
 
 

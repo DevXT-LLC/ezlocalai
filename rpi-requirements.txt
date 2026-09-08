@@ -3,6 +3,7 @@
 # TTS and STT disabled by default (can be enabled if deps are installed)
 fastapi
 uvicorn
+websockets
 pydantic
 requests==2.33.0
 aiohttp

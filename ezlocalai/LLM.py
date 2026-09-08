@@ -8,6 +8,11 @@ import logging
 import json
 import math
 from Globals import getenv
+from ezlocalai.Speculative import (
+    speculative_backend,
+    dflash_settings,
+    download_dflash_model,
+)
 
 DEFAULT_MODEL = getenv("DEFAULT_MODEL")
 MTP_SPEC_DRAFT_P_MIN_DEFAULT = 0.25
@@ -1037,9 +1042,10 @@ class LLM:
             auto_parallel = max(1, effective_max_tokens // target_per_slot)
             resolved_parallel = min(auto_parallel, 16)
 
-        if is_mtp_model(self.model_name) and resolved_parallel != 1:
+        self.speculative_type = speculative_backend(self.model_name)
+        if self.speculative_type != "none" and resolved_parallel != 1:
             logging.info(
-                f"[LLM] MTP model detected; forcing n_parallel=1 "
+                f"[LLM] {self.speculative_type} enabled; forcing n_parallel=1 "
                 f"(requested {resolved_parallel})"
             )
             resolved_parallel = 1
@@ -1049,7 +1055,33 @@ class LLM:
         # cont_batching is True by default in xllamacpp, but be explicit
         self.xlc_params.cont_batching = True
 
-        if is_mtp_model(self.model_name):
+        if self.speculative_type == "dflash2":
+            # llama.cpp's standalone draft memory fitter cannot initialize a
+            # DFlash context without the target. Let Pipes' isolated OOM probes
+            # own residency decisions instead of fitting without the draft.
+            self.xlc_params.fit_params = False
+            n_max, p_min = dflash_settings()
+            self.xlc_params.speculative.types = [
+                xlc.common_speculative_type.COMMON_SPECULATIVE_TYPE_DRAFT_DFLASH
+            ]
+            draft = self.xlc_params.speculative.draft
+            draft.mparams.path = download_dflash_model()
+            draft.n_max = n_max
+            draft.p_min = p_min
+            draft.n_gpu_layers = GPU_LAYERS
+            # Keep draft and target on the assigned worker GPU. The draft has
+            # its own device list and otherwise defaults to the first GPU.
+            if torch.cuda.is_available():
+                backend_name = "ROCm" if getattr(torch.version, "hip", None) else "CUDA"
+                draft.devices = f"{backend_name}{self.main_gpu}"
+            logging.info(
+                "[LLM] DFlash2 enabled: draft=%s, n_max=%s, p_min=%s, GPU=%s",
+                draft.mparams.path,
+                n_max,
+                p_min,
+                self.main_gpu,
+            )
+        elif self.speculative_type == "mtp":
             spec_draft_n_max, card_vram_gb = get_mtp_spec_draft_n_max(
                 self.main_gpu, self.model_name
             )
@@ -1164,8 +1196,8 @@ class LLM:
                 free_after = get_free_vram_per_gpu()[self.main_gpu]
                 self.vram_load_delta_gb = max(0.0, gpu_free_before_load - free_after)
                 components = ["context/KV and compute graphs"]
-                if is_mtp_model(self.model_name):
-                    components.append("MTP draft context")
+                if self.speculative_type != "none":
+                    components.append(f"{self.speculative_type} draft/context")
                 if mmproj_path:
                     components.append("vision projector")
                 logging.info(

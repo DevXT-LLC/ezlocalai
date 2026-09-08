@@ -39,13 +39,6 @@ RUN uv pip install torch==2.9.1+cu128 torchaudio==2.9.1+cu128 --index-url https:
 RUN uv pip install "numpy>=1.26.0,<2.5" Cython "setuptools>=78.1.1"
 COPY cuda-requirements.txt .
 RUN uv pip install -r cuda-requirements.txt
-# qwen-tts uses FlashAttention-2 in its acoustic tokenizer. Pin the official
-# CUDA 12 / PyTorch 2.9 / CPython 3.12 wheel so Docker never falls back to a
-# large, machine-dependent source build.
-ARG FLASH_ATTN_VERSION=2.8.3
-RUN uv pip install --no-deps \
-    "https://github.com/Dao-AILab/flash-attention/releases/download/v${FLASH_ATTN_VERSION}/flash_attn-${FLASH_ATTN_VERSION}%2Bcu12torch2.9cxx11abiTRUE-cp312-cp312-linux_x86_64.whl"
-RUN uv pip install qwen-tts==0.1.1 --no-deps
 # ezlocalai imports gTTS as a library. Install it outside the main solve because
 # its CLI click<8.2 constraint conflicts with the current Hugging Face stack.
 RUN uv pip install "gTTS>=2.4.0" --no-deps
@@ -60,7 +53,16 @@ ENV HOST=0.0.0.0 \
     HF_HUB_CACHE=/app/models \
     ACE_STEP_BIN=/opt/acestep.cpp/build/ace-server
 # Install xllamacpp with CUDA 12.8 support (compatible with CUDA 12.9)
-RUN uv pip install xllamacpp==2026.8.10566 --reinstall --index-url https://xorbitsai.github.io/xllamacpp/whl/cu128
+RUN uv pip install xllamacpp==2026.9.10809 --reinstall --index-url https://xorbitsai.github.io/xllamacpp/whl/cu128
+COPY native/tts /opt/ezlocalai-tts
+ARG TTS_CUDA_ARCHITECTURES=86;89;120
+ARG TTS_BUILD_JOBS=20
+RUN cmake -S /opt/ezlocalai-tts -B /opt/ezlocalai-tts/build \
+    -DCMAKE_BUILD_TYPE=Release -DGGML_CUDA=ON \
+    -DCMAKE_CUDA_COMPILER=/usr/local/cuda/bin/nvcc \
+    -DCMAKE_CUDA_ARCHITECTURES="${TTS_CUDA_ARCHITECTURES}" \
+    -DCMAKE_EXE_LINKER_FLAGS="-L/usr/local/cuda/lib64/stubs -Wl,-rpath-link,/usr/local/cuda/lib64/stubs" && \
+    cmake --build /opt/ezlocalai-tts/build --target ezlocalai-tts --parallel "${TTS_BUILD_JOBS}"
 COPY . .
 EXPOSE 8091
 # Use start.py which runs precache once, then starts uvicorn workers

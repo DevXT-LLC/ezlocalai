@@ -1,12 +1,12 @@
 import asyncio
 import base64
 import gc
-import hashlib
 import io
 import logging
 import os
 import re
 import uuid
+from contextlib import aclosing
 from pathlib import Path
 from typing import Optional
 
@@ -15,25 +15,23 @@ import soundfile as sf
 import torch
 import torchaudio
 
-from ezlocalai.qwen_tts_compat import (
-    apply_qwen_tts_transformers_compat,
-    repair_qwen_tts_rotary_buffers,
+from ezlocalai.LlamaTTS import (
+    LlamaTTS,
+    QWEN_TTS_MODEL,
+    resolve_tts_model_id,
 )
 
-apply_qwen_tts_transformers_compat()
-from qwen_tts import Qwen3TTSModel
-
 from ezlocalai.AudioCache import AudioCache
+from ezlocalai.AudioStreaming import stream_native_audio
 
 
-QWEN_TTS_MODEL = "Qwen/Qwen3-TTS-12Hz-0.6B-Base"
 MAX_CHUNK_CHARS = 350
 STREAM_CHUNK_TARGET_CHARS = 280
 STREAM_FIRST_CHUNK_TARGET_CHARS = 120
 STREAM_MIN_FIRST_CHUNK_CHARS = 50
 STREAM_WRITE_BYTES = 16384
-STREAM_FRAME_DRAIN_SECONDS = 0.1
-STREAM_FLUSH_SILENCE_MS = 80
+STREAM_FRAME_DRAIN_SECONDS = 0.0
+STREAM_FLUSH_SILENCE_MS = 0
 SAFE_FILE_STEM_RE = re.compile(r"[^a-zA-Z0-9_-]")
 
 LANGUAGE_ALIASES = {
@@ -387,22 +385,6 @@ def _env_float(name: str, default: float) -> float:
         return default
 
 
-def _dtype_from_name(name: str, device: str) -> torch.dtype:
-    normalized = (name or "").strip().lower()
-    if normalized in {"auto", ""}:
-        if str(device).startswith("cuda"):
-            return torch.bfloat16 if torch.cuda.is_bf16_supported() else torch.float16
-        return torch.float32
-    if normalized in {"bf16", "bfloat16"}:
-        return torch.bfloat16
-    if normalized in {"fp16", "float16", "half"}:
-        return torch.float16
-    if normalized in {"fp32", "float32"}:
-        return torch.float32
-    logging.warning("[QTTS] Unsupported QWEN_TTS_DTYPE=%r; using auto", name)
-    return _dtype_from_name("auto", device)
-
-
 def _contains_cyrillic(text: str) -> bool:
     return any("\u0400" <= char <= "\u04ff" for char in text)
 
@@ -438,9 +420,8 @@ class CTTS:
     """
 
     def __init__(self, cache_config=None, device=None):
-        self.model_id = (
-            os.getenv("QWEN_TTS_MODEL", QWEN_TTS_MODEL).strip() or QWEN_TTS_MODEL
-        )
+        self._closed = False
+        self.model_id = resolve_tts_model_id()
         self.max_chunk_chars = max(
             1, _env_int("QWEN_TTS_MAX_CHUNK_CHARS", MAX_CHUNK_CHARS)
         )
@@ -484,26 +465,17 @@ class CTTS:
             0, _env_int("QWEN_TTS_STREAM_FLUSH_SILENCE_MS", STREAM_FLUSH_SILENCE_MS)
         )
         self.non_streaming_mode = _env_bool("QWEN_TTS_NON_STREAMING_MODE", True)
-        self.default_x_vector_only = _env_bool("QWEN_TTS_X_VECTOR_ONLY", False)
+        self.default_x_vector_only = True
         self.allow_cpu_fallback = _env_bool("QWEN_TTS_ALLOW_CPU_FALLBACK", True)
         self.generation_kwargs = self._load_generation_kwargs()
 
         self.device = self._select_device(device)
-        dtype = _dtype_from_name(os.getenv("QWEN_TTS_DTYPE", "auto"), self.device)
-        attn_implementation = os.getenv("QWEN_TTS_ATTENTION", "sdpa").strip()
-
         logging.info(
-            "[QTTS] Initializing Qwen-TTS model %s on %s (%s)",
+            "[QTTS] Initializing llama.cpp Qwen-TTS %s on %s (audio-only cloning)",
             self.model_id,
             self.device,
-            str(dtype).replace("torch.", ""),
         )
-
-        self.model = self._load_model(
-            device=self.device,
-            dtype=dtype,
-            attn_implementation=attn_implementation,
-        )
+        self.model = self._load_model(self.device)
         self.sample_rate = 24000
 
         self.output_folder = os.path.join(os.getcwd(), "outputs")
@@ -591,58 +563,15 @@ class CTTS:
             )
         return "cpu"
 
-    def _load_model(
-        self,
-        device: str,
-        dtype: torch.dtype,
-        attn_implementation: str,
-    ) -> Qwen3TTSModel:
-        load_kwargs = {
-            "device_map": device,
-            "dtype": dtype,
-        }
-        if attn_implementation and attn_implementation.lower() not in {"auto", "none"}:
-            load_kwargs["attn_implementation"] = attn_implementation
-
+    def _load_model(self, device: str):
         try:
-            return self._prepare_loaded_model(
-                Qwen3TTSModel.from_pretrained(self.model_id, **load_kwargs)
-            )
-        except (torch.cuda.OutOfMemoryError, RuntimeError) as e:
-            error = str(e).lower()
-            if "flash_attention_2" in error or "flash-attn" in error:
-                logging.warning(
-                    "[QTTS] Attention backend %r failed, retrying with eager attention: %s",
-                    attn_implementation,
-                    e,
-                )
-                load_kwargs["attn_implementation"] = "eager"
-                return self._prepare_loaded_model(
-                    Qwen3TTSModel.from_pretrained(self.model_id, **load_kwargs)
-                )
-            if "out of memory" in error or "cuda" in error or "cudnn" in error:
-                if not self.allow_cpu_fallback:
-                    raise RuntimeError(
-                        "[QTTS] GPU load failed and QWEN_TTS_ALLOW_CPU_FALLBACK is "
-                        "not enabled. Reduce TTS_N_PARALLEL, free VRAM, or set "
-                        "QWEN_TTS_ALLOW_CPU_FALLBACK=true to try CPU generation."
-                    ) from e
-                logging.warning("[QTTS] GPU load failed, falling back to CPU: %s", e)
-                self._release_generation_memory()
+            return LlamaTTS(device, self.generation_kwargs)
+        except RuntimeError:
+            if device.startswith("cuda") and self.allow_cpu_fallback:
+                logging.exception("[QTTS] Native GPU initialization failed; trying CPU")
                 self.device = "cpu"
-                return self._prepare_loaded_model(
-                    Qwen3TTSModel.from_pretrained(
-                        self.model_id,
-                        device_map="cpu",
-                        dtype=torch.float32,
-                        attn_implementation="eager",
-                    )
-                )
+                return LlamaTTS("cpu", self.generation_kwargs)
             raise
-
-    def _prepare_loaded_model(self, model: Qwen3TTSModel) -> Qwen3TTSModel:
-        repair_qwen_tts_rotary_buffers(model)
-        return model
 
     def _load_generation_kwargs(self) -> dict:
         raw = os.getenv("QWEN_TTS_GENERATE_KWARGS", "").strip()
@@ -702,8 +631,11 @@ class CTTS:
 
     def close(self):
         """Release the native TTS model even if callers still hold this wrapper."""
+        self._closed = True
         model = getattr(self, "model", None)
         self.model = None
+        if model is not None and hasattr(model, "close"):
+            model.close()
         del model
         gc.collect()
         if torch.cuda.is_available():
@@ -762,10 +694,9 @@ class CTTS:
     def _voice_clone_context(
         self, audio_path: Optional[str]
     ) -> tuple[Optional[str], bool, str]:
-        ref_text = self._voice_ref_text(audio_path)
-        x_vector_only = self.default_x_vector_only or not ref_text
-        transcript_hash = hashlib.sha256((ref_text or "").encode("utf-8")).hexdigest()
-        return ref_text, x_vector_only, transcript_hash
+        # libmtmd uses the speaker encoder's x-vector, not transcript conditioning.
+        # Existing .txt voice sidecars remain on disk for future upstream support.
+        return None, True, ""
 
     async def generate(
         self,
@@ -788,10 +719,14 @@ class CTTS:
         audio_path = self._voice_audio_path(voice)
         ref_text, x_vector_only, transcript_hash = self._voice_clone_context(audio_path)
         cache_extra = {
-            "engine": "qwen-tts",
+            "engine": "llama.cpp-qwen-tts-v1",
             "model": self.model_id,
             "x_vector_only": x_vector_only,
             "ref_text_sha256": transcript_hash,
+            "generation": self.generation_kwargs,
+            "model_file": os.getenv("QWEN_TTS_MODEL_FILE", "default"),
+            "mmproj_file": os.getenv("QWEN_TTS_MMPROJ_FILE", "default"),
+            "revision": os.getenv("QWEN_TTS_REVISION", "default"),
         }
         if use_cache:
             cache_key = self.cache.generate_cache_key(
@@ -861,7 +796,7 @@ class CTTS:
                 "text": text,
                 "voice": voice_name,
                 "language": qwen_language,
-                "generation_method": "qwen-tts",
+                "generation_method": "llama.cpp-qwen-tts",
                 "model": self.model_id,
                 "chunks": len(chunks),
             }
@@ -908,6 +843,8 @@ class CTTS:
                 )
             return wavs[0], int(sample_rate)
         except (torch.cuda.OutOfMemoryError, RuntimeError) as e:
+            if getattr(self, "_closed", False):
+                raise
             error = str(e).lower()
             if "out of memory" in error or "cuda" in error or "cudnn" in error:
                 if not self.allow_cpu_fallback:
@@ -935,20 +872,11 @@ class CTTS:
             self._release_generation_memory()
 
     def _reload_on_cpu(self):
-        try:
-            del self.model
-        except AttributeError:
-            pass
+        if self.model is not None:
+            self.model.close()
         self._release_generation_memory()
         self.device = "cpu"
-        self.model = self._prepare_loaded_model(
-            Qwen3TTSModel.from_pretrained(
-                self.model_id,
-                device_map="cpu",
-                dtype=torch.float32,
-                attn_implementation="eager",
-            )
-        )
+        self.model = LlamaTTS("cpu", self.generation_kwargs)
 
     def _to_mono_float32(self, wav) -> np.ndarray:
         audio = np.asarray(wav, dtype=np.float32)
@@ -1016,8 +944,8 @@ class CTTS:
         """
         Generate TTS audio as a stream of PCM chunks.
 
-        Qwen's Python wrapper currently returns generated waveforms, so this
-        streams one ezlocalai text chunk at a time using the existing wire format.
+        Emit native vocoder windows before the full text segment completes.
+        Text segmentation is still needed: upstream cannot append text mid-prompt.
         """
         import struct
 
@@ -1048,36 +976,44 @@ class CTTS:
 
         for i, chunk in enumerate(chunks):
             try:
-                wav, sample_rate = await asyncio.to_thread(
-                    self._generate_single_sample,
-                    chunk,
-                    audio_path,
-                    qwen_language,
-                    ref_text,
-                    x_vector_only,
-                )
-                self.sample_rate = int(sample_rate)
-                pcm_data = self._array_to_pcm16_bytes(wav)
-                if pcm_data:
-                    yield struct.pack("<I", len(pcm_data))
-                    for offset in range(0, len(pcm_data), self.stream_write_bytes):
-                        yield pcm_data[offset : offset + self.stream_write_bytes]
-                        await asyncio.sleep(0)
-                    if i < len(chunks) - 1 and self.stream_flush_silence_ms > 0:
-                        silence_samples = max(
-                            1,
-                            int(self.sample_rate * self.stream_flush_silence_ms / 1000),
-                        )
-                        silence_data = b"\x00\x00" * silence_samples
-                        yield struct.pack("<I", len(silence_data)) + silence_data
-                    if self.stream_frame_drain_seconds > 0:
-                        await asyncio.sleep(self.stream_frame_drain_seconds)
-                    logging.debug(
-                        "[QTTS] Yielded %s bytes for chunk %s", len(pcm_data), i + 1
+                async with aclosing(
+                    stream_native_audio(
+                        self.model,
+                        text=chunk,
+                        language=qwen_language,
+                        ref_audio=audio_path,
+                        **self.generation_kwargs,
                     )
-            except Exception as e:
-                logging.error("[QTTS] Error generating stream chunk %s: %s", i + 1, e)
-                continue
+                ) as stream:
+                    async for wav, sample_rate in stream:
+                        if int(sample_rate) != self.sample_rate:
+                            raise RuntimeError(
+                                "TTS sample rate changed after stream header"
+                            )
+                        pcm_data = self._array_to_pcm16_bytes(wav)
+                        if not pcm_data:
+                            continue
+                        yield struct.pack("<I", len(pcm_data))
+                        for offset in range(0, len(pcm_data), self.stream_write_bytes):
+                            yield pcm_data[offset : offset + self.stream_write_bytes]
+                            await asyncio.sleep(0)
+                if i < len(chunks) - 1 and self.stream_flush_silence_ms > 0:
+                    silence_samples = max(
+                        1, int(self.sample_rate * self.stream_flush_silence_ms / 1000)
+                    )
+                    silence_data = b"\x00\x00" * silence_samples
+                    yield struct.pack("<I", len(silence_data)) + silence_data
+                if self.stream_frame_drain_seconds > 0:
+                    await asyncio.sleep(self.stream_frame_drain_seconds)
+            except BaseException as e:
+                # The native bridge kills an interrupted worker. Never put that
+                # dead instance back into a dedicated voice worker's warm pool.
+                self.close()
+                if isinstance(e, Exception):
+                    logging.error(
+                        "[QTTS] Error generating stream chunk %s: %s", i + 1, e
+                    )
+                raise
 
         yield struct.pack("<I", 0)
         logging.info("[QTTS] Streaming TTS complete")
