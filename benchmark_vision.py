@@ -64,6 +64,13 @@ def cases():
     yield "small-image", [question, fixture(336)], r"red.*blue"
     yield "large-image", [question, image], r"red.*blue"
     yield "cached-large-image", [question, image], r"red.*blue"
+    yield "long-generation-after-image", [
+        {
+            "type": "text",
+            "text": "First name the colors of the left and right panels in this image, in that order. Then write a detailed Python program that draws that layout and tests the pixel colors. Explain your implementation in at least 300 words.",
+        },
+        image,
+    ], r"red.*blue"
     yield "long-text-before-image", [background, question, image], r"red.*blue"
     yield "long-text-after-image", [image, background, question], r"red.*blue"
     yield "multiple-large-images", [
@@ -170,7 +177,9 @@ def main():
                 response = chat(
                     {
                         "messages": [{"role": "user", "content": content}],
-                        "max_tokens": 128,
+                        "max_tokens": (
+                            512 if name == "long-generation-after-image" else 128
+                        ),
                         "temperature": 0,
                         "seed": 42,
                         "cache_prompt": True,

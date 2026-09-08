@@ -23,14 +23,15 @@ embedding injection into the speculative draft cache. Results from
 | --- | --- | --- |
 | Small image, left/right colors | 2/2 | 2/2 |
 | Large image, left/right colors | 2/2 | 2/2 |
-| Immediate cached large-image repeat | Not in initial reference run | 2/2 |
+| Immediate cached large-image repeat | 2/2 | 2/2 |
+| 512-token generation after a large image | 2/2 | 2/2 |
 | Long text before image | 2/2 | 2/2 |
 | Long text after image | 2/2 | 2/2 |
 | Two large images, order-sensitive question | 2/2 | 2/2 |
 | Large-image OCR, number 42 | 2/2 | 2/2 |
 | Changed-image OCR, number 73 | 2/2 | 2/2 |
 | Text arithmetic after vision | 2/2 | 2/2 |
-| Total | 16/16 | 18/18 |
+| Total | 20/20 | 20/20 |
 
 The large-image prompt contains 3,168 tokens, versus 1,056 for the small image;
 the long-prefix prompts contain 7,726. The cached large-image repeat reused
