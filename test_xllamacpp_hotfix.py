@@ -12,6 +12,19 @@ from ezlocalai.Speculative import dflash_hotfix_status
 
 
 class XllamacppHotfixTests(unittest.TestCase):
+    def test_cached_native_build_forces_relink_without_removing_objects(self):
+        with tempfile.TemporaryDirectory() as directory:
+            source = Path(directory)
+            output = source / "build/lib.linux/xllamacpp"
+            output.mkdir(parents=True)
+            binary = output / "xllamacpp.abi3.so"
+            binary.write_bytes(b"old extension")
+            preserved = output / "other.so"
+            preserved.write_bytes(b"not our generated binding")
+            builder.invalidate_extension(source)
+            self.assertFalse(binary.exists())
+            self.assertTrue(preserved.exists())
+
     def test_official_wheel_is_identified_as_unpatched(self):
         with patch.dict(sys.modules, {"xllamacpp._ezlocalai_hotfix": None}):
             self.assertEqual(dflash_hotfix_status(), "unpatched")

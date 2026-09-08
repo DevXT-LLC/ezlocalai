@@ -67,6 +67,15 @@ def prepare_source(source):
     )
 
 
+def invalidate_extension(source):
+    # setuptools does not track updated extra_objects (the native static libs)
+    # when deciding whether to relink. Remove only generated binding binaries;
+    # keep every object/library so cached source builds remain incremental.
+    for suffix in ("so", "pyd"):
+        for binary in (source / "build").glob(f"lib*/xllamacpp/xllamacpp*.{suffix}"):
+            binary.unlink()
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     backend = parser.add_mutually_exclusive_group()
@@ -86,6 +95,7 @@ def main():
     )
     wheels = Path(args.wheel_dir).resolve() if args.wheel_dir else workspace / "wheels"
     prepare_source(source)
+    invalidate_extension(source)
     env = dict(
         os.environ,
         NPROC=str(args.jobs),
@@ -101,6 +111,10 @@ def main():
         env.pop(name, None)
     if args.cuda:
         env.update(XLLAMACPP_BUILD_CUDA="1", CUDA_ARCHITECTURES=args.cuda_architectures)
+        # The binding's linker omits NCCL even when CMake auto-detects it.
+        # Disable that optional multi-GPU collective backend, matching our
+        # single-GPU reference build and avoiding an unimportable extension.
+        env["CMAKE_ARGS"] = env.get("CMAKE_ARGS", "") + " -DGGML_CUDA_NCCL=OFF"
         # setup.py searches CUDA_PATH/lib; NVIDIA Linux installs use lib64.
         cuda = Path(env.get("CUDA_PATH") or env.get("CUDA_HOME") or "/usr/local/cuda")
         env["CUDA_PATH"] = str(cuda)

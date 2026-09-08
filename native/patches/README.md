@@ -24,6 +24,12 @@ required. Builds default to 20 jobs; use `--jobs` to reduce this on small hosts.
 The installed marker `xllamacpp._ezlocalai_hotfix.HOTFIX` identifies patched wheels.
 Reinstalling the official wheel removes the fix.
 
+The CUDA build explicitly disables the optional NCCL collective backend: this
+xllamacpp revision's binding linker omits NCCL even if CMake detects it, producing
+an extension with unresolved NCCL symbols. The worker uses single-GPU inference;
+this does not disable CUDA offload. GPU tensor-parallel/NCCL workloads are outside
+the scope of this hotfix build.
+
 Remove this patch/source-build override once an upstream xllamacpp release
 contains a verified fix. Re-run the large-image regression suite before updating
 the pin: a small single image is insufficient to catch the cache exhaustion.
