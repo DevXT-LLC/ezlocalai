@@ -48,7 +48,10 @@ def resolve_kv_cache_type(main_gpu=None, model_name=""):
 
 
 def draft_length_setting(main_gpu=0):
-    """Card override > global override > conservative four-token starting point."""
+    """Card override > global override > card-specific starting point."""
     family, _ = gpu_profile(main_gpu)
     card = os.getenv(f"DFLASH_SPEC_DRAFT_N_MAX_{family}", "") if family else ""
-    return int(card or os.getenv("DFLASH_SPEC_DRAFT_N_MAX", "4"))
+    value = (card or os.getenv("DFLASH_SPEC_DRAFT_N_MAX", "auto")).strip().lower()
+    if value in ("", "auto"):
+        return 3 if family == "3090" else 4
+    return int(value)

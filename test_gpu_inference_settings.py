@@ -49,7 +49,7 @@ class GpuInferenceSettingsTests(unittest.TestCase):
             "ezlocalai.InferenceSettings.gpu_profile", return_value=("3090", 24)
         ):
             for env, expected in (
-                ({}, 4),
+                ({}, 3),
                 ({"DFLASH_SPEC_DRAFT_N_MAX": "5"}, 5),
                 (
                     {

@@ -1,8 +1,9 @@
-"""Isolated greedy correctness/speed smoke test for MTP and DFlash2.
+"""Isolated correctness/speed sweeps for MTP and DFlash2.
 
 Run only on an idle worker with enough VRAM for the target + draft. This loads
 models directly, not through the router, and does not modify server settings.
-Use the production API separately to benchmark realistic sampling/workloads.
+Use --sampling-profile thinking or instruct for ezlocalai's production sampling
+profiles. Only greedy runs compare output hashes against a non-speculative run.
 """
 
 import argparse
@@ -23,7 +24,7 @@ def main():
     parser.add_argument("--tokens", type=int, default=128)
     parser.add_argument("--gpu", type=int, default=0)
     parser.add_argument(
-        "--draft-lengths", default="7", help="Comma-separated DFlash lengths to compare"
+        "--draft-lengths", default="4", help="Comma-separated DFlash lengths to compare"
     )
     parser.add_argument(
         "--prompt-chars",
@@ -35,16 +36,32 @@ def main():
     )
     parser.add_argument("--repeats", type=int, default=1)
     parser.add_argument("--temperature", type=float, default=0)
+    parser.add_argument(
+        "--sampling-profile",
+        choices=["greedy", "instruct", "thinking"],
+        default="greedy",
+    )
+    parser.add_argument("--backends", default="none,mtp,dflash2")
     parser.add_argument("--kv-cache", choices=["q4_0", "q8_0", "f16"], default="q4_0")
     parser.add_argument("--batch", type=int, default=1024)
     parser.add_argument("--ubatch", type=int, default=512)
     parser.add_argument("--child", choices=["none", "mtp", "dflash2"])
     args = parser.parse_args()
+    if args.repeats < 1 or args.tokens < 1 or args.context <= args.tokens:
+        parser.error(
+            "Use positive repeats/tokens and a context larger than the output budget"
+        )
+    if any(not 1 <= int(n) <= 7 for n in args.draft_lengths.split(",")):
+        parser.error("Draft lengths must be between 1 and 7")
     if not args.child:
         results = []
         variants = [("none", None), ("mtp", None)] + [
             ("dflash2", int(n)) for n in args.draft_lengths.split(",")
         ]
+        requested = args.backends.split(",")
+        if not set(requested) <= {"none", "mtp", "dflash2"}:
+            parser.error("Unknown backend in --backends")
+        variants = [item for item in variants if item[0] in requested]
         for backend, draft_length in variants:
             cmd = [sys.executable, __file__, *sys.argv[1:], "--child", backend]
             env = dict(os.environ, LLM_SPECULATIVE_TYPE=backend)
@@ -63,17 +80,32 @@ def main():
             )
             results.append(json.loads(record))
             print("MEASUREMENT " + record, file=sys.stderr, flush=True)
-        baseline = [p["sha256"] for p in results[0]["prompts"]]
+        baseline = next(
+            (
+                [p["sha256"] for p in result["prompts"]]
+                for result in results
+                if result["backend"] == "none"
+            ),
+            None,
+        )
         for result in results:
             result["matches_greedy_baseline"] = (
-                args.temperature == 0
-                and [p["sha256"] for p in result["prompts"]] == baseline
+                [p["sha256"] for p in result["prompts"]] == baseline
+                if args.temperature == 0
+                and args.sampling_profile == "greedy"
+                and baseline is not None
+                else None
             )
         print(json.dumps(results, indent=2))
         return
 
     os.environ["LLM_SPECULATIVE_TYPE"] = args.child
     os.environ["KV_CACHE_TYPE"] = args.kv_cache
+    # Explicit benchmark axes must beat deployment-specific per-card profiles.
+    # Empty values also prevent dotenv from reintroducing these overrides.
+    for family in ("3090", "4090", "5090"):
+        os.environ[f"KV_CACHE_TYPE_{family}"] = ""
+        os.environ[f"DFLASH_SPEC_DRAFT_N_MAX_{family}"] = ""
     from ezlocalai.LLM import LLM
 
     llm = LLM(
@@ -91,6 +123,22 @@ def main():
         {"prompt": "Warmup: count to ten.", "max_tokens": 32, "temperature": 0}
     )
     results = []
+    sampling = {
+        "temperature": args.temperature,
+        "top_p": 0.95,
+        "chat_template_kwargs": {"enable_thinking": False},
+    }
+    if args.sampling_profile != "greedy":
+        from ModelSettings import apply_qwen38_model_settings
+
+        sampling = apply_qwen38_model_settings(
+            {
+                "chat_template_kwargs": {
+                    "enable_thinking": args.sampling_profile == "thinking"
+                }
+            }
+        )
+        sampling["repeat_penalty"] = sampling.pop("repetition_penalty", 1.0)
     source = Path(args.prompt_file).read_text()
     prompts = []
     for chars in map(int, args.prompt_chars.split(",")):
@@ -120,15 +168,14 @@ def main():
         response = llm.server.handle_chat_completions(
             {
                 "messages": [{"role": "user", "content": prompt}],
-                "chat_template_kwargs": {"enable_thinking": False},
+                **sampling,
                 "max_tokens": args.tokens,
-                "temperature": args.temperature,
-                "top_p": 0.95,
                 "seed": 42,
                 "cache_prompt": True,
             }
         )
-        text = response["choices"][0]["message"]["content"]
+        message = response["choices"][0]["message"]
+        text = (message.get("reasoning_content") or "") + (message.get("content") or "")
         results.append(
             {
                 "kind": kind,
@@ -146,13 +193,19 @@ def main():
             {
                 "backend": args.child,
                 "draft_n_max": (
-                    os.getenv("DFLASH_SPEC_DRAFT_N_MAX")
-                    if args.child == "dflash2"
+                    int(llm.xlc_params.speculative.draft.n_max)
+                    if args.child != "none"
+                    else None
+                ),
+                "draft_p_min": (
+                    float(llm.xlc_params.speculative.draft.p_min)
+                    if args.child != "none"
                     else None
                 ),
                 "context": args.context,
                 "kv_cache": args.kv_cache,
-                "temperature": args.temperature,
+                "temperature": sampling["temperature"],
+                "sampling_profile": args.sampling_profile,
                 "batch": args.batch,
                 "ubatch": args.ubatch,
                 "source_sha256": hashlib.sha256(source.encode()).hexdigest(),

@@ -59,7 +59,7 @@ class SpeculativeConfigTests(unittest.TestCase):
             os.environ,
             {"MTP_SPEC_DRAFT_N_MAX": "2", "MTP_SPEC_DRAFT_P_MIN": "0.9"},
             clear=True,
-        ):
+        ), mock.patch("ezlocalai.InferenceSettings.gpu_profile", return_value=("", 0)):
             self.assertEqual(dflash_settings(), (4, 0.0))
 
     def test_invalid_dflash_values(self):
