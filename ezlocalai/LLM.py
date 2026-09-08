@@ -13,6 +13,7 @@ from ezlocalai.Speculative import (
     speculative_backend,
     dflash_settings,
     download_dflash_model,
+    dflash_hotfix_status,
 )
 
 DEFAULT_MODEL = getenv("DEFAULT_MODEL")
@@ -1082,6 +1083,15 @@ class LLM:
                 p_min,
                 self.main_gpu,
             )
+            hotfix = dflash_hotfix_status()
+            logging.info("[LLM] DFlash native hotfix: %s", hotfix)
+            if mmproj_path and hotfix == "unpatched":
+                logging.warning(
+                    "[LLM] This xllamacpp build lacks the DFlash large-image "
+                    "cache hotfix; vision requests may fail. Rebuild the CUDA "
+                    "image or run scripts/build_xllamacpp.py --install with "
+                    "the appropriate backend flag."
+                )
         elif self.speculative_type == "mtp":
             spec_draft_n_max, card_vram_gb = get_mtp_spec_draft_n_max(
                 self.main_gpu, self.model_name

@@ -63,6 +63,23 @@ RUN cmake -S /opt/ezlocalai-tts -B /opt/ezlocalai-tts/build \
     -DCMAKE_CUDA_ARCHITECTURES="${TTS_CUDA_ARCHITECTURES}" \
     -DCMAKE_EXE_LINKER_FLAGS="-L/usr/local/cuda/lib64/stubs -Wl,-rpath-link,/usr/local/cuda/lib64/stubs" && \
     cmake --build /opt/ezlocalai-tts/build --target ezlocalai-tts --parallel "${TTS_BUILD_JOBS}"
+# The published xllamacpp==2026.9.10809 wheel predates the large-image DFlash
+# cache fix. Keep this build after TTS so existing expensive layers stay cached.
+RUN uv pip install pip
+COPY scripts/build_xllamacpp.py /opt/ezlocalai-native/scripts/build_xllamacpp.py
+COPY native/patches /opt/ezlocalai-native/native/patches
+ARG XLLAMACPP_BUILD_JOBS=20
+ARG XLLAMACPP_CUDA_ARCHITECTURES=86-real;89-real;120-real
+RUN --mount=type=cache,target=/opt/xllamacpp-build \
+    --mount=type=cache,target=/root/.cargo \
+    --mount=type=cache,target=/root/.rustup \
+    export PATH="/root/.cargo/bin:$PATH" && \
+    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal --no-modify-path && \
+    LD_LIBRARY_PATH="/usr/local/cuda/lib64/stubs:$LD_LIBRARY_PATH" \
+    CMAKE_ARGS="-DCMAKE_BUILD_TYPE=Release -DCMAKE_CUDA_COMPILER=/usr/local/cuda/bin/nvcc -DCMAKE_EXE_LINKER_FLAGS=-Wl,-rpath-link,/usr/local/cuda/lib64/stubs" \
+    python /opt/ezlocalai-native/scripts/build_xllamacpp.py --cuda --install \
+    --jobs "${XLLAMACPP_BUILD_JOBS}" --cuda-architectures "${XLLAMACPP_CUDA_ARCHITECTURES}" \
+    --source-dir /opt/xllamacpp-build/source --wheel-dir /opt/xllamacpp-build/wheels
 COPY . .
 EXPOSE 8091
 # Use start.py which runs precache once, then starts uvicorn workers

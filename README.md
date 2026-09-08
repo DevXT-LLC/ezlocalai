@@ -240,6 +240,20 @@ hardware- and context-aware: 24 GB cards use an ubatch of 1024 through 200K
 context and 512 above 200K, while 32 GB cards use 1024. Other MTP model
 families retain their conservative defaults.
 
+The CUDA image includes a pinned native hotfix for DFlash's large-image cache
+exhaustion (`failed to process mtmd chunk`). It preserves full-resolution target
+vision input without enlarging the KV cache. See [hotfix details and native build
+instructions](native/patches/README.md). Verify a deployed CUDA worker with:
+
+```bash
+docker exec ezlocalai python -c 'from xllamacpp._ezlocalai_hotfix import HOTFIX; print(HOTFIX)'
+```
+
+It should report `dflash-pinned-image-positions-v1`. The upstream version number
+alone does not identify the patched build. Test an idle worker's vision stream
+with `python benchmark_vision.py --url http://localhost:8091 --stream` (set
+`EZLOCALAI_API_KEY` if authentication is enabled).
+
 All values remain operator-overridable:
 
 ```bash
