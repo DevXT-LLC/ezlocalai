@@ -12,6 +12,16 @@ DFLASH_FILE = "Qwen3.8-27B-DFlash2-Q4_K_M.gguf"
 DFLASH_REVISION = "51962825493a48b846b40126d35c799ac4093ad0"
 
 
+def dflash_hotfix_status():
+    """Identify our native patch separately from the unchanged upstream version."""
+    try:
+        from xllamacpp._ezlocalai_hotfix import HOTFIX
+
+        return HOTFIX
+    except ImportError:
+        return "unpatched"
+
+
 def speculative_backend(model_name):
     """Auto-select only a known compatible target; never guess a draft pairing."""
     name = (model_name or "").lower()
