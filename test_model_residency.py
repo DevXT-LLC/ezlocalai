@@ -14,6 +14,21 @@ from Router import WorkerInfo, WorkerRegistry
 
 
 class LlmResidencyPolicyTests(unittest.TestCase):
+    def test_q8_memory_planning_includes_extra_kv_capacity(self):
+        from Pipes import estimate_model_vram_requirement, _qwen35_kv_bytes_per_token
+
+        with mock.patch("Pipes.xllamacpp_available", False), mock.patch(
+            "Pipes.resolve_kv_cache_type", side_effect=["q4_0", "q8_0"]
+        ):
+            q4 = estimate_model_vram_requirement("Qwen3.8-27B.gguf", 262144)
+            q8 = estimate_model_vram_requirement("Qwen3.8-27B.gguf", 262144)
+        self.assertAlmostEqual(q8 - q4, 4.0)
+        self.assertAlmostEqual(
+            _qwen35_kv_bytes_per_token(None, "q8_0")
+            / _qwen35_kv_bytes_per_token(None, "q4_0"),
+            34 / 18,
+        )
+
     def test_auto_residency_selects_swap_when_models_overcommit_one_gpu(self):
         pipe = Pipes.__new__(Pipes)
         pipe.available_models = ["model-a", "model-b"]

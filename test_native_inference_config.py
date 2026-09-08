@@ -60,7 +60,7 @@ class SpeculativeConfigTests(unittest.TestCase):
             {"MTP_SPEC_DRAFT_N_MAX": "2", "MTP_SPEC_DRAFT_P_MIN": "0.9"},
             clear=True,
         ):
-            self.assertEqual(dflash_settings(), (7, 0.0))
+            self.assertEqual(dflash_settings(), (4, 0.0))
 
     def test_invalid_dflash_values(self):
         for env, values in (

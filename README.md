@@ -244,11 +244,50 @@ All values remain operator-overridable:
 
 ```bash
 LLM_SPECULATIVE_TYPE=auto  # auto, dflash2, mtp, none
-DFLASH_SPEC_DRAFT_N_MAX=7  # 1..7; published draft's block size minus the anchor
+DFLASH_SPEC_DRAFT_N_MAX=4  # 1..7; starting point, benchmark 3/4/5 against 7
 DFLASH_SPEC_DRAFT_P_MIN=0.0
 LLM_BATCH_SIZE=auto
 LLM_UBATCH_SIZE=auto
 ```
+
+GPU-aware defaults for Qwen3.8-27B (explicit settings take precedence):
+
+| Worker GPU | DFlash draft maximum | Target K/V cache |
+| --- | --- | --- |
+| RTX 3090 / 3090 Ti | 4 | q4_0 |
+| RTX 4090 | 4 | q4_0 |
+| RTX 5090 (30+ GiB visible) | 4 | q8_0 |
+
+These are starting profiles, not measured optima for every workload. To tune a
+mixed fleet from one configuration, use card-specific overrides such as
+`DFLASH_SPEC_DRAFT_N_MAX_3090=3`, `DFLASH_SPEC_DRAFT_N_MAX_5090=4`, or
+`KV_CACHE_TYPE_5090=q8_0`. Card-specific overrides beat global overrides.
+`KV_CACHE_TYPE=auto` selects the table; an existing explicit
+`KV_CACHE_TYPE=q4_0` still keeps Q4 on every card unless overridden per card.
+Other model families and GPU types retain Q4 by default; Jetson keeps its
+explicit F16 setting. The memory planner uses the resolved cache precision.
+
+For this 27B model, target KV at 262,144 tokens is approximately 4.5 GiB with
+Q4 versus 8.5 GiB with Q8 (excluding recurrent state, weights, draft and compute
+buffers). Q8 therefore needs about 4 GiB extra. It is a precision upgrade, not
+a guaranteed speed improvement. Keep Q4 on 24 GB cards at long context. A
+smaller main-model quant also does not guarantee faster prefill or decode:
+kernel choice, acceptance, cache traffic and prompt content matter.
+
+An isolated sweep on an idle worker can be run with:
+
+```bash
+python benchmark_speculative.py --context 220000 --tokens 256 \
+  --draft-lengths 3,4,5,7 --prompt-chars 0,120000,360000 --repeats 2 \
+  --kv-cache q4_0
+```
+
+The sweep includes no-speculation and MTP controls, real code prefixes, actual
+prompt-token counts, prefill/decode timing, and greedy output hashes. Use the
+same immutable `--prompt-file` for all runs/cards. Allocated context alone is
+not a long-context benchmark: compare actual prompt lengths. Do not run this
+alongside the resident server on the same GPU. Greedy hash checks are a smoke
+test, not a proof of quality or of production-sampling throughput.
 
 Single-GPU NVIDIA workers can also A/B test llama.cpp's experimental concurrent
 CUDA-stream optimization with `GGML_CUDA_GRAPH_OPT=1`. It primarily targets

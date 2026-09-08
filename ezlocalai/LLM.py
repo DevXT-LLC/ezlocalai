@@ -8,6 +8,7 @@ import logging
 import json
 import math
 from Globals import getenv
+from ezlocalai.InferenceSettings import resolve_kv_cache_type
 from ezlocalai.Speculative import (
     speculative_backend,
     dflash_settings,
@@ -1009,10 +1010,10 @@ class LLM:
             xlc.llama_flash_attn_type.LLAMA_FLASH_ATTN_TYPE_ENABLED
         )
 
-        # KV cache type: q4_0 saves ~8x VRAM vs f16, but requires FA_ALL_QUANTS
-        # compiled into the CUDA backend. Use f16 on Jetson/embedded where FA_ALL_QUANTS
-        # may not be available, or q4_0 on desktop GPUs with ample VRAM.
-        kv_cache_type = getenv("KV_CACHE_TYPE", "q4_0").lower().strip()
+        # Keep precision selection aligned with the residency memory planner.
+        # Jetson's explicit f16 override and user overrides take precedence.
+        kv_cache_type = resolve_kv_cache_type(self.main_gpu, self.model_name)
+        self.kv_cache_type = kv_cache_type
         kv_type_map = {
             "f16": xlc.ggml_type.GGML_TYPE_F16,
             "f32": xlc.ggml_type.GGML_TYPE_F32,
@@ -1060,7 +1061,7 @@ class LLM:
             # DFlash context without the target. Let Pipes' isolated OOM probes
             # own residency decisions instead of fitting without the draft.
             self.xlc_params.fit_params = False
-            n_max, p_min = dflash_settings()
+            n_max, p_min = dflash_settings(self.main_gpu)
             self.xlc_params.speculative.types = [
                 xlc.common_speculative_type.COMMON_SPECULATIVE_TYPE_DRAFT_DFLASH
             ]

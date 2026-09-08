@@ -4,6 +4,7 @@ import logging
 import math
 import os
 import re
+from ezlocalai.InferenceSettings import draft_length_setting
 
 DFLASH_REPO = "incoai/Qwen3.8-27B-DFlash2-GGUF"
 DFLASH_FILE = "Qwen3.8-27B-DFlash2-Q4_K_M.gguf"
@@ -32,9 +33,9 @@ def speculative_backend(model_name):
     return backend
 
 
-def dflash_settings():
+def dflash_settings(main_gpu=0):
     """The published DFlash2 block is anchor + seven draft tokens."""
-    n_max = int(os.getenv("DFLASH_SPEC_DRAFT_N_MAX", "7"))
+    n_max = draft_length_setting(main_gpu)
     p_min = float(os.getenv("DFLASH_SPEC_DRAFT_P_MIN", "0.0"))
     if not 1 <= n_max <= 7:
         raise ValueError("DFLASH_SPEC_DRAFT_N_MAX must be between 1 and 7")
