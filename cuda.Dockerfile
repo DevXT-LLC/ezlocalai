@@ -67,7 +67,7 @@ RUN cmake -S /opt/ezlocalai-tts -B /opt/ezlocalai-tts/build \
 # cache fix. Keep this build after TTS so existing expensive layers stay cached.
 RUN uv pip install pip
 COPY scripts/build_xllamacpp.py /opt/ezlocalai-native/scripts/build_xllamacpp.py
-COPY native/patches /opt/ezlocalai-native/native/patches
+COPY native/patches/dflash-pinned-image-positions.patch /opt/ezlocalai-native/native/patches/dflash-pinned-image-positions.patch
 ARG XLLAMACPP_BUILD_JOBS=20
 ARG XLLAMACPP_CUDA_ARCHITECTURES=86-real;89-real;120-real
 RUN --mount=type=cache,target=/opt/xllamacpp-build \
