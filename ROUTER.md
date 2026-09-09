@@ -70,6 +70,29 @@ Then run the router server
 docker compose -f docker-compose-router.yml pull && docker compose -f docker-compose-router.yml up -d
 ```
 
+## Reusing Prompt Prefixes
+
+Chat requests with a long leading system message can reuse routing affinity
+across new conversations. The router hashes exact system-text prefixes in
+16,384-character blocks (up to 524,288 characters); it stores only digests and
+worker IDs, never copies of the prompt. A conversation-specific suffix does
+not invalidate earlier matching blocks. Messages and generation settings are
+forwarded unchanged.
+
+An existing `prompt_cache_key` owner takes precedence. Without an eligible
+owner, the longest matching system prefix can select an idle compatible local
+worker, provided its hardware tier is at least as high as the fastest available
+compatible worker. This fallback never waits, selects a paid overflow worker,
+or overrides nested browser requests' parent-cache exclusions. Separate bounded
+hint storage uses the same `ROUTER_PROMPT_AFFINITY_TTL` and
+`ROUTER_PROMPT_AFFINITY_MAX` limits as conversation affinity.
+
+The `shared system-prefix affinity` log records a routing hint, **not a measured
+cache hit**. Worker restarts, model unloads, or KV eviction can still cause a
+miss. A genuinely cold system prompt still requires full prefill; compare the
+worker-reported cached tokens and TTFT across fresh conversations to measure
+the benefit on your workload.
+
 ## Connecting ezLocalai Workers
 
 Edit the `.env` of the ezLocalai worker to connect it to your ezLocalai router.
