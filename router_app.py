@@ -37,6 +37,7 @@ OpenAI-compatible (proxied)
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import html
 import json
 import logging
@@ -112,6 +113,7 @@ app.mount("/outputs", StaticFiles(directory=_OUTPUTS_DIR), name="outputs")
 # model and capability are part of the lookup so lightweight control-model
 # calls cannot displace the main conversation model's affinity.
 _prompt_affinity: Dict[str, tuple[str, float]] = {}
+_system_prefix_affinity: Dict[str, tuple[str, float]] = {}
 
 
 CHUTES_WORKER_ID = "external-chutes"
@@ -3139,16 +3141,74 @@ def _prompt_affinity_key(
     return f"{capability}:{_normalize_model_name(model)}:{raw.strip()[:512]}"
 
 
+def _system_prefix_affinity_keys(
+    payload: Dict[str, Any], capability: str, model: Optional[str]
+) -> List[str]:
+    """Opaque hints for cold conversations, not a claim that KV is still resident.
+
+    Hash exact leading system text in incremental blocks so a conversation-
+    specific suffix doesn't discard an otherwise reusable tool/system prefix.
+    Never hash later messages: those don't establish a shared leading prefix.
+    """
+    messages = payload.get("messages")
+    if capability != "text" or not isinstance(messages, list) or not messages:
+        return []
+    first = messages[0]
+    if not isinstance(first, dict) or first.get("role") != "system":
+        return []
+    content = first.get("content")
+    if not isinstance(content, str):
+        return []
+    block = 16384
+    limit = min(len(content), 524288)
+    # Native tools/template flags can change tokens preceding the system text.
+    # Keep those lanes separate even if the visible system content is equal.
+    template = {
+        key: payload[key]
+        for key in (
+            "tools",
+            "tool_choice",
+            "functions",
+            "function_call",
+            "chat_template",
+            "chat_template_kwargs",
+        )
+        if key in payload
+    }
+    template["system_metadata"] = {k: v for k, v in first.items() if k != "content"}
+    digest = hashlib.sha256(json.dumps(template, ensure_ascii=False).encode("utf-8"))
+    keys = []
+    for start in range(0, limit, block):
+        end = min(start + block, limit)
+        digest.update(content[start:end].encode("utf-8"))
+        if end >= block:
+            keys.append(
+                f"system-prefix:{capability}:{_normalize_model_name(model)}:"
+                f"{end}:{digest.hexdigest()}"
+            )
+    return keys
+
+
+def _remember_system_prefixes(keys: Optional[List[str]], worker: WorkerInfo) -> None:
+    if worker.external_fallback:
+        return
+    now = time.time()
+    for key in keys or ():
+        _system_prefix_affinity[key] = (worker.worker_id, now)
+
+
 def _prune_prompt_affinity(now: float) -> None:
     ttl = max(60.0, _float_env("ROUTER_PROMPT_AFFINITY_TTL", 3600.0))
-    expired = [key for key, (_, seen) in _prompt_affinity.items() if now - seen > ttl]
-    for key in expired:
-        _prompt_affinity.pop(key, None)
     max_entries = max(100, int(_float_env("ROUTER_PROMPT_AFFINITY_MAX", 10000)))
-    if len(_prompt_affinity) > max_entries:
-        oldest = sorted(_prompt_affinity.items(), key=lambda item: item[1][1])
-        for key, _ in oldest[: len(_prompt_affinity) - max_entries]:
-            _prompt_affinity.pop(key, None)
+    # Prefix hints must not evict existing conversations' cache-home mappings.
+    for entries in (_prompt_affinity, _system_prefix_affinity):
+        expired = [key for key, (_, seen) in entries.items() if now - seen > ttl]
+        for key in expired:
+            entries.pop(key, None)
+        if len(entries) > max_entries:
+            oldest = sorted(entries.items(), key=lambda item: item[1][1])
+            for key, _ in oldest[: len(entries) - max_entries]:
+                entries.pop(key, None)
 
 
 def _prompt_affinity_wait_timeout() -> float:
@@ -3252,6 +3312,7 @@ async def _pick(
     external_fallback_allowed: bool = True,
     wait_indefinitely: bool = False,
     affinity_key: Optional[str] = None,
+    system_prefix_keys: Optional[List[str]] = None,
 ) -> WorkerInfo:
     router = get_router()
     # Pre-exclude tunneled workers whose WebSocket is not currently connected.
@@ -3300,6 +3361,7 @@ async def _pick(
                 break
             if preferred.has_capacity(capability, model):
                 _prompt_affinity[affinity_key] = (preferred.worker_id, time.time())
+                _remember_system_prefixes(system_prefix_keys, preferred)
                 logging.info(
                     f"[Router] prompt-cache affinity -> {preferred.label} "
                     f"(model={model!r}, cap={capability})"
@@ -3314,6 +3376,32 @@ async def _pick(
                 )
                 break
             await asyncio.sleep(min(0.1, remaining))
+    # Cold conversations may reuse another conversation's stable prefix. This
+    # fallback never waits or overrides a still-eligible conversation owner.
+    if system_prefix_keys and not preferred_is_eligible:
+        workers = {w.worker_id: w for w in registry.list_workers(alive_only=True)}
+        idle_workers = {
+            wid: w
+            for wid, w in workers.items()
+            if _eligible_affinity_worker(w, capability, model, pre_exclude)
+            and w.has_capacity(capability, model)
+            and w.effective_busy(capability=capability, model=model) == 0
+        }
+        fastest_tier = max((w.best_tier for w in idle_workers.values()), default=0)
+        for key in reversed(system_prefix_keys or ()):
+            candidate_id = _system_prefix_affinity.get(key, (None, 0.0))[0]
+            candidate = idle_workers.get(candidate_id)
+            if candidate is not None and candidate.best_tier >= fastest_tier:
+                if affinity_key:
+                    _prompt_affinity[affinity_key] = (candidate.worker_id, time.time())
+                _remember_system_prefixes(system_prefix_keys, candidate)
+                logging.info(
+                    "[Router] shared system-prefix affinity -> %s (model=%r, cap=%s)",
+                    candidate.label,
+                    model,
+                    capability,
+                )
+                return candidate
     worker = await router.wait_for_worker(
         capability,
         model,
@@ -3334,6 +3422,7 @@ async def _pick(
         and (not preferred_is_eligible or worker.worker_id == preferred_id)
     ):
         _prompt_affinity[affinity_key] = (worker.worker_id, time.time())
+    _remember_system_prefixes(system_prefix_keys, worker)
     return worker
 
 
@@ -4063,6 +4152,7 @@ async def _llm_stream_with_worker_failover(
 ) -> AsyncIterator[bytes]:
     tried: set = set()
     affinity_key = _prompt_affinity_key(payload, capability, model)
+    system_prefix_keys = _system_prefix_affinity_keys(payload, capability, model)
     cache_avoid_worker_ids = _prompt_cache_avoid_worker_ids(
         payload, capability, model, tried
     )
@@ -4080,6 +4170,7 @@ async def _llm_stream_with_worker_failover(
                 external_fallback_allowed=external_fallback_allowed,
                 wait_indefinitely=wait_indefinitely,
                 affinity_key=affinity_key,
+                system_prefix_keys=system_prefix_keys,
             )
         except Exception as e:
             last_error = f"{type(e).__name__}: {e}"
@@ -4848,6 +4939,7 @@ async def _llm_proxy_with_retry(
 
     tried: set = set()
     affinity_key = _prompt_affinity_key(payload, capability, model)
+    system_prefix_keys = _system_prefix_affinity_keys(payload, capability, model)
     cache_avoid_worker_ids = _prompt_cache_avoid_worker_ids(
         payload, capability, model, tried
     )
@@ -4863,6 +4955,7 @@ async def _llm_proxy_with_retry(
             external_fallback_allowed=external_fallback_allowed,
             wait_indefinitely=wait_indefinitely,
             affinity_key=affinity_key,
+            system_prefix_keys=system_prefix_keys,
         )
         reservation_id = get_registry().try_reserve_in_flight(
             worker.worker_id,
