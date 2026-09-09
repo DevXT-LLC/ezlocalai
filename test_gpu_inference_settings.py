@@ -17,7 +17,7 @@ class GpuInferenceSettingsTests(unittest.TestCase):
         for family, capacity, expected in (
             ("3090", 24, "q4_0"),
             ("4090", 24, "q4_0"),
-            ("5090", 32, "q8_0"),
+            ("5090", 32, "q4_0"),
             ("5090", 24, "q4_0"),
             ("", 80, "q4_0"),
         ):

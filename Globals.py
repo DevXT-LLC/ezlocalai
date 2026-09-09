@@ -104,9 +104,9 @@ def getenv(var_name: str, default_value: str = None) -> str:
         # 1 = single slot (default), N = fixed number of parallel slots.
         # Each slot gets n_ctx / n_parallel tokens of context. VRAM is constant.
         "N_PARALLEL": "1",
-        "LLM_SPECULATIVE_TYPE": "auto",  # DFlash2 for Qwen3.8-27B, MTP elsewhere
+        "LLM_SPECULATIVE_TYPE": "auto",  # MTP for compatible models; DFlash2 is opt-in
         "DFLASH_SPEC_DRAFT_N_MAX": "auto",  # 3090: 3; 4090/5090 and generic: 4
-        "KV_CACHE_TYPE": "auto",  # Qwen3.8-27B: q8_0 on 32 GB 5090; q4_0 otherwise
+        "KV_CACHE_TYPE": "auto",  # q4_0 on all cards; q8_0 is an explicit opt-in
         "DFLASH_SPEC_DRAFT_P_MIN": "0.0",
         "DFLASH_MODEL_FILE": "Qwen3.8-27B-DFlash2-Q4_K_M.gguf",
         "DFLASH_MODEL_PATH": "",

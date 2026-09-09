@@ -3071,8 +3071,8 @@ def _qwen35_kv_bytes_per_token(
     by size. Read GGUF metadata when possible:
       bytes/token = (key_length + value_length) * kv_heads * attention_layers * bytes/value
 
-    Pass the resolved KV_CACHE_TYPE for VRAM planning, including the 5090's
-    Q8 profile. Use conservative metadata-free defaults.
+    Pass the resolved KV_CACHE_TYPE for VRAM planning, including explicit
+    per-card precision overrides. Use conservative metadata-free defaults.
     """
     kv_cache_type = (kv_cache_type or "fp16").lower().strip()
     cache_key = (model_path, kv_cache_type)

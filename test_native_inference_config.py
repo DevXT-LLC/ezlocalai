@@ -32,15 +32,18 @@ class SpeculativeConfigTests(unittest.TestCase):
                 "Qwen3.8-27B",
                 "Qwen3.8-27B-Q3_K_XL.gguf",
             ):
-                self.assertEqual(speculative_backend(name), "dflash2")
+                self.assertEqual(speculative_backend(name), "mtp")
             self.assertEqual(speculative_backend("Qwen3.8-270B"), "none")
             self.assertEqual(speculative_backend("Qwen3.6-27B-GGUF"), "none")
             self.assertEqual(speculative_backend("Qwen3.5-35B-A3B-MTP-GGUF"), "mtp")
 
     def test_overrides_and_multiple_models(self):
         for setting, expected in (
+            ("auto", "mtp"),
+            ("", "mtp"),
             ("mtp", "mtp"),
             ("none", "none"),
+            ("dflash2", "dflash2"),
             ("draft-dflash", "dflash2"),
         ):
             with mock.patch.dict(

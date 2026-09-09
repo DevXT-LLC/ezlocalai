@@ -1,3 +1,4 @@
+import os
 import pathlib
 import sys
 import types
@@ -145,6 +146,37 @@ class LlmStreamingTests(unittest.TestCase):
     def test_explicit_mtp_probability_still_overrides_family_default(self):
         with mock.patch("ezlocalai.LLM.getenv", return_value="0.4"):
             self.assertEqual(get_mtp_spec_draft_p_min("unsloth/Qwen3.8-27B-GGUF"), 0.4)
+
+    def test_mtp_card_defaults_and_override_precedence(self):
+        for family, capacity in (("3090", 24.0), ("4090", 24.0), ("5090", 32.0)):
+            for global_value, card_value, expected in (
+                ("auto", "", 3),
+                ("2", "", 2),
+                ("2", "4", 4),
+                ("2", "auto", 3),
+                ("2", " ", 2),
+                ("auto", "bad", 3),
+                ("auto", "99", 16),
+            ):
+                with (
+                    self.subTest(family=family, card=card_value),
+                    mock.patch.dict(
+                        os.environ,
+                        {f"MTP_SPEC_DRAFT_N_MAX_{family}": card_value},
+                        clear=True,
+                    ),
+                    mock.patch(
+                        "ezlocalai.LLM.gpu_profile", return_value=(family, capacity)
+                    ),
+                    mock.patch(
+                        "ezlocalai.LLM.get_total_vram_per_gpu", return_value=[capacity]
+                    ),
+                    mock.patch("ezlocalai.LLM.getenv", return_value=global_value),
+                ):
+                    self.assertEqual(
+                        get_mtp_spec_draft_n_max(0, "Qwen3.8-27B"),
+                        (expected, capacity),
+                    )
 
     def test_qwen38_standard_repo_is_recognized_as_built_in_mtp(self):
         self.assertTrue(is_mtp_model("unsloth/Qwen3.8-27B-GGUF"))

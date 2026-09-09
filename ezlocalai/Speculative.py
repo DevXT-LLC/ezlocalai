@@ -32,7 +32,7 @@ def speculative_backend(model_name):
         backend, backend
     )
     if backend in ("", "auto"):
-        return "dflash2" if qwen38 else "mtp" if mtp else "none"
+        return "mtp" if mtp else "none"
     if backend not in ("dflash2", "mtp", "none"):
         raise ValueError("LLM_SPECULATIVE_TYPE must be auto, dflash2, mtp or none")
     # A global override must not attach the 27B draft to other configured models.

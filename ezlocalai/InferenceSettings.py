@@ -31,17 +31,12 @@ def gpu_profile(main_gpu=0):
 
 
 def resolve_kv_cache_type(main_gpu=None, model_name=""):
-    """Respect explicit overrides; use Q8 KV for the 27B on 32 GB RTX 5090s.
-
-    This is a precision/headroom profile, not a promise of faster decoding.
-    Context/model fit is still checked by the normal residency loader.
-    """
-    family, capacity = gpu_profile(main_gpu)
+    """Keep Q4 KV by default on all cards; Q8 remains an explicit precision opt-in."""
+    family, _ = gpu_profile(main_gpu)
     raw = os.getenv(f"KV_CACHE_TYPE_{family}", "") if family else ""
     raw = (raw or os.getenv("KV_CACHE_TYPE", "auto")).strip().lower()
     if raw in ("", "auto"):
-        qwen27 = re.search(r"qwen3\.8-27b(?:$|[-_./])", (model_name or "").lower())
-        return "q8_0" if qwen27 and family == "5090" and capacity >= 30 else "q4_0"
+        return "q4_0"
     if raw not in {"q4_0", "q8_0", "f16", "f32"}:
         raise ValueError("KV_CACHE_TYPE must be auto, q4_0, q8_0, f16 or f32")
     return raw

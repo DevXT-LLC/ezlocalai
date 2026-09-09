@@ -8,7 +8,7 @@ import logging
 import json
 import math
 from Globals import getenv
-from ezlocalai.InferenceSettings import resolve_kv_cache_type
+from ezlocalai.InferenceSettings import gpu_profile, resolve_kv_cache_type
 from ezlocalai.Speculative import (
     speculative_backend,
     dflash_settings,
@@ -245,9 +245,13 @@ def resolve_prompt_cache_mib(
 def get_mtp_spec_draft_n_max(
     main_gpu: int = 0, model_name: str = ""
 ) -> Tuple[int, float]:
-    """Choose MTP draft length from the primary GPU's total VRAM."""
+    """Choose model-aware MTP defaults; card overrides beat global overrides."""
     total_vram = get_total_vram_per_gpu()
-    raw_override = str(getenv("MTP_SPEC_DRAFT_N_MAX", "auto") or "auto").strip()
+    family, _ = gpu_profile(main_gpu)
+    card_override = os.getenv(f"MTP_SPEC_DRAFT_N_MAX_{family}", "") if family else ""
+    raw_override = str(
+        card_override.strip() or getenv("MTP_SPEC_DRAFT_N_MAX", "auto") or "auto"
+    ).strip()
 
     card_vram_gb = 0.0
     if total_vram:

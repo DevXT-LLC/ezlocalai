@@ -230,8 +230,10 @@ python benchmark_model_lifecycle.py \
 
 ## Qwen3.8-27B Performance Tuning
 
-Qwen3.8-27B automatically uses **DFlash2**, through xllamacpp 2026.9.10809,
-with one inference slot. It downloads the revision-pinned
+Qwen3.8-27B automatically uses **MTP**, through xllamacpp 2026.9.10809,
+with one inference slot, three draft tokens and a 0.1 draft probability threshold.
+DFlash2 remains opt-in with `LLM_SPECULATIVE_TYPE=dflash2`; only that backend
+downloads the revision-pinned
 [Inco Q4_K_M draft](https://huggingface.co/incoai/Qwen3.8-27B-DFlash2-GGUF)
 (about 1.1 GB of weights, plus its runtime buffers) into the shared HF cache.
 The target model and sampling settings are unchanged: draft tokens are verified
@@ -258,6 +260,9 @@ All values remain operator-overridable:
 
 ```bash
 LLM_SPECULATIVE_TYPE=auto  # auto, dflash2, mtp, none
+MTP_SPEC_DRAFT_N_MAX=auto  # Qwen3.8-27B: 3 on all three card families
+MTP_SPEC_DRAFT_P_MIN=auto  # Qwen3.8-27B: 0.1
+KV_CACHE_TYPE=auto        # q4_0; q8_0 remains an explicit precision opt-in
 DFLASH_SPEC_DRAFT_N_MAX=auto  # 3090: 3; 4090/5090: 4; explicit 1..7 overrides
 DFLASH_SPEC_DRAFT_P_MIN=0.0
 LLM_BATCH_SIZE=auto
@@ -266,23 +271,32 @@ LLM_UBATCH_SIZE=auto
 
 GPU-aware defaults for Qwen3.8-27B (explicit settings take precedence):
 
-| Worker GPU | DFlash draft maximum | Target K/V cache |
-| --- | --- | --- |
-| RTX 3090 / 3090 Ti | 3 | q4_0 |
-| RTX 4090 | 4 | q4_0 |
-| RTX 5090 (30+ GiB visible) | 4 | q8_0 |
+| Worker GPU | MTP draft maximum | MTP p-min | Target K/V cache |
+| --- | --- | --- | --- |
+| RTX 3090 / 3090 Ti | 3 | 0.1 | q4_0 |
+| RTX 4090 | 3 | 0.1 | q4_0 |
+| RTX 5090 | 3 | 0.1 | q4_0 |
 
 These are starting profiles, not measured optima for every workload. To tune a
 mixed fleet from one configuration, use card-specific overrides such as
-`DFLASH_SPEC_DRAFT_N_MAX_3090=3`, `DFLASH_SPEC_DRAFT_N_MAX_5090=4`, or
+`MTP_SPEC_DRAFT_N_MAX_3090=3`, `MTP_SPEC_DRAFT_N_MAX_5090=4`, or
 `KV_CACHE_TYPE_5090=q8_0`. Card-specific overrides beat global overrides.
 `KV_CACHE_TYPE=auto` selects the table; an existing explicit
 `KV_CACHE_TYPE=q4_0` still keeps Q4 on every card unless overridden per card.
 Other model families and GPU types retain Q4 by default; Jetson keeps its
 explicit F16 setting. The memory planner uses the resolved cache precision.
-The [local Q3 / 3090 Ti measurements](benchmarks/qwen38-3090ti-20260908.md)
-favor three for long-context work; short thinking requests still favored MTP.
-The 4090/5090 profiles require on-card validation.
+The [local Q3 / 3090 Ti comparison](benchmarks/qwen38-3090ti-20260908.md)
+found mixed DFlash gains, including regressions on short thinking requests.
+The MTP three-token baseline is shared across cards; higher values on the
+4090/5090 require on-card validation, not extrapolation from free VRAM.
+Batch/ubatch remain hardware- and context-aware as described above; explicit
+operator values are preserved.
+
+Deployment: remove an explicit `LLM_SPECULATIVE_TYPE=dflash2` override or set it
+to `auto`/`mtp`, then rebuild/restart each worker. Explicit `MTP_SPEC_DRAFT_*`
+and `KV_CACHE_TYPE*` values still win; set them to `auto` (or remove them) to
+adopt these defaults. The router does not choose the native decoding backend.
+DFlash's optional starting lengths remain 3 on 3090 and 4 on 4090/5090.
 
 For this 27B model, target KV at 262,144 tokens is approximately 4.5 GiB with
 Q4 versus 8.5 GiB with Q8 (excluding recurrent state, weights, draft and compute
@@ -316,7 +330,7 @@ and model, so leave it disabled unless a representative decode benchmark shows
 a repeatable improvement.
 
 Existing `MTP_SPEC_DRAFT_*` settings apply only with the MTP backend; they do
-not tune DFlash2. Set `LLM_SPECULATIVE_TYPE=mtp` for an A/B comparison or `none`
+not tune DFlash2. Set `LLM_SPECULATIVE_TYPE=dflash2` for an A/B comparison or `none`
 to disable speculation. Other model families never receive the 27B draft.
 `DFLASH_MODEL_FILE` selects another quant from the same pinned repository;
 `DFLASH_MODEL_PATH` can point to an already downloaded compatible draft.
