@@ -652,6 +652,102 @@ class RouterReservationTests(unittest.TestCase):
 
 
 class ImageHandoffTests(unittest.IsolatedAsyncioTestCase):
+    @staticmethod
+    def _fast_pipe():
+        from ModelSettings import MINICPM5_2B_MODEL
+
+        pipe = Pipes.__new__(Pipes)
+        pipe.available_models = [MINICPM5_2B_MODEL]
+        pipe._img_lock = asyncio.Lock()
+        pipe.local_uri = "http://worker.local"
+        pipe.resource_manager = mock.Mock()
+        pipe.img = mock.Mock()
+        pipe.img.generate.return_value = "image.png"
+        pipe._get_img = mock.Mock(return_value=pipe.img)
+        pipe._wait_for_llm_idle_for_image = mock.AsyncMock()
+        pipe._unload_aux_models_for_image = mock.Mock()
+        pipe._restore_aux_models_after_image = mock.Mock()
+        pipe._restore_llms_after_service = mock.Mock()
+        pipe._destroy_img_sync = mock.Mock()
+        return pipe
+
+    def test_image_auto_keeps_models_when_there_is_headroom(self):
+        pipe = self._fast_pipe()
+        pipe.img = None
+        pipe._has_loaded_llm = mock.Mock(return_value=True)
+        pipe.resource_manager.vram_safety_margin = 1.5
+        with (
+            mock.patch("Pipes.getenv", side_effect=lambda key, default="": default),
+            mock.patch("Pipes.has_image_server_url", return_value=False),
+            mock.patch("Pipes.get_secondary_gpu", return_value=None),
+        ):
+            pipe.resource_manager.get_total_free_vram.return_value = 16.0
+            self.assertFalse(pipe._image_should_unload_llm_for_generation())
+            pipe.resource_manager.get_total_free_vram.return_value = 3.0
+            self.assertTrue(pipe._image_should_unload_llm_for_generation())
+            with mock.patch("Pipes.getenv", return_value="true"):
+                self.assertTrue(pipe._image_should_unload_llm_for_generation())
+
+    async def test_fast_image_requests_preserve_warm_pools_and_image(self):
+        pipe = self._fast_pipe()
+        image_model = pipe.img
+        loop_thread = threading.get_ident()
+        generation_threads = []
+
+        def generate(**kwargs):
+            generation_threads.append(threading.get_ident())
+            return "image.png"
+
+        image_model.generate.side_effect = generate
+        with (
+            mock.patch("Pipes.getenv", side_effect=lambda key, default="": default),
+            mock.patch("Pipes.has_image_server_url", return_value=False),
+            mock.patch("Pipes.get_secondary_gpu", return_value=None),
+            mock.patch("Pipes.is_image_enabled", return_value=True),
+            mock.patch(
+                "Pipes.get_resource_manager", return_value=pipe.resource_manager
+            ),
+        ):
+            for _ in range(3):
+                self.assertEqual(await pipe.generate_image("a landscape"), "image.png")
+                self.assertIs(pipe.img, image_model)
+        self.assertTrue(all(t != loop_thread for t in generation_threads))
+        pipe._unload_aux_models_for_image.assert_not_called()
+        pipe._wait_for_llm_idle_for_image.assert_not_called()
+        pipe._destroy_img_sync.assert_not_called()
+
+    async def test_cancelled_image_keeps_lock_until_native_generation_finishes(self):
+        pipe = self._fast_pipe()
+        pipe._image_should_unload_llm_for_generation = mock.Mock(return_value=False)
+        pipe._destroy_img = mock.Mock()
+        started = asyncio.Event()
+        finish = threading.Event()
+        loop = asyncio.get_running_loop()
+
+        def generate(**kwargs):
+            loop.call_soon_threadsafe(started.set)
+            if not finish.wait(timeout=2):
+                raise RuntimeError("test did not release generation")
+            return "image.png"
+
+        pipe.img.generate.side_effect = generate
+        task = asyncio.create_task(pipe.generate_image("a landscape"))
+        try:
+            await asyncio.wait_for(started.wait(), timeout=1)
+            task.cancel()
+            await asyncio.sleep(0)
+            task.cancel()
+            await asyncio.sleep(0)
+            self.assertFalse(task.done())
+            self.assertTrue(pipe._img_lock.locked())
+            pipe._destroy_img.assert_not_called()
+        finally:
+            finish.set()
+            with self.assertRaises(asyncio.CancelledError):
+                await asyncio.wait_for(task, timeout=1)
+        self.assertFalse(pipe._img_lock.locked())
+        pipe._destroy_img.assert_called_once_with(async_cleanup=False, force=False)
+
     async def test_image_generation_restores_llm_after_forced_handoff(self):
         pipe = Pipes.__new__(Pipes)
         pipe._img_lock = asyncio.Lock()

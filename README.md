@@ -857,8 +857,8 @@ To run MiniCPM5-2B alongside local TTS and STT on its own worker:
 DEFAULT_MODEL=openbmb/MiniCPM5-2B-GGUF
 QUANT_TYPE=Q4_K_M
 LLM_MAX_TOKENS=8192
-VOICE_SERVER=false
-TEXT_SERVER=false
+VOICE_SERVER=
+TEXT_SERVER=
 TTS_ENABLED=true
 STT_ENABLED=true
 TTS_N_PARALLEL=1
@@ -884,8 +884,33 @@ unset for this local worker.
 Explicit `VOICE_UNLOAD_LLM_DURING_GENERATION=true` (or its `TTS_`/`STT_`
 override) still enables handoff when needed. Workers configured with a larger
 LLM, including a mix of MiniCPM and a 27B model, retain the existing `auto`
-handoff policy. Image, video, and music generation retain their own memory
-handoff policies.
+handoff policy.
+
+For image generation on the fast worker, also set:
+
+```env
+IMAGE_ENABLED=true
+IMG_MODEL=unsloth/FLUX.2-klein-4B-GGUF
+IMAGE_SERVER=
+IMAGE_UNLOAD_LLM_DURING_GENERATION=auto
+VIDEO_ENABLED=false
+```
+
+FLUX preloads when there is sufficient free VRAM and stays loaded after image
+requests. While no image memory handoff is needed, those requests also retain
+the warm MiniCPM, voice, and embedding models. Generation runs outside the
+async event loop so voice streaming remains responsive. FLUX still uses its
+existing CPU offload strategy for pipeline components; keeping the pipeline
+loaded does not mean every component stays in VRAM. GPU compute is shared, so
+simultaneous image generation can still increase voice latency.
+
+Music keeps its existing handoff policy. The default ACE-Step GGUF files total
+about 6.7 GB of weights (4B Q8 LM, Q4 DiT, text encoder, and VAE), according to
+the [model card](https://huggingface.co/Serveurperso/ACE-Step-1.5-GGUF#available-models).
+That excludes runtime buffers and is not a measured VRAM requirement. Check
+peak VRAM during representative music and voice/image requests before setting
+`MUSIC_UNLOAD_LLM_DURING_GENERATION=false`; idle free VRAM alone cannot establish
+that they fit together. Video retains its separate handoff policy when enabled.
 
 `TTS_N_PARALLEL` and `STT_N_PARALLEL` control how many separate local voice model
 instances are available on a dedicated voice worker. A mixed LLM/voice worker

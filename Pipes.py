@@ -8340,12 +8340,17 @@ class Pipes:
             aux_unloaded = {}
             img = None
             try:
-                if self._image_should_unload_llm_for_generation():
+                needs_handoff = self._image_should_unload_llm_for_generation()
+                if needs_handoff:
                     await self._wait_for_llm_idle_for_image()
                 llm_handoff = self._unload_llms_for_service(
-                    "image", self._image_should_unload_llm_for_generation()
+                    "image", needs_handoff
                 )
-                aux_unloaded = self._unload_aux_models_for_image()
+                # The fast worker's warm voice/embedding pools already coexist
+                # with FLUX. Evict them only when image generation needs a
+                # memory handoff; larger LLM workers keep their existing policy.
+                if needs_handoff or not self._has_fast_voice_profile():
+                    aux_unloaded = self._unload_aux_models_for_image()
                 img = self._get_img()
                 if img:
                     self.resource_manager.mark_model_in_use(ModelType.IMG, True)
@@ -8353,11 +8358,27 @@ class Pipes:
                         img.local_uri = (
                             self.local_uri if response_format == "url" else None
                         )
-                        return img.generate(
-                            prompt=prompt,
-                            size=size,
-                            image=image,
+                        generation = asyncio.create_task(
+                            asyncio.to_thread(
+                                img.generate, prompt=prompt, size=size, image=image
+                            )
                         )
+                        try:
+                            return await asyncio.shield(generation)
+                        except asyncio.CancelledError:
+                            # Native generation cannot be cancelled. Retain the
+                            # image lock and model references until it finishes,
+                            # while allowing voice requests to use the event loop.
+                            while not generation.done():
+                                try:
+                                    await asyncio.shield(generation)
+                                except asyncio.CancelledError:
+                                    continue
+                                except Exception:
+                                    break
+                            if not generation.cancelled():
+                                generation.exception()
+                            raise
                     finally:
                         self.resource_manager.mark_model_in_use(ModelType.IMG, False)
             finally:
