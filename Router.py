@@ -1114,20 +1114,6 @@ class WorkerInfo:
                     if router_model_key
                     else 0
                 )
-                if self.external_fallback:
-                    # Managed providers expose one shared concurrency pool even
-                    # when several configured model IDs are advertised. A busy
-                    # slot for model A must also consume the provider-wide pool
-                    # seen by model B.
-                    cap_state = self._normalize_slot(
-                        self.cap_slots.get(capability or "text")
-                    )
-                    reported_busy = max(
-                        reported_busy,
-                        int(cap_state.get("in_flight", 0))
-                        + int(cap_state.get("queued", 0)),
-                    )
-                    router_busy = max(router_busy, self.router_in_flight)
                 if self.extra.get("llm_model_residency") == "swap":
                     text_state = self._normalize_slot(self.cap_slots.get("text"))
                     reported_busy = max(
@@ -1144,6 +1130,19 @@ class WorkerInfo:
                 # Legacy workers without detailed slot maps still rely on the
                 # worker-wide queue and reservation counters.
                 router_busy = self.router_in_flight
+
+            if self.external_fallback:
+                # Text, vision, and every model share one provider pool, even
+                # during cross-model selection where no model is supplied.
+                cap_state = self._normalize_slot(
+                    self.cap_slots.get(capability or "text")
+                )
+                reported_busy = max(
+                    reported_busy,
+                    int(cap_state.get("in_flight", 0))
+                    + int(cap_state.get("queued", 0)),
+                )
+                router_busy = max(router_busy, self.router_in_flight)
 
             llm_dependencies = set(
                 self.extra.get("llm_unload_dependent_capabilities", []) or []
@@ -1792,11 +1791,13 @@ class Router:
         model: Optional[str] = None,
         exclude: Optional[set] = None,
         allow_cross_model: bool = True,
+        worker_id: Optional[str] = None,
     ) -> Optional[WorkerInfo]:
         """Pick the best worker matching capability + (optionally) model.
 
         ``exclude`` is an optional set of ``worker_id``s to skip (used by the
         retry path so a failed worker isn't picked again immediately).
+        ``worker_id`` restricts every selection pass to one registered worker.
 
         ``allow_cross_model`` controls what happens when a ``model`` is
         requested for a model-strict capability but no same-model worker has
@@ -1821,6 +1822,7 @@ class Router:
             w
             for w in self.registry.list_workers(alive_only=True)
             if capability in w.capabilities
+            and (worker_id is None or w.worker_id == worker_id)
             and w.worker_id not in excluded
             and not w.is_circuit_open()
         ]
@@ -1842,10 +1844,13 @@ class Router:
                 w for w in workers if w.has_capacity(capability, capacity_model)
             ]
             if idle_only:
+                # Managed APIs are shared pools, not single inference workers.
+                # Their remaining slots stay usable while other calls run.
                 candidates = [
                     w
                     for w in candidates
-                    if w.effective_busy(capability, capacity_model) == 0
+                    if w.external_fallback
+                    or w.effective_busy(capability, capacity_model) == 0
                 ]
                 candidates = self._filter_idle_tier_window(
                     candidates, tier_reference or workers
@@ -2005,6 +2010,7 @@ class Router:
         poll_interval: float = 0.5,
         exclude: Optional[set] = None,
         cross_model_grace: Optional[float] = None,
+        worker_id: Optional[str] = None,
     ) -> Optional[WorkerInfo]:
         """Block up to ``timeout`` seconds waiting for a free worker.
 
@@ -2036,6 +2042,7 @@ class Router:
                     model,
                     exclude=exclude,
                     allow_cross_model=allow_cross,
+                    **({"worker_id": worker_id} if worker_id is not None else {}),
                 )
                 if worker is not None:
                     return worker

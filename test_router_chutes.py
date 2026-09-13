@@ -38,10 +38,10 @@ class ChutesWorkerTests(unittest.TestCase):
         self.assertEqual(worker.best_tier, 45)
         self.assertEqual(worker.priority_tier, 45)
         self.assertEqual(worker.capabilities, ["text", "vision"])
-        self.assertEqual(worker.queue_capacity, 100)
-        self.assertEqual(worker.cap_slots["text"]["capacity"], 100)
-        self.assertEqual(worker.cap_slots["vision"]["available"], 100)
-        self.assertEqual(worker.model_slots[worker.models[0]]["capacity"], 100)
+        self.assertEqual(worker.queue_capacity, 10)
+        self.assertEqual(worker.cap_slots["text"]["capacity"], 10)
+        self.assertEqual(worker.cap_slots["vision"]["available"], 10)
+        self.assertEqual(worker.model_slots[worker.models[0]]["capacity"], 10)
         self.assertTrue(worker.external_fallback)
         self.assertTrue(worker.is_alive(ttl=0))
         self.assertEqual(
@@ -102,7 +102,7 @@ class ChutesWorkerTests(unittest.TestCase):
 
         self.assertIs(selected, chutes)
 
-    def test_chutes_tracks_and_releases_one_of_100_dispatch_slots(self):
+    def test_chutes_tracks_and_releases_one_of_10_dispatch_slots(self):
         registry = WorkerRegistry(ttl_seconds=60)
         chutes = registry.register(router_app._build_chutes_worker(api_key="cpk_test"))
 
@@ -114,15 +114,15 @@ class ChutesWorkerTests(unittest.TestCase):
 
         self.assertIsNotNone(reservation)
         self.assertEqual(chutes.router_in_flight, 1)
-        self.assertEqual(chutes.slots_left("vision", chutes.models[0]), 99)
+        self.assertEqual(chutes.slots_left("vision", chutes.models[0]), 9)
         self.assertTrue(chutes.has_capacity("vision", chutes.models[0]))
 
         registry.release_in_flight(chutes.worker_id, reservation)
 
         self.assertEqual(chutes.router_in_flight, 0)
-        self.assertEqual(chutes.slots_left("vision", chutes.models[0]), 100)
+        self.assertEqual(chutes.slots_left("vision", chutes.models[0]), 10)
 
-    def test_chutes_stops_accepting_requests_at_100_slots(self):
+    def test_chutes_stops_accepting_requests_at_10_slots(self):
         registry = WorkerRegistry(ttl_seconds=60)
         chutes = registry.register(router_app._build_chutes_worker(api_key="cpk_test"))
         reservations = [
@@ -131,10 +131,10 @@ class ChutesWorkerTests(unittest.TestCase):
                 capability="vision",
                 model=chutes.models[0],
             )
-            for _ in range(100)
+            for _ in range(10)
         ]
 
-        self.assertEqual(chutes.router_in_flight, 100)
+        self.assertEqual(chutes.router_in_flight, 10)
         self.assertFalse(chutes.has_capacity("vision", chutes.models[0]))
         self.assertIsNone(
             Router(registry).select_worker(
@@ -246,7 +246,7 @@ class ChutesWorkerTests(unittest.TestCase):
         self.assertIn("Chutes API", html)
         self.assertNotIn("Chutes API [api]", html)
         self.assertIn("$12.35 remaining", html)
-        self.assertIn("0/100", html)
+        self.assertIn("0/10", html)
 
     def test_chutes_and_local_qwen_share_dashboard_model_group(self):
         registry = WorkerRegistry(ttl_seconds=60)

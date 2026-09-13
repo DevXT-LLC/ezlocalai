@@ -122,7 +122,7 @@ CHUTES_BASE_URL = "https://llm.chutes.ai"
 CHUTES_CHAT_PATH = "/v1/chat/completions"
 CHUTES_ACCOUNT_URL = "https://api.chutes.ai/users/me"
 CHUTES_TIER = 45
-CHUTES_CAPACITY = 100
+CHUTES_CAPACITY = 10
 OPENROUTER_WORKER_ID = "external-openrouter"
 OPENROUTER_LABEL = "OpenRouter.ai"
 OPENROUTER_BASE_URL = "https://openrouter.ai/api"
@@ -130,7 +130,7 @@ OPENROUTER_CHAT_PATH = "/v1/chat/completions"
 OPENROUTER_CREDITS_URL = "https://openrouter.ai/api/v1/credits"
 OPENROUTER_KEY_URL = "https://openrouter.ai/api/v1/key"
 OPENROUTER_TIER = 39
-OPENROUTER_CAPACITY = 1000
+OPENROUTER_CAPACITY = 20
 _external_balance_tasks: set[asyncio.Task] = set()
 
 
@@ -3313,6 +3313,7 @@ async def _pick(
     wait_indefinitely: bool = False,
     affinity_key: Optional[str] = None,
     system_prefix_keys: Optional[List[str]] = None,
+    worker_id: Optional[str] = None,
 ) -> WorkerInfo:
     router = get_router()
     # Pre-exclude tunneled workers whose WebSocket is not currently connected.
@@ -3320,6 +3321,26 @@ async def _pick(
     # then 503s with "Tunnel ... is not connected", and we burn a retry.
     hub = get_tunnel_hub()
     registry = get_registry()
+    if worker_id is not None:
+        # An explicit target overrides cache affinity and soft exclusions.
+        # Filter by ID inside every selection poll, including new registrations.
+        worker = await router.wait_for_worker(
+            capability,
+            model,
+            timeout=0 if wait_indefinitely else _wait_timeout(),
+            worker_id=worker_id,
+        )
+        if worker is None:
+            raise HTTPException(
+                status_code=503, detail="Selected worker is unavailable"
+            )
+        if is_tunnel_url(worker.url) and not hub.is_connected(
+            worker_id_from_tunnel_url(worker.url)
+        ):
+            raise HTTPException(
+                status_code=503, detail=f"Worker {worker.label!r} is offline"
+            )
+        return worker
     pre_exclude = set(exclude or ())
     unavailable: List[str] = []
     for w in registry.list_workers(alive_only=True):
@@ -3635,11 +3656,38 @@ def _worker_json_payload(
     # not need to know how affinity was selected.
     forwarded.pop("prompt_cache_key", None)
     forwarded.pop("prompt_cache_avoid_key", None)
+    forwarded.pop("worker", None)
     if not worker.external_fallback:
         return forwarded
 
     # This flag belongs to ezlocalai routing and is not part of OpenAI's API.
     forwarded.pop("disable_fallback", None)
+    if path == CHUTES_CHAT_PATH and isinstance(forwarded.get("messages"), list):
+        # The router recognizes input_image as vision, but provider chat APIs
+        # require image_url parts with an object containing the URL.
+        messages = []
+        for message in forwarded["messages"]:
+            content = message.get("content")
+            if isinstance(content, list):
+                parts = []
+                for part in content:
+                    if isinstance(part, dict) and part.get("type") in (
+                        "input_image",
+                        "image_url",
+                    ):
+                        part = dict(part)
+                        part["type"] = "image_url"
+                        if isinstance(part.get("image_url"), str):
+                            part["image_url"] = {"url": part["image_url"]}
+                        if "detail" in part and isinstance(part.get("image_url"), dict):
+                            part["image_url"] = {
+                                **part["image_url"],
+                                "detail": part.pop("detail"),
+                            }
+                    parts.append(part)
+                message = {**message, "content": parts}
+            messages.append(message)
+        forwarded["messages"] = messages
     requested_model = forwarded.get("model")
     if worker.models:
         forwarded["model"] = _provider_model_for_request(worker, requested_model)
@@ -4149,6 +4197,7 @@ async def _llm_stream_with_worker_failover(
     request_started: float,
     external_fallback_allowed: bool = True,
     wait_indefinitely: bool = False,
+    worker_id: Optional[str] = None,
 ) -> AsyncIterator[bytes]:
     tried: set = set()
     affinity_key = _prompt_affinity_key(payload, capability, model)
@@ -4156,14 +4205,18 @@ async def _llm_stream_with_worker_failover(
     cache_avoid_worker_ids = _prompt_cache_avoid_worker_ids(
         payload, capability, model, tried
     )
-    max_attempts = _stream_max_attempts(capability, external_fallback_allowed)
+    max_attempts = (
+        1
+        if worker_id is not None
+        else _stream_max_attempts(capability, external_fallback_allowed)
+    )
     last_error = ""
     pre_text_failures = 0
     context_capacity_failures = 0
     attempted_context_windows: List[int] = []
     for attempt in range(max_attempts):
         try:
-            worker = await _pick(
+            worker, reservation_id = await _pick_and_reserve_llm(
                 capability,
                 model,
                 exclude=tried | (cache_avoid_worker_ids if attempt == 0 else set()),
@@ -4171,6 +4224,7 @@ async def _llm_stream_with_worker_failover(
                 wait_indefinitely=wait_indefinitely,
                 affinity_key=affinity_key,
                 system_prefix_keys=system_prefix_keys,
+                **({"worker_id": worker_id} if worker_id is not None else {}),
             )
         except Exception as e:
             last_error = f"{type(e).__name__}: {e}"
@@ -4179,18 +4233,6 @@ async def _llm_stream_with_worker_failover(
                 f"could not pick another worker: {last_error}"
             )
             break
-        reservation_id = get_registry().try_reserve_in_flight(
-            worker.worker_id,
-            capability=capability,
-            model=model,
-        )
-        if reservation_id is None:
-            logging.info(
-                "[Router] worker %s lost an LLM dispatch race; selecting again",
-                worker.label,
-            )
-            await asyncio.sleep(0.05)
-            continue
         tried.add(worker.worker_id)
         assistant_seen = False
         pt = 0
@@ -4866,6 +4908,61 @@ async def models(_: str = Depends(verify_client)):
     return {"object": "list", "data": list(seen.values())}
 
 
+def _resolve_chat_worker(
+    label: Any, capability: str, external_fallback_allowed: bool
+) -> str:
+    """Resolve a strict label target before sending HTTP or SSE headers."""
+    if not isinstance(label, str) or not label.strip():
+        raise HTTPException(
+            status_code=400, detail="worker must be a non-empty label string"
+        )
+    registry = get_registry()
+    matches = [
+        w
+        for w in registry.list_workers(alive_only=False)
+        if w.label.strip().casefold() == label.strip().casefold()
+    ]
+    if not matches:
+        raise HTTPException(status_code=404, detail=f"Unknown worker label: {label!r}")
+    if len(matches) > 1:
+        raise HTTPException(
+            status_code=400, detail=f"Ambiguous worker label: {label!r}"
+        )
+    worker = matches[0]
+    if capability not in worker.capabilities:
+        raise HTTPException(
+            status_code=400, detail=f"Worker {label!r} does not support {capability}"
+        )
+    if worker.external_fallback and not external_fallback_allowed:
+        raise HTTPException(
+            status_code=400, detail="worker conflicts with disable_fallback=true"
+        )
+    if (
+        not worker.is_alive(registry.ttl)
+        or worker.is_circuit_open()
+        or (
+            is_tunnel_url(worker.url)
+            and not get_tunnel_hub().is_connected(worker_id_from_tunnel_url(worker.url))
+        )
+    ):
+        raise HTTPException(
+            status_code=503, detail=f"Worker {label!r} is offline or unhealthy"
+        )
+    return worker.worker_id
+
+
+async def _pick_and_reserve_llm(capability: str, model: str, **selection_options):
+    """Dispatch races return to the queue without consuming an upstream attempt."""
+    while True:
+        worker = await _pick(capability, model, **selection_options)
+        reservation_id = get_registry().try_reserve_in_flight(
+            worker.worker_id, capability=capability, model=model
+        )
+        if reservation_id is not None:
+            return worker, reservation_id
+        await asyncio.sleep(0.05)
+
+
 @app.post("/v1/chat/completions", tags=["Chat"])
 async def chat_completions(payload: Dict[str, Any], _: str = Depends(verify_client)):
     payload = dict(payload)
@@ -4886,6 +4983,14 @@ async def chat_completions(payload: Dict[str, Any], _: str = Depends(verify_clie
         if needs_vision:
             break
     capability = "vision" if needs_vision else "text"
+    worker_id = (
+        _resolve_chat_worker(payload["worker"], capability, not disable_fallback)
+        if "worker" in payload
+        else None
+    )
+    if worker_id is not None:
+        # Also prevent a selected local worker from using its own fallback server.
+        payload["disable_fallback"] = True
     is_stream = bool(payload.get("stream"))
     return await _llm_proxy_with_retry(
         capability=capability,
@@ -4895,6 +5000,7 @@ async def chat_completions(payload: Dict[str, Any], _: str = Depends(verify_clie
         is_stream=is_stream,
         external_fallback_allowed=not disable_fallback,
         wait_indefinitely=disable_fallback,
+        **({"worker_id": worker_id} if worker_id is not None else {}),
     )
 
 
@@ -4921,6 +5027,7 @@ async def _llm_proxy_with_retry(
     is_stream: bool,
     external_fallback_allowed: bool = True,
     wait_indefinitely: bool = False,
+    worker_id: Optional[str] = None,
 ):
     """Forward an LLM request, retrying unhealthy workers before replying."""
     if is_stream:
@@ -4933,6 +5040,7 @@ async def _llm_proxy_with_retry(
                 request_started=time.monotonic(),
                 external_fallback_allowed=external_fallback_allowed,
                 wait_indefinitely=wait_indefinitely,
+                worker_id=worker_id,
             ),
             media_type="text/event-stream",
         )
@@ -4945,10 +5053,10 @@ async def _llm_proxy_with_retry(
     )
     last_error: Optional[Exception] = None
     last_status: Optional[int] = None
-    max_attempts = 1 + _max_retries()
+    max_attempts = 1 if worker_id is not None else 1 + _max_retries()
     request_started = time.monotonic()
     for attempt in range(max_attempts):
-        worker = await _pick(
+        worker, reservation_id = await _pick_and_reserve_llm(
             capability,
             model,
             exclude=tried | (cache_avoid_worker_ids if attempt == 0 else set()),
@@ -4956,19 +5064,8 @@ async def _llm_proxy_with_retry(
             wait_indefinitely=wait_indefinitely,
             affinity_key=affinity_key,
             system_prefix_keys=system_prefix_keys,
+            **({"worker_id": worker_id} if worker_id is not None else {}),
         )
-        reservation_id = get_registry().try_reserve_in_flight(
-            worker.worker_id,
-            capability=capability,
-            model=model,
-        )
-        if reservation_id is None:
-            logging.info(
-                "[Router] worker %s lost an LLM dispatch race; selecting again",
-                worker.label,
-            )
-            await asyncio.sleep(0.05)
-            continue
         tried.add(worker.worker_id)
         try:
             resp = await _proxy_json(

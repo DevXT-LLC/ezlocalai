@@ -663,10 +663,10 @@ USD balance from Chutes in the background and caches it in the worker row until
 the next Chutes request. The cache is also seeded once when the router starts,
 so a configured account does not remain at `Balance pending` after deployment.
 A key without account-read permission leaves the balance display pending
-without affecting inference. Chutes is advertised with 100 concurrent slots.
+without affecting inference. Chutes is advertised with 10 concurrent slots.
 `CHUTES_MODEL` accepts a comma-separated list. Every configured model is
 advertised and requests retain the matching exact Chutes model ID; all models
-share the same 100-slot provider pool.
+share the same 10-slot provider pool.
 
 To add a lower-priority OpenRouter overflow pool, configure its key and
 optional model override:
@@ -678,7 +678,7 @@ OPENROUTER_MODEL=qwen/qwen3.8-27b
 ```
 
 The router adds `OpenRouter.ai` as a persistent tier-39 text/vision provider
-with 1,000 tracked concurrent slots. The normal order is internal t45-or-faster
+with 20 tracked concurrent slots. The normal order is internal t45-or-faster
 GPUs, Chutes t45, then OpenRouter t39. OpenRouter request/token usage appears in
 the same dashboard tables, and remaining credits are loaded at startup and
 refreshed after successful OpenRouter requests. Its hosted Qwen model is folded
@@ -687,7 +687,7 @@ variants.
 
 `OPENROUTER_MODEL` also accepts a comma-separated list. Every configured model
 is advertised and dispatched using its matching OpenRouter ID while sharing
-the provider's 1,000 tracked slots. For both managed providers, chat requests
+the provider's 20 tracked slots. For both managed providers, chat requests
 preserve messages, multimodal content, streaming, token limits, temperature
 and sampling controls, stop/seed settings, tools, tool choice, and structured
 output fields. Qwen3.8 uses the same effective thinking/instruct profile as a
@@ -709,6 +709,45 @@ With `disable_fallback=true`, the request excludes Chutes and OpenRouter and
 waits without a router-side deadline until an internal worker is available.
 The flag is also honored by a directly addressed ezlocalai worker, preventing
 its configured `FALLBACK_SERVER` from being used for that request.
+
+To select a particular worker for a chat completion, add its dashboard label:
+
+```json
+{
+  "model": "unsloth/Qwen3.8-27B-GGUF",
+  "worker": "DevXT5090",
+  "messages": [{"role": "user", "content": "Hello"}]
+}
+```
+
+Labels are case-insensitive: `"chutes.ai"` selects `Chutes.ai` and
+`"OpenRouter.ai"` selects OpenRouter. The selection applies to text and vision,
+with or without `stream: true`. A busy target queues until its capacity is
+available, subject to `ROUTER_WAIT_TIMEOUT` (`0` means no router deadline).
+Explicit selection overrides cache affinity and prevents failover to another
+worker, including a local worker's configured fallback server. The router
+removes `worker` before forwarding the request. Unknown labels return `404`;
+invalid or ambiguous labels, unsupported capabilities, and selecting a managed
+provider together with `disable_fallback: true` return `400`. Offline or
+unhealthy targets return `503`.
+
+Vision requests can use `image_url` content parts with public image URLs or
+base64 data URLs. For managed providers, the router also converts recognized
+`input_image` parts into the chat API's `image_url` format. The configured
+provider model must support vision.
+
+After deploying these changes, run a live vision smoke test against both
+providers (one non-streaming and one streaming request per provider):
+
+```bash
+python scripts/router_vision_smoke.py --url https://api.ezlocal.ai
+# Optional: --worker Chutes.ai or --worker DevXT5090
+```
+
+The script uses `EZLOCALAI_API_KEY` from the shell environment if required and
+sends a synthetic red image, checking that each response identifies its color.
+Run it against a router with worker targeting deployed; older routers ignore
+the `worker` field and cannot reliably test a specific provider.
 
 The router listens on port `8092` by default and exposes the same OpenAI-compatible endpoints as a normal ezlocalai server, plus:
 
