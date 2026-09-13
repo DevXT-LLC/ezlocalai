@@ -19,6 +19,73 @@ from Pipes import (
 QWEN38_MODEL = "unsloth/Qwen3.8-27B-GGUF"
 
 
+class MiniCpmModelConfigTests(unittest.TestCase):
+    def test_release_quant_and_replica_use_fast_defaults(self):
+        from ModelSettings import MINICPM5_2B_MODEL, is_minicpm5_2b_model
+
+        for model in (
+            MINICPM5_2B_MODEL,
+            MINICPM5_2B_MODEL + "#2",
+            "MiniCPM5-2B-Q4_K_M.gguf",
+            "MiniCPM5-2B-Q8_0.gguf",
+        ):
+            with self.subTest(model=model):
+                pipe = Pipes.__new__(Pipes)
+                pipe.current_llm_name = model
+                configured = pipe._apply_model_config_overrides({"min_p": 0.05})
+                self.assertEqual(configured["temperature"], 1.0)
+                self.assertEqual(configured["top_p"], 0.95)
+                self.assertEqual(configured["min_p"], 0.0)
+                self.assertEqual(
+                    configured["chat_template_kwargs"], {"enable_thinking": False}
+                )
+        for model in ("MiniCPM5-2B-DSpark-GGUF", "MiniCPM5-2B-Base", "MiniCPM5-1B"):
+            self.assertFalse(is_minicpm5_2b_model(model))
+
+    def test_thinking_opt_in_and_optional_repetition_penalty_are_request_local(self):
+        from ModelSettings import MINICPM5_2B_MODEL
+
+        pipe = Pipes.__new__(Pipes)
+        pipe.current_llm_name = MINICPM5_2B_MODEL
+        configured = pipe._apply_model_config_overrides(
+            {
+                "chat_template_kwargs": {"enable_thinking": True},
+                "repetition_penalty": 1.05,
+            }
+        )
+        self.assertTrue(configured["chat_template_kwargs"]["enable_thinking"])
+        self.assertEqual(configured["repetition_penalty"], 1.05)
+        self.assertFalse(
+            pipe._apply_model_config_overrides({})["chat_template_kwargs"][
+                "enable_thinking"
+            ]
+        )
+
+    def test_fast_settings_reach_native_chat_and_stream_requests(self):
+        from ezlocalai.LLM import LLM
+        from ModelSettings import MINICPM5_2B_MODEL
+
+        pipe = Pipes.__new__(Pipes)
+        pipe.current_llm_name = MINICPM5_2B_MODEL
+        llm = LLM.__new__(LLM)
+        llm.model_name = MINICPM5_2B_MODEL
+        llm.system_message = ""
+        llm.params = {"max_tokens": 128, "temperature": 1.31, "top_p": 0.95}
+        llm._chat_stream = mock.Mock()
+        llm.server = mock.Mock()
+        llm.server.handle_chat_completions.return_value = {"choices": []}
+        for stream in (False, True):
+            llm.chat(
+                [{"role": "user", "content": "Hello"}],
+                **pipe._apply_model_config_overrides({"stream": stream}),
+            )
+            target = llm._chat_stream if stream else llm.server.handle_chat_completions
+            request = target.call_args.args[0]
+            self.assertEqual(request["min_p"], 0.0)
+            self.assertEqual(request["temperature"], 1.0)
+            self.assertFalse(request["chat_template_kwargs"]["enable_thinking"])
+
+
 class FallbackControlTests(unittest.TestCase):
     def test_disable_fallback_is_consumed_before_inference(self):
         data = {"disable_fallback": True, "messages": []}

@@ -849,9 +849,48 @@ When set to `true`, this server becomes a dedicated voice server:
 - LLM models are still lazy-loaded as needed
 - Ideal for a secondary server with a dedicated GPU for voice processing
 
+### MiniCPM5-2B fast voice worker
+
+To run MiniCPM5-2B alongside local TTS and STT on its own worker:
+
+```env
+DEFAULT_MODEL=openbmb/MiniCPM5-2B-GGUF
+QUANT_TYPE=Q4_K_M
+LLM_MAX_TOKENS=8192
+VOICE_SERVER=false
+TEXT_SERVER=false
+TTS_ENABLED=true
+STT_ENABLED=true
+TTS_N_PARALLEL=1
+STT_N_PARALLEL=1
+VOICE_UNLOAD_LLM_DURING_GENERATION=auto
+```
+
+The model profile applies the [recommended sampling settings](https://huggingface.co/openbmb/MiniCPM5-2B-GGUF#quickstart):
+`temperature=1.0`, `top_p=0.95`, and `min_p=0.0`. Thinking is disabled by
+default with `chat_template_kwargs={"enable_thinking": false}`; a request can
+explicitly enable it. For repetitive output, requests can also set
+`repetition_penalty=1.05`, as suggested by the model card.
+
+When all configured LLMs are MiniCPM5-2B, `auto` keeps the LLM loaded and
+automatically preloads and retains both voice pools, including when
+`LAZY_LOAD_VOICE=true`. Consecutive voice turns reuse those instances. Text,
+TTS, and STT have independent slots so voice requests can overlap text
+generation without a GPU handoff. The 8192-token context above keeps the KV
+cache small for voice conversations; increase it or the pool sizes only with
+enough memory for the combined workload. Keep remote voice/text server URLs
+unset for this local worker.
+
+Explicit `VOICE_UNLOAD_LLM_DURING_GENERATION=true` (or its `TTS_`/`STT_`
+override) still enables handoff when needed. Workers configured with a larger
+LLM, including a mix of MiniCPM and a 27B model, retain the existing `auto`
+handoff policy. Image, video, and music generation retain their own memory
+handoff policies.
+
 `TTS_N_PARALLEL` and `STT_N_PARALLEL` control how many separate local voice model
 instances are available on a dedicated voice worker. A mixed LLM/voice worker
-defaults to `VOICE_UNLOAD_LLM_DURING_GENERATION=auto`: TTS and STT do not stay
+defaults to `VOICE_UNLOAD_LLM_DURING_GENERATION=auto`: except for the MiniCPM5-2B
+fast worker profile above, TTS and STT do not stay
 warm beside the LLM. The router treats them as one shared worker slot, waits for
 active LLM work to finish, temporarily unloads the LLM, runs the voice request,
 then unloads the voice model and restores prior LLM availability. The LLM is

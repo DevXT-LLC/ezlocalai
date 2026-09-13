@@ -201,6 +201,90 @@ class LlmDependencySlotTests(unittest.TestCase):
 
 
 class VoiceHandoffTests(unittest.IsolatedAsyncioTestCase):
+    @staticmethod
+    def _fast_pipe():
+        from ModelSettings import MINICPM5_2B_MODEL
+
+        pipe = Pipes.__new__(Pipes)
+        pipe.available_models = [MINICPM5_2B_MODEL]
+        pipe.model_sources = {}
+        return pipe
+
+    def test_fast_voice_policy_is_stable_and_explicit_handoff_wins(self):
+        pipe = self._fast_pipe()
+        with mock.patch(
+            "Pipes.getenv", side_effect=lambda key, default="": default
+        ), mock.patch("Pipes.has_voice_server_url", return_value=False), mock.patch(
+            "Pipes.has_text_server_url", return_value=False
+        ), mock.patch(
+            "Pipes.is_voice_server_mode", return_value=False
+        ), mock.patch(
+            "Pipes.should_preload_voice", return_value=False
+        ):
+            for service in ("tts", "stt"):
+                self.assertFalse(pipe._voice_should_unload_llm(service))
+                self.assertTrue(pipe._voice_should_preload(service))
+            # The current pointer may be detached without changing the policy.
+            pipe.llm = None
+            pipe.current_llm_name = None
+            self.assertFalse(pipe._voice_should_unload_llm("tts"))
+            with mock.patch("Pipes.getenv", return_value="true"):
+                self.assertTrue(pipe._voice_should_unload_llm("tts"))
+                self.assertFalse(pipe._voice_should_preload("tts"))
+            # Large and mixed workers keep the established handoff behavior.
+            pipe.available_models.append("unsloth/Qwen3.8-27B-GGUF")
+            self.assertTrue(pipe._voice_should_unload_llm("tts"))
+            self.assertFalse(pipe._voice_should_preload("tts"))
+            pipe.available_models = ["unsloth/Qwen3.8-27B-GGUF"]
+            self.assertTrue(pipe._voice_should_unload_llm("stt"))
+
+    async def test_fast_voice_turns_reuse_pools_while_llm_and_other_voice_are_busy(
+        self,
+    ):
+        from collections import deque
+
+        pipe = self._fast_pipe()
+        pipe.resource_manager = mock.Mock()
+        pipe._llm_temporarily_unavailable = False
+        pipe._inference_count = 1
+        pipe._unload_llms_for_service = mock.Mock()
+        pipe._wait_for_llm_idle_for_voice = mock.AsyncMock()
+        models = {}
+        for service in ("tts", "stt"):
+            model = types.SimpleNamespace(_closed=False)
+            models[service] = model
+            setattr(pipe, f"_{service}_pool_lock", threading.Lock())
+            setattr(pipe, f"_{service}_active_leases", {})
+            setattr(pipe, f"_{service}_available", deque([model]))
+            setattr(pipe, f"{service}_instances", [model])
+            setattr(pipe, f"_{service}_pool_size", 1)
+            setattr(pipe, f"_destroy_{service}_sync", mock.Mock())
+
+        with mock.patch(
+            "Pipes.getenv", side_effect=lambda key, default="": default
+        ), mock.patch("Pipes.has_voice_server_url", return_value=False), mock.patch(
+            "Pipes.has_text_server_url", return_value=False
+        ), mock.patch(
+            "Pipes.is_voice_server_mode", return_value=False
+        ), mock.patch(
+            "Pipes.should_preload_voice", return_value=False
+        ):
+            tts_guard = _VoiceSlotGuard(pipe, "tts", 1)
+            stt_guard = _VoiceSlotGuard(pipe, "stt", 1)
+            for _ in range(3):
+                async with tts_guard, stt_guard:
+                    self.assertIs(pipe._get_tts(), models["tts"])
+                    self.assertIs(pipe._get_stt(), models["stt"])
+                    self.assertFalse(pipe._llm_temporarily_unavailable)
+                    pipe._destroy_tts(async_cleanup=False)
+                    pipe._destroy_stt(async_cleanup=False)
+            self.assertEqual(list(pipe._tts_available), [models["tts"]])
+            self.assertEqual(list(pipe._stt_available), [models["stt"]])
+        pipe._unload_llms_for_service.assert_not_called()
+        pipe._wait_for_llm_idle_for_voice.assert_not_called()
+        pipe._destroy_tts_sync.assert_not_called()
+        pipe._destroy_stt_sync.assert_not_called()
+
     async def test_voice_handoff_waits_for_active_llm_inference(self):
         pipe = Pipes.__new__(Pipes)
         pipe._is_inference_in_progress = mock.Mock(side_effect=[True, True, False])

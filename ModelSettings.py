@@ -11,6 +11,28 @@ import re
 from typing import Any, Dict, Optional
 
 
+MINICPM5_2B_MODEL = "openbmb/MiniCPM5-2B-GGUF"
+# https://huggingface.co/openbmb/MiniCPM5-2B-GGUF#quickstart
+MINICPM5_2B_SETTINGS: Dict[str, Any] = {
+    "temperature": 1.0,
+    "top_p": 0.95,
+    "min_p": 0.0,
+    "chat_template_kwargs": {"enable_thinking": False},
+}
+
+
+def is_minicpm5_2b_model(model: Optional[str]) -> bool:
+    """Recognize the release and its GGUF quants, including worker replicas."""
+    name = str(model or "").strip().rsplit("/", 1)[-1].split("#", 1)[0]
+    return bool(
+        re.fullmatch(
+            r"minicpm5-2b(?:-gguf)?(?:[-:](?:q\d[\w]*|f16|bf16))?(?:\.gguf)?",
+            name,
+            re.IGNORECASE,
+        )
+    )
+
+
 QWEN38_MODEL = "unsloth/Qwen3.8-27B-GGUF"
 QWEN38_THINKING_SETTINGS: Dict[str, Any] = {
     "temperature": 1.0,

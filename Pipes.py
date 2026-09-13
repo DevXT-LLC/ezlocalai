@@ -38,12 +38,15 @@ import pdfplumber
 import json
 from Globals import getenv
 from ModelSettings import (
+    MINICPM5_2B_MODEL,
+    MINICPM5_2B_SETTINGS,
     QWEN38_INSTRUCT_SETTINGS,
     QWEN38_MODEL,
     QWEN38_THINKING_SETTINGS,
     apply_qwen38_model_settings,
     copy_settings,
     is_qwen38_model,
+    is_minicpm5_2b_model,
 )
 import gc
 import torch
@@ -3834,6 +3837,7 @@ def determine_gpu_strategy(
 # Model-specific config overrides for optimal inference settings
 # These override user-provided values for known models
 MODEL_CONFIG_OVERRIDES = {
+    MINICPM5_2B_MODEL: copy_settings(MINICPM5_2B_SETTINGS),
     "unsloth/Qwen3-VL-4B-Instruct-GGUF": {
         "top_p": 0.8,
         "top_k": 20,
@@ -4377,12 +4381,12 @@ class Pipes:
                 logging.info(
                     f"[TTS] Voice server configured ({voice_url}) - skipping local model loading"
                 )
-            # Check if we should preload TTS (voice server mode OR LAZY_LOAD_VOICE=false)
+            # Preload dedicated voice servers, explicit pools, and fast voice workers.
             elif self._voice_should_preload("tts"):
                 mode_str = (
                     "voice server mode"
                     if is_voice_server_mode()
-                    else "LAZY_LOAD_VOICE=false"
+                    else "resident voice profile"
                 )
                 self._warm_load_tts_pool(mode_str=mode_str)
             elif self._voice_should_unload_llm("tts"):
@@ -4424,7 +4428,7 @@ class Pipes:
         self.music = None
         self.current_stt = getenv("WHISPER_MODEL")
 
-        # Pre-load STT if preloading is enabled (voice server mode OR LAZY_LOAD_VOICE=false)
+        # Preload dedicated voice servers, explicit pools, and fast voice workers.
         # Skip if voice server URL is configured (passthrough mode)
         if (
             self._voice_should_preload("stt")
@@ -4434,7 +4438,7 @@ class Pipes:
             mode_str = (
                 "voice server mode"
                 if is_voice_server_mode()
-                else "LAZY_LOAD_VOICE=false"
+                else "resident voice profile"
             )
             self._warm_load_stt_pool(mode_str=mode_str)
         elif has_voice_server_url() and getenv("STT_ENABLED").lower() == "true":
@@ -6922,6 +6926,18 @@ class Pipes:
         free_gb = self.resource_manager.get_total_free_vram()
         return free_gb < required_gb + self.resource_manager.vram_safety_margin
 
+    def _has_fast_voice_profile(self) -> bool:
+        """Keep MiniCPM and voice pools warm on a dedicated fast LLM worker.
+
+        Use configured identities so this policy stays stable during a handoff.
+        A worker that also configures a larger LLM retains the shared GPU policy.
+        """
+        models = getattr(self, "available_models", [])
+        sources = getattr(self, "model_sources", {})
+        return bool(models) and all(
+            is_minicpm5_2b_model(sources.get(model, model)) for model in models
+        )
+
     def _voice_should_unload_llm(self, service: str) -> bool:
         """Return whether local TTS/STT shares the resident LLM GPU slot."""
         service = str(service or "voice").strip().lower()
@@ -6942,12 +6958,16 @@ class Pipes:
             return False
         if is_voice_server_mode() and not is_text_server_mode():
             return False
+        if self._has_fast_voice_profile():
+            return False
         # Keep this stable while the LLM is temporarily detached: heartbeat
         # dependency metadata must continue to advertise the shared slot.
         return bool(getattr(self, "available_models", []))
 
     def _voice_should_preload(self, service: str) -> bool:
-        return should_preload_voice() and not self._voice_should_unload_llm(service)
+        return (
+            should_preload_voice() or self._has_fast_voice_profile()
+        ) and not self._voice_should_unload_llm(service)
 
     def _mark_voice_handoff(self, service: str, active: bool):
         service = str(service or "voice").strip().lower()
@@ -9094,8 +9114,14 @@ class Pipes:
             )
             return configured
 
-        if self.current_llm_name and self.current_llm_name in MODEL_CONFIG_OVERRIDES:
-            overrides = MODEL_CONFIG_OVERRIDES[self.current_llm_name]
+        source_model = getattr(self, "model_sources", {}).get(
+            self.current_llm_name, self.current_llm_name
+        )
+        config_model = (
+            MINICPM5_2B_MODEL if is_minicpm5_2b_model(source_model) else source_model
+        )
+        if config_model and config_model in MODEL_CONFIG_OVERRIDES:
+            overrides = MODEL_CONFIG_OVERRIDES[config_model]
             template_config = dict(overrides.get("chat_template_kwargs", {}))
             user_template_config = data.get("chat_template_kwargs", {})
             if isinstance(user_template_config, dict):
