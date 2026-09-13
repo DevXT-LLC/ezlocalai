@@ -61,7 +61,10 @@ def main():
     )
     parser.add_argument("--timeout", type=float, default=120)
     args = parser.parse_args()
-    headers = {"Content-Type": "application/json"}
+    headers = {
+        "Content-Type": "application/json",
+        "User-Agent": "ezlocalai-router-vision-smoke/1.0",
+    }
     key = os.environ.get("EZLOCALAI_API_KEY", "")
     if key and key != "none":
         headers["Authorization"] = f"Bearer {key}"

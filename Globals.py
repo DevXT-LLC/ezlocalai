@@ -201,8 +201,8 @@ def getenv(var_name: str, default_value: str = None) -> str:
         # How long (seconds) the router waits for a worker slot before returning 503.
         # 0 = keep the request queued until a worker becomes available.
         "ROUTER_WAIT_TIMEOUT": "0",
-        # 0 = immediately route to the best available compatible worker.
-        # Positive values briefly wait for same-model workers before cross-model fallback.
+        # Delay cross-model fallback only when no eligible matching worker exists.
+        # Busy matching workers always queue, even when this is 0.
         "ROUTER_CROSS_MODEL_GRACE": "0",
         # 0 = do not hold back lower-tier idle workers while higher-tier workers are busy.
         # Positive values restrict idle spillover to workers within this tier distance.

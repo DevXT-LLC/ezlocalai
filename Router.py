@@ -1800,15 +1800,16 @@ class Router:
         ``worker_id`` restricts every selection pass to one registered worker.
 
         ``allow_cross_model`` controls what happens when a ``model`` is
-        requested for a model-strict capability but no same-model worker has
-        capacity right now:
+        requested for a model-strict capability but no eligible worker serves
+        that model:
 
-        * ``True``  — fall back to the best-scoring worker that supports the
-          capability so the client gets *some* compute instead of a 503.
-          Tier dominates ``score()`` (×10), so a free 5090 will outrank a
-          free 3090Ti even when both are running a different model.
-        * ``False`` — return ``None`` so the caller (``wait_for_worker``)
-          can poll for a same-model worker to free up before crossing over.
+        * ``True`` — allow a worker serving another model.
+        * ``False`` — return ``None`` so ``wait_for_worker`` can wait for a
+          matching worker to register or recover.
+
+        When matching workers exist but are busy, always return ``None`` and
+        queue for that model. Spare capacity on another model must not silently
+        change the requested model, regardless of the cross-model grace period.
 
         Non-text media capabilities (TTS, STT, image, video, music,
         music_video) are routed by capability regardless of the client-supplied
@@ -1942,12 +1943,10 @@ class Router:
             winner = _select_preferred(model_servers)
             if winner is not None:
                 return winner
-            # Same-model workers exist but are busy or saturated. During the grace
-            # period (allow_cross_model=False) refuse to cross over so the
-            # caller can briefly wait for an idle node. After the grace period
-            # expires the caller flips this flag and we cross-model fall
-            # back to the highest-tier alternative.
-            if model_servers and not allow_cross_model:
+            # A busy matching pool is a queue, not permission to substitute a
+            # different model (e.g. MiniCPM-2B for Qwen-27B). Grace expiry only
+            # permits fallback when no eligible worker serves the requested model.
+            if model_servers:
                 logging.info(
                     f"[Router] select model={model!r} cap={capability}: same-model workers all "
                     f"busy, waiting for an idle node; "
@@ -2017,10 +2016,9 @@ class Router:
         ``timeout <= 0`` means wait without a router-side deadline; client or
         proxy timeouts may still close the request.
 
-        By default ``cross_model_grace`` is ``0`` so the first selection pass
-        uses the best worker that is actually free right now. Set
-        ``ROUTER_CROSS_MODEL_GRACE`` to a positive number to briefly wait for
-        same-model workers before allowing cross-model fallback.
+        Busy matching workers are waited for until the timeout, regardless of
+        ``cross_model_grace``. That grace period (default ``0``) only delays
+        cross-model fallback when no eligible matching worker exists.
         """
         if cross_model_grace is None:
             try:

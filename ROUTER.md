@@ -70,6 +70,16 @@ Then run the router server
 docker compose -f docker-compose-router.yml pull && docker compose -f docker-compose-router.yml up -d
 ```
 
+## Model-specific queues
+
+For text and vision, a request queues when all eligible workers serving its
+model are busy. An idle MiniCPM5-2B worker will not receive a Qwen 27B request
+while matching 27B workers are occupied. Matching managed-provider pools can
+still serve overflow unless excluded with `disable_fallback`.
+`ROUTER_WAIT_TIMEOUT=0` waits without a router deadline; a positive timeout
+returns 503 rather than substituting another model. Cross-model fallback and
+`ROUTER_CROSS_MODEL_GRACE` apply only when no eligible matching worker exists.
+
 ## Reusing Prompt Prefixes
 
 Chat requests with a long leading system message can reuse routing affinity
