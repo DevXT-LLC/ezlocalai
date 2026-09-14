@@ -1464,6 +1464,7 @@ class LLM:
         chunks_yielded = 0
         assistant_chunks_yielded = 0
         pending_final_chunk = None
+        stream_diagnostics = {}
         last_keepalive = time.time()
         keepalive_interval = 5.0  # Send keepalive every 5 seconds during processing
 
@@ -1472,6 +1473,31 @@ class LLM:
                 try:
                     chunk_data = chunk_queue.get(timeout=0.1)
                     chunks_yielded += 1
+                    # Counters only: never include prompts, generated text or tool arguments.
+                    diagnostic_chunk = chunk_data
+                    if isinstance(diagnostic_chunk, str):
+                        try:
+                            diagnostic_chunk = json.loads(diagnostic_chunk)
+                        except (ValueError, TypeError):
+                            diagnostic_chunk = {}
+                    if isinstance(diagnostic_chunk, dict):
+                        for source_key, keys in (
+                            ("usage", ("prompt_tokens", "completion_tokens")),
+                            (
+                                "timings",
+                                (
+                                    "prompt_n",
+                                    "predicted_n",
+                                    "prompt_ms",
+                                    "predicted_ms",
+                                ),
+                            ),
+                        ):
+                            values = diagnostic_chunk.get(source_key) or {}
+                            if isinstance(values, dict):
+                                for key in keys:
+                                    if isinstance(values.get(key), (int, float)):
+                                        stream_diagnostics[key] = values[key]
                     logging.debug(
                         f"[LLM] Processing chunk {chunks_yielded}: {type(chunk_data)}"
                     )
@@ -1525,8 +1551,6 @@ class LLM:
                     elif isinstance(chunk_data, str):
                         # JSON string - parse it
                         try:
-                            import json
-
                             parsed = json.loads(chunk_data)
                             if "choices" in parsed:
                                 has_assistant_text = stream_chunk_has_assistant_text(
@@ -1636,9 +1660,19 @@ class LLM:
             raise error_holder[0]
 
         if assistant_chunks_yielded == 0:
+            from importlib.metadata import PackageNotFoundError, version
+
+            try:
+                native_version = version("xllamacpp")
+            except PackageNotFoundError:
+                native_version = "unknown"
             message = (
                 "LLM stream completed without any assistant text. "
-                f"raw_chunks={chunks_yielded}; model={self.model_name}"
+                f"raw_chunks={chunks_yielded}; model={self.model_name}; "
+                f"finish_reason={stream_chunk_finish_reason(pending_final_chunk) or 'missing'}; "
+                f"backend={getattr(self, 'speculative_type', 'unknown')}; "
+                f"xllamacpp={native_version}; "
+                f"timings={json.dumps(stream_diagnostics, sort_keys=True)}"
             )
             logging.error(f"[LLM] {message}")
             yield {

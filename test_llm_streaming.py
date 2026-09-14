@@ -320,6 +320,26 @@ class LlmStreamingTests(unittest.TestCase):
 
         self.assertEqual(outputs[0], chunks[0])
         self.assertEqual(outputs[-1]["error"]["type"], "empty_stream")
+        self.assertIn("finish_reason=stop", outputs[-1]["error"]["message"])
+        self.assertIn("backend=unknown", outputs[-1]["error"]["message"])
+
+    def test_empty_stream_diagnostics_exclude_private_fields(self):
+        chunks = [
+            {
+                "choices": [{"delta": {}, "finish_reason": "length"}],
+                "usage": {
+                    "prompt_tokens": 50,
+                    "completion_tokens": 0,
+                    "private": "secret",
+                },
+                "timings": {"predicted_n": 0, "private": "secret"},
+            }
+        ]
+        outputs = list(_fake_llm(chunks)._chat_stream({"messages": []}))
+        message = outputs[-1]["error"]["message"]
+        self.assertIn('"prompt_tokens": 50', message)
+        self.assertIn("finish_reason=length", message)
+        self.assertNotIn("secret", message)
 
     def test_nested_stream_error_raises_real_context_message(self):
         chunks = [

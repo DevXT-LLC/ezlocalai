@@ -4,6 +4,8 @@ services:
     image: joshxt/ezlocalai:latest
     environment:
       - ROUTER_MODE=true
+      - ROUTER_ERROR_FILE=${ROUTER_ERROR_FILE:-/data/router-errors.json}
+      - ROUTER_ERROR_ARCHIVE_MAX=${ROUTER_ERROR_ARCHIVE_MAX:-2000}
       - EZLOCALAI_API_KEY=${EZLOCALAI_API_KEY-}
       # Optional: distinct shared secret workers must present.
       # Defaults to EZLOCALAI_API_KEY when empty.
@@ -57,6 +59,7 @@ services:
       - "8092:8092"
     volumes:
       - ./Router.py:/app/Router.py:ro
+      - ./Tunnel.py:/app/Tunnel.py:ro
       - ./ModelSettings.py:/app/ModelSettings.py:ro
       - ./router_app.py:/app/router_app.py:ro
       - ./data:/data

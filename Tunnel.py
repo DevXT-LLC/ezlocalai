@@ -302,6 +302,8 @@ class TunnelConnection:
                             pending.queue.get(), timeout=timeout
                         )
                         if item is None:
+                            if pending.error:
+                                raise RuntimeError(pending.error)
                             break
                         yield item
                 finally:

@@ -24,6 +24,8 @@ periodic ``heartbeat`` POSTs, and a best-effort ``deregister`` on shutdown.
 from __future__ import annotations
 
 import asyncio
+import json
+import tempfile
 import logging
 import os
 import re
@@ -1304,11 +1306,32 @@ class WorkerRegistry:
     """Thread-safe in-memory registry of worker ezlocalai nodes."""
 
     def __init__(
-        self, ttl_seconds: float, reservation_ttl_seconds: Optional[float] = None
+        self,
+        ttl_seconds: float,
+        reservation_ttl_seconds: Optional[float] = None,
+        error_history_path: Optional[str] = None,
     ):
         self._workers: Dict[str, WorkerInfo] = {}
         self._lock = RLock()
         self._ttl = ttl_seconds
+        self._error_history_path = error_history_path
+        self._error_history: List[Dict[str, Any]] = []
+        self._error_history_max = max(
+            1, int(os.getenv("ROUTER_ERROR_ARCHIVE_MAX", "2000"))
+        )
+        if error_history_path:
+            try:
+                with open(error_history_path) as source:
+                    events = json.load(source)
+                if not isinstance(events, list):
+                    raise ValueError("error history must be a list")
+                self._error_history = [e for e in events if isinstance(e, dict)][
+                    -self._error_history_max :
+                ]
+            except FileNotFoundError:
+                pass
+            except Exception:
+                logging.exception("[Router] Could not load error history")
         if reservation_ttl_seconds is None:
             reservation_ttl_seconds = float(getenv("ROUTER_RESERVATION_TTL", "15"))
         self._reservation_ttl = max(0.0, float(reservation_ttl_seconds))
@@ -1316,6 +1339,42 @@ class WorkerRegistry:
     @property
     def ttl(self) -> float:
         return self._ttl
+
+    def error_history(self) -> List[Dict[str, Any]]:
+        """Historical failures survive worker removal; liveness is computed now."""
+        with self._lock:
+            return [
+                {
+                    **e,
+                    "offline": e.get("worker_id") not in self._workers
+                    or not self._workers[e["worker_id"]].is_alive(self._ttl),
+                }
+                for e in reversed(self._error_history)
+            ]
+
+    def _archive_error(self, event: Dict[str, Any]) -> None:
+        # Called under the registry lock. Atomic replacement avoids partial JSON.
+        self._error_history.append(event)
+        self._error_history = self._error_history[-self._error_history_max :]
+        if not self._error_history_path:
+            return
+        temporary = None
+        try:
+            directory = os.path.dirname(os.path.abspath(self._error_history_path))
+            os.makedirs(directory, exist_ok=True)
+            with tempfile.NamedTemporaryFile(
+                mode="w", dir=directory, delete=False
+            ) as target:
+                temporary = target.name
+                json.dump(self._error_history, target)
+                target.flush()
+                os.fsync(target.fileno())
+            os.replace(temporary, self._error_history_path)
+        except Exception:
+            logging.exception("[Router] Could not persist error history")
+        finally:
+            if temporary and os.path.exists(temporary):
+                os.unlink(temporary)
 
     @property
     def reservation_ttl(self) -> float:
@@ -1327,6 +1386,9 @@ class WorkerRegistry:
             if existing:
                 # Preserve registered_at across re-registers
                 info.registered_at = existing.registered_at
+                info.recent_errors = list(existing.recent_errors)
+                info.total_errors = existing.total_errors
+                info.circuit_open_until = existing.circuit_open_until
                 info.router_reservations = dict(existing.router_reservations)
                 if info.external_balance_usd is None:
                     info.external_balance_usd = existing.external_balance_usd
@@ -1584,8 +1646,6 @@ class WorkerRegistry:
         now = time.time()
         with self._lock:
             w = self._workers.get(worker_id)
-            if w is None:
-                return
             event = {
                 "ts": now,
                 "kind": kind,
@@ -1593,6 +1653,23 @@ class WorkerRegistry:
                 "path": path,
                 "message": str(message)[:500],
             }
+            previous = next(
+                (
+                    e
+                    for e in reversed(self._error_history)
+                    if e.get("worker_id") == worker_id
+                ),
+                {},
+            )
+            self._archive_error(
+                {
+                    **event,
+                    "worker_id": worker_id,
+                    "label": w.label if w else previous.get("label", worker_id),
+                }
+            )
+            if w is None:
+                return
             w.recent_errors.append(event)
             w.total_errors += 1
             # Trim history
@@ -2505,7 +2582,10 @@ _heartbeat_client: Optional[WorkerHeartbeatClient] = None
 def get_registry() -> WorkerRegistry:
     global _registry
     if _registry is None:
-        _registry = WorkerRegistry(ttl_seconds=float(getenv("ROUTER_WORKER_TTL", "60")))
+        _registry = WorkerRegistry(
+            ttl_seconds=float(getenv("ROUTER_WORKER_TTL", "60")),
+            error_history_path=getenv("ROUTER_ERROR_FILE", "/data/router-errors.json"),
+        )
     return _registry
 
 

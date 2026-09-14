@@ -1771,10 +1771,13 @@ def _usage_from_history(
 
 
 def _aggregate_recent_errors(workers) -> List[Dict[str, Any]]:
-    """Flatten recent errors from every worker, newest first, capped."""
-    out: List[Dict[str, Any]] = []
+    """Include archived failures even when the worker no longer exists."""
+    out: List[Dict[str, Any]] = get_registry().error_history()
+    seen = {(e.get("worker_id"), e.get("ts"), e.get("kind")) for e in out}
     for w in workers:
         for ev in getattr(w, "recent_errors", []) or []:
+            if (w.worker_id, ev.get("ts"), ev.get("kind")) in seen:
+                continue
             out.append(
                 {
                     "ts": ev.get("ts", 0),
@@ -2662,7 +2665,11 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
 
     def _err_row(e: Dict[str, Any]) -> str:
         ts = e.get("ts") or 0
-        when = datetime.utcfromtimestamp(ts).strftime("%H:%M:%S") if ts else "—"
+        when = (
+            datetime.utcfromtimestamp(ts).strftime("%Y-%m-%d %H:%M:%S UTC")
+            if ts
+            else "—"
+        )
         kind = (e.get("kind") or "").replace("_", " ")
         status = e.get("status")
         status_cell = f'<span class="mono small">{status}</span>' if status else ""
@@ -2670,7 +2677,7 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
         return f"""
         <tr>
           <td class="muted small">{when}</td>
-          <td class="small"><b>{e.get('label', '—')}</b></td>
+          <td class="small"><b>{html.escape(str(e.get('label', '—')))}</b>{' (offline)' if e.get('offline') else ''}</td>
           <td class="small">{kind}</td>
           <td class="small">{status_cell}</td>
           <td class="mono small">{e.get('path', '—')}</td>
@@ -4131,9 +4138,19 @@ async def _iter_worker_stream_bytes(
                     retryable=retryable,
                     status=status,
                 )
-            async for chunk in chunks:
-                if chunk:
-                    yield chunk
+            try:
+                async for chunk in chunks:
+                    if chunk:
+                        yield chunk
+            except Exception as e:
+                registry.record_connection_failure(worker.worker_id)
+                registry.record_error(
+                    worker.worker_id,
+                    kind="tunnel_stream",
+                    path=path,
+                    message=f"{type(e).__name__}: {e}",
+                )
+                raise _WorkerAttemptError(f"{type(e).__name__}: {e}") from e
             return
 
         url = f"{worker.url}{path}"

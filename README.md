@@ -230,6 +230,19 @@ python benchmark_model_lifecycle.py \
 
 ## Qwen3.8-27B Performance Tuning
 
+Router failures are retained independently of worker registration in
+`ROUTER_ERROR_FILE` (default `/data/router-errors.json`, on the router's data
+volume). `ROUTER_ERROR_ARCHIVE_MAX` bounds the archive (default 2,000 events).
+The dashboard and `/v1/router/errors` show the newest 100 archived/live events;
+the HTML dashboard displays 50, with UTC dates and offline labels. This archive
+survives pruning, deregistration and router restarts; it cannot recover errors
+already discarded by an older router. Protect the data volume as error messages
+may include upstream diagnostics. A transfer interruption is not proof of an OOM
+or native crash: correlate its timestamp with the affected worker's container
+exit status and logs. Tunnel interruptions now preserve the underlying error;
+LLM failover retries only before assistant output starts, otherwise it emits an
+explicit stream error rather than silently completing or duplicating output.
+
 Qwen3.8-27B automatically uses **MTP**, through xllamacpp 2026.9.10809,
 with one inference slot, three draft tokens and a 0.1 draft probability threshold.
 DFlash2 remains opt-in with `LLM_SPECULATIVE_TYPE=dflash2`; only that backend

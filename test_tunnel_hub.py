@@ -17,6 +17,41 @@ class FakeWebSocket:
 
 
 class TunnelHubTests(unittest.IsolatedAsyncioTestCase):
+    async def test_successful_end_remains_clean(self):
+        conn = TunnelConnection("worker", FakeWebSocket(), TunnelHub())
+
+        async def send(frame):
+            pending = conn._pending[frame["id"]]
+            pending.status = 200
+            pending.started.set()
+            await pending.queue.put(b"ok")
+            await pending.queue.put(None)
+
+        conn._send_json = send
+        _, _, chunks = await conn.request("POST", "/test", stream=True)
+        self.assertEqual([part async for part in chunks], [b"ok"])
+        self.assertFalse(conn._pending)
+
+    async def test_error_after_headers_is_not_clean_eof(self):
+        for partial in (False, True):
+            conn = TunnelConnection("worker", FakeWebSocket(), TunnelHub())
+
+            async def send(frame):
+                pending = conn._pending[frame["id"]]
+                pending.status = 200
+                pending.started.set()
+
+            conn._send_json = send
+            _, _, chunks = await conn.request("POST", "/test", stream=True)
+            pending = next(iter(conn._pending.values()))
+            if partial:
+                await pending.queue.put(b"partial")
+                self.assertEqual(await anext(chunks), b"partial")
+            await conn.close("worker disconnected")
+            with self.assertRaisesRegex(RuntimeError, "worker disconnected"):
+                await anext(chunks)
+            self.assertFalse(conn._pending)
+
     async def test_attach_supersedes_existing_connection_without_deadlock(self):
         hub = TunnelHub()
         old_ws = FakeWebSocket()

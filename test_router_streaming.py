@@ -19,6 +19,73 @@ def _sse(payload: str) -> bytes:
 
 
 class RouterStreamingTests(unittest.IsolatedAsyncioTestCase):
+    async def test_tunnel_iterator_failure_is_recorded_and_releases_slot(self):
+        registry = WorkerRegistry(60)
+        worker = registry.register(
+            WorkerInfo(
+                worker_id="tunnel-test", label="tunnel-test", url="tunnel://tunnel-test"
+            )
+        )
+
+        async def broken():
+            yield b"partial"
+            raise RuntimeError("transfer interrupted")
+
+        conn = type("Connection", (), {"closed": False})()
+        conn.request = AsyncMock(return_value=(200, {}, broken()))
+        hub = type("Hub", (), {"get": lambda self, wid: conn})()
+        with patch("router_app.get_registry", return_value=registry), patch(
+            "router_app.get_tunnel_hub", return_value=hub
+        ):
+            stream = router_app._iter_worker_stream_bytes(
+                worker, "/v1/chat/completions", {}
+            )
+            self.assertEqual(await anext(stream), b"partial")
+            with self.assertRaisesRegex(
+                router_app._WorkerAttemptError, "transfer interrupted"
+            ):
+                await anext(stream)
+        self.assertEqual(worker.router_in_flight, 0)
+        self.assertEqual(registry.error_history()[0]["kind"], "tunnel_stream")
+
+    async def test_interruption_retries_only_before_output(self):
+        for partial in (False, True):
+            workers = [
+                WorkerInfo(worker_id=str(i), label=str(i), url="http://unused")
+                for i in range(2)
+            ]
+            pick = AsyncMock(side_effect=[(w, None) for w in workers])
+
+            async def stream(worker, *args, **kwargs):
+                if worker is workers[0]:
+                    if partial:
+                        yield _sse('{"choices":[{"delta":{"content":"partial"}}]}')
+                    raise router_app._WorkerAttemptError("transfer interrupted")
+                yield _sse('{"choices":[{"delta":{"content":"recovered"}}]}')
+                yield _sse("[DONE]")
+
+            with patch("router_app._pick_and_reserve_llm", pick), patch(
+                "router_app._iter_worker_stream_bytes", stream
+            ), patch("router_app._stream_max_attempts", return_value=2), patch(
+                "router_app._record_llm_usage", AsyncMock()
+            ), patch(
+                "router_app._schedule_external_balance_refresh"
+            ):
+                output = b"".join(
+                    [
+                        chunk
+                        async for chunk in router_app._llm_stream_with_worker_failover(
+                            capability="text",
+                            path="/v1/chat/completions",
+                            payload={},
+                            model="test",
+                            request_started=0,
+                        )
+                    ]
+                )
+            self.assertEqual(pick.await_count, 1 if partial else 2)
+            self.assertIn(b"worker_stream_error" if partial else b"recovered", output)
+
     async def test_binary_stream_propagates_upstream_setup_error(self):
         worker = WorkerInfo(
             worker_id="tts-worker",

@@ -20,15 +20,24 @@ GPU_DEFAULTS = {
 
 
 class ColabNotebookTests(unittest.TestCase):
-    def execute_setup(self, namespace, run, env=None):
+    def execute_setup(
+        self, namespace, run, env=None, source=SETUP, architecture="90-real"
+    ):
         with (
             mock.patch("subprocess.run", run),
-            mock.patch("subprocess.check_output", return_value="/venv/site-packages"),
+            mock.patch(
+                "subprocess.check_output",
+                side_effect=lambda command, **kwargs: (
+                    architecture
+                    if "get_device_capability" in command[-1]
+                    else "/venv/site-packages"
+                ),
+            ),
             mock.patch("os.chdir"),
             mock.patch("os.environ", env or {}),
             mock.patch("pathlib.Path.exists", return_value=False),
         ):
-            exec(compile(SETUP, "colab-setup", "exec"), namespace)
+            exec(compile(source, "colab-setup", "exec"), namespace)
 
     def test_setup_checks_commands_and_uses_one_interpreter(self):
         run = mock.Mock()
@@ -54,6 +63,62 @@ class ColabNotebookTests(unittest.TestCase):
         )
         self.assertEqual(commands[-1][0], namespace["PYTHON"])
         self.assertIn("import dotenv, aiohttp", commands[-1][-1])
+        self.assertFalse(any("scripts/build_xllamacpp.py" in cmd for cmd in commands))
+
+    def test_opt_in_native_build_targets_the_assigned_gpu(self):
+        for architecture in ("75-real", "80-real", "90-real"):
+            with (
+                self.subTest(architecture=architecture),
+                mock.patch("shutil.which", return_value="/usr/local/cuda/bin/nvcc"),
+                mock.patch("pathlib.Path.is_file", return_value=True),
+            ):
+                run = mock.Mock()
+                namespace = {}
+                self.execute_setup(
+                    namespace,
+                    run,
+                    source=SETUP.replace(
+                        "build_native_backend = False", "build_native_backend = True"
+                    ),
+                    architecture=architecture,
+                )
+                builds = [
+                    call
+                    for call in run.call_args_list
+                    if "scripts/build_xllamacpp.py" in call.args[0]
+                ]
+                self.assertEqual(len(builds), 1)
+                command = builds[0].args[0]
+                self.assertEqual(command[0], namespace["PYTHON"])
+                self.assertEqual(
+                    command[command.index("--cuda-architectures") + 1], architecture
+                )
+                self.assertIn("--install", command)
+                self.assertIn(
+                    "/content/ezlocalai-tools/cargo/bin",
+                    builds[0].kwargs["env"]["PATH"],
+                )
+                self.assertTrue(namespace["SETUP_COMPLETE"])
+
+    def test_failed_native_build_stops_setup(self):
+        def fail_build(command, **kwargs):
+            if "scripts/build_xllamacpp.py" in command:
+                raise subprocess.CalledProcessError(1, command)
+
+        namespace = {}
+        with (
+            mock.patch("shutil.which", return_value="/usr/local/cuda/bin/nvcc"),
+            mock.patch("pathlib.Path.is_file", return_value=True),
+            self.assertRaises(subprocess.CalledProcessError),
+        ):
+            self.execute_setup(
+                namespace,
+                mock.Mock(side_effect=fail_build),
+                source=SETUP.replace(
+                    "build_native_backend = False", "build_native_backend = True"
+                ),
+            )
+        self.assertFalse(namespace["SETUP_COMPLETE"])
 
     def test_failed_dependency_install_invalidates_previous_setup(self):
         def fail_requirements(command, **kwargs):
