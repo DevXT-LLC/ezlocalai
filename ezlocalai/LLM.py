@@ -273,7 +273,8 @@ def get_mtp_spec_draft_n_max(
         # Benchmarked on RTX 3090 Ti with Q3_K_XL at 180K context. Three draft
         # tokens preserved novel-generation throughput while improving
         # copy-heavy code generation by about 15% over the old n_max=2 default.
-        return 3, card_vram_gb
+        # T4 has substantially less room for the draft graph; start shorter.
+        return (2 if family == "T4" else 3), card_vram_gb
     if 0 < model_size_b <= 4 and card_vram_gb >= 20:
         return 4, card_vram_gb
 
@@ -360,6 +361,7 @@ def calculate_auto_batch_sizes(
     # Safe defaults for older/smaller GPUs.
     n_batch = 1024
     n_ubatch = 256
+    family, _ = gpu_profile(gpu_idx)
 
     if cc_num >= 89:  # Ada / Hopper / Blackwell
         if free_gb >= 28:
@@ -371,7 +373,9 @@ def calculate_auto_batch_sizes(
         elif free_gb >= 8:
             n_batch, n_ubatch = 1024, 512
     elif cc_num >= 80:  # Ampere
-        if free_gb >= 22 and effective_max_tokens and effective_max_tokens <= 300_000:
+        if family == "A100" and free_gb >= 60:
+            n_batch, n_ubatch = 8192, 2048
+        elif free_gb >= 22 and effective_max_tokens and effective_max_tokens <= 300_000:
             n_batch, n_ubatch = 4096, 1024
         elif free_gb >= 12:
             n_batch, n_ubatch = 2048, 512
@@ -380,6 +384,11 @@ def calculate_auto_batch_sizes(
     else:
         if free_gb >= 16:
             n_batch, n_ubatch = 2048, 512
+
+    if family == "T4":
+        # Leave room for 27B Q3 weights, the vision projector and MTP state.
+        # Logical batches can stay larger than the physical compute graph.
+        n_batch, n_ubatch = (512, 128) if free_gb >= 12 else (256, 64)
 
     if effective_max_tokens:
         n_batch = min(n_batch, max(1, int(effective_max_tokens)))
@@ -410,6 +419,8 @@ def calculate_auto_batch_sizes(
         f"GPU {gpu_idx}, free={free_gb:.1f}GB/{total_gb:.1f}GB, "
         f"CC {cc_num // 10}.{cc_num % 10}"
     )
+    if family:
+        reason += f", {family} profile"
     if mtp_long_context_cap:
         reason += ", MTP long-context cap"
     return n_batch, n_ubatch, reason

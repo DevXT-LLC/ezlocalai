@@ -7,12 +7,26 @@ from ezlocalai.InferenceSettings import (
     gpu_profile,
     resolve_kv_cache_type,
     draft_length_setting,
+    colab_inference_defaults,
 )
 
 MODEL = "unsloth/Qwen3.8-27B-GGUF"
 
 
 class GpuInferenceSettingsTests(unittest.TestCase):
+    def setUp(self):
+        # Keep GPU probes independent of both local hardware and other tests'
+        # lightweight torch stubs.
+        cuda = SimpleNamespace(
+            is_available=mock.Mock(return_value=False),
+            device_count=mock.Mock(return_value=0),
+            get_device_properties=mock.Mock(),
+            mem_get_info=mock.Mock(),
+        )
+        patcher = mock.patch.dict("sys.modules", {"torch": SimpleNamespace(cuda=cuda)})
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
     def test_default_cache_per_card_and_model(self):
         for family, capacity, expected in (
             ("3090", 24, "q4_0"),
@@ -20,6 +34,10 @@ class GpuInferenceSettingsTests(unittest.TestCase):
             ("5090", 32, "q4_0"),
             ("5090", 24, "q4_0"),
             ("", 80, "q4_0"),
+            ("T4", 15, "q4_0"),
+            ("A100", 40, "q4_0"),
+            ("A100", 80, "q4_0"),
+            ("H100", 80, "q4_0"),
         ):
             with mock.patch.dict(os.environ, {}, clear=True), mock.patch(
                 "ezlocalai.InferenceSettings.gpu_profile",
@@ -77,6 +95,93 @@ class GpuInferenceSettingsTests(unittest.TestCase):
             self.assertEqual(gpu_profile(0), ("3090", 24))
             self.assertEqual(gpu_profile(1), ("5090", 32))
             self.assertEqual(gpu_profile(None), ("5090", 32))
+
+    def test_colab_gpu_names_and_visible_memory(self):
+        for name, capacity, family in (
+            ("Tesla T4", 15, "T4"),
+            ("NVIDIA T4", 15, "T4"),
+            ("NVIDIA A100-SXM4-40GB", 40, "A100"),
+            ("NVIDIA A100 80GB PCIe", 80, "A100"),
+            ("NVIDIA H100 80GB HBM3", 80, "H100"),
+            ("NVIDIA H100 PCIe", 80, "H100"),
+            ("NVIDIA A100-SXM4-40GB MIG 1g.5gb", 5, "A100"),
+            ("NVIDIA H100 80GB HBM3 MIG 1g.10gb", 10, "H100"),
+            ("NVIDIA RTX A1000", 8, ""),
+        ):
+            with (
+                self.subTest(name=name),
+                mock.patch("torch.cuda.is_available", return_value=True),
+                mock.patch(
+                    "torch.cuda.get_device_properties",
+                    return_value=SimpleNamespace(
+                        name=name, total_memory=capacity * 1024**3
+                    ),
+                ),
+            ):
+                self.assertEqual(gpu_profile(0), (family, capacity))
+
+    def test_colab_card_overrides(self):
+        for family, default in (("T4", 2), ("A100", 4), ("H100", 4)):
+            with mock.patch(
+                "ezlocalai.InferenceSettings.gpu_profile", return_value=(family, 40)
+            ):
+                with mock.patch.dict(os.environ, {}, clear=True):
+                    self.assertEqual(draft_length_setting(), default)
+                with mock.patch.dict(
+                    os.environ,
+                    {
+                        "KV_CACHE_TYPE": "q4_0",
+                        f"KV_CACHE_TYPE_{family}": "q8_0",
+                        "DFLASH_SPEC_DRAFT_N_MAX": "5",
+                        f"DFLASH_SPEC_DRAFT_N_MAX_{family}": "2",
+                    },
+                    clear=True,
+                ):
+                    self.assertEqual(resolve_kv_cache_type(), "q8_0")
+                    self.assertEqual(draft_length_setting(), 2)
+
+    def test_colab_context_and_host_cache_use_available_memory(self):
+        for name, total, free, ram, context, cache in (
+            ("Tesla T4", 15, 14, 12, 8192, 0),
+            ("NVIDIA A100-SXM4-40GB", 40, 38, 48, 131072, 6144),
+            ("NVIDIA A100 80GB PCIe", 80, 78, 96, 262144, 8192),
+            ("NVIDIA H100 80GB HBM3", 80, 78, 96, 262144, 8192),
+            ("NVIDIA A100-SXM4-40GB MIG 1g.5gb", 5, 4, 48, 8192, 0),
+            ("NVIDIA H100 80GB HBM3", 80, 22, 2, 65536, 0),
+            ("NVIDIA H100 80GB HBM3", 80, 38, 16, 131072, 2048),
+            ("NVIDIA GeForce RTX 3090", 24, 22, 32, 65536, 4096),
+        ):
+            with (
+                self.subTest(name=name, free=free, ram=ram),
+                mock.patch("torch.cuda.is_available", return_value=True),
+                mock.patch(
+                    "torch.cuda.get_device_properties",
+                    return_value=SimpleNamespace(
+                        name=name, total_memory=total * 1024**3
+                    ),
+                ),
+                mock.patch(
+                    "torch.cuda.mem_get_info",
+                    return_value=(free * 1024**3, total * 1024**3),
+                ),
+                mock.patch(
+                    "psutil.virtual_memory",
+                    return_value=SimpleNamespace(available=ram * 1024**3),
+                ),
+            ):
+                profile = colab_inference_defaults()
+                self.assertEqual(profile["gpu_name"], name)
+                self.assertEqual(profile["vram_free_gib"], free)
+                settings = profile["settings"]
+                self.assertEqual(settings["LLM_MAX_TOKENS"], str(context))
+                self.assertEqual(settings["LLM_PROMPT_CACHE_MIB"], str(cache))
+                self.assertLess(int(settings["LLM_MAX_OUTPUT_TOKENS"]), context)
+                self.assertEqual(settings["N_PARALLEL"], "1")
+
+    def test_colab_requires_a_gpu_runtime(self):
+        with mock.patch("torch.cuda.is_available", return_value=False):
+            with self.assertRaisesRegex(RuntimeError, "GPU runtime"):
+                colab_inference_defaults()
 
 
 if __name__ == "__main__":

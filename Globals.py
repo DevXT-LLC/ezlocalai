@@ -105,7 +105,7 @@ def getenv(var_name: str, default_value: str = None) -> str:
         # Each slot gets n_ctx / n_parallel tokens of context. VRAM is constant.
         "N_PARALLEL": "1",
         "LLM_SPECULATIVE_TYPE": "auto",  # MTP for compatible models; DFlash2 is opt-in
-        "DFLASH_SPEC_DRAFT_N_MAX": "auto",  # 3090: 3; 4090/5090 and generic: 4
+        "DFLASH_SPEC_DRAFT_N_MAX": "auto",  # T4: 2; 3090: 3; others: 4
         "KV_CACHE_TYPE": "auto",  # q4_0 on all cards; q8_0 is an explicit opt-in
         "DFLASH_SPEC_DRAFT_P_MIN": "0.0",
         "DFLASH_MODEL_FILE": "Qwen3.8-27B-DFlash2-Q4_K_M.gguf",
@@ -113,7 +113,7 @@ def getenv(var_name: str, default_value: str = None) -> str:
         # MTP speculative decoding probability. auto uses a benchmarked
         # model-family default (0.1 for Qwen3.8-27B, 0.25 otherwise).
         "MTP_SPEC_DRAFT_P_MIN": "auto",
-        # MTP draft length. auto = 3 for Qwen3.8-27B, 2 for other large
+        # MTP draft length. auto = 2 on T4, otherwise 3 for Qwen3.8-27B; 2 for other large
         # models, or 4 for <=4B models with at least 20GB VRAM.
         "MTP_SPEC_DRAFT_N_MAX": "auto",
         "VLM_MAX_TOKENS": "8192",  # Vision models don't need large context

@@ -260,10 +260,10 @@ All values remain operator-overridable:
 
 ```bash
 LLM_SPECULATIVE_TYPE=auto  # auto, dflash2, mtp, none
-MTP_SPEC_DRAFT_N_MAX=auto  # Qwen3.8-27B: 3 on all three card families
+MTP_SPEC_DRAFT_N_MAX=auto  # Qwen3.8-27B: T4=2; other cards=3
 MTP_SPEC_DRAFT_P_MIN=auto  # Qwen3.8-27B: 0.1
 KV_CACHE_TYPE=auto        # q4_0; q8_0 remains an explicit precision opt-in
-DFLASH_SPEC_DRAFT_N_MAX=auto  # 3090: 3; 4090/5090: 4; explicit 1..7 overrides
+DFLASH_SPEC_DRAFT_N_MAX=auto  # T4: 2; 3090: 3; others: 4; explicit 1..7 overrides
 DFLASH_SPEC_DRAFT_P_MIN=0.0
 LLM_BATCH_SIZE=auto
 LLM_UBATCH_SIZE=auto
@@ -276,19 +276,24 @@ GPU-aware defaults for Qwen3.8-27B (explicit settings take precedence):
 | RTX 3090 / 3090 Ti | 3 | 0.1 | q4_0 |
 | RTX 4090 | 3 | 0.1 | q4_0 |
 | RTX 5090 | 3 | 0.1 | q4_0 |
+| Tesla / NVIDIA T4 | 2 | 0.1 | q4_0 |
+| NVIDIA A100 (40/80 GB or MIG) | 3 | 0.1 | q4_0 |
+| NVIDIA H100 (PCIe/SXM or MIG) | 3 | 0.1 | q4_0 |
 
 These are starting profiles, not measured optima for every workload. To tune a
 mixed fleet from one configuration, use card-specific overrides such as
 `MTP_SPEC_DRAFT_N_MAX_3090=3`, `MTP_SPEC_DRAFT_N_MAX_5090=4`, or
-`KV_CACHE_TYPE_5090=q8_0`. Card-specific overrides beat global overrides.
+`KV_CACHE_TYPE_5090=q8_0`. The same suffixes work for `T4`, `A100`, and
+`H100` (for example `MTP_SPEC_DRAFT_N_MAX_T4=2`, `KV_CACHE_TYPE_A100=q8_0`,
+and `DFLASH_SPEC_DRAFT_N_MAX_H100=4`). Card-specific overrides beat global overrides.
 `KV_CACHE_TYPE=auto` selects the table; an existing explicit
 `KV_CACHE_TYPE=q4_0` still keeps Q4 on every card unless overridden per card.
 Other model families and GPU types retain Q4 by default; Jetson keeps its
 explicit F16 setting. The memory planner uses the resolved cache precision.
 The [local Q3 / 3090 Ti comparison](benchmarks/qwen38-3090ti-20260908.md)
 found mixed DFlash gains, including regressions on short thinking requests.
-The MTP three-token baseline is shared across cards; higher values on the
-4090/5090 require on-card validation, not extrapolation from free VRAM.
+The MTP three-token baseline is shared across larger cards; T4 starts with two.
+Higher values require on-card validation, not extrapolation from free VRAM.
 Batch/ubatch remain hardware- and context-aware as described above; explicit
 operator values are preserved.
 
@@ -296,7 +301,28 @@ Deployment: remove an explicit `LLM_SPECULATIVE_TYPE=dflash2` override or set it
 to `auto`/`mtp`, then rebuild/restart each worker. Explicit `MTP_SPEC_DRAFT_*`
 and `KV_CACHE_TYPE*` values still win; set them to `auto` (or remove them) to
 adopt these defaults. The router does not choose the native decoding backend.
-DFlash's optional starting lengths remain 3 on 3090 and 4 on 4090/5090.
+DFlash's optional starting lengths are 2 on T4, 3 on 3090, and 4 on the other cards.
+
+The Colab notebook probes GPU and host memory inside its isolated server environment.
+For Qwen3.8-27B Q3_K_XL, its single-slot starting settings are:
+
+| Idle Colab GPU | Context tokens | Auto batch / physical batch | Host prompt cache |
+| --- | --- | --- | --- |
+| T4 (16 GB) | 8,192 | 512 / 128 | Disabled |
+| A100 (40 GB) | 131,072 | 4,096 / 1,024 | Available RAM / 8, at most 8 GiB |
+| A100 (80 GB) | 262,144 | 8,192 / 1,024 | Available RAM / 8, at most 8 GiB |
+| H100 (80 GB) | 262,144 | 8,192 / 1,024 | Available RAM / 8, at most 8 GiB |
+
+These Colab profiles are conservative starting points, not benchmarks on those GPUs.
+Context follows **free, visible VRAM**: below 20 GiB uses 8,192 tokens, 20–32 GiB
+uses 65,536, 32–60 GiB uses 131,072, and at least 60 GiB uses 262,144.
+MIG partitions and busy devices therefore do not inherit full-card memory budgets.
+Batch sizes also respond to free memory; T4 drops to 256 / 64 below 12 GiB free.
+The 27B model plus its vision projector is a tight fit on T4; CPU offload can
+still be necessary and depends on available system RAM. Keep other services disabled.
+The notebook prints its selection; `inference_overrides` can set explicit context,
+batch, cache, or speculative-decoding values. Context and host-cache limits here
+apply only to the notebook; existing server context/cache settings are unchanged.
 
 For this 27B model, target KV at 262,144 tokens is approximately 4.5 GiB with
 Q4 versus 8.5 GiB with Q8 (excluding recurrent state, weights, draft and compute

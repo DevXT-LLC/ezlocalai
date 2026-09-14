@@ -148,14 +148,22 @@ class LlmStreamingTests(unittest.TestCase):
             self.assertEqual(get_mtp_spec_draft_p_min("unsloth/Qwen3.8-27B-GGUF"), 0.4)
 
     def test_mtp_card_defaults_and_override_precedence(self):
-        for family, capacity in (("3090", 24.0), ("4090", 24.0), ("5090", 32.0)):
+        for family, capacity in (
+            ("3090", 24.0),
+            ("4090", 24.0),
+            ("5090", 32.0),
+            ("T4", 15.0),
+            ("A100", 40.0),
+            ("H100", 80.0),
+        ):
+            default = 2 if family == "T4" else 3
             for global_value, card_value, expected in (
-                ("auto", "", 3),
+                ("auto", "", default),
                 ("2", "", 2),
                 ("2", "4", 4),
-                ("2", "auto", 3),
+                ("2", "auto", default),
                 ("2", " ", 2),
-                ("auto", "bad", 3),
+                ("auto", "bad", default),
                 ("auto", "99", 16),
             ):
                 with (
@@ -177,6 +185,36 @@ class LlmStreamingTests(unittest.TestCase):
                         get_mtp_spec_draft_n_max(0, "Qwen3.8-27B"),
                         (expected, capacity),
                     )
+
+    def test_colab_gpu_batch_defaults_and_memory_pressure(self):
+        for family, capacity, free, cc, context, expected in (
+            ("T4", 15, 14, (7, 5), 8192, (512, 128)),
+            ("T4", 15, 10, (7, 5), 8192, (256, 64)),
+            ("T4", 15, 14, (7, 5), 64, (64, 64)),
+            ("A100", 40, 38, (8, 0), 131072, (4096, 1024)),
+            ("A100", 80, 78, (8, 0), 262144, (8192, 1024)),
+            ("H100", 80, 78, (9, 0), 262144, (8192, 1024)),
+            ("A100", 80, 10, (8, 0), 8192, (1024, 512)),
+            ("H100", 80, 10, (9, 0), 8192, (1024, 512)),
+        ):
+            cuda = types.SimpleNamespace(
+                is_available=lambda: True,
+                device_count=lambda: 1,
+                mem_get_info=lambda _: (free * 1024**3, capacity * 1024**3),
+                get_device_capability=lambda _: cc,
+            )
+            with (
+                self.subTest(family=family, free=free, context=context),
+                mock.patch("ezlocalai.LLM.torch.cuda", cuda),
+                mock.patch(
+                    "ezlocalai.LLM.gpu_profile", return_value=(family, capacity)
+                ),
+            ):
+                batch, ubatch, reason = calculate_auto_batch_sizes(
+                    0, context, "Qwen3.8-27B"
+                )
+                self.assertEqual((batch, ubatch), expected)
+                self.assertIn(family, reason)
 
     def test_qwen38_standard_repo_is_recognized_as_built_in_mtp(self):
         self.assertTrue(is_mtp_model("unsloth/Qwen3.8-27B-GGUF"))
