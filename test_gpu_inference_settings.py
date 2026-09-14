@@ -143,13 +143,13 @@ class GpuInferenceSettingsTests(unittest.TestCase):
     def test_colab_context_and_host_cache_use_available_memory(self):
         for name, total, free, ram, context, cache in (
             ("Tesla T4", 15, 14, 12, 8192, 0),
-            ("NVIDIA A100-SXM4-40GB", 40, 38, 48, 131072, 6144),
+            ("NVIDIA A100-SXM4-40GB", 40, 38, 48, 262144, 6144),
             ("NVIDIA A100 80GB PCIe", 80, 78, 96, 262144, 8192),
             ("NVIDIA H100 80GB HBM3", 80, 78, 96, 262144, 8192),
             ("NVIDIA A100-SXM4-40GB MIG 1g.5gb", 5, 4, 48, 8192, 0),
-            ("NVIDIA H100 80GB HBM3", 80, 22, 2, 65536, 0),
-            ("NVIDIA H100 80GB HBM3", 80, 38, 16, 131072, 2048),
-            ("NVIDIA GeForce RTX 3090", 24, 22, 32, 65536, 4096),
+            ("NVIDIA H100 80GB HBM3", 80, 22, 2, 230000, 0),
+            ("NVIDIA H100 80GB HBM3", 80, 38, 16, 262144, 2048),
+            ("NVIDIA GeForce RTX 3090", 24, 22, 32, 230000, 4096),
         ):
             with (
                 self.subTest(name=name, free=free, ram=ram),

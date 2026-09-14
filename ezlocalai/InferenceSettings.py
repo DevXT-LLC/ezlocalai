@@ -71,12 +71,12 @@ def colab_inference_defaults(main_gpu=0):
     free_bytes, total_bytes = torch.cuda.mem_get_info(main_gpu)
     family, _ = gpu_profile(main_gpu)
     free_gib = min(free_bytes, total_bytes, info.total_memory) / 1024**3
-    if free_gib >= 60:
+    # Qwen3.8-27B Q3_K_XL runs at 230K on the user's 24 GB cards;
+    # a 40 GB card has enough headroom for the full 262K context.
+    if free_gib >= 32:
         context = 262144
-    elif free_gib >= 32:
-        context = 131072
     elif free_gib >= 20:
-        context = 65536
+        context = 230000
     else:
         context = 8192
 

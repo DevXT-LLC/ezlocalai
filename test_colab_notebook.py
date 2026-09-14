@@ -20,12 +20,12 @@ GPU_DEFAULTS = {
 
 
 class ColabNotebookTests(unittest.TestCase):
-    def execute_setup(self, namespace, run):
+    def execute_setup(self, namespace, run, env=None):
         with (
             mock.patch("subprocess.run", run),
             mock.patch("subprocess.check_output", return_value="/venv/site-packages"),
             mock.patch("os.chdir"),
-            mock.patch("os.environ", {}),
+            mock.patch("os.environ", env or {}),
             mock.patch("pathlib.Path.exists", return_value=False),
         ):
             exec(compile(SETUP, "colab-setup", "exec"), namespace)
@@ -66,6 +66,48 @@ class ColabNotebookTests(unittest.TestCase):
             self.execute_setup(namespace, run)
         self.assertFalse(namespace["SETUP_COMPLETE"])
         self.assertIn("cuda-requirements.txt", run.call_args.args[0])
+
+    def test_uv_install_overrides_inherited_installer_destination(self):
+        installed = set()
+
+        def simulate_installer(command, **kwargs):
+            if command[0] == "sh":
+                env = kwargs["env"]
+                # Match the actual standalone installer's precedence.
+                destination = (
+                    env.get("UV_INSTALL_DIR")
+                    or env.get("CARGO_DIST_FORCE_INSTALL_DIR")
+                    or env["UV_UNMANAGED_INSTALL"]
+                )
+                installed.add(str(Path(destination) / "uv"))
+            elif command[1] == "--version" and command[0] not in installed:
+                raise FileNotFoundError(2, "No such file or directory", command[0])
+
+        run = mock.Mock(side_effect=simulate_installer)
+        namespace = {}
+        inherited = {
+            "UV_INSTALL_DIR": "/some/preconfigured/path",
+            "CARGO_DIST_FORCE_INSTALL_DIR": "/another/preconfigured/path",
+        }
+        self.execute_setup(namespace, run, env=inherited)
+        self.assertEqual(installed, {namespace["UV"]})
+        commands = [call.args[0] for call in run.call_args_list]
+        probe_index = commands.index([namespace["UV"], "--version"])
+        venv_index = next(i for i, cmd in enumerate(commands) if cmd[1] == "venv")
+        self.assertLess(probe_index, venv_index)
+        self.assertEqual(inherited["UV_INSTALL_DIR"], "/some/preconfigured/path")
+
+    def test_missing_uv_stops_before_venv_creation(self):
+        def fail_probe(command, **kwargs):
+            if command[1] == "--version":
+                raise FileNotFoundError(2, "No such file or directory", command[0])
+
+        namespace = {"SETUP_COMPLETE": True}
+        run = mock.Mock(side_effect=fail_probe)
+        with self.assertRaises(FileNotFoundError):
+            self.execute_setup(namespace, run)
+        self.assertFalse(namespace["SETUP_COMPLETE"])
+        self.assertFalse(any(call.args[0][1] == "venv" for call in run.call_args_list))
 
     def test_failed_import_check_does_not_mark_setup_complete(self):
         def fail_imports(command, **kwargs):

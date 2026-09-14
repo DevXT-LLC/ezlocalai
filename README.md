@@ -309,13 +309,14 @@ For Qwen3.8-27B Q3_K_XL, its single-slot starting settings are:
 | Idle Colab GPU | Context tokens | Auto batch / physical batch | Host prompt cache |
 | --- | --- | --- | --- |
 | T4 (16 GB) | 8,192 | 512 / 128 | Disabled |
-| A100 (40 GB) | 131,072 | 4,096 / 1,024 | Available RAM / 8, at most 8 GiB |
+| A100 (40 GB) | 262,144 | 4,096 / 1,024 | Available RAM / 8, at most 8 GiB |
 | A100 (80 GB) | 262,144 | 8,192 / 1,024 | Available RAM / 8, at most 8 GiB |
 | H100 (80 GB) | 262,144 | 8,192 / 1,024 | Available RAM / 8, at most 8 GiB |
 
 These Colab profiles are conservative starting points, not benchmarks on those GPUs.
 Context follows **free, visible VRAM**: below 20 GiB uses 8,192 tokens, 20–32 GiB
-uses 65,536, 32–60 GiB uses 131,072, and at least 60 GiB uses 262,144.
+uses 230,000, and at least 32 GiB uses 262,144. The 230K setting reflects the
+reported Qwen3.8-27B Q3_K_XL workload on 24 GB cards; 40 GB cards use the full context.
 MIG partitions and busy devices therefore do not inherit full-card memory budgets.
 Batch sizes also respond to free memory; T4 drops to 256 / 64 below 12 GiB free.
 The 27B model plus its vision projector is a tight fit on T4; CPU offload can
