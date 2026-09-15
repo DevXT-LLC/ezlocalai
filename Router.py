@@ -1027,12 +1027,16 @@ class WorkerInfo:
         capacity = max(0, int(raw.get("capacity", fallback_capacity) or 0))
         in_flight = max(0, int(raw.get("in_flight", 0) or 0))
         queued = max(0, int(raw.get("queued", 0) or 0))
-        return {
+        state = {
             "capacity": capacity,
             "in_flight": in_flight,
             "queued": queued,
             "available": max(0, capacity - in_flight - queued),
         }
+
+        if "instances" in raw:
+            state["instances"] = min(capacity, max(0, int(raw["instances"] or 0)))
+        return state
 
     @staticmethod
     def _match_name(
@@ -1922,13 +1926,18 @@ class Router:
                 w for w in workers if w.has_capacity(capability, capacity_model)
             ]
             if idle_only:
-                # Managed APIs are shared pools, not single inference workers.
-                # Their remaining slots stay usable while other calls run.
+                # Managed APIs and idle independent model instances remain
+                # usable while sibling calls run. Native shared slots still
+                # follow the explicit busy-slot fallback policy.
                 candidates = [
                     w
                     for w in candidates
                     if w.external_fallback
                     or w.effective_busy(capability, capacity_model) == 0
+                    or (
+                        w.effective_busy(capability, capacity_model)
+                        < w.slot_state(capability, capacity_model).get("instances", 1)
+                    )
                 ]
                 candidates = self._filter_idle_tier_window(
                     candidates, tier_reference or workers
@@ -2308,7 +2317,7 @@ class WorkerHeartbeatClient:
                 for name in (embedding_model, embedding_alias):
                     if name:
                         model_context.setdefault(
-                            name, int(getenv("EMBEDDING_CONTEXT_LENGTH", "32768"))
+                            name, int(getenv("EMBEDDING_CONTEXT_LENGTH", "10000"))
                         )
                         model_quant.setdefault(
                             name, getenv("EMBEDDING_QUANT_TYPE", "Q8_0")

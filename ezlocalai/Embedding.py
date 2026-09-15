@@ -183,7 +183,7 @@ class Embedding:
         self.model_name = model_name or getenv("EMBEDDING_MODEL")
         self.model_alias = getenv("EMBEDDING_MODEL_ALIAS") or self.model_name
         self.quant_type = getenv("EMBEDDING_QUANT_TYPE", "Q8_0")
-        self.context_length = _get_int_env("EMBEDDING_CONTEXT_LENGTH", 8192)
+        self.context_length = _get_int_env("EMBEDDING_CONTEXT_LENGTH", 10000)
         self.pool_size = max(1, _get_int_env("EMBEDDING_N_PARALLEL", 1))
         # Keep each xllamacpp embedding server at a single full-context slot.
         # EMBEDDING_N_PARALLEL is handled by Pipes as separate model instances
@@ -464,6 +464,7 @@ class Embedding:
         return dimensions
 
     def get_embeddings(self, input, model: str = None, dimensions=None):
+        resolved_dimensions = self._resolve_dimensions(dimensions)
         request_model = model or self.model_alias
         result = self.server.handle_embeddings(
             {
@@ -473,9 +474,21 @@ class Embedding:
         )
 
         if isinstance(result, dict) and "error" in result:
-            raise RuntimeError(result["error"])
+            error = result["error"]
+            # Preserve native client errors as non-retryable HTTP 400 responses
+            # via app.embedding. Runtime failures must remain server errors.
+            if isinstance(error, dict):
+                message = str(error.get("message") or "Embedding request failed")
+                if error.get("type") == "exceed_context_size_error":
+                    raise ValueError(
+                        f"Embedding input exceeds the context limit: {message}. "
+                        f"Configured EMBEDDING_CONTEXT_LENGTH={self.context_length}. "
+                        "Split the input into smaller chunks; input was not truncated."
+                    )
+                if str(error.get("code")) in {"400", "422"}:
+                    raise ValueError(message)
+            raise RuntimeError(error)
 
-        resolved_dimensions = self._resolve_dimensions(dimensions)
         if resolved_dimensions:
             for item in result.get("data", []):
                 embedding = item.get("embedding")

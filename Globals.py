@@ -172,7 +172,7 @@ def getenv(var_name: str, default_value: str = None) -> str:
         "EMBEDDING_MODEL": "Qwen/Qwen3-Embedding-0.6B-GGUF",
         "EMBEDDING_MODEL_ALIAS": "Qwen3-Embedding-0.6B",
         "EMBEDDING_QUANT_TYPE": "Q8_0",
-        "EMBEDDING_CONTEXT_LENGTH": "32768",
+        "EMBEDDING_CONTEXT_LENGTH": "10000",
         "EMBEDDING_N_PARALLEL": "1",
         "EMBEDDING_BATCH_SIZE": "512",
         "EMBEDDING_UBATCH_SIZE": "512",

@@ -15,7 +15,11 @@ GPU_DEFAULTS = {
     "gpu_family": "T4",
     "vram_free_gib": 14.5,
     "vram_total_gib": 15,
-    "settings": {"LLM_MAX_TOKENS": "8192", "LLM_PROMPT_CACHE_MIB": "0"},
+    "settings": {
+        "LLM_MAX_TOKENS": "8192",
+        "LLM_PROMPT_CACHE_MIB": "0",
+        "N_PARALLEL": "1",
+    },
 }
 
 

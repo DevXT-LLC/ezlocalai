@@ -106,6 +106,28 @@ except (ImportError, RuntimeError, Exception) as e:
     music_import_success = False
 
 
+async def _run_inference_call(method, **data):
+    """Keep a cancelled caller's native slot reserved until its thread exits."""
+    task = asyncio.create_task(asyncio.to_thread(method, **data))
+    cancelled = False
+    try:
+        while True:
+            try:
+                result = await asyncio.shield(task)
+                break
+            except asyncio.CancelledError:
+                cancelled = True
+                if task.done():
+                    result = task.result()
+                    break
+        if cancelled and hasattr(result, "close"):
+            result.close()
+        return result
+    finally:
+        if cancelled:
+            raise asyncio.CancelledError
+
+
 class _TrackedInferenceStream:
     """Keep inference accounting active for the lifetime of a lazy stream."""
 
@@ -4116,6 +4138,8 @@ class Pipes:
         # Using a counter instead of boolean allows multiple concurrent requests
         self._inference_count = 0
         self._model_inference_counts: Dict[str, int] = {}
+        self._replica_inference_counts: Dict[str, int] = {}
+        self._failed_replica_ids = set()
         self._inference_count_lock = threading.Lock()
         self._lifecycle_metrics_lock = threading.Lock()
         self._lifecycle_events = deque(maxlen=100)
@@ -4363,6 +4387,8 @@ class Pipes:
                             ),
                         )
                     except Exception as e:
+                        if model_name in getattr(self, "_automatic_replica_ids", set()):
+                            self._failed_replica_ids.add(model_name)
                         logging.warning(
                             f"[LLM] Failed to pre-load model {model_name}: {e}"
                         )
@@ -4587,8 +4613,9 @@ class Pipes:
         quant_types = _split_csv("QUANT_TYPE", "Q4_K_XL")
 
         gpu_count = get_gpu_count()
+        self._automatic_replica_ids = set()
 
-        for i, model_name in enumerate(self.available_models):
+        for i, model_name in enumerate(list(self.available_models)):
             mgpu = int(main_gpus[i]) if i < len(main_gpus) else int(main_gpus[-1])
             mtokens = (
                 int(max_tokens_list[i])
@@ -4601,17 +4628,15 @@ class Pipes:
             if qtype == "":
                 qtype = None
             source_model_name = self._resolve_source_model(model_name)
-            if speculative_backend(source_model_name) != "none" and npar != 1:
-                logging.info(
-                    f"[Config] {source_model_name} uses speculative decoding; "
-                    f"forcing n_parallel=1 (configured {npar})"
-                )
+            replica_count = 1
+            if speculative_backend(source_model_name) != "none":
+                replica_count = max(1, npar)
                 npar = 1
 
             # Generate a tensor_split that isolates the model to its target GPU
             # when multiple GPUs exist and a specific GPU is assigned.
             ts = None
-            if gpu_count > 1 and len(self.available_models) > 1:
+            if gpu_count > 1 and (len(self.available_models) > 1 or replica_count > 1):
                 ts = [0.0] * 128
                 ts[mgpu] = 1.0
 
@@ -4622,6 +4647,29 @@ class Pipes:
                 "quant_type": qtype,
                 "tensor_split": ts,
             }
+
+            # Expand only after reading this original CSV entry. Each speculative
+            # instance owns its weights, draft state, and full context allocation.
+            for _ in range(replica_count - 1):
+                suffix = 2
+                while f"{source_model_name}#{suffix}" in self.model_sources:
+                    suffix += 1
+                replica_id = f"{source_model_name}#{suffix}"
+                self._automatic_replica_ids.add(replica_id)
+                self.available_models.append(replica_id)
+                self.model_sources[replica_id] = source_model_name
+                self.model_replicas.setdefault(source_model_name, [model_name]).append(
+                    replica_id
+                )
+                self.model_configs[replica_id] = dict(self.model_configs[model_name])
+            if replica_count > 1:
+                logging.info(
+                    "[Config] %s: N_PARALLEL=%s creates %s independent speculative instances, each with %s context tokens",
+                    source_model_name,
+                    replica_count,
+                    replica_count,
+                    mtokens,
+                )
 
         if len(self.model_configs) > 1:
             for name, cfg in self.model_configs.items():
@@ -4846,7 +4894,7 @@ class Pipes:
 
     def _resolve_source_model(self, model_name: str) -> str:
         """Resolve an internal model ID back to the source HF model name."""
-        return self.model_sources.get(model_name, model_name)
+        return getattr(self, "model_sources", {}).get(model_name, model_name)
 
     @staticmethod
     def _llm_runtime_shape(instance: Any, context: int) -> Dict[str, Any]:
@@ -5300,6 +5348,7 @@ class Pipes:
 
     def _get_model_path(self, model_name: str) -> str:
         """Get the local path to a model file."""
+        model_name = self._resolve_source_model(model_name)
         try:
             # Parse model name: "org/repo" -> download the GGUF file
             if "/" in model_name:
@@ -5369,6 +5418,7 @@ class Pipes:
 
     def _get_vision_projector_path(self, model_name: str) -> str:
         """Get vision projector path if this is a vision model."""
+        model_name = self._resolve_source_model(model_name)
         try:
             if "/" in model_name:
                 # Same convention as download_model() / _get_model_path: prefer
@@ -5968,6 +6018,8 @@ class Pipes:
         reload the model at the optimal context size to maximize GPU layers.
         The cooldown prevents constant reloading if multiple large requests come in.
         """
+        if len(getattr(self, "available_models", [])) > 1:
+            return  # Each resident instance keeps its configured full context.
         with self._context_reset_lock:
             # Cancel any existing timer
             if self._context_reset_timer is not None:
@@ -7411,44 +7463,6 @@ class Pipes:
                     )
                 return self.llm
 
-            # Replica spillover: if this source model has multiple loaded replicas,
-            # route to another replica when the currently active one is saturated.
-            source_name = self._resolve_source_model(model_name)
-            replica_ids = self.model_replicas.get(source_name, [model_name])
-
-            if len(replica_ids) > 1:
-                current_id = self.current_llm_name
-                current_cfg = (
-                    self.model_configs.get(current_id, {}) if current_id else {}
-                )
-                current_capacity = self._resolved_parallel_for_model(current_id)
-
-                current_is_same_source = current_id in replica_ids
-                saturated = (
-                    current_is_same_source and self._inference_count >= current_capacity
-                )
-
-                if saturated:
-                    for replica_id in replica_ids:
-                        if replica_id == current_id:
-                            continue
-                        replica_llm = self.persistent_llms.get(replica_id)
-                        if replica_llm is None:
-                            continue
-                        replica_cfg = self.model_configs.get(replica_id, {})
-                        replica_ctx = replica_cfg.get(
-                            "max_tokens", self._optimal_context
-                        )
-                        if replica_ctx >= context_size:
-                            self.llm = replica_llm
-                            self.current_llm_name = replica_id
-                            self.current_context = replica_ctx
-                            logging.info(
-                                f"[LLM] Replica spillover: {source_name} -> {replica_id} "
-                                f"(active={self._inference_count}, capacity={current_capacity})"
-                            )
-                            return self.llm
-
             # Check persistent_llms dict (all pre-loaded models)
             if model_name in self.persistent_llms:
                 persistent = self.persistent_llms[model_name]
@@ -8343,9 +8357,7 @@ class Pipes:
                 needs_handoff = self._image_should_unload_llm_for_generation()
                 if needs_handoff:
                     await self._wait_for_llm_idle_for_image()
-                llm_handoff = self._unload_llms_for_service(
-                    "image", needs_handoff
-                )
+                llm_handoff = self._unload_llms_for_service("image", needs_handoff)
                 # The fast worker's warm voice/embedding pools already coexist
                 # with FLUX. Evict them only when image generation needs a
                 # memory handoff; larger LLM workers keep their existing policy.
@@ -9106,7 +9118,7 @@ class Pipes:
                     self._restore_llms_after_music(llm_was_unloaded)
         return None
 
-    def _apply_model_config_overrides(self, data: dict) -> dict:
+    def _apply_model_config_overrides(self, data: dict, model_id=None) -> dict:
         """Apply model-specific config overrides if the current model has them defined.
 
         Overrides only apply to parameters defined in MODEL_CONFIG_OVERRIDES for the
@@ -9115,7 +9127,8 @@ class Pipes:
         Models with separate instruct settings select them when the effective chat
         template configuration disables thinking.
         """
-        if is_qwen38_model(self.current_llm_name):
+        model_id = self._resolve_source_model(model_id or self.current_llm_name)
+        if is_qwen38_model(model_id):
             configured = apply_qwen38_model_settings(data)
             applied_settings = {
                 key: configured.get(key)
@@ -9131,13 +9144,11 @@ class Pipes:
             }
             logging.debug(
                 f"[Config] Applied shared Qwen3.8 settings for "
-                f"{self.current_llm_name}: {applied_settings}"
+                f"{model_id}: {applied_settings}"
             )
             return configured
 
-        source_model = getattr(self, "model_sources", {}).get(
-            self.current_llm_name, self.current_llm_name
-        )
+        source_model = getattr(self, "model_sources", {}).get(model_id, model_id)
         config_model = (
             MINICPM5_2B_MODEL if is_minicpm5_2b_model(source_model) else source_model
         )
@@ -9154,9 +9165,7 @@ class Pipes:
             if reasoning_effort is not None and "reasoning_effort" in template_config:
                 template_config["reasoning_effort"] = reasoning_effort
 
-            instruct_overrides = MODEL_INSTRUCT_CONFIG_OVERRIDES.get(
-                self.current_llm_name
-            )
+            instruct_overrides = MODEL_INSTRUCT_CONFIG_OVERRIDES.get(model_id)
             if instruct_overrides and template_config.get("enable_thinking") is False:
                 overrides = {**overrides, **instruct_overrides}
                 template_config.pop("reasoning_effort", None)
@@ -9174,7 +9183,7 @@ class Pipes:
                 else:
                     data[key] = value
             logging.debug(
-                f"[Config] Applied model overrides for {self.current_llm_name}: {overrides}"
+                f"[Config] Applied model overrides for {model_id}: {overrides}"
             )
         return data
 
@@ -9229,7 +9238,9 @@ class Pipes:
 
         capacity = 0
         for model_id in getattr(self, "available_models", []):
-            if self._resolve_source_model(model_id) != model_name:
+            if self._resolve_source_model(
+                model_id
+            ) != model_name or model_id in getattr(self, "_failed_replica_ids", set()):
                 continue
             instance = getattr(self, "persistent_llms", {}).get(model_id)
             capacity += self._resolved_parallel_for_model(model_id, inst=instance)
@@ -9293,6 +9304,8 @@ class Pipes:
         swap_residency = getattr(self, "llm_model_residency", "resident") == "swap"
         if not self._llm_temporarily_unavailable:
             for model_id in self.available_models:
+                if model_id in getattr(self, "_failed_replica_ids", set()):
+                    continue
                 inst = self.persistent_llms.get(model_id)
                 capacity = (
                     1
@@ -9349,6 +9362,12 @@ class Pipes:
                 in_flight=model_in_flight,
                 queued=0,
             )
+            instances = sum(
+                self._resolve_source_model(mid) == model_name and inst is not None
+                for mid, inst in self.persistent_llms.items()
+            )
+            if not swap_residency and instances > 1:
+                model_slots[model_name]["instances"] = instances
         if self._llm_temporarily_unavailable:
             for model_id in self.available_models:
                 model_slots[self._resolve_source_model(model_id)] = _slot(capacity=0)
@@ -9366,6 +9385,10 @@ class Pipes:
                 in_flight=total_llm_in_flight,
                 queued=queued_text,
             )
+        if len(model_slots) == 1 and "text" in cap_slots:
+            only_slot = next(iter(model_slots.values()))
+            if "instances" in only_slot:
+                cap_slots["text"]["instances"] = only_slot["instances"]
         if vision_capacity > 0:
             vision_in_flight = sum(model_counts.get(name, 0) for name in vision_models)
             cap_slots["vision"] = _slot(
@@ -9373,6 +9396,11 @@ class Pipes:
                 in_flight=vision_in_flight,
                 queued=0,
             )
+
+        if len(vision_models) == 1 and "vision" in cap_slots:
+            vision_slot = model_slots.get(next(iter(vision_models)), {})
+            if "instances" in vision_slot:
+                cap_slots["vision"]["instances"] = vision_slot["instances"]
 
         tts_enabled = (getenv("TTS_ENABLED") or "true").strip().lower() == "true"
         stt_enabled = (getenv("STT_ENABLED") or "true").strip().lower() == "true"
@@ -9524,7 +9552,9 @@ class Pipes:
                 f"[Inference] Started - active count: {self._inference_count}"
             )
 
-    async def _acquire_inference_slot(self, model_name: Optional[str] = None):
+    async def _acquire_inference_slot(
+        self, model_name: Optional[str] = None, preferred_replica=None
+    ):
         """Register an inference after a real native model slot is available."""
         waiting_for = None
         while True:
@@ -9540,11 +9570,38 @@ class Pipes:
                 model_in_flight = self._model_inference_counts.get(model_name, 0)
                 model_capacity = self._inference_capacity_for_model(model_name)
                 model_slot_available = model_in_flight < model_capacity
+                replica_ids = [
+                    mid
+                    for mid in getattr(self, "available_models", [])
+                    if self._resolve_source_model(mid) == model_name
+                    and mid not in getattr(self, "_failed_replica_ids", set())
+                ]
+                counts = getattr(self, "_replica_inference_counts", None)
+                if counts is None:
+                    counts = self._replica_inference_counts = {}
+                available = [
+                    mid
+                    for mid in replica_ids
+                    if (preferred_replica is None or mid == preferred_replica)
+                    and counts.get(mid, 0)
+                    < self._resolved_parallel_for_model(
+                        mid, getattr(self, "persistent_llms", {}).get(mid)
+                    )
+                ]
+                replica_id = (
+                    min(available, key=lambda mid: counts.get(mid, 0))
+                    if available
+                    else None
+                )
+                if replica_ids and replica_id is None:
+                    model_slot_available = False
                 if (
                     not handoff_active
                     and model_slot_available
                     and (self.llm_model_residency != "swap" or not conflicts)
                 ):
+                    if replica_id is not None:
+                        counts[replica_id] = counts.get(replica_id, 0) + 1
                     self._inference_count += 1
                     if model_name:
                         self._model_inference_counts[model_name] = (
@@ -9554,7 +9611,7 @@ class Pipes:
                         "[Inference] Started - active count: %s",
                         self._inference_count,
                     )
-                    return
+                    return replica_id
             if handoff_active:
                 wait_reason = {"shared_gpu_handoff": 1}
             elif not model_slot_available:
@@ -9574,9 +9631,16 @@ class Pipes:
                 waiting_for = wait_reason
             await asyncio.sleep(0.05)
 
-    def _decrement_inference_count(self, model_name: Optional[str] = None):
+    def _decrement_inference_count(
+        self, model_name: Optional[str] = None, replica_id=None
+    ):
         """Thread-safe decrement of inference counter."""
         with self._inference_count_lock:
+            counts = getattr(self, "_replica_inference_counts", {})
+            if replica_id is not None:
+                counts[replica_id] = max(0, counts.get(replica_id, 0) - 1)
+                if counts[replica_id] == 0:
+                    del counts[replica_id]
             self._inference_count = max(0, self._inference_count - 1)
             if model_name and model_name in self._model_inference_counts:
                 self._model_inference_counts[model_name] = max(
@@ -9674,7 +9738,15 @@ class Pipes:
         # Mark inference as in progress to prevent context reset during processing
         # and to expose per-model slot usage to the router heartbeat.
         slot_model = self._resolve_slot_model(data)
-        await self._acquire_inference_slot(slot_model)
+        preferred_replica = None
+        requested_model = str(data.get("model") or "")
+        if "#" in requested_model:
+            preferred_replica = self._resolve_requested_model_id(requested_model)
+            if preferred_replica in getattr(self, "_failed_replica_ids", set()):
+                raise RuntimeError(
+                    f"Requested replica {preferred_replica} failed to load"
+                )
+        replica_id = await self._acquire_inference_slot(slot_model, preferred_replica)
 
         # Keep resource diagnostics accurate for the common resident-model
         # path. Swap-mode safety is governed by the inference counter above,
@@ -9688,17 +9760,35 @@ class Pipes:
 
         inference_cleanup_deferred = False
 
-        def finish_inference():
+        def release_inference():
             self.resource_manager.mark_model_in_use(initial_llm_type, False)
-            self._decrement_inference_count(slot_model)
+            self._decrement_inference_count(slot_model, replica_id)
 
             if self.current_context and self.current_context > self._optimal_context:
                 if not self._is_inference_in_progress():
                     self._schedule_context_reset()
 
+        def finish_inference():
+            instance = getattr(self, "persistent_llms", {}).get(replica_id)
+            done = getattr(instance, "_native_stream_done", None)
+            if (
+                done is not None
+                and self._resolved_parallel_for_model(replica_id, instance) == 1
+                and not done.is_set()
+            ):
+                # Stream.close() requests cancellation, but a long native prefill
+                # may still be running after its bounded join. Keep its lease.
+                def wait_and_release():
+                    done.wait()
+                    release_inference()
+
+                threading.Thread(target=wait_and_release, daemon=True).start()
+            else:
+                release_inference()
+
         try:
             response, audio_response = await self._get_response_internal(
-                data, completion_type
+                data, completion_type, replica_id=replica_id
             )
             if hasattr(response, "__next__"):
                 response = _TrackedInferenceStream(response, finish_inference)
@@ -9711,11 +9801,13 @@ class Pipes:
             if not inference_cleanup_deferred:
                 finish_inference()
 
-    async def _get_response_internal(self, data, completion_type="chat"):
+    async def _get_response_internal(
+        self, data, completion_type="chat", replica_id=None
+    ):
         """Internal implementation of get_response."""
         data["local_uri"] = self.local_uri
         # Apply model-specific config overrides
-        data = self._apply_model_config_overrides(data)
+        data = self._apply_model_config_overrides(data, replica_id)
         images = []
         if "messages" in data:
             # Process messages to extract images and handle content types
@@ -10047,7 +10139,12 @@ class Pipes:
         # Vision model fallback: If the target model is a vision model but no images
         # are in the request, fall back to a non-vision model if one is available.
         # This optimizes resource usage since vision models are heavier.
-        if target_model and not images and self._is_vision_model(target_model):
+        if (
+            replica_id is None
+            and target_model
+            and not images
+            and self._is_vision_model(target_model)
+        ):
             non_vision_model = self._find_non_vision_model()
             if non_vision_model:
                 logging.debug(
@@ -10057,11 +10154,24 @@ class Pipes:
                 target_model = non_vision_model
 
         # Lazy load the LLM with calculated context (estimated prompt tokens + 16k headspace)
-        self._get_llm(target_model, required_context)
-        data["model"] = self._resolve_source_model(self.current_llm_name)
+        target_model = replica_id or target_model
+        if target_model:
+            required_context = self._configured_context_limit_for_model(target_model)
+        request_llm = self._get_llm(target_model, required_context)
+        request_context = required_context
+        # Global reload helpers can destroy a sibling's live context. Concurrent
+        # configurations use fixed, preloaded contexts and propagate failures.
+        allow_reload = (
+            len(self.available_models) <= 1
+            and self._inference_capacity_for_model(
+                self._resolve_source_model(target_model)
+            )
+            <= 1
+        )
+        data["model"] = self._resolve_source_model(target_model)
 
         if "stop" in data and data["stop"]:
-            new_stop = list(self.llm.params.get("stop", []))
+            new_stop = list(request_llm.params.get("stop", []))
             if isinstance(data["stop"], list):
                 new_stop.extend(data["stop"])
             else:
@@ -10094,7 +10204,7 @@ class Pipes:
             else data["prompt"]
         )
         # Handle images with vision-capable LLM
-        if self.llm and self.llm.is_vision and images:
+        if request_llm and request_llm.is_vision and images:
             # xllamacpp expects images in base64 data URL format (PNG or JPEG)
             # Convert any remote URLs to base64 data URLs, and convert WebP/other formats to PNG
             from PIL import Image as PILImage
@@ -10235,10 +10345,10 @@ class Pipes:
                     logging.warning(
                         f"[Vision] No images could be processed, falling back to text-only"
                     )
-        elif images and self.llm and not self.llm.is_vision:
+        elif images and request_llm and not request_llm.is_vision:
             # Non-vision model received images - use vision model fallback
             logging.debug(
-                f"[Vision Fallback] Non-vision model {self.current_llm_name} received {len(images)} image(s), using vision fallback"
+                f"[Vision Fallback] Non-vision model {target_model} received {len(images)} image(s), using vision fallback"
             )
             user_text = (
                 user_message if isinstance(user_message, str) else str(user_message)
@@ -10368,8 +10478,9 @@ class Pipes:
             BEFORE starting the stream, since streaming errors occur lazily during iteration
             and cannot be retried mid-stream.
             """
+            nonlocal request_llm
             max_retries = 3
-            current_context = self.current_context or 16384
+            current_context = request_context or 16384
             is_streaming = data.get("stream", False)
 
             # For streaming requests, pre-estimate tokens and ensure context size
@@ -10382,7 +10493,9 @@ class Pipes:
                     messages_or_prompt, "chat" if chat_mode else "completion"
                 )
                 required_context = calculate_context_size(estimated_tokens)
-                configured_context_limit = self._configured_context_limit_for_model()
+                configured_context_limit = self._configured_context_limit_for_model(
+                    target_model
+                )
                 if required_context > configured_context_limit:
                     logging.info(
                         "[LLM] Streaming estimate requested %s context tokens; "
@@ -10397,7 +10510,7 @@ class Pipes:
                     f"required context {required_context:,}, current context {current_context:,}"
                 )
 
-                if required_context > current_context:
+                if allow_reload and required_context > current_context:
                     logging.info(
                         f"[LLM] Streaming request: estimated {estimated_tokens:,} tokens, "
                         f"pre-loading {required_context//1024}k context (current: {current_context//1024}k)"
@@ -10405,6 +10518,7 @@ class Pipes:
                     # Run blocking model reload in a thread so the event loop
                     # stays free to accept other connections / heartbeats.
                     await asyncio.to_thread(self._ensure_context_size, required_context)
+                    request_llm = self.llm
                     current_context = required_context
             else:
                 logging.debug(
@@ -10415,21 +10529,23 @@ class Pipes:
                 try:
                     if chat_mode:
                         logging.debug(
-                            f"[LLM] Calling llm.chat with stream={data.get('stream', False)}, context={self.current_context}"
+                            f"[LLM] Calling llm.chat with stream={data.get('stream', False)}, context={request_context}"
                         )
                         # Offload the blocking llama.cpp call to a thread so
                         # uvicorn's event loop stays responsive (otherwise
                         # /health, heartbeats, and new connections all stall
                         # while a large prefill or non-streaming generation
                         # runs, causing the router to see TCP connect failures).
-                        result = await asyncio.to_thread(self.llm.chat, **data)
+                        result = await _run_inference_call(request_llm.chat, **data)
                         logging.debug(f"[LLM] llm.chat returned type: {type(result)}")
                         # Log token/speed summary for non-streaming
                         if isinstance(result, dict) and not data.get("stream"):
                             _log_inference_summary(result)
                         return result
                     else:
-                        result = await asyncio.to_thread(self.llm.completion, **data)
+                        result = await _run_inference_call(
+                            request_llm.completion, **data
+                        )
                         if isinstance(result, dict) and not data.get("stream"):
                             _log_inference_summary(result)
                         return result
@@ -10462,10 +10578,10 @@ class Pipes:
                         # Calculate new context: actual tokens needed + 16k headspace
                         new_context = min(
                             calculate_context_size(needed_tokens),
-                            self._configured_context_limit_for_model(),
+                            self._configured_context_limit_for_model(target_model),
                         )
 
-                        if new_context > current_context:
+                        if allow_reload and new_context > current_context:
                             if not context_reload_can_help(
                                 error_msg, current_context, new_context
                             ):
@@ -10489,16 +10605,22 @@ class Pipes:
                             await asyncio.to_thread(
                                 self._ensure_context_size, new_context
                             )
+                            request_llm = self.llm
                             current_context = new_context
                             continue
 
                     # --- Handle GPU memory errors ---
-                    if _is_memory_error(error_msg) and attempt < max_retries - 1:
+                    if (
+                        allow_reload
+                        and _is_memory_error(error_msg)
+                        and attempt < max_retries - 1
+                    ):
                         logging.warning(
                             f"[LLM] GPU memory error during inference (attempt {attempt + 1}/{max_retries}): {error_msg}"
                         )
                         reduced = self._reduce_gpu_layers()
                         if reduced:
+                            request_llm = self.llm
                             logging.info(
                                 f"[LLM] Reduced GPU layers, retrying inference..."
                             )
@@ -10513,12 +10635,12 @@ class Pipes:
 
             # Should not reach here, but just in case
             if chat_mode:
-                return await asyncio.to_thread(self.llm.chat, **data)
+                return await _run_inference_call(request_llm.chat, **data)
             else:
-                return await asyncio.to_thread(self.llm.completion, **data)
+                return await _run_inference_call(request_llm.completion, **data)
 
         # Check if local LLM is available, if not use fallback server
-        if self.llm is None:
+        if request_llm is None:
             logging.warning("[LLM] No local model available, using fallback server...")
             if completion_type == "chat":
                 response = await self.fallback_inference(data["messages"])
@@ -10548,12 +10670,15 @@ class Pipes:
                 logging.error(f"[LLM] Data that caused failure: {data}")
                 # Try reducing GPU layers before resorting to fallback
                 error_msg = str(e)
-                if _is_memory_error(error_msg) and await asyncio.to_thread(
-                    self._reduce_gpu_layers
+                if (
+                    allow_reload
+                    and _is_memory_error(error_msg)
+                    and await asyncio.to_thread(self._reduce_gpu_layers)
                 ):
+                    request_llm = self.llm
                     logging.info("[LLM] Retrying chat after GPU layer reduction...")
                     try:
-                        response = await asyncio.to_thread(self.llm.chat, **data)
+                        response = await _run_inference_call(request_llm.chat, **data)
                     except Exception:
                         logging.error(
                             "[LLM] Retry after layer reduction also failed, using fallback"
@@ -10574,14 +10699,19 @@ class Pipes:
                 logging.error(f"[LLM] Data that caused failure: {data}")
                 # Try reducing GPU layers before resorting to fallback
                 error_msg = str(e)
-                if _is_memory_error(error_msg) and await asyncio.to_thread(
-                    self._reduce_gpu_layers
+                if (
+                    allow_reload
+                    and _is_memory_error(error_msg)
+                    and await asyncio.to_thread(self._reduce_gpu_layers)
                 ):
+                    request_llm = self.llm
                     logging.info(
                         "[LLM] Retrying completion after GPU layer reduction..."
                     )
                     try:
-                        response = await asyncio.to_thread(self.llm.completion, **data)
+                        response = await _run_inference_call(
+                            request_llm.completion, **data
+                        )
                     except Exception:
                         logging.error(
                             "[LLM] Retry after layer reduction also failed, using fallback"
@@ -10728,15 +10858,17 @@ class Pipes:
                         logging.error(
                             f"[STREAMING] Context size error during streaming. "
                             f"Prompt required {needed_tokens:,} tokens but context was insufficient. "
-                            f"The model will be reloaded with larger context for the next request."
+                            f"Configured context: {request_context:,} tokens."
                         )
                         # Pre-load larger context for next request
-                        if needed_tokens > 0:
+                        if allow_reload and needed_tokens > 0:
                             new_context = min(
                                 calculate_context_size(needed_tokens),
-                                pipes_self._configured_context_limit_for_model(),
+                                pipes_self._configured_context_limit_for_model(
+                                    target_model
+                                ),
                             )
-                            current_context = pipes_self.current_context or 16384
+                            current_context = request_context or 16384
                             if context_reload_can_help(
                                 error_msg, current_context, new_context
                             ):

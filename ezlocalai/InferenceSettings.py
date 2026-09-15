@@ -54,8 +54,10 @@ def draft_length_setting(main_gpu=0):
     return int(value)
 
 
-def colab_inference_defaults(main_gpu=0):
-    """Conservative single-model notebook settings, not throughput benchmarks.
+def colab_inference_defaults(
+    main_gpu=0, model_name="unsloth/Qwen3.8-27B-GGUF", quant_type="Q3_K_XL"
+):
+    """Memory-aware notebook settings, not throughput benchmarks.
 
     Probe inside the server venv, not the Colab kernel. Use visible/free memory
     rather than assuming an A100/H100 is an entire 40/80 GB device. Context and
@@ -80,12 +82,23 @@ def colab_inference_defaults(main_gpu=0):
     else:
         context = 8192
 
+    # The user's 27B Q3 deployment uses approximately 22 GiB per MTP
+    # instance at full context. Reserve 4 GiB for overhead and other allocations.
+    replicas = 1
+    if (
+        family == "H100"
+        and model_name.split("/")[-1].lower() == "qwen3.8-27b-gguf"
+        and quant_type.upper() == "Q3_K_XL"
+    ):
+        replicas = max(1, min(3, int((free_gib - 4) // 22)))
+
     # A T4 session often has little host RAM left for mmap'd model weights.
     # On larger runtimes budget at most 1/8 of available RAM, capped at 8 GiB.
     ram_available = psutil.virtual_memory().available
     cache_mib = min(8192, int(ram_available / (8 * 1024**2)) // 256 * 256)
     if family == "T4" or free_gib < 20 or cache_mib < 512:
         cache_mib = 0
+    cache_mib = cache_mib // replicas // 256 * 256
     return {
         "gpu_name": info.name,
         "gpu_family": family,
@@ -100,6 +113,6 @@ def colab_inference_defaults(main_gpu=0):
             "KV_CACHE_TYPE": "auto",
             "MTP_SPEC_DRAFT_N_MAX": "auto",
             "LLM_SPECULATIVE_TYPE": "auto",
-            "N_PARALLEL": "1",
+            "N_PARALLEL": str(replicas),
         },
     }

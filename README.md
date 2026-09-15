@@ -244,7 +244,7 @@ LLM failover retries only before assistant output starts, otherwise it emits an
 explicit stream error rather than silently completing or duplicating output.
 
 Qwen3.8-27B automatically uses **MTP**, through xllamacpp 2026.9.10809,
-with one inference slot, three draft tokens and a 0.1 draft probability threshold.
+with one inference slot per instance, three draft tokens and a 0.1 draft probability threshold.
 DFlash2 remains opt-in with `LLM_SPECULATIVE_TYPE=dflash2`; only that backend
 downloads the revision-pinned
 [Inco Q4_K_M draft](https://huggingface.co/incoai/Qwen3.8-27B-DFlash2-GGUF)
@@ -317,14 +317,31 @@ adopt these defaults. The router does not choose the native decoding backend.
 DFlash's optional starting lengths are 2 on T4, 3 on 3090, and 4 on the other cards.
 
 The Colab notebook probes GPU and host memory inside its isolated server environment.
-For Qwen3.8-27B Q3_K_XL, its single-slot starting settings are:
+For Qwen3.8-27B Q3_K_XL, its starting settings are:
 
-| Idle Colab GPU | Context tokens | Auto batch / physical batch | Host prompt cache |
-| --- | --- | --- | --- |
-| T4 (16 GB) | 8,192 | 512 / 128 | Disabled |
-| A100 (40 GB) | 262,144 | 4,096 / 1,024 | Available RAM / 8, at most 8 GiB |
-| A100 (80 GB) | 262,144 | 8,192 / 1,024 | Available RAM / 8, at most 8 GiB |
-| H100 (80 GB) | 262,144 | 8,192 / 1,024 | Available RAM / 8, at most 8 GiB |
+| Idle Colab GPU | Instances | Context per instance | Auto batch / physical batch | Total host prompt cache |
+| --- | --- | --- | --- | --- |
+| T4 (16 GB) | 1 | 8,192 | 512 / 128 | Disabled |
+| A100 (40 GB) | 1 | 262,144 | 4,096 / 1,024 | Available RAM / 8, at most 8 GiB |
+| A100 (80 GB) | 1 | 262,144 | 8,192 / 1,024 | Available RAM / 8, at most 8 GiB |
+| H100 (80 GB) | 3 | 262,144 | Memory-dependent / 1,024 | Available RAM / 8, at most 8 GiB, divided among instances |
+
+With MTP or DFlash enabled, `N_PARALLEL=3` loads three independent copies of the
+model, each with native `n_parallel=1` and the full `LLM_MAX_TOKENS` context.
+Requests reserve an instance through completion or stream cancellation; additional
+requests queue until one becomes free. The API exposes one public model name.
+Updated routers use the advertised independent instances even with
+`ROUTER_BUSY_SLOT_FALLBACK=false`. Both the worker and router need this update.
+Without speculative decoding, `N_PARALLEL` retains native shared-slot behavior.
+For speculative decoding, `N_PARALLEL=0` still selects one instance.
+
+The H100 notebook default assumes approximately 22 GiB per Qwen3.8-27B Q3_K_XL
+instance and reserves 4 GiB of headroom: at least 70 GiB free selects three;
+48–70 GiB selects two; smaller allocations select one. Other model/quant choices
+retain one instance. Override with `inference_overrides = {"N_PARALLEL": "1"}`.
+The residency planner counts every copy; an overcommitted configuration falls
+back to swapping with one usable slot. Replicas increase concurrency and share
+GPU compute and bandwidth; they do not promise faster individual requests.
 
 These Colab profiles are conservative starting points, not benchmarks on those GPUs.
 Context follows **free, visible VRAM**: below 20 GiB uses 8,192 tokens, 20–32 GiB
@@ -441,11 +458,19 @@ EMBEDDING_ENABLED=true
 EMBEDDING_MODEL=Qwen/Qwen3-Embedding-0.6B-GGUF
 EMBEDDING_MODEL_ALIAS=Qwen3-Embedding-0.6B
 EMBEDDING_QUANT_TYPE=Q8_0
-EMBEDDING_CONTEXT_LENGTH=8192
+EMBEDDING_CONTEXT_LENGTH=10000
 EMBEDDING_N_PARALLEL=1
 EMBEDDING_GPU_LAYERS=auto
 EMBEDDING_KV_CACHE_TYPE=f16
 ```
+
+Embedding context defaults to 10,000 tokens per instance. Existing explicit
+`EMBEDDING_CONTEXT_LENGTH=8192` settings must be changed to adopt the extra
+headroom. Native allocation can round this up for alignment. Oversized inputs
+return an actionable HTTP 400 rather than a retryable 500; split documents into
+smaller chunks instead of retrying unchanged input. Inputs are never silently
+truncated. More context increases memory use per embedding instance, so check
+headroom when running multiple embedders alongside the LLM.
 
 When using the router, workers advertise the `embedding` capability only when
 `EMBEDDING_ENABLED=true`, so embedding requests route to workers that can serve

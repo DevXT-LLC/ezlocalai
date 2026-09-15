@@ -1454,6 +1454,11 @@ class LLM:
             finally:
                 generation_complete.set()
 
+        # Pipes keeps a single-slot replica leased while native cancellation is
+        # still finishing, even when the generator's bounded close has returned.
+        if getattr(self, "n_parallel", 1) == 1:
+            self._native_stream_done = generation_complete
+
         # Start inference in background thread
         inference_thread = threading.Thread(target=run_inference, daemon=True)
         inference_thread.start()
