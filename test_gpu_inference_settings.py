@@ -146,7 +146,7 @@ class GpuInferenceSettingsTests(unittest.TestCase):
         for name, total, free, ram, context, cache in (
             ("Tesla T4", 15, 14, 12, 8192, 0),
             ("NVIDIA A100-SXM4-40GB", 40, 38, 48, 262144, 6144),
-            ("NVIDIA A100 80GB PCIe", 80, 78, 96, 262144, 8192),
+            ("NVIDIA A100 80GB PCIe", 80, 78, 96, 262144, 2560),
             ("NVIDIA H100 80GB HBM3", 80, 78, 96, 262144, 2560),
             ("NVIDIA A100-SXM4-40GB MIG 1g.5gb", 5, 4, 48, 8192, 0),
             ("NVIDIA H100 80GB HBM3", 80, 22, 2, 230000, 0),
@@ -180,42 +180,50 @@ class GpuInferenceSettingsTests(unittest.TestCase):
                 self.assertLess(int(settings["LLM_MAX_OUTPUT_TOKENS"]), context)
                 self.assertEqual(
                     settings["N_PARALLEL"],
-                    "3" if "H100" in name and free == 78 else "1",
+                    (
+                        "3"
+                        if any(family in name for family in ("A100", "H100"))
+                        and free == 78
+                        else "1"
+                    ),
                 )
 
-    def test_h100_replica_budget_is_model_quant_and_free_memory_specific(self):
+    def test_80gb_datacenter_replica_budget_is_model_quant_and_memory_specific(self):
         import torch
 
         torch.cuda.is_available.return_value = True
-        torch.cuda.get_device_properties.return_value = SimpleNamespace(
-            name="NVIDIA H100 80GB HBM3", total_memory=80 * 1024**3
-        )
         with mock.patch(
             "psutil.virtual_memory",
             return_value=SimpleNamespace(available=96 * 1024**3),
         ):
-            for free, model, quant, slots in (
-                (78, MODEL, "Q3_K_XL", 3),
-                (70, MODEL, "Q3_K_XL", 3),
-                (69, MODEL, "Q3_K_XL", 2),
-                (48, MODEL, "Q3_K_XL", 2),
-                (47, MODEL, "Q3_K_XL", 1),
-                (10, MODEL, "Q3_K_XL", 1),
-                (78, "unsloth/Qwen3.5-4B-GGUF", "Q3_K_XL", 1),
-                (78, MODEL, "Q8_0", 1),
-            ):
-                with self.subTest(free=free, model=model, quant=quant):
-                    torch.cuda.mem_get_info.return_value = (
-                        free * 1024**3,
-                        80 * 1024**3,
-                    )
-                    settings = colab_inference_defaults(
-                        model_name=model, quant_type=quant
-                    )["settings"]
-                    self.assertEqual(int(settings["N_PARALLEL"]), slots)
-                    self.assertLessEqual(
-                        int(settings["LLM_PROMPT_CACHE_MIB"]) * slots, 8192
-                    )
+            for family in ("A100", "H100"):
+                torch.cuda.get_device_properties.return_value = SimpleNamespace(
+                    name=f"NVIDIA {family} 80GB", total_memory=80 * 1024**3
+                )
+                for free, model, quant, slots in (
+                    (78, MODEL, "Q3_K_XL", 3),
+                    (70, MODEL, "Q3_K_XL", 3),
+                    (69, MODEL, "Q3_K_XL", 2),
+                    (48, MODEL, "Q3_K_XL", 2),
+                    (47, MODEL, "Q3_K_XL", 1),
+                    (10, MODEL, "Q3_K_XL", 1),
+                    (78, "unsloth/Qwen3.5-4B-GGUF", "Q3_K_XL", 1),
+                    (78, MODEL, "Q8_0", 1),
+                ):
+                    with self.subTest(
+                        family=family, free=free, model=model, quant=quant
+                    ):
+                        torch.cuda.mem_get_info.return_value = (
+                            free * 1024**3,
+                            80 * 1024**3,
+                        )
+                        settings = colab_inference_defaults(
+                            model_name=model, quant_type=quant
+                        )["settings"]
+                        self.assertEqual(int(settings["N_PARALLEL"]), slots)
+                        self.assertLessEqual(
+                            int(settings["LLM_PROMPT_CACHE_MIB"]) * slots, 8192
+                        )
 
     def test_colab_requires_a_gpu_runtime(self):
         with mock.patch("torch.cuda.is_available", return_value=False):

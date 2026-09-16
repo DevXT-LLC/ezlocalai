@@ -86,7 +86,7 @@ def colab_inference_defaults(
     # instance at full context. Reserve 4 GiB for overhead and other allocations.
     replicas = 1
     if (
-        family == "H100"
+        family in {"A100", "H100"}
         and model_name.split("/")[-1].lower() == "qwen3.8-27b-gguf"
         and quant_type.upper() == "Q3_K_XL"
     ):

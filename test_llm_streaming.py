@@ -34,6 +34,7 @@ sys.modules.setdefault("torch", types.SimpleNamespace(cuda=_FakeCuda()))
 from ezlocalai.LLM import (
     LLM,
     calculate_auto_batch_sizes,
+    cap_prompt_cache_mib_for_ram,
     get_mtp_spec_draft_n_max,
     get_mtp_spec_draft_p_min,
     get_model_image_min_tokens,
@@ -235,6 +236,32 @@ class LlmStreamingTests(unittest.TestCase):
         self.assertEqual(resolve_prompt_cache_mib("off", "qwen", 262_144)[0], 0)
         self.assertEqual(resolve_prompt_cache_mib("0", "qwen", 262_144)[0], 0)
         self.assertEqual(resolve_prompt_cache_mib("12288", "qwen", 262_144)[0], 12288)
+
+    def test_prompt_cache_is_capped_for_low_ram_worker(self):
+        with mock.patch.dict(os.environ, {}, clear=True):
+            cache, reason = cap_prompt_cache_mib_for_ram(
+                32768, "explicit", available_ram_mib=14336, total_ram_mib=15128
+            )
+        self.assertEqual(cache, 3584)
+        self.assertIn("RAM safety cap", reason)
+
+    def test_prompt_cache_keeps_safe_value_and_supports_explicit_bypass(self):
+        with mock.patch.dict(os.environ, {}, clear=True):
+            self.assertEqual(
+                cap_prompt_cache_mib_for_ram(
+                    16384, "auto", available_ram_mib=61440, total_ram_mib=65536
+                )[0],
+                16384,
+            )
+        with mock.patch.dict(
+            os.environ, {"LLM_PROMPT_CACHE_ALLOW_UNSAFE": "true"}, clear=True
+        ):
+            self.assertEqual(
+                cap_prompt_cache_mib_for_ram(
+                    32768, "explicit", available_ram_mib=8192, total_ram_mib=16384
+                )[0],
+                32768,
+            )
 
     def test_reasoning_delta_is_preserved_when_wrapping_chunk(self):
         delta = normalize_stream_chunk_delta(

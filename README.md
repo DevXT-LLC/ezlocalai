@@ -237,7 +237,9 @@ The dashboard and `/v1/router/errors` show the newest 100 archived/live events;
 the HTML dashboard displays 50, with UTC dates and offline labels. This archive
 survives pruning, deregistration and router restarts; it cannot recover errors
 already discarded by an older router. Protect the data volume as error messages
-may include upstream diagnostics. A transfer interruption is not proof of an OOM
+may include upstream diagnostics. If a crashed process registers with a new
+worker ID, recent failures are restored by its stable label and URL so it cannot
+bypass the circuit-breaker cooldown. A transfer interruption is not proof of an OOM
 or native crash: correlate its timestamp with the affected worker's container
 exit status and logs. Tunnel interruptions now preserve the underlying error;
 LLM failover retries only before assistant output starts, otherwise it emits an
@@ -254,6 +256,17 @@ by the target, not accepted unconditionally. Physical prompt batches are
 hardware- and context-aware: 24 GB cards use an ubatch of 1024 through 200K
 context and 512 above 200K, while 32 GB cards use 1024. Other MTP model
 families retain their conservative defaults.
+
+The host-RAM prompt cache is context-aware, but its requested capacity is
+capped to the smaller of 25% of total RAM or available RAM minus 4 GiB. This
+prevents a cache that grows during long-context traffic from OOM-killing a
+memory-constrained worker. The effective and requested sizes are reported in
+`/v1/resources` under `model_lifecycle.loaded_llm_runtime`. Tune the guard with
+`LLM_PROMPT_CACHE_RAM_MARGIN_MIB` and
+`LLM_PROMPT_CACHE_MAX_RAM_FRACTION`. `LLM_PROMPT_CACHE_ALLOW_UNSAFE=true`
+restores uncapped behavior, including for explicit `LLM_PROMPT_CACHE_MIB`
+values, and should only be used after verifying host-RAM headroom under long
+prompts.
 
 The CUDA image includes a pinned native hotfix for DFlash's large-image cache
 exhaustion (`failed to process mtmd chunk`). It preserves full-resolution target
@@ -323,7 +336,7 @@ For Qwen3.8-27B Q3_K_XL, its starting settings are:
 | --- | --- | --- | --- | --- |
 | T4 (16 GB) | 1 | 8,192 | 512 / 128 | Disabled |
 | A100 (40 GB) | 1 | 262,144 | 4,096 / 1,024 | Available RAM / 8, at most 8 GiB |
-| A100 (80 GB) | 1 | 262,144 | 8,192 / 1,024 | Available RAM / 8, at most 8 GiB |
+| A100 (80 GB) | 3 | 262,144 | Memory-dependent / 1,024 | Available RAM / 8, at most 8 GiB, divided among instances |
 | H100 (80 GB) | 3 | 262,144 | Memory-dependent / 1,024 | Available RAM / 8, at most 8 GiB, divided among instances |
 
 With MTP or DFlash enabled, `N_PARALLEL=3` loads three independent copies of the
@@ -335,10 +348,12 @@ Updated routers use the advertised independent instances even with
 Without speculative decoding, `N_PARALLEL` retains native shared-slot behavior.
 For speculative decoding, `N_PARALLEL=0` still selects one instance.
 
-The H100 notebook default assumes approximately 22 GiB per Qwen3.8-27B Q3_K_XL
-instance and reserves 4 GiB of headroom: at least 70 GiB free selects three;
-48–70 GiB selects two; smaller allocations select one. Other model/quant choices
-retain one instance. Override with `inference_overrides = {"N_PARALLEL": "1"}`.
+The A100/H100 notebook default assumes approximately 22 GiB per Qwen3.8-27B
+Q3_K_XL instance and reserves 4 GiB of headroom: at least 70 GiB free selects
+three; 48–70 GiB selects two; smaller allocations select one. This gives full
+80 GB A100 and H100 runtimes three instances while keeping 40 GB and MIG
+allocations memory-gated. Other model/quant choices retain one instance.
+Override with `inference_overrides = {"N_PARALLEL": "1"}`.
 The residency planner counts every copy; an overcommitted configuration falls
 back to swapping with one usable slot. Replicas increase concurrency and share
 GPU compute and bandwidth; they do not promise faster individual requests.

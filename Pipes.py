@@ -4909,6 +4909,14 @@ class Pipes:
             shape["main_gpu"] = int(main_gpu)
         if tensor_split:
             shape["tensor_split"] = [float(value) for value in tensor_split]
+        prompt_cache_mib = getattr(instance, "prompt_cache_mib", None)
+        prompt_cache_requested_mib = getattr(
+            instance, "prompt_cache_requested_mib", None
+        )
+        if prompt_cache_mib is not None:
+            shape["prompt_cache_mib"] = int(prompt_cache_mib)
+        if prompt_cache_requested_mib is not None:
+            shape["prompt_cache_requested_mib"] = int(prompt_cache_requested_mib)
         return shape
 
     def _resolve_requested_model_id(self, requested_model: str) -> str:

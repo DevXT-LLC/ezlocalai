@@ -242,6 +242,62 @@ def resolve_prompt_cache_mib(
     return parsed, "explicit LLM_PROMPT_CACHE_MIB"
 
 
+def cap_prompt_cache_mib_for_ram(
+    requested_mib: int,
+    reason: str,
+    available_ram_mib: Optional[int] = None,
+    total_ram_mib: Optional[int] = None,
+) -> Tuple[int, str]:
+    """Keep llama.cpp's growing host prompt cache from exhausting system RAM."""
+    if requested_mib <= 0:
+        return requested_mib, reason
+    if str(getenv("LLM_PROMPT_CACHE_ALLOW_UNSAFE", "false")).strip().lower() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }:
+        return requested_mib, f"{reason}; unsafe RAM cap bypass enabled"
+    try:
+        if available_ram_mib is None or total_ram_mib is None:
+            import psutil
+
+            memory = psutil.virtual_memory()
+            available_ram_mib = int(memory.available / 1024**2)
+            total_ram_mib = int(memory.total / 1024**2)
+    except (TypeError, ValueError, ImportError) as error:
+        logging.warning("[LLM] Prompt-cache RAM safety probe failed: %s", error)
+        fallback_mib = min(requested_mib, 4096)
+        return (
+            fallback_mib,
+            f"{reason}; RAM safety probe unavailable, capped at 4096 MiB",
+        )
+    try:
+        margin_mib = max(0, int(getenv("LLM_PROMPT_CACHE_RAM_MARGIN_MIB", "4096")))
+    except (TypeError, ValueError):
+        margin_mib = 4096
+        logging.warning("[LLM] Invalid prompt-cache RAM margin; using 4096 MiB")
+    try:
+        max_fraction = float(getenv("LLM_PROMPT_CACHE_MAX_RAM_FRACTION", "0.25"))
+    except (TypeError, ValueError):
+        max_fraction = 0.25
+        logging.warning("[LLM] Invalid prompt-cache RAM fraction; using 0.25")
+    max_fraction = min(max(max_fraction, 0.0), 1.0)
+    safe_mib = min(
+        max(0, int(available_ram_mib) - margin_mib),
+        int(int(total_ram_mib) * max_fraction),
+    )
+    safe_mib = max(0, (safe_mib // 256) * 256)
+    if requested_mib <= safe_mib:
+        return requested_mib, reason
+    return (
+        safe_mib,
+        f"{reason}; RAM safety cap (available={int(available_ram_mib)} MiB, "
+        f"total={int(total_ram_mib)} MiB, reserve={margin_mib} MiB, "
+        f"max_fraction={max_fraction:.2f})",
+    )
+
+
 def get_mtp_spec_draft_n_max(
     main_gpu: int = 0, model_name: str = ""
 ) -> Tuple[int, float]:
@@ -996,7 +1052,18 @@ class LLM:
             self.model_name,
             effective_max_tokens,
         )
+        requested_cache_mib = cache_mib
+        cache_mib, cache_reason = cap_prompt_cache_mib_for_ram(cache_mib, cache_reason)
+        self.prompt_cache_requested_mib = requested_cache_mib
+        self.prompt_cache_mib = cache_mib
         self.xlc_params.cache_ram_mib = cache_mib
+        if cache_mib < requested_cache_mib:
+            logging.warning(
+                "[LLM] Prompt cache reduced from %s MiB to %s MiB: %s",
+                requested_cache_mib,
+                cache_mib,
+                cache_reason,
+            )
         if cache_mib > 0:
             logging.info(
                 "[LLM] Prompt cache: %s MiB (%s). Set LLM_PROMPT_CACHE_MIB=0 to disable.",

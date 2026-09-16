@@ -50,3 +50,28 @@ class ErrorHistoryTests(unittest.TestCase):
             self.assertEqual(
                 len(_aggregate_recent_errors(registry.list_workers(False))), 1
             )
+
+    def test_new_worker_id_inherits_crash_loop_cooldown(self):
+        with patch.dict(
+            os.environ,
+            {
+                "ROUTER_ERROR_THRESHOLD": "3",
+                "ROUTER_ERROR_WINDOW_SECONDS": "60",
+                "ROUTER_CIRCUIT_COOLDOWN": "30",
+            },
+        ):
+            registry = WorkerRegistry(60)
+            original = registry.register(
+                WorkerInfo(worker_id="old-id", label="4090", url="http://worker")
+            )
+            for _ in range(3):
+                registry.record_error(
+                    original.worker_id, "stream", "/v1/chat/completions", "crash"
+                )
+            registry.deregister(original.worker_id)
+            replacement = registry.register(
+                WorkerInfo(worker_id="new-id", label="4090", url="http://worker")
+            )
+        self.assertEqual(replacement.total_errors, 3)
+        self.assertEqual(len(replacement.recent_errors), 3)
+        self.assertTrue(replacement.is_circuit_open())

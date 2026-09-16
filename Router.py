@@ -1400,6 +1400,45 @@ class WorkerRegistry:
                         existing.external_balance_updated_at
                     )
                 info._refresh_router_reservations()
+            else:
+                # Worker processes use a new ID after a crash. Restore recent
+                # failures by stable label/URL so restart loops cannot evade
+                # the circuit breaker and immediately receive another request.
+                now = time.time()
+                try:
+                    window = float(os.environ.get("ROUTER_ERROR_WINDOW_SECONDS", "60"))
+                    threshold = int(os.environ.get("ROUTER_ERROR_THRESHOLD", "3"))
+                    cooldown = float(os.environ.get("ROUTER_CIRCUIT_COOLDOWN", "30"))
+                    history_max = int(os.environ.get("ROUTER_ERROR_HISTORY_MAX", "50"))
+                except (TypeError, ValueError):
+                    window, threshold, cooldown, history_max = 60.0, 3, 30.0, 50
+                matching = [
+                    event
+                    for event in self._error_history
+                    if event.get("label") == info.label
+                    and (not event.get("url") or event.get("url") == info.url)
+                ]
+                info.total_errors = len(matching)
+                recent = [
+                    event for event in matching if now - event.get("ts", 0) <= window
+                ]
+                info.recent_errors = [
+                    {
+                        key: event.get(key)
+                        for key in ("ts", "kind", "status", "path", "message")
+                    }
+                    for event in matching[-history_max:]
+                ]
+                if len(recent) >= threshold:
+                    info.circuit_open_until = now + cooldown
+                    logging.warning(
+                        "[Router] Restored crash-loop cooldown for %s under new "
+                        "worker ID %s (%s errors in %.0fs)",
+                        info.label,
+                        info.worker_id,
+                        len(recent),
+                        window,
+                    )
             self._workers[info.worker_id] = info
             return info
 
@@ -1670,6 +1709,7 @@ class WorkerRegistry:
                     **event,
                     "worker_id": worker_id,
                     "label": w.label if w else previous.get("label", worker_id),
+                    "url": w.url if w else previous.get("url", ""),
                 }
             )
             if w is None:

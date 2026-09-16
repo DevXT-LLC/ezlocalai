@@ -96,6 +96,11 @@ def getenv(var_name: str, default_value: str = None) -> str:
         # Host-RAM prompt cache for repeated long prompt prefixes.
         # auto scales with context size; set 0/off to disable for diagnostics.
         "LLM_PROMPT_CACHE_MIB": "auto",
+        # Bound the growing host prompt cache so long requests cannot OOM-kill
+        # workers with little system RAM. Explicit cache sizes are also capped.
+        "LLM_PROMPT_CACHE_RAM_MARGIN_MIB": "4096",
+        "LLM_PROMPT_CACHE_MAX_RAM_FRACTION": "0.25",
+        "LLM_PROMPT_CACHE_ALLOW_UNSAFE": "false",
         # Context size — comma-separated to match DEFAULT_MODEL order.
         # e.g., LLM_MAX_TOKENS="65536,262144" gives model_a 65k and model_b 262k context.
         "LLM_MAX_TOKENS": "65536",
