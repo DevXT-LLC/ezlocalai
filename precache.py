@@ -652,13 +652,23 @@ def precache_image_model():
                     cache_dir=models_dir,
                 )
 
-            # Download text encoder LLM GGUF
-            llm_file = "Qwen2.5-VL-7B-Instruct.Q4_K_M.gguf"
+            # Download text encoder LLM GGUF (Qwen3-VL-8B-Instruct)
+            llm_file = "Qwen3VL-8B-Instruct-Q4_K_M.gguf"
             llm_path = os.path.join(models_dir, llm_file)
             if not os.path.isfile(llm_path):
                 download_with_progress(
-                    "mradermacher/Qwen2.5-VL-7B-Instruct-GGUF",
+                    "Qwen/Qwen3-VL-8B-Instruct-GGUF",
                     filename=llm_file,
+                    cache_dir=models_dir,
+                )
+
+            # Download mmproj vision file for image editing with reference images
+            mmproj_file = "mmproj-Qwen3VL-8B-Instruct-F16.gguf"
+            mmproj_path = os.path.join(models_dir, mmproj_file)
+            if not os.path.isfile(mmproj_path):
+                download_with_progress(
+                    "Qwen/Qwen3-VL-8B-Instruct-GGUF",
+                    filename=mmproj_file,
                     cache_dir=models_dir,
                 )
         elif "gguf" in img_model.lower() or "FLUX.2-klein" in img_model:

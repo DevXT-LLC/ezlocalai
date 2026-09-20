@@ -84,7 +84,10 @@ class IMG:
         self._diffusion_path = os.path.join(self.models_dir, self.DIFFUSION_MODEL_FILE)
         self._vae_path = os.path.join(self.models_dir, self.VAE_FILE)
         self._llm_path = os.path.join(
-            self.models_dir, "Qwen2.5-VL-7B-Instruct.Q4_K_M.gguf"
+            self.models_dir, "Qwen3VL-8B-Instruct-Q4_K_M.gguf"
+        )
+        self._mmproj_path = os.path.join(
+            self.models_dir, "mmproj-Qwen3VL-8B-Instruct-F16.gguf"
         )
 
         if not all(
@@ -247,6 +250,11 @@ class IMG:
                 f"[IMG] Img2img mode: strength={strength}, "
                 f"input={width}x{height}"
             )
+
+        # Add vision (mmproj) flag when reference images are provided for image editing
+        if ref_img_paths and os.path.isfile(self._mmproj_path):
+            cmd.extend(["--llm_vision", self._mmproj_path])
+            logging.info("[IMG] Using mmproj vision weights for reference images")
 
         # Add reference image flags for IP-Adapter conditioning
         if ref_img_paths:
