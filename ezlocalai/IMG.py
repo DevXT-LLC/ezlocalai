@@ -320,7 +320,10 @@ class IMG:
 
             if self.local_uri:
                 return f"{self.local_uri}/{new_file_name}"
-            return img
+            # b64_json mode: read file bytes and base64-encode
+            with open(tmp_output, "rb") as f:
+                img_bytes = f.read()
+            return base64.b64encode(img_bytes).decode("utf-8")
 
         except subprocess.TimeoutExpired:
             logging.error("[IMG] sd-cli timed out after 600 seconds")
