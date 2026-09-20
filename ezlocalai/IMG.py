@@ -154,6 +154,7 @@ class IMG:
         guidance_scale=None,
         size="1024x1024",
         image=None,
+        images=None,
         strength=0.75,
     ):
         """Generate an image from a text prompt using Qwen-Image-2.1 via sd-cli.
@@ -170,6 +171,10 @@ class IMG:
                    base64 string, data URL, or HTTP URL. When provided, the
                    output will be a transformation of this input image guided
                    by the prompt.
+            images: Optional list of reference images (up to 10) for IP-Adapter
+                   style conditioning. Each entry accepts PIL Image, base64
+                   string, data URL, or HTTP URL. These guide the generation
+                   with visual references without denoising from them.
             strength: Denoising strength for img2img (0.0-1.0). Lower values
                      preserve more of the original image; higher values allow
                      more creative transformation. Default 0.75. Only used
@@ -207,6 +212,18 @@ class IMG:
             loaded_img.save(init_tmp)
             init_img_path = init_tmp
 
+        # Load reference images for IP-Adapter style conditioning
+        ref_img_paths = []
+        if images:
+            for idx, ref_img in enumerate(images[:10]):  # Cap at 10
+                loaded_ref = self._load_image(ref_img)
+                if loaded_ref is None:
+                    logging.warning(f"[IMG] Failed to load reference image {idx}, skipping")
+                    continue
+                ref_tmp = os.path.join(tmp_dir, f"ref_input_{idx}.png")
+                loaded_ref.save(ref_tmp)
+                ref_img_paths.append(ref_tmp)
+
         # Build sd-cli command
         cmd = [
             self.sdcli_bin,
@@ -229,6 +246,14 @@ class IMG:
             logging.info(
                 f"[IMG] Img2img mode: strength={strength}, "
                 f"input={width}x{height}"
+            )
+
+        # Add reference image flags for IP-Adapter conditioning
+        if ref_img_paths:
+            for ref_path in ref_img_paths:
+                cmd.extend(["-r", ref_path])
+            logging.info(
+                f"[IMG] Reference images: {len(ref_img_paths)} provided"
             )
 
         # Add CPU offload if device is CPU or low-VRAM GPU

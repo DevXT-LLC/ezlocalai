@@ -2099,7 +2099,8 @@ async def generate_image(
 
 
 class ImageEdit(BaseModel):
-    image: str  # base64-encoded image, data URL, or HTTP URL
+    image: str  # base64-encoded image, data URL, or HTTP URL (primary input for img2img)
+    images: Optional[List[str]] = None  # Additional reference images (up to 10), each base64/data URL/HTTP URL
     prompt: str
     model: Optional[str] = "qwen-image-2.1"
     n: Optional[int] = 1
@@ -2181,6 +2182,7 @@ async def edit_image(
             response_format=image_edit.response_format,
             size=image_edit.size,
             image=image_edit.image,
+            images=image_edit.images,
             strength=image_edit.strength,
         )
         if image_edit.response_format == "url":
