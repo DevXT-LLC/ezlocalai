@@ -13,7 +13,7 @@ def getenv(var_name: str, default_value: str = None) -> str:
         "WHISPER_MODEL": "large-v3-turbo",
         "IMAGE_ENABLED": "false",  # Set true to serve IMG_MODEL locally
         "IMG_MODEL": "none",  # Set to "qwen-image-2.1" for image generation via stable-diffusion.cpp, "none" or empty string to disable
-        "SDCPP_BIN": "/opt/stable-diffusion.cpp/build/sd-cli",  # Path to sd-cli binary (built in Docker)
+        "SDCPP_BIN": "/opt/stable-diffusion.cpp/build/bin/sd-cli",  # Path to sd-cli binary (built in Docker)
         "SDCPP_MODELS_DIR": "models/qwen-image",  # Directory for Qwen-Image model files
         "IMAGE_UNLOAD_LLM_DURING_GENERATION": "auto",
         "IMAGE_RELOAD_LLM_AFTER_GENERATION": "true",

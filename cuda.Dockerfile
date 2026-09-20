@@ -62,7 +62,7 @@ ENV HOST=0.0.0.0 \
     HF_HOME=/app/models \
     HF_HUB_CACHE=/app/models \
     ACE_STEP_BIN=/opt/acestep.cpp/build/ace-server \
-    SDCPP_BIN=/opt/stable-diffusion.cpp/build/sd-cli
+    SDCPP_BIN=/opt/stable-diffusion.cpp/build/bin/sd-cli
 # Install xllamacpp with CUDA 12.8 support (compatible with CUDA 12.9)
 RUN uv pip install xllamacpp==2026.9.10809 --reinstall --index-url https://xorbitsai.github.io/xllamacpp/whl/cu128
 COPY native/tts /opt/ezlocalai-tts

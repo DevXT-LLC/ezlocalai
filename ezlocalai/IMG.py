@@ -31,7 +31,7 @@ class IMG:
     - Text encoder LLM: Qwen2.5-VL-7B-Instruct.Q4_K_M.gguf from mradermacher
 
     Environment variables:
-    - SDCPP_BIN: Path to sd-cli binary (default: /opt/stable-diffusion.cpp/build/sd-cli)
+    - SDCPP_BIN: Path to sd-cli binary (default: /opt/stable-diffusion.cpp/build/bin/sd-cli)
     - SDCPP_MODELS_DIR: Directory for model files (default: models/qwen-image)
     - IMG_MODEL: Set to "qwen-image-2.1" to enable, "none" to disable
 
@@ -67,7 +67,7 @@ class IMG:
         self.device = device
         self.models_dir = os.environ.get("SDCPP_MODELS_DIR", "models/qwen-image")
         self.sdcli_bin = os.environ.get(
-            "SDCPP_BIN", "/opt/stable-diffusion.cpp/build/sd-cli"
+            "SDCPP_BIN", "/opt/stable-diffusion.cpp/build/bin/sd-cli"
         )
 
         # Verify binary exists

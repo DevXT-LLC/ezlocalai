@@ -52,7 +52,7 @@ ENV HOST=0.0.0.0 \
     HF_HOME=/app/models \
     HF_HUB_CACHE=/app/models \
     ACE_STEP_BIN=/opt/acestep.cpp/build/ace-server \
-    SDCPP_BIN=/opt/stable-diffusion.cpp/build/sd-cli
+    SDCPP_BIN=/opt/stable-diffusion.cpp/build/bin/sd-cli
 EXPOSE 8091
 # Use start.py which runs precache once, then starts uvicorn workers
 CMD ["python", "start.py"]
