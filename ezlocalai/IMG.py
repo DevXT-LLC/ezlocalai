@@ -82,7 +82,7 @@ class IMG:
 
         # Verify models are downloaded
         self._diffusion_path = os.path.join(self.models_dir, self.DIFFUSION_MODEL_FILE)
-        self._vae_path = os.path.join(self.models_dir, "qwen_image_vae.safetensors")
+        self._vae_path = os.path.join(self.models_dir, self.VAE_FILE)
         self._llm_path = os.path.join(
             self.models_dir, "Qwen2.5-VL-7B-Instruct.Q4_K_M.gguf"
         )
