@@ -28,7 +28,7 @@ class IMG:
     Required model files (downloaded on first use):
     - Diffusion model: qwen_image_2.1-Q4_K.gguf from leejet/Qwen-Image-2.1-GGUF
     - VAE: qwen_image_vae.safetensors from Comfy-Org/Qwen-Image_ComfyUI
-    - Text encoder LLM: Qwen2.5-VL-7B-Instruct.Q4_K_M.gguf from mradermacher
+    - Text encoder LLM: Qwen3VL-8B-Instruct-Q4_K_M.gguf from Qwen
 
     Environment variables:
     - SDCPP_BIN: Path to sd-cli binary (default: /opt/stable-diffusion.cpp/build/bin/sd-cli)
@@ -38,7 +38,7 @@ class IMG:
     Model repos:
     - https://huggingface.co/leejet/Qwen-Image-2.1-GGUF
     - https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI
-    - https://huggingface.co/mradermacher/Qwen2.5-VL-7B-Instruct-GGUF
+    - https://huggingface.co/Qwen/Qwen3-VL-8B-Instruct-GGUF
     """
 
     # Model file definitions
@@ -48,8 +48,11 @@ class IMG:
     VAE_REPO = "Comfy-Org/Qwen-Image_ComfyUI"
     VAE_FILE = "split_files/vae/qwen_image_vae.safetensors"
 
-    LLM_REPO = "mradermacher/Qwen2.5-VL-7B-Instruct-GGUF"
-    LLM_FILE = "Qwen2.5-VL-7B-Instruct.Q4_K_M.gguf"
+    LLM_REPO = "Qwen/Qwen3-VL-8B-Instruct-GGUF"
+    LLM_FILE = "Qwen3VL-8B-Instruct-Q4_K_M.gguf"
+
+    MMPROJ_REPO = "Qwen/Qwen3-VL-8B-Instruct-GGUF"
+    MMPROJ_FILE = "mmproj-Qwen3VL-8B-Instruct-F16.gguf"
 
     # Default generation parameters for Qwen-Image-2.1
     DEFAULT_CFG_SCALE = 2.5
@@ -145,6 +148,18 @@ class IMG:
             hf_hub_download(
                 self.LLM_REPO,
                 filename=self.LLM_FILE,
+                cache_dir=self.models_dir,
+                local_dir=self.models_dir,
+            )
+
+        # Download mmproj vision file for image editing
+        if not os.path.isfile(self._mmproj_path):
+            logging.info(
+                f"[IMG] Downloading mmproj vision: {self.MMPROJ_REPO}/{self.MMPROJ_FILE}"
+            )
+            hf_hub_download(
+                self.MMPROJ_REPO,
+                filename=self.MMPROJ_FILE,
                 cache_dir=self.models_dir,
                 local_dir=self.models_dir,
             )
