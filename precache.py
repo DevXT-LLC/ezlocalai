@@ -599,7 +599,7 @@ def precache_image_model():
 
     For Qwen-Image-2.1 (stable-diffusion.cpp), downloads 3 files:
     - Diffusion model GGUF (qwen_image_2.1-Q4_K.gguf)
-    - VAE safetensors (qwen_image_vae.safetensors)
+    - VAE safetensors (qwen_image_2.1_vae_bf16.safetensors)
     - Text encoder LLM GGUF (Qwen2.5-VL-7B-Instruct.Q4_K_M.gguf)
     """
     if not is_image_enabled():
@@ -643,12 +643,12 @@ def precache_image_model():
                 )
 
             # Download VAE safetensors
-            vae_file = "qwen_image_vae.safetensors"
+            vae_file = "qwen_image_2.1_vae_bf16.safetensors"
             vae_path = os.path.join(models_dir, vae_file)
             if not os.path.isfile(vae_path):
                 download_with_progress(
                     "Comfy-Org/Qwen-Image_ComfyUI",
-                    filename="split_files/vae/qwen_image_vae.safetensors",
+                    filename="vae/qwen_image_2.1_vae_bf16.safetensors",
                     cache_dir=models_dir,
                 )
 

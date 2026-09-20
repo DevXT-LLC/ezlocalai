@@ -27,7 +27,7 @@ class IMG:
 
     Required model files (downloaded on first use):
     - Diffusion model: qwen_image_2.1-Q4_K.gguf from leejet/Qwen-Image-2.1-GGUF
-    - VAE: qwen_image_vae.safetensors from Comfy-Org/Qwen-Image_ComfyUI
+    - VAE: qwen_image_2.1_vae_bf16.safetensors from Comfy-Org/Qwen-Image-2.1
     - Text encoder LLM: Qwen3VL-8B-Instruct-Q4_K_M.gguf from Qwen
 
     Environment variables:
@@ -37,7 +37,7 @@ class IMG:
 
     Model repos:
     - https://huggingface.co/leejet/Qwen-Image-2.1-GGUF
-    - https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI
+    - https://huggingface.co/Comfy-Org/Qwen-Image-2.1
     - https://huggingface.co/Qwen/Qwen3-VL-8B-Instruct-GGUF
     """
 
@@ -45,8 +45,8 @@ class IMG:
     DIFFUSION_MODEL_REPO = "leejet/Qwen-Image-2.1-GGUF"
     DIFFUSION_MODEL_FILE = "qwen_image_2.1-Q4_K.gguf"
 
-    VAE_REPO = "Comfy-Org/Qwen-Image_ComfyUI"
-    VAE_FILE = "split_files/vae/qwen_image_vae.safetensors"
+    VAE_REPO = "Comfy-Org/Qwen-Image-2.1"
+    VAE_FILE = "vae/qwen_image_2.1_vae_bf16.safetensors"
 
     LLM_REPO = "Qwen/Qwen3-VL-8B-Instruct-GGUF"
     LLM_FILE = "Qwen3VL-8B-Instruct-Q4_K_M.gguf"
