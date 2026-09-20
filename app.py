@@ -2105,6 +2105,7 @@ class ImageEdit(BaseModel):
     n: Optional[int] = 1
     size: Optional[str] = "1024x1024"
     response_format: Optional[str] = "url"
+    strength: Optional[float] = 0.75  # Denoising strength for img2img (0.0-1.0)
 
 
 @app.post(
@@ -2180,6 +2181,7 @@ async def edit_image(
             response_format=image_edit.response_format,
             size=image_edit.size,
             image=image_edit.image,
+            strength=image_edit.strength,
         )
         if image_edit.response_format == "url":
             images.append({"url": image})

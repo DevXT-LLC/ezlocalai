@@ -8355,7 +8355,8 @@ class Pipes:
         return result
 
     async def generate_image(
-        self, prompt, response_format="url", size="512x512", image=None
+        self, prompt, response_format="url", size="512x512", image=None,
+        strength=0.75
     ):
         async with self._img_lock:
             llm_handoff = None
@@ -8380,7 +8381,7 @@ class Pipes:
                         )
                         generation = asyncio.create_task(
                             asyncio.to_thread(
-                                img.generate, prompt=prompt, size=size, image=image
+                                img.generate, prompt=prompt, size=size, image=image, strength=strength
                             )
                         )
                         try:

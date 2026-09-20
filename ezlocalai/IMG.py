@@ -154,16 +154,26 @@ class IMG:
         guidance_scale=None,
         size="1024x1024",
         image=None,
+        strength=0.75,
     ):
         """Generate an image from a text prompt using Qwen-Image-2.1 via sd-cli.
 
+        Supports both text-to-image and image-to-image (editing) generation.
+
         Args:
-            prompt: Text description of the image to generate
+            prompt: Text description of the image to generate or edit
             negative_prompt: Unused (Qwen-Image uses CFG instead)
             num_inference_steps: Number of denoising steps (default: 20)
             guidance_scale: CFG scale (default: 2.5)
             size: Output image size as "WIDTHxHEIGHT"
-            image: Optional input image for editing (not yet supported via sd-cli)
+            image: Optional input image for img2img editing. Accepts PIL Image,
+                   base64 string, data URL, or HTTP URL. When provided, the
+                   output will be a transformation of this input image guided
+                   by the prompt.
+            strength: Denoising strength for img2img (0.0-1.0). Lower values
+                     preserve more of the original image; higher values allow
+                     more creative transformation. Default 0.75. Only used
+                     when image is provided.
 
         Returns:
             Path to saved image or PIL Image object, or None on failure
@@ -182,6 +192,21 @@ class IMG:
         steps = num_inference_steps if num_inference_steps else self.DEFAULT_STEPS
         cfg = guidance_scale if guidance_scale is not None else self.DEFAULT_CFG_SCALE
 
+        # Create temp directory for intermediate files
+        tmp_dir = tempfile.mkdtemp()
+
+        # Load input image for img2img if provided
+        init_img_path = None
+        if image is not None:
+            loaded_img = self._load_image(image)
+            if loaded_img is None:
+                logging.error("[IMG] Failed to load input image for editing")
+                return None
+            # Save to temp file for sd-cli
+            init_tmp = os.path.join(tmp_dir, "init_input.png")
+            loaded_img.save(init_tmp)
+            init_img_path = init_tmp
+
         # Build sd-cli command
         cmd = [
             self.sdcli_bin,
@@ -197,12 +222,20 @@ class IMG:
             "--flow-shift", str(self.DEFAULT_FLOW_SHIFT),
         ]
 
+        # Add img2img flags when input image is provided
+        if init_img_path:
+            cmd.extend(["--init-img", init_img_path])
+            cmd.extend(["--strength", str(strength)])
+            logging.info(
+                f"[IMG] Img2img mode: strength={strength}, "
+                f"input={width}x{height}"
+            )
+
         # Add CPU offload if device is CPU or low-VRAM GPU
         if self.device == "cpu" or self._should_offload():
             cmd.append("--offload-to-cpu")
 
         # Use a temp file for output, then move to final location
-        tmp_dir = tempfile.mkdtemp()
         tmp_output = os.path.join(tmp_dir, "output.png")
         cmd.extend(["-o", tmp_output])
 
