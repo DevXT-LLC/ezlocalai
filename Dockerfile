@@ -15,6 +15,15 @@ RUN git clone --depth 1 --recurse-submodules https://github.com/ServeurpersoCom/
     cmake -B build -DGGML_BLAS=ON -DCMAKE_BUILD_TYPE=Release && \
     cmake --build build --config Release --parallel "$(nproc)" --target ace-server
 
+# Build stable-diffusion.cpp for Qwen-Image-2.1 GGUF image generation
+ARG SDCPP_REF=master
+RUN git clone --depth 1 --recurse-submodules https://github.com/leejet/stable-diffusion.cpp.git /opt/stable-diffusion.cpp && \
+    cd /opt/stable-diffusion.cpp && \
+    git checkout "$SDCPP_REF" && \
+    git submodule update --init --recursive && \
+    cmake -B build -DGGML_BLAS=ON -DCMAKE_BUILD_TYPE=Release && \
+    cmake --build build --config Release --parallel "$(nproc)" --target sd-cli
+
 # Install PyTorch CPU version
 RUN pip install torch==2.6.0 torchaudio==2.6.0 --index-url https://download.pytorch.org/whl/cpu --no-cache-dir
 
@@ -42,7 +51,8 @@ ENV HOST=0.0.0.0 \
     PYTHONUNBUFFERED=1 \
     HF_HOME=/app/models \
     HF_HUB_CACHE=/app/models \
-    ACE_STEP_BIN=/opt/acestep.cpp/build/ace-server
+    ACE_STEP_BIN=/opt/acestep.cpp/build/ace-server \
+    SDCPP_BIN=/opt/stable-diffusion.cpp/build/sd-cli
 EXPOSE 8091
 # Use start.py which runs precache once, then starts uvicorn workers
 CMD ["python", "start.py"]

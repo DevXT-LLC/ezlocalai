@@ -29,6 +29,16 @@ RUN ln -sf /usr/local/cuda/lib64/stubs/libcuda.so /usr/local/cuda/lib64/stubs/li
     git submodule update --init --recursive && \
     cmake -B build -DGGML_CUDA=ON -DCMAKE_CUDA_COMPILER=/usr/local/cuda/bin/nvcc -DCMAKE_CUDA_ARCHITECTURES="${ACESTEP_CUDA_ARCHITECTURES}" -DCMAKE_EXE_LINKER_FLAGS="-L/usr/local/cuda/lib64/stubs -Wl,-rpath-link,/usr/local/cuda/lib64/stubs" -DCMAKE_BUILD_TYPE=Release && \
     cmake --build build --config Release --parallel "$(nproc)" --target ace-server
+
+# Build stable-diffusion.cpp for Qwen-Image-2.1 GGUF image generation (CUDA)
+ARG SDCPP_REF=master
+RUN git clone --depth 1 --recurse-submodules https://github.com/leejet/stable-diffusion.cpp.git /opt/stable-diffusion.cpp && \
+    cd /opt/stable-diffusion.cpp && \
+    git checkout "$SDCPP_REF" && \
+    git submodule update --init --recursive && \
+    cmake -B build -DGGML_CUDA=ON -DCMAKE_CUDA_COMPILER=/usr/local/cuda/bin/nvcc -DCMAKE_CUDA_ARCHITECTURES="75-virtual;80-virtual;86-real;89-real" -DCMAKE_BUILD_TYPE=Release && \
+    cmake --build build --config Release --parallel "$(nproc)" --target sd-cli
+
 # Use PyTorch 2.9.1 which is built against cuDNN 9.10.2
 # Install nvidia-cudnn-cu12==9.10.2.21 to get matching cuDNN libraries (overrides system cuDNN 9.8.0)
 RUN uv pip install torch==2.9.1+cu128 torchaudio==2.9.1+cu128 --index-url https://download.pytorch.org/whl/cu128 && \
@@ -51,7 +61,8 @@ ENV HOST=0.0.0.0 \
     PYTHONUNBUFFERED=1 \
     HF_HOME=/app/models \
     HF_HUB_CACHE=/app/models \
-    ACE_STEP_BIN=/opt/acestep.cpp/build/ace-server
+    ACE_STEP_BIN=/opt/acestep.cpp/build/ace-server \
+    SDCPP_BIN=/opt/stable-diffusion.cpp/build/sd-cli
 # Install xllamacpp with CUDA 12.8 support (compatible with CUDA 12.9)
 RUN uv pip install xllamacpp==2026.9.10809 --reinstall --index-url https://xorbitsai.github.io/xllamacpp/whl/cu128
 COPY native/tts /opt/ezlocalai-tts

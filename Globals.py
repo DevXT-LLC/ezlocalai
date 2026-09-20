@@ -12,7 +12,9 @@ def getenv(var_name: str, default_value: str = None) -> str:
         "DEFAULT_MODEL": "unsloth/Qwen3.5-4B-GGUF",
         "WHISPER_MODEL": "large-v3-turbo",
         "IMAGE_ENABLED": "false",  # Set true to serve IMG_MODEL locally
-        "IMG_MODEL": "none",  # Set to "unsloth/FLUX.2-klein-4B-GGUF" for image generation + editing, "none" or empty string to disable
+        "IMG_MODEL": "none",  # Set to "qwen-image-2.1" for image generation via stable-diffusion.cpp, "none" or empty string to disable
+        "SDCPP_BIN": "/opt/stable-diffusion.cpp/build/sd-cli",  # Path to sd-cli binary (built in Docker)
+        "SDCPP_MODELS_DIR": "models/qwen-image",  # Directory for Qwen-Image model files
         "IMAGE_UNLOAD_LLM_DURING_GENERATION": "auto",
         "IMAGE_RELOAD_LLM_AFTER_GENERATION": "true",
         "IMAGE_WAIT_FOR_LLM_IDLE_TIMEOUT": "60",

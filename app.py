@@ -1970,7 +1970,7 @@ async def upload_voice(
 
 class ImageCreation(BaseModel):
     prompt: str
-    model: Optional[str] = "unsloth/FLUX.2-klein-4B-GGUF"
+    model: Optional[str] = "qwen-image-2.1"
     n: Optional[int] = 1
     size: Optional[str] = "1024x1024"
     quality: Optional[str] = "hd"
@@ -2101,7 +2101,7 @@ async def generate_image(
 class ImageEdit(BaseModel):
     image: str  # base64-encoded image, data URL, or HTTP URL
     prompt: str
-    model: Optional[str] = "unsloth/FLUX.2-klein-4B-GGUF"
+    model: Optional[str] = "qwen-image-2.1"
     n: Optional[int] = 1
     size: Optional[str] = "1024x1024"
     response_format: Optional[str] = "url"

@@ -595,11 +595,12 @@ def precache_stt():
 
 
 def precache_image_model():
-    """Download image generation GGUF transformer and pipeline components if configured.
+    """Download image generation model files if configured.
 
-    Downloads the GGUF file during precache. Pipeline components
-    (text_encoder, vae, etc.) are downloaded on first inference by
-    Flux2KleinPipeline.from_pretrained.
+    For Qwen-Image-2.1 (stable-diffusion.cpp), downloads 3 files:
+    - Diffusion model GGUF (qwen_image_2.1-Q4_K.gguf)
+    - VAE safetensors (qwen_image_vae.safetensors)
+    - Text encoder LLM GGUF (Qwen2.5-VL-7B-Instruct-Q4_K_M.gguf)
     """
     if not is_image_enabled():
         logging.info("  - Image: Skipped (disabled)")
@@ -626,8 +627,42 @@ def precache_image_model():
 
         start_time = time.time()
 
-        # For GGUF models, download just the quantized transformer file
-        if "gguf" in img_model.lower() or "FLUX.2-klein" in img_model:
+        # Qwen-Image-2.1 via stable-diffusion.cpp requires 3 model files
+        if "qwen-image" in img_model.lower():
+            models_dir = getenv("SDCPP_MODELS_DIR", "models/qwen-image")
+            os.makedirs(models_dir, exist_ok=True)
+
+            # Download diffusion model GGUF
+            diffusion_file = "qwen_image_2.1-Q4_K.gguf"
+            diffusion_path = os.path.join(models_dir, diffusion_file)
+            if not os.path.isfile(diffusion_path):
+                download_with_progress(
+                    "leejet/Qwen-Image-2.1-GGUF",
+                    filename=diffusion_file,
+                    cache_dir=models_dir,
+                )
+
+            # Download VAE safetensors
+            vae_file = "qwen_image_vae.safetensors"
+            vae_path = os.path.join(models_dir, vae_file)
+            if not os.path.isfile(vae_path):
+                download_with_progress(
+                    "Comfy-Org/Qwen-Image_ComfyUI",
+                    filename="split_files/vae/qwen_image_vae.safetensors",
+                    cache_dir=models_dir,
+                )
+
+            # Download text encoder LLM GGUF
+            llm_file = "Qwen2.5-VL-7B-Instruct-Q4_K_M.gguf"
+            llm_path = os.path.join(models_dir, llm_file)
+            if not os.path.isfile(llm_path):
+                download_with_progress(
+                    "mradermacher/Qwen2.5-VL-7B-Instruct-GGUF",
+                    filename=llm_file,
+                    cache_dir=models_dir,
+                )
+        elif "gguf" in img_model.lower() or "FLUX.2-klein" in img_model:
+            # Legacy FLUX.2-klein path (kept for backward compatibility)
             gguf_filename = "flux-2-klein-4b-Q4_K_M.gguf"
             repo = (
                 img_model
