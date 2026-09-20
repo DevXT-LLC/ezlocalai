@@ -595,13 +595,7 @@ def precache_stt():
 
 
 def precache_image_model():
-    """Download image generation model files if configured.
-
-    For Qwen-Image-2.1 (stable-diffusion.cpp), downloads 3 files:
-    - Diffusion model GGUF (qwen_image_2.1-Q4_K.gguf)
-    - VAE safetensors (qwen_image_2.1_vae_bf16.safetensors)
-    - Text encoder LLM GGUF (Qwen2.5-VL-7B-Instruct.Q4_K_M.gguf)
-    """
+    """Cache the same four Qwen model files and paths used by IMG."""
     if not is_image_enabled():
         logging.info("  - Image: Skipped (disabled)")
         return
@@ -627,50 +621,23 @@ def precache_image_model():
 
         start_time = time.time()
 
-        # Qwen-Image-2.1 via stable-diffusion.cpp requires 3 model files
         if "qwen-image" in img_model.lower():
+            from ezlocalai.IMG import IMG
+
             models_dir = getenv("SDCPP_MODELS_DIR", "models/qwen-image")
-            os.makedirs(models_dir, exist_ok=True)
-
-            # Download diffusion model GGUF
-            diffusion_file = "qwen_image_2.1-Q4_K.gguf"
-            diffusion_path = os.path.join(models_dir, diffusion_file)
-            if not os.path.isfile(diffusion_path):
-                download_with_progress(
-                    "leejet/Qwen-Image-2.1-GGUF",
-                    filename=diffusion_file,
-                    cache_dir=models_dir,
-                )
-
-            # Download VAE safetensors
-            vae_file = "qwen_image_2.1_vae_bf16.safetensors"
-            vae_path = os.path.join(models_dir, vae_file)
-            if not os.path.isfile(vae_path):
-                download_with_progress(
-                    "Comfy-Org/Qwen-Image_ComfyUI",
-                    filename="vae/qwen_image_2.1_vae_bf16.safetensors",
-                    cache_dir=models_dir,
-                )
-
-            # Download text encoder LLM GGUF (Qwen3-VL-8B-Instruct)
-            llm_file = "Qwen3VL-8B-Instruct-Q4_K_M.gguf"
-            llm_path = os.path.join(models_dir, llm_file)
-            if not os.path.isfile(llm_path):
-                download_with_progress(
-                    "Qwen/Qwen3-VL-8B-Instruct-GGUF",
-                    filename=llm_file,
-                    cache_dir=models_dir,
-                )
-
-            # Download mmproj vision file for image editing with reference images
-            mmproj_file = "mmproj-Qwen3VL-8B-Instruct-F16.gguf"
-            mmproj_path = os.path.join(models_dir, mmproj_file)
-            if not os.path.isfile(mmproj_path):
-                download_with_progress(
-                    "Qwen/Qwen3-VL-8B-Instruct-GGUF",
-                    filename=mmproj_file,
-                    cache_dir=models_dir,
-                )
+            for repo, filename in (
+                (IMG.DIFFUSION_MODEL_REPO, IMG.DIFFUSION_MODEL_FILE),
+                (IMG.VAE_REPO, IMG.VAE_FILE),
+                (IMG.LLM_REPO, IMG.LLM_FILE),
+                (IMG.MMPROJ_REPO, IMG.MMPROJ_FILE),
+            ):
+                if not os.path.isfile(os.path.join(models_dir, filename)):
+                    download_with_progress(
+                        repo,
+                        filename=filename,
+                        cache_dir=models_dir,
+                        local_dir=models_dir,
+                    )
         elif "gguf" in img_model.lower() or "FLUX.2-klein" in img_model:
             # Legacy FLUX.2-klein path (kept for backward compatibility)
             gguf_filename = "flux-2-klein-4b-Q4_K_M.gguf"

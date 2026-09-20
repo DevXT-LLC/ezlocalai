@@ -19,7 +19,7 @@ from fastapi.responses import StreamingResponse, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from starlette.background import BackgroundTask
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, model_validator
 from typing import Any, List, Dict, Literal, Union, Optional
 import struct
 from Pipes import ModelType, Pipes
@@ -2099,14 +2099,30 @@ async def generate_image(
 
 
 class ImageEdit(BaseModel):
-    image: Optional[str] = None  # base64-encoded image, data URL, or HTTP URL (primary input for img2img)
-    images: Optional[List[str]] = None  # Additional reference images (up to 10), each base64/data URL/HTTP URL
+    image: Optional[str] = None
+    images: Optional[List[str]] = Field(default=None, max_length=10)
     prompt: str
     model: Optional[str] = "qwen-image-2.1"
-    n: Optional[int] = 1
-    size: Optional[str] = "1024x1024"
-    response_format: Optional[str] = "url"
-    strength: Optional[float] = 0.75  # Denoising strength for img2img (0.0-1.0)
+    n: int = Field(default=1, ge=1, le=10)
+    size: str = "1024x1024"
+    response_format: Literal["url", "b64_json"] = "url"
+    strength: float = Field(default=0.75, ge=0.0, le=1.0)
+
+    @model_validator(mode="after")
+    def validate_edit(self):
+        if not self.image and not self.images:
+            raise ValueError("image or images is required")
+        if self.image == "" or any(not image for image in self.images or []):
+            raise ValueError("Reference images must not be empty")
+        try:
+            dimensions = [int(value) for value in self.size.split("x")]
+        except ValueError:
+            dimensions = []
+        if len(dimensions) != 2 or any(
+            value <= 0 or value % 32 for value in dimensions
+        ):
+            raise ValueError("size must contain two positive multiples of 32")
+        return self
 
 
 @app.post(
@@ -2133,6 +2149,8 @@ async def edit_image(
                     size=image_edit.size,
                     n=image_edit.n,
                     image=image_edit.image,
+                    images=image_edit.images,
+                    strength=image_edit.strength,
                 )
                 if result is not None:
                     return result
@@ -2148,6 +2166,8 @@ async def edit_image(
                 size=image_edit.size,
                 n=image_edit.n,
                 image=image_edit.image,
+                images=image_edit.images,
+                strength=image_edit.strength,
             )
             if result is not None:
                 return result
@@ -2167,24 +2187,32 @@ async def edit_image(
                         prompt=image_edit.prompt,
                         response_format=image_edit.response_format,
                         size=image_edit.size,
+                        n=image_edit.n,
+                        image=image_edit.image,
+                        images=image_edit.images,
+                        strength=image_edit.strength,
                     )
                 except Exception as e:
                     logging.warning(f"[IMG] Fallback failed: {e}")
-        return {
-            "created": int(time.time()),
-            "data": [{"url": "https://demofree.sirv.com/nope-not-here.jpg"}],
-        }
+        raise HTTPException(status_code=503, detail="No image editing service available")
 
     images = []
     for i in range(int(image_edit.n)):
-        image = await pipe.generate_image(
-            prompt=image_edit.prompt,
-            response_format=image_edit.response_format,
-            size=image_edit.size,
-            image=image_edit.image,
-            images=image_edit.images,
-            strength=image_edit.strength,
-        )
+        try:
+            image = await pipe.generate_image(
+                prompt=image_edit.prompt,
+                response_format=image_edit.response_format,
+                size=image_edit.size,
+                image=image_edit.image,
+                images=image_edit.images,
+                strength=image_edit.strength,
+            )
+        except ValueError as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
+        except RuntimeError as exc:
+            raise HTTPException(status_code=503, detail=str(exc)) from exc
+        if not image:
+            raise HTTPException(status_code=503, detail="Image editing produced no output")
         if image_edit.response_format == "url":
             images.append({"url": image})
         else:

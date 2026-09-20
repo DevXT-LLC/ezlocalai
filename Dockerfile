@@ -16,10 +16,11 @@ RUN git clone --depth 1 --recurse-submodules https://github.com/ServeurpersoCom/
     cmake --build build --config Release --parallel "$(nproc)" --target ace-server
 
 # Build stable-diffusion.cpp for Qwen-Image-2.1 GGUF image generation
-ARG SDCPP_REF=master
+ARG SDCPP_REF=c678dfe704a2230342376b46add9c8ca736a653d
 RUN git clone --depth 1 --recurse-submodules https://github.com/leejet/stable-diffusion.cpp.git /opt/stable-diffusion.cpp && \
     cd /opt/stable-diffusion.cpp && \
-    git checkout "$SDCPP_REF" && \
+    git fetch --depth 1 origin "$SDCPP_REF" && \
+    git checkout --detach FETCH_HEAD && \
     git submodule update --init --recursive && \
     cmake -B build -DGGML_BLAS=ON -DCMAKE_BUILD_TYPE=Release && \
     cmake --build build --config Release --parallel "$(nproc)" --target sd-cli

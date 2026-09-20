@@ -31,12 +31,13 @@ RUN ln -sf /usr/local/cuda/lib64/stubs/libcuda.so /usr/local/cuda/lib64/stubs/li
     cmake --build build --config Release --parallel "$(nproc)" --target ace-server
 
 # Build stable-diffusion.cpp for Qwen-Image-2.1 GGUF image generation (CUDA)
-ARG SDCPP_REF=master
+ARG SDCPP_REF=c678dfe704a2230342376b46add9c8ca736a653d
 RUN git clone --depth 1 --recurse-submodules https://github.com/leejet/stable-diffusion.cpp.git /opt/stable-diffusion.cpp && \
     cd /opt/stable-diffusion.cpp && \
-    git checkout "$SDCPP_REF" && \
+    git fetch --depth 1 origin "$SDCPP_REF" && \
+    git checkout --detach FETCH_HEAD && \
     git submodule update --init --recursive && \
-    cmake -B build -DGGML_CUDA=ON -DCMAKE_CUDA_COMPILER=/usr/local/cuda/bin/nvcc -DCMAKE_CUDA_ARCHITECTURES="75-virtual;80-virtual;86-real;89-real" -DCMAKE_BUILD_TYPE=Release && \
+    cmake -B build -DSD_CUDA=ON -DCMAKE_CUDA_COMPILER=/usr/local/cuda/bin/nvcc -DCMAKE_CUDA_ARCHITECTURES="75-virtual;80-virtual;86-real;89-real" -DCMAKE_EXE_LINKER_FLAGS="-L/usr/local/cuda/lib64/stubs -Wl,-rpath-link,/usr/local/cuda/lib64/stubs" -DCMAKE_BUILD_TYPE=Release && \
     cmake --build build --config Release --parallel "$(nproc)" --target sd-cli
 
 # Use PyTorch 2.9.1 which is built against cuDNN 9.10.2
