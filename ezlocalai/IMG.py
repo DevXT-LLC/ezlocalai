@@ -28,7 +28,7 @@ class IMG:
     Required model files (downloaded on first use):
     - Diffusion model: qwen_image_2.1-Q4_K.gguf from leejet/Qwen-Image-2.1-GGUF
     - VAE: qwen_image_vae.safetensors from Comfy-Org/Qwen-Image_ComfyUI
-    - Text encoder LLM: Qwen2.5-VL-7B-Instruct-Q4_K_M.gguf from mradermacher
+    - Text encoder LLM: Qwen2.5-VL-7B-Instruct.Q4_K_M.gguf from mradermacher
 
     Environment variables:
     - SDCPP_BIN: Path to sd-cli binary (default: /opt/stable-diffusion.cpp/build/sd-cli)
@@ -49,7 +49,7 @@ class IMG:
     VAE_FILE = "split_files/vae/qwen_image_vae.safetensors"
 
     LLM_REPO = "mradermacher/Qwen2.5-VL-7B-Instruct-GGUF"
-    LLM_FILE = "Qwen2.5-VL-7B-Instruct-Q4_K_M.gguf"
+    LLM_FILE = "Qwen2.5-VL-7B-Instruct.Q4_K_M.gguf"
 
     # Default generation parameters for Qwen-Image-2.1
     DEFAULT_CFG_SCALE = 2.5
@@ -84,7 +84,7 @@ class IMG:
         self._diffusion_path = os.path.join(self.models_dir, self.DIFFUSION_MODEL_FILE)
         self._vae_path = os.path.join(self.models_dir, "qwen_image_vae.safetensors")
         self._llm_path = os.path.join(
-            self.models_dir, "Qwen2.5-VL-7B-Instruct-Q4_K_M.gguf"
+            self.models_dir, "Qwen2.5-VL-7B-Instruct.Q4_K_M.gguf"
         )
 
         if not all(

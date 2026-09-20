@@ -600,7 +600,7 @@ def precache_image_model():
     For Qwen-Image-2.1 (stable-diffusion.cpp), downloads 3 files:
     - Diffusion model GGUF (qwen_image_2.1-Q4_K.gguf)
     - VAE safetensors (qwen_image_vae.safetensors)
-    - Text encoder LLM GGUF (Qwen2.5-VL-7B-Instruct-Q4_K_M.gguf)
+    - Text encoder LLM GGUF (Qwen2.5-VL-7B-Instruct.Q4_K_M.gguf)
     """
     if not is_image_enabled():
         logging.info("  - Image: Skipped (disabled)")
@@ -653,7 +653,7 @@ def precache_image_model():
                 )
 
             # Download text encoder LLM GGUF
-            llm_file = "Qwen2.5-VL-7B-Instruct-Q4_K_M.gguf"
+            llm_file = "Qwen2.5-VL-7B-Instruct.Q4_K_M.gguf"
             llm_path = os.path.join(models_dir, llm_file)
             if not os.path.isfile(llm_path):
                 download_with_progress(
