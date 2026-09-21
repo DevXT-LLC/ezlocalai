@@ -1324,6 +1324,8 @@ class EzlocalaiClient:
         size: str = "512x512",
         n: int = 1,
         image: str = None,
+        images: list = None,
+        strength: float = 0.75,
     ):
         """Forward an image generation request to the fallback server."""
         if not self.is_configured:
@@ -1343,16 +1345,20 @@ class EzlocalaiClient:
                 }
                 if image:
                     payload["image"] = image
+                if images:
+                    payload["images"] = images
+                if image or images:
+                    payload["strength"] = strength
                 endpoint = (
                     f"{self.base_url}/v1/images/edits"
-                    if image
+                    if image or images
                     else f"{self.base_url}/v1/images/generations"
                 )
                 async with session.post(
                     endpoint,
                     json=payload,
                     headers=self._get_headers(),
-                    timeout=aiohttp.ClientTimeout(total=180),
+                    timeout=aiohttp.ClientTimeout(total=660),
                 ) as resp:
                     if resp.status != 200:
                         error_text = await resp.text()
@@ -2007,6 +2013,8 @@ class ImageServerClient:
         size: str = "1024x1024",
         n: int = 1,
         image: str = None,
+        images: list = None,
+        strength: float = 0.75,
     ) -> Optional[dict]:
         if not self.is_configured:
             return None
@@ -2024,18 +2032,22 @@ class ImageServerClient:
             }
             if image:
                 payload["image"] = image
+            if images:
+                payload["images"] = images
+            if image or images:
+                payload["strength"] = strength
 
             async with aiohttp.ClientSession() as session:
                 endpoint = (
                     f"{self.base_url}/v1/images/edits"
-                    if image
+                    if image or images
                     else f"{self.base_url}/v1/images/generations"
                 )
                 async with session.post(
                     endpoint,
                     json=payload,
                     headers=self._get_headers(),
-                    timeout=aiohttp.ClientTimeout(total=300),
+                    timeout=aiohttp.ClientTimeout(total=660),
                 ) as resp:
                     if resp.status == 200:
                         return await resp.json()
@@ -8355,7 +8367,8 @@ class Pipes:
         return result
 
     async def generate_image(
-        self, prompt, response_format="url", size="512x512", image=None
+        self, prompt, response_format="url", size="512x512", image=None,
+        images=None, strength=0.75
     ):
         async with self._img_lock:
             llm_handoff = None
@@ -8380,7 +8393,7 @@ class Pipes:
                         )
                         generation = asyncio.create_task(
                             asyncio.to_thread(
-                                img.generate, prompt=prompt, size=size, image=image
+                                img.generate, prompt=prompt, size=size, image=image, images=images, strength=strength
                             )
                         )
                         try:
