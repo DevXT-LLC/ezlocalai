@@ -617,15 +617,77 @@ class RouterSelectionTests(unittest.TestCase):
 
         self.assertIsNone(worker)
 
-    def test_wait_for_worker_uses_available_fallback_without_default_grace(self):
+    def test_wait_for_worker_does_not_substitute_explicit_model(self):
         router = self._router_with_worker("text")
-
         worker = asyncio.run(
-            router.wait_for_worker("text", "different-text-model", timeout=0)
+            router.wait_for_worker(
+                "text", "different-text-model", timeout=0.01, poll_interval=0.01
+            )
         )
+        self.assertIsNone(worker)
 
+    def test_generic_model_keeps_default_worker_routing(self):
+        router = self._router_with_worker("text")
+        worker = asyncio.run(router.wait_for_worker("text", "default", timeout=0))
         self.assertIsNotNone(worker)
         self.assertEqual(worker.label, "TEXT Worker")
+
+    def test_exhausted_27b_pool_never_spills_to_2b_or_waits_forever(self):
+        model = "unsloth/Qwen3.8-27B-GGUF"
+        registry = WorkerRegistry(ttl_seconds=60)
+        large = registry.register(self._text_worker("27b", model, best_tier=50))
+        registry.register(
+            self._text_worker("2b", "openbmb/MiniCPM5-2B-GGUF", best_tier=90)
+        )
+        router = Router(registry)
+
+        async def exhausted():
+            return await asyncio.wait_for(
+                router.wait_for_worker(
+                    "text",
+                    model,
+                    timeout=0,
+                    exclude={large.worker_id},
+                    fail_if_exhausted=True,
+                ),
+                timeout=0.2,
+            )
+
+        with patch.dict(os.environ, {"ROUTER_ALLOW_CROSS_MODEL": "true"}):
+            self.assertIsNone(asyncio.run(exhausted()))
+
+    def test_cross_model_fallback_requires_explicit_opt_in(self):
+        router = self._router_with_worker("text")
+        with patch.dict(os.environ, {"ROUTER_ALLOW_CROSS_MODEL": "true"}):
+            worker = asyncio.run(
+                router.wait_for_worker("text", "different-text-model", timeout=0)
+            )
+        self.assertIsNotNone(worker)
+
+    def test_initial_soft_exclusions_still_wait_for_recovering_model(self):
+        model = "model-a"
+        registry = WorkerRegistry(ttl_seconds=60)
+        old = registry.register(
+            self._text_worker("offline-tunnel", model, best_tier=50)
+        )
+        router = Router(registry)
+
+        async def recover():
+            task = asyncio.create_task(
+                router.wait_for_worker(
+                    "text",
+                    model,
+                    timeout=0,
+                    exclude={old.worker_id},
+                    poll_interval=0.001,
+                )
+            )
+            await asyncio.sleep(0.01)
+            self.assertFalse(task.done())
+            new = registry.register(self._text_worker("recovered", model, best_tier=50))
+            self.assertIs(await asyncio.wait_for(task, 0.2), new)
+
+        asyncio.run(recover())
 
     def test_busy_27b_never_spills_to_idle_2b_after_grace(self):
         model = "unsloth/Qwen3.8-27B-GGUF"

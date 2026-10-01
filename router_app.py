@@ -376,12 +376,11 @@ def _normalize_model_name(model: Optional[str]) -> str:
 
 
 def _worker_model_context(worker: WorkerInfo, model: str) -> int:
-    target = _normalize_model_name(model)
     return max(
         (
             int(context or 0)
             for name, context in worker.model_context.items()
-            if _normalize_model_name(name) == target
+            if model_name_matches(model, name)
         ),
         default=0,
     )
@@ -899,11 +898,40 @@ def _is_context_capacity_error(message: str, error_type: str = "") -> bool:
             "context_capacity_error",
             "exceed_context_size_error",
             "request exceeds context",
+            "exceeds the available context size",
             "maximum context length",
             "too many tokens",
             "input token size",
         )
     )
+
+
+async def _with_stream_keepalive(stream, interval: float = 15.0):
+    """Keep clients connected while routing/headers/prefill are still pending.
+
+    Do not cancel the upstream read on each tick or buffer an unbounded stream.
+    Worker read-idle deadlines and disconnect cancellation remain authoritative.
+    """
+    pending = None
+    try:
+        while True:
+            if pending is None:
+                pending = asyncio.create_task(anext(stream))
+            done, _ = await asyncio.wait({pending}, timeout=interval)
+            if not done:
+                yield b": keepalive\n\n"
+                continue
+            try:
+                chunk = pending.result()
+            except StopAsyncIteration:
+                return
+            pending = None
+            yield chunk
+    finally:
+        if pending is not None:
+            pending.cancel()
+            await asyncio.gather(pending, return_exceptions=True)
+        await stream.aclose()
 
 
 def _sse_event_payloads(event: bytes) -> List[bytes]:
@@ -3321,6 +3349,7 @@ async def _pick(
     affinity_key: Optional[str] = None,
     system_prefix_keys: Optional[List[str]] = None,
     worker_id: Optional[str] = None,
+    retrying: bool = False,
 ) -> WorkerInfo:
     router = get_router()
     # Pre-exclude tunneled workers whose WebSocket is not currently connected.
@@ -3435,6 +3464,7 @@ async def _pick(
         model,
         timeout=0 if wait_indefinitely else _wait_timeout(),
         exclude=pre_exclude,
+        **({"fail_if_exhausted": True} if retrying else {}),
     )
     if worker is None:
         raise HTTPException(
@@ -4067,6 +4097,8 @@ async def _read_stream_snippet(chunks, limit: int = 4096) -> str:
     except Exception as e:
         if not body:
             return f"{type(e).__name__}: {e}"
+    finally:
+        await chunks.aclose()
     return bytes(body[:limit]).decode("utf-8", errors="replace")
 
 
@@ -4151,6 +4183,8 @@ async def _iter_worker_stream_bytes(
                     message=f"{type(e).__name__}: {e}",
                 )
                 raise _WorkerAttemptError(f"{type(e).__name__}: {e}") from e
+            finally:
+                await chunks.aclose()
             return
 
         url = f"{worker.url}{path}"
@@ -4231,12 +4265,28 @@ async def _llm_stream_with_worker_failover(
     pre_text_failures = 0
     context_capacity_failures = 0
     attempted_context_windows: List[int] = []
+
+    def note_context_failure(worker):
+        nonlocal context_capacity_failures
+        context_capacity_failures += 1
+        context = _worker_model_context(worker, model)
+        if context > 0:
+            attempted_context_windows.append(context)
+            # The identical prompt cannot fit a smaller same-model context.
+            # Unknown windows may still be tried; never guess a token limit.
+            tried.update(
+                w.worker_id
+                for w in get_registry().list_workers(alive_only=True)
+                if 0 < _worker_model_context(w, model) <= context
+            )
+
     for attempt in range(max_attempts):
         try:
             worker, reservation_id = await _pick_and_reserve_llm(
                 capability,
                 model,
                 exclude=tried | (cache_avoid_worker_ids if attempt == 0 else set()),
+                retrying=attempt > 0,
                 external_fallback_allowed=external_fallback_allowed,
                 wait_indefinitely=wait_indefinitely,
                 affinity_key=affinity_key,
@@ -4244,10 +4294,11 @@ async def _llm_stream_with_worker_failover(
                 **({"worker_id": worker_id} if worker_id is not None else {}),
             )
         except Exception as e:
-            last_error = f"{type(e).__name__}: {e}"
+            selection_error = f"{type(e).__name__}: {e}"
+            last_error = last_error or selection_error
             logging.warning(
                 f"[Router] {path} stream attempt {attempt + 1}/{max_attempts} "
-                f"could not pick another worker: {last_error}"
+                f"could not pick another worker: {selection_error}"
             )
             break
         tried.add(worker.worker_id)
@@ -4291,10 +4342,7 @@ async def _llm_stream_with_worker_failover(
                             retry_reason, str(event_info.get("error_type") or "")
                         ):
                             retry_is_context_capacity = True
-                            context_capacity_failures += 1
-                            worker_context = _worker_model_context(worker, model)
-                            if worker_context > 0:
-                                attempted_context_windows.append(worker_context)
+                            note_context_failure(worker)
                         break
                     if event_info["finish_reason"] or event_info["done"]:
                         retry_reason = f"stream ended before assistant text" + (
@@ -4346,10 +4394,7 @@ async def _llm_stream_with_worker_failover(
                         last_error, str(event_info.get("error_type") or "")
                     )
                     if buffered_context_capacity:
-                        context_capacity_failures += 1
-                        worker_context = _worker_model_context(worker, model)
-                        if worker_context > 0:
-                            attempted_context_windows.append(worker_context)
+                        note_context_failure(worker)
                     get_registry().record_error(
                         worker.worker_id,
                         kind=(
@@ -4394,11 +4439,8 @@ async def _llm_stream_with_worker_failover(
                 return
             pre_text_failures += 1
             if _is_context_capacity_error(last_error):
-                context_capacity_failures += 1
-                worker_context = _worker_model_context(worker, model)
-                if worker_context > 0:
-                    attempted_context_windows.append(worker_context)
-            if not e.retryable:
+                note_context_failure(worker)
+            if not e.retryable and not _is_context_capacity_error(last_error):
                 yield _sse_error_event(str(e), "worker_stream_error")
                 return
         finally:
@@ -4408,7 +4450,7 @@ async def _llm_stream_with_worker_failover(
                 pass
 
     final_message = (
-        f"All {max_attempts} eligible worker stream attempts completed without "
+        f"All {pre_text_failures} attempted worker streams completed without "
         f"assistant text for {path}: {last_error or 'unknown error'}"
     )
     if context_capacity_failures > 0 and context_capacity_failures == pre_text_failures:
@@ -5049,17 +5091,20 @@ async def _llm_proxy_with_retry(
     """Forward an LLM request, retrying unhealthy workers before replying."""
     if is_stream:
         return StreamingResponse(
-            _llm_stream_with_worker_failover(
-                capability=capability,
-                path=path,
-                payload=payload,
-                model=model,
-                request_started=time.monotonic(),
-                external_fallback_allowed=external_fallback_allowed,
-                wait_indefinitely=wait_indefinitely,
-                worker_id=worker_id,
+            _with_stream_keepalive(
+                _llm_stream_with_worker_failover(
+                    capability=capability,
+                    path=path,
+                    payload=payload,
+                    model=model,
+                    request_started=time.monotonic(),
+                    external_fallback_allowed=external_fallback_allowed,
+                    wait_indefinitely=wait_indefinitely,
+                    worker_id=worker_id,
+                )
             ),
             media_type="text/event-stream",
+            headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
         )
 
     tried: set = set()
@@ -5077,6 +5122,7 @@ async def _llm_proxy_with_retry(
             capability,
             model,
             exclude=tried | (cache_avoid_worker_ids if attempt == 0 else set()),
+            retrying=attempt > 0,
             external_fallback_allowed=external_fallback_allowed,
             wait_indefinitely=wait_indefinitely,
             affinity_key=affinity_key,

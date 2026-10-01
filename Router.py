@@ -1911,7 +1911,7 @@ class Router:
         capability: str,
         model: Optional[str] = None,
         exclude: Optional[set] = None,
-        allow_cross_model: bool = True,
+        allow_cross_model: bool = False,
         worker_id: Optional[str] = None,
     ) -> Optional[WorkerInfo]:
         """Pick the best worker matching capability + (optionally) model.
@@ -2136,15 +2136,16 @@ class Router:
         exclude: Optional[set] = None,
         cross_model_grace: Optional[float] = None,
         worker_id: Optional[str] = None,
+        fail_if_exhausted: bool = False,
     ) -> Optional[WorkerInfo]:
         """Block up to ``timeout`` seconds waiting for a free worker.
 
         ``timeout <= 0`` means wait without a router-side deadline; client or
         proxy timeouts may still close the request.
 
-        Busy matching workers are waited for until the timeout, regardless of
-        ``cross_model_grace``. That grace period (default ``0``) only delays
-        cross-model fallback when no eligible matching worker exists.
+        Explicit text/vision models are never substituted by default. Opt-in
+        cross-model fallback is delayed by ``cross_model_grace`` and never
+        applies after exhausting matching workers on a request's retry path.
         """
         if cross_model_grace is None:
             try:
@@ -2160,7 +2161,35 @@ class Router:
         try:
             while True:
                 now = time.time()
-                allow_cross = now >= grace_deadline
+                matching = [
+                    w
+                    for w in self.registry.list_workers(alive_only=True)
+                    if capability in w.capabilities
+                    and (worker_id is None or w.worker_id == worker_id)
+                    and model
+                    and any(_model_name_matches(model, m) for m in w.models)
+                ]
+                generic_model = not model or model.lower() in {
+                    "unknown",
+                    "default",
+                    "ezlocalai",
+                }
+                if (
+                    fail_if_exhausted
+                    and exclude
+                    and capability in MODEL_STRICT_CAPABILITIES
+                    and not generic_model
+                    and not any(w.worker_id not in exclude for w in matching)
+                ):
+                    # No untried matching worker remains. Return the original
+                    # capacity/transport failure instead of waiting forever or
+                    # sending a 27B prompt to an unrelated 64k model.
+                    return None
+                allow_cross = now >= grace_deadline and (
+                    generic_model
+                    or os.environ.get("ROUTER_ALLOW_CROSS_MODEL", "false").lower()
+                    == "true"
+                )
                 worker = self.select_worker(
                     capability,
                     model,

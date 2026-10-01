@@ -92,11 +92,12 @@ class TunnelHub:
             self._connect_count[conn.worker_id] = (
                 self._connect_count.get(conn.worker_id, 0) + 1
             )
-        # Close the replaced socket outside the hub lock. ``close()`` calls
-        # back into ``detach()``, so awaiting it while locked can deadlock the
-        # entire tunnel hub during reconnects.
+        # Let existing responses finish on their original socket. New requests
+        # use the replacement; no response may migrate between connections.
         if old and old is not conn:
-            await old.close(reason="superseded")
+            old.draining = True
+            if not old._pending:
+                await old.close(reason="superseded")
 
     async def detach(self, conn: "TunnelConnection") -> None:
         async with self._lock:
@@ -145,6 +146,7 @@ class TunnelConnection:
         self.hub = hub
         self.connected_at = time.time()
         self.closed = False
+        self.draining = False
         self.last_recv = time.time()
         self.last_close_reason: str = ""
         self._pending: Dict[str, _PendingRequest] = {}
@@ -268,7 +270,7 @@ class TunnelConnection:
         For non-streaming responses the iterator yields one or more chunks
         followed by exhaustion; the caller can simply concat them.
         """
-        if self.closed:
+        if self.closed or self.draining:
             raise RuntimeError(f"Tunnel for {self.worker_id} is closed")
         rid = uuid.uuid4().hex
         pending = _PendingRequest()
@@ -296,6 +298,7 @@ class TunnelConnection:
                 raise RuntimeError(pending.error)
 
             async def chunks() -> AsyncIterator[bytes]:
+                complete = False
                 try:
                     while True:
                         item = await asyncio.wait_for(
@@ -304,15 +307,27 @@ class TunnelConnection:
                         if item is None:
                             if pending.error:
                                 raise RuntimeError(pending.error)
+                            complete = True
                             break
                         yield item
                 finally:
-                    self._pending.pop(rid, None)
+                    await self._finish_request(rid, cancel=not complete)
 
             return pending.status, pending.headers, chunks()
-        except Exception:
-            self._pending.pop(rid, None)
+        except BaseException:
+            await self._finish_request(rid, cancel=True)
             raise
+
+    async def _finish_request(self, rid: str, *, cancel: bool) -> None:
+        self._pending.pop(rid, None)
+        if cancel and not self.closed:
+            try:
+                await self._send_json({"t": "cancel", "id": rid})
+            except Exception:
+                # A broken socket must not hide the original timeout/error.
+                pass
+        if self.draining and not self._pending:
+            await self.close(reason="superseded (requests drained)")
 
 
 # Module-level singleton hub for the router process.
@@ -415,7 +430,10 @@ class TunnelClient:
                 self.router_ws_url,
                 headers=headers,
                 params=params,
-                heartbeat=self.ping_interval,
+                # Router application pings already monitor liveness. aiohttp's
+                # additional half-interval pong deadline needlessly tears down
+                # busy connections; bound read-idle time instead.
+                heartbeat=None,
                 max_msg_size=64 * 1024 * 1024,
             ) as ws:
                 self._ws = ws
@@ -423,14 +441,32 @@ class TunnelClient:
                     f"[Tunnel] Connected to {self.router_ws_url} as {self.worker_id}"
                 )
                 close_reason = "clean close"
+                tasks: Dict[str, asyncio.Task] = {}
                 try:
-                    async for msg in ws:
+                    while not ws.closed:
+                        msg = await asyncio.wait_for(
+                            ws.receive(), timeout=max(60.0, self.ping_interval * 3)
+                        )
                         if msg.type == aiohttp.WSMsgType.TEXT:
                             try:
                                 payload = json.loads(msg.data)
                             except Exception:
                                 continue
-                            asyncio.create_task(self._handle(payload))
+                            rid = payload.get("id")
+                            if payload.get("t") == "cancel":
+                                task = tasks.get(rid)
+                                if task is not None:
+                                    task.cancel()
+                            elif payload.get("t") == "req" and rid:
+                                if rid in tasks:
+                                    continue
+                                task = asyncio.create_task(self._handle(payload, ws))
+                                tasks[rid] = task
+                                task.add_done_callback(
+                                    lambda done, rid=rid: tasks.pop(rid, None)
+                                )
+                            else:
+                                await self._handle(payload, ws)
                         elif msg.type == aiohttp.WSMsgType.PING:
                             # aiohttp auto-pongs, just note activity
                             continue
@@ -448,30 +484,36 @@ class TunnelClient:
                             break
                 finally:
                     self._ws = None
+                    active = list(tasks.values())
+                    for task in active:
+                        task.cancel()
+                    await asyncio.gather(*active, return_exceptions=True)
                     logging.info(
                         f"[Tunnel] Disconnected from {self.router_ws_url}: {close_reason}"
                     )
 
-    async def _send_json(self, msg: Dict[str, Any]) -> None:
-        ws = self._ws
+    async def _send_json(self, msg: Dict[str, Any], ws=None) -> None:
+        ws = ws if ws is not None else self._ws
         if ws is None or ws.closed:
             return
         async with self._send_lock:
             await ws.send_str(json.dumps(msg))
 
-    async def _send_chunk(self, rid: str, data: bytes) -> None:
+    async def _send_chunk(self, rid: str, data: bytes, ws=None) -> None:
         await self._send_json(
             {
                 "t": "resp_chunk",
                 "id": rid,
                 "data_b64": base64.b64encode(data).decode("ascii"),
-            }
+            },
+            ws,
         )
 
-    async def _handle(self, msg: Dict[str, Any]) -> None:
+    async def _handle(self, msg: Dict[str, Any], ws=None) -> None:
+        ws = ws if ws is not None else self._ws
         t = msg.get("t")
         if t == "ping":
-            await self._send_json({"t": "pong"})
+            await self._send_json({"t": "pong"}, ws)
             return
         if t != "req":
             return
@@ -503,14 +545,15 @@ class TunnelClient:
                             "status": resp.status,
                             "headers": {k: v for k, v in resp.headers.items()},
                             "stream": True,
-                        }
+                        },
+                        ws,
                     )
                     async for chunk in resp.content.iter_any():
                         if chunk:
-                            await self._send_chunk(rid, chunk)
-                    await self._send_json({"t": "resp_end", "id": rid})
+                            await self._send_chunk(rid, chunk, ws)
+                    await self._send_json({"t": "resp_end", "id": rid}, ws)
         except Exception as e:
             logging.warning(f"[Tunnel] local request {method} {path} failed: {e}")
             await self._send_json(
-                {"t": "resp_err", "id": rid, "error": f"{type(e).__name__}: {e}"}
+                {"t": "resp_err", "id": rid, "error": f"{type(e).__name__}: {e}"}, ws
             )
