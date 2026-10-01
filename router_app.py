@@ -3349,6 +3349,7 @@ async def _pick(
     affinity_key: Optional[str] = None,
     system_prefix_keys: Optional[List[str]] = None,
     worker_id: Optional[str] = None,
+    retrying: bool = False,
 ) -> WorkerInfo:
     router = get_router()
     # Pre-exclude tunneled workers whose WebSocket is not currently connected.
@@ -3463,6 +3464,7 @@ async def _pick(
         model,
         timeout=0 if wait_indefinitely else _wait_timeout(),
         exclude=pre_exclude,
+        fail_if_exhausted=retrying,
     )
     if worker is None:
         raise HTTPException(
@@ -4284,6 +4286,7 @@ async def _llm_stream_with_worker_failover(
                 capability,
                 model,
                 exclude=tried | (cache_avoid_worker_ids if attempt == 0 else set()),
+                retrying=attempt > 0,
                 external_fallback_allowed=external_fallback_allowed,
                 wait_indefinitely=wait_indefinitely,
                 affinity_key=affinity_key,
@@ -5119,6 +5122,7 @@ async def _llm_proxy_with_retry(
             capability,
             model,
             exclude=tried | (cache_avoid_worker_ids if attempt == 0 else set()),
+            retrying=attempt > 0,
             external_fallback_allowed=external_fallback_allowed,
             wait_indefinitely=wait_indefinitely,
             affinity_key=affinity_key,

@@ -2136,6 +2136,7 @@ class Router:
         exclude: Optional[set] = None,
         cross_model_grace: Optional[float] = None,
         worker_id: Optional[str] = None,
+        fail_if_exhausted: bool = False,
     ) -> Optional[WorkerInfo]:
         """Block up to ``timeout`` seconds waiting for a free worker.
 
@@ -2174,7 +2175,8 @@ class Router:
                     "ezlocalai",
                 }
                 if (
-                    exclude
+                    fail_if_exhausted
+                    and exclude
                     and capability in MODEL_STRICT_CAPABILITIES
                     and not generic_model
                     and not any(w.worker_id not in exclude for w in matching)

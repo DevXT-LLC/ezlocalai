@@ -644,7 +644,11 @@ class RouterSelectionTests(unittest.TestCase):
         async def exhausted():
             return await asyncio.wait_for(
                 router.wait_for_worker(
-                    "text", model, timeout=0, exclude={large.worker_id}
+                    "text",
+                    model,
+                    timeout=0,
+                    exclude={large.worker_id},
+                    fail_if_exhausted=True,
                 ),
                 timeout=0.2,
             )
@@ -659,6 +663,31 @@ class RouterSelectionTests(unittest.TestCase):
                 router.wait_for_worker("text", "different-text-model", timeout=0)
             )
         self.assertIsNotNone(worker)
+
+    def test_initial_soft_exclusions_still_wait_for_recovering_model(self):
+        model = "model-a"
+        registry = WorkerRegistry(ttl_seconds=60)
+        old = registry.register(
+            self._text_worker("offline-tunnel", model, best_tier=50)
+        )
+        router = Router(registry)
+
+        async def recover():
+            task = asyncio.create_task(
+                router.wait_for_worker(
+                    "text",
+                    model,
+                    timeout=0,
+                    exclude={old.worker_id},
+                    poll_interval=0.001,
+                )
+            )
+            await asyncio.sleep(0.01)
+            self.assertFalse(task.done())
+            new = registry.register(self._text_worker("recovered", model, best_tier=50))
+            self.assertIs(await asyncio.wait_for(task, 0.2), new)
+
+        asyncio.run(recover())
 
     def test_busy_27b_never_spills_to_idle_2b_after_grace(self):
         model = "unsloth/Qwen3.8-27B-GGUF"
