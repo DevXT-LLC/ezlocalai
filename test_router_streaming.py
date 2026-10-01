@@ -10,7 +10,7 @@ ROOT = pathlib.Path(__file__).resolve().parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from Router import WorkerInfo, WorkerRegistry
+from Router import Router, WorkerInfo, WorkerRegistry
 import router_app
 
 
@@ -19,6 +19,97 @@ def _sse(payload: str) -> bytes:
 
 
 class RouterStreamingTests(unittest.IsolatedAsyncioTestCase):
+    async def test_keepalive_during_queue_wait_does_not_restart_upstream(self):
+        release, closed = asyncio.Event(), asyncio.Event()
+        calls = []
+
+        async def stream():
+            calls.append(True)
+            try:
+                await release.wait()
+                yield b"data: real output\n\n"
+            finally:
+                closed.set()
+
+        wrapped = router_app._with_stream_keepalive(stream(), interval=0.001)
+        self.assertEqual(await anext(wrapped), b": keepalive\n\n")
+        self.assertEqual(await anext(wrapped), b": keepalive\n\n")
+        release.set()
+        self.assertEqual(await anext(wrapped), b"data: real output\n\n")
+        await wrapped.aclose()
+        self.assertTrue(closed.is_set())
+        self.assertEqual(len(calls), 1)
+
+    async def test_keepalive_disconnect_cancels_upstream(self):
+        closed = asyncio.Event()
+
+        async def stream():
+            try:
+                await asyncio.Event().wait()
+                yield b"unreachable"
+            finally:
+                closed.set()
+
+        wrapped = router_app._with_stream_keepalive(stream(), interval=0.001)
+        await anext(wrapped)
+        await wrapped.aclose()
+        self.assertTrue(closed.is_set())
+
+    async def test_oversized_27b_prompt_skips_2b_and_smaller_workers_and_keeps_usage(
+        self,
+    ):
+        registry = WorkerRegistry(60)
+        model = "unsloth/Qwen3.8-27B-GGUF"
+        for id, name, context, tier in [
+            ("large", model, 262144, 100),
+            ("smaller", model, 200000, 70),
+            ("fast", "openbmb/MiniCPM5-2B-GGUF", 65536, 50),
+        ]:
+            registry.register(
+                WorkerInfo(
+                    worker_id=id,
+                    label=id,
+                    url="http://unused",
+                    capabilities=["text"],
+                    models=[name],
+                    model_context={name: context},
+                    best_tier=tier,
+                )
+            )
+        attempted = []
+
+        async def stream(worker, *args, **kwargs):
+            attempted.append(worker.worker_id)
+            yield _sse(
+                '{"error":{"message":"request (348866 tokens) exceeds the available context size (262144 tokens) [n_prompt_tokens=348866, n_ctx=262144]","type":"streaming_error"}}'
+            )
+
+        with patch("router_app.get_registry", return_value=registry), patch(
+            "router_app.get_router", return_value=Router(registry)
+        ), patch("router_app._iter_worker_stream_bytes", stream):
+
+            async def collect():
+                return b"".join(
+                    [
+                        c
+                        async for c in router_app._llm_stream_with_worker_failover(
+                            capability="text",
+                            path="/v1/chat/completions",
+                            payload={},
+                            model=model,
+                            request_started=0,
+                            wait_indefinitely=True,
+                        )
+                    ]
+                )
+
+            result = await asyncio.wait_for(collect(), 1)
+        self.assertEqual(attempted, ["large"])
+        self.assertIn(b"context_capacity_error", result)
+        self.assertIn(b"n_prompt_tokens=348866", result)
+        self.assertIn(b"262144", result)
+        self.assertNotIn(b"65536", result)
+
     async def test_tunnel_iterator_failure_is_recorded_and_releases_slot(self):
         registry = WorkerRegistry(60)
         worker = registry.register(
