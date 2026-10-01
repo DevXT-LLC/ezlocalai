@@ -3464,7 +3464,7 @@ async def _pick(
         model,
         timeout=0 if wait_indefinitely else _wait_timeout(),
         exclude=pre_exclude,
-        fail_if_exhausted=retrying,
+        **({"fail_if_exhausted": True} if retrying else {}),
     )
     if worker is None:
         raise HTTPException(
