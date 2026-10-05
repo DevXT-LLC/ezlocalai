@@ -1437,6 +1437,7 @@ def _aggregate_dashboard() -> Dict[str, Any]:
     registry = get_registry()
     alive = registry.list_workers(alive_only=True)
     stale = [w for w in registry.list_workers(alive_only=False) if w not in alive]
+    recent_errors = _aggregate_recent_errors(alive + stale, limit=None)
 
     total_capacity = sum(max(0, w.total_capacity()) for w in alive)
     total_in_flight = sum(max(0, w.total_busy()) for w in alive)
@@ -1663,11 +1664,19 @@ def _aggregate_dashboard() -> Dict[str, Any]:
             ),
         ),
         "workers": sorted(
-            [_public_with_tunnel(w) for w in alive],
+            [
+                _public_with_tunnel(w) | _worker_recent_error_data(w, recent_errors)
+                for w in alive
+            ],
             key=lambda x: -_worker_priority_tier(x),
         )
         + sorted(
-            [{**_public_with_tunnel(w), "stale": True} for w in stale],
+            [
+                _public_with_tunnel(w)
+                | _worker_recent_error_data(w, recent_errors)
+                | {"stale": True}
+                for w in stale
+            ],
             key=lambda x: -_worker_priority_tier(x),
         ),
         "usage": _usage.snapshot(),
@@ -1675,7 +1684,7 @@ def _aggregate_dashboard() -> Dict[str, Any]:
             _usage.history_snapshot(), since=time.time() - 86400
         ),
         "history": _usage.history_snapshot(),
-        "errors": _aggregate_recent_errors(alive + stale),
+        "errors": recent_errors[:100],
     }
 
 
@@ -1798,27 +1807,56 @@ def _usage_from_history(
     return out
 
 
-def _aggregate_recent_errors(workers) -> List[Dict[str, Any]]:
-    """Include archived failures even when the worker no longer exists."""
-    out: List[Dict[str, Any]] = get_registry().error_history()
-    seen = {(e.get("worker_id"), e.get("ts"), e.get("kind")) for e in out}
+def _aggregate_recent_errors(
+    workers, limit: Optional[int] = 100
+) -> List[Dict[str, Any]]:
+    """Failures from the last 24 hours, including workers no longer registered."""
+    cutoff = time.time() - 86400
+
+    def is_recent(event):
+        try:
+            return float(event.get("ts") or 0) > cutoff
+        except (TypeError, ValueError):
+            return False
+
+    def identity(event):
+        # Restarted workers inherit live errors from their previous process ID.
+        return (
+            event.get("label"),
+            event.get("url"),
+            event.get("ts"),
+            event.get("kind"),
+            event.get("path"),
+        )
+
+    out = [e for e in get_registry().error_history() if is_recent(e)]
+    seen = {identity(e) for e in out}
     for w in workers:
         for ev in getattr(w, "recent_errors", []) or []:
-            if (w.worker_id, ev.get("ts"), ev.get("kind")) in seen:
+            if not is_recent(ev):
                 continue
-            out.append(
-                {
-                    "ts": ev.get("ts", 0),
-                    "worker_id": w.worker_id,
-                    "label": w.label,
-                    "kind": ev.get("kind", ""),
-                    "status": ev.get("status"),
-                    "path": ev.get("path", ""),
-                    "message": ev.get("message", ""),
-                }
-            )
+            event = {
+                **ev,
+                "worker_id": w.worker_id,
+                "label": w.label,
+                "url": w.url,
+            }
+            if identity(event) not in seen:
+                out.append(event)
+                seen.add(identity(event))
     out.sort(key=lambda x: x.get("ts", 0), reverse=True)
-    return out[:100]
+    return out if limit is None else out[:limit]
+
+
+def _worker_recent_error_data(worker, errors) -> Dict[str, Any]:
+    """Count retained 24-hour failures before the dashboard's row limit."""
+    recent = [
+        e
+        for e in errors
+        if e.get("worker_id") == worker.worker_id
+        or (e.get("label") == worker.label and e.get("url") == worker.url)
+    ]
+    return {"recent_errors": recent, "recent_error_count": len(recent)}
 
 
 @app.get("/v1/router/dashboard", tags=["Router"])
@@ -1899,11 +1937,13 @@ async def router_errors(_: str = Depends(verify_client)):
     """Per-worker recent error events plus circuit-breaker state.
 
     Returns a list of workers with their ``total_errors``, ``circuit_open``,
-    ``circuit_open_until``, and the most recent error events.  Also returns
-    a flat ``errors`` list across all workers, newest first, capped at 100.
+    ``circuit_open_until``, and the last 24 hours of retained error events.
+    ``recent_error_count`` counts that window; ``total_errors`` remains cumulative.
+    Also returns a flat ``errors`` list, newest first, capped at 100.
     """
     registry = get_registry()
     workers = registry.list_workers(alive_only=False)
+    recent_errors = _aggregate_recent_errors(workers, limit=None)
     return {
         "workers": [
             {
@@ -1912,11 +1952,11 @@ async def router_errors(_: str = Depends(verify_client)):
                 "total_errors": w.total_errors,
                 "circuit_open": w.is_circuit_open(),
                 "circuit_open_until": w.circuit_open_until,
-                "recent_errors": list(w.recent_errors or []),
+                **_worker_recent_error_data(w, recent_errors),
             }
             for w in workers
         ],
-        "errors": _aggregate_recent_errors(workers),
+        "errors": recent_errors[:100],
     }
 
 
@@ -2239,16 +2279,16 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
         else:
             status = "🟡 full"
         circuit_open = bool(w.get("circuit_open"))
-        total_errors = int(w.get("total_errors", 0) or 0)
+        recent_error_count = int(w.get("recent_error_count", 0) or 0)
         if circuit_open:
             err_cell = (
                 f'<span style="color:#f85149">🔴 OPEN</span>'
-                f'<div class="muted small">{total_errors} total</div>'
+                f'<div class="muted small">{recent_error_count} in 24h</div>'
             )
-        elif total_errors:
+        elif recent_error_count:
             err_cell = (
-                f'<span style="color:#d29922">{total_errors}</span>'
-                f'<div class="muted small">recent ok</div>'
+                f'<span style="color:#d29922">{recent_error_count}</span>'
+                f'<div class="muted small">past 24h</div>'
             )
         else:
             err_cell = '<span class="muted">0</span>'
@@ -2718,7 +2758,7 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
     )
     if errors:
         errors_section = f"""
-  <h2>Recent errors</h2>
+  <h2>Recent errors · past 24 hours</h2>
   <table>
     <thead><tr>
       <th>Time</th><th>Worker</th><th>Kind</th><th>Status</th><th>Path</th><th>Message</th>
@@ -2890,7 +2930,7 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
   <table>
     <thead><tr>
       <th>Label</th><th>Status</th><th>GPUs</th>
-      <th>Models</th><th class="num">Last hb</th><th>Errors</th>
+      <th>Models</th><th class="num">Last hb</th><th>Errors (24h)</th>
     </tr></thead>
     <tbody>{worker_rows}</tbody>
   </table>
