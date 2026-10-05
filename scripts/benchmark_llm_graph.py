@@ -6,6 +6,7 @@ quantization, context and parallel slots. No router registration or .env edits.
 """
 
 import argparse
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -47,6 +48,10 @@ def main():
             }
         )
         assert result.get("choices"), result
+        message = result["choices"][0]["message"]
+        # Reasoning models may spend the whole token budget in reasoning.
+        # Include it when comparing deterministic output between candidates.
+        output = json.dumps(message, sort_keys=True, ensure_ascii=False)
         print(
             json.dumps(
                 {
@@ -55,7 +60,8 @@ def main():
                     "seconds": time.perf_counter() - started,
                     "usage": result.get("usage"),
                     "timings": result.get("timings"),
-                    "content": result["choices"][0]["message"].get("content"),
+                    "message": message,
+                    "output_sha256": hashlib.sha256(output.encode()).hexdigest(),
                 }
             ),
             flush=True,

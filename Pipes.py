@@ -8367,8 +8367,13 @@ class Pipes:
         return result
 
     async def generate_image(
-        self, prompt, response_format="url", size="512x512", image=None,
-        images=None, strength=0.75
+        self,
+        prompt,
+        response_format="url",
+        size="512x512",
+        image=None,
+        images=None,
+        strength=0.75,
     ):
         async with self._img_lock:
             llm_handoff = None
@@ -8393,7 +8398,12 @@ class Pipes:
                         )
                         generation = asyncio.create_task(
                             asyncio.to_thread(
-                                img.generate, prompt=prompt, size=size, image=image, images=images, strength=strength
+                                img.generate,
+                                prompt=prompt,
+                                size=size,
+                                image=image,
+                                images=images,
+                                strength=strength,
                             )
                         )
                         try:
@@ -8770,7 +8780,11 @@ class Pipes:
                 llm_was_unloaded = self._unload_llms_for_video()
                 aux_unloaded = self._unload_aux_models_for_video()
                 self._reload_video_after_vram_handoff(llm_was_unloaded)
-                result = self._generate_video_once(
+                # Model loading and diffusion are synchronous. Keep health
+                # checks/heartbeats responsive, while retaining the video lock
+                # through native completion even if the client cancels.
+                result = await _run_inference_call(
+                    self._generate_video_once,
                     prompt=prompt,
                     response_format=response_format,
                     size=size,
@@ -8782,11 +8796,12 @@ class Pipes:
                     conditions=conditions,
                 )
 
-                if llm_was_unloaded:
-                    self._destroy_video(async_cleanup=False, force=True)
-
                 return self._format_video_response(result, response_format)
             finally:
+                # Cancellation and failures also need to release video memory
+                # before restoring the models displaced by the handoff.
+                if llm_was_unloaded:
+                    self._destroy_video(async_cleanup=False, force=True)
                 self._restore_llms_after_video(llm_was_unloaded)
                 self._restore_aux_models_after_video(aux_unloaded)
         return ""
@@ -9053,7 +9068,8 @@ class Pipes:
                         scene["duration"],
                         scene["num_frames"],
                     )
-                    scene_ref = self._generate_video_once(
+                    scene_ref = await _run_inference_call(
+                        self._generate_video_once,
                         prompt=scene_prompt,
                         response_format="url",
                         size=kwargs.get("size") or "768x512",
