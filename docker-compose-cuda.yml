@@ -156,6 +156,9 @@ services:
       - WORKER_LABEL=${WORKER_LABEL:-}
       - WORKER_HEARTBEAT_INTERVAL=${WORKER_HEARTBEAT_INTERVAL:-10}
     restart: unless-stopped
+    # Uvicorn drains active streams on SIGTERM. Docker's 10s default kills
+    # long prefill/decode requests before that drain can finish.
+    stop_grace_period: ${WORKER_STOP_GRACE_PERIOD:-10m}
     healthcheck:
       test: ["CMD", "curl", "-sf", "http://localhost:8091/health"]
       interval: 30s
