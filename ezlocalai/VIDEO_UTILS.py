@@ -4,7 +4,13 @@ import re
 import textwrap
 from typing import Any, Dict, List, Optional
 
-DEFAULT_VIDEO_MODEL = "unsloth/LTX-2.3-GGUF"
+DEFAULT_VIDEO_MODEL = "QuantStack/Wan2.2-T2V-A14B-GGUF"
+
+
+class VideoGenerationOutOfMemory(RuntimeError):
+    """A video backend can request a retry with a smaller memory footprint."""
+
+
 DEFAULT_MUSIC_VIDEO_SCENE_DURATION = 5.0
 DEFAULT_MUSIC_VIDEO_MAX_SCENE_DURATION = 20.0
 DEFAULT_VIDEO_MODEL_OFFLOAD_MIN_FREE_GB = 16.0
@@ -95,12 +101,16 @@ def _pil_font(size_px: int, bold: bool = False):
     from PIL import ImageFont
 
     candidates = [
-        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
-        if bold
-        else "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
-        "/usr/share/fonts/dejavu/DejaVuSans-Bold.ttf"
-        if bold
-        else "/usr/share/fonts/dejavu/DejaVuSans.ttf",
+        (
+            "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
+            if bold
+            else "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
+        ),
+        (
+            "/usr/share/fonts/dejavu/DejaVuSans-Bold.ttf"
+            if bold
+            else "/usr/share/fonts/dejavu/DejaVuSans.ttf"
+        ),
     ]
     for candidate in candidates:
         try:
@@ -237,7 +247,9 @@ def make_music_video_storyboard_image(
         int(width * 0.92),
         int(height * 0.62),
     )
-    draw.rounded_rectangle(screen, radius=8, fill=(3, 5, 12), outline=(170, 35, 45), width=3)
+    draw.rounded_rectangle(
+        screen, radius=8, fill=(3, 5, 12), outline=(170, 35, 45), width=3
+    )
 
     phase = scene_index % 6
     header = "PYTHAGOREAN THEOREM"
@@ -246,7 +258,9 @@ def make_music_video_storyboard_image(
 
     def center_text(text: str, y: int, text_font, fill=(245, 245, 245)):
         bbox = draw.textbbox((0, 0), text, font=text_font)
-        draw.text(((width - (bbox[2] - bbox[0])) // 2, y), text, font=text_font, fill=fill)
+        draw.text(
+            ((width - (bbox[2] - bbox[0])) // 2, y), text, font=text_font, fill=fill
+        )
 
     title_text = header if theorem_mode else str(prompt or "MUSIC VIDEO")[:40].upper()
     center_text(title_text, int(height * 0.12), title_font)
@@ -325,7 +339,12 @@ def make_music_video_storyboard_image(
             outline=(90, 150, 255),
             width=3,
         )
-        draw.text((left + tri_w + 20, top + tri_h - 5), "area proof", font=small_font, fill=proof_color)
+        draw.text(
+            (left + tri_w + 20, top + tri_h - 5),
+            "area proof",
+            font=small_font,
+            fill=proof_color,
+        )
 
     right_x = int(width * 0.52)
     theorem_titles = [
@@ -345,14 +364,21 @@ def make_music_video_storyboard_image(
         "FINAL HOOK",
     ]
     scene_title = (theorem_titles if theorem_mode else generic_titles)[phase]
-    draw.text((right_x, int(height * 0.35)), scene_title, font=mid_font, fill=(255, 245, 210))
+    draw.text(
+        (right_x, int(height * 0.35)), scene_title, font=mid_font, fill=(255, 245, 210)
+    )
     fallback_line = (
         "The squares on legs a and b equal the square on hypotenuse c"
         if theorem_mode
         else "Visible lyric and performance anchor"
     )
     for row, line in enumerate(textwrap.wrap(lyric or fallback_line, width=28)[:3]):
-        draw.text((right_x, int(height * 0.44) + row * (small_font.size + 6)), line, font=small_font, fill=(225, 235, 255))
+        draw.text(
+            (right_x, int(height * 0.44) + row * (small_font.size + 6)),
+            line,
+            font=small_font,
+            fill=(225, 235, 255),
+        )
     draw.text(
         (right_x, int(height * 0.58)),
         f"Scene {scene_index + 1}/{scene_count}   {keyscale}".strip(),
@@ -461,10 +487,7 @@ def choose_video_gpu_residency(
     short_clip = (
         requested_frames > 0
         and requested_frames <= int(model_offload_max_frames)
-        and (
-            requested_pixels <= 0
-            or requested_pixels <= int(model_offload_max_pixels)
-        )
+        and (requested_pixels <= 0 or requested_pixels <= int(model_offload_max_pixels))
     )
     if short_clip and free_gb >= short_model_offload_min_free_gb:
         return "model_offload"

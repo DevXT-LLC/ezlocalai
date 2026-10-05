@@ -565,18 +565,30 @@ does not warm-load or advertise those capabilities:
 IMAGE_ENABLED=false
 IMG_MODEL=
 VIDEO_ENABLED=false
-VIDEO_MODEL=unsloth/LTX-2.3-GGUF
+VIDEO_MODEL=QuantStack/Wan2.2-T2V-A14B-GGUF
 ```
 
-Set `IMAGE_ENABLED=true` with `IMG_MODEL` to serve local image generation, or
-`VIDEO_ENABLED=true` to serve local video generation. When `VIDEO_MODEL` is
-omitted or blank, ezlocalai defaults to `unsloth/LTX-2.3-GGUF`. Enabled media
-models report `image` or `video` capacity to the router. They warm-load and stay
-resident when enough GPU headroom is available; on single-GPU LLM workers, image
-and video models can lazy-load after an LLM handoff so their pipelines initialize
-with freed VRAM. Workers
-with an `IMAGE_SERVER` URL configured still delegate media requests instead of
-loading local models.
+Set `IMAGE_ENABLED=true` with `IMG_MODEL` to serve local images, or
+`VIDEO_ENABLED=true` for local video. The default video model is Wan 2.2 A14B:
+[QuantStack T2V](https://huggingface.co/QuantStack/Wan2.2-T2V-A14B-GGUF) for text
+prompts and [QuantStack I2V](https://huggingface.co/QuantStack/Wan2.2-I2V-A14B-GGUF)
+when the request includes an `image`. Both high- and low-noise experts are needed.
+`VIDEO_QUANT_TYPE=Q4_K_M` selects the expert quantization; both modes share a Q8
+UMT5 text encoder and the Wan 2.1 VAE. Assets are downloaded at pinned revisions.
+The native `sd-cli` backend is included in the CUDA, GB10 and CPU Docker images.
+Workers with `IMAGE_SERVER` configured still forward media requests.
+
+Prefetch both modes before serving (inside the worker image with its model volume):
+
+```bash
+python scripts/download_wan_models.py
+```
+
+Existing `.env` files with `VIDEO_MODEL=unsloth/LTX-2.3-GGUF` retain LTX until
+explicitly changed. `python scripts/download_wan_models.py --activate .env`
+downloads Wan and updates that setting, preserving a private `.env.pre-wan2.2`
+backup. Restart the worker afterward. LTX remains available by explicitly
+selecting its repository; its previous diffusion settings still apply.
 
 For image generation, the default handoff policy is:
 
@@ -593,23 +605,25 @@ vision temporarily unavailable, unloads the LLM and idle auxiliary GPU models,
 loads FLUX, generates the image, unloads FLUX, and restores the exact LLM
 residency that existed before the handoff.
 
-On a single-GPU worker, leave `VIDEO_UNLOAD_LLM_DURING_GENERATION=auto`. When a
-resident LLM is occupying the only GPU, ezlocalai marks the text/vision slots
-temporarily unavailable, unloads the LLM plus idle aux GPU models, initializes
-LTX-2.3 with the freed VRAM, runs generation, unloads video if needed, and
-reloads persistent LLMs when `VIDEO_RELOAD_LLM_AFTER_GENERATION=true`.
-`VIDEO_GPU_RESIDENCY=auto` chooses full GPU residency only on very large GPUs,
-model CPU offload when enough VRAM was freed for the requested clip size, and
-sequential CPU offload as the constrained fallback for long scenes. Short clips
-can use model offload when at least `VIDEO_SHORT_MODEL_OFFLOAD_MIN_FREE_GB`
-remains after LTX loads; longer scenes stay sequential unless
-`VIDEO_MODEL_OFFLOAD_MIN_FREE_GB`/`VIDEO_FULL_GPU_MIN_FREE_GB` say the GPU has
-room. If a more aggressive mode OOMs,
-`VIDEO_RETRY_SEQUENTIAL_ON_OOM=true` reloads LTX with sequential offload and
-retries once. Set `VIDEO_GPU_RESIDENCY=full` to force a full-GPU attempt.
+On a single-GPU worker, leave `VIDEO_UNLOAD_LLM_DURING_GENERATION=auto`.
+The worker waits for active LLM inference, unloads idle models for the video
+handoff, runs Wan in a separate process, then restores the displaced pools.
+Other local slots are withheld from router scheduling until restoration finishes.
+Native generation runs off the API event loop; cancellation keeps the video lock
+until that process exits. `VIDEO_GENERATION_TIMEOUT=3600` bounds native execution.
 
-LTX-2.3 requires dimensions divisible by 32 and frame counts in the `8n+1`
-pattern. The music-video helper handles frame planning automatically.
+Wan defaults to CPU weight offload with native CUDA compute and flash attention.
+`VIDEO_GPU_RESIDENCY=full` disables weight offload for sufficiently large GPUs.
+Model memory belongs to the child process and is released before pool restoration.
+Weights are not memory-mapped. The default 18 total denoising steps are split
+between eight high-noise and ten low-noise steps, with CFG 3.5; explicit API
+step counts are preserved across both experts. These settings follow the
+[pinned native backend's Wan examples](https://github.com/leejet/stable-diffusion.cpp/blob/c678dfe704a2230342376b46add9c8ca736a653d/docs/wan.md).
+
+Wan produces silent MP4 video. Supply a base64/data-URL/HTTP `image` for I2V;
+multi-frame `conditions` are not supported by this backend. Dimensions round
+down to multiples of 16 (maximum 1280); frame counts round down to `4n+1`.
+The existing music-video frame planner's `8n+1` counts are also compatible.
 
 ## Music Generation
 
@@ -704,7 +718,7 @@ VIDEO_ENABLED=true
 ```
 
 The music-video endpoint first generates the song with ACE-Step, then generates
-one or more LTX-2.3 video scenes in a single video session and muxes the
+one or more Wan 2.2 video scenes and muxes the
 generated song audio into the final MP4:
 
 ```bash
@@ -729,21 +743,21 @@ Optional fields include `model`, `music_model`, `video_model`, `video_prompt`,
 `audio_codes`, `image`, and `conditions`.
 When `audio_url` points at an existing ezlocalai `outputs/` audio file, the
 endpoint skips ACE-Step audio generation and only renders/muxes the video.
-Intermediate scene clips are video-only by default; set
-`include_scene_audio=true` only when debugging LTX's own generated audio.
+Wan scene clips are video-only. `include_scene_audio` is only relevant when
+explicitly using the legacy LTX backend.
 The final mux trims or pads the audio stream to the requested `duration`.
 
 Music-video scenes use `storyboard=true` by default. When no explicit image is
 provided, ezlocalai draws deterministic first-frame storyboards from the prompt
-and lyrics, then uses LTX image-to-video so each scene has visible lyric/thematic
+and lyrics, then uses Wan image-to-video so each scene has visible lyric/thematic
 anchors instead of drifting into generic concert footage. For maximum control,
 pass `scene_images` as base64/data-URL/HTTP images, one per planned scene.
 Pythagorean-theorem storyboards also burn in an exact `a squared + b squared =
 c squared` equation overlay using superscript-style exponents, since generated
 video models are unreliable at preserving formula text frame to frame.
 
-LTX-2.3 audio-to-video is documented for roughly 20 seconds per request, with
-longer videos created by chaining clips. ezlocalai therefore defaults
+Long videos are assembled from short clips to bound per-scene memory and
+generation time. ezlocalai defaults
 `MUSIC_VIDEO_SCENE_DURATION=5` and caps each planned scene with
 `MUSIC_VIDEO_MAX_SCENE_DURATION=20`; the final response includes the generated
 song URL, each scene URL, the scene plan, and the final MP4 URL.

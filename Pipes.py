@@ -2179,7 +2179,7 @@ def is_video_enabled() -> bool:
 
 
 def get_video_model_name() -> str:
-    """Configured local video model, defaulting to LTX-2.3 GGUF."""
+    """Configured local video model, defaulting to Wan 2.2 A14B GGUF."""
     return (getenv("VIDEO_MODEL", DEFAULT_VIDEO_MODEL) or DEFAULT_VIDEO_MODEL).strip()
 
 
@@ -4533,7 +4533,10 @@ class Pipes:
                         f"[VIDEO] {VIDEO_MODEL} loaded in {load_time:.1f}s ({preload_reason} - staying loaded)"
                     )
                     self.resource_manager.register_model(
-                        ModelType.VIDEO, VIDEO_MODEL, "cuda", vram_gb=12.0
+                        ModelType.VIDEO,
+                        VIDEO_MODEL,
+                        "cuda",
+                        vram_gb=getattr(self.video, "resident_vram_gb", 12.0),
                     )
                 except Exception as e:
                     logging.warning(
@@ -4548,7 +4551,7 @@ class Pipes:
             ):
                 logging.info(
                     "[VIDEO] Skipping preload because video generation will "
-                    "temporarily unload resident LLMs; LTX will lazy-load after "
+                    "temporarily unload resident LLMs; video will lazy-load after "
                     "VRAM is freed"
                 )
 
@@ -6870,9 +6873,11 @@ class Pipes:
                     load_time = time.time() - start_time
 
                     # Register with resource manager (VIDEO uses CPU offload so may use less VRAM)
-                    actual_vram = (
-                        12.0 if video_device == "cuda" else 0.0
-                    )  # Conservative estimate with offload
+                    actual_vram = getattr(
+                        self.video,
+                        "resident_vram_gb",
+                        12.0 if video_device.startswith("cuda") else 0.0,
+                    )
                     resource_mgr.register_model(
                         ModelType.VIDEO, VIDEO_MODEL, video_device, actual_vram
                     )
@@ -7282,7 +7287,7 @@ class Pipes:
             await asyncio.sleep(0.5)
 
     def _unload_llms_for_video(self) -> bool:
-        """Temporarily unload resident LLMs so LTX-2.3 can use the GPU."""
+        """Temporarily unload resident LLMs for video generation."""
         return self._unload_llms_for_service(
             "video", self._video_should_unload_llm_for_generation()
         )
@@ -8550,7 +8555,7 @@ class Pipes:
         return img_was_loaded
 
     def _unload_aux_models_for_video(self) -> Dict[str, bool]:
-        """Unload idle non-LLM GPU residents before LTX is initialized."""
+        """Unload idle non-LLM GPU residents before video generation."""
         unloaded = {"tts": False, "stt": False, "embedding": False, "img": False}
 
         if self.resource_manager.get_model_active_count(ModelType.TTS) == 0 and (
@@ -8650,7 +8655,7 @@ class Pipes:
     def _reload_video_after_vram_handoff(self, llm_was_unloaded: bool):
         if llm_was_unloaded and self.video is not None:
             logging.info(
-                "[VIDEO] Reloading LTX after VRAM handoff so it can use the "
+                "[VIDEO] Reloading video after VRAM handoff so it can use the "
                 "freed GPU memory"
             )
             self._destroy_video(async_cleanup=False, force=True)
@@ -8681,14 +8686,14 @@ class Pipes:
         response_format="url",
         size="768x512",
         num_frames=121,
-        num_inference_steps=40,
-        guidance_scale=4.0,
+        num_inference_steps=18,
+        guidance_scale=3.5,
         frame_rate=24,
         image=None,
         conditions=None,
         include_audio=True,
     ):
-        """Run one LTX generation against the currently managed video session."""
+        """Run one generation against the currently managed video backend."""
         generation_hint = self._video_generation_hint(size, num_frames)
 
         def run_current_video():
@@ -8765,8 +8770,8 @@ class Pipes:
         response_format="url",
         size="768x512",
         num_frames=121,
-        num_inference_steps=40,
-        guidance_scale=4.0,
+        num_inference_steps=18,
+        guidance_scale=3.5,
         frame_rate=24,
         image=None,
         conditions=None,
@@ -8942,7 +8947,7 @@ class Pipes:
                     pass
 
     async def generate_music_video(self, **kwargs):
-        """Generate a song, create short LTX scenes, then mux them into an MP4."""
+        """Generate a song, create short video scenes, then mux them into an MP4."""
         response_format = (kwargs.get("response_format") or "url").strip().lower()
         if response_format not in {"url", "b64_json"}:
             raise ValueError("response_format must be 'url' or 'b64_json'")
@@ -9075,12 +9080,12 @@ class Pipes:
                         size=kwargs.get("size") or "768x512",
                         num_frames=int(scene["num_frames"]),
                         num_inference_steps=int(
-                            kwargs.get("num_inference_steps") or 40
+                            kwargs.get("num_inference_steps") or 18
                         ),
                         guidance_scale=float(
                             kwargs.get("video_guidance_scale")
                             or kwargs.get("guidance_scale")
-                            or 4.0
+                            or 3.5
                         ),
                         frame_rate=frame_rate,
                         image=scene_image,
