@@ -134,7 +134,10 @@ def main():
                         "/v1/audio/speech",
                         json={
                             "model": "tts-1",
-                            "input": f"The sky is blue on this clear morning. Test number {iteration + 1}.",
+                            "input": (
+                                "The sky is blue on this clear morning. "
+                                f"Test code {uuid.uuid4().hex[:8]}."
+                            ),
                             "voice": "default",
                             "response_format": "wav",
                         },
