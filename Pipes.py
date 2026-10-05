@@ -2179,7 +2179,7 @@ def is_video_enabled() -> bool:
 
 
 def get_video_model_name() -> str:
-    """Configured local video model, defaulting to LTX-2.3 GGUF."""
+    """Configured local video model, defaulting to Wan 2.2 A14B GGUF."""
     return (getenv("VIDEO_MODEL", DEFAULT_VIDEO_MODEL) or DEFAULT_VIDEO_MODEL).strip()
 
 
@@ -4533,7 +4533,10 @@ class Pipes:
                         f"[VIDEO] {VIDEO_MODEL} loaded in {load_time:.1f}s ({preload_reason} - staying loaded)"
                     )
                     self.resource_manager.register_model(
-                        ModelType.VIDEO, VIDEO_MODEL, "cuda", vram_gb=12.0
+                        ModelType.VIDEO,
+                        VIDEO_MODEL,
+                        "cuda",
+                        vram_gb=getattr(self.video, "resident_vram_gb", 12.0),
                     )
                 except Exception as e:
                     logging.warning(
@@ -4548,7 +4551,7 @@ class Pipes:
             ):
                 logging.info(
                     "[VIDEO] Skipping preload because video generation will "
-                    "temporarily unload resident LLMs; LTX will lazy-load after "
+                    "temporarily unload resident LLMs; video will lazy-load after "
                     "VRAM is freed"
                 )
 
@@ -4854,6 +4857,25 @@ class Pipes:
             )
             summary["max_seconds"] = max(summary["max_seconds"], duration)
             summary["last_seconds"] = duration
+
+    def get_model_pool_snapshot(self):
+        """Report each resident replica's current device, including CPU fallback."""
+        result = {}
+        for service, attribute, size_attribute in (
+            ("tts", "tts_instances", "_tts_pool_size"),
+            ("stt", "stt_instances", "_stt_pool_size"),
+            ("embedding", "embedders", "_embedding_pool_size"),
+        ):
+            instances = list(getattr(self, attribute, []) or [])
+            result[service] = {
+                "configured": getattr(self, size_attribute, 1),
+                "resident": len(instances),
+                "devices": [
+                    str(getattr(instance, "device", "unknown"))
+                    for instance in instances
+                ],
+            }
+        return result
 
     def get_model_lifecycle_snapshot(self) -> Dict[str, Any]:
         """Return lifecycle timings and current LLM residency state."""
@@ -6870,9 +6892,11 @@ class Pipes:
                     load_time = time.time() - start_time
 
                     # Register with resource manager (VIDEO uses CPU offload so may use less VRAM)
-                    actual_vram = (
-                        12.0 if video_device == "cuda" else 0.0
-                    )  # Conservative estimate with offload
+                    actual_vram = getattr(
+                        self.video,
+                        "resident_vram_gb",
+                        12.0 if video_device.startswith("cuda") else 0.0,
+                    )
                     resource_mgr.register_model(
                         ModelType.VIDEO, VIDEO_MODEL, video_device, actual_vram
                     )
@@ -6884,8 +6908,8 @@ class Pipes:
                     logging.error(f"[VIDEO] Failed to load the model: {e}")
                     self.video = None
 
-        if self.video:
-            resource_mgr.mark_model_in_use(ModelType.VIDEO, True)
+        # The generation scope owns the active-request reference. Keeping the
+        # backend resident must not leave a phantom busy slot after completion.
         return self.video
 
     def _destroy_video_sync(self, video_ref):
@@ -6976,6 +7000,22 @@ class Pipes:
             resource_mgr.mark_model_in_use(ModelType.MUSIC, True)
         return self.music
 
+    def _media_keep_models_loaded(self) -> bool:
+        """Opt into concurrent media with warm pools on high-memory workers.
+
+        GB10 compose enables this; smaller GPU profiles retain handoffs. Explicit
+        per-service UNLOAD_LLM=true still takes precedence over this default.
+        """
+        return (
+            getenv("MEDIA_KEEP_MODELS_LOADED", "false") or "false"
+        ).strip().lower() in {"1", "true", "yes", "on"}
+
+    def _video_requires_exclusive_worker(self) -> bool:
+        return (
+            not self._media_keep_models_loaded()
+            or self._video_should_unload_llm_for_generation()
+        )
+
     def _image_should_unload_llm_for_generation(self) -> bool:
         """Return whether FLUX needs a temporary LLM VRAM handoff."""
         mode = (
@@ -6987,6 +7027,8 @@ class Pipes:
             return False
         if mode in {"1", "true", "yes", "on"}:
             return True
+        if self._media_keep_models_loaded():
+            return False
         if has_image_server_url() or get_secondary_gpu() is not None:
             return False
         if self.img is not None or not self._has_loaded_llm():
@@ -7026,6 +7068,8 @@ class Pipes:
             return False
         if mode in {"1", "true", "yes", "on"}:
             return not has_voice_server_url()
+        if self._media_keep_models_loaded():
+            return False
         if has_voice_server_url() or has_text_server_url():
             return False
         if is_voice_server_mode() and not is_text_server_mode():
@@ -7038,7 +7082,9 @@ class Pipes:
 
     def _voice_should_preload(self, service: str) -> bool:
         return (
-            should_preload_voice() or self._has_fast_voice_profile()
+            should_preload_voice()
+            or self._has_fast_voice_profile()
+            or self._media_keep_models_loaded()
         ) and not self._voice_should_unload_llm(service)
 
     def _mark_voice_handoff(self, service: str, active: bool):
@@ -7228,6 +7274,8 @@ class Pipes:
             return False
         if mode in {"1", "true", "yes", "on"}:
             return True
+        if self._media_keep_models_loaded():
+            return False
         # Auto mode only unloads local LLMs when ACE-Step is container-local.
         return not bool((getenv("ACE_STEP_SERVER_URL") or "").strip())
 
@@ -7264,6 +7312,8 @@ class Pipes:
             return False
         if mode in {"1", "true", "yes", "on"}:
             return True
+        if self._media_keep_models_loaded():
+            return False
         if has_image_server_url() or get_secondary_gpu() is not None:
             return False
         return bool(
@@ -7282,7 +7332,7 @@ class Pipes:
             await asyncio.sleep(0.5)
 
     def _unload_llms_for_video(self) -> bool:
-        """Temporarily unload resident LLMs so LTX-2.3 can use the GPU."""
+        """Temporarily unload resident LLMs for video generation."""
         return self._unload_llms_for_service(
             "video", self._video_should_unload_llm_for_generation()
         )
@@ -8367,8 +8417,13 @@ class Pipes:
         return result
 
     async def generate_image(
-        self, prompt, response_format="url", size="512x512", image=None,
-        images=None, strength=0.75
+        self,
+        prompt,
+        response_format="url",
+        size="512x512",
+        image=None,
+        images=None,
+        strength=0.75,
     ):
         async with self._img_lock:
             llm_handoff = None
@@ -8393,7 +8448,12 @@ class Pipes:
                         )
                         generation = asyncio.create_task(
                             asyncio.to_thread(
-                                img.generate, prompt=prompt, size=size, image=image, images=images, strength=strength
+                                img.generate,
+                                prompt=prompt,
+                                size=size,
+                                image=image,
+                                images=images,
+                                strength=strength,
                             )
                         )
                         try:
@@ -8431,6 +8491,11 @@ class Pipes:
     def _unload_aux_models_for_image(self) -> Dict[str, bool]:
         """Unload idle GPU residents that would constrain FLUX initialization."""
         unloaded = {"tts": False, "stt": False, "embedding": False, "video": False}
+        if (
+            self._media_keep_models_loaded()
+            and not self._image_should_unload_llm_for_generation()
+        ):
+            return unloaded
 
         if self.resource_manager.get_model_active_count(ModelType.TTS) == 0 and (
             getattr(self, "ctts", None) is not None
@@ -8540,8 +8605,13 @@ class Pipes:
         return img_was_loaded
 
     def _unload_aux_models_for_video(self) -> Dict[str, bool]:
-        """Unload idle non-LLM GPU residents before LTX is initialized."""
+        """Unload idle non-LLM GPU residents before video generation."""
         unloaded = {"tts": False, "stt": False, "embedding": False, "img": False}
+        if (
+            self._media_keep_models_loaded()
+            and not self._video_should_unload_llm_for_generation()
+        ):
+            return unloaded
 
         if self.resource_manager.get_model_active_count(ModelType.TTS) == 0 and (
             self.ctts is not None
@@ -8640,7 +8710,7 @@ class Pipes:
     def _reload_video_after_vram_handoff(self, llm_was_unloaded: bool):
         if llm_was_unloaded and self.video is not None:
             logging.info(
-                "[VIDEO] Reloading LTX after VRAM handoff so it can use the "
+                "[VIDEO] Reloading video after VRAM handoff so it can use the "
                 "freed GPU memory"
             )
             self._destroy_video(async_cleanup=False, force=True)
@@ -8671,14 +8741,14 @@ class Pipes:
         response_format="url",
         size="768x512",
         num_frames=121,
-        num_inference_steps=40,
-        guidance_scale=4.0,
+        num_inference_steps=18,
+        guidance_scale=3.5,
         frame_rate=24,
         image=None,
         conditions=None,
         include_audio=True,
     ):
-        """Run one LTX generation against the currently managed video session."""
+        """Run one generation against the currently managed video backend."""
         generation_hint = self._video_generation_hint(size, num_frames)
 
         def run_current_video():
@@ -8755,8 +8825,8 @@ class Pipes:
         response_format="url",
         size="768x512",
         num_frames=121,
-        num_inference_steps=40,
-        guidance_scale=4.0,
+        num_inference_steps=18,
+        guidance_scale=3.5,
         frame_rate=24,
         image=None,
         conditions=None,
@@ -8770,7 +8840,11 @@ class Pipes:
                 llm_was_unloaded = self._unload_llms_for_video()
                 aux_unloaded = self._unload_aux_models_for_video()
                 self._reload_video_after_vram_handoff(llm_was_unloaded)
-                result = self._generate_video_once(
+                # Model loading and diffusion are synchronous. Keep health
+                # checks/heartbeats responsive, while retaining the video lock
+                # through native completion even if the client cancels.
+                result = await _run_inference_call(
+                    self._generate_video_once,
                     prompt=prompt,
                     response_format=response_format,
                     size=size,
@@ -8782,11 +8856,12 @@ class Pipes:
                     conditions=conditions,
                 )
 
-                if llm_was_unloaded:
-                    self._destroy_video(async_cleanup=False, force=True)
-
                 return self._format_video_response(result, response_format)
             finally:
+                # Cancellation and failures also need to release video memory
+                # before restoring the models displaced by the handoff.
+                if llm_was_unloaded:
+                    self._destroy_video(async_cleanup=False, force=True)
                 self._restore_llms_after_video(llm_was_unloaded)
                 self._restore_aux_models_after_video(aux_unloaded)
         return ""
@@ -8927,7 +9002,7 @@ class Pipes:
                     pass
 
     async def generate_music_video(self, **kwargs):
-        """Generate a song, create short LTX scenes, then mux them into an MP4."""
+        """Generate a song, create short video scenes, then mux them into an MP4."""
         response_format = (kwargs.get("response_format") or "url").strip().lower()
         if response_format not in {"url", "b64_json"}:
             raise ValueError("response_format must be 'url' or 'b64_json'")
@@ -9053,18 +9128,19 @@ class Pipes:
                         scene["duration"],
                         scene["num_frames"],
                     )
-                    scene_ref = self._generate_video_once(
+                    scene_ref = await _run_inference_call(
+                        self._generate_video_once,
                         prompt=scene_prompt,
                         response_format="url",
                         size=kwargs.get("size") or "768x512",
                         num_frames=int(scene["num_frames"]),
                         num_inference_steps=int(
-                            kwargs.get("num_inference_steps") or 40
+                            kwargs.get("num_inference_steps") or 18
                         ),
                         guidance_scale=float(
                             kwargs.get("video_guidance_scale")
                             or kwargs.get("guidance_scale")
-                            or 4.0
+                            or 3.5
                         ),
                         frame_rate=frame_rate,
                         image=scene_image,
@@ -9535,6 +9611,20 @@ class Pipes:
                     ModelType.EMBEDDING
                 ),
             )
+
+        video_lock = getattr(self, "_video_lock", None)
+        if video_lock is not None and video_lock.locked():
+            # High-memory workers keep other pools available during video.
+            # Profiles that evict pools reserve the worker through restoration.
+            exclusive = self._video_requires_exclusive_worker()
+            for capability, state in cap_slots.items():
+                if capability in {"video", "music_video"}:
+                    state.update(_slot(1, in_flight=1))
+                elif exclusive:
+                    state.update(_slot(0, state["in_flight"], state["queued"]))
+            if exclusive:
+                for state in model_slots.values():
+                    state.update(_slot(0, state["in_flight"], state["queued"]))
 
         total_capacity = 0
         total_in_flight = 0

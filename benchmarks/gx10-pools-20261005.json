@@ -1,0 +1,2759 @@
+{
+  "1": {
+    "label": "replicas-1-no-tts-graphs",
+    "before": {
+      "slots": {
+        "text": {
+          "capacity": 2,
+          "in_flight": 0,
+          "queued": 0,
+          "available": 2
+        },
+        "tts": {
+          "capacity": 1,
+          "in_flight": 0,
+          "queued": 0,
+          "available": 1
+        },
+        "stt": {
+          "capacity": 1,
+          "in_flight": 0,
+          "queued": 0,
+          "available": 1
+        },
+        "image": {
+          "capacity": 1,
+          "in_flight": 0,
+          "queued": 0,
+          "available": 1
+        },
+        "video": {
+          "capacity": 1,
+          "in_flight": 0,
+          "queued": 0,
+          "available": 1
+        },
+        "music": {
+          "capacity": 1,
+          "in_flight": 0,
+          "queued": 0,
+          "available": 1
+        },
+        "music_video": {
+          "capacity": 1,
+          "in_flight": 0,
+          "queued": 0,
+          "available": 1
+        },
+        "embedding": {
+          "capacity": 1,
+          "in_flight": 0,
+          "queued": 0,
+          "available": 1
+        }
+      },
+      "model_pools": {
+        "tts": {
+          "configured": 1,
+          "resident": 1,
+          "devices": [
+            "cuda"
+          ]
+        },
+        "stt": {
+          "configured": 1,
+          "resident": 1,
+          "devices": [
+            "cuda"
+          ]
+        },
+        "embedding": {
+          "configured": 1,
+          "resident": 1,
+          "devices": [
+            "cuda"
+          ]
+        }
+      },
+      "devices": {
+        "llm": "cuda",
+        "tts": "cuda",
+        "stt": "cuda",
+        "embedding": "cuda",
+        "video": "cuda",
+        "img": "cuda"
+      },
+      "available_ram_gb": 104.35200119018555,
+      "cuda_free_gb": 63.26742172241211
+    },
+    "bursts": [
+      {
+        "kind": "embedding_short",
+        "concurrency": 1,
+        "round": 0,
+        "seconds": 0.12488326500169933,
+        "requests": [
+          {
+            "seconds": 0.02996805199654773,
+            "status": 200,
+            "dimensions": 1024
+          },
+          {
+            "seconds": 0.030669275001855567,
+            "status": 200,
+            "dimensions": 1024
+          },
+          {
+            "seconds": 0.031734860996948555,
+            "status": 200,
+            "dimensions": 1024
+          },
+          {
+            "seconds": 0.03083225899899844,
+            "status": 200,
+            "dimensions": 1024
+          }
+        ]
+      },
+      {
+        "kind": "embedding_short",
+        "concurrency": 1,
+        "round": 1,
+        "seconds": 0.1275315969978692,
+        "requests": [
+          {
+            "seconds": 0.03149312498862855,
+            "status": 200,
+            "dimensions": 1024
+          },
+          {
+            "seconds": 0.030997298992588185,
+            "status": 200,
+            "dimensions": 1024
+          },
+          {
+            "seconds": 0.03216809200239368,
+            "status": 200,
+            "dimensions": 1024
+          },
+          {
+            "seconds": 0.03107275599904824,
+            "status": 200,
+            "dimensions": 1024
+          }
+        ]
+      },
+      {
+        "kind": "embedding_short",
+        "concurrency": 2,
+        "round": 0,
+        "seconds": 0.11165487099788152,
+        "requests": [
+          {
+            "seconds": 0.030141777999233454,
+            "status": 200,
+            "dimensions": 1024
+          },
+          {
+            "seconds": 0.056319868002901785,
+            "status": 200,
+            "dimensions": 1024
+          },
+          {
+            "seconds": 0.05265882499224972,
+            "status": 200,
+            "dimensions": 1024
+          },
+          {
+            "seconds": 0.05328663899854291,
+            "status": 200,
+            "dimensions": 1024
+          }
+        ]
+      },
+      {
+        "kind": "embedding_short",
+        "concurrency": 2,
+        "round": 1,
+        "seconds": 0.11654134500713553,
+        "requests": [
+          {
+            "seconds": 0.032310686001437716,
+            "status": 200,
+            "dimensions": 1024
+          },
+          {
+            "seconds": 0.05815912500838749,
+            "status": 200,
+            "dimensions": 1024
+          },
+          {
+            "seconds": 0.055373415001668036,
+            "status": 200,
+            "dimensions": 1024
+          },
+          {
+            "seconds": 0.056487455003662035,
+            "status": 200,
+            "dimensions": 1024
+          }
+        ]
+      },
+      {
+        "kind": "embedding_short",
+        "concurrency": 4,
+        "round": 0,
+        "seconds": 0.11522689499543048,
+        "requests": [
+          {
+            "seconds": 0.030703308002557606,
+            "status": 200,
+            "dimensions": 1024
+          },
+          {
+            "seconds": 0.11360447701008525,
+            "status": 200,
+            "dimensions": 1024
+          },
+          {
+            "seconds": 0.057552661004592665,
+            "status": 200,
+            "dimensions": 1024
+          },
+          {
+            "seconds": 0.08455107700137887,
+            "status": 200,
+            "dimensions": 1024
+          }
+        ]
+      },
+      {
+        "kind": "embedding_short",
+        "concurrency": 4,
+        "round": 1,
+        "seconds": 0.11175687199283857,
+        "requests": [
+          {
+            "seconds": 0.05699101299978793,
+            "status": 200,
+            "dimensions": 1024
+          },
+          {
+            "seconds": 0.11084802000550553,
+            "status": 200,
+            "dimensions": 1024
+          },
+          {
+            "seconds": 0.030617451993748546,
+            "status": 200,
+            "dimensions": 1024
+          },
+          {
+            "seconds": 0.08207024799776264,
+            "status": 200,
+            "dimensions": 1024
+          }
+        ]
+      },
+      {
+        "kind": "embedding_long",
+        "concurrency": 1,
+        "round": 0,
+        "seconds": 0.9159012529999018,
+        "requests": [
+          {
+            "seconds": 0.22881161099940073,
+            "status": 200,
+            "dimensions": 1024
+          },
+          {
+            "seconds": 0.22717802399711218,
+            "status": 200,
+            "dimensions": 1024
+          },
+          {
+            "seconds": 0.2288003659923561,
+            "status": 200,
+            "dimensions": 1024
+          },
+          {
+            "seconds": 0.22941333400376607,
+            "status": 200,
+            "dimensions": 1024
+          }
+        ]
+      },
+      {
+        "kind": "embedding_long",
+        "concurrency": 1,
+        "round": 1,
+        "seconds": 0.9127091980044497,
+        "requests": [
+          {
+            "seconds": 0.22722990700276569,
+            "status": 200,
+            "dimensions": 1024
+          },
+          {
+            "seconds": 0.2279089679941535,
+            "status": 200,
+            "dimensions": 1024
+          },
+          {
+            "seconds": 0.22907634699367918,
+            "status": 200,
+            "dimensions": 1024
+          },
+          {
+            "seconds": 0.2271211910119746,
+            "status": 200,
+            "dimensions": 1024
+          }
+        ]
+      },
+      {
+        "kind": "embedding_long",
+        "concurrency": 2,
+        "round": 0,
+        "seconds": 0.9054642419941956,
+        "requests": [
+          {
+            "seconds": 0.2283482649945654,
+            "status": 200,
+            "dimensions": 1024
+          },
+          {
+            "seconds": 0.45304086900432594,
+            "status": 200,
+            "dimensions": 1024
+          },
+          {
+            "seconds": 0.45199003799643833,
+            "status": 200,
+            "dimensions": 1024
+          },
+          {
+            "seconds": 0.4506164000049466,
+            "status": 200,
+            "dimensions": 1024
+          }
+        ]
+      },
+      {
+        "kind": "embedding_long",
+        "concurrency": 2,
+        "round": 1,
+        "seconds": 0.9027793970017228,
+        "requests": [
+          {
+            "seconds": 0.45193988298706245,
+            "status": 200,
+            "dimensions": 1024
+          },
+          {
+            "seconds": 0.22620976599864662,
+            "status": 200,
+            "dimensions": 1024
+          },
+          {
+            "seconds": 0.45002996099356096,
+            "status": 200,
+            "dimensions": 1024
+          },
+          {
+            "seconds": 0.44956740700581577,
+            "status": 200,
+            "dimensions": 1024
+          }
+        ]
+      },
+      {
+        "kind": "embedding_long",
+        "concurrency": 4,
+        "round": 0,
+        "seconds": 0.900228534010239,
+        "requests": [
+          {
+            "seconds": 0.45247679100430105,
+            "status": 200,
+            "dimensions": 1024
+          },
+          {
+            "seconds": 0.22779356500541326,
+            "status": 200,
+            "dimensions": 1024
+          },
+          {
+            "seconds": 0.8980307290039491,
+            "status": 200,
+            "dimensions": 1024
+          },
+          {
+            "seconds": 0.6780781480047153,
+            "status": 200,
+            "dimensions": 1024
+          }
+        ]
+      },
+      {
+        "kind": "embedding_long",
+        "concurrency": 4,
+        "round": 1,
+        "seconds": 0.909130327985622,
+        "requests": [
+          {
+            "seconds": 0.23021597000479233,
+            "status": 200,
+            "dimensions": 1024
+          },
+          {
+            "seconds": 0.45413717499468476,
+            "status": 200,
+            "dimensions": 1024
+          },
+          {
+            "seconds": 0.9073166470043361,
+            "status": 200,
+            "dimensions": 1024
+          },
+          {
+            "seconds": 0.6801187259989092,
+            "status": 200,
+            "dimensions": 1024
+          }
+        ]
+      },
+      {
+        "kind": "stt",
+        "concurrency": 1,
+        "round": 0,
+        "seconds": 1.9314953400025843,
+        "requests": [
+          {
+            "seconds": 0.7752482240030076,
+            "status": 200,
+            "text": " Write a short poem about Vikings with a picture."
+          },
+          {
+            "seconds": 0.3817981169995619,
+            "status": 200,
+            "text": " Write a short poem about Vikings with a picture."
+          },
+          {
+            "seconds": 0.3867233710043365,
+            "status": 200,
+            "text": " Write a short poem about Vikings with a picture."
+          },
+          {
+            "seconds": 0.3868995119992178,
+            "status": 200,
+            "text": " Write a short poem about Vikings with a picture."
+          }
+        ]
+      },
+      {
+        "kind": "stt",
+        "concurrency": 1,
+        "round": 1,
+        "seconds": 1.5227036739961477,
+        "requests": [
+          {
+            "seconds": 0.38426853400596883,
+            "status": 200,
+            "text": " Write a short poem about Vikings with a picture."
+          },
+          {
+            "seconds": 0.38107201500679366,
+            "status": 200,
+            "text": " Write a short poem about Vikings with a picture."
+          },
+          {
+            "seconds": 0.37644178699702024,
+            "status": 200,
+            "text": " Write a short poem about Vikings with a picture."
+          },
+          {
+            "seconds": 0.38020700999186374,
+            "status": 200,
+            "text": " Write a short poem about Vikings with a picture."
+          }
+        ]
+      },
+      {
+        "kind": "stt",
+        "concurrency": 2,
+        "round": 0,
+        "seconds": 1.5000376360112568,
+        "requests": [
+          {
+            "seconds": 0.7548487559979549,
+            "status": 200,
+            "text": " Write a short poem about Vikings with a picture."
+          },
+          {
+            "seconds": 0.38188287199591286,
+            "status": 200,
+            "text": " Write a short poem about Vikings with a picture."
+          },
+          {
+            "seconds": 0.7416388730052859,
+            "status": 200,
+            "text": " Write a short poem about Vikings with a picture."
+          },
+          {
+            "seconds": 0.7444895040098345,
+            "status": 200,
+            "text": " Write a short poem about Vikings with a picture."
+          }
+        ]
+      },
+      {
+        "kind": "stt",
+        "concurrency": 2,
+        "round": 1,
+        "seconds": 1.5014402079978026,
+        "requests": [
+          {
+            "seconds": 0.7555717410141369,
+            "status": 200,
+            "text": " Write a short poem about Vikings with a picture."
+          },
+          {
+            "seconds": 0.38095064999652095,
+            "status": 200,
+            "text": " Write a short poem about Vikings with a picture."
+          },
+          {
+            "seconds": 0.7465949239995098,
+            "status": 200,
+            "text": " Write a short poem about Vikings with a picture."
+          },
+          {
+            "seconds": 0.745186535990797,
+            "status": 200,
+            "text": " Write a short poem about Vikings with a picture."
+          }
+        ]
+      },
+      {
+        "kind": "stt",
+        "concurrency": 4,
+        "round": 0,
+        "seconds": 1.5042869619937846,
+        "requests": [
+          {
+            "seconds": 1.5026276239950676,
+            "status": 200,
+            "text": " Write a short poem about Vikings with a picture."
+          },
+          {
+            "seconds": 0.75571295399277,
+            "status": 200,
+            "text": " Write a short poem about Vikings with a picture."
+          },
+          {
+            "seconds": 1.1293407899938757,
+            "status": 200,
+            "text": " Write a short poem about Vikings with a picture."
+          },
+          {
+            "seconds": 0.38045087800128385,
+            "status": 200,
+            "text": " Write a short poem about Vikings with a picture."
+          }
+        ]
+      },
+      {
+        "kind": "stt",
+        "concurrency": 4,
+        "round": 1,
+        "seconds": 1.5034065450017806,
+        "requests": [
+          {
+            "seconds": 0.3847198790026596,
+            "status": 200,
+            "text": " Write a short poem about Vikings with a picture."
+          },
+          {
+            "seconds": 1.1273662430030527,
+            "status": 200,
+            "text": " Write a short poem about Vikings with a picture."
+          },
+          {
+            "seconds": 0.7556809899979271,
+            "status": 200,
+            "text": " Write a short poem about Vikings with a picture."
+          },
+          {
+            "seconds": 1.5013114769972162,
+            "status": 200,
+            "text": " Write a short poem about Vikings with a picture."
+          }
+        ]
+      },
+      {
+        "kind": "tts",
+        "concurrency": 1,
+        "round": 0,
+        "seconds": 7.498475261993008,
+        "requests": [
+          {
+            "seconds": 1.747876149995136,
+            "status": 200,
+            "audio_seconds": 5.76
+          },
+          {
+            "seconds": 1.5845602019981015,
+            "status": 200,
+            "audio_seconds": 5.2
+          },
+          {
+            "seconds": 2.3378537780081388,
+            "status": 200,
+            "audio_seconds": 7.68
+          },
+          {
+            "seconds": 1.8271494410000741,
+            "status": 200,
+            "audio_seconds": 5.84
+          }
+        ]
+      },
+      {
+        "kind": "tts",
+        "concurrency": 1,
+        "round": 1,
+        "seconds": 7.438695976001327,
+        "requests": [
+          {
+            "seconds": 1.7366449140099576,
+            "status": 200,
+            "audio_seconds": 5.76
+          },
+          {
+            "seconds": 2.247074644998065,
+            "status": 200,
+            "audio_seconds": 7.36
+          },
+          {
+            "seconds": 1.6270418429921847,
+            "status": 200,
+            "audio_seconds": 5.36
+          },
+          {
+            "seconds": 1.8272470569936559,
+            "status": 200,
+            "audio_seconds": 5.84
+          }
+        ]
+      },
+      {
+        "kind": "tts",
+        "concurrency": 2,
+        "round": 0,
+        "seconds": 7.095415029994911,
+        "requests": [
+          {
+            "seconds": 1.8314183710026555,
+            "status": 200,
+            "audio_seconds": 5.84
+          },
+          {
+            "seconds": 3.492796250997344,
+            "status": 200,
+            "audio_seconds": 5.52
+          },
+          {
+            "seconds": 3.619197175008594,
+            "status": 200,
+            "audio_seconds": 6.32
+          },
+          {
+            "seconds": 3.6015839659958147,
+            "status": 200,
+            "audio_seconds": 5.44
+          }
+        ]
+      },
+      {
+        "kind": "tts",
+        "concurrency": 2,
+        "round": 1,
+        "seconds": 7.1442457620141795,
+        "requests": [
+          {
+            "seconds": 1.8306517519959016,
+            "status": 200,
+            "audio_seconds": 5.84
+          },
+          {
+            "seconds": 3.700269034001394,
+            "status": 200,
+            "audio_seconds": 6.0
+          },
+          {
+            "seconds": 3.603056767999078,
+            "status": 200,
+            "audio_seconds": 5.76
+          },
+          {
+            "seconds": 3.442604322990519,
+            "status": 200,
+            "audio_seconds": 5.68
+          }
+        ]
+      },
+      {
+        "kind": "tts",
+        "concurrency": 4,
+        "round": 0,
+        "seconds": 14.259635747002903,
+        "requests": [
+          {
+            "seconds": 6.221220559993526,
+            "status": 200,
+            "audio_seconds": 21.12
+          },
+          {
+            "seconds": 9.632840858001146,
+            "status": 200,
+            "audio_seconds": 5.6
+          },
+          {
+            "seconds": 7.9451876869861735,
+            "status": 200,
+            "audio_seconds": 5.76
+          },
+          {
+            "seconds": 14.256858800988994,
+            "status": 200,
+            "audio_seconds": 15.68
+          }
+        ]
+      },
+      {
+        "kind": "tts",
+        "concurrency": 4,
+        "round": 1,
+        "seconds": 7.659936645999551,
+        "requests": [
+          {
+            "seconds": 3.7241082079999615,
+            "status": 200,
+            "audio_seconds": 6.08
+          },
+          {
+            "seconds": 1.8331752590020187,
+            "status": 200,
+            "audio_seconds": 5.84
+          },
+          {
+            "seconds": 5.634973691005143,
+            "status": 200,
+            "audio_seconds": 6.16
+          },
+          {
+            "seconds": 7.657267603994114,
+            "status": 200,
+            "audio_seconds": 6.56
+          }
+        ]
+      }
+    ],
+    "after": {
+      "slots": {
+        "text": {
+          "capacity": 2,
+          "in_flight": 0,
+          "queued": 0,
+          "available": 2
+        },
+        "tts": {
+          "capacity": 1,
+          "in_flight": 0,
+          "queued": 0,
+          "available": 1
+        },
+        "stt": {
+          "capacity": 1,
+          "in_flight": 0,
+          "queued": 0,
+          "available": 1
+        },
+        "image": {
+          "capacity": 1,
+          "in_flight": 0,
+          "queued": 0,
+          "available": 1
+        },
+        "video": {
+          "capacity": 1,
+          "in_flight": 0,
+          "queued": 0,
+          "available": 1
+        },
+        "music": {
+          "capacity": 1,
+          "in_flight": 0,
+          "queued": 0,
+          "available": 1
+        },
+        "music_video": {
+          "capacity": 1,
+          "in_flight": 0,
+          "queued": 0,
+          "available": 1
+        },
+        "embedding": {
+          "capacity": 1,
+          "in_flight": 0,
+          "queued": 0,
+          "available": 1
+        }
+      },
+      "model_pools": {
+        "tts": {
+          "configured": 1,
+          "resident": 1,
+          "devices": [
+            "cuda"
+          ]
+        },
+        "stt": {
+          "configured": 1,
+          "resident": 1,
+          "devices": [
+            "cuda"
+          ]
+        },
+        "embedding": {
+          "configured": 1,
+          "resident": 1,
+          "devices": [
+            "cuda"
+          ]
+        }
+      },
+      "devices": {
+        "llm": "cuda",
+        "tts": "cuda",
+        "stt": "cuda",
+        "embedding": "cuda",
+        "video": "cuda",
+        "img": "cuda"
+      },
+      "available_ram_gb": 104.21509170532227,
+      "cuda_free_gb": 62.98556900024414
+    }
+  },
+  "2": {
+    "label": "replicas-2-no-tts-graphs",
+    "before": {
+      "slots": {
+        "text": {
+          "capacity": 2,
+          "in_flight": 0,
+          "queued": 0,
+          "available": 2
+        },
+        "tts": {
+          "capacity": 2,
+          "in_flight": 0,
+          "queued": 0,
+          "available": 2
+        },
+        "stt": {
+          "capacity": 2,
+          "in_flight": 0,
+          "queued": 0,
+          "available": 2
+        },
+        "image": {
+          "capacity": 1,
+          "in_flight": 0,
+          "queued": 0,
+          "available": 1
+        },
+        "video": {
+          "capacity": 1,
+          "in_flight": 0,
+          "queued": 0,
+          "available": 1
+        },
+        "music": {
+          "capacity": 1,
+          "in_flight": 0,
+          "queued": 0,
+          "available": 1
+        },
+        "music_video": {
+          "capacity": 1,
+          "in_flight": 0,
+          "queued": 0,
+          "available": 1
+        },
+        "embedding": {
+          "capacity": 2,
+          "in_flight": 0,
+          "queued": 0,
+          "available": 2
+        }
+      },
+      "model_pools": {
+        "tts": {
+          "configured": 2,
+          "resident": 2,
+          "devices": [
+            "cuda",
+            "cuda"
+          ]
+        },
+        "stt": {
+          "configured": 2,
+          "resident": 2,
+          "devices": [
+            "cuda",
+            "cuda"
+          ]
+        },
+        "embedding": {
+          "configured": 2,
+          "resident": 2,
+          "devices": [
+            "cuda",
+            "cuda"
+          ]
+        }
+      },
+      "devices": {
+        "llm": "cuda",
+        "tts": "cuda",
+        "stt": "cuda",
+        "embedding": "cuda",
+        "video": "cuda",
+        "img": "cuda"
+      },
+      "available_ram_gb": 94.4432258605957,
+      "cuda_free_gb": 53.34938430786133
+    },
+    "bursts": [
+      {
+        "kind": "embedding_short",
+        "concurrency": 1,
+        "round": 0,
+        "seconds": 0.1270010820007883,
+        "requests": [
+          {
+            "seconds": 0.030836149002425373,
+            "status": 200,
+            "input_id": "c8bd2aa3",
+            "dimensions": 1024
+          },
+          {
+            "seconds": 0.03147216899378691,
+            "status": 200,
+            "input_id": "f312e1e8",
+            "dimensions": 1024
+          },
+          {
+            "seconds": 0.030530885996995494,
+            "status": 200,
+            "input_id": "9962073f",
+            "dimensions": 1024
+          },
+          {
+            "seconds": 0.03260877000866458,
+            "status": 200,
+            "input_id": "f310a356",
+            "dimensions": 1024
+          }
+        ]
+      },
+      {
+        "kind": "embedding_short",
+        "concurrency": 1,
+        "round": 1,
+        "seconds": 0.1306789590016706,
+        "requests": [
+          {
+            "seconds": 0.03228602700983174,
+            "status": 200,
+            "input_id": "e8ec1483",
+            "dimensions": 1024
+          },
+          {
+            "seconds": 0.033273054999881424,
+            "status": 200,
+            "input_id": "f7c5bdcb",
+            "dimensions": 1024
+          },
+          {
+            "seconds": 0.03138460501213558,
+            "status": 200,
+            "input_id": "3370f8a2",
+            "dimensions": 1024
+          },
+          {
+            "seconds": 0.03233824099879712,
+            "status": 200,
+            "input_id": "a9d90fd2",
+            "dimensions": 1024
+          }
+        ]
+      },
+      {
+        "kind": "embedding_short",
+        "concurrency": 2,
+        "round": 0,
+        "seconds": 0.09991659599472769,
+        "requests": [
+          {
+            "seconds": 0.05321927300246898,
+            "status": 200,
+            "input_id": "af5a2a70",
+            "dimensions": 1024
+          },
+          {
+            "seconds": 0.04894026900001336,
+            "status": 200,
+            "input_id": "84f5109d",
+            "dimensions": 1024
+          },
+          {
+            "seconds": 0.0471252010029275,
+            "status": 200,
+            "input_id": "3fd4b883",
+            "dimensions": 1024
+          },
+          {
+            "seconds": 0.045787982002366334,
+            "status": 200,
+            "input_id": "1438c695",
+            "dimensions": 1024
+          }
+        ]
+      },
+      {
+        "kind": "embedding_short",
+        "concurrency": 2,
+        "round": 1,
+        "seconds": 0.09561174899863545,
+        "requests": [
+          {
+            "seconds": 0.046337740001035854,
+            "status": 200,
+            "input_id": "29471c2c",
+            "dimensions": 1024
+          },
+          {
+            "seconds": 0.04903429400292225,
+            "status": 200,
+            "input_id": "12f8932b",
+            "dimensions": 1024
+          },
+          {
+            "seconds": 0.044519236995256506,
+            "status": 200,
+            "input_id": "3a7020df",
+            "dimensions": 1024
+          },
+          {
+            "seconds": 0.044847839992144145,
+            "status": 200,
+            "input_id": "539cd7e0",
+            "dimensions": 1024
+          }
+        ]
+      },
+      {
+        "kind": "embedding_short",
+        "concurrency": 4,
+        "round": 0,
+        "seconds": 0.0987381120066857,
+        "requests": [
+          {
+            "seconds": 0.09796638699481264,
+            "status": 200,
+            "input_id": "88704e4e",
+            "dimensions": 1024
+          },
+          {
+            "seconds": 0.0507753470010357,
+            "status": 200,
+            "input_id": "4b615d70",
+            "dimensions": 1024
+          },
+          {
+            "seconds": 0.046838850001222454,
+            "status": 200,
+            "input_id": "bfb58a75",
+            "dimensions": 1024
+          },
+          {
+            "seconds": 0.07303330500144511,
+            "status": 200,
+            "input_id": "5d73b1b3",
+            "dimensions": 1024
+          }
+        ]
+      },
+      {
+        "kind": "embedding_short",
+        "concurrency": 4,
+        "round": 1,
+        "seconds": 0.09307714800524991,
+        "requests": [
+          {
+            "seconds": 0.09243041998706758,
+            "status": 200,
+            "input_id": "4d660b65",
+            "dimensions": 1024
+          },
+          {
+            "seconds": 0.04627570399316028,
+            "status": 200,
+            "input_id": "8eb29483",
+            "dimensions": 1024
+          },
+          {
+            "seconds": 0.08454661299765576,
+            "status": 200,
+            "input_id": "77ab3101",
+            "dimensions": 1024
+          },
+          {
+            "seconds": 0.04976447900116909,
+            "status": 200,
+            "input_id": "e5a29ec8",
+            "dimensions": 1024
+          }
+        ]
+      },
+      {
+        "kind": "embedding_long",
+        "concurrency": 1,
+        "round": 0,
+        "seconds": 0.9329596640018281,
+        "requests": [
+          {
+            "seconds": 0.2319213159935316,
+            "status": 200,
+            "input_id": "f84dfcf2",
+            "dimensions": 1024
+          },
+          {
+            "seconds": 0.23354661199846305,
+            "status": 200,
+            "input_id": "d14bf97f",
+            "dimensions": 1024
+          },
+          {
+            "seconds": 0.2342833930015331,
+            "status": 200,
+            "input_id": "3445dc58",
+            "dimensions": 1024
+          },
+          {
+            "seconds": 0.23168591099965852,
+            "status": 200,
+            "input_id": "aff3e955",
+            "dimensions": 1024
+          }
+        ]
+      },
+      {
+        "kind": "embedding_long",
+        "concurrency": 1,
+        "round": 1,
+        "seconds": 0.9315237260016147,
+        "requests": [
+          {
+            "seconds": 0.23353488100110553,
+            "status": 200,
+            "input_id": "85b8015d",
+            "dimensions": 1024
+          },
+          {
+            "seconds": 0.23052493600698654,
+            "status": 200,
+            "input_id": "a7fe1f20",
+            "dimensions": 1024
+          },
+          {
+            "seconds": 0.23469949800346512,
+            "status": 200,
+            "input_id": "342e66b1",
+            "dimensions": 1024
+          },
+          {
+            "seconds": 0.23157420300412923,
+            "status": 200,
+            "input_id": "29cbd339",
+            "dimensions": 1024
+          }
+        ]
+      },
+      {
+        "kind": "embedding_long",
+        "concurrency": 2,
+        "round": 0,
+        "seconds": 0.8051979899901198,
+        "requests": [
+          {
+            "seconds": 0.40044044800742995,
+            "status": 200,
+            "input_id": "958d2864",
+            "dimensions": 1024
+          },
+          {
+            "seconds": 0.4028495499951532,
+            "status": 200,
+            "input_id": "8b82af16",
+            "dimensions": 1024
+          },
+          {
+            "seconds": 0.40106818299682345,
+            "status": 200,
+            "input_id": "9b08ca0c",
+            "dimensions": 1024
+          },
+          {
+            "seconds": 0.4014631960017141,
+            "status": 200,
+            "input_id": "869a9371",
+            "dimensions": 1024
+          }
+        ]
+      },
+      {
+        "kind": "embedding_long",
+        "concurrency": 2,
+        "round": 1,
+        "seconds": 0.8020671470003435,
+        "requests": [
+          {
+            "seconds": 0.4022982519963989,
+            "status": 200,
+            "input_id": "feb80dc3",
+            "dimensions": 1024
+          },
+          {
+            "seconds": 0.4053854530066019,
+            "status": 200,
+            "input_id": "5f178587",
+            "dimensions": 1024
+          },
+          {
+            "seconds": 0.39579704600328114,
+            "status": 200,
+            "input_id": "c9366033",
+            "dimensions": 1024
+          },
+          {
+            "seconds": 0.39556213399919216,
+            "status": 200,
+            "input_id": "7c4e4a66",
+            "dimensions": 1024
+          }
+        ]
+      },
+      {
+        "kind": "embedding_long",
+        "concurrency": 4,
+        "round": 0,
+        "seconds": 0.8052924859948689,
+        "requests": [
+          {
+            "seconds": 0.8042583579954226,
+            "status": 200,
+            "input_id": "4203dc37",
+            "dimensions": 1024
+          },
+          {
+            "seconds": 0.4048849780083401,
+            "status": 200,
+            "input_id": "d1ea3641",
+            "dimensions": 1024
+          },
+          {
+            "seconds": 0.800703747998341,
+            "status": 200,
+            "input_id": "afe64d5e",
+            "dimensions": 1024
+          },
+          {
+            "seconds": 0.40619302800041623,
+            "status": 200,
+            "input_id": "941cd702",
+            "dimensions": 1024
+          }
+        ]
+      },
+      {
+        "kind": "embedding_long",
+        "concurrency": 4,
+        "round": 1,
+        "seconds": 0.7984004600002663,
+        "requests": [
+          {
+            "seconds": 0.40599845501128584,
+            "status": 200,
+            "input_id": "4c3c133a",
+            "dimensions": 1024
+          },
+          {
+            "seconds": 0.7947239970089868,
+            "status": 200,
+            "input_id": "1712b2dd",
+            "dimensions": 1024
+          },
+          {
+            "seconds": 0.4030972939945059,
+            "status": 200,
+            "input_id": "ea8fafea",
+            "dimensions": 1024
+          },
+          {
+            "seconds": 0.7955578670080286,
+            "status": 200,
+            "input_id": "2e789f4e",
+            "dimensions": 1024
+          }
+        ]
+      },
+      {
+        "kind": "stt",
+        "concurrency": 1,
+        "round": 0,
+        "seconds": 1.9800584059994435,
+        "requests": [
+          {
+            "seconds": 0.7778099510032916,
+            "status": 200,
+            "input_id": "2dfceed8",
+            "text": " Write a short poem about Vikings with a picture."
+          },
+          {
+            "seconds": 0.42579047598701436,
+            "status": 200,
+            "input_id": "5e0572bd",
+            "text": " Write a short poem about Vikings with a picture."
+          },
+          {
+            "seconds": 0.3878529359935783,
+            "status": 200,
+            "input_id": "4c304332",
+            "text": " Write a short poem about Vikings with a picture."
+          },
+          {
+            "seconds": 0.38762057600251865,
+            "status": 200,
+            "input_id": "6a9cd8fa",
+            "text": " Write a short poem about Vikings with a picture."
+          }
+        ]
+      },
+      {
+        "kind": "stt",
+        "concurrency": 1,
+        "round": 1,
+        "seconds": 1.5574784130003536,
+        "requests": [
+          {
+            "seconds": 0.38903166899399366,
+            "status": 200,
+            "input_id": "25aaf72a",
+            "text": " Write a short poem about Vikings with a picture."
+          },
+          {
+            "seconds": 0.3870062380010495,
+            "status": 200,
+            "input_id": "f7171bd9",
+            "text": " Write a short poem about Vikings with a picture."
+          },
+          {
+            "seconds": 0.3921713269955944,
+            "status": 200,
+            "input_id": "5d921be1",
+            "text": " Write a short poem about Vikings with a picture."
+          },
+          {
+            "seconds": 0.38832691599964164,
+            "status": 200,
+            "input_id": "c1a7413d",
+            "text": " Write a short poem about Vikings with a picture."
+          }
+        ]
+      },
+      {
+        "kind": "stt",
+        "concurrency": 2,
+        "round": 0,
+        "seconds": 1.487793911001063,
+        "requests": [
+          {
+            "seconds": 0.7483682679885533,
+            "status": 200,
+            "input_id": "fbb9df9f",
+            "text": " Write a short poem about Vikings with a picture."
+          },
+          {
+            "seconds": 0.7492334120033775,
+            "status": 200,
+            "input_id": "85653fc4",
+            "text": " Write a short poem about Vikings with a picture."
+          },
+          {
+            "seconds": 0.7387530359992525,
+            "status": 200,
+            "input_id": "22bac86f",
+            "text": " Write a short poem about Vikings with a picture."
+          },
+          {
+            "seconds": 0.7351148650050163,
+            "status": 200,
+            "input_id": "232efc4c",
+            "text": " Write a short poem about Vikings with a picture."
+          }
+        ]
+      },
+      {
+        "kind": "stt",
+        "concurrency": 2,
+        "round": 1,
+        "seconds": 1.473687580000842,
+        "requests": [
+          {
+            "seconds": 0.736529749003239,
+            "status": 200,
+            "input_id": "348f250a",
+            "text": " Write a short poem about Vikings with a picture."
+          },
+          {
+            "seconds": 0.7346545289910864,
+            "status": 200,
+            "input_id": "ec0204e3",
+            "text": " Write a short poem about Vikings with a picture."
+          },
+          {
+            "seconds": 0.7360720889992081,
+            "status": 200,
+            "input_id": "b9e2c35a",
+            "text": " Write a short poem about Vikings with a picture."
+          },
+          {
+            "seconds": 0.7363860810000915,
+            "status": 200,
+            "input_id": "595aac1f",
+            "text": " Write a short poem about Vikings with a picture."
+          }
+        ]
+      },
+      {
+        "kind": "stt",
+        "concurrency": 4,
+        "round": 0,
+        "seconds": 1.4769641870079795,
+        "requests": [
+          {
+            "seconds": 1.4760583659954136,
+            "status": 200,
+            "input_id": "2501fb9b",
+            "text": " Write a short poem about Vikings with a picture."
+          },
+          {
+            "seconds": 0.7384632400062401,
+            "status": 200,
+            "input_id": "fcaba118",
+            "text": " Write a short poem about Vikings with a picture."
+          },
+          {
+            "seconds": 0.7390244709968101,
+            "status": 200,
+            "input_id": "08d0eddb",
+            "text": " Write a short poem about Vikings with a picture."
+          },
+          {
+            "seconds": 1.4746881790051702,
+            "status": 200,
+            "input_id": "c5a40115",
+            "text": " Write a short poem about Vikings with a picture."
+          }
+        ]
+      },
+      {
+        "kind": "stt",
+        "concurrency": 4,
+        "round": 1,
+        "seconds": 1.4871757359942421,
+        "requests": [
+          {
+            "seconds": 1.4866064350062516,
+            "status": 200,
+            "input_id": "26185c47",
+            "text": " Write a short poem about Vikings with a picture."
+          },
+          {
+            "seconds": 1.484626400997513,
+            "status": 200,
+            "input_id": "994ee2d3",
+            "text": " Write a short poem about Vikings with a picture."
+          },
+          {
+            "seconds": 0.7501349380036118,
+            "status": 200,
+            "input_id": "4a24a9f9",
+            "text": " Write a short poem about Vikings with a picture."
+          },
+          {
+            "seconds": 0.7502121569996234,
+            "status": 200,
+            "input_id": "5d127ab9",
+            "text": " Write a short poem about Vikings with a picture."
+          }
+        ]
+      },
+      {
+        "kind": "tts",
+        "concurrency": 1,
+        "round": 0,
+        "seconds": 8.421054154998274,
+        "requests": [
+          {
+            "seconds": 2.1997896489920095,
+            "status": 200,
+            "input_id": "948681cc",
+            "audio_seconds": 7.04
+          },
+          {
+            "seconds": 2.013815446989611,
+            "status": 200,
+            "input_id": "39978009",
+            "audio_seconds": 6.48
+          },
+          {
+            "seconds": 1.9836594960070215,
+            "status": 200,
+            "input_id": "bda03a45",
+            "audio_seconds": 6.24
+          },
+          {
+            "seconds": 2.2226872600003844,
+            "status": 200,
+            "input_id": "0a9f7d6c",
+            "audio_seconds": 7.28
+          }
+        ]
+      },
+      {
+        "kind": "tts",
+        "concurrency": 1,
+        "round": 1,
+        "seconds": 7.2975898509903345,
+        "requests": [
+          {
+            "seconds": 1.6929837149946252,
+            "status": 200,
+            "input_id": "ec03af9a",
+            "audio_seconds": 5.52
+          },
+          {
+            "seconds": 1.7566603669984033,
+            "status": 200,
+            "input_id": "d9e2f569",
+            "audio_seconds": 5.76
+          },
+          {
+            "seconds": 1.8736897189955926,
+            "status": 200,
+            "input_id": "6f2ae485",
+            "audio_seconds": 5.92
+          },
+          {
+            "seconds": 1.9734638429945335,
+            "status": 200,
+            "input_id": "52876006",
+            "audio_seconds": 6.32
+          }
+        ]
+      },
+      {
+        "kind": "tts",
+        "concurrency": 2,
+        "round": 0,
+        "seconds": 7.78870645200368,
+        "requests": [
+          {
+            "seconds": 3.598207642993657,
+            "status": 200,
+            "input_id": "82e3c132",
+            "audio_seconds": 5.12
+          },
+          {
+            "seconds": 4.940764230006607,
+            "status": 200,
+            "input_id": "8f587215",
+            "audio_seconds": 7.2
+          },
+          {
+            "seconds": 3.5663979630044196,
+            "status": 200,
+            "input_id": "4c1177df",
+            "audio_seconds": 5.2
+          },
+          {
+            "seconds": 2.8471069499937585,
+            "status": 200,
+            "input_id": "1476dc12",
+            "audio_seconds": 5.36
+          }
+        ]
+      },
+      {
+        "kind": "tts",
+        "concurrency": 2,
+        "round": 1,
+        "seconds": 8.577598459989531,
+        "requests": [
+          {
+            "seconds": 4.336448029993335,
+            "status": 200,
+            "input_id": "00edd058",
+            "audio_seconds": 6.24
+          },
+          {
+            "seconds": 3.9046440340025583,
+            "status": 200,
+            "input_id": "4ac51239",
+            "audio_seconds": 5.6
+          },
+          {
+            "seconds": 3.88870084300288,
+            "status": 200,
+            "input_id": "149e7b48",
+            "audio_seconds": 5.76
+          },
+          {
+            "seconds": 4.240503452994744,
+            "status": 200,
+            "input_id": "6f1c2738",
+            "audio_seconds": 7.6
+          }
+        ]
+      },
+      {
+        "kind": "tts",
+        "concurrency": 4,
+        "round": 0,
+        "seconds": 8.191858605001471,
+        "requests": [
+          {
+            "seconds": 3.727203244998236,
+            "status": 200,
+            "input_id": "90d05015",
+            "audio_seconds": 5.44
+          },
+          {
+            "seconds": 8.190480841003591,
+            "status": 200,
+            "input_id": "ce8c4c03",
+            "audio_seconds": 7.76
+          },
+          {
+            "seconds": 7.477787602998433,
+            "status": 200,
+            "input_id": "37528285",
+            "audio_seconds": 5.76
+          },
+          {
+            "seconds": 3.6183126639953116,
+            "status": 200,
+            "input_id": "abba6d18",
+            "audio_seconds": 5.2
+          }
+        ]
+      },
+      {
+        "kind": "tts",
+        "concurrency": 4,
+        "round": 1,
+        "seconds": 7.557430779997958,
+        "requests": [
+          {
+            "seconds": 7.557019319996471,
+            "status": 200,
+            "input_id": "2de70775",
+            "audio_seconds": 5.6
+          },
+          {
+            "seconds": 3.0989052049990278,
+            "status": 200,
+            "input_id": "09ccbedb",
+            "audio_seconds": 4.4
+          },
+          {
+            "seconds": 4.789360242997645,
+            "status": 200,
+            "input_id": "ac81957c",
+            "audio_seconds": 6.96
+          },
+          {
+            "seconds": 6.7547102280077524,
+            "status": 200,
+            "input_id": "bdfbf5ae",
+            "audio_seconds": 5.36
+          }
+        ]
+      }
+    ],
+    "after": {
+      "slots": {
+        "text": {
+          "capacity": 2,
+          "in_flight": 0,
+          "queued": 0,
+          "available": 2
+        },
+        "tts": {
+          "capacity": 2,
+          "in_flight": 0,
+          "queued": 0,
+          "available": 2
+        },
+        "stt": {
+          "capacity": 2,
+          "in_flight": 0,
+          "queued": 0,
+          "available": 2
+        },
+        "image": {
+          "capacity": 1,
+          "in_flight": 0,
+          "queued": 0,
+          "available": 1
+        },
+        "video": {
+          "capacity": 1,
+          "in_flight": 0,
+          "queued": 0,
+          "available": 1
+        },
+        "music": {
+          "capacity": 1,
+          "in_flight": 0,
+          "queued": 0,
+          "available": 1
+        },
+        "music_video": {
+          "capacity": 1,
+          "in_flight": 0,
+          "queued": 0,
+          "available": 1
+        },
+        "embedding": {
+          "capacity": 2,
+          "in_flight": 0,
+          "queued": 0,
+          "available": 2
+        }
+      },
+      "model_pools": {
+        "tts": {
+          "configured": 2,
+          "resident": 2,
+          "devices": [
+            "cuda",
+            "cuda"
+          ]
+        },
+        "stt": {
+          "configured": 2,
+          "resident": 2,
+          "devices": [
+            "cuda",
+            "cuda"
+          ]
+        },
+        "embedding": {
+          "configured": 2,
+          "resident": 2,
+          "devices": [
+            "cuda",
+            "cuda"
+          ]
+        }
+      },
+      "devices": {
+        "llm": "cuda",
+        "tts": "cuda",
+        "stt": "cuda",
+        "embedding": "cuda",
+        "video": "cuda",
+        "img": "cuda"
+      },
+      "available_ram_gb": 94.24689865112305,
+      "cuda_free_gb": 53.009151458740234
+    }
+  },
+  "4": {
+    "label": "replicas-4-no-tts-graphs",
+    "before": {
+      "slots": {
+        "text": {
+          "capacity": 2,
+          "in_flight": 0,
+          "queued": 0,
+          "available": 2
+        },
+        "tts": {
+          "capacity": 4,
+          "in_flight": 0,
+          "queued": 0,
+          "available": 4
+        },
+        "stt": {
+          "capacity": 4,
+          "in_flight": 0,
+          "queued": 0,
+          "available": 4
+        },
+        "image": {
+          "capacity": 1,
+          "in_flight": 0,
+          "queued": 0,
+          "available": 1
+        },
+        "video": {
+          "capacity": 1,
+          "in_flight": 0,
+          "queued": 0,
+          "available": 1
+        },
+        "music": {
+          "capacity": 1,
+          "in_flight": 0,
+          "queued": 0,
+          "available": 1
+        },
+        "music_video": {
+          "capacity": 1,
+          "in_flight": 0,
+          "queued": 0,
+          "available": 1
+        },
+        "embedding": {
+          "capacity": 4,
+          "in_flight": 0,
+          "queued": 0,
+          "available": 4
+        }
+      },
+      "model_pools": {
+        "tts": {
+          "configured": 4,
+          "resident": 4,
+          "devices": [
+            "cuda",
+            "cuda",
+            "cuda",
+            "cuda"
+          ]
+        },
+        "stt": {
+          "configured": 4,
+          "resident": 4,
+          "devices": [
+            "cuda",
+            "cuda",
+            "cuda",
+            "cuda"
+          ]
+        },
+        "embedding": {
+          "configured": 4,
+          "resident": 4,
+          "devices": [
+            "cuda",
+            "cuda",
+            "cuda",
+            "cuda"
+          ]
+        }
+      },
+      "devices": {
+        "llm": "cuda",
+        "tts": "cuda",
+        "stt": "cuda",
+        "embedding": "cuda",
+        "video": "cuda",
+        "img": "cuda"
+      },
+      "available_ram_gb": 75.09630966186523,
+      "cuda_free_gb": 33.993648529052734
+    },
+    "bursts": [
+      {
+        "kind": "embedding_short",
+        "concurrency": 1,
+        "round": 0,
+        "seconds": 0.1271303700050339,
+        "requests": [
+          {
+            "seconds": 0.0318908119952539,
+            "status": 200,
+            "input_id": "3977dd88",
+            "dimensions": 1024
+          },
+          {
+            "seconds": 0.031369329008157365,
+            "status": 200,
+            "input_id": "39d0f2eb",
+            "dimensions": 1024
+          },
+          {
+            "seconds": 0.030163300994900055,
+            "status": 200,
+            "input_id": "98cd9453",
+            "dimensions": 1024
+          },
+          {
+            "seconds": 0.031790029010153376,
+            "status": 200,
+            "input_id": "31b8e151",
+            "dimensions": 1024
+          }
+        ]
+      },
+      {
+        "kind": "embedding_short",
+        "concurrency": 1,
+        "round": 1,
+        "seconds": 0.12703622499248013,
+        "requests": [
+          {
+            "seconds": 0.03370838300907053,
+            "status": 200,
+            "input_id": "cfb3794d",
+            "dimensions": 1024
+          },
+          {
+            "seconds": 0.029789119013003074,
+            "status": 200,
+            "input_id": "62deb7fe",
+            "dimensions": 1024
+          },
+          {
+            "seconds": 0.03174709099403117,
+            "status": 200,
+            "input_id": "1ff16933",
+            "dimensions": 1024
+          },
+          {
+            "seconds": 0.030216736005968414,
+            "status": 200,
+            "input_id": "afd32ed6",
+            "dimensions": 1024
+          }
+        ]
+      },
+      {
+        "kind": "embedding_short",
+        "concurrency": 2,
+        "round": 0,
+        "seconds": 0.09562526499212254,
+        "requests": [
+          {
+            "seconds": 0.04839136700320523,
+            "status": 200,
+            "input_id": "26f9a003",
+            "dimensions": 1024
+          },
+          {
+            "seconds": 0.043235545002971776,
+            "status": 200,
+            "input_id": "eaf8e433",
+            "dimensions": 1024
+          },
+          {
+            "seconds": 0.04771210100443568,
+            "status": 200,
+            "input_id": "8d800b23",
+            "dimensions": 1024
+          },
+          {
+            "seconds": 0.04636341800505761,
+            "status": 200,
+            "input_id": "21bc0030",
+            "dimensions": 1024
+          }
+        ]
+      },
+      {
+        "kind": "embedding_short",
+        "concurrency": 2,
+        "round": 1,
+        "seconds": 0.09575862700876314,
+        "requests": [
+          {
+            "seconds": 0.032353980001062155,
+            "status": 200,
+            "input_id": "173162c2",
+            "dimensions": 1024
+          },
+          {
+            "seconds": 0.060760663996916264,
+            "status": 200,
+            "input_id": "d63433c4",
+            "dimensions": 1024
+          },
+          {
+            "seconds": 0.03996198601089418,
+            "status": 200,
+            "input_id": "d981bda9",
+            "dimensions": 1024
+          },
+          {
+            "seconds": 0.033553770001162775,
+            "status": 200,
+            "input_id": "141e4932",
+            "dimensions": 1024
+          }
+        ]
+      },
+      {
+        "kind": "embedding_short",
+        "concurrency": 4,
+        "round": 0,
+        "seconds": 0.09560434900049586,
+        "requests": [
+          {
+            "seconds": 0.08202701900154352,
+            "status": 200,
+            "input_id": "e01015b6",
+            "dimensions": 1024
+          },
+          {
+            "seconds": 0.08791020399075933,
+            "status": 200,
+            "input_id": "1f617325",
+            "dimensions": 1024
+          },
+          {
+            "seconds": 0.09324935398763046,
+            "status": 200,
+            "input_id": "87d7a2ce",
+            "dimensions": 1024
+          },
+          {
+            "seconds": 0.08893658500164747,
+            "status": 200,
+            "input_id": "3e1e1e4b",
+            "dimensions": 1024
+          }
+        ]
+      },
+      {
+        "kind": "embedding_short",
+        "concurrency": 4,
+        "round": 1,
+        "seconds": 0.0965142679924611,
+        "requests": [
+          {
+            "seconds": 0.0710831440082984,
+            "status": 200,
+            "input_id": "06bde2dd",
+            "dimensions": 1024
+          },
+          {
+            "seconds": 0.05822510100551881,
+            "status": 200,
+            "input_id": "1b9520b1",
+            "dimensions": 1024
+          },
+          {
+            "seconds": 0.09470561599300709,
+            "status": 200,
+            "input_id": "b63f68d8",
+            "dimensions": 1024
+          },
+          {
+            "seconds": 0.0666427739924984,
+            "status": 200,
+            "input_id": "aded42b4",
+            "dimensions": 1024
+          }
+        ]
+      },
+      {
+        "kind": "embedding_long",
+        "concurrency": 1,
+        "round": 0,
+        "seconds": 0.931502734994865,
+        "requests": [
+          {
+            "seconds": 0.23620797699550167,
+            "status": 200,
+            "input_id": "14210ae3",
+            "dimensions": 1024
+          },
+          {
+            "seconds": 0.22920279600657523,
+            "status": 200,
+            "input_id": "b72a3785",
+            "dimensions": 1024
+          },
+          {
+            "seconds": 0.23500730100204237,
+            "status": 200,
+            "input_id": "8720c58f",
+            "dimensions": 1024
+          },
+          {
+            "seconds": 0.22940921400731895,
+            "status": 200,
+            "input_id": "d8c39fce",
+            "dimensions": 1024
+          }
+        ]
+      },
+      {
+        "kind": "embedding_long",
+        "concurrency": 1,
+        "round": 1,
+        "seconds": 0.9201848990051076,
+        "requests": [
+          {
+            "seconds": 0.23065266699995846,
+            "status": 200,
+            "input_id": "59acb92f",
+            "dimensions": 1024
+          },
+          {
+            "seconds": 0.22711679599888157,
+            "status": 200,
+            "input_id": "986a8dcc",
+            "dimensions": 1024
+          },
+          {
+            "seconds": 0.2330145279993303,
+            "status": 200,
+            "input_id": "61fa3b11",
+            "dimensions": 1024
+          },
+          {
+            "seconds": 0.22770075900189113,
+            "status": 200,
+            "input_id": "adb8e389",
+            "dimensions": 1024
+          }
+        ]
+      },
+      {
+        "kind": "embedding_long",
+        "concurrency": 2,
+        "round": 0,
+        "seconds": 0.8210460410045926,
+        "requests": [
+          {
+            "seconds": 0.4126754329918185,
+            "status": 200,
+            "input_id": "3b056dd3",
+            "dimensions": 1024
+          },
+          {
+            "seconds": 0.4102931399975205,
+            "status": 200,
+            "input_id": "cd9388db",
+            "dimensions": 1024
+          },
+          {
+            "seconds": 0.4062163310009055,
+            "status": 200,
+            "input_id": "8157f0f4",
+            "dimensions": 1024
+          },
+          {
+            "seconds": 0.4071639040048467,
+            "status": 200,
+            "input_id": "a6747324",
+            "dimensions": 1024
+          }
+        ]
+      },
+      {
+        "kind": "embedding_long",
+        "concurrency": 2,
+        "round": 1,
+        "seconds": 0.8147725099988747,
+        "requests": [
+          {
+            "seconds": 0.4101770649867831,
+            "status": 200,
+            "input_id": "4793a8ba",
+            "dimensions": 1024
+          },
+          {
+            "seconds": 0.4109171040036017,
+            "status": 200,
+            "input_id": "db40e286",
+            "dimensions": 1024
+          },
+          {
+            "seconds": 0.402421716004028,
+            "status": 200,
+            "input_id": "c09c50f9",
+            "dimensions": 1024
+          },
+          {
+            "seconds": 0.4022184970090166,
+            "status": 200,
+            "input_id": "81405583",
+            "dimensions": 1024
+          }
+        ]
+      },
+      {
+        "kind": "embedding_long",
+        "concurrency": 4,
+        "round": 0,
+        "seconds": 0.8563243459939258,
+        "requests": [
+          {
+            "seconds": 0.8527824670018163,
+            "status": 200,
+            "input_id": "b8dfe5d5",
+            "dimensions": 1024
+          },
+          {
+            "seconds": 0.8496228379954118,
+            "status": 200,
+            "input_id": "04465325",
+            "dimensions": 1024
+          },
+          {
+            "seconds": 0.8477939629956381,
+            "status": 200,
+            "input_id": "f8107d08",
+            "dimensions": 1024
+          },
+          {
+            "seconds": 0.853374525991967,
+            "status": 200,
+            "input_id": "b355c462",
+            "dimensions": 1024
+          }
+        ]
+      },
+      {
+        "kind": "embedding_long",
+        "concurrency": 4,
+        "round": 1,
+        "seconds": 0.8355594720051158,
+        "requests": [
+          {
+            "seconds": 0.8348701469949447,
+            "status": 200,
+            "input_id": "e50dee30",
+            "dimensions": 1024
+          },
+          {
+            "seconds": 0.829678285997943,
+            "status": 200,
+            "input_id": "9f36fb63",
+            "dimensions": 1024
+          },
+          {
+            "seconds": 0.7579567290085834,
+            "status": 200,
+            "input_id": "ebdaf4a1",
+            "dimensions": 1024
+          },
+          {
+            "seconds": 0.8311948369955644,
+            "status": 200,
+            "input_id": "ac408d50",
+            "dimensions": 1024
+          }
+        ]
+      },
+      {
+        "kind": "stt",
+        "concurrency": 1,
+        "round": 0,
+        "seconds": 2.0480915140069555,
+        "requests": [
+          {
+            "seconds": 0.7805300650070421,
+            "status": 200,
+            "input_id": "e4d5d92b",
+            "text": " Write a short poem about Vikings with a picture."
+          },
+          {
+            "seconds": 0.4178400130040245,
+            "status": 200,
+            "input_id": "8e379798",
+            "text": " Write a short poem about Vikings with a picture."
+          },
+          {
+            "seconds": 0.42631895499653183,
+            "status": 200,
+            "input_id": "84e3ddb3",
+            "text": " Write a short poem about Vikings with a picture."
+          },
+          {
+            "seconds": 0.42232312000123784,
+            "status": 200,
+            "input_id": "191c860e",
+            "text": " Write a short poem about Vikings with a picture."
+          }
+        ]
+      },
+      {
+        "kind": "stt",
+        "concurrency": 1,
+        "round": 1,
+        "seconds": 1.535054341002251,
+        "requests": [
+          {
+            "seconds": 0.3880852989968844,
+            "status": 200,
+            "input_id": "f61fdf2b",
+            "text": " Write a short poem about Vikings with a picture."
+          },
+          {
+            "seconds": 0.38287700699584093,
+            "status": 200,
+            "input_id": "7e15c4ba",
+            "text": " Write a short poem about Vikings with a picture."
+          },
+          {
+            "seconds": 0.3793238450016361,
+            "status": 200,
+            "input_id": "8b6e9af0",
+            "text": " Write a short poem about Vikings with a picture."
+          },
+          {
+            "seconds": 0.3840648930054158,
+            "status": 200,
+            "input_id": "5b3776dc",
+            "text": " Write a short poem about Vikings with a picture."
+          }
+        ]
+      },
+      {
+        "kind": "stt",
+        "concurrency": 2,
+        "round": 0,
+        "seconds": 1.4965575759997591,
+        "requests": [
+          {
+            "seconds": 0.7322761200048262,
+            "status": 200,
+            "input_id": "a03789bc",
+            "text": " Write a short poem about Vikings with a picture."
+          },
+          {
+            "seconds": 0.7279600979964016,
+            "status": 200,
+            "input_id": "be37506a",
+            "text": " Write a short poem about Vikings with a picture."
+          },
+          {
+            "seconds": 0.7675251059990842,
+            "status": 200,
+            "input_id": "6825cab4",
+            "text": " Write a short poem about Vikings with a picture."
+          },
+          {
+            "seconds": 0.7611169800075004,
+            "status": 200,
+            "input_id": "d750bc0e",
+            "text": " Write a short poem about Vikings with a picture."
+          }
+        ]
+      },
+      {
+        "kind": "stt",
+        "concurrency": 2,
+        "round": 1,
+        "seconds": 1.4514971470052842,
+        "requests": [
+          {
+            "seconds": 0.7217453229968669,
+            "status": 200,
+            "input_id": "623b8b69",
+            "text": " Write a short poem about Vikings with a picture."
+          },
+          {
+            "seconds": 0.7226385260000825,
+            "status": 200,
+            "input_id": "823d98ce",
+            "text": " Write a short poem about Vikings with a picture."
+          },
+          {
+            "seconds": 0.7268495470052585,
+            "status": 200,
+            "input_id": "f22350c4",
+            "text": " Write a short poem about Vikings with a picture."
+          },
+          {
+            "seconds": 0.7275552740029525,
+            "status": 200,
+            "input_id": "93a1b761",
+            "text": " Write a short poem about Vikings with a picture."
+          }
+        ]
+      },
+      {
+        "kind": "stt",
+        "concurrency": 4,
+        "round": 0,
+        "seconds": 1.5043296220101183,
+        "requests": [
+          {
+            "seconds": 1.5032999960094457,
+            "status": 200,
+            "input_id": "dc01cc3c",
+            "text": " Write a short poem about Vikings with a picture."
+          },
+          {
+            "seconds": 1.4901145579933655,
+            "status": 200,
+            "input_id": "13a57259",
+            "text": " Write a short poem about Vikings with a picture."
+          },
+          {
+            "seconds": 1.4945540389890084,
+            "status": 200,
+            "input_id": "961185b1",
+            "text": " Write a short poem about Vikings with a picture."
+          },
+          {
+            "seconds": 1.4953903279965743,
+            "status": 200,
+            "input_id": "6e23ba24",
+            "text": " Write a short poem about Vikings with a picture."
+          }
+        ]
+      },
+      {
+        "kind": "stt",
+        "concurrency": 4,
+        "round": 1,
+        "seconds": 1.5801347989909118,
+        "requests": [
+          {
+            "seconds": 1.5793065600009868,
+            "status": 200,
+            "input_id": "4ccb7555",
+            "text": " Write a short poem about Vikings with a picture."
+          },
+          {
+            "seconds": 1.5742571730079362,
+            "status": 200,
+            "input_id": "e7d3e56b",
+            "text": " Write a short poem about Vikings with a picture."
+          },
+          {
+            "seconds": 1.5500849740055855,
+            "status": 200,
+            "input_id": "4e3e7cfc",
+            "text": " Write a short poem about Vikings with a picture."
+          },
+          {
+            "seconds": 1.572839724001824,
+            "status": 200,
+            "input_id": "3d1d43e4",
+            "text": " Write a short poem about Vikings with a picture."
+          }
+        ]
+      },
+      {
+        "kind": "tts",
+        "concurrency": 1,
+        "round": 0,
+        "seconds": 7.282791270001326,
+        "requests": [
+          {
+            "seconds": 1.9292393500072649,
+            "status": 200,
+            "input_id": "0cf269fc",
+            "audio_seconds": 6.16
+          },
+          {
+            "seconds": 1.8791749520023586,
+            "status": 200,
+            "input_id": "21f00206",
+            "audio_seconds": 5.92
+          },
+          {
+            "seconds": 1.7125187850033399,
+            "status": 200,
+            "input_id": "46b54530",
+            "audio_seconds": 5.6
+          },
+          {
+            "seconds": 1.7609899369999766,
+            "status": 200,
+            "input_id": "ce4b6db1",
+            "audio_seconds": 5.76
+          }
+        ]
+      },
+      {
+        "kind": "tts",
+        "concurrency": 1,
+        "round": 1,
+        "seconds": 7.197227996002766,
+        "requests": [
+          {
+            "seconds": 2.0120172099996125,
+            "status": 200,
+            "input_id": "f0958d6b",
+            "audio_seconds": 6.48
+          },
+          {
+            "seconds": 1.6445419109950308,
+            "status": 200,
+            "input_id": "b58241ab",
+            "audio_seconds": 5.44
+          },
+          {
+            "seconds": 1.9070031279989053,
+            "status": 200,
+            "input_id": "dda58aa3",
+            "audio_seconds": 6.0
+          },
+          {
+            "seconds": 1.6329396479995921,
+            "status": 200,
+            "input_id": "5b9d343a",
+            "audio_seconds": 5.36
+          }
+        ]
+      },
+      {
+        "kind": "tts",
+        "concurrency": 2,
+        "round": 0,
+        "seconds": 8.36640264801099,
+        "requests": [
+          {
+            "seconds": 4.44268302898854,
+            "status": 200,
+            "input_id": "49842b45",
+            "audio_seconds": 6.48
+          },
+          {
+            "seconds": 3.6410501729988027,
+            "status": 200,
+            "input_id": "5e19683a",
+            "audio_seconds": 5.2
+          },
+          {
+            "seconds": 4.29717032800545,
+            "status": 200,
+            "input_id": "de86fccd",
+            "audio_seconds": 6.24
+          },
+          {
+            "seconds": 3.9229471900034696,
+            "status": 200,
+            "input_id": "6e2df0b6",
+            "audio_seconds": 6.24
+          }
+        ]
+      },
+      {
+        "kind": "tts",
+        "concurrency": 2,
+        "round": 1,
+        "seconds": 8.489950988005148,
+        "requests": [
+          {
+            "seconds": 4.340734684999916,
+            "status": 200,
+            "input_id": "c5678fdd",
+            "audio_seconds": 6.08
+          },
+          {
+            "seconds": 4.6141975880018435,
+            "status": 200,
+            "input_id": "5bafb8c9",
+            "audio_seconds": 6.64
+          },
+          {
+            "seconds": 3.497754181997152,
+            "status": 200,
+            "input_id": "bf4335e9",
+            "audio_seconds": 5.2
+          },
+          {
+            "seconds": 3.874056467990158,
+            "status": 200,
+            "input_id": "d201716b",
+            "audio_seconds": 6.72
+          }
+        ]
+      },
+      {
+        "kind": "tts",
+        "concurrency": 4,
+        "round": 0,
+        "seconds": 8.944502925995039,
+        "requests": [
+          {
+            "seconds": 8.943836628008285,
+            "status": 200,
+            "input_id": "267f4a02",
+            "audio_seconds": 6.88
+          },
+          {
+            "seconds": 8.131297202999122,
+            "status": 200,
+            "input_id": "9d0a9576",
+            "audio_seconds": 5.52
+          },
+          {
+            "seconds": 8.239945388995693,
+            "status": 200,
+            "input_id": "3ebe6c46",
+            "audio_seconds": 5.6
+          },
+          {
+            "seconds": 8.733958069991786,
+            "status": 200,
+            "input_id": "9d0206fd",
+            "audio_seconds": 6.0
+          }
+        ]
+      },
+      {
+        "kind": "tts",
+        "concurrency": 4,
+        "round": 1,
+        "seconds": 9.32811850401049,
+        "requests": [
+          {
+            "seconds": 9.316162286995677,
+            "status": 200,
+            "input_id": "8f8b1626",
+            "audio_seconds": 6.32
+          },
+          {
+            "seconds": 8.228022076000343,
+            "status": 200,
+            "input_id": "b243e616",
+            "audio_seconds": 5.6
+          },
+          {
+            "seconds": 9.32600719499169,
+            "status": 200,
+            "input_id": "88a125cf",
+            "audio_seconds": 6.64
+          },
+          {
+            "seconds": 9.059542807997786,
+            "status": 200,
+            "input_id": "030d6a55",
+            "audio_seconds": 6.08
+          }
+        ]
+      }
+    ],
+    "after": {
+      "slots": {
+        "text": {
+          "capacity": 2,
+          "in_flight": 0,
+          "queued": 0,
+          "available": 2
+        },
+        "tts": {
+          "capacity": 4,
+          "in_flight": 0,
+          "queued": 0,
+          "available": 4
+        },
+        "stt": {
+          "capacity": 4,
+          "in_flight": 0,
+          "queued": 0,
+          "available": 4
+        },
+        "image": {
+          "capacity": 1,
+          "in_flight": 0,
+          "queued": 0,
+          "available": 1
+        },
+        "video": {
+          "capacity": 1,
+          "in_flight": 0,
+          "queued": 0,
+          "available": 1
+        },
+        "music": {
+          "capacity": 1,
+          "in_flight": 0,
+          "queued": 0,
+          "available": 1
+        },
+        "music_video": {
+          "capacity": 1,
+          "in_flight": 0,
+          "queued": 0,
+          "available": 1
+        },
+        "embedding": {
+          "capacity": 4,
+          "in_flight": 0,
+          "queued": 0,
+          "available": 4
+        }
+      },
+      "model_pools": {
+        "tts": {
+          "configured": 4,
+          "resident": 4,
+          "devices": [
+            "cuda",
+            "cuda",
+            "cuda",
+            "cuda"
+          ]
+        },
+        "stt": {
+          "configured": 4,
+          "resident": 4,
+          "devices": [
+            "cuda",
+            "cuda",
+            "cuda",
+            "cuda"
+          ]
+        },
+        "embedding": {
+          "configured": 4,
+          "resident": 4,
+          "devices": [
+            "cuda",
+            "cuda",
+            "cuda",
+            "cuda"
+          ]
+        }
+      },
+      "devices": {
+        "llm": "cuda",
+        "tts": "cuda",
+        "stt": "cuda",
+        "embedding": "cuda",
+        "video": "cuda",
+        "img": "cuda"
+      },
+      "available_ram_gb": 74.49017715454102,
+      "cuda_free_gb": 33.235469818115234
+    }
+  }
+}

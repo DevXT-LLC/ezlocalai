@@ -1,0 +1,17 @@
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -538,7 +538,13 @@
+     list(REMOVE_DUPLICATES CUDA_ARCH_LIST)
+   endif()
+ 
+-  cuda_select_nvcc_arch_flags(ARCH_FLAGS ${CUDA_ARCH_LIST})
++  # CMake FindCUDA only accepts one-digit architecture major versions.
++  # GB10 requires CUDA 13 and native sm_121 code.
++  if(CUDA_ARCH_LIST STREQUAL "12.1")
++    set(ARCH_FLAGS "-gencode=arch=compute_121,code=sm_121")
++  else()
++    cuda_select_nvcc_arch_flags(ARCH_FLAGS ${CUDA_ARCH_LIST})
++  endif()
+   list(APPEND CUDA_NVCC_FLAGS ${ARCH_FLAGS})
+   set(CUDA_HOST_COMPILER ${CMAKE_CXX_COMPILER})
+ 

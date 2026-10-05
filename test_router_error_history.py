@@ -1,13 +1,130 @@
 import os
+import asyncio
 import tempfile
 import unittest
+from types import SimpleNamespace
 from unittest.mock import patch
 
 from Router import WorkerInfo, WorkerRegistry
-from router_app import _aggregate_recent_errors
+from router_app import (
+    _aggregate_dashboard,
+    _aggregate_recent_errors,
+    _render_dashboard_html,
+    router_errors,
+)
 
 
 class ErrorHistoryTests(unittest.TestCase):
+    def test_24_hour_cutoff_applies_to_archived_and_live_only_errors(self):
+        now = 1800000000.0
+        registry = WorkerRegistry(60)
+        worker = registry.register(
+            WorkerInfo(worker_id="one", label="Worker One", url="http://unused")
+        )
+        for timestamp, message in (
+            (now - 86401, "expired"),
+            (now - 86400, "exact cutoff"),
+            (now - 86399, "inside window"),
+        ):
+            with patch("Router.time.time", return_value=timestamp):
+                registry.record_error("one", "stream", "/test", message)
+        worker.recent_errors.extend(
+            [
+                {"ts": now - 86400, "message": "expired live only"},
+                {"ts": now - 1, "message": "recent live only"},
+            ]
+        )
+        with (
+            patch("router_app.get_registry", return_value=registry),
+            patch("router_app.time.time", return_value=now),
+        ):
+            self.assertEqual(
+                [e["message"] for e in _aggregate_recent_errors([worker])],
+                ["recent live only", "inside window"],
+            )
+        # Expiry needs no new failures or worker activity.
+        with (
+            patch("router_app.get_registry", return_value=registry),
+            patch("router_app.time.time", return_value=now + 86400),
+        ):
+            self.assertEqual(_aggregate_recent_errors([worker]), [])
+        self.assertEqual(len(registry.error_history()), 3)
+        self.assertEqual(worker.total_errors, 3)
+
+    def test_dashboard_and_error_api_counts_expire_before_display_limits(self):
+        now = 1800000000.0
+        registry = WorkerRegistry(60)
+        with patch("Router.time.time", return_value=now):
+            worker = registry.register(
+                WorkerInfo(worker_id="one", label="Worker One", url="http://unused")
+            )
+            for i in range(125):
+                registry.record_error("one", "stream", "/test", f"failure {i}")
+        with (
+            patch("router_app.get_registry", return_value=registry),
+            patch(
+                "router_app.get_router",
+                return_value=SimpleNamespace(waiting_requests=0),
+            ),
+            patch("router_app.time.time", return_value=now + 31),
+        ):
+            dashboard = _aggregate_dashboard()
+            errors = asyncio.run(router_errors())
+        for data in (dashboard, errors):
+            self.assertEqual(data["workers"][0]["recent_error_count"], 125)
+            self.assertEqual(len(data["workers"][0]["recent_errors"]), 125)
+            self.assertEqual(len(data["errors"]), 100)
+        self.assertLess(len(worker.recent_errors), 125)
+        self.assertIn(">125</span>", _render_dashboard_html(dashboard))
+        with (
+            patch("router_app.get_registry", return_value=registry),
+            patch(
+                "router_app.get_router",
+                return_value=SimpleNamespace(waiting_requests=0),
+            ),
+            patch("router_app.time.time", return_value=now + 86400),
+        ):
+            dashboard = _aggregate_dashboard()
+            errors = asyncio.run(router_errors())
+        for data in (dashboard, errors):
+            self.assertEqual(data["workers"][0]["recent_error_count"], 0)
+            self.assertEqual(data["workers"][0]["recent_errors"], [])
+            self.assertEqual(data["workers"][0]["total_errors"], 125)
+            self.assertEqual(data["errors"], [])
+        html = _render_dashboard_html(dashboard)
+        self.assertNotIn(">125</span>", html)
+        self.assertNotIn("Recent errors · past 24 hours", html)
+
+    def test_restarted_workers_do_not_duplicate_or_revive_expired_archive(self):
+        now = 1800000000.0
+        with tempfile.TemporaryDirectory() as directory:
+            path = os.path.join(directory, "errors.json")
+            registry = WorkerRegistry(60, error_history_path=path)
+            registry.register(
+                WorkerInfo(worker_id="old", label="Worker One", url="http://unused")
+            )
+            with patch("Router.time.time", return_value=now):
+                registry.record_error("old", "stream", "/test", "failure")
+                restored = WorkerRegistry(60, error_history_path=path)
+                worker = restored.register(
+                    WorkerInfo(worker_id="new", label="Worker One", url="http://unused")
+                )
+            self.assertEqual(len(worker.recent_errors), 1)
+            with (
+                patch("router_app.get_registry", return_value=restored),
+                patch("router_app.time.time", return_value=now),
+            ):
+                data = asyncio.run(router_errors())
+                self.assertEqual(len(data["errors"]), 1)
+                self.assertTrue(data["errors"][0]["offline"])
+                self.assertEqual(data["workers"][0]["recent_error_count"], 1)
+            with (
+                patch("router_app.get_registry", return_value=restored),
+                patch("router_app.time.time", return_value=now + 86400),
+            ):
+                self.assertEqual(_aggregate_recent_errors([worker]), [])
+                self.assertEqual(_aggregate_recent_errors([]), [])
+
     def test_history_survives_registration_pruning_and_router_restart(self):
         with tempfile.TemporaryDirectory() as directory:
             path = os.path.join(directory, "errors.json")

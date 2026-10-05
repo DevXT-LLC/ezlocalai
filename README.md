@@ -97,6 +97,81 @@ Models persist across container updates - you won't re-download them when updati
 
 ## Benchmarks
 
+### ASUS GX10 / NVIDIA GB10
+
+Build the ARM64 image on the GX10 with a CUDA 13 capable host driver and the
+NVIDIA Container Toolkit:
+
+```bash
+docker compose -f docker-compose-gb10.yml build
+docker compose -f docker-compose-gb10.yml up -d
+```
+
+The GB10 image uses CUDA 13 and native `sm_121` kernels, a matched CUDA
+torch/torchaudio pair, and a source-built CUDA/cuDNN CTranslate2 for Whisper.
+It also builds the native Qwen TTS and stable-diffusion.cpp image backends.
+The ordinary PyPI ARM64 CTranslate2 wheel used previously lacked CUDA support.
+See [NVIDIA's GB10 compilation guidance](https://docs.nvidia.com/dgx/dgx-spark-porting-guide/porting/compilation.html)
+and [CTranslate2's build options](https://opennmt.net/CTranslate2/installation.html#build-options).
+The first build compiles several native runtimes; subsequent builds reuse layers.
+
+Resident CUDA embedding instances run inference warmup before joining the pool.
+`EMBEDDING_KEEP_LOADED=true` retains them; `EMBEDDING_WARMUP=false` opts out of
+the warmup. CPU and transient instances skip it. This moves first-use CUDA work
+into startup rather than the first embedding request. Each instance retains its
+full configured context, and input is never truncated for speed.
+
+The GB10 profile starts with two text slots and two resident instances each for
+embedding, STT and TTS; image and video remain one generation each. The measured
+1/2/4-replica sweep found little throughput benefit from four versus two, while
+two left about 19 GiB more available RAM. Larger counts can be configured for a
+different workload. Existing `.env` values override compose defaults; to apply
+the tested auxiliary pool sizes while preserving other settings:
+
+```bash
+python3 scripts/configure_gb10_pools.py --env-file .env --replicas 2
+docker compose -f docker-compose-gb10.yml up -d
+```
+
+This creates a private `.env.pre-gb10-pools` backup. `/v1/resources` includes
+`model_pools` with each replica's actual device, so a single CPU fallback cannot
+hide behind another CUDA instance in the same pool. GB10 defaults to
+`QWEN_TTS_DISABLE_CUDA_GRAPHS=true` to avoid the observed libmtmd audio-decoder
+failure during repeated GPU requests; the setting applies only to TTS child
+processes. Text and embedding CUDA graph settings are unchanged.
+
+Compare direct worker timings immediately after startup and again while warm:
+
+```bash
+python scripts/benchmark_worker.py --base-url http://GX10:8091 \
+  --text-model openbmb/MiniCPM5-2B-GGUF --output gx10.json
+# Optionally add --speech-file sample.wav --tts to exercise both voice models.
+```
+
+The benchmark reads `EZLOCALAI_API_KEY` from the environment or `.env`, tests
+short through approximately 8,500-token inputs and concurrent embeddings, checks
+embedding dimensions/norms, and records wall times separately from LLM native
+timings. Compare identical models, quantization, context and concurrency; exclude
+image builds and other GPU work from timing runs. `/v1/resources` records loaded
+models and device placement in each result file.
+
+See the [GX10 measurements and remaining limitations](benchmarks/gx10-20261004.md)
+for first-request embeddings, speech/media checks and the CUDA graph comparison.
+
+For Docker access without sudo, add the host account to the Docker group once:
+
+```bash
+sudo usermod -aG docker josh
+# Log out and back in, or start a shell with refreshed group membership:
+newgrp docker
+docker compose -f docker-compose-gb10.yml ps
+```
+
+This follows [Docker's Linux post-install instructions](https://docs.docker.com/engine/install/linux-postinstall/).
+Docker group membership grants root-level Docker access; do not loosen socket permissions.
+
+### RTX 4090
+
 Performance tested on Intel i9-12900KS + RTX 4090 (24GB):
 
 | Model | Size | Speed | Notes |
@@ -233,8 +308,12 @@ python benchmark_model_lifecycle.py \
 Router failures are retained independently of worker registration in
 `ROUTER_ERROR_FILE` (default `/data/router-errors.json`, on the router's data
 volume). `ROUTER_ERROR_ARCHIVE_MAX` bounds the archive (default 2,000 events).
-The dashboard and `/v1/router/errors` show the newest 100 archived/live events;
-the HTML dashboard displays 50, with UTC dates and offline labels. This archive
+The dashboard and `/v1/router/errors` show only errors from the past 24 hours,
+capped at the newest 100 archived/live events (50 in the HTML table). Worker
+error badges count all retained events in that 24-hour window, before the table
+limit. Errors expire on the next dashboard refresh, including after a router or
+worker restart. The API's `total_errors` remains cumulative; `recent_error_count`
+and `recent_errors` in dashboard/error responses use the 24-hour window. The archive
 survives pruning, deregistration and router restarts; it cannot recover errors
 already discarded by an older router. Protect the data volume as error messages
 may include upstream diagnostics. If a crashed process registers with a new
@@ -505,18 +584,30 @@ does not warm-load or advertise those capabilities:
 IMAGE_ENABLED=false
 IMG_MODEL=
 VIDEO_ENABLED=false
-VIDEO_MODEL=unsloth/LTX-2.3-GGUF
+VIDEO_MODEL=QuantStack/Wan2.2-T2V-A14B-GGUF
 ```
 
-Set `IMAGE_ENABLED=true` with `IMG_MODEL` to serve local image generation, or
-`VIDEO_ENABLED=true` to serve local video generation. When `VIDEO_MODEL` is
-omitted or blank, ezlocalai defaults to `unsloth/LTX-2.3-GGUF`. Enabled media
-models report `image` or `video` capacity to the router. They warm-load and stay
-resident when enough GPU headroom is available; on single-GPU LLM workers, image
-and video models can lazy-load after an LLM handoff so their pipelines initialize
-with freed VRAM. Workers
-with an `IMAGE_SERVER` URL configured still delegate media requests instead of
-loading local models.
+Set `IMAGE_ENABLED=true` with `IMG_MODEL` to serve local images, or
+`VIDEO_ENABLED=true` for local video. The default video model is Wan 2.2 A14B:
+[QuantStack T2V](https://huggingface.co/QuantStack/Wan2.2-T2V-A14B-GGUF) for text
+prompts and [QuantStack I2V](https://huggingface.co/QuantStack/Wan2.2-I2V-A14B-GGUF)
+when the request includes an `image`. Both high- and low-noise experts are needed.
+`VIDEO_QUANT_TYPE=Q4_K_M` selects the expert quantization; both modes share a Q8
+UMT5 text encoder and the Wan 2.1 VAE. Assets are downloaded at pinned revisions.
+The native `sd-cli` backend is included in the CUDA, GB10 and CPU Docker images.
+Workers with `IMAGE_SERVER` configured still forward media requests.
+
+Prefetch both modes before serving (inside the worker image with its model volume):
+
+```bash
+python scripts/download_wan_models.py
+```
+
+Existing `.env` files with `VIDEO_MODEL=unsloth/LTX-2.3-GGUF` retain LTX until
+explicitly changed. `python scripts/download_wan_models.py --activate .env`
+downloads Wan and updates that setting, preserving a private `.env.pre-wan2.2`
+backup. Restart the worker afterward. LTX remains available by explicitly
+selecting its repository; its previous diffusion settings still apply.
 
 For image generation, the default handoff policy is:
 
@@ -533,23 +624,33 @@ vision temporarily unavailable, unloads the LLM and idle auxiliary GPU models,
 loads FLUX, generates the image, unloads FLUX, and restores the exact LLM
 residency that existed before the handoff.
 
-On a single-GPU worker, leave `VIDEO_UNLOAD_LLM_DURING_GENERATION=auto`. When a
-resident LLM is occupying the only GPU, ezlocalai marks the text/vision slots
-temporarily unavailable, unloads the LLM plus idle aux GPU models, initializes
-LTX-2.3 with the freed VRAM, runs generation, unloads video if needed, and
-reloads persistent LLMs when `VIDEO_RELOAD_LLM_AFTER_GENERATION=true`.
-`VIDEO_GPU_RESIDENCY=auto` chooses full GPU residency only on very large GPUs,
-model CPU offload when enough VRAM was freed for the requested clip size, and
-sequential CPU offload as the constrained fallback for long scenes. Short clips
-can use model offload when at least `VIDEO_SHORT_MODEL_OFFLOAD_MIN_FREE_GB`
-remains after LTX loads; longer scenes stay sequential unless
-`VIDEO_MODEL_OFFLOAD_MIN_FREE_GB`/`VIDEO_FULL_GPU_MIN_FREE_GB` say the GPU has
-room. If a more aggressive mode OOMs,
-`VIDEO_RETRY_SEQUENTIAL_ON_OOM=true` reloads LTX with sequential offload and
-retries once. Set `VIDEO_GPU_RESIDENCY=full` to force a full-GPU attempt.
+The GB10 compose profile defaults to `MEDIA_KEEP_MODELS_LOADED=true`. Video,
+image, music and voice requests keep the other resident models loaded, and the
+router continues to advertise their available slots. Video requests themselves
+remain serialized. Concurrent workloads share GPU compute, so request latency
+can increase. Explicit per-service `*_UNLOAD_LLM_DURING_GENERATION=true` still
+forces that service to hand off memory. Set `MEDIA_KEEP_MODELS_LOADED=false` to
+restore the smaller-GPU policy when using a larger model mix.
 
-LTX-2.3 requires dimensions divisible by 32 and frame counts in the `8n+1`
-pattern. The music-video helper handles frame planning automatically.
+Other compose profiles retain `VIDEO_UNLOAD_LLM_DURING_GENERATION=auto` and
+`MEDIA_KEEP_MODELS_LOADED=false`. The worker waits for active LLM inference, unloads idle models for the video
+handoff, runs Wan in a separate process, then restores the displaced pools.
+Other local slots are withheld from router scheduling until restoration finishes.
+Native generation runs off the API event loop; cancellation keeps the video lock
+until that process exits. `VIDEO_GENERATION_TIMEOUT=3600` bounds native execution.
+
+Wan defaults to CPU weight offload with native CUDA compute and flash attention.
+`VIDEO_GPU_RESIDENCY=full` disables weight offload for sufficiently large GPUs.
+Model memory belongs to the child process and is released before pool restoration.
+Weights are not memory-mapped. The default 18 total denoising steps are split
+between eight high-noise and ten low-noise steps, with CFG 3.5; explicit API
+step counts are preserved across both experts. These settings follow the
+[pinned native backend's Wan examples](https://github.com/leejet/stable-diffusion.cpp/blob/c678dfe704a2230342376b46add9c8ca736a653d/docs/wan.md).
+
+Wan produces silent MP4 video. Supply a base64/data-URL/HTTP `image` for I2V;
+multi-frame `conditions` are not supported by this backend. Dimensions round
+down to multiples of 16 (maximum 1280); frame counts round down to `4n+1`.
+The existing music-video frame planner's `8n+1` counts are also compatible.
 
 ## Music Generation
 
@@ -644,7 +745,7 @@ VIDEO_ENABLED=true
 ```
 
 The music-video endpoint first generates the song with ACE-Step, then generates
-one or more LTX-2.3 video scenes in a single video session and muxes the
+one or more Wan 2.2 video scenes and muxes the
 generated song audio into the final MP4:
 
 ```bash
@@ -669,21 +770,21 @@ Optional fields include `model`, `music_model`, `video_model`, `video_prompt`,
 `audio_codes`, `image`, and `conditions`.
 When `audio_url` points at an existing ezlocalai `outputs/` audio file, the
 endpoint skips ACE-Step audio generation and only renders/muxes the video.
-Intermediate scene clips are video-only by default; set
-`include_scene_audio=true` only when debugging LTX's own generated audio.
+Wan scene clips are video-only. `include_scene_audio` is only relevant when
+explicitly using the legacy LTX backend.
 The final mux trims or pads the audio stream to the requested `duration`.
 
 Music-video scenes use `storyboard=true` by default. When no explicit image is
 provided, ezlocalai draws deterministic first-frame storyboards from the prompt
-and lyrics, then uses LTX image-to-video so each scene has visible lyric/thematic
+and lyrics, then uses Wan image-to-video so each scene has visible lyric/thematic
 anchors instead of drifting into generic concert footage. For maximum control,
 pass `scene_images` as base64/data-URL/HTTP images, one per planned scene.
 Pythagorean-theorem storyboards also burn in an exact `a squared + b squared =
 c squared` equation overlay using superscript-style exponents, since generated
 video models are unreliable at preserving formula text frame to frame.
 
-LTX-2.3 audio-to-video is documented for roughly 20 seconds per request, with
-longer videos created by chaining clips. ezlocalai therefore defaults
+Long videos are assembled from short clips to bound per-scene memory and
+generation time. ezlocalai defaults
 `MUSIC_VIDEO_SCENE_DURATION=5` and caps each planned scene with
 `MUSIC_VIDEO_MAX_SCENE_DURATION=20`; the final response includes the generated
 song URL, each scene URL, the scene plan, and the final MP4 URL.
@@ -713,7 +814,11 @@ The router creates a short dispatch lease only for text/vision requests so a
 stale heartbeat cannot immediately send a second LLM request to the same slot.
 The lease expires after `ROUTER_RESERVATION_TTL` seconds (default `15`), after
 which worker heartbeat slot data is authoritative. TTS, STT, embedding, image,
-video, and music requests do not create router-side reservations.
+video, music and music-video reserve their advertised slot until the proxied
+request (including a streamed response) finishes. A dispatch race returns to
+the router queue without spending a retry. Music-video shares the music/video
+slots. All capabilities wait for capacity; client and reverse-proxy timeouts
+still apply even when `ROUTER_WAIT_TIMEOUT=0`.
 
 ### Run the router
 

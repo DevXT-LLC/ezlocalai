@@ -1,6 +1,7 @@
 import logging
 import math
 import os
+import time
 
 import torch
 import xllamacpp as xlc
@@ -296,7 +297,6 @@ class Embedding:
                     self.device,
                 )
                 self.server = xlc.Server(params)
-                return
             except Exception as e:
                 last_error = e
                 if attempt_layers == 0 or not _is_memory_error(e):
@@ -310,9 +310,38 @@ class Embedding:
                     torch.cuda.empty_cache()
                 except Exception:
                     pass
+                continue
+
+            self._warmup()
+            return
 
         raise RuntimeError(
             f"Failed to initialize embedding model {self.model_name}: {last_error}"
+        )
+
+    def _warmup(self):
+        """Exercise inference before publishing a resident instance to the pool.
+
+        Loading weights alone leaves CUDA module/kernel initialization on the
+        first customer request (several seconds on GB10). Warm each instance,
+        including one full microbatch, without changing user input or context.
+        """
+        if (
+            self.device != "cuda"
+            or getenv("EMBEDDING_KEEP_LOADED", "true").strip().lower() != "true"
+            or getenv("EMBEDDING_WARMUP", "true").strip().lower() != "true"
+        ):
+            return
+        start = time.monotonic()
+        # Exercise the real text/tokenizer path as well as GPU compute.
+        if self.context_length >= 16:
+            self.get_embeddings("Warm up the embedding model.")
+        # Token IDs let us exercise the configured microbatch without depending
+        # on a tokenizer's handling of repeated text. Zero is a valid token.
+        tokens = max(1, min(self.ubatch_size, self.context_length))
+        self.get_embeddings([0] * tokens)
+        logging.info(
+            "[Embedding] Inference warmup complete in %.2fs", time.monotonic() - start
         )
 
     def _resolve_gpu_layers(

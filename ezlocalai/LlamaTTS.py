@@ -129,6 +129,15 @@ class LlamaTTS:
         if "seed" in kwargs:
             cmd += ["--seed", str(int(kwargs["seed"]))]
         if device.startswith("cuda"):
+            # GB10 can opt out of graph replay for the dynamic audio decoder.
+            # Scope this workaround to TTS; text/embedding retain their settings.
+            if os.getenv("QWEN_TTS_DISABLE_CUDA_GRAPHS", "false").lower() in {
+                "1",
+                "true",
+                "yes",
+                "on",
+            }:
+                env["GGML_CUDA_DISABLE_GRAPHS"] = "1"
             # Restrict the child only; never mutate the parent's CUDA assignment.
             index = int(device.split(":", 1)[1]) if ":" in device else 0
             visible = env.get("CUDA_VISIBLE_DEVICES", "").split(",")

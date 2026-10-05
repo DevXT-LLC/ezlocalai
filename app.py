@@ -38,6 +38,7 @@ from contextlib import aclosing
 from pathlib import Path
 from Globals import getenv
 from ezlocalai.context_retry import classify_inference_capacity_error
+from ezlocalai.VIDEO_UTILS import DEFAULT_VIDEO_MODEL
 from ezlocalai.MUSIC import (
     ACE_STEP_DEFAULT_BPM,
     ACE_STEP_DEFAULT_GUIDANCE_SCALE,
@@ -54,7 +55,6 @@ from ezlocalai.MUSIC import (
 DEFAULT_MODEL = getenv("DEFAULT_MODEL")
 EMBEDDING_MODEL = getenv("EMBEDDING_MODEL")
 WHISPER_MODEL = getenv("WHISPER_MODEL")
-DEFAULT_VIDEO_MODEL = "unsloth/LTX-2.3-GGUF"
 logging.basicConfig(
     level=getenv("LOG_LEVEL"),
     format=getenv("LOG_FORMAT"),
@@ -520,6 +520,7 @@ async def get_resources(user=Depends(verify_api_key)):
     }
     status["slots"] = _sync_request_queue_capacity()
     status["model_lifecycle"] = pipe.get_model_lifecycle_snapshot()
+    status["model_pools"] = pipe.get_model_pool_snapshot()
 
     return status
 
@@ -2194,7 +2195,9 @@ async def edit_image(
                     )
                 except Exception as e:
                     logging.warning(f"[IMG] Fallback failed: {e}")
-        raise HTTPException(status_code=503, detail="No image editing service available")
+        raise HTTPException(
+            status_code=503, detail="No image editing service available"
+        )
 
     images = []
     for i in range(int(image_edit.n)):
@@ -2212,7 +2215,9 @@ async def edit_image(
         except RuntimeError as exc:
             raise HTTPException(status_code=503, detail=str(exc)) from exc
         if not image:
-            raise HTTPException(status_code=503, detail="Image editing produced no output")
+            raise HTTPException(
+                status_code=503, detail="Image editing produced no output"
+            )
         if image_edit.response_format == "url":
             images.append({"url": image})
         else:
@@ -2241,8 +2246,8 @@ class MusicVideoCreation(BaseModel):
     scene_prompts: Optional[List[str]] = None
     scene_duration: Optional[float] = None
     size: Optional[str] = "768x512"
-    num_inference_steps: Optional[int] = 40
-    guidance_scale: Optional[float] = 4.0
+    num_inference_steps: Optional[int] = 18
+    guidance_scale: Optional[float] = 3.5
     video_guidance_scale: Optional[float] = None
     frame_rate: Optional[int] = 24
     response_format: Optional[str] = "url"
@@ -2371,8 +2376,8 @@ class VideoCreation(BaseModel):
     n: Optional[int] = 1
     size: Optional[str] = "768x512"
     num_frames: Optional[int] = 121
-    num_inference_steps: Optional[int] = 40
-    guidance_scale: Optional[float] = 4.0
+    num_inference_steps: Optional[int] = 18
+    guidance_scale: Optional[float] = 3.5
     frame_rate: Optional[int] = 24
     response_format: Optional[str] = "url"
     image: Optional[str] = None  # base64-encoded image for image-to-video
@@ -2524,10 +2529,21 @@ async def generate_video(
         conditions=cond_list,
     )
 
+    async def generate_one_video():
+        try:
+            result = await pipe.generate_video(**gen_kwargs)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        if not result:
+            raise HTTPException(
+                status_code=500, detail="Video generation produced no output"
+            )
+        return result
+
     videos = []
     if int(video_creation.n) > 1:
         for i in range(video_creation.n):
-            video = await pipe.generate_video(**gen_kwargs)
+            video = await generate_one_video()
             if video_creation.response_format == "url":
                 videos.append({"url": video})
             else:
@@ -2536,7 +2552,7 @@ async def generate_video(
             "created": int(time.time()),
             "data": videos,
         }
-    video = await pipe.generate_video(**gen_kwargs)
+    video = await generate_one_video()
     if video_creation.response_format == "url":
         return {
             "created": int(time.time()),

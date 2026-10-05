@@ -1160,6 +1160,22 @@ class WorkerInfo:
                 # worker-wide queue and reservation counters.
                 router_busy = self.router_in_flight
 
+            # Music-video consumes the same native locks as music and video.
+            # Account for that overlap before the next worker heartbeat arrives.
+            media_conflicts = {
+                "video": ("music_video",),
+                "music": ("music_video",),
+                "music_video": ("video", "music"),
+            }
+            for shared_cap in media_conflicts.get(capability, ()):
+                shared_state = self._normalize_slot(self.cap_slots.get(shared_cap))
+                reported_busy = max(
+                    reported_busy, shared_state["in_flight"] + shared_state["queued"]
+                )
+                router_busy = max(
+                    router_busy, self.router_cap_in_flight.get(shared_cap, 0)
+                )
+
             if self.external_fallback:
                 # Text, vision, and every model share one provider pool, even
                 # during cross-model selection where no model is supplied.
@@ -1575,26 +1591,21 @@ class WorkerRegistry:
             model_key = WorkerInfo._match_name(model, w.model_slots) or (model or "")
 
             if delta > 0:
-                # Heartbeats are normally authoritative for non-LLM services,
-                # but LLM-handoff capabilities also need a short reservation.
-                # Otherwise two router dispatches can both observe the shared
-                # worker as idle before its next heartbeat.
-                llm_dependencies = set(
-                    w.extra.get("llm_unload_dependent_capabilities", []) or []
-                )
+                # Media/speech/embedding requests can outlive many heartbeats.
+                # Hold their advertised slot until the proxy completes, including
+                # streaming responses, so bursts queue at the router rather than
+                # racing into the worker between heartbeats. LLMs keep their
+                # existing short leases and heartbeat accounting.
+                request_scoped = capability not in MODEL_STRICT_CAPABILITIES
                 if (
-                    capability not in MODEL_STRICT_CAPABILITIES
-                    and capability not in llm_dependencies
+                    not request_scoped
+                    and not w.external_fallback
+                    and self._reservation_ttl <= 0
                 ):
-                    return None
-                # Managed APIs have no heartbeat to replace router state, so
-                # their reservations live until the proxied request releases
-                # them. Local leases remain short and heartbeat-authoritative.
-                if not w.external_fallback and self._reservation_ttl <= 0:
                     return None
                 expires_at = (
                     float("inf")
-                    if w.external_fallback
+                    if request_scoped or w.external_fallback
                     else time.monotonic() + self._reservation_ttl
                 )
                 token: Optional[str] = None

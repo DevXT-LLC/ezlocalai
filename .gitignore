@@ -22,3 +22,6 @@ pretrained_models
 usage.json
 /data/
 .env.bak
+
+# Private backups from worker configuration migrations
+.env.pre-*

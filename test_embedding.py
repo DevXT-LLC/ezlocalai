@@ -11,6 +11,42 @@ from ezlocalai.Embedding import Embedding
 
 
 class EmbeddingParamsTests(unittest.TestCase):
+    def test_resident_cuda_warmup_exercises_small_and_full_microbatch(self):
+        embedder = self._embedding()
+        embedder.device = "cuda"
+        embedder.get_embeddings = Mock()
+        with patch("ezlocalai.Embedding.getenv", side_effect=lambda k, d: d):
+            embedder._warmup()
+        inputs = [call.args[0] for call in embedder.get_embeddings.call_args_list]
+        self.assertIsInstance(inputs[0], str)
+        self.assertEqual(inputs[1], [0] * 512)
+
+    def test_embedding_warmup_respects_cpu_transient_and_disabled_modes(self):
+        for device, settings in (
+            ("cpu", {}),
+            ("cuda", {"EMBEDDING_KEEP_LOADED": "false"}),
+            ("cuda", {"EMBEDDING_WARMUP": "false"}),
+        ):
+            with self.subTest(device=device, settings=settings):
+                embedder = self._embedding()
+                embedder.device = device
+                embedder.get_embeddings = Mock()
+                with patch(
+                    "ezlocalai.Embedding.getenv",
+                    side_effect=lambda k, d: settings.get(k, d),
+                ):
+                    embedder._warmup()
+                embedder.get_embeddings.assert_not_called()
+
+    def test_embedding_warmup_stays_within_small_context(self):
+        embedder = self._embedding()
+        embedder.device = "cuda"
+        embedder.context_length = 1
+        embedder.get_embeddings = Mock()
+        with patch("ezlocalai.Embedding.getenv", side_effect=lambda k, d: d):
+            embedder._warmup()
+        embedder.get_embeddings.assert_called_once_with([0])
+
     def _embedding(self):
         embedding = Embedding.__new__(Embedding)
         embedding.context_length = 10000
