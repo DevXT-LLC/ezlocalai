@@ -844,6 +844,28 @@ def detect_local_gpus() -> List[Dict[str, Any]]:
     return gpus
 
 
+def _normalize_reported_gpu_tiers(
+    gpus: List[Dict[str, Any]],
+) -> List[Dict[str, Any]]:
+    """Resolve old workers' generic GPU fallback using the router's hardware map.
+
+    Keep specific reported tiers: newer workers may know hardware this router
+    does not. Copy entries so registration/heartbeat payloads remain unchanged.
+    """
+    normalized = []
+    for gpu in gpus:
+        gpu = dict(gpu)
+        if (
+            gpu.get("index", 0) >= 0
+            and gpu.get("backend") != "cpu"
+            and gpu.get("name")
+            and int(gpu.get("tier", TIER_DEFAULT_GPU)) == TIER_DEFAULT_GPU
+        ):
+            gpu["tier"] = gpu_tier_for_name(gpu["name"])
+        normalized.append(gpu)
+    return normalized
+
+
 def best_gpu_tier(gpus: List[Dict[str, Any]]) -> int:
     """The best accelerator tier on this worker.
 
@@ -1387,6 +1409,10 @@ class WorkerRegistry:
 
     def register(self, info: WorkerInfo) -> WorkerInfo:
         with self._lock:
+            reported_tier = best_gpu_tier(info.gpus)
+            info.gpus = _normalize_reported_gpu_tiers(info.gpus)
+            if info.gpus and info.best_tier == reported_tier:
+                info.best_tier = best_gpu_tier(info.gpus)
             existing = self._workers.get(info.worker_id)
             if existing:
                 # Preserve registered_at across re-registers
@@ -1482,7 +1508,7 @@ class WorkerRegistry:
             if "capabilities" in payload:
                 worker.capabilities = list(payload["capabilities"])
             if "gpus" in payload and isinstance(payload["gpus"], list):
-                worker.gpus = list(payload["gpus"])
+                worker.gpus = _normalize_reported_gpu_tiers(payload["gpus"])
                 worker.best_tier = best_gpu_tier(worker.gpus)
             if "model_context" in payload and isinstance(
                 payload["model_context"], dict

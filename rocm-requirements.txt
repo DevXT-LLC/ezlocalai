@@ -8,6 +8,8 @@ tiktoken==0.7.0
 python-dotenv==1.2.2
 beautifulsoup4==4.12.3
 faster-whisper==1.2.0
+# PyAV 19 removed metadata_errors, which faster-whisper 1.2.0 passes to av.open.
+av>=11,<19
 gguf
 pydub==0.25.1
 ffmpeg-python==0.2.0
