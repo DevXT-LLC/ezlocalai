@@ -124,8 +124,10 @@ RUN git clone --recurse-submodules https://github.com/leejet/stable-diffusion.cp
         -DCMAKE_EXE_LINKER_FLAGS="-L/usr/local/cuda/lib64/stubs -Wl,-rpath-link,/usr/local/cuda/lib64/stubs" && \
     cmake --build build --parallel "${NATIVE_BUILD_JOBS}" --target sd-cli
 
-# Catch missing/import-incompatible voice dependencies at build time.
-RUN python -c "import torch, torchaudio, ctranslate2, xllamacpp; assert torch.version.cuda is not None" && \
+# BuildKit has no GPU driver mount; use the SDK stub only for this import check.
+# At runtime NVIDIA Container Toolkit supplies the real driver library.
+RUN LD_LIBRARY_PATH="/usr/local/cuda/lib64/stubs:$LD_LIBRARY_PATH" \
+    python -c "import torch, torchaudio, ctranslate2, xllamacpp; assert torch.version.cuda is not None" && \
     test -x /opt/ezlocalai-tts/build/bin/ezlocalai-tts && \
     test -x /opt/stable-diffusion.cpp/build/bin/sd-cli
 
