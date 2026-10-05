@@ -297,8 +297,6 @@ class Embedding:
                     self.device,
                 )
                 self.server = xlc.Server(params)
-                self._warmup()
-                return
             except Exception as e:
                 last_error = e
                 if attempt_layers == 0 or not _is_memory_error(e):
@@ -312,6 +310,10 @@ class Embedding:
                     torch.cuda.empty_cache()
                 except Exception:
                     pass
+                continue
+
+            self._warmup()
+            return
 
         raise RuntimeError(
             f"Failed to initialize embedding model {self.model_name}: {last_error}"

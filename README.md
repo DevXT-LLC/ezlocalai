@@ -97,6 +97,59 @@ Models persist across container updates - you won't re-download them when updati
 
 ## Benchmarks
 
+### ASUS GX10 / NVIDIA GB10
+
+Build the ARM64 image on the GX10 with a CUDA 13 capable host driver and the
+NVIDIA Container Toolkit:
+
+```bash
+docker compose -f docker-compose-gb10.yml build
+docker compose -f docker-compose-gb10.yml up -d
+```
+
+The GB10 image uses CUDA 13 and native `sm_121` kernels, a matched CUDA
+torch/torchaudio pair, and a source-built CUDA/cuDNN CTranslate2 for Whisper.
+It also builds the native Qwen TTS and stable-diffusion.cpp image backends.
+The ordinary PyPI ARM64 CTranslate2 wheel used previously lacked CUDA support.
+See [NVIDIA's GB10 compilation guidance](https://docs.nvidia.com/dgx/dgx-spark-porting-guide/porting/compilation.html)
+and [CTranslate2's build options](https://opennmt.net/CTranslate2/installation.html#build-options).
+The first build compiles several native runtimes; subsequent builds reuse layers.
+
+Resident CUDA embedding instances run inference warmup before joining the pool.
+`EMBEDDING_KEEP_LOADED=true` retains them; `EMBEDDING_WARMUP=false` opts out of
+the warmup. CPU and transient instances skip it. This moves first-use CUDA work
+into startup rather than the first embedding request. Each instance retains its
+full configured context, and input is never truncated for speed.
+
+Compare direct worker timings immediately after startup and again while warm:
+
+```bash
+python scripts/benchmark_worker.py --base-url http://GX10:8091 \
+  --text-model openbmb/MiniCPM5-2B-GGUF --output gx10.json
+# Optionally add --speech-file sample.wav --tts to exercise both voice models.
+```
+
+The benchmark reads `EZLOCALAI_API_KEY` from the environment or `.env`, tests
+short through approximately 8,500-token inputs and concurrent embeddings, checks
+embedding dimensions/norms, and records wall times separately from LLM native
+timings. Compare identical models, quantization, context and concurrency; exclude
+image builds and other GPU work from timing runs. `/v1/resources` records loaded
+models and device placement in each result file.
+
+For Docker access without sudo, add the host account to the Docker group once:
+
+```bash
+sudo usermod -aG docker josh
+# Log out and back in, or start a shell with refreshed group membership:
+newgrp docker
+docker compose -f docker-compose-gb10.yml ps
+```
+
+This follows [Docker's Linux post-install instructions](https://docs.docker.com/engine/install/linux-postinstall/).
+Docker group membership grants root-level Docker access; do not loosen socket permissions.
+
+### RTX 4090
+
 Performance tested on Intel i9-12900KS + RTX 4090 (24GB):
 
 | Model | Size | Speed | Notes |
