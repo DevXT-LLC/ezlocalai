@@ -4951,6 +4951,15 @@ class Pipes:
             shape["prompt_cache_mib"] = int(prompt_cache_mib)
         if prompt_cache_requested_mib is not None:
             shape["prompt_cache_requested_mib"] = int(prompt_cache_requested_mib)
+        params = getattr(instance, "xlc_params", None)
+        for name in ("n_batch", "n_ubatch", "checkpoint_min_step", "n_ctx_checkpoints"):
+            value = getattr(params, name, None)
+            if isinstance(value, int):
+                shape[name] = value
+        for name in ("kv_cache_type", "speculative_type"):
+            value = getattr(instance, name, None)
+            if isinstance(value, str):
+                shape[name] = value
         return shape
 
     def _resolve_requested_model_id(self, requested_model: str) -> str:

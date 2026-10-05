@@ -14,6 +14,28 @@ from Router import WorkerInfo, WorkerRegistry
 
 
 class LlmResidencyPolicyTests(unittest.TestCase):
+    def test_runtime_reports_effective_prefill_settings(self):
+        instance = types.SimpleNamespace(
+            xlc_params=types.SimpleNamespace(
+                n_batch=4096,
+                n_ubatch=512,
+                checkpoint_min_step=8192,
+                n_ctx_checkpoints=32,
+            ),
+            kv_cache_type="q4_0",
+            speculative_type="mtp",
+        )
+        shape = Pipes._llm_runtime_shape(instance, 220000)
+        self.assertEqual(shape["n_ubatch"], 512)
+        self.assertEqual(shape["n_batch"], 4096)
+        self.assertEqual(shape["checkpoint_min_step"], 8192)
+        self.assertEqual(shape["n_ctx_checkpoints"], 32)
+        self.assertEqual(shape["kv_cache_type"], "q4_0")
+        self.assertEqual(shape["speculative_type"], "mtp")
+        self.assertEqual(
+            Pipes._llm_runtime_shape(object(), 220000), {"context": 220000}
+        )
+
     def test_q8_memory_planning_includes_extra_kv_capacity(self):
         from Pipes import estimate_model_vram_requirement, _qwen35_kv_bytes_per_token
 

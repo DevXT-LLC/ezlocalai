@@ -492,6 +492,31 @@ Explicit `LLM_UBATCH_SIZE`
 values are attempted first; the resilient loader retries smaller physical
 batches if model initialization runs out of GPU memory.
 
+For long-context prefill comparisons, use `benchmark_prefill.py` inside the
+CUDA image with the serving worker stopped. Freeze the input file between
+runs (for example, `git show <commit>:Pipes.py > /tmp/prefill-source.py`):
+
+```bash
+python benchmark_prefill.py --prompt-file /tmp/prefill-source.py \
+  --prompt-chars 720000 --context 220000 --backend mtp \
+  --batch 4096 --ubatch 512 --output /tmp/prefill.json
+```
+
+The report separates a cold prompt, an identical repeat, a short follow-up,
+and a larger appended message. Compare actual prompt tokens, evaluated tokens,
+cached tokens, and native prefill time; a 160K context with a four-token cache
+miss is a different workload from 160K uncached tokens. The source hash helps
+keep comparisons reproducible. Worker `/v1/resources` now reports effective
+`n_batch`, `n_ubatch`, `kv_cache_type`, `speculative_type`, and checkpoint settings
+under `model_lifecycle.loaded_llm_runtime`.
+
+The CUDA Compose service allows **10 minutes** for active responses to drain
+on shutdown (`WORKER_STOP_GRACE_PERIOD` overrides this). Docker's usual 10-second
+deadline can terminate a long prefill or generation mid-stream, producing a
+`ClientPayloadError` / incomplete transfer at the router. Use Compose's graceful
+stop/down path; an explicit short stop timeout, forced kill, crash, or a request
+that outlasts the grace period can still interrupt a response.
+
 ## Qwen TTS with llama.cpp
 
 Local Qwen TTS now uses a persistent, private stdio worker built against the
