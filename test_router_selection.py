@@ -219,7 +219,7 @@ class RouterSelectionTests(unittest.TestCase):
         self.assertEqual(busy_worker.router_in_flight, 0)
         self.assertEqual(busy_worker.slots_left(capability="text", model="model-a"), 1)
 
-    def test_non_llm_dispatch_does_not_create_router_reservation(self):
+    def test_non_llm_dispatch_reserves_only_its_capability(self):
         registry = WorkerRegistry(ttl_seconds=60)
         worker = registry.register(
             self._capability_worker(
@@ -232,9 +232,9 @@ class RouterSelectionTests(unittest.TestCase):
             worker.worker_id, capability="tts"
         )
 
-        self.assertIsNone(reservation_id)
-        self.assertEqual(worker.router_in_flight, 0)
-        self.assertEqual(worker.slots_left(capability="tts"), 1)
+        self.assertIsNotNone(reservation_id)
+        self.assertEqual(worker.router_in_flight, 1)
+        self.assertEqual(worker.slots_left(capability="tts"), 0)
         self.assertEqual(worker.slots_left(capability="text", model="model-a"), 1)
         self.assertEqual(worker.slots_left(capability="stt"), 1)
         self.assertEqual(worker.slots_left(capability="image"), 1)
@@ -308,7 +308,7 @@ class RouterSelectionTests(unittest.TestCase):
             self.assertEqual(worker.router_in_flight, 1)
             self.assertEqual(worker.slots_left(capability="text", model="model-a"), 0)
 
-    def test_unreserved_request_release_does_not_clear_llm_lease(self):
+    def test_non_llm_request_release_does_not_clear_llm_lease(self):
         registry = WorkerRegistry(ttl_seconds=60, reservation_ttl_seconds=15)
         worker = registry.register(
             self._text_worker("leased-llm", "model-a", best_tier=90)
@@ -321,7 +321,7 @@ class RouterSelectionTests(unittest.TestCase):
         registry.release_in_flight(worker.worker_id, non_llm_id)
 
         self.assertIsNotNone(llm_id)
-        self.assertIsNone(non_llm_id)
+        self.assertIsNotNone(non_llm_id)
         self.assertEqual(worker.router_in_flight, 1)
 
     def test_idle_tier_window_can_hold_back_distant_idle_worker(self):

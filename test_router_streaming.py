@@ -746,6 +746,9 @@ class RouterStreamingTests(unittest.IsolatedAsyncioTestCase):
             capabilities=["tts"],
             models=[],
         )
+        registry = WorkerRegistry(ttl_seconds=60)
+        registry.register(worker)
+        original_registry = router_app.get_registry
         captured = {}
         original_pick = router_app._pick
         original_proxy = router_app._proxy_json
@@ -756,6 +759,7 @@ class RouterStreamingTests(unittest.IsolatedAsyncioTestCase):
             return worker
 
         async def fake_proxy(worker_arg, path, payload, **kwargs):
+            registry.release_in_flight(worker_arg.worker_id, kwargs["reservation_id"])
             captured.update(kwargs)
             captured["path"] = path
             captured["payload"] = payload
@@ -767,6 +771,7 @@ class RouterStreamingTests(unittest.IsolatedAsyncioTestCase):
             captured["usage"] = (label, capability, kwargs)
 
         try:
+            router_app.get_registry = lambda: registry
             router_app._pick = fake_pick
             router_app._proxy_json = fake_proxy
             router_app._usage.record_cap = fake_record_cap
@@ -775,6 +780,7 @@ class RouterStreamingTests(unittest.IsolatedAsyncioTestCase):
                 {"model": "tts-1", "input": "Hello."}, _="test-client"
             )
         finally:
+            router_app.get_registry = original_registry
             router_app._pick = original_pick
             router_app._proxy_json = original_proxy
             router_app._usage.record_cap = original_record_cap

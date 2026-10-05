@@ -3897,7 +3897,7 @@ async def _proxy_via_tunnel(
             stream=stream,
             timeout=request_timeout,
         )
-    except Exception:
+    except BaseException:
         registry.release_in_flight(worker.worker_id, reservation_id)
         raise
 
@@ -4039,6 +4039,10 @@ async def _proxy_json(
     session = aiohttp.ClientSession(timeout=request_timeout)
     try:
         resp = await session.post(url, json=payload, headers=headers)
+    except asyncio.CancelledError:
+        await session.close()
+        registry.release_in_flight(worker.worker_id, reservation_id)
+        raise
     except Exception as e:
         await session.close()
         registry.release_in_flight(worker.worker_id, reservation_id)
@@ -4822,13 +4826,7 @@ async def _capability_proxy_with_retry(
             capability=capability,
             model=model,
         )
-        llm_dependencies = set(
-            worker.extra.get("llm_unload_dependent_capabilities", []) or []
-        )
-        requires_reservation = capability in ("text", "vision") or (
-            capability in llm_dependencies
-        )
-        if reservation_id is None and requires_reservation:
+        if reservation_id is None:
             logging.info(
                 "[Router] worker %s lost a %s dispatch race; returning to queue",
                 worker.label,
@@ -4841,7 +4839,11 @@ async def _capability_proxy_with_retry(
         tried.add(worker.worker_id)
         try:
             response = await request_attempt(worker, reservation_id)
+        except asyncio.CancelledError:
+            registry.release_in_flight(worker.worker_id, reservation_id)
+            raise
         except Exception as error:
+            registry.release_in_flight(worker.worker_id, reservation_id)
             last_error = error
             logging.warning(
                 "[Router] %s attempt %d/%d via %s raised %s: %s; retrying",

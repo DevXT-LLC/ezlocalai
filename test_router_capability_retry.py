@@ -1,3 +1,4 @@
+import asyncio
 import pathlib
 import sys
 import unittest
@@ -8,7 +9,7 @@ ROOT = pathlib.Path(__file__).resolve().parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from Router import WorkerInfo, WorkerRegistry
+from Router import Router, WorkerInfo, WorkerRegistry
 import router_app
 
 
@@ -162,7 +163,6 @@ class RouterCapabilityRetryTests(unittest.IsolatedAsyncioTestCase):
     async def test_dispatch_race_returns_to_queue_without_spending_retry(self):
         registry = WorkerRegistry(ttl_seconds=60)
         worker = registry.register(_worker("only"))
-        worker.extra["llm_unload_dependent_capabilities"] = ["embedding"]
         response = router_app.Response(content=b'{"data":[]}', status_code=200)
         original_reserve = registry.try_reserve_in_flight
         reservations = [None]
@@ -193,6 +193,130 @@ class RouterCapabilityRetryTests(unittest.IsolatedAsyncioTestCase):
         self.assertIs(result, response)
         self.assertEqual(pick.await_count, 2)
         self.assertEqual(proxy_mock.await_count, 1)
+
+
+class RouterCapabilityQueueTests(unittest.IsolatedAsyncioTestCase):
+    async def test_all_non_llm_capabilities_wait_for_slot_and_release_on_completion(
+        self,
+    ):
+        for capability in (
+            "embedding",
+            "tts",
+            "stt",
+            "image",
+            "video",
+            "music",
+            "music_video",
+        ):
+            with self.subTest(capability=capability):
+                registry = WorkerRegistry(ttl_seconds=60, reservation_ttl_seconds=0.001)
+                worker = registry.register(_worker("only", capability))
+                router = Router(registry)
+                started, release = asyncio.Event(), asyncio.Event()
+                calls = []
+
+                async def pick(cap, model, exclude=None):
+                    return await router.wait_for_worker(
+                        cap, model, timeout=1, poll_interval=0.001, exclude=exclude
+                    )
+
+                async def attempt(selected, reservation):
+                    calls.append(selected.worker_id)
+                    try:
+                        if len(calls) == 1:
+                            started.set()
+                            await release.wait()
+                        return router_app.Response(content=b"ok")
+                    finally:
+                        registry.release_in_flight(selected.worker_id, reservation)
+
+                async def request():
+                    return await router_app._capability_proxy_with_retry(
+                        capability=capability,
+                        path="/test",
+                        model=None,
+                        request_attempt=attempt,
+                    )
+
+                with patch("router_app.get_registry", return_value=registry), patch(
+                    "router_app._pick", side_effect=pick
+                ):
+                    first = asyncio.create_task(request())
+                    second = None
+                    try:
+                        await asyncio.wait_for(started.wait(), 1)
+                        second = asyncio.create_task(request())
+                        await asyncio.sleep(0.02)  # Longer than the old dispatch lease.
+                        self.assertEqual(calls, ["only"])
+                        self.assertFalse(second.done())
+                        self.assertEqual(router.waiting_requests, 1)
+                        release.set()
+                        await asyncio.wait_for(asyncio.gather(first, second), 1)
+                        self.assertEqual(calls, ["only", "only"])
+                        self.assertEqual(worker.slots_left(capability=capability), 1)
+                        self.assertEqual(router.waiting_requests, 0)
+                    finally:
+                        release.set()
+                        for task in (first, second):
+                            if task and not task.done():
+                                task.cancel()
+                                try:
+                                    await task
+                                except asyncio.CancelledError:
+                                    pass
+
+    async def test_cancelled_dispatch_releases_request_scoped_reservation(self):
+        registry = WorkerRegistry(ttl_seconds=60)
+        worker = registry.register(_worker("only", "video"))
+        started = asyncio.Event()
+
+        async def attempt(selected, reservation):
+            started.set()
+            await asyncio.Event().wait()
+
+        with patch("router_app.get_registry", return_value=registry), patch(
+            "router_app._pick", AsyncMock(return_value=worker)
+        ):
+            task = asyncio.create_task(
+                router_app._capability_proxy_with_retry(
+                    capability="video",
+                    path="/test",
+                    model=None,
+                    request_attempt=attempt,
+                )
+            )
+            await asyncio.wait_for(started.wait(), 1)
+            self.assertEqual(worker.slots_left(capability="video"), 0)
+            task.cancel()
+            with self.assertRaises(asyncio.CancelledError):
+                await task
+            self.assertEqual(worker.slots_left(capability="video"), 1)
+
+    def test_music_video_reservation_blocks_shared_locks_only(self):
+        registry = WorkerRegistry(ttl_seconds=60)
+        worker = _worker("media", "video")
+        worker.capabilities = ["video", "music", "music_video", "embedding"]
+        worker.cap_slots = {
+            cap: {"capacity": 1, "in_flight": 0} for cap in worker.capabilities
+        }
+        registry.register(worker)
+        for capability, conflicts in (
+            ("music_video", ("video", "music")),
+            ("video", ("music_video",)),
+            ("music", ("music_video",)),
+        ):
+            reservation = registry.try_reserve_in_flight(
+                worker.worker_id, capability=capability
+            )
+            self.assertIsNotNone(reservation)
+            for conflict in conflicts:
+                self.assertIsNone(
+                    registry.try_reserve_in_flight(
+                        worker.worker_id, capability=conflict
+                    )
+                )
+            self.assertEqual(worker.slots_left(capability="embedding"), 1)
+            registry.release_in_flight(worker.worker_id, reservation)
 
 
 if __name__ == "__main__":
