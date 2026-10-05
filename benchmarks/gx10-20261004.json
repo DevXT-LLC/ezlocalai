@@ -2346,5 +2346,358 @@
         "img": "cuda"
       }
     }
+  },
+  "final_validation": {
+    "requests": [
+      {
+        "kind": "embedding-1",
+        "seconds": 0.0139,
+        "status": 200,
+        "usage": {
+          "prompt_tokens": 48,
+          "total_tokens": 48
+        },
+        "timings": null,
+        "dimensions": 1024,
+        "norm": 0.9999999882675953
+      },
+      {
+        "kind": "embedding-1",
+        "seconds": 0.0133,
+        "status": 200,
+        "usage": {
+          "prompt_tokens": 48,
+          "total_tokens": 48
+        },
+        "timings": null,
+        "dimensions": 1024,
+        "norm": 1.0000000226884178
+      },
+      {
+        "kind": "embedding-1",
+        "seconds": 0.0132,
+        "status": 200,
+        "usage": {
+          "prompt_tokens": 44,
+          "total_tokens": 44
+        },
+        "timings": null,
+        "dimensions": 1024,
+        "norm": 0.9999999963609436
+      },
+      {
+        "kind": "embedding-30",
+        "seconds": 0.0283,
+        "status": 200,
+        "usage": {
+          "prompt_tokens": 336,
+          "total_tokens": 336
+        },
+        "timings": null,
+        "dimensions": 1024,
+        "norm": 0.9999999619824887
+      },
+      {
+        "kind": "embedding-30",
+        "seconds": 0.028,
+        "status": 200,
+        "usage": {
+          "prompt_tokens": 338,
+          "total_tokens": 338
+        },
+        "timings": null,
+        "dimensions": 1024,
+        "norm": 1.0000000302549557
+      },
+      {
+        "kind": "embedding-30",
+        "seconds": 0.028,
+        "status": 200,
+        "usage": {
+          "prompt_tokens": 331,
+          "total_tokens": 331
+        },
+        "timings": null,
+        "dimensions": 1024,
+        "norm": 0.9999999813629887
+      },
+      {
+        "kind": "embedding-300",
+        "seconds": 0.2028,
+        "status": 200,
+        "usage": {
+          "prompt_tokens": 3035,
+          "total_tokens": 3035
+        },
+        "timings": null,
+        "dimensions": 1024,
+        "norm": 0.9999999967690203
+      },
+      {
+        "kind": "embedding-300",
+        "seconds": 0.2031,
+        "status": 200,
+        "usage": {
+          "prompt_tokens": 3036,
+          "total_tokens": 3036
+        },
+        "timings": null,
+        "dimensions": 1024,
+        "norm": 0.9999999859765984
+      },
+      {
+        "kind": "embedding-300",
+        "seconds": 0.2041,
+        "status": 200,
+        "usage": {
+          "prompt_tokens": 3035,
+          "total_tokens": 3035
+        },
+        "timings": null,
+        "dimensions": 1024,
+        "norm": 1.0000000297252032
+      },
+      {
+        "kind": "embedding-850",
+        "seconds": 0.6913,
+        "status": 200,
+        "usage": {
+          "prompt_tokens": 8536,
+          "total_tokens": 8536
+        },
+        "timings": null,
+        "dimensions": 1024,
+        "norm": 1.0000000028675367
+      },
+      {
+        "kind": "embedding-850",
+        "seconds": 0.6887,
+        "status": 200,
+        "usage": {
+          "prompt_tokens": 8537,
+          "total_tokens": 8537
+        },
+        "timings": null,
+        "dimensions": 1024,
+        "norm": 1.0000000015296842
+      },
+      {
+        "kind": "embedding-850",
+        "seconds": 0.6877,
+        "status": 200,
+        "usage": {
+          "prompt_tokens": 8536,
+          "total_tokens": 8536
+        },
+        "timings": null,
+        "dimensions": 1024,
+        "norm": 1.0000000399456437
+      },
+      {
+        "kind": "embedding-concurrent",
+        "seconds": 0.0501,
+        "status": 200,
+        "usage": {
+          "prompt_tokens": 339,
+          "total_tokens": 339
+        },
+        "timings": null,
+        "dimensions": 1024,
+        "norm": 1.0000000077327125
+      },
+      {
+        "kind": "embedding-concurrent",
+        "seconds": 0.093,
+        "status": 200,
+        "usage": {
+          "prompt_tokens": 334,
+          "total_tokens": 334
+        },
+        "timings": null,
+        "dimensions": 1024,
+        "norm": 0.9999999657804792
+      },
+      {
+        "kind": "embedding-concurrent",
+        "seconds": 0.0531,
+        "status": 200,
+        "usage": {
+          "prompt_tokens": 338,
+          "total_tokens": 338
+        },
+        "timings": null,
+        "dimensions": 1024,
+        "norm": 0.9999999656486128
+      },
+      {
+        "kind": "embedding-concurrent",
+        "seconds": 0.0878,
+        "status": 200,
+        "usage": {
+          "prompt_tokens": 338,
+          "total_tokens": 338
+        },
+        "timings": null,
+        "dimensions": 1024,
+        "norm": 0.9999999665961123
+      },
+      {
+        "kind": "text",
+        "seconds": 1.1173,
+        "status": 200,
+        "usage": {
+          "completion_tokens": 128,
+          "prompt_tokens": 47,
+          "total_tokens": 175,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          }
+        },
+        "timings": {
+          "cache_n": 0,
+          "prompt_n": 47,
+          "prompt_ms": 31.001,
+          "prompt_per_token_ms": 0.6595957446808511,
+          "prompt_per_second": 1516.080126447534,
+          "predicted_n": 128,
+          "predicted_ms": 1073.893,
+          "predicted_per_token_ms": 8.455850393700787,
+          "predicted_per_second": 118.26131653712241
+        }
+      },
+      {
+        "kind": "stt",
+        "seconds": 0.6648,
+        "status": 200,
+        "usage": null,
+        "timings": null,
+        "text": " Write a short poem about Vikings with a picture."
+      },
+      {
+        "kind": "tts",
+        "seconds": 2.078,
+        "status": 200,
+        "audio_seconds": 6.48,
+        "real_time_factor": 0.32067901234567897
+      },
+      {
+        "kind": "text",
+        "seconds": 0.4024,
+        "status": 200,
+        "usage": {
+          "completion_tokens": 42,
+          "prompt_tokens": 48,
+          "total_tokens": 90,
+          "prompt_tokens_details": {
+            "cached_tokens": 6
+          }
+        },
+        "timings": {
+          "cache_n": 6,
+          "prompt_n": 42,
+          "prompt_ms": 18.043,
+          "prompt_per_token_ms": 0.4295952380952381,
+          "prompt_per_second": 2327.7725433686196,
+          "predicted_n": 42,
+          "predicted_ms": 373.236,
+          "predicted_per_token_ms": 9.103317073170732,
+          "predicted_per_second": 109.8500680534568
+        }
+      },
+      {
+        "kind": "stt",
+        "seconds": 0.2545,
+        "status": 200,
+        "usage": null,
+        "timings": null,
+        "text": " Write a short poem about Vikings with a picture."
+      },
+      {
+        "kind": "tts",
+        "seconds": 1.774,
+        "status": 200,
+        "audio_seconds": 5.76,
+        "real_time_factor": 0.3079861111111111
+      },
+      {
+        "kind": "text",
+        "seconds": 0.2677,
+        "status": 200,
+        "usage": {
+          "completion_tokens": 27,
+          "prompt_tokens": 45,
+          "total_tokens": 72,
+          "prompt_tokens_details": {
+            "cached_tokens": 6
+          }
+        },
+        "timings": {
+          "cache_n": 6,
+          "prompt_n": 39,
+          "prompt_ms": 17.988,
+          "prompt_per_token_ms": 0.4612307692307692,
+          "prompt_per_second": 2168.1120747164778,
+          "predicted_n": 27,
+          "predicted_ms": 238.348,
+          "predicted_per_token_ms": 9.16723076923077,
+          "predicted_per_second": 109.08419621729571
+        }
+      },
+      {
+        "kind": "stt",
+        "seconds": 0.2392,
+        "status": 200,
+        "usage": null,
+        "timings": null,
+        "text": " Write a short poem about Vikings with a picture."
+      },
+      {
+        "kind": "tts",
+        "seconds": 2.031,
+        "status": 200,
+        "audio_seconds": 6.56,
+        "real_time_factor": 0.3096036585365854
+      }
+    ],
+    "model_pools": {
+      "tts": {
+        "configured": 2,
+        "resident": 2,
+        "devices": [
+          "cuda",
+          "cuda"
+        ]
+      },
+      "stt": {
+        "configured": 2,
+        "resident": 2,
+        "devices": [
+          "cuda",
+          "cuda"
+        ]
+      },
+      "embedding": {
+        "configured": 2,
+        "resident": 2,
+        "devices": [
+          "cuda",
+          "cuda"
+        ]
+      }
+    },
+    "video_slots_after_repeated_requests": {
+      "t2v": {
+        "capacity": 1,
+        "in_flight": 0,
+        "queued": 0,
+        "available": 1
+      },
+      "i2v": {
+        "capacity": 1,
+        "in_flight": 0,
+        "queued": 0,
+        "available": 1
+      }
+    }
   }
 }
