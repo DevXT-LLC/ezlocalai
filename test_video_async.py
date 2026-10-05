@@ -4,7 +4,7 @@ import types
 import unittest
 from unittest import mock
 
-from Pipes import Pipes
+from Pipes import ModelType, Pipes, ResourceManager
 from Router import WorkerInfo
 
 
@@ -220,3 +220,37 @@ class HighMemoryMediaPolicyTests(unittest.TestCase):
         self.assertFalse(any(pipe._unload_aux_models_for_video().values()))
         self.assertFalse(any(pipe._unload_aux_models_for_image().values()))
         pipe.resource_manager.get_model_active_count.assert_not_called()
+
+
+class ResidentVideoSlotTests(unittest.TestCase):
+    def test_repeated_success_and_failure_release_resident_video_slot(self):
+        manager = ResourceManager.__new__(ResourceManager)
+        manager._lock = threading.RLock()
+        manager._loaded_models = {}
+        manager.register_model(ModelType.VIDEO, "wan", "cuda", 0)
+        pipe = Pipes.__new__(Pipes)
+        pipe.resource_manager = manager
+        pipe.local_uri = "http://worker"
+        pipe.video = mock.Mock()
+        counts = []
+
+        def generate(**kwargs):
+            counts.append(manager.get_model_active_count(ModelType.VIDEO))
+            if len(counts) == 2:
+                raise RuntimeError("native failure")
+            return "outputs/clip.mp4"
+
+        pipe.video.generate.side_effect = generate
+        with (
+            mock.patch("Pipes.get_resource_manager", return_value=manager),
+            mock.patch("Pipes.has_image_server_url", return_value=False),
+            mock.patch("Pipes.is_video_enabled", return_value=True),
+        ):
+            self.assertEqual(pipe._generate_video_once("cup"), "outputs/clip.mp4")
+            self.assertEqual(manager.get_model_active_count(ModelType.VIDEO), 0)
+            with self.assertRaisesRegex(RuntimeError, "native failure"):
+                pipe._generate_video_once("cup")
+            self.assertEqual(manager.get_model_active_count(ModelType.VIDEO), 0)
+            self.assertEqual(pipe._generate_video_once("cup"), "outputs/clip.mp4")
+            self.assertEqual(manager.get_model_active_count(ModelType.VIDEO), 0)
+        self.assertEqual(counts, [1, 1, 1])

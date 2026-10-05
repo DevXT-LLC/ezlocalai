@@ -6889,8 +6889,8 @@ class Pipes:
                     logging.error(f"[VIDEO] Failed to load the model: {e}")
                     self.video = None
 
-        if self.video:
-            resource_mgr.mark_model_in_use(ModelType.VIDEO, True)
+        # The generation scope owns the active-request reference. Keeping the
+        # backend resident must not leave a phantom busy slot after completion.
         return self.video
 
     def _destroy_video_sync(self, video_ref):
