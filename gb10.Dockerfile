@@ -72,10 +72,12 @@ ENV HOST=0.0.0.0 \
 
 # Build CUDA-enabled CTranslate2: the PyPI ARM64 wheel is CPU-only.
 # Whisper needs cuDNN as well as CUDA. Pin both native and Python code together.
+COPY native/patches/ctranslate2-gb10-cuda.patch /opt/ctranslate2-gb10-cuda.patch
 ARG CTRANSLATE2_REF=d44d2d069eb88c7b7804da864c10c201501cb4a9
 RUN git clone https://github.com/OpenNMT/CTranslate2.git /opt/ctranslate2-src && \
     cd /opt/ctranslate2-src && git checkout "${CTRANSLATE2_REF}" && \
     git submodule update --init --recursive --depth 1 && \
+    git apply /opt/ctranslate2-gb10-cuda.patch && \
     cmake -S . -B build -DCMAKE_BUILD_TYPE=Release \
         -DWITH_CUDA=ON -DWITH_CUDNN=ON -DWITH_MKL=OFF \
         -DWITH_OPENBLAS=ON -DOPENMP_RUNTIME=COMP -DCUDA_ARCH_LIST="12.1" && \

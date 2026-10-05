@@ -333,10 +333,13 @@ class Embedding:
         ):
             return
         start = time.monotonic()
+        # Exercise the real text/tokenizer path as well as GPU compute.
+        if self.context_length >= 16:
+            self.get_embeddings("Warm up the embedding model.")
         # Token IDs let us exercise the configured microbatch without depending
         # on a tokenizer's handling of repeated text. Zero is a valid token.
-        for tokens in dict.fromkeys((1, min(self.ubatch_size, self.context_length))):
-            self.get_embeddings([0] * max(1, tokens))
+        tokens = max(1, min(self.ubatch_size, self.context_length))
+        self.get_embeddings([0] * tokens)
         logging.info(
             "[Embedding] Inference warmup complete in %.2fs", time.monotonic() - start
         )

@@ -17,10 +17,9 @@ class EmbeddingParamsTests(unittest.TestCase):
         embedder.get_embeddings = Mock()
         with patch("ezlocalai.Embedding.getenv", side_effect=lambda k, d: d):
             embedder._warmup()
-        self.assertEqual(
-            [len(call.args[0]) for call in embedder.get_embeddings.call_args_list],
-            [1, 512],
-        )
+        inputs = [call.args[0] for call in embedder.get_embeddings.call_args_list]
+        self.assertIsInstance(inputs[0], str)
+        self.assertEqual(inputs[1], [0] * 512)
 
     def test_embedding_warmup_respects_cpu_transient_and_disabled_modes(self):
         for device, settings in (
