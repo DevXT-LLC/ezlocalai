@@ -9552,6 +9552,19 @@ class Pipes:
                 ),
             )
 
+        video_lock = getattr(self, "_video_lock", None)
+        if video_lock is not None and video_lock.locked():
+            # Video can evict auxiliary pools and saturate shared GPU memory.
+            # Its thread leaves heartbeats responsive; do not advertise those
+            # displaced slots as free while loading, generating or restoring.
+            for capability, state in cap_slots.items():
+                if capability in {"video", "music_video"}:
+                    state.update(_slot(1, in_flight=1))
+                else:
+                    state.update(_slot(0, state["in_flight"], state["queued"]))
+            for state in model_slots.values():
+                state.update(_slot(0, state["in_flight"], state["queued"]))
+
         total_capacity = 0
         total_in_flight = 0
         total_queued = 0

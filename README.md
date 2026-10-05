@@ -136,6 +136,9 @@ timings. Compare identical models, quantization, context and concurrency; exclud
 image builds and other GPU work from timing runs. `/v1/resources` records loaded
 models and device placement in each result file.
 
+See the [GX10 measurements and remaining limitations](benchmarks/gx10-20261004.md)
+for first-request embeddings, speech/media checks and the CUDA graph comparison.
+
 For Docker access without sudo, add the host account to the Docker group once:
 
 ```bash

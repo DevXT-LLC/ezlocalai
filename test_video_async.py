@@ -1,12 +1,63 @@
 import asyncio
 import threading
+import types
 import unittest
 from unittest import mock
 
 from Pipes import Pipes
+from Router import WorkerInfo
 
 
 class VideoAsyncTests(unittest.IsolatedAsyncioTestCase):
+    async def test_router_slots_unavailable_until_video_handoff_finishes(self):
+        pipe = self.make_pipe()
+        pipe.available_models = ["text-model"]
+        pipe.persistent_llms = {"text-model": object()}
+        pipe._llm_temporarily_unavailable = False
+        pipe._inference_count_lock = threading.Lock()
+        pipe._inference_count = 0
+        pipe._model_inference_counts = {}
+        pipe._resolved_parallel_for_model = lambda *a, **kw: 1
+        pipe._resolve_source_model = lambda name: name
+        pipe._is_vision_model = lambda name: False
+        pipe._voice_should_unload_llm = lambda service: False
+        pipe._voice_handoff_active = lambda: False
+        pipe.resource_manager = types.SimpleNamespace(
+            get_model_active_count=lambda _: 0
+        )
+        with (
+            mock.patch("Pipes.getenv", side_effect=lambda key, default="": default),
+            mock.patch("Pipes.has_voice_server_url", return_value=False),
+            mock.patch("Pipes.has_embedding_server_url", return_value=False),
+            mock.patch("Pipes.has_image_server_url", return_value=False),
+            mock.patch("Pipes.is_image_enabled", return_value=False),
+            mock.patch("Pipes.is_music_enabled", return_value=False),
+            mock.patch("Pipes.is_video_enabled", return_value=True),
+            mock.patch("Pipes.get_video_model_name", return_value="video-model"),
+        ):
+            idle = pipe.get_slot_capacity_snapshot()
+            await pipe._video_lock.acquire()
+            try:
+                busy = pipe.get_slot_capacity_snapshot()
+            finally:
+                pipe._video_lock.release()
+            restored = pipe.get_slot_capacity_snapshot()
+        self.assertGreater(idle["cap_slots"]["embedding"]["available"], 0)
+        self.assertEqual(busy["slot_total_available"], 0)
+        self.assertEqual(busy["cap_slots"]["video"]["in_flight"], 1)
+        self.assertEqual(restored, idle)
+        worker = WorkerInfo(
+            worker_id="gx10",
+            label="gx10",
+            url="http://worker",
+            capabilities=list(busy["cap_slots"]),
+            models=["text-model"],
+            cap_slots=busy["cap_slots"],
+            model_slots=busy["model_slots"],
+        )
+        self.assertEqual(worker.slots_left(capability="embedding"), 0)
+        self.assertEqual(worker.slots_left(capability="text", model="text-model"), 0)
+
     def make_pipe(self):
         pipe = Pipes.__new__(Pipes)
         pipe._video_lock = asyncio.Lock()
