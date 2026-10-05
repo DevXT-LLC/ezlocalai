@@ -254,3 +254,19 @@ class ResidentVideoSlotTests(unittest.TestCase):
             self.assertEqual(pipe._generate_video_once("cup"), "outputs/clip.mp4")
             self.assertEqual(manager.get_model_active_count(ModelType.VIDEO), 0)
         self.assertEqual(counts, [1, 1, 1])
+
+
+class ModelPoolSnapshotTests(unittest.TestCase):
+    def test_reports_cpu_replica_even_when_sibling_stays_on_cuda(self):
+        pipe = Pipes.__new__(Pipes)
+        pipe._tts_pool_size = 2
+        pipe.tts_instances = [
+            types.SimpleNamespace(device="cuda"),
+            types.SimpleNamespace(device="cpu"),
+        ]
+        snapshot = pipe.get_model_pool_snapshot()
+        self.assertEqual(
+            snapshot["tts"],
+            {"configured": 2, "resident": 2, "devices": ["cuda", "cpu"]},
+        )
+        self.assertEqual(snapshot["embedding"]["resident"], 0)

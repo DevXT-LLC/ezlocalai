@@ -167,7 +167,9 @@ class NativeTtsTests(unittest.TestCase):
         process = mock.Mock()
         process.stdout = iter(['{"ready":true}\n'])
         with mock.patch.dict(
-            os.environ, {"CUDA_VISIBLE_DEVICES": "2,4"}, clear=True
+            os.environ,
+            {"CUDA_VISIBLE_DEVICES": "2,4", "QWEN_TTS_DISABLE_CUDA_GRAPHS": "true"},
+            clear=True,
         ), mock.patch(
             "ezlocalai.LlamaTTS.download_tts_models", return_value=("talker", "codec")
         ), mock.patch(
@@ -178,6 +180,10 @@ class NativeTtsTests(unittest.TestCase):
             tts = LlamaTTS("cuda:1")
             self.assertEqual(popen.call_args.kwargs["env"]["CUDA_VISIBLE_DEVICES"], "4")
             self.assertEqual(os.environ["CUDA_VISIBLE_DEVICES"], "2,4")
+            self.assertEqual(
+                popen.call_args.kwargs["env"]["GGML_CUDA_DISABLE_GRAPHS"], "1"
+            )
+            self.assertNotIn("GGML_CUDA_DISABLE_GRAPHS", os.environ)
             tts._reader.join(timeout=2)
 
     def test_legacy_env_migrates_same_base_model(self):

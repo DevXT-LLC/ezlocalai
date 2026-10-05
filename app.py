@@ -520,6 +520,7 @@ async def get_resources(user=Depends(verify_api_key)):
     }
     status["slots"] = _sync_request_queue_capacity()
     status["model_lifecycle"] = pipe.get_model_lifecycle_snapshot()
+    status["model_pools"] = pipe.get_model_pool_snapshot()
 
     return status
 

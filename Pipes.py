@@ -4858,6 +4858,25 @@ class Pipes:
             summary["max_seconds"] = max(summary["max_seconds"], duration)
             summary["last_seconds"] = duration
 
+    def get_model_pool_snapshot(self):
+        """Report each resident replica's current device, including CPU fallback."""
+        result = {}
+        for service, attribute, size_attribute in (
+            ("tts", "tts_instances", "_tts_pool_size"),
+            ("stt", "stt_instances", "_stt_pool_size"),
+            ("embedding", "embedders", "_embedding_pool_size"),
+        ):
+            instances = list(getattr(self, attribute, []) or [])
+            result[service] = {
+                "configured": getattr(self, size_attribute, 1),
+                "resident": len(instances),
+                "devices": [
+                    str(getattr(instance, "device", "unknown"))
+                    for instance in instances
+                ],
+            }
+        return result
+
     def get_model_lifecycle_snapshot(self) -> Dict[str, Any]:
         """Return lifecycle timings and current LLM residency state."""
         with self._lifecycle_metrics_lock:

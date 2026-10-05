@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Compare warm replica configurations using fixed-size direct-worker bursts.
 
-Run once per deployed replica configuration. Input suffixes avoid embedding and
+Run once per deployed replica configuration. Random input prefixes avoid embedding prefix reuse and
 TTS response caches. Credentials are read from EZLOCALAI_API_KEY or .env and are
 never included in output. Keep other GPU traffic idle for comparable results.
 """
@@ -42,6 +42,7 @@ def main():
         body = response.json()
         return {
             "slots": body["slots"]["cap_slots"],
+            "model_pools": body.get("model_pools", {}),
             "devices": {
                 key: value["device"] for key, value in body["loaded_models"].items()
             },
@@ -75,11 +76,12 @@ def main():
             kwargs = {
                 "json": {
                     "model": "Qwen3-Embedding-0.6B",
-                    "input": (
+                    "input": suffix
+                    + " "
+                    + (
                         "Embedding speed depends on token count and available compute. "
                         * repetitions
-                    )
-                    + suffix,
+                    ),
                 }
             }
         started = time.perf_counter()
