@@ -19,6 +19,7 @@ def getenv(var_name: str, default_value: str = None) -> str:
         "IMAGE_RELOAD_LLM_AFTER_GENERATION": "true",
         "IMAGE_WAIT_FOR_LLM_IDLE_TIMEOUT": "60",
         "IMAGE_MODEL_MIN_FREE_GB": "6",
+        "MEDIA_KEEP_MODELS_LOADED": "false",  # GB10 compose enables warm concurrent pools
         "VIDEO_ENABLED": "false",  # Set true to serve and warm-load VIDEO_MODEL locally
         "VIDEO_MODEL": "QuantStack/Wan2.2-T2V-A14B-GGUF",  # Default local GGUF model when VIDEO_ENABLED=true
         "VIDEO_QUANT_TYPE": "Q4_K_M",

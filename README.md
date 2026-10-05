@@ -605,8 +605,16 @@ vision temporarily unavailable, unloads the LLM and idle auxiliary GPU models,
 loads FLUX, generates the image, unloads FLUX, and restores the exact LLM
 residency that existed before the handoff.
 
-On a single-GPU worker, leave `VIDEO_UNLOAD_LLM_DURING_GENERATION=auto`.
-The worker waits for active LLM inference, unloads idle models for the video
+The GB10 compose profile defaults to `MEDIA_KEEP_MODELS_LOADED=true`. Video,
+image, music and voice requests keep the other resident models loaded, and the
+router continues to advertise their available slots. Video requests themselves
+remain serialized. Concurrent workloads share GPU compute, so request latency
+can increase. Explicit per-service `*_UNLOAD_LLM_DURING_GENERATION=true` still
+forces that service to hand off memory. Set `MEDIA_KEEP_MODELS_LOADED=false` to
+restore the smaller-GPU policy when using a larger model mix.
+
+Other compose profiles retain `VIDEO_UNLOAD_LLM_DURING_GENERATION=auto` and
+`MEDIA_KEEP_MODELS_LOADED=false`. The worker waits for active LLM inference, unloads idle models for the video
 handoff, runs Wan in a separate process, then restores the displaced pools.
 Other local slots are withheld from router scheduling until restoration finishes.
 Native generation runs off the API event loop; cancellation keeps the video lock

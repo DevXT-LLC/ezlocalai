@@ -6981,6 +6981,22 @@ class Pipes:
             resource_mgr.mark_model_in_use(ModelType.MUSIC, True)
         return self.music
 
+    def _media_keep_models_loaded(self) -> bool:
+        """Opt into concurrent media with warm pools on high-memory workers.
+
+        GB10 compose enables this; smaller GPU profiles retain handoffs. Explicit
+        per-service UNLOAD_LLM=true still takes precedence over this default.
+        """
+        return (
+            getenv("MEDIA_KEEP_MODELS_LOADED", "false") or "false"
+        ).strip().lower() in {"1", "true", "yes", "on"}
+
+    def _video_requires_exclusive_worker(self) -> bool:
+        return (
+            not self._media_keep_models_loaded()
+            or self._video_should_unload_llm_for_generation()
+        )
+
     def _image_should_unload_llm_for_generation(self) -> bool:
         """Return whether FLUX needs a temporary LLM VRAM handoff."""
         mode = (
@@ -6992,6 +7008,8 @@ class Pipes:
             return False
         if mode in {"1", "true", "yes", "on"}:
             return True
+        if self._media_keep_models_loaded():
+            return False
         if has_image_server_url() or get_secondary_gpu() is not None:
             return False
         if self.img is not None or not self._has_loaded_llm():
@@ -7031,6 +7049,8 @@ class Pipes:
             return False
         if mode in {"1", "true", "yes", "on"}:
             return not has_voice_server_url()
+        if self._media_keep_models_loaded():
+            return False
         if has_voice_server_url() or has_text_server_url():
             return False
         if is_voice_server_mode() and not is_text_server_mode():
@@ -7233,6 +7253,8 @@ class Pipes:
             return False
         if mode in {"1", "true", "yes", "on"}:
             return True
+        if self._media_keep_models_loaded():
+            return False
         # Auto mode only unloads local LLMs when ACE-Step is container-local.
         return not bool((getenv("ACE_STEP_SERVER_URL") or "").strip())
 
@@ -7269,6 +7291,8 @@ class Pipes:
             return False
         if mode in {"1", "true", "yes", "on"}:
             return True
+        if self._media_keep_models_loaded():
+            return False
         if has_image_server_url() or get_secondary_gpu() is not None:
             return False
         return bool(
@@ -8446,6 +8470,11 @@ class Pipes:
     def _unload_aux_models_for_image(self) -> Dict[str, bool]:
         """Unload idle GPU residents that would constrain FLUX initialization."""
         unloaded = {"tts": False, "stt": False, "embedding": False, "video": False}
+        if (
+            self._media_keep_models_loaded()
+            and not self._image_should_unload_llm_for_generation()
+        ):
+            return unloaded
 
         if self.resource_manager.get_model_active_count(ModelType.TTS) == 0 and (
             getattr(self, "ctts", None) is not None
@@ -8557,6 +8586,11 @@ class Pipes:
     def _unload_aux_models_for_video(self) -> Dict[str, bool]:
         """Unload idle non-LLM GPU residents before video generation."""
         unloaded = {"tts": False, "stt": False, "embedding": False, "img": False}
+        if (
+            self._media_keep_models_loaded()
+            and not self._video_should_unload_llm_for_generation()
+        ):
+            return unloaded
 
         if self.resource_manager.get_model_active_count(ModelType.TTS) == 0 and (
             self.ctts is not None
@@ -9559,16 +9593,17 @@ class Pipes:
 
         video_lock = getattr(self, "_video_lock", None)
         if video_lock is not None and video_lock.locked():
-            # Video can evict auxiliary pools and saturate shared GPU memory.
-            # Its thread leaves heartbeats responsive; do not advertise those
-            # displaced slots as free while loading, generating or restoring.
+            # High-memory workers keep other pools available during video.
+            # Profiles that evict pools reserve the worker through restoration.
+            exclusive = self._video_requires_exclusive_worker()
             for capability, state in cap_slots.items():
                 if capability in {"video", "music_video"}:
                     state.update(_slot(1, in_flight=1))
-                else:
+                elif exclusive:
                     state.update(_slot(0, state["in_flight"], state["queued"]))
-            for state in model_slots.values():
-                state.update(_slot(0, state["in_flight"], state["queued"]))
+            if exclusive:
+                for state in model_slots.values():
+                    state.update(_slot(0, state["in_flight"], state["queued"]))
 
         total_capacity = 0
         total_in_flight = 0

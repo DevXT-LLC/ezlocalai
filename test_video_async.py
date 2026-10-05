@@ -39,6 +39,10 @@ class VideoAsyncTests(unittest.IsolatedAsyncioTestCase):
             await pipe._video_lock.acquire()
             try:
                 busy = pipe.get_slot_capacity_snapshot()
+                with mock.patch.object(
+                    pipe, "_media_keep_models_loaded", return_value=True
+                ):
+                    concurrent = pipe.get_slot_capacity_snapshot()
             finally:
                 pipe._video_lock.release()
             restored = pipe.get_slot_capacity_snapshot()
@@ -46,6 +50,25 @@ class VideoAsyncTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(busy["slot_total_available"], 0)
         self.assertEqual(busy["cap_slots"]["video"]["in_flight"], 1)
         self.assertEqual(restored, idle)
+        self.assertEqual(concurrent["cap_slots"]["video"]["available"], 0)
+        for capability in ("embedding", "text"):
+            self.assertEqual(
+                concurrent["cap_slots"][capability], idle["cap_slots"][capability]
+            )
+        self.assertEqual(concurrent["model_slots"], idle["model_slots"])
+        concurrent_worker = WorkerInfo(
+            worker_id="gb10",
+            label="gb10",
+            url="http://worker",
+            capabilities=list(concurrent["cap_slots"]),
+            models=["text-model"],
+            cap_slots=concurrent["cap_slots"],
+            model_slots=concurrent["model_slots"],
+        )
+        self.assertGreater(concurrent_worker.slots_left(capability="embedding"), 0)
+        self.assertGreater(
+            concurrent_worker.slots_left(capability="text", model="text-model"), 0
+        )
         worker = WorkerInfo(
             worker_id="gx10",
             label="gx10",
@@ -155,3 +178,45 @@ class VideoAsyncTests(unittest.IsolatedAsyncioTestCase):
             ],
         )
         self.assertFalse(pipe._video_lock.locked())
+
+
+class HighMemoryMediaPolicyTests(unittest.TestCase):
+    def test_warm_policy_keeps_all_services_resident_but_honors_overrides(self):
+        pipe = Pipes.__new__(Pipes)
+        pipe.available_models = ["large-llm"]
+        pipe.llm = object()
+        pipe.persistent_llms = {"large-llm": pipe.llm}
+        pipe.img = None
+        settings = {"MEDIA_KEEP_MODELS_LOADED": "true"}
+        with (
+            mock.patch(
+                "Pipes.getenv",
+                side_effect=lambda key, default="": settings.get(key, default),
+            ),
+            mock.patch("Pipes.has_voice_server_url", return_value=False),
+        ):
+            for service in ("image", "video", "music", "tts", "stt"):
+                policy = (
+                    (lambda: pipe._voice_should_unload_llm(service))
+                    if service in {"tts", "stt"}
+                    else getattr(pipe, f"_{service}_should_unload_llm_for_generation")
+                )
+                with self.subTest(service=service):
+                    self.assertFalse(policy())
+                    key = f"{service.upper()}_UNLOAD_LLM_DURING_GENERATION"
+                    settings[key] = "true"
+                    self.assertTrue(policy())
+                    settings.pop(key)
+            self.assertFalse(pipe._video_requires_exclusive_worker())
+            settings["VIDEO_UNLOAD_LLM_DURING_GENERATION"] = "true"
+            self.assertTrue(pipe._video_requires_exclusive_worker())
+
+    def test_aux_pools_are_untouched_when_warm_policy_enabled(self):
+        pipe = Pipes.__new__(Pipes)
+        pipe.resource_manager = mock.Mock()
+        pipe._media_keep_models_loaded = lambda: True
+        pipe._video_should_unload_llm_for_generation = lambda: False
+        pipe._image_should_unload_llm_for_generation = lambda: False
+        self.assertFalse(any(pipe._unload_aux_models_for_video().values()))
+        self.assertFalse(any(pipe._unload_aux_models_for_image().values()))
+        pipe.resource_manager.get_model_active_count.assert_not_called()
