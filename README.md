@@ -121,6 +121,25 @@ the warmup. CPU and transient instances skip it. This moves first-use CUDA work
 into startup rather than the first embedding request. Each instance retains its
 full configured context, and input is never truncated for speed.
 
+The GB10 profile starts with two text slots and two resident instances each for
+embedding, STT and TTS; image and video remain one generation each. The measured
+1/2/4-replica sweep found little throughput benefit from four versus two, while
+two left about 19 GiB more available RAM. Larger counts can be configured for a
+different workload. Existing `.env` values override compose defaults; to apply
+the tested auxiliary pool sizes while preserving other settings:
+
+```bash
+python3 scripts/configure_gb10_pools.py --env-file .env --replicas 2
+docker compose -f docker-compose-gb10.yml up -d
+```
+
+This creates a private `.env.pre-gb10-pools` backup. `/v1/resources` includes
+`model_pools` with each replica's actual device, so a single CPU fallback cannot
+hide behind another CUDA instance in the same pool. GB10 defaults to
+`QWEN_TTS_DISABLE_CUDA_GRAPHS=true` to avoid the observed libmtmd audio-decoder
+failure during repeated GPU requests; the setting applies only to TTS child
+processes. Text and embedding CUDA graph settings are unchanged.
+
 Compare direct worker timings immediately after startup and again while warm:
 
 ```bash
@@ -795,7 +814,11 @@ The router creates a short dispatch lease only for text/vision requests so a
 stale heartbeat cannot immediately send a second LLM request to the same slot.
 The lease expires after `ROUTER_RESERVATION_TTL` seconds (default `15`), after
 which worker heartbeat slot data is authoritative. TTS, STT, embedding, image,
-video, and music requests do not create router-side reservations.
+video, music and music-video reserve their advertised slot until the proxied
+request (including a streamed response) finishes. A dispatch race returns to
+the router queue without spending a retry. Music-video shares the music/video
+slots. All capabilities wait for capacity; client and reverse-proxy timeouts
+still apply even when `ROUTER_WAIT_TIMEOUT=0`.
 
 ### Run the router
 

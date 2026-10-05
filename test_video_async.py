@@ -207,6 +207,11 @@ class HighMemoryMediaPolicyTests(unittest.TestCase):
                     settings[key] = "true"
                     self.assertTrue(policy())
                     settings.pop(key)
+            with mock.patch(
+                "Pipes.should_preload_voice", return_value=False
+            ), mock.patch.object(pipe, "_has_fast_voice_profile", return_value=False):
+                self.assertTrue(pipe._voice_should_preload("tts"))
+                self.assertTrue(pipe._voice_should_preload("stt"))
             self.assertFalse(pipe._video_requires_exclusive_worker())
             settings["VIDEO_UNLOAD_LLM_DURING_GENERATION"] = "true"
             self.assertTrue(pipe._video_requires_exclusive_worker())

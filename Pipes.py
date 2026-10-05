@@ -7082,7 +7082,9 @@ class Pipes:
 
     def _voice_should_preload(self, service: str) -> bool:
         return (
-            should_preload_voice() or self._has_fast_voice_profile()
+            should_preload_voice()
+            or self._has_fast_voice_profile()
+            or self._media_keep_models_loaded()
         ) and not self._voice_should_unload_llm(service)
 
     def _mark_voice_handoff(self, service: str, active: bool):

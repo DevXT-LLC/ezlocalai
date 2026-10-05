@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Compare warm replica configurations using fixed-size direct-worker bursts.
 
-Run once per deployed replica configuration. Random input prefixes avoid embedding prefix reuse and
-TTS response caches. Credentials are read from EZLOCALAI_API_KEY or .env and are
+Run once per deployed replica configuration. Random prefixes avoid embedding
+prefix reuse; TTS suffixes avoid cached audio. Credentials are read from EZLOCALAI_API_KEY or .env and are
 never included in output. Keep other GPU traffic idle for comparable results.
 """
 
@@ -86,7 +86,11 @@ def main():
             }
         started = time.perf_counter()
         response = requests.post(base + path, headers=headers, timeout=300, **kwargs)
-        row = {"seconds": time.perf_counter() - started, "status": response.status_code}
+        row = {
+            "seconds": time.perf_counter() - started,
+            "status": response.status_code,
+            "input_id": suffix,
+        }
         response.raise_for_status()
         if kind == "tts":
             with wave.open(io.BytesIO(response.content)) as wav:
@@ -118,6 +122,11 @@ def main():
                     )
                     args.output.write_text(json.dumps(results, indent=2) + "\n")
         results["after"] = resources()
+        if results["before"]["model_pools"] != results["after"]["model_pools"]:
+            results["error"] = (
+                "Replica count/device changed during benchmark; exclude these timings from a like-for-like comparison."
+            )
+            raise RuntimeError(results["error"])
     finally:
         args.output.write_text(json.dumps(results, indent=2) + "\n")
 
