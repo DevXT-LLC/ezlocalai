@@ -1055,6 +1055,33 @@ worker, so later turns return to the warm prefix. The short default covers
 stream-release and heartbeat lag without queueing behind a long generation.
 Set the value to `0` to use immediate spillover.
 
+Clients may additionally send `routing_affinity_key` (an opaque per-user ID,
+1-512 characters). This is distinct from the per-conversation `prompt_cache_key`:
+requests with the same user key and model execute in FIFO order, one request at
+a time, on their assigned compatible worker. A busy home worker is queued for,
+not bypassed after `ROUTER_PROMPT_AFFINITY_WAIT`. Offline, disconnected,
+incompatible, circuit-open, or failed workers still trigger normal failover.
+An explicit `worker` target overrides this optional user routing.
+
+`ROUTER_USER_AFFINITY_TTL` defaults to **600 seconds of inactivity** after the last
+request finishes or leaves the queue. Running and queued requests keep their
+assignment alive. This expires the router hint, not the worker's actual KV cache.
+`ROUTER_USER_AFFINITY_MAX` bounds retained user/model lanes (default 10000), and
+`ROUTER_USER_QUEUE_MAX` bounds running plus pending requests per lane (default 100).
+Overfull queues return a retryable 429 (an SSE error after streaming headers).
+Streaming clients receive keepalives while waiting; disconnected requests are
+removed from the queue. Router restarts discard assignments, not durable client
+conversation history. Run one router process for coherent FIFO/affinity state.
+
+Use separate models/keys, or omit this key, for latency-sensitive voice/status
+calls and nested planners. WorkConductor sends it for main agent continuations
+and recovery, leaving those auxiliary calls independent. Matching prompt tokens
+are still required for a cache hit; routing does not combine divergent project
+histories, copy KV between GPUs, or guarantee resident cache across model changes.
+This can reduce duplicate prefill and GPU fan-out, but serializing projects can
+increase latency when their prompts share little cache. Other users may use idle
+capacity on the same GPU; the assignment is not an exclusive GPU reservation.
+
 For capability-only voice routing, the router defaults `ROUTER_PREFER_DEDICATED_CAPABILITIES=stt`, so large STT transcription jobs prefer workers that are not also serving `text` or `vision`. TTS routes by the normal score/tier calculation by default so low-latency playback can use faster mixed-capability workers. Stale `ROUTER_PREFER_DEDICATED_CAPABILITIES=stt,tts` values are treated as STT-only for TTS unless `ROUTER_ALLOW_DEDICATED_TTS_PREFERENCE=true` is also set. Large transcription jobs also use `ROUTER_STT_TIMEOUT` (default `7200` seconds) instead of the generic `REQUEST_TIMEOUT`.
 
 Workers missing the required capability (`text` / `vision` / `tts` / `stt` / `embedding` / `image` / `video` / `music`) or the requested model are filtered out before scoring. Stale workers (no heartbeat for `ROUTER_WORKER_TTL` seconds) are also excluded.
