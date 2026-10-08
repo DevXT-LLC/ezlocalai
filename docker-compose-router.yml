@@ -33,6 +33,9 @@ services:
       # true = after idle spillover, fill remaining parallel slots on busy nodes.
       - ROUTER_BUSY_SLOT_FALLBACK=${ROUTER_BUSY_SLOT_FALLBACK-false}
       - ROUTER_PROMPT_AFFINITY_WAIT=${ROUTER_PROMPT_AFFINITY_WAIT:-15}
+      - ROUTER_USER_AFFINITY_TTL=${ROUTER_USER_AFFINITY_TTL:-600}
+      - ROUTER_USER_AFFINITY_MAX=${ROUTER_USER_AFFINITY_MAX:-10000}
+      - ROUTER_USER_QUEUE_MAX=${ROUTER_USER_QUEUE_MAX:-100}
       # Optional managed text/vision overflow. When the key is set, Chutes is
       # advertised on the dashboard at t45 and used only after comparable or
       # faster internal workers are occupied.
@@ -60,6 +63,7 @@ services:
       - "8092:8092"
     volumes:
       - ./Router.py:/app/Router.py:ro
+      - ./UserAffinity.py:/app/UserAffinity.py:ro
       - ./Tunnel.py:/app/Tunnel.py:ro
       - ./ModelSettings.py:/app/ModelSettings.py:ro
       - ./router_app.py:/app/router_app.py:ro

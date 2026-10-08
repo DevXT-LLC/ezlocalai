@@ -65,6 +65,7 @@ from fastapi.responses import HTMLResponse, JSONResponse, Response, StreamingRes
 from fastapi.staticfiles import StaticFiles
 
 from Globals import getenv
+from UserAffinity import UserAffinity, UserLane
 from ModelSettings import apply_qwen38_model_settings, is_qwen38_model
 from Router import (
     Router,
@@ -114,6 +115,19 @@ app.mount("/outputs", StaticFiles(directory=_OUTPUTS_DIR), name="outputs")
 # calls cannot displace the main conversation model's affinity.
 _prompt_affinity: Dict[str, tuple[str, float]] = {}
 _system_prefix_affinity: Dict[str, tuple[str, float]] = {}
+
+_user_affinity = UserAffinity()
+
+
+def _user_affinity_key(payload, model):
+    raw = payload.get("routing_affinity_key")
+    if raw is None:
+        return None
+    if not isinstance(raw, str) or not raw.strip() or len(raw) > 512:
+        raise HTTPException(
+            status_code=400, detail="routing_affinity_key must be 1-512 characters"
+        )
+    return f"{_normalize_model_name(model)}:{hashlib.sha256(raw.encode()).hexdigest()}"
 
 
 CHUTES_WORKER_ID = "external-chutes"
@@ -3390,6 +3404,7 @@ async def _pick(
     system_prefix_keys: Optional[List[str]] = None,
     worker_id: Optional[str] = None,
     retrying: bool = False,
+    user_lane: Optional[UserLane] = None,
 ) -> WorkerInfo:
     router = get_router()
     # Pre-exclude tunneled workers whose WebSocket is not currently connected.
@@ -3437,10 +3452,21 @@ async def _pick(
     preferred_id = (
         _prompt_affinity.get(affinity_key, (None, 0.0))[0] if affinity_key else None
     )
+    if user_lane is not None:
+        # A fresh/expired user assignment starts with normal load balancing,
+        # rather than reviving a conversation's longer-lived worker mapping.
+        preferred_id = user_lane.worker_id
     preferred: Optional[WorkerInfo] = None
     preferred_is_eligible = False
     if preferred_id:
-        affinity_wait = _prompt_affinity_wait_timeout()
+        affinity_wait = (
+            _wait_timeout()
+            if user_lane is not None
+            else _prompt_affinity_wait_timeout()
+        )
+        indefinite_affinity = user_lane is not None and (
+            wait_indefinitely or affinity_wait == 0
+        )
         affinity_deadline = time.monotonic() + affinity_wait
         while True:
             preferred = next(
@@ -3454,10 +3480,15 @@ async def _pick(
             preferred_is_eligible = _eligible_affinity_worker(
                 preferred, capability, model, pre_exclude
             )
+            if preferred_is_eligible and is_tunnel_url(preferred.url):
+                preferred_is_eligible = hub.is_connected(
+                    worker_id_from_tunnel_url(preferred.url)
+                )
             if not preferred_is_eligible:
                 break
             if preferred.has_capacity(capability, model):
-                _prompt_affinity[affinity_key] = (preferred.worker_id, time.time())
+                if affinity_key:
+                    _prompt_affinity[affinity_key] = (preferred.worker_id, time.time())
                 _remember_system_prefixes(system_prefix_keys, preferred)
                 logging.info(
                     f"[Router] prompt-cache affinity -> {preferred.label} "
@@ -3465,14 +3496,19 @@ async def _pick(
                 )
                 return preferred
             remaining = affinity_deadline - time.monotonic()
-            if remaining <= 0:
+            if not indefinite_affinity and remaining <= 0:
+                if user_lane is not None:
+                    raise HTTPException(
+                        status_code=503,
+                        detail="Timed out waiting for user cache worker",
+                    )
                 logging.info(
                     f"[Router] prompt-cache affinity worker {preferred.label} "
                     f"remained busy for {affinity_wait:.1f}s; "
                     "using temporary spillover without moving its cache home"
                 )
                 break
-            await asyncio.sleep(min(0.1, remaining))
+            await asyncio.sleep(0.1 if indefinite_affinity else min(0.1, remaining))
     # Cold conversations may reuse another conversation's stable prefix. This
     # fallback never waits or overrides a still-eligible conversation owner.
     if system_prefix_keys and not preferred_is_eligible:
@@ -3733,6 +3769,7 @@ def _worker_json_payload(
     # not need to know how affinity was selected.
     forwarded.pop("prompt_cache_key", None)
     forwarded.pop("prompt_cache_avoid_key", None)
+    forwarded.pop("routing_affinity_key", None)
     forwarded.pop("worker", None)
     if not worker.external_fallback:
         return forwarded
@@ -4293,6 +4330,7 @@ async def _llm_stream_with_worker_failover(
     external_fallback_allowed: bool = True,
     wait_indefinitely: bool = False,
     worker_id: Optional[str] = None,
+    user_lane: Optional[UserLane] = None,
 ) -> AsyncIterator[bytes]:
     tried: set = set()
     affinity_key = _prompt_affinity_key(payload, capability, model)
@@ -4335,6 +4373,7 @@ async def _llm_stream_with_worker_failover(
                 wait_indefinitely=wait_indefinitely,
                 affinity_key=affinity_key,
                 system_prefix_keys=system_prefix_keys,
+                **({"user_lane": user_lane} if user_lane is not None else {}),
                 **({"worker_id": worker_id} if worker_id is not None else {}),
             )
         except Exception as e:
@@ -5060,6 +5099,9 @@ async def _pick_and_reserve_llm(capability: str, model: str, **selection_options
             worker.worker_id, capability=capability, model=model
         )
         if reservation_id is not None:
+            lane = selection_options.get("user_lane")
+            if lane is not None and not worker.external_fallback:
+                lane.worker_id = worker.worker_id
             return worker, reservation_id
         await asyncio.sleep(0.05)
 
@@ -5129,8 +5171,70 @@ async def _llm_proxy_with_retry(
     external_fallback_allowed: bool = True,
     wait_indefinitely: bool = False,
     worker_id: Optional[str] = None,
+    user_lane: Optional[UserLane] = None,
 ):
     """Forward an LLM request, retrying unhealthy workers before replying."""
+    lane_key = _user_affinity_key(payload, model)
+    if lane_key and user_lane is None and worker_id is None:
+        options = dict(
+            capability=capability,
+            path=path,
+            payload=payload,
+            model=model,
+            external_fallback_allowed=external_fallback_allowed,
+            wait_indefinitely=wait_indefinitely,
+        )
+
+        def lane_context():
+            return _user_affinity.acquire(
+                lane_key,
+                ttl=max(1, _float_env("ROUTER_USER_AFFINITY_TTL", 600)),
+                max_entries=max(1, int(_float_env("ROUTER_USER_AFFINITY_MAX", 10000))),
+                max_pending=max(1, int(_float_env("ROUTER_USER_QUEUE_MAX", 100))),
+            )
+
+        if is_stream:
+
+            async def queued_stream():
+                try:
+                    async with lane_context() as lane:
+                        stream = _llm_stream_with_worker_failover(
+                            **options, user_lane=lane, request_started=time.monotonic()
+                        )
+                        try:
+                            async for chunk in stream:
+                                yield chunk
+                        finally:
+                            await stream.aclose()
+                except OverflowError as error:
+                    yield (
+                        "data: "
+                        + json.dumps(
+                            {
+                                "error": {
+                                    "message": str(error),
+                                    "type": "router_queue_full",
+                                    "code": 429,
+                                }
+                            }
+                        )
+                        + "\n\ndata: [DONE]\n\n"
+                    ).encode()
+
+            return StreamingResponse(
+                _with_stream_keepalive(queued_stream()),
+                media_type="text/event-stream",
+                headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+            )
+        try:
+            async with lane_context() as lane:
+                return await _llm_proxy_with_retry(
+                    **options, is_stream=False, user_lane=lane
+                )
+        except OverflowError as error:
+            raise HTTPException(
+                status_code=429, detail=str(error), headers={"Retry-After": "1"}
+            )
     if is_stream:
         return StreamingResponse(
             _with_stream_keepalive(
@@ -5169,6 +5273,7 @@ async def _llm_proxy_with_retry(
             wait_indefinitely=wait_indefinitely,
             affinity_key=affinity_key,
             system_prefix_keys=system_prefix_keys,
+            **({"user_lane": user_lane} if user_lane is not None else {}),
             **({"worker_id": worker_id} if worker_id is not None else {}),
         )
         tried.add(worker.worker_id)
