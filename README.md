@@ -347,18 +347,11 @@ restores uncapped behavior, including for explicit `LLM_PROMPT_CACHE_MIB`
 values, and should only be used after verifying host-RAM headroom under long
 prompts.
 
-The CUDA image includes a pinned native hotfix for DFlash's large-image cache
-exhaustion (`failed to process mtmd chunk`). It preserves full-resolution target
-vision input without enlarging the KV cache. See [hotfix details and native build
-instructions](native/patches/README.md). Verify a deployed CUDA worker with:
-
-```bash
-docker exec ezlocalai python -c 'from xllamacpp._ezlocalai_hotfix import HOTFIX; print(HOTFIX)'
-```
-
-It should report `dflash-pinned-image-positions-v1`. The upstream version number
-alone does not identify the patched build. Test an idle worker's vision stream
-with `python benchmark_vision.py --url http://localhost:8091 --stream` (set
+The CUDA and GB10 images build xllamacpp from source to target specific GPU
+architectures. The DFlash large-image cache fix is included upstream in the
+pinned llama.cpp revision; see [native build details](native/patches/README.md).
+Test an idle worker's vision stream with
+`python benchmark_vision.py --url http://localhost:8091 --stream` (set
 `EZLOCALAI_API_KEY` if authentication is enabled).
 
 All values remain operator-overridable:

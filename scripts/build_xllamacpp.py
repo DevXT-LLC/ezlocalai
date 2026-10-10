@@ -1,24 +1,22 @@
 #!/usr/bin/env python3
-"""Build the pinned xllamacpp with the DFlash large-image cache hotfix.
+"""Build the pinned xllamacpp from source for custom CUDA architecture targets.
 
 Requires CMake, a C/C++ compiler, Rust/cargo, and (for --cuda/--hip) its SDK.
 Example: python scripts/build_xllamacpp.py --cuda --install
 Existing source/build directories are reused only at the exact pinned revision.
-The patch is applied by xllamacpp's own patch-aware build, including its existing
-compatibility patches. No models, target KV precision or sampling are changed.
+The DFlash large-image cache fix is included upstream in the pinned llama.cpp
+revision (aa94f208); no local patch is applied.
 """
 
 import argparse
 import os
 from pathlib import Path
-import shutil
 import subprocess
 import sys
 import tempfile
 
 XLLAMACPP_REVISION = "64fbe0fe7c407d5d6418bc794d89cf553736d9e3"
 LLAMA_REVISION = "aa94f2086147cd4bfbcff818ce998dffce5fcb39"
-HOTFIX = "dflash-pinned-image-positions-v1"
 
 
 def run(command, **kwargs):
@@ -67,18 +65,8 @@ def prepare_source(source):
             raise RuntimeError(
                 f"Refusing to patch {path}: expected {expected}, got {actual}"
             )
-    patch = (
-        Path(__file__).resolve().parents[1]
-        / "native/patches/dflash-pinned-image-positions.patch"
-    )
-    destination = source / "patches/llama.cpp/0003-dflash-pinned-image-positions.patch"
-    if destination.exists() and destination.read_bytes() != patch.read_bytes():
-        raise RuntimeError(f"Refusing to overwrite a different patch: {destination}")
-    shutil.copyfile(patch, destination)
-    # Inspectable provenance, bundled in the wheel alongside the Python bindings.
-    (source / "src/xllamacpp/_ezlocalai_hotfix.py").write_text(
-        f"HOTFIX = {HOTFIX!r}\nLLAMA_REVISION = {LLAMA_REVISION!r}\n"
-    )
+
+
 
 
 def invalidate_extension(source):
@@ -170,14 +158,8 @@ def main():
                 str(built[-1]),
             ]
         )
-        run(
-            [
-                sys.executable,
-                "-c",
-                f"from xllamacpp._ezlocalai_hotfix import HOTFIX; assert HOTFIX == {HOTFIX!r}; print(HOTFIX)",
-            ]
-        )
-    print(f"Patched wheel: {built[-1]}")
+
+    print(f"Built wheel: {built[-1]}")
 
 
 if __name__ == "__main__":
