@@ -42,6 +42,20 @@ def prepare_source(source):
             ["git", "submodule", "update", "--init", "--recursive", "--depth", "1"],
             cwd=source,
         )
+    else:
+        # Source directory exists (e.g. from a BuildKit cache mount). Check if it
+        # is already at the expected revision; if not, fetch and re-checkout.
+        actual = run(
+            ["git", "rev-parse", "HEAD"], cwd=source, capture_output=True, text=True
+        ).stdout.strip()
+        if actual != XLLAMACPP_REVISION:
+            print(f"Source at {actual}, expected {XLLAMACPP_REVISION} - updating")
+            run(["git", "fetch", "--all"], cwd=source)
+            run(["git", "checkout", "--detach", XLLAMACPP_REVISION], cwd=source)
+            run(
+                ["git", "submodule", "update", "--init", "--recursive", "--depth", "1"],
+                cwd=source,
+            )
     for path, expected in (
         (source, XLLAMACPP_REVISION),
         (source / "thirdparty/llama.cpp", LLAMA_REVISION),
