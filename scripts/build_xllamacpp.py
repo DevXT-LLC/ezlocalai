@@ -16,8 +16,8 @@ import subprocess
 import sys
 import tempfile
 
-XLLAMACPP_REVISION = "c490a681ce9ac3490d74b418fee5515ac5c1343e"
-LLAMA_REVISION = "5266f24da75dc449bd56cbed7addb9c8e4a6a73e"
+XLLAMACPP_REVISION = "64fbe0fe7c407d5d6418bc794d89cf553736d9e3"
+LLAMA_REVISION = "aa94f2086147cd4bfbcff818ce998dffce5fcb39"
 HOTFIX = "dflash-pinned-image-positions-v1"
 
 
@@ -42,6 +42,20 @@ def prepare_source(source):
             ["git", "submodule", "update", "--init", "--recursive", "--depth", "1"],
             cwd=source,
         )
+    else:
+        # Source directory exists (e.g. from a BuildKit cache mount). Check if it
+        # is already at the expected revision; if not, fetch and re-checkout.
+        actual = run(
+            ["git", "rev-parse", "HEAD"], cwd=source, capture_output=True, text=True
+        ).stdout.strip()
+        if actual != XLLAMACPP_REVISION:
+            print(f"Source at {actual}, expected {XLLAMACPP_REVISION} - updating")
+            run(["git", "fetch", "--all"], cwd=source)
+            run(["git", "checkout", "--detach", XLLAMACPP_REVISION], cwd=source)
+            run(
+                ["git", "submodule", "update", "--init", "--recursive", "--depth", "1"],
+                cwd=source,
+            )
     for path, expected in (
         (source, XLLAMACPP_REVISION),
         (source / "thirdparty/llama.cpp", LLAMA_REVISION),
