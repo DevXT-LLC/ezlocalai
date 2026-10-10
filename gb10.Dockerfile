@@ -90,7 +90,6 @@ RUN git clone https://github.com/OpenNMT/CTranslate2.git /opt/ctranslate2-src &&
 # wheel with unknown GPU targets, or silently fall back to a CPU build.
 RUN uv pip install pip
 COPY scripts/build_xllamacpp.py /opt/ezlocalai-native/scripts/build_xllamacpp.py
-COPY native/patches/dflash-pinned-image-positions.patch /opt/ezlocalai-native/native/patches/dflash-pinned-image-positions.patch
 ARG XLLAMACPP_BUILD_JOBS=12
 RUN --mount=type=cache,target=/opt/xllamacpp-build \
     --mount=type=cache,target=/root/.cargo \
