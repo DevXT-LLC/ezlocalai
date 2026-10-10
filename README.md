@@ -324,7 +324,7 @@ exit status and logs. Tunnel interruptions now preserve the underlying error;
 LLM failover retries only before assistant output starts, otherwise it emits an
 explicit stream error rather than silently completing or duplicating output.
 
-Qwen3.8-27B automatically uses **MTP**, through xllamacpp 2026.9.10809,
+Qwen3.8-27B automatically uses **MTP**, through xllamacpp 2026.10.11549,
 with one inference slot per instance, three draft tokens and a 0.1 draft probability threshold.
 DFlash2 remains opt-in with `LLM_SPECULATIVE_TYPE=dflash2`; only that backend
 downloads the revision-pinned

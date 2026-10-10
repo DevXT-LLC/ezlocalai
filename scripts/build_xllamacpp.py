@@ -16,8 +16,8 @@ import subprocess
 import sys
 import tempfile
 
-XLLAMACPP_REVISION = "c490a681ce9ac3490d74b418fee5515ac5c1343e"
-LLAMA_REVISION = "5266f24da75dc449bd56cbed7addb9c8e4a6a73e"
+XLLAMACPP_REVISION = "64fbe0fe7c407d5d6418bc794d89cf553736d9e3"
+LLAMA_REVISION = "aa94f2086147cd4bfbcff818ce998dffce5fcb39"
 HOTFIX = "dflash-pinned-image-positions-v1"
 
 

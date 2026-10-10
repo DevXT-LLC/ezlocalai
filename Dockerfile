@@ -41,7 +41,7 @@ RUN python3 -m pip install "gTTS>=2.4.0" --no-deps --no-cache-dir
 RUN pip install esp-ppq --no-deps --no-cache-dir
 
 # Install xllamacpp CPU version
-RUN pip install xllamacpp==2026.9.10809 --force-reinstall --no-cache-dir
+RUN pip install xllamacpp==2026.10.11549 --force-reinstall --no-cache-dir
 COPY native/tts /opt/ezlocalai-tts
 RUN cmake -S /opt/ezlocalai-tts -B /opt/ezlocalai-tts/build -DCMAKE_BUILD_TYPE=Release && \
     cmake --build /opt/ezlocalai-tts/build --target ezlocalai-tts --parallel 20

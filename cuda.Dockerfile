@@ -65,7 +65,7 @@ ENV HOST=0.0.0.0 \
     ACE_STEP_BIN=/opt/acestep.cpp/build/ace-server \
     SDCPP_BIN=/opt/stable-diffusion.cpp/build/bin/sd-cli
 # Install xllamacpp with CUDA 12.8 support (compatible with CUDA 12.9)
-RUN uv pip install xllamacpp==2026.9.10809 --reinstall --index-url https://xorbitsai.github.io/xllamacpp/whl/cu128
+RUN uv pip install xllamacpp==2026.10.11549 --reinstall --index-url https://xorbitsai.github.io/xllamacpp/whl/cu128
 COPY native/tts /opt/ezlocalai-tts
 ARG TTS_CUDA_ARCHITECTURES=86;89;120
 ARG TTS_BUILD_JOBS=20
@@ -75,7 +75,7 @@ RUN cmake -S /opt/ezlocalai-tts -B /opt/ezlocalai-tts/build \
     -DCMAKE_CUDA_ARCHITECTURES="${TTS_CUDA_ARCHITECTURES}" \
     -DCMAKE_EXE_LINKER_FLAGS="-L/usr/local/cuda/lib64/stubs -Wl,-rpath-link,/usr/local/cuda/lib64/stubs" && \
     cmake --build /opt/ezlocalai-tts/build --target ezlocalai-tts --parallel "${TTS_BUILD_JOBS}"
-# The published xllamacpp==2026.9.10809 wheel predates the large-image DFlash
+# The published xllamacpp==2026.10.11549 wheel predates the large-image DFlash
 # cache fix. Keep this build after TTS so existing expensive layers stay cached.
 RUN uv pip install pip
 COPY scripts/build_xllamacpp.py /opt/ezlocalai-native/scripts/build_xllamacpp.py

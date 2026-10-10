@@ -1,7 +1,7 @@
 # DFlash large-image hotfix
 
 `dflash-pinned-image-positions.patch` targets llama.cpp
-`5266f24da75dc449bd56cbed7addb9c8e4a6a73e`, bundled in xllamacpp 2026.9.10809.
+`aa94f2086147cd4bfbcff818ce998dffce5fcb39`, bundled in xllamacpp 2026.10.11549.
 It follows the narrowed position-based guard in
 [upstream PR #28587](https://github.com/ggml-org/llama.cpp/pull/28587), revision
 `4dc1fc0bd42beb28f71bc6531a11f1486cc1152f`. That PR is still under discussion,

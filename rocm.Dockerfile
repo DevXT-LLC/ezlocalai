@@ -33,7 +33,7 @@ ENV HOST=0.0.0.0 \
     HF_HOME=/app/models \
     HF_HUB_CACHE=/app/models
 # Install xllamacpp with ROCm 6.4.1 support
-RUN uv pip install xllamacpp==2026.9.10809 --reinstall --index-url https://xorbitsai.github.io/xllamacpp/whl/rocm-6.4.1
+RUN uv pip install xllamacpp==2026.10.11549 --reinstall --index-url https://xorbitsai.github.io/xllamacpp/whl/rocm-6.4.1
 COPY native/tts /opt/ezlocalai-tts
 RUN cmake -S /opt/ezlocalai-tts -B /opt/ezlocalai-tts/build -DCMAKE_BUILD_TYPE=Release -DGGML_HIP=ON && \
     cmake --build /opt/ezlocalai-tts/build --target ezlocalai-tts --parallel 20
