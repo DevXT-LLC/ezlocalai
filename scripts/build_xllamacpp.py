@@ -54,6 +54,12 @@ def prepare_source(source):
                 ["git", "submodule", "update", "--init", "--recursive", "--depth", "1"],
                 cwd=source,
             )
+    # Remove stale untracked files left over from prior builds (e.g. leftover
+    # patch files that were copied into the source tree by an older version of
+    # this script).  git checkout does not remove untracked content, so a
+    # BuildKit cache mount can carry them across builds.
+    run(["git", "clean", "-fd"], cwd=source)
+
     for path, expected in (
         (source, XLLAMACPP_REVISION),
         (source / "thirdparty/llama.cpp", LLAMA_REVISION),
