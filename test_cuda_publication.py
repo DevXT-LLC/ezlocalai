@@ -3,10 +3,8 @@ import subprocess
 import tempfile
 import unittest
 from pathlib import Path
-from unittest.mock import patch
 
 from scripts import publish_cuda_image as publisher
-from scripts import request_cuda_build as client
 
 OLD = "sha256:" + "a" * 64
 NEW = "sha256:" + "b" * 64
@@ -100,47 +98,6 @@ class PublicationTests(unittest.TestCase):
         for image in ["ezlocalai:latest", "localhost:5000/devxt/ezlocalai-cuda:old"]:
             with self.assertRaises(ValueError):
                 publisher.Registry(image)
-
-
-class WorkflowTests(unittest.TestCase):
-    def event(self, status):
-        return {
-            "id": "123-abcd",
-            "deploy_type": "ezlocalai-cuda-build",
-            "status": status,
-        }
-
-    def test_waits_for_build_success_after_acceptance(self):
-        with patch.object(
-            client,
-            "request_json",
-            side_effect=[self.event("running"), self.event("success")],
-        ) as get, patch.object(client.time, "sleep"):
-            client.wait_for_build("https://deploy.example/deploy", "secret", "123-abcd")
-        self.assertEqual(get.call_count, 2)
-        self.assertEqual(
-            get.call_args.args[0],
-            "https://deploy.example/deploy/status/events/123-abcd",
-        )
-
-    def test_build_failure_and_cancellation_fail_workflow(self):
-        for status in ["error", "cancelled"]:
-            with patch.object(client, "request_json", return_value=self.event(status)):
-                with self.assertRaises(RuntimeError):
-                    client.wait_for_build(
-                        "https://deploy.example/deploy", "secret", "123-abcd"
-                    )
-
-    def test_rejects_missing_event_and_wrong_build(self):
-        with self.assertRaises(RuntimeError):
-            client.wait_for_build("https://deploy.example/deploy", "secret", None)
-        with patch.object(
-            client, "request_json", return_value={"id": "other", "status": "success"}
-        ):
-            with self.assertRaises(RuntimeError):
-                client.wait_for_build(
-                    "https://deploy.example/deploy", "secret", "123-abcd"
-                )
 
 
 if __name__ == "__main__":

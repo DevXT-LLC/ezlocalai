@@ -123,13 +123,18 @@ docker-compose -f docker-compose-rocm.yml up
 
 CUDA builds for `main` run on the DevXT registry host through the Deploy API.
 The `Publish CUDA through Deploy` workflow sends `DEPLOY_DOMAIN=api.ezlocal.ai`
-and waits for the build event to report verified publication and cleanup. It
+using a direct `curl` request and exits once Deploy accepts it. It
 runs independently of the CPU/RPi GitHub builds and does not deploy to workers.
 
 The workflow requires Actions secrets `DEPLOY_URI` (the full `/deploy` URL),
-`DEPLOY_SECRET`, and `DEPLOY_DOMAIN`. Install the Deploy API CUDA build update
+`DEPLOY_SECRET`, and `DEPLOY_DOMAIN`. Organization secrets must allow this
+repository; defining them at the organization alone does not grant access.
+Install the Deploy API CUDA build update
 before merging/enabling this workflow. Manual dispatch is supported on `main`.
 The builder publishes current `origin/main`, including any newer queued commits.
+The workflow does not poll or wait for the CUDA build. Its success confirms
+request acceptance; view the returned event in the Deploy status dashboard or
+query `/deploy/status/events/{event_id}` to check publication and cleanup.
 
 To use the prebuilt CUDA image on another NVIDIA machine, keep a checkout for
 its Compose configuration and `.env`, and set this in `.env`:
