@@ -94,9 +94,11 @@ RUN git clone https://github.com/OpenNMT/CTranslate2.git /opt/ctranslate2-src &&
 RUN uv pip install pip
 COPY scripts/build_xllamacpp.py /opt/ezlocalai-native/scripts/build_xllamacpp.py
 ARG XLLAMACPP_BUILD_JOBS=12
-RUN --mount=type=cache,target=/opt/xllamacpp-build \
-    --mount=type=cache,target=/root/.cargo \
-    --mount=type=cache,target=/root/.rustup \
+# Cache mounts are shared across Dockerfiles by target path unless given an ID.
+# ARM64 must never reuse the CUDA image's x86 CMake state or Rust toolchain.
+RUN --mount=type=cache,id=ezlocalai-gb10-arm64-xllamacpp,target=/opt/xllamacpp-build,sharing=locked \
+    --mount=type=cache,id=ezlocalai-gb10-arm64-cargo,target=/root/.cargo,sharing=locked \
+    --mount=type=cache,id=ezlocalai-gb10-arm64-rustup,target=/root/.rustup,sharing=locked \
     export PATH="/root/.cargo/bin:$PATH" && \
     curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal --no-modify-path && \
     LD_LIBRARY_PATH="/usr/local/cuda/lib64/stubs:$LD_LIBRARY_PATH" \
