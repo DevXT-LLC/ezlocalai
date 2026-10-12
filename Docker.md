@@ -185,7 +185,10 @@ GB10 is ARM64. Publication builds `gb10.Dockerfile` with
 binfmt/QEMU support when it is x86-64. Native ARM64 build hosts are also
 supported through Deploy configuration. Emulated cold CUDA compilation can be
 much slower than native compilation; the GB10 server build timeout defaults to
-24 hours, while the GitHub runner still exits after its short request.
+24 hours, while the GitHub runner still exits after its short request. Native
+dependencies disable build-host CPU autodetection so QEMU-specific CPU
+instructions do not get baked into the shared image; GPU kernels still target
+GB10's `sm_121`.
 
 On the GB10, set this in `.env`:
 

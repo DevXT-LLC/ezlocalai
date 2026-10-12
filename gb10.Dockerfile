@@ -5,6 +5,7 @@
 #
 # The GB10 has compute capability 12.1 (Blackwell), unified memory, CUDA 13.0 driver.
 # Compile native sm_121 kernels to avoid first-request PTX compilation.
+# Disable host CPU autodetection: QEMU's CPU features need not match GB10.
 #
 # Prerequisites on host:
 #   - NVIDIA Container Toolkit installed and configured
@@ -44,6 +45,7 @@ RUN ln -sf /usr/local/cuda/lib64/stubs/libcuda.so /usr/local/cuda/lib64/stubs/li
     cmake -S /opt/acestep.cpp -B /opt/acestep.cpp/build \
         -DCMAKE_BUILD_TYPE=Release \
         -DGGML_CUDA=ON \
+        -DGGML_NATIVE=OFF \
         -DCMAKE_CUDA_ARCHITECTURES="121-real" \
         -DCMAKE_EXE_LINKER_FLAGS="-L/usr/local/cuda/lib64/stubs -Wl,-rpath-link,/usr/local/cuda/lib64/stubs" && \
     cmake --build /opt/acestep.cpp/build --target ace-server --parallel "${NATIVE_BUILD_JOBS}"
@@ -98,7 +100,7 @@ RUN --mount=type=cache,target=/opt/xllamacpp-build \
     export PATH="/root/.cargo/bin:$PATH" && \
     curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal --no-modify-path && \
     LD_LIBRARY_PATH="/usr/local/cuda/lib64/stubs:$LD_LIBRARY_PATH" \
-    CMAKE_ARGS="-DCMAKE_BUILD_TYPE=Release -DCMAKE_CUDA_COMPILER=/usr/local/cuda/bin/nvcc -DCMAKE_EXE_LINKER_FLAGS=-Wl,-rpath-link,/usr/local/cuda/lib64/stubs" \
+    CMAKE_ARGS="-DCMAKE_BUILD_TYPE=Release -DGGML_NATIVE=OFF -DCMAKE_CUDA_COMPILER=/usr/local/cuda/bin/nvcc -DCMAKE_EXE_LINKER_FLAGS=-Wl,-rpath-link,/usr/local/cuda/lib64/stubs" \
     python /opt/ezlocalai-native/scripts/build_xllamacpp.py --cuda --install \
         --jobs "${XLLAMACPP_BUILD_JOBS}" --cuda-architectures "121-real" \
         --source-dir /opt/xllamacpp-build/source --wheel-dir /opt/xllamacpp-build/wheels
@@ -107,7 +109,7 @@ RUN --mount=type=cache,target=/opt/xllamacpp-build \
 COPY native/tts /opt/ezlocalai-tts
 ARG TTS_BUILD_JOBS=12
 RUN cmake -S /opt/ezlocalai-tts -B /opt/ezlocalai-tts/build \
-    -DCMAKE_BUILD_TYPE=Release -DGGML_CUDA=ON \
+    -DCMAKE_BUILD_TYPE=Release -DGGML_CUDA=ON -DGGML_NATIVE=OFF \
     -DCMAKE_CUDA_COMPILER=/usr/local/cuda/bin/nvcc \
     -DCMAKE_CUDA_ARCHITECTURES="121-real" \
     -DCMAKE_EXE_LINKER_FLAGS="-L/usr/local/cuda/lib64/stubs -Wl,-rpath-link,/usr/local/cuda/lib64/stubs" && \
@@ -118,7 +120,7 @@ ARG SDCPP_REF=c678dfe704a2230342376b46add9c8ca736a653d
 RUN git clone --recurse-submodules https://github.com/leejet/stable-diffusion.cpp.git /opt/stable-diffusion.cpp && \
     cd /opt/stable-diffusion.cpp && git checkout "${SDCPP_REF}" && \
     git submodule update --init --recursive && \
-    cmake -B build -DSD_CUDA=ON -DCMAKE_BUILD_TYPE=Release \
+    cmake -B build -DSD_CUDA=ON -DGGML_NATIVE=OFF -DCMAKE_BUILD_TYPE=Release \
         -DCMAKE_CUDA_COMPILER=/usr/local/cuda/bin/nvcc \
         -DCMAKE_CUDA_ARCHITECTURES="121-real" \
         -DCMAKE_EXE_LINKER_FLAGS="-L/usr/local/cuda/lib64/stubs -Wl,-rpath-link,/usr/local/cuda/lib64/stubs" && \
