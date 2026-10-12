@@ -36,6 +36,18 @@ jobs:
           --health-start-period 10m
 
     steps:
+      - name: Checkout router tests
+        uses: actions/checkout@v4
+
+      - name: Test router routing and maintenance
+        env:
+          ROUTER_TEST_IMAGE: ${{ inputs.image }}
+        run: |
+          docker run --rm --entrypoint python \
+            -e ROUTER_OUTPUTS_DIR=/tmp/router-test-outputs \
+            -v "$GITHUB_WORKSPACE:/tests:ro" -w /tests \
+            "$ROUTER_TEST_IMAGE" -m unittest discover -s . -p 'test_router_*.py'
+
       - name: List models
         run: |
           response=$(curl -sf http://localhost:${{ inputs.port }}/v1/models)

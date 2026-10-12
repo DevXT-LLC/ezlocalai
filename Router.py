@@ -950,6 +950,23 @@ class WorkerInfo:
     # Circuit breaker: when open, the worker is excluded from selection
     # until ``circuit_open_until`` (epoch seconds) passes.
     circuit_open_until: float = 0.0
+    # Maintenance is router-owned and follows the stable label across restarts.
+    drain_owner: str = ""
+    drain_until: float = 0.0
+    # Unlike capacity leases, these tokens live until the proxy closes. A long
+    # stream must remain visible to maintenance after its dispatch lease expires.
+    active_requests: Dict[str, Dict[str, Any]] = field(default_factory=dict, repr=False)
+
+    def is_draining(self) -> bool:
+        return bool(self.drain_owner) and time.time() < self.drain_until
+
+    def maintenance_busy(self) -> int:
+        return max(
+            len(self.active_requests),
+            self.effective_busy(),
+            self.total_busy(),
+            self.queue_depth,
+        )
 
     def _refresh_router_reservations(self) -> None:
         """Expire dispatch leases and rebuild their diagnostic counters."""
@@ -1026,6 +1043,10 @@ class WorkerInfo:
             "recent_errors": list(self.recent_errors),
             "circuit_open_until": self.circuit_open_until,
             "circuit_open": self.is_circuit_open(),
+            "draining": self.is_draining(),
+            "drain_until": self.drain_until if self.is_draining() else None,
+            "active_requests": len(self.active_requests),
+            "maintenance_busy": self.maintenance_busy(),
             "external_provider": self.external_provider,
             "external_fallback": self.external_fallback,
             "persistent": self.persistent,
@@ -1233,6 +1254,8 @@ class WorkerInfo:
     def slots_left(
         self, capability: Optional[str] = None, model: Optional[str] = None
     ) -> int:
+        if self.is_draining():
+            return 0
         state = self.slot_state(capability=capability, model=model)
         return max(
             0,
@@ -1345,6 +1368,10 @@ class WorkerInfo:
         )
 
 
+class WorkerDrainingError(RuntimeError):
+    """A dispatch lost the race to a maintenance reservation."""
+
+
 class WorkerRegistry:
     """Thread-safe in-memory registry of worker ezlocalai nodes."""
 
@@ -1353,7 +1380,18 @@ class WorkerRegistry:
         ttl_seconds: float,
         reservation_ttl_seconds: Optional[float] = None,
         error_history_path: Optional[str] = None,
+        drain_state_path: Optional[str] = None,
     ):
+        self._drain_state_path = drain_state_path
+        self._drains: Dict[str, Dict[str, Any]] = {}
+        if drain_state_path:
+            try:
+                with open(drain_state_path) as source:
+                    self._drains = json.load(source)
+                if not isinstance(self._drains, dict):
+                    raise ValueError("Drain state must be an object")
+            except FileNotFoundError:
+                pass
         self._workers: Dict[str, WorkerInfo] = {}
         self._lock = RLock()
         self._ttl = ttl_seconds
@@ -1378,6 +1416,106 @@ class WorkerRegistry:
         if reservation_ttl_seconds is None:
             reservation_ttl_seconds = float(getenv("ROUTER_RESERVATION_TTL", "15"))
         self._reservation_ttl = max(0.0, float(reservation_ttl_seconds))
+
+    def _save_drains(self) -> None:
+        if not self._drain_state_path:
+            return
+        directory = os.path.dirname(os.path.abspath(self._drain_state_path))
+        os.makedirs(directory, exist_ok=True)
+        temporary = None
+        try:
+            with tempfile.NamedTemporaryFile(
+                mode="w", dir=directory, delete=False
+            ) as target:
+                temporary = target.name
+                json.dump(self._drains, target)
+                target.flush()
+                os.fsync(target.fileno())
+            os.replace(temporary, self._drain_state_path)
+        finally:
+            if temporary and os.path.exists(temporary):
+                os.unlink(temporary)
+
+    def drain(
+        self,
+        label: str,
+        owner: str,
+        *,
+        ttl_seconds: int = 120,
+        require_idle: bool = False,
+    ) -> Dict[str, Any]:
+        """Reserve one worker across the fleet, atomically with dispatch admission.
+
+        The controller renews this lease while restarting and checking health.
+        Expiry recovers from a crashed controller; heartbeats cannot clear it.
+        """
+        if not label or not owner or not 30 <= ttl_seconds <= 300:
+            raise ValueError(
+                "label, owner and a TTL between 30 and 300 seconds are required"
+            )
+        with self._lock:
+            now = time.time()
+            active = {k: v for k, v in self._drains.items() if v["until"] > now}
+            if any(k != label or v["owner"] != owner for k, v in active.items()):
+                raise WorkerDrainingError(
+                    "Another worker rollout holds the maintenance lease"
+                )
+            workers = [
+                w
+                for w in self._workers.values()
+                if w.label == label
+                and w.is_alive(self._ttl)
+                and not w.external_provider
+            ]
+            # Renewal is allowed while the container is down or re-registering.
+            renewing = label in active and active[label]["owner"] == owner
+            if not renewing and len(workers) != 1:
+                raise WorkerDrainingError(
+                    "Expected exactly one live worker with this label"
+                )
+            if require_idle and any(w.maintenance_busy() for w in workers):
+                raise WorkerDrainingError(
+                    "Worker is still serving or queueing requests"
+                )
+            previous = self._drains
+            self._drains = {
+                **active,
+                label: {"owner": owner, "until": now + ttl_seconds},
+            }
+            try:
+                self._save_drains()
+            except Exception:
+                self._drains = previous
+                raise
+            for w in self._workers.values():
+                if w.label == label:
+                    w.drain_owner, w.drain_until = owner, now + ttl_seconds
+            return {
+                "ok": True,
+                "label": label,
+                "expires_at": now + ttl_seconds,
+                "busy": max((w.maintenance_busy() for w in workers), default=0),
+            }
+
+    def resume(self, label: str, owner: str) -> bool:
+        with self._lock:
+            drain = self._drains.get(label)
+            if drain and drain["owner"] != owner:
+                raise WorkerDrainingError(
+                    "Maintenance lease belongs to another rollout"
+                )
+            if drain:
+                previous = dict(self._drains)
+                self._drains.pop(label)
+                try:
+                    self._save_drains()
+                except Exception:
+                    self._drains = previous
+                    raise
+            for w in self._workers.values():
+                if w.label == label:
+                    w.drain_owner, w.drain_until = "", 0.0
+            return True
 
     @property
     def ttl(self) -> float:
@@ -1437,6 +1575,7 @@ class WorkerRegistry:
                 info.total_errors = existing.total_errors
                 info.circuit_open_until = existing.circuit_open_until
                 info.router_reservations = dict(existing.router_reservations)
+                info.active_requests = dict(existing.active_requests)
                 if info.external_balance_usd is None:
                     info.external_balance_usd = existing.external_balance_usd
                     info.external_balance_updated_at = (
@@ -1482,6 +1621,9 @@ class WorkerRegistry:
                         len(recent),
                         window,
                     )
+            drain = self._drains.get(info.label, {})
+            info.drain_owner = drain.get("owner", "")
+            info.drain_until = drain.get("until", 0.0)
             self._workers[info.worker_id] = info
             return info
 
@@ -1591,6 +1733,8 @@ class WorkerRegistry:
             model_key = WorkerInfo._match_name(model, w.model_slots) or (model or "")
 
             if delta > 0:
+                if w.is_draining():
+                    raise WorkerDrainingError(f"Worker {w.label} is draining")
                 # Media/speech/embedding requests can outlive many heartbeats.
                 # Hold their advertised slot until the proxy completes, including
                 # streaming responses, so bursts queue at the router rather than
@@ -1611,6 +1755,10 @@ class WorkerRegistry:
                 token: Optional[str] = None
                 for _ in range(delta):
                     token = uuid.uuid4().hex
+                    w.active_requests[token] = {
+                        "capability": cap_key,
+                        "model": model_key,
+                    }
                     w.router_reservations[token] = {
                         "expires_at": expires_at,
                         "capability": cap_key,
@@ -1622,11 +1770,12 @@ class WorkerRegistry:
             if delta < 0:
                 if reservation_id:
                     w.router_reservations.pop(reservation_id, None)
+                    w.active_requests.pop(reservation_id, None)
                 else:
                     # Compatibility path for callers/tests that release by
                     # capability/model instead of the per-request token.
                     matches = []
-                    for token, reservation in w.router_reservations.items():
+                    for token, reservation in w.active_requests.items():
                         if cap_key and reservation.get("capability") != cap_key:
                             continue
                         reserved_model = str(reservation.get("model") or "")
@@ -1637,6 +1786,7 @@ class WorkerRegistry:
                         matches.append(token)
                     for token in matches[: abs(delta)]:
                         w.router_reservations.pop(token, None)
+                        w.active_requests.pop(token, None)
                 w._refresh_router_reservations()
             return None
 
@@ -1675,6 +1825,7 @@ class WorkerRegistry:
             if worker is None:
                 return
             worker.router_reservations.pop(reservation_id, None)
+            worker.active_requests.pop(reservation_id, None)
             worker._refresh_router_reservations()
 
     def record_connection_failure(self, worker_id: str) -> int:
@@ -1985,6 +2136,7 @@ class Router:
             and (worker_id is None or w.worker_id == worker_id)
             and w.worker_id not in excluded
             and not w.is_circuit_open()
+            and not w.is_draining()
         ]
 
         require_idle_worker = (
@@ -2701,6 +2853,7 @@ def get_registry() -> WorkerRegistry:
         _registry = WorkerRegistry(
             ttl_seconds=float(getenv("ROUTER_WORKER_TTL", "60")),
             error_history_path=getenv("ROUTER_ERROR_FILE", "/data/router-errors.json"),
+            drain_state_path=getenv("ROUTER_DRAIN_FILE", "/data/router-drains.json"),
         )
     return _registry
 
