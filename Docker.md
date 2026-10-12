@@ -124,7 +124,8 @@ docker-compose -f docker-compose-rocm.yml up
 CUDA builds for `main` run on the DevXT registry host through the Deploy API.
 The `Publish CUDA through Deploy` workflow sends `DEPLOY_DOMAIN=api.ezlocal.ai`
 using a direct `curl` request and exits once Deploy accepts it. It
-runs independently of the CPU/RPi GitHub builds and does not deploy to workers.
+runs independently of the CPU/RPi GitHub builds. Deploy can roll the published
+image out to the configured workers after publication (see below).
 
 The workflow requires Actions secrets `DEPLOY_URI` (the full `/deploy` URL),
 `DEPLOY_SECRET`, and `DEPLOY_DOMAIN`. Organization secrets must allow this
@@ -218,3 +219,44 @@ retention state directories (`~/.local/state/ezlocalai-<variant>-publish`). Each
 keeps only its own latest manifest and removes superseded versions after digest
 verification. Publishing one variant does not clean up the other. Workers are
 not restarted by publication.
+
+
+## Managed rolling worker updates
+
+The Deploy service can update configured CUDA and GB10 workers after the shared
+image is published. The Deploy dashboard groups CUDA and GB10 under
+`api.ezlocal.ai`, showing build progress and each worker's pull, drain, restart,
+health-check, and cleanup status. GitHub exits after request acceptance.
+
+Install the router maintenance update before enabling worker rollout in Deploy.
+`GET /v1/router/workers` advertises `maintenance_protocol: 1` and reports each
+worker's `draining`, `active_requests`, and `maintenance_busy` state. Drain/resume
+use the same authentication as worker registration (`ROUTER_REGISTER_KEY`, falling
+back to the router's `EZLOCALAI_API_KEY`; unchanged LAN behavior if neither is set).
+
+The controller calls `POST /v1/router/drain` with `label`, a unique `owner`, and a
+120-second lease, renewing it while it works. `require_idle: true` reserves an
+idle worker atomically or returns 409 if a request won the race. Only one worker
+can hold maintenance across the fleet. Draining workers continue heartbeats and
+finish existing requests, but are excluded from new dispatch and affinity
+selection. Long streams remain counted after their normal capacity lease expires.
+The reservation follows the stable label when a restarted worker gets a new ID.
+`POST /v1/router/resume` requires the same `label` and `owner`. Leases persist in
+`ROUTER_DRAIN_FILE` (`/data/router-drains.json` by default), including across router
+restarts, and expire if a deployment controller disappears.
+
+Deploy updates the three 3090s first and waits for their active work to finish.
+It then picks idle 4090/5090 workers, allowing interruption after 30 minutes if no
+idle window occurs. GB10 can be interrupted immediately. Each target uses its
+existing Compose file, project, `.env`, model directories and volumes, with a
+temporary override selecting the verified image digest. No worker builds images.
+Another worker is not restarted until the replacement passes Docker health and
+fresh router registration checks. Failed replacements restore the cached previous
+image and stop the rollout.
+
+After health checks, cleanup removes stopped containers for that worker's Compose
+project and unused previous worker images. In-use images and unrelated projects
+are protected. `.ezlocalai-deploy-cleanup.json` records candidates before restart
+so failed cleanup can be retried after a future successful update. Model/output
+volumes and build caches are preserved. The registry separately removes superseded
+manifests and reclaims blobs through its existing maintenance schedule.

@@ -72,6 +72,7 @@ from Router import (
     TUNNEL_TIER_PENALTY,
     WorkerInfo,
     WorkerRegistry,
+    WorkerDrainingError,
     best_gpu_tier,
     get_registry,
     get_router,
@@ -1343,6 +1344,39 @@ async def router_deregister(payload: Dict[str, Any], _: str = Depends(verify_wor
     return {"ok": removed}
 
 
+@app.exception_handler(WorkerDrainingError)
+async def worker_draining_error(request: Request, exc: WorkerDrainingError):
+    return JSONResponse(status_code=503, content={"detail": str(exc)})
+
+
+@app.post("/v1/router/drain", tags=["Router"])
+async def router_drain(payload: Dict[str, Any], _: str = Depends(verify_worker)):
+    try:
+        if not isinstance(payload.get("require_idle", False), bool):
+            raise ValueError("require_idle must be a boolean")
+        return get_registry().drain(
+            str(payload.get("label") or ""),
+            str(payload.get("owner") or ""),
+            ttl_seconds=int(payload.get("ttl_seconds", 120)),
+            require_idle=payload.get("require_idle", False),
+        )
+    except WorkerDrainingError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except (ValueError, TypeError) as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.post("/v1/router/resume", tags=["Router"])
+async def router_resume(payload: Dict[str, Any], _: str = Depends(verify_worker)):
+    label, owner = str(payload.get("label") or ""), str(payload.get("owner") or "")
+    if not label or not owner:
+        raise HTTPException(status_code=400, detail="label and owner are required")
+    try:
+        return {"ok": get_registry().resume(label, owner)}
+    except WorkerDrainingError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+
+
 @app.get("/v1/router/workers", tags=["Router"])
 async def router_workers(_: str = Depends(verify_client)):
     workers = get_registry().list_workers(alive_only=False)
@@ -1350,6 +1384,7 @@ async def router_workers(_: str = Depends(verify_client)):
         "object": "list",
         "data": [w.to_public() for w in workers],
         "ttl_seconds": get_registry().ttl,
+        "maintenance_protocol": 1,
     }
 
 
@@ -3326,6 +3361,7 @@ def _eligible_affinity_worker(
         or worker.external_fallback
         or capability not in worker.capabilities
         or worker.is_circuit_open()
+        or worker.is_draining()
     ):
         return False
     return bool(

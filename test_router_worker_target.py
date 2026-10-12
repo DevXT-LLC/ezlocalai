@@ -159,9 +159,7 @@ class WorkerTargetTests(unittest.IsolatedAsyncioTestCase):
                         self.post(self.payload(worker.label, stream))
                     )
                     try:
-                        async with asyncio.timeout(1):
-                            while not self.router.waiting_requests:
-                                await asyncio.sleep(0.01)
+                        await asyncio.wait_for(self.wait_until_queued(), timeout=1)
                         self.assertFalse(task.done())
                         self.assertEqual(len(self.calls), before)
                         self.registry.release_in_flight(
@@ -252,6 +250,11 @@ class WorkerTargetTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(response.status_code, 200)
             self.assertIn("red", response.text)
 
+    async def wait_until_queued(self):
+        # The published CPU image still uses Python 3.10, before asyncio.timeout.
+        while not self.router.waiting_requests:
+            await asyncio.sleep(0.01)
+
     async def test_target_queue_timeout_and_cancellation_cleanup(self):
         self.local.queue_depth = 1
         with patch.object(router_app, "_wait_timeout", return_value=0.02):
@@ -260,9 +263,7 @@ class WorkerTargetTests(unittest.IsolatedAsyncioTestCase):
         task = asyncio.create_task(
             router_app._pick("text", self.local.models[0], worker_id="local")
         )
-        async with asyncio.timeout(1):
-            while not self.router.waiting_requests:
-                await asyncio.sleep(0.01)
+        await asyncio.wait_for(self.wait_until_queued(), timeout=1)
         task.cancel()
         with self.assertRaises(asyncio.CancelledError):
             await task
