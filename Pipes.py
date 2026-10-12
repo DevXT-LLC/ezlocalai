@@ -20,8 +20,9 @@ from ezlocalai.LLM import (
     get_free_vram_per_gpu,
     get_total_vram_per_gpu,
     calculate_tensor_split_from_free_vram,
-    is_mtp_model,
 )
+from ezlocalai.Speculative import speculative_backend
+from ezlocalai.InferenceSettings import resolve_kv_cache_type
 
 try:
     from ezlocalai.CTTS import CTTS
@@ -37,12 +38,15 @@ import pdfplumber
 import json
 from Globals import getenv
 from ModelSettings import (
+    MINICPM5_2B_MODEL,
+    MINICPM5_2B_SETTINGS,
     QWEN38_INSTRUCT_SETTINGS,
     QWEN38_MODEL,
     QWEN38_THINKING_SETTINGS,
     apply_qwen38_model_settings,
     copy_settings,
     is_qwen38_model,
+    is_minicpm5_2b_model,
 )
 import gc
 import torch
@@ -100,6 +104,28 @@ try:
 except (ImportError, RuntimeError, Exception) as e:
     logging.warning(f"[Pipes] MUSIC import failed ({e}), music generation disabled.")
     music_import_success = False
+
+
+async def _run_inference_call(method, **data):
+    """Keep a cancelled caller's native slot reserved until its thread exits."""
+    task = asyncio.create_task(asyncio.to_thread(method, **data))
+    cancelled = False
+    try:
+        while True:
+            try:
+                result = await asyncio.shield(task)
+                break
+            except asyncio.CancelledError:
+                cancelled = True
+                if task.done():
+                    result = task.result()
+                    break
+        if cancelled and hasattr(result, "close"):
+            result.close()
+        return result
+    finally:
+        if cancelled:
+            raise asyncio.CancelledError
 
 
 class _TrackedInferenceStream:
@@ -1298,6 +1324,8 @@ class EzlocalaiClient:
         size: str = "512x512",
         n: int = 1,
         image: str = None,
+        images: list = None,
+        strength: float = 0.75,
     ):
         """Forward an image generation request to the fallback server."""
         if not self.is_configured:
@@ -1317,16 +1345,20 @@ class EzlocalaiClient:
                 }
                 if image:
                     payload["image"] = image
+                if images:
+                    payload["images"] = images
+                if image or images:
+                    payload["strength"] = strength
                 endpoint = (
                     f"{self.base_url}/v1/images/edits"
-                    if image
+                    if image or images
                     else f"{self.base_url}/v1/images/generations"
                 )
                 async with session.post(
                     endpoint,
                     json=payload,
                     headers=self._get_headers(),
-                    timeout=aiohttp.ClientTimeout(total=180),
+                    timeout=aiohttp.ClientTimeout(total=660),
                 ) as resp:
                     if resp.status != 200:
                         error_text = await resp.text()
@@ -1981,6 +2013,8 @@ class ImageServerClient:
         size: str = "1024x1024",
         n: int = 1,
         image: str = None,
+        images: list = None,
+        strength: float = 0.75,
     ) -> Optional[dict]:
         if not self.is_configured:
             return None
@@ -1998,18 +2032,22 @@ class ImageServerClient:
             }
             if image:
                 payload["image"] = image
+            if images:
+                payload["images"] = images
+            if image or images:
+                payload["strength"] = strength
 
             async with aiohttp.ClientSession() as session:
                 endpoint = (
                     f"{self.base_url}/v1/images/edits"
-                    if image
+                    if image or images
                     else f"{self.base_url}/v1/images/generations"
                 )
                 async with session.post(
                     endpoint,
                     json=payload,
                     headers=self._get_headers(),
-                    timeout=aiohttp.ClientTimeout(total=300),
+                    timeout=aiohttp.ClientTimeout(total=660),
                 ) as resp:
                     if resp.status == 200:
                         return await resp.json()
@@ -2141,7 +2179,7 @@ def is_video_enabled() -> bool:
 
 
 def get_video_model_name() -> str:
-    """Configured local video model, defaulting to LTX-2.3 GGUF."""
+    """Configured local video model, defaulting to Wan 2.2 A14B GGUF."""
     return (getenv("VIDEO_MODEL", DEFAULT_VIDEO_MODEL) or DEFAULT_VIDEO_MODEL).strip()
 
 
@@ -3070,8 +3108,8 @@ def _qwen35_kv_bytes_per_token(
     by size. Read GGUF metadata when possible:
       bytes/token = (key_length + value_length) * kv_heads * attention_layers * bytes/value
 
-    ezlocalai defaults to q4_0 KV cache (env KV_CACHE_TYPE), so use that for VRAM
-    planning when we know the cache type. Use conservative metadata-free defaults.
+    Pass the resolved KV_CACHE_TYPE for VRAM planning, including explicit
+    per-card precision overrides. Use conservative metadata-free defaults.
     """
     kv_cache_type = (kv_cache_type or "fp16").lower().strip()
     cache_key = (model_path, kv_cache_type)
@@ -3080,7 +3118,7 @@ def _qwen35_kv_bytes_per_token(
 
     bytes_per_value = {
         "q4_0": 0.5625,  # q4_0 is approximately 4.5 bits/value
-        "q8_0": 1.0,
+        "q8_0": 1.0625,  # 32 int8 values plus a two-byte block scale
         "f16": 2.0,
         "fp16": 2.0,
         "f32": 4.0,
@@ -3171,7 +3209,10 @@ def _qwen35_kv_bytes_per_token(
 
 
 def estimate_model_vram_requirement(
-    model_path: str, context_size: int, projectors: list = None
+    model_path: str,
+    context_size: int,
+    projectors: list = None,
+    main_gpu: Optional[int] = None,
 ) -> float:
     """Estimate VRAM requirement for a model in GB.
 
@@ -3179,6 +3220,7 @@ def estimate_model_vram_requirement(
     Returns estimated VRAM in GB, or a conservative estimate if xllamacpp is unavailable.
     """
     is_qwen35 = _is_qwen35_hybrid(model_path)
+    kv_cache_type = resolve_kv_cache_type(main_gpu, model_path)
 
     # Better fallback estimation formula based on actual llama.cpp memory usage:
     # - KV cache (F16): context_size * 2 bytes * 2 (K+V) * n_layer * n_embd / n_head
@@ -3202,9 +3244,9 @@ def estimate_model_vram_requirement(
             # Qwen3.5/3.6/3.8 hybrid: only every Nth layer uses standard attention.
             # KV cache is tiny vs standard transformers, and sized from GGUF metadata.
             # DeltaNet recurrent state is fixed-size rather than context-scaled.
-            # Use q4_0 estimate since that's ezlocalai's default KV cache type.
+            # Account for the selected precision, not a hard-coded Q4 estimate.
             kv_estimate = (
-                ctx_size * _qwen35_kv_bytes_per_token(model_path, "q4_0")
+                ctx_size * _qwen35_kv_bytes_per_token(model_path, kv_cache_type)
             ) / (1024**3)
             deltanet_state = 0.065  # Small fixed recurrent state
             overhead = 0.5 + deltanet_state
@@ -3244,7 +3286,7 @@ def estimate_model_vram_requirement(
             context_length=context_size,
             batch_size=2048,
             num_parallel=1,
-            kv_cache_type="q4_0",
+            kv_cache_type=kv_cache_type,
         )
 
         # Extract memory requirement
@@ -3295,7 +3337,9 @@ def estimate_model_vram_requirement(
                 # Qwen3.5/3.6/3.8 hybrid models use sparse full-attention layers,
                 # so size KV from GGUF metadata.
                 if is_qwen35:
-                    kv_bytes_per_token = _qwen35_kv_bytes_per_token(model_path, "q4_0")
+                    kv_bytes_per_token = _qwen35_kv_bytes_per_token(
+                        model_path, kv_cache_type
+                    )
                 else:
                     kv_bytes_per_token = (
                         6000  # Conservative default for standard models
@@ -3366,7 +3410,7 @@ def _estimate_optimal_layers(
             context_length=context_size,
             batch_size=2048,
             num_parallel=1,
-            kv_cache_type="q4_0",
+            kv_cache_type=resolve_kv_cache_type(None, model_path),
         )
 
         # Extract layer count from result
@@ -3473,14 +3517,16 @@ def determine_gpu_strategy(
             # For Qwen3.5/3.6/3.8 models, xllamacpp doesn't understand the tiny KV
             # cache from sparse full-attention layers. Do our own check using the
             # raw file size + empirical KV estimate against actual free VRAM.
-            # Use q4_0 KV estimate since that's the default KV cache type in ezlocalai.
+            # Match the actual GPU-specific cache precision.
             if _is_qwen35_hybrid(model_path):
                 try:
                     if model_path and os.path.exists(model_path):
                         file_size_gb = os.path.getsize(model_path) / (1024**3)
                         kv_gb = (
                             context_size
-                            * _qwen35_kv_bytes_per_token(model_path, "q4_0")
+                            * _qwen35_kv_bytes_per_token(
+                                model_path, resolve_kv_cache_type(0, model_path)
+                            )
                         ) / (1024**3)
                         # DeltaNet state (~65MB) + compute buffers (~0.5GB)
                         overhead_gb = 0.57
@@ -3530,7 +3576,9 @@ def determine_gpu_strategy(
                         # Estimate non-model costs (KV, mmproj, compute, RS)
                         _is_q35 = _is_qwen35_hybrid(model_path)
                         kv_bpt = (
-                            _qwen35_kv_bytes_per_token(model_path, "q4_0")
+                            _qwen35_kv_bytes_per_token(
+                                model_path, resolve_kv_cache_type(0, model_path)
+                            )
                             if _is_q35
                             else 6000
                         )
@@ -3664,7 +3712,13 @@ def determine_gpu_strategy(
         if model_path and os.path.exists(model_path):
             file_size_gb = os.path.getsize(model_path) / (1024**3)
             _is_q35 = _is_qwen35_hybrid(model_path)
-            kv_bpt = _qwen35_kv_bytes_per_token(model_path, "q4_0") if _is_q35 else 6000
+            kv_bpt = (
+                _qwen35_kv_bytes_per_token(
+                    model_path, resolve_kv_cache_type(primary_gpu, model_path)
+                )
+                if _is_q35
+                else 6000
+            )
             kv_gb = (context_size * kv_bpt) / (1024**3)
             mmproj_gb = (
                 sum(
@@ -3817,6 +3871,7 @@ def determine_gpu_strategy(
 # Model-specific config overrides for optimal inference settings
 # These override user-provided values for known models
 MODEL_CONFIG_OVERRIDES = {
+    MINICPM5_2B_MODEL: copy_settings(MINICPM5_2B_SETTINGS),
     "unsloth/Qwen3-VL-4B-Instruct-GGUF": {
         "top_p": 0.8,
         "top_k": 20,
@@ -3958,6 +4013,110 @@ for mtp_model_name in (
     }
 
 
+class _VoiceSlotGuard:
+    """Serialize a local voice request with the shared LLM GPU residency slot."""
+
+    def __init__(self, pipe: "Pipes", service: str, capacity: int):
+        self.pipe = pipe
+        self.service = service
+        self._semaphore = asyncio.Semaphore(max(1, int(capacity or 1)))
+        self._states: Dict[Any, List[Dict[str, Any]]] = {}
+
+    async def acquire(self) -> Dict[str, Any]:
+        """Acquire a voice lease that may be released from another ASGI task."""
+        should_handoff = self.pipe._voice_should_unload_llm(self.service)
+        state: Dict[str, Any] = {
+            "handoff": should_handoff,
+            "handoff_state": None,
+            "shared_lock": False,
+            "semaphore": False,
+        }
+
+        try:
+            if should_handoff:
+                await self.pipe._voice_handoff_lock.acquire()
+                state["shared_lock"] = True
+                self.pipe._mark_voice_handoff(self.service, True)
+                # Stop advertising/accepting new local LLM work before waiting
+                # for any already-running generation to drain.
+                with self.pipe._inference_count_lock:
+                    self.pipe._llm_temporarily_unavailable = True
+                await self.pipe._wait_for_llm_idle_for_voice(self.service)
+                state["handoff_state"] = self.pipe._unload_llms_for_service(
+                    self.service, True
+                )
+
+            await self._semaphore.acquire()
+            state["semaphore"] = True
+            return state
+        except BaseException:
+            try:
+                if should_handoff and state.get("handoff_state"):
+                    if self.service == "tts":
+                        self.pipe._destroy_tts(async_cleanup=False, force=True)
+                    else:
+                        self.pipe._destroy_stt(async_cleanup=False, force=True)
+                    self.pipe._restore_llms_after_service(
+                        self.service,
+                        state["handoff_state"],
+                        f"{self.service.upper()}_RELOAD_LLM_AFTER_GENERATION",
+                    )
+            finally:
+                if state["shared_lock"]:
+                    self.pipe._mark_voice_handoff(self.service, False)
+                    with self.pipe._inference_count_lock:
+                        self.pipe._llm_temporarily_unavailable = False
+                if state["shared_lock"]:
+                    self.pipe._voice_handoff_lock.release()
+            raise
+
+    async def release(self, state: Optional[Dict[str, Any]]) -> None:
+        state = state or {}
+        if state.get("released"):
+            return
+        state["released"] = True
+        try:
+            if state.get("handoff"):
+                # The endpoint normally releases its lease first. Force a final
+                # synchronous cleanup here as well so the LLM is never reloaded
+                # while a CUDA-backed voice model is still being destroyed.
+                if self.service == "tts":
+                    self.pipe._destroy_tts(async_cleanup=False, force=True)
+                else:
+                    self.pipe._destroy_stt(async_cleanup=False, force=True)
+                self.pipe._restore_llms_after_service(
+                    self.service,
+                    state.get("handoff_state"),
+                    f"{self.service.upper()}_RELOAD_LLM_AFTER_GENERATION",
+                )
+        finally:
+            if state.get("handoff"):
+                self.pipe._mark_voice_handoff(self.service, False)
+                # Also clears the flag if unloading failed before it produced a
+                # handoff state or if reloading was explicitly disabled.
+                with self.pipe._inference_count_lock:
+                    self.pipe._llm_temporarily_unavailable = False
+            if state.get("semaphore"):
+                self._semaphore.release()
+            if state.get("shared_lock"):
+                self.pipe._voice_handoff_lock.release()
+
+    async def __aenter__(self):
+        key = self.pipe._lease_key()
+        state = await self.acquire()
+        self._states.setdefault(key, []).append(state)
+        return self
+
+    async def __aexit__(self, exc_type, exc_value, traceback):
+        key = self.pipe._lease_key()
+        stack = self._states.get(key, [])
+        state = stack.pop() if stack else {}
+        if not stack:
+            self._states.pop(key, None)
+        await self.release(state)
+        return False
+
+
 class Pipes:
     def __init__(self):
         load_dotenv()
@@ -3969,8 +4128,11 @@ class Pipes:
         # Per-model-type async locks for non-LLM inference serialization
         self._stt_pool_size = get_stt_parallel_slots()
         self._tts_pool_size = get_tts_parallel_slots()
-        self._stt_lock = asyncio.Semaphore(self._stt_pool_size)
-        self._tts_lock = asyncio.Semaphore(self._tts_pool_size)
+        self._voice_handoff_lock = asyncio.Lock()
+        self._voice_handoff_state_lock = threading.Lock()
+        self._voice_handoff_counts = {"tts": 0, "stt": 0}
+        self._stt_lock = _VoiceSlotGuard(self, "stt", self._stt_pool_size)
+        self._tts_lock = _VoiceSlotGuard(self, "tts", self._tts_pool_size)
         self._img_lock = asyncio.Lock()
         self._video_lock = asyncio.Lock()
         self._music_lock = asyncio.Lock()
@@ -3988,6 +4150,8 @@ class Pipes:
         # Using a counter instead of boolean allows multiple concurrent requests
         self._inference_count = 0
         self._model_inference_counts: Dict[str, int] = {}
+        self._replica_inference_counts: Dict[str, int] = {}
+        self._failed_replica_ids = set()
         self._inference_count_lock = threading.Lock()
         self._lifecycle_metrics_lock = threading.Lock()
         self._lifecycle_events = deque(maxlen=100)
@@ -4057,6 +4221,8 @@ class Pipes:
         # Source model -> ordered list of internal replica IDs
         self.model_replicas = {}
         self.calibrated_gpu_layers = {}  # {model_name: {context: gpu_layers}}
+        # Last successfully loaded runtime shape, retained across voice handoffs.
+        self._known_llm_runtime_models = {}
 
         # Per-model configs parsed from comma-separated env vars
         # {model_name: {main_gpu, max_tokens, n_parallel, quant_type, tensor_split}}
@@ -4233,6 +4399,8 @@ class Pipes:
                             ),
                         )
                     except Exception as e:
+                        if model_name in getattr(self, "_automatic_replica_ids", set()):
+                            self._failed_replica_ids.add(model_name)
                         logging.warning(
                             f"[LLM] Failed to pre-load model {model_name}: {e}"
                         )
@@ -4251,14 +4419,18 @@ class Pipes:
                 logging.info(
                     f"[TTS] Voice server configured ({voice_url}) - skipping local model loading"
                 )
-            # Check if we should preload TTS (voice server mode OR LAZY_LOAD_VOICE=false)
-            elif should_preload_voice():
+            # Preload dedicated voice servers, explicit pools, and fast voice workers.
+            elif self._voice_should_preload("tts"):
                 mode_str = (
                     "voice server mode"
                     if is_voice_server_mode()
-                    else "LAZY_LOAD_VOICE=false"
+                    else "resident voice profile"
                 )
                 self._warm_load_tts_pool(mode_str=mode_str)
+            elif self._voice_should_unload_llm("tts"):
+                logging.info(
+                    "[TTS] Sharing the LLM GPU slot; skipping resident voice preload"
+                )
             elif precache_done:
                 # Precache already warmed the TTS cache, skip loading/unloading
                 logging.debug(
@@ -4294,23 +4466,29 @@ class Pipes:
         self.music = None
         self.current_stt = getenv("WHISPER_MODEL")
 
-        # Pre-load STT if preloading is enabled (voice server mode OR LAZY_LOAD_VOICE=false)
+        # Preload dedicated voice servers, explicit pools, and fast voice workers.
         # Skip if voice server URL is configured (passthrough mode)
         if (
-            should_preload_voice()
+            self._voice_should_preload("stt")
             and getenv("STT_ENABLED").lower() == "true"
             and not has_voice_server_url()
         ):
             mode_str = (
                 "voice server mode"
                 if is_voice_server_mode()
-                else "LAZY_LOAD_VOICE=false"
+                else "resident voice profile"
             )
             self._warm_load_stt_pool(mode_str=mode_str)
         elif has_voice_server_url() and getenv("STT_ENABLED").lower() == "true":
             voice_url = getenv("VOICE_SERVER")
             logging.info(
                 f"[STT] Voice server configured ({voice_url}) - skipping local model loading"
+            )
+        elif getenv("STT_ENABLED").lower() == "true" and self._voice_should_unload_llm(
+            "stt"
+        ):
+            logging.info(
+                "[STT] Sharing the LLM GPU slot; skipping resident voice preload"
             )
 
         if (
@@ -4355,7 +4533,10 @@ class Pipes:
                         f"[VIDEO] {VIDEO_MODEL} loaded in {load_time:.1f}s ({preload_reason} - staying loaded)"
                     )
                     self.resource_manager.register_model(
-                        ModelType.VIDEO, VIDEO_MODEL, "cuda", vram_gb=12.0
+                        ModelType.VIDEO,
+                        VIDEO_MODEL,
+                        "cuda",
+                        vram_gb=getattr(self.video, "resident_vram_gb", 12.0),
                     )
                 except Exception as e:
                     logging.warning(
@@ -4370,7 +4551,7 @@ class Pipes:
             ):
                 logging.info(
                     "[VIDEO] Skipping preload because video generation will "
-                    "temporarily unload resident LLMs; LTX will lazy-load after "
+                    "temporarily unload resident LLMs; video will lazy-load after "
                     "VRAM is freed"
                 )
 
@@ -4447,8 +4628,9 @@ class Pipes:
         quant_types = _split_csv("QUANT_TYPE", "Q4_K_XL")
 
         gpu_count = get_gpu_count()
+        self._automatic_replica_ids = set()
 
-        for i, model_name in enumerate(self.available_models):
+        for i, model_name in enumerate(list(self.available_models)):
             mgpu = int(main_gpus[i]) if i < len(main_gpus) else int(main_gpus[-1])
             mtokens = (
                 int(max_tokens_list[i])
@@ -4461,17 +4643,15 @@ class Pipes:
             if qtype == "":
                 qtype = None
             source_model_name = self._resolve_source_model(model_name)
-            if is_mtp_model(source_model_name) and npar != 1:
-                logging.info(
-                    f"[Config] {source_model_name} is an MTP model; "
-                    f"forcing n_parallel=1 (configured {npar})"
-                )
+            replica_count = 1
+            if speculative_backend(source_model_name) != "none":
+                replica_count = max(1, npar)
                 npar = 1
 
             # Generate a tensor_split that isolates the model to its target GPU
             # when multiple GPUs exist and a specific GPU is assigned.
             ts = None
-            if gpu_count > 1 and len(self.available_models) > 1:
+            if gpu_count > 1 and (len(self.available_models) > 1 or replica_count > 1):
                 ts = [0.0] * 128
                 ts[mgpu] = 1.0
 
@@ -4482,6 +4662,29 @@ class Pipes:
                 "quant_type": qtype,
                 "tensor_split": ts,
             }
+
+            # Expand only after reading this original CSV entry. Each speculative
+            # instance owns its weights, draft state, and full context allocation.
+            for _ in range(replica_count - 1):
+                suffix = 2
+                while f"{source_model_name}#{suffix}" in self.model_sources:
+                    suffix += 1
+                replica_id = f"{source_model_name}#{suffix}"
+                self._automatic_replica_ids.add(replica_id)
+                self.available_models.append(replica_id)
+                self.model_sources[replica_id] = source_model_name
+                self.model_replicas.setdefault(source_model_name, [model_name]).append(
+                    replica_id
+                )
+                self.model_configs[replica_id] = dict(self.model_configs[model_name])
+            if replica_count > 1:
+                logging.info(
+                    "[Config] %s: N_PARALLEL=%s creates %s independent speculative instances, each with %s context tokens",
+                    source_model_name,
+                    replica_count,
+                    replica_count,
+                    mtokens,
+                )
 
         if len(self.model_configs) > 1:
             for name, cfg in self.model_configs.items():
@@ -4597,6 +4800,7 @@ class Pipes:
                     model_path=model_path,
                     context_size=requested_context,
                     projectors=[mmproj_path] if mmproj_path else [],
+                    main_gpu=int(cfg.get("main_gpu", 0)),
                 )
             ),
         )
@@ -4654,6 +4858,25 @@ class Pipes:
             summary["max_seconds"] = max(summary["max_seconds"], duration)
             summary["last_seconds"] = duration
 
+    def get_model_pool_snapshot(self):
+        """Report each resident replica's current device, including CPU fallback."""
+        result = {}
+        for service, attribute, size_attribute in (
+            ("tts", "tts_instances", "_tts_pool_size"),
+            ("stt", "stt_instances", "_stt_pool_size"),
+            ("embedding", "embedders", "_embedding_pool_size"),
+        ):
+            instances = list(getattr(self, attribute, []) or [])
+            result[service] = {
+                "configured": getattr(self, size_attribute, 1),
+                "resident": len(instances),
+                "devices": [
+                    str(getattr(instance, "device", "unknown"))
+                    for instance in instances
+                ],
+            }
+        return result
+
     def get_model_lifecycle_snapshot(self) -> Dict[str, Any]:
         """Return lifecycle timings and current LLM residency state."""
         with self._lifecycle_metrics_lock:
@@ -4685,6 +4908,19 @@ class Pipes:
                 if getattr(self, "current_llm_name", None)
                 else None
             ),
+            "loaded_llm_runtime": [
+                {
+                    "model": self._resolve_source_model(model_id),
+                    **self._llm_runtime_shape(
+                        instance,
+                        (self.model_configs.get(model_id, {}) or {}).get(
+                            "max_tokens", self._optimal_context
+                        ),
+                    ),
+                }
+                for model_id, instance in getattr(self, "persistent_llms", {}).items()
+                if instance is not None
+            ],
             "vram_estimates_gb": dict(getattr(self, "llm_model_vram_estimates", {})),
             "summary": summaries,
             "recent_events": events,
@@ -4692,7 +4928,39 @@ class Pipes:
 
     def _resolve_source_model(self, model_name: str) -> str:
         """Resolve an internal model ID back to the source HF model name."""
-        return self.model_sources.get(model_name, model_name)
+        return getattr(self, "model_sources", {}).get(model_name, model_name)
+
+    @staticmethod
+    def _llm_runtime_shape(instance: Any, context: int) -> Dict[str, Any]:
+        """Capture the placement needed to reproduce a known-good LLM load."""
+        shape: Dict[str, Any] = {"context": int(context)}
+        gpu_layers = getattr(instance, "gpu_layers", None)
+        main_gpu = getattr(instance, "main_gpu", None)
+        tensor_split = getattr(instance, "tensor_split", None)
+        if gpu_layers is not None:
+            shape["gpu_layers"] = int(gpu_layers)
+        if main_gpu is not None:
+            shape["main_gpu"] = int(main_gpu)
+        if tensor_split:
+            shape["tensor_split"] = [float(value) for value in tensor_split]
+        prompt_cache_mib = getattr(instance, "prompt_cache_mib", None)
+        prompt_cache_requested_mib = getattr(
+            instance, "prompt_cache_requested_mib", None
+        )
+        if prompt_cache_mib is not None:
+            shape["prompt_cache_mib"] = int(prompt_cache_mib)
+        if prompt_cache_requested_mib is not None:
+            shape["prompt_cache_requested_mib"] = int(prompt_cache_requested_mib)
+        params = getattr(instance, "xlc_params", None)
+        for name in ("n_batch", "n_ubatch", "checkpoint_min_step", "n_ctx_checkpoints"):
+            value = getattr(params, name, None)
+            if isinstance(value, int):
+                shape[name] = value
+        for name in ("kv_cache_type", "speculative_type"):
+            value = getattr(instance, name, None)
+            if isinstance(value, str):
+                shape[name] = value
+        return shape
 
     def _resolve_requested_model_id(self, requested_model: str) -> str:
         """Resolve a requested public model name to the primary internal model ID."""
@@ -4727,6 +4995,29 @@ class Pipes:
         quant_type: str = None,
     ) -> "LLM":
         """Load an LLM and record a consistent lifecycle benchmark event."""
+        runtime = getattr(self, "_known_llm_runtime_models", {}).get(model_name, {})
+        matching_runtime = int(runtime.get("context", 0) or 0) == int(max_tokens)
+        reused_runtime = False
+        if matching_runtime:
+            if gpu_layers is None and runtime.get("gpu_layers") is not None:
+                gpu_layers = runtime["gpu_layers"]
+                reused_runtime = True
+            if main_gpu is None and runtime.get("main_gpu") is not None:
+                main_gpu = runtime["main_gpu"]
+                reused_runtime = True
+            if tensor_split is None and runtime.get("tensor_split"):
+                tensor_split = runtime["tensor_split"]
+                reused_runtime = True
+        if reused_runtime:
+            logging.info(
+                "[LLM] Reusing known-good residency for %s: context=%s, "
+                "gpu_layers=%s, main_gpu=%s, tensor_split=%s",
+                model_name,
+                max_tokens,
+                gpu_layers,
+                main_gpu,
+                tensor_split or "none",
+            )
         started = time.perf_counter()
         try:
             instance = self._load_llm_resilient_impl(
@@ -4750,6 +5041,13 @@ class Pipes:
             self.llm_model_vram_estimates[model_name] = max(
                 float(actual_vram),
                 float(self.llm_model_vram_estimates.get(model_name, 0.0) or 0.0),
+            )
+        actual_layers = getattr(instance, "gpu_layers", None)
+        if actual_layers is not None:
+            if not hasattr(self, "_known_llm_runtime_models"):
+                self._known_llm_runtime_models = {}
+            self._known_llm_runtime_models[model_name] = self._llm_runtime_shape(
+                instance, max_tokens
             )
         self._record_model_lifecycle("load", "llm", model_name, elapsed)
         logging.info("[LLM] %s lifecycle load completed in %.2fs", model_name, elapsed)
@@ -4817,11 +5115,11 @@ class Pipes:
             # - LAZY_LOAD_VOICE=true (default) → voice models load on first request and
             #   unload after use, so don't penalize the LLM's GPU layer budget upfront.
             #   The resilient fallback handles OOM if voice later contends for VRAM.
-            # - should_preload_voice() (LAZY_LOAD_VOICE=false or voice server mode) →
+            # - resident local voice pools →
             #   voice models stay resident, so reserve VRAM for them.
             if has_voice_server_url():
                 reserved_vram = 0.0
-            elif should_preload_voice():
+            elif self._voice_should_preload("tts") or self._voice_should_preload("stt"):
                 # TTS ~4GB + STT ~2GB when preloaded; scale for low-VRAM devices
                 total_vram = sum(get_per_gpu_vram_gb()) if get_gpu_count() > 0 else 0
                 if 0 < total_vram < 12:
@@ -4960,7 +5258,10 @@ class Pipes:
                 logging.error(
                     f"[LLM] CPU fallback also failed for {model_name}: {last_error}"
                 )
-                raise last_error
+                raise RuntimeError(
+                    "Failed to allocate inference capacity for "
+                    f"{model_name} at n_ctx={max_tokens}: {last_error}"
+                ) from last_error
 
             # The last binary-search probe failed above the best known result, so
             # reload that exact maximum once after clearing the failed context.
@@ -5066,7 +5367,7 @@ class Pipes:
                 context_length=max_tokens,
                 batch_size=2048,
                 num_parallel=1,
-                kv_cache_type="q4_0",
+                kv_cache_type=resolve_kv_cache_type(None, model_path),
             )
 
             logging.debug(f"[Calibration] Native estimation result: {result}")
@@ -5098,6 +5399,7 @@ class Pipes:
 
     def _get_model_path(self, model_name: str) -> str:
         """Get the local path to a model file."""
+        model_name = self._resolve_source_model(model_name)
         try:
             # Parse model name: "org/repo" -> download the GGUF file
             if "/" in model_name:
@@ -5167,6 +5469,7 @@ class Pipes:
 
     def _get_vision_projector_path(self, model_name: str) -> str:
         """Get vision projector path if this is a vision model."""
+        model_name = self._resolve_source_model(model_name)
         try:
             if "/" in model_name:
                 # Same convention as download_model() / _get_model_path: prefer
@@ -5766,6 +6069,8 @@ class Pipes:
         reload the model at the optimal context size to maximize GPU layers.
         The cooldown prevents constant reloading if multiple large requests come in.
         """
+        if len(getattr(self, "available_models", [])) > 1:
+            return  # Each resident instance keeps its configured full context.
         with self._context_reset_lock:
             # Cancel any existing timer
             if self._context_reset_timer is not None:
@@ -6292,7 +6597,7 @@ class Pipes:
 
             if self._stt_available:
                 stt = self._stt_available.popleft()
-            elif should_preload_voice():
+            elif self._voice_should_preload("stt"):
                 if len(self.stt_instances) < self._stt_pool_size:
                     stt = self._load_stt_instance(
                         slot_index=len(self.stt_instances) + 1,
@@ -6326,10 +6631,21 @@ class Pipes:
         """Synchronous STT destruction."""
         try:
             start_time = time.time()
+            close = getattr(stt_ref, "close", None)
+            if callable(close):
+                close()
             del stt_ref
             gc.collect()
             if torch.cuda.is_available():
+                try:
+                    torch.cuda.synchronize()
+                except Exception:
+                    pass
                 torch.cuda.empty_cache()
+                try:
+                    torch.cuda.ipc_collect()
+                except Exception:
+                    pass
             cleanup_time = time.time() - start_time
             logging.debug(f"[STT] Whisper unloaded in {cleanup_time:.2f}s")
         except Exception as e:
@@ -6342,13 +6658,16 @@ class Pipes:
             async_cleanup: If True, run cleanup in background thread
             force: If True, destroy even if other requests might need it soon
         """
+        if self._voice_handoff_active("stt"):
+            async_cleanup = False
+            force = True
         self.resource_manager.mark_model_in_use(ModelType.STT, False)
 
         key = self._lease_key()
         refs = []
         with self._stt_pool_lock:
             stt_ref = self._stt_active_leases.pop(key, None)
-            if stt_ref is not None and should_preload_voice() and not force:
+            if stt_ref is not None and self._voice_should_preload("stt") and not force:
                 self._stt_available.append(stt_ref)
                 logging.debug("[STT] Preload mode - returning STT instance to pool")
                 return
@@ -6582,9 +6901,11 @@ class Pipes:
                     load_time = time.time() - start_time
 
                     # Register with resource manager (VIDEO uses CPU offload so may use less VRAM)
-                    actual_vram = (
-                        12.0 if video_device == "cuda" else 0.0
-                    )  # Conservative estimate with offload
+                    actual_vram = getattr(
+                        self.video,
+                        "resident_vram_gb",
+                        12.0 if video_device.startswith("cuda") else 0.0,
+                    )
                     resource_mgr.register_model(
                         ModelType.VIDEO, VIDEO_MODEL, video_device, actual_vram
                     )
@@ -6596,8 +6917,8 @@ class Pipes:
                     logging.error(f"[VIDEO] Failed to load the model: {e}")
                     self.video = None
 
-        if self.video:
-            resource_mgr.mark_model_in_use(ModelType.VIDEO, True)
+        # The generation scope owns the active-request reference. Keeping the
+        # backend resident must not leave a phantom busy slot after completion.
         return self.video
 
     def _destroy_video_sync(self, video_ref):
@@ -6688,6 +7009,22 @@ class Pipes:
             resource_mgr.mark_model_in_use(ModelType.MUSIC, True)
         return self.music
 
+    def _media_keep_models_loaded(self) -> bool:
+        """Opt into concurrent media with warm pools on high-memory workers.
+
+        GB10 compose enables this; smaller GPU profiles retain handoffs. Explicit
+        per-service UNLOAD_LLM=true still takes precedence over this default.
+        """
+        return (
+            getenv("MEDIA_KEEP_MODELS_LOADED", "false") or "false"
+        ).strip().lower() in {"1", "true", "yes", "on"}
+
+    def _video_requires_exclusive_worker(self) -> bool:
+        return (
+            not self._media_keep_models_loaded()
+            or self._video_should_unload_llm_for_generation()
+        )
+
     def _image_should_unload_llm_for_generation(self) -> bool:
         """Return whether FLUX needs a temporary LLM VRAM handoff."""
         mode = (
@@ -6699,6 +7036,8 @@ class Pipes:
             return False
         if mode in {"1", "true", "yes", "on"}:
             return True
+        if self._media_keep_models_loaded():
+            return False
         if has_image_server_url() or get_secondary_gpu() is not None:
             return False
         if self.img is not None or not self._has_loaded_llm():
@@ -6709,6 +7048,86 @@ class Pipes:
             required_gb = 6.0
         free_gb = self.resource_manager.get_total_free_vram()
         return free_gb < required_gb + self.resource_manager.vram_safety_margin
+
+    def _has_fast_voice_profile(self) -> bool:
+        """Keep MiniCPM and voice pools warm on a dedicated fast LLM worker.
+
+        Use configured identities so this policy stays stable during a handoff.
+        A worker that also configures a larger LLM retains the shared GPU policy.
+        """
+        models = getattr(self, "available_models", [])
+        sources = getattr(self, "model_sources", {})
+        return bool(models) and all(
+            is_minicpm5_2b_model(sources.get(model, model)) for model in models
+        )
+
+    def _voice_should_unload_llm(self, service: str) -> bool:
+        """Return whether local TTS/STT shares the resident LLM GPU slot."""
+        service = str(service or "voice").strip().lower()
+        generic_mode = getenv("VOICE_UNLOAD_LLM_DURING_GENERATION", "auto") or "auto"
+        mode = (
+            (
+                getenv(f"{service.upper()}_UNLOAD_LLM_DURING_GENERATION", generic_mode)
+                or generic_mode
+            )
+            .strip()
+            .lower()
+        )
+        if mode in {"0", "false", "no", "off"}:
+            return False
+        if mode in {"1", "true", "yes", "on"}:
+            return not has_voice_server_url()
+        if self._media_keep_models_loaded():
+            return False
+        if has_voice_server_url() or has_text_server_url():
+            return False
+        if is_voice_server_mode() and not is_text_server_mode():
+            return False
+        if self._has_fast_voice_profile():
+            return False
+        # Keep this stable while the LLM is temporarily detached: heartbeat
+        # dependency metadata must continue to advertise the shared slot.
+        return bool(getattr(self, "available_models", []))
+
+    def _voice_should_preload(self, service: str) -> bool:
+        return (
+            should_preload_voice()
+            or self._has_fast_voice_profile()
+            or self._media_keep_models_loaded()
+        ) and not self._voice_should_unload_llm(service)
+
+    def _mark_voice_handoff(self, service: str, active: bool):
+        service = str(service or "voice").strip().lower()
+        with self._voice_handoff_state_lock:
+            current = int(self._voice_handoff_counts.get(service, 0) or 0)
+            self._voice_handoff_counts[service] = (
+                current + 1 if active else max(0, current - 1)
+            )
+
+    def _voice_handoff_active(self, service: Optional[str] = None) -> bool:
+        state_lock = getattr(self, "_voice_handoff_state_lock", None)
+        counts = getattr(self, "_voice_handoff_counts", {})
+        if state_lock is None:
+            return False
+        with state_lock:
+            if service:
+                return bool(counts.get(service, 0))
+            return any(counts.values())
+
+    async def _wait_for_llm_idle_for_voice(self, service: str):
+        service = str(service or "voice").strip().lower()
+        generic_timeout = getenv("VOICE_WAIT_FOR_LLM_IDLE_TIMEOUT", "60") or "60"
+        timeout = float(
+            getenv(f"{service.upper()}_WAIT_FOR_LLM_IDLE_TIMEOUT", generic_timeout)
+            or generic_timeout
+        )
+        deadline = time.monotonic() + max(0.0, timeout)
+        while self._is_inference_in_progress():
+            if timeout <= 0 or time.monotonic() >= deadline:
+                raise RuntimeError(
+                    f"LLM inference is active; {service.upper()} cannot unload the LLM yet"
+                )
+            await asyncio.sleep(0.1)
 
     async def _wait_for_llm_idle_for_image(self):
         timeout = float(getenv("IMAGE_WAIT_FOR_LLM_IDLE_TIMEOUT", "60"))
@@ -6757,6 +7176,21 @@ class Pipes:
 
         refs: List[Tuple[str, Any]] = []
         with self._model_lock:
+            runtime_models = {}
+            for model_name, instance in self.persistent_llms.items():
+                if instance is None:
+                    continue
+                cfg = self.model_configs.get(model_name, {}) or {}
+                runtime_models[model_name] = self._llm_runtime_shape(
+                    instance, cfg.get("max_tokens", self._optimal_context)
+                )
+            if self.llm is not None and self.current_llm_name not in runtime_models:
+                runtime_models[self.current_llm_name or "LLM"] = (
+                    self._llm_runtime_shape(
+                        self.llm, self.current_context or self._optimal_context
+                    )
+                )
+            self._known_llm_runtime_models = dict(runtime_models)
             state = {
                 "loaded_models": [
                     model_name
@@ -6765,6 +7199,7 @@ class Pipes:
                 ],
                 "active_model": self.current_llm_name,
                 "active_context": self.current_context,
+                "runtime_models": runtime_models,
             }
             self._llm_temporarily_unavailable = True
             seen_ids = set()
@@ -6802,7 +7237,17 @@ class Pipes:
     ):
         if not handoff_state:
             return
-        reload_after = (getenv(reload_env, "true") or "true").strip().lower() not in {
+        reload_default = "true"
+        if service in {"tts", "stt"}:
+            # A caller-local voice reference may still be unwinding when the
+            # shared slot exits. Restore lazily on the next text request so a
+            # long-context native LLM allocation cannot race voice cleanup.
+            reload_default = (
+                getenv("VOICE_RELOAD_LLM_AFTER_GENERATION", "false") or "false"
+            )
+        reload_after = (
+            getenv(reload_env, reload_default) or reload_default
+        ).strip().lower() not in {
             "0",
             "false",
             "no",
@@ -6823,6 +7268,7 @@ class Pipes:
                 self._reload_persistent_models(
                     model_names=models_to_restore,
                     active_model=handoff_state.get("active_model"),
+                    runtime_models=handoff_state.get("runtime_models"),
                 )
         finally:
             self._llm_temporarily_unavailable = False
@@ -6837,6 +7283,8 @@ class Pipes:
             return False
         if mode in {"1", "true", "yes", "on"}:
             return True
+        if self._media_keep_models_loaded():
+            return False
         # Auto mode only unloads local LLMs when ACE-Step is container-local.
         return not bool((getenv("ACE_STEP_SERVER_URL") or "").strip())
 
@@ -6873,6 +7321,8 @@ class Pipes:
             return False
         if mode in {"1", "true", "yes", "on"}:
             return True
+        if self._media_keep_models_loaded():
+            return False
         if has_image_server_url() or get_secondary_gpu() is not None:
             return False
         return bool(
@@ -6891,7 +7341,7 @@ class Pipes:
             await asyncio.sleep(0.5)
 
     def _unload_llms_for_video(self) -> bool:
-        """Temporarily unload resident LLMs so LTX-2.3 can use the GPU."""
+        """Temporarily unload resident LLMs for video generation."""
         return self._unload_llms_for_service(
             "video", self._video_should_unload_llm_for_generation()
         )
@@ -7091,44 +7541,6 @@ class Pipes:
                         f"[LLM _get_llm] Using current self.llm (already loaded)"
                     )
                 return self.llm
-
-            # Replica spillover: if this source model has multiple loaded replicas,
-            # route to another replica when the currently active one is saturated.
-            source_name = self._resolve_source_model(model_name)
-            replica_ids = self.model_replicas.get(source_name, [model_name])
-
-            if len(replica_ids) > 1:
-                current_id = self.current_llm_name
-                current_cfg = (
-                    self.model_configs.get(current_id, {}) if current_id else {}
-                )
-                current_capacity = self._resolved_parallel_for_model(current_id)
-
-                current_is_same_source = current_id in replica_ids
-                saturated = (
-                    current_is_same_source and self._inference_count >= current_capacity
-                )
-
-                if saturated:
-                    for replica_id in replica_ids:
-                        if replica_id == current_id:
-                            continue
-                        replica_llm = self.persistent_llms.get(replica_id)
-                        if replica_llm is None:
-                            continue
-                        replica_cfg = self.model_configs.get(replica_id, {})
-                        replica_ctx = replica_cfg.get(
-                            "max_tokens", self._optimal_context
-                        )
-                        if replica_ctx >= context_size:
-                            self.llm = replica_llm
-                            self.current_llm_name = replica_id
-                            self.current_context = replica_ctx
-                            logging.info(
-                                f"[LLM] Replica spillover: {source_name} -> {replica_id} "
-                                f"(active={self._inference_count}, capacity={current_capacity})"
-                            )
-                            return self.llm
 
             # Check persistent_llms dict (all pre-loaded models)
             if model_name in self.persistent_llms:
@@ -7360,6 +7772,7 @@ class Pipes:
         self,
         model_names: Optional[List[str]] = None,
         active_model: Optional[str] = None,
+        runtime_models: Optional[Dict[str, Dict[str, Any]]] = None,
     ):
         """Reload persistent models after using a large model.
 
@@ -7390,12 +7803,23 @@ class Pipes:
                     continue  # Already loaded
 
                 cfg = self.model_configs.get(model_name, {})
-                model_context = cfg.get("max_tokens", default_context)
-                logging.debug(f"[LLM] Reloading persistent model: {model_name}")
+                runtime = (runtime_models or {}).get(model_name, {})
+                model_context = runtime.get(
+                    "context", cfg.get("max_tokens", default_context)
+                )
+                gpu_layers = runtime.get("gpu_layers")
+                logging.info(
+                    "[LLM] Reloading persistent model %s at context=%s, "
+                    "gpu_layers=%s",
+                    model_name,
+                    model_context,
+                    gpu_layers if gpu_layers is not None else "auto",
+                )
                 try:
                     llm_instance = self._load_llm_resilient(
                         model_name=model_name,
                         max_tokens=model_context,
+                        gpu_layers=gpu_layers,
                         main_gpu=cfg.get("main_gpu"),
                         tensor_split=cfg.get("tensor_split"),
                         n_parallel=cfg.get("n_parallel"),
@@ -7485,7 +7909,9 @@ class Pipes:
 
     def _get_tts_name(self):
         """Get the human-readable name for the TTS provider."""
-        model_name = getenv("QWEN_TTS_MODEL") or "Qwen/Qwen3-TTS-12Hz-0.6B-Base"
+        from ezlocalai.LlamaTTS import resolve_tts_model_id
+
+        model_name = resolve_tts_model_id()
         return f"Qwen-TTS ({model_name})"
 
     def _load_tts_instance(self, slot_index: int = 1, force_cpu: bool = False):
@@ -7578,7 +8004,7 @@ class Pipes:
 
             if self._tts_available:
                 tts = self._tts_available.popleft()
-            elif should_preload_voice():
+            elif self._voice_should_preload("tts"):
                 if len(self.tts_instances) < self._tts_pool_size:
                     tts = self._load_tts_instance(
                         slot_index=len(self.tts_instances) + 1,
@@ -7608,14 +8034,32 @@ class Pipes:
         self.resource_manager.mark_model_in_use(ModelType.TTS, True)
         return tts
 
+    def _transfer_tts_lease(self, owner):
+        """Move an HTTP model lease into StreamingResponse's consumer task."""
+        key = self._lease_key()
+        if key != owner:
+            with self._tts_pool_lock:
+                self._tts_active_leases[key] = self._tts_active_leases.pop(owner)
+
     def _destroy_tts_sync(self, tts_ref):
         """Synchronous TTS destruction."""
         try:
             start_time = time.time()
+            close = getattr(tts_ref, "close", None)
+            if callable(close):
+                close()
             del tts_ref
             gc.collect()
             if torch.cuda.is_available():
+                try:
+                    torch.cuda.synchronize()
+                except Exception:
+                    pass
                 torch.cuda.empty_cache()
+                try:
+                    torch.cuda.ipc_collect()
+                except Exception:
+                    pass
             cleanup_time = time.time() - start_time
             logging.debug(f"[TTS] TTS model unloaded in {cleanup_time:.2f}s")
         except Exception as e:
@@ -7628,13 +8072,21 @@ class Pipes:
             async_cleanup: If True, run cleanup in background thread
             force: If True, destroy even if other requests might need it soon
         """
+        if self._voice_handoff_active("tts"):
+            async_cleanup = False
+            force = True
         self.resource_manager.mark_model_in_use(ModelType.TTS, False)
 
         key = self._lease_key()
         refs = []
         with self._tts_pool_lock:
             tts_ref = self._tts_active_leases.pop(key, None)
-            if tts_ref is not None and should_preload_voice() and not force:
+            if (
+                tts_ref is not None
+                and self._voice_should_preload("tts")
+                and not force
+                and not getattr(tts_ref, "_closed", False)
+            ):
                 self._tts_available.append(tts_ref)
                 logging.debug("[TTS] Preload mode - returning TTS instance to pool")
                 return
@@ -7974,19 +8426,28 @@ class Pipes:
         return result
 
     async def generate_image(
-        self, prompt, response_format="url", size="512x512", image=None
+        self,
+        prompt,
+        response_format="url",
+        size="512x512",
+        image=None,
+        images=None,
+        strength=0.75,
     ):
         async with self._img_lock:
             llm_handoff = None
             aux_unloaded = {}
             img = None
             try:
-                if self._image_should_unload_llm_for_generation():
+                needs_handoff = self._image_should_unload_llm_for_generation()
+                if needs_handoff:
                     await self._wait_for_llm_idle_for_image()
-                llm_handoff = self._unload_llms_for_service(
-                    "image", self._image_should_unload_llm_for_generation()
-                )
-                aux_unloaded = self._unload_aux_models_for_image()
+                llm_handoff = self._unload_llms_for_service("image", needs_handoff)
+                # The fast worker's warm voice/embedding pools already coexist
+                # with FLUX. Evict them only when image generation needs a
+                # memory handoff; larger LLM workers keep their existing policy.
+                if needs_handoff or not self._has_fast_voice_profile():
+                    aux_unloaded = self._unload_aux_models_for_image()
                 img = self._get_img()
                 if img:
                     self.resource_manager.mark_model_in_use(ModelType.IMG, True)
@@ -7994,11 +8455,32 @@ class Pipes:
                         img.local_uri = (
                             self.local_uri if response_format == "url" else None
                         )
-                        return img.generate(
-                            prompt=prompt,
-                            size=size,
-                            image=image,
+                        generation = asyncio.create_task(
+                            asyncio.to_thread(
+                                img.generate,
+                                prompt=prompt,
+                                size=size,
+                                image=image,
+                                images=images,
+                                strength=strength,
+                            )
                         )
+                        try:
+                            return await asyncio.shield(generation)
+                        except asyncio.CancelledError:
+                            # Native generation cannot be cancelled. Retain the
+                            # image lock and model references until it finishes,
+                            # while allowing voice requests to use the event loop.
+                            while not generation.done():
+                                try:
+                                    await asyncio.shield(generation)
+                                except asyncio.CancelledError:
+                                    continue
+                                except Exception:
+                                    break
+                            if not generation.cancelled():
+                                generation.exception()
+                            raise
                     finally:
                         self.resource_manager.mark_model_in_use(ModelType.IMG, False)
             finally:
@@ -8018,6 +8500,11 @@ class Pipes:
     def _unload_aux_models_for_image(self) -> Dict[str, bool]:
         """Unload idle GPU residents that would constrain FLUX initialization."""
         unloaded = {"tts": False, "stt": False, "embedding": False, "video": False}
+        if (
+            self._media_keep_models_loaded()
+            and not self._image_should_unload_llm_for_generation()
+        ):
+            return unloaded
 
         if self.resource_manager.get_model_active_count(ModelType.TTS) == 0 and (
             getattr(self, "ctts", None) is not None
@@ -8067,14 +8554,14 @@ class Pipes:
             return
         if (
             unloaded.get("tts")
-            and should_preload_voice()
+            and self._voice_should_preload("tts")
             and (getenv("TTS_ENABLED") or "false").strip().lower() == "true"
             and not has_voice_server_url()
         ):
             self._warm_load_tts_pool(mode_str="after image generation")
         if (
             unloaded.get("stt")
-            and should_preload_voice()
+            and self._voice_should_preload("stt")
             and (getenv("STT_ENABLED") or "false").strip().lower() == "true"
             and not has_voice_server_url()
         ):
@@ -8127,8 +8614,13 @@ class Pipes:
         return img_was_loaded
 
     def _unload_aux_models_for_video(self) -> Dict[str, bool]:
-        """Unload idle non-LLM GPU residents before LTX is initialized."""
+        """Unload idle non-LLM GPU residents before video generation."""
         unloaded = {"tts": False, "stt": False, "embedding": False, "img": False}
+        if (
+            self._media_keep_models_loaded()
+            and not self._video_should_unload_llm_for_generation()
+        ):
+            return unloaded
 
         if self.resource_manager.get_model_active_count(ModelType.TTS) == 0 and (
             self.ctts is not None
@@ -8200,7 +8692,7 @@ class Pipes:
 
         if (
             unloaded.get("tts")
-            and should_preload_voice()
+            and self._voice_should_preload("tts")
             and (getenv("TTS_ENABLED") or "false").strip().lower() == "true"
             and not has_voice_server_url()
         ):
@@ -8208,7 +8700,7 @@ class Pipes:
 
         if (
             unloaded.get("stt")
-            and should_preload_voice()
+            and self._voice_should_preload("stt")
             and (getenv("STT_ENABLED") or "false").strip().lower() == "true"
             and not has_voice_server_url()
         ):
@@ -8227,7 +8719,7 @@ class Pipes:
     def _reload_video_after_vram_handoff(self, llm_was_unloaded: bool):
         if llm_was_unloaded and self.video is not None:
             logging.info(
-                "[VIDEO] Reloading LTX after VRAM handoff so it can use the "
+                "[VIDEO] Reloading video after VRAM handoff so it can use the "
                 "freed GPU memory"
             )
             self._destroy_video(async_cleanup=False, force=True)
@@ -8258,14 +8750,14 @@ class Pipes:
         response_format="url",
         size="768x512",
         num_frames=121,
-        num_inference_steps=40,
-        guidance_scale=4.0,
+        num_inference_steps=18,
+        guidance_scale=3.5,
         frame_rate=24,
         image=None,
         conditions=None,
         include_audio=True,
     ):
-        """Run one LTX generation against the currently managed video session."""
+        """Run one generation against the currently managed video backend."""
         generation_hint = self._video_generation_hint(size, num_frames)
 
         def run_current_video():
@@ -8342,8 +8834,8 @@ class Pipes:
         response_format="url",
         size="768x512",
         num_frames=121,
-        num_inference_steps=40,
-        guidance_scale=4.0,
+        num_inference_steps=18,
+        guidance_scale=3.5,
         frame_rate=24,
         image=None,
         conditions=None,
@@ -8357,7 +8849,11 @@ class Pipes:
                 llm_was_unloaded = self._unload_llms_for_video()
                 aux_unloaded = self._unload_aux_models_for_video()
                 self._reload_video_after_vram_handoff(llm_was_unloaded)
-                result = self._generate_video_once(
+                # Model loading and diffusion are synchronous. Keep health
+                # checks/heartbeats responsive, while retaining the video lock
+                # through native completion even if the client cancels.
+                result = await _run_inference_call(
+                    self._generate_video_once,
                     prompt=prompt,
                     response_format=response_format,
                     size=size,
@@ -8369,11 +8865,12 @@ class Pipes:
                     conditions=conditions,
                 )
 
-                if llm_was_unloaded:
-                    self._destroy_video(async_cleanup=False, force=True)
-
                 return self._format_video_response(result, response_format)
             finally:
+                # Cancellation and failures also need to release video memory
+                # before restoring the models displaced by the handoff.
+                if llm_was_unloaded:
+                    self._destroy_video(async_cleanup=False, force=True)
                 self._restore_llms_after_video(llm_was_unloaded)
                 self._restore_aux_models_after_video(aux_unloaded)
         return ""
@@ -8514,7 +9011,7 @@ class Pipes:
                     pass
 
     async def generate_music_video(self, **kwargs):
-        """Generate a song, create short LTX scenes, then mux them into an MP4."""
+        """Generate a song, create short video scenes, then mux them into an MP4."""
         response_format = (kwargs.get("response_format") or "url").strip().lower()
         if response_format not in {"url", "b64_json"}:
             raise ValueError("response_format must be 'url' or 'b64_json'")
@@ -8640,18 +9137,19 @@ class Pipes:
                         scene["duration"],
                         scene["num_frames"],
                     )
-                    scene_ref = self._generate_video_once(
+                    scene_ref = await _run_inference_call(
+                        self._generate_video_once,
                         prompt=scene_prompt,
                         response_format="url",
                         size=kwargs.get("size") or "768x512",
                         num_frames=int(scene["num_frames"]),
                         num_inference_steps=int(
-                            kwargs.get("num_inference_steps") or 40
+                            kwargs.get("num_inference_steps") or 18
                         ),
                         guidance_scale=float(
                             kwargs.get("video_guidance_scale")
                             or kwargs.get("guidance_scale")
-                            or 4.0
+                            or 3.5
                         ),
                         frame_rate=frame_rate,
                         image=scene_image,
@@ -8726,7 +9224,7 @@ class Pipes:
                     self._restore_llms_after_music(llm_was_unloaded)
         return None
 
-    def _apply_model_config_overrides(self, data: dict) -> dict:
+    def _apply_model_config_overrides(self, data: dict, model_id=None) -> dict:
         """Apply model-specific config overrides if the current model has them defined.
 
         Overrides only apply to parameters defined in MODEL_CONFIG_OVERRIDES for the
@@ -8735,7 +9233,8 @@ class Pipes:
         Models with separate instruct settings select them when the effective chat
         template configuration disables thinking.
         """
-        if is_qwen38_model(self.current_llm_name):
+        model_id = self._resolve_source_model(model_id or self.current_llm_name)
+        if is_qwen38_model(model_id):
             configured = apply_qwen38_model_settings(data)
             applied_settings = {
                 key: configured.get(key)
@@ -8751,12 +9250,16 @@ class Pipes:
             }
             logging.debug(
                 f"[Config] Applied shared Qwen3.8 settings for "
-                f"{self.current_llm_name}: {applied_settings}"
+                f"{model_id}: {applied_settings}"
             )
             return configured
 
-        if self.current_llm_name and self.current_llm_name in MODEL_CONFIG_OVERRIDES:
-            overrides = MODEL_CONFIG_OVERRIDES[self.current_llm_name]
+        source_model = getattr(self, "model_sources", {}).get(model_id, model_id)
+        config_model = (
+            MINICPM5_2B_MODEL if is_minicpm5_2b_model(source_model) else source_model
+        )
+        if config_model and config_model in MODEL_CONFIG_OVERRIDES:
+            overrides = MODEL_CONFIG_OVERRIDES[config_model]
             template_config = dict(overrides.get("chat_template_kwargs", {}))
             user_template_config = data.get("chat_template_kwargs", {})
             if isinstance(user_template_config, dict):
@@ -8768,9 +9271,7 @@ class Pipes:
             if reasoning_effort is not None and "reasoning_effort" in template_config:
                 template_config["reasoning_effort"] = reasoning_effort
 
-            instruct_overrides = MODEL_INSTRUCT_CONFIG_OVERRIDES.get(
-                self.current_llm_name
-            )
+            instruct_overrides = MODEL_INSTRUCT_CONFIG_OVERRIDES.get(model_id)
             if instruct_overrides and template_config.get("enable_thinking") is False:
                 overrides = {**overrides, **instruct_overrides}
                 template_config.pop("reasoning_effort", None)
@@ -8788,7 +9289,7 @@ class Pipes:
                 else:
                     data[key] = value
             logging.debug(
-                f"[Config] Applied model overrides for {self.current_llm_name}: {overrides}"
+                f"[Config] Applied model overrides for {model_id}: {overrides}"
             )
         return data
 
@@ -8812,7 +9313,7 @@ class Pipes:
 
     def _resolved_parallel_for_model(self, model_id: str, inst=None) -> int:
         """Return the actual/estimated n_parallel for a configured model."""
-        if is_mtp_model(self._resolve_source_model(model_id)):
+        if speculative_backend(self._resolve_source_model(model_id)) != "none":
             return 1
 
         try:
@@ -8835,6 +9336,37 @@ class Pipes:
             n_parallel = min(max(1, max_tokens // 32768), 16)
 
         return max(1, n_parallel)
+
+    def _inference_capacity_for_model(self, model_name: Optional[str]) -> int:
+        """Return the number of native slots that can serve a public model name."""
+        if not model_name:
+            return 1
+
+        capacity = 0
+        for model_id in getattr(self, "available_models", []):
+            if self._resolve_source_model(
+                model_id
+            ) != model_name or model_id in getattr(self, "_failed_replica_ids", set()):
+                continue
+            instance = getattr(self, "persistent_llms", {}).get(model_id)
+            capacity += self._resolved_parallel_for_model(model_id, inst=instance)
+
+        if getattr(self, "llm_model_residency", "resident") == "swap":
+            return min(1, capacity) if capacity > 0 else 1
+        return max(1, capacity)
+
+    def _configured_context_limit_for_model(
+        self, model_id: Optional[str] = None
+    ) -> int:
+        """Return the configured hard context ceiling for a model instance."""
+        model_id = model_id or self.current_llm_name
+        model_configs = getattr(self, "model_configs", {})
+        config = model_configs.get(model_id, {}) if model_id else {}
+        try:
+            configured = int(config.get("max_tokens", self._optimal_context) or 0)
+        except (TypeError, ValueError):
+            configured = int(self._optimal_context or 0)
+        return max(1, configured or int(self._optimal_context or 16384))
 
     def get_text_queue_capacity(self) -> int:
         """Return the automatic local text request queue capacity."""
@@ -8878,6 +9410,8 @@ class Pipes:
         swap_residency = getattr(self, "llm_model_residency", "resident") == "swap"
         if not self._llm_temporarily_unavailable:
             for model_id in self.available_models:
+                if model_id in getattr(self, "_failed_replica_ids", set()):
+                    continue
                 inst = self.persistent_llms.get(model_id)
                 capacity = (
                     1
@@ -8934,6 +9468,12 @@ class Pipes:
                 in_flight=model_in_flight,
                 queued=0,
             )
+            instances = sum(
+                self._resolve_source_model(mid) == model_name and inst is not None
+                for mid, inst in self.persistent_llms.items()
+            )
+            if not swap_residency and instances > 1:
+                model_slots[model_name]["instances"] = instances
         if self._llm_temporarily_unavailable:
             for model_id in self.available_models:
                 model_slots[self._resolve_source_model(model_id)] = _slot(capacity=0)
@@ -8951,6 +9491,10 @@ class Pipes:
                 in_flight=total_llm_in_flight,
                 queued=queued_text,
             )
+        if len(model_slots) == 1 and "text" in cap_slots:
+            only_slot = next(iter(model_slots.values()))
+            if "instances" in only_slot:
+                cap_slots["text"]["instances"] = only_slot["instances"]
         if vision_capacity > 0:
             vision_in_flight = sum(model_counts.get(name, 0) for name in vision_models)
             cap_slots["vision"] = _slot(
@@ -8958,6 +9502,11 @@ class Pipes:
                 in_flight=vision_in_flight,
                 queued=0,
             )
+
+        if len(vision_models) == 1 and "vision" in cap_slots:
+            vision_slot = model_slots.get(next(iter(vision_models)), {})
+            if "instances" in vision_slot:
+                cap_slots["vision"]["instances"] = vision_slot["instances"]
 
         tts_enabled = (getenv("TTS_ENABLED") or "true").strip().lower() == "true"
         stt_enabled = (getenv("STT_ENABLED") or "true").strip().lower() == "true"
@@ -8971,15 +9520,31 @@ class Pipes:
         video_model = get_video_model_name().lower()
         music_model = (getenv("MUSIC_MODEL") or "").strip().lower()
 
+        tts_active = self.resource_manager.get_model_active_count(ModelType.TTS)
+        stt_active = self.resource_manager.get_model_active_count(ModelType.STT)
+        tts_shared = tts_enabled and self._voice_should_unload_llm("tts")
+        stt_shared = stt_enabled and self._voice_should_unload_llm("stt")
+        voice_handoff_active = self._voice_handoff_active()
+
         if tts_enabled and not has_voice_server_url():
+            tts_in_flight = tts_active
+            if tts_shared and (
+                total_llm_in_flight > 0 or stt_active > 0 or voice_handoff_active
+            ):
+                tts_in_flight = max(tts_in_flight, 1)
             cap_slots["tts"] = _slot(
-                capacity=get_tts_parallel_slots(),
-                in_flight=self.resource_manager.get_model_active_count(ModelType.TTS),
+                capacity=1 if tts_shared else get_tts_parallel_slots(),
+                in_flight=tts_in_flight,
             )
         if stt_enabled and not has_voice_server_url():
+            stt_in_flight = stt_active
+            if stt_shared and (
+                total_llm_in_flight > 0 or tts_active > 0 or voice_handoff_active
+            ):
+                stt_in_flight = max(stt_in_flight, 1)
             cap_slots["stt"] = _slot(
-                capacity=get_stt_parallel_slots(),
-                in_flight=self.resource_manager.get_model_active_count(ModelType.STT),
+                capacity=1 if stt_shared else get_stt_parallel_slots(),
+                in_flight=stt_in_flight,
             )
         if (
             image_enabled
@@ -9056,6 +9621,20 @@ class Pipes:
                 ),
             )
 
+        video_lock = getattr(self, "_video_lock", None)
+        if video_lock is not None and video_lock.locked():
+            # High-memory workers keep other pools available during video.
+            # Profiles that evict pools reserve the worker through restoration.
+            exclusive = self._video_requires_exclusive_worker()
+            for capability, state in cap_slots.items():
+                if capability in {"video", "music_video"}:
+                    state.update(_slot(1, in_flight=1))
+                elif exclusive:
+                    state.update(_slot(0, state["in_flight"], state["queued"]))
+            if exclusive:
+                for state in model_slots.values():
+                    state.update(_slot(0, state["in_flight"], state["queued"]))
+
         total_capacity = 0
         total_in_flight = 0
         total_queued = 0
@@ -9093,9 +9672,95 @@ class Pipes:
                 f"[Inference] Started - active count: {self._inference_count}"
             )
 
-    def _decrement_inference_count(self, model_name: Optional[str] = None):
+    async def _acquire_inference_slot(
+        self, model_name: Optional[str] = None, preferred_replica=None
+    ):
+        """Register an inference after a real native model slot is available."""
+        waiting_for = None
+        while True:
+            with self._inference_count_lock:
+                handoff_active = bool(
+                    getattr(self, "_llm_temporarily_unavailable", False)
+                )
+                conflicts = {
+                    name: count
+                    for name, count in self._model_inference_counts.items()
+                    if count > 0 and name != model_name
+                }
+                model_in_flight = self._model_inference_counts.get(model_name, 0)
+                model_capacity = self._inference_capacity_for_model(model_name)
+                model_slot_available = model_in_flight < model_capacity
+                replica_ids = [
+                    mid
+                    for mid in getattr(self, "available_models", [])
+                    if self._resolve_source_model(mid) == model_name
+                    and mid not in getattr(self, "_failed_replica_ids", set())
+                ]
+                counts = getattr(self, "_replica_inference_counts", None)
+                if counts is None:
+                    counts = self._replica_inference_counts = {}
+                available = [
+                    mid
+                    for mid in replica_ids
+                    if (preferred_replica is None or mid == preferred_replica)
+                    and counts.get(mid, 0)
+                    < self._resolved_parallel_for_model(
+                        mid, getattr(self, "persistent_llms", {}).get(mid)
+                    )
+                ]
+                replica_id = (
+                    min(available, key=lambda mid: counts.get(mid, 0))
+                    if available
+                    else None
+                )
+                if replica_ids and replica_id is None:
+                    model_slot_available = False
+                if (
+                    not handoff_active
+                    and model_slot_available
+                    and (self.llm_model_residency != "swap" or not conflicts)
+                ):
+                    if replica_id is not None:
+                        counts[replica_id] = counts.get(replica_id, 0) + 1
+                    self._inference_count += 1
+                    if model_name:
+                        self._model_inference_counts[model_name] = (
+                            self._model_inference_counts.get(model_name, 0) + 1
+                        )
+                    logging.debug(
+                        "[Inference] Started - active count: %s",
+                        self._inference_count,
+                    )
+                    return replica_id
+            if handoff_active:
+                wait_reason = {"shared_gpu_handoff": 1}
+            elif not model_slot_available:
+                wait_reason = {
+                    "model": model_name or "default",
+                    "in_flight": model_in_flight,
+                    "capacity": model_capacity,
+                }
+            else:
+                wait_reason = conflicts
+            if wait_reason != waiting_for:
+                logging.info(
+                    "[LLM Slots] Waiting to use %s while %s finishes",
+                    model_name,
+                    wait_reason,
+                )
+                waiting_for = wait_reason
+            await asyncio.sleep(0.05)
+
+    def _decrement_inference_count(
+        self, model_name: Optional[str] = None, replica_id=None
+    ):
         """Thread-safe decrement of inference counter."""
         with self._inference_count_lock:
+            counts = getattr(self, "_replica_inference_counts", {})
+            if replica_id is not None:
+                counts[replica_id] = max(0, counts.get(replica_id, 0) - 1)
+                if counts[replica_id] == 0:
+                    del counts[replica_id]
             self._inference_count = max(0, self._inference_count - 1)
             if model_name and model_name in self._model_inference_counts:
                 self._model_inference_counts[model_name] = max(
@@ -9118,7 +9783,7 @@ class Pipes:
                     available, _ = await fallback_client.check_availability()
                     if available:
                         logging.info(
-                            "[MUSIC] LLM temporarily unavailable during music generation; forwarding text request"
+                            "[LLM] Temporarily unavailable during a shared GPU handoff; forwarding text request"
                         )
                         is_streaming = data.get("stream", False)
                         response = (
@@ -9133,7 +9798,7 @@ class Pipes:
                         return response, None
             return {
                 "error": {
-                    "message": "LLM temporarily unavailable while this node is generating music.",
+                    "message": "LLM temporarily unavailable while this worker is using its shared GPU slot.",
                     "type": "temporarily_unavailable",
                 }
             }, None
@@ -9193,7 +9858,15 @@ class Pipes:
         # Mark inference as in progress to prevent context reset during processing
         # and to expose per-model slot usage to the router heartbeat.
         slot_model = self._resolve_slot_model(data)
-        self._increment_inference_count(slot_model)
+        preferred_replica = None
+        requested_model = str(data.get("model") or "")
+        if "#" in requested_model:
+            preferred_replica = self._resolve_requested_model_id(requested_model)
+            if preferred_replica in getattr(self, "_failed_replica_ids", set()):
+                raise RuntimeError(
+                    f"Requested replica {preferred_replica} failed to load"
+                )
+        replica_id = await self._acquire_inference_slot(slot_model, preferred_replica)
 
         # Keep resource diagnostics accurate for the common resident-model
         # path. Swap-mode safety is governed by the inference counter above,
@@ -9207,17 +9880,35 @@ class Pipes:
 
         inference_cleanup_deferred = False
 
-        def finish_inference():
+        def release_inference():
             self.resource_manager.mark_model_in_use(initial_llm_type, False)
-            self._decrement_inference_count(slot_model)
+            self._decrement_inference_count(slot_model, replica_id)
 
             if self.current_context and self.current_context > self._optimal_context:
                 if not self._is_inference_in_progress():
                     self._schedule_context_reset()
 
+        def finish_inference():
+            instance = getattr(self, "persistent_llms", {}).get(replica_id)
+            done = getattr(instance, "_native_stream_done", None)
+            if (
+                done is not None
+                and self._resolved_parallel_for_model(replica_id, instance) == 1
+                and not done.is_set()
+            ):
+                # Stream.close() requests cancellation, but a long native prefill
+                # may still be running after its bounded join. Keep its lease.
+                def wait_and_release():
+                    done.wait()
+                    release_inference()
+
+                threading.Thread(target=wait_and_release, daemon=True).start()
+            else:
+                release_inference()
+
         try:
             response, audio_response = await self._get_response_internal(
-                data, completion_type
+                data, completion_type, replica_id=replica_id
             )
             if hasattr(response, "__next__"):
                 response = _TrackedInferenceStream(response, finish_inference)
@@ -9230,11 +9921,13 @@ class Pipes:
             if not inference_cleanup_deferred:
                 finish_inference()
 
-    async def _get_response_internal(self, data, completion_type="chat"):
+    async def _get_response_internal(
+        self, data, completion_type="chat", replica_id=None
+    ):
         """Internal implementation of get_response."""
         data["local_uri"] = self.local_uri
         # Apply model-specific config overrides
-        data = self._apply_model_config_overrides(data)
+        data = self._apply_model_config_overrides(data, replica_id)
         images = []
         if "messages" in data:
             # Process messages to extract images and handle content types
@@ -9566,7 +10259,12 @@ class Pipes:
         # Vision model fallback: If the target model is a vision model but no images
         # are in the request, fall back to a non-vision model if one is available.
         # This optimizes resource usage since vision models are heavier.
-        if target_model and not images and self._is_vision_model(target_model):
+        if (
+            replica_id is None
+            and target_model
+            and not images
+            and self._is_vision_model(target_model)
+        ):
             non_vision_model = self._find_non_vision_model()
             if non_vision_model:
                 logging.debug(
@@ -9576,11 +10274,24 @@ class Pipes:
                 target_model = non_vision_model
 
         # Lazy load the LLM with calculated context (estimated prompt tokens + 16k headspace)
-        self._get_llm(target_model, required_context)
-        data["model"] = self._resolve_source_model(self.current_llm_name)
+        target_model = replica_id or target_model
+        if target_model:
+            required_context = self._configured_context_limit_for_model(target_model)
+        request_llm = self._get_llm(target_model, required_context)
+        request_context = required_context
+        # Global reload helpers can destroy a sibling's live context. Concurrent
+        # configurations use fixed, preloaded contexts and propagate failures.
+        allow_reload = (
+            len(self.available_models) <= 1
+            and self._inference_capacity_for_model(
+                self._resolve_source_model(target_model)
+            )
+            <= 1
+        )
+        data["model"] = self._resolve_source_model(target_model)
 
         if "stop" in data and data["stop"]:
-            new_stop = list(self.llm.params.get("stop", []))
+            new_stop = list(request_llm.params.get("stop", []))
             if isinstance(data["stop"], list):
                 new_stop.extend(data["stop"])
             else:
@@ -9613,7 +10324,7 @@ class Pipes:
             else data["prompt"]
         )
         # Handle images with vision-capable LLM
-        if self.llm and self.llm.is_vision and images:
+        if request_llm and request_llm.is_vision and images:
             # xllamacpp expects images in base64 data URL format (PNG or JPEG)
             # Convert any remote URLs to base64 data URLs, and convert WebP/other formats to PNG
             from PIL import Image as PILImage
@@ -9754,10 +10465,10 @@ class Pipes:
                     logging.warning(
                         f"[Vision] No images could be processed, falling back to text-only"
                     )
-        elif images and self.llm and not self.llm.is_vision:
+        elif images and request_llm and not request_llm.is_vision:
             # Non-vision model received images - use vision model fallback
             logging.debug(
-                f"[Vision Fallback] Non-vision model {self.current_llm_name} received {len(images)} image(s), using vision fallback"
+                f"[Vision Fallback] Non-vision model {target_model} received {len(images)} image(s), using vision fallback"
             )
             user_text = (
                 user_message if isinstance(user_message, str) else str(user_message)
@@ -9887,8 +10598,9 @@ class Pipes:
             BEFORE starting the stream, since streaming errors occur lazily during iteration
             and cannot be retried mid-stream.
             """
+            nonlocal request_llm
             max_retries = 3
-            current_context = self.current_context or 16384
+            current_context = request_context or 16384
             is_streaming = data.get("stream", False)
 
             # For streaming requests, pre-estimate tokens and ensure context size
@@ -9901,13 +10613,24 @@ class Pipes:
                     messages_or_prompt, "chat" if chat_mode else "completion"
                 )
                 required_context = calculate_context_size(estimated_tokens)
+                configured_context_limit = self._configured_context_limit_for_model(
+                    target_model
+                )
+                if required_context > configured_context_limit:
+                    logging.info(
+                        "[LLM] Streaming estimate requested %s context tokens; "
+                        "clamping allocation to configured model limit %s",
+                        f"{required_context:,}",
+                        f"{configured_context_limit:,}",
+                    )
+                    required_context = configured_context_limit
 
                 logging.debug(
                     f"[LLM] Streaming pre-check: estimated {estimated_tokens:,} tokens, "
                     f"required context {required_context:,}, current context {current_context:,}"
                 )
 
-                if required_context > current_context:
+                if allow_reload and required_context > current_context:
                     logging.info(
                         f"[LLM] Streaming request: estimated {estimated_tokens:,} tokens, "
                         f"pre-loading {required_context//1024}k context (current: {current_context//1024}k)"
@@ -9915,6 +10638,7 @@ class Pipes:
                     # Run blocking model reload in a thread so the event loop
                     # stays free to accept other connections / heartbeats.
                     await asyncio.to_thread(self._ensure_context_size, required_context)
+                    request_llm = self.llm
                     current_context = required_context
             else:
                 logging.debug(
@@ -9925,21 +10649,23 @@ class Pipes:
                 try:
                     if chat_mode:
                         logging.debug(
-                            f"[LLM] Calling llm.chat with stream={data.get('stream', False)}, context={self.current_context}"
+                            f"[LLM] Calling llm.chat with stream={data.get('stream', False)}, context={request_context}"
                         )
                         # Offload the blocking llama.cpp call to a thread so
                         # uvicorn's event loop stays responsive (otherwise
                         # /health, heartbeats, and new connections all stall
                         # while a large prefill or non-streaming generation
                         # runs, causing the router to see TCP connect failures).
-                        result = await asyncio.to_thread(self.llm.chat, **data)
+                        result = await _run_inference_call(request_llm.chat, **data)
                         logging.debug(f"[LLM] llm.chat returned type: {type(result)}")
                         # Log token/speed summary for non-streaming
                         if isinstance(result, dict) and not data.get("stream"):
                             _log_inference_summary(result)
                         return result
                     else:
-                        result = await asyncio.to_thread(self.llm.completion, **data)
+                        result = await _run_inference_call(
+                            request_llm.completion, **data
+                        )
                         if isinstance(result, dict) and not data.get("stream"):
                             _log_inference_summary(result)
                         return result
@@ -9970,9 +10696,12 @@ class Pipes:
                                 needed_tokens = current_context * 2
 
                         # Calculate new context: actual tokens needed + 16k headspace
-                        new_context = calculate_context_size(needed_tokens)
+                        new_context = min(
+                            calculate_context_size(needed_tokens),
+                            self._configured_context_limit_for_model(target_model),
+                        )
 
-                        if new_context > current_context:
+                        if allow_reload and new_context > current_context:
                             if not context_reload_can_help(
                                 error_msg, current_context, new_context
                             ):
@@ -9996,16 +10725,22 @@ class Pipes:
                             await asyncio.to_thread(
                                 self._ensure_context_size, new_context
                             )
+                            request_llm = self.llm
                             current_context = new_context
                             continue
 
                     # --- Handle GPU memory errors ---
-                    if _is_memory_error(error_msg) and attempt < max_retries - 1:
+                    if (
+                        allow_reload
+                        and _is_memory_error(error_msg)
+                        and attempt < max_retries - 1
+                    ):
                         logging.warning(
                             f"[LLM] GPU memory error during inference (attempt {attempt + 1}/{max_retries}): {error_msg}"
                         )
                         reduced = self._reduce_gpu_layers()
                         if reduced:
+                            request_llm = self.llm
                             logging.info(
                                 f"[LLM] Reduced GPU layers, retrying inference..."
                             )
@@ -10020,12 +10755,12 @@ class Pipes:
 
             # Should not reach here, but just in case
             if chat_mode:
-                return await asyncio.to_thread(self.llm.chat, **data)
+                return await _run_inference_call(request_llm.chat, **data)
             else:
-                return await asyncio.to_thread(self.llm.completion, **data)
+                return await _run_inference_call(request_llm.completion, **data)
 
         # Check if local LLM is available, if not use fallback server
-        if self.llm is None:
+        if request_llm is None:
             logging.warning("[LLM] No local model available, using fallback server...")
             if completion_type == "chat":
                 response = await self.fallback_inference(data["messages"])
@@ -10055,12 +10790,15 @@ class Pipes:
                 logging.error(f"[LLM] Data that caused failure: {data}")
                 # Try reducing GPU layers before resorting to fallback
                 error_msg = str(e)
-                if _is_memory_error(error_msg) and await asyncio.to_thread(
-                    self._reduce_gpu_layers
+                if (
+                    allow_reload
+                    and _is_memory_error(error_msg)
+                    and await asyncio.to_thread(self._reduce_gpu_layers)
                 ):
+                    request_llm = self.llm
                     logging.info("[LLM] Retrying chat after GPU layer reduction...")
                     try:
-                        response = await asyncio.to_thread(self.llm.chat, **data)
+                        response = await _run_inference_call(request_llm.chat, **data)
                     except Exception:
                         logging.error(
                             "[LLM] Retry after layer reduction also failed, using fallback"
@@ -10081,14 +10819,19 @@ class Pipes:
                 logging.error(f"[LLM] Data that caused failure: {data}")
                 # Try reducing GPU layers before resorting to fallback
                 error_msg = str(e)
-                if _is_memory_error(error_msg) and await asyncio.to_thread(
-                    self._reduce_gpu_layers
+                if (
+                    allow_reload
+                    and _is_memory_error(error_msg)
+                    and await asyncio.to_thread(self._reduce_gpu_layers)
                 ):
+                    request_llm = self.llm
                     logging.info(
                         "[LLM] Retrying completion after GPU layer reduction..."
                     )
                     try:
-                        response = await asyncio.to_thread(self.llm.completion, **data)
+                        response = await _run_inference_call(
+                            request_llm.completion, **data
+                        )
                     except Exception:
                         logging.error(
                             "[LLM] Retry after layer reduction also failed, using fallback"
@@ -10235,12 +10978,17 @@ class Pipes:
                         logging.error(
                             f"[STREAMING] Context size error during streaming. "
                             f"Prompt required {needed_tokens:,} tokens but context was insufficient. "
-                            f"The model will be reloaded with larger context for the next request."
+                            f"Configured context: {request_context:,} tokens."
                         )
                         # Pre-load larger context for next request
-                        if needed_tokens > 0:
-                            new_context = calculate_context_size(needed_tokens)
-                            current_context = pipes_self.current_context or 16384
+                        if allow_reload and needed_tokens > 0:
+                            new_context = min(
+                                calculate_context_size(needed_tokens),
+                                pipes_self._configured_context_limit_for_model(
+                                    target_model
+                                ),
+                            )
+                            current_context = request_context or 16384
                             if context_reload_can_help(
                                 error_msg, current_context, new_context
                             ):

@@ -8,9 +8,17 @@ import logging
 import json
 import math
 from Globals import getenv
+from ezlocalai.InferenceSettings import gpu_profile, resolve_kv_cache_type
+from ezlocalai.Speculative import (
+    speculative_backend,
+    dflash_settings,
+    download_dflash_model,
+    dflash_hotfix_status,
+)
 
 DEFAULT_MODEL = getenv("DEFAULT_MODEL")
 MTP_SPEC_DRAFT_P_MIN_DEFAULT = 0.25
+QWEN38_MTP_SPEC_DRAFT_P_MIN_DEFAULT = 0.1
 MTP_SPEC_DRAFT_N_MAX_MAX = 16
 BUILT_IN_MTP_MODEL_FAMILIES = ("qwen3.8-27b",)
 PROMPT_CACHE_AUTO_MIN_MIB = 8192
@@ -234,12 +242,72 @@ def resolve_prompt_cache_mib(
     return parsed, "explicit LLM_PROMPT_CACHE_MIB"
 
 
+def cap_prompt_cache_mib_for_ram(
+    requested_mib: int,
+    reason: str,
+    available_ram_mib: Optional[int] = None,
+    total_ram_mib: Optional[int] = None,
+) -> Tuple[int, str]:
+    """Keep llama.cpp's growing host prompt cache from exhausting system RAM."""
+    if requested_mib <= 0:
+        return requested_mib, reason
+    if str(getenv("LLM_PROMPT_CACHE_ALLOW_UNSAFE", "false")).strip().lower() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }:
+        return requested_mib, f"{reason}; unsafe RAM cap bypass enabled"
+    try:
+        if available_ram_mib is None or total_ram_mib is None:
+            import psutil
+
+            memory = psutil.virtual_memory()
+            available_ram_mib = int(memory.available / 1024**2)
+            total_ram_mib = int(memory.total / 1024**2)
+    except (TypeError, ValueError, ImportError) as error:
+        logging.warning("[LLM] Prompt-cache RAM safety probe failed: %s", error)
+        fallback_mib = min(requested_mib, 4096)
+        return (
+            fallback_mib,
+            f"{reason}; RAM safety probe unavailable, capped at 4096 MiB",
+        )
+    try:
+        margin_mib = max(0, int(getenv("LLM_PROMPT_CACHE_RAM_MARGIN_MIB", "4096")))
+    except (TypeError, ValueError):
+        margin_mib = 4096
+        logging.warning("[LLM] Invalid prompt-cache RAM margin; using 4096 MiB")
+    try:
+        max_fraction = float(getenv("LLM_PROMPT_CACHE_MAX_RAM_FRACTION", "0.25"))
+    except (TypeError, ValueError):
+        max_fraction = 0.25
+        logging.warning("[LLM] Invalid prompt-cache RAM fraction; using 0.25")
+    max_fraction = min(max(max_fraction, 0.0), 1.0)
+    safe_mib = min(
+        max(0, int(available_ram_mib) - margin_mib),
+        int(int(total_ram_mib) * max_fraction),
+    )
+    safe_mib = max(0, (safe_mib // 256) * 256)
+    if requested_mib <= safe_mib:
+        return requested_mib, reason
+    return (
+        safe_mib,
+        f"{reason}; RAM safety cap (available={int(available_ram_mib)} MiB, "
+        f"total={int(total_ram_mib)} MiB, reserve={margin_mib} MiB, "
+        f"max_fraction={max_fraction:.2f})",
+    )
+
+
 def get_mtp_spec_draft_n_max(
     main_gpu: int = 0, model_name: str = ""
 ) -> Tuple[int, float]:
-    """Choose MTP draft length from the primary GPU's total VRAM."""
+    """Choose model-aware MTP defaults; card overrides beat global overrides."""
     total_vram = get_total_vram_per_gpu()
-    raw_override = str(getenv("MTP_SPEC_DRAFT_N_MAX", "auto") or "auto").strip()
+    family, _ = gpu_profile(main_gpu)
+    card_override = os.getenv(f"MTP_SPEC_DRAFT_N_MAX_{family}", "") if family else ""
+    raw_override = str(
+        card_override.strip() or getenv("MTP_SPEC_DRAFT_N_MAX", "auto") or "auto"
+    ).strip()
 
     card_vram_gb = 0.0
     if total_vram:
@@ -257,6 +325,12 @@ def get_mtp_spec_draft_n_max(
             return min(max(1, override), MTP_SPEC_DRAFT_N_MAX_MAX), card_vram_gb
 
     model_size_b = get_model_size_billions(model_name)
+    if "qwen3.8-27b" in (model_name or "").lower():
+        # Benchmarked on RTX 3090 Ti with Q3_K_XL at 180K context. Three draft
+        # tokens preserved novel-generation throughput while improving
+        # copy-heavy code generation by about 15% over the old n_max=2 default.
+        # T4 has substantially less room for the draft graph; start shorter.
+        return (2 if family == "T4" else 3), card_vram_gb
     if 0 < model_size_b <= 4 and card_vram_gb >= 20:
         return 4, card_vram_gb
 
@@ -265,18 +339,25 @@ def get_mtp_spec_draft_n_max(
     return 2, card_vram_gb
 
 
-def get_mtp_spec_draft_p_min() -> float:
+def get_mtp_spec_draft_p_min(model_name: str = "") -> float:
     """Minimum draft token probability used for MTP speculative decoding."""
-    raw_value = getenv("MTP_SPEC_DRAFT_P_MIN", str(MTP_SPEC_DRAFT_P_MIN_DEFAULT))
+    model_default = (
+        QWEN38_MTP_SPEC_DRAFT_P_MIN_DEFAULT
+        if "qwen3.8-27b" in (model_name or "").lower()
+        else MTP_SPEC_DRAFT_P_MIN_DEFAULT
+    )
+    raw_value = getenv("MTP_SPEC_DRAFT_P_MIN", "auto")
+    if str(raw_value or "").strip().lower() in {"", "auto"}:
+        return model_default
     try:
         value = float(raw_value)
     except (TypeError, ValueError):
         logging.warning(
             "[LLM] Invalid MTP_SPEC_DRAFT_P_MIN=%r; using %.2f",
             raw_value,
-            MTP_SPEC_DRAFT_P_MIN_DEFAULT,
+            model_default,
         )
-        return MTP_SPEC_DRAFT_P_MIN_DEFAULT
+        return model_default
 
     if value < 0.0 or value > 1.0:
         clamped = min(max(value, 0.0), 1.0)
@@ -336,6 +417,7 @@ def calculate_auto_batch_sizes(
     # Safe defaults for older/smaller GPUs.
     n_batch = 1024
     n_ubatch = 256
+    family, _ = gpu_profile(gpu_idx)
 
     if cc_num >= 89:  # Ada / Hopper / Blackwell
         if free_gb >= 28:
@@ -347,7 +429,9 @@ def calculate_auto_batch_sizes(
         elif free_gb >= 8:
             n_batch, n_ubatch = 1024, 512
     elif cc_num >= 80:  # Ampere
-        if free_gb >= 22 and effective_max_tokens and effective_max_tokens <= 300_000:
+        if family == "A100" and free_gb >= 60:
+            n_batch, n_ubatch = 8192, 2048
+        elif free_gb >= 22 and effective_max_tokens and effective_max_tokens <= 300_000:
             n_batch, n_ubatch = 4096, 1024
         elif free_gb >= 12:
             n_batch, n_ubatch = 2048, 512
@@ -357,14 +441,21 @@ def calculate_auto_batch_sizes(
         if free_gb >= 16:
             n_batch, n_ubatch = 2048, 512
 
+    if family == "T4":
+        # Leave room for 27B Q3 weights, the vision projector and MTP state.
+        # Logical batches can stay larger than the physical compute graph.
+        n_batch, n_ubatch = (512, 128) if free_gb >= 12 else (256, 64)
+
     if effective_max_tokens:
         n_batch = min(n_batch, max(1, int(effective_max_tokens)))
         n_ubatch = min(n_ubatch, n_batch)
 
     # MTP creates a second draft context, so its prompt-processing graph is
-    # materially more expensive than a normal single-context load. At 128K+
-    # context, cap the automatic physical batch before model initialization;
-    # explicit LLM_UBATCH_SIZE values still take precedence below.
+    # materially more expensive than a normal single-context load. Qwen3.8's
+    # hybrid cache is small enough for a larger physical batch: 1024 was stable
+    # and 8.7% faster than 256 on a 24GB 3090 Ti at 180K context. Keep 24GB
+    # cards at 512 above 200K context, while 32GB cards retain 1024. Preserve
+    # the conservative cap for other MTP families until they are benchmarked.
     mtp_long_context_cap = False
     if (
         model_name
@@ -372,13 +463,20 @@ def calculate_auto_batch_sizes(
         and effective_max_tokens >= 131_072
         and n_ubatch > 256
     ):
-        n_ubatch = 256
-        mtp_long_context_cap = True
+        if "qwen3.8-27b" in model_name.lower():
+            cap = 1024 if total_gb >= 28 or effective_max_tokens <= 200_000 else 512
+        else:
+            cap = 256
+        if n_ubatch > cap:
+            n_ubatch = cap
+            mtp_long_context_cap = True
 
     reason = (
         f"GPU {gpu_idx}, free={free_gb:.1f}GB/{total_gb:.1f}GB, "
         f"CC {cc_num // 10}.{cc_num % 10}"
     )
+    if family:
+        reason += f", {family} profile"
     if mtp_long_context_cap:
         reason += ", MTP long-context cap"
     return n_batch, n_ubatch, reason
@@ -954,7 +1052,18 @@ class LLM:
             self.model_name,
             effective_max_tokens,
         )
+        requested_cache_mib = cache_mib
+        cache_mib, cache_reason = cap_prompt_cache_mib_for_ram(cache_mib, cache_reason)
+        self.prompt_cache_requested_mib = requested_cache_mib
+        self.prompt_cache_mib = cache_mib
         self.xlc_params.cache_ram_mib = cache_mib
+        if cache_mib < requested_cache_mib:
+            logging.warning(
+                "[LLM] Prompt cache reduced from %s MiB to %s MiB: %s",
+                requested_cache_mib,
+                cache_mib,
+                cache_reason,
+            )
         if cache_mib > 0:
             logging.info(
                 "[LLM] Prompt cache: %s MiB (%s). Set LLM_PROMPT_CACHE_MIB=0 to disable.",
@@ -984,10 +1093,10 @@ class LLM:
             xlc.llama_flash_attn_type.LLAMA_FLASH_ATTN_TYPE_ENABLED
         )
 
-        # KV cache type: q4_0 saves ~8x VRAM vs f16, but requires FA_ALL_QUANTS
-        # compiled into the CUDA backend. Use f16 on Jetson/embedded where FA_ALL_QUANTS
-        # may not be available, or q4_0 on desktop GPUs with ample VRAM.
-        kv_cache_type = getenv("KV_CACHE_TYPE", "q4_0").lower().strip()
+        # Keep precision selection aligned with the residency memory planner.
+        # Jetson's explicit f16 override and user overrides take precedence.
+        kv_cache_type = resolve_kv_cache_type(self.main_gpu, self.model_name)
+        self.kv_cache_type = kv_cache_type
         kv_type_map = {
             "f16": xlc.ggml_type.GGML_TYPE_F16,
             "f32": xlc.ggml_type.GGML_TYPE_F32,
@@ -1017,9 +1126,10 @@ class LLM:
             auto_parallel = max(1, effective_max_tokens // target_per_slot)
             resolved_parallel = min(auto_parallel, 16)
 
-        if is_mtp_model(self.model_name) and resolved_parallel != 1:
+        self.speculative_type = speculative_backend(self.model_name)
+        if self.speculative_type != "none" and resolved_parallel != 1:
             logging.info(
-                f"[LLM] MTP model detected; forcing n_parallel=1 "
+                f"[LLM] {self.speculative_type} enabled; forcing n_parallel=1 "
                 f"(requested {resolved_parallel})"
             )
             resolved_parallel = 1
@@ -1029,11 +1139,46 @@ class LLM:
         # cont_batching is True by default in xllamacpp, but be explicit
         self.xlc_params.cont_batching = True
 
-        if is_mtp_model(self.model_name):
+        if self.speculative_type == "dflash2":
+            # llama.cpp's standalone draft memory fitter cannot initialize a
+            # DFlash context without the target. Let Pipes' isolated OOM probes
+            # own residency decisions instead of fitting without the draft.
+            self.xlc_params.fit_params = False
+            n_max, p_min = dflash_settings(self.main_gpu)
+            self.xlc_params.speculative.types = [
+                xlc.common_speculative_type.COMMON_SPECULATIVE_TYPE_DRAFT_DFLASH
+            ]
+            draft = self.xlc_params.speculative.draft
+            draft.mparams.path = download_dflash_model()
+            draft.n_max = n_max
+            draft.p_min = p_min
+            draft.n_gpu_layers = GPU_LAYERS
+            # Keep draft and target on the assigned worker GPU. The draft has
+            # its own device list and otherwise defaults to the first GPU.
+            if torch.cuda.is_available():
+                backend_name = "ROCm" if getattr(torch.version, "hip", None) else "CUDA"
+                draft.devices = f"{backend_name}{self.main_gpu}"
+            logging.info(
+                "[LLM] DFlash2 enabled: draft=%s, n_max=%s, p_min=%s, GPU=%s",
+                draft.mparams.path,
+                n_max,
+                p_min,
+                self.main_gpu,
+            )
+            hotfix = dflash_hotfix_status()
+            logging.info("[LLM] DFlash native hotfix: %s", hotfix)
+            if mmproj_path and hotfix == "unpatched":
+                logging.warning(
+                    "[LLM] This xllamacpp build lacks the DFlash large-image "
+                    "cache hotfix; vision requests may fail. Rebuild the CUDA "
+                    "image or run scripts/build_xllamacpp.py --install with "
+                    "the appropriate backend flag."
+                )
+        elif self.speculative_type == "mtp":
             spec_draft_n_max, card_vram_gb = get_mtp_spec_draft_n_max(
                 self.main_gpu, self.model_name
             )
-            spec_draft_p_min = get_mtp_spec_draft_p_min()
+            spec_draft_p_min = get_mtp_spec_draft_p_min(self.model_name)
             self.xlc_params.speculative.types = [
                 xlc.common_speculative_type.COMMON_SPECULATIVE_TYPE_DRAFT_MTP
             ]
@@ -1144,8 +1289,8 @@ class LLM:
                 free_after = get_free_vram_per_gpu()[self.main_gpu]
                 self.vram_load_delta_gb = max(0.0, gpu_free_before_load - free_after)
                 components = ["context/KV and compute graphs"]
-                if is_mtp_model(self.model_name):
-                    components.append("MTP draft context")
+                if self.speculative_type != "none":
+                    components.append(f"{self.speculative_type} draft/context")
                 if mmproj_path:
                     components.append("vision projector")
                 logging.info(
@@ -1194,6 +1339,9 @@ class LLM:
             "temperature": kwargs.get("temperature", self.params["temperature"]),
             "top_p": kwargs.get("top_p", self.params["top_p"]),
             "stream": stream,
+            # WorkConductor keeps its system/ability prefix byte-stable. Make
+            # prefix reuse explicit instead of relying on backend defaults.
+            "cache_prompt": True,
         }
         chat_request = self._apply_sampling_kwargs(chat_request, kwargs)
 
@@ -1373,6 +1521,11 @@ class LLM:
             finally:
                 generation_complete.set()
 
+        # Pipes keeps a single-slot replica leased while native cancellation is
+        # still finishing, even when the generator's bounded close has returned.
+        if getattr(self, "n_parallel", 1) == 1:
+            self._native_stream_done = generation_complete
+
         # Start inference in background thread
         inference_thread = threading.Thread(target=run_inference, daemon=True)
         inference_thread.start()
@@ -1383,6 +1536,7 @@ class LLM:
         chunks_yielded = 0
         assistant_chunks_yielded = 0
         pending_final_chunk = None
+        stream_diagnostics = {}
         last_keepalive = time.time()
         keepalive_interval = 5.0  # Send keepalive every 5 seconds during processing
 
@@ -1391,6 +1545,31 @@ class LLM:
                 try:
                     chunk_data = chunk_queue.get(timeout=0.1)
                     chunks_yielded += 1
+                    # Counters only: never include prompts, generated text or tool arguments.
+                    diagnostic_chunk = chunk_data
+                    if isinstance(diagnostic_chunk, str):
+                        try:
+                            diagnostic_chunk = json.loads(diagnostic_chunk)
+                        except (ValueError, TypeError):
+                            diagnostic_chunk = {}
+                    if isinstance(diagnostic_chunk, dict):
+                        for source_key, keys in (
+                            ("usage", ("prompt_tokens", "completion_tokens")),
+                            (
+                                "timings",
+                                (
+                                    "prompt_n",
+                                    "predicted_n",
+                                    "prompt_ms",
+                                    "predicted_ms",
+                                ),
+                            ),
+                        ):
+                            values = diagnostic_chunk.get(source_key) or {}
+                            if isinstance(values, dict):
+                                for key in keys:
+                                    if isinstance(values.get(key), (int, float)):
+                                        stream_diagnostics[key] = values[key]
                     logging.debug(
                         f"[LLM] Processing chunk {chunks_yielded}: {type(chunk_data)}"
                     )
@@ -1444,8 +1623,6 @@ class LLM:
                     elif isinstance(chunk_data, str):
                         # JSON string - parse it
                         try:
-                            import json
-
                             parsed = json.loads(chunk_data)
                             if "choices" in parsed:
                                 has_assistant_text = stream_chunk_has_assistant_text(
@@ -1555,9 +1732,19 @@ class LLM:
             raise error_holder[0]
 
         if assistant_chunks_yielded == 0:
+            from importlib.metadata import PackageNotFoundError, version
+
+            try:
+                native_version = version("xllamacpp")
+            except PackageNotFoundError:
+                native_version = "unknown"
             message = (
                 "LLM stream completed without any assistant text. "
-                f"raw_chunks={chunks_yielded}; model={self.model_name}"
+                f"raw_chunks={chunks_yielded}; model={self.model_name}; "
+                f"finish_reason={stream_chunk_finish_reason(pending_final_chunk) or 'missing'}; "
+                f"backend={getattr(self, 'speculative_type', 'unknown')}; "
+                f"xllamacpp={native_version}; "
+                f"timings={json.dumps(stream_diagnostics, sort_keys=True)}"
             )
             logging.error(f"[LLM] {message}")
             yield {

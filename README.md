@@ -97,6 +97,81 @@ Models persist across container updates - you won't re-download them when updati
 
 ## Benchmarks
 
+### ASUS GX10 / NVIDIA GB10
+
+Build the ARM64 image on the GX10 with a CUDA 13 capable host driver and the
+NVIDIA Container Toolkit:
+
+```bash
+docker compose -f docker-compose-gb10.yml build
+docker compose -f docker-compose-gb10.yml up -d
+```
+
+The GB10 image uses CUDA 13 and native `sm_121` kernels, a matched CUDA
+torch/torchaudio pair, and a source-built CUDA/cuDNN CTranslate2 for Whisper.
+It also builds the native Qwen TTS and stable-diffusion.cpp image backends.
+The ordinary PyPI ARM64 CTranslate2 wheel used previously lacked CUDA support.
+See [NVIDIA's GB10 compilation guidance](https://docs.nvidia.com/dgx/dgx-spark-porting-guide/porting/compilation.html)
+and [CTranslate2's build options](https://opennmt.net/CTranslate2/installation.html#build-options).
+The first build compiles several native runtimes; subsequent builds reuse layers.
+
+Resident CUDA embedding instances run inference warmup before joining the pool.
+`EMBEDDING_KEEP_LOADED=true` retains them; `EMBEDDING_WARMUP=false` opts out of
+the warmup. CPU and transient instances skip it. This moves first-use CUDA work
+into startup rather than the first embedding request. Each instance retains its
+full configured context, and input is never truncated for speed.
+
+The GB10 profile starts with two text slots and two resident instances each for
+embedding, STT and TTS; image and video remain one generation each. The measured
+1/2/4-replica sweep found little throughput benefit from four versus two, while
+two left about 19 GiB more available RAM. Larger counts can be configured for a
+different workload. Existing `.env` values override compose defaults; to apply
+the tested auxiliary pool sizes while preserving other settings:
+
+```bash
+python3 scripts/configure_gb10_pools.py --env-file .env --replicas 2
+docker compose -f docker-compose-gb10.yml up -d
+```
+
+This creates a private `.env.pre-gb10-pools` backup. `/v1/resources` includes
+`model_pools` with each replica's actual device, so a single CPU fallback cannot
+hide behind another CUDA instance in the same pool. GB10 defaults to
+`QWEN_TTS_DISABLE_CUDA_GRAPHS=true` to avoid the observed libmtmd audio-decoder
+failure during repeated GPU requests; the setting applies only to TTS child
+processes. Text and embedding CUDA graph settings are unchanged.
+
+Compare direct worker timings immediately after startup and again while warm:
+
+```bash
+python scripts/benchmark_worker.py --base-url http://GX10:8091 \
+  --text-model openbmb/MiniCPM5-2B-GGUF --output gx10.json
+# Optionally add --speech-file sample.wav --tts to exercise both voice models.
+```
+
+The benchmark reads `EZLOCALAI_API_KEY` from the environment or `.env`, tests
+short through approximately 8,500-token inputs and concurrent embeddings, checks
+embedding dimensions/norms, and records wall times separately from LLM native
+timings. Compare identical models, quantization, context and concurrency; exclude
+image builds and other GPU work from timing runs. `/v1/resources` records loaded
+models and device placement in each result file.
+
+See the [GX10 measurements and remaining limitations](benchmarks/gx10-20261004.md)
+for first-request embeddings, speech/media checks and the CUDA graph comparison.
+
+For Docker access without sudo, add the host account to the Docker group once:
+
+```bash
+sudo usermod -aG docker josh
+# Log out and back in, or start a shell with refreshed group membership:
+newgrp docker
+docker compose -f docker-compose-gb10.yml ps
+```
+
+This follows [Docker's Linux post-install instructions](https://docs.docker.com/engine/install/linux-postinstall/).
+Docker group membership grants root-level Docker access; do not loosen socket permissions.
+
+### RTX 4090
+
 Performance tested on Intel i9-12900KS + RTX 4090 (24GB):
 
 | Model | Size | Speed | Notes |
@@ -228,6 +303,263 @@ python benchmark_model_lifecycle.py \
   --rounds 2
 ```
 
+## Qwen3.8-27B Performance Tuning
+
+Router failures are retained independently of worker registration in
+`ROUTER_ERROR_FILE` (default `/data/router-errors.json`, on the router's data
+volume). `ROUTER_ERROR_ARCHIVE_MAX` bounds the archive (default 2,000 events).
+The dashboard and `/v1/router/errors` show only errors from the past 24 hours,
+capped at the newest 100 archived/live events (50 in the HTML table). Worker
+error badges count all retained events in that 24-hour window, before the table
+limit. Errors expire on the next dashboard refresh, including after a router or
+worker restart. The API's `total_errors` remains cumulative; `recent_error_count`
+and `recent_errors` in dashboard/error responses use the 24-hour window. The archive
+survives pruning, deregistration and router restarts; it cannot recover errors
+already discarded by an older router. Protect the data volume as error messages
+may include upstream diagnostics. If a crashed process registers with a new
+worker ID, recent failures are restored by its stable label and URL so it cannot
+bypass the circuit-breaker cooldown. A transfer interruption is not proof of an OOM
+or native crash: correlate its timestamp with the affected worker's container
+exit status and logs. Tunnel interruptions now preserve the underlying error;
+LLM failover retries only before assistant output starts, otherwise it emits an
+explicit stream error rather than silently completing or duplicating output.
+
+Qwen3.8-27B automatically uses **MTP**, through xllamacpp 2026.10.11549,
+with one inference slot per instance, three draft tokens and a 0.1 draft probability threshold.
+DFlash2 remains opt-in with `LLM_SPECULATIVE_TYPE=dflash2`; only that backend
+downloads the revision-pinned
+[Inco Q4_K_M draft](https://huggingface.co/incoai/Qwen3.8-27B-DFlash2-GGUF)
+(about 1.1 GB of weights, plus its runtime buffers) into the shared HF cache.
+The target model and sampling settings are unchanged: draft tokens are verified
+by the target, not accepted unconditionally. Physical prompt batches are
+hardware- and context-aware: 24 GB cards use an ubatch of 1024 through 200K
+context and 512 above 200K, while 32 GB cards use 1024. Other MTP model
+families retain their conservative defaults.
+
+The host-RAM prompt cache is context-aware, but its requested capacity is
+capped to the smaller of 25% of total RAM or available RAM minus 4 GiB. This
+prevents a cache that grows during long-context traffic from OOM-killing a
+memory-constrained worker. The effective and requested sizes are reported in
+`/v1/resources` under `model_lifecycle.loaded_llm_runtime`. Tune the guard with
+`LLM_PROMPT_CACHE_RAM_MARGIN_MIB` and
+`LLM_PROMPT_CACHE_MAX_RAM_FRACTION`. `LLM_PROMPT_CACHE_ALLOW_UNSAFE=true`
+restores uncapped behavior, including for explicit `LLM_PROMPT_CACHE_MIB`
+values, and should only be used after verifying host-RAM headroom under long
+prompts.
+
+The CUDA and GB10 images build xllamacpp from source to target specific GPU
+architectures. The DFlash large-image cache fix is included upstream in the
+pinned llama.cpp revision; see [native build details](native/patches/README.md).
+Test an idle worker's vision stream with
+`python benchmark_vision.py --url http://localhost:8091 --stream` (set
+`EZLOCALAI_API_KEY` if authentication is enabled).
+
+All values remain operator-overridable:
+
+```bash
+LLM_SPECULATIVE_TYPE=auto  # auto, dflash2, mtp, none
+MTP_SPEC_DRAFT_N_MAX=auto  # Qwen3.8-27B: T4=2; other cards=3
+MTP_SPEC_DRAFT_P_MIN=auto  # Qwen3.8-27B: 0.1
+KV_CACHE_TYPE=auto        # q4_0; q8_0 remains an explicit precision opt-in
+DFLASH_SPEC_DRAFT_N_MAX=auto  # T4: 2; 3090: 3; others: 4; explicit 1..7 overrides
+DFLASH_SPEC_DRAFT_P_MIN=0.0
+LLM_BATCH_SIZE=auto
+LLM_UBATCH_SIZE=auto
+```
+
+GPU-aware defaults for Qwen3.8-27B (explicit settings take precedence):
+
+| Worker GPU | MTP draft maximum | MTP p-min | Target K/V cache |
+| --- | --- | --- | --- |
+| RTX 3090 / 3090 Ti | 3 | 0.1 | q4_0 |
+| RTX 4090 | 3 | 0.1 | q4_0 |
+| RTX 5090 | 3 | 0.1 | q4_0 |
+| Tesla / NVIDIA T4 | 2 | 0.1 | q4_0 |
+| NVIDIA A100 (40/80 GB or MIG) | 3 | 0.1 | q4_0 |
+| NVIDIA H100 (PCIe/SXM or MIG) | 3 | 0.1 | q4_0 |
+
+These are starting profiles, not measured optima for every workload. To tune a
+mixed fleet from one configuration, use card-specific overrides such as
+`MTP_SPEC_DRAFT_N_MAX_3090=3`, `MTP_SPEC_DRAFT_N_MAX_5090=4`, or
+`KV_CACHE_TYPE_5090=q8_0`. The same suffixes work for `T4`, `A100`, and
+`H100` (for example `MTP_SPEC_DRAFT_N_MAX_T4=2`, `KV_CACHE_TYPE_A100=q8_0`,
+and `DFLASH_SPEC_DRAFT_N_MAX_H100=4`). Card-specific overrides beat global overrides.
+`KV_CACHE_TYPE=auto` selects the table; an existing explicit
+`KV_CACHE_TYPE=q4_0` still keeps Q4 on every card unless overridden per card.
+Other model families and GPU types retain Q4 by default; Jetson keeps its
+explicit F16 setting. The memory planner uses the resolved cache precision.
+The [local Q3 / 3090 Ti comparison](benchmarks/qwen38-3090ti-20260908.md)
+found mixed DFlash gains, including regressions on short thinking requests.
+The MTP three-token baseline is shared across larger cards; T4 starts with two.
+Higher values require on-card validation, not extrapolation from free VRAM.
+Batch/ubatch remain hardware- and context-aware as described above; explicit
+operator values are preserved.
+
+Deployment: remove an explicit `LLM_SPECULATIVE_TYPE=dflash2` override or set it
+to `auto`/`mtp`, then rebuild/restart each worker. Explicit `MTP_SPEC_DRAFT_*`
+and `KV_CACHE_TYPE*` values still win; set them to `auto` (or remove them) to
+adopt these defaults. The router does not choose the native decoding backend.
+DFlash's optional starting lengths are 2 on T4, 3 on 3090, and 4 on the other cards.
+
+The Colab notebook probes GPU and host memory inside its isolated server environment.
+For Qwen3.8-27B Q3_K_XL, its starting settings are:
+
+| Idle Colab GPU | Instances | Context per instance | Auto batch / physical batch | Total host prompt cache |
+| --- | --- | --- | --- | --- |
+| T4 (16 GB) | 1 | 8,192 | 512 / 128 | Disabled |
+| A100 (40 GB) | 1 | 262,144 | 4,096 / 1,024 | Available RAM / 8, at most 8 GiB |
+| A100 (80 GB) | 3 | 262,144 | Memory-dependent / 1,024 | Available RAM / 8, at most 8 GiB, divided among instances |
+| H100 (80 GB) | 3 | 262,144 | Memory-dependent / 1,024 | Available RAM / 8, at most 8 GiB, divided among instances |
+
+With MTP or DFlash enabled, `N_PARALLEL=3` loads three independent copies of the
+model, each with native `n_parallel=1` and the full `LLM_MAX_TOKENS` context.
+Requests reserve an instance through completion or stream cancellation; additional
+requests queue until one becomes free. The API exposes one public model name.
+Updated routers use the advertised independent instances even with
+`ROUTER_BUSY_SLOT_FALLBACK=false`. Both the worker and router need this update.
+Without speculative decoding, `N_PARALLEL` retains native shared-slot behavior.
+For speculative decoding, `N_PARALLEL=0` still selects one instance.
+
+The A100/H100 notebook default assumes approximately 22 GiB per Qwen3.8-27B
+Q3_K_XL instance and reserves 4 GiB of headroom: at least 70 GiB free selects
+three; 48–70 GiB selects two; smaller allocations select one. This gives full
+80 GB A100 and H100 runtimes three instances while keeping 40 GB and MIG
+allocations memory-gated. Other model/quant choices retain one instance.
+Override with `inference_overrides = {"N_PARALLEL": "1"}`.
+The residency planner counts every copy; an overcommitted configuration falls
+back to swapping with one usable slot. Replicas increase concurrency and share
+GPU compute and bandwidth; they do not promise faster individual requests.
+
+These Colab profiles are conservative starting points, not benchmarks on those GPUs.
+Context follows **free, visible VRAM**: below 20 GiB uses 8,192 tokens, 20–32 GiB
+uses 230,000, and at least 32 GiB uses 262,144. The 230K setting reflects the
+reported Qwen3.8-27B Q3_K_XL workload on 24 GB cards; 40 GB cards use the full context.
+MIG partitions and busy devices therefore do not inherit full-card memory budgets.
+Batch sizes also respond to free memory; T4 drops to 256 / 64 below 12 GiB free.
+The 27B model plus its vision projector is a tight fit on T4; CPU offload can
+still be necessary and depends on available system RAM. Keep other services disabled.
+The notebook prints its selection; `inference_overrides` can set explicit context,
+batch, cache, or speculative-decoding values. Context and host-cache limits here
+apply only to the notebook; existing server context/cache settings are unchanged.
+
+For this 27B model, target KV at 262,144 tokens is approximately 4.5 GiB with
+Q4 versus 8.5 GiB with Q8 (excluding recurrent state, weights, draft and compute
+buffers). Q8 therefore needs about 4 GiB extra. It is a precision upgrade, not
+a guaranteed speed improvement. Keep Q4 on 24 GB cards at long context. A
+smaller main-model quant also does not guarantee faster prefill or decode:
+kernel choice, acceptance, cache traffic and prompt content matter.
+
+An isolated sweep on an idle worker can be run with:
+
+```bash
+python benchmark_speculative.py --context 220000 --tokens 256 \
+  --draft-lengths 3,4,5,7 --prompt-chars 0,120000,360000 --repeats 2 \
+  --kv-cache q4_0
+```
+
+The sweep includes no-speculation and MTP controls, real code prefixes, actual
+prompt-token counts, prefill/decode timing, and greedy output hashes. Use the
+same immutable `--prompt-file` for all runs/cards. Allocated context alone is
+not a long-context benchmark: compare actual prompt lengths. Do not run this
+alongside the resident server on the same GPU. Greedy hash checks are a smoke
+test, not a proof of quality or of production-sampling throughput.
+Use `--sampling-profile thinking` or `--sampling-profile instruct` for the
+actual ezlocalai sampling settings; non-greedy runs do not compare output hashes.
+For a focused follow-up, `--backends mtp,dflash2` skips the no-speculation control.
+
+Single-GPU NVIDIA workers can also A/B test llama.cpp's experimental concurrent
+CUDA-stream optimization with `GGML_CUDA_GRAPH_OPT=1`. It primarily targets
+token-generation throughput rather than prompt processing. Results vary by GPU
+and model, so leave it disabled unless a representative decode benchmark shows
+a repeatable improvement.
+
+Existing `MTP_SPEC_DRAFT_*` settings apply only with the MTP backend; they do
+not tune DFlash2. Set `LLM_SPECULATIVE_TYPE=dflash2` for an A/B comparison or `none`
+to disable speculation. Other model families never receive the 27B draft.
+`DFLASH_MODEL_FILE` selects another quant from the same pinned repository;
+`DFLASH_MODEL_PATH` can point to an already downloaded compatible draft.
+
+Benchmark representative prompts on each card: more speculation is not always
+faster, and a draft that forces target layers onto CPU can erase the benefit.
+Explicit `LLM_UBATCH_SIZE`
+values are attempted first; the resilient loader retries smaller physical
+batches if model initialization runs out of GPU memory.
+
+For long-context prefill comparisons, use `benchmark_prefill.py` inside the
+CUDA image with the serving worker stopped. Freeze the input file between
+runs (for example, `git show <commit>:Pipes.py > /tmp/prefill-source.py`):
+
+```bash
+python benchmark_prefill.py --prompt-file /tmp/prefill-source.py \
+  --prompt-chars 720000 --context 220000 --backend mtp \
+  --batch 4096 --ubatch 512 --output /tmp/prefill.json
+```
+
+The report separates a cold prompt, an identical repeat, a short follow-up,
+and a larger appended message. Compare actual prompt tokens, evaluated tokens,
+cached tokens, and native prefill time; a 160K context with a four-token cache
+miss is a different workload from 160K uncached tokens. The source hash helps
+keep comparisons reproducible. Worker `/v1/resources` now reports effective
+`n_batch`, `n_ubatch`, `kv_cache_type`, `speculative_type`, and checkpoint settings
+under `model_lifecycle.loaded_llm_runtime`.
+
+The CUDA Compose service allows **10 minutes** for active responses to drain
+on shutdown (`WORKER_STOP_GRACE_PERIOD` overrides this). Docker's usual 10-second
+deadline can terminate a long prefill or generation mid-stream, producing a
+`ClientPayloadError` / incomplete transfer at the router. Use Compose's graceful
+stop/down path; an explicit short stop timeout, forced kill, crash, or a request
+that outlasts the grace period can still interrupt a response.
+
+## Qwen TTS with llama.cpp
+
+Local Qwen TTS now uses a persistent, private stdio worker built against the
+same llama.cpp revision as xllamacpp. It uses upstream libmtmd for the speaker
+encoder, talker, code predictor and vocoder. Standard images no longer install
+`qwen-tts` or its dedicated FlashAttention wheel. Torch/Transformers remain
+dependencies of other media models; they are not used for TTS synthesis.
+
+The default retains the **Qwen3-TTS-12Hz-0.6B-Base** model, using the
+[llama.cpp-compatible Q8_0 talker and F16 codec conversion](https://huggingface.co/Mouserat/qwen3-tts-0.6b-base-gguf).
+The old `QWEN_TTS_MODEL=Qwen/Qwen3-TTS-12Hz-0.6B-Base` value is migrated
+automatically. This is a backend/quantization change, not a claim of identical
+audio or verified perceptual-quality parity with the old implementation.
+
+Voice `.wav` references, WAV responses, chunked PCM streaming, audio caching,
+and the existing voice/LLM slot-sharing policy are preserved. The native worker
+stays loaded between chunks and `close()` waits for process exit before the
+LLM can reclaim the slot. **Cloning is audio-only (x-vector)**: `.txt`
+transcripts are preserved on disk but no longer condition generation.
+`auto` language uses script detection for Russian, Chinese, Japanese and Korean,
+otherwise English; specify the language explicitly for other supported languages
+(German, Italian, Portuguese, Spanish and French). Mixed-language synthesis
+should be checked on your actual voice samples.
+
+```bash
+QWEN_TTS_MODEL=Mouserat/qwen3-tts-0.6b-base-gguf
+QWEN_TTS_CONTEXT_SIZE=4096
+QWEN_TTS_THREADS=20
+QWEN_TTS_TIMEOUT=300
+QWEN_TTS_MAX_NEW_TOKENS=320  # audio frames, not text tokens
+```
+
+`QWEN_TTS_MODEL_FILE` and `QWEN_TTS_MMPROJ_FILE` accept filenames in a custom
+GGUF repository or local file paths; both files must be compatible with upstream
+libmtmd. `QWEN_TTS_REVISION` pins a custom repository revision. The old dtype,
+attention, transcript and non-streaming settings do not control the native model.
+`QWEN_TTS_GENERATE_KWARGS` supports `max_new_tokens`, `temperature`, `top_k`,
+`top_p` and `repetition_penalty`; unsupported options fail explicitly.
+
+CUDA images build kernels for 3090/4090/5090 (SM 86/89/120). Native installs
+need CMake, a C++ compiler, and the CUDA toolkit for GPU synthesis:
+
+```bash
+python scripts/build_tts.py --cuda --build-dir /absolute/path/tts-build
+export QWEN_TTS_BIN=/absolute/path/tts-build/bin/ezlocalai-tts
+```
+
+Omit `--cuda` for a CPU build. Model download happens during precache without
+loading a GPU model. Changing the backend uses a new audio-cache namespace.
+
 ## Embeddings
 
 ezlocalai serves `/v1/embeddings` with a dedicated GGUF embedding model, independent
@@ -238,11 +570,19 @@ EMBEDDING_ENABLED=true
 EMBEDDING_MODEL=Qwen/Qwen3-Embedding-0.6B-GGUF
 EMBEDDING_MODEL_ALIAS=Qwen3-Embedding-0.6B
 EMBEDDING_QUANT_TYPE=Q8_0
-EMBEDDING_CONTEXT_LENGTH=32768
+EMBEDDING_CONTEXT_LENGTH=10000
 EMBEDDING_N_PARALLEL=1
 EMBEDDING_GPU_LAYERS=auto
 EMBEDDING_KV_CACHE_TYPE=f16
 ```
+
+Embedding context defaults to 10,000 tokens per instance. Existing explicit
+`EMBEDDING_CONTEXT_LENGTH=8192` settings must be changed to adopt the extra
+headroom. Native allocation can round this up for alignment. Oversized inputs
+return an actionable HTTP 400 rather than a retryable 500; split documents into
+smaller chunks instead of retrying unchanged input. Inputs are never silently
+truncated. More context increases memory use per embedding instance, so check
+headroom when running multiple embedders alongside the LLM.
 
 When using the router, workers advertise the `embedding` capability only when
 `EMBEDDING_ENABLED=true`, so embedding requests route to workers that can serve
@@ -262,18 +602,30 @@ does not warm-load or advertise those capabilities:
 IMAGE_ENABLED=false
 IMG_MODEL=
 VIDEO_ENABLED=false
-VIDEO_MODEL=unsloth/LTX-2.3-GGUF
+VIDEO_MODEL=QuantStack/Wan2.2-T2V-A14B-GGUF
 ```
 
-Set `IMAGE_ENABLED=true` with `IMG_MODEL` to serve local image generation, or
-`VIDEO_ENABLED=true` to serve local video generation. When `VIDEO_MODEL` is
-omitted or blank, ezlocalai defaults to `unsloth/LTX-2.3-GGUF`. Enabled media
-models report `image` or `video` capacity to the router. They warm-load and stay
-resident when enough GPU headroom is available; on single-GPU LLM workers, image
-and video models can lazy-load after an LLM handoff so their pipelines initialize
-with freed VRAM. Workers
-with an `IMAGE_SERVER` URL configured still delegate media requests instead of
-loading local models.
+Set `IMAGE_ENABLED=true` with `IMG_MODEL` to serve local images, or
+`VIDEO_ENABLED=true` for local video. The default video model is Wan 2.2 A14B:
+[QuantStack T2V](https://huggingface.co/QuantStack/Wan2.2-T2V-A14B-GGUF) for text
+prompts and [QuantStack I2V](https://huggingface.co/QuantStack/Wan2.2-I2V-A14B-GGUF)
+when the request includes an `image`. Both high- and low-noise experts are needed.
+`VIDEO_QUANT_TYPE=Q4_K_M` selects the expert quantization; both modes share a Q8
+UMT5 text encoder and the Wan 2.1 VAE. Assets are downloaded at pinned revisions.
+The native `sd-cli` backend is included in the CUDA, GB10 and CPU Docker images.
+Workers with `IMAGE_SERVER` configured still forward media requests.
+
+Prefetch both modes before serving (inside the worker image with its model volume):
+
+```bash
+python scripts/download_wan_models.py
+```
+
+Existing `.env` files with `VIDEO_MODEL=unsloth/LTX-2.3-GGUF` retain LTX until
+explicitly changed. `python scripts/download_wan_models.py --activate .env`
+downloads Wan and updates that setting, preserving a private `.env.pre-wan2.2`
+backup. Restart the worker afterward. LTX remains available by explicitly
+selecting its repository; its previous diffusion settings still apply.
 
 For image generation, the default handoff policy is:
 
@@ -290,23 +642,33 @@ vision temporarily unavailable, unloads the LLM and idle auxiliary GPU models,
 loads FLUX, generates the image, unloads FLUX, and restores the exact LLM
 residency that existed before the handoff.
 
-On a single-GPU worker, leave `VIDEO_UNLOAD_LLM_DURING_GENERATION=auto`. When a
-resident LLM is occupying the only GPU, ezlocalai marks the text/vision slots
-temporarily unavailable, unloads the LLM plus idle aux GPU models, initializes
-LTX-2.3 with the freed VRAM, runs generation, unloads video if needed, and
-reloads persistent LLMs when `VIDEO_RELOAD_LLM_AFTER_GENERATION=true`.
-`VIDEO_GPU_RESIDENCY=auto` chooses full GPU residency only on very large GPUs,
-model CPU offload when enough VRAM was freed for the requested clip size, and
-sequential CPU offload as the constrained fallback for long scenes. Short clips
-can use model offload when at least `VIDEO_SHORT_MODEL_OFFLOAD_MIN_FREE_GB`
-remains after LTX loads; longer scenes stay sequential unless
-`VIDEO_MODEL_OFFLOAD_MIN_FREE_GB`/`VIDEO_FULL_GPU_MIN_FREE_GB` say the GPU has
-room. If a more aggressive mode OOMs,
-`VIDEO_RETRY_SEQUENTIAL_ON_OOM=true` reloads LTX with sequential offload and
-retries once. Set `VIDEO_GPU_RESIDENCY=full` to force a full-GPU attempt.
+The GB10 compose profile defaults to `MEDIA_KEEP_MODELS_LOADED=true`. Video,
+image, music and voice requests keep the other resident models loaded, and the
+router continues to advertise their available slots. Video requests themselves
+remain serialized. Concurrent workloads share GPU compute, so request latency
+can increase. Explicit per-service `*_UNLOAD_LLM_DURING_GENERATION=true` still
+forces that service to hand off memory. Set `MEDIA_KEEP_MODELS_LOADED=false` to
+restore the smaller-GPU policy when using a larger model mix.
 
-LTX-2.3 requires dimensions divisible by 32 and frame counts in the `8n+1`
-pattern. The music-video helper handles frame planning automatically.
+Other compose profiles retain `VIDEO_UNLOAD_LLM_DURING_GENERATION=auto` and
+`MEDIA_KEEP_MODELS_LOADED=false`. The worker waits for active LLM inference, unloads idle models for the video
+handoff, runs Wan in a separate process, then restores the displaced pools.
+Other local slots are withheld from router scheduling until restoration finishes.
+Native generation runs off the API event loop; cancellation keeps the video lock
+until that process exits. `VIDEO_GENERATION_TIMEOUT=3600` bounds native execution.
+
+Wan defaults to CPU weight offload with native CUDA compute and flash attention.
+`VIDEO_GPU_RESIDENCY=full` disables weight offload for sufficiently large GPUs.
+Model memory belongs to the child process and is released before pool restoration.
+Weights are not memory-mapped. The default 18 total denoising steps are split
+between eight high-noise and ten low-noise steps, with CFG 3.5; explicit API
+step counts are preserved across both experts. These settings follow the
+[pinned native backend's Wan examples](https://github.com/leejet/stable-diffusion.cpp/blob/c678dfe704a2230342376b46add9c8ca736a653d/docs/wan.md).
+
+Wan produces silent MP4 video. Supply a base64/data-URL/HTTP `image` for I2V;
+multi-frame `conditions` are not supported by this backend. Dimensions round
+down to multiples of 16 (maximum 1280); frame counts round down to `4n+1`.
+The existing music-video frame planner's `8n+1` counts are also compatible.
 
 ## Music Generation
 
@@ -401,7 +763,7 @@ VIDEO_ENABLED=true
 ```
 
 The music-video endpoint first generates the song with ACE-Step, then generates
-one or more LTX-2.3 video scenes in a single video session and muxes the
+one or more Wan 2.2 video scenes and muxes the
 generated song audio into the final MP4:
 
 ```bash
@@ -426,21 +788,21 @@ Optional fields include `model`, `music_model`, `video_model`, `video_prompt`,
 `audio_codes`, `image`, and `conditions`.
 When `audio_url` points at an existing ezlocalai `outputs/` audio file, the
 endpoint skips ACE-Step audio generation and only renders/muxes the video.
-Intermediate scene clips are video-only by default; set
-`include_scene_audio=true` only when debugging LTX's own generated audio.
+Wan scene clips are video-only. `include_scene_audio` is only relevant when
+explicitly using the legacy LTX backend.
 The final mux trims or pads the audio stream to the requested `duration`.
 
 Music-video scenes use `storyboard=true` by default. When no explicit image is
 provided, ezlocalai draws deterministic first-frame storyboards from the prompt
-and lyrics, then uses LTX image-to-video so each scene has visible lyric/thematic
+and lyrics, then uses Wan image-to-video so each scene has visible lyric/thematic
 anchors instead of drifting into generic concert footage. For maximum control,
 pass `scene_images` as base64/data-URL/HTTP images, one per planned scene.
 Pythagorean-theorem storyboards also burn in an exact `a squared + b squared =
 c squared` equation overlay using superscript-style exponents, since generated
 video models are unreliable at preserving formula text frame to frame.
 
-LTX-2.3 audio-to-video is documented for roughly 20 seconds per request, with
-longer videos created by chaining clips. ezlocalai therefore defaults
+Long videos are assembled from short clips to bound per-scene memory and
+generation time. ezlocalai defaults
 `MUSIC_VIDEO_SCENE_DURATION=5` and caps each planned scene with
 `MUSIC_VIDEO_MAX_SCENE_DURATION=20`; the final response includes the generated
 song URL, each scene URL, the scene plan, and the final MP4 URL.
@@ -470,7 +832,11 @@ The router creates a short dispatch lease only for text/vision requests so a
 stale heartbeat cannot immediately send a second LLM request to the same slot.
 The lease expires after `ROUTER_RESERVATION_TTL` seconds (default `15`), after
 which worker heartbeat slot data is authoritative. TTS, STT, embedding, image,
-video, and music requests do not create router-side reservations.
+video, music and music-video reserve their advertised slot until the proxied
+request (including a streamed response) finishes. A dispatch race returns to
+the router queue without spending a retry. Music-video shares the music/video
+slots. All capabilities wait for capacity; client and reverse-proxy timeouts
+still apply even when `ROUTER_WAIT_TIMEOUT=0`.
 
 ### Run the router
 
@@ -500,10 +866,10 @@ USD balance from Chutes in the background and caches it in the worker row until
 the next Chutes request. The cache is also seeded once when the router starts,
 so a configured account does not remain at `Balance pending` after deployment.
 A key without account-read permission leaves the balance display pending
-without affecting inference. Chutes is advertised with 100 concurrent slots.
+without affecting inference. Chutes is advertised with 10 concurrent slots.
 `CHUTES_MODEL` accepts a comma-separated list. Every configured model is
 advertised and requests retain the matching exact Chutes model ID; all models
-share the same 100-slot provider pool.
+share the same 10-slot provider pool.
 
 To add a lower-priority OpenRouter overflow pool, configure its key and
 optional model override:
@@ -515,7 +881,7 @@ OPENROUTER_MODEL=qwen/qwen3.8-27b
 ```
 
 The router adds `OpenRouter.ai` as a persistent tier-39 text/vision provider
-with 1,000 tracked concurrent slots. The normal order is internal t45-or-faster
+with 20 tracked concurrent slots. The normal order is internal t45-or-faster
 GPUs, Chutes t45, then OpenRouter t39. OpenRouter request/token usage appears in
 the same dashboard tables, and remaining credits are loaded at startup and
 refreshed after successful OpenRouter requests. Its hosted Qwen model is folded
@@ -524,7 +890,7 @@ variants.
 
 `OPENROUTER_MODEL` also accepts a comma-separated list. Every configured model
 is advertised and dispatched using its matching OpenRouter ID while sharing
-the provider's 1,000 tracked slots. For both managed providers, chat requests
+the provider's 20 tracked slots. For both managed providers, chat requests
 preserve messages, multimodal content, streaming, token limits, temperature
 and sampling controls, stop/seed settings, tools, tool choice, and structured
 output fields. Qwen3.8 uses the same effective thinking/instruct profile as a
@@ -546,6 +912,45 @@ With `disable_fallback=true`, the request excludes Chutes and OpenRouter and
 waits without a router-side deadline until an internal worker is available.
 The flag is also honored by a directly addressed ezlocalai worker, preventing
 its configured `FALLBACK_SERVER` from being used for that request.
+
+To select a particular worker for a chat completion, add its dashboard label:
+
+```json
+{
+  "model": "unsloth/Qwen3.8-27B-GGUF",
+  "worker": "DevXT5090",
+  "messages": [{"role": "user", "content": "Hello"}]
+}
+```
+
+Labels are case-insensitive: `"chutes.ai"` selects `Chutes.ai` and
+`"OpenRouter.ai"` selects OpenRouter. The selection applies to text and vision,
+with or without `stream: true`. A busy target queues until its capacity is
+available, subject to `ROUTER_WAIT_TIMEOUT` (`0` means no router deadline).
+Explicit selection overrides cache affinity and prevents failover to another
+worker, including a local worker's configured fallback server. The router
+removes `worker` before forwarding the request. Unknown labels return `404`;
+invalid or ambiguous labels, unsupported capabilities, and selecting a managed
+provider together with `disable_fallback: true` return `400`. Offline or
+unhealthy targets return `503`.
+
+Vision requests can use `image_url` content parts with public image URLs or
+base64 data URLs. For managed providers, the router also converts recognized
+`input_image` parts into the chat API's `image_url` format. The configured
+provider model must support vision.
+
+After deploying these changes, run a live vision smoke test against both
+providers (one non-streaming and one streaming request per provider):
+
+```bash
+python scripts/router_vision_smoke.py --url https://api.ezlocal.ai
+# Optional: --worker Chutes.ai or --worker DevXT5090
+```
+
+The script uses `EZLOCALAI_API_KEY` from the shell environment if required and
+sends a synthetic red image, checking that each response identifies its color.
+Run it against a router with worker targeting deployed; older routers ignore
+the `worker` field and cannot reliably test a specific provider.
 
 The router listens on port `8092` by default and exposes the same OpenAI-compatible endpoints as a normal ezlocalai server, plus:
 
@@ -624,7 +1029,51 @@ score = priority_tier * 10  +  slots_left * 5  +  free_vram_gb  -  in_flight * 4
 
 `best_tier` is derived from the worker's fastest GPU model (e.g. RTX 5090 ≈ 90, RTX 4090 = 80, RTX 3090 = 50, CPU = 2) and dominates the score, so an idle 5090 beats an idle 3090. Tunneled workers keep their reported `best_tier` but receive a 5-point priority-tier penalty so similarly capable direct workers are preferred. The load penalty (`in_flight * 4`) and idle-worker requirement keep burst traffic from stacking on a busy top-tier GPU while another compatible worker is free.
 
-By default, text/vision routing requires an idle worker, so one long-running request on the 5090 sends the next compatible request to an idle 4090/3090 instead of stacking it onto the 5090. `ROUTER_CROSS_MODEL_GRACE=0` means the router does not wait for a busy same-model worker before using the best available compatible fallback. `ROUTER_IDLE_TIER_WINDOW=0` means the router does not hold back lower-tier idle workers while a higher-tier worker is busy; set a positive value to restrict idle spillover to workers within that many tier points of the fastest compatible tier. Set `ROUTER_BUSY_SLOT_FALLBACK=true` to restore slot-based routing when every compatible text/vision worker is already busy.
+By default, text/vision routing requires an idle worker, so one long-running request on the 5090 sends the next compatible request to an idle 4090/3090 serving the same model. If every eligible worker for the requested model is busy, the router queues for that model: a Qwen 27B request will not spill onto an idle MiniCPM 2B worker. `ROUTER_WAIT_TIMEOUT=0` waits without a router-side deadline; a positive timeout returns 503 if no matching worker becomes available. Explicit model substitution is disabled by default (`ROUTER_ALLOW_CROSS_MODEL=false`). Opting in allows fallback only when no matching pool exists, after `ROUTER_CROSS_MODEL_GRACE` seconds (default `0`); it never substitutes a model after retry exhaustion or bypasses a busy matching pool. Generic aliases (`default`, `ezlocalai`, or omitted model) still allow default-worker selection. `ROUTER_IDLE_TIER_WINDOW=0` means the router does not hold back lower-tier idle workers while a higher-tier worker is busy; set a positive value to restrict idle spillover to workers within that many tier points of the fastest compatible tier. Set `ROUTER_BUSY_SLOT_FALLBACK=true` to restore slot-based routing when every compatible text/vision worker is already busy.
+
+On context overflow, streaming retries skip same-model workers with equal or
+smaller advertised windows. Once exhausted, the router preserves the worker's
+token counts in a `context_capacity_error` with `compact_and_retry`, so clients
+can compact rather than replaying the oversized prompt. SSE keepalives continue
+while waiting for routing, response headers, and prefill; upstream read-idle
+timeouts still detect stalled workers. Replaced tunnels drain existing live
+responses, and worker reconnects cancel orphaned local requests instead of
+forwarding their responses onto a different socket.
+
+Requests that include the same `prompt_cache_key` keep affinity with the worker
+that owns their reusable prompt prefix. If that worker is briefly busy, the
+router waits up to `ROUTER_PROMPT_AFFINITY_WAIT` seconds (default `15`) before
+using another worker. Temporary spillover does not replace the cache-owning
+worker, so later turns return to the warm prefix. The short default covers
+stream-release and heartbeat lag without queueing behind a long generation.
+Set the value to `0` to use immediate spillover.
+
+Clients may additionally send `routing_affinity_key` (an opaque per-user ID,
+1-512 characters). This is distinct from the per-conversation `prompt_cache_key`:
+requests with the same user key and model execute in FIFO order, one request at
+a time, on their assigned compatible worker. A busy home worker is queued for,
+not bypassed after `ROUTER_PROMPT_AFFINITY_WAIT`. Offline, disconnected,
+incompatible, circuit-open, or failed workers still trigger normal failover.
+An explicit `worker` target overrides this optional user routing.
+
+`ROUTER_USER_AFFINITY_TTL` defaults to **600 seconds of inactivity** after the last
+request finishes or leaves the queue. Running and queued requests keep their
+assignment alive. This expires the router hint, not the worker's actual KV cache.
+`ROUTER_USER_AFFINITY_MAX` bounds retained user/model lanes (default 10000), and
+`ROUTER_USER_QUEUE_MAX` bounds running plus pending requests per lane (default 100).
+Overfull queues return a retryable 429 (an SSE error after streaming headers).
+Streaming clients receive keepalives while waiting; disconnected requests are
+removed from the queue. Router restarts discard assignments, not durable client
+conversation history. Run one router process for coherent FIFO/affinity state.
+
+Use separate models/keys, or omit this key, for latency-sensitive voice/status
+calls and nested planners. WorkConductor sends it for main agent continuations
+and recovery, leaving those auxiliary calls independent. Matching prompt tokens
+are still required for a cache hit; routing does not combine divergent project
+histories, copy KV between GPUs, or guarantee resident cache across model changes.
+This can reduce duplicate prefill and GPU fan-out, but serializing projects can
+increase latency when their prompts share little cache. Other users may use idle
+capacity on the same GPU; the assignment is not an exclusive GPU reservation.
 
 For capability-only voice routing, the router defaults `ROUTER_PREFER_DEDICATED_CAPABILITIES=stt`, so large STT transcription jobs prefer workers that are not also serving `text` or `vision`. TTS routes by the normal score/tier calculation by default so low-latency playback can use faster mixed-capability workers. Stale `ROUTER_PREFER_DEDICATED_CAPABILITIES=stt,tts` values are treated as STT-only for TTS unless `ROUTER_ALLOW_DEDICATED_TTS_PREFERENCE=true` is also set. Large transcription jobs also use `ROUTER_STT_TIMEOUT` (default `7200` seconds) instead of the generic `REQUEST_TIMEOUT`.
 
@@ -678,26 +1127,129 @@ When set to `true`, this server becomes a dedicated voice server:
 - LLM models are still lazy-loaded as needed
 - Ideal for a secondary server with a dedicated GPU for voice processing
 
+### MiniCPM5-2B fast voice worker
+
+To run MiniCPM5-2B alongside local TTS and STT on its own worker:
+
+```env
+DEFAULT_MODEL=openbmb/MiniCPM5-2B-GGUF
+QUANT_TYPE=Q4_K_M
+LLM_MAX_TOKENS=8192
+VOICE_SERVER=
+TEXT_SERVER=
+TTS_ENABLED=true
+STT_ENABLED=true
+TTS_N_PARALLEL=1
+STT_N_PARALLEL=1
+VOICE_UNLOAD_LLM_DURING_GENERATION=auto
+```
+
+The model profile applies the [recommended sampling settings](https://huggingface.co/openbmb/MiniCPM5-2B-GGUF#quickstart):
+`temperature=1.0`, `top_p=0.95`, and `min_p=0.0`. Thinking is disabled by
+default with `chat_template_kwargs={"enable_thinking": false}`; a request can
+explicitly enable it. For repetitive output, requests can also set
+`repetition_penalty=1.05`, as suggested by the model card.
+
+When all configured LLMs are MiniCPM5-2B, `auto` keeps the LLM loaded and
+automatically preloads and retains both voice pools, including when
+`LAZY_LOAD_VOICE=true`. Consecutive voice turns reuse those instances. Text,
+TTS, and STT have independent slots so voice requests can overlap text
+generation without a GPU handoff. The 8192-token context above keeps the KV
+cache small for voice conversations; increase it or the pool sizes only with
+enough memory for the combined workload. Keep remote voice/text server URLs
+unset for this local worker.
+
+Explicit `VOICE_UNLOAD_LLM_DURING_GENERATION=true` (or its `TTS_`/`STT_`
+override) still enables handoff when needed. Workers configured with a larger
+LLM, including a mix of MiniCPM and a 27B model, retain the existing `auto`
+handoff policy.
+
+For image generation on the fast worker, also set:
+
+```env
+IMAGE_ENABLED=true
+IMG_MODEL=unsloth/FLUX.2-klein-4B-GGUF
+IMAGE_SERVER=
+IMAGE_UNLOAD_LLM_DURING_GENERATION=auto
+VIDEO_ENABLED=false
+```
+
+FLUX preloads when there is sufficient free VRAM and stays loaded after image
+requests. While no image memory handoff is needed, those requests also retain
+the warm MiniCPM, voice, and embedding models. Generation runs outside the
+async event loop so voice streaming remains responsive. FLUX still uses its
+existing CPU offload strategy for pipeline components; keeping the pipeline
+loaded does not mean every component stays in VRAM. GPU compute is shared, so
+simultaneous image generation can still increase voice latency.
+
+Music keeps its existing handoff policy. The default ACE-Step GGUF files total
+about 6.7 GB of weights (4B Q8 LM, Q4 DiT, text encoder, and VAE), according to
+the [model card](https://huggingface.co/Serveurperso/ACE-Step-1.5-GGUF#available-models).
+That excludes runtime buffers and is not a measured VRAM requirement. Check
+peak VRAM during representative music and voice/image requests before setting
+`MUSIC_UNLOAD_LLM_DURING_GENERATION=false`; idle free VRAM alone cannot establish
+that they fit together. Video retains its separate handoff policy when enabled.
+
 `TTS_N_PARALLEL` and `STT_N_PARALLEL` control how many separate local voice model
-instances are available. In voice server mode, or when `LAZY_LOAD_VOICE=false`,
-ezlocalai warm-loads that many resident instances and reports that capacity to
-the router. With lazy voice loading, the same values cap how many transient local
-TTS/STT instances may run at once.
+instances are available on a dedicated voice worker. A mixed LLM/voice worker
+defaults to `VOICE_UNLOAD_LLM_DURING_GENERATION=auto`: except for the MiniCPM5-2B
+fast worker profile above, TTS and STT do not stay
+warm beside the LLM. The router treats them as one shared worker slot, waits for
+active LLM work to finish, temporarily unloads the LLM, runs the voice request,
+then unloads the voice model and restores prior LLM availability. The LLM is
+reloaded eagerly only when configured below; otherwise the next text request
+loads it lazily. TTS and STT also exclude one another during this handoff. Set
+the option to `false` only when the worker has enough independent GPU capacity
+to keep voice models resident.
 
-Qwen-TTS voices live in the `voices/` directory as `.wav` reference samples. If a
-same-name `.txt` transcript exists, ezlocalai uses it for transcript-conditioned
-voice cloning; custom voices without a transcript automatically fall back to
-speaker-embedding-only cloning.
+`VOICE_WAIT_FOR_LLM_IDLE_TIMEOUT=60` controls the local race-safety timeout, and
+`VOICE_RELOAD_LLM_AFTER_GENERATION=false` controls eager restoration. It defaults
+to lazy restoration so native voice resources can fully unwind before the next
+text request reloads its LLM. Voice teardown explicitly closes the native model
+even while the request still owns its wrapper. An eager or subsequent restore
+first retries the exact context and GPU-layer residency used before the handoff,
+then uses the normal resilient fallback only if that known-good allocation no
+longer fits. Current context and GPU layers are visible in
+`model_lifecycle.loaded_llm_runtime` from `GET /v1/resources`. Service-specific
+`TTS_...` and `STT_...` forms of these variables override the shared values. In
+voice server mode, ezlocalai instead warm-loads the configured number of resident
+instances and reports that parallel capacity to the router.
 
-Streaming Qwen-TTS sends one generated PCM block per text chunk. The default
+Qwen-TTS voices live in the `voices/` directory as `.wav` reference samples.
+The native backend uses audio-only speaker conditioning; matching `.txt`
+transcripts are not consumed.
+
+Streaming Qwen-TTS now emits native PCM windows while synthesis continues,
+using upstream's unchanged 72-codec-frame vocoder window (about 5.76 seconds of
+audio, generated faster than playback on a suitable GPU). Short segments still
+finish before emitting audio. This is incremental audio output, not token-level
+text input: Qwen requires a complete text segment before starting it. The default
 chunking keeps the first chunk short for fast startup
 (`QWEN_TTS_STREAM_FIRST_CHUNK_CHARS=120`) and uses longer follow-up chunks
 (`QWEN_TTS_STREAM_CHUNK_CHARS=280`, capped by `QWEN_TTS_MAX_CHUNK_CHARS`) so
 playback has more audio buffered while Qwen generates the next block. PCM frames
-are flushed to clients in `QWEN_TTS_STREAM_WRITE_BYTES=16384` byte writes with a
-short `QWEN_TTS_STREAM_FRAME_DRAIN_SECONDS=0.1` handoff and an
-`QWEN_TTS_STREAM_FLUSH_SILENCE_MS=80` valid-silence frame so the next Qwen
-generation does not hold the previous frame tail in server buffers.
+are flushed in `QWEN_TTS_STREAM_WRITE_BYTES=16384` byte writes. Artificial drain
+delays and inter-chunk silence now default to zero; the legacy
+`QWEN_TTS_STREAM_FRAME_DRAIN_SECONDS` and `QWEN_TTS_STREAM_FLUSH_SILENCE_MS`
+overrides remain available.
+
+Direct worker clients can use `/v1/audio/speech/ws` with the same Authorization
+header as HTTP. Send JSON `{"text":"Hello there.","flush":true}` followed by
+more text messages while audio is being generated; finish with `{"done":true}`.
+Without explicit flush, complete sentences are submitted after 50 characters
+(or a word boundary after 350). Input is bounded to four pending segments and
+a 4096-character buffer, with a 30-second input/output inactivity timeout.
+Idle sessions do not reserve the LLM slot. Binary responses form one stream:
+an 8-byte little-endian sample-rate/bit-depth/channel header (`<IHH`), then
+4-byte little-endian PCM byte lengths and their PCM16 bodies, then one zero
+length and a legacy empty WebSocket message. Message boundaries need not match
+audio frame boundaries. Disconnects cancel native generation before releasing
+the voice lease.
+
+The existing HTTP streaming endpoint remains wire-compatible, so WorkConductor's
+PCM consumer benefits without changes. Its sentence-level text scheduling is
+still required; neither WorkConductor nor the router is switched to this direct
+worker WebSocket protocol by this change.
 
 ### Voice Passthrough Mode (`VOICE_SERVER=<url>`)
 

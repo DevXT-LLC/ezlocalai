@@ -1,6 +1,7 @@
 import logging
 import math
 import os
+import time
 
 import torch
 import xllamacpp as xlc
@@ -183,7 +184,7 @@ class Embedding:
         self.model_name = model_name or getenv("EMBEDDING_MODEL")
         self.model_alias = getenv("EMBEDDING_MODEL_ALIAS") or self.model_name
         self.quant_type = getenv("EMBEDDING_QUANT_TYPE", "Q8_0")
-        self.context_length = _get_int_env("EMBEDDING_CONTEXT_LENGTH", 32768)
+        self.context_length = _get_int_env("EMBEDDING_CONTEXT_LENGTH", 10000)
         self.pool_size = max(1, _get_int_env("EMBEDDING_N_PARALLEL", 1))
         # Keep each xllamacpp embedding server at a single full-context slot.
         # EMBEDDING_N_PARALLEL is handled by Pipes as separate model instances
@@ -296,7 +297,6 @@ class Embedding:
                     self.device,
                 )
                 self.server = xlc.Server(params)
-                return
             except Exception as e:
                 last_error = e
                 if attempt_layers == 0 or not _is_memory_error(e):
@@ -310,9 +310,38 @@ class Embedding:
                     torch.cuda.empty_cache()
                 except Exception:
                     pass
+                continue
+
+            self._warmup()
+            return
 
         raise RuntimeError(
             f"Failed to initialize embedding model {self.model_name}: {last_error}"
+        )
+
+    def _warmup(self):
+        """Exercise inference before publishing a resident instance to the pool.
+
+        Loading weights alone leaves CUDA module/kernel initialization on the
+        first customer request (several seconds on GB10). Warm each instance,
+        including one full microbatch, without changing user input or context.
+        """
+        if (
+            self.device != "cuda"
+            or getenv("EMBEDDING_KEEP_LOADED", "true").strip().lower() != "true"
+            or getenv("EMBEDDING_WARMUP", "true").strip().lower() != "true"
+        ):
+            return
+        start = time.monotonic()
+        # Exercise the real text/tokenizer path as well as GPU compute.
+        if self.context_length >= 16:
+            self.get_embeddings("Warm up the embedding model.")
+        # Token IDs let us exercise the configured microbatch without depending
+        # on a tokenizer's handling of repeated text. Zero is a valid token.
+        tokens = max(1, min(self.ubatch_size, self.context_length))
+        self.get_embeddings([0] * tokens)
+        logging.info(
+            "[Embedding] Inference warmup complete in %.2fs", time.monotonic() - start
         )
 
     def _resolve_gpu_layers(
@@ -432,9 +461,19 @@ class Embedding:
             params.embd_normalize = 2
 
         try:
-            params.flash_attn_type = (
-                xlc.llama_flash_attn_type.LLAMA_FLASH_ATTN_TYPE_ENABLED
-            )
+            if gpu_layers == 0:
+                # n_gpu_layers=0 only keeps model weights on the CPU. llama.cpp
+                # otherwise still offloads KV/compute operations and can fail a
+                # nominal CPU fallback when the resident LLM has filled VRAM.
+                params.no_kv_offload = True
+                params.no_op_offload = True
+                params.flash_attn_type = (
+                    xlc.llama_flash_attn_type.LLAMA_FLASH_ATTN_TYPE_DISABLED
+                )
+            else:
+                params.flash_attn_type = (
+                    xlc.llama_flash_attn_type.LLAMA_FLASH_ATTN_TYPE_ENABLED
+                )
         except Exception:
             pass
         return params
@@ -454,6 +493,7 @@ class Embedding:
         return dimensions
 
     def get_embeddings(self, input, model: str = None, dimensions=None):
+        resolved_dimensions = self._resolve_dimensions(dimensions)
         request_model = model or self.model_alias
         result = self.server.handle_embeddings(
             {
@@ -463,9 +503,21 @@ class Embedding:
         )
 
         if isinstance(result, dict) and "error" in result:
-            raise RuntimeError(result["error"])
+            error = result["error"]
+            # Preserve native client errors as non-retryable HTTP 400 responses
+            # via app.embedding. Runtime failures must remain server errors.
+            if isinstance(error, dict):
+                message = str(error.get("message") or "Embedding request failed")
+                if error.get("type") == "exceed_context_size_error":
+                    raise ValueError(
+                        f"Embedding input exceeds the context limit: {message}. "
+                        f"Configured EMBEDDING_CONTEXT_LENGTH={self.context_length}. "
+                        "Split the input into smaller chunks; input was not truncated."
+                    )
+                if str(error.get("code")) in {"400", "422"}:
+                    raise ValueError(message)
+            raise RuntimeError(error)
 
-        resolved_dimensions = self._resolve_dimensions(dimensions)
         if resolved_dimensions:
             for item in result.get("data", []):
                 embedding = item.get("embedding")

@@ -37,6 +37,7 @@ OpenAI-compatible (proxied)
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import html
 import json
 import logging
@@ -44,7 +45,7 @@ import os
 import re
 import time
 from datetime import datetime
-from typing import Any, AsyncIterator, Dict, List, Optional
+from typing import Any, AsyncIterator, Awaitable, Callable, Dict, List, Optional
 
 import aiohttp
 from fastapi import (
@@ -64,12 +65,14 @@ from fastapi.responses import HTMLResponse, JSONResponse, Response, StreamingRes
 from fastapi.staticfiles import StaticFiles
 
 from Globals import getenv
+from UserAffinity import UserAffinity, UserLane
 from ModelSettings import apply_qwen38_model_settings, is_qwen38_model
 from Router import (
     Router,
     TUNNEL_TIER_PENALTY,
     WorkerInfo,
     WorkerRegistry,
+    WorkerDrainingError,
     best_gpu_tier,
     get_registry,
     get_router,
@@ -107,6 +110,26 @@ _OUTPUTS_DIR = os.path.abspath(os.environ.get("ROUTER_OUTPUTS_DIR", "outputs"))
 os.makedirs(_OUTPUTS_DIR, exist_ok=True)
 app.mount("/outputs", StaticFiles(directory=_OUTPUTS_DIR), name="outputs")
 
+# Prompt caches live on individual workers. Keep an opaque client-provided
+# cache key sticky to the same worker while that worker remains usable. The
+# model and capability are part of the lookup so lightweight control-model
+# calls cannot displace the main conversation model's affinity.
+_prompt_affinity: Dict[str, tuple[str, float]] = {}
+_system_prefix_affinity: Dict[str, tuple[str, float]] = {}
+
+_user_affinity = UserAffinity()
+
+
+def _user_affinity_key(payload, model):
+    raw = payload.get("routing_affinity_key")
+    if raw is None:
+        return None
+    if not isinstance(raw, str) or not raw.strip() or len(raw) > 512:
+        raise HTTPException(
+            status_code=400, detail="routing_affinity_key must be 1-512 characters"
+        )
+    return f"{_normalize_model_name(model)}:{hashlib.sha256(raw.encode()).hexdigest()}"
+
 
 CHUTES_WORKER_ID = "external-chutes"
 CHUTES_LABEL = "Chutes.ai"
@@ -114,7 +137,7 @@ CHUTES_BASE_URL = "https://llm.chutes.ai"
 CHUTES_CHAT_PATH = "/v1/chat/completions"
 CHUTES_ACCOUNT_URL = "https://api.chutes.ai/users/me"
 CHUTES_TIER = 45
-CHUTES_CAPACITY = 100
+CHUTES_CAPACITY = 10
 OPENROUTER_WORKER_ID = "external-openrouter"
 OPENROUTER_LABEL = "OpenRouter.ai"
 OPENROUTER_BASE_URL = "https://openrouter.ai/api"
@@ -122,7 +145,7 @@ OPENROUTER_CHAT_PATH = "/v1/chat/completions"
 OPENROUTER_CREDITS_URL = "https://openrouter.ai/api/v1/credits"
 OPENROUTER_KEY_URL = "https://openrouter.ai/api/v1/key"
 OPENROUTER_TIER = 39
-OPENROUTER_CAPACITY = 1000
+OPENROUTER_CAPACITY = 20
 _external_balance_tasks: set[asyncio.Task] = set()
 
 
@@ -367,6 +390,17 @@ def _normalize_model_name(model: Optional[str]) -> str:
     return m
 
 
+def _worker_model_context(worker: WorkerInfo, model: str) -> int:
+    return max(
+        (
+            int(context or 0)
+            for name, context in worker.model_context.items()
+            if model_name_matches(model, name)
+        ),
+        default=0,
+    )
+
+
 def _pretty_model_name(model: Optional[str]) -> str:
     """Display-only cleanup: drop the ``vendor/`` prefix and the trailing
     ``-GGUF`` suffix so the UI can show ``Qwen3-30B-A3B`` instead of
@@ -539,7 +573,25 @@ class UsageTracker:
         prompt_ms = float((timings or {}).get("prompt_ms") or 0.0)
         predicted_ms = float((timings or {}).get("predicted_ms") or 0.0)
         total_ms = float((timings or {}).get("total_ms") or 0.0)
-        prompt_tps = (prompt_tokens / (prompt_ms / 1000.0)) if prompt_ms > 0 else 0.0
+        cached_prompt_tokens = min(
+            int(prompt_tokens or 0),
+            max(0, int((timings or {}).get("cached_prompt_tokens") or 0)),
+        )
+        evaluated_prompt_tokens = max(
+            0,
+            int(
+                (timings or {}).get("evaluated_prompt_tokens")
+                or (int(prompt_tokens or 0) - cached_prompt_tokens)
+            ),
+        )
+        cache_status = (
+            "hit"
+            if cached_prompt_tokens > 0
+            else ("miss" if int(prompt_tokens or 0) > 0 else "unknown")
+        )
+        prompt_tps = (
+            (evaluated_prompt_tokens / (prompt_ms / 1000.0)) if prompt_ms > 0 else 0.0
+        )
         predicted_tps = (
             (completion_tokens / (predicted_ms / 1000.0)) if predicted_ms > 0 else 0.0
         )
@@ -551,6 +603,10 @@ class UsageTracker:
                 {
                     "requests": 0,
                     "prompt_tokens": 0,
+                    "cached_prompt_tokens": 0,
+                    "evaluated_prompt_tokens": 0,
+                    "cache_hits": 0,
+                    "cache_misses": 0,
                     "completion_tokens": 0,
                     "prompt_tps_sum": 0.0,
                     "prompt_tps_n": 0,
@@ -560,6 +616,16 @@ class UsageTracker:
             )
             m["requests"] += 1
             m["prompt_tokens"] += prompt_tokens
+            m["cached_prompt_tokens"] = (
+                int(m.get("cached_prompt_tokens", 0)) + cached_prompt_tokens
+            )
+            m["evaluated_prompt_tokens"] = (
+                int(m.get("evaluated_prompt_tokens", 0)) + evaluated_prompt_tokens
+            )
+            if cache_status == "hit":
+                m["cache_hits"] = int(m.get("cache_hits", 0)) + 1
+            elif cache_status == "miss":
+                m["cache_misses"] = int(m.get("cache_misses", 0)) + 1
             m["completion_tokens"] += completion_tokens
             if prompt_tps > 0:
                 m["prompt_tps_sum"] = float(m.get("prompt_tps_sum", 0.0)) + prompt_tps
@@ -576,6 +642,9 @@ class UsageTracker:
                     "worker": label,
                     "model": model,
                     "prompt_tokens": int(prompt_tokens),
+                    "cached_prompt_tokens": cached_prompt_tokens,
+                    "evaluated_prompt_tokens": evaluated_prompt_tokens,
+                    "cache_status": cache_status,
                     "completion_tokens": int(completion_tokens),
                     "prompt_ms": prompt_ms,
                     "predicted_ms": predicted_ms,
@@ -827,6 +896,59 @@ def _stream_json_error_message(obj: Any) -> str:
     return ""
 
 
+def _stream_json_error_type(obj: Any) -> str:
+    if not isinstance(obj, dict):
+        return ""
+    error = obj.get("error")
+    if isinstance(error, dict) and error.get("type"):
+        return str(error["type"])
+    return ""
+
+
+def _is_context_capacity_error(message: str, error_type: str = "") -> bool:
+    combined = f"{error_type} {message}".lower()
+    return any(
+        marker in combined
+        for marker in (
+            "context_capacity_error",
+            "exceed_context_size_error",
+            "request exceeds context",
+            "exceeds the available context size",
+            "maximum context length",
+            "too many tokens",
+            "input token size",
+        )
+    )
+
+
+async def _with_stream_keepalive(stream, interval: float = 15.0):
+    """Keep clients connected while routing/headers/prefill are still pending.
+
+    Do not cancel the upstream read on each tick or buffer an unbounded stream.
+    Worker read-idle deadlines and disconnect cancellation remain authoritative.
+    """
+    pending = None
+    try:
+        while True:
+            if pending is None:
+                pending = asyncio.create_task(anext(stream))
+            done, _ = await asyncio.wait({pending}, timeout=interval)
+            if not done:
+                yield b": keepalive\n\n"
+                continue
+            try:
+                chunk = pending.result()
+            except StopAsyncIteration:
+                return
+            pending = None
+            yield chunk
+    finally:
+        if pending is not None:
+            pending.cancel()
+            await asyncio.gather(pending, return_exceptions=True)
+        await stream.aclose()
+
+
 def _sse_event_payloads(event: bytes) -> List[bytes]:
     payloads: List[bytes] = []
     for line in event.splitlines():
@@ -843,6 +965,7 @@ def _classify_sse_event(event: bytes) -> Dict[str, Any]:
     has_text = False
     finish_reason = ""
     error_message = ""
+    error_type = ""
     done = False
     parsed_payloads: List[Any] = []
     for payload in payloads:
@@ -861,6 +984,7 @@ def _classify_sse_event(event: bytes) -> Dict[str, Any]:
         message = _stream_json_error_message(obj)
         if message:
             error_message = message
+            error_type = _stream_json_error_type(obj)
         if _stream_json_has_assistant_text(obj):
             has_text = True
         reason = _stream_json_finish_reason(obj)
@@ -875,13 +999,20 @@ def _classify_sse_event(event: bytes) -> Dict[str, Any]:
         "safe_keepalive": bool(saw_choices and not has_text and not terminal),
         "finish_reason": finish_reason,
         "error_message": error_message,
+        "error_type": error_type,
         "done": done,
         "parsed_payloads": parsed_payloads,
     }
 
 
-def _sse_error_event(message: str, error_type: str = "worker_stream_error") -> bytes:
+def _sse_error_event(
+    message: str,
+    error_type: str = "worker_stream_error",
+    details: Optional[Dict[str, Any]] = None,
+) -> bytes:
     payload = {"error": {"message": message, "type": error_type}}
+    if details:
+        payload["error"].update(details)
     return f"data: {json.dumps(payload)}\n\n".encode("utf-8")
 
 
@@ -902,15 +1033,29 @@ def _extract_tokens_from_sse_event(
         obj = json.loads(data_bytes)
     except Exception:
         return pt, ct
+    usage_prompt_tokens = 0
     u = obj.get("usage")
     if isinstance(u, dict):
-        pt = int(u.get("prompt_tokens") or pt)
+        usage_prompt_tokens = int(u.get("prompt_tokens") or 0)
+        if usage_prompt_tokens:
+            pt = usage_prompt_tokens
         ct = int(u.get("completion_tokens") or ct)
+        details = u.get("prompt_tokens_details")
+        if isinstance(details, dict) and timings is not None:
+            cached = int(details.get("cached_tokens") or 0)
+            timings["cached_prompt_tokens"] = float(cached)
     t = obj.get("timings")
     if isinstance(t, dict):
-        pt = int(t.get("prompt_n") or pt)
+        evaluated = int(t.get("prompt_n") or 0)
+        cached = int(t.get("cache_n") or 0)
+        if not usage_prompt_tokens and (evaluated or cached):
+            pt = evaluated + cached
         ct = int(t.get("predicted_n") or ct)
         if timings is not None:
+            if "cache_n" in t:
+                timings["cached_prompt_tokens"] = float(cached)
+            if "prompt_n" in t:
+                timings["evaluated_prompt_tokens"] = float(evaluated)
             for k in ("prompt_ms", "predicted_ms"):
                 v = t.get(k)
                 if isinstance(v, (int, float)):
@@ -1199,6 +1344,39 @@ async def router_deregister(payload: Dict[str, Any], _: str = Depends(verify_wor
     return {"ok": removed}
 
 
+@app.exception_handler(WorkerDrainingError)
+async def worker_draining_error(request: Request, exc: WorkerDrainingError):
+    return JSONResponse(status_code=503, content={"detail": str(exc)})
+
+
+@app.post("/v1/router/drain", tags=["Router"])
+async def router_drain(payload: Dict[str, Any], _: str = Depends(verify_worker)):
+    try:
+        if not isinstance(payload.get("require_idle", False), bool):
+            raise ValueError("require_idle must be a boolean")
+        return get_registry().drain(
+            str(payload.get("label") or ""),
+            str(payload.get("owner") or ""),
+            ttl_seconds=int(payload.get("ttl_seconds", 120)),
+            require_idle=payload.get("require_idle", False),
+        )
+    except WorkerDrainingError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except (ValueError, TypeError) as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.post("/v1/router/resume", tags=["Router"])
+async def router_resume(payload: Dict[str, Any], _: str = Depends(verify_worker)):
+    label, owner = str(payload.get("label") or ""), str(payload.get("owner") or "")
+    if not label or not owner:
+        raise HTTPException(status_code=400, detail="label and owner are required")
+    try:
+        return {"ok": get_registry().resume(label, owner)}
+    except WorkerDrainingError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+
+
 @app.get("/v1/router/workers", tags=["Router"])
 async def router_workers(_: str = Depends(verify_client)):
     workers = get_registry().list_workers(alive_only=False)
@@ -1206,6 +1384,7 @@ async def router_workers(_: str = Depends(verify_client)):
         "object": "list",
         "data": [w.to_public() for w in workers],
         "ttl_seconds": get_registry().ttl,
+        "maintenance_protocol": 1,
     }
 
 
@@ -1307,6 +1486,7 @@ def _aggregate_dashboard() -> Dict[str, Any]:
     registry = get_registry()
     alive = registry.list_workers(alive_only=True)
     stale = [w for w in registry.list_workers(alive_only=False) if w not in alive]
+    recent_errors = _aggregate_recent_errors(alive + stale, limit=None)
 
     total_capacity = sum(max(0, w.total_capacity()) for w in alive)
     total_in_flight = sum(max(0, w.total_busy()) for w in alive)
@@ -1533,11 +1713,19 @@ def _aggregate_dashboard() -> Dict[str, Any]:
             ),
         ),
         "workers": sorted(
-            [_public_with_tunnel(w) for w in alive],
+            [
+                _public_with_tunnel(w) | _worker_recent_error_data(w, recent_errors)
+                for w in alive
+            ],
             key=lambda x: -_worker_priority_tier(x),
         )
         + sorted(
-            [{**_public_with_tunnel(w), "stale": True} for w in stale],
+            [
+                _public_with_tunnel(w)
+                | _worker_recent_error_data(w, recent_errors)
+                | {"stale": True}
+                for w in stale
+            ],
             key=lambda x: -_worker_priority_tier(x),
         ),
         "usage": _usage.snapshot(),
@@ -1545,7 +1733,7 @@ def _aggregate_dashboard() -> Dict[str, Any]:
             _usage.history_snapshot(), since=time.time() - 86400
         ),
         "history": _usage.history_snapshot(),
-        "errors": _aggregate_recent_errors(alive + stale),
+        "errors": recent_errors[:100],
     }
 
 
@@ -1637,6 +1825,10 @@ def _usage_from_history(
             {
                 "requests": 0,
                 "prompt_tokens": 0,
+                "cached_prompt_tokens": 0,
+                "evaluated_prompt_tokens": 0,
+                "cache_hits": 0,
+                "cache_misses": 0,
                 "completion_tokens": 0,
                 "prompt_tps_sum": 0.0,
                 "prompt_tps_n": 0,
@@ -1646,6 +1838,12 @@ def _usage_from_history(
         )
         m["requests"] += 1
         m["prompt_tokens"] += int(h.get("prompt_tokens") or 0)
+        m["cached_prompt_tokens"] += int(h.get("cached_prompt_tokens") or 0)
+        m["evaluated_prompt_tokens"] += int(h.get("evaluated_prompt_tokens") or 0)
+        if h.get("cache_status") == "hit":
+            m["cache_hits"] += 1
+        elif h.get("cache_status") == "miss":
+            m["cache_misses"] += 1
         m["completion_tokens"] += int(h.get("completion_tokens") or 0)
         ptps = float(h.get("prompt_tps") or 0.0)
         if ptps > 0:
@@ -1658,24 +1856,56 @@ def _usage_from_history(
     return out
 
 
-def _aggregate_recent_errors(workers) -> List[Dict[str, Any]]:
-    """Flatten recent errors from every worker, newest first, capped."""
-    out: List[Dict[str, Any]] = []
+def _aggregate_recent_errors(
+    workers, limit: Optional[int] = 100
+) -> List[Dict[str, Any]]:
+    """Failures from the last 24 hours, including workers no longer registered."""
+    cutoff = time.time() - 86400
+
+    def is_recent(event):
+        try:
+            return float(event.get("ts") or 0) > cutoff
+        except (TypeError, ValueError):
+            return False
+
+    def identity(event):
+        # Restarted workers inherit live errors from their previous process ID.
+        return (
+            event.get("label"),
+            event.get("url"),
+            event.get("ts"),
+            event.get("kind"),
+            event.get("path"),
+        )
+
+    out = [e for e in get_registry().error_history() if is_recent(e)]
+    seen = {identity(e) for e in out}
     for w in workers:
         for ev in getattr(w, "recent_errors", []) or []:
-            out.append(
-                {
-                    "ts": ev.get("ts", 0),
-                    "worker_id": w.worker_id,
-                    "label": w.label,
-                    "kind": ev.get("kind", ""),
-                    "status": ev.get("status"),
-                    "path": ev.get("path", ""),
-                    "message": ev.get("message", ""),
-                }
-            )
+            if not is_recent(ev):
+                continue
+            event = {
+                **ev,
+                "worker_id": w.worker_id,
+                "label": w.label,
+                "url": w.url,
+            }
+            if identity(event) not in seen:
+                out.append(event)
+                seen.add(identity(event))
     out.sort(key=lambda x: x.get("ts", 0), reverse=True)
-    return out[:100]
+    return out if limit is None else out[:limit]
+
+
+def _worker_recent_error_data(worker, errors) -> Dict[str, Any]:
+    """Count retained 24-hour failures before the dashboard's row limit."""
+    recent = [
+        e
+        for e in errors
+        if e.get("worker_id") == worker.worker_id
+        or (e.get("label") == worker.label and e.get("url") == worker.url)
+    ]
+    return {"recent_errors": recent, "recent_error_count": len(recent)}
 
 
 @app.get("/v1/router/dashboard", tags=["Router"])
@@ -1756,11 +1986,13 @@ async def router_errors(_: str = Depends(verify_client)):
     """Per-worker recent error events plus circuit-breaker state.
 
     Returns a list of workers with their ``total_errors``, ``circuit_open``,
-    ``circuit_open_until``, and the most recent error events.  Also returns
-    a flat ``errors`` list across all workers, newest first, capped at 100.
+    ``circuit_open_until``, and the last 24 hours of retained error events.
+    ``recent_error_count`` counts that window; ``total_errors`` remains cumulative.
+    Also returns a flat ``errors`` list, newest first, capped at 100.
     """
     registry = get_registry()
     workers = registry.list_workers(alive_only=False)
+    recent_errors = _aggregate_recent_errors(workers, limit=None)
     return {
         "workers": [
             {
@@ -1769,11 +2001,11 @@ async def router_errors(_: str = Depends(verify_client)):
                 "total_errors": w.total_errors,
                 "circuit_open": w.is_circuit_open(),
                 "circuit_open_until": w.circuit_open_until,
-                "recent_errors": list(w.recent_errors or []),
+                **_worker_recent_error_data(w, recent_errors),
             }
             for w in workers
         ],
-        "errors": _aggregate_recent_errors(workers),
+        "errors": recent_errors[:100],
     }
 
 
@@ -2096,16 +2328,16 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
         else:
             status = "🟡 full"
         circuit_open = bool(w.get("circuit_open"))
-        total_errors = int(w.get("total_errors", 0) or 0)
+        recent_error_count = int(w.get("recent_error_count", 0) or 0)
         if circuit_open:
             err_cell = (
                 f'<span style="color:#f85149">🔴 OPEN</span>'
-                f'<div class="muted small">{total_errors} total</div>'
+                f'<div class="muted small">{recent_error_count} in 24h</div>'
             )
-        elif total_errors:
+        elif recent_error_count:
             err_cell = (
-                f'<span style="color:#d29922">{total_errors}</span>'
-                f'<div class="muted small">recent ok</div>'
+                f'<span style="color:#d29922">{recent_error_count}</span>'
+                f'<div class="muted small">past 24h</div>'
             )
         else:
             err_cell = '<span class="muted">0</span>'
@@ -2306,6 +2538,9 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
                     {
                         "requests": 0,
                         "prompt_tokens": 0,
+                        "cached_prompt_tokens": 0,
+                        "cache_hits": 0,
+                        "cache_misses": 0,
                         "completion_tokens": 0,
                         "prompt_tps_sum": 0.0,
                         "prompt_tps_n": 0,
@@ -2315,6 +2550,11 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
                 )
                 agg["requests"] += int(mdata.get("requests", 0) or 0)
                 agg["prompt_tokens"] += int(mdata.get("prompt_tokens", 0) or 0)
+                agg["cached_prompt_tokens"] += int(
+                    mdata.get("cached_prompt_tokens", 0) or 0
+                )
+                agg["cache_hits"] += int(mdata.get("cache_hits", 0) or 0)
+                agg["cache_misses"] += int(mdata.get("cache_misses", 0) or 0)
                 agg["completion_tokens"] += int(mdata.get("completion_tokens", 0) or 0)
                 agg["prompt_tps_sum"] += float(mdata.get("prompt_tps_sum", 0.0) or 0.0)
                 agg["prompt_tps_n"] += int(mdata.get("prompt_tps_n", 0) or 0)
@@ -2382,6 +2622,7 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
                 total_display = f"{pt:,}"
                 output_title = f"{output_count:,}"
                 input_display = f"{pt:,}"
+                cache_display = "—"
                 avg_p_display = _fmt_tps(avg_p)
                 avg_out_display = _fmt_tps(avg_out)
             elif kind == "text":
@@ -2397,6 +2638,20 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
                 total_display = f"{pt + output_count:,}"
                 output_title = f"{output_count:,}"
                 input_display = f"{pt:,}"
+                cached = int(mdata.get("cached_prompt_tokens", 0) or 0)
+                cache_requests = int(mdata.get("cache_hits", 0) or 0) + int(
+                    mdata.get("cache_misses", 0) or 0
+                )
+                cache_hit_rate = (
+                    100.0 * int(mdata.get("cache_hits", 0) or 0) / cache_requests
+                    if cache_requests
+                    else 0.0
+                )
+                cache_display = (
+                    f'{cached:,} <span class="muted">({cache_hit_rate:.0f}% hit)</span>'
+                    if cache_requests
+                    else "—"
+                )
                 avg_p_display = _fmt_tps(avg_p)
                 avg_out_display = _fmt_tps(avg_out)
             else:
@@ -2406,6 +2661,7 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
                 )
                 output_title = _fmt_count(output_count)
                 input_display = "—"
+                cache_display = "—"
                 avg_p_display = "—"
                 avg_out_display = "—"
 
@@ -2416,6 +2672,7 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
           <td class="mono small">{html.escape(str(model))}</td>
           <td class="num small">{reqs:,}</td>
           <td class="num small">{input_display}</td>
+          <td class="num small">{cache_display}</td>
           <td class="num small">{output_title}</td>
           <td class="num small">{total_display}</td>
           <td class="num small">{avg_p_display}</td>
@@ -2423,7 +2680,7 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
         </tr>"""
         return (
             rows
-            or '<tr><td colspan="9" class="muted">No model usage in this window.</td></tr>'
+            or '<tr><td colspan="10" class="muted">No model usage in this window.</td></tr>'
         )
 
     usage_24h_data = data.get("usage_24h") or {}
@@ -2472,6 +2729,19 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
             output_cell = _fmt_count(int(h.get("outputs") or 0))
             input_rate = "—"
             output_rate = "—"
+        cache_status = str(h.get("cache_status") or "unknown")
+        cached = int(h.get("cached_prompt_tokens") or 0)
+        prompt_total = int(h.get("prompt_tokens") or 0)
+        cache_pct = (100.0 * cached / prompt_total) if prompt_total else 0.0
+        if kind == "text" and cache_status in {"hit", "miss"}:
+            cache_label = "Hit" if cache_status == "hit" else "Miss"
+            pct_label = f" {cache_pct:.0f}%" if cached else ""
+            cache_cell = (
+                f'<span class="pill" title="{cached:,} of {prompt_total:,} prompt tokens reused">'
+                f"{cache_label}{pct_label}</span>"
+            )
+        else:
+            cache_cell = '<span class="muted">—</span>'
         return f"""
         <tr class="req-row" data-ts="{ts:.0f}" data-worker="{worker}" data-model="{html.escape(canonical_model)}">
           <td class="muted small ts-cell" data-ts="{ts:.0f}">{when}</td>
@@ -2479,6 +2749,7 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
           <td>{_cap_pill(kind)}</td>
           <td class="mono small" title="{model_title}">{model}</td>
           <td class="num small">{input_cell}</td>
+          <td class="num small">{cache_cell}</td>
           <td class="num small">{output_cell}</td>
           <td class="num small">{input_rate}</td>
           <td class="num small">{output_rate}</td>
@@ -2488,7 +2759,7 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
     recent = list(reversed(history))
     history_rows = (
         "".join(_hist_row(h) for h in recent)
-        or '<tr><td colspan="9" class="muted">No requests yet.</td></tr>'
+        or '<tr><td colspan="10" class="muted">No requests yet.</td></tr>'
     )
     # Filter dropdown options
     req_workers = sorted(
@@ -2511,7 +2782,11 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
 
     def _err_row(e: Dict[str, Any]) -> str:
         ts = e.get("ts") or 0
-        when = datetime.utcfromtimestamp(ts).strftime("%H:%M:%S") if ts else "—"
+        when = (
+            datetime.utcfromtimestamp(ts).strftime("%Y-%m-%d %H:%M:%S UTC")
+            if ts
+            else "—"
+        )
         kind = (e.get("kind") or "").replace("_", " ")
         status = e.get("status")
         status_cell = f'<span class="mono small">{status}</span>' if status else ""
@@ -2519,7 +2794,7 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
         return f"""
         <tr>
           <td class="muted small">{when}</td>
-          <td class="small"><b>{e.get('label', '—')}</b></td>
+          <td class="small"><b>{html.escape(str(e.get('label', '—')))}</b>{' (offline)' if e.get('offline') else ''}</td>
           <td class="small">{kind}</td>
           <td class="small">{status_cell}</td>
           <td class="mono small">{e.get('path', '—')}</td>
@@ -2532,7 +2807,7 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
     )
     if errors:
         errors_section = f"""
-  <h2>Recent errors</h2>
+  <h2>Recent errors · past 24 hours</h2>
   <table>
     <thead><tr>
       <th>Time</th><th>Worker</th><th>Kind</th><th>Status</th><th>Path</th><th>Message</th>
@@ -2704,7 +2979,7 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
   <table>
     <thead><tr>
       <th>Label</th><th>Status</th><th>GPUs</th>
-      <th>Models</th><th class="num">Last hb</th><th>Errors</th>
+      <th>Models</th><th class="num">Last hb</th><th>Errors (24h)</th>
     </tr></thead>
     <tbody>{worker_rows}</tbody>
   </table>
@@ -2744,6 +3019,7 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
     <thead><tr>
       <th>Type</th><th>Worker</th><th>Model</th>
       <th class="num">Requests</th><th class="num">Input</th>
+      <th class="num">Cached</th>
       <th class="num">Output / vectors</th><th class="num">Total / elapsed</th>
       <th class="num">Avg input/s</th><th class="num">Avg output/s</th>
     </tr></thead>
@@ -2789,7 +3065,7 @@ def _render_dashboard_html(data: Dict[str, Any]) -> str:
   <table id="recent-requests-table">
     <thead><tr>
       <th>Time</th><th>Worker</th><th>Type</th><th>Model</th>
-      <th class="num">Input</th><th class="num">Output</th>
+      <th class="num">Input</th><th class="num">Cache</th><th class="num">Output</th>
       <th class="num">Input/s</th><th class="num">Output/s</th>
       <th class="num">Total time</th>
     </tr></thead>
@@ -2979,12 +3255,192 @@ def _wait_timeout() -> float:
     return float(getenv("ROUTER_WAIT_TIMEOUT", "0"))
 
 
+def _prompt_affinity_key(
+    payload: Dict[str, Any], capability: str, model: Optional[str]
+) -> Optional[str]:
+    raw = payload.get("prompt_cache_key")
+    if not isinstance(raw, str) or not raw.strip():
+        return None
+    # Bound untrusted client input and keep separate model caches independent.
+    return f"{capability}:{_normalize_model_name(model)}:{raw.strip()[:512]}"
+
+
+def _system_prefix_affinity_keys(
+    payload: Dict[str, Any], capability: str, model: Optional[str]
+) -> List[str]:
+    """Opaque hints for cold conversations, not a claim that KV is still resident.
+
+    Hash exact leading system text in incremental blocks so a conversation-
+    specific suffix doesn't discard an otherwise reusable tool/system prefix.
+    Never hash later messages: those don't establish a shared leading prefix.
+    """
+    messages = payload.get("messages")
+    if capability != "text" or not isinstance(messages, list) or not messages:
+        return []
+    first = messages[0]
+    if not isinstance(first, dict) or first.get("role") != "system":
+        return []
+    content = first.get("content")
+    if not isinstance(content, str):
+        return []
+    block = 16384
+    limit = min(len(content), 524288)
+    # Native tools/template flags can change tokens preceding the system text.
+    # Keep those lanes separate even if the visible system content is equal.
+    template = {
+        key: payload[key]
+        for key in (
+            "tools",
+            "tool_choice",
+            "functions",
+            "function_call",
+            "chat_template",
+            "chat_template_kwargs",
+        )
+        if key in payload
+    }
+    template["system_metadata"] = {k: v for k, v in first.items() if k != "content"}
+    digest = hashlib.sha256(json.dumps(template, ensure_ascii=False).encode("utf-8"))
+    keys = []
+    for start in range(0, limit, block):
+        end = min(start + block, limit)
+        digest.update(content[start:end].encode("utf-8"))
+        if end >= block:
+            keys.append(
+                f"system-prefix:{capability}:{_normalize_model_name(model)}:"
+                f"{end}:{digest.hexdigest()}"
+            )
+    return keys
+
+
+def _remember_system_prefixes(keys: Optional[List[str]], worker: WorkerInfo) -> None:
+    if worker.external_fallback:
+        return
+    now = time.time()
+    for key in keys or ():
+        _system_prefix_affinity[key] = (worker.worker_id, now)
+
+
+def _prune_prompt_affinity(now: float) -> None:
+    ttl = max(60.0, _float_env("ROUTER_PROMPT_AFFINITY_TTL", 3600.0))
+    max_entries = max(100, int(_float_env("ROUTER_PROMPT_AFFINITY_MAX", 10000)))
+    # Prefix hints must not evict existing conversations' cache-home mappings.
+    for entries in (_prompt_affinity, _system_prefix_affinity):
+        expired = [key for key, (_, seen) in entries.items() if now - seen > ttl]
+        for key in expired:
+            entries.pop(key, None)
+        if len(entries) > max_entries:
+            oldest = sorted(entries.items(), key=lambda item: item[1][1])
+            for key, _ in oldest[: len(entries) - max_entries]:
+                entries.pop(key, None)
+
+
+def _prompt_affinity_wait_timeout() -> float:
+    """How long to wait for a conversation's cache-owning worker.
+
+    Re-evaluating a long prompt on another worker routinely costs much more
+    than waiting briefly for the worker that already owns its KV prefix. Keep
+    the wait bounded so affinity never defeats worker failover.
+    """
+    # Worker heartbeats can retain the just-finished request for several
+    # seconds after the router has released its own reservation. Spilling a
+    # 100k+ token continuation during that small reporting window throws away
+    # the hot KV prefix and costs far more than waiting for the cache owner.
+    return max(0.0, _float_env("ROUTER_PROMPT_AFFINITY_WAIT", 15.0))
+
+
+def _eligible_affinity_worker(
+    worker: Optional[WorkerInfo],
+    capability: str,
+    model: Optional[str],
+    excluded: set,
+) -> bool:
+    if (
+        worker is None
+        or worker.worker_id in excluded
+        or worker.external_fallback
+        or capability not in worker.capabilities
+        or worker.is_circuit_open()
+        or worker.is_draining()
+    ):
+        return False
+    return bool(
+        not model
+        or not worker.models
+        or any(model_name_matches(model, served) for served in worker.models)
+    )
+
+
+def _prompt_cache_avoid_worker_ids(
+    payload: Dict[str, Any],
+    capability: str,
+    model: Optional[str],
+    excluded: Optional[set] = None,
+) -> set:
+    """Softly avoid workers that own a nested request's parent KV cache.
+
+    Nested browser planners replace most of their prompt on each page step. If
+    they run on the worker holding a paused long-horizon conversation, that
+    small request can evict a 100k+ token prefix. Avoidance is only applied
+    when another compatible worker exists, so single-worker deployments retain
+    normal behavior.
+    """
+    raw = payload.get("prompt_cache_avoid_key")
+    if not isinstance(raw, str) or not raw.strip():
+        return set()
+
+    _prune_prompt_affinity(time.time())
+    avoid_key = _prompt_affinity_key({"prompt_cache_key": raw}, capability, model)
+    avoid_worker_id = (
+        _prompt_affinity.get(avoid_key, (None, 0.0))[0] if avoid_key else None
+    )
+    if not avoid_worker_id:
+        return set()
+
+    hard_excluded = set(excluded or ())
+    avoided = {avoid_worker_id}
+    tunnel_hub = get_tunnel_hub()
+    has_alternative = any(
+        worker.worker_id not in avoided
+        and _eligible_affinity_worker(
+            worker, capability, model, hard_excluded | avoided
+        )
+        and worker.has_capacity(capability, model)
+        and (
+            not is_tunnel_url(worker.url)
+            or tunnel_hub.is_connected(worker_id_from_tunnel_url(worker.url))
+        )
+        for worker in get_registry().list_workers(alive_only=True)
+    )
+    if has_alternative:
+        logging.info(
+            "[Router] nested prompt will avoid parent cache worker %s "
+            "(model=%r, cap=%s)",
+            avoid_worker_id,
+            model,
+            capability,
+        )
+        return avoided
+    logging.info(
+        "[Router] nested prompt shares its parent cache worker because no "
+        "compatible alternative is available (model=%r, cap=%s)",
+        model,
+        capability,
+    )
+    return set()
+
+
 async def _pick(
     capability: str,
     model: Optional[str] = None,
     exclude: Optional[set] = None,
     external_fallback_allowed: bool = True,
     wait_indefinitely: bool = False,
+    affinity_key: Optional[str] = None,
+    system_prefix_keys: Optional[List[str]] = None,
+    worker_id: Optional[str] = None,
+    retrying: bool = False,
+    user_lane: Optional[UserLane] = None,
 ) -> WorkerInfo:
     router = get_router()
     # Pre-exclude tunneled workers whose WebSocket is not currently connected.
@@ -2992,6 +3448,26 @@ async def _pick(
     # then 503s with "Tunnel ... is not connected", and we burn a retry.
     hub = get_tunnel_hub()
     registry = get_registry()
+    if worker_id is not None:
+        # An explicit target overrides cache affinity and soft exclusions.
+        # Filter by ID inside every selection poll, including new registrations.
+        worker = await router.wait_for_worker(
+            capability,
+            model,
+            timeout=0 if wait_indefinitely else _wait_timeout(),
+            worker_id=worker_id,
+        )
+        if worker is None:
+            raise HTTPException(
+                status_code=503, detail="Selected worker is unavailable"
+            )
+        if is_tunnel_url(worker.url) and not hub.is_connected(
+            worker_id_from_tunnel_url(worker.url)
+        ):
+            raise HTTPException(
+                status_code=503, detail=f"Worker {worker.label!r} is offline"
+            )
+        return worker
     pre_exclude = set(exclude or ())
     unavailable: List[str] = []
     for w in registry.list_workers(alive_only=True):
@@ -3007,11 +3483,100 @@ async def _pick(
         logging.info(
             f"[Router] tunnel offline, excluding from selection: {', '.join(unavailable)}"
         )
+    now = time.time()
+    _prune_prompt_affinity(now)
+    preferred_id = (
+        _prompt_affinity.get(affinity_key, (None, 0.0))[0] if affinity_key else None
+    )
+    if user_lane is not None:
+        # A fresh/expired user assignment starts with normal load balancing,
+        # rather than reviving a conversation's longer-lived worker mapping.
+        preferred_id = user_lane.worker_id
+    preferred: Optional[WorkerInfo] = None
+    preferred_is_eligible = False
+    if preferred_id:
+        affinity_wait = (
+            _wait_timeout()
+            if user_lane is not None
+            else _prompt_affinity_wait_timeout()
+        )
+        indefinite_affinity = user_lane is not None and (
+            wait_indefinitely or affinity_wait == 0
+        )
+        affinity_deadline = time.monotonic() + affinity_wait
+        while True:
+            preferred = next(
+                (
+                    worker
+                    for worker in registry.list_workers(alive_only=True)
+                    if worker.worker_id == preferred_id
+                ),
+                None,
+            )
+            preferred_is_eligible = _eligible_affinity_worker(
+                preferred, capability, model, pre_exclude
+            )
+            if preferred_is_eligible and is_tunnel_url(preferred.url):
+                preferred_is_eligible = hub.is_connected(
+                    worker_id_from_tunnel_url(preferred.url)
+                )
+            if not preferred_is_eligible:
+                break
+            if preferred.has_capacity(capability, model):
+                if affinity_key:
+                    _prompt_affinity[affinity_key] = (preferred.worker_id, time.time())
+                _remember_system_prefixes(system_prefix_keys, preferred)
+                logging.info(
+                    f"[Router] prompt-cache affinity -> {preferred.label} "
+                    f"(model={model!r}, cap={capability})"
+                )
+                return preferred
+            remaining = affinity_deadline - time.monotonic()
+            if not indefinite_affinity and remaining <= 0:
+                if user_lane is not None:
+                    raise HTTPException(
+                        status_code=503,
+                        detail="Timed out waiting for user cache worker",
+                    )
+                logging.info(
+                    f"[Router] prompt-cache affinity worker {preferred.label} "
+                    f"remained busy for {affinity_wait:.1f}s; "
+                    "using temporary spillover without moving its cache home"
+                )
+                break
+            await asyncio.sleep(0.1 if indefinite_affinity else min(0.1, remaining))
+    # Cold conversations may reuse another conversation's stable prefix. This
+    # fallback never waits or overrides a still-eligible conversation owner.
+    if system_prefix_keys and not preferred_is_eligible:
+        workers = {w.worker_id: w for w in registry.list_workers(alive_only=True)}
+        idle_workers = {
+            wid: w
+            for wid, w in workers.items()
+            if _eligible_affinity_worker(w, capability, model, pre_exclude)
+            and w.has_capacity(capability, model)
+            and w.effective_busy(capability=capability, model=model) == 0
+        }
+        fastest_tier = max((w.best_tier for w in idle_workers.values()), default=0)
+        for key in reversed(system_prefix_keys or ()):
+            candidate_id = _system_prefix_affinity.get(key, (None, 0.0))[0]
+            candidate = idle_workers.get(candidate_id)
+            if candidate is not None and candidate.best_tier >= fastest_tier:
+                if affinity_key:
+                    _prompt_affinity[affinity_key] = (candidate.worker_id, time.time())
+                _remember_system_prefixes(system_prefix_keys, candidate)
+                logging.info(
+                    "[Router] shared system-prefix affinity -> %s (model=%r, cap=%s)",
+                    candidate.label,
+                    model,
+                    capability,
+                )
+                return candidate
     worker = await router.wait_for_worker(
         capability,
         model,
         timeout=0 if wait_indefinitely else _wait_timeout(),
         exclude=pre_exclude,
+        **({"fail_if_exhausted": True} if retrying else {}),
     )
     if worker is None:
         raise HTTPException(
@@ -3021,6 +3586,13 @@ async def _pick(
                 + (f" model={model!r}" if model else "")
             ),
         )
+    if (
+        affinity_key
+        and not worker.external_fallback
+        and (not preferred_is_eligible or worker.worker_id == preferred_id)
+    ):
+        _prompt_affinity[affinity_key] = (worker.worker_id, time.time())
+    _remember_system_prefixes(system_prefix_keys, worker)
     return worker
 
 
@@ -3033,8 +3605,8 @@ def _max_retries() -> int:
 
 
 def _is_transient_failure(status: int) -> bool:
-    """5xx and 408 are worth retrying on a different worker; 4xx are client errors."""
-    return status == 408 or 500 <= status <= 599
+    """Worker timeouts, saturation, and 5xx responses are safe to retry."""
+    return status in (408, 429) or 500 <= status <= 599
 
 
 def _float_env(name: str, default: float) -> float:
@@ -3229,11 +3801,43 @@ def _worker_json_payload(
 ) -> Dict[str, Any]:
     """Return the request body adapted for a selected worker."""
     forwarded = dict(payload)
+    # Router-only metadata. Local and external OpenAI-compatible workers do
+    # not need to know how affinity was selected.
+    forwarded.pop("prompt_cache_key", None)
+    forwarded.pop("prompt_cache_avoid_key", None)
+    forwarded.pop("routing_affinity_key", None)
+    forwarded.pop("worker", None)
     if not worker.external_fallback:
         return forwarded
 
     # This flag belongs to ezlocalai routing and is not part of OpenAI's API.
     forwarded.pop("disable_fallback", None)
+    if path == CHUTES_CHAT_PATH and isinstance(forwarded.get("messages"), list):
+        # The router recognizes input_image as vision, but provider chat APIs
+        # require image_url parts with an object containing the URL.
+        messages = []
+        for message in forwarded["messages"]:
+            content = message.get("content")
+            if isinstance(content, list):
+                parts = []
+                for part in content:
+                    if isinstance(part, dict) and part.get("type") in (
+                        "input_image",
+                        "image_url",
+                    ):
+                        part = dict(part)
+                        part["type"] = "image_url"
+                        if isinstance(part.get("image_url"), str):
+                            part["image_url"] = {"url": part["image_url"]}
+                        if "detail" in part and isinstance(part.get("image_url"), dict):
+                            part["image_url"] = {
+                                **part["image_url"],
+                                "detail": part.pop("detail"),
+                            }
+                    parts.append(part)
+                message = {**message, "content": parts}
+            messages.append(message)
+        forwarded["messages"] = messages
     requested_model = forwarded.get("model")
     if worker.models:
         forwarded["model"] = _provider_model_for_request(worker, requested_model)
@@ -3330,6 +3934,7 @@ async def _proxy_via_tunnel(
     model: Optional[str] = None,
     stream_media_type: Optional[str] = None,
     stream_headers: Optional[Dict[str, str]] = None,
+    reservation_id: Optional[str] = None,
 ):
     """Route a request to a tunneled worker through its open WebSocket."""
     hub = get_tunnel_hub()
@@ -3351,9 +3956,10 @@ async def _proxy_via_tunnel(
             detail=f"Tunnel for worker {worker.label} ({wid}) is not connected",
         )
     registry = get_registry()
-    reservation_id = registry.increment_in_flight(
-        worker.worker_id, 1, capability=capability, model=model
-    )
+    if reservation_id is None:
+        reservation_id = registry.increment_in_flight(
+            worker.worker_id, 1, capability=capability, model=model
+        )
     request_timeout = timeout or float(getenv("REQUEST_TIMEOUT", "300"))
     try:
         status, resp_headers, chunks = await conn.request(
@@ -3364,12 +3970,25 @@ async def _proxy_via_tunnel(
             stream=stream,
             timeout=request_timeout,
         )
-    except Exception:
+    except BaseException:
         registry.release_in_flight(worker.worker_id, reservation_id)
         raise
 
     media_type = resp_headers.get("Content-Type") or resp_headers.get("content-type")
     if not stream:
+        try:
+            buf = bytearray()
+            async for c in chunks:
+                buf.extend(c)
+            return Response(
+                content=bytes(buf),
+                status_code=status,
+                media_type=media_type or "application/json",
+            )
+        finally:
+            registry.release_in_flight(worker.worker_id, reservation_id)
+
+    if status >= 400:
         try:
             buf = bytearray()
             async for c in chunks:
@@ -3392,16 +4011,17 @@ async def _proxy_via_tunnel(
             logging.warning(
                 f"[Router] Tunnel stream from {worker.label}{path} failed: {e}"
             )
-            error = {
-                "error": {
-                    "message": (
-                        f"Worker stream failed after proxying {int(sent_any)} chunk(s): "
-                        f"{type(e).__name__}: {e}"
-                    ),
-                    "type": "worker_stream_error",
+            if (stream_media_type or media_type or "").startswith("text/event-stream"):
+                error = {
+                    "error": {
+                        "message": (
+                            f"Worker stream failed after proxying {int(sent_any)} chunk(s): "
+                            f"{type(e).__name__}: {e}"
+                        ),
+                        "type": "worker_stream_error",
+                    }
                 }
-            }
-            yield f"data: {json.dumps(error)}\n\n".encode("utf-8")
+                yield f"data: {json.dumps(error)}\n\n".encode("utf-8")
         finally:
             registry.release_in_flight(worker.worker_id, reservation_id)
 
@@ -3423,6 +4043,7 @@ async def _proxy_json(
     model: Optional[str] = None,
     stream_media_type: Optional[str] = None,
     stream_headers: Optional[Dict[str, str]] = None,
+    reservation_id: Optional[str] = None,
 ):
     """Forward a JSON POST to a worker. Returns either a dict or a StreamingResponse."""
     payload = _worker_json_payload(worker, path, payload)
@@ -3440,6 +4061,7 @@ async def _proxy_json(
             model=model,
             stream_media_type=stream_media_type,
             stream_headers=stream_headers,
+            reservation_id=reservation_id,
         )
     url = f"{worker.url}{path}"
     timeout_seconds = timeout or float(getenv("REQUEST_TIMEOUT", "300"))
@@ -3458,9 +4080,10 @@ async def _proxy_json(
             connect=10,  # fail fast on connection errors, don't wait the full timeout
         )
     registry = get_registry()
-    reservation_id = registry.increment_in_flight(
-        worker.worker_id, 1, capability=capability, model=model
-    )
+    if reservation_id is None:
+        reservation_id = registry.increment_in_flight(
+            worker.worker_id, 1, capability=capability, model=model
+        )
 
     if not stream:
         try:
@@ -3484,12 +4107,43 @@ async def _proxy_json(
         finally:
             registry.release_in_flight(worker.worker_id, reservation_id)
 
+    # Open the upstream request before committing downstream stream headers so
+    # worker setup failures retain their real HTTP status and JSON body.
+    session = aiohttp.ClientSession(timeout=request_timeout)
+    try:
+        resp = await session.post(url, json=payload, headers=headers)
+    except asyncio.CancelledError:
+        await session.close()
+        registry.release_in_flight(worker.worker_id, reservation_id)
+        raise
+    except Exception as e:
+        await session.close()
+        registry.release_in_flight(worker.worker_id, reservation_id)
+        logging.warning(f"[Router] Stream setup from {worker.url}{path} failed: {e}")
+        registry.record_connection_failure(worker.worker_id)
+        registry.record_error(
+            worker.worker_id,
+            kind="connection",
+            path=path,
+            message=f"{type(e).__name__}: {e}",
+        )
+        raise
+
+    if resp.status >= 400:
+        try:
+            body = await resp.read()
+            media_type = resp.headers.get("Content-Type", "application/json")
+            return Response(
+                content=body, status_code=resp.status, media_type=media_type
+            )
+        finally:
+            resp.release()
+            await session.close()
+            registry.release_in_flight(worker.worker_id, reservation_id)
+
     async def gen():
-        # Open one persistent session for the whole stream
-        session = aiohttp.ClientSession(timeout=request_timeout)
         sent_any = False
         try:
-            resp = await session.post(url, json=payload, headers=headers)
             try:
                 async for chunk in resp.content.iter_any():
                     if chunk:
@@ -3506,16 +4160,19 @@ async def _proxy_json(
                 path=path,
                 message=f"{type(e).__name__}: {e}",
             )
-            error = {
-                "error": {
-                    "message": (
-                        f"Worker stream failed after proxying {int(sent_any)} chunk(s): "
-                        f"{type(e).__name__}: {e}"
-                    ),
-                    "type": "worker_stream_error",
+            if (stream_media_type or "text/event-stream").startswith(
+                "text/event-stream"
+            ):
+                error = {
+                    "error": {
+                        "message": (
+                            f"Worker stream failed after proxying {int(sent_any)} chunk(s): "
+                            f"{type(e).__name__}: {e}"
+                        ),
+                        "type": "worker_stream_error",
+                    }
                 }
-            }
-            yield f"data: {json.dumps(error)}\n\n".encode("utf-8")
+                yield f"data: {json.dumps(error)}\n\n".encode("utf-8")
         finally:
             await session.close()
             registry.release_in_flight(worker.worker_id, reservation_id)
@@ -3557,6 +4214,8 @@ async def _read_stream_snippet(chunks, limit: int = 4096) -> str:
     except Exception as e:
         if not body:
             return f"{type(e).__name__}: {e}"
+    finally:
+        await chunks.aclose()
     return bytes(body[:limit]).decode("utf-8", errors="replace")
 
 
@@ -3567,13 +4226,15 @@ async def _iter_worker_stream_bytes(
     *,
     capability: Optional[str] = None,
     model: Optional[str] = None,
+    reservation_id: Optional[str] = None,
 ) -> AsyncIterator[bytes]:
     """Open one worker streaming request and yield raw SSE bytes."""
     payload = _worker_json_payload(worker, path, payload)
     registry = get_registry()
-    reservation_id = registry.increment_in_flight(
-        worker.worker_id, 1, capability=capability, model=model
-    )
+    if reservation_id is None:
+        reservation_id = registry.increment_in_flight(
+            worker.worker_id, 1, capability=capability, model=model
+        )
     timeout_seconds = float(getenv("REQUEST_TIMEOUT", "300"))
     try:
         if is_tunnel_url(worker.url):
@@ -3626,9 +4287,21 @@ async def _iter_worker_stream_bytes(
                     retryable=retryable,
                     status=status,
                 )
-            async for chunk in chunks:
-                if chunk:
-                    yield chunk
+            try:
+                async for chunk in chunks:
+                    if chunk:
+                        yield chunk
+            except Exception as e:
+                registry.record_connection_failure(worker.worker_id)
+                registry.record_error(
+                    worker.worker_id,
+                    kind="tunnel_stream",
+                    path=path,
+                    message=f"{type(e).__name__}: {e}",
+                )
+                raise _WorkerAttemptError(f"{type(e).__name__}: {e}") from e
+            finally:
+                await chunks.aclose()
             return
 
         url = f"{worker.url}{path}"
@@ -3692,24 +4365,59 @@ async def _llm_stream_with_worker_failover(
     request_started: float,
     external_fallback_allowed: bool = True,
     wait_indefinitely: bool = False,
+    worker_id: Optional[str] = None,
+    user_lane: Optional[UserLane] = None,
 ) -> AsyncIterator[bytes]:
     tried: set = set()
-    max_attempts = _stream_max_attempts(capability, external_fallback_allowed)
+    affinity_key = _prompt_affinity_key(payload, capability, model)
+    system_prefix_keys = _system_prefix_affinity_keys(payload, capability, model)
+    cache_avoid_worker_ids = _prompt_cache_avoid_worker_ids(
+        payload, capability, model, tried
+    )
+    max_attempts = (
+        1
+        if worker_id is not None
+        else _stream_max_attempts(capability, external_fallback_allowed)
+    )
     last_error = ""
+    pre_text_failures = 0
+    context_capacity_failures = 0
+    attempted_context_windows: List[int] = []
+
+    def note_context_failure(worker):
+        nonlocal context_capacity_failures
+        context_capacity_failures += 1
+        context = _worker_model_context(worker, model)
+        if context > 0:
+            attempted_context_windows.append(context)
+            # The identical prompt cannot fit a smaller same-model context.
+            # Unknown windows may still be tried; never guess a token limit.
+            tried.update(
+                w.worker_id
+                for w in get_registry().list_workers(alive_only=True)
+                if 0 < _worker_model_context(w, model) <= context
+            )
+
     for attempt in range(max_attempts):
         try:
-            worker = await _pick(
+            worker, reservation_id = await _pick_and_reserve_llm(
                 capability,
                 model,
-                exclude=tried,
+                exclude=tried | (cache_avoid_worker_ids if attempt == 0 else set()),
+                retrying=attempt > 0,
                 external_fallback_allowed=external_fallback_allowed,
                 wait_indefinitely=wait_indefinitely,
+                affinity_key=affinity_key,
+                system_prefix_keys=system_prefix_keys,
+                **({"user_lane": user_lane} if user_lane is not None else {}),
+                **({"worker_id": worker_id} if worker_id is not None else {}),
             )
         except Exception as e:
-            last_error = f"{type(e).__name__}: {e}"
+            selection_error = f"{type(e).__name__}: {e}"
+            last_error = last_error or selection_error
             logging.warning(
                 f"[Router] {path} stream attempt {attempt + 1}/{max_attempts} "
-                f"could not pick another worker: {last_error}"
+                f"could not pick another worker: {selection_error}"
             )
             break
         tried.add(worker.worker_id)
@@ -3719,8 +4427,14 @@ async def _llm_stream_with_worker_failover(
         timings: Dict[str, float] = {}
         buf = b""
         retry_reason = ""
+        retry_is_context_capacity = False
         stream = _iter_worker_stream_bytes(
-            worker, path, payload, capability=capability, model=model
+            worker,
+            path,
+            payload,
+            capability=capability,
+            model=model,
+            reservation_id=reservation_id,
         )
         try:
             async for chunk in stream:
@@ -3743,6 +4457,11 @@ async def _llm_stream_with_worker_failover(
                         continue
                     if event_info["error_message"]:
                         retry_reason = str(event_info["error_message"])
+                        if _is_context_capacity_error(
+                            retry_reason, str(event_info.get("error_type") or "")
+                        ):
+                            retry_is_context_capacity = True
+                            note_context_failure(worker)
                         break
                     if event_info["finish_reason"] or event_info["done"]:
                         retry_reason = f"stream ended before assistant text" + (
@@ -3756,10 +4475,15 @@ async def _llm_stream_with_worker_failover(
                 if retry_reason:
                     break
             if retry_reason:
+                pre_text_failures += 1
                 await stream.aclose()
                 get_registry().record_error(
                     worker.worker_id,
-                    kind="empty_stream",
+                    kind=(
+                        "context_capacity"
+                        if retry_is_context_capacity
+                        else "empty_stream"
+                    ),
                     path=path,
                     message=retry_reason,
                 )
@@ -3784,9 +4508,19 @@ async def _llm_stream_with_worker_failover(
                     yield buf
                 elif event_info["error_message"]:
                     last_error = str(event_info["error_message"])
+                    pre_text_failures += 1
+                    buffered_context_capacity = _is_context_capacity_error(
+                        last_error, str(event_info.get("error_type") or "")
+                    )
+                    if buffered_context_capacity:
+                        note_context_failure(worker)
                     get_registry().record_error(
                         worker.worker_id,
-                        kind="empty_stream",
+                        kind=(
+                            "context_capacity"
+                            if buffered_context_capacity
+                            else "empty_stream"
+                        ),
                         path=path,
                         message=last_error,
                     )
@@ -3802,6 +4536,7 @@ async def _llm_stream_with_worker_failover(
                 _schedule_external_balance_refresh(worker)
                 return
             last_error = "worker stream completed without assistant text"
+            pre_text_failures += 1
             get_registry().record_error(
                 worker.worker_id,
                 kind="empty_stream",
@@ -3821,7 +4556,10 @@ async def _llm_stream_with_worker_failover(
             if assistant_seen:
                 yield _sse_error_event(str(e), "worker_stream_error")
                 return
-            if not e.retryable:
+            pre_text_failures += 1
+            if _is_context_capacity_error(last_error):
+                note_context_failure(worker)
+            if not e.retryable and not _is_context_capacity_error(last_error):
                 yield _sse_error_event(str(e), "worker_stream_error")
                 return
         finally:
@@ -3830,13 +4568,20 @@ async def _llm_stream_with_worker_failover(
             except Exception:
                 pass
 
-    yield _sse_error_event(
-        (
-            f"All {max_attempts} eligible worker stream attempts completed without "
-            f"assistant text for {path}: {last_error or 'unknown error'}"
-        ),
-        "empty_stream",
+    final_message = (
+        f"All {pre_text_failures} attempted worker streams completed without "
+        f"assistant text for {path}: {last_error or 'unknown error'}"
     )
+    if context_capacity_failures > 0 and context_capacity_failures == pre_text_failures:
+        details: Dict[str, Any] = {"compact_and_retry": True}
+        if attempted_context_windows:
+            details["n_ctx"] = max(attempted_context_windows)
+            details["attempted_context_windows"] = sorted(
+                set(attempted_context_windows)
+            )
+        yield _sse_error_event(final_message, "context_capacity_error", details)
+        return
+    yield _sse_error_event(final_message, "empty_stream")
 
 
 async def _proxy_get(worker: WorkerInfo, path: str) -> Response:
@@ -4009,6 +4754,7 @@ async def _proxy_multipart(
     timeout: Optional[float] = None,
     capability: Optional[str] = None,
     model: Optional[str] = None,
+    reservation_id: Optional[str] = None,
 ) -> Response:
     """Forward a multipart/form-data POST to a worker.
 
@@ -4062,6 +4808,7 @@ async def _proxy_multipart(
             timeout=timeout,
             capability=capability,
             model=model,
+            reservation_id=reservation_id,
         )
 
     # Direct (non-tunneled) multipart upload via aiohttp.
@@ -4078,9 +4825,10 @@ async def _proxy_multipart(
 
     url = f"{worker.url}{path}"
     registry = get_registry()
-    reservation_id = registry.increment_in_flight(
-        worker.worker_id, 1, capability=capability, model=model
-    )
+    if reservation_id is None:
+        reservation_id = registry.increment_in_flight(
+            worker.worker_id, 1, capability=capability, model=model
+        )
     try:
         async with aiohttp.ClientSession(timeout=request_timeout) as session:
             async with session.post(url, data=data, headers=headers) as resp:
@@ -4101,6 +4849,195 @@ async def _proxy_multipart(
         raise
     finally:
         registry.release_in_flight(worker.worker_id, reservation_id)
+
+
+def _eligible_capability_worker_ids(capability: str) -> set:
+    """Return selectable local/managed workers for retry exclusion rotation."""
+    try:
+        tunnel_hub = get_tunnel_hub()
+        return {
+            worker.worker_id
+            for worker in get_registry().list_workers(alive_only=True)
+            if capability in worker.capabilities
+            and not worker.is_circuit_open()
+            and (
+                not is_tunnel_url(worker.url)
+                or tunnel_hub.is_connected(worker_id_from_tunnel_url(worker.url))
+            )
+        }
+    except Exception:
+        return set()
+
+
+async def _capability_proxy_with_retry(
+    *,
+    capability: str,
+    path: str,
+    model: Optional[str],
+    request_attempt: Callable[[WorkerInfo, Optional[str]], Awaitable[Any]],
+) -> tuple[WorkerInfo, Any]:
+    """Queue and retry a non-LLM capability request across healthy workers.
+
+    Worker selection already waits for advertised capacity. This wrapper also
+    handles the race between selection and dispatch plus transient failures
+    returned after a worker has accepted the request.
+    """
+    registry = get_registry()
+    max_attempts = _stream_max_attempts(capability)
+    tried: set = set()
+    last_error: Optional[Exception] = None
+    last_status: Optional[int] = None
+    attempts = 0
+
+    while attempts < max_attempts:
+        eligible_ids = _eligible_capability_worker_ids(capability)
+        if tried and (not eligible_ids or eligible_ids.issubset(tried)):
+            tried.clear()
+            await asyncio.sleep(min(0.25 * max(1, attempts), 1.0))
+
+        worker = await _pick(capability, model, exclude=tried)
+        reservation_id = registry.try_reserve_in_flight(
+            worker.worker_id,
+            capability=capability,
+            model=model,
+        )
+        if reservation_id is None:
+            logging.info(
+                "[Router] worker %s lost a %s dispatch race; returning to queue",
+                worker.label,
+                capability,
+            )
+            await asyncio.sleep(0.05)
+            continue
+
+        attempts += 1
+        tried.add(worker.worker_id)
+        try:
+            response = await request_attempt(worker, reservation_id)
+        except asyncio.CancelledError:
+            registry.release_in_flight(worker.worker_id, reservation_id)
+            raise
+        except Exception as error:
+            registry.release_in_flight(worker.worker_id, reservation_id)
+            last_error = error
+            logging.warning(
+                "[Router] %s attempt %d/%d via %s raised %s: %s; retrying",
+                path,
+                attempts,
+                max_attempts,
+                worker.label,
+                type(error).__name__,
+                error,
+            )
+            continue
+
+        last_error = None
+        status = int(getattr(response, "status_code", 200) or 200)
+        if _is_transient_failure(status):
+            last_status = status
+            try:
+                body_snippet = bytes(getattr(response, "body", b"") or b"").decode(
+                    "utf-8", errors="replace"
+                )[:500]
+            except Exception:
+                body_snippet = ""
+            registry.record_error(
+                worker.worker_id,
+                kind="http_5xx" if status >= 500 else "http_retryable",
+                path=path,
+                message=body_snippet or f"HTTP {status}",
+                status=status,
+            )
+            if attempts < max_attempts:
+                logging.warning(
+                    "[Router] %s attempt %d/%d via %s returned %d; retrying",
+                    path,
+                    attempts,
+                    max_attempts,
+                    worker.label,
+                    status,
+                )
+                continue
+        else:
+            return worker, response
+
+    if last_error is not None:
+        raise HTTPException(
+            status_code=502,
+            detail=(
+                f"All {max_attempts} worker attempts failed for {path}: "
+                f"{type(last_error).__name__}: {last_error}"
+            ),
+        )
+    raise HTTPException(
+        status_code=502,
+        detail=(
+            f"All {max_attempts} worker attempts returned transient errors "
+            f"(last status {last_status}) for {path}"
+        ),
+    )
+
+
+async def _proxy_json_capability_with_retry(
+    *,
+    capability: str,
+    path: str,
+    payload: Dict[str, Any],
+    model: Optional[str] = None,
+    stream: bool = False,
+    timeout: Optional[float] = None,
+    stream_media_type: Optional[str] = None,
+    stream_headers: Optional[Dict[str, str]] = None,
+) -> tuple[WorkerInfo, Any]:
+    async def request_attempt(worker: WorkerInfo, reservation_id: Optional[str]):
+        return await _proxy_json(
+            worker,
+            path,
+            payload,
+            stream=stream,
+            timeout=timeout,
+            capability=capability,
+            model=model,
+            stream_media_type=stream_media_type,
+            stream_headers=stream_headers,
+            reservation_id=reservation_id,
+        )
+
+    return await _capability_proxy_with_retry(
+        capability=capability,
+        path=path,
+        model=model,
+        request_attempt=request_attempt,
+    )
+
+
+async def _proxy_multipart_capability_with_retry(
+    *,
+    capability: str,
+    path: str,
+    files: Dict[str, tuple],
+    fields: Dict[str, Any],
+    model: Optional[str] = None,
+    timeout: Optional[float] = None,
+) -> tuple[WorkerInfo, Response]:
+    async def request_attempt(worker: WorkerInfo, reservation_id: Optional[str]):
+        return await _proxy_multipart(
+            worker,
+            path,
+            files=files,
+            fields=fields,
+            timeout=timeout,
+            capability=capability,
+            model=model,
+            reservation_id=reservation_id,
+        )
+
+    return await _capability_proxy_with_retry(
+        capability=capability,
+        path=path,
+        model=model,
+        request_attempt=request_attempt,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -4147,6 +5084,64 @@ async def models(_: str = Depends(verify_client)):
     return {"object": "list", "data": list(seen.values())}
 
 
+def _resolve_chat_worker(
+    label: Any, capability: str, external_fallback_allowed: bool
+) -> str:
+    """Resolve a strict label target before sending HTTP or SSE headers."""
+    if not isinstance(label, str) or not label.strip():
+        raise HTTPException(
+            status_code=400, detail="worker must be a non-empty label string"
+        )
+    registry = get_registry()
+    matches = [
+        w
+        for w in registry.list_workers(alive_only=False)
+        if w.label.strip().casefold() == label.strip().casefold()
+    ]
+    if not matches:
+        raise HTTPException(status_code=404, detail=f"Unknown worker label: {label!r}")
+    if len(matches) > 1:
+        raise HTTPException(
+            status_code=400, detail=f"Ambiguous worker label: {label!r}"
+        )
+    worker = matches[0]
+    if capability not in worker.capabilities:
+        raise HTTPException(
+            status_code=400, detail=f"Worker {label!r} does not support {capability}"
+        )
+    if worker.external_fallback and not external_fallback_allowed:
+        raise HTTPException(
+            status_code=400, detail="worker conflicts with disable_fallback=true"
+        )
+    if (
+        not worker.is_alive(registry.ttl)
+        or worker.is_circuit_open()
+        or (
+            is_tunnel_url(worker.url)
+            and not get_tunnel_hub().is_connected(worker_id_from_tunnel_url(worker.url))
+        )
+    ):
+        raise HTTPException(
+            status_code=503, detail=f"Worker {label!r} is offline or unhealthy"
+        )
+    return worker.worker_id
+
+
+async def _pick_and_reserve_llm(capability: str, model: str, **selection_options):
+    """Dispatch races return to the queue without consuming an upstream attempt."""
+    while True:
+        worker = await _pick(capability, model, **selection_options)
+        reservation_id = get_registry().try_reserve_in_flight(
+            worker.worker_id, capability=capability, model=model
+        )
+        if reservation_id is not None:
+            lane = selection_options.get("user_lane")
+            if lane is not None and not worker.external_fallback:
+                lane.worker_id = worker.worker_id
+            return worker, reservation_id
+        await asyncio.sleep(0.05)
+
+
 @app.post("/v1/chat/completions", tags=["Chat"])
 async def chat_completions(payload: Dict[str, Any], _: str = Depends(verify_client)):
     payload = dict(payload)
@@ -4167,6 +5162,14 @@ async def chat_completions(payload: Dict[str, Any], _: str = Depends(verify_clie
         if needs_vision:
             break
     capability = "vision" if needs_vision else "text"
+    worker_id = (
+        _resolve_chat_worker(payload["worker"], capability, not disable_fallback)
+        if "worker" in payload
+        else None
+    )
+    if worker_id is not None:
+        # Also prevent a selected local worker from using its own fallback server.
+        payload["disable_fallback"] = True
     is_stream = bool(payload.get("stream"))
     return await _llm_proxy_with_retry(
         capability=capability,
@@ -4176,6 +5179,7 @@ async def chat_completions(payload: Dict[str, Any], _: str = Depends(verify_clie
         is_stream=is_stream,
         external_fallback_allowed=not disable_fallback,
         wait_indefinitely=disable_fallback,
+        **({"worker_id": worker_id} if worker_id is not None else {}),
     )
 
 
@@ -4202,34 +5206,111 @@ async def _llm_proxy_with_retry(
     is_stream: bool,
     external_fallback_allowed: bool = True,
     wait_indefinitely: bool = False,
+    worker_id: Optional[str] = None,
+    user_lane: Optional[UserLane] = None,
 ):
     """Forward an LLM request, retrying unhealthy workers before replying."""
+    lane_key = _user_affinity_key(payload, model)
+    if lane_key and user_lane is None and worker_id is None:
+        options = dict(
+            capability=capability,
+            path=path,
+            payload=payload,
+            model=model,
+            external_fallback_allowed=external_fallback_allowed,
+            wait_indefinitely=wait_indefinitely,
+        )
+
+        def lane_context():
+            return _user_affinity.acquire(
+                lane_key,
+                ttl=max(1, _float_env("ROUTER_USER_AFFINITY_TTL", 600)),
+                max_entries=max(1, int(_float_env("ROUTER_USER_AFFINITY_MAX", 10000))),
+                max_pending=max(1, int(_float_env("ROUTER_USER_QUEUE_MAX", 100))),
+            )
+
+        if is_stream:
+
+            async def queued_stream():
+                try:
+                    async with lane_context() as lane:
+                        stream = _llm_stream_with_worker_failover(
+                            **options, user_lane=lane, request_started=time.monotonic()
+                        )
+                        try:
+                            async for chunk in stream:
+                                yield chunk
+                        finally:
+                            await stream.aclose()
+                except OverflowError as error:
+                    yield (
+                        "data: "
+                        + json.dumps(
+                            {
+                                "error": {
+                                    "message": str(error),
+                                    "type": "router_queue_full",
+                                    "code": 429,
+                                }
+                            }
+                        )
+                        + "\n\ndata: [DONE]\n\n"
+                    ).encode()
+
+            return StreamingResponse(
+                _with_stream_keepalive(queued_stream()),
+                media_type="text/event-stream",
+                headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+            )
+        try:
+            async with lane_context() as lane:
+                return await _llm_proxy_with_retry(
+                    **options, is_stream=False, user_lane=lane
+                )
+        except OverflowError as error:
+            raise HTTPException(
+                status_code=429, detail=str(error), headers={"Retry-After": "1"}
+            )
     if is_stream:
         return StreamingResponse(
-            _llm_stream_with_worker_failover(
-                capability=capability,
-                path=path,
-                payload=payload,
-                model=model,
-                request_started=time.monotonic(),
-                external_fallback_allowed=external_fallback_allowed,
-                wait_indefinitely=wait_indefinitely,
+            _with_stream_keepalive(
+                _llm_stream_with_worker_failover(
+                    capability=capability,
+                    path=path,
+                    payload=payload,
+                    model=model,
+                    request_started=time.monotonic(),
+                    external_fallback_allowed=external_fallback_allowed,
+                    wait_indefinitely=wait_indefinitely,
+                    worker_id=worker_id,
+                )
             ),
             media_type="text/event-stream",
+            headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
         )
 
     tried: set = set()
+    affinity_key = _prompt_affinity_key(payload, capability, model)
+    system_prefix_keys = _system_prefix_affinity_keys(payload, capability, model)
+    cache_avoid_worker_ids = _prompt_cache_avoid_worker_ids(
+        payload, capability, model, tried
+    )
     last_error: Optional[Exception] = None
     last_status: Optional[int] = None
-    max_attempts = 1 + _max_retries()
+    max_attempts = 1 if worker_id is not None else 1 + _max_retries()
     request_started = time.monotonic()
     for attempt in range(max_attempts):
-        worker = await _pick(
+        worker, reservation_id = await _pick_and_reserve_llm(
             capability,
             model,
-            exclude=tried,
+            exclude=tried | (cache_avoid_worker_ids if attempt == 0 else set()),
+            retrying=attempt > 0,
             external_fallback_allowed=external_fallback_allowed,
             wait_indefinitely=wait_indefinitely,
+            affinity_key=affinity_key,
+            system_prefix_keys=system_prefix_keys,
+            **({"user_lane": user_lane} if user_lane is not None else {}),
+            **({"worker_id": worker_id} if worker_id is not None else {}),
         )
         tried.add(worker.worker_id)
         try:
@@ -4240,6 +5321,7 @@ async def _llm_proxy_with_retry(
                 stream=is_stream,
                 capability=capability,
                 model=model,
+                reservation_id=reservation_id,
             )
         except Exception as e:
             last_error = e
@@ -4277,20 +5359,9 @@ async def _llm_proxy_with_retry(
             pt, ct = 0, 0
             timings: Dict[str, float] = {}
             try:
-                obj = json.loads(resp.body)
-                u = obj.get("usage") or {}
-                pt = int(u.get("prompt_tokens") or 0)
-                ct = int(u.get("completion_tokens") or 0)
-                t = obj.get("timings")
-                if isinstance(t, dict):
-                    if not pt:
-                        pt = int(t.get("prompt_n") or 0)
-                    if not ct:
-                        ct = int(t.get("predicted_n") or 0)
-                    for k in ("prompt_ms", "predicted_ms"):
-                        v = t.get(k)
-                        if isinstance(v, (int, float)):
-                            timings[k] = float(v)
+                pt, ct = _extract_tokens_from_sse_event(
+                    bytes(resp.body), pt, ct, timings
+                )
             except Exception:
                 pass
             timings["total_ms"] = (time.monotonic() - request_started) * 1000.0
@@ -4319,14 +5390,11 @@ async def _llm_proxy_with_retry(
 
 @app.post("/v1/embeddings", tags=["Embeddings"])
 async def embeddings(payload: Dict[str, Any], _: str = Depends(verify_client)):
-    worker = await _pick("embedding", payload.get("model"))
     start = time.perf_counter()
-    resp = await _proxy_json(
-        worker,
-        "/v1/embeddings",
-        payload,
-        stream=False,
+    worker, resp = await _proxy_json_capability_with_retry(
         capability="embedding",
+        path="/v1/embeddings",
+        payload=payload,
         model=payload.get("model"),
     )
     total_ms = (time.perf_counter() - start) * 1000.0
@@ -4359,10 +5427,12 @@ async def audio_speech(
     request: Request,
     _: str = Depends(verify_client),
 ):
-    worker = await _pick("tts", payload.get("model"))
     start = time.perf_counter()
-    resp = await _proxy_json(
-        worker, "/v1/audio/speech", payload, stream=False, capability="tts"
+    worker, resp = await _proxy_json_capability_with_retry(
+        capability="tts",
+        path="/v1/audio/speech",
+        payload=payload,
+        model=payload.get("model"),
     )
     total_ms = (time.perf_counter() - start) * 1000.0
     if int(getattr(resp, "status_code", 200) or 200) < 400:
@@ -4378,14 +5448,13 @@ async def audio_speech(
 
 @app.post("/v1/audio/speech/stream", tags=["Audio"])
 async def audio_speech_stream(payload: Dict[str, Any], _: str = Depends(verify_client)):
-    worker = await _pick("tts", payload.get("model"))
     start = time.perf_counter()
-    resp = await _proxy_json(
-        worker,
-        "/v1/audio/speech/stream",
-        payload,
-        stream=True,
+    worker, resp = await _proxy_json_capability_with_retry(
         capability="tts",
+        path="/v1/audio/speech/stream",
+        payload=payload,
+        model=payload.get("model"),
+        stream=True,
         stream_media_type="application/octet-stream",
         stream_headers={
             "X-Audio-Format": "pcm",
@@ -4413,18 +5482,16 @@ async def audio_music(
     request: Request,
     _: str = Depends(verify_client),
 ):
-    worker = await _pick("music", payload.get("model"))
     start = time.perf_counter()
-    resp = await _proxy_json(
-        worker,
-        "/v1/audio/music",
-        payload,
-        stream=False,
+    worker, resp = await _proxy_json_capability_with_retry(
+        capability="music",
+        path="/v1/audio/music",
+        payload=payload,
+        model=payload.get("model"),
         timeout=max(
             float(getenv("REQUEST_TIMEOUT", "1800")),
             float(getenv("ACE_STEP_TIMEOUT", "1800")),
         ),
-        capability="music",
     )
     total_ms = (time.perf_counter() - start) * 1000.0
     if int(getattr(resp, "status_code", 200) or 200) < 400:
@@ -4474,13 +5541,12 @@ async def audio_transcriptions(
     ),
     _: str = Depends(verify_client),
 ):
-    worker = await _pick("stt", model)
     content = await file.read()
     granularities = timestamp_granularities_bracketed or timestamp_granularities
     start = time.perf_counter()
-    resp = await _proxy_multipart(
-        worker,
-        "/v1/audio/transcriptions",
+    worker, resp = await _proxy_multipart_capability_with_retry(
+        capability="stt",
+        path="/v1/audio/transcriptions",
         files={
             "file": (
                 file.filename or "audio.wav",
@@ -4498,7 +5564,6 @@ async def audio_transcriptions(
             "timestamp_granularities[]": granularities,
         },
         timeout=_stt_timeout(),
-        capability="stt",
         model=model,
     )
     total_ms = (time.perf_counter() - start) * 1000.0
@@ -4519,10 +5584,12 @@ async def images_generations(
     request: Request,
     _: str = Depends(verify_client),
 ):
-    worker = await _pick("image", payload.get("model"))
     start = time.perf_counter()
-    resp = await _proxy_json(
-        worker, "/v1/images/generations", payload, stream=False, capability="image"
+    worker, resp = await _proxy_json_capability_with_retry(
+        capability="image",
+        path="/v1/images/generations",
+        payload=payload,
+        model=payload.get("model"),
     )
     total_ms = (time.perf_counter() - start) * 1000.0
     if int(getattr(resp, "status_code", 200) or 200) < 400:
@@ -4542,10 +5609,12 @@ async def images_edits(request: Request, _: str = Depends(verify_client)):
     content_type = (request.headers.get("content-type") or "").lower()
     if "application/json" in content_type:
         payload = await request.json()
-        worker = await _pick("image", payload.get("model"))
         start = time.perf_counter()
-        resp = await _proxy_json(
-            worker, "/v1/images/edits", payload, stream=False, capability="image"
+        worker, resp = await _proxy_json_capability_with_retry(
+            capability="image",
+            path="/v1/images/edits",
+            payload=payload,
+            model=payload.get("model"),
         )
         total_ms = (time.perf_counter() - start) * 1000.0
         if int(getattr(resp, "status_code", 200) or 200) < 400:
@@ -4571,14 +5640,13 @@ async def images_edits(request: Request, _: str = Depends(verify_client)):
             )
         else:
             fields[key] = str(value)
-    worker = await _pick("image", fields.get("model"))
     start = time.perf_counter()
-    resp = await _proxy_multipart(
-        worker,
-        "/v1/images/edits",
+    worker, resp = await _proxy_multipart_capability_with_retry(
+        capability="image",
+        path="/v1/images/edits",
         files=files,
         fields=fields,
-        capability="image",
+        model=fields.get("model"),
     )
     total_ms = (time.perf_counter() - start) * 1000.0
     if int(getattr(resp, "status_code", 200) or 200) < 400:
@@ -4598,15 +5666,13 @@ async def videos_generations(
     request: Request,
     _: str = Depends(verify_client),
 ):
-    worker = await _pick("video", payload.get("model"))
     start = time.perf_counter()
-    resp = await _proxy_json(
-        worker,
-        "/v1/videos/generations",
-        payload,
-        stream=False,
-        timeout=float(getenv("REQUEST_TIMEOUT", "1800")),
+    worker, resp = await _proxy_json_capability_with_retry(
         capability="video",
+        path="/v1/videos/generations",
+        payload=payload,
+        model=payload.get("model"),
+        timeout=float(getenv("REQUEST_TIMEOUT", "1800")),
     )
     total_ms = (time.perf_counter() - start) * 1000.0
     if int(getattr(resp, "status_code", 200) or 200) < 400:
@@ -4627,27 +5693,24 @@ async def music_videos_generations(
     request: Request,
     _: str = Depends(verify_client),
 ):
-    worker = await _pick(
-        "music_video", payload.get("video_model") or payload.get("model")
-    )
+    model = payload.get("video_model") or payload.get("model")
     start = time.perf_counter()
-    resp = await _proxy_json(
-        worker,
-        "/v1/videos/music",
-        payload,
-        stream=False,
+    worker, resp = await _proxy_json_capability_with_retry(
+        capability="music_video",
+        path="/v1/videos/music",
+        payload=payload,
+        model=model,
         timeout=max(
             float(getenv("REQUEST_TIMEOUT", "1800")),
             float(getenv("ACE_STEP_TIMEOUT", "1800")),
         ),
-        capability="music_video",
     )
     total_ms = (time.perf_counter() - start) * 1000.0
     if int(getattr(resp, "status_code", 200) or 200) < 400:
         await _record_cap_success(
             worker,
             "music_video",
-            requested_model=payload.get("video_model") or payload.get("model"),
+            requested_model=model,
             total_ms=total_ms,
             outputs=_json_response_output_count(resp),
         )

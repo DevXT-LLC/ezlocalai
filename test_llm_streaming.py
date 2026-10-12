@@ -1,3 +1,4 @@
+import os
 import pathlib
 import sys
 import types
@@ -33,6 +34,9 @@ sys.modules.setdefault("torch", types.SimpleNamespace(cuda=_FakeCuda()))
 from ezlocalai.LLM import (
     LLM,
     calculate_auto_batch_sizes,
+    cap_prompt_cache_mib_for_ram,
+    get_mtp_spec_draft_n_max,
+    get_mtp_spec_draft_p_min,
     get_model_image_min_tokens,
     is_mtp_model,
     normalize_stream_chunk_delta,
@@ -53,6 +57,15 @@ class _FakeStreamingServer:
         return {}
 
 
+class _FakeChatServer:
+    def __init__(self):
+        self.request = None
+
+    def handle_chat_completions(self, request):
+        self.request = request
+        return {"choices": [{"message": {"content": "ok"}}]}
+
+
 def _fake_llm(chunks):
     llm = LLM.__new__(LLM)
     llm.server = _FakeStreamingServer(chunks)
@@ -61,20 +74,148 @@ def _fake_llm(chunks):
 
 
 class LlmStreamingTests(unittest.TestCase):
-    def test_long_context_mtp_auto_ubatch_is_memory_safe(self):
-        fake_cuda = types.SimpleNamespace(
+    def test_chat_explicitly_enables_prompt_cache_reuse(self):
+        llm = LLM.__new__(LLM)
+        llm.server = _FakeChatServer()
+        llm.model_name = "test-model"
+        llm.system_message = ""
+        llm.params = {
+            "max_tokens": 128,
+            "temperature": 0.0,
+            "top_p": 1.0,
+            "stop": [],
+        }
+
+        llm.chat([{"role": "user", "content": "hello"}])
+
+        self.assertIs(llm.server.request["cache_prompt"], True)
+
+    def test_qwen38_auto_ubatch_uses_benchmarked_hardware_caps(self):
+        ampere_cuda = types.SimpleNamespace(
             is_available=lambda: True,
             device_count=lambda: 1,
             mem_get_info=lambda _index: (22 * 1024**3, 24 * 1024**3),
             get_device_capability=lambda _index: (8, 6),
         )
-        with mock.patch("ezlocalai.LLM.torch.cuda", fake_cuda):
+        blackwell_cuda = types.SimpleNamespace(
+            is_available=lambda: True,
+            device_count=lambda: 1,
+            mem_get_info=lambda _index: (30 * 1024**3, 32 * 1024**3),
+            get_device_capability=lambda _index: (12, 0),
+        )
+        with mock.patch("ezlocalai.LLM.torch.cuda", ampere_cuda):
             normal = calculate_auto_batch_sizes(0, 262_144, "Qwen3.6-27B")
-            mtp = calculate_auto_batch_sizes(0, 262_144, "unsloth/Qwen3.8-27B-GGUF")
+            qwen38_180k = calculate_auto_batch_sizes(
+                0, 180_000, "unsloth/Qwen3.8-27B-GGUF"
+            )
+            qwen38_262k = calculate_auto_batch_sizes(
+                0, 262_144, "unsloth/Qwen3.8-27B-GGUF"
+            )
+            other_mtp = calculate_auto_batch_sizes(
+                0, 262_144, "unsloth/Qwen3.6-27B-MTP-GGUF"
+            )
+        with mock.patch("ezlocalai.LLM.torch.cuda", blackwell_cuda):
+            qwen38_5090 = calculate_auto_batch_sizes(
+                0, 262_144, "unsloth/Qwen3.8-27B-GGUF"
+            )
 
         self.assertEqual(normal[:2], (4096, 1024))
-        self.assertEqual(mtp[:2], (4096, 256))
-        self.assertIn("MTP long-context cap", mtp[2])
+        self.assertEqual(qwen38_180k[:2], (4096, 1024))
+        self.assertEqual(qwen38_262k[:2], (4096, 512))
+        self.assertEqual(qwen38_5090[:2], (8192, 1024))
+        self.assertEqual(other_mtp[:2], (4096, 256))
+        self.assertIn("MTP long-context cap", qwen38_262k[2])
+        self.assertIn("MTP long-context cap", qwen38_5090[2])
+
+    def test_qwen38_uses_benchmarked_mtp_defaults(self):
+        with (
+            mock.patch("ezlocalai.LLM.get_total_vram_per_gpu", return_value=[24.0]),
+            mock.patch("ezlocalai.LLM.getenv", return_value="auto"),
+        ):
+            self.assertEqual(
+                get_mtp_spec_draft_n_max(0, "unsloth/Qwen3.8-27B-GGUF")[0], 3
+            )
+            self.assertEqual(
+                get_mtp_spec_draft_n_max(0, "unsloth/Qwen3.6-27B-MTP-GGUF")[0],
+                2,
+            )
+            self.assertEqual(get_mtp_spec_draft_p_min("unsloth/Qwen3.8-27B-GGUF"), 0.1)
+            self.assertEqual(
+                get_mtp_spec_draft_p_min("unsloth/Qwen3.6-27B-MTP-GGUF"), 0.25
+            )
+
+    def test_explicit_mtp_probability_still_overrides_family_default(self):
+        with mock.patch("ezlocalai.LLM.getenv", return_value="0.4"):
+            self.assertEqual(get_mtp_spec_draft_p_min("unsloth/Qwen3.8-27B-GGUF"), 0.4)
+
+    def test_mtp_card_defaults_and_override_precedence(self):
+        for family, capacity in (
+            ("3090", 24.0),
+            ("4090", 24.0),
+            ("5090", 32.0),
+            ("T4", 15.0),
+            ("A100", 40.0),
+            ("H100", 80.0),
+        ):
+            default = 2 if family == "T4" else 3
+            for global_value, card_value, expected in (
+                ("auto", "", default),
+                ("2", "", 2),
+                ("2", "4", 4),
+                ("2", "auto", default),
+                ("2", " ", 2),
+                ("auto", "bad", default),
+                ("auto", "99", 16),
+            ):
+                with (
+                    self.subTest(family=family, card=card_value),
+                    mock.patch.dict(
+                        os.environ,
+                        {f"MTP_SPEC_DRAFT_N_MAX_{family}": card_value},
+                        clear=True,
+                    ),
+                    mock.patch(
+                        "ezlocalai.LLM.gpu_profile", return_value=(family, capacity)
+                    ),
+                    mock.patch(
+                        "ezlocalai.LLM.get_total_vram_per_gpu", return_value=[capacity]
+                    ),
+                    mock.patch("ezlocalai.LLM.getenv", return_value=global_value),
+                ):
+                    self.assertEqual(
+                        get_mtp_spec_draft_n_max(0, "Qwen3.8-27B"),
+                        (expected, capacity),
+                    )
+
+    def test_colab_gpu_batch_defaults_and_memory_pressure(self):
+        for family, capacity, free, cc, context, expected in (
+            ("T4", 15, 14, (7, 5), 8192, (512, 128)),
+            ("T4", 15, 10, (7, 5), 8192, (256, 64)),
+            ("T4", 15, 14, (7, 5), 64, (64, 64)),
+            ("A100", 40, 38, (8, 0), 262144, (4096, 1024)),
+            ("A100", 80, 78, (8, 0), 262144, (8192, 1024)),
+            ("H100", 80, 78, (9, 0), 262144, (8192, 1024)),
+            ("A100", 80, 10, (8, 0), 8192, (1024, 512)),
+            ("H100", 80, 10, (9, 0), 8192, (1024, 512)),
+        ):
+            cuda = types.SimpleNamespace(
+                is_available=lambda: True,
+                device_count=lambda: 1,
+                mem_get_info=lambda _: (free * 1024**3, capacity * 1024**3),
+                get_device_capability=lambda _: cc,
+            )
+            with (
+                self.subTest(family=family, free=free, context=context),
+                mock.patch("ezlocalai.LLM.torch.cuda", cuda),
+                mock.patch(
+                    "ezlocalai.LLM.gpu_profile", return_value=(family, capacity)
+                ),
+            ):
+                batch, ubatch, reason = calculate_auto_batch_sizes(
+                    0, context, "Qwen3.8-27B"
+                )
+                self.assertEqual((batch, ubatch), expected)
+                self.assertIn(family, reason)
 
     def test_qwen38_standard_repo_is_recognized_as_built_in_mtp(self):
         self.assertTrue(is_mtp_model("unsloth/Qwen3.8-27B-GGUF"))
@@ -95,6 +236,32 @@ class LlmStreamingTests(unittest.TestCase):
         self.assertEqual(resolve_prompt_cache_mib("off", "qwen", 262_144)[0], 0)
         self.assertEqual(resolve_prompt_cache_mib("0", "qwen", 262_144)[0], 0)
         self.assertEqual(resolve_prompt_cache_mib("12288", "qwen", 262_144)[0], 12288)
+
+    def test_prompt_cache_is_capped_for_low_ram_worker(self):
+        with mock.patch.dict(os.environ, {}, clear=True):
+            cache, reason = cap_prompt_cache_mib_for_ram(
+                32768, "explicit", available_ram_mib=14336, total_ram_mib=15128
+            )
+        self.assertEqual(cache, 3584)
+        self.assertIn("RAM safety cap", reason)
+
+    def test_prompt_cache_keeps_safe_value_and_supports_explicit_bypass(self):
+        with mock.patch.dict(os.environ, {}, clear=True):
+            self.assertEqual(
+                cap_prompt_cache_mib_for_ram(
+                    16384, "auto", available_ram_mib=61440, total_ram_mib=65536
+                )[0],
+                16384,
+            )
+        with mock.patch.dict(
+            os.environ, {"LLM_PROMPT_CACHE_ALLOW_UNSAFE": "true"}, clear=True
+        ):
+            self.assertEqual(
+                cap_prompt_cache_mib_for_ram(
+                    32768, "explicit", available_ram_mib=8192, total_ram_mib=16384
+                )[0],
+                32768,
+            )
 
     def test_reasoning_delta_is_preserved_when_wrapping_chunk(self):
         delta = normalize_stream_chunk_delta(
@@ -180,6 +347,26 @@ class LlmStreamingTests(unittest.TestCase):
 
         self.assertEqual(outputs[0], chunks[0])
         self.assertEqual(outputs[-1]["error"]["type"], "empty_stream")
+        self.assertIn("finish_reason=stop", outputs[-1]["error"]["message"])
+        self.assertIn("backend=unknown", outputs[-1]["error"]["message"])
+
+    def test_empty_stream_diagnostics_exclude_private_fields(self):
+        chunks = [
+            {
+                "choices": [{"delta": {}, "finish_reason": "length"}],
+                "usage": {
+                    "prompt_tokens": 50,
+                    "completion_tokens": 0,
+                    "private": "secret",
+                },
+                "timings": {"predicted_n": 0, "private": "secret"},
+            }
+        ]
+        outputs = list(_fake_llm(chunks)._chat_stream({"messages": []}))
+        message = outputs[-1]["error"]["message"]
+        self.assertIn('"prompt_tokens": 50', message)
+        self.assertIn("finish_reason=length", message)
+        self.assertNotIn("secret", message)
 
     def test_nested_stream_error_raises_real_context_message(self):
         chunks = [

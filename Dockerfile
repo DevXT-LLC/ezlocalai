@@ -15,6 +15,16 @@ RUN git clone --depth 1 --recurse-submodules https://github.com/ServeurpersoCom/
     cmake -B build -DGGML_BLAS=ON -DCMAKE_BUILD_TYPE=Release && \
     cmake --build build --config Release --parallel "$(nproc)" --target ace-server
 
+# Build stable-diffusion.cpp for Qwen-Image-2.1 GGUF image generation
+ARG SDCPP_REF=c678dfe704a2230342376b46add9c8ca736a653d
+RUN git clone --depth 1 --recurse-submodules https://github.com/leejet/stable-diffusion.cpp.git /opt/stable-diffusion.cpp && \
+    cd /opt/stable-diffusion.cpp && \
+    git fetch --depth 1 origin "$SDCPP_REF" && \
+    git checkout --detach FETCH_HEAD && \
+    git submodule update --init --recursive && \
+    cmake -B build -DGGML_BLAS=ON -DCMAKE_BUILD_TYPE=Release && \
+    cmake --build build --config Release --parallel "$(nproc)" --target sd-cli
+
 # Install PyTorch CPU version
 RUN pip install torch==2.6.0 torchaudio==2.6.0 --index-url https://download.pytorch.org/whl/cpu --no-cache-dir
 
@@ -24,7 +34,6 @@ RUN pip install numpy==1.25.2 Cython "setuptools>=78.1.1" --no-cache-dir
 COPY requirements.txt .
 RUN --mount=type=cache,target=/root/.cache/pip,sharing=locked \
     python3 -m pip install --no-cache-dir -r requirements.txt
-RUN python3 -m pip install qwen-tts==0.1.1 --no-deps --no-cache-dir
 RUN python3 -m pip install "gTTS>=2.4.0" --no-deps --no-cache-dir
 
 # Install esp-ppq with --no-deps to bypass onnx<1.18.0 pin
@@ -32,7 +41,10 @@ RUN python3 -m pip install "gTTS>=2.4.0" --no-deps --no-cache-dir
 RUN pip install esp-ppq --no-deps --no-cache-dir
 
 # Install xllamacpp CPU version
-RUN pip install xllamacpp==2026.8.10566 --force-reinstall --no-cache-dir
+RUN pip install xllamacpp==2026.10.11549 --force-reinstall --no-cache-dir
+COPY native/tts /opt/ezlocalai-tts
+RUN cmake -S /opt/ezlocalai-tts -B /opt/ezlocalai-tts/build -DCMAKE_BUILD_TYPE=Release && \
+    cmake --build /opt/ezlocalai-tts/build --target ezlocalai-tts --parallel 20
 
 COPY . .
 ENV HOST=0.0.0.0 \
@@ -40,7 +52,8 @@ ENV HOST=0.0.0.0 \
     PYTHONUNBUFFERED=1 \
     HF_HOME=/app/models \
     HF_HUB_CACHE=/app/models \
-    ACE_STEP_BIN=/opt/acestep.cpp/build/ace-server
+    ACE_STEP_BIN=/opt/acestep.cpp/build/ace-server \
+    SDCPP_BIN=/opt/stable-diffusion.cpp/build/bin/sd-cli
 EXPOSE 8091
 # Use start.py which runs precache once, then starts uvicorn workers
 CMD ["python", "start.py"]

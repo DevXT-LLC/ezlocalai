@@ -29,6 +29,17 @@ RUN ln -sf /usr/local/cuda/lib64/stubs/libcuda.so /usr/local/cuda/lib64/stubs/li
     git submodule update --init --recursive && \
     cmake -B build -DGGML_CUDA=ON -DCMAKE_CUDA_COMPILER=/usr/local/cuda/bin/nvcc -DCMAKE_CUDA_ARCHITECTURES="${ACESTEP_CUDA_ARCHITECTURES}" -DCMAKE_EXE_LINKER_FLAGS="-L/usr/local/cuda/lib64/stubs -Wl,-rpath-link,/usr/local/cuda/lib64/stubs" -DCMAKE_BUILD_TYPE=Release && \
     cmake --build build --config Release --parallel "$(nproc)" --target ace-server
+
+# Build stable-diffusion.cpp for Qwen-Image-2.1 GGUF image generation (CUDA)
+ARG SDCPP_REF=c678dfe704a2230342376b46add9c8ca736a653d
+RUN git clone --depth 1 --recurse-submodules https://github.com/leejet/stable-diffusion.cpp.git /opt/stable-diffusion.cpp && \
+    cd /opt/stable-diffusion.cpp && \
+    git fetch --depth 1 origin "$SDCPP_REF" && \
+    git checkout --detach FETCH_HEAD && \
+    git submodule update --init --recursive && \
+    cmake -B build -DSD_CUDA=ON -DCMAKE_CUDA_COMPILER=/usr/local/cuda/bin/nvcc -DCMAKE_CUDA_ARCHITECTURES="75-virtual;80-virtual;86-real;89-real" -DCMAKE_EXE_LINKER_FLAGS="-L/usr/local/cuda/lib64/stubs -Wl,-rpath-link,/usr/local/cuda/lib64/stubs" -DCMAKE_BUILD_TYPE=Release && \
+    cmake --build build --config Release --parallel "$(nproc)" --target sd-cli
+
 # Use PyTorch 2.9.1 which is built against cuDNN 9.10.2
 # Install nvidia-cudnn-cu12==9.10.2.21 to get matching cuDNN libraries (overrides system cuDNN 9.8.0)
 RUN uv pip install torch==2.9.1+cu128 torchaudio==2.9.1+cu128 --index-url https://download.pytorch.org/whl/cu128 && \
@@ -39,13 +50,6 @@ RUN uv pip install torch==2.9.1+cu128 torchaudio==2.9.1+cu128 --index-url https:
 RUN uv pip install "numpy>=1.26.0,<2.5" Cython "setuptools>=78.1.1"
 COPY cuda-requirements.txt .
 RUN uv pip install -r cuda-requirements.txt
-# qwen-tts uses FlashAttention-2 in its acoustic tokenizer. Pin the official
-# CUDA 12 / PyTorch 2.9 / CPython 3.12 wheel so Docker never falls back to a
-# large, machine-dependent source build.
-ARG FLASH_ATTN_VERSION=2.8.3
-RUN uv pip install --no-deps \
-    "https://github.com/Dao-AILab/flash-attention/releases/download/v${FLASH_ATTN_VERSION}/flash_attn-${FLASH_ATTN_VERSION}%2Bcu12torch2.9cxx11abiTRUE-cp312-cp312-linux_x86_64.whl"
-RUN uv pip install qwen-tts==0.1.1 --no-deps
 # ezlocalai imports gTTS as a library. Install it outside the main solve because
 # its CLI click<8.2 constraint conflicts with the current Hugging Face stack.
 RUN uv pip install "gTTS>=2.4.0" --no-deps
@@ -58,9 +62,35 @@ ENV HOST=0.0.0.0 \
     PYTHONUNBUFFERED=1 \
     HF_HOME=/app/models \
     HF_HUB_CACHE=/app/models \
-    ACE_STEP_BIN=/opt/acestep.cpp/build/ace-server
+    ACE_STEP_BIN=/opt/acestep.cpp/build/ace-server \
+    SDCPP_BIN=/opt/stable-diffusion.cpp/build/bin/sd-cli
 # Install xllamacpp with CUDA 12.8 support (compatible with CUDA 12.9)
-RUN uv pip install xllamacpp==2026.8.10566 --reinstall --index-url https://xorbitsai.github.io/xllamacpp/whl/cu128
+RUN uv pip install xllamacpp==2026.10.11549 --reinstall --index-url https://xorbitsai.github.io/xllamacpp/whl/cu128
+COPY native/tts /opt/ezlocalai-tts
+ARG TTS_CUDA_ARCHITECTURES=86;89;120
+ARG TTS_BUILD_JOBS=20
+RUN cmake -S /opt/ezlocalai-tts -B /opt/ezlocalai-tts/build \
+    -DCMAKE_BUILD_TYPE=Release -DGGML_CUDA=ON \
+    -DCMAKE_CUDA_COMPILER=/usr/local/cuda/bin/nvcc \
+    -DCMAKE_CUDA_ARCHITECTURES="${TTS_CUDA_ARCHITECTURES}" \
+    -DCMAKE_EXE_LINKER_FLAGS="-L/usr/local/cuda/lib64/stubs -Wl,-rpath-link,/usr/local/cuda/lib64/stubs" && \
+    cmake --build /opt/ezlocalai-tts/build --target ezlocalai-tts --parallel "${TTS_BUILD_JOBS}"
+# The published xllamacpp==2026.10.11549 wheel predates the large-image DFlash
+# cache fix. Keep this build after TTS so existing expensive layers stay cached.
+RUN uv pip install pip
+COPY scripts/build_xllamacpp.py /opt/ezlocalai-native/scripts/build_xllamacpp.py
+ARG XLLAMACPP_BUILD_JOBS=20
+ARG XLLAMACPP_CUDA_ARCHITECTURES=86-real;89-real;120-real
+RUN --mount=type=cache,target=/opt/xllamacpp-build \
+    --mount=type=cache,target=/root/.cargo \
+    --mount=type=cache,target=/root/.rustup \
+    export PATH="/root/.cargo/bin:$PATH" && \
+    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal --no-modify-path && \
+    LD_LIBRARY_PATH="/usr/local/cuda/lib64/stubs:$LD_LIBRARY_PATH" \
+    CMAKE_ARGS="-DCMAKE_BUILD_TYPE=Release -DCMAKE_CUDA_COMPILER=/usr/local/cuda/bin/nvcc -DCMAKE_EXE_LINKER_FLAGS=-Wl,-rpath-link,/usr/local/cuda/lib64/stubs" \
+    python /opt/ezlocalai-native/scripts/build_xllamacpp.py --cuda --install \
+    --jobs "${XLLAMACPP_BUILD_JOBS}" --cuda-architectures "${XLLAMACPP_CUDA_ARCHITECTURES}" \
+    --source-dir /opt/xllamacpp-build/source --wheel-dir /opt/xllamacpp-build/wheels
 COPY . .
 EXPOSE 8091
 # Use start.py which runs precache once, then starts uvicorn workers

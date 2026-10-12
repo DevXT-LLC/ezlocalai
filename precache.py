@@ -430,6 +430,11 @@ def precache_llm_models():
                 logging.info(f"  ✓ {model_name} ({elapsed:.1f}s)")
 
             # Also download vision projector if it exists
+            from ezlocalai.Speculative import speculative_backend, download_dflash_model
+
+            if speculative_backend(model_name) == "dflash2":
+                download_dflash_model()
+
             mmproj_exists = any(
                 f
                 for f in os.listdir(model_dir)
@@ -529,15 +534,12 @@ def precache_tts():
     start_time = time.time()
 
     try:
-        from CTTS import CTTS
+        from ezlocalai.LlamaTTS import download_tts_models
 
-        # Initialize TTS - this downloads models
-        ctts = CTTS()
+        # Download only: never take a GPU slot during precache.
+        download_tts_models()
         elapsed = time.time() - start_time
         logging.info(f"  ✓ TTS models ({elapsed:.1f}s)")
-
-        # Clean up
-        del ctts
 
         # Force garbage collection to free memory
         import gc
@@ -553,7 +555,7 @@ def precache_tts():
             pass
 
     except Exception as e:
-        logging.debug(f"  - TTS: {e}")
+        logging.warning(f"  - TTS precache failed: {e}")
 
 
 def precache_stt():
@@ -593,12 +595,7 @@ def precache_stt():
 
 
 def precache_image_model():
-    """Download image generation GGUF transformer and pipeline components if configured.
-
-    Downloads the GGUF file during precache. Pipeline components
-    (text_encoder, vae, etc.) are downloaded on first inference by
-    Flux2KleinPipeline.from_pretrained.
-    """
+    """Cache the same four Qwen model files and paths used by IMG."""
     if not is_image_enabled():
         logging.info("  - Image: Skipped (disabled)")
         return
@@ -624,8 +621,25 @@ def precache_image_model():
 
         start_time = time.time()
 
-        # For GGUF models, download just the quantized transformer file
-        if "gguf" in img_model.lower() or "FLUX.2-klein" in img_model:
+        if "qwen-image" in img_model.lower():
+            from ezlocalai.IMG import IMG
+
+            models_dir = getenv("SDCPP_MODELS_DIR", "models/qwen-image")
+            for repo, filename in (
+                (IMG.DIFFUSION_MODEL_REPO, IMG.DIFFUSION_MODEL_FILE),
+                (IMG.VAE_REPO, IMG.VAE_FILE),
+                (IMG.LLM_REPO, IMG.LLM_FILE),
+                (IMG.MMPROJ_REPO, IMG.MMPROJ_FILE),
+            ):
+                if not os.path.isfile(os.path.join(models_dir, filename)):
+                    download_with_progress(
+                        repo,
+                        filename=filename,
+                        cache_dir=models_dir,
+                        local_dir=models_dir,
+                    )
+        elif "gguf" in img_model.lower() or "FLUX.2-klein" in img_model:
+            # Legacy FLUX.2-klein path (kept for backward compatibility)
             gguf_filename = "flux-2-klein-4b-Q4_K_M.gguf"
             repo = (
                 img_model

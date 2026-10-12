@@ -19,7 +19,7 @@ from fastapi.responses import StreamingResponse, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from starlette.background import BackgroundTask
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, model_validator
 from typing import Any, List, Dict, Literal, Union, Optional
 import struct
 from Pipes import ModelType, Pipes
@@ -34,8 +34,11 @@ import subprocess
 import uuid
 import time
 import asyncio
+from contextlib import aclosing
 from pathlib import Path
 from Globals import getenv
+from ezlocalai.context_retry import classify_inference_capacity_error
+from ezlocalai.VIDEO_UTILS import DEFAULT_VIDEO_MODEL
 from ezlocalai.MUSIC import (
     ACE_STEP_DEFAULT_BPM,
     ACE_STEP_DEFAULT_GUIDANCE_SCALE,
@@ -52,7 +55,6 @@ from ezlocalai.MUSIC import (
 DEFAULT_MODEL = getenv("DEFAULT_MODEL")
 EMBEDDING_MODEL = getenv("EMBEDDING_MODEL")
 WHISPER_MODEL = getenv("WHISPER_MODEL")
-DEFAULT_VIDEO_MODEL = "unsloth/LTX-2.3-GGUF"
 logging.basicConfig(
     level=getenv("LOG_LEVEL"),
     format=getenv("LOG_FORMAT"),
@@ -139,6 +141,25 @@ def _sync_request_queue_capacity() -> Dict[str, Any]:
 
 
 _sync_request_queue_capacity()
+
+
+def _inference_failure_http_exception(error: Exception) -> Optional[HTTPException]:
+    """Translate actionable inference capacity failures into stable API errors."""
+    classified = classify_inference_capacity_error(str(error or "Inference failed"))
+    if classified is None:
+        return None
+
+    detail = classified["detail"]
+    if detail["type"] == "inference_capacity_error":
+        context_tokens = int(
+            getattr(pipe, "current_context", 0)
+            or getattr(pipe, "_optimal_context", 0)
+            or 0
+        )
+        if context_tokens > 0:
+            detail["n_ctx"] = context_tokens
+    return HTTPException(status_code=classified["status_code"], detail=detail)
+
 
 app = FastAPI(title="ezlocalai Server", docs_url="/")
 app.add_middleware(
@@ -499,6 +520,7 @@ async def get_resources(user=Depends(verify_api_key)):
     }
     status["slots"] = _sync_request_queue_capacity()
     status["model_lifecycle"] = pipe.get_model_lifecycle_snapshot()
+    status["model_pools"] = pipe.get_model_pool_snapshot()
 
     return status
 
@@ -655,6 +677,9 @@ async def chat_completions(
             )
         except Exception as e:
             logging.error(f"[Chat Completions] Unexpected error: {e}")
+            actionable_error = _inference_failure_http_exception(e)
+            if actionable_error is not None:
+                raise actionable_error
             raise HTTPException(status_code=500, detail="Internal server error")
 
         if audio_response:
@@ -1088,6 +1113,8 @@ async def speech_to_text(
                 num_speakers=num_speakers,
                 session_id=session_id,
             )
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
         finally:
             pipe.resource_manager.mark_model_in_use(ModelType.STT, False)
             # In voice server mode, don't destroy STT - keep it loaded
@@ -1669,19 +1696,37 @@ async def text_to_speech_stream(tts: TextToSpeech, user=Depends(verify_api_key))
             },
         )
 
+    # Acquire the shared GPU slot and load TTS before committing HTTP 200.
+    # StreamingResponse runs its iterator in a separate ASGI task, so transfer
+    # the explicit lease instead of relying on task-local context-manager state.
+    tts_lease = await pipe._tts_lock.acquire()
+    try:
+        tts_model = pipe._get_tts()
+    except Exception:
+        await pipe._tts_lock.release(tts_lease)
+        raise
+
+    tts_owner = pipe._lease_key()
+
     async def audio_stream_generator():
-        async with pipe._tts_lock:
-            tts_model = pipe._get_tts()
-            try:
-                async for chunk in tts_model.generate_stream(
+        try:
+            pipe._transfer_tts_lease(tts_owner)
+            async with aclosing(
+                tts_model.generate_stream(
                     text=tts.input, voice=tts.voice, language=tts.language
-                ):
+                )
+            ) as stream:
+                async for chunk in stream:
                     yield chunk
+        finally:
+            pipe.resource_manager.mark_model_in_use(ModelType.TTS, False)
+            # The handoff lease performs ordered cleanup before restoring the
+            # LLM. Dedicated/non-handoff voice workers retain prior behavior.
+            try:
+                if not tts_lease.get("handoff"):
+                    pipe._destroy_tts(async_cleanup=False)
             finally:
-                pipe.resource_manager.mark_model_in_use(ModelType.TTS, False)
-                # In voice server mode, don't destroy TTS - keep it loaded
-                if not is_voice_server_mode():
-                    pipe._destroy_tts()
+                await pipe._tts_lock.release(tts_lease)
 
     return StreamingResponse(
         audio_stream_generator(),
@@ -1804,88 +1849,39 @@ async def tts_websocket(websocket: WebSocket):
     - Server sends binary audio chunks (same format as /v1/audio/speech/stream)
     - Client can send {"done": true} to close gracefully
 
-    Audio format: 24kHz, 16-bit, mono PCM
-    Binary response format:
-    - First message: 8-byte header (sample_rate u32, bits u16, channels u16)
-    - Subsequent messages: raw PCM audio chunks
-    - Final message: empty bytes to signal end
+    Authenticate with the same Authorization header as the HTTP API.
+    Binary data uses one 8-byte header, length-prefixed PCM frames, and one
+    zero-length terminator per session, followed by the legacy empty message.
+    Complete sentences auto-flush; explicit flush submits shorter text.
     """
+    try:
+        verify_api_key(websocket.headers.get("authorization"))
+    except HTTPException:
+        await websocket.close(code=1008, reason="Invalid API Key")
+        return
     await websocket.accept()
 
     if getenv("TTS_ENABLED").lower() == "false":
         await websocket.close(code=1008, reason="TTS disabled")
         return
 
-    from Pipes import is_voice_server_mode
-
-    text_buffer = ""
-    voice = "default"
-    language = "en"
-    header_sent = False
+    from ezlocalai.TTSWebSocket import stream_tts_session
 
     try:
-        async with pipe._tts_lock:
-            tts_model = pipe._get_tts()
-
-            while True:
-                try:
-                    # Receive text from client
-                    data = await websocket.receive_json()
-
-                    if data.get("done"):
-                        # Client signals done - flush any remaining text
-                        if text_buffer.strip():
-                            async for chunk in tts_model.generate_stream(
-                                text=text_buffer.strip(), voice=voice, language=language
-                            ):
-                                if not header_sent:
-                                    # Send header first (8 bytes)
-                                    await websocket.send_bytes(chunk[:8])
-                                    header_sent = True
-                                    if len(chunk) > 8:
-                                        await websocket.send_bytes(chunk[8:])
-                                else:
-                                    await websocket.send_bytes(chunk)
-                        # Send empty bytes to signal end
-                        await websocket.send_bytes(b"")
-                        break
-
-                    # Accumulate text
-                    if "text" in data:
-                        text_buffer += data["text"]
-                    if "voice" in data:
-                        voice = data["voice"]
-                    if "language" in data:
-                        language = data["language"]
-
-                    # Check if we should flush (generate TTS for current buffer)
-                    if data.get("flush") and text_buffer.strip():
-                        async for chunk in tts_model.generate_stream(
-                            text=text_buffer.strip(), voice=voice, language=language
-                        ):
-                            if not header_sent:
-                                # Send header first (8 bytes)
-                                await websocket.send_bytes(chunk[:8])
-                                header_sent = True
-                                if len(chunk) > 8:
-                                    await websocket.send_bytes(chunk[8:])
-                            else:
-                                await websocket.send_bytes(chunk)
-                        text_buffer = ""
-
-                except WebSocketDisconnect:
-                    break
-
+        await stream_tts_session(websocket, pipe)
+        await websocket.close(code=1000)
+    except WebSocketDisconnect:
+        pass
+    except (ValueError, asyncio.TimeoutError) as e:
+        await websocket.close(
+            code=1008, reason=str(e)[:100] or "TTS session idle timeout"
+        )
     except Exception as e:
         logging.error(f"TTS WebSocket error: {e}")
         try:
             await websocket.close(code=1011, reason=str(e)[:100])
         except:
             pass
-    finally:
-        pipe.resource_manager.mark_model_in_use(ModelType.TTS, False)
-        if not is_voice_server_mode():
-            pipe._destroy_tts()
 
 
 @app.get(
@@ -1975,7 +1971,7 @@ async def upload_voice(
 
 class ImageCreation(BaseModel):
     prompt: str
-    model: Optional[str] = "unsloth/FLUX.2-klein-4B-GGUF"
+    model: Optional[str] = "qwen-image-2.1"
     n: Optional[int] = 1
     size: Optional[str] = "1024x1024"
     quality: Optional[str] = "hd"
@@ -2104,12 +2100,30 @@ async def generate_image(
 
 
 class ImageEdit(BaseModel):
-    image: str  # base64-encoded image, data URL, or HTTP URL
+    image: Optional[str] = None
+    images: Optional[List[str]] = Field(default=None, max_length=10)
     prompt: str
-    model: Optional[str] = "unsloth/FLUX.2-klein-4B-GGUF"
-    n: Optional[int] = 1
-    size: Optional[str] = "1024x1024"
-    response_format: Optional[str] = "url"
+    model: Optional[str] = "qwen-image-2.1"
+    n: int = Field(default=1, ge=1, le=10)
+    size: str = "1024x1024"
+    response_format: Literal["url", "b64_json"] = "url"
+    strength: float = Field(default=0.75, ge=0.0, le=1.0)
+
+    @model_validator(mode="after")
+    def validate_edit(self):
+        if not self.image and not self.images:
+            raise ValueError("image or images is required")
+        if self.image == "" or any(not image for image in self.images or []):
+            raise ValueError("Reference images must not be empty")
+        try:
+            dimensions = [int(value) for value in self.size.split("x")]
+        except ValueError:
+            dimensions = []
+        if len(dimensions) != 2 or any(
+            value <= 0 or value % 32 for value in dimensions
+        ):
+            raise ValueError("size must contain two positive multiples of 32")
+        return self
 
 
 @app.post(
@@ -2136,6 +2150,8 @@ async def edit_image(
                     size=image_edit.size,
                     n=image_edit.n,
                     image=image_edit.image,
+                    images=image_edit.images,
+                    strength=image_edit.strength,
                 )
                 if result is not None:
                     return result
@@ -2151,6 +2167,8 @@ async def edit_image(
                 size=image_edit.size,
                 n=image_edit.n,
                 image=image_edit.image,
+                images=image_edit.images,
+                strength=image_edit.strength,
             )
             if result is not None:
                 return result
@@ -2170,22 +2188,36 @@ async def edit_image(
                         prompt=image_edit.prompt,
                         response_format=image_edit.response_format,
                         size=image_edit.size,
+                        n=image_edit.n,
+                        image=image_edit.image,
+                        images=image_edit.images,
+                        strength=image_edit.strength,
                     )
                 except Exception as e:
                     logging.warning(f"[IMG] Fallback failed: {e}")
-        return {
-            "created": int(time.time()),
-            "data": [{"url": "https://demofree.sirv.com/nope-not-here.jpg"}],
-        }
+        raise HTTPException(
+            status_code=503, detail="No image editing service available"
+        )
 
     images = []
     for i in range(int(image_edit.n)):
-        image = await pipe.generate_image(
-            prompt=image_edit.prompt,
-            response_format=image_edit.response_format,
-            size=image_edit.size,
-            image=image_edit.image,
-        )
+        try:
+            image = await pipe.generate_image(
+                prompt=image_edit.prompt,
+                response_format=image_edit.response_format,
+                size=image_edit.size,
+                image=image_edit.image,
+                images=image_edit.images,
+                strength=image_edit.strength,
+            )
+        except ValueError as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
+        except RuntimeError as exc:
+            raise HTTPException(status_code=503, detail=str(exc)) from exc
+        if not image:
+            raise HTTPException(
+                status_code=503, detail="Image editing produced no output"
+            )
         if image_edit.response_format == "url":
             images.append({"url": image})
         else:
@@ -2214,8 +2246,8 @@ class MusicVideoCreation(BaseModel):
     scene_prompts: Optional[List[str]] = None
     scene_duration: Optional[float] = None
     size: Optional[str] = "768x512"
-    num_inference_steps: Optional[int] = 40
-    guidance_scale: Optional[float] = 4.0
+    num_inference_steps: Optional[int] = 18
+    guidance_scale: Optional[float] = 3.5
     video_guidance_scale: Optional[float] = None
     frame_rate: Optional[int] = 24
     response_format: Optional[str] = "url"
@@ -2344,8 +2376,8 @@ class VideoCreation(BaseModel):
     n: Optional[int] = 1
     size: Optional[str] = "768x512"
     num_frames: Optional[int] = 121
-    num_inference_steps: Optional[int] = 40
-    guidance_scale: Optional[float] = 4.0
+    num_inference_steps: Optional[int] = 18
+    guidance_scale: Optional[float] = 3.5
     frame_rate: Optional[int] = 24
     response_format: Optional[str] = "url"
     image: Optional[str] = None  # base64-encoded image for image-to-video
@@ -2497,10 +2529,21 @@ async def generate_video(
         conditions=cond_list,
     )
 
+    async def generate_one_video():
+        try:
+            result = await pipe.generate_video(**gen_kwargs)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        if not result:
+            raise HTTPException(
+                status_code=500, detail="Video generation produced no output"
+            )
+        return result
+
     videos = []
     if int(video_creation.n) > 1:
         for i in range(video_creation.n):
-            video = await pipe.generate_video(**gen_kwargs)
+            video = await generate_one_video()
             if video_creation.response_format == "url":
                 videos.append({"url": video})
             else:
@@ -2509,7 +2552,7 @@ async def generate_video(
             "created": int(time.time()),
             "data": videos,
         }
-    video = await pipe.generate_video(**gen_kwargs)
+    video = await generate_one_video()
     if video_creation.response_format == "url":
         return {
             "created": int(time.time()),

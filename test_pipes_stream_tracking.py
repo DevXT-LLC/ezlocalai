@@ -22,6 +22,7 @@ class PipesStreamTrackingTests(unittest.IsolatedAsyncioTestCase):
         pipe._inference_count = 0
         pipe._model_inference_counts = {}
         pipe._inference_count_lock = threading.Lock()
+        pipe.llm_model_residency = "auto"
         pipe.llm = types.SimpleNamespace(is_vision=False)
         pipe.resource_manager = mock.Mock()
         pipe.current_context = None

@@ -12,13 +12,18 @@ def getenv(var_name: str, default_value: str = None) -> str:
         "DEFAULT_MODEL": "unsloth/Qwen3.5-4B-GGUF",
         "WHISPER_MODEL": "large-v3-turbo",
         "IMAGE_ENABLED": "false",  # Set true to serve IMG_MODEL locally
-        "IMG_MODEL": "none",  # Set to "unsloth/FLUX.2-klein-4B-GGUF" for image generation + editing, "none" or empty string to disable
+        "IMG_MODEL": "none",  # Set to "qwen-image-2.1" for image generation via stable-diffusion.cpp, "none" or empty string to disable
+        "SDCPP_BIN": "/opt/stable-diffusion.cpp/build/bin/sd-cli",  # Path to sd-cli binary (built in Docker)
+        "SDCPP_MODELS_DIR": "models/qwen-image",  # Directory for Qwen-Image model files
         "IMAGE_UNLOAD_LLM_DURING_GENERATION": "auto",
         "IMAGE_RELOAD_LLM_AFTER_GENERATION": "true",
         "IMAGE_WAIT_FOR_LLM_IDLE_TIMEOUT": "60",
         "IMAGE_MODEL_MIN_FREE_GB": "6",
+        "MEDIA_KEEP_MODELS_LOADED": "false",  # GB10 compose enables warm concurrent pools
         "VIDEO_ENABLED": "false",  # Set true to serve and warm-load VIDEO_MODEL locally
-        "VIDEO_MODEL": "unsloth/LTX-2.3-GGUF",  # Default local GGUF model when VIDEO_ENABLED=true
+        "VIDEO_MODEL": "QuantStack/Wan2.2-T2V-A14B-GGUF",  # Default local GGUF model when VIDEO_ENABLED=true
+        "VIDEO_QUANT_TYPE": "Q4_K_M",
+        "VIDEO_GENERATION_TIMEOUT": "3600",
         "MUSIC_ENABLED": "false",  # Set true to serve ACE-Step music generation from the internal ACE server
         "MUSIC_MODEL": "Serveurperso/ACE-Step-1.5-GGUF",
         "ACE_STEP_SERVER_URL": "",  # Optional external acestep.cpp URL. Empty = auto-start internal server.
@@ -55,10 +60,10 @@ def getenv(var_name: str, default_value: str = None) -> str:
         "TTS_ENABLED": "true",
         "TTS_N_PARALLEL": "1",  # Number of local TTS model instances/slots to load
         "TTS_PROVIDER": "qwen",  # Qwen-TTS
-        "QWEN_TTS_MODEL": "Qwen/Qwen3-TTS-12Hz-0.6B-Base",
-        "QWEN_TTS_DTYPE": "auto",
-        "QWEN_TTS_ATTENTION": "sdpa",
-        "QWEN_TTS_X_VECTOR_ONLY": "false",
+        "QWEN_TTS_MODEL": "Mouserat/qwen3-tts-0.6b-base-gguf",
+        "QWEN_TTS_CONTEXT_SIZE": "4096",
+        "QWEN_TTS_THREADS": "20",
+        "QWEN_TTS_TIMEOUT": "300",
         "QWEN_TTS_ALLOW_CPU_FALLBACK": "true",
         "QWEN_TTS_ENABLE_GTTS_FALLBACK": "true",
         "QWEN_TTS_MAX_NEW_TOKENS": "320",
@@ -67,8 +72,8 @@ def getenv(var_name: str, default_value: str = None) -> str:
         "QWEN_TTS_STREAM_FIRST_CHUNK_CHARS": "120",
         "QWEN_TTS_STREAM_MIN_FIRST_CHUNK_CHARS": "50",
         "QWEN_TTS_STREAM_WRITE_BYTES": "16384",
-        "QWEN_TTS_STREAM_FRAME_DRAIN_SECONDS": "0.1",
-        "QWEN_TTS_STREAM_FLUSH_SILENCE_MS": "80",
+        "QWEN_TTS_STREAM_FRAME_DRAIN_SECONDS": "0",
+        "QWEN_TTS_STREAM_FLUSH_SILENCE_MS": "0",
         "QWEN_TTS_MIN_VRAM_MB": "3500",
         "STT_ENABLED": "true",
         "STT_N_PARALLEL": "1",  # Number of local STT model instances/slots to load
@@ -86,6 +91,7 @@ def getenv(var_name: str, default_value: str = None) -> str:
         # Single value applies to all models.
         "QUANT_TYPE": "Q4_K_XL",
         "LLM_BATCH_SIZE": "auto",
+        "LLM_UBATCH_SIZE": "auto",
         # Multiple DEFAULT_MODEL entries normally stay resident together. In
         # auto mode ezlocalai estimates their per-GPU footprint and switches to
         # one-at-a-time residency when they do not fit. "resident" and "swap"
@@ -95,6 +101,11 @@ def getenv(var_name: str, default_value: str = None) -> str:
         # Host-RAM prompt cache for repeated long prompt prefixes.
         # auto scales with context size; set 0/off to disable for diagnostics.
         "LLM_PROMPT_CACHE_MIB": "auto",
+        # Bound the growing host prompt cache so long requests cannot OOM-kill
+        # workers with little system RAM. Explicit cache sizes are also capped.
+        "LLM_PROMPT_CACHE_RAM_MARGIN_MIB": "4096",
+        "LLM_PROMPT_CACHE_MAX_RAM_FRACTION": "0.25",
+        "LLM_PROMPT_CACHE_ALLOW_UNSAFE": "false",
         # Context size — comma-separated to match DEFAULT_MODEL order.
         # e.g., LLM_MAX_TOKENS="65536,262144" gives model_a 65k and model_b 262k context.
         "LLM_MAX_TOKENS": "65536",
@@ -103,10 +114,17 @@ def getenv(var_name: str, default_value: str = None) -> str:
         # 1 = single slot (default), N = fixed number of parallel slots.
         # Each slot gets n_ctx / n_parallel tokens of context. VRAM is constant.
         "N_PARALLEL": "1",
-        # MTP speculative decoding: require draft tokens to have at least this probability.
-        "MTP_SPEC_DRAFT_P_MIN": "0.25",
-        # MTP draft length. auto = 2 for large models, 4 for <=4B models
-        # with at least 20GB VRAM. Set an integer to force deeper drafts.
+        "LLM_SPECULATIVE_TYPE": "auto",  # MTP for compatible models; DFlash2 is opt-in
+        "DFLASH_SPEC_DRAFT_N_MAX": "auto",  # T4: 2; 3090: 3; others: 4
+        "KV_CACHE_TYPE": "auto",  # q4_0 on all cards; q8_0 is an explicit opt-in
+        "DFLASH_SPEC_DRAFT_P_MIN": "0.0",
+        "DFLASH_MODEL_FILE": "Qwen3.8-27B-DFlash2-Q4_K_M.gguf",
+        "DFLASH_MODEL_PATH": "",
+        # MTP speculative decoding probability. auto uses a benchmarked
+        # model-family default (0.1 for Qwen3.8-27B, 0.25 otherwise).
+        "MTP_SPEC_DRAFT_P_MIN": "auto",
+        # MTP draft length. auto = 2 on T4, otherwise 3 for Qwen3.8-27B; 2 for other large
+        # models, or 4 for <=4B models with at least 20GB VRAM.
         "MTP_SPEC_DRAFT_N_MAX": "auto",
         "VLM_MAX_TOKENS": "8192",  # Vision models don't need large context
         # Queue system defaults. Text queue concurrency is derived from loaded
@@ -164,7 +182,7 @@ def getenv(var_name: str, default_value: str = None) -> str:
         "EMBEDDING_MODEL": "Qwen/Qwen3-Embedding-0.6B-GGUF",
         "EMBEDDING_MODEL_ALIAS": "Qwen3-Embedding-0.6B",
         "EMBEDDING_QUANT_TYPE": "Q8_0",
-        "EMBEDDING_CONTEXT_LENGTH": "32768",
+        "EMBEDDING_CONTEXT_LENGTH": "10000",
         "EMBEDDING_N_PARALLEL": "1",
         "EMBEDDING_BATCH_SIZE": "512",
         "EMBEDDING_UBATCH_SIZE": "512",
@@ -193,8 +211,10 @@ def getenv(var_name: str, default_value: str = None) -> str:
         # How long (seconds) the router waits for a worker slot before returning 503.
         # 0 = keep the request queued until a worker becomes available.
         "ROUTER_WAIT_TIMEOUT": "0",
-        # 0 = immediately route to the best available compatible worker.
-        # Positive values briefly wait for same-model workers before cross-model fallback.
+        # Model substitution is opt-in, never a consequence of retry exhaustion.
+        "ROUTER_ALLOW_CROSS_MODEL": "false",
+        # Delay explicitly enabled cross-model fallback.
+        # Busy matching workers always queue, even when this is 0.
         "ROUTER_CROSS_MODEL_GRACE": "0",
         # 0 = do not hold back lower-tier idle workers while higher-tier workers are busy.
         # Positive values restrict idle spillover to workers within this tier distance.

@@ -1,6 +1,16 @@
 import re
 
 
+_MEMORY_CAPACITY_MARKERS = (
+    "out of memory",
+    "cuda out of memory",
+    "failed to allocate",
+    "alloc_buffer",
+    "cudamalloc",
+    "insufficient memory",
+)
+
+
 def parse_context_error_limits(error_msg: str) -> tuple[int, int]:
     """Extract prompt token count and actual n_ctx from llama.cpp errors."""
     text = str(error_msg or "")
@@ -16,6 +26,36 @@ def parse_context_error_limits(error_msg: str) -> tuple[int, int]:
     prompt_tokens = int(prompt_match.group(1)) if prompt_match else 0
     actual_context = int(ctx_match.group(1)) if ctx_match else 0
     return prompt_tokens, actual_context
+
+
+def classify_inference_capacity_error(error_msg: str) -> dict | None:
+    """Return structured recovery metadata for actionable capacity failures."""
+    message = str(error_msg or "Inference failed")
+    prompt_tokens, context_tokens = parse_context_error_limits(message)
+    if prompt_tokens > 0 and context_tokens > 0:
+        return {
+            "status_code": 413,
+            "detail": {
+                "type": "context_capacity_error",
+                "message": message,
+                "n_prompt_tokens": prompt_tokens,
+                "n_ctx": context_tokens,
+                "compact_and_retry": True,
+            },
+        }
+
+    lowered = message.lower()
+    if any(marker in lowered for marker in _MEMORY_CAPACITY_MARKERS):
+        return {
+            "status_code": 503,
+            "detail": {
+                "type": "inference_capacity_error",
+                "message": message,
+                "compact_and_retry": True,
+            },
+        }
+
+    return None
 
 
 def context_reload_can_help(

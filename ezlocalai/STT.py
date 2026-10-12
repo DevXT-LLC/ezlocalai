@@ -263,6 +263,32 @@ class STT:
         self.audio = pyaudio.PyAudio()
         self.wake_functions = wake_functions
 
+    def close(self):
+        """Release native audio and Whisper resources held by this wrapper."""
+        batched_model = getattr(self, "batched_model", None)
+        whisper_model = getattr(self, "w", None)
+        audio = getattr(self, "audio", None)
+        self.batched_model = None
+        self.w = None
+        self.audio = None
+        if audio is not None:
+            try:
+                audio.terminate()
+            except Exception:
+                pass
+        del batched_model, whisper_model, audio
+        gc.collect()
+        if torch.cuda.is_available():
+            try:
+                torch.cuda.synchronize()
+            except Exception:
+                pass
+            torch.cuda.empty_cache()
+            try:
+                torch.cuda.ipc_collect()
+            except Exception:
+                pass
+
     def _diarize_segments(
         self, file_path, segments, num_speakers=None, session_id=None
     ):
@@ -645,6 +671,17 @@ class STT:
             else:
                 os.remove(file_path)
                 raise
+        except Exception as e:
+            if os.path.exists(file_path):
+                os.remove(file_path)
+            if (
+                e.__class__.__name__ == "InvalidDataError"
+                or "invalid data found when processing input" in str(e).lower()
+            ):
+                raise ValueError(
+                    "The uploaded file does not contain valid audio data"
+                ) from e
+            raise
 
         # Build full text and segment data
         user_input = ""

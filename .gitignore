@@ -22,3 +22,10 @@ pretrained_models
 usage.json
 /data/
 .env.bak
+
+# Private backups from worker configuration migrations
+.env.pre-*
+
+# Worker deployment cleanup retry state
+.ezlocalai-deploy-cleanup.*
+.ezlocalai-deploy.lock

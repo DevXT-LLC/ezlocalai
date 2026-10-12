@@ -219,7 +219,7 @@ class RouterSelectionTests(unittest.TestCase):
         self.assertEqual(busy_worker.router_in_flight, 0)
         self.assertEqual(busy_worker.slots_left(capability="text", model="model-a"), 1)
 
-    def test_non_llm_dispatch_does_not_create_router_reservation(self):
+    def test_non_llm_dispatch_reserves_only_its_capability(self):
         registry = WorkerRegistry(ttl_seconds=60)
         worker = registry.register(
             self._capability_worker(
@@ -232,9 +232,9 @@ class RouterSelectionTests(unittest.TestCase):
             worker.worker_id, capability="tts"
         )
 
-        self.assertIsNone(reservation_id)
-        self.assertEqual(worker.router_in_flight, 0)
-        self.assertEqual(worker.slots_left(capability="tts"), 1)
+        self.assertIsNotNone(reservation_id)
+        self.assertEqual(worker.router_in_flight, 1)
+        self.assertEqual(worker.slots_left(capability="tts"), 0)
         self.assertEqual(worker.slots_left(capability="text", model="model-a"), 1)
         self.assertEqual(worker.slots_left(capability="stt"), 1)
         self.assertEqual(worker.slots_left(capability="image"), 1)
@@ -308,7 +308,7 @@ class RouterSelectionTests(unittest.TestCase):
             self.assertEqual(worker.router_in_flight, 1)
             self.assertEqual(worker.slots_left(capability="text", model="model-a"), 0)
 
-    def test_unreserved_request_release_does_not_clear_llm_lease(self):
+    def test_non_llm_request_release_does_not_clear_llm_lease(self):
         registry = WorkerRegistry(ttl_seconds=60, reservation_ttl_seconds=15)
         worker = registry.register(
             self._text_worker("leased-llm", "model-a", best_tier=90)
@@ -321,7 +321,7 @@ class RouterSelectionTests(unittest.TestCase):
         registry.release_in_flight(worker.worker_id, non_llm_id)
 
         self.assertIsNotNone(llm_id)
-        self.assertIsNone(non_llm_id)
+        self.assertIsNotNone(non_llm_id)
         self.assertEqual(worker.router_in_flight, 1)
 
     def test_idle_tier_window_can_hold_back_distant_idle_worker(self):
@@ -617,15 +617,113 @@ class RouterSelectionTests(unittest.TestCase):
 
         self.assertIsNone(worker)
 
-    def test_wait_for_worker_uses_available_fallback_without_default_grace(self):
+    def test_wait_for_worker_does_not_substitute_explicit_model(self):
         router = self._router_with_worker("text")
-
         worker = asyncio.run(
-            router.wait_for_worker("text", "different-text-model", timeout=0)
+            router.wait_for_worker(
+                "text", "different-text-model", timeout=0.01, poll_interval=0.01
+            )
         )
+        self.assertIsNone(worker)
 
+    def test_generic_model_keeps_default_worker_routing(self):
+        router = self._router_with_worker("text")
+        worker = asyncio.run(router.wait_for_worker("text", "default", timeout=0))
         self.assertIsNotNone(worker)
         self.assertEqual(worker.label, "TEXT Worker")
+
+    def test_exhausted_27b_pool_never_spills_to_2b_or_waits_forever(self):
+        model = "unsloth/Qwen3.8-27B-GGUF"
+        registry = WorkerRegistry(ttl_seconds=60)
+        large = registry.register(self._text_worker("27b", model, best_tier=50))
+        registry.register(
+            self._text_worker("2b", "openbmb/MiniCPM5-2B-GGUF", best_tier=90)
+        )
+        router = Router(registry)
+
+        async def exhausted():
+            return await asyncio.wait_for(
+                router.wait_for_worker(
+                    "text",
+                    model,
+                    timeout=0,
+                    exclude={large.worker_id},
+                    fail_if_exhausted=True,
+                ),
+                timeout=0.2,
+            )
+
+        with patch.dict(os.environ, {"ROUTER_ALLOW_CROSS_MODEL": "true"}):
+            self.assertIsNone(asyncio.run(exhausted()))
+
+    def test_cross_model_fallback_requires_explicit_opt_in(self):
+        router = self._router_with_worker("text")
+        with patch.dict(os.environ, {"ROUTER_ALLOW_CROSS_MODEL": "true"}):
+            worker = asyncio.run(
+                router.wait_for_worker("text", "different-text-model", timeout=0)
+            )
+        self.assertIsNotNone(worker)
+
+    def test_initial_soft_exclusions_still_wait_for_recovering_model(self):
+        model = "model-a"
+        registry = WorkerRegistry(ttl_seconds=60)
+        old = registry.register(
+            self._text_worker("offline-tunnel", model, best_tier=50)
+        )
+        router = Router(registry)
+
+        async def recover():
+            task = asyncio.create_task(
+                router.wait_for_worker(
+                    "text",
+                    model,
+                    timeout=0,
+                    exclude={old.worker_id},
+                    poll_interval=0.001,
+                )
+            )
+            await asyncio.sleep(0.01)
+            self.assertFalse(task.done())
+            new = registry.register(self._text_worker("recovered", model, best_tier=50))
+            self.assertIs(await asyncio.wait_for(task, 0.2), new)
+
+        asyncio.run(recover())
+
+    def test_busy_27b_never_spills_to_idle_2b_after_grace(self):
+        model = "unsloth/Qwen3.8-27B-GGUF"
+        registry = WorkerRegistry(ttl_seconds=60)
+        large = registry.register(self._text_worker("27b", model, best_tier=50, busy=1))
+        registry.register(
+            self._text_worker("2b", "openbmb/MiniCPM5-2B-GGUF", best_tier=90)
+        )
+        router = Router(registry)
+
+        for requested in (model, "Qwen3.8-27B", "qwen/qwen3.8-27b"):
+            with self.subTest(requested=requested):
+                self.assertIsNone(
+                    router.select_worker("text", requested, allow_cross_model=True)
+                )
+
+        large.cap_slots["text"]["in_flight"] = 0
+        large.model_slots[model]["in_flight"] = 0
+        self.assertIs(router.select_worker("text", model), large)
+
+    def test_matching_managed_provider_still_serves_busy_27b_overflow(self):
+        model = "unsloth/Qwen3.8-27B-GGUF"
+        registry = WorkerRegistry(ttl_seconds=60)
+        registry.register(self._text_worker("27b", model, best_tier=50, busy=1))
+        registry.register(
+            self._text_worker("2b", "openbmb/MiniCPM5-2B-GGUF", best_tier=90)
+        )
+        provider = self._text_worker("provider", "qwen/qwen3.8-27b", best_tier=39)
+        provider.external_fallback = True
+        registry.register(provider)
+        router = Router(registry)
+
+        self.assertIs(router.select_worker("text", model), provider)
+        self.assertIsNone(
+            router.select_worker("text", model, exclude={provider.worker_id})
+        )
 
     def test_wait_for_worker_positive_timeout_returns_none_when_pool_empty(self):
         router = Router(WorkerRegistry(ttl_seconds=60))
@@ -920,8 +1018,26 @@ class RouterWaitingRequestTests(unittest.IsolatedAsyncioTestCase):
         )
         router = Router(registry)
 
+        # Spare capacity for another model must not bypass this queue, even
+        # after the grace period has expired.
+        registry.register(
+            WorkerInfo(
+                worker_id="idle-other-model",
+                label="idle-other-model",
+                url="http://idle-other-model.local",
+                capabilities=["text"],
+                models=["openbmb/MiniCPM5-2B-GGUF"],
+                cap_slots={"text": {"capacity": 1, "in_flight": 0}},
+            )
+        )
         pending = asyncio.create_task(
-            router.wait_for_worker("text", "model-a", timeout=1, poll_interval=0.01)
+            router.wait_for_worker(
+                "text",
+                "model-a",
+                timeout=1,
+                poll_interval=0.01,
+                cross_model_grace=0,
+            )
         )
         await asyncio.sleep(0.03)
         self.assertEqual(router.waiting_requests, 1)
@@ -931,6 +1047,43 @@ class RouterWaitingRequestTests(unittest.IsolatedAsyncioTestCase):
         selected = await pending
 
         self.assertIs(selected, worker)
+        self.assertEqual(router.waiting_requests, 0)
+
+    async def test_busy_matching_pool_times_out_or_cancels_without_model_substitution(
+        self,
+    ):
+        registry = WorkerRegistry(ttl_seconds=60)
+        for name, busy in (("27b", 1), ("2b", 0)):
+            registry.register(
+                WorkerInfo(
+                    worker_id=name,
+                    label=name,
+                    url=f"http://{name}.local",
+                    capabilities=["text"],
+                    models=[name],
+                    cap_slots={"text": {"capacity": 1, "in_flight": busy}},
+                )
+            )
+        router = Router(registry)
+        selected = await router.wait_for_worker(
+            "text", "27b", timeout=0.01, poll_interval=0.001, cross_model_grace=0
+        )
+        self.assertIsNone(selected)
+        self.assertEqual(router.waiting_requests, 0)
+
+        pending = asyncio.create_task(
+            router.wait_for_worker(
+                "text", "27b", timeout=0, poll_interval=0.001, cross_model_grace=0
+            )
+        )
+        try:
+            await asyncio.sleep(0.01)
+            self.assertFalse(pending.done())
+            self.assertEqual(router.waiting_requests, 1)
+        finally:
+            pending.cancel()
+            with self.assertRaises(asyncio.CancelledError):
+                await pending
         self.assertEqual(router.waiting_requests, 0)
 
 

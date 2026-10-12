@@ -39,9 +39,9 @@ class OpenRouterWorkerTests(unittest.TestCase):
         self.assertEqual(worker.best_tier, 39)
         self.assertEqual(worker.priority_tier, 39)
         self.assertEqual(worker.capabilities, ["text", "vision"])
-        self.assertEqual(worker.queue_capacity, 1000)
-        self.assertEqual(worker.cap_slots["text"]["capacity"], 1000)
-        self.assertEqual(worker.model_slots[worker.models[0]]["available"], 1000)
+        self.assertEqual(worker.queue_capacity, 20)
+        self.assertEqual(worker.cap_slots["text"]["capacity"], 20)
+        self.assertEqual(worker.model_slots[worker.models[0]]["available"], 20)
         self.assertTrue(worker.external_fallback)
         self.assertTrue(worker.persistent)
         self.assertEqual(
@@ -66,7 +66,7 @@ class OpenRouterWorkerTests(unittest.TestCase):
         )
         self.assertEqual(set(worker.model_slots), set(worker.models))
         self.assertTrue(
-            all(slot["capacity"] == 1000 for slot in worker.model_slots.values())
+            all(slot["capacity"] == 20 for slot in worker.model_slots.values())
         )
 
     def test_multiple_models_share_one_provider_capacity_pool(self):
@@ -85,8 +85,8 @@ class OpenRouterWorkerTests(unittest.TestCase):
         )
 
         self.assertIsNotNone(reservation)
-        self.assertEqual(worker.slots_left("text", "openai/gpt-5-mini"), 999)
-        self.assertEqual(worker.total_slots_left(), 999)
+        self.assertEqual(worker.slots_left("text", "openai/gpt-5-mini"), 19)
+        self.assertEqual(worker.total_slots_left(), 19)
         registry.release_in_flight(worker.worker_id, reservation)
 
     def test_tiers_order_local_then_chutes_then_openrouter(self):
@@ -121,7 +121,7 @@ class OpenRouterWorkerTests(unittest.TestCase):
                 capability="vision",
                 model=chutes.models[0],
             )
-            for _ in range(100)
+            for _ in range(10)
         ]
         selected = router.select_worker(
             "vision", "qwen/qwen3.8-27b", allow_cross_model=False
@@ -130,7 +130,7 @@ class OpenRouterWorkerTests(unittest.TestCase):
         for reservation in reservations:
             registry.release_in_flight(chutes.worker_id, reservation)
 
-    def test_openrouter_tracks_one_of_1000_slots(self):
+    def test_openrouter_tracks_one_of_20_slots(self):
         registry = WorkerRegistry(ttl_seconds=60)
         worker = registry.register(
             router_app._build_openrouter_worker(api_key="sk-or-test")
@@ -144,9 +144,9 @@ class OpenRouterWorkerTests(unittest.TestCase):
 
         self.assertIsNotNone(reservation)
         self.assertEqual(worker.router_in_flight, 1)
-        self.assertEqual(worker.slots_left("text", worker.models[0]), 999)
+        self.assertEqual(worker.slots_left("text", worker.models[0]), 19)
         registry.release_in_flight(worker.worker_id, reservation)
-        self.assertEqual(worker.slots_left("text", worker.models[0]), 1000)
+        self.assertEqual(worker.slots_left("text", worker.models[0]), 20)
 
     def test_payload_uses_openrouter_model_and_strips_router_flag(self):
         worker = router_app._build_openrouter_worker(
@@ -287,7 +287,7 @@ class OpenRouterWorkerTests(unittest.TestCase):
         self.assertIn("OpenRouter API", html)
         self.assertNotIn("OpenRouter API [api]", html)
         self.assertIn("tier 39", html)
-        self.assertIn("0/1000", html)
+        self.assertIn("0/20", html)
         self.assertIn("$42.12 remaining", html)
         qwen_models = [m for m in data["models"] if m["model"] == "Qwen3.8-27B"]
         self.assertEqual(len(qwen_models), 1)

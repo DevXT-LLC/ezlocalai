@@ -24,6 +24,8 @@ periodic ``heartbeat`` POSTs, and a best-effort ``deregister`` on shutdown.
 from __future__ import annotations
 
 import asyncio
+import json
+import tempfile
 import logging
 import os
 import re
@@ -522,6 +524,7 @@ GPU_TIERS: List[Tuple[str, int]] = [
     ("h200", 100),
     ("h100", 95),
     ("b200", 110),
+    ("gb10", 50),
     ("a100", 80),
     ("a6000", 70),
     ("a40", 65),
@@ -841,6 +844,28 @@ def detect_local_gpus() -> List[Dict[str, Any]]:
     return gpus
 
 
+def _normalize_reported_gpu_tiers(
+    gpus: List[Dict[str, Any]],
+) -> List[Dict[str, Any]]:
+    """Resolve old workers' generic GPU fallback using the router's hardware map.
+
+    Keep specific reported tiers: newer workers may know hardware this router
+    does not. Copy entries so registration/heartbeat payloads remain unchanged.
+    """
+    normalized = []
+    for gpu in gpus:
+        gpu = dict(gpu)
+        if (
+            gpu.get("index", 0) >= 0
+            and gpu.get("backend") != "cpu"
+            and gpu.get("name")
+            and int(gpu.get("tier", TIER_DEFAULT_GPU)) == TIER_DEFAULT_GPU
+        ):
+            gpu["tier"] = gpu_tier_for_name(gpu["name"])
+        normalized.append(gpu)
+    return normalized
+
+
 def best_gpu_tier(gpus: List[Dict[str, Any]]) -> int:
     """The best accelerator tier on this worker.
 
@@ -925,6 +950,23 @@ class WorkerInfo:
     # Circuit breaker: when open, the worker is excluded from selection
     # until ``circuit_open_until`` (epoch seconds) passes.
     circuit_open_until: float = 0.0
+    # Maintenance is router-owned and follows the stable label across restarts.
+    drain_owner: str = ""
+    drain_until: float = 0.0
+    # Unlike capacity leases, these tokens live until the proxy closes. A long
+    # stream must remain visible to maintenance after its dispatch lease expires.
+    active_requests: Dict[str, Dict[str, Any]] = field(default_factory=dict, repr=False)
+
+    def is_draining(self) -> bool:
+        return bool(self.drain_owner) and time.time() < self.drain_until
+
+    def maintenance_busy(self) -> int:
+        return max(
+            len(self.active_requests),
+            self.effective_busy(),
+            self.total_busy(),
+            self.queue_depth,
+        )
 
     def _refresh_router_reservations(self) -> None:
         """Expire dispatch leases and rebuild their diagnostic counters."""
@@ -1001,6 +1043,10 @@ class WorkerInfo:
             "recent_errors": list(self.recent_errors),
             "circuit_open_until": self.circuit_open_until,
             "circuit_open": self.is_circuit_open(),
+            "draining": self.is_draining(),
+            "drain_until": self.drain_until if self.is_draining() else None,
+            "active_requests": len(self.active_requests),
+            "maintenance_busy": self.maintenance_busy(),
             "external_provider": self.external_provider,
             "external_fallback": self.external_fallback,
             "persistent": self.persistent,
@@ -1025,12 +1071,16 @@ class WorkerInfo:
         capacity = max(0, int(raw.get("capacity", fallback_capacity) or 0))
         in_flight = max(0, int(raw.get("in_flight", 0) or 0))
         queued = max(0, int(raw.get("queued", 0) or 0))
-        return {
+        state = {
             "capacity": capacity,
             "in_flight": in_flight,
             "queued": queued,
             "available": max(0, capacity - in_flight - queued),
         }
+
+        if "instances" in raw:
+            state["instances"] = min(capacity, max(0, int(raw["instances"] or 0)))
+        return state
 
     @staticmethod
     def _match_name(
@@ -1114,20 +1164,6 @@ class WorkerInfo:
                     if router_model_key
                     else 0
                 )
-                if self.external_fallback:
-                    # Managed providers expose one shared concurrency pool even
-                    # when several configured model IDs are advertised. A busy
-                    # slot for model A must also consume the provider-wide pool
-                    # seen by model B.
-                    cap_state = self._normalize_slot(
-                        self.cap_slots.get(capability or "text")
-                    )
-                    reported_busy = max(
-                        reported_busy,
-                        int(cap_state.get("in_flight", 0))
-                        + int(cap_state.get("queued", 0)),
-                    )
-                    router_busy = max(router_busy, self.router_in_flight)
                 if self.extra.get("llm_model_residency") == "swap":
                     text_state = self._normalize_slot(self.cap_slots.get("text"))
                     reported_busy = max(
@@ -1145,17 +1181,64 @@ class WorkerInfo:
                 # worker-wide queue and reservation counters.
                 router_busy = self.router_in_flight
 
+            # Music-video consumes the same native locks as music and video.
+            # Account for that overlap before the next worker heartbeat arrives.
+            media_conflicts = {
+                "video": ("music_video",),
+                "music": ("music_video",),
+                "music_video": ("video", "music"),
+            }
+            for shared_cap in media_conflicts.get(capability, ()):
+                shared_state = self._normalize_slot(self.cap_slots.get(shared_cap))
+                reported_busy = max(
+                    reported_busy, shared_state["in_flight"] + shared_state["queued"]
+                )
+                router_busy = max(
+                    router_busy, self.router_cap_in_flight.get(shared_cap, 0)
+                )
+
+            if self.external_fallback:
+                # Text, vision, and every model share one provider pool, even
+                # during cross-model selection where no model is supplied.
+                cap_state = self._normalize_slot(
+                    self.cap_slots.get(capability or "text")
+                )
+                reported_busy = max(
+                    reported_busy,
+                    int(cap_state.get("in_flight", 0))
+                    + int(cap_state.get("queued", 0)),
+                )
+                router_busy = max(router_busy, self.router_in_flight)
+
             llm_dependencies = set(
                 self.extra.get("llm_unload_dependent_capabilities", []) or []
             )
-            if capability in llm_dependencies:
-                text_state = self._normalize_slot(self.cap_slots.get("text"))
-                reported_busy = max(
-                    reported_busy,
-                    int(text_state.get("in_flight", 0))
-                    + int(text_state.get("queued", 0)),
+            shared_busy: Dict[str, int] = {}
+            for shared_cap in {"text", *llm_dependencies}:
+                shared_state = self._normalize_slot(self.cap_slots.get(shared_cap))
+                shared_busy[shared_cap] = max(
+                    int(shared_state.get("in_flight", 0))
+                    + int(shared_state.get("queued", 0)),
+                    int(self.router_cap_in_flight.get(shared_cap, 0)),
                 )
-                router_busy = max(router_busy, self.router_cap_in_flight.get("text", 0))
+            if capability in llm_dependencies:
+                # Every handoff service needs the whole LLM residency slot, so
+                # text and sibling handoff services all block this capability.
+                conflicting = [
+                    busy
+                    for shared_cap, busy in shared_busy.items()
+                    if shared_cap != capability
+                ]
+                if conflicting:
+                    reported_busy = max(reported_busy, max(conflicting))
+            elif model_slot_key or capability in {"text", "vision"}:
+                # The inverse dependency matters too: once voice/image/video
+                # owns the slot, no new text dispatch may race its LLM unload.
+                dependency_busy = [
+                    shared_busy.get(shared_cap, 0) for shared_cap in llm_dependencies
+                ]
+                if dependency_busy:
+                    reported_busy = max(reported_busy, max(dependency_busy))
             return max(reported_busy, int(router_busy))
         return max(
             int(self.queue_depth), int(self.in_flight), int(self.router_in_flight)
@@ -1171,6 +1254,8 @@ class WorkerInfo:
     def slots_left(
         self, capability: Optional[str] = None, model: Optional[str] = None
     ) -> int:
+        if self.is_draining():
+            return 0
         state = self.slot_state(capability=capability, model=model)
         return max(
             0,
@@ -1190,8 +1275,20 @@ class WorkerInfo:
         if not self.cap_slots:
             return max(1, int(self.queue_capacity or 1))
         total = 0
+        llm_dependencies = set(
+            self.extra.get("llm_unload_dependent_capabilities", []) or []
+        )
+        shared_caps = llm_dependencies.intersection(self.cap_slots)
+        shared_group = set(shared_caps)
+        if shared_caps and "text" in self.cap_slots:
+            shared_group.add("text")
+        if shared_group:
+            total += max(
+                int(self._normalize_slot(self.cap_slots.get(cap)).get("capacity", 0))
+                for cap in shared_group
+            )
         for cap, state in self.cap_slots.items():
-            if cap == "vision" and "text" in self.cap_slots:
+            if cap in shared_group or (cap == "vision" and "text" in self.cap_slots):
                 continue
             total += int(self._normalize_slot(state).get("capacity", 0))
         return total
@@ -1201,8 +1298,17 @@ class WorkerInfo:
         if not self.cap_slots:
             return self.effective_busy()
         total = 0
+        llm_dependencies = set(
+            self.extra.get("llm_unload_dependent_capabilities", []) or []
+        )
+        shared_caps = llm_dependencies.intersection(self.cap_slots)
+        shared_group = set(shared_caps)
+        if shared_caps and "text" in self.cap_slots:
+            shared_group.add("text")
+        if shared_group:
+            total += max(self.effective_busy(capability=cap) for cap in shared_group)
         for cap, state in self.cap_slots.items():
-            if cap == "vision" and "text" in self.cap_slots:
+            if cap in shared_group or (cap == "vision" and "text" in self.cap_slots):
                 continue
             normalized = self._normalize_slot(state)
             reported_busy = int(normalized.get("in_flight", 0)) + int(
@@ -1262,22 +1368,194 @@ class WorkerInfo:
         )
 
 
+class WorkerDrainingError(RuntimeError):
+    """A dispatch lost the race to a maintenance reservation."""
+
+
 class WorkerRegistry:
     """Thread-safe in-memory registry of worker ezlocalai nodes."""
 
     def __init__(
-        self, ttl_seconds: float, reservation_ttl_seconds: Optional[float] = None
+        self,
+        ttl_seconds: float,
+        reservation_ttl_seconds: Optional[float] = None,
+        error_history_path: Optional[str] = None,
+        drain_state_path: Optional[str] = None,
     ):
+        self._drain_state_path = drain_state_path
+        self._drains: Dict[str, Dict[str, Any]] = {}
+        if drain_state_path:
+            try:
+                with open(drain_state_path) as source:
+                    self._drains = json.load(source)
+                if not isinstance(self._drains, dict):
+                    raise ValueError("Drain state must be an object")
+            except FileNotFoundError:
+                pass
         self._workers: Dict[str, WorkerInfo] = {}
         self._lock = RLock()
         self._ttl = ttl_seconds
+        self._error_history_path = error_history_path
+        self._error_history: List[Dict[str, Any]] = []
+        self._error_history_max = max(
+            1, int(os.getenv("ROUTER_ERROR_ARCHIVE_MAX", "2000"))
+        )
+        if error_history_path:
+            try:
+                with open(error_history_path) as source:
+                    events = json.load(source)
+                if not isinstance(events, list):
+                    raise ValueError("error history must be a list")
+                self._error_history = [e for e in events if isinstance(e, dict)][
+                    -self._error_history_max :
+                ]
+            except FileNotFoundError:
+                pass
+            except Exception:
+                logging.exception("[Router] Could not load error history")
         if reservation_ttl_seconds is None:
             reservation_ttl_seconds = float(getenv("ROUTER_RESERVATION_TTL", "15"))
         self._reservation_ttl = max(0.0, float(reservation_ttl_seconds))
 
+    def _save_drains(self) -> None:
+        if not self._drain_state_path:
+            return
+        directory = os.path.dirname(os.path.abspath(self._drain_state_path))
+        os.makedirs(directory, exist_ok=True)
+        temporary = None
+        try:
+            with tempfile.NamedTemporaryFile(
+                mode="w", dir=directory, delete=False
+            ) as target:
+                temporary = target.name
+                json.dump(self._drains, target)
+                target.flush()
+                os.fsync(target.fileno())
+            os.replace(temporary, self._drain_state_path)
+        finally:
+            if temporary and os.path.exists(temporary):
+                os.unlink(temporary)
+
+    def drain(
+        self,
+        label: str,
+        owner: str,
+        *,
+        ttl_seconds: int = 120,
+        require_idle: bool = False,
+    ) -> Dict[str, Any]:
+        """Reserve one worker across the fleet, atomically with dispatch admission.
+
+        The controller renews this lease while restarting and checking health.
+        Expiry recovers from a crashed controller; heartbeats cannot clear it.
+        """
+        if not label or not owner or not 30 <= ttl_seconds <= 300:
+            raise ValueError(
+                "label, owner and a TTL between 30 and 300 seconds are required"
+            )
+        with self._lock:
+            now = time.time()
+            active = {k: v for k, v in self._drains.items() if v["until"] > now}
+            if any(k != label or v["owner"] != owner for k, v in active.items()):
+                raise WorkerDrainingError(
+                    "Another worker rollout holds the maintenance lease"
+                )
+            workers = [
+                w
+                for w in self._workers.values()
+                if w.label == label
+                and w.is_alive(self._ttl)
+                and not w.external_provider
+            ]
+            # Renewal is allowed while the container is down or re-registering.
+            renewing = label in active and active[label]["owner"] == owner
+            if not renewing and len(workers) != 1:
+                raise WorkerDrainingError(
+                    "Expected exactly one live worker with this label"
+                )
+            if require_idle and any(w.maintenance_busy() for w in workers):
+                raise WorkerDrainingError(
+                    "Worker is still serving or queueing requests"
+                )
+            previous = self._drains
+            self._drains = {
+                **active,
+                label: {"owner": owner, "until": now + ttl_seconds},
+            }
+            try:
+                self._save_drains()
+            except Exception:
+                self._drains = previous
+                raise
+            for w in self._workers.values():
+                if w.label == label:
+                    w.drain_owner, w.drain_until = owner, now + ttl_seconds
+            return {
+                "ok": True,
+                "label": label,
+                "expires_at": now + ttl_seconds,
+                "busy": max((w.maintenance_busy() for w in workers), default=0),
+            }
+
+    def resume(self, label: str, owner: str) -> bool:
+        with self._lock:
+            drain = self._drains.get(label)
+            if drain and drain["owner"] != owner:
+                raise WorkerDrainingError(
+                    "Maintenance lease belongs to another rollout"
+                )
+            if drain:
+                previous = dict(self._drains)
+                self._drains.pop(label)
+                try:
+                    self._save_drains()
+                except Exception:
+                    self._drains = previous
+                    raise
+            for w in self._workers.values():
+                if w.label == label:
+                    w.drain_owner, w.drain_until = "", 0.0
+            return True
+
     @property
     def ttl(self) -> float:
         return self._ttl
+
+    def error_history(self) -> List[Dict[str, Any]]:
+        """Historical failures survive worker removal; liveness is computed now."""
+        with self._lock:
+            return [
+                {
+                    **e,
+                    "offline": e.get("worker_id") not in self._workers
+                    or not self._workers[e["worker_id"]].is_alive(self._ttl),
+                }
+                for e in reversed(self._error_history)
+            ]
+
+    def _archive_error(self, event: Dict[str, Any]) -> None:
+        # Called under the registry lock. Atomic replacement avoids partial JSON.
+        self._error_history.append(event)
+        self._error_history = self._error_history[-self._error_history_max :]
+        if not self._error_history_path:
+            return
+        temporary = None
+        try:
+            directory = os.path.dirname(os.path.abspath(self._error_history_path))
+            os.makedirs(directory, exist_ok=True)
+            with tempfile.NamedTemporaryFile(
+                mode="w", dir=directory, delete=False
+            ) as target:
+                temporary = target.name
+                json.dump(self._error_history, target)
+                target.flush()
+                os.fsync(target.fileno())
+            os.replace(temporary, self._error_history_path)
+        except Exception:
+            logging.exception("[Router] Could not persist error history")
+        finally:
+            if temporary and os.path.exists(temporary):
+                os.unlink(temporary)
 
     @property
     def reservation_ttl(self) -> float:
@@ -1285,17 +1563,67 @@ class WorkerRegistry:
 
     def register(self, info: WorkerInfo) -> WorkerInfo:
         with self._lock:
+            reported_tier = best_gpu_tier(info.gpus)
+            info.gpus = _normalize_reported_gpu_tiers(info.gpus)
+            if info.gpus and info.best_tier == reported_tier:
+                info.best_tier = best_gpu_tier(info.gpus)
             existing = self._workers.get(info.worker_id)
             if existing:
                 # Preserve registered_at across re-registers
                 info.registered_at = existing.registered_at
+                info.recent_errors = list(existing.recent_errors)
+                info.total_errors = existing.total_errors
+                info.circuit_open_until = existing.circuit_open_until
                 info.router_reservations = dict(existing.router_reservations)
+                info.active_requests = dict(existing.active_requests)
                 if info.external_balance_usd is None:
                     info.external_balance_usd = existing.external_balance_usd
                     info.external_balance_updated_at = (
                         existing.external_balance_updated_at
                     )
                 info._refresh_router_reservations()
+            else:
+                # Worker processes use a new ID after a crash. Restore recent
+                # failures by stable label/URL so restart loops cannot evade
+                # the circuit breaker and immediately receive another request.
+                now = time.time()
+                try:
+                    window = float(os.environ.get("ROUTER_ERROR_WINDOW_SECONDS", "60"))
+                    threshold = int(os.environ.get("ROUTER_ERROR_THRESHOLD", "3"))
+                    cooldown = float(os.environ.get("ROUTER_CIRCUIT_COOLDOWN", "30"))
+                    history_max = int(os.environ.get("ROUTER_ERROR_HISTORY_MAX", "50"))
+                except (TypeError, ValueError):
+                    window, threshold, cooldown, history_max = 60.0, 3, 30.0, 50
+                matching = [
+                    event
+                    for event in self._error_history
+                    if event.get("label") == info.label
+                    and (not event.get("url") or event.get("url") == info.url)
+                ]
+                info.total_errors = len(matching)
+                recent = [
+                    event for event in matching if now - event.get("ts", 0) <= window
+                ]
+                info.recent_errors = [
+                    {
+                        key: event.get(key)
+                        for key in ("ts", "kind", "status", "path", "message")
+                    }
+                    for event in matching[-history_max:]
+                ]
+                if len(recent) >= threshold:
+                    info.circuit_open_until = now + cooldown
+                    logging.warning(
+                        "[Router] Restored crash-loop cooldown for %s under new "
+                        "worker ID %s (%s errors in %.0fs)",
+                        info.label,
+                        info.worker_id,
+                        len(recent),
+                        window,
+                    )
+            drain = self._drains.get(info.label, {})
+            info.drain_owner = drain.get("owner", "")
+            info.drain_until = drain.get("until", 0.0)
             self._workers[info.worker_id] = info
             return info
 
@@ -1338,7 +1666,7 @@ class WorkerRegistry:
             if "capabilities" in payload:
                 worker.capabilities = list(payload["capabilities"])
             if "gpus" in payload and isinstance(payload["gpus"], list):
-                worker.gpus = list(payload["gpus"])
+                worker.gpus = _normalize_reported_gpu_tiers(payload["gpus"])
                 worker.best_tier = best_gpu_tier(worker.gpus)
             if "model_context" in payload and isinstance(
                 payload["model_context"], dict
@@ -1405,23 +1733,32 @@ class WorkerRegistry:
             model_key = WorkerInfo._match_name(model, w.model_slots) or (model or "")
 
             if delta > 0:
-                # Worker heartbeats are authoritative for non-LLM services.
-                # Only text/vision dispatches need a router reservation.
-                if capability not in MODEL_STRICT_CAPABILITIES:
-                    return None
-                # Managed APIs have no heartbeat to replace router state, so
-                # their reservations live until the proxied request releases
-                # them. Local leases remain short and heartbeat-authoritative.
-                if not w.external_fallback and self._reservation_ttl <= 0:
+                if w.is_draining():
+                    raise WorkerDrainingError(f"Worker {w.label} is draining")
+                # Media/speech/embedding requests can outlive many heartbeats.
+                # Hold their advertised slot until the proxy completes, including
+                # streaming responses, so bursts queue at the router rather than
+                # racing into the worker between heartbeats. LLMs keep their
+                # existing short leases and heartbeat accounting.
+                request_scoped = capability not in MODEL_STRICT_CAPABILITIES
+                if (
+                    not request_scoped
+                    and not w.external_fallback
+                    and self._reservation_ttl <= 0
+                ):
                     return None
                 expires_at = (
                     float("inf")
-                    if w.external_fallback
+                    if request_scoped or w.external_fallback
                     else time.monotonic() + self._reservation_ttl
                 )
                 token: Optional[str] = None
                 for _ in range(delta):
                     token = uuid.uuid4().hex
+                    w.active_requests[token] = {
+                        "capability": cap_key,
+                        "model": model_key,
+                    }
                     w.router_reservations[token] = {
                         "expires_at": expires_at,
                         "capability": cap_key,
@@ -1433,11 +1770,12 @@ class WorkerRegistry:
             if delta < 0:
                 if reservation_id:
                     w.router_reservations.pop(reservation_id, None)
+                    w.active_requests.pop(reservation_id, None)
                 else:
                     # Compatibility path for callers/tests that release by
                     # capability/model instead of the per-request token.
                     matches = []
-                    for token, reservation in w.router_reservations.items():
+                    for token, reservation in w.active_requests.items():
                         if cap_key and reservation.get("capability") != cap_key:
                             continue
                         reserved_model = str(reservation.get("model") or "")
@@ -1448,8 +1786,35 @@ class WorkerRegistry:
                         matches.append(token)
                     for token in matches[: abs(delta)]:
                         w.router_reservations.pop(token, None)
+                        w.active_requests.pop(token, None)
                 w._refresh_router_reservations()
             return None
+
+    def try_reserve_in_flight(
+        self,
+        worker_id: str,
+        capability: Optional[str] = None,
+        model: Optional[str] = None,
+    ) -> Optional[str]:
+        """Atomically reserve a worker slot if it is still available.
+
+        Selection and dispatch are separate async operations. Without this
+        final locked check, two requests can both observe an idle swap-mode
+        worker and then race to load different LLMs on it.
+        """
+        with self._lock:
+            worker = self._workers.get(worker_id)
+            if worker is None:
+                return None
+            worker._refresh_router_reservations()
+            if not worker.has_capacity(capability=capability, model=model):
+                return None
+            return self.increment_in_flight(
+                worker_id,
+                1,
+                capability=capability,
+                model=model,
+            )
 
     def release_in_flight(self, worker_id: str, reservation_id: Optional[str]) -> None:
         """Release one tokenized dispatch lease; unreserved requests are no-ops."""
@@ -1460,6 +1825,7 @@ class WorkerRegistry:
             if worker is None:
                 return
             worker.router_reservations.pop(reservation_id, None)
+            worker.active_requests.pop(reservation_id, None)
             worker._refresh_router_reservations()
 
     def record_connection_failure(self, worker_id: str) -> int:
@@ -1512,8 +1878,6 @@ class WorkerRegistry:
         now = time.time()
         with self._lock:
             w = self._workers.get(worker_id)
-            if w is None:
-                return
             event = {
                 "ts": now,
                 "kind": kind,
@@ -1521,6 +1885,24 @@ class WorkerRegistry:
                 "path": path,
                 "message": str(message)[:500],
             }
+            previous = next(
+                (
+                    e
+                    for e in reversed(self._error_history)
+                    if e.get("worker_id") == worker_id
+                ),
+                {},
+            )
+            self._archive_error(
+                {
+                    **event,
+                    "worker_id": worker_id,
+                    "label": w.label if w else previous.get("label", worker_id),
+                    "url": w.url if w else previous.get("url", ""),
+                }
+            )
+            if w is None:
+                return
             w.recent_errors.append(event)
             w.total_errors += 1
             # Trim history
@@ -1718,23 +2100,26 @@ class Router:
         capability: str,
         model: Optional[str] = None,
         exclude: Optional[set] = None,
-        allow_cross_model: bool = True,
+        allow_cross_model: bool = False,
+        worker_id: Optional[str] = None,
     ) -> Optional[WorkerInfo]:
         """Pick the best worker matching capability + (optionally) model.
 
         ``exclude`` is an optional set of ``worker_id``s to skip (used by the
         retry path so a failed worker isn't picked again immediately).
+        ``worker_id`` restricts every selection pass to one registered worker.
 
         ``allow_cross_model`` controls what happens when a ``model`` is
-        requested for a model-strict capability but no same-model worker has
-        capacity right now:
+        requested for a model-strict capability but no eligible worker serves
+        that model:
 
-        * ``True``  — fall back to the best-scoring worker that supports the
-          capability so the client gets *some* compute instead of a 503.
-          Tier dominates ``score()`` (×10), so a free 5090 will outrank a
-          free 3090Ti even when both are running a different model.
-        * ``False`` — return ``None`` so the caller (``wait_for_worker``)
-          can poll for a same-model worker to free up before crossing over.
+        * ``True`` — allow a worker serving another model.
+        * ``False`` — return ``None`` so ``wait_for_worker`` can wait for a
+          matching worker to register or recover.
+
+        When matching workers exist but are busy, always return ``None`` and
+        queue for that model. Spare capacity on another model must not silently
+        change the requested model, regardless of the cross-model grace period.
 
         Non-text media capabilities (TTS, STT, image, video, music,
         music_video) are routed by capability regardless of the client-supplied
@@ -1748,8 +2133,10 @@ class Router:
             w
             for w in self.registry.list_workers(alive_only=True)
             if capability in w.capabilities
+            and (worker_id is None or w.worker_id == worker_id)
             and w.worker_id not in excluded
             and not w.is_circuit_open()
+            and not w.is_draining()
         ]
 
         require_idle_worker = (
@@ -1769,10 +2156,18 @@ class Router:
                 w for w in workers if w.has_capacity(capability, capacity_model)
             ]
             if idle_only:
+                # Managed APIs and idle independent model instances remain
+                # usable while sibling calls run. Native shared slots still
+                # follow the explicit busy-slot fallback policy.
                 candidates = [
                     w
                     for w in candidates
-                    if w.effective_busy(capability, capacity_model) == 0
+                    if w.external_fallback
+                    or w.effective_busy(capability, capacity_model) == 0
+                    or (
+                        w.effective_busy(capability, capacity_model)
+                        < w.slot_state(capability, capacity_model).get("instances", 1)
+                    )
                 ]
                 candidates = self._filter_idle_tier_window(
                     candidates, tier_reference or workers
@@ -1864,12 +2259,10 @@ class Router:
             winner = _select_preferred(model_servers)
             if winner is not None:
                 return winner
-            # Same-model workers exist but are busy or saturated. During the grace
-            # period (allow_cross_model=False) refuse to cross over so the
-            # caller can briefly wait for an idle node. After the grace period
-            # expires the caller flips this flag and we cross-model fall
-            # back to the highest-tier alternative.
-            if model_servers and not allow_cross_model:
+            # A busy matching pool is a queue, not permission to substitute a
+            # different model (e.g. MiniCPM-2B for Qwen-27B). Grace expiry only
+            # permits fallback when no eligible worker serves the requested model.
+            if model_servers:
                 logging.info(
                     f"[Router] select model={model!r} cap={capability}: same-model workers all "
                     f"busy, waiting for an idle node; "
@@ -1932,16 +2325,17 @@ class Router:
         poll_interval: float = 0.5,
         exclude: Optional[set] = None,
         cross_model_grace: Optional[float] = None,
+        worker_id: Optional[str] = None,
+        fail_if_exhausted: bool = False,
     ) -> Optional[WorkerInfo]:
         """Block up to ``timeout`` seconds waiting for a free worker.
 
         ``timeout <= 0`` means wait without a router-side deadline; client or
         proxy timeouts may still close the request.
 
-        By default ``cross_model_grace`` is ``0`` so the first selection pass
-        uses the best worker that is actually free right now. Set
-        ``ROUTER_CROSS_MODEL_GRACE`` to a positive number to briefly wait for
-        same-model workers before allowing cross-model fallback.
+        Explicit text/vision models are never substituted by default. Opt-in
+        cross-model fallback is delayed by ``cross_model_grace`` and never
+        applies after exhausting matching workers on a request's retry path.
         """
         if cross_model_grace is None:
             try:
@@ -1957,12 +2351,41 @@ class Router:
         try:
             while True:
                 now = time.time()
-                allow_cross = now >= grace_deadline
+                matching = [
+                    w
+                    for w in self.registry.list_workers(alive_only=True)
+                    if capability in w.capabilities
+                    and (worker_id is None or w.worker_id == worker_id)
+                    and model
+                    and any(_model_name_matches(model, m) for m in w.models)
+                ]
+                generic_model = not model or model.lower() in {
+                    "unknown",
+                    "default",
+                    "ezlocalai",
+                }
+                if (
+                    fail_if_exhausted
+                    and exclude
+                    and capability in MODEL_STRICT_CAPABILITIES
+                    and not generic_model
+                    and not any(w.worker_id not in exclude for w in matching)
+                ):
+                    # No untried matching worker remains. Return the original
+                    # capacity/transport failure instead of waiting forever or
+                    # sending a 27B prompt to an unrelated 64k model.
+                    return None
+                allow_cross = now >= grace_deadline and (
+                    generic_model
+                    or os.environ.get("ROUTER_ALLOW_CROSS_MODEL", "false").lower()
+                    == "true"
+                )
                 worker = self.select_worker(
                     capability,
                     model,
                     exclude=exclude,
                     allow_cross_model=allow_cross,
+                    **({"worker_id": worker_id} if worker_id is not None else {}),
                 )
                 if worker is not None:
                     return worker
@@ -2153,7 +2576,7 @@ class WorkerHeartbeatClient:
                 for name in (embedding_model, embedding_alias):
                     if name:
                         model_context.setdefault(
-                            name, int(getenv("EMBEDDING_CONTEXT_LENGTH", "32768"))
+                            name, int(getenv("EMBEDDING_CONTEXT_LENGTH", "10000"))
                         )
                         model_quant.setdefault(
                             name, getenv("EMBEDDING_QUANT_TYPE", "Q8_0")
@@ -2213,6 +2636,18 @@ class WorkerHeartbeatClient:
                     and pipe._music_should_unload_llm_for_generation()
                 ):
                     llm_dependencies.append("music")
+                if (
+                    hasattr(pipe, "_voice_should_unload_llm")
+                    and "tts" in self.capabilities
+                    and pipe._voice_should_unload_llm("tts")
+                ):
+                    llm_dependencies.append("tts")
+                if (
+                    hasattr(pipe, "_voice_should_unload_llm")
+                    and "stt" in self.capabilities
+                    and pipe._voice_should_unload_llm("stt")
+                ):
+                    llm_dependencies.append("stt")
                 if "video" in llm_dependencies and "music" in llm_dependencies:
                     llm_dependencies.append("music_video")
                 extra = {
@@ -2241,9 +2676,9 @@ class WorkerHeartbeatClient:
         cap_models: Dict[str, str] = {}
         for _cap in self.capabilities:
             if _cap == "tts":
-                cap_models["tts"] = (
-                    getenv("QWEN_TTS_MODEL") or "Qwen/Qwen3-TTS-12Hz-0.6B-Base"
-                ).strip()
+                from ezlocalai.LlamaTTS import resolve_tts_model_id
+
+                cap_models["tts"] = resolve_tts_model_id()
             elif _cap == "stt":
                 _wm = (getenv("WHISPER_MODEL") or "large-v3-turbo").strip()
                 cap_models["stt"] = _wm
@@ -2415,7 +2850,11 @@ _heartbeat_client: Optional[WorkerHeartbeatClient] = None
 def get_registry() -> WorkerRegistry:
     global _registry
     if _registry is None:
-        _registry = WorkerRegistry(ttl_seconds=float(getenv("ROUTER_WORKER_TTL", "60")))
+        _registry = WorkerRegistry(
+            ttl_seconds=float(getenv("ROUTER_WORKER_TTL", "60")),
+            error_history_path=getenv("ROUTER_ERROR_FILE", "/data/router-errors.json"),
+            drain_state_path=getenv("ROUTER_DRAIN_FILE", "/data/router-drains.json"),
+        )
     return _registry
 
 

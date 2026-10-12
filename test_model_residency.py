@@ -1,16 +1,56 @@
 import asyncio
 import os
+import sys
 import threading
 import time
 import types
 import unittest
 from unittest import mock
 
-from Pipes import ModelType, Pipes
-from Router import WorkerInfo
+sys.modules.setdefault("xllamacpp", types.SimpleNamespace())
+
+from Pipes import ModelType, Pipes, _VoiceSlotGuard
+from Router import WorkerInfo, WorkerRegistry
 
 
 class LlmResidencyPolicyTests(unittest.TestCase):
+    def test_runtime_reports_effective_prefill_settings(self):
+        instance = types.SimpleNamespace(
+            xlc_params=types.SimpleNamespace(
+                n_batch=4096,
+                n_ubatch=512,
+                checkpoint_min_step=8192,
+                n_ctx_checkpoints=32,
+            ),
+            kv_cache_type="q4_0",
+            speculative_type="mtp",
+        )
+        shape = Pipes._llm_runtime_shape(instance, 220000)
+        self.assertEqual(shape["n_ubatch"], 512)
+        self.assertEqual(shape["n_batch"], 4096)
+        self.assertEqual(shape["checkpoint_min_step"], 8192)
+        self.assertEqual(shape["n_ctx_checkpoints"], 32)
+        self.assertEqual(shape["kv_cache_type"], "q4_0")
+        self.assertEqual(shape["speculative_type"], "mtp")
+        self.assertEqual(
+            Pipes._llm_runtime_shape(object(), 220000), {"context": 220000}
+        )
+
+    def test_q8_memory_planning_includes_extra_kv_capacity(self):
+        from Pipes import estimate_model_vram_requirement, _qwen35_kv_bytes_per_token
+
+        with mock.patch("Pipes.xllamacpp_available", False), mock.patch(
+            "Pipes.resolve_kv_cache_type", side_effect=["q4_0", "q8_0"]
+        ):
+            q4 = estimate_model_vram_requirement("Qwen3.8-27B.gguf", 262144)
+            q8 = estimate_model_vram_requirement("Qwen3.8-27B.gguf", 262144)
+        self.assertAlmostEqual(q8 - q4, 4.0)
+        self.assertAlmostEqual(
+            _qwen35_kv_bytes_per_token(None, "q8_0")
+            / _qwen35_kv_bytes_per_token(None, "q4_0"),
+            34 / 18,
+        )
+
     def test_auto_residency_selects_swap_when_models_overcommit_one_gpu(self):
         pipe = Pipes.__new__(Pipes)
         pipe.available_models = ["model-a", "model-b"]
@@ -96,13 +136,15 @@ class LlmDependencySlotTests(unittest.TestCase):
         pipe._image_should_unload_llm_for_generation = mock.Mock(return_value=True)
         pipe._video_should_unload_llm_for_generation = mock.Mock(return_value=True)
         pipe._music_should_unload_llm_for_generation = mock.Mock(return_value=True)
+        pipe._voice_should_unload_llm = mock.Mock(return_value=True)
+        pipe._voice_handoff_active = mock.Mock(return_value=False)
 
         with (
             mock.patch.dict(
                 os.environ,
                 {
-                    "TTS_ENABLED": "false",
-                    "STT_ENABLED": "false",
+                    "TTS_ENABLED": "true",
+                    "STT_ENABLED": "true",
                     "EMBEDDING_ENABLED": "false",
                     "IMG_MODEL": "image-model",
                     "MUSIC_MODEL": "music-model",
@@ -123,6 +165,10 @@ class LlmDependencySlotTests(unittest.TestCase):
         self.assertEqual(snapshot["cap_slots"]["image"]["available"], 0)
         self.assertEqual(snapshot["cap_slots"]["video"]["available"], 0)
         self.assertEqual(snapshot["cap_slots"]["music"]["available"], 0)
+        self.assertEqual(snapshot["cap_slots"]["tts"]["capacity"], 1)
+        self.assertEqual(snapshot["cap_slots"]["tts"]["available"], 0)
+        self.assertEqual(snapshot["cap_slots"]["stt"]["capacity"], 1)
+        self.assertEqual(snapshot["cap_slots"]["stt"]["available"], 0)
 
     def test_router_text_reservation_blocks_declared_handoff_service(self):
         worker = WorkerInfo(
@@ -148,8 +194,582 @@ class LlmDependencySlotTests(unittest.TestCase):
 
         self.assertEqual(worker.slots_left(capability="image"), 0)
 
+    def test_voice_reservation_excludes_text_and_sibling_voice_service(self):
+        worker = WorkerInfo(
+            worker_id="worker",
+            label="worker",
+            url="http://worker.local",
+            capabilities=["text", "tts", "stt"],
+            models=["model-a"],
+            cap_slots={
+                "text": {"capacity": 1, "in_flight": 0, "queued": 0},
+                "tts": {"capacity": 1, "in_flight": 0, "queued": 0},
+                "stt": {"capacity": 1, "in_flight": 0, "queued": 0},
+            },
+            model_slots={"model-a": {"capacity": 1, "in_flight": 0, "queued": 0}},
+            extra={"llm_unload_dependent_capabilities": ["tts", "stt"]},
+        )
+        registry = WorkerRegistry(ttl_seconds=60, reservation_ttl_seconds=15)
+        registry.register(worker)
+
+        reservation = registry.try_reserve_in_flight(worker.worker_id, capability="tts")
+
+        self.assertIsNotNone(reservation)
+        self.assertEqual(worker.slots_left(capability="tts"), 0)
+        self.assertEqual(worker.slots_left(capability="stt"), 0)
+        self.assertEqual(worker.slots_left(capability="text", model="model-a"), 0)
+        self.assertEqual(worker.total_capacity(), 1)
+        self.assertEqual(worker.total_busy(), 1)
+
+
+class VoiceHandoffTests(unittest.IsolatedAsyncioTestCase):
+    @staticmethod
+    def _fast_pipe():
+        from ModelSettings import MINICPM5_2B_MODEL
+
+        pipe = Pipes.__new__(Pipes)
+        pipe.available_models = [MINICPM5_2B_MODEL]
+        pipe.model_sources = {}
+        return pipe
+
+    def test_fast_voice_policy_is_stable_and_explicit_handoff_wins(self):
+        pipe = self._fast_pipe()
+        with mock.patch(
+            "Pipes.getenv", side_effect=lambda key, default="": default
+        ), mock.patch("Pipes.has_voice_server_url", return_value=False), mock.patch(
+            "Pipes.has_text_server_url", return_value=False
+        ), mock.patch(
+            "Pipes.is_voice_server_mode", return_value=False
+        ), mock.patch(
+            "Pipes.should_preload_voice", return_value=False
+        ):
+            for service in ("tts", "stt"):
+                self.assertFalse(pipe._voice_should_unload_llm(service))
+                self.assertTrue(pipe._voice_should_preload(service))
+            # The current pointer may be detached without changing the policy.
+            pipe.llm = None
+            pipe.current_llm_name = None
+            self.assertFalse(pipe._voice_should_unload_llm("tts"))
+            with mock.patch("Pipes.getenv", return_value="true"):
+                self.assertTrue(pipe._voice_should_unload_llm("tts"))
+                self.assertFalse(pipe._voice_should_preload("tts"))
+            # Large and mixed workers keep the established handoff behavior.
+            pipe.available_models.append("unsloth/Qwen3.8-27B-GGUF")
+            self.assertTrue(pipe._voice_should_unload_llm("tts"))
+            self.assertFalse(pipe._voice_should_preload("tts"))
+            pipe.available_models = ["unsloth/Qwen3.8-27B-GGUF"]
+            self.assertTrue(pipe._voice_should_unload_llm("stt"))
+
+    async def test_fast_voice_turns_reuse_pools_while_llm_and_other_voice_are_busy(
+        self,
+    ):
+        from collections import deque
+
+        pipe = self._fast_pipe()
+        pipe.resource_manager = mock.Mock()
+        pipe._llm_temporarily_unavailable = False
+        pipe._inference_count = 1
+        pipe._unload_llms_for_service = mock.Mock()
+        pipe._wait_for_llm_idle_for_voice = mock.AsyncMock()
+        models = {}
+        for service in ("tts", "stt"):
+            model = types.SimpleNamespace(_closed=False)
+            models[service] = model
+            setattr(pipe, f"_{service}_pool_lock", threading.Lock())
+            setattr(pipe, f"_{service}_active_leases", {})
+            setattr(pipe, f"_{service}_available", deque([model]))
+            setattr(pipe, f"{service}_instances", [model])
+            setattr(pipe, f"_{service}_pool_size", 1)
+            setattr(pipe, f"_destroy_{service}_sync", mock.Mock())
+
+        with mock.patch(
+            "Pipes.getenv", side_effect=lambda key, default="": default
+        ), mock.patch("Pipes.has_voice_server_url", return_value=False), mock.patch(
+            "Pipes.has_text_server_url", return_value=False
+        ), mock.patch(
+            "Pipes.is_voice_server_mode", return_value=False
+        ), mock.patch(
+            "Pipes.should_preload_voice", return_value=False
+        ):
+            tts_guard = _VoiceSlotGuard(pipe, "tts", 1)
+            stt_guard = _VoiceSlotGuard(pipe, "stt", 1)
+            for _ in range(3):
+                async with tts_guard, stt_guard:
+                    self.assertIs(pipe._get_tts(), models["tts"])
+                    self.assertIs(pipe._get_stt(), models["stt"])
+                    self.assertFalse(pipe._llm_temporarily_unavailable)
+                    pipe._destroy_tts(async_cleanup=False)
+                    pipe._destroy_stt(async_cleanup=False)
+            self.assertEqual(list(pipe._tts_available), [models["tts"]])
+            self.assertEqual(list(pipe._stt_available), [models["stt"]])
+        pipe._unload_llms_for_service.assert_not_called()
+        pipe._wait_for_llm_idle_for_voice.assert_not_called()
+        pipe._destroy_tts_sync.assert_not_called()
+        pipe._destroy_stt_sync.assert_not_called()
+
+    async def test_voice_handoff_waits_for_active_llm_inference(self):
+        pipe = Pipes.__new__(Pipes)
+        pipe._is_inference_in_progress = mock.Mock(side_effect=[True, True, False])
+
+        with mock.patch.dict(
+            os.environ, {"VOICE_WAIT_FOR_LLM_IDLE_TIMEOUT": "1"}
+        ), mock.patch("Pipes.asyncio.sleep", new=mock.AsyncMock()) as sleep:
+            await pipe._wait_for_llm_idle_for_voice("tts")
+
+        self.assertEqual(pipe._is_inference_in_progress.call_count, 3)
+        self.assertEqual(sleep.await_count, 2)
+
+    async def test_voice_slot_unloads_voice_before_restoring_llm(self):
+        pipe = Pipes.__new__(Pipes)
+        pipe._voice_handoff_lock = asyncio.Lock()
+        pipe._voice_handoff_state_lock = threading.Lock()
+        pipe._voice_handoff_counts = {"tts": 0, "stt": 0}
+        pipe._inference_count_lock = threading.Lock()
+        pipe._llm_temporarily_unavailable = False
+        pipe._voice_should_unload_llm = mock.Mock(return_value=True)
+        pipe._wait_for_llm_idle_for_voice = mock.AsyncMock()
+        handoff = {"loaded_models": ["model-a"], "active_model": "model-a"}
+        pipe._unload_llms_for_service = mock.Mock(return_value=handoff)
+        events = []
+        pipe._destroy_tts = mock.Mock(side_effect=lambda **kwargs: events.append("tts"))
+        pipe._destroy_stt = mock.Mock()
+        pipe._restore_llms_after_service = mock.Mock(
+            side_effect=lambda *args: events.append("llm")
+        )
+        guard = _VoiceSlotGuard(pipe, "tts", 1)
+
+        async with guard:
+            self.assertTrue(pipe._llm_temporarily_unavailable)
+            self.assertTrue(pipe._voice_handoff_active("tts"))
+
+        self.assertEqual(events, ["tts", "llm"])
+        self.assertFalse(pipe._llm_temporarily_unavailable)
+        self.assertFalse(pipe._voice_handoff_active())
+
+    async def test_cancel_waiting_for_idle_releases_handoff(self):
+        pipe = Pipes.__new__(Pipes)
+        pipe._voice_handoff_lock = asyncio.Lock()
+        pipe._voice_handoff_state_lock = threading.Lock()
+        pipe._voice_handoff_counts = {"tts": 0, "stt": 0}
+        pipe._inference_count_lock = threading.Lock()
+        pipe._llm_temporarily_unavailable = False
+        pipe._voice_should_unload_llm = mock.Mock(return_value=True)
+        waiting = asyncio.Event()
+
+        async def wait_for_idle(service):
+            waiting.set()
+            await asyncio.Event().wait()
+
+        pipe._wait_for_llm_idle_for_voice = wait_for_idle
+        guard = _VoiceSlotGuard(pipe, "tts", 1)
+        task = asyncio.create_task(guard.acquire())
+        await waiting.wait()
+        task.cancel()
+        with self.assertRaises(asyncio.CancelledError):
+            await task
+        self.assertFalse(pipe._voice_handoff_lock.locked())
+        self.assertFalse(pipe._voice_handoff_active())
+        self.assertFalse(pipe._llm_temporarily_unavailable)
+
+    async def test_cancel_queued_handoff_does_not_clear_active_handoff(self):
+        pipe = Pipes.__new__(Pipes)
+        pipe._voice_handoff_lock = asyncio.Lock()
+        await pipe._voice_handoff_lock.acquire()
+        pipe._voice_should_unload_llm = mock.Mock(return_value=True)
+        pipe._mark_voice_handoff = mock.Mock()
+        pipe._llm_temporarily_unavailable = True
+        guard = _VoiceSlotGuard(pipe, "tts", 1)
+        task = asyncio.create_task(guard.acquire())
+        await asyncio.sleep(0)
+        task.cancel()
+        with self.assertRaises(asyncio.CancelledError):
+            await task
+        pipe._mark_voice_handoff.assert_not_called()
+        self.assertTrue(pipe._voice_handoff_lock.locked())
+        self.assertTrue(pipe._llm_temporarily_unavailable)
+        pipe._voice_handoff_lock.release()
+
+    async def test_voice_lease_can_be_released_from_a_streaming_task(self):
+        pipe = Pipes.__new__(Pipes)
+        pipe._voice_handoff_lock = asyncio.Lock()
+        pipe._voice_handoff_state_lock = threading.Lock()
+        pipe._voice_handoff_counts = {"tts": 0, "stt": 0}
+        pipe._inference_count_lock = threading.Lock()
+        pipe._llm_temporarily_unavailable = False
+        pipe._voice_should_unload_llm = mock.Mock(return_value=False)
+        guard = _VoiceSlotGuard(pipe, "tts", 1)
+
+        lease = await guard.acquire()
+
+        async def release_from_stream_task():
+            await guard.release(lease)
+
+        await asyncio.create_task(release_from_stream_task())
+        second = await asyncio.wait_for(guard.acquire(), timeout=0.2)
+        await guard.release(second)
+
+    async def test_http_model_lease_transfers_to_consumer_task(self):
+        pipe = Pipes.__new__(Pipes)
+        pipe._tts_pool_lock = threading.Lock()
+        model = object()
+        owner = pipe._lease_key()
+        pipe._tts_active_leases = {owner: model}
+
+        async def consume():
+            pipe._transfer_tts_lease(owner)
+            self.assertNotIn(owner, pipe._tts_active_leases)
+            self.assertIs(pipe._tts_active_leases.pop(pipe._lease_key()), model)
+
+        await asyncio.create_task(consume())
+        self.assertFalse(pipe._tts_active_leases)
+
+    def test_closed_tts_is_not_returned_to_warm_pool(self):
+        from collections import deque
+
+        pipe = Pipes.__new__(Pipes)
+        model = mock.Mock(_closed=True)
+        pipe._tts_pool_lock = threading.Lock()
+        pipe._tts_active_leases = {pipe._lease_key(): model}
+        pipe._tts_available = deque()
+        pipe.tts_instances = [model]
+        pipe._transient_tts_instances = []
+        pipe.ctts = model
+        pipe._voice_handoff_active = mock.Mock(return_value=False)
+        pipe._voice_should_preload = mock.Mock(return_value=True)
+        pipe.resource_manager = mock.Mock()
+        pipe._register_tts_pool_resource = mock.Mock()
+        pipe._destroy_tts_sync = mock.Mock()
+        pipe._destroy_tts(async_cleanup=False)
+        self.assertFalse(pipe._tts_available)
+        self.assertFalse(pipe.tts_instances)
+        self.assertFalse(pipe._tts_active_leases)
+        pipe._destroy_tts_sync.assert_called_once_with(model)
+
+    def test_voice_handoff_uses_lazy_llm_restore_by_default(self):
+        pipe = Pipes.__new__(Pipes)
+        pipe.available_models = ["model-a"]
+        pipe._llm_temporarily_unavailable = True
+        pipe._reload_persistent_models = mock.Mock()
+        handoff = {"loaded_models": ["model-a"], "active_model": "model-a"}
+
+        with mock.patch.dict(os.environ, {}, clear=False):
+            os.environ.pop("VOICE_RELOAD_LLM_AFTER_GENERATION", None)
+            os.environ.pop("STT_RELOAD_LLM_AFTER_GENERATION", None)
+            pipe._restore_llms_after_service(
+                "stt", handoff, "STT_RELOAD_LLM_AFTER_GENERATION"
+            )
+
+        pipe._reload_persistent_models.assert_not_called()
+        self.assertFalse(pipe._llm_temporarily_unavailable)
+
+    def test_stt_destroy_closes_native_model_before_cache_cleanup(self):
+        pipe = Pipes.__new__(Pipes)
+        pipe._record_model_lifecycle = mock.Mock()
+        stt = mock.Mock()
+
+        with mock.patch("Pipes.gc.collect"), mock.patch(
+            "Pipes.torch.cuda.is_available", return_value=False
+        ):
+            pipe._destroy_stt_sync(stt)
+
+        stt.close.assert_called_once_with()
+
+    def test_tts_destroy_closes_native_model_before_cache_cleanup(self):
+        pipe = Pipes.__new__(Pipes)
+        tts = mock.Mock()
+
+        with mock.patch("Pipes.gc.collect"), mock.patch(
+            "Pipes.torch.cuda.is_available", return_value=False
+        ):
+            pipe._destroy_tts_sync(tts)
+
+        tts.close.assert_called_once_with()
+
+    def test_voice_handoff_preserves_runtime_gpu_residency(self):
+        pipe = Pipes.__new__(Pipes)
+        resident = types.SimpleNamespace(gpu_layers=57)
+        pipe._model_lock = threading.Lock()
+        pipe.persistent_llms = {"model-a": resident}
+        pipe.model_configs = {"model-a": {"max_tokens": 200000}}
+        pipe._optimal_context = 200000
+        pipe.current_llm_name = "model-a"
+        pipe.current_context = 200000
+        pipe.llm = resident
+        pipe.primary_llm = resident
+        pipe.vision_llm = None
+        pipe._using_large_model = False
+        pipe.resource_manager = mock.Mock()
+        pipe._destroy_llm_refs_sync = mock.Mock()
+
+        state = pipe._unload_llms_for_service("tts", True)
+
+        self.assertEqual(
+            state["runtime_models"]["model-a"],
+            {"context": 200000, "gpu_layers": 57},
+        )
+
+    def test_llm_restore_reuses_pre_handoff_gpu_layers(self):
+        pipe = Pipes.__new__(Pipes)
+        pipe._model_lock = threading.Lock()
+        pipe._optimal_context = 200000
+        pipe.available_models = ["model-a"]
+        pipe.persistent_llms = {"model-a": None}
+        pipe.model_configs = {"model-a": {"max_tokens": 200000}}
+        pipe.llm_model_residency = "resident"
+        pipe.primary_llm_name = "model-a"
+        pipe.vision_llm_name = "vision"
+        pipe.primary_llm = None
+        pipe.vision_llm = None
+        pipe.llm = None
+        pipe.current_llm_name = None
+        pipe.current_context = None
+        pipe.resource_manager = mock.Mock()
+        restored = types.SimpleNamespace(is_vision=False, gpu_layers=57)
+        pipe._load_llm_resilient = mock.Mock(return_value=restored)
+
+        pipe._reload_persistent_models(
+            model_names=["model-a"],
+            active_model="model-a",
+            runtime_models={"model-a": {"context": 200000, "gpu_layers": 57}},
+        )
+
+        pipe._load_llm_resilient.assert_called_once_with(
+            model_name="model-a",
+            max_tokens=200000,
+            gpu_layers=57,
+            main_gpu=None,
+            tensor_split=None,
+            n_parallel=None,
+            quant_type=None,
+        )
+        self.assertIs(pipe.llm, restored)
+
+    def test_lazy_llm_restore_reuses_pre_handoff_gpu_layers(self):
+        pipe = Pipes.__new__(Pipes)
+        pipe._known_llm_runtime_models = {
+            "model-a": {
+                "context": 200000,
+                "gpu_layers": 57,
+                "main_gpu": 1,
+                "tensor_split": [0.4, 0.6],
+            }
+        }
+        pipe.llm_model_vram_estimates = {}
+        pipe._record_model_lifecycle = mock.Mock()
+        restored = types.SimpleNamespace(
+            gpu_layers=57,
+            main_gpu=1,
+            tensor_split=[0.4, 0.6],
+            vram_load_delta_gb=18.0,
+        )
+        pipe._load_llm_resilient_impl = mock.Mock(return_value=restored)
+
+        result = pipe._load_llm_resilient(
+            model_name="model-a",
+            max_tokens=200000,
+        )
+
+        self.assertIs(result, restored)
+        pipe._load_llm_resilient_impl.assert_called_once_with(
+            model_name="model-a",
+            max_tokens=200000,
+            gpu_layers=57,
+            main_gpu=1,
+            tensor_split=[0.4, 0.6],
+            n_parallel=None,
+            quant_type=None,
+        )
+
+
+class LlmSwapQueueTests(unittest.IsolatedAsyncioTestCase):
+    @staticmethod
+    def _resident_pipe(n_parallel=1):
+        pipe = Pipes.__new__(Pipes)
+        pipe.llm_model_residency = "resident"
+        pipe.available_models = ["model-a"]
+        pipe.model_sources = {"model-a": "model-a"}
+        pipe.model_configs = {
+            "model-a": {"n_parallel": n_parallel, "max_tokens": 262144}
+        }
+        pipe.persistent_llms = {"model-a": types.SimpleNamespace(n_parallel=n_parallel)}
+        pipe._inference_count = 1
+        pipe._model_inference_counts = {"model-a": 1}
+        pipe._inference_count_lock = threading.Lock()
+        return pipe
+
+    async def test_same_model_request_waits_when_native_slot_is_full(self):
+        pipe = self._resident_pipe(n_parallel=1)
+
+        pending = asyncio.create_task(pipe._acquire_inference_slot("model-a"))
+        await asyncio.sleep(0.02)
+        self.assertFalse(pending.done())
+
+        pipe._decrement_inference_count("model-a")
+        await asyncio.wait_for(pending, timeout=0.5)
+
+        self.assertEqual(pipe._inference_count, 1)
+        self.assertEqual(pipe._model_inference_counts, {"model-a": 1})
+
+    async def test_same_model_request_uses_an_available_parallel_slot(self):
+        pipe = self._resident_pipe(n_parallel=2)
+
+        await asyncio.wait_for(pipe._acquire_inference_slot("model-a"), timeout=0.5)
+
+        self.assertEqual(pipe._inference_count, 2)
+        self.assertEqual(pipe._model_inference_counts, {"model-a": 2})
+
+    def test_configured_context_limit_is_a_hard_ceiling(self):
+        pipe = self._resident_pipe(n_parallel=1)
+        pipe.current_llm_name = "model-a"
+        pipe._optimal_context = 200000
+
+        self.assertEqual(pipe._configured_context_limit_for_model(), 262144)
+
+    async def test_cross_model_request_waits_for_active_stream(self):
+        pipe = Pipes.__new__(Pipes)
+        pipe.llm_model_residency = "swap"
+        pipe._inference_count = 1
+        pipe._model_inference_counts = {"model-a": 1}
+        pipe._inference_count_lock = threading.Lock()
+
+        pending = asyncio.create_task(pipe._acquire_inference_slot("model-b"))
+        await asyncio.sleep(0.02)
+        self.assertFalse(pending.done())
+
+        pipe._decrement_inference_count("model-a")
+        await asyncio.wait_for(pending, timeout=0.5)
+
+        self.assertEqual(pipe._inference_count, 1)
+        self.assertEqual(pipe._model_inference_counts, {"model-b": 1})
+
+
+class RouterReservationTests(unittest.TestCase):
+    def test_atomic_reservation_blocks_cross_model_swap_race(self):
+        registry = WorkerRegistry(ttl_seconds=60, reservation_ttl_seconds=15)
+        registry.register(
+            WorkerInfo(
+                worker_id="worker",
+                label="worker",
+                url="http://worker.local",
+                capabilities=["text"],
+                models=["model-a", "model-b"],
+                cap_slots={"text": {"capacity": 1, "in_flight": 0, "queued": 0}},
+                model_slots={
+                    "model-a": {"capacity": 1, "in_flight": 0, "queued": 0},
+                    "model-b": {"capacity": 1, "in_flight": 0, "queued": 0},
+                },
+                extra={"llm_model_residency": "swap"},
+            )
+        )
+
+        first = registry.try_reserve_in_flight(
+            "worker", capability="text", model="model-a"
+        )
+        second = registry.try_reserve_in_flight(
+            "worker", capability="text", model="model-b"
+        )
+
+        self.assertIsNotNone(first)
+        self.assertIsNone(second)
+
 
 class ImageHandoffTests(unittest.IsolatedAsyncioTestCase):
+    @staticmethod
+    def _fast_pipe():
+        from ModelSettings import MINICPM5_2B_MODEL
+
+        pipe = Pipes.__new__(Pipes)
+        pipe.available_models = [MINICPM5_2B_MODEL]
+        pipe._img_lock = asyncio.Lock()
+        pipe.local_uri = "http://worker.local"
+        pipe.resource_manager = mock.Mock()
+        pipe.img = mock.Mock()
+        pipe.img.generate.return_value = "image.png"
+        pipe._get_img = mock.Mock(return_value=pipe.img)
+        pipe._wait_for_llm_idle_for_image = mock.AsyncMock()
+        pipe._unload_aux_models_for_image = mock.Mock()
+        pipe._restore_aux_models_after_image = mock.Mock()
+        pipe._restore_llms_after_service = mock.Mock()
+        pipe._destroy_img_sync = mock.Mock()
+        return pipe
+
+    def test_image_auto_keeps_models_when_there_is_headroom(self):
+        pipe = self._fast_pipe()
+        pipe.img = None
+        pipe._has_loaded_llm = mock.Mock(return_value=True)
+        pipe.resource_manager.vram_safety_margin = 1.5
+        with (
+            mock.patch("Pipes.getenv", side_effect=lambda key, default="": default),
+            mock.patch("Pipes.has_image_server_url", return_value=False),
+            mock.patch("Pipes.get_secondary_gpu", return_value=None),
+        ):
+            pipe.resource_manager.get_total_free_vram.return_value = 16.0
+            self.assertFalse(pipe._image_should_unload_llm_for_generation())
+            pipe.resource_manager.get_total_free_vram.return_value = 3.0
+            self.assertTrue(pipe._image_should_unload_llm_for_generation())
+            with mock.patch("Pipes.getenv", return_value="true"):
+                self.assertTrue(pipe._image_should_unload_llm_for_generation())
+
+    async def test_fast_image_requests_preserve_warm_pools_and_image(self):
+        pipe = self._fast_pipe()
+        image_model = pipe.img
+        loop_thread = threading.get_ident()
+        generation_threads = []
+
+        def generate(**kwargs):
+            generation_threads.append(threading.get_ident())
+            return "image.png"
+
+        image_model.generate.side_effect = generate
+        with (
+            mock.patch("Pipes.getenv", side_effect=lambda key, default="": default),
+            mock.patch("Pipes.has_image_server_url", return_value=False),
+            mock.patch("Pipes.get_secondary_gpu", return_value=None),
+            mock.patch("Pipes.is_image_enabled", return_value=True),
+            mock.patch(
+                "Pipes.get_resource_manager", return_value=pipe.resource_manager
+            ),
+        ):
+            for _ in range(3):
+                self.assertEqual(await pipe.generate_image("a landscape"), "image.png")
+                self.assertIs(pipe.img, image_model)
+        self.assertTrue(all(t != loop_thread for t in generation_threads))
+        pipe._unload_aux_models_for_image.assert_not_called()
+        pipe._wait_for_llm_idle_for_image.assert_not_called()
+        pipe._destroy_img_sync.assert_not_called()
+
+    async def test_cancelled_image_keeps_lock_until_native_generation_finishes(self):
+        pipe = self._fast_pipe()
+        pipe._image_should_unload_llm_for_generation = mock.Mock(return_value=False)
+        pipe._destroy_img = mock.Mock()
+        started = asyncio.Event()
+        finish = threading.Event()
+        loop = asyncio.get_running_loop()
+
+        def generate(**kwargs):
+            loop.call_soon_threadsafe(started.set)
+            if not finish.wait(timeout=2):
+                raise RuntimeError("test did not release generation")
+            return "image.png"
+
+        pipe.img.generate.side_effect = generate
+        task = asyncio.create_task(pipe.generate_image("a landscape"))
+        try:
+            await asyncio.wait_for(started.wait(), timeout=1)
+            task.cancel()
+            await asyncio.sleep(0)
+            task.cancel()
+            await asyncio.sleep(0)
+            self.assertFalse(task.done())
+            self.assertTrue(pipe._img_lock.locked())
+            pipe._destroy_img.assert_not_called()
+        finally:
+            finish.set()
+            with self.assertRaises(asyncio.CancelledError):
+                await asyncio.wait_for(task, timeout=1)
+        self.assertFalse(pipe._img_lock.locked())
+        pipe._destroy_img.assert_called_once_with(async_cleanup=False, force=False)
+
     async def test_image_generation_restores_llm_after_forced_handoff(self):
         pipe = Pipes.__new__(Pipes)
         pipe._img_lock = asyncio.Lock()
