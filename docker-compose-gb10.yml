@@ -1,6 +1,8 @@
 services:
   ezlocalai:
     container_name: ezlocalai
+    image: ${EZLOCALAI_GB10_IMAGE:-ezlocalai-ezlocalai}
+    platform: linux/arm64
     build:
       context: .
       dockerfile: gb10.Dockerfile

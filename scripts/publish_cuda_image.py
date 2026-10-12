@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build CUDA on the registry host and retain only the latest image manifest.
+"""Build CUDA or GB10 on the registry host and retain only latest per image.
 
 Uses Python's standard library and the host Docker CLI. Registry manifest
 removal must be enabled; the registry's offline maintenance job reclaims the
@@ -18,6 +18,10 @@ import urllib.request
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+IMAGE_VARIANTS = {
+    "cuda": ("cuda.Dockerfile", "linux/amd64"),
+    "gb10": ("gb10.Dockerfile", "linux/arm64"),
+}
 MANIFEST_ACCEPT = ", ".join(
     [
         "application/vnd.docker.distribution.manifest.v2+json",
@@ -91,7 +95,7 @@ class Registry:
             with response:
                 if response.status != 202:
                     raise RuntimeError("Registry did not accept manifest deletion")
-        print(f"Removed superseded CUDA manifest: {digest}", flush=True)
+        print(f"Removed superseded image manifest: {digest}", flush=True)
 
 
 def write_pending(path, digests):
@@ -100,7 +104,8 @@ def write_pending(path, digests):
     temporary.replace(path)
 
 
-def publish(image, registry, state_dir, runner=subprocess.run):
+def publish(image, registry, state_dir, runner=subprocess.run, variant="cuda"):
+    dockerfile, platform = IMAGE_VARIANTS[variant]
     state_dir.mkdir(parents=True, exist_ok=True)
     # Serialize manual invocations as well as Deploy requests. Keep failed cleanup
     # digests so a later successful publication can retry untagged old manifests.
@@ -118,13 +123,40 @@ def publish(image, registry, state_dir, runner=subprocess.run):
             pending.add(previous_latest)
         write_pending(pending_path, pending)
         runner(
-            ["docker", "build", "--file", "cuda.Dockerfile", "--tag", image, "."],
+            [
+                "docker",
+                "build",
+                "--platform",
+                platform,
+                "--file",
+                dockerfile,
+                "--tag",
+                image,
+                ".",
+            ],
             cwd=REPO_ROOT,
             check=True,
         )
+        built = runner(
+            [
+                "docker",
+                "image",
+                "inspect",
+                image,
+                "--format",
+                "{{.Os}}/{{.Architecture}}",
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        if built.stdout.strip() != platform:
+            raise RuntimeError(
+                f"Refusing to publish {variant}: expected {platform}, got {built.stdout.strip()}"
+            )
         # Save the push output and compare its manifest digest with registry latest
         # before deleting anything. Build/push errors leave the old image intact.
-        print(f"Pushing CUDA latest: {image}", flush=True)
+        print(f"Pushing {variant.upper()} latest: {image}", flush=True)
         try:
             pushed = runner(
                 ["docker", "push", image], check=True, capture_output=True, text=True
@@ -141,7 +173,7 @@ def publish(image, registry, state_dir, runner=subprocess.run):
         latest = registry.digest("latest")
         if not matches or latest != matches[-1]:
             raise RuntimeError(
-                "Registry latest does not match the pushed CUDA manifest"
+                "Registry latest does not match the pushed image manifest"
             )
         # The old latest may have been an alias of the same digest (no-op build).
         # Never delete it, because digest deletion also removes all its tags.
@@ -157,25 +189,28 @@ def publish(image, registry, state_dir, runner=subprocess.run):
             write_pending(pending_path, pending)
         if registry.digest("latest") != latest:
             raise RuntimeError("Registry latest changed after cleanup")
-        print(f"CUDA published and verified: {image} ({latest})", flush=True)
+        print(
+            f"{variant.upper()} published and verified: {image} ({latest})", flush=True
+        )
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument(
-        "--image",
-        default=os.getenv(
-            "EZLOCALAI_CUDA_IMAGE", "localhost:5000/devxt/ezlocalai-cuda:latest"
-        ),
-    )
+    parser.add_argument("--variant", choices=IMAGE_VARIANTS, default="cuda")
+    parser.add_argument("--image")
     parser.add_argument("--registry-scheme", choices=["http", "https"], default="http")
-    parser.add_argument(
-        "--state-dir",
-        type=Path,
-        default=Path.home() / ".local/state/ezlocalai-cuda-publish",
-    )
+    parser.add_argument("--state-dir", type=Path)
     args = parser.parse_args()
-    publish(args.image, Registry(args.image, args.registry_scheme), args.state_dir)
+    image = args.image or os.getenv(
+        f"EZLOCALAI_{args.variant.upper()}_IMAGE",
+        f"localhost:5000/devxt/ezlocalai-{args.variant}:latest",
+    )
+    state_dir = (
+        args.state_dir or Path.home() / f".local/state/ezlocalai-{args.variant}-publish"
+    )
+    publish(
+        image, Registry(image, args.registry_scheme), state_dir, variant=args.variant
+    )
 
 
 if __name__ == "__main__":
