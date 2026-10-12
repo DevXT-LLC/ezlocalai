@@ -38,6 +38,7 @@ from contextlib import aclosing
 from pathlib import Path
 from Globals import getenv
 from ezlocalai.context_retry import classify_inference_capacity_error
+from ezlocalai.WakeWordPaths import contained_path
 from ezlocalai.VIDEO_UTILS import DEFAULT_VIDEO_MODEL
 from ezlocalai.MUSIC import (
     ACE_STEP_DEFAULT_BPM,
@@ -2686,6 +2687,16 @@ class WakeWordPredictResponse(BaseModel):
     word: str
 
 
+def validated_wakeword(word: str) -> str:
+    from ezlocalai.WakeWordPaths import wakeword_name
+
+    try:
+        wakeword_name(word)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail="Invalid wake word name") from exc
+    return word
+
+
 def is_wakeword_enabled() -> bool:
     """Check if wake word functionality is enabled."""
     from Pipes import is_voice_server_mode
@@ -2720,7 +2731,7 @@ async def list_wakeword_models(user=Depends(verify_api_key)):
     dependencies=[Depends(verify_api_key)],
 )
 async def get_wakeword_model(
-    word: str,
+    word: str = Depends(validated_wakeword),
     format: str = "pytorch",
     user=Depends(verify_api_key),
 ):
@@ -2747,7 +2758,7 @@ async def get_wakeword_model(
     if model_dir:
         format_to_ext = {"pytorch": "pt", "onnx": "onnx", "espdl": "espdl"}
         ext = format_to_ext.get(format, "pt")
-        model_file = model_dir / f"model.{ext}"
+        model_file = contained_path(model_dir, f"model.{ext}")
 
         if not model_file.exists():
             raise HTTPException(
@@ -2785,7 +2796,9 @@ async def get_wakeword_model(
     tags=["Wake Word"],
     dependencies=[Depends(verify_api_key)],
 )
-async def get_wakeword_model_config(word: str, user=Depends(verify_api_key)):
+async def get_wakeword_model_config(
+    word: str = Depends(validated_wakeword), user=Depends(verify_api_key)
+):
     """Get the configuration for a trained wake word model."""
     if not is_wakeword_enabled():
         raise HTTPException(
@@ -2802,7 +2815,7 @@ async def get_wakeword_model_config(word: str, user=Depends(verify_api_key)):
     if not model_dir:
         raise HTTPException(status_code=404, detail=f"No model found for word '{word}'")
 
-    config_path = model_dir / "config.json"
+    config_path = contained_path(model_dir, "config.json")
     if not config_path.exists():
         raise HTTPException(status_code=404, detail="Model config not found")
 
@@ -2817,7 +2830,9 @@ async def get_wakeword_model_config(word: str, user=Depends(verify_api_key)):
     tags=["Wake Word"],
     dependencies=[Depends(verify_api_key)],
 )
-async def delete_wakeword_model(word: str, user=Depends(verify_api_key)):
+async def delete_wakeword_model(
+    word: str = Depends(validated_wakeword), user=Depends(verify_api_key)
+):
     """Delete a trained wake word model."""
     if not is_wakeword_enabled():
         raise HTTPException(
@@ -2861,7 +2876,7 @@ async def train_wakeword_model(
     from ezlocalai.WakeWord import get_wakeword_manager
 
     manager = get_wakeword_manager()
-    word = request.word.strip()
+    word = validated_wakeword(request.word.strip())
 
     # Check if model already exists
     model_dir = manager.get_model_for_word(word)
@@ -3040,8 +3055,8 @@ async def cancel_wakeword_job(job_id: str, user=Depends(verify_api_key)):
     response_model=WakeWordPredictResponse,
 )
 async def predict_wakeword(
-    word: str,
     request: WakeWordPredictRequest,
+    word: str = Depends(validated_wakeword),
     user=Depends(verify_api_key),
 ):
     """
@@ -3088,7 +3103,7 @@ async def predict_wakeword(
     response_model=WakeWordPredictResponse,
 )
 async def predict_wakeword_file(
-    word: str,
+    word: str = Depends(validated_wakeword),
     file: UploadFile = File(...),
     user=Depends(verify_api_key),
 ):

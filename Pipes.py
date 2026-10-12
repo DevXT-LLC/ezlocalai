@@ -671,8 +671,11 @@ class ResourceManager:
                         "total_gb": round(total_bytes / (1024**3), 3),
                     }
                 )
-            except Exception as e:
-                stats.append({"index": i, "error": str(e)})
+            except Exception:
+                logging.exception("Could not read CUDA memory statistics for GPU %s", i)
+                stats.append(
+                    {"index": i, "error": "CUDA memory statistics unavailable"}
+                )
         return stats
 
     def is_model_loaded(self, model_type: ModelType) -> bool:
