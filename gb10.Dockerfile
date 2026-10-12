@@ -1,6 +1,7 @@
 # GB10 (Grace Blackwell, ARM64) Dockerfile for ezLocalai
 # Base: NVIDIA CUDA 13.0 on Ubuntu 24.04 (ARM64 variant auto-selected by Docker)
-# Build ON the GB10 itself: docker compose -f docker-compose-gb10.yml build
+# Build natively on GB10 or with ARM64 emulation on the registry host.
+# Registry publication: python3 scripts/publish_cuda_image.py --variant gb10
 #
 # The GB10 has compute capability 12.1 (Blackwell), unified memory, CUDA 13.0 driver.
 # Compile native sm_121 kernels to avoid first-request PTX compilation.

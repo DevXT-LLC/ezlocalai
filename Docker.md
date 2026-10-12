@@ -170,3 +170,48 @@ to deleted digests are removed too. Tags sharing the current digest survive a
 no-op build because deleting that digest would also delete `latest`.
 The registry's existing offline maintenance job reclaims unreferenced layers.
 No containers are restarted by this helper.
+
+## Pull the shared GB10 image
+
+The same Deploy trigger now accepts `image_variant: gb10`. The GitHub workflow
+submits separate CUDA and GB10 requests and exits on acceptance for each; builds
+and retention run on the configured build host. Install the Deploy GB10 API
+update before enabling the workflow matrix, because it verifies the accepted
+variant in the response.
+
+GB10 is ARM64. Publication builds `gb10.Dockerfile` with
+`--platform linux/arm64` and checks the built image architecture before pushing
+`192.168.1.243:5000/devxt/ezlocalai-gb10:latest`. The registry host needs ARM64
+binfmt/QEMU support when it is x86-64. Native ARM64 build hosts are also
+supported through Deploy configuration. Emulated cold CUDA compilation can be
+much slower than native compilation; the GB10 server build timeout defaults to
+24 hours, while the GitHub runner still exits after its short request.
+
+On the GB10, set this in `.env`:
+
+```dotenv
+EZLOCALAI_GB10_IMAGE=192.168.1.243:5000/devxt/ezlocalai-gb10:latest
+```
+
+Then pull and start without compiling:
+
+```bash
+docker compose -f docker-compose-gb10.yml pull ezlocalai
+docker compose -f docker-compose-gb10.yml up -d --no-build ezlocalai
+```
+
+The GB10 Docker daemon must trust the LAN HTTP registry, and NVIDIA Container
+Toolkit must be configured. Leaving `EZLOCALAI_GB10_IMAGE` unset preserves the
+local image name for native development builds.
+
+Manual publication on the build host:
+
+```bash
+python3 scripts/publish_cuda_image.py --variant gb10
+```
+
+CUDA and GB10 use separate registry repositories, build checkouts, locks, and
+retention state directories (`~/.local/state/ezlocalai-<variant>-publish`). Each
+keeps only its own latest manifest and removes superseded versions after digest
+verification. Publishing one variant does not clean up the other. Workers are
+not restarted by publication.

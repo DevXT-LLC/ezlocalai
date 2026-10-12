@@ -10,20 +10,25 @@ permissions:
 
 # Serialize request submission; Deploy owns the build after acceptance.
 concurrency:
-  group: ezlocalai-cuda-latest
+  group: ezlocalai-gpu-latest
   cancel-in-progress: false
 
 jobs:
   publish-cuda:
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        variant: [cuda, gb10]
     timeout-minutes: 2
     steps:
-      - name: Request CUDA registry build
+      - name: Request ${{ matrix.variant }} registry build
         env:
           DEPLOY_URI: ${{ secrets.DEPLOY_URI }}
           DEPLOY_SECRET: ${{ secrets.DEPLOY_SECRET }}
           DEPLOY_DOMAIN: ${{ secrets.DEPLOY_DOMAIN }}
+          IMAGE_VARIANT: ${{ matrix.variant }}
         run: |
           : "${DEPLOY_URI:?DEPLOY_URI is unavailable; check organization secret repository access}"
           : "${DEPLOY_SECRET:?DEPLOY_SECRET is unavailable; check organization secret repository access}"
@@ -33,14 +38,15 @@ jobs:
             --arg repository "$GITHUB_REPOSITORY" \
             --arg commit_id "$GITHUB_SHA" \
             --arg actor "$GITHUB_ACTOR" \
-            '{domain: $domain, repository: $repository, branch: "main", commit_id: $commit_id, github_actor: $actor}')
+            --arg variant "$IMAGE_VARIANT" \
+            '{domain: $domain, image_variant: $variant, repository: $repository, branch: "main", commit_id: $commit_id, github_actor: $actor}')
           RESPONSE=$(curl --fail-with-body --silent --show-error \
             --connect-timeout 10 --max-time 45 \
             -X POST "$DEPLOY_URI" \
             -H "Content-Type: application/json" \
             -H "X-API-Key: $DEPLOY_SECRET" \
             -d "$JSON_BODY")
-          printf '%s\n' "$RESPONSE" | jq -e \
-            '.status == "accepted" and (.event_id | type == "string" and test("^[0-9]+-[a-f0-9]+$"))' >/dev/null
+          printf '%s\n' "$RESPONSE" | jq -e --arg variant "$IMAGE_VARIANT" \
+            '.status == "accepted" and .image_variant == $variant and (.event_id | type == "string" and test("^[0-9]+-[a-f0-9]+$"))' >/dev/null
           printf '%s\n' "$RESPONSE"
-          echo "CUDA build accepted. Deploy will publish and clean up in the background."
+          echo "$IMAGE_VARIANT build accepted. Deploy will publish and clean up in the background."

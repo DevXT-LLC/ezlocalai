@@ -3,6 +3,7 @@ import subprocess
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from scripts import publish_cuda_image as publisher
 
@@ -38,11 +39,16 @@ class PublicationTests(unittest.TestCase):
         self.calls = []
         self.fail = None
         self.pushed_digest = NEW
+        self.build_platform = "linux/amd64"
 
     def runner(self, command, **kwargs):
         self.calls.append(command)
         if command[1] == self.fail:
             raise subprocess.CalledProcessError(1, command)
+        if command[1] == "image":
+            return subprocess.CompletedProcess(
+                command, 0, self.build_platform + "\n", ""
+            )
         if command[1] == "push":
             self.registry.latest = self.pushed_digest
             return subprocess.CompletedProcess(
@@ -57,7 +63,7 @@ class PublicationTests(unittest.TestCase):
         self.publish()
         self.assertEqual(self.registry.deleted, [OLD])
         self.assertEqual(self.registry.latest, NEW)
-        self.assertEqual(self.calls[1], ["docker", "push", IMAGE])
+        self.assertEqual(self.calls[2], ["docker", "push", IMAGE])
         self.assertEqual(json.loads((self.state / "pending.json").read_text()), [])
 
     def test_build_and_push_failures_preserve_old_manifest(self):
@@ -98,6 +104,55 @@ class PublicationTests(unittest.TestCase):
         for image in ["ezlocalai:latest", "localhost:5000/devxt/ezlocalai-cuda:old"]:
             with self.assertRaises(ValueError):
                 publisher.Registry(image)
+
+    def test_gb10_builds_and_verifies_arm64_before_push(self):
+        self.build_platform = "linux/arm64"
+        image = "localhost:5000/devxt/ezlocalai-gb10:latest"
+        publisher.publish(image, self.registry, self.state, self.runner, variant="gb10")
+        self.assertEqual(
+            self.calls[0],
+            [
+                "docker",
+                "build",
+                "--platform",
+                "linux/arm64",
+                "--file",
+                "gb10.Dockerfile",
+                "--tag",
+                image,
+                ".",
+            ],
+        )
+        self.assertEqual(self.calls[2], ["docker", "push", image])
+        self.assertEqual(self.registry.deleted, [OLD])
+
+    def test_wrong_architecture_does_not_push_or_delete_previous_image(self):
+        with self.assertRaisesRegex(RuntimeError, "expected linux/arm64"):
+            publisher.publish(
+                IMAGE, self.registry, self.state, self.runner, variant="gb10"
+            )
+        self.assertEqual(self.registry.deleted, [])
+        self.assertFalse(any(command[1] == "push" for command in self.calls))
+
+    def test_cli_separates_cuda_and_gb10_retention_state(self):
+        states = []
+        images = []
+        for variant in ["cuda", "gb10"]:
+            with patch(
+                "sys.argv", ["publish_cuda_image.py", "--variant", variant]
+            ), patch.object(publisher, "publish") as publish, patch.dict(
+                publisher.os.environ,
+                {
+                    "EZLOCALAI_CUDA_IMAGE": IMAGE,
+                    "EZLOCALAI_GB10_IMAGE": "localhost:5000/devxt/ezlocalai-gb10:latest",
+                },
+            ):
+                publisher.main()
+            images.append(publish.call_args.args[0])
+            states.append(publish.call_args.args[2])
+        self.assertNotEqual(images[0], images[1])
+        self.assertNotEqual(states[0], states[1])
+        self.assertEqual(states[0], Path.home() / ".local/state/ezlocalai-cuda-publish")
 
 
 if __name__ == "__main__":
