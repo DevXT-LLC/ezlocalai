@@ -1,0 +1,28 @@
+name: Publish CUDA through Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Queue main pushes without cancelling a workflow that is monitoring a server build.
+concurrency:
+  group: ezlocalai-cuda-latest
+  cancel-in-progress: false
+
+jobs:
+  publish-cuda:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 310
+    steps:
+      - uses: actions/checkout@v4
+      - name: Request CUDA build and wait for registry publication
+        env:
+          DEPLOY_URI: ${{ secrets.DEPLOY_URI }}
+          DEPLOY_SECRET: ${{ secrets.DEPLOY_SECRET }}
+          DEPLOY_DOMAIN: ${{ secrets.DEPLOY_DOMAIN }}
+        run: python3 scripts/request_cuda_build.py

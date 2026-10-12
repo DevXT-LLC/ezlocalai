@@ -1,6 +1,7 @@
 services:
   ezlocalai:
     container_name: ezlocalai
+    image: ${EZLOCALAI_CUDA_IMAGE:-ezlocalai-ezlocalai}
     build:
       context: .
       dockerfile: cuda.Dockerfile
