@@ -118,3 +118,50 @@ docker-compose -f docker-compose-rocm.yml up
 ```
 
 **Note for Ryzen APUs:** If you're using a Ryzen APU with integrated graphics, you may need to adjust the `HSA_OVERRIDE_GFX_VERSION` environment variable in your `.env` file to match a supported architecture. For RDNA 3.5 APUs like the Radeon 880M, use `HSA_OVERRIDE_GFX_VERSION=11.0.0`.
+
+## Pull the shared CUDA image
+
+CUDA builds for `main` run on the DevXT registry host through the Deploy API.
+The `Publish CUDA through Deploy` workflow sends `DEPLOY_DOMAIN=api.ezlocal.ai`
+and waits for the build event to report verified publication and cleanup. It
+runs independently of the CPU/RPi GitHub builds and does not deploy to workers.
+
+The workflow requires Actions secrets `DEPLOY_URI` (the full `/deploy` URL),
+`DEPLOY_SECRET`, and `DEPLOY_DOMAIN`. Install the Deploy API CUDA build update
+before merging/enabling this workflow. Manual dispatch is supported on `main`.
+The builder publishes current `origin/main`, including any newer queued commits.
+
+To use the prebuilt CUDA image on another NVIDIA machine, keep a checkout for
+its Compose configuration and `.env`, and set this in `.env`:
+
+```dotenv
+EZLOCALAI_CUDA_IMAGE=192.168.1.243:5000/devxt/ezlocalai-cuda:latest
+```
+
+Then pull and start without building:
+
+```bash
+docker compose -f docker-compose-cuda.yml pull ezlocalai
+docker compose -f docker-compose-cuda.yml up -d --no-build ezlocalai
+```
+
+The Docker daemon must trust `192.168.1.243:5000` as an insecure registry for
+this LAN HTTP registry, and NVIDIA Container Toolkit must be installed.
+Leaving `EZLOCALAI_CUDA_IMAGE` unset preserves the local development image name
+and `docker compose -f docker-compose-cuda.yml up -d --build` behavior.
+
+On the registry host, manual publication is also available:
+
+```bash
+python3 scripts/publish_cuda_image.py
+```
+
+This builds `cuda.Dockerfile` with the existing Docker cache, pushes
+`localhost:5000/devxt/ezlocalai-cuda:latest`, verifies the published digest, and
+removes superseded manifests only after success. Registry deletion must be
+enabled. Failed build/push attempts preserve the previous manifest; failed
+cleanup is retried on the next successful publication. Old SHA tags pointing
+to deleted digests are removed too. Tags sharing the current digest survive a
+no-op build because deleting that digest would also delete `latest`.
+The registry's existing offline maintenance job reclaims unreferenced layers.
+No containers are restarted by this helper.
