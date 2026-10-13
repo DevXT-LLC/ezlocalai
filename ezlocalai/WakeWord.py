@@ -28,6 +28,8 @@ from concurrent.futures import ThreadPoolExecutor
 import threading
 import tempfile
 
+from ezlocalai.WakeWordPaths import contained_path, wakeword_directory
+
 import numpy as np
 import soundfile as sf
 import torch
@@ -1120,16 +1122,16 @@ class WakeWordTrainer:
         """Load a trained model."""
         model_dir = Path(model_dir)
 
-        config_path = model_dir / "config.json"
+        config_path = contained_path(model_dir, "config.json")
         with open(config_path, "r") as f:
             config_dict = json.load(f)
 
         config = ModelConfig.from_dict(config_dict)
         trainer = cls(config, device=device)
 
-        torch_path = model_dir / "model.pt"
+        torch_path = contained_path(model_dir, "model.pt")
         checkpoint = torch.load(
-            torch_path, map_location=trainer.device, weights_only=False
+            torch_path, map_location=trainer.device, weights_only=True
         )
         trainer.model.load_state_dict(checkpoint["model_state_dict"])
 
@@ -1225,10 +1227,12 @@ class WakeWordManager:
 
     def get_model_for_word(self, word: str) -> Optional[Path]:
         """Get the model directory for a word if it exists."""
-        word_lower = word.lower().replace(" ", "_")
-        model_dir = self.models_dir / word_lower
+        model_dir = wakeword_directory(self.models_dir, word)
 
-        if model_dir.exists() and (model_dir / "model.pt").exists():
+        if model_dir.exists() and contained_path(model_dir, "model.pt").exists():
+            # Reject artifact symlinks that escape before any read or deletion.
+            for filename in ("config.json", "model.onnx", "model.espdl"):
+                contained_path(model_dir, filename)
             return model_dir
         return None
 
@@ -1248,9 +1252,13 @@ class WakeWordManager:
         """List all available trained wake word models."""
         models = []
 
-        for model_dir in self.models_dir.iterdir():
-            if model_dir.is_dir() and (model_dir / "model.pt").exists():
-                config_path = model_dir / "config.json"
+        for entry in self.models_dir.iterdir():
+            try:
+                model_dir = self.get_model_for_word(entry.name)
+            except ValueError:
+                continue  # Do not expose directories linked outside model storage.
+            if model_dir and model_dir.is_dir():
+                config_path = contained_path(model_dir, "config.json")
                 config = {}
                 if config_path.exists():
                     with open(config_path, "r") as f:
@@ -1258,7 +1266,7 @@ class WakeWordManager:
 
                 files = {}
                 for ext in ["pt", "onnx", "espdl"]:
-                    file_path = model_dir / f"model.{ext}"
+                    file_path = contained_path(model_dir, f"model.{ext}")
                     if file_path.exists():
                         files[ext] = {
                             "path": str(file_path),
@@ -1287,6 +1295,8 @@ class WakeWordManager:
         batch_size: int = 32,
     ) -> TrainingJob:
         """Create a new training job for a word."""
+        wakeword_directory(self.models_dir, word)
+        wakeword_directory(self.samples_dir, word)
         word_lower = word.lower()
 
         with self.lock:
@@ -1383,7 +1393,8 @@ class WakeWordManager:
         """Run the full training pipeline."""
         try:
             word = job.word
-            word_dir = word.lower().replace(" ", "_")
+            model_dir = wakeword_directory(self.models_dir, word)
+            samples_dir = wakeword_directory(self.samples_dir, word)
 
             # Stage 1: Generate TTS samples
             self._update_job(
@@ -1394,7 +1405,7 @@ class WakeWordManager:
             )
 
             generator = SampleGenerator(
-                output_dir=self.samples_dir / word_dir,
+                output_dir=samples_dir,
                 enable_gtts=True,
                 enable_edge=True,
             )
@@ -1489,7 +1500,6 @@ class WakeWordManager:
                 current_stage="Exporting model",
             )
 
-            model_dir = self.models_dir / word_dir
             saved_files = trainer.save(model_dir)
 
             # Complete

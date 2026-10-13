@@ -25,8 +25,9 @@ RUN git clone --depth 1 --recurse-submodules https://github.com/leejet/stable-di
     cmake -B build -DGGML_BLAS=ON -DCMAKE_BUILD_TYPE=Release && \
     cmake --build build --config Release --parallel "$(nproc)" --target sd-cli
 
-# Install PyTorch CPU version
-RUN pip install torch==2.6.0 torchaudio==2.6.0 --index-url https://download.pytorch.org/whl/cpu --no-cache-dir
+# Transformers 5.10 imports float8_e8m0fnu; match the tested CUDA/GB10 PyTorch
+# version so Python model loaders also work in the CPU image.
+RUN pip install torch==2.9.1 torchaudio==2.9.1 --index-url https://download.pytorch.org/whl/cpu --no-cache-dir
 
 # Install numpy and Cython for packages that build native extensions
 RUN pip install numpy==1.25.2 Cython "setuptools>=78.1.1" --no-cache-dir

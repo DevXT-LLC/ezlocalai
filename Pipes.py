@@ -10,6 +10,10 @@ import subprocess
 import sys
 import uuid
 from dotenv import load_dotenv
+from ezlocalai.checkpoint_security import harden_accelerate_checkpoint_loading
+
+harden_accelerate_checkpoint_loading()
+
 from ezlocalai.context_retry import (
     context_reload_can_help,
     parse_context_error_limits,
@@ -671,8 +675,11 @@ class ResourceManager:
                         "total_gb": round(total_bytes / (1024**3), 3),
                     }
                 )
-            except Exception as e:
-                stats.append({"index": i, "error": str(e)})
+            except Exception:
+                logging.exception("Could not read CUDA memory statistics for GPU %s", i)
+                stats.append(
+                    {"index": i, "error": "CUDA memory statistics unavailable"}
+                )
         return stats
 
     def is_model_loaded(self, model_type: ModelType) -> bool:
