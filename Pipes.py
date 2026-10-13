@@ -10,6 +10,10 @@ import subprocess
 import sys
 import uuid
 from dotenv import load_dotenv
+from ezlocalai.checkpoint_security import harden_accelerate_checkpoint_loading
+
+harden_accelerate_checkpoint_loading()
+
 from ezlocalai.context_retry import (
     context_reload_can_help,
     parse_context_error_limits,

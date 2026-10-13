@@ -3,7 +3,10 @@ import uuid
 import torch
 import gc
 import os
+from ezlocalai.checkpoint_security import harden_accelerate_checkpoint_loading
 from ezlocalai.VIDEO_UTILS import choose_video_gpu_residency, VideoGenerationOutOfMemory
+
+harden_accelerate_checkpoint_loading()
 
 # Enable expandable segments to reduce CUDA memory fragmentation.
 # This is critical for sequential CPU offload where layers are repeatedly
