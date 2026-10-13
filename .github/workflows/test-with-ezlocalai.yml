@@ -39,13 +39,13 @@ jobs:
       - name: Checkout router tests
         uses: actions/checkout@v4
 
-      - name: Test wake-word security and resource diagnostics
+      - name: Test security and model dependency compatibility
         env:
           TEST_IMAGE: ${{ inputs.image }}
         run: |
           docker run --rm --entrypoint python \
             -v "$GITHUB_WORKSPACE:/tests:ro" -w /tests \
-            "$TEST_IMAGE" -m unittest test_wakeword_security test_resource_status_security
+            "$TEST_IMAGE" -m unittest test_wakeword_security test_resource_status_security test_model_dependency_compatibility
 
       - name: Test router routing and maintenance
         env:

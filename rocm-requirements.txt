@@ -13,12 +13,12 @@ av>=11,<19
 gguf
 pydub==0.25.1
 ffmpeg-python==0.2.0
-transformers==4.57.3
+transformers==5.10.4
 sounddevice==0.4.6
 webrtcvad==2.0.10
 pyaudio==0.2.14
 pyngrok==7.1.6
-accelerate==1.12.0
+accelerate==1.15.0
 diffusers==0.39.0
 python-multipart
 openai
@@ -26,7 +26,7 @@ pdfplumber
 sentence-transformers
 sentencepiece
 safetensors
-huggingface_hub==0.36.2
+huggingface_hub==1.5.0
 # Qwen TTS uses the native llama.cpp/libmtmd worker, not qwen-tts.
 einops
 librosa
