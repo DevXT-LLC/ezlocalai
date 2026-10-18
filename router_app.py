@@ -4399,6 +4399,7 @@ async def _llm_stream_with_worker_failover(
             )
 
     for attempt in range(max_attempts):
+        selection_started = time.monotonic()
         try:
             worker, reservation_id = await _pick_and_reserve_llm(
                 capability,
@@ -4421,6 +4422,8 @@ async def _llm_stream_with_worker_failover(
             )
             break
         tried.add(worker.worker_id)
+        selection_ms = (time.monotonic() - selection_started) * 1000.0
+        selection_reported = False
         assistant_seen = False
         pt = 0
         ct = 0
@@ -4438,6 +4441,17 @@ async def _llm_stream_with_worker_failover(
         )
         try:
             async for chunk in stream:
+                # Start the upstream generator before yielding: it owns reservation
+                # cleanup if the client disconnects after this comment.
+                if not selection_reported:
+                    selection_reported = True
+                    yield (
+                        ": ezlocalai_timing "
+                        + json.dumps(
+                            {"phase": "worker_queue", "duration_ms": selection_ms}
+                        )
+                        + "\n\n"
+                    ).encode()
                 buf += chunk
                 while b"\n\n" in buf:
                     event, buf = buf.split(b"\n\n", 1)
@@ -5232,10 +5246,22 @@ async def _llm_proxy_with_retry(
         if is_stream:
 
             async def queued_stream():
+                queue_started = time.monotonic()
                 try:
                     async with lane_context() as lane:
+                        yield (
+                            ": ezlocalai_timing "
+                            + json.dumps(
+                                {
+                                    "phase": "user_queue",
+                                    "duration_ms": (time.monotonic() - queue_started)
+                                    * 1000.0,
+                                }
+                            )
+                            + "\n\n"
+                        ).encode()
                         stream = _llm_stream_with_worker_failover(
-                            **options, user_lane=lane, request_started=time.monotonic()
+                            **options, user_lane=lane, request_started=queue_started
                         )
                         try:
                             async for chunk in stream:

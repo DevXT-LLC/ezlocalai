@@ -2,6 +2,7 @@ import os
 import pathlib
 import sys
 import asyncio
+import json
 import unittest
 from unittest.mock import AsyncMock, patch
 
@@ -19,6 +20,46 @@ def _sse(payload: str) -> bytes:
 
 
 class RouterStreamingTests(unittest.IsolatedAsyncioTestCase):
+    async def test_worker_wait_timing_is_comment_and_disconnect_closes_upstream(self):
+        started, closed = asyncio.Event(), asyncio.Event()
+        worker = WorkerInfo(
+            worker_id="timing",
+            label="timing",
+            url="http://unused",
+            capabilities=["text"],
+            models=["model"],
+        )
+
+        async def upstream(*args, **kwargs):
+            started.set()
+            try:
+                yield _sse('{"choices":[{"delta":{"content":"hello"}}]}')
+                await asyncio.Event().wait()
+            finally:
+                closed.set()
+
+        with patch.object(
+            router_app,
+            "_pick_and_reserve_llm",
+            AsyncMock(return_value=(worker, "reservation")),
+        ), patch.object(router_app, "_iter_worker_stream_bytes", upstream):
+            stream = router_app._llm_stream_with_worker_failover(
+                capability="text",
+                path="/v1/chat/completions",
+                payload={},
+                model="model",
+                request_started=router_app.time.monotonic(),
+                worker_id="timing",
+            )
+            comment = await anext(stream)
+            self.assertTrue(started.is_set())
+            self.assertTrue(comment.startswith(b": ezlocalai_timing "))
+            timing = json.loads(comment.decode().removeprefix(": ezlocalai_timing "))
+            self.assertEqual(timing["phase"], "worker_queue")
+            self.assertGreaterEqual(timing["duration_ms"], 0)
+            await stream.aclose()
+            self.assertTrue(closed.is_set())
+
     async def test_keepalive_during_queue_wait_does_not_restart_upstream(self):
         release, closed = asyncio.Event(), asyncio.Event()
         calls = []

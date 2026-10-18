@@ -1,4 +1,5 @@
 import asyncio
+import json
 import time
 import unittest
 from unittest.mock import patch
@@ -273,11 +274,27 @@ class RoutingTests(unittest.IsolatedAsyncioTestCase):
             lambda s: original_keepalive(s, interval=0.01),
         ):
             first, second = await request("one"), await request("two")
+            first_timing = json.loads(
+                (await anext(first.body_iterator))
+                .decode()
+                .removeprefix(": ezlocalai_timing ")
+            )
+            self.assertEqual(first_timing["phase"], "user_queue")
+            self.assertGreaterEqual(first_timing["duration_ms"], 0)
             self.assertTrue((await anext(first.body_iterator)).startswith(b"data:"))
             self.assertEqual(await anext(second.body_iterator), b": keepalive\n\n")
             self.assertEqual(entered, ["one"])
             await first.body_iterator.aclose()
             self.assertEqual(closed, ["one"])
+            second_timing = json.loads(
+                (await anext(second.body_iterator))
+                .decode()
+                .removeprefix(": ezlocalai_timing ")
+            )
+            self.assertEqual(second_timing["phase"], "user_queue")
+            self.assertGreater(
+                second_timing["duration_ms"], first_timing["duration_ms"]
+            )
             self.assertTrue((await anext(second.body_iterator)).startswith(b"data:"))
             await second.body_iterator.aclose()
         self.assertEqual(closed, ["one", "two"])
