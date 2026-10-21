@@ -88,24 +88,72 @@ def main() -> None:
     print(f"Pushing {args.image}", flush=True)
     run(["docker", "push", args.image])
 
-    # Get the image digest for deploy API verification.
+    # Get the registry manifest digest for deploy API verification.
     # The Deploy API (main.py) parses stdout with:
     #   re.findall(r"published and verified: .+ \(?(sha256:[a-f0-9]{64})\)?", ...)
     # so we must print in that exact format.
+    #
+    # IMPORTANT: We must use the registry's manifest digest (Docker-Content-Digest),
+    # NOT the Docker image ID. The image ID (docker inspect --format {{.Id}}) is the
+    # content hash of config+layers, which is different from the SHA256 of the
+    # manifest JSON document that the registry actually stores and serves. Workers
+    # pull by @sha256:<manifest_digest>, so using the image ID causes 500 errors.
+    import re as _re
+
+    # Parse the image reference to extract registry host, repo, and tag.
+    # e.g., "localhost:5000/devxt/ezlocalai-cuda:latest"
+    img = args.image
+    if ":" in img.rsplit("/", 1)[0]:
+        # Has explicit registry host with port (e.g., localhost:5000)
+        registry, _, repo_tag = img.partition("/")
+    else:
+        # No explicit registry (docker.io implicit) - unlikely for our use case
+        registry = "registry-1.docker.io"
+        repo_tag = img
+
+    if ":" in repo_tag.rsplit("/", 1)[-1]:
+        repo, tag = repo_tag.rsplit(":", 1)
+    else:
+        repo = repo_tag
+        tag = "latest"
+
+    # Query the registry for the actual manifest digest.
+    # Use HEAD request to avoid downloading the full manifest body.
+    # For localhost or IP addresses, use http (LAN registry); otherwise https.
+    if registry.startswith("localhost") or _re.match(r"^\d+\.\d+\.\d+\.\d+", registry):
+        registry_url = f"http://{registry}"
+    else:
+        registry_url = f"https://{registry}"
+
+    head_url = f"{registry_url}/v2/{repo}/manifests/{tag}"
     result = subprocess.run(
-        ["docker", "inspect", "--format", "{{.Id}}", args.image],
+        ["curl", "-sI", "-H", "Accept: application/vnd.docker.distribution.manifest.v2+json", head_url],
         capture_output=True,
         text=True,
         check=False,
     )
-    if result.returncode != 0 or not result.stdout.strip():
+    if result.returncode != 0:
         print(
-            f"ERROR: could not verify image after push: {args.image}",
+            f"ERROR: could not query registry for manifest digest: {head_url}",
             file=sys.stderr,
         )
         sys.exit(1)
 
-    digest = result.stdout.strip()
+    # Extract Docker-Content-Digest from response headers.
+    digest = None
+    for line in result.stdout.splitlines():
+        if line.lower().startswith("docker-content-digest:"):
+            digest = line.split(":", 1)[1].strip()
+            break
+
+    if not digest or not _re.fullmatch(r"sha256:[a-f0-9]{64}", digest):
+        print(
+            f"ERROR: could not extract manifest digest from registry response for {args.image}\n"
+            f"Headers: {result.stdout}",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
     print(f"published and verified: {args.image} ({digest})", flush=True)
 
 
