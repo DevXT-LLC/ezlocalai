@@ -102,10 +102,11 @@ Build rules:
     directories with the `EZLOCALAI_*_DIR` overrides.
   - Both workers use container name `ezlocalai`, so `docker compose down` the
     Python one first.
-- The LAN registry is `192.168.1.243:5000`. Native images go to
-  `devxt/ezlocalai-native-<platform>:latest`. **Never push to
-  `devxt/ezlocalai-cuda` or `devxt/ezlocalai-gb10`**: the Python fleet pulls
-  those.
+- The LAN registry is `192.168.1.243:5000`. Images go to
+  `devxt/ezlocalai-<platform>:latest` (e.g. `devxt/ezlocalai-cuda:latest`,
+  `devxt/ezlocalai-gb10:latest`). Build on devxt5090, push to the LAN
+  registry, and workers pull from there. The C++ image replaces the Python
+  worker — do not maintain both.
 - Verify a deployment against the router, not just `/health`. Check the
   router's `/v1/router/workers` record (version, models, `cap_slots`,
   `model_context`, `extra`, gpus), then send a routed chat pinned with
