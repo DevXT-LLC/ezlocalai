@@ -231,7 +231,6 @@ services:
       nofile:
         soft: 65535
         hard: 65535
-    gpus: all
     ports:
       - "${EZLOCALAI_HOST_PORT:-8091}:${PORT:-8091}"
     volumes:
