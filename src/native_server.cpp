@@ -9442,7 +9442,12 @@ int parse_llama_gpu_layers_env() {
 
 int llama_auto_gpu_layers() {
     const auto gpu = read_gpu_info();
-    return gpu.gpu_count > 0 && gpu.free_vram_gb > 1.0 ? -1 : 0;
+    if (gpu.gpu_count <= 0) return 0;
+    // If VRAM is unknown (unified memory, nvidia-smi returns N/A), trust the
+    // CUDA device and offload all layers. Only fall back to CPU when we can
+    // positively determine VRAM is too small (< 1 GB).
+    if (gpu.free_vram_gb <= 0.0) return -1;
+    return gpu.free_vram_gb > 1.0 ? -1 : 0;
 }
 
 bool read_exact(std::ifstream &in, char *data, std::streamsize size) {
