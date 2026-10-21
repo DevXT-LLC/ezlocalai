@@ -1,0 +1,129 @@
+{
+  "source_sha256": "8238cef03d4a1db6e775d7f62234bcf998d8f08bd9fc15f1d8a36ea0d3280005",
+  "source_capture": "Executed full Pipes slot snapshot and image/video/music handoff and exclusive-worker policies with ImageServerClient and controlled resident models, resource counts, free memory and video lock; no secondary GPU",
+  "static_snapshots": 155,
+  "captured_transition_snapshots": 20,
+  "distinct_transition_snapshots_exercised": 16,
+  "concurrent_video_sessions": 6,
+  "transition_cases": [
+    "LLM busy while video waits",
+    "LLM unload",
+    "video subprocess active",
+    "LLM restoration",
+    "idle after success",
+    "idle after generation failure",
+    "idle after restoration failure"
+  ],
+  "keep_models_loaded_modes": [
+    false,
+    true
+  ],
+  "video_handoff_modes": [
+    false,
+    true
+  ],
+  "native_tests": {
+    "passed": 8,
+    "seconds": 84.83,
+    "names": [
+      "native_http",
+      "worker_tunnel",
+      "worker_metadata_reference",
+      "worker_router_integration",
+      "qwen_image_reference",
+      "media_slots_reference",
+      "video_runtime_reference",
+      "speech_slots_reference"
+    ]
+  },
+  "workerrouter_wire_tests": {
+    "passed": 89,
+    "seconds": 36.157,
+    "adapter": "build/validation/media-slots/workerrouter-wire.py"
+  },
+  "limitations": [
+    "Media engines in slot concurrency checks use the existing native Wan subprocess fixture and real FFmpeg; this is not a new real-model CUDA video quality test.",
+    "Forwarding sentinel values are checked in slot snapshots; broader client/capability forwarding configuration remains under parity audit.",
+    "Complete image/video engine residency and resource registry lifecycle are not established by these slot checks."
+  ],
+  "fixture_isolation": {
+    "inherited_cache": "HF_HUB_CACHE=/app/models",
+    "test_overrides_to_temporary_cache": true,
+    "host_recheck_seconds": 3.68,
+    "first_cuda_build": "17 checks passed; media fixture could not find synthetic model assets in inherited container cache; fixed test isolation, no runtime change"
+  },
+  "cuda_image_checks": {
+    "passed": 18,
+    "seconds": 15.93,
+    "python_interpreter_present": false
+  },
+  "deployment": {
+    "previous_image": "sha256:87effdc32efb58287b1014c167ebe3765da1ed8b91c1d22cd17fbf51b0a30949",
+    "candidate_image": "sha256:a2c3146e55e70e3c8ed48f3674da98a6969a954986c4141c96fd05ce4c5d901a",
+    "health": "healthy",
+    "deployed_image": "sha256:a2c3146e55e70e3c8ed48f3674da98a6969a954986c4141c96fd05ce4c5d901a",
+    "effective_environment_changed_keys": [],
+    "original_env_file_unchanged": true,
+    "mounts_unchanged": true,
+    "wakeword_mounts": [
+      [
+        "bind",
+        "/home/josh/repos/xtsys/ezlocalai/wakeword_models",
+        "/app/wakeword_models",
+        true
+      ],
+      [
+        "bind",
+        "/home/josh/repos/xtsys/ezlocalai/wakeword_samples",
+        "/app/wakeword_samples",
+        true
+      ],
+      [
+        "bind",
+        "/home/josh/repos/xtsys/ezlocalai/wakeword_jobs",
+        "/app/wakeword_jobs",
+        true
+      ]
+    ],
+    "ports_unchanged": true,
+    "gpu_requests_unchanged": true
+  },
+  "live": {
+    "image": "sha256:a2c3146e55e70e3c8ed48f3674da98a6969a954986c4141c96fd05ce4c5d901a",
+    "binary_sha256": "0fea096a9dadca0065e80651e45c2ff2e20d7c67dfbc488d5ad63e76a19ec652",
+    "matching_workers": 1,
+    "python_extra_matches": true,
+    "extra": {
+      "llm_model_residency": "resident",
+      "loaded_llms": [
+        "unsloth/Qwen3.8-27B-GGUF"
+      ],
+      "active_llm": "unsloth/Qwen3.8-27B-GGUF",
+      "llm_unload_dependent_capabilities": [
+        "image",
+        "video",
+        "music",
+        "music_video"
+      ]
+    },
+    "resource_lifecycle": {
+      "llm_model_residency": "resident",
+      "loaded_llms": [
+        "unsloth/Qwen3.8-27B-GGUF"
+      ],
+      "active_llm": "unsloth/Qwen3.8-27B-GGUF"
+    },
+    "gpu_count": 1,
+    "free_vram_gb": 1.50006103515625,
+    "sources": {
+      "Pipes.py": "8238cef03d4a1db6e775d7f62234bcf998d8f08bd9fc15f1d8a36ea0d3280005",
+      "Router.py": "d5eebf7fc48f7781628aa4eaab8af1c3f23fd8694242f0b3065436b5c86f62b1"
+    },
+    "routed_http_status": {
+      "chat": 200,
+      "stream": 200,
+      "vision": 200
+    }
+  },
+  "rollback": "ezlocalai:cuda-before-media-slots"
+}

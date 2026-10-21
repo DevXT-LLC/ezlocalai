@@ -1,0 +1,230 @@
+{
+  "scope": "Worker heartbeat startup backoff, steady recovery cadence, captured interval, total HTTP deadline and source success-status acceptance.",
+  "source_sha256": {
+    "src/worker_heartbeat.cpp": "56556fc6c4b879212ed1080886b9ab09349b0e6ef5d80815a1be5ed88f47a4ff",
+    "include/ezlocalai/worker_heartbeat.hpp": "f4f50e5051edf5a34f25300f24a5259c4dfff25ea90280e7ea5cb7c9c3af3fa7",
+    "src/native_server.cpp": "a563e1b7e8710961d39cae965b88a3900f785125db463d188e6ec2d2d9d4b5cc",
+    "include/ezlocalai/native_server.hpp": "2d8a2f64994e89d3d9ba309101de2ef7cfe18e49c47992969db7019f7cfc51b2",
+    "tests/test_worker_heartbeat.cpp": "003edcfe3125bdf6bc8d9f27cb61e4cc650afff9383fccf946af0985209da3ee",
+    "tests/test_worker_heartbeat_http.cpp": "ace27f7905d62a22d1c93b054c05ab9ca3b6809701ffc2ecedaf95c5a415a81a",
+    "tests/fixtures/worker_heartbeat_cases.json": "b2213bf51fd45a08721d93f571a4c0bb1dd4b2356fdaef581c3ab4ee0ba86907",
+    "tests/fixtures/worker_heartbeat_http_cases.json": "6e03e35e3128ff5ee3702d4e74266ccc330d330c759fd7594d0e40331d60a625",
+    "CMakeLists.txt": "bf66855cfbe59b35b0f819acf40ec2d31b54f59783ad1659145fb5a97f6d86bd",
+    "cuda.Dockerfile": "e64256e3aa2e67b5f90837250f1ea14d047d520a32be318c4b58beb03bdf9a1c"
+  },
+  "reference": {
+    "source": "Router.py:WorkerHeartbeatClient._run/heartbeat_once/register/deregister",
+    "source_sha256": "d5eebf7fc48f7781628aa4eaab8af1c3f23fd8694242f0b3065436b5c86f62b1",
+    "aiohttp_version": "3.14.5",
+    "python_image": "sha256:c2180ffee0b1579dc63b33236777c1bdc70c899c51f979c91969e04d601ff5cb"
+  },
+  "source_policy_traces": 61,
+  "source_http_cases": [
+    {
+      "name": "ok",
+      "ok": true,
+      "user_agent": "Python/3.12 aiohttp/3.14.5"
+    },
+    {
+      "name": "created",
+      "ok": true,
+      "user_agent": "Python/3.12 aiohttp/3.14.5"
+    },
+    {
+      "name": "empty",
+      "ok": true,
+      "user_agent": "Python/3.12 aiohttp/3.14.5"
+    },
+    {
+      "name": "not-json",
+      "ok": true,
+      "user_agent": "Python/3.12 aiohttp/3.14.5"
+    },
+    {
+      "name": "failure",
+      "ok": false,
+      "user_agent": "Python/3.12 aiohttp/3.14.5"
+    },
+    {
+      "name": "bad-json",
+      "ok": true,
+      "user_agent": "Python/3.12 aiohttp/3.14.5"
+    },
+    {
+      "name": "gzip",
+      "ok": true,
+      "user_agent": "Python/3.12 aiohttp/3.14.5"
+    },
+    {
+      "name": "bad-gzip",
+      "ok": true,
+      "user_agent": "Python/3.12 aiohttp/3.14.5"
+    },
+    {
+      "name": "truncated",
+      "ok": true,
+      "user_agent": "Python/3.12 aiohttp/3.14.5"
+    },
+    {
+      "name": "error-truncated",
+      "ok": false,
+      "user_agent": "Python/3.12 aiohttp/3.14.5"
+    },
+    {
+      "name": "redirect307",
+      "ok": true,
+      "user_agent": "Python/3.12 aiohttp/3.14.5"
+    },
+    {
+      "name": "redirect303",
+      "ok": true,
+      "user_agent": "Python/3.12 aiohttp/3.14.5"
+    },
+    {
+      "name": "redirect-loop",
+      "ok": false,
+      "user_agent": "Python/3.12 aiohttp/3.14.5"
+    },
+    {
+      "name": "body-timeout",
+      "ok": true,
+      "user_agent": "Python/3.12 aiohttp/3.14.5"
+    }
+  ],
+  "live_recovery_assertions": [
+    "register/heartbeat/re-register ordering",
+    "configured interval survives environment mutation",
+    "stable worker identity",
+    "deregistration after recovery"
+  ],
+  "regression_suites": [
+    "native_http",
+    "worker_heartbeat_reference",
+    "worker_heartbeat_http",
+    "worker_tunnel",
+    "service_clients_reference",
+    "worker_metadata_reference",
+    "worker_router_integration"
+  ],
+  "final_checks": {
+    "worker_heartbeat_http_seconds": 12.83,
+    "worker_router_integration_seconds": 28.56,
+    "passed": true
+  },
+  "cuda_packaged_checks": 43,
+  "router_binary_sha256": "91873d25c218dd3d3ed12bded2ff990bd13837d6d514922eb04dc45ccbde93b9",
+  "binaries_sha256": {
+    "/app/build/ezlocalai-native": "447c5ea0925b37ea61766ea6ecb28210d0cff3ec7147d6c245714e41157be0bd",
+    "/app/build/ezlocalai-native-entrypoint": "7da9eb6310967f552fa1528b13a43deb6c5e46e85b862d174e1c0f3a0598bc1f",
+    "/opt/stable-diffusion.cpp/build/bin/sd-cli": "bacdb2b223e94ef8be5b65767e2c92b14bb3b931195f0b4a9815737f6efc85ed"
+  },
+  "tested_worker_matches_packaged_worker": true,
+  "incremental_build_repair": "Preserved docker-cp timestamps initially left stale objects after the User-Agent change. Forced recompilation restored exact candidate/tested binary identity before deployment.",
+  "deployment": {
+    "previous_image": "sha256:60e6f4fe9917a46080c150a9f3d03d6475322b80efae67e9555141158b7fe84c",
+    "candidate_image": "sha256:155da064e55fb740e1613b6efceebb009c1d2b05efc73f6e15872baa6d458a68",
+    "health": "healthy",
+    "deployed_image": "sha256:155da064e55fb740e1613b6efceebb009c1d2b05efc73f6e15872baa6d458a68",
+    "effective_environment_changed_keys": [],
+    "original_env_file_unchanged": true,
+    "mounts_unchanged": true,
+    "wakeword_mounts": [
+      [
+        "bind",
+        "/home/josh/repos/xtsys/ezlocalai/wakeword_models",
+        "/app/wakeword_models",
+        true
+      ],
+      [
+        "bind",
+        "/home/josh/repos/xtsys/ezlocalai/wakeword_samples",
+        "/app/wakeword_samples",
+        true
+      ],
+      [
+        "bind",
+        "/home/josh/repos/xtsys/ezlocalai/wakeword_jobs",
+        "/app/wakeword_jobs",
+        true
+      ]
+    ],
+    "ports_unchanged": true,
+    "gpu_requests_unchanged": true
+  },
+  "live_routed_inference": {
+    "registered_workers": 1,
+    "chat": true,
+    "sse_content_and_done_without_error": true,
+    "vision": true
+  },
+  "documentation_http": {
+    "image": "sha256:155da064e55fb740e1613b6efceebb009c1d2b05efc73f6e15872baa6d458a68",
+    "checks": [
+      {
+        "method": "GET",
+        "path": "/",
+        "passed": true,
+        "length": 1015,
+        "body_sha256": "9cba0aab86158b3e8ffc7efa8586cb181b600c764c811af2b0579ce95e0cac4e"
+      },
+      {
+        "method": "HEAD",
+        "path": "/",
+        "passed": true,
+        "length": 1015,
+        "body_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "method": "GET",
+        "path": "/redoc",
+        "passed": true,
+        "length": 897,
+        "body_sha256": "a8aa84db129687e6d0e715504d39ebc781e77a339b01525d6a38ca0070773005"
+      },
+      {
+        "method": "HEAD",
+        "path": "/redoc",
+        "passed": true,
+        "length": 897,
+        "body_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "method": "GET",
+        "path": "/docs/oauth2-redirect",
+        "passed": true,
+        "length": 3012,
+        "body_sha256": "f45d60bb9f054b1712b3f9e60547eb9e1d523afd6472a4137b89eb503b37f058"
+      },
+      {
+        "method": "HEAD",
+        "path": "/docs/oauth2-redirect",
+        "passed": true,
+        "length": 3012,
+        "body_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "method": "GET",
+        "path": "/openapi.json",
+        "passed": true,
+        "length": 41325,
+        "body_sha256": "4d7b529fc0e271ae57ab904ccab7fa1bc030a9626d97608ad75bdb0cc3078238"
+      },
+      {
+        "method": "HEAD",
+        "path": "/openapi.json",
+        "passed": true,
+        "length": 41325,
+        "body_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    ],
+    "passed": true
+  },
+  "original_env_sha256": "61dd1627786c0516e0ad59287ea2fb0990eeee7c93951d292aca38f46402dd24",
+  "intentional_compatibility_choice": "Router registration authentication and the advertised worker callback API key remain distinct, permitting different credentials.",
+  "limitations": [
+    "Source HTTP capture uses its default ten-second timeout; native socket tests use the existing one-second override. These verify response acceptance rather than identical elapsed time.",
+    "Metadata/version auditing, five-second shutdown cancellation, remaining TLS/framing and large/fragmented WebSocket cases remain incomplete.",
+    "This milestone does not establish full replacement parity."
+  ],
+  "full_evidence_directory": "build/validation/worker-heartbeat"
+}

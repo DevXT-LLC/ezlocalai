@@ -1,0 +1,2187 @@
+{
+  "starlette_version": "1.7.0",
+  "source_sha256": "9f3e9971b62c7d4c0c32ac5c345a8c2eca286b93ca8d682ab5ddc9328de0a8d1",
+  "mtime_ns": 1700000000123456789,
+  "data": "0123456789abcdefghijklmnopqrstuvwxyz",
+  "cases": [
+    {
+      "name": "download-plain-file.bin",
+      "static": false,
+      "file": "file.bin",
+      "headers": {},
+      "status": 200,
+      "response_headers": {
+        "content-type": "application/octet-stream",
+        "accept-ranges": "bytes",
+        "content-disposition": "attachment; filename*=utf-8''h%C3%A9llo_model.pt",
+        "content-length": "36",
+        "last-modified": "Tue, 14 Nov 2023 22:13:20 GMT",
+        "etag": "\"d039ae65fe003b00e2073934bd5da968\""
+      },
+      "body": "0123456789abcdefghijklmnopqrstuvwxyz"
+    },
+    {
+      "name": "download-plain-empty.bin",
+      "static": false,
+      "file": "empty.bin",
+      "headers": {},
+      "status": 200,
+      "response_headers": {
+        "content-type": "application/octet-stream",
+        "accept-ranges": "bytes",
+        "content-disposition": "attachment; filename*=utf-8''h%C3%A9llo_model.pt",
+        "content-length": "0",
+        "last-modified": "Tue, 14 Nov 2023 22:13:20 GMT",
+        "etag": "\"5585da06670e207659a46f75f77313bb\""
+      },
+      "body": ""
+    },
+    {
+      "name": "download-slice-file.bin",
+      "static": false,
+      "file": "file.bin",
+      "headers": {
+        "range": "bytes=2-7"
+      },
+      "status": 206,
+      "response_headers": {
+        "content-type": "application/octet-stream",
+        "accept-ranges": "bytes",
+        "content-disposition": "attachment; filename*=utf-8''h%C3%A9llo_model.pt",
+        "content-length": "6",
+        "last-modified": "Tue, 14 Nov 2023 22:13:20 GMT",
+        "etag": "\"d039ae65fe003b00e2073934bd5da968\"",
+        "content-range": "bytes 2-7/36"
+      },
+      "body": "234567"
+    },
+    {
+      "name": "download-slice-empty.bin",
+      "static": false,
+      "file": "empty.bin",
+      "headers": {
+        "range": "bytes=2-7"
+      },
+      "status": 416,
+      "response_headers": {
+        "content-range": "bytes */0",
+        "content-length": "0",
+        "content-type": "text/plain; charset=utf-8"
+      },
+      "body": ""
+    },
+    {
+      "name": "download-suffix-file.bin",
+      "static": false,
+      "file": "file.bin",
+      "headers": {
+        "range": "bytes=-5"
+      },
+      "status": 206,
+      "response_headers": {
+        "content-type": "application/octet-stream",
+        "accept-ranges": "bytes",
+        "content-disposition": "attachment; filename*=utf-8''h%C3%A9llo_model.pt",
+        "content-length": "5",
+        "last-modified": "Tue, 14 Nov 2023 22:13:20 GMT",
+        "etag": "\"d039ae65fe003b00e2073934bd5da968\"",
+        "content-range": "bytes 31-35/36"
+      },
+      "body": "vwxyz"
+    },
+    {
+      "name": "download-suffix-empty.bin",
+      "static": false,
+      "file": "empty.bin",
+      "headers": {
+        "range": "bytes=-5"
+      },
+      "status": 416,
+      "response_headers": {
+        "content-range": "bytes */0",
+        "content-length": "0",
+        "content-type": "text/plain; charset=utf-8"
+      },
+      "body": ""
+    },
+    {
+      "name": "download-open-file.bin",
+      "static": false,
+      "file": "file.bin",
+      "headers": {
+        "range": "bytes=30-"
+      },
+      "status": 206,
+      "response_headers": {
+        "content-type": "application/octet-stream",
+        "accept-ranges": "bytes",
+        "content-disposition": "attachment; filename*=utf-8''h%C3%A9llo_model.pt",
+        "content-length": "6",
+        "last-modified": "Tue, 14 Nov 2023 22:13:20 GMT",
+        "etag": "\"d039ae65fe003b00e2073934bd5da968\"",
+        "content-range": "bytes 30-35/36"
+      },
+      "body": "uvwxyz"
+    },
+    {
+      "name": "download-open-empty.bin",
+      "static": false,
+      "file": "empty.bin",
+      "headers": {
+        "range": "bytes=30-"
+      },
+      "status": 416,
+      "response_headers": {
+        "content-range": "bytes */0",
+        "content-length": "0",
+        "content-type": "text/plain; charset=utf-8"
+      },
+      "body": ""
+    },
+    {
+      "name": "download-multipart-file.bin",
+      "static": false,
+      "file": "file.bin",
+      "headers": {
+        "range": "bytes=0-1,10-12"
+      },
+      "status": 206,
+      "response_headers": {
+        "content-type": "multipart/byteranges; boundary=BBBBBBBBBBBBBBBBBBBBBBBBBB",
+        "accept-ranges": "bytes",
+        "content-disposition": "attachment; filename*=utf-8''h%C3%A9llo_model.pt",
+        "content-length": "243",
+        "last-modified": "Tue, 14 Nov 2023 22:13:20 GMT",
+        "etag": "\"d039ae65fe003b00e2073934bd5da968\""
+      },
+      "body": "--BBBBBBBBBBBBBBBBBBBBBBBBBB\r\nContent-Type: application/octet-stream\r\nContent-Range: bytes 0-1/36\r\n\r\n01\r\n--BBBBBBBBBBBBBBBBBBBBBBBBBB\r\nContent-Type: application/octet-stream\r\nContent-Range: bytes 10-12/36\r\n\r\nabc\r\n--BBBBBBBBBBBBBBBBBBBBBBBBBB--"
+    },
+    {
+      "name": "download-multipart-empty.bin",
+      "static": false,
+      "file": "empty.bin",
+      "headers": {
+        "range": "bytes=0-1,10-12"
+      },
+      "status": 416,
+      "response_headers": {
+        "content-range": "bytes */0",
+        "content-length": "0",
+        "content-type": "text/plain; charset=utf-8"
+      },
+      "body": ""
+    },
+    {
+      "name": "download-bridge-file.bin",
+      "static": false,
+      "file": "file.bin",
+      "headers": {
+        "range": "bytes=0-4,10-14,3-12"
+      },
+      "status": 206,
+      "response_headers": {
+        "content-type": "application/octet-stream",
+        "accept-ranges": "bytes",
+        "content-disposition": "attachment; filename*=utf-8''h%C3%A9llo_model.pt",
+        "content-length": "15",
+        "last-modified": "Tue, 14 Nov 2023 22:13:20 GMT",
+        "etag": "\"d039ae65fe003b00e2073934bd5da968\"",
+        "content-range": "bytes 0-14/36"
+      },
+      "body": "0123456789abcde"
+    },
+    {
+      "name": "download-bridge-empty.bin",
+      "static": false,
+      "file": "empty.bin",
+      "headers": {
+        "range": "bytes=0-4,10-14,3-12"
+      },
+      "status": 416,
+      "response_headers": {
+        "content-range": "bytes */0",
+        "content-length": "0",
+        "content-type": "text/plain; charset=utf-8"
+      },
+      "body": ""
+    },
+    {
+      "name": "download-empty-range-file.bin",
+      "static": false,
+      "file": "file.bin",
+      "headers": {
+        "range": "bytes=5-4"
+      },
+      "status": 400,
+      "response_headers": {
+        "content-length": "41",
+        "content-type": "text/plain; charset=utf-8"
+      },
+      "body": "Range header: start must be less than end"
+    },
+    {
+      "name": "download-empty-range-empty.bin",
+      "static": false,
+      "file": "empty.bin",
+      "headers": {
+        "range": "bytes=5-4"
+      },
+      "status": 416,
+      "response_headers": {
+        "content-range": "bytes */0",
+        "content-length": "0",
+        "content-type": "text/plain; charset=utf-8"
+      },
+      "body": ""
+    },
+    {
+      "name": "download-unsatisfiable-file.bin",
+      "static": false,
+      "file": "file.bin",
+      "headers": {
+        "range": "bytes=36-"
+      },
+      "status": 416,
+      "response_headers": {
+        "content-range": "bytes */36",
+        "content-length": "0",
+        "content-type": "text/plain; charset=utf-8"
+      },
+      "body": ""
+    },
+    {
+      "name": "download-unsatisfiable-empty.bin",
+      "static": false,
+      "file": "empty.bin",
+      "headers": {
+        "range": "bytes=36-"
+      },
+      "status": 416,
+      "response_headers": {
+        "content-range": "bytes */0",
+        "content-length": "0",
+        "content-type": "text/plain; charset=utf-8"
+      },
+      "body": ""
+    },
+    {
+      "name": "download-zero-suffix-file.bin",
+      "static": false,
+      "file": "file.bin",
+      "headers": {
+        "range": "bytes=-0"
+      },
+      "status": 416,
+      "response_headers": {
+        "content-range": "bytes */36",
+        "content-length": "0",
+        "content-type": "text/plain; charset=utf-8"
+      },
+      "body": ""
+    },
+    {
+      "name": "download-zero-suffix-empty.bin",
+      "static": false,
+      "file": "empty.bin",
+      "headers": {
+        "range": "bytes=-0"
+      },
+      "status": 416,
+      "response_headers": {
+        "content-range": "bytes */0",
+        "content-length": "0",
+        "content-type": "text/plain; charset=utf-8"
+      },
+      "body": ""
+    },
+    {
+      "name": "download-unit-file.bin",
+      "static": false,
+      "file": "file.bin",
+      "headers": {
+        "range": "items=0-1"
+      },
+      "status": 400,
+      "response_headers": {
+        "content-length": "24",
+        "content-type": "text/plain; charset=utf-8"
+      },
+      "body": "Only support bytes range"
+    },
+    {
+      "name": "download-unit-empty.bin",
+      "static": false,
+      "file": "empty.bin",
+      "headers": {
+        "range": "items=0-1"
+      },
+      "status": 400,
+      "response_headers": {
+        "content-length": "24",
+        "content-type": "text/plain; charset=utf-8"
+      },
+      "body": "Only support bytes range"
+    },
+    {
+      "name": "download-empty-header-file.bin",
+      "static": false,
+      "file": "file.bin",
+      "headers": {
+        "range": ""
+      },
+      "status": 400,
+      "response_headers": {
+        "content-length": "23",
+        "content-type": "text/plain; charset=utf-8"
+      },
+      "body": "Malformed range header."
+    },
+    {
+      "name": "download-empty-header-empty.bin",
+      "static": false,
+      "file": "empty.bin",
+      "headers": {
+        "range": ""
+      },
+      "status": 400,
+      "response_headers": {
+        "content-length": "23",
+        "content-type": "text/plain; charset=utf-8"
+      },
+      "body": "Malformed range header."
+    },
+    {
+      "name": "download-missing-equals-file.bin",
+      "static": false,
+      "file": "file.bin",
+      "headers": {
+        "range": "garbage"
+      },
+      "status": 400,
+      "response_headers": {
+        "content-length": "23",
+        "content-type": "text/plain; charset=utf-8"
+      },
+      "body": "Malformed range header."
+    },
+    {
+      "name": "download-missing-equals-empty.bin",
+      "static": false,
+      "file": "empty.bin",
+      "headers": {
+        "range": "garbage"
+      },
+      "status": 400,
+      "response_headers": {
+        "content-length": "23",
+        "content-type": "text/plain; charset=utf-8"
+      },
+      "body": "Malformed range header."
+    },
+    {
+      "name": "download-invalid-file.bin",
+      "static": false,
+      "file": "file.bin",
+      "headers": {
+        "range": "bytes=garbage"
+      },
+      "status": 400,
+      "response_headers": {
+        "content-length": "37",
+        "content-type": "text/plain; charset=utf-8"
+      },
+      "body": "Range header: range must be requested"
+    },
+    {
+      "name": "download-invalid-empty.bin",
+      "static": false,
+      "file": "empty.bin",
+      "headers": {
+        "range": "bytes=garbage"
+      },
+      "status": 400,
+      "response_headers": {
+        "content-length": "37",
+        "content-type": "text/plain; charset=utf-8"
+      },
+      "body": "Range header: range must be requested"
+    },
+    {
+      "name": "download-empty-if-range-file.bin",
+      "static": false,
+      "file": "file.bin",
+      "headers": {
+        "range": "bytes=0-1",
+        "if-range": ""
+      },
+      "status": 200,
+      "response_headers": {
+        "content-type": "application/octet-stream",
+        "accept-ranges": "bytes",
+        "content-disposition": "attachment; filename*=utf-8''h%C3%A9llo_model.pt",
+        "content-length": "36",
+        "last-modified": "Tue, 14 Nov 2023 22:13:20 GMT",
+        "etag": "\"d039ae65fe003b00e2073934bd5da968\""
+      },
+      "body": "0123456789abcdefghijklmnopqrstuvwxyz"
+    },
+    {
+      "name": "download-empty-if-range-empty.bin",
+      "static": false,
+      "file": "empty.bin",
+      "headers": {
+        "range": "bytes=0-1",
+        "if-range": ""
+      },
+      "status": 200,
+      "response_headers": {
+        "content-type": "application/octet-stream",
+        "accept-ranges": "bytes",
+        "content-disposition": "attachment; filename*=utf-8''h%C3%A9llo_model.pt",
+        "content-length": "0",
+        "last-modified": "Tue, 14 Nov 2023 22:13:20 GMT",
+        "etag": "\"5585da06670e207659a46f75f77313bb\""
+      },
+      "body": ""
+    },
+    {
+      "name": "download-etag-if-range-file.bin",
+      "static": false,
+      "file": "file.bin",
+      "headers": {
+        "range": "bytes=0-1",
+        "if-range": "\"d039ae65fe003b00e2073934bd5da968\""
+      },
+      "status": 206,
+      "response_headers": {
+        "content-type": "application/octet-stream",
+        "accept-ranges": "bytes",
+        "content-disposition": "attachment; filename*=utf-8''h%C3%A9llo_model.pt",
+        "content-length": "2",
+        "last-modified": "Tue, 14 Nov 2023 22:13:20 GMT",
+        "etag": "\"d039ae65fe003b00e2073934bd5da968\"",
+        "content-range": "bytes 0-1/36"
+      },
+      "body": "01"
+    },
+    {
+      "name": "download-etag-if-range-empty.bin",
+      "static": false,
+      "file": "empty.bin",
+      "headers": {
+        "range": "bytes=0-1",
+        "if-range": "\"d039ae65fe003b00e2073934bd5da968\""
+      },
+      "status": 200,
+      "response_headers": {
+        "content-type": "application/octet-stream",
+        "accept-ranges": "bytes",
+        "content-disposition": "attachment; filename*=utf-8''h%C3%A9llo_model.pt",
+        "content-length": "0",
+        "last-modified": "Tue, 14 Nov 2023 22:13:20 GMT",
+        "etag": "\"5585da06670e207659a46f75f77313bb\""
+      },
+      "body": ""
+    },
+    {
+      "name": "download-date-if-range-file.bin",
+      "static": false,
+      "file": "file.bin",
+      "headers": {
+        "range": "bytes=0-1",
+        "if-range": "Tue, 14 Nov 2023 22:13:20 GMT"
+      },
+      "status": 206,
+      "response_headers": {
+        "content-type": "application/octet-stream",
+        "accept-ranges": "bytes",
+        "content-disposition": "attachment; filename*=utf-8''h%C3%A9llo_model.pt",
+        "content-length": "2",
+        "last-modified": "Tue, 14 Nov 2023 22:13:20 GMT",
+        "etag": "\"d039ae65fe003b00e2073934bd5da968\"",
+        "content-range": "bytes 0-1/36"
+      },
+      "body": "01"
+    },
+    {
+      "name": "download-date-if-range-empty.bin",
+      "static": false,
+      "file": "empty.bin",
+      "headers": {
+        "range": "bytes=0-1",
+        "if-range": "Tue, 14 Nov 2023 22:13:20 GMT"
+      },
+      "status": 416,
+      "response_headers": {
+        "content-range": "bytes */0",
+        "content-length": "0",
+        "content-type": "text/plain; charset=utf-8"
+      },
+      "body": ""
+    },
+    {
+      "name": "download-mismatched-if-range-file.bin",
+      "static": false,
+      "file": "file.bin",
+      "headers": {
+        "range": "bytes=0-1",
+        "if-range": "wrong"
+      },
+      "status": 200,
+      "response_headers": {
+        "content-type": "application/octet-stream",
+        "accept-ranges": "bytes",
+        "content-disposition": "attachment; filename*=utf-8''h%C3%A9llo_model.pt",
+        "content-length": "36",
+        "last-modified": "Tue, 14 Nov 2023 22:13:20 GMT",
+        "etag": "\"d039ae65fe003b00e2073934bd5da968\""
+      },
+      "body": "0123456789abcdefghijklmnopqrstuvwxyz"
+    },
+    {
+      "name": "download-mismatched-if-range-empty.bin",
+      "static": false,
+      "file": "empty.bin",
+      "headers": {
+        "range": "bytes=0-1",
+        "if-range": "wrong"
+      },
+      "status": 200,
+      "response_headers": {
+        "content-type": "application/octet-stream",
+        "accept-ranges": "bytes",
+        "content-disposition": "attachment; filename*=utf-8''h%C3%A9llo_model.pt",
+        "content-length": "0",
+        "last-modified": "Tue, 14 Nov 2023 22:13:20 GMT",
+        "etag": "\"5585da06670e207659a46f75f77313bb\""
+      },
+      "body": ""
+    },
+    {
+      "name": "download-range-limit-file.bin",
+      "static": false,
+      "file": "file.bin",
+      "headers": {
+        "range": "bytes=0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0"
+      },
+      "status": 200,
+      "response_headers": {
+        "content-type": "application/octet-stream",
+        "accept-ranges": "bytes",
+        "content-disposition": "attachment; filename*=utf-8''h%C3%A9llo_model.pt",
+        "content-length": "36",
+        "last-modified": "Tue, 14 Nov 2023 22:13:20 GMT",
+        "etag": "\"d039ae65fe003b00e2073934bd5da968\""
+      },
+      "body": "0123456789abcdefghijklmnopqrstuvwxyz"
+    },
+    {
+      "name": "download-range-limit-empty.bin",
+      "static": false,
+      "file": "empty.bin",
+      "headers": {
+        "range": "bytes=0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0"
+      },
+      "status": 200,
+      "response_headers": {
+        "content-type": "application/octet-stream",
+        "accept-ranges": "bytes",
+        "content-disposition": "attachment; filename*=utf-8''h%C3%A9llo_model.pt",
+        "content-length": "0",
+        "last-modified": "Tue, 14 Nov 2023 22:13:20 GMT",
+        "etag": "\"5585da06670e207659a46f75f77313bb\""
+      },
+      "body": ""
+    },
+    {
+      "name": "download-large-end-file.bin",
+      "static": false,
+      "file": "file.bin",
+      "headers": {
+        "range": "bytes=0-9999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999"
+      },
+      "status": 206,
+      "response_headers": {
+        "content-type": "application/octet-stream",
+        "accept-ranges": "bytes",
+        "content-disposition": "attachment; filename*=utf-8''h%C3%A9llo_model.pt",
+        "content-length": "36",
+        "last-modified": "Tue, 14 Nov 2023 22:13:20 GMT",
+        "etag": "\"d039ae65fe003b00e2073934bd5da968\"",
+        "content-range": "bytes 0-35/36"
+      },
+      "body": "0123456789abcdefghijklmnopqrstuvwxyz"
+    },
+    {
+      "name": "download-large-end-empty.bin",
+      "static": false,
+      "file": "empty.bin",
+      "headers": {
+        "range": "bytes=0-9999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999"
+      },
+      "status": 416,
+      "response_headers": {
+        "content-range": "bytes */0",
+        "content-length": "0",
+        "content-type": "text/plain; charset=utf-8"
+      },
+      "body": ""
+    },
+    {
+      "name": "download-large-start-file.bin",
+      "static": false,
+      "file": "file.bin",
+      "headers": {
+        "range": "bytes=9999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999-"
+      },
+      "status": 416,
+      "response_headers": {
+        "content-range": "bytes */36",
+        "content-length": "0",
+        "content-type": "text/plain; charset=utf-8"
+      },
+      "body": ""
+    },
+    {
+      "name": "download-large-start-empty.bin",
+      "static": false,
+      "file": "empty.bin",
+      "headers": {
+        "range": "bytes=9999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999-"
+      },
+      "status": 416,
+      "response_headers": {
+        "content-range": "bytes */0",
+        "content-length": "0",
+        "content-type": "text/plain; charset=utf-8"
+      },
+      "body": ""
+    },
+    {
+      "name": "download-large-suffix-file.bin",
+      "static": false,
+      "file": "file.bin",
+      "headers": {
+        "range": "bytes=-9999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999"
+      },
+      "status": 206,
+      "response_headers": {
+        "content-type": "application/octet-stream",
+        "accept-ranges": "bytes",
+        "content-disposition": "attachment; filename*=utf-8''h%C3%A9llo_model.pt",
+        "content-length": "36",
+        "last-modified": "Tue, 14 Nov 2023 22:13:20 GMT",
+        "etag": "\"d039ae65fe003b00e2073934bd5da968\"",
+        "content-range": "bytes 0-35/36"
+      },
+      "body": "0123456789abcdefghijklmnopqrstuvwxyz"
+    },
+    {
+      "name": "download-large-suffix-empty.bin",
+      "static": false,
+      "file": "empty.bin",
+      "headers": {
+        "range": "bytes=-9999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999"
+      },
+      "status": 416,
+      "response_headers": {
+        "content-range": "bytes */0",
+        "content-length": "0",
+        "content-type": "text/plain; charset=utf-8"
+      },
+      "body": ""
+    },
+    {
+      "name": "download-signed-file.bin",
+      "static": false,
+      "file": "file.bin",
+      "headers": {
+        "range": "bytes=+1-+4"
+      },
+      "status": 206,
+      "response_headers": {
+        "content-type": "application/octet-stream",
+        "accept-ranges": "bytes",
+        "content-disposition": "attachment; filename*=utf-8''h%C3%A9llo_model.pt",
+        "content-length": "4",
+        "last-modified": "Tue, 14 Nov 2023 22:13:20 GMT",
+        "etag": "\"d039ae65fe003b00e2073934bd5da968\"",
+        "content-range": "bytes 1-4/36"
+      },
+      "body": "1234"
+    },
+    {
+      "name": "download-signed-empty.bin",
+      "static": false,
+      "file": "empty.bin",
+      "headers": {
+        "range": "bytes=+1-+4"
+      },
+      "status": 416,
+      "response_headers": {
+        "content-range": "bytes */0",
+        "content-length": "0",
+        "content-type": "text/plain; charset=utf-8"
+      },
+      "body": ""
+    },
+    {
+      "name": "download-underscores-file.bin",
+      "static": false,
+      "file": "file.bin",
+      "headers": {
+        "range": "bytes=1_0-1_4"
+      },
+      "status": 206,
+      "response_headers": {
+        "content-type": "application/octet-stream",
+        "accept-ranges": "bytes",
+        "content-disposition": "attachment; filename*=utf-8''h%C3%A9llo_model.pt",
+        "content-length": "5",
+        "last-modified": "Tue, 14 Nov 2023 22:13:20 GMT",
+        "etag": "\"d039ae65fe003b00e2073934bd5da968\"",
+        "content-range": "bytes 10-14/36"
+      },
+      "body": "abcde"
+    },
+    {
+      "name": "download-underscores-empty.bin",
+      "static": false,
+      "file": "empty.bin",
+      "headers": {
+        "range": "bytes=1_0-1_4"
+      },
+      "status": 416,
+      "response_headers": {
+        "content-range": "bytes */0",
+        "content-length": "0",
+        "content-type": "text/plain; charset=utf-8"
+      },
+      "body": ""
+    },
+    {
+      "name": "download-negative-end-file.bin",
+      "static": false,
+      "file": "file.bin",
+      "headers": {
+        "range": "bytes=1--2"
+      },
+      "status": 400,
+      "response_headers": {
+        "content-length": "41",
+        "content-type": "text/plain; charset=utf-8"
+      },
+      "body": "Range header: start must be less than end"
+    },
+    {
+      "name": "download-negative-end-empty.bin",
+      "static": false,
+      "file": "empty.bin",
+      "headers": {
+        "range": "bytes=1--2"
+      },
+      "status": 416,
+      "response_headers": {
+        "content-range": "bytes */0",
+        "content-length": "0",
+        "content-type": "text/plain; charset=utf-8"
+      },
+      "body": ""
+    },
+    {
+      "name": "download-etag-file.bin",
+      "static": false,
+      "file": "file.bin",
+      "headers": {
+        "if-none-match": "\"d039ae65fe003b00e2073934bd5da968\""
+      },
+      "status": 200,
+      "response_headers": {
+        "content-type": "application/octet-stream",
+        "accept-ranges": "bytes",
+        "content-disposition": "attachment; filename*=utf-8''h%C3%A9llo_model.pt",
+        "content-length": "36",
+        "last-modified": "Tue, 14 Nov 2023 22:13:20 GMT",
+        "etag": "\"d039ae65fe003b00e2073934bd5da968\""
+      },
+      "body": "0123456789abcdefghijklmnopqrstuvwxyz"
+    },
+    {
+      "name": "download-etag-empty.bin",
+      "static": false,
+      "file": "empty.bin",
+      "headers": {
+        "if-none-match": "\"d039ae65fe003b00e2073934bd5da968\""
+      },
+      "status": 200,
+      "response_headers": {
+        "content-type": "application/octet-stream",
+        "accept-ranges": "bytes",
+        "content-disposition": "attachment; filename*=utf-8''h%C3%A9llo_model.pt",
+        "content-length": "0",
+        "last-modified": "Tue, 14 Nov 2023 22:13:20 GMT",
+        "etag": "\"5585da06670e207659a46f75f77313bb\""
+      },
+      "body": ""
+    },
+    {
+      "name": "download-wildcard-file.bin",
+      "static": false,
+      "file": "file.bin",
+      "headers": {
+        "if-none-match": "*"
+      },
+      "status": 200,
+      "response_headers": {
+        "content-type": "application/octet-stream",
+        "accept-ranges": "bytes",
+        "content-disposition": "attachment; filename*=utf-8''h%C3%A9llo_model.pt",
+        "content-length": "36",
+        "last-modified": "Tue, 14 Nov 2023 22:13:20 GMT",
+        "etag": "\"d039ae65fe003b00e2073934bd5da968\""
+      },
+      "body": "0123456789abcdefghijklmnopqrstuvwxyz"
+    },
+    {
+      "name": "download-wildcard-empty.bin",
+      "static": false,
+      "file": "empty.bin",
+      "headers": {
+        "if-none-match": "*"
+      },
+      "status": 200,
+      "response_headers": {
+        "content-type": "application/octet-stream",
+        "accept-ranges": "bytes",
+        "content-disposition": "attachment; filename*=utf-8''h%C3%A9llo_model.pt",
+        "content-length": "0",
+        "last-modified": "Tue, 14 Nov 2023 22:13:20 GMT",
+        "etag": "\"5585da06670e207659a46f75f77313bb\""
+      },
+      "body": ""
+    },
+    {
+      "name": "download-weak-etag-file.bin",
+      "static": false,
+      "file": "file.bin",
+      "headers": {
+        "if-none-match": "W/\"d039ae65fe003b00e2073934bd5da968\""
+      },
+      "status": 200,
+      "response_headers": {
+        "content-type": "application/octet-stream",
+        "accept-ranges": "bytes",
+        "content-disposition": "attachment; filename*=utf-8''h%C3%A9llo_model.pt",
+        "content-length": "36",
+        "last-modified": "Tue, 14 Nov 2023 22:13:20 GMT",
+        "etag": "\"d039ae65fe003b00e2073934bd5da968\""
+      },
+      "body": "0123456789abcdefghijklmnopqrstuvwxyz"
+    },
+    {
+      "name": "download-weak-etag-empty.bin",
+      "static": false,
+      "file": "empty.bin",
+      "headers": {
+        "if-none-match": "W/\"d039ae65fe003b00e2073934bd5da968\""
+      },
+      "status": 200,
+      "response_headers": {
+        "content-type": "application/octet-stream",
+        "accept-ranges": "bytes",
+        "content-disposition": "attachment; filename*=utf-8''h%C3%A9llo_model.pt",
+        "content-length": "0",
+        "last-modified": "Tue, 14 Nov 2023 22:13:20 GMT",
+        "etag": "\"5585da06670e207659a46f75f77313bb\""
+      },
+      "body": ""
+    },
+    {
+      "name": "download-invalid-weak-file.bin",
+      "static": false,
+      "file": "file.bin",
+      "headers": {
+        "if-none-match": "WW/\"d039ae65fe003b00e2073934bd5da968\""
+      },
+      "status": 200,
+      "response_headers": {
+        "content-type": "application/octet-stream",
+        "accept-ranges": "bytes",
+        "content-disposition": "attachment; filename*=utf-8''h%C3%A9llo_model.pt",
+        "content-length": "36",
+        "last-modified": "Tue, 14 Nov 2023 22:13:20 GMT",
+        "etag": "\"d039ae65fe003b00e2073934bd5da968\""
+      },
+      "body": "0123456789abcdefghijklmnopqrstuvwxyz"
+    },
+    {
+      "name": "download-invalid-weak-empty.bin",
+      "static": false,
+      "file": "empty.bin",
+      "headers": {
+        "if-none-match": "WW/\"d039ae65fe003b00e2073934bd5da968\""
+      },
+      "status": 200,
+      "response_headers": {
+        "content-type": "application/octet-stream",
+        "accept-ranges": "bytes",
+        "content-disposition": "attachment; filename*=utf-8''h%C3%A9llo_model.pt",
+        "content-length": "0",
+        "last-modified": "Tue, 14 Nov 2023 22:13:20 GMT",
+        "etag": "\"5585da06670e207659a46f75f77313bb\""
+      },
+      "body": ""
+    },
+    {
+      "name": "download-modified-since-file.bin",
+      "static": false,
+      "file": "file.bin",
+      "headers": {
+        "if-modified-since": "Tue, 14 Nov 2023 22:13:20 GMT"
+      },
+      "status": 200,
+      "response_headers": {
+        "content-type": "application/octet-stream",
+        "accept-ranges": "bytes",
+        "content-disposition": "attachment; filename*=utf-8''h%C3%A9llo_model.pt",
+        "content-length": "36",
+        "last-modified": "Tue, 14 Nov 2023 22:13:20 GMT",
+        "etag": "\"d039ae65fe003b00e2073934bd5da968\""
+      },
+      "body": "0123456789abcdefghijklmnopqrstuvwxyz"
+    },
+    {
+      "name": "download-modified-since-empty.bin",
+      "static": false,
+      "file": "empty.bin",
+      "headers": {
+        "if-modified-since": "Tue, 14 Nov 2023 22:13:20 GMT"
+      },
+      "status": 200,
+      "response_headers": {
+        "content-type": "application/octet-stream",
+        "accept-ranges": "bytes",
+        "content-disposition": "attachment; filename*=utf-8''h%C3%A9llo_model.pt",
+        "content-length": "0",
+        "last-modified": "Tue, 14 Nov 2023 22:13:20 GMT",
+        "etag": "\"5585da06670e207659a46f75f77313bb\""
+      },
+      "body": ""
+    },
+    {
+      "name": "download-rfc850-date-file.bin",
+      "static": false,
+      "file": "file.bin",
+      "headers": {
+        "if-modified-since": "Tuesday, 14-Nov-23 22:13:20 GMT"
+      },
+      "status": 200,
+      "response_headers": {
+        "content-type": "application/octet-stream",
+        "accept-ranges": "bytes",
+        "content-disposition": "attachment; filename*=utf-8''h%C3%A9llo_model.pt",
+        "content-length": "36",
+        "last-modified": "Tue, 14 Nov 2023 22:13:20 GMT",
+        "etag": "\"d039ae65fe003b00e2073934bd5da968\""
+      },
+      "body": "0123456789abcdefghijklmnopqrstuvwxyz"
+    },
+    {
+      "name": "download-rfc850-date-empty.bin",
+      "static": false,
+      "file": "empty.bin",
+      "headers": {
+        "if-modified-since": "Tuesday, 14-Nov-23 22:13:20 GMT"
+      },
+      "status": 200,
+      "response_headers": {
+        "content-type": "application/octet-stream",
+        "accept-ranges": "bytes",
+        "content-disposition": "attachment; filename*=utf-8''h%C3%A9llo_model.pt",
+        "content-length": "0",
+        "last-modified": "Tue, 14 Nov 2023 22:13:20 GMT",
+        "etag": "\"5585da06670e207659a46f75f77313bb\""
+      },
+      "body": ""
+    },
+    {
+      "name": "download-asctime-date-file.bin",
+      "static": false,
+      "file": "file.bin",
+      "headers": {
+        "if-modified-since": "Tue Nov 14 22:13:20 2023"
+      },
+      "status": 200,
+      "response_headers": {
+        "content-type": "application/octet-stream",
+        "accept-ranges": "bytes",
+        "content-disposition": "attachment; filename*=utf-8''h%C3%A9llo_model.pt",
+        "content-length": "36",
+        "last-modified": "Tue, 14 Nov 2023 22:13:20 GMT",
+        "etag": "\"d039ae65fe003b00e2073934bd5da968\""
+      },
+      "body": "0123456789abcdefghijklmnopqrstuvwxyz"
+    },
+    {
+      "name": "download-asctime-date-empty.bin",
+      "static": false,
+      "file": "empty.bin",
+      "headers": {
+        "if-modified-since": "Tue Nov 14 22:13:20 2023"
+      },
+      "status": 200,
+      "response_headers": {
+        "content-type": "application/octet-stream",
+        "accept-ranges": "bytes",
+        "content-disposition": "attachment; filename*=utf-8''h%C3%A9llo_model.pt",
+        "content-length": "0",
+        "last-modified": "Tue, 14 Nov 2023 22:13:20 GMT",
+        "etag": "\"5585da06670e207659a46f75f77313bb\""
+      },
+      "body": ""
+    },
+    {
+      "name": "download-integer-limit-file.bin",
+      "static": false,
+      "file": "file.bin",
+      "headers": {
+        "range": "bytes=0-99999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999"
+      },
+      "status": 400,
+      "response_headers": {
+        "content-length": "37",
+        "content-type": "text/plain; charset=utf-8"
+      },
+      "body": "Range header: range must be requested"
+    },
+    {
+      "name": "download-integer-limit-empty.bin",
+      "static": false,
+      "file": "empty.bin",
+      "headers": {
+        "range": "bytes=0-99999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999"
+      },
+      "status": 400,
+      "response_headers": {
+        "content-length": "37",
+        "content-type": "text/plain; charset=utf-8"
+      },
+      "body": "Range header: range must be requested"
+    },
+    {
+      "name": "download-mixed-valid-invalid-file.bin",
+      "static": false,
+      "file": "file.bin",
+      "headers": {
+        "range": "bytes=0-1,garbage,10-12"
+      },
+      "status": 206,
+      "response_headers": {
+        "content-type": "multipart/byteranges; boundary=BBBBBBBBBBBBBBBBBBBBBBBBBB",
+        "accept-ranges": "bytes",
+        "content-disposition": "attachment; filename*=utf-8''h%C3%A9llo_model.pt",
+        "content-length": "243",
+        "last-modified": "Tue, 14 Nov 2023 22:13:20 GMT",
+        "etag": "\"d039ae65fe003b00e2073934bd5da968\""
+      },
+      "body": "--BBBBBBBBBBBBBBBBBBBBBBBBBB\r\nContent-Type: application/octet-stream\r\nContent-Range: bytes 0-1/36\r\n\r\n01\r\n--BBBBBBBBBBBBBBBBBBBBBBBBBB\r\nContent-Type: application/octet-stream\r\nContent-Range: bytes 10-12/36\r\n\r\nabc\r\n--BBBBBBBBBBBBBBBBBBBBBBBBBB--"
+    },
+    {
+      "name": "download-mixed-valid-invalid-empty.bin",
+      "static": false,
+      "file": "empty.bin",
+      "headers": {
+        "range": "bytes=0-1,garbage,10-12"
+      },
+      "status": 416,
+      "response_headers": {
+        "content-range": "bytes */0",
+        "content-length": "0",
+        "content-type": "text/plain; charset=utf-8"
+      },
+      "body": ""
+    },
+    {
+      "name": "download-mixed-unsatisfiable-file.bin",
+      "static": false,
+      "file": "file.bin",
+      "headers": {
+        "range": "bytes=0-1,36-37"
+      },
+      "status": 416,
+      "response_headers": {
+        "content-range": "bytes */36",
+        "content-length": "0",
+        "content-type": "text/plain; charset=utf-8"
+      },
+      "body": ""
+    },
+    {
+      "name": "download-mixed-unsatisfiable-empty.bin",
+      "static": false,
+      "file": "empty.bin",
+      "headers": {
+        "range": "bytes=0-1,36-37"
+      },
+      "status": 416,
+      "response_headers": {
+        "content-range": "bytes */0",
+        "content-length": "0",
+        "content-type": "text/plain; charset=utf-8"
+      },
+      "body": ""
+    },
+    {
+      "name": "outputs-plain-file.bin",
+      "static": true,
+      "file": "file.bin",
+      "headers": {},
+      "status": 200,
+      "response_headers": {
+        "content-type": "application/octet-stream",
+        "accept-ranges": "bytes",
+        "content-length": "36",
+        "last-modified": "Tue, 14 Nov 2023 22:13:20 GMT",
+        "etag": "\"d039ae65fe003b00e2073934bd5da968\""
+      },
+      "body": "0123456789abcdefghijklmnopqrstuvwxyz"
+    },
+    {
+      "name": "outputs-plain-empty.bin",
+      "static": true,
+      "file": "empty.bin",
+      "headers": {},
+      "status": 200,
+      "response_headers": {
+        "content-type": "application/octet-stream",
+        "accept-ranges": "bytes",
+        "content-length": "0",
+        "last-modified": "Tue, 14 Nov 2023 22:13:20 GMT",
+        "etag": "\"5585da06670e207659a46f75f77313bb\""
+      },
+      "body": ""
+    },
+    {
+      "name": "outputs-slice-file.bin",
+      "static": true,
+      "file": "file.bin",
+      "headers": {
+        "range": "bytes=2-7"
+      },
+      "status": 206,
+      "response_headers": {
+        "content-type": "application/octet-stream",
+        "accept-ranges": "bytes",
+        "content-length": "6",
+        "last-modified": "Tue, 14 Nov 2023 22:13:20 GMT",
+        "etag": "\"d039ae65fe003b00e2073934bd5da968\"",
+        "content-range": "bytes 2-7/36"
+      },
+      "body": "234567"
+    },
+    {
+      "name": "outputs-slice-empty.bin",
+      "static": true,
+      "file": "empty.bin",
+      "headers": {
+        "range": "bytes=2-7"
+      },
+      "status": 416,
+      "response_headers": {
+        "content-range": "bytes */0",
+        "content-length": "0",
+        "content-type": "text/plain; charset=utf-8"
+      },
+      "body": ""
+    },
+    {
+      "name": "outputs-suffix-file.bin",
+      "static": true,
+      "file": "file.bin",
+      "headers": {
+        "range": "bytes=-5"
+      },
+      "status": 206,
+      "response_headers": {
+        "content-type": "application/octet-stream",
+        "accept-ranges": "bytes",
+        "content-length": "5",
+        "last-modified": "Tue, 14 Nov 2023 22:13:20 GMT",
+        "etag": "\"d039ae65fe003b00e2073934bd5da968\"",
+        "content-range": "bytes 31-35/36"
+      },
+      "body": "vwxyz"
+    },
+    {
+      "name": "outputs-suffix-empty.bin",
+      "static": true,
+      "file": "empty.bin",
+      "headers": {
+        "range": "bytes=-5"
+      },
+      "status": 416,
+      "response_headers": {
+        "content-range": "bytes */0",
+        "content-length": "0",
+        "content-type": "text/plain; charset=utf-8"
+      },
+      "body": ""
+    },
+    {
+      "name": "outputs-open-file.bin",
+      "static": true,
+      "file": "file.bin",
+      "headers": {
+        "range": "bytes=30-"
+      },
+      "status": 206,
+      "response_headers": {
+        "content-type": "application/octet-stream",
+        "accept-ranges": "bytes",
+        "content-length": "6",
+        "last-modified": "Tue, 14 Nov 2023 22:13:20 GMT",
+        "etag": "\"d039ae65fe003b00e2073934bd5da968\"",
+        "content-range": "bytes 30-35/36"
+      },
+      "body": "uvwxyz"
+    },
+    {
+      "name": "outputs-open-empty.bin",
+      "static": true,
+      "file": "empty.bin",
+      "headers": {
+        "range": "bytes=30-"
+      },
+      "status": 416,
+      "response_headers": {
+        "content-range": "bytes */0",
+        "content-length": "0",
+        "content-type": "text/plain; charset=utf-8"
+      },
+      "body": ""
+    },
+    {
+      "name": "outputs-multipart-file.bin",
+      "static": true,
+      "file": "file.bin",
+      "headers": {
+        "range": "bytes=0-1,10-12"
+      },
+      "status": 206,
+      "response_headers": {
+        "content-type": "multipart/byteranges; boundary=BBBBBBBBBBBBBBBBBBBBBBBBBB",
+        "accept-ranges": "bytes",
+        "content-length": "243",
+        "last-modified": "Tue, 14 Nov 2023 22:13:20 GMT",
+        "etag": "\"d039ae65fe003b00e2073934bd5da968\""
+      },
+      "body": "--BBBBBBBBBBBBBBBBBBBBBBBBBB\r\nContent-Type: application/octet-stream\r\nContent-Range: bytes 0-1/36\r\n\r\n01\r\n--BBBBBBBBBBBBBBBBBBBBBBBBBB\r\nContent-Type: application/octet-stream\r\nContent-Range: bytes 10-12/36\r\n\r\nabc\r\n--BBBBBBBBBBBBBBBBBBBBBBBBBB--"
+    },
+    {
+      "name": "outputs-multipart-empty.bin",
+      "static": true,
+      "file": "empty.bin",
+      "headers": {
+        "range": "bytes=0-1,10-12"
+      },
+      "status": 416,
+      "response_headers": {
+        "content-range": "bytes */0",
+        "content-length": "0",
+        "content-type": "text/plain; charset=utf-8"
+      },
+      "body": ""
+    },
+    {
+      "name": "outputs-bridge-file.bin",
+      "static": true,
+      "file": "file.bin",
+      "headers": {
+        "range": "bytes=0-4,10-14,3-12"
+      },
+      "status": 206,
+      "response_headers": {
+        "content-type": "application/octet-stream",
+        "accept-ranges": "bytes",
+        "content-length": "15",
+        "last-modified": "Tue, 14 Nov 2023 22:13:20 GMT",
+        "etag": "\"d039ae65fe003b00e2073934bd5da968\"",
+        "content-range": "bytes 0-14/36"
+      },
+      "body": "0123456789abcde"
+    },
+    {
+      "name": "outputs-bridge-empty.bin",
+      "static": true,
+      "file": "empty.bin",
+      "headers": {
+        "range": "bytes=0-4,10-14,3-12"
+      },
+      "status": 416,
+      "response_headers": {
+        "content-range": "bytes */0",
+        "content-length": "0",
+        "content-type": "text/plain; charset=utf-8"
+      },
+      "body": ""
+    },
+    {
+      "name": "outputs-empty-range-file.bin",
+      "static": true,
+      "file": "file.bin",
+      "headers": {
+        "range": "bytes=5-4"
+      },
+      "status": 400,
+      "response_headers": {
+        "content-length": "41",
+        "content-type": "text/plain; charset=utf-8"
+      },
+      "body": "Range header: start must be less than end"
+    },
+    {
+      "name": "outputs-empty-range-empty.bin",
+      "static": true,
+      "file": "empty.bin",
+      "headers": {
+        "range": "bytes=5-4"
+      },
+      "status": 416,
+      "response_headers": {
+        "content-range": "bytes */0",
+        "content-length": "0",
+        "content-type": "text/plain; charset=utf-8"
+      },
+      "body": ""
+    },
+    {
+      "name": "outputs-unsatisfiable-file.bin",
+      "static": true,
+      "file": "file.bin",
+      "headers": {
+        "range": "bytes=36-"
+      },
+      "status": 416,
+      "response_headers": {
+        "content-range": "bytes */36",
+        "content-length": "0",
+        "content-type": "text/plain; charset=utf-8"
+      },
+      "body": ""
+    },
+    {
+      "name": "outputs-unsatisfiable-empty.bin",
+      "static": true,
+      "file": "empty.bin",
+      "headers": {
+        "range": "bytes=36-"
+      },
+      "status": 416,
+      "response_headers": {
+        "content-range": "bytes */0",
+        "content-length": "0",
+        "content-type": "text/plain; charset=utf-8"
+      },
+      "body": ""
+    },
+    {
+      "name": "outputs-zero-suffix-file.bin",
+      "static": true,
+      "file": "file.bin",
+      "headers": {
+        "range": "bytes=-0"
+      },
+      "status": 416,
+      "response_headers": {
+        "content-range": "bytes */36",
+        "content-length": "0",
+        "content-type": "text/plain; charset=utf-8"
+      },
+      "body": ""
+    },
+    {
+      "name": "outputs-zero-suffix-empty.bin",
+      "static": true,
+      "file": "empty.bin",
+      "headers": {
+        "range": "bytes=-0"
+      },
+      "status": 416,
+      "response_headers": {
+        "content-range": "bytes */0",
+        "content-length": "0",
+        "content-type": "text/plain; charset=utf-8"
+      },
+      "body": ""
+    },
+    {
+      "name": "outputs-unit-file.bin",
+      "static": true,
+      "file": "file.bin",
+      "headers": {
+        "range": "items=0-1"
+      },
+      "status": 400,
+      "response_headers": {
+        "content-length": "24",
+        "content-type": "text/plain; charset=utf-8"
+      },
+      "body": "Only support bytes range"
+    },
+    {
+      "name": "outputs-unit-empty.bin",
+      "static": true,
+      "file": "empty.bin",
+      "headers": {
+        "range": "items=0-1"
+      },
+      "status": 400,
+      "response_headers": {
+        "content-length": "24",
+        "content-type": "text/plain; charset=utf-8"
+      },
+      "body": "Only support bytes range"
+    },
+    {
+      "name": "outputs-empty-header-file.bin",
+      "static": true,
+      "file": "file.bin",
+      "headers": {
+        "range": ""
+      },
+      "status": 400,
+      "response_headers": {
+        "content-length": "23",
+        "content-type": "text/plain; charset=utf-8"
+      },
+      "body": "Malformed range header."
+    },
+    {
+      "name": "outputs-empty-header-empty.bin",
+      "static": true,
+      "file": "empty.bin",
+      "headers": {
+        "range": ""
+      },
+      "status": 400,
+      "response_headers": {
+        "content-length": "23",
+        "content-type": "text/plain; charset=utf-8"
+      },
+      "body": "Malformed range header."
+    },
+    {
+      "name": "outputs-missing-equals-file.bin",
+      "static": true,
+      "file": "file.bin",
+      "headers": {
+        "range": "garbage"
+      },
+      "status": 400,
+      "response_headers": {
+        "content-length": "23",
+        "content-type": "text/plain; charset=utf-8"
+      },
+      "body": "Malformed range header."
+    },
+    {
+      "name": "outputs-missing-equals-empty.bin",
+      "static": true,
+      "file": "empty.bin",
+      "headers": {
+        "range": "garbage"
+      },
+      "status": 400,
+      "response_headers": {
+        "content-length": "23",
+        "content-type": "text/plain; charset=utf-8"
+      },
+      "body": "Malformed range header."
+    },
+    {
+      "name": "outputs-invalid-file.bin",
+      "static": true,
+      "file": "file.bin",
+      "headers": {
+        "range": "bytes=garbage"
+      },
+      "status": 400,
+      "response_headers": {
+        "content-length": "37",
+        "content-type": "text/plain; charset=utf-8"
+      },
+      "body": "Range header: range must be requested"
+    },
+    {
+      "name": "outputs-invalid-empty.bin",
+      "static": true,
+      "file": "empty.bin",
+      "headers": {
+        "range": "bytes=garbage"
+      },
+      "status": 400,
+      "response_headers": {
+        "content-length": "37",
+        "content-type": "text/plain; charset=utf-8"
+      },
+      "body": "Range header: range must be requested"
+    },
+    {
+      "name": "outputs-empty-if-range-file.bin",
+      "static": true,
+      "file": "file.bin",
+      "headers": {
+        "range": "bytes=0-1",
+        "if-range": ""
+      },
+      "status": 200,
+      "response_headers": {
+        "content-type": "application/octet-stream",
+        "accept-ranges": "bytes",
+        "content-length": "36",
+        "last-modified": "Tue, 14 Nov 2023 22:13:20 GMT",
+        "etag": "\"d039ae65fe003b00e2073934bd5da968\""
+      },
+      "body": "0123456789abcdefghijklmnopqrstuvwxyz"
+    },
+    {
+      "name": "outputs-empty-if-range-empty.bin",
+      "static": true,
+      "file": "empty.bin",
+      "headers": {
+        "range": "bytes=0-1",
+        "if-range": ""
+      },
+      "status": 200,
+      "response_headers": {
+        "content-type": "application/octet-stream",
+        "accept-ranges": "bytes",
+        "content-length": "0",
+        "last-modified": "Tue, 14 Nov 2023 22:13:20 GMT",
+        "etag": "\"5585da06670e207659a46f75f77313bb\""
+      },
+      "body": ""
+    },
+    {
+      "name": "outputs-etag-if-range-file.bin",
+      "static": true,
+      "file": "file.bin",
+      "headers": {
+        "range": "bytes=0-1",
+        "if-range": "\"d039ae65fe003b00e2073934bd5da968\""
+      },
+      "status": 206,
+      "response_headers": {
+        "content-type": "application/octet-stream",
+        "accept-ranges": "bytes",
+        "content-length": "2",
+        "last-modified": "Tue, 14 Nov 2023 22:13:20 GMT",
+        "etag": "\"d039ae65fe003b00e2073934bd5da968\"",
+        "content-range": "bytes 0-1/36"
+      },
+      "body": "01"
+    },
+    {
+      "name": "outputs-etag-if-range-empty.bin",
+      "static": true,
+      "file": "empty.bin",
+      "headers": {
+        "range": "bytes=0-1",
+        "if-range": "\"d039ae65fe003b00e2073934bd5da968\""
+      },
+      "status": 200,
+      "response_headers": {
+        "content-type": "application/octet-stream",
+        "accept-ranges": "bytes",
+        "content-length": "0",
+        "last-modified": "Tue, 14 Nov 2023 22:13:20 GMT",
+        "etag": "\"5585da06670e207659a46f75f77313bb\""
+      },
+      "body": ""
+    },
+    {
+      "name": "outputs-date-if-range-file.bin",
+      "static": true,
+      "file": "file.bin",
+      "headers": {
+        "range": "bytes=0-1",
+        "if-range": "Tue, 14 Nov 2023 22:13:20 GMT"
+      },
+      "status": 206,
+      "response_headers": {
+        "content-type": "application/octet-stream",
+        "accept-ranges": "bytes",
+        "content-length": "2",
+        "last-modified": "Tue, 14 Nov 2023 22:13:20 GMT",
+        "etag": "\"d039ae65fe003b00e2073934bd5da968\"",
+        "content-range": "bytes 0-1/36"
+      },
+      "body": "01"
+    },
+    {
+      "name": "outputs-date-if-range-empty.bin",
+      "static": true,
+      "file": "empty.bin",
+      "headers": {
+        "range": "bytes=0-1",
+        "if-range": "Tue, 14 Nov 2023 22:13:20 GMT"
+      },
+      "status": 416,
+      "response_headers": {
+        "content-range": "bytes */0",
+        "content-length": "0",
+        "content-type": "text/plain; charset=utf-8"
+      },
+      "body": ""
+    },
+    {
+      "name": "outputs-mismatched-if-range-file.bin",
+      "static": true,
+      "file": "file.bin",
+      "headers": {
+        "range": "bytes=0-1",
+        "if-range": "wrong"
+      },
+      "status": 200,
+      "response_headers": {
+        "content-type": "application/octet-stream",
+        "accept-ranges": "bytes",
+        "content-length": "36",
+        "last-modified": "Tue, 14 Nov 2023 22:13:20 GMT",
+        "etag": "\"d039ae65fe003b00e2073934bd5da968\""
+      },
+      "body": "0123456789abcdefghijklmnopqrstuvwxyz"
+    },
+    {
+      "name": "outputs-mismatched-if-range-empty.bin",
+      "static": true,
+      "file": "empty.bin",
+      "headers": {
+        "range": "bytes=0-1",
+        "if-range": "wrong"
+      },
+      "status": 200,
+      "response_headers": {
+        "content-type": "application/octet-stream",
+        "accept-ranges": "bytes",
+        "content-length": "0",
+        "last-modified": "Tue, 14 Nov 2023 22:13:20 GMT",
+        "etag": "\"5585da06670e207659a46f75f77313bb\""
+      },
+      "body": ""
+    },
+    {
+      "name": "outputs-range-limit-file.bin",
+      "static": true,
+      "file": "file.bin",
+      "headers": {
+        "range": "bytes=0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0"
+      },
+      "status": 200,
+      "response_headers": {
+        "content-type": "application/octet-stream",
+        "accept-ranges": "bytes",
+        "content-length": "36",
+        "last-modified": "Tue, 14 Nov 2023 22:13:20 GMT",
+        "etag": "\"d039ae65fe003b00e2073934bd5da968\""
+      },
+      "body": "0123456789abcdefghijklmnopqrstuvwxyz"
+    },
+    {
+      "name": "outputs-range-limit-empty.bin",
+      "static": true,
+      "file": "empty.bin",
+      "headers": {
+        "range": "bytes=0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0"
+      },
+      "status": 200,
+      "response_headers": {
+        "content-type": "application/octet-stream",
+        "accept-ranges": "bytes",
+        "content-length": "0",
+        "last-modified": "Tue, 14 Nov 2023 22:13:20 GMT",
+        "etag": "\"5585da06670e207659a46f75f77313bb\""
+      },
+      "body": ""
+    },
+    {
+      "name": "outputs-large-end-file.bin",
+      "static": true,
+      "file": "file.bin",
+      "headers": {
+        "range": "bytes=0-9999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999"
+      },
+      "status": 206,
+      "response_headers": {
+        "content-type": "application/octet-stream",
+        "accept-ranges": "bytes",
+        "content-length": "36",
+        "last-modified": "Tue, 14 Nov 2023 22:13:20 GMT",
+        "etag": "\"d039ae65fe003b00e2073934bd5da968\"",
+        "content-range": "bytes 0-35/36"
+      },
+      "body": "0123456789abcdefghijklmnopqrstuvwxyz"
+    },
+    {
+      "name": "outputs-large-end-empty.bin",
+      "static": true,
+      "file": "empty.bin",
+      "headers": {
+        "range": "bytes=0-9999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999"
+      },
+      "status": 416,
+      "response_headers": {
+        "content-range": "bytes */0",
+        "content-length": "0",
+        "content-type": "text/plain; charset=utf-8"
+      },
+      "body": ""
+    },
+    {
+      "name": "outputs-large-start-file.bin",
+      "static": true,
+      "file": "file.bin",
+      "headers": {
+        "range": "bytes=9999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999-"
+      },
+      "status": 416,
+      "response_headers": {
+        "content-range": "bytes */36",
+        "content-length": "0",
+        "content-type": "text/plain; charset=utf-8"
+      },
+      "body": ""
+    },
+    {
+      "name": "outputs-large-start-empty.bin",
+      "static": true,
+      "file": "empty.bin",
+      "headers": {
+        "range": "bytes=9999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999-"
+      },
+      "status": 416,
+      "response_headers": {
+        "content-range": "bytes */0",
+        "content-length": "0",
+        "content-type": "text/plain; charset=utf-8"
+      },
+      "body": ""
+    },
+    {
+      "name": "outputs-large-suffix-file.bin",
+      "static": true,
+      "file": "file.bin",
+      "headers": {
+        "range": "bytes=-9999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999"
+      },
+      "status": 206,
+      "response_headers": {
+        "content-type": "application/octet-stream",
+        "accept-ranges": "bytes",
+        "content-length": "36",
+        "last-modified": "Tue, 14 Nov 2023 22:13:20 GMT",
+        "etag": "\"d039ae65fe003b00e2073934bd5da968\"",
+        "content-range": "bytes 0-35/36"
+      },
+      "body": "0123456789abcdefghijklmnopqrstuvwxyz"
+    },
+    {
+      "name": "outputs-large-suffix-empty.bin",
+      "static": true,
+      "file": "empty.bin",
+      "headers": {
+        "range": "bytes=-9999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999"
+      },
+      "status": 416,
+      "response_headers": {
+        "content-range": "bytes */0",
+        "content-length": "0",
+        "content-type": "text/plain; charset=utf-8"
+      },
+      "body": ""
+    },
+    {
+      "name": "outputs-signed-file.bin",
+      "static": true,
+      "file": "file.bin",
+      "headers": {
+        "range": "bytes=+1-+4"
+      },
+      "status": 206,
+      "response_headers": {
+        "content-type": "application/octet-stream",
+        "accept-ranges": "bytes",
+        "content-length": "4",
+        "last-modified": "Tue, 14 Nov 2023 22:13:20 GMT",
+        "etag": "\"d039ae65fe003b00e2073934bd5da968\"",
+        "content-range": "bytes 1-4/36"
+      },
+      "body": "1234"
+    },
+    {
+      "name": "outputs-signed-empty.bin",
+      "static": true,
+      "file": "empty.bin",
+      "headers": {
+        "range": "bytes=+1-+4"
+      },
+      "status": 416,
+      "response_headers": {
+        "content-range": "bytes */0",
+        "content-length": "0",
+        "content-type": "text/plain; charset=utf-8"
+      },
+      "body": ""
+    },
+    {
+      "name": "outputs-underscores-file.bin",
+      "static": true,
+      "file": "file.bin",
+      "headers": {
+        "range": "bytes=1_0-1_4"
+      },
+      "status": 206,
+      "response_headers": {
+        "content-type": "application/octet-stream",
+        "accept-ranges": "bytes",
+        "content-length": "5",
+        "last-modified": "Tue, 14 Nov 2023 22:13:20 GMT",
+        "etag": "\"d039ae65fe003b00e2073934bd5da968\"",
+        "content-range": "bytes 10-14/36"
+      },
+      "body": "abcde"
+    },
+    {
+      "name": "outputs-underscores-empty.bin",
+      "static": true,
+      "file": "empty.bin",
+      "headers": {
+        "range": "bytes=1_0-1_4"
+      },
+      "status": 416,
+      "response_headers": {
+        "content-range": "bytes */0",
+        "content-length": "0",
+        "content-type": "text/plain; charset=utf-8"
+      },
+      "body": ""
+    },
+    {
+      "name": "outputs-negative-end-file.bin",
+      "static": true,
+      "file": "file.bin",
+      "headers": {
+        "range": "bytes=1--2"
+      },
+      "status": 400,
+      "response_headers": {
+        "content-length": "41",
+        "content-type": "text/plain; charset=utf-8"
+      },
+      "body": "Range header: start must be less than end"
+    },
+    {
+      "name": "outputs-negative-end-empty.bin",
+      "static": true,
+      "file": "empty.bin",
+      "headers": {
+        "range": "bytes=1--2"
+      },
+      "status": 416,
+      "response_headers": {
+        "content-range": "bytes */0",
+        "content-length": "0",
+        "content-type": "text/plain; charset=utf-8"
+      },
+      "body": ""
+    },
+    {
+      "name": "outputs-etag-file.bin",
+      "static": true,
+      "file": "file.bin",
+      "headers": {
+        "if-none-match": "\"d039ae65fe003b00e2073934bd5da968\""
+      },
+      "status": 304,
+      "response_headers": {
+        "etag": "\"d039ae65fe003b00e2073934bd5da968\""
+      },
+      "body": ""
+    },
+    {
+      "name": "outputs-etag-empty.bin",
+      "static": true,
+      "file": "empty.bin",
+      "headers": {
+        "if-none-match": "\"d039ae65fe003b00e2073934bd5da968\""
+      },
+      "status": 200,
+      "response_headers": {
+        "content-type": "application/octet-stream",
+        "accept-ranges": "bytes",
+        "content-length": "0",
+        "last-modified": "Tue, 14 Nov 2023 22:13:20 GMT",
+        "etag": "\"5585da06670e207659a46f75f77313bb\""
+      },
+      "body": ""
+    },
+    {
+      "name": "outputs-wildcard-file.bin",
+      "static": true,
+      "file": "file.bin",
+      "headers": {
+        "if-none-match": "*"
+      },
+      "status": 304,
+      "response_headers": {
+        "etag": "\"d039ae65fe003b00e2073934bd5da968\""
+      },
+      "body": ""
+    },
+    {
+      "name": "outputs-wildcard-empty.bin",
+      "static": true,
+      "file": "empty.bin",
+      "headers": {
+        "if-none-match": "*"
+      },
+      "status": 304,
+      "response_headers": {
+        "etag": "\"5585da06670e207659a46f75f77313bb\""
+      },
+      "body": ""
+    },
+    {
+      "name": "outputs-weak-etag-file.bin",
+      "static": true,
+      "file": "file.bin",
+      "headers": {
+        "if-none-match": "W/\"d039ae65fe003b00e2073934bd5da968\""
+      },
+      "status": 304,
+      "response_headers": {
+        "etag": "\"d039ae65fe003b00e2073934bd5da968\""
+      },
+      "body": ""
+    },
+    {
+      "name": "outputs-weak-etag-empty.bin",
+      "static": true,
+      "file": "empty.bin",
+      "headers": {
+        "if-none-match": "W/\"d039ae65fe003b00e2073934bd5da968\""
+      },
+      "status": 200,
+      "response_headers": {
+        "content-type": "application/octet-stream",
+        "accept-ranges": "bytes",
+        "content-length": "0",
+        "last-modified": "Tue, 14 Nov 2023 22:13:20 GMT",
+        "etag": "\"5585da06670e207659a46f75f77313bb\""
+      },
+      "body": ""
+    },
+    {
+      "name": "outputs-invalid-weak-file.bin",
+      "static": true,
+      "file": "file.bin",
+      "headers": {
+        "if-none-match": "WW/\"d039ae65fe003b00e2073934bd5da968\""
+      },
+      "status": 200,
+      "response_headers": {
+        "content-type": "application/octet-stream",
+        "accept-ranges": "bytes",
+        "content-length": "36",
+        "last-modified": "Tue, 14 Nov 2023 22:13:20 GMT",
+        "etag": "\"d039ae65fe003b00e2073934bd5da968\""
+      },
+      "body": "0123456789abcdefghijklmnopqrstuvwxyz"
+    },
+    {
+      "name": "outputs-invalid-weak-empty.bin",
+      "static": true,
+      "file": "empty.bin",
+      "headers": {
+        "if-none-match": "WW/\"d039ae65fe003b00e2073934bd5da968\""
+      },
+      "status": 200,
+      "response_headers": {
+        "content-type": "application/octet-stream",
+        "accept-ranges": "bytes",
+        "content-length": "0",
+        "last-modified": "Tue, 14 Nov 2023 22:13:20 GMT",
+        "etag": "\"5585da06670e207659a46f75f77313bb\""
+      },
+      "body": ""
+    },
+    {
+      "name": "outputs-modified-since-file.bin",
+      "static": true,
+      "file": "file.bin",
+      "headers": {
+        "if-modified-since": "Tue, 14 Nov 2023 22:13:20 GMT"
+      },
+      "status": 304,
+      "response_headers": {
+        "etag": "\"d039ae65fe003b00e2073934bd5da968\""
+      },
+      "body": ""
+    },
+    {
+      "name": "outputs-modified-since-empty.bin",
+      "static": true,
+      "file": "empty.bin",
+      "headers": {
+        "if-modified-since": "Tue, 14 Nov 2023 22:13:20 GMT"
+      },
+      "status": 304,
+      "response_headers": {
+        "etag": "\"5585da06670e207659a46f75f77313bb\""
+      },
+      "body": ""
+    },
+    {
+      "name": "outputs-rfc850-date-file.bin",
+      "static": true,
+      "file": "file.bin",
+      "headers": {
+        "if-modified-since": "Tuesday, 14-Nov-23 22:13:20 GMT"
+      },
+      "status": 304,
+      "response_headers": {
+        "etag": "\"d039ae65fe003b00e2073934bd5da968\""
+      },
+      "body": ""
+    },
+    {
+      "name": "outputs-rfc850-date-empty.bin",
+      "static": true,
+      "file": "empty.bin",
+      "headers": {
+        "if-modified-since": "Tuesday, 14-Nov-23 22:13:20 GMT"
+      },
+      "status": 304,
+      "response_headers": {
+        "etag": "\"5585da06670e207659a46f75f77313bb\""
+      },
+      "body": ""
+    },
+    {
+      "name": "outputs-asctime-date-file.bin",
+      "static": true,
+      "file": "file.bin",
+      "headers": {
+        "if-modified-since": "Tue Nov 14 22:13:20 2023"
+      },
+      "status": 304,
+      "response_headers": {
+        "etag": "\"d039ae65fe003b00e2073934bd5da968\""
+      },
+      "body": ""
+    },
+    {
+      "name": "outputs-asctime-date-empty.bin",
+      "static": true,
+      "file": "empty.bin",
+      "headers": {
+        "if-modified-since": "Tue Nov 14 22:13:20 2023"
+      },
+      "status": 304,
+      "response_headers": {
+        "etag": "\"5585da06670e207659a46f75f77313bb\""
+      },
+      "body": ""
+    },
+    {
+      "name": "outputs-integer-limit-file.bin",
+      "static": true,
+      "file": "file.bin",
+      "headers": {
+        "range": "bytes=0-99999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999"
+      },
+      "status": 400,
+      "response_headers": {
+        "content-length": "37",
+        "content-type": "text/plain; charset=utf-8"
+      },
+      "body": "Range header: range must be requested"
+    },
+    {
+      "name": "outputs-integer-limit-empty.bin",
+      "static": true,
+      "file": "empty.bin",
+      "headers": {
+        "range": "bytes=0-99999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999"
+      },
+      "status": 400,
+      "response_headers": {
+        "content-length": "37",
+        "content-type": "text/plain; charset=utf-8"
+      },
+      "body": "Range header: range must be requested"
+    },
+    {
+      "name": "outputs-mixed-valid-invalid-file.bin",
+      "static": true,
+      "file": "file.bin",
+      "headers": {
+        "range": "bytes=0-1,garbage,10-12"
+      },
+      "status": 206,
+      "response_headers": {
+        "content-type": "multipart/byteranges; boundary=BBBBBBBBBBBBBBBBBBBBBBBBBB",
+        "accept-ranges": "bytes",
+        "content-length": "243",
+        "last-modified": "Tue, 14 Nov 2023 22:13:20 GMT",
+        "etag": "\"d039ae65fe003b00e2073934bd5da968\""
+      },
+      "body": "--BBBBBBBBBBBBBBBBBBBBBBBBBB\r\nContent-Type: application/octet-stream\r\nContent-Range: bytes 0-1/36\r\n\r\n01\r\n--BBBBBBBBBBBBBBBBBBBBBBBBBB\r\nContent-Type: application/octet-stream\r\nContent-Range: bytes 10-12/36\r\n\r\nabc\r\n--BBBBBBBBBBBBBBBBBBBBBBBBBB--"
+    },
+    {
+      "name": "outputs-mixed-valid-invalid-empty.bin",
+      "static": true,
+      "file": "empty.bin",
+      "headers": {
+        "range": "bytes=0-1,garbage,10-12"
+      },
+      "status": 416,
+      "response_headers": {
+        "content-range": "bytes */0",
+        "content-length": "0",
+        "content-type": "text/plain; charset=utf-8"
+      },
+      "body": ""
+    },
+    {
+      "name": "outputs-mixed-unsatisfiable-file.bin",
+      "static": true,
+      "file": "file.bin",
+      "headers": {
+        "range": "bytes=0-1,36-37"
+      },
+      "status": 416,
+      "response_headers": {
+        "content-range": "bytes */36",
+        "content-length": "0",
+        "content-type": "text/plain; charset=utf-8"
+      },
+      "body": ""
+    },
+    {
+      "name": "outputs-mixed-unsatisfiable-empty.bin",
+      "static": true,
+      "file": "empty.bin",
+      "headers": {
+        "range": "bytes=0-1,36-37"
+      },
+      "status": 416,
+      "response_headers": {
+        "content-range": "bytes */0",
+        "content-length": "0",
+        "content-type": "text/plain; charset=utf-8"
+      },
+      "body": ""
+    }
+  ]
+}

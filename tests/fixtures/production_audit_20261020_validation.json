@@ -1,0 +1,92 @@
+{
+  "date": "2026-10-20",
+  "base_commit": "fefd3fc",
+  "deployed": true,
+  "image": "sha256:db88214e09c8d231fc5d3e1488a1d9e96a308ef0efc159a37956cc2323c9352d",
+  "worker_sha256": "0089538a814e69c3cb68dc9691d6af9b4846e00a7bc28bc2047689340d0f35b8",
+  "rollback_image": "sha256:529dd8fb7c73ec3da41dedca6fc3a99fdfdc45f700b3e4b5262f288c411b994b",
+  "rollback_tag": "ezlocalai:cuda-before-production-audit",
+  "changes": [
+    "CUDA-visible GPU reporting, no physical-device fallback; per-device query failure recovery",
+    "Wake-word sample/batch cancellation and private export staging",
+    "Full-precision job progress JSON"
+  ],
+  "tests": {
+    "cuda_packaged": {
+      "passed": 51,
+      "seconds": 221.47
+    },
+    "worker_gpu_reporting_cases": 8,
+    "real_cpp_rust_integration_scenarios": 10,
+    "placement_router_suites": 7,
+    "general_regression_suites": 5,
+    "saved_python_training_reference_cases": {
+      "cpu": 5,
+      "cuda_deterministic": 5
+    },
+    "tensor_cancellation_boundaries_per_device": 3,
+    "byte_identical_audio_artifacts": 421,
+    "live_inference_fingerprints": {
+      "direct-chat": [
+        "b11669-620d2225c"
+      ],
+      "direct-stream": [
+        "b11669-620d2225c"
+      ],
+      "direct-vision": [
+        "b11669-620d2225c"
+      ],
+      "tunnel-chat": [
+        "b11669-620d2225c"
+      ],
+      "tunnel-stream": [
+        "b11669-620d2225c"
+      ],
+      "tunnel-vision": [
+        "b11669-620d2225c"
+      ],
+      "restored-chat": [
+        "b11669-620d2225c"
+      ],
+      "restored-stream": [
+        "b11669-620d2225c"
+      ],
+      "restored-vision": [
+        "b11669-620d2225c"
+      ]
+    }
+  },
+  "deployment": {
+    "health": "healthy",
+    "environment_unchanged": true,
+    "mounts_unchanged": true,
+    "ports_unchanged": true,
+    "gpu_requests_unchanged": true,
+    "original_env_file_unchanged": true
+  },
+  "reverse_tunnel": {
+    "production_router_tested": true,
+    "chat_stream_vision_passed": true,
+    "original_setting_restored": true,
+    "post_restore_chat_stream_vision_passed": true
+  },
+  "source_hashes": {
+    "src/native_server.cpp": "9b4e5e2e3f449b516aeaefc6e926264d543d05699dc7ff89129d48100a12bf00",
+    "src/wakeword_jobs.cpp": "2b9808d8daaba8e12f346b5598ca990ac0201d326e7d66c7d8d0bfcf2ab6a7b8",
+    "src/wakeword_torch.cpp": "d1f6fd6f626e8ccb13048b0f6fd6c22c034b416fb019a1a0dfb77a74beb4fad9",
+    "src/wakeword_samples.cpp": "654023bc79d206c9b7d8150bed37e72263bb1bc3f4aea98c2377bd9d7fda4d08",
+    "include/ezlocalai/wakeword_model.hpp": "4d7b888d0c21f0b51fcc432aec0782c8871ce4320f0523066574988a6938ed25",
+    "include/ezlocalai/wakeword_samples.hpp": "11513ae247179e2c4de1da55ca32ae6aa3e93a522ce53d42939477e5f708c477",
+    "tests/test_worker_metadata.cpp": "c9f0f09ac21490d90ea0c81ab660b40022aed1e1bdcee96f5da1f7d8c862f8b2",
+    "tests/test_wakeword_jobs.cpp": "80294b831f705a2c9814be4483842a93505cc0a6b68890e7b222f8869569289e",
+    "tests/test_wakeword_training.cpp": "a797ae17f4a2f82c0c413831f42814e46ddbf3818338898b770c1bfd0b88d606"
+  },
+  "scope": [
+    "Saved Python training/audio references reused; no new trained-model quality claim",
+    "GPU topology tests use a simulated driver; real inference uses the single RTX 3090 Ti",
+    "Qwen calls, tensor operations and exports finish their current operation before releasing cancelled work",
+    "Production reverse tunnel exercised for real inference, not a long-duration soak",
+    "GB10 hardware, other hardware images and video acceptance remain open",
+    "PDF-to-speech and standalone Gemma experiments excluded"
+  ]
+}

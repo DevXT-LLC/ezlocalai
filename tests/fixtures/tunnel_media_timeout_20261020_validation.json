@@ -1,0 +1,111 @@
+{
+  "date": "2026-10-20",
+  "status": "CUDA deployed and direct/tunnel inference accepted; larger music-video retry remains pending at user-requested handoff",
+  "intentional_compatibility_correction": "Extend the worker tunnel local socket budget using existing REQUEST_TIMEOUT, VIDEO_GENERATION_TIMEOUT and ACE_STEP_TIMEOUT instead of reproducing the fixed ten-minute Python tunnel limit. Ordinary requests retain a minimum of 600 seconds.",
+  "source_python_commit": "0f7e9f45ac0d67ea806ee19874f98bb8f47c7544",
+  "source_tunnel_sha256": "d2c604fffacf088da6c3fc555d1d24d2a6b0b7af592f8cba3f67b7ea5dea4496",
+  "failure": {
+    "endpoint": "/v1/videos/music",
+    "mode": "Real Rust reverse tunnel; CUDA LTX",
+    "dimensions": [
+      768,
+      512
+    ],
+    "scenes": 2,
+    "duration": 6,
+    "steps": 18,
+    "router_seconds": 654.496,
+    "status": 503,
+    "detail": "No worker available for capability='music_video'",
+    "cause": "The worker tunnel local HTTP read timed out at its fixed 600-second limit. Router retry found the still-generating worker busy.",
+    "worker_oom": false,
+    "production_restored_healthy": true,
+    "production_restored_chat": 200,
+    "original_env_unchanged": true,
+    "proof_directory": "build/validation/video-final-20261020"
+  },
+  "regression": {
+    "before_failed": true,
+    "before_seconds": 3.2,
+    "mechanism": "Observe actual SO_RCVTIMEO on the worker-to-local-server socket while preserving real kernel setsockopt and end-to-end framed request/response handling.",
+    "cases": 13,
+    "after_passed": true,
+    "after_seconds": 29.87
+  },
+  "proof_directory": "build/validation/tunnel-media-timeout-20261020",
+  "source_hashes": {
+    "src/native_server.cpp": "b3814c3d655502a6dc4413baec27a34fa323403ad07383c54cb74c274f959ce9",
+    "tests/test_worker_tunnel.cpp": "699423cd574b8e3c877670bc0104c55759c72608f76a29a7af09aa3ac0e8e1e6"
+  },
+  "rust_integration": {
+    "passed": true,
+    "seconds": 33.72,
+    "scenarios": 10
+  },
+  "packages": {
+    "cpu": {
+      "image": "sha256:93b436302ed8959890aa2002c7fbec2ef59443f6473d4f7c4a824bacd2374bd6",
+      "worker_sha256": "6f51da4a8f8a501d39894b031479b16c8e695672695f7fe4319a33f13c767d93",
+      "passed": 55,
+      "failed": 0,
+      "seconds": 273.2,
+      "stable_tag": "ezlocalai:cpu",
+      "rollback_tag": "ezlocalai:cpu-before-media-timeout",
+      "rollback_image": "sha256:33d7b84c3817e510cdb3fecdb9616a392a12ff8ffb67cbf89b71d7a1afed60c1",
+      "includes_ltx_audio_fix": true,
+      "new_model_inference": false,
+      "previous_full_model_acceptance": "cpu_package_20261020_validation.json"
+    },
+    "rocm": {
+      "image": "sha256:c3c9157608609d4c240ebef65dca30efc84baac41c288008dabaa8f240aa999f",
+      "worker_sha256": "8c38cfcf64e769b58ccab7346eab2f850eae523308775474b79bd43fa6a04196",
+      "passed": 60,
+      "failed": 0,
+      "seconds": 312.42,
+      "stable_tag": "ezlocalai:rocm",
+      "rollback_tag": "ezlocalai:rocm-before-media-timeout",
+      "rollback_image": "sha256:c993297cb6b1fd9aa87f49c80ae732fc3a386be671bbc67f8427c729952ad57d",
+      "includes_ltx_audio_fix": true,
+      "new_model_inference": false,
+      "previous_full_model_acceptance": "rocm_package_20261020_validation.json"
+    },
+    "cuda": {
+      "image": "sha256:c42ad296d507b6ef8dfa25edd075d75eb68fdfbe36d0cd7f3b732d209a4a6920",
+      "worker_sha256": "4338f0226edfac5f3967d597787c8b06c7d2690c8fd5553a0547036db62729a6",
+      "passed": 58,
+      "failed": 0,
+      "seconds": 282.62,
+      "stable_tag": "ezlocalai:cuda",
+      "rollback_tag": "ezlocalai:cuda-before-media-timeout",
+      "rollback_image": "sha256:db669f04add8660bccfeb3d89c6e7173eb1a8d912bf7c6c4073d79a73fd91a38",
+      "includes_ltx_audio_fix": true,
+      "deployed": true,
+      "modes": [
+        {
+          "mode": "direct",
+          "checks": [
+            "chat",
+            "stream",
+            "vision"
+          ]
+        },
+        {
+          "mode": "tunnel",
+          "checks": [
+            "chat",
+            "stream",
+            "vision"
+          ]
+        }
+      ],
+      "production_checks": [
+        "chat",
+        "stream",
+        "vision"
+      ],
+      "original_environment_restored": true,
+      "original_env_file_unchanged": true,
+      "mounts_ports_gpu_requests_verified": true
+    }
+  }
+}

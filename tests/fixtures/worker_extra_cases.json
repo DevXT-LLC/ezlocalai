@@ -1,0 +1,2493 @@
+{
+  "sources": {
+    "Pipes.py": "8238cef03d4a1db6e775d7f62234bcf998d8f08bd9fc15f1d8a36ea0d3280005",
+    "Router.py": "d5eebf7fc48f7781628aa4eaab8af1c3f23fd8694242f0b3065436b5c86f62b1"
+  },
+  "method": "Executed Router worker dependency/extra block and source model resolver with actual Pipes media/voice policies and controlled residency, memory and client settings; no secondary GPU",
+  "cases": [
+    {
+      "probe_error": false,
+      "name": "modes-false-false-false",
+      "environment": {
+        "IMAGE_SERVER": "",
+        "VOICE_SERVER": "",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "false",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "false",
+        "MUSIC_UNLOAD_LLM_DURING_GENERATION": "false",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "false",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "false",
+        "MEDIA_KEEP_MODELS_LOADED": "false"
+      },
+      "llm_loaded": true,
+      "image_loaded": false,
+      "free_gb": 0,
+      "lifecycle": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model"
+        ],
+        "active_llm": "org/model"
+      },
+      "extra": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model"
+        ],
+        "active_llm": "org/model",
+        "llm_unload_dependent_capabilities": []
+      }
+    },
+    {
+      "probe_error": false,
+      "name": "modes-false-false-true",
+      "environment": {
+        "IMAGE_SERVER": "",
+        "VOICE_SERVER": "",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "false",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "false",
+        "MUSIC_UNLOAD_LLM_DURING_GENERATION": "true",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "false",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "false",
+        "MEDIA_KEEP_MODELS_LOADED": "false"
+      },
+      "llm_loaded": true,
+      "image_loaded": false,
+      "free_gb": 0,
+      "lifecycle": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model"
+        ],
+        "active_llm": "org/model"
+      },
+      "extra": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model"
+        ],
+        "active_llm": "org/model",
+        "llm_unload_dependent_capabilities": [
+          "music"
+        ]
+      }
+    },
+    {
+      "probe_error": false,
+      "name": "modes-false-false-auto",
+      "environment": {
+        "IMAGE_SERVER": "",
+        "VOICE_SERVER": "",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "false",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "false",
+        "MUSIC_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "false",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "false",
+        "MEDIA_KEEP_MODELS_LOADED": "false"
+      },
+      "llm_loaded": true,
+      "image_loaded": false,
+      "free_gb": 0,
+      "lifecycle": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model"
+        ],
+        "active_llm": "org/model"
+      },
+      "extra": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model"
+        ],
+        "active_llm": "org/model",
+        "llm_unload_dependent_capabilities": [
+          "music"
+        ]
+      }
+    },
+    {
+      "probe_error": false,
+      "name": "modes-false-true-false",
+      "environment": {
+        "IMAGE_SERVER": "",
+        "VOICE_SERVER": "",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "false",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "true",
+        "MUSIC_UNLOAD_LLM_DURING_GENERATION": "false",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "false",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "false",
+        "MEDIA_KEEP_MODELS_LOADED": "false"
+      },
+      "llm_loaded": true,
+      "image_loaded": false,
+      "free_gb": 0,
+      "lifecycle": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model"
+        ],
+        "active_llm": "org/model"
+      },
+      "extra": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model"
+        ],
+        "active_llm": "org/model",
+        "llm_unload_dependent_capabilities": [
+          "video"
+        ]
+      }
+    },
+    {
+      "probe_error": false,
+      "name": "modes-false-true-true",
+      "environment": {
+        "IMAGE_SERVER": "",
+        "VOICE_SERVER": "",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "false",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "true",
+        "MUSIC_UNLOAD_LLM_DURING_GENERATION": "true",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "false",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "false",
+        "MEDIA_KEEP_MODELS_LOADED": "false"
+      },
+      "llm_loaded": true,
+      "image_loaded": false,
+      "free_gb": 0,
+      "lifecycle": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model"
+        ],
+        "active_llm": "org/model"
+      },
+      "extra": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model"
+        ],
+        "active_llm": "org/model",
+        "llm_unload_dependent_capabilities": [
+          "video",
+          "music",
+          "music_video"
+        ]
+      }
+    },
+    {
+      "probe_error": false,
+      "name": "modes-false-true-auto",
+      "environment": {
+        "IMAGE_SERVER": "",
+        "VOICE_SERVER": "",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "false",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "true",
+        "MUSIC_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "false",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "false",
+        "MEDIA_KEEP_MODELS_LOADED": "false"
+      },
+      "llm_loaded": true,
+      "image_loaded": false,
+      "free_gb": 0,
+      "lifecycle": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model"
+        ],
+        "active_llm": "org/model"
+      },
+      "extra": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model"
+        ],
+        "active_llm": "org/model",
+        "llm_unload_dependent_capabilities": [
+          "video",
+          "music",
+          "music_video"
+        ]
+      }
+    },
+    {
+      "probe_error": false,
+      "name": "modes-false-auto-false",
+      "environment": {
+        "IMAGE_SERVER": "",
+        "VOICE_SERVER": "",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "false",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "MUSIC_UNLOAD_LLM_DURING_GENERATION": "false",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "false",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "false",
+        "MEDIA_KEEP_MODELS_LOADED": "false"
+      },
+      "llm_loaded": true,
+      "image_loaded": false,
+      "free_gb": 0,
+      "lifecycle": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model"
+        ],
+        "active_llm": "org/model"
+      },
+      "extra": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model"
+        ],
+        "active_llm": "org/model",
+        "llm_unload_dependent_capabilities": [
+          "video"
+        ]
+      }
+    },
+    {
+      "probe_error": false,
+      "name": "modes-false-auto-true",
+      "environment": {
+        "IMAGE_SERVER": "",
+        "VOICE_SERVER": "",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "false",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "MUSIC_UNLOAD_LLM_DURING_GENERATION": "true",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "false",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "false",
+        "MEDIA_KEEP_MODELS_LOADED": "false"
+      },
+      "llm_loaded": true,
+      "image_loaded": false,
+      "free_gb": 0,
+      "lifecycle": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model"
+        ],
+        "active_llm": "org/model"
+      },
+      "extra": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model"
+        ],
+        "active_llm": "org/model",
+        "llm_unload_dependent_capabilities": [
+          "video",
+          "music",
+          "music_video"
+        ]
+      }
+    },
+    {
+      "probe_error": false,
+      "name": "modes-false-auto-auto",
+      "environment": {
+        "IMAGE_SERVER": "",
+        "VOICE_SERVER": "",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "false",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "MUSIC_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "false",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "false",
+        "MEDIA_KEEP_MODELS_LOADED": "false"
+      },
+      "llm_loaded": true,
+      "image_loaded": false,
+      "free_gb": 0,
+      "lifecycle": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model"
+        ],
+        "active_llm": "org/model"
+      },
+      "extra": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model"
+        ],
+        "active_llm": "org/model",
+        "llm_unload_dependent_capabilities": [
+          "video",
+          "music",
+          "music_video"
+        ]
+      }
+    },
+    {
+      "probe_error": false,
+      "name": "modes-true-false-false",
+      "environment": {
+        "IMAGE_SERVER": "",
+        "VOICE_SERVER": "",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "true",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "false",
+        "MUSIC_UNLOAD_LLM_DURING_GENERATION": "false",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "false",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "false",
+        "MEDIA_KEEP_MODELS_LOADED": "false"
+      },
+      "llm_loaded": true,
+      "image_loaded": false,
+      "free_gb": 0,
+      "lifecycle": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model"
+        ],
+        "active_llm": "org/model"
+      },
+      "extra": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model"
+        ],
+        "active_llm": "org/model",
+        "llm_unload_dependent_capabilities": [
+          "image"
+        ]
+      }
+    },
+    {
+      "probe_error": false,
+      "name": "modes-true-false-true",
+      "environment": {
+        "IMAGE_SERVER": "",
+        "VOICE_SERVER": "",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "true",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "false",
+        "MUSIC_UNLOAD_LLM_DURING_GENERATION": "true",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "false",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "false",
+        "MEDIA_KEEP_MODELS_LOADED": "false"
+      },
+      "llm_loaded": true,
+      "image_loaded": false,
+      "free_gb": 0,
+      "lifecycle": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model"
+        ],
+        "active_llm": "org/model"
+      },
+      "extra": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model"
+        ],
+        "active_llm": "org/model",
+        "llm_unload_dependent_capabilities": [
+          "image",
+          "music"
+        ]
+      }
+    },
+    {
+      "probe_error": false,
+      "name": "modes-true-false-auto",
+      "environment": {
+        "IMAGE_SERVER": "",
+        "VOICE_SERVER": "",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "true",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "false",
+        "MUSIC_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "false",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "false",
+        "MEDIA_KEEP_MODELS_LOADED": "false"
+      },
+      "llm_loaded": true,
+      "image_loaded": false,
+      "free_gb": 0,
+      "lifecycle": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model"
+        ],
+        "active_llm": "org/model"
+      },
+      "extra": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model"
+        ],
+        "active_llm": "org/model",
+        "llm_unload_dependent_capabilities": [
+          "image",
+          "music"
+        ]
+      }
+    },
+    {
+      "probe_error": false,
+      "name": "modes-true-true-false",
+      "environment": {
+        "IMAGE_SERVER": "",
+        "VOICE_SERVER": "",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "true",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "true",
+        "MUSIC_UNLOAD_LLM_DURING_GENERATION": "false",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "false",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "false",
+        "MEDIA_KEEP_MODELS_LOADED": "false"
+      },
+      "llm_loaded": true,
+      "image_loaded": false,
+      "free_gb": 0,
+      "lifecycle": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model"
+        ],
+        "active_llm": "org/model"
+      },
+      "extra": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model"
+        ],
+        "active_llm": "org/model",
+        "llm_unload_dependent_capabilities": [
+          "image",
+          "video"
+        ]
+      }
+    },
+    {
+      "probe_error": false,
+      "name": "modes-true-true-true",
+      "environment": {
+        "IMAGE_SERVER": "",
+        "VOICE_SERVER": "",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "true",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "true",
+        "MUSIC_UNLOAD_LLM_DURING_GENERATION": "true",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "false",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "false",
+        "MEDIA_KEEP_MODELS_LOADED": "false"
+      },
+      "llm_loaded": true,
+      "image_loaded": false,
+      "free_gb": 0,
+      "lifecycle": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model"
+        ],
+        "active_llm": "org/model"
+      },
+      "extra": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model"
+        ],
+        "active_llm": "org/model",
+        "llm_unload_dependent_capabilities": [
+          "image",
+          "video",
+          "music",
+          "music_video"
+        ]
+      }
+    },
+    {
+      "probe_error": false,
+      "name": "modes-true-true-auto",
+      "environment": {
+        "IMAGE_SERVER": "",
+        "VOICE_SERVER": "",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "true",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "true",
+        "MUSIC_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "false",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "false",
+        "MEDIA_KEEP_MODELS_LOADED": "false"
+      },
+      "llm_loaded": true,
+      "image_loaded": false,
+      "free_gb": 0,
+      "lifecycle": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model"
+        ],
+        "active_llm": "org/model"
+      },
+      "extra": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model"
+        ],
+        "active_llm": "org/model",
+        "llm_unload_dependent_capabilities": [
+          "image",
+          "video",
+          "music",
+          "music_video"
+        ]
+      }
+    },
+    {
+      "probe_error": false,
+      "name": "modes-true-auto-false",
+      "environment": {
+        "IMAGE_SERVER": "",
+        "VOICE_SERVER": "",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "true",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "MUSIC_UNLOAD_LLM_DURING_GENERATION": "false",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "false",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "false",
+        "MEDIA_KEEP_MODELS_LOADED": "false"
+      },
+      "llm_loaded": true,
+      "image_loaded": false,
+      "free_gb": 0,
+      "lifecycle": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model"
+        ],
+        "active_llm": "org/model"
+      },
+      "extra": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model"
+        ],
+        "active_llm": "org/model",
+        "llm_unload_dependent_capabilities": [
+          "image",
+          "video"
+        ]
+      }
+    },
+    {
+      "probe_error": false,
+      "name": "modes-true-auto-true",
+      "environment": {
+        "IMAGE_SERVER": "",
+        "VOICE_SERVER": "",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "true",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "MUSIC_UNLOAD_LLM_DURING_GENERATION": "true",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "false",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "false",
+        "MEDIA_KEEP_MODELS_LOADED": "false"
+      },
+      "llm_loaded": true,
+      "image_loaded": false,
+      "free_gb": 0,
+      "lifecycle": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model"
+        ],
+        "active_llm": "org/model"
+      },
+      "extra": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model"
+        ],
+        "active_llm": "org/model",
+        "llm_unload_dependent_capabilities": [
+          "image",
+          "video",
+          "music",
+          "music_video"
+        ]
+      }
+    },
+    {
+      "probe_error": false,
+      "name": "modes-true-auto-auto",
+      "environment": {
+        "IMAGE_SERVER": "",
+        "VOICE_SERVER": "",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "true",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "MUSIC_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "false",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "false",
+        "MEDIA_KEEP_MODELS_LOADED": "false"
+      },
+      "llm_loaded": true,
+      "image_loaded": false,
+      "free_gb": 0,
+      "lifecycle": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model"
+        ],
+        "active_llm": "org/model"
+      },
+      "extra": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model"
+        ],
+        "active_llm": "org/model",
+        "llm_unload_dependent_capabilities": [
+          "image",
+          "video",
+          "music",
+          "music_video"
+        ]
+      }
+    },
+    {
+      "probe_error": false,
+      "name": "modes-auto-false-false",
+      "environment": {
+        "IMAGE_SERVER": "",
+        "VOICE_SERVER": "",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "false",
+        "MUSIC_UNLOAD_LLM_DURING_GENERATION": "false",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "false",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "false",
+        "MEDIA_KEEP_MODELS_LOADED": "false"
+      },
+      "llm_loaded": true,
+      "image_loaded": false,
+      "free_gb": 0,
+      "lifecycle": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model"
+        ],
+        "active_llm": "org/model"
+      },
+      "extra": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model"
+        ],
+        "active_llm": "org/model",
+        "llm_unload_dependent_capabilities": [
+          "image"
+        ]
+      }
+    },
+    {
+      "probe_error": false,
+      "name": "modes-auto-false-true",
+      "environment": {
+        "IMAGE_SERVER": "",
+        "VOICE_SERVER": "",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "false",
+        "MUSIC_UNLOAD_LLM_DURING_GENERATION": "true",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "false",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "false",
+        "MEDIA_KEEP_MODELS_LOADED": "false"
+      },
+      "llm_loaded": true,
+      "image_loaded": false,
+      "free_gb": 0,
+      "lifecycle": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model"
+        ],
+        "active_llm": "org/model"
+      },
+      "extra": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model"
+        ],
+        "active_llm": "org/model",
+        "llm_unload_dependent_capabilities": [
+          "image",
+          "music"
+        ]
+      }
+    },
+    {
+      "probe_error": false,
+      "name": "modes-auto-false-auto",
+      "environment": {
+        "IMAGE_SERVER": "",
+        "VOICE_SERVER": "",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "false",
+        "MUSIC_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "false",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "false",
+        "MEDIA_KEEP_MODELS_LOADED": "false"
+      },
+      "llm_loaded": true,
+      "image_loaded": false,
+      "free_gb": 0,
+      "lifecycle": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model"
+        ],
+        "active_llm": "org/model"
+      },
+      "extra": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model"
+        ],
+        "active_llm": "org/model",
+        "llm_unload_dependent_capabilities": [
+          "image",
+          "music"
+        ]
+      }
+    },
+    {
+      "probe_error": false,
+      "name": "modes-auto-true-false",
+      "environment": {
+        "IMAGE_SERVER": "",
+        "VOICE_SERVER": "",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "true",
+        "MUSIC_UNLOAD_LLM_DURING_GENERATION": "false",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "false",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "false",
+        "MEDIA_KEEP_MODELS_LOADED": "false"
+      },
+      "llm_loaded": true,
+      "image_loaded": false,
+      "free_gb": 0,
+      "lifecycle": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model"
+        ],
+        "active_llm": "org/model"
+      },
+      "extra": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model"
+        ],
+        "active_llm": "org/model",
+        "llm_unload_dependent_capabilities": [
+          "image",
+          "video"
+        ]
+      }
+    },
+    {
+      "probe_error": false,
+      "name": "modes-auto-true-true",
+      "environment": {
+        "IMAGE_SERVER": "",
+        "VOICE_SERVER": "",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "true",
+        "MUSIC_UNLOAD_LLM_DURING_GENERATION": "true",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "false",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "false",
+        "MEDIA_KEEP_MODELS_LOADED": "false"
+      },
+      "llm_loaded": true,
+      "image_loaded": false,
+      "free_gb": 0,
+      "lifecycle": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model"
+        ],
+        "active_llm": "org/model"
+      },
+      "extra": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model"
+        ],
+        "active_llm": "org/model",
+        "llm_unload_dependent_capabilities": [
+          "image",
+          "video",
+          "music",
+          "music_video"
+        ]
+      }
+    },
+    {
+      "probe_error": false,
+      "name": "modes-auto-true-auto",
+      "environment": {
+        "IMAGE_SERVER": "",
+        "VOICE_SERVER": "",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "true",
+        "MUSIC_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "false",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "false",
+        "MEDIA_KEEP_MODELS_LOADED": "false"
+      },
+      "llm_loaded": true,
+      "image_loaded": false,
+      "free_gb": 0,
+      "lifecycle": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model"
+        ],
+        "active_llm": "org/model"
+      },
+      "extra": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model"
+        ],
+        "active_llm": "org/model",
+        "llm_unload_dependent_capabilities": [
+          "image",
+          "video",
+          "music",
+          "music_video"
+        ]
+      }
+    },
+    {
+      "probe_error": false,
+      "name": "modes-auto-auto-false",
+      "environment": {
+        "IMAGE_SERVER": "",
+        "VOICE_SERVER": "",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "MUSIC_UNLOAD_LLM_DURING_GENERATION": "false",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "false",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "false",
+        "MEDIA_KEEP_MODELS_LOADED": "false"
+      },
+      "llm_loaded": true,
+      "image_loaded": false,
+      "free_gb": 0,
+      "lifecycle": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model"
+        ],
+        "active_llm": "org/model"
+      },
+      "extra": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model"
+        ],
+        "active_llm": "org/model",
+        "llm_unload_dependent_capabilities": [
+          "image",
+          "video"
+        ]
+      }
+    },
+    {
+      "probe_error": false,
+      "name": "modes-auto-auto-true",
+      "environment": {
+        "IMAGE_SERVER": "",
+        "VOICE_SERVER": "",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "MUSIC_UNLOAD_LLM_DURING_GENERATION": "true",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "false",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "false",
+        "MEDIA_KEEP_MODELS_LOADED": "false"
+      },
+      "llm_loaded": true,
+      "image_loaded": false,
+      "free_gb": 0,
+      "lifecycle": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model"
+        ],
+        "active_llm": "org/model"
+      },
+      "extra": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model"
+        ],
+        "active_llm": "org/model",
+        "llm_unload_dependent_capabilities": [
+          "image",
+          "video",
+          "music",
+          "music_video"
+        ]
+      }
+    },
+    {
+      "probe_error": false,
+      "name": "modes-auto-auto-auto",
+      "environment": {
+        "IMAGE_SERVER": "",
+        "VOICE_SERVER": "",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "MUSIC_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "false",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "false",
+        "MEDIA_KEEP_MODELS_LOADED": "false"
+      },
+      "llm_loaded": true,
+      "image_loaded": false,
+      "free_gb": 0,
+      "lifecycle": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model"
+        ],
+        "active_llm": "org/model"
+      },
+      "extra": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model"
+        ],
+        "active_llm": "org/model",
+        "llm_unload_dependent_capabilities": [
+          "image",
+          "video",
+          "music",
+          "music_video"
+        ]
+      }
+    },
+    {
+      "probe_error": false,
+      "name": "state-(False, False, 0, 'false')",
+      "environment": {
+        "IMAGE_SERVER": "",
+        "VOICE_SERVER": "",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "MUSIC_UNLOAD_LLM_DURING_GENERATION": "false",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "false",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "false",
+        "MEDIA_KEEP_MODELS_LOADED": "false"
+      },
+      "llm_loaded": false,
+      "image_loaded": false,
+      "free_gb": 0,
+      "lifecycle": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [],
+        "active_llm": null
+      },
+      "extra": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [],
+        "active_llm": null,
+        "llm_unload_dependent_capabilities": []
+      }
+    },
+    {
+      "probe_error": false,
+      "name": "state-(False, False, 0, 'true')",
+      "environment": {
+        "IMAGE_SERVER": "",
+        "VOICE_SERVER": "",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "MUSIC_UNLOAD_LLM_DURING_GENERATION": "false",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "false",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "false",
+        "MEDIA_KEEP_MODELS_LOADED": "true"
+      },
+      "llm_loaded": false,
+      "image_loaded": false,
+      "free_gb": 0,
+      "lifecycle": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [],
+        "active_llm": null
+      },
+      "extra": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [],
+        "active_llm": null,
+        "llm_unload_dependent_capabilities": []
+      }
+    },
+    {
+      "probe_error": false,
+      "name": "state-(False, False, 7, 'false')",
+      "environment": {
+        "IMAGE_SERVER": "",
+        "VOICE_SERVER": "",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "MUSIC_UNLOAD_LLM_DURING_GENERATION": "false",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "false",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "false",
+        "MEDIA_KEEP_MODELS_LOADED": "false"
+      },
+      "llm_loaded": false,
+      "image_loaded": false,
+      "free_gb": 7,
+      "lifecycle": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [],
+        "active_llm": null
+      },
+      "extra": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [],
+        "active_llm": null,
+        "llm_unload_dependent_capabilities": []
+      }
+    },
+    {
+      "probe_error": false,
+      "name": "state-(False, False, 7, 'true')",
+      "environment": {
+        "IMAGE_SERVER": "",
+        "VOICE_SERVER": "",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "MUSIC_UNLOAD_LLM_DURING_GENERATION": "false",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "false",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "false",
+        "MEDIA_KEEP_MODELS_LOADED": "true"
+      },
+      "llm_loaded": false,
+      "image_loaded": false,
+      "free_gb": 7,
+      "lifecycle": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [],
+        "active_llm": null
+      },
+      "extra": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [],
+        "active_llm": null,
+        "llm_unload_dependent_capabilities": []
+      }
+    },
+    {
+      "probe_error": false,
+      "name": "state-(False, False, 24, 'false')",
+      "environment": {
+        "IMAGE_SERVER": "",
+        "VOICE_SERVER": "",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "MUSIC_UNLOAD_LLM_DURING_GENERATION": "false",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "false",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "false",
+        "MEDIA_KEEP_MODELS_LOADED": "false"
+      },
+      "llm_loaded": false,
+      "image_loaded": false,
+      "free_gb": 24,
+      "lifecycle": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [],
+        "active_llm": null
+      },
+      "extra": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [],
+        "active_llm": null,
+        "llm_unload_dependent_capabilities": []
+      }
+    },
+    {
+      "probe_error": false,
+      "name": "state-(False, False, 24, 'true')",
+      "environment": {
+        "IMAGE_SERVER": "",
+        "VOICE_SERVER": "",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "MUSIC_UNLOAD_LLM_DURING_GENERATION": "false",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "false",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "false",
+        "MEDIA_KEEP_MODELS_LOADED": "true"
+      },
+      "llm_loaded": false,
+      "image_loaded": false,
+      "free_gb": 24,
+      "lifecycle": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [],
+        "active_llm": null
+      },
+      "extra": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [],
+        "active_llm": null,
+        "llm_unload_dependent_capabilities": []
+      }
+    },
+    {
+      "probe_error": false,
+      "name": "state-(False, True, 0, 'false')",
+      "environment": {
+        "IMAGE_SERVER": "",
+        "VOICE_SERVER": "",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "MUSIC_UNLOAD_LLM_DURING_GENERATION": "false",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "false",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "false",
+        "MEDIA_KEEP_MODELS_LOADED": "false"
+      },
+      "llm_loaded": false,
+      "image_loaded": true,
+      "free_gb": 0,
+      "lifecycle": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [],
+        "active_llm": null
+      },
+      "extra": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [],
+        "active_llm": null,
+        "llm_unload_dependent_capabilities": []
+      }
+    },
+    {
+      "probe_error": false,
+      "name": "state-(False, True, 0, 'true')",
+      "environment": {
+        "IMAGE_SERVER": "",
+        "VOICE_SERVER": "",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "MUSIC_UNLOAD_LLM_DURING_GENERATION": "false",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "false",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "false",
+        "MEDIA_KEEP_MODELS_LOADED": "true"
+      },
+      "llm_loaded": false,
+      "image_loaded": true,
+      "free_gb": 0,
+      "lifecycle": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [],
+        "active_llm": null
+      },
+      "extra": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [],
+        "active_llm": null,
+        "llm_unload_dependent_capabilities": []
+      }
+    },
+    {
+      "probe_error": false,
+      "name": "state-(False, True, 7, 'false')",
+      "environment": {
+        "IMAGE_SERVER": "",
+        "VOICE_SERVER": "",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "MUSIC_UNLOAD_LLM_DURING_GENERATION": "false",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "false",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "false",
+        "MEDIA_KEEP_MODELS_LOADED": "false"
+      },
+      "llm_loaded": false,
+      "image_loaded": true,
+      "free_gb": 7,
+      "lifecycle": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [],
+        "active_llm": null
+      },
+      "extra": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [],
+        "active_llm": null,
+        "llm_unload_dependent_capabilities": []
+      }
+    },
+    {
+      "probe_error": false,
+      "name": "state-(False, True, 7, 'true')",
+      "environment": {
+        "IMAGE_SERVER": "",
+        "VOICE_SERVER": "",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "MUSIC_UNLOAD_LLM_DURING_GENERATION": "false",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "false",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "false",
+        "MEDIA_KEEP_MODELS_LOADED": "true"
+      },
+      "llm_loaded": false,
+      "image_loaded": true,
+      "free_gb": 7,
+      "lifecycle": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [],
+        "active_llm": null
+      },
+      "extra": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [],
+        "active_llm": null,
+        "llm_unload_dependent_capabilities": []
+      }
+    },
+    {
+      "probe_error": false,
+      "name": "state-(False, True, 24, 'false')",
+      "environment": {
+        "IMAGE_SERVER": "",
+        "VOICE_SERVER": "",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "MUSIC_UNLOAD_LLM_DURING_GENERATION": "false",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "false",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "false",
+        "MEDIA_KEEP_MODELS_LOADED": "false"
+      },
+      "llm_loaded": false,
+      "image_loaded": true,
+      "free_gb": 24,
+      "lifecycle": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [],
+        "active_llm": null
+      },
+      "extra": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [],
+        "active_llm": null,
+        "llm_unload_dependent_capabilities": []
+      }
+    },
+    {
+      "probe_error": false,
+      "name": "state-(False, True, 24, 'true')",
+      "environment": {
+        "IMAGE_SERVER": "",
+        "VOICE_SERVER": "",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "MUSIC_UNLOAD_LLM_DURING_GENERATION": "false",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "false",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "false",
+        "MEDIA_KEEP_MODELS_LOADED": "true"
+      },
+      "llm_loaded": false,
+      "image_loaded": true,
+      "free_gb": 24,
+      "lifecycle": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [],
+        "active_llm": null
+      },
+      "extra": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [],
+        "active_llm": null,
+        "llm_unload_dependent_capabilities": []
+      }
+    },
+    {
+      "probe_error": false,
+      "name": "state-(True, False, 0, 'false')",
+      "environment": {
+        "IMAGE_SERVER": "",
+        "VOICE_SERVER": "",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "MUSIC_UNLOAD_LLM_DURING_GENERATION": "false",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "false",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "false",
+        "MEDIA_KEEP_MODELS_LOADED": "false"
+      },
+      "llm_loaded": true,
+      "image_loaded": false,
+      "free_gb": 0,
+      "lifecycle": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model"
+        ],
+        "active_llm": "org/model"
+      },
+      "extra": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model"
+        ],
+        "active_llm": "org/model",
+        "llm_unload_dependent_capabilities": [
+          "image",
+          "video"
+        ]
+      }
+    },
+    {
+      "probe_error": false,
+      "name": "state-(True, False, 0, 'true')",
+      "environment": {
+        "IMAGE_SERVER": "",
+        "VOICE_SERVER": "",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "MUSIC_UNLOAD_LLM_DURING_GENERATION": "false",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "false",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "false",
+        "MEDIA_KEEP_MODELS_LOADED": "true"
+      },
+      "llm_loaded": true,
+      "image_loaded": false,
+      "free_gb": 0,
+      "lifecycle": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model"
+        ],
+        "active_llm": "org/model"
+      },
+      "extra": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model"
+        ],
+        "active_llm": "org/model",
+        "llm_unload_dependent_capabilities": []
+      }
+    },
+    {
+      "probe_error": false,
+      "name": "state-(True, False, 7, 'false')",
+      "environment": {
+        "IMAGE_SERVER": "",
+        "VOICE_SERVER": "",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "MUSIC_UNLOAD_LLM_DURING_GENERATION": "false",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "false",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "false",
+        "MEDIA_KEEP_MODELS_LOADED": "false"
+      },
+      "llm_loaded": true,
+      "image_loaded": false,
+      "free_gb": 7,
+      "lifecycle": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model"
+        ],
+        "active_llm": "org/model"
+      },
+      "extra": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model"
+        ],
+        "active_llm": "org/model",
+        "llm_unload_dependent_capabilities": [
+          "video"
+        ]
+      }
+    },
+    {
+      "probe_error": false,
+      "name": "state-(True, False, 7, 'true')",
+      "environment": {
+        "IMAGE_SERVER": "",
+        "VOICE_SERVER": "",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "MUSIC_UNLOAD_LLM_DURING_GENERATION": "false",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "false",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "false",
+        "MEDIA_KEEP_MODELS_LOADED": "true"
+      },
+      "llm_loaded": true,
+      "image_loaded": false,
+      "free_gb": 7,
+      "lifecycle": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model"
+        ],
+        "active_llm": "org/model"
+      },
+      "extra": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model"
+        ],
+        "active_llm": "org/model",
+        "llm_unload_dependent_capabilities": []
+      }
+    },
+    {
+      "probe_error": false,
+      "name": "state-(True, False, 24, 'false')",
+      "environment": {
+        "IMAGE_SERVER": "",
+        "VOICE_SERVER": "",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "MUSIC_UNLOAD_LLM_DURING_GENERATION": "false",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "false",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "false",
+        "MEDIA_KEEP_MODELS_LOADED": "false"
+      },
+      "llm_loaded": true,
+      "image_loaded": false,
+      "free_gb": 24,
+      "lifecycle": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model"
+        ],
+        "active_llm": "org/model"
+      },
+      "extra": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model"
+        ],
+        "active_llm": "org/model",
+        "llm_unload_dependent_capabilities": [
+          "video"
+        ]
+      }
+    },
+    {
+      "probe_error": false,
+      "name": "state-(True, False, 24, 'true')",
+      "environment": {
+        "IMAGE_SERVER": "",
+        "VOICE_SERVER": "",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "MUSIC_UNLOAD_LLM_DURING_GENERATION": "false",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "false",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "false",
+        "MEDIA_KEEP_MODELS_LOADED": "true"
+      },
+      "llm_loaded": true,
+      "image_loaded": false,
+      "free_gb": 24,
+      "lifecycle": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model"
+        ],
+        "active_llm": "org/model"
+      },
+      "extra": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model"
+        ],
+        "active_llm": "org/model",
+        "llm_unload_dependent_capabilities": []
+      }
+    },
+    {
+      "probe_error": false,
+      "name": "state-(True, True, 0, 'false')",
+      "environment": {
+        "IMAGE_SERVER": "",
+        "VOICE_SERVER": "",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "MUSIC_UNLOAD_LLM_DURING_GENERATION": "false",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "false",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "false",
+        "MEDIA_KEEP_MODELS_LOADED": "false"
+      },
+      "llm_loaded": true,
+      "image_loaded": true,
+      "free_gb": 0,
+      "lifecycle": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model"
+        ],
+        "active_llm": "org/model"
+      },
+      "extra": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model"
+        ],
+        "active_llm": "org/model",
+        "llm_unload_dependent_capabilities": [
+          "video"
+        ]
+      }
+    },
+    {
+      "probe_error": false,
+      "name": "state-(True, True, 0, 'true')",
+      "environment": {
+        "IMAGE_SERVER": "",
+        "VOICE_SERVER": "",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "MUSIC_UNLOAD_LLM_DURING_GENERATION": "false",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "false",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "false",
+        "MEDIA_KEEP_MODELS_LOADED": "true"
+      },
+      "llm_loaded": true,
+      "image_loaded": true,
+      "free_gb": 0,
+      "lifecycle": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model"
+        ],
+        "active_llm": "org/model"
+      },
+      "extra": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model"
+        ],
+        "active_llm": "org/model",
+        "llm_unload_dependent_capabilities": []
+      }
+    },
+    {
+      "probe_error": false,
+      "name": "state-(True, True, 7, 'false')",
+      "environment": {
+        "IMAGE_SERVER": "",
+        "VOICE_SERVER": "",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "MUSIC_UNLOAD_LLM_DURING_GENERATION": "false",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "false",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "false",
+        "MEDIA_KEEP_MODELS_LOADED": "false"
+      },
+      "llm_loaded": true,
+      "image_loaded": true,
+      "free_gb": 7,
+      "lifecycle": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model"
+        ],
+        "active_llm": "org/model"
+      },
+      "extra": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model"
+        ],
+        "active_llm": "org/model",
+        "llm_unload_dependent_capabilities": [
+          "video"
+        ]
+      }
+    },
+    {
+      "probe_error": false,
+      "name": "state-(True, True, 7, 'true')",
+      "environment": {
+        "IMAGE_SERVER": "",
+        "VOICE_SERVER": "",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "MUSIC_UNLOAD_LLM_DURING_GENERATION": "false",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "false",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "false",
+        "MEDIA_KEEP_MODELS_LOADED": "true"
+      },
+      "llm_loaded": true,
+      "image_loaded": true,
+      "free_gb": 7,
+      "lifecycle": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model"
+        ],
+        "active_llm": "org/model"
+      },
+      "extra": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model"
+        ],
+        "active_llm": "org/model",
+        "llm_unload_dependent_capabilities": []
+      }
+    },
+    {
+      "probe_error": false,
+      "name": "state-(True, True, 24, 'false')",
+      "environment": {
+        "IMAGE_SERVER": "",
+        "VOICE_SERVER": "",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "MUSIC_UNLOAD_LLM_DURING_GENERATION": "false",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "false",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "false",
+        "MEDIA_KEEP_MODELS_LOADED": "false"
+      },
+      "llm_loaded": true,
+      "image_loaded": true,
+      "free_gb": 24,
+      "lifecycle": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model"
+        ],
+        "active_llm": "org/model"
+      },
+      "extra": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model"
+        ],
+        "active_llm": "org/model",
+        "llm_unload_dependent_capabilities": [
+          "video"
+        ]
+      }
+    },
+    {
+      "probe_error": false,
+      "name": "state-(True, True, 24, 'true')",
+      "environment": {
+        "IMAGE_SERVER": "",
+        "VOICE_SERVER": "",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "MUSIC_UNLOAD_LLM_DURING_GENERATION": "false",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "false",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "false",
+        "MEDIA_KEEP_MODELS_LOADED": "true"
+      },
+      "llm_loaded": true,
+      "image_loaded": true,
+      "free_gb": 24,
+      "lifecycle": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model"
+        ],
+        "active_llm": "org/model"
+      },
+      "extra": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model"
+        ],
+        "active_llm": "org/model",
+        "llm_unload_dependent_capabilities": []
+      }
+    },
+    {
+      "probe_error": false,
+      "name": "IMAGE_SERVER-http://image",
+      "environment": {
+        "IMAGE_SERVER": "http://image",
+        "VOICE_SERVER": "",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "MUSIC_UNLOAD_LLM_DURING_GENERATION": "false",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "false",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "false",
+        "MEDIA_KEEP_MODELS_LOADED": "false"
+      },
+      "llm_loaded": true,
+      "image_loaded": false,
+      "free_gb": 0,
+      "lifecycle": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model",
+          "org/model"
+        ],
+        "active_llm": "org/model"
+      },
+      "extra": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model",
+          "org/model"
+        ],
+        "active_llm": "org/model",
+        "llm_unload_dependent_capabilities": []
+      }
+    },
+    {
+      "probe_error": false,
+      "name": "IMAGE_SERVER-true",
+      "environment": {
+        "IMAGE_SERVER": "true",
+        "VOICE_SERVER": "",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "MUSIC_UNLOAD_LLM_DURING_GENERATION": "false",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "false",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "false",
+        "MEDIA_KEEP_MODELS_LOADED": "false"
+      },
+      "llm_loaded": true,
+      "image_loaded": false,
+      "free_gb": 0,
+      "lifecycle": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model",
+          "org/model"
+        ],
+        "active_llm": "org/model"
+      },
+      "extra": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model",
+          "org/model"
+        ],
+        "active_llm": "org/model",
+        "llm_unload_dependent_capabilities": [
+          "image",
+          "video"
+        ]
+      }
+    },
+    {
+      "probe_error": false,
+      "name": "IMAGE_SERVER-/",
+      "environment": {
+        "IMAGE_SERVER": "/",
+        "VOICE_SERVER": "",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "MUSIC_UNLOAD_LLM_DURING_GENERATION": "false",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "false",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "false",
+        "MEDIA_KEEP_MODELS_LOADED": "false"
+      },
+      "llm_loaded": true,
+      "image_loaded": false,
+      "free_gb": 0,
+      "lifecycle": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model",
+          "org/model"
+        ],
+        "active_llm": "org/model"
+      },
+      "extra": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model",
+          "org/model"
+        ],
+        "active_llm": "org/model",
+        "llm_unload_dependent_capabilities": [
+          "image",
+          "video"
+        ]
+      }
+    },
+    {
+      "probe_error": false,
+      "name": "IMAGE_SERVER- true ",
+      "environment": {
+        "IMAGE_SERVER": " true ",
+        "VOICE_SERVER": "",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "MUSIC_UNLOAD_LLM_DURING_GENERATION": "false",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "false",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "false",
+        "MEDIA_KEEP_MODELS_LOADED": "false"
+      },
+      "llm_loaded": true,
+      "image_loaded": false,
+      "free_gb": 0,
+      "lifecycle": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model",
+          "org/model"
+        ],
+        "active_llm": "org/model"
+      },
+      "extra": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model",
+          "org/model"
+        ],
+        "active_llm": "org/model",
+        "llm_unload_dependent_capabilities": []
+      }
+    },
+    {
+      "probe_error": false,
+      "name": "IMAGE_MODEL_MIN_FREE_GB-",
+      "environment": {
+        "IMAGE_SERVER": "",
+        "VOICE_SERVER": "",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "MUSIC_UNLOAD_LLM_DURING_GENERATION": "false",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "false",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "false",
+        "MEDIA_KEEP_MODELS_LOADED": "false",
+        "IMAGE_MODEL_MIN_FREE_GB": ""
+      },
+      "llm_loaded": true,
+      "image_loaded": false,
+      "free_gb": 0,
+      "lifecycle": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model",
+          "org/model"
+        ],
+        "active_llm": "org/model"
+      },
+      "extra": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model",
+          "org/model"
+        ],
+        "active_llm": "org/model",
+        "llm_unload_dependent_capabilities": [
+          "image",
+          "video"
+        ]
+      }
+    },
+    {
+      "probe_error": false,
+      "name": "IMAGE_MODEL_MIN_FREE_GB-bad",
+      "environment": {
+        "IMAGE_SERVER": "",
+        "VOICE_SERVER": "",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "MUSIC_UNLOAD_LLM_DURING_GENERATION": "false",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "false",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "false",
+        "MEDIA_KEEP_MODELS_LOADED": "false",
+        "IMAGE_MODEL_MIN_FREE_GB": "bad"
+      },
+      "llm_loaded": true,
+      "image_loaded": false,
+      "free_gb": 0,
+      "lifecycle": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model",
+          "org/model"
+        ],
+        "active_llm": "org/model"
+      },
+      "extra": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model",
+          "org/model"
+        ],
+        "active_llm": "org/model",
+        "llm_unload_dependent_capabilities": [
+          "image",
+          "video"
+        ]
+      }
+    },
+    {
+      "probe_error": false,
+      "name": "IMAGE_MODEL_MIN_FREE_GB-0",
+      "environment": {
+        "IMAGE_SERVER": "",
+        "VOICE_SERVER": "",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "MUSIC_UNLOAD_LLM_DURING_GENERATION": "false",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "false",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "false",
+        "MEDIA_KEEP_MODELS_LOADED": "false",
+        "IMAGE_MODEL_MIN_FREE_GB": "0"
+      },
+      "llm_loaded": true,
+      "image_loaded": false,
+      "free_gb": 0,
+      "lifecycle": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model",
+          "org/model"
+        ],
+        "active_llm": "org/model"
+      },
+      "extra": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model",
+          "org/model"
+        ],
+        "active_llm": "org/model",
+        "llm_unload_dependent_capabilities": [
+          "image",
+          "video"
+        ]
+      }
+    },
+    {
+      "probe_error": false,
+      "name": "IMAGE_MODEL_MIN_FREE_GB-8",
+      "environment": {
+        "IMAGE_SERVER": "",
+        "VOICE_SERVER": "",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "MUSIC_UNLOAD_LLM_DURING_GENERATION": "false",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "false",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "false",
+        "MEDIA_KEEP_MODELS_LOADED": "false",
+        "IMAGE_MODEL_MIN_FREE_GB": "8"
+      },
+      "llm_loaded": true,
+      "image_loaded": false,
+      "free_gb": 0,
+      "lifecycle": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model",
+          "org/model"
+        ],
+        "active_llm": "org/model"
+      },
+      "extra": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model",
+          "org/model"
+        ],
+        "active_llm": "org/model",
+        "llm_unload_dependent_capabilities": [
+          "image",
+          "video"
+        ]
+      }
+    },
+    {
+      "probe_error": false,
+      "name": "IMAGE_MODEL_MIN_FREE_GB-nan",
+      "environment": {
+        "IMAGE_SERVER": "",
+        "VOICE_SERVER": "",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "MUSIC_UNLOAD_LLM_DURING_GENERATION": "false",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "false",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "false",
+        "MEDIA_KEEP_MODELS_LOADED": "false",
+        "IMAGE_MODEL_MIN_FREE_GB": "nan"
+      },
+      "llm_loaded": true,
+      "image_loaded": false,
+      "free_gb": 0,
+      "lifecycle": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model",
+          "org/model"
+        ],
+        "active_llm": "org/model"
+      },
+      "extra": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model",
+          "org/model"
+        ],
+        "active_llm": "org/model",
+        "llm_unload_dependent_capabilities": [
+          "image",
+          "video"
+        ]
+      }
+    },
+    {
+      "probe_error": false,
+      "name": "IMAGE_MODEL_MIN_FREE_GB-inf",
+      "environment": {
+        "IMAGE_SERVER": "",
+        "VOICE_SERVER": "",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "MUSIC_UNLOAD_LLM_DURING_GENERATION": "false",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "false",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "false",
+        "MEDIA_KEEP_MODELS_LOADED": "false",
+        "IMAGE_MODEL_MIN_FREE_GB": "inf"
+      },
+      "llm_loaded": true,
+      "image_loaded": false,
+      "free_gb": 0,
+      "lifecycle": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model",
+          "org/model"
+        ],
+        "active_llm": "org/model"
+      },
+      "extra": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model",
+          "org/model"
+        ],
+        "active_llm": "org/model",
+        "llm_unload_dependent_capabilities": [
+          "image",
+          "video"
+        ]
+      }
+    },
+    {
+      "probe_error": false,
+      "name": "TTS_UNLOAD_LLM_DURING_GENERATION-true",
+      "environment": {
+        "IMAGE_SERVER": "",
+        "VOICE_SERVER": "",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "MUSIC_UNLOAD_LLM_DURING_GENERATION": "false",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "true",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "false",
+        "MEDIA_KEEP_MODELS_LOADED": "false"
+      },
+      "llm_loaded": true,
+      "image_loaded": false,
+      "free_gb": 0,
+      "lifecycle": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model",
+          "org/model"
+        ],
+        "active_llm": "org/model"
+      },
+      "extra": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model",
+          "org/model"
+        ],
+        "active_llm": "org/model",
+        "llm_unload_dependent_capabilities": [
+          "image",
+          "video",
+          "tts"
+        ]
+      }
+    },
+    {
+      "probe_error": false,
+      "name": "TTS_UNLOAD_LLM_DURING_GENERATION-false",
+      "environment": {
+        "IMAGE_SERVER": "",
+        "VOICE_SERVER": "",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "MUSIC_UNLOAD_LLM_DURING_GENERATION": "false",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "false",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "false",
+        "MEDIA_KEEP_MODELS_LOADED": "false"
+      },
+      "llm_loaded": true,
+      "image_loaded": false,
+      "free_gb": 0,
+      "lifecycle": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model",
+          "org/model"
+        ],
+        "active_llm": "org/model"
+      },
+      "extra": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model",
+          "org/model"
+        ],
+        "active_llm": "org/model",
+        "llm_unload_dependent_capabilities": [
+          "image",
+          "video"
+        ]
+      }
+    },
+    {
+      "probe_error": false,
+      "name": "TTS_UNLOAD_LLM_DURING_GENERATION-auto",
+      "environment": {
+        "IMAGE_SERVER": "",
+        "VOICE_SERVER": "",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "MUSIC_UNLOAD_LLM_DURING_GENERATION": "false",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "false",
+        "MEDIA_KEEP_MODELS_LOADED": "false"
+      },
+      "llm_loaded": true,
+      "image_loaded": false,
+      "free_gb": 0,
+      "lifecycle": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model",
+          "org/model"
+        ],
+        "active_llm": "org/model"
+      },
+      "extra": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model",
+          "org/model"
+        ],
+        "active_llm": "org/model",
+        "llm_unload_dependent_capabilities": [
+          "image",
+          "video",
+          "tts"
+        ]
+      }
+    },
+    {
+      "probe_error": false,
+      "name": "STT_UNLOAD_LLM_DURING_GENERATION-true",
+      "environment": {
+        "IMAGE_SERVER": "",
+        "VOICE_SERVER": "",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "MUSIC_UNLOAD_LLM_DURING_GENERATION": "false",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "false",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "true",
+        "MEDIA_KEEP_MODELS_LOADED": "false"
+      },
+      "llm_loaded": true,
+      "image_loaded": false,
+      "free_gb": 0,
+      "lifecycle": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model",
+          "org/model"
+        ],
+        "active_llm": "org/model"
+      },
+      "extra": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model",
+          "org/model"
+        ],
+        "active_llm": "org/model",
+        "llm_unload_dependent_capabilities": [
+          "image",
+          "video",
+          "stt"
+        ]
+      }
+    },
+    {
+      "probe_error": false,
+      "name": "STT_UNLOAD_LLM_DURING_GENERATION-false",
+      "environment": {
+        "IMAGE_SERVER": "",
+        "VOICE_SERVER": "",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "MUSIC_UNLOAD_LLM_DURING_GENERATION": "false",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "false",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "false",
+        "MEDIA_KEEP_MODELS_LOADED": "false"
+      },
+      "llm_loaded": true,
+      "image_loaded": false,
+      "free_gb": 0,
+      "lifecycle": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model",
+          "org/model"
+        ],
+        "active_llm": "org/model"
+      },
+      "extra": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model",
+          "org/model"
+        ],
+        "active_llm": "org/model",
+        "llm_unload_dependent_capabilities": [
+          "image",
+          "video"
+        ]
+      }
+    },
+    {
+      "probe_error": false,
+      "name": "STT_UNLOAD_LLM_DURING_GENERATION-auto",
+      "environment": {
+        "IMAGE_SERVER": "",
+        "VOICE_SERVER": "",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "MUSIC_UNLOAD_LLM_DURING_GENERATION": "false",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "false",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "MEDIA_KEEP_MODELS_LOADED": "false"
+      },
+      "llm_loaded": true,
+      "image_loaded": false,
+      "free_gb": 0,
+      "lifecycle": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model",
+          "org/model"
+        ],
+        "active_llm": "org/model"
+      },
+      "extra": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model",
+          "org/model"
+        ],
+        "active_llm": "org/model",
+        "llm_unload_dependent_capabilities": [
+          "image",
+          "video",
+          "stt"
+        ]
+      }
+    },
+    {
+      "probe_error": false,
+      "name": "all-dependencies",
+      "environment": {
+        "IMAGE_SERVER": "",
+        "VOICE_SERVER": "",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "true",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "true",
+        "MUSIC_UNLOAD_LLM_DURING_GENERATION": "true",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "true",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "true",
+        "MEDIA_KEEP_MODELS_LOADED": "false"
+      },
+      "llm_loaded": true,
+      "image_loaded": false,
+      "free_gb": 0,
+      "lifecycle": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model",
+          "org/model"
+        ],
+        "active_llm": "org/model"
+      },
+      "extra": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model",
+          "org/model"
+        ],
+        "active_llm": "org/model",
+        "llm_unload_dependent_capabilities": [
+          "image",
+          "video",
+          "music",
+          "tts",
+          "stt",
+          "music_video"
+        ]
+      }
+    },
+    {
+      "probe_error": true,
+      "name": "probe-failure",
+      "environment": {
+        "IMAGE_SERVER": "",
+        "VOICE_SERVER": "",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "MUSIC_UNLOAD_LLM_DURING_GENERATION": "false",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "false",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "false",
+        "MEDIA_KEEP_MODELS_LOADED": "false"
+      },
+      "llm_loaded": true,
+      "image_loaded": false,
+      "free_gb": 0,
+      "lifecycle": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model"
+        ],
+        "active_llm": "org/model"
+      },
+      "extra": {}
+    },
+    {
+      "probe_error": true,
+      "name": "probe-skipped",
+      "environment": {
+        "IMAGE_SERVER": "",
+        "VOICE_SERVER": "",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "false",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "MUSIC_UNLOAD_LLM_DURING_GENERATION": "false",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "false",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "false",
+        "MEDIA_KEEP_MODELS_LOADED": "false"
+      },
+      "llm_loaded": true,
+      "image_loaded": false,
+      "free_gb": 0,
+      "lifecycle": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model"
+        ],
+        "active_llm": "org/model"
+      },
+      "extra": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model"
+        ],
+        "active_llm": "org/model",
+        "llm_unload_dependent_capabilities": [
+          "video"
+        ]
+      }
+    },
+    {
+      "probe_error": true,
+      "name": "probe-skipped-resident-image",
+      "environment": {
+        "IMAGE_SERVER": "",
+        "VOICE_SERVER": "",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "MUSIC_UNLOAD_LLM_DURING_GENERATION": "false",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "false",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "false",
+        "MEDIA_KEEP_MODELS_LOADED": "false"
+      },
+      "llm_loaded": true,
+      "image_loaded": true,
+      "free_gb": 0,
+      "lifecycle": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model"
+        ],
+        "active_llm": "org/model"
+      },
+      "extra": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model"
+        ],
+        "active_llm": "org/model",
+        "llm_unload_dependent_capabilities": [
+          "video"
+        ]
+      }
+    },
+    {
+      "probe_error": false,
+      "name": "detached",
+      "environment": {
+        "IMAGE_SERVER": "",
+        "VOICE_SERVER": "",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "MUSIC_UNLOAD_LLM_DURING_GENERATION": "false",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "false",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "false",
+        "MEDIA_KEEP_MODELS_LOADED": "false"
+      },
+      "llm_loaded": false,
+      "image_loaded": false,
+      "free_gb": 0,
+      "lifecycle": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [],
+        "active_llm": null
+      },
+      "extra": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [],
+        "active_llm": null,
+        "llm_unload_dependent_capabilities": []
+      }
+    },
+    {
+      "probe_error": false,
+      "name": "restored",
+      "environment": {
+        "IMAGE_SERVER": "",
+        "VOICE_SERVER": "",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "MUSIC_UNLOAD_LLM_DURING_GENERATION": "false",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "false",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "false",
+        "MEDIA_KEEP_MODELS_LOADED": "false"
+      },
+      "llm_loaded": true,
+      "image_loaded": false,
+      "free_gb": 0,
+      "lifecycle": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model",
+          "org/model"
+        ],
+        "active_llm": "org/model"
+      },
+      "extra": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model",
+          "org/model"
+        ],
+        "active_llm": "org/model",
+        "llm_unload_dependent_capabilities": [
+          "image",
+          "video"
+        ]
+      }
+    }
+  ]
+}

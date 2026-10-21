@@ -1,0 +1,538 @@
+{
+  "scope": "Real CUDA Qwen3.8 target-only, MTP and DFlash2 inference with source vision regressions and Rust routed buffered/SSE execution.",
+  "deployment_image": "sha256:8a3409aa8ed3b97f8c5eb8cd434307e74414ab4d20034e04f00de8a5e0226b56",
+  "python_image": "sha256:c2180ffee0b1579dc63b33236777c1bdc70c899c51f979c91969e04d601ff5cb",
+  "reference_sha256": {
+    "Globals.py": "c2be3290368b9be8f6cf5e80af2109bf17dc0c407e2cdadf32fecb338b4744e8",
+    "ezlocalai/LLM.py": "2d54d53e014e99bcd91e036736dc4f45f8160220c35da0ac582e588db52ea607",
+    "ezlocalai/Speculative.py": "6afa9ba31b7d1934c37051d8b424dcdac9bca5fe1a72de56841bce452e36639e",
+    "ezlocalai/InferenceSettings.py": "ce0a40806f280ee697c81920d3eaadc1d0c865614a861cf88f1ceb819939ddd5",
+    "benchmark_vision.py": "47a9910bf6fefcf08523ee517f608cf29fd5472f6c01126c6276cc785dacac80",
+    "benchmark_speculative.py": "fbb517bb58c5873eebc7be47bb1532c791a9af2d12297a2da815e0d29d5a7b3a"
+  },
+  "fixture_reference_sha256": {
+    "vision": "47a9910bf6fefcf08523ee517f608cf29fd5472f6c01126c6276cc785dacac80",
+    "greedy": {
+      "benchmark_speculative.py": "fbb517bb58c5873eebc7be47bb1532c791a9af2d12297a2da815e0d29d5a7b3a",
+      "Pipes.py": "8238cef03d4a1db6e775d7f62234bcf998d8f08bd9fc15f1d8a36ea0d3280005"
+    }
+  },
+  "context": 220000,
+  "batch": 1024,
+  "ubatch": 512,
+  "gpu": "NVIDIA GeForce RTX 3090 Ti",
+  "target": "unsloth/Qwen3.8-27B-GGUF",
+  "quant": "Q3_K_XL",
+  "router_binary_sha256": "91873d25c218dd3d3ed12bded2ff990bd13837d6d514922eb04dc45ccbde93b9",
+  "source_sha256": {
+    "tests/test_speculative_model.cpp": "50701cb68bd759bdbc53ef4236213a9d637d762f122c329807a21d64a88def56",
+    "tests/fixtures/speculative_live_cases.json": "05c650c91e251773d6e1465c17be718df1cb8fd7313a7d0a42959fa1dae72f5d",
+    "src/llm_speculative.cpp": "cedcbf776d76175452e7350c2de1569301e64cf4ac944ddc3a1f6255796f996e",
+    "CMakeLists.txt": "b42930592afdb741891d3fac53476d26c3fe1a3b2f36b220d0e6efc3c94a8d79"
+  },
+  "runs": [
+    {
+      "backend": "none",
+      "native_passed": true,
+      "python_passed": true,
+      "python_binding_version": "2026.10.11549",
+      "native_vision_cases": 20,
+      "python_vision_cases": 10,
+      "drafted": 0,
+      "accepted": 0,
+      "native_launch": null,
+      "greedy": [
+        {
+          "name": "code-0",
+          "native_sha256": "5a05b9dda770e0913f358232ad440a563ab5abde311036ade5b700d309b2d48c",
+          "python_sha256": "5a05b9dda770e0913f358232ad440a563ab5abde311036ade5b700d309b2d48c",
+          "native_python_match": true,
+          "matches_native_target_only": true,
+          "native_drafted": 0,
+          "native_accepted": 0
+        },
+        {
+          "name": "prose-0",
+          "native_sha256": "1a643e07afa572555333f982b9aa1332fa1c9dc4d869716edffdf51d163f2564",
+          "python_sha256": "1a643e07afa572555333f982b9aa1332fa1c9dc4d869716edffdf51d163f2564",
+          "native_python_match": true,
+          "matches_native_target_only": true,
+          "native_drafted": 0,
+          "native_accepted": 0
+        },
+        {
+          "name": "code-12000",
+          "native_sha256": "5ef6a87d1c2ba65666d7e040ba60240886bb575f6bb2e9027465c7c80734486b",
+          "python_sha256": "5ef6a87d1c2ba65666d7e040ba60240886bb575f6bb2e9027465c7c80734486b",
+          "native_python_match": true,
+          "matches_native_target_only": true,
+          "native_drafted": 0,
+          "native_accepted": 0
+        },
+        {
+          "name": "prose-12000",
+          "native_sha256": "31f1aa9fd485719877de811481b55090f2b27a7391fa035a9686ee922a4975ca",
+          "python_sha256": "31f1aa9fd485719877de811481b55090f2b27a7391fa035a9686ee922a4975ca",
+          "native_python_match": true,
+          "matches_native_target_only": true,
+          "native_drafted": 0,
+          "native_accepted": 0
+        }
+      ],
+      "vision": [
+        {
+          "name": "small-image",
+          "passed": true,
+          "stream": false
+        },
+        {
+          "name": "large-image",
+          "passed": true,
+          "stream": false
+        },
+        {
+          "name": "cached-large-image",
+          "passed": true,
+          "stream": false
+        },
+        {
+          "name": "long-generation-after-image",
+          "passed": true,
+          "stream": false
+        },
+        {
+          "name": "long-text-before-image",
+          "passed": true,
+          "stream": false
+        },
+        {
+          "name": "long-text-after-image",
+          "passed": true,
+          "stream": false
+        },
+        {
+          "name": "multiple-large-images",
+          "passed": true,
+          "stream": false
+        },
+        {
+          "name": "large-image-ocr",
+          "passed": true,
+          "stream": false
+        },
+        {
+          "name": "changed-image-ocr",
+          "passed": true,
+          "stream": false
+        },
+        {
+          "name": "text-after-vision",
+          "passed": true,
+          "stream": false
+        },
+        {
+          "name": "small-image",
+          "passed": true,
+          "stream": true
+        },
+        {
+          "name": "large-image",
+          "passed": true,
+          "stream": true
+        },
+        {
+          "name": "cached-large-image",
+          "passed": true,
+          "stream": true
+        },
+        {
+          "name": "long-generation-after-image",
+          "passed": true,
+          "stream": true
+        },
+        {
+          "name": "long-text-before-image",
+          "passed": true,
+          "stream": true
+        },
+        {
+          "name": "long-text-after-image",
+          "passed": true,
+          "stream": true
+        },
+        {
+          "name": "multiple-large-images",
+          "passed": true,
+          "stream": true
+        },
+        {
+          "name": "large-image-ocr",
+          "passed": true,
+          "stream": true
+        },
+        {
+          "name": "changed-image-ocr",
+          "passed": true,
+          "stream": true
+        },
+        {
+          "name": "text-after-vision",
+          "passed": true,
+          "stream": true
+        }
+      ]
+    },
+    {
+      "backend": "mtp",
+      "native_passed": true,
+      "python_passed": true,
+      "python_binding_version": "2026.10.11549",
+      "native_vision_cases": 20,
+      "python_vision_cases": 10,
+      "drafted": 1223,
+      "accepted": 771,
+      "native_launch": [
+        {
+          "-m": "/app/models/Qwen3.8-27B/Qwen3.8-27B-UD-Q3_K_XL.gguf",
+          "-c": "220000",
+          "--main-gpu": "0",
+          "-b": "1024",
+          "-ub": "512",
+          "--mmproj": "/app/models/Qwen3.8-27B/mmproj-BF16.gguf",
+          "-np": "1",
+          "--spec-type": "draft-mtp",
+          "--spec-draft-n-max": "3",
+          "--spec-draft-p-min": "0.10000000000000001",
+          "-ngl": "-1"
+        }
+      ],
+      "greedy": [
+        {
+          "name": "code-0",
+          "native_sha256": "5a05b9dda770e0913f358232ad440a563ab5abde311036ade5b700d309b2d48c",
+          "python_sha256": "5a05b9dda770e0913f358232ad440a563ab5abde311036ade5b700d309b2d48c",
+          "native_python_match": true,
+          "matches_native_target_only": true,
+          "native_drafted": 141,
+          "native_accepted": 79
+        },
+        {
+          "name": "prose-0",
+          "native_sha256": "dedfadae5618d5deca96cad767e18e3082c801bb843aba020fecfe024876218d",
+          "python_sha256": "dedfadae5618d5deca96cad767e18e3082c801bb843aba020fecfe024876218d",
+          "native_python_match": true,
+          "matches_native_target_only": false,
+          "native_drafted": 146,
+          "native_accepted": 78
+        },
+        {
+          "name": "code-12000",
+          "native_sha256": "b2aaa26858da32032f33d3b3b3467ce5d5a1ee77c969c5704918c53938e06469",
+          "python_sha256": "b2aaa26858da32032f33d3b3b3467ce5d5a1ee77c969c5704918c53938e06469",
+          "native_python_match": true,
+          "matches_native_target_only": false,
+          "native_drafted": 153,
+          "native_accepted": 75
+        },
+        {
+          "name": "prose-12000",
+          "native_sha256": "94271b0b5e9e2694ba73675b99e6e66651b956871e2071500708c7efdce21f87",
+          "python_sha256": "94271b0b5e9e2694ba73675b99e6e66651b956871e2071500708c7efdce21f87",
+          "native_python_match": true,
+          "matches_native_target_only": false,
+          "native_drafted": 163,
+          "native_accepted": 71
+        }
+      ],
+      "vision": [
+        {
+          "name": "small-image",
+          "passed": true,
+          "stream": false
+        },
+        {
+          "name": "large-image",
+          "passed": true,
+          "stream": false
+        },
+        {
+          "name": "cached-large-image",
+          "passed": true,
+          "stream": false
+        },
+        {
+          "name": "long-generation-after-image",
+          "passed": true,
+          "stream": false
+        },
+        {
+          "name": "long-text-before-image",
+          "passed": true,
+          "stream": false
+        },
+        {
+          "name": "long-text-after-image",
+          "passed": true,
+          "stream": false
+        },
+        {
+          "name": "multiple-large-images",
+          "passed": true,
+          "stream": false
+        },
+        {
+          "name": "large-image-ocr",
+          "passed": true,
+          "stream": false
+        },
+        {
+          "name": "changed-image-ocr",
+          "passed": true,
+          "stream": false
+        },
+        {
+          "name": "text-after-vision",
+          "passed": true,
+          "stream": false
+        },
+        {
+          "name": "small-image",
+          "passed": true,
+          "stream": true
+        },
+        {
+          "name": "large-image",
+          "passed": true,
+          "stream": true
+        },
+        {
+          "name": "cached-large-image",
+          "passed": true,
+          "stream": true
+        },
+        {
+          "name": "long-generation-after-image",
+          "passed": true,
+          "stream": true
+        },
+        {
+          "name": "long-text-before-image",
+          "passed": true,
+          "stream": true
+        },
+        {
+          "name": "long-text-after-image",
+          "passed": true,
+          "stream": true
+        },
+        {
+          "name": "multiple-large-images",
+          "passed": true,
+          "stream": true
+        },
+        {
+          "name": "large-image-ocr",
+          "passed": true,
+          "stream": true
+        },
+        {
+          "name": "changed-image-ocr",
+          "passed": true,
+          "stream": true
+        },
+        {
+          "name": "text-after-vision",
+          "passed": true,
+          "stream": true
+        }
+      ]
+    },
+    {
+      "backend": "dflash2",
+      "native_passed": true,
+      "python_passed": true,
+      "python_binding_version": "2026.10.11549",
+      "native_vision_cases": 20,
+      "python_vision_cases": 10,
+      "drafted": 1110,
+      "accepted": 805,
+      "native_launch": [
+        {
+          "-m": "/app/models/Qwen3.8-27B/Qwen3.8-27B-UD-Q3_K_XL.gguf",
+          "-c": "220000",
+          "--main-gpu": "0",
+          "-b": "1024",
+          "-ub": "512",
+          "--mmproj": "/app/models/Qwen3.8-27B/mmproj-BF16.gguf",
+          "-np": "1",
+          "--spec-draft-model": "/app/models/models--incoai--Qwen3.8-27B-DFlash2-GGUF/snapshots/51962825493a48b846b40126d35c799ac4093ad0/Qwen3.8-27B-DFlash2-Q4_K_M.gguf",
+          "--spec-draft-device": "CUDA0",
+          "--spec-type": "draft-dflash",
+          "--spec-draft-n-max": "3",
+          "--spec-draft-p-min": "0",
+          "-ngl": "-1",
+          "--spec-draft-ngl": "-1"
+        }
+      ],
+      "greedy": [
+        {
+          "name": "code-0",
+          "native_sha256": "5a05b9dda770e0913f358232ad440a563ab5abde311036ade5b700d309b2d48c",
+          "python_sha256": "5a05b9dda770e0913f358232ad440a563ab5abde311036ade5b700d309b2d48c",
+          "native_python_match": true,
+          "matches_native_target_only": true,
+          "native_drafted": 152,
+          "native_accepted": 76
+        },
+        {
+          "name": "prose-0",
+          "native_sha256": "dedfadae5618d5deca96cad767e18e3082c801bb843aba020fecfe024876218d",
+          "python_sha256": "dedfadae5618d5deca96cad767e18e3082c801bb843aba020fecfe024876218d",
+          "native_python_match": true,
+          "matches_native_target_only": false,
+          "native_drafted": 144,
+          "native_accepted": 79
+        },
+        {
+          "name": "code-12000",
+          "native_sha256": "b2aaa26858da32032f33d3b3b3467ce5d5a1ee77c969c5704918c53938e06469",
+          "python_sha256": "b2aaa26858da32032f33d3b3b3467ce5d5a1ee77c969c5704918c53938e06469",
+          "native_python_match": true,
+          "matches_native_target_only": false,
+          "native_drafted": 147,
+          "native_accepted": 77
+        },
+        {
+          "name": "prose-12000",
+          "native_sha256": "94271b0b5e9e2694ba73675b99e6e66651b956871e2071500708c7efdce21f87",
+          "python_sha256": "94271b0b5e9e2694ba73675b99e6e66651b956871e2071500708c7efdce21f87",
+          "native_python_match": true,
+          "matches_native_target_only": false,
+          "native_drafted": 152,
+          "native_accepted": 75
+        }
+      ],
+      "vision": [
+        {
+          "name": "small-image",
+          "passed": true,
+          "stream": false
+        },
+        {
+          "name": "large-image",
+          "passed": true,
+          "stream": false
+        },
+        {
+          "name": "cached-large-image",
+          "passed": true,
+          "stream": false
+        },
+        {
+          "name": "long-generation-after-image",
+          "passed": true,
+          "stream": false
+        },
+        {
+          "name": "long-text-before-image",
+          "passed": true,
+          "stream": false
+        },
+        {
+          "name": "long-text-after-image",
+          "passed": true,
+          "stream": false
+        },
+        {
+          "name": "multiple-large-images",
+          "passed": true,
+          "stream": false
+        },
+        {
+          "name": "large-image-ocr",
+          "passed": true,
+          "stream": false
+        },
+        {
+          "name": "changed-image-ocr",
+          "passed": true,
+          "stream": false
+        },
+        {
+          "name": "text-after-vision",
+          "passed": true,
+          "stream": false
+        },
+        {
+          "name": "small-image",
+          "passed": true,
+          "stream": true
+        },
+        {
+          "name": "large-image",
+          "passed": true,
+          "stream": true
+        },
+        {
+          "name": "cached-large-image",
+          "passed": true,
+          "stream": true
+        },
+        {
+          "name": "long-generation-after-image",
+          "passed": true,
+          "stream": true
+        },
+        {
+          "name": "long-text-before-image",
+          "passed": true,
+          "stream": true
+        },
+        {
+          "name": "long-text-after-image",
+          "passed": true,
+          "stream": true
+        },
+        {
+          "name": "multiple-large-images",
+          "passed": true,
+          "stream": true
+        },
+        {
+          "name": "large-image-ocr",
+          "passed": true,
+          "stream": true
+        },
+        {
+          "name": "changed-image-ocr",
+          "passed": true,
+          "stream": true
+        },
+        {
+          "name": "text-after-vision",
+          "passed": true,
+          "stream": true
+        }
+      ]
+    }
+  ],
+  "production_restored_healthy": true,
+  "limitations": [
+    "One GPU and one target quantization; no multi-GPU, ROCm or performance-parity claim.",
+    "Public routed requests use source Qwen profile overrides; vision acceptance compares semantic source patterns, not exact text.",
+    "Raw greedy cases bypass worker profile overrides; exact text comparisons are limited to these four prompts.",
+    "The Python comparison invokes the source LLM binding directly, not the Python router.",
+    "The target-only run completed before a host evidence-write permission error; it was reused after the harness correction."
+  ],
+  "full_evidence_directory": "build/validation/speculative-live",
+  "all_twelve_native_python_greedy_match": true,
+  "production_restoration_checks": {
+    "chat": true,
+    "vision": true,
+    "sse": true,
+    "registered_workers": 1,
+    "healthy": true,
+    "unchanged_image": true,
+    "original_env_sha256": "61dd1627786c0516e0ad59287ea2fb0990eeee7c93951d292aca38f46402dd24"
+  }
+}

@@ -1,0 +1,293 @@
+{
+  "date": "2026-10-20",
+  "base_commit": "216bbed",
+  "cuda_deployed": true,
+  "cuda_image": "sha256:93cab6bf6f0fb1b49ae26590c0d4dd8a705931f44f29c821663e79ff7443128c",
+  "cuda_worker_sha256": "39091550f0404e39ddcd44c8fe9ea3e41c47acb5ff3166d3f561e406f9dd5c0d",
+  "rollback_tag": "ezlocalai:cuda-before-fleet-gate",
+  "rollback_image": "sha256:ea8cf96281896a6efd120962fc458879a13588ea7465f1255cfe57f066b3de2d",
+  "source_python_commit": "0f7e9f45ac0d67ea806ee19874f98bb8f47c7544",
+  "tests": {
+    "cuda_package": {
+      "passed": 57,
+      "seconds": 267.23
+    },
+    "compose_reference_comparisons": 1161,
+    "host_http_fixture_fix": {
+      "passed": true,
+      "seconds": 30.14
+    },
+    "gb10_initial_package": {
+      "passed": 52,
+      "failed": 1,
+      "seconds": 583.69,
+      "failure": "native_http timeout: fixed startup delay before HTTPS listener readiness"
+    },
+    "rust_router_binary_sha256": "91873d25c218dd3d3ed12bded2ff990bd13837d6d514922eb04dc45ccbde93b9",
+    "cuda_modalities": [
+      {
+        "mode": "direct",
+        "checks": [
+          "embeddings",
+          "whisper",
+          "qwen_wav",
+          "qwen_pcm_stream"
+        ],
+        "active_cuda_models": {
+          "embedding": true,
+          "stt": true,
+          "tts": true
+        },
+        "tts_cuda_process_observed": true,
+        "whisper_gpu_allocation_observed": true,
+        "llm_restored": true
+      },
+      {
+        "mode": "tunnel",
+        "checks": [
+          "embeddings",
+          "whisper",
+          "qwen_wav",
+          "qwen_pcm_stream"
+        ],
+        "active_cuda_models": {
+          "embedding": true,
+          "stt": true,
+          "tts": true
+        },
+        "tts_cuda_process_observed": true,
+        "whisper_gpu_allocation_observed": true,
+        "llm_restored": true
+      }
+    ],
+    "post_handoff_llm_requests": [
+      "chat",
+      "stream",
+      "vision"
+    ],
+    "reporting_field_count": 18,
+    "production_profile_restored": true,
+    "production_followup_requests": [
+      "chat",
+      "stream",
+      "vision"
+    ],
+    "gpu_policy": {
+      "suites": 8,
+      "passed_after_allocation_fixture_boundary_fix": 8,
+      "allocation_source_cases": 10,
+      "allocation_text_and_vision_variants": 20,
+      "allocation_suite_seconds": 14.84,
+      "hardware": "simulated CUDA topology; no real multi-GPU execution"
+    },
+    "arm_http_fixture_fix": {
+      "passed": true,
+      "execution": "Instrumented -O0 diagnostic passed, followed by the final -O3 packaged native_http test under QEMU."
+    },
+    "cuda_worker_unchanged_between_modality_acceptance_and_final_package": true,
+    "wakeword_real_cpu": {
+      "image": "sha256:222fe7279ed1e2b397cdbae28ed433dc270f4ac76ab5e39d3508610147498a93",
+      "qwen_generated_samples": 5,
+      "epochs": 1,
+      "positive_samples": 30,
+      "negative_samples": 21,
+      "completed_progress": 100,
+      "exported_formats": [
+        "pytorch",
+        "config",
+        "onnx"
+      ],
+      "checkpoint_and_onnx_downloads_match": true,
+      "prediction_from_exported_checkpoint": true,
+      "cancel_during_synthesis": true,
+      "cancelled_checkpoint_absent": true,
+      "restart_persistence": true,
+      "container_recreation_persistence": true,
+      "checkpoint_reload_prediction": true,
+      "no_gpu_access": true,
+      "container_removed": true,
+      "accuracy_claim": false,
+      "driver_corrections": [
+        "Prediction request field corrected to audio_base64.",
+        "Refresh Docker-assigned published port after restart (the port changed)."
+      ]
+    },
+    "gb10_package": {
+      "passed": 53,
+      "seconds": 463.17,
+      "native_http_seconds": 58.23,
+      "emulation_exclusions": [
+        "dotenv_startup",
+        "tunnel_framing_reference",
+        "ltx_runtime",
+        "media_engine"
+      ],
+      "native_gb10_default_exclusions": []
+    },
+    "gb10_runtime_smoke": {
+      "image": "sha256:c4e002b37f1de08b09e5964338127f17ecf93e1e0710828a793fec34b68b21c1",
+      "architecture": "arm64",
+      "execution": "ARM64 QEMU on x86; CUDA stubs and inference disabled; not GB10 GPU execution",
+      "health": {
+        "status": "healthy"
+      },
+      "resources_status": 200,
+      "models_status": 200,
+      "zero_visible_vram": true,
+      "worker_sha256": "a46b928bfc85355daf60b7201f9ccd8ada39193047e762af0d1cad4094dfde11",
+      "passed": true
+    },
+    "package_architectures": {
+      "cuda": [
+        {
+          "binary": "/app/build/llama.cpp/bin/libggml-cuda.so",
+          "cubins": [
+            "sm_86",
+            "sm_89",
+            "sm_120a"
+          ]
+        },
+        {
+          "binary": "/opt/stable-diffusion.cpp/build/bin/sd-cli",
+          "cubins": [
+            "sm_86",
+            "sm_89",
+            "sm_120a"
+          ]
+        },
+        {
+          "binary": "/opt/acestep.cpp/build/libggml-cuda.so",
+          "cubins": [
+            "sm_86",
+            "sm_89",
+            "sm_120a"
+          ]
+        },
+        {
+          "binary": "/opt/ezlocalai/deps/lib/libctranslate2-fd146744.so.4.8.2",
+          "cubins": [
+            "sm_53",
+            "sm_60",
+            "sm_61",
+            "sm_70",
+            "sm_75",
+            "sm_80",
+            "sm_86"
+          ],
+          "ptx": [
+            "sm_86"
+          ]
+        },
+        {
+          "binary": "/opt/ezlocalai/deps/torch/lib/libtorch_cuda.so",
+          "cubins": [
+            "sm_70",
+            "sm_75",
+            "sm_80",
+            "sm_86",
+            "sm_89",
+            "sm_90",
+            "sm_90a",
+            "sm_100",
+            "sm_100a",
+            "sm_120",
+            "sm_120a"
+          ],
+          "ptx": []
+        }
+      ],
+      "gb10": [
+        {
+          "binary": "/app/build/llama.cpp/bin/libggml-cuda.so",
+          "cubins": [
+            "sm_121a"
+          ]
+        },
+        {
+          "binary": "/opt/stable-diffusion.cpp/build/bin/sd-cli",
+          "cubins": [
+            "sm_121a"
+          ]
+        },
+        {
+          "binary": "/opt/acestep.cpp/build/libggml-cuda.so",
+          "cubins": [
+            "sm_121a"
+          ]
+        },
+        {
+          "binary": "/opt/ezlocalai/ctranslate2/lib/libctranslate2.so.4",
+          "cubins": [
+            "sm_121"
+          ],
+          "ptx": []
+        },
+        {
+          "binary": "/opt/ezlocalai/deps/torch/lib/libtorch_cuda.so",
+          "cubins": [
+            "sm_80",
+            "sm_90",
+            "sm_90a",
+            "sm_100",
+            "sm_100a",
+            "sm_110",
+            "sm_120",
+            "sm_120a"
+          ],
+          "ptx": [
+            "sm_120"
+          ]
+        }
+      ]
+    },
+    "production_compose_environment_matches_running_container": true
+  },
+  "deployment": {
+    "environment_unchanged": false,
+    "source_aligned_compose_applied": true,
+    "mounts_unchanged": true,
+    "ports_unchanged": true,
+    "gpu_requests_unchanged": true,
+    "health": "healthy",
+    "original_env_file_unchanged": true
+  },
+  "gb10_final_package_status": "passed under ARM64 QEMU",
+  "evidence_directory": "build/validation/fleet-hardware-20261020",
+  "limits": [
+    "Binary target inventory is not actual GPU execution or exhaustive individual-kernel coverage.",
+    "Only RTX 3090 Ti hardware was available. Real 4090/5090/GB10 and multi-GPU execution remain unverified.",
+    "Functional CUDA inference checks do not establish exact Python model outputs or audio quality.",
+    "ROCm, Jetson and Raspberry Pi packaging and broader video/music-video acceptance remain incomplete.",
+    "Strict worker checklist remains 27 implemented / 38 partial rows; transport/lifecycle edges remain.",
+    "PDF-to-speech and separate Gemma storage experiments are excluded."
+  ],
+  "final_package_previous_image": "sha256:fb32dfc0f46d7de4c4129c86ab906bedb9c2283a3736d40ca69b52b24b19e95c",
+  "final_package_rollback_tag": "ezlocalai:cuda-before-fleet-http-fixture",
+  "final_package_deployment": {
+    "environment_unchanged": true,
+    "source_aligned_compose_applied": true,
+    "mounts_unchanged": true,
+    "ports_unchanged": true,
+    "gpu_requests_unchanged": true,
+    "health": "healthy",
+    "original_env_file_unchanged": true
+  },
+  "source_sha256": {
+    "tests/test_cuda_architectures.cpp": "ff6fff1c15621db9d98c4a479f48a5cb462308def51af7fc82db560d93ef1da9",
+    "tests/test_native_http.cpp": "21cd936e31d4da4563b69dbbc8aa334ddd715b35034a5f3d1280af9294429a1b",
+    "tests/test_llm_memory.cpp": "6a24a78b3f0557b30466e2fa704a67ddd750f75b4c7ce345527df71ef91fa6d2",
+    "tests/test_compose_profiles.cpp": "0e638155d5904f932804000e61bf606cfd2e4c8cebfac8a7547c8c86086befe7",
+    "tests/fixtures/compose_profiles.json": "135b9374861c380a75c87edc5d7de83e419be907e3f5285a6ee20d041379147a",
+    "docker-compose-cuda.yml": "be8e923827f40211cb2e471cc3b39536e5d0d7763732213e10a8755d4181081a",
+    "docker-compose-gb10.yml": "4d8b8301a5e0730b323342d5a570b0666315602e948bf5d204b4da4e0284962f",
+    "docker-compose.yml": "63ca72618c005b4808320eb1478d72b976927deb8b2967a371a40f099876ab36",
+    "CMakeLists.txt": "e60d6b5bfb0e590db8d6824f43ad4c7d1db75ae0072bf29bb5b1f019a4bcac9b",
+    "cuda.Dockerfile": "861d8ab025a066a62b8dc314b56fa9ad515c3e2fe7acda4a4455822125cead11",
+    "CMakeLists.txt": "14738e427a6fd85785441a9cbe6e2596f32d498698acf57d311114ee918ca2fd",
+    "tests/fixtures/compose_profiles_README.md": "78c1481e2ae9d0af4ec73d3fa793ddd8066dbae3642b38be94ef79e651fc7040"
+  },
+  "gb10_image": "sha256:c4e002b37f1de08b09e5964338127f17ecf93e1e0710828a793fec34b68b21c1",
+  "gb10_worker_sha256": "a46b928bfc85355daf60b7201f9ccd8ada39193047e762af0d1cad4094dfde11",
+  "gb10_rollback_tag": "ezlocalai:gb10-before-fleet-gate",
+  "gb10_rollback_image": "sha256:668cc86ed968dbc8152b89cc0f5fbd1c64c427896fb5d42bf2203fb75be1c391"
+}

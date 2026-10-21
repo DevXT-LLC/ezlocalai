@@ -1,0 +1,58 @@
+{
+  "source_sha256": "d5eebf7fc48f7781628aa4eaab8af1c3f23fd8694242f0b3065436b5c86f62b1",
+  "capture_sha256": "e306b45d97e013db0188179aadf2f84e89e9eeb94e71093c207376c53afeb8c9",
+  "aiohttp": "3.14.5",
+  "scope": "Unchanged WorkerHeartbeatClient class with only state gathering substituted; real loopback HTTP and elapsed shutdown timing.",
+  "cases": [
+    {
+      "name": "register-stalled",
+      "action": "register",
+      "release": false,
+      "actions": [
+        "register"
+      ],
+      "seconds": 5.00487679685466,
+      "minimum_seconds": 4.8,
+      "maximum_seconds": 6.5
+    },
+    {
+      "name": "heartbeat-stalled",
+      "action": "heartbeat",
+      "release": false,
+      "actions": [
+        "register",
+        "heartbeat",
+        "deregister"
+      ],
+      "seconds": 5.006692984141409,
+      "minimum_seconds": 4.8,
+      "maximum_seconds": 6.5
+    },
+    {
+      "name": "heartbeat-released",
+      "action": "heartbeat",
+      "release": true,
+      "actions": [
+        "register",
+        "heartbeat",
+        "deregister"
+      ],
+      "seconds": 0.2520884301047772,
+      "minimum_seconds": 0.15,
+      "maximum_seconds": 2
+    },
+    {
+      "name": "deregister-stalled",
+      "action": "deregister",
+      "release": false,
+      "actions": [
+        "register",
+        "heartbeat",
+        "deregister"
+      ],
+      "seconds": 10.031141686951742,
+      "minimum_seconds": 9.5,
+      "maximum_seconds": 12
+    }
+  ]
+}

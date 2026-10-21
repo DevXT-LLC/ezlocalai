@@ -1,0 +1,1224 @@
+{
+  "aiohttp_version": "3.14.5",
+  "tunnel_sha256": "d2c604fffacf088da6c3fc555d1d24d2a6b0b7af592f8cba3f67b7ea5dea4496",
+  "handshakes": [
+    {
+      "name": "valid",
+      "headers": [
+        [
+          "Upgrade",
+          "websocket"
+        ],
+        [
+          "Connection",
+          "Upgrade"
+        ],
+        [
+          "Sec-WebSocket-Accept",
+          "$accept"
+        ]
+      ],
+      "accepted": true
+    },
+    {
+      "name": "upgrade-0",
+      "headers": [
+        [
+          "Upgrade",
+          ""
+        ],
+        [
+          "Connection",
+          "Upgrade"
+        ],
+        [
+          "Sec-WebSocket-Accept",
+          "$accept"
+        ]
+      ],
+      "accepted": false
+    },
+    {
+      "name": "upgrade-1",
+      "headers": [
+        [
+          "Upgrade",
+          "WebSocket"
+        ],
+        [
+          "Connection",
+          "Upgrade"
+        ],
+        [
+          "Sec-WebSocket-Accept",
+          "$accept"
+        ]
+      ],
+      "accepted": true
+    },
+    {
+      "name": "upgrade-2",
+      "headers": [
+        [
+          "Upgrade",
+          " websocket "
+        ],
+        [
+          "Connection",
+          "Upgrade"
+        ],
+        [
+          "Sec-WebSocket-Accept",
+          "$accept"
+        ]
+      ],
+      "accepted": true
+    },
+    {
+      "name": "upgrade-3",
+      "headers": [
+        [
+          "Upgrade",
+          "websocket, h2"
+        ],
+        [
+          "Connection",
+          "Upgrade"
+        ],
+        [
+          "Sec-WebSocket-Accept",
+          "$accept"
+        ]
+      ],
+      "accepted": false
+    },
+    {
+      "name": "upgrade-4",
+      "headers": [
+        [
+          "Upgrade",
+          "h2"
+        ],
+        [
+          "Connection",
+          "Upgrade"
+        ],
+        [
+          "Sec-WebSocket-Accept",
+          "$accept"
+        ]
+      ],
+      "accepted": false
+    },
+    {
+      "name": "connection-0",
+      "headers": [
+        [
+          "Upgrade",
+          "websocket"
+        ],
+        [
+          "Connection",
+          ""
+        ],
+        [
+          "Sec-WebSocket-Accept",
+          "$accept"
+        ]
+      ],
+      "accepted": false
+    },
+    {
+      "name": "connection-1",
+      "headers": [
+        [
+          "Upgrade",
+          "websocket"
+        ],
+        [
+          "Connection",
+          "upgrade"
+        ],
+        [
+          "Sec-WebSocket-Accept",
+          "$accept"
+        ]
+      ],
+      "accepted": true
+    },
+    {
+      "name": "connection-2",
+      "headers": [
+        [
+          "Upgrade",
+          "websocket"
+        ],
+        [
+          "Connection",
+          "UPGRADE"
+        ],
+        [
+          "Sec-WebSocket-Accept",
+          "$accept"
+        ]
+      ],
+      "accepted": true
+    },
+    {
+      "name": "connection-3",
+      "headers": [
+        [
+          "Upgrade",
+          "websocket"
+        ],
+        [
+          "Connection",
+          " keep-alive, Upgrade"
+        ],
+        [
+          "Sec-WebSocket-Accept",
+          "$accept"
+        ]
+      ],
+      "accepted": false
+    },
+    {
+      "name": "connection-4",
+      "headers": [
+        [
+          "Upgrade",
+          "websocket"
+        ],
+        [
+          "Connection",
+          "upgrade, keep-alive"
+        ],
+        [
+          "Sec-WebSocket-Accept",
+          "$accept"
+        ]
+      ],
+      "accepted": false
+    },
+    {
+      "name": "connection-5",
+      "headers": [
+        [
+          "Upgrade",
+          "websocket"
+        ],
+        [
+          "Connection",
+          " Upgrade "
+        ],
+        [
+          "Sec-WebSocket-Accept",
+          "$accept"
+        ]
+      ],
+      "accepted": true
+    },
+    {
+      "name": "challenge-0",
+      "headers": [
+        [
+          "Upgrade",
+          "websocket"
+        ],
+        [
+          "Connection",
+          "Upgrade"
+        ],
+        [
+          "Sec-WebSocket-Accept",
+          ""
+        ]
+      ],
+      "accepted": false
+    },
+    {
+      "name": "challenge-1",
+      "headers": [
+        [
+          "Upgrade",
+          "websocket"
+        ],
+        [
+          "Connection",
+          "Upgrade"
+        ],
+        [
+          "Sec-WebSocket-Accept",
+          "wrong"
+        ]
+      ],
+      "accepted": false
+    },
+    {
+      "name": "challenge-2",
+      "headers": [
+        [
+          "Upgrade",
+          "websocket"
+        ],
+        [
+          "Connection",
+          "Upgrade"
+        ],
+        [
+          "Sec-WebSocket-Accept",
+          "$accept "
+        ]
+      ],
+      "accepted": true
+    },
+    {
+      "name": "challenge-3",
+      "headers": [
+        [
+          "Upgrade",
+          "websocket"
+        ],
+        [
+          "Connection",
+          "Upgrade"
+        ],
+        [
+          "Sec-WebSocket-Accept",
+          " $accept"
+        ]
+      ],
+      "accepted": true
+    },
+    {
+      "name": "challenge-4",
+      "headers": [
+        [
+          "Upgrade",
+          "websocket"
+        ],
+        [
+          "Connection",
+          "Upgrade"
+        ],
+        [
+          "Sec-WebSocket-Accept",
+          "$accept,$accept"
+        ]
+      ],
+      "accepted": false
+    },
+    {
+      "name": "missing-Upgrade",
+      "headers": [
+        [
+          "Connection",
+          "Upgrade"
+        ],
+        [
+          "Sec-WebSocket-Accept",
+          "$accept"
+        ]
+      ],
+      "accepted": false
+    },
+    {
+      "name": "duplicate-Upgrade-True",
+      "headers": [
+        [
+          "Upgrade",
+          "wrong"
+        ],
+        [
+          "Upgrade",
+          "websocket"
+        ],
+        [
+          "Connection",
+          "Upgrade"
+        ],
+        [
+          "Sec-WebSocket-Accept",
+          "$accept"
+        ]
+      ],
+      "accepted": false
+    },
+    {
+      "name": "duplicate-Upgrade-False",
+      "headers": [
+        [
+          "Upgrade",
+          "websocket"
+        ],
+        [
+          "Connection",
+          "Upgrade"
+        ],
+        [
+          "Sec-WebSocket-Accept",
+          "$accept"
+        ],
+        [
+          "Upgrade",
+          "wrong"
+        ]
+      ],
+      "accepted": true
+    },
+    {
+      "name": "missing-Connection",
+      "headers": [
+        [
+          "Upgrade",
+          "websocket"
+        ],
+        [
+          "Sec-WebSocket-Accept",
+          "$accept"
+        ]
+      ],
+      "accepted": false
+    },
+    {
+      "name": "duplicate-Connection-True",
+      "headers": [
+        [
+          "Connection",
+          "wrong"
+        ],
+        [
+          "Upgrade",
+          "websocket"
+        ],
+        [
+          "Connection",
+          "Upgrade"
+        ],
+        [
+          "Sec-WebSocket-Accept",
+          "$accept"
+        ]
+      ],
+      "accepted": false
+    },
+    {
+      "name": "duplicate-Connection-False",
+      "headers": [
+        [
+          "Upgrade",
+          "websocket"
+        ],
+        [
+          "Connection",
+          "Upgrade"
+        ],
+        [
+          "Sec-WebSocket-Accept",
+          "$accept"
+        ],
+        [
+          "Connection",
+          "wrong"
+        ]
+      ],
+      "accepted": true
+    },
+    {
+      "name": "missing-Sec-WebSocket-Accept",
+      "headers": [
+        [
+          "Upgrade",
+          "websocket"
+        ],
+        [
+          "Connection",
+          "Upgrade"
+        ]
+      ],
+      "accepted": false
+    },
+    {
+      "name": "duplicate-Sec-WebSocket-Accept-True",
+      "headers": [
+        [
+          "Sec-WebSocket-Accept",
+          "wrong"
+        ],
+        [
+          "Upgrade",
+          "websocket"
+        ],
+        [
+          "Connection",
+          "Upgrade"
+        ],
+        [
+          "Sec-WebSocket-Accept",
+          "$accept"
+        ]
+      ],
+      "accepted": false
+    },
+    {
+      "name": "duplicate-Sec-WebSocket-Accept-False",
+      "headers": [
+        [
+          "Upgrade",
+          "websocket"
+        ],
+        [
+          "Connection",
+          "Upgrade"
+        ],
+        [
+          "Sec-WebSocket-Accept",
+          "$accept"
+        ],
+        [
+          "Sec-WebSocket-Accept",
+          "wrong"
+        ]
+      ],
+      "accepted": true
+    },
+    {
+      "name": "status-200",
+      "status": 200,
+      "headers": [
+        [
+          "Upgrade",
+          "websocket"
+        ],
+        [
+          "Connection",
+          "Upgrade"
+        ],
+        [
+          "Sec-WebSocket-Accept",
+          "$accept"
+        ]
+      ],
+      "accepted": false
+    },
+    {
+      "name": "status-400",
+      "status": 400,
+      "headers": [
+        [
+          "Upgrade",
+          "websocket"
+        ],
+        [
+          "Connection",
+          "Upgrade"
+        ],
+        [
+          "Sec-WebSocket-Accept",
+          "$accept"
+        ]
+      ],
+      "accepted": false
+    },
+    {
+      "name": "status-401",
+      "status": 401,
+      "headers": [
+        [
+          "Upgrade",
+          "websocket"
+        ],
+        [
+          "Connection",
+          "Upgrade"
+        ],
+        [
+          "Sec-WebSocket-Accept",
+          "$accept"
+        ]
+      ],
+      "accepted": false
+    },
+    {
+      "name": "status-403",
+      "status": 403,
+      "headers": [
+        [
+          "Upgrade",
+          "websocket"
+        ],
+        [
+          "Connection",
+          "Upgrade"
+        ],
+        [
+          "Sec-WebSocket-Accept",
+          "$accept"
+        ]
+      ],
+      "accepted": false
+    },
+    {
+      "name": "status-500",
+      "status": 500,
+      "headers": [
+        [
+          "Upgrade",
+          "websocket"
+        ],
+        [
+          "Connection",
+          "Upgrade"
+        ],
+        [
+          "Sec-WebSocket-Accept",
+          "$accept"
+        ]
+      ],
+      "accepted": false
+    },
+    {
+      "name": "version-HTTP/0.0",
+      "version": "HTTP/0.0",
+      "headers": [
+        [
+          "Upgrade",
+          "websocket"
+        ],
+        [
+          "Connection",
+          "Upgrade"
+        ],
+        [
+          "Sec-WebSocket-Accept",
+          "$accept"
+        ]
+      ],
+      "accepted": false
+    },
+    {
+      "name": "version-HTTP/0.1",
+      "version": "HTTP/0.1",
+      "headers": [
+        [
+          "Upgrade",
+          "websocket"
+        ],
+        [
+          "Connection",
+          "Upgrade"
+        ],
+        [
+          "Sec-WebSocket-Accept",
+          "$accept"
+        ]
+      ],
+      "accepted": false
+    },
+    {
+      "name": "version-HTTP/0.2",
+      "version": "HTTP/0.2",
+      "headers": [
+        [
+          "Upgrade",
+          "websocket"
+        ],
+        [
+          "Connection",
+          "Upgrade"
+        ],
+        [
+          "Sec-WebSocket-Accept",
+          "$accept"
+        ]
+      ],
+      "accepted": false
+    },
+    {
+      "name": "version-HTTP/1.0",
+      "version": "HTTP/1.0",
+      "headers": [
+        [
+          "Upgrade",
+          "websocket"
+        ],
+        [
+          "Connection",
+          "Upgrade"
+        ],
+        [
+          "Sec-WebSocket-Accept",
+          "$accept"
+        ]
+      ],
+      "accepted": true
+    },
+    {
+      "name": "version-HTTP/1.1",
+      "version": "HTTP/1.1",
+      "headers": [
+        [
+          "Upgrade",
+          "websocket"
+        ],
+        [
+          "Connection",
+          "Upgrade"
+        ],
+        [
+          "Sec-WebSocket-Accept",
+          "$accept"
+        ]
+      ],
+      "accepted": true
+    },
+    {
+      "name": "version-HTTP/1.2",
+      "version": "HTTP/1.2",
+      "headers": [
+        [
+          "Upgrade",
+          "websocket"
+        ],
+        [
+          "Connection",
+          "Upgrade"
+        ],
+        [
+          "Sec-WebSocket-Accept",
+          "$accept"
+        ]
+      ],
+      "accepted": false
+    },
+    {
+      "name": "version-HTTP/2.0",
+      "version": "HTTP/2.0",
+      "headers": [
+        [
+          "Upgrade",
+          "websocket"
+        ],
+        [
+          "Connection",
+          "Upgrade"
+        ],
+        [
+          "Sec-WebSocket-Accept",
+          "$accept"
+        ]
+      ],
+      "accepted": true
+    },
+    {
+      "name": "version-HTTP/2.1",
+      "version": "HTTP/2.1",
+      "headers": [
+        [
+          "Upgrade",
+          "websocket"
+        ],
+        [
+          "Connection",
+          "Upgrade"
+        ],
+        [
+          "Sec-WebSocket-Accept",
+          "$accept"
+        ]
+      ],
+      "accepted": false
+    },
+    {
+      "name": "version-HTTP/2.2",
+      "version": "HTTP/2.2",
+      "headers": [
+        [
+          "Upgrade",
+          "websocket"
+        ],
+        [
+          "Connection",
+          "Upgrade"
+        ],
+        [
+          "Sec-WebSocket-Accept",
+          "$accept"
+        ]
+      ],
+      "accepted": false
+    },
+    {
+      "name": "version-HTTP/3.0",
+      "version": "HTTP/3.0",
+      "headers": [
+        [
+          "Upgrade",
+          "websocket"
+        ],
+        [
+          "Connection",
+          "Upgrade"
+        ],
+        [
+          "Sec-WebSocket-Accept",
+          "$accept"
+        ]
+      ],
+      "accepted": false
+    },
+    {
+      "name": "version-HTTP/3.1",
+      "version": "HTTP/3.1",
+      "headers": [
+        [
+          "Upgrade",
+          "websocket"
+        ],
+        [
+          "Connection",
+          "Upgrade"
+        ],
+        [
+          "Sec-WebSocket-Accept",
+          "$accept"
+        ]
+      ],
+      "accepted": false
+    },
+    {
+      "name": "version-HTTP/3.2",
+      "version": "HTTP/3.2",
+      "headers": [
+        [
+          "Upgrade",
+          "websocket"
+        ],
+        [
+          "Connection",
+          "Upgrade"
+        ],
+        [
+          "Sec-WebSocket-Accept",
+          "$accept"
+        ]
+      ],
+      "accepted": false
+    },
+    {
+      "name": "version-HTTP/9.9",
+      "version": "HTTP/9.9",
+      "headers": [
+        [
+          "Upgrade",
+          "websocket"
+        ],
+        [
+          "Connection",
+          "Upgrade"
+        ],
+        [
+          "Sec-WebSocket-Accept",
+          "$accept"
+        ]
+      ],
+      "accepted": false
+    },
+    {
+      "name": "version-HTTP/1.x",
+      "version": "HTTP/1.x",
+      "headers": [
+        [
+          "Upgrade",
+          "websocket"
+        ],
+        [
+          "Connection",
+          "Upgrade"
+        ],
+        [
+          "Sec-WebSocket-Accept",
+          "$accept"
+        ]
+      ],
+      "accepted": false
+    },
+    {
+      "name": "version-HTTPbad",
+      "version": "HTTPbad",
+      "headers": [
+        [
+          "Upgrade",
+          "websocket"
+        ],
+        [
+          "Connection",
+          "Upgrade"
+        ],
+        [
+          "Sec-WebSocket-Accept",
+          "$accept"
+        ]
+      ],
+      "accepted": false
+    },
+    {
+      "name": "unsolicited-extension",
+      "headers": [
+        [
+          "Upgrade",
+          "websocket"
+        ],
+        [
+          "Connection",
+          "Upgrade"
+        ],
+        [
+          "Sec-WebSocket-Accept",
+          "$accept"
+        ],
+        [
+          "Sec-WebSocket-Extensions",
+          "permessage-deflate"
+        ]
+      ],
+      "accepted": true
+    }
+  ],
+  "urls": [
+    {
+      "input": "ws://example.com",
+      "worker_id": "DevXT-123",
+      "host": "example.com",
+      "port": 80,
+      "target": "/?worker_id=DevXT-123",
+      "host_header": "example.com",
+      "authorization": ""
+    },
+    {
+      "input": "ws://example.com",
+      "worker_id": "caf\u00e9 \u65e5\u672c\u8a9e +/%?&=:#@!$'()*,;~",
+      "host": "example.com",
+      "port": 80,
+      "target": "/?worker_id=caf%C3%A9+%E6%97%A5%E6%9C%AC%E8%AA%9E+%2B/%25?%26%3D:%23@!$'()*,%3B~",
+      "host_header": "example.com",
+      "authorization": ""
+    },
+    {
+      "input": "wss://example.com:443/path",
+      "worker_id": "DevXT-123",
+      "host": "example.com",
+      "port": 443,
+      "target": "/path?worker_id=DevXT-123",
+      "host_header": "example.com",
+      "authorization": ""
+    },
+    {
+      "input": "wss://example.com:443/path",
+      "worker_id": "caf\u00e9 \u65e5\u672c\u8a9e +/%?&=:#@!$'()*,;~",
+      "host": "example.com",
+      "port": 443,
+      "target": "/path?worker_id=caf%C3%A9+%E6%97%A5%E6%9C%AC%E8%AA%9E+%2B/%25?%26%3D:%23@!$'()*,%3B~",
+      "host_header": "example.com",
+      "authorization": ""
+    },
+    {
+      "input": "ws://EXAMPLE.COM.:80/a/../b",
+      "worker_id": "DevXT-123",
+      "host": "example.com.",
+      "port": 80,
+      "target": "/b?worker_id=DevXT-123",
+      "host_header": "example.com",
+      "authorization": ""
+    },
+    {
+      "input": "ws://EXAMPLE.COM.:80/a/../b",
+      "worker_id": "caf\u00e9 \u65e5\u672c\u8a9e +/%?&=:#@!$'()*,;~",
+      "host": "example.com.",
+      "port": 80,
+      "target": "/b?worker_id=caf%C3%A9+%E6%97%A5%E6%9C%AC%E8%AA%9E+%2B/%25?%26%3D:%23@!$'()*,%3B~",
+      "host_header": "example.com",
+      "authorization": ""
+    },
+    {
+      "input": "ws://[::1]:8092/path",
+      "worker_id": "DevXT-123",
+      "host": "::1",
+      "port": 8092,
+      "target": "/path?worker_id=DevXT-123",
+      "host_header": "[::1]:8092",
+      "authorization": ""
+    },
+    {
+      "input": "ws://[::1]:8092/path",
+      "worker_id": "caf\u00e9 \u65e5\u672c\u8a9e +/%?&=:#@!$'()*,;~",
+      "host": "::1",
+      "port": 8092,
+      "target": "/path?worker_id=caf%C3%A9+%E6%97%A5%E6%9C%AC%E8%AA%9E+%2B/%25?%26%3D:%23@!$'()*,%3B~",
+      "host_header": "[::1]:8092",
+      "authorization": ""
+    },
+    {
+      "input": "wss://[2001:0DB8::1]/",
+      "worker_id": "DevXT-123",
+      "host": "2001:db8::1",
+      "port": 443,
+      "target": "/?worker_id=DevXT-123",
+      "host_header": "[2001:db8::1]",
+      "authorization": ""
+    },
+    {
+      "input": "wss://[2001:0DB8::1]/",
+      "worker_id": "caf\u00e9 \u65e5\u672c\u8a9e +/%?&=:#@!$'()*,;~",
+      "host": "2001:db8::1",
+      "port": 443,
+      "target": "/?worker_id=caf%C3%A9+%E6%97%A5%E6%9C%AC%E8%AA%9E+%2B/%25?%26%3D:%23@!$'()*,%3B~",
+      "host_header": "[2001:db8::1]",
+      "authorization": ""
+    },
+    {
+      "input": "ws://example.com?x=1#ignore",
+      "worker_id": "DevXT-123",
+      "host": "example.com",
+      "port": 80,
+      "target": "/?x=1&worker_id=DevXT-123",
+      "host_header": "example.com",
+      "authorization": ""
+    },
+    {
+      "input": "ws://example.com?x=1#ignore",
+      "worker_id": "caf\u00e9 \u65e5\u672c\u8a9e +/%?&=:#@!$'()*,;~",
+      "host": "example.com",
+      "port": 80,
+      "target": "/?x=1&worker_id=caf%C3%A9+%E6%97%A5%E6%9C%AC%E8%AA%9E+%2B/%25?%26%3D:%23@!$'()*,%3B~",
+      "host_header": "example.com",
+      "authorization": ""
+    },
+    {
+      "input": "ws://example.com/a b/\u65e5\u672c\u8a9e?x=a%20b&worker_id=old",
+      "worker_id": "DevXT-123",
+      "host": "example.com",
+      "port": 80,
+      "target": "/a%20b/%E6%97%A5%E6%9C%AC%E8%AA%9E?x=a%20b&worker_id=old&worker_id=DevXT-123",
+      "host_header": "example.com",
+      "authorization": ""
+    },
+    {
+      "input": "ws://example.com/a b/\u65e5\u672c\u8a9e?x=a%20b&worker_id=old",
+      "worker_id": "caf\u00e9 \u65e5\u672c\u8a9e +/%?&=:#@!$'()*,;~",
+      "host": "example.com",
+      "port": 80,
+      "target": "/a%20b/%E6%97%A5%E6%9C%AC%E8%AA%9E?x=a%20b&worker_id=old&worker_id=caf%C3%A9+%E6%97%A5%E6%9C%AC%E8%AA%9E+%2B/%25?%26%3D:%23@!$'()*,%3B~",
+      "host_header": "example.com",
+      "authorization": ""
+    },
+    {
+      "input": "http://example.com/path",
+      "worker_id": "DevXT-123",
+      "host": "example.com",
+      "port": 80,
+      "target": "/path?worker_id=DevXT-123",
+      "host_header": "example.com",
+      "authorization": ""
+    },
+    {
+      "input": "http://example.com/path",
+      "worker_id": "caf\u00e9 \u65e5\u672c\u8a9e +/%?&=:#@!$'()*,;~",
+      "host": "example.com",
+      "port": 80,
+      "target": "/path?worker_id=caf%C3%A9+%E6%97%A5%E6%9C%AC%E8%AA%9E+%2B/%25?%26%3D:%23@!$'()*,%3B~",
+      "host_header": "example.com",
+      "authorization": ""
+    },
+    {
+      "input": "https://b\u00fccher.de:444/x",
+      "worker_id": "DevXT-123",
+      "host": "xn--bcher-kva.de",
+      "port": 444,
+      "target": "/x?worker_id=DevXT-123",
+      "host_header": "xn--bcher-kva.de:444",
+      "authorization": ""
+    },
+    {
+      "input": "https://b\u00fccher.de:444/x",
+      "worker_id": "caf\u00e9 \u65e5\u672c\u8a9e +/%?&=:#@!$'()*,;~",
+      "host": "xn--bcher-kva.de",
+      "port": 444,
+      "target": "/x?worker_id=caf%C3%A9+%E6%97%A5%E6%9C%AC%E8%AA%9E+%2B/%25?%26%3D:%23@!$'()*,%3B~",
+      "host_header": "xn--bcher-kva.de:444",
+      "authorization": ""
+    },
+    {
+      "input": "ws://u:p@example.com/x",
+      "worker_id": "DevXT-123",
+      "host": "example.com",
+      "port": 80,
+      "target": "/x?worker_id=DevXT-123",
+      "host_header": "example.com",
+      "authorization": "Basic dTpw"
+    },
+    {
+      "input": "ws://u:p@example.com/x",
+      "worker_id": "caf\u00e9 \u65e5\u672c\u8a9e +/%?&=:#@!$'()*,;~",
+      "host": "example.com",
+      "port": 80,
+      "target": "/x?worker_id=caf%C3%A9+%E6%97%A5%E6%9C%AC%E8%AA%9E+%2B/%25?%26%3D:%23@!$'()*,%3B~",
+      "host_header": "example.com",
+      "authorization": "Basic dTpw"
+    }
+  ],
+  "backoff": [
+    {
+      "durations": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "failures": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "waits": [
+        2.0,
+        3.0,
+        4.5,
+        6.75,
+        10.125,
+        15.0,
+        15.0,
+        15.0,
+        15.0,
+        15.0,
+        15.0
+      ]
+    },
+    {
+      "durations": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "failures": [
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true
+      ],
+      "waits": [
+        2.0,
+        3.0,
+        4.5,
+        6.75,
+        10.125,
+        15.0,
+        15.0,
+        15.0,
+        15.0,
+        15.0,
+        15.0
+      ]
+    },
+    {
+      "durations": [
+        0,
+        0,
+        30,
+        30.001,
+        0,
+        0
+      ],
+      "failures": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "waits": [
+        2.0,
+        3.0,
+        4.5,
+        2.0,
+        3.0
+      ]
+    },
+    {
+      "durations": [
+        0,
+        31,
+        0,
+        31,
+        0
+      ],
+      "failures": [
+        true,
+        true,
+        false,
+        false,
+        false
+      ],
+      "waits": [
+        2.0,
+        3.0,
+        4.5,
+        2.0
+      ]
+    },
+    {
+      "durations": [
+        31,
+        0,
+        31,
+        0
+      ],
+      "failures": [
+        false,
+        false,
+        false,
+        false
+      ],
+      "waits": [
+        2.0,
+        3.0,
+        2.0
+      ]
+    }
+  ]
+}

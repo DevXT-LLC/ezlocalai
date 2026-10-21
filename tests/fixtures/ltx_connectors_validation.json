@@ -1,0 +1,388 @@
+{
+  "scope": "Separate LTX connector graphs, bounded positive/negative conditioning reuse within sampling, staged connector weight release, CPU/CUDA cache lifecycle, repeated real generation and Rust tunnel HTTP requests.",
+  "deployed": true,
+  "source_and_binaries": {
+    "source_sha256": {
+      "patches/sdcpp-ltx-offload-policy.patch": "cd69aa9cc89fa573c3e18bfe8ddb26afb8d5803619343045a56950ce1f05c3f7",
+      "patches/sdcpp-ltx-gemma-residency.patch": "baa30d9a3f4d1057131a1a2a15069a59b2ee742250085c9ff10552b485a09c1d",
+      "engine/sd_cli_worker.hpp": "bf81027fa49035b9adedbf1f911b7eb97144c9583c2c950bce82141b1cf65207",
+      "src/ltx_runtime.cpp": "00bf91576f15345e26f0845effb8a33da72de5724418e1f2a1867f352effcaf1",
+      "src/ltx_video.cpp": "178886b3d2be9962bacf362d123cd10fe28c92904a04aa051d678f9727d33c8b",
+      "include/ezlocalai/ltx_runtime.hpp": "6c2ef220e99d93b00409d482276d882e707c1009716a32d86f238a2127839d30",
+      "tests/test_ltx_runtime.cpp": "386e66db45f8631b28828060f2ab700d8118e15020e88d4aacfa3c0147487138",
+      "tests/test_media_engine.cpp": "8adef7b4c2e34fece3468ad65afc4a11495d4ac386475eee0a69c593f65b30b9",
+      "tests/ltx_process_fixture.cpp": "5a97fe7a707769d9efaa6ce8e9deb41cbad5d4afee3fd7e6ab41299edcf69b89",
+      "tests/test_ltx_gemma_residency.cpp": "7534730186d11d13b504903f8dea2781df00896bf76b8c00a5f294d1fe7b1af3",
+      "tests/fixtures/ltx_placement_cases.json": "d317bf9c88a2909f214c871d28255348760a73907bd5a3d7423bc85e836a8932",
+      "CMakeLists.txt": "df8a4529768bbcfba4b3854a4a7b48a16feb6c7f72d5024510a8a08e52dafc01",
+      "cuda.Dockerfile": "ac799ca2c0115c1e690e0b74663c53311f92af0cd189c7ed089f885dafde6963",
+      "patches/sdcpp-ltx-shared-cuts.patch": "b4665a0d62bc99864b244fa4c23f54168536883799d5cadfa1c8c6b22f5a9ea2",
+      "patches/sdcpp-ltx-connector-pass.patch": "e1701d9fecebb017532fb9b4f669e06a4de0ffe94869bc9020bcf1c376168edf",
+      "engine/ltx_condition_cache.hpp": "f6eb7e3029467f498d56f1520b294c01685c8de542cefccbb9b67a585b637cec",
+      "tests/test_ltx_condition_cache.cpp": "de1682e029cda22ef18cc1d4fbf569651c6e621cb20ee209dcef6d38e220b232",
+      "tests/test_ltx_connectors.cpp": "dc97dcf39a6d252862bc71ff465d991d38acc8f546d8823f1cf17e419a1c8f03"
+    },
+    "engine_sha256": "bacdb2b223e94ef8be5b65767e2c92b14bb3b931195f0b4a9815737f6efc85ed",
+    "runtime_test_sha256": "fa6352c029a9b804d5ba530426bd942359af18bb775f38c784e4dd245b111fbf"
+  },
+  "package": {
+    "connector_cuda_checks": true,
+    "image_id": "sha256:fef85f4523eeb38258aea94c6f18528769a1d0043ddd231d97b038aa6212411c",
+    "engine_matches_real_gpu_probe": true,
+    "recorded_sources_match": true,
+    "cuda_manager_cases": 8,
+    "hashes": {
+      "/opt/stable-diffusion.cpp/build/bin/sd-cli": "bacdb2b223e94ef8be5b65767e2c92b14bb3b931195f0b4a9815737f6efc85ed",
+      "/app/build/ezlocalai-native": "6d2f8e1d2f4e0289ada62cf1a826c0cfd4c511d8b5132e3281dc53c0bee0f1f7",
+      "/app/patches/sdcpp-ltx-offload-policy.patch": "cd69aa9cc89fa573c3e18bfe8ddb26afb8d5803619343045a56950ce1f05c3f7",
+      "/app/patches/sdcpp-ltx-gemma-residency.patch": "baa30d9a3f4d1057131a1a2a15069a59b2ee742250085c9ff10552b485a09c1d",
+      "/app/engine/sd_cli_worker.hpp": "bf81027fa49035b9adedbf1f911b7eb97144c9583c2c950bce82141b1cf65207",
+      "/app/src/ltx_runtime.cpp": "00bf91576f15345e26f0845effb8a33da72de5724418e1f2a1867f352effcaf1",
+      "/app/src/ltx_video.cpp": "178886b3d2be9962bacf362d123cd10fe28c92904a04aa051d678f9727d33c8b",
+      "/app/include/ezlocalai/ltx_runtime.hpp": "6c2ef220e99d93b00409d482276d882e707c1009716a32d86f238a2127839d30",
+      "/app/tests/test_ltx_runtime.cpp": "386e66db45f8631b28828060f2ab700d8118e15020e88d4aacfa3c0147487138",
+      "/app/tests/test_media_engine.cpp": "8adef7b4c2e34fece3468ad65afc4a11495d4ac386475eee0a69c593f65b30b9",
+      "/app/tests/ltx_process_fixture.cpp": "5a97fe7a707769d9efaa6ce8e9deb41cbad5d4afee3fd7e6ab41299edcf69b89",
+      "/app/tests/test_ltx_gemma_residency.cpp": "7534730186d11d13b504903f8dea2781df00896bf76b8c00a5f294d1fe7b1af3",
+      "/app/tests/fixtures/ltx_placement_cases.json": "d317bf9c88a2909f214c871d28255348760a73907bd5a3d7423bc85e836a8932",
+      "/app/CMakeLists.txt": "df8a4529768bbcfba4b3854a4a7b48a16feb6c7f72d5024510a8a08e52dafc01",
+      "/app/cuda.Dockerfile": "ac799ca2c0115c1e690e0b74663c53311f92af0cd189c7ed089f885dafde6963",
+      "/app/patches/sdcpp-ltx-shared-cuts.patch": "b4665a0d62bc99864b244fa4c23f54168536883799d5cadfa1c8c6b22f5a9ea2",
+      "/app/patches/sdcpp-ltx-connector-pass.patch": "e1701d9fecebb017532fb9b4f669e06a4de0ffe94869bc9020bcf1c376168edf",
+      "/app/engine/ltx_condition_cache.hpp": "f6eb7e3029467f498d56f1520b294c01685c8de542cefccbb9b67a585b637cec",
+      "/app/tests/test_ltx_condition_cache.cpp": "de1682e029cda22ef18cc1d4fbf569651c6e621cb20ee209dcef6d38e220b232",
+      "/app/tests/test_ltx_connectors.cpp": "dc97dcf39a6d252862bc71ff465d991d38acc8f546d8823f1cf17e419a1c8f03"
+    }
+  },
+  "packaged_ctest_count": 34,
+  "runtime": {
+    "original_image": "sha256:0f9cfcac38978e476e385dfda6356e8d196be668c1e3112f6c9f4a1b094da12e",
+    "test_exit": 0,
+    "seconds": 106.41311372991186,
+    "engine": {
+      "initial_pid": 61,
+      "initial_residency": "model_offload",
+      "preload_seconds": 48.066984864,
+      "reaped": true,
+      "requests": [
+        {
+          "output": "outputs/d5d0c642-a533-4987-bd9e-d679b9bfa123.mp4",
+          "pid": 61,
+          "residency": "model_offload",
+          "seconds": 30.009811458
+        },
+        {
+          "output": "outputs/54557607-ac26-472d-a3e5-6c6332c895c0.mp4",
+          "pid": 61,
+          "residency": "model_offload",
+          "seconds": 17.471013839
+        }
+      ]
+    },
+    "restored_health": "healthy",
+    "restored_image": "sha256:0f9cfcac38978e476e385dfda6356e8d196be668c1e3112f6c9f4a1b094da12e"
+  },
+  "outputs_and_gpu": {
+    "outputs": [
+      {
+        "path": "outputs/d5d0c642-a533-4987-bd9e-d679b9bfa123.mp4",
+        "mp4_sha256": "0f253d0873b2223936f2e48c696373239eaee774248d7ee237a6dcf16fadcdd7",
+        "rgb24_bytes": 110592,
+        "rgb24_sha256": "df625edc08597e6ff36e0a3251ce9f3a94cde6ac7b8130b43aabe59d2c9af8c2",
+        "pcm_s16le_bytes": 65536,
+        "pcm_s16le_sha256": "63d90fce5908068490b0f6cbecfc3da6e76576ed6664e7726e882b4c1cbe64c2"
+      },
+      {
+        "path": "outputs/54557607-ac26-472d-a3e5-6c6332c895c0.mp4",
+        "mp4_sha256": "0f253d0873b2223936f2e48c696373239eaee774248d7ee237a6dcf16fadcdd7",
+        "rgb24_bytes": 110592,
+        "rgb24_sha256": "df625edc08597e6ff36e0a3251ce9f3a94cde6ac7b8130b43aabe59d2c9af8c2",
+        "pcm_s16le_bytes": 65536,
+        "pcm_s16le_sha256": "63d90fce5908068490b0f6cbecfc3da6e76576ed6664e7726e882b4c1cbe64c2"
+      }
+    ],
+    "gpu_samples": {
+      "loading": {
+        "min_mib": 260,
+        "max_mib": 7744,
+        "samples": 86
+      },
+      "preloaded": {
+        "min_mib": 7744,
+        "max_mib": 7744,
+        "samples": 5
+      },
+      "request-1-running": {
+        "min_mib": 7822,
+        "max_mib": 21124,
+        "samples": 54
+      },
+      "request-1-complete": {
+        "min_mib": 7822,
+        "max_mib": 7822,
+        "samples": 5
+      },
+      "request-2-running": {
+        "min_mib": 7822,
+        "max_mib": 21126,
+        "samples": 31
+      },
+      "request-2-complete": {
+        "min_mib": 7822,
+        "max_mib": 7822,
+        "samples": 5
+      },
+      "stopping": {
+        "min_mib": 600,
+        "max_mib": 7822,
+        "samples": 3
+      }
+    },
+    "matches_baseline": true,
+    "connector_preparations": {
+      "request-1-running": [
+        [
+          "ltxav.connector.0",
+          "on"
+        ],
+        [
+          "ltxav.connector.1",
+          "on"
+        ]
+      ],
+      "request-2-running": [
+        [
+          "ltxav.connector.0",
+          "on"
+        ],
+        [
+          "ltxav.connector.1",
+          "on"
+        ]
+      ]
+    }
+  },
+  "source_observation": {
+    "installed_diffusers_pipeline_sha256": "922f449e594423d833f86d4b4a92923b87e8e1b7c286bccf362c0cd32a25eb8b",
+    "source_offload_order": "text_encoder->connectors->transformer->vae->audio_vae->vocoder",
+    "connector_call_line": 1088,
+    "denoising_loop_line": 1214,
+    "native_model_file": "src/model/diffusion/ltxv.hpp",
+    "native_limitation": "Historical observation from the previous engine; cross-step connector reuse is implemented and validated in this record."
+  },
+  "http": {
+    "success": true,
+    "image": "sha256:fef85f4523eeb38258aea94c6f18528769a1d0043ddd231d97b038aa6212411c",
+    "preload_seconds": 44.34381650702562,
+    "preload_free_gpu_mib": 22980,
+    "preload_note": "Production is stopped before startup; real free GPU memory selects packed NF4 and resident Gemma. This dedicated media worker does not test LLM unload/restore.",
+    "engine_reaped": true,
+    "original_restored_healthy": true
+  },
+  "http_requests": [
+    {
+      "via_rust_tunnel": false,
+      "name": "first",
+      "seconds": 32.02232369303238,
+      "bytes": 13706,
+      "sha256": "29c0101daecfc4597380ca0affb4a52ec24620e1fd969bf69be4832788b2dcb0",
+      "rgba_sha256": "1715dccb641a1ffd4e165e2816b2b0de08943eee41d06781121b1ea0d54cda87",
+      "pcm_sha256": "a0faee47d562f8a0a7d60af57586a804262a6f818de68bbc0b29ac5161bcea32",
+      "pid": 2361214,
+      "engine_memory": {
+        "VmHWM": "29190836 kB",
+        "VmRSS": "28988484 kB",
+        "VmSwap": "0 kB"
+      },
+      "video": {
+        "width": 64,
+        "height": 64,
+        "nb_frames": "9"
+      },
+      "audio": {
+        "sample_rate": "24000",
+        "duration": "0.660000"
+      }
+    },
+    {
+      "via_rust_tunnel": true,
+      "name": "changed",
+      "seconds": 19.699960245052353,
+      "bytes": 25592,
+      "sha256": "29010a56a859ad7e24c7aa0aa17322d564a60836ccc3b7315daa1b9654bebaf0",
+      "rgba_sha256": "dc0c6a6770d65b197fc1fd5b157680429c21a91b1fd1dc675a6961707be6b988",
+      "pcm_sha256": "2dcd47dde0608bf208eeb5d32137b382f9ca34346d23252b9bb02e68d403526c",
+      "pid": 2361214,
+      "engine_memory": {
+        "VmHWM": "29190836 kB",
+        "VmRSS": "28294256 kB",
+        "VmSwap": "0 kB"
+      },
+      "video": {
+        "width": 96,
+        "height": 64,
+        "nb_frames": "17"
+      },
+      "audio": {
+        "sample_rate": "24000",
+        "duration": "1.380000"
+      }
+    },
+    {
+      "via_rust_tunnel": true,
+      "name": "image",
+      "seconds": 21.02588998596184,
+      "bytes": 13712,
+      "sha256": "b9423f488d46c4ebc327f0b1923cd88de08a80dbfcc415a4f8d9f57151cf6cca",
+      "rgba_sha256": "279a0a0f4d3151c8e9c94f5b1aa42b8096862d92005370874712a9cc653599f8",
+      "pcm_sha256": "fbef7f62c5d144ecf008bbc5cdbf8de2cca6cfbe6a8479afc0456d185d8af89e",
+      "pid": 2361214,
+      "engine_memory": {
+        "VmHWM": "29190836 kB",
+        "VmRSS": "28275040 kB",
+        "VmSwap": "0 kB"
+      },
+      "video": {
+        "width": 64,
+        "height": 64,
+        "nb_frames": "9"
+      },
+      "audio": {
+        "sample_rate": "24000",
+        "duration": "0.660000"
+      }
+    },
+    {
+      "via_rust_tunnel": true,
+      "name": "conditions",
+      "seconds": 20.77037633000873,
+      "bytes": 13595,
+      "sha256": "f1e77f41f6089b754b6082689af6eab6eb2a384c6da89055a5da98c46ff3b9dd",
+      "rgba_sha256": "75a9bb700aa0d11f9f83d5def7b10633bd381fcba708c154ad73352cd4028b56",
+      "pcm_sha256": "89127f5a53423f25a18179eea4dd14257ea4c358bd72e80d496c5d2522248a2c",
+      "pid": 2361214,
+      "engine_memory": {
+        "VmHWM": "29190836 kB",
+        "VmRSS": "26795068 kB",
+        "VmSwap": "0 kB"
+      },
+      "video": {
+        "width": 64,
+        "height": 64,
+        "nb_frames": "9"
+      },
+      "audio": {
+        "sample_rate": "24000",
+        "duration": "0.660000"
+      }
+    },
+    {
+      "via_rust_tunnel": true,
+      "name": "repeat",
+      "seconds": 20.69774472399149,
+      "bytes": 13706,
+      "sha256": "29c0101daecfc4597380ca0affb4a52ec24620e1fd969bf69be4832788b2dcb0",
+      "rgba_sha256": "1715dccb641a1ffd4e165e2816b2b0de08943eee41d06781121b1ea0d54cda87",
+      "pcm_sha256": "a0faee47d562f8a0a7d60af57586a804262a6f818de68bbc0b29ac5161bcea32",
+      "pid": 2361214,
+      "engine_memory": {
+        "VmHWM": "29190836 kB",
+        "VmRSS": "26171144 kB",
+        "VmSwap": "0 kB"
+      },
+      "video": {
+        "width": 64,
+        "height": 64,
+        "nb_frames": "9"
+      },
+      "audio": {
+        "sample_rate": "24000",
+        "duration": "0.660000"
+      }
+    }
+  ],
+  "deployment": {
+    "previous_image": "sha256:0f9cfcac38978e476e385dfda6356e8d196be668c1e3112f6c9f4a1b094da12e",
+    "candidate_image": "sha256:fef85f4523eeb38258aea94c6f18528769a1d0043ddd231d97b038aa6212411c",
+    "health": "healthy",
+    "deployed_image": "sha256:fef85f4523eeb38258aea94c6f18528769a1d0043ddd231d97b038aa6212411c",
+    "effective_environment_changed_keys": [],
+    "original_env_file_unchanged": true,
+    "mounts_unchanged": true,
+    "wakeword_mounts": [
+      [
+        "bind",
+        "/home/josh/repos/xtsys/ezlocalai/wakeword_models",
+        "/app/wakeword_models",
+        true
+      ],
+      [
+        "bind",
+        "/home/josh/repos/xtsys/ezlocalai/wakeword_samples",
+        "/app/wakeword_samples",
+        true
+      ],
+      [
+        "bind",
+        "/home/josh/repos/xtsys/ezlocalai/wakeword_jobs",
+        "/app/wakeword_jobs",
+        true
+      ]
+    ],
+    "ports_unchanged": true,
+    "gpu_requests_unchanged": true
+  },
+  "live_worker": {
+    "image": "sha256:fef85f4523eeb38258aea94c6f18528769a1d0043ddd231d97b038aa6212411c",
+    "binary_sha256": "6d2f8e1d2f4e0289ada62cf1a826c0cfd4c511d8b5132e3281dc53c0bee0f1f7",
+    "matching_workers": 1,
+    "python_extra_matches": true,
+    "extra": {
+      "llm_model_residency": "resident",
+      "loaded_llms": [
+        "unsloth/Qwen3.8-27B-GGUF"
+      ],
+      "active_llm": "unsloth/Qwen3.8-27B-GGUF",
+      "llm_unload_dependent_capabilities": [
+        "image",
+        "video",
+        "music",
+        "music_video"
+      ]
+    },
+    "resource_lifecycle": {
+      "llm_model_residency": "resident",
+      "loaded_llms": [
+        "unsloth/Qwen3.8-27B-GGUF"
+      ],
+      "active_llm": "unsloth/Qwen3.8-27B-GGUF"
+    },
+    "gpu_count": 1,
+    "torch_cuda": [
+      {
+        "index": 0,
+        "allocated_gb": 0.0,
+        "reserved_gb": 0.0,
+        "max_allocated_gb": 0.0,
+        "free_gb": 2.072,
+        "total_gb": 23.524
+      }
+    ],
+    "free_vram_gb": 2.07183837890625,
+    "sources": {
+      "Pipes.py": "8238cef03d4a1db6e775d7f62234bcf998d8f08bd9fc15f1d8a36ea0d3280005",
+      "Router.py": "d5eebf7fc48f7781628aa4eaab8af1c3f23fd8694242f0b3065436b5c86f62b1"
+    }
+  },
+  "limits": [
+    "Small two-step clips; no claim for production-size presets or multiple GPUs.",
+    "Byte equivalence is against the prior native engine, not complete Python numerical parity.",
+    "Dedicated quantized media worker: actual quantized video/LLM unload-and-restore handoff remains open.",
+    "Quanto CPU INT8 fallback remains unimplemented.",
+    "Native prepares each CFG condition lazily before its first transformer call; this is not the exact batched Python connector/transformer call sequence."
+  ],
+  "local_evidence": [
+    "build/validation/ltx-connectors",
+    "build/validation/ltx-connectors-http"
+  ]
+}

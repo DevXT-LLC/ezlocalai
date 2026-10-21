@@ -1,0 +1,67 @@
+{
+  "date": "2026-10-20",
+  "status": "Full ARM64 worker compilation passed; QEMU package gate failed 3 of 55 checks; no accepted worker image or model acceptance",
+  "execution": "ARM64 native libraries and executable under QEMU Cortex-A76 on x86; no GPU access",
+  "torch_wheel_sha256": "3bf9b442a51a2948e41216a76d7ab00f0694cfcaaa51b6f9bcab57b7f89843e6",
+  "initial_failure": "Full worker link failed because extraction omitted torch.libs containing hashed OpenBLAS, Arm Compute Library, OpenMP and Fortran dependencies",
+  "intermediate_failure": "Preserving torch.libs resolved direct libraries, but native linking still missed the indirect Fortran dependency of OpenBLAS",
+  "fix": "Preserve the original torch.libs RPATH layout and add relative SONAME aliases in torch/lib for native linkers",
+  "libraries": [
+    {
+      "name": "torch.libs/libarm_compute-bff8ef9b.so",
+      "sha256": "d85017e32035838921d1f3459588969d6cb90ac6499b750047d38bcf32f2100a",
+      "native_alias": "../../torch.libs/libarm_compute-bff8ef9b.so"
+    },
+    {
+      "name": "torch.libs/libarm_compute_graph-91f54ff9.so",
+      "sha256": "c95c71893db0a6490aa41803a80c23f4c126d696d54c21183ec4188935abdf40",
+      "native_alias": "../../torch.libs/libarm_compute_graph-91f54ff9.so"
+    },
+    {
+      "name": "torch.libs/libgfortran-e1b7dfc8.so.5.0.0",
+      "sha256": "296e40e3d92d0c4377e1f8b40a929045fee6bc5686226faf940fc824e469a7be",
+      "native_alias": "../../torch.libs/libgfortran-e1b7dfc8.so.5.0.0"
+    },
+    {
+      "name": "torch.libs/libgomp-a49a47f9.so.1.0.0",
+      "sha256": "43642df04bdf20f9b4122d336ef3e2e6a486c536e614159ac0e981a901d54537",
+      "native_alias": "../../torch.libs/libgomp-a49a47f9.so.1.0.0"
+    },
+    {
+      "name": "torch.libs/libopenblasp-r0-121ca252.3.30.so",
+      "sha256": "eeed4eeb5b5c2691b5ee0812a4e909adf8c0d936dc29aa72ea56d91614f3f623",
+      "native_alias": "../../torch.libs/libopenblasp-r0-121ca252.3.30.so"
+    }
+  ],
+  "dependency_image": "sha256:67e93700824c4119f754f3f851b276abbb3ee8a9a69e1732cfa0e5d40e7945bd",
+  "probe": {
+    "matrix_multiply_sum": 262144,
+    "convolution_sum": 10584,
+    "compiled_cuda": false,
+    "all_libraries_resolved": true
+  },
+  "proof_directory": "build/validation/arm64-cpu-20261020",
+  "extractor_sha256": "2e60df19be6f35aa15bb7b88f4f39170f69962dd8f2b237a3a2d5eb431a50810",
+  "package_gate": {
+    "execution": "ARM64 QEMU user mode on x86; no physical Pi execution",
+    "passed": 52,
+    "failed": 3,
+    "seconds": 498.39,
+    "failures": [
+      {
+        "test": "tunnel_framing_reference",
+        "reason": "30.04-second test timeout"
+      },
+      {
+        "test": "ltx_runtime",
+        "reason": "timeout reaps process and removes working files assertion"
+      },
+      {
+        "test": "media_engine",
+        "reason": "subreaper fixture"
+      }
+    ],
+    "snapshot_limitation": "Compiled before the final LTX audio resampling and worker tunnel budget fixes",
+    "native_compiled_stage_cached": true
+  }
+}

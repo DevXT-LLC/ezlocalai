@@ -1,0 +1,1230 @@
+{
+  "date": "2026-10-19",
+  "candidate_image": "sha256:b6b755177ab965b083d342f8a1be12183fcd544e97ef60bd8abe559ab10b27fa",
+  "deployed": false,
+  "validation_script_sha256": "1f42f5d4ba7e4ccba896ef4c4d08efa03f1d3a6c2438967c3d105644e5575753",
+  "original_env_unchanged": true,
+  "restored_health": "healthy",
+  "tests": {
+    "native_suite": {
+      "passed": 106,
+      "seconds": 103.25
+    },
+    "worker_router_wire": {
+      "passed": 89,
+      "seconds": 36.226
+    },
+    "additional_http_edge_tests": {
+      "passed": 1,
+      "seconds": 9.55
+    },
+    "ltx_numerical_helpers": {
+      "passed": 4,
+      "details": "RMS norms, mapping concurrency, 24 timestep traces and 72 scheduler cases."
+    }
+  },
+  "native_binaries": "79fddb307658d07422eea7292fff9d85465a2b2ca2e8d1f178bf00a017bfa50a  /app/build/ezlocalai-native\nc93d18f5b69a8c240920ea857c7d38050f5ba3b3af9677e707845c6a135c4310  /opt/stable-diffusion.cpp/build/bin/sd-cli\n",
+  "cases": [
+    {
+      "case": "reuse-two-scenes",
+      "request": {
+        "prompt": "Pythagorean rock concert, a band performing on a stage with a mathematical LED screen.",
+        "lyrics": "[Verse]\nThe squares on legs a and b\n[Chorus]\nEqual the square on hypotenuse c",
+        "keyscale": "C minor",
+        "duration": 1.2,
+        "scene_duration": 1.0,
+        "audio_url": "outputs/reused.wav",
+        "size": "128x96",
+        "frame_rate": 8,
+        "num_inference_steps": 2,
+        "response_format": "url"
+      },
+      "via_router": false,
+      "seconds": 143.5572715769522,
+      "bytes": 24467,
+      "sha256": "9a2e76eb7cd802442046c46b58d166c92681578d6ec4a9184b502a20126a947f",
+      "metadata": {
+        "audio_url": "outputs/reused.wav",
+        "content_type": "video/mp4",
+        "format": "mp4",
+        "math_overlay": true,
+        "scene_count": 2,
+        "scene_duration": 1.0,
+        "scene_plan": [
+          {
+            "duration": 1.0,
+            "index": 0,
+            "num_frames": 9,
+            "start": 0.0
+          },
+          {
+            "duration": 0.2,
+            "index": 1,
+            "num_frames": 9,
+            "start": 1.0
+          }
+        ],
+        "scene_urls": [
+          "http://127.0.0.1:8091/outputs/04fdba85-c10f-4db8-bfe7-d0b9f33b3c8f.mp4",
+          "http://127.0.0.1:8091/outputs/186a9cd9-f0a8-45a5-a084-8e79f846400c.mp4"
+        ],
+        "storyboard": true,
+        "url": "http://127.0.0.1:8091/outputs/b55d4bfb-a4dc-410f-be17-02cf9527ae56.mp4"
+      },
+      "probe": {
+        "streams": [
+          {
+            "index": 0,
+            "codec_name": "h264",
+            "codec_long_name": "H.264 / AVC / MPEG-4 AVC / MPEG-4 part 10",
+            "profile": "High",
+            "codec_type": "video",
+            "codec_tag_string": "avc1",
+            "codec_tag": "0x31637661",
+            "width": 128,
+            "height": 96,
+            "coded_width": 128,
+            "coded_height": 96,
+            "closed_captions": 0,
+            "film_grain": 0,
+            "has_b_frames": 2,
+            "pix_fmt": "yuv420p",
+            "level": 10,
+            "chroma_location": "left",
+            "field_order": "progressive",
+            "refs": 1,
+            "is_avc": "true",
+            "nal_length_size": "4",
+            "id": "0x1",
+            "r_frame_rate": "8/1",
+            "avg_frame_rate": "8/1",
+            "time_base": "1/16384",
+            "start_pts": 0,
+            "start_time": "0.000000",
+            "duration_ts": 20480,
+            "duration": "1.250000",
+            "bit_rate": "82380",
+            "bits_per_raw_sample": "8",
+            "nb_frames": "10",
+            "extradata_size": 44,
+            "disposition": {
+              "default": 1,
+              "dub": 0,
+              "original": 0,
+              "comment": 0,
+              "lyrics": 0,
+              "karaoke": 0,
+              "forced": 0,
+              "hearing_impaired": 0,
+              "visual_impaired": 0,
+              "clean_effects": 0,
+              "attached_pic": 0,
+              "timed_thumbnails": 0,
+              "non_diegetic": 0,
+              "captions": 0,
+              "descriptions": 0,
+              "metadata": 0,
+              "dependent": 0,
+              "still_image": 0
+            },
+            "tags": {
+              "language": "und",
+              "handler_name": "VideoHandler",
+              "vendor_id": "[0][0][0][0]",
+              "encoder": "Lavc60.31.102 libx264"
+            }
+          },
+          {
+            "index": 1,
+            "codec_name": "aac",
+            "codec_long_name": "AAC (Advanced Audio Coding)",
+            "profile": "LC",
+            "codec_type": "audio",
+            "codec_tag_string": "mp4a",
+            "codec_tag": "0x6134706d",
+            "sample_fmt": "fltp",
+            "sample_rate": "24000",
+            "channels": 1,
+            "channel_layout": "mono",
+            "bits_per_sample": 0,
+            "initial_padding": 0,
+            "id": "0x2",
+            "r_frame_rate": "0/0",
+            "avg_frame_rate": "0/0",
+            "time_base": "1/24000",
+            "start_pts": 0,
+            "start_time": "0.000000",
+            "duration_ts": 28800,
+            "duration": "1.200000",
+            "bit_rate": "63431",
+            "nb_frames": "30",
+            "extradata_size": 5,
+            "disposition": {
+              "default": 1,
+              "dub": 0,
+              "original": 0,
+              "comment": 0,
+              "lyrics": 0,
+              "karaoke": 0,
+              "forced": 0,
+              "hearing_impaired": 0,
+              "visual_impaired": 0,
+              "clean_effects": 0,
+              "attached_pic": 0,
+              "timed_thumbnails": 0,
+              "non_diegetic": 0,
+              "captions": 0,
+              "descriptions": 0,
+              "metadata": 0,
+              "dependent": 0,
+              "still_image": 0
+            },
+            "tags": {
+              "language": "und",
+              "handler_name": "SoundHandler",
+              "vendor_id": "[0][0][0][0]"
+            }
+          }
+        ],
+        "format": {
+          "filename": "/opt/DevXT/ezlocalai/build/validation/music-video-http/reuse-two-scenes.mp4",
+          "nb_streams": 2,
+          "nb_programs": 0,
+          "format_name": "mov,mp4,m4a,3gp,3g2,mj2",
+          "format_long_name": "QuickTime / MOV",
+          "start_time": "0.000000",
+          "duration": "1.250000",
+          "size": "24467",
+          "bit_rate": "156588",
+          "probe_score": 100,
+          "tags": {
+            "major_brand": "isom",
+            "minor_version": "512",
+            "compatible_brands": "isomiso2avc1mp41",
+            "encoder": "Lavf60.16.100"
+          }
+        }
+      },
+      "scene_probes": [
+        {
+          "streams": [
+            {
+              "index": 0,
+              "codec_name": "h264",
+              "codec_long_name": "H.264 / AVC / MPEG-4 AVC / MPEG-4 part 10",
+              "profile": "High",
+              "codec_type": "video",
+              "codec_tag_string": "avc1",
+              "codec_tag": "0x31637661",
+              "width": 128,
+              "height": 96,
+              "coded_width": 128,
+              "coded_height": 96,
+              "closed_captions": 0,
+              "film_grain": 0,
+              "has_b_frames": 2,
+              "pix_fmt": "yuv420p",
+              "level": 10,
+              "chroma_location": "left",
+              "field_order": "progressive",
+              "refs": 1,
+              "is_avc": "true",
+              "nal_length_size": "4",
+              "id": "0x1",
+              "r_frame_rate": "8/1",
+              "avg_frame_rate": "8/1",
+              "time_base": "1/16384",
+              "start_pts": 0,
+              "start_time": "0.000000",
+              "duration_ts": 18432,
+              "duration": "1.125000",
+              "bit_rate": "94129",
+              "bits_per_raw_sample": "8",
+              "nb_frames": "9",
+              "extradata_size": 44,
+              "disposition": {
+                "default": 1,
+                "dub": 0,
+                "original": 0,
+                "comment": 0,
+                "lyrics": 0,
+                "karaoke": 0,
+                "forced": 0,
+                "hearing_impaired": 0,
+                "visual_impaired": 0,
+                "clean_effects": 0,
+                "attached_pic": 0,
+                "timed_thumbnails": 0,
+                "non_diegetic": 0,
+                "captions": 0,
+                "descriptions": 0,
+                "metadata": 0,
+                "dependent": 0,
+                "still_image": 0
+              },
+              "tags": {
+                "language": "und",
+                "handler_name": "VideoHandler",
+                "vendor_id": "[0][0][0][0]",
+                "encoder": "Lavc60.31.102 libx264"
+              }
+            }
+          ]
+        },
+        {
+          "streams": [
+            {
+              "index": 0,
+              "codec_name": "h264",
+              "codec_long_name": "H.264 / AVC / MPEG-4 AVC / MPEG-4 part 10",
+              "profile": "High",
+              "codec_type": "video",
+              "codec_tag_string": "avc1",
+              "codec_tag": "0x31637661",
+              "width": 128,
+              "height": 96,
+              "coded_width": 128,
+              "coded_height": 96,
+              "closed_captions": 0,
+              "film_grain": 0,
+              "has_b_frames": 2,
+              "pix_fmt": "yuv420p",
+              "level": 10,
+              "chroma_location": "left",
+              "field_order": "progressive",
+              "refs": 1,
+              "is_avc": "true",
+              "nal_length_size": "4",
+              "id": "0x1",
+              "r_frame_rate": "8/1",
+              "avg_frame_rate": "8/1",
+              "time_base": "1/16384",
+              "start_pts": 0,
+              "start_time": "0.000000",
+              "duration_ts": 18432,
+              "duration": "1.125000",
+              "bit_rate": "64433",
+              "bits_per_raw_sample": "8",
+              "nb_frames": "9",
+              "extradata_size": 44,
+              "disposition": {
+                "default": 1,
+                "dub": 0,
+                "original": 0,
+                "comment": 0,
+                "lyrics": 0,
+                "karaoke": 0,
+                "forced": 0,
+                "hearing_impaired": 0,
+                "visual_impaired": 0,
+                "clean_effects": 0,
+                "attached_pic": 0,
+                "timed_thumbnails": 0,
+                "non_diegetic": 0,
+                "captions": 0,
+                "descriptions": 0,
+                "metadata": 0,
+                "dependent": 0,
+                "still_image": 0
+              },
+              "tags": {
+                "language": "und",
+                "handler_name": "VideoHandler",
+                "vendor_id": "[0][0][0][0]",
+                "encoder": "Lavc60.31.102 libx264"
+              }
+            }
+          ]
+        }
+      ],
+      "handoff_observed": true,
+      "resource_poll_timeouts": 4,
+      "resource_observations": 263,
+      "restored_parallel": {
+        "n_parallel": 1,
+        "n_ctx": 220000,
+        "per_slot_context": 220000,
+        "text_queue_capacity": 1,
+        "queue_wait_timeout": 30.0
+      }
+    },
+    {
+      "case": "generated-music",
+      "request": {
+        "prompt": "Pythagorean rock concert, a band performing on a stage with a mathematical LED screen.",
+        "lyrics": "[Verse]\nThe squares on legs a and b\n[Chorus]\nEqual the square on hypotenuse c",
+        "keyscale": "C minor",
+        "duration": 5.0,
+        "scene_duration": 5.0,
+        "audio_url": null,
+        "size": "512x320",
+        "frame_rate": 8,
+        "num_inference_steps": 18,
+        "response_format": "url",
+        "seed": 42,
+        "instrumental": true,
+        "worker": "native-music-video-validation"
+      },
+      "via_router": true,
+      "seconds": 138.90752398606855,
+      "bytes": 340748,
+      "sha256": "9661c5514f02c486c4e38e08693548dd03447dd8b71f03a64dfaed4f4b5097e3",
+      "metadata": {
+        "audio_url": "http://127.0.0.1:60155/outputs/5b8ae851-3e7b-4908-ae8f-ced389f08f5b-0.wav",
+        "content_type": "video/mp4",
+        "format": "mp4",
+        "math_overlay": true,
+        "scene_count": 1,
+        "scene_duration": 5.0,
+        "scene_plan": [
+          {
+            "duration": 5.0,
+            "index": 0,
+            "num_frames": 41,
+            "start": 0.0
+          }
+        ],
+        "scene_urls": [
+          "http://127.0.0.1:60155/outputs/74ab7e3d-d1e0-4563-9521-c8713f89e8ab.mp4"
+        ],
+        "storyboard": true,
+        "url": "http://127.0.0.1:60155/outputs/5b74d5d9-310e-4162-8ec7-5bf021180d01.mp4"
+      },
+      "probe": {
+        "streams": [
+          {
+            "index": 0,
+            "codec_name": "h264",
+            "codec_long_name": "H.264 / AVC / MPEG-4 AVC / MPEG-4 part 10",
+            "profile": "High",
+            "codec_type": "video",
+            "codec_tag_string": "avc1",
+            "codec_tag": "0x31637661",
+            "width": 512,
+            "height": 320,
+            "coded_width": 512,
+            "coded_height": 320,
+            "closed_captions": 0,
+            "film_grain": 0,
+            "has_b_frames": 2,
+            "pix_fmt": "yuv420p",
+            "level": 21,
+            "chroma_location": "left",
+            "field_order": "progressive",
+            "refs": 1,
+            "is_avc": "true",
+            "nal_length_size": "4",
+            "id": "0x1",
+            "r_frame_rate": "8/1",
+            "avg_frame_rate": "8/1",
+            "time_base": "1/16384",
+            "start_pts": 0,
+            "start_time": "0.000000",
+            "duration_ts": 81920,
+            "duration": "5.000000",
+            "bit_rate": "437694",
+            "bits_per_raw_sample": "8",
+            "nb_frames": "40",
+            "extradata_size": 45,
+            "disposition": {
+              "default": 1,
+              "dub": 0,
+              "original": 0,
+              "comment": 0,
+              "lyrics": 0,
+              "karaoke": 0,
+              "forced": 0,
+              "hearing_impaired": 0,
+              "visual_impaired": 0,
+              "clean_effects": 0,
+              "attached_pic": 0,
+              "timed_thumbnails": 0,
+              "non_diegetic": 0,
+              "captions": 0,
+              "descriptions": 0,
+              "metadata": 0,
+              "dependent": 0,
+              "still_image": 0
+            },
+            "tags": {
+              "language": "und",
+              "handler_name": "VideoHandler",
+              "vendor_id": "[0][0][0][0]",
+              "encoder": "Lavc60.31.102 libx264"
+            }
+          },
+          {
+            "index": 1,
+            "codec_name": "aac",
+            "codec_long_name": "AAC (Advanced Audio Coding)",
+            "profile": "LC",
+            "codec_type": "audio",
+            "codec_tag_string": "mp4a",
+            "codec_tag": "0x6134706d",
+            "sample_fmt": "fltp",
+            "sample_rate": "48000",
+            "channels": 2,
+            "channel_layout": "stereo",
+            "bits_per_sample": 0,
+            "initial_padding": 0,
+            "id": "0x2",
+            "r_frame_rate": "0/0",
+            "avg_frame_rate": "0/0",
+            "time_base": "1/48000",
+            "start_pts": 0,
+            "start_time": "0.000000",
+            "duration_ts": 240000,
+            "duration": "5.000000",
+            "bit_rate": "101796",
+            "nb_frames": "236",
+            "extradata_size": 5,
+            "disposition": {
+              "default": 1,
+              "dub": 0,
+              "original": 0,
+              "comment": 0,
+              "lyrics": 0,
+              "karaoke": 0,
+              "forced": 0,
+              "hearing_impaired": 0,
+              "visual_impaired": 0,
+              "clean_effects": 0,
+              "attached_pic": 0,
+              "timed_thumbnails": 0,
+              "non_diegetic": 0,
+              "captions": 0,
+              "descriptions": 0,
+              "metadata": 0,
+              "dependent": 0,
+              "still_image": 0
+            },
+            "tags": {
+              "language": "und",
+              "handler_name": "SoundHandler",
+              "vendor_id": "[0][0][0][0]"
+            }
+          }
+        ],
+        "format": {
+          "filename": "/opt/DevXT/ezlocalai/build/validation/music-video-http/generated-music.mp4",
+          "nb_streams": 2,
+          "nb_programs": 0,
+          "format_name": "mov,mp4,m4a,3gp,3g2,mj2",
+          "format_long_name": "QuickTime / MOV",
+          "start_time": "0.000000",
+          "duration": "5.000000",
+          "size": "340748",
+          "bit_rate": "545196",
+          "probe_score": 100,
+          "tags": {
+            "major_brand": "isom",
+            "minor_version": "512",
+            "compatible_brands": "isomiso2avc1mp41",
+            "encoder": "Lavf60.16.100"
+          }
+        }
+      },
+      "scene_probes": [
+        {
+          "streams": [
+            {
+              "index": 0,
+              "codec_name": "h264",
+              "codec_long_name": "H.264 / AVC / MPEG-4 AVC / MPEG-4 part 10",
+              "profile": "High",
+              "codec_type": "video",
+              "codec_tag_string": "avc1",
+              "codec_tag": "0x31637661",
+              "width": 512,
+              "height": 320,
+              "coded_width": 512,
+              "coded_height": 320,
+              "closed_captions": 0,
+              "film_grain": 0,
+              "has_b_frames": 2,
+              "pix_fmt": "yuv420p",
+              "level": 21,
+              "chroma_location": "left",
+              "field_order": "progressive",
+              "refs": 1,
+              "is_avc": "true",
+              "nal_length_size": "4",
+              "id": "0x1",
+              "r_frame_rate": "8/1",
+              "avg_frame_rate": "8/1",
+              "time_base": "1/16384",
+              "start_pts": 0,
+              "start_time": "0.000000",
+              "duration_ts": 83968,
+              "duration": "5.125000",
+              "bit_rate": "450083",
+              "bits_per_raw_sample": "8",
+              "nb_frames": "41",
+              "extradata_size": 45,
+              "disposition": {
+                "default": 1,
+                "dub": 0,
+                "original": 0,
+                "comment": 0,
+                "lyrics": 0,
+                "karaoke": 0,
+                "forced": 0,
+                "hearing_impaired": 0,
+                "visual_impaired": 0,
+                "clean_effects": 0,
+                "attached_pic": 0,
+                "timed_thumbnails": 0,
+                "non_diegetic": 0,
+                "captions": 0,
+                "descriptions": 0,
+                "metadata": 0,
+                "dependent": 0,
+                "still_image": 0
+              },
+              "tags": {
+                "language": "und",
+                "handler_name": "VideoHandler",
+                "vendor_id": "[0][0][0][0]",
+                "encoder": "Lavc60.31.102 libx264"
+              }
+            }
+          ]
+        }
+      ],
+      "handoff_observed": true,
+      "resource_poll_timeouts": 6,
+      "resource_observations": 241,
+      "restored_parallel": {
+        "n_parallel": 1,
+        "n_ctx": 220000,
+        "per_slot_context": 220000,
+        "text_queue_capacity": 1,
+        "queue_wait_timeout": 30.0
+      }
+    },
+    {
+      "case": "routed-base64",
+      "request": {
+        "prompt": "Pythagorean rock concert, a band performing on a stage with a mathematical LED screen.",
+        "lyrics": "[Verse]\nThe squares on legs a and b\n[Chorus]\nEqual the square on hypotenuse c",
+        "keyscale": "C minor",
+        "duration": 0.25,
+        "scene_duration": 1.0,
+        "audio_url": "outputs/reused.wav",
+        "size": "64x64",
+        "frame_rate": 8,
+        "num_inference_steps": 2,
+        "response_format": "b64_json",
+        "storyboard": false,
+        "worker": "native-music-video-validation"
+      },
+      "via_router": true,
+      "seconds": 74.41141285409685,
+      "bytes": 6364,
+      "sha256": "d8be2e4df7f9ae435c55fff3f3af581be4a00cdc8606298bfc33d9bc07e2e7d7",
+      "metadata": {
+        "audio_url": "outputs/reused.wav",
+        "content_type": "video/mp4",
+        "format": "mp4",
+        "math_overlay": false,
+        "scene_count": 1,
+        "scene_duration": 1.0,
+        "scene_plan": [
+          {
+            "duration": 0.25,
+            "index": 0,
+            "num_frames": 9,
+            "start": 0.0
+          }
+        ],
+        "scene_urls": [
+          "http://127.0.0.1:60155/outputs/831b36b3-0e91-4266-96ec-d6195f81b4c8.mp4"
+        ],
+        "storyboard": false
+      },
+      "probe": {
+        "streams": [
+          {
+            "index": 0,
+            "codec_name": "h264",
+            "codec_long_name": "H.264 / AVC / MPEG-4 AVC / MPEG-4 part 10",
+            "profile": "High",
+            "codec_type": "video",
+            "codec_tag_string": "avc1",
+            "codec_tag": "0x31637661",
+            "width": 64,
+            "height": 64,
+            "coded_width": 64,
+            "coded_height": 64,
+            "closed_captions": 0,
+            "film_grain": 0,
+            "has_b_frames": 2,
+            "pix_fmt": "yuv420p",
+            "level": 10,
+            "chroma_location": "left",
+            "field_order": "progressive",
+            "refs": 1,
+            "is_avc": "true",
+            "nal_length_size": "4",
+            "id": "0x1",
+            "r_frame_rate": "8/1",
+            "avg_frame_rate": "8/1",
+            "time_base": "1/16384",
+            "start_pts": 0,
+            "start_time": "0.000000",
+            "duration_ts": 4096,
+            "duration": "0.250000",
+            "bit_rate": "78048",
+            "bits_per_raw_sample": "8",
+            "nb_frames": "2",
+            "extradata_size": 44,
+            "disposition": {
+              "default": 1,
+              "dub": 0,
+              "original": 0,
+              "comment": 0,
+              "lyrics": 0,
+              "karaoke": 0,
+              "forced": 0,
+              "hearing_impaired": 0,
+              "visual_impaired": 0,
+              "clean_effects": 0,
+              "attached_pic": 0,
+              "timed_thumbnails": 0,
+              "non_diegetic": 0,
+              "captions": 0,
+              "descriptions": 0,
+              "metadata": 0,
+              "dependent": 0,
+              "still_image": 0
+            },
+            "tags": {
+              "language": "und",
+              "handler_name": "VideoHandler",
+              "vendor_id": "[0][0][0][0]",
+              "encoder": "Lavc60.31.102 libx264"
+            }
+          },
+          {
+            "index": 1,
+            "codec_name": "aac",
+            "codec_long_name": "AAC (Advanced Audio Coding)",
+            "profile": "LC",
+            "codec_type": "audio",
+            "codec_tag_string": "mp4a",
+            "codec_tag": "0x6134706d",
+            "sample_fmt": "fltp",
+            "sample_rate": "24000",
+            "channels": 1,
+            "channel_layout": "mono",
+            "bits_per_sample": 0,
+            "initial_padding": 0,
+            "id": "0x2",
+            "r_frame_rate": "0/0",
+            "avg_frame_rate": "0/0",
+            "time_base": "1/24000",
+            "start_pts": 0,
+            "start_time": "0.000000",
+            "duration_ts": 6000,
+            "duration": "0.250000",
+            "bit_rate": "67107",
+            "nb_frames": "7",
+            "extradata_size": 5,
+            "disposition": {
+              "default": 1,
+              "dub": 0,
+              "original": 0,
+              "comment": 0,
+              "lyrics": 0,
+              "karaoke": 0,
+              "forced": 0,
+              "hearing_impaired": 0,
+              "visual_impaired": 0,
+              "clean_effects": 0,
+              "attached_pic": 0,
+              "timed_thumbnails": 0,
+              "non_diegetic": 0,
+              "captions": 0,
+              "descriptions": 0,
+              "metadata": 0,
+              "dependent": 0,
+              "still_image": 0
+            },
+            "tags": {
+              "language": "und",
+              "handler_name": "SoundHandler",
+              "vendor_id": "[0][0][0][0]"
+            }
+          }
+        ],
+        "format": {
+          "filename": "/opt/DevXT/ezlocalai/build/validation/music-video-http/routed-base64.mp4",
+          "nb_streams": 2,
+          "nb_programs": 0,
+          "format_name": "mov,mp4,m4a,3gp,3g2,mj2",
+          "format_long_name": "QuickTime / MOV",
+          "start_time": "0.000000",
+          "duration": "0.250000",
+          "size": "6364",
+          "bit_rate": "203648",
+          "probe_score": 100,
+          "tags": {
+            "major_brand": "isom",
+            "minor_version": "512",
+            "compatible_brands": "isomiso2avc1mp41",
+            "encoder": "Lavf60.16.100"
+          }
+        }
+      },
+      "scene_probes": [
+        {
+          "streams": [
+            {
+              "index": 0,
+              "codec_name": "h264",
+              "codec_long_name": "H.264 / AVC / MPEG-4 AVC / MPEG-4 part 10",
+              "profile": "High",
+              "codec_type": "video",
+              "codec_tag_string": "avc1",
+              "codec_tag": "0x31637661",
+              "width": 64,
+              "height": 64,
+              "coded_width": 64,
+              "coded_height": 64,
+              "closed_captions": 0,
+              "film_grain": 0,
+              "has_b_frames": 2,
+              "pix_fmt": "yuv420p",
+              "level": 10,
+              "chroma_location": "left",
+              "field_order": "progressive",
+              "refs": 1,
+              "is_avc": "true",
+              "nal_length_size": "4",
+              "id": "0x1",
+              "r_frame_rate": "8/1",
+              "avg_frame_rate": "8/1",
+              "time_base": "1/16384",
+              "start_pts": 0,
+              "start_time": "0.000000",
+              "duration_ts": 18432,
+              "duration": "1.125000",
+              "bit_rate": "43271",
+              "bits_per_raw_sample": "8",
+              "nb_frames": "9",
+              "extradata_size": 44,
+              "disposition": {
+                "default": 1,
+                "dub": 0,
+                "original": 0,
+                "comment": 0,
+                "lyrics": 0,
+                "karaoke": 0,
+                "forced": 0,
+                "hearing_impaired": 0,
+                "visual_impaired": 0,
+                "clean_effects": 0,
+                "attached_pic": 0,
+                "timed_thumbnails": 0,
+                "non_diegetic": 0,
+                "captions": 0,
+                "descriptions": 0,
+                "metadata": 0,
+                "dependent": 0,
+                "still_image": 0
+              },
+              "tags": {
+                "language": "und",
+                "handler_name": "VideoHandler",
+                "vendor_id": "[0][0][0][0]",
+                "encoder": "Lavc60.31.102 libx264"
+              }
+            }
+          ]
+        }
+      ],
+      "handoff_observed": true,
+      "resource_poll_timeouts": 5,
+      "resource_observations": 122,
+      "restored_parallel": {
+        "n_parallel": 1,
+        "n_ctx": 220000,
+        "per_slot_context": 220000,
+        "text_queue_capacity": 1,
+        "queue_wait_timeout": 30.0
+      }
+    }
+  ],
+  "invalid_request": {
+    "status": 400,
+    "body": "{\"detail\":\"LTX size must contain two integers separated by x\"}"
+  },
+  "after_failure_context": {
+    "n_parallel": 1,
+    "n_ctx": 220000,
+    "per_slot_context": 220000,
+    "text_queue_capacity": 1,
+    "queue_wait_timeout": 30.0
+  },
+  "audio_validation": [
+    {
+      "case": "reuse-two-scenes",
+      "bytes": 57678,
+      "sha256": "49505a064c82c69594386df6aa09e010ec4761856ad58d2cb2df8fbfbc22b814",
+      "probe": {
+        "streams": [
+          {
+            "index": 0,
+            "codec_name": "pcm_s16le",
+            "codec_long_name": "PCM signed 16-bit little-endian",
+            "codec_type": "audio",
+            "codec_tag_string": "[1][0][0][0]",
+            "codec_tag": "0x0001",
+            "sample_fmt": "s16",
+            "sample_rate": "24000",
+            "channels": 1,
+            "bits_per_sample": 16,
+            "initial_padding": 0,
+            "r_frame_rate": "0/0",
+            "avg_frame_rate": "0/0",
+            "time_base": "1/24000",
+            "duration_ts": 28800,
+            "duration": "1.200000",
+            "bit_rate": "384000",
+            "disposition": {
+              "default": 0,
+              "dub": 0,
+              "original": 0,
+              "comment": 0,
+              "lyrics": 0,
+              "karaoke": 0,
+              "forced": 0,
+              "hearing_impaired": 0,
+              "visual_impaired": 0,
+              "clean_effects": 0,
+              "attached_pic": 0,
+              "timed_thumbnails": 0,
+              "non_diegetic": 0,
+              "captions": 0,
+              "descriptions": 0,
+              "metadata": 0,
+              "dependent": 0,
+              "still_image": 0
+            }
+          }
+        ],
+        "format": {
+          "filename": "build/validation/music-video-http/outputs/reused.wav",
+          "nb_streams": 1,
+          "nb_programs": 0,
+          "format_name": "wav",
+          "format_long_name": "WAV / WAVE (Waveform Audio)",
+          "duration": "1.200000",
+          "size": "57678",
+          "bit_rate": "384520",
+          "probe_score": 99,
+          "tags": {
+            "encoder": "Lavf60.16.100"
+          }
+        }
+      },
+      "levels_db": {
+        "mean_volume": -21.1,
+        "max_volume": -18.1
+      }
+    },
+    {
+      "case": "generated-music",
+      "bytes": 737324,
+      "sha256": "035e4b17c2f63953a82974787175c2bb865c38e2e38d776e03a8e25bcb43df13",
+      "probe": {
+        "streams": [
+          {
+            "index": 0,
+            "codec_name": "pcm_s16le",
+            "codec_long_name": "PCM signed 16-bit little-endian",
+            "codec_type": "audio",
+            "codec_tag_string": "[1][0][0][0]",
+            "codec_tag": "0x0001",
+            "sample_fmt": "s16",
+            "sample_rate": "48000",
+            "channels": 2,
+            "bits_per_sample": 16,
+            "initial_padding": 0,
+            "r_frame_rate": "0/0",
+            "avg_frame_rate": "0/0",
+            "time_base": "1/48000",
+            "duration_ts": 184320,
+            "duration": "3.840000",
+            "bit_rate": "1536000",
+            "disposition": {
+              "default": 0,
+              "dub": 0,
+              "original": 0,
+              "comment": 0,
+              "lyrics": 0,
+              "karaoke": 0,
+              "forced": 0,
+              "hearing_impaired": 0,
+              "visual_impaired": 0,
+              "clean_effects": 0,
+              "attached_pic": 0,
+              "timed_thumbnails": 0,
+              "non_diegetic": 0,
+              "captions": 0,
+              "descriptions": 0,
+              "metadata": 0,
+              "dependent": 0,
+              "still_image": 0
+            }
+          }
+        ],
+        "format": {
+          "filename": "build/validation/music-video-http/outputs/5b8ae851-3e7b-4908-ae8f-ced389f08f5b-0.wav",
+          "nb_streams": 1,
+          "nb_programs": 0,
+          "format_name": "wav",
+          "format_long_name": "WAV / WAVE (Waveform Audio)",
+          "duration": "3.840000",
+          "size": "737324",
+          "bit_rate": "1536091",
+          "probe_score": 99
+        }
+      },
+      "levels_db": {
+        "mean_volume": -14.2,
+        "max_volume": -0.0
+      }
+    },
+    {
+      "case": "routed-base64",
+      "bytes": 57678,
+      "sha256": "49505a064c82c69594386df6aa09e010ec4761856ad58d2cb2df8fbfbc22b814",
+      "probe": {
+        "streams": [
+          {
+            "index": 0,
+            "codec_name": "pcm_s16le",
+            "codec_long_name": "PCM signed 16-bit little-endian",
+            "codec_type": "audio",
+            "codec_tag_string": "[1][0][0][0]",
+            "codec_tag": "0x0001",
+            "sample_fmt": "s16",
+            "sample_rate": "24000",
+            "channels": 1,
+            "bits_per_sample": 16,
+            "initial_padding": 0,
+            "r_frame_rate": "0/0",
+            "avg_frame_rate": "0/0",
+            "time_base": "1/24000",
+            "duration_ts": 28800,
+            "duration": "1.200000",
+            "bit_rate": "384000",
+            "disposition": {
+              "default": 0,
+              "dub": 0,
+              "original": 0,
+              "comment": 0,
+              "lyrics": 0,
+              "karaoke": 0,
+              "forced": 0,
+              "hearing_impaired": 0,
+              "visual_impaired": 0,
+              "clean_effects": 0,
+              "attached_pic": 0,
+              "timed_thumbnails": 0,
+              "non_diegetic": 0,
+              "captions": 0,
+              "descriptions": 0,
+              "metadata": 0,
+              "dependent": 0,
+              "still_image": 0
+            }
+          }
+        ],
+        "format": {
+          "filename": "build/validation/music-video-http/outputs/reused.wav",
+          "nb_streams": 1,
+          "nb_programs": 0,
+          "format_name": "wav",
+          "format_long_name": "WAV / WAVE (Waveform Audio)",
+          "duration": "1.200000",
+          "size": "57678",
+          "bit_rate": "384520",
+          "probe_score": 99,
+          "tags": {
+            "encoder": "Lavf60.16.100"
+          }
+        }
+      },
+      "levels_db": {
+        "mean_volume": -21.1,
+        "max_volume": -18.1
+      }
+    }
+  ],
+  "storyboard_rgb_sha256": "8fdafe26b26841991045ed02aafb5ff922bf557b70cc362bbf42c8c8872b2e7b",
+  "actual_python_storyboard_pixels_match": true,
+  "visual_comparison": {
+    "status": "confirmed_native_regression_deployment_held",
+    "storyboard_pixel_identical": true,
+    "python": {
+      "sources": {
+        "Pipes.py": "8238cef03d4a1db6e775d7f62234bcf998d8f08bd9fc15f1d8a36ea0d3280005",
+        "ezlocalai/LTX_VIDEO.py": "53ca668e446acc6b9f61937b394abf9cbdf5035d42ff71ab7170838b849242b3",
+        "ezlocalai/VIDEO_UTILS.py": "8e7bc34f16927d7b9fc619fe0d96445a5dbd44713bad9308388a95214a32c047"
+      },
+      "request": {
+        "prompt": "cinematic music video visuals for: Pythagorean rock concert, a band performing on a stage with a mathematical LED screen.. Scene 1 of 1, covering seconds 0.0-5.0; match the song energy, rhythm, stage lighting, camera motion, and lyrical mood. Start from the supplied storyboard frame; preserve the visible lyric/theorem graphics on the LED screen, especially the superscript exponent notation for a squared plus b squared equals c squared; do not use caret notation. Animate the band, lights, camera, and crowd around those visual anchors. Do not replace it with generic unrelated concert footage.",
+        "size": "512x320",
+        "num_frames": 41,
+        "num_inference_steps": 18,
+        "guidance_scale": 3.5,
+        "frame_rate": 8,
+        "include_audio": false
+      },
+      "storyboard_rgb_sha256": "8fdafe26b26841991045ed02aafb5ff922bf557b70cc362bbf42c8c8872b2e7b",
+      "load_seconds": 54.4552597340662,
+      "loaded": true,
+      "residency": "sequential",
+      "dtype": "torch.bfloat16",
+      "frames": {
+        "shape": [
+          41,
+          320,
+          512,
+          3
+        ],
+        "dtype": "uint8",
+        "finite": true,
+        "min": 0.0,
+        "max": 255.0,
+        "sha256": "3d2f98fe1b557cda2cad1272ea6aee724bc42ff5e0d924c0d386b96d06530fc2"
+      },
+      "output": "outputs/05cedf88-ee90-407e-83cd-387c2085fc58.mp4",
+      "video_bytes": 307917,
+      "video_sha256": "b5518bc5964fd15e162060423d74461b22c599b6a71a67a94e6e22b91199db25",
+      "seconds": 163.79862230701838
+    },
+    "native_observation": "First frame preserves the supplied storyboard; later frames mostly show distorted outlines and text.",
+    "python_observation": "Matching full-size run retains the LED theorem graphics and shows performing musicians. This is a qualitative visual comparison, not numerical equivalence.",
+    "timestep_experiment": {
+      "engine_sha256": "0fd7c2cf522e4414cca0674ac256f3d8eb52c4ea4430faae5b1fd9e6b0a8485e",
+      "case": {
+        "seconds": 117.97579796798527,
+        "bytes": 337153,
+        "sha256": "4ca0942444dbdea7bf50a3542159ebcbc7769eaf394563daa5b925da1f4eb6b2",
+        "handoff_observed": true
+      },
+      "observation": "Cross-attention timestep correction alone does not resolve visual degradation.",
+      "restored_health": "healthy",
+      "scope": "Temporary engine bind mount; not deployed."
+    },
+    "latent_diagnostics": {
+      "encoder": {
+        "elements": 20480,
+        "python_range": [
+          -6.59375,
+          5.84375
+        ],
+        "native_range": [
+          -6.5770263671875,
+          5.85101842880249
+        ],
+        "mae": 0.014432338066399097,
+        "rmse": 0.019191505387425423,
+        "corr": 0.9998947597199053,
+        "python_std": 1.3140023946762085,
+        "native_std": 1.3116775751113892
+      },
+      "decoder_replay": {
+        "input": "Normalized final video latents captured at actual Python VAE.decode, converted back to normalized float32 for native VAE decoding.",
+        "frames": [
+          41,
+          320,
+          512,
+          3
+        ],
+        "mae_rgb_0_to_255": 8.084808349609375,
+        "rmse_rgb_0_to_255": 17.58912467956543,
+        "correlation": 0.9511662714875049,
+        "native_mp4_sha256": "c188be7a4e099c40d51bfb7953f234e2931a07e9f45c5cb15a38dc8807e2d89d",
+        "comparison_limit": "Native MP4-decoded pixels versus original Python uncompressed frames; includes codec and dtype differences.",
+        "visual_observation": "Native decoder retains the reference theorem graphics and performing musicians when fed Python latents."
+      },
+      "native_result": {
+        "seconds": 114.68367103103083,
+        "bytes": 346364,
+        "sha256": "e4405abb0dd3bc9d3edb4bf290a0935b418e295ff1a2b9bd92ea70f7970e4424",
+        "handoff_observed": true
+      },
+      "restored_health": "healthy",
+      "python_oracle_exit": 0,
+      "restoration_note": "The following native validation took over during the Python harness health wait. Its standalone health poll reports unhealthy; the native harness subsequently restored the original worker healthy. Later validation runs wait for complete restoration before starting."
+    },
+    "prompt_embedding_diagnostics": [
+      {
+        "side": "video",
+        "positive": true,
+        "mae": 0.009338115341961384,
+        "rmse": 0.07231459766626358,
+        "correlation": 0.9973853293167803,
+        "python_std": 1.0000135898590088,
+        "native_std": 1.000000238418579
+      },
+      {
+        "side": "video",
+        "positive": false,
+        "mae": 0.002793100429698825,
+        "rmse": 0.026836851611733437,
+        "correlation": 0.999639888559658,
+        "python_std": 0.9999945163726807,
+        "native_std": 0.9999973773956299
+      },
+      {
+        "side": "audio",
+        "positive": true,
+        "mae": 0.012651127763092518,
+        "rmse": 0.08295723795890808,
+        "correlation": 0.9965573945058334,
+        "python_std": 0.9997596144676208,
+        "native_std": 0.9997600317001343
+      },
+      {
+        "side": "audio",
+        "positive": false,
+        "mae": 0.00691152224317193,
+        "rmse": 0.03497641161084175,
+        "correlation": 0.9993880707516752,
+        "python_std": 0.9997909069061279,
+        "native_std": 0.9997923374176025
+      }
+    ],
+    "scheduler_experiment": {
+      "extra_arguments": "base_shift=2.05,max_shift=2.05",
+      "case": {
+        "seconds": 117.90477566292975,
+        "bytes": 275953,
+        "sha256": "daa602f00c5236940e49eda202454c675d47117d4f3258a9716b0e3ed3c56839",
+        "handoff_observed": true
+      },
+      "restored_health": "healthy",
+      "observation": "Source-correct schedule does not resolve the visual regression; deployment remains held."
+    },
+    "followup": "CPU RNG correction restores the concert scene; remaining graphic-preservation difference is localized to text conditioning by a full Python-embedding replay. Corrected candidate remains undeployed."
+  },
+  "remaining": [
+    "Persistent video engine weights across scenes",
+    "Python/native model numerical and visual equivalence",
+    "Complete image decoder and URL error behavior",
+    "Font fallback when DejaVu is unavailable"
+  ],
+  "source_sha256": {
+    "src/native_server.cpp": "cbf9d909e1b85cf582eb5b509535e06332bd34bc4e30be85b3fae2a1e11b008d",
+    "src/music_video.cpp": "af1d59e0430ae905e20d82423dfccea971692f2d8dd3bbd1a8a2f202169ec5fa",
+    "src/music_storyboard.cpp": "a4d209d8b5ea12dd14bf7e891b8a9a204036b831d005b0305b2617d9e5f2e60f",
+    "tests/test_ltx_runtime.cpp": "f6aad626ded06ed627d630fa3b59a4fefb17a46165e2526eaaa14eecb8220560",
+    "tests/ltx_process_fixture.cpp": "7dcbeb11985e58758292e06da53d1c28a07fd9aca8f1b2e1586c88f671c737d1"
+  },
+  "followup_evidence": "ltx_alignment_validation.json"
+}

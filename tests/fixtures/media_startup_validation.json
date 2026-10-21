@@ -1,0 +1,336 @@
+{
+  "sources": {
+    "Pipes.py": "8238cef03d4a1db6e775d7f62234bcf998d8f08bd9fc15f1d8a36ea0d3280005",
+    "ezlocalai/IMG.py": "e3ff6eee433d0e3527d984b77036fda795b3924486cf59b349b432cd80a0b9e8",
+    "ezlocalai/WAN.py": "d4cfc8ebd97bfaafdfa684f4c29f05b124cabdeabf733ecc542ada7416105e94"
+  },
+  "scope": "Wan and Qwen-image wrapper preparation after embeddings; per-request subprocess lifetime is source behavior. LTX persistent preload remains open.",
+  "source_cases": 86,
+  "wan_repair_and_cleanup_checks": 3,
+  "concurrent_wan_sessions": 10,
+  "host_tests": {
+    "suites": 8,
+    "seconds": 95.04,
+    "success": true
+  },
+  "rust_router_scenarios": 8,
+  "cuda_image_tests": {
+    "suites": 29,
+    "seconds": 55.2,
+    "success": true
+  },
+  "cuda_model_validation": {
+    "before": {
+      "gpu_count": 1,
+      "total_vram_gb": 23,
+      "free_vram_gb": 21.85736083984375,
+      "free_per_gpu_gb": [
+        21.85736083984375
+      ],
+      "torch_cuda": [
+        {
+          "index": 0,
+          "allocated_gb": 0.0,
+          "reserved_gb": 0.0,
+          "max_allocated_gb": 0.0,
+          "free_gb": 21.857,
+          "total_gb": 23.524
+        }
+      ],
+      "system_ram_gb": 123.37859344482422,
+      "loaded_models": {
+        "video": {
+          "name": "QuantStack/Wan2.2-T2V-A14B-GGUF",
+          "device": "cuda",
+          "vram_gb": 0.0,
+          "in_use": false,
+          "active_requests": 0,
+          "last_used": 1792425520.6914685
+        },
+        "img": {
+          "name": "qwen-image-2.1",
+          "device": "cuda",
+          "vram_gb": 4.0,
+          "in_use": false,
+          "active_requests": 0,
+          "last_used": 1792425520.6914918
+        }
+      },
+      "fallback": {
+        "configured": false,
+        "url": null,
+        "should_use_fallback": false,
+        "reason": "No fallback server configured",
+        "free_vram_gb": 21.85736083984375,
+        "free_ram_gb": 37.41206359863281,
+        "free_combined_gb": 59.26942443847656,
+        "memory_threshold_gb": 8.0
+      },
+      "parallel": {
+        "n_parallel": 1,
+        "n_ctx": 0,
+        "per_slot_context": 0,
+        "text_queue_capacity": 1,
+        "queue_wait_timeout": 30.0
+      },
+      "model_lifecycle": {
+        "llm_model_residency": "resident",
+        "configured_llms": [],
+        "loaded_llms": [],
+        "active_llm": null,
+        "loaded_llm_runtime": [],
+        "vram_estimates_gb": {},
+        "summary": [],
+        "recent_events": []
+      },
+      "model_pools": {
+        "embedding": {
+          "configured": 1,
+          "devices": [],
+          "resident": 0
+        },
+        "stt": {
+          "configured": 1,
+          "devices": [],
+          "resident": 0
+        },
+        "tts": {
+          "configured": 1,
+          "devices": [],
+          "resident": 0
+        }
+      },
+      "slots": {
+        "cap_slots": {
+          "image": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          },
+          "video": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          }
+        },
+        "model_slots": {},
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 2,
+        "slot_total_in_flight": 0,
+        "slot_total_queued": 0,
+        "slot_total_available": 2
+      }
+    },
+    "startup_processes": [
+      "ezlocalai-nativ"
+    ],
+    "startup_gpu_memory_mib": {
+      "1744535": 260.0
+    },
+    "after": {
+      "gpu_count": 1,
+      "total_vram_gb": 23,
+      "free_vram_gb": 21.7698974609375,
+      "free_per_gpu_gb": [
+        21.7698974609375
+      ],
+      "torch_cuda": [
+        {
+          "index": 0,
+          "allocated_gb": 0.0,
+          "reserved_gb": 0.0,
+          "max_allocated_gb": 0.0,
+          "free_gb": 21.77,
+          "total_gb": 23.524
+        }
+      ],
+      "system_ram_gb": 123.37859344482422,
+      "loaded_models": {
+        "video": {
+          "name": "QuantStack/Wan2.2-T2V-A14B-GGUF",
+          "device": "cuda",
+          "vram_gb": 0.0,
+          "in_use": false,
+          "active_requests": 0,
+          "last_used": 1792425520.6914685
+        },
+        "img": {
+          "name": "qwen-image-2.1",
+          "device": "cuda",
+          "vram_gb": 4.0,
+          "in_use": false,
+          "active_requests": 0,
+          "last_used": 1792425529.8979611
+        }
+      },
+      "fallback": {
+        "configured": false,
+        "url": null,
+        "should_use_fallback": false,
+        "reason": "No fallback server configured",
+        "free_vram_gb": 21.7698974609375,
+        "free_ram_gb": 36.420780181884766,
+        "free_combined_gb": 58.190677642822266,
+        "memory_threshold_gb": 8.0
+      },
+      "parallel": {
+        "n_parallel": 1,
+        "n_ctx": 0,
+        "per_slot_context": 0,
+        "text_queue_capacity": 1,
+        "queue_wait_timeout": 30.0
+      },
+      "model_lifecycle": {
+        "llm_model_residency": "resident",
+        "configured_llms": [],
+        "loaded_llms": [],
+        "active_llm": null,
+        "loaded_llm_runtime": [],
+        "vram_estimates_gb": {},
+        "summary": [],
+        "recent_events": []
+      },
+      "model_pools": {
+        "embedding": {
+          "configured": 1,
+          "devices": [],
+          "resident": 0
+        },
+        "stt": {
+          "configured": 1,
+          "devices": [],
+          "resident": 0
+        },
+        "tts": {
+          "configured": 1,
+          "devices": [],
+          "resident": 0
+        }
+      },
+      "slots": {
+        "cap_slots": {
+          "image": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          },
+          "video": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          }
+        },
+        "model_slots": {},
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 2,
+        "slot_total_in_flight": 0,
+        "slot_total_queued": 0,
+        "slot_total_available": 2
+      }
+    },
+    "image": "sha256:35b8ac0bcd30288f29db5970d91c92142a29cc1576151cf6bfa2557f97703766",
+    "success": true,
+    "generations": [
+      {
+        "seconds": 8.079415014013648,
+        "bytes": 122467,
+        "sha256": "9c159ba85795cd5d2b7924fdd9ab708c0b4940318ab3d22f06ef492e08ef62a4"
+      },
+      {
+        "seconds": 7.85524957801681,
+        "bytes": 122467,
+        "sha256": "9c159ba85795cd5d2b7924fdd9ab708c0b4940318ab3d22f06ef492e08ef62a4"
+      }
+    ],
+    "final_processes": [
+      "ezlocalai-nativ"
+    ],
+    "final_gpu_memory_mib": {
+      "1744535": 260.0
+    },
+    "original_restored_healthy": true
+  },
+  "deployment": {
+    "previous_image": "sha256:c2063de651f001e9e96bf5344a66f3224a77147a0c8180bd7f9decfe55e55f71",
+    "candidate_image": "sha256:35b8ac0bcd30288f29db5970d91c92142a29cc1576151cf6bfa2557f97703766",
+    "health": "healthy",
+    "deployed_image": "sha256:35b8ac0bcd30288f29db5970d91c92142a29cc1576151cf6bfa2557f97703766",
+    "effective_environment_changed_keys": [],
+    "original_env_file_unchanged": true,
+    "mounts_unchanged": true,
+    "wakeword_mounts": [
+      [
+        "bind",
+        "/home/josh/repos/xtsys/ezlocalai/wakeword_models",
+        "/app/wakeword_models",
+        true
+      ],
+      [
+        "bind",
+        "/home/josh/repos/xtsys/ezlocalai/wakeword_samples",
+        "/app/wakeword_samples",
+        true
+      ],
+      [
+        "bind",
+        "/home/josh/repos/xtsys/ezlocalai/wakeword_jobs",
+        "/app/wakeword_jobs",
+        true
+      ]
+    ],
+    "ports_unchanged": true,
+    "gpu_requests_unchanged": true
+  },
+  "live": {
+    "image": "sha256:35b8ac0bcd30288f29db5970d91c92142a29cc1576151cf6bfa2557f97703766",
+    "binary_sha256": "e78aeb9a398e51c665f691e5d0f272d78a8171282963fa8e3f3174c7a3c35655",
+    "matching_workers": 1,
+    "python_extra_matches": true,
+    "extra": {
+      "llm_model_residency": "resident",
+      "loaded_llms": [
+        "unsloth/Qwen3.8-27B-GGUF"
+      ],
+      "active_llm": "unsloth/Qwen3.8-27B-GGUF",
+      "llm_unload_dependent_capabilities": [
+        "image",
+        "video",
+        "music",
+        "music_video"
+      ]
+    },
+    "resource_lifecycle": {
+      "llm_model_residency": "resident",
+      "loaded_llms": [
+        "unsloth/Qwen3.8-27B-GGUF"
+      ],
+      "active_llm": "unsloth/Qwen3.8-27B-GGUF"
+    },
+    "gpu_count": 1,
+    "torch_cuda": [
+      {
+        "index": 0,
+        "allocated_gb": 0.0,
+        "reserved_gb": 0.0,
+        "max_allocated_gb": 0.0,
+        "free_gb": 1.746,
+        "total_gb": 23.524
+      }
+    ],
+    "free_vram_gb": 1.746337890625,
+    "sources": {
+      "Pipes.py": "8238cef03d4a1db6e775d7f62234bcf998d8f08bd9fc15f1d8a36ea0d3280005",
+      "Router.py": "d5eebf7fc48f7781628aa4eaab8af1c3f23fd8694242f0b3065436b5c86f62b1"
+    }
+  },
+  "no_python_interpreter": true,
+  "remaining": [
+    "Persistent LTX context and pipeline preload",
+    "NF4/Quanto compressed GPU storage and distinct LTX offload modes",
+    "Real uncached Wan/full compressed LTX inference and broader model/GPU parity"
+  ]
+}

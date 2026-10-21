@@ -1,0 +1,245 @@
+{
+  "scope": "Post-load LTX placement, distinct whole-graph and sequential execution, resident packed Gemma GPU weights, immediate segment eviction, shared connector/timestep cut outputs, recovery and CUDA deployment.",
+  "deployed": true,
+  "source_placement_cases": 45,
+  "source_placement_excluded_cases": [
+    41,
+    42
+  ],
+  "placement_oracle_scope": "Constructor decisions and context lifetime only; synthetic tensor loading. Quanto execution and ignored failed sequential-hook cases are excluded.",
+  "cuda_manager_cases": 8,
+  "packaged_ctest_count": 32,
+  "packaged_ctest_seconds": 83.15,
+  "host_regression_suites": 6,
+  "rust_router_integration_scenarios": 8,
+  "source_and_binaries": {
+    "source_sha256": {
+      "patches/sdcpp-ltx-offload-policy.patch": "cd69aa9cc89fa573c3e18bfe8ddb26afb8d5803619343045a56950ce1f05c3f7",
+      "patches/sdcpp-ltx-gemma-residency.patch": "baa30d9a3f4d1057131a1a2a15069a59b2ee742250085c9ff10552b485a09c1d",
+      "engine/sd_cli_worker.hpp": "bf81027fa49035b9adedbf1f911b7eb97144c9583c2c950bce82141b1cf65207",
+      "src/ltx_runtime.cpp": "00bf91576f15345e26f0845effb8a33da72de5724418e1f2a1867f352effcaf1",
+      "src/ltx_video.cpp": "178886b3d2be9962bacf362d123cd10fe28c92904a04aa051d678f9727d33c8b",
+      "include/ezlocalai/ltx_runtime.hpp": "6c2ef220e99d93b00409d482276d882e707c1009716a32d86f238a2127839d30",
+      "tests/test_ltx_runtime.cpp": "dbd02584f5afc17f6e1a535767780bdc2b9183fb8f4e3e6ea550a5905627a24e",
+      "tests/test_media_engine.cpp": "8adef7b4c2e34fece3468ad65afc4a11495d4ac386475eee0a69c593f65b30b9",
+      "tests/ltx_process_fixture.cpp": "5a97fe7a707769d9efaa6ce8e9deb41cbad5d4afee3fd7e6ab41299edcf69b89",
+      "tests/test_ltx_gemma_residency.cpp": "7534730186d11d13b504903f8dea2781df00896bf76b8c00a5f294d1fe7b1af3",
+      "tests/fixtures/ltx_placement_cases.json": "d317bf9c88a2909f214c871d28255348760a73907bd5a3d7423bc85e836a8932",
+      "CMakeLists.txt": "df5f543b3b69125d6ce84c77eeda122b1ac94228b1d4323c41759f490aba7836",
+      "cuda.Dockerfile": "a231738be208ef5bac2cc2d58f11e2a16054da7d77be41d459139ce54ef689f8",
+      "patches/sdcpp-ltx-shared-cuts.patch": "b4665a0d62bc99864b244fa4c23f54168536883799d5cadfa1c8c6b22f5a9ea2"
+    },
+    "engine_sha256": "e503bcc4807ab62859f83061e6e7c48d1c30fb21f21321fc0b035e806c0cce2f",
+    "runtime_test_sha256": "2fa63aa427a8cf6e5d15eba4236d4ec2fea2deb052a1f05562f048c0783c3d62"
+  },
+  "package": {
+    "image_id": "sha256:0f9cfcac38978e476e385dfda6356e8d196be668c1e3112f6c9f4a1b094da12e",
+    "engine_matches_real_gpu_probe": true,
+    "recorded_sources_match": true,
+    "cuda_manager_cases": 8,
+    "hashes": {
+      "/opt/stable-diffusion.cpp/build/bin/sd-cli": "e503bcc4807ab62859f83061e6e7c48d1c30fb21f21321fc0b035e806c0cce2f",
+      "/app/build/ezlocalai-native": "6d2f8e1d2f4e0289ada62cf1a826c0cfd4c511d8b5132e3281dc53c0bee0f1f7",
+      "/app/patches/sdcpp-ltx-offload-policy.patch": "cd69aa9cc89fa573c3e18bfe8ddb26afb8d5803619343045a56950ce1f05c3f7",
+      "/app/patches/sdcpp-ltx-gemma-residency.patch": "baa30d9a3f4d1057131a1a2a15069a59b2ee742250085c9ff10552b485a09c1d",
+      "/app/engine/sd_cli_worker.hpp": "bf81027fa49035b9adedbf1f911b7eb97144c9583c2c950bce82141b1cf65207",
+      "/app/src/ltx_runtime.cpp": "00bf91576f15345e26f0845effb8a33da72de5724418e1f2a1867f352effcaf1",
+      "/app/src/ltx_video.cpp": "178886b3d2be9962bacf362d123cd10fe28c92904a04aa051d678f9727d33c8b",
+      "/app/include/ezlocalai/ltx_runtime.hpp": "6c2ef220e99d93b00409d482276d882e707c1009716a32d86f238a2127839d30",
+      "/app/tests/test_ltx_runtime.cpp": "dbd02584f5afc17f6e1a535767780bdc2b9183fb8f4e3e6ea550a5905627a24e",
+      "/app/tests/test_media_engine.cpp": "8adef7b4c2e34fece3468ad65afc4a11495d4ac386475eee0a69c593f65b30b9",
+      "/app/tests/ltx_process_fixture.cpp": "5a97fe7a707769d9efaa6ce8e9deb41cbad5d4afee3fd7e6ab41299edcf69b89",
+      "/app/tests/test_ltx_gemma_residency.cpp": "7534730186d11d13b504903f8dea2781df00896bf76b8c00a5f294d1fe7b1af3",
+      "/app/tests/fixtures/ltx_placement_cases.json": "d317bf9c88a2909f214c871d28255348760a73907bd5a3d7423bc85e836a8932",
+      "/app/CMakeLists.txt": "df5f543b3b69125d6ce84c77eeda122b1ac94228b1d4323c41759f490aba7836",
+      "/app/cuda.Dockerfile": "a231738be208ef5bac2cc2d58f11e2a16054da7d77be41d459139ce54ef689f8",
+      "/app/patches/sdcpp-ltx-shared-cuts.patch": "b4665a0d62bc99864b244fa4c23f54168536883799d5cadfa1c8c6b22f5a9ea2"
+    }
+  },
+  "runtime": {
+    "original_image": "sha256:ff99ef0255b045fc073230ef732561d152bd2b90d1c7d0fa92eca7a7b17a0b08",
+    "test_exit": 0,
+    "seconds": 184.6274145230418,
+    "engine": {
+      "initial_pid": 59,
+      "initial_residency": "model_offload",
+      "preload_seconds": 45.610605458,
+      "reaped": true,
+      "requests": [
+        {
+          "output": "outputs/a10196de-3451-4b9a-ac02-16fd5df0415b.mp4",
+          "pid": 365,
+          "residency": "sequential",
+          "seconds": 104.971222726
+        },
+        {
+          "output": "outputs/e6e11196-21fe-40cb-869e-80c02f681b19.mp4",
+          "pid": 365,
+          "residency": "sequential",
+          "seconds": 22.441079428
+        }
+      ]
+    },
+    "restored_health": "healthy",
+    "restored_image": "sha256:ff99ef0255b045fc073230ef732561d152bd2b90d1c7d0fa92eca7a7b17a0b08"
+  },
+  "outputs_and_gpu": {
+    "outputs": [
+      {
+        "path": "outputs/a10196de-3451-4b9a-ac02-16fd5df0415b.mp4",
+        "mp4_sha256": "0f253d0873b2223936f2e48c696373239eaee774248d7ee237a6dcf16fadcdd7",
+        "rgb24_bytes": 110592,
+        "rgb24_sha256": "df625edc08597e6ff36e0a3251ce9f3a94cde6ac7b8130b43aabe59d2c9af8c2",
+        "pcm_s16le_bytes": 65536,
+        "pcm_s16le_sha256": "63d90fce5908068490b0f6cbecfc3da6e76576ed6664e7726e882b4c1cbe64c2"
+      },
+      {
+        "path": "outputs/e6e11196-21fe-40cb-869e-80c02f681b19.mp4",
+        "mp4_sha256": "0f253d0873b2223936f2e48c696373239eaee774248d7ee237a6dcf16fadcdd7",
+        "rgb24_bytes": 110592,
+        "rgb24_sha256": "df625edc08597e6ff36e0a3251ce9f3a94cde6ac7b8130b43aabe59d2c9af8c2",
+        "pcm_s16le_bytes": 65536,
+        "pcm_s16le_sha256": "63d90fce5908068490b0f6cbecfc3da6e76576ed6664e7726e882b4c1cbe64c2"
+      }
+    ],
+    "gpu_samples": {
+      "loading": {
+        "min_mib": 260,
+        "max_mib": 7744,
+        "samples": 82
+      },
+      "preloaded": {
+        "min_mib": 7744,
+        "max_mib": 7744,
+        "samples": 6
+      },
+      "request-1-running": {
+        "min_mib": 260,
+        "max_mib": 13480,
+        "samples": 190
+      },
+      "request-1-complete": {
+        "min_mib": 7822,
+        "max_mib": 7822,
+        "samples": 5
+      },
+      "request-2-running": {
+        "min_mib": 7822,
+        "max_mib": 13304,
+        "samples": 40
+      },
+      "request-2-complete": {
+        "min_mib": 7822,
+        "max_mib": 7822,
+        "samples": 5
+      },
+      "stopping": {
+        "min_mib": 600,
+        "max_mib": 600,
+        "samples": 3
+      }
+    },
+    "matches_baseline": true,
+    "ltx_graph_cuts": [
+      {
+        "executed_nodes": 32647,
+        "original_nodes": 32631,
+        "segments": 50
+      }
+    ]
+  },
+  "connector_source_observation": {
+    "installed_diffusers_pipeline_sha256": "922f449e594423d833f86d4b4a92923b87e8e1b7c286bccf362c0cd32a25eb8b",
+    "source_offload_order": "text_encoder->connectors->transformer->vae->audio_vae->vocoder",
+    "connector_call_line": 1088,
+    "denoising_loop_line": 1214,
+    "native_model_file": "src/model/diffusion/ltxv.hpp",
+    "native_limitation": "Connector preprocessing remains inside each denoiser graph; the new cuts reuse its outputs across segments within that graph only."
+  },
+  "deployment": {
+    "previous_image": "sha256:ff99ef0255b045fc073230ef732561d152bd2b90d1c7d0fa92eca7a7b17a0b08",
+    "candidate_image": "sha256:0f9cfcac38978e476e385dfda6356e8d196be668c1e3112f6c9f4a1b094da12e",
+    "health": "healthy",
+    "deployed_image": "sha256:0f9cfcac38978e476e385dfda6356e8d196be668c1e3112f6c9f4a1b094da12e",
+    "effective_environment_changed_keys": [],
+    "original_env_file_unchanged": true,
+    "mounts_unchanged": true,
+    "wakeword_mounts": [
+      [
+        "bind",
+        "/home/josh/repos/xtsys/ezlocalai/wakeword_models",
+        "/app/wakeword_models",
+        true
+      ],
+      [
+        "bind",
+        "/home/josh/repos/xtsys/ezlocalai/wakeword_samples",
+        "/app/wakeword_samples",
+        true
+      ],
+      [
+        "bind",
+        "/home/josh/repos/xtsys/ezlocalai/wakeword_jobs",
+        "/app/wakeword_jobs",
+        true
+      ]
+    ],
+    "ports_unchanged": true,
+    "gpu_requests_unchanged": true
+  },
+  "live": {
+    "image": "sha256:0f9cfcac38978e476e385dfda6356e8d196be668c1e3112f6c9f4a1b094da12e",
+    "binary_sha256": "6d2f8e1d2f4e0289ada62cf1a826c0cfd4c511d8b5132e3281dc53c0bee0f1f7",
+    "matching_workers": 1,
+    "python_extra_matches": true,
+    "extra": {
+      "llm_model_residency": "resident",
+      "loaded_llms": [
+        "unsloth/Qwen3.8-27B-GGUF"
+      ],
+      "active_llm": "unsloth/Qwen3.8-27B-GGUF",
+      "llm_unload_dependent_capabilities": [
+        "image",
+        "video",
+        "music",
+        "music_video"
+      ]
+    },
+    "resource_lifecycle": {
+      "llm_model_residency": "resident",
+      "loaded_llms": [
+        "unsloth/Qwen3.8-27B-GGUF"
+      ],
+      "active_llm": "unsloth/Qwen3.8-27B-GGUF"
+    },
+    "gpu_count": 1,
+    "torch_cuda": [
+      {
+        "index": 0,
+        "allocated_gb": 0.0,
+        "reserved_gb": 0.0,
+        "max_allocated_gb": 0.0,
+        "free_gb": 1.942,
+        "total_gb": 23.524
+      }
+    ],
+    "free_vram_gb": 1.94232177734375,
+    "sources": {
+      "Pipes.py": "8238cef03d4a1db6e775d7f62234bcf998d8f08bd9fc15f1d8a36ea0d3280005",
+      "Router.py": "d5eebf7fc48f7781628aa4eaab8af1c3f23fd8694242f0b3065436b5c86f62b1"
+    }
+  },
+  "routed_inference": {
+    "chat_status": 200,
+    "sse_status": 200,
+    "vision_status": 200,
+    "evidence": "build/validation/ltx-shared-cuts/deployed-inference.log"
+  },
+  "remaining": [
+    "Quanto INT8 CPU encoder fallback",
+    "Python component-level offload boundaries (native model_offload currently uses combined graphs)",
+    "Connector reuse across denoising calls (new cuts reuse within each graph)",
+    "Quantized HTTP/Rust handoff under retained auxiliary load",
+    "Larger clips, multiple GPUs and complete source numerical parity"
+  ]
+}

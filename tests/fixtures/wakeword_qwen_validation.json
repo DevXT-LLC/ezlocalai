@@ -1,0 +1,35 @@
+{
+  "date": "2026-10-19",
+  "scope": "Native Qwen-only wake-word sample adapter; HTTP job integration unfinished",
+  "deployed": false,
+  "container_base_image": "sha256:9961a2bb539fbc5136c91cee0d1b6d7291f766f400d4193bc6909c44d55b8958",
+  "real_run": {
+    "test_binary_sha256": "43dd313b73dc8058337959f9702d97258b0d959e2ab883d6ef246961017ef743",
+    "device": "cpu",
+    "network": "none",
+    "driver_libraries": "NVIDIA runtime exposed; CUDA_VISIBLE_DEVICES empty",
+    "model_snapshot": "30954b7a9d99fad81064bf1dc35f881b029f9032",
+    "word": "Hello ezlocalai",
+    "voice": "default",
+    "synthesis_calls": 2,
+    "fallback_calls": 0,
+    "sample_rate": 16000,
+    "channels": 1,
+    "sample_width": 2,
+    "samples": [
+      {"bytes": 107564, "frames": 53760, "sha256": "b9f676c0574dd418948017c76ccdc6dbf515f8b92a99af8bc645c72e18c33476"},
+      {"bytes": 69164, "frames": 34560, "sha256": "c992d093c55330d8ae4937751f098c9d8a13ab64e24ebce639c152c33f466cbb"}
+    ],
+    "normalization_comparison": "Complete WAV bytes equal installed Python pydub conversion of the same raw Qwen output",
+    "lease_release_and_explicit_resource_unload": "passed"
+  },
+  "tests": ["wakeword_qwen", "tts_service_process", "tts_pipeline_lease_reference", "voice_slots_reference", "voice_slots_async_reference", "wakeword_samples_reference", "wakeword_tts_reference"],
+  "limitations": [
+    "Real adapter run used CPU, not GPU inference",
+    "An already-running buffered synthesis finishes before cancellation is observed",
+    "Voice discovery and HTTP background training jobs are not wired",
+    "Synthetic voice diversity and trained wake-word accuracy are not established"
+  ],
+  "evidence_directory": "build/validation/wakeword-model/qwen",
+  "initial_failed_attempt": "CUDA-linked worker could not load libcuda.so.1 without NVIDIA runtime; rerun with driver libraries and hidden devices succeeded"
+}

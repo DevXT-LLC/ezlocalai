@@ -1,0 +1,1917 @@
+{
+  "source_sha256": "8238cef03d4a1db6e775d7f62234bcf998d8f08bd9fc15f1d8a36ea0d3280005",
+  "method": "Executed actual Python service availability and forwarding methods against a loopback HTTP server, using uppercase HTTP scheme, and serialized non-None results with the installed Starlette JSONResponse",
+  "cases": [
+    {
+      "name": "IMAGE-forward_image_generation-/v1/images/generations-object",
+      "service": "IMAGE_SERVER",
+      "path": "/v1/images/generations",
+      "request": {
+        "prompt": "fixture"
+      },
+      "response_status": 200,
+      "response_type": "application/json",
+      "response_body_hex": "7b2272656d6f7465223a747275657d",
+      "response_encoding": "",
+      "expected": {
+        "action": "response",
+        "status": 200,
+        "body": "{\"remote\":true}"
+      }
+    },
+    {
+      "name": "IMAGE-forward_image_generation-/v1/images/generations-false",
+      "service": "IMAGE_SERVER",
+      "path": "/v1/images/generations",
+      "request": {
+        "prompt": "fixture"
+      },
+      "response_status": 200,
+      "response_type": "application/json",
+      "response_body_hex": "66616c7365",
+      "response_encoding": "",
+      "expected": {
+        "action": "response",
+        "status": 200,
+        "body": "false"
+      }
+    },
+    {
+      "name": "IMAGE-forward_image_generation-/v1/images/generations-zero",
+      "service": "IMAGE_SERVER",
+      "path": "/v1/images/generations",
+      "request": {
+        "prompt": "fixture"
+      },
+      "response_status": 200,
+      "response_type": "application/json",
+      "response_body_hex": "30",
+      "response_encoding": "",
+      "expected": {
+        "action": "response",
+        "status": 200,
+        "body": "0"
+      }
+    },
+    {
+      "name": "IMAGE-forward_image_generation-/v1/images/generations-string",
+      "service": "IMAGE_SERVER",
+      "path": "/v1/images/generations",
+      "request": {
+        "prompt": "fixture"
+      },
+      "response_status": 200,
+      "response_type": "application/json",
+      "response_body_hex": "2222",
+      "response_encoding": "",
+      "expected": {
+        "action": "response",
+        "status": 200,
+        "body": "\"\""
+      }
+    },
+    {
+      "name": "IMAGE-forward_image_generation-/v1/images/generations-array",
+      "service": "IMAGE_SERVER",
+      "path": "/v1/images/generations",
+      "request": {
+        "prompt": "fixture"
+      },
+      "response_status": 200,
+      "response_type": "application/json",
+      "response_body_hex": "5b5d",
+      "response_encoding": "",
+      "expected": {
+        "action": "response",
+        "status": 200,
+        "body": "[]"
+      }
+    },
+    {
+      "name": "IMAGE-forward_image_generation-/v1/images/generations-empty-object",
+      "service": "IMAGE_SERVER",
+      "path": "/v1/images/generations",
+      "request": {
+        "prompt": "fixture"
+      },
+      "response_status": 200,
+      "response_type": "application/json",
+      "response_body_hex": "7b7d",
+      "response_encoding": "",
+      "expected": {
+        "action": "response",
+        "status": 200,
+        "body": "{}"
+      }
+    },
+    {
+      "name": "IMAGE-forward_image_generation-/v1/images/generations-null",
+      "service": "IMAGE_SERVER",
+      "path": "/v1/images/generations",
+      "request": {
+        "prompt": "fixture"
+      },
+      "response_status": 200,
+      "response_type": "application/json",
+      "response_body_hex": "6e756c6c",
+      "response_encoding": "",
+      "expected": {
+        "action": "fallback"
+      }
+    },
+    {
+      "name": "IMAGE-forward_image_generation-/v1/images/generations-empty",
+      "service": "IMAGE_SERVER",
+      "path": "/v1/images/generations",
+      "request": {
+        "prompt": "fixture"
+      },
+      "response_status": 200,
+      "response_type": "application/json",
+      "response_body_hex": "",
+      "response_encoding": "",
+      "expected": {
+        "action": "fallback"
+      }
+    },
+    {
+      "name": "IMAGE-forward_image_generation-/v1/images/generations-text",
+      "service": "IMAGE_SERVER",
+      "path": "/v1/images/generations",
+      "request": {
+        "prompt": "fixture"
+      },
+      "response_status": 200,
+      "response_type": "text/plain",
+      "response_body_hex": "7b2272656d6f7465223a747275657d",
+      "response_encoding": "",
+      "expected": {
+        "action": "fallback"
+      }
+    },
+    {
+      "name": "IMAGE-forward_image_generation-/v1/images/generations-problem-json",
+      "service": "IMAGE_SERVER",
+      "path": "/v1/images/generations",
+      "request": {
+        "prompt": "fixture"
+      },
+      "response_status": 200,
+      "response_type": "application/problem+json",
+      "response_body_hex": "7b2272656d6f7465223a747275657d",
+      "response_encoding": "",
+      "expected": {
+        "action": "response",
+        "status": 200,
+        "body": "{\"remote\":true}"
+      }
+    },
+    {
+      "name": "IMAGE-forward_image_generation-/v1/images/generations-json-prefix",
+      "service": "IMAGE_SERVER",
+      "path": "/v1/images/generations",
+      "request": {
+        "prompt": "fixture"
+      },
+      "response_status": 200,
+      "response_type": "application/jsonp",
+      "response_body_hex": "7b2272656d6f7465223a747275657d",
+      "response_encoding": "",
+      "expected": {
+        "action": "response",
+        "status": 200,
+        "body": "{\"remote\":true}"
+      }
+    },
+    {
+      "name": "IMAGE-forward_image_generation-/v1/images/generations-latin1",
+      "service": "IMAGE_SERVER",
+      "path": "/v1/images/generations",
+      "request": {
+        "prompt": "fixture"
+      },
+      "response_status": 200,
+      "response_type": "application/json;charset=iso-8859-1",
+      "response_body_hex": "7b2272656d6f7465223a22636166e9227d",
+      "response_encoding": "",
+      "expected": {
+        "action": "response",
+        "status": 200,
+        "body": "{\"remote\":\"caf\u00e9\"}"
+      }
+    },
+    {
+      "name": "IMAGE-forward_image_generation-/v1/images/generations-gzip",
+      "service": "IMAGE_SERVER",
+      "path": "/v1/images/generations",
+      "request": {
+        "prompt": "fixture"
+      },
+      "response_status": 200,
+      "response_type": "application/json",
+      "response_body_hex": "1f8b0800dc21d66a02ffab562a4acdcd2f4955b22a292a4dad05006db363930f000000",
+      "response_encoding": "gzip",
+      "expected": {
+        "action": "response",
+        "status": 200,
+        "body": "{\"remote\":true}"
+      }
+    },
+    {
+      "name": "IMAGE-forward_image_generation-/v1/images/generations-invalid",
+      "service": "IMAGE_SERVER",
+      "path": "/v1/images/generations",
+      "request": {
+        "prompt": "fixture"
+      },
+      "response_status": 200,
+      "response_type": "application/json",
+      "response_body_hex": "7b626164",
+      "response_encoding": "",
+      "expected": {
+        "action": "fallback"
+      }
+    },
+    {
+      "name": "IMAGE-forward_image_generation-/v1/images/generations-created",
+      "service": "IMAGE_SERVER",
+      "path": "/v1/images/generations",
+      "request": {
+        "prompt": "fixture"
+      },
+      "response_status": 201,
+      "response_type": "application/json",
+      "response_body_hex": "7b2272656d6f7465223a747275657d",
+      "response_encoding": "",
+      "expected": {
+        "action": "fallback"
+      }
+    },
+    {
+      "name": "IMAGE-forward_image_generation-/v1/images/generations-server-error",
+      "service": "IMAGE_SERVER",
+      "path": "/v1/images/generations",
+      "request": {
+        "prompt": "fixture"
+      },
+      "response_status": 500,
+      "response_type": "application/json",
+      "response_body_hex": "7b2272656d6f7465223a747275657d",
+      "response_encoding": "",
+      "expected": {
+        "action": "fallback"
+      }
+    },
+    {
+      "name": "IMAGE-forward_image_generation-/v1/images/generations-surrogate",
+      "service": "IMAGE_SERVER",
+      "path": "/v1/images/generations",
+      "request": {
+        "prompt": "fixture"
+      },
+      "response_status": 200,
+      "response_type": "application/json",
+      "response_body_hex": "225c756438303022",
+      "response_encoding": "",
+      "expected": {
+        "action": "response",
+        "status": 500,
+        "body": "Internal Server Error"
+      }
+    },
+    {
+      "name": "IMAGE-forward_image_generation-/v1/images/generations-nonfinite",
+      "service": "IMAGE_SERVER",
+      "path": "/v1/images/generations",
+      "request": {
+        "prompt": "fixture"
+      },
+      "response_status": 200,
+      "response_type": "application/json",
+      "response_body_hex": "4e614e",
+      "response_encoding": "",
+      "expected": {
+        "action": "response",
+        "status": 500,
+        "body": "Internal Server Error"
+      }
+    },
+    {
+      "name": "IMAGE-forward_image_generation-/v1/images/generations-sse",
+      "service": "IMAGE_SERVER",
+      "path": "/v1/images/generations",
+      "request": {
+        "prompt": "fixture"
+      },
+      "response_status": 200,
+      "response_type": "text/event-stream",
+      "response_body_hex": "646174613a207b2272656d6f7465223a747275657d0a0a",
+      "response_encoding": "",
+      "expected": {
+        "action": "fallback"
+      }
+    },
+    {
+      "name": "IMAGE-forward_image_generation-/v1/images/edits-object",
+      "service": "IMAGE_SERVER",
+      "path": "/v1/images/edits",
+      "request": {
+        "prompt": "fixture",
+        "image": "fixture-image"
+      },
+      "response_status": 200,
+      "response_type": "application/json",
+      "response_body_hex": "7b2272656d6f7465223a747275657d",
+      "response_encoding": "",
+      "expected": {
+        "action": "response",
+        "status": 200,
+        "body": "{\"remote\":true}"
+      }
+    },
+    {
+      "name": "IMAGE-forward_image_generation-/v1/images/edits-false",
+      "service": "IMAGE_SERVER",
+      "path": "/v1/images/edits",
+      "request": {
+        "prompt": "fixture",
+        "image": "fixture-image"
+      },
+      "response_status": 200,
+      "response_type": "application/json",
+      "response_body_hex": "66616c7365",
+      "response_encoding": "",
+      "expected": {
+        "action": "response",
+        "status": 200,
+        "body": "false"
+      }
+    },
+    {
+      "name": "IMAGE-forward_image_generation-/v1/images/edits-zero",
+      "service": "IMAGE_SERVER",
+      "path": "/v1/images/edits",
+      "request": {
+        "prompt": "fixture",
+        "image": "fixture-image"
+      },
+      "response_status": 200,
+      "response_type": "application/json",
+      "response_body_hex": "30",
+      "response_encoding": "",
+      "expected": {
+        "action": "response",
+        "status": 200,
+        "body": "0"
+      }
+    },
+    {
+      "name": "IMAGE-forward_image_generation-/v1/images/edits-string",
+      "service": "IMAGE_SERVER",
+      "path": "/v1/images/edits",
+      "request": {
+        "prompt": "fixture",
+        "image": "fixture-image"
+      },
+      "response_status": 200,
+      "response_type": "application/json",
+      "response_body_hex": "2222",
+      "response_encoding": "",
+      "expected": {
+        "action": "response",
+        "status": 200,
+        "body": "\"\""
+      }
+    },
+    {
+      "name": "IMAGE-forward_image_generation-/v1/images/edits-array",
+      "service": "IMAGE_SERVER",
+      "path": "/v1/images/edits",
+      "request": {
+        "prompt": "fixture",
+        "image": "fixture-image"
+      },
+      "response_status": 200,
+      "response_type": "application/json",
+      "response_body_hex": "5b5d",
+      "response_encoding": "",
+      "expected": {
+        "action": "response",
+        "status": 200,
+        "body": "[]"
+      }
+    },
+    {
+      "name": "IMAGE-forward_image_generation-/v1/images/edits-empty-object",
+      "service": "IMAGE_SERVER",
+      "path": "/v1/images/edits",
+      "request": {
+        "prompt": "fixture",
+        "image": "fixture-image"
+      },
+      "response_status": 200,
+      "response_type": "application/json",
+      "response_body_hex": "7b7d",
+      "response_encoding": "",
+      "expected": {
+        "action": "response",
+        "status": 200,
+        "body": "{}"
+      }
+    },
+    {
+      "name": "IMAGE-forward_image_generation-/v1/images/edits-null",
+      "service": "IMAGE_SERVER",
+      "path": "/v1/images/edits",
+      "request": {
+        "prompt": "fixture",
+        "image": "fixture-image"
+      },
+      "response_status": 200,
+      "response_type": "application/json",
+      "response_body_hex": "6e756c6c",
+      "response_encoding": "",
+      "expected": {
+        "action": "fallback"
+      }
+    },
+    {
+      "name": "IMAGE-forward_image_generation-/v1/images/edits-empty",
+      "service": "IMAGE_SERVER",
+      "path": "/v1/images/edits",
+      "request": {
+        "prompt": "fixture",
+        "image": "fixture-image"
+      },
+      "response_status": 200,
+      "response_type": "application/json",
+      "response_body_hex": "",
+      "response_encoding": "",
+      "expected": {
+        "action": "fallback"
+      }
+    },
+    {
+      "name": "IMAGE-forward_image_generation-/v1/images/edits-text",
+      "service": "IMAGE_SERVER",
+      "path": "/v1/images/edits",
+      "request": {
+        "prompt": "fixture",
+        "image": "fixture-image"
+      },
+      "response_status": 200,
+      "response_type": "text/plain",
+      "response_body_hex": "7b2272656d6f7465223a747275657d",
+      "response_encoding": "",
+      "expected": {
+        "action": "fallback"
+      }
+    },
+    {
+      "name": "IMAGE-forward_image_generation-/v1/images/edits-problem-json",
+      "service": "IMAGE_SERVER",
+      "path": "/v1/images/edits",
+      "request": {
+        "prompt": "fixture",
+        "image": "fixture-image"
+      },
+      "response_status": 200,
+      "response_type": "application/problem+json",
+      "response_body_hex": "7b2272656d6f7465223a747275657d",
+      "response_encoding": "",
+      "expected": {
+        "action": "response",
+        "status": 200,
+        "body": "{\"remote\":true}"
+      }
+    },
+    {
+      "name": "IMAGE-forward_image_generation-/v1/images/edits-json-prefix",
+      "service": "IMAGE_SERVER",
+      "path": "/v1/images/edits",
+      "request": {
+        "prompt": "fixture",
+        "image": "fixture-image"
+      },
+      "response_status": 200,
+      "response_type": "application/jsonp",
+      "response_body_hex": "7b2272656d6f7465223a747275657d",
+      "response_encoding": "",
+      "expected": {
+        "action": "response",
+        "status": 200,
+        "body": "{\"remote\":true}"
+      }
+    },
+    {
+      "name": "IMAGE-forward_image_generation-/v1/images/edits-latin1",
+      "service": "IMAGE_SERVER",
+      "path": "/v1/images/edits",
+      "request": {
+        "prompt": "fixture",
+        "image": "fixture-image"
+      },
+      "response_status": 200,
+      "response_type": "application/json;charset=iso-8859-1",
+      "response_body_hex": "7b2272656d6f7465223a22636166e9227d",
+      "response_encoding": "",
+      "expected": {
+        "action": "response",
+        "status": 200,
+        "body": "{\"remote\":\"caf\u00e9\"}"
+      }
+    },
+    {
+      "name": "IMAGE-forward_image_generation-/v1/images/edits-gzip",
+      "service": "IMAGE_SERVER",
+      "path": "/v1/images/edits",
+      "request": {
+        "prompt": "fixture",
+        "image": "fixture-image"
+      },
+      "response_status": 200,
+      "response_type": "application/json",
+      "response_body_hex": "1f8b0800dc21d66a02ffab562a4acdcd2f4955b22a292a4dad05006db363930f000000",
+      "response_encoding": "gzip",
+      "expected": {
+        "action": "response",
+        "status": 200,
+        "body": "{\"remote\":true}"
+      }
+    },
+    {
+      "name": "IMAGE-forward_image_generation-/v1/images/edits-invalid",
+      "service": "IMAGE_SERVER",
+      "path": "/v1/images/edits",
+      "request": {
+        "prompt": "fixture",
+        "image": "fixture-image"
+      },
+      "response_status": 200,
+      "response_type": "application/json",
+      "response_body_hex": "7b626164",
+      "response_encoding": "",
+      "expected": {
+        "action": "fallback"
+      }
+    },
+    {
+      "name": "IMAGE-forward_image_generation-/v1/images/edits-created",
+      "service": "IMAGE_SERVER",
+      "path": "/v1/images/edits",
+      "request": {
+        "prompt": "fixture",
+        "image": "fixture-image"
+      },
+      "response_status": 201,
+      "response_type": "application/json",
+      "response_body_hex": "7b2272656d6f7465223a747275657d",
+      "response_encoding": "",
+      "expected": {
+        "action": "fallback"
+      }
+    },
+    {
+      "name": "IMAGE-forward_image_generation-/v1/images/edits-server-error",
+      "service": "IMAGE_SERVER",
+      "path": "/v1/images/edits",
+      "request": {
+        "prompt": "fixture",
+        "image": "fixture-image"
+      },
+      "response_status": 500,
+      "response_type": "application/json",
+      "response_body_hex": "7b2272656d6f7465223a747275657d",
+      "response_encoding": "",
+      "expected": {
+        "action": "fallback"
+      }
+    },
+    {
+      "name": "IMAGE-forward_image_generation-/v1/images/edits-surrogate",
+      "service": "IMAGE_SERVER",
+      "path": "/v1/images/edits",
+      "request": {
+        "prompt": "fixture",
+        "image": "fixture-image"
+      },
+      "response_status": 200,
+      "response_type": "application/json",
+      "response_body_hex": "225c756438303022",
+      "response_encoding": "",
+      "expected": {
+        "action": "response",
+        "status": 500,
+        "body": "Internal Server Error"
+      }
+    },
+    {
+      "name": "IMAGE-forward_image_generation-/v1/images/edits-nonfinite",
+      "service": "IMAGE_SERVER",
+      "path": "/v1/images/edits",
+      "request": {
+        "prompt": "fixture",
+        "image": "fixture-image"
+      },
+      "response_status": 200,
+      "response_type": "application/json",
+      "response_body_hex": "4e614e",
+      "response_encoding": "",
+      "expected": {
+        "action": "response",
+        "status": 500,
+        "body": "Internal Server Error"
+      }
+    },
+    {
+      "name": "IMAGE-forward_image_generation-/v1/images/edits-sse",
+      "service": "IMAGE_SERVER",
+      "path": "/v1/images/edits",
+      "request": {
+        "prompt": "fixture",
+        "image": "fixture-image"
+      },
+      "response_status": 200,
+      "response_type": "text/event-stream",
+      "response_body_hex": "646174613a207b2272656d6f7465223a747275657d0a0a",
+      "response_encoding": "",
+      "expected": {
+        "action": "fallback"
+      }
+    },
+    {
+      "name": "IMAGE-forward_video_generation-/v1/videos/generations-object",
+      "service": "IMAGE_SERVER",
+      "path": "/v1/videos/generations",
+      "request": {
+        "prompt": "fixture"
+      },
+      "response_status": 200,
+      "response_type": "application/json",
+      "response_body_hex": "7b2272656d6f7465223a747275657d",
+      "response_encoding": "",
+      "expected": {
+        "action": "response",
+        "status": 200,
+        "body": "{\"remote\":true}"
+      }
+    },
+    {
+      "name": "IMAGE-forward_video_generation-/v1/videos/generations-false",
+      "service": "IMAGE_SERVER",
+      "path": "/v1/videos/generations",
+      "request": {
+        "prompt": "fixture"
+      },
+      "response_status": 200,
+      "response_type": "application/json",
+      "response_body_hex": "66616c7365",
+      "response_encoding": "",
+      "expected": {
+        "action": "response",
+        "status": 200,
+        "body": "false"
+      }
+    },
+    {
+      "name": "IMAGE-forward_video_generation-/v1/videos/generations-zero",
+      "service": "IMAGE_SERVER",
+      "path": "/v1/videos/generations",
+      "request": {
+        "prompt": "fixture"
+      },
+      "response_status": 200,
+      "response_type": "application/json",
+      "response_body_hex": "30",
+      "response_encoding": "",
+      "expected": {
+        "action": "response",
+        "status": 200,
+        "body": "0"
+      }
+    },
+    {
+      "name": "IMAGE-forward_video_generation-/v1/videos/generations-string",
+      "service": "IMAGE_SERVER",
+      "path": "/v1/videos/generations",
+      "request": {
+        "prompt": "fixture"
+      },
+      "response_status": 200,
+      "response_type": "application/json",
+      "response_body_hex": "2222",
+      "response_encoding": "",
+      "expected": {
+        "action": "response",
+        "status": 200,
+        "body": "\"\""
+      }
+    },
+    {
+      "name": "IMAGE-forward_video_generation-/v1/videos/generations-array",
+      "service": "IMAGE_SERVER",
+      "path": "/v1/videos/generations",
+      "request": {
+        "prompt": "fixture"
+      },
+      "response_status": 200,
+      "response_type": "application/json",
+      "response_body_hex": "5b5d",
+      "response_encoding": "",
+      "expected": {
+        "action": "response",
+        "status": 200,
+        "body": "[]"
+      }
+    },
+    {
+      "name": "IMAGE-forward_video_generation-/v1/videos/generations-empty-object",
+      "service": "IMAGE_SERVER",
+      "path": "/v1/videos/generations",
+      "request": {
+        "prompt": "fixture"
+      },
+      "response_status": 200,
+      "response_type": "application/json",
+      "response_body_hex": "7b7d",
+      "response_encoding": "",
+      "expected": {
+        "action": "response",
+        "status": 200,
+        "body": "{}"
+      }
+    },
+    {
+      "name": "IMAGE-forward_video_generation-/v1/videos/generations-null",
+      "service": "IMAGE_SERVER",
+      "path": "/v1/videos/generations",
+      "request": {
+        "prompt": "fixture"
+      },
+      "response_status": 200,
+      "response_type": "application/json",
+      "response_body_hex": "6e756c6c",
+      "response_encoding": "",
+      "expected": {
+        "action": "fallback"
+      }
+    },
+    {
+      "name": "IMAGE-forward_video_generation-/v1/videos/generations-empty",
+      "service": "IMAGE_SERVER",
+      "path": "/v1/videos/generations",
+      "request": {
+        "prompt": "fixture"
+      },
+      "response_status": 200,
+      "response_type": "application/json",
+      "response_body_hex": "",
+      "response_encoding": "",
+      "expected": {
+        "action": "fallback"
+      }
+    },
+    {
+      "name": "IMAGE-forward_video_generation-/v1/videos/generations-text",
+      "service": "IMAGE_SERVER",
+      "path": "/v1/videos/generations",
+      "request": {
+        "prompt": "fixture"
+      },
+      "response_status": 200,
+      "response_type": "text/plain",
+      "response_body_hex": "7b2272656d6f7465223a747275657d",
+      "response_encoding": "",
+      "expected": {
+        "action": "fallback"
+      }
+    },
+    {
+      "name": "IMAGE-forward_video_generation-/v1/videos/generations-problem-json",
+      "service": "IMAGE_SERVER",
+      "path": "/v1/videos/generations",
+      "request": {
+        "prompt": "fixture"
+      },
+      "response_status": 200,
+      "response_type": "application/problem+json",
+      "response_body_hex": "7b2272656d6f7465223a747275657d",
+      "response_encoding": "",
+      "expected": {
+        "action": "response",
+        "status": 200,
+        "body": "{\"remote\":true}"
+      }
+    },
+    {
+      "name": "IMAGE-forward_video_generation-/v1/videos/generations-json-prefix",
+      "service": "IMAGE_SERVER",
+      "path": "/v1/videos/generations",
+      "request": {
+        "prompt": "fixture"
+      },
+      "response_status": 200,
+      "response_type": "application/jsonp",
+      "response_body_hex": "7b2272656d6f7465223a747275657d",
+      "response_encoding": "",
+      "expected": {
+        "action": "response",
+        "status": 200,
+        "body": "{\"remote\":true}"
+      }
+    },
+    {
+      "name": "IMAGE-forward_video_generation-/v1/videos/generations-latin1",
+      "service": "IMAGE_SERVER",
+      "path": "/v1/videos/generations",
+      "request": {
+        "prompt": "fixture"
+      },
+      "response_status": 200,
+      "response_type": "application/json;charset=iso-8859-1",
+      "response_body_hex": "7b2272656d6f7465223a22636166e9227d",
+      "response_encoding": "",
+      "expected": {
+        "action": "response",
+        "status": 200,
+        "body": "{\"remote\":\"caf\u00e9\"}"
+      }
+    },
+    {
+      "name": "IMAGE-forward_video_generation-/v1/videos/generations-gzip",
+      "service": "IMAGE_SERVER",
+      "path": "/v1/videos/generations",
+      "request": {
+        "prompt": "fixture"
+      },
+      "response_status": 200,
+      "response_type": "application/json",
+      "response_body_hex": "1f8b0800dc21d66a02ffab562a4acdcd2f4955b22a292a4dad05006db363930f000000",
+      "response_encoding": "gzip",
+      "expected": {
+        "action": "response",
+        "status": 200,
+        "body": "{\"remote\":true}"
+      }
+    },
+    {
+      "name": "IMAGE-forward_video_generation-/v1/videos/generations-invalid",
+      "service": "IMAGE_SERVER",
+      "path": "/v1/videos/generations",
+      "request": {
+        "prompt": "fixture"
+      },
+      "response_status": 200,
+      "response_type": "application/json",
+      "response_body_hex": "7b626164",
+      "response_encoding": "",
+      "expected": {
+        "action": "fallback"
+      }
+    },
+    {
+      "name": "IMAGE-forward_video_generation-/v1/videos/generations-created",
+      "service": "IMAGE_SERVER",
+      "path": "/v1/videos/generations",
+      "request": {
+        "prompt": "fixture"
+      },
+      "response_status": 201,
+      "response_type": "application/json",
+      "response_body_hex": "7b2272656d6f7465223a747275657d",
+      "response_encoding": "",
+      "expected": {
+        "action": "fallback"
+      }
+    },
+    {
+      "name": "IMAGE-forward_video_generation-/v1/videos/generations-server-error",
+      "service": "IMAGE_SERVER",
+      "path": "/v1/videos/generations",
+      "request": {
+        "prompt": "fixture"
+      },
+      "response_status": 500,
+      "response_type": "application/json",
+      "response_body_hex": "7b2272656d6f7465223a747275657d",
+      "response_encoding": "",
+      "expected": {
+        "action": "fallback"
+      }
+    },
+    {
+      "name": "IMAGE-forward_video_generation-/v1/videos/generations-surrogate",
+      "service": "IMAGE_SERVER",
+      "path": "/v1/videos/generations",
+      "request": {
+        "prompt": "fixture"
+      },
+      "response_status": 200,
+      "response_type": "application/json",
+      "response_body_hex": "225c756438303022",
+      "response_encoding": "",
+      "expected": {
+        "action": "response",
+        "status": 500,
+        "body": "Internal Server Error"
+      }
+    },
+    {
+      "name": "IMAGE-forward_video_generation-/v1/videos/generations-nonfinite",
+      "service": "IMAGE_SERVER",
+      "path": "/v1/videos/generations",
+      "request": {
+        "prompt": "fixture"
+      },
+      "response_status": 200,
+      "response_type": "application/json",
+      "response_body_hex": "4e614e",
+      "response_encoding": "",
+      "expected": {
+        "action": "response",
+        "status": 500,
+        "body": "Internal Server Error"
+      }
+    },
+    {
+      "name": "IMAGE-forward_video_generation-/v1/videos/generations-sse",
+      "service": "IMAGE_SERVER",
+      "path": "/v1/videos/generations",
+      "request": {
+        "prompt": "fixture"
+      },
+      "response_status": 200,
+      "response_type": "text/event-stream",
+      "response_body_hex": "646174613a207b2272656d6f7465223a747275657d0a0a",
+      "response_encoding": "",
+      "expected": {
+        "action": "fallback"
+      }
+    },
+    {
+      "name": "TEXT-forward_chat_completions-/v1/chat/completions-object",
+      "service": "TEXT_SERVER",
+      "path": "/v1/chat/completions",
+      "request": {
+        "model": "fixture-text",
+        "messages": []
+      },
+      "response_status": 200,
+      "response_type": "application/json",
+      "response_body_hex": "7b2272656d6f7465223a747275657d",
+      "response_encoding": "",
+      "expected": {
+        "action": "response",
+        "status": 200,
+        "body": "{\"remote\":true}"
+      }
+    },
+    {
+      "name": "TEXT-forward_chat_completions-/v1/chat/completions-false",
+      "service": "TEXT_SERVER",
+      "path": "/v1/chat/completions",
+      "request": {
+        "model": "fixture-text",
+        "messages": []
+      },
+      "response_status": 200,
+      "response_type": "application/json",
+      "response_body_hex": "66616c7365",
+      "response_encoding": "",
+      "expected": {
+        "action": "response",
+        "status": 200,
+        "body": "false"
+      }
+    },
+    {
+      "name": "TEXT-forward_chat_completions-/v1/chat/completions-zero",
+      "service": "TEXT_SERVER",
+      "path": "/v1/chat/completions",
+      "request": {
+        "model": "fixture-text",
+        "messages": []
+      },
+      "response_status": 200,
+      "response_type": "application/json",
+      "response_body_hex": "30",
+      "response_encoding": "",
+      "expected": {
+        "action": "response",
+        "status": 200,
+        "body": "0"
+      }
+    },
+    {
+      "name": "TEXT-forward_chat_completions-/v1/chat/completions-string",
+      "service": "TEXT_SERVER",
+      "path": "/v1/chat/completions",
+      "request": {
+        "model": "fixture-text",
+        "messages": []
+      },
+      "response_status": 200,
+      "response_type": "application/json",
+      "response_body_hex": "2222",
+      "response_encoding": "",
+      "expected": {
+        "action": "response",
+        "status": 200,
+        "body": "\"\""
+      }
+    },
+    {
+      "name": "TEXT-forward_chat_completions-/v1/chat/completions-array",
+      "service": "TEXT_SERVER",
+      "path": "/v1/chat/completions",
+      "request": {
+        "model": "fixture-text",
+        "messages": []
+      },
+      "response_status": 200,
+      "response_type": "application/json",
+      "response_body_hex": "5b5d",
+      "response_encoding": "",
+      "expected": {
+        "action": "response",
+        "status": 200,
+        "body": "[]"
+      }
+    },
+    {
+      "name": "TEXT-forward_chat_completions-/v1/chat/completions-empty-object",
+      "service": "TEXT_SERVER",
+      "path": "/v1/chat/completions",
+      "request": {
+        "model": "fixture-text",
+        "messages": []
+      },
+      "response_status": 200,
+      "response_type": "application/json",
+      "response_body_hex": "7b7d",
+      "response_encoding": "",
+      "expected": {
+        "action": "response",
+        "status": 200,
+        "body": "{}"
+      }
+    },
+    {
+      "name": "TEXT-forward_chat_completions-/v1/chat/completions-null",
+      "service": "TEXT_SERVER",
+      "path": "/v1/chat/completions",
+      "request": {
+        "model": "fixture-text",
+        "messages": []
+      },
+      "response_status": 200,
+      "response_type": "application/json",
+      "response_body_hex": "6e756c6c",
+      "response_encoding": "",
+      "expected": {
+        "action": "fallback"
+      }
+    },
+    {
+      "name": "TEXT-forward_chat_completions-/v1/chat/completions-empty",
+      "service": "TEXT_SERVER",
+      "path": "/v1/chat/completions",
+      "request": {
+        "model": "fixture-text",
+        "messages": []
+      },
+      "response_status": 200,
+      "response_type": "application/json",
+      "response_body_hex": "",
+      "response_encoding": "",
+      "expected": {
+        "action": "fallback"
+      }
+    },
+    {
+      "name": "TEXT-forward_chat_completions-/v1/chat/completions-text",
+      "service": "TEXT_SERVER",
+      "path": "/v1/chat/completions",
+      "request": {
+        "model": "fixture-text",
+        "messages": []
+      },
+      "response_status": 200,
+      "response_type": "text/plain",
+      "response_body_hex": "7b2272656d6f7465223a747275657d",
+      "response_encoding": "",
+      "expected": {
+        "action": "fallback"
+      }
+    },
+    {
+      "name": "TEXT-forward_chat_completions-/v1/chat/completions-problem-json",
+      "service": "TEXT_SERVER",
+      "path": "/v1/chat/completions",
+      "request": {
+        "model": "fixture-text",
+        "messages": []
+      },
+      "response_status": 200,
+      "response_type": "application/problem+json",
+      "response_body_hex": "7b2272656d6f7465223a747275657d",
+      "response_encoding": "",
+      "expected": {
+        "action": "response",
+        "status": 200,
+        "body": "{\"remote\":true}"
+      }
+    },
+    {
+      "name": "TEXT-forward_chat_completions-/v1/chat/completions-json-prefix",
+      "service": "TEXT_SERVER",
+      "path": "/v1/chat/completions",
+      "request": {
+        "model": "fixture-text",
+        "messages": []
+      },
+      "response_status": 200,
+      "response_type": "application/jsonp",
+      "response_body_hex": "7b2272656d6f7465223a747275657d",
+      "response_encoding": "",
+      "expected": {
+        "action": "response",
+        "status": 200,
+        "body": "{\"remote\":true}"
+      }
+    },
+    {
+      "name": "TEXT-forward_chat_completions-/v1/chat/completions-latin1",
+      "service": "TEXT_SERVER",
+      "path": "/v1/chat/completions",
+      "request": {
+        "model": "fixture-text",
+        "messages": []
+      },
+      "response_status": 200,
+      "response_type": "application/json;charset=iso-8859-1",
+      "response_body_hex": "7b2272656d6f7465223a22636166e9227d",
+      "response_encoding": "",
+      "expected": {
+        "action": "response",
+        "status": 200,
+        "body": "{\"remote\":\"caf\u00e9\"}"
+      }
+    },
+    {
+      "name": "TEXT-forward_chat_completions-/v1/chat/completions-gzip",
+      "service": "TEXT_SERVER",
+      "path": "/v1/chat/completions",
+      "request": {
+        "model": "fixture-text",
+        "messages": []
+      },
+      "response_status": 200,
+      "response_type": "application/json",
+      "response_body_hex": "1f8b0800dc21d66a02ffab562a4acdcd2f4955b22a292a4dad05006db363930f000000",
+      "response_encoding": "gzip",
+      "expected": {
+        "action": "response",
+        "status": 200,
+        "body": "{\"remote\":true}"
+      }
+    },
+    {
+      "name": "TEXT-forward_chat_completions-/v1/chat/completions-invalid",
+      "service": "TEXT_SERVER",
+      "path": "/v1/chat/completions",
+      "request": {
+        "model": "fixture-text",
+        "messages": []
+      },
+      "response_status": 200,
+      "response_type": "application/json",
+      "response_body_hex": "7b626164",
+      "response_encoding": "",
+      "expected": {
+        "action": "fallback"
+      }
+    },
+    {
+      "name": "TEXT-forward_chat_completions-/v1/chat/completions-created",
+      "service": "TEXT_SERVER",
+      "path": "/v1/chat/completions",
+      "request": {
+        "model": "fixture-text",
+        "messages": []
+      },
+      "response_status": 201,
+      "response_type": "application/json",
+      "response_body_hex": "7b2272656d6f7465223a747275657d",
+      "response_encoding": "",
+      "expected": {
+        "action": "fallback"
+      }
+    },
+    {
+      "name": "TEXT-forward_chat_completions-/v1/chat/completions-server-error",
+      "service": "TEXT_SERVER",
+      "path": "/v1/chat/completions",
+      "request": {
+        "model": "fixture-text",
+        "messages": []
+      },
+      "response_status": 500,
+      "response_type": "application/json",
+      "response_body_hex": "7b2272656d6f7465223a747275657d",
+      "response_encoding": "",
+      "expected": {
+        "action": "fallback"
+      }
+    },
+    {
+      "name": "TEXT-forward_chat_completions-/v1/chat/completions-surrogate",
+      "service": "TEXT_SERVER",
+      "path": "/v1/chat/completions",
+      "request": {
+        "model": "fixture-text",
+        "messages": []
+      },
+      "response_status": 200,
+      "response_type": "application/json",
+      "response_body_hex": "225c756438303022",
+      "response_encoding": "",
+      "expected": {
+        "action": "response",
+        "status": 500,
+        "body": "Internal Server Error"
+      }
+    },
+    {
+      "name": "TEXT-forward_chat_completions-/v1/chat/completions-nonfinite",
+      "service": "TEXT_SERVER",
+      "path": "/v1/chat/completions",
+      "request": {
+        "model": "fixture-text",
+        "messages": []
+      },
+      "response_status": 200,
+      "response_type": "application/json",
+      "response_body_hex": "4e614e",
+      "response_encoding": "",
+      "expected": {
+        "action": "response",
+        "status": 500,
+        "body": "Internal Server Error"
+      }
+    },
+    {
+      "name": "TEXT-forward_chat_completions-/v1/chat/completions-sse",
+      "service": "TEXT_SERVER",
+      "path": "/v1/chat/completions",
+      "request": {
+        "model": "fixture-text",
+        "messages": []
+      },
+      "response_status": 200,
+      "response_type": "text/event-stream",
+      "response_body_hex": "646174613a207b2272656d6f7465223a747275657d0a0a",
+      "response_encoding": "",
+      "expected": {
+        "action": "fallback"
+      }
+    },
+    {
+      "name": "TEXT-forward_completions-/v1/completions-object",
+      "service": "TEXT_SERVER",
+      "path": "/v1/completions",
+      "request": {
+        "model": "fixture-text",
+        "prompt": "fixture"
+      },
+      "response_status": 200,
+      "response_type": "application/json",
+      "response_body_hex": "7b2272656d6f7465223a747275657d",
+      "response_encoding": "",
+      "expected": {
+        "action": "response",
+        "status": 200,
+        "body": "{\"remote\":true}"
+      }
+    },
+    {
+      "name": "TEXT-forward_completions-/v1/completions-false",
+      "service": "TEXT_SERVER",
+      "path": "/v1/completions",
+      "request": {
+        "model": "fixture-text",
+        "prompt": "fixture"
+      },
+      "response_status": 200,
+      "response_type": "application/json",
+      "response_body_hex": "66616c7365",
+      "response_encoding": "",
+      "expected": {
+        "action": "response",
+        "status": 200,
+        "body": "false"
+      }
+    },
+    {
+      "name": "TEXT-forward_completions-/v1/completions-zero",
+      "service": "TEXT_SERVER",
+      "path": "/v1/completions",
+      "request": {
+        "model": "fixture-text",
+        "prompt": "fixture"
+      },
+      "response_status": 200,
+      "response_type": "application/json",
+      "response_body_hex": "30",
+      "response_encoding": "",
+      "expected": {
+        "action": "response",
+        "status": 200,
+        "body": "0"
+      }
+    },
+    {
+      "name": "TEXT-forward_completions-/v1/completions-string",
+      "service": "TEXT_SERVER",
+      "path": "/v1/completions",
+      "request": {
+        "model": "fixture-text",
+        "prompt": "fixture"
+      },
+      "response_status": 200,
+      "response_type": "application/json",
+      "response_body_hex": "2222",
+      "response_encoding": "",
+      "expected": {
+        "action": "response",
+        "status": 200,
+        "body": "\"\""
+      }
+    },
+    {
+      "name": "TEXT-forward_completions-/v1/completions-array",
+      "service": "TEXT_SERVER",
+      "path": "/v1/completions",
+      "request": {
+        "model": "fixture-text",
+        "prompt": "fixture"
+      },
+      "response_status": 200,
+      "response_type": "application/json",
+      "response_body_hex": "5b5d",
+      "response_encoding": "",
+      "expected": {
+        "action": "response",
+        "status": 200,
+        "body": "[]"
+      }
+    },
+    {
+      "name": "TEXT-forward_completions-/v1/completions-empty-object",
+      "service": "TEXT_SERVER",
+      "path": "/v1/completions",
+      "request": {
+        "model": "fixture-text",
+        "prompt": "fixture"
+      },
+      "response_status": 200,
+      "response_type": "application/json",
+      "response_body_hex": "7b7d",
+      "response_encoding": "",
+      "expected": {
+        "action": "response",
+        "status": 200,
+        "body": "{}"
+      }
+    },
+    {
+      "name": "TEXT-forward_completions-/v1/completions-null",
+      "service": "TEXT_SERVER",
+      "path": "/v1/completions",
+      "request": {
+        "model": "fixture-text",
+        "prompt": "fixture"
+      },
+      "response_status": 200,
+      "response_type": "application/json",
+      "response_body_hex": "6e756c6c",
+      "response_encoding": "",
+      "expected": {
+        "action": "fallback"
+      }
+    },
+    {
+      "name": "TEXT-forward_completions-/v1/completions-empty",
+      "service": "TEXT_SERVER",
+      "path": "/v1/completions",
+      "request": {
+        "model": "fixture-text",
+        "prompt": "fixture"
+      },
+      "response_status": 200,
+      "response_type": "application/json",
+      "response_body_hex": "",
+      "response_encoding": "",
+      "expected": {
+        "action": "fallback"
+      }
+    },
+    {
+      "name": "TEXT-forward_completions-/v1/completions-text",
+      "service": "TEXT_SERVER",
+      "path": "/v1/completions",
+      "request": {
+        "model": "fixture-text",
+        "prompt": "fixture"
+      },
+      "response_status": 200,
+      "response_type": "text/plain",
+      "response_body_hex": "7b2272656d6f7465223a747275657d",
+      "response_encoding": "",
+      "expected": {
+        "action": "fallback"
+      }
+    },
+    {
+      "name": "TEXT-forward_completions-/v1/completions-problem-json",
+      "service": "TEXT_SERVER",
+      "path": "/v1/completions",
+      "request": {
+        "model": "fixture-text",
+        "prompt": "fixture"
+      },
+      "response_status": 200,
+      "response_type": "application/problem+json",
+      "response_body_hex": "7b2272656d6f7465223a747275657d",
+      "response_encoding": "",
+      "expected": {
+        "action": "response",
+        "status": 200,
+        "body": "{\"remote\":true}"
+      }
+    },
+    {
+      "name": "TEXT-forward_completions-/v1/completions-json-prefix",
+      "service": "TEXT_SERVER",
+      "path": "/v1/completions",
+      "request": {
+        "model": "fixture-text",
+        "prompt": "fixture"
+      },
+      "response_status": 200,
+      "response_type": "application/jsonp",
+      "response_body_hex": "7b2272656d6f7465223a747275657d",
+      "response_encoding": "",
+      "expected": {
+        "action": "response",
+        "status": 200,
+        "body": "{\"remote\":true}"
+      }
+    },
+    {
+      "name": "TEXT-forward_completions-/v1/completions-latin1",
+      "service": "TEXT_SERVER",
+      "path": "/v1/completions",
+      "request": {
+        "model": "fixture-text",
+        "prompt": "fixture"
+      },
+      "response_status": 200,
+      "response_type": "application/json;charset=iso-8859-1",
+      "response_body_hex": "7b2272656d6f7465223a22636166e9227d",
+      "response_encoding": "",
+      "expected": {
+        "action": "response",
+        "status": 200,
+        "body": "{\"remote\":\"caf\u00e9\"}"
+      }
+    },
+    {
+      "name": "TEXT-forward_completions-/v1/completions-gzip",
+      "service": "TEXT_SERVER",
+      "path": "/v1/completions",
+      "request": {
+        "model": "fixture-text",
+        "prompt": "fixture"
+      },
+      "response_status": 200,
+      "response_type": "application/json",
+      "response_body_hex": "1f8b0800dc21d66a02ffab562a4acdcd2f4955b22a292a4dad05006db363930f000000",
+      "response_encoding": "gzip",
+      "expected": {
+        "action": "response",
+        "status": 200,
+        "body": "{\"remote\":true}"
+      }
+    },
+    {
+      "name": "TEXT-forward_completions-/v1/completions-invalid",
+      "service": "TEXT_SERVER",
+      "path": "/v1/completions",
+      "request": {
+        "model": "fixture-text",
+        "prompt": "fixture"
+      },
+      "response_status": 200,
+      "response_type": "application/json",
+      "response_body_hex": "7b626164",
+      "response_encoding": "",
+      "expected": {
+        "action": "fallback"
+      }
+    },
+    {
+      "name": "TEXT-forward_completions-/v1/completions-created",
+      "service": "TEXT_SERVER",
+      "path": "/v1/completions",
+      "request": {
+        "model": "fixture-text",
+        "prompt": "fixture"
+      },
+      "response_status": 201,
+      "response_type": "application/json",
+      "response_body_hex": "7b2272656d6f7465223a747275657d",
+      "response_encoding": "",
+      "expected": {
+        "action": "fallback"
+      }
+    },
+    {
+      "name": "TEXT-forward_completions-/v1/completions-server-error",
+      "service": "TEXT_SERVER",
+      "path": "/v1/completions",
+      "request": {
+        "model": "fixture-text",
+        "prompt": "fixture"
+      },
+      "response_status": 500,
+      "response_type": "application/json",
+      "response_body_hex": "7b2272656d6f7465223a747275657d",
+      "response_encoding": "",
+      "expected": {
+        "action": "fallback"
+      }
+    },
+    {
+      "name": "TEXT-forward_completions-/v1/completions-surrogate",
+      "service": "TEXT_SERVER",
+      "path": "/v1/completions",
+      "request": {
+        "model": "fixture-text",
+        "prompt": "fixture"
+      },
+      "response_status": 200,
+      "response_type": "application/json",
+      "response_body_hex": "225c756438303022",
+      "response_encoding": "",
+      "expected": {
+        "action": "response",
+        "status": 500,
+        "body": "Internal Server Error"
+      }
+    },
+    {
+      "name": "TEXT-forward_completions-/v1/completions-nonfinite",
+      "service": "TEXT_SERVER",
+      "path": "/v1/completions",
+      "request": {
+        "model": "fixture-text",
+        "prompt": "fixture"
+      },
+      "response_status": 200,
+      "response_type": "application/json",
+      "response_body_hex": "4e614e",
+      "response_encoding": "",
+      "expected": {
+        "action": "response",
+        "status": 500,
+        "body": "Internal Server Error"
+      }
+    },
+    {
+      "name": "TEXT-forward_completions-/v1/completions-sse",
+      "service": "TEXT_SERVER",
+      "path": "/v1/completions",
+      "request": {
+        "model": "fixture-text",
+        "prompt": "fixture"
+      },
+      "response_status": 200,
+      "response_type": "text/event-stream",
+      "response_body_hex": "646174613a207b2272656d6f7465223a747275657d0a0a",
+      "response_encoding": "",
+      "expected": {
+        "action": "fallback"
+      }
+    },
+    {
+      "name": "EMBEDDING-forward_embeddings-/v1/embeddings-object",
+      "service": "EMBEDDING_SERVER",
+      "path": "/v1/embeddings",
+      "request": {
+        "input": "fixture"
+      },
+      "response_status": 200,
+      "response_type": "application/json",
+      "response_body_hex": "7b2272656d6f7465223a747275657d",
+      "response_encoding": "",
+      "expected": {
+        "action": "response",
+        "status": 200,
+        "body": "{\"remote\":true}"
+      }
+    },
+    {
+      "name": "EMBEDDING-forward_embeddings-/v1/embeddings-false",
+      "service": "EMBEDDING_SERVER",
+      "path": "/v1/embeddings",
+      "request": {
+        "input": "fixture"
+      },
+      "response_status": 200,
+      "response_type": "application/json",
+      "response_body_hex": "66616c7365",
+      "response_encoding": "",
+      "expected": {
+        "action": "response",
+        "status": 200,
+        "body": "false"
+      }
+    },
+    {
+      "name": "EMBEDDING-forward_embeddings-/v1/embeddings-zero",
+      "service": "EMBEDDING_SERVER",
+      "path": "/v1/embeddings",
+      "request": {
+        "input": "fixture"
+      },
+      "response_status": 200,
+      "response_type": "application/json",
+      "response_body_hex": "30",
+      "response_encoding": "",
+      "expected": {
+        "action": "response",
+        "status": 200,
+        "body": "0"
+      }
+    },
+    {
+      "name": "EMBEDDING-forward_embeddings-/v1/embeddings-string",
+      "service": "EMBEDDING_SERVER",
+      "path": "/v1/embeddings",
+      "request": {
+        "input": "fixture"
+      },
+      "response_status": 200,
+      "response_type": "application/json",
+      "response_body_hex": "2222",
+      "response_encoding": "",
+      "expected": {
+        "action": "response",
+        "status": 200,
+        "body": "\"\""
+      }
+    },
+    {
+      "name": "EMBEDDING-forward_embeddings-/v1/embeddings-array",
+      "service": "EMBEDDING_SERVER",
+      "path": "/v1/embeddings",
+      "request": {
+        "input": "fixture"
+      },
+      "response_status": 200,
+      "response_type": "application/json",
+      "response_body_hex": "5b5d",
+      "response_encoding": "",
+      "expected": {
+        "action": "response",
+        "status": 200,
+        "body": "[]"
+      }
+    },
+    {
+      "name": "EMBEDDING-forward_embeddings-/v1/embeddings-empty-object",
+      "service": "EMBEDDING_SERVER",
+      "path": "/v1/embeddings",
+      "request": {
+        "input": "fixture"
+      },
+      "response_status": 200,
+      "response_type": "application/json",
+      "response_body_hex": "7b7d",
+      "response_encoding": "",
+      "expected": {
+        "action": "response",
+        "status": 200,
+        "body": "{}"
+      }
+    },
+    {
+      "name": "EMBEDDING-forward_embeddings-/v1/embeddings-null",
+      "service": "EMBEDDING_SERVER",
+      "path": "/v1/embeddings",
+      "request": {
+        "input": "fixture"
+      },
+      "response_status": 200,
+      "response_type": "application/json",
+      "response_body_hex": "6e756c6c",
+      "response_encoding": "",
+      "expected": {
+        "action": "fallback"
+      }
+    },
+    {
+      "name": "EMBEDDING-forward_embeddings-/v1/embeddings-empty",
+      "service": "EMBEDDING_SERVER",
+      "path": "/v1/embeddings",
+      "request": {
+        "input": "fixture"
+      },
+      "response_status": 200,
+      "response_type": "application/json",
+      "response_body_hex": "",
+      "response_encoding": "",
+      "expected": {
+        "action": "fallback"
+      }
+    },
+    {
+      "name": "EMBEDDING-forward_embeddings-/v1/embeddings-text",
+      "service": "EMBEDDING_SERVER",
+      "path": "/v1/embeddings",
+      "request": {
+        "input": "fixture"
+      },
+      "response_status": 200,
+      "response_type": "text/plain",
+      "response_body_hex": "7b2272656d6f7465223a747275657d",
+      "response_encoding": "",
+      "expected": {
+        "action": "fallback"
+      }
+    },
+    {
+      "name": "EMBEDDING-forward_embeddings-/v1/embeddings-problem-json",
+      "service": "EMBEDDING_SERVER",
+      "path": "/v1/embeddings",
+      "request": {
+        "input": "fixture"
+      },
+      "response_status": 200,
+      "response_type": "application/problem+json",
+      "response_body_hex": "7b2272656d6f7465223a747275657d",
+      "response_encoding": "",
+      "expected": {
+        "action": "response",
+        "status": 200,
+        "body": "{\"remote\":true}"
+      }
+    },
+    {
+      "name": "EMBEDDING-forward_embeddings-/v1/embeddings-json-prefix",
+      "service": "EMBEDDING_SERVER",
+      "path": "/v1/embeddings",
+      "request": {
+        "input": "fixture"
+      },
+      "response_status": 200,
+      "response_type": "application/jsonp",
+      "response_body_hex": "7b2272656d6f7465223a747275657d",
+      "response_encoding": "",
+      "expected": {
+        "action": "response",
+        "status": 200,
+        "body": "{\"remote\":true}"
+      }
+    },
+    {
+      "name": "EMBEDDING-forward_embeddings-/v1/embeddings-latin1",
+      "service": "EMBEDDING_SERVER",
+      "path": "/v1/embeddings",
+      "request": {
+        "input": "fixture"
+      },
+      "response_status": 200,
+      "response_type": "application/json;charset=iso-8859-1",
+      "response_body_hex": "7b2272656d6f7465223a22636166e9227d",
+      "response_encoding": "",
+      "expected": {
+        "action": "response",
+        "status": 200,
+        "body": "{\"remote\":\"caf\u00e9\"}"
+      }
+    },
+    {
+      "name": "EMBEDDING-forward_embeddings-/v1/embeddings-gzip",
+      "service": "EMBEDDING_SERVER",
+      "path": "/v1/embeddings",
+      "request": {
+        "input": "fixture"
+      },
+      "response_status": 200,
+      "response_type": "application/json",
+      "response_body_hex": "1f8b0800dc21d66a02ffab562a4acdcd2f4955b22a292a4dad05006db363930f000000",
+      "response_encoding": "gzip",
+      "expected": {
+        "action": "response",
+        "status": 200,
+        "body": "{\"remote\":true}"
+      }
+    },
+    {
+      "name": "EMBEDDING-forward_embeddings-/v1/embeddings-invalid",
+      "service": "EMBEDDING_SERVER",
+      "path": "/v1/embeddings",
+      "request": {
+        "input": "fixture"
+      },
+      "response_status": 200,
+      "response_type": "application/json",
+      "response_body_hex": "7b626164",
+      "response_encoding": "",
+      "expected": {
+        "action": "fallback"
+      }
+    },
+    {
+      "name": "EMBEDDING-forward_embeddings-/v1/embeddings-created",
+      "service": "EMBEDDING_SERVER",
+      "path": "/v1/embeddings",
+      "request": {
+        "input": "fixture"
+      },
+      "response_status": 201,
+      "response_type": "application/json",
+      "response_body_hex": "7b2272656d6f7465223a747275657d",
+      "response_encoding": "",
+      "expected": {
+        "action": "fallback"
+      }
+    },
+    {
+      "name": "EMBEDDING-forward_embeddings-/v1/embeddings-server-error",
+      "service": "EMBEDDING_SERVER",
+      "path": "/v1/embeddings",
+      "request": {
+        "input": "fixture"
+      },
+      "response_status": 500,
+      "response_type": "application/json",
+      "response_body_hex": "7b2272656d6f7465223a747275657d",
+      "response_encoding": "",
+      "expected": {
+        "action": "fallback"
+      }
+    },
+    {
+      "name": "EMBEDDING-forward_embeddings-/v1/embeddings-surrogate",
+      "service": "EMBEDDING_SERVER",
+      "path": "/v1/embeddings",
+      "request": {
+        "input": "fixture"
+      },
+      "response_status": 200,
+      "response_type": "application/json",
+      "response_body_hex": "225c756438303022",
+      "response_encoding": "",
+      "expected": {
+        "action": "response",
+        "status": 500,
+        "body": "Internal Server Error"
+      }
+    },
+    {
+      "name": "EMBEDDING-forward_embeddings-/v1/embeddings-nonfinite",
+      "service": "EMBEDDING_SERVER",
+      "path": "/v1/embeddings",
+      "request": {
+        "input": "fixture"
+      },
+      "response_status": 200,
+      "response_type": "application/json",
+      "response_body_hex": "4e614e",
+      "response_encoding": "",
+      "expected": {
+        "action": "response",
+        "status": 500,
+        "body": "Internal Server Error"
+      }
+    },
+    {
+      "name": "EMBEDDING-forward_embeddings-/v1/embeddings-sse",
+      "service": "EMBEDDING_SERVER",
+      "path": "/v1/embeddings",
+      "request": {
+        "input": "fixture"
+      },
+      "response_status": 200,
+      "response_type": "text/event-stream",
+      "response_body_hex": "646174613a207b2272656d6f7465223a747275657d0a0a",
+      "response_encoding": "",
+      "expected": {
+        "action": "fallback"
+      }
+    }
+  ]
+}

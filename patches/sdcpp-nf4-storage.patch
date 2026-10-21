@@ -1,0 +1,30 @@
+--- a/ggml/src/ggml-cuda/ggml-cuda.cu
++++ b/ggml/src/ggml-cuda/ggml-cuda.cu
+@@ -4,6 +4,7 @@
+ 
+ #include "ggml-cuda/allreduce.cuh"
+ #include "ggml-cuda/common.cuh"
++#include "nf4_cuda.cuh"
+ #include "ggml-cuda/acc.cuh"
+ #include "ggml-cuda/add-id.cuh"
+ #include "ggml-cuda/arange.cuh"
+@@ -2658,6 +2659,10 @@
+ 
+ static bool ggml_cuda_compute_forward(ggml_backend_cuda_context & ctx, struct ggml_tensor * dst) {
+     switch (dst->op) {
++        case GGML_OP_CUSTOM:
++            if (!ezlocalai::is_nf4_ggml(dst)) return false;
++            ezlocalai::nf4_cuda_expand(ctx, dst);
++            break;
+         case GGML_OP_ARGMAX:
+             ggml_cuda_argmax(ctx, dst);
+             break;
+@@ -5395,6 +5400,8 @@
+     }
+ 
+     switch (op->op) {
++        case GGML_OP_CUSTOM:
++            return ezlocalai::is_nf4_ggml(op);
+         case GGML_OP_UNARY:
+             switch (ggml_get_unary_op(op)) {
+                 case GGML_UNARY_OP_ABS:

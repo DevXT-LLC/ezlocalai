@@ -1,0 +1,85 @@
+{
+  "date": "2026-10-20",
+  "image": "sha256:fbc9d2b06615bcdb3823318a85c69f8dfac23bd2d68be816665ca20ecbf5edf7",
+  "worker_sha256": "b0835eab4a13fc907000ab45065451f92091b7630c909fdbd4e1ad2ac889bf9e",
+  "stable_tag": "ezlocalai:cpu",
+  "rollback_tag": "ezlocalai:cpu-before-runtime-backends",
+  "rollback_image": "sha256:8df9459391faad1285dc4dc41434aba39fdc8a85716f946a8041b2b5c44a8717",
+  "package_gate": {
+    "passed": 55,
+    "failed": 0,
+    "seconds": 280.66
+  },
+  "runtime_checks": [
+    {
+      "mode": "direct",
+      "endpoint": "chat",
+      "status": 200,
+      "text": "READY."
+    },
+    {
+      "mode": "direct",
+      "endpoint": "chat_sse",
+      "status": 200,
+      "text": "READY."
+    },
+    {
+      "endpoint": "vision",
+      "status": 200,
+      "text": "A colorful, highly textured pattern that resembles a digital noise or a kaleidosc"
+    },
+    {
+      "endpoint": "embeddings",
+      "vectors": 2,
+      "dimensions": 1024
+    },
+    {
+      "endpoint": "transcription",
+      "status": 200,
+      "text": " And so my fellow Americans, ask not what your country can do for you, ask what you can do for your country."
+    },
+    {
+      "endpoint": "qwen_wav",
+      "status": 200,
+      "frames": 26880,
+      "sample_rate": 24000
+    },
+    {
+      "endpoint": "post_audio_chat",
+      "status": 200
+    },
+    {
+      "mode": "tunnel",
+      "endpoint": "chat",
+      "status": 200,
+      "text": "READY"
+    },
+    {
+      "mode": "tunnel",
+      "endpoint": "chat_sse",
+      "status": 200,
+      "text": "READY"
+    }
+  ],
+  "memory_limit_bytes": 8589934592,
+  "direct_memory_peak_bytes": 7625072640,
+  "tunnel_memory_peak_bytes": 1980993536,
+  "exits": [
+    {
+      "mode": "direct",
+      "exit_code": 0,
+      "oom_killed": false
+    },
+    {
+      "mode": "tunnel",
+      "exit_code": 0,
+      "oom_killed": false
+    }
+  ],
+  "execution": "Native x86 CPU, no GPU access, isolated real Rust WorkerRouter, small model configuration from Raspberry Pi profile",
+  "limitations": [
+    "Not ARM/Pi execution",
+    "Not a model-quality benchmark"
+  ],
+  "proof_directory": "build/validation/final-cpu-20261020"
+}

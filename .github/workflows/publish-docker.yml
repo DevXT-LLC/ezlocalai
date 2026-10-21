@@ -1,10 +1,8 @@
 name: Build and Test
 
 on:
-  push:
-    branches: [main]
-  release:
-    types: [published]
+  # Disabled: references Dockerfile/rpi.Dockerfile which don't exist in C++ repo.
+  # Re-enable once a public CPU image build path is established.
   workflow_dispatch:
 
 permissions:
@@ -115,9 +113,3 @@ jobs:
             ghcr.io/${{ env.ORG_NAME }}/${{ env.REPO_NAME }}:rpi
             ghcr.io/${{ env.ORG_NAME }}/${{ env.REPO_NAME }}:rpi-${{ env.BRANCH_NAME }}
 
-  test-ezlocalai:
-    uses: ./.github/workflows/test-with-ezlocalai.yml
-    with:
-      image: ghcr.io/devxt-llc/ezlocalai:main
-      port: "8091"
-    needs: build-ezlocalai

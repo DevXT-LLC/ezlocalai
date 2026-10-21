@@ -1,0 +1,284 @@
+{
+  "date": "2026-10-19",
+  "deployed": true,
+  "image": "sha256:f7f14b8a877d41f2eb878139df1dc0293ef9c9b708ae45ae1ae38a4b13a801c6",
+  "executable_sha256": "3c43e04d579f3085b1dce2c5058c8cdffbb5235917ea836da086fdc970677c93",
+  "rollback_image": "sha256:2d24462772d01e7065d7ec04563b6dcdd542bfcb3ab33fc1efffe797b2121746",
+  "scope": "Resource registry visibility and resident speech/embedding pool snapshots; speech capability slot policy remains partial",
+  "python_source_snapshot_cases": 5,
+  "host_checks": [
+    "native_http",
+    "embedding_runtime_reference (569 cases / 4167 lifecycle steps)",
+    "speech_resources_reference",
+    "tts_api_reference"
+  ],
+  "cuda_container_checks": [
+    "speech_resources_reference",
+    "embedding_runtime_reference (source files supplied explicitly)"
+  ],
+  "rust_workerrouter_wire": {
+    "passed": 89,
+    "seconds": 31.561
+  },
+  "image_checks": {
+    "passed": 15,
+    "seconds": 1.77,
+    "python_interpreter_present": false,
+    "tested_executable_identical_to_deployed": true
+  },
+  "qwen_runs": {
+    "cpu": {
+      "device": "cpu",
+      "gpu_processes": [],
+      "audio_bytes": 176684,
+      "audio_sha256": "803ceee73c91960af7910b07ad5573ddcd68c7bf88092451b224953fe3930b1b",
+      "snapshots": {
+        "before": {
+          "loaded_models": {
+            "tts": {
+              "name": "Qwen-TTS (Mouserat/qwen3-tts-0.6b-base-gguf)",
+              "device": "cpu",
+              "vram_gb": 0.0,
+              "in_use": false,
+              "active_requests": 0,
+              "last_used": 1792415254.9217238
+            }
+          },
+          "model_pools": {
+            "embedding": {
+              "configured": 1,
+              "devices": [],
+              "resident": 0
+            },
+            "stt": {
+              "configured": 1,
+              "devices": [],
+              "resident": 0
+            },
+            "tts": {
+              "configured": 1,
+              "devices": [
+                "cpu"
+              ],
+              "resident": 1
+            }
+          }
+        },
+        "active": {
+          "loaded_models": {
+            "tts": {
+              "name": "Qwen-TTS (Mouserat/qwen3-tts-0.6b-base-gguf)",
+              "device": "cpu",
+              "vram_gb": 0.0,
+              "in_use": true,
+              "active_requests": 1,
+              "last_used": 1792415255.6537976
+            }
+          },
+          "model_pools": {
+            "embedding": {
+              "configured": 1,
+              "devices": [],
+              "resident": 0
+            },
+            "stt": {
+              "configured": 1,
+              "devices": [],
+              "resident": 0
+            },
+            "tts": {
+              "configured": 1,
+              "devices": [
+                "cpu"
+              ],
+              "resident": 1
+            }
+          }
+        },
+        "after": {
+          "loaded_models": {
+            "tts": {
+              "name": "Qwen-TTS (Mouserat/qwen3-tts-0.6b-base-gguf)",
+              "device": "cpu",
+              "vram_gb": 0.0,
+              "in_use": false,
+              "active_requests": 0,
+              "last_used": 1792415255.6537976
+            }
+          },
+          "model_pools": {
+            "embedding": {
+              "configured": 1,
+              "devices": [],
+              "resident": 0
+            },
+            "stt": {
+              "configured": 1,
+              "devices": [],
+              "resident": 0
+            },
+            "tts": {
+              "configured": 1,
+              "devices": [
+                "cpu"
+              ],
+              "resident": 1
+            }
+          }
+        }
+      }
+    },
+    "cuda": {
+      "device": "cuda",
+      "gpu_processes": [
+        "1139458, /usr/local/bin/ezlocalai-tts, 3516"
+      ],
+      "audio_bytes": 222764,
+      "audio_sha256": "965be9c77143215fe71a4afe7ffa53a59a7740e29738e10b1cc535c11414c8de",
+      "snapshots": {
+        "before": {
+          "loaded_models": {
+            "tts": {
+              "name": "Qwen-TTS (Mouserat/qwen3-tts-0.6b-base-gguf)",
+              "device": "cuda",
+              "vram_gb": 4.0,
+              "in_use": false,
+              "active_requests": 0,
+              "last_used": 1792415292.6061506
+            }
+          },
+          "model_pools": {
+            "embedding": {
+              "configured": 1,
+              "devices": [],
+              "resident": 0
+            },
+            "stt": {
+              "configured": 1,
+              "devices": [],
+              "resident": 0
+            },
+            "tts": {
+              "configured": 1,
+              "devices": [
+                "cuda"
+              ],
+              "resident": 1
+            }
+          }
+        },
+        "active": {
+          "loaded_models": {
+            "tts": {
+              "name": "Qwen-TTS (Mouserat/qwen3-tts-0.6b-base-gguf)",
+              "device": "cuda",
+              "vram_gb": 4.0,
+              "in_use": true,
+              "active_requests": 1,
+              "last_used": 1792415293.0405471
+            }
+          },
+          "model_pools": {
+            "embedding": {
+              "configured": 1,
+              "devices": [],
+              "resident": 0
+            },
+            "stt": {
+              "configured": 1,
+              "devices": [],
+              "resident": 0
+            },
+            "tts": {
+              "configured": 1,
+              "devices": [
+                "cuda"
+              ],
+              "resident": 1
+            }
+          }
+        },
+        "after": {
+          "loaded_models": {
+            "tts": {
+              "name": "Qwen-TTS (Mouserat/qwen3-tts-0.6b-base-gguf)",
+              "device": "cuda",
+              "vram_gb": 4.0,
+              "in_use": false,
+              "active_requests": 0,
+              "last_used": 1792415293.0405471
+            }
+          },
+          "model_pools": {
+            "embedding": {
+              "configured": 1,
+              "devices": [],
+              "resident": 0
+            },
+            "stt": {
+              "configured": 1,
+              "devices": [],
+              "resident": 0
+            },
+            "tts": {
+              "configured": 1,
+              "devices": [
+                "cuda"
+              ],
+              "resident": 1
+            }
+          }
+        }
+      }
+    }
+  },
+  "deployment": {
+    "health": "healthy",
+    "effective_environment_changed_keys": [],
+    "original_env_file_unchanged": true,
+    "mounts_unchanged": true,
+    "ports_unchanged": true,
+    "gpu_requests_unchanged": true
+  },
+  "live_router": {
+    "matching_registered_workers": 1,
+    "http_status": {
+      "chat": 200,
+      "stream": 200,
+      "vision": 200
+    }
+  },
+  "production_resources": {
+    "model_pools": {
+      "embedding": {
+        "configured": 1,
+        "devices": [],
+        "resident": 0
+      },
+      "stt": {
+        "configured": 1,
+        "devices": [],
+        "resident": 0
+      },
+      "tts": {
+        "configured": 1,
+        "devices": [],
+        "resident": 0
+      }
+    },
+    "loaded_model_types": [
+      "vision_llm"
+    ]
+  },
+  "probe_corrections": [
+    "Container embedding test initially lacked the Python reference files; rerun with the two source files passed.",
+    "CPU smoke initially used VOICE_SERVER=false, which the source treats as a URL; corrected to empty for local service.",
+    "CPU smoke needed a reference voice WAV; rerun with the existing speech fixture passed.",
+    "GPU pool device label is cuda from admission, not the initially assumed cuda:0; NVIDIA process allocation independently verifies CUDA use."
+  ],
+  "remaining": [
+    "Speech capability slot capacity and resource-count/handoff policy",
+    "Complete allocator and lifecycle parity",
+    "Other open replacement parity requirements"
+  ]
+}

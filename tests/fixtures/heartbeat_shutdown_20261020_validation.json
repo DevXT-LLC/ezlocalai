@@ -1,0 +1,152 @@
+{
+  "date": "2026-10-20",
+  "base_commit": "216bbed",
+  "issue": "Stopping the worker waited for the full in-flight heartbeat HTTP timeout instead of cancelling after the Python five-second grace.",
+  "source_python_commit": "0f7e9f45ac0d67ea806ee19874f98bb8f47c7544",
+  "source_sha256": "d5eebf7fc48f7781628aa4eaab8af1c3f23fd8694242f0b3065436b5c86f62b1",
+  "capture_sha256": "e306b45d97e013db0188179aadf2f84e89e9eeb94e71093c207376c53afeb8c9",
+  "aiohttp": "3.14.5",
+  "reference": "Unchanged WorkerHeartbeatClient class with only state gathering substituted; actual loopback HTTP.",
+  "before_fix": {
+    "suite_failed": true,
+    "stalled_register_stop_seconds": 10.284219
+  },
+  "after_fix": {
+    "passed_suites": 4,
+    "seconds": 87.24,
+    "rust_router_scenarios": 10,
+    "rust_router_seconds": 53.72,
+    "cases": [
+      {
+        "name": "register-stalled",
+        "source_seconds": 5.00487679685466,
+        "native_seconds": 5.00877,
+        "actions": [
+          "register"
+        ]
+      },
+      {
+        "name": "heartbeat-stalled",
+        "source_seconds": 5.006692984141409,
+        "native_seconds": 5.00858,
+        "actions": [
+          "register",
+          "heartbeat",
+          "deregister"
+        ]
+      },
+      {
+        "name": "heartbeat-released",
+        "source_seconds": 0.2520884301047772,
+        "native_seconds": 0.250684,
+        "actions": [
+          "register",
+          "heartbeat",
+          "deregister"
+        ]
+      },
+      {
+        "name": "deregister-stalled",
+        "source_seconds": 10.031141686951742,
+        "native_seconds": 10.6034,
+        "actions": [
+          "register",
+          "heartbeat",
+          "deregister"
+        ]
+      }
+    ]
+  },
+  "behavior": [
+    "Preserve five seconds for in-flight registration/heartbeat completion",
+    "Cancel HTTP DNS/connect/TLS/read/write waits using the existing cancellable deadline",
+    "Retain successful registration state across cancellation so deregistration occurs",
+    "Keep deregistration on its independent normal HTTP timeout",
+    "Do not register a worker from headers alone after cancelling its response body"
+  ],
+  "test_adjustments": [
+    "The Rust integration whole-process shutdown budget was five seconds. It now allows twenty seconds for the source five-second task grace, separate ten-second deregistration and owned-engine cleanup. Focused source-derived checks enforce the actual heartbeat timing and request ordering."
+  ],
+  "production_changed": true,
+  "package_gate": "New shutdown suite passes in the accepted CUDA image and remains mandatory in CPU, GB10 and ROCm builds.",
+  "files_sha256": {
+    "include/ezlocalai/worker_heartbeat.hpp": "3892de0d4a540970cb5f31ae9b650da324471a171da09da6358609a36721fadd",
+    "src/worker_heartbeat.cpp": "621fe42a80bb20a92c593d1083739f84e7f9acc57b1e31cede0a5a4996c8aa2f",
+    "include/ezlocalai/native_server.hpp": "bfff83a595a2b57246aa9da5138e2cc73f06f0b5898939f62ea483852d4d53f1",
+    "src/native_server.cpp": "16bd1c78db8bc4341450bc9c8f46073f162da792c883afcbdfc83d87744f5e88",
+    "tests/test_worker_heartbeat_http.cpp": "37665976a02b84cb5cc3d1c2e8c6e0a6f9a7b552235e82447836d883ec00fd65",
+    "tests/test_worker_router.cpp": "29b2b3644615a7d116577ab6027a9277cd37175f6c236beb5565eee959644408",
+    "CMakeLists.txt": "97458855c3a712e98c9dc39737b562fb90dbcf86630459a72c417778d1a85281",
+    "cuda.Dockerfile": "924c372fd9b3dad425e96179a8004e9828a0d22b520006f9e42181a5e6d5d184",
+    "cpu.Dockerfile": "4bebb9ad9a064190e90e11dc2d4cabab9c47699dfabb06b8d7f98ce1249fbab5",
+    "rocm.Dockerfile": "30f43cc792947ad6164bc0e130b5c2e50983d34e0c9c35a79cc5f855c360a2bc"
+  },
+  "evidence_directory": "build/validation/heartbeat-shutdown-20261020",
+  "cuda_acceptance": {
+    "image": "sha256:db669f04add8660bccfeb3d89c6e7173eb1a8d912bf7c6c4073d79a73fd91a38",
+    "worker_sha256": "3dfcd89807949a674895fc362988870d8b55356581f70587f12e155c7d2798ea",
+    "package": {
+      "passed": 58,
+      "failed": 0,
+      "seconds": 288.03
+    },
+    "deployed": true,
+    "modes": [
+      {
+        "mode": "direct",
+        "checks": [
+          "chat",
+          "stream",
+          "vision"
+        ],
+        "owned_cuda_engine_mib": [
+          19052
+        ]
+      },
+      {
+        "mode": "tunnel",
+        "checks": [
+          "chat",
+          "stream",
+          "vision"
+        ],
+        "owned_cuda_engine_mib": [
+          19052
+        ]
+      }
+    ],
+    "restored_production_checks": [
+      "chat",
+      "stream",
+      "vision"
+    ],
+    "original_environment_restored": true,
+    "original_env_file_unchanged": true,
+    "mounts_ports_gpu_requests_verified": true,
+    "rollback_tag": "ezlocalai:cuda-before-runtime-backends",
+    "rollback_image": "sha256:b46774a0d4218552afd2e58907115f9aef05421f4476c8be5e267062689712b5",
+    "evidence_directory": "build/validation/final-cuda-20261020"
+  },
+  "gb10_package_acceptance": {
+    "image": "sha256:e997c0aec9f445227672a97cdb426d835d2f18ecc21beccdc464fae540c009be",
+    "worker_sha256": "9cc374f26ac4faedefee6cc76535658dd3fd2f64f1d19784e299fde6b4d546ce",
+    "passed": 54,
+    "failed": 0,
+    "seconds": 549.41,
+    "qemu_exclusions": [
+      "dotenv_startup",
+      "tunnel_framing_reference",
+      "ltx_runtime",
+      "media_engine"
+    ],
+    "smoke": [
+      "health",
+      "resources",
+      "models"
+    ],
+    "zero_visible_vram": true,
+    "physical_gpu_execution": false,
+    "evidence_directory": "build/validation/final-gb10-20261020",
+    "deployment_status": "Candidate; LTX audio correction being applied before final tag promotion"
+  }
+}

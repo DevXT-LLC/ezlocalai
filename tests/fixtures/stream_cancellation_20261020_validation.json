@@ -1,0 +1,267 @@
+{
+  "date": "2026-10-20",
+  "base_commit": "216bbed",
+  "source_python_commit": "0f7e9f45ac0d67ea806ee19874f98bb8f47c7544",
+  "cuda_image": "sha256:93cab6bf6f0fb1b49ae26590c0d4dd8a705931f44f29c821663e79ff7443128c",
+  "cuda_worker_sha256": "39091550f0404e39ddcd44c8fe9ea3e41c47acb5ff3166d3f561e406f9dd5c0d",
+  "router_sha256": "91873d25c218dd3d3ed12bded2ff990bd13837d6d514922eb04dc45ccbde93b9",
+  "hardware": "NVIDIA GeForce RTX 3090 Ti, single GPU",
+  "runtime_changed": false,
+  "regression_tests": {
+    "worker_router_integration": {
+      "passed": true,
+      "seconds": 32.47,
+      "scenarios": 10,
+      "added_checks": [
+        "active engine stream cancellation in direct and reverse-tunnel modes",
+        "router and worker reservations held before cancellation",
+        "engine observes peer disconnect",
+        "router and worker admission return to zero",
+        "follow-up inference without engine restart"
+      ]
+    },
+    "embedding_runtime_reference": {
+      "passed": true,
+      "seconds": 5.35
+    },
+    "llm_stream_reference": {
+      "passed": true,
+      "seconds": 3.2
+    },
+    "failure_cleanup": {
+      "expected_exit_status": 1,
+      "failure": "injected authenticated resource GET failure during active engine stream",
+      "owned_engine_pids_reaped": [
+        2942217
+      ],
+      "orphaned_engines": 0,
+      "seconds": 6.83,
+      "logs_directory": "/tmp/ezlocalai-worker-router-y8Vfqa"
+    },
+    "parity_manifest_and_report_gate": {
+      "passed": 2,
+      "seconds": 0.03
+    }
+  },
+  "cuda_chat": [
+    {
+      "mode": "direct",
+      "trials": [
+        {
+          "chunks_before_close": 0,
+          "worker_idle_seconds": 0.366,
+          "same_gpu_engine": true,
+          "gpu_processes": [
+            {
+              "pid": 2901423,
+              "gpu_mib": 20550
+            }
+          ],
+          "followup_chat_status": 200,
+          "router_idle_and_followup_seconds": 0.722
+        },
+        {
+          "chunks_before_close": 1,
+          "worker_idle_seconds": 0.131,
+          "same_gpu_engine": true,
+          "gpu_processes": [
+            {
+              "pid": 2901423,
+              "gpu_mib": 20550
+            }
+          ],
+          "followup_chat_status": 200,
+          "router_idle_and_followup_seconds": 0.515
+        },
+        {
+          "chunks_before_close": 5,
+          "worker_idle_seconds": 0.132,
+          "same_gpu_engine": true,
+          "gpu_processes": [
+            {
+              "pid": 2901423,
+              "gpu_mib": 20550
+            }
+          ],
+          "followup_chat_status": 200,
+          "router_idle_and_followup_seconds": 2.134
+        }
+      ]
+    },
+    {
+      "mode": "tunnel",
+      "trials": [
+        {
+          "chunks_before_close": 0,
+          "worker_idle_seconds": 0.363,
+          "same_gpu_engine": true,
+          "gpu_processes": [
+            {
+              "pid": 2902982,
+              "gpu_mib": 20550
+            }
+          ],
+          "followup_chat_status": 200,
+          "router_idle_and_followup_seconds": 0.724
+        },
+        {
+          "chunks_before_close": 1,
+          "worker_idle_seconds": 0.129,
+          "same_gpu_engine": true,
+          "gpu_processes": [
+            {
+              "pid": 2902982,
+              "gpu_mib": 20550
+            }
+          ],
+          "followup_chat_status": 200,
+          "router_idle_and_followup_seconds": 2.32
+        },
+        {
+          "chunks_before_close": 5,
+          "worker_idle_seconds": 0.134,
+          "same_gpu_engine": true,
+          "gpu_processes": [
+            {
+              "pid": 2902982,
+              "gpu_mib": 20550
+            }
+          ],
+          "followup_chat_status": 200,
+          "router_idle_and_followup_seconds": 0.574
+        }
+      ]
+    }
+  ],
+  "cuda_audio": [
+    {
+      "mode": "direct",
+      "endpoint": "routed_pcm_cancel",
+      "prefix_bytes": 512,
+      "qwen_gpu_processes": [
+        {
+          "pid": 2924878,
+          "gpu_mib": 3520
+        }
+      ],
+      "cleanup_and_restore_seconds": 4.555,
+      "followup_chat_status": 200,
+      "llm_gpu_processes": [
+        {
+          "pid": 2925001,
+          "gpu_mib": 14924
+        }
+      ]
+    },
+    {
+      "endpoint": "local_websocket_complete",
+      "packets": 68,
+      "samples": 491520,
+      "sample_rate": 24000,
+      "normal_close": true,
+      "terminator_and_empty_notification": true,
+      "qwen_gpu_processes": [
+        {
+          "pid": 2925855,
+          "gpu_mib": 3512
+        }
+      ],
+      "cleanup_and_restore_seconds": 0.016,
+      "followup_chat_status": 200,
+      "llm_gpu_processes": [
+        {
+          "pid": 2926108,
+          "gpu_mib": 14924
+        }
+      ]
+    },
+    {
+      "endpoint": "local_websocket_cancel",
+      "prefix_bytes": 16396,
+      "qwen_gpu_processes": [
+        {
+          "pid": 2926414,
+          "gpu_mib": 3512
+        }
+      ],
+      "cleanup_and_restore_seconds": 4.564,
+      "followup_chat_status": 200,
+      "llm_gpu_processes": [
+        {
+          "pid": 2926552,
+          "gpu_mib": 14924
+        }
+      ]
+    },
+    {
+      "mode": "tunnel",
+      "endpoint": "routed_pcm_cancel",
+      "prefix_bytes": 512,
+      "qwen_gpu_processes": [
+        {
+          "pid": 2928184,
+          "gpu_mib": 3520
+        }
+      ],
+      "cleanup_and_restore_seconds": 4.604,
+      "followup_chat_status": 200,
+      "llm_gpu_processes": [
+        {
+          "pid": 2928359,
+          "gpu_mib": 14924
+        }
+      ]
+    }
+  ],
+  "speech_validation_configuration": {
+    "TTS_PROVIDER": "qwen",
+    "LAZY_LOAD_VOICE": "true",
+    "MEDIA_KEEP_MODELS_LOADED": "false",
+    "TTS_N_PARALLEL": "1",
+    "QWEN_TTS_MAX_NEW_TOKENS": "256",
+    "QWEN_TTS_ALLOW_CPU_FALLBACK": "false",
+    "QWEN_TTS_ENABLE_GTTS_FALLBACK": "false",
+    "TTS_UNLOAD_LLM_DURING_GENERATION": "true",
+    "TTS_RELOAD_LLM_AFTER_GENERATION": "true"
+  },
+  "restoration": {
+    "original_environment_restored": true,
+    "original_env_file_unchanged": true,
+    "ports_mounts_gpu_requests_preserved": true,
+    "temporary_voice_removed": true,
+    "temporary_rust_router_stopped": true,
+    "no_qwen_child_in_restored_container": true,
+    "reporting_passed": true,
+    "routed_chat_sse_vision_status": [
+      200,
+      200,
+      200
+    ]
+  },
+  "limits": [
+    "Functional CUDA acceptance, not identical Python GPU waveform comparison.",
+    "Speech WebSocket tests use the local worker endpoint; Rust WorkerRouter does not expose that endpoint.",
+    "router_idle_and_followup_seconds includes the follow-up chat; it is not isolated router release latency.",
+    "Speech cleanup timings include Qwen cleanup and LLM restoration, before the follow-up chat.",
+    "One run per cancellation boundary on one RTX 3090 Ti; exhaustive cancellation, queue, shutdown and other GPU hardware schedules remain unverified.",
+    "The runtime is unchanged; new C++ regression fixtures are host-tested and are not included in the already-built CUDA/GB10 image gates."
+  ],
+  "diagnostics": [
+    "An initial integration request used an empty message list and failed before engine dispatch; the recovery probe now uses the original valid chat request. No runtime change was necessary.",
+    "The first failed integration probe left an owned fixture alive because its harness killed the worker immediately. The harness now attempts bounded graceful shutdown; an injected failure confirms its owned engine is reaped. The earlier orphan was explicitly removed.",
+    "The first injected-failure driver expected captured stderr, but the existing request helper discards it. The diagnostic was moved to stdout; the repeated assertion and process-reaping check pass."
+  ],
+  "source_sha256": {
+    "tests/embedding_process_fixture.cpp": "f985b3172ad131e234ecce409d950cb648f63ced3e398958f21b2d9a86bf0e81",
+    "tests/test_worker_router.cpp": "aea56c13acfa3247ce4e8447586a7cd32938336a1c8fe2e748e075136a1548bc"
+  },
+  "artifact_sha256": {
+    "cuda-cancellation.json": "1edea45e225b75228d8d68fd549a7f1b2c50b691b35a56942bec3b6f8dc00680",
+    "cuda-audio-cancellation.json": "b9fc7f72295575c14caa460af2b7b7d1a4406002d305898e2a96a26867850c65",
+    "regression.log": "d295bb77a8dededfe48f648b1310a4be11b64c2f26e5583443d7714b490b2780",
+    "cleanup-regression.log": "9fc5174f4bbf2028132bcad80bab3ea81d17be992ff17f7720e1c3489f942dea",
+    "failure-cleanup.json": "e5bf9a41c7a46b4c90bdae1af4967afe2f51c7e5c8d0b073ea15688bd75faf46",
+    "parity-report.log": "45e6a9a6d1fc28bbd12509c353d72670f80a239afa0bc9dccbce0033dc18f13f"
+  },
+  "detailed_evidence": "build/validation/stream-cancellation-20261020/"
+}

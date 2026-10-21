@@ -1,0 +1,106 @@
+{
+  "scope": "Native Edge TTS protocol, WebSocket transport and wake-word adapter binding; successful live synthesis not verified.",
+  "reference_package": "edge-tts 7.2.8",
+  "native_sha256": {
+    "include/ezlocalai/edge_tts.hpp": "65055f74f550f34007c2304c8f16a9dcb4a0da3472ae36493717563b275592c6",
+    "src/edge_tts.cpp": "4f7ca84d3bc915c296815737f05de49a417876e74a7642b01ec59fc33059b90b",
+    "src/edge_tts_transport.cpp": "a77c2a738e4741919a9ecc1bf1046eeae8e70e3d739914287bf66d4cdc719594",
+    "tests/test_edge_tts.cpp": "13e34008f7b98858568122a1af095a9995cec6b809f90215364b7c9e251bf583",
+    "tests/test_edge_tts_network.cpp": "fbc6640646d1a9f0b0897fd1df4a8d4b5598317b49d3060750b42f20e5b39287",
+    "include/ezlocalai/wakeword_tts.hpp": "7ac0efda8fd6c0b15f3591db4163eb474569d7bbc1208b79b1eef554c96ea6b5",
+    "src/wakeword_tts.cpp": "1fc83fcf6ceb8d87cb743bffdc92dad859d0640eebcc7e2ad8c03578e215823b",
+    "licenses/edge-tts.txt": "07219f9eb7e2e083bd4b0156b507a33a95ccbbd7d9d67ccc699ab0d8acbf4b06"
+  },
+  "capture_sha256": {
+    "ezlocalai-capture-edge-protocol.py": "16e8dfb8f3bd36179c9b5034e01afac61699b1e450ca82c657525beed6e2ef55",
+    "ezlocalai-edge-live.py": "72b58b5744cff6da1da68a5160330d6553c3b1d34948f42512839463cd9e973b"
+  },
+  "protocol_cases": {
+    "text": 10,
+    "ssml": 7,
+    "tokens": 8,
+    "streams": 11
+  },
+  "full_request_exact": true,
+  "retry_cases": [
+    "HTTP 403 adjusts token and retries once",
+    "Missing Date fails without retry"
+  ],
+  "network_cases": [
+    "plain",
+    "compressed",
+    "no_takeover",
+    "large",
+    "bad_accept",
+    "empty",
+    "truncated",
+    "bad_compressed",
+    "masked",
+    "oversize",
+    "invalid_utf8"
+  ],
+  "sanitizers": {
+    "address": "passed",
+    "undefined_behavior": "passed",
+    "leak_detection": true
+  },
+  "regressions": {
+    "passed": 7,
+    "seconds": 7.43,
+    "tests": [
+      "edge_tts_network",
+      "edge_tts_reference",
+      "wakeword_tts_reference",
+      "wakeword_samples_reference",
+      "wakeword_model_reference",
+      "wakeword_training_reference",
+      "wakeword_export_reference"
+    ]
+  },
+  "live": {
+    "python": {
+      "attempts": [
+        {
+          "status": 403,
+          "date": "Mon, 19 Oct 2026 12:28:09 GMT"
+        },
+        {
+          "status": 403,
+          "date": "Mon, 19 Oct 2026 12:28:08 GMT"
+        }
+      ],
+      "error": "WSServerHandshakeError",
+      "message": "Invalid response status",
+      "clock_skew": -0.44313693046569824
+    },
+    "native": {
+      "attempts": [
+        {
+          "date": "Mon, 19 Oct 2026 12:28:14 GMT",
+          "status": 403
+        },
+        {
+          "date": "Mon, 19 Oct 2026 12:28:14 GMT",
+          "status": 403
+        }
+      ],
+      "clock_skew": -1.1905913352966309,
+      "error": "WSServerHandshakeError",
+      "message": "Edge WebSocket handshake returned HTTP 403"
+    },
+    "synthesis_success_verified": false,
+    "matching_observation": "Both performed two HTTP 403 attempts, adjusted clock skew using Date, and ended with WSServerHandshakeError."
+  },
+  "production": {
+    "image": "sha256:9961a2bb539fbc5136c91cee0d1b6d7291f766f400d4193bc6909c44d55b8958",
+    "health": "healthy",
+    "new_pipeline_deployed": false
+  },
+  "remaining": [
+    "Successful live Edge synthesis",
+    "Proxy/redirect/cookie variants and exact HTTP/TLS error behavior",
+    "System trust store differs from source explicit certifi store",
+    "Cancellation and background HTTP training job integration",
+    "Working ESPDL export"
+  ]
+}

@@ -1,0 +1,476 @@
+{
+  "scope": "Video handoff releases and restores actual native Qwen TTS/STT pools, embedding processes and image wrapper; preserves active leases; clears unused allocator memory. Scoped embedding cache takes priority over another engine copy.",
+  "source_sha256": {
+    "src/native_server.cpp": "044a3e63c1a9027b49fb15690a4a0360dceade1a059dbcbcc069c2a0ed8f7104",
+    "src/video_runtime.cpp": "352e7d1063c078de36cae36f8c1d0104dbeea769e7e6ed6f1f117fc171789923",
+    "src/configuration.cpp": "4eac6e4acdd1e69f8f0d0b4bd32d62c8bd196c9ef58999ff14a635d308569825",
+    "include/ezlocalai/native_server.hpp": "ecbb803ab87b8919f54e160c7d2fa7283d53b415506d080be20f5e60c4a9abb0",
+    "include/ezlocalai/video_runtime.hpp": "be024a972213890ce30bc3d2949f87fc3e742aef9b028ca8fb307e1281ffb48e",
+    "tests/test_video_auxiliary.cpp": "3087c89194633daa673c4b8841a6e4e8ab78d3d71df5fe85a62a9c1444b9969b",
+    "tests/test_embedding_discovery.cpp": "3adfbe2cb0e49ee406152a868fb5f1652af87e3c3a4922d989ee1f7d6cd2dfd1",
+    "tests/test_video_runtime.cpp": "cf9031e18128f426bab3a6987c8f3c6ac2d5f132564b85e268206df271a4438c",
+    "CMakeLists.txt": "122a8968311e834b2eb12c587c79821c00fb86d13023c3096ce8b2067d131b89",
+    "cuda.Dockerfile": "ad34367365ed476bd6c3365193042277ef69ea12a5e1a9f35c4c8884ceb03f73"
+  },
+  "reference_sha256": {
+    "Pipes.py": "8238cef03d4a1db6e775d7f62234bcf998d8f08bd9fc15f1d8a36ea0d3280005",
+    "Globals.py": "c2be3290368b9be8f6cf5e80af2109bf17dc0c407e2cdadf32fecb338b4744e8",
+    "ezlocalai/LLM.py": "2d54d53e014e99bcd91e036736dc4f45f8160220c35da0ac582e588db52ea607",
+    "ezlocalai/Embedding.py": "0eb5c7bc696eb21f5c1bbe1e92d2c8cafce9de6d750a4fabe18d571f2229ceb0"
+  },
+  "router_binary_sha256": "91873d25c218dd3d3ed12bded2ff990bd13837d6d514922eb04dc45ccbde93b9",
+  "worker_sha256": "6e33de66b87c20d47906d2ff9f3efd830b277d2e61ba3a866d1b32e7d233a511",
+  "engine_sha256": "bacdb2b223e94ef8be5b65767e2c92b14bb3b931195f0b4a9815737f6efc85ed",
+  "packaged_tests": 36,
+  "cpp_service_scenarios": [
+    "idle",
+    "video failure",
+    "busy TTS",
+    "busy STT",
+    "busy image",
+    "keep models without LLM handoff",
+    "TTS warm failure"
+  ],
+  "pre_fix_regressions": [
+    "idle TTS pool was not closed by video handoff",
+    "ACE-Step embedding copy was selected over model-specific cache"
+  ],
+  "other_checks": [
+    "2769 Python GPU/placement/policy cases and 3057 auxiliary lifecycle cases",
+    "media slots, LLM headroom and residency suites",
+    "embedding lifecycle suite",
+    "eight actual Rust router integration scenarios on final worker"
+  ],
+  "real_cuda": {
+    "context": 4096,
+    "before_models": {
+      "vision_llm": {
+        "name": "unsloth/Qwen3.8-27B-GGUF",
+        "device": "cuda",
+        "vram_gb": 13.821044921875,
+        "in_use": false,
+        "active_requests": 0,
+        "last_used": 1792435879.9912004
+      },
+      "embedding": {
+        "name": "Qwen/Qwen3-Embedding-0.6B-GGUF",
+        "device": "cuda",
+        "vram_gb": 2.1572102470125474,
+        "in_use": false,
+        "active_requests": 0,
+        "last_used": 1792435885.4651825
+      },
+      "tts": {
+        "name": "Qwen-TTS (Mouserat/qwen3-tts-0.6b-base-gguf)",
+        "device": "cuda",
+        "vram_gb": 4.0,
+        "in_use": false,
+        "active_requests": 0,
+        "last_used": 1792435881.9914858
+      },
+      "stt": {
+        "name": "large-v3-turbo",
+        "device": "cuda",
+        "vram_gb": 2.0,
+        "in_use": false,
+        "active_requests": 0,
+        "last_used": 1792435883.9864583
+      },
+      "img": {
+        "name": "qwen-image-2.1",
+        "device": "cuda",
+        "vram_gb": 4.0,
+        "in_use": false,
+        "active_requests": 0,
+        "last_used": 1792435885.4655228
+      }
+    },
+    "before_pools": {
+      "embedding": {
+        "configured": 1,
+        "devices": [
+          "cuda"
+        ],
+        "resident": 1
+      },
+      "stt": {
+        "configured": 1,
+        "devices": [
+          "cuda"
+        ],
+        "resident": 1
+      },
+      "tts": {
+        "configured": 1,
+        "devices": [
+          "cuda"
+        ],
+        "resident": 1
+      }
+    },
+    "auxiliary_inference_before": {
+      "speech_bytes": 115244,
+      "speech_sha256": "1eff821dd7b5b027ecc019ea43a904e7ac4cba71e125a43000bb98d1683a0e95",
+      "transcription": {
+        "text": " And so, my fellow Americans, ask not what your country can do for you, ask what you can do for your country."
+      },
+      "embedding_dimensions": 1024
+    },
+    "auxiliary_inference_after": {
+      "speech_bytes": 99884,
+      "speech_sha256": "b33ecb643b0d56cd392de14cf6f3bcb69a92f1b7acc94b445c68c297fa1e4bb8",
+      "transcription": {
+        "text": " And so, my fellow Americans, ask not what your country can do for you, ask what you can do for your country."
+      },
+      "embedding_dimensions": 1024
+    },
+    "cases": [
+      {
+        "name": "success",
+        "status": 200,
+        "seconds": 98.84579885704443,
+        "engine_pids": [
+          2610900
+        ],
+        "nf4_observed": true,
+        "killed_during_inference": false,
+        "queued_chat_at": 50.59104212198872,
+        "queued_chat": {
+          "seconds": 48.254480770090595,
+          "text": "READY"
+        },
+        "chat_after": {
+          "seconds": 0.24378061399329454,
+          "text": "READY"
+        },
+        "after_auxiliary": {
+          "tts": {
+            "name": "Qwen-TTS (Mouserat/qwen3-tts-0.6b-base-gguf)",
+            "device": "cuda",
+            "vram_gb": 4.0,
+            "in_use": false,
+            "active_requests": 0,
+            "last_used": 1792435981.5149138
+          },
+          "stt": {
+            "name": "large-v3-turbo",
+            "device": "cuda",
+            "vram_gb": 2.0,
+            "in_use": false,
+            "active_requests": 0,
+            "last_used": 1792435983.6736073
+          },
+          "embedding": {
+            "name": "Qwen/Qwen3-Embedding-0.6B-GGUF",
+            "device": "cuda",
+            "vram_gb": 1.8708093413352969,
+            "in_use": false,
+            "active_requests": 0,
+            "last_used": 1792435985.509048
+          },
+          "img": {
+            "name": "qwen-image-2.1",
+            "device": "cuda",
+            "vram_gb": 4.0,
+            "in_use": false,
+            "active_requests": 0,
+            "last_used": 1792435985.5090928
+          }
+        },
+        "after_pools": {
+          "embedding": {
+            "configured": 1,
+            "devices": [
+              "cuda"
+            ],
+            "resident": 1
+          },
+          "stt": {
+            "configured": 1,
+            "devices": [
+              "cuda"
+            ],
+            "resident": 1
+          },
+          "tts": {
+            "configured": 1,
+            "devices": [
+              "cuda"
+            ],
+            "resident": 1
+          }
+        },
+        "video_reaped": true,
+        "mp4_sha256": "29c0101daecfc4597380ca0affb4a52ec24620e1fd969bf69be4832788b2dcb0",
+        "rgba_sha256": "1715dccb641a1ffd4e165e2816b2b0de08943eee41d06781121b1ea0d54cda87",
+        "pcm_sha256": "a0faee47d562f8a0a7d60af57586a804262a6f818de68bbc0b29ac5161bcea32",
+        "sample_count": 167,
+        "max_resource_seconds": 1.8165597720071673,
+        "auxiliaries_released_during_video": true
+      },
+      {
+        "name": "engine-failure",
+        "status": 502,
+        "seconds": 76.38752459909301,
+        "engine_pids": [
+          2646348
+        ],
+        "nf4_observed": true,
+        "killed_during_inference": true,
+        "queued_chat_at": 46.61760807700921,
+        "queued_chat": {
+          "seconds": 29.766718975966796,
+          "text": "READY"
+        },
+        "chat_after": {
+          "seconds": 0.2420986220240593,
+          "text": "READY"
+        },
+        "after_auxiliary": {
+          "tts": {
+            "name": "Qwen-TTS (Mouserat/qwen3-tts-0.6b-base-gguf)",
+            "device": "cuda",
+            "vram_gb": 4.0,
+            "in_use": false,
+            "active_requests": 0,
+            "last_used": 1792436058.508782
+          },
+          "stt": {
+            "name": "large-v3-turbo",
+            "device": "cuda",
+            "vram_gb": 2.0,
+            "in_use": false,
+            "active_requests": 0,
+            "last_used": 1792436060.667788
+          },
+          "embedding": {
+            "name": "Qwen/Qwen3-Embedding-0.6B-GGUF",
+            "device": "cuda",
+            "vram_gb": 1.8708093413352969,
+            "in_use": false,
+            "active_requests": 0,
+            "last_used": 1792436062.5434523
+          },
+          "img": {
+            "name": "qwen-image-2.1",
+            "device": "cuda",
+            "vram_gb": 4.0,
+            "in_use": false,
+            "active_requests": 0,
+            "last_used": 1792436062.5434968
+          }
+        },
+        "after_pools": {
+          "embedding": {
+            "configured": 1,
+            "devices": [
+              "cuda"
+            ],
+            "resident": 1
+          },
+          "stt": {
+            "configured": 1,
+            "devices": [
+              "cuda"
+            ],
+            "resident": 1
+          },
+          "tts": {
+            "configured": 1,
+            "devices": [
+              "cuda"
+            ],
+            "resident": 1
+          }
+        },
+        "video_reaped": true,
+        "sample_count": 131,
+        "max_resource_seconds": 1.7654263109434396,
+        "auxiliaries_released_during_video": true
+      },
+      {
+        "name": "recovery",
+        "status": 200,
+        "seconds": 100.82876319391653,
+        "engine_pids": [
+          2663936
+        ],
+        "nf4_observed": true,
+        "killed_during_inference": false,
+        "queued_chat_at": 51.82508219394367,
+        "queued_chat": {
+          "seconds": 49.00355683302041,
+          "text": "READY"
+        },
+        "chat_after": {
+          "seconds": 0.22275671095121652,
+          "text": "READY"
+        },
+        "after_auxiliary": {
+          "tts": {
+            "name": "Qwen-TTS (Mouserat/qwen3-tts-0.6b-base-gguf)",
+            "device": "cuda",
+            "vram_gb": 4.0,
+            "in_use": false,
+            "active_requests": 0,
+            "last_used": 1792436159.749893
+          },
+          "stt": {
+            "name": "large-v3-turbo",
+            "device": "cuda",
+            "vram_gb": 2.0,
+            "in_use": false,
+            "active_requests": 0,
+            "last_used": 1792436161.733494
+          },
+          "embedding": {
+            "name": "Qwen/Qwen3-Embedding-0.6B-GGUF",
+            "device": "cuda",
+            "vram_gb": 1.985369703606197,
+            "in_use": false,
+            "active_requests": 0,
+            "last_used": 1792436163.3132544
+          },
+          "img": {
+            "name": "qwen-image-2.1",
+            "device": "cuda",
+            "vram_gb": 4.0,
+            "in_use": false,
+            "active_requests": 0,
+            "last_used": 1792436163.313313
+          }
+        },
+        "after_pools": {
+          "embedding": {
+            "configured": 1,
+            "devices": [
+              "cuda"
+            ],
+            "resident": 1
+          },
+          "stt": {
+            "configured": 1,
+            "devices": [
+              "cuda"
+            ],
+            "resident": 1
+          },
+          "tts": {
+            "configured": 1,
+            "devices": [
+              "cuda"
+            ],
+            "resident": 1
+          }
+        },
+        "video_reaped": true,
+        "mp4_sha256": "29c0101daecfc4597380ca0affb4a52ec24620e1fd969bf69be4832788b2dcb0",
+        "rgba_sha256": "1715dccb641a1ffd4e165e2816b2b0de08943eee41d06781121b1ea0d54cda87",
+        "pcm_sha256": "a0faee47d562f8a0a7d60af57586a804262a6f818de68bbc0b29ac5161bcea32",
+        "sample_count": 171,
+        "max_resource_seconds": 1.6024956030305475,
+        "auxiliaries_released_during_video": true
+      }
+    ],
+    "recovery_matches_first": true,
+    "memory_observations": {
+      "video": {
+        "samples": 116,
+        "parent_gpu_min_mib": 314,
+        "parent_gpu_max_mib": 316
+      },
+      "restored": {
+        "samples": 8,
+        "parent_gpu_min_mib": 1886,
+        "parent_gpu_max_mib": 2020
+      }
+    },
+    "heartbeat_max_gap_seconds": 3.710482,
+    "all_video_engines_reaped": true
+  },
+  "deployment": {
+    "previous_image": "sha256:710e4d7616d8ff782f34c6e6c58a192f47c672d2a5c916c2b83d2503385bec10",
+    "candidate_image": "sha256:4a2695036442242f9c154fe091ad5dfd97abebc83fb0f413a88bef4016faa7b7",
+    "health": "healthy",
+    "deployed_image": "sha256:4a2695036442242f9c154fe091ad5dfd97abebc83fb0f413a88bef4016faa7b7",
+    "effective_environment_changed_keys": [],
+    "original_env_file_unchanged": true,
+    "mounts_unchanged": true,
+    "wakeword_mounts": [
+      [
+        "bind",
+        "/home/josh/repos/xtsys/ezlocalai/wakeword_models",
+        "/app/wakeword_models",
+        true
+      ],
+      [
+        "bind",
+        "/home/josh/repos/xtsys/ezlocalai/wakeword_samples",
+        "/app/wakeword_samples",
+        true
+      ],
+      [
+        "bind",
+        "/home/josh/repos/xtsys/ezlocalai/wakeword_jobs",
+        "/app/wakeword_jobs",
+        true
+      ]
+    ],
+    "ports_unchanged": true,
+    "gpu_requests_unchanged": true
+  },
+  "live": {
+    "image": "sha256:4a2695036442242f9c154fe091ad5dfd97abebc83fb0f413a88bef4016faa7b7",
+    "binary_sha256": "6e33de66b87c20d47906d2ff9f3efd830b277d2e61ba3a866d1b32e7d233a511",
+    "matching_workers": 1,
+    "python_extra_matches": true,
+    "extra": {
+      "llm_model_residency": "resident",
+      "loaded_llms": [
+        "unsloth/Qwen3.8-27B-GGUF"
+      ],
+      "active_llm": "unsloth/Qwen3.8-27B-GGUF",
+      "llm_unload_dependent_capabilities": [
+        "image",
+        "video",
+        "music",
+        "music_video"
+      ]
+    },
+    "resource_lifecycle": {
+      "llm_model_residency": "resident",
+      "loaded_llms": [
+        "unsloth/Qwen3.8-27B-GGUF"
+      ],
+      "active_llm": "unsloth/Qwen3.8-27B-GGUF"
+    },
+    "gpu_count": 1,
+    "torch_cuda": [
+      {
+        "index": 0,
+        "allocated_gb": 0.0,
+        "reserved_gb": 0.0,
+        "max_allocated_gb": 0.0,
+        "free_gb": 2.285,
+        "total_gb": 23.524
+      }
+    ],
+    "free_vram_gb": 2.284912109375,
+    "sources": {
+      "Pipes.py": "8238cef03d4a1db6e775d7f62234bcf998d8f08bd9fc15f1d8a36ea0d3280005",
+      "Router.py": "d5eebf7fc48f7781628aa4eaab8af1c3f23fd8694242f0b3065436b5c86f62b1"
+    }
+  },
+  "limits": [
+    "Single GPU; 64x64/nine-frame/two-step LTX clips; no claim of production preset quality or multiple-GPU coverage.",
+    "Real LLM uses original model with isolated 4096-token context; production retains original context/settings.",
+    "Image object/cache restoration tested; actual image inference during a video handoff is covered by synthetic engine regression, not real concurrent image weights.",
+    "Deterministic active-speech tests use actual service pools with synthetic model callbacks; real CUDA test verifies idle auxiliary handoff and inference before/after.",
+    "Native recursive model lookup remains a fallback when no model-specific match exists.",
+    "Overall replacement parity remains open."
+  ],
+  "evidence": [
+    "build/validation/video-auxiliary/",
+    "build/validation/video-auxiliary-live/"
+  ]
+}

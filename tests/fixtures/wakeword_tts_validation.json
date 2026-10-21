@@ -1,0 +1,106 @@
+{
+  "scope": "Native wake-word TTS scheduling and similar words with injected engine adapters; actual native gTTS HTTP and MP3 conversion; Edge network and HTTP background jobs remain unfinished.",
+  "source_sha256": "dcd63562c35b55472d508a3089396b39fb3c32fd018cba7ded3d83350cf2875c",
+  "native_sha256": {
+    "include/ezlocalai/wakeword_tts.hpp": "7c867323dd2e8408d0890b78de6e743eea78b52c52b6da564689b741a85febaa",
+    "src/wakeword_tts.cpp": "a2dc140ea88df45af3e34bfdc2554ce275db0e3c7ed5370c3fa09777387aa061",
+    "tests/test_wakeword_tts.cpp": "d7921f115a01821d74d6865ecd1bd0d6698ac12554cb8c115c3d528df983e9f9"
+  },
+  "capture_sha256": {
+    "ezlocalai-capture-wakeword-tts.py": "fa63e74534be93af2cd35e8500840714b2f049d3b74d0b56ccd7198f99b14e99",
+    "ezlocalai-wakeword-gtts-live.py": "564ba0c2f5145c7ad2a6bc5d26eab8d769504b9290069c7622d50e830308fc9b",
+    "ezlocalai-wakeword-gtts-repeat.py": "c952a63153f6cc786b3318f3abd8e18df6fde1fddd103bfb7d0b432ba675d1fe"
+  },
+  "versions": {
+    "gTTS": "2.5.4",
+    "edge_tts_inspected_only": "7.2.8",
+    "ffmpeg_both_containers": "6.1.1-3ubuntu5"
+  },
+  "cases": {
+    "generation": 32,
+    "similar": 7,
+    "gtts": 24,
+    "decode": 10
+  },
+  "live_comparison": [
+    {
+      "name": "python_live",
+      "metadata": [
+        1,
+        16000,
+        29184
+      ],
+      "bytes": 58412,
+      "sha256": "49683f5ff9e88911c04e16464042f8c9e34b1011afac7e38d07ea5218942b571",
+      "changed_samples": 0,
+      "max_abs_delta": 0,
+      "rmse": 0.0
+    },
+    {
+      "name": "native_live",
+      "metadata": [
+        1,
+        16000,
+        29184
+      ],
+      "bytes": 58412,
+      "sha256": "cc9ec7aaade3647d9da83f05dc166e75f47021542a69a596c1880fa5364f448a",
+      "changed_samples": 24347,
+      "max_abs_delta": 330,
+      "rmse": 45.93226824546384
+    },
+    {
+      "name": "python_live_repeat_0",
+      "metadata": [
+        1,
+        16000,
+        29184
+      ],
+      "bytes": 58412,
+      "sha256": "dfe3270e94a78ec91374964b5ddde18ac8cd0b7cbc4646fc03b36c8718aa9794",
+      "changed_samples": 24397,
+      "max_abs_delta": 393,
+      "rmse": 42.471162978646724
+    },
+    {
+      "name": "python_live_repeat_1",
+      "metadata": [
+        1,
+        16000,
+        29184
+      ],
+      "bytes": 58412,
+      "sha256": "dfe3270e94a78ec91374964b5ddde18ac8cd0b7cbc4646fc03b36c8718aa9794",
+      "changed_samples": 24397,
+      "max_abs_delta": 393,
+      "rmse": 42.471162978646724
+    }
+  ],
+  "live_decode_exact": true,
+  "live_synthesis_bit_equality": false,
+  "live_note": "Python repeat requests also differed from the first Python response. Both Python/native responses decode exactly when input MP3 bytes are held fixed. The Python network smoke test used explicit (10,30)-second request timeouts; native production defaults were unchanged.",
+  "validation": {
+    "ctest_passed": 5,
+    "seconds": 5.15,
+    "tests": [
+      "wakeword_tts_reference",
+      "wakeword_samples_reference",
+      "wakeword_model_reference",
+      "wakeword_training_reference",
+      "wakeword_export_reference"
+    ],
+    "test_binary_sha256": "6de34c871766d5f0424a8ebc0954857c058ff523035c421e5c220e22a621b30f"
+  },
+  "production": {
+    "image": "sha256:9961a2bb539fbc5136c91cee0d1b6d7291f766f400d4193bc6909c44d55b8958",
+    "health": "healthy",
+    "new_pipeline_deployed": false
+  },
+  "remaining": [
+    "Native Edge WebSocket transport including framing, SSML, clock skew and retries",
+    "Cancellation and background HTTP training jobs",
+    "Working ESPDL export",
+    "Decoder malformed input and unusual format edges",
+    "Cross-job lifecycle/resource behavior"
+  ]
+}

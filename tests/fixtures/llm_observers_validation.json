@@ -1,0 +1,195 @@
+{
+  "scope": "Responsive worker resource/router observations during LLM startup and video handoff; action reads retain synchronization. LTX storage variants are not additional acceptance requirements.",
+  "source_sha256": {
+    "src/native_server.cpp": "2aed6645064b1539cf9011923c004e4c10ea612a9a301e3aab28627032f6762d",
+    "include/ezlocalai/native_server.hpp": "2a673d2ea97245b7d41b053915caa2f68ab3b84f1a72787635ddc6392f3e919f",
+    "tests/test_llm_residency.cpp": "098207bcc7926d5b2eb76fcda9f0e1456336adadc19f5141d1e6762207c49f2f",
+    "tests/embedding_process_fixture.cpp": "f1ea4a673a873d4434d849d9161c9f80e2fcbf98a4b12f1ed621510f8f0cd550",
+    "CMakeLists.txt": "df8a4529768bbcfba4b3854a4a7b48a16feb6c7f72d5024510a8a08e52dafc01",
+    "cuda.Dockerfile": "ac799ca2c0115c1e690e0b74663c53311f92af0cd189c7ed089f885dafde6963"
+  },
+  "native_binary_sha256": "8f80861570ff8e62c808f613eb19a2c4cc79b694d28b2dbcbfa68d8ceddbccb5",
+  "engine_binary_sha256": "bacdb2b223e94ef8be5b65767e2c92b14bb3b931195f0b4a9815737f6efc85ed",
+  "packaged_checks": {
+    "passed": 34,
+    "seconds": 73.85
+  },
+  "affected_cpp_suites": {
+    "passed": 4,
+    "seconds": 33.96,
+    "controlled_restore_cases": 2,
+    "pre_fix_regression_failed": true
+  },
+  "rust_integration": {
+    "scenarios": 8,
+    "seconds": 31.06,
+    "router_binary_sha256": "91873d25c218dd3d3ed12bded2ff990bd13837d6d514922eb04dc45ccbde93b9"
+  },
+  "cuda_handoff": {
+    "router_max_retries": 0,
+    "prior_success_evidence": "build/validation/ltx-handoff-observers/validation.json",
+    "worker_failure_status": 500,
+    "cases": [
+      {
+        "name": "success",
+        "status": 200,
+        "seconds": 107.00664672092535,
+        "engine_pids": [
+          2491364
+        ],
+        "nf4_observed": true,
+        "killed_during_inference": false,
+        "queued_chat_at": 48.83271402097307,
+        "queued_chat": {
+          "seconds": 58.17355615994893,
+          "text": "READY"
+        },
+        "chat_after": {
+          "seconds": 0.46658078592736274,
+          "text": "READY"
+        },
+        "video_reaped": true,
+        "mp4_sha256": "29c0101daecfc4597380ca0affb4a52ec24620e1fd969bf69be4832788b2dcb0",
+        "rgba_sha256": "1715dccb641a1ffd4e165e2816b2b0de08943eee41d06781121b1ea0d54cda87",
+        "pcm_sha256": "a0faee47d562f8a0a7d60af57586a804262a6f818de68bbc0b29ac5161bcea32",
+        "resource_samples": 170,
+        "max_resource_seconds": 0.020486562978476286
+      },
+      {
+        "name": "engine-failure",
+        "status": 502,
+        "seconds": 77.22363848099485,
+        "engine_pids": [
+          2522968
+        ],
+        "nf4_observed": true,
+        "killed_during_inference": true,
+        "queued_chat_at": 47.745769142056815,
+        "queued_chat": {
+          "seconds": 29.477645196020603,
+          "text": "READY"
+        },
+        "chat_after": {
+          "seconds": 0.22458303696475923,
+          "text": "READY"
+        },
+        "video_reaped": true,
+        "resource_samples": 124,
+        "max_resource_seconds": 0.07285714498721063
+      },
+      {
+        "name": "recovery",
+        "status": 200,
+        "seconds": 107.9280024979962,
+        "engine_pids": [
+          2533727
+        ],
+        "nf4_observed": true,
+        "killed_during_inference": false,
+        "queued_chat_at": 47.5842323070392,
+        "queued_chat": {
+          "seconds": 60.34049426508136,
+          "text": "READY"
+        },
+        "chat_after": {
+          "seconds": 0.24539689300581813,
+          "text": "READY"
+        },
+        "video_reaped": true,
+        "mp4_sha256": "29c0101daecfc4597380ca0affb4a52ec24620e1fd969bf69be4832788b2dcb0",
+        "rgba_sha256": "1715dccb641a1ffd4e165e2816b2b0de08943eee41d06781121b1ea0d54cda87",
+        "pcm_sha256": "a0faee47d562f8a0a7d60af57586a804262a6f818de68bbc0b29ac5161bcea32",
+        "resource_samples": 173,
+        "max_resource_seconds": 0.006861062021926045
+      }
+    ],
+    "all_video_engines_reaped": true,
+    "heartbeat_count": 186,
+    "max_heartbeat_gap_seconds": 2.935739,
+    "recovery_matches_first": true
+  },
+  "deployment": {
+    "previous_image": "sha256:fef85f4523eeb38258aea94c6f18528769a1d0043ddd231d97b038aa6212411c",
+    "candidate_image": "sha256:710e4d7616d8ff782f34c6e6c58a192f47c672d2a5c916c2b83d2503385bec10",
+    "health": "healthy",
+    "deployed_image": "sha256:710e4d7616d8ff782f34c6e6c58a192f47c672d2a5c916c2b83d2503385bec10",
+    "effective_environment_changed_keys": [],
+    "original_env_file_unchanged": true,
+    "mounts_unchanged": true,
+    "wakeword_mounts": [
+      [
+        "bind",
+        "/home/josh/repos/xtsys/ezlocalai/wakeword_models",
+        "/app/wakeword_models",
+        true
+      ],
+      [
+        "bind",
+        "/home/josh/repos/xtsys/ezlocalai/wakeword_samples",
+        "/app/wakeword_samples",
+        true
+      ],
+      [
+        "bind",
+        "/home/josh/repos/xtsys/ezlocalai/wakeword_jobs",
+        "/app/wakeword_jobs",
+        true
+      ]
+    ],
+    "ports_unchanged": true,
+    "gpu_requests_unchanged": true
+  },
+  "live": {
+    "image": "sha256:710e4d7616d8ff782f34c6e6c58a192f47c672d2a5c916c2b83d2503385bec10",
+    "binary_sha256": "8f80861570ff8e62c808f613eb19a2c4cc79b694d28b2dbcbfa68d8ceddbccb5",
+    "matching_workers": 1,
+    "python_extra_matches": true,
+    "extra": {
+      "llm_model_residency": "resident",
+      "loaded_llms": [
+        "unsloth/Qwen3.8-27B-GGUF"
+      ],
+      "active_llm": "unsloth/Qwen3.8-27B-GGUF",
+      "llm_unload_dependent_capabilities": [
+        "image",
+        "video",
+        "music",
+        "music_video"
+      ]
+    },
+    "resource_lifecycle": {
+      "llm_model_residency": "resident",
+      "loaded_llms": [
+        "unsloth/Qwen3.8-27B-GGUF"
+      ],
+      "active_llm": "unsloth/Qwen3.8-27B-GGUF"
+    },
+    "gpu_count": 1,
+    "torch_cuda": [
+      {
+        "index": 0,
+        "allocated_gb": 0.0,
+        "reserved_gb": 0.0,
+        "max_allocated_gb": 0.0,
+        "free_gb": 2.168,
+        "total_gb": 23.524
+      }
+    ],
+    "free_vram_gb": 2.16754150390625,
+    "sources": {
+      "Pipes.py": "8238cef03d4a1db6e775d7f62234bcf998d8f08bd9fc15f1d8a36ea0d3280005",
+      "Router.py": "d5eebf7fc48f7781628aa4eaab8af1c3f23fd8694242f0b3065436b5c86f62b1"
+    }
+  },
+  "limits": [
+    "Single RTX 3090 Ti; small 64x64, nine-frame, two-step clips, not larger presets or model quality.",
+    "TTS/STT/embeddings/image disabled in real handoff probe; their handoff remains unverified.",
+    "Initial interruption harness left Rust retries enabled, observed worker 500 followed by successful router retry, then failed its expected-status assertion; corrected final harness disables only isolated router retries.",
+    "A second harness expected worker 500 at the router endpoint; Rust correctly wraps exhausted failures as 502. Final assertions verify both worker 500 and client 502.",
+    "Complete replacement parity remains open."
+  ],
+  "evidence": [
+    "build/validation/llm-observers/",
+    "build/validation/ltx-handoff-final/"
+  ]
+}

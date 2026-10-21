@@ -1,0 +1,272 @@
+{
+  "scope": "Worker WebSocket upgrade validation, URL normalization/IPv6 and reconnect backoff",
+  "source_sha256": {
+    "include/ezlocalai/tunnel_connection.hpp": "7e6468f546a17697a16e8c6fb43382147c1fdba1e3a5f207146d5b53252198c1",
+    "src/tunnel_connection.cpp": "cc7224b09e69006fd4fb3e3e84125ade07c253d5ead33485fd5faa8a6fb6dda4",
+    "src/native_server.cpp": "5ff5e018c900a3400e2a00133c1ac882bfe1b939692a3337499f60c5d2ef4574",
+    "tests/test_tunnel_connection.cpp": "67f9b8d4a9cff08bd1f45882f22fa8c09e127e736a456bbd6f9ab9548306c63a",
+    "tests/test_worker_tunnel.cpp": "04f11ddd1cfdd04f861040e52ea9af0f7eec78212122d704a7424adc982c67fa",
+    "tests/test_native_http.cpp": "57ce5d5fba3c58924ea8e6ee47d6b4a9e17faaa1cb5710ddf111ca17f95c23e6",
+    "tests/fixtures/tunnel_connection_cases.json": "b89f0c1de7875f578d0f88308fae0e8f2279e319da89171ee8ff116be853a5f1",
+    "tests/fixtures/tunnel_connection_outcomes.json": "6eaccfc414a98fe5246def22221feaeca8eac008e8809cfaf8d160b1407489e2",
+    "CMakeLists.txt": "ba4f2921211df1f7e103f5073a43f6e6d4203eeab7e503365ef9215dfd37ceda",
+    "cuda.Dockerfile": "a6883cf12423f6c74f77c3e09fb6260a0402bd5812d2110965e69e5feab91850"
+  },
+  "reference": {
+    "python_image": "sha256:c2180ffee0b1579dc63b33236777c1bdc70c899c51f979c91969e04d601ff5cb",
+    "aiohttp_version": "3.14.5",
+    "tunnel_sha256": "d2c604fffacf088da6c3fc555d1d24d2a6b0b7af592f8cba3f67b7ea5dea4496"
+  },
+  "source_cases": {
+    "handshakes": 47,
+    "urls": 20,
+    "backoff": 5
+  },
+  "regressions": [
+    {
+      "name": "native_http",
+      "seconds": 29.2
+    },
+    {
+      "name": "worker_tunnel",
+      "seconds": 27.3
+    },
+    {
+      "name": "tunnel_connection_reference",
+      "seconds": 0.0
+    },
+    {
+      "name": "tunnel_framing_reference",
+      "seconds": 1.44
+    },
+    {
+      "name": "worker_router_integration",
+      "seconds": 30.08
+    }
+  ],
+  "source_connection_outcomes": [
+    {
+      "name": "response-write-error",
+      "failed": false,
+      "calls": [
+        "receive",
+        "resp_start",
+        "resp_err"
+      ],
+      "error": ""
+    },
+    {
+      "name": "application-pong-error",
+      "failed": true,
+      "calls": [
+        "receive",
+        "pong"
+      ],
+      "error": "ConnectionResetError: reference write failure"
+    },
+    {
+      "name": "timeout",
+      "failed": true,
+      "calls": [
+        "receive"
+      ],
+      "error": "TimeoutError: "
+    },
+    {
+      "name": "protocol-error",
+      "failed": false,
+      "calls": [
+        "receive"
+      ],
+      "error": ""
+    },
+    {
+      "name": "eof",
+      "failed": false,
+      "calls": [
+        "receive"
+      ],
+      "error": ""
+    }
+  ],
+  "source_outcome_capture_scope": "Executed original _connect_once/_handle with injected socket send/receive failures and session/response wrappers; not a native network-fault comparison.",
+  "live_reconnect_timing": [
+    {
+      "observed": 3.00293,
+      "expected": 3.0
+    },
+    {
+      "observed": 4.5036,
+      "expected": 4.5
+    },
+    {
+      "observed": 6.75411,
+      "expected": 6.75
+    }
+  ],
+  "cuda_packaged_checks": 46,
+  "packaged_tunnel_repeat_passes": 3,
+  "candidate_binary_comparison": {
+    "ezlocalai-native": {
+      "tested_sha256": "aa07dd84bd969d6fe0092cc4d4d7cb669a2969e50b82042ef8c9b777167e7c7b",
+      "packaged_sha256": "aa07dd84bd969d6fe0092cc4d4d7cb669a2969e50b82042ef8c9b777167e7c7b",
+      "equal": true
+    },
+    "test_worker_tunnel": {
+      "tested_sha256": "daec1b484ff56e579b70ce3d31f0eed417969c773e4d3f81f1668494aa79a975",
+      "packaged_sha256": "daec1b484ff56e579b70ce3d31f0eed417969c773e4d3f81f1668494aa79a975",
+      "equal": true
+    }
+  },
+  "controlled_signal_test_passed": true,
+  "fixture_interruption_fix": "A repeated packaged test reproduced errno=EINTR in the test receive helper. Fixture send/receive/accept now retry interrupted syscalls; controlled SIGUSR1 injection verifies an actual interrupted receive is retried. Production worker code was unchanged by this fixture fix.",
+  "packaging": "Existing CUDA build targets are grouped under cuda_package for parallel compilation; native-compiled is a separate stage before validation.",
+  "binaries_sha256": {
+    "/app/build/ezlocalai-native": "aa07dd84bd969d6fe0092cc4d4d7cb669a2969e50b82042ef8c9b777167e7c7b",
+    "/app/build/ezlocalai-native-entrypoint": "7da9eb6310967f552fa1528b13a43deb6c5e46e85b862d174e1c0f3a0598bc1f",
+    "/opt/stable-diffusion.cpp/build/bin/sd-cli": "bacdb2b223e94ef8be5b65767e2c92b14bb3b931195f0b4a9815737f6efc85ed"
+  },
+  "entrypoint_and_media_engine_unchanged": true,
+  "tested_worker_matches_packaged_worker": true,
+  "router_binary_sha256": "91873d25c218dd3d3ed12bded2ff990bd13837d6d514922eb04dc45ccbde93b9",
+  "deployment": {
+    "previous_image": "sha256:1849b6932dd1a33a6274f9dde4953153788696c86ca28625974975d7914f5258",
+    "candidate_image": "sha256:37dd5b530c1f9046d2e09eab7201c9dacb61cf33d0d0a647b852bc6e862a18b1",
+    "health": "healthy",
+    "deployed_image": "sha256:37dd5b530c1f9046d2e09eab7201c9dacb61cf33d0d0a647b852bc6e862a18b1",
+    "effective_environment_changed_keys": [],
+    "original_env_file_unchanged": true,
+    "mounts_unchanged": true,
+    "wakeword_mounts": [
+      [
+        "bind",
+        "/home/josh/repos/xtsys/ezlocalai/wakeword_models",
+        "/app/wakeword_models",
+        true
+      ],
+      [
+        "bind",
+        "/home/josh/repos/xtsys/ezlocalai/wakeword_samples",
+        "/app/wakeword_samples",
+        true
+      ],
+      [
+        "bind",
+        "/home/josh/repos/xtsys/ezlocalai/wakeword_jobs",
+        "/app/wakeword_jobs",
+        true
+      ]
+    ],
+    "ports_unchanged": true,
+    "gpu_requests_unchanged": true
+  },
+  "deployed_documentation": {
+    "image": "sha256:37dd5b530c1f9046d2e09eab7201c9dacb61cf33d0d0a647b852bc6e862a18b1",
+    "checks": [
+      {
+        "method": "GET",
+        "path": "/",
+        "passed": true,
+        "length": 1015,
+        "body_sha256": "9cba0aab86158b3e8ffc7efa8586cb181b600c764c811af2b0579ce95e0cac4e"
+      },
+      {
+        "method": "HEAD",
+        "path": "/",
+        "passed": true,
+        "length": 1015,
+        "body_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "method": "GET",
+        "path": "/redoc",
+        "passed": true,
+        "length": 897,
+        "body_sha256": "a8aa84db129687e6d0e715504d39ebc781e77a339b01525d6a38ca0070773005"
+      },
+      {
+        "method": "HEAD",
+        "path": "/redoc",
+        "passed": true,
+        "length": 897,
+        "body_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "method": "GET",
+        "path": "/docs/oauth2-redirect",
+        "passed": true,
+        "length": 3012,
+        "body_sha256": "f45d60bb9f054b1712b3f9e60547eb9e1d523afd6472a4137b89eb503b37f058"
+      },
+      {
+        "method": "HEAD",
+        "path": "/docs/oauth2-redirect",
+        "passed": true,
+        "length": 3012,
+        "body_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "method": "GET",
+        "path": "/openapi.json",
+        "passed": true,
+        "length": 41325,
+        "body_sha256": "4d7b529fc0e271ae57ab904ccab7fa1bc030a9626d97608ad75bdb0cc3078238"
+      },
+      {
+        "method": "HEAD",
+        "path": "/openapi.json",
+        "passed": true,
+        "length": 41325,
+        "body_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    ],
+    "passed": true
+  },
+  "routed_inference": {
+    "chat": {
+      "passed": true,
+      "response_sha256": "6c94babb853d342fb94163abf0a3ff273c48eb06abc19b6ee5ea628446222da3"
+    },
+    "stream": {
+      "passed": true,
+      "response_sha256": "a526f99dda9346f643aa9faa62085190d63955bcb97eac3abfd33d123a89f91d"
+    },
+    "vision": {
+      "passed": true,
+      "response_sha256": "cb072f98d90b7f8d057ad88b5bee3a6aabc797db62b92db1e0701772690a0087"
+    }
+  },
+  "worker_parity_report": "scope: worker (router service owned by WorkerRouter)\nparity rows: 65\nimplemented: 27\npartial: 38\nmissing: 0\nsource routes: 45\nsource root: /home/josh/repos/xtsys/ezlocalai\nuncovered source routes: 0\nextra manifest routes: 0\n",
+  "original_env_sha256": "61dd1627786c0516e0ad59287ea2fb0990eeee7c93951d292aca38f46402dd24",
+  "remaining_transport_audit": {
+    "confirmed_remaining": [
+      {
+        "area": "Upgrade redirects",
+        "native": "Any non-101 status fails immediately; no redirect following",
+        "source": "aiohttp ws_connect calls the normal request implementation, which follows redirects by default"
+      },
+      {
+        "area": "Socket setup and shutdown",
+        "native": "Blocking getaddrinfo, per-address 15-second connect timeout and one-second socket read/write timeouts; stop joins the connection thread",
+        "source": "ClientTimeout(total=None, sock_connect=15). stop first awaits an existing WebSocket close, then waits up to five seconds for the connection task before cancellation; five seconds is not a bound on the entire connected shutdown."
+      },
+      {
+        "area": "Receive-idle deadline",
+        "native": "60-second timer is refreshed by raw socket bytes",
+        "source": "wait_for(ws.receive(), max(60, ping_interval * 3)); a partial frame or auto-handled control frame does not complete receive"
+      },
+      {
+        "area": "Local HTTP forwarding",
+        "native": "Forwarding uses one read-idle policy for both streaming and non-stream requests",
+        "source": "Streaming uses total=None/sock_connect=15/sock_read=600; non-stream uses total=600"
+      }
+    ],
+    "scope": "Remaining worker transport requirements; connection/URL/backoff milestone does not claim these complete."
+  },
+  "limits": [
+    "Redirect behavior and complete HTTP response parsing remain open. Local HTTP callbacks still use older URL handling; these URL cases cover the router WebSocket connection.",
+    "TLS, receive-idle timing and connect/read/write/shutdown deadline parity remain incomplete.",
+    "Native server/TTS WebSocket readers are unchanged.",
+    "Overall worker-router and replacement parity remain partial."
+  ]
+}

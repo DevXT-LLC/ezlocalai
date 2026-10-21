@@ -1,0 +1,121 @@
+{
+  "date": "2026-10-19",
+  "scope": "Native Python ZIP-checkpoint CNN/GRU prediction, audio preprocessing, API/cache behavior and private Whisper OpenBLAS binding. Seeded checkpoints establish inference compatibility, not recognition accuracy.",
+  "deployment": {
+    "previous_image": "sha256:4574087aa3c68e4b7cec724c9a17413542bce2c4eb82b52cf0356d3be5e708ff",
+    "candidate_image": "sha256:9961a2bb539fbc5136c91cee0d1b6d7291f766f400d4193bc6909c44d55b8958",
+    "health": "healthy",
+    "deployed_image": "sha256:9961a2bb539fbc5136c91cee0d1b6d7291f766f400d4193bc6909c44d55b8958",
+    "effective_environment_changed_keys": [],
+    "original_env_file_unchanged": true,
+    "mounts_unchanged": true,
+    "ports_unchanged": true,
+    "gpu_requests_unchanged": true
+  },
+  "source_sha256": {
+    "CMakeLists.txt": "8640e983b08ac6e5b89c67aecbf464be1d95a352212edceb32b14c6af9c5ea5e",
+    "cuda.Dockerfile": "74932b3cc4cc478be763e68f813c0ff30749170051d1671a1b19e5bf47c11cdc",
+    "src/main.cpp": "47fe436c4ebae6b0c4aa0a0cce2e71eb01f92a96218be720cb19745b34a372b2",
+    "src/native_server.cpp": "d1b66c717e972c3785dca14eea288b8e6116d5c7e60958bc147fd6e51085d04c",
+    "include/ezlocalai/native_server.hpp": "78078927d85b72edd03fcbf5ba8e66651896d5b715188cd0c1325167269e23c4",
+    "include/ezlocalai/wakeword_model.hpp": "029bc47540f530739d60b51f8594d1ee852a15cdfbd8e4fbc0e8e59d0c194d0c",
+    "src/wakeword_torch.cpp": "309fa627de6edbb203e9b0a038bea18d25266e38d205c4ea16fa911bbf2376e1",
+    "src/torch_checkpoint.cpp": "468bc62dfe83a3f8107de0131f882ecaa0f4160ef5ab55cf87677b5e39f4eb6a",
+    "include/ezlocalai/torch_checkpoint.hpp": "3e02b090883c210de98af019fe815827953521a5b85af286d53ec41be421cb38",
+    "src/ctts_audio.cpp": "d9e531394aa5aaee745221da645edf1996ea2324ae3eab54988a97e554858fec",
+    "include/ezlocalai/ctts_audio.hpp": "8b4ccc61c7ee45548f47e5c8661efca7a6047f62efc2b5400018c5cb5c9772bb",
+    "src/whisper_features.cpp": "bca0ddc7a642ded95a93c4c662e34ab867de3ed2e004353140c9890d6cb47070",
+    "tests/test_wakeword_model.cpp": "abcf0429e34249d4ed07f12412861343c73476360a949fd2648eafe195581f9a",
+    "tests/test_wakeword_cache.cpp": "085a4daddec238e662245b15e835ad8b2babe0ee496972dd922f400c63b3b349",
+    "tests/test_torch_checkpoint.cpp": "94d68ae18e31d535a5680360ccecc716dcd3b610dfac922bb227d30ff539d262",
+    "tests/fixtures/wakeword_cache_cases.json": "bea53822a40eeb459eff1c87d0aeebbb7126d32edf49e1544c7fc2a731e74327",
+    "tests/fixtures/torch_checkpoint_cases.json": "b20097ccf4fee6f98a3eb71022ac26a399571f25d403f9ea578e0c1b94933060",
+    "tests/fixtures/wakeword_prediction_cases.json": "7649a9a9d7387df4d9bc7536079c39721b3e5ea68342313c25004e0d49ed31f4",
+    "tests/fixtures/wakeword_prediction_cuda_cases.json": "d5126dbb30167a204b4f6747de96390ee6a9e5f4c196ef5d9781b578f713b279"
+  },
+  "binaries": [
+    "5d65f1c4d8d4720e7eee440eb2c828d8f074bea7141600eff909057fc92562a8  /app/build/ezlocalai-native",
+    "ad07862ae3b26ce4fb2b02c4d98a079da0b376d52d68905c8736c3aa9994a203  /opt/stable-diffusion.cpp/build/bin/sd-cli"
+  ],
+  "validation": {
+    "native_full": {
+      "tests": 118,
+      "seconds": 406.7,
+      "scope": "Full prediction/cache changes before the final BLAS isolation fix; final affected tests listed separately."
+    },
+    "final_native_affected": {
+      "tests": 7,
+      "seconds": 30.73
+    },
+    "private_blas_cpu_regressions": {
+      "tests": 3,
+      "seconds": 3.07
+    },
+    "packaged_cuda_checks": {
+      "tests": 12,
+      "seconds": 1.52
+    },
+    "workerrouter_wire": {
+      "tests": 89,
+      "seconds": 27.412
+    },
+    "checkpoint_parser": {
+      "cases": 19,
+      "tensor_layouts": 117,
+      "truncated_inputs": 1445,
+      "rejected_checkpoints": 3,
+      "asan_ubsan": "pass"
+    },
+    "cache_api_steps": 32,
+    "cpu_predictions": 147,
+    "cuda_predictions": 145,
+    "mfcc_arrays": 91,
+    "mfcc_max_absolute_error": 0,
+    "http_handler_requests_per_device": 290,
+    "final_candidate_tcp": {
+      "image": "sha256:9961a2bb539fbc5136c91cee0d1b6d7291f766f400d4193bc6909c44d55b8958",
+      "requests": 290,
+      "max_confidence_error": 0.0,
+      "expected_errors": 62,
+      "device": "automatic (compared with CUDA reference)",
+      "binary_sha256": "5d65f1c4d8d4720e7eee440eb2c828d8f074bea7141600eff909057fc92562a8"
+    }
+  },
+  "production": {
+    "health": "healthy",
+    "registered_workers": 1,
+    "checks": {
+      "/v1/wakeword/models/bad%5Cword": {
+        "status": 400,
+        "body": {
+          "detail": "Invalid wake word name"
+        }
+      },
+      "/v1/wakeword/models/bad%00word/config": {
+        "status": 400,
+        "body": {
+          "detail": "Invalid wake word name"
+        }
+      },
+      "chat": {
+        "status": 200,
+        "sha256": "b161e15261ac7dce76b9e45f18aadcea6435b04c9b33386ba4eccaef40a21794"
+      },
+      "stream": {
+        "status": 200,
+        "sha256": "38a64ee4bf48ce91bf96e5b7536b8ec398303f83272e7ce8a1ca36b760bccc77"
+      },
+      "vision": {
+        "status": 200,
+        "sha256": "fd0333558847f11beab398ad317c8ce209192a927db644ac91c6627d498b6ff3"
+      }
+    }
+  },
+  "artifacts": "/opt/DevXT/ezlocalai/build/validation/wakeword-model",
+  "remaining": [
+    "Wake-word sample generation, augmentation, training and checkpoint/ONNX/ESPDL export.",
+    "Live training jobs, cancellation, recovery and persistent wake-word directories across container recreation.",
+    "Legacy non-ZIP checkpoints, uncommon tensor metadata and old BatchNorm version migration.",
+    "Full worker feature parity remains incomplete; see PARITY_PROGRESS.md."
+  ]
+}

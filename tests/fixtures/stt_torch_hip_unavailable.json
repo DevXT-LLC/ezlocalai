@@ -1,0 +1,17 @@
+{
+  "cuda": false,
+  "cudnn": true,
+  "allocated": 0,
+  "total": {
+    "category": "RuntimeError",
+    "message": "No HIP GPUs are available"
+  },
+  "synchronize": {
+    "category": "RuntimeError",
+    "message": "No HIP GPUs are available"
+  },
+  "ipc_collect": {
+    "category": "RuntimeError",
+    "message": "No HIP GPUs are available"
+  }
+}

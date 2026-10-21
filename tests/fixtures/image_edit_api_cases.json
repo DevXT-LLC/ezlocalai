@@ -1,0 +1,1475 @@
+{
+  "source_sha256": "fab365c963725d80c81063b544d5b18b4cf931263573bdcb236e537519c7d365",
+  "cases": [
+    {
+      "name": "0",
+      "body": {},
+      "error": {
+        "detail": [
+          {
+            "type": "missing",
+            "loc": [
+              "body",
+              "prompt"
+            ],
+            "msg": "Field required",
+            "input": {}
+          }
+        ]
+      }
+    },
+    {
+      "name": "1",
+      "body": {
+        "prompt": "x"
+      },
+      "error": {
+        "detail": [
+          {
+            "type": "value_error",
+            "loc": [
+              "body"
+            ],
+            "msg": "Value error, image or images is required",
+            "input": {
+              "prompt": "x"
+            },
+            "ctx": {
+              "error": {}
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "2",
+      "body": {
+        "image": "",
+        "prompt": "x"
+      },
+      "error": {
+        "detail": [
+          {
+            "type": "value_error",
+            "loc": [
+              "body"
+            ],
+            "msg": "Value error, image or images is required",
+            "input": {
+              "image": "",
+              "prompt": "x"
+            },
+            "ctx": {
+              "error": {}
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "3",
+      "body": {
+        "images": [],
+        "prompt": "x"
+      },
+      "error": {
+        "detail": [
+          {
+            "type": "value_error",
+            "loc": [
+              "body"
+            ],
+            "msg": "Value error, image or images is required",
+            "input": {
+              "images": [],
+              "prompt": "x"
+            },
+            "ctx": {
+              "error": {}
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "4",
+      "body": {
+        "images": [
+          ""
+        ],
+        "prompt": "x"
+      },
+      "error": {
+        "detail": [
+          {
+            "type": "value_error",
+            "loc": [
+              "body"
+            ],
+            "msg": "Value error, Reference images must not be empty",
+            "input": {
+              "images": [
+                ""
+              ],
+              "prompt": "x"
+            },
+            "ctx": {
+              "error": {}
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "5",
+      "body": {
+        "image": "",
+        "images": [
+          "abc"
+        ],
+        "prompt": "x"
+      },
+      "error": {
+        "detail": [
+          {
+            "type": "value_error",
+            "loc": [
+              "body"
+            ],
+            "msg": "Value error, Reference images must not be empty",
+            "input": {
+              "image": "",
+              "images": [
+                "abc"
+              ],
+              "prompt": "x"
+            },
+            "ctx": {
+              "error": {}
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "6",
+      "body": {
+        "prompt": "x",
+        "image": null
+      },
+      "error": {
+        "detail": [
+          {
+            "type": "value_error",
+            "loc": [
+              "body"
+            ],
+            "msg": "Value error, image or images is required",
+            "input": {
+              "prompt": "x",
+              "image": null
+            },
+            "ctx": {
+              "error": {}
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "7",
+      "body": {
+        "prompt": "x",
+        "image": "abc"
+      },
+      "normalized": {
+        "image": "abc",
+        "images": null,
+        "prompt": "x",
+        "model": "qwen-image-2.1",
+        "n": 1,
+        "size": "1024x1024",
+        "response_format": "url",
+        "strength": 0.75
+      }
+    },
+    {
+      "name": "8",
+      "body": {
+        "prompt": "x",
+        "image": 3
+      },
+      "error": {
+        "detail": [
+          {
+            "type": "string_type",
+            "loc": [
+              "body",
+              "image"
+            ],
+            "msg": "Input should be a valid string",
+            "input": 3
+          }
+        ]
+      }
+    },
+    {
+      "name": "9",
+      "body": {
+        "prompt": "x",
+        "image": true
+      },
+      "error": {
+        "detail": [
+          {
+            "type": "string_type",
+            "loc": [
+              "body",
+              "image"
+            ],
+            "msg": "Input should be a valid string",
+            "input": true
+          }
+        ]
+      }
+    },
+    {
+      "name": "10",
+      "body": {
+        "prompt": "x",
+        "image": []
+      },
+      "error": {
+        "detail": [
+          {
+            "type": "string_type",
+            "loc": [
+              "body",
+              "image"
+            ],
+            "msg": "Input should be a valid string",
+            "input": []
+          }
+        ]
+      }
+    },
+    {
+      "name": "11",
+      "body": {
+        "prompt": "x",
+        "image": {}
+      },
+      "error": {
+        "detail": [
+          {
+            "type": "string_type",
+            "loc": [
+              "body",
+              "image"
+            ],
+            "msg": "Input should be a valid string",
+            "input": {}
+          }
+        ]
+      }
+    },
+    {
+      "name": "12",
+      "body": {
+        "prompt": "x",
+        "image": "abc",
+        "images": null
+      },
+      "normalized": {
+        "image": "abc",
+        "images": null,
+        "prompt": "x",
+        "model": "qwen-image-2.1",
+        "n": 1,
+        "size": "1024x1024",
+        "response_format": "url",
+        "strength": 0.75
+      }
+    },
+    {
+      "name": "13",
+      "body": {
+        "prompt": "x",
+        "image": "abc",
+        "images": []
+      },
+      "normalized": {
+        "image": "abc",
+        "images": [],
+        "prompt": "x",
+        "model": "qwen-image-2.1",
+        "n": 1,
+        "size": "1024x1024",
+        "response_format": "url",
+        "strength": 0.75
+      }
+    },
+    {
+      "name": "14",
+      "body": {
+        "prompt": "x",
+        "image": "abc",
+        "images": [
+          "abc"
+        ]
+      },
+      "normalized": {
+        "image": "abc",
+        "images": [
+          "abc"
+        ],
+        "prompt": "x",
+        "model": "qwen-image-2.1",
+        "n": 1,
+        "size": "1024x1024",
+        "response_format": "url",
+        "strength": 0.75
+      }
+    },
+    {
+      "name": "15",
+      "body": {
+        "prompt": "x",
+        "image": "abc",
+        "images": [
+          "abc",
+          ""
+        ]
+      },
+      "error": {
+        "detail": [
+          {
+            "type": "value_error",
+            "loc": [
+              "body"
+            ],
+            "msg": "Value error, Reference images must not be empty",
+            "input": {
+              "prompt": "x",
+              "image": "abc",
+              "images": [
+                "abc",
+                ""
+              ]
+            },
+            "ctx": {
+              "error": {}
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "16",
+      "body": {
+        "prompt": "x",
+        "image": "abc",
+        "images": [
+          3
+        ]
+      },
+      "error": {
+        "detail": [
+          {
+            "type": "string_type",
+            "loc": [
+              "body",
+              "images",
+              0
+            ],
+            "msg": "Input should be a valid string",
+            "input": 3
+          }
+        ]
+      }
+    },
+    {
+      "name": "17",
+      "body": {
+        "prompt": "x",
+        "image": "abc",
+        "images": [
+          null
+        ]
+      },
+      "error": {
+        "detail": [
+          {
+            "type": "string_type",
+            "loc": [
+              "body",
+              "images",
+              0
+            ],
+            "msg": "Input should be a valid string",
+            "input": null
+          }
+        ]
+      }
+    },
+    {
+      "name": "18",
+      "body": {
+        "prompt": "x",
+        "image": "abc",
+        "images": "abc"
+      },
+      "error": {
+        "detail": [
+          {
+            "type": "list_type",
+            "loc": [
+              "body",
+              "images"
+            ],
+            "msg": "Input should be a valid list",
+            "input": "abc"
+          }
+        ]
+      }
+    },
+    {
+      "name": "19",
+      "body": {
+        "prompt": "x",
+        "image": "abc",
+        "images": {}
+      },
+      "error": {
+        "detail": [
+          {
+            "type": "list_type",
+            "loc": [
+              "body",
+              "images"
+            ],
+            "msg": "Input should be a valid list",
+            "input": {}
+          }
+        ]
+      }
+    },
+    {
+      "name": "20",
+      "body": {
+        "prompt": "x",
+        "image": "abc",
+        "images": [
+          "a",
+          "a",
+          "a",
+          "a",
+          "a",
+          "a",
+          "a",
+          "a",
+          "a",
+          "a",
+          "a"
+        ]
+      },
+      "error": {
+        "detail": [
+          {
+            "type": "too_long",
+            "loc": [
+              "body",
+              "images"
+            ],
+            "msg": "List should have at most 10 items after validation, not 11",
+            "input": [
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a",
+              "a"
+            ],
+            "ctx": {
+              "field_type": "List",
+              "max_length": 10,
+              "actual_length": 11
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "21",
+      "body": {
+        "prompt": null,
+        "image": "abc"
+      },
+      "error": {
+        "detail": [
+          {
+            "type": "string_type",
+            "loc": [
+              "body",
+              "prompt"
+            ],
+            "msg": "Input should be a valid string",
+            "input": null
+          }
+        ]
+      }
+    },
+    {
+      "name": "22",
+      "body": {
+        "prompt": 3,
+        "image": "abc"
+      },
+      "error": {
+        "detail": [
+          {
+            "type": "string_type",
+            "loc": [
+              "body",
+              "prompt"
+            ],
+            "msg": "Input should be a valid string",
+            "input": 3
+          }
+        ]
+      }
+    },
+    {
+      "name": "23",
+      "body": {
+        "prompt": true,
+        "image": "abc"
+      },
+      "error": {
+        "detail": [
+          {
+            "type": "string_type",
+            "loc": [
+              "body",
+              "prompt"
+            ],
+            "msg": "Input should be a valid string",
+            "input": true
+          }
+        ]
+      }
+    },
+    {
+      "name": "24",
+      "body": {
+        "prompt": [],
+        "image": "abc"
+      },
+      "error": {
+        "detail": [
+          {
+            "type": "string_type",
+            "loc": [
+              "body",
+              "prompt"
+            ],
+            "msg": "Input should be a valid string",
+            "input": []
+          }
+        ]
+      }
+    },
+    {
+      "name": "25",
+      "body": {
+        "prompt": {},
+        "image": "abc"
+      },
+      "error": {
+        "detail": [
+          {
+            "type": "string_type",
+            "loc": [
+              "body",
+              "prompt"
+            ],
+            "msg": "Input should be a valid string",
+            "input": {}
+          }
+        ]
+      }
+    },
+    {
+      "name": "26",
+      "body": {
+        "prompt": "x",
+        "image": "abc",
+        "model": null
+      },
+      "normalized": {
+        "image": "abc",
+        "images": null,
+        "prompt": "x",
+        "model": null,
+        "n": 1,
+        "size": "1024x1024",
+        "response_format": "url",
+        "strength": 0.75
+      }
+    },
+    {
+      "name": "27",
+      "body": {
+        "prompt": "x",
+        "image": "abc",
+        "model": 3
+      },
+      "error": {
+        "detail": [
+          {
+            "type": "string_type",
+            "loc": [
+              "body",
+              "model"
+            ],
+            "msg": "Input should be a valid string",
+            "input": 3
+          }
+        ]
+      }
+    },
+    {
+      "name": "28",
+      "body": {
+        "prompt": "x",
+        "image": "abc",
+        "model": true
+      },
+      "error": {
+        "detail": [
+          {
+            "type": "string_type",
+            "loc": [
+              "body",
+              "model"
+            ],
+            "msg": "Input should be a valid string",
+            "input": true
+          }
+        ]
+      }
+    },
+    {
+      "name": "29",
+      "body": {
+        "prompt": "x",
+        "image": "abc",
+        "model": []
+      },
+      "error": {
+        "detail": [
+          {
+            "type": "string_type",
+            "loc": [
+              "body",
+              "model"
+            ],
+            "msg": "Input should be a valid string",
+            "input": []
+          }
+        ]
+      }
+    },
+    {
+      "name": "30",
+      "body": {
+        "prompt": "x",
+        "image": "abc",
+        "model": {}
+      },
+      "error": {
+        "detail": [
+          {
+            "type": "string_type",
+            "loc": [
+              "body",
+              "model"
+            ],
+            "msg": "Input should be a valid string",
+            "input": {}
+          }
+        ]
+      }
+    },
+    {
+      "name": "31",
+      "body": {
+        "prompt": "x",
+        "image": "abc",
+        "n": null
+      },
+      "error": {
+        "detail": [
+          {
+            "type": "int_type",
+            "loc": [
+              "body",
+              "n"
+            ],
+            "msg": "Input should be a valid integer",
+            "input": null
+          }
+        ]
+      }
+    },
+    {
+      "name": "32",
+      "body": {
+        "prompt": "x",
+        "image": "abc",
+        "n": 0
+      },
+      "error": {
+        "detail": [
+          {
+            "type": "greater_than_equal",
+            "loc": [
+              "body",
+              "n"
+            ],
+            "msg": "Input should be greater than or equal to 1",
+            "input": 0,
+            "ctx": {
+              "ge": 1
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "33",
+      "body": {
+        "prompt": "x",
+        "image": "abc",
+        "n": -1
+      },
+      "error": {
+        "detail": [
+          {
+            "type": "greater_than_equal",
+            "loc": [
+              "body",
+              "n"
+            ],
+            "msg": "Input should be greater than or equal to 1",
+            "input": -1,
+            "ctx": {
+              "ge": 1
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "34",
+      "body": {
+        "prompt": "x",
+        "image": "abc",
+        "n": 11
+      },
+      "error": {
+        "detail": [
+          {
+            "type": "less_than_equal",
+            "loc": [
+              "body",
+              "n"
+            ],
+            "msg": "Input should be less than or equal to 10",
+            "input": 11,
+            "ctx": {
+              "le": 10
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "35",
+      "body": {
+        "prompt": "x",
+        "image": "abc",
+        "n": "2"
+      },
+      "normalized": {
+        "image": "abc",
+        "images": null,
+        "prompt": "x",
+        "model": "qwen-image-2.1",
+        "n": 2,
+        "size": "1024x1024",
+        "response_format": "url",
+        "strength": 0.75
+      }
+    },
+    {
+      "name": "36",
+      "body": {
+        "prompt": "x",
+        "image": "abc",
+        "n": "2.0"
+      },
+      "normalized": {
+        "image": "abc",
+        "images": null,
+        "prompt": "x",
+        "model": "qwen-image-2.1",
+        "n": 2,
+        "size": "1024x1024",
+        "response_format": "url",
+        "strength": 0.75
+      }
+    },
+    {
+      "name": "37",
+      "body": {
+        "prompt": "x",
+        "image": "abc",
+        "n": 2.5
+      },
+      "error": {
+        "detail": [
+          {
+            "type": "int_from_float",
+            "loc": [
+              "body",
+              "n"
+            ],
+            "msg": "Input should be a valid integer, got a number with a fractional part",
+            "input": 2.5
+          }
+        ]
+      }
+    },
+    {
+      "name": "38",
+      "body": {
+        "prompt": "x",
+        "image": "abc",
+        "n": true
+      },
+      "normalized": {
+        "image": "abc",
+        "images": null,
+        "prompt": "x",
+        "model": "qwen-image-2.1",
+        "n": 1,
+        "size": "1024x1024",
+        "response_format": "url",
+        "strength": 0.75
+      }
+    },
+    {
+      "name": "39",
+      "body": {
+        "prompt": "x",
+        "image": "abc",
+        "n": false
+      },
+      "error": {
+        "detail": [
+          {
+            "type": "greater_than_equal",
+            "loc": [
+              "body",
+              "n"
+            ],
+            "msg": "Input should be greater than or equal to 1",
+            "input": false,
+            "ctx": {
+              "ge": 1
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "40",
+      "body": {
+        "prompt": "x",
+        "image": "abc",
+        "n": {}
+      },
+      "error": {
+        "detail": [
+          {
+            "type": "int_type",
+            "loc": [
+              "body",
+              "n"
+            ],
+            "msg": "Input should be a valid integer",
+            "input": {}
+          }
+        ]
+      }
+    },
+    {
+      "name": "41",
+      "body": {
+        "prompt": "x",
+        "image": "abc",
+        "n": "a"
+      },
+      "error": {
+        "detail": [
+          {
+            "type": "int_parsing",
+            "loc": [
+              "body",
+              "n"
+            ],
+            "msg": "Input should be a valid integer, unable to parse string as an integer",
+            "input": "a"
+          }
+        ]
+      }
+    },
+    {
+      "name": "42",
+      "body": {
+        "prompt": "x",
+        "image": "abc",
+        "size": null
+      },
+      "error": {
+        "detail": [
+          {
+            "type": "string_type",
+            "loc": [
+              "body",
+              "size"
+            ],
+            "msg": "Input should be a valid string",
+            "input": null
+          }
+        ]
+      }
+    },
+    {
+      "name": "43",
+      "body": {
+        "prompt": "x",
+        "image": "abc",
+        "size": "32x64"
+      },
+      "normalized": {
+        "image": "abc",
+        "images": null,
+        "prompt": "x",
+        "model": "qwen-image-2.1",
+        "n": 1,
+        "size": "32x64",
+        "response_format": "url",
+        "strength": 0.75
+      }
+    },
+    {
+      "name": "44",
+      "body": {
+        "prompt": "x",
+        "image": "abc",
+        "size": "  +32 x 64 "
+      },
+      "normalized": {
+        "image": "abc",
+        "images": null,
+        "prompt": "x",
+        "model": "qwen-image-2.1",
+        "n": 1,
+        "size": "  +32 x 64 ",
+        "response_format": "url",
+        "strength": 0.75
+      }
+    },
+    {
+      "name": "45",
+      "body": {
+        "prompt": "x",
+        "image": "abc",
+        "size": "3_2x٦٤"
+      },
+      "normalized": {
+        "image": "abc",
+        "images": null,
+        "prompt": "x",
+        "model": "qwen-image-2.1",
+        "n": 1,
+        "size": "3_2x٦٤",
+        "response_format": "url",
+        "strength": 0.75
+      }
+    },
+    {
+      "name": "46",
+      "body": {
+        "prompt": "x",
+        "image": "abc",
+        "size": "32X64"
+      },
+      "error": {
+        "detail": [
+          {
+            "type": "value_error",
+            "loc": [
+              "body"
+            ],
+            "msg": "Value error, size must contain two positive multiples of 32",
+            "input": {
+              "prompt": "x",
+              "image": "abc",
+              "size": "32X64"
+            },
+            "ctx": {
+              "error": {}
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "47",
+      "body": {
+        "prompt": "x",
+        "image": "abc",
+        "size": "32x64x32"
+      },
+      "error": {
+        "detail": [
+          {
+            "type": "value_error",
+            "loc": [
+              "body"
+            ],
+            "msg": "Value error, size must contain two positive multiples of 32",
+            "input": {
+              "prompt": "x",
+              "image": "abc",
+              "size": "32x64x32"
+            },
+            "ctx": {
+              "error": {}
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "48",
+      "body": {
+        "prompt": "x",
+        "image": "abc",
+        "size": "0x32"
+      },
+      "error": {
+        "detail": [
+          {
+            "type": "value_error",
+            "loc": [
+              "body"
+            ],
+            "msg": "Value error, size must contain two positive multiples of 32",
+            "input": {
+              "prompt": "x",
+              "image": "abc",
+              "size": "0x32"
+            },
+            "ctx": {
+              "error": {}
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "49",
+      "body": {
+        "prompt": "x",
+        "image": "abc",
+        "size": "-32x64"
+      },
+      "error": {
+        "detail": [
+          {
+            "type": "value_error",
+            "loc": [
+              "body"
+            ],
+            "msg": "Value error, size must contain two positive multiples of 32",
+            "input": {
+              "prompt": "x",
+              "image": "abc",
+              "size": "-32x64"
+            },
+            "ctx": {
+              "error": {}
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "50",
+      "body": {
+        "prompt": "x",
+        "image": "abc",
+        "size": "31x64"
+      },
+      "error": {
+        "detail": [
+          {
+            "type": "value_error",
+            "loc": [
+              "body"
+            ],
+            "msg": "Value error, size must contain two positive multiples of 32",
+            "input": {
+              "prompt": "x",
+              "image": "abc",
+              "size": "31x64"
+            },
+            "ctx": {
+              "error": {}
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "51",
+      "body": {
+        "prompt": "x",
+        "image": "abc",
+        "size": "32.0x64"
+      },
+      "error": {
+        "detail": [
+          {
+            "type": "value_error",
+            "loc": [
+              "body"
+            ],
+            "msg": "Value error, size must contain two positive multiples of 32",
+            "input": {
+              "prompt": "x",
+              "image": "abc",
+              "size": "32.0x64"
+            },
+            "ctx": {
+              "error": {}
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "52",
+      "body": {
+        "prompt": "x",
+        "image": "abc",
+        "size": 3
+      },
+      "error": {
+        "detail": [
+          {
+            "type": "string_type",
+            "loc": [
+              "body",
+              "size"
+            ],
+            "msg": "Input should be a valid string",
+            "input": 3
+          }
+        ]
+      }
+    },
+    {
+      "name": "53",
+      "body": {
+        "prompt": "x",
+        "image": "abc",
+        "response_format": null
+      },
+      "error": {
+        "detail": [
+          {
+            "type": "literal_error",
+            "loc": [
+              "body",
+              "response_format"
+            ],
+            "msg": "Input should be 'url' or 'b64_json'",
+            "input": null,
+            "ctx": {
+              "expected": "'url' or 'b64_json'"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "54",
+      "body": {
+        "prompt": "x",
+        "image": "abc",
+        "response_format": "url"
+      },
+      "normalized": {
+        "image": "abc",
+        "images": null,
+        "prompt": "x",
+        "model": "qwen-image-2.1",
+        "n": 1,
+        "size": "1024x1024",
+        "response_format": "url",
+        "strength": 0.75
+      }
+    },
+    {
+      "name": "55",
+      "body": {
+        "prompt": "x",
+        "image": "abc",
+        "response_format": "b64_json"
+      },
+      "normalized": {
+        "image": "abc",
+        "images": null,
+        "prompt": "x",
+        "model": "qwen-image-2.1",
+        "n": 1,
+        "size": "1024x1024",
+        "response_format": "b64_json",
+        "strength": 0.75
+      }
+    },
+    {
+      "name": "56",
+      "body": {
+        "prompt": "x",
+        "image": "abc",
+        "response_format": "URL"
+      },
+      "error": {
+        "detail": [
+          {
+            "type": "literal_error",
+            "loc": [
+              "body",
+              "response_format"
+            ],
+            "msg": "Input should be 'url' or 'b64_json'",
+            "input": "URL",
+            "ctx": {
+              "expected": "'url' or 'b64_json'"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "57",
+      "body": {
+        "prompt": "x",
+        "image": "abc",
+        "response_format": 3
+      },
+      "error": {
+        "detail": [
+          {
+            "type": "literal_error",
+            "loc": [
+              "body",
+              "response_format"
+            ],
+            "msg": "Input should be 'url' or 'b64_json'",
+            "input": 3,
+            "ctx": {
+              "expected": "'url' or 'b64_json'"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "58",
+      "body": {
+        "prompt": "x",
+        "image": "abc",
+        "strength": null
+      },
+      "error": {
+        "detail": [
+          {
+            "type": "float_type",
+            "loc": [
+              "body",
+              "strength"
+            ],
+            "msg": "Input should be a valid number",
+            "input": null
+          }
+        ]
+      }
+    },
+    {
+      "name": "59",
+      "body": {
+        "prompt": "x",
+        "image": "abc",
+        "strength": -0.1
+      },
+      "error": {
+        "detail": [
+          {
+            "type": "greater_than_equal",
+            "loc": [
+              "body",
+              "strength"
+            ],
+            "msg": "Input should be greater than or equal to 0",
+            "input": -0.1,
+            "ctx": {
+              "ge": 0.0
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "60",
+      "body": {
+        "prompt": "x",
+        "image": "abc",
+        "strength": 1.1
+      },
+      "error": {
+        "detail": [
+          {
+            "type": "less_than_equal",
+            "loc": [
+              "body",
+              "strength"
+            ],
+            "msg": "Input should be less than or equal to 1",
+            "input": 1.1,
+            "ctx": {
+              "le": 1.0
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "61",
+      "body": {
+        "prompt": "x",
+        "image": "abc",
+        "strength": "0.3"
+      },
+      "normalized": {
+        "image": "abc",
+        "images": null,
+        "prompt": "x",
+        "model": "qwen-image-2.1",
+        "n": 1,
+        "size": "1024x1024",
+        "response_format": "url",
+        "strength": 0.3
+      }
+    },
+    {
+      "name": "62",
+      "body": {
+        "prompt": "x",
+        "image": "abc",
+        "strength": true
+      },
+      "normalized": {
+        "image": "abc",
+        "images": null,
+        "prompt": "x",
+        "model": "qwen-image-2.1",
+        "n": 1,
+        "size": "1024x1024",
+        "response_format": "url",
+        "strength": 1.0
+      }
+    },
+    {
+      "name": "63",
+      "body": {
+        "prompt": "x",
+        "image": "abc",
+        "strength": false
+      },
+      "normalized": {
+        "image": "abc",
+        "images": null,
+        "prompt": "x",
+        "model": "qwen-image-2.1",
+        "n": 1,
+        "size": "1024x1024",
+        "response_format": "url",
+        "strength": 0.0
+      }
+    },
+    {
+      "name": "64",
+      "body": {
+        "prompt": "x",
+        "image": "abc",
+        "strength": {}
+      },
+      "error": {
+        "detail": [
+          {
+            "type": "float_type",
+            "loc": [
+              "body",
+              "strength"
+            ],
+            "msg": "Input should be a valid number",
+            "input": {}
+          }
+        ]
+      }
+    },
+    {
+      "name": "65",
+      "body": {
+        "prompt": "x",
+        "image": "abc",
+        "strength": "a"
+      },
+      "error": {
+        "detail": [
+          {
+            "type": "float_parsing",
+            "loc": [
+              "body",
+              "strength"
+            ],
+            "msg": "Input should be a valid number, unable to parse string as a number",
+            "input": "a"
+          }
+        ]
+      }
+    }
+  ]
+}

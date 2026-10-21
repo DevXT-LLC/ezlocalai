@@ -1,0 +1,104 @@
+{
+  "date": "2026-10-20",
+  "base_commit": "fefd3fc",
+  "cuda_deployed": true,
+  "cuda_image": "sha256:ea8cf96281896a6efd120962fc458879a13588ea7465f1255cfe57f066b3de2d",
+  "cuda_worker_sha256": "eace06a9e063cae20d32982c88e7ab961d4b278dafef902591bc4458ad050c12",
+  "cpu_image": "sha256:222fe7279ed1e2b397cdbae28ed433dc270f4ac76ab5e39d3508610147498a93",
+  "cpu_worker_sha256": "5cb2513b24b8dadba0e750654fcfa58b676304e2b2dd674797a0f144c48bb6b1",
+  "rollback_tag": "ezlocalai:cuda-before-tunnel-redirects",
+  "rollback_image": "sha256:819d93f03a10fb69cefdb4b356e8ec59f71ccdd1766ee46b00dfe0d2d3c6215c",
+  "source_python_image": "sha256:c2180ffee0b1579dc63b33236777c1bdc70c899c51f979c91969e04d601ff5cb",
+  "aiohttp_version": "3.14.5",
+  "changes": [
+    "Reverse-tunnel redirects, origin-sensitive auth and initial-only worker_id",
+    "Modern bounded response-cookie parser with separate legacy fallback profile",
+    "8190-byte response field limit"
+  ],
+  "tests": {
+    "cuda_package": {
+      "passed": 55,
+      "seconds": 249.86
+    },
+    "cpu_package": {
+      "passed": 54,
+      "seconds": 247.99
+    },
+    "source_redirect_network_cases": 59,
+    "redirected_upgrade_cancellation": true,
+    "legacy_cookie_operations": 6180,
+    "rust_integration_scenarios": 10,
+    "final_rust_seconds": 32.43,
+    "cpu_runtime": [
+      {
+        "name": "CPU real chat",
+        "seconds": 3.614
+      },
+      {
+        "name": "CPU real SSE",
+        "seconds": 6.433
+      },
+      {
+        "name": "CPU real embeddings",
+        "seconds": 0.052,
+        "dimensions": 1024
+      },
+      {
+        "name": "CPU real Whisper transcription",
+        "seconds": 6.086,
+        "text": " And so, my fellow Americans, ask not what your country can do for you, ask what you can do for your country."
+      },
+      {
+        "name": "CPU real Qwen speech",
+        "seconds": 7.27,
+        "samples": 24960,
+        "sha256": "2ff355162055a917243b9685f2c75d51a7711ea1a8e3e243e8fab6f9ff9e887f"
+      }
+    ],
+    "cpu_no_gpu_devices": true,
+    "cpu_reports_zero_vram": true,
+    "deployed_sources_match_checkout": true,
+    "direct_routed_inference": [
+      "chat",
+      "stream",
+      "vision"
+    ],
+    "tunnel_routed_inference": [
+      "chat",
+      "stream",
+      "vision"
+    ],
+    "restored_direct_inference": [
+      "chat",
+      "stream",
+      "vision"
+    ]
+  },
+  "deployment": {
+    "environment_unchanged": true,
+    "mounts_unchanged": true,
+    "ports_unchanged": true,
+    "gpu_requests_unchanged": true,
+    "original_env_file_unchanged": true,
+    "health": "healthy"
+  },
+  "original_direct_mode_restored": true,
+  "source_sha256": {
+    "src/tunnel_connection.cpp": "457503c054e467fe4e858f8e7d6ea9177b2e3fb2765632822efdd1520cddc9f4",
+    "src/http_cookies.cpp": "58107a1ee5aaccd004dbeb742b2135c09bd26e6c57a23d58baddd5f1187fa5c0",
+    "include/ezlocalai/http_cookies.hpp": "cd9ce351be9f287ed8ed669ab38b970be5fa07e796058a994c66d559f0fc78ad",
+    "tests/test_tunnel_redirects.cpp": "061692933d10343cc04c38412c0243addfddc95011ef34517b0ef0d08781e44b",
+    "tests/fixtures/tunnel_redirect_cases.json": "863d7d961590c1c6a37249a1a4dcb8756ca5e6034f2a9b74d67fc890daed2d4e",
+    "CMakeLists.txt": "98b92c4833dbd8da09e3a0724db0d10667966de19705d1136cdc39354195d9c8",
+    "cpu.Dockerfile": "cfe85046e70e1802b7cc908b36069c795c33fed1808be21cf6cb245e1769bf0e",
+    "cuda.Dockerfile": "f2426bb09e021a49ef045b0565547e3478d97d3ded0201d32a5f2c08f906f4a1"
+  },
+  "evidence_directory": "build/validation/tunnel-redirects-20261020",
+  "limits": [
+    "Full replacement parity remains incomplete; strict worker checklist retains partial rows.",
+    "Modern cookie-jar eviction and aggregate outgoing-header quotas are not exact aiohttp 3.14 equivalents.",
+    "Finite network captures do not cover every malformed HTTP/URL, proxy or TLS failure schedule.",
+    "Other hardware images/runtime validation and broader video/music-video acceptance remain open.",
+    "PDF-to-speech and separate Gemma experiments are excluded. Real multi-GPU runtime is unavailable on this host."
+  ]
+}

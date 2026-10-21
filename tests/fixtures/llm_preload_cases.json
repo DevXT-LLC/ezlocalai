@@ -1,0 +1,3208 @@
+{
+  "source_sha256": "8238cef03d4a1db6e775d7f62234bcf998d8f08bd9fc15f1d8a36ea0d3280005",
+  "method": "Unchanged __init__ preload branch executed with controlled model construction failures",
+  "cases": [
+    {
+      "models": [],
+      "swap": false,
+      "automatic": [],
+      "failures": [],
+      "attempts": [],
+      "loaded": [],
+      "failed": []
+    },
+    {
+      "models": [],
+      "swap": false,
+      "automatic": [],
+      "failures": [],
+      "attempts": [],
+      "loaded": [],
+      "failed": []
+    },
+    {
+      "models": [],
+      "swap": false,
+      "automatic": [],
+      "failures": [],
+      "attempts": [],
+      "loaded": [],
+      "failed": []
+    },
+    {
+      "models": [],
+      "swap": true,
+      "automatic": [],
+      "failures": [],
+      "attempts": [],
+      "loaded": [],
+      "failed": []
+    },
+    {
+      "models": [],
+      "swap": true,
+      "automatic": [],
+      "failures": [],
+      "attempts": [],
+      "loaded": [],
+      "failed": []
+    },
+    {
+      "models": [],
+      "swap": true,
+      "automatic": [],
+      "failures": [],
+      "attempts": [],
+      "loaded": [],
+      "failed": []
+    },
+    {
+      "models": [
+        "org/first"
+      ],
+      "swap": false,
+      "automatic": [],
+      "failures": [],
+      "attempts": [
+        "org/first"
+      ],
+      "loaded": [
+        "org/first"
+      ],
+      "failed": []
+    },
+    {
+      "models": [
+        "org/first"
+      ],
+      "swap": false,
+      "automatic": [
+        "org/first"
+      ],
+      "failures": [],
+      "attempts": [
+        "org/first"
+      ],
+      "loaded": [
+        "org/first"
+      ],
+      "failed": []
+    },
+    {
+      "models": [
+        "org/first"
+      ],
+      "swap": false,
+      "automatic": [],
+      "failures": [],
+      "attempts": [
+        "org/first"
+      ],
+      "loaded": [
+        "org/first"
+      ],
+      "failed": []
+    },
+    {
+      "models": [
+        "org/first"
+      ],
+      "swap": false,
+      "automatic": [],
+      "failures": [
+        "org/first"
+      ],
+      "attempts": [
+        "org/first"
+      ],
+      "loaded": [],
+      "failed": []
+    },
+    {
+      "models": [
+        "org/first"
+      ],
+      "swap": false,
+      "automatic": [
+        "org/first"
+      ],
+      "failures": [
+        "org/first"
+      ],
+      "attempts": [
+        "org/first"
+      ],
+      "loaded": [],
+      "failed": [
+        "org/first"
+      ]
+    },
+    {
+      "models": [
+        "org/first"
+      ],
+      "swap": false,
+      "automatic": [],
+      "failures": [
+        "org/first"
+      ],
+      "attempts": [
+        "org/first"
+      ],
+      "loaded": [],
+      "failed": []
+    },
+    {
+      "models": [
+        "org/first"
+      ],
+      "swap": true,
+      "automatic": [],
+      "failures": [],
+      "attempts": [
+        "org/first"
+      ],
+      "loaded": [
+        "org/first"
+      ],
+      "failed": []
+    },
+    {
+      "models": [
+        "org/first"
+      ],
+      "swap": true,
+      "automatic": [
+        "org/first"
+      ],
+      "failures": [],
+      "attempts": [
+        "org/first"
+      ],
+      "loaded": [
+        "org/first"
+      ],
+      "failed": []
+    },
+    {
+      "models": [
+        "org/first"
+      ],
+      "swap": true,
+      "automatic": [],
+      "failures": [],
+      "attempts": [
+        "org/first"
+      ],
+      "loaded": [
+        "org/first"
+      ],
+      "failed": []
+    },
+    {
+      "models": [
+        "org/first"
+      ],
+      "swap": true,
+      "automatic": [],
+      "failures": [
+        "org/first"
+      ],
+      "attempts": [
+        "org/first"
+      ],
+      "loaded": [],
+      "failed": []
+    },
+    {
+      "models": [
+        "org/first"
+      ],
+      "swap": true,
+      "automatic": [
+        "org/first"
+      ],
+      "failures": [
+        "org/first"
+      ],
+      "attempts": [
+        "org/first"
+      ],
+      "loaded": [],
+      "failed": [
+        "org/first"
+      ]
+    },
+    {
+      "models": [
+        "org/first"
+      ],
+      "swap": true,
+      "automatic": [],
+      "failures": [
+        "org/first"
+      ],
+      "attempts": [
+        "org/first"
+      ],
+      "loaded": [],
+      "failed": []
+    },
+    {
+      "models": [
+        "org/first",
+        "org/vision"
+      ],
+      "swap": false,
+      "automatic": [],
+      "failures": [],
+      "attempts": [
+        "org/first",
+        "org/vision"
+      ],
+      "loaded": [
+        "org/first",
+        "org/vision"
+      ],
+      "failed": []
+    },
+    {
+      "models": [
+        "org/first",
+        "org/vision"
+      ],
+      "swap": false,
+      "automatic": [
+        "org/first",
+        "org/vision"
+      ],
+      "failures": [],
+      "attempts": [
+        "org/first",
+        "org/vision"
+      ],
+      "loaded": [
+        "org/first",
+        "org/vision"
+      ],
+      "failed": []
+    },
+    {
+      "models": [
+        "org/first",
+        "org/vision"
+      ],
+      "swap": false,
+      "automatic": [],
+      "failures": [],
+      "attempts": [
+        "org/first",
+        "org/vision"
+      ],
+      "loaded": [
+        "org/first",
+        "org/vision"
+      ],
+      "failed": []
+    },
+    {
+      "models": [
+        "org/first",
+        "org/vision"
+      ],
+      "swap": false,
+      "automatic": [],
+      "failures": [
+        "org/first"
+      ],
+      "attempts": [
+        "org/first",
+        "org/vision"
+      ],
+      "loaded": [
+        "org/vision"
+      ],
+      "failed": []
+    },
+    {
+      "models": [
+        "org/first",
+        "org/vision"
+      ],
+      "swap": false,
+      "automatic": [
+        "org/first",
+        "org/vision"
+      ],
+      "failures": [
+        "org/first"
+      ],
+      "attempts": [
+        "org/first",
+        "org/vision"
+      ],
+      "loaded": [
+        "org/vision"
+      ],
+      "failed": [
+        "org/first"
+      ]
+    },
+    {
+      "models": [
+        "org/first",
+        "org/vision"
+      ],
+      "swap": false,
+      "automatic": [],
+      "failures": [
+        "org/first"
+      ],
+      "attempts": [
+        "org/first",
+        "org/vision"
+      ],
+      "loaded": [
+        "org/vision"
+      ],
+      "failed": []
+    },
+    {
+      "models": [
+        "org/first",
+        "org/vision"
+      ],
+      "swap": false,
+      "automatic": [],
+      "failures": [
+        "org/vision"
+      ],
+      "attempts": [
+        "org/first",
+        "org/vision"
+      ],
+      "loaded": [
+        "org/first"
+      ],
+      "failed": []
+    },
+    {
+      "models": [
+        "org/first",
+        "org/vision"
+      ],
+      "swap": false,
+      "automatic": [
+        "org/first",
+        "org/vision"
+      ],
+      "failures": [
+        "org/vision"
+      ],
+      "attempts": [
+        "org/first",
+        "org/vision"
+      ],
+      "loaded": [
+        "org/first"
+      ],
+      "failed": [
+        "org/vision"
+      ]
+    },
+    {
+      "models": [
+        "org/first",
+        "org/vision"
+      ],
+      "swap": false,
+      "automatic": [],
+      "failures": [
+        "org/vision"
+      ],
+      "attempts": [
+        "org/first",
+        "org/vision"
+      ],
+      "loaded": [
+        "org/first"
+      ],
+      "failed": []
+    },
+    {
+      "models": [
+        "org/first",
+        "org/vision"
+      ],
+      "swap": false,
+      "automatic": [],
+      "failures": [
+        "org/first",
+        "org/vision"
+      ],
+      "attempts": [
+        "org/first",
+        "org/vision"
+      ],
+      "loaded": [],
+      "failed": []
+    },
+    {
+      "models": [
+        "org/first",
+        "org/vision"
+      ],
+      "swap": false,
+      "automatic": [
+        "org/first",
+        "org/vision"
+      ],
+      "failures": [
+        "org/first",
+        "org/vision"
+      ],
+      "attempts": [
+        "org/first",
+        "org/vision"
+      ],
+      "loaded": [],
+      "failed": [
+        "org/first",
+        "org/vision"
+      ]
+    },
+    {
+      "models": [
+        "org/first",
+        "org/vision"
+      ],
+      "swap": false,
+      "automatic": [],
+      "failures": [
+        "org/first",
+        "org/vision"
+      ],
+      "attempts": [
+        "org/first",
+        "org/vision"
+      ],
+      "loaded": [],
+      "failed": []
+    },
+    {
+      "models": [
+        "org/first",
+        "org/vision"
+      ],
+      "swap": true,
+      "automatic": [],
+      "failures": [],
+      "attempts": [
+        "org/first"
+      ],
+      "loaded": [
+        "org/first"
+      ],
+      "failed": []
+    },
+    {
+      "models": [
+        "org/first",
+        "org/vision"
+      ],
+      "swap": true,
+      "automatic": [
+        "org/first",
+        "org/vision"
+      ],
+      "failures": [],
+      "attempts": [
+        "org/first"
+      ],
+      "loaded": [
+        "org/first"
+      ],
+      "failed": []
+    },
+    {
+      "models": [
+        "org/first",
+        "org/vision"
+      ],
+      "swap": true,
+      "automatic": [],
+      "failures": [],
+      "attempts": [
+        "org/first"
+      ],
+      "loaded": [
+        "org/first"
+      ],
+      "failed": []
+    },
+    {
+      "models": [
+        "org/first",
+        "org/vision"
+      ],
+      "swap": true,
+      "automatic": [],
+      "failures": [
+        "org/first"
+      ],
+      "attempts": [
+        "org/first"
+      ],
+      "loaded": [],
+      "failed": []
+    },
+    {
+      "models": [
+        "org/first",
+        "org/vision"
+      ],
+      "swap": true,
+      "automatic": [
+        "org/first",
+        "org/vision"
+      ],
+      "failures": [
+        "org/first"
+      ],
+      "attempts": [
+        "org/first"
+      ],
+      "loaded": [],
+      "failed": [
+        "org/first"
+      ]
+    },
+    {
+      "models": [
+        "org/first",
+        "org/vision"
+      ],
+      "swap": true,
+      "automatic": [],
+      "failures": [
+        "org/first"
+      ],
+      "attempts": [
+        "org/first"
+      ],
+      "loaded": [],
+      "failed": []
+    },
+    {
+      "models": [
+        "org/first",
+        "org/vision"
+      ],
+      "swap": true,
+      "automatic": [],
+      "failures": [
+        "org/vision"
+      ],
+      "attempts": [
+        "org/first"
+      ],
+      "loaded": [
+        "org/first"
+      ],
+      "failed": []
+    },
+    {
+      "models": [
+        "org/first",
+        "org/vision"
+      ],
+      "swap": true,
+      "automatic": [
+        "org/first",
+        "org/vision"
+      ],
+      "failures": [
+        "org/vision"
+      ],
+      "attempts": [
+        "org/first"
+      ],
+      "loaded": [
+        "org/first"
+      ],
+      "failed": []
+    },
+    {
+      "models": [
+        "org/first",
+        "org/vision"
+      ],
+      "swap": true,
+      "automatic": [],
+      "failures": [
+        "org/vision"
+      ],
+      "attempts": [
+        "org/first"
+      ],
+      "loaded": [
+        "org/first"
+      ],
+      "failed": []
+    },
+    {
+      "models": [
+        "org/first",
+        "org/vision"
+      ],
+      "swap": true,
+      "automatic": [],
+      "failures": [
+        "org/first",
+        "org/vision"
+      ],
+      "attempts": [
+        "org/first"
+      ],
+      "loaded": [],
+      "failed": []
+    },
+    {
+      "models": [
+        "org/first",
+        "org/vision"
+      ],
+      "swap": true,
+      "automatic": [
+        "org/first",
+        "org/vision"
+      ],
+      "failures": [
+        "org/first",
+        "org/vision"
+      ],
+      "attempts": [
+        "org/first"
+      ],
+      "loaded": [],
+      "failed": [
+        "org/first"
+      ]
+    },
+    {
+      "models": [
+        "org/first",
+        "org/vision"
+      ],
+      "swap": true,
+      "automatic": [],
+      "failures": [
+        "org/first",
+        "org/vision"
+      ],
+      "attempts": [
+        "org/first"
+      ],
+      "loaded": [],
+      "failed": []
+    },
+    {
+      "models": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "swap": false,
+      "automatic": [],
+      "failures": [],
+      "attempts": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "loaded": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "failed": []
+    },
+    {
+      "models": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "swap": false,
+      "automatic": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "failures": [],
+      "attempts": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "loaded": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "failed": []
+    },
+    {
+      "models": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "swap": false,
+      "automatic": [
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "failures": [],
+      "attempts": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "loaded": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "failed": []
+    },
+    {
+      "models": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "swap": false,
+      "automatic": [],
+      "failures": [
+        "org/first"
+      ],
+      "attempts": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "loaded": [
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "failed": []
+    },
+    {
+      "models": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "swap": false,
+      "automatic": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "failures": [
+        "org/first"
+      ],
+      "attempts": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "loaded": [
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "failed": [
+        "org/first"
+      ]
+    },
+    {
+      "models": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "swap": false,
+      "automatic": [
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "failures": [
+        "org/first"
+      ],
+      "attempts": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "loaded": [
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "failed": []
+    },
+    {
+      "models": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "swap": false,
+      "automatic": [],
+      "failures": [
+        "org/vision"
+      ],
+      "attempts": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "loaded": [
+        "org/first",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "failed": []
+    },
+    {
+      "models": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "swap": false,
+      "automatic": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "failures": [
+        "org/vision"
+      ],
+      "attempts": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "loaded": [
+        "org/first",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "failed": [
+        "org/vision"
+      ]
+    },
+    {
+      "models": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "swap": false,
+      "automatic": [
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "failures": [
+        "org/vision"
+      ],
+      "attempts": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "loaded": [
+        "org/first",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "failed": []
+    },
+    {
+      "models": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "swap": false,
+      "automatic": [],
+      "failures": [
+        "org/first",
+        "org/vision"
+      ],
+      "attempts": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "loaded": [
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "failed": []
+    },
+    {
+      "models": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "swap": false,
+      "automatic": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "failures": [
+        "org/first",
+        "org/vision"
+      ],
+      "attempts": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "loaded": [
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "failed": [
+        "org/first",
+        "org/vision"
+      ]
+    },
+    {
+      "models": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "swap": false,
+      "automatic": [
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "failures": [
+        "org/first",
+        "org/vision"
+      ],
+      "attempts": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "loaded": [
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "failed": []
+    },
+    {
+      "models": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "swap": false,
+      "automatic": [],
+      "failures": [
+        "org/first#2"
+      ],
+      "attempts": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "loaded": [
+        "org/first",
+        "org/vision",
+        "org/vision#2"
+      ],
+      "failed": []
+    },
+    {
+      "models": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "swap": false,
+      "automatic": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "failures": [
+        "org/first#2"
+      ],
+      "attempts": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "loaded": [
+        "org/first",
+        "org/vision",
+        "org/vision#2"
+      ],
+      "failed": [
+        "org/first#2"
+      ]
+    },
+    {
+      "models": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "swap": false,
+      "automatic": [
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "failures": [
+        "org/first#2"
+      ],
+      "attempts": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "loaded": [
+        "org/first",
+        "org/vision",
+        "org/vision#2"
+      ],
+      "failed": [
+        "org/first#2"
+      ]
+    },
+    {
+      "models": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "swap": false,
+      "automatic": [],
+      "failures": [
+        "org/first",
+        "org/first#2"
+      ],
+      "attempts": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "loaded": [
+        "org/vision",
+        "org/vision#2"
+      ],
+      "failed": []
+    },
+    {
+      "models": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "swap": false,
+      "automatic": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "failures": [
+        "org/first",
+        "org/first#2"
+      ],
+      "attempts": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "loaded": [
+        "org/vision",
+        "org/vision#2"
+      ],
+      "failed": [
+        "org/first",
+        "org/first#2"
+      ]
+    },
+    {
+      "models": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "swap": false,
+      "automatic": [
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "failures": [
+        "org/first",
+        "org/first#2"
+      ],
+      "attempts": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "loaded": [
+        "org/vision",
+        "org/vision#2"
+      ],
+      "failed": [
+        "org/first#2"
+      ]
+    },
+    {
+      "models": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "swap": false,
+      "automatic": [],
+      "failures": [
+        "org/vision",
+        "org/first#2"
+      ],
+      "attempts": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "loaded": [
+        "org/first",
+        "org/vision#2"
+      ],
+      "failed": []
+    },
+    {
+      "models": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "swap": false,
+      "automatic": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "failures": [
+        "org/vision",
+        "org/first#2"
+      ],
+      "attempts": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "loaded": [
+        "org/first",
+        "org/vision#2"
+      ],
+      "failed": [
+        "org/first#2",
+        "org/vision"
+      ]
+    },
+    {
+      "models": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "swap": false,
+      "automatic": [
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "failures": [
+        "org/vision",
+        "org/first#2"
+      ],
+      "attempts": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "loaded": [
+        "org/first",
+        "org/vision#2"
+      ],
+      "failed": [
+        "org/first#2"
+      ]
+    },
+    {
+      "models": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "swap": false,
+      "automatic": [],
+      "failures": [
+        "org/first",
+        "org/vision",
+        "org/first#2"
+      ],
+      "attempts": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "loaded": [
+        "org/vision#2"
+      ],
+      "failed": []
+    },
+    {
+      "models": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "swap": false,
+      "automatic": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "failures": [
+        "org/first",
+        "org/vision",
+        "org/first#2"
+      ],
+      "attempts": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "loaded": [
+        "org/vision#2"
+      ],
+      "failed": [
+        "org/first",
+        "org/first#2",
+        "org/vision"
+      ]
+    },
+    {
+      "models": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "swap": false,
+      "automatic": [
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "failures": [
+        "org/first",
+        "org/vision",
+        "org/first#2"
+      ],
+      "attempts": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "loaded": [
+        "org/vision#2"
+      ],
+      "failed": [
+        "org/first#2"
+      ]
+    },
+    {
+      "models": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "swap": false,
+      "automatic": [],
+      "failures": [
+        "org/vision#2"
+      ],
+      "attempts": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "loaded": [
+        "org/first",
+        "org/vision",
+        "org/first#2"
+      ],
+      "failed": []
+    },
+    {
+      "models": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "swap": false,
+      "automatic": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "failures": [
+        "org/vision#2"
+      ],
+      "attempts": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "loaded": [
+        "org/first",
+        "org/vision",
+        "org/first#2"
+      ],
+      "failed": [
+        "org/vision#2"
+      ]
+    },
+    {
+      "models": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "swap": false,
+      "automatic": [
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "failures": [
+        "org/vision#2"
+      ],
+      "attempts": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "loaded": [
+        "org/first",
+        "org/vision",
+        "org/first#2"
+      ],
+      "failed": [
+        "org/vision#2"
+      ]
+    },
+    {
+      "models": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "swap": false,
+      "automatic": [],
+      "failures": [
+        "org/first",
+        "org/vision#2"
+      ],
+      "attempts": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "loaded": [
+        "org/vision",
+        "org/first#2"
+      ],
+      "failed": []
+    },
+    {
+      "models": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "swap": false,
+      "automatic": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "failures": [
+        "org/first",
+        "org/vision#2"
+      ],
+      "attempts": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "loaded": [
+        "org/vision",
+        "org/first#2"
+      ],
+      "failed": [
+        "org/first",
+        "org/vision#2"
+      ]
+    },
+    {
+      "models": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "swap": false,
+      "automatic": [
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "failures": [
+        "org/first",
+        "org/vision#2"
+      ],
+      "attempts": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "loaded": [
+        "org/vision",
+        "org/first#2"
+      ],
+      "failed": [
+        "org/vision#2"
+      ]
+    },
+    {
+      "models": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "swap": false,
+      "automatic": [],
+      "failures": [
+        "org/vision",
+        "org/vision#2"
+      ],
+      "attempts": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "loaded": [
+        "org/first",
+        "org/first#2"
+      ],
+      "failed": []
+    },
+    {
+      "models": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "swap": false,
+      "automatic": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "failures": [
+        "org/vision",
+        "org/vision#2"
+      ],
+      "attempts": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "loaded": [
+        "org/first",
+        "org/first#2"
+      ],
+      "failed": [
+        "org/vision",
+        "org/vision#2"
+      ]
+    },
+    {
+      "models": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "swap": false,
+      "automatic": [
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "failures": [
+        "org/vision",
+        "org/vision#2"
+      ],
+      "attempts": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "loaded": [
+        "org/first",
+        "org/first#2"
+      ],
+      "failed": [
+        "org/vision#2"
+      ]
+    },
+    {
+      "models": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "swap": false,
+      "automatic": [],
+      "failures": [
+        "org/first",
+        "org/vision",
+        "org/vision#2"
+      ],
+      "attempts": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "loaded": [
+        "org/first#2"
+      ],
+      "failed": []
+    },
+    {
+      "models": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "swap": false,
+      "automatic": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "failures": [
+        "org/first",
+        "org/vision",
+        "org/vision#2"
+      ],
+      "attempts": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "loaded": [
+        "org/first#2"
+      ],
+      "failed": [
+        "org/first",
+        "org/vision",
+        "org/vision#2"
+      ]
+    },
+    {
+      "models": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "swap": false,
+      "automatic": [
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "failures": [
+        "org/first",
+        "org/vision",
+        "org/vision#2"
+      ],
+      "attempts": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "loaded": [
+        "org/first#2"
+      ],
+      "failed": [
+        "org/vision#2"
+      ]
+    },
+    {
+      "models": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "swap": false,
+      "automatic": [],
+      "failures": [
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "attempts": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "loaded": [
+        "org/first",
+        "org/vision"
+      ],
+      "failed": []
+    },
+    {
+      "models": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "swap": false,
+      "automatic": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "failures": [
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "attempts": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "loaded": [
+        "org/first",
+        "org/vision"
+      ],
+      "failed": [
+        "org/first#2",
+        "org/vision#2"
+      ]
+    },
+    {
+      "models": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "swap": false,
+      "automatic": [
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "failures": [
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "attempts": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "loaded": [
+        "org/first",
+        "org/vision"
+      ],
+      "failed": [
+        "org/first#2",
+        "org/vision#2"
+      ]
+    },
+    {
+      "models": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "swap": false,
+      "automatic": [],
+      "failures": [
+        "org/first",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "attempts": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "loaded": [
+        "org/vision"
+      ],
+      "failed": []
+    },
+    {
+      "models": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "swap": false,
+      "automatic": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "failures": [
+        "org/first",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "attempts": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "loaded": [
+        "org/vision"
+      ],
+      "failed": [
+        "org/first",
+        "org/first#2",
+        "org/vision#2"
+      ]
+    },
+    {
+      "models": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "swap": false,
+      "automatic": [
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "failures": [
+        "org/first",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "attempts": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "loaded": [
+        "org/vision"
+      ],
+      "failed": [
+        "org/first#2",
+        "org/vision#2"
+      ]
+    },
+    {
+      "models": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "swap": false,
+      "automatic": [],
+      "failures": [
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "attempts": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "loaded": [
+        "org/first"
+      ],
+      "failed": []
+    },
+    {
+      "models": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "swap": false,
+      "automatic": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "failures": [
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "attempts": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "loaded": [
+        "org/first"
+      ],
+      "failed": [
+        "org/first#2",
+        "org/vision",
+        "org/vision#2"
+      ]
+    },
+    {
+      "models": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "swap": false,
+      "automatic": [
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "failures": [
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "attempts": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "loaded": [
+        "org/first"
+      ],
+      "failed": [
+        "org/first#2",
+        "org/vision#2"
+      ]
+    },
+    {
+      "models": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "swap": false,
+      "automatic": [],
+      "failures": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "attempts": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "loaded": [],
+      "failed": []
+    },
+    {
+      "models": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "swap": false,
+      "automatic": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "failures": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "attempts": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "loaded": [],
+      "failed": [
+        "org/first",
+        "org/first#2",
+        "org/vision",
+        "org/vision#2"
+      ]
+    },
+    {
+      "models": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "swap": false,
+      "automatic": [
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "failures": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "attempts": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "loaded": [],
+      "failed": [
+        "org/first#2",
+        "org/vision#2"
+      ]
+    },
+    {
+      "models": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "swap": true,
+      "automatic": [],
+      "failures": [],
+      "attempts": [
+        "org/first"
+      ],
+      "loaded": [
+        "org/first"
+      ],
+      "failed": []
+    },
+    {
+      "models": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "swap": true,
+      "automatic": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "failures": [],
+      "attempts": [
+        "org/first"
+      ],
+      "loaded": [
+        "org/first"
+      ],
+      "failed": []
+    },
+    {
+      "models": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "swap": true,
+      "automatic": [
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "failures": [],
+      "attempts": [
+        "org/first"
+      ],
+      "loaded": [
+        "org/first"
+      ],
+      "failed": []
+    },
+    {
+      "models": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "swap": true,
+      "automatic": [],
+      "failures": [
+        "org/first"
+      ],
+      "attempts": [
+        "org/first"
+      ],
+      "loaded": [],
+      "failed": []
+    },
+    {
+      "models": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "swap": true,
+      "automatic": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "failures": [
+        "org/first"
+      ],
+      "attempts": [
+        "org/first"
+      ],
+      "loaded": [],
+      "failed": [
+        "org/first"
+      ]
+    },
+    {
+      "models": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "swap": true,
+      "automatic": [
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "failures": [
+        "org/first"
+      ],
+      "attempts": [
+        "org/first"
+      ],
+      "loaded": [],
+      "failed": []
+    },
+    {
+      "models": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "swap": true,
+      "automatic": [],
+      "failures": [
+        "org/vision"
+      ],
+      "attempts": [
+        "org/first"
+      ],
+      "loaded": [
+        "org/first"
+      ],
+      "failed": []
+    },
+    {
+      "models": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "swap": true,
+      "automatic": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "failures": [
+        "org/vision"
+      ],
+      "attempts": [
+        "org/first"
+      ],
+      "loaded": [
+        "org/first"
+      ],
+      "failed": []
+    },
+    {
+      "models": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "swap": true,
+      "automatic": [
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "failures": [
+        "org/vision"
+      ],
+      "attempts": [
+        "org/first"
+      ],
+      "loaded": [
+        "org/first"
+      ],
+      "failed": []
+    },
+    {
+      "models": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "swap": true,
+      "automatic": [],
+      "failures": [
+        "org/first",
+        "org/vision"
+      ],
+      "attempts": [
+        "org/first"
+      ],
+      "loaded": [],
+      "failed": []
+    },
+    {
+      "models": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "swap": true,
+      "automatic": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "failures": [
+        "org/first",
+        "org/vision"
+      ],
+      "attempts": [
+        "org/first"
+      ],
+      "loaded": [],
+      "failed": [
+        "org/first"
+      ]
+    },
+    {
+      "models": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "swap": true,
+      "automatic": [
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "failures": [
+        "org/first",
+        "org/vision"
+      ],
+      "attempts": [
+        "org/first"
+      ],
+      "loaded": [],
+      "failed": []
+    },
+    {
+      "models": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "swap": true,
+      "automatic": [],
+      "failures": [
+        "org/first#2"
+      ],
+      "attempts": [
+        "org/first"
+      ],
+      "loaded": [
+        "org/first"
+      ],
+      "failed": []
+    },
+    {
+      "models": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "swap": true,
+      "automatic": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "failures": [
+        "org/first#2"
+      ],
+      "attempts": [
+        "org/first"
+      ],
+      "loaded": [
+        "org/first"
+      ],
+      "failed": []
+    },
+    {
+      "models": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "swap": true,
+      "automatic": [
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "failures": [
+        "org/first#2"
+      ],
+      "attempts": [
+        "org/first"
+      ],
+      "loaded": [
+        "org/first"
+      ],
+      "failed": []
+    },
+    {
+      "models": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "swap": true,
+      "automatic": [],
+      "failures": [
+        "org/first",
+        "org/first#2"
+      ],
+      "attempts": [
+        "org/first"
+      ],
+      "loaded": [],
+      "failed": []
+    },
+    {
+      "models": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "swap": true,
+      "automatic": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "failures": [
+        "org/first",
+        "org/first#2"
+      ],
+      "attempts": [
+        "org/first"
+      ],
+      "loaded": [],
+      "failed": [
+        "org/first"
+      ]
+    },
+    {
+      "models": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "swap": true,
+      "automatic": [
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "failures": [
+        "org/first",
+        "org/first#2"
+      ],
+      "attempts": [
+        "org/first"
+      ],
+      "loaded": [],
+      "failed": []
+    },
+    {
+      "models": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "swap": true,
+      "automatic": [],
+      "failures": [
+        "org/vision",
+        "org/first#2"
+      ],
+      "attempts": [
+        "org/first"
+      ],
+      "loaded": [
+        "org/first"
+      ],
+      "failed": []
+    },
+    {
+      "models": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "swap": true,
+      "automatic": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "failures": [
+        "org/vision",
+        "org/first#2"
+      ],
+      "attempts": [
+        "org/first"
+      ],
+      "loaded": [
+        "org/first"
+      ],
+      "failed": []
+    },
+    {
+      "models": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "swap": true,
+      "automatic": [
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "failures": [
+        "org/vision",
+        "org/first#2"
+      ],
+      "attempts": [
+        "org/first"
+      ],
+      "loaded": [
+        "org/first"
+      ],
+      "failed": []
+    },
+    {
+      "models": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "swap": true,
+      "automatic": [],
+      "failures": [
+        "org/first",
+        "org/vision",
+        "org/first#2"
+      ],
+      "attempts": [
+        "org/first"
+      ],
+      "loaded": [],
+      "failed": []
+    },
+    {
+      "models": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "swap": true,
+      "automatic": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "failures": [
+        "org/first",
+        "org/vision",
+        "org/first#2"
+      ],
+      "attempts": [
+        "org/first"
+      ],
+      "loaded": [],
+      "failed": [
+        "org/first"
+      ]
+    },
+    {
+      "models": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "swap": true,
+      "automatic": [
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "failures": [
+        "org/first",
+        "org/vision",
+        "org/first#2"
+      ],
+      "attempts": [
+        "org/first"
+      ],
+      "loaded": [],
+      "failed": []
+    },
+    {
+      "models": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "swap": true,
+      "automatic": [],
+      "failures": [
+        "org/vision#2"
+      ],
+      "attempts": [
+        "org/first"
+      ],
+      "loaded": [
+        "org/first"
+      ],
+      "failed": []
+    },
+    {
+      "models": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "swap": true,
+      "automatic": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "failures": [
+        "org/vision#2"
+      ],
+      "attempts": [
+        "org/first"
+      ],
+      "loaded": [
+        "org/first"
+      ],
+      "failed": []
+    },
+    {
+      "models": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "swap": true,
+      "automatic": [
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "failures": [
+        "org/vision#2"
+      ],
+      "attempts": [
+        "org/first"
+      ],
+      "loaded": [
+        "org/first"
+      ],
+      "failed": []
+    },
+    {
+      "models": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "swap": true,
+      "automatic": [],
+      "failures": [
+        "org/first",
+        "org/vision#2"
+      ],
+      "attempts": [
+        "org/first"
+      ],
+      "loaded": [],
+      "failed": []
+    },
+    {
+      "models": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "swap": true,
+      "automatic": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "failures": [
+        "org/first",
+        "org/vision#2"
+      ],
+      "attempts": [
+        "org/first"
+      ],
+      "loaded": [],
+      "failed": [
+        "org/first"
+      ]
+    },
+    {
+      "models": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "swap": true,
+      "automatic": [
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "failures": [
+        "org/first",
+        "org/vision#2"
+      ],
+      "attempts": [
+        "org/first"
+      ],
+      "loaded": [],
+      "failed": []
+    },
+    {
+      "models": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "swap": true,
+      "automatic": [],
+      "failures": [
+        "org/vision",
+        "org/vision#2"
+      ],
+      "attempts": [
+        "org/first"
+      ],
+      "loaded": [
+        "org/first"
+      ],
+      "failed": []
+    },
+    {
+      "models": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "swap": true,
+      "automatic": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "failures": [
+        "org/vision",
+        "org/vision#2"
+      ],
+      "attempts": [
+        "org/first"
+      ],
+      "loaded": [
+        "org/first"
+      ],
+      "failed": []
+    },
+    {
+      "models": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "swap": true,
+      "automatic": [
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "failures": [
+        "org/vision",
+        "org/vision#2"
+      ],
+      "attempts": [
+        "org/first"
+      ],
+      "loaded": [
+        "org/first"
+      ],
+      "failed": []
+    },
+    {
+      "models": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "swap": true,
+      "automatic": [],
+      "failures": [
+        "org/first",
+        "org/vision",
+        "org/vision#2"
+      ],
+      "attempts": [
+        "org/first"
+      ],
+      "loaded": [],
+      "failed": []
+    },
+    {
+      "models": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "swap": true,
+      "automatic": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "failures": [
+        "org/first",
+        "org/vision",
+        "org/vision#2"
+      ],
+      "attempts": [
+        "org/first"
+      ],
+      "loaded": [],
+      "failed": [
+        "org/first"
+      ]
+    },
+    {
+      "models": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "swap": true,
+      "automatic": [
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "failures": [
+        "org/first",
+        "org/vision",
+        "org/vision#2"
+      ],
+      "attempts": [
+        "org/first"
+      ],
+      "loaded": [],
+      "failed": []
+    },
+    {
+      "models": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "swap": true,
+      "automatic": [],
+      "failures": [
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "attempts": [
+        "org/first"
+      ],
+      "loaded": [
+        "org/first"
+      ],
+      "failed": []
+    },
+    {
+      "models": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "swap": true,
+      "automatic": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "failures": [
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "attempts": [
+        "org/first"
+      ],
+      "loaded": [
+        "org/first"
+      ],
+      "failed": []
+    },
+    {
+      "models": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "swap": true,
+      "automatic": [
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "failures": [
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "attempts": [
+        "org/first"
+      ],
+      "loaded": [
+        "org/first"
+      ],
+      "failed": []
+    },
+    {
+      "models": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "swap": true,
+      "automatic": [],
+      "failures": [
+        "org/first",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "attempts": [
+        "org/first"
+      ],
+      "loaded": [],
+      "failed": []
+    },
+    {
+      "models": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "swap": true,
+      "automatic": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "failures": [
+        "org/first",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "attempts": [
+        "org/first"
+      ],
+      "loaded": [],
+      "failed": [
+        "org/first"
+      ]
+    },
+    {
+      "models": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "swap": true,
+      "automatic": [
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "failures": [
+        "org/first",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "attempts": [
+        "org/first"
+      ],
+      "loaded": [],
+      "failed": []
+    },
+    {
+      "models": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "swap": true,
+      "automatic": [],
+      "failures": [
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "attempts": [
+        "org/first"
+      ],
+      "loaded": [
+        "org/first"
+      ],
+      "failed": []
+    },
+    {
+      "models": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "swap": true,
+      "automatic": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "failures": [
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "attempts": [
+        "org/first"
+      ],
+      "loaded": [
+        "org/first"
+      ],
+      "failed": []
+    },
+    {
+      "models": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "swap": true,
+      "automatic": [
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "failures": [
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "attempts": [
+        "org/first"
+      ],
+      "loaded": [
+        "org/first"
+      ],
+      "failed": []
+    },
+    {
+      "models": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "swap": true,
+      "automatic": [],
+      "failures": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "attempts": [
+        "org/first"
+      ],
+      "loaded": [],
+      "failed": []
+    },
+    {
+      "models": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "swap": true,
+      "automatic": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "failures": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "attempts": [
+        "org/first"
+      ],
+      "loaded": [],
+      "failed": [
+        "org/first"
+      ]
+    },
+    {
+      "models": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "swap": true,
+      "automatic": [
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "failures": [
+        "org/first",
+        "org/vision",
+        "org/first#2",
+        "org/vision#2"
+      ],
+      "attempts": [
+        "org/first"
+      ],
+      "loaded": [],
+      "failed": []
+    }
+  ]
+}

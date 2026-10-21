@@ -1,0 +1,26 @@
+[
+  {
+    "name": "onnxruntime-1.31.0",
+    "kind": "ort",
+    "url": "https://github.com/microsoft/onnxruntime/releases/download/v1.31.0/onnxruntime-linux-aarch64-1.31.0.tgz",
+    "sha256": "c5b8b3cca31f3d643a3b313b8f42e2d0f16a4fcefd02cda343d97bd5306afaab"
+  },
+  {
+    "name": "onnxruntime-installed-1.31.0",
+    "kind": "ort_library",
+    "url": "https://files.pythonhosted.org/packages/53/1a/561b43ca1536d9e81d1785bb8a1a260a9e314ef6d04976ba0411c652bda1/onnxruntime-1.31.0-cp312-cp312-manylinux_2_28_aarch64.whl",
+    "sha256": "35758d7606d578ec5b9d65f6e8a1f488013194c3f6097038a3223cb26d35ef9a"
+  },
+  {
+    "name": "faster-whisper-assets-1.2.0",
+    "kind": "vad",
+    "url": "https://files.pythonhosted.org/packages/da/6d/64cdc135e4195f9473c2e42aa1d2268654be4c289223828eee8e6ba4fc6d/faster_whisper-1.2.0-py3-none-any.whl",
+    "sha256": "e5535628fe93b5123029b410fd8edba2d28f8cee9f8fff8119138e5a9d81afbe"
+  },
+  {
+    "name": "soundfile-native-0.14.0",
+    "kind": "sndfile",
+    "url": "https://files.pythonhosted.org/packages/4a/f8/fc39fad6f879633461d27394cd1ddaf1f769ffa0597dca35872f51b16461/soundfile-0.14.0-py2.py3-none-manylinux_2_28_aarch64.whl",
+    "sha256": "e85724a90bc99a6e8062c0b4ddf725f53b2a3b70afd4da875e9d2cfc4e92f377"
+  }
+]

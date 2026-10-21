@@ -1,0 +1,2324 @@
+{
+  "method": "Executed actual VIDEO constructor and _load_pipeline plus actual CPUEncoderBridge constructor and choose_video_gpu_residency. Model loading, CUDA observations, pipeline methods and downloads are controlled stubs; no real inference or memory measurement.",
+  "sources": {
+    "LTX_VIDEO.py": "53ca668e446acc6b9f61937b394abf9cbdf5035d42ff71ab7170838b849242b3",
+    "VIDEO_UTILS.py": "8e7bc34f16927d7b9fc619fe0d96445a5dbd44713bad9308388a95214a32c047"
+  },
+  "capture_sha256": "bbecb0a89c593ffeb6a740973d55ee3b2104917c46bbfbcccab52e6a7bca2844",
+  "cases": [
+    {
+      "input": {
+        "before": 11.999,
+        "after": 4,
+        "total": 24,
+        "hint": {}
+      },
+      "events": [
+        {
+          "event": "memory_query",
+          "gpu": 1,
+          "free_gib": 11.999
+        },
+        {
+          "event": "encoder_load",
+          "kind": "quanto",
+          "dtype": "bf16",
+          "device_map": null
+        },
+        {
+          "event": "pipeline_load"
+        },
+        {
+          "event": "memory_query",
+          "gpu": 1,
+          "free_gib": 4
+        },
+        {
+          "event": "sequential",
+          "gpu": 1,
+          "text_present": false
+        }
+      ],
+      "result": {
+        "dtype": "bf16",
+        "residency": "sequential",
+        "encoder": "quanto",
+        "cpu_bridge": true,
+        "bridge_target": "cuda:1",
+        "shared_encoder": true,
+        "shared_hooks": true
+      }
+    },
+    {
+      "input": {
+        "before": 11.999,
+        "after": 4,
+        "total": 24,
+        "hint": {
+          "num_frames": 9,
+          "width": 64,
+          "height": 64
+        }
+      },
+      "events": [
+        {
+          "event": "memory_query",
+          "gpu": 1,
+          "free_gib": 11.999
+        },
+        {
+          "event": "encoder_load",
+          "kind": "quanto",
+          "dtype": "bf16",
+          "device_map": null
+        },
+        {
+          "event": "pipeline_load"
+        },
+        {
+          "event": "memory_query",
+          "gpu": 1,
+          "free_gib": 4
+        },
+        {
+          "event": "sequential",
+          "gpu": 1,
+          "text_present": false
+        }
+      ],
+      "result": {
+        "dtype": "bf16",
+        "residency": "sequential",
+        "encoder": "quanto",
+        "cpu_bridge": true,
+        "bridge_target": "cuda:1",
+        "shared_encoder": true,
+        "shared_hooks": true
+      }
+    },
+    {
+      "input": {
+        "before": 11.999,
+        "after": 4,
+        "total": 24,
+        "hint": {
+          "num_frames": 257,
+          "width": 64,
+          "height": 64
+        }
+      },
+      "events": [
+        {
+          "event": "memory_query",
+          "gpu": 1,
+          "free_gib": 11.999
+        },
+        {
+          "event": "encoder_load",
+          "kind": "quanto",
+          "dtype": "bf16",
+          "device_map": null
+        },
+        {
+          "event": "pipeline_load"
+        },
+        {
+          "event": "memory_query",
+          "gpu": 1,
+          "free_gib": 4
+        },
+        {
+          "event": "sequential",
+          "gpu": 1,
+          "text_present": false
+        }
+      ],
+      "result": {
+        "dtype": "bf16",
+        "residency": "sequential",
+        "encoder": "quanto",
+        "cpu_bridge": true,
+        "bridge_target": "cuda:1",
+        "shared_encoder": true,
+        "shared_hooks": true
+      }
+    },
+    {
+      "input": {
+        "before": 11.999,
+        "after": 10,
+        "total": 24,
+        "hint": {}
+      },
+      "events": [
+        {
+          "event": "memory_query",
+          "gpu": 1,
+          "free_gib": 11.999
+        },
+        {
+          "event": "encoder_load",
+          "kind": "quanto",
+          "dtype": "bf16",
+          "device_map": null
+        },
+        {
+          "event": "pipeline_load"
+        },
+        {
+          "event": "memory_query",
+          "gpu": 1,
+          "free_gib": 10
+        },
+        {
+          "event": "sequential",
+          "gpu": 1,
+          "text_present": false
+        }
+      ],
+      "result": {
+        "dtype": "bf16",
+        "residency": "sequential",
+        "encoder": "quanto",
+        "cpu_bridge": true,
+        "bridge_target": "cuda:1",
+        "shared_encoder": true,
+        "shared_hooks": true
+      }
+    },
+    {
+      "input": {
+        "before": 11.999,
+        "after": 10,
+        "total": 24,
+        "hint": {
+          "num_frames": 9,
+          "width": 64,
+          "height": 64
+        }
+      },
+      "events": [
+        {
+          "event": "memory_query",
+          "gpu": 1,
+          "free_gib": 11.999
+        },
+        {
+          "event": "encoder_load",
+          "kind": "quanto",
+          "dtype": "bf16",
+          "device_map": null
+        },
+        {
+          "event": "pipeline_load"
+        },
+        {
+          "event": "memory_query",
+          "gpu": 1,
+          "free_gib": 10
+        },
+        {
+          "event": "model_offload",
+          "gpu": 1,
+          "text_present": false
+        }
+      ],
+      "result": {
+        "dtype": "bf16",
+        "residency": "model_offload",
+        "encoder": "quanto",
+        "cpu_bridge": true,
+        "bridge_target": "cuda:1",
+        "shared_encoder": true,
+        "shared_hooks": true
+      }
+    },
+    {
+      "input": {
+        "before": 11.999,
+        "after": 10,
+        "total": 24,
+        "hint": {
+          "num_frames": 257,
+          "width": 64,
+          "height": 64
+        }
+      },
+      "events": [
+        {
+          "event": "memory_query",
+          "gpu": 1,
+          "free_gib": 11.999
+        },
+        {
+          "event": "encoder_load",
+          "kind": "quanto",
+          "dtype": "bf16",
+          "device_map": null
+        },
+        {
+          "event": "pipeline_load"
+        },
+        {
+          "event": "memory_query",
+          "gpu": 1,
+          "free_gib": 10
+        },
+        {
+          "event": "sequential",
+          "gpu": 1,
+          "text_present": false
+        }
+      ],
+      "result": {
+        "dtype": "bf16",
+        "residency": "sequential",
+        "encoder": "quanto",
+        "cpu_bridge": true,
+        "bridge_target": "cuda:1",
+        "shared_encoder": true,
+        "shared_hooks": true
+      }
+    },
+    {
+      "input": {
+        "before": 11.999,
+        "after": 16,
+        "total": 24,
+        "hint": {}
+      },
+      "events": [
+        {
+          "event": "memory_query",
+          "gpu": 1,
+          "free_gib": 11.999
+        },
+        {
+          "event": "encoder_load",
+          "kind": "quanto",
+          "dtype": "bf16",
+          "device_map": null
+        },
+        {
+          "event": "pipeline_load"
+        },
+        {
+          "event": "memory_query",
+          "gpu": 1,
+          "free_gib": 16
+        },
+        {
+          "event": "model_offload",
+          "gpu": 1,
+          "text_present": false
+        }
+      ],
+      "result": {
+        "dtype": "bf16",
+        "residency": "model_offload",
+        "encoder": "quanto",
+        "cpu_bridge": true,
+        "bridge_target": "cuda:1",
+        "shared_encoder": true,
+        "shared_hooks": true
+      }
+    },
+    {
+      "input": {
+        "before": 11.999,
+        "after": 16,
+        "total": 24,
+        "hint": {
+          "num_frames": 9,
+          "width": 64,
+          "height": 64
+        }
+      },
+      "events": [
+        {
+          "event": "memory_query",
+          "gpu": 1,
+          "free_gib": 11.999
+        },
+        {
+          "event": "encoder_load",
+          "kind": "quanto",
+          "dtype": "bf16",
+          "device_map": null
+        },
+        {
+          "event": "pipeline_load"
+        },
+        {
+          "event": "memory_query",
+          "gpu": 1,
+          "free_gib": 16
+        },
+        {
+          "event": "model_offload",
+          "gpu": 1,
+          "text_present": false
+        }
+      ],
+      "result": {
+        "dtype": "bf16",
+        "residency": "model_offload",
+        "encoder": "quanto",
+        "cpu_bridge": true,
+        "bridge_target": "cuda:1",
+        "shared_encoder": true,
+        "shared_hooks": true
+      }
+    },
+    {
+      "input": {
+        "before": 11.999,
+        "after": 16,
+        "total": 24,
+        "hint": {
+          "num_frames": 257,
+          "width": 64,
+          "height": 64
+        }
+      },
+      "events": [
+        {
+          "event": "memory_query",
+          "gpu": 1,
+          "free_gib": 11.999
+        },
+        {
+          "event": "encoder_load",
+          "kind": "quanto",
+          "dtype": "bf16",
+          "device_map": null
+        },
+        {
+          "event": "pipeline_load"
+        },
+        {
+          "event": "memory_query",
+          "gpu": 1,
+          "free_gib": 16
+        },
+        {
+          "event": "model_offload",
+          "gpu": 1,
+          "text_present": false
+        }
+      ],
+      "result": {
+        "dtype": "bf16",
+        "residency": "model_offload",
+        "encoder": "quanto",
+        "cpu_bridge": true,
+        "bridge_target": "cuda:1",
+        "shared_encoder": true,
+        "shared_hooks": true
+      }
+    },
+    {
+      "input": {
+        "before": 11.999,
+        "after": 31,
+        "total": 48,
+        "hint": {}
+      },
+      "events": [
+        {
+          "event": "memory_query",
+          "gpu": 1,
+          "free_gib": 11.999
+        },
+        {
+          "event": "encoder_load",
+          "kind": "quanto",
+          "dtype": "bf16",
+          "device_map": null
+        },
+        {
+          "event": "pipeline_load"
+        },
+        {
+          "event": "memory_query",
+          "gpu": 1,
+          "free_gib": 31
+        },
+        {
+          "event": "model_offload",
+          "gpu": 1,
+          "text_present": false
+        }
+      ],
+      "result": {
+        "dtype": "bf16",
+        "residency": "model_offload",
+        "encoder": "quanto",
+        "cpu_bridge": true,
+        "bridge_target": "cuda:1",
+        "shared_encoder": true,
+        "shared_hooks": true
+      }
+    },
+    {
+      "input": {
+        "before": 11.999,
+        "after": 31,
+        "total": 48,
+        "hint": {
+          "num_frames": 9,
+          "width": 64,
+          "height": 64
+        }
+      },
+      "events": [
+        {
+          "event": "memory_query",
+          "gpu": 1,
+          "free_gib": 11.999
+        },
+        {
+          "event": "encoder_load",
+          "kind": "quanto",
+          "dtype": "bf16",
+          "device_map": null
+        },
+        {
+          "event": "pipeline_load"
+        },
+        {
+          "event": "memory_query",
+          "gpu": 1,
+          "free_gib": 31
+        },
+        {
+          "event": "model_offload",
+          "gpu": 1,
+          "text_present": false
+        }
+      ],
+      "result": {
+        "dtype": "bf16",
+        "residency": "model_offload",
+        "encoder": "quanto",
+        "cpu_bridge": true,
+        "bridge_target": "cuda:1",
+        "shared_encoder": true,
+        "shared_hooks": true
+      }
+    },
+    {
+      "input": {
+        "before": 11.999,
+        "after": 31,
+        "total": 48,
+        "hint": {
+          "num_frames": 257,
+          "width": 64,
+          "height": 64
+        }
+      },
+      "events": [
+        {
+          "event": "memory_query",
+          "gpu": 1,
+          "free_gib": 11.999
+        },
+        {
+          "event": "encoder_load",
+          "kind": "quanto",
+          "dtype": "bf16",
+          "device_map": null
+        },
+        {
+          "event": "pipeline_load"
+        },
+        {
+          "event": "memory_query",
+          "gpu": 1,
+          "free_gib": 31
+        },
+        {
+          "event": "model_offload",
+          "gpu": 1,
+          "text_present": false
+        }
+      ],
+      "result": {
+        "dtype": "bf16",
+        "residency": "model_offload",
+        "encoder": "quanto",
+        "cpu_bridge": true,
+        "bridge_target": "cuda:1",
+        "shared_encoder": true,
+        "shared_hooks": true
+      }
+    },
+    {
+      "input": {
+        "before": 12,
+        "after": 4,
+        "total": 24,
+        "hint": {}
+      },
+      "events": [
+        {
+          "event": "memory_query",
+          "gpu": 1,
+          "free_gib": 12
+        },
+        {
+          "event": "encoder_load",
+          "kind": "nf4",
+          "dtype": "bf16",
+          "device_map": {
+            "": "cuda:1"
+          }
+        },
+        {
+          "event": "pipeline_load"
+        },
+        {
+          "event": "memory_query",
+          "gpu": 1,
+          "free_gib": 4
+        },
+        {
+          "event": "sequential",
+          "gpu": 1,
+          "text_present": false
+        }
+      ],
+      "result": {
+        "dtype": "bf16",
+        "residency": "sequential",
+        "encoder": "nf4",
+        "cpu_bridge": false,
+        "bridge_target": null,
+        "shared_encoder": true,
+        "shared_hooks": true
+      }
+    },
+    {
+      "input": {
+        "before": 12,
+        "after": 4,
+        "total": 24,
+        "hint": {
+          "num_frames": 9,
+          "width": 64,
+          "height": 64
+        }
+      },
+      "events": [
+        {
+          "event": "memory_query",
+          "gpu": 1,
+          "free_gib": 12
+        },
+        {
+          "event": "encoder_load",
+          "kind": "nf4",
+          "dtype": "bf16",
+          "device_map": {
+            "": "cuda:1"
+          }
+        },
+        {
+          "event": "pipeline_load"
+        },
+        {
+          "event": "memory_query",
+          "gpu": 1,
+          "free_gib": 4
+        },
+        {
+          "event": "sequential",
+          "gpu": 1,
+          "text_present": false
+        }
+      ],
+      "result": {
+        "dtype": "bf16",
+        "residency": "sequential",
+        "encoder": "nf4",
+        "cpu_bridge": false,
+        "bridge_target": null,
+        "shared_encoder": true,
+        "shared_hooks": true
+      }
+    },
+    {
+      "input": {
+        "before": 12,
+        "after": 4,
+        "total": 24,
+        "hint": {
+          "num_frames": 257,
+          "width": 64,
+          "height": 64
+        }
+      },
+      "events": [
+        {
+          "event": "memory_query",
+          "gpu": 1,
+          "free_gib": 12
+        },
+        {
+          "event": "encoder_load",
+          "kind": "nf4",
+          "dtype": "bf16",
+          "device_map": {
+            "": "cuda:1"
+          }
+        },
+        {
+          "event": "pipeline_load"
+        },
+        {
+          "event": "memory_query",
+          "gpu": 1,
+          "free_gib": 4
+        },
+        {
+          "event": "sequential",
+          "gpu": 1,
+          "text_present": false
+        }
+      ],
+      "result": {
+        "dtype": "bf16",
+        "residency": "sequential",
+        "encoder": "nf4",
+        "cpu_bridge": false,
+        "bridge_target": null,
+        "shared_encoder": true,
+        "shared_hooks": true
+      }
+    },
+    {
+      "input": {
+        "before": 12,
+        "after": 10,
+        "total": 24,
+        "hint": {}
+      },
+      "events": [
+        {
+          "event": "memory_query",
+          "gpu": 1,
+          "free_gib": 12
+        },
+        {
+          "event": "encoder_load",
+          "kind": "nf4",
+          "dtype": "bf16",
+          "device_map": {
+            "": "cuda:1"
+          }
+        },
+        {
+          "event": "pipeline_load"
+        },
+        {
+          "event": "memory_query",
+          "gpu": 1,
+          "free_gib": 10
+        },
+        {
+          "event": "sequential",
+          "gpu": 1,
+          "text_present": false
+        }
+      ],
+      "result": {
+        "dtype": "bf16",
+        "residency": "sequential",
+        "encoder": "nf4",
+        "cpu_bridge": false,
+        "bridge_target": null,
+        "shared_encoder": true,
+        "shared_hooks": true
+      }
+    },
+    {
+      "input": {
+        "before": 12,
+        "after": 10,
+        "total": 24,
+        "hint": {
+          "num_frames": 9,
+          "width": 64,
+          "height": 64
+        }
+      },
+      "events": [
+        {
+          "event": "memory_query",
+          "gpu": 1,
+          "free_gib": 12
+        },
+        {
+          "event": "encoder_load",
+          "kind": "nf4",
+          "dtype": "bf16",
+          "device_map": {
+            "": "cuda:1"
+          }
+        },
+        {
+          "event": "pipeline_load"
+        },
+        {
+          "event": "memory_query",
+          "gpu": 1,
+          "free_gib": 10
+        },
+        {
+          "event": "model_offload",
+          "gpu": 1,
+          "text_present": false
+        }
+      ],
+      "result": {
+        "dtype": "bf16",
+        "residency": "model_offload",
+        "encoder": "nf4",
+        "cpu_bridge": false,
+        "bridge_target": null,
+        "shared_encoder": true,
+        "shared_hooks": true
+      }
+    },
+    {
+      "input": {
+        "before": 12,
+        "after": 10,
+        "total": 24,
+        "hint": {
+          "num_frames": 257,
+          "width": 64,
+          "height": 64
+        }
+      },
+      "events": [
+        {
+          "event": "memory_query",
+          "gpu": 1,
+          "free_gib": 12
+        },
+        {
+          "event": "encoder_load",
+          "kind": "nf4",
+          "dtype": "bf16",
+          "device_map": {
+            "": "cuda:1"
+          }
+        },
+        {
+          "event": "pipeline_load"
+        },
+        {
+          "event": "memory_query",
+          "gpu": 1,
+          "free_gib": 10
+        },
+        {
+          "event": "sequential",
+          "gpu": 1,
+          "text_present": false
+        }
+      ],
+      "result": {
+        "dtype": "bf16",
+        "residency": "sequential",
+        "encoder": "nf4",
+        "cpu_bridge": false,
+        "bridge_target": null,
+        "shared_encoder": true,
+        "shared_hooks": true
+      }
+    },
+    {
+      "input": {
+        "before": 12,
+        "after": 16,
+        "total": 24,
+        "hint": {}
+      },
+      "events": [
+        {
+          "event": "memory_query",
+          "gpu": 1,
+          "free_gib": 12
+        },
+        {
+          "event": "encoder_load",
+          "kind": "nf4",
+          "dtype": "bf16",
+          "device_map": {
+            "": "cuda:1"
+          }
+        },
+        {
+          "event": "pipeline_load"
+        },
+        {
+          "event": "memory_query",
+          "gpu": 1,
+          "free_gib": 16
+        },
+        {
+          "event": "model_offload",
+          "gpu": 1,
+          "text_present": false
+        }
+      ],
+      "result": {
+        "dtype": "bf16",
+        "residency": "model_offload",
+        "encoder": "nf4",
+        "cpu_bridge": false,
+        "bridge_target": null,
+        "shared_encoder": true,
+        "shared_hooks": true
+      }
+    },
+    {
+      "input": {
+        "before": 12,
+        "after": 16,
+        "total": 24,
+        "hint": {
+          "num_frames": 9,
+          "width": 64,
+          "height": 64
+        }
+      },
+      "events": [
+        {
+          "event": "memory_query",
+          "gpu": 1,
+          "free_gib": 12
+        },
+        {
+          "event": "encoder_load",
+          "kind": "nf4",
+          "dtype": "bf16",
+          "device_map": {
+            "": "cuda:1"
+          }
+        },
+        {
+          "event": "pipeline_load"
+        },
+        {
+          "event": "memory_query",
+          "gpu": 1,
+          "free_gib": 16
+        },
+        {
+          "event": "model_offload",
+          "gpu": 1,
+          "text_present": false
+        }
+      ],
+      "result": {
+        "dtype": "bf16",
+        "residency": "model_offload",
+        "encoder": "nf4",
+        "cpu_bridge": false,
+        "bridge_target": null,
+        "shared_encoder": true,
+        "shared_hooks": true
+      }
+    },
+    {
+      "input": {
+        "before": 12,
+        "after": 16,
+        "total": 24,
+        "hint": {
+          "num_frames": 257,
+          "width": 64,
+          "height": 64
+        }
+      },
+      "events": [
+        {
+          "event": "memory_query",
+          "gpu": 1,
+          "free_gib": 12
+        },
+        {
+          "event": "encoder_load",
+          "kind": "nf4",
+          "dtype": "bf16",
+          "device_map": {
+            "": "cuda:1"
+          }
+        },
+        {
+          "event": "pipeline_load"
+        },
+        {
+          "event": "memory_query",
+          "gpu": 1,
+          "free_gib": 16
+        },
+        {
+          "event": "model_offload",
+          "gpu": 1,
+          "text_present": false
+        }
+      ],
+      "result": {
+        "dtype": "bf16",
+        "residency": "model_offload",
+        "encoder": "nf4",
+        "cpu_bridge": false,
+        "bridge_target": null,
+        "shared_encoder": true,
+        "shared_hooks": true
+      }
+    },
+    {
+      "input": {
+        "before": 12,
+        "after": 31,
+        "total": 48,
+        "hint": {}
+      },
+      "events": [
+        {
+          "event": "memory_query",
+          "gpu": 1,
+          "free_gib": 12
+        },
+        {
+          "event": "encoder_load",
+          "kind": "nf4",
+          "dtype": "bf16",
+          "device_map": {
+            "": "cuda:1"
+          }
+        },
+        {
+          "event": "pipeline_load"
+        },
+        {
+          "event": "memory_query",
+          "gpu": 1,
+          "free_gib": 31
+        },
+        {
+          "event": "pipeline_to",
+          "device": "cuda:1"
+        }
+      ],
+      "result": {
+        "dtype": "bf16",
+        "residency": "full",
+        "encoder": "nf4",
+        "cpu_bridge": false,
+        "bridge_target": null,
+        "shared_encoder": true,
+        "shared_hooks": true
+      }
+    },
+    {
+      "input": {
+        "before": 12,
+        "after": 31,
+        "total": 48,
+        "hint": {
+          "num_frames": 9,
+          "width": 64,
+          "height": 64
+        }
+      },
+      "events": [
+        {
+          "event": "memory_query",
+          "gpu": 1,
+          "free_gib": 12
+        },
+        {
+          "event": "encoder_load",
+          "kind": "nf4",
+          "dtype": "bf16",
+          "device_map": {
+            "": "cuda:1"
+          }
+        },
+        {
+          "event": "pipeline_load"
+        },
+        {
+          "event": "memory_query",
+          "gpu": 1,
+          "free_gib": 31
+        },
+        {
+          "event": "pipeline_to",
+          "device": "cuda:1"
+        }
+      ],
+      "result": {
+        "dtype": "bf16",
+        "residency": "full",
+        "encoder": "nf4",
+        "cpu_bridge": false,
+        "bridge_target": null,
+        "shared_encoder": true,
+        "shared_hooks": true
+      }
+    },
+    {
+      "input": {
+        "before": 12,
+        "after": 31,
+        "total": 48,
+        "hint": {
+          "num_frames": 257,
+          "width": 64,
+          "height": 64
+        }
+      },
+      "events": [
+        {
+          "event": "memory_query",
+          "gpu": 1,
+          "free_gib": 12
+        },
+        {
+          "event": "encoder_load",
+          "kind": "nf4",
+          "dtype": "bf16",
+          "device_map": {
+            "": "cuda:1"
+          }
+        },
+        {
+          "event": "pipeline_load"
+        },
+        {
+          "event": "memory_query",
+          "gpu": 1,
+          "free_gib": 31
+        },
+        {
+          "event": "pipeline_to",
+          "device": "cuda:1"
+        }
+      ],
+      "result": {
+        "dtype": "bf16",
+        "residency": "full",
+        "encoder": "nf4",
+        "cpu_bridge": false,
+        "bridge_target": null,
+        "shared_encoder": true,
+        "shared_hooks": true
+      }
+    },
+    {
+      "input": {
+        "before": 24,
+        "after": 4,
+        "total": 24,
+        "hint": {}
+      },
+      "events": [
+        {
+          "event": "memory_query",
+          "gpu": 1,
+          "free_gib": 24
+        },
+        {
+          "event": "encoder_load",
+          "kind": "nf4",
+          "dtype": "bf16",
+          "device_map": {
+            "": "cuda:1"
+          }
+        },
+        {
+          "event": "pipeline_load"
+        },
+        {
+          "event": "memory_query",
+          "gpu": 1,
+          "free_gib": 4
+        },
+        {
+          "event": "sequential",
+          "gpu": 1,
+          "text_present": false
+        }
+      ],
+      "result": {
+        "dtype": "bf16",
+        "residency": "sequential",
+        "encoder": "nf4",
+        "cpu_bridge": false,
+        "bridge_target": null,
+        "shared_encoder": true,
+        "shared_hooks": true
+      }
+    },
+    {
+      "input": {
+        "before": 24,
+        "after": 4,
+        "total": 24,
+        "hint": {
+          "num_frames": 9,
+          "width": 64,
+          "height": 64
+        }
+      },
+      "events": [
+        {
+          "event": "memory_query",
+          "gpu": 1,
+          "free_gib": 24
+        },
+        {
+          "event": "encoder_load",
+          "kind": "nf4",
+          "dtype": "bf16",
+          "device_map": {
+            "": "cuda:1"
+          }
+        },
+        {
+          "event": "pipeline_load"
+        },
+        {
+          "event": "memory_query",
+          "gpu": 1,
+          "free_gib": 4
+        },
+        {
+          "event": "sequential",
+          "gpu": 1,
+          "text_present": false
+        }
+      ],
+      "result": {
+        "dtype": "bf16",
+        "residency": "sequential",
+        "encoder": "nf4",
+        "cpu_bridge": false,
+        "bridge_target": null,
+        "shared_encoder": true,
+        "shared_hooks": true
+      }
+    },
+    {
+      "input": {
+        "before": 24,
+        "after": 4,
+        "total": 24,
+        "hint": {
+          "num_frames": 257,
+          "width": 64,
+          "height": 64
+        }
+      },
+      "events": [
+        {
+          "event": "memory_query",
+          "gpu": 1,
+          "free_gib": 24
+        },
+        {
+          "event": "encoder_load",
+          "kind": "nf4",
+          "dtype": "bf16",
+          "device_map": {
+            "": "cuda:1"
+          }
+        },
+        {
+          "event": "pipeline_load"
+        },
+        {
+          "event": "memory_query",
+          "gpu": 1,
+          "free_gib": 4
+        },
+        {
+          "event": "sequential",
+          "gpu": 1,
+          "text_present": false
+        }
+      ],
+      "result": {
+        "dtype": "bf16",
+        "residency": "sequential",
+        "encoder": "nf4",
+        "cpu_bridge": false,
+        "bridge_target": null,
+        "shared_encoder": true,
+        "shared_hooks": true
+      }
+    },
+    {
+      "input": {
+        "before": 24,
+        "after": 10,
+        "total": 24,
+        "hint": {}
+      },
+      "events": [
+        {
+          "event": "memory_query",
+          "gpu": 1,
+          "free_gib": 24
+        },
+        {
+          "event": "encoder_load",
+          "kind": "nf4",
+          "dtype": "bf16",
+          "device_map": {
+            "": "cuda:1"
+          }
+        },
+        {
+          "event": "pipeline_load"
+        },
+        {
+          "event": "memory_query",
+          "gpu": 1,
+          "free_gib": 10
+        },
+        {
+          "event": "sequential",
+          "gpu": 1,
+          "text_present": false
+        }
+      ],
+      "result": {
+        "dtype": "bf16",
+        "residency": "sequential",
+        "encoder": "nf4",
+        "cpu_bridge": false,
+        "bridge_target": null,
+        "shared_encoder": true,
+        "shared_hooks": true
+      }
+    },
+    {
+      "input": {
+        "before": 24,
+        "after": 10,
+        "total": 24,
+        "hint": {
+          "num_frames": 9,
+          "width": 64,
+          "height": 64
+        }
+      },
+      "events": [
+        {
+          "event": "memory_query",
+          "gpu": 1,
+          "free_gib": 24
+        },
+        {
+          "event": "encoder_load",
+          "kind": "nf4",
+          "dtype": "bf16",
+          "device_map": {
+            "": "cuda:1"
+          }
+        },
+        {
+          "event": "pipeline_load"
+        },
+        {
+          "event": "memory_query",
+          "gpu": 1,
+          "free_gib": 10
+        },
+        {
+          "event": "model_offload",
+          "gpu": 1,
+          "text_present": false
+        }
+      ],
+      "result": {
+        "dtype": "bf16",
+        "residency": "model_offload",
+        "encoder": "nf4",
+        "cpu_bridge": false,
+        "bridge_target": null,
+        "shared_encoder": true,
+        "shared_hooks": true
+      }
+    },
+    {
+      "input": {
+        "before": 24,
+        "after": 10,
+        "total": 24,
+        "hint": {
+          "num_frames": 257,
+          "width": 64,
+          "height": 64
+        }
+      },
+      "events": [
+        {
+          "event": "memory_query",
+          "gpu": 1,
+          "free_gib": 24
+        },
+        {
+          "event": "encoder_load",
+          "kind": "nf4",
+          "dtype": "bf16",
+          "device_map": {
+            "": "cuda:1"
+          }
+        },
+        {
+          "event": "pipeline_load"
+        },
+        {
+          "event": "memory_query",
+          "gpu": 1,
+          "free_gib": 10
+        },
+        {
+          "event": "sequential",
+          "gpu": 1,
+          "text_present": false
+        }
+      ],
+      "result": {
+        "dtype": "bf16",
+        "residency": "sequential",
+        "encoder": "nf4",
+        "cpu_bridge": false,
+        "bridge_target": null,
+        "shared_encoder": true,
+        "shared_hooks": true
+      }
+    },
+    {
+      "input": {
+        "before": 24,
+        "after": 16,
+        "total": 24,
+        "hint": {}
+      },
+      "events": [
+        {
+          "event": "memory_query",
+          "gpu": 1,
+          "free_gib": 24
+        },
+        {
+          "event": "encoder_load",
+          "kind": "nf4",
+          "dtype": "bf16",
+          "device_map": {
+            "": "cuda:1"
+          }
+        },
+        {
+          "event": "pipeline_load"
+        },
+        {
+          "event": "memory_query",
+          "gpu": 1,
+          "free_gib": 16
+        },
+        {
+          "event": "model_offload",
+          "gpu": 1,
+          "text_present": false
+        }
+      ],
+      "result": {
+        "dtype": "bf16",
+        "residency": "model_offload",
+        "encoder": "nf4",
+        "cpu_bridge": false,
+        "bridge_target": null,
+        "shared_encoder": true,
+        "shared_hooks": true
+      }
+    },
+    {
+      "input": {
+        "before": 24,
+        "after": 16,
+        "total": 24,
+        "hint": {
+          "num_frames": 9,
+          "width": 64,
+          "height": 64
+        }
+      },
+      "events": [
+        {
+          "event": "memory_query",
+          "gpu": 1,
+          "free_gib": 24
+        },
+        {
+          "event": "encoder_load",
+          "kind": "nf4",
+          "dtype": "bf16",
+          "device_map": {
+            "": "cuda:1"
+          }
+        },
+        {
+          "event": "pipeline_load"
+        },
+        {
+          "event": "memory_query",
+          "gpu": 1,
+          "free_gib": 16
+        },
+        {
+          "event": "model_offload",
+          "gpu": 1,
+          "text_present": false
+        }
+      ],
+      "result": {
+        "dtype": "bf16",
+        "residency": "model_offload",
+        "encoder": "nf4",
+        "cpu_bridge": false,
+        "bridge_target": null,
+        "shared_encoder": true,
+        "shared_hooks": true
+      }
+    },
+    {
+      "input": {
+        "before": 24,
+        "after": 16,
+        "total": 24,
+        "hint": {
+          "num_frames": 257,
+          "width": 64,
+          "height": 64
+        }
+      },
+      "events": [
+        {
+          "event": "memory_query",
+          "gpu": 1,
+          "free_gib": 24
+        },
+        {
+          "event": "encoder_load",
+          "kind": "nf4",
+          "dtype": "bf16",
+          "device_map": {
+            "": "cuda:1"
+          }
+        },
+        {
+          "event": "pipeline_load"
+        },
+        {
+          "event": "memory_query",
+          "gpu": 1,
+          "free_gib": 16
+        },
+        {
+          "event": "model_offload",
+          "gpu": 1,
+          "text_present": false
+        }
+      ],
+      "result": {
+        "dtype": "bf16",
+        "residency": "model_offload",
+        "encoder": "nf4",
+        "cpu_bridge": false,
+        "bridge_target": null,
+        "shared_encoder": true,
+        "shared_hooks": true
+      }
+    },
+    {
+      "input": {
+        "before": 24,
+        "after": 31,
+        "total": 48,
+        "hint": {}
+      },
+      "events": [
+        {
+          "event": "memory_query",
+          "gpu": 1,
+          "free_gib": 24
+        },
+        {
+          "event": "encoder_load",
+          "kind": "nf4",
+          "dtype": "bf16",
+          "device_map": {
+            "": "cuda:1"
+          }
+        },
+        {
+          "event": "pipeline_load"
+        },
+        {
+          "event": "memory_query",
+          "gpu": 1,
+          "free_gib": 31
+        },
+        {
+          "event": "pipeline_to",
+          "device": "cuda:1"
+        }
+      ],
+      "result": {
+        "dtype": "bf16",
+        "residency": "full",
+        "encoder": "nf4",
+        "cpu_bridge": false,
+        "bridge_target": null,
+        "shared_encoder": true,
+        "shared_hooks": true
+      }
+    },
+    {
+      "input": {
+        "before": 24,
+        "after": 31,
+        "total": 48,
+        "hint": {
+          "num_frames": 9,
+          "width": 64,
+          "height": 64
+        }
+      },
+      "events": [
+        {
+          "event": "memory_query",
+          "gpu": 1,
+          "free_gib": 24
+        },
+        {
+          "event": "encoder_load",
+          "kind": "nf4",
+          "dtype": "bf16",
+          "device_map": {
+            "": "cuda:1"
+          }
+        },
+        {
+          "event": "pipeline_load"
+        },
+        {
+          "event": "memory_query",
+          "gpu": 1,
+          "free_gib": 31
+        },
+        {
+          "event": "pipeline_to",
+          "device": "cuda:1"
+        }
+      ],
+      "result": {
+        "dtype": "bf16",
+        "residency": "full",
+        "encoder": "nf4",
+        "cpu_bridge": false,
+        "bridge_target": null,
+        "shared_encoder": true,
+        "shared_hooks": true
+      }
+    },
+    {
+      "input": {
+        "before": 24,
+        "after": 31,
+        "total": 48,
+        "hint": {
+          "num_frames": 257,
+          "width": 64,
+          "height": 64
+        }
+      },
+      "events": [
+        {
+          "event": "memory_query",
+          "gpu": 1,
+          "free_gib": 24
+        },
+        {
+          "event": "encoder_load",
+          "kind": "nf4",
+          "dtype": "bf16",
+          "device_map": {
+            "": "cuda:1"
+          }
+        },
+        {
+          "event": "pipeline_load"
+        },
+        {
+          "event": "memory_query",
+          "gpu": 1,
+          "free_gib": 31
+        },
+        {
+          "event": "pipeline_to",
+          "device": "cuda:1"
+        }
+      ],
+      "result": {
+        "dtype": "bf16",
+        "residency": "full",
+        "encoder": "nf4",
+        "cpu_bridge": false,
+        "bridge_target": null,
+        "shared_encoder": true,
+        "shared_hooks": true
+      }
+    },
+    {
+      "input": {
+        "before": 24,
+        "after": 11,
+        "total": 24,
+        "fail": [
+          "nf4"
+        ],
+        "env": {
+          "VIDEO_GPU_RESIDENCY": "auto"
+        }
+      },
+      "events": [
+        {
+          "event": "memory_query",
+          "gpu": 1,
+          "free_gib": 24
+        },
+        {
+          "event": "encoder_load",
+          "kind": "nf4",
+          "dtype": "bf16",
+          "device_map": {
+            "": "cuda:1"
+          }
+        },
+        {
+          "event": "encoder_load",
+          "kind": "quanto",
+          "dtype": "bf16",
+          "device_map": null
+        },
+        {
+          "event": "pipeline_load"
+        },
+        {
+          "event": "memory_query",
+          "gpu": 1,
+          "free_gib": 11
+        },
+        {
+          "event": "sequential",
+          "gpu": 1,
+          "text_present": false
+        }
+      ],
+      "result": {
+        "dtype": "bf16",
+        "residency": "sequential",
+        "encoder": "quanto",
+        "cpu_bridge": true,
+        "bridge_target": "cuda:1",
+        "shared_encoder": true,
+        "shared_hooks": true
+      }
+    },
+    {
+      "input": {
+        "before": 24,
+        "after": 11,
+        "total": 24,
+        "fail": [
+          "nf4",
+          "quanto"
+        ],
+        "env": {
+          "VIDEO_GPU_RESIDENCY": "auto"
+        }
+      },
+      "events": [
+        {
+          "event": "memory_query",
+          "gpu": 1,
+          "free_gib": 24
+        },
+        {
+          "event": "encoder_load",
+          "kind": "nf4",
+          "dtype": "bf16",
+          "device_map": {
+            "": "cuda:1"
+          }
+        },
+        {
+          "event": "encoder_load",
+          "kind": "quanto",
+          "dtype": "bf16",
+          "device_map": null
+        },
+        {
+          "event": "encoder_load",
+          "kind": "plain",
+          "dtype": "bf16",
+          "device_map": null
+        },
+        {
+          "event": "pipeline_load"
+        },
+        {
+          "event": "memory_query",
+          "gpu": 1,
+          "free_gib": 11
+        },
+        {
+          "event": "sequential",
+          "gpu": 1,
+          "text_present": true
+        }
+      ],
+      "result": {
+        "dtype": "bf16",
+        "residency": "sequential",
+        "encoder": "plain",
+        "cpu_bridge": false,
+        "bridge_target": null,
+        "shared_encoder": true,
+        "shared_hooks": true
+      }
+    },
+    {
+      "input": {
+        "before": 24,
+        "after": 11,
+        "total": 24,
+        "fail": [
+          "full"
+        ],
+        "env": {
+          "VIDEO_GPU_RESIDENCY": "full"
+        }
+      },
+      "events": [
+        {
+          "event": "memory_query",
+          "gpu": 1,
+          "free_gib": 24
+        },
+        {
+          "event": "encoder_load",
+          "kind": "nf4",
+          "dtype": "bf16",
+          "device_map": {
+            "": "cuda:1"
+          }
+        },
+        {
+          "event": "pipeline_load"
+        },
+        {
+          "event": "memory_query",
+          "gpu": 1,
+          "free_gib": 11
+        },
+        {
+          "event": "pipeline_to",
+          "device": "cuda:1"
+        },
+        {
+          "event": "empty_cache"
+        },
+        {
+          "event": "model_offload",
+          "gpu": 1,
+          "text_present": false
+        }
+      ],
+      "result": {
+        "dtype": "bf16",
+        "residency": "model_offload",
+        "encoder": "nf4",
+        "cpu_bridge": false,
+        "bridge_target": null,
+        "shared_encoder": true,
+        "shared_hooks": true
+      }
+    },
+    {
+      "input": {
+        "before": 24,
+        "after": 11,
+        "total": 24,
+        "fail": [
+          "full",
+          "model_offload"
+        ],
+        "env": {
+          "VIDEO_GPU_RESIDENCY": "full"
+        }
+      },
+      "events": [
+        {
+          "event": "memory_query",
+          "gpu": 1,
+          "free_gib": 24
+        },
+        {
+          "event": "encoder_load",
+          "kind": "nf4",
+          "dtype": "bf16",
+          "device_map": {
+            "": "cuda:1"
+          }
+        },
+        {
+          "event": "pipeline_load"
+        },
+        {
+          "event": "memory_query",
+          "gpu": 1,
+          "free_gib": 11
+        },
+        {
+          "event": "pipeline_to",
+          "device": "cuda:1"
+        },
+        {
+          "event": "empty_cache"
+        },
+        {
+          "event": "model_offload",
+          "gpu": 1,
+          "text_present": false
+        },
+        {
+          "event": "sequential",
+          "gpu": 1,
+          "text_present": false
+        },
+        {
+          "event": "component_to",
+          "component": "transformer",
+          "device": "cpu"
+        },
+        {
+          "event": "component_to",
+          "component": "vae",
+          "device": "cpu"
+        }
+      ],
+      "result": {
+        "dtype": "bf16",
+        "residency": "sequential",
+        "encoder": "nf4",
+        "cpu_bridge": false,
+        "bridge_target": null,
+        "shared_encoder": true,
+        "shared_hooks": true
+      }
+    },
+    {
+      "input": {
+        "before": 24,
+        "after": 11,
+        "total": 24,
+        "fail": [
+          "model_offload"
+        ],
+        "env": {
+          "VIDEO_GPU_RESIDENCY": "model"
+        }
+      },
+      "events": [
+        {
+          "event": "memory_query",
+          "gpu": 1,
+          "free_gib": 24
+        },
+        {
+          "event": "encoder_load",
+          "kind": "nf4",
+          "dtype": "bf16",
+          "device_map": {
+            "": "cuda:1"
+          }
+        },
+        {
+          "event": "pipeline_load"
+        },
+        {
+          "event": "memory_query",
+          "gpu": 1,
+          "free_gib": 11
+        },
+        {
+          "event": "model_offload",
+          "gpu": 1,
+          "text_present": false
+        },
+        {
+          "event": "sequential",
+          "gpu": 1,
+          "text_present": false
+        },
+        {
+          "event": "component_to",
+          "component": "transformer",
+          "device": "cpu"
+        },
+        {
+          "event": "component_to",
+          "component": "vae",
+          "device": "cpu"
+        }
+      ],
+      "result": {
+        "dtype": "bf16",
+        "residency": "sequential",
+        "encoder": "nf4",
+        "cpu_bridge": false,
+        "bridge_target": null,
+        "shared_encoder": true,
+        "shared_hooks": true
+      }
+    },
+    {
+      "input": {
+        "before": 24,
+        "after": 11,
+        "total": 24,
+        "fail": [
+          "model_offload",
+          "sequential"
+        ],
+        "env": {
+          "VIDEO_GPU_RESIDENCY": "model"
+        }
+      },
+      "events": [
+        {
+          "event": "memory_query",
+          "gpu": 1,
+          "free_gib": 24
+        },
+        {
+          "event": "encoder_load",
+          "kind": "nf4",
+          "dtype": "bf16",
+          "device_map": {
+            "": "cuda:1"
+          }
+        },
+        {
+          "event": "pipeline_load"
+        },
+        {
+          "event": "memory_query",
+          "gpu": 1,
+          "free_gib": 11
+        },
+        {
+          "event": "model_offload",
+          "gpu": 1,
+          "text_present": false
+        },
+        {
+          "event": "sequential",
+          "gpu": 1,
+          "text_present": false
+        },
+        {
+          "event": "component_to",
+          "component": "transformer",
+          "device": "cpu"
+        },
+        {
+          "event": "component_to",
+          "component": "vae",
+          "device": "cpu"
+        }
+      ],
+      "result": {
+        "dtype": "bf16",
+        "residency": "model_offload",
+        "encoder": "nf4",
+        "cpu_bridge": false,
+        "bridge_target": null,
+        "shared_encoder": true,
+        "shared_hooks": true
+      }
+    },
+    {
+      "input": {
+        "before": 24,
+        "after": 11,
+        "total": 24,
+        "fail": [
+          "sequential"
+        ],
+        "env": {
+          "VIDEO_GPU_RESIDENCY": "seq"
+        }
+      },
+      "events": [
+        {
+          "event": "memory_query",
+          "gpu": 1,
+          "free_gib": 24
+        },
+        {
+          "event": "encoder_load",
+          "kind": "nf4",
+          "dtype": "bf16",
+          "device_map": {
+            "": "cuda:1"
+          }
+        },
+        {
+          "event": "pipeline_load"
+        },
+        {
+          "event": "memory_query",
+          "gpu": 1,
+          "free_gib": 11
+        },
+        {
+          "event": "sequential",
+          "gpu": 1,
+          "text_present": false
+        },
+        {
+          "event": "component_to",
+          "component": "transformer",
+          "device": "cpu"
+        },
+        {
+          "event": "component_to",
+          "component": "vae",
+          "device": "cpu"
+        }
+      ],
+      "result": {
+        "dtype": "bf16",
+        "residency": "sequential",
+        "encoder": "nf4",
+        "cpu_bridge": false,
+        "bridge_target": null,
+        "shared_encoder": true,
+        "shared_hooks": true
+      }
+    },
+    {
+      "input": {
+        "before": 24,
+        "after": 11,
+        "total": 24,
+        "device": "cuda:2",
+        "major": 7
+      },
+      "events": [
+        {
+          "event": "memory_query",
+          "gpu": 2,
+          "free_gib": 24
+        },
+        {
+          "event": "encoder_load",
+          "kind": "nf4",
+          "dtype": "f16",
+          "device_map": {
+            "": "cuda:2"
+          }
+        },
+        {
+          "event": "pipeline_load"
+        },
+        {
+          "event": "memory_query",
+          "gpu": 2,
+          "free_gib": 11
+        },
+        {
+          "event": "sequential",
+          "gpu": 2,
+          "text_present": false
+        }
+      ],
+      "result": {
+        "dtype": "f16",
+        "residency": "sequential",
+        "encoder": "nf4",
+        "cpu_bridge": false,
+        "bridge_target": null,
+        "shared_encoder": true,
+        "shared_hooks": true
+      }
+    },
+    {
+      "input": {
+        "before": 24,
+        "after": 11,
+        "total": 24,
+        "device": "cuda:2",
+        "major": 9
+      },
+      "events": [
+        {
+          "event": "memory_query",
+          "gpu": 2,
+          "free_gib": 24
+        },
+        {
+          "event": "encoder_load",
+          "kind": "nf4",
+          "dtype": "bf16",
+          "device_map": {
+            "": "cuda:2"
+          }
+        },
+        {
+          "event": "pipeline_load"
+        },
+        {
+          "event": "memory_query",
+          "gpu": 2,
+          "free_gib": 11
+        },
+        {
+          "event": "sequential",
+          "gpu": 2,
+          "text_present": false
+        }
+      ],
+      "result": {
+        "dtype": "bf16",
+        "residency": "sequential",
+        "encoder": "nf4",
+        "cpu_bridge": false,
+        "bridge_target": null,
+        "shared_encoder": true,
+        "shared_hooks": true
+      }
+    },
+    {
+      "input": {
+        "before": 24,
+        "after": 11,
+        "total": 24,
+        "device": "cpu",
+        "major": 8
+      },
+      "events": [
+        {
+          "event": "encoder_load",
+          "kind": "quanto",
+          "dtype": "bf16",
+          "device_map": null
+        },
+        {
+          "event": "pipeline_load"
+        },
+        {
+          "event": "component_to",
+          "component": "text_encoder",
+          "device": "cpu"
+        },
+        {
+          "event": "component_to",
+          "component": "transformer",
+          "device": "cpu"
+        },
+        {
+          "event": "component_to",
+          "component": "vae",
+          "device": "cpu"
+        }
+      ],
+      "result": {
+        "dtype": "bf16",
+        "residency": "cpu",
+        "encoder": "quanto",
+        "cpu_bridge": false,
+        "bridge_target": null,
+        "shared_encoder": true,
+        "shared_hooks": true
+      }
+    },
+    {
+      "input": {
+        "before": 24,
+        "after": 11,
+        "total": 24,
+        "hint": {
+          "num_frames": 9,
+          "width": 64,
+          "height": 64
+        },
+        "env": {
+          "VIDEO_SHORT_MODEL_OFFLOAD_MIN_FREE_GB": "not-a-number"
+        }
+      },
+      "events": [
+        {
+          "event": "memory_query",
+          "gpu": 1,
+          "free_gib": 24
+        },
+        {
+          "event": "encoder_load",
+          "kind": "nf4",
+          "dtype": "bf16",
+          "device_map": {
+            "": "cuda:1"
+          }
+        },
+        {
+          "event": "pipeline_load"
+        },
+        {
+          "event": "memory_query",
+          "gpu": 1,
+          "free_gib": 11
+        },
+        {
+          "event": "model_offload",
+          "gpu": 1,
+          "text_present": false
+        }
+      ],
+      "result": {
+        "dtype": "bf16",
+        "residency": "model_offload",
+        "encoder": "nf4",
+        "cpu_bridge": false,
+        "bridge_target": null,
+        "shared_encoder": true,
+        "shared_hooks": true
+      }
+    }
+  ]
+}

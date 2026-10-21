@@ -1,0 +1,27 @@
+{
+  "source_sha256": "bf01ed349bc09556eac7e303bddfc79b113ac1008ac10db8aa25a57be0cf0f6f",
+  "history_limit": 1000,
+  "source_observations": [
+    {
+      "failed": false,
+      "submitted": 1105,
+      "history_count": 1001,
+      "first_visible": false,
+      "latest_visible": true,
+      "active": 0,
+      "processed": 1105,
+      "errors": 0
+    },
+    {
+      "failed": true,
+      "submitted": 1105,
+      "history_count": 1105,
+      "first_visible": true,
+      "latest_visible": true,
+      "active": 0,
+      "processed": 0,
+      "errors": 1105
+    }
+  ],
+  "native_policy": "Keep at most history_limit terminal requests, including failures/cancellations. Preserve registered waiters, clear finished payloads, evict oldest enqueue timestamp. Source only prunes on successful processing and can retain history_limit+1 after the waiter archives its result."
+}

@@ -1,0 +1,249 @@
+{
+  "source_sha256": "8238cef03d4a1db6e775d7f62234bcf998d8f08bd9fc15f1d8a36ea0d3280005",
+  "headroom_cases": 512,
+  "cleanup_cases": 196,
+  "host_regressions": {
+    "suites": 15,
+    "seconds": 193.31
+  },
+  "final_concurrency_checks": {
+    "suites": 5,
+    "seconds": 102.5
+  },
+  "rust_wire": {
+    "tests": 89,
+    "seconds": 35.299
+  },
+  "scope": [
+    "Target-specific cold-load estimates, cache and per-device headroom",
+    "Synchronous LRU auxiliary reclamation and final allocator release",
+    "Active lease guards, embedding destruction without backend lock inversion",
+    "Serialized cold loads with independent inference completion",
+    "Video restoration retry uses the source 16 GiB reclamation request"
+  ],
+  "remaining": [
+    "Complete startup/preload ordering and failed automatic replica handling",
+    "Complete media registry/resident-engine behavior",
+    "Complete allocator statistics and broader GPU configuration parity",
+    "Remaining compressed GPU and video engine parity"
+  ],
+  "deployment": {
+    "previous_image": "sha256:afa4ddcdbf17776dad391134844db5452dd456ba3ef5a5fdbb739f0193870feb",
+    "candidate_image": "sha256:2aa79fd5a4860f14d7aa24372520ca535fdfebe06329c89b64ddee9297f15acc",
+    "health": "healthy",
+    "deployed_image": "sha256:2aa79fd5a4860f14d7aa24372520ca535fdfebe06329c89b64ddee9297f15acc",
+    "effective_environment_changed_keys": [],
+    "original_env_file_unchanged": true,
+    "mounts_unchanged": true,
+    "wakeword_mounts": [
+      [
+        "bind",
+        "/home/josh/repos/xtsys/ezlocalai/wakeword_models",
+        "/app/wakeword_models",
+        true
+      ],
+      [
+        "bind",
+        "/home/josh/repos/xtsys/ezlocalai/wakeword_samples",
+        "/app/wakeword_samples",
+        true
+      ],
+      [
+        "bind",
+        "/home/josh/repos/xtsys/ezlocalai/wakeword_jobs",
+        "/app/wakeword_jobs",
+        true
+      ]
+    ],
+    "ports_unchanged": true,
+    "gpu_requests_unchanged": true
+  },
+  "gpu": {
+    "image": "sha256:2aa79fd5a4860f14d7aa24372520ca535fdfebe06329c89b64ddee9297f15acc",
+    "success": true,
+    "context": 220000,
+    "seconds": 6.8028246039757505,
+    "tts_gpu_memory_mib": {
+      "1466620": 3516.0,
+      "1466719": 3516.0
+    },
+    "llm_gpu_memory_mib": {
+      "1466928": 18746.0
+    },
+    "reaped_tts_pids": [
+      1466620,
+      1466719
+    ],
+    "before": {
+      "free_vram_gb": 14.70831298828125,
+      "loaded_models": {
+        "tts": {
+          "name": "Qwen-TTS (Mouserat/qwen3-tts-0.6b-base-gguf)",
+          "device": "cuda",
+          "vram_gb": 8.0,
+          "in_use": false,
+          "active_requests": 0,
+          "last_used": 1792420905.2507317
+        }
+      },
+      "model_pools": {
+        "embedding": {
+          "configured": 1,
+          "devices": [],
+          "resident": 0
+        },
+        "stt": {
+          "configured": 1,
+          "devices": [],
+          "resident": 0
+        },
+        "tts": {
+          "configured": 2,
+          "devices": [
+            "cuda",
+            "cuda"
+          ],
+          "resident": 2
+        }
+      },
+      "model_lifecycle": {
+        "llm_model_residency": "resident",
+        "configured_llms": [
+          "unsloth/Qwen3.8-27B-GGUF"
+        ],
+        "loaded_llms": [],
+        "active_llm": null,
+        "loaded_llm_runtime": [],
+        "vram_estimates_gb": {},
+        "summary": [],
+        "recent_events": []
+      }
+    },
+    "after": {
+      "free_vram_gb": 3.36700439453125,
+      "loaded_models": {
+        "vision_llm": {
+          "name": "unsloth/Qwen3.8-27B-GGUF",
+          "device": "cuda",
+          "vram_gb": 18.22381591796875,
+          "in_use": false,
+          "active_requests": 0,
+          "last_used": 1792420911.6671407
+        }
+      },
+      "model_pools": {
+        "embedding": {
+          "configured": 1,
+          "devices": [],
+          "resident": 0
+        },
+        "stt": {
+          "configured": 1,
+          "devices": [],
+          "resident": 0
+        },
+        "tts": {
+          "configured": 2,
+          "devices": [],
+          "resident": 0
+        }
+      },
+      "model_lifecycle": {
+        "llm_model_residency": "resident",
+        "configured_llms": [
+          "unsloth/Qwen3.8-27B-GGUF"
+        ],
+        "loaded_llms": [
+          "unsloth/Qwen3.8-27B-GGUF"
+        ],
+        "active_llm": "unsloth/Qwen3.8-27B-GGUF",
+        "loaded_llm_runtime": [
+          {
+            "model": "unsloth/Qwen3.8-27B-GGUF",
+            "context": 220000,
+            "gpu_layers": -1,
+            "main_gpu": 0,
+            "prompt_cache_mib": 14336,
+            "prompt_cache_requested_mib": 14336,
+            "checkpoint_min_step": 8192,
+            "n_ctx_checkpoints": 32,
+            "n_batch": 2048,
+            "n_ubatch": 512,
+            "kv_cache_type": "q4_0",
+            "speculative_type": "none"
+          }
+        ],
+        "vram_estimates_gb": {
+          "unsloth/Qwen3.8-27B-GGUF": 18.22381591796875
+        },
+        "summary": [
+          {
+            "operation": "load",
+            "model_type": "llm",
+            "model": "unsloth/Qwen3.8-27B-GGUF",
+            "count": 1,
+            "failures": 0,
+            "min_seconds": 5.3862,
+            "max_seconds": 5.3862,
+            "last_seconds": 5.3862,
+            "average_seconds": 5.3862
+          }
+        ],
+        "recent_events": [
+          {
+            "timestamp": 1792420911.6669111,
+            "operation": "load",
+            "model_type": "llm",
+            "model": "unsloth/Qwen3.8-27B-GGUF",
+            "duration_seconds": 5.3862,
+            "success": true
+          }
+        ]
+      }
+    },
+    "original_restored_healthy": true
+  },
+  "live": {
+    "image": "sha256:2aa79fd5a4860f14d7aa24372520ca535fdfebe06329c89b64ddee9297f15acc",
+    "binary_sha256": "918c7882362e3a515a777ec3f43d42ad1cf3594934b9cf2e2e541256e80cd2a4",
+    "matching_workers": 1,
+    "python_extra_matches": true,
+    "extra": {
+      "llm_model_residency": "resident",
+      "loaded_llms": [
+        "unsloth/Qwen3.8-27B-GGUF"
+      ],
+      "active_llm": "unsloth/Qwen3.8-27B-GGUF",
+      "llm_unload_dependent_capabilities": [
+        "image",
+        "video",
+        "music",
+        "music_video"
+      ]
+    },
+    "resource_lifecycle": {
+      "llm_model_residency": "resident",
+      "loaded_llms": [
+        "unsloth/Qwen3.8-27B-GGUF"
+      ],
+      "active_llm": "unsloth/Qwen3.8-27B-GGUF"
+    },
+    "gpu_count": 1,
+    "free_vram_gb": 1.30682373046875,
+    "sources": {
+      "Pipes.py": "8238cef03d4a1db6e775d7f62234bcf998d8f08bd9fc15f1d8a36ea0d3280005",
+      "Router.py": "d5eebf7fc48f7781628aa4eaab8af1c3f23fd8694242f0b3065436b5c86f62b1"
+    }
+  },
+  "cuda_image_tests": {
+    "count": 21,
+    "seconds": 32.54,
+    "success": true
+  },
+  "live_routed_inference": {
+    "chat": 200,
+    "stream": 200,
+    "vision": 200
+  },
+  "python_interpreter_present": false
+}

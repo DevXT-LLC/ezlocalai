@@ -1,0 +1,153 @@
+{
+  "source_sha256": "d2c604fffacf088da6c3fc555d1d24d2a6b0b7af592f8cba3f67b7ea5dea4496",
+  "aiohttp": "3.14.5",
+  "transport": [
+    {
+      "name": "delayed-upgrade",
+      "accepted": true,
+      "error": "",
+      "elapsed": 1.316836240934208
+    },
+    {
+      "name": "dripped-upgrade",
+      "accepted": true,
+      "error": "",
+      "elapsed": 1.9685077099129558
+    },
+    {
+      "name": "tls-ip",
+      "accepted": true,
+      "error": "",
+      "elapsed": 0.01661617902573198
+    },
+    {
+      "name": "tls-dns",
+      "accepted": true,
+      "error": "",
+      "elapsed": 0.0180471419589594
+    },
+    {
+      "name": "tls-untrusted",
+      "accepted": false,
+      "error": "ClientConnectorCertificateError",
+      "elapsed": 0.015909802983514965
+    },
+    {
+      "name": "tls-wrong-ip",
+      "accepted": false,
+      "error": "ClientConnectorCertificateError",
+      "elapsed": 0.01578708307351917
+    },
+    {
+      "name": "tls-timeout",
+      "accepted": false,
+      "error": "ConnectionTimeoutError",
+      "elapsed": 15.871438323054463
+    },
+    {
+      "name": "cancel-upgrade",
+      "accepted": false,
+      "error": "CancelledError",
+      "elapsed": 0.1510864559095353
+    },
+    {
+      "name": "cancel-tls",
+      "accepted": false,
+      "error": "CancelledError",
+      "elapsed": 0.15100225899368525
+    }
+  ],
+  "idle": [
+    {
+      "name": "control-ping",
+      "timed_out": true,
+      "error": "TimeoutError",
+      "elapsed": 0.3021722349803895,
+      "receive_calls": 1,
+      "source_timeout_values": [
+        60.0
+      ],
+      "frames_sent": 4
+    },
+    {
+      "name": "control-pong",
+      "timed_out": true,
+      "error": "TimeoutError",
+      "elapsed": 0.3017764750402421,
+      "receive_calls": 1,
+      "source_timeout_values": [
+        60.0
+      ],
+      "frames_sent": 4
+    },
+    {
+      "name": "partial",
+      "timed_out": true,
+      "error": "TimeoutError",
+      "elapsed": 0.30187072593253106,
+      "receive_calls": 1,
+      "source_timeout_values": [
+        60.0
+      ],
+      "frames_sent": 4
+    },
+    {
+      "name": "binary",
+      "timed_out": false,
+      "error": "",
+      "elapsed": 0.6436964590102434,
+      "receive_calls": 9,
+      "source_timeout_values": [
+        60.0,
+        60.0,
+        60.0,
+        60.0,
+        60.0,
+        60.0,
+        60.0,
+        60.0,
+        60.0
+      ],
+      "frames_sent": 8
+    },
+    {
+      "name": "invalid-json",
+      "timed_out": false,
+      "error": "",
+      "elapsed": 0.643583980971016,
+      "receive_calls": 9,
+      "source_timeout_values": [
+        60.0,
+        60.0,
+        60.0,
+        60.0,
+        60.0,
+        60.0,
+        60.0,
+        60.0,
+        60.0
+      ],
+      "frames_sent": 8
+    },
+    {
+      "name": "application-ping",
+      "timed_out": false,
+      "error": "",
+      "elapsed": 0.6437179839704186,
+      "receive_calls": 9,
+      "source_timeout_values": [
+        60.0,
+        60.0,
+        60.0,
+        60.0,
+        60.0,
+        60.0,
+        60.0,
+        60.0,
+        60.0
+      ],
+      "frames_sent": 8
+    }
+  ],
+  "idle_capture_note": "Original TunnelClient and actual network aiohttp; outer 60-second wait shortened to .30 seconds. Complete messages sent at .08 seconds. Native full-worker validation separately uses the actual 60-second deadline."
+}

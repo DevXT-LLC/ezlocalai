@@ -1,0 +1,117 @@
+{
+  "date": "2026-10-20",
+  "base_commit": "fefd3fc",
+  "cuda_deployed": true,
+  "cuda_image": "sha256:819d93f03a10fb69cefdb4b356e8ec59f71ccdd1766ee46b00dfe0d2d3c6215c",
+  "cuda_worker_sha256": "af0bce6524af70eb2aafd5c7056d52dada370cee15acd71cfc94fec0ea1111de",
+  "cpu_image": "sha256:b50b0b29d48b5a407246266034c78369108969a111f7597b3235460a2d49fae8",
+  "cpu_worker_sha256": "782fe025728983653bd38fd3e32aed12821004cafa18c710b73201d953ebf5bf",
+  "rollback_tag": "ezlocalai:cuda-before-download-parity",
+  "rollback_image": "sha256:db88214e09c8d231fc5d3e1488a1d9e96a308ef0efc159a37956cc2323c9352d",
+  "changes": [
+    "Starlette 1.7.0 wake-word/output FileResponse and StaticFiles behavior",
+    "Bounded file streaming, known Content-Length, close-on-exec descriptors",
+    "Pinned x86-64 CPU image and default Compose service",
+    "Ignored local links to the original .env and seven data directories"
+  ],
+  "tests": {
+    "cuda_package": {
+      "passed": 53,
+      "seconds": 251.51
+    },
+    "cpu_package": {
+      "passed": 52,
+      "seconds": 248.5
+    },
+    "source_file_response_cases": 136,
+    "response_modes": [
+      "buffered",
+      "deferred"
+    ],
+    "large_file": "sparse 5 GiB + 4 bytes; tail GET/HEAD, unlink during response, descriptor inheritance",
+    "live_cuda_file_checks": 70,
+    "rust_integration_scenarios": 10,
+    "final_live_router_inference": [
+      "chat",
+      "SSE",
+      "vision"
+    ],
+    "cpu_runtime": [
+      {
+        "name": "CPU real chat",
+        "seconds": 3.828
+      },
+      {
+        "name": "CPU real SSE",
+        "seconds": 7.005
+      },
+      {
+        "name": "CPU real embeddings",
+        "seconds": 0.053,
+        "dimensions": 1024
+      },
+      {
+        "name": "CPU real Whisper transcription",
+        "seconds": 6.1,
+        "text": " And so, my fellow Americans, ask not what your country can do for you, ask what you can do for your country."
+      },
+      {
+        "name": "CPU real Qwen speech",
+        "seconds": 8.089,
+        "samples": 30720,
+        "sha256": "41a615c31a00e210072767155f8d8dbf7a897dd5db4950fa69c97234ec5111f9"
+      }
+    ],
+    "cpu_runtime_no_gpu_devices": true,
+    "cpu_reports_zero_vram": true,
+    "cpu_wakeword_training_cases": 5,
+    "cpu_wakeword_cancellation_boundaries": 3,
+    "cpu_wakeword_predictions": 147,
+    "cpu_wakeword_mfcc_arrays": 91,
+    "cpu_wakeword_mfcc_max_absolute_error": 0,
+    "cpu_wakeword_http_predictions": 290,
+    "deployed_runtime_and_http_test_sources_match_checkout": true
+  },
+  "deployment": {
+    "environment_unchanged": true,
+    "mounts_unchanged": true,
+    "ports_unchanged": true,
+    "gpu_requests_unchanged": true,
+    "original_env_file_unchanged": true,
+    "health": "healthy"
+  },
+  "local_compose": {
+    "environment_difference_keys": [],
+    "env_is_original_symlink": true,
+    "data_links": [
+      "models",
+      "outputs",
+      "voices",
+      "wakeword_jobs",
+      "wakeword_models",
+      "wakeword_samples",
+      "whispercpp"
+    ],
+    "resolved_mounts_match": true
+  },
+  "source_sha256": {
+    "src/native_server.cpp": "72a40e65afae9db4fca017d3d69ba6b15628100ca67a4e3f9198582ab805d042",
+    "include/ezlocalai/native_server.hpp": "a1b16e72e67796546e404749360d9f9806dbe1dea2f110e1cd6936d4978efbe5",
+    "tests/test_file_response.cpp": "714dd85dc5557f0671149f69edc1a2b9bda67a5f3a61c5233193679614683758",
+    "tests/test_native_http.cpp": "4f5198b28ca3e692ea2301a9f60d16730b1237f2600c571db0c58d7f499c22d3",
+    "tests/fixtures/file_response_cases.json": "f221ed7de5cb5e05c0492f9c8390a3531b5bdab53aa66b2d6d711b4fdd38189f",
+    "cpu.Dockerfile": "df20d0e54d07633bb70479f8ac8310ffee98dfd8c87ef4eab3e2c0eb79586c52",
+    "cmake/cpu-audio-dependencies.json": "03e878fb769f4fc297c9b75be50b33a0c6b65b6c0f2db04b5df0f4015698a250",
+    "docker-compose.yml": "cdbeefaf0abf03717273c3aba7e36a00c92ae1f4904a3c06747d21a4ea641a91",
+    "CMakeLists.txt": "aa211627157a5494851bfda2002a4114f135c03c19dbcc38aa512a6c406fb101"
+  },
+  "evidence_directory": "build/validation/downloads-cpu-20261020",
+  "limits": [
+    "Full replacement parity remains incomplete; strict worker checklist still has partial rows.",
+    "CPU image is x86-64 AVX2/FMA/F16C; ARM/ROCm/Jetson/Raspberry Pi execution is not established.",
+    "Real multi-GPU and GB10 runtime unavailable on this host.",
+    "CPU media engines compile; video/music-video output quality and broader presets remain unverified.",
+    "File-response captures do not cover every permissive Python date parser case or concurrent filesystem race.",
+    "The full Rust integration run preceded the final isolated descriptor guard; final CUDA build gates and live routed inference include it."
+  ]
+}

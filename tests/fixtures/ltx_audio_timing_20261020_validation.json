@@ -1,0 +1,106 @@
+{
+  "date": "2026-10-20",
+  "status": "Real CUDA default-size video/audio accepted; final deployment includes the subsequent tunnel timeout correction",
+  "intentional_compatibility_correction": "Preserve the 24 kHz audio output format while resampling the native 48 kHz vocoder waveform, instead of reproducing Python's relabeling that doubles duration and halves pitch.",
+  "source_python_commit": "0f7e9f45ac0d67ea806ee19874f98bb8f47c7544",
+  "source_python_file_sha256": "53ca668e446acc6b9f61937b394abf9cbdf5035d42ff71ab7170838b849242b3",
+  "observed_real_cuda_before": {
+    "video_dimensions": [
+      768,
+      512
+    ],
+    "video_frames": 121,
+    "video_seconds": 5.041667,
+    "audio_seconds": 10.02,
+    "audio_sample_rate": 24000,
+    "generation_seconds": 487.1936547709629,
+    "resource_poll_timeouts": 0,
+    "restored_chat_passed": true
+  },
+  "regression": {
+    "before_failed": true,
+    "before_seconds": 0.49,
+    "after_passed": true,
+    "after_seconds": 19.56,
+    "fixture_input_rate": 48000,
+    "fixture_input_duration_seconds": 0.33,
+    "output_rate": 24000,
+    "output_duration_seconds": 0.33,
+    "expected_tone_hz": 480,
+    "frequency_tolerance_hz": 20,
+    "also_covers": [
+      "video-only exports",
+      "missing-audio fallback",
+      "image conditions",
+      "multi-scene music-video composition"
+    ]
+  },
+  "source_hashes": {
+    "src/ltx_runtime.cpp": "41cb6cb198105cb2a6bd853faf79a33aaff076b7d3b7426c97955b9082762d23",
+    "tests/test_ltx_runtime.cpp": "4c9ec6180a9033e3d7d0dfa1d5913950bf3397542380c31673f7775a268f9def"
+  },
+  "proof_directory": "build/validation/ltx-audio-timing-20261020",
+  "packages": {
+    "cpu": {
+      "image": "sha256:33d7b84c3817e510cdb3fecdb9616a392a12ff8ffb67cbf89b71d7a1afed60c1",
+      "worker_sha256": "2198cab23375cfe19242cb744733bb4b0fb9168d59d346696ece3014097115d9",
+      "passed": 55,
+      "failed": 0,
+      "seconds": 298.14,
+      "stable_tag": "ezlocalai:cpu",
+      "rollback_tag": "ezlocalai:cpu-before-audio-timing",
+      "rollback_image": "sha256:fbc9d2b06615bcdb3823318a85c69f8dfac23bd2d68be816665ca20ecbf5edf7",
+      "build": "Incremental rebuild of LTX exporter/test on the accepted CPU image, followed by the full package and linkage gate",
+      "previous_full_model_acceptance": "cpu_package_20261020_validation.json",
+      "new_model_inference": false
+    },
+    "gb10": {
+      "image": "sha256:49ba38ab4749324e1e8fee4d2c0bb9078311495b987b9475bebfdbee37533dbe",
+      "worker_sha256": "b9ab118672416892401ba5f692408e788f8aae49aa9b121aaa60d035a51d068b",
+      "passed": 54,
+      "failed": 0,
+      "seconds": 518.24,
+      "stable_tag": "ezlocalai:gb10",
+      "rollback_tag": "ezlocalai:gb10-before-audio-timing",
+      "rollback_image": "sha256:93acd6008901c110e7f0049ffefe45f5d01e18d2a04c1ecec9d13e6e409e14e1",
+      "smoke": [
+        "health",
+        "resources",
+        "models"
+      ],
+      "qemu_exclusions": [
+        "dotenv_startup",
+        "tunnel_framing_reference",
+        "ltx_runtime",
+        "media_engine"
+      ],
+      "physical_gpu_execution": false,
+      "build": "Incremental LTX exporter/test update on the 54-check heartbeat/runtime GB10 candidate",
+      "limitation": "Predates the subsequent worker tunnel media-timeout correction; rebuild from this checkpoint before testing longer GB10 video requests."
+    },
+    "cuda_audio_candidate": {
+      "image": "sha256:48c5d9796f775510743a1823592c92bd303fcd79dd0a2fa545f89f414d663122",
+      "passed": 58,
+      "failed": 0,
+      "seconds": 286.98,
+      "later_deployment_record": "tunnel_media_timeout_20261020_validation.json"
+    }
+  },
+  "observed_real_cuda_after": {
+    "image": "sha256:48c5d9796f775510743a1823592c92bd303fcd79dd0a2fa545f89f414d663122",
+    "worker_sha256": "368b0bcd84b786c971e7f68a6a982b95e5f9747f0c30ec9d0cc5cdf9108b1cfe",
+    "generation_seconds": 460.8590191360563,
+    "bytes": 1141266,
+    "video_seconds": "5.041667",
+    "audio_seconds": "5.010000",
+    "sample_rate": 24000,
+    "video_unchanged": true,
+    "resource_poll_timeouts": 0,
+    "handoff_observed": true,
+    "peak_memory_bytes": 30064771072,
+    "oom_killed": false,
+    "restored_production_health": "healthy",
+    "restored_production_chat": 200,
+    "env_unchanged": true
+  }
+}

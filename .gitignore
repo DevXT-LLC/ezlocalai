@@ -1,31 +1,102 @@
-__pycache__/
-models/*
-build
-*.egg*
-xttsv2_2.0.2
-whispercpp
-outputs/*
-audio_response.wav
-tests/*.wav
-.env.local
-test.ipynb
-output.md
-ezlocalai.yml
+# Local environment settings (keep example configurations)
 .env
-deepseek
-pull_request.md
-hf/*
-*.whl
-*.egg-info
-*.tar.gz
-pretrained_models
-usage.json
+.env.*
+!.env.example
+!.env.*.example
+
+# CMake build trees and local presets
+build/
+build-*/
+cmake-build-*/
+CMakeUserPresets.json
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+CTestTestfile.cmake
+CTestCostData.txt
+Testing/
+install_manifest*.txt
+compile_commands.json
+build.ninja
+rules.ninja
+.ninja_deps
+.ninja_log
+
+# Compiled objects, libraries, and executables
+*.o
+*.obj
+*.a
+*.lib
+*.so
+*.so.*
+*.dylib
+*.dll
+*.exe
+*.pdb
+*.ilk
+*.pch
+*.gch
+*.dSYM/
+
+# Downloaded native dependencies
+/third_party/
+
+# Runtime models, generated media, and voice data
+models/
+wakeword_models/
+wakeword_samples/
+wakeword_jobs/
+outputs/
+# The default voices in voices/ are tracked (force-added); uploaded voices stay untracked.
+voices/
+whispercpp/
+hf/
+pretrained_models/
+router-outputs/
 /data/
-.env.bak
+/temp/
 
-# Private backups from worker configuration migrations
-.env.pre-*
+# Runtime logs, temporary files, and local databases
+*.log
+*.tmp
+*.db
+*.db-journal
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite-journal
+*.sqlite-shm
+*.sqlite-wal
+*.sqlite3
+*.sqlite3-journal
+*.sqlite3-shm
+*.sqlite3-wal
+usage*.json
 
-# Worker deployment cleanup retry state
+# Worker deployment state shared with the Python ezlocalai layout
 .ezlocalai-deploy-cleanup.*
 .ezlocalai-deploy.lock
+docker-compose.override.yml
+
+# Compiler caches and coverage/profiling output
+.cache/
+.ccache/
+*.gcda
+*.gcno
+*.gcov
+*.profraw
+*.profdata
+
+# Local editor settings and backup files
+.idea/
+.vs/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Operating system metadata
+.DS_Store
+._*
+Thumbs.db
+Desktop.ini

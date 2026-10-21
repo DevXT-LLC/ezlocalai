@@ -1,0 +1,131 @@
+{
+  "source_commit": "0f7e9f45ac0d67ea806ee19874f98bb8f47c7544",
+  "source_sha256": "d5eebf7fc48f7781628aa4eaab8af1c3f23fd8694242f0b3065436b5c86f62b1",
+  "capture_sha256": "27ea8f1119bdc12eba73b585a092765eeae55d8a75074457793ed34b7b2a1f3f",
+  "capture": "Unchanged Router.detect_local_gpus and tier table/functions; Torch device and unavailable accelerator boundaries substituted. Empty test mask means explicitly hidden devices (-1 on HIP).",
+  "cases": [
+    {
+      "mask": "all",
+      "failure": "",
+      "expected": [
+        {
+          "index": 0,
+          "name": "AMD Radeon RX 7900 XTX",
+          "total_vram_gb": 23.5,
+          "tier": 55,
+          "backend": "rocm"
+        },
+        {
+          "index": 1,
+          "name": "AMD Instinct MI300X",
+          "total_vram_gb": 31.75,
+          "tier": 90,
+          "backend": "rocm"
+        }
+      ]
+    },
+    {
+      "mask": "1,0",
+      "failure": "",
+      "expected": [
+        {
+          "index": 0,
+          "name": "AMD Instinct MI300X",
+          "total_vram_gb": 31.75,
+          "tier": 90,
+          "backend": "rocm"
+        },
+        {
+          "index": 1,
+          "name": "AMD Radeon RX 7900 XTX",
+          "total_vram_gb": 23.5,
+          "tier": 55,
+          "backend": "rocm"
+        }
+      ]
+    },
+    {
+      "mask": "1",
+      "failure": "",
+      "expected": [
+        {
+          "index": 0,
+          "name": "AMD Instinct MI300X",
+          "total_vram_gb": 31.75,
+          "tier": 90,
+          "backend": "rocm"
+        }
+      ]
+    },
+    {
+      "mask": "",
+      "failure": "",
+      "expected": []
+    },
+    {
+      "mask": "-1",
+      "failure": "",
+      "expected": []
+    },
+    {
+      "mask": "1,0",
+      "failure": "name",
+      "expected": [
+        {
+          "index": 0,
+          "name": "rocm:0",
+          "total_vram_gb": 0.0,
+          "tier": 20,
+          "backend": "rocm"
+        },
+        {
+          "index": 1,
+          "name": "rocm:1",
+          "total_vram_gb": 0.0,
+          "tier": 20,
+          "backend": "rocm"
+        }
+      ]
+    },
+    {
+      "mask": "1,0",
+      "failure": "compute",
+      "expected": [
+        {
+          "index": 0,
+          "name": "rocm:0",
+          "total_vram_gb": 0.0,
+          "tier": 20,
+          "backend": "rocm"
+        },
+        {
+          "index": 1,
+          "name": "rocm:1",
+          "total_vram_gb": 0.0,
+          "tier": 20,
+          "backend": "rocm"
+        }
+      ]
+    },
+    {
+      "mask": "1,0",
+      "failure": "memory",
+      "expected": [
+        {
+          "index": 0,
+          "name": "rocm:0",
+          "total_vram_gb": 0.0,
+          "tier": 20,
+          "backend": "rocm"
+        },
+        {
+          "index": 1,
+          "name": "rocm:1",
+          "total_vram_gb": 0.0,
+          "tier": 20,
+          "backend": "rocm"
+        }
+      ]
+    }
+  ]
+}

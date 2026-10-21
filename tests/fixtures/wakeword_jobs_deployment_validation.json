@@ -1,0 +1,42 @@
+{
+  "date": "2026-10-19",
+  "deployed": true,
+  "image": "sha256:2d24462772d01e7065d7ec04563b6dcdd542bfcb3ab33fc1efffe797b2121746",
+  "executable_sha256": "3a9f1b8729b84e949512634ba76e47a344d2b07069cf60854437f03bea2b610e",
+  "rollback_image": "sha256:9961a2bb539fbc5136c91cee0d1b6d7291f766f400d4193bc6909c44d55b8958",
+  "cuda_job": {
+    "elapsed_seconds": 50.08851513103582,
+    "qwen_gpu_mib": 3516,
+    "checkpoint_storage_devices": ["cuda:0"],
+    "python_prediction_device": "cuda",
+    "sample_count": 5,
+    "positive_samples": 30,
+    "negative_samples": 21,
+    "epochs": 2,
+    "batch_size": 4,
+    "checkpoint_bytes": 1708689,
+    "checkpoint_sha256": "c9271df13eedc02f0844640a259e1f895e4d112091cc302f9dd452e793d6bc9c",
+    "tensor_count": 25,
+    "python_weights_only_load": true,
+    "onnx_full_check": true,
+    "python_native_prediction_exact": true,
+    "confidence": 0.952076256275177
+  },
+  "image_checks": {"passed": 14, "seconds": 2.53, "python_interpreter_present": false, "tested_executable_identical_to_deployed": true},
+  "deployment": {
+    "health": "healthy",
+    "original_env_unchanged": true,
+    "effective_environment_changed_keys": [],
+    "existing_mounts_preserved": true,
+    "ports_unchanged": true,
+    "gpu_requests_unchanged": true,
+    "new_persistent_directories": ["wakeword_models", "wakeword_samples", "wakeword_jobs"],
+    "data_host_root": "/home/josh/repos/xtsys/ezlocalai",
+    "legacy_container_files_to_migrate": 0,
+    "production_write_host_and_fresh_container_read": true,
+    "registered_workers_matching_label": 1,
+    "routed_http_status": {"chat": 200, "stream": 200, "vision": 200}
+  },
+  "initial_cuda_probe": "Failed because loaded_models did not expose preloaded TTS; production restored, then device verification used actual NVIDIA allocation and CUDA checkpoint labels",
+  "remaining": ["TTS resource reporting", "immediate in-flight cancellation", "ESPDL export", "trained-model quality evaluation", "other tracked replacement parity gaps"]
+}

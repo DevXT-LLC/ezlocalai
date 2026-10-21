@@ -1,0 +1,116 @@
+{
+  "date": "2026-10-19",
+  "deployed": true,
+  "image": "sha256:87effdc32efb58287b1014c167ebe3765da1ed8b91c1d22cd17fbf51b0a30949",
+  "executable_sha256": "a21101516aa8151c5716075d3db0abaa3ee6ad2b9996f1b8b1079b34c45240e7",
+  "rollback_image": "sha256:bfdc44bc8b457eef7eefef5e6899e5a384f9e75d5d576670234df4b73e0e085d",
+  "source_capture": {
+    "sources": {
+      "Pipes.py": "8238cef03d4a1db6e775d7f62234bcf998d8f08bd9fc15f1d8a36ea0d3280005",
+      "Router.py": "d5eebf7fc48f7781628aa4eaab8af1c3f23fd8694242f0b3065436b5c86f62b1"
+    },
+    "cases": 73,
+    "method": "Executed Router worker dependency/extra block and source model resolver with actual Pipes media/voice policies and controlled residency, memory and client settings; no secondary GPU"
+  },
+  "verified": [
+    "Both registration and heartbeat match source extra fields",
+    "Public replica identities retain duplicates and order",
+    "Heartbeat changes when models detach and restore",
+    "All media/voice dependencies use source policy and order",
+    "Memory probe failure leaves extra empty and communication continues",
+    "Unneeded media probes are skipped",
+    "Managed text/vision lifecycle and load order regressions",
+    "Real Rust direct/tunnel metadata, restart and routing integration"
+  ],
+  "checks": {
+    "native_http": {
+      "passed": true,
+      "seconds": 29.37
+    },
+    "worker_tunnel": {
+      "passed": true,
+      "seconds": 2.98
+    },
+    "worker_metadata_reference": {
+      "passed": true,
+      "seconds": 18.0
+    },
+    "worker_router_integration": {
+      "passed": true,
+      "seconds": 5.31
+    },
+    "qwen_image_reference": {
+      "passed": true,
+      "seconds": 2.44
+    },
+    "video_runtime_reference": {
+      "passed": true,
+      "seconds": 13.56
+    },
+    "model_lifecycle_reference": {
+      "passed": true,
+      "seconds": 8.66
+    },
+    "rust_wire": {
+      "passed": 89,
+      "seconds": 35.06
+    },
+    "cuda_image": {
+      "passed": 17,
+      "seconds": 14.23,
+      "python_interpreter_present": false
+    }
+  },
+  "deployment": {
+    "health": "healthy",
+    "effective_environment_changed_keys": [],
+    "original_env_file_unchanged": true,
+    "mounts_unchanged": true,
+    "ports_unchanged": true,
+    "gpu_requests_unchanged": true
+  },
+  "live_router": {
+    "image": "sha256:87effdc32efb58287b1014c167ebe3765da1ed8b91c1d22cd17fbf51b0a30949",
+    "binary_sha256": "a21101516aa8151c5716075d3db0abaa3ee6ad2b9996f1b8b1079b34c45240e7",
+    "matching_workers": 1,
+    "python_extra_matches": true,
+    "extra": {
+      "llm_model_residency": "resident",
+      "loaded_llms": [
+        "unsloth/Qwen3.8-27B-GGUF"
+      ],
+      "active_llm": "unsloth/Qwen3.8-27B-GGUF",
+      "llm_unload_dependent_capabilities": [
+        "image",
+        "video",
+        "music",
+        "music_video"
+      ]
+    },
+    "resource_lifecycle": {
+      "llm_model_residency": "resident",
+      "loaded_llms": [
+        "unsloth/Qwen3.8-27B-GGUF"
+      ],
+      "active_llm": "unsloth/Qwen3.8-27B-GGUF"
+    },
+    "gpu_count": 1,
+    "free_vram_gb": 1.53662109375,
+    "sources": {
+      "Pipes.py": "8238cef03d4a1db6e775d7f62234bcf998d8f08bd9fc15f1d8a36ea0d3280005",
+      "Router.py": "d5eebf7fc48f7781628aa4eaab8af1c3f23fd8694242f0b3065436b5c86f62b1"
+    }
+  },
+  "routed_http_status": {
+    "chat": 200,
+    "stream": 200,
+    "vision": 200
+  },
+  "remaining": [
+    "Native swap-mode execution",
+    "Image/video slot and exclusive-worker accounting",
+    "Complete allocator/lifecycle behavior",
+    "Broader metadata/version and heartbeat failure auditing",
+    "Other tracked worker replacement requirements"
+  ]
+}

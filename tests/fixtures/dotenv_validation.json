@@ -1,0 +1,182 @@
+{
+  "scope": "Python-compatible dotenv file parsing/interpolation and configuration-before-defaults startup for the native worker and CUDA entrypoint.",
+  "source_sha256": {
+    "src/core.cpp": "d9c179e8069fe1f4b3ecc8e5bc8c62f7db14dd777e9ca62756cc9acf407de428",
+    "src/dotenv.cpp": "2b0070d1b6a757db8283bba8ed44fded087eaebfc4509a5f53e0c7998a830cff",
+    "src/main.cpp": "a93ff2180c4bd302e016358e8771aba2f67234c2efe49fe2020c8e270e25352c",
+    "src/docker_entrypoint.cpp": "c344468b05035085cf29f3574755bc9efb1d89c45a3b95f61ba037e781ac64a7",
+    "tests/test_dotenv.cpp": "4aefd7eb57850693e3d30d8107219f4312421756dfcb59924b6d5950c4190e7d",
+    "tests/test_dotenv_startup.cpp": "ffb6bb49c876d8c2f4271a8fe2abcaf7a491285c32f06416692f171035f74590",
+    "tests/fixtures/dotenv_cases.json": "7fcccc085f59fa846bd59895467c32b753e02fa9b6930872117e57b1c7356c1e",
+    "CMakeLists.txt": "6e5b62428f456f7f1f33075a403c62ce1b1cd959a0818dacfbede796a5e91c42",
+    "cuda.Dockerfile": "95eae918c77a330de9e69c20e23af67a0ac355ba9a05eee88cd714162f44039d"
+  },
+  "reference": {
+    "dependency": "python-dotenv",
+    "version": "1.2.2",
+    "reference_sha256": {
+      "main.py": "a7d99ec5bbbc135b22b7cb81c0f292ce32a460eac8244e7502c4cb892e45778a",
+      "parser.py": "25226977de2d1a1be7ccebf83cbdc3ade5352ede6feab4caee9a7c1ba4677cbe",
+      "variables.py": "083d2a5cebefa41deae51a4140c0fda97eaf1d7ed2c96f92ba2c063054a5b74f"
+    }
+  },
+  "reference_cases": 121,
+  "project_reference_sha256": {
+    "requirements.txt": "df4949f85b89fef756dfb495a0fcb899bafa289122d5da6e5c9b30c5954c1ceb",
+    "Globals.py": "c2be3290368b9be8f6cf5e80af2109bf17dc0c407e2cdadf32fecb338b4744e8",
+    "ModelSettings.py": "ed20ff6c802788ec95b142d4bad1692a5785e135a8f186903adebb68589dcc4e",
+    "Pipes.py": "8238cef03d4a1db6e775d7f62234bcf998d8f08bd9fc15f1d8a36ea0d3280005",
+    "Router.py": "d5eebf7fc48f7781628aa4eaab8af1c3f23fd8694242f0b3065436b5c86f62b1",
+    "ezlocalai/LLM.py": "2d54d53e014e99bcd91e036736dc4f45f8160220c35da0ac582e588db52ea607",
+    "ezlocalai/LlamaTTS.py": "729deb342d0825f6c401636cbcef40348f3fd2bb505a5b78572754106ae126e6"
+  },
+  "model_and_configuration_audit": {
+    "defaults": 147,
+    "gpu_tier_names": 92,
+    "capability_and_model_name_cases": 536,
+    "request_settings_and_binding_cases": 6183,
+    "native_managed_payload_and_reload_checks": true
+  },
+  "original_env": {
+    "source_env_unchanged": true,
+    "parsed_environment_matches": true,
+    "key_count": 34,
+    "source_env_sha256": "61dd1627786c0516e0ad59287ea2fb0990eeee7c93951d292aca38f46402dd24",
+    "parsed_environment_sha256": "126306817ff1f6c38e2183e91e4b9752254dc967e8992dad2fbad49d197d5edc",
+    "reference": "python-dotenv 1.2.2",
+    "values_logged": false
+  },
+  "entrypoint": {
+    "before": {
+      "HOST": "0.0.0.0",
+      "PORT": "8091",
+      "EZLOCALAI_PORT": "8091",
+      "MODELS_PATH": "/app/models",
+      "HF_HOME": "/app/models",
+      "HF_HUB_CACHE": "/app/models",
+      "LLAMA_CACHE": "/app/models/.llama.cpp",
+      "DEFAULT_MODEL": null
+    },
+    "after": {
+      "HOST": "127.0.0.2",
+      "PORT": "18291",
+      "EZLOCALAI_PORT": "18291",
+      "MODELS_PATH": "/tmp/ezlocalai-dotenv-entrypoint/models",
+      "HF_HOME": "/tmp/ezlocalai-dotenv-entrypoint/hf",
+      "HF_HUB_CACHE": "/tmp/ezlocalai-dotenv-entrypoint/cache",
+      "LLAMA_CACHE": "/tmp/ezlocalai-dotenv-entrypoint/llama",
+      "DEFAULT_MODEL": "fixture"
+    },
+    "invalid_encoding_rejected": true,
+    "diagnostic_contains_values": false
+  },
+  "sanitizers": [
+    "AddressSanitizer",
+    "UndefinedBehaviorSanitizer"
+  ],
+  "actual_rust_router_scenarios": 8,
+  "router_binary_sha256": "91873d25c218dd3d3ed12bded2ff990bd13837d6d514922eb04dc45ccbde93b9",
+  "executable_scenarios": [
+    "interpolated listen port",
+    "last-assignment model selection",
+    "interpolated API key",
+    "process environment precedence",
+    "invalid UTF-8 startup rejection",
+    "PYTHON_DOTENV_DISABLED opt-out"
+  ],
+  "harness_corrections": [
+    "Initial startup assertion suppressed stderr and then looked for a diagnostic there. File-backed merged stderr capture verifies the actual failure.",
+    "Initial entrypoint comparison used a development symlink pointing at the rebuilt binary. Corrected baseline is a copy of the currently deployed pre-change entrypoint."
+  ],
+  "packaged_suites": 40,
+  "packaged_binaries": {
+    "/app/build/ezlocalai-native": "aaf6a25208d04a6360ba5ece80b35a66cd596f42f80519e4ae551ed786f0bd82",
+    "/app/build/ezlocalai-native-entrypoint": "7da9eb6310967f552fa1528b13a43deb6c5e46e85b862d174e1c0f3a0598bc1f",
+    "/opt/stable-diffusion.cpp/build/bin/sd-cli": "bacdb2b223e94ef8be5b65767e2c92b14bb3b931195f0b4a9815737f6efc85ed"
+  },
+  "deployment": {
+    "previous_image": "sha256:4dbbc3e4b5910719eab74233d033026802aa0a4e4b28566c63c9e3b37ed5f12a",
+    "candidate_image": "sha256:8a3409aa8ed3b97f8c5eb8cd434307e74414ab4d20034e04f00de8a5e0226b56",
+    "health": "healthy",
+    "deployed_image": "sha256:8a3409aa8ed3b97f8c5eb8cd434307e74414ab4d20034e04f00de8a5e0226b56",
+    "effective_environment_changed_keys": [],
+    "original_env_file_unchanged": true,
+    "mounts_unchanged": true,
+    "wakeword_mounts": [
+      [
+        "bind",
+        "/home/josh/repos/xtsys/ezlocalai/wakeword_models",
+        "/app/wakeword_models",
+        true
+      ],
+      [
+        "bind",
+        "/home/josh/repos/xtsys/ezlocalai/wakeword_samples",
+        "/app/wakeword_samples",
+        true
+      ],
+      [
+        "bind",
+        "/home/josh/repos/xtsys/ezlocalai/wakeword_jobs",
+        "/app/wakeword_jobs",
+        true
+      ]
+    ],
+    "ports_unchanged": true,
+    "gpu_requests_unchanged": true
+  },
+  "live": {
+    "image": "sha256:8a3409aa8ed3b97f8c5eb8cd434307e74414ab4d20034e04f00de8a5e0226b56",
+    "binary_sha256": "aaf6a25208d04a6360ba5ece80b35a66cd596f42f80519e4ae551ed786f0bd82",
+    "matching_workers": 1,
+    "python_extra_matches": true,
+    "extra": {
+      "llm_model_residency": "resident",
+      "loaded_llms": [
+        "unsloth/Qwen3.8-27B-GGUF"
+      ],
+      "active_llm": "unsloth/Qwen3.8-27B-GGUF",
+      "llm_unload_dependent_capabilities": [
+        "image",
+        "video",
+        "music",
+        "music_video"
+      ]
+    },
+    "resource_lifecycle": {
+      "llm_model_residency": "resident",
+      "loaded_llms": [
+        "unsloth/Qwen3.8-27B-GGUF"
+      ],
+      "active_llm": "unsloth/Qwen3.8-27B-GGUF"
+    },
+    "gpu_count": 1,
+    "torch_cuda": [
+      {
+        "index": 0,
+        "allocated_gb": 0.0,
+        "reserved_gb": 0.0,
+        "max_allocated_gb": 0.0,
+        "free_gb": 2.366,
+        "total_gb": 23.524
+      }
+    ],
+    "free_vram_gb": 2.36614990234375,
+    "sources": {
+      "Pipes.py": "8238cef03d4a1db6e775d7f62234bcf998d8f08bd9fc15f1d8a36ea0d3280005",
+      "Router.py": "d5eebf7fc48f7781628aa4eaab8af1c3f23fd8694242f0b3065436b5c86f62b1"
+    }
+  },
+  "live_routed_statuses": {
+    "chat": 200,
+    "stream": 200,
+    "vision": 200
+  },
+  "limits": [
+    "Native retains current-directory and EZLOCALAI_DOTENV_PATH selection; it does not emulate Python stack-based find_dotenv discovery.",
+    "Process values, including Docker-image and Compose environment settings, take precedence over file assignments. A mounted file does not override those values.",
+    "C ABI reports invalid encoding/environment values with errno codes; executable entrypoints stop with a diagnostic that omits configuration values. Malformed statements are skipped without reproducing Python warning logs.",
+    "This does not establish complete configuration-consumer or model/GPU parity. Broader replacement acceptance remains open; Qwen-only TTS and complete-LTX scope corrections apply."
+  ],
+  "evidence": "build/validation/dotenv/"
+}

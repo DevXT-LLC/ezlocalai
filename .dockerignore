@@ -1,84 +1,33 @@
-# Version control and CI metadata
 .git/*
 !.git/HEAD
-!.git/refs/
-!.git/refs/**
+!.git/refs
 !.git/packed-refs
-.github/
 .gitignore
 .dockerignore
-
-# Local environment and secrets
 .env
 .env.*
 !.env.example
 
-# Python caches, virtualenvs, and build artifacts
-__pycache__/
-**/__pycache__/
-*.py[cod]
-**/*.py[cod]
-*$py.class
-.pytest_cache/
-**/.pytest_cache/
-.mypy_cache/
-**/.mypy_cache/
-.ruff_cache/
-**/.ruff_cache/
-.coverage
-coverage/
-htmlcov/
-.venv/
-**/.venv/
-venv/
-**/venv/
-env/
-**/env/
 build/
-**/build/
-dist/
-**/dist/
-*.egg-info/
-**/*.egg-info/
-*.egg
-**/*.egg
-*.whl
-**/*.whl
-*.tar.gz
-**/*.tar.gz
+build-*/
+third_party/
 
-# Local model/cache/output volumes
 models/
+outputs/
+whispercpp/
+wakeword_models/
+wakeword_samples/
+wakeword_jobs/
 hf/
 pretrained_models/
-whispercpp/
-xttsv2_2.0.2/
-CosyVoice/
-outputs/
 router-outputs/
-temp/
 data/
+temp/
+.ezlocalai-deploy-cleanup.*
+.ezlocalai-deploy.lock
 
-# Test, notebook, and local development files
-tests/
-test_*.py
-**/test_*.py
-*.ipynb
-*.md
-Dockerfile
-*.Dockerfile
-docker-compose*.yml
-dev.yml
-pull_request.md
-AGENTS.md
-benchmark.py
-start.ps1
-
-# Runtime byproducts
 *.log
 *.tmp
 *.db
 *.sqlite
 *.sqlite3
-audio_response.wav
-usage.json

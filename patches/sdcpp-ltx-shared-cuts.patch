@@ -1,0 +1,38 @@
+--- a/src/core/ggml_runner.cpp
++++ b/src/core/ggml_runner.cpp
+@@ -849,6 +849,12 @@
+     }
+     const auto& plan            = segmented ? cached_plan : monolithic_plan;
+     const bool segments_changed = plan.segments.size() != logged_segment_count_;
++    if (segments_changed && segmented) {
++        size_t executed_nodes = 0;
++        for (const auto& segment : plan.segments) executed_nodes += segment.internal_node_indices.size();
++        LOG_INFO("%s graph cuts: %zu executed nodes, %d original nodes, %zu segments",
++                 get_desc().c_str(), executed_nodes, ggml_graph_n_nodes(graph), plan.segments.size());
++    }
+     if (segments_changed && (segmented || logged_segment_count_ > 1)) {
+         LOG_VERBOSE("%s using %zu segment%s", get_desc().c_str(),
+                     plan.segments.size(), plan.segments.size() == 1 ? "" : "s");
+--- a/src/model/diffusion/ltxv.hpp
++++ b/src/model/diffusion/ltxv.hpp
+@@ -1697,6 +1697,20 @@
+             sd::ggml_graph_cut::mark_graph_cut(vx, "ltxav.prelude", "vx");
+             sd::ggml_graph_cut::mark_graph_cut(ax, "ltxav.prelude", "ax");
+ 
++            // These values feed every transformer block. Without cuts, each
++            // segment recursively includes their connector/adaptation graphs.
++            sd::ggml_graph_cut::mark_graph_cut(v_context, "ltxav.prelude", "v_context");
++            if (a_context != v_context)
++                sd::ggml_graph_cut::mark_graph_cut(a_context, "ltxav.prelude", "a_context");
++            sd::ggml_graph_cut::mark_graph_cut(v_timestep_mod, "ltxav.prelude", "v_timestep_mod");
++            sd::ggml_graph_cut::mark_graph_cut(a_timestep_mod, "ltxav.prelude", "a_timestep_mod");
++            sd::ggml_graph_cut::mark_graph_cut(v_prompt_timestep_mod, "ltxav.prelude", "v_prompt_timestep_mod");
++            sd::ggml_graph_cut::mark_graph_cut(a_prompt_timestep_mod, "ltxav.prelude", "a_prompt_timestep_mod");
++            sd::ggml_graph_cut::mark_graph_cut(av_ca_video_scale_shift_timestep, "ltxav.prelude", "av_ca_video_scale_shift");
++            sd::ggml_graph_cut::mark_graph_cut(av_ca_audio_scale_shift_timestep, "ltxav.prelude", "av_ca_audio_scale_shift");
++            sd::ggml_graph_cut::mark_graph_cut(av_ca_a2v_gate_noise_timestep, "ltxav.prelude", "av_ca_a2v_gate");
++            sd::ggml_graph_cut::mark_graph_cut(av_ca_v2a_gate_noise_timestep, "ltxav.prelude", "av_ca_v2a_gate");
++
+             for (int i = 0; i < config.num_layers; i++) {
+                 auto block = std::dynamic_pointer_cast<BasicAVTransformerBlock>(blocks["transformer_blocks." + std::to_string(i)]);
+                 auto out   = block->forward(ctx,

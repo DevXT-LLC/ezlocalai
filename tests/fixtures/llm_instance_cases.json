@@ -1,0 +1,5577 @@
+{
+  "source_sha256": "8238cef03d4a1db6e775d7f62234bcf998d8f08bd9fc15f1d8a36ea0d3280005",
+  "method": "Executed full Pipes.get_slot_capacity_snapshot and _resolved_parallel_for_model with controlled persistent instances, failed replicas, public model groups and vision classification; auxiliary modalities disabled",
+  "cases": [
+    {
+      "models": [
+        "org/text"
+      ],
+      "replicas": [
+        {
+          "id": "org/text",
+          "source": "org/text",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": false
+        }
+      ],
+      "swap": false,
+      "slots": {
+        "cap_slots": {
+          "text": {
+            "capacity": 2,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 2
+          }
+        },
+        "model_slots": {
+          "org/text": {
+            "capacity": 2,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 2
+          }
+        },
+        "llm_queue_capacity": 2,
+        "slot_total_capacity": 2,
+        "slot_total_in_flight": 0,
+        "slot_total_queued": 0,
+        "slot_total_available": 2
+      }
+    },
+    {
+      "models": [
+        "org/text"
+      ],
+      "replicas": [
+        {
+          "id": "org/text",
+          "source": "org/text",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": true
+        }
+      ],
+      "swap": false,
+      "slots": {
+        "cap_slots": {},
+        "model_slots": {},
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 0,
+        "slot_total_in_flight": 0,
+        "slot_total_queued": 0,
+        "slot_total_available": 0
+      }
+    },
+    {
+      "models": [
+        "org/text"
+      ],
+      "replicas": [
+        {
+          "id": "org/text",
+          "source": "org/text",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": false
+        }
+      ],
+      "swap": true,
+      "slots": {
+        "cap_slots": {
+          "text": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          }
+        },
+        "model_slots": {
+          "org/text": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          }
+        },
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 1,
+        "slot_total_in_flight": 0,
+        "slot_total_queued": 0,
+        "slot_total_available": 1
+      }
+    },
+    {
+      "models": [
+        "org/text"
+      ],
+      "replicas": [
+        {
+          "id": "org/text",
+          "source": "org/text",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": true
+        }
+      ],
+      "swap": true,
+      "slots": {
+        "cap_slots": {},
+        "model_slots": {},
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 0,
+        "slot_total_in_flight": 0,
+        "slot_total_queued": 0,
+        "slot_total_available": 0
+      }
+    },
+    {
+      "models": [
+        "org/text"
+      ],
+      "replicas": [
+        {
+          "id": "org/text",
+          "source": "org/text",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        }
+      ],
+      "swap": false,
+      "slots": {
+        "cap_slots": {
+          "text": {
+            "capacity": 2,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 2
+          }
+        },
+        "model_slots": {
+          "org/text": {
+            "capacity": 2,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 2
+          }
+        },
+        "llm_queue_capacity": 2,
+        "slot_total_capacity": 2,
+        "slot_total_in_flight": 0,
+        "slot_total_queued": 0,
+        "slot_total_available": 2
+      }
+    },
+    {
+      "models": [
+        "org/text"
+      ],
+      "replicas": [
+        {
+          "id": "org/text",
+          "source": "org/text",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        }
+      ],
+      "swap": false,
+      "slots": {
+        "cap_slots": {
+          "text": {
+            "capacity": 2,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 2
+          }
+        },
+        "model_slots": {
+          "org/text": {
+            "capacity": 2,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 2
+          }
+        },
+        "llm_queue_capacity": 2,
+        "slot_total_capacity": 2,
+        "slot_total_in_flight": 0,
+        "slot_total_queued": 0,
+        "slot_total_available": 2
+      }
+    },
+    {
+      "models": [
+        "org/text"
+      ],
+      "replicas": [
+        {
+          "id": "org/text",
+          "source": "org/text",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        }
+      ],
+      "swap": true,
+      "slots": {
+        "cap_slots": {
+          "text": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          }
+        },
+        "model_slots": {
+          "org/text": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          }
+        },
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 1,
+        "slot_total_in_flight": 0,
+        "slot_total_queued": 0,
+        "slot_total_available": 1
+      }
+    },
+    {
+      "models": [
+        "org/text"
+      ],
+      "replicas": [
+        {
+          "id": "org/text",
+          "source": "org/text",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        }
+      ],
+      "swap": true,
+      "slots": {
+        "cap_slots": {
+          "text": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          }
+        },
+        "model_slots": {
+          "org/text": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          }
+        },
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 1,
+        "slot_total_in_flight": 0,
+        "slot_total_queued": 0,
+        "slot_total_available": 1
+      }
+    },
+    {
+      "models": [
+        "org/text",
+        "org/text"
+      ],
+      "replicas": [
+        {
+          "id": "org/text",
+          "source": "org/text",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": false
+        },
+        {
+          "id": "org/text#2",
+          "source": "org/text",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": false
+        }
+      ],
+      "swap": false,
+      "slots": {
+        "cap_slots": {
+          "text": {
+            "capacity": 4,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 4
+          }
+        },
+        "model_slots": {
+          "org/text": {
+            "capacity": 4,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 4
+          }
+        },
+        "llm_queue_capacity": 4,
+        "slot_total_capacity": 4,
+        "slot_total_in_flight": 0,
+        "slot_total_queued": 0,
+        "slot_total_available": 4
+      }
+    },
+    {
+      "models": [
+        "org/text",
+        "org/text"
+      ],
+      "replicas": [
+        {
+          "id": "org/text",
+          "source": "org/text",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": true
+        },
+        {
+          "id": "org/text#2",
+          "source": "org/text",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": true
+        }
+      ],
+      "swap": false,
+      "slots": {
+        "cap_slots": {},
+        "model_slots": {},
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 0,
+        "slot_total_in_flight": 0,
+        "slot_total_queued": 0,
+        "slot_total_available": 0
+      }
+    },
+    {
+      "models": [
+        "org/text",
+        "org/text"
+      ],
+      "replicas": [
+        {
+          "id": "org/text",
+          "source": "org/text",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": false
+        },
+        {
+          "id": "org/text#2",
+          "source": "org/text",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": false
+        }
+      ],
+      "swap": true,
+      "slots": {
+        "cap_slots": {
+          "text": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          }
+        },
+        "model_slots": {
+          "org/text": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          }
+        },
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 1,
+        "slot_total_in_flight": 0,
+        "slot_total_queued": 0,
+        "slot_total_available": 1
+      }
+    },
+    {
+      "models": [
+        "org/text",
+        "org/text"
+      ],
+      "replicas": [
+        {
+          "id": "org/text",
+          "source": "org/text",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": true
+        },
+        {
+          "id": "org/text#2",
+          "source": "org/text",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": true
+        }
+      ],
+      "swap": true,
+      "slots": {
+        "cap_slots": {},
+        "model_slots": {},
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 0,
+        "slot_total_in_flight": 0,
+        "slot_total_queued": 0,
+        "slot_total_available": 0
+      }
+    },
+    {
+      "models": [
+        "org/text",
+        "org/text"
+      ],
+      "replicas": [
+        {
+          "id": "org/text",
+          "source": "org/text",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        },
+        {
+          "id": "org/text#2",
+          "source": "org/text",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": false
+        }
+      ],
+      "swap": false,
+      "slots": {
+        "cap_slots": {
+          "text": {
+            "capacity": 4,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 4
+          }
+        },
+        "model_slots": {
+          "org/text": {
+            "capacity": 4,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 4
+          }
+        },
+        "llm_queue_capacity": 4,
+        "slot_total_capacity": 4,
+        "slot_total_in_flight": 0,
+        "slot_total_queued": 0,
+        "slot_total_available": 4
+      }
+    },
+    {
+      "models": [
+        "org/text",
+        "org/text"
+      ],
+      "replicas": [
+        {
+          "id": "org/text",
+          "source": "org/text",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        },
+        {
+          "id": "org/text#2",
+          "source": "org/text",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": true
+        }
+      ],
+      "swap": false,
+      "slots": {
+        "cap_slots": {
+          "text": {
+            "capacity": 2,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 2
+          }
+        },
+        "model_slots": {
+          "org/text": {
+            "capacity": 2,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 2
+          }
+        },
+        "llm_queue_capacity": 2,
+        "slot_total_capacity": 2,
+        "slot_total_in_flight": 0,
+        "slot_total_queued": 0,
+        "slot_total_available": 2
+      }
+    },
+    {
+      "models": [
+        "org/text",
+        "org/text"
+      ],
+      "replicas": [
+        {
+          "id": "org/text",
+          "source": "org/text",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        },
+        {
+          "id": "org/text#2",
+          "source": "org/text",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": false
+        }
+      ],
+      "swap": true,
+      "slots": {
+        "cap_slots": {
+          "text": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          }
+        },
+        "model_slots": {
+          "org/text": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          }
+        },
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 1,
+        "slot_total_in_flight": 0,
+        "slot_total_queued": 0,
+        "slot_total_available": 1
+      }
+    },
+    {
+      "models": [
+        "org/text",
+        "org/text"
+      ],
+      "replicas": [
+        {
+          "id": "org/text",
+          "source": "org/text",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        },
+        {
+          "id": "org/text#2",
+          "source": "org/text",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": true
+        }
+      ],
+      "swap": true,
+      "slots": {
+        "cap_slots": {
+          "text": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          }
+        },
+        "model_slots": {
+          "org/text": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          }
+        },
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 1,
+        "slot_total_in_flight": 0,
+        "slot_total_queued": 0,
+        "slot_total_available": 1
+      }
+    },
+    {
+      "models": [
+        "org/text",
+        "org/text"
+      ],
+      "replicas": [
+        {
+          "id": "org/text",
+          "source": "org/text",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        },
+        {
+          "id": "org/text#2",
+          "source": "org/text",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        }
+      ],
+      "swap": false,
+      "slots": {
+        "cap_slots": {
+          "text": {
+            "capacity": 4,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 4,
+            "instances": 2
+          }
+        },
+        "model_slots": {
+          "org/text": {
+            "capacity": 4,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 4,
+            "instances": 2
+          }
+        },
+        "llm_queue_capacity": 4,
+        "slot_total_capacity": 4,
+        "slot_total_in_flight": 0,
+        "slot_total_queued": 0,
+        "slot_total_available": 4
+      }
+    },
+    {
+      "models": [
+        "org/text",
+        "org/text"
+      ],
+      "replicas": [
+        {
+          "id": "org/text",
+          "source": "org/text",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        },
+        {
+          "id": "org/text#2",
+          "source": "org/text",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        }
+      ],
+      "swap": false,
+      "slots": {
+        "cap_slots": {
+          "text": {
+            "capacity": 4,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 4,
+            "instances": 2
+          }
+        },
+        "model_slots": {
+          "org/text": {
+            "capacity": 4,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 4,
+            "instances": 2
+          }
+        },
+        "llm_queue_capacity": 4,
+        "slot_total_capacity": 4,
+        "slot_total_in_flight": 0,
+        "slot_total_queued": 0,
+        "slot_total_available": 4
+      }
+    },
+    {
+      "models": [
+        "org/text",
+        "org/text"
+      ],
+      "replicas": [
+        {
+          "id": "org/text",
+          "source": "org/text",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        },
+        {
+          "id": "org/text#2",
+          "source": "org/text",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        }
+      ],
+      "swap": true,
+      "slots": {
+        "cap_slots": {
+          "text": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          }
+        },
+        "model_slots": {
+          "org/text": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          }
+        },
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 1,
+        "slot_total_in_flight": 0,
+        "slot_total_queued": 0,
+        "slot_total_available": 1
+      }
+    },
+    {
+      "models": [
+        "org/text",
+        "org/text"
+      ],
+      "replicas": [
+        {
+          "id": "org/text",
+          "source": "org/text",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        },
+        {
+          "id": "org/text#2",
+          "source": "org/text",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        }
+      ],
+      "swap": true,
+      "slots": {
+        "cap_slots": {
+          "text": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          }
+        },
+        "model_slots": {
+          "org/text": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          }
+        },
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 1,
+        "slot_total_in_flight": 0,
+        "slot_total_queued": 0,
+        "slot_total_available": 1
+      }
+    },
+    {
+      "models": [
+        "org/text",
+        "org/text",
+        "org/text"
+      ],
+      "replicas": [
+        {
+          "id": "org/text",
+          "source": "org/text",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": false
+        },
+        {
+          "id": "org/text#2",
+          "source": "org/text",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": false
+        },
+        {
+          "id": "org/text#3",
+          "source": "org/text",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": false
+        }
+      ],
+      "swap": false,
+      "slots": {
+        "cap_slots": {
+          "text": {
+            "capacity": 6,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 6
+          }
+        },
+        "model_slots": {
+          "org/text": {
+            "capacity": 6,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 6
+          }
+        },
+        "llm_queue_capacity": 6,
+        "slot_total_capacity": 6,
+        "slot_total_in_flight": 0,
+        "slot_total_queued": 0,
+        "slot_total_available": 6
+      }
+    },
+    {
+      "models": [
+        "org/text",
+        "org/text",
+        "org/text"
+      ],
+      "replicas": [
+        {
+          "id": "org/text",
+          "source": "org/text",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": true
+        },
+        {
+          "id": "org/text#2",
+          "source": "org/text",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": true
+        },
+        {
+          "id": "org/text#3",
+          "source": "org/text",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": true
+        }
+      ],
+      "swap": false,
+      "slots": {
+        "cap_slots": {},
+        "model_slots": {},
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 0,
+        "slot_total_in_flight": 0,
+        "slot_total_queued": 0,
+        "slot_total_available": 0
+      }
+    },
+    {
+      "models": [
+        "org/text",
+        "org/text",
+        "org/text"
+      ],
+      "replicas": [
+        {
+          "id": "org/text",
+          "source": "org/text",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": false
+        },
+        {
+          "id": "org/text#2",
+          "source": "org/text",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": false
+        },
+        {
+          "id": "org/text#3",
+          "source": "org/text",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": false
+        }
+      ],
+      "swap": true,
+      "slots": {
+        "cap_slots": {
+          "text": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          }
+        },
+        "model_slots": {
+          "org/text": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          }
+        },
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 1,
+        "slot_total_in_flight": 0,
+        "slot_total_queued": 0,
+        "slot_total_available": 1
+      }
+    },
+    {
+      "models": [
+        "org/text",
+        "org/text",
+        "org/text"
+      ],
+      "replicas": [
+        {
+          "id": "org/text",
+          "source": "org/text",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": true
+        },
+        {
+          "id": "org/text#2",
+          "source": "org/text",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": true
+        },
+        {
+          "id": "org/text#3",
+          "source": "org/text",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": true
+        }
+      ],
+      "swap": true,
+      "slots": {
+        "cap_slots": {},
+        "model_slots": {},
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 0,
+        "slot_total_in_flight": 0,
+        "slot_total_queued": 0,
+        "slot_total_available": 0
+      }
+    },
+    {
+      "models": [
+        "org/text",
+        "org/text",
+        "org/text"
+      ],
+      "replicas": [
+        {
+          "id": "org/text",
+          "source": "org/text",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        },
+        {
+          "id": "org/text#2",
+          "source": "org/text",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": false
+        },
+        {
+          "id": "org/text#3",
+          "source": "org/text",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": false
+        }
+      ],
+      "swap": false,
+      "slots": {
+        "cap_slots": {
+          "text": {
+            "capacity": 6,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 6
+          }
+        },
+        "model_slots": {
+          "org/text": {
+            "capacity": 6,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 6
+          }
+        },
+        "llm_queue_capacity": 6,
+        "slot_total_capacity": 6,
+        "slot_total_in_flight": 0,
+        "slot_total_queued": 0,
+        "slot_total_available": 6
+      }
+    },
+    {
+      "models": [
+        "org/text",
+        "org/text",
+        "org/text"
+      ],
+      "replicas": [
+        {
+          "id": "org/text",
+          "source": "org/text",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        },
+        {
+          "id": "org/text#2",
+          "source": "org/text",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": true
+        },
+        {
+          "id": "org/text#3",
+          "source": "org/text",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": true
+        }
+      ],
+      "swap": false,
+      "slots": {
+        "cap_slots": {
+          "text": {
+            "capacity": 2,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 2
+          }
+        },
+        "model_slots": {
+          "org/text": {
+            "capacity": 2,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 2
+          }
+        },
+        "llm_queue_capacity": 2,
+        "slot_total_capacity": 2,
+        "slot_total_in_flight": 0,
+        "slot_total_queued": 0,
+        "slot_total_available": 2
+      }
+    },
+    {
+      "models": [
+        "org/text",
+        "org/text",
+        "org/text"
+      ],
+      "replicas": [
+        {
+          "id": "org/text",
+          "source": "org/text",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        },
+        {
+          "id": "org/text#2",
+          "source": "org/text",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": false
+        },
+        {
+          "id": "org/text#3",
+          "source": "org/text",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": false
+        }
+      ],
+      "swap": true,
+      "slots": {
+        "cap_slots": {
+          "text": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          }
+        },
+        "model_slots": {
+          "org/text": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          }
+        },
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 1,
+        "slot_total_in_flight": 0,
+        "slot_total_queued": 0,
+        "slot_total_available": 1
+      }
+    },
+    {
+      "models": [
+        "org/text",
+        "org/text",
+        "org/text"
+      ],
+      "replicas": [
+        {
+          "id": "org/text",
+          "source": "org/text",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        },
+        {
+          "id": "org/text#2",
+          "source": "org/text",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": true
+        },
+        {
+          "id": "org/text#3",
+          "source": "org/text",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": true
+        }
+      ],
+      "swap": true,
+      "slots": {
+        "cap_slots": {
+          "text": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          }
+        },
+        "model_slots": {
+          "org/text": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          }
+        },
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 1,
+        "slot_total_in_flight": 0,
+        "slot_total_queued": 0,
+        "slot_total_available": 1
+      }
+    },
+    {
+      "models": [
+        "org/text",
+        "org/text",
+        "org/text"
+      ],
+      "replicas": [
+        {
+          "id": "org/text",
+          "source": "org/text",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        },
+        {
+          "id": "org/text#2",
+          "source": "org/text",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        },
+        {
+          "id": "org/text#3",
+          "source": "org/text",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": false
+        }
+      ],
+      "swap": false,
+      "slots": {
+        "cap_slots": {
+          "text": {
+            "capacity": 6,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 6,
+            "instances": 2
+          }
+        },
+        "model_slots": {
+          "org/text": {
+            "capacity": 6,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 6,
+            "instances": 2
+          }
+        },
+        "llm_queue_capacity": 6,
+        "slot_total_capacity": 6,
+        "slot_total_in_flight": 0,
+        "slot_total_queued": 0,
+        "slot_total_available": 6
+      }
+    },
+    {
+      "models": [
+        "org/text",
+        "org/text",
+        "org/text"
+      ],
+      "replicas": [
+        {
+          "id": "org/text",
+          "source": "org/text",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        },
+        {
+          "id": "org/text#2",
+          "source": "org/text",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        },
+        {
+          "id": "org/text#3",
+          "source": "org/text",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": true
+        }
+      ],
+      "swap": false,
+      "slots": {
+        "cap_slots": {
+          "text": {
+            "capacity": 4,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 4,
+            "instances": 2
+          }
+        },
+        "model_slots": {
+          "org/text": {
+            "capacity": 4,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 4,
+            "instances": 2
+          }
+        },
+        "llm_queue_capacity": 4,
+        "slot_total_capacity": 4,
+        "slot_total_in_flight": 0,
+        "slot_total_queued": 0,
+        "slot_total_available": 4
+      }
+    },
+    {
+      "models": [
+        "org/text",
+        "org/text",
+        "org/text"
+      ],
+      "replicas": [
+        {
+          "id": "org/text",
+          "source": "org/text",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        },
+        {
+          "id": "org/text#2",
+          "source": "org/text",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        },
+        {
+          "id": "org/text#3",
+          "source": "org/text",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": false
+        }
+      ],
+      "swap": true,
+      "slots": {
+        "cap_slots": {
+          "text": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          }
+        },
+        "model_slots": {
+          "org/text": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          }
+        },
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 1,
+        "slot_total_in_flight": 0,
+        "slot_total_queued": 0,
+        "slot_total_available": 1
+      }
+    },
+    {
+      "models": [
+        "org/text",
+        "org/text",
+        "org/text"
+      ],
+      "replicas": [
+        {
+          "id": "org/text",
+          "source": "org/text",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        },
+        {
+          "id": "org/text#2",
+          "source": "org/text",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        },
+        {
+          "id": "org/text#3",
+          "source": "org/text",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": true
+        }
+      ],
+      "swap": true,
+      "slots": {
+        "cap_slots": {
+          "text": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          }
+        },
+        "model_slots": {
+          "org/text": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          }
+        },
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 1,
+        "slot_total_in_flight": 0,
+        "slot_total_queued": 0,
+        "slot_total_available": 1
+      }
+    },
+    {
+      "models": [
+        "org/text",
+        "org/text",
+        "org/text"
+      ],
+      "replicas": [
+        {
+          "id": "org/text",
+          "source": "org/text",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        },
+        {
+          "id": "org/text#2",
+          "source": "org/text",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        },
+        {
+          "id": "org/text#3",
+          "source": "org/text",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        }
+      ],
+      "swap": false,
+      "slots": {
+        "cap_slots": {
+          "text": {
+            "capacity": 6,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 6,
+            "instances": 3
+          }
+        },
+        "model_slots": {
+          "org/text": {
+            "capacity": 6,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 6,
+            "instances": 3
+          }
+        },
+        "llm_queue_capacity": 6,
+        "slot_total_capacity": 6,
+        "slot_total_in_flight": 0,
+        "slot_total_queued": 0,
+        "slot_total_available": 6
+      }
+    },
+    {
+      "models": [
+        "org/text",
+        "org/text",
+        "org/text"
+      ],
+      "replicas": [
+        {
+          "id": "org/text",
+          "source": "org/text",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        },
+        {
+          "id": "org/text#2",
+          "source": "org/text",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        },
+        {
+          "id": "org/text#3",
+          "source": "org/text",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        }
+      ],
+      "swap": false,
+      "slots": {
+        "cap_slots": {
+          "text": {
+            "capacity": 6,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 6,
+            "instances": 3
+          }
+        },
+        "model_slots": {
+          "org/text": {
+            "capacity": 6,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 6,
+            "instances": 3
+          }
+        },
+        "llm_queue_capacity": 6,
+        "slot_total_capacity": 6,
+        "slot_total_in_flight": 0,
+        "slot_total_queued": 0,
+        "slot_total_available": 6
+      }
+    },
+    {
+      "models": [
+        "org/text",
+        "org/text",
+        "org/text"
+      ],
+      "replicas": [
+        {
+          "id": "org/text",
+          "source": "org/text",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        },
+        {
+          "id": "org/text#2",
+          "source": "org/text",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        },
+        {
+          "id": "org/text#3",
+          "source": "org/text",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        }
+      ],
+      "swap": true,
+      "slots": {
+        "cap_slots": {
+          "text": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          }
+        },
+        "model_slots": {
+          "org/text": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          }
+        },
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 1,
+        "slot_total_in_flight": 0,
+        "slot_total_queued": 0,
+        "slot_total_available": 1
+      }
+    },
+    {
+      "models": [
+        "org/text",
+        "org/text",
+        "org/text"
+      ],
+      "replicas": [
+        {
+          "id": "org/text",
+          "source": "org/text",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        },
+        {
+          "id": "org/text#2",
+          "source": "org/text",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        },
+        {
+          "id": "org/text#3",
+          "source": "org/text",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        }
+      ],
+      "swap": true,
+      "slots": {
+        "cap_slots": {
+          "text": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          }
+        },
+        "model_slots": {
+          "org/text": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          }
+        },
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 1,
+        "slot_total_in_flight": 0,
+        "slot_total_queued": 0,
+        "slot_total_available": 1
+      }
+    },
+    {
+      "models": [
+        "org/vision",
+        "org/vision"
+      ],
+      "replicas": [
+        {
+          "id": "org/vision",
+          "source": "org/vision",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": false
+        },
+        {
+          "id": "org/vision#2",
+          "source": "org/vision",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": false
+        }
+      ],
+      "swap": false,
+      "slots": {
+        "cap_slots": {
+          "text": {
+            "capacity": 4,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 4
+          },
+          "vision": {
+            "capacity": 4,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 4
+          }
+        },
+        "model_slots": {
+          "org/vision": {
+            "capacity": 4,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 4
+          }
+        },
+        "llm_queue_capacity": 4,
+        "slot_total_capacity": 4,
+        "slot_total_in_flight": 0,
+        "slot_total_queued": 0,
+        "slot_total_available": 4
+      }
+    },
+    {
+      "models": [
+        "org/vision",
+        "org/vision"
+      ],
+      "replicas": [
+        {
+          "id": "org/vision",
+          "source": "org/vision",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": true
+        },
+        {
+          "id": "org/vision#2",
+          "source": "org/vision",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": true
+        }
+      ],
+      "swap": false,
+      "slots": {
+        "cap_slots": {},
+        "model_slots": {},
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 0,
+        "slot_total_in_flight": 0,
+        "slot_total_queued": 0,
+        "slot_total_available": 0
+      }
+    },
+    {
+      "models": [
+        "org/vision",
+        "org/vision"
+      ],
+      "replicas": [
+        {
+          "id": "org/vision",
+          "source": "org/vision",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": false
+        },
+        {
+          "id": "org/vision#2",
+          "source": "org/vision",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": false
+        }
+      ],
+      "swap": true,
+      "slots": {
+        "cap_slots": {
+          "text": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          },
+          "vision": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          }
+        },
+        "model_slots": {
+          "org/vision": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          }
+        },
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 1,
+        "slot_total_in_flight": 0,
+        "slot_total_queued": 0,
+        "slot_total_available": 1
+      }
+    },
+    {
+      "models": [
+        "org/vision",
+        "org/vision"
+      ],
+      "replicas": [
+        {
+          "id": "org/vision",
+          "source": "org/vision",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": true
+        },
+        {
+          "id": "org/vision#2",
+          "source": "org/vision",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": true
+        }
+      ],
+      "swap": true,
+      "slots": {
+        "cap_slots": {},
+        "model_slots": {},
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 0,
+        "slot_total_in_flight": 0,
+        "slot_total_queued": 0,
+        "slot_total_available": 0
+      }
+    },
+    {
+      "models": [
+        "org/vision",
+        "org/vision"
+      ],
+      "replicas": [
+        {
+          "id": "org/vision",
+          "source": "org/vision",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        },
+        {
+          "id": "org/vision#2",
+          "source": "org/vision",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": false
+        }
+      ],
+      "swap": false,
+      "slots": {
+        "cap_slots": {
+          "text": {
+            "capacity": 4,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 4
+          },
+          "vision": {
+            "capacity": 4,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 4
+          }
+        },
+        "model_slots": {
+          "org/vision": {
+            "capacity": 4,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 4
+          }
+        },
+        "llm_queue_capacity": 4,
+        "slot_total_capacity": 4,
+        "slot_total_in_flight": 0,
+        "slot_total_queued": 0,
+        "slot_total_available": 4
+      }
+    },
+    {
+      "models": [
+        "org/vision",
+        "org/vision"
+      ],
+      "replicas": [
+        {
+          "id": "org/vision",
+          "source": "org/vision",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        },
+        {
+          "id": "org/vision#2",
+          "source": "org/vision",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": true
+        }
+      ],
+      "swap": false,
+      "slots": {
+        "cap_slots": {
+          "text": {
+            "capacity": 2,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 2
+          },
+          "vision": {
+            "capacity": 2,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 2
+          }
+        },
+        "model_slots": {
+          "org/vision": {
+            "capacity": 2,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 2
+          }
+        },
+        "llm_queue_capacity": 2,
+        "slot_total_capacity": 2,
+        "slot_total_in_flight": 0,
+        "slot_total_queued": 0,
+        "slot_total_available": 2
+      }
+    },
+    {
+      "models": [
+        "org/vision",
+        "org/vision"
+      ],
+      "replicas": [
+        {
+          "id": "org/vision",
+          "source": "org/vision",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        },
+        {
+          "id": "org/vision#2",
+          "source": "org/vision",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": false
+        }
+      ],
+      "swap": true,
+      "slots": {
+        "cap_slots": {
+          "text": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          },
+          "vision": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          }
+        },
+        "model_slots": {
+          "org/vision": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          }
+        },
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 1,
+        "slot_total_in_flight": 0,
+        "slot_total_queued": 0,
+        "slot_total_available": 1
+      }
+    },
+    {
+      "models": [
+        "org/vision",
+        "org/vision"
+      ],
+      "replicas": [
+        {
+          "id": "org/vision",
+          "source": "org/vision",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        },
+        {
+          "id": "org/vision#2",
+          "source": "org/vision",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": true
+        }
+      ],
+      "swap": true,
+      "slots": {
+        "cap_slots": {
+          "text": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          },
+          "vision": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          }
+        },
+        "model_slots": {
+          "org/vision": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          }
+        },
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 1,
+        "slot_total_in_flight": 0,
+        "slot_total_queued": 0,
+        "slot_total_available": 1
+      }
+    },
+    {
+      "models": [
+        "org/vision",
+        "org/vision"
+      ],
+      "replicas": [
+        {
+          "id": "org/vision",
+          "source": "org/vision",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        },
+        {
+          "id": "org/vision#2",
+          "source": "org/vision",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        }
+      ],
+      "swap": false,
+      "slots": {
+        "cap_slots": {
+          "text": {
+            "capacity": 4,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 4,
+            "instances": 2
+          },
+          "vision": {
+            "capacity": 4,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 4,
+            "instances": 2
+          }
+        },
+        "model_slots": {
+          "org/vision": {
+            "capacity": 4,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 4,
+            "instances": 2
+          }
+        },
+        "llm_queue_capacity": 4,
+        "slot_total_capacity": 4,
+        "slot_total_in_flight": 0,
+        "slot_total_queued": 0,
+        "slot_total_available": 4
+      }
+    },
+    {
+      "models": [
+        "org/vision",
+        "org/vision"
+      ],
+      "replicas": [
+        {
+          "id": "org/vision",
+          "source": "org/vision",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        },
+        {
+          "id": "org/vision#2",
+          "source": "org/vision",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        }
+      ],
+      "swap": false,
+      "slots": {
+        "cap_slots": {
+          "text": {
+            "capacity": 4,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 4,
+            "instances": 2
+          },
+          "vision": {
+            "capacity": 4,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 4,
+            "instances": 2
+          }
+        },
+        "model_slots": {
+          "org/vision": {
+            "capacity": 4,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 4,
+            "instances": 2
+          }
+        },
+        "llm_queue_capacity": 4,
+        "slot_total_capacity": 4,
+        "slot_total_in_flight": 0,
+        "slot_total_queued": 0,
+        "slot_total_available": 4
+      }
+    },
+    {
+      "models": [
+        "org/vision",
+        "org/vision"
+      ],
+      "replicas": [
+        {
+          "id": "org/vision",
+          "source": "org/vision",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        },
+        {
+          "id": "org/vision#2",
+          "source": "org/vision",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        }
+      ],
+      "swap": true,
+      "slots": {
+        "cap_slots": {
+          "text": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          },
+          "vision": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          }
+        },
+        "model_slots": {
+          "org/vision": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          }
+        },
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 1,
+        "slot_total_in_flight": 0,
+        "slot_total_queued": 0,
+        "slot_total_available": 1
+      }
+    },
+    {
+      "models": [
+        "org/vision",
+        "org/vision"
+      ],
+      "replicas": [
+        {
+          "id": "org/vision",
+          "source": "org/vision",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        },
+        {
+          "id": "org/vision#2",
+          "source": "org/vision",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        }
+      ],
+      "swap": true,
+      "slots": {
+        "cap_slots": {
+          "text": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          },
+          "vision": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          }
+        },
+        "model_slots": {
+          "org/vision": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          }
+        },
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 1,
+        "slot_total_in_flight": 0,
+        "slot_total_queued": 0,
+        "slot_total_available": 1
+      }
+    },
+    {
+      "models": [
+        "org/text",
+        "org/text",
+        "org/vision",
+        "org/vision"
+      ],
+      "replicas": [
+        {
+          "id": "org/text",
+          "source": "org/text",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": false
+        },
+        {
+          "id": "org/text#2",
+          "source": "org/text",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": false
+        },
+        {
+          "id": "org/vision",
+          "source": "org/vision",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": false
+        },
+        {
+          "id": "org/vision#2",
+          "source": "org/vision",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": false
+        }
+      ],
+      "swap": false,
+      "slots": {
+        "cap_slots": {
+          "text": {
+            "capacity": 8,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 8
+          },
+          "vision": {
+            "capacity": 4,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 4
+          }
+        },
+        "model_slots": {
+          "org/text": {
+            "capacity": 4,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 4
+          },
+          "org/vision": {
+            "capacity": 4,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 4
+          }
+        },
+        "llm_queue_capacity": 8,
+        "slot_total_capacity": 8,
+        "slot_total_in_flight": 0,
+        "slot_total_queued": 0,
+        "slot_total_available": 8
+      }
+    },
+    {
+      "models": [
+        "org/text",
+        "org/text",
+        "org/vision",
+        "org/vision"
+      ],
+      "replicas": [
+        {
+          "id": "org/text",
+          "source": "org/text",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": true
+        },
+        {
+          "id": "org/text#2",
+          "source": "org/text",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": true
+        },
+        {
+          "id": "org/vision",
+          "source": "org/vision",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": true
+        },
+        {
+          "id": "org/vision#2",
+          "source": "org/vision",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": true
+        }
+      ],
+      "swap": false,
+      "slots": {
+        "cap_slots": {},
+        "model_slots": {},
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 0,
+        "slot_total_in_flight": 0,
+        "slot_total_queued": 0,
+        "slot_total_available": 0
+      }
+    },
+    {
+      "models": [
+        "org/text",
+        "org/text",
+        "org/vision",
+        "org/vision"
+      ],
+      "replicas": [
+        {
+          "id": "org/text",
+          "source": "org/text",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": false
+        },
+        {
+          "id": "org/text#2",
+          "source": "org/text",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": false
+        },
+        {
+          "id": "org/vision",
+          "source": "org/vision",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": false
+        },
+        {
+          "id": "org/vision#2",
+          "source": "org/vision",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": false
+        }
+      ],
+      "swap": true,
+      "slots": {
+        "cap_slots": {
+          "text": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          },
+          "vision": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          }
+        },
+        "model_slots": {
+          "org/text": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          },
+          "org/vision": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          }
+        },
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 1,
+        "slot_total_in_flight": 0,
+        "slot_total_queued": 0,
+        "slot_total_available": 1
+      }
+    },
+    {
+      "models": [
+        "org/text",
+        "org/text",
+        "org/vision",
+        "org/vision"
+      ],
+      "replicas": [
+        {
+          "id": "org/text",
+          "source": "org/text",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": true
+        },
+        {
+          "id": "org/text#2",
+          "source": "org/text",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": true
+        },
+        {
+          "id": "org/vision",
+          "source": "org/vision",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": true
+        },
+        {
+          "id": "org/vision#2",
+          "source": "org/vision",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": true
+        }
+      ],
+      "swap": true,
+      "slots": {
+        "cap_slots": {},
+        "model_slots": {},
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 0,
+        "slot_total_in_flight": 0,
+        "slot_total_queued": 0,
+        "slot_total_available": 0
+      }
+    },
+    {
+      "models": [
+        "org/text",
+        "org/text",
+        "org/vision",
+        "org/vision"
+      ],
+      "replicas": [
+        {
+          "id": "org/text",
+          "source": "org/text",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        },
+        {
+          "id": "org/text#2",
+          "source": "org/text",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": false
+        },
+        {
+          "id": "org/vision",
+          "source": "org/vision",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": false
+        },
+        {
+          "id": "org/vision#2",
+          "source": "org/vision",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": false
+        }
+      ],
+      "swap": false,
+      "slots": {
+        "cap_slots": {
+          "text": {
+            "capacity": 8,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 8
+          },
+          "vision": {
+            "capacity": 4,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 4
+          }
+        },
+        "model_slots": {
+          "org/text": {
+            "capacity": 4,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 4
+          },
+          "org/vision": {
+            "capacity": 4,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 4
+          }
+        },
+        "llm_queue_capacity": 8,
+        "slot_total_capacity": 8,
+        "slot_total_in_flight": 0,
+        "slot_total_queued": 0,
+        "slot_total_available": 8
+      }
+    },
+    {
+      "models": [
+        "org/text",
+        "org/text",
+        "org/vision",
+        "org/vision"
+      ],
+      "replicas": [
+        {
+          "id": "org/text",
+          "source": "org/text",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        },
+        {
+          "id": "org/text#2",
+          "source": "org/text",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": true
+        },
+        {
+          "id": "org/vision",
+          "source": "org/vision",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": true
+        },
+        {
+          "id": "org/vision#2",
+          "source": "org/vision",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": true
+        }
+      ],
+      "swap": false,
+      "slots": {
+        "cap_slots": {
+          "text": {
+            "capacity": 2,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 2
+          }
+        },
+        "model_slots": {
+          "org/text": {
+            "capacity": 2,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 2
+          }
+        },
+        "llm_queue_capacity": 2,
+        "slot_total_capacity": 2,
+        "slot_total_in_flight": 0,
+        "slot_total_queued": 0,
+        "slot_total_available": 2
+      }
+    },
+    {
+      "models": [
+        "org/text",
+        "org/text",
+        "org/vision",
+        "org/vision"
+      ],
+      "replicas": [
+        {
+          "id": "org/text",
+          "source": "org/text",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        },
+        {
+          "id": "org/text#2",
+          "source": "org/text",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": false
+        },
+        {
+          "id": "org/vision",
+          "source": "org/vision",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": false
+        },
+        {
+          "id": "org/vision#2",
+          "source": "org/vision",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": false
+        }
+      ],
+      "swap": true,
+      "slots": {
+        "cap_slots": {
+          "text": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          },
+          "vision": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          }
+        },
+        "model_slots": {
+          "org/text": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          },
+          "org/vision": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          }
+        },
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 1,
+        "slot_total_in_flight": 0,
+        "slot_total_queued": 0,
+        "slot_total_available": 1
+      }
+    },
+    {
+      "models": [
+        "org/text",
+        "org/text",
+        "org/vision",
+        "org/vision"
+      ],
+      "replicas": [
+        {
+          "id": "org/text",
+          "source": "org/text",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        },
+        {
+          "id": "org/text#2",
+          "source": "org/text",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": true
+        },
+        {
+          "id": "org/vision",
+          "source": "org/vision",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": true
+        },
+        {
+          "id": "org/vision#2",
+          "source": "org/vision",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": true
+        }
+      ],
+      "swap": true,
+      "slots": {
+        "cap_slots": {
+          "text": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          }
+        },
+        "model_slots": {
+          "org/text": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          }
+        },
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 1,
+        "slot_total_in_flight": 0,
+        "slot_total_queued": 0,
+        "slot_total_available": 1
+      }
+    },
+    {
+      "models": [
+        "org/text",
+        "org/text",
+        "org/vision",
+        "org/vision"
+      ],
+      "replicas": [
+        {
+          "id": "org/text",
+          "source": "org/text",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        },
+        {
+          "id": "org/text#2",
+          "source": "org/text",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        },
+        {
+          "id": "org/vision",
+          "source": "org/vision",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": false
+        },
+        {
+          "id": "org/vision#2",
+          "source": "org/vision",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": false
+        }
+      ],
+      "swap": false,
+      "slots": {
+        "cap_slots": {
+          "text": {
+            "capacity": 8,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 8
+          },
+          "vision": {
+            "capacity": 4,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 4
+          }
+        },
+        "model_slots": {
+          "org/text": {
+            "capacity": 4,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 4,
+            "instances": 2
+          },
+          "org/vision": {
+            "capacity": 4,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 4
+          }
+        },
+        "llm_queue_capacity": 8,
+        "slot_total_capacity": 8,
+        "slot_total_in_flight": 0,
+        "slot_total_queued": 0,
+        "slot_total_available": 8
+      }
+    },
+    {
+      "models": [
+        "org/text",
+        "org/text",
+        "org/vision",
+        "org/vision"
+      ],
+      "replicas": [
+        {
+          "id": "org/text",
+          "source": "org/text",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        },
+        {
+          "id": "org/text#2",
+          "source": "org/text",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        },
+        {
+          "id": "org/vision",
+          "source": "org/vision",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": true
+        },
+        {
+          "id": "org/vision#2",
+          "source": "org/vision",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": true
+        }
+      ],
+      "swap": false,
+      "slots": {
+        "cap_slots": {
+          "text": {
+            "capacity": 4,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 4,
+            "instances": 2
+          }
+        },
+        "model_slots": {
+          "org/text": {
+            "capacity": 4,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 4,
+            "instances": 2
+          }
+        },
+        "llm_queue_capacity": 4,
+        "slot_total_capacity": 4,
+        "slot_total_in_flight": 0,
+        "slot_total_queued": 0,
+        "slot_total_available": 4
+      }
+    },
+    {
+      "models": [
+        "org/text",
+        "org/text",
+        "org/vision",
+        "org/vision"
+      ],
+      "replicas": [
+        {
+          "id": "org/text",
+          "source": "org/text",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        },
+        {
+          "id": "org/text#2",
+          "source": "org/text",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        },
+        {
+          "id": "org/vision",
+          "source": "org/vision",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": false
+        },
+        {
+          "id": "org/vision#2",
+          "source": "org/vision",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": false
+        }
+      ],
+      "swap": true,
+      "slots": {
+        "cap_slots": {
+          "text": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          },
+          "vision": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          }
+        },
+        "model_slots": {
+          "org/text": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          },
+          "org/vision": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          }
+        },
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 1,
+        "slot_total_in_flight": 0,
+        "slot_total_queued": 0,
+        "slot_total_available": 1
+      }
+    },
+    {
+      "models": [
+        "org/text",
+        "org/text",
+        "org/vision",
+        "org/vision"
+      ],
+      "replicas": [
+        {
+          "id": "org/text",
+          "source": "org/text",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        },
+        {
+          "id": "org/text#2",
+          "source": "org/text",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        },
+        {
+          "id": "org/vision",
+          "source": "org/vision",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": true
+        },
+        {
+          "id": "org/vision#2",
+          "source": "org/vision",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": true
+        }
+      ],
+      "swap": true,
+      "slots": {
+        "cap_slots": {
+          "text": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          }
+        },
+        "model_slots": {
+          "org/text": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          }
+        },
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 1,
+        "slot_total_in_flight": 0,
+        "slot_total_queued": 0,
+        "slot_total_available": 1
+      }
+    },
+    {
+      "models": [
+        "org/text",
+        "org/text",
+        "org/vision",
+        "org/vision"
+      ],
+      "replicas": [
+        {
+          "id": "org/text",
+          "source": "org/text",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        },
+        {
+          "id": "org/text#2",
+          "source": "org/text",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        },
+        {
+          "id": "org/vision",
+          "source": "org/vision",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        },
+        {
+          "id": "org/vision#2",
+          "source": "org/vision",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": false
+        }
+      ],
+      "swap": false,
+      "slots": {
+        "cap_slots": {
+          "text": {
+            "capacity": 8,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 8
+          },
+          "vision": {
+            "capacity": 4,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 4
+          }
+        },
+        "model_slots": {
+          "org/text": {
+            "capacity": 4,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 4,
+            "instances": 2
+          },
+          "org/vision": {
+            "capacity": 4,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 4
+          }
+        },
+        "llm_queue_capacity": 8,
+        "slot_total_capacity": 8,
+        "slot_total_in_flight": 0,
+        "slot_total_queued": 0,
+        "slot_total_available": 8
+      }
+    },
+    {
+      "models": [
+        "org/text",
+        "org/text",
+        "org/vision",
+        "org/vision"
+      ],
+      "replicas": [
+        {
+          "id": "org/text",
+          "source": "org/text",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        },
+        {
+          "id": "org/text#2",
+          "source": "org/text",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        },
+        {
+          "id": "org/vision",
+          "source": "org/vision",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        },
+        {
+          "id": "org/vision#2",
+          "source": "org/vision",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": true
+        }
+      ],
+      "swap": false,
+      "slots": {
+        "cap_slots": {
+          "text": {
+            "capacity": 6,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 6
+          },
+          "vision": {
+            "capacity": 2,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 2
+          }
+        },
+        "model_slots": {
+          "org/text": {
+            "capacity": 4,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 4,
+            "instances": 2
+          },
+          "org/vision": {
+            "capacity": 2,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 2
+          }
+        },
+        "llm_queue_capacity": 6,
+        "slot_total_capacity": 6,
+        "slot_total_in_flight": 0,
+        "slot_total_queued": 0,
+        "slot_total_available": 6
+      }
+    },
+    {
+      "models": [
+        "org/text",
+        "org/text",
+        "org/vision",
+        "org/vision"
+      ],
+      "replicas": [
+        {
+          "id": "org/text",
+          "source": "org/text",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        },
+        {
+          "id": "org/text#2",
+          "source": "org/text",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        },
+        {
+          "id": "org/vision",
+          "source": "org/vision",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        },
+        {
+          "id": "org/vision#2",
+          "source": "org/vision",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": false
+        }
+      ],
+      "swap": true,
+      "slots": {
+        "cap_slots": {
+          "text": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          },
+          "vision": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          }
+        },
+        "model_slots": {
+          "org/text": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          },
+          "org/vision": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          }
+        },
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 1,
+        "slot_total_in_flight": 0,
+        "slot_total_queued": 0,
+        "slot_total_available": 1
+      }
+    },
+    {
+      "models": [
+        "org/text",
+        "org/text",
+        "org/vision",
+        "org/vision"
+      ],
+      "replicas": [
+        {
+          "id": "org/text",
+          "source": "org/text",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        },
+        {
+          "id": "org/text#2",
+          "source": "org/text",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        },
+        {
+          "id": "org/vision",
+          "source": "org/vision",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        },
+        {
+          "id": "org/vision#2",
+          "source": "org/vision",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": true
+        }
+      ],
+      "swap": true,
+      "slots": {
+        "cap_slots": {
+          "text": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          },
+          "vision": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          }
+        },
+        "model_slots": {
+          "org/text": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          },
+          "org/vision": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          }
+        },
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 1,
+        "slot_total_in_flight": 0,
+        "slot_total_queued": 0,
+        "slot_total_available": 1
+      }
+    },
+    {
+      "models": [
+        "org/text",
+        "org/text",
+        "org/vision",
+        "org/vision"
+      ],
+      "replicas": [
+        {
+          "id": "org/text",
+          "source": "org/text",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        },
+        {
+          "id": "org/text#2",
+          "source": "org/text",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        },
+        {
+          "id": "org/vision",
+          "source": "org/vision",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        },
+        {
+          "id": "org/vision#2",
+          "source": "org/vision",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        }
+      ],
+      "swap": false,
+      "slots": {
+        "cap_slots": {
+          "text": {
+            "capacity": 8,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 8
+          },
+          "vision": {
+            "capacity": 4,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 4,
+            "instances": 2
+          }
+        },
+        "model_slots": {
+          "org/text": {
+            "capacity": 4,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 4,
+            "instances": 2
+          },
+          "org/vision": {
+            "capacity": 4,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 4,
+            "instances": 2
+          }
+        },
+        "llm_queue_capacity": 8,
+        "slot_total_capacity": 8,
+        "slot_total_in_flight": 0,
+        "slot_total_queued": 0,
+        "slot_total_available": 8
+      }
+    },
+    {
+      "models": [
+        "org/text",
+        "org/text",
+        "org/vision",
+        "org/vision"
+      ],
+      "replicas": [
+        {
+          "id": "org/text",
+          "source": "org/text",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        },
+        {
+          "id": "org/text#2",
+          "source": "org/text",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        },
+        {
+          "id": "org/vision",
+          "source": "org/vision",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        },
+        {
+          "id": "org/vision#2",
+          "source": "org/vision",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        }
+      ],
+      "swap": false,
+      "slots": {
+        "cap_slots": {
+          "text": {
+            "capacity": 8,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 8
+          },
+          "vision": {
+            "capacity": 4,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 4,
+            "instances": 2
+          }
+        },
+        "model_slots": {
+          "org/text": {
+            "capacity": 4,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 4,
+            "instances": 2
+          },
+          "org/vision": {
+            "capacity": 4,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 4,
+            "instances": 2
+          }
+        },
+        "llm_queue_capacity": 8,
+        "slot_total_capacity": 8,
+        "slot_total_in_flight": 0,
+        "slot_total_queued": 0,
+        "slot_total_available": 8
+      }
+    },
+    {
+      "models": [
+        "org/text",
+        "org/text",
+        "org/vision",
+        "org/vision"
+      ],
+      "replicas": [
+        {
+          "id": "org/text",
+          "source": "org/text",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        },
+        {
+          "id": "org/text#2",
+          "source": "org/text",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        },
+        {
+          "id": "org/vision",
+          "source": "org/vision",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        },
+        {
+          "id": "org/vision#2",
+          "source": "org/vision",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        }
+      ],
+      "swap": true,
+      "slots": {
+        "cap_slots": {
+          "text": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          },
+          "vision": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          }
+        },
+        "model_slots": {
+          "org/text": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          },
+          "org/vision": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          }
+        },
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 1,
+        "slot_total_in_flight": 0,
+        "slot_total_queued": 0,
+        "slot_total_available": 1
+      }
+    },
+    {
+      "models": [
+        "org/text",
+        "org/text",
+        "org/vision",
+        "org/vision"
+      ],
+      "replicas": [
+        {
+          "id": "org/text",
+          "source": "org/text",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        },
+        {
+          "id": "org/text#2",
+          "source": "org/text",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        },
+        {
+          "id": "org/vision",
+          "source": "org/vision",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        },
+        {
+          "id": "org/vision#2",
+          "source": "org/vision",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        }
+      ],
+      "swap": true,
+      "slots": {
+        "cap_slots": {
+          "text": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          },
+          "vision": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          }
+        },
+        "model_slots": {
+          "org/text": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          },
+          "org/vision": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          }
+        },
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 1,
+        "slot_total_in_flight": 0,
+        "slot_total_queued": 0,
+        "slot_total_available": 1
+      }
+    },
+    {
+      "models": [
+        "org/vision",
+        "org/vision",
+        "org/vision2",
+        "org/vision2"
+      ],
+      "replicas": [
+        {
+          "id": "org/vision",
+          "source": "org/vision",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": false
+        },
+        {
+          "id": "org/vision#2",
+          "source": "org/vision",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": false
+        },
+        {
+          "id": "org/vision2",
+          "source": "org/vision2",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": false
+        },
+        {
+          "id": "org/vision2#2",
+          "source": "org/vision2",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": false
+        }
+      ],
+      "swap": false,
+      "slots": {
+        "cap_slots": {
+          "text": {
+            "capacity": 8,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 8
+          },
+          "vision": {
+            "capacity": 8,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 8
+          }
+        },
+        "model_slots": {
+          "org/vision": {
+            "capacity": 4,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 4
+          },
+          "org/vision2": {
+            "capacity": 4,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 4
+          }
+        },
+        "llm_queue_capacity": 8,
+        "slot_total_capacity": 8,
+        "slot_total_in_flight": 0,
+        "slot_total_queued": 0,
+        "slot_total_available": 8
+      }
+    },
+    {
+      "models": [
+        "org/vision",
+        "org/vision",
+        "org/vision2",
+        "org/vision2"
+      ],
+      "replicas": [
+        {
+          "id": "org/vision",
+          "source": "org/vision",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": true
+        },
+        {
+          "id": "org/vision#2",
+          "source": "org/vision",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": true
+        },
+        {
+          "id": "org/vision2",
+          "source": "org/vision2",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": true
+        },
+        {
+          "id": "org/vision2#2",
+          "source": "org/vision2",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": true
+        }
+      ],
+      "swap": false,
+      "slots": {
+        "cap_slots": {},
+        "model_slots": {},
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 0,
+        "slot_total_in_flight": 0,
+        "slot_total_queued": 0,
+        "slot_total_available": 0
+      }
+    },
+    {
+      "models": [
+        "org/vision",
+        "org/vision",
+        "org/vision2",
+        "org/vision2"
+      ],
+      "replicas": [
+        {
+          "id": "org/vision",
+          "source": "org/vision",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": false
+        },
+        {
+          "id": "org/vision#2",
+          "source": "org/vision",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": false
+        },
+        {
+          "id": "org/vision2",
+          "source": "org/vision2",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": false
+        },
+        {
+          "id": "org/vision2#2",
+          "source": "org/vision2",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": false
+        }
+      ],
+      "swap": true,
+      "slots": {
+        "cap_slots": {
+          "text": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          },
+          "vision": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          }
+        },
+        "model_slots": {
+          "org/vision": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          },
+          "org/vision2": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          }
+        },
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 1,
+        "slot_total_in_flight": 0,
+        "slot_total_queued": 0,
+        "slot_total_available": 1
+      }
+    },
+    {
+      "models": [
+        "org/vision",
+        "org/vision",
+        "org/vision2",
+        "org/vision2"
+      ],
+      "replicas": [
+        {
+          "id": "org/vision",
+          "source": "org/vision",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": true
+        },
+        {
+          "id": "org/vision#2",
+          "source": "org/vision",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": true
+        },
+        {
+          "id": "org/vision2",
+          "source": "org/vision2",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": true
+        },
+        {
+          "id": "org/vision2#2",
+          "source": "org/vision2",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": true
+        }
+      ],
+      "swap": true,
+      "slots": {
+        "cap_slots": {},
+        "model_slots": {},
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 0,
+        "slot_total_in_flight": 0,
+        "slot_total_queued": 0,
+        "slot_total_available": 0
+      }
+    },
+    {
+      "models": [
+        "org/vision",
+        "org/vision",
+        "org/vision2",
+        "org/vision2"
+      ],
+      "replicas": [
+        {
+          "id": "org/vision",
+          "source": "org/vision",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        },
+        {
+          "id": "org/vision#2",
+          "source": "org/vision",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": false
+        },
+        {
+          "id": "org/vision2",
+          "source": "org/vision2",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": false
+        },
+        {
+          "id": "org/vision2#2",
+          "source": "org/vision2",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": false
+        }
+      ],
+      "swap": false,
+      "slots": {
+        "cap_slots": {
+          "text": {
+            "capacity": 8,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 8
+          },
+          "vision": {
+            "capacity": 8,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 8
+          }
+        },
+        "model_slots": {
+          "org/vision": {
+            "capacity": 4,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 4
+          },
+          "org/vision2": {
+            "capacity": 4,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 4
+          }
+        },
+        "llm_queue_capacity": 8,
+        "slot_total_capacity": 8,
+        "slot_total_in_flight": 0,
+        "slot_total_queued": 0,
+        "slot_total_available": 8
+      }
+    },
+    {
+      "models": [
+        "org/vision",
+        "org/vision",
+        "org/vision2",
+        "org/vision2"
+      ],
+      "replicas": [
+        {
+          "id": "org/vision",
+          "source": "org/vision",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        },
+        {
+          "id": "org/vision#2",
+          "source": "org/vision",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": true
+        },
+        {
+          "id": "org/vision2",
+          "source": "org/vision2",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": true
+        },
+        {
+          "id": "org/vision2#2",
+          "source": "org/vision2",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": true
+        }
+      ],
+      "swap": false,
+      "slots": {
+        "cap_slots": {
+          "text": {
+            "capacity": 2,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 2
+          },
+          "vision": {
+            "capacity": 2,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 2
+          }
+        },
+        "model_slots": {
+          "org/vision": {
+            "capacity": 2,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 2
+          }
+        },
+        "llm_queue_capacity": 2,
+        "slot_total_capacity": 2,
+        "slot_total_in_flight": 0,
+        "slot_total_queued": 0,
+        "slot_total_available": 2
+      }
+    },
+    {
+      "models": [
+        "org/vision",
+        "org/vision",
+        "org/vision2",
+        "org/vision2"
+      ],
+      "replicas": [
+        {
+          "id": "org/vision",
+          "source": "org/vision",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        },
+        {
+          "id": "org/vision#2",
+          "source": "org/vision",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": false
+        },
+        {
+          "id": "org/vision2",
+          "source": "org/vision2",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": false
+        },
+        {
+          "id": "org/vision2#2",
+          "source": "org/vision2",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": false
+        }
+      ],
+      "swap": true,
+      "slots": {
+        "cap_slots": {
+          "text": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          },
+          "vision": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          }
+        },
+        "model_slots": {
+          "org/vision": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          },
+          "org/vision2": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          }
+        },
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 1,
+        "slot_total_in_flight": 0,
+        "slot_total_queued": 0,
+        "slot_total_available": 1
+      }
+    },
+    {
+      "models": [
+        "org/vision",
+        "org/vision",
+        "org/vision2",
+        "org/vision2"
+      ],
+      "replicas": [
+        {
+          "id": "org/vision",
+          "source": "org/vision",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        },
+        {
+          "id": "org/vision#2",
+          "source": "org/vision",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": true
+        },
+        {
+          "id": "org/vision2",
+          "source": "org/vision2",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": true
+        },
+        {
+          "id": "org/vision2#2",
+          "source": "org/vision2",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": true
+        }
+      ],
+      "swap": true,
+      "slots": {
+        "cap_slots": {
+          "text": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          },
+          "vision": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          }
+        },
+        "model_slots": {
+          "org/vision": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          }
+        },
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 1,
+        "slot_total_in_flight": 0,
+        "slot_total_queued": 0,
+        "slot_total_available": 1
+      }
+    },
+    {
+      "models": [
+        "org/vision",
+        "org/vision",
+        "org/vision2",
+        "org/vision2"
+      ],
+      "replicas": [
+        {
+          "id": "org/vision",
+          "source": "org/vision",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        },
+        {
+          "id": "org/vision#2",
+          "source": "org/vision",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        },
+        {
+          "id": "org/vision2",
+          "source": "org/vision2",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": false
+        },
+        {
+          "id": "org/vision2#2",
+          "source": "org/vision2",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": false
+        }
+      ],
+      "swap": false,
+      "slots": {
+        "cap_slots": {
+          "text": {
+            "capacity": 8,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 8
+          },
+          "vision": {
+            "capacity": 8,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 8
+          }
+        },
+        "model_slots": {
+          "org/vision": {
+            "capacity": 4,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 4,
+            "instances": 2
+          },
+          "org/vision2": {
+            "capacity": 4,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 4
+          }
+        },
+        "llm_queue_capacity": 8,
+        "slot_total_capacity": 8,
+        "slot_total_in_flight": 0,
+        "slot_total_queued": 0,
+        "slot_total_available": 8
+      }
+    },
+    {
+      "models": [
+        "org/vision",
+        "org/vision",
+        "org/vision2",
+        "org/vision2"
+      ],
+      "replicas": [
+        {
+          "id": "org/vision",
+          "source": "org/vision",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        },
+        {
+          "id": "org/vision#2",
+          "source": "org/vision",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        },
+        {
+          "id": "org/vision2",
+          "source": "org/vision2",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": true
+        },
+        {
+          "id": "org/vision2#2",
+          "source": "org/vision2",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": true
+        }
+      ],
+      "swap": false,
+      "slots": {
+        "cap_slots": {
+          "text": {
+            "capacity": 4,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 4,
+            "instances": 2
+          },
+          "vision": {
+            "capacity": 4,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 4,
+            "instances": 2
+          }
+        },
+        "model_slots": {
+          "org/vision": {
+            "capacity": 4,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 4,
+            "instances": 2
+          }
+        },
+        "llm_queue_capacity": 4,
+        "slot_total_capacity": 4,
+        "slot_total_in_flight": 0,
+        "slot_total_queued": 0,
+        "slot_total_available": 4
+      }
+    },
+    {
+      "models": [
+        "org/vision",
+        "org/vision",
+        "org/vision2",
+        "org/vision2"
+      ],
+      "replicas": [
+        {
+          "id": "org/vision",
+          "source": "org/vision",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        },
+        {
+          "id": "org/vision#2",
+          "source": "org/vision",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        },
+        {
+          "id": "org/vision2",
+          "source": "org/vision2",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": false
+        },
+        {
+          "id": "org/vision2#2",
+          "source": "org/vision2",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": false
+        }
+      ],
+      "swap": true,
+      "slots": {
+        "cap_slots": {
+          "text": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          },
+          "vision": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          }
+        },
+        "model_slots": {
+          "org/vision": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          },
+          "org/vision2": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          }
+        },
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 1,
+        "slot_total_in_flight": 0,
+        "slot_total_queued": 0,
+        "slot_total_available": 1
+      }
+    },
+    {
+      "models": [
+        "org/vision",
+        "org/vision",
+        "org/vision2",
+        "org/vision2"
+      ],
+      "replicas": [
+        {
+          "id": "org/vision",
+          "source": "org/vision",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        },
+        {
+          "id": "org/vision#2",
+          "source": "org/vision",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        },
+        {
+          "id": "org/vision2",
+          "source": "org/vision2",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": true
+        },
+        {
+          "id": "org/vision2#2",
+          "source": "org/vision2",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": true
+        }
+      ],
+      "swap": true,
+      "slots": {
+        "cap_slots": {
+          "text": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          },
+          "vision": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          }
+        },
+        "model_slots": {
+          "org/vision": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          }
+        },
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 1,
+        "slot_total_in_flight": 0,
+        "slot_total_queued": 0,
+        "slot_total_available": 1
+      }
+    },
+    {
+      "models": [
+        "org/vision",
+        "org/vision",
+        "org/vision2",
+        "org/vision2"
+      ],
+      "replicas": [
+        {
+          "id": "org/vision",
+          "source": "org/vision",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        },
+        {
+          "id": "org/vision#2",
+          "source": "org/vision",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        },
+        {
+          "id": "org/vision2",
+          "source": "org/vision2",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        },
+        {
+          "id": "org/vision2#2",
+          "source": "org/vision2",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": false
+        }
+      ],
+      "swap": false,
+      "slots": {
+        "cap_slots": {
+          "text": {
+            "capacity": 8,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 8
+          },
+          "vision": {
+            "capacity": 8,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 8
+          }
+        },
+        "model_slots": {
+          "org/vision": {
+            "capacity": 4,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 4,
+            "instances": 2
+          },
+          "org/vision2": {
+            "capacity": 4,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 4
+          }
+        },
+        "llm_queue_capacity": 8,
+        "slot_total_capacity": 8,
+        "slot_total_in_flight": 0,
+        "slot_total_queued": 0,
+        "slot_total_available": 8
+      }
+    },
+    {
+      "models": [
+        "org/vision",
+        "org/vision",
+        "org/vision2",
+        "org/vision2"
+      ],
+      "replicas": [
+        {
+          "id": "org/vision",
+          "source": "org/vision",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        },
+        {
+          "id": "org/vision#2",
+          "source": "org/vision",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        },
+        {
+          "id": "org/vision2",
+          "source": "org/vision2",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        },
+        {
+          "id": "org/vision2#2",
+          "source": "org/vision2",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": true
+        }
+      ],
+      "swap": false,
+      "slots": {
+        "cap_slots": {
+          "text": {
+            "capacity": 6,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 6
+          },
+          "vision": {
+            "capacity": 6,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 6
+          }
+        },
+        "model_slots": {
+          "org/vision": {
+            "capacity": 4,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 4,
+            "instances": 2
+          },
+          "org/vision2": {
+            "capacity": 2,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 2
+          }
+        },
+        "llm_queue_capacity": 6,
+        "slot_total_capacity": 6,
+        "slot_total_in_flight": 0,
+        "slot_total_queued": 0,
+        "slot_total_available": 6
+      }
+    },
+    {
+      "models": [
+        "org/vision",
+        "org/vision",
+        "org/vision2",
+        "org/vision2"
+      ],
+      "replicas": [
+        {
+          "id": "org/vision",
+          "source": "org/vision",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        },
+        {
+          "id": "org/vision#2",
+          "source": "org/vision",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        },
+        {
+          "id": "org/vision2",
+          "source": "org/vision2",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        },
+        {
+          "id": "org/vision2#2",
+          "source": "org/vision2",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": false
+        }
+      ],
+      "swap": true,
+      "slots": {
+        "cap_slots": {
+          "text": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          },
+          "vision": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          }
+        },
+        "model_slots": {
+          "org/vision": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          },
+          "org/vision2": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          }
+        },
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 1,
+        "slot_total_in_flight": 0,
+        "slot_total_queued": 0,
+        "slot_total_available": 1
+      }
+    },
+    {
+      "models": [
+        "org/vision",
+        "org/vision",
+        "org/vision2",
+        "org/vision2"
+      ],
+      "replicas": [
+        {
+          "id": "org/vision",
+          "source": "org/vision",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        },
+        {
+          "id": "org/vision#2",
+          "source": "org/vision",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        },
+        {
+          "id": "org/vision2",
+          "source": "org/vision2",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        },
+        {
+          "id": "org/vision2#2",
+          "source": "org/vision2",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": null,
+          "resident": false,
+          "failed": true
+        }
+      ],
+      "swap": true,
+      "slots": {
+        "cap_slots": {
+          "text": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          },
+          "vision": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          }
+        },
+        "model_slots": {
+          "org/vision": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          },
+          "org/vision2": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          }
+        },
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 1,
+        "slot_total_in_flight": 0,
+        "slot_total_queued": 0,
+        "slot_total_available": 1
+      }
+    },
+    {
+      "models": [
+        "org/vision",
+        "org/vision",
+        "org/vision2",
+        "org/vision2"
+      ],
+      "replicas": [
+        {
+          "id": "org/vision",
+          "source": "org/vision",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        },
+        {
+          "id": "org/vision#2",
+          "source": "org/vision",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        },
+        {
+          "id": "org/vision2",
+          "source": "org/vision2",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        },
+        {
+          "id": "org/vision2#2",
+          "source": "org/vision2",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        }
+      ],
+      "swap": false,
+      "slots": {
+        "cap_slots": {
+          "text": {
+            "capacity": 8,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 8
+          },
+          "vision": {
+            "capacity": 8,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 8
+          }
+        },
+        "model_slots": {
+          "org/vision": {
+            "capacity": 4,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 4,
+            "instances": 2
+          },
+          "org/vision2": {
+            "capacity": 4,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 4,
+            "instances": 2
+          }
+        },
+        "llm_queue_capacity": 8,
+        "slot_total_capacity": 8,
+        "slot_total_in_flight": 0,
+        "slot_total_queued": 0,
+        "slot_total_available": 8
+      }
+    },
+    {
+      "models": [
+        "org/vision",
+        "org/vision",
+        "org/vision2",
+        "org/vision2"
+      ],
+      "replicas": [
+        {
+          "id": "org/vision",
+          "source": "org/vision",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        },
+        {
+          "id": "org/vision#2",
+          "source": "org/vision",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        },
+        {
+          "id": "org/vision2",
+          "source": "org/vision2",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        },
+        {
+          "id": "org/vision2#2",
+          "source": "org/vision2",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        }
+      ],
+      "swap": false,
+      "slots": {
+        "cap_slots": {
+          "text": {
+            "capacity": 8,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 8
+          },
+          "vision": {
+            "capacity": 8,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 8
+          }
+        },
+        "model_slots": {
+          "org/vision": {
+            "capacity": 4,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 4,
+            "instances": 2
+          },
+          "org/vision2": {
+            "capacity": 4,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 4,
+            "instances": 2
+          }
+        },
+        "llm_queue_capacity": 8,
+        "slot_total_capacity": 8,
+        "slot_total_in_flight": 0,
+        "slot_total_queued": 0,
+        "slot_total_available": 8
+      }
+    },
+    {
+      "models": [
+        "org/vision",
+        "org/vision",
+        "org/vision2",
+        "org/vision2"
+      ],
+      "replicas": [
+        {
+          "id": "org/vision",
+          "source": "org/vision",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        },
+        {
+          "id": "org/vision#2",
+          "source": "org/vision",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        },
+        {
+          "id": "org/vision2",
+          "source": "org/vision2",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        },
+        {
+          "id": "org/vision2#2",
+          "source": "org/vision2",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        }
+      ],
+      "swap": true,
+      "slots": {
+        "cap_slots": {
+          "text": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          },
+          "vision": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          }
+        },
+        "model_slots": {
+          "org/vision": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          },
+          "org/vision2": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          }
+        },
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 1,
+        "slot_total_in_flight": 0,
+        "slot_total_queued": 0,
+        "slot_total_available": 1
+      }
+    },
+    {
+      "models": [
+        "org/vision",
+        "org/vision",
+        "org/vision2",
+        "org/vision2"
+      ],
+      "replicas": [
+        {
+          "id": "org/vision",
+          "source": "org/vision",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        },
+        {
+          "id": "org/vision#2",
+          "source": "org/vision",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        },
+        {
+          "id": "org/vision2",
+          "source": "org/vision2",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        },
+        {
+          "id": "org/vision2#2",
+          "source": "org/vision2",
+          "parallel": 2,
+          "context": 65536,
+          "actual_parallel": 2,
+          "resident": true,
+          "failed": false
+        }
+      ],
+      "swap": true,
+      "slots": {
+        "cap_slots": {
+          "text": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          },
+          "vision": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          }
+        },
+        "model_slots": {
+          "org/vision": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          },
+          "org/vision2": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          }
+        },
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 1,
+        "slot_total_in_flight": 0,
+        "slot_total_queued": 0,
+        "slot_total_available": 1
+      }
+    }
+  ]
+}

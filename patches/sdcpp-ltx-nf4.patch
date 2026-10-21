@@ -1,0 +1,155 @@
+--- a/include/stable-diffusion.h
++++ b/include/stable-diffusion.h
+@@ -208,6 +208,8 @@
+     const char* uncond_diffusion_model_path;
+     const char* embeddings_connectors_path;
+     const char* ltx_diffusers_root;
++    int ltx_nf4_sm_count;
++    int ltx_nf4_threads_per_sm;
+     const char* vae_path;
+     const char* audio_vae_path;
+     const char* audio_encoder_path;
+--- a/examples/common/common.h
++++ b/examples/common/common.h
+@@ -130,6 +130,8 @@
+     std::string uncond_diffusion_model_path;
+     std::string embeddings_connectors_path;
+     std::string ltx_diffusers_root;
++    int ltx_nf4_sm_count = 0;
++    int ltx_nf4_threads_per_sm = 0;
+     std::string vae_path;
+     std::string vae_format = "auto";
+     std::string audio_vae_path;
+--- a/examples/common/common.cpp
++++ b/examples/common/common.cpp
+@@ -567,6 +567,8 @@
+     };
+ 
+     options.int_options = {
++        {"", "--ltx-nf4-sm-count", "Enable native Gemma NF4 conversion using this CUDA SM count", &ltx_nf4_sm_count},
++        {"", "--ltx-nf4-threads-per-sm", "Selected CUDA device maximum resident threads per SM", &ltx_nf4_threads_per_sm},
+         {"-t",
+          "--threads",
+          "number of threads to use during computation (default: -1). "
+@@ -981,6 +983,8 @@
+     sd_ctx_params.uncond_diffusion_model_path     = uncond_diffusion_model_path.c_str();
+     sd_ctx_params.embeddings_connectors_path      = embeddings_connectors_path.c_str();
+     sd_ctx_params.ltx_diffusers_root              = ltx_diffusers_root.c_str();
++    sd_ctx_params.ltx_nf4_sm_count                = ltx_nf4_sm_count;
++    sd_ctx_params.ltx_nf4_threads_per_sm          = ltx_nf4_threads_per_sm;
+     sd_ctx_params.vae_path                        = vae_path.c_str();
+     sd_ctx_params.audio_vae_path                  = audio_vae_path.c_str();
+     sd_ctx_params.audio_encoder_path              = audio_encoder_path.c_str();
+--- a/src/pipeline/diffusion_engine.cpp
++++ b/src/pipeline/diffusion_engine.cpp
+@@ -809,6 +809,15 @@
+         }
+     }
+ 
++    if (sd_ctx_params->ltx_nf4_sm_count || sd_ctx_params->ltx_nf4_threads_per_sm) {
++        if (strlen(SAFE_STR(sd_ctx_params->ltx_diffusers_root)) == 0 ||
++            sd_ctx_params->ltx_nf4_sm_count <= 0 || sd_ctx_params->ltx_nf4_threads_per_sm < 512) {
++            LOG_ERROR("LTX NF4 requires raw Diffusers components and valid CUDA geometry");
++            return false;
++        }
++        model_loader.set_ltx_nf4(sd_ctx_params->ltx_nf4_sm_count, sd_ctx_params->ltx_nf4_threads_per_sm);
++        LOG_INFO("LTX Gemma NF4 conversion enabled; weights reconstructed in BF16/FP16 storage");
++    }
+     if (strlen(SAFE_STR(sd_ctx_params->ltx_diffusers_root)) > 0) {
+         const std::string root = sd_ctx_params->ltx_diffusers_root;
+         for (const std::string component : {"text_encoder", "vae", "audio_vae", "vocoder", "connectors"}) {
+--- a/src/model_loader.h
++++ b/src/model_loader.h
+@@ -77,6 +77,7 @@
+     String2TensorStorage tensor_storage_map;
+     std::map<std::string, std::string> metadata_;
+     int n_threads_;
++    int ltx_nf4_sms_ = 0, ltx_nf4_threads_per_sm_ = 0;
+ 
+     size_t add_file_path(const std::string& file_path);
+     void add_tensor_storage(const TensorStorage& tensor_storage);
+@@ -116,6 +117,10 @@
+     const String2TensorStorage& get_tensor_storage_map() const { return tensor_storage_map; }
+     const std::map<std::string, std::string>& get_metadata() const { return metadata_; }
+     void set_n_threads(int n_threads);
++    void set_ltx_nf4(int sms, int threads_per_sm) {
++        ltx_nf4_sms_ = sms;
++        ltx_nf4_threads_per_sm_ = threads_per_sm;
++    }
+     void set_wtype_override(ggml_type wtype, std::string tensor_type_rules = "");
+     void process_model_files(bool enable_mmap = false, bool writable_mmap = true);
+     std::vector<MmapTensorStore> mmap_tensors(std::map<std::string, ggml_tensor*>& tensors,
+--- a/src/model_loader_files.cpp
++++ b/src/model_loader_files.cpp
+@@ -311,6 +311,8 @@
+     ModelLoader reader;
+     reader.file_paths_      = file_paths_;
+     reader.n_threads_       = n_threads_;
++    reader.ltx_nf4_sms_     = ltx_nf4_sms_;
++    reader.ltx_nf4_threads_per_sm_ = ltx_nf4_threads_per_sm_;
+     reader.version_         = version;
+     reader.names_converted_ = true;
+     for (const auto& file : files_) {
+--- a/src/model_loader.cpp
++++ b/src/model_loader.cpp
+@@ -21,6 +21,7 @@
+ #include "model_io/torch_legacy_io.h"
+ #include "model_io/torch_zip_io.h"
+ #include "model_loader.h"
++#include "ezlocalai/nf4.hpp"
+ #include "runtime/imatrix.h"
+ #include "stable-diffusion.h"
+ 
+@@ -32,6 +33,14 @@
+ #include "zip.h"
+ 
+ #include "name_conversion.h"
++
++// Only raw LTX Gemma linear projections are eligible. Embeddings, norms and
++// unrelated models must retain their published values.
++static bool ltx_nf4_projection(const TensorStorage& storage) {
++    const auto& name = storage.name;
++    return storage.n_dims == 2 && name.rfind("text_encoders.llm.model.layers.", 0) == 0 &&
++        name.size() >= 11 && name.compare(name.size() - 11, 11, "proj.weight") == 0;
++}
+ 
+ /*================================================= Preprocess ==================================================*/
+ 
+@@ -922,6 +931,10 @@
+             if (dst_tensor == nullptr)
+                 continue;
+ 
++            // NF4 conversion needs a private destination even for BF16/FP16
++            // sources. Never rewrite a read-only or shared model mapping.
++            if (ltx_nf4_sms_ && ltx_nf4_projection(tensor_storage))
++                continue;
+             if (tensor_storage.is_f64 ||
+                 tensor_storage.is_i64 ||
+ #ifdef SD_USE_UPSTREAM_GGML
+@@ -1242,6 +1255,26 @@
+                     } else {
+                         convert_buf = read_buf;
+                     }
++                    if (ltx_nf4_sms_ && ltx_nf4_projection(tensor_storage)) {
++                        try {
++                            const ezlocalai::Nf4CudaDevice geometry{ltx_nf4_sms_, ltx_nf4_threads_per_sm_};
++                            auto* values = reinterpret_cast<uint16_t*>(convert_buf);
++                            const size_t count = tensor_storage.nelements();
++                            if (dst_tensor->type == GGML_TYPE_BF16) {
++                                const auto packed = ezlocalai::quantize_nf4_bf16(values, count, true, geometry);
++                                ezlocalai::dequantize_nf4_bf16(packed, values);
++                            } else if (dst_tensor->type == GGML_TYPE_F16) {
++                                const auto packed = ezlocalai::quantize_nf4_f16(values, count, true, geometry);
++                                ezlocalai::dequantize_nf4_f16(packed, values);
++                            } else {
++                                throw std::invalid_argument("Gemma NF4 destination must be BF16 or FP16");
++                            }
++                        } catch (const std::exception& error) {
++                            LOG_ERROR("LTX NF4 conversion failed for '%s': %s", tensor_storage.name.c_str(), error.what());
++                            failed = true;
++                            break;
++                        }
++                    }
+                     t1 = ggml_time_ms();
+                     convert_time_ms.fetch_add(t1 - t0);
+ 

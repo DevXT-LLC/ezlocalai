@@ -1,0 +1,141 @@
+--- a/src/model_loader.h
++++ b/src/model_loader.h
+@@ -117,6 +117,7 @@
+     const String2TensorStorage& get_tensor_storage_map() const { return tensor_storage_map; }
+     const std::map<std::string, std::string>& get_metadata() const { return metadata_; }
+     void set_n_threads(int n_threads);
++    bool ltx_nf4_enabled() const { return ltx_nf4_sms_ > 0; }
+     void set_ltx_nf4(int sms, int threads_per_sm) {
+         ltx_nf4_sms_ = sms;
+         ltx_nf4_threads_per_sm_ = threads_per_sm;
+--- a/src/model_manager.cpp
++++ b/src/model_manager.cpp
+@@ -266,6 +266,15 @@
+             state->split_buffer_type = split_buffer->second;
+         }
+         state->params_follow_compute_backend = params_follow_compute_backend;
++        // Python excludes the complete quantized Gemma from pipeline offload,
++        // including its unquantized embeddings/norms. Projectors remain governed
++        // by their normal component placement and can be released independently.
++        if (component == ModelComponent::Conditioner && model_loader_.ltx_nf4_enabled() &&
++            name.rfind("text_encoders.llm.", 0) == 0) {
++            state->residency_mode = ResidencyMode::ParamBackend;
++            state->params_backend = compute_backend;
++            state->params_follow_compute_backend = true;
++        }
+         if (tensor_ops != nullptr) {
+             auto op_it = tensor_ops->find(tensor);
+             if (op_it != tensor_ops->end()) {
+--- a/src/model_manager.h
++++ b/src/model_manager.h
+@@ -184,6 +184,8 @@
+     bool refresh_files();
+     ModelLoader::FileVersions source_versions(const std::set<ModelComponent>& components, const ModelLoader& loader) const;
+     size_t registered_params_size(const std::set<ModelComponent>& components) const;
++    // Registered parameter bytes by storage backend, not current allocated RSS/VRAM.
++    std::pair<size_t, size_t> registered_params_memory(const std::set<ModelComponent>& components) const;
+ 
+     void prepare_file_io() { model_loader_.process_model_files(enable_mmap_, writable_mmap_); }
+     bool load_float_tensor(const std::string& name, std::vector<float>& data) {
+--- a/src/model_manager_files.cpp
++++ b/src/model_manager_files.cpp
+@@ -3,6 +3,7 @@
+ #include <algorithm>
+ 
+ #include "core/util.h"
++#include "core/ggml_extend_backend.h"
+ 
+ static bool same_tensor_source(const TensorStorage& a, const TensorStorage& b) {
+     return a.file_id == b.file_id && a.file_revision == b.file_revision &&
+@@ -153,3 +154,14 @@
+     }
+     return bytes;
+ }
++
++std::pair<size_t, size_t> ModelManager::registered_params_memory(const std::set<ModelComponent>& components) const {
++    std::pair<size_t, size_t> bytes{};
++    std::unordered_set<const ggml_tensor*> seen;
++    for (const auto& state : tensor_states_) {
++        if (components.count(state->component) == 0 || state->tensor == nullptr || !seen.insert(state->tensor).second) continue;
++        auto& count = state->params_backend != nullptr && !sd_backend_is_cpu(state->params_backend) ? bytes.second : bytes.first;
++        count += ggml_nbytes(state->tensor);
++    }
++    return bytes;
++}
+--- a/src/pipeline/diffusion_engine.cpp
++++ b/src/pipeline/diffusion_engine.cpp
+@@ -1281,41 +1281,19 @@
+         size_t vae_params_mem_size          = model_manager->registered_params_size(runner_components().at(RunnerGroup::VAE));
+         size_t control_net_params_mem_size  = model_manager->registered_params_size({ModelComponent::ControlNet});
+         size_t extension_params_mem_size    = model_manager->registered_params_size(runner_components().at(RunnerGroup::Extensions));
+-        size_t total_params_ram_size        = 0;
+-        size_t total_params_vram_size       = 0;
+-        auto add_params_memory              = [&](size_t size, SDBackendModule module) {
+-            if (size == 0) {
+-                return true;
+-            }
+-            ggml_backend_t module_backend = params_backend_for(module);
+-            if (module_backend == nullptr) {
+-                return false;
+-            }
+-            if (sd_backend_is_cpu(module_backend)) {
+-                total_params_ram_size += size;
+-            } else {
+-                total_params_vram_size += size;
+-            }
+-            return true;
++        const auto text_memory = model_manager->registered_params_memory({ModelComponent::Conditioner});
++        const auto diffusion_memory = model_manager->registered_params_memory({ModelComponent::Diffusion, ModelComponent::HighNoiseDiffusion});
++        const auto vae_memory = model_manager->registered_params_memory(runner_components().at(RunnerGroup::VAE));
++        const auto control_memory = model_manager->registered_params_memory({ModelComponent::ControlNet});
++        const auto extension_memory = model_manager->registered_params_memory(runner_components().at(RunnerGroup::Extensions));
++        size_t total_params_ram_size = 0, total_params_vram_size = 0;
++        for (const auto& memory : {text_memory, diffusion_memory, vae_memory, control_memory, extension_memory}) {
++            total_params_ram_size += memory.first;
++            total_params_vram_size += memory.second;
++        }
++        auto params_memory_location = [](const std::pair<size_t, size_t>& memory) {
++            return memory.first ? (memory.second ? "RAM+VRAM" : "RAM") : (memory.second ? "VRAM" : "N/A");
+         };
+-        auto params_memory_location = [&](size_t size, SDBackendModule module) {
+-            if (size == 0) {
+-                return "N/A";
+-            }
+-            ggml_backend_t module_backend = params_backend_for(module);
+-            if (module_backend == nullptr) {
+-                return "N/A";
+-            }
+-            return sd_backend_is_cpu(module_backend) ? "RAM" : "VRAM";
+-        };
+-
+-        if (!add_params_memory(text_encoder_params_mem_size, SDBackendModule::TE) ||
+-            !add_params_memory(extension_params_mem_size, SDBackendModule::PHOTOMAKER) ||
+-            !add_params_memory(unet_params_mem_size, SDBackendModule::DIFFUSION) ||
+-            !add_params_memory(vae_params_mem_size, SDBackendModule::VAE) ||
+-            !add_params_memory(control_net_params_mem_size, SDBackendModule::CONTROL_NET)) {
+-            return false;
+-        }
+ 
+         size_t total_params_size = total_params_ram_size + total_params_vram_size;
+         LOG_INFO(
+@@ -1325,15 +1303,15 @@
+             total_params_vram_size / 1024.0 / 1024.0,
+             total_params_ram_size / 1024.0 / 1024.0,
+             text_encoder_params_mem_size / 1024.0 / 1024.0,
+-            params_memory_location(text_encoder_params_mem_size, SDBackendModule::TE),
++            params_memory_location(text_memory),
+             unet_params_mem_size / 1024.0 / 1024.0,
+-            params_memory_location(unet_params_mem_size, SDBackendModule::DIFFUSION),
++            params_memory_location(diffusion_memory),
+             vae_params_mem_size / 1024.0 / 1024.0,
+-            params_memory_location(vae_params_mem_size, SDBackendModule::VAE),
++            params_memory_location(vae_memory),
+             control_net_params_mem_size / 1024.0 / 1024.0,
+-            params_memory_location(control_net_params_mem_size, SDBackendModule::CONTROL_NET),
++            params_memory_location(control_memory),
+             extension_params_mem_size / 1024.0 / 1024.0,
+-            params_memory_location(extension_params_mem_size, SDBackendModule::PHOTOMAKER));
++            params_memory_location(extension_memory));
+     }
+     return true;
+ }

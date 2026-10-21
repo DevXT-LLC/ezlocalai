@@ -1,0 +1,292 @@
+{
+  "sources": {
+    "Pipes.py": "8238cef03d4a1db6e775d7f62234bcf998d8f08bd9fc15f1d8a36ea0d3280005",
+    "ModelSettings.py": "ed20ff6c802788ec95b142d4bad1692a5785e135a8f186903adebb68589dcc4e"
+  },
+  "source_startup_traces": 178,
+  "native_lazy_option_cases": 3,
+  "executable_mode_cases": 5,
+  "focused": {
+    "seconds": 6.43,
+    "success": true
+  },
+  "host_regressions": {
+    "suites": 11,
+    "seconds": 114.44,
+    "success": true
+  },
+  "rust_integration": {
+    "modes": [
+      "resident/direct",
+      "resident/tunnel",
+      "swap/direct",
+      "swap/tunnel",
+      "failed-preload/direct",
+      "failed-preload/tunnel",
+      "resolved-slots/direct",
+      "resolved-slots/tunnel"
+    ],
+    "success": true
+  },
+  "cuda_image_tests": {
+    "count": 28,
+    "seconds": 57.39,
+    "success": true
+  },
+  "scope": [
+    "Executable startup preloads configured LLMs by default while preserving explicit lazy opt-out",
+    "Dedicated voice-only mode and explicit text forwarding skip local LLM preload; voice plus explicit text mode retains preload",
+    "Shared production startup path initializes LLM, Qwen TTS, STT and embeddings before opening listeners",
+    "Embedding placement follows speech pool initialization",
+    "Existing lazy Qwen cache-warm and precache-marker behavior verified against actual source constructor traces",
+    "Partial auxiliary preload failures preserve successful pool entries and allow later stages to initialize"
+  ],
+  "remaining": [
+    "Persistent VIDEO then IMG startup initialization and model residency",
+    "Compressed GPU/video parity and real uncached model inference",
+    "Broader GPU selection and cleanup equivalence"
+  ],
+  "deployment": {
+    "previous_image": "sha256:8a3685ddf681a2fd3591b0439b5a5b3647cfaaea5926f7f19f488356de2d1ce0",
+    "candidate_image": "sha256:c2063de651f001e9e96bf5344a66f3224a77147a0c8180bd7f9decfe55e55f71",
+    "health": "healthy",
+    "deployed_image": "sha256:c2063de651f001e9e96bf5344a66f3224a77147a0c8180bd7f9decfe55e55f71",
+    "effective_environment_changed_keys": [],
+    "original_env_file_unchanged": true,
+    "mounts_unchanged": true,
+    "wakeword_mounts": [
+      [
+        "bind",
+        "/home/josh/repos/xtsys/ezlocalai/wakeword_models",
+        "/app/wakeword_models",
+        true
+      ],
+      [
+        "bind",
+        "/home/josh/repos/xtsys/ezlocalai/wakeword_samples",
+        "/app/wakeword_samples",
+        true
+      ],
+      [
+        "bind",
+        "/home/josh/repos/xtsys/ezlocalai/wakeword_jobs",
+        "/app/wakeword_jobs",
+        true
+      ]
+    ],
+    "ports_unchanged": true,
+    "gpu_requests_unchanged": true
+  },
+  "gpu": {
+    "image": "sha256:c2063de651f001e9e96bf5344a66f3224a77147a0c8180bd7f9decfe55e55f71",
+    "success": true,
+    "seconds": 1.2661620989674702,
+    "embedding_dimensions": 32,
+    "speech_bytes": 53804,
+    "speech_sha256": "e4145a7df1650705f8dc44be7608c71621eff0ceb254cfd4beb2c6280414dd93",
+    "transcription": " And so my fellow Americans, ask not what your country can do for you, ask what you can do for your country.",
+    "gpu_memory_mib": {
+      "1670586": 470.0,
+      "1670760": 3516.0,
+      "1670952": 2344.0
+    },
+    "qwen_before_embedding": true,
+    "before": {
+      "free_vram_gb": 15.81585693359375,
+      "loaded_models": {
+        "embedding": {
+          "name": "Qwen/Qwen3-Embedding-0.6B-GGUF",
+          "device": "cuda",
+          "vram_gb": 2.2717706092834478,
+          "in_use": false,
+          "active_requests": 0,
+          "last_used": 1792424665.5455017
+        },
+        "tts": {
+          "name": "Qwen-TTS (Mouserat/qwen3-tts-0.6b-base-gguf)",
+          "device": "cuda",
+          "vram_gb": 4.0,
+          "in_use": false,
+          "active_requests": 0,
+          "last_used": 1792424661.6471899
+        },
+        "stt": {
+          "name": "/app/models/models--Systran--faster-whisper-base/snapshots/ebe41f70d5b6dfa9166e2c581c45c9c0cfc57b66",
+          "device": "cuda",
+          "vram_gb": 2.0,
+          "in_use": false,
+          "active_requests": 0,
+          "last_used": 1792424662.9332118
+        }
+      },
+      "model_pools": {
+        "embedding": {
+          "configured": 1,
+          "devices": [
+            "cuda"
+          ],
+          "resident": 1
+        },
+        "stt": {
+          "configured": 1,
+          "devices": [
+            "cuda"
+          ],
+          "resident": 1
+        },
+        "tts": {
+          "configured": 1,
+          "devices": [
+            "cuda"
+          ],
+          "resident": 1
+        }
+      },
+      "model_lifecycle": {
+        "llm_model_residency": "resident",
+        "configured_llms": [
+          "unsloth/Qwen3.8-27B-GGUF"
+        ],
+        "loaded_llms": [],
+        "active_llm": null,
+        "loaded_llm_runtime": [],
+        "vram_estimates_gb": {},
+        "summary": [],
+        "recent_events": []
+      },
+      "torch_cuda": [
+        {
+          "index": 0,
+          "allocated_gb": 0.0,
+          "reserved_gb": 0.002,
+          "max_allocated_gb": 0.0,
+          "free_gb": 15.816,
+          "total_gb": 23.524
+        }
+      ]
+    },
+    "after": {
+      "free_vram_gb": 15.7412109375,
+      "loaded_models": {
+        "embedding": {
+          "name": "Qwen/Qwen3-Embedding-0.6B-GGUF",
+          "device": "cuda",
+          "vram_gb": 2.2717706092834478,
+          "in_use": false,
+          "active_requests": 0,
+          "last_used": 1792424665.7613158
+        },
+        "tts": {
+          "name": "Qwen-TTS (Mouserat/qwen3-tts-0.6b-base-gguf)",
+          "device": "cuda",
+          "vram_gb": 4.0,
+          "in_use": false,
+          "active_requests": 0,
+          "last_used": 1792424665.7773185
+        },
+        "stt": {
+          "name": "/app/models/models--Systran--faster-whisper-base/snapshots/ebe41f70d5b6dfa9166e2c581c45c9c0cfc57b66",
+          "device": "cuda",
+          "vram_gb": 2.0,
+          "in_use": false,
+          "active_requests": 0,
+          "last_used": 1792424666.218399
+        }
+      },
+      "model_pools": {
+        "embedding": {
+          "configured": 1,
+          "devices": [
+            "cuda"
+          ],
+          "resident": 1
+        },
+        "stt": {
+          "configured": 1,
+          "devices": [
+            "cuda"
+          ],
+          "resident": 1
+        },
+        "tts": {
+          "configured": 1,
+          "devices": [
+            "cuda"
+          ],
+          "resident": 1
+        }
+      },
+      "model_lifecycle": {
+        "llm_model_residency": "resident",
+        "configured_llms": [
+          "unsloth/Qwen3.8-27B-GGUF"
+        ],
+        "loaded_llms": [],
+        "active_llm": null,
+        "loaded_llm_runtime": [],
+        "vram_estimates_gb": {},
+        "summary": [],
+        "recent_events": []
+      },
+      "torch_cuda": [
+        {
+          "index": 0,
+          "allocated_gb": 0.0,
+          "reserved_gb": 0.0,
+          "max_allocated_gb": 0.0,
+          "free_gb": 15.741,
+          "total_gb": 23.524
+        }
+      ]
+    },
+    "original_restored_healthy": true
+  },
+  "live": {
+    "image": "sha256:c2063de651f001e9e96bf5344a66f3224a77147a0c8180bd7f9decfe55e55f71",
+    "binary_sha256": "9739ffa835d358cbff8f0d54f08140d4a0f36a9be48f6ea703c82dce23fee51a",
+    "matching_workers": 1,
+    "python_extra_matches": true,
+    "extra": {
+      "llm_model_residency": "resident",
+      "loaded_llms": [
+        "unsloth/Qwen3.8-27B-GGUF"
+      ],
+      "active_llm": "unsloth/Qwen3.8-27B-GGUF",
+      "llm_unload_dependent_capabilities": [
+        "image",
+        "video",
+        "music",
+        "music_video"
+      ]
+    },
+    "resource_lifecycle": {
+      "llm_model_residency": "resident",
+      "loaded_llms": [
+        "unsloth/Qwen3.8-27B-GGUF"
+      ],
+      "active_llm": "unsloth/Qwen3.8-27B-GGUF"
+    },
+    "gpu_count": 1,
+    "torch_cuda": [
+      {
+        "index": 0,
+        "allocated_gb": 0.0,
+        "reserved_gb": 0.0,
+        "max_allocated_gb": 0.0,
+        "free_gb": 1.754,
+        "total_gb": 23.524
+      }
+    ],
+    "free_vram_gb": 1.7542724609375,
+    "sources": {
+      "Pipes.py": "8238cef03d4a1db6e775d7f62234bcf998d8f08bd9fc15f1d8a36ea0d3280005",
+      "Router.py": "d5eebf7fc48f7781628aa4eaab8af1c3f23fd8694242f0b3065436b5c86f62b1"
+    }
+  },
+  "live_routed_inference": {
+    "chat": 200,
+    "stream": 200,
+    "vision": 200
+  },
+  "python_interpreter_present": false
+}

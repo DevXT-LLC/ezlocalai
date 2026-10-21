@@ -1,0 +1,10 @@
+{"config": {}, "file": "legacy-0.f32z", "bands": 80, "frames": 3100, "sha256": "66beb453121c2b6b3401a72b8bc1262d553f0d22f209b780e205d26e3817dada"}
+{"config": {"feature_size": 128}, "file": "legacy-1.f32z", "bands": 128, "frames": 3100, "sha256": "f31ab76e84430223152a0b74cb751eabb655b6eae6fecb6588048efbc633d28b"}
+{"config": {"feature_size": 40, "sampling_rate": 8000, "hop_length": 80, "n_fft": 200, "chunk_length": 12}, "file": "legacy-2.f32z", "bands": 40, "frames": 1400, "sha256": "5038de71fbf76696364645a3c0d7315067f24d062c6f9bf543a331a48c570375"}
+{"config": {"hop_length": 200, "n_fft": 512, "chunk_length": 7}, "file": "legacy-3.f32z", "bands": 80, "frames": 640, "sha256": "04d3c3a031c911459d7b274a00f2dcb3069c4a10883fc3024887113d6fa73ade"}
+{"config": {"sampling_rate": 22050, "hop_length": 221, "n_fft": 512, "chunk_length": 11}, "file": "legacy-4.f32z", "bands": 80, "frames": 1169, "sha256": "8bdc7208160ee4c88352b5ddd0bc7a6ac37a0198992df0b0d15d441a714472d9"}
+{"config": {"hop_length": 320, "chunk_length": 15}, "file": "legacy-5.f32z", "bands": 80, "frames": 800, "sha256": "57d9a7c3617b1963d0f5e95bd171008dba29149e152e1cdf0d9e495701750565"}
+{"config": {"sampling_rate": 8000, "hop_length": 160, "n_fft": 400, "chunk_length": 30}, "file": "legacy-6.f32z", "bands": 80, "frames": 1600, "sha256": "1d9e5c98e4342509cdda6f305aad999c7e225b4a0650b480403d83a8c06d7bc0"}
+{"config": {"feature_size": 2, "hop_length": 100, "n_fft": 256, "chunk_length": 1}, "file": "legacy-7.f32z", "bands": 2, "frames": 320, "sha256": "5e93af474d08bd1ab1678133c379593af5c5440219b3f5561b205667a5564337"}
+{"config": {"n_fft": 401}, "error": {"category": "ValueError", "message": "FFT size must greater or equal the frame size"}}
+{"config": {"feature_size": "８０"}, "file": "legacy-9.f32z", "bands": 80, "frames": 3100, "sha256": "66beb453121c2b6b3401a72b8bc1262d553f0d22f209b780e205d26e3817dada"}

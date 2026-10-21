@@ -1,0 +1,205 @@
+{
+  "device": "cuda",
+  "compute_type": "float16",
+  "audio_sha256": "d7d4e74b8a333ed02186008bc109a1b1a19d16da668bd56e785d80d69a16a72f",
+  "source_sha256": "d0dd8340c243d7ff9ba84f4e3babe3c41b0b0ce7c7dddf2565eb886ba3f21fe2",
+  "versions": {
+    "ctranslate2": "4.8.2",
+    "faster-whisper": "1.2.0",
+    "onnxruntime": "1.31.0",
+    "torch": "2.9.1+cu128",
+    "numpy": "2.4.6",
+    "av": "18.1.0"
+  },
+  "cases": [
+    {
+      "kwargs": {
+        "language": "en"
+      },
+      "output": " And so, my fellow Americans, ask not what your country can do for you, ask what you can do for your country."
+    },
+    {
+      "kwargs": {
+        "language": "en",
+        "return_segments": true,
+        "timestamp_granularities": [
+          "word"
+        ]
+      },
+      "output": {
+        "text": "And so, my fellow Americans, ask not what your country can do for you, ask what you can do for your country.",
+        "segments": [
+          {
+            "id": 0,
+            "start": 0.12,
+            "end": 10.36,
+            "text": "And so, my fellow Americans, ask not what your country can do for you, ask what you can do for your country.",
+            "words": [
+              {
+                "word": "And",
+                "start": 0.12,
+                "end": 0.54
+              },
+              {
+                "word": "so,",
+                "start": 0.54,
+                "end": 0.86
+              },
+              {
+                "word": "my",
+                "start": 1.1,
+                "end": 1.2
+              },
+              {
+                "word": "fellow",
+                "start": 1.2,
+                "end": 1.54
+              },
+              {
+                "word": "Americans,",
+                "start": 1.54,
+                "end": 2.1
+              },
+              {
+                "word": "ask",
+                "start": 3.29,
+                "end": 3.77
+              },
+              {
+                "word": "not",
+                "start": 3.77,
+                "end": 4.31
+              },
+              {
+                "word": "what",
+                "start": 5.0,
+                "end": 5.58
+              },
+              {
+                "word": "your",
+                "start": 5.58,
+                "end": 5.8
+              },
+              {
+                "word": "country",
+                "start": 5.8,
+                "end": 6.24
+              },
+              {
+                "word": "can",
+                "start": 6.24,
+                "end": 6.62
+              },
+              {
+                "word": "do",
+                "start": 6.62,
+                "end": 6.82
+              },
+              {
+                "word": "for",
+                "start": 6.82,
+                "end": 7.06
+              },
+              {
+                "word": "you,",
+                "start": 7.06,
+                "end": 7.42
+              },
+              {
+                "word": "ask",
+                "start": 7.84,
+                "end": 8.52
+              },
+              {
+                "word": "what",
+                "start": 8.52,
+                "end": 8.8
+              },
+              {
+                "word": "you",
+                "start": 8.8,
+                "end": 9.04
+              },
+              {
+                "word": "can",
+                "start": 9.04,
+                "end": 9.34
+              },
+              {
+                "word": "do",
+                "start": 9.34,
+                "end": 9.56
+              },
+              {
+                "word": "for",
+                "start": 9.56,
+                "end": 9.78
+              },
+              {
+                "word": "your",
+                "start": 9.78,
+                "end": 9.98
+              },
+              {
+                "word": "country.",
+                "start": 9.98,
+                "end": 10.36
+              }
+            ]
+          }
+        ],
+        "language": "en"
+      }
+    },
+    {
+      "kwargs": {
+        "language": "en",
+        "return_segments": true,
+        "use_batched": true,
+        "beam_size": 3
+      },
+      "output": {
+        "text": "And so, my fellow Americans, ask not what your country can do for you, ask what you can do for your country.",
+        "segments": [
+          {
+            "id": 0,
+            "start": 0.12,
+            "end": 11.0,
+            "text": "And so, my fellow Americans, ask not what your country can do for you, ask what you can do for your country."
+          }
+        ],
+        "language": "en"
+      }
+    },
+    {
+      "kwargs": {
+        "return_segments": true
+      },
+      "output": {
+        "text": "And so, my fellow Americans, ask not what your country can do for you, ask what you can do for your country.",
+        "segments": [
+          {
+            "id": 0,
+            "start": 0.12,
+            "end": 10.38,
+            "text": "And so, my fellow Americans, ask not what your country can do for you, ask what you can do for your country."
+          }
+        ],
+        "language": "en"
+      }
+    }
+  ],
+  "model_hashes": {
+    "config.json": "b0253ea6c0d3bea6b1e19e91a02acfd3b53f4467362efcb5a3e6b16c9b3a9b7e",
+    "model.bin": "e76620f83d5f5b69efd3d87e3dc180c1bd21df9fbebacfd4335e5e1efcc018da",
+    "tokenizer.json": "297b13372ac43916285644fb9687add3cc62ee2a1adb60da3dc25cc94c1871fd",
+    "vocabulary.json": "c69260f2ab26d659b7c398f9a2b2b48ed0df16c3b47d7326782fd9cba71690c1",
+    "preprocessor_config.json": "7ccc62c6f2765af1f3b46c00c9b5894426835a05021c8b9c01eecb6dfb542711"
+  },
+  "model_repo": "mobiuslabsgmbh/faster-whisper-large-v3-turbo",
+  "model_revision": "0a363e9161cbc7ed1431c9597a8ceaf0c4f78fcf",
+  "cpu": "Intel Core i9-12900KS",
+  "openblas_threads": 1,
+  "cpu_threads": 0,
+  "gpu": "NVIDIA GeForce RTX 3090 Ti"
+}

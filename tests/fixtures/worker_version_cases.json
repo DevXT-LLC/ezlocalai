@@ -1,0 +1,360 @@
+{
+  "source_sha256": "d5eebf7fc48f7781628aa4eaab8af1c3f23fd8694242f0b3065436b5c86f62b1",
+  "clean": [
+    {
+      "input": "",
+      "expected": ""
+    },
+    {
+      "input": " NONE ",
+      "expected": ""
+    },
+    {
+      "input": "\tNuLl\r",
+      "expected": ""
+    },
+    {
+      "input": "unknown",
+      "expected": ""
+    },
+    {
+      "input": "Undefined",
+      "expected": ""
+    },
+    {
+      "input": "0",
+      "expected": "0"
+    },
+    {
+      "input": "v1.2.3",
+      "expected": "v1.2.3"
+    },
+    {
+      "input": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "expected": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    {
+      "input": "🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙",
+      "expected": "🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙"
+    },
+    {
+      "input": " rev-1 ",
+      "expected": "rev-1"
+    },
+    {
+      "input": "unknown-version",
+      "expected": "unknown-version"
+    },
+    {
+      "input": "x\ny",
+      "expected": "x\ny"
+    }
+  ],
+  "cases": [
+    {
+      "name": "package-fallback",
+      "environment": {},
+      "files": {},
+      "git": "",
+      "package": "native-package-test",
+      "expected": "native-package-test",
+      "calls": [
+        "git",
+        "package"
+      ]
+    },
+    {
+      "name": "no-version",
+      "environment": {},
+      "files": {},
+      "git": "",
+      "package": "THROW",
+      "expected": "",
+      "calls": [
+        "git",
+        "package"
+      ]
+    },
+    {
+      "name": "override-EZLOCALAI_VERSION",
+      "environment": {
+        "EZLOCALAI_VERSION": " release-42 "
+      },
+      "files": {},
+      "git": "abcdef0",
+      "package": "native-package-test",
+      "expected": "release-42",
+      "calls": []
+    },
+    {
+      "name": "override-EZLOCALAI_COMMIT",
+      "environment": {
+        "EZLOCALAI_COMMIT": " release-42 "
+      },
+      "files": {},
+      "git": "abcdef0",
+      "package": "native-package-test",
+      "expected": "release-42",
+      "calls": []
+    },
+    {
+      "name": "override-GIT_COMMIT",
+      "environment": {
+        "GIT_COMMIT": " release-42 "
+      },
+      "files": {},
+      "git": "abcdef0",
+      "package": "native-package-test",
+      "expected": "release-42",
+      "calls": []
+    },
+    {
+      "name": "override-priority",
+      "environment": {
+        "EZLOCALAI_VERSION": "first",
+        "EZLOCALAI_COMMIT": "second",
+        "GIT_COMMIT": "third"
+      },
+      "files": {
+        ".ezlocalai-version": "file"
+      },
+      "git": "",
+      "package": "native-package-test",
+      "expected": "first",
+      "calls": []
+    },
+    {
+      "name": "sentinel-fallback",
+      "environment": {
+        "EZLOCALAI_VERSION": "unknown",
+        "EZLOCALAI_COMMIT": " None ",
+        "GIT_COMMIT": "third"
+      },
+      "files": {},
+      "git": "",
+      "package": "native-package-test",
+      "expected": "third",
+      "calls": []
+    },
+    {
+      "name": "unicode-override",
+      "environment": {
+        "EZLOCALAI_VERSION": " 🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙 "
+      },
+      "files": {},
+      "git": "",
+      "package": "native-package-test",
+      "expected": "🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙🦙",
+      "calls": []
+    },
+    {
+      "name": "file-priority",
+      "environment": {},
+      "files": {
+        ".ezlocalai-version": "file-one\nignored",
+        "VERSION": "file-two"
+      },
+      "git": "abcdef0",
+      "package": "native-package-test",
+      "expected": "file-one",
+      "calls": []
+    },
+    {
+      "name": "version-file",
+      "environment": {},
+      "files": {
+        ".ezlocalai-version": "null",
+        "VERSION": " version-two\r\nignored"
+      },
+      "git": "",
+      "package": "native-package-test",
+      "expected": "version-two",
+      "calls": []
+    },
+    {
+      "name": "file-cr",
+      "environment": {},
+      "files": {
+        ".ezlocalai-version": "native-cr\rignored"
+      },
+      "git": "",
+      "package": "native-package-test",
+      "expected": "native-cr",
+      "calls": []
+    },
+    {
+      "name": "file-invalid-utf8",
+      "environment": {},
+      "files": {
+        ".ezlocalai-version": {
+          "hex": "76ff31"
+        }
+      },
+      "git": "abcdef0",
+      "package": "native-package-test",
+      "expected": "v�1",
+      "calls": []
+    },
+    {
+      "name": "git-command",
+      "environment": {},
+      "files": {},
+      "git": "ABC123456\n",
+      "package": "native-package-test",
+      "expected": "ABC123456",
+      "calls": [
+        "git"
+      ]
+    },
+    {
+      "name": "git-sentinel",
+      "environment": {},
+      "files": {},
+      "git": "unknown",
+      "package": "native-package-test",
+      "expected": "native-package-test",
+      "calls": [
+        "git",
+        "package"
+      ]
+    },
+    {
+      "name": "git-exception-detached",
+      "environment": {},
+      "files": {
+        ".git/HEAD": "AB123456789abcdef6789abcdef6789abcdef\n"
+      },
+      "git": "THROW",
+      "package": "native-package-test",
+      "expected": "ab12345",
+      "calls": [
+        "git"
+      ]
+    },
+    {
+      "name": "git-loose-ref",
+      "environment": {},
+      "files": {
+        ".git/HEAD": "ref: refs/heads/main\n",
+        ".git/refs/heads/main": "AB123456789abcdef6789abcdef6789abcdef"
+      },
+      "git": "",
+      "package": "native-package-test",
+      "expected": "ab12345",
+      "calls": [
+        "git"
+      ]
+    },
+    {
+      "name": "git-packed-ref",
+      "environment": {},
+      "files": {
+        ".git/HEAD": "ref: refs/heads/main",
+        ".git/packed-refs": "# pack-refs\n^ignored\nAB123456789abcdef6789abcdef6789abcdef refs/heads/main\n"
+      },
+      "git": "",
+      "package": "native-package-test",
+      "expected": "ab12345",
+      "calls": [
+        "git"
+      ]
+    },
+    {
+      "name": "git-relative-directory",
+      "environment": {},
+      "files": {
+        ".git": "gitdir: metadata\n",
+        "metadata/HEAD": "AB123456789abcdef6789abcdef6789abcdef"
+      },
+      "git": "",
+      "package": "native-package-test",
+      "expected": "ab12345",
+      "calls": [
+        "git"
+      ]
+    },
+    {
+      "name": "metadata-'abc123'",
+      "environment": {},
+      "files": {
+        ".git/HEAD": "abc123"
+      },
+      "git": "",
+      "package": "native-package-test",
+      "expected": "native-package-test",
+      "calls": [
+        "git",
+        "package"
+      ]
+    },
+    {
+      "name": "metadata-'gggggggggggggggggggggggggggggggggggggggg'",
+      "environment": {},
+      "files": {
+        ".git/HEAD": "gggggggggggggggggggggggggggggggggggggggg"
+      },
+      "git": "",
+      "package": "native-package-test",
+      "expected": "native-package-test",
+      "calls": [
+        "git",
+        "package"
+      ]
+    },
+    {
+      "name": "metadata-'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'",
+      "environment": {},
+      "files": {
+        ".git/HEAD": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "git": "",
+      "package": "native-package-test",
+      "expected": "native-package-test",
+      "calls": [
+        "git",
+        "package"
+      ]
+    },
+    {
+      "name": "metadata-'ref: refs/heads/missing'",
+      "environment": {},
+      "files": {
+        ".git/HEAD": "ref: refs/heads/missing"
+      },
+      "git": "",
+      "package": "native-package-test",
+      "expected": "native-package-test",
+      "calls": [
+        "git",
+        "package"
+      ]
+    },
+    {
+      "name": "metadata-''",
+      "environment": {},
+      "files": {
+        ".git/HEAD": ""
+      },
+      "git": "",
+      "package": "native-package-test",
+      "expected": "native-package-test",
+      "calls": [
+        "git",
+        "package"
+      ]
+    },
+    {
+      "name": "metadata-'ABCDEF1'",
+      "environment": {},
+      "files": {
+        ".git/HEAD": "ABCDEF1"
+      },
+      "git": "",
+      "package": "native-package-test",
+      "expected": "abcdef1",
+      "calls": [
+        "git"
+      ]
+    }
+  ]
+}

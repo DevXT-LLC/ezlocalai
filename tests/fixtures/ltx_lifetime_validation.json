@@ -1,0 +1,531 @@
+{
+  "scope": "LtxVideo retained-engine startup, HTTP generation, music-video scene sessions, failure recovery and unload integration; Qwen image and Wan remain one-shot matching source.",
+  "source_sha256": {
+    "src/ltx_runtime.cpp": "77baff5685b453098450a79a1db575a8e43267c4c8f0839e9098fbe5aa683990",
+    "include/ezlocalai/ltx_runtime.hpp": "519777009fec4f5dcb3ad08f3bb332893cecb62b20ba9cfd18547c1cbf5ea308",
+    "src/native_server.cpp": "75fcd7ff8fe7381ae453c7c8473e471a0adfa2738dca18f51f58847faeacf512",
+    "include/ezlocalai/native_server.hpp": "1eb83a70ba55c68633b6043b77bd39f488310c598b20534ca11ff0a3b5c18ecc",
+    "src/media_engine_process.cpp": "9cc097cbcb6c575e66b60dcd653a64ae729498c4025a865959807a455f69a667",
+    "engine/sd_cli_worker.hpp": "9abf79152d40386b7b78afd24ee9ec6cf211ab4c28c4ff192c9f2962d97d5453",
+    "tests/test_ltx_runtime.cpp": "2a8cfcca416fc94894c2f09a48361a8e15170a96722a735e52945a2ecdd29f14",
+    "tests/ltx_process_fixture.cpp": "28ccda3b7976998c21fc88f47f4987b00f45047a9a52773a861d4379ca9572b1",
+    "tests/ltx_fixture_control.hpp": "e2ca873ae0271e1053eaac5d571e5509ba6def19e7a923a89e4ce09b0fe17180",
+    "tests/fixtures/ltx_lifetime_cases.json": "1b8bc3bace1c403a8f55167a28f4fb12fdf0f28fadee7c8a61cfea6f55fbe9ca",
+    "cuda.Dockerfile": "8976a471c4aa64959190fe02451370b610e731cd6264bbb1f66a916e11aa9add"
+  },
+  "python_sources": {
+    "Pipes.py": "8238cef03d4a1db6e775d7f62234bcf998d8f08bd9fc15f1d8a36ea0d3280005"
+  },
+  "source_lifetime_cases": 24,
+  "host": {
+    "final_ltx_runtime_seconds": 18.97,
+    "regression_suites": 7,
+    "regression_seconds": 74.28,
+    "rust_integration_scenarios": 8
+  },
+  "cuda": {
+    "image": "sha256:48264d550a35b0216795568751e47b2adda554940ac7708563e3de99314ed584",
+    "packaged_tests": 31,
+    "packaged_seconds": 82.41,
+    "ltx_runtime_seconds": 25.17
+  },
+  "actual_ltx": {
+    "preload_seconds": 31.614481205004267,
+    "preload_free_gpu_mib": 1793,
+    "preload_note": "Existing LLM remains loaded during startup; source threshold selects unquantized text weights. LLM is stopped before diffusion; selected residency remains unchanged.",
+    "text_encoder": "unquantized BF16",
+    "container_memory_limit_gib": 28,
+    "same_process_and_context": true,
+    "repeat_rgba_match": true,
+    "repeat_decoded_pcm_match": true,
+    "engine_reaped": true,
+    "generations": [
+      {
+        "via_rust_tunnel": false,
+        "name": "first",
+        "seconds": 43.62164748890791,
+        "bytes": 13508,
+        "sha256": "d572f29f4d5525dc4c5b683268100f58be70a393e5848ccbcff19e91341c4dae",
+        "rgba_sha256": "8d26b8b30c521aad16d674a1dd29a27de59b0f826876488fac3cdc2c97588d25",
+        "pid": 1893734,
+        "engine_memory": {
+          "VmHWM": "29137568 kB",
+          "VmRSS": "28950272 kB",
+          "VmSwap": "0 kB"
+        },
+        "video": {
+          "width": 64,
+          "height": 64,
+          "nb_frames": "9"
+        },
+        "audio": {
+          "sample_rate": "24000",
+          "duration": "0.660000"
+        },
+        "pcm_sha256": "06c82d5edc2cc0be0d6163376cf834c19ca6854ae14ee0375d179c0e813a55ea",
+        "pcm_bytes": 65536,
+        "maximum_resource_seconds": 0.16000498400535434,
+        "maximum_engine_gpu_mib": 21610.0,
+        "active_observed": true
+      },
+      {
+        "via_rust_tunnel": true,
+        "name": "changed",
+        "seconds": 44.50365423003677,
+        "bytes": 26280,
+        "sha256": "a498cb25451f8ffbe08eaac7cbd0bf4271729470e6e2d732794fab4c6a48822a",
+        "rgba_sha256": "affc6fbeebc82e4d5785d06ddc5192d0ee79958ca2b22cc32fac01fc65b25e52",
+        "pid": 1893734,
+        "engine_memory": {
+          "VmHWM": "29137568 kB",
+          "VmRSS": "28948820 kB",
+          "VmSwap": "0 kB"
+        },
+        "video": {
+          "width": 96,
+          "height": 64,
+          "nb_frames": "17"
+        },
+        "audio": {
+          "sample_rate": "24000",
+          "duration": "1.380000"
+        },
+        "pcm_sha256": "0eea2e629b96d3b28e62586e37bf20776f1bda86c8befc9d89e9b770f1f23340",
+        "pcm_bytes": 135168,
+        "maximum_resource_seconds": 0.11059414804913104,
+        "maximum_engine_gpu_mib": 21896.0,
+        "active_observed": true
+      },
+      {
+        "via_rust_tunnel": true,
+        "name": "image",
+        "seconds": 44.208659249939956,
+        "bytes": 13594,
+        "sha256": "3b34d18cccee34531eb25030e85929936603c98e76ba2a6b477774807eda6f85",
+        "rgba_sha256": "84595654073afa4d2ab546274e8810cc0c4dc465a6c52c6a57251f14b4ecf6bf",
+        "pid": 1893734,
+        "engine_memory": {
+          "VmHWM": "29137568 kB",
+          "VmRSS": "28952288 kB",
+          "VmSwap": "0 kB"
+        },
+        "video": {
+          "width": 64,
+          "height": 64,
+          "nb_frames": "9"
+        },
+        "audio": {
+          "sample_rate": "24000",
+          "duration": "0.660000"
+        },
+        "pcm_sha256": "b677037a8948038cb039c8d264fc08b3ef17025c8f906ce787c9afdcc96edbc1",
+        "pcm_bytes": 65536,
+        "maximum_resource_seconds": 0.07724358106497675,
+        "maximum_engine_gpu_mib": 21586.0,
+        "active_observed": true
+      },
+      {
+        "via_rust_tunnel": true,
+        "name": "conditions",
+        "seconds": 45.54697011096869,
+        "bytes": 13806,
+        "sha256": "4a92c4705baa30c12ecd5661b9ab58fff54087e9a742df91daed005724a5ccc9",
+        "rgba_sha256": "1564003cc9cdfa1399704db9ccbc60155ce18ae4c4bf8bd7db4798ae5eb287ea",
+        "pid": 1893734,
+        "engine_memory": {
+          "VmHWM": "29137568 kB",
+          "VmRSS": "28959052 kB",
+          "VmSwap": "0 kB"
+        },
+        "video": {
+          "width": 64,
+          "height": 64,
+          "nb_frames": "9"
+        },
+        "audio": {
+          "sample_rate": "24000",
+          "duration": "0.660000"
+        },
+        "pcm_sha256": "13ca0c3ae3466071ff400830c3011687d60f40be153d3dce6d3e8aa2a7517703",
+        "pcm_bytes": 65536,
+        "maximum_resource_seconds": 0.07403126708231866,
+        "maximum_engine_gpu_mib": 21634.0,
+        "active_observed": true
+      },
+      {
+        "via_rust_tunnel": true,
+        "name": "repeat",
+        "seconds": 42.299546560971066,
+        "bytes": 13508,
+        "sha256": "d572f29f4d5525dc4c5b683268100f58be70a393e5848ccbcff19e91341c4dae",
+        "rgba_sha256": "8d26b8b30c521aad16d674a1dd29a27de59b0f826876488fac3cdc2c97588d25",
+        "pid": 1893734,
+        "engine_memory": {
+          "VmHWM": "29137568 kB",
+          "VmRSS": "28961116 kB",
+          "VmSwap": "0 kB"
+        },
+        "video": {
+          "width": 64,
+          "height": 64,
+          "nb_frames": "9"
+        },
+        "audio": {
+          "sample_rate": "24000",
+          "duration": "0.660000"
+        },
+        "pcm_sha256": "06c82d5edc2cc0be0d6163376cf834c19ca6854ae14ee0375d179c0e813a55ea",
+        "pcm_bytes": 65536,
+        "maximum_resource_seconds": 0.0579480140004307,
+        "maximum_engine_gpu_mib": 21650.0,
+        "active_observed": true
+      }
+    ],
+    "router_active": {
+      "worker_id": "ltx-resident-local-test-599a82e9",
+      "best_tier": 55,
+      "cap_models": {
+        "video": "unsloth/LTX-2.3-GGUF"
+      },
+      "cap_slots": {
+        "video": {
+          "capacity": 1,
+          "in_flight": 1,
+          "queued": 0,
+          "available": 0
+        }
+      },
+      "capabilities": [
+        "video"
+      ],
+      "extra": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [],
+        "active_llm": null,
+        "llm_unload_dependent_capabilities": []
+      },
+      "free_ram_gb": 7.875587463378906,
+      "free_vram_gb": 1.06011962890625,
+      "gpus": [
+        {
+          "index": 0,
+          "name": "NVIDIA GeForce RTX 3090 Ti",
+          "total_vram_gb": 23.98828125,
+          "tier": 55,
+          "backend": "cuda"
+        },
+        {
+          "index": -1,
+          "name": "12th Gen Intel(R) Core(TM) i9-12900KS",
+          "total_vram_gb": 0.0,
+          "tier": 2,
+          "backend": "cpu"
+        }
+      ],
+      "in_flight": 1,
+      "label": "ltx-resident-local-test",
+      "model_context": {},
+      "model_quant": {},
+      "model_slots": {},
+      "models": [],
+      "queue_capacity": 1,
+      "queue_depth": 0,
+      "total_ram_gb": 123.37859344482422,
+      "total_vram_gb": 23.0,
+      "url": "tunnel://ltx-resident-local-test-599a82e9",
+      "version": "",
+      "reported_in_flight": 1,
+      "router_in_flight": 1,
+      "router_cap_in_flight": {
+        "video": 1
+      },
+      "router_model_in_flight": {},
+      "slot_total_capacity": 1,
+      "slot_total_busy": 1,
+      "slot_total_available": 0,
+      "priority_tier": 50,
+      "age_seconds": 103.28407430648804,
+      "last_heartbeat_age": 0.8431401252746582,
+      "connection_failures": 0,
+      "total_errors": 0,
+      "recent_errors": [],
+      "circuit_open_until": 0.0,
+      "circuit_open": false,
+      "draining": false,
+      "drain_until": null,
+      "active_requests": 1,
+      "maintenance_busy": 1,
+      "external_provider": "",
+      "external_fallback": false,
+      "persistent": false,
+      "external_balance_usd": null,
+      "external_balance_updated_at": 0.0,
+      "effective_cap_slots": {
+        "video": {
+          "capacity": 1,
+          "in_flight": 1,
+          "queued": 0,
+          "available": 0,
+          "effective_busy": 1
+        }
+      },
+      "effective_model_slots": {}
+    },
+    "resources_before": {
+      "gpu_count": 1,
+      "total_vram_gb": 23,
+      "free_vram_gb": 1.47650146484375,
+      "free_per_gpu_gb": [
+        1.47650146484375
+      ],
+      "torch_cuda": [
+        {
+          "index": 0,
+          "allocated_gb": 0.0,
+          "reserved_gb": 0.0,
+          "max_allocated_gb": 0.0,
+          "free_gb": 1.477,
+          "total_gb": 23.524
+        }
+      ],
+      "system_ram_gb": 123.37859344482422,
+      "loaded_models": {
+        "video": {
+          "name": "unsloth/LTX-2.3-GGUF",
+          "device": "cuda",
+          "vram_gb": 12.0,
+          "in_use": false,
+          "active_requests": 0,
+          "last_used": 1792427823.7059762
+        }
+      },
+      "fallback": {
+        "configured": false,
+        "url": null,
+        "should_use_fallback": false,
+        "reason": "No fallback server configured",
+        "free_vram_gb": 1.47650146484375,
+        "free_ram_gb": 5.719779968261719,
+        "free_combined_gb": 7.196281433105469,
+        "memory_threshold_gb": 8.0
+      },
+      "parallel": {
+        "n_parallel": 1,
+        "n_ctx": 0,
+        "per_slot_context": 0,
+        "text_queue_capacity": 1,
+        "queue_wait_timeout": 30.0
+      },
+      "model_lifecycle": {
+        "llm_model_residency": "resident",
+        "configured_llms": [],
+        "loaded_llms": [],
+        "active_llm": null,
+        "loaded_llm_runtime": [],
+        "vram_estimates_gb": {},
+        "summary": [],
+        "recent_events": []
+      },
+      "model_pools": {
+        "embedding": {
+          "configured": 1,
+          "devices": [],
+          "resident": 0
+        },
+        "stt": {
+          "configured": 1,
+          "devices": [],
+          "resident": 0
+        },
+        "tts": {
+          "configured": 1,
+          "devices": [],
+          "resident": 0
+        }
+      },
+      "slots": {
+        "cap_slots": {
+          "video": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          }
+        },
+        "model_slots": {},
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 1,
+        "slot_total_in_flight": 0,
+        "slot_total_queued": 0,
+        "slot_total_available": 1
+      }
+    },
+    "resources_after": {
+      "gpu_count": 1,
+      "total_vram_gb": 23,
+      "free_vram_gb": 21.47515869140625,
+      "free_per_gpu_gb": [
+        21.47515869140625
+      ],
+      "torch_cuda": [
+        {
+          "index": 0,
+          "allocated_gb": 0.0,
+          "reserved_gb": 0.0,
+          "max_allocated_gb": 0.0,
+          "free_gb": 21.475,
+          "total_gb": 23.524
+        }
+      ],
+      "system_ram_gb": 123.37859344482422,
+      "loaded_models": {
+        "video": {
+          "name": "unsloth/LTX-2.3-GGUF",
+          "device": "cuda",
+          "vram_gb": 12.0,
+          "in_use": false,
+          "active_requests": 0,
+          "last_used": 1792428004.6941483
+        }
+      },
+      "fallback": {
+        "configured": false,
+        "url": null,
+        "should_use_fallback": false,
+        "reason": "No fallback server configured",
+        "free_vram_gb": 21.47515869140625,
+        "free_ram_gb": 7.6685943603515625,
+        "free_combined_gb": 29.143753051757812,
+        "memory_threshold_gb": 8.0
+      },
+      "parallel": {
+        "n_parallel": 1,
+        "n_ctx": 0,
+        "per_slot_context": 0,
+        "text_queue_capacity": 1,
+        "queue_wait_timeout": 30.0
+      },
+      "model_lifecycle": {
+        "llm_model_residency": "resident",
+        "configured_llms": [],
+        "loaded_llms": [],
+        "active_llm": null,
+        "loaded_llm_runtime": [],
+        "vram_estimates_gb": {},
+        "summary": [],
+        "recent_events": []
+      },
+      "model_pools": {
+        "embedding": {
+          "configured": 1,
+          "devices": [],
+          "resident": 0
+        },
+        "stt": {
+          "configured": 1,
+          "devices": [],
+          "resident": 0
+        },
+        "tts": {
+          "configured": 1,
+          "devices": [],
+          "resident": 0
+        }
+      },
+      "slots": {
+        "cap_slots": {
+          "video": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          }
+        },
+        "model_slots": {},
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 1,
+        "slot_total_in_flight": 0,
+        "slot_total_queued": 0,
+        "slot_total_available": 1
+      }
+    }
+  },
+  "deployment": {
+    "previous_image": "sha256:35b8ac0bcd30288f29db5970d91c92142a29cc1576151cf6bfa2557f97703766",
+    "candidate_image": "sha256:48264d550a35b0216795568751e47b2adda554940ac7708563e3de99314ed584",
+    "health": "healthy",
+    "deployed_image": "sha256:48264d550a35b0216795568751e47b2adda554940ac7708563e3de99314ed584",
+    "effective_environment_changed_keys": [],
+    "original_env_file_unchanged": true,
+    "mounts_unchanged": true,
+    "wakeword_mounts": [
+      [
+        "bind",
+        "/home/josh/repos/xtsys/ezlocalai/wakeword_models",
+        "/app/wakeword_models",
+        true
+      ],
+      [
+        "bind",
+        "/home/josh/repos/xtsys/ezlocalai/wakeword_samples",
+        "/app/wakeword_samples",
+        true
+      ],
+      [
+        "bind",
+        "/home/josh/repos/xtsys/ezlocalai/wakeword_jobs",
+        "/app/wakeword_jobs",
+        true
+      ]
+    ],
+    "ports_unchanged": true,
+    "gpu_requests_unchanged": true
+  },
+  "live": {
+    "image": "sha256:48264d550a35b0216795568751e47b2adda554940ac7708563e3de99314ed584",
+    "binary_sha256": "61d576c6153be35c1e68de53e65c66bedffdf9805d32fd7f677befff54a064b5",
+    "matching_workers": 1,
+    "python_extra_matches": true,
+    "extra": {
+      "llm_model_residency": "resident",
+      "loaded_llms": [
+        "unsloth/Qwen3.8-27B-GGUF"
+      ],
+      "active_llm": "unsloth/Qwen3.8-27B-GGUF",
+      "llm_unload_dependent_capabilities": [
+        "image",
+        "video",
+        "music",
+        "music_video"
+      ]
+    },
+    "resource_lifecycle": {
+      "llm_model_residency": "resident",
+      "loaded_llms": [
+        "unsloth/Qwen3.8-27B-GGUF"
+      ],
+      "active_llm": "unsloth/Qwen3.8-27B-GGUF"
+    },
+    "gpu_count": 1,
+    "torch_cuda": [
+      {
+        "index": 0,
+        "allocated_gb": 0.0,
+        "reserved_gb": 0.0,
+        "max_allocated_gb": 0.0,
+        "free_gb": 1.777,
+        "total_gb": 23.524
+      }
+    ],
+    "free_vram_gb": 1.77655029296875,
+    "sources": {
+      "Pipes.py": "8238cef03d4a1db6e775d7f62234bcf998d8f08bd9fc15f1d8a36ea0d3280005",
+      "Router.py": "d5eebf7fc48f7781628aa4eaab8af1c3f23fd8694242f0b3065436b5c86f62b1"
+    }
+  },
+  "remaining": [
+    "Compressed NF4/Quanto GPU storage and distinct model/sequential offload implementations",
+    "Full Python-model output equivalence and real quantized LTX/LLM handoff validation",
+    "Broader model, preset and GPU coverage; startup and lifecycle paths outside this milestone remain partial"
+  ]
+}

@@ -1,0 +1,175 @@
+--- a/examples/common/common.cpp
++++ b/examples/common/common.cpp
+@@ -567,6 +567,7 @@
+     };
+ 
+     options.int_options = {
++        {"", "--ltx-offload-mode", "LTX execution: 0 automatic, 1 whole model, 2 sequential segments", &ltx_offload_mode},
+         {"", "--ltx-nf4-sm-count", "Enable native Gemma NF4 conversion using this CUDA SM count", &ltx_nf4_sm_count},
+         {"", "--ltx-nf4-threads-per-sm", "Selected CUDA device maximum resident threads per SM", &ltx_nf4_threads_per_sm},
+         {"-t",
+@@ -985,6 +986,7 @@
+     sd_ctx_params.ltx_diffusers_root              = ltx_diffusers_root.c_str();
+     sd_ctx_params.ltx_nf4_sm_count                = ltx_nf4_sm_count;
+     sd_ctx_params.ltx_nf4_threads_per_sm          = ltx_nf4_threads_per_sm;
++    sd_ctx_params.ltx_offload_mode               = ltx_offload_mode;
+     sd_ctx_params.vae_path                        = vae_path.c_str();
+     sd_ctx_params.audio_vae_path                  = audio_vae_path.c_str();
+     sd_ctx_params.audio_encoder_path              = audio_encoder_path.c_str();
+--- a/examples/common/common.h
++++ b/examples/common/common.h
+@@ -132,6 +132,7 @@
+     std::string ltx_diffusers_root;
+     int ltx_nf4_sm_count = 0;
+     int ltx_nf4_threads_per_sm = 0;
++    int ltx_offload_mode = 0;
+     std::string vae_path;
+     std::string vae_format = "auto";
+     std::string audio_vae_path;
+--- a/include/stable-diffusion.h
++++ b/include/stable-diffusion.h
+@@ -1,5 +1,6 @@
+ #ifndef __STABLE_DIFFUSION_H__
+ #define __STABLE_DIFFUSION_H__
++#define EZLOCALAI_LTX_OFFLOAD_POLICY 1
+ 
+ #if defined(_WIN32) || defined(__CYGWIN__)
+ #ifndef SD_BUILD_SHARED_LIB
+@@ -210,6 +211,7 @@
+     const char* ltx_diffusers_root;
+     int ltx_nf4_sm_count;
+     int ltx_nf4_threads_per_sm;
++    int ltx_offload_mode; // 0: automatic, 1: whole graph, 2: sequential graph segments
+     const char* vae_path;
+     const char* audio_vae_path;
+     const char* audio_encoder_path;
+@@ -508,6 +510,8 @@
+ 
+ SD_API sd_ctx_t* new_sd_ctx(const sd_ctx_params_t* sd_ctx_params);
+ SD_API void free_sd_ctx(sd_ctx_t* sd_ctx);
++// Changes execution placement without replacing the retained model parameters.
++SD_API bool sd_set_ltx_offload_mode(sd_ctx_t* sd_ctx, int mode);
+ SD_API void free_sd_audio(sd_audio_t* audio);
+ 
+ SD_API void sd_sample_params_init(sd_sample_params_t* sample_params);
+--- a/src/core/ggml_runner.cpp
++++ b/src/core/ggml_runner.cpp
+@@ -824,7 +824,8 @@
+     const bool segmented = !is_multi_device() && !sd_backend_is_cpu(runtime_backend) &&
+                            manager != nullptr && manager->segmented_compute_enabled() &&
+                            cached_plan.valid && cached_plan.has_cuts && cached_plan.segments.size() > 1 &&
+-                           !fits(memory_requests(full_measurement.buffers, cache_.pending_bytes(graph)), params);
++                           (manager->force_segmented_compute() ||
++                            !fits(memory_requests(full_measurement.buffers, cache_.pending_bytes(graph)), params));
+     ggml_graph_cut::Plan monolithic_plan;
+     if (!segmented) {
+         monolithic_plan.segments.emplace_back();
+--- a/src/core/segment_weight_pipeline.cpp
++++ b/src/core/segment_weight_pipeline.cpp
+@@ -121,6 +121,9 @@
+     void SegmentWeightPipeline::segment_end() {
+         if (auto manager = residency_manager_.lock()) {
+             manager->release_compute_backend_params(pinned_params_);
++            if (manager->force_segmented_compute()) {
++                manager->evict_compute_backend_params(pinned_params_);
++            }
+         }
+         pinned_params_.clear();
+     }
+--- a/src/device_residency_manager.h
++++ b/src/device_residency_manager.h
+@@ -38,6 +38,7 @@
+ 
+ struct DeviceResidencyManager {
+     virtual ~DeviceResidencyManager() = default;
++    virtual bool force_segmented_compute() const { return false; }
+ 
+     virtual bool segmented_compute_enabled() const                                          = 0;
+     virtual bool prefetch_enabled() const                                                   = 0;
+--- a/src/model_manager.h
++++ b/src/model_manager.h
+@@ -114,6 +114,7 @@
+     bool enable_mmap_                = false;
+     bool writable_mmap_              = false;
+     bool segmented_compute_disabled_ = false;
++    bool force_segmented_compute_ = false;
+     bool prefetch_disabled_          = false;
+ 
+     void finish_compute_backend_usage(const std::vector<TensorState*>& states);
+@@ -196,6 +197,7 @@
+         n_threads_ = n_threads;
+         model_loader_.set_n_threads(n_threads);
+     }
++    void set_force_segmented_compute(bool forced) { force_segmented_compute_ = forced; }
+     void set_segmented_compute_disabled(bool disabled) {
+         segmented_compute_disabled_ = disabled;
+     }
+@@ -274,6 +276,7 @@
+     void remove_runtime_owner(uintptr_t owner_id) override;
+     bool fits_compute_backend_capacity(const DeviceMemoryRequest& request,
+                                        const std::vector<ggml_tensor*>& required_params) const override;
++    bool force_segmented_compute() const override { return force_segmented_compute_; }
+     bool segmented_compute_enabled() const override { return !segmented_compute_disabled_; }
+     bool prefetch_enabled() const override { return !prefetch_disabled_; }
+     void release_compute_backend_params(const std::vector<ggml_tensor*>& tensors) override;
+--- a/src/pipeline/diffusion_engine.cpp
++++ b/src/pipeline/diffusion_engine.cpp
+@@ -882,6 +882,19 @@
+         model_loader.set_wtype_override(wtype, tensor_type_rules);
+     }
+ 
++    return true;
++}
++
++bool StableDiffusionGGML::set_ltx_offload_mode(int mode) {
++    if (mode < 0 || mode > 2 || !model_manager || (mode && !sd_version_is_ltxav(version))) {
++        LOG_ERROR("invalid LTX offload mode: %d", mode);
++        return false;
++    }
++    model_manager->set_segmented_compute_disabled(mode == 1 || (mode == 0 && disable_segmented_compute));
++    model_manager->set_force_segmented_compute(mode == 2);
++    // Sequential mode must release each segment before staging the next one.
++    model_manager->set_prefetch_disabled(mode == 2 || disable_prefetch);
++    if (mode) LOG_INFO("LTX offload mode: %s", mode == 1 ? "whole model" : "sequential segments (no prefetch)");
+     return true;
+ }
+ 
+--- a/src/pipeline/diffusion_engine.h
++++ b/src/pipeline/diffusion_engine.h
+@@ -313,6 +313,7 @@
+ 
+     bool init(const sd_ctx_params_t* sd_ctx_params);
+     bool set_sage_attention_enabled(bool enabled);
++    bool set_ltx_offload_mode(int mode);
+ 
+     bool uses_tae() const;
+ 
+--- a/src/stable-diffusion.cpp
++++ b/src/stable-diffusion.cpp
+@@ -334,6 +334,7 @@
+     sd_ctx_params->max_vram                  = nullptr;
+     sd_ctx_params->disable_prefetch          = false;
+     sd_ctx_params->disable_segmented_compute = false;
++    sd_ctx_params->ltx_offload_mode = 0;
+     sd_ctx_params->eager_load                = false;
+     sd_ctx_params->enable_mmap               = false;
+     sd_ctx_params->diffusion_flash_attn      = false;
+@@ -650,13 +651,17 @@
+         return nullptr;
+     }
+ 
+-    if (!sd_ctx->sd->init(sd_ctx_params)) {
++    if (!sd_ctx->sd->init(sd_ctx_params) || !sd_ctx->sd->set_ltx_offload_mode(sd_ctx_params->ltx_offload_mode)) {
+         delete sd_ctx->sd;
+         sd_ctx->sd = nullptr;
+         free(sd_ctx);
+         return nullptr;
+     }
+     return sd_ctx;
++}
++
++bool sd_set_ltx_offload_mode(sd_ctx_t* sd_ctx, int mode) {
++    return sd_ctx && sd_ctx->sd && sd_ctx->sd->set_ltx_offload_mode(mode);
+ }
+ 
+ void free_sd_ctx(sd_ctx_t* sd_ctx) {

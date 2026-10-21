@@ -1,0 +1,317 @@
+{
+  "scope": "Worker tunnel cancellable setup, TLS verification, complete-message idle timeout, incremental writes and local stream cleanup under backpressure",
+  "source_sha256": {
+    "include/ezlocalai/http_deadline.hpp": "b14502cdacb30dee4cec01269d3aa45502874938e8b76a4504595b3d0fa477cb",
+    "src/http_deadline.cpp": "c8c689f2fc33fd16969c63e5f50d13c6008833dbd66c59ac59e2c77834c11c23",
+    "include/ezlocalai/tunnel_connection.hpp": "72606071fead7cff22189b102be13aa2d1936cc11923f7079d2c47991a5c8db5",
+    "src/tunnel_connection.cpp": "f88182ad5a68c7069253af21125a53840acab8de883b52d3b73aed3169e2d34d",
+    "src/native_server.cpp": "1ba77c67ddfe4031c80ee2d11333e839cdc92e6c27148c3fbe8ed798d90281f4",
+    "tests/test_tunnel_transport.cpp": "2577ba163227f3b5847aa6b2534d1e88c02c5f6f7af3ed1ba162c0891ae94e0b",
+    "tests/test_tunnel_idle.cpp": "8603eb71f97594683f611bb9b0f405ea9f57af13f603eee5ba66b5c12757ac54",
+    "tests/test_worker_tunnel.cpp": "8a554abe1af5276c31624d8248c017c160af2bc37fdf2abcee0f4e0d71a41e68",
+    "tests/fixtures/tunnel_deadlines_cases.json": "7592cf7f007307e165b432f440418d875092c9f7aa3ada957d077add07e7698e",
+    "tests/fixtures/tunnel_stop_cases.json": "6bf0572410673905eeeff5c7cd70db165174070b02213776279975a545ac5e40",
+    "CMakeLists.txt": "2f64aff8e69ede7f50907e497f1c4d2b769ccfec8a272f4b893eebbd87e12720",
+    "cuda.Dockerfile": "43fcd9c2e5214134778ada336a0e1dc717c40191468ab02499b1b61d6a105d48"
+  },
+  "reference": {
+    "python_image": "sha256:c2180ffee0b1579dc63b33236777c1bdc70c899c51f979c91969e04d601ff5cb",
+    "aiohttp_version": "3.14.5",
+    "tunnel_sha256": "d2c604fffacf088da6c3fc555d1d24d2a6b0b7af592f8cba3f67b7ea5dea4496"
+  },
+  "source_cases": {
+    "network": 9,
+    "idle": 6
+  },
+  "idle_capture_note": "Original TunnelClient and actual network aiohttp; outer 60-second wait shortened to .30 seconds. Complete messages sent at .08 seconds. Native full-worker validation separately uses the actual 60-second deadline.",
+  "source_stop_traces": [
+    {
+      "name": "pending-upgrade",
+      "stop_seconds": 5.005498981103301,
+      "task_done": true,
+      "close_frames": []
+    },
+    {
+      "name": "connected-ack",
+      "stop_seconds": 0.00020036695059388876,
+      "task_done": true,
+      "close_frames": [
+        "8882f760cf46f488"
+      ]
+    },
+    {
+      "name": "connected-no-ack",
+      "stop_seconds": 5.004301457083784,
+      "task_done": true,
+      "close_frames": [
+        "888213d40d1e103c"
+      ]
+    }
+  ],
+  "regressions": [
+    {
+      "name": "tunnel_transport_reference",
+      "seconds": 25.65
+    },
+    {
+      "name": "worker_tunnel",
+      "seconds": 29.0
+    },
+    {
+      "name": "native_http",
+      "seconds": 29.43
+    },
+    {
+      "name": "tunnel_framing_reference",
+      "seconds": 1.48
+    },
+    {
+      "name": "tunnel_connection_reference",
+      "seconds": 0.01
+    },
+    {
+      "name": "worker_router_integration",
+      "seconds": 30.21
+    },
+    {
+      "name": "tunnel_idle_reference",
+      "seconds": 65.87
+    },
+    {
+      "name": "http_deadline_reference",
+      "seconds": 12.35
+    }
+  ],
+  "live_idle": [
+    {
+      "name": "control-ping",
+      "closed_at_seconds": 60.0118,
+      "frames": 30,
+      "pongs": 30
+    },
+    {
+      "name": "partial",
+      "closed_at_seconds": 60.0106,
+      "frames": 30,
+      "pongs": 0
+    },
+    {
+      "name": "control-pong",
+      "closed_at_seconds": 60.0143,
+      "frames": 30,
+      "pongs": 0
+    },
+    {
+      "name": "invalid-json",
+      "closed_at_seconds": -1.0,
+      "frames": 33,
+      "pongs": 0
+    },
+    {
+      "name": "binary",
+      "closed_at_seconds": -1.0,
+      "frames": 33,
+      "pongs": 0
+    },
+    {
+      "name": "application-ping",
+      "closed_at_seconds": -1.0,
+      "frames": 33,
+      "pongs": 33
+    }
+  ],
+  "live_shutdown": [
+    {
+      "name": "stop-upgrade",
+      "seconds": 0.566458
+    },
+    {
+      "name": "control-ping",
+      "seconds": 0.0251918
+    },
+    {
+      "name": "partial",
+      "seconds": 0.0251015
+    },
+    {
+      "name": "control-pong",
+      "seconds": 0.022813
+    },
+    {
+      "name": "invalid-json",
+      "seconds": 0.0344613
+    },
+    {
+      "name": "binary",
+      "seconds": 0.031937
+    },
+    {
+      "name": "application-ping",
+      "seconds": 0.0309191
+    }
+  ],
+  "duplex_backpressure": [
+    {
+      "transport": "duplex",
+      "pending_slices": 253,
+      "seconds": 1.28757
+    },
+    {
+      "transport": "tls-duplex",
+      "pending_slices": 244,
+      "seconds": 1.24553
+    }
+  ],
+  "worker_cancel_during_blocked_output": true,
+  "discovered_lifetime_fix": "Queued response references retained the request interrupt closure and local HTTP stream after I/O finished. Clearing the closure on the request thread closes the local socket promptly even while the router is not reading. The regression cancels a 64 MiB local upload and a second pending request before draining any router output, then verifies another response on the same connection.",
+  "test_timeout_correction": "Removed a duplicate 30-second CTest override of the intended 60-second worker_tunnel timeout. Initial timeout and subsequent cancellation regression failure were retained in proof logs.",
+  "cuda_packaged_checks": 48,
+  "candidate_binary_comparison": {
+    "/app/build/ezlocalai-native": {
+      "tested": "ec6969b13c65e9ce55facd4c5ac58218d9364de7ef21ed6f4acacccb3276ae43",
+      "packaged": "ec6969b13c65e9ce55facd4c5ac58218d9364de7ef21ed6f4acacccb3276ae43",
+      "matched": true
+    },
+    "/app/build/test_worker_tunnel": {
+      "tested": "636f9f4e10b7bc81c36c10c3205b39ba940444135bee88055ae519c3e61d00ec",
+      "packaged": "636f9f4e10b7bc81c36c10c3205b39ba940444135bee88055ae519c3e61d00ec",
+      "matched": true
+    },
+    "/app/build/test_tunnel_transport": {
+      "tested": "248ba82ef7fa8660a908e52103da477eaf21ef1bb0187c8602a347b3bcf88e26",
+      "packaged": "248ba82ef7fa8660a908e52103da477eaf21ef1bb0187c8602a347b3bcf88e26",
+      "matched": true
+    },
+    "/app/build/test_tunnel_idle": {
+      "tested": "5dc26ce4f172c708d742128eef5ddb75f5d6e55ca80d39ff77236229f45fd283",
+      "packaged": "5dc26ce4f172c708d742128eef5ddb75f5d6e55ca80d39ff77236229f45fd283",
+      "matched": true
+    }
+  },
+  "binaries_sha256": {
+    "/app/build/ezlocalai-native": "ec6969b13c65e9ce55facd4c5ac58218d9364de7ef21ed6f4acacccb3276ae43",
+    "/app/build/ezlocalai-native-entrypoint": "7da9eb6310967f552fa1528b13a43deb6c5e46e85b862d174e1c0f3a0598bc1f",
+    "/opt/stable-diffusion.cpp/build/bin/sd-cli": "bacdb2b223e94ef8be5b65767e2c92b14bb3b931195f0b4a9815737f6efc85ed"
+  },
+  "entrypoint_and_media_engine_unchanged": true,
+  "tested_worker_matches_packaged_worker": true,
+  "router_binary_sha256": "91873d25c218dd3d3ed12bded2ff990bd13837d6d514922eb04dc45ccbde93b9",
+  "deployment": {
+    "previous_image": "sha256:37dd5b530c1f9046d2e09eab7201c9dacb61cf33d0d0a647b852bc6e862a18b1",
+    "candidate_image": "sha256:3e5c58baa8643de3b7d59f6f75c5cb1beb64d9d5264b60874848d9d8937d2859",
+    "health": "healthy",
+    "deployed_image": "sha256:3e5c58baa8643de3b7d59f6f75c5cb1beb64d9d5264b60874848d9d8937d2859",
+    "effective_environment_changed_keys": [],
+    "original_env_file_unchanged": true,
+    "mounts_unchanged": true,
+    "wakeword_mounts": [
+      [
+        "bind",
+        "/home/josh/repos/xtsys/ezlocalai/wakeword_models",
+        "/app/wakeword_models",
+        true
+      ],
+      [
+        "bind",
+        "/home/josh/repos/xtsys/ezlocalai/wakeword_samples",
+        "/app/wakeword_samples",
+        true
+      ],
+      [
+        "bind",
+        "/home/josh/repos/xtsys/ezlocalai/wakeword_jobs",
+        "/app/wakeword_jobs",
+        true
+      ]
+    ],
+    "ports_unchanged": true,
+    "gpu_requests_unchanged": true
+  },
+  "production_tunnel_enabled": false,
+  "live_inference_scope": "Original-environment direct routing. Reverse tunnel behavior is independently checked with actual Rust integration and native worker socket tests.",
+  "deployed_documentation": {
+    "image": "sha256:3e5c58baa8643de3b7d59f6f75c5cb1beb64d9d5264b60874848d9d8937d2859",
+    "checks": [
+      {
+        "method": "GET",
+        "path": "/",
+        "passed": true,
+        "length": 1015,
+        "body_sha256": "9cba0aab86158b3e8ffc7efa8586cb181b600c764c811af2b0579ce95e0cac4e"
+      },
+      {
+        "method": "HEAD",
+        "path": "/",
+        "passed": true,
+        "length": 1015,
+        "body_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "method": "GET",
+        "path": "/redoc",
+        "passed": true,
+        "length": 897,
+        "body_sha256": "a8aa84db129687e6d0e715504d39ebc781e77a339b01525d6a38ca0070773005"
+      },
+      {
+        "method": "HEAD",
+        "path": "/redoc",
+        "passed": true,
+        "length": 897,
+        "body_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "method": "GET",
+        "path": "/docs/oauth2-redirect",
+        "passed": true,
+        "length": 3012,
+        "body_sha256": "f45d60bb9f054b1712b3f9e60547eb9e1d523afd6472a4137b89eb503b37f058"
+      },
+      {
+        "method": "HEAD",
+        "path": "/docs/oauth2-redirect",
+        "passed": true,
+        "length": 3012,
+        "body_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "method": "GET",
+        "path": "/openapi.json",
+        "passed": true,
+        "length": 41325,
+        "body_sha256": "4d7b529fc0e271ae57ab904ccab7fa1bc030a9626d97608ad75bdb0cc3078238"
+      },
+      {
+        "method": "HEAD",
+        "path": "/openapi.json",
+        "passed": true,
+        "length": 41325,
+        "body_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    ],
+    "passed": true
+  },
+  "routed_inference": {
+    "chat": {
+      "passed": true,
+      "response_sha256": "80fb49c290fc25ec4231c4d2768f6df7ae120ec81c25c5a223e9ae34f9aa9441"
+    },
+    "stream": {
+      "passed": true,
+      "response_sha256": "0f5b66de7da9d76c53766b6c18ecdd5618cf5b36c073f2345de21b9cea9195fa"
+    },
+    "vision": {
+      "passed": true,
+      "response_sha256": "d66449f09e062886c29114cc41404b03722ad5ec627d0aafdd7b86de7dcbc450"
+    }
+  },
+  "worker_parity_report": "scope: worker (router service owned by WorkerRouter)\nparity rows: 65\nimplemented: 27\npartial: 38\nmissing: 0\nsource routes: 45\nsource root: /home/josh/repos/xtsys/ezlocalai\nuncovered source routes: 0\nextra manifest routes: 0\n",
+  "original_env_sha256": "61dd1627786c0516e0ad59287ea2fb0990eeee7c93951d292aca38f46402dd24",
+  "limits": [
+    "Upgrade redirects and complete HTTP response parsing remain open.",
+    "Local HTTP callbacks still use the old URL/DNS implementation and a common read-idle policy rather than the source separate streaming and non-streaming deadlines.",
+    "The native setup cancellation is prompt rather than waiting for the source five-second task timeout. Native close sends a best-effort frame with a one-second budget and does not reproduce the source close-acknowledgment wait.",
+    "Address attempts remain sequential rather than aiohttp Happy Eyeballs. The TLS tests cover trusted DNS/IP, untrusted certificates, wrong IP, slow/stalled handshake and duplex I/O; they are not exhaustive TLS-policy coverage.",
+    "Native server/TTS WebSocket readers are unchanged. Overall worker-router and replacement parity remain partial."
+  ]
+}

@@ -1,0 +1,176 @@
+{
+  "scope": "LTX packed NF4 loader, Linear execution, model validation and allocation estimates; full offload/placement parity remains incomplete",
+  "source_sha256": {
+    "patches/sdcpp-ltx-nf4-packed.patch": "df7b43b50aa18d41b6ca9638751eff525c357f49c6183feb88574b84ce8811c1",
+    "engine/nf4_ggml.hpp": "3f226a824704c0527e670e2cb86c388de945c55c7897c3fb7d06c2280ce4c1b8",
+    "engine/nf4_cuda.cuh": "37120812f5c7ade608906eedd35b316b4bcd1fe57010d87e6bbd7dab14513122",
+    "include/ezlocalai/nf4_storage.hpp": "bfc44c1cbcf99c9ea6c05d43aa122776f016602a9ac0c33bd823fc5570caea8f",
+    "include/ezlocalai/nf4.hpp": "4eb4b527902b8e10a66beac0901027847ba527c4ac4fe82557167d247922ec10",
+    "tests/test_ltx_nf4_loader.cpp": "93b83ca541ffe2ac573efe73474872b0cf546a2166d20a276934bfc6cb72f42e",
+    "cuda.Dockerfile": "407a7eff83005074b8985cbb856e0493582d4f23a7d53a99eb983193c5361a16",
+    "src/ltx_runtime.cpp": "e3b0060af721cc24ecb689cfacbc376fcd314d3e4b3dcaa2b6ac3b6d8ba3c26e"
+  },
+  "engine_sha256": "22061ddae6dce05946f49fcb4cde587f9676e4505125799a9a97ec0e14d2831a",
+  "host": {
+    "regression_suites": 6,
+    "regression_seconds": 1.4,
+    "loader_linear_cases": 34,
+    "negative_destination_cases": 2,
+    "full_projection_cases": 2
+  },
+  "full_model": {
+    "checkpoint": "8eee8edcf067e838b843f926ec4d4cc9b2be1aaf",
+    "preload_with_production_llm_seconds": 66.988543419,
+    "memory_limit_gib": 28,
+    "text_encoder_parameter_mb": 9421.23,
+    "previous_expanded_text_encoder_parameter_mb": 24648.41,
+    "total_parameter_mb": 28179.82,
+    "text_encoder_parameter_placement": "CPU; transient CUDA execution during generation",
+    "generation": {
+      "original_image": "sha256:48264d550a35b0216795568751e47b2adda554940ac7708563e3de99314ed584",
+      "test_exit": 0,
+      "seconds": 116.87620674003847,
+      "engine": {
+        "final_status": "Name:\tsd-cli\nUmask:\t0022\nState:\tS (sleeping)\nTgid:\t57\nNgid:\t0\nPid:\t57\nPPid:\t1\nTracerPid:\t0\nUid:\t0\t0\t0\t0\nGid:\t0\t0\t0\t0\nFDSize:\t64\nGroups:\t0 44 992 \nNStgid:\t57\nNSpid:\t57\nNSpgid:\t1\nNSsid:\t1\nKthread:\t0\nVmPeak:\t139349036 kB\nVmSize:\t123406292 kB\nVmLck:\t       0 kB\nVmPin:\t       0 kB\nVmHWM:\t29329128 kB\nVmRSS:\t29173432 kB\nRssAnon:\t11859340 kB\nRssFile:\t17304108 kB\nRssShmem:\t    9984 kB\nVmData:\t12122440 kB\nVmStk:\t     136 kB\nVmExe:\t   23104 kB\nVmLib:\t  747736 kB\nVmPTE:\t  154536 kB\nVmSwap:\t       0 kB\nHugetlbPages:\t       0 kB\nCoreDumping:\t0\nTHP_enabled:\t1\nuntag_mask:\t0xffffffffffffffff\nThreads:\t4\nSigQ:\t1/504231\nSigPnd:\t0000000000000000\nShdPnd:\t0000000000000000\nSigBlk:\t0000000000000000\nSigIgn:\t0000000080000000\nSigCgt:\t0000000100000000\nCapInh:\t0000000000000000\nCapPrm:\t00000000a80425fb\nCapEff:\t00000000a80425fb\nCapBnd:\t00000000a80425fb\nCapAmb:\t0000000000000000\nNoNewPrivs:\t0\nSeccomp:\t2\nSeccomp_filters:\t1\nSpeculation_Store_Bypass:\tthread vulnerable\nSpeculationIndirectBranch:\tconditional enabled\nCpus_allowed:\tffffff\nCpus_allowed_list:\t0-23\nMems_allowed:\t00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000001\nMems_allowed_list:\t0\nvoluntary_ctxt_switches:\t101321\nnonvoluntary_ctxt_switches:\t7238\nx86_Thread_features:\t\nx86_Thread_features_locked:\t\n",
+        "pid": 57,
+        "preload_seconds": 71.348189563,
+        "preload_status": "Name:\tsd-cli\nUmask:\t0022\nState:\tS (sleeping)\nTgid:\t57\nNgid:\t0\nPid:\t57\nPPid:\t1\nTracerPid:\t0\nUid:\t0\t0\t0\t0\nGid:\t0\t0\t0\t0\nFDSize:\t64\nGroups:\t0 44 992 \nNStgid:\t57\nNSpid:\t57\nNSpgid:\t1\nNSsid:\t1\nKthread:\t0\nVmPeak:\t91565436 kB\nVmSize:\t86419928 kB\nVmLck:\t       0 kB\nVmPin:\t       0 kB\nVmHWM:\t29329128 kB\nVmRSS:\t27309804 kB\nRssAnon:\t11377676 kB\nRssFile:\t15932128 kB\nRssShmem:\t       0 kB\nVmData:\t11561936 kB\nVmStk:\t     136 kB\nVmExe:\t   23104 kB\nVmLib:\t  747736 kB\nVmPTE:\t  118220 kB\nVmSwap:\t       0 kB\nHugetlbPages:\t       0 kB\nCoreDumping:\t0\nTHP_enabled:\t1\nuntag_mask:\t0xffffffffffffffff\nThreads:\t2\nSigQ:\t1/504231\nSigPnd:\t0000000000000000\nShdPnd:\t0000000000000000\nSigBlk:\t0000000000000000\nSigIgn:\t0000000080000000\nSigCgt:\t0000000100000000\nCapInh:\t0000000000000000\nCapPrm:\t00000000a80425fb\nCapEff:\t00000000a80425fb\nCapBnd:\t00000000a80425fb\nCapAmb:\t0000000000000000\nNoNewPrivs:\t0\nSeccomp:\t2\nSeccomp_filters:\t1\nSpeculation_Store_Bypass:\tthread vulnerable\nSpeculationIndirectBranch:\tconditional enabled\nCpus_allowed:\tffffff\nCpus_allowed_list:\t0-23\nMems_allowed:\t00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000001\nMems_allowed_list:\t0\nvoluntary_ctxt_switches:\t2055\nnonvoluntary_ctxt_switches:\t363\nx86_Thread_features:\t\nx86_Thread_features_locked:\t\n",
+        "reaped": true,
+        "requests": [
+          {
+            "pid": 57,
+            "seconds": 25.771997041
+          },
+          {
+            "pid": 57,
+            "seconds": 17.918812397
+          }
+        ]
+      },
+      "restored_health": "healthy",
+      "restored_image": "sha256:48264d550a35b0216795568751e47b2adda554940ac7708563e3de99314ed584"
+    },
+    "outputs": [
+      {
+        "name": "first",
+        "frames": 9,
+        "rgba_bytes": 147456,
+        "rgba_sha256": "b661176fb8396ca6ed0059b4321ef609805563fa64bfe0002109a97e9b74488a",
+        "pcm_s16le_bytes": 63360,
+        "pcm_s16le_sha256": "c5263aaea2e25160c0138996ab1d8a6793b863e3769c31e55b245b64f0e640af"
+      },
+      {
+        "name": "second",
+        "frames": 9,
+        "rgba_bytes": 147456,
+        "rgba_sha256": "b661176fb8396ca6ed0059b4321ef609805563fa64bfe0002109a97e9b74488a",
+        "pcm_s16le_bytes": 63360,
+        "pcm_s16le_sha256": "c5263aaea2e25160c0138996ab1d8a6793b863e3769c31e55b245b64f0e640af"
+      }
+    ],
+    "observed_peak_gpu_mib": 17564,
+    "gpu_monitor_note": "Two-second observations started during preload and cover both generations; not an allocator-level peak"
+  },
+  "production": {
+    "image": "sha256:ff99ef0255b045fc073230ef732561d152bd2b90d1c7d0fa92eca7a7b17a0b08",
+    "health": "healthy",
+    "live_chat_sse_vision_http": 200,
+    "candidate_deployed": true,
+    "rollback": "ezlocalai:cuda-before-nf4-packed"
+  },
+  "packaged_image": {
+    "status": "verified",
+    "tag": "ezlocalai:cuda-nf4-integrated-candidate",
+    "image": "sha256:ff99ef0255b045fc073230ef732561d152bd2b90d1c7d0fa92eca7a7b17a0b08",
+    "packaged_tests": 32,
+    "packaged_seconds": 76.94,
+    "loader_linear_cases": 34,
+    "cuda_operator_cases": 146,
+    "source_hashes_match": true,
+    "engine_binary_matches_real_generation_test": true,
+    "python_executable_absent": true
+  },
+  "remaining": [
+    "Retain quantized Gemma separately from projector/diffusion offload as Python does",
+    "Quanto compressed CPU fallback and distinct offload modes",
+    "Full Python output equivalence, quantized LTX/LLM handoff through worker/router, broader model and GPU coverage"
+  ],
+  "placement_oracle": {
+    "source_cases": 47,
+    "fixture_sha256": "d317bf9c88a2909f214c871d28255348760a73907bd5a3d7423bc85e836a8932",
+    "native_validated": false
+  },
+  "deployment": {
+    "previous_image": "sha256:48264d550a35b0216795568751e47b2adda554940ac7708563e3de99314ed584",
+    "candidate_image": "sha256:ff99ef0255b045fc073230ef732561d152bd2b90d1c7d0fa92eca7a7b17a0b08",
+    "health": "healthy",
+    "deployed_image": "sha256:ff99ef0255b045fc073230ef732561d152bd2b90d1c7d0fa92eca7a7b17a0b08",
+    "effective_environment_changed_keys": [],
+    "original_env_file_unchanged": true,
+    "mounts_unchanged": true,
+    "wakeword_mounts": [
+      [
+        "bind",
+        "/home/josh/repos/xtsys/ezlocalai/wakeword_models",
+        "/app/wakeword_models",
+        true
+      ],
+      [
+        "bind",
+        "/home/josh/repos/xtsys/ezlocalai/wakeword_samples",
+        "/app/wakeword_samples",
+        true
+      ],
+      [
+        "bind",
+        "/home/josh/repos/xtsys/ezlocalai/wakeword_jobs",
+        "/app/wakeword_jobs",
+        true
+      ]
+    ],
+    "ports_unchanged": true,
+    "gpu_requests_unchanged": true
+  },
+  "live": {
+    "image": "sha256:ff99ef0255b045fc073230ef732561d152bd2b90d1c7d0fa92eca7a7b17a0b08",
+    "binary_sha256": "61d576c6153be35c1e68de53e65c66bedffdf9805d32fd7f677befff54a064b5",
+    "matching_workers": 1,
+    "python_extra_matches": true,
+    "extra": {
+      "llm_model_residency": "resident",
+      "loaded_llms": [
+        "unsloth/Qwen3.8-27B-GGUF"
+      ],
+      "active_llm": "unsloth/Qwen3.8-27B-GGUF",
+      "llm_unload_dependent_capabilities": [
+        "image",
+        "video",
+        "music",
+        "music_video"
+      ]
+    },
+    "resource_lifecycle": {
+      "llm_model_residency": "resident",
+      "loaded_llms": [
+        "unsloth/Qwen3.8-27B-GGUF"
+      ],
+      "active_llm": "unsloth/Qwen3.8-27B-GGUF"
+    },
+    "gpu_count": 1,
+    "torch_cuda": [
+      {
+        "index": 0,
+        "allocated_gb": 0.0,
+        "reserved_gb": 0.0,
+        "max_allocated_gb": 0.0,
+        "free_gb": 1.617,
+        "total_gb": 23.524
+      }
+    ],
+    "free_vram_gb": 1.6171875,
+    "sources": {
+      "Pipes.py": "8238cef03d4a1db6e775d7f62234bcf998d8f08bd9fc15f1d8a36ea0d3280005",
+      "Router.py": "d5eebf7fc48f7781628aa4eaab8af1c3f23fd8694242f0b3065436b5c86f62b1"
+    }
+  }
+}

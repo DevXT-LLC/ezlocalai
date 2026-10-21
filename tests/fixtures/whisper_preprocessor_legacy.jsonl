@@ -1,0 +1,33 @@
+{"version": "1.0.3", "profile": "legacy"}
+{"kind": "missing", "hex": "", "kwargs": {}, "configuration": {"feature_size": 80, "sampling_rate": 16000, "hop_length": 160, "chunk_length": 30, "n_fft": 400}}
+{"kind": "directory", "hex": "", "kwargs": {}, "configuration": {"feature_size": 80, "sampling_rate": 16000, "hop_length": 160, "chunk_length": 30, "n_fft": 400}}
+{"kind": "file", "hex": "7b7d", "kwargs": {}, "configuration": {"feature_size": 80, "sampling_rate": 16000, "hop_length": 160, "chunk_length": 30, "n_fft": 400}}
+{"kind": "file", "hex": "7b22666561747572655f73697a65223a203132387d", "kwargs": {"feature_size": 128}, "configuration": {"feature_size": 128, "sampling_rate": 16000, "hop_length": 160, "chunk_length": 30, "n_fft": 400}}
+{"kind": "file", "hex": "7b22666561747572655f73697a65223a2034302c202273616d706c696e675f72617465223a20383030302c2022686f705f6c656e677468223a2038302c20226e5f666674223a203230302c20226368756e6b5f6c656e677468223a2031327d", "kwargs": {"feature_size": 40, "sampling_rate": 8000, "hop_length": 80, "n_fft": 200, "chunk_length": 12}, "configuration": {"feature_size": 40, "sampling_rate": 8000, "hop_length": 80, "chunk_length": 12, "n_fft": 200}}
+{"kind": "file", "hex": "7b22686f705f6c656e677468223a203230302c20226e5f666674223a203531322c20226368756e6b5f6c656e677468223a20377d", "kwargs": {"hop_length": 200, "n_fft": 512, "chunk_length": 7}, "configuration": {"feature_size": 80, "sampling_rate": 16000, "hop_length": 200, "chunk_length": 7, "n_fft": 512}}
+{"kind": "file", "hex": "7b2273616d706c696e675f72617465223a2032323035302c2022686f705f6c656e677468223a203232312c20226e5f666674223a203531322c20226368756e6b5f6c656e677468223a2031317d", "kwargs": {"sampling_rate": 22050, "hop_length": 221, "n_fft": 512, "chunk_length": 11}, "configuration": {"feature_size": 80, "sampling_rate": 22050, "hop_length": 221, "chunk_length": 11, "n_fft": 512}}
+{"kind": "file", "hex": "7b22686f705f6c656e677468223a203332302c20226368756e6b5f6c656e677468223a2031357d", "kwargs": {"hop_length": 320, "chunk_length": 15}, "configuration": {"feature_size": 80, "sampling_rate": 16000, "hop_length": 320, "chunk_length": 15, "n_fft": 400}}
+{"kind": "file", "hex": "7b2273616d706c696e675f72617465223a20383030302c2022686f705f6c656e677468223a203136302c20226e5f666674223a203430302c20226368756e6b5f6c656e677468223a2033307d", "kwargs": {"sampling_rate": 8000, "hop_length": 160, "n_fft": 400, "chunk_length": 30}, "configuration": {"feature_size": 80, "sampling_rate": 8000, "hop_length": 160, "chunk_length": 30, "n_fft": 400}}
+{"kind": "file", "hex": "7b22666561747572655f73697a65223a20322c2022686f705f6c656e677468223a203130302c20226e5f666674223a203235362c20226368756e6b5f6c656e677468223a20317d", "kwargs": {"feature_size": 2, "hop_length": 100, "n_fft": 256, "chunk_length": 1}, "configuration": {"feature_size": 2, "sampling_rate": 16000, "hop_length": 100, "chunk_length": 1, "n_fft": 256}}
+{"kind": "file", "hex": "7b226e5f666674223a203430317d", "kwargs": {"n_fft": 401}, "configuration": {"feature_size": 80, "sampling_rate": 16000, "hop_length": 160, "chunk_length": 30, "n_fft": 401}}
+{"kind": "file", "hex": "7b22666561747572655f73697a65223a20225c75666631385c7566663130227d", "kwargs": {"feature_size": "８０"}, "configuration": {"feature_size": 80, "sampling_rate": 16000, "hop_length": 160, "chunk_length": 30, "n_fft": 400}}
+{"kind": "file", "hex": "", "kwargs": {}, "configuration": {"feature_size": 80, "sampling_rate": 16000, "hop_length": 160, "chunk_length": 30, "n_fft": 400}}
+{"kind": "file", "hex": "7b626164", "kwargs": {}, "configuration": {"feature_size": 80, "sampling_rate": 16000, "hop_length": 160, "chunk_length": 30, "n_fft": 400}}
+{"kind": "file", "hex": "7b22666561747572655f73697a65223a3132382c7d", "kwargs": {}, "configuration": {"feature_size": 80, "sampling_rate": 16000, "hop_length": 160, "chunk_length": 30, "n_fft": 400}}
+{"kind": "file", "hex": "7b22666561747572655f73697a65223a34302c22756e72656c61746564223a5b312c325d7d", "kwargs": {"feature_size": 40}, "configuration": {"feature_size": 40, "sampling_rate": 16000, "hop_length": 160, "chunk_length": 30, "n_fft": 400}}
+{"kind": "file", "hex": "5b5d", "error": {"category": "AttributeError", "message": "'list' object has no attribute 'items'"}}
+{"kind": "file", "hex": "6e756c6c", "error": {"category": "AttributeError", "message": "'NoneType' object has no attribute 'items'"}}
+{"kind": "file", "hex": "31", "error": {"category": "AttributeError", "message": "'int' object has no attribute 'items'"}}
+{"kind": "file", "hex": "312e35", "error": {"category": "AttributeError", "message": "'float' object has no attribute 'items'"}}
+{"kind": "file", "hex": "74727565", "error": {"category": "AttributeError", "message": "'bool' object has no attribute 'items'"}}
+{"kind": "file", "hex": "227465787422", "error": {"category": "AttributeError", "message": "'str' object has no attribute 'items'"}}
+{"kind": "file", "hex": "7b2273656c66223a6e756c6c7d", "kwargs": {"self": null}, "error": {"category": "TypeError", "message": "FeatureExtractor.__init__() got multiple values for argument 'self'"}}
+{"kind": "file", "hex": "7b22686f705f6c656e677468223a307d", "kwargs": {"hop_length": 0}, "error": {"category": "ZeroDivisionError", "message": "integer division or modulo by zero"}}
+{"kind": "file", "hex": "7b2273616d706c696e675f72617465223a307d", "kwargs": {"sampling_rate": 0}, "error": {"category": "ZeroDivisionError", "message": "division by zero"}}
+{"kind": "file", "hex": "7b226e5f666674223a307d", "kwargs": {"n_fft": 0}, "error": {"category": "ZeroDivisionError", "message": "float division by zero"}}
+{"kind": "file", "hex": "efbbbf7b22666561747572655f73697a65223a3132387d", "kwargs": {}, "configuration": {"feature_size": 80, "sampling_rate": 16000, "hop_length": 160, "chunk_length": 30, "n_fft": 400}}
+{"kind": "file", "hex": "7b2278223a22ff227d", "error": {"category": "UnicodeDecodeError", "message": "'utf-8' codec can't decode byte 0xff in position 6: invalid start byte"}}
+{"kind": "file", "hex": "e282", "error": {"category": "UnicodeDecodeError", "message": "'utf-8' codec can't decode bytes in position 0-1: unexpected end of data"}}
+{"kind": "file", "hex": "f0808080", "error": {"category": "UnicodeDecodeError", "message": "'utf-8' codec can't decode byte 0xf0 in position 0: invalid continuation byte"}}
+{"kind": "file", "hex": "e18041", "error": {"category": "UnicodeDecodeError", "message": "'utf-8' codec can't decode bytes in position 0-1: invalid continuation byte"}}
+{"kind": "file", "hex": "7b22666561747572655f73697a65223a34302c22666561747572655f73697a65223a38307d", "kwargs": {"feature_size": 80}, "configuration": {"feature_size": 80, "sampling_rate": 16000, "hop_length": 160, "chunk_length": 30, "n_fft": 400}}

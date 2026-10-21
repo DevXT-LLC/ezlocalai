@@ -1,0 +1,330 @@
+{
+  "source_sha256": {
+    "app.py": "fab365c963725d80c81063b544d5b18b4cf931263573bdcb236e537519c7d365",
+    "ezlocalai/WakeWord.py": "dcd63562c35b55472d508a3089396b39fb3c32fd018cba7ded3d83350cf2875c",
+    "ezlocalai/WakeWordPaths.py": "63ec638fe665f275b8e601ad45e036777bb887de904861358b0020bf5fec539a"
+  },
+  "capture_sha256": "9e26f9a5863aaa24f40a6a9ec78700498ad49431de7a96903f9a4cf93f2e6bb3",
+  "scope": "Actual source manager cache and FastAPI routes with a deterministic trainer double; real model execution tested separately.",
+  "steps": [
+    {
+      "action": "write",
+      "name": "safe/model.pt",
+      "value": ".75",
+      "events": []
+    },
+    {
+      "action": "request",
+      "method": "POST",
+      "path": "/v1/wakeword/predict/Safe",
+      "body": "{\"audio_base64\": \"aGl0\"}",
+      "content_type": "application/json",
+      "status": 200,
+      "response": "{\"detected\":true,\"confidence\":0.75,\"word\":\"Safe\"}",
+      "events": [
+        "load:safe",
+        "predict:686974"
+      ]
+    },
+    {
+      "action": "request",
+      "method": "POST",
+      "path": "/v1/wakeword/predict/SAFE",
+      "body": "{\"audio_base64\": \"aGl0\"}",
+      "content_type": "application/json",
+      "status": 200,
+      "response": "{\"detected\":true,\"confidence\":0.75,\"word\":\"SAFE\"}",
+      "events": [
+        "predict:686974"
+      ]
+    },
+    {
+      "action": "write",
+      "name": "safe/model.pt",
+      "value": ".25",
+      "events": []
+    },
+    {
+      "action": "request",
+      "method": "POST",
+      "path": "/v1/wakeword/predict/safe",
+      "body": "{\"audio_base64\": \"aGl0\"}",
+      "content_type": "application/json",
+      "status": 200,
+      "response": "{\"detected\":true,\"confidence\":0.75,\"word\":\"safe\"}",
+      "events": [
+        "predict:686974"
+      ]
+    },
+    {
+      "action": "request",
+      "method": "POST",
+      "path": "/v1/wakeword/predict/safe",
+      "body": "{\"audio_base64\": \"A\"}",
+      "content_type": "application/json",
+      "status": 500,
+      "response": "{\"detail\":\"Prediction failed\"}",
+      "events": []
+    },
+    {
+      "action": "request",
+      "method": "POST",
+      "path": "/v1/wakeword/predict/safe",
+      "body": "{\"audio_base64\": \"\\u00e9\"}",
+      "content_type": "application/json",
+      "status": 500,
+      "response": "{\"detail\":\"Prediction failed\"}",
+      "events": []
+    },
+    {
+      "action": "request",
+      "method": "POST",
+      "path": "/v1/wakeword/predict/safe",
+      "body": "{\"audio_base64\": \"aG!l0\"}",
+      "content_type": "application/json",
+      "status": 200,
+      "response": "{\"detected\":true,\"confidence\":0.75,\"word\":\"safe\"}",
+      "events": [
+        "predict:686974"
+      ]
+    },
+    {
+      "action": "request",
+      "method": "POST",
+      "path": "/v1/wakeword/predict/safe",
+      "body": "{\"audio_base64\": \"ZXJyb3I=\"}",
+      "content_type": "application/json",
+      "status": 500,
+      "response": "{\"detail\":\"Prediction failed\"}",
+      "events": [
+        "predict:6572726f72"
+      ]
+    },
+    {
+      "action": "request",
+      "method": "POST",
+      "path": "/v1/wakeword/predict/safe",
+      "body": "{\"audio_base64\": \"bmFu\"}",
+      "content_type": "application/json",
+      "status": 500,
+      "response": "Internal Server Error",
+      "events": [
+        "predict:6e616e"
+      ]
+    },
+    {
+      "action": "request",
+      "method": "POST",
+      "path": "/v1/wakeword/predict/safe/file",
+      "body": "--boundary\r\nContent-Disposition: form-data; name=\"file\"; filename=\"audio.wav\"\r\nContent-Type: audio/wav\r\n\r\nfilebytes\r\n--boundary--\r\n",
+      "content_type": "multipart/form-data; boundary=boundary",
+      "status": 200,
+      "response": "{\"detected\":true,\"confidence\":0.75,\"word\":\"safe\"}",
+      "events": [
+        "predict:66696c656279746573"
+      ]
+    },
+    {
+      "action": "remove",
+      "name": "safe/model.pt",
+      "events": []
+    },
+    {
+      "action": "request",
+      "method": "POST",
+      "path": "/v1/wakeword/predict/safe",
+      "body": "{\"audio_base64\": \"aGl0\"}",
+      "content_type": "application/json",
+      "status": 404,
+      "response": "{\"detail\":\"No model found for word 'safe'. Train one first with POST /v1/wakeword/train\"}",
+      "events": []
+    },
+    {
+      "action": "write",
+      "name": "safe/model.pt",
+      "value": ".25",
+      "events": []
+    },
+    {
+      "action": "request",
+      "method": "POST",
+      "path": "/v1/wakeword/predict/safe",
+      "body": "{\"audio_base64\": \"aGl0\"}",
+      "content_type": "application/json",
+      "status": 200,
+      "response": "{\"detected\":true,\"confidence\":0.75,\"word\":\"safe\"}",
+      "events": [
+        "predict:686974"
+      ]
+    },
+    {
+      "action": "request",
+      "method": "DELETE",
+      "path": "/v1/wakeword/models/safe",
+      "body": "",
+      "content_type": "",
+      "status": 200,
+      "response": "{\"message\":\"Model for 'safe' deleted successfully\"}",
+      "events": []
+    },
+    {
+      "action": "write",
+      "name": "safe/model.pt",
+      "value": ".25",
+      "events": []
+    },
+    {
+      "action": "request",
+      "method": "POST",
+      "path": "/v1/wakeword/predict/safe",
+      "body": "{\"audio_base64\": \"aGl0\"}",
+      "content_type": "application/json",
+      "status": 200,
+      "response": "{\"detected\":false,\"confidence\":0.25,\"word\":\"safe\"}",
+      "events": [
+        "load:safe",
+        "predict:686974"
+      ]
+    },
+    {
+      "action": "write",
+      "name": "safe_word/model.pt",
+      "value": ".5",
+      "events": []
+    },
+    {
+      "action": "request",
+      "method": "POST",
+      "path": "/v1/wakeword/predict/Safe%20Word",
+      "body": "{\"audio_base64\": \"aGl0\"}",
+      "content_type": "application/json",
+      "status": 200,
+      "response": "{\"detected\":false,\"confidence\":0.5,\"word\":\"Safe Word\"}",
+      "events": [
+        "load:safe_word",
+        "predict:686974"
+      ]
+    },
+    {
+      "action": "write",
+      "name": "safe_word/model.pt",
+      "value": ".9",
+      "events": []
+    },
+    {
+      "action": "request",
+      "method": "POST",
+      "path": "/v1/wakeword/predict/safe_word",
+      "body": "{\"audio_base64\": \"aGl0\"}",
+      "content_type": "application/json",
+      "status": 200,
+      "response": "{\"detected\":true,\"confidence\":0.9,\"word\":\"safe_word\"}",
+      "events": [
+        "load:safe_word",
+        "predict:686974"
+      ]
+    },
+    {
+      "action": "request",
+      "method": "POST",
+      "path": "/v1/wakeword/predict/SAFE%20WORD",
+      "body": "{\"audio_base64\": \"aGl0\"}",
+      "content_type": "application/json",
+      "status": 200,
+      "response": "{\"detected\":false,\"confidence\":0.5,\"word\":\"SAFE WORD\"}",
+      "events": [
+        "predict:686974"
+      ]
+    },
+    {
+      "action": "request",
+      "method": "DELETE",
+      "path": "/v1/wakeword/models/safe_word",
+      "body": "",
+      "content_type": "",
+      "status": 200,
+      "response": "{\"message\":\"Model for 'safe_word' deleted successfully\"}",
+      "events": []
+    },
+    {
+      "action": "write",
+      "name": "safe_word/model.pt",
+      "value": ".1",
+      "events": []
+    },
+    {
+      "action": "request",
+      "method": "POST",
+      "path": "/v1/wakeword/predict/Safe%20Word",
+      "body": "{\"audio_base64\": \"aGl0\"}",
+      "content_type": "application/json",
+      "status": 200,
+      "response": "{\"detected\":false,\"confidence\":0.5,\"word\":\"Safe Word\"}",
+      "events": [
+        "predict:686974"
+      ]
+    },
+    {
+      "action": "request",
+      "method": "POST",
+      "path": "/v1/wakeword/predict/safe_word",
+      "body": "{\"audio_base64\": \"aGl0\"}",
+      "content_type": "application/json",
+      "status": 200,
+      "response": "{\"detected\":false,\"confidence\":0.1,\"word\":\"safe_word\"}",
+      "events": [
+        "load:safe_word",
+        "predict:686974"
+      ]
+    },
+    {
+      "action": "write",
+      "name": "broken/model.pt",
+      "value": "badload",
+      "events": []
+    },
+    {
+      "action": "request",
+      "method": "POST",
+      "path": "/v1/wakeword/predict/broken",
+      "body": "{\"audio_base64\": \"aGl0\"}",
+      "content_type": "application/json",
+      "status": 500,
+      "response": "{\"detail\":\"Prediction failed\"}",
+      "events": [
+        "load:broken"
+      ]
+    },
+    {
+      "action": "request",
+      "method": "POST",
+      "path": "/v1/wakeword/predict/broken",
+      "body": "{\"audio_base64\": \"aGl0\"}",
+      "content_type": "application/json",
+      "status": 500,
+      "response": "{\"detail\":\"Prediction failed\"}",
+      "events": [
+        "load:broken"
+      ]
+    },
+    {
+      "action": "write",
+      "name": "broken/model.pt",
+      "value": ".8",
+      "events": []
+    },
+    {
+      "action": "request",
+      "method": "POST",
+      "path": "/v1/wakeword/predict/broken",
+      "body": "{\"audio_base64\": \"aGl0\"}",
+      "content_type": "application/json",
+      "status": 200,
+      "response": "{\"detected\":true,\"confidence\":0.8,\"word\":\"broken\"}",
+      "events": [
+        "load:broken",
+        "predict:686974"
+      ]
+    }
+  ]
+}

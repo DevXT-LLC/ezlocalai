@@ -1,0 +1,9 @@
+# ezlocalai/LLM.py sha256=2d54d53e014e99bcd91e036736dc4f45f8160220c35da0ac582e588db52ea607
+# Pipes.py sha256=8238cef03d4a1db6e775d7f62234bcf998d8f08bd9fc15f1d8a36ea0d3280005
+# app.py sha256=fab365c963725d80c81063b544d5b18b4cf931263573bdcb236e537519c7d365
+# Actual loopback HTTP, unchanged generator/tracked stream/cleanup/API SSE generator with StreamingResponse and BackgroundTask.
+# starlette=0.49.3, anyio=4.11.0, uvicorn=0.40.0
+1	0
+# observed 1 [['native_start', 0.135], ['disconnect', 0.336], ['close_enter', 5.145], ['close_exit', 10.146], ['after_wait', 11.337], ['cancel_callback:True', 11.337], ['released', 11.337]]
+2	1
+# observed 2 [['native_start', 0.004], ['disconnect', 0.205], ['close_enter', 5.014], ['released', 10.015], ['close_exit', 10.015], ['after_wait', 11.206], ['cancel_callback:True', 11.206]]

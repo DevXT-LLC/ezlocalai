@@ -1,0 +1,219 @@
+{
+  "date": "2026-10-20",
+  "base_commit": "216bbed",
+  "issue": "Explicit LLAMA_CPP_MMPROJ_PATH reached the owned engine but was absent from loaded-projector state, so Rust did not receive the vision capability.",
+  "source_python_commit": "0f7e9f45ac0d67ea806ee19874f98bb8f47c7544",
+  "rust_router_binary_sha256": "91873d25c218dd3d3ed12bded2ff990bd13837d6d514922eb04dc45ccbde93b9",
+  "host_regression": {
+    "before_fix": "worker_router_integration failed the capability assertion",
+    "after_fix": {
+      "suites": 3,
+      "seconds": 37.22,
+      "rust_integration_scenarios": 10,
+      "rust_integration_seconds": 34.19
+    },
+    "coverage": [
+      "direct and reverse tunnel",
+      "explicit projector engine launch arguments",
+      "vision registration",
+      "reporting after router restart"
+    ]
+  },
+  "cuda": {
+    "image": "sha256:b46774a0d4218552afd2e58907115f9aef05421f4476c8be5e267062689712b5",
+    "worker_sha256": "5ef49e4f1453bddc4603bc863dbea78ffc37d530081298c1ab7040168f9f9207",
+    "package": {
+      "passed": 57,
+      "failed": 0,
+      "seconds": 278.91
+    },
+    "modes": [
+      {
+        "mode": "direct",
+        "capabilities": [
+          "text",
+          "vision"
+        ],
+        "owned_llm_gpu_mib": [
+          19052
+        ],
+        "requests": [
+          "chat",
+          "stream",
+          "vision"
+        ]
+      },
+      {
+        "mode": "tunnel",
+        "capabilities": [
+          "text",
+          "vision"
+        ],
+        "owned_llm_gpu_mib": [
+          19052
+        ],
+        "requests": [
+          "chat",
+          "stream",
+          "vision"
+        ]
+      }
+    ],
+    "deployed": true,
+    "production_requests": [
+      "chat",
+      "stream",
+      "vision"
+    ],
+    "original_environment_restored": true,
+    "original_env_file_unchanged": true,
+    "mounts_ports_gpu_requests_verified": true,
+    "rollback_tag": "ezlocalai:cuda-before-explicit-projector",
+    "rollback_image": "sha256:93cab6bf6f0fb1b49ae26590c0d4dd8a705931f44f29c821663e79ff7443128c"
+  },
+  "x86_cpu": {
+    "image": "sha256:8df9459391faad1285dc4dc41434aba39fdc8a85716f946a8041b2b5c44a8717",
+    "package": {
+      "passed": 54,
+      "failed": 0,
+      "seconds": 259.82
+    },
+    "runtime_acceptance": "passed",
+    "worker_sha256": "e276346f75f7ebc06786db40f929fe8493a176509d0566aeaa2a549ecde99f54",
+    "stable_tag": "ezlocalai:cpu",
+    "rollback_tag": "ezlocalai:cpu-before-explicit-projector",
+    "rollback_image": "sha256:222fe7279ed1e2b397cdbae28ed433dc270f4ac76ab5e39d3508610147498a93",
+    "profile": "new Raspberry Pi profile settings evaluated on native x86 CPU; not ARM execution",
+    "llm": "unsloth/Qwen3.5-0.8B-GGUF / UD-Q4_K_XL with explicit projector",
+    "llm_context": 8192,
+    "embedding_context": 10000,
+    "checks": [
+      {
+        "mode": "direct",
+        "endpoint": "chat",
+        "status": 200,
+        "text": "READY"
+      },
+      {
+        "mode": "direct",
+        "endpoint": "chat_sse",
+        "status": 200,
+        "text": "READY"
+      },
+      {
+        "endpoint": "vision",
+        "status": 200,
+        "text": "This is a low-resolution, abstract digital texture image that appears to be a synthetic"
+      },
+      {
+        "endpoint": "embeddings",
+        "vectors": 2,
+        "dimensions": 1024
+      },
+      {
+        "endpoint": "transcription",
+        "status": 200,
+        "text": " And so my fellow Americans, ask not what your country can do for you, ask what you can do for your country."
+      },
+      {
+        "endpoint": "qwen_wav",
+        "status": 200,
+        "frames": 96000,
+        "sample_rate": 24000
+      },
+      {
+        "endpoint": "post_audio_chat",
+        "status": 200
+      },
+      {
+        "mode": "tunnel",
+        "endpoint": "chat",
+        "status": 200,
+        "text": "READY"
+      },
+      {
+        "mode": "tunnel",
+        "endpoint": "chat_sse",
+        "status": 200,
+        "text": "READY"
+      }
+    ],
+    "memory_limit_bytes": 8589934592,
+    "direct_memory_peak_bytes": 6274179072,
+    "tunnel_memory_peak_bytes": 1851211776,
+    "exits": [
+      {
+        "mode": "direct",
+        "exit_code": 0,
+        "oom_killed": false
+      },
+      {
+        "mode": "tunnel",
+        "exit_code": 0,
+        "oom_killed": false
+      }
+    ],
+    "zero_visible_vram": true,
+    "no_gpu_access": true,
+    "external_fallbacks_disabled": true,
+    "temporary_container_removed": true,
+    "evidence_directory": "build/validation/arm64-cpu-20261020"
+  },
+  "gb10": {
+    "image": "sha256:93acd6008901c110e7f0049ffefe45f5d01e18d2a04c1ecec9d13e6e409e14e1",
+    "architecture": "arm64",
+    "execution": "ARM64 QEMU on x86; CUDA stubs and inference disabled; not GB10 GPU execution",
+    "health": {
+      "status": "healthy"
+    },
+    "resources_status": 200,
+    "models_status": 200,
+    "zero_visible_vram": true,
+    "worker_sha256": "c9a25dda447a6388151035b45e5429050794b6c7e89c0df0935d1cedf3934726",
+    "passed": true,
+    "package": {
+      "passed": 53,
+      "failed": 0,
+      "seconds": 499.8,
+      "emulation_exclusions": [
+        "dotenv_startup",
+        "tunnel_framing_reference",
+        "ltx_runtime",
+        "media_engine"
+      ],
+      "native_default_exclusions": []
+    },
+    "stable_tag": "ezlocalai:gb10",
+    "rollback_tag": "ezlocalai:gb10-before-explicit-projector",
+    "rollback_image": "sha256:c4e002b37f1de08b09e5964338127f17ecf93e1e0710828a793fec34b68b21c1",
+    "source_scope": "Contains explicit-projector fix; predates HIP/LibTorch changes"
+  },
+  "arm64_cpu": "engine build running; not accepted",
+  "driver_corrections": [
+    "Initial Docker process query omitted the mandatory PID column; corrected before worker mutation.",
+    "CPU SSE reader now permits null content in role-only deltas.",
+    "CPU acceptance restores the normal QWEN_TTS_ALLOW_CPU_FALLBACK=true default; false prohibited native CPU synthesis. External fallbacks remain disabled."
+  ],
+  "evidence_directory": "build/validation/explicit-projector-20261020",
+  "limits": [
+    "One RTX 3090 Ti tested; no physical multi-GPU, RTX 4090/5090 or GB10 execution.",
+    "This reporting fix does not establish complete replacement parity."
+  ],
+  "source_sha256": {
+    "src/native_server.cpp": "11b769d896d8726761c28a079fb2356c21777321568d9fe35a62611ddab25e6a",
+    "tests/test_worker_router.cpp": "e624c24a69c252e0d313577e561b5c0679f0bda19fbf8cad51adcb85fa8171f4",
+    "tests/embedding_process_fixture.cpp": "f985b3172ad131e234ecce409d950cb648f63ced3e398958f21b2d9a86bf0e81",
+    "cuda.Dockerfile": "861d8ab025a066a62b8dc314b56fa9ad515c3e2fe7acda4a4455822125cead11",
+    "cpu.Dockerfile": "d4c37ae0ca3cdc928c2b90bbfa8d88be94709107a9d99d736c29822c5ae1fa94",
+    "docker-compose-rpi.yml": "9969feb792c3208dad1ea88ed21b2664a7725b553c5b4a9f640c90d780eb9754",
+    "cmake/cpu-arm64-audio-dependencies.json": "e88334bcba533f913960fe2422b692cab26e5d1afdcb6f84e6736c7c9c509dad",
+    "tests/test_compose_profiles.cpp": "32483bbc73fbddaca5bd3227b86bfa856d70750f6ef92b311395797402faeaa1",
+    "tests/fixtures/compose_profiles.json": "d34af353bd12ff75aaba19fc93f1cfa51462c2fc2e4193a2e54bf821d7b806ca"
+  },
+  "compose_reference": {
+    "settings": 1386,
+    "profiles": 4,
+    "documented_pi_model_default_corrections": 2,
+    "seconds": 0.59
+  }
+}

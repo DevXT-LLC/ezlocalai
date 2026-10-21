@@ -1,0 +1,241 @@
+{
+  "scope": "Native STT MFCC/average-linkage speaker diarization and process-wide session voice prints",
+  "source_sha256": {
+    "include/ezlocalai/stt_diarization.hpp": "7ab9029696e15a61123bb43dc7f759e2c79d8b5d56e8acf643ffce2a7ad80397",
+    "src/stt_diarization.cpp": "0daaab08447b2c8118d495cedb870376717d3377e5de05ea2df1d1bddb298039",
+    "src/stt_runtime.cpp": "1598ec8518c4ddccb696c8d8a38b89be1407358ed491916858d0c9cc09bbd9ce",
+    "include/ezlocalai/stt_whisper.hpp": "7d530ce306a5b3075235cfaf44c74cb2b295ac748ee720ac5018bf379723ae81",
+    "tests/test_stt_diarization.cpp": "c80735e2b797fb10d62a2304c71dfd623f9068a62308c68e2f7ddd152b1738a9",
+    "tests/test_stt_diarization_model.cpp": "876c5a7d19838f6195d85d26582d7c30bbea4af72d5c010f140c2100893b64a6",
+    "tests/fixtures/stt_diarization_cases.json": "bdce8fe841d58f51b9c8f12489c4174b79dba1210ac091507b5b5b94154a629f",
+    "tests/fixtures/stt_diarization_model_cases.json": "16c93654dae4cb33105552821f72d44c38f58280795c2d22541a4ce2a14b6047",
+    "CMakeLists.txt": "63d0379c8466386fc124e73107099620900b3b7787c816739e67f4f78b1dcf5f",
+    "cuda.Dockerfile": "4a7a0e0bab092850b3df20314c8c9bc0816122b4cfae6cbcb9ecafa7b740b44c",
+    "licenses/SciPy.txt": "221e59f5e910fd7f94e44f0dac77436a11338c285c6346232e4a850a50da0e94"
+  },
+  "reference": {
+    "python_image": "sha256:c2180ffee0b1579dc63b33236777c1bdc70c899c51f979c91969e04d601ff5cb",
+    "STT.py": "d0dd8340c243d7ff9ba84f4e3babe3c41b0b0ce7c7dddf2565eb886ba3f21fe2",
+    "versions": {
+      "librosa": "1.0.0",
+      "numpy": "2.4.6",
+      "scipy": "1.18.1",
+      "soxr": "1.1.0"
+    }
+  },
+  "cases": {
+    "assets": 5,
+    "features": 33,
+    "clusters": 72,
+    "diarization": 45
+  },
+  "feature_absolute_tolerance": 0.003,
+  "concurrent_session_requests": 16,
+  "asset_sha256": {
+    "noise.wav": "6136e13b0440a4826cc8879af768216bc2a459a6697aac16e635cb51c6d032c3",
+    "nonfinite.wav": "acef3c5698f89fe1c97fdc254437998e2ad0f8dc6aecee73013bcaa8e99e83e7",
+    "ragged-stereo.wav": "798e68e960eb3b97e988a2ecfbf4d88d988fe90875560a9566b0d7f3757f6055",
+    "signal-16000-1.wav": "7c108ba199ef16cb63df5182993be3167f1ab1d6911045d911d10d72370e4903",
+    "signal-22050-2.wav": "6d777aeb6652b489e64d1e510b72b1f707da14425a118b8f37a7251ad84c153d",
+    "signal-48000-2.wav": "525411eb0ce7d1782b64e748cd1f3f5143c6924fb326cebdeb34833005188354",
+    "signal-8000-1.wav": "0dc0d057f0bc9cfa322fd9a075a977a249cda6c71495cd3375a13bedcc741913"
+  },
+  "regressions": [
+    {
+      "name": "native_http",
+      "seconds": 29.48
+    },
+    {
+      "name": "stt_diarization_reference",
+      "seconds": 0.69
+    },
+    {
+      "name": "stt_api_reference",
+      "seconds": 0.3
+    },
+    {
+      "name": "stt_runtime_reference",
+      "seconds": 0.12
+    }
+  ],
+  "initial_reference_setup_failure": "The development container lacked the unchanged Python source files required by two existing regression runners. After supplying app.py, Pipes.py and STT.py, both passed. The first logs are retained.",
+  "real_model": {
+    "device": "cpu",
+    "compute_type": "int8",
+    "runtime_calls": 6,
+    "public_handler_calls": 2,
+    "model_fixture": "stt_diarization_model_cases.json",
+    "uuid_normalization": "Consistent across the entire sequence; speaker identity survives model reload and public-pool boundary."
+  },
+  "executable_http": {
+    "device": "cpu",
+    "checks": [
+      {
+        "format": "verbose_json",
+        "matches_source": true,
+        "persistent_speaker": true,
+        "sha256": "3afe400cf66192ed07675e12497216451c2609dab99a62ba6181a52b506df5c2"
+      },
+      {
+        "format": "verbose_json",
+        "matches_source": true,
+        "persistent_speaker": true,
+        "sha256": "3afe400cf66192ed07675e12497216451c2609dab99a62ba6181a52b506df5c2"
+      },
+      {
+        "format": "json",
+        "matches_source": true,
+        "persistent_speaker": true,
+        "sha256": "0068425ffccaf72bd8401172a7bac3a477bd4c8f8a514671cfd42ae640b6a975"
+      },
+      {
+        "format": "text",
+        "matches_source": true,
+        "persistent_speaker": true,
+        "sha256": "b1e6bc1457a325c02c0b3c5cb2efe409d69ba6a11c6f007a3fb1b3d81f8de888"
+      }
+    ],
+    "idle_resources_released": true
+  },
+  "cuda_packaged_checks": 49,
+  "candidate_binary_comparison": {
+    "/app/build/ezlocalai-native": {
+      "tested": "2541fdfb8cd65de8ee6a90ffce4ca35d833de04445c6c0df60271e53670e654a",
+      "packaged": "2541fdfb8cd65de8ee6a90ffce4ca35d833de04445c6c0df60271e53670e654a",
+      "matched": true
+    },
+    "/app/build/test_stt_diarization": {
+      "tested": "e255faaf3edecd230474ef6eb973b548c17ff5f90a0aa7950ba008607fd78429",
+      "packaged": "e255faaf3edecd230474ef6eb973b548c17ff5f90a0aa7950ba008607fd78429",
+      "matched": true
+    },
+    "/app/build/test_stt_diarization_model": {
+      "tested": "1f087414ca875c90532243000b8486315f0c3f76586565c785733405c2d4d3b3",
+      "packaged": "1f087414ca875c90532243000b8486315f0c3f76586565c785733405c2d4d3b3",
+      "matched": true
+    }
+  },
+  "binaries_sha256": {
+    "/app/build/ezlocalai-native": "2541fdfb8cd65de8ee6a90ffce4ca35d833de04445c6c0df60271e53670e654a",
+    "/app/build/ezlocalai-native-entrypoint": "7da9eb6310967f552fa1528b13a43deb6c5e46e85b862d174e1c0f3a0598bc1f",
+    "/opt/stable-diffusion.cpp/build/bin/sd-cli": "bacdb2b223e94ef8be5b65767e2c92b14bb3b931195f0b4a9815737f6efc85ed"
+  },
+  "entrypoint_and_media_engine_unchanged": true,
+  "deployment": {
+    "previous_image": "sha256:3e5c58baa8643de3b7d59f6f75c5cb1beb64d9d5264b60874848d9d8937d2859",
+    "candidate_image": "sha256:4dc9a05ef394e41492598d6336467522eb5be5422e7a37e5a1e10dec167a071d",
+    "health": "healthy",
+    "deployed_image": "sha256:4dc9a05ef394e41492598d6336467522eb5be5422e7a37e5a1e10dec167a071d",
+    "effective_environment_changed_keys": [],
+    "original_env_file_unchanged": true,
+    "mounts_unchanged": true,
+    "wakeword_mounts": [
+      [
+        "bind",
+        "/home/josh/repos/xtsys/ezlocalai/wakeword_models",
+        "/app/wakeword_models",
+        true
+      ],
+      [
+        "bind",
+        "/home/josh/repos/xtsys/ezlocalai/wakeword_samples",
+        "/app/wakeword_samples",
+        true
+      ],
+      [
+        "bind",
+        "/home/josh/repos/xtsys/ezlocalai/wakeword_jobs",
+        "/app/wakeword_jobs",
+        true
+      ]
+    ],
+    "ports_unchanged": true,
+    "gpu_requests_unchanged": true
+  },
+  "deployed_documentation": {
+    "image": "sha256:4dc9a05ef394e41492598d6336467522eb5be5422e7a37e5a1e10dec167a071d",
+    "checks": [
+      {
+        "method": "GET",
+        "path": "/",
+        "passed": true,
+        "length": 1015,
+        "body_sha256": "9cba0aab86158b3e8ffc7efa8586cb181b600c764c811af2b0579ce95e0cac4e"
+      },
+      {
+        "method": "HEAD",
+        "path": "/",
+        "passed": true,
+        "length": 1015,
+        "body_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "method": "GET",
+        "path": "/redoc",
+        "passed": true,
+        "length": 897,
+        "body_sha256": "a8aa84db129687e6d0e715504d39ebc781e77a339b01525d6a38ca0070773005"
+      },
+      {
+        "method": "HEAD",
+        "path": "/redoc",
+        "passed": true,
+        "length": 897,
+        "body_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "method": "GET",
+        "path": "/docs/oauth2-redirect",
+        "passed": true,
+        "length": 3012,
+        "body_sha256": "f45d60bb9f054b1712b3f9e60547eb9e1d523afd6472a4137b89eb503b37f058"
+      },
+      {
+        "method": "HEAD",
+        "path": "/docs/oauth2-redirect",
+        "passed": true,
+        "length": 3012,
+        "body_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "method": "GET",
+        "path": "/openapi.json",
+        "passed": true,
+        "length": 41325,
+        "body_sha256": "4d7b529fc0e271ae57ab904ccab7fa1bc030a9626d97608ad75bdb0cc3078238"
+      },
+      {
+        "method": "HEAD",
+        "path": "/openapi.json",
+        "passed": true,
+        "length": 41325,
+        "body_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    ],
+    "passed": true
+  },
+  "production_tunnel_enabled": false,
+  "production_stt_enabled": false,
+  "routed_inference": {
+    "chat": {
+      "passed": true,
+      "response_sha256": "989b8b43cb452ebd621e24b12e3a5c32853b830abf9dd82209dbc6dac420ec11"
+    },
+    "stream": {
+      "passed": true,
+      "response_sha256": "03a95908fa3d7ad80e537aea529a434a41737b9dcadda41ece4c82cfd83657ee"
+    },
+    "vision": {
+      "passed": true,
+      "response_sha256": "f5f536017abf7b6f1a958e19d60cf4f14fb1007b7eda54f7ce3d68f67f4b8777"
+    }
+  },
+  "original_env_sha256": "61dd1627786c0516e0ad59287ea2fb0990eeee7c93951d292aca38f46402dd24",
+  "worker_parity_report": "scope: worker (router service owned by WorkerRouter)\nparity rows: 65\nimplemented: 27\npartial: 38\nmissing: 0\nsource routes: 45\nsource root: /home/josh/repos/xtsys/ezlocalai\nuncovered source routes: 0\nextra manifest routes: 0\n",
+  "limits": [
+    "The real diarization inference and HTTP checks use CPU/int8 Whisper in an isolated container, with the exact worker/test binaries packaged into CUDA. They do not claim new GPU-model diarization validation.",
+    "Original production settings keep STT and reverse tunneling disabled. Live post-deployment chat/SSE/vision checks use direct Rust routing; isolated tests enable STT explicitly.",
+    "Synthetic feature cases and repeated speech validate implementation parity, not diarization accuracy on a representative multi-speaker corpus. Near-tied floating-point inputs can produce different clusters.",
+    "Complete replacement parity remains partial. Separate Gemma experiments and legacy non-Qwen TTS fallbacks are excluded by user scope."
+  ]
+}

@@ -1,0 +1,58 @@
+{
+  "date": "2026-10-19",
+  "reference": {
+    "image": "ezlocalai-ezlocalai",
+    "pillow": "12.3.0",
+    "freetype": "2.14.3",
+    "raqm": "0.10.5"
+  },
+  "validation": {
+    "raster_text_cases": 330,
+    "composition_cases": 300,
+    "pixel_hash_matches": 630,
+    "host_ctest": {
+      "passed": 3,
+      "seconds": 14.06,
+      "includes": "music_video_reference"
+    },
+    "cuda_ctest": {
+      "passed": 2,
+      "seconds": 1.37,
+      "phase": "image build"
+    },
+    "native_linkage_missing": false,
+    "python_linkage": false,
+    "fresh_container_ctest": {
+      "passed": 2,
+      "seconds": 1.02
+    }
+  },
+  "candidate_image": "sha256:1a6adf6a4078a2cd12d31e5808717b59d03354818a0929e62e344e5e27a28165",
+  "candidate_tag": "ezlocalai:cuda-storyboard-candidate",
+  "production_image": "sha256:bf51835f359370458db36aec93c2af5a6ae35c60e78510fa5fc4f143be8f6290",
+  "deployed": false,
+  "music_video_http_enabled": false,
+  "source_sha256": {
+    "src/pillow_canvas.cpp": "e520bbd82015082ea1f30647b275b1b250e645b4f2b79821408e6a732680568f",
+    "src/pillow_canvas.hpp": "feae64b09c0bc4b237ee2247942a25ebd76371858725ad5bd42ff8512d240f7e",
+    "src/pillow_drawing.cpp": "dd9d14c5308d4eb1ef59897920a0643681b4f717e68006dcb0c987e6287b43fa",
+    "src/pillow_drawing.hpp": "d5e07ccedffe9ebcf4624f3b056184df560c11fee27afcb527c5921180e0ad3d",
+    "src/music_storyboard.cpp": "a4d209d8b5ea12dd14bf7e891b8a9a204036b831d005b0305b2617d9e5f2e60f",
+    "include/ezlocalai/storyboard.hpp": "3b9ed8cf854e7737979580807b54009f5b009100275f8e3ebc17b6582f58c214",
+    "tests/test_storyboard.cpp": "05f5c520295997edcfadef55d8c66b7255c6e8e70b4b8bf1d0b4472f3fa86544",
+    "tests/fixtures/storyboard_raster_cases.json": "9afb68758f2376a61f30ac4b31fb22143f6074ddf8544532d9c4144bbeb97cd5",
+    "tests/fixtures/storyboard_composition_cases.json": "923c352ea91e1780eb4bbc73bf0dd8ef558232d45da7571db19862a819ba864e"
+  },
+  "logs": [
+    "/tmp/ezlocalai-storyboard-tests.log",
+    "/tmp/ezlocalai-storyboard-deps-build.log",
+    "/tmp/ezlocalai-storyboard-cuda-build.log",
+    "/tmp/ezlocalai-storyboard-cuda-validation.log"
+  ],
+  "remaining": [
+    "Server image decoding and scene filtering",
+    "Shared video/LLM handoff across the full scene loop",
+    "Real music-video generation through WorkerRouter",
+    "Aileron fallback when DejaVu fonts are absent"
+  ]
+}

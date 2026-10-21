@@ -1,0 +1,44 @@
+[
+  {
+    "name": "ctranslate2-headers-4.8.2",
+    "kind": "ct2_headers",
+    "url": "https://codeload.github.com/OpenNMT/CTranslate2/tar.gz/refs/tags/v4.8.2",
+    "sha256": "a15fdd27842ac80e73c4a0e2ae8ee32c990db88563b6b012db009128872ab730"
+  },
+  {
+    "name": "ctranslate2-4.8.2",
+    "kind": "ct2",
+    "url": "https://files.pythonhosted.org/packages/53/46/bfa42114fd583b0ef30b67113486ab72d3ff466e60a824739257bcc533bd/ctranslate2-4.8.2-cp312-cp312-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl",
+    "sha256": "781f835da7fdc4adcc38f9d674dbe9b37eaf3c9aee3b2bc17d684342ff59d549"
+  },
+  {
+    "name": "onnxruntime-1.31.0",
+    "kind": "ort",
+    "url": "https://github.com/microsoft/onnxruntime/releases/download/v1.31.0/onnxruntime-linux-aarch64-1.31.0.tgz",
+    "sha256": "c5b8b3cca31f3d643a3b313b8f42e2d0f16a4fcefd02cda343d97bd5306afaab"
+  },
+  {
+    "name": "onnxruntime-installed-1.31.0",
+    "kind": "ort_library",
+    "url": "https://files.pythonhosted.org/packages/53/1a/561b43ca1536d9e81d1785bb8a1a260a9e314ef6d04976ba0411c652bda1/onnxruntime-1.31.0-cp312-cp312-manylinux_2_28_aarch64.whl",
+    "sha256": "35758d7606d578ec5b9d65f6e8a1f488013194c3f6097038a3223cb26d35ef9a"
+  },
+  {
+    "name": "torch-2.9.1-cpu",
+    "kind": "torch",
+    "url": "https://download-r2.pytorch.org/whl/cpu/torch-2.9.1%2Bcpu-cp312-cp312-manylinux_2_28_aarch64.whl",
+    "sha256": "3bf9b442a51a2948e41216a76d7ab00f0694cfcaaa51b6f9bcab57b7f89843e6"
+  },
+  {
+    "name": "faster-whisper-assets-1.2.0",
+    "kind": "vad",
+    "url": "https://files.pythonhosted.org/packages/da/6d/64cdc135e4195f9473c2e42aa1d2268654be4c289223828eee8e6ba4fc6d/faster_whisper-1.2.0-py3-none-any.whl",
+    "sha256": "e5535628fe93b5123029b410fd8edba2d28f8cee9f8fff8119138e5a9d81afbe"
+  },
+  {
+    "name": "soundfile-native-0.14.0",
+    "kind": "sndfile",
+    "url": "https://files.pythonhosted.org/packages/4a/f8/fc39fad6f879633461d27394cd1ddaf1f769ffa0597dca35872f51b16461/soundfile-0.14.0-py2.py3-none-manylinux_2_28_aarch64.whl",
+    "sha256": "e85724a90bc99a6e8062c0b4ddf725f53b2a3b70afd4da875e9d2cfc4e92f377"
+  }
+]
