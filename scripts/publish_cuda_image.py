@@ -88,7 +88,25 @@ def main() -> None:
     print(f"Pushing {args.image}", flush=True)
     run(["docker", "push", args.image])
 
-    print(f"OK: published {args.image}", flush=True)
+    # Get the image digest for deploy API verification.
+    # The Deploy API (main.py) parses stdout with:
+    #   re.findall(r"published and verified: .+ \(?(sha256:[a-f0-9]{64})\)?", ...)
+    # so we must print in that exact format.
+    result = subprocess.run(
+        ["docker", "inspect", "--format", "{{.Id}}", args.image],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if result.returncode != 0 or not result.stdout.strip():
+        print(
+            f"ERROR: could not verify image after push: {args.image}",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+    digest = result.stdout.strip()
+    print(f"published and verified: {args.image} ({digest})", flush=True)
 
 
 if __name__ == "__main__":
