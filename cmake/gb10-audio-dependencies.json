@@ -1,0 +1,122 @@
+[
+  {
+    "name": "onnxruntime-1.31.0",
+    "kind": "ort",
+    "url": "https://github.com/microsoft/onnxruntime/releases/download/v1.31.0/onnxruntime-linux-aarch64-1.31.0.tgz",
+    "sha256": "c5b8b3cca31f3d643a3b313b8f42e2d0f16a4fcefd02cda343d97bd5306afaab"
+  },
+  {
+    "name": "onnxruntime-installed-1.31.0",
+    "kind": "ort_library",
+    "url": "https://files.pythonhosted.org/packages/53/1a/561b43ca1536d9e81d1785bb8a1a260a9e314ef6d04976ba0411c652bda1/onnxruntime-1.31.0-cp312-cp312-manylinux_2_28_aarch64.whl",
+    "sha256": "35758d7606d578ec5b9d65f6e8a1f488013194c3f6097038a3223cb26d35ef9a"
+  },
+  {
+    "name": "torch-2.9.1-cu130",
+    "kind": "torch",
+    "url": "https://download-r2.pytorch.org/whl/cu130/torch-2.9.1%2Bcu130-cp312-cp312-manylinux_2_28_aarch64.whl",
+    "sha256": "6e7f84cb10c7e7d9f862c318f056d64840544ab4f0bcbf8cf7ed6047fe04051f"
+  },
+  {
+    "name": "faster-whisper-assets-1.2.0",
+    "kind": "vad",
+    "url": "https://files.pythonhosted.org/packages/da/6d/64cdc135e4195f9473c2e42aa1d2268654be4c289223828eee8e6ba4fc6d/faster_whisper-1.2.0-py3-none-any.whl",
+    "sha256": "e5535628fe93b5123029b410fd8edba2d28f8cee9f8fff8119138e5a9d81afbe"
+  },
+  {
+    "name": "soundfile-native-0.14.0",
+    "kind": "sndfile",
+    "url": "https://files.pythonhosted.org/packages/4a/f8/fc39fad6f879633461d27394cd1ddaf1f769ffa0597dca35872f51b16461/soundfile-0.14.0-py2.py3-none-manylinux_2_28_aarch64.whl",
+    "sha256": "e85724a90bc99a6e8062c0b4ddf725f53b2a3b70afd4da875e9d2cfc4e92f377"
+  },
+  {
+    "name": "nvidia-cuda-nvrtc-13.0.48",
+    "kind": "cuda",
+    "url": "https://files.pythonhosted.org/packages/c0/bd/eb18593b43dae42312612ffbac24b8e68149e590102c3b6cc2e3d3792069/nvidia_cuda_nvrtc-13.0.48-py3-none-manylinux2014_aarch64.manylinux_2_17_aarch64.whl",
+    "sha256": "6ccf1ef1b90a0763ac7536f3c17046659d89869d76b98ac358efc2e09b348365"
+  },
+  {
+    "name": "nvidia-cuda-runtime-13.0.48",
+    "kind": "cuda",
+    "url": "https://files.pythonhosted.org/packages/55/3b/c5e5d8aafd355e2ff9922472ba71251331af6cc866e5b04a3b1dc8f58977/nvidia_cuda_runtime-13.0.48-py3-none-manylinux2014_aarch64.manylinux_2_17_aarch64.whl",
+    "sha256": "b807c0bb925a307bfa667a24f24d253aef8eda3ac4be66b333f2c9d357557008"
+  },
+  {
+    "name": "nvidia-cuda-cupti-13.0.48",
+    "kind": "cuda",
+    "url": "https://files.pythonhosted.org/packages/72/63/e9c12c3ae07c1f3a0821536bc188d7bf76e1b633b3bcd2bd393b00bb3426/nvidia_cuda_cupti-13.0.48-py3-none-manylinux_2_25_aarch64.whl",
+    "sha256": "67c22627ef436afcf080b48e4ad17b3f83d9e7c0d990ad0c6c0627b01fb92ccc"
+  },
+  {
+    "name": "nvidia-cudnn-cu13-9.13.0.50",
+    "kind": "cuda",
+    "url": "https://files.pythonhosted.org/packages/8a/9c/9e99c00dc23db324244ec257d1e84d79539202ee2f185dee2c1fa97c9549/nvidia_cudnn_cu13-9.13.0.50-py3-none-manylinux_2_27_aarch64.whl",
+    "sha256": "33f0aa0b64230101b348648fd0693342188071d3f8a137c0cf50051c24b3584b"
+  },
+  {
+    "name": "nvidia-cublas-13.0.0.19",
+    "kind": "cuda",
+    "url": "https://files.pythonhosted.org/packages/02/99/8447b9ee9f070522ee66604ee819d632ab4568c68b3134cebd3837a015cd/nvidia_cublas-13.0.0.19-py3-none-manylinux_2_27_aarch64.whl",
+    "sha256": "381b1a0ca636fdcb6920a871e8fc89dbfd1f6157f421ed0a6f2673e14cffd3bd"
+  },
+  {
+    "name": "nvidia-cufft-12.0.0.15",
+    "kind": "cuda",
+    "url": "https://files.pythonhosted.org/packages/9b/e9/4e49b1baf6899e42eeec324a49d7aa2219fec42076327c4e468000dd375a/nvidia_cufft-12.0.0.15-py3-none-manylinux2014_aarch64.manylinux_2_17_aarch64.whl",
+    "sha256": "1885731254835797572ff075f3daf43a2a0a2801210dea26971940dae7e1a367"
+  },
+  {
+    "name": "nvidia-curand-10.4.0.35",
+    "kind": "cuda",
+    "url": "https://files.pythonhosted.org/packages/1e/72/7c2ae24fb6b63a32e6ae5d241cc65263ea18d08802aaae087d9f013335a2/nvidia_curand-10.4.0.35-py3-none-manylinux_2_27_aarch64.whl",
+    "sha256": "133df5a7509c3e292aaa2b477afd0194f06ce4ea24d714d616ff36439cee349a"
+  },
+  {
+    "name": "nvidia-cusolver-12.0.3.29",
+    "kind": "cuda",
+    "url": "https://files.pythonhosted.org/packages/a7/bb/2e60de9bb1f0c3395eabd91ccad00f4ba3ef736dc9190a158a9d268419f5/nvidia_cusolver-12.0.3.29-py3-none-manylinux_2_27_aarch64.whl",
+    "sha256": "3bb6e65ce0beaeafdd069b320246e8f17c1cd30ddb27a0539143a3706733a4d8"
+  },
+  {
+    "name": "nvidia-cusparse-12.6.2.49",
+    "kind": "cuda",
+    "url": "https://files.pythonhosted.org/packages/fc/30/f32023427f2ef4ec27e8293dfddb5068de566912cd0a45eccfd400017a62/nvidia_cusparse-12.6.2.49-py3-none-manylinux2014_aarch64.manylinux_2_17_aarch64.whl",
+    "sha256": "5d3269c19283a0057fb5ebfb003ae2a10c97a28a6958f4238354826b055827c7"
+  },
+  {
+    "name": "nvidia-cusparselt-cu13-0.8.0",
+    "kind": "cuda",
+    "url": "https://files.pythonhosted.org/packages/46/10/8dcd1175260706a2fc92a16a52e306b71d4c1ea0b0cc4a9484183399818a/nvidia_cusparselt_cu13-0.8.0-py3-none-manylinux2014_aarch64.whl",
+    "sha256": "400c6ed1cf6780fc6efedd64ec9f1345871767e6a1a0a552a1ea0578117ea77c"
+  },
+  {
+    "name": "nvidia-nccl-cu13-2.27.7",
+    "kind": "cuda",
+    "url": "https://files.pythonhosted.org/packages/49/61/2c7762da6febee96341ea17d1f7309ac7559ac3cab00f3f7e1e7bd0e5d00/nvidia_nccl_cu13-2.27.7-py3-none-manylinux2014_aarch64.manylinux_2_17_aarch64.whl",
+    "sha256": "5e3cc863e52bf9dd1e3ab1941bddb414098f489ae7342f6b3a274602303da123"
+  },
+  {
+    "name": "nvidia-nvshmem-cu13-3.3.24",
+    "kind": "cuda",
+    "url": "https://files.pythonhosted.org/packages/b1/7e/b8797780e442eabd9046cd6eb54100b8d0cb047ebc2f70931710cb03bcfe/nvidia_nvshmem_cu13-3.3.24-py3-none-manylinux2014_aarch64.manylinux_2_17_aarch64.whl",
+    "sha256": "28ae82a4d14b322b93409535de62df6b7b83f4f7672ca97fc89107c2d40ce2c2"
+  },
+  {
+    "name": "nvidia-nvtx-13.0.39",
+    "kind": "cuda",
+    "url": "https://files.pythonhosted.org/packages/86/91/8b486ba85f71a2859dd705a4ec6aab38c37a389b8b7f94343db027732999/nvidia_nvtx-13.0.39-py3-none-manylinux2014_aarch64.manylinux_2_17_aarch64.whl",
+    "sha256": "cddd2e08b35144f1000631c3880c9ebbcb8a2863d762e76f92d47d30ecaf87cc"
+  },
+  {
+    "name": "nvidia-nvjitlink-13.0.39",
+    "kind": "cuda",
+    "url": "https://files.pythonhosted.org/packages/bc/7a/0fb4c4413b3b14519f8934edd4dcd9f411c4e14e2a2c0ae58709e4dda255/nvidia_nvjitlink-13.0.39-py3-none-manylinux2014_aarch64.manylinux_2_17_aarch64.whl",
+    "sha256": "ce0d63fa5ebedf542056e7491c49feed2297c900980aa6269b6a55f478056ad7"
+  },
+  {
+    "name": "nvidia-cufile-1.15.0.42",
+    "kind": "cuda",
+    "url": "https://files.pythonhosted.org/packages/bf/a5/636baa43399ea10d22b63e7454f22a92ace4a7eaa3c45b94607250857e2d/nvidia_cufile-1.15.0.42-py3-none-manylinux_2_27_aarch64.whl",
+    "sha256": "bced4036b5a8dbf57e4d78cd4fafefec58ad754b784a9eaa272b011896754c62"
+  }
+]

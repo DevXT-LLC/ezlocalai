@@ -1,0 +1,168 @@
+{
+  "source_sha256": "8238cef03d4a1db6e775d7f62234bcf998d8f08bd9fc15f1d8a36ea0d3280005",
+  "source_cases": 330,
+  "host_tests": {
+    "suites": 4,
+    "seconds": 38.95,
+    "success": true
+  },
+  "rust_wire": {
+    "tests": 89,
+    "seconds": 29.292,
+    "success": true
+  },
+  "scope": [
+    "Current-process LibTorch allocated, reserved and peak memory counters",
+    "Per-device errors and Python three-decimal rounding",
+    "Allocator cache release preserving peak and CPU/unavailable-CUDA behavior"
+  ],
+  "remaining": [
+    "Complete startup/preload ordering and failed automatic replicas",
+    "Complete media registry and resident engine behavior",
+    "Broader GPU selection, allocation and cleanup equivalence",
+    "Remaining compressed GPU and video engine parity"
+  ],
+  "deployment": {
+    "previous_image": "sha256:2aa79fd5a4860f14d7aa24372520ca535fdfebe06329c89b64ddee9297f15acc",
+    "candidate_image": "sha256:47b158de1c159216fa689d62fb57da5c2990d5d921595391ea9e96a785e241aa",
+    "health": "healthy",
+    "deployed_image": "sha256:47b158de1c159216fa689d62fb57da5c2990d5d921595391ea9e96a785e241aa",
+    "effective_environment_changed_keys": [],
+    "original_env_file_unchanged": true,
+    "mounts_unchanged": true,
+    "wakeword_mounts": [
+      [
+        "bind",
+        "/home/josh/repos/xtsys/ezlocalai/wakeword_models",
+        "/app/wakeword_models",
+        true
+      ],
+      [
+        "bind",
+        "/home/josh/repos/xtsys/ezlocalai/wakeword_samples",
+        "/app/wakeword_samples",
+        true
+      ],
+      [
+        "bind",
+        "/home/josh/repos/xtsys/ezlocalai/wakeword_jobs",
+        "/app/wakeword_jobs",
+        true
+      ]
+    ],
+    "ports_unchanged": true,
+    "gpu_requests_unchanged": true
+  },
+  "gpu": {
+    "image": "sha256:47b158de1c159216fa689d62fb57da5c2990d5d921595391ea9e96a785e241aa",
+    "python": {
+      "source_sha256": "8238cef03d4a1db6e775d7f62234bcf998d8f08bd9fc15f1d8a36ea0d3280005",
+      "torch_version": "2.9.1+cu128",
+      "devices": [
+        {
+          "index": 0,
+          "before": {
+            "index": 0,
+            "allocated_gb": 0.0,
+            "reserved_gb": 0.0,
+            "max_allocated_gb": 0.0,
+            "free_gb": 1.201,
+            "total_gb": 23.524
+          },
+          "allocated": {
+            "index": 0,
+            "allocated_gb": 0.062,
+            "reserved_gb": 0.062,
+            "max_allocated_gb": 0.062,
+            "free_gb": 1.139,
+            "total_gb": 23.524
+          },
+          "released": {
+            "index": 0,
+            "allocated_gb": 0.0,
+            "reserved_gb": 0.062,
+            "max_allocated_gb": 0.062,
+            "free_gb": 1.139,
+            "total_gb": 23.524
+          },
+          "cleared": {
+            "index": 0,
+            "allocated_gb": 0.0,
+            "reserved_gb": 0.0,
+            "max_allocated_gb": 0.062,
+            "free_gb": 1.201,
+            "total_gb": 23.524
+          }
+        }
+      ]
+    },
+    "native_gpu_output": "GPU 0: allocated=0.062 reserved=0.062 cleared=0 peak=0.062 GiB\n",
+    "comparisons": [
+      {
+        "device": 0,
+        "allocated_reserved_cleared_peak": [
+          0.062,
+          0.062,
+          0.0,
+          0.062
+        ],
+        "matching": true
+      }
+    ],
+    "hidden_gpu_output": "Torch without CUDA: empty diagnostics and safe cleanup\n",
+    "success": true
+  },
+  "live": {
+    "image": "sha256:47b158de1c159216fa689d62fb57da5c2990d5d921595391ea9e96a785e241aa",
+    "binary_sha256": "0705ee3b736241fcc42e6f821282729edb1007cefbd3c2d0ca6576aa020ce4d8",
+    "matching_workers": 1,
+    "python_extra_matches": true,
+    "extra": {
+      "llm_model_residency": "resident",
+      "loaded_llms": [
+        "unsloth/Qwen3.8-27B-GGUF"
+      ],
+      "active_llm": "unsloth/Qwen3.8-27B-GGUF",
+      "llm_unload_dependent_capabilities": [
+        "image",
+        "video",
+        "music",
+        "music_video"
+      ]
+    },
+    "resource_lifecycle": {
+      "llm_model_residency": "resident",
+      "loaded_llms": [
+        "unsloth/Qwen3.8-27B-GGUF"
+      ],
+      "active_llm": "unsloth/Qwen3.8-27B-GGUF"
+    },
+    "gpu_count": 1,
+    "torch_cuda": [
+      {
+        "index": 0,
+        "allocated_gb": 0.0,
+        "reserved_gb": 0.0,
+        "max_allocated_gb": 0.0,
+        "free_gb": 1.617,
+        "total_gb": 23.524
+      }
+    ],
+    "free_vram_gb": 1.6165771484375,
+    "sources": {
+      "Pipes.py": "8238cef03d4a1db6e775d7f62234bcf998d8f08bd9fc15f1d8a36ea0d3280005",
+      "Router.py": "d5eebf7fc48f7781628aa4eaab8af1c3f23fd8694242f0b3065436b5c86f62b1"
+    }
+  },
+  "cuda_image_tests": {
+    "count": 23,
+    "seconds": 32.69,
+    "success": true
+  },
+  "live_routed_inference": {
+    "chat": 200,
+    "stream": 200,
+    "vision": 200
+  },
+  "python_interpreter_present": false
+}

@@ -1,0 +1,292 @@
+{
+  "date": "2026-10-19",
+  "deployed": true,
+  "image": "sha256:bfdc44bc8b457eef7eefef5e6899e5a384f9e75d5d576670234df4b73e0e085d",
+  "executable_sha256": "e2b6666d62342ea5cbe13227152cc15360b6eb723ea70eb396bddb5c042d6a06",
+  "rollback_image": "sha256:f7f14b8a877d41f2eb878139df1dc0293ef9c9b708ae45ae1ae38a4b13a801c6",
+  "source_sha256": "8238cef03d4a1db6e775d7f62234bcf998d8f08bd9fc15f1d8a36ea0d3280005",
+  "source_capture": {
+    "static_cases": 84,
+    "transition_snapshots": 8,
+    "method": "Executed complete Pipes.get_slot_capacity_snapshot, voice handoff policy, VoiceServerClient settings and parallel parsers with controlled inference counts/resource manager; other modalities disabled"
+  },
+  "concurrency": [
+    "LLM active before voice admission",
+    "Voice waits for active LLM and excludes new text work",
+    "Unload before a speech model exists",
+    "Synthesis with resource activity",
+    "Restore after speech activity ends",
+    "Restoration failure still releases handoff state",
+    "Three requests share two model leases",
+    "Independent TTS reserves shared STT capacity"
+  ],
+  "checks": {
+    "native_http": {
+      "passed": true,
+      "seconds": 29.59
+    },
+    "speech_resources_reference": true,
+    "speech_slots_reference": true,
+    "worker_tunnel": {
+      "passed": true,
+      "seconds": 2.82
+    },
+    "worker_router_integration": {
+      "passed": true,
+      "seconds": 5.49,
+      "checks": [
+        "Direct/tunnel registration with real Rust router",
+        "Speech dependencies retained",
+        "Text/speech shared capacity counted once",
+        "Metadata preserved after router restart",
+        "Routed JSON/SSE and shutdown"
+      ]
+    },
+    "rust_captured_dependency_slots": {
+      "passed": true,
+      "fixture_cases": 384
+    },
+    "rust_wire": {
+      "passed": 89,
+      "seconds": 30.14
+    },
+    "cuda_image": {
+      "passed": 16,
+      "seconds": 2.81,
+      "python_interpreter_present": false,
+      "tested_binary_identical_to_deployed": true
+    }
+  },
+  "real_qwen_cpu": {
+    "device": "cpu",
+    "original_env_reused": true,
+    "requests": 3,
+    "parallel_models": 2,
+    "audio_bytes": [
+      134444,
+      403244,
+      664364
+    ],
+    "audio_sha256": [
+      "88029f228596d083e42f23af05a0f8787c46d010bb352a414ccb6f751bbe4b5d",
+      "808a54760c4822990aeaea4be0765fc7e51eefb5d73d6dbee2701a643fffb1d6",
+      "92e314eebdf04e13d846932b1d1ae286ab40db1010c38967e4108ac8b07e31eb"
+    ],
+    "snapshots": {
+      "before": {
+        "loaded_models": {
+          "tts": {
+            "name": "Qwen-TTS (Mouserat/qwen3-tts-0.6b-base-gguf)",
+            "device": "cpu",
+            "vram_gb": 0.0,
+            "in_use": false,
+            "active_requests": 0,
+            "last_used": 1792415891.664239
+          }
+        },
+        "model_pools": {
+          "embedding": {
+            "configured": 1,
+            "devices": [],
+            "resident": 0
+          },
+          "stt": {
+            "configured": 1,
+            "devices": [],
+            "resident": 0
+          },
+          "tts": {
+            "configured": 2,
+            "devices": [
+              "cpu",
+              "cpu"
+            ],
+            "resident": 2
+          }
+        },
+        "slots": {
+          "cap_slots": {
+            "tts": {
+              "capacity": 2,
+              "in_flight": 0,
+              "queued": 0,
+              "available": 2
+            }
+          },
+          "model_slots": {},
+          "llm_queue_capacity": 1,
+          "slot_total_capacity": 2,
+          "slot_total_in_flight": 0,
+          "slot_total_queued": 0,
+          "slot_total_available": 2
+        }
+      },
+      "active": {
+        "loaded_models": {
+          "tts": {
+            "name": "Qwen-TTS (Mouserat/qwen3-tts-0.6b-base-gguf)",
+            "device": "cpu",
+            "vram_gb": 0.0,
+            "in_use": true,
+            "active_requests": 2,
+            "last_used": 1792415892.5990334
+          }
+        },
+        "model_pools": {
+          "embedding": {
+            "configured": 1,
+            "devices": [],
+            "resident": 0
+          },
+          "stt": {
+            "configured": 1,
+            "devices": [],
+            "resident": 0
+          },
+          "tts": {
+            "configured": 2,
+            "devices": [
+              "cpu",
+              "cpu"
+            ],
+            "resident": 2
+          }
+        },
+        "slots": {
+          "cap_slots": {
+            "tts": {
+              "capacity": 2,
+              "in_flight": 2,
+              "queued": 0,
+              "available": 0
+            }
+          },
+          "model_slots": {},
+          "llm_queue_capacity": 1,
+          "slot_total_capacity": 2,
+          "slot_total_in_flight": 2,
+          "slot_total_queued": 0,
+          "slot_total_available": 0
+        }
+      },
+      "waiting": {
+        "loaded_models": {
+          "tts": {
+            "name": "Qwen-TTS (Mouserat/qwen3-tts-0.6b-base-gguf)",
+            "device": "cpu",
+            "vram_gb": 0.0,
+            "in_use": true,
+            "active_requests": 2,
+            "last_used": 1792415892.5990334
+          }
+        },
+        "model_pools": {
+          "embedding": {
+            "configured": 1,
+            "devices": [],
+            "resident": 0
+          },
+          "stt": {
+            "configured": 1,
+            "devices": [],
+            "resident": 0
+          },
+          "tts": {
+            "configured": 2,
+            "devices": [
+              "cpu",
+              "cpu"
+            ],
+            "resident": 2
+          }
+        },
+        "slots": {
+          "cap_slots": {
+            "tts": {
+              "capacity": 2,
+              "in_flight": 2,
+              "queued": 0,
+              "available": 0
+            }
+          },
+          "model_slots": {},
+          "llm_queue_capacity": 1,
+          "slot_total_capacity": 2,
+          "slot_total_in_flight": 2,
+          "slot_total_queued": 0,
+          "slot_total_available": 0
+        }
+      },
+      "after": {
+        "loaded_models": {
+          "tts": {
+            "name": "Qwen-TTS (Mouserat/qwen3-tts-0.6b-base-gguf)",
+            "device": "cpu",
+            "vram_gb": 0.0,
+            "in_use": false,
+            "active_requests": 0,
+            "last_used": 1792415900.0884986
+          }
+        },
+        "model_pools": {
+          "embedding": {
+            "configured": 1,
+            "devices": [],
+            "resident": 0
+          },
+          "stt": {
+            "configured": 1,
+            "devices": [],
+            "resident": 0
+          },
+          "tts": {
+            "configured": 2,
+            "devices": [
+              "cpu",
+              "cpu"
+            ],
+            "resident": 2
+          }
+        },
+        "slots": {
+          "cap_slots": {
+            "tts": {
+              "capacity": 2,
+              "in_flight": 0,
+              "queued": 0,
+              "available": 2
+            }
+          },
+          "model_slots": {},
+          "llm_queue_capacity": 1,
+          "slot_total_capacity": 2,
+          "slot_total_in_flight": 0,
+          "slot_total_queued": 0,
+          "slot_total_available": 2
+        }
+      }
+    }
+  },
+  "deployment": {
+    "health": "healthy",
+    "effective_environment_changed_keys": [],
+    "original_env_file_unchanged": true,
+    "mounts_unchanged": true,
+    "ports_unchanged": true,
+    "gpu_requests_unchanged": true
+  },
+  "live_router": {
+    "matching_workers": 1,
+    "routed_http_status": {
+      "chat": 200,
+      "stream": 200,
+      "vision": 200
+    }
+  },
+  "remaining": [
+    "Router slot capacity remains signed 32-bit; larger positive Python integers are clamped",
+    "Image/video/composite dependencies and complete extra residency metadata",
+    "Other modality slot and allocator/lifecycle parity",
+    "Other tracked replacement requirements"
+  ]
+}

@@ -1,0 +1,69 @@
+{
+  "date": "2026-10-20",
+  "status": "device adapter implemented; full ROCm worker packaging incomplete",
+  "base_commit": "216bbed",
+  "runtime_option": "EZLOCALAI_USE_HIP=ON",
+  "default_runtime": "CUDA, unchanged",
+  "tests": {
+    "host_suites": 3,
+    "host_seconds": 42.86,
+    "host_names": [
+      "hip_device_runtime",
+      "video_runtime_reference",
+      "worker_metadata_reference"
+    ],
+    "simulated_amd_devices": [
+      "Radeon RX 7900 XTX",
+      "Instinct MI300X"
+    ],
+    "coverage": [
+      "HIP symbols rather than CUDA driver",
+      "logical ordinal remapping",
+      "device properties and compute capability",
+      "HIP-specific multiprocessor attribute numbers",
+      "selected-device memory",
+      "200 concurrent memory/context reads",
+      "memory error and recovery",
+      "HIP/CUDA visibility alias and nonempty HIP precedence",
+      "hidden devices",
+      "initialization and property failures"
+    ],
+    "actual_sdk_abi": {
+      "passed": true,
+      "runtime_symbols": 12,
+      "function_signatures_checked": 12,
+      "attribute_values_checked": 2,
+      "image": "rocm/dev-ubuntu-24.04:6.4.1",
+      "image_id": "sha256:e12c7e9a3efb317229a7c101856a9e30ad7760625aca59162d9e1a324dd45064",
+      "image_digest": "sha256:53e07952f5117dd2afc75938978f8ed4947c83a0359f8dfda40f55dc008622a5",
+      "header_sha256": "7c12746e08ea04adf19b140298ae5072833a538d79468f95c75ac10f6c81f69a",
+      "runtime_library_sha256": "3b270cd365c45f965ed2ee9950544dc48bf13cd74350f4385efec49ea079b6c4",
+      "gpu_devices_passed_to_container": false
+    }
+  },
+  "upstream_sources": [
+    "https://github.com/ROCm/HIP/blob/rocm-6.4.1/include/hip/hip_runtime_api.h",
+    "https://github.com/ROCm/clr/blob/rocm-6.4.1/rocclr/device/rocm/rocdevice.cpp",
+    "https://rocm.docs.amd.com/projects/HIP/en/docs-6.4.1/reference/env_variables.html"
+  ],
+  "test_corrections": [
+    "The first fixture incorrectly ignored the CUDA visibility alias and treated an empty HIP mask as hidden. Corrected from AMD source before final tests; production adapter delegates masking to the actual driver."
+  ],
+  "remaining": [
+    "ROCm LibTorch linking and allocator/device adapters",
+    "HIP model-engine builds and architecture inventory",
+    "ROCm-specific speculative draft device name (current launch hard-codes CUDA; pinned llama HIP names devices ROCm)",
+    "ROCm Compose settings parity and complete package gate",
+    "WorkerRouter reporting and model requests from HIP-configured worker",
+    "No physical AMD hardware is available; actual GPU execution remains unverified"
+  ],
+  "source_sha256": {
+    "src/video_runtime.cpp": "5b8c4017a396d087a2a9af67b1fdf3430773cbffcb2fc3617cd321c98c90467a",
+    "CMakeLists.txt": "93430cff5b5e4be330a8d613422c791e9247f013177ceea6c0d5fe64bcf62468",
+    "tests/cuda_driver_fixture.cpp": "64cd002efa9f6d72ce3030df1cf623ad9f7cd2e5cfbf48cd05fba6222c21cd09",
+    "tests/test_hip_runtime.cpp": "86ef486d2b8f0532e7455e7f1787f43d21311631556b0387e3d98989e0c52e2e",
+    "tests/test_hip_abi.cpp": "65c272f0cce2ab00e9f8c6e75992bd7a1e7adab971f10ce41f715c6d7994a2a5"
+  },
+  "evidence_directory": "build/validation/hip-runtime-20261020",
+  "production_changed": false
+}

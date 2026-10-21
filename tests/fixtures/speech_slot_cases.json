@@ -1,0 +1,3336 @@
+{
+  "source_sha256": "8238cef03d4a1db6e775d7f62234bcf998d8f08bd9fc15f1d8a36ea0d3280005",
+  "method": "Executed complete Pipes.get_slot_capacity_snapshot, voice handoff policy, VoiceServerClient settings and parallel parsers with controlled inference counts/resource manager; other modalities disabled",
+  "static_cases": [
+    {
+      "name": "mode-false-false-(0, 0)",
+      "environment": {
+        "VOICE_SERVER": "",
+        "TTS_ENABLED": "true",
+        "STT_ENABLED": "true",
+        "EMBEDDING_ENABLED": "false",
+        "TTS_N_PARALLEL": "2",
+        "STT_N_PARALLEL": "3",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "false",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "false"
+      },
+      "tts_active": 0,
+      "stt_active": 0,
+      "llm_active": 0,
+      "handoff_active": false,
+      "slots": {
+        "cap_slots": {
+          "tts": {
+            "capacity": 2,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 2
+          },
+          "stt": {
+            "capacity": 3,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 3
+          }
+        },
+        "model_slots": {},
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 5,
+        "slot_total_in_flight": 0,
+        "slot_total_queued": 0,
+        "slot_total_available": 5
+      }
+    },
+    {
+      "name": "mode-false-false-(1, 0)",
+      "environment": {
+        "VOICE_SERVER": "",
+        "TTS_ENABLED": "true",
+        "STT_ENABLED": "true",
+        "EMBEDDING_ENABLED": "false",
+        "TTS_N_PARALLEL": "2",
+        "STT_N_PARALLEL": "3",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "false",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "false"
+      },
+      "tts_active": 1,
+      "stt_active": 0,
+      "llm_active": 0,
+      "handoff_active": false,
+      "slots": {
+        "cap_slots": {
+          "tts": {
+            "capacity": 2,
+            "in_flight": 1,
+            "queued": 0,
+            "available": 1
+          },
+          "stt": {
+            "capacity": 3,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 3
+          }
+        },
+        "model_slots": {},
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 5,
+        "slot_total_in_flight": 1,
+        "slot_total_queued": 0,
+        "slot_total_available": 4
+      }
+    },
+    {
+      "name": "mode-false-false-(0, 2)",
+      "environment": {
+        "VOICE_SERVER": "",
+        "TTS_ENABLED": "true",
+        "STT_ENABLED": "true",
+        "EMBEDDING_ENABLED": "false",
+        "TTS_N_PARALLEL": "2",
+        "STT_N_PARALLEL": "3",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "false",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "false"
+      },
+      "tts_active": 0,
+      "stt_active": 2,
+      "llm_active": 0,
+      "handoff_active": false,
+      "slots": {
+        "cap_slots": {
+          "tts": {
+            "capacity": 2,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 2
+          },
+          "stt": {
+            "capacity": 3,
+            "in_flight": 2,
+            "queued": 0,
+            "available": 1
+          }
+        },
+        "model_slots": {},
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 5,
+        "slot_total_in_flight": 2,
+        "slot_total_queued": 0,
+        "slot_total_available": 3
+      }
+    },
+    {
+      "name": "mode-false-false-(2, 3)",
+      "environment": {
+        "VOICE_SERVER": "",
+        "TTS_ENABLED": "true",
+        "STT_ENABLED": "true",
+        "EMBEDDING_ENABLED": "false",
+        "TTS_N_PARALLEL": "2",
+        "STT_N_PARALLEL": "3",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "false",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "false"
+      },
+      "tts_active": 2,
+      "stt_active": 3,
+      "llm_active": 0,
+      "handoff_active": false,
+      "slots": {
+        "cap_slots": {
+          "tts": {
+            "capacity": 2,
+            "in_flight": 2,
+            "queued": 0,
+            "available": 0
+          },
+          "stt": {
+            "capacity": 3,
+            "in_flight": 3,
+            "queued": 0,
+            "available": 0
+          }
+        },
+        "model_slots": {},
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 5,
+        "slot_total_in_flight": 5,
+        "slot_total_queued": 0,
+        "slot_total_available": 0
+      }
+    },
+    {
+      "name": "mode-false-true-(0, 0)",
+      "environment": {
+        "VOICE_SERVER": "",
+        "TTS_ENABLED": "true",
+        "STT_ENABLED": "true",
+        "EMBEDDING_ENABLED": "false",
+        "TTS_N_PARALLEL": "2",
+        "STT_N_PARALLEL": "3",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "false",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "true"
+      },
+      "tts_active": 0,
+      "stt_active": 0,
+      "llm_active": 0,
+      "handoff_active": false,
+      "slots": {
+        "cap_slots": {
+          "tts": {
+            "capacity": 2,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 2
+          },
+          "stt": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          }
+        },
+        "model_slots": {},
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 3,
+        "slot_total_in_flight": 0,
+        "slot_total_queued": 0,
+        "slot_total_available": 3
+      }
+    },
+    {
+      "name": "mode-false-true-(1, 0)",
+      "environment": {
+        "VOICE_SERVER": "",
+        "TTS_ENABLED": "true",
+        "STT_ENABLED": "true",
+        "EMBEDDING_ENABLED": "false",
+        "TTS_N_PARALLEL": "2",
+        "STT_N_PARALLEL": "3",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "false",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "true"
+      },
+      "tts_active": 1,
+      "stt_active": 0,
+      "llm_active": 0,
+      "handoff_active": false,
+      "slots": {
+        "cap_slots": {
+          "tts": {
+            "capacity": 2,
+            "in_flight": 1,
+            "queued": 0,
+            "available": 1
+          },
+          "stt": {
+            "capacity": 1,
+            "in_flight": 1,
+            "queued": 0,
+            "available": 0
+          }
+        },
+        "model_slots": {},
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 3,
+        "slot_total_in_flight": 2,
+        "slot_total_queued": 0,
+        "slot_total_available": 1
+      }
+    },
+    {
+      "name": "mode-false-true-(0, 2)",
+      "environment": {
+        "VOICE_SERVER": "",
+        "TTS_ENABLED": "true",
+        "STT_ENABLED": "true",
+        "EMBEDDING_ENABLED": "false",
+        "TTS_N_PARALLEL": "2",
+        "STT_N_PARALLEL": "3",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "false",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "true"
+      },
+      "tts_active": 0,
+      "stt_active": 2,
+      "llm_active": 0,
+      "handoff_active": false,
+      "slots": {
+        "cap_slots": {
+          "tts": {
+            "capacity": 2,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 2
+          },
+          "stt": {
+            "capacity": 1,
+            "in_flight": 2,
+            "queued": 0,
+            "available": 0
+          }
+        },
+        "model_slots": {},
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 3,
+        "slot_total_in_flight": 2,
+        "slot_total_queued": 0,
+        "slot_total_available": 1
+      }
+    },
+    {
+      "name": "mode-false-true-(2, 3)",
+      "environment": {
+        "VOICE_SERVER": "",
+        "TTS_ENABLED": "true",
+        "STT_ENABLED": "true",
+        "EMBEDDING_ENABLED": "false",
+        "TTS_N_PARALLEL": "2",
+        "STT_N_PARALLEL": "3",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "false",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "true"
+      },
+      "tts_active": 2,
+      "stt_active": 3,
+      "llm_active": 0,
+      "handoff_active": false,
+      "slots": {
+        "cap_slots": {
+          "tts": {
+            "capacity": 2,
+            "in_flight": 2,
+            "queued": 0,
+            "available": 0
+          },
+          "stt": {
+            "capacity": 1,
+            "in_flight": 3,
+            "queued": 0,
+            "available": 0
+          }
+        },
+        "model_slots": {},
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 3,
+        "slot_total_in_flight": 5,
+        "slot_total_queued": 0,
+        "slot_total_available": 0
+      }
+    },
+    {
+      "name": "mode-false-auto-(0, 0)",
+      "environment": {
+        "VOICE_SERVER": "",
+        "TTS_ENABLED": "true",
+        "STT_ENABLED": "true",
+        "EMBEDDING_ENABLED": "false",
+        "TTS_N_PARALLEL": "2",
+        "STT_N_PARALLEL": "3",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "false",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "auto"
+      },
+      "tts_active": 0,
+      "stt_active": 0,
+      "llm_active": 0,
+      "handoff_active": false,
+      "slots": {
+        "cap_slots": {
+          "tts": {
+            "capacity": 2,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 2
+          },
+          "stt": {
+            "capacity": 3,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 3
+          }
+        },
+        "model_slots": {},
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 5,
+        "slot_total_in_flight": 0,
+        "slot_total_queued": 0,
+        "slot_total_available": 5
+      }
+    },
+    {
+      "name": "mode-false-auto-(1, 0)",
+      "environment": {
+        "VOICE_SERVER": "",
+        "TTS_ENABLED": "true",
+        "STT_ENABLED": "true",
+        "EMBEDDING_ENABLED": "false",
+        "TTS_N_PARALLEL": "2",
+        "STT_N_PARALLEL": "3",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "false",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "auto"
+      },
+      "tts_active": 1,
+      "stt_active": 0,
+      "llm_active": 0,
+      "handoff_active": false,
+      "slots": {
+        "cap_slots": {
+          "tts": {
+            "capacity": 2,
+            "in_flight": 1,
+            "queued": 0,
+            "available": 1
+          },
+          "stt": {
+            "capacity": 3,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 3
+          }
+        },
+        "model_slots": {},
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 5,
+        "slot_total_in_flight": 1,
+        "slot_total_queued": 0,
+        "slot_total_available": 4
+      }
+    },
+    {
+      "name": "mode-false-auto-(0, 2)",
+      "environment": {
+        "VOICE_SERVER": "",
+        "TTS_ENABLED": "true",
+        "STT_ENABLED": "true",
+        "EMBEDDING_ENABLED": "false",
+        "TTS_N_PARALLEL": "2",
+        "STT_N_PARALLEL": "3",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "false",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "auto"
+      },
+      "tts_active": 0,
+      "stt_active": 2,
+      "llm_active": 0,
+      "handoff_active": false,
+      "slots": {
+        "cap_slots": {
+          "tts": {
+            "capacity": 2,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 2
+          },
+          "stt": {
+            "capacity": 3,
+            "in_flight": 2,
+            "queued": 0,
+            "available": 1
+          }
+        },
+        "model_slots": {},
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 5,
+        "slot_total_in_flight": 2,
+        "slot_total_queued": 0,
+        "slot_total_available": 3
+      }
+    },
+    {
+      "name": "mode-false-auto-(2, 3)",
+      "environment": {
+        "VOICE_SERVER": "",
+        "TTS_ENABLED": "true",
+        "STT_ENABLED": "true",
+        "EMBEDDING_ENABLED": "false",
+        "TTS_N_PARALLEL": "2",
+        "STT_N_PARALLEL": "3",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "false",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "auto"
+      },
+      "tts_active": 2,
+      "stt_active": 3,
+      "llm_active": 0,
+      "handoff_active": false,
+      "slots": {
+        "cap_slots": {
+          "tts": {
+            "capacity": 2,
+            "in_flight": 2,
+            "queued": 0,
+            "available": 0
+          },
+          "stt": {
+            "capacity": 3,
+            "in_flight": 3,
+            "queued": 0,
+            "available": 0
+          }
+        },
+        "model_slots": {},
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 5,
+        "slot_total_in_flight": 5,
+        "slot_total_queued": 0,
+        "slot_total_available": 0
+      }
+    },
+    {
+      "name": "mode-true-false-(0, 0)",
+      "environment": {
+        "VOICE_SERVER": "",
+        "TTS_ENABLED": "true",
+        "STT_ENABLED": "true",
+        "EMBEDDING_ENABLED": "false",
+        "TTS_N_PARALLEL": "2",
+        "STT_N_PARALLEL": "3",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "true",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "false"
+      },
+      "tts_active": 0,
+      "stt_active": 0,
+      "llm_active": 0,
+      "handoff_active": false,
+      "slots": {
+        "cap_slots": {
+          "tts": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          },
+          "stt": {
+            "capacity": 3,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 3
+          }
+        },
+        "model_slots": {},
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 4,
+        "slot_total_in_flight": 0,
+        "slot_total_queued": 0,
+        "slot_total_available": 4
+      }
+    },
+    {
+      "name": "mode-true-false-(1, 0)",
+      "environment": {
+        "VOICE_SERVER": "",
+        "TTS_ENABLED": "true",
+        "STT_ENABLED": "true",
+        "EMBEDDING_ENABLED": "false",
+        "TTS_N_PARALLEL": "2",
+        "STT_N_PARALLEL": "3",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "true",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "false"
+      },
+      "tts_active": 1,
+      "stt_active": 0,
+      "llm_active": 0,
+      "handoff_active": false,
+      "slots": {
+        "cap_slots": {
+          "tts": {
+            "capacity": 1,
+            "in_flight": 1,
+            "queued": 0,
+            "available": 0
+          },
+          "stt": {
+            "capacity": 3,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 3
+          }
+        },
+        "model_slots": {},
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 4,
+        "slot_total_in_flight": 1,
+        "slot_total_queued": 0,
+        "slot_total_available": 3
+      }
+    },
+    {
+      "name": "mode-true-false-(0, 2)",
+      "environment": {
+        "VOICE_SERVER": "",
+        "TTS_ENABLED": "true",
+        "STT_ENABLED": "true",
+        "EMBEDDING_ENABLED": "false",
+        "TTS_N_PARALLEL": "2",
+        "STT_N_PARALLEL": "3",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "true",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "false"
+      },
+      "tts_active": 0,
+      "stt_active": 2,
+      "llm_active": 0,
+      "handoff_active": false,
+      "slots": {
+        "cap_slots": {
+          "tts": {
+            "capacity": 1,
+            "in_flight": 1,
+            "queued": 0,
+            "available": 0
+          },
+          "stt": {
+            "capacity": 3,
+            "in_flight": 2,
+            "queued": 0,
+            "available": 1
+          }
+        },
+        "model_slots": {},
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 4,
+        "slot_total_in_flight": 3,
+        "slot_total_queued": 0,
+        "slot_total_available": 1
+      }
+    },
+    {
+      "name": "mode-true-false-(2, 3)",
+      "environment": {
+        "VOICE_SERVER": "",
+        "TTS_ENABLED": "true",
+        "STT_ENABLED": "true",
+        "EMBEDDING_ENABLED": "false",
+        "TTS_N_PARALLEL": "2",
+        "STT_N_PARALLEL": "3",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "true",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "false"
+      },
+      "tts_active": 2,
+      "stt_active": 3,
+      "llm_active": 0,
+      "handoff_active": false,
+      "slots": {
+        "cap_slots": {
+          "tts": {
+            "capacity": 1,
+            "in_flight": 2,
+            "queued": 0,
+            "available": 0
+          },
+          "stt": {
+            "capacity": 3,
+            "in_flight": 3,
+            "queued": 0,
+            "available": 0
+          }
+        },
+        "model_slots": {},
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 4,
+        "slot_total_in_flight": 5,
+        "slot_total_queued": 0,
+        "slot_total_available": 0
+      }
+    },
+    {
+      "name": "mode-true-true-(0, 0)",
+      "environment": {
+        "VOICE_SERVER": "",
+        "TTS_ENABLED": "true",
+        "STT_ENABLED": "true",
+        "EMBEDDING_ENABLED": "false",
+        "TTS_N_PARALLEL": "2",
+        "STT_N_PARALLEL": "3",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "true",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "true"
+      },
+      "tts_active": 0,
+      "stt_active": 0,
+      "llm_active": 0,
+      "handoff_active": false,
+      "slots": {
+        "cap_slots": {
+          "tts": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          },
+          "stt": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          }
+        },
+        "model_slots": {},
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 2,
+        "slot_total_in_flight": 0,
+        "slot_total_queued": 0,
+        "slot_total_available": 2
+      }
+    },
+    {
+      "name": "mode-true-true-(1, 0)",
+      "environment": {
+        "VOICE_SERVER": "",
+        "TTS_ENABLED": "true",
+        "STT_ENABLED": "true",
+        "EMBEDDING_ENABLED": "false",
+        "TTS_N_PARALLEL": "2",
+        "STT_N_PARALLEL": "3",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "true",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "true"
+      },
+      "tts_active": 1,
+      "stt_active": 0,
+      "llm_active": 0,
+      "handoff_active": false,
+      "slots": {
+        "cap_slots": {
+          "tts": {
+            "capacity": 1,
+            "in_flight": 1,
+            "queued": 0,
+            "available": 0
+          },
+          "stt": {
+            "capacity": 1,
+            "in_flight": 1,
+            "queued": 0,
+            "available": 0
+          }
+        },
+        "model_slots": {},
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 2,
+        "slot_total_in_flight": 2,
+        "slot_total_queued": 0,
+        "slot_total_available": 0
+      }
+    },
+    {
+      "name": "mode-true-true-(0, 2)",
+      "environment": {
+        "VOICE_SERVER": "",
+        "TTS_ENABLED": "true",
+        "STT_ENABLED": "true",
+        "EMBEDDING_ENABLED": "false",
+        "TTS_N_PARALLEL": "2",
+        "STT_N_PARALLEL": "3",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "true",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "true"
+      },
+      "tts_active": 0,
+      "stt_active": 2,
+      "llm_active": 0,
+      "handoff_active": false,
+      "slots": {
+        "cap_slots": {
+          "tts": {
+            "capacity": 1,
+            "in_flight": 1,
+            "queued": 0,
+            "available": 0
+          },
+          "stt": {
+            "capacity": 1,
+            "in_flight": 2,
+            "queued": 0,
+            "available": 0
+          }
+        },
+        "model_slots": {},
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 2,
+        "slot_total_in_flight": 3,
+        "slot_total_queued": 0,
+        "slot_total_available": 0
+      }
+    },
+    {
+      "name": "mode-true-true-(2, 3)",
+      "environment": {
+        "VOICE_SERVER": "",
+        "TTS_ENABLED": "true",
+        "STT_ENABLED": "true",
+        "EMBEDDING_ENABLED": "false",
+        "TTS_N_PARALLEL": "2",
+        "STT_N_PARALLEL": "3",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "true",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "true"
+      },
+      "tts_active": 2,
+      "stt_active": 3,
+      "llm_active": 0,
+      "handoff_active": false,
+      "slots": {
+        "cap_slots": {
+          "tts": {
+            "capacity": 1,
+            "in_flight": 2,
+            "queued": 0,
+            "available": 0
+          },
+          "stt": {
+            "capacity": 1,
+            "in_flight": 3,
+            "queued": 0,
+            "available": 0
+          }
+        },
+        "model_slots": {},
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 2,
+        "slot_total_in_flight": 5,
+        "slot_total_queued": 0,
+        "slot_total_available": 0
+      }
+    },
+    {
+      "name": "mode-true-auto-(0, 0)",
+      "environment": {
+        "VOICE_SERVER": "",
+        "TTS_ENABLED": "true",
+        "STT_ENABLED": "true",
+        "EMBEDDING_ENABLED": "false",
+        "TTS_N_PARALLEL": "2",
+        "STT_N_PARALLEL": "3",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "true",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "auto"
+      },
+      "tts_active": 0,
+      "stt_active": 0,
+      "llm_active": 0,
+      "handoff_active": false,
+      "slots": {
+        "cap_slots": {
+          "tts": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          },
+          "stt": {
+            "capacity": 3,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 3
+          }
+        },
+        "model_slots": {},
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 4,
+        "slot_total_in_flight": 0,
+        "slot_total_queued": 0,
+        "slot_total_available": 4
+      }
+    },
+    {
+      "name": "mode-true-auto-(1, 0)",
+      "environment": {
+        "VOICE_SERVER": "",
+        "TTS_ENABLED": "true",
+        "STT_ENABLED": "true",
+        "EMBEDDING_ENABLED": "false",
+        "TTS_N_PARALLEL": "2",
+        "STT_N_PARALLEL": "3",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "true",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "auto"
+      },
+      "tts_active": 1,
+      "stt_active": 0,
+      "llm_active": 0,
+      "handoff_active": false,
+      "slots": {
+        "cap_slots": {
+          "tts": {
+            "capacity": 1,
+            "in_flight": 1,
+            "queued": 0,
+            "available": 0
+          },
+          "stt": {
+            "capacity": 3,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 3
+          }
+        },
+        "model_slots": {},
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 4,
+        "slot_total_in_flight": 1,
+        "slot_total_queued": 0,
+        "slot_total_available": 3
+      }
+    },
+    {
+      "name": "mode-true-auto-(0, 2)",
+      "environment": {
+        "VOICE_SERVER": "",
+        "TTS_ENABLED": "true",
+        "STT_ENABLED": "true",
+        "EMBEDDING_ENABLED": "false",
+        "TTS_N_PARALLEL": "2",
+        "STT_N_PARALLEL": "3",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "true",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "auto"
+      },
+      "tts_active": 0,
+      "stt_active": 2,
+      "llm_active": 0,
+      "handoff_active": false,
+      "slots": {
+        "cap_slots": {
+          "tts": {
+            "capacity": 1,
+            "in_flight": 1,
+            "queued": 0,
+            "available": 0
+          },
+          "stt": {
+            "capacity": 3,
+            "in_flight": 2,
+            "queued": 0,
+            "available": 1
+          }
+        },
+        "model_slots": {},
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 4,
+        "slot_total_in_flight": 3,
+        "slot_total_queued": 0,
+        "slot_total_available": 1
+      }
+    },
+    {
+      "name": "mode-true-auto-(2, 3)",
+      "environment": {
+        "VOICE_SERVER": "",
+        "TTS_ENABLED": "true",
+        "STT_ENABLED": "true",
+        "EMBEDDING_ENABLED": "false",
+        "TTS_N_PARALLEL": "2",
+        "STT_N_PARALLEL": "3",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "true",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "auto"
+      },
+      "tts_active": 2,
+      "stt_active": 3,
+      "llm_active": 0,
+      "handoff_active": false,
+      "slots": {
+        "cap_slots": {
+          "tts": {
+            "capacity": 1,
+            "in_flight": 2,
+            "queued": 0,
+            "available": 0
+          },
+          "stt": {
+            "capacity": 3,
+            "in_flight": 3,
+            "queued": 0,
+            "available": 0
+          }
+        },
+        "model_slots": {},
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 4,
+        "slot_total_in_flight": 5,
+        "slot_total_queued": 0,
+        "slot_total_available": 0
+      }
+    },
+    {
+      "name": "mode-auto-false-(0, 0)",
+      "environment": {
+        "VOICE_SERVER": "",
+        "TTS_ENABLED": "true",
+        "STT_ENABLED": "true",
+        "EMBEDDING_ENABLED": "false",
+        "TTS_N_PARALLEL": "2",
+        "STT_N_PARALLEL": "3",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "false"
+      },
+      "tts_active": 0,
+      "stt_active": 0,
+      "llm_active": 0,
+      "handoff_active": false,
+      "slots": {
+        "cap_slots": {
+          "tts": {
+            "capacity": 2,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 2
+          },
+          "stt": {
+            "capacity": 3,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 3
+          }
+        },
+        "model_slots": {},
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 5,
+        "slot_total_in_flight": 0,
+        "slot_total_queued": 0,
+        "slot_total_available": 5
+      }
+    },
+    {
+      "name": "mode-auto-false-(1, 0)",
+      "environment": {
+        "VOICE_SERVER": "",
+        "TTS_ENABLED": "true",
+        "STT_ENABLED": "true",
+        "EMBEDDING_ENABLED": "false",
+        "TTS_N_PARALLEL": "2",
+        "STT_N_PARALLEL": "3",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "false"
+      },
+      "tts_active": 1,
+      "stt_active": 0,
+      "llm_active": 0,
+      "handoff_active": false,
+      "slots": {
+        "cap_slots": {
+          "tts": {
+            "capacity": 2,
+            "in_flight": 1,
+            "queued": 0,
+            "available": 1
+          },
+          "stt": {
+            "capacity": 3,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 3
+          }
+        },
+        "model_slots": {},
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 5,
+        "slot_total_in_flight": 1,
+        "slot_total_queued": 0,
+        "slot_total_available": 4
+      }
+    },
+    {
+      "name": "mode-auto-false-(0, 2)",
+      "environment": {
+        "VOICE_SERVER": "",
+        "TTS_ENABLED": "true",
+        "STT_ENABLED": "true",
+        "EMBEDDING_ENABLED": "false",
+        "TTS_N_PARALLEL": "2",
+        "STT_N_PARALLEL": "3",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "false"
+      },
+      "tts_active": 0,
+      "stt_active": 2,
+      "llm_active": 0,
+      "handoff_active": false,
+      "slots": {
+        "cap_slots": {
+          "tts": {
+            "capacity": 2,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 2
+          },
+          "stt": {
+            "capacity": 3,
+            "in_flight": 2,
+            "queued": 0,
+            "available": 1
+          }
+        },
+        "model_slots": {},
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 5,
+        "slot_total_in_flight": 2,
+        "slot_total_queued": 0,
+        "slot_total_available": 3
+      }
+    },
+    {
+      "name": "mode-auto-false-(2, 3)",
+      "environment": {
+        "VOICE_SERVER": "",
+        "TTS_ENABLED": "true",
+        "STT_ENABLED": "true",
+        "EMBEDDING_ENABLED": "false",
+        "TTS_N_PARALLEL": "2",
+        "STT_N_PARALLEL": "3",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "false"
+      },
+      "tts_active": 2,
+      "stt_active": 3,
+      "llm_active": 0,
+      "handoff_active": false,
+      "slots": {
+        "cap_slots": {
+          "tts": {
+            "capacity": 2,
+            "in_flight": 2,
+            "queued": 0,
+            "available": 0
+          },
+          "stt": {
+            "capacity": 3,
+            "in_flight": 3,
+            "queued": 0,
+            "available": 0
+          }
+        },
+        "model_slots": {},
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 5,
+        "slot_total_in_flight": 5,
+        "slot_total_queued": 0,
+        "slot_total_available": 0
+      }
+    },
+    {
+      "name": "mode-auto-true-(0, 0)",
+      "environment": {
+        "VOICE_SERVER": "",
+        "TTS_ENABLED": "true",
+        "STT_ENABLED": "true",
+        "EMBEDDING_ENABLED": "false",
+        "TTS_N_PARALLEL": "2",
+        "STT_N_PARALLEL": "3",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "true"
+      },
+      "tts_active": 0,
+      "stt_active": 0,
+      "llm_active": 0,
+      "handoff_active": false,
+      "slots": {
+        "cap_slots": {
+          "tts": {
+            "capacity": 2,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 2
+          },
+          "stt": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          }
+        },
+        "model_slots": {},
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 3,
+        "slot_total_in_flight": 0,
+        "slot_total_queued": 0,
+        "slot_total_available": 3
+      }
+    },
+    {
+      "name": "mode-auto-true-(1, 0)",
+      "environment": {
+        "VOICE_SERVER": "",
+        "TTS_ENABLED": "true",
+        "STT_ENABLED": "true",
+        "EMBEDDING_ENABLED": "false",
+        "TTS_N_PARALLEL": "2",
+        "STT_N_PARALLEL": "3",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "true"
+      },
+      "tts_active": 1,
+      "stt_active": 0,
+      "llm_active": 0,
+      "handoff_active": false,
+      "slots": {
+        "cap_slots": {
+          "tts": {
+            "capacity": 2,
+            "in_flight": 1,
+            "queued": 0,
+            "available": 1
+          },
+          "stt": {
+            "capacity": 1,
+            "in_flight": 1,
+            "queued": 0,
+            "available": 0
+          }
+        },
+        "model_slots": {},
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 3,
+        "slot_total_in_flight": 2,
+        "slot_total_queued": 0,
+        "slot_total_available": 1
+      }
+    },
+    {
+      "name": "mode-auto-true-(0, 2)",
+      "environment": {
+        "VOICE_SERVER": "",
+        "TTS_ENABLED": "true",
+        "STT_ENABLED": "true",
+        "EMBEDDING_ENABLED": "false",
+        "TTS_N_PARALLEL": "2",
+        "STT_N_PARALLEL": "3",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "true"
+      },
+      "tts_active": 0,
+      "stt_active": 2,
+      "llm_active": 0,
+      "handoff_active": false,
+      "slots": {
+        "cap_slots": {
+          "tts": {
+            "capacity": 2,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 2
+          },
+          "stt": {
+            "capacity": 1,
+            "in_flight": 2,
+            "queued": 0,
+            "available": 0
+          }
+        },
+        "model_slots": {},
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 3,
+        "slot_total_in_flight": 2,
+        "slot_total_queued": 0,
+        "slot_total_available": 1
+      }
+    },
+    {
+      "name": "mode-auto-true-(2, 3)",
+      "environment": {
+        "VOICE_SERVER": "",
+        "TTS_ENABLED": "true",
+        "STT_ENABLED": "true",
+        "EMBEDDING_ENABLED": "false",
+        "TTS_N_PARALLEL": "2",
+        "STT_N_PARALLEL": "3",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "true"
+      },
+      "tts_active": 2,
+      "stt_active": 3,
+      "llm_active": 0,
+      "handoff_active": false,
+      "slots": {
+        "cap_slots": {
+          "tts": {
+            "capacity": 2,
+            "in_flight": 2,
+            "queued": 0,
+            "available": 0
+          },
+          "stt": {
+            "capacity": 1,
+            "in_flight": 3,
+            "queued": 0,
+            "available": 0
+          }
+        },
+        "model_slots": {},
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 3,
+        "slot_total_in_flight": 5,
+        "slot_total_queued": 0,
+        "slot_total_available": 0
+      }
+    },
+    {
+      "name": "mode-auto-auto-(0, 0)",
+      "environment": {
+        "VOICE_SERVER": "",
+        "TTS_ENABLED": "true",
+        "STT_ENABLED": "true",
+        "EMBEDDING_ENABLED": "false",
+        "TTS_N_PARALLEL": "2",
+        "STT_N_PARALLEL": "3",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "auto"
+      },
+      "tts_active": 0,
+      "stt_active": 0,
+      "llm_active": 0,
+      "handoff_active": false,
+      "slots": {
+        "cap_slots": {
+          "tts": {
+            "capacity": 2,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 2
+          },
+          "stt": {
+            "capacity": 3,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 3
+          }
+        },
+        "model_slots": {},
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 5,
+        "slot_total_in_flight": 0,
+        "slot_total_queued": 0,
+        "slot_total_available": 5
+      }
+    },
+    {
+      "name": "mode-auto-auto-(1, 0)",
+      "environment": {
+        "VOICE_SERVER": "",
+        "TTS_ENABLED": "true",
+        "STT_ENABLED": "true",
+        "EMBEDDING_ENABLED": "false",
+        "TTS_N_PARALLEL": "2",
+        "STT_N_PARALLEL": "3",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "auto"
+      },
+      "tts_active": 1,
+      "stt_active": 0,
+      "llm_active": 0,
+      "handoff_active": false,
+      "slots": {
+        "cap_slots": {
+          "tts": {
+            "capacity": 2,
+            "in_flight": 1,
+            "queued": 0,
+            "available": 1
+          },
+          "stt": {
+            "capacity": 3,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 3
+          }
+        },
+        "model_slots": {},
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 5,
+        "slot_total_in_flight": 1,
+        "slot_total_queued": 0,
+        "slot_total_available": 4
+      }
+    },
+    {
+      "name": "mode-auto-auto-(0, 2)",
+      "environment": {
+        "VOICE_SERVER": "",
+        "TTS_ENABLED": "true",
+        "STT_ENABLED": "true",
+        "EMBEDDING_ENABLED": "false",
+        "TTS_N_PARALLEL": "2",
+        "STT_N_PARALLEL": "3",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "auto"
+      },
+      "tts_active": 0,
+      "stt_active": 2,
+      "llm_active": 0,
+      "handoff_active": false,
+      "slots": {
+        "cap_slots": {
+          "tts": {
+            "capacity": 2,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 2
+          },
+          "stt": {
+            "capacity": 3,
+            "in_flight": 2,
+            "queued": 0,
+            "available": 1
+          }
+        },
+        "model_slots": {},
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 5,
+        "slot_total_in_flight": 2,
+        "slot_total_queued": 0,
+        "slot_total_available": 3
+      }
+    },
+    {
+      "name": "mode-auto-auto-(2, 3)",
+      "environment": {
+        "VOICE_SERVER": "",
+        "TTS_ENABLED": "true",
+        "STT_ENABLED": "true",
+        "EMBEDDING_ENABLED": "false",
+        "TTS_N_PARALLEL": "2",
+        "STT_N_PARALLEL": "3",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "auto"
+      },
+      "tts_active": 2,
+      "stt_active": 3,
+      "llm_active": 0,
+      "handoff_active": false,
+      "slots": {
+        "cap_slots": {
+          "tts": {
+            "capacity": 2,
+            "in_flight": 2,
+            "queued": 0,
+            "available": 0
+          },
+          "stt": {
+            "capacity": 3,
+            "in_flight": 3,
+            "queued": 0,
+            "available": 0
+          }
+        },
+        "model_slots": {},
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 5,
+        "slot_total_in_flight": 5,
+        "slot_total_queued": 0,
+        "slot_total_available": 0
+      }
+    },
+    {
+      "name": "parallel-''",
+      "environment": {
+        "VOICE_SERVER": "",
+        "TTS_ENABLED": "true",
+        "STT_ENABLED": "true",
+        "EMBEDDING_ENABLED": "false",
+        "TTS_N_PARALLEL": "",
+        "STT_N_PARALLEL": "",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "false",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "false"
+      },
+      "tts_active": 1,
+      "stt_active": 2,
+      "llm_active": 0,
+      "handoff_active": false,
+      "slots": {
+        "cap_slots": {
+          "tts": {
+            "capacity": 1,
+            "in_flight": 1,
+            "queued": 0,
+            "available": 0
+          },
+          "stt": {
+            "capacity": 1,
+            "in_flight": 2,
+            "queued": 0,
+            "available": 0
+          }
+        },
+        "model_slots": {},
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 2,
+        "slot_total_in_flight": 3,
+        "slot_total_queued": 0,
+        "slot_total_available": 0
+      }
+    },
+    {
+      "name": "parallel-'0'",
+      "environment": {
+        "VOICE_SERVER": "",
+        "TTS_ENABLED": "true",
+        "STT_ENABLED": "true",
+        "EMBEDDING_ENABLED": "false",
+        "TTS_N_PARALLEL": "0",
+        "STT_N_PARALLEL": "0",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "false",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "false"
+      },
+      "tts_active": 1,
+      "stt_active": 2,
+      "llm_active": 0,
+      "handoff_active": false,
+      "slots": {
+        "cap_slots": {
+          "tts": {
+            "capacity": 1,
+            "in_flight": 1,
+            "queued": 0,
+            "available": 0
+          },
+          "stt": {
+            "capacity": 1,
+            "in_flight": 2,
+            "queued": 0,
+            "available": 0
+          }
+        },
+        "model_slots": {},
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 2,
+        "slot_total_in_flight": 3,
+        "slot_total_queued": 0,
+        "slot_total_available": 0
+      }
+    },
+    {
+      "name": "parallel-'-4'",
+      "environment": {
+        "VOICE_SERVER": "",
+        "TTS_ENABLED": "true",
+        "STT_ENABLED": "true",
+        "EMBEDDING_ENABLED": "false",
+        "TTS_N_PARALLEL": "-4",
+        "STT_N_PARALLEL": "-4",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "false",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "false"
+      },
+      "tts_active": 1,
+      "stt_active": 2,
+      "llm_active": 0,
+      "handoff_active": false,
+      "slots": {
+        "cap_slots": {
+          "tts": {
+            "capacity": 1,
+            "in_flight": 1,
+            "queued": 0,
+            "available": 0
+          },
+          "stt": {
+            "capacity": 1,
+            "in_flight": 2,
+            "queued": 0,
+            "available": 0
+          }
+        },
+        "model_slots": {},
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 2,
+        "slot_total_in_flight": 3,
+        "slot_total_queued": 0,
+        "slot_total_available": 0
+      }
+    },
+    {
+      "name": "parallel-'+4'",
+      "environment": {
+        "VOICE_SERVER": "",
+        "TTS_ENABLED": "true",
+        "STT_ENABLED": "true",
+        "EMBEDDING_ENABLED": "false",
+        "TTS_N_PARALLEL": "+4",
+        "STT_N_PARALLEL": "+4",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "false",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "false"
+      },
+      "tts_active": 1,
+      "stt_active": 2,
+      "llm_active": 0,
+      "handoff_active": false,
+      "slots": {
+        "cap_slots": {
+          "tts": {
+            "capacity": 4,
+            "in_flight": 1,
+            "queued": 0,
+            "available": 3
+          },
+          "stt": {
+            "capacity": 4,
+            "in_flight": 2,
+            "queued": 0,
+            "available": 2
+          }
+        },
+        "model_slots": {},
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 8,
+        "slot_total_in_flight": 3,
+        "slot_total_queued": 0,
+        "slot_total_available": 5
+      }
+    },
+    {
+      "name": "parallel-' 3 '",
+      "environment": {
+        "VOICE_SERVER": "",
+        "TTS_ENABLED": "true",
+        "STT_ENABLED": "true",
+        "EMBEDDING_ENABLED": "false",
+        "TTS_N_PARALLEL": " 3 ",
+        "STT_N_PARALLEL": " 3 ",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "false",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "false"
+      },
+      "tts_active": 1,
+      "stt_active": 2,
+      "llm_active": 0,
+      "handoff_active": false,
+      "slots": {
+        "cap_slots": {
+          "tts": {
+            "capacity": 3,
+            "in_flight": 1,
+            "queued": 0,
+            "available": 2
+          },
+          "stt": {
+            "capacity": 3,
+            "in_flight": 2,
+            "queued": 0,
+            "available": 1
+          }
+        },
+        "model_slots": {},
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 6,
+        "slot_total_in_flight": 3,
+        "slot_total_queued": 0,
+        "slot_total_available": 3
+      }
+    },
+    {
+      "name": "parallel-'1_2'",
+      "environment": {
+        "VOICE_SERVER": "",
+        "TTS_ENABLED": "true",
+        "STT_ENABLED": "true",
+        "EMBEDDING_ENABLED": "false",
+        "TTS_N_PARALLEL": "1_2",
+        "STT_N_PARALLEL": "1_2",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "false",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "false"
+      },
+      "tts_active": 1,
+      "stt_active": 2,
+      "llm_active": 0,
+      "handoff_active": false,
+      "slots": {
+        "cap_slots": {
+          "tts": {
+            "capacity": 12,
+            "in_flight": 1,
+            "queued": 0,
+            "available": 11
+          },
+          "stt": {
+            "capacity": 12,
+            "in_flight": 2,
+            "queued": 0,
+            "available": 10
+          }
+        },
+        "model_slots": {},
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 24,
+        "slot_total_in_flight": 3,
+        "slot_total_queued": 0,
+        "slot_total_available": 21
+      }
+    },
+    {
+      "name": "parallel-'٢'",
+      "environment": {
+        "VOICE_SERVER": "",
+        "TTS_ENABLED": "true",
+        "STT_ENABLED": "true",
+        "EMBEDDING_ENABLED": "false",
+        "TTS_N_PARALLEL": "٢",
+        "STT_N_PARALLEL": "٢",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "false",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "false"
+      },
+      "tts_active": 1,
+      "stt_active": 2,
+      "llm_active": 0,
+      "handoff_active": false,
+      "slots": {
+        "cap_slots": {
+          "tts": {
+            "capacity": 2,
+            "in_flight": 1,
+            "queued": 0,
+            "available": 1
+          },
+          "stt": {
+            "capacity": 2,
+            "in_flight": 2,
+            "queued": 0,
+            "available": 0
+          }
+        },
+        "model_slots": {},
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 4,
+        "slot_total_in_flight": 3,
+        "slot_total_queued": 0,
+        "slot_total_available": 1
+      }
+    },
+    {
+      "name": "parallel-'４'",
+      "environment": {
+        "VOICE_SERVER": "",
+        "TTS_ENABLED": "true",
+        "STT_ENABLED": "true",
+        "EMBEDDING_ENABLED": "false",
+        "TTS_N_PARALLEL": "４",
+        "STT_N_PARALLEL": "４",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "false",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "false"
+      },
+      "tts_active": 1,
+      "stt_active": 2,
+      "llm_active": 0,
+      "handoff_active": false,
+      "slots": {
+        "cap_slots": {
+          "tts": {
+            "capacity": 4,
+            "in_flight": 1,
+            "queued": 0,
+            "available": 3
+          },
+          "stt": {
+            "capacity": 4,
+            "in_flight": 2,
+            "queued": 0,
+            "available": 2
+          }
+        },
+        "model_slots": {},
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 8,
+        "slot_total_in_flight": 3,
+        "slot_total_queued": 0,
+        "slot_total_available": 5
+      }
+    },
+    {
+      "name": "parallel-'1.5'",
+      "environment": {
+        "VOICE_SERVER": "",
+        "TTS_ENABLED": "true",
+        "STT_ENABLED": "true",
+        "EMBEDDING_ENABLED": "false",
+        "TTS_N_PARALLEL": "1.5",
+        "STT_N_PARALLEL": "1.5",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "false",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "false"
+      },
+      "tts_active": 1,
+      "stt_active": 2,
+      "llm_active": 0,
+      "handoff_active": false,
+      "slots": {
+        "cap_slots": {
+          "tts": {
+            "capacity": 1,
+            "in_flight": 1,
+            "queued": 0,
+            "available": 0
+          },
+          "stt": {
+            "capacity": 1,
+            "in_flight": 2,
+            "queued": 0,
+            "available": 0
+          }
+        },
+        "model_slots": {},
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 2,
+        "slot_total_in_flight": 3,
+        "slot_total_queued": 0,
+        "slot_total_available": 0
+      }
+    },
+    {
+      "name": "parallel-'nope'",
+      "environment": {
+        "VOICE_SERVER": "",
+        "TTS_ENABLED": "true",
+        "STT_ENABLED": "true",
+        "EMBEDDING_ENABLED": "false",
+        "TTS_N_PARALLEL": "nope",
+        "STT_N_PARALLEL": "nope",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "false",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "false"
+      },
+      "tts_active": 1,
+      "stt_active": 2,
+      "llm_active": 0,
+      "handoff_active": false,
+      "slots": {
+        "cap_slots": {
+          "tts": {
+            "capacity": 1,
+            "in_flight": 1,
+            "queued": 0,
+            "available": 0
+          },
+          "stt": {
+            "capacity": 1,
+            "in_flight": 2,
+            "queued": 0,
+            "available": 0
+          }
+        },
+        "model_slots": {},
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 2,
+        "slot_total_in_flight": 3,
+        "slot_total_queued": 0,
+        "slot_total_available": 0
+      }
+    },
+    {
+      "name": "parallel-'_2'",
+      "environment": {
+        "VOICE_SERVER": "",
+        "TTS_ENABLED": "true",
+        "STT_ENABLED": "true",
+        "EMBEDDING_ENABLED": "false",
+        "TTS_N_PARALLEL": "_2",
+        "STT_N_PARALLEL": "_2",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "false",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "false"
+      },
+      "tts_active": 1,
+      "stt_active": 2,
+      "llm_active": 0,
+      "handoff_active": false,
+      "slots": {
+        "cap_slots": {
+          "tts": {
+            "capacity": 1,
+            "in_flight": 1,
+            "queued": 0,
+            "available": 0
+          },
+          "stt": {
+            "capacity": 1,
+            "in_flight": 2,
+            "queued": 0,
+            "available": 0
+          }
+        },
+        "model_slots": {},
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 2,
+        "slot_total_in_flight": 3,
+        "slot_total_queued": 0,
+        "slot_total_available": 0
+      }
+    },
+    {
+      "name": "parallel-'2_'",
+      "environment": {
+        "VOICE_SERVER": "",
+        "TTS_ENABLED": "true",
+        "STT_ENABLED": "true",
+        "EMBEDDING_ENABLED": "false",
+        "TTS_N_PARALLEL": "2_",
+        "STT_N_PARALLEL": "2_",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "false",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "false"
+      },
+      "tts_active": 1,
+      "stt_active": 2,
+      "llm_active": 0,
+      "handoff_active": false,
+      "slots": {
+        "cap_slots": {
+          "tts": {
+            "capacity": 1,
+            "in_flight": 1,
+            "queued": 0,
+            "available": 0
+          },
+          "stt": {
+            "capacity": 1,
+            "in_flight": 2,
+            "queued": 0,
+            "available": 0
+          }
+        },
+        "model_slots": {},
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 2,
+        "slot_total_in_flight": 3,
+        "slot_total_queued": 0,
+        "slot_total_available": 0
+      }
+    },
+    {
+      "name": "parallel-'2__3'",
+      "environment": {
+        "VOICE_SERVER": "",
+        "TTS_ENABLED": "true",
+        "STT_ENABLED": "true",
+        "EMBEDDING_ENABLED": "false",
+        "TTS_N_PARALLEL": "2__3",
+        "STT_N_PARALLEL": "2__3",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "false",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "false"
+      },
+      "tts_active": 1,
+      "stt_active": 2,
+      "llm_active": 0,
+      "handoff_active": false,
+      "slots": {
+        "cap_slots": {
+          "tts": {
+            "capacity": 1,
+            "in_flight": 1,
+            "queued": 0,
+            "available": 0
+          },
+          "stt": {
+            "capacity": 1,
+            "in_flight": 2,
+            "queued": 0,
+            "available": 0
+          }
+        },
+        "model_slots": {},
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 2,
+        "slot_total_in_flight": 3,
+        "slot_total_queued": 0,
+        "slot_total_available": 0
+      }
+    },
+    {
+      "name": "parallel-'\\x1f2'",
+      "environment": {
+        "VOICE_SERVER": "",
+        "TTS_ENABLED": "true",
+        "STT_ENABLED": "true",
+        "EMBEDDING_ENABLED": "false",
+        "TTS_N_PARALLEL": "\u001f2",
+        "STT_N_PARALLEL": "\u001f2",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "false",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "false"
+      },
+      "tts_active": 1,
+      "stt_active": 2,
+      "llm_active": 0,
+      "handoff_active": false,
+      "slots": {
+        "cap_slots": {
+          "tts": {
+            "capacity": 1,
+            "in_flight": 1,
+            "queued": 0,
+            "available": 0
+          },
+          "stt": {
+            "capacity": 1,
+            "in_flight": 2,
+            "queued": 0,
+            "available": 0
+          }
+        },
+        "model_slots": {},
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 2,
+        "slot_total_in_flight": 3,
+        "slot_total_queued": 0,
+        "slot_total_available": 0
+      }
+    },
+    {
+      "name": "parallel-'2147483647'",
+      "environment": {
+        "VOICE_SERVER": "",
+        "TTS_ENABLED": "true",
+        "STT_ENABLED": "true",
+        "EMBEDDING_ENABLED": "false",
+        "TTS_N_PARALLEL": "2147483647",
+        "STT_N_PARALLEL": "2147483647",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "false",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "false"
+      },
+      "tts_active": 1,
+      "stt_active": 2,
+      "llm_active": 0,
+      "handoff_active": false,
+      "slots": {
+        "cap_slots": {
+          "tts": {
+            "capacity": 2147483647,
+            "in_flight": 1,
+            "queued": 0,
+            "available": 2147483646
+          },
+          "stt": {
+            "capacity": 2147483647,
+            "in_flight": 2,
+            "queued": 0,
+            "available": 2147483645
+          }
+        },
+        "model_slots": {},
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 4294967294,
+        "slot_total_in_flight": 3,
+        "slot_total_queued": 0,
+        "slot_total_available": 4294967291
+      }
+    },
+    {
+      "name": "parallel-'-999999999999999999999999'",
+      "environment": {
+        "VOICE_SERVER": "",
+        "TTS_ENABLED": "true",
+        "STT_ENABLED": "true",
+        "EMBEDDING_ENABLED": "false",
+        "TTS_N_PARALLEL": "-999999999999999999999999",
+        "STT_N_PARALLEL": "-999999999999999999999999",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "false",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "false"
+      },
+      "tts_active": 1,
+      "stt_active": 2,
+      "llm_active": 0,
+      "handoff_active": false,
+      "slots": {
+        "cap_slots": {
+          "tts": {
+            "capacity": 1,
+            "in_flight": 1,
+            "queued": 0,
+            "available": 0
+          },
+          "stt": {
+            "capacity": 1,
+            "in_flight": 2,
+            "queued": 0,
+            "available": 0
+          }
+        },
+        "model_slots": {},
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 2,
+        "slot_total_in_flight": 3,
+        "slot_total_queued": 0,
+        "slot_total_available": 0
+      }
+    },
+    {
+      "name": "voice-''-'true'",
+      "environment": {
+        "VOICE_SERVER": "",
+        "TTS_ENABLED": "true",
+        "STT_ENABLED": "true",
+        "EMBEDDING_ENABLED": "false",
+        "TTS_N_PARALLEL": "2",
+        "STT_N_PARALLEL": "3",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "true",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "true"
+      },
+      "tts_active": 1,
+      "stt_active": 2,
+      "llm_active": 0,
+      "handoff_active": false,
+      "slots": {
+        "cap_slots": {
+          "tts": {
+            "capacity": 1,
+            "in_flight": 1,
+            "queued": 0,
+            "available": 0
+          },
+          "stt": {
+            "capacity": 1,
+            "in_flight": 2,
+            "queued": 0,
+            "available": 0
+          }
+        },
+        "model_slots": {},
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 2,
+        "slot_total_in_flight": 3,
+        "slot_total_queued": 0,
+        "slot_total_available": 0
+      }
+    },
+    {
+      "name": "voice-''-'false'",
+      "environment": {
+        "VOICE_SERVER": "",
+        "TTS_ENABLED": "false",
+        "STT_ENABLED": "false",
+        "EMBEDDING_ENABLED": "false",
+        "TTS_N_PARALLEL": "2",
+        "STT_N_PARALLEL": "3",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "true",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "true"
+      },
+      "tts_active": 1,
+      "stt_active": 2,
+      "llm_active": 0,
+      "handoff_active": false,
+      "slots": {
+        "cap_slots": {},
+        "model_slots": {},
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 0,
+        "slot_total_in_flight": 0,
+        "slot_total_queued": 0,
+        "slot_total_available": 0
+      }
+    },
+    {
+      "name": "voice-''-''",
+      "environment": {
+        "VOICE_SERVER": "",
+        "TTS_ENABLED": "",
+        "STT_ENABLED": "",
+        "EMBEDDING_ENABLED": "false",
+        "TTS_N_PARALLEL": "2",
+        "STT_N_PARALLEL": "3",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "true",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "true"
+      },
+      "tts_active": 1,
+      "stt_active": 2,
+      "llm_active": 0,
+      "handoff_active": false,
+      "slots": {
+        "cap_slots": {
+          "tts": {
+            "capacity": 1,
+            "in_flight": 1,
+            "queued": 0,
+            "available": 0
+          },
+          "stt": {
+            "capacity": 1,
+            "in_flight": 2,
+            "queued": 0,
+            "available": 0
+          }
+        },
+        "model_slots": {},
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 2,
+        "slot_total_in_flight": 3,
+        "slot_total_queued": 0,
+        "slot_total_available": 0
+      }
+    },
+    {
+      "name": "voice-''-' TRUE '",
+      "environment": {
+        "VOICE_SERVER": "",
+        "TTS_ENABLED": " TRUE ",
+        "STT_ENABLED": " TRUE ",
+        "EMBEDDING_ENABLED": "false",
+        "TTS_N_PARALLEL": "2",
+        "STT_N_PARALLEL": "3",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "true",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "true"
+      },
+      "tts_active": 1,
+      "stt_active": 2,
+      "llm_active": 0,
+      "handoff_active": false,
+      "slots": {
+        "cap_slots": {
+          "tts": {
+            "capacity": 1,
+            "in_flight": 1,
+            "queued": 0,
+            "available": 0
+          },
+          "stt": {
+            "capacity": 1,
+            "in_flight": 2,
+            "queued": 0,
+            "available": 0
+          }
+        },
+        "model_slots": {},
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 2,
+        "slot_total_in_flight": 3,
+        "slot_total_queued": 0,
+        "slot_total_available": 0
+      }
+    },
+    {
+      "name": "voice-'true'-'true'",
+      "environment": {
+        "VOICE_SERVER": "true",
+        "TTS_ENABLED": "true",
+        "STT_ENABLED": "true",
+        "EMBEDDING_ENABLED": "false",
+        "TTS_N_PARALLEL": "2",
+        "STT_N_PARALLEL": "3",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "true",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "true"
+      },
+      "tts_active": 1,
+      "stt_active": 2,
+      "llm_active": 0,
+      "handoff_active": false,
+      "slots": {
+        "cap_slots": {
+          "tts": {
+            "capacity": 1,
+            "in_flight": 1,
+            "queued": 0,
+            "available": 0
+          },
+          "stt": {
+            "capacity": 1,
+            "in_flight": 2,
+            "queued": 0,
+            "available": 0
+          }
+        },
+        "model_slots": {},
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 2,
+        "slot_total_in_flight": 3,
+        "slot_total_queued": 0,
+        "slot_total_available": 0
+      }
+    },
+    {
+      "name": "voice-'true'-'false'",
+      "environment": {
+        "VOICE_SERVER": "true",
+        "TTS_ENABLED": "false",
+        "STT_ENABLED": "false",
+        "EMBEDDING_ENABLED": "false",
+        "TTS_N_PARALLEL": "2",
+        "STT_N_PARALLEL": "3",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "true",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "true"
+      },
+      "tts_active": 1,
+      "stt_active": 2,
+      "llm_active": 0,
+      "handoff_active": false,
+      "slots": {
+        "cap_slots": {},
+        "model_slots": {},
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 0,
+        "slot_total_in_flight": 0,
+        "slot_total_queued": 0,
+        "slot_total_available": 0
+      }
+    },
+    {
+      "name": "voice-'true'-''",
+      "environment": {
+        "VOICE_SERVER": "true",
+        "TTS_ENABLED": "",
+        "STT_ENABLED": "",
+        "EMBEDDING_ENABLED": "false",
+        "TTS_N_PARALLEL": "2",
+        "STT_N_PARALLEL": "3",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "true",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "true"
+      },
+      "tts_active": 1,
+      "stt_active": 2,
+      "llm_active": 0,
+      "handoff_active": false,
+      "slots": {
+        "cap_slots": {
+          "tts": {
+            "capacity": 1,
+            "in_flight": 1,
+            "queued": 0,
+            "available": 0
+          },
+          "stt": {
+            "capacity": 1,
+            "in_flight": 2,
+            "queued": 0,
+            "available": 0
+          }
+        },
+        "model_slots": {},
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 2,
+        "slot_total_in_flight": 3,
+        "slot_total_queued": 0,
+        "slot_total_available": 0
+      }
+    },
+    {
+      "name": "voice-'true'-' TRUE '",
+      "environment": {
+        "VOICE_SERVER": "true",
+        "TTS_ENABLED": " TRUE ",
+        "STT_ENABLED": " TRUE ",
+        "EMBEDDING_ENABLED": "false",
+        "TTS_N_PARALLEL": "2",
+        "STT_N_PARALLEL": "3",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "true",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "true"
+      },
+      "tts_active": 1,
+      "stt_active": 2,
+      "llm_active": 0,
+      "handoff_active": false,
+      "slots": {
+        "cap_slots": {
+          "tts": {
+            "capacity": 1,
+            "in_flight": 1,
+            "queued": 0,
+            "available": 0
+          },
+          "stt": {
+            "capacity": 1,
+            "in_flight": 2,
+            "queued": 0,
+            "available": 0
+          }
+        },
+        "model_slots": {},
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 2,
+        "slot_total_in_flight": 3,
+        "slot_total_queued": 0,
+        "slot_total_available": 0
+      }
+    },
+    {
+      "name": "voice-'TRUE'-'true'",
+      "environment": {
+        "VOICE_SERVER": "TRUE",
+        "TTS_ENABLED": "true",
+        "STT_ENABLED": "true",
+        "EMBEDDING_ENABLED": "false",
+        "TTS_N_PARALLEL": "2",
+        "STT_N_PARALLEL": "3",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "true",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "true"
+      },
+      "tts_active": 1,
+      "stt_active": 2,
+      "llm_active": 0,
+      "handoff_active": false,
+      "slots": {
+        "cap_slots": {
+          "tts": {
+            "capacity": 1,
+            "in_flight": 1,
+            "queued": 0,
+            "available": 0
+          },
+          "stt": {
+            "capacity": 1,
+            "in_flight": 2,
+            "queued": 0,
+            "available": 0
+          }
+        },
+        "model_slots": {},
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 2,
+        "slot_total_in_flight": 3,
+        "slot_total_queued": 0,
+        "slot_total_available": 0
+      }
+    },
+    {
+      "name": "voice-'TRUE'-'false'",
+      "environment": {
+        "VOICE_SERVER": "TRUE",
+        "TTS_ENABLED": "false",
+        "STT_ENABLED": "false",
+        "EMBEDDING_ENABLED": "false",
+        "TTS_N_PARALLEL": "2",
+        "STT_N_PARALLEL": "3",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "true",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "true"
+      },
+      "tts_active": 1,
+      "stt_active": 2,
+      "llm_active": 0,
+      "handoff_active": false,
+      "slots": {
+        "cap_slots": {},
+        "model_slots": {},
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 0,
+        "slot_total_in_flight": 0,
+        "slot_total_queued": 0,
+        "slot_total_available": 0
+      }
+    },
+    {
+      "name": "voice-'TRUE'-''",
+      "environment": {
+        "VOICE_SERVER": "TRUE",
+        "TTS_ENABLED": "",
+        "STT_ENABLED": "",
+        "EMBEDDING_ENABLED": "false",
+        "TTS_N_PARALLEL": "2",
+        "STT_N_PARALLEL": "3",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "true",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "true"
+      },
+      "tts_active": 1,
+      "stt_active": 2,
+      "llm_active": 0,
+      "handoff_active": false,
+      "slots": {
+        "cap_slots": {
+          "tts": {
+            "capacity": 1,
+            "in_flight": 1,
+            "queued": 0,
+            "available": 0
+          },
+          "stt": {
+            "capacity": 1,
+            "in_flight": 2,
+            "queued": 0,
+            "available": 0
+          }
+        },
+        "model_slots": {},
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 2,
+        "slot_total_in_flight": 3,
+        "slot_total_queued": 0,
+        "slot_total_available": 0
+      }
+    },
+    {
+      "name": "voice-'TRUE'-' TRUE '",
+      "environment": {
+        "VOICE_SERVER": "TRUE",
+        "TTS_ENABLED": " TRUE ",
+        "STT_ENABLED": " TRUE ",
+        "EMBEDDING_ENABLED": "false",
+        "TTS_N_PARALLEL": "2",
+        "STT_N_PARALLEL": "3",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "true",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "true"
+      },
+      "tts_active": 1,
+      "stt_active": 2,
+      "llm_active": 0,
+      "handoff_active": false,
+      "slots": {
+        "cap_slots": {
+          "tts": {
+            "capacity": 1,
+            "in_flight": 1,
+            "queued": 0,
+            "available": 0
+          },
+          "stt": {
+            "capacity": 1,
+            "in_flight": 2,
+            "queued": 0,
+            "available": 0
+          }
+        },
+        "model_slots": {},
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 2,
+        "slot_total_in_flight": 3,
+        "slot_total_queued": 0,
+        "slot_total_available": 0
+      }
+    },
+    {
+      "name": "voice-'false'-'true'",
+      "environment": {
+        "VOICE_SERVER": "false",
+        "TTS_ENABLED": "true",
+        "STT_ENABLED": "true",
+        "EMBEDDING_ENABLED": "false",
+        "TTS_N_PARALLEL": "2",
+        "STT_N_PARALLEL": "3",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "true",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "true"
+      },
+      "tts_active": 1,
+      "stt_active": 2,
+      "llm_active": 0,
+      "handoff_active": false,
+      "slots": {
+        "cap_slots": {},
+        "model_slots": {},
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 0,
+        "slot_total_in_flight": 0,
+        "slot_total_queued": 0,
+        "slot_total_available": 0
+      }
+    },
+    {
+      "name": "voice-'false'-'false'",
+      "environment": {
+        "VOICE_SERVER": "false",
+        "TTS_ENABLED": "false",
+        "STT_ENABLED": "false",
+        "EMBEDDING_ENABLED": "false",
+        "TTS_N_PARALLEL": "2",
+        "STT_N_PARALLEL": "3",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "true",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "true"
+      },
+      "tts_active": 1,
+      "stt_active": 2,
+      "llm_active": 0,
+      "handoff_active": false,
+      "slots": {
+        "cap_slots": {},
+        "model_slots": {},
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 0,
+        "slot_total_in_flight": 0,
+        "slot_total_queued": 0,
+        "slot_total_available": 0
+      }
+    },
+    {
+      "name": "voice-'false'-''",
+      "environment": {
+        "VOICE_SERVER": "false",
+        "TTS_ENABLED": "",
+        "STT_ENABLED": "",
+        "EMBEDDING_ENABLED": "false",
+        "TTS_N_PARALLEL": "2",
+        "STT_N_PARALLEL": "3",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "true",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "true"
+      },
+      "tts_active": 1,
+      "stt_active": 2,
+      "llm_active": 0,
+      "handoff_active": false,
+      "slots": {
+        "cap_slots": {},
+        "model_slots": {},
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 0,
+        "slot_total_in_flight": 0,
+        "slot_total_queued": 0,
+        "slot_total_available": 0
+      }
+    },
+    {
+      "name": "voice-'false'-' TRUE '",
+      "environment": {
+        "VOICE_SERVER": "false",
+        "TTS_ENABLED": " TRUE ",
+        "STT_ENABLED": " TRUE ",
+        "EMBEDDING_ENABLED": "false",
+        "TTS_N_PARALLEL": "2",
+        "STT_N_PARALLEL": "3",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "true",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "true"
+      },
+      "tts_active": 1,
+      "stt_active": 2,
+      "llm_active": 0,
+      "handoff_active": false,
+      "slots": {
+        "cap_slots": {},
+        "model_slots": {},
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 0,
+        "slot_total_in_flight": 0,
+        "slot_total_queued": 0,
+        "slot_total_available": 0
+      }
+    },
+    {
+      "name": "voice-'none'-'true'",
+      "environment": {
+        "VOICE_SERVER": "none",
+        "TTS_ENABLED": "true",
+        "STT_ENABLED": "true",
+        "EMBEDDING_ENABLED": "false",
+        "TTS_N_PARALLEL": "2",
+        "STT_N_PARALLEL": "3",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "true",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "true"
+      },
+      "tts_active": 1,
+      "stt_active": 2,
+      "llm_active": 0,
+      "handoff_active": false,
+      "slots": {
+        "cap_slots": {},
+        "model_slots": {},
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 0,
+        "slot_total_in_flight": 0,
+        "slot_total_queued": 0,
+        "slot_total_available": 0
+      }
+    },
+    {
+      "name": "voice-'none'-'false'",
+      "environment": {
+        "VOICE_SERVER": "none",
+        "TTS_ENABLED": "false",
+        "STT_ENABLED": "false",
+        "EMBEDDING_ENABLED": "false",
+        "TTS_N_PARALLEL": "2",
+        "STT_N_PARALLEL": "3",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "true",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "true"
+      },
+      "tts_active": 1,
+      "stt_active": 2,
+      "llm_active": 0,
+      "handoff_active": false,
+      "slots": {
+        "cap_slots": {},
+        "model_slots": {},
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 0,
+        "slot_total_in_flight": 0,
+        "slot_total_queued": 0,
+        "slot_total_available": 0
+      }
+    },
+    {
+      "name": "voice-'none'-''",
+      "environment": {
+        "VOICE_SERVER": "none",
+        "TTS_ENABLED": "",
+        "STT_ENABLED": "",
+        "EMBEDDING_ENABLED": "false",
+        "TTS_N_PARALLEL": "2",
+        "STT_N_PARALLEL": "3",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "true",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "true"
+      },
+      "tts_active": 1,
+      "stt_active": 2,
+      "llm_active": 0,
+      "handoff_active": false,
+      "slots": {
+        "cap_slots": {},
+        "model_slots": {},
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 0,
+        "slot_total_in_flight": 0,
+        "slot_total_queued": 0,
+        "slot_total_available": 0
+      }
+    },
+    {
+      "name": "voice-'none'-' TRUE '",
+      "environment": {
+        "VOICE_SERVER": "none",
+        "TTS_ENABLED": " TRUE ",
+        "STT_ENABLED": " TRUE ",
+        "EMBEDDING_ENABLED": "false",
+        "TTS_N_PARALLEL": "2",
+        "STT_N_PARALLEL": "3",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "true",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "true"
+      },
+      "tts_active": 1,
+      "stt_active": 2,
+      "llm_active": 0,
+      "handoff_active": false,
+      "slots": {
+        "cap_slots": {},
+        "model_slots": {},
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 0,
+        "slot_total_in_flight": 0,
+        "slot_total_queued": 0,
+        "slot_total_available": 0
+      }
+    },
+    {
+      "name": "voice-'http://voice///'-'true'",
+      "environment": {
+        "VOICE_SERVER": "http://voice///",
+        "TTS_ENABLED": "true",
+        "STT_ENABLED": "true",
+        "EMBEDDING_ENABLED": "false",
+        "TTS_N_PARALLEL": "2",
+        "STT_N_PARALLEL": "3",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "true",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "true"
+      },
+      "tts_active": 1,
+      "stt_active": 2,
+      "llm_active": 0,
+      "handoff_active": false,
+      "slots": {
+        "cap_slots": {},
+        "model_slots": {},
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 0,
+        "slot_total_in_flight": 0,
+        "slot_total_queued": 0,
+        "slot_total_available": 0
+      }
+    },
+    {
+      "name": "voice-'http://voice///'-'false'",
+      "environment": {
+        "VOICE_SERVER": "http://voice///",
+        "TTS_ENABLED": "false",
+        "STT_ENABLED": "false",
+        "EMBEDDING_ENABLED": "false",
+        "TTS_N_PARALLEL": "2",
+        "STT_N_PARALLEL": "3",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "true",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "true"
+      },
+      "tts_active": 1,
+      "stt_active": 2,
+      "llm_active": 0,
+      "handoff_active": false,
+      "slots": {
+        "cap_slots": {},
+        "model_slots": {},
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 0,
+        "slot_total_in_flight": 0,
+        "slot_total_queued": 0,
+        "slot_total_available": 0
+      }
+    },
+    {
+      "name": "voice-'http://voice///'-''",
+      "environment": {
+        "VOICE_SERVER": "http://voice///",
+        "TTS_ENABLED": "",
+        "STT_ENABLED": "",
+        "EMBEDDING_ENABLED": "false",
+        "TTS_N_PARALLEL": "2",
+        "STT_N_PARALLEL": "3",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "true",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "true"
+      },
+      "tts_active": 1,
+      "stt_active": 2,
+      "llm_active": 0,
+      "handoff_active": false,
+      "slots": {
+        "cap_slots": {},
+        "model_slots": {},
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 0,
+        "slot_total_in_flight": 0,
+        "slot_total_queued": 0,
+        "slot_total_available": 0
+      }
+    },
+    {
+      "name": "voice-'http://voice///'-' TRUE '",
+      "environment": {
+        "VOICE_SERVER": "http://voice///",
+        "TTS_ENABLED": " TRUE ",
+        "STT_ENABLED": " TRUE ",
+        "EMBEDDING_ENABLED": "false",
+        "TTS_N_PARALLEL": "2",
+        "STT_N_PARALLEL": "3",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "true",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "true"
+      },
+      "tts_active": 1,
+      "stt_active": 2,
+      "llm_active": 0,
+      "handoff_active": false,
+      "slots": {
+        "cap_slots": {},
+        "model_slots": {},
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 0,
+        "slot_total_in_flight": 0,
+        "slot_total_queued": 0,
+        "slot_total_available": 0
+      }
+    },
+    {
+      "name": "voice-' true '-'true'",
+      "environment": {
+        "VOICE_SERVER": " true ",
+        "TTS_ENABLED": "true",
+        "STT_ENABLED": "true",
+        "EMBEDDING_ENABLED": "false",
+        "TTS_N_PARALLEL": "2",
+        "STT_N_PARALLEL": "3",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "true",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "true"
+      },
+      "tts_active": 1,
+      "stt_active": 2,
+      "llm_active": 0,
+      "handoff_active": false,
+      "slots": {
+        "cap_slots": {},
+        "model_slots": {},
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 0,
+        "slot_total_in_flight": 0,
+        "slot_total_queued": 0,
+        "slot_total_available": 0
+      }
+    },
+    {
+      "name": "voice-' true '-'false'",
+      "environment": {
+        "VOICE_SERVER": " true ",
+        "TTS_ENABLED": "false",
+        "STT_ENABLED": "false",
+        "EMBEDDING_ENABLED": "false",
+        "TTS_N_PARALLEL": "2",
+        "STT_N_PARALLEL": "3",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "true",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "true"
+      },
+      "tts_active": 1,
+      "stt_active": 2,
+      "llm_active": 0,
+      "handoff_active": false,
+      "slots": {
+        "cap_slots": {},
+        "model_slots": {},
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 0,
+        "slot_total_in_flight": 0,
+        "slot_total_queued": 0,
+        "slot_total_available": 0
+      }
+    },
+    {
+      "name": "voice-' true '-''",
+      "environment": {
+        "VOICE_SERVER": " true ",
+        "TTS_ENABLED": "",
+        "STT_ENABLED": "",
+        "EMBEDDING_ENABLED": "false",
+        "TTS_N_PARALLEL": "2",
+        "STT_N_PARALLEL": "3",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "true",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "true"
+      },
+      "tts_active": 1,
+      "stt_active": 2,
+      "llm_active": 0,
+      "handoff_active": false,
+      "slots": {
+        "cap_slots": {},
+        "model_slots": {},
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 0,
+        "slot_total_in_flight": 0,
+        "slot_total_queued": 0,
+        "slot_total_available": 0
+      }
+    },
+    {
+      "name": "voice-' true '-' TRUE '",
+      "environment": {
+        "VOICE_SERVER": " true ",
+        "TTS_ENABLED": " TRUE ",
+        "STT_ENABLED": " TRUE ",
+        "EMBEDDING_ENABLED": "false",
+        "TTS_N_PARALLEL": "2",
+        "STT_N_PARALLEL": "3",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "true",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "true"
+      },
+      "tts_active": 1,
+      "stt_active": 2,
+      "llm_active": 0,
+      "handoff_active": false,
+      "slots": {
+        "cap_slots": {},
+        "model_slots": {},
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 0,
+        "slot_total_in_flight": 0,
+        "slot_total_queued": 0,
+        "slot_total_available": 0
+      }
+    },
+    {
+      "name": "voice-'/'-'true'",
+      "environment": {
+        "VOICE_SERVER": "/",
+        "TTS_ENABLED": "true",
+        "STT_ENABLED": "true",
+        "EMBEDDING_ENABLED": "false",
+        "TTS_N_PARALLEL": "2",
+        "STT_N_PARALLEL": "3",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "true",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "true"
+      },
+      "tts_active": 1,
+      "stt_active": 2,
+      "llm_active": 0,
+      "handoff_active": false,
+      "slots": {
+        "cap_slots": {
+          "tts": {
+            "capacity": 1,
+            "in_flight": 1,
+            "queued": 0,
+            "available": 0
+          },
+          "stt": {
+            "capacity": 1,
+            "in_flight": 2,
+            "queued": 0,
+            "available": 0
+          }
+        },
+        "model_slots": {},
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 2,
+        "slot_total_in_flight": 3,
+        "slot_total_queued": 0,
+        "slot_total_available": 0
+      }
+    },
+    {
+      "name": "voice-'/'-'false'",
+      "environment": {
+        "VOICE_SERVER": "/",
+        "TTS_ENABLED": "false",
+        "STT_ENABLED": "false",
+        "EMBEDDING_ENABLED": "false",
+        "TTS_N_PARALLEL": "2",
+        "STT_N_PARALLEL": "3",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "true",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "true"
+      },
+      "tts_active": 1,
+      "stt_active": 2,
+      "llm_active": 0,
+      "handoff_active": false,
+      "slots": {
+        "cap_slots": {},
+        "model_slots": {},
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 0,
+        "slot_total_in_flight": 0,
+        "slot_total_queued": 0,
+        "slot_total_available": 0
+      }
+    },
+    {
+      "name": "voice-'/'-''",
+      "environment": {
+        "VOICE_SERVER": "/",
+        "TTS_ENABLED": "",
+        "STT_ENABLED": "",
+        "EMBEDDING_ENABLED": "false",
+        "TTS_N_PARALLEL": "2",
+        "STT_N_PARALLEL": "3",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "true",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "true"
+      },
+      "tts_active": 1,
+      "stt_active": 2,
+      "llm_active": 0,
+      "handoff_active": false,
+      "slots": {
+        "cap_slots": {
+          "tts": {
+            "capacity": 1,
+            "in_flight": 1,
+            "queued": 0,
+            "available": 0
+          },
+          "stt": {
+            "capacity": 1,
+            "in_flight": 2,
+            "queued": 0,
+            "available": 0
+          }
+        },
+        "model_slots": {},
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 2,
+        "slot_total_in_flight": 3,
+        "slot_total_queued": 0,
+        "slot_total_available": 0
+      }
+    },
+    {
+      "name": "voice-'/'-' TRUE '",
+      "environment": {
+        "VOICE_SERVER": "/",
+        "TTS_ENABLED": " TRUE ",
+        "STT_ENABLED": " TRUE ",
+        "EMBEDDING_ENABLED": "false",
+        "TTS_N_PARALLEL": "2",
+        "STT_N_PARALLEL": "3",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "true",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "true"
+      },
+      "tts_active": 1,
+      "stt_active": 2,
+      "llm_active": 0,
+      "handoff_active": false,
+      "slots": {
+        "cap_slots": {
+          "tts": {
+            "capacity": 1,
+            "in_flight": 1,
+            "queued": 0,
+            "available": 0
+          },
+          "stt": {
+            "capacity": 1,
+            "in_flight": 2,
+            "queued": 0,
+            "available": 0
+          }
+        },
+        "model_slots": {},
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 2,
+        "slot_total_in_flight": 3,
+        "slot_total_queued": 0,
+        "slot_total_available": 0
+      }
+    }
+  ],
+  "transitions": [
+    {
+      "name": "idle",
+      "environment": {
+        "VOICE_SERVER": "",
+        "TTS_ENABLED": "true",
+        "STT_ENABLED": "true",
+        "EMBEDDING_ENABLED": "false",
+        "TTS_N_PARALLEL": "2",
+        "STT_N_PARALLEL": "3",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "true",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "true"
+      },
+      "tts_active": 0,
+      "stt_active": 0,
+      "llm_active": 0,
+      "handoff_active": false,
+      "slots": {
+        "cap_slots": {
+          "tts": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          },
+          "stt": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          }
+        },
+        "model_slots": {},
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 2,
+        "slot_total_in_flight": 0,
+        "slot_total_queued": 0,
+        "slot_total_available": 2
+      }
+    },
+    {
+      "name": "llm",
+      "environment": {
+        "VOICE_SERVER": "",
+        "TTS_ENABLED": "true",
+        "STT_ENABLED": "true",
+        "EMBEDDING_ENABLED": "false",
+        "TTS_N_PARALLEL": "2",
+        "STT_N_PARALLEL": "3",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "true",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "true"
+      },
+      "tts_active": 0,
+      "stt_active": 0,
+      "llm_active": 1,
+      "handoff_active": false,
+      "slots": {
+        "cap_slots": {
+          "tts": {
+            "capacity": 1,
+            "in_flight": 1,
+            "queued": 0,
+            "available": 0
+          },
+          "stt": {
+            "capacity": 1,
+            "in_flight": 1,
+            "queued": 0,
+            "available": 0
+          }
+        },
+        "model_slots": {},
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 2,
+        "slot_total_in_flight": 2,
+        "slot_total_queued": 0,
+        "slot_total_available": 0
+      }
+    },
+    {
+      "name": "waiting",
+      "environment": {
+        "VOICE_SERVER": "",
+        "TTS_ENABLED": "true",
+        "STT_ENABLED": "true",
+        "EMBEDDING_ENABLED": "false",
+        "TTS_N_PARALLEL": "2",
+        "STT_N_PARALLEL": "3",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "true",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "true"
+      },
+      "tts_active": 0,
+      "stt_active": 0,
+      "llm_active": 1,
+      "handoff_active": true,
+      "slots": {
+        "cap_slots": {
+          "tts": {
+            "capacity": 1,
+            "in_flight": 1,
+            "queued": 0,
+            "available": 0
+          },
+          "stt": {
+            "capacity": 1,
+            "in_flight": 1,
+            "queued": 0,
+            "available": 0
+          }
+        },
+        "model_slots": {},
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 2,
+        "slot_total_in_flight": 2,
+        "slot_total_queued": 0,
+        "slot_total_available": 0
+      }
+    },
+    {
+      "name": "unloading",
+      "environment": {
+        "VOICE_SERVER": "",
+        "TTS_ENABLED": "true",
+        "STT_ENABLED": "true",
+        "EMBEDDING_ENABLED": "false",
+        "TTS_N_PARALLEL": "2",
+        "STT_N_PARALLEL": "3",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "true",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "true"
+      },
+      "tts_active": 0,
+      "stt_active": 0,
+      "llm_active": 0,
+      "handoff_active": true,
+      "slots": {
+        "cap_slots": {
+          "tts": {
+            "capacity": 1,
+            "in_flight": 1,
+            "queued": 0,
+            "available": 0
+          },
+          "stt": {
+            "capacity": 1,
+            "in_flight": 1,
+            "queued": 0,
+            "available": 0
+          }
+        },
+        "model_slots": {},
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 2,
+        "slot_total_in_flight": 2,
+        "slot_total_queued": 0,
+        "slot_total_available": 0
+      }
+    },
+    {
+      "name": "synthesis",
+      "environment": {
+        "VOICE_SERVER": "",
+        "TTS_ENABLED": "true",
+        "STT_ENABLED": "true",
+        "EMBEDDING_ENABLED": "false",
+        "TTS_N_PARALLEL": "2",
+        "STT_N_PARALLEL": "3",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "true",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "true"
+      },
+      "tts_active": 1,
+      "stt_active": 0,
+      "llm_active": 0,
+      "handoff_active": true,
+      "slots": {
+        "cap_slots": {
+          "tts": {
+            "capacity": 1,
+            "in_flight": 1,
+            "queued": 0,
+            "available": 0
+          },
+          "stt": {
+            "capacity": 1,
+            "in_flight": 1,
+            "queued": 0,
+            "available": 0
+          }
+        },
+        "model_slots": {},
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 2,
+        "slot_total_in_flight": 2,
+        "slot_total_queued": 0,
+        "slot_total_available": 0
+      }
+    },
+    {
+      "name": "restoring",
+      "environment": {
+        "VOICE_SERVER": "",
+        "TTS_ENABLED": "true",
+        "STT_ENABLED": "true",
+        "EMBEDDING_ENABLED": "false",
+        "TTS_N_PARALLEL": "2",
+        "STT_N_PARALLEL": "3",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "true",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "true"
+      },
+      "tts_active": 0,
+      "stt_active": 0,
+      "llm_active": 0,
+      "handoff_active": true,
+      "slots": {
+        "cap_slots": {
+          "tts": {
+            "capacity": 1,
+            "in_flight": 1,
+            "queued": 0,
+            "available": 0
+          },
+          "stt": {
+            "capacity": 1,
+            "in_flight": 1,
+            "queued": 0,
+            "available": 0
+          }
+        },
+        "model_slots": {},
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 2,
+        "slot_total_in_flight": 2,
+        "slot_total_queued": 0,
+        "slot_total_available": 0
+      }
+    },
+    {
+      "name": "parallel",
+      "environment": {
+        "VOICE_SERVER": "",
+        "TTS_ENABLED": "true",
+        "STT_ENABLED": "true",
+        "EMBEDDING_ENABLED": "false",
+        "TTS_N_PARALLEL": "2",
+        "STT_N_PARALLEL": "3",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "false",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "false"
+      },
+      "tts_active": 2,
+      "stt_active": 0,
+      "llm_active": 0,
+      "handoff_active": false,
+      "slots": {
+        "cap_slots": {
+          "tts": {
+            "capacity": 2,
+            "in_flight": 2,
+            "queued": 0,
+            "available": 0
+          },
+          "stt": {
+            "capacity": 3,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 3
+          }
+        },
+        "model_slots": {},
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 5,
+        "slot_total_in_flight": 2,
+        "slot_total_queued": 0,
+        "slot_total_available": 3
+      }
+    },
+    {
+      "name": "cross-modal",
+      "environment": {
+        "VOICE_SERVER": "",
+        "TTS_ENABLED": "true",
+        "STT_ENABLED": "true",
+        "EMBEDDING_ENABLED": "false",
+        "TTS_N_PARALLEL": "2",
+        "STT_N_PARALLEL": "3",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "false",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "true"
+      },
+      "tts_active": 2,
+      "stt_active": 0,
+      "llm_active": 0,
+      "handoff_active": false,
+      "slots": {
+        "cap_slots": {
+          "tts": {
+            "capacity": 2,
+            "in_flight": 2,
+            "queued": 0,
+            "available": 0
+          },
+          "stt": {
+            "capacity": 1,
+            "in_flight": 1,
+            "queued": 0,
+            "available": 0
+          }
+        },
+        "model_slots": {},
+        "llm_queue_capacity": 1,
+        "slot_total_capacity": 3,
+        "slot_total_in_flight": 3,
+        "slot_total_queued": 0,
+        "slot_total_available": 0
+      }
+    }
+  ]
+}

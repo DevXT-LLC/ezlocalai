@@ -1,0 +1,124 @@
+{
+  "date": "2026-10-20",
+  "base_commit": "216bbed",
+  "source_python_commit": "0f7e9f45ac0d67ea806ee19874f98bb8f47c7544",
+  "cuda_image": "sha256:93cab6bf6f0fb1b49ae26590c0d4dd8a705931f44f29c821663e79ff7443128c",
+  "cuda_worker_sha256": "39091550f0404e39ddcd44c8fe9ea3e41c47acb5ff3166d3f561e406f9dd5c0d",
+  "router_sha256": "91873d25c218dd3d3ed12bded2ff990bd13837d6d514922eb04dc45ccbde93b9",
+  "hardware": "NVIDIA GeForce RTX 3090 Ti, single GPU",
+  "runtime_changed": false,
+  "reference_test": {
+    "name": "subtitles_reference",
+    "passed": true,
+    "http_cases": 163,
+    "helper_cases": 70,
+    "seconds": 0.37
+  },
+  "checks": [
+    {
+      "endpoint": "local_translations",
+      "status": 200,
+      "text": " And so, my fellow Americans, ask not what your country can do for you, ask what you can do for your country."
+    },
+    {
+      "endpoint": "local_subtitles",
+      "format": "json",
+      "languages": [
+        "en",
+        "es",
+        "fr"
+      ],
+      "segments": 1,
+      "timings_preserved": true,
+      "translations_differ_from_source": true,
+      "seconds": 12.077
+    },
+    {
+      "endpoint": "local_subtitles",
+      "format": "srt",
+      "fast_mode": true,
+      "status": 200
+    },
+    {
+      "endpoint": "local_subtitles",
+      "format": "vtt",
+      "fast_mode": true,
+      "status": 200
+    }
+  ],
+  "models": {
+    "whisper": "/app/models/models--mobiuslabsgmbh--faster-whisper-large-v3-turbo/snapshots/0a363e9161cbc7ed1431c9597a8ceaf0c4f78fcf",
+    "llm": [
+      "unsloth/Qwen3.8-27B-GGUF"
+    ],
+    "context": 4096,
+    "max_tokens": 512
+  },
+  "whisper_active_cuda_observed": true,
+  "subtitle_llm_active_cuda_observed": true,
+  "speech_ownership_cleared": true,
+  "llm_restored": true,
+  "final_lifecycle": [
+    {
+      "operation": "load",
+      "model_type": "llm",
+      "model": "unsloth/Qwen3.8-27B-GGUF",
+      "count": 5,
+      "failures": 0,
+      "min_seconds": 4.3952,
+      "max_seconds": 4.6939,
+      "last_seconds": 4.5018,
+      "average_seconds": 4.5052
+    },
+    {
+      "operation": "unload",
+      "model_type": "llm",
+      "model": "unsloth/Qwen3.8-27B-GGUF",
+      "count": 4,
+      "failures": 0,
+      "min_seconds": 0.3003,
+      "max_seconds": 0.3005,
+      "last_seconds": 0.3004,
+      "average_seconds": 0.3004
+    }
+  ],
+  "router_idle_report_convergence_seconds": 1.359,
+  "restoration": {
+    "original_environment_restored": true,
+    "original_env_file_unchanged": true,
+    "ports_mounts_gpu_requests_preserved": true,
+    "temporary_rust_router_stopped": true,
+    "reporting_passed": true,
+    "routed_chat_sse_vision_status": [
+      200,
+      200,
+      200
+    ]
+  },
+  "limits": [
+    "These endpoints are local worker APIs; neither the Python nor Rust router exposes them.",
+    "One short English audio fixture with one segment; Whisper translation of non-English audio was not tested.",
+    "Spanish and French translations use the actual LLM and preserve segment ID/start/end; this is not a general translation-quality benchmark or exact Python GPU-output comparison.",
+    "Long recordings, full batching, broader languages/models, concurrent failure and cancellation schedules and other physical GPU hardware remain outside this live acceptance."
+  ],
+  "diagnostics": [
+    "The initial probe saw the previous busy heartbeat immediately after local completion. The final probe bounds its wait for an idle router snapshot at 15 seconds; inference and production restoration passed in both runs. No runtime change was needed."
+  ],
+  "source_sha256": {
+    "src/subtitles.cpp": "5279f7f508e3be8ca3eed536a27de91082a433e42c84bfbc75fd7fc2506b0c75",
+    "src/stt_service.cpp": "f853ee424c82c8a6219ccb30d49866af589bc97806a2f412ac6c69d609f1a372",
+    "src/native_server.cpp": "72a40e65afae9db4fca017d3d69ba6b15628100ca67a4e3f9198582ab805d042",
+    "tests/test_subtitles.cpp": "d41ce8400cbf0e756b3d3145742cde68b85e27db294a49667db13fb7603b945d"
+  },
+  "artifact_sha256": {
+    "validation.json": "8765ea5f25b9c1ff6e354d50b201ad572c1cedd5ef1c983019694e47da7ed721",
+    "cuda-samples.json": "26bf797b85bffa8af801d398964c71494afa68285df39ce90eee7c7a728b995e",
+    "translation.json": "43d6601ddc15459c9fc518d59644c8f575805139b93bb7abfa1cf59c5a98053a",
+    "multilingual.json": "86eeb068b0559440ed7c526b583e6d0abc84f8844aa527dcbf8caaea845bafbc",
+    "srt.json": "67110e754420a4355ee0f359c186386294573bc7179775723587a5c1767f3c83",
+    "vtt.json": "f4a5cc8610c9f2edf4f6844b57efc640c5f8827087646377519be92fdb6eb8f7",
+    "reference.log": "98c806705064aca53f2fff2be5da0de352514686231cf9b3d50f9a2ffa07a31c",
+    "driver.log": "3794616c5006d5722c51635ba99573baf5d7fbd0a063d16604e68733842d411d"
+  },
+  "detailed_evidence": "build/validation/subtitles-cuda-20261020/"
+}

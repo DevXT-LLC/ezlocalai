@@ -1,0 +1,255 @@
+{
+  "scope": "Native training backend and Python-compatible checkpoint writer; not yet connected to HTTP training jobs.",
+  "source_sha256": "dcd63562c35b55472d508a3089396b39fb3c32fd018cba7ded3d83350cf2875c",
+  "native_sha256": {
+    "src/wakeword_torch.cpp": "285971a685b2696a7d48910dac8242aa2490f4e2596955a94604017f72fb3f3c",
+    "src/wakeword_checkpoint.cpp": "f9890441b4ae6d37ab34c8142978cba2cab0d01fbb24abd6e6b2f9e167e1cf03",
+    "src/wakeword_checkpoint.hpp": "4ef79c4ed6f03c08d1f447cc755cabfd4d4ff1408923c883769b37136d6e6098",
+    "include/ezlocalai/wakeword_model.hpp": "610b59477c0ef17469ca02ba6a77d4085c6b9eefd2fc7188e9ee8e7fe15a768c",
+    "tests/test_wakeword_training.cpp": "3944a7b26edfd7c8e74b889ec0f630d8192fc1d66c182bc5c9ef20ce669052ab"
+  },
+  "checkpoint_verification": [
+    {
+      "device": "training",
+      "checkpoints": [
+        {
+          "case": "cnn",
+          "phase": "native_initial",
+          "parameter_tensors": 25,
+          "max_absolute_error": 0.0,
+          "changed_values": 0,
+          "sha256": "84fe90e272bf44c79c35b62360ae70e5b28c726a47c79985e14df480188ee2a4"
+        },
+        {
+          "case": "cnn",
+          "phase": "native_final",
+          "parameter_tensors": 25,
+          "max_absolute_error": 0.0,
+          "changed_values": 0,
+          "sha256": "129c45864d1188424db3496529825a4d3f276a3e10e0297655498ef220c85565"
+        },
+        {
+          "case": "gru",
+          "phase": "native_initial",
+          "parameter_tensors": 18,
+          "max_absolute_error": 0.0,
+          "changed_values": 0,
+          "sha256": "1b6474c45ac68f1417bce7615119b03ea4e0560fcf5e82798122a86b7eab930f"
+        },
+        {
+          "case": "gru",
+          "phase": "native_final",
+          "parameter_tensors": 18,
+          "max_absolute_error": 0.0,
+          "changed_values": 0,
+          "sha256": "bc9d117d6b7c3d5bfcc8586546fc2ad53b645ebc2d88d6988bc90bd10a4ebcc6"
+        },
+        {
+          "case": "plateau",
+          "phase": "native_initial",
+          "parameter_tensors": 25,
+          "max_absolute_error": 0.0,
+          "changed_values": 0,
+          "sha256": "64d651a3bee959eece717493d6bb9375d52fc72a82f6b1a0ddc9e179d2885fb7"
+        },
+        {
+          "case": "plateau",
+          "phase": "native_final",
+          "parameter_tensors": 25,
+          "max_absolute_error": 0.0,
+          "changed_values": 0,
+          "sha256": "fc34ab71c937274abd134a1560a4e38ab93bd2909a5951845a64f0da021a94c1"
+        },
+        {
+          "case": "zero_epochs",
+          "phase": "native_initial",
+          "parameter_tensors": 25,
+          "max_absolute_error": 0.0,
+          "changed_values": 0,
+          "sha256": "e8fb82d922e14201bfbd38808c8e9785618e4c8c5060119821d33442e27f21de"
+        },
+        {
+          "case": "zero_epochs",
+          "phase": "native_final",
+          "parameter_tensors": 25,
+          "max_absolute_error": 0.0,
+          "changed_values": 0,
+          "sha256": "e8fb82d922e14201bfbd38808c8e9785618e4c8c5060119821d33442e27f21de"
+        },
+        {
+          "case": "default_cnn",
+          "phase": "native_initial",
+          "parameter_tensors": 25,
+          "max_absolute_error": 0.0,
+          "changed_values": 0,
+          "sha256": "8d346098aea0ff262f75240940d69536596547cb521704cf82cd1872490dbe76"
+        },
+        {
+          "case": "default_cnn",
+          "phase": "native_final",
+          "parameter_tensors": 25,
+          "max_absolute_error": 0.0,
+          "changed_values": 0,
+          "sha256": "783b541befec8bd2403b6fb8c42f0fde102c4097c45e7a532cfd16d3208622b4"
+        }
+      ]
+    },
+    {
+      "device": "training_cuda_deterministic",
+      "checkpoints": [
+        {
+          "case": "cnn",
+          "phase": "native_initial",
+          "parameter_tensors": 25,
+          "max_absolute_error": 0.0,
+          "changed_values": 0,
+          "sha256": "d0df9b12ea100fe40ade64fb4716a09d52d1864e68a33a296b74ce0880376586"
+        },
+        {
+          "case": "cnn",
+          "phase": "native_final",
+          "parameter_tensors": 25,
+          "max_absolute_error": 0.0,
+          "changed_values": 0,
+          "sha256": "1cf7aa0427eae97920935e795991a5ad3a0474382967851bc767df7e7f0455ac"
+        },
+        {
+          "case": "gru",
+          "phase": "native_initial",
+          "parameter_tensors": 18,
+          "max_absolute_error": 0.0,
+          "changed_values": 0,
+          "sha256": "02b37aaf05021018b00aefd01a05c59fcbe09b76b926f2fc12651fb18f4a732d"
+        },
+        {
+          "case": "gru",
+          "phase": "native_final",
+          "parameter_tensors": 18,
+          "max_absolute_error": 0.0,
+          "changed_values": 0,
+          "sha256": "1034cf87676789b85d314cfb9ba02e8ef368192b247d6244b59860313da4843f"
+        },
+        {
+          "case": "plateau",
+          "phase": "native_initial",
+          "parameter_tensors": 25,
+          "max_absolute_error": 0.0,
+          "changed_values": 0,
+          "sha256": "b70328cc82f1f1f1ab73a51b37922e0bf3eb5851032582ac092c6c2053979b49"
+        },
+        {
+          "case": "plateau",
+          "phase": "native_final",
+          "parameter_tensors": 25,
+          "max_absolute_error": 0.0,
+          "changed_values": 0,
+          "sha256": "9fce26c3dd1a2e8ad40895d6b36711036d1a7541546bf820b555a464973d00db"
+        },
+        {
+          "case": "zero_epochs",
+          "phase": "native_initial",
+          "parameter_tensors": 25,
+          "max_absolute_error": 0.0,
+          "changed_values": 0,
+          "sha256": "16d83de6233467efae7f38e49568a230d90976709cd8e77c2a64e2db90513973"
+        },
+        {
+          "case": "zero_epochs",
+          "phase": "native_final",
+          "parameter_tensors": 25,
+          "max_absolute_error": 0.0,
+          "changed_values": 0,
+          "sha256": "16d83de6233467efae7f38e49568a230d90976709cd8e77c2a64e2db90513973"
+        },
+        {
+          "case": "default_cnn",
+          "phase": "native_initial",
+          "parameter_tensors": 25,
+          "max_absolute_error": 0.0,
+          "changed_values": 0,
+          "sha256": "e30c75898d50a9c711dbe81f06adc68c541b7a399917bc516381e2c095ce6ea0"
+        },
+        {
+          "case": "default_cnn",
+          "phase": "native_final",
+          "parameter_tensors": 25,
+          "max_absolute_error": 0.0,
+          "changed_values": 0,
+          "sha256": "063c362f6ba30031b361fdfe239bf9be19911c396d80f100b0b78a57fb747ea8"
+        }
+      ]
+    }
+  ],
+  "cpu_cases": 5,
+  "deterministic_cuda_cases": 5,
+  "case_types": [
+    "CNN",
+    "bidirectional GRU",
+    "learning-rate plateau",
+    "zero epochs",
+    "default CNN with batch 32"
+  ],
+  "default_cuda": "Captured separately. Repeated Python CNN/plateau runs vary despite identical seeds; native default CUDA was captured without asserting floating-point equality. CPU RNG/lifetime/reload checks pass. Production defaults were not changed.",
+  "exports": [
+    {
+      "name": "cnn",
+      "formats": [
+        "pytorch",
+        "config",
+        "onnx"
+      ],
+      "files": {
+        "config.json": {
+          "size": 164,
+          "sha256": "52d9c0358fbd234ba3ea64e8e16be8ebde44eaefd9a05820408e1ca8e90fab89"
+        },
+        "model.onnx": {
+          "size": 15998,
+          "sha256": "6d5a7173d5de58e23d6b9df0c92211e5593ec6f24fc539e7c44d6422b02fe8d9"
+        },
+        "model.pt": {
+          "size": 269466,
+          "sha256": "34c14e51655ee9b3194741f56141560f965eb352ccd4f7e0b20c55f969e2e4ba"
+        },
+        "model.onnx.data": {
+          "size": 259200,
+          "sha256": "fac5808bd56ca89908c5db12fed8e0976cec928c4c20950dce1268a63ba94f59"
+        }
+      },
+      "esp_ppq_available": false
+    },
+    {
+      "name": "gru",
+      "formats": [
+        "pytorch",
+        "config",
+        "onnx"
+      ],
+      "files": {
+        "config.json": {
+          "size": 164,
+          "sha256": "5ba3388f16234fad1b92ebedf25240646ad6530d38d305adf1298984bdc08a3d"
+        },
+        "model.onnx": {
+          "size": 38234,
+          "sha256": "01cab1981c55c3549def110ad096149e49161243cf350b7858986945582b68d9"
+        },
+        "model.pt": {
+          "size": 15101,
+          "sha256": "88207371279d43af6b7d1b8b52cf8bcccd808f2f040f3c0c9b6efb21ba3f47f4"
+        },
+        "model.onnx.data": {
+          "size": 9408,
+          "sha256": "73bbf15522663c28cb02792b051cb9ae9dfb00f57a7a6fb8587184942748f563"
+        }
+      },
+      "esp_ppq_available": false
+    }
+  ],
+  "export_findings": [
+    "Installed ESP-PPQ import fails with missing onnxsim, caught as ImportError by WakeWord.py.",
+    "Both actual Python CNN and GRU exports succeed, retaining ONNX opset 18 after requested version-11 conversion fails; weights are in a model.onnx.data sidecar.",
+    "Native ONNX/ESPDL export is not implemented yet."
+  ],
+  "production_image_unchanged": "sha256:9961a2bb539fbc5136c91cee0d1b6d7291f766f400d4193bc6909c44d55b8958"
+}

@@ -1,0 +1,111 @@
+{
+  "scope": "Prototype separate retained GPU parameters for quantized LTX Gemma, independent projector offload, per-parameter memory reporting and cleanup. Native post-load placement selection not integrated yet.",
+  "deployed": false,
+  "source_sha256": {
+    "patches/sdcpp-ltx-gemma-residency.patch": "baa30d9a3f4d1057131a1a2a15069a59b2ee742250085c9ff10552b485a09c1d",
+    "tests/test_ltx_gemma_residency.cpp": "63f2dfb9ef466198a89196e5a71e0b2405e22e5806ab9cf62555fe613a35dcda",
+    "tests/test_media_engine.cpp": "6240551b75f86aa39e593b5dd49958c4667fca0d291b4816427bf6b808dbf17d",
+    "CMakeLists.txt": "df5f543b3b69125d6ce84c77eeda122b1ac94228b1d4323c41759f490aba7836",
+    "cuda.Dockerfile": "e56a502692ab0ddec17c46bfc9c28fe73c5b21472a2ae446dc91b6752a2aa83b"
+  },
+  "engine_sha256": "ed09ece0b2dad4d94f4a4d30b802172dc0b382a746f236e7eede4b9e10475a08",
+  "test_driver_sha256": "a9feb78a9d77ff0f355154c90c9057cd5072abe0381871f0657faa0d06dd626e",
+  "gpu_manager_cases": 8,
+  "manager_checks": [
+    "Quantized/unquantized models with direct/mmap loading and CPU/disk parameter policy",
+    "Gemma projections, embeddings and norms retained on compute GPU",
+    "Projector independently staged, evicted and reloaded",
+    "Unregister frees all buffers and clears parameter accounting",
+    "Source bytes unchanged"
+  ],
+  "real_ltx": {
+    "original_image": "sha256:ff99ef0255b045fc073230ef732561d152bd2b90d1c7d0fa92eca7a7b17a0b08",
+    "test_exit": 0,
+    "seconds": 204.56587340508122,
+    "engine": {
+      "final_status": "Name:\tsd-cli\nUmask:\t0022\nState:\tS (sleeping)\nTgid:\t57\nNgid:\t0\nPid:\t57\nPPid:\t1\nTracerPid:\t0\nUid:\t0\t0\t0\t0\nGid:\t0\t0\t0\t0\nFDSize:\t64\nGroups:\t0 44 992 \nNStgid:\t57\nNSpid:\t57\nNSpgid:\t1\nNSsid:\t1\nKthread:\t0\nVmPeak:\t137020184 kB\nVmSize:\t123600584 kB\nVmLck:\t       0 kB\nVmPin:\t       0 kB\nVmHWM:\t29393088 kB\nVmRSS:\t28692264 kB\nRssAnon:\t 4429252 kB\nRssFile:\t24253028 kB\nRssShmem:\t    9984 kB\nVmData:\t 4712468 kB\nVmStk:\t     136 kB\nVmExe:\t   23104 kB\nVmLib:\t  747736 kB\nVmPTE:\t  140012 kB\nVmSwap:\t       0 kB\nHugetlbPages:\t       0 kB\nCoreDumping:\t0\nTHP_enabled:\t1\nuntag_mask:\t0xffffffffffffffff\nThreads:\t4\nSigQ:\t1/504231\nSigPnd:\t0000000000000000\nShdPnd:\t0000000000000000\nSigBlk:\t0000000000000000\nSigIgn:\t0000000080000000\nSigCgt:\t0000000100000000\nCapInh:\t0000000000000000\nCapPrm:\t00000000a80425fb\nCapEff:\t00000000a80425fb\nCapBnd:\t00000000a80425fb\nCapAmb:\t0000000000000000\nNoNewPrivs:\t0\nSeccomp:\t2\nSeccomp_filters:\t1\nSpeculation_Store_Bypass:\tthread vulnerable\nSpeculationIndirectBranch:\tconditional enabled\nCpus_allowed:\tffffff\nCpus_allowed_list:\t0-23\nMems_allowed:\t00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000001\nMems_allowed_list:\t0\nvoluntary_ctxt_switches:\t42801\nnonvoluntary_ctxt_switches:\t8196\nx86_Thread_features:\t\nx86_Thread_features_locked:\t\n",
+      "pid": 57,
+      "preload_seconds": 72.189168583,
+      "preload_status": "Name:\tsd-cli\nUmask:\t0022\nState:\tS (sleeping)\nTgid:\t57\nNgid:\t0\nPid:\t57\nPPid:\t1\nTracerPid:\t0\nUid:\t0\t0\t0\t0\nGid:\t0\t0\t0\t0\nFDSize:\t64\nGroups:\t0 44 992 \nNStgid:\t57\nNSpid:\t57\nNSpgid:\t1\nNSsid:\t1\nKthread:\t0\nVmPeak:\t93702512 kB\nVmSize:\t86967604 kB\nVmLck:\t       0 kB\nVmPin:\t       0 kB\nVmHWM:\t29393088 kB\nVmRSS:\t29209932 kB\nRssAnon:\t 3980868 kB\nRssFile:\t25221000 kB\nRssShmem:\t    8064 kB\nVmData:\t 4189824 kB\nVmStk:\t     136 kB\nVmExe:\t   23104 kB\nVmLib:\t  747736 kB\nVmPTE:\t  103956 kB\nVmSwap:\t       0 kB\nHugetlbPages:\t       0 kB\nCoreDumping:\t0\nTHP_enabled:\t1\nuntag_mask:\t0xffffffffffffffff\nThreads:\t4\nSigQ:\t1/504231\nSigPnd:\t0000000000000000\nShdPnd:\t0000000000000000\nSigBlk:\t0000000000000000\nSigIgn:\t0000000080000000\nSigCgt:\t0000000100000000\nCapInh:\t0000000000000000\nCapPrm:\t00000000a80425fb\nCapEff:\t00000000a80425fb\nCapBnd:\t00000000a80425fb\nCapAmb:\t0000000000000000\nNoNewPrivs:\t0\nSeccomp:\t2\nSeccomp_filters:\t1\nSpeculation_Store_Bypass:\tthread vulnerable\nSpeculationIndirectBranch:\tconditional enabled\nCpus_allowed:\tffffff\nCpus_allowed_list:\t0-23\nMems_allowed:\t00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000001\nMems_allowed_list:\t0\nvoluntary_ctxt_switches:\t2593\nnonvoluntary_ctxt_switches:\t288\nx86_Thread_features:\t\nx86_Thread_features_locked:\t\n",
+      "reaped": true,
+      "requests": [
+        {
+          "pid": 57,
+          "seconds": 71.899044932
+        },
+        {
+          "pid": 57,
+          "seconds": 48.651001445
+        }
+      ]
+    },
+    "restored_health": "healthy",
+    "restored_image": "sha256:ff99ef0255b045fc073230ef732561d152bd2b90d1c7d0fa92eca7a7b17a0b08"
+  },
+  "outputs_and_gpu_observations": {
+    "outputs": [
+      {
+        "name": "first",
+        "rgba_bytes": 147456,
+        "rgba_sha256": "b661176fb8396ca6ed0059b4321ef609805563fa64bfe0002109a97e9b74488a",
+        "pcm_s16le_bytes": 63360,
+        "pcm_s16le_sha256": "c5263aaea2e25160c0138996ab1d8a6793b863e3769c31e55b245b64f0e640af"
+      },
+      {
+        "name": "second",
+        "rgba_bytes": 147456,
+        "rgba_sha256": "b661176fb8396ca6ed0059b4321ef609805563fa64bfe0002109a97e9b74488a",
+        "pcm_s16le_bytes": 63360,
+        "pcm_s16le_sha256": "c5263aaea2e25160c0138996ab1d8a6793b863e3769c31e55b245b64f0e640af"
+      }
+    ],
+    "gpu_samples": {
+      "loading": {
+        "minimum_mib": 260,
+        "maximum_mib": 7482,
+        "samples": 128
+      },
+      "preloaded": {
+        "minimum_mib": 7482,
+        "maximum_mib": 7482,
+        "samples": 5
+      },
+      "request-1-complete": {
+        "minimum_mib": 7560,
+        "maximum_mib": 7560,
+        "samples": 5
+      },
+      "request-1-running": {
+        "minimum_mib": 7558,
+        "maximum_mib": 21982,
+        "samples": 124
+      },
+      "request-2-complete": {
+        "minimum_mib": 338,
+        "maximum_mib": 7560,
+        "samples": 8
+      },
+      "request-2-running": {
+        "minimum_mib": 7564,
+        "maximum_mib": 21950,
+        "samples": 86
+      }
+    },
+    "matches_previous_cpu_parameter_outputs": true
+  },
+  "parameter_memory_mb": {
+    "gpu": 7216.21,
+    "cpu": 20963.62,
+    "total": 28179.82
+  },
+  "observation_note": "Half-second polling includes three-second idle intervals. The final completed-request phase also contains teardown samples (338 MiB); use the first post-request interval for stable idle residency evidence, not the final phase minimum.",
+  "placement_oracle": "ltx_placement_cases.json (47 Python constructor cases; not yet a native passing suite)",
+  "remaining": [
+    "Choose residency from memory observed after Gemma loads, retaining the context where possible",
+    "Implement distinct whole-module and sequential offload behavior",
+    "Validate the integrated wrapper, failure recovery and Rust router handoff",
+    "Package and deploy only after integration checks",
+    "Quanto CPU fallback and full Python-model output equivalence"
+  ],
+  "restored_live_chat_sse_vision_http": 200
+}

@@ -1,0 +1,136 @@
+{
+  "source_sha256": "8238cef03d4a1db6e775d7f62234bcf998d8f08bd9fc15f1d8a36ea0d3280005",
+  "source_instance_snapshots": 88,
+  "media_validation": {
+    "static_source_snapshots": 155,
+    "captured_transition_snapshots": 40,
+    "additional_replica_video_sessions": 4,
+    "success": true
+  },
+  "host_regressions": {
+    "suites": 7,
+    "seconds": 94.01,
+    "success": true
+  },
+  "rust_integration": {
+    "modes": [
+      "resident/direct",
+      "resident/tunnel",
+      "swap/direct",
+      "swap/tunnel",
+      "failed-preload/direct",
+      "failed-preload/tunnel",
+      "resolved-slots/direct",
+      "resolved-slots/tunnel"
+    ],
+    "concurrent_surviving_replicas": 2,
+    "router_restart": true,
+    "success": true
+  },
+  "rust_policy": {
+    "tests": [
+      "ProtocolTests.test_heartbeat_normalizes_slots_and_ignores_invalid_entries",
+      "ProductionTests.test_default_idle_window_and_explicit_zero_override"
+    ],
+    "seconds": 0.192,
+    "success": true
+  },
+  "cuda_image_tests": {
+    "count": 27,
+    "seconds": 50.7,
+    "success": true
+  },
+  "scope": [
+    "Resident model instances published independently of parallel inference slots",
+    "Public-model instances field emitted only for multiple resident copies outside swap/unavailable states",
+    "Single model and single vision-model capability inherit instance counts",
+    "Unloading, failed preload and restoration refresh resident count without model-loading lock in capacity reads",
+    "Video exclusivity preserves raw instance metadata while setting capacity to zero; router still normalizes incoming metadata",
+    "External engine detach clears published residency without stopping operator-owned process"
+  ],
+  "remaining": [
+    "Full pipeline startup/preload mode gates and ordering",
+    "Qwen lazy startup cache warmup and auxiliary preload failure behavior",
+    "Persistent video/image engines and remaining compressed GPU/video parity",
+    "Broader GPU selection and cleanup equivalence"
+  ],
+  "deployment": {
+    "previous_image": "sha256:ecf981fe1b0cc3e2d6a8df768bbde4a6f81ffd81f773890b1c52fe8159445550",
+    "candidate_image": "sha256:8a3685ddf681a2fd3591b0439b5a5b3647cfaaea5926f7f19f488356de2d1ce0",
+    "health": "healthy",
+    "deployed_image": "sha256:8a3685ddf681a2fd3591b0439b5a5b3647cfaaea5926f7f19f488356de2d1ce0",
+    "effective_environment_changed_keys": [],
+    "original_env_file_unchanged": true,
+    "mounts_unchanged": true,
+    "wakeword_mounts": [
+      [
+        "bind",
+        "/home/josh/repos/xtsys/ezlocalai/wakeword_models",
+        "/app/wakeword_models",
+        true
+      ],
+      [
+        "bind",
+        "/home/josh/repos/xtsys/ezlocalai/wakeword_samples",
+        "/app/wakeword_samples",
+        true
+      ],
+      [
+        "bind",
+        "/home/josh/repos/xtsys/ezlocalai/wakeword_jobs",
+        "/app/wakeword_jobs",
+        true
+      ]
+    ],
+    "ports_unchanged": true,
+    "gpu_requests_unchanged": true
+  },
+  "live": {
+    "image": "sha256:8a3685ddf681a2fd3591b0439b5a5b3647cfaaea5926f7f19f488356de2d1ce0",
+    "binary_sha256": "02ffc40d48e2f0fd3bffc5e5665c6b76f5224ecac1baf59a0e5aa9ec9262fd4c",
+    "matching_workers": 1,
+    "python_extra_matches": true,
+    "extra": {
+      "llm_model_residency": "resident",
+      "loaded_llms": [
+        "unsloth/Qwen3.8-27B-GGUF"
+      ],
+      "active_llm": "unsloth/Qwen3.8-27B-GGUF",
+      "llm_unload_dependent_capabilities": [
+        "image",
+        "video",
+        "music",
+        "music_video"
+      ]
+    },
+    "resource_lifecycle": {
+      "llm_model_residency": "resident",
+      "loaded_llms": [
+        "unsloth/Qwen3.8-27B-GGUF"
+      ],
+      "active_llm": "unsloth/Qwen3.8-27B-GGUF"
+    },
+    "gpu_count": 1,
+    "torch_cuda": [
+      {
+        "index": 0,
+        "allocated_gb": 0.0,
+        "reserved_gb": 0.0,
+        "max_allocated_gb": 0.0,
+        "free_gb": 1.555,
+        "total_gb": 23.524
+      }
+    ],
+    "free_vram_gb": 1.5552978515625,
+    "sources": {
+      "Pipes.py": "8238cef03d4a1db6e775d7f62234bcf998d8f08bd9fc15f1d8a36ea0d3280005",
+      "Router.py": "d5eebf7fc48f7781628aa4eaab8af1c3f23fd8694242f0b3065436b5c86f62b1"
+    }
+  },
+  "live_routed_inference": {
+    "chat": 200,
+    "stream": 200,
+    "vision": 200
+  },
+  "python_interpreter_present": false
+}

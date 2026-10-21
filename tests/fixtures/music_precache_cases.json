@@ -1,0 +1,1553 @@
+{
+  "sources": {
+    "precache.py": "f26d2633a1c506157372dbfa1f69e6fe651993d73fb81c5361fd7be8ff70193d",
+    "ezlocalai/MUSIC.py": "d65e5f1ec4cb9db63789b53648e24eff445f7d68c5c1e12348f0e49279de9fc8",
+    "Globals.py": "c2be3290368b9be8f6cf5e80af2109bf17dc0c407e2cdadf32fecb338b4744e8"
+  },
+  "cases": [
+    {
+      "name": "defaults",
+      "environment": {
+        "MUSIC_ENABLED": "true"
+      },
+      "cached": [],
+      "failure": null,
+      "trace": [
+        [
+          "mkdir",
+          "models/ace-step"
+        ],
+        [
+          "exists",
+          "models/ace-step/Qwen3-Embedding-0.6B-Q8_0.gguf"
+        ],
+        [
+          "download",
+          "Serveurperso/ACE-Step-1.5-GGUF",
+          "Qwen3-Embedding-0.6B-Q8_0.gguf",
+          "models/ace-step"
+        ],
+        [
+          "exists",
+          "models/ace-step/acestep-5Hz-lm-4B-Q8_0.gguf"
+        ],
+        [
+          "download",
+          "Serveurperso/ACE-Step-1.5-GGUF",
+          "acestep-5Hz-lm-4B-Q8_0.gguf",
+          "models/ace-step"
+        ],
+        [
+          "exists",
+          "models/ace-step/acestep-v15-turbo-Q4_K_M.gguf"
+        ],
+        [
+          "download",
+          "Serveurperso/ACE-Step-1.5-GGUF",
+          "acestep-v15-turbo-Q4_K_M.gguf",
+          "models/ace-step"
+        ],
+        [
+          "exists",
+          "models/ace-step/vae-BF16.gguf"
+        ],
+        [
+          "download",
+          "Serveurperso/ACE-Step-1.5-GGUF",
+          "vae-BF16.gguf",
+          "models/ace-step"
+        ]
+      ]
+    },
+    {
+      "name": "MUSIC_ENABLED-0",
+      "environment": {
+        "MUSIC_ENABLED": ""
+      },
+      "cached": [],
+      "failure": null,
+      "trace": []
+    },
+    {
+      "name": "MUSIC_ENABLED-1",
+      "environment": {
+        "MUSIC_ENABLED": "false"
+      },
+      "cached": [],
+      "failure": null,
+      "trace": []
+    },
+    {
+      "name": "MUSIC_ENABLED-2",
+      "environment": {
+        "MUSIC_ENABLED": "1"
+      },
+      "cached": [],
+      "failure": null,
+      "trace": []
+    },
+    {
+      "name": "MUSIC_ENABLED-3",
+      "environment": {
+        "MUSIC_ENABLED": "yes"
+      },
+      "cached": [],
+      "failure": null,
+      "trace": []
+    },
+    {
+      "name": "MUSIC_ENABLED-4",
+      "environment": {
+        "MUSIC_ENABLED": "on"
+      },
+      "cached": [],
+      "failure": null,
+      "trace": []
+    },
+    {
+      "name": "MUSIC_ENABLED-5",
+      "environment": {
+        "MUSIC_ENABLED": "TRUE"
+      },
+      "cached": [],
+      "failure": null,
+      "trace": [
+        [
+          "mkdir",
+          "models/ace-step"
+        ],
+        [
+          "exists",
+          "models/ace-step/Qwen3-Embedding-0.6B-Q8_0.gguf"
+        ],
+        [
+          "download",
+          "Serveurperso/ACE-Step-1.5-GGUF",
+          "Qwen3-Embedding-0.6B-Q8_0.gguf",
+          "models/ace-step"
+        ],
+        [
+          "exists",
+          "models/ace-step/acestep-5Hz-lm-4B-Q8_0.gguf"
+        ],
+        [
+          "download",
+          "Serveurperso/ACE-Step-1.5-GGUF",
+          "acestep-5Hz-lm-4B-Q8_0.gguf",
+          "models/ace-step"
+        ],
+        [
+          "exists",
+          "models/ace-step/acestep-v15-turbo-Q4_K_M.gguf"
+        ],
+        [
+          "download",
+          "Serveurperso/ACE-Step-1.5-GGUF",
+          "acestep-v15-turbo-Q4_K_M.gguf",
+          "models/ace-step"
+        ],
+        [
+          "exists",
+          "models/ace-step/vae-BF16.gguf"
+        ],
+        [
+          "download",
+          "Serveurperso/ACE-Step-1.5-GGUF",
+          "vae-BF16.gguf",
+          "models/ace-step"
+        ]
+      ]
+    },
+    {
+      "name": "MUSIC_ENABLED-6",
+      "environment": {
+        "MUSIC_ENABLED": " True "
+      },
+      "cached": [],
+      "failure": null,
+      "trace": [
+        [
+          "mkdir",
+          "models/ace-step"
+        ],
+        [
+          "exists",
+          "models/ace-step/Qwen3-Embedding-0.6B-Q8_0.gguf"
+        ],
+        [
+          "download",
+          "Serveurperso/ACE-Step-1.5-GGUF",
+          "Qwen3-Embedding-0.6B-Q8_0.gguf",
+          "models/ace-step"
+        ],
+        [
+          "exists",
+          "models/ace-step/acestep-5Hz-lm-4B-Q8_0.gguf"
+        ],
+        [
+          "download",
+          "Serveurperso/ACE-Step-1.5-GGUF",
+          "acestep-5Hz-lm-4B-Q8_0.gguf",
+          "models/ace-step"
+        ],
+        [
+          "exists",
+          "models/ace-step/acestep-v15-turbo-Q4_K_M.gguf"
+        ],
+        [
+          "download",
+          "Serveurperso/ACE-Step-1.5-GGUF",
+          "acestep-v15-turbo-Q4_K_M.gguf",
+          "models/ace-step"
+        ],
+        [
+          "exists",
+          "models/ace-step/vae-BF16.gguf"
+        ],
+        [
+          "download",
+          "Serveurperso/ACE-Step-1.5-GGUF",
+          "vae-BF16.gguf",
+          "models/ace-step"
+        ]
+      ]
+    },
+    {
+      "name": "MUSIC_ENABLED-7",
+      "environment": {
+        "MUSIC_ENABLED": "garbage"
+      },
+      "cached": [],
+      "failure": null,
+      "trace": []
+    },
+    {
+      "name": "ACE_STEP_PRECACHE-0",
+      "environment": {
+        "MUSIC_ENABLED": "true",
+        "ACE_STEP_PRECACHE": ""
+      },
+      "cached": [],
+      "failure": null,
+      "trace": [
+        [
+          "mkdir",
+          "models/ace-step"
+        ],
+        [
+          "exists",
+          "models/ace-step/Qwen3-Embedding-0.6B-Q8_0.gguf"
+        ],
+        [
+          "download",
+          "Serveurperso/ACE-Step-1.5-GGUF",
+          "Qwen3-Embedding-0.6B-Q8_0.gguf",
+          "models/ace-step"
+        ],
+        [
+          "exists",
+          "models/ace-step/acestep-5Hz-lm-4B-Q8_0.gguf"
+        ],
+        [
+          "download",
+          "Serveurperso/ACE-Step-1.5-GGUF",
+          "acestep-5Hz-lm-4B-Q8_0.gguf",
+          "models/ace-step"
+        ],
+        [
+          "exists",
+          "models/ace-step/acestep-v15-turbo-Q4_K_M.gguf"
+        ],
+        [
+          "download",
+          "Serveurperso/ACE-Step-1.5-GGUF",
+          "acestep-v15-turbo-Q4_K_M.gguf",
+          "models/ace-step"
+        ],
+        [
+          "exists",
+          "models/ace-step/vae-BF16.gguf"
+        ],
+        [
+          "download",
+          "Serveurperso/ACE-Step-1.5-GGUF",
+          "vae-BF16.gguf",
+          "models/ace-step"
+        ]
+      ]
+    },
+    {
+      "name": "ACE_STEP_PRECACHE-1",
+      "environment": {
+        "MUSIC_ENABLED": "true",
+        "ACE_STEP_PRECACHE": "false"
+      },
+      "cached": [],
+      "failure": null,
+      "trace": []
+    },
+    {
+      "name": "ACE_STEP_PRECACHE-2",
+      "environment": {
+        "MUSIC_ENABLED": "true",
+        "ACE_STEP_PRECACHE": " False "
+      },
+      "cached": [],
+      "failure": null,
+      "trace": []
+    },
+    {
+      "name": "ACE_STEP_PRECACHE-3",
+      "environment": {
+        "MUSIC_ENABLED": "true",
+        "ACE_STEP_PRECACHE": "0"
+      },
+      "cached": [],
+      "failure": null,
+      "trace": []
+    },
+    {
+      "name": "ACE_STEP_PRECACHE-4",
+      "environment": {
+        "MUSIC_ENABLED": "true",
+        "ACE_STEP_PRECACHE": "no"
+      },
+      "cached": [],
+      "failure": null,
+      "trace": []
+    },
+    {
+      "name": "ACE_STEP_PRECACHE-5",
+      "environment": {
+        "MUSIC_ENABLED": "true",
+        "ACE_STEP_PRECACHE": "off"
+      },
+      "cached": [],
+      "failure": null,
+      "trace": []
+    },
+    {
+      "name": "ACE_STEP_PRECACHE-6",
+      "environment": {
+        "MUSIC_ENABLED": "true",
+        "ACE_STEP_PRECACHE": "TRUE"
+      },
+      "cached": [],
+      "failure": null,
+      "trace": [
+        [
+          "mkdir",
+          "models/ace-step"
+        ],
+        [
+          "exists",
+          "models/ace-step/Qwen3-Embedding-0.6B-Q8_0.gguf"
+        ],
+        [
+          "download",
+          "Serveurperso/ACE-Step-1.5-GGUF",
+          "Qwen3-Embedding-0.6B-Q8_0.gguf",
+          "models/ace-step"
+        ],
+        [
+          "exists",
+          "models/ace-step/acestep-5Hz-lm-4B-Q8_0.gguf"
+        ],
+        [
+          "download",
+          "Serveurperso/ACE-Step-1.5-GGUF",
+          "acestep-5Hz-lm-4B-Q8_0.gguf",
+          "models/ace-step"
+        ],
+        [
+          "exists",
+          "models/ace-step/acestep-v15-turbo-Q4_K_M.gguf"
+        ],
+        [
+          "download",
+          "Serveurperso/ACE-Step-1.5-GGUF",
+          "acestep-v15-turbo-Q4_K_M.gguf",
+          "models/ace-step"
+        ],
+        [
+          "exists",
+          "models/ace-step/vae-BF16.gguf"
+        ],
+        [
+          "download",
+          "Serveurperso/ACE-Step-1.5-GGUF",
+          "vae-BF16.gguf",
+          "models/ace-step"
+        ]
+      ]
+    },
+    {
+      "name": "ACE_STEP_PRECACHE-7",
+      "environment": {
+        "MUSIC_ENABLED": "true",
+        "ACE_STEP_PRECACHE": "1"
+      },
+      "cached": [],
+      "failure": null,
+      "trace": [
+        [
+          "mkdir",
+          "models/ace-step"
+        ],
+        [
+          "exists",
+          "models/ace-step/Qwen3-Embedding-0.6B-Q8_0.gguf"
+        ],
+        [
+          "download",
+          "Serveurperso/ACE-Step-1.5-GGUF",
+          "Qwen3-Embedding-0.6B-Q8_0.gguf",
+          "models/ace-step"
+        ],
+        [
+          "exists",
+          "models/ace-step/acestep-5Hz-lm-4B-Q8_0.gguf"
+        ],
+        [
+          "download",
+          "Serveurperso/ACE-Step-1.5-GGUF",
+          "acestep-5Hz-lm-4B-Q8_0.gguf",
+          "models/ace-step"
+        ],
+        [
+          "exists",
+          "models/ace-step/acestep-v15-turbo-Q4_K_M.gguf"
+        ],
+        [
+          "download",
+          "Serveurperso/ACE-Step-1.5-GGUF",
+          "acestep-v15-turbo-Q4_K_M.gguf",
+          "models/ace-step"
+        ],
+        [
+          "exists",
+          "models/ace-step/vae-BF16.gguf"
+        ],
+        [
+          "download",
+          "Serveurperso/ACE-Step-1.5-GGUF",
+          "vae-BF16.gguf",
+          "models/ace-step"
+        ]
+      ]
+    },
+    {
+      "name": "ACE_STEP_PRECACHE-8",
+      "environment": {
+        "MUSIC_ENABLED": "true",
+        "ACE_STEP_PRECACHE": "yes"
+      },
+      "cached": [],
+      "failure": null,
+      "trace": [
+        [
+          "mkdir",
+          "models/ace-step"
+        ],
+        [
+          "exists",
+          "models/ace-step/Qwen3-Embedding-0.6B-Q8_0.gguf"
+        ],
+        [
+          "download",
+          "Serveurperso/ACE-Step-1.5-GGUF",
+          "Qwen3-Embedding-0.6B-Q8_0.gguf",
+          "models/ace-step"
+        ],
+        [
+          "exists",
+          "models/ace-step/acestep-5Hz-lm-4B-Q8_0.gguf"
+        ],
+        [
+          "download",
+          "Serveurperso/ACE-Step-1.5-GGUF",
+          "acestep-5Hz-lm-4B-Q8_0.gguf",
+          "models/ace-step"
+        ],
+        [
+          "exists",
+          "models/ace-step/acestep-v15-turbo-Q4_K_M.gguf"
+        ],
+        [
+          "download",
+          "Serveurperso/ACE-Step-1.5-GGUF",
+          "acestep-v15-turbo-Q4_K_M.gguf",
+          "models/ace-step"
+        ],
+        [
+          "exists",
+          "models/ace-step/vae-BF16.gguf"
+        ],
+        [
+          "download",
+          "Serveurperso/ACE-Step-1.5-GGUF",
+          "vae-BF16.gguf",
+          "models/ace-step"
+        ]
+      ]
+    },
+    {
+      "name": "ACE_STEP_PRECACHE-9",
+      "environment": {
+        "MUSIC_ENABLED": "true",
+        "ACE_STEP_PRECACHE": "garbage"
+      },
+      "cached": [],
+      "failure": null,
+      "trace": [
+        [
+          "mkdir",
+          "models/ace-step"
+        ],
+        [
+          "exists",
+          "models/ace-step/Qwen3-Embedding-0.6B-Q8_0.gguf"
+        ],
+        [
+          "download",
+          "Serveurperso/ACE-Step-1.5-GGUF",
+          "Qwen3-Embedding-0.6B-Q8_0.gguf",
+          "models/ace-step"
+        ],
+        [
+          "exists",
+          "models/ace-step/acestep-5Hz-lm-4B-Q8_0.gguf"
+        ],
+        [
+          "download",
+          "Serveurperso/ACE-Step-1.5-GGUF",
+          "acestep-5Hz-lm-4B-Q8_0.gguf",
+          "models/ace-step"
+        ],
+        [
+          "exists",
+          "models/ace-step/acestep-v15-turbo-Q4_K_M.gguf"
+        ],
+        [
+          "download",
+          "Serveurperso/ACE-Step-1.5-GGUF",
+          "acestep-v15-turbo-Q4_K_M.gguf",
+          "models/ace-step"
+        ],
+        [
+          "exists",
+          "models/ace-step/vae-BF16.gguf"
+        ],
+        [
+          "download",
+          "Serveurperso/ACE-Step-1.5-GGUF",
+          "vae-BF16.gguf",
+          "models/ace-step"
+        ]
+      ]
+    },
+    {
+      "name": "ACE_STEP_SERVER_URL-0",
+      "environment": {
+        "MUSIC_ENABLED": "true",
+        "ACE_STEP_SERVER_URL": ""
+      },
+      "cached": [],
+      "failure": null,
+      "trace": [
+        [
+          "mkdir",
+          "models/ace-step"
+        ],
+        [
+          "exists",
+          "models/ace-step/Qwen3-Embedding-0.6B-Q8_0.gguf"
+        ],
+        [
+          "download",
+          "Serveurperso/ACE-Step-1.5-GGUF",
+          "Qwen3-Embedding-0.6B-Q8_0.gguf",
+          "models/ace-step"
+        ],
+        [
+          "exists",
+          "models/ace-step/acestep-5Hz-lm-4B-Q8_0.gguf"
+        ],
+        [
+          "download",
+          "Serveurperso/ACE-Step-1.5-GGUF",
+          "acestep-5Hz-lm-4B-Q8_0.gguf",
+          "models/ace-step"
+        ],
+        [
+          "exists",
+          "models/ace-step/acestep-v15-turbo-Q4_K_M.gguf"
+        ],
+        [
+          "download",
+          "Serveurperso/ACE-Step-1.5-GGUF",
+          "acestep-v15-turbo-Q4_K_M.gguf",
+          "models/ace-step"
+        ],
+        [
+          "exists",
+          "models/ace-step/vae-BF16.gguf"
+        ],
+        [
+          "download",
+          "Serveurperso/ACE-Step-1.5-GGUF",
+          "vae-BF16.gguf",
+          "models/ace-step"
+        ]
+      ]
+    },
+    {
+      "name": "ACE_STEP_SERVER_URL-1",
+      "environment": {
+        "MUSIC_ENABLED": "true",
+        "ACE_STEP_SERVER_URL": " "
+      },
+      "cached": [],
+      "failure": null,
+      "trace": [
+        [
+          "mkdir",
+          "models/ace-step"
+        ],
+        [
+          "exists",
+          "models/ace-step/Qwen3-Embedding-0.6B-Q8_0.gguf"
+        ],
+        [
+          "download",
+          "Serveurperso/ACE-Step-1.5-GGUF",
+          "Qwen3-Embedding-0.6B-Q8_0.gguf",
+          "models/ace-step"
+        ],
+        [
+          "exists",
+          "models/ace-step/acestep-5Hz-lm-4B-Q8_0.gguf"
+        ],
+        [
+          "download",
+          "Serveurperso/ACE-Step-1.5-GGUF",
+          "acestep-5Hz-lm-4B-Q8_0.gguf",
+          "models/ace-step"
+        ],
+        [
+          "exists",
+          "models/ace-step/acestep-v15-turbo-Q4_K_M.gguf"
+        ],
+        [
+          "download",
+          "Serveurperso/ACE-Step-1.5-GGUF",
+          "acestep-v15-turbo-Q4_K_M.gguf",
+          "models/ace-step"
+        ],
+        [
+          "exists",
+          "models/ace-step/vae-BF16.gguf"
+        ],
+        [
+          "download",
+          "Serveurperso/ACE-Step-1.5-GGUF",
+          "vae-BF16.gguf",
+          "models/ace-step"
+        ]
+      ]
+    },
+    {
+      "name": "ACE_STEP_SERVER_URL-2",
+      "environment": {
+        "MUSIC_ENABLED": "true",
+        "ACE_STEP_SERVER_URL": "http://ace:8085"
+      },
+      "cached": [],
+      "failure": null,
+      "trace": []
+    },
+    {
+      "name": "ACE_STEP_SERVER_URL-3",
+      "environment": {
+        "MUSIC_ENABLED": "true",
+        "ACE_STEP_SERVER_URL": "false"
+      },
+      "cached": [],
+      "failure": null,
+      "trace": []
+    },
+    {
+      "name": "ACE_STEP_MODEL_REPO-0",
+      "environment": {
+        "MUSIC_ENABLED": "true",
+        "ACE_STEP_MODEL_REPO": ""
+      },
+      "cached": [],
+      "failure": null,
+      "trace": [
+        [
+          "mkdir",
+          "models/ace-step"
+        ],
+        [
+          "exists",
+          "models/ace-step/Qwen3-Embedding-0.6B-Q8_0.gguf"
+        ],
+        [
+          "download",
+          "Serveurperso/ACE-Step-1.5-GGUF",
+          "Qwen3-Embedding-0.6B-Q8_0.gguf",
+          "models/ace-step"
+        ],
+        [
+          "exists",
+          "models/ace-step/acestep-5Hz-lm-4B-Q8_0.gguf"
+        ],
+        [
+          "download",
+          "Serveurperso/ACE-Step-1.5-GGUF",
+          "acestep-5Hz-lm-4B-Q8_0.gguf",
+          "models/ace-step"
+        ],
+        [
+          "exists",
+          "models/ace-step/acestep-v15-turbo-Q4_K_M.gguf"
+        ],
+        [
+          "download",
+          "Serveurperso/ACE-Step-1.5-GGUF",
+          "acestep-v15-turbo-Q4_K_M.gguf",
+          "models/ace-step"
+        ],
+        [
+          "exists",
+          "models/ace-step/vae-BF16.gguf"
+        ],
+        [
+          "download",
+          "Serveurperso/ACE-Step-1.5-GGUF",
+          "vae-BF16.gguf",
+          "models/ace-step"
+        ]
+      ]
+    },
+    {
+      "name": "ACE_STEP_MODEL_REPO-1",
+      "environment": {
+        "MUSIC_ENABLED": "true",
+        "ACE_STEP_MODEL_REPO": " "
+      },
+      "cached": [],
+      "failure": null,
+      "trace": []
+    },
+    {
+      "name": "ACE_STEP_MODEL_REPO-2",
+      "environment": {
+        "MUSIC_ENABLED": "true",
+        "ACE_STEP_MODEL_REPO": " custom/models "
+      },
+      "cached": [],
+      "failure": null,
+      "trace": [
+        [
+          "mkdir",
+          "models/ace-step"
+        ],
+        [
+          "exists",
+          "models/ace-step/Qwen3-Embedding-0.6B-Q8_0.gguf"
+        ],
+        [
+          "download",
+          "custom/models",
+          "Qwen3-Embedding-0.6B-Q8_0.gguf",
+          "models/ace-step"
+        ],
+        [
+          "exists",
+          "models/ace-step/acestep-5Hz-lm-4B-Q8_0.gguf"
+        ],
+        [
+          "download",
+          "custom/models",
+          "acestep-5Hz-lm-4B-Q8_0.gguf",
+          "models/ace-step"
+        ],
+        [
+          "exists",
+          "models/ace-step/acestep-v15-turbo-Q4_K_M.gguf"
+        ],
+        [
+          "download",
+          "custom/models",
+          "acestep-v15-turbo-Q4_K_M.gguf",
+          "models/ace-step"
+        ],
+        [
+          "exists",
+          "models/ace-step/vae-BF16.gguf"
+        ],
+        [
+          "download",
+          "custom/models",
+          "vae-BF16.gguf",
+          "models/ace-step"
+        ]
+      ]
+    },
+    {
+      "name": "ACE_STEP_MODELS_DIR-0",
+      "environment": {
+        "MUSIC_ENABLED": "true",
+        "ACE_STEP_MODELS_DIR": ""
+      },
+      "cached": [],
+      "failure": null,
+      "trace": [
+        [
+          "mkdir",
+          "models/ace-step"
+        ],
+        [
+          "exists",
+          "models/ace-step/Qwen3-Embedding-0.6B-Q8_0.gguf"
+        ],
+        [
+          "download",
+          "Serveurperso/ACE-Step-1.5-GGUF",
+          "Qwen3-Embedding-0.6B-Q8_0.gguf",
+          "models/ace-step"
+        ],
+        [
+          "exists",
+          "models/ace-step/acestep-5Hz-lm-4B-Q8_0.gguf"
+        ],
+        [
+          "download",
+          "Serveurperso/ACE-Step-1.5-GGUF",
+          "acestep-5Hz-lm-4B-Q8_0.gguf",
+          "models/ace-step"
+        ],
+        [
+          "exists",
+          "models/ace-step/acestep-v15-turbo-Q4_K_M.gguf"
+        ],
+        [
+          "download",
+          "Serveurperso/ACE-Step-1.5-GGUF",
+          "acestep-v15-turbo-Q4_K_M.gguf",
+          "models/ace-step"
+        ],
+        [
+          "exists",
+          "models/ace-step/vae-BF16.gguf"
+        ],
+        [
+          "download",
+          "Serveurperso/ACE-Step-1.5-GGUF",
+          "vae-BF16.gguf",
+          "models/ace-step"
+        ]
+      ]
+    },
+    {
+      "name": "ACE_STEP_MODELS_DIR-1",
+      "environment": {
+        "MUSIC_ENABLED": "true",
+        "ACE_STEP_MODELS_DIR": " "
+      },
+      "cached": [],
+      "failure": null,
+      "trace": [
+        [
+          "mkdir",
+          ""
+        ],
+        [
+          "exists",
+          "Qwen3-Embedding-0.6B-Q8_0.gguf"
+        ],
+        [
+          "download",
+          "Serveurperso/ACE-Step-1.5-GGUF",
+          "Qwen3-Embedding-0.6B-Q8_0.gguf",
+          ""
+        ],
+        [
+          "exists",
+          "acestep-5Hz-lm-4B-Q8_0.gguf"
+        ],
+        [
+          "download",
+          "Serveurperso/ACE-Step-1.5-GGUF",
+          "acestep-5Hz-lm-4B-Q8_0.gguf",
+          ""
+        ],
+        [
+          "exists",
+          "acestep-v15-turbo-Q4_K_M.gguf"
+        ],
+        [
+          "download",
+          "Serveurperso/ACE-Step-1.5-GGUF",
+          "acestep-v15-turbo-Q4_K_M.gguf",
+          ""
+        ],
+        [
+          "exists",
+          "vae-BF16.gguf"
+        ],
+        [
+          "download",
+          "Serveurperso/ACE-Step-1.5-GGUF",
+          "vae-BF16.gguf",
+          ""
+        ]
+      ]
+    },
+    {
+      "name": "ACE_STEP_MODELS_DIR-2",
+      "environment": {
+        "MUSIC_ENABLED": "true",
+        "ACE_STEP_MODELS_DIR": " /tmp/ace models "
+      },
+      "cached": [],
+      "failure": null,
+      "trace": [
+        [
+          "mkdir",
+          "/tmp/ace models"
+        ],
+        [
+          "exists",
+          "/tmp/ace models/Qwen3-Embedding-0.6B-Q8_0.gguf"
+        ],
+        [
+          "download",
+          "Serveurperso/ACE-Step-1.5-GGUF",
+          "Qwen3-Embedding-0.6B-Q8_0.gguf",
+          "/tmp/ace models"
+        ],
+        [
+          "exists",
+          "/tmp/ace models/acestep-5Hz-lm-4B-Q8_0.gguf"
+        ],
+        [
+          "download",
+          "Serveurperso/ACE-Step-1.5-GGUF",
+          "acestep-5Hz-lm-4B-Q8_0.gguf",
+          "/tmp/ace models"
+        ],
+        [
+          "exists",
+          "/tmp/ace models/acestep-v15-turbo-Q4_K_M.gguf"
+        ],
+        [
+          "download",
+          "Serveurperso/ACE-Step-1.5-GGUF",
+          "acestep-v15-turbo-Q4_K_M.gguf",
+          "/tmp/ace models"
+        ],
+        [
+          "exists",
+          "/tmp/ace models/vae-BF16.gguf"
+        ],
+        [
+          "download",
+          "Serveurperso/ACE-Step-1.5-GGUF",
+          "vae-BF16.gguf",
+          "/tmp/ace models"
+        ]
+      ]
+    },
+    {
+      "name": "ACE_STEP_MODELS_DIR-3",
+      "environment": {
+        "MUSIC_ENABLED": "true",
+        "ACE_STEP_MODELS_DIR": "relative/path"
+      },
+      "cached": [],
+      "failure": null,
+      "trace": [
+        [
+          "mkdir",
+          "relative/path"
+        ],
+        [
+          "exists",
+          "relative/path/Qwen3-Embedding-0.6B-Q8_0.gguf"
+        ],
+        [
+          "download",
+          "Serveurperso/ACE-Step-1.5-GGUF",
+          "Qwen3-Embedding-0.6B-Q8_0.gguf",
+          "relative/path"
+        ],
+        [
+          "exists",
+          "relative/path/acestep-5Hz-lm-4B-Q8_0.gguf"
+        ],
+        [
+          "download",
+          "Serveurperso/ACE-Step-1.5-GGUF",
+          "acestep-5Hz-lm-4B-Q8_0.gguf",
+          "relative/path"
+        ],
+        [
+          "exists",
+          "relative/path/acestep-v15-turbo-Q4_K_M.gguf"
+        ],
+        [
+          "download",
+          "Serveurperso/ACE-Step-1.5-GGUF",
+          "acestep-v15-turbo-Q4_K_M.gguf",
+          "relative/path"
+        ],
+        [
+          "exists",
+          "relative/path/vae-BF16.gguf"
+        ],
+        [
+          "download",
+          "Serveurperso/ACE-Step-1.5-GGUF",
+          "vae-BF16.gguf",
+          "relative/path"
+        ]
+      ]
+    },
+    {
+      "name": "ACE_STEP_AUTO_START-0",
+      "environment": {
+        "MUSIC_ENABLED": "true",
+        "ACE_STEP_AUTO_START": "false"
+      },
+      "cached": [],
+      "failure": null,
+      "trace": [
+        [
+          "mkdir",
+          "models/ace-step"
+        ],
+        [
+          "exists",
+          "models/ace-step/Qwen3-Embedding-0.6B-Q8_0.gguf"
+        ],
+        [
+          "download",
+          "Serveurperso/ACE-Step-1.5-GGUF",
+          "Qwen3-Embedding-0.6B-Q8_0.gguf",
+          "models/ace-step"
+        ],
+        [
+          "exists",
+          "models/ace-step/acestep-5Hz-lm-4B-Q8_0.gguf"
+        ],
+        [
+          "download",
+          "Serveurperso/ACE-Step-1.5-GGUF",
+          "acestep-5Hz-lm-4B-Q8_0.gguf",
+          "models/ace-step"
+        ],
+        [
+          "exists",
+          "models/ace-step/acestep-v15-turbo-Q4_K_M.gguf"
+        ],
+        [
+          "download",
+          "Serveurperso/ACE-Step-1.5-GGUF",
+          "acestep-v15-turbo-Q4_K_M.gguf",
+          "models/ace-step"
+        ],
+        [
+          "exists",
+          "models/ace-step/vae-BF16.gguf"
+        ],
+        [
+          "download",
+          "Serveurperso/ACE-Step-1.5-GGUF",
+          "vae-BF16.gguf",
+          "models/ace-step"
+        ]
+      ]
+    },
+    {
+      "name": "cached-1",
+      "environment": {
+        "MUSIC_ENABLED": "true"
+      },
+      "cached": [
+        "models/ace-step/Qwen3-Embedding-0.6B-Q8_0.gguf"
+      ],
+      "failure": null,
+      "trace": [
+        [
+          "mkdir",
+          "models/ace-step"
+        ],
+        [
+          "exists",
+          "models/ace-step/Qwen3-Embedding-0.6B-Q8_0.gguf"
+        ],
+        [
+          "exists",
+          "models/ace-step/acestep-5Hz-lm-4B-Q8_0.gguf"
+        ],
+        [
+          "download",
+          "Serveurperso/ACE-Step-1.5-GGUF",
+          "acestep-5Hz-lm-4B-Q8_0.gguf",
+          "models/ace-step"
+        ],
+        [
+          "exists",
+          "models/ace-step/acestep-v15-turbo-Q4_K_M.gguf"
+        ],
+        [
+          "download",
+          "Serveurperso/ACE-Step-1.5-GGUF",
+          "acestep-v15-turbo-Q4_K_M.gguf",
+          "models/ace-step"
+        ],
+        [
+          "exists",
+          "models/ace-step/vae-BF16.gguf"
+        ],
+        [
+          "download",
+          "Serveurperso/ACE-Step-1.5-GGUF",
+          "vae-BF16.gguf",
+          "models/ace-step"
+        ]
+      ]
+    },
+    {
+      "name": "cached-2",
+      "environment": {
+        "MUSIC_ENABLED": "true"
+      },
+      "cached": [
+        "models/ace-step/Qwen3-Embedding-0.6B-Q8_0.gguf",
+        "models/ace-step/acestep-5Hz-lm-4B-Q8_0.gguf"
+      ],
+      "failure": null,
+      "trace": [
+        [
+          "mkdir",
+          "models/ace-step"
+        ],
+        [
+          "exists",
+          "models/ace-step/Qwen3-Embedding-0.6B-Q8_0.gguf"
+        ],
+        [
+          "exists",
+          "models/ace-step/acestep-5Hz-lm-4B-Q8_0.gguf"
+        ],
+        [
+          "exists",
+          "models/ace-step/acestep-v15-turbo-Q4_K_M.gguf"
+        ],
+        [
+          "download",
+          "Serveurperso/ACE-Step-1.5-GGUF",
+          "acestep-v15-turbo-Q4_K_M.gguf",
+          "models/ace-step"
+        ],
+        [
+          "exists",
+          "models/ace-step/vae-BF16.gguf"
+        ],
+        [
+          "download",
+          "Serveurperso/ACE-Step-1.5-GGUF",
+          "vae-BF16.gguf",
+          "models/ace-step"
+        ]
+      ]
+    },
+    {
+      "name": "cached-3",
+      "environment": {
+        "MUSIC_ENABLED": "true"
+      },
+      "cached": [
+        "models/ace-step/Qwen3-Embedding-0.6B-Q8_0.gguf",
+        "models/ace-step/acestep-5Hz-lm-4B-Q8_0.gguf",
+        "models/ace-step/acestep-v15-turbo-Q4_K_M.gguf"
+      ],
+      "failure": null,
+      "trace": [
+        [
+          "mkdir",
+          "models/ace-step"
+        ],
+        [
+          "exists",
+          "models/ace-step/Qwen3-Embedding-0.6B-Q8_0.gguf"
+        ],
+        [
+          "exists",
+          "models/ace-step/acestep-5Hz-lm-4B-Q8_0.gguf"
+        ],
+        [
+          "exists",
+          "models/ace-step/acestep-v15-turbo-Q4_K_M.gguf"
+        ],
+        [
+          "exists",
+          "models/ace-step/vae-BF16.gguf"
+        ],
+        [
+          "download",
+          "Serveurperso/ACE-Step-1.5-GGUF",
+          "vae-BF16.gguf",
+          "models/ace-step"
+        ]
+      ]
+    },
+    {
+      "name": "cached-4",
+      "environment": {
+        "MUSIC_ENABLED": "true"
+      },
+      "cached": [
+        "models/ace-step/Qwen3-Embedding-0.6B-Q8_0.gguf",
+        "models/ace-step/acestep-5Hz-lm-4B-Q8_0.gguf",
+        "models/ace-step/acestep-v15-turbo-Q4_K_M.gguf",
+        "models/ace-step/vae-BF16.gguf"
+      ],
+      "failure": null,
+      "trace": [
+        [
+          "mkdir",
+          "models/ace-step"
+        ],
+        [
+          "exists",
+          "models/ace-step/Qwen3-Embedding-0.6B-Q8_0.gguf"
+        ],
+        [
+          "exists",
+          "models/ace-step/acestep-5Hz-lm-4B-Q8_0.gguf"
+        ],
+        [
+          "exists",
+          "models/ace-step/acestep-v15-turbo-Q4_K_M.gguf"
+        ],
+        [
+          "exists",
+          "models/ace-step/vae-BF16.gguf"
+        ]
+      ]
+    },
+    {
+      "name": "failure-mkdir",
+      "environment": {
+        "MUSIC_ENABLED": "true"
+      },
+      "cached": [],
+      "failure": "mkdir",
+      "trace": [
+        [
+          "mkdir",
+          "models/ace-step"
+        ]
+      ]
+    },
+    {
+      "name": "failure-exists",
+      "environment": {
+        "MUSIC_ENABLED": "true"
+      },
+      "cached": [],
+      "failure": "exists",
+      "trace": [
+        [
+          "mkdir",
+          "models/ace-step"
+        ],
+        [
+          "exists",
+          "models/ace-step/Qwen3-Embedding-0.6B-Q8_0.gguf"
+        ]
+      ]
+    },
+    {
+      "name": "failure-download-1",
+      "environment": {
+        "MUSIC_ENABLED": "true"
+      },
+      "cached": [],
+      "failure": "download-1",
+      "trace": [
+        [
+          "mkdir",
+          "models/ace-step"
+        ],
+        [
+          "exists",
+          "models/ace-step/Qwen3-Embedding-0.6B-Q8_0.gguf"
+        ],
+        [
+          "download",
+          "Serveurperso/ACE-Step-1.5-GGUF",
+          "Qwen3-Embedding-0.6B-Q8_0.gguf",
+          "models/ace-step"
+        ]
+      ]
+    },
+    {
+      "name": "failure-download-2",
+      "environment": {
+        "MUSIC_ENABLED": "true"
+      },
+      "cached": [],
+      "failure": "download-2",
+      "trace": [
+        [
+          "mkdir",
+          "models/ace-step"
+        ],
+        [
+          "exists",
+          "models/ace-step/Qwen3-Embedding-0.6B-Q8_0.gguf"
+        ],
+        [
+          "download",
+          "Serveurperso/ACE-Step-1.5-GGUF",
+          "Qwen3-Embedding-0.6B-Q8_0.gguf",
+          "models/ace-step"
+        ],
+        [
+          "exists",
+          "models/ace-step/acestep-5Hz-lm-4B-Q8_0.gguf"
+        ],
+        [
+          "download",
+          "Serveurperso/ACE-Step-1.5-GGUF",
+          "acestep-5Hz-lm-4B-Q8_0.gguf",
+          "models/ace-step"
+        ]
+      ]
+    },
+    {
+      "name": "failure-download-4",
+      "environment": {
+        "MUSIC_ENABLED": "true"
+      },
+      "cached": [],
+      "failure": "download-4",
+      "trace": [
+        [
+          "mkdir",
+          "models/ace-step"
+        ],
+        [
+          "exists",
+          "models/ace-step/Qwen3-Embedding-0.6B-Q8_0.gguf"
+        ],
+        [
+          "download",
+          "Serveurperso/ACE-Step-1.5-GGUF",
+          "Qwen3-Embedding-0.6B-Q8_0.gguf",
+          "models/ace-step"
+        ],
+        [
+          "exists",
+          "models/ace-step/acestep-5Hz-lm-4B-Q8_0.gguf"
+        ],
+        [
+          "download",
+          "Serveurperso/ACE-Step-1.5-GGUF",
+          "acestep-5Hz-lm-4B-Q8_0.gguf",
+          "models/ace-step"
+        ],
+        [
+          "exists",
+          "models/ace-step/acestep-v15-turbo-Q4_K_M.gguf"
+        ],
+        [
+          "download",
+          "Serveurperso/ACE-Step-1.5-GGUF",
+          "acestep-v15-turbo-Q4_K_M.gguf",
+          "models/ace-step"
+        ],
+        [
+          "exists",
+          "models/ace-step/vae-BF16.gguf"
+        ],
+        [
+          "download",
+          "Serveurperso/ACE-Step-1.5-GGUF",
+          "vae-BF16.gguf",
+          "models/ace-step"
+        ]
+      ]
+    },
+    {
+      "name": "empty-files",
+      "environment": {
+        "MUSIC_ENABLED": "true",
+        "ACE_STEP_TEXT_ENCODER_MODEL": "",
+        "ACE_STEP_LM_MODEL": "",
+        "ACE_STEP_DIT_MODEL": "",
+        "ACE_STEP_VAE_MODEL": ""
+      },
+      "cached": [],
+      "failure": null,
+      "trace": []
+    },
+    {
+      "name": "whitespace-files",
+      "environment": {
+        "MUSIC_ENABLED": "true",
+        "ACE_STEP_TEXT_ENCODER_MODEL": " ",
+        "ACE_STEP_LM_MODEL": " ",
+        "ACE_STEP_DIT_MODEL": " ",
+        "ACE_STEP_VAE_MODEL": " "
+      },
+      "cached": [],
+      "failure": null,
+      "trace": []
+    },
+    {
+      "name": "duplicates",
+      "environment": {
+        "MUSIC_ENABLED": "true",
+        "ACE_STEP_TEXT_ENCODER_MODEL": " duplicate.gguf ",
+        "ACE_STEP_LM_MODEL": " duplicate.gguf ",
+        "ACE_STEP_DIT_MODEL": " duplicate.gguf ",
+        "ACE_STEP_VAE_MODEL": " duplicate.gguf "
+      },
+      "cached": [],
+      "failure": null,
+      "trace": [
+        [
+          "mkdir",
+          "models/ace-step"
+        ],
+        [
+          "exists",
+          "models/ace-step/duplicate.gguf"
+        ],
+        [
+          "download",
+          "Serveurperso/ACE-Step-1.5-GGUF",
+          "duplicate.gguf",
+          "models/ace-step"
+        ]
+      ]
+    },
+    {
+      "name": "nested-files",
+      "environment": {
+        "MUSIC_ENABLED": "true",
+        "ACE_STEP_TEXT_ENCODER_MODEL": "text/qwen.gguf",
+        "ACE_STEP_LM_MODEL": "lm/4b.gguf",
+        "ACE_STEP_DIT_MODEL": "dit/turbo.gguf",
+        "ACE_STEP_VAE_MODEL": "vae/bf16.gguf"
+      },
+      "cached": [],
+      "failure": null,
+      "trace": [
+        [
+          "mkdir",
+          "models/ace-step"
+        ],
+        [
+          "exists",
+          "models/ace-step/text/qwen.gguf"
+        ],
+        [
+          "download",
+          "Serveurperso/ACE-Step-1.5-GGUF",
+          "text/qwen.gguf",
+          "models/ace-step"
+        ],
+        [
+          "exists",
+          "models/ace-step/lm/4b.gguf"
+        ],
+        [
+          "download",
+          "Serveurperso/ACE-Step-1.5-GGUF",
+          "lm/4b.gguf",
+          "models/ace-step"
+        ],
+        [
+          "exists",
+          "models/ace-step/dit/turbo.gguf"
+        ],
+        [
+          "download",
+          "Serveurperso/ACE-Step-1.5-GGUF",
+          "dit/turbo.gguf",
+          "models/ace-step"
+        ],
+        [
+          "exists",
+          "models/ace-step/vae/bf16.gguf"
+        ],
+        [
+          "download",
+          "Serveurperso/ACE-Step-1.5-GGUF",
+          "vae/bf16.gguf",
+          "models/ace-step"
+        ]
+      ]
+    },
+    {
+      "name": "absolute-file",
+      "environment": {
+        "MUSIC_ENABLED": "true",
+        "ACE_STEP_LM_MODEL": "/tmp/existing.gguf"
+      },
+      "cached": [
+        "/tmp/existing.gguf"
+      ],
+      "failure": null,
+      "trace": [
+        [
+          "mkdir",
+          "models/ace-step"
+        ],
+        [
+          "exists",
+          "models/ace-step/Qwen3-Embedding-0.6B-Q8_0.gguf"
+        ],
+        [
+          "download",
+          "Serveurperso/ACE-Step-1.5-GGUF",
+          "Qwen3-Embedding-0.6B-Q8_0.gguf",
+          "models/ace-step"
+        ],
+        [
+          "exists",
+          "/tmp/existing.gguf"
+        ],
+        [
+          "exists",
+          "models/ace-step/acestep-v15-turbo-Q4_K_M.gguf"
+        ],
+        [
+          "download",
+          "Serveurperso/ACE-Step-1.5-GGUF",
+          "acestep-v15-turbo-Q4_K_M.gguf",
+          "models/ace-step"
+        ],
+        [
+          "exists",
+          "models/ace-step/vae-BF16.gguf"
+        ],
+        [
+          "download",
+          "Serveurperso/ACE-Step-1.5-GGUF",
+          "vae-BF16.gguf",
+          "models/ace-step"
+        ]
+      ]
+    }
+  ],
+  "capture_script_sha256": "6c4a1cc88a0408c5fa961ade71c8df9c4b509bc64c1dc2229e411a022e7363d6"
+}

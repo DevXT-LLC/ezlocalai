@@ -1,0 +1,868 @@
+{
+  "sources": {
+    "Pipes.py": "8238cef03d4a1db6e775d7f62234bcf998d8f08bd9fc15f1d8a36ea0d3280005"
+  },
+  "method": "Actual Pipes async generate_video, lazy loading, generation hint, active marks, forced destruction and handoff-reload methods. Model construction/inference, resource manager and LLM unload/restore are substituted; preload uses the source gate and no-hint loading.",
+  "cases": [
+    {
+      "resident": false,
+      "keep": false,
+      "mode": "auto",
+      "preload": false,
+      "loads": [
+        {
+          "num_frames": 10,
+          "width": 65,
+          "height": 95
+        }
+      ],
+      "generations": [
+        0,
+        0
+      ],
+      "events": [
+        "load"
+      ],
+      "snapshots": [
+        {
+          "loads": 1,
+          "registered": true,
+          "active": 0
+        },
+        {
+          "loads": 1,
+          "registered": true,
+          "active": 0
+        }
+      ]
+    },
+    {
+      "resident": false,
+      "keep": false,
+      "mode": "auto",
+      "preload": true,
+      "loads": [
+        null
+      ],
+      "generations": [
+        0,
+        0
+      ],
+      "events": [
+        "load"
+      ],
+      "snapshots": [
+        {
+          "loads": 1,
+          "registered": true,
+          "active": 0
+        },
+        {
+          "loads": 1,
+          "registered": true,
+          "active": 0
+        }
+      ]
+    },
+    {
+      "resident": false,
+      "keep": false,
+      "mode": "false",
+      "preload": false,
+      "loads": [
+        {
+          "num_frames": 10,
+          "width": 65,
+          "height": 95
+        }
+      ],
+      "generations": [
+        0,
+        0
+      ],
+      "events": [
+        "load"
+      ],
+      "snapshots": [
+        {
+          "loads": 1,
+          "registered": true,
+          "active": 0
+        },
+        {
+          "loads": 1,
+          "registered": true,
+          "active": 0
+        }
+      ]
+    },
+    {
+      "resident": false,
+      "keep": false,
+      "mode": "false",
+      "preload": true,
+      "loads": [
+        null
+      ],
+      "generations": [
+        0,
+        0
+      ],
+      "events": [
+        "load"
+      ],
+      "snapshots": [
+        {
+          "loads": 1,
+          "registered": true,
+          "active": 0
+        },
+        {
+          "loads": 1,
+          "registered": true,
+          "active": 0
+        }
+      ]
+    },
+    {
+      "resident": false,
+      "keep": false,
+      "mode": "true",
+      "preload": false,
+      "loads": [
+        {
+          "num_frames": 10,
+          "width": 65,
+          "height": 95
+        },
+        {
+          "num_frames": 17,
+          "width": 96,
+          "height": 64
+        }
+      ],
+      "generations": [
+        0,
+        1
+      ],
+      "events": [
+        "unload_llm",
+        "load",
+        "free",
+        "restore_llm",
+        "unload_llm",
+        "load",
+        "free",
+        "restore_llm"
+      ],
+      "snapshots": [
+        {
+          "loads": 1,
+          "registered": false,
+          "active": 0
+        },
+        {
+          "loads": 2,
+          "registered": false,
+          "active": 0
+        }
+      ]
+    },
+    {
+      "resident": false,
+      "keep": false,
+      "mode": "true",
+      "preload": true,
+      "loads": [
+        {
+          "num_frames": 10,
+          "width": 65,
+          "height": 95
+        },
+        {
+          "num_frames": 17,
+          "width": 96,
+          "height": 64
+        }
+      ],
+      "generations": [
+        0,
+        1
+      ],
+      "events": [
+        "unload_llm",
+        "load",
+        "free",
+        "restore_llm",
+        "unload_llm",
+        "load",
+        "free",
+        "restore_llm"
+      ],
+      "snapshots": [
+        {
+          "loads": 1,
+          "registered": false,
+          "active": 0
+        },
+        {
+          "loads": 2,
+          "registered": false,
+          "active": 0
+        }
+      ]
+    },
+    {
+      "resident": false,
+      "keep": true,
+      "mode": "auto",
+      "preload": false,
+      "loads": [
+        {
+          "num_frames": 10,
+          "width": 65,
+          "height": 95
+        }
+      ],
+      "generations": [
+        0,
+        0
+      ],
+      "events": [
+        "load"
+      ],
+      "snapshots": [
+        {
+          "loads": 1,
+          "registered": true,
+          "active": 0
+        },
+        {
+          "loads": 1,
+          "registered": true,
+          "active": 0
+        }
+      ]
+    },
+    {
+      "resident": false,
+      "keep": true,
+      "mode": "auto",
+      "preload": true,
+      "loads": [
+        null
+      ],
+      "generations": [
+        0,
+        0
+      ],
+      "events": [
+        "load"
+      ],
+      "snapshots": [
+        {
+          "loads": 1,
+          "registered": true,
+          "active": 0
+        },
+        {
+          "loads": 1,
+          "registered": true,
+          "active": 0
+        }
+      ]
+    },
+    {
+      "resident": false,
+      "keep": true,
+      "mode": "false",
+      "preload": false,
+      "loads": [
+        {
+          "num_frames": 10,
+          "width": 65,
+          "height": 95
+        }
+      ],
+      "generations": [
+        0,
+        0
+      ],
+      "events": [
+        "load"
+      ],
+      "snapshots": [
+        {
+          "loads": 1,
+          "registered": true,
+          "active": 0
+        },
+        {
+          "loads": 1,
+          "registered": true,
+          "active": 0
+        }
+      ]
+    },
+    {
+      "resident": false,
+      "keep": true,
+      "mode": "false",
+      "preload": true,
+      "loads": [
+        null
+      ],
+      "generations": [
+        0,
+        0
+      ],
+      "events": [
+        "load"
+      ],
+      "snapshots": [
+        {
+          "loads": 1,
+          "registered": true,
+          "active": 0
+        },
+        {
+          "loads": 1,
+          "registered": true,
+          "active": 0
+        }
+      ]
+    },
+    {
+      "resident": false,
+      "keep": true,
+      "mode": "true",
+      "preload": false,
+      "loads": [
+        {
+          "num_frames": 10,
+          "width": 65,
+          "height": 95
+        },
+        {
+          "num_frames": 17,
+          "width": 96,
+          "height": 64
+        }
+      ],
+      "generations": [
+        0,
+        1
+      ],
+      "events": [
+        "unload_llm",
+        "load",
+        "free",
+        "restore_llm",
+        "unload_llm",
+        "load",
+        "free",
+        "restore_llm"
+      ],
+      "snapshots": [
+        {
+          "loads": 1,
+          "registered": false,
+          "active": 0
+        },
+        {
+          "loads": 2,
+          "registered": false,
+          "active": 0
+        }
+      ]
+    },
+    {
+      "resident": false,
+      "keep": true,
+      "mode": "true",
+      "preload": true,
+      "loads": [
+        {
+          "num_frames": 10,
+          "width": 65,
+          "height": 95
+        },
+        {
+          "num_frames": 17,
+          "width": 96,
+          "height": 64
+        }
+      ],
+      "generations": [
+        0,
+        1
+      ],
+      "events": [
+        "unload_llm",
+        "load",
+        "free",
+        "restore_llm",
+        "unload_llm",
+        "load",
+        "free",
+        "restore_llm"
+      ],
+      "snapshots": [
+        {
+          "loads": 1,
+          "registered": false,
+          "active": 0
+        },
+        {
+          "loads": 2,
+          "registered": false,
+          "active": 0
+        }
+      ]
+    },
+    {
+      "resident": true,
+      "keep": false,
+      "mode": "auto",
+      "preload": false,
+      "loads": [
+        {
+          "num_frames": 10,
+          "width": 65,
+          "height": 95
+        },
+        {
+          "num_frames": 17,
+          "width": 96,
+          "height": 64
+        }
+      ],
+      "generations": [
+        0,
+        1
+      ],
+      "events": [
+        "unload_llm",
+        "load",
+        "free",
+        "restore_llm",
+        "unload_llm",
+        "load",
+        "free",
+        "restore_llm"
+      ],
+      "snapshots": [
+        {
+          "loads": 1,
+          "registered": false,
+          "active": 0
+        },
+        {
+          "loads": 2,
+          "registered": false,
+          "active": 0
+        }
+      ]
+    },
+    {
+      "resident": true,
+      "keep": false,
+      "mode": "auto",
+      "preload": true,
+      "loads": [
+        {
+          "num_frames": 10,
+          "width": 65,
+          "height": 95
+        },
+        {
+          "num_frames": 17,
+          "width": 96,
+          "height": 64
+        }
+      ],
+      "generations": [
+        0,
+        1
+      ],
+      "events": [
+        "unload_llm",
+        "load",
+        "free",
+        "restore_llm",
+        "unload_llm",
+        "load",
+        "free",
+        "restore_llm"
+      ],
+      "snapshots": [
+        {
+          "loads": 1,
+          "registered": false,
+          "active": 0
+        },
+        {
+          "loads": 2,
+          "registered": false,
+          "active": 0
+        }
+      ]
+    },
+    {
+      "resident": true,
+      "keep": false,
+      "mode": "false",
+      "preload": false,
+      "loads": [
+        {
+          "num_frames": 10,
+          "width": 65,
+          "height": 95
+        }
+      ],
+      "generations": [
+        0,
+        0
+      ],
+      "events": [
+        "load"
+      ],
+      "snapshots": [
+        {
+          "loads": 1,
+          "registered": true,
+          "active": 0
+        },
+        {
+          "loads": 1,
+          "registered": true,
+          "active": 0
+        }
+      ]
+    },
+    {
+      "resident": true,
+      "keep": false,
+      "mode": "false",
+      "preload": true,
+      "loads": [
+        null
+      ],
+      "generations": [
+        0,
+        0
+      ],
+      "events": [
+        "load"
+      ],
+      "snapshots": [
+        {
+          "loads": 1,
+          "registered": true,
+          "active": 0
+        },
+        {
+          "loads": 1,
+          "registered": true,
+          "active": 0
+        }
+      ]
+    },
+    {
+      "resident": true,
+      "keep": false,
+      "mode": "true",
+      "preload": false,
+      "loads": [
+        {
+          "num_frames": 10,
+          "width": 65,
+          "height": 95
+        },
+        {
+          "num_frames": 17,
+          "width": 96,
+          "height": 64
+        }
+      ],
+      "generations": [
+        0,
+        1
+      ],
+      "events": [
+        "unload_llm",
+        "load",
+        "free",
+        "restore_llm",
+        "unload_llm",
+        "load",
+        "free",
+        "restore_llm"
+      ],
+      "snapshots": [
+        {
+          "loads": 1,
+          "registered": false,
+          "active": 0
+        },
+        {
+          "loads": 2,
+          "registered": false,
+          "active": 0
+        }
+      ]
+    },
+    {
+      "resident": true,
+      "keep": false,
+      "mode": "true",
+      "preload": true,
+      "loads": [
+        {
+          "num_frames": 10,
+          "width": 65,
+          "height": 95
+        },
+        {
+          "num_frames": 17,
+          "width": 96,
+          "height": 64
+        }
+      ],
+      "generations": [
+        0,
+        1
+      ],
+      "events": [
+        "unload_llm",
+        "load",
+        "free",
+        "restore_llm",
+        "unload_llm",
+        "load",
+        "free",
+        "restore_llm"
+      ],
+      "snapshots": [
+        {
+          "loads": 1,
+          "registered": false,
+          "active": 0
+        },
+        {
+          "loads": 2,
+          "registered": false,
+          "active": 0
+        }
+      ]
+    },
+    {
+      "resident": true,
+      "keep": true,
+      "mode": "auto",
+      "preload": false,
+      "loads": [
+        {
+          "num_frames": 10,
+          "width": 65,
+          "height": 95
+        }
+      ],
+      "generations": [
+        0,
+        0
+      ],
+      "events": [
+        "load"
+      ],
+      "snapshots": [
+        {
+          "loads": 1,
+          "registered": true,
+          "active": 0
+        },
+        {
+          "loads": 1,
+          "registered": true,
+          "active": 0
+        }
+      ]
+    },
+    {
+      "resident": true,
+      "keep": true,
+      "mode": "auto",
+      "preload": true,
+      "loads": [
+        null
+      ],
+      "generations": [
+        0,
+        0
+      ],
+      "events": [
+        "load"
+      ],
+      "snapshots": [
+        {
+          "loads": 1,
+          "registered": true,
+          "active": 0
+        },
+        {
+          "loads": 1,
+          "registered": true,
+          "active": 0
+        }
+      ]
+    },
+    {
+      "resident": true,
+      "keep": true,
+      "mode": "false",
+      "preload": false,
+      "loads": [
+        {
+          "num_frames": 10,
+          "width": 65,
+          "height": 95
+        }
+      ],
+      "generations": [
+        0,
+        0
+      ],
+      "events": [
+        "load"
+      ],
+      "snapshots": [
+        {
+          "loads": 1,
+          "registered": true,
+          "active": 0
+        },
+        {
+          "loads": 1,
+          "registered": true,
+          "active": 0
+        }
+      ]
+    },
+    {
+      "resident": true,
+      "keep": true,
+      "mode": "false",
+      "preload": true,
+      "loads": [
+        null
+      ],
+      "generations": [
+        0,
+        0
+      ],
+      "events": [
+        "load"
+      ],
+      "snapshots": [
+        {
+          "loads": 1,
+          "registered": true,
+          "active": 0
+        },
+        {
+          "loads": 1,
+          "registered": true,
+          "active": 0
+        }
+      ]
+    },
+    {
+      "resident": true,
+      "keep": true,
+      "mode": "true",
+      "preload": false,
+      "loads": [
+        {
+          "num_frames": 10,
+          "width": 65,
+          "height": 95
+        },
+        {
+          "num_frames": 17,
+          "width": 96,
+          "height": 64
+        }
+      ],
+      "generations": [
+        0,
+        1
+      ],
+      "events": [
+        "unload_llm",
+        "load",
+        "free",
+        "restore_llm",
+        "unload_llm",
+        "load",
+        "free",
+        "restore_llm"
+      ],
+      "snapshots": [
+        {
+          "loads": 1,
+          "registered": false,
+          "active": 0
+        },
+        {
+          "loads": 2,
+          "registered": false,
+          "active": 0
+        }
+      ]
+    },
+    {
+      "resident": true,
+      "keep": true,
+      "mode": "true",
+      "preload": true,
+      "loads": [
+        {
+          "num_frames": 10,
+          "width": 65,
+          "height": 95
+        },
+        {
+          "num_frames": 17,
+          "width": 96,
+          "height": 64
+        }
+      ],
+      "generations": [
+        0,
+        1
+      ],
+      "events": [
+        "unload_llm",
+        "load",
+        "free",
+        "restore_llm",
+        "unload_llm",
+        "load",
+        "free",
+        "restore_llm"
+      ],
+      "snapshots": [
+        {
+          "loads": 1,
+          "registered": false,
+          "active": 0
+        },
+        {
+          "loads": 2,
+          "registered": false,
+          "active": 0
+        }
+      ]
+    }
+  ]
+}

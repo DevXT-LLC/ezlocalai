@@ -1,0 +1,2230 @@
+{
+  "sources": {
+    "Pipes.py": "8238cef03d4a1db6e775d7f62234bcf998d8f08bd9fc15f1d8a36ea0d3280005",
+    "ezlocalai/IMG.py": "e3ff6eee433d0e3527d984b77036fda795b3924486cf59b349b432cd80a0b9e8",
+    "ezlocalai/WAN.py": "d4cfc8ebd97bfaafdfa684f4c29f05b124cabdeabf733ecc542ada7416105e94"
+  },
+  "method": "Actual Pipes media startup block and handoff/client methods, actual IMG and Wan constructors with cached fixture assets; no inference engine is launched. LTX persistent pipeline excluded.",
+  "cases": [
+    {
+      "name": "handoff-(False, 0, 'false', 'auto')",
+      "environment": {
+        "IMAGE_ENABLED": "true",
+        "VIDEO_ENABLED": "true",
+        "IMAGE_SERVER": "",
+        "VIDEO_MODEL": "QuantStack/Wan2.2-T2V-A14B-GGUF",
+        "IMG_MODEL": "qwen-image-2.1",
+        "MEDIA_KEEP_MODELS_LOADED": "false",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "IMAGE_MODEL_MIN_FREE_GB": "6"
+      },
+      "resident_llm": false,
+      "free_gb": 0,
+      "secondary": null,
+      "missing_binary": false,
+      "registered": [
+        {
+          "type": "video",
+          "name": "QuantStack/Wan2.2-T2V-A14B-GGUF",
+          "device": "cuda",
+          "vram_gb": 0.0
+        },
+        {
+          "type": "img",
+          "name": "qwen-image-2.1",
+          "device": "cuda",
+          "vram_gb": 4.0
+        }
+      ]
+    },
+    {
+      "name": "handoff-(False, 0, 'false', 'true')",
+      "environment": {
+        "IMAGE_ENABLED": "true",
+        "VIDEO_ENABLED": "true",
+        "IMAGE_SERVER": "",
+        "VIDEO_MODEL": "QuantStack/Wan2.2-T2V-A14B-GGUF",
+        "IMG_MODEL": "qwen-image-2.1",
+        "MEDIA_KEEP_MODELS_LOADED": "false",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "true",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "true",
+        "IMAGE_MODEL_MIN_FREE_GB": "6"
+      },
+      "resident_llm": false,
+      "free_gb": 0,
+      "secondary": null,
+      "missing_binary": false,
+      "registered": []
+    },
+    {
+      "name": "handoff-(False, 0, 'false', 'false')",
+      "environment": {
+        "IMAGE_ENABLED": "true",
+        "VIDEO_ENABLED": "true",
+        "IMAGE_SERVER": "",
+        "VIDEO_MODEL": "QuantStack/Wan2.2-T2V-A14B-GGUF",
+        "IMG_MODEL": "qwen-image-2.1",
+        "MEDIA_KEEP_MODELS_LOADED": "false",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "false",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "false",
+        "IMAGE_MODEL_MIN_FREE_GB": "6"
+      },
+      "resident_llm": false,
+      "free_gb": 0,
+      "secondary": null,
+      "missing_binary": false,
+      "registered": [
+        {
+          "type": "video",
+          "name": "QuantStack/Wan2.2-T2V-A14B-GGUF",
+          "device": "cuda",
+          "vram_gb": 0.0
+        },
+        {
+          "type": "img",
+          "name": "qwen-image-2.1",
+          "device": "cuda",
+          "vram_gb": 4.0
+        }
+      ]
+    },
+    {
+      "name": "handoff-(False, 0, 'true', 'auto')",
+      "environment": {
+        "IMAGE_ENABLED": "true",
+        "VIDEO_ENABLED": "true",
+        "IMAGE_SERVER": "",
+        "VIDEO_MODEL": "QuantStack/Wan2.2-T2V-A14B-GGUF",
+        "IMG_MODEL": "qwen-image-2.1",
+        "MEDIA_KEEP_MODELS_LOADED": "true",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "IMAGE_MODEL_MIN_FREE_GB": "6"
+      },
+      "resident_llm": false,
+      "free_gb": 0,
+      "secondary": null,
+      "missing_binary": false,
+      "registered": [
+        {
+          "type": "video",
+          "name": "QuantStack/Wan2.2-T2V-A14B-GGUF",
+          "device": "cuda",
+          "vram_gb": 0.0
+        },
+        {
+          "type": "img",
+          "name": "qwen-image-2.1",
+          "device": "cuda",
+          "vram_gb": 4.0
+        }
+      ]
+    },
+    {
+      "name": "handoff-(False, 0, 'true', 'true')",
+      "environment": {
+        "IMAGE_ENABLED": "true",
+        "VIDEO_ENABLED": "true",
+        "IMAGE_SERVER": "",
+        "VIDEO_MODEL": "QuantStack/Wan2.2-T2V-A14B-GGUF",
+        "IMG_MODEL": "qwen-image-2.1",
+        "MEDIA_KEEP_MODELS_LOADED": "true",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "true",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "true",
+        "IMAGE_MODEL_MIN_FREE_GB": "6"
+      },
+      "resident_llm": false,
+      "free_gb": 0,
+      "secondary": null,
+      "missing_binary": false,
+      "registered": []
+    },
+    {
+      "name": "handoff-(False, 0, 'true', 'false')",
+      "environment": {
+        "IMAGE_ENABLED": "true",
+        "VIDEO_ENABLED": "true",
+        "IMAGE_SERVER": "",
+        "VIDEO_MODEL": "QuantStack/Wan2.2-T2V-A14B-GGUF",
+        "IMG_MODEL": "qwen-image-2.1",
+        "MEDIA_KEEP_MODELS_LOADED": "true",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "false",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "false",
+        "IMAGE_MODEL_MIN_FREE_GB": "6"
+      },
+      "resident_llm": false,
+      "free_gb": 0,
+      "secondary": null,
+      "missing_binary": false,
+      "registered": [
+        {
+          "type": "video",
+          "name": "QuantStack/Wan2.2-T2V-A14B-GGUF",
+          "device": "cuda",
+          "vram_gb": 0.0
+        },
+        {
+          "type": "img",
+          "name": "qwen-image-2.1",
+          "device": "cuda",
+          "vram_gb": 4.0
+        }
+      ]
+    },
+    {
+      "name": "handoff-(False, 6.9, 'false', 'auto')",
+      "environment": {
+        "IMAGE_ENABLED": "true",
+        "VIDEO_ENABLED": "true",
+        "IMAGE_SERVER": "",
+        "VIDEO_MODEL": "QuantStack/Wan2.2-T2V-A14B-GGUF",
+        "IMG_MODEL": "qwen-image-2.1",
+        "MEDIA_KEEP_MODELS_LOADED": "false",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "IMAGE_MODEL_MIN_FREE_GB": "6"
+      },
+      "resident_llm": false,
+      "free_gb": 6.9,
+      "secondary": null,
+      "missing_binary": false,
+      "registered": [
+        {
+          "type": "video",
+          "name": "QuantStack/Wan2.2-T2V-A14B-GGUF",
+          "device": "cuda",
+          "vram_gb": 0.0
+        },
+        {
+          "type": "img",
+          "name": "qwen-image-2.1",
+          "device": "cuda",
+          "vram_gb": 4.0
+        }
+      ]
+    },
+    {
+      "name": "handoff-(False, 6.9, 'false', 'true')",
+      "environment": {
+        "IMAGE_ENABLED": "true",
+        "VIDEO_ENABLED": "true",
+        "IMAGE_SERVER": "",
+        "VIDEO_MODEL": "QuantStack/Wan2.2-T2V-A14B-GGUF",
+        "IMG_MODEL": "qwen-image-2.1",
+        "MEDIA_KEEP_MODELS_LOADED": "false",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "true",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "true",
+        "IMAGE_MODEL_MIN_FREE_GB": "6"
+      },
+      "resident_llm": false,
+      "free_gb": 6.9,
+      "secondary": null,
+      "missing_binary": false,
+      "registered": []
+    },
+    {
+      "name": "handoff-(False, 6.9, 'false', 'false')",
+      "environment": {
+        "IMAGE_ENABLED": "true",
+        "VIDEO_ENABLED": "true",
+        "IMAGE_SERVER": "",
+        "VIDEO_MODEL": "QuantStack/Wan2.2-T2V-A14B-GGUF",
+        "IMG_MODEL": "qwen-image-2.1",
+        "MEDIA_KEEP_MODELS_LOADED": "false",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "false",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "false",
+        "IMAGE_MODEL_MIN_FREE_GB": "6"
+      },
+      "resident_llm": false,
+      "free_gb": 6.9,
+      "secondary": null,
+      "missing_binary": false,
+      "registered": [
+        {
+          "type": "video",
+          "name": "QuantStack/Wan2.2-T2V-A14B-GGUF",
+          "device": "cuda",
+          "vram_gb": 0.0
+        },
+        {
+          "type": "img",
+          "name": "qwen-image-2.1",
+          "device": "cuda",
+          "vram_gb": 4.0
+        }
+      ]
+    },
+    {
+      "name": "handoff-(False, 6.9, 'true', 'auto')",
+      "environment": {
+        "IMAGE_ENABLED": "true",
+        "VIDEO_ENABLED": "true",
+        "IMAGE_SERVER": "",
+        "VIDEO_MODEL": "QuantStack/Wan2.2-T2V-A14B-GGUF",
+        "IMG_MODEL": "qwen-image-2.1",
+        "MEDIA_KEEP_MODELS_LOADED": "true",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "IMAGE_MODEL_MIN_FREE_GB": "6"
+      },
+      "resident_llm": false,
+      "free_gb": 6.9,
+      "secondary": null,
+      "missing_binary": false,
+      "registered": [
+        {
+          "type": "video",
+          "name": "QuantStack/Wan2.2-T2V-A14B-GGUF",
+          "device": "cuda",
+          "vram_gb": 0.0
+        },
+        {
+          "type": "img",
+          "name": "qwen-image-2.1",
+          "device": "cuda",
+          "vram_gb": 4.0
+        }
+      ]
+    },
+    {
+      "name": "handoff-(False, 6.9, 'true', 'true')",
+      "environment": {
+        "IMAGE_ENABLED": "true",
+        "VIDEO_ENABLED": "true",
+        "IMAGE_SERVER": "",
+        "VIDEO_MODEL": "QuantStack/Wan2.2-T2V-A14B-GGUF",
+        "IMG_MODEL": "qwen-image-2.1",
+        "MEDIA_KEEP_MODELS_LOADED": "true",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "true",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "true",
+        "IMAGE_MODEL_MIN_FREE_GB": "6"
+      },
+      "resident_llm": false,
+      "free_gb": 6.9,
+      "secondary": null,
+      "missing_binary": false,
+      "registered": []
+    },
+    {
+      "name": "handoff-(False, 6.9, 'true', 'false')",
+      "environment": {
+        "IMAGE_ENABLED": "true",
+        "VIDEO_ENABLED": "true",
+        "IMAGE_SERVER": "",
+        "VIDEO_MODEL": "QuantStack/Wan2.2-T2V-A14B-GGUF",
+        "IMG_MODEL": "qwen-image-2.1",
+        "MEDIA_KEEP_MODELS_LOADED": "true",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "false",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "false",
+        "IMAGE_MODEL_MIN_FREE_GB": "6"
+      },
+      "resident_llm": false,
+      "free_gb": 6.9,
+      "secondary": null,
+      "missing_binary": false,
+      "registered": [
+        {
+          "type": "video",
+          "name": "QuantStack/Wan2.2-T2V-A14B-GGUF",
+          "device": "cuda",
+          "vram_gb": 0.0
+        },
+        {
+          "type": "img",
+          "name": "qwen-image-2.1",
+          "device": "cuda",
+          "vram_gb": 4.0
+        }
+      ]
+    },
+    {
+      "name": "handoff-(False, 7, 'false', 'auto')",
+      "environment": {
+        "IMAGE_ENABLED": "true",
+        "VIDEO_ENABLED": "true",
+        "IMAGE_SERVER": "",
+        "VIDEO_MODEL": "QuantStack/Wan2.2-T2V-A14B-GGUF",
+        "IMG_MODEL": "qwen-image-2.1",
+        "MEDIA_KEEP_MODELS_LOADED": "false",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "IMAGE_MODEL_MIN_FREE_GB": "6"
+      },
+      "resident_llm": false,
+      "free_gb": 7,
+      "secondary": null,
+      "missing_binary": false,
+      "registered": [
+        {
+          "type": "video",
+          "name": "QuantStack/Wan2.2-T2V-A14B-GGUF",
+          "device": "cuda",
+          "vram_gb": 0.0
+        },
+        {
+          "type": "img",
+          "name": "qwen-image-2.1",
+          "device": "cuda",
+          "vram_gb": 4.0
+        }
+      ]
+    },
+    {
+      "name": "handoff-(False, 7, 'false', 'true')",
+      "environment": {
+        "IMAGE_ENABLED": "true",
+        "VIDEO_ENABLED": "true",
+        "IMAGE_SERVER": "",
+        "VIDEO_MODEL": "QuantStack/Wan2.2-T2V-A14B-GGUF",
+        "IMG_MODEL": "qwen-image-2.1",
+        "MEDIA_KEEP_MODELS_LOADED": "false",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "true",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "true",
+        "IMAGE_MODEL_MIN_FREE_GB": "6"
+      },
+      "resident_llm": false,
+      "free_gb": 7,
+      "secondary": null,
+      "missing_binary": false,
+      "registered": []
+    },
+    {
+      "name": "handoff-(False, 7, 'false', 'false')",
+      "environment": {
+        "IMAGE_ENABLED": "true",
+        "VIDEO_ENABLED": "true",
+        "IMAGE_SERVER": "",
+        "VIDEO_MODEL": "QuantStack/Wan2.2-T2V-A14B-GGUF",
+        "IMG_MODEL": "qwen-image-2.1",
+        "MEDIA_KEEP_MODELS_LOADED": "false",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "false",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "false",
+        "IMAGE_MODEL_MIN_FREE_GB": "6"
+      },
+      "resident_llm": false,
+      "free_gb": 7,
+      "secondary": null,
+      "missing_binary": false,
+      "registered": [
+        {
+          "type": "video",
+          "name": "QuantStack/Wan2.2-T2V-A14B-GGUF",
+          "device": "cuda",
+          "vram_gb": 0.0
+        },
+        {
+          "type": "img",
+          "name": "qwen-image-2.1",
+          "device": "cuda",
+          "vram_gb": 4.0
+        }
+      ]
+    },
+    {
+      "name": "handoff-(False, 7, 'true', 'auto')",
+      "environment": {
+        "IMAGE_ENABLED": "true",
+        "VIDEO_ENABLED": "true",
+        "IMAGE_SERVER": "",
+        "VIDEO_MODEL": "QuantStack/Wan2.2-T2V-A14B-GGUF",
+        "IMG_MODEL": "qwen-image-2.1",
+        "MEDIA_KEEP_MODELS_LOADED": "true",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "IMAGE_MODEL_MIN_FREE_GB": "6"
+      },
+      "resident_llm": false,
+      "free_gb": 7,
+      "secondary": null,
+      "missing_binary": false,
+      "registered": [
+        {
+          "type": "video",
+          "name": "QuantStack/Wan2.2-T2V-A14B-GGUF",
+          "device": "cuda",
+          "vram_gb": 0.0
+        },
+        {
+          "type": "img",
+          "name": "qwen-image-2.1",
+          "device": "cuda",
+          "vram_gb": 4.0
+        }
+      ]
+    },
+    {
+      "name": "handoff-(False, 7, 'true', 'true')",
+      "environment": {
+        "IMAGE_ENABLED": "true",
+        "VIDEO_ENABLED": "true",
+        "IMAGE_SERVER": "",
+        "VIDEO_MODEL": "QuantStack/Wan2.2-T2V-A14B-GGUF",
+        "IMG_MODEL": "qwen-image-2.1",
+        "MEDIA_KEEP_MODELS_LOADED": "true",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "true",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "true",
+        "IMAGE_MODEL_MIN_FREE_GB": "6"
+      },
+      "resident_llm": false,
+      "free_gb": 7,
+      "secondary": null,
+      "missing_binary": false,
+      "registered": []
+    },
+    {
+      "name": "handoff-(False, 7, 'true', 'false')",
+      "environment": {
+        "IMAGE_ENABLED": "true",
+        "VIDEO_ENABLED": "true",
+        "IMAGE_SERVER": "",
+        "VIDEO_MODEL": "QuantStack/Wan2.2-T2V-A14B-GGUF",
+        "IMG_MODEL": "qwen-image-2.1",
+        "MEDIA_KEEP_MODELS_LOADED": "true",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "false",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "false",
+        "IMAGE_MODEL_MIN_FREE_GB": "6"
+      },
+      "resident_llm": false,
+      "free_gb": 7,
+      "secondary": null,
+      "missing_binary": false,
+      "registered": [
+        {
+          "type": "video",
+          "name": "QuantStack/Wan2.2-T2V-A14B-GGUF",
+          "device": "cuda",
+          "vram_gb": 0.0
+        },
+        {
+          "type": "img",
+          "name": "qwen-image-2.1",
+          "device": "cuda",
+          "vram_gb": 4.0
+        }
+      ]
+    },
+    {
+      "name": "handoff-(False, 24, 'false', 'auto')",
+      "environment": {
+        "IMAGE_ENABLED": "true",
+        "VIDEO_ENABLED": "true",
+        "IMAGE_SERVER": "",
+        "VIDEO_MODEL": "QuantStack/Wan2.2-T2V-A14B-GGUF",
+        "IMG_MODEL": "qwen-image-2.1",
+        "MEDIA_KEEP_MODELS_LOADED": "false",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "IMAGE_MODEL_MIN_FREE_GB": "6"
+      },
+      "resident_llm": false,
+      "free_gb": 24,
+      "secondary": null,
+      "missing_binary": false,
+      "registered": [
+        {
+          "type": "video",
+          "name": "QuantStack/Wan2.2-T2V-A14B-GGUF",
+          "device": "cuda",
+          "vram_gb": 0.0
+        },
+        {
+          "type": "img",
+          "name": "qwen-image-2.1",
+          "device": "cuda",
+          "vram_gb": 4.0
+        }
+      ]
+    },
+    {
+      "name": "handoff-(False, 24, 'false', 'true')",
+      "environment": {
+        "IMAGE_ENABLED": "true",
+        "VIDEO_ENABLED": "true",
+        "IMAGE_SERVER": "",
+        "VIDEO_MODEL": "QuantStack/Wan2.2-T2V-A14B-GGUF",
+        "IMG_MODEL": "qwen-image-2.1",
+        "MEDIA_KEEP_MODELS_LOADED": "false",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "true",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "true",
+        "IMAGE_MODEL_MIN_FREE_GB": "6"
+      },
+      "resident_llm": false,
+      "free_gb": 24,
+      "secondary": null,
+      "missing_binary": false,
+      "registered": []
+    },
+    {
+      "name": "handoff-(False, 24, 'false', 'false')",
+      "environment": {
+        "IMAGE_ENABLED": "true",
+        "VIDEO_ENABLED": "true",
+        "IMAGE_SERVER": "",
+        "VIDEO_MODEL": "QuantStack/Wan2.2-T2V-A14B-GGUF",
+        "IMG_MODEL": "qwen-image-2.1",
+        "MEDIA_KEEP_MODELS_LOADED": "false",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "false",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "false",
+        "IMAGE_MODEL_MIN_FREE_GB": "6"
+      },
+      "resident_llm": false,
+      "free_gb": 24,
+      "secondary": null,
+      "missing_binary": false,
+      "registered": [
+        {
+          "type": "video",
+          "name": "QuantStack/Wan2.2-T2V-A14B-GGUF",
+          "device": "cuda",
+          "vram_gb": 0.0
+        },
+        {
+          "type": "img",
+          "name": "qwen-image-2.1",
+          "device": "cuda",
+          "vram_gb": 4.0
+        }
+      ]
+    },
+    {
+      "name": "handoff-(False, 24, 'true', 'auto')",
+      "environment": {
+        "IMAGE_ENABLED": "true",
+        "VIDEO_ENABLED": "true",
+        "IMAGE_SERVER": "",
+        "VIDEO_MODEL": "QuantStack/Wan2.2-T2V-A14B-GGUF",
+        "IMG_MODEL": "qwen-image-2.1",
+        "MEDIA_KEEP_MODELS_LOADED": "true",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "IMAGE_MODEL_MIN_FREE_GB": "6"
+      },
+      "resident_llm": false,
+      "free_gb": 24,
+      "secondary": null,
+      "missing_binary": false,
+      "registered": [
+        {
+          "type": "video",
+          "name": "QuantStack/Wan2.2-T2V-A14B-GGUF",
+          "device": "cuda",
+          "vram_gb": 0.0
+        },
+        {
+          "type": "img",
+          "name": "qwen-image-2.1",
+          "device": "cuda",
+          "vram_gb": 4.0
+        }
+      ]
+    },
+    {
+      "name": "handoff-(False, 24, 'true', 'true')",
+      "environment": {
+        "IMAGE_ENABLED": "true",
+        "VIDEO_ENABLED": "true",
+        "IMAGE_SERVER": "",
+        "VIDEO_MODEL": "QuantStack/Wan2.2-T2V-A14B-GGUF",
+        "IMG_MODEL": "qwen-image-2.1",
+        "MEDIA_KEEP_MODELS_LOADED": "true",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "true",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "true",
+        "IMAGE_MODEL_MIN_FREE_GB": "6"
+      },
+      "resident_llm": false,
+      "free_gb": 24,
+      "secondary": null,
+      "missing_binary": false,
+      "registered": []
+    },
+    {
+      "name": "handoff-(False, 24, 'true', 'false')",
+      "environment": {
+        "IMAGE_ENABLED": "true",
+        "VIDEO_ENABLED": "true",
+        "IMAGE_SERVER": "",
+        "VIDEO_MODEL": "QuantStack/Wan2.2-T2V-A14B-GGUF",
+        "IMG_MODEL": "qwen-image-2.1",
+        "MEDIA_KEEP_MODELS_LOADED": "true",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "false",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "false",
+        "IMAGE_MODEL_MIN_FREE_GB": "6"
+      },
+      "resident_llm": false,
+      "free_gb": 24,
+      "secondary": null,
+      "missing_binary": false,
+      "registered": [
+        {
+          "type": "video",
+          "name": "QuantStack/Wan2.2-T2V-A14B-GGUF",
+          "device": "cuda",
+          "vram_gb": 0.0
+        },
+        {
+          "type": "img",
+          "name": "qwen-image-2.1",
+          "device": "cuda",
+          "vram_gb": 4.0
+        }
+      ]
+    },
+    {
+      "name": "handoff-(True, 0, 'false', 'auto')",
+      "environment": {
+        "IMAGE_ENABLED": "true",
+        "VIDEO_ENABLED": "true",
+        "IMAGE_SERVER": "",
+        "VIDEO_MODEL": "QuantStack/Wan2.2-T2V-A14B-GGUF",
+        "IMG_MODEL": "qwen-image-2.1",
+        "MEDIA_KEEP_MODELS_LOADED": "false",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "IMAGE_MODEL_MIN_FREE_GB": "6"
+      },
+      "resident_llm": true,
+      "free_gb": 0,
+      "secondary": null,
+      "missing_binary": false,
+      "registered": []
+    },
+    {
+      "name": "handoff-(True, 0, 'false', 'true')",
+      "environment": {
+        "IMAGE_ENABLED": "true",
+        "VIDEO_ENABLED": "true",
+        "IMAGE_SERVER": "",
+        "VIDEO_MODEL": "QuantStack/Wan2.2-T2V-A14B-GGUF",
+        "IMG_MODEL": "qwen-image-2.1",
+        "MEDIA_KEEP_MODELS_LOADED": "false",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "true",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "true",
+        "IMAGE_MODEL_MIN_FREE_GB": "6"
+      },
+      "resident_llm": true,
+      "free_gb": 0,
+      "secondary": null,
+      "missing_binary": false,
+      "registered": []
+    },
+    {
+      "name": "handoff-(True, 0, 'false', 'false')",
+      "environment": {
+        "IMAGE_ENABLED": "true",
+        "VIDEO_ENABLED": "true",
+        "IMAGE_SERVER": "",
+        "VIDEO_MODEL": "QuantStack/Wan2.2-T2V-A14B-GGUF",
+        "IMG_MODEL": "qwen-image-2.1",
+        "MEDIA_KEEP_MODELS_LOADED": "false",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "false",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "false",
+        "IMAGE_MODEL_MIN_FREE_GB": "6"
+      },
+      "resident_llm": true,
+      "free_gb": 0,
+      "secondary": null,
+      "missing_binary": false,
+      "registered": [
+        {
+          "type": "video",
+          "name": "QuantStack/Wan2.2-T2V-A14B-GGUF",
+          "device": "cuda",
+          "vram_gb": 0.0
+        },
+        {
+          "type": "img",
+          "name": "qwen-image-2.1",
+          "device": "cuda",
+          "vram_gb": 4.0
+        }
+      ]
+    },
+    {
+      "name": "handoff-(True, 0, 'true', 'auto')",
+      "environment": {
+        "IMAGE_ENABLED": "true",
+        "VIDEO_ENABLED": "true",
+        "IMAGE_SERVER": "",
+        "VIDEO_MODEL": "QuantStack/Wan2.2-T2V-A14B-GGUF",
+        "IMG_MODEL": "qwen-image-2.1",
+        "MEDIA_KEEP_MODELS_LOADED": "true",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "IMAGE_MODEL_MIN_FREE_GB": "6"
+      },
+      "resident_llm": true,
+      "free_gb": 0,
+      "secondary": null,
+      "missing_binary": false,
+      "registered": [
+        {
+          "type": "video",
+          "name": "QuantStack/Wan2.2-T2V-A14B-GGUF",
+          "device": "cuda",
+          "vram_gb": 0.0
+        },
+        {
+          "type": "img",
+          "name": "qwen-image-2.1",
+          "device": "cuda",
+          "vram_gb": 4.0
+        }
+      ]
+    },
+    {
+      "name": "handoff-(True, 0, 'true', 'true')",
+      "environment": {
+        "IMAGE_ENABLED": "true",
+        "VIDEO_ENABLED": "true",
+        "IMAGE_SERVER": "",
+        "VIDEO_MODEL": "QuantStack/Wan2.2-T2V-A14B-GGUF",
+        "IMG_MODEL": "qwen-image-2.1",
+        "MEDIA_KEEP_MODELS_LOADED": "true",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "true",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "true",
+        "IMAGE_MODEL_MIN_FREE_GB": "6"
+      },
+      "resident_llm": true,
+      "free_gb": 0,
+      "secondary": null,
+      "missing_binary": false,
+      "registered": []
+    },
+    {
+      "name": "handoff-(True, 0, 'true', 'false')",
+      "environment": {
+        "IMAGE_ENABLED": "true",
+        "VIDEO_ENABLED": "true",
+        "IMAGE_SERVER": "",
+        "VIDEO_MODEL": "QuantStack/Wan2.2-T2V-A14B-GGUF",
+        "IMG_MODEL": "qwen-image-2.1",
+        "MEDIA_KEEP_MODELS_LOADED": "true",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "false",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "false",
+        "IMAGE_MODEL_MIN_FREE_GB": "6"
+      },
+      "resident_llm": true,
+      "free_gb": 0,
+      "secondary": null,
+      "missing_binary": false,
+      "registered": [
+        {
+          "type": "video",
+          "name": "QuantStack/Wan2.2-T2V-A14B-GGUF",
+          "device": "cuda",
+          "vram_gb": 0.0
+        },
+        {
+          "type": "img",
+          "name": "qwen-image-2.1",
+          "device": "cuda",
+          "vram_gb": 4.0
+        }
+      ]
+    },
+    {
+      "name": "handoff-(True, 6.9, 'false', 'auto')",
+      "environment": {
+        "IMAGE_ENABLED": "true",
+        "VIDEO_ENABLED": "true",
+        "IMAGE_SERVER": "",
+        "VIDEO_MODEL": "QuantStack/Wan2.2-T2V-A14B-GGUF",
+        "IMG_MODEL": "qwen-image-2.1",
+        "MEDIA_KEEP_MODELS_LOADED": "false",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "IMAGE_MODEL_MIN_FREE_GB": "6"
+      },
+      "resident_llm": true,
+      "free_gb": 6.9,
+      "secondary": null,
+      "missing_binary": false,
+      "registered": []
+    },
+    {
+      "name": "handoff-(True, 6.9, 'false', 'true')",
+      "environment": {
+        "IMAGE_ENABLED": "true",
+        "VIDEO_ENABLED": "true",
+        "IMAGE_SERVER": "",
+        "VIDEO_MODEL": "QuantStack/Wan2.2-T2V-A14B-GGUF",
+        "IMG_MODEL": "qwen-image-2.1",
+        "MEDIA_KEEP_MODELS_LOADED": "false",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "true",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "true",
+        "IMAGE_MODEL_MIN_FREE_GB": "6"
+      },
+      "resident_llm": true,
+      "free_gb": 6.9,
+      "secondary": null,
+      "missing_binary": false,
+      "registered": []
+    },
+    {
+      "name": "handoff-(True, 6.9, 'false', 'false')",
+      "environment": {
+        "IMAGE_ENABLED": "true",
+        "VIDEO_ENABLED": "true",
+        "IMAGE_SERVER": "",
+        "VIDEO_MODEL": "QuantStack/Wan2.2-T2V-A14B-GGUF",
+        "IMG_MODEL": "qwen-image-2.1",
+        "MEDIA_KEEP_MODELS_LOADED": "false",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "false",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "false",
+        "IMAGE_MODEL_MIN_FREE_GB": "6"
+      },
+      "resident_llm": true,
+      "free_gb": 6.9,
+      "secondary": null,
+      "missing_binary": false,
+      "registered": [
+        {
+          "type": "video",
+          "name": "QuantStack/Wan2.2-T2V-A14B-GGUF",
+          "device": "cuda",
+          "vram_gb": 0.0
+        },
+        {
+          "type": "img",
+          "name": "qwen-image-2.1",
+          "device": "cuda",
+          "vram_gb": 4.0
+        }
+      ]
+    },
+    {
+      "name": "handoff-(True, 6.9, 'true', 'auto')",
+      "environment": {
+        "IMAGE_ENABLED": "true",
+        "VIDEO_ENABLED": "true",
+        "IMAGE_SERVER": "",
+        "VIDEO_MODEL": "QuantStack/Wan2.2-T2V-A14B-GGUF",
+        "IMG_MODEL": "qwen-image-2.1",
+        "MEDIA_KEEP_MODELS_LOADED": "true",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "IMAGE_MODEL_MIN_FREE_GB": "6"
+      },
+      "resident_llm": true,
+      "free_gb": 6.9,
+      "secondary": null,
+      "missing_binary": false,
+      "registered": [
+        {
+          "type": "video",
+          "name": "QuantStack/Wan2.2-T2V-A14B-GGUF",
+          "device": "cuda",
+          "vram_gb": 0.0
+        },
+        {
+          "type": "img",
+          "name": "qwen-image-2.1",
+          "device": "cuda",
+          "vram_gb": 4.0
+        }
+      ]
+    },
+    {
+      "name": "handoff-(True, 6.9, 'true', 'true')",
+      "environment": {
+        "IMAGE_ENABLED": "true",
+        "VIDEO_ENABLED": "true",
+        "IMAGE_SERVER": "",
+        "VIDEO_MODEL": "QuantStack/Wan2.2-T2V-A14B-GGUF",
+        "IMG_MODEL": "qwen-image-2.1",
+        "MEDIA_KEEP_MODELS_LOADED": "true",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "true",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "true",
+        "IMAGE_MODEL_MIN_FREE_GB": "6"
+      },
+      "resident_llm": true,
+      "free_gb": 6.9,
+      "secondary": null,
+      "missing_binary": false,
+      "registered": []
+    },
+    {
+      "name": "handoff-(True, 6.9, 'true', 'false')",
+      "environment": {
+        "IMAGE_ENABLED": "true",
+        "VIDEO_ENABLED": "true",
+        "IMAGE_SERVER": "",
+        "VIDEO_MODEL": "QuantStack/Wan2.2-T2V-A14B-GGUF",
+        "IMG_MODEL": "qwen-image-2.1",
+        "MEDIA_KEEP_MODELS_LOADED": "true",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "false",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "false",
+        "IMAGE_MODEL_MIN_FREE_GB": "6"
+      },
+      "resident_llm": true,
+      "free_gb": 6.9,
+      "secondary": null,
+      "missing_binary": false,
+      "registered": [
+        {
+          "type": "video",
+          "name": "QuantStack/Wan2.2-T2V-A14B-GGUF",
+          "device": "cuda",
+          "vram_gb": 0.0
+        },
+        {
+          "type": "img",
+          "name": "qwen-image-2.1",
+          "device": "cuda",
+          "vram_gb": 4.0
+        }
+      ]
+    },
+    {
+      "name": "handoff-(True, 7, 'false', 'auto')",
+      "environment": {
+        "IMAGE_ENABLED": "true",
+        "VIDEO_ENABLED": "true",
+        "IMAGE_SERVER": "",
+        "VIDEO_MODEL": "QuantStack/Wan2.2-T2V-A14B-GGUF",
+        "IMG_MODEL": "qwen-image-2.1",
+        "MEDIA_KEEP_MODELS_LOADED": "false",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "IMAGE_MODEL_MIN_FREE_GB": "6"
+      },
+      "resident_llm": true,
+      "free_gb": 7,
+      "secondary": null,
+      "missing_binary": false,
+      "registered": [
+        {
+          "type": "img",
+          "name": "qwen-image-2.1",
+          "device": "cuda",
+          "vram_gb": 4.0
+        }
+      ]
+    },
+    {
+      "name": "handoff-(True, 7, 'false', 'true')",
+      "environment": {
+        "IMAGE_ENABLED": "true",
+        "VIDEO_ENABLED": "true",
+        "IMAGE_SERVER": "",
+        "VIDEO_MODEL": "QuantStack/Wan2.2-T2V-A14B-GGUF",
+        "IMG_MODEL": "qwen-image-2.1",
+        "MEDIA_KEEP_MODELS_LOADED": "false",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "true",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "true",
+        "IMAGE_MODEL_MIN_FREE_GB": "6"
+      },
+      "resident_llm": true,
+      "free_gb": 7,
+      "secondary": null,
+      "missing_binary": false,
+      "registered": []
+    },
+    {
+      "name": "handoff-(True, 7, 'false', 'false')",
+      "environment": {
+        "IMAGE_ENABLED": "true",
+        "VIDEO_ENABLED": "true",
+        "IMAGE_SERVER": "",
+        "VIDEO_MODEL": "QuantStack/Wan2.2-T2V-A14B-GGUF",
+        "IMG_MODEL": "qwen-image-2.1",
+        "MEDIA_KEEP_MODELS_LOADED": "false",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "false",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "false",
+        "IMAGE_MODEL_MIN_FREE_GB": "6"
+      },
+      "resident_llm": true,
+      "free_gb": 7,
+      "secondary": null,
+      "missing_binary": false,
+      "registered": [
+        {
+          "type": "video",
+          "name": "QuantStack/Wan2.2-T2V-A14B-GGUF",
+          "device": "cuda",
+          "vram_gb": 0.0
+        },
+        {
+          "type": "img",
+          "name": "qwen-image-2.1",
+          "device": "cuda",
+          "vram_gb": 4.0
+        }
+      ]
+    },
+    {
+      "name": "handoff-(True, 7, 'true', 'auto')",
+      "environment": {
+        "IMAGE_ENABLED": "true",
+        "VIDEO_ENABLED": "true",
+        "IMAGE_SERVER": "",
+        "VIDEO_MODEL": "QuantStack/Wan2.2-T2V-A14B-GGUF",
+        "IMG_MODEL": "qwen-image-2.1",
+        "MEDIA_KEEP_MODELS_LOADED": "true",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "IMAGE_MODEL_MIN_FREE_GB": "6"
+      },
+      "resident_llm": true,
+      "free_gb": 7,
+      "secondary": null,
+      "missing_binary": false,
+      "registered": [
+        {
+          "type": "video",
+          "name": "QuantStack/Wan2.2-T2V-A14B-GGUF",
+          "device": "cuda",
+          "vram_gb": 0.0
+        },
+        {
+          "type": "img",
+          "name": "qwen-image-2.1",
+          "device": "cuda",
+          "vram_gb": 4.0
+        }
+      ]
+    },
+    {
+      "name": "handoff-(True, 7, 'true', 'true')",
+      "environment": {
+        "IMAGE_ENABLED": "true",
+        "VIDEO_ENABLED": "true",
+        "IMAGE_SERVER": "",
+        "VIDEO_MODEL": "QuantStack/Wan2.2-T2V-A14B-GGUF",
+        "IMG_MODEL": "qwen-image-2.1",
+        "MEDIA_KEEP_MODELS_LOADED": "true",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "true",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "true",
+        "IMAGE_MODEL_MIN_FREE_GB": "6"
+      },
+      "resident_llm": true,
+      "free_gb": 7,
+      "secondary": null,
+      "missing_binary": false,
+      "registered": []
+    },
+    {
+      "name": "handoff-(True, 7, 'true', 'false')",
+      "environment": {
+        "IMAGE_ENABLED": "true",
+        "VIDEO_ENABLED": "true",
+        "IMAGE_SERVER": "",
+        "VIDEO_MODEL": "QuantStack/Wan2.2-T2V-A14B-GGUF",
+        "IMG_MODEL": "qwen-image-2.1",
+        "MEDIA_KEEP_MODELS_LOADED": "true",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "false",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "false",
+        "IMAGE_MODEL_MIN_FREE_GB": "6"
+      },
+      "resident_llm": true,
+      "free_gb": 7,
+      "secondary": null,
+      "missing_binary": false,
+      "registered": [
+        {
+          "type": "video",
+          "name": "QuantStack/Wan2.2-T2V-A14B-GGUF",
+          "device": "cuda",
+          "vram_gb": 0.0
+        },
+        {
+          "type": "img",
+          "name": "qwen-image-2.1",
+          "device": "cuda",
+          "vram_gb": 4.0
+        }
+      ]
+    },
+    {
+      "name": "handoff-(True, 24, 'false', 'auto')",
+      "environment": {
+        "IMAGE_ENABLED": "true",
+        "VIDEO_ENABLED": "true",
+        "IMAGE_SERVER": "",
+        "VIDEO_MODEL": "QuantStack/Wan2.2-T2V-A14B-GGUF",
+        "IMG_MODEL": "qwen-image-2.1",
+        "MEDIA_KEEP_MODELS_LOADED": "false",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "IMAGE_MODEL_MIN_FREE_GB": "6"
+      },
+      "resident_llm": true,
+      "free_gb": 24,
+      "secondary": null,
+      "missing_binary": false,
+      "registered": [
+        {
+          "type": "img",
+          "name": "qwen-image-2.1",
+          "device": "cuda",
+          "vram_gb": 4.0
+        }
+      ]
+    },
+    {
+      "name": "handoff-(True, 24, 'false', 'true')",
+      "environment": {
+        "IMAGE_ENABLED": "true",
+        "VIDEO_ENABLED": "true",
+        "IMAGE_SERVER": "",
+        "VIDEO_MODEL": "QuantStack/Wan2.2-T2V-A14B-GGUF",
+        "IMG_MODEL": "qwen-image-2.1",
+        "MEDIA_KEEP_MODELS_LOADED": "false",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "true",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "true",
+        "IMAGE_MODEL_MIN_FREE_GB": "6"
+      },
+      "resident_llm": true,
+      "free_gb": 24,
+      "secondary": null,
+      "missing_binary": false,
+      "registered": []
+    },
+    {
+      "name": "handoff-(True, 24, 'false', 'false')",
+      "environment": {
+        "IMAGE_ENABLED": "true",
+        "VIDEO_ENABLED": "true",
+        "IMAGE_SERVER": "",
+        "VIDEO_MODEL": "QuantStack/Wan2.2-T2V-A14B-GGUF",
+        "IMG_MODEL": "qwen-image-2.1",
+        "MEDIA_KEEP_MODELS_LOADED": "false",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "false",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "false",
+        "IMAGE_MODEL_MIN_FREE_GB": "6"
+      },
+      "resident_llm": true,
+      "free_gb": 24,
+      "secondary": null,
+      "missing_binary": false,
+      "registered": [
+        {
+          "type": "video",
+          "name": "QuantStack/Wan2.2-T2V-A14B-GGUF",
+          "device": "cuda",
+          "vram_gb": 0.0
+        },
+        {
+          "type": "img",
+          "name": "qwen-image-2.1",
+          "device": "cuda",
+          "vram_gb": 4.0
+        }
+      ]
+    },
+    {
+      "name": "handoff-(True, 24, 'true', 'auto')",
+      "environment": {
+        "IMAGE_ENABLED": "true",
+        "VIDEO_ENABLED": "true",
+        "IMAGE_SERVER": "",
+        "VIDEO_MODEL": "QuantStack/Wan2.2-T2V-A14B-GGUF",
+        "IMG_MODEL": "qwen-image-2.1",
+        "MEDIA_KEEP_MODELS_LOADED": "true",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "IMAGE_MODEL_MIN_FREE_GB": "6"
+      },
+      "resident_llm": true,
+      "free_gb": 24,
+      "secondary": null,
+      "missing_binary": false,
+      "registered": [
+        {
+          "type": "video",
+          "name": "QuantStack/Wan2.2-T2V-A14B-GGUF",
+          "device": "cuda",
+          "vram_gb": 0.0
+        },
+        {
+          "type": "img",
+          "name": "qwen-image-2.1",
+          "device": "cuda",
+          "vram_gb": 4.0
+        }
+      ]
+    },
+    {
+      "name": "handoff-(True, 24, 'true', 'true')",
+      "environment": {
+        "IMAGE_ENABLED": "true",
+        "VIDEO_ENABLED": "true",
+        "IMAGE_SERVER": "",
+        "VIDEO_MODEL": "QuantStack/Wan2.2-T2V-A14B-GGUF",
+        "IMG_MODEL": "qwen-image-2.1",
+        "MEDIA_KEEP_MODELS_LOADED": "true",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "true",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "true",
+        "IMAGE_MODEL_MIN_FREE_GB": "6"
+      },
+      "resident_llm": true,
+      "free_gb": 24,
+      "secondary": null,
+      "missing_binary": false,
+      "registered": []
+    },
+    {
+      "name": "handoff-(True, 24, 'true', 'false')",
+      "environment": {
+        "IMAGE_ENABLED": "true",
+        "VIDEO_ENABLED": "true",
+        "IMAGE_SERVER": "",
+        "VIDEO_MODEL": "QuantStack/Wan2.2-T2V-A14B-GGUF",
+        "IMG_MODEL": "qwen-image-2.1",
+        "MEDIA_KEEP_MODELS_LOADED": "true",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "false",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "false",
+        "IMAGE_MODEL_MIN_FREE_GB": "6"
+      },
+      "resident_llm": true,
+      "free_gb": 24,
+      "secondary": null,
+      "missing_binary": false,
+      "registered": [
+        {
+          "type": "video",
+          "name": "QuantStack/Wan2.2-T2V-A14B-GGUF",
+          "device": "cuda",
+          "vram_gb": 0.0
+        },
+        {
+          "type": "img",
+          "name": "qwen-image-2.1",
+          "device": "cuda",
+          "vram_gb": 4.0
+        }
+      ]
+    },
+    {
+      "name": "IMAGE_ENABLED='false'",
+      "environment": {
+        "IMAGE_ENABLED": "false",
+        "VIDEO_ENABLED": "true",
+        "IMAGE_SERVER": "",
+        "VIDEO_MODEL": "QuantStack/Wan2.2-T2V-A14B-GGUF",
+        "IMG_MODEL": "qwen-image-2.1",
+        "MEDIA_KEEP_MODELS_LOADED": "false",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "IMAGE_MODEL_MIN_FREE_GB": "6"
+      },
+      "resident_llm": true,
+      "free_gb": 24,
+      "secondary": null,
+      "missing_binary": false,
+      "registered": []
+    },
+    {
+      "name": "IMAGE_ENABLED=''",
+      "environment": {
+        "IMAGE_ENABLED": "",
+        "VIDEO_ENABLED": "true",
+        "IMAGE_SERVER": "",
+        "VIDEO_MODEL": "QuantStack/Wan2.2-T2V-A14B-GGUF",
+        "IMG_MODEL": "qwen-image-2.1",
+        "MEDIA_KEEP_MODELS_LOADED": "false",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "IMAGE_MODEL_MIN_FREE_GB": "6"
+      },
+      "resident_llm": true,
+      "free_gb": 24,
+      "secondary": null,
+      "missing_binary": false,
+      "registered": []
+    },
+    {
+      "name": "IMAGE_ENABLED='TRUE'",
+      "environment": {
+        "IMAGE_ENABLED": "TRUE",
+        "VIDEO_ENABLED": "true",
+        "IMAGE_SERVER": "",
+        "VIDEO_MODEL": "QuantStack/Wan2.2-T2V-A14B-GGUF",
+        "IMG_MODEL": "qwen-image-2.1",
+        "MEDIA_KEEP_MODELS_LOADED": "false",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "IMAGE_MODEL_MIN_FREE_GB": "6"
+      },
+      "resident_llm": true,
+      "free_gb": 24,
+      "secondary": null,
+      "missing_binary": false,
+      "registered": [
+        {
+          "type": "img",
+          "name": "qwen-image-2.1",
+          "device": "cuda",
+          "vram_gb": 4.0
+        }
+      ]
+    },
+    {
+      "name": "IMAGE_ENABLED=' true '",
+      "environment": {
+        "IMAGE_ENABLED": " true ",
+        "VIDEO_ENABLED": "true",
+        "IMAGE_SERVER": "",
+        "VIDEO_MODEL": "QuantStack/Wan2.2-T2V-A14B-GGUF",
+        "IMG_MODEL": "qwen-image-2.1",
+        "MEDIA_KEEP_MODELS_LOADED": "false",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "IMAGE_MODEL_MIN_FREE_GB": "6"
+      },
+      "resident_llm": true,
+      "free_gb": 24,
+      "secondary": null,
+      "missing_binary": false,
+      "registered": [
+        {
+          "type": "img",
+          "name": "qwen-image-2.1",
+          "device": "cuda",
+          "vram_gb": 4.0
+        }
+      ]
+    },
+    {
+      "name": "IMAGE_ENABLED='1'",
+      "environment": {
+        "IMAGE_ENABLED": "1",
+        "VIDEO_ENABLED": "true",
+        "IMAGE_SERVER": "",
+        "VIDEO_MODEL": "QuantStack/Wan2.2-T2V-A14B-GGUF",
+        "IMG_MODEL": "qwen-image-2.1",
+        "MEDIA_KEEP_MODELS_LOADED": "false",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "IMAGE_MODEL_MIN_FREE_GB": "6"
+      },
+      "resident_llm": true,
+      "free_gb": 24,
+      "secondary": null,
+      "missing_binary": false,
+      "registered": []
+    },
+    {
+      "name": "VIDEO_ENABLED='false'",
+      "environment": {
+        "IMAGE_ENABLED": "true",
+        "VIDEO_ENABLED": "false",
+        "IMAGE_SERVER": "",
+        "VIDEO_MODEL": "QuantStack/Wan2.2-T2V-A14B-GGUF",
+        "IMG_MODEL": "qwen-image-2.1",
+        "MEDIA_KEEP_MODELS_LOADED": "false",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "IMAGE_MODEL_MIN_FREE_GB": "6"
+      },
+      "resident_llm": true,
+      "free_gb": 24,
+      "secondary": null,
+      "missing_binary": false,
+      "registered": [
+        {
+          "type": "img",
+          "name": "qwen-image-2.1",
+          "device": "cuda",
+          "vram_gb": 4.0
+        }
+      ]
+    },
+    {
+      "name": "VIDEO_ENABLED=''",
+      "environment": {
+        "IMAGE_ENABLED": "true",
+        "VIDEO_ENABLED": "",
+        "IMAGE_SERVER": "",
+        "VIDEO_MODEL": "QuantStack/Wan2.2-T2V-A14B-GGUF",
+        "IMG_MODEL": "qwen-image-2.1",
+        "MEDIA_KEEP_MODELS_LOADED": "false",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "IMAGE_MODEL_MIN_FREE_GB": "6"
+      },
+      "resident_llm": true,
+      "free_gb": 24,
+      "secondary": null,
+      "missing_binary": false,
+      "registered": [
+        {
+          "type": "img",
+          "name": "qwen-image-2.1",
+          "device": "cuda",
+          "vram_gb": 4.0
+        }
+      ]
+    },
+    {
+      "name": "VIDEO_ENABLED='TRUE'",
+      "environment": {
+        "IMAGE_ENABLED": "true",
+        "VIDEO_ENABLED": "TRUE",
+        "IMAGE_SERVER": "",
+        "VIDEO_MODEL": "QuantStack/Wan2.2-T2V-A14B-GGUF",
+        "IMG_MODEL": "qwen-image-2.1",
+        "MEDIA_KEEP_MODELS_LOADED": "false",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "IMAGE_MODEL_MIN_FREE_GB": "6"
+      },
+      "resident_llm": true,
+      "free_gb": 24,
+      "secondary": null,
+      "missing_binary": false,
+      "registered": [
+        {
+          "type": "img",
+          "name": "qwen-image-2.1",
+          "device": "cuda",
+          "vram_gb": 4.0
+        }
+      ]
+    },
+    {
+      "name": "VIDEO_ENABLED=' true '",
+      "environment": {
+        "IMAGE_ENABLED": "true",
+        "VIDEO_ENABLED": " true ",
+        "IMAGE_SERVER": "",
+        "VIDEO_MODEL": "QuantStack/Wan2.2-T2V-A14B-GGUF",
+        "IMG_MODEL": "qwen-image-2.1",
+        "MEDIA_KEEP_MODELS_LOADED": "false",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "IMAGE_MODEL_MIN_FREE_GB": "6"
+      },
+      "resident_llm": true,
+      "free_gb": 24,
+      "secondary": null,
+      "missing_binary": false,
+      "registered": [
+        {
+          "type": "img",
+          "name": "qwen-image-2.1",
+          "device": "cuda",
+          "vram_gb": 4.0
+        }
+      ]
+    },
+    {
+      "name": "VIDEO_ENABLED='1'",
+      "environment": {
+        "IMAGE_ENABLED": "true",
+        "VIDEO_ENABLED": "1",
+        "IMAGE_SERVER": "",
+        "VIDEO_MODEL": "QuantStack/Wan2.2-T2V-A14B-GGUF",
+        "IMG_MODEL": "qwen-image-2.1",
+        "MEDIA_KEEP_MODELS_LOADED": "false",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "IMAGE_MODEL_MIN_FREE_GB": "6"
+      },
+      "resident_llm": true,
+      "free_gb": 24,
+      "secondary": null,
+      "missing_binary": false,
+      "registered": [
+        {
+          "type": "img",
+          "name": "qwen-image-2.1",
+          "device": "cuda",
+          "vram_gb": 4.0
+        }
+      ]
+    },
+    {
+      "name": "IMAGE_SERVER='true'",
+      "environment": {
+        "IMAGE_ENABLED": "true",
+        "VIDEO_ENABLED": "true",
+        "IMAGE_SERVER": "true",
+        "VIDEO_MODEL": "QuantStack/Wan2.2-T2V-A14B-GGUF",
+        "IMG_MODEL": "qwen-image-2.1",
+        "MEDIA_KEEP_MODELS_LOADED": "false",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "IMAGE_MODEL_MIN_FREE_GB": "6"
+      },
+      "resident_llm": true,
+      "free_gb": 24,
+      "secondary": null,
+      "missing_binary": false,
+      "registered": [
+        {
+          "type": "img",
+          "name": "qwen-image-2.1",
+          "device": "cuda",
+          "vram_gb": 4.0
+        }
+      ]
+    },
+    {
+      "name": "IMAGE_SERVER='TRUE'",
+      "environment": {
+        "IMAGE_ENABLED": "true",
+        "VIDEO_ENABLED": "true",
+        "IMAGE_SERVER": "TRUE",
+        "VIDEO_MODEL": "QuantStack/Wan2.2-T2V-A14B-GGUF",
+        "IMG_MODEL": "qwen-image-2.1",
+        "MEDIA_KEEP_MODELS_LOADED": "false",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "IMAGE_MODEL_MIN_FREE_GB": "6"
+      },
+      "resident_llm": true,
+      "free_gb": 24,
+      "secondary": null,
+      "missing_binary": false,
+      "registered": [
+        {
+          "type": "img",
+          "name": "qwen-image-2.1",
+          "device": "cuda",
+          "vram_gb": 4.0
+        }
+      ]
+    },
+    {
+      "name": "IMAGE_SERVER=' true '",
+      "environment": {
+        "IMAGE_ENABLED": "true",
+        "VIDEO_ENABLED": "true",
+        "IMAGE_SERVER": " true ",
+        "VIDEO_MODEL": "QuantStack/Wan2.2-T2V-A14B-GGUF",
+        "IMG_MODEL": "qwen-image-2.1",
+        "MEDIA_KEEP_MODELS_LOADED": "false",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "IMAGE_MODEL_MIN_FREE_GB": "6"
+      },
+      "resident_llm": true,
+      "free_gb": 24,
+      "secondary": null,
+      "missing_binary": false,
+      "registered": []
+    },
+    {
+      "name": "IMAGE_SERVER='false'",
+      "environment": {
+        "IMAGE_ENABLED": "true",
+        "VIDEO_ENABLED": "true",
+        "IMAGE_SERVER": "false",
+        "VIDEO_MODEL": "QuantStack/Wan2.2-T2V-A14B-GGUF",
+        "IMG_MODEL": "qwen-image-2.1",
+        "MEDIA_KEEP_MODELS_LOADED": "false",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "IMAGE_MODEL_MIN_FREE_GB": "6"
+      },
+      "resident_llm": true,
+      "free_gb": 24,
+      "secondary": null,
+      "missing_binary": false,
+      "registered": []
+    },
+    {
+      "name": "IMAGE_SERVER='/'",
+      "environment": {
+        "IMAGE_ENABLED": "true",
+        "VIDEO_ENABLED": "true",
+        "IMAGE_SERVER": "/",
+        "VIDEO_MODEL": "QuantStack/Wan2.2-T2V-A14B-GGUF",
+        "IMG_MODEL": "qwen-image-2.1",
+        "MEDIA_KEEP_MODELS_LOADED": "false",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "IMAGE_MODEL_MIN_FREE_GB": "6"
+      },
+      "resident_llm": true,
+      "free_gb": 24,
+      "secondary": null,
+      "missing_binary": false,
+      "registered": [
+        {
+          "type": "img",
+          "name": "qwen-image-2.1",
+          "device": "cuda",
+          "vram_gb": 4.0
+        }
+      ]
+    },
+    {
+      "name": "IMAGE_SERVER='http://peer'",
+      "environment": {
+        "IMAGE_ENABLED": "true",
+        "VIDEO_ENABLED": "true",
+        "IMAGE_SERVER": "http://peer",
+        "VIDEO_MODEL": "QuantStack/Wan2.2-T2V-A14B-GGUF",
+        "IMG_MODEL": "qwen-image-2.1",
+        "MEDIA_KEEP_MODELS_LOADED": "false",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "IMAGE_MODEL_MIN_FREE_GB": "6"
+      },
+      "resident_llm": true,
+      "free_gb": 24,
+      "secondary": null,
+      "missing_binary": false,
+      "registered": []
+    },
+    {
+      "name": "IMG_MODEL=''",
+      "environment": {
+        "IMAGE_ENABLED": "true",
+        "VIDEO_ENABLED": "true",
+        "IMAGE_SERVER": "",
+        "VIDEO_MODEL": "QuantStack/Wan2.2-T2V-A14B-GGUF",
+        "IMG_MODEL": "",
+        "MEDIA_KEEP_MODELS_LOADED": "false",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "IMAGE_MODEL_MIN_FREE_GB": "6"
+      },
+      "resident_llm": true,
+      "free_gb": 24,
+      "secondary": null,
+      "missing_binary": false,
+      "registered": []
+    },
+    {
+      "name": "IMG_MODEL='none'",
+      "environment": {
+        "IMAGE_ENABLED": "true",
+        "VIDEO_ENABLED": "true",
+        "IMAGE_SERVER": "",
+        "VIDEO_MODEL": "QuantStack/Wan2.2-T2V-A14B-GGUF",
+        "IMG_MODEL": "none",
+        "MEDIA_KEEP_MODELS_LOADED": "false",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "IMAGE_MODEL_MIN_FREE_GB": "6"
+      },
+      "resident_llm": true,
+      "free_gb": 24,
+      "secondary": null,
+      "missing_binary": false,
+      "registered": []
+    },
+    {
+      "name": "IMG_MODEL='NONE'",
+      "environment": {
+        "IMAGE_ENABLED": "true",
+        "VIDEO_ENABLED": "true",
+        "IMAGE_SERVER": "",
+        "VIDEO_MODEL": "QuantStack/Wan2.2-T2V-A14B-GGUF",
+        "IMG_MODEL": "NONE",
+        "MEDIA_KEEP_MODELS_LOADED": "false",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "IMAGE_MODEL_MIN_FREE_GB": "6"
+      },
+      "resident_llm": true,
+      "free_gb": 24,
+      "secondary": null,
+      "missing_binary": false,
+      "registered": []
+    },
+    {
+      "name": "IMG_MODEL=' none '",
+      "environment": {
+        "IMAGE_ENABLED": "true",
+        "VIDEO_ENABLED": "true",
+        "IMAGE_SERVER": "",
+        "VIDEO_MODEL": "QuantStack/Wan2.2-T2V-A14B-GGUF",
+        "IMG_MODEL": " none ",
+        "MEDIA_KEEP_MODELS_LOADED": "false",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "IMAGE_MODEL_MIN_FREE_GB": "6"
+      },
+      "resident_llm": true,
+      "free_gb": 24,
+      "secondary": null,
+      "missing_binary": false,
+      "registered": [
+        {
+          "type": "img",
+          "name": " none ",
+          "device": "cuda",
+          "vram_gb": 4.0
+        }
+      ]
+    },
+    {
+      "name": "IMG_MODEL='custom-identity'",
+      "environment": {
+        "IMAGE_ENABLED": "true",
+        "VIDEO_ENABLED": "true",
+        "IMAGE_SERVER": "",
+        "VIDEO_MODEL": "QuantStack/Wan2.2-T2V-A14B-GGUF",
+        "IMG_MODEL": "custom-identity",
+        "MEDIA_KEEP_MODELS_LOADED": "false",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "IMAGE_MODEL_MIN_FREE_GB": "6"
+      },
+      "resident_llm": true,
+      "free_gb": 24,
+      "secondary": null,
+      "missing_binary": false,
+      "registered": [
+        {
+          "type": "img",
+          "name": "custom-identity",
+          "device": "cuda",
+          "vram_gb": 4.0
+        }
+      ]
+    },
+    {
+      "name": "VIDEO_MODEL=''",
+      "environment": {
+        "IMAGE_ENABLED": "true",
+        "VIDEO_ENABLED": "true",
+        "IMAGE_SERVER": "",
+        "VIDEO_MODEL": "",
+        "IMG_MODEL": "qwen-image-2.1",
+        "MEDIA_KEEP_MODELS_LOADED": "false",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "IMAGE_MODEL_MIN_FREE_GB": "6"
+      },
+      "resident_llm": true,
+      "free_gb": 24,
+      "secondary": null,
+      "missing_binary": false,
+      "registered": [
+        {
+          "type": "img",
+          "name": "qwen-image-2.1",
+          "device": "cuda",
+          "vram_gb": 4.0
+        }
+      ]
+    },
+    {
+      "name": "VIDEO_MODEL=' '",
+      "environment": {
+        "IMAGE_ENABLED": "true",
+        "VIDEO_ENABLED": "true",
+        "IMAGE_SERVER": "",
+        "VIDEO_MODEL": " ",
+        "IMG_MODEL": "qwen-image-2.1",
+        "MEDIA_KEEP_MODELS_LOADED": "false",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "IMAGE_MODEL_MIN_FREE_GB": "6"
+      },
+      "resident_llm": true,
+      "free_gb": 24,
+      "secondary": null,
+      "missing_binary": false,
+      "registered": [
+        {
+          "type": "img",
+          "name": "qwen-image-2.1",
+          "device": "cuda",
+          "vram_gb": 4.0
+        }
+      ]
+    },
+    {
+      "name": "VIDEO_MODEL='none'",
+      "environment": {
+        "IMAGE_ENABLED": "true",
+        "VIDEO_ENABLED": "true",
+        "IMAGE_SERVER": "",
+        "VIDEO_MODEL": "none",
+        "IMG_MODEL": "qwen-image-2.1",
+        "MEDIA_KEEP_MODELS_LOADED": "false",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "IMAGE_MODEL_MIN_FREE_GB": "6"
+      },
+      "resident_llm": true,
+      "free_gb": 24,
+      "secondary": null,
+      "missing_binary": false,
+      "registered": [
+        {
+          "type": "img",
+          "name": "qwen-image-2.1",
+          "device": "cuda",
+          "vram_gb": 4.0
+        }
+      ]
+    },
+    {
+      "name": "VIDEO_MODEL='NONE'",
+      "environment": {
+        "IMAGE_ENABLED": "true",
+        "VIDEO_ENABLED": "true",
+        "IMAGE_SERVER": "",
+        "VIDEO_MODEL": "NONE",
+        "IMG_MODEL": "qwen-image-2.1",
+        "MEDIA_KEEP_MODELS_LOADED": "false",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "IMAGE_MODEL_MIN_FREE_GB": "6"
+      },
+      "resident_llm": true,
+      "free_gb": 24,
+      "secondary": null,
+      "missing_binary": false,
+      "registered": [
+        {
+          "type": "img",
+          "name": "qwen-image-2.1",
+          "device": "cuda",
+          "vram_gb": 4.0
+        }
+      ]
+    },
+    {
+      "name": "VIDEO_MODEL='wan2.2'",
+      "environment": {
+        "IMAGE_ENABLED": "true",
+        "VIDEO_ENABLED": "true",
+        "IMAGE_SERVER": "",
+        "VIDEO_MODEL": "wan2.2",
+        "IMG_MODEL": "qwen-image-2.1",
+        "MEDIA_KEEP_MODELS_LOADED": "false",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "IMAGE_MODEL_MIN_FREE_GB": "6"
+      },
+      "resident_llm": true,
+      "free_gb": 24,
+      "secondary": null,
+      "missing_binary": false,
+      "registered": [
+        {
+          "type": "img",
+          "name": "qwen-image-2.1",
+          "device": "cuda",
+          "vram_gb": 4.0
+        }
+      ]
+    },
+    {
+      "name": "VIDEO_MODEL='wan2.2-i2v'",
+      "environment": {
+        "IMAGE_ENABLED": "true",
+        "VIDEO_ENABLED": "true",
+        "IMAGE_SERVER": "",
+        "VIDEO_MODEL": "wan2.2-i2v",
+        "IMG_MODEL": "qwen-image-2.1",
+        "MEDIA_KEEP_MODELS_LOADED": "false",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "IMAGE_MODEL_MIN_FREE_GB": "6"
+      },
+      "resident_llm": true,
+      "free_gb": 24,
+      "secondary": null,
+      "missing_binary": false,
+      "registered": [
+        {
+          "type": "img",
+          "name": "qwen-image-2.1",
+          "device": "cuda",
+          "vram_gb": 4.0
+        }
+      ]
+    },
+    {
+      "name": "VIDEO_MODEL=' wan2.2-t2v '",
+      "environment": {
+        "IMAGE_ENABLED": "true",
+        "VIDEO_ENABLED": "true",
+        "IMAGE_SERVER": "",
+        "VIDEO_MODEL": " wan2.2-t2v ",
+        "IMG_MODEL": "qwen-image-2.1",
+        "MEDIA_KEEP_MODELS_LOADED": "false",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "IMAGE_MODEL_MIN_FREE_GB": "6"
+      },
+      "resident_llm": true,
+      "free_gb": 24,
+      "secondary": null,
+      "missing_binary": false,
+      "registered": [
+        {
+          "type": "img",
+          "name": "qwen-image-2.1",
+          "device": "cuda",
+          "vram_gb": 4.0
+        }
+      ]
+    },
+    {
+      "name": "VIDEO_MODEL='unsupported'",
+      "environment": {
+        "IMAGE_ENABLED": "true",
+        "VIDEO_ENABLED": "true",
+        "IMAGE_SERVER": "",
+        "VIDEO_MODEL": "unsupported",
+        "IMG_MODEL": "qwen-image-2.1",
+        "MEDIA_KEEP_MODELS_LOADED": "false",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "IMAGE_MODEL_MIN_FREE_GB": "6"
+      },
+      "resident_llm": true,
+      "free_gb": 24,
+      "secondary": null,
+      "missing_binary": false,
+      "registered": [
+        {
+          "type": "img",
+          "name": "qwen-image-2.1",
+          "device": "cuda",
+          "vram_gb": 4.0
+        }
+      ]
+    },
+    {
+      "name": "IMAGE_MODEL_MIN_FREE_GB='invalid'",
+      "environment": {
+        "IMAGE_ENABLED": "true",
+        "VIDEO_ENABLED": "true",
+        "IMAGE_SERVER": "",
+        "VIDEO_MODEL": "QuantStack/Wan2.2-T2V-A14B-GGUF",
+        "IMG_MODEL": "qwen-image-2.1",
+        "MEDIA_KEEP_MODELS_LOADED": "false",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "IMAGE_MODEL_MIN_FREE_GB": "invalid"
+      },
+      "resident_llm": true,
+      "free_gb": 24,
+      "secondary": null,
+      "missing_binary": false,
+      "registered": [
+        {
+          "type": "img",
+          "name": "qwen-image-2.1",
+          "device": "cuda",
+          "vram_gb": 4.0
+        }
+      ]
+    },
+    {
+      "name": "IMAGE_MODEL_MIN_FREE_GB='-3'",
+      "environment": {
+        "IMAGE_ENABLED": "true",
+        "VIDEO_ENABLED": "true",
+        "IMAGE_SERVER": "",
+        "VIDEO_MODEL": "QuantStack/Wan2.2-T2V-A14B-GGUF",
+        "IMG_MODEL": "qwen-image-2.1",
+        "MEDIA_KEEP_MODELS_LOADED": "false",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "IMAGE_MODEL_MIN_FREE_GB": "-3"
+      },
+      "resident_llm": true,
+      "free_gb": 24,
+      "secondary": null,
+      "missing_binary": false,
+      "registered": [
+        {
+          "type": "img",
+          "name": "qwen-image-2.1",
+          "device": "cuda",
+          "vram_gb": 4.0
+        }
+      ]
+    },
+    {
+      "name": "IMAGE_MODEL_MIN_FREE_GB='100'",
+      "environment": {
+        "IMAGE_ENABLED": "true",
+        "VIDEO_ENABLED": "true",
+        "IMAGE_SERVER": "",
+        "VIDEO_MODEL": "QuantStack/Wan2.2-T2V-A14B-GGUF",
+        "IMG_MODEL": "qwen-image-2.1",
+        "MEDIA_KEEP_MODELS_LOADED": "false",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "IMAGE_MODEL_MIN_FREE_GB": "100"
+      },
+      "resident_llm": true,
+      "free_gb": 24,
+      "secondary": null,
+      "missing_binary": false,
+      "registered": []
+    },
+    {
+      "name": "IMAGE_MODEL_MIN_FREE_GB='nan'",
+      "environment": {
+        "IMAGE_ENABLED": "true",
+        "VIDEO_ENABLED": "true",
+        "IMAGE_SERVER": "",
+        "VIDEO_MODEL": "QuantStack/Wan2.2-T2V-A14B-GGUF",
+        "IMG_MODEL": "qwen-image-2.1",
+        "MEDIA_KEEP_MODELS_LOADED": "false",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "IMAGE_MODEL_MIN_FREE_GB": "nan"
+      },
+      "resident_llm": true,
+      "free_gb": 24,
+      "secondary": null,
+      "missing_binary": false,
+      "registered": [
+        {
+          "type": "img",
+          "name": "qwen-image-2.1",
+          "device": "cuda",
+          "vram_gb": 4.0
+        }
+      ]
+    },
+    {
+      "name": "missing-QuantStack/Wan2.2-T2V-A14B-GGUF",
+      "environment": {
+        "IMAGE_ENABLED": "true",
+        "VIDEO_ENABLED": "true",
+        "IMAGE_SERVER": "",
+        "VIDEO_MODEL": "QuantStack/Wan2.2-T2V-A14B-GGUF",
+        "IMG_MODEL": "qwen-image-2.1",
+        "MEDIA_KEEP_MODELS_LOADED": "false",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "IMAGE_MODEL_MIN_FREE_GB": "6"
+      },
+      "resident_llm": false,
+      "free_gb": 24,
+      "secondary": null,
+      "missing_binary": true,
+      "registered": [
+        {
+          "type": "img",
+          "name": "qwen-image-2.1",
+          "device": "cuda",
+          "vram_gb": 4.0
+        }
+      ]
+    },
+    {
+      "name": "missing-wan2.2-i2v",
+      "environment": {
+        "IMAGE_ENABLED": "true",
+        "VIDEO_ENABLED": "true",
+        "IMAGE_SERVER": "",
+        "VIDEO_MODEL": "wan2.2-i2v",
+        "IMG_MODEL": "qwen-image-2.1",
+        "MEDIA_KEEP_MODELS_LOADED": "false",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "IMAGE_MODEL_MIN_FREE_GB": "6"
+      },
+      "resident_llm": false,
+      "free_gb": 24,
+      "secondary": null,
+      "missing_binary": true,
+      "registered": [
+        {
+          "type": "img",
+          "name": "qwen-image-2.1",
+          "device": "cuda",
+          "vram_gb": 4.0
+        }
+      ]
+    },
+    {
+      "name": "missing-unsupported",
+      "environment": {
+        "IMAGE_ENABLED": "true",
+        "VIDEO_ENABLED": "true",
+        "IMAGE_SERVER": "",
+        "VIDEO_MODEL": "unsupported",
+        "IMG_MODEL": "qwen-image-2.1",
+        "MEDIA_KEEP_MODELS_LOADED": "false",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "IMAGE_MODEL_MIN_FREE_GB": "6"
+      },
+      "resident_llm": false,
+      "free_gb": 24,
+      "secondary": null,
+      "missing_binary": true,
+      "registered": [
+        {
+          "type": "img",
+          "name": "qwen-image-2.1",
+          "device": "cuda",
+          "vram_gb": 4.0
+        }
+      ]
+    },
+    {
+      "name": "secondary-0",
+      "environment": {
+        "IMAGE_ENABLED": "true",
+        "VIDEO_ENABLED": "true",
+        "IMAGE_SERVER": "",
+        "VIDEO_MODEL": "QuantStack/Wan2.2-T2V-A14B-GGUF",
+        "IMG_MODEL": "qwen-image-2.1",
+        "MEDIA_KEEP_MODELS_LOADED": "false",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "IMAGE_MODEL_MIN_FREE_GB": "6"
+      },
+      "resident_llm": true,
+      "free_gb": 0,
+      "secondary": 0,
+      "missing_binary": false,
+      "registered": [
+        {
+          "type": "video",
+          "name": "QuantStack/Wan2.2-T2V-A14B-GGUF",
+          "device": "cuda",
+          "vram_gb": 0.0
+        },
+        {
+          "type": "img",
+          "name": "qwen-image-2.1",
+          "device": "cuda",
+          "vram_gb": 4.0
+        }
+      ]
+    },
+    {
+      "name": "secondary-1",
+      "environment": {
+        "IMAGE_ENABLED": "true",
+        "VIDEO_ENABLED": "true",
+        "IMAGE_SERVER": "",
+        "VIDEO_MODEL": "QuantStack/Wan2.2-T2V-A14B-GGUF",
+        "IMG_MODEL": "qwen-image-2.1",
+        "MEDIA_KEEP_MODELS_LOADED": "false",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "auto",
+        "IMAGE_MODEL_MIN_FREE_GB": "6"
+      },
+      "resident_llm": true,
+      "free_gb": 0,
+      "secondary": 1,
+      "missing_binary": false,
+      "registered": [
+        {
+          "type": "video",
+          "name": "QuantStack/Wan2.2-T2V-A14B-GGUF",
+          "device": "cuda",
+          "vram_gb": 0.0
+        },
+        {
+          "type": "img",
+          "name": "qwen-image-2.1",
+          "device": "cuda",
+          "vram_gb": 4.0
+        }
+      ]
+    }
+  ]
+}

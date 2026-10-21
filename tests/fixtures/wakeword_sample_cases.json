@@ -1,0 +1,4388 @@
+{
+  "source_sha256": "dcd63562c35b55472d508a3089396b39fb3c32fd018cba7ded3d83350cf2875c",
+  "versions": {
+    "python": "3.12.14 (main, Sep  1 2026, 14:16:52) [Clang 22.1.3 ]",
+    "numpy": "2.4.6",
+    "scipy": "1.18.1"
+  },
+  "augment": [
+    {
+      "name": "w2_c1_r16000_n1600",
+      "seed": 427,
+      "input": {
+        "path": "w2_c1_r16000_n1600/input.wav",
+        "sha256": "a32adeef324c41dfbd6aaa4df512e2e385a75107235773468c2cd4345ac16146",
+        "size": 3244
+      },
+      "outputs": [
+        {
+          "variation": "speed_0.85",
+          "path": "w2_c1_r16000_n1600/speed_0.85.wav",
+          "sha256": "a9209425efc737ffe0aea85b3fd8b74c47f2563d19f2e3a523531bf6571f1d1e",
+          "size": 3808
+        },
+        {
+          "variation": "speed_0.9",
+          "path": "w2_c1_r16000_n1600/speed_0.9.wav",
+          "sha256": "7195eed52c1f9749cc8612219af93fab4be9944ed31a27a82bc11d556d600125",
+          "size": 3598
+        },
+        {
+          "variation": "speed_1.1",
+          "path": "w2_c1_r16000_n1600/speed_1.1.wav",
+          "sha256": "b1864ba67fa0ef2b59fedbfb077608bbe34947ed0df0df7909e0f15ba54f9466",
+          "size": 2952
+        },
+        {
+          "variation": "speed_1.15",
+          "path": "w2_c1_r16000_n1600/speed_1.15.wav",
+          "sha256": "f22b2b373fa8c38419fbfb29940d0958b3a825e34cf8f4a1962b82227c77b49a",
+          "size": 2826
+        },
+        {
+          "variation": "pitch_-2",
+          "path": "w2_c1_r16000_n1600/pitch_-2.wav",
+          "sha256": "cfffe7b2716951fc97767c315bcab532e397632f7a339892698ed0f30c0ff6bf",
+          "size": 3634
+        },
+        {
+          "variation": "pitch_-1",
+          "path": "w2_c1_r16000_n1600/pitch_-1.wav",
+          "sha256": "25fb25890b343391dcb9d6241e1e9080989e1076e411e6238b2fa22f069522c0",
+          "size": 3434
+        },
+        {
+          "variation": "pitch_1",
+          "path": "w2_c1_r16000_n1600/pitch_1.wav",
+          "sha256": "6b7d6ab8885f56277936431064ada4b8c8407f0cd5d42be176d3df3ad38a64ee",
+          "size": 3064
+        },
+        {
+          "variation": "pitch_2",
+          "path": "w2_c1_r16000_n1600/pitch_2.wav",
+          "sha256": "cd7c6d5819a7e503a2f89adfe35a7de5eb535e260c9374da4a3fa692011298a6",
+          "size": 2894
+        },
+        {
+          "variation": "volume_-6db",
+          "path": "w2_c1_r16000_n1600/volume_-6db.wav",
+          "sha256": "f90f6e83bc7945eaaf8fabfd7a651a43663cae29d61d1ac162cd29ae35b7b464",
+          "size": 3244
+        },
+        {
+          "variation": "volume_-3db",
+          "path": "w2_c1_r16000_n1600/volume_-3db.wav",
+          "sha256": "1d3df3a357dc0c3d873af2d05f0d1d1fb0a9407f831f71b49294a510bc371871",
+          "size": 3244
+        },
+        {
+          "variation": "volume_3db",
+          "path": "w2_c1_r16000_n1600/volume_3db.wav",
+          "sha256": "2d4853d6977aa92def29b6cd2b3547041dd23bd4f8bf3fc9420e3422ba8c4cd2",
+          "size": 3244
+        },
+        {
+          "variation": "volume_6db",
+          "path": "w2_c1_r16000_n1600/volume_6db.wav",
+          "sha256": "a0b523a5ad114fa2be4014bbb3a1e56c57d3f23895cbdf84e429081f5cfa1def",
+          "size": 3244
+        },
+        {
+          "variation": "noise_0.005",
+          "path": "w2_c1_r16000_n1600/noise_0.005.wav",
+          "sha256": "76010139a0d2d89951e65f862763c5f7324cd2d1aa6169f11a5ed4ca1652e94d",
+          "size": 3244
+        },
+        {
+          "variation": "noise_0.01",
+          "path": "w2_c1_r16000_n1600/noise_0.01.wav",
+          "sha256": "049c782b5f36bc1c9138e1670d8e7d1a0020d1e19acc1c11ff1276c16627027d",
+          "size": 3244
+        },
+        {
+          "variation": "noise_0.02",
+          "path": "w2_c1_r16000_n1600/noise_0.02.wav",
+          "sha256": "e7b3f41dd92d03334d086f33f0a839a1c6e3c688a6232bc58f087ffe73eafd3b",
+          "size": 3244
+        },
+        {
+          "variation": "reverb",
+          "path": "w2_c1_r16000_n1600/reverb.wav",
+          "sha256": "74a1b2bb080f956b724a93748f4be679a665a5016e3ce400baf4a4691ca12a14",
+          "size": 3244
+        }
+      ],
+      "rng_tail": [
+        0.4044988749467414,
+        0.6966574012267022,
+        0.8656947085613657,
+        0.36906873590917644,
+        0.32042565496788233,
+        0.2936634340820946,
+        0.3234675279189524,
+        0.8278637477310073
+      ],
+      "normalized": {
+        "path": "w2_c1_r16000_n1600/normalized.wav",
+        "sha256": "a32adeef324c41dfbd6aaa4df512e2e385a75107235773468c2cd4345ac16146",
+        "size": 3244
+      }
+    },
+    {
+      "name": "w2_c2_r22050_n1001",
+      "seed": 427,
+      "input": {
+        "path": "w2_c2_r22050_n1001/input.wav",
+        "sha256": "be31ba6971af4dad87a9fac7aa256ff51e0d66190d1b5d6703aa4d364915b6fd",
+        "size": 4048
+      },
+      "outputs": [
+        {
+          "variation": "speed_0.85",
+          "path": "w2_c2_r22050_n1001/speed_0.85.wav",
+          "sha256": "a40b6d7025475f4894edcfa8698fb8f6e53d5d9fed210c38f999448a430aebc4",
+          "size": 4752
+        },
+        {
+          "variation": "speed_0.9",
+          "path": "w2_c2_r22050_n1001/speed_0.9.wav",
+          "sha256": "5d9ba9334da39b748947d82ab2a961a7aee41ab54686e337f63566f38e9d3195",
+          "size": 4492
+        },
+        {
+          "variation": "speed_1.1",
+          "path": "w2_c2_r22050_n1001/speed_1.1.wav",
+          "sha256": "3bfae86120f43b6448c7c87daa6512cb7b28bddd8d027062851a1e3ecb8be099",
+          "size": 3684
+        },
+        {
+          "variation": "speed_1.15",
+          "path": "w2_c2_r22050_n1001/speed_1.15.wav",
+          "sha256": "78cf9adac5fedf3579406f3f940c6702b33b7fd5d254afe331ab99483e693760",
+          "size": 3524
+        },
+        {
+          "variation": "pitch_-2",
+          "path": "w2_c2_r22050_n1001/pitch_-2.wav",
+          "sha256": "a1f7575c2ac1f58927e4839dd257eef0e93933a942a00c18ac50250951d8215e",
+          "size": 4536
+        },
+        {
+          "variation": "pitch_-1",
+          "path": "w2_c2_r22050_n1001/pitch_-1.wav",
+          "sha256": "986609d1ceb92397b99aa8c7ec4a116043d7fd3c465cd78c023926094f51495e",
+          "size": 4284
+        },
+        {
+          "variation": "pitch_1",
+          "path": "w2_c2_r22050_n1001/pitch_1.wav",
+          "sha256": "87dfcfc11fc165a915957fbcf38a1af4e10f7c0ea69dff5c941dacd7296cb5c1",
+          "size": 3820
+        },
+        {
+          "variation": "pitch_2",
+          "path": "w2_c2_r22050_n1001/pitch_2.wav",
+          "sha256": "16a17a0d4c1435cf146f39a9c326b2cd49cfa837f4ba6025708d6494a0d96a8f",
+          "size": 3608
+        },
+        {
+          "variation": "volume_-6db",
+          "path": "w2_c2_r22050_n1001/volume_-6db.wav",
+          "sha256": "813d0e2a3b6e90910fdc91117f1bde70480bb3e00996afe8883a818d374fa26e",
+          "size": 4048
+        },
+        {
+          "variation": "volume_-3db",
+          "path": "w2_c2_r22050_n1001/volume_-3db.wav",
+          "sha256": "89453b03bca4fe0603a2a2637d59704f3f45ff5fb5197d594ecbd0c0afe56e8c",
+          "size": 4048
+        },
+        {
+          "variation": "volume_3db",
+          "path": "w2_c2_r22050_n1001/volume_3db.wav",
+          "sha256": "31b43f2f9ae1e6ce436e0e3f8d3fc92ed03e023fbabd847d45d0018277a527ac",
+          "size": 4048
+        },
+        {
+          "variation": "volume_6db",
+          "path": "w2_c2_r22050_n1001/volume_6db.wav",
+          "sha256": "82cad3b1981cf977114ebe95681b8e4ca7fc1071a6a578759bc486f129e3e0b2",
+          "size": 4048
+        },
+        {
+          "variation": "noise_0.005",
+          "path": "w2_c2_r22050_n1001/noise_0.005.wav",
+          "sha256": "5fff4b67ad40fb7e21ce4cdb2ee2da4c9a4e96dc61d016ea4c193969f633b92c",
+          "size": 4048
+        },
+        {
+          "variation": "noise_0.01",
+          "path": "w2_c2_r22050_n1001/noise_0.01.wav",
+          "sha256": "ed2ce587310e9bb0eb2f33318c547ffc72f1020103d3d4e208fe9188fab42e29",
+          "size": 4048
+        },
+        {
+          "variation": "noise_0.02",
+          "path": "w2_c2_r22050_n1001/noise_0.02.wav",
+          "sha256": "34b93b5fce8476a16e849490c87c04e7385fffdab1f6744eb7118d89542bc2fe",
+          "size": 4048
+        },
+        {
+          "variation": "reverb",
+          "path": "w2_c2_r22050_n1001/reverb.wav",
+          "sha256": "a389e20152eac47688e252148049fa8f628a0a9e3042291bfd5b2cede51d155c",
+          "size": 4048
+        }
+      ],
+      "rng_tail": [
+        0.5988790527746167,
+        0.9517332141848261,
+        0.6272997806689906,
+        0.9109006221208393,
+        0.5024512536843173,
+        0.28065017198182274,
+        0.8300432090564026,
+        0.19106867835458374
+      ],
+      "normalized": {
+        "path": "w2_c2_r22050_n1001/normalized.wav",
+        "sha256": "d0e79741b5cf59662abcf2234308db7f18a9609073a95572c6232605d9074a67",
+        "size": 1496
+      }
+    },
+    {
+      "name": "w2_c3_r8000_n511",
+      "seed": 427,
+      "input": {
+        "path": "w2_c3_r8000_n511/input.wav",
+        "sha256": "9816223fe3a1b4fd9c6c9e43128a09e18e86557b59ccc5172e8d4b2ee5d405b7",
+        "size": 3110
+      },
+      "outputs": [
+        {
+          "variation": "speed_0.85",
+          "path": "w2_c3_r8000_n511/speed_0.85.wav",
+          "sha256": "b8be9ccabbfbd2cb1a25e5ddf0f6410b65db3fab255dcb127ab41fa34b75f110",
+          "size": 3650
+        },
+        {
+          "variation": "speed_0.9",
+          "path": "w2_c3_r8000_n511/speed_0.9.wav",
+          "sha256": "d39bca3a1fb8936514636345854618c32a23df284393fe0a7d299fb440c91425",
+          "size": 3446
+        },
+        {
+          "variation": "speed_1.1",
+          "path": "w2_c3_r8000_n511/speed_1.1.wav",
+          "sha256": "a427c976fa7ad8c1603e76f80167940c3c1936cd0c18ca4b40678445596b146f",
+          "size": 2828
+        },
+        {
+          "variation": "speed_1.15",
+          "path": "w2_c3_r8000_n511/speed_1.15.wav",
+          "sha256": "d2f05679adaf70ae6f7e62258579fd619e4609a8d52d97138ec53082726dd46b",
+          "size": 2708
+        },
+        {
+          "variation": "pitch_-2",
+          "path": "w2_c3_r8000_n511/pitch_-2.wav",
+          "sha256": "d468773d8ef830daff33099405227ddc682e453dae1f727b38559db7496348ac",
+          "size": 3482
+        },
+        {
+          "variation": "pitch_-1",
+          "path": "w2_c3_r8000_n511/pitch_-1.wav",
+          "sha256": "33eb440b0d5375478675b9fd108a0801d849d13cb4a2380e0836bacad1cdfb4a",
+          "size": 3290
+        },
+        {
+          "variation": "pitch_1",
+          "path": "w2_c3_r8000_n511/pitch_1.wav",
+          "sha256": "48db2bef6acec00000542ffbcfe7a99674d46a2f145a33f8e77ca57583e7103c",
+          "size": 2936
+        },
+        {
+          "variation": "pitch_2",
+          "path": "w2_c3_r8000_n511/pitch_2.wav",
+          "sha256": "c514862205c982ff2cb8850efad4ab20a8560f234d4aa051c11bc09b9cf665ea",
+          "size": 2774
+        },
+        {
+          "variation": "volume_-6db",
+          "path": "w2_c3_r8000_n511/volume_-6db.wav",
+          "sha256": "298dff5a1f00cc8b61d78d4230a49ea647d2d9ee2fb090b9d10f26a251a9020a",
+          "size": 3110
+        },
+        {
+          "variation": "volume_-3db",
+          "path": "w2_c3_r8000_n511/volume_-3db.wav",
+          "sha256": "ae71a55cac3cc811d0b206f07519c65a4e2d927f54d9e0609345de6a1e4632fb",
+          "size": 3110
+        },
+        {
+          "variation": "volume_3db",
+          "path": "w2_c3_r8000_n511/volume_3db.wav",
+          "sha256": "67fa0069fd517055f6d0f6f0e119ff608a3b43eafd51680f1aafe0c7084d63de",
+          "size": 3110
+        },
+        {
+          "variation": "volume_6db",
+          "path": "w2_c3_r8000_n511/volume_6db.wav",
+          "sha256": "5fb755b1db73c49b88c99c53aa3275ca07f69b08425251beaf32e1dab883d651",
+          "size": 3110
+        },
+        {
+          "variation": "noise_0.005",
+          "path": "w2_c3_r8000_n511/noise_0.005.wav",
+          "sha256": "0e4917bca81c3c5c9cd90c604df69b607bab13520797077eba59558e9edb9cf9",
+          "size": 3110
+        },
+        {
+          "variation": "noise_0.01",
+          "path": "w2_c3_r8000_n511/noise_0.01.wav",
+          "sha256": "5fbfdfd72706c960366a90869ff9eb2973dc99f5d4ab8cecf2c05d41a20ce377",
+          "size": 3110
+        },
+        {
+          "variation": "noise_0.02",
+          "path": "w2_c3_r8000_n511/noise_0.02.wav",
+          "sha256": "c05d5b4b1e62d77766f94f10060df634ebb1caa7ebe45841bbf4fae60260d17d",
+          "size": 3110
+        },
+        {
+          "variation": "reverb",
+          "path": "w2_c3_r8000_n511/reverb.wav",
+          "sha256": "7775a731174a4d6fea2bbb18078348e44ed7e03bb529aaad8e2f939292f76ed4",
+          "size": 3110
+        }
+      ],
+      "rng_tail": [
+        0.5750539138295001,
+        0.2865521374012866,
+        0.008983525676297122,
+        0.06985804827849706,
+        0.3747859038725283,
+        0.93564101966435,
+        0.8257090423973051,
+        0.7644155518632022
+      ],
+      "normalized": {
+        "path": "w2_c3_r8000_n511/normalized.wav",
+        "sha256": "4438cc3616741ccaee86992c51ccf9ce83211a6c70fdc70407478cadb6381319",
+        "size": 2086
+      }
+    },
+    {
+      "name": "w1_c1_r16000_n1000",
+      "seed": 427,
+      "input": {
+        "path": "w1_c1_r16000_n1000/input.wav",
+        "sha256": "3a22a84cefbe9ab0aefa79f3a09c69433fb5b66749ab4db63ff88d88c423ba5a",
+        "size": 1044
+      },
+      "outputs": [
+        {
+          "variation": "speed_0.85",
+          "path": "w1_c1_r16000_n1000/speed_0.85.wav",
+          "sha256": "1f7df76b489a6d6606213a8b98e44a542c9c98de30d967be54634aae04161d22",
+          "size": 1220
+        },
+        {
+          "variation": "speed_0.9",
+          "path": "w1_c1_r16000_n1000/speed_0.9.wav",
+          "sha256": "258202a4972c035dc08e5421d5e660b194ef796e640b6b4fde77687524e83882",
+          "size": 1155
+        },
+        {
+          "variation": "speed_1.1",
+          "path": "w1_c1_r16000_n1000/speed_1.1.wav",
+          "sha256": "75277b56c0d9b80485f0c94a13c95583eb34b730bdde0a2313c927221fe131c1",
+          "size": 953
+        },
+        {
+          "variation": "speed_1.15",
+          "path": "w1_c1_r16000_n1000/speed_1.15.wav",
+          "sha256": "62b020f0df72c2386a996c82d97ab9379b475ac8373b36ddd21ffac172861a5a",
+          "size": 913
+        },
+        {
+          "variation": "pitch_-2",
+          "path": "w1_c1_r16000_n1000/pitch_-2.wav",
+          "sha256": "e2b75ecf238b909c1aca404b6124868515d20ab920fbd4512f966f5fc2006cb7",
+          "size": 1166
+        },
+        {
+          "variation": "pitch_-1",
+          "path": "w1_c1_r16000_n1000/pitch_-1.wav",
+          "sha256": "1130e2a87839256aa59e86ffbf2a18f6325bc70ff44e67a61bdb9acedbdf4e52",
+          "size": 1103
+        },
+        {
+          "variation": "pitch_1",
+          "path": "w1_c1_r16000_n1000/pitch_1.wav",
+          "sha256": "bd18aefdfbaca61c3846e2ae00ea706fde19473349943c2710ada67c3677628e",
+          "size": 987
+        },
+        {
+          "variation": "pitch_2",
+          "path": "w1_c1_r16000_n1000/pitch_2.wav",
+          "sha256": "d6e98280b940b94e9282d21cbd63a83341623cf3005384c7e137ba569d8fc3f4",
+          "size": 935
+        },
+        {
+          "variation": "volume_-6db",
+          "path": "w1_c1_r16000_n1000/volume_-6db.wav",
+          "sha256": "793a6443a51e90bc12ce045441a540d794f89f021b2f5d446e6b5dc964a68dc2",
+          "size": 1044
+        },
+        {
+          "variation": "volume_-3db",
+          "path": "w1_c1_r16000_n1000/volume_-3db.wav",
+          "sha256": "378f442ca0605fbc3cf5e73f9cc2b486003e26f9a14b67f85c467336a82dbf45",
+          "size": 1044
+        },
+        {
+          "variation": "volume_3db",
+          "path": "w1_c1_r16000_n1000/volume_3db.wav",
+          "sha256": "25d88ed698d99fa0a6e26bfc4004d416bc4dee2f879f1adfb991fd0ff2fa4941",
+          "size": 1044
+        },
+        {
+          "variation": "volume_6db",
+          "path": "w1_c1_r16000_n1000/volume_6db.wav",
+          "sha256": "c32ed9b5a9a8aaac2a33d6f05f74298f2cd1f57e9f2d977729e921e0d8dff216",
+          "size": 1044
+        },
+        {
+          "variation": "noise_0.005",
+          "path": "w1_c1_r16000_n1000/noise_0.005.wav",
+          "sha256": "6e76e5bd2f6c98caa4ddc8af6aba5568c7d42e359c0c3797df2ae31ce2475ae9",
+          "size": 2044
+        },
+        {
+          "variation": "noise_0.01",
+          "path": "w1_c1_r16000_n1000/noise_0.01.wav",
+          "sha256": "04d8a63751eddc2316fb990509972715a764c38f93ad7735673fca97c07fb4ed",
+          "size": 2044
+        },
+        {
+          "variation": "noise_0.02",
+          "path": "w1_c1_r16000_n1000/noise_0.02.wav",
+          "sha256": "28033be3b9bf81d7d4e04d5fa71569572fc780dde141873467b6c3c762409e30",
+          "size": 2044
+        },
+        {
+          "variation": "reverb",
+          "path": "w1_c1_r16000_n1000/reverb.wav",
+          "sha256": "7935a9f525a0c8843593704b6682e4196d1d80e8df21a6525ab1866d59d847f6",
+          "size": 2044
+        }
+      ],
+      "rng_tail": [
+        0.38176173429032123,
+        0.2481307314430502,
+        0.1509336341193387,
+        0.6079519943898247,
+        0.5582476855973272,
+        0.5489052887485513,
+        0.7698095678074534,
+        0.13685778187415187
+      ],
+      "normalized": {
+        "path": "w1_c1_r16000_n1000/normalized.wav",
+        "sha256": "3a22a84cefbe9ab0aefa79f3a09c69433fb5b66749ab4db63ff88d88c423ba5a",
+        "size": 1044
+      }
+    },
+    {
+      "name": "w3_c1_r44100_n1001",
+      "seed": 427,
+      "input": {
+        "path": "w3_c1_r44100_n1001/input.wav",
+        "sha256": "ac0fc05a4edd834043dd58299e9bd13c7565bb8fd7a3b366b740531453644586",
+        "size": 3047
+      },
+      "outputs": [
+        {
+          "variation": "speed_0.85",
+          "path": "w3_c1_r44100_n1001/speed_0.85.wav",
+          "sha256": "1783f60658ee1261b526b3015c8ff55681c7d0916aa7363549917c9e69ce9dc1",
+          "size": 4752
+        },
+        {
+          "variation": "speed_0.9",
+          "path": "w3_c1_r44100_n1001/speed_0.9.wav",
+          "sha256": "f43cbd83c9af5018f7be7c7b53af2682c388ea7726c18b8fdb14056cdea0e9ca",
+          "size": 4492
+        },
+        {
+          "variation": "speed_1.1",
+          "path": "w3_c1_r44100_n1001/speed_1.1.wav",
+          "sha256": "bf5a3544a262eae91b98bd221c7d50de544644ea9c3df107375d0f95632beb2b",
+          "size": 3684
+        },
+        {
+          "variation": "speed_1.15",
+          "path": "w3_c1_r44100_n1001/speed_1.15.wav",
+          "sha256": "78d28cd13d30f5320a6e0f2cb4bdd5baeba930532bde676fcdb2e50706761d2a",
+          "size": 3524
+        },
+        {
+          "variation": "pitch_-2",
+          "path": "w3_c1_r44100_n1001/pitch_-2.wav",
+          "sha256": "6f0ababa91a433f79af60a1cf442ae919ab413f8b393f5cc4754c1f66a388fd5",
+          "size": 4536
+        },
+        {
+          "variation": "pitch_-1",
+          "path": "w3_c1_r44100_n1001/pitch_-1.wav",
+          "sha256": "778e9ab85dd22178f78547d9142a262ee025f46ada3709d67075a5b17e23185c",
+          "size": 4284
+        },
+        {
+          "variation": "pitch_1",
+          "path": "w3_c1_r44100_n1001/pitch_1.wav",
+          "sha256": "3074d8c9738dc544dcc410582045b8ba91d1ca77f13581ca1e99955670fe9d14",
+          "size": 3820
+        },
+        {
+          "variation": "pitch_2",
+          "path": "w3_c1_r44100_n1001/pitch_2.wav",
+          "sha256": "186cf03ce3df8bd09f448332c31283d69e491f99ef384a6f64e333b5cccc39cb",
+          "size": 3608
+        },
+        {
+          "variation": "volume_-6db",
+          "path": "w3_c1_r44100_n1001/volume_-6db.wav",
+          "sha256": "b876c5e77533a88eeee51e51e58de32b78f6babca37763f0182b4fada960a79e",
+          "size": 4048
+        },
+        {
+          "variation": "volume_-3db",
+          "path": "w3_c1_r44100_n1001/volume_-3db.wav",
+          "sha256": "c5e2d3ad32e95f86bd55521dfc3026f83d75191c34b80fc27ef3db6f37cb4b95",
+          "size": 4048
+        },
+        {
+          "variation": "volume_3db",
+          "path": "w3_c1_r44100_n1001/volume_3db.wav",
+          "sha256": "8d13555663ac007b227dcfdb2ff5b404fa8e8b7d9d772e2ea2dddb274b8dcd8d",
+          "size": 4048
+        },
+        {
+          "variation": "volume_6db",
+          "path": "w3_c1_r44100_n1001/volume_6db.wav",
+          "sha256": "97ab9204113b4a9dc49f7d6617f13815679cbb22702e5e5ec2664e1f80348f25",
+          "size": 4048
+        },
+        {
+          "variation": "noise_0.005",
+          "path": "w3_c1_r44100_n1001/noise_0.005.wav",
+          "sha256": "bf92ebea34fb2d65a07e319433d9d4498c17a9861d6eccbba5791c4768f815a1",
+          "size": 2046
+        },
+        {
+          "variation": "noise_0.01",
+          "path": "w3_c1_r44100_n1001/noise_0.01.wav",
+          "sha256": "a7879aff839d0a1c4da49a68cb1c00e7395d0c37fce96d7f7336b6f25527ae9b",
+          "size": 2046
+        },
+        {
+          "variation": "noise_0.02",
+          "path": "w3_c1_r44100_n1001/noise_0.02.wav",
+          "sha256": "4353b65b97c90a8e720caa644d4883a00279327444ce45acfab94fb654f7c3ef",
+          "size": 2046
+        },
+        {
+          "variation": "reverb",
+          "path": "w3_c1_r44100_n1001/reverb.wav",
+          "sha256": "2ea0b8dc19a8fd57fba023c8f4015c8aa1627cd8e92d56649592bd117251f63e",
+          "size": 2046
+        }
+      ],
+      "rng_tail": [
+        0.5582476855973272,
+        0.5489052887485513,
+        0.7698095678074534,
+        0.13685778187415187,
+        0.09231013367041618,
+        0.6220009716653374,
+        0.36071701548353974,
+        0.3272183159689067
+      ],
+      "normalized": {
+        "path": "w3_c1_r44100_n1001/normalized.wav",
+        "sha256": "85d1501657bd8efb25caf8c9e10bd8174edff680f85fc1fc813cf3d49433b6c9",
+        "size": 1496
+      }
+    },
+    {
+      "name": "w4_c2_r48000_n1000",
+      "seed": 427,
+      "input": {
+        "path": "w4_c2_r48000_n1000/input.wav",
+        "sha256": "f63700ed2a3e220be3c37f5a484a5c94814fcdbff451932733a661e010d3a156",
+        "size": 8044
+      },
+      "outputs": [
+        {
+          "variation": "speed_0.85",
+          "path": "w4_c2_r48000_n1000/speed_0.85.wav",
+          "sha256": "651df84ba678626db2f8f0e3d7bc8872735fab98bec4fec7aa42da3206ef7e06",
+          "size": 9452
+        },
+        {
+          "variation": "speed_0.9",
+          "path": "w4_c2_r48000_n1000/speed_0.9.wav",
+          "sha256": "eb32075b5b668595d181fae60c3a2304809a33e41a223333267f84ff35684a74",
+          "size": 8932
+        },
+        {
+          "variation": "speed_1.1",
+          "path": "w4_c2_r48000_n1000/speed_1.1.wav",
+          "sha256": "082b18849508e4ff7a6855664e73d981980509ec7ead224ebe80a7d8049500c1",
+          "size": 7316
+        },
+        {
+          "variation": "speed_1.15",
+          "path": "w4_c2_r48000_n1000/speed_1.15.wav",
+          "sha256": "d1b91ad3ca1d4a71c2ae358daf91a36c347f72820ad6fbd8f37094dc293df87c",
+          "size": 6996
+        },
+        {
+          "variation": "pitch_-2",
+          "path": "w4_c2_r48000_n1000/pitch_-2.wav",
+          "sha256": "d2ece68b1c48ab9f0fe721818f9b54ee04eaff0c157e0173d7b64bfc06d20589",
+          "size": 9020
+        },
+        {
+          "variation": "pitch_-1",
+          "path": "w4_c2_r48000_n1000/pitch_-1.wav",
+          "sha256": "3b875ab2eec4c1b482bf3df013677423b3cbc6394a25429fd4ca3ef628e1dd42",
+          "size": 8516
+        },
+        {
+          "variation": "pitch_1",
+          "path": "w4_c2_r48000_n1000/pitch_1.wav",
+          "sha256": "538309f6d1e6edbfdacc03aec89c8386de367eb925bdb6d131a7aecd597e4603",
+          "size": 7588
+        },
+        {
+          "variation": "pitch_2",
+          "path": "w4_c2_r48000_n1000/pitch_2.wav",
+          "sha256": "a4e437b1a1fb5429a299f4889e97462043f442513e4dffafd2b6b685aa0c65ac",
+          "size": 7172
+        },
+        {
+          "variation": "volume_-6db",
+          "path": "w4_c2_r48000_n1000/volume_-6db.wav",
+          "sha256": "da2a69d99ecbf53e544e5595b33ae029b5149796d9836a18fbdcdb3112f98010",
+          "size": 8044
+        },
+        {
+          "variation": "volume_-3db",
+          "path": "w4_c2_r48000_n1000/volume_-3db.wav",
+          "sha256": "ebfb63cc59143303367af8feb070db15300ebb99f20e5ececfb333655af36444",
+          "size": 8044
+        },
+        {
+          "variation": "volume_3db",
+          "path": "w4_c2_r48000_n1000/volume_3db.wav",
+          "sha256": "cb3c1330a38b86e7e2d152465ae7ea81832b3d9a08326e0d6b28b261339d3f18",
+          "size": 8044
+        },
+        {
+          "variation": "volume_6db",
+          "path": "w4_c2_r48000_n1000/volume_6db.wav",
+          "sha256": "208ddd7552aff45d532563eed2076c545c841bd97c01c850f2dadcff2d9b8154",
+          "size": 8044
+        },
+        {
+          "variation": "noise_0.005",
+          "path": "w4_c2_r48000_n1000/noise_0.005.wav",
+          "sha256": "e98220d1e788f27833a2306d3de022bc21fe2beae5646a224146aaf2b892ba9a",
+          "size": 4044
+        },
+        {
+          "variation": "noise_0.01",
+          "path": "w4_c2_r48000_n1000/noise_0.01.wav",
+          "sha256": "3aed52e4a8f25c7531dea4f45b8160e2f7f84bbed1bc4e250ae686f3bda8b2a0",
+          "size": 4044
+        },
+        {
+          "variation": "noise_0.02",
+          "path": "w4_c2_r48000_n1000/noise_0.02.wav",
+          "sha256": "be2bf6c652b61f62c171feb890ab0754aa724322d05d52b63887f14dea8214d9",
+          "size": 4044
+        },
+        {
+          "variation": "reverb",
+          "path": "w4_c2_r48000_n1000/reverb.wav",
+          "sha256": "6479d0a00a5359e28a33ed62bfe1980befa6632cbb21ddeda6d75becdcbd6186",
+          "size": 4044
+        }
+      ],
+      "rng_tail": [
+        0.5933270067489751,
+        0.13968813462155705,
+        0.5525697687316745,
+        0.9263715262237685,
+        0.9278846253711318,
+        0.6882394315660872,
+        0.5988790527746167,
+        0.9517332141848261
+      ],
+      "normalized": {
+        "path": "w4_c2_r48000_n1000/normalized.wav",
+        "sha256": "a465494b3ca07702899416fb9b547109a7f695af77a28d4606388dcabbe0c740",
+        "size": 1380
+      }
+    },
+    {
+      "name": "w2_c1_r16000_n0",
+      "seed": 427,
+      "input": {
+        "path": "w2_c1_r16000_n0/input.wav",
+        "sha256": "ba584a378b11d9e9c98736fd8c256fe1453a84ee4139416d24b07acff424f0fb",
+        "size": 44
+      },
+      "outputs": [
+        {
+          "variation": "speed_0.85",
+          "path": "w2_c1_r16000_n0/speed_0.85.wav",
+          "sha256": "ba584a378b11d9e9c98736fd8c256fe1453a84ee4139416d24b07acff424f0fb",
+          "size": 44
+        },
+        {
+          "variation": "speed_0.9",
+          "path": "w2_c1_r16000_n0/speed_0.9.wav",
+          "sha256": "ba584a378b11d9e9c98736fd8c256fe1453a84ee4139416d24b07acff424f0fb",
+          "size": 44
+        },
+        {
+          "variation": "speed_1.1",
+          "path": "w2_c1_r16000_n0/speed_1.1.wav",
+          "sha256": "ba584a378b11d9e9c98736fd8c256fe1453a84ee4139416d24b07acff424f0fb",
+          "size": 44
+        },
+        {
+          "variation": "speed_1.15",
+          "path": "w2_c1_r16000_n0/speed_1.15.wav",
+          "sha256": "ba584a378b11d9e9c98736fd8c256fe1453a84ee4139416d24b07acff424f0fb",
+          "size": 44
+        },
+        {
+          "variation": "pitch_-2",
+          "path": "w2_c1_r16000_n0/pitch_-2.wav",
+          "sha256": "ba584a378b11d9e9c98736fd8c256fe1453a84ee4139416d24b07acff424f0fb",
+          "size": 44
+        },
+        {
+          "variation": "pitch_-1",
+          "path": "w2_c1_r16000_n0/pitch_-1.wav",
+          "sha256": "ba584a378b11d9e9c98736fd8c256fe1453a84ee4139416d24b07acff424f0fb",
+          "size": 44
+        },
+        {
+          "variation": "pitch_1",
+          "path": "w2_c1_r16000_n0/pitch_1.wav",
+          "sha256": "ba584a378b11d9e9c98736fd8c256fe1453a84ee4139416d24b07acff424f0fb",
+          "size": 44
+        },
+        {
+          "variation": "pitch_2",
+          "path": "w2_c1_r16000_n0/pitch_2.wav",
+          "sha256": "ba584a378b11d9e9c98736fd8c256fe1453a84ee4139416d24b07acff424f0fb",
+          "size": 44
+        },
+        {
+          "variation": "volume_-6db",
+          "path": "w2_c1_r16000_n0/volume_-6db.wav",
+          "sha256": "ba584a378b11d9e9c98736fd8c256fe1453a84ee4139416d24b07acff424f0fb",
+          "size": 44
+        },
+        {
+          "variation": "volume_-3db",
+          "path": "w2_c1_r16000_n0/volume_-3db.wav",
+          "sha256": "ba584a378b11d9e9c98736fd8c256fe1453a84ee4139416d24b07acff424f0fb",
+          "size": 44
+        },
+        {
+          "variation": "volume_3db",
+          "path": "w2_c1_r16000_n0/volume_3db.wav",
+          "sha256": "ba584a378b11d9e9c98736fd8c256fe1453a84ee4139416d24b07acff424f0fb",
+          "size": 44
+        },
+        {
+          "variation": "volume_6db",
+          "path": "w2_c1_r16000_n0/volume_6db.wav",
+          "sha256": "ba584a378b11d9e9c98736fd8c256fe1453a84ee4139416d24b07acff424f0fb",
+          "size": 44
+        },
+        {
+          "variation": "noise_0.005",
+          "path": "w2_c1_r16000_n0/noise_0.005.wav",
+          "sha256": "ba584a378b11d9e9c98736fd8c256fe1453a84ee4139416d24b07acff424f0fb",
+          "size": 44
+        },
+        {
+          "variation": "noise_0.01",
+          "path": "w2_c1_r16000_n0/noise_0.01.wav",
+          "sha256": "ba584a378b11d9e9c98736fd8c256fe1453a84ee4139416d24b07acff424f0fb",
+          "size": 44
+        },
+        {
+          "variation": "noise_0.02",
+          "path": "w2_c1_r16000_n0/noise_0.02.wav",
+          "sha256": "ba584a378b11d9e9c98736fd8c256fe1453a84ee4139416d24b07acff424f0fb",
+          "size": 44
+        },
+        {
+          "variation": "reverb",
+          "path": "w2_c1_r16000_n0/reverb.wav",
+          "sha256": "ba584a378b11d9e9c98736fd8c256fe1453a84ee4139416d24b07acff424f0fb",
+          "size": 44
+        }
+      ],
+      "rng_tail": [
+        0.95406086477588,
+        0.5141786277962456,
+        0.1485650300694462,
+        0.145786360296825,
+        0.830645145199752,
+        0.5743758402226247,
+        0.10377277092786275,
+        0.25150350241241903
+      ],
+      "normalized": {
+        "path": "w2_c1_r16000_n0/normalized.wav",
+        "sha256": "ba584a378b11d9e9c98736fd8c256fe1453a84ee4139416d24b07acff424f0fb",
+        "size": 44
+      }
+    },
+    {
+      "name": "w2_c1_r16000_n1",
+      "seed": 427,
+      "input": {
+        "path": "w2_c1_r16000_n1/input.wav",
+        "sha256": "82fd262100e9c2d34ba3bc7d2678fb540497607ae800dcf7f7513a7b761aab9c",
+        "size": 46
+      },
+      "outputs": [
+        {
+          "variation": "speed_0.85",
+          "path": "w2_c1_r16000_n1/speed_0.85.wav",
+          "sha256": "82fd262100e9c2d34ba3bc7d2678fb540497607ae800dcf7f7513a7b761aab9c",
+          "size": 46
+        },
+        {
+          "variation": "speed_0.9",
+          "path": "w2_c1_r16000_n1/speed_0.9.wav",
+          "sha256": "82fd262100e9c2d34ba3bc7d2678fb540497607ae800dcf7f7513a7b761aab9c",
+          "size": 46
+        },
+        {
+          "variation": "speed_1.1",
+          "path": "w2_c1_r16000_n1/speed_1.1.wav",
+          "sha256": "82fd262100e9c2d34ba3bc7d2678fb540497607ae800dcf7f7513a7b761aab9c",
+          "size": 46
+        },
+        {
+          "variation": "speed_1.15",
+          "path": "w2_c1_r16000_n1/speed_1.15.wav",
+          "sha256": "82fd262100e9c2d34ba3bc7d2678fb540497607ae800dcf7f7513a7b761aab9c",
+          "size": 46
+        },
+        {
+          "variation": "pitch_-2",
+          "path": "w2_c1_r16000_n1/pitch_-2.wav",
+          "sha256": "82fd262100e9c2d34ba3bc7d2678fb540497607ae800dcf7f7513a7b761aab9c",
+          "size": 46
+        },
+        {
+          "variation": "pitch_-1",
+          "path": "w2_c1_r16000_n1/pitch_-1.wav",
+          "sha256": "82fd262100e9c2d34ba3bc7d2678fb540497607ae800dcf7f7513a7b761aab9c",
+          "size": 46
+        },
+        {
+          "variation": "pitch_1",
+          "path": "w2_c1_r16000_n1/pitch_1.wav",
+          "sha256": "82fd262100e9c2d34ba3bc7d2678fb540497607ae800dcf7f7513a7b761aab9c",
+          "size": 46
+        },
+        {
+          "variation": "pitch_2",
+          "path": "w2_c1_r16000_n1/pitch_2.wav",
+          "sha256": "82fd262100e9c2d34ba3bc7d2678fb540497607ae800dcf7f7513a7b761aab9c",
+          "size": 46
+        },
+        {
+          "variation": "volume_-6db",
+          "path": "w2_c1_r16000_n1/volume_-6db.wav",
+          "sha256": "db953bf83cfe1db0b20baaa95f483ca5737c87e66ed6b4155d81c40054a79f65",
+          "size": 46
+        },
+        {
+          "variation": "volume_-3db",
+          "path": "w2_c1_r16000_n1/volume_-3db.wav",
+          "sha256": "0bca13047ce3a44976c1a0f220a86440ec9dd267d8ad5bf8f7a2fd2c7e0c9638",
+          "size": 46
+        },
+        {
+          "variation": "volume_3db",
+          "path": "w2_c1_r16000_n1/volume_3db.wav",
+          "sha256": "82fd262100e9c2d34ba3bc7d2678fb540497607ae800dcf7f7513a7b761aab9c",
+          "size": 46
+        },
+        {
+          "variation": "volume_6db",
+          "path": "w2_c1_r16000_n1/volume_6db.wav",
+          "sha256": "82fd262100e9c2d34ba3bc7d2678fb540497607ae800dcf7f7513a7b761aab9c",
+          "size": 46
+        },
+        {
+          "variation": "noise_0.005",
+          "path": "w2_c1_r16000_n1/noise_0.005.wav",
+          "sha256": "45047a256cea537acbe06fe865b9eb24042ad00b8ef0740222f9c8dd5a49f367",
+          "size": 46
+        },
+        {
+          "variation": "noise_0.01",
+          "path": "w2_c1_r16000_n1/noise_0.01.wav",
+          "sha256": "83264cdd78e5ff23824dde7a18ccf7ec1cf36710bc394da08f2a141c6092fef2",
+          "size": 46
+        },
+        {
+          "variation": "noise_0.02",
+          "path": "w2_c1_r16000_n1/noise_0.02.wav",
+          "sha256": "82fd262100e9c2d34ba3bc7d2678fb540497607ae800dcf7f7513a7b761aab9c",
+          "size": 46
+        },
+        {
+          "variation": "reverb",
+          "path": "w2_c1_r16000_n1/reverb.wav",
+          "sha256": "82fd262100e9c2d34ba3bc7d2678fb540497607ae800dcf7f7513a7b761aab9c",
+          "size": 46
+        }
+      ],
+      "rng_tail": [
+        0.830645145199752,
+        0.5743758402226247,
+        0.10377277092786275,
+        0.25150350241241903,
+        0.3190974390262932,
+        0.1007688437059896,
+        0.3716047602791138,
+        0.17951253939608125
+      ],
+      "normalized": {
+        "path": "w2_c1_r16000_n1/normalized.wav",
+        "sha256": "82fd262100e9c2d34ba3bc7d2678fb540497607ae800dcf7f7513a7b761aab9c",
+        "size": 46
+      }
+    },
+    {
+      "name": "w2_c1_r16000_n7",
+      "seed": 427,
+      "input": {
+        "path": "w2_c1_r16000_n7/input.wav",
+        "sha256": "9434c859d0d1fbdf9dace0ad8e5d065213a56767f40c6fe9293cf9265088e3cd",
+        "size": 58
+      },
+      "outputs": [
+        {
+          "variation": "speed_0.85",
+          "path": "w2_c1_r16000_n7/speed_0.85.wav",
+          "sha256": "1700a3002cd1eda8b69821ebf7877e076f681b220d7445513233f9a6bfed524e",
+          "size": 60
+        },
+        {
+          "variation": "speed_0.9",
+          "path": "w2_c1_r16000_n7/speed_0.9.wav",
+          "sha256": "9b997a299a41b871edd689606f87315d2eeca3bf64abbd35ec31e924ec10f6af",
+          "size": 58
+        },
+        {
+          "variation": "speed_1.1",
+          "path": "w2_c1_r16000_n7/speed_1.1.wav",
+          "sha256": "64bb0e7165d6704b98e1c4fc1a7df302c1270a0cf8b277735281aa78cbfb4f36",
+          "size": 56
+        },
+        {
+          "variation": "speed_1.15",
+          "path": "w2_c1_r16000_n7/speed_1.15.wav",
+          "sha256": "b52ec23b64bae847865cdc8d3f8508bcb0503c6f8a6e7d49722e2df740cf983e",
+          "size": 56
+        },
+        {
+          "variation": "pitch_-2",
+          "path": "w2_c1_r16000_n7/pitch_-2.wav",
+          "sha256": "5d5372af0efafa46c593042162971800ff801f9abbc263823146e8332fc70178",
+          "size": 58
+        },
+        {
+          "variation": "pitch_-1",
+          "path": "w2_c1_r16000_n7/pitch_-1.wav",
+          "sha256": "4efe8f9229ad012fcfebbb2b448020230f33d2afd223d8b3319b1b21718e0b39",
+          "size": 58
+        },
+        {
+          "variation": "pitch_1",
+          "path": "w2_c1_r16000_n7/pitch_1.wav",
+          "sha256": "11d17490fdc7886166ce8f2c81205682ff3befd887aabb9d389429e3a55c4a82",
+          "size": 56
+        },
+        {
+          "variation": "pitch_2",
+          "path": "w2_c1_r16000_n7/pitch_2.wav",
+          "sha256": "61c2f3e7f044665efcf0949951aa3b3f1811ac2e2113b158fec23fc8aa178037",
+          "size": 56
+        },
+        {
+          "variation": "volume_-6db",
+          "path": "w2_c1_r16000_n7/volume_-6db.wav",
+          "sha256": "881e324ba55192fafe38d96ef80a025f0f60f70382eeaf7e58f947634700c331",
+          "size": 58
+        },
+        {
+          "variation": "volume_-3db",
+          "path": "w2_c1_r16000_n7/volume_-3db.wav",
+          "sha256": "ee888f33df9a253a43fffd04b8a52ed8c7b78fe262c0342376d9e242bd08cfc3",
+          "size": 58
+        },
+        {
+          "variation": "volume_3db",
+          "path": "w2_c1_r16000_n7/volume_3db.wav",
+          "sha256": "b3af9ebc558d894e6b85d9334591903a87aeb8cbaa5bba82a57137ed0b6260f3",
+          "size": 58
+        },
+        {
+          "variation": "volume_6db",
+          "path": "w2_c1_r16000_n7/volume_6db.wav",
+          "sha256": "3c2f92d07fd6ee932e69defdc0b52f4899e500ea56ad1e86972878eb85d447b9",
+          "size": 58
+        },
+        {
+          "variation": "noise_0.005",
+          "path": "w2_c1_r16000_n7/noise_0.005.wav",
+          "sha256": "b3d6b6c66ab2d1451e3106a4f5f8ba731ea180b941ac8f3c0ccb3d2f9df6885d",
+          "size": 58
+        },
+        {
+          "variation": "noise_0.01",
+          "path": "w2_c1_r16000_n7/noise_0.01.wav",
+          "sha256": "042418e334e0eea795dd4fe0c0d61faa7b34627092f42c7485106d36af39ec74",
+          "size": 58
+        },
+        {
+          "variation": "noise_0.02",
+          "path": "w2_c1_r16000_n7/noise_0.02.wav",
+          "sha256": "6989943f13cae258502cbdba53eed2f547b44681dd40ea8ea96eb1848f77f18b",
+          "size": 58
+        },
+        {
+          "variation": "reverb",
+          "path": "w2_c1_r16000_n7/reverb.wav",
+          "sha256": "9434c859d0d1fbdf9dace0ad8e5d065213a56767f40c6fe9293cf9265088e3cd",
+          "size": 58
+        }
+      ],
+      "rng_tail": [
+        0.5036226752814872,
+        0.6310358093246305,
+        0.8322633287346153,
+        0.3527344945817623,
+        0.09674755078261288,
+        0.362051930306978,
+        0.14538067359146922,
+        0.08789005767638614
+      ],
+      "normalized": {
+        "path": "w2_c1_r16000_n7/normalized.wav",
+        "sha256": "9434c859d0d1fbdf9dace0ad8e5d065213a56767f40c6fe9293cf9265088e3cd",
+        "size": 58
+      }
+    }
+  ],
+  "noise": [
+    {
+      "seed": 0,
+      "rate": 16000,
+      "duration": 1.0,
+      "count": 20,
+      "outputs": [
+        {
+          "metadata": {
+            "type": "noise",
+            "noise_type": "white"
+          },
+          "path": "noise/0_16000_1.0_20/0.wav",
+          "sha256": "eddb492f84335d656c31e25158a8f9a21807bc6cc6119d7d1c87181130a10fad",
+          "size": 32044
+        },
+        {
+          "metadata": {
+            "type": "noise",
+            "noise_type": "silence"
+          },
+          "path": "noise/0_16000_1.0_20/1.wav",
+          "sha256": "8b98c94890585b9f1605aed94c2a1f6648a9b19bfa841d96f3474627f55c2561",
+          "size": 32044
+        },
+        {
+          "metadata": {
+            "type": "noise",
+            "noise_type": "white"
+          },
+          "path": "noise/0_16000_1.0_20/2.wav",
+          "sha256": "b1c7d6bad7d7e86f430f38249d52556173724e329f42d30115dd8460af585b73",
+          "size": 32044
+        },
+        {
+          "metadata": {
+            "type": "noise",
+            "noise_type": "silence"
+          },
+          "path": "noise/0_16000_1.0_20/3.wav",
+          "sha256": "56dfedd97cc4367004d709330c1b9af9dd8b2ef8b759109f28b3e3608f701e8f",
+          "size": 32044
+        },
+        {
+          "metadata": {
+            "type": "noise",
+            "noise_type": "white"
+          },
+          "path": "noise/0_16000_1.0_20/4.wav",
+          "sha256": "4e77265d6e5fe93abf0d6fc5cec7d93b5cdeee01ae73cbf942be42420cc88863",
+          "size": 32044
+        },
+        {
+          "metadata": {
+            "type": "noise",
+            "noise_type": "brown"
+          },
+          "path": "noise/0_16000_1.0_20/5.wav",
+          "sha256": "e2bc0f913e3bdf7fca8737ce9266319908156beb00172658e7e44762e2e9d3ec",
+          "size": 32044
+        },
+        {
+          "metadata": {
+            "type": "noise",
+            "noise_type": "pink"
+          },
+          "path": "noise/0_16000_1.0_20/6.wav",
+          "sha256": "8dd0233bddd42f25896187bbfc8d45947b1e9e69c52cccedfe5dc572e62622be",
+          "size": 32044
+        },
+        {
+          "metadata": {
+            "type": "noise",
+            "noise_type": "white"
+          },
+          "path": "noise/0_16000_1.0_20/7.wav",
+          "sha256": "644b232b2dd141ce70115202dca8136b1b0e2032a39b2b60e90a7825088ed34e",
+          "size": 32044
+        },
+        {
+          "metadata": {
+            "type": "noise",
+            "noise_type": "white"
+          },
+          "path": "noise/0_16000_1.0_20/8.wav",
+          "sha256": "62c3233c7741407f391cf1eb5f7473f574daed760e8e118f36af421bef74f9d7",
+          "size": 32044
+        },
+        {
+          "metadata": {
+            "type": "noise",
+            "noise_type": "pink"
+          },
+          "path": "noise/0_16000_1.0_20/9.wav",
+          "sha256": "d42f8944333a3a7bf78dfae1024b715aba92433aa6251d95d3bf74171a7337a1",
+          "size": 32044
+        },
+        {
+          "metadata": {
+            "type": "noise",
+            "noise_type": "pink"
+          },
+          "path": "noise/0_16000_1.0_20/10.wav",
+          "sha256": "026bb5134bd6806f79e2ad1b528d22d74dce22347f45b3363f16408a26d99149",
+          "size": 32044
+        },
+        {
+          "metadata": {
+            "type": "noise",
+            "noise_type": "pink"
+          },
+          "path": "noise/0_16000_1.0_20/11.wav",
+          "sha256": "180988c0460d20628a420a995bd17b5c767880633dd957c32c9fd6e6ac767efe",
+          "size": 32044
+        },
+        {
+          "metadata": {
+            "type": "noise",
+            "noise_type": "white"
+          },
+          "path": "noise/0_16000_1.0_20/12.wav",
+          "sha256": "6149cf1adfeb5c82adfee41aadd5e75f01c3e158f2093b4a2eb94e2f2d7d2f2d",
+          "size": 32044
+        },
+        {
+          "metadata": {
+            "type": "noise",
+            "noise_type": "silence"
+          },
+          "path": "noise/0_16000_1.0_20/13.wav",
+          "sha256": "6776dc3df2193a6c24dedd02ada41b1159af56d5e8e32b6ebdece821e81c6db2",
+          "size": 32044
+        },
+        {
+          "metadata": {
+            "type": "noise",
+            "noise_type": "pink"
+          },
+          "path": "noise/0_16000_1.0_20/14.wav",
+          "sha256": "984544c5de8fd56e1bf7d5eb19acb48ece06703396c26958335dbcccea3ec373",
+          "size": 32044
+        },
+        {
+          "metadata": {
+            "type": "noise",
+            "noise_type": "pink"
+          },
+          "path": "noise/0_16000_1.0_20/15.wav",
+          "sha256": "813725c62d1f586029fda4166f34859687a00ded6c582767d66a54a276e5ad95",
+          "size": 32044
+        },
+        {
+          "metadata": {
+            "type": "noise",
+            "noise_type": "pink"
+          },
+          "path": "noise/0_16000_1.0_20/16.wav",
+          "sha256": "18b76cf819d23e49d39200e6e8ab4fcb4eb3e281580674066b3548ba76911689",
+          "size": 32044
+        },
+        {
+          "metadata": {
+            "type": "noise",
+            "noise_type": "silence"
+          },
+          "path": "noise/0_16000_1.0_20/17.wav",
+          "sha256": "15ece82f58586f20070b9266bde33c92768640e4dc07bb24a6e8961fb9d4437d",
+          "size": 32044
+        },
+        {
+          "metadata": {
+            "type": "noise",
+            "noise_type": "silence"
+          },
+          "path": "noise/0_16000_1.0_20/18.wav",
+          "sha256": "fdf4836b2060946ebbb8878fa1db9f06c4a707ed93cdb3e95889355d42287bb3",
+          "size": 32044
+        },
+        {
+          "metadata": {
+            "type": "noise",
+            "noise_type": "brown"
+          },
+          "path": "noise/0_16000_1.0_20/19.wav",
+          "sha256": "6defb212e72311fcad51c34addbade5e93bebb7391439645f6f09d73460bbeaf",
+          "size": 32044
+        }
+      ],
+      "rng_tail": [
+        0.22481813885034763,
+        0.44761106601438694,
+        0.8325984579815131,
+        0.28278746813377076,
+        0.3968427233621048,
+        0.3703764755433313,
+        0.28324828491289755,
+        0.5604298540547884
+      ]
+    },
+    {
+      "seed": 427,
+      "rate": 16000,
+      "duration": 0.031,
+      "count": 12,
+      "outputs": [
+        {
+          "metadata": {
+            "type": "noise",
+            "noise_type": "brown"
+          },
+          "path": "noise/427_16000_0.031_12/0.wav",
+          "sha256": "887ec2d50505f4bef7c42b2e12cb34f605f18a5b34008b980ffb093b9d436bdd",
+          "size": 1036
+        },
+        {
+          "metadata": {
+            "type": "noise",
+            "noise_type": "silence"
+          },
+          "path": "noise/427_16000_0.031_12/1.wav",
+          "sha256": "3fa12f0936889a8c884befdb42b5517f31a94c389f3ce663d904490014b73be8",
+          "size": 1036
+        },
+        {
+          "metadata": {
+            "type": "noise",
+            "noise_type": "silence"
+          },
+          "path": "noise/427_16000_0.031_12/2.wav",
+          "sha256": "3a135c5b6763b1cdf8bad2ff6a6d827d8e92da0e382c2557289fff3e9f33ee02",
+          "size": 1036
+        },
+        {
+          "metadata": {
+            "type": "noise",
+            "noise_type": "pink"
+          },
+          "path": "noise/427_16000_0.031_12/3.wav",
+          "sha256": "f6712c0af57ebc3ce4a1799255c143b36cb41f043841155d845e4fdc20474f52",
+          "size": 1036
+        },
+        {
+          "metadata": {
+            "type": "noise",
+            "noise_type": "pink"
+          },
+          "path": "noise/427_16000_0.031_12/4.wav",
+          "sha256": "3b65aa9dbfc37c3e03b9abcffb1abef15fb9d50dd5bb21abc0a8819b337a4bef",
+          "size": 1036
+        },
+        {
+          "metadata": {
+            "type": "noise",
+            "noise_type": "brown"
+          },
+          "path": "noise/427_16000_0.031_12/5.wav",
+          "sha256": "0cc2d76da6492645e41423468c0aece9a7cdd304cbb6f6a68dc67b4f505edffa",
+          "size": 1036
+        },
+        {
+          "metadata": {
+            "type": "noise",
+            "noise_type": "brown"
+          },
+          "path": "noise/427_16000_0.031_12/6.wav",
+          "sha256": "b8e2b34026894cf3a22402d689d3b262b111c282917a6c534e9df6c82f68cb78",
+          "size": 1036
+        },
+        {
+          "metadata": {
+            "type": "noise",
+            "noise_type": "brown"
+          },
+          "path": "noise/427_16000_0.031_12/7.wav",
+          "sha256": "f2f67e195d743fd7a73ae6f2426ca4794b57e1e7c1ba4fbb14727d11ecc46b7b",
+          "size": 1036
+        },
+        {
+          "metadata": {
+            "type": "noise",
+            "noise_type": "brown"
+          },
+          "path": "noise/427_16000_0.031_12/8.wav",
+          "sha256": "cc9ba40df60f83ee6e44c05dfa03be7806f62160686455469bcbb519b07165f3",
+          "size": 1036
+        },
+        {
+          "metadata": {
+            "type": "noise",
+            "noise_type": "brown"
+          },
+          "path": "noise/427_16000_0.031_12/9.wav",
+          "sha256": "fcb6452bc381bc6b44a1cf7240a9f393612ad50eb5c265364c601cca452cab92",
+          "size": 1036
+        },
+        {
+          "metadata": {
+            "type": "noise",
+            "noise_type": "silence"
+          },
+          "path": "noise/427_16000_0.031_12/10.wav",
+          "sha256": "8917a26d7284f1519cc98ab120b34df1b16db6814f6b6896fcb61bd0cb29bcc2",
+          "size": 1036
+        },
+        {
+          "metadata": {
+            "type": "noise",
+            "noise_type": "white"
+          },
+          "path": "noise/427_16000_0.031_12/11.wav",
+          "sha256": "bc846ead3f33a727a766fcf630638222f21871049d21ebe54110c9411817e623",
+          "size": 1036
+        }
+      ],
+      "rng_tail": [
+        0.08827285450211408,
+        0.21750859502592734,
+        0.7972488642981962,
+        0.5079317223363652,
+        0.7780741257458635,
+        0.7305607996888658,
+        0.5933270067489751,
+        0.13968813462155705
+      ]
+    },
+    {
+      "seed": 42,
+      "rate": 8000,
+      "duration": 0.000125,
+      "count": 12,
+      "outputs": [
+        {
+          "metadata": {
+            "type": "noise",
+            "noise_type": "brown"
+          },
+          "path": "noise/42_8000_0.000125_12/0.wav",
+          "sha256": "72a46188ad483bd7db696cc9e8a5a7b2afe2bf6afc3a56541587c4e0d02ecb9a",
+          "size": 46
+        },
+        {
+          "metadata": {
+            "type": "noise",
+            "noise_type": "silence"
+          },
+          "path": "noise/42_8000_0.000125_12/1.wav",
+          "sha256": "f601c5bda063131555b52b7f3e9b14e9a45172883dd3117180b1f46c2eb70cd9",
+          "size": 46
+        },
+        {
+          "metadata": {
+            "type": "noise",
+            "noise_type": "white"
+          },
+          "path": "noise/42_8000_0.000125_12/2.wav",
+          "sha256": "8d11bd64fa90de0dc0d68ea0c2c6fbe15d6c1b623c1f712c60670910731d224a",
+          "size": 46
+        },
+        {
+          "metadata": {
+            "type": "noise",
+            "noise_type": "brown"
+          },
+          "path": "noise/42_8000_0.000125_12/3.wav",
+          "sha256": "feb88931aba7399e4095468fef511d26549028064909587ddabf65f638c3f352",
+          "size": 46
+        },
+        {
+          "metadata": {
+            "type": "noise",
+            "noise_type": "brown"
+          },
+          "path": "noise/42_8000_0.000125_12/4.wav",
+          "sha256": "72a46188ad483bd7db696cc9e8a5a7b2afe2bf6afc3a56541587c4e0d02ecb9a",
+          "size": 46
+        },
+        {
+          "metadata": {
+            "type": "noise",
+            "noise_type": "silence"
+          },
+          "path": "noise/42_8000_0.000125_12/5.wav",
+          "sha256": "799bbcf9fa076afa3cb4230c2dde95eb3087920706dd52a6dbec20ba39683af6",
+          "size": 46
+        },
+        {
+          "metadata": {
+            "type": "noise",
+            "noise_type": "silence"
+          },
+          "path": "noise/42_8000_0.000125_12/6.wav",
+          "sha256": "cbbb4fff2e3fe99f8a06a3d7e8a1c58e3a872e2facfa95fc0ecf73c1df98c616",
+          "size": 46
+        },
+        {
+          "metadata": {
+            "type": "noise",
+            "noise_type": "silence"
+          },
+          "path": "noise/42_8000_0.000125_12/7.wav",
+          "sha256": "fcdf12a4bb7895f5c2626bbb2db1e3518c2f6b464d8e2440e9f34f1e659bb31e",
+          "size": 46
+        },
+        {
+          "metadata": {
+            "type": "noise",
+            "noise_type": "silence"
+          },
+          "path": "noise/42_8000_0.000125_12/8.wav",
+          "sha256": "4aebda3a657a0d8f532d11ceacb1679081d7bdf7d7d301a53f1096af3580be91",
+          "size": 46
+        },
+        {
+          "metadata": {
+            "type": "noise",
+            "noise_type": "brown"
+          },
+          "path": "noise/42_8000_0.000125_12/9.wav",
+          "sha256": "72a46188ad483bd7db696cc9e8a5a7b2afe2bf6afc3a56541587c4e0d02ecb9a",
+          "size": 46
+        },
+        {
+          "metadata": {
+            "type": "noise",
+            "noise_type": "pink"
+          },
+          "path": "noise/42_8000_0.000125_12/10.wav",
+          "sha256": "afe4720d56cf0279dbaa02f7df1de8fe6c5b464c7c5265890fe8642138ce6479",
+          "size": 46
+        },
+        {
+          "metadata": {
+            "type": "noise",
+            "noise_type": "pink"
+          },
+          "path": "noise/42_8000_0.000125_12/11.wav",
+          "sha256": "a84f840f147b1b37a411f38080bdea80df8f2a1aac0287027c2c073e4bbe01ff",
+          "size": 46
+        }
+      ],
+      "rng_tail": [
+        0.19967378215835974,
+        0.5142344384136116,
+        0.5924145688620425,
+        0.046450412719997725,
+        0.6075448519014384,
+        0.17052412368729153,
+        0.06505159298527952,
+        0.9488855372533332
+      ]
+    },
+    {
+      "seed": 123,
+      "rate": 22050,
+      "duration": 0.25,
+      "count": 20,
+      "outputs": [
+        {
+          "metadata": {
+            "type": "noise",
+            "noise_type": "brown"
+          },
+          "path": "noise/123_22050_0.25_20/0.wav",
+          "sha256": "553b74b9109372139b0d5891ac9d33fa7689c6e48626ca2dcaa36f8f317eb15a",
+          "size": 11068
+        },
+        {
+          "metadata": {
+            "type": "noise",
+            "noise_type": "silence"
+          },
+          "path": "noise/123_22050_0.25_20/1.wav",
+          "sha256": "044188cf00820c64c5ee56e7566e3e350dccebb6eb098cad975e344e38c142cb",
+          "size": 11068
+        },
+        {
+          "metadata": {
+            "type": "noise",
+            "noise_type": "brown"
+          },
+          "path": "noise/123_22050_0.25_20/2.wav",
+          "sha256": "92144e4e217f945f88b1e5eb09d114af0102976ae7c9d5b82fcb3b86015fd83d",
+          "size": 11068
+        },
+        {
+          "metadata": {
+            "type": "noise",
+            "noise_type": "silence"
+          },
+          "path": "noise/123_22050_0.25_20/3.wav",
+          "sha256": "7c0bae5df66ffd0f427f9a2a2425c3de9f64c89b7c63c1e334d02df88e3e231c",
+          "size": 11068
+        },
+        {
+          "metadata": {
+            "type": "noise",
+            "noise_type": "brown"
+          },
+          "path": "noise/123_22050_0.25_20/4.wav",
+          "sha256": "3707d788b74a5c4a589f85b319717a4decf6552cbdc26120d02f6a2c4b03bd80",
+          "size": 11068
+        },
+        {
+          "metadata": {
+            "type": "noise",
+            "noise_type": "silence"
+          },
+          "path": "noise/123_22050_0.25_20/5.wav",
+          "sha256": "4479c23a1213b9d77a4ebf96642d5615702055eaa4cd122023741188a4e840d6",
+          "size": 11068
+        },
+        {
+          "metadata": {
+            "type": "noise",
+            "noise_type": "brown"
+          },
+          "path": "noise/123_22050_0.25_20/6.wav",
+          "sha256": "28ba49e8d54f27a22895433c6c7b586a0304135de53bc78394ccb025a444b60b",
+          "size": 11068
+        },
+        {
+          "metadata": {
+            "type": "noise",
+            "noise_type": "pink"
+          },
+          "path": "noise/123_22050_0.25_20/7.wav",
+          "sha256": "4280a5179203ea67f4f914b8d6429ca96e062fcbe736af186849a0a0144ab30d",
+          "size": 11068
+        },
+        {
+          "metadata": {
+            "type": "noise",
+            "noise_type": "brown"
+          },
+          "path": "noise/123_22050_0.25_20/8.wav",
+          "sha256": "c525ceece7edaeec0f289b5861d7a17c6ddfee5c534378a10541eb36e9ba52f2",
+          "size": 11068
+        },
+        {
+          "metadata": {
+            "type": "noise",
+            "noise_type": "pink"
+          },
+          "path": "noise/123_22050_0.25_20/9.wav",
+          "sha256": "20b9a20174c3e7703396293d11fb1aa1e130aa1c13cb91c796ce2deda0057edf",
+          "size": 11068
+        },
+        {
+          "metadata": {
+            "type": "noise",
+            "noise_type": "brown"
+          },
+          "path": "noise/123_22050_0.25_20/10.wav",
+          "sha256": "4bd48f3b53ef62507c15bdca42e8ffb46b2f17b27481b8aa6319820ce9e027d2",
+          "size": 11068
+        },
+        {
+          "metadata": {
+            "type": "noise",
+            "noise_type": "silence"
+          },
+          "path": "noise/123_22050_0.25_20/11.wav",
+          "sha256": "e23d726755b934f04d0a11996ebc2e171e14b437b1e97e1d7631a1053d2b6de1",
+          "size": 11068
+        },
+        {
+          "metadata": {
+            "type": "noise",
+            "noise_type": "brown"
+          },
+          "path": "noise/123_22050_0.25_20/12.wav",
+          "sha256": "3329e20ff4e9235c30ed463f90ff17f99cb5634ccc1ba1b952d8fa1d2f3071e4",
+          "size": 11068
+        },
+        {
+          "metadata": {
+            "type": "noise",
+            "noise_type": "white"
+          },
+          "path": "noise/123_22050_0.25_20/13.wav",
+          "sha256": "8b5220c05f5ba93612ebcb7cdd3fed9a9fbc293c052c1906dfc6bda6ae69b617",
+          "size": 11068
+        },
+        {
+          "metadata": {
+            "type": "noise",
+            "noise_type": "pink"
+          },
+          "path": "noise/123_22050_0.25_20/14.wav",
+          "sha256": "65b4c91e6c4a04a81c8175c8e93d4f51c7823227456be1d89e47f357f645e798",
+          "size": 11068
+        },
+        {
+          "metadata": {
+            "type": "noise",
+            "noise_type": "pink"
+          },
+          "path": "noise/123_22050_0.25_20/15.wav",
+          "sha256": "d3ddc2f68d8865f1482558641c2b7fc340f7ee064519264240840dd8fe9f6d12",
+          "size": 11068
+        },
+        {
+          "metadata": {
+            "type": "noise",
+            "noise_type": "silence"
+          },
+          "path": "noise/123_22050_0.25_20/16.wav",
+          "sha256": "2afb26b97d19026b586738e5c4736c824ad3954438e966f475fbef253ecafdd6",
+          "size": 11068
+        },
+        {
+          "metadata": {
+            "type": "noise",
+            "noise_type": "pink"
+          },
+          "path": "noise/123_22050_0.25_20/17.wav",
+          "sha256": "a39f784a0a0602caa6410806472784c0ccfce836e14dcd5bee69b1227ef7c68f",
+          "size": 11068
+        },
+        {
+          "metadata": {
+            "type": "noise",
+            "noise_type": "silence"
+          },
+          "path": "noise/123_22050_0.25_20/18.wav",
+          "sha256": "5c411ce05e11235b2148c0cf09b9b8f2a5459bedc88da48744350988354ef294",
+          "size": 11068
+        },
+        {
+          "metadata": {
+            "type": "noise",
+            "noise_type": "pink"
+          },
+          "path": "noise/123_22050_0.25_20/19.wav",
+          "sha256": "47aecbdc4e07b1df2b23092da76dd51aca50d8b89dce51ae7a45424c08eafe64",
+          "size": 11068
+        }
+      ],
+      "rng_tail": [
+        0.12544995064930087,
+        0.5855990210986036,
+        0.037672247005587134,
+        0.36581779257059877,
+        0.4483230538687216,
+        0.034185329063866066,
+        0.09041794960470817,
+        0.2755717067609501
+      ]
+    },
+    {
+      "seed": 5,
+      "rate": 16000,
+      "duration": 0.0,
+      "count": 0,
+      "outputs": [],
+      "rng_tail": [
+        0.22199317108973948,
+        0.8707323061773764,
+        0.20671915533942642,
+        0.9186109079379216,
+        0.48841118879482914,
+        0.6117438629026457,
+        0.7659078564803156,
+        0.5184179878729432
+      ]
+    }
+  ],
+  "datasets": [
+    {
+      "count": 0,
+      "selected": 5,
+      "seed": 42,
+      "inputs": [],
+      "outputs": [],
+      "events": [],
+      "rng_tail": [
+        0.3745401188473625,
+        0.9507143064099162,
+        0.7319939418114051,
+        0.5986584841970366,
+        0.15601864044243652,
+        0.15599452033620265,
+        0.05808361216819946,
+        0.8661761457749352
+      ]
+    },
+    {
+      "count": 2,
+      "selected": 5,
+      "seed": 42,
+      "inputs": [
+        {
+          "path": "datasets/2_5/input0.wav",
+          "sha256": "b01600837f3b051210e864675eb9116fd25f5560e0cb7fda5c898f36b7bd48ec",
+          "size": 366
+        },
+        {
+          "path": "datasets/2_5/input1.wav",
+          "sha256": "99e64b7d100082f0347a759e6c5b7a79a7405ce58616e88650d93f1b04845d49",
+          "size": 368
+        }
+      ],
+      "outputs": [
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample0",
+            "augmentation": "original"
+          },
+          "path": "datasets/2_5/output0.wav",
+          "sha256": "b01600837f3b051210e864675eb9116fd25f5560e0cb7fda5c898f36b7bd48ec",
+          "size": 366
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample1",
+            "augmentation": "original"
+          },
+          "path": "datasets/2_5/output1.wav",
+          "sha256": "99e64b7d100082f0347a759e6c5b7a79a7405ce58616e88650d93f1b04845d49",
+          "size": 368
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample0",
+            "augmentation": "speed_0.85"
+          },
+          "path": "datasets/2_5/output2.wav",
+          "sha256": "4d1526c6cdd9afb5c5acf008fa0857744330696a8dac6da84686ac824e0d30d5",
+          "size": 422
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample0",
+            "augmentation": "speed_0.9"
+          },
+          "path": "datasets/2_5/output3.wav",
+          "sha256": "ad9f415b1f10a8f4bd5b1aaca6675c66da61e033edfc5864dfb2ce714e265efd",
+          "size": 400
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample0",
+            "augmentation": "speed_1.1"
+          },
+          "path": "datasets/2_5/output4.wav",
+          "sha256": "176031374adee55f80d24f8fae1f6ae10ebc21f1baf13b0a961b0afb0c9082d8",
+          "size": 336
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample0",
+            "augmentation": "speed_1.15"
+          },
+          "path": "datasets/2_5/output5.wav",
+          "sha256": "56ae2f0b7eb9b7dcf1308a3a0c99eb60496b47b745845a7965cf65c58b704e3e",
+          "size": 324
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample0",
+            "augmentation": "pitch_-2"
+          },
+          "path": "datasets/2_5/output6.wav",
+          "sha256": "cd930ed518b6e625d2bf9d37f7dd8f980ed2db750097925faf8747ab82b7503a",
+          "size": 404
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample1",
+            "augmentation": "speed_0.85"
+          },
+          "path": "datasets/2_5/output7.wav",
+          "sha256": "ed7921a59bad870c448a9eec6981d39a6c0fa714c6bb8b25962245e2a163bfb7",
+          "size": 424
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample1",
+            "augmentation": "speed_0.9"
+          },
+          "path": "datasets/2_5/output8.wav",
+          "sha256": "0a52560a422c299cf0638848e71a48f8e3775b9ab0c6d3f9ff9141247105d398",
+          "size": 402
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample1",
+            "augmentation": "speed_1.1"
+          },
+          "path": "datasets/2_5/output9.wav",
+          "sha256": "22dac0d1ab4cf99ac62c29c34d380ee65163387299157f0eba2961bd5e0b02ce",
+          "size": 338
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample1",
+            "augmentation": "speed_1.15"
+          },
+          "path": "datasets/2_5/output10.wav",
+          "sha256": "62f5f3f41be87800e1861262dea0ffe8be975059ca9e3813e9a4b483bfc59b46",
+          "size": 326
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample1",
+            "augmentation": "pitch_-2"
+          },
+          "path": "datasets/2_5/output11.wav",
+          "sha256": "4021dc0b5b0acade86ae4c8695a7cff7c140996e3a3100044a88505dd4ec4c05",
+          "size": 406
+        }
+      ],
+      "events": [],
+      "rng_tail": [
+        0.06420893707513409,
+        0.5819714019143988,
+        0.26899340443509767,
+        0.7975591006371882,
+        0.31036195892357377,
+        0.4552201490818012,
+        0.011620539908100636,
+        0.07244688779455888
+      ]
+    },
+    {
+      "count": 10,
+      "selected": 5,
+      "seed": 42,
+      "inputs": [
+        {
+          "path": "datasets/10_5/input0.wav",
+          "sha256": "b01600837f3b051210e864675eb9116fd25f5560e0cb7fda5c898f36b7bd48ec",
+          "size": 366
+        },
+        {
+          "path": "datasets/10_5/input1.wav",
+          "sha256": "99e64b7d100082f0347a759e6c5b7a79a7405ce58616e88650d93f1b04845d49",
+          "size": 368
+        },
+        {
+          "path": "datasets/10_5/input2.wav",
+          "sha256": "87108e131859db9fa1802d334fc98c142a32585bb1ccd20518ef33550467a1a6",
+          "size": 370
+        },
+        {
+          "path": "datasets/10_5/input3.wav",
+          "sha256": "d8be4fbfc8dc2b2e85a1804220a0d9451a1ebe6b3ab9129bf19910f9542b4db6",
+          "size": 372
+        },
+        {
+          "path": "datasets/10_5/input4.wav",
+          "sha256": "07f00fd8582d8a2005dffae9c3e69cc70ead6ff020d1fe11a231f423e2f502ce",
+          "size": 374
+        },
+        {
+          "path": "datasets/10_5/input5.wav",
+          "sha256": "9aa3e56cc1bf1dc0095e68b408048cbcc409ee2f924530fcd32e864e59372840",
+          "size": 376
+        },
+        {
+          "path": "datasets/10_5/input6.wav",
+          "sha256": "aa47c8f1198fe0f618a7dd758500b1a8bd1b28c39e92a9a8e6e4147eec5e5955",
+          "size": 378
+        },
+        {
+          "path": "datasets/10_5/input7.wav",
+          "sha256": "40f964b8407cb9b52025594fa942050cbd9c4460c9900b1a9b1a7a2716a80557",
+          "size": 380
+        },
+        {
+          "path": "datasets/10_5/input8.wav",
+          "sha256": "0e1ea25899fdb5ee0094df9fe1ac0509cc3030a619ee7e7e79bf1346e7d2af8d",
+          "size": 382
+        },
+        {
+          "path": "datasets/10_5/input9.wav",
+          "sha256": "2b5749d7808e2b89fed79d8a7ee8af3d7b9ab8012ed44787ace773bed73b1820",
+          "size": 384
+        }
+      ],
+      "outputs": [
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample0",
+            "augmentation": "original"
+          },
+          "path": "datasets/10_5/output0.wav",
+          "sha256": "b01600837f3b051210e864675eb9116fd25f5560e0cb7fda5c898f36b7bd48ec",
+          "size": 366
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample1",
+            "augmentation": "original"
+          },
+          "path": "datasets/10_5/output1.wav",
+          "sha256": "99e64b7d100082f0347a759e6c5b7a79a7405ce58616e88650d93f1b04845d49",
+          "size": 368
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample2",
+            "augmentation": "original"
+          },
+          "path": "datasets/10_5/output2.wav",
+          "sha256": "87108e131859db9fa1802d334fc98c142a32585bb1ccd20518ef33550467a1a6",
+          "size": 370
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample3",
+            "augmentation": "original"
+          },
+          "path": "datasets/10_5/output3.wav",
+          "sha256": "d8be4fbfc8dc2b2e85a1804220a0d9451a1ebe6b3ab9129bf19910f9542b4db6",
+          "size": 372
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample4",
+            "augmentation": "original"
+          },
+          "path": "datasets/10_5/output4.wav",
+          "sha256": "07f00fd8582d8a2005dffae9c3e69cc70ead6ff020d1fe11a231f423e2f502ce",
+          "size": 374
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample5",
+            "augmentation": "original"
+          },
+          "path": "datasets/10_5/output5.wav",
+          "sha256": "9aa3e56cc1bf1dc0095e68b408048cbcc409ee2f924530fcd32e864e59372840",
+          "size": 376
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample6",
+            "augmentation": "original"
+          },
+          "path": "datasets/10_5/output6.wav",
+          "sha256": "aa47c8f1198fe0f618a7dd758500b1a8bd1b28c39e92a9a8e6e4147eec5e5955",
+          "size": 378
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample7",
+            "augmentation": "original"
+          },
+          "path": "datasets/10_5/output7.wav",
+          "sha256": "40f964b8407cb9b52025594fa942050cbd9c4460c9900b1a9b1a7a2716a80557",
+          "size": 380
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample8",
+            "augmentation": "original"
+          },
+          "path": "datasets/10_5/output8.wav",
+          "sha256": "0e1ea25899fdb5ee0094df9fe1ac0509cc3030a619ee7e7e79bf1346e7d2af8d",
+          "size": 382
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample9",
+            "augmentation": "original"
+          },
+          "path": "datasets/10_5/output9.wav",
+          "sha256": "2b5749d7808e2b89fed79d8a7ee8af3d7b9ab8012ed44787ace773bed73b1820",
+          "size": 384
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample0",
+            "augmentation": "speed_0.85"
+          },
+          "path": "datasets/10_5/output10.wav",
+          "sha256": "4d1526c6cdd9afb5c5acf008fa0857744330696a8dac6da84686ac824e0d30d5",
+          "size": 422
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample0",
+            "augmentation": "speed_0.9"
+          },
+          "path": "datasets/10_5/output11.wav",
+          "sha256": "ad9f415b1f10a8f4bd5b1aaca6675c66da61e033edfc5864dfb2ce714e265efd",
+          "size": 400
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample0",
+            "augmentation": "speed_1.1"
+          },
+          "path": "datasets/10_5/output12.wav",
+          "sha256": "176031374adee55f80d24f8fae1f6ae10ebc21f1baf13b0a961b0afb0c9082d8",
+          "size": 336
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample0",
+            "augmentation": "speed_1.15"
+          },
+          "path": "datasets/10_5/output13.wav",
+          "sha256": "56ae2f0b7eb9b7dcf1308a3a0c99eb60496b47b745845a7965cf65c58b704e3e",
+          "size": 324
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample0",
+            "augmentation": "pitch_-2"
+          },
+          "path": "datasets/10_5/output14.wav",
+          "sha256": "cd930ed518b6e625d2bf9d37f7dd8f980ed2db750097925faf8747ab82b7503a",
+          "size": 404
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample1",
+            "augmentation": "speed_0.85"
+          },
+          "path": "datasets/10_5/output15.wav",
+          "sha256": "ed7921a59bad870c448a9eec6981d39a6c0fa714c6bb8b25962245e2a163bfb7",
+          "size": 424
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample1",
+            "augmentation": "speed_0.9"
+          },
+          "path": "datasets/10_5/output16.wav",
+          "sha256": "0a52560a422c299cf0638848e71a48f8e3775b9ab0c6d3f9ff9141247105d398",
+          "size": 402
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample1",
+            "augmentation": "speed_1.1"
+          },
+          "path": "datasets/10_5/output17.wav",
+          "sha256": "22dac0d1ab4cf99ac62c29c34d380ee65163387299157f0eba2961bd5e0b02ce",
+          "size": 338
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample1",
+            "augmentation": "speed_1.15"
+          },
+          "path": "datasets/10_5/output18.wav",
+          "sha256": "62f5f3f41be87800e1861262dea0ffe8be975059ca9e3813e9a4b483bfc59b46",
+          "size": 326
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample1",
+            "augmentation": "pitch_-2"
+          },
+          "path": "datasets/10_5/output19.wav",
+          "sha256": "4021dc0b5b0acade86ae4c8695a7cff7c140996e3a3100044a88505dd4ec4c05",
+          "size": 406
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample2",
+            "augmentation": "speed_0.85"
+          },
+          "path": "datasets/10_5/output20.wav",
+          "sha256": "32790f6a2ce96f41e68736462bd4fb73bd5f1c3579e9e24f6116096262bd51e1",
+          "size": 426
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample2",
+            "augmentation": "speed_0.9"
+          },
+          "path": "datasets/10_5/output21.wav",
+          "sha256": "a87279e458742c1875b479abaa0d56ed87c9d36e2ff2bfffd7d4b1a11fdb40f8",
+          "size": 406
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample2",
+            "augmentation": "speed_1.1"
+          },
+          "path": "datasets/10_5/output22.wav",
+          "sha256": "617ed4c226c406a64c9f4056743f2db2415e9e0129591cbf72e55e1b62005096",
+          "size": 340
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample2",
+            "augmentation": "speed_1.15"
+          },
+          "path": "datasets/10_5/output23.wav",
+          "sha256": "62f5f3f41be87800e1861262dea0ffe8be975059ca9e3813e9a4b483bfc59b46",
+          "size": 326
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample2",
+            "augmentation": "pitch_-2"
+          },
+          "path": "datasets/10_5/output24.wav",
+          "sha256": "e3a042a7a521314c35948242b603ba1e032c15e45dd99c3c4f4e1facefc71ecc",
+          "size": 408
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample3",
+            "augmentation": "speed_0.85"
+          },
+          "path": "datasets/10_5/output25.wav",
+          "sha256": "04afddb70fdf82cc67340d0ee7240b0eb066559525dc66637eb80de459348f46",
+          "size": 428
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample3",
+            "augmentation": "speed_0.9"
+          },
+          "path": "datasets/10_5/output26.wav",
+          "sha256": "0f87290fd51558d08d60f01fb49961fb26e079dc5d3c6291851ac2559c659be1",
+          "size": 408
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample3",
+            "augmentation": "speed_1.1"
+          },
+          "path": "datasets/10_5/output27.wav",
+          "sha256": "e8f3b536c3caf2077b34743a94078d88f48a22ebdab36a0409936b8b85ae53af",
+          "size": 342
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample3",
+            "augmentation": "speed_1.15"
+          },
+          "path": "datasets/10_5/output28.wav",
+          "sha256": "cdea19d43b49510fb51d832b295aaeff87025e5d42eab1a6319ab4484db2c989",
+          "size": 328
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample3",
+            "augmentation": "pitch_-2"
+          },
+          "path": "datasets/10_5/output29.wav",
+          "sha256": "d72ec106f8c8f5e172b66f3cfcf6ca8fad90912aa8fac9f457a6f6a6a63770c0",
+          "size": 410
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample4",
+            "augmentation": "speed_0.85"
+          },
+          "path": "datasets/10_5/output30.wav",
+          "sha256": "efd446d635254ee316df09d5cca305e2826056f753058807f33565a0ea726103",
+          "size": 430
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample4",
+            "augmentation": "speed_0.9"
+          },
+          "path": "datasets/10_5/output31.wav",
+          "sha256": "f61d565390d202f960d48d83153d83fc0d30e02b265fa04fcca3094339b999e1",
+          "size": 410
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample4",
+            "augmentation": "speed_1.1"
+          },
+          "path": "datasets/10_5/output32.wav",
+          "sha256": "21c7e51fec82ed8b8ceb095512570a4db345314dd2795461d5a5a18ca4b5658a",
+          "size": 344
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample4",
+            "augmentation": "speed_1.15"
+          },
+          "path": "datasets/10_5/output33.wav",
+          "sha256": "906393d62386a2771a09477adef516ecaedf117ccd6afa99aab5ef7d758d7868",
+          "size": 330
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample4",
+            "augmentation": "pitch_-2"
+          },
+          "path": "datasets/10_5/output34.wav",
+          "sha256": "3d5383126b61925ce4a1c5a92ef8811d8c0317925559277c1482577492c6534f",
+          "size": 414
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample5",
+            "augmentation": "speed_0.85"
+          },
+          "path": "datasets/10_5/output35.wav",
+          "sha256": "1ba334379026114ea74e9a359259e8701c9367585f651333f109a9699b9bae55",
+          "size": 434
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample5",
+            "augmentation": "speed_0.9"
+          },
+          "path": "datasets/10_5/output36.wav",
+          "sha256": "c10c340de38c1d0b98c067f12c125d78f1e84ac670e1cc735cd1566d0a8faa1f",
+          "size": 412
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample5",
+            "augmentation": "speed_1.1"
+          },
+          "path": "datasets/10_5/output37.wav",
+          "sha256": "360979cdae2384de9a14858c8f95c27f25f240c53fa91c00c1bd0d4403226b89",
+          "size": 346
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample5",
+            "augmentation": "speed_1.15"
+          },
+          "path": "datasets/10_5/output38.wav",
+          "sha256": "402aee068a89509ed2b01b3b51cdcd7d38bf32b0f00fa5b5fc0cfc836421c1d4",
+          "size": 332
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample5",
+            "augmentation": "pitch_-2"
+          },
+          "path": "datasets/10_5/output39.wav",
+          "sha256": "7aa6c40f076cf7658705161277f6c6b459fb8684c8df9752c17e62b9cb7ddcd4",
+          "size": 416
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample6",
+            "augmentation": "speed_0.85"
+          },
+          "path": "datasets/10_5/output40.wav",
+          "sha256": "3293c15de6bbbb7a653d1efff605d12b45ccbf2d424120d1e241480760f9afea",
+          "size": 436
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample6",
+            "augmentation": "speed_0.9"
+          },
+          "path": "datasets/10_5/output41.wav",
+          "sha256": "5ef70d2cca9e3099ad5e6a9a25ce6613ef51eea5e4b0a5948753e5c8eb51244f",
+          "size": 414
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample6",
+            "augmentation": "speed_1.1"
+          },
+          "path": "datasets/10_5/output42.wav",
+          "sha256": "360979cdae2384de9a14858c8f95c27f25f240c53fa91c00c1bd0d4403226b89",
+          "size": 346
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample6",
+            "augmentation": "speed_1.15"
+          },
+          "path": "datasets/10_5/output43.wav",
+          "sha256": "6bf913dd395a91471783ffdf7878480a2a0fd31ba5ebbd32f049c0695a4d2fd1",
+          "size": 334
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample6",
+            "augmentation": "pitch_-2"
+          },
+          "path": "datasets/10_5/output44.wav",
+          "sha256": "82e4d188c85308c10ba86015dfcb0d39c262735492c9098cf3a4980f500d448d",
+          "size": 418
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample7",
+            "augmentation": "speed_0.85"
+          },
+          "path": "datasets/10_5/output45.wav",
+          "sha256": "1fb06ea9adb63ad459b5fd634cada9dbcd9f04e200d8b4d9e661a8b82484b07f",
+          "size": 438
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample7",
+            "augmentation": "speed_0.9"
+          },
+          "path": "datasets/10_5/output46.wav",
+          "sha256": "7a9bab6d1247f439f8bd688e56ab869c6f105965ff3e3cb772b16f60609569bf",
+          "size": 416
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample7",
+            "augmentation": "speed_1.1"
+          },
+          "path": "datasets/10_5/output47.wav",
+          "sha256": "5c5474001812c82c84a320532a3f5301acdb4a1ec6b73965f2d54ac58d915ced",
+          "size": 348
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample7",
+            "augmentation": "speed_1.15"
+          },
+          "path": "datasets/10_5/output48.wav",
+          "sha256": "e11b488edb8f22ef621f5342f940a053e90c5b39aaa960bf15ec6e6d4a5e0ad6",
+          "size": 336
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample7",
+            "augmentation": "pitch_-2"
+          },
+          "path": "datasets/10_5/output49.wav",
+          "sha256": "af9ae98cafe0c1dd584f7a881cf4025da7131cadadd1e4b14e1f77f5a0aadbef",
+          "size": 420
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample8",
+            "augmentation": "speed_0.85"
+          },
+          "path": "datasets/10_5/output50.wav",
+          "sha256": "231449c0e1418e302c703850bdd1ef45a1562eefa17aeb1286f53ec35248aab0",
+          "size": 440
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample8",
+            "augmentation": "speed_0.9"
+          },
+          "path": "datasets/10_5/output51.wav",
+          "sha256": "8e0dcf29d8a5478e8c22764b228f0b7abcf3aa38a05554f87d036ac470a49a7f",
+          "size": 418
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample8",
+            "augmentation": "speed_1.1"
+          },
+          "path": "datasets/10_5/output52.wav",
+          "sha256": "06655b96ec91600b7742872f927911ca214fc9f99173c39effb36435a14d7c32",
+          "size": 350
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample8",
+            "augmentation": "speed_1.15"
+          },
+          "path": "datasets/10_5/output53.wav",
+          "sha256": "04d79c760fdc89eeaa6934d031a4c3e6b803d7854c8e315cd16c7e7157630491",
+          "size": 338
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample8",
+            "augmentation": "pitch_-2"
+          },
+          "path": "datasets/10_5/output54.wav",
+          "sha256": "76c27875bcc3b803a998e1db06190221bd7643fc0051ca41ffece6448702a57e",
+          "size": 422
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample9",
+            "augmentation": "speed_0.85"
+          },
+          "path": "datasets/10_5/output55.wav",
+          "sha256": "b44ace65eec5e7a3047766bc22eee8030fe95d17b7ea74ee7e6d46f954aff653",
+          "size": 442
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample9",
+            "augmentation": "speed_0.9"
+          },
+          "path": "datasets/10_5/output56.wav",
+          "sha256": "ffba92df899698df06bc58d1581d87e72f82101fc697314654d127c2e597a8fa",
+          "size": 420
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample9",
+            "augmentation": "speed_1.1"
+          },
+          "path": "datasets/10_5/output57.wav",
+          "sha256": "e2416714048cc92468f132868bd8a143bcb80256715a13d81df0820e8c76c29d",
+          "size": 352
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample9",
+            "augmentation": "speed_1.15"
+          },
+          "path": "datasets/10_5/output58.wav",
+          "sha256": "04d79c760fdc89eeaa6934d031a4c3e6b803d7854c8e315cd16c7e7157630491",
+          "size": 338
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample9",
+            "augmentation": "pitch_-2"
+          },
+          "path": "datasets/10_5/output59.wav",
+          "sha256": "ef6e3c67b89919344b48dbf729ccb741461777925f6a2f729e3c2be468f67097",
+          "size": 424
+        }
+      ],
+      "events": [
+        [
+          10,
+          10,
+          "augmenting"
+        ]
+      ],
+      "rng_tail": [
+        0.7245579091588182,
+        0.311512299013986,
+        0.7829236142575724,
+        0.4426548482604331,
+        0.48526674234262157,
+        0.7779094067485368,
+        0.3823633310616279,
+        0.44312734532291453
+      ]
+    },
+    {
+      "count": 11,
+      "selected": 0,
+      "seed": 42,
+      "inputs": [
+        {
+          "path": "datasets/11_0/input0.wav",
+          "sha256": "b01600837f3b051210e864675eb9116fd25f5560e0cb7fda5c898f36b7bd48ec",
+          "size": 366
+        },
+        {
+          "path": "datasets/11_0/input1.wav",
+          "sha256": "99e64b7d100082f0347a759e6c5b7a79a7405ce58616e88650d93f1b04845d49",
+          "size": 368
+        },
+        {
+          "path": "datasets/11_0/input2.wav",
+          "sha256": "87108e131859db9fa1802d334fc98c142a32585bb1ccd20518ef33550467a1a6",
+          "size": 370
+        },
+        {
+          "path": "datasets/11_0/input3.wav",
+          "sha256": "d8be4fbfc8dc2b2e85a1804220a0d9451a1ebe6b3ab9129bf19910f9542b4db6",
+          "size": 372
+        },
+        {
+          "path": "datasets/11_0/input4.wav",
+          "sha256": "07f00fd8582d8a2005dffae9c3e69cc70ead6ff020d1fe11a231f423e2f502ce",
+          "size": 374
+        },
+        {
+          "path": "datasets/11_0/input5.wav",
+          "sha256": "9aa3e56cc1bf1dc0095e68b408048cbcc409ee2f924530fcd32e864e59372840",
+          "size": 376
+        },
+        {
+          "path": "datasets/11_0/input6.wav",
+          "sha256": "aa47c8f1198fe0f618a7dd758500b1a8bd1b28c39e92a9a8e6e4147eec5e5955",
+          "size": 378
+        },
+        {
+          "path": "datasets/11_0/input7.wav",
+          "sha256": "40f964b8407cb9b52025594fa942050cbd9c4460c9900b1a9b1a7a2716a80557",
+          "size": 380
+        },
+        {
+          "path": "datasets/11_0/input8.wav",
+          "sha256": "0e1ea25899fdb5ee0094df9fe1ac0509cc3030a619ee7e7e79bf1346e7d2af8d",
+          "size": 382
+        },
+        {
+          "path": "datasets/11_0/input9.wav",
+          "sha256": "2b5749d7808e2b89fed79d8a7ee8af3d7b9ab8012ed44787ace773bed73b1820",
+          "size": 384
+        },
+        {
+          "path": "datasets/11_0/input10.wav",
+          "sha256": "b3504e44f65975fb3fa42d48a7ae05e08ece9c8c5315ff9353f4ab9e223d97f2",
+          "size": 386
+        }
+      ],
+      "outputs": [
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample0",
+            "augmentation": "original"
+          },
+          "path": "datasets/11_0/output0.wav",
+          "sha256": "b01600837f3b051210e864675eb9116fd25f5560e0cb7fda5c898f36b7bd48ec",
+          "size": 366
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample1",
+            "augmentation": "original"
+          },
+          "path": "datasets/11_0/output1.wav",
+          "sha256": "99e64b7d100082f0347a759e6c5b7a79a7405ce58616e88650d93f1b04845d49",
+          "size": 368
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample2",
+            "augmentation": "original"
+          },
+          "path": "datasets/11_0/output2.wav",
+          "sha256": "87108e131859db9fa1802d334fc98c142a32585bb1ccd20518ef33550467a1a6",
+          "size": 370
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample3",
+            "augmentation": "original"
+          },
+          "path": "datasets/11_0/output3.wav",
+          "sha256": "d8be4fbfc8dc2b2e85a1804220a0d9451a1ebe6b3ab9129bf19910f9542b4db6",
+          "size": 372
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample4",
+            "augmentation": "original"
+          },
+          "path": "datasets/11_0/output4.wav",
+          "sha256": "07f00fd8582d8a2005dffae9c3e69cc70ead6ff020d1fe11a231f423e2f502ce",
+          "size": 374
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample5",
+            "augmentation": "original"
+          },
+          "path": "datasets/11_0/output5.wav",
+          "sha256": "9aa3e56cc1bf1dc0095e68b408048cbcc409ee2f924530fcd32e864e59372840",
+          "size": 376
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample6",
+            "augmentation": "original"
+          },
+          "path": "datasets/11_0/output6.wav",
+          "sha256": "aa47c8f1198fe0f618a7dd758500b1a8bd1b28c39e92a9a8e6e4147eec5e5955",
+          "size": 378
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample7",
+            "augmentation": "original"
+          },
+          "path": "datasets/11_0/output7.wav",
+          "sha256": "40f964b8407cb9b52025594fa942050cbd9c4460c9900b1a9b1a7a2716a80557",
+          "size": 380
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample8",
+            "augmentation": "original"
+          },
+          "path": "datasets/11_0/output8.wav",
+          "sha256": "0e1ea25899fdb5ee0094df9fe1ac0509cc3030a619ee7e7e79bf1346e7d2af8d",
+          "size": 382
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample9",
+            "augmentation": "original"
+          },
+          "path": "datasets/11_0/output9.wav",
+          "sha256": "2b5749d7808e2b89fed79d8a7ee8af3d7b9ab8012ed44787ace773bed73b1820",
+          "size": 384
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample10",
+            "augmentation": "original"
+          },
+          "path": "datasets/11_0/output10.wav",
+          "sha256": "b3504e44f65975fb3fa42d48a7ae05e08ece9c8c5315ff9353f4ab9e223d97f2",
+          "size": 386
+        }
+      ],
+      "events": [
+        [
+          10,
+          11,
+          "augmenting"
+        ]
+      ],
+      "rng_tail": [
+        0.8193982309664928,
+        0.35982490063656647,
+        0.5407656313005429,
+        0.6773006863356594,
+        0.7026295764379158,
+        0.9559800588260723,
+        0.5313399532366091,
+        0.3997195509744276
+      ]
+    },
+    {
+      "count": 2,
+      "selected": -1,
+      "seed": 42,
+      "inputs": [
+        {
+          "path": "datasets/2_-1/input0.wav",
+          "sha256": "b01600837f3b051210e864675eb9116fd25f5560e0cb7fda5c898f36b7bd48ec",
+          "size": 366
+        },
+        {
+          "path": "datasets/2_-1/input1.wav",
+          "sha256": "99e64b7d100082f0347a759e6c5b7a79a7405ce58616e88650d93f1b04845d49",
+          "size": 368
+        }
+      ],
+      "outputs": [
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample0",
+            "augmentation": "original"
+          },
+          "path": "datasets/2_-1/output0.wav",
+          "sha256": "b01600837f3b051210e864675eb9116fd25f5560e0cb7fda5c898f36b7bd48ec",
+          "size": 366
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample1",
+            "augmentation": "original"
+          },
+          "path": "datasets/2_-1/output1.wav",
+          "sha256": "99e64b7d100082f0347a759e6c5b7a79a7405ce58616e88650d93f1b04845d49",
+          "size": 368
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample0",
+            "augmentation": "speed_0.85"
+          },
+          "path": "datasets/2_-1/output2.wav",
+          "sha256": "4d1526c6cdd9afb5c5acf008fa0857744330696a8dac6da84686ac824e0d30d5",
+          "size": 422
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample0",
+            "augmentation": "speed_0.9"
+          },
+          "path": "datasets/2_-1/output3.wav",
+          "sha256": "ad9f415b1f10a8f4bd5b1aaca6675c66da61e033edfc5864dfb2ce714e265efd",
+          "size": 400
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample0",
+            "augmentation": "speed_1.1"
+          },
+          "path": "datasets/2_-1/output4.wav",
+          "sha256": "176031374adee55f80d24f8fae1f6ae10ebc21f1baf13b0a961b0afb0c9082d8",
+          "size": 336
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample0",
+            "augmentation": "speed_1.15"
+          },
+          "path": "datasets/2_-1/output5.wav",
+          "sha256": "56ae2f0b7eb9b7dcf1308a3a0c99eb60496b47b745845a7965cf65c58b704e3e",
+          "size": 324
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample0",
+            "augmentation": "pitch_-2"
+          },
+          "path": "datasets/2_-1/output6.wav",
+          "sha256": "cd930ed518b6e625d2bf9d37f7dd8f980ed2db750097925faf8747ab82b7503a",
+          "size": 404
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample0",
+            "augmentation": "pitch_-1"
+          },
+          "path": "datasets/2_-1/output7.wav",
+          "sha256": "0fc907b23632cdf224ea29b42d2cea2ec67d4367787a16294061dee0f4c6c164",
+          "size": 384
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample0",
+            "augmentation": "pitch_1"
+          },
+          "path": "datasets/2_-1/output8.wav",
+          "sha256": "9c76ce23b81e64aaa33bee73d19f7d9bd5a98d470995dfe8f9ac8c613d42c818",
+          "size": 348
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample0",
+            "augmentation": "pitch_2"
+          },
+          "path": "datasets/2_-1/output9.wav",
+          "sha256": "4f448980dba1e0a3c6919932162f887ff2b92740387c361effbcbe74b0ccbdf8",
+          "size": 330
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample0",
+            "augmentation": "volume_-6db"
+          },
+          "path": "datasets/2_-1/output10.wav",
+          "sha256": "acd6c2ddb1022fd33ec907e6a2c11550811a17c9ed44a731a46d446a10a137fa",
+          "size": 366
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample0",
+            "augmentation": "volume_-3db"
+          },
+          "path": "datasets/2_-1/output11.wav",
+          "sha256": "bce081e3703f23c64bb86085bb6d8481c17e02119ee1d68cd5f9284fa8f80908",
+          "size": 366
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample0",
+            "augmentation": "volume_3db"
+          },
+          "path": "datasets/2_-1/output12.wav",
+          "sha256": "361909d1119564fc0e6f407d41761e08d6660a1a6ba39d094b166cc10710fe44",
+          "size": 366
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample0",
+            "augmentation": "volume_6db"
+          },
+          "path": "datasets/2_-1/output13.wav",
+          "sha256": "b1a73b1e105dbaffadf710db094af7967af430e1d4a4438375948214cc39a161",
+          "size": 366
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample0",
+            "augmentation": "noise_0.005"
+          },
+          "path": "datasets/2_-1/output14.wav",
+          "sha256": "5d4a96c6d5f384a787f1297c76f02d0d41eb4c31143640108a577c5561c4e08f",
+          "size": 366
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample0",
+            "augmentation": "noise_0.01"
+          },
+          "path": "datasets/2_-1/output15.wav",
+          "sha256": "a0aec73e5c8edc805c3d25c782df76178284b2a663e9e285abd94b9cf00e04e7",
+          "size": 366
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample0",
+            "augmentation": "noise_0.02"
+          },
+          "path": "datasets/2_-1/output16.wav",
+          "sha256": "4ee668be413722c6bc570eb1773819cae8d10d8e814c72208055544c2799b37a",
+          "size": 366
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample1",
+            "augmentation": "speed_0.85"
+          },
+          "path": "datasets/2_-1/output17.wav",
+          "sha256": "ed7921a59bad870c448a9eec6981d39a6c0fa714c6bb8b25962245e2a163bfb7",
+          "size": 424
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample1",
+            "augmentation": "speed_0.9"
+          },
+          "path": "datasets/2_-1/output18.wav",
+          "sha256": "0a52560a422c299cf0638848e71a48f8e3775b9ab0c6d3f9ff9141247105d398",
+          "size": 402
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample1",
+            "augmentation": "speed_1.1"
+          },
+          "path": "datasets/2_-1/output19.wav",
+          "sha256": "22dac0d1ab4cf99ac62c29c34d380ee65163387299157f0eba2961bd5e0b02ce",
+          "size": 338
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample1",
+            "augmentation": "speed_1.15"
+          },
+          "path": "datasets/2_-1/output20.wav",
+          "sha256": "62f5f3f41be87800e1861262dea0ffe8be975059ca9e3813e9a4b483bfc59b46",
+          "size": 326
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample1",
+            "augmentation": "pitch_-2"
+          },
+          "path": "datasets/2_-1/output21.wav",
+          "sha256": "4021dc0b5b0acade86ae4c8695a7cff7c140996e3a3100044a88505dd4ec4c05",
+          "size": 406
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample1",
+            "augmentation": "pitch_-1"
+          },
+          "path": "datasets/2_-1/output22.wav",
+          "sha256": "c57acdae3951ce7c1de69c2f7c5fb3f2ee68e5e4dd140602cb4b82b0477a90cc",
+          "size": 386
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample1",
+            "augmentation": "pitch_1"
+          },
+          "path": "datasets/2_-1/output23.wav",
+          "sha256": "9c76ce23b81e64aaa33bee73d19f7d9bd5a98d470995dfe8f9ac8c613d42c818",
+          "size": 348
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample1",
+            "augmentation": "pitch_2"
+          },
+          "path": "datasets/2_-1/output24.wav",
+          "sha256": "ce510836f986022041af2cd03cab0c4b54e86766633898b47a99a8febdb1f017",
+          "size": 332
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample1",
+            "augmentation": "volume_-6db"
+          },
+          "path": "datasets/2_-1/output25.wav",
+          "sha256": "ccff6b6bcb450b39b5d06fca93a37a39e41ecc70eee5e626dbad950c80058424",
+          "size": 368
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample1",
+            "augmentation": "volume_-3db"
+          },
+          "path": "datasets/2_-1/output26.wav",
+          "sha256": "e75975f2e26b6167564fa6c9c003fc037d6d5c3c5c232eeec903db2b13e280b6",
+          "size": 368
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample1",
+            "augmentation": "volume_3db"
+          },
+          "path": "datasets/2_-1/output27.wav",
+          "sha256": "695fd157547ae89fdb275639d80bde1e0464f3d1bc498a292e04d6d74b61772b",
+          "size": 368
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample1",
+            "augmentation": "volume_6db"
+          },
+          "path": "datasets/2_-1/output28.wav",
+          "sha256": "40d7525b2d2c99819a96edf75e40aa7d1ce2505c54289ac8b209f9ed3b7cf4d3",
+          "size": 368
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample1",
+            "augmentation": "noise_0.005"
+          },
+          "path": "datasets/2_-1/output29.wav",
+          "sha256": "256fdf4208a00012071380d36b36e28ebc192c58d7499a6e6f3671bb6ce5bd46",
+          "size": 368
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample1",
+            "augmentation": "noise_0.01"
+          },
+          "path": "datasets/2_-1/output30.wav",
+          "sha256": "e65669862de23c70b376101e8c67391a16e61b8aaf0fb3d130cc822ecb5d10b4",
+          "size": 368
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample1",
+            "augmentation": "noise_0.02"
+          },
+          "path": "datasets/2_-1/output31.wav",
+          "sha256": "e813e2ddae9f04f3df300af3dfbf2c97bdecb62b287ad538744ab3ceb56ad3ca",
+          "size": 368
+        }
+      ],
+      "events": [],
+      "rng_tail": [
+        0.06420893707513409,
+        0.5819714019143988,
+        0.26899340443509767,
+        0.7975591006371882,
+        0.31036195892357377,
+        0.4552201490818012,
+        0.011620539908100636,
+        0.07244688779455888
+      ]
+    },
+    {
+      "count": 2,
+      "selected": 99,
+      "seed": 42,
+      "inputs": [
+        {
+          "path": "datasets/2_99/input0.wav",
+          "sha256": "b01600837f3b051210e864675eb9116fd25f5560e0cb7fda5c898f36b7bd48ec",
+          "size": 366
+        },
+        {
+          "path": "datasets/2_99/input1.wav",
+          "sha256": "99e64b7d100082f0347a759e6c5b7a79a7405ce58616e88650d93f1b04845d49",
+          "size": 368
+        }
+      ],
+      "outputs": [
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample0",
+            "augmentation": "original"
+          },
+          "path": "datasets/2_99/output0.wav",
+          "sha256": "b01600837f3b051210e864675eb9116fd25f5560e0cb7fda5c898f36b7bd48ec",
+          "size": 366
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample1",
+            "augmentation": "original"
+          },
+          "path": "datasets/2_99/output1.wav",
+          "sha256": "99e64b7d100082f0347a759e6c5b7a79a7405ce58616e88650d93f1b04845d49",
+          "size": 368
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample0",
+            "augmentation": "speed_0.85"
+          },
+          "path": "datasets/2_99/output2.wav",
+          "sha256": "4d1526c6cdd9afb5c5acf008fa0857744330696a8dac6da84686ac824e0d30d5",
+          "size": 422
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample0",
+            "augmentation": "speed_0.9"
+          },
+          "path": "datasets/2_99/output3.wav",
+          "sha256": "ad9f415b1f10a8f4bd5b1aaca6675c66da61e033edfc5864dfb2ce714e265efd",
+          "size": 400
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample0",
+            "augmentation": "speed_1.1"
+          },
+          "path": "datasets/2_99/output4.wav",
+          "sha256": "176031374adee55f80d24f8fae1f6ae10ebc21f1baf13b0a961b0afb0c9082d8",
+          "size": 336
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample0",
+            "augmentation": "speed_1.15"
+          },
+          "path": "datasets/2_99/output5.wav",
+          "sha256": "56ae2f0b7eb9b7dcf1308a3a0c99eb60496b47b745845a7965cf65c58b704e3e",
+          "size": 324
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample0",
+            "augmentation": "pitch_-2"
+          },
+          "path": "datasets/2_99/output6.wav",
+          "sha256": "cd930ed518b6e625d2bf9d37f7dd8f980ed2db750097925faf8747ab82b7503a",
+          "size": 404
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample0",
+            "augmentation": "pitch_-1"
+          },
+          "path": "datasets/2_99/output7.wav",
+          "sha256": "0fc907b23632cdf224ea29b42d2cea2ec67d4367787a16294061dee0f4c6c164",
+          "size": 384
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample0",
+            "augmentation": "pitch_1"
+          },
+          "path": "datasets/2_99/output8.wav",
+          "sha256": "9c76ce23b81e64aaa33bee73d19f7d9bd5a98d470995dfe8f9ac8c613d42c818",
+          "size": 348
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample0",
+            "augmentation": "pitch_2"
+          },
+          "path": "datasets/2_99/output9.wav",
+          "sha256": "4f448980dba1e0a3c6919932162f887ff2b92740387c361effbcbe74b0ccbdf8",
+          "size": 330
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample0",
+            "augmentation": "volume_-6db"
+          },
+          "path": "datasets/2_99/output10.wav",
+          "sha256": "acd6c2ddb1022fd33ec907e6a2c11550811a17c9ed44a731a46d446a10a137fa",
+          "size": 366
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample0",
+            "augmentation": "volume_-3db"
+          },
+          "path": "datasets/2_99/output11.wav",
+          "sha256": "bce081e3703f23c64bb86085bb6d8481c17e02119ee1d68cd5f9284fa8f80908",
+          "size": 366
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample0",
+            "augmentation": "volume_3db"
+          },
+          "path": "datasets/2_99/output12.wav",
+          "sha256": "361909d1119564fc0e6f407d41761e08d6660a1a6ba39d094b166cc10710fe44",
+          "size": 366
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample0",
+            "augmentation": "volume_6db"
+          },
+          "path": "datasets/2_99/output13.wav",
+          "sha256": "b1a73b1e105dbaffadf710db094af7967af430e1d4a4438375948214cc39a161",
+          "size": 366
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample0",
+            "augmentation": "noise_0.005"
+          },
+          "path": "datasets/2_99/output14.wav",
+          "sha256": "5d4a96c6d5f384a787f1297c76f02d0d41eb4c31143640108a577c5561c4e08f",
+          "size": 366
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample0",
+            "augmentation": "noise_0.01"
+          },
+          "path": "datasets/2_99/output15.wav",
+          "sha256": "a0aec73e5c8edc805c3d25c782df76178284b2a663e9e285abd94b9cf00e04e7",
+          "size": 366
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample0",
+            "augmentation": "noise_0.02"
+          },
+          "path": "datasets/2_99/output16.wav",
+          "sha256": "4ee668be413722c6bc570eb1773819cae8d10d8e814c72208055544c2799b37a",
+          "size": 366
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample0",
+            "augmentation": "reverb"
+          },
+          "path": "datasets/2_99/output17.wav",
+          "sha256": "b01600837f3b051210e864675eb9116fd25f5560e0cb7fda5c898f36b7bd48ec",
+          "size": 366
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample1",
+            "augmentation": "speed_0.85"
+          },
+          "path": "datasets/2_99/output18.wav",
+          "sha256": "ed7921a59bad870c448a9eec6981d39a6c0fa714c6bb8b25962245e2a163bfb7",
+          "size": 424
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample1",
+            "augmentation": "speed_0.9"
+          },
+          "path": "datasets/2_99/output19.wav",
+          "sha256": "0a52560a422c299cf0638848e71a48f8e3775b9ab0c6d3f9ff9141247105d398",
+          "size": 402
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample1",
+            "augmentation": "speed_1.1"
+          },
+          "path": "datasets/2_99/output20.wav",
+          "sha256": "22dac0d1ab4cf99ac62c29c34d380ee65163387299157f0eba2961bd5e0b02ce",
+          "size": 338
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample1",
+            "augmentation": "speed_1.15"
+          },
+          "path": "datasets/2_99/output21.wav",
+          "sha256": "62f5f3f41be87800e1861262dea0ffe8be975059ca9e3813e9a4b483bfc59b46",
+          "size": 326
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample1",
+            "augmentation": "pitch_-2"
+          },
+          "path": "datasets/2_99/output22.wav",
+          "sha256": "4021dc0b5b0acade86ae4c8695a7cff7c140996e3a3100044a88505dd4ec4c05",
+          "size": 406
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample1",
+            "augmentation": "pitch_-1"
+          },
+          "path": "datasets/2_99/output23.wav",
+          "sha256": "c57acdae3951ce7c1de69c2f7c5fb3f2ee68e5e4dd140602cb4b82b0477a90cc",
+          "size": 386
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample1",
+            "augmentation": "pitch_1"
+          },
+          "path": "datasets/2_99/output24.wav",
+          "sha256": "9c76ce23b81e64aaa33bee73d19f7d9bd5a98d470995dfe8f9ac8c613d42c818",
+          "size": 348
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample1",
+            "augmentation": "pitch_2"
+          },
+          "path": "datasets/2_99/output25.wav",
+          "sha256": "ce510836f986022041af2cd03cab0c4b54e86766633898b47a99a8febdb1f017",
+          "size": 332
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample1",
+            "augmentation": "volume_-6db"
+          },
+          "path": "datasets/2_99/output26.wav",
+          "sha256": "ccff6b6bcb450b39b5d06fca93a37a39e41ecc70eee5e626dbad950c80058424",
+          "size": 368
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample1",
+            "augmentation": "volume_-3db"
+          },
+          "path": "datasets/2_99/output27.wav",
+          "sha256": "e75975f2e26b6167564fa6c9c003fc037d6d5c3c5c232eeec903db2b13e280b6",
+          "size": 368
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample1",
+            "augmentation": "volume_3db"
+          },
+          "path": "datasets/2_99/output28.wav",
+          "sha256": "695fd157547ae89fdb275639d80bde1e0464f3d1bc498a292e04d6d74b61772b",
+          "size": 368
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample1",
+            "augmentation": "volume_6db"
+          },
+          "path": "datasets/2_99/output29.wav",
+          "sha256": "40d7525b2d2c99819a96edf75e40aa7d1ce2505c54289ac8b209f9ed3b7cf4d3",
+          "size": 368
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample1",
+            "augmentation": "noise_0.005"
+          },
+          "path": "datasets/2_99/output30.wav",
+          "sha256": "256fdf4208a00012071380d36b36e28ebc192c58d7499a6e6f3671bb6ce5bd46",
+          "size": 368
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample1",
+            "augmentation": "noise_0.01"
+          },
+          "path": "datasets/2_99/output31.wav",
+          "sha256": "e65669862de23c70b376101e8c67391a16e61b8aaf0fb3d130cc822ecb5d10b4",
+          "size": 368
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample1",
+            "augmentation": "noise_0.02"
+          },
+          "path": "datasets/2_99/output32.wav",
+          "sha256": "e813e2ddae9f04f3df300af3dfbf2c97bdecb62b287ad538744ab3ceb56ad3ca",
+          "size": 368
+        },
+        {
+          "metadata": {
+            "engine": "gtts",
+            "voice": "en",
+            "word": "sample1",
+            "augmentation": "reverb"
+          },
+          "path": "datasets/2_99/output33.wav",
+          "sha256": "99e64b7d100082f0347a759e6c5b7a79a7405ce58616e88650d93f1b04845d49",
+          "size": 368
+        }
+      ],
+      "events": [],
+      "rng_tail": [
+        0.06420893707513409,
+        0.5819714019143988,
+        0.26899340443509767,
+        0.7975591006371882,
+        0.31036195892357377,
+        0.4552201490818012,
+        0.011620539908100636,
+        0.07244688779455888
+      ]
+    }
+  ],
+  "chains": [
+    {
+      "count": 2,
+      "selected": 5,
+      "seed": 427,
+      "inputs": [
+        {
+          "path": "chains/2_5/input0.wav",
+          "sha256": "b01600837f3b051210e864675eb9116fd25f5560e0cb7fda5c898f36b7bd48ec",
+          "size": 366
+        },
+        {
+          "path": "chains/2_5/input1.wav",
+          "sha256": "99e64b7d100082f0347a759e6c5b7a79a7405ce58616e88650d93f1b04845d49",
+          "size": 368
+        }
+      ],
+      "positive_count": 12,
+      "outputs": [
+        {
+          "metadata": {
+            "type": "noise",
+            "noise_type": "white"
+          },
+          "path": "chains/2_5/output0.wav",
+          "sha256": "33fc43066f6d2649423f526decb080a27dd3c65f6d1fcdde151baffba872b483",
+          "size": 32044
+        },
+        {
+          "metadata": {
+            "type": "noise",
+            "noise_type": "white"
+          },
+          "path": "chains/2_5/output1.wav",
+          "sha256": "17c4ed3694cd4421194035e37ee08d5e5ceecce92be767baa0ed62e846af3859",
+          "size": 32044
+        },
+        {
+          "metadata": {
+            "type": "noise",
+            "noise_type": "silence"
+          },
+          "path": "chains/2_5/output2.wav",
+          "sha256": "fccd99f88834bb36cf43911a084a1326410daf8ea2875d7324156c3b967e7f5f",
+          "size": 32044
+        }
+      ],
+      "rng_tail": [
+        0.6037944068393117,
+        0.9839643991369973,
+        0.3227728909755099,
+        0.59843955880337,
+        0.016528777911065773,
+        0.3972825079947666,
+        0.32799091340372755,
+        0.1271110160513399
+      ]
+    },
+    {
+      "count": 3,
+      "selected": 5,
+      "seed": 427,
+      "inputs": [
+        {
+          "path": "chains/3_5/input0.wav",
+          "sha256": "b01600837f3b051210e864675eb9116fd25f5560e0cb7fda5c898f36b7bd48ec",
+          "size": 366
+        },
+        {
+          "path": "chains/3_5/input1.wav",
+          "sha256": "99e64b7d100082f0347a759e6c5b7a79a7405ce58616e88650d93f1b04845d49",
+          "size": 368
+        },
+        {
+          "path": "chains/3_5/input2.wav",
+          "sha256": "87108e131859db9fa1802d334fc98c142a32585bb1ccd20518ef33550467a1a6",
+          "size": 370
+        }
+      ],
+      "positive_count": 18,
+      "outputs": [
+        {
+          "metadata": {
+            "type": "noise",
+            "noise_type": "silence"
+          },
+          "path": "chains/3_5/output0.wav",
+          "sha256": "5079bdce1911ade93f8ed7031bf7f33604bc8faa7712aa935f4c993e2b4116b3",
+          "size": 32044
+        },
+        {
+          "metadata": {
+            "type": "noise",
+            "noise_type": "white"
+          },
+          "path": "chains/3_5/output1.wav",
+          "sha256": "e0b3aa747a528ea451d633832791554d44869b4003819d3e413d891fb21a52c4",
+          "size": 32044
+        },
+        {
+          "metadata": {
+            "type": "noise",
+            "noise_type": "silence"
+          },
+          "path": "chains/3_5/output2.wav",
+          "sha256": "20d52a703544839e064abe3780e1036c34890b5a1289ccc2d23c6152a507984f",
+          "size": 32044
+        },
+        {
+          "metadata": {
+            "type": "noise",
+            "noise_type": "brown"
+          },
+          "path": "chains/3_5/output3.wav",
+          "sha256": "d20bc908e3690f66bfe4f64ce51dbe36e6015a218bf9a54538b1cc9f2f4b4506",
+          "size": 32044
+        }
+      ],
+      "rng_tail": [
+        0.7069315873727728,
+        0.7237410649862446,
+        0.0748371317096439,
+        0.2079645575025988,
+        0.46999671326025194,
+        0.721687871285522,
+        0.6126013431951185,
+        0.817840324236175
+      ]
+    },
+    {
+      "count": 10,
+      "selected": 0,
+      "seed": 427,
+      "inputs": [
+        {
+          "path": "chains/10_0/input0.wav",
+          "sha256": "b01600837f3b051210e864675eb9116fd25f5560e0cb7fda5c898f36b7bd48ec",
+          "size": 366
+        },
+        {
+          "path": "chains/10_0/input1.wav",
+          "sha256": "99e64b7d100082f0347a759e6c5b7a79a7405ce58616e88650d93f1b04845d49",
+          "size": 368
+        },
+        {
+          "path": "chains/10_0/input2.wav",
+          "sha256": "87108e131859db9fa1802d334fc98c142a32585bb1ccd20518ef33550467a1a6",
+          "size": 370
+        },
+        {
+          "path": "chains/10_0/input3.wav",
+          "sha256": "d8be4fbfc8dc2b2e85a1804220a0d9451a1ebe6b3ab9129bf19910f9542b4db6",
+          "size": 372
+        },
+        {
+          "path": "chains/10_0/input4.wav",
+          "sha256": "07f00fd8582d8a2005dffae9c3e69cc70ead6ff020d1fe11a231f423e2f502ce",
+          "size": 374
+        },
+        {
+          "path": "chains/10_0/input5.wav",
+          "sha256": "9aa3e56cc1bf1dc0095e68b408048cbcc409ee2f924530fcd32e864e59372840",
+          "size": 376
+        },
+        {
+          "path": "chains/10_0/input6.wav",
+          "sha256": "aa47c8f1198fe0f618a7dd758500b1a8bd1b28c39e92a9a8e6e4147eec5e5955",
+          "size": 378
+        },
+        {
+          "path": "chains/10_0/input7.wav",
+          "sha256": "40f964b8407cb9b52025594fa942050cbd9c4460c9900b1a9b1a7a2716a80557",
+          "size": 380
+        },
+        {
+          "path": "chains/10_0/input8.wav",
+          "sha256": "0e1ea25899fdb5ee0094df9fe1ac0509cc3030a619ee7e7e79bf1346e7d2af8d",
+          "size": 382
+        },
+        {
+          "path": "chains/10_0/input9.wav",
+          "sha256": "2b5749d7808e2b89fed79d8a7ee8af3d7b9ab8012ed44787ace773bed73b1820",
+          "size": 384
+        }
+      ],
+      "positive_count": 10,
+      "outputs": [
+        {
+          "metadata": {
+            "type": "noise",
+            "noise_type": "white"
+          },
+          "path": "chains/10_0/output0.wav",
+          "sha256": "c7383b0c6df25c5999d5ad4e630e571d75fdde1d96981e350ca5475866eb769d",
+          "size": 32044
+        },
+        {
+          "metadata": {
+            "type": "noise",
+            "noise_type": "white"
+          },
+          "path": "chains/10_0/output1.wav",
+          "sha256": "67cef676e0232b09ded383de52d530a8cca444d5e833be115c6b54862a7e6b3a",
+          "size": 32044
+        }
+      ],
+      "rng_tail": [
+        0.8652153828973339,
+        0.14637639243672118,
+        0.9059745751944903,
+        0.13495339165064613,
+        0.4596045659621619,
+        0.8668955735637935,
+        0.8801369510772679,
+        0.39898708440096475
+      ]
+    },
+    {
+      "count": 11,
+      "selected": 16,
+      "seed": 427,
+      "inputs": [
+        {
+          "path": "chains/11_16/input0.wav",
+          "sha256": "b01600837f3b051210e864675eb9116fd25f5560e0cb7fda5c898f36b7bd48ec",
+          "size": 366
+        },
+        {
+          "path": "chains/11_16/input1.wav",
+          "sha256": "99e64b7d100082f0347a759e6c5b7a79a7405ce58616e88650d93f1b04845d49",
+          "size": 368
+        },
+        {
+          "path": "chains/11_16/input2.wav",
+          "sha256": "87108e131859db9fa1802d334fc98c142a32585bb1ccd20518ef33550467a1a6",
+          "size": 370
+        },
+        {
+          "path": "chains/11_16/input3.wav",
+          "sha256": "d8be4fbfc8dc2b2e85a1804220a0d9451a1ebe6b3ab9129bf19910f9542b4db6",
+          "size": 372
+        },
+        {
+          "path": "chains/11_16/input4.wav",
+          "sha256": "07f00fd8582d8a2005dffae9c3e69cc70ead6ff020d1fe11a231f423e2f502ce",
+          "size": 374
+        },
+        {
+          "path": "chains/11_16/input5.wav",
+          "sha256": "9aa3e56cc1bf1dc0095e68b408048cbcc409ee2f924530fcd32e864e59372840",
+          "size": 376
+        },
+        {
+          "path": "chains/11_16/input6.wav",
+          "sha256": "aa47c8f1198fe0f618a7dd758500b1a8bd1b28c39e92a9a8e6e4147eec5e5955",
+          "size": 378
+        },
+        {
+          "path": "chains/11_16/input7.wav",
+          "sha256": "40f964b8407cb9b52025594fa942050cbd9c4460c9900b1a9b1a7a2716a80557",
+          "size": 380
+        },
+        {
+          "path": "chains/11_16/input8.wav",
+          "sha256": "0e1ea25899fdb5ee0094df9fe1ac0509cc3030a619ee7e7e79bf1346e7d2af8d",
+          "size": 382
+        },
+        {
+          "path": "chains/11_16/input9.wav",
+          "sha256": "2b5749d7808e2b89fed79d8a7ee8af3d7b9ab8012ed44787ace773bed73b1820",
+          "size": 384
+        },
+        {
+          "path": "chains/11_16/input10.wav",
+          "sha256": "b3504e44f65975fb3fa42d48a7ae05e08ece9c8c5315ff9353f4ab9e223d97f2",
+          "size": 386
+        }
+      ],
+      "positive_count": 187,
+      "outputs": [
+        {
+          "metadata": {
+            "type": "noise",
+            "noise_type": "silence"
+          },
+          "path": "chains/11_16/output0.wav",
+          "sha256": "ff3d1891fa1e70ef055b1ea41fd5333dc1f20d8839a2a5e5b227a8983f97fdcc",
+          "size": 32044
+        },
+        {
+          "metadata": {
+            "type": "noise",
+            "noise_type": "pink"
+          },
+          "path": "chains/11_16/output1.wav",
+          "sha256": "ed04bb68e7e1f6ee641cb595800d6f07cf5c1b8bf0667ab304d542efdef5fdea",
+          "size": 32044
+        },
+        {
+          "metadata": {
+            "type": "noise",
+            "noise_type": "silence"
+          },
+          "path": "chains/11_16/output2.wav",
+          "sha256": "f723f842dbd57ff40fda988ea2fd10760eca2117f828da1c45acb216852993bf",
+          "size": 32044
+        },
+        {
+          "metadata": {
+            "type": "noise",
+            "noise_type": "brown"
+          },
+          "path": "chains/11_16/output3.wav",
+          "sha256": "e689c81c70fbb98112a8b066d6e8b3c2cce5cd5911e94709126bed829caaaba0",
+          "size": 32044
+        },
+        {
+          "metadata": {
+            "type": "noise",
+            "noise_type": "silence"
+          },
+          "path": "chains/11_16/output4.wav",
+          "sha256": "380ec43bc0f8f5c2169466d5078700e64e203718158484d223c964cd883a6eb2",
+          "size": 32044
+        },
+        {
+          "metadata": {
+            "type": "noise",
+            "noise_type": "silence"
+          },
+          "path": "chains/11_16/output5.wav",
+          "sha256": "df15fa2cc15d28947ef95c69f5841a05d41a520bd0827a8f507c18fa6c9b37e4",
+          "size": 32044
+        },
+        {
+          "metadata": {
+            "type": "noise",
+            "noise_type": "silence"
+          },
+          "path": "chains/11_16/output6.wav",
+          "sha256": "07433e2d51fb69ec7a15880e7ab15475f4803cf40bf655e8d199860682ef16dc",
+          "size": 32044
+        },
+        {
+          "metadata": {
+            "type": "noise",
+            "noise_type": "silence"
+          },
+          "path": "chains/11_16/output7.wav",
+          "sha256": "3614e34c61edda0dca6a4bf50b5a7482e6f0f9b8418b14ab89213d59fff8fa6d",
+          "size": 32044
+        },
+        {
+          "metadata": {
+            "type": "noise",
+            "noise_type": "white"
+          },
+          "path": "chains/11_16/output8.wav",
+          "sha256": "9006c08db5c8485de1d7b495413957662ec467438959e39ddc5d82f748d1ddbe",
+          "size": 32044
+        },
+        {
+          "metadata": {
+            "type": "noise",
+            "noise_type": "brown"
+          },
+          "path": "chains/11_16/output9.wav",
+          "sha256": "3ea4fff9679fd9da94e33c4aab08bf3ce5b431c6bf4ff45cab30431d65cc894d",
+          "size": 32044
+        },
+        {
+          "metadata": {
+            "type": "noise",
+            "noise_type": "brown"
+          },
+          "path": "chains/11_16/output10.wav",
+          "sha256": "0a8a70c7358ca703e64ac809aeb1a7b5b28e27990a6d2966c1a72a0a5db86321",
+          "size": 32044
+        },
+        {
+          "metadata": {
+            "type": "noise",
+            "noise_type": "brown"
+          },
+          "path": "chains/11_16/output11.wav",
+          "sha256": "939b1f532d234e3080668a0e80e00763ff98ce61283ada663d533290205f4124",
+          "size": 32044
+        },
+        {
+          "metadata": {
+            "type": "noise",
+            "noise_type": "pink"
+          },
+          "path": "chains/11_16/output12.wav",
+          "sha256": "518ed4f42abdf5130f554a7bd362bcd3bd37691ad9a0f3559c51f6e5b744567d",
+          "size": 32044
+        },
+        {
+          "metadata": {
+            "type": "noise",
+            "noise_type": "silence"
+          },
+          "path": "chains/11_16/output13.wav",
+          "sha256": "54196faaba0ac9b6b5915a7933fba30c303e6707f0374dddbd886749b6d64167",
+          "size": 32044
+        },
+        {
+          "metadata": {
+            "type": "noise",
+            "noise_type": "silence"
+          },
+          "path": "chains/11_16/output14.wav",
+          "sha256": "8cc3a739c900cc9a2f7b323fcc5c01563a7d9cd5ac2f2ccca721bc0139fd88be",
+          "size": 32044
+        },
+        {
+          "metadata": {
+            "type": "noise",
+            "noise_type": "pink"
+          },
+          "path": "chains/11_16/output15.wav",
+          "sha256": "288512ce95aa6e826eddd19a9810d0f476121f8760c074f0d50d407fe95337fd",
+          "size": 32044
+        },
+        {
+          "metadata": {
+            "type": "noise",
+            "noise_type": "pink"
+          },
+          "path": "chains/11_16/output16.wav",
+          "sha256": "cbce2b29c3eb439547495a699a737b42498d51eb0e4c98d0358490637ebf2b95",
+          "size": 32044
+        },
+        {
+          "metadata": {
+            "type": "noise",
+            "noise_type": "white"
+          },
+          "path": "chains/11_16/output17.wav",
+          "sha256": "05573b35c6c934226adefee460bbbab9252841400e131139db16c4992036e5a1",
+          "size": 32044
+        },
+        {
+          "metadata": {
+            "type": "noise",
+            "noise_type": "brown"
+          },
+          "path": "chains/11_16/output18.wav",
+          "sha256": "1a898a8f35a897b085d6a2330fa4af02ba650716b10de326402c2c57879fa95b",
+          "size": 32044
+        },
+        {
+          "metadata": {
+            "type": "noise",
+            "noise_type": "brown"
+          },
+          "path": "chains/11_16/output19.wav",
+          "sha256": "b7226cd4f53c80423fed61313de42cc1c0e06c672ea27cc16e9639b8193d53e8",
+          "size": 32044
+        },
+        {
+          "metadata": {
+            "type": "noise",
+            "noise_type": "pink"
+          },
+          "path": "chains/11_16/output20.wav",
+          "sha256": "faffdb44e26698a9d5b885c82f085b360f89f8b5418a7e4367f0d4445cafa82f",
+          "size": 32044
+        },
+        {
+          "metadata": {
+            "type": "noise",
+            "noise_type": "white"
+          },
+          "path": "chains/11_16/output21.wav",
+          "sha256": "f09277cad79765f43044497f2f054884088a83eca78aca14c99d055cbbf935b7",
+          "size": 32044
+        },
+        {
+          "metadata": {
+            "type": "noise",
+            "noise_type": "brown"
+          },
+          "path": "chains/11_16/output22.wav",
+          "sha256": "8253489f1371a7a4b9f5163917e23295d913a8c27495a61899117ef1469af155",
+          "size": 32044
+        },
+        {
+          "metadata": {
+            "type": "noise",
+            "noise_type": "silence"
+          },
+          "path": "chains/11_16/output23.wav",
+          "sha256": "65a70e4fc290ea342d98858e8d9a461156257c77cbe9aabc5f5717eca2bdb7bf",
+          "size": 32044
+        },
+        {
+          "metadata": {
+            "type": "noise",
+            "noise_type": "brown"
+          },
+          "path": "chains/11_16/output24.wav",
+          "sha256": "ce57eee07d4d8b2f72d433e2d96eb835727df13b9cf6e2f447672a4072f4fbec",
+          "size": 32044
+        },
+        {
+          "metadata": {
+            "type": "noise",
+            "noise_type": "silence"
+          },
+          "path": "chains/11_16/output25.wav",
+          "sha256": "96f684d450c3756a94e068a27e707e3a9d7bf971f4b38f998823bf91943803bd",
+          "size": 32044
+        },
+        {
+          "metadata": {
+            "type": "noise",
+            "noise_type": "brown"
+          },
+          "path": "chains/11_16/output26.wav",
+          "sha256": "8a7f0bd2d81a20877e0b0394d18decf7560e5014f58fa703e72c53b25476004c",
+          "size": 32044
+        },
+        {
+          "metadata": {
+            "type": "noise",
+            "noise_type": "pink"
+          },
+          "path": "chains/11_16/output27.wav",
+          "sha256": "5adc1986ce864e112e05c71ab94f4ed491e854e9ca2f4da4cba557cf1c5fbeba",
+          "size": 32044
+        },
+        {
+          "metadata": {
+            "type": "noise",
+            "noise_type": "silence"
+          },
+          "path": "chains/11_16/output28.wav",
+          "sha256": "ad5366b68c4be3f1f20e563f428dfde1a3f44693a6fb7e9d656d45bed426f41f",
+          "size": 32044
+        },
+        {
+          "metadata": {
+            "type": "noise",
+            "noise_type": "white"
+          },
+          "path": "chains/11_16/output29.wav",
+          "sha256": "d18bc2c3c1bd20b6adf98ba296c0cb83eb871d9050087d71a7af6e816d1865c4",
+          "size": 32044
+        },
+        {
+          "metadata": {
+            "type": "noise",
+            "noise_type": "white"
+          },
+          "path": "chains/11_16/output30.wav",
+          "sha256": "9b71637a8b6a3c986f283a4f53e54525af8e0ee9cb0241e2cffa86b7008d7c75",
+          "size": 32044
+        },
+        {
+          "metadata": {
+            "type": "noise",
+            "noise_type": "pink"
+          },
+          "path": "chains/11_16/output31.wav",
+          "sha256": "ebb20542f8e91009481614c8e2ae611cfebd66c56ea40316babef1fdc109e6e7",
+          "size": 32044
+        },
+        {
+          "metadata": {
+            "type": "noise",
+            "noise_type": "silence"
+          },
+          "path": "chains/11_16/output32.wav",
+          "sha256": "d53a4ced6c794352a0b942c447d1cd87f2a0c53104d570bdafbb60be40aec563",
+          "size": 32044
+        },
+        {
+          "metadata": {
+            "type": "noise",
+            "noise_type": "silence"
+          },
+          "path": "chains/11_16/output33.wav",
+          "sha256": "45e163ab448488582e94cfbd3a95980b2b04951a13d05024a328de6ac2e4182b",
+          "size": 32044
+        },
+        {
+          "metadata": {
+            "type": "noise",
+            "noise_type": "white"
+          },
+          "path": "chains/11_16/output34.wav",
+          "sha256": "c97c3942560a07a6fab82f94fafe45027c852f8f6e86b79242e3bc330cb8412e",
+          "size": 32044
+        },
+        {
+          "metadata": {
+            "type": "noise",
+            "noise_type": "brown"
+          },
+          "path": "chains/11_16/output35.wav",
+          "sha256": "03d2e4e74cad19c7799d17f312e7c86cfc26e8fc5ae3b630ce2c1d9c58985cdd",
+          "size": 32044
+        },
+        {
+          "metadata": {
+            "type": "noise",
+            "noise_type": "white"
+          },
+          "path": "chains/11_16/output36.wav",
+          "sha256": "455e88d6bed415421b2a2c1da96462cdf93762dca97dafe1fc4b8867ffb77bfa",
+          "size": 32044
+        },
+        {
+          "metadata": {
+            "type": "noise",
+            "noise_type": "pink"
+          },
+          "path": "chains/11_16/output37.wav",
+          "sha256": "5000105c87fbb555409f963717d683493025e709fd2548c93e37ebab74636cf6",
+          "size": 32044
+        },
+        {
+          "metadata": {
+            "type": "noise",
+            "noise_type": "silence"
+          },
+          "path": "chains/11_16/output38.wav",
+          "sha256": "2a42a550522a7eb0da8872cb7dd5d84dde518f1e722481f46fffc00617d0459c",
+          "size": 32044
+        },
+        {
+          "metadata": {
+            "type": "noise",
+            "noise_type": "silence"
+          },
+          "path": "chains/11_16/output39.wav",
+          "sha256": "588b85eaa6f2677bab0f7c40f4c867810fdd912d529a6193181b7330724cbcb5",
+          "size": 32044
+        },
+        {
+          "metadata": {
+            "type": "noise",
+            "noise_type": "brown"
+          },
+          "path": "chains/11_16/output40.wav",
+          "sha256": "5336794dcd1b5fd1021e78ec041f5c109ac072daa829ded0c10f6d7a3e557e03",
+          "size": 32044
+        },
+        {
+          "metadata": {
+            "type": "noise",
+            "noise_type": "brown"
+          },
+          "path": "chains/11_16/output41.wav",
+          "sha256": "f9e14f55c077cec33f92171159f400c899468a4f2f46fea8dbcc075c8c46be90",
+          "size": 32044
+        },
+        {
+          "metadata": {
+            "type": "noise",
+            "noise_type": "silence"
+          },
+          "path": "chains/11_16/output42.wav",
+          "sha256": "50568239e78162126675426dbb8a864a58cc141f5358058d75290ef266bef2a8",
+          "size": 32044
+        },
+        {
+          "metadata": {
+            "type": "noise",
+            "noise_type": "pink"
+          },
+          "path": "chains/11_16/output43.wav",
+          "sha256": "be6c9f4c489f26fe2dd7d05fc6455e95a21e76faf9ec1998872a10efbbbd0ffe",
+          "size": 32044
+        },
+        {
+          "metadata": {
+            "type": "noise",
+            "noise_type": "white"
+          },
+          "path": "chains/11_16/output44.wav",
+          "sha256": "d7ef568fd4c8a21623844713dd4c9507130e05c3d39e86f7370ae6e99f343eaa",
+          "size": 32044
+        },
+        {
+          "metadata": {
+            "type": "noise",
+            "noise_type": "brown"
+          },
+          "path": "chains/11_16/output45.wav",
+          "sha256": "56346bc3ef5ce59ffd82045a661726c0d3b37c89ba74bc11c36ea20a02822cde",
+          "size": 32044
+        }
+      ],
+      "rng_tail": [
+        0.5285846117877037,
+        0.3657121580493312,
+        0.8174271102184462,
+        0.6020286027513699,
+        0.538161154545267,
+        0.007955421175329103,
+        0.45731241621474616,
+        0.9574197324356684
+      ]
+    }
+  ]
+}

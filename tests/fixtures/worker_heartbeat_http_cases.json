@@ -1,0 +1,171 @@
+{
+  "source_sha256": "d5eebf7fc48f7781628aa4eaab8af1c3f23fd8694242f0b3065436b5c86f62b1",
+  "aiohttp_version": "3.14.5",
+  "cases": [
+    {
+      "name": "ok",
+      "response_hex": "485454502f312e312032303020466978747572650d0a436f6e74656e742d4c656e6774683a20320d0a436f6e74656e742d547970653a206170706c69636174696f6e2f6a736f6e0d0a436f6e6e656374696f6e3a20636c6f73650d0a0d0a7b7d",
+      "hold_body": false,
+      "ok": true,
+      "requests": [
+        "POST /v1/router/register HTTP/1.1"
+      ],
+      "user_agent": "Python/3.12 aiohttp/3.14.5",
+      "seconds": 0.0013374100672081113
+    },
+    {
+      "name": "created",
+      "response_hex": "485454502f312e312032303120466978747572650d0a436f6e74656e742d4c656e6774683a20320d0a436f6e74656e742d547970653a206170706c69636174696f6e2f6a736f6e0d0a436f6e6e656374696f6e3a20636c6f73650d0a0d0a7b7d",
+      "hold_body": false,
+      "ok": true,
+      "requests": [
+        "POST /v1/router/register HTTP/1.1"
+      ],
+      "user_agent": "Python/3.12 aiohttp/3.14.5",
+      "seconds": 0.0006892400560900569
+    },
+    {
+      "name": "empty",
+      "response_hex": "485454502f312e312032303420466978747572650d0a436f6e74656e742d4c656e6774683a20300d0a436f6e74656e742d547970653a206170706c69636174696f6e2f6a736f6e0d0a436f6e6e656374696f6e3a20636c6f73650d0a0d0a",
+      "hold_body": false,
+      "ok": true,
+      "requests": [
+        "POST /v1/router/register HTTP/1.1"
+      ],
+      "user_agent": "Python/3.12 aiohttp/3.14.5",
+      "seconds": 0.000877968966960907
+    },
+    {
+      "name": "not-json",
+      "response_hex": "485454502f312e312032303220466978747572650d0a436f6e74656e742d4c656e6774683a20350d0a436f6e74656e742d547970653a206170706c69636174696f6e2f6a736f6e0d0a436f6e6e656374696f6e3a20636c6f73650d0a0d0a68656c6c6f",
+      "hold_body": false,
+      "ok": true,
+      "requests": [
+        "POST /v1/router/register HTTP/1.1"
+      ],
+      "user_agent": "Python/3.12 aiohttp/3.14.5",
+      "seconds": 0.0004994900664314628
+    },
+    {
+      "name": "failure",
+      "response_hex": "485454502f312e312035303020466978747572650d0a436f6e74656e742d4c656e6774683a20320d0a436f6e74656e742d547970653a206170706c69636174696f6e2f6a736f6e0d0a436f6e6e656374696f6e3a20636c6f73650d0a0d0a7b7d",
+      "hold_body": false,
+      "ok": false,
+      "requests": [
+        "POST /v1/router/register HTTP/1.1"
+      ],
+      "user_agent": "Python/3.12 aiohttp/3.14.5",
+      "seconds": 0.000716374022886157
+    },
+    {
+      "name": "bad-json",
+      "response_hex": "485454502f312e312032303020466978747572650d0a436f6e74656e742d4c656e6774683a20310d0a436f6e74656e742d547970653a206170706c69636174696f6e2f6a736f6e0d0a436f6e6e656374696f6e3a20636c6f73650d0a0d0a7b",
+      "hold_body": false,
+      "ok": true,
+      "requests": [
+        "POST /v1/router/register HTTP/1.1"
+      ],
+      "user_agent": "Python/3.12 aiohttp/3.14.5",
+      "seconds": 0.0005348121048882604
+    },
+    {
+      "name": "gzip",
+      "response_hex": "485454502f312e312032303020466978747572650d0a436f6e74656e742d4c656e6774683a2032320d0a436f6e74656e742d547970653a206170706c69636174696f6e2f6a736f6e0d0a436f6e6e656374696f6e3a20636c6f73650d0a436f6e74656e742d456e636f64696e673a20677a69700d0a0d0a1f8b0800a776d66a02ffabae050043bfa6a302000000",
+      "hold_body": false,
+      "ok": true,
+      "requests": [
+        "POST /v1/router/register HTTP/1.1"
+      ],
+      "user_agent": "Python/3.12 aiohttp/3.14.5",
+      "seconds": 0.0005670608952641487
+    },
+    {
+      "name": "bad-gzip",
+      "response_hex": "485454502f312e312032303020466978747572650d0a436f6e74656e742d4c656e6774683a20330d0a436f6e74656e742d547970653a206170706c69636174696f6e2f6a736f6e0d0a436f6e6e656374696f6e3a20636c6f73650d0a436f6e74656e742d456e636f64696e673a20677a69700d0a0d0a626164",
+      "hold_body": false,
+      "ok": true,
+      "requests": [
+        "POST /v1/router/register HTTP/1.1"
+      ],
+      "user_agent": "Python/3.12 aiohttp/3.14.5",
+      "seconds": 0.0005222639301791787
+    },
+    {
+      "name": "truncated",
+      "response_hex": "485454502f312e3120323030204f4b0d0a436f6e74656e742d4c656e6774683a2032300d0a436f6e6e656374696f6e3a20636c6f73650d0a0d0a7b7d",
+      "hold_body": false,
+      "ok": true,
+      "requests": [
+        "POST /v1/router/register HTTP/1.1"
+      ],
+      "user_agent": "Python/3.12 aiohttp/3.14.5",
+      "seconds": 0.0005191280506551266
+    },
+    {
+      "name": "error-truncated",
+      "response_hex": "485454502f312e3120353030204661696c7572650d0a436f6e74656e742d4c656e6774683a2032300d0a436f6e6e656374696f6e3a20636c6f73650d0a0d0a7b7d",
+      "hold_body": false,
+      "ok": false,
+      "requests": [
+        "POST /v1/router/register HTTP/1.1"
+      ],
+      "user_agent": "Python/3.12 aiohttp/3.14.5",
+      "seconds": 0.0005193969700485468
+    },
+    {
+      "name": "redirect307",
+      "response_hex": "485454502f312e312033303720466978747572650d0a436f6e74656e742d4c656e6774683a20300d0a436f6e74656e742d547970653a206170706c69636174696f6e2f6a736f6e0d0a436f6e6e656374696f6e3a20636c6f73650d0a4c6f636174696f6e3a202f6c616e640d0a0d0a",
+      "hold_body": false,
+      "ok": true,
+      "requests": [
+        "POST /v1/router/register HTTP/1.1",
+        "POST /land HTTP/1.1"
+      ],
+      "user_agent": "Python/3.12 aiohttp/3.14.5",
+      "seconds": 0.000854613957926631
+    },
+    {
+      "name": "redirect303",
+      "response_hex": "485454502f312e312033303320466978747572650d0a436f6e74656e742d4c656e6774683a20300d0a436f6e74656e742d547970653a206170706c69636174696f6e2f6a736f6e0d0a436f6e6e656374696f6e3a20636c6f73650d0a4c6f636174696f6e3a202f6c616e640d0a0d0a",
+      "hold_body": false,
+      "ok": true,
+      "requests": [
+        "POST /v1/router/register HTTP/1.1",
+        "GET /land HTTP/1.1"
+      ],
+      "user_agent": "Python/3.12 aiohttp/3.14.5",
+      "seconds": 0.0007882260251790285
+    },
+    {
+      "name": "redirect-loop",
+      "response_hex": "485454502f312e312033303720466978747572650d0a436f6e74656e742d4c656e6774683a20300d0a436f6e74656e742d547970653a206170706c69636174696f6e2f6a736f6e0d0a436f6e6e656374696f6e3a20636c6f73650d0a4c6f636174696f6e3a202f76312f726f757465722f72656769737465720d0a0d0a",
+      "hold_body": false,
+      "ok": false,
+      "requests": [
+        "POST /v1/router/register HTTP/1.1",
+        "POST /v1/router/register HTTP/1.1",
+        "POST /v1/router/register HTTP/1.1",
+        "POST /v1/router/register HTTP/1.1",
+        "POST /v1/router/register HTTP/1.1",
+        "POST /v1/router/register HTTP/1.1",
+        "POST /v1/router/register HTTP/1.1",
+        "POST /v1/router/register HTTP/1.1",
+        "POST /v1/router/register HTTP/1.1",
+        "POST /v1/router/register HTTP/1.1"
+      ],
+      "user_agent": "Python/3.12 aiohttp/3.14.5",
+      "seconds": 0.0031057060696184635
+    },
+    {
+      "name": "body-timeout",
+      "response_hex": "485454502f312e3120323030204f4b0d0a436f6e74656e742d4c656e6774683a2032300d0a436f6e6e656374696f6e3a20636c6f73650d0a0d0a7b7d",
+      "hold_body": true,
+      "ok": true,
+      "requests": [
+        "POST /v1/router/register HTTP/1.1"
+      ],
+      "user_agent": "Python/3.12 aiohttp/3.14.5",
+      "seconds": 10.270411690929905
+    }
+  ]
+}

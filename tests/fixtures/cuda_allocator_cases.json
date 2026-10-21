@@ -1,0 +1,9006 @@
+{
+  "source_sha256": "8238cef03d4a1db6e775d7f62234bcf998d8f08bd9fc15f1d8a36ea0d3280005",
+  "method": "ResourceManager.get_torch_cuda_memory_stats executed unchanged",
+  "cases": [
+    {
+      "available": false,
+      "count": 0,
+      "data": [],
+      "fail": null,
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 0,
+      "data": [],
+      "fail": "available",
+      "events": [
+        "available"
+      ],
+      "result": null,
+      "error": true
+    },
+    {
+      "available": false,
+      "count": 0,
+      "data": [],
+      "fail": "count",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 0,
+      "data": [],
+      "fail": "info:0",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 0,
+      "data": [],
+      "fail": "allocated:0",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 0,
+      "data": [],
+      "fail": "reserved:0",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 0,
+      "data": [],
+      "fail": "peak:0",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 0,
+      "data": [],
+      "fail": "info:1",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 0,
+      "data": [],
+      "fail": "allocated:1",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 0,
+      "data": [],
+      "fail": "reserved:1",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 0,
+      "data": [],
+      "fail": "peak:1",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 0,
+      "data": [],
+      "fail": null,
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 0,
+      "data": [],
+      "fail": "available",
+      "events": [
+        "available"
+      ],
+      "result": null,
+      "error": true
+    },
+    {
+      "available": false,
+      "count": 0,
+      "data": [],
+      "fail": "count",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 0,
+      "data": [],
+      "fail": "info:0",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 0,
+      "data": [],
+      "fail": "allocated:0",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 0,
+      "data": [],
+      "fail": "reserved:0",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 0,
+      "data": [],
+      "fail": "peak:0",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 0,
+      "data": [],
+      "fail": "info:1",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 0,
+      "data": [],
+      "fail": "allocated:1",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 0,
+      "data": [],
+      "fail": "reserved:1",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 0,
+      "data": [],
+      "fail": "peak:1",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 0,
+      "data": [],
+      "fail": null,
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 0,
+      "data": [],
+      "fail": "available",
+      "events": [
+        "available"
+      ],
+      "result": null,
+      "error": true
+    },
+    {
+      "available": false,
+      "count": 0,
+      "data": [],
+      "fail": "count",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 0,
+      "data": [],
+      "fail": "info:0",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 0,
+      "data": [],
+      "fail": "allocated:0",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 0,
+      "data": [],
+      "fail": "reserved:0",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 0,
+      "data": [],
+      "fail": "peak:0",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 0,
+      "data": [],
+      "fail": "info:1",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 0,
+      "data": [],
+      "fail": "allocated:1",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 0,
+      "data": [],
+      "fail": "reserved:1",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 0,
+      "data": [],
+      "fail": "peak:1",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 0,
+      "data": [],
+      "fail": null,
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 0,
+      "data": [],
+      "fail": "available",
+      "events": [
+        "available"
+      ],
+      "result": null,
+      "error": true
+    },
+    {
+      "available": false,
+      "count": 0,
+      "data": [],
+      "fail": "count",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 0,
+      "data": [],
+      "fail": "info:0",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 0,
+      "data": [],
+      "fail": "allocated:0",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 0,
+      "data": [],
+      "fail": "reserved:0",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 0,
+      "data": [],
+      "fail": "peak:0",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 0,
+      "data": [],
+      "fail": "info:1",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 0,
+      "data": [],
+      "fail": "allocated:1",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 0,
+      "data": [],
+      "fail": "reserved:1",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 0,
+      "data": [],
+      "fail": "peak:1",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 0,
+      "data": [],
+      "fail": null,
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 0,
+      "data": [],
+      "fail": "available",
+      "events": [
+        "available"
+      ],
+      "result": null,
+      "error": true
+    },
+    {
+      "available": false,
+      "count": 0,
+      "data": [],
+      "fail": "count",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 0,
+      "data": [],
+      "fail": "info:0",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 0,
+      "data": [],
+      "fail": "allocated:0",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 0,
+      "data": [],
+      "fail": "reserved:0",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 0,
+      "data": [],
+      "fail": "peak:0",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 0,
+      "data": [],
+      "fail": "info:1",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 0,
+      "data": [],
+      "fail": "allocated:1",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 0,
+      "data": [],
+      "fail": "reserved:1",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 0,
+      "data": [],
+      "fail": "peak:1",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 1,
+      "data": [
+        {
+          "free": 0,
+          "total": 1073741824,
+          "allocated": 0,
+          "reserved": 67108864,
+          "peak": 134217728
+        }
+      ],
+      "fail": null,
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 1,
+      "data": [
+        {
+          "free": 0,
+          "total": 1073741824,
+          "allocated": 0,
+          "reserved": 67108864,
+          "peak": 134217728
+        }
+      ],
+      "fail": "available",
+      "events": [
+        "available"
+      ],
+      "result": null,
+      "error": true
+    },
+    {
+      "available": false,
+      "count": 1,
+      "data": [
+        {
+          "free": 0,
+          "total": 1073741824,
+          "allocated": 0,
+          "reserved": 67108864,
+          "peak": 134217728
+        }
+      ],
+      "fail": "count",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 1,
+      "data": [
+        {
+          "free": 0,
+          "total": 1073741824,
+          "allocated": 0,
+          "reserved": 67108864,
+          "peak": 134217728
+        }
+      ],
+      "fail": "info:0",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 1,
+      "data": [
+        {
+          "free": 0,
+          "total": 1073741824,
+          "allocated": 0,
+          "reserved": 67108864,
+          "peak": 134217728
+        }
+      ],
+      "fail": "allocated:0",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 1,
+      "data": [
+        {
+          "free": 0,
+          "total": 1073741824,
+          "allocated": 0,
+          "reserved": 67108864,
+          "peak": 134217728
+        }
+      ],
+      "fail": "reserved:0",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 1,
+      "data": [
+        {
+          "free": 0,
+          "total": 1073741824,
+          "allocated": 0,
+          "reserved": 67108864,
+          "peak": 134217728
+        }
+      ],
+      "fail": "peak:0",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 1,
+      "data": [
+        {
+          "free": 0,
+          "total": 1073741824,
+          "allocated": 0,
+          "reserved": 67108864,
+          "peak": 134217728
+        }
+      ],
+      "fail": "info:1",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 1,
+      "data": [
+        {
+          "free": 0,
+          "total": 1073741824,
+          "allocated": 0,
+          "reserved": 67108864,
+          "peak": 134217728
+        }
+      ],
+      "fail": "allocated:1",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 1,
+      "data": [
+        {
+          "free": 0,
+          "total": 1073741824,
+          "allocated": 0,
+          "reserved": 67108864,
+          "peak": 134217728
+        }
+      ],
+      "fail": "reserved:1",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 1,
+      "data": [
+        {
+          "free": 0,
+          "total": 1073741824,
+          "allocated": 0,
+          "reserved": 67108864,
+          "peak": 134217728
+        }
+      ],
+      "fail": "peak:1",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 1,
+      "data": [
+        {
+          "free": 1,
+          "total": 1073741825,
+          "allocated": 1,
+          "reserved": 67108865,
+          "peak": 134217729
+        }
+      ],
+      "fail": null,
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 1,
+      "data": [
+        {
+          "free": 1,
+          "total": 1073741825,
+          "allocated": 1,
+          "reserved": 67108865,
+          "peak": 134217729
+        }
+      ],
+      "fail": "available",
+      "events": [
+        "available"
+      ],
+      "result": null,
+      "error": true
+    },
+    {
+      "available": false,
+      "count": 1,
+      "data": [
+        {
+          "free": 1,
+          "total": 1073741825,
+          "allocated": 1,
+          "reserved": 67108865,
+          "peak": 134217729
+        }
+      ],
+      "fail": "count",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 1,
+      "data": [
+        {
+          "free": 1,
+          "total": 1073741825,
+          "allocated": 1,
+          "reserved": 67108865,
+          "peak": 134217729
+        }
+      ],
+      "fail": "info:0",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 1,
+      "data": [
+        {
+          "free": 1,
+          "total": 1073741825,
+          "allocated": 1,
+          "reserved": 67108865,
+          "peak": 134217729
+        }
+      ],
+      "fail": "allocated:0",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 1,
+      "data": [
+        {
+          "free": 1,
+          "total": 1073741825,
+          "allocated": 1,
+          "reserved": 67108865,
+          "peak": 134217729
+        }
+      ],
+      "fail": "reserved:0",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 1,
+      "data": [
+        {
+          "free": 1,
+          "total": 1073741825,
+          "allocated": 1,
+          "reserved": 67108865,
+          "peak": 134217729
+        }
+      ],
+      "fail": "peak:0",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 1,
+      "data": [
+        {
+          "free": 1,
+          "total": 1073741825,
+          "allocated": 1,
+          "reserved": 67108865,
+          "peak": 134217729
+        }
+      ],
+      "fail": "info:1",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 1,
+      "data": [
+        {
+          "free": 1,
+          "total": 1073741825,
+          "allocated": 1,
+          "reserved": 67108865,
+          "peak": 134217729
+        }
+      ],
+      "fail": "allocated:1",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 1,
+      "data": [
+        {
+          "free": 1,
+          "total": 1073741825,
+          "allocated": 1,
+          "reserved": 67108865,
+          "peak": 134217729
+        }
+      ],
+      "fail": "reserved:1",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 1,
+      "data": [
+        {
+          "free": 1,
+          "total": 1073741825,
+          "allocated": 1,
+          "reserved": 67108865,
+          "peak": 134217729
+        }
+      ],
+      "fail": "peak:1",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 1,
+      "data": [
+        {
+          "free": 67108864,
+          "total": 1140850688,
+          "allocated": 67108864,
+          "reserved": 134217728,
+          "peak": 201326592
+        }
+      ],
+      "fail": null,
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 1,
+      "data": [
+        {
+          "free": 67108864,
+          "total": 1140850688,
+          "allocated": 67108864,
+          "reserved": 134217728,
+          "peak": 201326592
+        }
+      ],
+      "fail": "available",
+      "events": [
+        "available"
+      ],
+      "result": null,
+      "error": true
+    },
+    {
+      "available": false,
+      "count": 1,
+      "data": [
+        {
+          "free": 67108864,
+          "total": 1140850688,
+          "allocated": 67108864,
+          "reserved": 134217728,
+          "peak": 201326592
+        }
+      ],
+      "fail": "count",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 1,
+      "data": [
+        {
+          "free": 67108864,
+          "total": 1140850688,
+          "allocated": 67108864,
+          "reserved": 134217728,
+          "peak": 201326592
+        }
+      ],
+      "fail": "info:0",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 1,
+      "data": [
+        {
+          "free": 67108864,
+          "total": 1140850688,
+          "allocated": 67108864,
+          "reserved": 134217728,
+          "peak": 201326592
+        }
+      ],
+      "fail": "allocated:0",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 1,
+      "data": [
+        {
+          "free": 67108864,
+          "total": 1140850688,
+          "allocated": 67108864,
+          "reserved": 134217728,
+          "peak": 201326592
+        }
+      ],
+      "fail": "reserved:0",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 1,
+      "data": [
+        {
+          "free": 67108864,
+          "total": 1140850688,
+          "allocated": 67108864,
+          "reserved": 134217728,
+          "peak": 201326592
+        }
+      ],
+      "fail": "peak:0",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 1,
+      "data": [
+        {
+          "free": 67108864,
+          "total": 1140850688,
+          "allocated": 67108864,
+          "reserved": 134217728,
+          "peak": 201326592
+        }
+      ],
+      "fail": "info:1",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 1,
+      "data": [
+        {
+          "free": 67108864,
+          "total": 1140850688,
+          "allocated": 67108864,
+          "reserved": 134217728,
+          "peak": 201326592
+        }
+      ],
+      "fail": "allocated:1",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 1,
+      "data": [
+        {
+          "free": 67108864,
+          "total": 1140850688,
+          "allocated": 67108864,
+          "reserved": 134217728,
+          "peak": 201326592
+        }
+      ],
+      "fail": "reserved:1",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 1,
+      "data": [
+        {
+          "free": 67108864,
+          "total": 1140850688,
+          "allocated": 67108864,
+          "reserved": 134217728,
+          "peak": 201326592
+        }
+      ],
+      "fail": "peak:1",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 1,
+      "data": [
+        {
+          "free": 67108864,
+          "total": 1140850688,
+          "allocated": 67108864,
+          "reserved": 134217728,
+          "peak": 201326592
+        }
+      ],
+      "fail": null,
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 1,
+      "data": [
+        {
+          "free": 67108864,
+          "total": 1140850688,
+          "allocated": 67108864,
+          "reserved": 134217728,
+          "peak": 201326592
+        }
+      ],
+      "fail": "available",
+      "events": [
+        "available"
+      ],
+      "result": null,
+      "error": true
+    },
+    {
+      "available": false,
+      "count": 1,
+      "data": [
+        {
+          "free": 67108864,
+          "total": 1140850688,
+          "allocated": 67108864,
+          "reserved": 134217728,
+          "peak": 201326592
+        }
+      ],
+      "fail": "count",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 1,
+      "data": [
+        {
+          "free": 67108864,
+          "total": 1140850688,
+          "allocated": 67108864,
+          "reserved": 134217728,
+          "peak": 201326592
+        }
+      ],
+      "fail": "info:0",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 1,
+      "data": [
+        {
+          "free": 67108864,
+          "total": 1140850688,
+          "allocated": 67108864,
+          "reserved": 134217728,
+          "peak": 201326592
+        }
+      ],
+      "fail": "allocated:0",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 1,
+      "data": [
+        {
+          "free": 67108864,
+          "total": 1140850688,
+          "allocated": 67108864,
+          "reserved": 134217728,
+          "peak": 201326592
+        }
+      ],
+      "fail": "reserved:0",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 1,
+      "data": [
+        {
+          "free": 67108864,
+          "total": 1140850688,
+          "allocated": 67108864,
+          "reserved": 134217728,
+          "peak": 201326592
+        }
+      ],
+      "fail": "peak:0",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 1,
+      "data": [
+        {
+          "free": 67108864,
+          "total": 1140850688,
+          "allocated": 67108864,
+          "reserved": 134217728,
+          "peak": 201326592
+        }
+      ],
+      "fail": "info:1",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 1,
+      "data": [
+        {
+          "free": 67108864,
+          "total": 1140850688,
+          "allocated": 67108864,
+          "reserved": 134217728,
+          "peak": 201326592
+        }
+      ],
+      "fail": "allocated:1",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 1,
+      "data": [
+        {
+          "free": 67108864,
+          "total": 1140850688,
+          "allocated": 67108864,
+          "reserved": 134217728,
+          "peak": 201326592
+        }
+      ],
+      "fail": "reserved:1",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 1,
+      "data": [
+        {
+          "free": 67108864,
+          "total": 1140850688,
+          "allocated": 67108864,
+          "reserved": 134217728,
+          "peak": 201326592
+        }
+      ],
+      "fail": "peak:1",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 1,
+      "data": [
+        {
+          "free": 17716740096,
+          "total": 18790481920,
+          "allocated": 17716740096,
+          "reserved": 17783848960,
+          "peak": 17850957824
+        }
+      ],
+      "fail": null,
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 1,
+      "data": [
+        {
+          "free": 17716740096,
+          "total": 18790481920,
+          "allocated": 17716740096,
+          "reserved": 17783848960,
+          "peak": 17850957824
+        }
+      ],
+      "fail": "available",
+      "events": [
+        "available"
+      ],
+      "result": null,
+      "error": true
+    },
+    {
+      "available": false,
+      "count": 1,
+      "data": [
+        {
+          "free": 17716740096,
+          "total": 18790481920,
+          "allocated": 17716740096,
+          "reserved": 17783848960,
+          "peak": 17850957824
+        }
+      ],
+      "fail": "count",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 1,
+      "data": [
+        {
+          "free": 17716740096,
+          "total": 18790481920,
+          "allocated": 17716740096,
+          "reserved": 17783848960,
+          "peak": 17850957824
+        }
+      ],
+      "fail": "info:0",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 1,
+      "data": [
+        {
+          "free": 17716740096,
+          "total": 18790481920,
+          "allocated": 17716740096,
+          "reserved": 17783848960,
+          "peak": 17850957824
+        }
+      ],
+      "fail": "allocated:0",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 1,
+      "data": [
+        {
+          "free": 17716740096,
+          "total": 18790481920,
+          "allocated": 17716740096,
+          "reserved": 17783848960,
+          "peak": 17850957824
+        }
+      ],
+      "fail": "reserved:0",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 1,
+      "data": [
+        {
+          "free": 17716740096,
+          "total": 18790481920,
+          "allocated": 17716740096,
+          "reserved": 17783848960,
+          "peak": 17850957824
+        }
+      ],
+      "fail": "peak:0",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 1,
+      "data": [
+        {
+          "free": 17716740096,
+          "total": 18790481920,
+          "allocated": 17716740096,
+          "reserved": 17783848960,
+          "peak": 17850957824
+        }
+      ],
+      "fail": "info:1",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 1,
+      "data": [
+        {
+          "free": 17716740096,
+          "total": 18790481920,
+          "allocated": 17716740096,
+          "reserved": 17783848960,
+          "peak": 17850957824
+        }
+      ],
+      "fail": "allocated:1",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 1,
+      "data": [
+        {
+          "free": 17716740096,
+          "total": 18790481920,
+          "allocated": 17716740096,
+          "reserved": 17783848960,
+          "peak": 17850957824
+        }
+      ],
+      "fail": "reserved:1",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 1,
+      "data": [
+        {
+          "free": 17716740096,
+          "total": 18790481920,
+          "allocated": 17716740096,
+          "reserved": 17783848960,
+          "peak": 17850957824
+        }
+      ],
+      "fail": "peak:1",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 3,
+      "data": [
+        {
+          "free": 0,
+          "total": 1073741824,
+          "allocated": 0,
+          "reserved": 67108864,
+          "peak": 134217728
+        },
+        {
+          "free": 12345,
+          "total": 1073741824,
+          "allocated": 1,
+          "reserved": 67108865,
+          "peak": 134217729
+        },
+        {
+          "free": 24690,
+          "total": 1073741824,
+          "allocated": 2,
+          "reserved": 67108866,
+          "peak": 134217730
+        }
+      ],
+      "fail": null,
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 3,
+      "data": [
+        {
+          "free": 0,
+          "total": 1073741824,
+          "allocated": 0,
+          "reserved": 67108864,
+          "peak": 134217728
+        },
+        {
+          "free": 12345,
+          "total": 1073741824,
+          "allocated": 1,
+          "reserved": 67108865,
+          "peak": 134217729
+        },
+        {
+          "free": 24690,
+          "total": 1073741824,
+          "allocated": 2,
+          "reserved": 67108866,
+          "peak": 134217730
+        }
+      ],
+      "fail": "available",
+      "events": [
+        "available"
+      ],
+      "result": null,
+      "error": true
+    },
+    {
+      "available": false,
+      "count": 3,
+      "data": [
+        {
+          "free": 0,
+          "total": 1073741824,
+          "allocated": 0,
+          "reserved": 67108864,
+          "peak": 134217728
+        },
+        {
+          "free": 12345,
+          "total": 1073741824,
+          "allocated": 1,
+          "reserved": 67108865,
+          "peak": 134217729
+        },
+        {
+          "free": 24690,
+          "total": 1073741824,
+          "allocated": 2,
+          "reserved": 67108866,
+          "peak": 134217730
+        }
+      ],
+      "fail": "count",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 3,
+      "data": [
+        {
+          "free": 0,
+          "total": 1073741824,
+          "allocated": 0,
+          "reserved": 67108864,
+          "peak": 134217728
+        },
+        {
+          "free": 12345,
+          "total": 1073741824,
+          "allocated": 1,
+          "reserved": 67108865,
+          "peak": 134217729
+        },
+        {
+          "free": 24690,
+          "total": 1073741824,
+          "allocated": 2,
+          "reserved": 67108866,
+          "peak": 134217730
+        }
+      ],
+      "fail": "info:0",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 3,
+      "data": [
+        {
+          "free": 0,
+          "total": 1073741824,
+          "allocated": 0,
+          "reserved": 67108864,
+          "peak": 134217728
+        },
+        {
+          "free": 12345,
+          "total": 1073741824,
+          "allocated": 1,
+          "reserved": 67108865,
+          "peak": 134217729
+        },
+        {
+          "free": 24690,
+          "total": 1073741824,
+          "allocated": 2,
+          "reserved": 67108866,
+          "peak": 134217730
+        }
+      ],
+      "fail": "allocated:0",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 3,
+      "data": [
+        {
+          "free": 0,
+          "total": 1073741824,
+          "allocated": 0,
+          "reserved": 67108864,
+          "peak": 134217728
+        },
+        {
+          "free": 12345,
+          "total": 1073741824,
+          "allocated": 1,
+          "reserved": 67108865,
+          "peak": 134217729
+        },
+        {
+          "free": 24690,
+          "total": 1073741824,
+          "allocated": 2,
+          "reserved": 67108866,
+          "peak": 134217730
+        }
+      ],
+      "fail": "reserved:0",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 3,
+      "data": [
+        {
+          "free": 0,
+          "total": 1073741824,
+          "allocated": 0,
+          "reserved": 67108864,
+          "peak": 134217728
+        },
+        {
+          "free": 12345,
+          "total": 1073741824,
+          "allocated": 1,
+          "reserved": 67108865,
+          "peak": 134217729
+        },
+        {
+          "free": 24690,
+          "total": 1073741824,
+          "allocated": 2,
+          "reserved": 67108866,
+          "peak": 134217730
+        }
+      ],
+      "fail": "peak:0",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 3,
+      "data": [
+        {
+          "free": 0,
+          "total": 1073741824,
+          "allocated": 0,
+          "reserved": 67108864,
+          "peak": 134217728
+        },
+        {
+          "free": 12345,
+          "total": 1073741824,
+          "allocated": 1,
+          "reserved": 67108865,
+          "peak": 134217729
+        },
+        {
+          "free": 24690,
+          "total": 1073741824,
+          "allocated": 2,
+          "reserved": 67108866,
+          "peak": 134217730
+        }
+      ],
+      "fail": "info:1",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 3,
+      "data": [
+        {
+          "free": 0,
+          "total": 1073741824,
+          "allocated": 0,
+          "reserved": 67108864,
+          "peak": 134217728
+        },
+        {
+          "free": 12345,
+          "total": 1073741824,
+          "allocated": 1,
+          "reserved": 67108865,
+          "peak": 134217729
+        },
+        {
+          "free": 24690,
+          "total": 1073741824,
+          "allocated": 2,
+          "reserved": 67108866,
+          "peak": 134217730
+        }
+      ],
+      "fail": "allocated:1",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 3,
+      "data": [
+        {
+          "free": 0,
+          "total": 1073741824,
+          "allocated": 0,
+          "reserved": 67108864,
+          "peak": 134217728
+        },
+        {
+          "free": 12345,
+          "total": 1073741824,
+          "allocated": 1,
+          "reserved": 67108865,
+          "peak": 134217729
+        },
+        {
+          "free": 24690,
+          "total": 1073741824,
+          "allocated": 2,
+          "reserved": 67108866,
+          "peak": 134217730
+        }
+      ],
+      "fail": "reserved:1",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 3,
+      "data": [
+        {
+          "free": 0,
+          "total": 1073741824,
+          "allocated": 0,
+          "reserved": 67108864,
+          "peak": 134217728
+        },
+        {
+          "free": 12345,
+          "total": 1073741824,
+          "allocated": 1,
+          "reserved": 67108865,
+          "peak": 134217729
+        },
+        {
+          "free": 24690,
+          "total": 1073741824,
+          "allocated": 2,
+          "reserved": 67108866,
+          "peak": 134217730
+        }
+      ],
+      "fail": "peak:1",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 3,
+      "data": [
+        {
+          "free": 1,
+          "total": 1073741825,
+          "allocated": 1,
+          "reserved": 67108865,
+          "peak": 134217729
+        },
+        {
+          "free": 12346,
+          "total": 1073741825,
+          "allocated": 2,
+          "reserved": 67108866,
+          "peak": 134217730
+        },
+        {
+          "free": 24691,
+          "total": 1073741825,
+          "allocated": 3,
+          "reserved": 67108867,
+          "peak": 134217731
+        }
+      ],
+      "fail": null,
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 3,
+      "data": [
+        {
+          "free": 1,
+          "total": 1073741825,
+          "allocated": 1,
+          "reserved": 67108865,
+          "peak": 134217729
+        },
+        {
+          "free": 12346,
+          "total": 1073741825,
+          "allocated": 2,
+          "reserved": 67108866,
+          "peak": 134217730
+        },
+        {
+          "free": 24691,
+          "total": 1073741825,
+          "allocated": 3,
+          "reserved": 67108867,
+          "peak": 134217731
+        }
+      ],
+      "fail": "available",
+      "events": [
+        "available"
+      ],
+      "result": null,
+      "error": true
+    },
+    {
+      "available": false,
+      "count": 3,
+      "data": [
+        {
+          "free": 1,
+          "total": 1073741825,
+          "allocated": 1,
+          "reserved": 67108865,
+          "peak": 134217729
+        },
+        {
+          "free": 12346,
+          "total": 1073741825,
+          "allocated": 2,
+          "reserved": 67108866,
+          "peak": 134217730
+        },
+        {
+          "free": 24691,
+          "total": 1073741825,
+          "allocated": 3,
+          "reserved": 67108867,
+          "peak": 134217731
+        }
+      ],
+      "fail": "count",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 3,
+      "data": [
+        {
+          "free": 1,
+          "total": 1073741825,
+          "allocated": 1,
+          "reserved": 67108865,
+          "peak": 134217729
+        },
+        {
+          "free": 12346,
+          "total": 1073741825,
+          "allocated": 2,
+          "reserved": 67108866,
+          "peak": 134217730
+        },
+        {
+          "free": 24691,
+          "total": 1073741825,
+          "allocated": 3,
+          "reserved": 67108867,
+          "peak": 134217731
+        }
+      ],
+      "fail": "info:0",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 3,
+      "data": [
+        {
+          "free": 1,
+          "total": 1073741825,
+          "allocated": 1,
+          "reserved": 67108865,
+          "peak": 134217729
+        },
+        {
+          "free": 12346,
+          "total": 1073741825,
+          "allocated": 2,
+          "reserved": 67108866,
+          "peak": 134217730
+        },
+        {
+          "free": 24691,
+          "total": 1073741825,
+          "allocated": 3,
+          "reserved": 67108867,
+          "peak": 134217731
+        }
+      ],
+      "fail": "allocated:0",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 3,
+      "data": [
+        {
+          "free": 1,
+          "total": 1073741825,
+          "allocated": 1,
+          "reserved": 67108865,
+          "peak": 134217729
+        },
+        {
+          "free": 12346,
+          "total": 1073741825,
+          "allocated": 2,
+          "reserved": 67108866,
+          "peak": 134217730
+        },
+        {
+          "free": 24691,
+          "total": 1073741825,
+          "allocated": 3,
+          "reserved": 67108867,
+          "peak": 134217731
+        }
+      ],
+      "fail": "reserved:0",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 3,
+      "data": [
+        {
+          "free": 1,
+          "total": 1073741825,
+          "allocated": 1,
+          "reserved": 67108865,
+          "peak": 134217729
+        },
+        {
+          "free": 12346,
+          "total": 1073741825,
+          "allocated": 2,
+          "reserved": 67108866,
+          "peak": 134217730
+        },
+        {
+          "free": 24691,
+          "total": 1073741825,
+          "allocated": 3,
+          "reserved": 67108867,
+          "peak": 134217731
+        }
+      ],
+      "fail": "peak:0",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 3,
+      "data": [
+        {
+          "free": 1,
+          "total": 1073741825,
+          "allocated": 1,
+          "reserved": 67108865,
+          "peak": 134217729
+        },
+        {
+          "free": 12346,
+          "total": 1073741825,
+          "allocated": 2,
+          "reserved": 67108866,
+          "peak": 134217730
+        },
+        {
+          "free": 24691,
+          "total": 1073741825,
+          "allocated": 3,
+          "reserved": 67108867,
+          "peak": 134217731
+        }
+      ],
+      "fail": "info:1",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 3,
+      "data": [
+        {
+          "free": 1,
+          "total": 1073741825,
+          "allocated": 1,
+          "reserved": 67108865,
+          "peak": 134217729
+        },
+        {
+          "free": 12346,
+          "total": 1073741825,
+          "allocated": 2,
+          "reserved": 67108866,
+          "peak": 134217730
+        },
+        {
+          "free": 24691,
+          "total": 1073741825,
+          "allocated": 3,
+          "reserved": 67108867,
+          "peak": 134217731
+        }
+      ],
+      "fail": "allocated:1",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 3,
+      "data": [
+        {
+          "free": 1,
+          "total": 1073741825,
+          "allocated": 1,
+          "reserved": 67108865,
+          "peak": 134217729
+        },
+        {
+          "free": 12346,
+          "total": 1073741825,
+          "allocated": 2,
+          "reserved": 67108866,
+          "peak": 134217730
+        },
+        {
+          "free": 24691,
+          "total": 1073741825,
+          "allocated": 3,
+          "reserved": 67108867,
+          "peak": 134217731
+        }
+      ],
+      "fail": "reserved:1",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 3,
+      "data": [
+        {
+          "free": 1,
+          "total": 1073741825,
+          "allocated": 1,
+          "reserved": 67108865,
+          "peak": 134217729
+        },
+        {
+          "free": 12346,
+          "total": 1073741825,
+          "allocated": 2,
+          "reserved": 67108866,
+          "peak": 134217730
+        },
+        {
+          "free": 24691,
+          "total": 1073741825,
+          "allocated": 3,
+          "reserved": 67108867,
+          "peak": 134217731
+        }
+      ],
+      "fail": "peak:1",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 3,
+      "data": [
+        {
+          "free": 67108864,
+          "total": 1140850688,
+          "allocated": 67108864,
+          "reserved": 134217728,
+          "peak": 201326592
+        },
+        {
+          "free": 67121209,
+          "total": 1140850688,
+          "allocated": 67108865,
+          "reserved": 134217729,
+          "peak": 201326593
+        },
+        {
+          "free": 67133554,
+          "total": 1140850688,
+          "allocated": 67108866,
+          "reserved": 134217730,
+          "peak": 201326594
+        }
+      ],
+      "fail": null,
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 3,
+      "data": [
+        {
+          "free": 67108864,
+          "total": 1140850688,
+          "allocated": 67108864,
+          "reserved": 134217728,
+          "peak": 201326592
+        },
+        {
+          "free": 67121209,
+          "total": 1140850688,
+          "allocated": 67108865,
+          "reserved": 134217729,
+          "peak": 201326593
+        },
+        {
+          "free": 67133554,
+          "total": 1140850688,
+          "allocated": 67108866,
+          "reserved": 134217730,
+          "peak": 201326594
+        }
+      ],
+      "fail": "available",
+      "events": [
+        "available"
+      ],
+      "result": null,
+      "error": true
+    },
+    {
+      "available": false,
+      "count": 3,
+      "data": [
+        {
+          "free": 67108864,
+          "total": 1140850688,
+          "allocated": 67108864,
+          "reserved": 134217728,
+          "peak": 201326592
+        },
+        {
+          "free": 67121209,
+          "total": 1140850688,
+          "allocated": 67108865,
+          "reserved": 134217729,
+          "peak": 201326593
+        },
+        {
+          "free": 67133554,
+          "total": 1140850688,
+          "allocated": 67108866,
+          "reserved": 134217730,
+          "peak": 201326594
+        }
+      ],
+      "fail": "count",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 3,
+      "data": [
+        {
+          "free": 67108864,
+          "total": 1140850688,
+          "allocated": 67108864,
+          "reserved": 134217728,
+          "peak": 201326592
+        },
+        {
+          "free": 67121209,
+          "total": 1140850688,
+          "allocated": 67108865,
+          "reserved": 134217729,
+          "peak": 201326593
+        },
+        {
+          "free": 67133554,
+          "total": 1140850688,
+          "allocated": 67108866,
+          "reserved": 134217730,
+          "peak": 201326594
+        }
+      ],
+      "fail": "info:0",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 3,
+      "data": [
+        {
+          "free": 67108864,
+          "total": 1140850688,
+          "allocated": 67108864,
+          "reserved": 134217728,
+          "peak": 201326592
+        },
+        {
+          "free": 67121209,
+          "total": 1140850688,
+          "allocated": 67108865,
+          "reserved": 134217729,
+          "peak": 201326593
+        },
+        {
+          "free": 67133554,
+          "total": 1140850688,
+          "allocated": 67108866,
+          "reserved": 134217730,
+          "peak": 201326594
+        }
+      ],
+      "fail": "allocated:0",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 3,
+      "data": [
+        {
+          "free": 67108864,
+          "total": 1140850688,
+          "allocated": 67108864,
+          "reserved": 134217728,
+          "peak": 201326592
+        },
+        {
+          "free": 67121209,
+          "total": 1140850688,
+          "allocated": 67108865,
+          "reserved": 134217729,
+          "peak": 201326593
+        },
+        {
+          "free": 67133554,
+          "total": 1140850688,
+          "allocated": 67108866,
+          "reserved": 134217730,
+          "peak": 201326594
+        }
+      ],
+      "fail": "reserved:0",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 3,
+      "data": [
+        {
+          "free": 67108864,
+          "total": 1140850688,
+          "allocated": 67108864,
+          "reserved": 134217728,
+          "peak": 201326592
+        },
+        {
+          "free": 67121209,
+          "total": 1140850688,
+          "allocated": 67108865,
+          "reserved": 134217729,
+          "peak": 201326593
+        },
+        {
+          "free": 67133554,
+          "total": 1140850688,
+          "allocated": 67108866,
+          "reserved": 134217730,
+          "peak": 201326594
+        }
+      ],
+      "fail": "peak:0",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 3,
+      "data": [
+        {
+          "free": 67108864,
+          "total": 1140850688,
+          "allocated": 67108864,
+          "reserved": 134217728,
+          "peak": 201326592
+        },
+        {
+          "free": 67121209,
+          "total": 1140850688,
+          "allocated": 67108865,
+          "reserved": 134217729,
+          "peak": 201326593
+        },
+        {
+          "free": 67133554,
+          "total": 1140850688,
+          "allocated": 67108866,
+          "reserved": 134217730,
+          "peak": 201326594
+        }
+      ],
+      "fail": "info:1",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 3,
+      "data": [
+        {
+          "free": 67108864,
+          "total": 1140850688,
+          "allocated": 67108864,
+          "reserved": 134217728,
+          "peak": 201326592
+        },
+        {
+          "free": 67121209,
+          "total": 1140850688,
+          "allocated": 67108865,
+          "reserved": 134217729,
+          "peak": 201326593
+        },
+        {
+          "free": 67133554,
+          "total": 1140850688,
+          "allocated": 67108866,
+          "reserved": 134217730,
+          "peak": 201326594
+        }
+      ],
+      "fail": "allocated:1",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 3,
+      "data": [
+        {
+          "free": 67108864,
+          "total": 1140850688,
+          "allocated": 67108864,
+          "reserved": 134217728,
+          "peak": 201326592
+        },
+        {
+          "free": 67121209,
+          "total": 1140850688,
+          "allocated": 67108865,
+          "reserved": 134217729,
+          "peak": 201326593
+        },
+        {
+          "free": 67133554,
+          "total": 1140850688,
+          "allocated": 67108866,
+          "reserved": 134217730,
+          "peak": 201326594
+        }
+      ],
+      "fail": "reserved:1",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 3,
+      "data": [
+        {
+          "free": 67108864,
+          "total": 1140850688,
+          "allocated": 67108864,
+          "reserved": 134217728,
+          "peak": 201326592
+        },
+        {
+          "free": 67121209,
+          "total": 1140850688,
+          "allocated": 67108865,
+          "reserved": 134217729,
+          "peak": 201326593
+        },
+        {
+          "free": 67133554,
+          "total": 1140850688,
+          "allocated": 67108866,
+          "reserved": 134217730,
+          "peak": 201326594
+        }
+      ],
+      "fail": "peak:1",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 3,
+      "data": [
+        {
+          "free": 67108864,
+          "total": 1140850688,
+          "allocated": 67108864,
+          "reserved": 134217728,
+          "peak": 201326592
+        },
+        {
+          "free": 67121209,
+          "total": 1140850688,
+          "allocated": 67108865,
+          "reserved": 134217729,
+          "peak": 201326593
+        },
+        {
+          "free": 67133554,
+          "total": 1140850688,
+          "allocated": 67108866,
+          "reserved": 134217730,
+          "peak": 201326594
+        }
+      ],
+      "fail": null,
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 3,
+      "data": [
+        {
+          "free": 67108864,
+          "total": 1140850688,
+          "allocated": 67108864,
+          "reserved": 134217728,
+          "peak": 201326592
+        },
+        {
+          "free": 67121209,
+          "total": 1140850688,
+          "allocated": 67108865,
+          "reserved": 134217729,
+          "peak": 201326593
+        },
+        {
+          "free": 67133554,
+          "total": 1140850688,
+          "allocated": 67108866,
+          "reserved": 134217730,
+          "peak": 201326594
+        }
+      ],
+      "fail": "available",
+      "events": [
+        "available"
+      ],
+      "result": null,
+      "error": true
+    },
+    {
+      "available": false,
+      "count": 3,
+      "data": [
+        {
+          "free": 67108864,
+          "total": 1140850688,
+          "allocated": 67108864,
+          "reserved": 134217728,
+          "peak": 201326592
+        },
+        {
+          "free": 67121209,
+          "total": 1140850688,
+          "allocated": 67108865,
+          "reserved": 134217729,
+          "peak": 201326593
+        },
+        {
+          "free": 67133554,
+          "total": 1140850688,
+          "allocated": 67108866,
+          "reserved": 134217730,
+          "peak": 201326594
+        }
+      ],
+      "fail": "count",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 3,
+      "data": [
+        {
+          "free": 67108864,
+          "total": 1140850688,
+          "allocated": 67108864,
+          "reserved": 134217728,
+          "peak": 201326592
+        },
+        {
+          "free": 67121209,
+          "total": 1140850688,
+          "allocated": 67108865,
+          "reserved": 134217729,
+          "peak": 201326593
+        },
+        {
+          "free": 67133554,
+          "total": 1140850688,
+          "allocated": 67108866,
+          "reserved": 134217730,
+          "peak": 201326594
+        }
+      ],
+      "fail": "info:0",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 3,
+      "data": [
+        {
+          "free": 67108864,
+          "total": 1140850688,
+          "allocated": 67108864,
+          "reserved": 134217728,
+          "peak": 201326592
+        },
+        {
+          "free": 67121209,
+          "total": 1140850688,
+          "allocated": 67108865,
+          "reserved": 134217729,
+          "peak": 201326593
+        },
+        {
+          "free": 67133554,
+          "total": 1140850688,
+          "allocated": 67108866,
+          "reserved": 134217730,
+          "peak": 201326594
+        }
+      ],
+      "fail": "allocated:0",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 3,
+      "data": [
+        {
+          "free": 67108864,
+          "total": 1140850688,
+          "allocated": 67108864,
+          "reserved": 134217728,
+          "peak": 201326592
+        },
+        {
+          "free": 67121209,
+          "total": 1140850688,
+          "allocated": 67108865,
+          "reserved": 134217729,
+          "peak": 201326593
+        },
+        {
+          "free": 67133554,
+          "total": 1140850688,
+          "allocated": 67108866,
+          "reserved": 134217730,
+          "peak": 201326594
+        }
+      ],
+      "fail": "reserved:0",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 3,
+      "data": [
+        {
+          "free": 67108864,
+          "total": 1140850688,
+          "allocated": 67108864,
+          "reserved": 134217728,
+          "peak": 201326592
+        },
+        {
+          "free": 67121209,
+          "total": 1140850688,
+          "allocated": 67108865,
+          "reserved": 134217729,
+          "peak": 201326593
+        },
+        {
+          "free": 67133554,
+          "total": 1140850688,
+          "allocated": 67108866,
+          "reserved": 134217730,
+          "peak": 201326594
+        }
+      ],
+      "fail": "peak:0",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 3,
+      "data": [
+        {
+          "free": 67108864,
+          "total": 1140850688,
+          "allocated": 67108864,
+          "reserved": 134217728,
+          "peak": 201326592
+        },
+        {
+          "free": 67121209,
+          "total": 1140850688,
+          "allocated": 67108865,
+          "reserved": 134217729,
+          "peak": 201326593
+        },
+        {
+          "free": 67133554,
+          "total": 1140850688,
+          "allocated": 67108866,
+          "reserved": 134217730,
+          "peak": 201326594
+        }
+      ],
+      "fail": "info:1",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 3,
+      "data": [
+        {
+          "free": 67108864,
+          "total": 1140850688,
+          "allocated": 67108864,
+          "reserved": 134217728,
+          "peak": 201326592
+        },
+        {
+          "free": 67121209,
+          "total": 1140850688,
+          "allocated": 67108865,
+          "reserved": 134217729,
+          "peak": 201326593
+        },
+        {
+          "free": 67133554,
+          "total": 1140850688,
+          "allocated": 67108866,
+          "reserved": 134217730,
+          "peak": 201326594
+        }
+      ],
+      "fail": "allocated:1",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 3,
+      "data": [
+        {
+          "free": 67108864,
+          "total": 1140850688,
+          "allocated": 67108864,
+          "reserved": 134217728,
+          "peak": 201326592
+        },
+        {
+          "free": 67121209,
+          "total": 1140850688,
+          "allocated": 67108865,
+          "reserved": 134217729,
+          "peak": 201326593
+        },
+        {
+          "free": 67133554,
+          "total": 1140850688,
+          "allocated": 67108866,
+          "reserved": 134217730,
+          "peak": 201326594
+        }
+      ],
+      "fail": "reserved:1",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 3,
+      "data": [
+        {
+          "free": 67108864,
+          "total": 1140850688,
+          "allocated": 67108864,
+          "reserved": 134217728,
+          "peak": 201326592
+        },
+        {
+          "free": 67121209,
+          "total": 1140850688,
+          "allocated": 67108865,
+          "reserved": 134217729,
+          "peak": 201326593
+        },
+        {
+          "free": 67133554,
+          "total": 1140850688,
+          "allocated": 67108866,
+          "reserved": 134217730,
+          "peak": 201326594
+        }
+      ],
+      "fail": "peak:1",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 3,
+      "data": [
+        {
+          "free": 17716740096,
+          "total": 18790481920,
+          "allocated": 17716740096,
+          "reserved": 17783848960,
+          "peak": 17850957824
+        },
+        {
+          "free": 17716752441,
+          "total": 18790481920,
+          "allocated": 17716740097,
+          "reserved": 17783848961,
+          "peak": 17850957825
+        },
+        {
+          "free": 17716764786,
+          "total": 18790481920,
+          "allocated": 17716740098,
+          "reserved": 17783848962,
+          "peak": 17850957826
+        }
+      ],
+      "fail": null,
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 3,
+      "data": [
+        {
+          "free": 17716740096,
+          "total": 18790481920,
+          "allocated": 17716740096,
+          "reserved": 17783848960,
+          "peak": 17850957824
+        },
+        {
+          "free": 17716752441,
+          "total": 18790481920,
+          "allocated": 17716740097,
+          "reserved": 17783848961,
+          "peak": 17850957825
+        },
+        {
+          "free": 17716764786,
+          "total": 18790481920,
+          "allocated": 17716740098,
+          "reserved": 17783848962,
+          "peak": 17850957826
+        }
+      ],
+      "fail": "available",
+      "events": [
+        "available"
+      ],
+      "result": null,
+      "error": true
+    },
+    {
+      "available": false,
+      "count": 3,
+      "data": [
+        {
+          "free": 17716740096,
+          "total": 18790481920,
+          "allocated": 17716740096,
+          "reserved": 17783848960,
+          "peak": 17850957824
+        },
+        {
+          "free": 17716752441,
+          "total": 18790481920,
+          "allocated": 17716740097,
+          "reserved": 17783848961,
+          "peak": 17850957825
+        },
+        {
+          "free": 17716764786,
+          "total": 18790481920,
+          "allocated": 17716740098,
+          "reserved": 17783848962,
+          "peak": 17850957826
+        }
+      ],
+      "fail": "count",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 3,
+      "data": [
+        {
+          "free": 17716740096,
+          "total": 18790481920,
+          "allocated": 17716740096,
+          "reserved": 17783848960,
+          "peak": 17850957824
+        },
+        {
+          "free": 17716752441,
+          "total": 18790481920,
+          "allocated": 17716740097,
+          "reserved": 17783848961,
+          "peak": 17850957825
+        },
+        {
+          "free": 17716764786,
+          "total": 18790481920,
+          "allocated": 17716740098,
+          "reserved": 17783848962,
+          "peak": 17850957826
+        }
+      ],
+      "fail": "info:0",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 3,
+      "data": [
+        {
+          "free": 17716740096,
+          "total": 18790481920,
+          "allocated": 17716740096,
+          "reserved": 17783848960,
+          "peak": 17850957824
+        },
+        {
+          "free": 17716752441,
+          "total": 18790481920,
+          "allocated": 17716740097,
+          "reserved": 17783848961,
+          "peak": 17850957825
+        },
+        {
+          "free": 17716764786,
+          "total": 18790481920,
+          "allocated": 17716740098,
+          "reserved": 17783848962,
+          "peak": 17850957826
+        }
+      ],
+      "fail": "allocated:0",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 3,
+      "data": [
+        {
+          "free": 17716740096,
+          "total": 18790481920,
+          "allocated": 17716740096,
+          "reserved": 17783848960,
+          "peak": 17850957824
+        },
+        {
+          "free": 17716752441,
+          "total": 18790481920,
+          "allocated": 17716740097,
+          "reserved": 17783848961,
+          "peak": 17850957825
+        },
+        {
+          "free": 17716764786,
+          "total": 18790481920,
+          "allocated": 17716740098,
+          "reserved": 17783848962,
+          "peak": 17850957826
+        }
+      ],
+      "fail": "reserved:0",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 3,
+      "data": [
+        {
+          "free": 17716740096,
+          "total": 18790481920,
+          "allocated": 17716740096,
+          "reserved": 17783848960,
+          "peak": 17850957824
+        },
+        {
+          "free": 17716752441,
+          "total": 18790481920,
+          "allocated": 17716740097,
+          "reserved": 17783848961,
+          "peak": 17850957825
+        },
+        {
+          "free": 17716764786,
+          "total": 18790481920,
+          "allocated": 17716740098,
+          "reserved": 17783848962,
+          "peak": 17850957826
+        }
+      ],
+      "fail": "peak:0",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 3,
+      "data": [
+        {
+          "free": 17716740096,
+          "total": 18790481920,
+          "allocated": 17716740096,
+          "reserved": 17783848960,
+          "peak": 17850957824
+        },
+        {
+          "free": 17716752441,
+          "total": 18790481920,
+          "allocated": 17716740097,
+          "reserved": 17783848961,
+          "peak": 17850957825
+        },
+        {
+          "free": 17716764786,
+          "total": 18790481920,
+          "allocated": 17716740098,
+          "reserved": 17783848962,
+          "peak": 17850957826
+        }
+      ],
+      "fail": "info:1",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 3,
+      "data": [
+        {
+          "free": 17716740096,
+          "total": 18790481920,
+          "allocated": 17716740096,
+          "reserved": 17783848960,
+          "peak": 17850957824
+        },
+        {
+          "free": 17716752441,
+          "total": 18790481920,
+          "allocated": 17716740097,
+          "reserved": 17783848961,
+          "peak": 17850957825
+        },
+        {
+          "free": 17716764786,
+          "total": 18790481920,
+          "allocated": 17716740098,
+          "reserved": 17783848962,
+          "peak": 17850957826
+        }
+      ],
+      "fail": "allocated:1",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 3,
+      "data": [
+        {
+          "free": 17716740096,
+          "total": 18790481920,
+          "allocated": 17716740096,
+          "reserved": 17783848960,
+          "peak": 17850957824
+        },
+        {
+          "free": 17716752441,
+          "total": 18790481920,
+          "allocated": 17716740097,
+          "reserved": 17783848961,
+          "peak": 17850957825
+        },
+        {
+          "free": 17716764786,
+          "total": 18790481920,
+          "allocated": 17716740098,
+          "reserved": 17783848962,
+          "peak": 17850957826
+        }
+      ],
+      "fail": "reserved:1",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": false,
+      "count": 3,
+      "data": [
+        {
+          "free": 17716740096,
+          "total": 18790481920,
+          "allocated": 17716740096,
+          "reserved": 17783848960,
+          "peak": 17850957824
+        },
+        {
+          "free": 17716752441,
+          "total": 18790481920,
+          "allocated": 17716740097,
+          "reserved": 17783848961,
+          "peak": 17850957825
+        },
+        {
+          "free": 17716764786,
+          "total": 18790481920,
+          "allocated": 17716740098,
+          "reserved": 17783848962,
+          "peak": 17850957826
+        }
+      ],
+      "fail": "peak:1",
+      "events": [
+        "available"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 0,
+      "data": [],
+      "fail": null,
+      "events": [
+        "available",
+        "count"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 0,
+      "data": [],
+      "fail": "available",
+      "events": [
+        "available"
+      ],
+      "result": null,
+      "error": true
+    },
+    {
+      "available": true,
+      "count": 0,
+      "data": [],
+      "fail": "count",
+      "events": [
+        "available",
+        "count"
+      ],
+      "result": null,
+      "error": true
+    },
+    {
+      "available": true,
+      "count": 0,
+      "data": [],
+      "fail": "info:0",
+      "events": [
+        "available",
+        "count"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 0,
+      "data": [],
+      "fail": "allocated:0",
+      "events": [
+        "available",
+        "count"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 0,
+      "data": [],
+      "fail": "reserved:0",
+      "events": [
+        "available",
+        "count"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 0,
+      "data": [],
+      "fail": "peak:0",
+      "events": [
+        "available",
+        "count"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 0,
+      "data": [],
+      "fail": "info:1",
+      "events": [
+        "available",
+        "count"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 0,
+      "data": [],
+      "fail": "allocated:1",
+      "events": [
+        "available",
+        "count"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 0,
+      "data": [],
+      "fail": "reserved:1",
+      "events": [
+        "available",
+        "count"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 0,
+      "data": [],
+      "fail": "peak:1",
+      "events": [
+        "available",
+        "count"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 0,
+      "data": [],
+      "fail": null,
+      "events": [
+        "available",
+        "count"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 0,
+      "data": [],
+      "fail": "available",
+      "events": [
+        "available"
+      ],
+      "result": null,
+      "error": true
+    },
+    {
+      "available": true,
+      "count": 0,
+      "data": [],
+      "fail": "count",
+      "events": [
+        "available",
+        "count"
+      ],
+      "result": null,
+      "error": true
+    },
+    {
+      "available": true,
+      "count": 0,
+      "data": [],
+      "fail": "info:0",
+      "events": [
+        "available",
+        "count"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 0,
+      "data": [],
+      "fail": "allocated:0",
+      "events": [
+        "available",
+        "count"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 0,
+      "data": [],
+      "fail": "reserved:0",
+      "events": [
+        "available",
+        "count"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 0,
+      "data": [],
+      "fail": "peak:0",
+      "events": [
+        "available",
+        "count"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 0,
+      "data": [],
+      "fail": "info:1",
+      "events": [
+        "available",
+        "count"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 0,
+      "data": [],
+      "fail": "allocated:1",
+      "events": [
+        "available",
+        "count"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 0,
+      "data": [],
+      "fail": "reserved:1",
+      "events": [
+        "available",
+        "count"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 0,
+      "data": [],
+      "fail": "peak:1",
+      "events": [
+        "available",
+        "count"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 0,
+      "data": [],
+      "fail": null,
+      "events": [
+        "available",
+        "count"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 0,
+      "data": [],
+      "fail": "available",
+      "events": [
+        "available"
+      ],
+      "result": null,
+      "error": true
+    },
+    {
+      "available": true,
+      "count": 0,
+      "data": [],
+      "fail": "count",
+      "events": [
+        "available",
+        "count"
+      ],
+      "result": null,
+      "error": true
+    },
+    {
+      "available": true,
+      "count": 0,
+      "data": [],
+      "fail": "info:0",
+      "events": [
+        "available",
+        "count"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 0,
+      "data": [],
+      "fail": "allocated:0",
+      "events": [
+        "available",
+        "count"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 0,
+      "data": [],
+      "fail": "reserved:0",
+      "events": [
+        "available",
+        "count"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 0,
+      "data": [],
+      "fail": "peak:0",
+      "events": [
+        "available",
+        "count"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 0,
+      "data": [],
+      "fail": "info:1",
+      "events": [
+        "available",
+        "count"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 0,
+      "data": [],
+      "fail": "allocated:1",
+      "events": [
+        "available",
+        "count"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 0,
+      "data": [],
+      "fail": "reserved:1",
+      "events": [
+        "available",
+        "count"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 0,
+      "data": [],
+      "fail": "peak:1",
+      "events": [
+        "available",
+        "count"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 0,
+      "data": [],
+      "fail": null,
+      "events": [
+        "available",
+        "count"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 0,
+      "data": [],
+      "fail": "available",
+      "events": [
+        "available"
+      ],
+      "result": null,
+      "error": true
+    },
+    {
+      "available": true,
+      "count": 0,
+      "data": [],
+      "fail": "count",
+      "events": [
+        "available",
+        "count"
+      ],
+      "result": null,
+      "error": true
+    },
+    {
+      "available": true,
+      "count": 0,
+      "data": [],
+      "fail": "info:0",
+      "events": [
+        "available",
+        "count"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 0,
+      "data": [],
+      "fail": "allocated:0",
+      "events": [
+        "available",
+        "count"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 0,
+      "data": [],
+      "fail": "reserved:0",
+      "events": [
+        "available",
+        "count"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 0,
+      "data": [],
+      "fail": "peak:0",
+      "events": [
+        "available",
+        "count"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 0,
+      "data": [],
+      "fail": "info:1",
+      "events": [
+        "available",
+        "count"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 0,
+      "data": [],
+      "fail": "allocated:1",
+      "events": [
+        "available",
+        "count"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 0,
+      "data": [],
+      "fail": "reserved:1",
+      "events": [
+        "available",
+        "count"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 0,
+      "data": [],
+      "fail": "peak:1",
+      "events": [
+        "available",
+        "count"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 0,
+      "data": [],
+      "fail": null,
+      "events": [
+        "available",
+        "count"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 0,
+      "data": [],
+      "fail": "available",
+      "events": [
+        "available"
+      ],
+      "result": null,
+      "error": true
+    },
+    {
+      "available": true,
+      "count": 0,
+      "data": [],
+      "fail": "count",
+      "events": [
+        "available",
+        "count"
+      ],
+      "result": null,
+      "error": true
+    },
+    {
+      "available": true,
+      "count": 0,
+      "data": [],
+      "fail": "info:0",
+      "events": [
+        "available",
+        "count"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 0,
+      "data": [],
+      "fail": "allocated:0",
+      "events": [
+        "available",
+        "count"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 0,
+      "data": [],
+      "fail": "reserved:0",
+      "events": [
+        "available",
+        "count"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 0,
+      "data": [],
+      "fail": "peak:0",
+      "events": [
+        "available",
+        "count"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 0,
+      "data": [],
+      "fail": "info:1",
+      "events": [
+        "available",
+        "count"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 0,
+      "data": [],
+      "fail": "allocated:1",
+      "events": [
+        "available",
+        "count"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 0,
+      "data": [],
+      "fail": "reserved:1",
+      "events": [
+        "available",
+        "count"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 0,
+      "data": [],
+      "fail": "peak:1",
+      "events": [
+        "available",
+        "count"
+      ],
+      "result": [],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 1,
+      "data": [
+        {
+          "free": 0,
+          "total": 1073741824,
+          "allocated": 0,
+          "reserved": 67108864,
+          "peak": 134217728
+        }
+      ],
+      "fail": null,
+      "events": [
+        "available",
+        "count",
+        "info:0",
+        "allocated:0",
+        "reserved:0",
+        "peak:0"
+      ],
+      "result": [
+        {
+          "index": 0,
+          "allocated_gb": 0.0,
+          "reserved_gb": 0.062,
+          "max_allocated_gb": 0.125,
+          "free_gb": 0.0,
+          "total_gb": 1.0
+        }
+      ],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 1,
+      "data": [
+        {
+          "free": 0,
+          "total": 1073741824,
+          "allocated": 0,
+          "reserved": 67108864,
+          "peak": 134217728
+        }
+      ],
+      "fail": "available",
+      "events": [
+        "available"
+      ],
+      "result": null,
+      "error": true
+    },
+    {
+      "available": true,
+      "count": 1,
+      "data": [
+        {
+          "free": 0,
+          "total": 1073741824,
+          "allocated": 0,
+          "reserved": 67108864,
+          "peak": 134217728
+        }
+      ],
+      "fail": "count",
+      "events": [
+        "available",
+        "count"
+      ],
+      "result": null,
+      "error": true
+    },
+    {
+      "available": true,
+      "count": 1,
+      "data": [
+        {
+          "free": 0,
+          "total": 1073741824,
+          "allocated": 0,
+          "reserved": 67108864,
+          "peak": 134217728
+        }
+      ],
+      "fail": "info:0",
+      "events": [
+        "available",
+        "count",
+        "info:0"
+      ],
+      "result": [
+        {
+          "index": 0,
+          "error": "CUDA memory statistics unavailable"
+        }
+      ],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 1,
+      "data": [
+        {
+          "free": 0,
+          "total": 1073741824,
+          "allocated": 0,
+          "reserved": 67108864,
+          "peak": 134217728
+        }
+      ],
+      "fail": "allocated:0",
+      "events": [
+        "available",
+        "count",
+        "info:0",
+        "allocated:0"
+      ],
+      "result": [
+        {
+          "index": 0,
+          "error": "CUDA memory statistics unavailable"
+        }
+      ],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 1,
+      "data": [
+        {
+          "free": 0,
+          "total": 1073741824,
+          "allocated": 0,
+          "reserved": 67108864,
+          "peak": 134217728
+        }
+      ],
+      "fail": "reserved:0",
+      "events": [
+        "available",
+        "count",
+        "info:0",
+        "allocated:0",
+        "reserved:0"
+      ],
+      "result": [
+        {
+          "index": 0,
+          "error": "CUDA memory statistics unavailable"
+        }
+      ],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 1,
+      "data": [
+        {
+          "free": 0,
+          "total": 1073741824,
+          "allocated": 0,
+          "reserved": 67108864,
+          "peak": 134217728
+        }
+      ],
+      "fail": "peak:0",
+      "events": [
+        "available",
+        "count",
+        "info:0",
+        "allocated:0",
+        "reserved:0",
+        "peak:0"
+      ],
+      "result": [
+        {
+          "index": 0,
+          "error": "CUDA memory statistics unavailable"
+        }
+      ],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 1,
+      "data": [
+        {
+          "free": 0,
+          "total": 1073741824,
+          "allocated": 0,
+          "reserved": 67108864,
+          "peak": 134217728
+        }
+      ],
+      "fail": "info:1",
+      "events": [
+        "available",
+        "count",
+        "info:0",
+        "allocated:0",
+        "reserved:0",
+        "peak:0"
+      ],
+      "result": [
+        {
+          "index": 0,
+          "allocated_gb": 0.0,
+          "reserved_gb": 0.062,
+          "max_allocated_gb": 0.125,
+          "free_gb": 0.0,
+          "total_gb": 1.0
+        }
+      ],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 1,
+      "data": [
+        {
+          "free": 0,
+          "total": 1073741824,
+          "allocated": 0,
+          "reserved": 67108864,
+          "peak": 134217728
+        }
+      ],
+      "fail": "allocated:1",
+      "events": [
+        "available",
+        "count",
+        "info:0",
+        "allocated:0",
+        "reserved:0",
+        "peak:0"
+      ],
+      "result": [
+        {
+          "index": 0,
+          "allocated_gb": 0.0,
+          "reserved_gb": 0.062,
+          "max_allocated_gb": 0.125,
+          "free_gb": 0.0,
+          "total_gb": 1.0
+        }
+      ],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 1,
+      "data": [
+        {
+          "free": 0,
+          "total": 1073741824,
+          "allocated": 0,
+          "reserved": 67108864,
+          "peak": 134217728
+        }
+      ],
+      "fail": "reserved:1",
+      "events": [
+        "available",
+        "count",
+        "info:0",
+        "allocated:0",
+        "reserved:0",
+        "peak:0"
+      ],
+      "result": [
+        {
+          "index": 0,
+          "allocated_gb": 0.0,
+          "reserved_gb": 0.062,
+          "max_allocated_gb": 0.125,
+          "free_gb": 0.0,
+          "total_gb": 1.0
+        }
+      ],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 1,
+      "data": [
+        {
+          "free": 0,
+          "total": 1073741824,
+          "allocated": 0,
+          "reserved": 67108864,
+          "peak": 134217728
+        }
+      ],
+      "fail": "peak:1",
+      "events": [
+        "available",
+        "count",
+        "info:0",
+        "allocated:0",
+        "reserved:0",
+        "peak:0"
+      ],
+      "result": [
+        {
+          "index": 0,
+          "allocated_gb": 0.0,
+          "reserved_gb": 0.062,
+          "max_allocated_gb": 0.125,
+          "free_gb": 0.0,
+          "total_gb": 1.0
+        }
+      ],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 1,
+      "data": [
+        {
+          "free": 1,
+          "total": 1073741825,
+          "allocated": 1,
+          "reserved": 67108865,
+          "peak": 134217729
+        }
+      ],
+      "fail": null,
+      "events": [
+        "available",
+        "count",
+        "info:0",
+        "allocated:0",
+        "reserved:0",
+        "peak:0"
+      ],
+      "result": [
+        {
+          "index": 0,
+          "allocated_gb": 0.0,
+          "reserved_gb": 0.063,
+          "max_allocated_gb": 0.125,
+          "free_gb": 0.0,
+          "total_gb": 1.0
+        }
+      ],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 1,
+      "data": [
+        {
+          "free": 1,
+          "total": 1073741825,
+          "allocated": 1,
+          "reserved": 67108865,
+          "peak": 134217729
+        }
+      ],
+      "fail": "available",
+      "events": [
+        "available"
+      ],
+      "result": null,
+      "error": true
+    },
+    {
+      "available": true,
+      "count": 1,
+      "data": [
+        {
+          "free": 1,
+          "total": 1073741825,
+          "allocated": 1,
+          "reserved": 67108865,
+          "peak": 134217729
+        }
+      ],
+      "fail": "count",
+      "events": [
+        "available",
+        "count"
+      ],
+      "result": null,
+      "error": true
+    },
+    {
+      "available": true,
+      "count": 1,
+      "data": [
+        {
+          "free": 1,
+          "total": 1073741825,
+          "allocated": 1,
+          "reserved": 67108865,
+          "peak": 134217729
+        }
+      ],
+      "fail": "info:0",
+      "events": [
+        "available",
+        "count",
+        "info:0"
+      ],
+      "result": [
+        {
+          "index": 0,
+          "error": "CUDA memory statistics unavailable"
+        }
+      ],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 1,
+      "data": [
+        {
+          "free": 1,
+          "total": 1073741825,
+          "allocated": 1,
+          "reserved": 67108865,
+          "peak": 134217729
+        }
+      ],
+      "fail": "allocated:0",
+      "events": [
+        "available",
+        "count",
+        "info:0",
+        "allocated:0"
+      ],
+      "result": [
+        {
+          "index": 0,
+          "error": "CUDA memory statistics unavailable"
+        }
+      ],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 1,
+      "data": [
+        {
+          "free": 1,
+          "total": 1073741825,
+          "allocated": 1,
+          "reserved": 67108865,
+          "peak": 134217729
+        }
+      ],
+      "fail": "reserved:0",
+      "events": [
+        "available",
+        "count",
+        "info:0",
+        "allocated:0",
+        "reserved:0"
+      ],
+      "result": [
+        {
+          "index": 0,
+          "error": "CUDA memory statistics unavailable"
+        }
+      ],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 1,
+      "data": [
+        {
+          "free": 1,
+          "total": 1073741825,
+          "allocated": 1,
+          "reserved": 67108865,
+          "peak": 134217729
+        }
+      ],
+      "fail": "peak:0",
+      "events": [
+        "available",
+        "count",
+        "info:0",
+        "allocated:0",
+        "reserved:0",
+        "peak:0"
+      ],
+      "result": [
+        {
+          "index": 0,
+          "error": "CUDA memory statistics unavailable"
+        }
+      ],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 1,
+      "data": [
+        {
+          "free": 1,
+          "total": 1073741825,
+          "allocated": 1,
+          "reserved": 67108865,
+          "peak": 134217729
+        }
+      ],
+      "fail": "info:1",
+      "events": [
+        "available",
+        "count",
+        "info:0",
+        "allocated:0",
+        "reserved:0",
+        "peak:0"
+      ],
+      "result": [
+        {
+          "index": 0,
+          "allocated_gb": 0.0,
+          "reserved_gb": 0.063,
+          "max_allocated_gb": 0.125,
+          "free_gb": 0.0,
+          "total_gb": 1.0
+        }
+      ],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 1,
+      "data": [
+        {
+          "free": 1,
+          "total": 1073741825,
+          "allocated": 1,
+          "reserved": 67108865,
+          "peak": 134217729
+        }
+      ],
+      "fail": "allocated:1",
+      "events": [
+        "available",
+        "count",
+        "info:0",
+        "allocated:0",
+        "reserved:0",
+        "peak:0"
+      ],
+      "result": [
+        {
+          "index": 0,
+          "allocated_gb": 0.0,
+          "reserved_gb": 0.063,
+          "max_allocated_gb": 0.125,
+          "free_gb": 0.0,
+          "total_gb": 1.0
+        }
+      ],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 1,
+      "data": [
+        {
+          "free": 1,
+          "total": 1073741825,
+          "allocated": 1,
+          "reserved": 67108865,
+          "peak": 134217729
+        }
+      ],
+      "fail": "reserved:1",
+      "events": [
+        "available",
+        "count",
+        "info:0",
+        "allocated:0",
+        "reserved:0",
+        "peak:0"
+      ],
+      "result": [
+        {
+          "index": 0,
+          "allocated_gb": 0.0,
+          "reserved_gb": 0.063,
+          "max_allocated_gb": 0.125,
+          "free_gb": 0.0,
+          "total_gb": 1.0
+        }
+      ],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 1,
+      "data": [
+        {
+          "free": 1,
+          "total": 1073741825,
+          "allocated": 1,
+          "reserved": 67108865,
+          "peak": 134217729
+        }
+      ],
+      "fail": "peak:1",
+      "events": [
+        "available",
+        "count",
+        "info:0",
+        "allocated:0",
+        "reserved:0",
+        "peak:0"
+      ],
+      "result": [
+        {
+          "index": 0,
+          "allocated_gb": 0.0,
+          "reserved_gb": 0.063,
+          "max_allocated_gb": 0.125,
+          "free_gb": 0.0,
+          "total_gb": 1.0
+        }
+      ],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 1,
+      "data": [
+        {
+          "free": 67108864,
+          "total": 1140850688,
+          "allocated": 67108864,
+          "reserved": 134217728,
+          "peak": 201326592
+        }
+      ],
+      "fail": null,
+      "events": [
+        "available",
+        "count",
+        "info:0",
+        "allocated:0",
+        "reserved:0",
+        "peak:0"
+      ],
+      "result": [
+        {
+          "index": 0,
+          "allocated_gb": 0.062,
+          "reserved_gb": 0.125,
+          "max_allocated_gb": 0.188,
+          "free_gb": 0.062,
+          "total_gb": 1.062
+        }
+      ],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 1,
+      "data": [
+        {
+          "free": 67108864,
+          "total": 1140850688,
+          "allocated": 67108864,
+          "reserved": 134217728,
+          "peak": 201326592
+        }
+      ],
+      "fail": "available",
+      "events": [
+        "available"
+      ],
+      "result": null,
+      "error": true
+    },
+    {
+      "available": true,
+      "count": 1,
+      "data": [
+        {
+          "free": 67108864,
+          "total": 1140850688,
+          "allocated": 67108864,
+          "reserved": 134217728,
+          "peak": 201326592
+        }
+      ],
+      "fail": "count",
+      "events": [
+        "available",
+        "count"
+      ],
+      "result": null,
+      "error": true
+    },
+    {
+      "available": true,
+      "count": 1,
+      "data": [
+        {
+          "free": 67108864,
+          "total": 1140850688,
+          "allocated": 67108864,
+          "reserved": 134217728,
+          "peak": 201326592
+        }
+      ],
+      "fail": "info:0",
+      "events": [
+        "available",
+        "count",
+        "info:0"
+      ],
+      "result": [
+        {
+          "index": 0,
+          "error": "CUDA memory statistics unavailable"
+        }
+      ],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 1,
+      "data": [
+        {
+          "free": 67108864,
+          "total": 1140850688,
+          "allocated": 67108864,
+          "reserved": 134217728,
+          "peak": 201326592
+        }
+      ],
+      "fail": "allocated:0",
+      "events": [
+        "available",
+        "count",
+        "info:0",
+        "allocated:0"
+      ],
+      "result": [
+        {
+          "index": 0,
+          "error": "CUDA memory statistics unavailable"
+        }
+      ],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 1,
+      "data": [
+        {
+          "free": 67108864,
+          "total": 1140850688,
+          "allocated": 67108864,
+          "reserved": 134217728,
+          "peak": 201326592
+        }
+      ],
+      "fail": "reserved:0",
+      "events": [
+        "available",
+        "count",
+        "info:0",
+        "allocated:0",
+        "reserved:0"
+      ],
+      "result": [
+        {
+          "index": 0,
+          "error": "CUDA memory statistics unavailable"
+        }
+      ],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 1,
+      "data": [
+        {
+          "free": 67108864,
+          "total": 1140850688,
+          "allocated": 67108864,
+          "reserved": 134217728,
+          "peak": 201326592
+        }
+      ],
+      "fail": "peak:0",
+      "events": [
+        "available",
+        "count",
+        "info:0",
+        "allocated:0",
+        "reserved:0",
+        "peak:0"
+      ],
+      "result": [
+        {
+          "index": 0,
+          "error": "CUDA memory statistics unavailable"
+        }
+      ],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 1,
+      "data": [
+        {
+          "free": 67108864,
+          "total": 1140850688,
+          "allocated": 67108864,
+          "reserved": 134217728,
+          "peak": 201326592
+        }
+      ],
+      "fail": "info:1",
+      "events": [
+        "available",
+        "count",
+        "info:0",
+        "allocated:0",
+        "reserved:0",
+        "peak:0"
+      ],
+      "result": [
+        {
+          "index": 0,
+          "allocated_gb": 0.062,
+          "reserved_gb": 0.125,
+          "max_allocated_gb": 0.188,
+          "free_gb": 0.062,
+          "total_gb": 1.062
+        }
+      ],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 1,
+      "data": [
+        {
+          "free": 67108864,
+          "total": 1140850688,
+          "allocated": 67108864,
+          "reserved": 134217728,
+          "peak": 201326592
+        }
+      ],
+      "fail": "allocated:1",
+      "events": [
+        "available",
+        "count",
+        "info:0",
+        "allocated:0",
+        "reserved:0",
+        "peak:0"
+      ],
+      "result": [
+        {
+          "index": 0,
+          "allocated_gb": 0.062,
+          "reserved_gb": 0.125,
+          "max_allocated_gb": 0.188,
+          "free_gb": 0.062,
+          "total_gb": 1.062
+        }
+      ],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 1,
+      "data": [
+        {
+          "free": 67108864,
+          "total": 1140850688,
+          "allocated": 67108864,
+          "reserved": 134217728,
+          "peak": 201326592
+        }
+      ],
+      "fail": "reserved:1",
+      "events": [
+        "available",
+        "count",
+        "info:0",
+        "allocated:0",
+        "reserved:0",
+        "peak:0"
+      ],
+      "result": [
+        {
+          "index": 0,
+          "allocated_gb": 0.062,
+          "reserved_gb": 0.125,
+          "max_allocated_gb": 0.188,
+          "free_gb": 0.062,
+          "total_gb": 1.062
+        }
+      ],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 1,
+      "data": [
+        {
+          "free": 67108864,
+          "total": 1140850688,
+          "allocated": 67108864,
+          "reserved": 134217728,
+          "peak": 201326592
+        }
+      ],
+      "fail": "peak:1",
+      "events": [
+        "available",
+        "count",
+        "info:0",
+        "allocated:0",
+        "reserved:0",
+        "peak:0"
+      ],
+      "result": [
+        {
+          "index": 0,
+          "allocated_gb": 0.062,
+          "reserved_gb": 0.125,
+          "max_allocated_gb": 0.188,
+          "free_gb": 0.062,
+          "total_gb": 1.062
+        }
+      ],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 1,
+      "data": [
+        {
+          "free": 67108864,
+          "total": 1140850688,
+          "allocated": 67108864,
+          "reserved": 134217728,
+          "peak": 201326592
+        }
+      ],
+      "fail": null,
+      "events": [
+        "available",
+        "count",
+        "info:0",
+        "allocated:0",
+        "reserved:0",
+        "peak:0"
+      ],
+      "result": [
+        {
+          "index": 0,
+          "allocated_gb": 0.062,
+          "reserved_gb": 0.125,
+          "max_allocated_gb": 0.188,
+          "free_gb": 0.062,
+          "total_gb": 1.062
+        }
+      ],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 1,
+      "data": [
+        {
+          "free": 67108864,
+          "total": 1140850688,
+          "allocated": 67108864,
+          "reserved": 134217728,
+          "peak": 201326592
+        }
+      ],
+      "fail": "available",
+      "events": [
+        "available"
+      ],
+      "result": null,
+      "error": true
+    },
+    {
+      "available": true,
+      "count": 1,
+      "data": [
+        {
+          "free": 67108864,
+          "total": 1140850688,
+          "allocated": 67108864,
+          "reserved": 134217728,
+          "peak": 201326592
+        }
+      ],
+      "fail": "count",
+      "events": [
+        "available",
+        "count"
+      ],
+      "result": null,
+      "error": true
+    },
+    {
+      "available": true,
+      "count": 1,
+      "data": [
+        {
+          "free": 67108864,
+          "total": 1140850688,
+          "allocated": 67108864,
+          "reserved": 134217728,
+          "peak": 201326592
+        }
+      ],
+      "fail": "info:0",
+      "events": [
+        "available",
+        "count",
+        "info:0"
+      ],
+      "result": [
+        {
+          "index": 0,
+          "error": "CUDA memory statistics unavailable"
+        }
+      ],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 1,
+      "data": [
+        {
+          "free": 67108864,
+          "total": 1140850688,
+          "allocated": 67108864,
+          "reserved": 134217728,
+          "peak": 201326592
+        }
+      ],
+      "fail": "allocated:0",
+      "events": [
+        "available",
+        "count",
+        "info:0",
+        "allocated:0"
+      ],
+      "result": [
+        {
+          "index": 0,
+          "error": "CUDA memory statistics unavailable"
+        }
+      ],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 1,
+      "data": [
+        {
+          "free": 67108864,
+          "total": 1140850688,
+          "allocated": 67108864,
+          "reserved": 134217728,
+          "peak": 201326592
+        }
+      ],
+      "fail": "reserved:0",
+      "events": [
+        "available",
+        "count",
+        "info:0",
+        "allocated:0",
+        "reserved:0"
+      ],
+      "result": [
+        {
+          "index": 0,
+          "error": "CUDA memory statistics unavailable"
+        }
+      ],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 1,
+      "data": [
+        {
+          "free": 67108864,
+          "total": 1140850688,
+          "allocated": 67108864,
+          "reserved": 134217728,
+          "peak": 201326592
+        }
+      ],
+      "fail": "peak:0",
+      "events": [
+        "available",
+        "count",
+        "info:0",
+        "allocated:0",
+        "reserved:0",
+        "peak:0"
+      ],
+      "result": [
+        {
+          "index": 0,
+          "error": "CUDA memory statistics unavailable"
+        }
+      ],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 1,
+      "data": [
+        {
+          "free": 67108864,
+          "total": 1140850688,
+          "allocated": 67108864,
+          "reserved": 134217728,
+          "peak": 201326592
+        }
+      ],
+      "fail": "info:1",
+      "events": [
+        "available",
+        "count",
+        "info:0",
+        "allocated:0",
+        "reserved:0",
+        "peak:0"
+      ],
+      "result": [
+        {
+          "index": 0,
+          "allocated_gb": 0.062,
+          "reserved_gb": 0.125,
+          "max_allocated_gb": 0.188,
+          "free_gb": 0.062,
+          "total_gb": 1.062
+        }
+      ],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 1,
+      "data": [
+        {
+          "free": 67108864,
+          "total": 1140850688,
+          "allocated": 67108864,
+          "reserved": 134217728,
+          "peak": 201326592
+        }
+      ],
+      "fail": "allocated:1",
+      "events": [
+        "available",
+        "count",
+        "info:0",
+        "allocated:0",
+        "reserved:0",
+        "peak:0"
+      ],
+      "result": [
+        {
+          "index": 0,
+          "allocated_gb": 0.062,
+          "reserved_gb": 0.125,
+          "max_allocated_gb": 0.188,
+          "free_gb": 0.062,
+          "total_gb": 1.062
+        }
+      ],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 1,
+      "data": [
+        {
+          "free": 67108864,
+          "total": 1140850688,
+          "allocated": 67108864,
+          "reserved": 134217728,
+          "peak": 201326592
+        }
+      ],
+      "fail": "reserved:1",
+      "events": [
+        "available",
+        "count",
+        "info:0",
+        "allocated:0",
+        "reserved:0",
+        "peak:0"
+      ],
+      "result": [
+        {
+          "index": 0,
+          "allocated_gb": 0.062,
+          "reserved_gb": 0.125,
+          "max_allocated_gb": 0.188,
+          "free_gb": 0.062,
+          "total_gb": 1.062
+        }
+      ],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 1,
+      "data": [
+        {
+          "free": 67108864,
+          "total": 1140850688,
+          "allocated": 67108864,
+          "reserved": 134217728,
+          "peak": 201326592
+        }
+      ],
+      "fail": "peak:1",
+      "events": [
+        "available",
+        "count",
+        "info:0",
+        "allocated:0",
+        "reserved:0",
+        "peak:0"
+      ],
+      "result": [
+        {
+          "index": 0,
+          "allocated_gb": 0.062,
+          "reserved_gb": 0.125,
+          "max_allocated_gb": 0.188,
+          "free_gb": 0.062,
+          "total_gb": 1.062
+        }
+      ],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 1,
+      "data": [
+        {
+          "free": 17716740096,
+          "total": 18790481920,
+          "allocated": 17716740096,
+          "reserved": 17783848960,
+          "peak": 17850957824
+        }
+      ],
+      "fail": null,
+      "events": [
+        "available",
+        "count",
+        "info:0",
+        "allocated:0",
+        "reserved:0",
+        "peak:0"
+      ],
+      "result": [
+        {
+          "index": 0,
+          "allocated_gb": 16.5,
+          "reserved_gb": 16.562,
+          "max_allocated_gb": 16.625,
+          "free_gb": 16.5,
+          "total_gb": 17.5
+        }
+      ],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 1,
+      "data": [
+        {
+          "free": 17716740096,
+          "total": 18790481920,
+          "allocated": 17716740096,
+          "reserved": 17783848960,
+          "peak": 17850957824
+        }
+      ],
+      "fail": "available",
+      "events": [
+        "available"
+      ],
+      "result": null,
+      "error": true
+    },
+    {
+      "available": true,
+      "count": 1,
+      "data": [
+        {
+          "free": 17716740096,
+          "total": 18790481920,
+          "allocated": 17716740096,
+          "reserved": 17783848960,
+          "peak": 17850957824
+        }
+      ],
+      "fail": "count",
+      "events": [
+        "available",
+        "count"
+      ],
+      "result": null,
+      "error": true
+    },
+    {
+      "available": true,
+      "count": 1,
+      "data": [
+        {
+          "free": 17716740096,
+          "total": 18790481920,
+          "allocated": 17716740096,
+          "reserved": 17783848960,
+          "peak": 17850957824
+        }
+      ],
+      "fail": "info:0",
+      "events": [
+        "available",
+        "count",
+        "info:0"
+      ],
+      "result": [
+        {
+          "index": 0,
+          "error": "CUDA memory statistics unavailable"
+        }
+      ],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 1,
+      "data": [
+        {
+          "free": 17716740096,
+          "total": 18790481920,
+          "allocated": 17716740096,
+          "reserved": 17783848960,
+          "peak": 17850957824
+        }
+      ],
+      "fail": "allocated:0",
+      "events": [
+        "available",
+        "count",
+        "info:0",
+        "allocated:0"
+      ],
+      "result": [
+        {
+          "index": 0,
+          "error": "CUDA memory statistics unavailable"
+        }
+      ],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 1,
+      "data": [
+        {
+          "free": 17716740096,
+          "total": 18790481920,
+          "allocated": 17716740096,
+          "reserved": 17783848960,
+          "peak": 17850957824
+        }
+      ],
+      "fail": "reserved:0",
+      "events": [
+        "available",
+        "count",
+        "info:0",
+        "allocated:0",
+        "reserved:0"
+      ],
+      "result": [
+        {
+          "index": 0,
+          "error": "CUDA memory statistics unavailable"
+        }
+      ],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 1,
+      "data": [
+        {
+          "free": 17716740096,
+          "total": 18790481920,
+          "allocated": 17716740096,
+          "reserved": 17783848960,
+          "peak": 17850957824
+        }
+      ],
+      "fail": "peak:0",
+      "events": [
+        "available",
+        "count",
+        "info:0",
+        "allocated:0",
+        "reserved:0",
+        "peak:0"
+      ],
+      "result": [
+        {
+          "index": 0,
+          "error": "CUDA memory statistics unavailable"
+        }
+      ],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 1,
+      "data": [
+        {
+          "free": 17716740096,
+          "total": 18790481920,
+          "allocated": 17716740096,
+          "reserved": 17783848960,
+          "peak": 17850957824
+        }
+      ],
+      "fail": "info:1",
+      "events": [
+        "available",
+        "count",
+        "info:0",
+        "allocated:0",
+        "reserved:0",
+        "peak:0"
+      ],
+      "result": [
+        {
+          "index": 0,
+          "allocated_gb": 16.5,
+          "reserved_gb": 16.562,
+          "max_allocated_gb": 16.625,
+          "free_gb": 16.5,
+          "total_gb": 17.5
+        }
+      ],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 1,
+      "data": [
+        {
+          "free": 17716740096,
+          "total": 18790481920,
+          "allocated": 17716740096,
+          "reserved": 17783848960,
+          "peak": 17850957824
+        }
+      ],
+      "fail": "allocated:1",
+      "events": [
+        "available",
+        "count",
+        "info:0",
+        "allocated:0",
+        "reserved:0",
+        "peak:0"
+      ],
+      "result": [
+        {
+          "index": 0,
+          "allocated_gb": 16.5,
+          "reserved_gb": 16.562,
+          "max_allocated_gb": 16.625,
+          "free_gb": 16.5,
+          "total_gb": 17.5
+        }
+      ],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 1,
+      "data": [
+        {
+          "free": 17716740096,
+          "total": 18790481920,
+          "allocated": 17716740096,
+          "reserved": 17783848960,
+          "peak": 17850957824
+        }
+      ],
+      "fail": "reserved:1",
+      "events": [
+        "available",
+        "count",
+        "info:0",
+        "allocated:0",
+        "reserved:0",
+        "peak:0"
+      ],
+      "result": [
+        {
+          "index": 0,
+          "allocated_gb": 16.5,
+          "reserved_gb": 16.562,
+          "max_allocated_gb": 16.625,
+          "free_gb": 16.5,
+          "total_gb": 17.5
+        }
+      ],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 1,
+      "data": [
+        {
+          "free": 17716740096,
+          "total": 18790481920,
+          "allocated": 17716740096,
+          "reserved": 17783848960,
+          "peak": 17850957824
+        }
+      ],
+      "fail": "peak:1",
+      "events": [
+        "available",
+        "count",
+        "info:0",
+        "allocated:0",
+        "reserved:0",
+        "peak:0"
+      ],
+      "result": [
+        {
+          "index": 0,
+          "allocated_gb": 16.5,
+          "reserved_gb": 16.562,
+          "max_allocated_gb": 16.625,
+          "free_gb": 16.5,
+          "total_gb": 17.5
+        }
+      ],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 3,
+      "data": [
+        {
+          "free": 0,
+          "total": 1073741824,
+          "allocated": 0,
+          "reserved": 67108864,
+          "peak": 134217728
+        },
+        {
+          "free": 12345,
+          "total": 1073741824,
+          "allocated": 1,
+          "reserved": 67108865,
+          "peak": 134217729
+        },
+        {
+          "free": 24690,
+          "total": 1073741824,
+          "allocated": 2,
+          "reserved": 67108866,
+          "peak": 134217730
+        }
+      ],
+      "fail": null,
+      "events": [
+        "available",
+        "count",
+        "info:0",
+        "allocated:0",
+        "reserved:0",
+        "peak:0",
+        "info:1",
+        "allocated:1",
+        "reserved:1",
+        "peak:1",
+        "info:2",
+        "allocated:2",
+        "reserved:2",
+        "peak:2"
+      ],
+      "result": [
+        {
+          "index": 0,
+          "allocated_gb": 0.0,
+          "reserved_gb": 0.062,
+          "max_allocated_gb": 0.125,
+          "free_gb": 0.0,
+          "total_gb": 1.0
+        },
+        {
+          "index": 1,
+          "allocated_gb": 0.0,
+          "reserved_gb": 0.063,
+          "max_allocated_gb": 0.125,
+          "free_gb": 0.0,
+          "total_gb": 1.0
+        },
+        {
+          "index": 2,
+          "allocated_gb": 0.0,
+          "reserved_gb": 0.063,
+          "max_allocated_gb": 0.125,
+          "free_gb": 0.0,
+          "total_gb": 1.0
+        }
+      ],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 3,
+      "data": [
+        {
+          "free": 0,
+          "total": 1073741824,
+          "allocated": 0,
+          "reserved": 67108864,
+          "peak": 134217728
+        },
+        {
+          "free": 12345,
+          "total": 1073741824,
+          "allocated": 1,
+          "reserved": 67108865,
+          "peak": 134217729
+        },
+        {
+          "free": 24690,
+          "total": 1073741824,
+          "allocated": 2,
+          "reserved": 67108866,
+          "peak": 134217730
+        }
+      ],
+      "fail": "available",
+      "events": [
+        "available"
+      ],
+      "result": null,
+      "error": true
+    },
+    {
+      "available": true,
+      "count": 3,
+      "data": [
+        {
+          "free": 0,
+          "total": 1073741824,
+          "allocated": 0,
+          "reserved": 67108864,
+          "peak": 134217728
+        },
+        {
+          "free": 12345,
+          "total": 1073741824,
+          "allocated": 1,
+          "reserved": 67108865,
+          "peak": 134217729
+        },
+        {
+          "free": 24690,
+          "total": 1073741824,
+          "allocated": 2,
+          "reserved": 67108866,
+          "peak": 134217730
+        }
+      ],
+      "fail": "count",
+      "events": [
+        "available",
+        "count"
+      ],
+      "result": null,
+      "error": true
+    },
+    {
+      "available": true,
+      "count": 3,
+      "data": [
+        {
+          "free": 0,
+          "total": 1073741824,
+          "allocated": 0,
+          "reserved": 67108864,
+          "peak": 134217728
+        },
+        {
+          "free": 12345,
+          "total": 1073741824,
+          "allocated": 1,
+          "reserved": 67108865,
+          "peak": 134217729
+        },
+        {
+          "free": 24690,
+          "total": 1073741824,
+          "allocated": 2,
+          "reserved": 67108866,
+          "peak": 134217730
+        }
+      ],
+      "fail": "info:0",
+      "events": [
+        "available",
+        "count",
+        "info:0",
+        "info:1",
+        "allocated:1",
+        "reserved:1",
+        "peak:1",
+        "info:2",
+        "allocated:2",
+        "reserved:2",
+        "peak:2"
+      ],
+      "result": [
+        {
+          "index": 0,
+          "error": "CUDA memory statistics unavailable"
+        },
+        {
+          "index": 1,
+          "allocated_gb": 0.0,
+          "reserved_gb": 0.063,
+          "max_allocated_gb": 0.125,
+          "free_gb": 0.0,
+          "total_gb": 1.0
+        },
+        {
+          "index": 2,
+          "allocated_gb": 0.0,
+          "reserved_gb": 0.063,
+          "max_allocated_gb": 0.125,
+          "free_gb": 0.0,
+          "total_gb": 1.0
+        }
+      ],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 3,
+      "data": [
+        {
+          "free": 0,
+          "total": 1073741824,
+          "allocated": 0,
+          "reserved": 67108864,
+          "peak": 134217728
+        },
+        {
+          "free": 12345,
+          "total": 1073741824,
+          "allocated": 1,
+          "reserved": 67108865,
+          "peak": 134217729
+        },
+        {
+          "free": 24690,
+          "total": 1073741824,
+          "allocated": 2,
+          "reserved": 67108866,
+          "peak": 134217730
+        }
+      ],
+      "fail": "allocated:0",
+      "events": [
+        "available",
+        "count",
+        "info:0",
+        "allocated:0",
+        "info:1",
+        "allocated:1",
+        "reserved:1",
+        "peak:1",
+        "info:2",
+        "allocated:2",
+        "reserved:2",
+        "peak:2"
+      ],
+      "result": [
+        {
+          "index": 0,
+          "error": "CUDA memory statistics unavailable"
+        },
+        {
+          "index": 1,
+          "allocated_gb": 0.0,
+          "reserved_gb": 0.063,
+          "max_allocated_gb": 0.125,
+          "free_gb": 0.0,
+          "total_gb": 1.0
+        },
+        {
+          "index": 2,
+          "allocated_gb": 0.0,
+          "reserved_gb": 0.063,
+          "max_allocated_gb": 0.125,
+          "free_gb": 0.0,
+          "total_gb": 1.0
+        }
+      ],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 3,
+      "data": [
+        {
+          "free": 0,
+          "total": 1073741824,
+          "allocated": 0,
+          "reserved": 67108864,
+          "peak": 134217728
+        },
+        {
+          "free": 12345,
+          "total": 1073741824,
+          "allocated": 1,
+          "reserved": 67108865,
+          "peak": 134217729
+        },
+        {
+          "free": 24690,
+          "total": 1073741824,
+          "allocated": 2,
+          "reserved": 67108866,
+          "peak": 134217730
+        }
+      ],
+      "fail": "reserved:0",
+      "events": [
+        "available",
+        "count",
+        "info:0",
+        "allocated:0",
+        "reserved:0",
+        "info:1",
+        "allocated:1",
+        "reserved:1",
+        "peak:1",
+        "info:2",
+        "allocated:2",
+        "reserved:2",
+        "peak:2"
+      ],
+      "result": [
+        {
+          "index": 0,
+          "error": "CUDA memory statistics unavailable"
+        },
+        {
+          "index": 1,
+          "allocated_gb": 0.0,
+          "reserved_gb": 0.063,
+          "max_allocated_gb": 0.125,
+          "free_gb": 0.0,
+          "total_gb": 1.0
+        },
+        {
+          "index": 2,
+          "allocated_gb": 0.0,
+          "reserved_gb": 0.063,
+          "max_allocated_gb": 0.125,
+          "free_gb": 0.0,
+          "total_gb": 1.0
+        }
+      ],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 3,
+      "data": [
+        {
+          "free": 0,
+          "total": 1073741824,
+          "allocated": 0,
+          "reserved": 67108864,
+          "peak": 134217728
+        },
+        {
+          "free": 12345,
+          "total": 1073741824,
+          "allocated": 1,
+          "reserved": 67108865,
+          "peak": 134217729
+        },
+        {
+          "free": 24690,
+          "total": 1073741824,
+          "allocated": 2,
+          "reserved": 67108866,
+          "peak": 134217730
+        }
+      ],
+      "fail": "peak:0",
+      "events": [
+        "available",
+        "count",
+        "info:0",
+        "allocated:0",
+        "reserved:0",
+        "peak:0",
+        "info:1",
+        "allocated:1",
+        "reserved:1",
+        "peak:1",
+        "info:2",
+        "allocated:2",
+        "reserved:2",
+        "peak:2"
+      ],
+      "result": [
+        {
+          "index": 0,
+          "error": "CUDA memory statistics unavailable"
+        },
+        {
+          "index": 1,
+          "allocated_gb": 0.0,
+          "reserved_gb": 0.063,
+          "max_allocated_gb": 0.125,
+          "free_gb": 0.0,
+          "total_gb": 1.0
+        },
+        {
+          "index": 2,
+          "allocated_gb": 0.0,
+          "reserved_gb": 0.063,
+          "max_allocated_gb": 0.125,
+          "free_gb": 0.0,
+          "total_gb": 1.0
+        }
+      ],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 3,
+      "data": [
+        {
+          "free": 0,
+          "total": 1073741824,
+          "allocated": 0,
+          "reserved": 67108864,
+          "peak": 134217728
+        },
+        {
+          "free": 12345,
+          "total": 1073741824,
+          "allocated": 1,
+          "reserved": 67108865,
+          "peak": 134217729
+        },
+        {
+          "free": 24690,
+          "total": 1073741824,
+          "allocated": 2,
+          "reserved": 67108866,
+          "peak": 134217730
+        }
+      ],
+      "fail": "info:1",
+      "events": [
+        "available",
+        "count",
+        "info:0",
+        "allocated:0",
+        "reserved:0",
+        "peak:0",
+        "info:1",
+        "info:2",
+        "allocated:2",
+        "reserved:2",
+        "peak:2"
+      ],
+      "result": [
+        {
+          "index": 0,
+          "allocated_gb": 0.0,
+          "reserved_gb": 0.062,
+          "max_allocated_gb": 0.125,
+          "free_gb": 0.0,
+          "total_gb": 1.0
+        },
+        {
+          "index": 1,
+          "error": "CUDA memory statistics unavailable"
+        },
+        {
+          "index": 2,
+          "allocated_gb": 0.0,
+          "reserved_gb": 0.063,
+          "max_allocated_gb": 0.125,
+          "free_gb": 0.0,
+          "total_gb": 1.0
+        }
+      ],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 3,
+      "data": [
+        {
+          "free": 0,
+          "total": 1073741824,
+          "allocated": 0,
+          "reserved": 67108864,
+          "peak": 134217728
+        },
+        {
+          "free": 12345,
+          "total": 1073741824,
+          "allocated": 1,
+          "reserved": 67108865,
+          "peak": 134217729
+        },
+        {
+          "free": 24690,
+          "total": 1073741824,
+          "allocated": 2,
+          "reserved": 67108866,
+          "peak": 134217730
+        }
+      ],
+      "fail": "allocated:1",
+      "events": [
+        "available",
+        "count",
+        "info:0",
+        "allocated:0",
+        "reserved:0",
+        "peak:0",
+        "info:1",
+        "allocated:1",
+        "info:2",
+        "allocated:2",
+        "reserved:2",
+        "peak:2"
+      ],
+      "result": [
+        {
+          "index": 0,
+          "allocated_gb": 0.0,
+          "reserved_gb": 0.062,
+          "max_allocated_gb": 0.125,
+          "free_gb": 0.0,
+          "total_gb": 1.0
+        },
+        {
+          "index": 1,
+          "error": "CUDA memory statistics unavailable"
+        },
+        {
+          "index": 2,
+          "allocated_gb": 0.0,
+          "reserved_gb": 0.063,
+          "max_allocated_gb": 0.125,
+          "free_gb": 0.0,
+          "total_gb": 1.0
+        }
+      ],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 3,
+      "data": [
+        {
+          "free": 0,
+          "total": 1073741824,
+          "allocated": 0,
+          "reserved": 67108864,
+          "peak": 134217728
+        },
+        {
+          "free": 12345,
+          "total": 1073741824,
+          "allocated": 1,
+          "reserved": 67108865,
+          "peak": 134217729
+        },
+        {
+          "free": 24690,
+          "total": 1073741824,
+          "allocated": 2,
+          "reserved": 67108866,
+          "peak": 134217730
+        }
+      ],
+      "fail": "reserved:1",
+      "events": [
+        "available",
+        "count",
+        "info:0",
+        "allocated:0",
+        "reserved:0",
+        "peak:0",
+        "info:1",
+        "allocated:1",
+        "reserved:1",
+        "info:2",
+        "allocated:2",
+        "reserved:2",
+        "peak:2"
+      ],
+      "result": [
+        {
+          "index": 0,
+          "allocated_gb": 0.0,
+          "reserved_gb": 0.062,
+          "max_allocated_gb": 0.125,
+          "free_gb": 0.0,
+          "total_gb": 1.0
+        },
+        {
+          "index": 1,
+          "error": "CUDA memory statistics unavailable"
+        },
+        {
+          "index": 2,
+          "allocated_gb": 0.0,
+          "reserved_gb": 0.063,
+          "max_allocated_gb": 0.125,
+          "free_gb": 0.0,
+          "total_gb": 1.0
+        }
+      ],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 3,
+      "data": [
+        {
+          "free": 0,
+          "total": 1073741824,
+          "allocated": 0,
+          "reserved": 67108864,
+          "peak": 134217728
+        },
+        {
+          "free": 12345,
+          "total": 1073741824,
+          "allocated": 1,
+          "reserved": 67108865,
+          "peak": 134217729
+        },
+        {
+          "free": 24690,
+          "total": 1073741824,
+          "allocated": 2,
+          "reserved": 67108866,
+          "peak": 134217730
+        }
+      ],
+      "fail": "peak:1",
+      "events": [
+        "available",
+        "count",
+        "info:0",
+        "allocated:0",
+        "reserved:0",
+        "peak:0",
+        "info:1",
+        "allocated:1",
+        "reserved:1",
+        "peak:1",
+        "info:2",
+        "allocated:2",
+        "reserved:2",
+        "peak:2"
+      ],
+      "result": [
+        {
+          "index": 0,
+          "allocated_gb": 0.0,
+          "reserved_gb": 0.062,
+          "max_allocated_gb": 0.125,
+          "free_gb": 0.0,
+          "total_gb": 1.0
+        },
+        {
+          "index": 1,
+          "error": "CUDA memory statistics unavailable"
+        },
+        {
+          "index": 2,
+          "allocated_gb": 0.0,
+          "reserved_gb": 0.063,
+          "max_allocated_gb": 0.125,
+          "free_gb": 0.0,
+          "total_gb": 1.0
+        }
+      ],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 3,
+      "data": [
+        {
+          "free": 1,
+          "total": 1073741825,
+          "allocated": 1,
+          "reserved": 67108865,
+          "peak": 134217729
+        },
+        {
+          "free": 12346,
+          "total": 1073741825,
+          "allocated": 2,
+          "reserved": 67108866,
+          "peak": 134217730
+        },
+        {
+          "free": 24691,
+          "total": 1073741825,
+          "allocated": 3,
+          "reserved": 67108867,
+          "peak": 134217731
+        }
+      ],
+      "fail": null,
+      "events": [
+        "available",
+        "count",
+        "info:0",
+        "allocated:0",
+        "reserved:0",
+        "peak:0",
+        "info:1",
+        "allocated:1",
+        "reserved:1",
+        "peak:1",
+        "info:2",
+        "allocated:2",
+        "reserved:2",
+        "peak:2"
+      ],
+      "result": [
+        {
+          "index": 0,
+          "allocated_gb": 0.0,
+          "reserved_gb": 0.063,
+          "max_allocated_gb": 0.125,
+          "free_gb": 0.0,
+          "total_gb": 1.0
+        },
+        {
+          "index": 1,
+          "allocated_gb": 0.0,
+          "reserved_gb": 0.063,
+          "max_allocated_gb": 0.125,
+          "free_gb": 0.0,
+          "total_gb": 1.0
+        },
+        {
+          "index": 2,
+          "allocated_gb": 0.0,
+          "reserved_gb": 0.063,
+          "max_allocated_gb": 0.125,
+          "free_gb": 0.0,
+          "total_gb": 1.0
+        }
+      ],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 3,
+      "data": [
+        {
+          "free": 1,
+          "total": 1073741825,
+          "allocated": 1,
+          "reserved": 67108865,
+          "peak": 134217729
+        },
+        {
+          "free": 12346,
+          "total": 1073741825,
+          "allocated": 2,
+          "reserved": 67108866,
+          "peak": 134217730
+        },
+        {
+          "free": 24691,
+          "total": 1073741825,
+          "allocated": 3,
+          "reserved": 67108867,
+          "peak": 134217731
+        }
+      ],
+      "fail": "available",
+      "events": [
+        "available"
+      ],
+      "result": null,
+      "error": true
+    },
+    {
+      "available": true,
+      "count": 3,
+      "data": [
+        {
+          "free": 1,
+          "total": 1073741825,
+          "allocated": 1,
+          "reserved": 67108865,
+          "peak": 134217729
+        },
+        {
+          "free": 12346,
+          "total": 1073741825,
+          "allocated": 2,
+          "reserved": 67108866,
+          "peak": 134217730
+        },
+        {
+          "free": 24691,
+          "total": 1073741825,
+          "allocated": 3,
+          "reserved": 67108867,
+          "peak": 134217731
+        }
+      ],
+      "fail": "count",
+      "events": [
+        "available",
+        "count"
+      ],
+      "result": null,
+      "error": true
+    },
+    {
+      "available": true,
+      "count": 3,
+      "data": [
+        {
+          "free": 1,
+          "total": 1073741825,
+          "allocated": 1,
+          "reserved": 67108865,
+          "peak": 134217729
+        },
+        {
+          "free": 12346,
+          "total": 1073741825,
+          "allocated": 2,
+          "reserved": 67108866,
+          "peak": 134217730
+        },
+        {
+          "free": 24691,
+          "total": 1073741825,
+          "allocated": 3,
+          "reserved": 67108867,
+          "peak": 134217731
+        }
+      ],
+      "fail": "info:0",
+      "events": [
+        "available",
+        "count",
+        "info:0",
+        "info:1",
+        "allocated:1",
+        "reserved:1",
+        "peak:1",
+        "info:2",
+        "allocated:2",
+        "reserved:2",
+        "peak:2"
+      ],
+      "result": [
+        {
+          "index": 0,
+          "error": "CUDA memory statistics unavailable"
+        },
+        {
+          "index": 1,
+          "allocated_gb": 0.0,
+          "reserved_gb": 0.063,
+          "max_allocated_gb": 0.125,
+          "free_gb": 0.0,
+          "total_gb": 1.0
+        },
+        {
+          "index": 2,
+          "allocated_gb": 0.0,
+          "reserved_gb": 0.063,
+          "max_allocated_gb": 0.125,
+          "free_gb": 0.0,
+          "total_gb": 1.0
+        }
+      ],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 3,
+      "data": [
+        {
+          "free": 1,
+          "total": 1073741825,
+          "allocated": 1,
+          "reserved": 67108865,
+          "peak": 134217729
+        },
+        {
+          "free": 12346,
+          "total": 1073741825,
+          "allocated": 2,
+          "reserved": 67108866,
+          "peak": 134217730
+        },
+        {
+          "free": 24691,
+          "total": 1073741825,
+          "allocated": 3,
+          "reserved": 67108867,
+          "peak": 134217731
+        }
+      ],
+      "fail": "allocated:0",
+      "events": [
+        "available",
+        "count",
+        "info:0",
+        "allocated:0",
+        "info:1",
+        "allocated:1",
+        "reserved:1",
+        "peak:1",
+        "info:2",
+        "allocated:2",
+        "reserved:2",
+        "peak:2"
+      ],
+      "result": [
+        {
+          "index": 0,
+          "error": "CUDA memory statistics unavailable"
+        },
+        {
+          "index": 1,
+          "allocated_gb": 0.0,
+          "reserved_gb": 0.063,
+          "max_allocated_gb": 0.125,
+          "free_gb": 0.0,
+          "total_gb": 1.0
+        },
+        {
+          "index": 2,
+          "allocated_gb": 0.0,
+          "reserved_gb": 0.063,
+          "max_allocated_gb": 0.125,
+          "free_gb": 0.0,
+          "total_gb": 1.0
+        }
+      ],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 3,
+      "data": [
+        {
+          "free": 1,
+          "total": 1073741825,
+          "allocated": 1,
+          "reserved": 67108865,
+          "peak": 134217729
+        },
+        {
+          "free": 12346,
+          "total": 1073741825,
+          "allocated": 2,
+          "reserved": 67108866,
+          "peak": 134217730
+        },
+        {
+          "free": 24691,
+          "total": 1073741825,
+          "allocated": 3,
+          "reserved": 67108867,
+          "peak": 134217731
+        }
+      ],
+      "fail": "reserved:0",
+      "events": [
+        "available",
+        "count",
+        "info:0",
+        "allocated:0",
+        "reserved:0",
+        "info:1",
+        "allocated:1",
+        "reserved:1",
+        "peak:1",
+        "info:2",
+        "allocated:2",
+        "reserved:2",
+        "peak:2"
+      ],
+      "result": [
+        {
+          "index": 0,
+          "error": "CUDA memory statistics unavailable"
+        },
+        {
+          "index": 1,
+          "allocated_gb": 0.0,
+          "reserved_gb": 0.063,
+          "max_allocated_gb": 0.125,
+          "free_gb": 0.0,
+          "total_gb": 1.0
+        },
+        {
+          "index": 2,
+          "allocated_gb": 0.0,
+          "reserved_gb": 0.063,
+          "max_allocated_gb": 0.125,
+          "free_gb": 0.0,
+          "total_gb": 1.0
+        }
+      ],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 3,
+      "data": [
+        {
+          "free": 1,
+          "total": 1073741825,
+          "allocated": 1,
+          "reserved": 67108865,
+          "peak": 134217729
+        },
+        {
+          "free": 12346,
+          "total": 1073741825,
+          "allocated": 2,
+          "reserved": 67108866,
+          "peak": 134217730
+        },
+        {
+          "free": 24691,
+          "total": 1073741825,
+          "allocated": 3,
+          "reserved": 67108867,
+          "peak": 134217731
+        }
+      ],
+      "fail": "peak:0",
+      "events": [
+        "available",
+        "count",
+        "info:0",
+        "allocated:0",
+        "reserved:0",
+        "peak:0",
+        "info:1",
+        "allocated:1",
+        "reserved:1",
+        "peak:1",
+        "info:2",
+        "allocated:2",
+        "reserved:2",
+        "peak:2"
+      ],
+      "result": [
+        {
+          "index": 0,
+          "error": "CUDA memory statistics unavailable"
+        },
+        {
+          "index": 1,
+          "allocated_gb": 0.0,
+          "reserved_gb": 0.063,
+          "max_allocated_gb": 0.125,
+          "free_gb": 0.0,
+          "total_gb": 1.0
+        },
+        {
+          "index": 2,
+          "allocated_gb": 0.0,
+          "reserved_gb": 0.063,
+          "max_allocated_gb": 0.125,
+          "free_gb": 0.0,
+          "total_gb": 1.0
+        }
+      ],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 3,
+      "data": [
+        {
+          "free": 1,
+          "total": 1073741825,
+          "allocated": 1,
+          "reserved": 67108865,
+          "peak": 134217729
+        },
+        {
+          "free": 12346,
+          "total": 1073741825,
+          "allocated": 2,
+          "reserved": 67108866,
+          "peak": 134217730
+        },
+        {
+          "free": 24691,
+          "total": 1073741825,
+          "allocated": 3,
+          "reserved": 67108867,
+          "peak": 134217731
+        }
+      ],
+      "fail": "info:1",
+      "events": [
+        "available",
+        "count",
+        "info:0",
+        "allocated:0",
+        "reserved:0",
+        "peak:0",
+        "info:1",
+        "info:2",
+        "allocated:2",
+        "reserved:2",
+        "peak:2"
+      ],
+      "result": [
+        {
+          "index": 0,
+          "allocated_gb": 0.0,
+          "reserved_gb": 0.063,
+          "max_allocated_gb": 0.125,
+          "free_gb": 0.0,
+          "total_gb": 1.0
+        },
+        {
+          "index": 1,
+          "error": "CUDA memory statistics unavailable"
+        },
+        {
+          "index": 2,
+          "allocated_gb": 0.0,
+          "reserved_gb": 0.063,
+          "max_allocated_gb": 0.125,
+          "free_gb": 0.0,
+          "total_gb": 1.0
+        }
+      ],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 3,
+      "data": [
+        {
+          "free": 1,
+          "total": 1073741825,
+          "allocated": 1,
+          "reserved": 67108865,
+          "peak": 134217729
+        },
+        {
+          "free": 12346,
+          "total": 1073741825,
+          "allocated": 2,
+          "reserved": 67108866,
+          "peak": 134217730
+        },
+        {
+          "free": 24691,
+          "total": 1073741825,
+          "allocated": 3,
+          "reserved": 67108867,
+          "peak": 134217731
+        }
+      ],
+      "fail": "allocated:1",
+      "events": [
+        "available",
+        "count",
+        "info:0",
+        "allocated:0",
+        "reserved:0",
+        "peak:0",
+        "info:1",
+        "allocated:1",
+        "info:2",
+        "allocated:2",
+        "reserved:2",
+        "peak:2"
+      ],
+      "result": [
+        {
+          "index": 0,
+          "allocated_gb": 0.0,
+          "reserved_gb": 0.063,
+          "max_allocated_gb": 0.125,
+          "free_gb": 0.0,
+          "total_gb": 1.0
+        },
+        {
+          "index": 1,
+          "error": "CUDA memory statistics unavailable"
+        },
+        {
+          "index": 2,
+          "allocated_gb": 0.0,
+          "reserved_gb": 0.063,
+          "max_allocated_gb": 0.125,
+          "free_gb": 0.0,
+          "total_gb": 1.0
+        }
+      ],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 3,
+      "data": [
+        {
+          "free": 1,
+          "total": 1073741825,
+          "allocated": 1,
+          "reserved": 67108865,
+          "peak": 134217729
+        },
+        {
+          "free": 12346,
+          "total": 1073741825,
+          "allocated": 2,
+          "reserved": 67108866,
+          "peak": 134217730
+        },
+        {
+          "free": 24691,
+          "total": 1073741825,
+          "allocated": 3,
+          "reserved": 67108867,
+          "peak": 134217731
+        }
+      ],
+      "fail": "reserved:1",
+      "events": [
+        "available",
+        "count",
+        "info:0",
+        "allocated:0",
+        "reserved:0",
+        "peak:0",
+        "info:1",
+        "allocated:1",
+        "reserved:1",
+        "info:2",
+        "allocated:2",
+        "reserved:2",
+        "peak:2"
+      ],
+      "result": [
+        {
+          "index": 0,
+          "allocated_gb": 0.0,
+          "reserved_gb": 0.063,
+          "max_allocated_gb": 0.125,
+          "free_gb": 0.0,
+          "total_gb": 1.0
+        },
+        {
+          "index": 1,
+          "error": "CUDA memory statistics unavailable"
+        },
+        {
+          "index": 2,
+          "allocated_gb": 0.0,
+          "reserved_gb": 0.063,
+          "max_allocated_gb": 0.125,
+          "free_gb": 0.0,
+          "total_gb": 1.0
+        }
+      ],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 3,
+      "data": [
+        {
+          "free": 1,
+          "total": 1073741825,
+          "allocated": 1,
+          "reserved": 67108865,
+          "peak": 134217729
+        },
+        {
+          "free": 12346,
+          "total": 1073741825,
+          "allocated": 2,
+          "reserved": 67108866,
+          "peak": 134217730
+        },
+        {
+          "free": 24691,
+          "total": 1073741825,
+          "allocated": 3,
+          "reserved": 67108867,
+          "peak": 134217731
+        }
+      ],
+      "fail": "peak:1",
+      "events": [
+        "available",
+        "count",
+        "info:0",
+        "allocated:0",
+        "reserved:0",
+        "peak:0",
+        "info:1",
+        "allocated:1",
+        "reserved:1",
+        "peak:1",
+        "info:2",
+        "allocated:2",
+        "reserved:2",
+        "peak:2"
+      ],
+      "result": [
+        {
+          "index": 0,
+          "allocated_gb": 0.0,
+          "reserved_gb": 0.063,
+          "max_allocated_gb": 0.125,
+          "free_gb": 0.0,
+          "total_gb": 1.0
+        },
+        {
+          "index": 1,
+          "error": "CUDA memory statistics unavailable"
+        },
+        {
+          "index": 2,
+          "allocated_gb": 0.0,
+          "reserved_gb": 0.063,
+          "max_allocated_gb": 0.125,
+          "free_gb": 0.0,
+          "total_gb": 1.0
+        }
+      ],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 3,
+      "data": [
+        {
+          "free": 67108864,
+          "total": 1140850688,
+          "allocated": 67108864,
+          "reserved": 134217728,
+          "peak": 201326592
+        },
+        {
+          "free": 67121209,
+          "total": 1140850688,
+          "allocated": 67108865,
+          "reserved": 134217729,
+          "peak": 201326593
+        },
+        {
+          "free": 67133554,
+          "total": 1140850688,
+          "allocated": 67108866,
+          "reserved": 134217730,
+          "peak": 201326594
+        }
+      ],
+      "fail": null,
+      "events": [
+        "available",
+        "count",
+        "info:0",
+        "allocated:0",
+        "reserved:0",
+        "peak:0",
+        "info:1",
+        "allocated:1",
+        "reserved:1",
+        "peak:1",
+        "info:2",
+        "allocated:2",
+        "reserved:2",
+        "peak:2"
+      ],
+      "result": [
+        {
+          "index": 0,
+          "allocated_gb": 0.062,
+          "reserved_gb": 0.125,
+          "max_allocated_gb": 0.188,
+          "free_gb": 0.062,
+          "total_gb": 1.062
+        },
+        {
+          "index": 1,
+          "allocated_gb": 0.063,
+          "reserved_gb": 0.125,
+          "max_allocated_gb": 0.188,
+          "free_gb": 0.063,
+          "total_gb": 1.062
+        },
+        {
+          "index": 2,
+          "allocated_gb": 0.063,
+          "reserved_gb": 0.125,
+          "max_allocated_gb": 0.188,
+          "free_gb": 0.063,
+          "total_gb": 1.062
+        }
+      ],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 3,
+      "data": [
+        {
+          "free": 67108864,
+          "total": 1140850688,
+          "allocated": 67108864,
+          "reserved": 134217728,
+          "peak": 201326592
+        },
+        {
+          "free": 67121209,
+          "total": 1140850688,
+          "allocated": 67108865,
+          "reserved": 134217729,
+          "peak": 201326593
+        },
+        {
+          "free": 67133554,
+          "total": 1140850688,
+          "allocated": 67108866,
+          "reserved": 134217730,
+          "peak": 201326594
+        }
+      ],
+      "fail": "available",
+      "events": [
+        "available"
+      ],
+      "result": null,
+      "error": true
+    },
+    {
+      "available": true,
+      "count": 3,
+      "data": [
+        {
+          "free": 67108864,
+          "total": 1140850688,
+          "allocated": 67108864,
+          "reserved": 134217728,
+          "peak": 201326592
+        },
+        {
+          "free": 67121209,
+          "total": 1140850688,
+          "allocated": 67108865,
+          "reserved": 134217729,
+          "peak": 201326593
+        },
+        {
+          "free": 67133554,
+          "total": 1140850688,
+          "allocated": 67108866,
+          "reserved": 134217730,
+          "peak": 201326594
+        }
+      ],
+      "fail": "count",
+      "events": [
+        "available",
+        "count"
+      ],
+      "result": null,
+      "error": true
+    },
+    {
+      "available": true,
+      "count": 3,
+      "data": [
+        {
+          "free": 67108864,
+          "total": 1140850688,
+          "allocated": 67108864,
+          "reserved": 134217728,
+          "peak": 201326592
+        },
+        {
+          "free": 67121209,
+          "total": 1140850688,
+          "allocated": 67108865,
+          "reserved": 134217729,
+          "peak": 201326593
+        },
+        {
+          "free": 67133554,
+          "total": 1140850688,
+          "allocated": 67108866,
+          "reserved": 134217730,
+          "peak": 201326594
+        }
+      ],
+      "fail": "info:0",
+      "events": [
+        "available",
+        "count",
+        "info:0",
+        "info:1",
+        "allocated:1",
+        "reserved:1",
+        "peak:1",
+        "info:2",
+        "allocated:2",
+        "reserved:2",
+        "peak:2"
+      ],
+      "result": [
+        {
+          "index": 0,
+          "error": "CUDA memory statistics unavailable"
+        },
+        {
+          "index": 1,
+          "allocated_gb": 0.063,
+          "reserved_gb": 0.125,
+          "max_allocated_gb": 0.188,
+          "free_gb": 0.063,
+          "total_gb": 1.062
+        },
+        {
+          "index": 2,
+          "allocated_gb": 0.063,
+          "reserved_gb": 0.125,
+          "max_allocated_gb": 0.188,
+          "free_gb": 0.063,
+          "total_gb": 1.062
+        }
+      ],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 3,
+      "data": [
+        {
+          "free": 67108864,
+          "total": 1140850688,
+          "allocated": 67108864,
+          "reserved": 134217728,
+          "peak": 201326592
+        },
+        {
+          "free": 67121209,
+          "total": 1140850688,
+          "allocated": 67108865,
+          "reserved": 134217729,
+          "peak": 201326593
+        },
+        {
+          "free": 67133554,
+          "total": 1140850688,
+          "allocated": 67108866,
+          "reserved": 134217730,
+          "peak": 201326594
+        }
+      ],
+      "fail": "allocated:0",
+      "events": [
+        "available",
+        "count",
+        "info:0",
+        "allocated:0",
+        "info:1",
+        "allocated:1",
+        "reserved:1",
+        "peak:1",
+        "info:2",
+        "allocated:2",
+        "reserved:2",
+        "peak:2"
+      ],
+      "result": [
+        {
+          "index": 0,
+          "error": "CUDA memory statistics unavailable"
+        },
+        {
+          "index": 1,
+          "allocated_gb": 0.063,
+          "reserved_gb": 0.125,
+          "max_allocated_gb": 0.188,
+          "free_gb": 0.063,
+          "total_gb": 1.062
+        },
+        {
+          "index": 2,
+          "allocated_gb": 0.063,
+          "reserved_gb": 0.125,
+          "max_allocated_gb": 0.188,
+          "free_gb": 0.063,
+          "total_gb": 1.062
+        }
+      ],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 3,
+      "data": [
+        {
+          "free": 67108864,
+          "total": 1140850688,
+          "allocated": 67108864,
+          "reserved": 134217728,
+          "peak": 201326592
+        },
+        {
+          "free": 67121209,
+          "total": 1140850688,
+          "allocated": 67108865,
+          "reserved": 134217729,
+          "peak": 201326593
+        },
+        {
+          "free": 67133554,
+          "total": 1140850688,
+          "allocated": 67108866,
+          "reserved": 134217730,
+          "peak": 201326594
+        }
+      ],
+      "fail": "reserved:0",
+      "events": [
+        "available",
+        "count",
+        "info:0",
+        "allocated:0",
+        "reserved:0",
+        "info:1",
+        "allocated:1",
+        "reserved:1",
+        "peak:1",
+        "info:2",
+        "allocated:2",
+        "reserved:2",
+        "peak:2"
+      ],
+      "result": [
+        {
+          "index": 0,
+          "error": "CUDA memory statistics unavailable"
+        },
+        {
+          "index": 1,
+          "allocated_gb": 0.063,
+          "reserved_gb": 0.125,
+          "max_allocated_gb": 0.188,
+          "free_gb": 0.063,
+          "total_gb": 1.062
+        },
+        {
+          "index": 2,
+          "allocated_gb": 0.063,
+          "reserved_gb": 0.125,
+          "max_allocated_gb": 0.188,
+          "free_gb": 0.063,
+          "total_gb": 1.062
+        }
+      ],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 3,
+      "data": [
+        {
+          "free": 67108864,
+          "total": 1140850688,
+          "allocated": 67108864,
+          "reserved": 134217728,
+          "peak": 201326592
+        },
+        {
+          "free": 67121209,
+          "total": 1140850688,
+          "allocated": 67108865,
+          "reserved": 134217729,
+          "peak": 201326593
+        },
+        {
+          "free": 67133554,
+          "total": 1140850688,
+          "allocated": 67108866,
+          "reserved": 134217730,
+          "peak": 201326594
+        }
+      ],
+      "fail": "peak:0",
+      "events": [
+        "available",
+        "count",
+        "info:0",
+        "allocated:0",
+        "reserved:0",
+        "peak:0",
+        "info:1",
+        "allocated:1",
+        "reserved:1",
+        "peak:1",
+        "info:2",
+        "allocated:2",
+        "reserved:2",
+        "peak:2"
+      ],
+      "result": [
+        {
+          "index": 0,
+          "error": "CUDA memory statistics unavailable"
+        },
+        {
+          "index": 1,
+          "allocated_gb": 0.063,
+          "reserved_gb": 0.125,
+          "max_allocated_gb": 0.188,
+          "free_gb": 0.063,
+          "total_gb": 1.062
+        },
+        {
+          "index": 2,
+          "allocated_gb": 0.063,
+          "reserved_gb": 0.125,
+          "max_allocated_gb": 0.188,
+          "free_gb": 0.063,
+          "total_gb": 1.062
+        }
+      ],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 3,
+      "data": [
+        {
+          "free": 67108864,
+          "total": 1140850688,
+          "allocated": 67108864,
+          "reserved": 134217728,
+          "peak": 201326592
+        },
+        {
+          "free": 67121209,
+          "total": 1140850688,
+          "allocated": 67108865,
+          "reserved": 134217729,
+          "peak": 201326593
+        },
+        {
+          "free": 67133554,
+          "total": 1140850688,
+          "allocated": 67108866,
+          "reserved": 134217730,
+          "peak": 201326594
+        }
+      ],
+      "fail": "info:1",
+      "events": [
+        "available",
+        "count",
+        "info:0",
+        "allocated:0",
+        "reserved:0",
+        "peak:0",
+        "info:1",
+        "info:2",
+        "allocated:2",
+        "reserved:2",
+        "peak:2"
+      ],
+      "result": [
+        {
+          "index": 0,
+          "allocated_gb": 0.062,
+          "reserved_gb": 0.125,
+          "max_allocated_gb": 0.188,
+          "free_gb": 0.062,
+          "total_gb": 1.062
+        },
+        {
+          "index": 1,
+          "error": "CUDA memory statistics unavailable"
+        },
+        {
+          "index": 2,
+          "allocated_gb": 0.063,
+          "reserved_gb": 0.125,
+          "max_allocated_gb": 0.188,
+          "free_gb": 0.063,
+          "total_gb": 1.062
+        }
+      ],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 3,
+      "data": [
+        {
+          "free": 67108864,
+          "total": 1140850688,
+          "allocated": 67108864,
+          "reserved": 134217728,
+          "peak": 201326592
+        },
+        {
+          "free": 67121209,
+          "total": 1140850688,
+          "allocated": 67108865,
+          "reserved": 134217729,
+          "peak": 201326593
+        },
+        {
+          "free": 67133554,
+          "total": 1140850688,
+          "allocated": 67108866,
+          "reserved": 134217730,
+          "peak": 201326594
+        }
+      ],
+      "fail": "allocated:1",
+      "events": [
+        "available",
+        "count",
+        "info:0",
+        "allocated:0",
+        "reserved:0",
+        "peak:0",
+        "info:1",
+        "allocated:1",
+        "info:2",
+        "allocated:2",
+        "reserved:2",
+        "peak:2"
+      ],
+      "result": [
+        {
+          "index": 0,
+          "allocated_gb": 0.062,
+          "reserved_gb": 0.125,
+          "max_allocated_gb": 0.188,
+          "free_gb": 0.062,
+          "total_gb": 1.062
+        },
+        {
+          "index": 1,
+          "error": "CUDA memory statistics unavailable"
+        },
+        {
+          "index": 2,
+          "allocated_gb": 0.063,
+          "reserved_gb": 0.125,
+          "max_allocated_gb": 0.188,
+          "free_gb": 0.063,
+          "total_gb": 1.062
+        }
+      ],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 3,
+      "data": [
+        {
+          "free": 67108864,
+          "total": 1140850688,
+          "allocated": 67108864,
+          "reserved": 134217728,
+          "peak": 201326592
+        },
+        {
+          "free": 67121209,
+          "total": 1140850688,
+          "allocated": 67108865,
+          "reserved": 134217729,
+          "peak": 201326593
+        },
+        {
+          "free": 67133554,
+          "total": 1140850688,
+          "allocated": 67108866,
+          "reserved": 134217730,
+          "peak": 201326594
+        }
+      ],
+      "fail": "reserved:1",
+      "events": [
+        "available",
+        "count",
+        "info:0",
+        "allocated:0",
+        "reserved:0",
+        "peak:0",
+        "info:1",
+        "allocated:1",
+        "reserved:1",
+        "info:2",
+        "allocated:2",
+        "reserved:2",
+        "peak:2"
+      ],
+      "result": [
+        {
+          "index": 0,
+          "allocated_gb": 0.062,
+          "reserved_gb": 0.125,
+          "max_allocated_gb": 0.188,
+          "free_gb": 0.062,
+          "total_gb": 1.062
+        },
+        {
+          "index": 1,
+          "error": "CUDA memory statistics unavailable"
+        },
+        {
+          "index": 2,
+          "allocated_gb": 0.063,
+          "reserved_gb": 0.125,
+          "max_allocated_gb": 0.188,
+          "free_gb": 0.063,
+          "total_gb": 1.062
+        }
+      ],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 3,
+      "data": [
+        {
+          "free": 67108864,
+          "total": 1140850688,
+          "allocated": 67108864,
+          "reserved": 134217728,
+          "peak": 201326592
+        },
+        {
+          "free": 67121209,
+          "total": 1140850688,
+          "allocated": 67108865,
+          "reserved": 134217729,
+          "peak": 201326593
+        },
+        {
+          "free": 67133554,
+          "total": 1140850688,
+          "allocated": 67108866,
+          "reserved": 134217730,
+          "peak": 201326594
+        }
+      ],
+      "fail": "peak:1",
+      "events": [
+        "available",
+        "count",
+        "info:0",
+        "allocated:0",
+        "reserved:0",
+        "peak:0",
+        "info:1",
+        "allocated:1",
+        "reserved:1",
+        "peak:1",
+        "info:2",
+        "allocated:2",
+        "reserved:2",
+        "peak:2"
+      ],
+      "result": [
+        {
+          "index": 0,
+          "allocated_gb": 0.062,
+          "reserved_gb": 0.125,
+          "max_allocated_gb": 0.188,
+          "free_gb": 0.062,
+          "total_gb": 1.062
+        },
+        {
+          "index": 1,
+          "error": "CUDA memory statistics unavailable"
+        },
+        {
+          "index": 2,
+          "allocated_gb": 0.063,
+          "reserved_gb": 0.125,
+          "max_allocated_gb": 0.188,
+          "free_gb": 0.063,
+          "total_gb": 1.062
+        }
+      ],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 3,
+      "data": [
+        {
+          "free": 67108864,
+          "total": 1140850688,
+          "allocated": 67108864,
+          "reserved": 134217728,
+          "peak": 201326592
+        },
+        {
+          "free": 67121209,
+          "total": 1140850688,
+          "allocated": 67108865,
+          "reserved": 134217729,
+          "peak": 201326593
+        },
+        {
+          "free": 67133554,
+          "total": 1140850688,
+          "allocated": 67108866,
+          "reserved": 134217730,
+          "peak": 201326594
+        }
+      ],
+      "fail": null,
+      "events": [
+        "available",
+        "count",
+        "info:0",
+        "allocated:0",
+        "reserved:0",
+        "peak:0",
+        "info:1",
+        "allocated:1",
+        "reserved:1",
+        "peak:1",
+        "info:2",
+        "allocated:2",
+        "reserved:2",
+        "peak:2"
+      ],
+      "result": [
+        {
+          "index": 0,
+          "allocated_gb": 0.062,
+          "reserved_gb": 0.125,
+          "max_allocated_gb": 0.188,
+          "free_gb": 0.062,
+          "total_gb": 1.062
+        },
+        {
+          "index": 1,
+          "allocated_gb": 0.063,
+          "reserved_gb": 0.125,
+          "max_allocated_gb": 0.188,
+          "free_gb": 0.063,
+          "total_gb": 1.062
+        },
+        {
+          "index": 2,
+          "allocated_gb": 0.063,
+          "reserved_gb": 0.125,
+          "max_allocated_gb": 0.188,
+          "free_gb": 0.063,
+          "total_gb": 1.062
+        }
+      ],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 3,
+      "data": [
+        {
+          "free": 67108864,
+          "total": 1140850688,
+          "allocated": 67108864,
+          "reserved": 134217728,
+          "peak": 201326592
+        },
+        {
+          "free": 67121209,
+          "total": 1140850688,
+          "allocated": 67108865,
+          "reserved": 134217729,
+          "peak": 201326593
+        },
+        {
+          "free": 67133554,
+          "total": 1140850688,
+          "allocated": 67108866,
+          "reserved": 134217730,
+          "peak": 201326594
+        }
+      ],
+      "fail": "available",
+      "events": [
+        "available"
+      ],
+      "result": null,
+      "error": true
+    },
+    {
+      "available": true,
+      "count": 3,
+      "data": [
+        {
+          "free": 67108864,
+          "total": 1140850688,
+          "allocated": 67108864,
+          "reserved": 134217728,
+          "peak": 201326592
+        },
+        {
+          "free": 67121209,
+          "total": 1140850688,
+          "allocated": 67108865,
+          "reserved": 134217729,
+          "peak": 201326593
+        },
+        {
+          "free": 67133554,
+          "total": 1140850688,
+          "allocated": 67108866,
+          "reserved": 134217730,
+          "peak": 201326594
+        }
+      ],
+      "fail": "count",
+      "events": [
+        "available",
+        "count"
+      ],
+      "result": null,
+      "error": true
+    },
+    {
+      "available": true,
+      "count": 3,
+      "data": [
+        {
+          "free": 67108864,
+          "total": 1140850688,
+          "allocated": 67108864,
+          "reserved": 134217728,
+          "peak": 201326592
+        },
+        {
+          "free": 67121209,
+          "total": 1140850688,
+          "allocated": 67108865,
+          "reserved": 134217729,
+          "peak": 201326593
+        },
+        {
+          "free": 67133554,
+          "total": 1140850688,
+          "allocated": 67108866,
+          "reserved": 134217730,
+          "peak": 201326594
+        }
+      ],
+      "fail": "info:0",
+      "events": [
+        "available",
+        "count",
+        "info:0",
+        "info:1",
+        "allocated:1",
+        "reserved:1",
+        "peak:1",
+        "info:2",
+        "allocated:2",
+        "reserved:2",
+        "peak:2"
+      ],
+      "result": [
+        {
+          "index": 0,
+          "error": "CUDA memory statistics unavailable"
+        },
+        {
+          "index": 1,
+          "allocated_gb": 0.063,
+          "reserved_gb": 0.125,
+          "max_allocated_gb": 0.188,
+          "free_gb": 0.063,
+          "total_gb": 1.062
+        },
+        {
+          "index": 2,
+          "allocated_gb": 0.063,
+          "reserved_gb": 0.125,
+          "max_allocated_gb": 0.188,
+          "free_gb": 0.063,
+          "total_gb": 1.062
+        }
+      ],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 3,
+      "data": [
+        {
+          "free": 67108864,
+          "total": 1140850688,
+          "allocated": 67108864,
+          "reserved": 134217728,
+          "peak": 201326592
+        },
+        {
+          "free": 67121209,
+          "total": 1140850688,
+          "allocated": 67108865,
+          "reserved": 134217729,
+          "peak": 201326593
+        },
+        {
+          "free": 67133554,
+          "total": 1140850688,
+          "allocated": 67108866,
+          "reserved": 134217730,
+          "peak": 201326594
+        }
+      ],
+      "fail": "allocated:0",
+      "events": [
+        "available",
+        "count",
+        "info:0",
+        "allocated:0",
+        "info:1",
+        "allocated:1",
+        "reserved:1",
+        "peak:1",
+        "info:2",
+        "allocated:2",
+        "reserved:2",
+        "peak:2"
+      ],
+      "result": [
+        {
+          "index": 0,
+          "error": "CUDA memory statistics unavailable"
+        },
+        {
+          "index": 1,
+          "allocated_gb": 0.063,
+          "reserved_gb": 0.125,
+          "max_allocated_gb": 0.188,
+          "free_gb": 0.063,
+          "total_gb": 1.062
+        },
+        {
+          "index": 2,
+          "allocated_gb": 0.063,
+          "reserved_gb": 0.125,
+          "max_allocated_gb": 0.188,
+          "free_gb": 0.063,
+          "total_gb": 1.062
+        }
+      ],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 3,
+      "data": [
+        {
+          "free": 67108864,
+          "total": 1140850688,
+          "allocated": 67108864,
+          "reserved": 134217728,
+          "peak": 201326592
+        },
+        {
+          "free": 67121209,
+          "total": 1140850688,
+          "allocated": 67108865,
+          "reserved": 134217729,
+          "peak": 201326593
+        },
+        {
+          "free": 67133554,
+          "total": 1140850688,
+          "allocated": 67108866,
+          "reserved": 134217730,
+          "peak": 201326594
+        }
+      ],
+      "fail": "reserved:0",
+      "events": [
+        "available",
+        "count",
+        "info:0",
+        "allocated:0",
+        "reserved:0",
+        "info:1",
+        "allocated:1",
+        "reserved:1",
+        "peak:1",
+        "info:2",
+        "allocated:2",
+        "reserved:2",
+        "peak:2"
+      ],
+      "result": [
+        {
+          "index": 0,
+          "error": "CUDA memory statistics unavailable"
+        },
+        {
+          "index": 1,
+          "allocated_gb": 0.063,
+          "reserved_gb": 0.125,
+          "max_allocated_gb": 0.188,
+          "free_gb": 0.063,
+          "total_gb": 1.062
+        },
+        {
+          "index": 2,
+          "allocated_gb": 0.063,
+          "reserved_gb": 0.125,
+          "max_allocated_gb": 0.188,
+          "free_gb": 0.063,
+          "total_gb": 1.062
+        }
+      ],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 3,
+      "data": [
+        {
+          "free": 67108864,
+          "total": 1140850688,
+          "allocated": 67108864,
+          "reserved": 134217728,
+          "peak": 201326592
+        },
+        {
+          "free": 67121209,
+          "total": 1140850688,
+          "allocated": 67108865,
+          "reserved": 134217729,
+          "peak": 201326593
+        },
+        {
+          "free": 67133554,
+          "total": 1140850688,
+          "allocated": 67108866,
+          "reserved": 134217730,
+          "peak": 201326594
+        }
+      ],
+      "fail": "peak:0",
+      "events": [
+        "available",
+        "count",
+        "info:0",
+        "allocated:0",
+        "reserved:0",
+        "peak:0",
+        "info:1",
+        "allocated:1",
+        "reserved:1",
+        "peak:1",
+        "info:2",
+        "allocated:2",
+        "reserved:2",
+        "peak:2"
+      ],
+      "result": [
+        {
+          "index": 0,
+          "error": "CUDA memory statistics unavailable"
+        },
+        {
+          "index": 1,
+          "allocated_gb": 0.063,
+          "reserved_gb": 0.125,
+          "max_allocated_gb": 0.188,
+          "free_gb": 0.063,
+          "total_gb": 1.062
+        },
+        {
+          "index": 2,
+          "allocated_gb": 0.063,
+          "reserved_gb": 0.125,
+          "max_allocated_gb": 0.188,
+          "free_gb": 0.063,
+          "total_gb": 1.062
+        }
+      ],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 3,
+      "data": [
+        {
+          "free": 67108864,
+          "total": 1140850688,
+          "allocated": 67108864,
+          "reserved": 134217728,
+          "peak": 201326592
+        },
+        {
+          "free": 67121209,
+          "total": 1140850688,
+          "allocated": 67108865,
+          "reserved": 134217729,
+          "peak": 201326593
+        },
+        {
+          "free": 67133554,
+          "total": 1140850688,
+          "allocated": 67108866,
+          "reserved": 134217730,
+          "peak": 201326594
+        }
+      ],
+      "fail": "info:1",
+      "events": [
+        "available",
+        "count",
+        "info:0",
+        "allocated:0",
+        "reserved:0",
+        "peak:0",
+        "info:1",
+        "info:2",
+        "allocated:2",
+        "reserved:2",
+        "peak:2"
+      ],
+      "result": [
+        {
+          "index": 0,
+          "allocated_gb": 0.062,
+          "reserved_gb": 0.125,
+          "max_allocated_gb": 0.188,
+          "free_gb": 0.062,
+          "total_gb": 1.062
+        },
+        {
+          "index": 1,
+          "error": "CUDA memory statistics unavailable"
+        },
+        {
+          "index": 2,
+          "allocated_gb": 0.063,
+          "reserved_gb": 0.125,
+          "max_allocated_gb": 0.188,
+          "free_gb": 0.063,
+          "total_gb": 1.062
+        }
+      ],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 3,
+      "data": [
+        {
+          "free": 67108864,
+          "total": 1140850688,
+          "allocated": 67108864,
+          "reserved": 134217728,
+          "peak": 201326592
+        },
+        {
+          "free": 67121209,
+          "total": 1140850688,
+          "allocated": 67108865,
+          "reserved": 134217729,
+          "peak": 201326593
+        },
+        {
+          "free": 67133554,
+          "total": 1140850688,
+          "allocated": 67108866,
+          "reserved": 134217730,
+          "peak": 201326594
+        }
+      ],
+      "fail": "allocated:1",
+      "events": [
+        "available",
+        "count",
+        "info:0",
+        "allocated:0",
+        "reserved:0",
+        "peak:0",
+        "info:1",
+        "allocated:1",
+        "info:2",
+        "allocated:2",
+        "reserved:2",
+        "peak:2"
+      ],
+      "result": [
+        {
+          "index": 0,
+          "allocated_gb": 0.062,
+          "reserved_gb": 0.125,
+          "max_allocated_gb": 0.188,
+          "free_gb": 0.062,
+          "total_gb": 1.062
+        },
+        {
+          "index": 1,
+          "error": "CUDA memory statistics unavailable"
+        },
+        {
+          "index": 2,
+          "allocated_gb": 0.063,
+          "reserved_gb": 0.125,
+          "max_allocated_gb": 0.188,
+          "free_gb": 0.063,
+          "total_gb": 1.062
+        }
+      ],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 3,
+      "data": [
+        {
+          "free": 67108864,
+          "total": 1140850688,
+          "allocated": 67108864,
+          "reserved": 134217728,
+          "peak": 201326592
+        },
+        {
+          "free": 67121209,
+          "total": 1140850688,
+          "allocated": 67108865,
+          "reserved": 134217729,
+          "peak": 201326593
+        },
+        {
+          "free": 67133554,
+          "total": 1140850688,
+          "allocated": 67108866,
+          "reserved": 134217730,
+          "peak": 201326594
+        }
+      ],
+      "fail": "reserved:1",
+      "events": [
+        "available",
+        "count",
+        "info:0",
+        "allocated:0",
+        "reserved:0",
+        "peak:0",
+        "info:1",
+        "allocated:1",
+        "reserved:1",
+        "info:2",
+        "allocated:2",
+        "reserved:2",
+        "peak:2"
+      ],
+      "result": [
+        {
+          "index": 0,
+          "allocated_gb": 0.062,
+          "reserved_gb": 0.125,
+          "max_allocated_gb": 0.188,
+          "free_gb": 0.062,
+          "total_gb": 1.062
+        },
+        {
+          "index": 1,
+          "error": "CUDA memory statistics unavailable"
+        },
+        {
+          "index": 2,
+          "allocated_gb": 0.063,
+          "reserved_gb": 0.125,
+          "max_allocated_gb": 0.188,
+          "free_gb": 0.063,
+          "total_gb": 1.062
+        }
+      ],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 3,
+      "data": [
+        {
+          "free": 67108864,
+          "total": 1140850688,
+          "allocated": 67108864,
+          "reserved": 134217728,
+          "peak": 201326592
+        },
+        {
+          "free": 67121209,
+          "total": 1140850688,
+          "allocated": 67108865,
+          "reserved": 134217729,
+          "peak": 201326593
+        },
+        {
+          "free": 67133554,
+          "total": 1140850688,
+          "allocated": 67108866,
+          "reserved": 134217730,
+          "peak": 201326594
+        }
+      ],
+      "fail": "peak:1",
+      "events": [
+        "available",
+        "count",
+        "info:0",
+        "allocated:0",
+        "reserved:0",
+        "peak:0",
+        "info:1",
+        "allocated:1",
+        "reserved:1",
+        "peak:1",
+        "info:2",
+        "allocated:2",
+        "reserved:2",
+        "peak:2"
+      ],
+      "result": [
+        {
+          "index": 0,
+          "allocated_gb": 0.062,
+          "reserved_gb": 0.125,
+          "max_allocated_gb": 0.188,
+          "free_gb": 0.062,
+          "total_gb": 1.062
+        },
+        {
+          "index": 1,
+          "error": "CUDA memory statistics unavailable"
+        },
+        {
+          "index": 2,
+          "allocated_gb": 0.063,
+          "reserved_gb": 0.125,
+          "max_allocated_gb": 0.188,
+          "free_gb": 0.063,
+          "total_gb": 1.062
+        }
+      ],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 3,
+      "data": [
+        {
+          "free": 17716740096,
+          "total": 18790481920,
+          "allocated": 17716740096,
+          "reserved": 17783848960,
+          "peak": 17850957824
+        },
+        {
+          "free": 17716752441,
+          "total": 18790481920,
+          "allocated": 17716740097,
+          "reserved": 17783848961,
+          "peak": 17850957825
+        },
+        {
+          "free": 17716764786,
+          "total": 18790481920,
+          "allocated": 17716740098,
+          "reserved": 17783848962,
+          "peak": 17850957826
+        }
+      ],
+      "fail": null,
+      "events": [
+        "available",
+        "count",
+        "info:0",
+        "allocated:0",
+        "reserved:0",
+        "peak:0",
+        "info:1",
+        "allocated:1",
+        "reserved:1",
+        "peak:1",
+        "info:2",
+        "allocated:2",
+        "reserved:2",
+        "peak:2"
+      ],
+      "result": [
+        {
+          "index": 0,
+          "allocated_gb": 16.5,
+          "reserved_gb": 16.562,
+          "max_allocated_gb": 16.625,
+          "free_gb": 16.5,
+          "total_gb": 17.5
+        },
+        {
+          "index": 1,
+          "allocated_gb": 16.5,
+          "reserved_gb": 16.563,
+          "max_allocated_gb": 16.625,
+          "free_gb": 16.5,
+          "total_gb": 17.5
+        },
+        {
+          "index": 2,
+          "allocated_gb": 16.5,
+          "reserved_gb": 16.563,
+          "max_allocated_gb": 16.625,
+          "free_gb": 16.5,
+          "total_gb": 17.5
+        }
+      ],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 3,
+      "data": [
+        {
+          "free": 17716740096,
+          "total": 18790481920,
+          "allocated": 17716740096,
+          "reserved": 17783848960,
+          "peak": 17850957824
+        },
+        {
+          "free": 17716752441,
+          "total": 18790481920,
+          "allocated": 17716740097,
+          "reserved": 17783848961,
+          "peak": 17850957825
+        },
+        {
+          "free": 17716764786,
+          "total": 18790481920,
+          "allocated": 17716740098,
+          "reserved": 17783848962,
+          "peak": 17850957826
+        }
+      ],
+      "fail": "available",
+      "events": [
+        "available"
+      ],
+      "result": null,
+      "error": true
+    },
+    {
+      "available": true,
+      "count": 3,
+      "data": [
+        {
+          "free": 17716740096,
+          "total": 18790481920,
+          "allocated": 17716740096,
+          "reserved": 17783848960,
+          "peak": 17850957824
+        },
+        {
+          "free": 17716752441,
+          "total": 18790481920,
+          "allocated": 17716740097,
+          "reserved": 17783848961,
+          "peak": 17850957825
+        },
+        {
+          "free": 17716764786,
+          "total": 18790481920,
+          "allocated": 17716740098,
+          "reserved": 17783848962,
+          "peak": 17850957826
+        }
+      ],
+      "fail": "count",
+      "events": [
+        "available",
+        "count"
+      ],
+      "result": null,
+      "error": true
+    },
+    {
+      "available": true,
+      "count": 3,
+      "data": [
+        {
+          "free": 17716740096,
+          "total": 18790481920,
+          "allocated": 17716740096,
+          "reserved": 17783848960,
+          "peak": 17850957824
+        },
+        {
+          "free": 17716752441,
+          "total": 18790481920,
+          "allocated": 17716740097,
+          "reserved": 17783848961,
+          "peak": 17850957825
+        },
+        {
+          "free": 17716764786,
+          "total": 18790481920,
+          "allocated": 17716740098,
+          "reserved": 17783848962,
+          "peak": 17850957826
+        }
+      ],
+      "fail": "info:0",
+      "events": [
+        "available",
+        "count",
+        "info:0",
+        "info:1",
+        "allocated:1",
+        "reserved:1",
+        "peak:1",
+        "info:2",
+        "allocated:2",
+        "reserved:2",
+        "peak:2"
+      ],
+      "result": [
+        {
+          "index": 0,
+          "error": "CUDA memory statistics unavailable"
+        },
+        {
+          "index": 1,
+          "allocated_gb": 16.5,
+          "reserved_gb": 16.563,
+          "max_allocated_gb": 16.625,
+          "free_gb": 16.5,
+          "total_gb": 17.5
+        },
+        {
+          "index": 2,
+          "allocated_gb": 16.5,
+          "reserved_gb": 16.563,
+          "max_allocated_gb": 16.625,
+          "free_gb": 16.5,
+          "total_gb": 17.5
+        }
+      ],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 3,
+      "data": [
+        {
+          "free": 17716740096,
+          "total": 18790481920,
+          "allocated": 17716740096,
+          "reserved": 17783848960,
+          "peak": 17850957824
+        },
+        {
+          "free": 17716752441,
+          "total": 18790481920,
+          "allocated": 17716740097,
+          "reserved": 17783848961,
+          "peak": 17850957825
+        },
+        {
+          "free": 17716764786,
+          "total": 18790481920,
+          "allocated": 17716740098,
+          "reserved": 17783848962,
+          "peak": 17850957826
+        }
+      ],
+      "fail": "allocated:0",
+      "events": [
+        "available",
+        "count",
+        "info:0",
+        "allocated:0",
+        "info:1",
+        "allocated:1",
+        "reserved:1",
+        "peak:1",
+        "info:2",
+        "allocated:2",
+        "reserved:2",
+        "peak:2"
+      ],
+      "result": [
+        {
+          "index": 0,
+          "error": "CUDA memory statistics unavailable"
+        },
+        {
+          "index": 1,
+          "allocated_gb": 16.5,
+          "reserved_gb": 16.563,
+          "max_allocated_gb": 16.625,
+          "free_gb": 16.5,
+          "total_gb": 17.5
+        },
+        {
+          "index": 2,
+          "allocated_gb": 16.5,
+          "reserved_gb": 16.563,
+          "max_allocated_gb": 16.625,
+          "free_gb": 16.5,
+          "total_gb": 17.5
+        }
+      ],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 3,
+      "data": [
+        {
+          "free": 17716740096,
+          "total": 18790481920,
+          "allocated": 17716740096,
+          "reserved": 17783848960,
+          "peak": 17850957824
+        },
+        {
+          "free": 17716752441,
+          "total": 18790481920,
+          "allocated": 17716740097,
+          "reserved": 17783848961,
+          "peak": 17850957825
+        },
+        {
+          "free": 17716764786,
+          "total": 18790481920,
+          "allocated": 17716740098,
+          "reserved": 17783848962,
+          "peak": 17850957826
+        }
+      ],
+      "fail": "reserved:0",
+      "events": [
+        "available",
+        "count",
+        "info:0",
+        "allocated:0",
+        "reserved:0",
+        "info:1",
+        "allocated:1",
+        "reserved:1",
+        "peak:1",
+        "info:2",
+        "allocated:2",
+        "reserved:2",
+        "peak:2"
+      ],
+      "result": [
+        {
+          "index": 0,
+          "error": "CUDA memory statistics unavailable"
+        },
+        {
+          "index": 1,
+          "allocated_gb": 16.5,
+          "reserved_gb": 16.563,
+          "max_allocated_gb": 16.625,
+          "free_gb": 16.5,
+          "total_gb": 17.5
+        },
+        {
+          "index": 2,
+          "allocated_gb": 16.5,
+          "reserved_gb": 16.563,
+          "max_allocated_gb": 16.625,
+          "free_gb": 16.5,
+          "total_gb": 17.5
+        }
+      ],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 3,
+      "data": [
+        {
+          "free": 17716740096,
+          "total": 18790481920,
+          "allocated": 17716740096,
+          "reserved": 17783848960,
+          "peak": 17850957824
+        },
+        {
+          "free": 17716752441,
+          "total": 18790481920,
+          "allocated": 17716740097,
+          "reserved": 17783848961,
+          "peak": 17850957825
+        },
+        {
+          "free": 17716764786,
+          "total": 18790481920,
+          "allocated": 17716740098,
+          "reserved": 17783848962,
+          "peak": 17850957826
+        }
+      ],
+      "fail": "peak:0",
+      "events": [
+        "available",
+        "count",
+        "info:0",
+        "allocated:0",
+        "reserved:0",
+        "peak:0",
+        "info:1",
+        "allocated:1",
+        "reserved:1",
+        "peak:1",
+        "info:2",
+        "allocated:2",
+        "reserved:2",
+        "peak:2"
+      ],
+      "result": [
+        {
+          "index": 0,
+          "error": "CUDA memory statistics unavailable"
+        },
+        {
+          "index": 1,
+          "allocated_gb": 16.5,
+          "reserved_gb": 16.563,
+          "max_allocated_gb": 16.625,
+          "free_gb": 16.5,
+          "total_gb": 17.5
+        },
+        {
+          "index": 2,
+          "allocated_gb": 16.5,
+          "reserved_gb": 16.563,
+          "max_allocated_gb": 16.625,
+          "free_gb": 16.5,
+          "total_gb": 17.5
+        }
+      ],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 3,
+      "data": [
+        {
+          "free": 17716740096,
+          "total": 18790481920,
+          "allocated": 17716740096,
+          "reserved": 17783848960,
+          "peak": 17850957824
+        },
+        {
+          "free": 17716752441,
+          "total": 18790481920,
+          "allocated": 17716740097,
+          "reserved": 17783848961,
+          "peak": 17850957825
+        },
+        {
+          "free": 17716764786,
+          "total": 18790481920,
+          "allocated": 17716740098,
+          "reserved": 17783848962,
+          "peak": 17850957826
+        }
+      ],
+      "fail": "info:1",
+      "events": [
+        "available",
+        "count",
+        "info:0",
+        "allocated:0",
+        "reserved:0",
+        "peak:0",
+        "info:1",
+        "info:2",
+        "allocated:2",
+        "reserved:2",
+        "peak:2"
+      ],
+      "result": [
+        {
+          "index": 0,
+          "allocated_gb": 16.5,
+          "reserved_gb": 16.562,
+          "max_allocated_gb": 16.625,
+          "free_gb": 16.5,
+          "total_gb": 17.5
+        },
+        {
+          "index": 1,
+          "error": "CUDA memory statistics unavailable"
+        },
+        {
+          "index": 2,
+          "allocated_gb": 16.5,
+          "reserved_gb": 16.563,
+          "max_allocated_gb": 16.625,
+          "free_gb": 16.5,
+          "total_gb": 17.5
+        }
+      ],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 3,
+      "data": [
+        {
+          "free": 17716740096,
+          "total": 18790481920,
+          "allocated": 17716740096,
+          "reserved": 17783848960,
+          "peak": 17850957824
+        },
+        {
+          "free": 17716752441,
+          "total": 18790481920,
+          "allocated": 17716740097,
+          "reserved": 17783848961,
+          "peak": 17850957825
+        },
+        {
+          "free": 17716764786,
+          "total": 18790481920,
+          "allocated": 17716740098,
+          "reserved": 17783848962,
+          "peak": 17850957826
+        }
+      ],
+      "fail": "allocated:1",
+      "events": [
+        "available",
+        "count",
+        "info:0",
+        "allocated:0",
+        "reserved:0",
+        "peak:0",
+        "info:1",
+        "allocated:1",
+        "info:2",
+        "allocated:2",
+        "reserved:2",
+        "peak:2"
+      ],
+      "result": [
+        {
+          "index": 0,
+          "allocated_gb": 16.5,
+          "reserved_gb": 16.562,
+          "max_allocated_gb": 16.625,
+          "free_gb": 16.5,
+          "total_gb": 17.5
+        },
+        {
+          "index": 1,
+          "error": "CUDA memory statistics unavailable"
+        },
+        {
+          "index": 2,
+          "allocated_gb": 16.5,
+          "reserved_gb": 16.563,
+          "max_allocated_gb": 16.625,
+          "free_gb": 16.5,
+          "total_gb": 17.5
+        }
+      ],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 3,
+      "data": [
+        {
+          "free": 17716740096,
+          "total": 18790481920,
+          "allocated": 17716740096,
+          "reserved": 17783848960,
+          "peak": 17850957824
+        },
+        {
+          "free": 17716752441,
+          "total": 18790481920,
+          "allocated": 17716740097,
+          "reserved": 17783848961,
+          "peak": 17850957825
+        },
+        {
+          "free": 17716764786,
+          "total": 18790481920,
+          "allocated": 17716740098,
+          "reserved": 17783848962,
+          "peak": 17850957826
+        }
+      ],
+      "fail": "reserved:1",
+      "events": [
+        "available",
+        "count",
+        "info:0",
+        "allocated:0",
+        "reserved:0",
+        "peak:0",
+        "info:1",
+        "allocated:1",
+        "reserved:1",
+        "info:2",
+        "allocated:2",
+        "reserved:2",
+        "peak:2"
+      ],
+      "result": [
+        {
+          "index": 0,
+          "allocated_gb": 16.5,
+          "reserved_gb": 16.562,
+          "max_allocated_gb": 16.625,
+          "free_gb": 16.5,
+          "total_gb": 17.5
+        },
+        {
+          "index": 1,
+          "error": "CUDA memory statistics unavailable"
+        },
+        {
+          "index": 2,
+          "allocated_gb": 16.5,
+          "reserved_gb": 16.563,
+          "max_allocated_gb": 16.625,
+          "free_gb": 16.5,
+          "total_gb": 17.5
+        }
+      ],
+      "error": false
+    },
+    {
+      "available": true,
+      "count": 3,
+      "data": [
+        {
+          "free": 17716740096,
+          "total": 18790481920,
+          "allocated": 17716740096,
+          "reserved": 17783848960,
+          "peak": 17850957824
+        },
+        {
+          "free": 17716752441,
+          "total": 18790481920,
+          "allocated": 17716740097,
+          "reserved": 17783848961,
+          "peak": 17850957825
+        },
+        {
+          "free": 17716764786,
+          "total": 18790481920,
+          "allocated": 17716740098,
+          "reserved": 17783848962,
+          "peak": 17850957826
+        }
+      ],
+      "fail": "peak:1",
+      "events": [
+        "available",
+        "count",
+        "info:0",
+        "allocated:0",
+        "reserved:0",
+        "peak:0",
+        "info:1",
+        "allocated:1",
+        "reserved:1",
+        "peak:1",
+        "info:2",
+        "allocated:2",
+        "reserved:2",
+        "peak:2"
+      ],
+      "result": [
+        {
+          "index": 0,
+          "allocated_gb": 16.5,
+          "reserved_gb": 16.562,
+          "max_allocated_gb": 16.625,
+          "free_gb": 16.5,
+          "total_gb": 17.5
+        },
+        {
+          "index": 1,
+          "error": "CUDA memory statistics unavailable"
+        },
+        {
+          "index": 2,
+          "allocated_gb": 16.5,
+          "reserved_gb": 16.563,
+          "max_allocated_gb": 16.625,
+          "free_gb": 16.5,
+          "total_gb": 17.5
+        }
+      ],
+      "error": false
+    }
+  ]
+}

@@ -1,0 +1,296 @@
+{
+  "date": "2026-10-19",
+  "runtime_integrated": true,
+  "compressed_storage_integrated": false,
+  "candidate_image": "sha256:542fd39d1e26ea73e9a7864b8945788bf80d2547aad4f6d7462326ed8bcbee4e",
+  "binaries": [
+    "616793baa932949c5d4d27539908bebf6a08e8d3c0849807877f926c150cefb0  /app/build/ezlocalai-native",
+    "ad07862ae3b26ce4fb2b02c4d98a079da0b376d52d68905c8736c3aa9994a203  /opt/stable-diffusion.cpp/build/bin/sd-cli"
+  ],
+  "candidate_source_sha256": {
+    "include/ezlocalai/nf4.hpp": "4eb4b527902b8e10a66beac0901027847ba527c4ac4fe82557167d247922ec10",
+    "include/ezlocalai/torch_cuda_mean.hpp": "52921d2fc3daf9f9bcb63bb88a4a9728a2b724ef1c40daea7398648d87672542",
+    "include/ezlocalai/ltx_runtime.hpp": "c86c567598ad450cf43e090f03c1655015a915cef567f0f83625a0f000784510",
+    "include/ezlocalai/video_runtime.hpp": "34072801b6c4ef4269699d1757e23f99f286897d0c9519d1b7aec7c5a6e32a67",
+    "src/ltx_runtime.cpp": "713ce21454ff2dea107f3f686fa106ce287e5781fefcfa75944b6f72971df79f",
+    "src/video_runtime.cpp": "412e1c444f068a4ea695edcce47884fc56a0f590658d4f7f7081ae3c54dd720e",
+    "patches/sdcpp-ltx-nf4.patch": "e2bc32f495db269bbe20a2c13783106cb886e84267b54d223d6678222c88a5fa",
+    "patches/sdcpp-ltx-timesteps.patch": "c38bc6a4468460f918318a62eee1f9805d442231f253dc420caf1ff5c9977bfe",
+    "cuda.Dockerfile": "18444dfd00cc3e4a2aaf2ee144089dbf8a801e260238de53ac493922caba3da2"
+  },
+  "cases": [
+    {
+      "case": "corrected-storyboard",
+      "request": {
+        "prompt": "Pythagorean rock concert, a band performing on a stage with a mathematical LED screen.",
+        "lyrics": "[Verse]\nThe squares on legs a and b\n[Chorus]\nEqual the square on hypotenuse c",
+        "keyscale": "C minor",
+        "duration": 5.0,
+        "scene_duration": 5.0,
+        "audio_url": "outputs/reused.wav",
+        "size": "512x320",
+        "frame_rate": 8,
+        "num_inference_steps": 18,
+        "response_format": "url",
+        "worker": "native-music-video-validation"
+      },
+      "via_router": true,
+      "seconds": 168.70234160800464,
+      "bytes": 338875,
+      "sha256": "c71f5eda962d58704aaa406f464a45c48e89b074441226fd12a2914af5eda8d4",
+      "handoff_observed": true,
+      "resource_poll_timeouts": 4,
+      "streams": [
+        {
+          "codec_type": "video",
+          "codec_name": "h264",
+          "width": 512,
+          "height": 320,
+          "nb_frames": "40",
+          "r_frame_rate": "8/1",
+          "duration": "5.000000"
+        },
+        {
+          "codec_type": "audio",
+          "codec_name": "aac",
+          "sample_rate": "24000",
+          "channels": 1,
+          "nb_frames": "119",
+          "r_frame_rate": "0/0",
+          "duration": "5.000000"
+        }
+      ],
+      "restored_context": 220000
+    },
+    {
+      "case": "text-to-video",
+      "request": {
+        "prompt": "A yellow rubber duck floating on calm blue water, close-up, daylight, gentle ripples.",
+        "size": "512x320",
+        "num_frames": 41,
+        "frame_rate": 24,
+        "num_inference_steps": 18,
+        "guidance_scale": 3.5,
+        "response_format": "url",
+        "duration": 1.7083333333333333,
+        "worker": "native-music-video-validation"
+      },
+      "via_router": true,
+      "seconds": 168.7971721419599,
+      "bytes": 239820,
+      "sha256": "b4ec6c5e06363cd4e9bc63ac1bcf59aa4d7a10f2c456f15a6826c6d3f783c1a6",
+      "handoff_observed": true,
+      "resource_poll_timeouts": 5,
+      "streams": [
+        {
+          "codec_type": "video",
+          "codec_name": "h264",
+          "width": 512,
+          "height": 320,
+          "nb_frames": "41",
+          "r_frame_rate": "24/1",
+          "duration": "1.708333"
+        },
+        {
+          "codec_type": "audio",
+          "codec_name": "aac",
+          "sample_rate": "24000",
+          "channels": 2,
+          "nb_frames": "81",
+          "r_frame_rate": "0/0",
+          "duration": "3.380000"
+        }
+      ],
+      "restored_context": 220000
+    }
+  ],
+  "engine_launches": [
+    {
+      "args": [
+        "-M",
+        "vid_gen",
+        "--diffusion-model",
+        "/app/models/models--unsloth--LTX-2.3-GGUF/snapshots/96e8ed4925ead3db9ff4d0084f165ef6a74f28d0/ltx-2.3-22b-dev-Q4_K_M.gguf",
+        "--ltx-diffusers-root",
+        "/app/models/models--diffusers--LTX-2.3-Diffusers/snapshots/8eee8edcf067e838b843f926ec4d4cc9b2be1aaf",
+        "--tokenizer",
+        "/app/models/models--diffusers--LTX-2.3-Diffusers/snapshots/8eee8edcf067e838b843f926ec4d4cc9b2be1aaf/tokenizer/tokenizer.json",
+        "--mmap",
+        "--tensor-type-rules",
+        "^text_encoders.llm.*=bf16",
+        "--diffusion-fa",
+        "--vae-tiling",
+        "--temporal-tiling",
+        "--sampling-method",
+        "euler",
+        "--extra-sample-args",
+        "base_shift=2.05,max_shift=2.05",
+        "--rng",
+        "cpu",
+        "--seed",
+        "42",
+        "-p",
+        "cinematic music video visuals for: Pythagorean rock concert, a band performing on a stage with a mathematical LED screen.. Scene 1 of 1, covering seconds 0.0-5.0; match the song energy, rhythm, stage lighting, camera motion, and lyrical mood. Start from the supplied storyboard frame; preserve the visible lyric/theorem graphics on the LED screen, especially the superscript exponent notation for a squared plus b squared equals c squared; do not use caret notation. Animate the band, lights, camera, and crowd around those visual anchors. Do not replace it with generic unrelated concert footage.",
+        "-n",
+        "low quality, worst quality, deformed, distorted, disfigured, motion smear, motion artifacts, blurry, shaky",
+        "-W",
+        "512",
+        "-H",
+        "320",
+        "--video-frames",
+        "41",
+        "--fps",
+        "8",
+        "--steps",
+        "18",
+        "--cfg-scale",
+        "3.5",
+        "--output-begin-idx",
+        "0",
+        "-o",
+        "/tmp/ltx-video-Rgiz0D/frame_%06d.png",
+        "--backend",
+        "cuda0",
+        "--ltx-nf4-sm-count",
+        "84",
+        "--ltx-nf4-threads-per-sm",
+        "1536",
+        "--offload-to-cpu",
+        "-i",
+        "/tmp/ltx-video-Rgiz0D/image.png",
+        "--strength",
+        "1"
+      ]
+    },
+    {
+      "args": [
+        "-M",
+        "vid_gen",
+        "--diffusion-model",
+        "/app/models/models--unsloth--LTX-2.3-GGUF/snapshots/96e8ed4925ead3db9ff4d0084f165ef6a74f28d0/ltx-2.3-22b-dev-Q4_K_M.gguf",
+        "--ltx-diffusers-root",
+        "/app/models/models--diffusers--LTX-2.3-Diffusers/snapshots/8eee8edcf067e838b843f926ec4d4cc9b2be1aaf",
+        "--tokenizer",
+        "/app/models/models--diffusers--LTX-2.3-Diffusers/snapshots/8eee8edcf067e838b843f926ec4d4cc9b2be1aaf/tokenizer/tokenizer.json",
+        "--mmap",
+        "--tensor-type-rules",
+        "^text_encoders.llm.*=bf16",
+        "--diffusion-fa",
+        "--vae-tiling",
+        "--temporal-tiling",
+        "--sampling-method",
+        "euler",
+        "--extra-sample-args",
+        "base_shift=2.05,max_shift=2.05",
+        "--rng",
+        "cpu",
+        "--seed",
+        "42",
+        "-p",
+        "A yellow rubber duck floating on calm blue water, close-up, daylight, gentle ripples.",
+        "-n",
+        "low quality, worst quality, deformed, distorted, disfigured, motion smear, motion artifacts, blurry, shaky",
+        "-W",
+        "512",
+        "-H",
+        "320",
+        "--video-frames",
+        "41",
+        "--fps",
+        "24",
+        "--steps",
+        "18",
+        "--cfg-scale",
+        "3.5",
+        "--output-begin-idx",
+        "0",
+        "-o",
+        "/tmp/ltx-video-97Txg7/frame_%06d.png",
+        "--backend",
+        "cuda0",
+        "--ltx-nf4-sm-count",
+        "84",
+        "--ltx-nf4-threads-per-sm",
+        "1536",
+        "--offload-to-cpu"
+      ]
+    }
+  ],
+  "engine_wrapper": "Trace-only C++ wrapper; records argv and executes packaged sd-cli without changing arguments. Original Hugging Face components, no derived weights.",
+  "engine_launch_count": 2,
+  "hidden_engine_retries": 0,
+  "invalid_request": {
+    "status": 400,
+    "body": "{\"detail\":\"LTX size must contain two integers separated by x\"}"
+  },
+  "after_invalid_context": 220000,
+  "before_chat": "READY",
+  "after_chat": "READY",
+  "original_env_unchanged": true,
+  "restored_health": "healthy",
+  "container_memory_peak_bytes": 40968253440,
+  "memory_measurement_note": "Cgroup memory.peak includes mapped model files and page cache; not compressed model storage or allocated GPU memory.",
+  "validation": {
+    "native_tests": 115,
+    "native_seconds": 415.26,
+    "cuda_image_tests": 10,
+    "cuda_image_seconds": 2.33,
+    "rust_worker_wire_tests": 89,
+    "rust_worker_wire_seconds": 36.914,
+    "bf16_oracle_cases": 136,
+    "fp16_oracle_cases": 136,
+    "actual_loader_cases": 34,
+    "worker_policy_cases": 10,
+    "initial_full_suite": "114/115 passed; native_http failed reading a WebSocket frame. Isolated rerun passed. Test client was corrected to consume exact handshake/frame bytes; deterministic coalesced-frame regression and fresh full suite pass. Production transport unchanged."
+  },
+  "visual_checks": {
+    "raw_scene_four_seconds": "Theorem graphic and performers remain visible before final overlay.",
+    "ordinary_video_one_second": "Yellow duck on blue water, consistent with prompt.",
+    "images": {
+      "scene-at-four.png": "774f34dac0e4cbe135b51f2f91d21eac880714ff5b89e5647b884d0842f5970c",
+      "duck-at-one.png": "8bbd4a461fb4c8586a73e8c74d6c34d8d8023f1d65a3e65e4da723dfa491112b"
+    }
+  },
+  "scope_limits": [
+    "NF4 values are reconstructed into BF16/FP16 storage; compressed GPU storage and NF4 matmul remain absent.",
+    "Quanto INT8 fallback and complete Python residency policy remain absent.",
+    "Persistent video-engine weights remain absent.",
+    "Prior complete-model check retains 404 BF16 differences among 10,758,389,760 values, isolated to seven nested-statistic codes.",
+    "Complete encoder/connector arithmetic equivalence and alternative CUDA geometries remain unverified."
+  ],
+  "raw_evidence": "/opt/DevXT/ezlocalai/build/validation/nf4-runtime/result.json",
+  "raw_evidence_sha256": "2e751dfe298d718a2bcba011fd7a084ef156e30fc845215951ff92d467261e29",
+  "deployment": {
+    "previous_image": "sha256:bf51835f359370458db36aec93c2af5a6ae35c60e78510fa5fc4f143be8f6290",
+    "candidate_image": "sha256:542fd39d1e26ea73e9a7864b8945788bf80d2547aad4f6d7462326ed8bcbee4e",
+    "health": "healthy",
+    "deployed_image": "sha256:542fd39d1e26ea73e9a7864b8945788bf80d2547aad4f6d7462326ed8bcbee4e",
+    "effective_environment_changed_keys": [],
+    "original_env_file_unchanged": true,
+    "mounts_unchanged": true,
+    "ports_unchanged": true,
+    "gpu_requests_unchanged": true
+  },
+  "production_validation": {
+    "health": "healthy",
+    "registered_worker_count": 1,
+    "checks": {
+      "chat": {
+        "status": 200,
+        "response_sha256": "a705180096c849e165c7b7c31d0b47b2e2c16ad4942eacba685057e0b550fc9a"
+      },
+      "stream": {
+        "status": 200,
+        "response_sha256": "156dba476ce840a799a03975917748f7a019b952b9cd3ac8107f53e637ea1fe9"
+      },
+      "vision": {
+        "status": 200,
+        "response_sha256": "8295138e2fc812f39ebfc93e19e1508bf2f79d5c24b0623b21eb6b3b845b17d2"
+      }
+    },
+    "container_binaries": [
+      "616793baa932949c5d4d27539908bebf6a08e8d3c0849807877f926c150cefb0  /app/build/ezlocalai-native",
+      "ad07862ae3b26ce4fb2b02c4d98a079da0b376d52d68905c8736c3aa9994a203  /opt/stable-diffusion.cpp/build/bin/sd-cli"
+    ]
+  }
+}

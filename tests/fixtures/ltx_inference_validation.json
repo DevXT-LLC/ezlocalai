@@ -1,0 +1,930 @@
+{
+  "status": "partial_not_deployed",
+  "recorded_utc": "2026-10-19T03:58:50.793602+00:00",
+  "engine_revision": "c678dfe704a2230342376b46add9c8ca736a653d",
+  "hardware": "NVIDIA RTX 3090 Ti, 24 GiB; host memory 123 GiB",
+  "scope": "Experimental native engine execution and isolated Python model/export comparison; not HTTP integration or numerical parity",
+  "focused_ctest": [
+    "ltx_policy_reference",
+    "ltx_conditions_reference",
+    "ltx_mapping_reference",
+    "parity_report_gate"
+  ],
+  "source_policy_cases": 2006,
+  "installed_condition_cases": 137,
+  "component_mapping_cases": 534,
+  "files": {
+    "patches/sdcpp-ltx-conditions.patch": "50ad7e061757df07a025535c6d16f3067a28889ca2ad7fa102ea604a2bc274ad",
+    "patches/sdcpp-ltx-diffusers.patch": "eb4789d1e1100dbf858da774edb9b8b97ecbfecd12af39b5b44e6bc1857a2646",
+    "tests/fixtures/ltx_mapping_cases.json": "c5062bd969b258d1466090e68a7ec421c38839956570e1916341e63f298c64bd",
+    "tests/fixtures/ltx_policy_cases.json": "8afae9141c54e380c414106d6a97950bc459324ad155ce6c42eebe8898422c13",
+    "tests/fixtures/ltx_condition_cases.json": "48883c95770f5543dd73035722595cb9fa4f3b8c8ef32cfe3a4bc81f384ffc51"
+  },
+  "scripts": {
+    "/tmp/ezlocalai-capture-ltx-real.py": "112e409626159de7b5dc3b8750c00d6a67098d4625cc151ba81c87a5dab3fb56",
+    "/tmp/ezlocalai-capture-ltx-retry.py": "13d0a367e20a76f5f70a42ee0603548712de86daa4a6cbead1f9d94744876a9a",
+    "/tmp/ezlocalai-capture-ltx-mapping.py": "6a6298c9c84d0926cc90ed0c0b7c35c42b7030046a1bda181804af2751aab990",
+    "/tmp/ezlocalai-reexport-ltx.py": "075fb1b1cf4f148284a24c557f5859efe5fba5794bb60daadde36b8a4b671cc7",
+    "/tmp/ezlocalai-run-ltx-cuda.py": "f3b47aca9297d52c3f42bfe049023cbd0ecce20c45673939bb4ea0346d43c418",
+    "/tmp/ezlocalai-run-ltx-cuda-conditions.py": "d3ea9010b0a32114c80a101713b6b20a23f20d82baf5475a89fd003977dccb3d",
+    "/tmp/ezlocalai-run-ltx-cuda-conditions-mmap.py": "a5ec46a22edd50921f70b24f1768d0723ffcc51c0e16f1c8c1b325de37270587",
+    "/tmp/ezlocalai-run-ltx-cuda-mmap.py": "143fe8a727622d5f633483301a5752629f198e5f23e665edc100d81b0b00b6fa",
+    "/tmp/ezlocalai-run-ltx-python.py": "8f4ee59b49ebfa60766519dae8e0dd6ebf6876b3d7fd23fe067cfd32569dac84",
+    "/tmp/ezlocalai-run-ltx-python-retry.py": "e2784e0ee6064edc440a1f8bfb9c8a7c30644878350cc038af69a27ca733fa23",
+    "/tmp/ezlocalai-run-ltx-python-sequential.py": "791ef9af9e79fa4ebb8ff07508817de238cc625aba070884a0c26693b68fb0a3",
+    "/tmp/ezlocalai-probe-ltx-diffusers.py": "4bf7a842be8a2de748847fbd1820cfcc643e02d02f55d52e372f9e98bd8eb6be"
+  },
+  "runs": {
+    "cuda": {
+      "engine_sha256": "b6089a52e284bdcb45d12c9ff9816e80b6b797a0e86bb75e4a1a09f4a539fab5",
+      "request": [
+        "-M",
+        "vid_gen",
+        "--backend",
+        "cuda0",
+        "--offload-to-cpu",
+        "--diffusion-fa",
+        "--vae-tiling",
+        "--temporal-tiling",
+        "--tensor-type-rules",
+        "^text_encoders.llm.*=bf16",
+        "-t",
+        "8",
+        "-W",
+        "64",
+        "-H",
+        "64",
+        "--video-frames",
+        "9",
+        "--fps",
+        "24",
+        "--steps",
+        "2",
+        "--cfg-scale",
+        "4",
+        "--sampling-method",
+        "euler",
+        "-p",
+        "A red ball rolls across a table.",
+        "-n",
+        "low quality, worst quality, deformed, distorted, disfigured, motion smear, motion artifacts, blurry, shaky",
+        "--seed",
+        "42",
+        "--output-begin-idx",
+        "0",
+        "-o",
+        "/validation/frame_%06d.png",
+        "--diffusion-model",
+        "/models/models--unsloth--LTX-2.3-GGUF/snapshots/96e8ed4925ead3db9ff4d0084f165ef6a74f28d0/ltx-2.3-22b-dev-Q4_K_M.gguf",
+        "--ltx-diffusers-root",
+        "/models/models--diffusers--LTX-2.3-Diffusers/snapshots/8eee8edcf067e838b843f926ec4d4cc9b2be1aaf",
+        "--tokenizer",
+        "/models/models--diffusers--LTX-2.3-Diffusers/snapshots/8eee8edcf067e838b843f926ec4d4cc9b2be1aaf/tokenizer/tokenizer.json"
+      ],
+      "started": 1792380346.1166668,
+      "exit": 0,
+      "seconds": 60.92239284515381,
+      "outputs": {
+        "frame_000001.png": {
+          "size": 14198,
+          "sha256": "3b6db80a4053350521c1b96b3a233b54203233e20e92d91a8317ca7de566ced8"
+        },
+        "frame_%06d.wav": {
+          "size": 71084,
+          "sha256": "b9ac29980389a7e89d1e49c916cd4f6c338bc7f827cddd7854660de0c1d0f3fc"
+        },
+        "frame_000005.png": {
+          "size": 14198,
+          "sha256": "1a215391b2d73e5d2be8279dae28733094981bc8696415b5ba199a6b1d85383c"
+        },
+        "frame_000006.png": {
+          "size": 14198,
+          "sha256": "dcf6c1a8a5e7ecac517bcaec2ce2b23a603aacfacd21819c8908de210688b17b"
+        },
+        "frame_000007.png": {
+          "size": 14198,
+          "sha256": "b4c8f350063de58e0893768c57d9b19e9730054dc125e29da4b97a3724c71f2e"
+        },
+        "frame_000004.png": {
+          "size": 14198,
+          "sha256": "d45600ec9e28c35f7033dc1762c5bac453e13a730e1d9689c3184ebf2e1aeaf2"
+        },
+        "frame_000003.png": {
+          "size": 14198,
+          "sha256": "859a38e54cacbd4c3a9aef2298634c25f0a9128a955c4aa5f33a2513d5747bc5"
+        },
+        "frame_000008.png": {
+          "size": 14198,
+          "sha256": "dadff7e3473ba2ada139c64061dc036819bab92406b75baf6af913742c49cdbf"
+        },
+        "frame_000000.png": {
+          "size": 14198,
+          "sha256": "26ec43f62511772d10238fd3017639a42009d9827e3ded3db7bd84d7d3e34320"
+        },
+        "frame_000002.png": {
+          "size": 14198,
+          "sha256": "47808344012343d26a16a0cb1e48a0a1dac983f371756baafe35b8abf3442703"
+        }
+      },
+      "restored_health": "healthy",
+      "log_sha256": "a5d8b6ca98776e987862dec3d77f96f14595ab72dca9eab84204f5b32d6b5c74"
+    },
+    "cuda-conditions": {
+      "engine_sha256": "c9bd0818fceecae310a162b6b93aee968a2defd5c7ab0971c61f2666111b24bd",
+      "request": [
+        "-M",
+        "vid_gen",
+        "--backend",
+        "cuda0",
+        "--offload-to-cpu",
+        "--diffusion-fa",
+        "--vae-tiling",
+        "--temporal-tiling",
+        "--tensor-type-rules",
+        "^text_encoders.llm.*=bf16",
+        "-t",
+        "8",
+        "-W",
+        "64",
+        "-H",
+        "64",
+        "--video-frames",
+        "17",
+        "--fps",
+        "24",
+        "--steps",
+        "2",
+        "--cfg-scale",
+        "4",
+        "--sampling-method",
+        "euler",
+        "-p",
+        "A red ball rolls across a table.",
+        "-n",
+        "low quality, worst quality, deformed, distorted, disfigured, motion smear, motion artifacts, blurry, shaky",
+        "--seed",
+        "42",
+        "--output-begin-idx",
+        "0",
+        "-o",
+        "/validation/frame_%06d.png",
+        "--diffusion-model",
+        "/models/models--unsloth--LTX-2.3-GGUF/snapshots/96e8ed4925ead3db9ff4d0084f165ef6a74f28d0/ltx-2.3-22b-dev-Q4_K_M.gguf",
+        "--ltx-diffusers-root",
+        "/models/models--diffusers--LTX-2.3-Diffusers/snapshots/8eee8edcf067e838b843f926ec4d4cc9b2be1aaf",
+        "--tokenizer",
+        "/models/models--diffusers--LTX-2.3-Diffusers/snapshots/8eee8edcf067e838b843f926ec4d4cc9b2be1aaf/tokenizer/tokenizer.json",
+        "--ltx-conditions",
+        "[{\"image\": \"/validation/condition-0.png\", \"index\": 0, \"strength\": 1.0}, {\"image\": \"/validation/condition-1.png\", \"index\": 1, \"strength\": 0.5}, {\"image\": \"/validation/condition-2.png\", \"index\": -1, \"strength\": 0.25}, {\"image\": \"/validation/condition-3.png\", \"index\": 99, \"strength\": 1.0}]"
+      ],
+      "started": 1792380813.522609,
+      "exit": 124,
+      "seconds": 910.1729350090027,
+      "outputs": {},
+      "restored_health": "healthy",
+      "log_sha256": "90403cf0db7bd55b7c4b7c4b339a806acc72cf8933f0cfd2a77e4927eda2ffc8"
+    },
+    "cuda-conditions-mmap": {
+      "GGML_CUDA_NO_PINNED": "1",
+      "engine_sha256": "c9bd0818fceecae310a162b6b93aee968a2defd5c7ab0971c61f2666111b24bd",
+      "request": [
+        "-M",
+        "vid_gen",
+        "--backend",
+        "cuda0",
+        "--offload-to-cpu",
+        "--mmap",
+        "--diffusion-fa",
+        "--vae-tiling",
+        "--temporal-tiling",
+        "--tensor-type-rules",
+        "^text_encoders.llm.*=bf16",
+        "-t",
+        "8",
+        "-W",
+        "64",
+        "-H",
+        "64",
+        "--video-frames",
+        "17",
+        "--fps",
+        "24",
+        "--steps",
+        "2",
+        "--cfg-scale",
+        "4",
+        "--sampling-method",
+        "euler",
+        "-p",
+        "A red ball rolls across a table.",
+        "-n",
+        "low quality, worst quality, deformed, distorted, disfigured, motion smear, motion artifacts, blurry, shaky",
+        "--seed",
+        "42",
+        "--output-begin-idx",
+        "0",
+        "-o",
+        "/validation/frame_%06d.png",
+        "--diffusion-model",
+        "/models/models--unsloth--LTX-2.3-GGUF/snapshots/96e8ed4925ead3db9ff4d0084f165ef6a74f28d0/ltx-2.3-22b-dev-Q4_K_M.gguf",
+        "--ltx-diffusers-root",
+        "/models/models--diffusers--LTX-2.3-Diffusers/snapshots/8eee8edcf067e838b843f926ec4d4cc9b2be1aaf",
+        "--tokenizer",
+        "/models/models--diffusers--LTX-2.3-Diffusers/snapshots/8eee8edcf067e838b843f926ec4d4cc9b2be1aaf/tokenizer/tokenizer.json",
+        "--ltx-conditions",
+        "[{\"image\": \"/validation/condition-0.png\", \"index\": 0, \"strength\": 1.0}, {\"image\": \"/validation/condition-1.png\", \"index\": 1, \"strength\": 0.5}, {\"image\": \"/validation/condition-2.png\", \"index\": -1, \"strength\": 0.25}, {\"image\": \"/validation/condition-3.png\", \"index\": 99, \"strength\": 1.0}]"
+      ],
+      "started": 1792381848.3932056,
+      "exit": 0,
+      "seconds": 55.98651909828186,
+      "outputs": {
+        "frame_000014.png": {
+          "size": 13236,
+          "sha256": "d3128f10c94cbd703db1769c892c9e5f369197030e14e1ebd08c633e7c0ef72f"
+        },
+        "frame_000001.png": {
+          "size": 13790,
+          "sha256": "2fc7a7d5d74cf26ae31b1bf1bf691c9137a9c0e9f8975ab78bbc220beb659eb7"
+        },
+        "frame_%06d.wav": {
+          "size": 132524,
+          "sha256": "f5c0c6783bbd238c85255c2bed7d4c84a5ebcc49d6a8844ca6a298f1070abc74"
+        },
+        "frame_000005.png": {
+          "size": 12904,
+          "sha256": "993f0d47690960ca69708f280d016285c23ea9dc542bacf382b3296b3a04ca3d"
+        },
+        "frame_000006.png": {
+          "size": 12948,
+          "sha256": "d2f5ed3d816bcefc16e8a63a3cd74690ed6786878928541c288afe779bcdc897"
+        },
+        "frame_000007.png": {
+          "size": 12897,
+          "sha256": "896bd2c8d82377e8c471dfbbbd069c6707709ea7c1cddc1830f5a5fe036d8f0e"
+        },
+        "frame_000004.png": {
+          "size": 13000,
+          "sha256": "ef010af7fd72636c610dcd49dd741f715569b338f87fe1a5a0ea075f2dc61774"
+        },
+        "frame_000003.png": {
+          "size": 13145,
+          "sha256": "e450d283970465ebdb350f90988a482f5c9aeadb016a44b2175ebd17b41db480"
+        },
+        "frame_000012.png": {
+          "size": 13019,
+          "sha256": "2a60dc4eb53dc626688d8254988e2b4707f5f87fc23227cf3917994060722424"
+        },
+        "frame_000011.png": {
+          "size": 13005,
+          "sha256": "4b1fbf7aa9110e014501d3bf6db37e0a18ca006d917ce9433d51fcf10001049d"
+        },
+        "frame_000013.png": {
+          "size": 13166,
+          "sha256": "d329f73e8a38fff60a7be3ea3fce7f047547c6e3da80a7893723fe9d7af7ef54"
+        },
+        "frame_000008.png": {
+          "size": 12772,
+          "sha256": "d0d66fdc6b60d09dfe5f3ef02c74329605b42da1f55a33ba403a9e6e941922cb"
+        },
+        "frame_000010.png": {
+          "size": 12977,
+          "sha256": "235ebfbdabc413398550134b176383fb24938278ee04ad1b2093c745c4c601b8"
+        },
+        "frame_000000.png": {
+          "size": 14199,
+          "sha256": "2513b63bac93a50359bbe3a16b17250a51e51a8353c8455ecb64d93a3301390d"
+        },
+        "frame_000009.png": {
+          "size": 12498,
+          "sha256": "c3756aab373795a5e60b1c10689ad7d81618c55ea6044f4afd76ac35721d673a"
+        },
+        "frame_000002.png": {
+          "size": 13338,
+          "sha256": "e7e9e56e2eaa0c7333fe41c7e177d98999a51bbd8529a81a6a9cc2268e3ecebf"
+        },
+        "frame_000015.png": {
+          "size": 13202,
+          "sha256": "e7435c2effb40331b642187568e5a1a6aba8f6c8494af79daab951aa3dbd1cf1"
+        },
+        "frame_000016.png": {
+          "size": 13223,
+          "sha256": "7691b32f99f0cbd329f01f05a4a85d0cd59e66adebd5bf7334733211b4de1056"
+        }
+      },
+      "restored_health": "healthy",
+      "log_sha256": "e4ad94594401d0a512e820adaf769f70d745699caf9003c17689ed77aaa94763"
+    },
+    "cuda-mmap": {
+      "GGML_CUDA_NO_PINNED": "1",
+      "engine_sha256": "c9bd0818fceecae310a162b6b93aee968a2defd5c7ab0971c61f2666111b24bd",
+      "request": [
+        "-M",
+        "vid_gen",
+        "--backend",
+        "cuda0",
+        "--offload-to-cpu",
+        "--mmap",
+        "--diffusion-fa",
+        "--vae-tiling",
+        "--temporal-tiling",
+        "--tensor-type-rules",
+        "^text_encoders.llm.*=bf16",
+        "-t",
+        "8",
+        "-W",
+        "64",
+        "-H",
+        "64",
+        "--video-frames",
+        "9",
+        "--fps",
+        "24",
+        "--steps",
+        "2",
+        "--cfg-scale",
+        "4",
+        "--sampling-method",
+        "euler",
+        "-p",
+        "A red ball rolls across a table.",
+        "-n",
+        "low quality, worst quality, deformed, distorted, disfigured, motion smear, motion artifacts, blurry, shaky",
+        "--seed",
+        "42",
+        "--output-begin-idx",
+        "0",
+        "-o",
+        "/validation/frame_%06d.png",
+        "--diffusion-model",
+        "/models/models--unsloth--LTX-2.3-GGUF/snapshots/96e8ed4925ead3db9ff4d0084f165ef6a74f28d0/ltx-2.3-22b-dev-Q4_K_M.gguf",
+        "--ltx-diffusers-root",
+        "/models/models--diffusers--LTX-2.3-Diffusers/snapshots/8eee8edcf067e838b843f926ec4d4cc9b2be1aaf",
+        "--tokenizer",
+        "/models/models--diffusers--LTX-2.3-Diffusers/snapshots/8eee8edcf067e838b843f926ec4d4cc9b2be1aaf/tokenizer/tokenizer.json"
+      ],
+      "started": 1792381937.7292926,
+      "exit": 0,
+      "seconds": 54.326582193374634,
+      "outputs": {
+        "frame_000001.png": {
+          "size": 14198,
+          "sha256": "3b6db80a4053350521c1b96b3a233b54203233e20e92d91a8317ca7de566ced8"
+        },
+        "frame_%06d.wav": {
+          "size": 71084,
+          "sha256": "b9ac29980389a7e89d1e49c916cd4f6c338bc7f827cddd7854660de0c1d0f3fc"
+        },
+        "frame_000005.png": {
+          "size": 14198,
+          "sha256": "1a215391b2d73e5d2be8279dae28733094981bc8696415b5ba199a6b1d85383c"
+        },
+        "frame_000006.png": {
+          "size": 14198,
+          "sha256": "dcf6c1a8a5e7ecac517bcaec2ce2b23a603aacfacd21819c8908de210688b17b"
+        },
+        "frame_000007.png": {
+          "size": 14198,
+          "sha256": "b4c8f350063de58e0893768c57d9b19e9730054dc125e29da4b97a3724c71f2e"
+        },
+        "frame_000004.png": {
+          "size": 14198,
+          "sha256": "d45600ec9e28c35f7033dc1762c5bac453e13a730e1d9689c3184ebf2e1aeaf2"
+        },
+        "frame_000003.png": {
+          "size": 14198,
+          "sha256": "859a38e54cacbd4c3a9aef2298634c25f0a9128a955c4aa5f33a2513d5747bc5"
+        },
+        "frame_000008.png": {
+          "size": 14198,
+          "sha256": "dadff7e3473ba2ada139c64061dc036819bab92406b75baf6af913742c49cdbf"
+        },
+        "frame_000000.png": {
+          "size": 14198,
+          "sha256": "26ec43f62511772d10238fd3017639a42009d9827e3ded3db7bd84d7d3e34320"
+        },
+        "frame_000002.png": {
+          "size": 14198,
+          "sha256": "47808344012343d26a16a0cb1e48a0a1dac983f371756baafe35b8abf3442703"
+        }
+      },
+      "restored_health": "healthy",
+      "log_sha256": "41c0c02d1edcf80239acec202ba12e10d805a1bd23da0cfc8c67072b0f468b6c"
+    },
+    "python": {
+      "source_sha256": "53ca668e446acc6b9f61937b394abf9cbdf5035d42ff71ab7170838b849242b3",
+      "load_seconds": 27.077636001980864,
+      "loaded": true,
+      "residency": "model_offload",
+      "dtype": "torch.bfloat16",
+      "request": {
+        "prompt": "A red ball rolls across a table.",
+        "size": "64x64",
+        "num_frames": 9,
+        "frame_rate": 24,
+        "num_inference_steps": 2,
+        "guidance_scale": 4.0
+      },
+      "error": {
+        "type": "VideoGenerationOutOfMemory",
+        "message": "CUDA out of memory. Tried to allocate 576.00 MiB. GPU 0 has a total capacity of 23.52 GiB of which 621.81 MiB is free. Process 3304987 has 21.46 GiB memory in use. Of the allocated memory 20.64 GiB is allocated by PyTorch, and 523.10 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://pytorch.org/docs/stable/notes/cuda.html#environment-variables)"
+      },
+      "seconds": 36.2588178969454,
+      "log_sha256": "2abb0f4a836f284ce6d93fe697eb18a09da2997e69e2936cf640db68944dc189",
+      "runner": {
+        "exit": 0,
+        "restored_health": "healthy"
+      }
+    },
+    "python-retry": {
+      "source_sha256": "53ca668e446acc6b9f61937b394abf9cbdf5035d42ff71ab7170838b849242b3",
+      "loads": [
+        {
+          "seconds": 41.31944358500186,
+          "loaded": true,
+          "residency": "model_offload",
+          "dtype": "torch.bfloat16"
+        },
+        {
+          "seconds": 53.930189142003655,
+          "loaded": true,
+          "residency": "sequential",
+          "dtype": "torch.bfloat16"
+        }
+      ],
+      "activity": [
+        true,
+        false,
+        false,
+        true,
+        false
+      ],
+      "pipes_sha256": "8238cef03d4a1db6e775d7f62234bcf998d8f08bd9fc15f1d8a36ea0d3280005",
+      "request": {
+        "prompt": "A red ball rolls across a table.",
+        "size": "64x64",
+        "num_frames": 9,
+        "frame_rate": 24,
+        "num_inference_steps": 2,
+        "guidance_scale": 4.0
+      },
+      "output": null,
+      "seconds": 215.3266520780744,
+      "log_sha256": "87936c0889d1341253cdfcedbc7cc530580bcf3f16b432c1982a12f6d0eb0022",
+      "runner": {
+        "exit": 0,
+        "restored_health": "healthy"
+      }
+    },
+    "python-sequential": {
+      "source_sha256": "53ca668e446acc6b9f61937b394abf9cbdf5035d42ff71ab7170838b849242b3",
+      "load_seconds": 37.59061049995944,
+      "loaded": true,
+      "residency": "sequential",
+      "dtype": "torch.bfloat16",
+      "request": {
+        "prompt": "A red ball rolls across a table.",
+        "size": "64x64",
+        "num_frames": 9,
+        "frame_rate": 24,
+        "num_inference_steps": 2,
+        "guidance_scale": 4.0
+      },
+      "frames": {
+        "shape": [
+          9,
+          64,
+          64,
+          3
+        ],
+        "dtype": "uint8",
+        "finite": true,
+        "min": 128.0,
+        "max": 211.0,
+        "sha256": "b5416de83bcb6177a4327ac2a338228a8e84879c94b9eac841622747c7af4837"
+      },
+      "audio": {
+        "shape": [
+          1,
+          2,
+          15840
+        ],
+        "dtype": "float32",
+        "finite": true,
+        "sample_rate_passed_to_export": 24000,
+        "sha256": "e5d76b7bb2e3e7e09443ca66b6618df0ef8755a8ff7f847247f9f779d5d66319"
+      },
+      "output": "outputs/4d759f1b-da9e-49e1-9cae-a0cb6c2b3375.mp4",
+      "seconds": 56.20930905500427,
+      "log_sha256": "bbce88740ac66ac2af609872a623d689dbb23eab90320d393971e39ca699b5bb",
+      "runner": {
+        "exit": 0,
+        "restored_health": "healthy"
+      },
+      "initial_export_valid": false,
+      "initial_export_limitation": "Harness omitted outputs directory; returned path did not exist. Raw model outputs captured successfully.",
+      "export_replay": {
+        "scope": "Actual Python export method replayed with captured raw tensors and an existing output directory; no model rerun",
+        "sample_rate_passed": 24000,
+        "output_exists": true,
+        "sha256": "60ea3b5b8d7893461a119645f83a8f967c02177f6f940a46d87b9eaec3324161",
+        "probe": {
+          "streams": [
+            {
+              "index": 0,
+              "codec_name": "h264",
+              "codec_long_name": "H.264 / AVC / MPEG-4 AVC / MPEG-4 part 10",
+              "profile": "High",
+              "codec_type": "video",
+              "codec_tag_string": "avc1",
+              "codec_tag": "0x31637661",
+              "width": 64,
+              "height": 64,
+              "coded_width": 64,
+              "coded_height": 64,
+              "closed_captions": 0,
+              "film_grain": 0,
+              "has_b_frames": 2,
+              "pix_fmt": "yuv420p",
+              "level": 10,
+              "chroma_location": "left",
+              "field_order": "progressive",
+              "refs": 1,
+              "is_avc": "true",
+              "nal_length_size": "4",
+              "id": "0x1",
+              "r_frame_rate": "24/1",
+              "avg_frame_rate": "24/1",
+              "time_base": "1/12288",
+              "start_pts": 0,
+              "start_time": "0.000000",
+              "duration_ts": 4608,
+              "duration": "0.375000",
+              "bit_rate": "25536",
+              "bits_per_raw_sample": "8",
+              "nb_frames": "9",
+              "extradata_size": 44,
+              "disposition": {
+                "default": 1,
+                "dub": 0,
+                "original": 0,
+                "comment": 0,
+                "lyrics": 0,
+                "karaoke": 0,
+                "forced": 0,
+                "hearing_impaired": 0,
+                "visual_impaired": 0,
+                "clean_effects": 0,
+                "attached_pic": 0,
+                "timed_thumbnails": 0,
+                "non_diegetic": 0,
+                "captions": 0,
+                "descriptions": 0,
+                "metadata": 0,
+                "dependent": 0,
+                "still_image": 0
+              },
+              "tags": {
+                "language": "und",
+                "handler_name": "VideoHandler",
+                "vendor_id": "[0][0][0][0]"
+              }
+            },
+            {
+              "index": 1,
+              "codec_name": "aac",
+              "codec_long_name": "AAC (Advanced Audio Coding)",
+              "profile": "LC",
+              "codec_type": "audio",
+              "codec_tag_string": "mp4a",
+              "codec_tag": "0x6134706d",
+              "sample_fmt": "fltp",
+              "sample_rate": "24000",
+              "channels": 2,
+              "channel_layout": "stereo",
+              "bits_per_sample": 0,
+              "initial_padding": 0,
+              "id": "0x2",
+              "r_frame_rate": "0/0",
+              "avg_frame_rate": "0/0",
+              "time_base": "1/24000",
+              "start_pts": 0,
+              "start_time": "0.000000",
+              "duration_ts": 15840,
+              "duration": "0.660000",
+              "bit_rate": "125168",
+              "nb_frames": "17",
+              "extradata_size": 5,
+              "disposition": {
+                "default": 1,
+                "dub": 0,
+                "original": 0,
+                "comment": 0,
+                "lyrics": 0,
+                "karaoke": 0,
+                "forced": 0,
+                "hearing_impaired": 0,
+                "visual_impaired": 0,
+                "clean_effects": 0,
+                "attached_pic": 0,
+                "timed_thumbnails": 0,
+                "non_diegetic": 0,
+                "captions": 0,
+                "descriptions": 0,
+                "metadata": 0,
+                "dependent": 0,
+                "still_image": 0
+              },
+              "tags": {
+                "language": "und",
+                "handler_name": "SoundHandler",
+                "vendor_id": "[0][0][0][0]"
+              }
+            }
+          ],
+          "format": {
+            "filename": "/evidence/python-reexport.mp4",
+            "nb_streams": 2,
+            "nb_programs": 0,
+            "format_name": "mov,mp4,m4a,3gp,3g2,mj2",
+            "format_long_name": "QuickTime / MOV",
+            "start_time": "0.000000",
+            "duration": "0.660000",
+            "size": "13885",
+            "bit_rate": "168303",
+            "probe_score": 100,
+            "tags": {
+              "major_brand": "isom",
+              "minor_version": "512",
+              "compatible_brands": "isomiso2avc1mp41",
+              "encoder": "Lavf62.12.102"
+            }
+          }
+        }
+      }
+    }
+  },
+  "native_decoded_media": {
+    "images": {
+      "frame_000000.png": {
+        "size": [
+          64,
+          64
+        ],
+        "unique_colors": 3712,
+        "channel_min": [
+          40,
+          50,
+          37
+        ],
+        "channel_max": [
+          207,
+          215,
+          206
+        ]
+      },
+      "frame_000001.png": {
+        "size": [
+          64,
+          64
+        ],
+        "unique_colors": 3765,
+        "channel_min": [
+          43,
+          48,
+          31
+        ],
+        "channel_max": [
+          208,
+          215,
+          203
+        ]
+      },
+      "frame_000002.png": {
+        "size": [
+          64,
+          64
+        ],
+        "unique_colors": 3722,
+        "channel_min": [
+          39,
+          50,
+          22
+        ],
+        "channel_max": [
+          199,
+          206,
+          197
+        ]
+      },
+      "frame_000003.png": {
+        "size": [
+          64,
+          64
+        ],
+        "unique_colors": 3801,
+        "channel_min": [
+          49,
+          45,
+          26
+        ],
+        "channel_max": [
+          199,
+          202,
+          185
+        ]
+      },
+      "frame_000004.png": {
+        "size": [
+          64,
+          64
+        ],
+        "unique_colors": 3715,
+        "channel_min": [
+          51,
+          56,
+          40
+        ],
+        "channel_max": [
+          211,
+          212,
+          194
+        ]
+      },
+      "frame_000005.png": {
+        "size": [
+          64,
+          64
+        ],
+        "unique_colors": 3744,
+        "channel_min": [
+          43,
+          53,
+          33
+        ],
+        "channel_max": [
+          208,
+          212,
+          194
+        ]
+      },
+      "frame_000006.png": {
+        "size": [
+          64,
+          64
+        ],
+        "unique_colors": 3717,
+        "channel_min": [
+          56,
+          58,
+          37
+        ],
+        "channel_max": [
+          214,
+          213,
+          199
+        ]
+      },
+      "frame_000007.png": {
+        "size": [
+          64,
+          64
+        ],
+        "unique_colors": 3767,
+        "channel_min": [
+          56,
+          62,
+          46
+        ],
+        "channel_max": [
+          234,
+          236,
+          217
+        ]
+      },
+      "frame_000008.png": {
+        "size": [
+          64,
+          64
+        ],
+        "unique_colors": 3780,
+        "channel_min": [
+          45,
+          49,
+          23
+        ],
+        "channel_max": [
+          224,
+          231,
+          206
+        ]
+      }
+    },
+    "audio": {
+      "channels": 2,
+      "sample_rate": 48000,
+      "samples_per_channel": 17760,
+      "min": -4422,
+      "max": 3747,
+      "rms": 713.0722773263882
+    }
+  },
+  "native_mp4_streams": [
+    {
+      "codec_type": "video",
+      "codec_name": "h264",
+      "width": 64,
+      "height": 64,
+      "duration": "0.375000",
+      "nb_frames": "9",
+      "avg_frame_rate": "24/1"
+    },
+    {
+      "codec_type": "audio",
+      "codec_name": "aac",
+      "sample_rate": "48000",
+      "channels": 2,
+      "duration": "0.370000",
+      "nb_frames": "19",
+      "avg_frame_rate": "0/0"
+    }
+  ],
+  "native_mp4_sha256": "3c416770491f9aae48021f7103e9f3442b38526c0a8c174706ae6258184d2396",
+  "native_memory_mode_comparison": {
+    "frames": [
+      {
+        "file": "frame_000000.png",
+        "rgba_equal": true,
+        "bytes_equal": true
+      },
+      {
+        "file": "frame_000001.png",
+        "rgba_equal": true,
+        "bytes_equal": true
+      },
+      {
+        "file": "frame_000002.png",
+        "rgba_equal": true,
+        "bytes_equal": true
+      },
+      {
+        "file": "frame_000003.png",
+        "rgba_equal": true,
+        "bytes_equal": true
+      },
+      {
+        "file": "frame_000004.png",
+        "rgba_equal": true,
+        "bytes_equal": true
+      },
+      {
+        "file": "frame_000005.png",
+        "rgba_equal": true,
+        "bytes_equal": true
+      },
+      {
+        "file": "frame_000006.png",
+        "rgba_equal": true,
+        "bytes_equal": true
+      },
+      {
+        "file": "frame_000007.png",
+        "rgba_equal": true,
+        "bytes_equal": true
+      },
+      {
+        "file": "frame_000008.png",
+        "rgba_equal": true,
+        "bytes_equal": true
+      }
+    ],
+    "audio_bytes_equal": true
+  },
+  "cpu_probe": {
+    "exit": 124,
+    "timeout_seconds": 180,
+    "status": "Constructed model and completed text encoding/projection; did not complete inference",
+    "log_sha256": "853d19a2b8c9821c67c1295c63ed32182de029106256fcf20c32d0fbbeb23fc7"
+  },
+  "limitations": [
+    "LTX HTTP requests still return 501; neither patch is in production Dockerfile",
+    "Only tiny 64x64 two-step generation tested; no normal-resolution quality claim",
+    "Native BF16 encoder/streamed weights differ from Python BNB/Quanto",
+    "Python and native audio waveform length and export rate/duration differ",
+    "No Python/native numerical equivalence established",
+    "Memory-mode comparison validates combined mmap/pageable settings, not each independently",
+    "Python retry oracle substitutes resource callbacks and ownership; not full server/LLM handoff",
+    "Complete CPU inference, multi-frame internal conditions, lifecycle/retry and configuration integration remain open"
+  ],
+  "production": {
+    "image_changed": false,
+    "http_ltx_backend_implemented": false,
+    "restored_health": "healthy",
+    "registered_worker_count": 1,
+    "model_context": 220000,
+    "live_router_checks": {
+      "chat": 200,
+      "streaming": 200,
+      "vision": 200
+    }
+  }
+}

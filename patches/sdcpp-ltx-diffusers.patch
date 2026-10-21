@@ -1,0 +1,311 @@
+--- a/examples/cli/main.cpp
++++ b/examples/cli/main.cpp
+@@ -536,6 +536,9 @@
+             }
+         }
+         LOG_INFO("%d/%d images saved", sucessful_reults, num_results);
++        // Preserve LTX audio when callers request lossless image frames and
++        // perform their own final video/audio encoding.
++        write_audio_sidecar(get_video_audio_sidecar_path(cli_params));
+         return sucessful_reults != 0;
+     }
+ 
+--- a/examples/common/common.cpp
++++ b/examples/common/common.cpp
+@@ -450,6 +450,7 @@
+          "path to LTXAV embeddings connectors",
+          0,
+          &embeddings_connectors_path},
++        {"", "--ltx-diffusers-root", "LTX-2.3 Diffusers component snapshot (text encoder, connectors, video/audio VAE, vocoder)", 0, &ltx_diffusers_root},
+         {"",
+          "--vae",
+          "path to standalone vae model",
+@@ -979,6 +980,7 @@
+     sd_ctx_params.high_noise_diffusion_model_path = high_noise_diffusion_model_path.c_str();
+     sd_ctx_params.uncond_diffusion_model_path     = uncond_diffusion_model_path.c_str();
+     sd_ctx_params.embeddings_connectors_path      = embeddings_connectors_path.c_str();
++    sd_ctx_params.ltx_diffusers_root              = ltx_diffusers_root.c_str();
+     sd_ctx_params.vae_path                        = vae_path.c_str();
+     sd_ctx_params.audio_vae_path                  = audio_vae_path.c_str();
+     sd_ctx_params.audio_encoder_path              = audio_encoder_path.c_str();
+--- a/examples/common/common.h
++++ b/examples/common/common.h
+@@ -129,6 +129,7 @@
+     std::string high_noise_diffusion_model_path;
+     std::string uncond_diffusion_model_path;
+     std::string embeddings_connectors_path;
++    std::string ltx_diffusers_root;
+     std::string vae_path;
+     std::string vae_format = "auto";
+     std::string audio_vae_path;
+--- a/include/stable-diffusion.h
++++ b/include/stable-diffusion.h
+@@ -207,6 +207,7 @@
+     const char* high_noise_diffusion_model_path;
+     const char* uncond_diffusion_model_path;
+     const char* embeddings_connectors_path;
++    const char* ltx_diffusers_root;
+     const char* vae_path;
+     const char* audio_vae_path;
+     const char* audio_encoder_path;
+--- a/src/conditioning/conditioner.hpp
++++ b/src/conditioning/conditioner.hpp
+@@ -3478,7 +3478,8 @@
+                   const std::string& llm_prefix                       = "text_encoders.llm",
+                   const std::string& projector_prefix                 = "text_embedding_projection",
+                   std::shared_ptr<RunnerWeightManager> weight_manager = nullptr,
+-                  const TokenizerConfig& tokenizers                   = {})
++                  const TokenizerConfig& tokenizers                   = {},
++                  bool raw_gemma_norms = false)
+         : projector_prefix(projector_prefix) {
+         LLM::LLMArch arch = detect_gemma_arch(tensor_storage_map, llm_prefix);
+         LOG_INFO("ltxav text encoder: %s", arch == LLM::LLMArch::GEMMA4_12B ? "gemma 4" : "gemma 3");
+@@ -3487,7 +3488,8 @@
+                                                tensor_storage_map,
+                                                llm_prefix,
+                                                false,
+-                                               weight_manager);
++                                               weight_manager,
++                                               raw_gemma_norms);
+         tokenizer = tokenizers.create(TokenizerConfig::MAIN, llm->config.vocab_size, 0, true);
+         if (!tokenizer) {
+             tokenizer = std::make_shared<GemmaTokenizer>();
+--- a/src/model/te/llm.hpp
++++ b/src/model/te/llm.hpp
+@@ -2205,7 +2205,8 @@
+                   const String2TensorStorage& tensor_storage_map,
+                   const std::string prefix,
+                   bool enable_vision_                                 = false,
+-                  std::shared_ptr<RunnerWeightManager> weight_manager = nullptr)
++                  std::shared_ptr<RunnerWeightManager> weight_manager = nullptr,
++                  bool raw_gemma_norms = false)
+             : GGMLRunner(backend, weight_manager),
+               config(LLMConfig::detect_from_weights(tensor_storage_map, prefix, arch, enable_vision_)),
+               enable_vision(enable_vision_) {
+@@ -2215,6 +2216,9 @@
+                     LOG_VERBOSE("llama.cpp style vision weight");
+                 }
+             }
++            // HF Gemma3 stores zero-centered RMS weights. GGUF conversion
++            // folds in +1, but direct Diffusers safetensors loading does not.
++            if (raw_gemma_norms && arch == LLMArch::GEMMA3_12B) config.rms_norm_add = true;
+             model = LLM(config, enable_vision, config.llama_cpp_style);
+             model.init(params_ctx, tensor_storage_map, prefix);
+         }
+--- a/src/name_conversion.cpp
++++ b/src/name_conversion.cpp
+@@ -1,3 +1,4 @@
++#include "ltx_diffusers.hpp"
+ #include <map>
+ #include <unordered_map>
+ #include <unordered_set>
+@@ -962,8 +963,10 @@
+         {"mid.attn_1.", "mid_block.attentions.0."},
+     };
+ 
+-    static std::vector<std::pair<std::string, std::string>> vae_conversion_map_layer;
+-    if (vae_conversion_map_layer.empty()) {
++    // ModelLoader converts names concurrently. Initialize the complete table
++    // under the C++ static guard, before any reader can observe its storage.
++    static const auto vae_conversion_map_layer = [] {
++        std::vector<std::pair<std::string, std::string>> vae_conversion_map_layer;
+         for (int i = 0; i < 4; ++i) {
+             // --- encoder down blocks ---
+             for (int j = 0; j < 2; ++j) {
+@@ -996,7 +999,8 @@
+             std::string sd_mid_res_prefix = "mid.block_" + std::to_string(i + 1) + ".";
+             vae_conversion_map_layer.emplace_back(sd_mid_res_prefix, hf_mid_res_prefix);
+         }
+-    }
++        return vae_conversion_map_layer;
++    }();
+ 
+     static const std::vector<std::pair<std::string, std::string>> vae_conversion_map_attn = {
+         {"norm.", "group_norm."},
+@@ -1423,6 +1427,13 @@
+ }
+ 
+ std::string convert_tensor_name(std::string name, SDVersion version) {
++    const std::string ltx_prefix = "ltx_diffusers.";
++    if (name.rfind(ltx_prefix,0) == 0) {
++        const auto split = name.find('.',ltx_prefix.size());
++        if (split != std::string::npos)
++            return ltx_diffusers_tensor_name(name.substr(ltx_prefix.size(),split-ltx_prefix.size()),name.substr(split+1));
++    }
++
+     if (version == VERSION_ESRGAN) {
+         return convert_esrgan_tensor_name(std::move(name));
+     }
+--- a/src/pipeline/diffusion_engine.cpp
++++ b/src/pipeline/diffusion_engine.cpp
+@@ -807,6 +807,24 @@
+         } else {
+             use_audio_vae = true;
+         }
++    }
++
++    if (strlen(SAFE_STR(sd_ctx_params->ltx_diffusers_root)) > 0) {
++        const std::string root = sd_ctx_params->ltx_diffusers_root;
++        for (const std::string component : {"text_encoder", "vae", "audio_vae", "vocoder", "connectors"}) {
++            const std::string directory = path_join(root, component);
++            std::string path;
++            for (const std::string file : {"model.safetensors.index.json", "diffusion_pytorch_model.safetensors.index.json",
++                                           "model.safetensors", "diffusion_pytorch_model.safetensors"}) {
++                const auto candidate = path_join(directory,file);
++                if (file_exists(candidate)) { path = candidate; break; }
++            }
++            if (path.empty() || !model_loader.init_from_file(path, "ltx_diffusers." + component + ".")) {
++                LOG_ERROR("cannot load LTX Diffusers component %s from %s", component.c_str(), directory.c_str());
++                return false;
++            }
++        }
++        use_audio_vae = true;
+     }
+ 
+     if (strlen(SAFE_STR(sd_ctx_params->audio_encoder_path)) > 0) {
+--- a/src/pipeline/diffusion_engine.h
++++ b/src/pipeline/diffusion_engine.h
+@@ -132,7 +132,7 @@
+                                 &sd_ctx_params_t::llm_vision_path, &sd_ctx_params_t::diffusion_model_path,
+                                 &sd_ctx_params_t::tokenizer,
+                                 &sd_ctx_params_t::high_noise_diffusion_model_path, &sd_ctx_params_t::uncond_diffusion_model_path,
+-                                &sd_ctx_params_t::embeddings_connectors_path, &sd_ctx_params_t::vae_path,
++                                &sd_ctx_params_t::embeddings_connectors_path, &sd_ctx_params_t::ltx_diffusers_root, &sd_ctx_params_t::vae_path,
+                                 &sd_ctx_params_t::audio_vae_path, &sd_ctx_params_t::taesd_path,
+                                 &sd_ctx_params_t::control_net_path, &sd_ctx_params_t::ip_adapter_path,
+                                 &sd_ctx_params_t::motion_module_path, &sd_ctx_params_t::photo_maker_path,
+--- a/src/pipeline/model_builders.cpp
++++ b/src/pipeline/model_builders.cpp
+@@ -189,7 +189,8 @@
+                                                                  "text_encoders.llm",
+                                                                  "text_embedding_projection",
+                                                                  weight_manager,
+-                                                                 tokenizers);
++                                                                 tokenizers,
++                                                                 sd_ctx_params->ltx_diffusers_root != nullptr && sd_ctx_params->ltx_diffusers_root[0] != '\0');
+             result.diffusion   = std::make_shared<LTXV::LTXAVRunner>(ctx.backends.runtime_backend(SDBackendModule::DIFFUSION),
+                                                                    tensor_storage_map,
+                                                                    "model.diffusion_model",
+--- a/src/pipeline/video.cpp
++++ b/src/pipeline/video.cpp
+@@ -1,3 +1,4 @@
++#include "ltx_audio.hpp"
+ #include "generation.h"
+ #include "ltx_condition.hpp"
+ 
+@@ -280,11 +281,7 @@
+     static int get_ltxav_num_audio_latents(int frames, int fps) {
+         GGML_ASSERT(frames > 0);
+         GGML_ASSERT(fps > 0);
+-        constexpr float kSampleRate            = 16000.0f;
+-        constexpr float kMelHopLength          = 160.0f;
+-        constexpr float kAudioLatentDownsample = 4.0f;
+-        constexpr float kLatentsPerSecond      = kSampleRate / kMelHopLength / kAudioLatentDownsample;
+-        return static_cast<int>(std::ceil((static_cast<float>(frames) / static_cast<float>(fps)) * kLatentsPerSecond));
++        return sd::ltx_audio_latents(frames, fps);
+     }
+ 
+     static int get_minimax_h3_num_audio_latents(int frames, int fps) {
+--- /dev/null
++++ b/src/ltx_diffusers.hpp
+@@ -0,0 +1,81 @@
++#pragma once
++#include <string>
++#include <utility>
++#include <vector>
++
++// Names only: keep the published tensor bytes, shapes and precision intact.
++// The explicit loader namespace prevents these rules from affecting other
++// models or already-converted LTX checkpoints.
++inline std::string ltx_diffusers_tensor_name(const std::string& component, std::string name) {
++    const auto replace = [&](const std::string& from, const std::string& to) {
++        const auto pos = name.find(from);
++        if (pos != std::string::npos) name.replace(pos,from.size(),to);
++    };
++    if (component == "text_encoder") {
++        const std::string prefix = "language_model.model.";
++        if (name.rfind(prefix,0) != 0) return "unused.ltx.text_encoder." + name;
++        name.erase(0,prefix.size());
++        // Gemma3's GGML implementation uses the GGUF norm names.
++        if (name.find(".post_attention_layernorm.") != std::string::npos) replace(".post_attention_layernorm.",".post_attention_norm.");
++        else if (name.find(".pre_feedforward_layernorm.") != std::string::npos) replace(".pre_feedforward_layernorm.",".post_attention_layernorm.");
++        else replace(".post_feedforward_layernorm.",".post_ffw_norm.");
++        return "text_encoders.llm.model." + name;
++    }
++    if (component == "connectors") {
++        for (const std::string modality : {"video","audio"}) {
++            const auto projection = modality + "_text_proj_in.";
++            if (name.rfind(projection,0) == 0)
++                return "text_embedding_projection." + modality + "_aggregate_embed." + name.substr(projection.size());
++            const auto connector = modality + "_connector.";
++            if (name.rfind(connector,0) == 0) {
++                name.erase(0,connector.size());
++                replace("transformer_blocks.","transformer_1d_blocks.");
++                replace(".norm_q.",".q_norm."); replace(".norm_k.",".k_norm.");
++                return "model.diffusion_model." + modality + "_embeddings_connector." + name;
++            }
++        }
++    }
++    if (component == "vae") {
++        // Inverse of the installed convert_ltx2_vae_to_diffusers mapping.
++        // Match one block prefix before replacing common suffixes.
++        const std::vector<std::pair<std::string,std::string>> blocks = {
++            {"encoder.down_blocks.0.downsamplers.0.","encoder.down_blocks.1."},
++            {"encoder.down_blocks.1.downsamplers.0.","encoder.down_blocks.3."},
++            {"encoder.down_blocks.2.downsamplers.0.","encoder.down_blocks.5."},
++            {"encoder.down_blocks.3.downsamplers.0.","encoder.down_blocks.7."},
++            {"encoder.down_blocks.0.","encoder.down_blocks.0."},
++            {"encoder.down_blocks.1.","encoder.down_blocks.2."},
++            {"encoder.down_blocks.2.","encoder.down_blocks.4."},
++            {"encoder.down_blocks.3.","encoder.down_blocks.6."},
++            {"encoder.mid_block.","encoder.down_blocks.8."},
++            {"decoder.up_blocks.0.upsamplers.0.","decoder.up_blocks.1."},
++            {"decoder.up_blocks.1.upsamplers.0.","decoder.up_blocks.3."},
++            {"decoder.up_blocks.2.upsamplers.0.","decoder.up_blocks.5."},
++            {"decoder.up_blocks.3.upsamplers.0.","decoder.up_blocks.7."},
++            {"decoder.up_blocks.0.","decoder.up_blocks.2."},
++            {"decoder.up_blocks.1.","decoder.up_blocks.4."},
++            {"decoder.up_blocks.2.","decoder.up_blocks.6."},
++            {"decoder.up_blocks.3.","decoder.up_blocks.8."},
++            {"decoder.mid_block.","decoder.up_blocks.0."}
++        };
++        for (const auto& mapping : blocks) if (name.rfind(mapping.first,0) == 0) {
++            name = mapping.second + name.substr(mapping.first.size()); break;
++        }
++        replace(".resnets.",".res_blocks.");
++        if (name == "latents_mean") name = "per_channel_statistics.mean-of-means";
++        if (name == "latents_std") name = "per_channel_statistics.std-of-means";
++        return "first_stage_model." + name;
++    }
++    if (component == "audio_vae") {
++        if (name == "latents_mean") name = "per_channel_statistics.mean-of-means";
++        if (name == "latents_std") name = "per_channel_statistics.std-of-means";
++        return "audio_vae." + name;
++    }
++    if (component == "vocoder") {
++        replace(".conv_in.",".conv_pre."); replace(".conv_out.",".conv_post.");
++        replace(".act_out.",".act_post."); replace(".upsamplers.",".ups.");
++        replace(".resnets.",".resblocks."); replace(".downsample.filter",".downsample.lowpass.filter");
++        return "vocoder." + name;
++    }
++    return "unused.ltx." + component + "." + name;
++}
+--- /dev/null
++++ b/src/pipeline/ltx_audio.hpp
+@@ -0,0 +1,16 @@
++#pragma once
++#include <cmath>
++#include <limits>
++#include <stdexcept>
++namespace sd {
++// Installed Diffusers uses double arithmetic and Python round (ties to even).
++inline int ltx_audio_latents(int frames, int fps) {
++    if (frames <= 0 || fps <= 0) throw std::invalid_argument("LTX frames and fps must be positive");
++    const double value = (static_cast<double>(frames) / fps) * (16000.0 / 160.0 / 4.0);
++    double rounded = std::floor(value);
++    const double fraction = value - rounded;
++    if (fraction > 0.5 || (fraction == 0.5 && std::fmod(rounded, 2.0) != 0)) ++rounded;
++    if (rounded > std::numeric_limits<int>::max()) throw std::overflow_error("LTX audio latent count exceeds native range");
++    return static_cast<int>(rounded);
++}
++}

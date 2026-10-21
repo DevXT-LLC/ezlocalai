@@ -1,0 +1,1589 @@
+{
+  "source_sha256": "d5eebf7fc48f7781628aa4eaab8af1c3f23fd8694242f0b3065436b5c86f62b1",
+  "scope": "Executed unchanged full _gather_state with controlled models, memory and slots; compares models, capabilities, quantization, modality model names and residency extra",
+  "cases": [
+    {
+      "name": "configured-only",
+      "environment": {
+        "LLM_MAX_TOKENS": "4096",
+        "N_PARALLEL": "1",
+        "DEFAULT_MODEL": "org/model",
+        "QUANT_TYPE": "Q4_K_XL",
+        "TTS_ENABLED": "false",
+        "STT_ENABLED": "false",
+        "EMBEDDING_ENABLED": "false",
+        "IMAGE_ENABLED": "false",
+        "VIDEO_ENABLED": "false",
+        "MUSIC_ENABLED": "false",
+        "VOICE_SERVER": "",
+        "TEXT_SERVER": "",
+        "IMAGE_SERVER": "",
+        "EMBEDDING_SERVER": "",
+        "EMBEDDING_MODEL": "org/embed",
+        "EMBEDDING_MODEL_ALIAS": "vector",
+        "EMBEDDING_CONTEXT_LENGTH": "10000",
+        "EMBEDDING_QUANT_TYPE": "Q8_0",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "false",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "false",
+        "MUSIC_UNLOAD_LLM_DURING_GENERATION": "false",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "false",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "false"
+      },
+      "paths": {},
+      "vision_loaded": false,
+      "llm_loaded": false,
+      "image_loaded": false,
+      "free_gb": 16,
+      "lifecycle": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [],
+        "active_llm": null
+      },
+      "extra": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [],
+        "active_llm": null,
+        "llm_unload_dependent_capabilities": []
+      },
+      "report": {
+        "models": [
+          "org/model"
+        ],
+        "capabilities": [
+          "text"
+        ],
+        "model_quant": {
+          "org/model": "Q4_K_XL"
+        },
+        "model_context": {
+          "org/model": 4096
+        },
+        "cap_models": {}
+      }
+    },
+    {
+      "name": "loaded-/models/model-Q6_K.gguf",
+      "environment": {
+        "LLM_MAX_TOKENS": "4096",
+        "N_PARALLEL": "1",
+        "DEFAULT_MODEL": "org/model",
+        "QUANT_TYPE": "Q4_K_XL",
+        "TTS_ENABLED": "false",
+        "STT_ENABLED": "false",
+        "EMBEDDING_ENABLED": "false",
+        "IMAGE_ENABLED": "false",
+        "VIDEO_ENABLED": "false",
+        "MUSIC_ENABLED": "false",
+        "VOICE_SERVER": "",
+        "TEXT_SERVER": "",
+        "IMAGE_SERVER": "",
+        "EMBEDDING_SERVER": "",
+        "EMBEDDING_MODEL": "org/embed",
+        "EMBEDDING_MODEL_ALIAS": "vector",
+        "EMBEDDING_CONTEXT_LENGTH": "10000",
+        "EMBEDDING_QUANT_TYPE": "Q8_0",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "false",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "false",
+        "MUSIC_UNLOAD_LLM_DURING_GENERATION": "false",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "false",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "false"
+      },
+      "paths": {
+        "org/model": "/models/model-Q6_K.gguf"
+      },
+      "vision_loaded": false,
+      "llm_loaded": true,
+      "image_loaded": false,
+      "free_gb": 16,
+      "lifecycle": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model"
+        ],
+        "active_llm": "org/model"
+      },
+      "extra": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model"
+        ],
+        "active_llm": "org/model",
+        "llm_unload_dependent_capabilities": []
+      },
+      "report": {
+        "models": [
+          "org/model"
+        ],
+        "capabilities": [
+          "text"
+        ],
+        "model_quant": {
+          "org/model": "Q6_K"
+        },
+        "model_context": {
+          "org/model": 4096
+        },
+        "cap_models": {}
+      }
+    },
+    {
+      "name": "loaded-model-iq4_xs.GGUF",
+      "environment": {
+        "LLM_MAX_TOKENS": "4096",
+        "N_PARALLEL": "1",
+        "DEFAULT_MODEL": "org/model",
+        "QUANT_TYPE": "Q4_K_XL",
+        "TTS_ENABLED": "false",
+        "STT_ENABLED": "false",
+        "EMBEDDING_ENABLED": "false",
+        "IMAGE_ENABLED": "false",
+        "VIDEO_ENABLED": "false",
+        "MUSIC_ENABLED": "false",
+        "VOICE_SERVER": "",
+        "TEXT_SERVER": "",
+        "IMAGE_SERVER": "",
+        "EMBEDDING_SERVER": "",
+        "EMBEDDING_MODEL": "org/embed",
+        "EMBEDDING_MODEL_ALIAS": "vector",
+        "EMBEDDING_CONTEXT_LENGTH": "10000",
+        "EMBEDDING_QUANT_TYPE": "Q8_0",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "false",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "false",
+        "MUSIC_UNLOAD_LLM_DURING_GENERATION": "false",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "false",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "false"
+      },
+      "paths": {
+        "org/model": "model-iq4_xs.GGUF"
+      },
+      "vision_loaded": false,
+      "llm_loaded": true,
+      "image_loaded": false,
+      "free_gb": 16,
+      "lifecycle": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model"
+        ],
+        "active_llm": "org/model"
+      },
+      "extra": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model"
+        ],
+        "active_llm": "org/model",
+        "llm_unload_dependent_capabilities": []
+      },
+      "report": {
+        "models": [
+          "org/model"
+        ],
+        "capabilities": [
+          "text"
+        ],
+        "model_quant": {
+          "org/model": "IQ4_XS"
+        },
+        "model_context": {
+          "org/model": 4096
+        },
+        "cap_models": {}
+      }
+    },
+    {
+      "name": "loaded-model-Q4_K_M-00001-of-00002.gguf",
+      "environment": {
+        "LLM_MAX_TOKENS": "4096",
+        "N_PARALLEL": "1",
+        "DEFAULT_MODEL": "org/model",
+        "QUANT_TYPE": "Q4_K_XL",
+        "TTS_ENABLED": "false",
+        "STT_ENABLED": "false",
+        "EMBEDDING_ENABLED": "false",
+        "IMAGE_ENABLED": "false",
+        "VIDEO_ENABLED": "false",
+        "MUSIC_ENABLED": "false",
+        "VOICE_SERVER": "",
+        "TEXT_SERVER": "",
+        "IMAGE_SERVER": "",
+        "EMBEDDING_SERVER": "",
+        "EMBEDDING_MODEL": "org/embed",
+        "EMBEDDING_MODEL_ALIAS": "vector",
+        "EMBEDDING_CONTEXT_LENGTH": "10000",
+        "EMBEDDING_QUANT_TYPE": "Q8_0",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "false",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "false",
+        "MUSIC_UNLOAD_LLM_DURING_GENERATION": "false",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "false",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "false"
+      },
+      "paths": {
+        "org/model": "model-Q4_K_M-00001-of-00002.gguf"
+      },
+      "vision_loaded": false,
+      "llm_loaded": true,
+      "image_loaded": false,
+      "free_gb": 16,
+      "lifecycle": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model"
+        ],
+        "active_llm": "org/model"
+      },
+      "extra": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model"
+        ],
+        "active_llm": "org/model",
+        "llm_unload_dependent_capabilities": []
+      },
+      "report": {
+        "models": [
+          "org/model"
+        ],
+        "capabilities": [
+          "text"
+        ],
+        "model_quant": {
+          "org/model": "Q4_K_M"
+        },
+        "model_context": {
+          "org/model": 4096
+        },
+        "cap_models": {}
+      }
+    },
+    {
+      "name": "loaded-model-Q8_0",
+      "environment": {
+        "LLM_MAX_TOKENS": "4096",
+        "N_PARALLEL": "1",
+        "DEFAULT_MODEL": "org/model",
+        "QUANT_TYPE": "Q4_K_XL",
+        "TTS_ENABLED": "false",
+        "STT_ENABLED": "false",
+        "EMBEDDING_ENABLED": "false",
+        "IMAGE_ENABLED": "false",
+        "VIDEO_ENABLED": "false",
+        "MUSIC_ENABLED": "false",
+        "VOICE_SERVER": "",
+        "TEXT_SERVER": "",
+        "IMAGE_SERVER": "",
+        "EMBEDDING_SERVER": "",
+        "EMBEDDING_MODEL": "org/embed",
+        "EMBEDDING_MODEL_ALIAS": "vector",
+        "EMBEDDING_CONTEXT_LENGTH": "10000",
+        "EMBEDDING_QUANT_TYPE": "Q8_0",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "false",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "false",
+        "MUSIC_UNLOAD_LLM_DURING_GENERATION": "false",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "false",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "false"
+      },
+      "paths": {
+        "org/model": "model-Q8_0"
+      },
+      "vision_loaded": false,
+      "llm_loaded": true,
+      "image_loaded": false,
+      "free_gb": 16,
+      "lifecycle": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model"
+        ],
+        "active_llm": "org/model"
+      },
+      "extra": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model"
+        ],
+        "active_llm": "org/model",
+        "llm_unload_dependent_capabilities": []
+      },
+      "report": {
+        "models": [
+          "org/model"
+        ],
+        "capabilities": [
+          "text"
+        ],
+        "model_quant": {
+          "org/model": "Q8_0"
+        },
+        "model_context": {
+          "org/model": 4096
+        },
+        "cap_models": {}
+      }
+    },
+    {
+      "name": "loaded-model-f16.gguf",
+      "environment": {
+        "LLM_MAX_TOKENS": "4096",
+        "N_PARALLEL": "1",
+        "DEFAULT_MODEL": "org/model",
+        "QUANT_TYPE": "Q4_K_XL",
+        "TTS_ENABLED": "false",
+        "STT_ENABLED": "false",
+        "EMBEDDING_ENABLED": "false",
+        "IMAGE_ENABLED": "false",
+        "VIDEO_ENABLED": "false",
+        "MUSIC_ENABLED": "false",
+        "VOICE_SERVER": "",
+        "TEXT_SERVER": "",
+        "IMAGE_SERVER": "",
+        "EMBEDDING_SERVER": "",
+        "EMBEDDING_MODEL": "org/embed",
+        "EMBEDDING_MODEL_ALIAS": "vector",
+        "EMBEDDING_CONTEXT_LENGTH": "10000",
+        "EMBEDDING_QUANT_TYPE": "Q8_0",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "false",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "false",
+        "MUSIC_UNLOAD_LLM_DURING_GENERATION": "false",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "false",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "false"
+      },
+      "paths": {
+        "org/model": "model-f16.gguf"
+      },
+      "vision_loaded": false,
+      "llm_loaded": true,
+      "image_loaded": false,
+      "free_gb": 16,
+      "lifecycle": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model"
+        ],
+        "active_llm": "org/model"
+      },
+      "extra": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model"
+        ],
+        "active_llm": "org/model",
+        "llm_unload_dependent_capabilities": []
+      },
+      "report": {
+        "models": [
+          "org/model"
+        ],
+        "capabilities": [
+          "text"
+        ],
+        "model_quant": {
+          "org/model": "Q4_K_XL"
+        },
+        "model_context": {
+          "org/model": 4096
+        },
+        "cap_models": {}
+      }
+    },
+    {
+      "name": "loaded-directory-Q2_K/model.gguf",
+      "environment": {
+        "LLM_MAX_TOKENS": "4096",
+        "N_PARALLEL": "1",
+        "DEFAULT_MODEL": "org/model",
+        "QUANT_TYPE": "Q4_K_XL",
+        "TTS_ENABLED": "false",
+        "STT_ENABLED": "false",
+        "EMBEDDING_ENABLED": "false",
+        "IMAGE_ENABLED": "false",
+        "VIDEO_ENABLED": "false",
+        "MUSIC_ENABLED": "false",
+        "VOICE_SERVER": "",
+        "TEXT_SERVER": "",
+        "IMAGE_SERVER": "",
+        "EMBEDDING_SERVER": "",
+        "EMBEDDING_MODEL": "org/embed",
+        "EMBEDDING_MODEL_ALIAS": "vector",
+        "EMBEDDING_CONTEXT_LENGTH": "10000",
+        "EMBEDDING_QUANT_TYPE": "Q8_0",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "false",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "false",
+        "MUSIC_UNLOAD_LLM_DURING_GENERATION": "false",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "false",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "false"
+      },
+      "paths": {
+        "org/model": "directory-Q2_K/model.gguf"
+      },
+      "vision_loaded": false,
+      "llm_loaded": true,
+      "image_loaded": false,
+      "free_gb": 16,
+      "lifecycle": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model"
+        ],
+        "active_llm": "org/model"
+      },
+      "extra": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model"
+        ],
+        "active_llm": "org/model",
+        "llm_unload_dependent_capabilities": []
+      },
+      "report": {
+        "models": [
+          "org/model"
+        ],
+        "capabilities": [
+          "text"
+        ],
+        "model_quant": {
+          "org/model": "Q4_K_XL"
+        },
+        "model_context": {
+          "org/model": 4096
+        },
+        "cap_models": {}
+      }
+    },
+    {
+      "name": "loaded-model-Q4_K_XL.gguf",
+      "environment": {
+        "LLM_MAX_TOKENS": "4096",
+        "N_PARALLEL": "1",
+        "DEFAULT_MODEL": "org/model",
+        "QUANT_TYPE": "Q4_K_XL",
+        "TTS_ENABLED": "false",
+        "STT_ENABLED": "false",
+        "EMBEDDING_ENABLED": "false",
+        "IMAGE_ENABLED": "false",
+        "VIDEO_ENABLED": "false",
+        "MUSIC_ENABLED": "false",
+        "VOICE_SERVER": "",
+        "TEXT_SERVER": "",
+        "IMAGE_SERVER": "",
+        "EMBEDDING_SERVER": "",
+        "EMBEDDING_MODEL": "org/embed",
+        "EMBEDDING_MODEL_ALIAS": "vector",
+        "EMBEDDING_CONTEXT_LENGTH": "10000",
+        "EMBEDDING_QUANT_TYPE": "Q8_0",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "false",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "false",
+        "MUSIC_UNLOAD_LLM_DURING_GENERATION": "false",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "false",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "false"
+      },
+      "paths": {
+        "org/model": "model-Q4_K_XL.gguf"
+      },
+      "vision_loaded": false,
+      "llm_loaded": true,
+      "image_loaded": false,
+      "free_gb": 16,
+      "lifecycle": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model"
+        ],
+        "active_llm": "org/model"
+      },
+      "extra": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model"
+        ],
+        "active_llm": "org/model",
+        "llm_unload_dependent_capabilities": []
+      },
+      "report": {
+        "models": [
+          "org/model"
+        ],
+        "capabilities": [
+          "text"
+        ],
+        "model_quant": {
+          "org/model": "Q4_K_XL"
+        },
+        "model_context": {
+          "org/model": 4096
+        },
+        "cap_models": {}
+      }
+    },
+    {
+      "name": "loaded-ıQ3_K_M.gguf",
+      "environment": {
+        "LLM_MAX_TOKENS": "4096",
+        "N_PARALLEL": "1",
+        "DEFAULT_MODEL": "org/model",
+        "QUANT_TYPE": "Q4_K_XL",
+        "TTS_ENABLED": "false",
+        "STT_ENABLED": "false",
+        "EMBEDDING_ENABLED": "false",
+        "IMAGE_ENABLED": "false",
+        "VIDEO_ENABLED": "false",
+        "MUSIC_ENABLED": "false",
+        "VOICE_SERVER": "",
+        "TEXT_SERVER": "",
+        "IMAGE_SERVER": "",
+        "EMBEDDING_SERVER": "",
+        "EMBEDDING_MODEL": "org/embed",
+        "EMBEDDING_MODEL_ALIAS": "vector",
+        "EMBEDDING_CONTEXT_LENGTH": "10000",
+        "EMBEDDING_QUANT_TYPE": "Q8_0",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "false",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "false",
+        "MUSIC_UNLOAD_LLM_DURING_GENERATION": "false",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "false",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "false"
+      },
+      "paths": {
+        "org/model": "ıQ3_K_M.gguf"
+      },
+      "vision_loaded": false,
+      "llm_loaded": true,
+      "image_loaded": false,
+      "free_gb": 16,
+      "lifecycle": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model"
+        ],
+        "active_llm": "org/model"
+      },
+      "extra": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model"
+        ],
+        "active_llm": "org/model",
+        "llm_unload_dependent_capabilities": []
+      },
+      "report": {
+        "models": [
+          "org/model"
+        ],
+        "capabilities": [
+          "text"
+        ],
+        "model_quant": {
+          "org/model": "IQ3_K_M"
+        },
+        "model_context": {
+          "org/model": 4096
+        },
+        "cap_models": {}
+      }
+    },
+    {
+      "name": "quant-list-fallback",
+      "environment": {
+        "LLM_MAX_TOKENS": "4096",
+        "N_PARALLEL": "1",
+        "DEFAULT_MODEL": "one,two,three",
+        "QUANT_TYPE": "Q3_K_M,Q5_K_M",
+        "TTS_ENABLED": "false",
+        "STT_ENABLED": "false",
+        "EMBEDDING_ENABLED": "false",
+        "IMAGE_ENABLED": "false",
+        "VIDEO_ENABLED": "false",
+        "MUSIC_ENABLED": "false",
+        "VOICE_SERVER": "",
+        "TEXT_SERVER": "",
+        "IMAGE_SERVER": "",
+        "EMBEDDING_SERVER": "",
+        "EMBEDDING_MODEL": "org/embed",
+        "EMBEDDING_MODEL_ALIAS": "vector",
+        "EMBEDDING_CONTEXT_LENGTH": "10000",
+        "EMBEDDING_QUANT_TYPE": "Q8_0",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "false",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "false",
+        "MUSIC_UNLOAD_LLM_DURING_GENERATION": "false",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "false",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "false"
+      },
+      "paths": {},
+      "vision_loaded": false,
+      "llm_loaded": false,
+      "image_loaded": false,
+      "free_gb": 16,
+      "lifecycle": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [],
+        "active_llm": null
+      },
+      "extra": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [],
+        "active_llm": null,
+        "llm_unload_dependent_capabilities": []
+      },
+      "report": {
+        "models": [
+          "one",
+          "two",
+          "three"
+        ],
+        "capabilities": [
+          "text"
+        ],
+        "model_quant": {
+          "one": "Q3_K_M",
+          "two": "Q5_K_M",
+          "three": "Q3_K_M"
+        },
+        "model_context": {
+          "one": 4096,
+          "two": 4096,
+          "three": 4096
+        },
+        "cap_models": {}
+      }
+    },
+    {
+      "name": "duplicate-config-first-quant",
+      "environment": {
+        "LLM_MAX_TOKENS": "4096",
+        "N_PARALLEL": "1",
+        "DEFAULT_MODEL": "org/model,org/model",
+        "QUANT_TYPE": "Q4_K_M,Q8_0",
+        "TTS_ENABLED": "false",
+        "STT_ENABLED": "false",
+        "EMBEDDING_ENABLED": "false",
+        "IMAGE_ENABLED": "false",
+        "VIDEO_ENABLED": "false",
+        "MUSIC_ENABLED": "false",
+        "VOICE_SERVER": "",
+        "TEXT_SERVER": "",
+        "IMAGE_SERVER": "",
+        "EMBEDDING_SERVER": "",
+        "EMBEDDING_MODEL": "org/embed",
+        "EMBEDDING_MODEL_ALIAS": "vector",
+        "EMBEDDING_CONTEXT_LENGTH": "10000",
+        "EMBEDDING_QUANT_TYPE": "Q8_0",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "false",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "false",
+        "MUSIC_UNLOAD_LLM_DURING_GENERATION": "false",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "false",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "false"
+      },
+      "paths": {},
+      "vision_loaded": false,
+      "llm_loaded": false,
+      "image_loaded": false,
+      "free_gb": 16,
+      "lifecycle": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [],
+        "active_llm": null
+      },
+      "extra": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [],
+        "active_llm": null,
+        "llm_unload_dependent_capabilities": []
+      },
+      "report": {
+        "models": [
+          "org/model"
+        ],
+        "capabilities": [
+          "text"
+        ],
+        "model_quant": {
+          "org/model": "Q4_K_M"
+        },
+        "model_context": {
+          "org/model": 4096
+        },
+        "cap_models": {}
+      }
+    },
+    {
+      "name": "replica-keys",
+      "environment": {
+        "LLM_MAX_TOKENS": "4096",
+        "N_PARALLEL": "1",
+        "DEFAULT_MODEL": "org/model,org/model",
+        "QUANT_TYPE": "Q4_K_M,Q8_0",
+        "TTS_ENABLED": "false",
+        "STT_ENABLED": "false",
+        "EMBEDDING_ENABLED": "false",
+        "IMAGE_ENABLED": "false",
+        "VIDEO_ENABLED": "false",
+        "MUSIC_ENABLED": "false",
+        "VOICE_SERVER": "",
+        "TEXT_SERVER": "",
+        "IMAGE_SERVER": "",
+        "EMBEDDING_SERVER": "",
+        "EMBEDDING_MODEL": "org/embed",
+        "EMBEDDING_MODEL_ALIAS": "vector",
+        "EMBEDDING_CONTEXT_LENGTH": "10000",
+        "EMBEDDING_QUANT_TYPE": "Q8_0",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "false",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "false",
+        "MUSIC_UNLOAD_LLM_DURING_GENERATION": "false",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "false",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "false"
+      },
+      "paths": {
+        "org/model#2": "model-Q6_K.gguf"
+      },
+      "vision_loaded": false,
+      "llm_loaded": true,
+      "image_loaded": false,
+      "free_gb": 16,
+      "lifecycle": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model"
+        ],
+        "active_llm": "org/model"
+      },
+      "extra": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model"
+        ],
+        "active_llm": "org/model",
+        "llm_unload_dependent_capabilities": []
+      },
+      "report": {
+        "models": [
+          "org/model"
+        ],
+        "capabilities": [
+          "text"
+        ],
+        "model_quant": {
+          "org/model#2": "Q6_K",
+          "org/model": "Q4_K_M"
+        },
+        "model_context": {
+          "org/model": 4096
+        },
+        "cap_models": {}
+      }
+    },
+    {
+      "name": "loaded-custom-projector",
+      "environment": {
+        "LLM_MAX_TOKENS": "4096",
+        "N_PARALLEL": "1",
+        "DEFAULT_MODEL": "org/model",
+        "QUANT_TYPE": "Q4_K_XL",
+        "TTS_ENABLED": "false",
+        "STT_ENABLED": "false",
+        "EMBEDDING_ENABLED": "false",
+        "IMAGE_ENABLED": "false",
+        "VIDEO_ENABLED": "false",
+        "MUSIC_ENABLED": "false",
+        "VOICE_SERVER": "",
+        "TEXT_SERVER": "",
+        "IMAGE_SERVER": "",
+        "EMBEDDING_SERVER": "",
+        "EMBEDDING_MODEL": "org/embed",
+        "EMBEDDING_MODEL_ALIAS": "vector",
+        "EMBEDDING_CONTEXT_LENGTH": "10000",
+        "EMBEDDING_QUANT_TYPE": "Q8_0",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "false",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "false",
+        "MUSIC_UNLOAD_LLM_DURING_GENERATION": "false",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "false",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "false"
+      },
+      "paths": {
+        "org/model": "model-Q6_K.gguf"
+      },
+      "vision_loaded": true,
+      "llm_loaded": true,
+      "image_loaded": false,
+      "free_gb": 16,
+      "lifecycle": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model"
+        ],
+        "active_llm": "org/model"
+      },
+      "extra": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model"
+        ],
+        "active_llm": "org/model",
+        "llm_unload_dependent_capabilities": []
+      },
+      "report": {
+        "models": [
+          "org/model"
+        ],
+        "capabilities": [
+          "text",
+          "vision"
+        ],
+        "model_quant": {
+          "org/model": "Q6_K"
+        },
+        "model_context": {
+          "org/model": 4096
+        },
+        "cap_models": {}
+      },
+      "detached": {
+        "name": "loaded-custom-projector-detached",
+        "environment": {
+          "LLM_MAX_TOKENS": "4096",
+          "N_PARALLEL": "1",
+          "DEFAULT_MODEL": "org/model",
+          "QUANT_TYPE": "Q4_K_XL",
+          "TTS_ENABLED": "false",
+          "STT_ENABLED": "false",
+          "EMBEDDING_ENABLED": "false",
+          "IMAGE_ENABLED": "false",
+          "VIDEO_ENABLED": "false",
+          "MUSIC_ENABLED": "false",
+          "VOICE_SERVER": "",
+          "TEXT_SERVER": "",
+          "IMAGE_SERVER": "",
+          "EMBEDDING_SERVER": "",
+          "EMBEDDING_MODEL": "org/embed",
+          "EMBEDDING_MODEL_ALIAS": "vector",
+          "EMBEDDING_CONTEXT_LENGTH": "10000",
+          "EMBEDDING_QUANT_TYPE": "Q8_0",
+          "IMAGE_UNLOAD_LLM_DURING_GENERATION": "false",
+          "VIDEO_UNLOAD_LLM_DURING_GENERATION": "false",
+          "MUSIC_UNLOAD_LLM_DURING_GENERATION": "false",
+          "TTS_UNLOAD_LLM_DURING_GENERATION": "false",
+          "STT_UNLOAD_LLM_DURING_GENERATION": "false"
+        },
+        "paths": {},
+        "vision_loaded": false,
+        "llm_loaded": false,
+        "image_loaded": false,
+        "free_gb": 16,
+        "lifecycle": {
+          "llm_model_residency": "resident",
+          "loaded_llms": [],
+          "active_llm": null
+        },
+        "extra": {
+          "llm_model_residency": "resident",
+          "loaded_llms": [],
+          "active_llm": null,
+          "llm_unload_dependent_capabilities": []
+        },
+        "report": {
+          "models": [
+            "org/model"
+          ],
+          "capabilities": [
+            "text",
+            "vision"
+          ],
+          "model_quant": {
+            "org/model": "Q4_K_XL"
+          },
+          "model_context": {
+            "org/model": 4096
+          },
+          "cap_models": {}
+        }
+      }
+    },
+    {
+      "name": "embedding-13",
+      "environment": {
+        "LLM_MAX_TOKENS": "4096",
+        "N_PARALLEL": "1",
+        "DEFAULT_MODEL": "org/model",
+        "QUANT_TYPE": "Q4_K_XL",
+        "TTS_ENABLED": "false",
+        "STT_ENABLED": "false",
+        "EMBEDDING_ENABLED": "true",
+        "IMAGE_ENABLED": "false",
+        "VIDEO_ENABLED": "false",
+        "MUSIC_ENABLED": "false",
+        "VOICE_SERVER": "",
+        "TEXT_SERVER": "",
+        "IMAGE_SERVER": "",
+        "EMBEDDING_SERVER": "",
+        "EMBEDDING_MODEL": "org/embed",
+        "EMBEDDING_MODEL_ALIAS": "vector",
+        "EMBEDDING_CONTEXT_LENGTH": "10000",
+        "EMBEDDING_QUANT_TYPE": "Q8_0",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "false",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "false",
+        "MUSIC_UNLOAD_LLM_DURING_GENERATION": "false",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "false",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "false"
+      },
+      "paths": {
+        "org/model": "actual-Q6_K.gguf"
+      },
+      "vision_loaded": false,
+      "llm_loaded": true,
+      "image_loaded": false,
+      "free_gb": 16,
+      "lifecycle": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model"
+        ],
+        "active_llm": "org/model"
+      },
+      "extra": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model"
+        ],
+        "active_llm": "org/model",
+        "llm_unload_dependent_capabilities": []
+      },
+      "report": {
+        "models": [
+          "org/model"
+        ],
+        "capabilities": [
+          "text",
+          "embedding"
+        ],
+        "model_quant": {
+          "org/model": "Q6_K",
+          "org/embed": "Q8_0",
+          "vector": "Q8_0"
+        },
+        "model_context": {
+          "org/model": 4096,
+          "org/embed": 10000,
+          "vector": 10000
+        },
+        "cap_models": {
+          "embedding": "vector"
+        }
+      }
+    },
+    {
+      "name": "embedding-14",
+      "environment": {
+        "LLM_MAX_TOKENS": "4096",
+        "N_PARALLEL": "1",
+        "DEFAULT_MODEL": "org/model",
+        "QUANT_TYPE": "Q4_K_XL",
+        "TTS_ENABLED": "false",
+        "STT_ENABLED": "false",
+        "EMBEDDING_ENABLED": "",
+        "IMAGE_ENABLED": "false",
+        "VIDEO_ENABLED": "false",
+        "MUSIC_ENABLED": "false",
+        "VOICE_SERVER": "",
+        "TEXT_SERVER": "",
+        "IMAGE_SERVER": "",
+        "EMBEDDING_SERVER": "",
+        "EMBEDDING_MODEL": "org/embed",
+        "EMBEDDING_MODEL_ALIAS": "vector",
+        "EMBEDDING_CONTEXT_LENGTH": "10000",
+        "EMBEDDING_QUANT_TYPE": "Q8_0",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "false",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "false",
+        "MUSIC_UNLOAD_LLM_DURING_GENERATION": "false",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "false",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "false"
+      },
+      "paths": {
+        "org/model": "actual-Q6_K.gguf"
+      },
+      "vision_loaded": false,
+      "llm_loaded": true,
+      "image_loaded": false,
+      "free_gb": 16,
+      "lifecycle": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model"
+        ],
+        "active_llm": "org/model"
+      },
+      "extra": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model"
+        ],
+        "active_llm": "org/model",
+        "llm_unload_dependent_capabilities": []
+      },
+      "report": {
+        "models": [
+          "org/model"
+        ],
+        "capabilities": [
+          "text",
+          "embedding"
+        ],
+        "model_quant": {
+          "org/model": "Q6_K",
+          "org/embed": "Q8_0",
+          "vector": "Q8_0"
+        },
+        "model_context": {
+          "org/model": 4096,
+          "org/embed": 10000,
+          "vector": 10000
+        },
+        "cap_models": {
+          "embedding": "vector"
+        }
+      }
+    },
+    {
+      "name": "embedding-15",
+      "environment": {
+        "LLM_MAX_TOKENS": "4096",
+        "N_PARALLEL": "1",
+        "DEFAULT_MODEL": "org/model",
+        "QUANT_TYPE": "Q4_K_XL",
+        "TTS_ENABLED": "false",
+        "STT_ENABLED": "false",
+        "EMBEDDING_ENABLED": " ",
+        "IMAGE_ENABLED": "false",
+        "VIDEO_ENABLED": "false",
+        "MUSIC_ENABLED": "false",
+        "VOICE_SERVER": "",
+        "TEXT_SERVER": "",
+        "IMAGE_SERVER": "",
+        "EMBEDDING_SERVER": "",
+        "EMBEDDING_MODEL": "org/embed",
+        "EMBEDDING_MODEL_ALIAS": "vector",
+        "EMBEDDING_CONTEXT_LENGTH": "10000",
+        "EMBEDDING_QUANT_TYPE": "Q8_0",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "false",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "false",
+        "MUSIC_UNLOAD_LLM_DURING_GENERATION": "false",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "false",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "false"
+      },
+      "paths": {
+        "org/model": "actual-Q6_K.gguf"
+      },
+      "vision_loaded": false,
+      "llm_loaded": true,
+      "image_loaded": false,
+      "free_gb": 16,
+      "lifecycle": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model"
+        ],
+        "active_llm": "org/model"
+      },
+      "extra": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model"
+        ],
+        "active_llm": "org/model",
+        "llm_unload_dependent_capabilities": []
+      },
+      "report": {
+        "models": [
+          "org/model"
+        ],
+        "capabilities": [
+          "text"
+        ],
+        "model_quant": {
+          "org/model": "Q6_K"
+        },
+        "model_context": {
+          "org/model": 4096
+        },
+        "cap_models": {}
+      }
+    },
+    {
+      "name": "embedding-16",
+      "environment": {
+        "LLM_MAX_TOKENS": "4096",
+        "N_PARALLEL": "1",
+        "DEFAULT_MODEL": "org/model",
+        "QUANT_TYPE": "Q4_K_XL",
+        "TTS_ENABLED": "false",
+        "STT_ENABLED": "false",
+        "EMBEDDING_ENABLED": "true",
+        "IMAGE_ENABLED": "false",
+        "VIDEO_ENABLED": "false",
+        "MUSIC_ENABLED": "false",
+        "VOICE_SERVER": "",
+        "TEXT_SERVER": "",
+        "IMAGE_SERVER": "",
+        "EMBEDDING_SERVER": "https://embedding",
+        "EMBEDDING_MODEL": "org/embed",
+        "EMBEDDING_MODEL_ALIAS": "vector",
+        "EMBEDDING_CONTEXT_LENGTH": "10000",
+        "EMBEDDING_QUANT_TYPE": "Q8_0",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "false",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "false",
+        "MUSIC_UNLOAD_LLM_DURING_GENERATION": "false",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "false",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "false"
+      },
+      "paths": {
+        "org/model": "actual-Q6_K.gguf"
+      },
+      "vision_loaded": false,
+      "llm_loaded": true,
+      "image_loaded": false,
+      "free_gb": 16,
+      "lifecycle": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model"
+        ],
+        "active_llm": "org/model"
+      },
+      "extra": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model"
+        ],
+        "active_llm": "org/model",
+        "llm_unload_dependent_capabilities": []
+      },
+      "report": {
+        "models": [
+          "org/model"
+        ],
+        "capabilities": [
+          "text"
+        ],
+        "model_quant": {
+          "org/model": "Q6_K"
+        },
+        "model_context": {
+          "org/model": 4096
+        },
+        "cap_models": {}
+      }
+    },
+    {
+      "name": "embedding-17",
+      "environment": {
+        "LLM_MAX_TOKENS": "4096",
+        "N_PARALLEL": "1",
+        "DEFAULT_MODEL": "org/model",
+        "QUANT_TYPE": "Q4_K_XL",
+        "TTS_ENABLED": "false",
+        "STT_ENABLED": "false",
+        "EMBEDDING_ENABLED": "true",
+        "IMAGE_ENABLED": "false",
+        "VIDEO_ENABLED": "false",
+        "MUSIC_ENABLED": "false",
+        "VOICE_SERVER": "",
+        "TEXT_SERVER": "",
+        "IMAGE_SERVER": "",
+        "EMBEDDING_SERVER": "true",
+        "EMBEDDING_MODEL": "org/embed",
+        "EMBEDDING_MODEL_ALIAS": "vector",
+        "EMBEDDING_CONTEXT_LENGTH": "10000",
+        "EMBEDDING_QUANT_TYPE": "Q8_0",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "false",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "false",
+        "MUSIC_UNLOAD_LLM_DURING_GENERATION": "false",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "false",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "false"
+      },
+      "paths": {
+        "org/model": "actual-Q6_K.gguf"
+      },
+      "vision_loaded": false,
+      "llm_loaded": true,
+      "image_loaded": false,
+      "free_gb": 16,
+      "lifecycle": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model"
+        ],
+        "active_llm": "org/model"
+      },
+      "extra": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model"
+        ],
+        "active_llm": "org/model",
+        "llm_unload_dependent_capabilities": []
+      },
+      "report": {
+        "models": [
+          "org/model"
+        ],
+        "capabilities": [
+          "text",
+          "embedding"
+        ],
+        "model_quant": {
+          "org/model": "Q6_K",
+          "org/embed": "Q8_0",
+          "vector": "Q8_0"
+        },
+        "model_context": {
+          "org/model": 4096,
+          "org/embed": 10000,
+          "vector": 10000
+        },
+        "cap_models": {
+          "embedding": "vector"
+        }
+      }
+    },
+    {
+      "name": "embedding-18",
+      "environment": {
+        "LLM_MAX_TOKENS": "4096",
+        "N_PARALLEL": "1",
+        "DEFAULT_MODEL": "org/model",
+        "QUANT_TYPE": "Q4_K_XL",
+        "TTS_ENABLED": "false",
+        "STT_ENABLED": "false",
+        "EMBEDDING_ENABLED": "true",
+        "IMAGE_ENABLED": "false",
+        "VIDEO_ENABLED": "false",
+        "MUSIC_ENABLED": "false",
+        "VOICE_SERVER": "",
+        "TEXT_SERVER": "",
+        "IMAGE_SERVER": "",
+        "EMBEDDING_SERVER": "",
+        "EMBEDDING_MODEL": "org/embed",
+        "EMBEDDING_MODEL_ALIAS": "",
+        "EMBEDDING_CONTEXT_LENGTH": "10000",
+        "EMBEDDING_QUANT_TYPE": "Q8_0",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "false",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "false",
+        "MUSIC_UNLOAD_LLM_DURING_GENERATION": "false",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "false",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "false"
+      },
+      "paths": {
+        "org/model": "actual-Q6_K.gguf"
+      },
+      "vision_loaded": false,
+      "llm_loaded": true,
+      "image_loaded": false,
+      "free_gb": 16,
+      "lifecycle": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model"
+        ],
+        "active_llm": "org/model"
+      },
+      "extra": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model"
+        ],
+        "active_llm": "org/model",
+        "llm_unload_dependent_capabilities": []
+      },
+      "report": {
+        "models": [
+          "org/model"
+        ],
+        "capabilities": [
+          "text",
+          "embedding"
+        ],
+        "model_quant": {
+          "org/model": "Q6_K",
+          "org/embed": "Q8_0"
+        },
+        "model_context": {
+          "org/model": 4096,
+          "org/embed": 10000
+        },
+        "cap_models": {
+          "embedding": "org/embed"
+        }
+      }
+    },
+    {
+      "name": "embedding-19",
+      "environment": {
+        "LLM_MAX_TOKENS": "4096",
+        "N_PARALLEL": "1",
+        "DEFAULT_MODEL": "org/model",
+        "QUANT_TYPE": "Q4_K_XL",
+        "TTS_ENABLED": "false",
+        "STT_ENABLED": "false",
+        "EMBEDDING_ENABLED": "true",
+        "IMAGE_ENABLED": "false",
+        "VIDEO_ENABLED": "false",
+        "MUSIC_ENABLED": "false",
+        "VOICE_SERVER": "",
+        "TEXT_SERVER": "",
+        "IMAGE_SERVER": "",
+        "EMBEDDING_SERVER": "",
+        "EMBEDDING_MODEL": "org/model",
+        "EMBEDDING_MODEL_ALIAS": "vector",
+        "EMBEDDING_CONTEXT_LENGTH": "10000",
+        "EMBEDDING_QUANT_TYPE": "Q8_0",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "false",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "false",
+        "MUSIC_UNLOAD_LLM_DURING_GENERATION": "false",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "false",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "false"
+      },
+      "paths": {
+        "org/model": "actual-Q6_K.gguf"
+      },
+      "vision_loaded": false,
+      "llm_loaded": true,
+      "image_loaded": false,
+      "free_gb": 16,
+      "lifecycle": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model"
+        ],
+        "active_llm": "org/model"
+      },
+      "extra": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model"
+        ],
+        "active_llm": "org/model",
+        "llm_unload_dependent_capabilities": []
+      },
+      "report": {
+        "models": [
+          "org/model"
+        ],
+        "capabilities": [
+          "text",
+          "embedding"
+        ],
+        "model_quant": {
+          "org/model": "Q6_K",
+          "vector": "Q8_0"
+        },
+        "model_context": {
+          "org/model": 4096,
+          "vector": 10000
+        },
+        "cap_models": {
+          "embedding": "vector"
+        }
+      }
+    },
+    {
+      "name": "embedding-20",
+      "environment": {
+        "LLM_MAX_TOKENS": "4096",
+        "N_PARALLEL": "1",
+        "DEFAULT_MODEL": "org/model",
+        "QUANT_TYPE": "Q4_K_XL",
+        "TTS_ENABLED": "false",
+        "STT_ENABLED": "false",
+        "EMBEDDING_ENABLED": "true",
+        "IMAGE_ENABLED": "false",
+        "VIDEO_ENABLED": "false",
+        "MUSIC_ENABLED": "false",
+        "VOICE_SERVER": "",
+        "TEXT_SERVER": "",
+        "IMAGE_SERVER": "",
+        "EMBEDDING_SERVER": "",
+        "EMBEDDING_MODEL": "org/embed",
+        "EMBEDDING_MODEL_ALIAS": "vector",
+        "EMBEDDING_CONTEXT_LENGTH": "bad",
+        "EMBEDDING_QUANT_TYPE": "Q8_0",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "false",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "false",
+        "MUSIC_UNLOAD_LLM_DURING_GENERATION": "false",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "false",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "false"
+      },
+      "paths": {
+        "org/model": "actual-Q6_K.gguf"
+      },
+      "vision_loaded": false,
+      "llm_loaded": true,
+      "image_loaded": false,
+      "free_gb": 16,
+      "lifecycle": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model"
+        ],
+        "active_llm": "org/model"
+      },
+      "extra": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model"
+        ],
+        "active_llm": "org/model",
+        "llm_unload_dependent_capabilities": []
+      },
+      "report": {
+        "models": [
+          "org/model"
+        ],
+        "capabilities": [
+          "text",
+          "embedding"
+        ],
+        "model_quant": {
+          "org/model": "Q6_K"
+        },
+        "model_context": {
+          "org/model": 4096
+        },
+        "cap_models": {
+          "embedding": "vector"
+        }
+      }
+    },
+    {
+      "name": "embedding-21",
+      "environment": {
+        "LLM_MAX_TOKENS": "4096",
+        "N_PARALLEL": "1",
+        "DEFAULT_MODEL": "org/model",
+        "QUANT_TYPE": "Q4_K_XL",
+        "TTS_ENABLED": "false",
+        "STT_ENABLED": "false",
+        "EMBEDDING_ENABLED": "true",
+        "IMAGE_ENABLED": "false",
+        "VIDEO_ENABLED": "false",
+        "MUSIC_ENABLED": "false",
+        "VOICE_SERVER": "",
+        "TEXT_SERVER": "",
+        "IMAGE_SERVER": "",
+        "EMBEDDING_SERVER": "",
+        "EMBEDDING_MODEL": "org/embed",
+        "EMBEDDING_MODEL_ALIAS": "vector",
+        "EMBEDDING_CONTEXT_LENGTH": "10000",
+        "EMBEDDING_QUANT_TYPE": "",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "false",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "false",
+        "MUSIC_UNLOAD_LLM_DURING_GENERATION": "false",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "false",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "false"
+      },
+      "paths": {
+        "org/model": "actual-Q6_K.gguf"
+      },
+      "vision_loaded": false,
+      "llm_loaded": true,
+      "image_loaded": false,
+      "free_gb": 16,
+      "lifecycle": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model"
+        ],
+        "active_llm": "org/model"
+      },
+      "extra": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [
+          "org/model"
+        ],
+        "active_llm": "org/model",
+        "llm_unload_dependent_capabilities": []
+      },
+      "report": {
+        "models": [
+          "org/model"
+        ],
+        "capabilities": [
+          "text",
+          "embedding"
+        ],
+        "model_quant": {
+          "org/model": "Q6_K",
+          "org/embed": "",
+          "vector": ""
+        },
+        "model_context": {
+          "org/model": 4096,
+          "org/embed": 10000,
+          "vector": 10000
+        },
+        "cap_models": {
+          "embedding": "vector"
+        }
+      }
+    },
+    {
+      "name": "no-text-model",
+      "environment": {
+        "LLM_MAX_TOKENS": "4096",
+        "N_PARALLEL": "1",
+        "DEFAULT_MODEL": "none",
+        "QUANT_TYPE": "Q4_K_XL",
+        "TTS_ENABLED": "false",
+        "STT_ENABLED": "false",
+        "EMBEDDING_ENABLED": "true",
+        "IMAGE_ENABLED": "false",
+        "VIDEO_ENABLED": "false",
+        "MUSIC_ENABLED": "false",
+        "VOICE_SERVER": "",
+        "TEXT_SERVER": "",
+        "IMAGE_SERVER": "",
+        "EMBEDDING_SERVER": "",
+        "EMBEDDING_MODEL": "org/embed",
+        "EMBEDDING_MODEL_ALIAS": "vector",
+        "EMBEDDING_CONTEXT_LENGTH": "10000",
+        "EMBEDDING_QUANT_TYPE": "Q8_0",
+        "IMAGE_UNLOAD_LLM_DURING_GENERATION": "false",
+        "VIDEO_UNLOAD_LLM_DURING_GENERATION": "false",
+        "MUSIC_UNLOAD_LLM_DURING_GENERATION": "false",
+        "TTS_UNLOAD_LLM_DURING_GENERATION": "false",
+        "STT_UNLOAD_LLM_DURING_GENERATION": "false"
+      },
+      "paths": {},
+      "vision_loaded": false,
+      "llm_loaded": false,
+      "image_loaded": false,
+      "free_gb": 16,
+      "lifecycle": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [],
+        "active_llm": null
+      },
+      "extra": {
+        "llm_model_residency": "resident",
+        "loaded_llms": [],
+        "active_llm": null,
+        "llm_unload_dependent_capabilities": []
+      },
+      "report": {
+        "models": [],
+        "capabilities": [
+          "embedding"
+        ],
+        "model_quant": {
+          "org/embed": "Q8_0",
+          "vector": "Q8_0",
+          "none": "Q4_K_XL"
+        },
+        "model_context": {
+          "org/embed": 10000,
+          "vector": 10000
+        },
+        "cap_models": {
+          "embedding": "vector"
+        }
+      }
+    }
+  ]
+}

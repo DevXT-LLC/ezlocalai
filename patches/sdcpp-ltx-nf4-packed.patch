@@ -1,0 +1,248 @@
+--- a/src/core/backend_fit.cpp
++++ b/src/core/backend_fit.cpp
+@@ -1,4 +1,5 @@
+ #include "backend_fit.h"
++#include "ezlocalai/nf4_storage.hpp"
+ 
+ #include <algorithm>
+ #include <cctype>
+@@ -110,7 +111,8 @@
+             } else if (override_wtype != GGML_TYPE_COUNT && loader.tensor_should_be_converted(ts, override_wtype)) {
+                 ts.type = override_wtype;
+             }
+-            const int64_t tensor_bytes = (int64_t)ts.nbytes() + 64;
++            const int64_t tensor_bytes = (ts.ltx_nf4_type == GGML_TYPE_COUNT
++                ? (int64_t)ts.nbytes() : (int64_t)ezlocalai::Nf4StorageLayout(ts.nelements()).bytes) + 64;
+             bytes[int(kind)] += tensor_bytes;
+             largest_tensor[int(kind)] = std::max(largest_tensor[int(kind)], tensor_bytes);
+         }
+--- a/src/model/common/ggml_block.hpp
++++ b/src/model/common/ggml_block.hpp
+@@ -14,6 +14,7 @@
+ #include "core/ggml_extend.h"
+ #include "core/ggml_runner.h"
+ #include "model.h"
++#include "nf4_ggml.hpp"
+ 
+ class GGMLBlock {
+ protected:
+@@ -146,6 +147,7 @@
+     bool force_f32;
+     bool force_prec_f32;
+     bool has_weight_scale       = false;
++    ggml_type nf4_type          = GGML_TYPE_COUNT;
+     bool int8_convrot           = false;
+     int int8_convrot_group_size = 0;
+     float scale;
+@@ -160,7 +162,14 @@
+         if (in_features % ggml_blck_size(wtype) != 0 || force_f32) {
+             wtype = GGML_TYPE_F32;
+         }
+-        params["weight"] = ggml_new_tensor_2d(ctx, wtype, in_features, out_features);
++        auto nf4_storage = tensor_storage_map.find(prefix + "weight");
++        nf4_type = nf4_storage == tensor_storage_map.end() ? GGML_TYPE_COUNT : nf4_storage->second.ltx_nf4_type;
++        if (nf4_type != GGML_TYPE_COUNT) {
++            GGML_ASSERT(!force_f32 && in_features > 0 && out_features > 0 && in_features <= INT64_MAX / out_features);
++            GGML_ASSERT(nf4_type == GGML_TYPE_BF16 || nf4_type == GGML_TYPE_F16);
++            params["weight"] = ggml_new_tensor_1d(ctx, GGML_TYPE_I8,
++                ezlocalai::Nf4StorageLayout(in_features * out_features).bytes);
++        } else params["weight"] = ggml_new_tensor_2d(ctx, wtype, in_features, out_features);
+         if (bias) {
+             enum ggml_type wtype = GGML_TYPE_F32;
+             params["bias"]       = ggml_new_tensor_1d(ctx, wtype, out_features);
+@@ -206,6 +215,8 @@
+ 
+     ggml_tensor* forward(GGMLRunnerContext* ctx, ggml_tensor* x) override {
+         ggml_tensor* w            = params["weight"];
++        if (nf4_type != GGML_TYPE_COUNT)
++            w = ezlocalai::nf4_ggml_expand(ctx->ggml_ctx, w, in_features, out_features, nf4_type);
+         const float scale         = ctx->linear_scale > 0.f ? ctx->linear_scale : this->scale;
+         ggml_tensor* weight_scale = has_weight_scale ? params["weight_scale"] : nullptr;
+ #ifndef SD_USE_UPSTREAM_GGML
+--- a/src/model_io/tensor_storage.h
++++ b/src/model_io/tensor_storage.h
+@@ -17,6 +17,8 @@
+     std::string name;
+     ggml_type type              = GGML_TYPE_F32;
+     ggml_type expected_type     = GGML_TYPE_COUNT;
++    // Raw source shape/type remain unchanged; this is the packed destination's compute type.
++    ggml_type ltx_nf4_type      = GGML_TYPE_COUNT;
+     bool is_f8_e4m3             = false;
+     bool is_f8_e5m2             = false;
+     bool is_f64                 = false;
+--- a/src/model_loader.cpp
++++ b/src/model_loader.cpp
+@@ -21,7 +21,7 @@
+ #include "model_io/torch_legacy_io.h"
+ #include "model_io/torch_zip_io.h"
+ #include "model_loader.h"
+-#include "ezlocalai/nf4.hpp"
++#include "ezlocalai/nf4_storage.hpp"
+ #include "runtime/imatrix.h"
+ #include "stable-diffusion.h"
+ 
+@@ -816,6 +816,16 @@
+             continue;
+         }
+         tensor_storage.expected_type = dst_type;
++    }
++    for (auto& [name, storage] : tensor_storage_map) {
++        storage.ltx_nf4_type = GGML_TYPE_COUNT;
++        if (!ltx_nf4_sms_ || !ltx_nf4_projection(storage)) continue;
++        auto type = storage.expected_type != GGML_TYPE_COUNT ? storage.expected_type : storage.type;
++        // Raw Diffusers FP32 tensors are loaded at the source's default BF16 precision.
++        if (type == GGML_TYPE_F32 && storage.expected_type == GGML_TYPE_COUNT) type = GGML_TYPE_BF16;
++        if (type != GGML_TYPE_BF16 && type != GGML_TYPE_F16)
++            throw std::invalid_argument("LTX NF4 compute type must be BF16 or FP16");
++        storage.ltx_nf4_type = type;
+     }
+     invalidate_file_data();
+     ++revision_;
+@@ -1187,6 +1197,55 @@
+                         return true;
+                     };
+ 
++                    if (tensor_storage.ltx_nf4_type != GGML_TYPE_COUNT) {
++                        try {
++                            const size_t count = tensor_storage.nelements();
++                            const ezlocalai::Nf4StorageLayout layout(count);
++                            if (dst_tensor->type != GGML_TYPE_I8 || !ggml_is_contiguous(dst_tensor) ||
++                                ggml_nbytes(dst_tensor) != layout.bytes)
++                                throw std::invalid_argument("Invalid packed Gemma NF4 destination");
++                            if (tensor_storage.type != GGML_TYPE_F32 && tensor_storage.type != GGML_TYPE_BF16 &&
++                                tensor_storage.type != GGML_TYPE_F16)
++                                throw std::invalid_argument("Unsupported raw Gemma NF4 source type");
++                            read_buffer.resize(nbytes_to_read);
++                            t0 = ggml_time_ms();
++                            if (!read_data(reinterpret_cast<char*>(read_buffer.data()), nbytes_to_read)) {
++                                failed = true;
++                                break;
++                            }
++                            read_time_ms.fetch_add(ggml_time_ms() - t0);
++                            t0 = ggml_time_ms();
++                            if (tensor_storage.is_f64)
++                                f64_to_f32_vec(reinterpret_cast<double*>(read_buffer.data()),
++                                    reinterpret_cast<float*>(read_buffer.data()), count);
++                            std::vector<uint16_t> values(count);
++                            if (tensor_storage.type == tensor_storage.ltx_nf4_type)
++                                memcpy(values.data(), read_buffer.data(), count * sizeof(uint16_t));
++                            else convert_tensor(read_buffer.data(), tensor_storage.type, values.data(),
++                                tensor_storage.ltx_nf4_type, tensor_storage.ne[1], tensor_storage.ne[0]);
++                            const ezlocalai::Nf4CudaDevice geometry{ltx_nf4_sms_, ltx_nf4_threads_per_sm_};
++                            const auto quantized = tensor_storage.ltx_nf4_type == GGML_TYPE_BF16
++                                ? ezlocalai::quantize_nf4_bf16(values.data(), count, true, geometry)
++                                : ezlocalai::quantize_nf4_f16(values.data(), count, true, geometry);
++                            const auto packed = ezlocalai::pack_nf4_storage(quantized);
++                            convert_time_ms.fetch_add(ggml_time_ms() - t0);
++                            t0 = ggml_time_ms();
++                            if (dst_tensor->buffer == nullptr || ggml_backend_buffer_is_host(dst_tensor->buffer))
++                                memcpy(dst_tensor->data, packed.data(), packed.size());
++                            else {
++                                std::lock_guard<std::mutex> lock(backend_tensor_set_mutex);
++                                ggml_backend_tensor_set(dst_tensor, packed.data(), 0, packed.size());
++                            }
++                            copy_to_backend_time_ms.fetch_add(ggml_time_ms() - t0);
++                            bytes_processed.fetch_add(nbytes_to_read);
++                        } catch (const std::exception& error) {
++                            LOG_ERROR("LTX NF4 conversion failed for '%s': %s", tensor_storage.name.c_str(), error.what());
++                            failed = true;
++                            break;
++                        }
++                        continue;
++                    }
++
+                     char* read_buf    = nullptr;
+                     char* target_buf  = nullptr;
+                     char* convert_buf = nullptr;
+@@ -1254,26 +1313,6 @@
+                                        std::move(imatrix));
+                     } else {
+                         convert_buf = read_buf;
+-                    }
+-                    if (ltx_nf4_sms_ && ltx_nf4_projection(tensor_storage)) {
+-                        try {
+-                            const ezlocalai::Nf4CudaDevice geometry{ltx_nf4_sms_, ltx_nf4_threads_per_sm_};
+-                            auto* values = reinterpret_cast<uint16_t*>(convert_buf);
+-                            const size_t count = tensor_storage.nelements();
+-                            if (dst_tensor->type == GGML_TYPE_BF16) {
+-                                const auto packed = ezlocalai::quantize_nf4_bf16(values, count, true, geometry);
+-                                ezlocalai::dequantize_nf4_bf16(packed, values);
+-                            } else if (dst_tensor->type == GGML_TYPE_F16) {
+-                                const auto packed = ezlocalai::quantize_nf4_f16(values, count, true, geometry);
+-                                ezlocalai::dequantize_nf4_f16(packed, values);
+-                            } else {
+-                                throw std::invalid_argument("Gemma NF4 destination must be BF16 or FP16");
+-                            }
+-                        } catch (const std::exception& error) {
+-                            LOG_ERROR("LTX NF4 conversion failed for '%s': %s", tensor_storage.name.c_str(), error.what());
+-                            failed = true;
+-                            break;
+-                        }
+                     }
+                     t1 = ggml_time_ms();
+                     convert_time_ms.fetch_add(t1 - t0);
+--- a/src/model_loader.h
++++ b/src/model_loader.h
+@@ -120,6 +120,7 @@
+     void set_ltx_nf4(int sms, int threads_per_sm) {
+         ltx_nf4_sms_ = sms;
+         ltx_nf4_threads_per_sm_ = threads_per_sm;
++        set_wtype_override(wtype_override_, tensor_type_rules_);
+     }
+     void set_wtype_override(ggml_type wtype, std::string tensor_type_rules = "");
+     void process_model_files(bool enable_mmap = false, bool writable_mmap = true);
+--- a/src/model_loader_files.cpp
++++ b/src/model_loader_files.cpp
+@@ -313,6 +313,8 @@
+     reader.n_threads_       = n_threads_;
+     reader.ltx_nf4_sms_     = ltx_nf4_sms_;
+     reader.ltx_nf4_threads_per_sm_ = ltx_nf4_threads_per_sm_;
++    reader.wtype_override_  = wtype_override_;
++    reader.tensor_type_rules_ = tensor_type_rules_;
+     reader.version_         = version;
+     reader.names_converted_ = true;
+     for (const auto& file : files_) {
+--- a/src/model_manager.cpp
++++ b/src/model_manager.cpp
+@@ -1,4 +1,5 @@
+ #include "model_manager.h"
++#include "ezlocalai/nf4_storage.hpp"
+ 
+ #include <algorithm>
+ #include <cstdint>
+@@ -763,6 +764,14 @@
+     }
+ 
+     const TensorStorage& tensor_storage = state.source;
++    if (tensor_storage.ltx_nf4_type != GGML_TYPE_COUNT) {
++        const bool valid = tensor_storage.n_dims == 2 &&
++            (tensor_storage.ltx_nf4_type == GGML_TYPE_BF16 || tensor_storage.ltx_nf4_type == GGML_TYPE_F16) &&
++            state.tensor->type == GGML_TYPE_I8 && ggml_is_contiguous(state.tensor) &&
++            ggml_nbytes(state.tensor) == ezlocalai::Nf4StorageLayout(tensor_storage.nelements()).bytes;
++        if (!valid) LOG_ERROR("invalid packed NF4 parameter '%s'", state.name.c_str());
++        return valid;
++    }
+     if (state.tensor->ne[0] != tensor_storage.ne[0] ||
+         state.tensor->ne[1] != tensor_storage.ne[1] ||
+         state.tensor->ne[2] != tensor_storage.ne[2] ||
+--- a/src/model_manager_files.cpp
++++ b/src/model_manager_files.cpp
+@@ -8,6 +8,7 @@
+     return a.file_id == b.file_id && a.file_revision == b.file_revision &&
+            a.file_index == b.file_index && a.offset == b.offset && a.index_in_zip == b.index_in_zip &&
+            a.storage_key == b.storage_key && a.type == b.type && a.expected_type == b.expected_type &&
++           a.ltx_nf4_type == b.ltx_nf4_type &&
+            a.n_dims == b.n_dims && std::equal(a.ne, a.ne + SD_MAX_DIMS, b.ne) &&
+            a.is_f8_e4m3 == b.is_f8_e4m3 && a.is_f8_e5m2 == b.is_f8_e5m2 &&
+            a.is_f64 == b.is_f64 && a.is_i64 == b.is_i64 &&
+--- a/src/pipeline/diffusion_engine.cpp
++++ b/src/pipeline/diffusion_engine.cpp
+@@ -816,7 +816,7 @@
+             return false;
+         }
+         model_loader.set_ltx_nf4(sd_ctx_params->ltx_nf4_sm_count, sd_ctx_params->ltx_nf4_threads_per_sm);
+-        LOG_INFO("LTX Gemma NF4 conversion enabled; weights reconstructed in BF16/FP16 storage");
++        LOG_INFO("LTX Gemma NF4 conversion enabled; projections retained in packed nested storage");
+     }
+     if (strlen(SAFE_STR(sd_ctx_params->ltx_diffusers_root)) > 0) {
+         const std::string root = sd_ctx_params->ltx_diffusers_root;

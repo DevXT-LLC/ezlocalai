@@ -1,3 +1,0 @@
-include *
-recursive-include native/tts *.cpp CMakeLists.txt
-include scripts/build_tts.py

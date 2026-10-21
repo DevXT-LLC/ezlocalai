@@ -1,0 +1,45 @@
+[
+  {
+    "name": "response-write-error",
+    "failed": false,
+    "calls": [
+      "receive",
+      "resp_start",
+      "resp_err"
+    ],
+    "error": ""
+  },
+  {
+    "name": "application-pong-error",
+    "failed": true,
+    "calls": [
+      "receive",
+      "pong"
+    ],
+    "error": "ConnectionResetError: reference write failure"
+  },
+  {
+    "name": "timeout",
+    "failed": true,
+    "calls": [
+      "receive"
+    ],
+    "error": "TimeoutError: "
+  },
+  {
+    "name": "protocol-error",
+    "failed": false,
+    "calls": [
+      "receive"
+    ],
+    "error": ""
+  },
+  {
+    "name": "eof",
+    "failed": false,
+    "calls": [
+      "receive"
+    ],
+    "error": ""
+  }
+]

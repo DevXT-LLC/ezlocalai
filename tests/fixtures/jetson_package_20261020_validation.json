@@ -1,0 +1,59 @@
+{
+  "date": "2026-10-20",
+  "status": "Build candidate; package and hardware acceptance pending",
+  "target": {
+    "device": "Jetson Orin",
+    "jetpack": "6.1",
+    "l4t": "r36.4.0",
+    "cuda": "12.6",
+    "native_architecture": "sm_87",
+    "base_digest": "sha256:34ccf0f3b63c6da9eee45f2e79de9bf7fdf3beda9abfd72bbf285ae9d40bb673"
+  },
+  "source_python_commit": "0f7e9f45ac0d67ea806ee19874f98bb8f47c7544",
+  "torch_source_commit": "d38164a545b4a4e4e0cf73ce67173f70574890b6",
+  "torch_version": "2.9.1",
+  "rejected_generic_wheel": {
+    "sha256": "472da048ab936302ee0dec3bedea16e697ecb41d51bd341142aca2677466f436",
+    "reason": "No native sm_87 target; ordinary desktop cubin compatibility does not establish Tegra support",
+    "gate_error": "/opt/DevXT/ezlocalai/build/validation/jetson-20261020/deps/torch/lib/libtorch_cuda.so: no target for sm_87 (cubins=sm_80,sm_90,sm_90a; PTX=none)"
+  },
+  "compose": {
+    "profiles": 6,
+    "comparisons": 1875,
+    "jetson_comparisons": 237,
+    "passed": true,
+    "seconds": 1.09,
+    "production_env_read": false
+  },
+  "architecture_policy_self_test": true,
+  "additional_dependency_requirements": [
+    "Pinned CMake 3.31.8 because LibTorch requires CMake 3.27 or newer",
+    "Pinned nlohmann_json 3.11.3 because Ubuntu 22.04 offers older headers",
+    "Pinned FFmpeg 6.1.2 because native Whisper uses AVChannelLayout/swr_alloc_set_opts2"
+  ],
+  "limitations": [
+    "No Jetson model execution",
+    "No accepted image yet",
+    "No Nano, Xavier or JetPack 5 support inferred"
+  ],
+  "proof_directory": "build/validation/jetson-20261020",
+  "source_hashes": {
+    "jetson.Dockerfile": "fc7ebeefcd24b3a5caf1a9b6f7127bdf84233f49ab052be6c1728cb5167af0c6",
+    "cmake/jetson-audio-dependencies.json": "6fa22cdec89fdc1f0e19f48ce522b9c8635674f7e769194a6e2dcd27439c3251",
+    "docker-compose-jetson.yml": "f8dc8a7645fb2420558115ba931c7e53c587a05d9ac0bde70cf06d96cede1cbe",
+    "tests/fixtures/compose_profiles.json": "b047a7f940c6e7e1386f8a638f884d3cc098ac4748d61a1f60031f6b7733fe00"
+  },
+  "torch_configuration": {
+    "passed": true,
+    "version": "2.9.1",
+    "cuda": "12.6",
+    "cudnn": true,
+    "build_python": false,
+    "distributed": false,
+    "native_target": "-gencode arch=compute_87,code=sm_87",
+    "proof": "build/validation/jetson-20261020/torch-build-before-object-cache.log",
+    "compilation_status": "Stopped for the user-requested handoff; completed objects retained in the BuildKit cache",
+    "last_progress": "#12 1411.2 [237/5318] Linking C static library lib/libcpuinfo_internals.a",
+    "resume_command": "docker build --platform linux/arm64 -f jetson.Dockerfile --target torch-libraries --build-arg EZLOCALAI_TORCH_JOBS=2 -t ezlocalai:jetson-torch-candidate ."
+  }
+}

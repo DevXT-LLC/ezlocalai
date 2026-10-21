@@ -1,0 +1,1799 @@
+{
+  "source_sha256": "dcd63562c35b55472d508a3089396b39fb3c32fd018cba7ded3d83350cf2875c",
+  "capture_sha256": "9e5517ea1c0932f9d22d2ccf63c06c7111f84e0f778cdf2e46585d4183a5f953",
+  "torch_version": "2.9.1+cu128",
+  "models": [
+    {
+      "directory": "cnn",
+      "sha256": "5f2d55ae1d4da68fd1b4372b4654a33c42f46dde544fbcb316ebd68ce036b5af",
+      "config": {
+        "word": "Hey Computer",
+        "n_mfcc": 40,
+        "sample_rate": 16000,
+        "max_length_sec": 1.5,
+        "model_type": "cnn",
+        "hidden_size": 64,
+        "num_layers": 2,
+        "dropout": 0.3
+      },
+      "cases": [
+        {
+          "audio": "audio/mono_8000.wav",
+          "detected": false,
+          "confidence": 0.43644940853118896
+        },
+        {
+          "audio": "audio/stereo_8000.wav",
+          "detected": false,
+          "confidence": 0.46201419830322266
+        },
+        {
+          "audio": "audio/mono_16000.wav",
+          "detected": false,
+          "confidence": 0.4583989977836609
+        },
+        {
+          "audio": "audio/stereo_16000.wav",
+          "detected": false,
+          "confidence": 0.4385720491409302
+        },
+        {
+          "audio": "audio/mono_22050.wav",
+          "detected": false,
+          "confidence": 0.4776448905467987
+        },
+        {
+          "audio": "audio/stereo_22050.wav",
+          "detected": false,
+          "confidence": 0.4156520366668701
+        },
+        {
+          "audio": "audio/mono_44100.wav",
+          "detected": false,
+          "confidence": 0.3265644907951355
+        },
+        {
+          "audio": "audio/stereo_44100.wav",
+          "detected": false,
+          "confidence": 0.4269413352012634
+        },
+        {
+          "audio": "audio/mono_48000.wav",
+          "detected": false,
+          "confidence": 0.3540155291557312
+        },
+        {
+          "audio": "audio/stereo_48000.wav",
+          "detected": false,
+          "confidence": 0.4342978894710541
+        },
+        {
+          "audio": "audio/length_0.wav",
+          "error": "RuntimeError"
+        },
+        {
+          "audio": "audio/length_1.wav",
+          "error": "RuntimeError"
+        },
+        {
+          "audio": "audio/length_256.wav",
+          "error": "RuntimeError"
+        },
+        {
+          "audio": "audio/length_257.wav",
+          "detected": true,
+          "confidence": 0.5226138830184937
+        },
+        {
+          "audio": "audio/length_399.wav",
+          "detected": true,
+          "confidence": 0.5398856401443481
+        },
+        {
+          "audio": "audio/length_24000.wav",
+          "detected": false,
+          "confidence": 0.1657131165266037
+        },
+        {
+          "audio": "audio/length_64000.wav",
+          "detected": false,
+          "confidence": 0.165851429104805
+        },
+        {
+          "audio": "audio/channels_3.wav",
+          "detected": false,
+          "confidence": 0.49689528346061707
+        },
+        {
+          "audio": "audio/channels_8.wav",
+          "detected": true,
+          "confidence": 0.5063543319702148
+        },
+        {
+          "audio": "audio/channels_17.wav",
+          "detected": false,
+          "confidence": 0.48077690601348877
+        },
+        {
+          "audio": "audio/channels_129.wav",
+          "detected": true,
+          "confidence": 0.5024785995483398
+        },
+        {
+          "audio": "audio/silence.wav",
+          "detected": false,
+          "confidence": 0.056003957986831665
+        },
+        {
+          "audio": "audio/nan.wav",
+          "detected": false,
+          "confidence": null
+        },
+        {
+          "audio": "audio/inf.wav",
+          "detected": false,
+          "confidence": null
+        },
+        {
+          "audio": "audio/float.wav",
+          "detected": false,
+          "confidence": 0.38547179102897644
+        },
+        {
+          "audio": "audio/pcm24.wav",
+          "detected": false,
+          "confidence": 0.3854803740978241
+        },
+        {
+          "audio": "audio/sample.flac",
+          "detected": false,
+          "confidence": 0.3854856789112091
+        },
+        {
+          "audio": "audio/sample.ogg",
+          "detected": false,
+          "confidence": 0.3843393325805664
+        },
+        {
+          "audio": "audio/invalid.bin",
+          "error": "LibsndfileError"
+        }
+      ]
+    },
+    {
+      "directory": "gru",
+      "sha256": "b235f63b92c7a3788134f6defd5eeccfef7deed470bb469748560f20ad7357b7",
+      "config": {
+        "word": "Hey Computer",
+        "n_mfcc": 40,
+        "sample_rate": 16000,
+        "max_length_sec": 1.5,
+        "model_type": "gru",
+        "hidden_size": 64,
+        "num_layers": 2,
+        "dropout": 0.3
+      },
+      "cases": [
+        {
+          "audio": "audio/mono_8000.wav",
+          "detected": false,
+          "confidence": 0.4890226721763611
+        },
+        {
+          "audio": "audio/stereo_8000.wav",
+          "detected": false,
+          "confidence": 0.4890226721763611
+        },
+        {
+          "audio": "audio/mono_16000.wav",
+          "detected": false,
+          "confidence": 0.4890226721763611
+        },
+        {
+          "audio": "audio/stereo_16000.wav",
+          "detected": false,
+          "confidence": 0.4890226721763611
+        },
+        {
+          "audio": "audio/mono_22050.wav",
+          "detected": false,
+          "confidence": 0.4890226721763611
+        },
+        {
+          "audio": "audio/stereo_22050.wav",
+          "detected": false,
+          "confidence": 0.4890226721763611
+        },
+        {
+          "audio": "audio/mono_44100.wav",
+          "detected": false,
+          "confidence": 0.4890226721763611
+        },
+        {
+          "audio": "audio/stereo_44100.wav",
+          "detected": false,
+          "confidence": 0.4890226721763611
+        },
+        {
+          "audio": "audio/mono_48000.wav",
+          "detected": false,
+          "confidence": 0.4890226721763611
+        },
+        {
+          "audio": "audio/stereo_48000.wav",
+          "detected": false,
+          "confidence": 0.4890226721763611
+        },
+        {
+          "audio": "audio/length_0.wav",
+          "error": "RuntimeError"
+        },
+        {
+          "audio": "audio/length_1.wav",
+          "error": "RuntimeError"
+        },
+        {
+          "audio": "audio/length_256.wav",
+          "error": "RuntimeError"
+        },
+        {
+          "audio": "audio/length_257.wav",
+          "detected": false,
+          "confidence": 0.4890226721763611
+        },
+        {
+          "audio": "audio/length_399.wav",
+          "detected": false,
+          "confidence": 0.4890226721763611
+        },
+        {
+          "audio": "audio/length_24000.wav",
+          "detected": false,
+          "confidence": 0.49588921666145325
+        },
+        {
+          "audio": "audio/length_64000.wav",
+          "detected": false,
+          "confidence": 0.48809802532196045
+        },
+        {
+          "audio": "audio/channels_3.wav",
+          "detected": false,
+          "confidence": 0.4890226721763611
+        },
+        {
+          "audio": "audio/channels_8.wav",
+          "detected": false,
+          "confidence": 0.4890226721763611
+        },
+        {
+          "audio": "audio/channels_17.wav",
+          "detected": false,
+          "confidence": 0.4890226721763611
+        },
+        {
+          "audio": "audio/channels_129.wav",
+          "detected": false,
+          "confidence": 0.4890226721763611
+        },
+        {
+          "audio": "audio/silence.wav",
+          "detected": false,
+          "confidence": 0.4890226721763611
+        },
+        {
+          "audio": "audio/nan.wav",
+          "detected": false,
+          "confidence": null
+        },
+        {
+          "audio": "audio/inf.wav",
+          "detected": false,
+          "confidence": null
+        },
+        {
+          "audio": "audio/float.wav",
+          "detected": false,
+          "confidence": 0.4890226721763611
+        },
+        {
+          "audio": "audio/pcm24.wav",
+          "detected": false,
+          "confidence": 0.4890226721763611
+        },
+        {
+          "audio": "audio/sample.flac",
+          "detected": false,
+          "confidence": 0.4890226721763611
+        },
+        {
+          "audio": "audio/sample.ogg",
+          "detected": false,
+          "confidence": 0.4890226721763611
+        },
+        {
+          "audio": "audio/invalid.bin",
+          "error": "LibsndfileError"
+        }
+      ]
+    },
+    {
+      "directory": "cnn_small",
+      "sha256": "d31e899b353fda60e35e50ed27f2e84db98dcb9715078e803fe3facda60f4c4d",
+      "config": {
+        "word": "cnn_small",
+        "n_mfcc": 8,
+        "sample_rate": 22050,
+        "max_length_sec": 0.01,
+        "model_type": "cnn",
+        "hidden_size": 7,
+        "num_layers": 2,
+        "dropout": 0.0
+      },
+      "cases": [
+        {
+          "audio": "audio/mono_8000.wav",
+          "detected": false,
+          "confidence": 0.0011687050573527813
+        },
+        {
+          "audio": "audio/stereo_8000.wav",
+          "detected": false,
+          "confidence": 0.00270932842977345
+        },
+        {
+          "audio": "audio/mono_16000.wav",
+          "detected": false,
+          "confidence": 0.008672279305756092
+        },
+        {
+          "audio": "audio/stereo_16000.wav",
+          "detected": false,
+          "confidence": 0.003436499973759055
+        },
+        {
+          "audio": "audio/mono_22050.wav",
+          "detected": false,
+          "confidence": 0.004938718397170305
+        },
+        {
+          "audio": "audio/stereo_22050.wav",
+          "detected": false,
+          "confidence": 0.0018825622973963618
+        },
+        {
+          "audio": "audio/mono_44100.wav",
+          "detected": false,
+          "confidence": 0.0019206557190045714
+        },
+        {
+          "audio": "audio/stereo_44100.wav",
+          "detected": false,
+          "confidence": 0.00047720700968056917
+        },
+        {
+          "audio": "audio/mono_48000.wav",
+          "detected": false,
+          "confidence": 0.0020622792653739452
+        },
+        {
+          "audio": "audio/stereo_48000.wav",
+          "detected": false,
+          "confidence": 0.0004297120322007686
+        },
+        {
+          "audio": "audio/length_0.wav",
+          "error": "RuntimeError"
+        },
+        {
+          "audio": "audio/length_1.wav",
+          "error": "RuntimeError"
+        },
+        {
+          "audio": "audio/length_256.wav",
+          "detected": false,
+          "confidence": 0.38842031359672546
+        },
+        {
+          "audio": "audio/length_257.wav",
+          "detected": false,
+          "confidence": 0.38618236780166626
+        },
+        {
+          "audio": "audio/length_399.wav",
+          "detected": false,
+          "confidence": 0.34932470321655273
+        },
+        {
+          "audio": "audio/length_24000.wav",
+          "detected": false,
+          "confidence": 0.0035162284038960934
+        },
+        {
+          "audio": "audio/length_64000.wav",
+          "detected": false,
+          "confidence": 0.003457907820120454
+        },
+        {
+          "audio": "audio/channels_3.wav",
+          "detected": false,
+          "confidence": 0.007276322226971388
+        },
+        {
+          "audio": "audio/channels_8.wav",
+          "detected": false,
+          "confidence": 0.005553784314543009
+        },
+        {
+          "audio": "audio/channels_17.wav",
+          "detected": false,
+          "confidence": 0.012202940881252289
+        },
+        {
+          "audio": "audio/channels_129.wav",
+          "detected": false,
+          "confidence": 0.007765905931591988
+        },
+        {
+          "audio": "audio/silence.wav",
+          "detected": false,
+          "confidence": 2.729402410750481e-07
+        },
+        {
+          "audio": "audio/nan.wav",
+          "detected": false,
+          "confidence": null
+        },
+        {
+          "audio": "audio/inf.wav",
+          "detected": false,
+          "confidence": null
+        },
+        {
+          "audio": "audio/float.wav",
+          "detected": false,
+          "confidence": 0.0014865515986457467
+        },
+        {
+          "audio": "audio/pcm24.wav",
+          "detected": false,
+          "confidence": 0.0014866698766127229
+        },
+        {
+          "audio": "audio/sample.flac",
+          "detected": false,
+          "confidence": 0.0014844601973891258
+        },
+        {
+          "audio": "audio/sample.ogg",
+          "detected": false,
+          "confidence": 0.0014778852928429842
+        },
+        {
+          "audio": "audio/invalid.bin",
+          "error": "LibsndfileError"
+        }
+      ]
+    },
+    {
+      "directory": "gru_one",
+      "sha256": "2e7ba8438280cd4c71ab110418130cb67560e0b884a67e82f6fc3d57a8d413c7",
+      "config": {
+        "word": "gru_one",
+        "n_mfcc": 80,
+        "sample_rate": 8000,
+        "max_length_sec": 1.5,
+        "model_type": "gru",
+        "hidden_size": 9,
+        "num_layers": 1,
+        "dropout": 0.8
+      },
+      "cases": [
+        {
+          "audio": "audio/mono_8000.wav",
+          "detected": true,
+          "confidence": 0.5616634488105774
+        },
+        {
+          "audio": "audio/stereo_8000.wav",
+          "detected": true,
+          "confidence": 0.5616634488105774
+        },
+        {
+          "audio": "audio/mono_16000.wav",
+          "detected": true,
+          "confidence": 0.5616634488105774
+        },
+        {
+          "audio": "audio/stereo_16000.wav",
+          "detected": true,
+          "confidence": 0.5616633892059326
+        },
+        {
+          "audio": "audio/mono_22050.wav",
+          "detected": true,
+          "confidence": 0.5616633892059326
+        },
+        {
+          "audio": "audio/stereo_22050.wav",
+          "detected": true,
+          "confidence": 0.5616634488105774
+        },
+        {
+          "audio": "audio/mono_44100.wav",
+          "detected": true,
+          "confidence": 0.5616634488105774
+        },
+        {
+          "audio": "audio/stereo_44100.wav",
+          "detected": true,
+          "confidence": 0.5616633892059326
+        },
+        {
+          "audio": "audio/mono_48000.wav",
+          "detected": true,
+          "confidence": 0.5616633892059326
+        },
+        {
+          "audio": "audio/stereo_48000.wav",
+          "detected": true,
+          "confidence": 0.5616634488105774
+        },
+        {
+          "audio": "audio/length_0.wav",
+          "error": "RuntimeError"
+        },
+        {
+          "audio": "audio/length_1.wav",
+          "error": "RuntimeError"
+        },
+        {
+          "audio": "audio/length_256.wav",
+          "error": "RuntimeError"
+        },
+        {
+          "audio": "audio/length_257.wav",
+          "error": "RuntimeError"
+        },
+        {
+          "audio": "audio/length_399.wav",
+          "error": "RuntimeError"
+        },
+        {
+          "audio": "audio/length_24000.wav",
+          "detected": true,
+          "confidence": 0.5616634488105774
+        },
+        {
+          "audio": "audio/length_64000.wav",
+          "detected": true,
+          "confidence": 0.7249894738197327
+        },
+        {
+          "audio": "audio/channels_3.wav",
+          "detected": true,
+          "confidence": 0.5616633892059326
+        },
+        {
+          "audio": "audio/channels_8.wav",
+          "detected": true,
+          "confidence": 0.5616633892059326
+        },
+        {
+          "audio": "audio/channels_17.wav",
+          "detected": true,
+          "confidence": 0.5616633892059326
+        },
+        {
+          "audio": "audio/channels_129.wav",
+          "detected": true,
+          "confidence": 0.5616633892059326
+        },
+        {
+          "audio": "audio/silence.wav",
+          "detected": true,
+          "confidence": 0.5616633892059326
+        },
+        {
+          "audio": "audio/nan.wav",
+          "detected": false,
+          "confidence": null
+        },
+        {
+          "audio": "audio/inf.wav",
+          "detected": false,
+          "confidence": null
+        },
+        {
+          "audio": "audio/float.wav",
+          "detected": true,
+          "confidence": 0.5616634488105774
+        },
+        {
+          "audio": "audio/pcm24.wav",
+          "detected": true,
+          "confidence": 0.5616634488105774
+        },
+        {
+          "audio": "audio/sample.flac",
+          "detected": true,
+          "confidence": 0.5616634488105774
+        },
+        {
+          "audio": "audio/sample.ogg",
+          "detected": true,
+          "confidence": 0.5616634488105774
+        },
+        {
+          "audio": "audio/invalid.bin",
+          "error": "LibsndfileError"
+        }
+      ]
+    },
+    {
+      "directory": "gru_three",
+      "sha256": "64a71d26e457b5f3353217238fbbc1bb26c170ddae52fd380cc2186fe00f30e0",
+      "config": {
+        "word": "gru_three",
+        "n_mfcc": 13,
+        "sample_rate": 16000,
+        "max_length_sec": 1.5,
+        "model_type": "gru",
+        "hidden_size": 17,
+        "num_layers": 3,
+        "dropout": 0.1
+      },
+      "cases": [
+        {
+          "audio": "audio/mono_8000.wav",
+          "detected": false,
+          "confidence": 0.4782237112522125
+        },
+        {
+          "audio": "audio/stereo_8000.wav",
+          "detected": false,
+          "confidence": 0.4782237112522125
+        },
+        {
+          "audio": "audio/mono_16000.wav",
+          "detected": false,
+          "confidence": 0.4782237112522125
+        },
+        {
+          "audio": "audio/stereo_16000.wav",
+          "detected": false,
+          "confidence": 0.4782237112522125
+        },
+        {
+          "audio": "audio/mono_22050.wav",
+          "detected": false,
+          "confidence": 0.4782237112522125
+        },
+        {
+          "audio": "audio/stereo_22050.wav",
+          "detected": false,
+          "confidence": 0.4782237112522125
+        },
+        {
+          "audio": "audio/mono_44100.wav",
+          "detected": false,
+          "confidence": 0.4782237112522125
+        },
+        {
+          "audio": "audio/stereo_44100.wav",
+          "detected": false,
+          "confidence": 0.4782237112522125
+        },
+        {
+          "audio": "audio/mono_48000.wav",
+          "detected": false,
+          "confidence": 0.4782237112522125
+        },
+        {
+          "audio": "audio/stereo_48000.wav",
+          "detected": false,
+          "confidence": 0.4782237112522125
+        },
+        {
+          "audio": "audio/length_0.wav",
+          "error": "RuntimeError"
+        },
+        {
+          "audio": "audio/length_1.wav",
+          "error": "RuntimeError"
+        },
+        {
+          "audio": "audio/length_256.wav",
+          "error": "RuntimeError"
+        },
+        {
+          "audio": "audio/length_257.wav",
+          "detected": false,
+          "confidence": 0.4782237112522125
+        },
+        {
+          "audio": "audio/length_399.wav",
+          "detected": false,
+          "confidence": 0.4782237112522125
+        },
+        {
+          "audio": "audio/length_24000.wav",
+          "detected": false,
+          "confidence": 0.47981512546539307
+        },
+        {
+          "audio": "audio/length_64000.wav",
+          "detected": false,
+          "confidence": 0.47976377606391907
+        },
+        {
+          "audio": "audio/channels_3.wav",
+          "detected": false,
+          "confidence": 0.4782237112522125
+        },
+        {
+          "audio": "audio/channels_8.wav",
+          "detected": false,
+          "confidence": 0.4782237112522125
+        },
+        {
+          "audio": "audio/channels_17.wav",
+          "detected": false,
+          "confidence": 0.4782237112522125
+        },
+        {
+          "audio": "audio/channels_129.wav",
+          "detected": false,
+          "confidence": 0.4782237112522125
+        },
+        {
+          "audio": "audio/silence.wav",
+          "detected": false,
+          "confidence": 0.4782237112522125
+        },
+        {
+          "audio": "audio/nan.wav",
+          "detected": false,
+          "confidence": null
+        },
+        {
+          "audio": "audio/inf.wav",
+          "detected": false,
+          "confidence": null
+        },
+        {
+          "audio": "audio/float.wav",
+          "detected": false,
+          "confidence": 0.4782237112522125
+        },
+        {
+          "audio": "audio/pcm24.wav",
+          "detected": false,
+          "confidence": 0.4782237112522125
+        },
+        {
+          "audio": "audio/sample.flac",
+          "detected": false,
+          "confidence": 0.4782237112522125
+        },
+        {
+          "audio": "audio/sample.ogg",
+          "detected": false,
+          "confidence": 0.4782237112522125
+        },
+        {
+          "audio": "audio/invalid.bin",
+          "error": "LibsndfileError"
+        }
+      ]
+    }
+  ],
+  "features": [
+    {
+      "audio": "audio/mono_8000.wav",
+      "sample_rate": 16000,
+      "n_mfcc": 40,
+      "file": "features_cnn_mono_8000.wav.f32",
+      "shape": [
+        40,
+        101
+      ],
+      "sha256": "83776a6a3f1f141f016b040af928aac06066f5b27a277f3ad654d5237c7cc752"
+    },
+    {
+      "audio": "audio/stereo_8000.wav",
+      "sample_rate": 16000,
+      "n_mfcc": 40,
+      "file": "features_cnn_stereo_8000.wav.f32",
+      "shape": [
+        40,
+        101
+      ],
+      "sha256": "df4ab05e86d2af1b7264592bb76629efba79bb7f6a8264b227a1c5d4f8fd91b9"
+    },
+    {
+      "audio": "audio/mono_16000.wav",
+      "sample_rate": 16000,
+      "n_mfcc": 40,
+      "file": "features_cnn_mono_16000.wav.f32",
+      "shape": [
+        40,
+        101
+      ],
+      "sha256": "0a5f81e002272bd602456bfb35196362222cd943c13c183e85ba3be3cbf54f90"
+    },
+    {
+      "audio": "audio/stereo_16000.wav",
+      "sample_rate": 16000,
+      "n_mfcc": 40,
+      "file": "features_cnn_stereo_16000.wav.f32",
+      "shape": [
+        40,
+        101
+      ],
+      "sha256": "af77a2ef755181a0967c9791d51eee72fc6a475b14ce5c3b840239f5c3a8697e"
+    },
+    {
+      "audio": "audio/mono_22050.wav",
+      "sample_rate": 16000,
+      "n_mfcc": 40,
+      "file": "features_cnn_mono_22050.wav.f32",
+      "shape": [
+        40,
+        101
+      ],
+      "sha256": "ebd99ecb6bb74b554f879ffad7e4f4148dffd4d40703fe5a7a04d5b209513a8e"
+    },
+    {
+      "audio": "audio/stereo_22050.wav",
+      "sample_rate": 16000,
+      "n_mfcc": 40,
+      "file": "features_cnn_stereo_22050.wav.f32",
+      "shape": [
+        40,
+        101
+      ],
+      "sha256": "c6a1c586bfe1712a9f6367bc536be1da1048ea5bea07e84bcb62c299622615b0"
+    },
+    {
+      "audio": "audio/mono_44100.wav",
+      "sample_rate": 16000,
+      "n_mfcc": 40,
+      "file": "features_cnn_mono_44100.wav.f32",
+      "shape": [
+        40,
+        101
+      ],
+      "sha256": "df52cd97eea2f66713e399ef33df3328411b4b72d263ae82efcc104958c91c61"
+    },
+    {
+      "audio": "audio/stereo_44100.wav",
+      "sample_rate": 16000,
+      "n_mfcc": 40,
+      "file": "features_cnn_stereo_44100.wav.f32",
+      "shape": [
+        40,
+        101
+      ],
+      "sha256": "110d8674b8bd7322af96981369ad815d9d6c4ed7290a739c7738781415c86d73"
+    },
+    {
+      "audio": "audio/mono_48000.wav",
+      "sample_rate": 16000,
+      "n_mfcc": 40,
+      "file": "features_cnn_mono_48000.wav.f32",
+      "shape": [
+        40,
+        101
+      ],
+      "sha256": "be82d875c972e853ba0e24eabdc97074b198aa8236193c855c01e4d4ae919f84"
+    },
+    {
+      "audio": "audio/stereo_48000.wav",
+      "sample_rate": 16000,
+      "n_mfcc": 40,
+      "file": "features_cnn_stereo_48000.wav.f32",
+      "shape": [
+        40,
+        101
+      ],
+      "sha256": "f21c5d2b506b651f1e41c31f6fa61b1b9ea5770faa57f55b861e0ccda050f382"
+    },
+    {
+      "audio": "audio/length_257.wav",
+      "sample_rate": 16000,
+      "n_mfcc": 40,
+      "file": "features_cnn_length_257.wav.f32",
+      "shape": [
+        40,
+        2
+      ],
+      "sha256": "46317de12251bec96620bfa7a793eef6ff9f7e81a45b65d61cd9ef8f9e05debf"
+    },
+    {
+      "audio": "audio/length_399.wav",
+      "sample_rate": 16000,
+      "n_mfcc": 40,
+      "file": "features_cnn_length_399.wav.f32",
+      "shape": [
+        40,
+        3
+      ],
+      "sha256": "5288224d490b7304a110acf71d69936e0d651f1a2062d7ccc0913bb300c19a1a"
+    },
+    {
+      "audio": "audio/length_24000.wav",
+      "sample_rate": 16000,
+      "n_mfcc": 40,
+      "file": "features_cnn_length_24000.wav.f32",
+      "shape": [
+        40,
+        151
+      ],
+      "sha256": "7d1ad68c0cb4f5899189be70357137ede9ab179a4a9f250a20bc723e1f1b0cfc"
+    },
+    {
+      "audio": "audio/length_64000.wav",
+      "sample_rate": 16000,
+      "n_mfcc": 40,
+      "file": "features_cnn_length_64000.wav.f32",
+      "shape": [
+        40,
+        401
+      ],
+      "sha256": "4d24ecfcdd340d0af8ee537fa855824e6b457b3fad8972c692163f5cf2794aa7"
+    },
+    {
+      "audio": "audio/channels_3.wav",
+      "sample_rate": 16000,
+      "n_mfcc": 40,
+      "file": "features_cnn_channels_3.wav.f32",
+      "shape": [
+        40,
+        51
+      ],
+      "sha256": "2058536a5b523a01a36f5e77012824325cc67e6b96c575885e57cd7188ff4c78"
+    },
+    {
+      "audio": "audio/channels_8.wav",
+      "sample_rate": 16000,
+      "n_mfcc": 40,
+      "file": "features_cnn_channels_8.wav.f32",
+      "shape": [
+        40,
+        51
+      ],
+      "sha256": "d97909efb15db37c3f121d35fc8639cfc50e1830a989d2602c2bfbb06cc969ad"
+    },
+    {
+      "audio": "audio/channels_17.wav",
+      "sample_rate": 16000,
+      "n_mfcc": 40,
+      "file": "features_cnn_channels_17.wav.f32",
+      "shape": [
+        40,
+        51
+      ],
+      "sha256": "b5ab5ee1de03af3cb98a236a08a2ce9d9df15bca7d13dafd1a98d64bc2e0431a"
+    },
+    {
+      "audio": "audio/channels_129.wav",
+      "sample_rate": 16000,
+      "n_mfcc": 40,
+      "file": "features_cnn_channels_129.wav.f32",
+      "shape": [
+        40,
+        51
+      ],
+      "sha256": "583d945bfc10b6ce171bcc4046177eb42a5c02dcf4f1ead0abf5501f57b007a3"
+    },
+    {
+      "audio": "audio/silence.wav",
+      "sample_rate": 16000,
+      "n_mfcc": 40,
+      "file": "features_cnn_silence.wav.f32",
+      "shape": [
+        40,
+        101
+      ],
+      "sha256": "745541dd68612d046ae136c48e7b882ed0075ebc330b92958f8ddaff6778b75e"
+    },
+    {
+      "audio": "audio/float.wav",
+      "sample_rate": 16000,
+      "n_mfcc": 40,
+      "file": "features_cnn_float.wav.f32",
+      "shape": [
+        40,
+        101
+      ],
+      "sha256": "58e69a9a4efa916580c0a543f71c1dbb5e0e0d94a5a3376707ed15e17f09f643"
+    },
+    {
+      "audio": "audio/pcm24.wav",
+      "sample_rate": 16000,
+      "n_mfcc": 40,
+      "file": "features_cnn_pcm24.wav.f32",
+      "shape": [
+        40,
+        101
+      ],
+      "sha256": "53aea52e3825dabb65e7c266f4f4e9e07a30fa1195273f3dc25de0ea2f6d1f0c"
+    },
+    {
+      "audio": "audio/sample.flac",
+      "sample_rate": 16000,
+      "n_mfcc": 40,
+      "file": "features_cnn_sample.flac.f32",
+      "shape": [
+        40,
+        101
+      ],
+      "sha256": "dac06df511f32b9152796a513cd414aa346dabef52d71302bfb5eff44e2243ac"
+    },
+    {
+      "audio": "audio/sample.ogg",
+      "sample_rate": 16000,
+      "n_mfcc": 40,
+      "file": "features_cnn_sample.ogg.f32",
+      "shape": [
+        40,
+        101
+      ],
+      "sha256": "9650785055bb08b17d58ed51c1b194cea08f51a7b3ef0f6e8c663e4ff68d7748"
+    },
+    {
+      "audio": "audio/mono_8000.wav",
+      "sample_rate": 22050,
+      "n_mfcc": 8,
+      "file": "features_cnn_small_mono_8000.wav.f32",
+      "shape": [
+        8,
+        138
+      ],
+      "sha256": "a1143860a1e8faa44406c293eaf82049bcf6ff71aa9496771eb8dd3826d19b09"
+    },
+    {
+      "audio": "audio/stereo_8000.wav",
+      "sample_rate": 22050,
+      "n_mfcc": 8,
+      "file": "features_cnn_small_stereo_8000.wav.f32",
+      "shape": [
+        8,
+        138
+      ],
+      "sha256": "a7a58a5afafed68fc7fff9bf23cb30315c9d93ebb01608ec7b5b63da0245f7da"
+    },
+    {
+      "audio": "audio/mono_16000.wav",
+      "sample_rate": 22050,
+      "n_mfcc": 8,
+      "file": "features_cnn_small_mono_16000.wav.f32",
+      "shape": [
+        8,
+        138
+      ],
+      "sha256": "b15d38efd969a3efce0e9872457e2a0aa88f83c61ef0ea98c5db1e72e3abead7"
+    },
+    {
+      "audio": "audio/stereo_16000.wav",
+      "sample_rate": 22050,
+      "n_mfcc": 8,
+      "file": "features_cnn_small_stereo_16000.wav.f32",
+      "shape": [
+        8,
+        138
+      ],
+      "sha256": "a00bdb06021393671f7813857cd6cf833f569d26bf0764adffe7dfac15d937bb"
+    },
+    {
+      "audio": "audio/mono_22050.wav",
+      "sample_rate": 22050,
+      "n_mfcc": 8,
+      "file": "features_cnn_small_mono_22050.wav.f32",
+      "shape": [
+        8,
+        138
+      ],
+      "sha256": "9885d57009d878e0687dcbeb704025f4ccbdb1dc391af38ae47e9166b6320f25"
+    },
+    {
+      "audio": "audio/stereo_22050.wav",
+      "sample_rate": 22050,
+      "n_mfcc": 8,
+      "file": "features_cnn_small_stereo_22050.wav.f32",
+      "shape": [
+        8,
+        138
+      ],
+      "sha256": "84a4bebbeca7e9cd9f8ed9401706713b3a80cd93fa634635b7b01e1f21130278"
+    },
+    {
+      "audio": "audio/mono_44100.wav",
+      "sample_rate": 22050,
+      "n_mfcc": 8,
+      "file": "features_cnn_small_mono_44100.wav.f32",
+      "shape": [
+        8,
+        138
+      ],
+      "sha256": "d6de8e5832ac5c96113eac8d697e7c55499d9893339ec4540179cb0ebd447637"
+    },
+    {
+      "audio": "audio/stereo_44100.wav",
+      "sample_rate": 22050,
+      "n_mfcc": 8,
+      "file": "features_cnn_small_stereo_44100.wav.f32",
+      "shape": [
+        8,
+        138
+      ],
+      "sha256": "1b10816a1be96d1d6e26c8d28779bff98e761e4c9a14d520d20a1e1d0d8d2c19"
+    },
+    {
+      "audio": "audio/mono_48000.wav",
+      "sample_rate": 22050,
+      "n_mfcc": 8,
+      "file": "features_cnn_small_mono_48000.wav.f32",
+      "shape": [
+        8,
+        138
+      ],
+      "sha256": "d36296f9583c486b2739ebfa25d5aeb48a91d218d65bc796fb19ce74819f8433"
+    },
+    {
+      "audio": "audio/stereo_48000.wav",
+      "sample_rate": 22050,
+      "n_mfcc": 8,
+      "file": "features_cnn_small_stereo_48000.wav.f32",
+      "shape": [
+        8,
+        138
+      ],
+      "sha256": "f8d115b1382fd1abcdf6efceb57862100b99e312e03f9d0d59b1bb60e003c00d"
+    },
+    {
+      "audio": "audio/length_256.wav",
+      "sample_rate": 22050,
+      "n_mfcc": 8,
+      "file": "features_cnn_small_length_256.wav.f32",
+      "shape": [
+        8,
+        3
+      ],
+      "sha256": "b22e2201f6f79443ecb97abe11459b064a15eb2e02c1f64402dcdcda1b39cb9d"
+    },
+    {
+      "audio": "audio/length_257.wav",
+      "sample_rate": 22050,
+      "n_mfcc": 8,
+      "file": "features_cnn_small_length_257.wav.f32",
+      "shape": [
+        8,
+        3
+      ],
+      "sha256": "8cdebf6021240300ee834c5c5b1ab6f85f46fe30f6ba28b542627bcfaad82c2b"
+    },
+    {
+      "audio": "audio/length_399.wav",
+      "sample_rate": 22050,
+      "n_mfcc": 8,
+      "file": "features_cnn_small_length_399.wav.f32",
+      "shape": [
+        8,
+        4
+      ],
+      "sha256": "0e288871f10925e1ffc0b1e9015e345c8965ea4d4b0de9f15f100ddd2080dc33"
+    },
+    {
+      "audio": "audio/length_24000.wav",
+      "sample_rate": 22050,
+      "n_mfcc": 8,
+      "file": "features_cnn_small_length_24000.wav.f32",
+      "shape": [
+        8,
+        207
+      ],
+      "sha256": "2ef50e723e0f48d428bd1305b1aece8ec67d609b95ffe7a9fbe345f4cfc7006d"
+    },
+    {
+      "audio": "audio/length_64000.wav",
+      "sample_rate": 22050,
+      "n_mfcc": 8,
+      "file": "features_cnn_small_length_64000.wav.f32",
+      "shape": [
+        8,
+        552
+      ],
+      "sha256": "338691977f029c7a0cfe49104048ee735b14cdec99b937f6fa3b7f76ff677647"
+    },
+    {
+      "audio": "audio/channels_3.wav",
+      "sample_rate": 22050,
+      "n_mfcc": 8,
+      "file": "features_cnn_small_channels_3.wav.f32",
+      "shape": [
+        8,
+        69
+      ],
+      "sha256": "7a913d1eceb4bb8e1f699edd50713b1050ed9696b0e0e61b662b8f51461f9de8"
+    },
+    {
+      "audio": "audio/channels_8.wav",
+      "sample_rate": 22050,
+      "n_mfcc": 8,
+      "file": "features_cnn_small_channels_8.wav.f32",
+      "shape": [
+        8,
+        69
+      ],
+      "sha256": "3ed44c93c51ef3f37de0a22b90d13c74d4d8713c4b97918b11f450ff52d70c33"
+    },
+    {
+      "audio": "audio/channels_17.wav",
+      "sample_rate": 22050,
+      "n_mfcc": 8,
+      "file": "features_cnn_small_channels_17.wav.f32",
+      "shape": [
+        8,
+        69
+      ],
+      "sha256": "7b98e22f936ebaa92ba6e8666d16c075c333843127f6e436e088b48a6a5dbf23"
+    },
+    {
+      "audio": "audio/channels_129.wav",
+      "sample_rate": 22050,
+      "n_mfcc": 8,
+      "file": "features_cnn_small_channels_129.wav.f32",
+      "shape": [
+        8,
+        69
+      ],
+      "sha256": "32233fde9307ed1312909d93437f10d655401ec262335a10b1e813911df0f1cd"
+    },
+    {
+      "audio": "audio/silence.wav",
+      "sample_rate": 22050,
+      "n_mfcc": 8,
+      "file": "features_cnn_small_silence.wav.f32",
+      "shape": [
+        8,
+        138
+      ],
+      "sha256": "543f3ff24428dfb0ff4073c0dc66753c5b9a02ac3eea3ea13d9a934f2c80e50a"
+    },
+    {
+      "audio": "audio/float.wav",
+      "sample_rate": 22050,
+      "n_mfcc": 8,
+      "file": "features_cnn_small_float.wav.f32",
+      "shape": [
+        8,
+        138
+      ],
+      "sha256": "609b7a2ea4d61c70fd70ce9c60d0337872803467272c06f2627b9588dae5e07f"
+    },
+    {
+      "audio": "audio/pcm24.wav",
+      "sample_rate": 22050,
+      "n_mfcc": 8,
+      "file": "features_cnn_small_pcm24.wav.f32",
+      "shape": [
+        8,
+        138
+      ],
+      "sha256": "f8d1db8259b2c2ab13400128cdc80f285ecaa647cb747bcef53626553af75ce3"
+    },
+    {
+      "audio": "audio/sample.flac",
+      "sample_rate": 22050,
+      "n_mfcc": 8,
+      "file": "features_cnn_small_sample.flac.f32",
+      "shape": [
+        8,
+        138
+      ],
+      "sha256": "1144507bed3db0c25af06a3046eb99b989e9c927221af89971eccd85d0fb4b38"
+    },
+    {
+      "audio": "audio/sample.ogg",
+      "sample_rate": 22050,
+      "n_mfcc": 8,
+      "file": "features_cnn_small_sample.ogg.f32",
+      "shape": [
+        8,
+        138
+      ],
+      "sha256": "34d4dc9efa0dd658c936892de979041541f0038e0e112f8bc6d4f86e65e1b834"
+    },
+    {
+      "audio": "audio/mono_8000.wav",
+      "sample_rate": 8000,
+      "n_mfcc": 80,
+      "file": "features_gru_one_mono_8000.wav.f32",
+      "shape": [
+        80,
+        51
+      ],
+      "sha256": "476802c14120ff60b73fd55cb3c601eb75a2462f6b64198566442614cca7840f"
+    },
+    {
+      "audio": "audio/stereo_8000.wav",
+      "sample_rate": 8000,
+      "n_mfcc": 80,
+      "file": "features_gru_one_stereo_8000.wav.f32",
+      "shape": [
+        80,
+        51
+      ],
+      "sha256": "1b01c2e935d7a6f18e9348c689d3cb06fbf2848bd7cff00c5c603cb357fd67b7"
+    },
+    {
+      "audio": "audio/mono_16000.wav",
+      "sample_rate": 8000,
+      "n_mfcc": 80,
+      "file": "features_gru_one_mono_16000.wav.f32",
+      "shape": [
+        80,
+        51
+      ],
+      "sha256": "45e434ecb742645166aaeaa7dbd6ea4dd44d53e591eb804108375232a05c98e2"
+    },
+    {
+      "audio": "audio/stereo_16000.wav",
+      "sample_rate": 8000,
+      "n_mfcc": 80,
+      "file": "features_gru_one_stereo_16000.wav.f32",
+      "shape": [
+        80,
+        51
+      ],
+      "sha256": "0840451214f38b623510a92ba70b55562c321d7b029def013b84527e336585b7"
+    },
+    {
+      "audio": "audio/mono_22050.wav",
+      "sample_rate": 8000,
+      "n_mfcc": 80,
+      "file": "features_gru_one_mono_22050.wav.f32",
+      "shape": [
+        80,
+        51
+      ],
+      "sha256": "be54e4cb0af98bac4b96ac00a7325f413ab32ddddd70426af7d1a82235009780"
+    },
+    {
+      "audio": "audio/stereo_22050.wav",
+      "sample_rate": 8000,
+      "n_mfcc": 80,
+      "file": "features_gru_one_stereo_22050.wav.f32",
+      "shape": [
+        80,
+        51
+      ],
+      "sha256": "083d27f4ee2f07ce278b723d6b6904fd2fa5df52bd91b0797c7e5c22023bf412"
+    },
+    {
+      "audio": "audio/mono_44100.wav",
+      "sample_rate": 8000,
+      "n_mfcc": 80,
+      "file": "features_gru_one_mono_44100.wav.f32",
+      "shape": [
+        80,
+        51
+      ],
+      "sha256": "52655201b4e63e2b09be5ae6b21e5d6e9a0612aa855151cbf6b3bb846baef231"
+    },
+    {
+      "audio": "audio/stereo_44100.wav",
+      "sample_rate": 8000,
+      "n_mfcc": 80,
+      "file": "features_gru_one_stereo_44100.wav.f32",
+      "shape": [
+        80,
+        51
+      ],
+      "sha256": "da20bd9e9ff50cb7c24f1a545fc91322afb2179a13d68daa8aca8a66e32a8dce"
+    },
+    {
+      "audio": "audio/mono_48000.wav",
+      "sample_rate": 8000,
+      "n_mfcc": 80,
+      "file": "features_gru_one_mono_48000.wav.f32",
+      "shape": [
+        80,
+        51
+      ],
+      "sha256": "50a7671d04f32adcd3b6a14c2cb7dc0f48fbbf55bf0d9ad50853ae356dfc5b80"
+    },
+    {
+      "audio": "audio/stereo_48000.wav",
+      "sample_rate": 8000,
+      "n_mfcc": 80,
+      "file": "features_gru_one_stereo_48000.wav.f32",
+      "shape": [
+        80,
+        51
+      ],
+      "sha256": "fc055407c36483d9d0c800693d362ac2ad1b61cb1d3fa0bfa2715e9799a043b1"
+    },
+    {
+      "audio": "audio/length_24000.wav",
+      "sample_rate": 8000,
+      "n_mfcc": 80,
+      "file": "features_gru_one_length_24000.wav.f32",
+      "shape": [
+        80,
+        76
+      ],
+      "sha256": "48cba3d6d84416b57c2fbf37f06b71dd7539d96fb60032d2f935c041cbe44ad3"
+    },
+    {
+      "audio": "audio/length_64000.wav",
+      "sample_rate": 8000,
+      "n_mfcc": 80,
+      "file": "features_gru_one_length_64000.wav.f32",
+      "shape": [
+        80,
+        201
+      ],
+      "sha256": "72a375d91743560be0b79c17bf25680f7a917ae953dea4753f867767234d5589"
+    },
+    {
+      "audio": "audio/channels_3.wav",
+      "sample_rate": 8000,
+      "n_mfcc": 80,
+      "file": "features_gru_one_channels_3.wav.f32",
+      "shape": [
+        80,
+        26
+      ],
+      "sha256": "2452c6c864dadb05ffbdb2ce9411208b048b7feabaa85edf9f0281a909c7f131"
+    },
+    {
+      "audio": "audio/channels_8.wav",
+      "sample_rate": 8000,
+      "n_mfcc": 80,
+      "file": "features_gru_one_channels_8.wav.f32",
+      "shape": [
+        80,
+        26
+      ],
+      "sha256": "672d4882901b47cf074dc55692f0525bd99b2b79d4ddffff9db5166a5fe2a0fa"
+    },
+    {
+      "audio": "audio/channels_17.wav",
+      "sample_rate": 8000,
+      "n_mfcc": 80,
+      "file": "features_gru_one_channels_17.wav.f32",
+      "shape": [
+        80,
+        26
+      ],
+      "sha256": "b244298cf86aaad484e1159116845645e594216aeb17a6f09abec00919085174"
+    },
+    {
+      "audio": "audio/channels_129.wav",
+      "sample_rate": 8000,
+      "n_mfcc": 80,
+      "file": "features_gru_one_channels_129.wav.f32",
+      "shape": [
+        80,
+        26
+      ],
+      "sha256": "6b4d63957b8094b030576f0cb4342c50c0b0e96cfd27144de6524a2348821862"
+    },
+    {
+      "audio": "audio/silence.wav",
+      "sample_rate": 8000,
+      "n_mfcc": 80,
+      "file": "features_gru_one_silence.wav.f32",
+      "shape": [
+        80,
+        51
+      ],
+      "sha256": "84bed2cb3466997f99c9f71649dc63350bf8847bfdf6e0977af705b0aae90d90"
+    },
+    {
+      "audio": "audio/float.wav",
+      "sample_rate": 8000,
+      "n_mfcc": 80,
+      "file": "features_gru_one_float.wav.f32",
+      "shape": [
+        80,
+        51
+      ],
+      "sha256": "b0cee4c861be7361a55608119dfd2eb47bdff06ece755f370453a18abc74be15"
+    },
+    {
+      "audio": "audio/pcm24.wav",
+      "sample_rate": 8000,
+      "n_mfcc": 80,
+      "file": "features_gru_one_pcm24.wav.f32",
+      "shape": [
+        80,
+        51
+      ],
+      "sha256": "1bdca136fd04a69516a93da36ff0292c23286a3c7aee82b52b1895840a45410e"
+    },
+    {
+      "audio": "audio/sample.flac",
+      "sample_rate": 8000,
+      "n_mfcc": 80,
+      "file": "features_gru_one_sample.flac.f32",
+      "shape": [
+        80,
+        51
+      ],
+      "sha256": "c4e2200b82196791cf35243c7916a85887a35b8271b0233e757a823cbe2d610d"
+    },
+    {
+      "audio": "audio/sample.ogg",
+      "sample_rate": 8000,
+      "n_mfcc": 80,
+      "file": "features_gru_one_sample.ogg.f32",
+      "shape": [
+        80,
+        51
+      ],
+      "sha256": "df59e4238f87274c522e416ff03dcc1030c8830371d8ae45d38ca69417409fcc"
+    },
+    {
+      "audio": "audio/mono_8000.wav",
+      "sample_rate": 16000,
+      "n_mfcc": 13,
+      "file": "features_gru_three_mono_8000.wav.f32",
+      "shape": [
+        13,
+        101
+      ],
+      "sha256": "312de8b694aa524d3e26b4cae7003403e5ad29953d914897b802fe865a5bb62a"
+    },
+    {
+      "audio": "audio/stereo_8000.wav",
+      "sample_rate": 16000,
+      "n_mfcc": 13,
+      "file": "features_gru_three_stereo_8000.wav.f32",
+      "shape": [
+        13,
+        101
+      ],
+      "sha256": "505853d15b48bd9a52854ffad9847110fe4e832da86df8a9bcc46ba275f752e2"
+    },
+    {
+      "audio": "audio/mono_16000.wav",
+      "sample_rate": 16000,
+      "n_mfcc": 13,
+      "file": "features_gru_three_mono_16000.wav.f32",
+      "shape": [
+        13,
+        101
+      ],
+      "sha256": "650af67beb1cc6d97ee314b33114242d2fa50a334ec0b225f7b1fffcb0ada3e3"
+    },
+    {
+      "audio": "audio/stereo_16000.wav",
+      "sample_rate": 16000,
+      "n_mfcc": 13,
+      "file": "features_gru_three_stereo_16000.wav.f32",
+      "shape": [
+        13,
+        101
+      ],
+      "sha256": "cc775a6ac4726c9939a22c84f3f39965755e97f5d68407a2c90a94838b40316b"
+    },
+    {
+      "audio": "audio/mono_22050.wav",
+      "sample_rate": 16000,
+      "n_mfcc": 13,
+      "file": "features_gru_three_mono_22050.wav.f32",
+      "shape": [
+        13,
+        101
+      ],
+      "sha256": "b5473e7be72165cf606d58c6fd4ab2ae4724e70c6b14a66a2e640d9a0283af1c"
+    },
+    {
+      "audio": "audio/stereo_22050.wav",
+      "sample_rate": 16000,
+      "n_mfcc": 13,
+      "file": "features_gru_three_stereo_22050.wav.f32",
+      "shape": [
+        13,
+        101
+      ],
+      "sha256": "122dc21654dcb05591aded812599b216881e6b151655955bacdb88236bfc1ce4"
+    },
+    {
+      "audio": "audio/mono_44100.wav",
+      "sample_rate": 16000,
+      "n_mfcc": 13,
+      "file": "features_gru_three_mono_44100.wav.f32",
+      "shape": [
+        13,
+        101
+      ],
+      "sha256": "b3b2d69f8c588f310a955abb12f45803d6465ac8e661a40f0c9fadf0bdd5f38f"
+    },
+    {
+      "audio": "audio/stereo_44100.wav",
+      "sample_rate": 16000,
+      "n_mfcc": 13,
+      "file": "features_gru_three_stereo_44100.wav.f32",
+      "shape": [
+        13,
+        101
+      ],
+      "sha256": "6ebac832c3a217fa8eaf02badd573c5890c979b618873c1fb93dd7b4996645e6"
+    },
+    {
+      "audio": "audio/mono_48000.wav",
+      "sample_rate": 16000,
+      "n_mfcc": 13,
+      "file": "features_gru_three_mono_48000.wav.f32",
+      "shape": [
+        13,
+        101
+      ],
+      "sha256": "ac086cce0cc7707b718b94675abaa83a77113e6929bad099e79afd1479e4b185"
+    },
+    {
+      "audio": "audio/stereo_48000.wav",
+      "sample_rate": 16000,
+      "n_mfcc": 13,
+      "file": "features_gru_three_stereo_48000.wav.f32",
+      "shape": [
+        13,
+        101
+      ],
+      "sha256": "38bedee74a97840a47a066c528d5b0699e07cf66e31d5e62365bafeab4ec781c"
+    },
+    {
+      "audio": "audio/length_257.wav",
+      "sample_rate": 16000,
+      "n_mfcc": 13,
+      "file": "features_gru_three_length_257.wav.f32",
+      "shape": [
+        13,
+        2
+      ],
+      "sha256": "c8fd652fa4f7adf853ac63b7de9904dca00f4d3faf81b41bbfd0b0084aa83a56"
+    },
+    {
+      "audio": "audio/length_399.wav",
+      "sample_rate": 16000,
+      "n_mfcc": 13,
+      "file": "features_gru_three_length_399.wav.f32",
+      "shape": [
+        13,
+        3
+      ],
+      "sha256": "b6aff75728e5452d9fd2dc35c025ac03026cf143f3e8595a83a2f604d6eb5ce2"
+    },
+    {
+      "audio": "audio/length_24000.wav",
+      "sample_rate": 16000,
+      "n_mfcc": 13,
+      "file": "features_gru_three_length_24000.wav.f32",
+      "shape": [
+        13,
+        151
+      ],
+      "sha256": "5e2272d2d6945334709509e3dfa0366d909f9e09284475b657f34a0a44fe2355"
+    },
+    {
+      "audio": "audio/length_64000.wav",
+      "sample_rate": 16000,
+      "n_mfcc": 13,
+      "file": "features_gru_three_length_64000.wav.f32",
+      "shape": [
+        13,
+        401
+      ],
+      "sha256": "e603b3d84480138f9258eb048cb7c310a418b28338ef24475c81e118e88e6fbc"
+    },
+    {
+      "audio": "audio/channels_3.wav",
+      "sample_rate": 16000,
+      "n_mfcc": 13,
+      "file": "features_gru_three_channels_3.wav.f32",
+      "shape": [
+        13,
+        51
+      ],
+      "sha256": "336d8cedb41a92eb6ae379736f3f9df96ba15260df9574e8f7e42f0f82d88af1"
+    },
+    {
+      "audio": "audio/channels_8.wav",
+      "sample_rate": 16000,
+      "n_mfcc": 13,
+      "file": "features_gru_three_channels_8.wav.f32",
+      "shape": [
+        13,
+        51
+      ],
+      "sha256": "55509426caa5a0d21e9a6689136a93342982c386448e627c80e5312aa0503e0e"
+    },
+    {
+      "audio": "audio/channels_17.wav",
+      "sample_rate": 16000,
+      "n_mfcc": 13,
+      "file": "features_gru_three_channels_17.wav.f32",
+      "shape": [
+        13,
+        51
+      ],
+      "sha256": "d43a866ef9bf03a537d4e76db15d7a648dbbc4e470f84ade50a8bf96e9c4faba"
+    },
+    {
+      "audio": "audio/channels_129.wav",
+      "sample_rate": 16000,
+      "n_mfcc": 13,
+      "file": "features_gru_three_channels_129.wav.f32",
+      "shape": [
+        13,
+        51
+      ],
+      "sha256": "77739f04905db600514c97efe5f5eea4b856814d38cff0a67af2f314c8b11bd9"
+    },
+    {
+      "audio": "audio/silence.wav",
+      "sample_rate": 16000,
+      "n_mfcc": 13,
+      "file": "features_gru_three_silence.wav.f32",
+      "shape": [
+        13,
+        101
+      ],
+      "sha256": "09057b3242fb854ec0fcc7a4240279a95ee03e60e527edf7fd5048447b8ffb0a"
+    },
+    {
+      "audio": "audio/float.wav",
+      "sample_rate": 16000,
+      "n_mfcc": 13,
+      "file": "features_gru_three_float.wav.f32",
+      "shape": [
+        13,
+        101
+      ],
+      "sha256": "6130badf110377b09907a92d93a464946f2e187fa9148573790f8d143a35d3b8"
+    },
+    {
+      "audio": "audio/pcm24.wav",
+      "sample_rate": 16000,
+      "n_mfcc": 13,
+      "file": "features_gru_three_pcm24.wav.f32",
+      "shape": [
+        13,
+        101
+      ],
+      "sha256": "01f8306a1bf3e0947cc99ebbd4fbd1d2eab440d976b3831e49e871ae4effe638"
+    },
+    {
+      "audio": "audio/sample.flac",
+      "sample_rate": 16000,
+      "n_mfcc": 13,
+      "file": "features_gru_three_sample.flac.f32",
+      "shape": [
+        13,
+        101
+      ],
+      "sha256": "c972af4708f937637cdecf934605d7e2b15ab267072fc4ef2cc50abb0874707d"
+    },
+    {
+      "audio": "audio/sample.ogg",
+      "sample_rate": 16000,
+      "n_mfcc": 13,
+      "file": "features_gru_three_sample.ogg.f32",
+      "shape": [
+        13,
+        101
+      ],
+      "sha256": "d9125e13cc63d5dd3c9ec4a04412867c9b5a60c320e55b852b9ba7abf0c95f62"
+    }
+  ],
+  "device": "cuda",
+  "cuda_name": "NVIDIA GeForce RTX 3090 Ti",
+  "tf32_cudnn": true,
+  "tf32_matmul": false,
+  "cuda_capture_sha256": "fbd92336db125237a583e2d7b3ee6aef5e2d55f00a869897f08f92fbfe877400"
+}

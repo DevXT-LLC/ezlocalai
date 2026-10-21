@@ -1,0 +1,51 @@
+--- a/examples/cli/main.cpp
++++ b/examples/cli/main.cpp
+@@ -21,6 +21,7 @@
+ #include "common/media_io.h"
+ #include "common/resource_owners.hpp"
+ #include "image_metadata.h"
++#include "sd_cli_worker.hpp"
+ 
+ namespace fs = std::filesystem;
+ 
+@@ -647,7 +648,7 @@
+     return true;
+ }
+ 
+-int main(int argc, const char* argv[]) {
++int sd_cli_main(int argc, const char* argv[]) {
+     if (argc > 1 && std::string(argv[1]) == "--version") {
+         std::cout << version_string() << "\n";
+         return EXIT_SUCCESS;
+@@ -945,12 +946,14 @@
+         num_results = 1;
+         results.push_back(gen_params.init_image.release());
+     } else {
+-        SDCtxPtr sd_ctx(new_sd_ctx(&sd_ctx_params));
++        auto sd_ctx = ezlocalai_sd_worker::acquire(sd_ctx_params);
+ 
+         if (sd_ctx == nullptr) {
+             LOG_INFO("new_sd_ctx_t failed");
+             return 1;
+         }
++
++        if (ezlocalai_sd_worker::active && ezlocalai_sd_worker::preload) return 0;
+ 
+         if (gen_params.sample_params.sample_method == SAMPLE_METHOD_COUNT) {
+             gen_params.sample_params.sample_method = sd_get_default_sample_method(sd_ctx.get());
+@@ -1063,3 +1066,15 @@
+ 
+     return 0;
+ }
++
++int main(int argc, const char* argv[]) {
++    if (argc == 5 && std::string(argv[1]) == "--ezlocalai-worker-fd" &&
++        std::string(argv[3]) == "--ezlocalai-parent-pid") {
++        try {
++            const int fd = std::stoi(argv[2]);
++            if (fd < 3) return 2;
++            return ezlocalai_sd_worker::serve(fd, static_cast<pid_t>(std::stol(argv[4])), sd_cli_main);
++        } catch (const std::exception &) { return 2; }
++    }
++    return sd_cli_main(argc, argv);
++}

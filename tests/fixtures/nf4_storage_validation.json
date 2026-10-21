@@ -1,0 +1,89 @@
+{
+  "scope": "Packed nested NF4 storage and GGML CPU/CUDA expansion operator; not integrated into the LTX loader or Linear blocks yet.",
+  "source_sha256": {
+    "include/ezlocalai/nf4_storage.hpp": "bfc44c1cbcf99c9ea6c05d43aa122776f016602a9ac0c33bd823fc5570caea8f",
+    "include/ezlocalai/nf4.hpp": "4eb4b527902b8e10a66beac0901027847ba527c4ac4fe82557167d247922ec10",
+    "engine/nf4_ggml.hpp": "3f226a824704c0527e670e2cb86c388de945c55c7897c3fb7d06c2280ce4c1b8",
+    "engine/nf4_cuda.cuh": "37120812f5c7ade608906eedd35b316b4bcd1fe57010d87e6bbd7dab14513122",
+    "patches/sdcpp-nf4-storage.patch": "e145774ba1f759189c737a540e00b631625581a4ca7cf06f587df9559b442e58",
+    "tests/test_nf4_storage.cpp": "29b14480ef82c9124e4db4efb4af38a1ef47bf97f670f4342047166155d1063b",
+    "tests/fixtures/nf4_storage_cases.json": "b9605be923158bc624f618e24e7730240e4e7b5c81a3facab709edcd6d5c1ade",
+    "CMakeLists.txt": "11c57fbade0728edeab6049b1c54c5a0a1c8432a566eeb32b0a41100f616a5ab",
+    "cuda.Dockerfile": "ed8d6aed900d101de274e1bdb571c442e2131be4ecc8aa5ee232aa044555ef46"
+  },
+  "python_oracle": {
+    "method": "Installed bitsandbytes CUDA dequantize_4bit with constructed nested QuantState covering every NF4 nibble and all 256 dynamic scale codes; zero groups, nonzero offsets, FP16 subnormals and two nested groups.",
+    "torch": "2.9.1+cu128",
+    "bitsandbytes": "0.50.2",
+    "capture_sha256": "604a30f57b8c73278a2559e4929ccecca43bbab63f4c4d24c636fb64db64d937"
+  },
+  "python_image": "sha256:c2180ffee0b1579dc63b33236777c1bdc70c899c51f979c91969e04d601ff5cb",
+  "engine_commit": "c678dfe704a2230342376b46add9c8ca736a653d",
+  "host": {
+    "regression_suites": 5,
+    "regression_seconds": 1.24,
+    "full_source_cases": 146
+  },
+  "cuda": {
+    "image": "sha256:aeca7dcda94912404ebebe232dcbe3dabdbe831857ec2b5bce47a11aa7130ed1",
+    "deployed": false,
+    "gpu": "NVIDIA GeForce RTX 3090 Ti",
+    "architecture": "86-real",
+    "full_source_cases": 146,
+    "packaged_tests": 32,
+    "packaged_seconds": 83.69
+  },
+  "candidate_python_executable_absent": true,
+  "candidate_source_hashes_match": true,
+  "checks": [
+    "Exact source-expanded BF16/FP16 bytes",
+    "Same-backend matrix products compared in independent output buffers",
+    "Packed resident buffer size and preservation after inference",
+    "Unaligned contiguous I8 views",
+    "Invalid shape/type/storage and unrelated custom-op rejection"
+  ],
+  "real_projections": [
+    {
+      "tensor": "language_model.model.layers.0.self_attn.q_proj.weight",
+      "shape": [
+        4096,
+        3840
+      ],
+      "packed_bytes": 8113924,
+      "expanded_bytes": 31457280,
+      "packed_fraction": 0.25793469746907555
+    },
+    {
+      "tensor": "language_model.model.layers.0.mlp.gate_proj.weight",
+      "shape": [
+        15360,
+        3840
+      ],
+      "packed_bytes": 30427204,
+      "expanded_bytes": 117964800,
+      "packed_fraction": 0.2579346042209201
+    }
+  ],
+  "weight_source_manifest_sha256": "ee00690fa5c46521a393987382a7ba16521df90b650e25850d5474080b7bb5a1",
+  "evidence_sha256": {
+    "host-regression.log": "bf56c7d339e9b2110d4e8cccf5ee7473e9b63a1cbf4677fd4541ddd9189230b9",
+    "cpu-full.log": "380b2f7c075022a9f1f3ca99d8ebb431a39f5e630fe75988985c020a1d303034",
+    "cuda-development-full.log": "d8b17e4f9a6dd47e6ed7bb123b7abcdb66036c893f731b39bc72d5844c80c565",
+    "cuda-image-full.log": "d8b17e4f9a6dd47e6ed7bb123b7abcdb66036c893f731b39bc72d5844c80c565",
+    "image-build.log": "f239b3a829f07d19eb931e51324b3a8fe59eb84c9037ad7ed2fcadbd885bbf23",
+    "source-capture.log": "fb531243f182101830174a2690a3a43cd27792c92e3128999210b58e4b026127",
+    "image-binaries.log": "8beef20874c6daf0934e9a6cff1ed9d3a616d02910559ed8f0125480db980e7a",
+    "parity-report.log": "6b6ca678a896642bb9b43611309925a2b1800931e3289fa73218825a2bce6f8b"
+  },
+  "production": {
+    "image": "sha256:48264d550a35b0216795568751e47b2adda554940ac7708563e3de99314ed584",
+    "health": "healthy",
+    "changed": false
+  },
+  "remaining": [
+    "Integrate packed storage with LTX model metadata, loader and Linear execution",
+    "Measure graph/pipeline memory and coordinate Gemma residency with diffusion placement",
+    "Quanto compressed CPU fallback, distinct offload modes and quantized LTX/LLM handoff",
+    "Full Python-model output equivalence and broader model/GPU coverage"
+  ]
+}

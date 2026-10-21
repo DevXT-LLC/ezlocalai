@@ -1,0 +1,130 @@
+{
+  "sources": {
+    "RequestQueue.py": "bf01ed349bc09556eac7e303bddfc79b113ac1008ac10db8aa25a57be0cf0f6f",
+    "app.py": "fab365c963725d80c81063b544d5b18b4cf931263573bdcb236e537519c7d365",
+    "Pipes.py": "8238cef03d4a1db6e775d7f62234bcf998d8f08bd9fc15f1d8a36ea0d3280005"
+  },
+  "method": "Unchanged RequestQueue and app._sync_request_queue_capacity; controlled requests held across growth, shrink and zero-capacity normalization",
+  "transitions": [
+    {
+      "action": "enqueue",
+      "value": 4,
+      "snapshot": {
+        "queue_size": 3,
+        "processing_count": 1,
+        "max_concurrent": 1,
+        "total_processed": 0
+      }
+    },
+    {
+      "action": "resize",
+      "value": 3,
+      "snapshot": {
+        "queue_size": 1,
+        "processing_count": 3,
+        "max_concurrent": 3,
+        "total_processed": 0
+      }
+    },
+    {
+      "action": "resize",
+      "value": 1,
+      "snapshot": {
+        "queue_size": 1,
+        "processing_count": 3,
+        "max_concurrent": 1,
+        "total_processed": 0
+      }
+    },
+    {
+      "action": "release",
+      "value": 0,
+      "snapshot": {
+        "queue_size": 1,
+        "processing_count": 2,
+        "max_concurrent": 1,
+        "total_processed": 1
+      }
+    },
+    {
+      "action": "release",
+      "value": 1,
+      "snapshot": {
+        "queue_size": 1,
+        "processing_count": 1,
+        "max_concurrent": 1,
+        "total_processed": 2
+      }
+    },
+    {
+      "action": "release",
+      "value": 2,
+      "snapshot": {
+        "queue_size": 0,
+        "processing_count": 1,
+        "max_concurrent": 1,
+        "total_processed": 3
+      }
+    },
+    {
+      "action": "release",
+      "value": 3,
+      "snapshot": {
+        "queue_size": 0,
+        "processing_count": 0,
+        "max_concurrent": 1,
+        "total_processed": 4
+      }
+    },
+    {
+      "action": "resize",
+      "value": 2,
+      "snapshot": {
+        "queue_size": 0,
+        "processing_count": 0,
+        "max_concurrent": 2,
+        "total_processed": 4
+      }
+    },
+    {
+      "action": "enqueue",
+      "value": 2,
+      "snapshot": {
+        "queue_size": 0,
+        "processing_count": 2,
+        "max_concurrent": 2,
+        "total_processed": 4
+      }
+    },
+    {
+      "action": "resize",
+      "value": 0,
+      "snapshot": {
+        "queue_size": 0,
+        "processing_count": 2,
+        "max_concurrent": 1,
+        "total_processed": 4
+      }
+    },
+    {
+      "action": "release",
+      "value": 4,
+      "snapshot": {
+        "queue_size": 0,
+        "processing_count": 1,
+        "max_concurrent": 1,
+        "total_processed": 5
+      }
+    },
+    {
+      "action": "release",
+      "value": 5,
+      "snapshot": {
+        "queue_size": 0,
+        "processing_count": 0,
+        "max_concurrent": 1,
+        "total_processed": 6
+      }
+    }
+  ]
+}

@@ -1,0 +1,200 @@
+{
+  "scope": "Worker incoming WebSocket framing, complete-message size limits, protocol close codes and reconnect after errors",
+  "source_sha256": {
+    "include/ezlocalai/tunnel_websocket.hpp": "057e883ce06d51e037121f41900208968172a21434353ecd75037ae3c6dd6aac",
+    "src/tunnel_websocket.cpp": "6dad8cd1467b4cbac63c25eabf002475aa16473a85770c7c77ede061f6826d1c",
+    "src/native_server.cpp": "59c4afa7f6670ebac23a423ef87d1e18498511e1527692ae118366fe5641f3ee",
+    "tests/test_tunnel_framing.cpp": "0346523fb2e327b4023fe1184b6bfe6774e631116024db0c5c66a049aff3e31b",
+    "tests/test_worker_tunnel.cpp": "d4eb7c398a58bb7937f8527962c11f6aecdd909b7adb54fa6a6598bf2a79ba1d",
+    "tests/test_worker_router.cpp": "9a0f39eb0652554ddb01455985341ae9fe519d34b9d58aeaf2bd00b3acf24d41",
+    "tests/fixtures/tunnel_framing_cases.json": "b21995172d2c99fd4e36647ed9dcc37c00874533f8ab14ea97293a3490c03ed3",
+    "CMakeLists.txt": "3ddf57496d960029a84f481ac8d027d25e906c72d942c036e4095f4f33b325f0",
+    "cuda.Dockerfile": "507b8ef54a01b3a76a3d4c4b1a083e69bb6245c465855f3acffa0b4c8f43f3ea"
+  },
+  "reference": {
+    "source": "aiohttp client WebSocketReader with compression disabled and 64 MiB max_msg_size as used by TunnelClient",
+    "aiohttp_version": "3.14.5",
+    "reader_module": "aiohttp._websocket.reader_c",
+    "reader_py_sha256": "8d1e9792c11de8d7aac6827b882451dedd54539b2f4f560dbbb5397ccdff530b",
+    "tunnel_sha256": "d2c604fffacf088da6c3fc555d1d24d2a6b0b7af592f8cba3f67b7ea5dea4496",
+    "python_image": "sha256:c2180ffee0b1579dc63b33236777c1bdc70c899c51f979c91969e04d601ff5cb"
+  },
+  "source_cases": 187,
+  "regressions": {
+    "integration-tests.log": [
+      {
+        "name": "worker_tunnel",
+        "seconds": 9.07
+      },
+      {
+        "name": "tunnel_framing_reference",
+        "seconds": 1.75
+      },
+      {
+        "name": "worker_router_integration",
+        "seconds": 31.11
+      }
+    ],
+    "regression-tests.log": [
+      {
+        "name": "native_http",
+        "seconds": 29.29
+      },
+      {
+        "name": "worker_heartbeat_http",
+        "seconds": 12.89
+      },
+      {
+        "name": "service_clients_reference",
+        "seconds": 5.79
+      }
+    ]
+  },
+  "cuda_packaged_checks": 45,
+  "remaining_transport_audit": {
+    "confirmed_next_gaps": [
+      {
+        "area": "WebSocket upgrade validation",
+        "native": "connect_to accepts status 101 without validating Upgrade, Connection or Sec-WebSocket-Accept",
+        "reference": "aiohttp validates the WebSocket upgrade response"
+      },
+      {
+        "area": "Reconnect backoff",
+        "native": "resets to two seconds after every successful handshake",
+        "reference": "TunnelClient._run resets only after a connection held longer than 30 seconds; quick flaps retain exponential backoff"
+      },
+      {
+        "area": "Receive idle timing",
+        "native": "fixed 60 seconds, refreshed by every socket read",
+        "reference": "wait_for(ws.receive(), max(60, ping_interval * 3)); control frames are consumed inside receive"
+      },
+      {
+        "area": "URL handling",
+        "native": "parse_websocket_url uses manual colon split and AF_INET resolution",
+        "reference": "aiohttp URL handling supports IPv6 and standard query/URL normalization"
+      }
+    ],
+    "unchanged_by_this_milestone": true
+  },
+  "binaries_sha256": {
+    "/app/build/ezlocalai-native": "19b8d95a3d445fba36d158b44fa58263c79894ee448d7e2b14ca427d8bf72354",
+    "/app/build/ezlocalai-native-entrypoint": "7da9eb6310967f552fa1528b13a43deb6c5e46e85b862d174e1c0f3a0598bc1f",
+    "/opt/stable-diffusion.cpp/build/bin/sd-cli": "bacdb2b223e94ef8be5b65767e2c92b14bb3b931195f0b4a9815737f6efc85ed"
+  },
+  "entrypoint_and_media_engine_unchanged": true,
+  "tested_worker_matches_packaged_worker": true,
+  "router_binary_sha256": "91873d25c218dd3d3ed12bded2ff990bd13837d6d514922eb04dc45ccbde93b9",
+  "deployment": {
+    "previous_image": "sha256:155da064e55fb740e1613b6efceebb009c1d2b05efc73f6e15872baa6d458a68",
+    "candidate_image": "sha256:1849b6932dd1a33a6274f9dde4953153788696c86ca28625974975d7914f5258",
+    "health": "healthy",
+    "deployed_image": "sha256:1849b6932dd1a33a6274f9dde4953153788696c86ca28625974975d7914f5258",
+    "effective_environment_changed_keys": [],
+    "original_env_file_unchanged": true,
+    "mounts_unchanged": true,
+    "wakeword_mounts": [
+      [
+        "bind",
+        "/home/josh/repos/xtsys/ezlocalai/wakeword_models",
+        "/app/wakeword_models",
+        true
+      ],
+      [
+        "bind",
+        "/home/josh/repos/xtsys/ezlocalai/wakeword_samples",
+        "/app/wakeword_samples",
+        true
+      ],
+      [
+        "bind",
+        "/home/josh/repos/xtsys/ezlocalai/wakeword_jobs",
+        "/app/wakeword_jobs",
+        true
+      ]
+    ],
+    "ports_unchanged": true,
+    "gpu_requests_unchanged": true
+  },
+  "deployed_documentation": {
+    "image": "sha256:1849b6932dd1a33a6274f9dde4953153788696c86ca28625974975d7914f5258",
+    "checks": [
+      {
+        "method": "GET",
+        "path": "/",
+        "passed": true,
+        "length": 1015,
+        "body_sha256": "9cba0aab86158b3e8ffc7efa8586cb181b600c764c811af2b0579ce95e0cac4e"
+      },
+      {
+        "method": "HEAD",
+        "path": "/",
+        "passed": true,
+        "length": 1015,
+        "body_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "method": "GET",
+        "path": "/redoc",
+        "passed": true,
+        "length": 897,
+        "body_sha256": "a8aa84db129687e6d0e715504d39ebc781e77a339b01525d6a38ca0070773005"
+      },
+      {
+        "method": "HEAD",
+        "path": "/redoc",
+        "passed": true,
+        "length": 897,
+        "body_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "method": "GET",
+        "path": "/docs/oauth2-redirect",
+        "passed": true,
+        "length": 3012,
+        "body_sha256": "f45d60bb9f054b1712b3f9e60547eb9e1d523afd6472a4137b89eb503b37f058"
+      },
+      {
+        "method": "HEAD",
+        "path": "/docs/oauth2-redirect",
+        "passed": true,
+        "length": 3012,
+        "body_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "method": "GET",
+        "path": "/openapi.json",
+        "passed": true,
+        "length": 41325,
+        "body_sha256": "4d7b529fc0e271ae57ab904ccab7fa1bc030a9626d97608ad75bdb0cc3078238"
+      },
+      {
+        "method": "HEAD",
+        "path": "/openapi.json",
+        "passed": true,
+        "length": 41325,
+        "body_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    ],
+    "passed": true
+  },
+  "routed_inference": {
+    "chat": {
+      "passed": true,
+      "response_sha256": "e54ce33bd50c492e2039ac54f304658e51498811fdcbba3311fd56f7aba573ae"
+    },
+    "stream": {
+      "passed": true,
+      "response_sha256": "bf0f98fcb11f2e11d51e81c1dccfdb0cd309dcb5e8caea0d380bb58029232518"
+    },
+    "vision": {
+      "passed": true,
+      "response_sha256": "f74baafaa5fe0791db695ce62fd00f1619a0034f46470491ff61781aa3d39ba0"
+    }
+  },
+  "limits": [
+    "Handshake validation and TLS/deadline behavior are not established by these framing cases.",
+    "Receive-idle timing and five-second shutdown cancellation parity remain open.",
+    "Generic native server/TTS WebSocket readers are unchanged.",
+    "Overall worker-router and replacement parity remain partial."
+  ]
+}

@@ -1,0 +1,30 @@
+{"name":"abc","valid":true}
+{"name":"owner/model","valid":true}
+{"name":"\u6a21\u578b/\u58f0\u97f3","valid":true}
+{"name":"x/\u00b2","valid":true}
+{"name":"x/\u216b","valid":true}
+{"name":"_x/_","valid":true}
+{"name":"foo.git","error":{"category":"HFValidationError","message":"Repo_id cannot end by '.git': 'foo.git'."}}
+{"name":"foo.git\n","valid":true}
+{"name":".foo","error":{"category":"HFValidationError","message":"Repo id must use alphanumeric chars, '-', '_' or '.'. The name cannot start or end with '-' or '.' and the maximum length is 96: '.foo'."}}
+{"name":"foo.","error":{"category":"HFValidationError","message":"Repo id must use alphanumeric chars, '-', '_' or '.'. The name cannot start or end with '-' or '.' and the maximum length is 96: 'foo.'."}}
+{"name":"-foo","error":{"category":"HFValidationError","message":"Repo id must use alphanumeric chars, '-', '_' or '.'. The name cannot start or end with '-' or '.' and the maximum length is 96: '-foo'."}}
+{"name":"foo-","error":{"category":"HFValidationError","message":"Repo id must use alphanumeric chars, '-', '_' or '.'. The name cannot start or end with '-' or '.' and the maximum length is 96: 'foo-'."}}
+{"name":"foo--bar","error":{"category":"HFValidationError","message":"Cannot have -- or .. in repo_id: 'foo--bar'."}}
+{"name":"foo..bar","error":{"category":"HFValidationError","message":"Cannot have -- or .. in repo_id: 'foo..bar'."}}
+{"name":"x/y/z","error":{"category":"HFValidationError","message":"Repo id must be in the form 'repo_name' or 'namespace/repo_name': 'x/y/z'. Use `repo_type` argument if needed."}}
+{"name":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","error":{"category":"HFValidationError","message":"Repo id must use alphanumeric chars, '-', '_' or '.'. The name cannot start or end with '-' or '.' and the maximum length is 96: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'."}}
+{"name":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/x","valid":true}
+{"name":"x/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb","error":{"category":"HFValidationError","message":"Repo id must use alphanumeric chars, '-', '_' or '.'. The name cannot start or end with '-' or '.' and the maximum length is 96: 'x/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'."}}
+{"name":"a\n","valid":true}
+{"name":"a\r","error":{"category":"HFValidationError","message":"Repo id must use alphanumeric chars, '-', '_' or '.'. The name cannot start or end with '-' or '.' and the maximum length is 96: 'a\r'."}}
+{"name":"\na","error":{"category":"HFValidationError","message":"Repo id must use alphanumeric chars, '-', '_' or '.'. The name cannot start or end with '-' or '.' and the maximum length is 96: '\na'."}}
+{"name":"x/a\n","valid":true}
+{"name":"x/\u00e1","valid":true}
+{"name":"x/a\u0301","error":{"category":"HFValidationError","message":"Repo id must use alphanumeric chars, '-', '_' or '.'. The name cannot start or end with '-' or '.' and the maximum length is 96: 'x/a\u0301'."}}
+{"name":"x/\ud83d\ude00","error":{"category":"HFValidationError","message":"Repo id must use alphanumeric chars, '-', '_' or '.'. The name cannot start or end with '-' or '.' and the maximum length is 96: 'x/\ud83d\ude00'."}}
+{"name":"","error":{"category":"HFValidationError","message":"Repo id must use alphanumeric chars, '-', '_' or '.'. The name cannot start or end with '-' or '.' and the maximum length is 96: ''."}}
+{"name":"/","error":{"category":"HFValidationError","message":"Repo id must use alphanumeric chars, '-', '_' or '.'. The name cannot start or end with '-' or '.' and the maximum length is 96: '/'."}}
+{"name":"a/","error":{"category":"HFValidationError","message":"Repo id must use alphanumeric chars, '-', '_' or '.'. The name cannot start or end with '-' or '.' and the maximum length is 96: 'a/'."}}
+{"name":"/a","error":{"category":"HFValidationError","message":"Repo id must use alphanumeric chars, '-', '_' or '.'. The name cannot start or end with '-' or '.' and the maximum length is 96: '/a'."}}
+{"name":"a b","error":{"category":"HFValidationError","message":"Repo id must use alphanumeric chars, '-', '_' or '.'. The name cannot start or end with '-' or '.' and the maximum length is 96: 'a b'."}}

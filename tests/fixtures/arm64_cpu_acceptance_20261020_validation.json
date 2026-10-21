@@ -1,0 +1,41 @@
+{
+  "date": "2026-10-20",
+  "image": "ezlocalai:rpi",
+  "image_id": "sha256:b21eb78a987443c65f746b3bb31b88d10ed4281d9e8855e66fa48b38bb5f43fb",
+  "commit": "19d618b",
+  "execution": "QEMU Cortex-A76 on x86_64, 8 GiB limit",
+  "package_gate": "51/51 with QEMU exclusions ^(dotenv_startup|tunnel_framing_reference|ltx_runtime|media_engine)$",
+  "through_rust_router": [
+    {
+      "endpoint": "chat",
+      "status": 200,
+      "text": "READY"
+    },
+    {
+      "endpoint": "chat_sse",
+      "status": 200,
+      "text": "READY."
+    },
+    {
+      "endpoint": "vision",
+      "status": 200,
+      "text": "This is a highly abstract, multicolored digital texture.\n\nThe image appears"
+    },
+    {
+      "endpoint": "embeddings",
+      "status": null,
+      "text": null
+    },
+    {
+      "endpoint": "transcription",
+      "status": 200,
+      "text": " And so, my fellow Americans, ask not what your country can do for you, ask what"
+    }
+  ],
+  "chat_cache_note": "An initial run sent identical greedy prompts non-stream then SSE. The second reused 15 of 19 cached prompt tokens, and Qwen3.5-0.8B answered 'YES' instead of 'READY'. Per-request prefixes give 'READY' on both. x86 27B gives identical stream/non-stream output. This is prompt-cache numerics, not a stream defect.",
+  "qwen_tts": {
+    "result": "HTTP 200, 24000 Hz mono, 5.12 s, speech energy in the first 0.75 s",
+    "seconds_under_qemu": 890,
+    "requirement": "QWEN_TTS_TIMEOUT above its 300 s default under emulation. With 300 s the worker returns 500 at 304 s, and through Rust the router's 300 s REQUEST_TIMEOUT expires (502). Real Pi timing is unmeasured; on slow CPUs both timeouts may need raising, as with Python."
+  }
+}

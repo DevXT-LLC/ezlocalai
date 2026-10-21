@@ -1,0 +1,7156 @@
+{
+  "source_sha256": "dcd63562c35b55472d508a3089396b39fb3c32fd018cba7ded3d83350cf2875c",
+  "generation": [
+    {
+      "engines": [],
+      "count": 0,
+      "failures": [
+        "en-uk",
+        "en-US-JennyNeural"
+      ],
+      "error": "No TTS engines available for wake word training",
+      "calls": [],
+      "events": []
+    },
+    {
+      "engines": [],
+      "count": 1,
+      "failures": [
+        "en-uk",
+        "en-US-JennyNeural"
+      ],
+      "error": "No TTS engines available for wake word training",
+      "calls": [],
+      "events": []
+    },
+    {
+      "engines": [],
+      "count": 2,
+      "failures": [
+        "en-uk",
+        "en-US-JennyNeural"
+      ],
+      "error": "No TTS engines available for wake word training",
+      "calls": [],
+      "events": []
+    },
+    {
+      "engines": [],
+      "count": 5,
+      "failures": [
+        "en-uk",
+        "en-US-JennyNeural"
+      ],
+      "error": "No TTS engines available for wake word training",
+      "calls": [],
+      "events": []
+    },
+    {
+      "engines": [],
+      "count": 10,
+      "failures": [
+        "en-uk",
+        "en-US-JennyNeural"
+      ],
+      "error": "No TTS engines available for wake word training",
+      "calls": [],
+      "events": []
+    },
+    {
+      "engines": [],
+      "count": 500,
+      "failures": [
+        "en-uk",
+        "en-US-JennyNeural"
+      ],
+      "error": "No TTS engines available for wake word training",
+      "calls": [],
+      "events": []
+    },
+    {
+      "engines": [],
+      "count": -1,
+      "failures": [
+        "en-uk",
+        "en-US-JennyNeural"
+      ],
+      "error": "No TTS engines available for wake word training",
+      "calls": [],
+      "events": []
+    },
+    {
+      "engines": [],
+      "count": -20,
+      "failures": [
+        "en-uk",
+        "en-US-JennyNeural"
+      ],
+      "error": "No TTS engines available for wake word training",
+      "calls": [],
+      "events": []
+    },
+    {
+      "engines": [
+        "gtts"
+      ],
+      "count": 0,
+      "failures": [
+        "en-uk",
+        "en-US-JennyNeural"
+      ],
+      "samples": [],
+      "calls": [],
+      "events": []
+    },
+    {
+      "engines": [
+        "gtts"
+      ],
+      "count": 1,
+      "failures": [
+        "en-uk",
+        "en-US-JennyNeural"
+      ],
+      "samples": [
+        {
+          "audio": "gtts|hello|en",
+          "sample_rate": 16000,
+          "engine": "gtts",
+          "voice": "en",
+          "word": "hello",
+          "variation": "normal"
+        }
+      ],
+      "calls": [
+        [
+          "gtts",
+          "hello",
+          "en"
+        ]
+      ],
+      "events": []
+    },
+    {
+      "engines": [
+        "gtts"
+      ],
+      "count": 2,
+      "failures": [
+        "en-uk",
+        "en-US-JennyNeural"
+      ],
+      "samples": [
+        {
+          "audio": "gtts|hello|en",
+          "sample_rate": 16000,
+          "engine": "gtts",
+          "voice": "en",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "gtts|hello|en-au",
+          "sample_rate": 16000,
+          "engine": "gtts",
+          "voice": "en-au",
+          "word": "hello",
+          "variation": "normal"
+        }
+      ],
+      "calls": [
+        [
+          "gtts",
+          "hello",
+          "en"
+        ],
+        [
+          "gtts",
+          "hello",
+          "en-au"
+        ]
+      ],
+      "events": []
+    },
+    {
+      "engines": [
+        "gtts"
+      ],
+      "count": 5,
+      "failures": [
+        "en-uk",
+        "en-US-JennyNeural"
+      ],
+      "samples": [
+        {
+          "audio": "gtts|hello|en",
+          "sample_rate": 16000,
+          "engine": "gtts",
+          "voice": "en",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "gtts|hello|en-au",
+          "sample_rate": 16000,
+          "engine": "gtts",
+          "voice": "en-au",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "gtts|hello|en-us",
+          "sample_rate": 16000,
+          "engine": "gtts",
+          "voice": "en-us",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "gtts|hello|en-ca",
+          "sample_rate": 16000,
+          "engine": "gtts",
+          "voice": "en-ca",
+          "word": "hello",
+          "variation": "normal"
+        }
+      ],
+      "calls": [
+        [
+          "gtts",
+          "hello",
+          "en"
+        ],
+        [
+          "gtts",
+          "hello",
+          "en-au"
+        ],
+        [
+          "gtts",
+          "hello",
+          "en-uk"
+        ],
+        [
+          "gtts",
+          "hello",
+          "en-us"
+        ],
+        [
+          "gtts",
+          "hello",
+          "en-ca"
+        ]
+      ],
+      "events": []
+    },
+    {
+      "engines": [
+        "gtts"
+      ],
+      "count": 10,
+      "failures": [
+        "en-uk",
+        "en-US-JennyNeural"
+      ],
+      "samples": [
+        {
+          "audio": "gtts|hello|en",
+          "sample_rate": 16000,
+          "engine": "gtts",
+          "voice": "en",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "gtts|hello|en-au",
+          "sample_rate": 16000,
+          "engine": "gtts",
+          "voice": "en-au",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "gtts|hello|en-us",
+          "sample_rate": 16000,
+          "engine": "gtts",
+          "voice": "en-us",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "gtts|hello|en-ca",
+          "sample_rate": 16000,
+          "engine": "gtts",
+          "voice": "en-ca",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "gtts|hello|en-in",
+          "sample_rate": 16000,
+          "engine": "gtts",
+          "voice": "en-in",
+          "word": "hello",
+          "variation": "normal"
+        }
+      ],
+      "calls": [
+        [
+          "gtts",
+          "hello",
+          "en"
+        ],
+        [
+          "gtts",
+          "hello",
+          "en-au"
+        ],
+        [
+          "gtts",
+          "hello",
+          "en-uk"
+        ],
+        [
+          "gtts",
+          "hello",
+          "en-us"
+        ],
+        [
+          "gtts",
+          "hello",
+          "en-ca"
+        ],
+        [
+          "gtts",
+          "hello",
+          "en-in"
+        ]
+      ],
+      "events": []
+    },
+    {
+      "engines": [
+        "gtts"
+      ],
+      "count": 500,
+      "failures": [
+        "en-uk",
+        "en-US-JennyNeural"
+      ],
+      "samples": [
+        {
+          "audio": "gtts|hello|en",
+          "sample_rate": 16000,
+          "engine": "gtts",
+          "voice": "en",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "gtts|hello|en-au",
+          "sample_rate": 16000,
+          "engine": "gtts",
+          "voice": "en-au",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "gtts|hello|en-us",
+          "sample_rate": 16000,
+          "engine": "gtts",
+          "voice": "en-us",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "gtts|hello|en-ca",
+          "sample_rate": 16000,
+          "engine": "gtts",
+          "voice": "en-ca",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "gtts|hello|en-in",
+          "sample_rate": 16000,
+          "engine": "gtts",
+          "voice": "en-in",
+          "word": "hello",
+          "variation": "normal"
+        }
+      ],
+      "calls": [
+        [
+          "gtts",
+          "hello",
+          "en"
+        ],
+        [
+          "gtts",
+          "hello",
+          "en-au"
+        ],
+        [
+          "gtts",
+          "hello",
+          "en-uk"
+        ],
+        [
+          "gtts",
+          "hello",
+          "en-us"
+        ],
+        [
+          "gtts",
+          "hello",
+          "en-ca"
+        ],
+        [
+          "gtts",
+          "hello",
+          "en-in"
+        ]
+      ],
+      "events": []
+    },
+    {
+      "engines": [
+        "gtts"
+      ],
+      "count": -1,
+      "failures": [
+        "en-uk",
+        "en-US-JennyNeural"
+      ],
+      "samples": [
+        {
+          "audio": "gtts|hello|en",
+          "sample_rate": 16000,
+          "engine": "gtts",
+          "voice": "en",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "gtts|hello|en-au",
+          "sample_rate": 16000,
+          "engine": "gtts",
+          "voice": "en-au",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "gtts|hello|en-us",
+          "sample_rate": 16000,
+          "engine": "gtts",
+          "voice": "en-us",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "gtts|hello|en-ca",
+          "sample_rate": 16000,
+          "engine": "gtts",
+          "voice": "en-ca",
+          "word": "hello",
+          "variation": "normal"
+        }
+      ],
+      "calls": [
+        [
+          "gtts",
+          "hello",
+          "en"
+        ],
+        [
+          "gtts",
+          "hello",
+          "en-au"
+        ],
+        [
+          "gtts",
+          "hello",
+          "en-uk"
+        ],
+        [
+          "gtts",
+          "hello",
+          "en-us"
+        ],
+        [
+          "gtts",
+          "hello",
+          "en-ca"
+        ]
+      ],
+      "events": []
+    },
+    {
+      "engines": [
+        "gtts"
+      ],
+      "count": -20,
+      "failures": [
+        "en-uk",
+        "en-US-JennyNeural"
+      ],
+      "samples": [],
+      "calls": [],
+      "events": []
+    },
+    {
+      "engines": [
+        "edge"
+      ],
+      "count": 0,
+      "failures": [
+        "en-uk",
+        "en-US-JennyNeural"
+      ],
+      "samples": [],
+      "calls": [],
+      "events": []
+    },
+    {
+      "engines": [
+        "edge"
+      ],
+      "count": 1,
+      "failures": [
+        "en-uk",
+        "en-US-JennyNeural"
+      ],
+      "samples": [
+        {
+          "audio": "edge|hello|en-US-GuyNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-US-GuyNeural",
+          "word": "hello",
+          "variation": "normal"
+        }
+      ],
+      "calls": [
+        [
+          "edge",
+          "hello",
+          "en-US-GuyNeural"
+        ]
+      ],
+      "events": []
+    },
+    {
+      "engines": [
+        "edge"
+      ],
+      "count": 2,
+      "failures": [
+        "en-uk",
+        "en-US-JennyNeural"
+      ],
+      "samples": [
+        {
+          "audio": "edge|hello|en-US-GuyNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-US-GuyNeural",
+          "word": "hello",
+          "variation": "normal"
+        }
+      ],
+      "calls": [
+        [
+          "edge",
+          "hello",
+          "en-US-GuyNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-US-JennyNeural"
+        ]
+      ],
+      "events": []
+    },
+    {
+      "engines": [
+        "edge"
+      ],
+      "count": 5,
+      "failures": [
+        "en-uk",
+        "en-US-JennyNeural"
+      ],
+      "samples": [
+        {
+          "audio": "edge|hello|en-US-GuyNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-US-GuyNeural",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "edge|hello|en-US-AriaNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-US-AriaNeural",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "edge|hello|en-US-DavisNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-US-DavisNeural",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "edge|hello|en-US-AmberNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-US-AmberNeural",
+          "word": "hello",
+          "variation": "normal"
+        }
+      ],
+      "calls": [
+        [
+          "edge",
+          "hello",
+          "en-US-GuyNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-US-JennyNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-US-AriaNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-US-DavisNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-US-AmberNeural"
+        ]
+      ],
+      "events": []
+    },
+    {
+      "engines": [
+        "edge"
+      ],
+      "count": 10,
+      "failures": [
+        "en-uk",
+        "en-US-JennyNeural"
+      ],
+      "samples": [
+        {
+          "audio": "edge|hello|en-US-GuyNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-US-GuyNeural",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "edge|hello|en-US-AriaNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-US-AriaNeural",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "edge|hello|en-US-DavisNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-US-DavisNeural",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "edge|hello|en-US-AmberNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-US-AmberNeural",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "edge|hello|en-US-AndrewNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-US-AndrewNeural",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "edge|hello|en-US-BrandonNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-US-BrandonNeural",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "edge|hello|en-US-ChristopherNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-US-ChristopherNeural",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "edge|hello|en-US-CoraNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-US-CoraNeural",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "edge|hello|en-US-ElizabethNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-US-ElizabethNeural",
+          "word": "hello",
+          "variation": "normal"
+        }
+      ],
+      "calls": [
+        [
+          "edge",
+          "hello",
+          "en-US-GuyNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-US-JennyNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-US-AriaNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-US-DavisNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-US-AmberNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-US-AndrewNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-US-BrandonNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-US-ChristopherNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-US-CoraNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-US-ElizabethNeural"
+        ]
+      ],
+      "events": [
+        [
+          10,
+          10,
+          "generating"
+        ]
+      ]
+    },
+    {
+      "engines": [
+        "edge"
+      ],
+      "count": 500,
+      "failures": [
+        "en-uk",
+        "en-US-JennyNeural"
+      ],
+      "samples": [
+        {
+          "audio": "edge|hello|en-US-GuyNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-US-GuyNeural",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "edge|hello|en-US-AriaNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-US-AriaNeural",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "edge|hello|en-US-DavisNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-US-DavisNeural",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "edge|hello|en-US-AmberNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-US-AmberNeural",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "edge|hello|en-US-AndrewNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-US-AndrewNeural",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "edge|hello|en-US-BrandonNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-US-BrandonNeural",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "edge|hello|en-US-ChristopherNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-US-ChristopherNeural",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "edge|hello|en-US-CoraNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-US-CoraNeural",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "edge|hello|en-US-ElizabethNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-US-ElizabethNeural",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "edge|hello|en-US-EricNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-US-EricNeural",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "edge|hello|en-US-JacobNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-US-JacobNeural",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "edge|hello|en-US-MichelleNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-US-MichelleNeural",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "edge|hello|en-US-MonicaNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-US-MonicaNeural",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "edge|hello|en-US-RogerNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-US-RogerNeural",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "edge|hello|en-US-SaraNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-US-SaraNeural",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "edge|hello|en-US-SteffanNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-US-SteffanNeural",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "edge|hello|en-GB-SoniaNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-GB-SoniaNeural",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "edge|hello|en-GB-RyanNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-GB-RyanNeural",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "edge|hello|en-GB-LibbyNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-GB-LibbyNeural",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "edge|hello|en-AU-NatashaNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-AU-NatashaNeural",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "edge|hello|en-AU-WilliamNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-AU-WilliamNeural",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "edge|hello|en-IN-NeerjaNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-IN-NeerjaNeural",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "edge|hello|en-IN-PrabhatNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-IN-PrabhatNeural",
+          "word": "hello",
+          "variation": "normal"
+        }
+      ],
+      "calls": [
+        [
+          "edge",
+          "hello",
+          "en-US-GuyNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-US-JennyNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-US-AriaNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-US-DavisNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-US-AmberNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-US-AndrewNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-US-BrandonNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-US-ChristopherNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-US-CoraNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-US-ElizabethNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-US-EricNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-US-JacobNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-US-MichelleNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-US-MonicaNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-US-RogerNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-US-SaraNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-US-SteffanNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-GB-SoniaNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-GB-RyanNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-GB-LibbyNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-AU-NatashaNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-AU-WilliamNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-IN-NeerjaNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-IN-PrabhatNeural"
+        ]
+      ],
+      "events": [
+        [
+          10,
+          24,
+          "generating"
+        ],
+        [
+          20,
+          24,
+          "generating"
+        ]
+      ]
+    },
+    {
+      "engines": [
+        "edge"
+      ],
+      "count": -1,
+      "failures": [
+        "en-uk",
+        "en-US-JennyNeural"
+      ],
+      "samples": [
+        {
+          "audio": "edge|hello|en-US-GuyNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-US-GuyNeural",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "edge|hello|en-US-AriaNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-US-AriaNeural",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "edge|hello|en-US-DavisNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-US-DavisNeural",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "edge|hello|en-US-AmberNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-US-AmberNeural",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "edge|hello|en-US-AndrewNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-US-AndrewNeural",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "edge|hello|en-US-BrandonNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-US-BrandonNeural",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "edge|hello|en-US-ChristopherNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-US-ChristopherNeural",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "edge|hello|en-US-CoraNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-US-CoraNeural",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "edge|hello|en-US-ElizabethNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-US-ElizabethNeural",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "edge|hello|en-US-EricNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-US-EricNeural",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "edge|hello|en-US-JacobNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-US-JacobNeural",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "edge|hello|en-US-MichelleNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-US-MichelleNeural",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "edge|hello|en-US-MonicaNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-US-MonicaNeural",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "edge|hello|en-US-RogerNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-US-RogerNeural",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "edge|hello|en-US-SaraNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-US-SaraNeural",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "edge|hello|en-US-SteffanNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-US-SteffanNeural",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "edge|hello|en-GB-SoniaNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-GB-SoniaNeural",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "edge|hello|en-GB-RyanNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-GB-RyanNeural",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "edge|hello|en-GB-LibbyNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-GB-LibbyNeural",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "edge|hello|en-AU-NatashaNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-AU-NatashaNeural",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "edge|hello|en-AU-WilliamNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-AU-WilliamNeural",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "edge|hello|en-IN-NeerjaNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-IN-NeerjaNeural",
+          "word": "hello",
+          "variation": "normal"
+        }
+      ],
+      "calls": [
+        [
+          "edge",
+          "hello",
+          "en-US-GuyNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-US-JennyNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-US-AriaNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-US-DavisNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-US-AmberNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-US-AndrewNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-US-BrandonNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-US-ChristopherNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-US-CoraNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-US-ElizabethNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-US-EricNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-US-JacobNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-US-MichelleNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-US-MonicaNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-US-RogerNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-US-SaraNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-US-SteffanNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-GB-SoniaNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-GB-RyanNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-GB-LibbyNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-AU-NatashaNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-AU-WilliamNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-IN-NeerjaNeural"
+        ]
+      ],
+      "events": [
+        [
+          10,
+          23,
+          "generating"
+        ],
+        [
+          20,
+          23,
+          "generating"
+        ]
+      ]
+    },
+    {
+      "engines": [
+        "edge"
+      ],
+      "count": -20,
+      "failures": [
+        "en-uk",
+        "en-US-JennyNeural"
+      ],
+      "samples": [
+        {
+          "audio": "edge|hello|en-US-GuyNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-US-GuyNeural",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "edge|hello|en-US-AriaNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-US-AriaNeural",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "edge|hello|en-US-DavisNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-US-DavisNeural",
+          "word": "hello",
+          "variation": "normal"
+        }
+      ],
+      "calls": [
+        [
+          "edge",
+          "hello",
+          "en-US-GuyNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-US-JennyNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-US-AriaNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-US-DavisNeural"
+        ]
+      ],
+      "events": []
+    },
+    {
+      "engines": [
+        "gtts",
+        "edge"
+      ],
+      "count": 0,
+      "failures": [
+        "en-uk",
+        "en-US-JennyNeural"
+      ],
+      "samples": [],
+      "calls": [],
+      "events": []
+    },
+    {
+      "engines": [
+        "gtts",
+        "edge"
+      ],
+      "count": 1,
+      "failures": [
+        "en-uk",
+        "en-US-JennyNeural"
+      ],
+      "samples": [],
+      "calls": [],
+      "events": []
+    },
+    {
+      "engines": [
+        "gtts",
+        "edge"
+      ],
+      "count": 2,
+      "failures": [
+        "en-uk",
+        "en-US-JennyNeural"
+      ],
+      "samples": [
+        {
+          "audio": "gtts|hello|en",
+          "sample_rate": 16000,
+          "engine": "gtts",
+          "voice": "en",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "edge|hello|en-US-GuyNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-US-GuyNeural",
+          "word": "hello",
+          "variation": "normal"
+        }
+      ],
+      "calls": [
+        [
+          "gtts",
+          "hello",
+          "en"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-US-GuyNeural"
+        ]
+      ],
+      "events": []
+    },
+    {
+      "engines": [
+        "gtts",
+        "edge"
+      ],
+      "count": 5,
+      "failures": [
+        "en-uk",
+        "en-US-JennyNeural"
+      ],
+      "samples": [
+        {
+          "audio": "gtts|hello|en",
+          "sample_rate": 16000,
+          "engine": "gtts",
+          "voice": "en",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "gtts|hello|en-au",
+          "sample_rate": 16000,
+          "engine": "gtts",
+          "voice": "en-au",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "edge|hello|en-US-GuyNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-US-GuyNeural",
+          "word": "hello",
+          "variation": "normal"
+        }
+      ],
+      "calls": [
+        [
+          "gtts",
+          "hello",
+          "en"
+        ],
+        [
+          "gtts",
+          "hello",
+          "en-au"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-US-GuyNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-US-JennyNeural"
+        ]
+      ],
+      "events": []
+    },
+    {
+      "engines": [
+        "gtts",
+        "edge"
+      ],
+      "count": 10,
+      "failures": [
+        "en-uk",
+        "en-US-JennyNeural"
+      ],
+      "samples": [
+        {
+          "audio": "gtts|hello|en",
+          "sample_rate": 16000,
+          "engine": "gtts",
+          "voice": "en",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "gtts|hello|en-au",
+          "sample_rate": 16000,
+          "engine": "gtts",
+          "voice": "en-au",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "gtts|hello|en-us",
+          "sample_rate": 16000,
+          "engine": "gtts",
+          "voice": "en-us",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "gtts|hello|en-ca",
+          "sample_rate": 16000,
+          "engine": "gtts",
+          "voice": "en-ca",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "edge|hello|en-US-GuyNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-US-GuyNeural",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "edge|hello|en-US-AriaNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-US-AriaNeural",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "edge|hello|en-US-DavisNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-US-DavisNeural",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "edge|hello|en-US-AmberNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-US-AmberNeural",
+          "word": "hello",
+          "variation": "normal"
+        }
+      ],
+      "calls": [
+        [
+          "gtts",
+          "hello",
+          "en"
+        ],
+        [
+          "gtts",
+          "hello",
+          "en-au"
+        ],
+        [
+          "gtts",
+          "hello",
+          "en-uk"
+        ],
+        [
+          "gtts",
+          "hello",
+          "en-us"
+        ],
+        [
+          "gtts",
+          "hello",
+          "en-ca"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-US-GuyNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-US-JennyNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-US-AriaNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-US-DavisNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-US-AmberNeural"
+        ]
+      ],
+      "events": [
+        [
+          10,
+          10,
+          "generating"
+        ]
+      ]
+    },
+    {
+      "engines": [
+        "gtts",
+        "edge"
+      ],
+      "count": 500,
+      "failures": [
+        "en-uk",
+        "en-US-JennyNeural"
+      ],
+      "samples": [
+        {
+          "audio": "gtts|hello|en",
+          "sample_rate": 16000,
+          "engine": "gtts",
+          "voice": "en",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "gtts|hello|en-au",
+          "sample_rate": 16000,
+          "engine": "gtts",
+          "voice": "en-au",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "gtts|hello|en-us",
+          "sample_rate": 16000,
+          "engine": "gtts",
+          "voice": "en-us",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "gtts|hello|en-ca",
+          "sample_rate": 16000,
+          "engine": "gtts",
+          "voice": "en-ca",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "gtts|hello|en-in",
+          "sample_rate": 16000,
+          "engine": "gtts",
+          "voice": "en-in",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "edge|hello|en-US-GuyNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-US-GuyNeural",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "edge|hello|en-US-AriaNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-US-AriaNeural",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "edge|hello|en-US-DavisNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-US-DavisNeural",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "edge|hello|en-US-AmberNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-US-AmberNeural",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "edge|hello|en-US-AndrewNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-US-AndrewNeural",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "edge|hello|en-US-BrandonNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-US-BrandonNeural",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "edge|hello|en-US-ChristopherNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-US-ChristopherNeural",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "edge|hello|en-US-CoraNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-US-CoraNeural",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "edge|hello|en-US-ElizabethNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-US-ElizabethNeural",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "edge|hello|en-US-EricNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-US-EricNeural",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "edge|hello|en-US-JacobNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-US-JacobNeural",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "edge|hello|en-US-MichelleNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-US-MichelleNeural",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "edge|hello|en-US-MonicaNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-US-MonicaNeural",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "edge|hello|en-US-RogerNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-US-RogerNeural",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "edge|hello|en-US-SaraNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-US-SaraNeural",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "edge|hello|en-US-SteffanNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-US-SteffanNeural",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "edge|hello|en-GB-SoniaNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-GB-SoniaNeural",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "edge|hello|en-GB-RyanNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-GB-RyanNeural",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "edge|hello|en-GB-LibbyNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-GB-LibbyNeural",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "edge|hello|en-AU-NatashaNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-AU-NatashaNeural",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "edge|hello|en-AU-WilliamNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-AU-WilliamNeural",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "edge|hello|en-IN-NeerjaNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-IN-NeerjaNeural",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "edge|hello|en-IN-PrabhatNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-IN-PrabhatNeural",
+          "word": "hello",
+          "variation": "normal"
+        }
+      ],
+      "calls": [
+        [
+          "gtts",
+          "hello",
+          "en"
+        ],
+        [
+          "gtts",
+          "hello",
+          "en-au"
+        ],
+        [
+          "gtts",
+          "hello",
+          "en-uk"
+        ],
+        [
+          "gtts",
+          "hello",
+          "en-us"
+        ],
+        [
+          "gtts",
+          "hello",
+          "en-ca"
+        ],
+        [
+          "gtts",
+          "hello",
+          "en-in"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-US-GuyNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-US-JennyNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-US-AriaNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-US-DavisNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-US-AmberNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-US-AndrewNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-US-BrandonNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-US-ChristopherNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-US-CoraNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-US-ElizabethNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-US-EricNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-US-JacobNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-US-MichelleNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-US-MonicaNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-US-RogerNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-US-SaraNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-US-SteffanNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-GB-SoniaNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-GB-RyanNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-GB-LibbyNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-AU-NatashaNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-AU-WilliamNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-IN-NeerjaNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-IN-PrabhatNeural"
+        ]
+      ],
+      "events": [
+        [
+          10,
+          30,
+          "generating"
+        ],
+        [
+          20,
+          30,
+          "generating"
+        ],
+        [
+          30,
+          30,
+          "generating"
+        ]
+      ]
+    },
+    {
+      "engines": [
+        "gtts",
+        "edge"
+      ],
+      "count": -1,
+      "failures": [
+        "en-uk",
+        "en-US-JennyNeural"
+      ],
+      "samples": [
+        {
+          "audio": "gtts|hello|en",
+          "sample_rate": 16000,
+          "engine": "gtts",
+          "voice": "en",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "gtts|hello|en-au",
+          "sample_rate": 16000,
+          "engine": "gtts",
+          "voice": "en-au",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "gtts|hello|en-us",
+          "sample_rate": 16000,
+          "engine": "gtts",
+          "voice": "en-us",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "gtts|hello|en-ca",
+          "sample_rate": 16000,
+          "engine": "gtts",
+          "voice": "en-ca",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "edge|hello|en-US-GuyNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-US-GuyNeural",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "edge|hello|en-US-AriaNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-US-AriaNeural",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "edge|hello|en-US-DavisNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-US-DavisNeural",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "edge|hello|en-US-AmberNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-US-AmberNeural",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "edge|hello|en-US-AndrewNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-US-AndrewNeural",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "edge|hello|en-US-BrandonNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-US-BrandonNeural",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "edge|hello|en-US-ChristopherNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-US-ChristopherNeural",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "edge|hello|en-US-CoraNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-US-CoraNeural",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "edge|hello|en-US-ElizabethNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-US-ElizabethNeural",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "edge|hello|en-US-EricNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-US-EricNeural",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "edge|hello|en-US-JacobNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-US-JacobNeural",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "edge|hello|en-US-MichelleNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-US-MichelleNeural",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "edge|hello|en-US-MonicaNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-US-MonicaNeural",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "edge|hello|en-US-RogerNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-US-RogerNeural",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "edge|hello|en-US-SaraNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-US-SaraNeural",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "edge|hello|en-US-SteffanNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-US-SteffanNeural",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "edge|hello|en-GB-SoniaNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-GB-SoniaNeural",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "edge|hello|en-GB-RyanNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-GB-RyanNeural",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "edge|hello|en-GB-LibbyNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-GB-LibbyNeural",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "edge|hello|en-AU-NatashaNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-AU-NatashaNeural",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "edge|hello|en-AU-WilliamNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-AU-WilliamNeural",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "edge|hello|en-IN-NeerjaNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-IN-NeerjaNeural",
+          "word": "hello",
+          "variation": "normal"
+        }
+      ],
+      "calls": [
+        [
+          "gtts",
+          "hello",
+          "en"
+        ],
+        [
+          "gtts",
+          "hello",
+          "en-au"
+        ],
+        [
+          "gtts",
+          "hello",
+          "en-uk"
+        ],
+        [
+          "gtts",
+          "hello",
+          "en-us"
+        ],
+        [
+          "gtts",
+          "hello",
+          "en-ca"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-US-GuyNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-US-JennyNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-US-AriaNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-US-DavisNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-US-AmberNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-US-AndrewNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-US-BrandonNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-US-ChristopherNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-US-CoraNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-US-ElizabethNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-US-EricNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-US-JacobNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-US-MichelleNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-US-MonicaNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-US-RogerNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-US-SaraNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-US-SteffanNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-GB-SoniaNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-GB-RyanNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-GB-LibbyNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-AU-NatashaNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-AU-WilliamNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-IN-NeerjaNeural"
+        ]
+      ],
+      "events": [
+        [
+          10,
+          28,
+          "generating"
+        ],
+        [
+          20,
+          28,
+          "generating"
+        ]
+      ]
+    },
+    {
+      "engines": [
+        "gtts",
+        "edge"
+      ],
+      "count": -20,
+      "failures": [
+        "en-uk",
+        "en-US-JennyNeural"
+      ],
+      "samples": [
+        {
+          "audio": "edge|hello|en-US-GuyNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-US-GuyNeural",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "edge|hello|en-US-AriaNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-US-AriaNeural",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "edge|hello|en-US-DavisNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-US-DavisNeural",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "edge|hello|en-US-AmberNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-US-AmberNeural",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "edge|hello|en-US-AndrewNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-US-AndrewNeural",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "edge|hello|en-US-BrandonNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-US-BrandonNeural",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "edge|hello|en-US-ChristopherNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-US-ChristopherNeural",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "edge|hello|en-US-CoraNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-US-CoraNeural",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "edge|hello|en-US-ElizabethNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-US-ElizabethNeural",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "edge|hello|en-US-EricNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-US-EricNeural",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "edge|hello|en-US-JacobNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-US-JacobNeural",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "edge|hello|en-US-MichelleNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-US-MichelleNeural",
+          "word": "hello",
+          "variation": "normal"
+        },
+        {
+          "audio": "edge|hello|en-US-MonicaNeural",
+          "sample_rate": 16000,
+          "engine": "edge",
+          "voice": "en-US-MonicaNeural",
+          "word": "hello",
+          "variation": "normal"
+        }
+      ],
+      "calls": [
+        [
+          "edge",
+          "hello",
+          "en-US-GuyNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-US-JennyNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-US-AriaNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-US-DavisNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-US-AmberNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-US-AndrewNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-US-BrandonNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-US-ChristopherNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-US-CoraNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-US-ElizabethNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-US-EricNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-US-JacobNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-US-MichelleNeural"
+        ],
+        [
+          "edge",
+          "hello",
+          "en-US-MonicaNeural"
+        ]
+      ],
+      "events": [
+        [
+          10,
+          14,
+          "generating"
+        ]
+      ]
+    }
+  ],
+  "similar": [
+    {
+      "word": "hey",
+      "count": 50,
+      "calls": [
+        [
+          "gtts",
+          "hey",
+          "en"
+        ],
+        [
+          "edge",
+          "hey",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "hay",
+          "en"
+        ],
+        [
+          "edge",
+          "hay",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "hi",
+          "en"
+        ],
+        [
+          "edge",
+          "hi",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "he",
+          "en"
+        ],
+        [
+          "edge",
+          "he",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "huh",
+          "en"
+        ],
+        [
+          "edge",
+          "huh",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "ok",
+          "en"
+        ],
+        [
+          "edge",
+          "ok",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "okay",
+          "en"
+        ],
+        [
+          "edge",
+          "okay",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "oh",
+          "en"
+        ],
+        [
+          "edge",
+          "oh",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "ow",
+          "en"
+        ],
+        [
+          "edge",
+          "ow",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "yeah",
+          "en"
+        ],
+        [
+          "edge",
+          "yeah",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "yes",
+          "en"
+        ],
+        [
+          "edge",
+          "yes",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "yep",
+          "en"
+        ],
+        [
+          "edge",
+          "yep",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "no",
+          "en"
+        ],
+        [
+          "edge",
+          "no",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "nope",
+          "en"
+        ],
+        [
+          "edge",
+          "nope",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "the",
+          "en"
+        ],
+        [
+          "edge",
+          "the",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "a",
+          "en"
+        ],
+        [
+          "edge",
+          "a",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "is",
+          "en"
+        ],
+        [
+          "edge",
+          "is",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "it",
+          "en"
+        ],
+        [
+          "edge",
+          "it",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "to",
+          "en"
+        ],
+        [
+          "edge",
+          "to",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "and",
+          "en"
+        ],
+        [
+          "edge",
+          "and",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "what",
+          "en"
+        ],
+        [
+          "edge",
+          "what",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "that",
+          "en"
+        ],
+        [
+          "edge",
+          "that",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "this",
+          "en"
+        ],
+        [
+          "edge",
+          "this",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "there",
+          "en"
+        ],
+        [
+          "edge",
+          "there",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "one",
+          "en"
+        ],
+        [
+          "edge",
+          "one",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "two",
+          "en"
+        ],
+        [
+          "edge",
+          "two",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "three",
+          "en"
+        ],
+        [
+          "edge",
+          "three",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "four",
+          "en"
+        ],
+        [
+          "edge",
+          "four",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "five",
+          "en"
+        ],
+        [
+          "edge",
+          "five",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "he",
+          "en"
+        ],
+        [
+          "edge",
+          "he",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "ey",
+          "en"
+        ],
+        [
+          "edge",
+          "ey",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "heys",
+          "en"
+        ],
+        [
+          "edge",
+          "heys",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "heying",
+          "en"
+        ],
+        [
+          "edge",
+          "heying",
+          "en-US-GuyNeural"
+        ]
+      ],
+      "samples": [
+        {
+          "audio": "gtts|hey|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "hey"
+          }
+        },
+        {
+          "audio": "edge|hey|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "hey"
+          }
+        },
+        {
+          "audio": "gtts|hay|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "hay"
+          }
+        },
+        {
+          "audio": "edge|hay|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "hay"
+          }
+        },
+        {
+          "audio": "gtts|hi|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "hi"
+          }
+        },
+        {
+          "audio": "edge|hi|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "hi"
+          }
+        },
+        {
+          "audio": "gtts|he|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "he"
+          }
+        },
+        {
+          "audio": "edge|he|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "he"
+          }
+        },
+        {
+          "audio": "gtts|huh|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "huh"
+          }
+        },
+        {
+          "audio": "edge|huh|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "huh"
+          }
+        },
+        {
+          "audio": "gtts|ok|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "ok"
+          }
+        },
+        {
+          "audio": "edge|ok|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "ok"
+          }
+        },
+        {
+          "audio": "gtts|okay|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "okay"
+          }
+        },
+        {
+          "audio": "edge|okay|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "okay"
+          }
+        },
+        {
+          "audio": "gtts|oh|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "oh"
+          }
+        },
+        {
+          "audio": "edge|oh|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "oh"
+          }
+        },
+        {
+          "audio": "gtts|ow|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "ow"
+          }
+        },
+        {
+          "audio": "edge|ow|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "ow"
+          }
+        },
+        {
+          "audio": "gtts|yeah|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "yeah"
+          }
+        },
+        {
+          "audio": "edge|yeah|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "yeah"
+          }
+        },
+        {
+          "audio": "gtts|yes|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "yes"
+          }
+        },
+        {
+          "audio": "edge|yes|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "yes"
+          }
+        },
+        {
+          "audio": "gtts|yep|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "yep"
+          }
+        },
+        {
+          "audio": "edge|yep|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "yep"
+          }
+        },
+        {
+          "audio": "gtts|no|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "no"
+          }
+        },
+        {
+          "audio": "edge|no|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "no"
+          }
+        },
+        {
+          "audio": "gtts|nope|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "nope"
+          }
+        },
+        {
+          "audio": "edge|nope|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "nope"
+          }
+        },
+        {
+          "audio": "gtts|the|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "the"
+          }
+        },
+        {
+          "audio": "edge|the|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "the"
+          }
+        },
+        {
+          "audio": "gtts|a|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "a"
+          }
+        },
+        {
+          "audio": "edge|a|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "a"
+          }
+        },
+        {
+          "audio": "gtts|is|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "is"
+          }
+        },
+        {
+          "audio": "edge|is|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "is"
+          }
+        },
+        {
+          "audio": "gtts|it|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "it"
+          }
+        },
+        {
+          "audio": "edge|it|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "it"
+          }
+        },
+        {
+          "audio": "gtts|to|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "to"
+          }
+        },
+        {
+          "audio": "edge|to|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "to"
+          }
+        },
+        {
+          "audio": "gtts|and|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "and"
+          }
+        },
+        {
+          "audio": "edge|and|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "and"
+          }
+        },
+        {
+          "audio": "gtts|what|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "what"
+          }
+        },
+        {
+          "audio": "edge|what|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "what"
+          }
+        },
+        {
+          "audio": "gtts|that|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "that"
+          }
+        },
+        {
+          "audio": "edge|that|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "that"
+          }
+        },
+        {
+          "audio": "gtts|this|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "this"
+          }
+        },
+        {
+          "audio": "edge|this|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "this"
+          }
+        },
+        {
+          "audio": "gtts|there|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "there"
+          }
+        },
+        {
+          "audio": "edge|there|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "there"
+          }
+        },
+        {
+          "audio": "gtts|one|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "one"
+          }
+        },
+        {
+          "audio": "edge|one|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "one"
+          }
+        },
+        {
+          "audio": "gtts|two|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "two"
+          }
+        },
+        {
+          "audio": "edge|two|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "two"
+          }
+        },
+        {
+          "audio": "gtts|three|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "three"
+          }
+        },
+        {
+          "audio": "edge|three|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "three"
+          }
+        },
+        {
+          "audio": "gtts|four|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "four"
+          }
+        },
+        {
+          "audio": "edge|four|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "four"
+          }
+        },
+        {
+          "audio": "gtts|five|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "five"
+          }
+        },
+        {
+          "audio": "edge|five|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "five"
+          }
+        },
+        {
+          "audio": "gtts|he|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "he"
+          }
+        },
+        {
+          "audio": "edge|he|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "he"
+          }
+        },
+        {
+          "audio": "gtts|ey|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "ey"
+          }
+        },
+        {
+          "audio": "edge|ey|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "ey"
+          }
+        },
+        {
+          "audio": "gtts|heys|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "heys"
+          }
+        },
+        {
+          "audio": "edge|heys|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "heys"
+          }
+        },
+        {
+          "audio": "gtts|heying|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "heying"
+          }
+        },
+        {
+          "audio": "edge|heying|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "heying"
+          }
+        }
+      ]
+    },
+    {
+      "word": "é猫🐈",
+      "count": 50,
+      "calls": [
+        [
+          "gtts",
+          "hey",
+          "en"
+        ],
+        [
+          "edge",
+          "hey",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "hay",
+          "en"
+        ],
+        [
+          "edge",
+          "hay",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "hi",
+          "en"
+        ],
+        [
+          "edge",
+          "hi",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "he",
+          "en"
+        ],
+        [
+          "edge",
+          "he",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "huh",
+          "en"
+        ],
+        [
+          "edge",
+          "huh",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "ok",
+          "en"
+        ],
+        [
+          "edge",
+          "ok",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "okay",
+          "en"
+        ],
+        [
+          "edge",
+          "okay",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "oh",
+          "en"
+        ],
+        [
+          "edge",
+          "oh",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "ow",
+          "en"
+        ],
+        [
+          "edge",
+          "ow",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "yeah",
+          "en"
+        ],
+        [
+          "edge",
+          "yeah",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "yes",
+          "en"
+        ],
+        [
+          "edge",
+          "yes",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "yep",
+          "en"
+        ],
+        [
+          "edge",
+          "yep",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "no",
+          "en"
+        ],
+        [
+          "edge",
+          "no",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "nope",
+          "en"
+        ],
+        [
+          "edge",
+          "nope",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "the",
+          "en"
+        ],
+        [
+          "edge",
+          "the",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "a",
+          "en"
+        ],
+        [
+          "edge",
+          "a",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "is",
+          "en"
+        ],
+        [
+          "edge",
+          "is",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "it",
+          "en"
+        ],
+        [
+          "edge",
+          "it",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "to",
+          "en"
+        ],
+        [
+          "edge",
+          "to",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "and",
+          "en"
+        ],
+        [
+          "edge",
+          "and",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "what",
+          "en"
+        ],
+        [
+          "edge",
+          "what",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "that",
+          "en"
+        ],
+        [
+          "edge",
+          "that",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "this",
+          "en"
+        ],
+        [
+          "edge",
+          "this",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "there",
+          "en"
+        ],
+        [
+          "edge",
+          "there",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "one",
+          "en"
+        ],
+        [
+          "edge",
+          "one",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "two",
+          "en"
+        ],
+        [
+          "edge",
+          "two",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "three",
+          "en"
+        ],
+        [
+          "edge",
+          "three",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "four",
+          "en"
+        ],
+        [
+          "edge",
+          "four",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "five",
+          "en"
+        ],
+        [
+          "edge",
+          "five",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "é猫",
+          "en"
+        ],
+        [
+          "edge",
+          "é猫",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "猫🐈",
+          "en"
+        ],
+        [
+          "edge",
+          "猫🐈",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "é猫🐈s",
+          "en"
+        ],
+        [
+          "edge",
+          "é猫🐈s",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "é猫🐈ing",
+          "en"
+        ],
+        [
+          "edge",
+          "é猫🐈ing",
+          "en-US-GuyNeural"
+        ]
+      ],
+      "samples": [
+        {
+          "audio": "gtts|hey|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "hey"
+          }
+        },
+        {
+          "audio": "edge|hey|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "hey"
+          }
+        },
+        {
+          "audio": "gtts|hay|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "hay"
+          }
+        },
+        {
+          "audio": "edge|hay|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "hay"
+          }
+        },
+        {
+          "audio": "gtts|hi|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "hi"
+          }
+        },
+        {
+          "audio": "edge|hi|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "hi"
+          }
+        },
+        {
+          "audio": "gtts|he|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "he"
+          }
+        },
+        {
+          "audio": "edge|he|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "he"
+          }
+        },
+        {
+          "audio": "gtts|huh|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "huh"
+          }
+        },
+        {
+          "audio": "edge|huh|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "huh"
+          }
+        },
+        {
+          "audio": "gtts|ok|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "ok"
+          }
+        },
+        {
+          "audio": "edge|ok|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "ok"
+          }
+        },
+        {
+          "audio": "gtts|okay|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "okay"
+          }
+        },
+        {
+          "audio": "edge|okay|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "okay"
+          }
+        },
+        {
+          "audio": "gtts|oh|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "oh"
+          }
+        },
+        {
+          "audio": "edge|oh|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "oh"
+          }
+        },
+        {
+          "audio": "gtts|ow|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "ow"
+          }
+        },
+        {
+          "audio": "edge|ow|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "ow"
+          }
+        },
+        {
+          "audio": "gtts|yeah|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "yeah"
+          }
+        },
+        {
+          "audio": "edge|yeah|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "yeah"
+          }
+        },
+        {
+          "audio": "gtts|yes|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "yes"
+          }
+        },
+        {
+          "audio": "edge|yes|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "yes"
+          }
+        },
+        {
+          "audio": "gtts|yep|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "yep"
+          }
+        },
+        {
+          "audio": "edge|yep|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "yep"
+          }
+        },
+        {
+          "audio": "gtts|no|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "no"
+          }
+        },
+        {
+          "audio": "edge|no|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "no"
+          }
+        },
+        {
+          "audio": "gtts|nope|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "nope"
+          }
+        },
+        {
+          "audio": "edge|nope|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "nope"
+          }
+        },
+        {
+          "audio": "gtts|the|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "the"
+          }
+        },
+        {
+          "audio": "edge|the|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "the"
+          }
+        },
+        {
+          "audio": "gtts|a|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "a"
+          }
+        },
+        {
+          "audio": "edge|a|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "a"
+          }
+        },
+        {
+          "audio": "gtts|is|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "is"
+          }
+        },
+        {
+          "audio": "edge|is|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "is"
+          }
+        },
+        {
+          "audio": "gtts|it|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "it"
+          }
+        },
+        {
+          "audio": "edge|it|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "it"
+          }
+        },
+        {
+          "audio": "gtts|to|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "to"
+          }
+        },
+        {
+          "audio": "edge|to|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "to"
+          }
+        },
+        {
+          "audio": "gtts|and|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "and"
+          }
+        },
+        {
+          "audio": "edge|and|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "and"
+          }
+        },
+        {
+          "audio": "gtts|what|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "what"
+          }
+        },
+        {
+          "audio": "edge|what|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "what"
+          }
+        },
+        {
+          "audio": "gtts|that|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "that"
+          }
+        },
+        {
+          "audio": "edge|that|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "that"
+          }
+        },
+        {
+          "audio": "gtts|this|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "this"
+          }
+        },
+        {
+          "audio": "edge|this|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "this"
+          }
+        },
+        {
+          "audio": "gtts|there|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "there"
+          }
+        },
+        {
+          "audio": "edge|there|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "there"
+          }
+        },
+        {
+          "audio": "gtts|one|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "one"
+          }
+        },
+        {
+          "audio": "edge|one|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "one"
+          }
+        },
+        {
+          "audio": "gtts|two|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "two"
+          }
+        },
+        {
+          "audio": "edge|two|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "two"
+          }
+        },
+        {
+          "audio": "gtts|three|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "three"
+          }
+        },
+        {
+          "audio": "edge|three|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "three"
+          }
+        },
+        {
+          "audio": "gtts|four|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "four"
+          }
+        },
+        {
+          "audio": "edge|four|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "four"
+          }
+        },
+        {
+          "audio": "gtts|five|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "five"
+          }
+        },
+        {
+          "audio": "edge|five|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "five"
+          }
+        },
+        {
+          "audio": "gtts|é猫|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "é猫"
+          }
+        },
+        {
+          "audio": "edge|é猫|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "é猫"
+          }
+        },
+        {
+          "audio": "gtts|猫🐈|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "猫🐈"
+          }
+        },
+        {
+          "audio": "edge|猫🐈|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "猫🐈"
+          }
+        },
+        {
+          "audio": "gtts|é猫🐈s|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "é猫🐈s"
+          }
+        },
+        {
+          "audio": "edge|é猫🐈s|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "é猫🐈s"
+          }
+        },
+        {
+          "audio": "gtts|é猫🐈ing|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "é猫🐈ing"
+          }
+        },
+        {
+          "audio": "edge|é猫🐈ing|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "é猫🐈ing"
+          }
+        }
+      ]
+    },
+    {
+      "word": "hi",
+      "count": 50,
+      "calls": [
+        [
+          "gtts",
+          "hey",
+          "en"
+        ],
+        [
+          "edge",
+          "hey",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "hay",
+          "en"
+        ],
+        [
+          "edge",
+          "hay",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "hi",
+          "en"
+        ],
+        [
+          "edge",
+          "hi",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "he",
+          "en"
+        ],
+        [
+          "edge",
+          "he",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "huh",
+          "en"
+        ],
+        [
+          "edge",
+          "huh",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "ok",
+          "en"
+        ],
+        [
+          "edge",
+          "ok",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "okay",
+          "en"
+        ],
+        [
+          "edge",
+          "okay",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "oh",
+          "en"
+        ],
+        [
+          "edge",
+          "oh",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "ow",
+          "en"
+        ],
+        [
+          "edge",
+          "ow",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "yeah",
+          "en"
+        ],
+        [
+          "edge",
+          "yeah",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "yes",
+          "en"
+        ],
+        [
+          "edge",
+          "yes",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "yep",
+          "en"
+        ],
+        [
+          "edge",
+          "yep",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "no",
+          "en"
+        ],
+        [
+          "edge",
+          "no",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "nope",
+          "en"
+        ],
+        [
+          "edge",
+          "nope",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "the",
+          "en"
+        ],
+        [
+          "edge",
+          "the",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "a",
+          "en"
+        ],
+        [
+          "edge",
+          "a",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "is",
+          "en"
+        ],
+        [
+          "edge",
+          "is",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "it",
+          "en"
+        ],
+        [
+          "edge",
+          "it",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "to",
+          "en"
+        ],
+        [
+          "edge",
+          "to",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "and",
+          "en"
+        ],
+        [
+          "edge",
+          "and",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "what",
+          "en"
+        ],
+        [
+          "edge",
+          "what",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "that",
+          "en"
+        ],
+        [
+          "edge",
+          "that",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "this",
+          "en"
+        ],
+        [
+          "edge",
+          "this",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "there",
+          "en"
+        ],
+        [
+          "edge",
+          "there",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "one",
+          "en"
+        ],
+        [
+          "edge",
+          "one",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "two",
+          "en"
+        ],
+        [
+          "edge",
+          "two",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "three",
+          "en"
+        ],
+        [
+          "edge",
+          "three",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "four",
+          "en"
+        ],
+        [
+          "edge",
+          "four",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "five",
+          "en"
+        ],
+        [
+          "edge",
+          "five",
+          "en-US-GuyNeural"
+        ]
+      ],
+      "samples": [
+        {
+          "audio": "gtts|hey|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "hey"
+          }
+        },
+        {
+          "audio": "edge|hey|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "hey"
+          }
+        },
+        {
+          "audio": "gtts|hay|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "hay"
+          }
+        },
+        {
+          "audio": "edge|hay|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "hay"
+          }
+        },
+        {
+          "audio": "gtts|hi|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "hi"
+          }
+        },
+        {
+          "audio": "edge|hi|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "hi"
+          }
+        },
+        {
+          "audio": "gtts|he|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "he"
+          }
+        },
+        {
+          "audio": "edge|he|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "he"
+          }
+        },
+        {
+          "audio": "gtts|huh|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "huh"
+          }
+        },
+        {
+          "audio": "edge|huh|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "huh"
+          }
+        },
+        {
+          "audio": "gtts|ok|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "ok"
+          }
+        },
+        {
+          "audio": "edge|ok|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "ok"
+          }
+        },
+        {
+          "audio": "gtts|okay|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "okay"
+          }
+        },
+        {
+          "audio": "edge|okay|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "okay"
+          }
+        },
+        {
+          "audio": "gtts|oh|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "oh"
+          }
+        },
+        {
+          "audio": "edge|oh|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "oh"
+          }
+        },
+        {
+          "audio": "gtts|ow|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "ow"
+          }
+        },
+        {
+          "audio": "edge|ow|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "ow"
+          }
+        },
+        {
+          "audio": "gtts|yeah|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "yeah"
+          }
+        },
+        {
+          "audio": "edge|yeah|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "yeah"
+          }
+        },
+        {
+          "audio": "gtts|yes|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "yes"
+          }
+        },
+        {
+          "audio": "edge|yes|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "yes"
+          }
+        },
+        {
+          "audio": "gtts|yep|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "yep"
+          }
+        },
+        {
+          "audio": "edge|yep|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "yep"
+          }
+        },
+        {
+          "audio": "gtts|no|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "no"
+          }
+        },
+        {
+          "audio": "edge|no|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "no"
+          }
+        },
+        {
+          "audio": "gtts|nope|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "nope"
+          }
+        },
+        {
+          "audio": "edge|nope|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "nope"
+          }
+        },
+        {
+          "audio": "gtts|the|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "the"
+          }
+        },
+        {
+          "audio": "edge|the|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "the"
+          }
+        },
+        {
+          "audio": "gtts|a|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "a"
+          }
+        },
+        {
+          "audio": "edge|a|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "a"
+          }
+        },
+        {
+          "audio": "gtts|is|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "is"
+          }
+        },
+        {
+          "audio": "edge|is|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "is"
+          }
+        },
+        {
+          "audio": "gtts|it|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "it"
+          }
+        },
+        {
+          "audio": "edge|it|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "it"
+          }
+        },
+        {
+          "audio": "gtts|to|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "to"
+          }
+        },
+        {
+          "audio": "edge|to|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "to"
+          }
+        },
+        {
+          "audio": "gtts|and|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "and"
+          }
+        },
+        {
+          "audio": "edge|and|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "and"
+          }
+        },
+        {
+          "audio": "gtts|what|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "what"
+          }
+        },
+        {
+          "audio": "edge|what|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "what"
+          }
+        },
+        {
+          "audio": "gtts|that|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "that"
+          }
+        },
+        {
+          "audio": "edge|that|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "that"
+          }
+        },
+        {
+          "audio": "gtts|this|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "this"
+          }
+        },
+        {
+          "audio": "edge|this|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "this"
+          }
+        },
+        {
+          "audio": "gtts|there|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "there"
+          }
+        },
+        {
+          "audio": "edge|there|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "there"
+          }
+        },
+        {
+          "audio": "gtts|one|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "one"
+          }
+        },
+        {
+          "audio": "edge|one|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "one"
+          }
+        },
+        {
+          "audio": "gtts|two|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "two"
+          }
+        },
+        {
+          "audio": "edge|two|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "two"
+          }
+        },
+        {
+          "audio": "gtts|three|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "three"
+          }
+        },
+        {
+          "audio": "edge|three|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "three"
+          }
+        },
+        {
+          "audio": "gtts|four|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "four"
+          }
+        },
+        {
+          "audio": "edge|four|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "four"
+          }
+        },
+        {
+          "audio": "gtts|five|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "five"
+          }
+        },
+        {
+          "audio": "edge|five|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "five"
+          }
+        }
+      ]
+    },
+    {
+      "word": "hello",
+      "count": -2,
+      "calls": [
+        [
+          "gtts",
+          "hey",
+          "en"
+        ],
+        [
+          "edge",
+          "hey",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "hay",
+          "en"
+        ],
+        [
+          "edge",
+          "hay",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "hi",
+          "en"
+        ],
+        [
+          "edge",
+          "hi",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "he",
+          "en"
+        ],
+        [
+          "edge",
+          "he",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "huh",
+          "en"
+        ],
+        [
+          "edge",
+          "huh",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "ok",
+          "en"
+        ],
+        [
+          "edge",
+          "ok",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "okay",
+          "en"
+        ],
+        [
+          "edge",
+          "okay",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "oh",
+          "en"
+        ],
+        [
+          "edge",
+          "oh",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "ow",
+          "en"
+        ],
+        [
+          "edge",
+          "ow",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "yeah",
+          "en"
+        ],
+        [
+          "edge",
+          "yeah",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "yes",
+          "en"
+        ],
+        [
+          "edge",
+          "yes",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "yep",
+          "en"
+        ],
+        [
+          "edge",
+          "yep",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "no",
+          "en"
+        ],
+        [
+          "edge",
+          "no",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "nope",
+          "en"
+        ],
+        [
+          "edge",
+          "nope",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "the",
+          "en"
+        ],
+        [
+          "edge",
+          "the",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "a",
+          "en"
+        ],
+        [
+          "edge",
+          "a",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "is",
+          "en"
+        ],
+        [
+          "edge",
+          "is",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "it",
+          "en"
+        ],
+        [
+          "edge",
+          "it",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "to",
+          "en"
+        ],
+        [
+          "edge",
+          "to",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "and",
+          "en"
+        ],
+        [
+          "edge",
+          "and",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "what",
+          "en"
+        ],
+        [
+          "edge",
+          "what",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "that",
+          "en"
+        ],
+        [
+          "edge",
+          "that",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "this",
+          "en"
+        ],
+        [
+          "edge",
+          "this",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "there",
+          "en"
+        ],
+        [
+          "edge",
+          "there",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "one",
+          "en"
+        ],
+        [
+          "edge",
+          "one",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "two",
+          "en"
+        ],
+        [
+          "edge",
+          "two",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "three",
+          "en"
+        ],
+        [
+          "edge",
+          "three",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "four",
+          "en"
+        ],
+        [
+          "edge",
+          "four",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "five",
+          "en"
+        ],
+        [
+          "edge",
+          "five",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "hell",
+          "en"
+        ],
+        [
+          "edge",
+          "hell",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "ello",
+          "en"
+        ],
+        [
+          "edge",
+          "ello",
+          "en-US-GuyNeural"
+        ]
+      ],
+      "samples": [
+        {
+          "audio": "gtts|hey|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "hey"
+          }
+        },
+        {
+          "audio": "edge|hey|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "hey"
+          }
+        },
+        {
+          "audio": "gtts|hay|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "hay"
+          }
+        },
+        {
+          "audio": "edge|hay|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "hay"
+          }
+        },
+        {
+          "audio": "gtts|hi|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "hi"
+          }
+        },
+        {
+          "audio": "edge|hi|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "hi"
+          }
+        },
+        {
+          "audio": "gtts|he|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "he"
+          }
+        },
+        {
+          "audio": "edge|he|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "he"
+          }
+        },
+        {
+          "audio": "gtts|huh|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "huh"
+          }
+        },
+        {
+          "audio": "edge|huh|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "huh"
+          }
+        },
+        {
+          "audio": "gtts|ok|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "ok"
+          }
+        },
+        {
+          "audio": "edge|ok|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "ok"
+          }
+        },
+        {
+          "audio": "gtts|okay|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "okay"
+          }
+        },
+        {
+          "audio": "edge|okay|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "okay"
+          }
+        },
+        {
+          "audio": "gtts|oh|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "oh"
+          }
+        },
+        {
+          "audio": "edge|oh|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "oh"
+          }
+        },
+        {
+          "audio": "gtts|ow|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "ow"
+          }
+        },
+        {
+          "audio": "edge|ow|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "ow"
+          }
+        },
+        {
+          "audio": "gtts|yeah|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "yeah"
+          }
+        },
+        {
+          "audio": "edge|yeah|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "yeah"
+          }
+        },
+        {
+          "audio": "gtts|yes|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "yes"
+          }
+        },
+        {
+          "audio": "edge|yes|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "yes"
+          }
+        },
+        {
+          "audio": "gtts|yep|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "yep"
+          }
+        },
+        {
+          "audio": "edge|yep|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "yep"
+          }
+        },
+        {
+          "audio": "gtts|no|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "no"
+          }
+        },
+        {
+          "audio": "edge|no|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "no"
+          }
+        },
+        {
+          "audio": "gtts|nope|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "nope"
+          }
+        },
+        {
+          "audio": "edge|nope|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "nope"
+          }
+        },
+        {
+          "audio": "gtts|the|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "the"
+          }
+        },
+        {
+          "audio": "edge|the|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "the"
+          }
+        },
+        {
+          "audio": "gtts|a|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "a"
+          }
+        },
+        {
+          "audio": "edge|a|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "a"
+          }
+        },
+        {
+          "audio": "gtts|is|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "is"
+          }
+        },
+        {
+          "audio": "edge|is|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "is"
+          }
+        },
+        {
+          "audio": "gtts|it|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "it"
+          }
+        },
+        {
+          "audio": "edge|it|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "it"
+          }
+        },
+        {
+          "audio": "gtts|to|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "to"
+          }
+        },
+        {
+          "audio": "edge|to|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "to"
+          }
+        },
+        {
+          "audio": "gtts|and|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "and"
+          }
+        },
+        {
+          "audio": "edge|and|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "and"
+          }
+        },
+        {
+          "audio": "gtts|what|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "what"
+          }
+        },
+        {
+          "audio": "edge|what|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "what"
+          }
+        },
+        {
+          "audio": "gtts|that|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "that"
+          }
+        },
+        {
+          "audio": "edge|that|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "that"
+          }
+        },
+        {
+          "audio": "gtts|this|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "this"
+          }
+        },
+        {
+          "audio": "edge|this|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "this"
+          }
+        },
+        {
+          "audio": "gtts|there|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "there"
+          }
+        },
+        {
+          "audio": "edge|there|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "there"
+          }
+        },
+        {
+          "audio": "gtts|one|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "one"
+          }
+        },
+        {
+          "audio": "edge|one|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "one"
+          }
+        },
+        {
+          "audio": "gtts|two|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "two"
+          }
+        },
+        {
+          "audio": "edge|two|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "two"
+          }
+        },
+        {
+          "audio": "gtts|three|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "three"
+          }
+        },
+        {
+          "audio": "edge|three|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "three"
+          }
+        },
+        {
+          "audio": "gtts|four|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "four"
+          }
+        },
+        {
+          "audio": "edge|four|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "four"
+          }
+        },
+        {
+          "audio": "gtts|five|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "five"
+          }
+        },
+        {
+          "audio": "edge|five|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "five"
+          }
+        },
+        {
+          "audio": "gtts|hell|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "hell"
+          }
+        },
+        {
+          "audio": "edge|hell|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "hell"
+          }
+        },
+        {
+          "audio": "gtts|ello|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "ello"
+          }
+        },
+        {
+          "audio": "edge|ello|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "ello"
+          }
+        }
+      ]
+    },
+    {
+      "word": "hello",
+      "count": 0,
+      "calls": [],
+      "samples": []
+    },
+    {
+      "word": "hello",
+      "count": 2,
+      "calls": [
+        [
+          "gtts",
+          "hey",
+          "en"
+        ],
+        [
+          "edge",
+          "hey",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "hay",
+          "en"
+        ],
+        [
+          "edge",
+          "hay",
+          "en-US-GuyNeural"
+        ]
+      ],
+      "samples": [
+        {
+          "audio": "gtts|hey|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "hey"
+          }
+        },
+        {
+          "audio": "edge|hey|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "hey"
+          }
+        },
+        {
+          "audio": "gtts|hay|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "hay"
+          }
+        },
+        {
+          "audio": "edge|hay|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "hay"
+          }
+        }
+      ]
+    },
+    {
+      "word": "hello",
+      "count": 30,
+      "calls": [
+        [
+          "gtts",
+          "hey",
+          "en"
+        ],
+        [
+          "edge",
+          "hey",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "hay",
+          "en"
+        ],
+        [
+          "edge",
+          "hay",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "hi",
+          "en"
+        ],
+        [
+          "edge",
+          "hi",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "he",
+          "en"
+        ],
+        [
+          "edge",
+          "he",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "huh",
+          "en"
+        ],
+        [
+          "edge",
+          "huh",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "ok",
+          "en"
+        ],
+        [
+          "edge",
+          "ok",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "okay",
+          "en"
+        ],
+        [
+          "edge",
+          "okay",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "oh",
+          "en"
+        ],
+        [
+          "edge",
+          "oh",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "ow",
+          "en"
+        ],
+        [
+          "edge",
+          "ow",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "yeah",
+          "en"
+        ],
+        [
+          "edge",
+          "yeah",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "yes",
+          "en"
+        ],
+        [
+          "edge",
+          "yes",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "yep",
+          "en"
+        ],
+        [
+          "edge",
+          "yep",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "no",
+          "en"
+        ],
+        [
+          "edge",
+          "no",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "nope",
+          "en"
+        ],
+        [
+          "edge",
+          "nope",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "the",
+          "en"
+        ],
+        [
+          "edge",
+          "the",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "a",
+          "en"
+        ],
+        [
+          "edge",
+          "a",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "is",
+          "en"
+        ],
+        [
+          "edge",
+          "is",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "it",
+          "en"
+        ],
+        [
+          "edge",
+          "it",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "to",
+          "en"
+        ],
+        [
+          "edge",
+          "to",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "and",
+          "en"
+        ],
+        [
+          "edge",
+          "and",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "what",
+          "en"
+        ],
+        [
+          "edge",
+          "what",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "that",
+          "en"
+        ],
+        [
+          "edge",
+          "that",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "this",
+          "en"
+        ],
+        [
+          "edge",
+          "this",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "there",
+          "en"
+        ],
+        [
+          "edge",
+          "there",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "one",
+          "en"
+        ],
+        [
+          "edge",
+          "one",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "two",
+          "en"
+        ],
+        [
+          "edge",
+          "two",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "three",
+          "en"
+        ],
+        [
+          "edge",
+          "three",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "four",
+          "en"
+        ],
+        [
+          "edge",
+          "four",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "five",
+          "en"
+        ],
+        [
+          "edge",
+          "five",
+          "en-US-GuyNeural"
+        ],
+        [
+          "gtts",
+          "hell",
+          "en"
+        ],
+        [
+          "edge",
+          "hell",
+          "en-US-GuyNeural"
+        ]
+      ],
+      "samples": [
+        {
+          "audio": "gtts|hey|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "hey"
+          }
+        },
+        {
+          "audio": "edge|hey|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "hey"
+          }
+        },
+        {
+          "audio": "gtts|hay|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "hay"
+          }
+        },
+        {
+          "audio": "edge|hay|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "hay"
+          }
+        },
+        {
+          "audio": "gtts|hi|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "hi"
+          }
+        },
+        {
+          "audio": "edge|hi|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "hi"
+          }
+        },
+        {
+          "audio": "gtts|he|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "he"
+          }
+        },
+        {
+          "audio": "edge|he|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "he"
+          }
+        },
+        {
+          "audio": "gtts|huh|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "huh"
+          }
+        },
+        {
+          "audio": "edge|huh|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "huh"
+          }
+        },
+        {
+          "audio": "gtts|ok|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "ok"
+          }
+        },
+        {
+          "audio": "edge|ok|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "ok"
+          }
+        },
+        {
+          "audio": "gtts|okay|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "okay"
+          }
+        },
+        {
+          "audio": "edge|okay|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "okay"
+          }
+        },
+        {
+          "audio": "gtts|oh|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "oh"
+          }
+        },
+        {
+          "audio": "edge|oh|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "oh"
+          }
+        },
+        {
+          "audio": "gtts|ow|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "ow"
+          }
+        },
+        {
+          "audio": "edge|ow|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "ow"
+          }
+        },
+        {
+          "audio": "gtts|yeah|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "yeah"
+          }
+        },
+        {
+          "audio": "edge|yeah|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "yeah"
+          }
+        },
+        {
+          "audio": "gtts|yes|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "yes"
+          }
+        },
+        {
+          "audio": "edge|yes|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "yes"
+          }
+        },
+        {
+          "audio": "gtts|yep|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "yep"
+          }
+        },
+        {
+          "audio": "edge|yep|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "yep"
+          }
+        },
+        {
+          "audio": "gtts|no|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "no"
+          }
+        },
+        {
+          "audio": "edge|no|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "no"
+          }
+        },
+        {
+          "audio": "gtts|nope|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "nope"
+          }
+        },
+        {
+          "audio": "edge|nope|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "nope"
+          }
+        },
+        {
+          "audio": "gtts|the|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "the"
+          }
+        },
+        {
+          "audio": "edge|the|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "the"
+          }
+        },
+        {
+          "audio": "gtts|a|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "a"
+          }
+        },
+        {
+          "audio": "edge|a|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "a"
+          }
+        },
+        {
+          "audio": "gtts|is|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "is"
+          }
+        },
+        {
+          "audio": "edge|is|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "is"
+          }
+        },
+        {
+          "audio": "gtts|it|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "it"
+          }
+        },
+        {
+          "audio": "edge|it|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "it"
+          }
+        },
+        {
+          "audio": "gtts|to|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "to"
+          }
+        },
+        {
+          "audio": "edge|to|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "to"
+          }
+        },
+        {
+          "audio": "gtts|and|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "and"
+          }
+        },
+        {
+          "audio": "edge|and|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "and"
+          }
+        },
+        {
+          "audio": "gtts|what|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "what"
+          }
+        },
+        {
+          "audio": "edge|what|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "what"
+          }
+        },
+        {
+          "audio": "gtts|that|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "that"
+          }
+        },
+        {
+          "audio": "edge|that|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "that"
+          }
+        },
+        {
+          "audio": "gtts|this|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "this"
+          }
+        },
+        {
+          "audio": "edge|this|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "this"
+          }
+        },
+        {
+          "audio": "gtts|there|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "there"
+          }
+        },
+        {
+          "audio": "edge|there|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "there"
+          }
+        },
+        {
+          "audio": "gtts|one|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "one"
+          }
+        },
+        {
+          "audio": "edge|one|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "one"
+          }
+        },
+        {
+          "audio": "gtts|two|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "two"
+          }
+        },
+        {
+          "audio": "edge|two|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "two"
+          }
+        },
+        {
+          "audio": "gtts|three|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "three"
+          }
+        },
+        {
+          "audio": "edge|three|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "three"
+          }
+        },
+        {
+          "audio": "gtts|four|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "four"
+          }
+        },
+        {
+          "audio": "edge|four|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "four"
+          }
+        },
+        {
+          "audio": "gtts|five|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "five"
+          }
+        },
+        {
+          "audio": "edge|five|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "five"
+          }
+        },
+        {
+          "audio": "gtts|hell|en",
+          "metadata": {
+            "type": "similar_word",
+            "word": "hell"
+          }
+        },
+        {
+          "audio": "edge|hell|en-US-GuyNeural",
+          "metadata": {
+            "type": "similar_word",
+            "word": "hell"
+          }
+        }
+      ]
+    }
+  ],
+  "gtts": [
+    {
+      "word": "hello",
+      "language": "en",
+      "requests": [
+        {
+          "url": "https://translate.google.com/_/TranslateWebserverUi/data/batchexecute",
+          "body": "f.req=%5B%5B%5B%22jQ1olc%22%2C%22%5B%5C%22hello%5C%22%2C%5C%22en%5C%22%2Cnull%2C%5C%22null%5C%22%5D%22%2Cnull%2C%22generic%22%5D%5D%5D&",
+          "headers": {
+            "Referer": "http://translate.google.com/",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/47.0.2526.106 Safari/537.36",
+            "Content-Type": "application/x-www-form-urlencoded;charset=utf-8",
+            "Content-Length": "135"
+          }
+        }
+      ]
+    },
+    {
+      "word": "Привет",
+      "language": "en",
+      "requests": [
+        {
+          "url": "https://translate.google.com/_/TranslateWebserverUi/data/batchexecute",
+          "body": "f.req=%5B%5B%5B%22jQ1olc%22%2C%22%5B%5C%22%5C%5Cu041f%5C%5Cu0440%5C%5Cu0438%5C%5Cu0432%5C%5Cu0435%5C%5Cu0442%5C%22%2C%5C%22en%5C%22%2Cnull%2C%5C%22null%5C%22%5D%22%2Cnull%2C%22generic%22%5D%5D%5D&",
+          "headers": {
+            "Referer": "http://translate.google.com/",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/47.0.2526.106 Safari/537.36",
+            "Content-Type": "application/x-www-form-urlencoded;charset=utf-8",
+            "Content-Length": "196"
+          }
+        }
+      ]
+    },
+    {
+      "word": "Dr. hello & goodbye!",
+      "language": "en",
+      "requests": [
+        {
+          "url": "https://translate.google.com/_/TranslateWebserverUi/data/batchexecute",
+          "body": "f.req=%5B%5B%5B%22jQ1olc%22%2C%22%5B%5C%22Dr%20hello%20%26%20goodbye%21%5C%22%2C%5C%22en%5C%22%2Cnull%2C%5C%22null%5C%22%5D%22%2Cnull%2C%22generic%22%5D%5D%5D&",
+          "headers": {
+            "Referer": "http://translate.google.com/",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/47.0.2526.106 Safari/537.36",
+            "Content-Type": "application/x-www-form-urlencoded;charset=utf-8",
+            "Content-Length": "159"
+          }
+        }
+      ]
+    },
+    {
+      "word": "hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello ",
+      "language": "en",
+      "requests": [
+        {
+          "url": "https://translate.google.com/_/TranslateWebserverUi/data/batchexecute",
+          "body": "f.req=%5B%5B%5B%22jQ1olc%22%2C%22%5B%5C%22hello%20hello%20hello%20hello%20hello%20hello%20hello%20hello%20hello%20hello%20hello%20hello%20hello%20hello%20hello%20hello%5C%22%2C%5C%22en%5C%22%2Cnull%2C%5C%22null%5C%22%5D%22%2Cnull%2C%22generic%22%5D%5D%5D&",
+          "headers": {
+            "Referer": "http://translate.google.com/",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/47.0.2526.106 Safari/537.36",
+            "Content-Type": "application/x-www-form-urlencoded;charset=utf-8",
+            "Content-Length": "255"
+          }
+        },
+        {
+          "url": "https://translate.google.com/_/TranslateWebserverUi/data/batchexecute",
+          "body": "f.req=%5B%5B%5B%22jQ1olc%22%2C%22%5B%5C%22hello%20hello%20hello%20hello%20hello%20hello%20hello%20hello%20hello%20hello%20hello%20hello%20hello%20hello%20hello%20hello%5C%22%2C%5C%22en%5C%22%2Cnull%2C%5C%22null%5C%22%5D%22%2Cnull%2C%22generic%22%5D%5D%5D&",
+          "headers": {
+            "Referer": "http://translate.google.com/",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/47.0.2526.106 Safari/537.36",
+            "Content-Type": "application/x-www-form-urlencoded;charset=utf-8",
+            "Content-Length": "255"
+          }
+        },
+        {
+          "url": "https://translate.google.com/_/TranslateWebserverUi/data/batchexecute",
+          "body": "f.req=%5B%5B%5B%22jQ1olc%22%2C%22%5B%5C%22hello%20hello%20hello%20hello%20hello%20hello%20hello%20hello%5C%22%2C%5C%22en%5C%22%2Cnull%2C%5C%22null%5C%22%5D%22%2Cnull%2C%22generic%22%5D%5D%5D&",
+          "headers": {
+            "Referer": "http://translate.google.com/",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/47.0.2526.106 Safari/537.36",
+            "Content-Type": "application/x-www-form-urlencoded;charset=utf-8",
+            "Content-Length": "191"
+          }
+        }
+      ]
+    },
+    {
+      "word": "hello",
+      "language": "en-au",
+      "requests": [
+        {
+          "url": "https://translate.google.com/_/TranslateWebserverUi/data/batchexecute",
+          "body": "f.req=%5B%5B%5B%22jQ1olc%22%2C%22%5B%5C%22hello%5C%22%2C%5C%22en%5C%22%2Cnull%2C%5C%22null%5C%22%5D%22%2Cnull%2C%22generic%22%5D%5D%5D&",
+          "headers": {
+            "Referer": "http://translate.google.com/",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/47.0.2526.106 Safari/537.36",
+            "Content-Type": "application/x-www-form-urlencoded;charset=utf-8",
+            "Content-Length": "135"
+          }
+        }
+      ]
+    },
+    {
+      "word": "Привет",
+      "language": "en-au",
+      "requests": [
+        {
+          "url": "https://translate.google.com/_/TranslateWebserverUi/data/batchexecute",
+          "body": "f.req=%5B%5B%5B%22jQ1olc%22%2C%22%5B%5C%22%5C%5Cu041f%5C%5Cu0440%5C%5Cu0438%5C%5Cu0432%5C%5Cu0435%5C%5Cu0442%5C%22%2C%5C%22en%5C%22%2Cnull%2C%5C%22null%5C%22%5D%22%2Cnull%2C%22generic%22%5D%5D%5D&",
+          "headers": {
+            "Referer": "http://translate.google.com/",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/47.0.2526.106 Safari/537.36",
+            "Content-Type": "application/x-www-form-urlencoded;charset=utf-8",
+            "Content-Length": "196"
+          }
+        }
+      ]
+    },
+    {
+      "word": "Dr. hello & goodbye!",
+      "language": "en-au",
+      "requests": [
+        {
+          "url": "https://translate.google.com/_/TranslateWebserverUi/data/batchexecute",
+          "body": "f.req=%5B%5B%5B%22jQ1olc%22%2C%22%5B%5C%22Dr%20hello%20%26%20goodbye%21%5C%22%2C%5C%22en%5C%22%2Cnull%2C%5C%22null%5C%22%5D%22%2Cnull%2C%22generic%22%5D%5D%5D&",
+          "headers": {
+            "Referer": "http://translate.google.com/",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/47.0.2526.106 Safari/537.36",
+            "Content-Type": "application/x-www-form-urlencoded;charset=utf-8",
+            "Content-Length": "159"
+          }
+        }
+      ]
+    },
+    {
+      "word": "hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello ",
+      "language": "en-au",
+      "requests": [
+        {
+          "url": "https://translate.google.com/_/TranslateWebserverUi/data/batchexecute",
+          "body": "f.req=%5B%5B%5B%22jQ1olc%22%2C%22%5B%5C%22hello%20hello%20hello%20hello%20hello%20hello%20hello%20hello%20hello%20hello%20hello%20hello%20hello%20hello%20hello%20hello%5C%22%2C%5C%22en%5C%22%2Cnull%2C%5C%22null%5C%22%5D%22%2Cnull%2C%22generic%22%5D%5D%5D&",
+          "headers": {
+            "Referer": "http://translate.google.com/",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/47.0.2526.106 Safari/537.36",
+            "Content-Type": "application/x-www-form-urlencoded;charset=utf-8",
+            "Content-Length": "255"
+          }
+        },
+        {
+          "url": "https://translate.google.com/_/TranslateWebserverUi/data/batchexecute",
+          "body": "f.req=%5B%5B%5B%22jQ1olc%22%2C%22%5B%5C%22hello%20hello%20hello%20hello%20hello%20hello%20hello%20hello%20hello%20hello%20hello%20hello%20hello%20hello%20hello%20hello%5C%22%2C%5C%22en%5C%22%2Cnull%2C%5C%22null%5C%22%5D%22%2Cnull%2C%22generic%22%5D%5D%5D&",
+          "headers": {
+            "Referer": "http://translate.google.com/",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/47.0.2526.106 Safari/537.36",
+            "Content-Type": "application/x-www-form-urlencoded;charset=utf-8",
+            "Content-Length": "255"
+          }
+        },
+        {
+          "url": "https://translate.google.com/_/TranslateWebserverUi/data/batchexecute",
+          "body": "f.req=%5B%5B%5B%22jQ1olc%22%2C%22%5B%5C%22hello%20hello%20hello%20hello%20hello%20hello%20hello%20hello%5C%22%2C%5C%22en%5C%22%2Cnull%2C%5C%22null%5C%22%5D%22%2Cnull%2C%22generic%22%5D%5D%5D&",
+          "headers": {
+            "Referer": "http://translate.google.com/",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/47.0.2526.106 Safari/537.36",
+            "Content-Type": "application/x-www-form-urlencoded;charset=utf-8",
+            "Content-Length": "191"
+          }
+        }
+      ]
+    },
+    {
+      "word": "hello",
+      "language": "en-uk",
+      "requests": [
+        {
+          "url": "https://translate.google.com/_/TranslateWebserverUi/data/batchexecute",
+          "body": "f.req=%5B%5B%5B%22jQ1olc%22%2C%22%5B%5C%22hello%5C%22%2C%5C%22en%5C%22%2Cnull%2C%5C%22null%5C%22%5D%22%2Cnull%2C%22generic%22%5D%5D%5D&",
+          "headers": {
+            "Referer": "http://translate.google.com/",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/47.0.2526.106 Safari/537.36",
+            "Content-Type": "application/x-www-form-urlencoded;charset=utf-8",
+            "Content-Length": "135"
+          }
+        }
+      ]
+    },
+    {
+      "word": "Привет",
+      "language": "en-uk",
+      "requests": [
+        {
+          "url": "https://translate.google.com/_/TranslateWebserverUi/data/batchexecute",
+          "body": "f.req=%5B%5B%5B%22jQ1olc%22%2C%22%5B%5C%22%5C%5Cu041f%5C%5Cu0440%5C%5Cu0438%5C%5Cu0432%5C%5Cu0435%5C%5Cu0442%5C%22%2C%5C%22en%5C%22%2Cnull%2C%5C%22null%5C%22%5D%22%2Cnull%2C%22generic%22%5D%5D%5D&",
+          "headers": {
+            "Referer": "http://translate.google.com/",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/47.0.2526.106 Safari/537.36",
+            "Content-Type": "application/x-www-form-urlencoded;charset=utf-8",
+            "Content-Length": "196"
+          }
+        }
+      ]
+    },
+    {
+      "word": "Dr. hello & goodbye!",
+      "language": "en-uk",
+      "requests": [
+        {
+          "url": "https://translate.google.com/_/TranslateWebserverUi/data/batchexecute",
+          "body": "f.req=%5B%5B%5B%22jQ1olc%22%2C%22%5B%5C%22Dr%20hello%20%26%20goodbye%21%5C%22%2C%5C%22en%5C%22%2Cnull%2C%5C%22null%5C%22%5D%22%2Cnull%2C%22generic%22%5D%5D%5D&",
+          "headers": {
+            "Referer": "http://translate.google.com/",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/47.0.2526.106 Safari/537.36",
+            "Content-Type": "application/x-www-form-urlencoded;charset=utf-8",
+            "Content-Length": "159"
+          }
+        }
+      ]
+    },
+    {
+      "word": "hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello ",
+      "language": "en-uk",
+      "requests": [
+        {
+          "url": "https://translate.google.com/_/TranslateWebserverUi/data/batchexecute",
+          "body": "f.req=%5B%5B%5B%22jQ1olc%22%2C%22%5B%5C%22hello%20hello%20hello%20hello%20hello%20hello%20hello%20hello%20hello%20hello%20hello%20hello%20hello%20hello%20hello%20hello%5C%22%2C%5C%22en%5C%22%2Cnull%2C%5C%22null%5C%22%5D%22%2Cnull%2C%22generic%22%5D%5D%5D&",
+          "headers": {
+            "Referer": "http://translate.google.com/",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/47.0.2526.106 Safari/537.36",
+            "Content-Type": "application/x-www-form-urlencoded;charset=utf-8",
+            "Content-Length": "255"
+          }
+        },
+        {
+          "url": "https://translate.google.com/_/TranslateWebserverUi/data/batchexecute",
+          "body": "f.req=%5B%5B%5B%22jQ1olc%22%2C%22%5B%5C%22hello%20hello%20hello%20hello%20hello%20hello%20hello%20hello%20hello%20hello%20hello%20hello%20hello%20hello%20hello%20hello%5C%22%2C%5C%22en%5C%22%2Cnull%2C%5C%22null%5C%22%5D%22%2Cnull%2C%22generic%22%5D%5D%5D&",
+          "headers": {
+            "Referer": "http://translate.google.com/",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/47.0.2526.106 Safari/537.36",
+            "Content-Type": "application/x-www-form-urlencoded;charset=utf-8",
+            "Content-Length": "255"
+          }
+        },
+        {
+          "url": "https://translate.google.com/_/TranslateWebserverUi/data/batchexecute",
+          "body": "f.req=%5B%5B%5B%22jQ1olc%22%2C%22%5B%5C%22hello%20hello%20hello%20hello%20hello%20hello%20hello%20hello%5C%22%2C%5C%22en%5C%22%2Cnull%2C%5C%22null%5C%22%5D%22%2Cnull%2C%22generic%22%5D%5D%5D&",
+          "headers": {
+            "Referer": "http://translate.google.com/",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/47.0.2526.106 Safari/537.36",
+            "Content-Type": "application/x-www-form-urlencoded;charset=utf-8",
+            "Content-Length": "191"
+          }
+        }
+      ]
+    },
+    {
+      "word": "hello",
+      "language": "en-us",
+      "requests": [
+        {
+          "url": "https://translate.google.com/_/TranslateWebserverUi/data/batchexecute",
+          "body": "f.req=%5B%5B%5B%22jQ1olc%22%2C%22%5B%5C%22hello%5C%22%2C%5C%22en%5C%22%2Cnull%2C%5C%22null%5C%22%5D%22%2Cnull%2C%22generic%22%5D%5D%5D&",
+          "headers": {
+            "Referer": "http://translate.google.com/",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/47.0.2526.106 Safari/537.36",
+            "Content-Type": "application/x-www-form-urlencoded;charset=utf-8",
+            "Content-Length": "135"
+          }
+        }
+      ]
+    },
+    {
+      "word": "Привет",
+      "language": "en-us",
+      "requests": [
+        {
+          "url": "https://translate.google.com/_/TranslateWebserverUi/data/batchexecute",
+          "body": "f.req=%5B%5B%5B%22jQ1olc%22%2C%22%5B%5C%22%5C%5Cu041f%5C%5Cu0440%5C%5Cu0438%5C%5Cu0432%5C%5Cu0435%5C%5Cu0442%5C%22%2C%5C%22en%5C%22%2Cnull%2C%5C%22null%5C%22%5D%22%2Cnull%2C%22generic%22%5D%5D%5D&",
+          "headers": {
+            "Referer": "http://translate.google.com/",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/47.0.2526.106 Safari/537.36",
+            "Content-Type": "application/x-www-form-urlencoded;charset=utf-8",
+            "Content-Length": "196"
+          }
+        }
+      ]
+    },
+    {
+      "word": "Dr. hello & goodbye!",
+      "language": "en-us",
+      "requests": [
+        {
+          "url": "https://translate.google.com/_/TranslateWebserverUi/data/batchexecute",
+          "body": "f.req=%5B%5B%5B%22jQ1olc%22%2C%22%5B%5C%22Dr%20hello%20%26%20goodbye%21%5C%22%2C%5C%22en%5C%22%2Cnull%2C%5C%22null%5C%22%5D%22%2Cnull%2C%22generic%22%5D%5D%5D&",
+          "headers": {
+            "Referer": "http://translate.google.com/",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/47.0.2526.106 Safari/537.36",
+            "Content-Type": "application/x-www-form-urlencoded;charset=utf-8",
+            "Content-Length": "159"
+          }
+        }
+      ]
+    },
+    {
+      "word": "hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello ",
+      "language": "en-us",
+      "requests": [
+        {
+          "url": "https://translate.google.com/_/TranslateWebserverUi/data/batchexecute",
+          "body": "f.req=%5B%5B%5B%22jQ1olc%22%2C%22%5B%5C%22hello%20hello%20hello%20hello%20hello%20hello%20hello%20hello%20hello%20hello%20hello%20hello%20hello%20hello%20hello%20hello%5C%22%2C%5C%22en%5C%22%2Cnull%2C%5C%22null%5C%22%5D%22%2Cnull%2C%22generic%22%5D%5D%5D&",
+          "headers": {
+            "Referer": "http://translate.google.com/",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/47.0.2526.106 Safari/537.36",
+            "Content-Type": "application/x-www-form-urlencoded;charset=utf-8",
+            "Content-Length": "255"
+          }
+        },
+        {
+          "url": "https://translate.google.com/_/TranslateWebserverUi/data/batchexecute",
+          "body": "f.req=%5B%5B%5B%22jQ1olc%22%2C%22%5B%5C%22hello%20hello%20hello%20hello%20hello%20hello%20hello%20hello%20hello%20hello%20hello%20hello%20hello%20hello%20hello%20hello%5C%22%2C%5C%22en%5C%22%2Cnull%2C%5C%22null%5C%22%5D%22%2Cnull%2C%22generic%22%5D%5D%5D&",
+          "headers": {
+            "Referer": "http://translate.google.com/",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/47.0.2526.106 Safari/537.36",
+            "Content-Type": "application/x-www-form-urlencoded;charset=utf-8",
+            "Content-Length": "255"
+          }
+        },
+        {
+          "url": "https://translate.google.com/_/TranslateWebserverUi/data/batchexecute",
+          "body": "f.req=%5B%5B%5B%22jQ1olc%22%2C%22%5B%5C%22hello%20hello%20hello%20hello%20hello%20hello%20hello%20hello%5C%22%2C%5C%22en%5C%22%2Cnull%2C%5C%22null%5C%22%5D%22%2Cnull%2C%22generic%22%5D%5D%5D&",
+          "headers": {
+            "Referer": "http://translate.google.com/",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/47.0.2526.106 Safari/537.36",
+            "Content-Type": "application/x-www-form-urlencoded;charset=utf-8",
+            "Content-Length": "191"
+          }
+        }
+      ]
+    },
+    {
+      "word": "hello",
+      "language": "en-ca",
+      "requests": [
+        {
+          "url": "https://translate.google.com/_/TranslateWebserverUi/data/batchexecute",
+          "body": "f.req=%5B%5B%5B%22jQ1olc%22%2C%22%5B%5C%22hello%5C%22%2C%5C%22en%5C%22%2Cnull%2C%5C%22null%5C%22%5D%22%2Cnull%2C%22generic%22%5D%5D%5D&",
+          "headers": {
+            "Referer": "http://translate.google.com/",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/47.0.2526.106 Safari/537.36",
+            "Content-Type": "application/x-www-form-urlencoded;charset=utf-8",
+            "Content-Length": "135"
+          }
+        }
+      ]
+    },
+    {
+      "word": "Привет",
+      "language": "en-ca",
+      "requests": [
+        {
+          "url": "https://translate.google.com/_/TranslateWebserverUi/data/batchexecute",
+          "body": "f.req=%5B%5B%5B%22jQ1olc%22%2C%22%5B%5C%22%5C%5Cu041f%5C%5Cu0440%5C%5Cu0438%5C%5Cu0432%5C%5Cu0435%5C%5Cu0442%5C%22%2C%5C%22en%5C%22%2Cnull%2C%5C%22null%5C%22%5D%22%2Cnull%2C%22generic%22%5D%5D%5D&",
+          "headers": {
+            "Referer": "http://translate.google.com/",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/47.0.2526.106 Safari/537.36",
+            "Content-Type": "application/x-www-form-urlencoded;charset=utf-8",
+            "Content-Length": "196"
+          }
+        }
+      ]
+    },
+    {
+      "word": "Dr. hello & goodbye!",
+      "language": "en-ca",
+      "requests": [
+        {
+          "url": "https://translate.google.com/_/TranslateWebserverUi/data/batchexecute",
+          "body": "f.req=%5B%5B%5B%22jQ1olc%22%2C%22%5B%5C%22Dr%20hello%20%26%20goodbye%21%5C%22%2C%5C%22en%5C%22%2Cnull%2C%5C%22null%5C%22%5D%22%2Cnull%2C%22generic%22%5D%5D%5D&",
+          "headers": {
+            "Referer": "http://translate.google.com/",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/47.0.2526.106 Safari/537.36",
+            "Content-Type": "application/x-www-form-urlencoded;charset=utf-8",
+            "Content-Length": "159"
+          }
+        }
+      ]
+    },
+    {
+      "word": "hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello ",
+      "language": "en-ca",
+      "requests": [
+        {
+          "url": "https://translate.google.com/_/TranslateWebserverUi/data/batchexecute",
+          "body": "f.req=%5B%5B%5B%22jQ1olc%22%2C%22%5B%5C%22hello%20hello%20hello%20hello%20hello%20hello%20hello%20hello%20hello%20hello%20hello%20hello%20hello%20hello%20hello%20hello%5C%22%2C%5C%22en%5C%22%2Cnull%2C%5C%22null%5C%22%5D%22%2Cnull%2C%22generic%22%5D%5D%5D&",
+          "headers": {
+            "Referer": "http://translate.google.com/",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/47.0.2526.106 Safari/537.36",
+            "Content-Type": "application/x-www-form-urlencoded;charset=utf-8",
+            "Content-Length": "255"
+          }
+        },
+        {
+          "url": "https://translate.google.com/_/TranslateWebserverUi/data/batchexecute",
+          "body": "f.req=%5B%5B%5B%22jQ1olc%22%2C%22%5B%5C%22hello%20hello%20hello%20hello%20hello%20hello%20hello%20hello%20hello%20hello%20hello%20hello%20hello%20hello%20hello%20hello%5C%22%2C%5C%22en%5C%22%2Cnull%2C%5C%22null%5C%22%5D%22%2Cnull%2C%22generic%22%5D%5D%5D&",
+          "headers": {
+            "Referer": "http://translate.google.com/",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/47.0.2526.106 Safari/537.36",
+            "Content-Type": "application/x-www-form-urlencoded;charset=utf-8",
+            "Content-Length": "255"
+          }
+        },
+        {
+          "url": "https://translate.google.com/_/TranslateWebserverUi/data/batchexecute",
+          "body": "f.req=%5B%5B%5B%22jQ1olc%22%2C%22%5B%5C%22hello%20hello%20hello%20hello%20hello%20hello%20hello%20hello%5C%22%2C%5C%22en%5C%22%2Cnull%2C%5C%22null%5C%22%5D%22%2Cnull%2C%22generic%22%5D%5D%5D&",
+          "headers": {
+            "Referer": "http://translate.google.com/",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/47.0.2526.106 Safari/537.36",
+            "Content-Type": "application/x-www-form-urlencoded;charset=utf-8",
+            "Content-Length": "191"
+          }
+        }
+      ]
+    },
+    {
+      "word": "hello",
+      "language": "en-in",
+      "requests": [
+        {
+          "url": "https://translate.google.com/_/TranslateWebserverUi/data/batchexecute",
+          "body": "f.req=%5B%5B%5B%22jQ1olc%22%2C%22%5B%5C%22hello%5C%22%2C%5C%22en%5C%22%2Cnull%2C%5C%22null%5C%22%5D%22%2Cnull%2C%22generic%22%5D%5D%5D&",
+          "headers": {
+            "Referer": "http://translate.google.com/",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/47.0.2526.106 Safari/537.36",
+            "Content-Type": "application/x-www-form-urlencoded;charset=utf-8",
+            "Content-Length": "135"
+          }
+        }
+      ]
+    },
+    {
+      "word": "Привет",
+      "language": "en-in",
+      "requests": [
+        {
+          "url": "https://translate.google.com/_/TranslateWebserverUi/data/batchexecute",
+          "body": "f.req=%5B%5B%5B%22jQ1olc%22%2C%22%5B%5C%22%5C%5Cu041f%5C%5Cu0440%5C%5Cu0438%5C%5Cu0432%5C%5Cu0435%5C%5Cu0442%5C%22%2C%5C%22en%5C%22%2Cnull%2C%5C%22null%5C%22%5D%22%2Cnull%2C%22generic%22%5D%5D%5D&",
+          "headers": {
+            "Referer": "http://translate.google.com/",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/47.0.2526.106 Safari/537.36",
+            "Content-Type": "application/x-www-form-urlencoded;charset=utf-8",
+            "Content-Length": "196"
+          }
+        }
+      ]
+    },
+    {
+      "word": "Dr. hello & goodbye!",
+      "language": "en-in",
+      "requests": [
+        {
+          "url": "https://translate.google.com/_/TranslateWebserverUi/data/batchexecute",
+          "body": "f.req=%5B%5B%5B%22jQ1olc%22%2C%22%5B%5C%22Dr%20hello%20%26%20goodbye%21%5C%22%2C%5C%22en%5C%22%2Cnull%2C%5C%22null%5C%22%5D%22%2Cnull%2C%22generic%22%5D%5D%5D&",
+          "headers": {
+            "Referer": "http://translate.google.com/",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/47.0.2526.106 Safari/537.36",
+            "Content-Type": "application/x-www-form-urlencoded;charset=utf-8",
+            "Content-Length": "159"
+          }
+        }
+      ]
+    },
+    {
+      "word": "hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello ",
+      "language": "en-in",
+      "requests": [
+        {
+          "url": "https://translate.google.com/_/TranslateWebserverUi/data/batchexecute",
+          "body": "f.req=%5B%5B%5B%22jQ1olc%22%2C%22%5B%5C%22hello%20hello%20hello%20hello%20hello%20hello%20hello%20hello%20hello%20hello%20hello%20hello%20hello%20hello%20hello%20hello%5C%22%2C%5C%22en%5C%22%2Cnull%2C%5C%22null%5C%22%5D%22%2Cnull%2C%22generic%22%5D%5D%5D&",
+          "headers": {
+            "Referer": "http://translate.google.com/",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/47.0.2526.106 Safari/537.36",
+            "Content-Type": "application/x-www-form-urlencoded;charset=utf-8",
+            "Content-Length": "255"
+          }
+        },
+        {
+          "url": "https://translate.google.com/_/TranslateWebserverUi/data/batchexecute",
+          "body": "f.req=%5B%5B%5B%22jQ1olc%22%2C%22%5B%5C%22hello%20hello%20hello%20hello%20hello%20hello%20hello%20hello%20hello%20hello%20hello%20hello%20hello%20hello%20hello%20hello%5C%22%2C%5C%22en%5C%22%2Cnull%2C%5C%22null%5C%22%5D%22%2Cnull%2C%22generic%22%5D%5D%5D&",
+          "headers": {
+            "Referer": "http://translate.google.com/",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/47.0.2526.106 Safari/537.36",
+            "Content-Type": "application/x-www-form-urlencoded;charset=utf-8",
+            "Content-Length": "255"
+          }
+        },
+        {
+          "url": "https://translate.google.com/_/TranslateWebserverUi/data/batchexecute",
+          "body": "f.req=%5B%5B%5B%22jQ1olc%22%2C%22%5B%5C%22hello%20hello%20hello%20hello%20hello%20hello%20hello%20hello%5C%22%2C%5C%22en%5C%22%2Cnull%2C%5C%22null%5C%22%5D%22%2Cnull%2C%22generic%22%5D%5D%5D&",
+          "headers": {
+            "Referer": "http://translate.google.com/",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/47.0.2526.106 Safari/537.36",
+            "Content-Type": "application/x-www-form-urlencoded;charset=utf-8",
+            "Content-Length": "191"
+          }
+        }
+      ]
+    }
+  ],
+  "decode": [
+    {
+      "mp3": "24000_1_48k_full.mp3",
+      "wav": "24000_1_48k_full.wav",
+      "mp3_sha256": "90ba69c5cd7030e3af9b114eec02dfc6c4d3c25c686222d8bad46f7a65ed758b",
+      "wav_sha256": "22225a221f06ff3d880ea70db65b29888ad0e24b5ef015640dc209f9f0b25adf"
+    },
+    {
+      "mp3": "24000_1_48k_concatenated.mp3",
+      "wav": "24000_1_48k_concatenated.wav",
+      "mp3_sha256": "67711e69d2d9ab2f0f86d14cbc888aa674f3486e3c3c8a6c9bfca886139d8eb6",
+      "wav_sha256": "ce769216a9c3ad1975c474639ef471e2532f79039568b842bc8ac7b2f984c9e8"
+    },
+    {
+      "mp3": "44100_2_128k_full.mp3",
+      "wav": "44100_2_128k_full.wav",
+      "mp3_sha256": "3206f16bfff034ff0923dcf6b00cd6e6b909f227c06110c03cd6025b07b42644",
+      "wav_sha256": "e3283f7e1873bf26103c3baf4fbe8a9cada05450165ea382aa46633f1b9fabd1"
+    },
+    {
+      "mp3": "44100_2_128k_concatenated.mp3",
+      "wav": "44100_2_128k_concatenated.wav",
+      "mp3_sha256": "ce6e087d9999efeaf64198e53776d15a8c25d4c649bf1e28e7057895f4ef25dc",
+      "wav_sha256": "4bd4c6ce528d96b46a19d2d40780cfe697caaee3567d9336bd5e6ad5d6051ccf"
+    },
+    {
+      "mp3": "16000_1_32k_full.mp3",
+      "wav": "16000_1_32k_full.wav",
+      "mp3_sha256": "5fd9ce56ae0901863ede5281ac80dad994a1412cb74cea78abaa231d253ded75",
+      "wav_sha256": "e9031e4a00837b28d329ea3539f7cceee78d60003e472f5666cd098f9aa41d1a"
+    },
+    {
+      "mp3": "16000_1_32k_concatenated.mp3",
+      "wav": "16000_1_32k_concatenated.wav",
+      "mp3_sha256": "c0564e6cc5b480626978781edb6ed5b8b736213129ff32a054310a1a2af5385b",
+      "wav_sha256": "76d8819dba321331e95c105617bba0633380911a0a776dcb92f8a76ceb0e830b"
+    },
+    {
+      "mp3": "48000_2_192k_full.mp3",
+      "wav": "48000_2_192k_full.wav",
+      "mp3_sha256": "10c479549f99247473ce9f021f46b819e36c1e18bd3fcf4e1e573701f755922f",
+      "wav_sha256": "2e93a155d94b1a1b82c8f63e2571d46ddb1f0886c151033e082d8e98c236a08a"
+    },
+    {
+      "mp3": "48000_2_192k_concatenated.mp3",
+      "wav": "48000_2_192k_concatenated.wav",
+      "mp3_sha256": "8752e09a68151e425b1021f0a0d3a748c09e646f2603aa8aaf580703f7ad8f8a",
+      "wav_sha256": "1a5c7d36ca22ec5b594459138e4c309f7587ab56a18617f6c48b287c5b8fbd64"
+    },
+    {
+      "mp3": "python_live.mp3",
+      "wav": "python_live_decoded_by_python.wav",
+      "mp3_sha256": "26dccd14ad08c72a09472033b3d23525d50ac5ec8563bef60b0d6bfb842aca68",
+      "wav_sha256": "49683f5ff9e88911c04e16464042f8c9e34b1011afac7e38d07ea5218942b571"
+    },
+    {
+      "mp3": "native_live.mp3",
+      "wav": "native_live_decoded_by_python.wav",
+      "mp3_sha256": "d161f50184bde7070f15ba385c5083733df6c7b5abcb0d93704067e4cfc0006d",
+      "wav_sha256": "cc9ec7aaade3647d9da83f05dc166e75f47021542a69a596c1880fa5364f448a"
+    }
+  ]
+}

@@ -1,0 +1,4105 @@
+{
+  "source": "aiohttp client WebSocketReader with compression disabled and 64 MiB max_msg_size as used by TunnelClient",
+  "aiohttp_version": "3.14.5",
+  "reader_module": "aiohttp._websocket.reader_c",
+  "reader_py_sha256": "8d1e9792c11de8d7aac6827b882451dedd54539b2f4f560dbbb5397ccdff530b",
+  "tunnel_sha256": "d2c604fffacf088da6c3fc555d1d24d2a6b0b7af592f8cba3f67b7ea5dea4496",
+  "cases": [
+    {
+      "name": "text-1",
+      "frames": [
+        {
+          "hex": "68656c6c6f"
+        }
+      ],
+      "chunk": 1,
+      "events": [
+        {
+          "opcode": 1,
+          "size": 5,
+          "sha256": "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824"
+        }
+      ],
+      "error_code": 0
+    },
+    {
+      "name": "fragment-ping-1",
+      "frames": [
+        {
+          "hex": "7b2274223a",
+          "fin": false
+        },
+        {
+          "hex": "70696e67",
+          "opcode": 9
+        },
+        {
+          "hex": "2270696e67227d",
+          "opcode": 0
+        }
+      ],
+      "chunk": 1,
+      "events": [
+        {
+          "opcode": 9,
+          "size": 4,
+          "sha256": "758d61f26a44448384e5c4468a0dcb7a2abe456067b0f7b505bc28b9411fe931"
+        },
+        {
+          "opcode": 1,
+          "size": 12,
+          "sha256": "58ededfe0e63fddb4c0f3b88185ada51262d506c1c0652befcb00f90a128fc0f"
+        }
+      ],
+      "error_code": 0
+    },
+    {
+      "name": "split-unicode-1",
+      "frames": [
+        {
+          "hex": "f09f",
+          "fin": false
+        },
+        {
+          "hex": "92a9",
+          "opcode": 0
+        }
+      ],
+      "chunk": 1,
+      "events": [
+        {
+          "opcode": 1,
+          "size": 4,
+          "sha256": "34722ef0267ceda14f0e2b756b83e85d6e79e458967895e72b07f87da7c0e275"
+        }
+      ],
+      "error_code": 0
+    },
+    {
+      "name": "masked-1",
+      "frames": [
+        {
+          "hex": "68656c6c6f",
+          "mask": "01020304"
+        },
+        {
+          "hex": "00ff",
+          "opcode": 2
+        }
+      ],
+      "chunk": 1,
+      "events": [
+        {
+          "opcode": 1,
+          "size": 5,
+          "sha256": "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824"
+        },
+        {
+          "opcode": 2,
+          "size": 2,
+          "sha256": "06eb7d6a69ee19e5fbdf749018d3d2abfa04bcbd1365db312eb86dc7169389b8"
+        }
+      ],
+      "error_code": 0
+    },
+    {
+      "name": "text-2",
+      "frames": [
+        {
+          "hex": "68656c6c6f"
+        }
+      ],
+      "chunk": 2,
+      "events": [
+        {
+          "opcode": 1,
+          "size": 5,
+          "sha256": "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824"
+        }
+      ],
+      "error_code": 0
+    },
+    {
+      "name": "fragment-ping-2",
+      "frames": [
+        {
+          "hex": "7b2274223a",
+          "fin": false
+        },
+        {
+          "hex": "70696e67",
+          "opcode": 9
+        },
+        {
+          "hex": "2270696e67227d",
+          "opcode": 0
+        }
+      ],
+      "chunk": 2,
+      "events": [
+        {
+          "opcode": 9,
+          "size": 4,
+          "sha256": "758d61f26a44448384e5c4468a0dcb7a2abe456067b0f7b505bc28b9411fe931"
+        },
+        {
+          "opcode": 1,
+          "size": 12,
+          "sha256": "58ededfe0e63fddb4c0f3b88185ada51262d506c1c0652befcb00f90a128fc0f"
+        }
+      ],
+      "error_code": 0
+    },
+    {
+      "name": "split-unicode-2",
+      "frames": [
+        {
+          "hex": "f09f",
+          "fin": false
+        },
+        {
+          "hex": "92a9",
+          "opcode": 0
+        }
+      ],
+      "chunk": 2,
+      "events": [
+        {
+          "opcode": 1,
+          "size": 4,
+          "sha256": "34722ef0267ceda14f0e2b756b83e85d6e79e458967895e72b07f87da7c0e275"
+        }
+      ],
+      "error_code": 0
+    },
+    {
+      "name": "masked-2",
+      "frames": [
+        {
+          "hex": "68656c6c6f",
+          "mask": "01020304"
+        },
+        {
+          "hex": "00ff",
+          "opcode": 2
+        }
+      ],
+      "chunk": 2,
+      "events": [
+        {
+          "opcode": 1,
+          "size": 5,
+          "sha256": "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824"
+        },
+        {
+          "opcode": 2,
+          "size": 2,
+          "sha256": "06eb7d6a69ee19e5fbdf749018d3d2abfa04bcbd1365db312eb86dc7169389b8"
+        }
+      ],
+      "error_code": 0
+    },
+    {
+      "name": "text-3",
+      "frames": [
+        {
+          "hex": "68656c6c6f"
+        }
+      ],
+      "chunk": 3,
+      "events": [
+        {
+          "opcode": 1,
+          "size": 5,
+          "sha256": "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824"
+        }
+      ],
+      "error_code": 0
+    },
+    {
+      "name": "fragment-ping-3",
+      "frames": [
+        {
+          "hex": "7b2274223a",
+          "fin": false
+        },
+        {
+          "hex": "70696e67",
+          "opcode": 9
+        },
+        {
+          "hex": "2270696e67227d",
+          "opcode": 0
+        }
+      ],
+      "chunk": 3,
+      "events": [
+        {
+          "opcode": 9,
+          "size": 4,
+          "sha256": "758d61f26a44448384e5c4468a0dcb7a2abe456067b0f7b505bc28b9411fe931"
+        },
+        {
+          "opcode": 1,
+          "size": 12,
+          "sha256": "58ededfe0e63fddb4c0f3b88185ada51262d506c1c0652befcb00f90a128fc0f"
+        }
+      ],
+      "error_code": 0
+    },
+    {
+      "name": "split-unicode-3",
+      "frames": [
+        {
+          "hex": "f09f",
+          "fin": false
+        },
+        {
+          "hex": "92a9",
+          "opcode": 0
+        }
+      ],
+      "chunk": 3,
+      "events": [
+        {
+          "opcode": 1,
+          "size": 4,
+          "sha256": "34722ef0267ceda14f0e2b756b83e85d6e79e458967895e72b07f87da7c0e275"
+        }
+      ],
+      "error_code": 0
+    },
+    {
+      "name": "masked-3",
+      "frames": [
+        {
+          "hex": "68656c6c6f",
+          "mask": "01020304"
+        },
+        {
+          "hex": "00ff",
+          "opcode": 2
+        }
+      ],
+      "chunk": 3,
+      "events": [
+        {
+          "opcode": 1,
+          "size": 5,
+          "sha256": "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824"
+        },
+        {
+          "opcode": 2,
+          "size": 2,
+          "sha256": "06eb7d6a69ee19e5fbdf749018d3d2abfa04bcbd1365db312eb86dc7169389b8"
+        }
+      ],
+      "error_code": 0
+    },
+    {
+      "name": "text-7",
+      "frames": [
+        {
+          "hex": "68656c6c6f"
+        }
+      ],
+      "chunk": 7,
+      "events": [
+        {
+          "opcode": 1,
+          "size": 5,
+          "sha256": "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824"
+        }
+      ],
+      "error_code": 0
+    },
+    {
+      "name": "fragment-ping-7",
+      "frames": [
+        {
+          "hex": "7b2274223a",
+          "fin": false
+        },
+        {
+          "hex": "70696e67",
+          "opcode": 9
+        },
+        {
+          "hex": "2270696e67227d",
+          "opcode": 0
+        }
+      ],
+      "chunk": 7,
+      "events": [
+        {
+          "opcode": 9,
+          "size": 4,
+          "sha256": "758d61f26a44448384e5c4468a0dcb7a2abe456067b0f7b505bc28b9411fe931"
+        },
+        {
+          "opcode": 1,
+          "size": 12,
+          "sha256": "58ededfe0e63fddb4c0f3b88185ada51262d506c1c0652befcb00f90a128fc0f"
+        }
+      ],
+      "error_code": 0
+    },
+    {
+      "name": "split-unicode-7",
+      "frames": [
+        {
+          "hex": "f09f",
+          "fin": false
+        },
+        {
+          "hex": "92a9",
+          "opcode": 0
+        }
+      ],
+      "chunk": 7,
+      "events": [
+        {
+          "opcode": 1,
+          "size": 4,
+          "sha256": "34722ef0267ceda14f0e2b756b83e85d6e79e458967895e72b07f87da7c0e275"
+        }
+      ],
+      "error_code": 0
+    },
+    {
+      "name": "masked-7",
+      "frames": [
+        {
+          "hex": "68656c6c6f",
+          "mask": "01020304"
+        },
+        {
+          "hex": "00ff",
+          "opcode": 2
+        }
+      ],
+      "chunk": 7,
+      "events": [
+        {
+          "opcode": 1,
+          "size": 5,
+          "sha256": "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824"
+        },
+        {
+          "opcode": 2,
+          "size": 2,
+          "sha256": "06eb7d6a69ee19e5fbdf749018d3d2abfa04bcbd1365db312eb86dc7169389b8"
+        }
+      ],
+      "error_code": 0
+    },
+    {
+      "name": "text-4096",
+      "frames": [
+        {
+          "hex": "68656c6c6f"
+        }
+      ],
+      "chunk": 4096,
+      "events": [
+        {
+          "opcode": 1,
+          "size": 5,
+          "sha256": "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824"
+        }
+      ],
+      "error_code": 0
+    },
+    {
+      "name": "fragment-ping-4096",
+      "frames": [
+        {
+          "hex": "7b2274223a",
+          "fin": false
+        },
+        {
+          "hex": "70696e67",
+          "opcode": 9
+        },
+        {
+          "hex": "2270696e67227d",
+          "opcode": 0
+        }
+      ],
+      "chunk": 4096,
+      "events": [
+        {
+          "opcode": 9,
+          "size": 4,
+          "sha256": "758d61f26a44448384e5c4468a0dcb7a2abe456067b0f7b505bc28b9411fe931"
+        },
+        {
+          "opcode": 1,
+          "size": 12,
+          "sha256": "58ededfe0e63fddb4c0f3b88185ada51262d506c1c0652befcb00f90a128fc0f"
+        }
+      ],
+      "error_code": 0
+    },
+    {
+      "name": "split-unicode-4096",
+      "frames": [
+        {
+          "hex": "f09f",
+          "fin": false
+        },
+        {
+          "hex": "92a9",
+          "opcode": 0
+        }
+      ],
+      "chunk": 4096,
+      "events": [
+        {
+          "opcode": 1,
+          "size": 4,
+          "sha256": "34722ef0267ceda14f0e2b756b83e85d6e79e458967895e72b07f87da7c0e275"
+        }
+      ],
+      "error_code": 0
+    },
+    {
+      "name": "masked-4096",
+      "frames": [
+        {
+          "hex": "68656c6c6f",
+          "mask": "01020304"
+        },
+        {
+          "hex": "00ff",
+          "opcode": 2
+        }
+      ],
+      "chunk": 4096,
+      "events": [
+        {
+          "opcode": 1,
+          "size": 5,
+          "sha256": "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824"
+        },
+        {
+          "opcode": 2,
+          "size": 2,
+          "sha256": "06eb7d6a69ee19e5fbdf749018d3d2abfa04bcbd1365db312eb86dc7169389b8"
+        }
+      ],
+      "error_code": 0
+    },
+    {
+      "name": "opcode-0",
+      "frames": [
+        {
+          "hex": "61",
+          "opcode": 0
+        }
+      ],
+      "events": [],
+      "error_code": 1002
+    },
+    {
+      "name": "opcode-3",
+      "frames": [
+        {
+          "hex": "61",
+          "opcode": 3
+        }
+      ],
+      "events": [],
+      "error_code": 1002
+    },
+    {
+      "name": "opcode-4",
+      "frames": [
+        {
+          "hex": "61",
+          "opcode": 4
+        }
+      ],
+      "events": [],
+      "error_code": 1002
+    },
+    {
+      "name": "opcode-5",
+      "frames": [
+        {
+          "hex": "61",
+          "opcode": 5
+        }
+      ],
+      "events": [],
+      "error_code": 1002
+    },
+    {
+      "name": "opcode-6",
+      "frames": [
+        {
+          "hex": "61",
+          "opcode": 6
+        }
+      ],
+      "events": [],
+      "error_code": 1002
+    },
+    {
+      "name": "opcode-7",
+      "frames": [
+        {
+          "hex": "61",
+          "opcode": 7
+        }
+      ],
+      "events": [],
+      "error_code": 1002
+    },
+    {
+      "name": "opcode-11",
+      "frames": [
+        {
+          "hex": "61",
+          "opcode": 11
+        }
+      ],
+      "events": [],
+      "error_code": 1002
+    },
+    {
+      "name": "opcode-12",
+      "frames": [
+        {
+          "hex": "61",
+          "opcode": 12
+        }
+      ],
+      "events": [],
+      "error_code": 1002
+    },
+    {
+      "name": "opcode-13",
+      "frames": [
+        {
+          "hex": "61",
+          "opcode": 13
+        }
+      ],
+      "events": [],
+      "error_code": 1002
+    },
+    {
+      "name": "opcode-14",
+      "frames": [
+        {
+          "hex": "61",
+          "opcode": 14
+        }
+      ],
+      "events": [],
+      "error_code": 1002
+    },
+    {
+      "name": "opcode-15",
+      "frames": [
+        {
+          "hex": "61",
+          "opcode": 15
+        }
+      ],
+      "events": [],
+      "error_code": 1002
+    },
+    {
+      "name": "reserved-16",
+      "frames": [
+        {
+          "hex": "61",
+          "rsv": 16
+        }
+      ],
+      "events": [],
+      "error_code": 1002
+    },
+    {
+      "name": "reserved-32",
+      "frames": [
+        {
+          "hex": "61",
+          "rsv": 32
+        }
+      ],
+      "events": [],
+      "error_code": 1002
+    },
+    {
+      "name": "reserved-64",
+      "frames": [
+        {
+          "hex": "61",
+          "rsv": 64
+        }
+      ],
+      "events": [],
+      "error_code": 1002
+    },
+    {
+      "name": "reserved-112",
+      "frames": [
+        {
+          "hex": "61",
+          "rsv": 112
+        }
+      ],
+      "events": [],
+      "error_code": 1002
+    },
+    {
+      "name": "fragment-control-8",
+      "frames": [
+        {
+          "hex": "",
+          "opcode": 8,
+          "fin": false
+        }
+      ],
+      "events": [],
+      "error_code": 1002
+    },
+    {
+      "name": "long-control-8",
+      "frames": [
+        {
+          "opcode": 8,
+          "count": 126
+        }
+      ],
+      "events": [],
+      "error_code": 1002
+    },
+    {
+      "name": "extended-short-control-8",
+      "frames": [
+        {
+          "hex": "61",
+          "opcode": 8,
+          "length_code": 126
+        }
+      ],
+      "events": [],
+      "error_code": 1002
+    },
+    {
+      "name": "fragment-control-9",
+      "frames": [
+        {
+          "hex": "",
+          "opcode": 9,
+          "fin": false
+        }
+      ],
+      "events": [],
+      "error_code": 1002
+    },
+    {
+      "name": "long-control-9",
+      "frames": [
+        {
+          "opcode": 9,
+          "count": 126
+        }
+      ],
+      "events": [],
+      "error_code": 1002
+    },
+    {
+      "name": "extended-short-control-9",
+      "frames": [
+        {
+          "hex": "61",
+          "opcode": 9,
+          "length_code": 126
+        }
+      ],
+      "events": [],
+      "error_code": 1002
+    },
+    {
+      "name": "fragment-control-10",
+      "frames": [
+        {
+          "hex": "",
+          "opcode": 10,
+          "fin": false
+        }
+      ],
+      "events": [],
+      "error_code": 1002
+    },
+    {
+      "name": "long-control-10",
+      "frames": [
+        {
+          "opcode": 10,
+          "count": 126
+        }
+      ],
+      "events": [],
+      "error_code": 1002
+    },
+    {
+      "name": "extended-short-control-10",
+      "frames": [
+        {
+          "hex": "61",
+          "opcode": 10,
+          "length_code": 126
+        }
+      ],
+      "events": [],
+      "error_code": 1002
+    },
+    {
+      "name": "utf8-ff",
+      "frames": [
+        {
+          "hex": "ff"
+        }
+      ],
+      "events": [],
+      "error_code": 1007
+    },
+    {
+      "name": "utf8-fragment-ff",
+      "frames": [
+        {
+          "hex": "ff",
+          "fin": false
+        },
+        {
+          "hex": "",
+          "opcode": 0
+        }
+      ],
+      "events": [],
+      "error_code": 1007
+    },
+    {
+      "name": "utf8-c0af",
+      "frames": [
+        {
+          "hex": "c0af"
+        }
+      ],
+      "events": [],
+      "error_code": 1007
+    },
+    {
+      "name": "utf8-fragment-c0af",
+      "frames": [
+        {
+          "hex": "c0af",
+          "fin": false
+        },
+        {
+          "hex": "",
+          "opcode": 0
+        }
+      ],
+      "events": [],
+      "error_code": 1007
+    },
+    {
+      "name": "utf8-eda080",
+      "frames": [
+        {
+          "hex": "eda080"
+        }
+      ],
+      "events": [],
+      "error_code": 1007
+    },
+    {
+      "name": "utf8-fragment-eda080",
+      "frames": [
+        {
+          "hex": "eda080",
+          "fin": false
+        },
+        {
+          "hex": "",
+          "opcode": 0
+        }
+      ],
+      "events": [],
+      "error_code": 1007
+    },
+    {
+      "name": "utf8-f4908080",
+      "frames": [
+        {
+          "hex": "f4908080"
+        }
+      ],
+      "events": [],
+      "error_code": 1007
+    },
+    {
+      "name": "utf8-fragment-f4908080",
+      "frames": [
+        {
+          "hex": "f4908080",
+          "fin": false
+        },
+        {
+          "hex": "",
+          "opcode": 0
+        }
+      ],
+      "events": [],
+      "error_code": 1007
+    },
+    {
+      "name": "utf8-e282",
+      "frames": [
+        {
+          "hex": "e282"
+        }
+      ],
+      "events": [],
+      "error_code": 1007
+    },
+    {
+      "name": "utf8-fragment-e282",
+      "frames": [
+        {
+          "hex": "e282",
+          "fin": false
+        },
+        {
+          "hex": "",
+          "opcode": 0
+        }
+      ],
+      "events": [],
+      "error_code": 1007
+    },
+    {
+      "name": "utf8-c280",
+      "frames": [
+        {
+          "hex": "c280"
+        }
+      ],
+      "events": [
+        {
+          "opcode": 1,
+          "size": 2,
+          "sha256": "ea0add9a514e94de9abd0ba721eed15b15aa0b3a0f09ebee5e54a9dfae943153"
+        }
+      ],
+      "error_code": 0
+    },
+    {
+      "name": "utf8-fragment-c280",
+      "frames": [
+        {
+          "hex": "c280",
+          "fin": false
+        },
+        {
+          "hex": "",
+          "opcode": 0
+        }
+      ],
+      "events": [
+        {
+          "opcode": 1,
+          "size": 2,
+          "sha256": "ea0add9a514e94de9abd0ba721eed15b15aa0b3a0f09ebee5e54a9dfae943153"
+        }
+      ],
+      "error_code": 0
+    },
+    {
+      "name": "utf8-efbfbe",
+      "frames": [
+        {
+          "hex": "efbfbe"
+        }
+      ],
+      "events": [
+        {
+          "opcode": 1,
+          "size": 3,
+          "sha256": "4cfe925ffc429b7d7626a25a3d60a26592f6c7c352d4068311080abc58502d76"
+        }
+      ],
+      "error_code": 0
+    },
+    {
+      "name": "utf8-fragment-efbfbe",
+      "frames": [
+        {
+          "hex": "efbfbe",
+          "fin": false
+        },
+        {
+          "hex": "",
+          "opcode": 0
+        }
+      ],
+      "events": [
+        {
+          "opcode": 1,
+          "size": 3,
+          "sha256": "4cfe925ffc429b7d7626a25a3d60a26592f6c7c352d4068311080abc58502d76"
+        }
+      ],
+      "error_code": 0
+    },
+    {
+      "name": "utf8-00",
+      "frames": [
+        {
+          "hex": "00"
+        }
+      ],
+      "events": [
+        {
+          "opcode": 1,
+          "size": 1,
+          "sha256": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d"
+        }
+      ],
+      "error_code": 0
+    },
+    {
+      "name": "utf8-fragment-00",
+      "frames": [
+        {
+          "hex": "00",
+          "fin": false
+        },
+        {
+          "hex": "",
+          "opcode": 0
+        }
+      ],
+      "events": [
+        {
+          "opcode": 1,
+          "size": 1,
+          "sha256": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d"
+        }
+      ],
+      "error_code": 0
+    },
+    {
+      "name": "close-0",
+      "frames": [
+        {
+          "hex": "0000",
+          "opcode": 8
+        }
+      ],
+      "events": [],
+      "error_code": 1002
+    },
+    {
+      "name": "close-999",
+      "frames": [
+        {
+          "hex": "03e7",
+          "opcode": 8
+        }
+      ],
+      "events": [],
+      "error_code": 1002
+    },
+    {
+      "name": "close-1000",
+      "frames": [
+        {
+          "hex": "03e8",
+          "opcode": 8
+        }
+      ],
+      "events": [
+        {
+          "opcode": 8,
+          "size": 2,
+          "sha256": "203fea74fb42ca791709fb384495b3b3386582d330809a1d435b3684f7f630c3"
+        }
+      ],
+      "error_code": 0
+    },
+    {
+      "name": "close-1001",
+      "frames": [
+        {
+          "hex": "03e9",
+          "opcode": 8
+        }
+      ],
+      "events": [
+        {
+          "opcode": 8,
+          "size": 2,
+          "sha256": "1ce0736c78fb44ae96562a609300ec636c06cc4dfc63ba91d978488cff3d2f62"
+        }
+      ],
+      "error_code": 0
+    },
+    {
+      "name": "close-1002",
+      "frames": [
+        {
+          "hex": "03ea",
+          "opcode": 8
+        }
+      ],
+      "events": [
+        {
+          "opcode": 8,
+          "size": 2,
+          "sha256": "a519b5ea2fb6a8c922a6c06fee612272412ae94a1b9f43c7e537ed0c79eb0b46"
+        }
+      ],
+      "error_code": 0
+    },
+    {
+      "name": "close-1003",
+      "frames": [
+        {
+          "hex": "03eb",
+          "opcode": 8
+        }
+      ],
+      "events": [
+        {
+          "opcode": 8,
+          "size": 2,
+          "sha256": "7dc5c425a5fc0ba8f90cef14e4f6080c9f8cb38463c70ebbfc07703233f09252"
+        }
+      ],
+      "error_code": 0
+    },
+    {
+      "name": "close-1004",
+      "frames": [
+        {
+          "hex": "03ec",
+          "opcode": 8
+        }
+      ],
+      "events": [],
+      "error_code": 1002
+    },
+    {
+      "name": "close-1005",
+      "frames": [
+        {
+          "hex": "03ed",
+          "opcode": 8
+        }
+      ],
+      "events": [],
+      "error_code": 1002
+    },
+    {
+      "name": "close-1006",
+      "frames": [
+        {
+          "hex": "03ee",
+          "opcode": 8
+        }
+      ],
+      "events": [
+        {
+          "opcode": 8,
+          "size": 2,
+          "sha256": "9aab521c8ed1eec05cc4e9ab5242b03a45fe6271eaa6f847b8ffa3ab42f3d39f"
+        }
+      ],
+      "error_code": 0
+    },
+    {
+      "name": "close-1007",
+      "frames": [
+        {
+          "hex": "03ef",
+          "opcode": 8
+        }
+      ],
+      "events": [
+        {
+          "opcode": 8,
+          "size": 2,
+          "sha256": "851d41bf414cf1b784cffa1f4ef998fdb5360978c10e2eb33e21f32d7b1890d5"
+        }
+      ],
+      "error_code": 0
+    },
+    {
+      "name": "close-1008",
+      "frames": [
+        {
+          "hex": "03f0",
+          "opcode": 8
+        }
+      ],
+      "events": [
+        {
+          "opcode": 8,
+          "size": 2,
+          "sha256": "872d6959b91f2a19ce8944934fe3648e34d548bdce695d3af9dbccccaee0b8d4"
+        }
+      ],
+      "error_code": 0
+    },
+    {
+      "name": "close-1009",
+      "frames": [
+        {
+          "hex": "03f1",
+          "opcode": 8
+        }
+      ],
+      "events": [
+        {
+          "opcode": 8,
+          "size": 2,
+          "sha256": "e87c3fc9a61c5538df6c46deb0399c69c6f0d5a8a0f71a14a29ddb4d5836edd7"
+        }
+      ],
+      "error_code": 0
+    },
+    {
+      "name": "close-1010",
+      "frames": [
+        {
+          "hex": "03f2",
+          "opcode": 8
+        }
+      ],
+      "events": [
+        {
+          "opcode": 8,
+          "size": 2,
+          "sha256": "b79d6e4eb0a378a24271ce2b504c6a01792b48cc954f83957986052ac9ef6ed1"
+        }
+      ],
+      "error_code": 0
+    },
+    {
+      "name": "close-1011",
+      "frames": [
+        {
+          "hex": "03f3",
+          "opcode": 8
+        }
+      ],
+      "events": [
+        {
+          "opcode": 8,
+          "size": 2,
+          "sha256": "afc2104b538644964edf5c36083f7a997296765b074dc2918119bba739a796cb"
+        }
+      ],
+      "error_code": 0
+    },
+    {
+      "name": "close-1012",
+      "frames": [
+        {
+          "hex": "03f4",
+          "opcode": 8
+        }
+      ],
+      "events": [
+        {
+          "opcode": 8,
+          "size": 2,
+          "sha256": "7db27b06466524c1b34e412e418fb70c5d50514c8e7e62f671360b6a9ba97509"
+        }
+      ],
+      "error_code": 0
+    },
+    {
+      "name": "close-1013",
+      "frames": [
+        {
+          "hex": "03f5",
+          "opcode": 8
+        }
+      ],
+      "events": [
+        {
+          "opcode": 8,
+          "size": 2,
+          "sha256": "3e47e1627cbc8aaddf98148e4a72196839671b0bc2cbe4d519003a5715170682"
+        }
+      ],
+      "error_code": 0
+    },
+    {
+      "name": "close-1014",
+      "frames": [
+        {
+          "hex": "03f6",
+          "opcode": 8
+        }
+      ],
+      "events": [
+        {
+          "opcode": 8,
+          "size": 2,
+          "sha256": "ccb487e27344925664e8bd55eef49f72e656c00580df8116838dc3ceca453cd5"
+        }
+      ],
+      "error_code": 0
+    },
+    {
+      "name": "close-1015",
+      "frames": [
+        {
+          "hex": "03f7",
+          "opcode": 8
+        }
+      ],
+      "events": [],
+      "error_code": 1002
+    },
+    {
+      "name": "close-2999",
+      "frames": [
+        {
+          "hex": "0bb7",
+          "opcode": 8
+        }
+      ],
+      "events": [],
+      "error_code": 1002
+    },
+    {
+      "name": "close-3000",
+      "frames": [
+        {
+          "hex": "0bb8",
+          "opcode": 8
+        }
+      ],
+      "events": [
+        {
+          "opcode": 8,
+          "size": 2,
+          "sha256": "8a7bd29f0a166206f5e04acf48007fde05c5ab9c0def1a8575f064149d5398e9"
+        }
+      ],
+      "error_code": 0
+    },
+    {
+      "name": "close-4999",
+      "frames": [
+        {
+          "hex": "1387",
+          "opcode": 8
+        }
+      ],
+      "events": [
+        {
+          "opcode": 8,
+          "size": 2,
+          "sha256": "491ad21b441970a1d15ba617bc1cb91e9f8084c5f835f315ecf1c4333223a608"
+        }
+      ],
+      "error_code": 0
+    },
+    {
+      "name": "close-5000",
+      "frames": [
+        {
+          "hex": "1388",
+          "opcode": 8
+        }
+      ],
+      "events": [
+        {
+          "opcode": 8,
+          "size": 2,
+          "sha256": "efc2cf6ec93926d8ade64bbf37da2ebc1ead578e969d6ae5ee8814e5a7e743a5"
+        }
+      ],
+      "error_code": 0
+    },
+    {
+      "name": "close-65535",
+      "frames": [
+        {
+          "hex": "ffff",
+          "opcode": 8
+        }
+      ],
+      "events": [
+        {
+          "opcode": 8,
+          "size": 2,
+          "sha256": "ca2fd00fa001190744c15c317643ab092e7048ce086a243e2be9437c898de1bb"
+        }
+      ],
+      "error_code": 0
+    },
+    {
+      "name": "empty-close",
+      "frames": [
+        {
+          "hex": "",
+          "opcode": 8
+        }
+      ],
+      "events": [
+        {
+          "opcode": 8,
+          "size": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "error_code": 0
+    },
+    {
+      "name": "short-close",
+      "frames": [
+        {
+          "hex": "01",
+          "opcode": 8
+        }
+      ],
+      "events": [],
+      "error_code": 1002
+    },
+    {
+      "name": "close-utf8",
+      "frames": [
+        {
+          "hex": "03e8ff",
+          "opcode": 8
+        }
+      ],
+      "events": [],
+      "error_code": 1007
+    },
+    {
+      "name": "interleaved-text",
+      "frames": [
+        {
+          "hex": "61",
+          "fin": false
+        },
+        {
+          "hex": "62"
+        }
+      ],
+      "events": [],
+      "error_code": 1002
+    },
+    {
+      "name": "interleaved-nonfinal",
+      "frames": [
+        {
+          "hex": "61",
+          "fin": false
+        },
+        {
+          "hex": "62",
+          "fin": false
+        }
+      ],
+      "events": [],
+      "error_code": 1002
+    },
+    {
+      "name": "empty-fragment-interleaving",
+      "frames": [
+        {
+          "hex": "",
+          "fin": false
+        },
+        {
+          "hex": "61"
+        },
+        {
+          "hex": "62",
+          "opcode": 0
+        }
+      ],
+      "events": [
+        {
+          "opcode": 1,
+          "size": 1,
+          "sha256": "ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb"
+        },
+        {
+          "opcode": 1,
+          "size": 1,
+          "sha256": "3e23e8160039594a33894f6564e1b1348bbd7a0088d42c4acb73eeaed59c009d"
+        }
+      ],
+      "error_code": 0
+    },
+    {
+      "name": "unfinished-invalid-text",
+      "frames": [
+        {
+          "hex": "ff",
+          "fin": false
+        },
+        {
+          "hex": "70696e67",
+          "opcode": 9
+        }
+      ],
+      "events": [
+        {
+          "opcode": 9,
+          "size": 4,
+          "sha256": "758d61f26a44448384e5c4468a0dcb7a2abe456067b0f7b505bc28b9411fe931"
+        }
+      ],
+      "error_code": 0
+    },
+    {
+      "name": "binary-fragments",
+      "frames": [
+        {
+          "hex": "00ff",
+          "opcode": 2,
+          "fin": false
+        },
+        {
+          "hex": "abcd",
+          "opcode": 10
+        },
+        {
+          "hex": "01ff",
+          "opcode": 0
+        }
+      ],
+      "events": [
+        {
+          "opcode": 10,
+          "size": 2,
+          "sha256": "123d4c7ef2d1600a1b3a0f6addc60a10f05a3495c9409f2ecbf4cc095d000a6b"
+        },
+        {
+          "opcode": 2,
+          "size": 4,
+          "sha256": "ca81968096bba4d5f180708873a8a804b821dba4f2292aea81090ee556f23d84"
+        }
+      ],
+      "error_code": 0
+    },
+    {
+      "name": "limit-0",
+      "frames": [
+        {
+          "count": 0
+        }
+      ],
+      "limit": 8,
+      "events": [
+        {
+          "opcode": 1,
+          "size": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "error_code": 0
+    },
+    {
+      "name": "limit-1",
+      "frames": [
+        {
+          "count": 1
+        }
+      ],
+      "limit": 8,
+      "events": [
+        {
+          "opcode": 1,
+          "size": 1,
+          "sha256": "ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb"
+        }
+      ],
+      "error_code": 0
+    },
+    {
+      "name": "limit-7",
+      "frames": [
+        {
+          "count": 7
+        }
+      ],
+      "limit": 8,
+      "events": [
+        {
+          "opcode": 1,
+          "size": 7,
+          "sha256": "e46240714b5db3a23eee60479a623efba4d633d27fe4f03c904b9e219a7fbe60"
+        }
+      ],
+      "error_code": 0
+    },
+    {
+      "name": "limit-8",
+      "frames": [
+        {
+          "count": 8
+        }
+      ],
+      "limit": 8,
+      "events": [],
+      "error_code": 1009
+    },
+    {
+      "name": "limit-9",
+      "frames": [
+        {
+          "count": 9
+        }
+      ],
+      "limit": 8,
+      "events": [],
+      "error_code": 1009
+    },
+    {
+      "name": "fragment-limit-3",
+      "frames": [
+        {
+          "count": 4,
+          "fin": false
+        },
+        {
+          "declared": 3,
+          "opcode": 0
+        }
+      ],
+      "limit": 8,
+      "events": [],
+      "error_code": 0
+    },
+    {
+      "name": "fragment-limit-4",
+      "frames": [
+        {
+          "count": 4,
+          "fin": false
+        },
+        {
+          "declared": 4,
+          "opcode": 0
+        }
+      ],
+      "limit": 8,
+      "events": [],
+      "error_code": 1009
+    },
+    {
+      "name": "fragment-limit-5",
+      "frames": [
+        {
+          "count": 4,
+          "fin": false
+        },
+        {
+          "declared": 5,
+          "opcode": 0
+        }
+      ],
+      "limit": 8,
+      "events": [],
+      "error_code": 1009
+    },
+    {
+      "name": "declared-67108864",
+      "frames": [
+        {
+          "declared": 67108864
+        }
+      ],
+      "events": [],
+      "error_code": 1009
+    },
+    {
+      "name": "declared-67108865",
+      "frames": [
+        {
+          "declared": 67108865
+        }
+      ],
+      "events": [],
+      "error_code": 1009
+    },
+    {
+      "name": "declared-9223372036854775807",
+      "frames": [
+        {
+          "declared": 9223372036854775807
+        }
+      ],
+      "events": [],
+      "error_code": 1009
+    },
+    {
+      "name": "declared-9223372036854775808",
+      "frames": [
+        {
+          "declared": 9223372036854775808
+        }
+      ],
+      "events": [],
+      "error_code": 1009
+    },
+    {
+      "name": "declared-18446744073709551615",
+      "frames": [
+        {
+          "declared": 18446744073709551615
+        }
+      ],
+      "events": [],
+      "error_code": 1009
+    },
+    {
+      "name": "large-17MiB",
+      "frames": [
+        {
+          "count": 17825792
+        }
+      ],
+      "chunk": 65536,
+      "events": [
+        {
+          "opcode": 1,
+          "size": 17825792,
+          "sha256": "2cabb964545c9b0810d9b0ecb9b388f2c48ba7b4b1ff08442a11fe5910bded55"
+        }
+      ],
+      "error_code": 0
+    },
+    {
+      "name": "large-fragment-17MiB",
+      "frames": [
+        {
+          "count": 9437184,
+          "fin": false
+        },
+        {
+          "hex": "70",
+          "opcode": 9
+        },
+        {
+          "count": 8388608,
+          "opcode": 0
+        }
+      ],
+      "chunk": 65536,
+      "events": [
+        {
+          "opcode": 9,
+          "size": 1,
+          "sha256": "148de9c5a7a44d19e56cd9ae1a554bf67847afb0c58f6e12fa29ac7ddfca9940"
+        },
+        {
+          "opcode": 1,
+          "size": 17825792,
+          "sha256": "2cabb964545c9b0810d9b0ecb9b388f2c48ba7b4b1ff08442a11fe5910bded55"
+        }
+      ],
+      "error_code": 0
+    },
+    {
+      "name": "below-64MiB",
+      "frames": [
+        {
+          "count": 67108863
+        }
+      ],
+      "chunk": 65536,
+      "events": [
+        {
+          "opcode": 1,
+          "size": 67108863,
+          "sha256": "44161dfe38c1f3661a56e8d2e290ec9a7cdcdf1e7192cd44145479d8a6fccb70"
+        }
+      ],
+      "error_code": 0
+    },
+    {
+      "name": "random-0",
+      "frames": [
+        {
+          "hex": "7e",
+          "fin": false,
+          "opcode": 1
+        },
+        {
+          "hex": "00",
+          "opcode": 9
+        },
+        {
+          "hex": "0127",
+          "opcode": 0
+        }
+      ],
+      "chunk": 7,
+      "events": [
+        {
+          "opcode": 9,
+          "size": 1,
+          "sha256": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d"
+        },
+        {
+          "opcode": 1,
+          "size": 3,
+          "sha256": "87121f3977b6573891cb1a2df56b91e5c5541e035cff10e90ea698e6d7f76e76"
+        }
+      ],
+      "error_code": 0
+    },
+    {
+      "name": "random-1",
+      "frames": [
+        {
+          "hex": "191f09",
+          "fin": false,
+          "opcode": 1
+        },
+        {
+          "hex": "00",
+          "opcode": 10
+        },
+        {
+          "hex": "1779",
+          "opcode": 0
+        }
+      ],
+      "chunk": 7,
+      "events": [
+        {
+          "opcode": 10,
+          "size": 1,
+          "sha256": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d"
+        },
+        {
+          "opcode": 1,
+          "size": 5,
+          "sha256": "bf3bd576794f1b4b11f7057bbf93ccea11844bc32453e11612e4e9d824fafce0"
+        }
+      ],
+      "error_code": 0
+    },
+    {
+      "name": "random-2",
+      "frames": [
+        {
+          "hex": "3c8b2419",
+          "fin": false,
+          "opcode": 2
+        },
+        {
+          "hex": "00",
+          "opcode": 9
+        },
+        {
+          "hex": "be7eead65adf15e67c50092dfd8a",
+          "opcode": 0
+        }
+      ],
+      "chunk": 1,
+      "events": [
+        {
+          "opcode": 9,
+          "size": 1,
+          "sha256": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d"
+        },
+        {
+          "opcode": 2,
+          "size": 18,
+          "sha256": "e591192e363aae26c9de13cbfe39d1f80a2e589f87e8b080aed36fce2ce57672"
+        }
+      ],
+      "error_code": 0
+    },
+    {
+      "name": "random-3",
+      "frames": [
+        {
+          "hex": "00c6667edf5dd1",
+          "fin": false,
+          "opcode": 1
+        },
+        {
+          "hex": "00",
+          "opcode": 9
+        },
+        {
+          "hex": "696301fcd13299369ab3",
+          "opcode": 0
+        }
+      ],
+      "chunk": 4096,
+      "events": [
+        {
+          "opcode": 9,
+          "size": 1,
+          "sha256": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d"
+        }
+      ],
+      "error_code": 1007
+    },
+    {
+      "name": "random-4",
+      "frames": [
+        {
+          "hex": "e3f4",
+          "fin": false,
+          "opcode": 1
+        },
+        {
+          "hex": "00",
+          "opcode": 10
+        },
+        {
+          "hex": "a67feac50864de970ac420",
+          "opcode": 0
+        }
+      ],
+      "chunk": 1,
+      "events": [
+        {
+          "opcode": 10,
+          "size": 1,
+          "sha256": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d"
+        }
+      ],
+      "error_code": 1007
+    },
+    {
+      "name": "random-5",
+      "frames": [
+        {
+          "hex": "6fc0e8d319b8a0",
+          "fin": false,
+          "opcode": 1
+        },
+        {
+          "hex": "00",
+          "opcode": 10
+        },
+        {
+          "hex": "ef8437da",
+          "opcode": 0
+        }
+      ],
+      "chunk": 7,
+      "events": [
+        {
+          "opcode": 10,
+          "size": 1,
+          "sha256": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d"
+        }
+      ],
+      "error_code": 1007
+    },
+    {
+      "name": "random-6",
+      "frames": [
+        {
+          "hex": "94723344",
+          "fin": false,
+          "opcode": 1
+        },
+        {
+          "hex": "00",
+          "opcode": 9
+        },
+        {
+          "hex": "8d1a3db4c0a9626e",
+          "opcode": 0
+        }
+      ],
+      "chunk": 1,
+      "events": [
+        {
+          "opcode": 9,
+          "size": 1,
+          "sha256": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d"
+        }
+      ],
+      "error_code": 1007
+    },
+    {
+      "name": "random-7",
+      "frames": [
+        {
+          "hex": "",
+          "fin": false,
+          "opcode": 1
+        },
+        {
+          "hex": "00",
+          "opcode": 10
+        },
+        {
+          "hex": "",
+          "opcode": 0
+        }
+      ],
+      "chunk": 2,
+      "events": [
+        {
+          "opcode": 10,
+          "size": 1,
+          "sha256": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d"
+        },
+        {
+          "opcode": 1,
+          "size": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "error_code": 0
+    },
+    {
+      "name": "random-8",
+      "frames": [
+        {
+          "hex": "c6",
+          "fin": false,
+          "opcode": 1
+        },
+        {
+          "hex": "00",
+          "opcode": 10
+        },
+        {
+          "hex": "eded36",
+          "opcode": 0
+        }
+      ],
+      "chunk": 1,
+      "events": [
+        {
+          "opcode": 10,
+          "size": 1,
+          "sha256": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d"
+        }
+      ],
+      "error_code": 1007
+    },
+    {
+      "name": "random-9",
+      "frames": [
+        {
+          "hex": "20a7",
+          "fin": false,
+          "opcode": 1
+        },
+        {
+          "hex": "00",
+          "opcode": 9
+        },
+        {
+          "hex": "adc422",
+          "opcode": 0
+        }
+      ],
+      "chunk": 4096,
+      "events": [
+        {
+          "opcode": 9,
+          "size": 1,
+          "sha256": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d"
+        }
+      ],
+      "error_code": 1007
+    },
+    {
+      "name": "random-10",
+      "frames": [
+        {
+          "hex": "6f3782",
+          "fin": false,
+          "opcode": 2
+        },
+        {
+          "hex": "00",
+          "opcode": 9
+        },
+        {
+          "hex": "d1",
+          "opcode": 0
+        }
+      ],
+      "chunk": 2,
+      "events": [
+        {
+          "opcode": 9,
+          "size": 1,
+          "sha256": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d"
+        },
+        {
+          "opcode": 2,
+          "size": 4,
+          "sha256": "e6da851d81b0d9577e8b448d3bd7ecaa6f65fd641509a10a07cf67f5fef4d3bb"
+        }
+      ],
+      "error_code": 0
+    },
+    {
+      "name": "random-11",
+      "frames": [
+        {
+          "hex": "949e",
+          "fin": false,
+          "opcode": 1
+        },
+        {
+          "hex": "00",
+          "opcode": 10
+        },
+        {
+          "hex": "9b26b3abc22825a3d7",
+          "opcode": 0
+        }
+      ],
+      "chunk": 2,
+      "events": [
+        {
+          "opcode": 10,
+          "size": 1,
+          "sha256": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d"
+        }
+      ],
+      "error_code": 1007
+    },
+    {
+      "name": "random-12",
+      "frames": [
+        {
+          "hex": "ba5b3468b3516c5d",
+          "fin": false,
+          "opcode": 2
+        },
+        {
+          "hex": "00",
+          "opcode": 9
+        },
+        {
+          "hex": "bb24798e7cbd89ca6ebbde",
+          "opcode": 0
+        }
+      ],
+      "chunk": 2,
+      "events": [
+        {
+          "opcode": 9,
+          "size": 1,
+          "sha256": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d"
+        },
+        {
+          "opcode": 2,
+          "size": 19,
+          "sha256": "83ba9705be6af0026e341e7eab7b8ab8b3453a4b86e64394bce4782e5d9f520e"
+        }
+      ],
+      "error_code": 0
+    },
+    {
+      "name": "random-13",
+      "frames": [
+        {
+          "hex": "02d5",
+          "fin": false,
+          "opcode": 1
+        },
+        {
+          "hex": "00",
+          "opcode": 10
+        },
+        {
+          "hex": "b1",
+          "opcode": 0
+        }
+      ],
+      "chunk": 1,
+      "events": [
+        {
+          "opcode": 10,
+          "size": 1,
+          "sha256": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d"
+        },
+        {
+          "opcode": 1,
+          "size": 3,
+          "sha256": "01ac6468a97530329f08607dcd87031c0b9c2380ef4ae3411d7e0ad3e8a42ea5"
+        }
+      ],
+      "error_code": 0
+    },
+    {
+      "name": "random-14",
+      "frames": [
+        {
+          "hex": "3944e5d2c375da4b6a0378617bed2a5a",
+          "fin": false,
+          "opcode": 2
+        },
+        {
+          "hex": "00",
+          "opcode": 10
+        },
+        {
+          "hex": "4a",
+          "opcode": 0
+        }
+      ],
+      "chunk": 2,
+      "events": [
+        {
+          "opcode": 10,
+          "size": 1,
+          "sha256": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d"
+        },
+        {
+          "opcode": 2,
+          "size": 17,
+          "sha256": "b55d1678d8b900f9d57516492ba75da7a1db2a0ba7bbed19527102b43d8fa10f"
+        }
+      ],
+      "error_code": 0
+    },
+    {
+      "name": "random-15",
+      "frames": [
+        {
+          "hex": "75b113acbe",
+          "fin": false,
+          "opcode": 1
+        },
+        {
+          "hex": "00",
+          "opcode": 9
+        },
+        {
+          "hex": "",
+          "opcode": 0
+        }
+      ],
+      "chunk": 2,
+      "events": [
+        {
+          "opcode": 9,
+          "size": 1,
+          "sha256": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d"
+        }
+      ],
+      "error_code": 1007
+    },
+    {
+      "name": "random-16",
+      "frames": [
+        {
+          "hex": "aa325101cbef910b",
+          "fin": false,
+          "opcode": 1
+        },
+        {
+          "hex": "00",
+          "opcode": 9
+        },
+        {
+          "hex": "",
+          "opcode": 0
+        }
+      ],
+      "chunk": 4096,
+      "events": [
+        {
+          "opcode": 9,
+          "size": 1,
+          "sha256": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d"
+        }
+      ],
+      "error_code": 1007
+    },
+    {
+      "name": "random-17",
+      "frames": [
+        {
+          "hex": "",
+          "fin": false,
+          "opcode": 2
+        },
+        {
+          "hex": "00",
+          "opcode": 10
+        },
+        {
+          "hex": "c57fd28f",
+          "opcode": 0
+        }
+      ],
+      "chunk": 4096,
+      "events": [
+        {
+          "opcode": 10,
+          "size": 1,
+          "sha256": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d"
+        },
+        {
+          "opcode": 2,
+          "size": 4,
+          "sha256": "81954656a26d798c3f04cc4e67f0194a8c07e3e1b73da1a2df92478cdd8a99c5"
+        }
+      ],
+      "error_code": 0
+    },
+    {
+      "name": "random-18",
+      "frames": [
+        {
+          "hex": "",
+          "fin": false,
+          "opcode": 2
+        },
+        {
+          "hex": "00",
+          "opcode": 9
+        },
+        {
+          "hex": "25e54dfa1cdd14",
+          "opcode": 0
+        }
+      ],
+      "chunk": 4096,
+      "events": [
+        {
+          "opcode": 9,
+          "size": 1,
+          "sha256": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d"
+        },
+        {
+          "opcode": 2,
+          "size": 7,
+          "sha256": "c37585a68c64625fe350c645290e1cae9c3e85caf907512b4395d6ef422edc3a"
+        }
+      ],
+      "error_code": 0
+    },
+    {
+      "name": "random-19",
+      "frames": [
+        {
+          "hex": "",
+          "fin": false,
+          "opcode": 1
+        },
+        {
+          "hex": "00",
+          "opcode": 10
+        },
+        {
+          "hex": "638d04",
+          "opcode": 0
+        }
+      ],
+      "chunk": 1,
+      "events": [
+        {
+          "opcode": 10,
+          "size": 1,
+          "sha256": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d"
+        }
+      ],
+      "error_code": 1007
+    },
+    {
+      "name": "random-20",
+      "frames": [
+        {
+          "hex": "4188",
+          "fin": false,
+          "opcode": 1
+        },
+        {
+          "hex": "00",
+          "opcode": 9
+        },
+        {
+          "hex": "5bde3e",
+          "opcode": 0
+        }
+      ],
+      "chunk": 7,
+      "events": [
+        {
+          "opcode": 9,
+          "size": 1,
+          "sha256": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d"
+        }
+      ],
+      "error_code": 1007
+    },
+    {
+      "name": "random-21",
+      "frames": [
+        {
+          "hex": "b7",
+          "fin": false,
+          "opcode": 2
+        },
+        {
+          "hex": "00",
+          "opcode": 10
+        },
+        {
+          "hex": "c618b2ac893d05fc9701207e",
+          "opcode": 0
+        }
+      ],
+      "chunk": 1,
+      "events": [
+        {
+          "opcode": 10,
+          "size": 1,
+          "sha256": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d"
+        },
+        {
+          "opcode": 2,
+          "size": 13,
+          "sha256": "99437f808f9dd294a9d0579baac14e9d2776eb75a601612552e6d70210a6aad4"
+        }
+      ],
+      "error_code": 0
+    },
+    {
+      "name": "random-22",
+      "frames": [
+        {
+          "hex": "c4fa",
+          "fin": false,
+          "opcode": 1
+        },
+        {
+          "hex": "00",
+          "opcode": 9
+        },
+        {
+          "hex": "0cd1",
+          "opcode": 0
+        }
+      ],
+      "chunk": 2,
+      "events": [
+        {
+          "opcode": 9,
+          "size": 1,
+          "sha256": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d"
+        }
+      ],
+      "error_code": 1007
+    },
+    {
+      "name": "random-23",
+      "frames": [
+        {
+          "hex": "23cd",
+          "fin": false,
+          "opcode": 2
+        },
+        {
+          "hex": "00",
+          "opcode": 9
+        },
+        {
+          "hex": "ebeee67c678d6558befa5b9c3a34f06ced",
+          "opcode": 0
+        }
+      ],
+      "chunk": 4096,
+      "events": [
+        {
+          "opcode": 9,
+          "size": 1,
+          "sha256": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d"
+        },
+        {
+          "opcode": 2,
+          "size": 19,
+          "sha256": "cf9f35743f3c240a79ad06833ad5306388b246fe36e1451ddd95008184e3fa80"
+        }
+      ],
+      "error_code": 0
+    },
+    {
+      "name": "random-24",
+      "frames": [
+        {
+          "hex": "1b7f09bab9",
+          "fin": false,
+          "opcode": 2
+        },
+        {
+          "hex": "00",
+          "opcode": 10
+        },
+        {
+          "hex": "5cb203",
+          "opcode": 0
+        }
+      ],
+      "chunk": 2,
+      "events": [
+        {
+          "opcode": 10,
+          "size": 1,
+          "sha256": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d"
+        },
+        {
+          "opcode": 2,
+          "size": 8,
+          "sha256": "3fa9ae74c8b3359c7f41b54c36450f889b44c87c8fc4a4ddbb3fb1416a89340a"
+        }
+      ],
+      "error_code": 0
+    },
+    {
+      "name": "random-25",
+      "frames": [
+        {
+          "hex": "8ebaae861890f843",
+          "fin": false,
+          "opcode": 1
+        },
+        {
+          "hex": "00",
+          "opcode": 9
+        },
+        {
+          "hex": "69b7c35a",
+          "opcode": 0
+        }
+      ],
+      "chunk": 7,
+      "events": [
+        {
+          "opcode": 9,
+          "size": 1,
+          "sha256": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d"
+        }
+      ],
+      "error_code": 1007
+    },
+    {
+      "name": "random-26",
+      "frames": [
+        {
+          "hex": "1aebae1bbe0182c2e3b3",
+          "fin": false,
+          "opcode": 2
+        },
+        {
+          "hex": "00",
+          "opcode": 10
+        },
+        {
+          "hex": "4937c85bcf0b983d4f",
+          "opcode": 0
+        }
+      ],
+      "chunk": 7,
+      "events": [
+        {
+          "opcode": 10,
+          "size": 1,
+          "sha256": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d"
+        },
+        {
+          "opcode": 2,
+          "size": 19,
+          "sha256": "ccee5f78273631d4ec1a0385b27ea00abdd3abdcacacdd5fa81df075532faf2f"
+        }
+      ],
+      "error_code": 0
+    },
+    {
+      "name": "random-27",
+      "frames": [
+        {
+          "hex": "79e86a9694af4830139a",
+          "fin": false,
+          "opcode": 2
+        },
+        {
+          "hex": "00",
+          "opcode": 10
+        },
+        {
+          "hex": "8c",
+          "opcode": 0
+        }
+      ],
+      "chunk": 1,
+      "events": [
+        {
+          "opcode": 10,
+          "size": 1,
+          "sha256": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d"
+        },
+        {
+          "opcode": 2,
+          "size": 11,
+          "sha256": "ccf677625691ecaf4538a8ece9c7c3022341e9c5b57a151966b955446c0f4850"
+        }
+      ],
+      "error_code": 0
+    },
+    {
+      "name": "random-28",
+      "frames": [
+        {
+          "hex": "a5d5",
+          "fin": false,
+          "opcode": 1
+        },
+        {
+          "hex": "00",
+          "opcode": 9
+        },
+        {
+          "hex": "f280343e2f8ab9b66b7a73ca",
+          "opcode": 0
+        }
+      ],
+      "chunk": 4096,
+      "events": [
+        {
+          "opcode": 9,
+          "size": 1,
+          "sha256": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d"
+        }
+      ],
+      "error_code": 1007
+    },
+    {
+      "name": "random-29",
+      "frames": [
+        {
+          "hex": "",
+          "fin": false,
+          "opcode": 2
+        },
+        {
+          "hex": "00",
+          "opcode": 9
+        },
+        {
+          "hex": "cb36486677b3e7290b44112435db",
+          "opcode": 0
+        }
+      ],
+      "chunk": 1,
+      "events": [
+        {
+          "opcode": 9,
+          "size": 1,
+          "sha256": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d"
+        },
+        {
+          "opcode": 2,
+          "size": 14,
+          "sha256": "2f4e562471df3dff47f66cea18f889b57a77ee65dc30e8d32453cd2af4a03d6d"
+        }
+      ],
+      "error_code": 0
+    },
+    {
+      "name": "random-30",
+      "frames": [
+        {
+          "hex": "0820e0",
+          "fin": false,
+          "opcode": 2
+        },
+        {
+          "hex": "00",
+          "opcode": 10
+        },
+        {
+          "hex": "0f8f435344a9",
+          "opcode": 0
+        }
+      ],
+      "chunk": 7,
+      "events": [
+        {
+          "opcode": 10,
+          "size": 1,
+          "sha256": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d"
+        },
+        {
+          "opcode": 2,
+          "size": 9,
+          "sha256": "cde880055d04e79148db846c34cc11d91d57e26ccda2331e3e8c58bec7337947"
+        }
+      ],
+      "error_code": 0
+    },
+    {
+      "name": "random-31",
+      "frames": [
+        {
+          "hex": "a3cbebe791ca5834",
+          "fin": false,
+          "opcode": 1
+        },
+        {
+          "hex": "00",
+          "opcode": 9
+        },
+        {
+          "hex": "3a",
+          "opcode": 0
+        }
+      ],
+      "chunk": 1,
+      "events": [
+        {
+          "opcode": 9,
+          "size": 1,
+          "sha256": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d"
+        }
+      ],
+      "error_code": 1007
+    },
+    {
+      "name": "random-32",
+      "frames": [
+        {
+          "hex": "fdba",
+          "fin": false,
+          "opcode": 1
+        },
+        {
+          "hex": "00",
+          "opcode": 10
+        },
+        {
+          "hex": "f238",
+          "opcode": 0
+        }
+      ],
+      "chunk": 1,
+      "events": [
+        {
+          "opcode": 10,
+          "size": 1,
+          "sha256": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d"
+        }
+      ],
+      "error_code": 1007
+    },
+    {
+      "name": "random-33",
+      "frames": [
+        {
+          "hex": "5ed384bdfd58b6cda968620304",
+          "fin": false,
+          "opcode": 2
+        },
+        {
+          "hex": "00",
+          "opcode": 10
+        },
+        {
+          "hex": "15",
+          "opcode": 0
+        }
+      ],
+      "chunk": 2,
+      "events": [
+        {
+          "opcode": 10,
+          "size": 1,
+          "sha256": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d"
+        },
+        {
+          "opcode": 2,
+          "size": 14,
+          "sha256": "587991af3a20765926e013cda615480589bc4c66550f1a9bfe5730f94a90edbf"
+        }
+      ],
+      "error_code": 0
+    },
+    {
+      "name": "random-34",
+      "frames": [
+        {
+          "hex": "a21d71219306a9825d",
+          "fin": false,
+          "opcode": 1
+        },
+        {
+          "hex": "00",
+          "opcode": 10
+        },
+        {
+          "hex": "3b8b9dbf4ced2b2659df",
+          "opcode": 0
+        }
+      ],
+      "chunk": 4096,
+      "events": [
+        {
+          "opcode": 10,
+          "size": 1,
+          "sha256": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d"
+        }
+      ],
+      "error_code": 1007
+    },
+    {
+      "name": "random-35",
+      "frames": [
+        {
+          "hex": "053a1f4f046941a25116b8f989089c7abd74",
+          "fin": false,
+          "opcode": 2
+        },
+        {
+          "hex": "00",
+          "opcode": 10
+        },
+        {
+          "hex": "",
+          "opcode": 0
+        }
+      ],
+      "chunk": 2,
+      "events": [
+        {
+          "opcode": 10,
+          "size": 1,
+          "sha256": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d"
+        },
+        {
+          "opcode": 2,
+          "size": 18,
+          "sha256": "cfbc215ee35497332325017d69442ff5836a153a1cffc9d70e16f56943e96d01"
+        }
+      ],
+      "error_code": 0
+    },
+    {
+      "name": "random-36",
+      "frames": [
+        {
+          "hex": "9a6034f452ace4b2",
+          "fin": false,
+          "opcode": 2
+        },
+        {
+          "hex": "00",
+          "opcode": 9
+        },
+        {
+          "hex": "51b54ab27c",
+          "opcode": 0
+        }
+      ],
+      "chunk": 4096,
+      "events": [
+        {
+          "opcode": 9,
+          "size": 1,
+          "sha256": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d"
+        },
+        {
+          "opcode": 2,
+          "size": 13,
+          "sha256": "7b4d2c8f02673d4f7be0dff6cd54896eabd59988f57fc27958a6a90ef48df60e"
+        }
+      ],
+      "error_code": 0
+    },
+    {
+      "name": "random-37",
+      "frames": [
+        {
+          "hex": "791ea109191a",
+          "fin": false,
+          "opcode": 1
+        },
+        {
+          "hex": "00",
+          "opcode": 9
+        },
+        {
+          "hex": "f5d0985e3e",
+          "opcode": 0
+        }
+      ],
+      "chunk": 7,
+      "events": [
+        {
+          "opcode": 9,
+          "size": 1,
+          "sha256": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d"
+        }
+      ],
+      "error_code": 1007
+    },
+    {
+      "name": "random-38",
+      "frames": [
+        {
+          "hex": "bc02688dc83b",
+          "fin": false,
+          "opcode": 1
+        },
+        {
+          "hex": "00",
+          "opcode": 10
+        },
+        {
+          "hex": "",
+          "opcode": 0
+        }
+      ],
+      "chunk": 1,
+      "events": [
+        {
+          "opcode": 10,
+          "size": 1,
+          "sha256": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d"
+        }
+      ],
+      "error_code": 1007
+    },
+    {
+      "name": "random-39",
+      "frames": [
+        {
+          "hex": "8d9bcc0c5001477915",
+          "fin": false,
+          "opcode": 2
+        },
+        {
+          "hex": "00",
+          "opcode": 9
+        },
+        {
+          "hex": "ddfe",
+          "opcode": 0
+        }
+      ],
+      "chunk": 7,
+      "events": [
+        {
+          "opcode": 9,
+          "size": 1,
+          "sha256": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d"
+        },
+        {
+          "opcode": 2,
+          "size": 11,
+          "sha256": "70a28460829c4090de864a3bfc797e906f4e426ffeb1d56305fa695cf376f0dd"
+        }
+      ],
+      "error_code": 0
+    },
+    {
+      "name": "random-40",
+      "frames": [
+        {
+          "hex": "b5a78c062fea46d9d2",
+          "fin": false,
+          "opcode": 1
+        },
+        {
+          "hex": "00",
+          "opcode": 9
+        },
+        {
+          "hex": "3976d9",
+          "opcode": 0
+        }
+      ],
+      "chunk": 2,
+      "events": [
+        {
+          "opcode": 9,
+          "size": 1,
+          "sha256": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d"
+        }
+      ],
+      "error_code": 1007
+    },
+    {
+      "name": "random-41",
+      "frames": [
+        {
+          "hex": "",
+          "fin": false,
+          "opcode": 1
+        },
+        {
+          "hex": "00",
+          "opcode": 10
+        },
+        {
+          "hex": "7a17",
+          "opcode": 0
+        }
+      ],
+      "chunk": 1,
+      "events": [
+        {
+          "opcode": 10,
+          "size": 1,
+          "sha256": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d"
+        },
+        {
+          "opcode": 1,
+          "size": 2,
+          "sha256": "45ec82a7913a7b159d6bfb64392257cfc9b3a0e6e43cb348b04f256f356bc45e"
+        }
+      ],
+      "error_code": 0
+    },
+    {
+      "name": "random-42",
+      "frames": [
+        {
+          "hex": "78fb79ae90e665fe1dd9ae",
+          "fin": false,
+          "opcode": 1
+        },
+        {
+          "hex": "00",
+          "opcode": 9
+        },
+        {
+          "hex": "",
+          "opcode": 0
+        }
+      ],
+      "chunk": 2,
+      "events": [
+        {
+          "opcode": 9,
+          "size": 1,
+          "sha256": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d"
+        }
+      ],
+      "error_code": 1007
+    },
+    {
+      "name": "random-43",
+      "frames": [
+        {
+          "hex": "",
+          "fin": false,
+          "opcode": 2
+        },
+        {
+          "hex": "00",
+          "opcode": 10
+        },
+        {
+          "hex": "adc970",
+          "opcode": 0
+        }
+      ],
+      "chunk": 4096,
+      "events": [
+        {
+          "opcode": 10,
+          "size": 1,
+          "sha256": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d"
+        },
+        {
+          "opcode": 2,
+          "size": 3,
+          "sha256": "4b7c6562fa0dbd22ae4be1e43f7ef631827da6b9ef323e21690495bc2d2f9b1b"
+        }
+      ],
+      "error_code": 0
+    },
+    {
+      "name": "random-44",
+      "frames": [
+        {
+          "hex": "a4d1380fd3dc01edca0c7926c05d",
+          "fin": false,
+          "opcode": 2
+        },
+        {
+          "hex": "00",
+          "opcode": 10
+        },
+        {
+          "hex": "10",
+          "opcode": 0
+        }
+      ],
+      "chunk": 7,
+      "events": [
+        {
+          "opcode": 10,
+          "size": 1,
+          "sha256": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d"
+        },
+        {
+          "opcode": 2,
+          "size": 15,
+          "sha256": "4cfc442e0b60a1d5123c2a673b69bee672394a387b19cf1a521c144ed8b955e2"
+        }
+      ],
+      "error_code": 0
+    },
+    {
+      "name": "random-45",
+      "frames": [
+        {
+          "hex": "bd7f71",
+          "fin": false,
+          "opcode": 1
+        },
+        {
+          "hex": "00",
+          "opcode": 9
+        },
+        {
+          "hex": "64d8492716b9f67452ec",
+          "opcode": 0
+        }
+      ],
+      "chunk": 7,
+      "events": [
+        {
+          "opcode": 9,
+          "size": 1,
+          "sha256": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d"
+        }
+      ],
+      "error_code": 1007
+    },
+    {
+      "name": "random-46",
+      "frames": [
+        {
+          "hex": "",
+          "fin": false,
+          "opcode": 2
+        },
+        {
+          "hex": "00",
+          "opcode": 9
+        },
+        {
+          "hex": "21",
+          "opcode": 0
+        }
+      ],
+      "chunk": 2,
+      "events": [
+        {
+          "opcode": 9,
+          "size": 1,
+          "sha256": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d"
+        },
+        {
+          "opcode": 2,
+          "size": 1,
+          "sha256": "bb7208bc9b5d7c04f1236a82a0093a5e33f40423d5ba8d4266f7092c3ba43b62"
+        }
+      ],
+      "error_code": 0
+    },
+    {
+      "name": "random-47",
+      "frames": [
+        {
+          "hex": "43c141c6",
+          "fin": false,
+          "opcode": 2
+        },
+        {
+          "hex": "00",
+          "opcode": 10
+        },
+        {
+          "hex": "0e473aa2b8b2f5",
+          "opcode": 0
+        }
+      ],
+      "chunk": 4096,
+      "events": [
+        {
+          "opcode": 10,
+          "size": 1,
+          "sha256": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d"
+        },
+        {
+          "opcode": 2,
+          "size": 11,
+          "sha256": "d17bfba4c28a78e0f18e5b533b924cd3265082064bfc269c2cda2be70af4b898"
+        }
+      ],
+      "error_code": 0
+    },
+    {
+      "name": "random-48",
+      "frames": [
+        {
+          "hex": "f3",
+          "fin": false,
+          "opcode": 1
+        },
+        {
+          "hex": "00",
+          "opcode": 9
+        },
+        {
+          "hex": "f058f2700b6e57",
+          "opcode": 0
+        }
+      ],
+      "chunk": 1,
+      "events": [
+        {
+          "opcode": 9,
+          "size": 1,
+          "sha256": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d"
+        }
+      ],
+      "error_code": 1007
+    },
+    {
+      "name": "random-49",
+      "frames": [
+        {
+          "hex": "d5",
+          "fin": false,
+          "opcode": 1
+        },
+        {
+          "hex": "00",
+          "opcode": 9
+        },
+        {
+          "hex": "ce16",
+          "opcode": 0
+        }
+      ],
+      "chunk": 7,
+      "events": [
+        {
+          "opcode": 9,
+          "size": 1,
+          "sha256": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d"
+        }
+      ],
+      "error_code": 1007
+    },
+    {
+      "name": "random-50",
+      "frames": [
+        {
+          "hex": "a9",
+          "fin": false,
+          "opcode": 2
+        },
+        {
+          "hex": "00",
+          "opcode": 9
+        },
+        {
+          "hex": "d8ce5d351015f9f087a7da1806",
+          "opcode": 0
+        }
+      ],
+      "chunk": 1,
+      "events": [
+        {
+          "opcode": 9,
+          "size": 1,
+          "sha256": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d"
+        },
+        {
+          "opcode": 2,
+          "size": 14,
+          "sha256": "6d5191eb38213c01086437a87dd8cbffad7755bd84055d332e229276c640b51e"
+        }
+      ],
+      "error_code": 0
+    },
+    {
+      "name": "random-51",
+      "frames": [
+        {
+          "hex": "908b",
+          "fin": false,
+          "opcode": 2
+        },
+        {
+          "hex": "00",
+          "opcode": 10
+        },
+        {
+          "hex": "df",
+          "opcode": 0
+        }
+      ],
+      "chunk": 1,
+      "events": [
+        {
+          "opcode": 10,
+          "size": 1,
+          "sha256": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d"
+        },
+        {
+          "opcode": 2,
+          "size": 3,
+          "sha256": "2bc5cfadd26223b990ef2cd17f3df8fce8f7865b02d8a9d9cd430f604fb02853"
+        }
+      ],
+      "error_code": 0
+    },
+    {
+      "name": "random-52",
+      "frames": [
+        {
+          "hex": "",
+          "fin": false,
+          "opcode": 1
+        },
+        {
+          "hex": "00",
+          "opcode": 9
+        },
+        {
+          "hex": "21e21352",
+          "opcode": 0
+        }
+      ],
+      "chunk": 7,
+      "events": [
+        {
+          "opcode": 9,
+          "size": 1,
+          "sha256": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d"
+        }
+      ],
+      "error_code": 1007
+    },
+    {
+      "name": "random-53",
+      "frames": [
+        {
+          "hex": "810d575781615d",
+          "fin": false,
+          "opcode": 1
+        },
+        {
+          "hex": "00",
+          "opcode": 9
+        },
+        {
+          "hex": "14",
+          "opcode": 0
+        }
+      ],
+      "chunk": 1,
+      "events": [
+        {
+          "opcode": 9,
+          "size": 1,
+          "sha256": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d"
+        }
+      ],
+      "error_code": 1007
+    },
+    {
+      "name": "random-54",
+      "frames": [
+        {
+          "hex": "8c91",
+          "fin": false,
+          "opcode": 2
+        },
+        {
+          "hex": "00",
+          "opcode": 9
+        },
+        {
+          "hex": "ae9553e209e7f4536ec0cc1c",
+          "opcode": 0
+        }
+      ],
+      "chunk": 2,
+      "events": [
+        {
+          "opcode": 9,
+          "size": 1,
+          "sha256": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d"
+        },
+        {
+          "opcode": 2,
+          "size": 14,
+          "sha256": "d5d5e166a6ae00d49e7be6ba49a2873a56d7e3724cf7e886c4e75a6211af6ef3"
+        }
+      ],
+      "error_code": 0
+    },
+    {
+      "name": "random-55",
+      "frames": [
+        {
+          "hex": "2dd802fa",
+          "fin": false,
+          "opcode": 1
+        },
+        {
+          "hex": "00",
+          "opcode": 9
+        },
+        {
+          "hex": "5a6487c94d6930515815",
+          "opcode": 0
+        }
+      ],
+      "chunk": 2,
+      "events": [
+        {
+          "opcode": 9,
+          "size": 1,
+          "sha256": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d"
+        }
+      ],
+      "error_code": 1007
+    },
+    {
+      "name": "random-56",
+      "frames": [
+        {
+          "hex": "72",
+          "fin": false,
+          "opcode": 2
+        },
+        {
+          "hex": "00",
+          "opcode": 10
+        },
+        {
+          "hex": "ede8a72fbf3458d224abc4bba21ef178",
+          "opcode": 0
+        }
+      ],
+      "chunk": 4096,
+      "events": [
+        {
+          "opcode": 10,
+          "size": 1,
+          "sha256": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d"
+        },
+        {
+          "opcode": 2,
+          "size": 17,
+          "sha256": "c4e1abc408ae4067a5fc754044cf80e563b76413ccf4a1492bf7144e34473752"
+        }
+      ],
+      "error_code": 0
+    },
+    {
+      "name": "random-57",
+      "frames": [
+        {
+          "hex": "b7425ec2b8583dbffc",
+          "fin": false,
+          "opcode": 1
+        },
+        {
+          "hex": "00",
+          "opcode": 9
+        },
+        {
+          "hex": "ebba1bbe8c",
+          "opcode": 0
+        }
+      ],
+      "chunk": 2,
+      "events": [
+        {
+          "opcode": 9,
+          "size": 1,
+          "sha256": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d"
+        }
+      ],
+      "error_code": 1007
+    },
+    {
+      "name": "random-58",
+      "frames": [
+        {
+          "hex": "af3a2e",
+          "fin": false,
+          "opcode": 2
+        },
+        {
+          "hex": "00",
+          "opcode": 10
+        },
+        {
+          "hex": "e3",
+          "opcode": 0
+        }
+      ],
+      "chunk": 1,
+      "events": [
+        {
+          "opcode": 10,
+          "size": 1,
+          "sha256": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d"
+        },
+        {
+          "opcode": 2,
+          "size": 4,
+          "sha256": "464a1c8659c9335ac42069a09306199dcb023afa29ed39177a73f0f1dc94b8ea"
+        }
+      ],
+      "error_code": 0
+    },
+    {
+      "name": "random-59",
+      "frames": [
+        {
+          "hex": "caae2f39de47e64d",
+          "fin": false,
+          "opcode": 1
+        },
+        {
+          "hex": "00",
+          "opcode": 9
+        },
+        {
+          "hex": "648c635fec30a0",
+          "opcode": 0
+        }
+      ],
+      "chunk": 4096,
+      "events": [
+        {
+          "opcode": 9,
+          "size": 1,
+          "sha256": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d"
+        }
+      ],
+      "error_code": 1007
+    },
+    {
+      "name": "random-60",
+      "frames": [
+        {
+          "hex": "957e",
+          "fin": false,
+          "opcode": 2
+        },
+        {
+          "hex": "00",
+          "opcode": 10
+        },
+        {
+          "hex": "b8ec79",
+          "opcode": 0
+        }
+      ],
+      "chunk": 7,
+      "events": [
+        {
+          "opcode": 10,
+          "size": 1,
+          "sha256": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d"
+        },
+        {
+          "opcode": 2,
+          "size": 5,
+          "sha256": "240e48d26e6e02bd9c7d0077dbed6fb77f9401cfb10099a6af03ae9a5d1ba8a2"
+        }
+      ],
+      "error_code": 0
+    },
+    {
+      "name": "random-61",
+      "frames": [
+        {
+          "hex": "232d00",
+          "fin": false,
+          "opcode": 2
+        },
+        {
+          "hex": "00",
+          "opcode": 9
+        },
+        {
+          "hex": "df5c6500a7836ac836",
+          "opcode": 0
+        }
+      ],
+      "chunk": 7,
+      "events": [
+        {
+          "opcode": 9,
+          "size": 1,
+          "sha256": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d"
+        },
+        {
+          "opcode": 2,
+          "size": 12,
+          "sha256": "eea63b04dc7b9bb7ba4aa8b8101df2abeb172ba3a554726ac8bee04162f7f314"
+        }
+      ],
+      "error_code": 0
+    },
+    {
+      "name": "random-62",
+      "frames": [
+        {
+          "hex": "25",
+          "fin": false,
+          "opcode": 1
+        },
+        {
+          "hex": "00",
+          "opcode": 9
+        },
+        {
+          "hex": "d20af078f4",
+          "opcode": 0
+        }
+      ],
+      "chunk": 2,
+      "events": [
+        {
+          "opcode": 9,
+          "size": 1,
+          "sha256": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d"
+        }
+      ],
+      "error_code": 1007
+    },
+    {
+      "name": "random-63",
+      "frames": [
+        {
+          "hex": "",
+          "fin": false,
+          "opcode": 2
+        },
+        {
+          "hex": "00",
+          "opcode": 10
+        },
+        {
+          "hex": "c5a89ba5ce0530abb3458eb18c4351688aa2",
+          "opcode": 0
+        }
+      ],
+      "chunk": 2,
+      "events": [
+        {
+          "opcode": 10,
+          "size": 1,
+          "sha256": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d"
+        },
+        {
+          "opcode": 2,
+          "size": 18,
+          "sha256": "069aa043b0594a72eaab39b3910d1dfe29517599aba108b57e26f587305f6d8c"
+        }
+      ],
+      "error_code": 0
+    },
+    {
+      "name": "random-64",
+      "frames": [
+        {
+          "hex": "52b14b556402f745f3",
+          "fin": false,
+          "opcode": 2
+        },
+        {
+          "hex": "00",
+          "opcode": 9
+        },
+        {
+          "hex": "7eb13bce70071d",
+          "opcode": 0
+        }
+      ],
+      "chunk": 7,
+      "events": [
+        {
+          "opcode": 9,
+          "size": 1,
+          "sha256": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d"
+        },
+        {
+          "opcode": 2,
+          "size": 16,
+          "sha256": "6efea94724bfebcc1eb015de48a02e5155f50ed20674c852f3fa65e2074305bf"
+        }
+      ],
+      "error_code": 0
+    },
+    {
+      "name": "random-65",
+      "frames": [
+        {
+          "hex": "6d3c8cfa6fe97e8d44c2c714f98045",
+          "fin": false,
+          "opcode": 2
+        },
+        {
+          "hex": "00",
+          "opcode": 9
+        },
+        {
+          "hex": "f6c8",
+          "opcode": 0
+        }
+      ],
+      "chunk": 1,
+      "events": [
+        {
+          "opcode": 9,
+          "size": 1,
+          "sha256": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d"
+        },
+        {
+          "opcode": 2,
+          "size": 17,
+          "sha256": "fe71522555e279e7dbc4c696e26e067b217cdb99d61ae4c5c5604f4990f5596b"
+        }
+      ],
+      "error_code": 0
+    },
+    {
+      "name": "random-66",
+      "frames": [
+        {
+          "hex": "97fcfd0989",
+          "fin": false,
+          "opcode": 1
+        },
+        {
+          "hex": "00",
+          "opcode": 10
+        },
+        {
+          "hex": "eeb06401",
+          "opcode": 0
+        }
+      ],
+      "chunk": 1,
+      "events": [
+        {
+          "opcode": 10,
+          "size": 1,
+          "sha256": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d"
+        }
+      ],
+      "error_code": 1007
+    },
+    {
+      "name": "random-67",
+      "frames": [
+        {
+          "hex": "36",
+          "fin": false,
+          "opcode": 2
+        },
+        {
+          "hex": "00",
+          "opcode": 9
+        },
+        {
+          "hex": "2e29248cfa5c",
+          "opcode": 0
+        }
+      ],
+      "chunk": 7,
+      "events": [
+        {
+          "opcode": 9,
+          "size": 1,
+          "sha256": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d"
+        },
+        {
+          "opcode": 2,
+          "size": 7,
+          "sha256": "418c4a935ecf8cad487b9f763efa3fbac01c74871a98d7d3a53ffb3f8b4c2656"
+        }
+      ],
+      "error_code": 0
+    },
+    {
+      "name": "random-68",
+      "frames": [
+        {
+          "hex": "d2d80ed9c2c39e",
+          "fin": false,
+          "opcode": 1
+        },
+        {
+          "hex": "00",
+          "opcode": 9
+        },
+        {
+          "hex": "37aea4dc25081ab92a0b",
+          "opcode": 0
+        }
+      ],
+      "chunk": 2,
+      "events": [
+        {
+          "opcode": 9,
+          "size": 1,
+          "sha256": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d"
+        }
+      ],
+      "error_code": 1007
+    },
+    {
+      "name": "random-69",
+      "frames": [
+        {
+          "hex": "397433d9",
+          "fin": false,
+          "opcode": 1
+        },
+        {
+          "hex": "00",
+          "opcode": 9
+        },
+        {
+          "hex": "ee8402bff4eb",
+          "opcode": 0
+        }
+      ],
+      "chunk": 2,
+      "events": [
+        {
+          "opcode": 9,
+          "size": 1,
+          "sha256": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d"
+        }
+      ],
+      "error_code": 1007
+    },
+    {
+      "name": "random-70",
+      "frames": [
+        {
+          "hex": "f66dcc62",
+          "fin": false,
+          "opcode": 2
+        },
+        {
+          "hex": "00",
+          "opcode": 10
+        },
+        {
+          "hex": "ed35",
+          "opcode": 0
+        }
+      ],
+      "chunk": 2,
+      "events": [
+        {
+          "opcode": 10,
+          "size": 1,
+          "sha256": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d"
+        },
+        {
+          "opcode": 2,
+          "size": 6,
+          "sha256": "1d67af514e18231c6ce6ee71f8b5bb418b97256a743cdb88b59c8a096c7b5304"
+        }
+      ],
+      "error_code": 0
+    },
+    {
+      "name": "random-71",
+      "frames": [
+        {
+          "hex": "08fa8681d99a4ba3",
+          "fin": false,
+          "opcode": 2
+        },
+        {
+          "hex": "00",
+          "opcode": 9
+        },
+        {
+          "hex": "",
+          "opcode": 0
+        }
+      ],
+      "chunk": 7,
+      "events": [
+        {
+          "opcode": 9,
+          "size": 1,
+          "sha256": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d"
+        },
+        {
+          "opcode": 2,
+          "size": 8,
+          "sha256": "787e6189d28a60e3108279b59e9f3fc35f9ef7146cae313dab519a4478bf017b"
+        }
+      ],
+      "error_code": 0
+    },
+    {
+      "name": "random-72",
+      "frames": [
+        {
+          "hex": "1905ad30",
+          "fin": false,
+          "opcode": 1
+        },
+        {
+          "hex": "00",
+          "opcode": 9
+        },
+        {
+          "hex": "5d40854442940886aace08a9d8f3",
+          "opcode": 0
+        }
+      ],
+      "chunk": 1,
+      "events": [
+        {
+          "opcode": 9,
+          "size": 1,
+          "sha256": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d"
+        }
+      ],
+      "error_code": 1007
+    },
+    {
+      "name": "random-73",
+      "frames": [
+        {
+          "hex": "bfad",
+          "fin": false,
+          "opcode": 1
+        },
+        {
+          "hex": "00",
+          "opcode": 9
+        },
+        {
+          "hex": "351b7226ce79dc2beebad2e874",
+          "opcode": 0
+        }
+      ],
+      "chunk": 4096,
+      "events": [
+        {
+          "opcode": 9,
+          "size": 1,
+          "sha256": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d"
+        }
+      ],
+      "error_code": 1007
+    },
+    {
+      "name": "random-74",
+      "frames": [
+        {
+          "hex": "62",
+          "fin": false,
+          "opcode": 2
+        },
+        {
+          "hex": "00",
+          "opcode": 10
+        },
+        {
+          "hex": "37f9",
+          "opcode": 0
+        }
+      ],
+      "chunk": 2,
+      "events": [
+        {
+          "opcode": 10,
+          "size": 1,
+          "sha256": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d"
+        },
+        {
+          "opcode": 2,
+          "size": 3,
+          "sha256": "6cee2d6386d02773f1dc3b52d1c4cfdf1e143c579d684590ea4ee2fcbf72a913"
+        }
+      ],
+      "error_code": 0
+    },
+    {
+      "name": "random-75",
+      "frames": [
+        {
+          "hex": "01d8",
+          "fin": false,
+          "opcode": 1
+        },
+        {
+          "hex": "00",
+          "opcode": 9
+        },
+        {
+          "hex": "d3",
+          "opcode": 0
+        }
+      ],
+      "chunk": 7,
+      "events": [
+        {
+          "opcode": 9,
+          "size": 1,
+          "sha256": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d"
+        }
+      ],
+      "error_code": 1007
+    },
+    {
+      "name": "random-76",
+      "frames": [
+        {
+          "hex": "870eb0",
+          "fin": false,
+          "opcode": 1
+        },
+        {
+          "hex": "00",
+          "opcode": 9
+        },
+        {
+          "hex": "a64e18",
+          "opcode": 0
+        }
+      ],
+      "chunk": 7,
+      "events": [
+        {
+          "opcode": 9,
+          "size": 1,
+          "sha256": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d"
+        }
+      ],
+      "error_code": 1007
+    },
+    {
+      "name": "random-77",
+      "frames": [
+        {
+          "hex": "7f6d5170",
+          "fin": false,
+          "opcode": 1
+        },
+        {
+          "hex": "00",
+          "opcode": 9
+        },
+        {
+          "hex": "02a10940",
+          "opcode": 0
+        }
+      ],
+      "chunk": 4096,
+      "events": [
+        {
+          "opcode": 9,
+          "size": 1,
+          "sha256": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d"
+        }
+      ],
+      "error_code": 1007
+    },
+    {
+      "name": "random-78",
+      "frames": [
+        {
+          "hex": "ee3cb417b46662439301e369",
+          "fin": false,
+          "opcode": 1
+        },
+        {
+          "hex": "00",
+          "opcode": 10
+        },
+        {
+          "hex": "7d46",
+          "opcode": 0
+        }
+      ],
+      "chunk": 2,
+      "events": [
+        {
+          "opcode": 10,
+          "size": 1,
+          "sha256": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d"
+        }
+      ],
+      "error_code": 1007
+    },
+    {
+      "name": "random-79",
+      "frames": [
+        {
+          "hex": "d11de3e8528a4694",
+          "fin": false,
+          "opcode": 2
+        },
+        {
+          "hex": "00",
+          "opcode": 9
+        },
+        {
+          "hex": "ac61",
+          "opcode": 0
+        }
+      ],
+      "chunk": 2,
+      "events": [
+        {
+          "opcode": 9,
+          "size": 1,
+          "sha256": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d"
+        },
+        {
+          "opcode": 2,
+          "size": 10,
+          "sha256": "f046f024b0d5960929889c8aa75f581debdc1e20c505c0f651012f221db80da8"
+        }
+      ],
+      "error_code": 0
+    }
+  ]
+}

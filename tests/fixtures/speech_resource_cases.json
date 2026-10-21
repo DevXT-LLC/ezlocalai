@@ -1,0 +1,214 @@
+{
+  "source_sha256": "8238cef03d4a1db6e775d7f62234bcf998d8f08bd9fc15f1d8a36ea0d3280005",
+  "method": "Extracted source registration/status/pool methods with controlled resources and probes",
+  "cases": [
+    {
+      "name": "resident",
+      "loaded_models": {
+        "tts": {
+          "name": "Qwen-TTS (Mouserat/qwen3-tts-0.6b-base-gguf)",
+          "device": "cuda",
+          "vram_gb": 4.0,
+          "in_use": false,
+          "active_requests": 0,
+          "last_used": 100
+        },
+        "stt": {
+          "name": "large-v3-turbo",
+          "device": "cuda",
+          "vram_gb": 2.0,
+          "in_use": false,
+          "active_requests": 0,
+          "last_used": 100
+        }
+      },
+      "model_pools": {
+        "tts": {
+          "configured": 2,
+          "resident": 2,
+          "devices": [
+            "cuda:0",
+            "cpu"
+          ]
+        },
+        "stt": {
+          "configured": 2,
+          "resident": 2,
+          "devices": [
+            "cuda:1",
+            "cpu"
+          ]
+        },
+        "embedding": {
+          "configured": 3,
+          "resident": 0,
+          "devices": []
+        }
+      }
+    },
+    {
+      "name": "active",
+      "loaded_models": {
+        "tts": {
+          "name": "Qwen-TTS (Mouserat/qwen3-tts-0.6b-base-gguf)",
+          "device": "cuda",
+          "vram_gb": 4.0,
+          "in_use": true,
+          "active_requests": 1,
+          "last_used": 100
+        },
+        "stt": {
+          "name": "large-v3-turbo",
+          "device": "cuda",
+          "vram_gb": 2.0,
+          "in_use": false,
+          "active_requests": 0,
+          "last_used": 100
+        }
+      },
+      "model_pools": {
+        "tts": {
+          "configured": 2,
+          "resident": 2,
+          "devices": [
+            "cuda:0",
+            "cpu"
+          ]
+        },
+        "stt": {
+          "configured": 2,
+          "resident": 2,
+          "devices": [
+            "cuda:1",
+            "cpu"
+          ]
+        },
+        "embedding": {
+          "configured": 3,
+          "resident": 0,
+          "devices": []
+        }
+      }
+    },
+    {
+      "name": "idle",
+      "loaded_models": {
+        "tts": {
+          "name": "Qwen-TTS (Mouserat/qwen3-tts-0.6b-base-gguf)",
+          "device": "cuda",
+          "vram_gb": 4.0,
+          "in_use": false,
+          "active_requests": 0,
+          "last_used": 100
+        },
+        "stt": {
+          "name": "large-v3-turbo",
+          "device": "cuda",
+          "vram_gb": 2.0,
+          "in_use": false,
+          "active_requests": 0,
+          "last_used": 100
+        }
+      },
+      "model_pools": {
+        "tts": {
+          "configured": 2,
+          "resident": 2,
+          "devices": [
+            "cuda:0",
+            "cpu"
+          ]
+        },
+        "stt": {
+          "configured": 2,
+          "resident": 2,
+          "devices": [
+            "cuda:1",
+            "cpu"
+          ]
+        },
+        "embedding": {
+          "configured": 3,
+          "resident": 0,
+          "devices": []
+        }
+      }
+    },
+    {
+      "name": "cpu_resident",
+      "loaded_models": {
+        "tts": {
+          "name": "Qwen-TTS (Mouserat/qwen3-tts-0.6b-base-gguf)",
+          "device": "cpu",
+          "vram_gb": 0.0,
+          "in_use": false,
+          "active_requests": 0,
+          "last_used": 100
+        },
+        "stt": {
+          "name": "large-v3-turbo",
+          "device": "cuda",
+          "vram_gb": 2.0,
+          "in_use": false,
+          "active_requests": 0,
+          "last_used": 100
+        }
+      },
+      "model_pools": {
+        "tts": {
+          "configured": 2,
+          "resident": 1,
+          "devices": [
+            "cpu"
+          ]
+        },
+        "stt": {
+          "configured": 2,
+          "resident": 2,
+          "devices": [
+            "cuda:1",
+            "cpu"
+          ]
+        },
+        "embedding": {
+          "configured": 3,
+          "resident": 0,
+          "devices": []
+        }
+      }
+    },
+    {
+      "name": "unloaded",
+      "loaded_models": {
+        "stt": {
+          "name": "large-v3-turbo",
+          "device": "cuda",
+          "vram_gb": 2.0,
+          "in_use": false,
+          "active_requests": 0,
+          "last_used": 100
+        }
+      },
+      "model_pools": {
+        "tts": {
+          "configured": 2,
+          "resident": 0,
+          "devices": []
+        },
+        "stt": {
+          "configured": 2,
+          "resident": 2,
+          "devices": [
+            "cuda:1",
+            "cpu"
+          ]
+        },
+        "embedding": {
+          "configured": 3,
+          "resident": 0,
+          "devices": []
+        }
+      }
+    }
+  ]
+}

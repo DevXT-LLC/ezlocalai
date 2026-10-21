@@ -1,0 +1,7 @@
+The compressed float arrays and token fixtures were captured with faster-whisper 1.2.0, the feature extractor from faster-whisper 1.0.3, NumPy 1.26.4, and CTranslate2 4.6.1. The model is `Systran/faster-whisper-tiny.en`, revision `0d3d19a32d3338f10357c0889762bd8d64bbdeba`; `model.bin` SHA-256 is `1a5afae06a4db91c975c9a9d78be5cc110ee4ea022ad57d55492e4550e936b2a`. Model weights are downloaded separately and checked by the C++ test.
+
+Audio was decoded from the [whisper.cpp JFK sample](https://github.com/ggml-org/whisper.cpp/blob/master/samples/jfk.wav), WAV SHA-256 `59dfb9a4acb36fe2a2affc14bacbee2920ff435cb13cc314a08c13f66ba7860e`. `audio.f32z` contains the decoded mono float samples; `features.f32z` and `legacy.f32z` contain the 80-by-3000 model inputs for the two preprocessing profiles. Each file is zlib-compressed little-endian IEEE float32 data. `cases.tsv` stores the audio sample count, model identity, prompts, suppressed token IDs, decoder token sequences, scores and no-speech probabilities.
+
+These cases exercise the native CTranslate2 generation kernel with both captured and natively computed features. They do not run the full faster-whisper transcription controller: VAD, timestamp segmentation, tokenization, long-audio context, word alignment and API integration remain separate work.
+
+External capture program: `/tmp/ezlocalai_whisper_feature_oracle.py`. The repository test runner is C++.

@@ -1,0 +1,177 @@
+{
+  "device": "cpu",
+  "compute": "int8",
+  "source_sha256": "d0dd8340c243d7ff9ba84f4e3babe3c41b0b0ce7c7dddf2565eb886ba3f21fe2",
+  "model_hashes": {
+    "config.json": "b0253ea6c0d3bea6b1e19e91a02acfd3b53f4467362efcb5a3e6b16c9b3a9b7e",
+    "model.bin": "e76620f83d5f5b69efd3d87e3dc180c1bd21df9fbebacfd4335e5e1efcc018da",
+    "tokenizer.json": "297b13372ac43916285644fb9687add3cc62ee2a1adb60da3dc25cc94c1871fd",
+    "vocabulary.json": "c69260f2ab26d659b7c398f9a2b2b48ed0df16c3b47d7326782fd9cba71690c1",
+    "preprocessor_config.json": "7ccc62c6f2765af1f3b46c00c9b5894426835a05021c8b9c01eecb6dfb542711"
+  },
+  "cases": [
+    {
+      "file": "speech.wav",
+      "audio_sha256": "d7d4e74b8a333ed02186008bc109a1b1a19d16da668bd56e785d80d69a16a72f",
+      "request": {
+        "language": "en",
+        "return_segments": true,
+        "enable_diarization": true
+      },
+      "reload": false,
+      "output": {
+        "text": "[SPEAKER_00]: And so, my fellow Americans, ask not what your country can do for you, ask what you can do for your country.",
+        "segments": [
+          {
+            "id": 0,
+            "start": 0.12,
+            "end": 10.38,
+            "text": "And so, my fellow Americans, ask not what your country can do for you, ask what you can do for your country.",
+            "speaker": "SPEAKER_00"
+          }
+        ],
+        "language": "en"
+      },
+      "seconds": 4.587408515973948
+    },
+    {
+      "file": "long.wav",
+      "audio_sha256": "d251071dbafa107bedf7aae199d9771d8a2958dc4935df103cf572891e9ed960",
+      "request": {
+        "language": "en",
+        "return_segments": true,
+        "enable_diarization": true,
+        "num_speakers": 2
+      },
+      "reload": false,
+      "output": {
+        "text": "[SPEAKER_01]: And so, my fellow Americans, ask not what your country can do for you, ask what you can do for your country. \n[SPEAKER_00]: And so, my fellow Americans, ask not what your country can do for you, ask what you can do for your country. And so, my fellow Americans, ask not what your country can do for you, ask what you can do for your country.",
+        "segments": [
+          {
+            "id": 0,
+            "start": 0.12,
+            "end": 10.38,
+            "text": "And so, my fellow Americans, ask not what your country can do for you, ask what you can do for your country.",
+            "speaker": "SPEAKER_01"
+          },
+          {
+            "id": 1,
+            "start": 10.38,
+            "end": 22.39,
+            "text": "And so, my fellow Americans, ask not what your country can do for you, ask what you can do for your country.",
+            "speaker": "SPEAKER_00"
+          },
+          {
+            "id": 2,
+            "start": 22.73,
+            "end": 34.37,
+            "text": "And so, my fellow Americans, ask not what your country can do for you, ask what you can do for your country.",
+            "speaker": "SPEAKER_00"
+          }
+        ],
+        "language": "en"
+      },
+      "seconds": 3.9345933430595323
+    },
+    {
+      "file": "speech.wav",
+      "audio_sha256": "d7d4e74b8a333ed02186008bc109a1b1a19d16da668bd56e785d80d69a16a72f",
+      "request": {
+        "language": "en",
+        "return_segments": true,
+        "enable_diarization": true,
+        "session_id": "a"
+      },
+      "reload": false,
+      "output": {
+        "text": "[SPK_f6bd73b1cedd]: And so, my fellow Americans, ask not what your country can do for you, ask what you can do for your country.",
+        "segments": [
+          {
+            "id": 0,
+            "start": 0.12,
+            "end": 10.38,
+            "text": "And so, my fellow Americans, ask not what your country can do for you, ask what you can do for your country.",
+            "speaker": "SPK_f6bd73b1cedd"
+          }
+        ],
+        "language": "en"
+      },
+      "seconds": 4.067028091987595
+    },
+    {
+      "file": "speech.wav",
+      "audio_sha256": "d7d4e74b8a333ed02186008bc109a1b1a19d16da668bd56e785d80d69a16a72f",
+      "request": {
+        "language": "en",
+        "return_segments": true,
+        "enable_diarization": true,
+        "session_id": "a"
+      },
+      "reload": false,
+      "output": {
+        "text": "[SPK_f6bd73b1cedd]: And so, my fellow Americans, ask not what your country can do for you, ask what you can do for your country.",
+        "segments": [
+          {
+            "id": 0,
+            "start": 0.12,
+            "end": 10.38,
+            "text": "And so, my fellow Americans, ask not what your country can do for you, ask what you can do for your country.",
+            "speaker": "SPK_f6bd73b1cedd"
+          }
+        ],
+        "language": "en"
+      },
+      "seconds": 4.375640798010863
+    },
+    {
+      "file": "speech.wav",
+      "audio_sha256": "d7d4e74b8a333ed02186008bc109a1b1a19d16da668bd56e785d80d69a16a72f",
+      "request": {
+        "language": "en",
+        "return_segments": true,
+        "enable_diarization": true,
+        "session_id": "b"
+      },
+      "reload": false,
+      "output": {
+        "text": "[SPK_268ee4fa2712]: And so, my fellow Americans, ask not what your country can do for you, ask what you can do for your country.",
+        "segments": [
+          {
+            "id": 0,
+            "start": 0.12,
+            "end": 10.38,
+            "text": "And so, my fellow Americans, ask not what your country can do for you, ask what you can do for your country.",
+            "speaker": "SPK_268ee4fa2712"
+          }
+        ],
+        "language": "en"
+      },
+      "seconds": 4.62639021105133
+    },
+    {
+      "file": "speech.wav",
+      "audio_sha256": "d7d4e74b8a333ed02186008bc109a1b1a19d16da668bd56e785d80d69a16a72f",
+      "request": {
+        "language": "en",
+        "return_segments": true,
+        "enable_diarization": true,
+        "session_id": "a"
+      },
+      "reload": true,
+      "output": {
+        "text": "[SPK_f6bd73b1cedd]: And so, my fellow Americans, ask not what your country can do for you, ask what you can do for your country.",
+        "segments": [
+          {
+            "id": 0,
+            "start": 0.12,
+            "end": 10.38,
+            "text": "And so, my fellow Americans, ask not what your country can do for you, ask what you can do for your country.",
+            "speaker": "SPK_f6bd73b1cedd"
+          }
+        ],
+        "language": "en"
+      },
+      "seconds": 5.774886128958315
+    }
+  ]
+}

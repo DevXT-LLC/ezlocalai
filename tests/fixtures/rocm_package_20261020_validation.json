@@ -1,0 +1,89 @@
+{
+  "date": "2026-10-20",
+  "stable_tag": "ezlocalai:rocm",
+  "image": "sha256:c993297cb6b1fd9aa87f49c80ae732fc3a386be671bbc67f8427c729952ad57d",
+  "worker_sha256": "e0efe67a31aca43674e2a31a2ca882e24408504184feda841a9e8468b226731d",
+  "previous_image": null,
+  "package_gate": {
+    "passed": 60,
+    "failed": 0,
+    "seconds": 322.16
+  },
+  "runtime_checks": [
+    {
+      "mode": "direct",
+      "endpoint": "chat",
+      "status": 200,
+      "text": "READY."
+    },
+    {
+      "mode": "direct",
+      "endpoint": "chat_sse",
+      "status": 200,
+      "text": "READY."
+    },
+    {
+      "endpoint": "vision",
+      "status": 200,
+      "text": "This is a highly abstract, multi-colored noise or texture. It\u2019s not a"
+    },
+    {
+      "endpoint": "embeddings",
+      "vectors": 2,
+      "dimensions": 1024
+    },
+    {
+      "endpoint": "transcription",
+      "status": 200,
+      "text": " And so my fellow Americans, ask not what your country can do for you, ask what you can do for your country."
+    },
+    {
+      "endpoint": "qwen_wav",
+      "status": 200,
+      "frames": 24960,
+      "sample_rate": 24000
+    },
+    {
+      "endpoint": "post_audio_chat",
+      "status": 200
+    },
+    {
+      "mode": "tunnel",
+      "endpoint": "chat",
+      "status": 200,
+      "text": "READY"
+    },
+    {
+      "mode": "tunnel",
+      "endpoint": "chat_sse",
+      "status": 200,
+      "text": "READY"
+    }
+  ],
+  "memory_limit_bytes": 8589934592,
+  "direct_memory_peak_bytes": 8030134272,
+  "tunnel_memory_peak_bytes": 2043006976,
+  "exits": [
+    {
+      "mode": "direct",
+      "exit_code": 0,
+      "oom_killed": false
+    },
+    {
+      "mode": "tunnel",
+      "exit_code": 0,
+      "oom_killed": false
+    }
+  ],
+  "execution": "Native x86 CPU fallback inside the HIP image with no GPU devices mapped, against an isolated real Rust WorkerRouter",
+  "hip_architecture": "gfx1100",
+  "hip_sdk": "6.4.1",
+  "torch": "2.9.1+rocm6.4",
+  "packaging_fix": "The first full gate passed 59/60 checks; the speculative fixture needed three checksum-verified, unchanged source files. Those files are test inputs, not executed. The full rerun passed.",
+  "limitations": [
+    "No physical AMD GPU execution",
+    "The default gfx1100 binary and HSA override 11.0.0 are not universal AMD support",
+    "No model-quality benchmark"
+  ],
+  "proof_directory": "build/validation/rocm-package-20261020"
+}

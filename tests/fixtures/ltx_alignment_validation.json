@@ -1,0 +1,1641 @@
+{
+  "date": "2026-10-19",
+  "candidate_image": "sha256:d5e01f28676d2e212e23065cc8f19f9c0dafa0abb1d9ca45cbf1bbfc43e75581",
+  "candidate_tag": "ezlocalai:cuda-music-video-corrected-candidate",
+  "deployed": false,
+  "production_retained": "sha256:bf51835f359370458db36aec93c2af5a6ae35c60e78510fa5fc4f143be8f6290",
+  "original_env_unchanged": true,
+  "restored_health": "healthy",
+  "native_binaries": "1d7b2edb9d9832ffa78a2bfcce83ca028d09794b37d5aec3eba4d006461fa671  /app/build/ezlocalai-native\n286c20e0e495317cdd5589621e3bbd0218cd9940ebe0ab307a8af1ab09931246  /opt/stable-diffusion.cpp/build/bin/sd-cli\n",
+  "tests": {
+    "native_suite": {
+      "passed": 111,
+      "seconds": 410.92
+    },
+    "unchanged_rust_router_wire": {
+      "passed": 89,
+      "seconds": 36.226,
+      "scope": "Earlier music-video adapter validation; transport code unchanged by these numerical corrections."
+    },
+    "cuda_image_build_checks": {
+      "passed": 6,
+      "seconds": 1.02
+    },
+    "timestep_graph": {
+      "default_mode_traces": 24,
+      "module_inputs_per_trace": 4,
+      "legacy_unchanged": true
+    },
+    "scheduler": {
+      "cases": 72,
+      "max_sigma_error": 2.98023e-07,
+      "original_default_failures": 45
+    },
+    "rng": {
+      "cases": 44,
+      "consecutive_draws": 88,
+      "max_error": 2.38419e-07
+    }
+  },
+  "cases": [
+    {
+      "case": "corrected-storyboard",
+      "request": {
+        "prompt": "Pythagorean rock concert, a band performing on a stage with a mathematical LED screen.",
+        "lyrics": "[Verse]\nThe squares on legs a and b\n[Chorus]\nEqual the square on hypotenuse c",
+        "keyscale": "C minor",
+        "duration": 5.0,
+        "scene_duration": 5.0,
+        "audio_url": "outputs/reused.wav",
+        "size": "512x320",
+        "frame_rate": 8,
+        "num_inference_steps": 18,
+        "response_format": "url",
+        "worker": "native-music-video-validation"
+      },
+      "via_router": true,
+      "seconds": 133.24645137402695,
+      "bytes": 487656,
+      "sha256": "b9ae56de3d721bfa4f474cb25a5c192383082e352f610f565735ebd6f1852412",
+      "metadata": {
+        "audio_url": "outputs/reused.wav",
+        "content_type": "video/mp4",
+        "format": "mp4",
+        "math_overlay": true,
+        "scene_count": 1,
+        "scene_duration": 5.0,
+        "scene_plan": [
+          {
+            "duration": 5.0,
+            "index": 0,
+            "num_frames": 41,
+            "start": 0.0
+          }
+        ],
+        "scene_urls": [
+          "http://127.0.0.1:46259/outputs/d25ffd17-e2dc-4663-b34f-26216e9efe4b.mp4"
+        ],
+        "storyboard": true,
+        "url": "http://127.0.0.1:46259/outputs/bf73b7e8-6a9a-4375-9194-8b0bfc28afeb.mp4"
+      },
+      "probe": {
+        "streams": [
+          {
+            "index": 0,
+            "codec_name": "h264",
+            "codec_long_name": "H.264 / AVC / MPEG-4 AVC / MPEG-4 part 10",
+            "profile": "High",
+            "codec_type": "video",
+            "codec_tag_string": "avc1",
+            "codec_tag": "0x31637661",
+            "width": 512,
+            "height": 320,
+            "coded_width": 512,
+            "coded_height": 320,
+            "closed_captions": 0,
+            "film_grain": 0,
+            "has_b_frames": 2,
+            "pix_fmt": "yuv420p",
+            "level": 21,
+            "chroma_location": "left",
+            "field_order": "progressive",
+            "refs": 1,
+            "is_avc": "true",
+            "nal_length_size": "4",
+            "id": "0x1",
+            "r_frame_rate": "8/1",
+            "avg_frame_rate": "8/1",
+            "time_base": "1/16384",
+            "start_pts": 0,
+            "start_time": "0.000000",
+            "duration_ts": 81920,
+            "duration": "5.000000",
+            "bit_rate": "759560",
+            "bits_per_raw_sample": "8",
+            "nb_frames": "40",
+            "extradata_size": 45,
+            "disposition": {
+              "default": 1,
+              "dub": 0,
+              "original": 0,
+              "comment": 0,
+              "lyrics": 0,
+              "karaoke": 0,
+              "forced": 0,
+              "hearing_impaired": 0,
+              "visual_impaired": 0,
+              "clean_effects": 0,
+              "attached_pic": 0,
+              "timed_thumbnails": 0,
+              "non_diegetic": 0,
+              "captions": 0,
+              "descriptions": 0,
+              "metadata": 0,
+              "dependent": 0,
+              "still_image": 0
+            },
+            "tags": {
+              "language": "und",
+              "handler_name": "VideoHandler",
+              "vendor_id": "[0][0][0][0]",
+              "encoder": "Lavc60.31.102 libx264"
+            }
+          },
+          {
+            "index": 1,
+            "codec_name": "aac",
+            "codec_long_name": "AAC (Advanced Audio Coding)",
+            "profile": "LC",
+            "codec_type": "audio",
+            "codec_tag_string": "mp4a",
+            "codec_tag": "0x6134706d",
+            "sample_fmt": "fltp",
+            "sample_rate": "24000",
+            "channels": 1,
+            "channel_layout": "mono",
+            "bits_per_sample": 0,
+            "initial_padding": 0,
+            "id": "0x2",
+            "r_frame_rate": "0/0",
+            "avg_frame_rate": "0/0",
+            "time_base": "1/24000",
+            "start_pts": 0,
+            "start_time": "0.000000",
+            "duration_ts": 120000,
+            "duration": "5.000000",
+            "bit_rate": "16194",
+            "nb_frames": "119",
+            "extradata_size": 5,
+            "disposition": {
+              "default": 1,
+              "dub": 0,
+              "original": 0,
+              "comment": 0,
+              "lyrics": 0,
+              "karaoke": 0,
+              "forced": 0,
+              "hearing_impaired": 0,
+              "visual_impaired": 0,
+              "clean_effects": 0,
+              "attached_pic": 0,
+              "timed_thumbnails": 0,
+              "non_diegetic": 0,
+              "captions": 0,
+              "descriptions": 0,
+              "metadata": 0,
+              "dependent": 0,
+              "still_image": 0
+            },
+            "tags": {
+              "language": "und",
+              "handler_name": "SoundHandler",
+              "vendor_id": "[0][0][0][0]"
+            }
+          }
+        ],
+        "format": {
+          "filename": "/opt/DevXT/ezlocalai/build/validation/music-video-corrected/corrected-storyboard.mp4",
+          "nb_streams": 2,
+          "nb_programs": 0,
+          "format_name": "mov,mp4,m4a,3gp,3g2,mj2",
+          "format_long_name": "QuickTime / MOV",
+          "start_time": "0.000000",
+          "duration": "5.000000",
+          "size": "487656",
+          "bit_rate": "780249",
+          "probe_score": 100,
+          "tags": {
+            "major_brand": "isom",
+            "minor_version": "512",
+            "compatible_brands": "isomiso2avc1mp41",
+            "encoder": "Lavf60.16.100"
+          }
+        }
+      },
+      "scene_probes": [
+        {
+          "streams": [
+            {
+              "index": 0,
+              "codec_name": "h264",
+              "codec_long_name": "H.264 / AVC / MPEG-4 AVC / MPEG-4 part 10",
+              "profile": "High",
+              "codec_type": "video",
+              "codec_tag_string": "avc1",
+              "codec_tag": "0x31637661",
+              "width": 512,
+              "height": 320,
+              "coded_width": 512,
+              "coded_height": 320,
+              "closed_captions": 0,
+              "film_grain": 0,
+              "has_b_frames": 2,
+              "pix_fmt": "yuv420p",
+              "level": 21,
+              "chroma_location": "left",
+              "field_order": "progressive",
+              "refs": 1,
+              "is_avc": "true",
+              "nal_length_size": "4",
+              "id": "0x1",
+              "r_frame_rate": "8/1",
+              "avg_frame_rate": "8/1",
+              "time_base": "1/16384",
+              "start_pts": 0,
+              "start_time": "0.000000",
+              "duration_ts": 83968,
+              "duration": "5.125000",
+              "bit_rate": "867807",
+              "bits_per_raw_sample": "8",
+              "nb_frames": "41",
+              "extradata_size": 45,
+              "disposition": {
+                "default": 1,
+                "dub": 0,
+                "original": 0,
+                "comment": 0,
+                "lyrics": 0,
+                "karaoke": 0,
+                "forced": 0,
+                "hearing_impaired": 0,
+                "visual_impaired": 0,
+                "clean_effects": 0,
+                "attached_pic": 0,
+                "timed_thumbnails": 0,
+                "non_diegetic": 0,
+                "captions": 0,
+                "descriptions": 0,
+                "metadata": 0,
+                "dependent": 0,
+                "still_image": 0
+              },
+              "tags": {
+                "language": "und",
+                "handler_name": "VideoHandler",
+                "vendor_id": "[0][0][0][0]",
+                "encoder": "Lavc60.31.102 libx264"
+              }
+            }
+          ]
+        }
+      ],
+      "handoff_observed": true,
+      "after_resources": {
+        "gpu_count": 1,
+        "total_vram_gb": 23,
+        "free_vram_gb": 1.71295166015625,
+        "free_per_gpu_gb": [
+          1.71295166015625
+        ],
+        "torch_cuda": [
+          {
+            "index": 0,
+            "allocated_gb": 0.0,
+            "reserved_gb": 0.0,
+            "max_allocated_gb": 0.0,
+            "free_gb": 1.713,
+            "total_gb": 23.524
+          }
+        ],
+        "system_ram_gb": 123.37859344482422,
+        "loaded_models": {
+          "vision_llm": {
+            "name": "unsloth/Qwen3.8-27B-GGUF",
+            "device": "cuda",
+            "vram_gb": 20.05670166015625,
+            "in_use": false,
+            "active_requests": 0,
+            "last_used": 1792390049.3623056
+          }
+        },
+        "fallback": {
+          "configured": false,
+          "url": null,
+          "should_use_fallback": false,
+          "reason": "No fallback server configured",
+          "free_vram_gb": 1.71295166015625,
+          "free_ram_gb": 35.91350555419922,
+          "free_combined_gb": 37.62645721435547,
+          "memory_threshold_gb": 8.0
+        },
+        "parallel": {
+          "n_parallel": 1,
+          "n_ctx": 220000,
+          "per_slot_context": 220000,
+          "text_queue_capacity": 1,
+          "queue_wait_timeout": 30.0
+        },
+        "model_lifecycle": {
+          "llm_model_residency": "resident",
+          "configured_llms": [
+            "unsloth/Qwen3.8-27B-GGUF"
+          ],
+          "loaded_llms": [
+            "unsloth/Qwen3.8-27B-GGUF"
+          ],
+          "active_llm": "unsloth/Qwen3.8-27B-GGUF",
+          "loaded_llm_runtime": [
+            {
+              "model": "unsloth/Qwen3.8-27B-GGUF",
+              "context": 220000,
+              "gpu_layers": -1,
+              "main_gpu": 0,
+              "prompt_cache_mib": 14336,
+              "prompt_cache_requested_mib": 14336,
+              "checkpoint_min_step": 8192,
+              "n_ctx_checkpoints": 32,
+              "n_batch": 2048,
+              "n_ubatch": 512,
+              "kv_cache_type": "q4_0",
+              "speculative_type": "mtp"
+            }
+          ],
+          "vram_estimates_gb": {
+            "unsloth/Qwen3.8-27B-GGUF": 20.05670166015625
+          },
+          "summary": [
+            {
+              "operation": "load",
+              "model_type": "llm",
+              "model": "unsloth/Qwen3.8-27B-GGUF",
+              "count": 2,
+              "failures": 0,
+              "min_seconds": 5.2309,
+              "max_seconds": 12.9427,
+              "last_seconds": 12.9427,
+              "average_seconds": 9.0868
+            },
+            {
+              "operation": "unload",
+              "model_type": "llm",
+              "model": "unsloth/Qwen3.8-27B-GGUF",
+              "count": 1,
+              "failures": 0,
+              "min_seconds": 0.3006,
+              "max_seconds": 0.3006,
+              "last_seconds": 0.3006,
+              "average_seconds": 0.3006
+            }
+          ],
+          "recent_events": [
+            {
+              "timestamp": 1792389917.009414,
+              "operation": "load",
+              "model_type": "llm",
+              "model": "unsloth/Qwen3.8-27B-GGUF",
+              "duration_seconds": 5.2309,
+              "success": true
+            },
+            {
+              "timestamp": 1792389917.7495983,
+              "operation": "unload",
+              "model_type": "llm",
+              "model": "unsloth/Qwen3.8-27B-GGUF",
+              "duration_seconds": 0.3006,
+              "success": true
+            },
+            {
+              "timestamp": 1792390049.3619921,
+              "operation": "load",
+              "model_type": "llm",
+              "model": "unsloth/Qwen3.8-27B-GGUF",
+              "duration_seconds": 12.9427,
+              "success": true
+            }
+          ]
+        },
+        "slots": {
+          "cap_slots": {
+            "music": {
+              "capacity": 1,
+              "in_flight": 0,
+              "queued": 0,
+              "available": 1
+            },
+            "music_video": {
+              "capacity": 1,
+              "in_flight": 0,
+              "queued": 0,
+              "available": 1
+            },
+            "text": {
+              "capacity": 1,
+              "in_flight": 0,
+              "queued": 0,
+              "available": 1
+            },
+            "video": {
+              "capacity": 1,
+              "in_flight": 0,
+              "queued": 0,
+              "available": 1
+            },
+            "vision": {
+              "capacity": 1,
+              "in_flight": 0,
+              "queued": 0,
+              "available": 1
+            }
+          },
+          "model_slots": {
+            "unsloth/Qwen3.8-27B-GGUF": {
+              "capacity": 1,
+              "in_flight": 0,
+              "queued": 0,
+              "available": 1
+            }
+          },
+          "llm_queue_capacity": 1,
+          "slot_total_capacity": 3,
+          "slot_total_in_flight": 0,
+          "slot_total_queued": 0,
+          "slot_total_available": 3
+        }
+      },
+      "resource_poll_timeouts": 5,
+      "resource_observation_count": 239
+    },
+    {
+      "case": "text-to-video",
+      "request": {
+        "prompt": "A yellow rubber duck floating on calm blue water, close-up, daylight, gentle ripples.",
+        "size": "512x320",
+        "num_frames": 41,
+        "frame_rate": 24,
+        "num_inference_steps": 18,
+        "guidance_scale": 3.5,
+        "response_format": "url",
+        "duration": 1.7083333333333333,
+        "worker": "native-music-video-validation"
+      },
+      "via_router": true,
+      "seconds": 122.14034053101204,
+      "bytes": 246563,
+      "sha256": "956fa732213c3127fa43e3546e30e4fc0b5cc30a28fa84850a974fb68cd59b00",
+      "metadata": {
+        "url": "http://127.0.0.1:46259/outputs/8a2e13fe-f4be-4d01-96b2-f3daac10d3b2.mp4"
+      },
+      "probe": {
+        "streams": [
+          {
+            "index": 0,
+            "codec_name": "h264",
+            "codec_long_name": "H.264 / AVC / MPEG-4 AVC / MPEG-4 part 10",
+            "profile": "High",
+            "codec_type": "video",
+            "codec_tag_string": "avc1",
+            "codec_tag": "0x31637661",
+            "width": 512,
+            "height": 320,
+            "coded_width": 512,
+            "coded_height": 320,
+            "closed_captions": 0,
+            "film_grain": 0,
+            "has_b_frames": 2,
+            "pix_fmt": "yuv420p",
+            "level": 21,
+            "chroma_location": "left",
+            "field_order": "progressive",
+            "refs": 1,
+            "is_avc": "true",
+            "nal_length_size": "4",
+            "id": "0x1",
+            "r_frame_rate": "24/1",
+            "avg_frame_rate": "24/1",
+            "time_base": "1/12288",
+            "start_pts": 0,
+            "start_time": "0.000000",
+            "duration_ts": 20992,
+            "duration": "1.708333",
+            "bit_rate": "902109",
+            "bits_per_raw_sample": "8",
+            "nb_frames": "41",
+            "extradata_size": 45,
+            "disposition": {
+              "default": 1,
+              "dub": 0,
+              "original": 0,
+              "comment": 0,
+              "lyrics": 0,
+              "karaoke": 0,
+              "forced": 0,
+              "hearing_impaired": 0,
+              "visual_impaired": 0,
+              "clean_effects": 0,
+              "attached_pic": 0,
+              "timed_thumbnails": 0,
+              "non_diegetic": 0,
+              "captions": 0,
+              "descriptions": 0,
+              "metadata": 0,
+              "dependent": 0,
+              "still_image": 0
+            },
+            "tags": {
+              "language": "und",
+              "handler_name": "VideoHandler",
+              "vendor_id": "[0][0][0][0]",
+              "encoder": "Lavc60.31.102 libx264"
+            }
+          },
+          {
+            "index": 1,
+            "codec_name": "aac",
+            "codec_long_name": "AAC (Advanced Audio Coding)",
+            "profile": "LC",
+            "codec_type": "audio",
+            "codec_tag_string": "mp4a",
+            "codec_tag": "0x6134706d",
+            "sample_fmt": "fltp",
+            "sample_rate": "24000",
+            "channels": 2,
+            "channel_layout": "stereo",
+            "bits_per_sample": 0,
+            "initial_padding": 0,
+            "id": "0x2",
+            "r_frame_rate": "0/0",
+            "avg_frame_rate": "0/0",
+            "time_base": "1/24000",
+            "start_pts": 0,
+            "start_time": "0.000000",
+            "duration_ts": 81120,
+            "duration": "3.380000",
+            "bit_rate": "119985",
+            "nb_frames": "81",
+            "extradata_size": 5,
+            "disposition": {
+              "default": 1,
+              "dub": 0,
+              "original": 0,
+              "comment": 0,
+              "lyrics": 0,
+              "karaoke": 0,
+              "forced": 0,
+              "hearing_impaired": 0,
+              "visual_impaired": 0,
+              "clean_effects": 0,
+              "attached_pic": 0,
+              "timed_thumbnails": 0,
+              "non_diegetic": 0,
+              "captions": 0,
+              "descriptions": 0,
+              "metadata": 0,
+              "dependent": 0,
+              "still_image": 0
+            },
+            "tags": {
+              "language": "und",
+              "handler_name": "SoundHandler",
+              "vendor_id": "[0][0][0][0]"
+            }
+          }
+        ],
+        "format": {
+          "filename": "/opt/DevXT/ezlocalai/build/validation/music-video-corrected/text-to-video.mp4",
+          "nb_streams": 2,
+          "nb_programs": 0,
+          "format_name": "mov,mp4,m4a,3gp,3g2,mj2",
+          "format_long_name": "QuickTime / MOV",
+          "start_time": "0.000000",
+          "duration": "3.380000",
+          "size": "246563",
+          "bit_rate": "583581",
+          "probe_score": 100,
+          "tags": {
+            "major_brand": "isom",
+            "minor_version": "512",
+            "compatible_brands": "isomiso2avc1mp41",
+            "encoder": "Lavf60.16.100"
+          }
+        }
+      },
+      "scene_probes": [],
+      "handoff_observed": true,
+      "after_resources": {
+        "gpu_count": 1,
+        "total_vram_gb": 23,
+        "free_vram_gb": 1.8338623046875,
+        "free_per_gpu_gb": [
+          1.8338623046875
+        ],
+        "torch_cuda": [
+          {
+            "index": 0,
+            "allocated_gb": 0.0,
+            "reserved_gb": 0.0,
+            "max_allocated_gb": 0.0,
+            "free_gb": 1.834,
+            "total_gb": 23.524
+          }
+        ],
+        "system_ram_gb": 123.37859344482422,
+        "loaded_models": {
+          "vision_llm": {
+            "name": "unsloth/Qwen3.8-27B-GGUF",
+            "device": "cuda",
+            "vram_gb": 20.05670166015625,
+            "in_use": false,
+            "active_requests": 0,
+            "last_used": 1792390172.0077312
+          }
+        },
+        "fallback": {
+          "configured": false,
+          "url": null,
+          "should_use_fallback": false,
+          "reason": "No fallback server configured",
+          "free_vram_gb": 1.8338623046875,
+          "free_ram_gb": 36.723533630371094,
+          "free_combined_gb": 38.557395935058594,
+          "memory_threshold_gb": 8.0
+        },
+        "parallel": {
+          "n_parallel": 1,
+          "n_ctx": 220000,
+          "per_slot_context": 220000,
+          "text_queue_capacity": 1,
+          "queue_wait_timeout": 30.0
+        },
+        "model_lifecycle": {
+          "llm_model_residency": "resident",
+          "configured_llms": [
+            "unsloth/Qwen3.8-27B-GGUF"
+          ],
+          "loaded_llms": [
+            "unsloth/Qwen3.8-27B-GGUF"
+          ],
+          "active_llm": "unsloth/Qwen3.8-27B-GGUF",
+          "loaded_llm_runtime": [
+            {
+              "model": "unsloth/Qwen3.8-27B-GGUF",
+              "context": 220000,
+              "gpu_layers": -1,
+              "main_gpu": 0,
+              "prompt_cache_mib": 14336,
+              "prompt_cache_requested_mib": 14336,
+              "checkpoint_min_step": 8192,
+              "n_ctx_checkpoints": 32,
+              "n_batch": 2048,
+              "n_ubatch": 512,
+              "kv_cache_type": "q4_0",
+              "speculative_type": "mtp"
+            }
+          ],
+          "vram_estimates_gb": {
+            "unsloth/Qwen3.8-27B-GGUF": 20.05670166015625
+          },
+          "summary": [
+            {
+              "operation": "load",
+              "model_type": "llm",
+              "model": "unsloth/Qwen3.8-27B-GGUF",
+              "count": 3,
+              "failures": 0,
+              "min_seconds": 5.2309,
+              "max_seconds": 13.7379,
+              "last_seconds": 13.7379,
+              "average_seconds": 10.6372
+            },
+            {
+              "operation": "unload",
+              "model_type": "llm",
+              "model": "unsloth/Qwen3.8-27B-GGUF",
+              "count": 2,
+              "failures": 0,
+              "min_seconds": 0.3006,
+              "max_seconds": 0.4004,
+              "last_seconds": 0.4004,
+              "average_seconds": 0.3505
+            }
+          ],
+          "recent_events": [
+            {
+              "timestamp": 1792389917.009414,
+              "operation": "load",
+              "model_type": "llm",
+              "model": "unsloth/Qwen3.8-27B-GGUF",
+              "duration_seconds": 5.2309,
+              "success": true
+            },
+            {
+              "timestamp": 1792389917.7495983,
+              "operation": "unload",
+              "model_type": "llm",
+              "model": "unsloth/Qwen3.8-27B-GGUF",
+              "duration_seconds": 0.3006,
+              "success": true
+            },
+            {
+              "timestamp": 1792390049.3619921,
+              "operation": "load",
+              "model_type": "llm",
+              "model": "unsloth/Qwen3.8-27B-GGUF",
+              "duration_seconds": 12.9427,
+              "success": true
+            },
+            {
+              "timestamp": 1792390051.1122699,
+              "operation": "unload",
+              "model_type": "llm",
+              "model": "unsloth/Qwen3.8-27B-GGUF",
+              "duration_seconds": 0.4004,
+              "success": true
+            },
+            {
+              "timestamp": 1792390172.0074146,
+              "operation": "load",
+              "model_type": "llm",
+              "model": "unsloth/Qwen3.8-27B-GGUF",
+              "duration_seconds": 13.7379,
+              "success": true
+            }
+          ]
+        },
+        "slots": {
+          "cap_slots": {
+            "music": {
+              "capacity": 1,
+              "in_flight": 0,
+              "queued": 0,
+              "available": 1
+            },
+            "music_video": {
+              "capacity": 1,
+              "in_flight": 0,
+              "queued": 0,
+              "available": 1
+            },
+            "text": {
+              "capacity": 1,
+              "in_flight": 0,
+              "queued": 0,
+              "available": 1
+            },
+            "video": {
+              "capacity": 1,
+              "in_flight": 0,
+              "queued": 0,
+              "available": 1
+            },
+            "vision": {
+              "capacity": 1,
+              "in_flight": 0,
+              "queued": 0,
+              "available": 1
+            }
+          },
+          "model_slots": {
+            "unsloth/Qwen3.8-27B-GGUF": {
+              "capacity": 1,
+              "in_flight": 0,
+              "queued": 0,
+              "available": 1
+            }
+          },
+          "llm_queue_capacity": 1,
+          "slot_total_capacity": 3,
+          "slot_total_in_flight": 0,
+          "slot_total_queued": 0,
+          "slot_total_available": 3
+        }
+      },
+      "resource_poll_timeouts": 5,
+      "resource_observation_count": 216
+    }
+  ],
+  "invalid_request": {
+    "status": 400,
+    "body": "{\"detail\":\"LTX size must contain two integers separated by x\"}"
+  },
+  "restored_context": 220000,
+  "packaged_music_identical_to_cpu_rng_experiment": true,
+  "diagnostics": {
+    "vae": {
+      "encoder": {
+        "elements": 20480,
+        "python_range": [
+          -6.59375,
+          5.84375
+        ],
+        "native_range": [
+          -6.5770263671875,
+          5.85101842880249
+        ],
+        "mae": 0.014432338066399097,
+        "rmse": 0.019191505387425423,
+        "corr": 0.9998947597199053,
+        "python_std": 1.3140023946762085,
+        "native_std": 1.3116775751113892
+      },
+      "decoder_replay": {
+        "input": "Normalized final video latents captured at actual Python VAE.decode, converted back to normalized float32 for native VAE decoding.",
+        "frames": [
+          41,
+          320,
+          512,
+          3
+        ],
+        "mae_rgb_0_to_255": 8.084808349609375,
+        "rmse_rgb_0_to_255": 17.58912467956543,
+        "correlation": 0.9511662714875049,
+        "native_mp4_sha256": "c188be7a4e099c40d51bfb7953f234e2931a07e9f45c5cb15a38dc8807e2d89d",
+        "comparison_limit": "Native MP4-decoded pixels versus original Python uncompressed frames; includes codec and dtype differences.",
+        "visual_observation": "Native decoder retains the reference theorem graphics and performing musicians when fed Python latents."
+      },
+      "native_result": {
+        "seconds": 114.68367103103083,
+        "bytes": 346364,
+        "sha256": "e4405abb0dd3bc9d3edb4bf290a0935b418e295ff1a2b9bd92ea70f7970e4424",
+        "handoff_observed": true
+      },
+      "restored_health": "healthy",
+      "python_oracle_exit": 0,
+      "restoration_note": "The following native validation took over during the Python harness health wait. Its standalone health poll reports unhealthy; the native harness subsequently restored the original worker healthy. Later validation runs wait for complete restoration before starting."
+    },
+    "native_prompt_embeddings": [
+      {
+        "side": "video",
+        "positive": true,
+        "mae": 0.009338115341961384,
+        "rmse": 0.07231459766626358,
+        "correlation": 0.9973853293167803,
+        "python_std": 1.0000135898590088,
+        "native_std": 1.000000238418579
+      },
+      {
+        "side": "video",
+        "positive": false,
+        "mae": 0.002793100429698825,
+        "rmse": 0.026836851611733437,
+        "correlation": 0.999639888559658,
+        "python_std": 0.9999945163726807,
+        "native_std": 0.9999973773956299
+      },
+      {
+        "side": "audio",
+        "positive": true,
+        "mae": 0.012651127763092518,
+        "rmse": 0.08295723795890808,
+        "correlation": 0.9965573945058334,
+        "python_std": 0.9997596144676208,
+        "native_std": 0.9997600317001343
+      },
+      {
+        "side": "audio",
+        "positive": false,
+        "mae": 0.00691152224317193,
+        "rmse": 0.03497641161084175,
+        "correlation": 0.9993880707516752,
+        "python_std": 0.9997909069061279,
+        "native_std": 0.9997923374176025
+      }
+    ],
+    "identical_input_first_transformer_forward": [
+      {
+        "module": "proj_in/positive",
+        "elements": 3932160,
+        "mae": 0.0006345430738292634,
+        "rmse": 0.001624025753699243,
+        "correlation": 0.9999986291287276,
+        "python_std": 0.9807881116867065,
+        "native_std": 0.9807941913604736
+      },
+      {
+        "module": "proj_in/negative",
+        "elements": 3932160,
+        "mae": 0.0006345430738292634,
+        "rmse": 0.001624025753699243,
+        "correlation": 0.9999986291287276,
+        "python_std": 0.9807881116867065,
+        "native_std": 0.9807941913604736
+      },
+      {
+        "module": "audio_proj_in/positive",
+        "elements": 262144,
+        "mae": 0.0007969066500663757,
+        "rmse": 0.0015435728710144758,
+        "correlation": 0.9999986349902699,
+        "python_std": 0.9342090487480164,
+        "native_std": 0.9342095851898193
+      },
+      {
+        "module": "audio_proj_in/negative",
+        "elements": 262144,
+        "mae": 0.0007969066500663757,
+        "rmse": 0.0015435728710144758,
+        "correlation": 0.9999986349902699,
+        "python_std": 0.9342090487480164,
+        "native_std": 0.9342095851898193
+      },
+      {
+        "module": "block_0_video/positive",
+        "elements": 3932160,
+        "mae": 0.004667266737669706,
+        "rmse": 0.028643008321523666,
+        "correlation": 0.9999740425233212,
+        "python_std": 3.9117839336395264,
+        "native_std": 3.9065799713134766
+      },
+      {
+        "module": "block_0_video/negative",
+        "elements": 3932160,
+        "mae": 0.004639784339815378,
+        "rmse": 0.028791014105081558,
+        "correlation": 0.9999739722056649,
+        "python_std": 3.902406930923462,
+        "native_std": 3.8962879180908203
+      },
+      {
+        "module": "block_0_audio/positive",
+        "elements": 262144,
+        "mae": 0.027136553078889847,
+        "rmse": 0.12388616800308228,
+        "correlation": 0.9999276510307117,
+        "python_std": 10.106405258178711,
+        "native_std": 10.081879615783691
+      },
+      {
+        "module": "block_0_audio/negative",
+        "elements": 262144,
+        "mae": 0.02722814865410328,
+        "rmse": 0.12501420080661774,
+        "correlation": 0.9999274165093706,
+        "python_std": 10.105121612548828,
+        "native_std": 10.0760498046875
+      },
+      {
+        "module": "block_1_video/positive",
+        "elements": 3932160,
+        "mae": 0.013054804876446724,
+        "rmse": 0.045307088643312454,
+        "correlation": 0.9999804586724917,
+        "python_std": 7.23664665222168,
+        "native_std": 7.238959312438965
+      },
+      {
+        "module": "block_1_video/negative",
+        "elements": 3932160,
+        "mae": 0.013102647848427296,
+        "rmse": 0.045899536460638046,
+        "correlation": 0.9999799339113896,
+        "python_std": 7.2339959144592285,
+        "native_std": 7.23642110824585
+      },
+      {
+        "module": "block_1_audio/positive",
+        "elements": 262144,
+        "mae": 0.03616683930158615,
+        "rmse": 0.15207141637802124,
+        "correlation": 0.9999289404239937,
+        "python_std": 12.717005729675293,
+        "native_std": 12.70466136932373
+      },
+      {
+        "module": "block_1_audio/negative",
+        "elements": 262144,
+        "mae": 0.037111371755599976,
+        "rmse": 0.15879815816879272,
+        "correlation": 0.9999232701448374,
+        "python_std": 12.755959510803223,
+        "native_std": 12.739645004272461
+      },
+      {
+        "module": "time_embed_0/positive",
+        "elements": 35389440,
+        "mae": 0.0002842219255398959,
+        "rmse": 0.0006533233099617064,
+        "correlation": 0.9999984820921732,
+        "python_std": 0.27726107835769653,
+        "native_std": 0.27681997418403625
+      },
+      {
+        "module": "time_embed_0/negative",
+        "elements": 35389440,
+        "mae": 0.0002842219255398959,
+        "rmse": 0.0006533233099617064,
+        "correlation": 0.9999984820921732,
+        "python_std": 0.27726107835769653,
+        "native_std": 0.27681997418403625
+      },
+      {
+        "module": "time_embed_1/positive",
+        "elements": 3932160,
+        "mae": 2.3982409402378835e-05,
+        "rmse": 0.0001440142805222422,
+        "correlation": 0.999998695972122,
+        "python_std": 0.049695372581481934,
+        "native_std": 0.04957572743296623
+      },
+      {
+        "module": "time_embed_1/negative",
+        "elements": 3932160,
+        "mae": 2.3982409402378835e-05,
+        "rmse": 0.0001440142805222422,
+        "correlation": 0.999998695972122,
+        "python_std": 0.049695372581481934,
+        "native_std": 0.04957572743296623
+      },
+      {
+        "module": "audio_time_embed_0/positive",
+        "elements": 18432,
+        "mae": 0.0005178452702239156,
+        "rmse": 0.001206822693347931,
+        "correlation": 0.9999984459027494,
+        "python_std": 0.5011717081069946,
+        "native_std": 0.5003669261932373
+      },
+      {
+        "module": "audio_time_embed_0/negative",
+        "elements": 18432,
+        "mae": 0.0005178452702239156,
+        "rmse": 0.001206822693347931,
+        "correlation": 0.9999984459027494,
+        "python_std": 0.5011717081069946,
+        "native_std": 0.5003669261932373
+      },
+      {
+        "module": "audio_time_embed_1/positive",
+        "elements": 2048,
+        "mae": 3.878013012581505e-05,
+        "rmse": 0.00014967695460654795,
+        "correlation": 0.9999978382908461,
+        "python_std": 0.06490223109722137,
+        "native_std": 0.06483743339776993
+      },
+      {
+        "module": "audio_time_embed_1/negative",
+        "elements": 2048,
+        "mae": 3.878013012581505e-05,
+        "rmse": 0.00014967695460654795,
+        "correlation": 0.9999978382908461,
+        "python_std": 0.06490223109722137,
+        "native_std": 0.06483743339776993
+      },
+      {
+        "module": "prompt_adaln_0/positive",
+        "elements": 8192,
+        "mae": 0.00018806909793056548,
+        "rmse": 0.00024023813602980226,
+        "correlation": 0.9999954324447046,
+        "python_std": 0.07946846634149551,
+        "native_std": 0.07947298884391785
+      },
+      {
+        "module": "prompt_adaln_0/negative",
+        "elements": 8192,
+        "mae": 0.00018806909793056548,
+        "rmse": 0.00024023813602980226,
+        "correlation": 0.9999954324447046,
+        "python_std": 0.07946846634149551,
+        "native_std": 0.07947298884391785
+      },
+      {
+        "module": "av_cross_attn_video_scale_shift_0/positive",
+        "elements": 15728640,
+        "mae": 0.0035575884394347668,
+        "rmse": 0.006937062833458185,
+        "correlation": 0.9999984176468655,
+        "python_std": 3.8972556591033936,
+        "native_std": 3.8970088958740234
+      },
+      {
+        "module": "av_cross_attn_video_scale_shift_0/negative",
+        "elements": 15728640,
+        "mae": 0.0035575884394347668,
+        "rmse": 0.006937062833458185,
+        "correlation": 0.9999984176468655,
+        "python_std": 3.8972556591033936,
+        "native_std": 3.8970088958740234
+      },
+      {
+        "module": "av_cross_attn_audio_scale_shift_0/positive",
+        "elements": 8192,
+        "mae": 0.0008617344428785145,
+        "rmse": 0.0015177124878391623,
+        "correlation": 0.9999985682978088,
+        "python_std": 0.8921257853507996,
+        "native_std": 0.8922412395477295
+      },
+      {
+        "module": "av_cross_attn_audio_scale_shift_0/negative",
+        "elements": 8192,
+        "mae": 0.0008617344428785145,
+        "rmse": 0.0015177124878391623,
+        "correlation": 0.9999985682978088,
+        "python_std": 0.8921257853507996,
+        "native_std": 0.8922412395477295
+      },
+      {
+        "module": "av_cross_attn_video_a2v_gate_0/positive",
+        "elements": 3932160,
+        "mae": 0.00015073538816068321,
+        "rmse": 0.00021834883955307305,
+        "correlation": 0.9999983869702589,
+        "python_std": 0.12054659426212311,
+        "native_std": 0.12051829695701599
+      },
+      {
+        "module": "av_cross_attn_video_a2v_gate_0/negative",
+        "elements": 3932160,
+        "mae": 0.00015073538816068321,
+        "rmse": 0.00021834883955307305,
+        "correlation": 0.9999983869702589,
+        "python_std": 0.12054659426212311,
+        "native_std": 0.12051829695701599
+      },
+      {
+        "module": "av_cross_attn_audio_v2a_gate_0/positive",
+        "elements": 2048,
+        "mae": 7.827694207662717e-05,
+        "rmse": 0.0001062524170265533,
+        "correlation": 0.999998672623123,
+        "python_std": 0.0650847852230072,
+        "native_std": 0.06509126722812653
+      },
+      {
+        "module": "av_cross_attn_audio_v2a_gate_0/negative",
+        "elements": 2048,
+        "mae": 7.827694207662717e-05,
+        "rmse": 0.0001062524170265533,
+        "correlation": 0.999998672623123,
+        "python_std": 0.0650847852230072,
+        "native_std": 0.06509126722812653
+      },
+      {
+        "module": "prediction-video/positive",
+        "elements": 122880,
+        "mae": 0.016775064170360565,
+        "rmse": 0.022073684260249138,
+        "correlation": 0.999873827452332,
+        "python_std": 1.379615306854248,
+        "native_std": 1.3768092393875122
+      },
+      {
+        "module": "prediction-audio/positive",
+        "elements": 16384,
+        "mae": 0.0145060233771801,
+        "rmse": 0.018263502046465874,
+        "correlation": 0.9998858638759631,
+        "python_std": 1.197544813156128,
+        "native_std": 1.1949188709259033
+      },
+      {
+        "module": "prediction-video/negative",
+        "elements": 122880,
+        "mae": 0.019338540732860565,
+        "rmse": 0.025628594681620598,
+        "correlation": 0.9998408649289362,
+        "python_std": 1.4097306728363037,
+        "native_std": 1.4143418073654175
+      },
+      {
+        "module": "prediction-audio/negative",
+        "elements": 16384,
+        "mae": 0.017333246767520905,
+        "rmse": 0.02158934436738491,
+        "correlation": 0.9997964170553096,
+        "python_std": 1.0110958814620972,
+        "native_std": 1.007629156112671
+      }
+    ],
+    "python_context_replay": {
+      "case": {
+        "case": "corrected-storyboard",
+        "request": {
+          "prompt": "Pythagorean rock concert, a band performing on a stage with a mathematical LED screen.",
+          "lyrics": "[Verse]\nThe squares on legs a and b\n[Chorus]\nEqual the square on hypotenuse c",
+          "keyscale": "C minor",
+          "duration": 5.0,
+          "scene_duration": 5.0,
+          "audio_url": "outputs/reused.wav",
+          "size": "512x320",
+          "frame_rate": 8,
+          "num_inference_steps": 18,
+          "response_format": "url",
+          "worker": "native-music-video-validation"
+        },
+        "via_router": true,
+        "seconds": 114.34759919403587,
+        "bytes": 360377,
+        "sha256": "43d8832a5ded4081d52af9f4321cea4d07580658ecd3c0c6e07bc03da21ed384",
+        "metadata": {
+          "audio_url": "outputs/reused.wav",
+          "content_type": "video/mp4",
+          "format": "mp4",
+          "math_overlay": true,
+          "scene_count": 1,
+          "scene_duration": 5.0,
+          "scene_plan": [
+            {
+              "duration": 5.0,
+              "index": 0,
+              "num_frames": 41,
+              "start": 0.0
+            }
+          ],
+          "scene_urls": [
+            "http://127.0.0.1:58315/outputs/c5b8be94-1205-4711-b032-d6e87c93db1b.mp4"
+          ],
+          "storyboard": true,
+          "url": "http://127.0.0.1:58315/outputs/1b3833df-c839-4f81-86d3-780247e6ff59.mp4"
+        },
+        "probe": {
+          "streams": [
+            {
+              "index": 0,
+              "codec_name": "h264",
+              "codec_long_name": "H.264 / AVC / MPEG-4 AVC / MPEG-4 part 10",
+              "profile": "High",
+              "codec_type": "video",
+              "codec_tag_string": "avc1",
+              "codec_tag": "0x31637661",
+              "width": 512,
+              "height": 320,
+              "coded_width": 512,
+              "coded_height": 320,
+              "closed_captions": 0,
+              "film_grain": 0,
+              "has_b_frames": 2,
+              "pix_fmt": "yuv420p",
+              "level": 21,
+              "chroma_location": "left",
+              "field_order": "progressive",
+              "refs": 1,
+              "is_avc": "true",
+              "nal_length_size": "4",
+              "id": "0x1",
+              "r_frame_rate": "8/1",
+              "avg_frame_rate": "8/1",
+              "time_base": "1/16384",
+              "start_pts": 0,
+              "start_time": "0.000000",
+              "duration_ts": 81920,
+              "duration": "5.000000",
+              "bit_rate": "555875",
+              "bits_per_raw_sample": "8",
+              "nb_frames": "40",
+              "extradata_size": 45,
+              "disposition": {
+                "default": 1,
+                "dub": 0,
+                "original": 0,
+                "comment": 0,
+                "lyrics": 0,
+                "karaoke": 0,
+                "forced": 0,
+                "hearing_impaired": 0,
+                "visual_impaired": 0,
+                "clean_effects": 0,
+                "attached_pic": 0,
+                "timed_thumbnails": 0,
+                "non_diegetic": 0,
+                "captions": 0,
+                "descriptions": 0,
+                "metadata": 0,
+                "dependent": 0,
+                "still_image": 0
+              },
+              "tags": {
+                "language": "und",
+                "handler_name": "VideoHandler",
+                "vendor_id": "[0][0][0][0]",
+                "encoder": "Lavc60.31.102 libx264"
+              }
+            },
+            {
+              "index": 1,
+              "codec_name": "aac",
+              "codec_long_name": "AAC (Advanced Audio Coding)",
+              "profile": "LC",
+              "codec_type": "audio",
+              "codec_tag_string": "mp4a",
+              "codec_tag": "0x6134706d",
+              "sample_fmt": "fltp",
+              "sample_rate": "24000",
+              "channels": 1,
+              "channel_layout": "mono",
+              "bits_per_sample": 0,
+              "initial_padding": 0,
+              "id": "0x2",
+              "r_frame_rate": "0/0",
+              "avg_frame_rate": "0/0",
+              "time_base": "1/24000",
+              "start_pts": 0,
+              "start_time": "0.000000",
+              "duration_ts": 120000,
+              "duration": "5.000000",
+              "bit_rate": "16194",
+              "nb_frames": "119",
+              "extradata_size": 5,
+              "disposition": {
+                "default": 1,
+                "dub": 0,
+                "original": 0,
+                "comment": 0,
+                "lyrics": 0,
+                "karaoke": 0,
+                "forced": 0,
+                "hearing_impaired": 0,
+                "visual_impaired": 0,
+                "clean_effects": 0,
+                "attached_pic": 0,
+                "timed_thumbnails": 0,
+                "non_diegetic": 0,
+                "captions": 0,
+                "descriptions": 0,
+                "metadata": 0,
+                "dependent": 0,
+                "still_image": 0
+              },
+              "tags": {
+                "language": "und",
+                "handler_name": "SoundHandler",
+                "vendor_id": "[0][0][0][0]"
+              }
+            }
+          ],
+          "format": {
+            "filename": "/opt/DevXT/ezlocalai/build/validation/ltx-context-replay/corrected-storyboard.mp4",
+            "nb_streams": 2,
+            "nb_programs": 0,
+            "format_name": "mov,mp4,m4a,3gp,3g2,mj2",
+            "format_long_name": "QuickTime / MOV",
+            "start_time": "0.000000",
+            "duration": "5.000000",
+            "size": "360377",
+            "bit_rate": "576603",
+            "probe_score": 100,
+            "tags": {
+              "major_brand": "isom",
+              "minor_version": "512",
+              "compatible_brands": "isomiso2avc1mp41",
+              "encoder": "Lavf60.16.100"
+            }
+          }
+        },
+        "scene_probes": [
+          {
+            "streams": [
+              {
+                "index": 0,
+                "codec_name": "h264",
+                "codec_long_name": "H.264 / AVC / MPEG-4 AVC / MPEG-4 part 10",
+                "profile": "High",
+                "codec_type": "video",
+                "codec_tag_string": "avc1",
+                "codec_tag": "0x31637661",
+                "width": 512,
+                "height": 320,
+                "coded_width": 512,
+                "coded_height": 320,
+                "closed_captions": 0,
+                "film_grain": 0,
+                "has_b_frames": 2,
+                "pix_fmt": "yuv420p",
+                "level": 21,
+                "chroma_location": "left",
+                "field_order": "progressive",
+                "refs": 1,
+                "is_avc": "true",
+                "nal_length_size": "4",
+                "id": "0x1",
+                "r_frame_rate": "8/1",
+                "avg_frame_rate": "8/1",
+                "time_base": "1/16384",
+                "start_pts": 0,
+                "start_time": "0.000000",
+                "duration_ts": 83968,
+                "duration": "5.125000",
+                "bit_rate": "667690",
+                "bits_per_raw_sample": "8",
+                "nb_frames": "41",
+                "extradata_size": 45,
+                "disposition": {
+                  "default": 1,
+                  "dub": 0,
+                  "original": 0,
+                  "comment": 0,
+                  "lyrics": 0,
+                  "karaoke": 0,
+                  "forced": 0,
+                  "hearing_impaired": 0,
+                  "visual_impaired": 0,
+                  "clean_effects": 0,
+                  "attached_pic": 0,
+                  "timed_thumbnails": 0,
+                  "non_diegetic": 0,
+                  "captions": 0,
+                  "descriptions": 0,
+                  "metadata": 0,
+                  "dependent": 0,
+                  "still_image": 0
+                },
+                "tags": {
+                  "language": "und",
+                  "handler_name": "VideoHandler",
+                  "vendor_id": "[0][0][0][0]",
+                  "encoder": "Lavc60.31.102 libx264"
+                }
+              }
+            ]
+          }
+        ],
+        "handoff_observed": true,
+        "after_resources": {
+          "gpu_count": 1,
+          "total_vram_gb": 23,
+          "free_vram_gb": 1.69549560546875,
+          "free_per_gpu_gb": [
+            1.69549560546875
+          ],
+          "torch_cuda": [
+            {
+              "index": 0,
+              "allocated_gb": 0.0,
+              "reserved_gb": 0.0,
+              "max_allocated_gb": 0.0,
+              "free_gb": 1.695,
+              "total_gb": 23.524
+            }
+          ],
+          "system_ram_gb": 123.37859344482422,
+          "loaded_models": {
+            "vision_llm": {
+              "name": "unsloth/Qwen3.8-27B-GGUF",
+              "device": "cuda",
+              "vram_gb": 20.05804443359375,
+              "in_use": false,
+              "active_requests": 0,
+              "last_used": 1792389468.0521884
+            }
+          },
+          "fallback": {
+            "configured": false,
+            "url": null,
+            "should_use_fallback": false,
+            "reason": "No fallback server configured",
+            "free_vram_gb": 1.69549560546875,
+            "free_ram_gb": 35.890689849853516,
+            "free_combined_gb": 37.586185455322266,
+            "memory_threshold_gb": 8.0
+          },
+          "parallel": {
+            "n_parallel": 1,
+            "n_ctx": 220000,
+            "per_slot_context": 220000,
+            "text_queue_capacity": 1,
+            "queue_wait_timeout": 30.0
+          },
+          "model_lifecycle": {
+            "llm_model_residency": "resident",
+            "configured_llms": [
+              "unsloth/Qwen3.8-27B-GGUF"
+            ],
+            "loaded_llms": [
+              "unsloth/Qwen3.8-27B-GGUF"
+            ],
+            "active_llm": "unsloth/Qwen3.8-27B-GGUF",
+            "loaded_llm_runtime": [
+              {
+                "model": "unsloth/Qwen3.8-27B-GGUF",
+                "context": 220000,
+                "gpu_layers": -1,
+                "main_gpu": 0,
+                "prompt_cache_mib": 14336,
+                "prompt_cache_requested_mib": 14336,
+                "checkpoint_min_step": 8192,
+                "n_ctx_checkpoints": 32,
+                "n_batch": 2048,
+                "n_ubatch": 512,
+                "kv_cache_type": "q4_0",
+                "speculative_type": "mtp"
+              }
+            ],
+            "vram_estimates_gb": {
+              "unsloth/Qwen3.8-27B-GGUF": 20.05804443359375
+            },
+            "summary": [
+              {
+                "operation": "load",
+                "model_type": "llm",
+                "model": "unsloth/Qwen3.8-27B-GGUF",
+                "count": 2,
+                "failures": 0,
+                "min_seconds": 5.5842,
+                "max_seconds": 14.0081,
+                "last_seconds": 14.0081,
+                "average_seconds": 9.7961
+              },
+              {
+                "operation": "unload",
+                "model_type": "llm",
+                "model": "unsloth/Qwen3.8-27B-GGUF",
+                "count": 1,
+                "failures": 0,
+                "min_seconds": 0.4004,
+                "max_seconds": 0.4004,
+                "last_seconds": 0.4004,
+                "average_seconds": 0.4004
+              }
+            ],
+            "recent_events": [
+              {
+                "timestamp": 1792389354.5252175,
+                "operation": "load",
+                "model_type": "llm",
+                "model": "unsloth/Qwen3.8-27B-GGUF",
+                "duration_seconds": 5.5842,
+                "success": true
+              },
+              {
+                "timestamp": 1792389355.4148724,
+                "operation": "unload",
+                "model_type": "llm",
+                "model": "unsloth/Qwen3.8-27B-GGUF",
+                "duration_seconds": 0.4004,
+                "success": true
+              },
+              {
+                "timestamp": 1792389468.051888,
+                "operation": "load",
+                "model_type": "llm",
+                "model": "unsloth/Qwen3.8-27B-GGUF",
+                "duration_seconds": 14.0081,
+                "success": true
+              }
+            ]
+          },
+          "slots": {
+            "cap_slots": {
+              "music": {
+                "capacity": 1,
+                "in_flight": 0,
+                "queued": 0,
+                "available": 1
+              },
+              "music_video": {
+                "capacity": 1,
+                "in_flight": 0,
+                "queued": 0,
+                "available": 1
+              },
+              "text": {
+                "capacity": 1,
+                "in_flight": 0,
+                "queued": 0,
+                "available": 1
+              },
+              "video": {
+                "capacity": 1,
+                "in_flight": 0,
+                "queued": 0,
+                "available": 1
+              },
+              "vision": {
+                "capacity": 1,
+                "in_flight": 0,
+                "queued": 0,
+                "available": 1
+              }
+            },
+            "model_slots": {
+              "unsloth/Qwen3.8-27B-GGUF": {
+                "capacity": 1,
+                "in_flight": 0,
+                "queued": 0,
+                "available": 1
+              }
+            },
+            "llm_queue_capacity": 1,
+            "slot_total_capacity": 3,
+            "slot_total_in_flight": 0,
+            "slot_total_queued": 0,
+            "slot_total_available": 3
+          }
+        },
+        "resource_poll_timeouts": 5,
+        "resource_observation_count": 199
+      },
+      "restored_health": "healthy",
+      "observation": "Keeping native CPU noise, scheduler, image encoder, denoiser and decoder but substituting the actual Python positive/negative prompt embeddings retains the theorem graphic at four seconds. Native BF16 text conditioning loses that graphic."
+    }
+  },
+  "deployment_hold": "Text-conditioning parity remains open. Installed Python selects bitsandbytes 0.50.2 NF4 with nested statistics on this GPU; native uses BF16 Gemma weights. The replay isolates the visible discrepancy to text conditioning, but does not separately isolate quantization from text/connector arithmetic precision.",
+  "remaining": [
+    "NF4/Quanto text-encoder loading and memory policy",
+    "arbitrary replacement scheduler configs",
+    "persistent per-scene video weights",
+    "complete video numerical parity and previously documented model/residency gaps"
+  ],
+  "source_sha256": {
+    "src/ltx_runtime.cpp": "ad88326f61652826438670da0e3ea64538f56177c8cd00fbfd7dd5c16f5a9abc",
+    "include/ezlocalai/ltx_runtime.hpp": "707d8591dcfe1957da5d29bbbc6085680ee85ec30c4993166e2be24a14c5562b",
+    "patches/sdcpp-ltx-timesteps.patch": "c38bc6a4468460f918318a62eee1f9805d442231f253dc420caf1ff5c9977bfe",
+    "tests/test_ltx_timesteps.cpp": "3d67855bea561bc9f72f533b17d25ef8846519a2591858f95f7ff20d83077563",
+    "tests/test_ltx_schedule.cpp": "dc1219f208d59555e8fdfe3687ff834557071506efcfbeca05d14d6197eebdf0",
+    "tests/test_ltx_rng.cpp": "db1959bc479323515d60a9f74418f2291df6539fdaf31d13112db27be2dda26c",
+    "tests/test_ltx_runtime.cpp": "24d38c8d5147785e5b03459abfc9dd76eb31ad988bf83b9b5233961ef188496f",
+    "CMakeLists.txt": "ac6850bd8cc80956d890700eb58e1402125b8ca1aa58491335d55eb429902acd",
+    "cuda.Dockerfile": "49a1b5579d24d47a79b694562b6e1fb9ec0d8f092b14e9bbd631fb3389723721"
+  }
+}

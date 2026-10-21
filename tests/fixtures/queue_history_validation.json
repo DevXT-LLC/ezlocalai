@@ -1,0 +1,225 @@
+{
+  "scope": "Bound terminal queue history, release finished inference input payloads, preserve attached waiters and serialize request timestamps without loss of double precision.",
+  "source_sha256": {
+    "src/request_queue.cpp": "19d2adea54ff7c4468c10a5676edc887a7847fe1fda081bf68971720afe8573a",
+    "src/native_server.cpp": "d18d5d997e6ed1664d64a368c758b655429e84682e17e583bc8e48acb3cdb98f",
+    "tests/test_queue_history.cpp": "419a58ecc8fe695cbfbc049ce5e3e52d347b28c49f8ab0a44d01c307d3ef8706",
+    "tests/test_queue_http.cpp": "e83dd21dd762e26c83ace94ffbbeec5fa3a3c4dbb7532800d6f5d3bf556d7702",
+    "CMakeLists.txt": "0ae0098a05ed1ea29cd107084d82e8440856b34e60ddd963a70e879f8d4e00b7",
+    "cuda.Dockerfile": "6f35418ade6f9bca3ba94360f0d3c64208193cfcc9e90b9e33a43ea5d1f87de7"
+  },
+  "reference": {
+    "source_sha256": "bf01ed349bc09556eac7e303bddfc79b113ac1008ac10db8aa25a57be0cf0f6f",
+    "history_limit": 1000,
+    "source_observations": [
+      {
+        "failed": false,
+        "submitted": 1105,
+        "history_count": 1001,
+        "first_visible": false,
+        "latest_visible": true,
+        "active": 0,
+        "processed": 1105,
+        "errors": 0
+      },
+      {
+        "failed": true,
+        "submitted": 1105,
+        "history_count": 1105,
+        "first_visible": true,
+        "latest_visible": true,
+        "active": 0,
+        "processed": 0,
+        "errors": 1105
+      }
+    ],
+    "native_policy": "Keep at most history_limit terminal requests, including failures/cancellations. Preserve registered waiters, clear finished payloads, evict oldest enqueue timestamp. Source only prunes on successful processing and can retain history_limit+1 after the waiter archives its result."
+  },
+  "regressions": [
+    "old terminal requests remained visible indefinitely",
+    "large completed input payloads remained allocated",
+    "request status rounded epoch seconds to six significant digits"
+  ],
+  "cpp_scenarios": [
+    "1105 successes with 256 KiB input",
+    "1105 failures",
+    "1105 queued cancellations",
+    "history survives stop/restart within the same limit",
+    "old processing request survives newer history and registered waiter survives eviction",
+    "HTTP history expiration/status counters/timestamp precision"
+  ],
+  "standalone_peak_rss_kib": {
+    "before": 290912,
+    "after": 4532
+  },
+  "sanitizers": [
+    "AddressSanitizer",
+    "UndefinedBehaviorSanitizer"
+  ],
+  "affected_suites": 5,
+  "actual_rust_router_scenarios": 8,
+  "router_binary_sha256": "91873d25c218dd3d3ed12bded2ff990bd13837d6d514922eb04dc45ccbde93b9",
+  "packaged_suites": 38,
+  "packaged_binaries": {
+    "/app/build/ezlocalai-native": "40ef7f49b1db5172d928666872b05c3f0ca1526a283f88c962c7fa9935b24aff",
+    "/opt/stable-diffusion.cpp/build/bin/sd-cli": "bacdb2b223e94ef8be5b65767e2c92b14bb3b931195f0b4a9815737f6efc85ed"
+  },
+  "http": {
+    "worker_sha256": "40ef7f49b1db5172d928666872b05c3f0ca1526a283f88c962c7fa9935b24aff",
+    "requests": 1105,
+    "input_bytes": 262144,
+    "rss_samples": [
+      {
+        "completed": 1,
+        "VmHWM": 407488,
+        "VmRSS": 398296
+      },
+      {
+        "completed": 201,
+        "VmHWM": 414808,
+        "VmRSS": 414808
+      },
+      {
+        "completed": 401,
+        "VmHWM": 414808,
+        "VmRSS": 414808
+      },
+      {
+        "completed": 601,
+        "VmHWM": 415000,
+        "VmRSS": 415000
+      },
+      {
+        "completed": 801,
+        "VmHWM": 415000,
+        "VmRSS": 415000
+      },
+      {
+        "completed": 1001,
+        "VmHWM": 415192,
+        "VmRSS": 415192
+      }
+    ],
+    "initial_rss": {
+      "VmHWM": 395324,
+      "VmRSS": 395324
+    },
+    "before_timestamp": 1792436745.313653,
+    "seconds": 6.799802359077148,
+    "after_timestamp": 1792436752.1134593,
+    "final_rss": {
+      "VmHWM": 415384,
+      "VmRSS": 415384
+    },
+    "first_status": 404,
+    "first_body": {
+      "detail": "Request ezl-1 not found"
+    },
+    "latest_status": 200,
+    "latest_body": {
+      "id": "ezl-1105",
+      "status": "completed",
+      "completion_type": "chat",
+      "timestamp": 1792436752.1092079,
+      "error": null
+    },
+    "queue": {
+      "queue_size": 0,
+      "processing_count": 0,
+      "max_concurrent": 2,
+      "max_queue_size": 100,
+      "total_processed": 1105,
+      "total_failed": 0,
+      "total_queued": 1105,
+      "active_requests": 0,
+      "is_running": true
+    },
+    "passed": true
+  },
+  "deployment": {
+    "previous_image": "sha256:4a2695036442242f9c154fe091ad5dfd97abebc83fb0f413a88bef4016faa7b7",
+    "candidate_image": "sha256:4dbbc3e4b5910719eab74233d033026802aa0a4e4b28566c63c9e3b37ed5f12a",
+    "health": "healthy",
+    "deployed_image": "sha256:4dbbc3e4b5910719eab74233d033026802aa0a4e4b28566c63c9e3b37ed5f12a",
+    "effective_environment_changed_keys": [],
+    "original_env_file_unchanged": true,
+    "mounts_unchanged": true,
+    "wakeword_mounts": [
+      [
+        "bind",
+        "/home/josh/repos/xtsys/ezlocalai/wakeword_models",
+        "/app/wakeword_models",
+        true
+      ],
+      [
+        "bind",
+        "/home/josh/repos/xtsys/ezlocalai/wakeword_samples",
+        "/app/wakeword_samples",
+        true
+      ],
+      [
+        "bind",
+        "/home/josh/repos/xtsys/ezlocalai/wakeword_jobs",
+        "/app/wakeword_jobs",
+        true
+      ]
+    ],
+    "ports_unchanged": true,
+    "gpu_requests_unchanged": true
+  },
+  "live": {
+    "image": "sha256:4dbbc3e4b5910719eab74233d033026802aa0a4e4b28566c63c9e3b37ed5f12a",
+    "binary_sha256": "40ef7f49b1db5172d928666872b05c3f0ca1526a283f88c962c7fa9935b24aff",
+    "matching_workers": 1,
+    "python_extra_matches": true,
+    "extra": {
+      "llm_model_residency": "resident",
+      "loaded_llms": [
+        "unsloth/Qwen3.8-27B-GGUF"
+      ],
+      "active_llm": "unsloth/Qwen3.8-27B-GGUF",
+      "llm_unload_dependent_capabilities": [
+        "image",
+        "video",
+        "music",
+        "music_video"
+      ]
+    },
+    "resource_lifecycle": {
+      "llm_model_residency": "resident",
+      "loaded_llms": [
+        "unsloth/Qwen3.8-27B-GGUF"
+      ],
+      "active_llm": "unsloth/Qwen3.8-27B-GGUF"
+    },
+    "gpu_count": 1,
+    "torch_cuda": [
+      {
+        "index": 0,
+        "allocated_gb": 0.0,
+        "reserved_gb": 0.0,
+        "max_allocated_gb": 0.0,
+        "free_gb": 2.385,
+        "total_gb": 23.524
+      }
+    ],
+    "free_vram_gb": 2.38482666015625,
+    "sources": {
+      "Pipes.py": "8238cef03d4a1db6e775d7f62234bcf998d8f08bd9fc15f1d8a36ea0d3280005",
+      "Router.py": "d5eebf7fc48f7781628aa4eaab8af1c3f23fd8694242f0b3065436b5c86f62b1"
+    }
+  },
+  "live_routed_statuses": {
+    "chat": 200,
+    "stream": 200,
+    "vision": 200
+  },
+  "limits": [
+    "History is bounded by entry count, not total result bytes. Active/queued inputs remain governed by concurrency and pending capacity.",
+    "Native intentionally enforces the 1000-entry target on all terminal outcomes; it does not reproduce Python success-only pruning or its 1001-entry serial overshoot.",
+    "Already attached waiters retain results; lookups or new waits after eviction return not found. Recent results can still be read repeatedly.",
+    "Queue UUID formatting and broader timeout/cancellation/shutdown semantics remain under audit; full replacement parity is not claimed.",
+    "LTX engine/model behavior is unchanged by this queue update; previous real CUDA media evidence remains applicable."
+  ],
+  "evidence": "build/validation/queue-history/"
+}

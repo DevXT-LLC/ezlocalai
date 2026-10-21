@@ -1,0 +1,211 @@
+{
+  "scope": "Current worker OpenAPI and documentation responses with startup-captured model defaults; no claim of complete inference endpoint parity.",
+  "source_sha256": {
+    "src/native_server.cpp": "9c08459cc6f13b9c68b1d661d4230ef8a5817a462c0ee18adc66217eaf51d726",
+    "include/ezlocalai/native_server.hpp": "12c2529939f19954e66a695a483a893e2c8e6341c4a731e342625658e7767d58",
+    "src/generated_openapi.hpp": "9a3781615ab3a9055dc0c665662d5e36770921b38377e893a9fe5f9e70999818",
+    "tests/test_openapi.cpp": "00c60e756bd2c8babef9d5976690be5f1d17595944868eda8791c78e11f31a73",
+    "tests/test_native_http.cpp": "01cdc9f0887fd02de1af145957c57333f866e4997ce98b28d519b978fefc5138",
+    "tests/fixtures/openapi_cases.json": "5fd5924cd5f561e6e4939b18ead45ed173e9c130eb145775bbb7a0a8781169f2",
+    "CMakeLists.txt": "3d932b35e3ce7dac0a7699b8953fd5cd36472878c1b74d3acb4c8adf576507c2",
+    "cuda.Dockerfile": "e9ec6cb29a097a30e59040a0715b954e858059afeb08c64defd8e3c82447b059"
+  },
+  "reference": {
+    "source_sha256": {
+      "app.py": "fab365c963725d80c81063b544d5b18b4cf931263573bdcb236e537519c7d365",
+      "Globals.py": "c2be3290368b9be8f6cf5e80af2109bf17dc0c407e2cdadf32fecb338b4744e8",
+      "ezlocalai/MUSIC.py": "d65e5f1ec4cb9db63789b53648e24eff445f7d68c5c1e12348f0e49279de9fc8",
+      "ezlocalai/VIDEO_UTILS.py": "8e7bc34f16927d7b9fc619fe0d96445a5dbd44713bad9308388a95214a32c047"
+    },
+    "dependencies": {
+      "fastapi": "0.143.0",
+      "pydantic": "2.14.1",
+      "starlette": "1.7.0",
+      "python-multipart": "0.0.32"
+    },
+    "capture": "Complete source app import with only Pipes construction substituted; no lifespan/inference hooks executed.",
+    "paths": 31,
+    "operations": 34,
+    "schemas": 22
+  },
+  "complete_schema_variants": 4,
+  "documentation_http_cases": 8,
+  "candidate_http": {
+    "checks": [
+      {
+        "method": "GET",
+        "path": "/",
+        "passed": true
+      },
+      {
+        "method": "HEAD",
+        "path": "/",
+        "passed": true
+      },
+      {
+        "method": "GET",
+        "path": "/redoc",
+        "passed": true
+      },
+      {
+        "method": "HEAD",
+        "path": "/redoc",
+        "passed": true
+      },
+      {
+        "method": "GET",
+        "path": "/docs/oauth2-redirect",
+        "passed": true
+      },
+      {
+        "method": "HEAD",
+        "path": "/docs/oauth2-redirect",
+        "passed": true
+      },
+      {
+        "method": "GET",
+        "path": "/openapi.json",
+        "passed": true
+      },
+      {
+        "method": "HEAD",
+        "path": "/openapi.json",
+        "passed": true
+      }
+    ],
+    "passed": true
+  },
+  "deployed_http": {
+    "image": "sha256:60e6f4fe9917a46080c150a9f3d03d6475322b80efae67e9555141158b7fe84c",
+    "checks": [
+      {
+        "method": "GET",
+        "path": "/",
+        "passed": true,
+        "length": 1015,
+        "body_sha256": "9cba0aab86158b3e8ffc7efa8586cb181b600c764c811af2b0579ce95e0cac4e"
+      },
+      {
+        "method": "HEAD",
+        "path": "/",
+        "passed": true,
+        "length": 1015,
+        "body_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "method": "GET",
+        "path": "/redoc",
+        "passed": true,
+        "length": 897,
+        "body_sha256": "a8aa84db129687e6d0e715504d39ebc781e77a339b01525d6a38ca0070773005"
+      },
+      {
+        "method": "HEAD",
+        "path": "/redoc",
+        "passed": true,
+        "length": 897,
+        "body_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "method": "GET",
+        "path": "/docs/oauth2-redirect",
+        "passed": true,
+        "length": 3012,
+        "body_sha256": "f45d60bb9f054b1712b3f9e60547eb9e1d523afd6472a4137b89eb503b37f058"
+      },
+      {
+        "method": "HEAD",
+        "path": "/docs/oauth2-redirect",
+        "passed": true,
+        "length": 3012,
+        "body_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "method": "GET",
+        "path": "/openapi.json",
+        "passed": true,
+        "length": 41325,
+        "body_sha256": "4d7b529fc0e271ae57ab904ccab7fa1bc030a9626d97608ad75bdb0cc3078238"
+      },
+      {
+        "method": "HEAD",
+        "path": "/openapi.json",
+        "passed": true,
+        "length": 41325,
+        "body_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    ],
+    "passed": true
+  },
+  "cuda_packaged_checks": 41,
+  "native_http": {
+    "passed": true,
+    "seconds": 29.46,
+    "fixture_repairs": [
+      "Use temporary local models instead of image MODELS_PATH; disable Hub downloads.",
+      "Compare embedding model file identity, allowing equivalent /./ path spelling."
+    ]
+  },
+  "actual_rust_router_integration": {
+    "passed": true,
+    "seconds": 29.69,
+    "router_binary_sha256": "91873d25c218dd3d3ed12bded2ff990bd13837d6d514922eb04dc45ccbde93b9"
+  },
+  "binaries_sha256": {
+    "/app/build/ezlocalai-native": "ab65e6198bb9ba17fdba67bf5a2ed920787bed55449aa6847d1c6ec721e3dcba",
+    "/app/build/ezlocalai-native-entrypoint": "7da9eb6310967f552fa1528b13a43deb6c5e46e85b862d174e1c0f3a0598bc1f",
+    "/opt/stable-diffusion.cpp/build/bin/sd-cli": "bacdb2b223e94ef8be5b65767e2c92b14bb3b931195f0b4a9815737f6efc85ed"
+  },
+  "tested_worker_matches_packaged_worker": true,
+  "deployment": {
+    "previous_image": "sha256:8a3409aa8ed3b97f8c5eb8cd434307e74414ab4d20034e04f00de8a5e0226b56",
+    "candidate_image": "sha256:60e6f4fe9917a46080c150a9f3d03d6475322b80efae67e9555141158b7fe84c",
+    "health": "healthy",
+    "deployed_image": "sha256:60e6f4fe9917a46080c150a9f3d03d6475322b80efae67e9555141158b7fe84c",
+    "effective_environment_changed_keys": [],
+    "original_env_file_unchanged": true,
+    "mounts_unchanged": true,
+    "wakeword_mounts": [
+      [
+        "bind",
+        "/home/josh/repos/xtsys/ezlocalai/wakeword_models",
+        "/app/wakeword_models",
+        true
+      ],
+      [
+        "bind",
+        "/home/josh/repos/xtsys/ezlocalai/wakeword_samples",
+        "/app/wakeword_samples",
+        true
+      ],
+      [
+        "bind",
+        "/home/josh/repos/xtsys/ezlocalai/wakeword_jobs",
+        "/app/wakeword_jobs",
+        true
+      ]
+    ],
+    "ports_unchanged": true,
+    "gpu_requests_unchanged": true
+  },
+  "live_routed_inference": {
+    "registered_workers": 1,
+    "chat": true,
+    "sse_content_and_done_without_error": true,
+    "vision": true
+  },
+  "original_env_sha256": "61dd1627786c0516e0ad59287ea2fb0990eeee7c93951d292aca38f46402dd24",
+  "worker_manifest": {
+    "rows": 65,
+    "implemented": 27,
+    "partial": 38,
+    "source_routes": 45,
+    "uncovered_source_routes": 0
+  },
+  "limitations": [
+    "Captures substitute Pipes construction and do not exercise model initialization or inference.",
+    "The legacy Python router snapshot is excluded; the replacement router is Rust WorkerRouter.",
+    "Schema serving does not prove complete behavior of the documented inference endpoints."
+  ],
+  "full_evidence_directory": "build/validation/openapi"
+}

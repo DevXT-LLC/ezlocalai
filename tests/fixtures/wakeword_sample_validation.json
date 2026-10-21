@@ -1,0 +1,66 @@
+{
+  "scope": "Native integer PCM augmentation, decoded TTS normalization, dataset preparation and negative-noise generation; no live TTS transport, MP3 decoding or HTTP job integration.",
+  "source_sha256": "dcd63562c35b55472d508a3089396b39fb3c32fd018cba7ded3d83350cf2875c",
+  "versions": {
+    "python": "3.12.14 (main, Sep  1 2026, 14:16:52) [Clang 22.1.3 ]",
+    "numpy": "2.4.6",
+    "scipy": "1.18.1"
+  },
+  "native_sha256": {
+    "include/ezlocalai/wakeword_samples.hpp": "bbe0fab898b4546a42d0a90dbb9282a715506b9c7d23c795eb8660cfa4acae31",
+    "src/wakeword_samples.cpp": "90797bf1f4cbd1bab1be0b4fb6ffcaee82d8a6626e3a25eaf4d8f1f703c36c92",
+    "tests/test_wakeword_samples.cpp": "2533a563d4e4d98eb28cd920a25bf29170c046cd7acda6f0db77b249a44f1d0c",
+    "licenses/SciPy.txt": "221e59f5e910fd7f94e44f0dac77436a11338c285c6346232e4a850a50da0e94"
+  },
+  "capture_sha256": "d1e74e0ef3c582e0b03994cb4016cc0d181c236c4d07b71bc5ef3df83af3816d",
+  "cases": {
+    "augment": 9,
+    "noise": 5,
+    "datasets": 6,
+    "chains": 4
+  },
+  "wave_artifacts_exact": 421,
+  "checks": [
+    "Complete WAV bytes and headers",
+    "Sixteen augmentation names/order",
+    "White/pink/brown/silence metadata and PCM",
+    "Original-before-augmentation dataset order",
+    "Positive/negative counts and metadata",
+    "Progress cadence and ordering",
+    "RandomState continuation after each case",
+    "Cached normal state across augmentation-to-negative sequences",
+    "Decoded TTS resampling before mono conversion"
+  ],
+  "host": "421 artifacts passed",
+  "sanitizers": {
+    "address": "passed",
+    "undefined_behavior": "passed",
+    "leak_detection": true
+  },
+  "cuda_container": {
+    "artifact_comparisons": 421,
+    "test_binary_sha256": "a9e66ccc35cf6d592062de86b5bcab314762bfa3c823dabf4daa035d8d757077",
+    "ctest_passed": 4,
+    "ctest_seconds": 6.28,
+    "tests": [
+      "wakeword_samples_reference",
+      "wakeword_model_reference",
+      "wakeword_training_reference",
+      "wakeword_export_reference"
+    ],
+    "fresh_cuda_export_cases_passed": 8,
+    "build_note": "Forced current sources and test objects to rebuild after copied mtimes retained an older sample-test binary; final output confirms 421 comparisons."
+  },
+  "production": {
+    "image": "sha256:9961a2bb539fbc5136c91cee0d1b6d7291f766f400d4193bc6909c44d55b8958",
+    "health": "healthy",
+    "new_pipeline_deployed": false
+  },
+  "remaining": [
+    "gTTS/Edge live sample transports and MP3 decoding",
+    "Similar-word generation",
+    "Background training jobs and shared sample RNG lifetime",
+    "Working ESPDL export",
+    "Float/compressed WAV fallback and uncommon malformed-WAV behavior"
+  ]
+}

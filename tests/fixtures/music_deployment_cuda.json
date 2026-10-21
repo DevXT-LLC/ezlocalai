@@ -1,0 +1,654 @@
+{
+  "source_sha256": "d65e5f1ec4cb9db63789b53648e24eff445f7d68c5c1e12348f0e49279de9fc8",
+  "cases": [
+    {
+      "request": {
+        "prompt": "Gentle acoustic guitar and warm piano, calm instrumental music.",
+        "instrumental": true,
+        "duration": 5,
+        "seed": 42,
+        "response_format": "b64_json",
+        "output_format": "wav16",
+        "extra": {
+          "lm_seed": 42
+        },
+        "lyrics": "[Instrumental]",
+        "keyscale": "C major"
+      },
+      "response": {
+        "created": 1792377816,
+        "model": "Serveurperso/ACE-Step-1.5-GGUF",
+        "data": [
+          {
+            "content_type": "audio/wav",
+            "format": "wav16",
+            "lyrics": "[Instrumental]",
+            "caption": "Gentle acoustic guitar and warm piano, calm instrumental music.",
+            "duration": 5.0,
+            "bpm": 128,
+            "keyscale": "C major",
+            "timesignature": "4/4",
+            "vocal_language": "unknown",
+            "seed": 42
+          }
+        ]
+      },
+      "trace": [
+        {
+          "endpoint": "/lm",
+          "payload": {
+            "task_type": "text2music",
+            "caption": "Gentle acoustic guitar and warm piano, calm instrumental music.",
+            "output_format": "wav16",
+            "lm_batch_size": 1,
+            "lyrics": "[Instrumental]",
+            "duration": 5,
+            "seed": 42,
+            "bpm": 128,
+            "keyscale": "C major",
+            "timesignature": "4/4",
+            "vocal_language": "en",
+            "inference_steps": 16,
+            "guidance_scale": 1.0,
+            "shift": 3.0,
+            "solver": "euler",
+            "lm_model": "acestep-5Hz-lm-4B-Q8_0.gguf",
+            "synth_model": "acestep-v15-turbo-Q4_K_M.gguf",
+            "lm_seed": 42
+          },
+          "content_type": "application/json",
+          "result": [
+            {
+              "caption": "Gentle acoustic guitar and warm piano, calm instrumental music.",
+              "seed": 42,
+              "lyrics": "[Instrumental]",
+              "audio_codes": "17893,32319,63562,10371,51278,52406,30187,27096,13253,13766,10701,2307,8880,18613,63782,3847,51046,6525,32927,62151",
+              "bpm": 128,
+              "duration": 5.0,
+              "keyscale": "C major",
+              "timesignature": "4/4",
+              "vocal_language": "unknown",
+              "lm_seed": 42,
+              "inference_steps": 16,
+              "guidance_scale": 1.0,
+              "shift": 3.0,
+              "solver": "euler",
+              "lm_mode": "generate",
+              "output_format": "wav16",
+              "task_type": "text2music",
+              "synth_model": "acestep-v15-turbo-Q4_K_M.gguf",
+              "lm_model": "acestep-5Hz-lm-4B-Q8_0.gguf"
+            }
+          ]
+        },
+        {
+          "endpoint": "/synth",
+          "payload": {
+            "caption": "Gentle acoustic guitar and warm piano, calm instrumental music.",
+            "seed": 42,
+            "lyrics": "[Instrumental]",
+            "audio_codes": "17893,32319,63562,10371,51278,52406,30187,27096,13253,13766,10701,2307,8880,18613,63782,3847,51046,6525,32927,62151",
+            "bpm": 128,
+            "duration": 5.0,
+            "keyscale": "C major",
+            "timesignature": "4/4",
+            "vocal_language": "unknown",
+            "lm_seed": 42,
+            "inference_steps": 16,
+            "guidance_scale": 1.0,
+            "shift": 3.0,
+            "solver": "euler",
+            "lm_mode": "generate",
+            "output_format": "wav16",
+            "task_type": "text2music",
+            "synth_model": "acestep-v15-turbo-Q4_K_M.gguf",
+            "lm_model": "acestep-5Hz-lm-4B-Q8_0.gguf"
+          },
+          "content_type": "multipart/mixed; boundary=ace-batch-boundary",
+          "result": {
+            "bytes": 793832
+          }
+        }
+      ],
+      "seconds": 4.163151353015564,
+      "audio": [
+        {
+          "file": "python-0-0.wav",
+          "bytes": 768044,
+          "sha256": "288b99ad7b4888c3e936f275c2ee5614f198c3d437af83394865a379ac1fa502"
+        }
+      ],
+      "server_environment": {}
+    },
+    {
+      "request": {
+        "prompt": "Bright melodic piano with soft drums, instrumental.",
+        "instrumental": true,
+        "duration": 5,
+        "seed": 123,
+        "n": 2,
+        "response_format": "b64_json",
+        "output_format": "wav24",
+        "extra": {
+          "lm_seed": 123
+        },
+        "lyrics": "[Instrumental]",
+        "keyscale": "C major"
+      },
+      "response": {
+        "created": 1792377820,
+        "model": "Serveurperso/ACE-Step-1.5-GGUF",
+        "data": [
+          {
+            "content_type": "audio/wav",
+            "format": "wav24",
+            "lyrics": "[Instrumental]",
+            "caption": "Bright melodic piano with soft drums, instrumental.",
+            "duration": 5.0,
+            "bpm": 128,
+            "keyscale": "C major",
+            "timesignature": "4/4",
+            "vocal_language": "unknown",
+            "seed": 123
+          }
+        ]
+      },
+      "trace": [
+        {
+          "endpoint": "/lm",
+          "payload": {
+            "task_type": "text2music",
+            "caption": "Bright melodic piano with soft drums, instrumental.",
+            "output_format": "wav24",
+            "lm_batch_size": 2,
+            "lyrics": "[Instrumental]",
+            "duration": 5,
+            "seed": 123,
+            "bpm": 128,
+            "keyscale": "C major",
+            "timesignature": "4/4",
+            "vocal_language": "en",
+            "inference_steps": 16,
+            "guidance_scale": 1.0,
+            "shift": 3.0,
+            "solver": "euler",
+            "lm_model": "acestep-5Hz-lm-4B-Q8_0.gguf",
+            "synth_model": "acestep-v15-turbo-Q4_K_M.gguf",
+            "lm_seed": 123
+          },
+          "content_type": "application/json",
+          "result": [
+            {
+              "caption": "Bright melodic piano with soft drums, instrumental.",
+              "seed": 123,
+              "lyrics": "[Instrumental]",
+              "audio_codes": "37567,35647,11471,19326,16855,48135,13279,18999,32770,48327,35919,36063,50759,22991,58903,13358,17543,25375,37127",
+              "bpm": 128,
+              "duration": 5.0,
+              "keyscale": "C major",
+              "timesignature": "4/4",
+              "vocal_language": "unknown",
+              "lm_seed": 123,
+              "inference_steps": 16,
+              "guidance_scale": 1.0,
+              "shift": 3.0,
+              "solver": "euler",
+              "lm_mode": "generate",
+              "output_format": "wav24",
+              "task_type": "text2music",
+              "synth_model": "acestep-v15-turbo-Q4_K_M.gguf",
+              "lm_model": "acestep-5Hz-lm-4B-Q8_0.gguf"
+            }
+          ]
+        },
+        {
+          "endpoint": "/synth",
+          "payload": {
+            "caption": "Bright melodic piano with soft drums, instrumental.",
+            "seed": 123,
+            "lyrics": "[Instrumental]",
+            "audio_codes": "37567,35647,11471,19326,16855,48135,13279,18999,32770,48327,35919,36063,50759,22991,58903,13358,17543,25375,37127",
+            "bpm": 128,
+            "duration": 5.0,
+            "keyscale": "C major",
+            "timesignature": "4/4",
+            "vocal_language": "unknown",
+            "lm_seed": 123,
+            "inference_steps": 16,
+            "guidance_scale": 1.0,
+            "shift": 3.0,
+            "solver": "euler",
+            "lm_mode": "generate",
+            "output_format": "wav24",
+            "task_type": "text2music",
+            "synth_model": "acestep-v15-turbo-Q4_K_M.gguf",
+            "lm_model": "acestep-5Hz-lm-4B-Q8_0.gguf"
+          },
+          "content_type": "multipart/mixed; boundary=ace-batch-boundary",
+          "result": {
+            "bytes": 1130728
+          }
+        }
+      ],
+      "seconds": 3.677026535035111,
+      "audio": [
+        {
+          "file": "python-1-0.wav",
+          "bytes": 1105964,
+          "sha256": "55ac19f52448af3c16b45b780eecd8c843ce90cdee7b02a88e6268af850a1e08"
+        }
+      ],
+      "server_environment": {}
+    },
+    {
+      "request": {
+        "prompt": "Gentle acoustic guitar and warm piano, calm instrumental music.",
+        "lyrics": "[Instrumental]",
+        "duration": 5,
+        "seed": 42,
+        "audio_codes": "17893,32319,63562,10371,51278,52406,30187,27096,13253,13766,10701,2307,8880,18613,63782,3847,51046,6525,32927,62151",
+        "response_format": "b64_json",
+        "output_format": "wav32",
+        "keyscale": "C major"
+      },
+      "response": {
+        "created": 1792377822,
+        "model": "Serveurperso/ACE-Step-1.5-GGUF",
+        "data": [
+          {
+            "content_type": "audio/wav",
+            "format": "wav32",
+            "lyrics": "[Instrumental]",
+            "caption": "Gentle acoustic guitar and warm piano, calm instrumental music.",
+            "duration": 5,
+            "bpm": 128,
+            "keyscale": "C major",
+            "timesignature": "4/4",
+            "vocal_language": "en",
+            "seed": 42
+          }
+        ]
+      },
+      "trace": [
+        {
+          "endpoint": "/synth",
+          "payload": {
+            "task_type": "text2music",
+            "caption": "Gentle acoustic guitar and warm piano, calm instrumental music.",
+            "output_format": "wav32",
+            "lm_batch_size": 1,
+            "lyrics": "[Instrumental]",
+            "duration": 5,
+            "seed": 42,
+            "bpm": 128,
+            "keyscale": "C major",
+            "timesignature": "4/4",
+            "vocal_language": "en",
+            "inference_steps": 16,
+            "guidance_scale": 1.0,
+            "shift": 3.0,
+            "solver": "euler",
+            "lm_model": "acestep-5Hz-lm-4B-Q8_0.gguf",
+            "synth_model": "acestep-v15-turbo-Q4_K_M.gguf",
+            "audio_codes": "17893,32319,63562,10371,51278,52406,30187,27096,13253,13766,10701,2307,8880,18613,63782,3847,51046,6525,32927,62151"
+          },
+          "content_type": "multipart/mixed; boundary=ace-batch-boundary",
+          "result": {
+            "bytes": 1561832
+          }
+        }
+      ],
+      "seconds": 2.263790325028822,
+      "audio": [
+        {
+          "file": "python-2-0.wav",
+          "bytes": 1536044,
+          "sha256": "37e54351f62a4edd6df5dc501090fa79604864f1ad798738d92c43ca6448af70"
+        }
+      ],
+      "server_environment": {}
+    },
+    {
+      "request": {
+        "prompt": "Gentle acoustic guitar and warm piano, calm instrumental music.",
+        "lyrics": "[Instrumental]",
+        "duration": 5,
+        "seed": 42,
+        "audio_codes": "17893,32319,63562,10371,51278,52406,30187,27096,13253,13766,10701,2307,8880,18613,63782,3847,51046,6525,32927,62151",
+        "response_format": "url",
+        "output_format": "mp3",
+        "keyscale": "C major"
+      },
+      "response": {
+        "created": 1792377825,
+        "model": "Serveurperso/ACE-Step-1.5-GGUF",
+        "data": [
+          {
+            "content_type": "audio/mpeg",
+            "format": "mp3",
+            "lyrics": "[Instrumental]",
+            "caption": "Gentle acoustic guitar and warm piano, calm instrumental music.",
+            "duration": 5,
+            "bpm": 128,
+            "keyscale": "C major",
+            "timesignature": "4/4",
+            "vocal_language": "en",
+            "seed": 42,
+            "url": "outputs/c153ea77-88eb-421a-86f0-62115eae657a-0.mp3"
+          }
+        ]
+      },
+      "trace": [
+        {
+          "endpoint": "/synth",
+          "payload": {
+            "task_type": "text2music",
+            "caption": "Gentle acoustic guitar and warm piano, calm instrumental music.",
+            "output_format": "mp3",
+            "lm_batch_size": 1,
+            "lyrics": "[Instrumental]",
+            "duration": 5,
+            "seed": 42,
+            "bpm": 128,
+            "keyscale": "C major",
+            "timesignature": "4/4",
+            "vocal_language": "en",
+            "inference_steps": 16,
+            "guidance_scale": 1.0,
+            "shift": 3.0,
+            "solver": "euler",
+            "lm_model": "acestep-5Hz-lm-4B-Q8_0.gguf",
+            "synth_model": "acestep-v15-turbo-Q4_K_M.gguf",
+            "audio_codes": "17893,32319,63562,10371,51278,52406,30187,27096,13253,13766,10701,2307,8880,18613,63782,3847,51046,6525,32927,62151"
+          },
+          "content_type": "multipart/mixed; boundary=ace-batch-boundary",
+          "result": {
+            "bytes": 89917
+          }
+        }
+      ],
+      "seconds": 2.740525997010991,
+      "audio": [
+        {
+          "file": "python-3-0.mp3",
+          "bytes": 64128,
+          "sha256": "cbbe13e7f4a30aa93f8672c3c417407650433ba85155b543779e56710bdc28fb"
+        }
+      ],
+      "server_environment": {}
+    },
+    {
+      "request": {
+        "prompt": "Bright melodic piano with soft drums, instrumental.",
+        "instrumental": true,
+        "duration": 5,
+        "seed": 321,
+        "n": 2,
+        "response_format": "b64_json",
+        "output_format": "wav24",
+        "extra": {
+          "lm_seed": 321
+        },
+        "lyrics": "[Instrumental]",
+        "keyscale": "C major"
+      },
+      "response": {
+        "created": 1792377831,
+        "model": "Serveurperso/ACE-Step-1.5-GGUF",
+        "data": [
+          {
+            "content_type": "audio/wav",
+            "format": "wav24",
+            "lyrics": "[Instrumental]",
+            "caption": "Bright melodic piano with soft drums, instrumental.",
+            "duration": 5.0,
+            "bpm": 128,
+            "keyscale": "C major",
+            "timesignature": "4/4",
+            "vocal_language": "unknown",
+            "seed": 321
+          },
+          {
+            "content_type": "audio/wav",
+            "format": "wav24",
+            "lyrics": "[Instrumental]",
+            "caption": "Bright melodic piano with soft drums, instrumental.",
+            "duration": 5.0,
+            "bpm": 128,
+            "keyscale": "C major",
+            "timesignature": "4/4",
+            "vocal_language": "unknown",
+            "seed": 322
+          }
+        ]
+      },
+      "trace": [
+        {
+          "endpoint": "/lm",
+          "payload": {
+            "task_type": "text2music",
+            "caption": "Bright melodic piano with soft drums, instrumental.",
+            "output_format": "wav24",
+            "lm_batch_size": 2,
+            "lyrics": "[Instrumental]",
+            "duration": 5,
+            "seed": 321,
+            "bpm": 128,
+            "keyscale": "C major",
+            "timesignature": "4/4",
+            "vocal_language": "en",
+            "inference_steps": 16,
+            "guidance_scale": 1.0,
+            "shift": 3.0,
+            "solver": "euler",
+            "lm_model": "acestep-5Hz-lm-4B-Q8_0.gguf",
+            "synth_model": "acestep-v15-turbo-Q4_K_M.gguf",
+            "lm_seed": 321
+          },
+          "content_type": "application/json",
+          "result": [
+            {
+              "caption": "Bright melodic piano with soft drums, instrumental.",
+              "seed": 321,
+              "lyrics": "[Instrumental]",
+              "audio_codes": "58687,45045,679,32769,63682,13878,32903,23767,40594,21248,19924,11533,57665,53697,32927,35847,35847,48775,32855,35847,35847",
+              "bpm": 128,
+              "duration": 5.0,
+              "keyscale": "C major",
+              "timesignature": "4/4",
+              "vocal_language": "unknown",
+              "lm_seed": 321,
+              "inference_steps": 16,
+              "guidance_scale": 1.0,
+              "shift": 3.0,
+              "solver": "euler",
+              "lm_mode": "generate",
+              "output_format": "wav24",
+              "task_type": "text2music",
+              "synth_model": "acestep-v15-turbo-Q4_K_M.gguf",
+              "lm_model": "acestep-5Hz-lm-4B-Q8_0.gguf"
+            },
+            {
+              "caption": "Bright melodic piano with soft drums, instrumental.",
+              "seed": 322,
+              "lyrics": "[Instrumental]",
+              "audio_codes": "16519,51122,5579,52709,9641,32235,10519,679,551,54391,20159,62670,557,10847,551,13303,1422,26489",
+              "bpm": 128,
+              "duration": 5.0,
+              "keyscale": "C major",
+              "timesignature": "4/4",
+              "vocal_language": "unknown",
+              "lm_seed": 322,
+              "inference_steps": 16,
+              "guidance_scale": 1.0,
+              "shift": 3.0,
+              "solver": "euler",
+              "lm_mode": "generate",
+              "output_format": "wav24",
+              "task_type": "text2music",
+              "synth_model": "acestep-v15-turbo-Q4_K_M.gguf",
+              "lm_model": "acestep-5Hz-lm-4B-Q8_0.gguf"
+            }
+          ]
+        },
+        {
+          "endpoint": "/synth",
+          "payload": [
+            {
+              "caption": "Bright melodic piano with soft drums, instrumental.",
+              "seed": 321,
+              "lyrics": "[Instrumental]",
+              "audio_codes": "58687,45045,679,32769,63682,13878,32903,23767,40594,21248,19924,11533,57665,53697,32927,35847,35847,48775,32855,35847,35847",
+              "bpm": 128,
+              "duration": 5.0,
+              "keyscale": "C major",
+              "timesignature": "4/4",
+              "vocal_language": "unknown",
+              "lm_seed": 321,
+              "inference_steps": 16,
+              "guidance_scale": 1.0,
+              "shift": 3.0,
+              "solver": "euler",
+              "lm_mode": "generate",
+              "output_format": "wav24",
+              "task_type": "text2music",
+              "synth_model": "acestep-v15-turbo-Q4_K_M.gguf",
+              "lm_model": "acestep-5Hz-lm-4B-Q8_0.gguf"
+            },
+            {
+              "caption": "Bright melodic piano with soft drums, instrumental.",
+              "seed": 322,
+              "lyrics": "[Instrumental]",
+              "audio_codes": "16519,51122,5579,52709,9641,32235,10519,679,551,54391,20159,62670,557,10847,551,13303,1422,26489",
+              "bpm": 128,
+              "duration": 5.0,
+              "keyscale": "C major",
+              "timesignature": "4/4",
+              "vocal_language": "unknown",
+              "lm_seed": 322,
+              "inference_steps": 16,
+              "guidance_scale": 1.0,
+              "shift": 3.0,
+              "solver": "euler",
+              "lm_mode": "generate",
+              "output_format": "wav24",
+              "task_type": "text2music",
+              "synth_model": "acestep-v15-turbo-Q4_K_M.gguf",
+              "lm_model": "acestep-5Hz-lm-4B-Q8_0.gguf"
+            }
+          ],
+          "content_type": "multipart/mixed; boundary=ace-batch-boundary",
+          "result": {
+            "bytes": 2496952
+          }
+        }
+      ],
+      "seconds": 5.25533631502185,
+      "audio": [
+        {
+          "file": "python-4-0.wav",
+          "bytes": 1221164,
+          "sha256": "ec0a7503c56fd51e6a340d9ced4355b04bf52fb0c680b5899eb6d0fc55b4dee6"
+        },
+        {
+          "file": "python-4-1.wav",
+          "bytes": 1221164,
+          "sha256": "1631679f83edf0cbc56a8f0a7884c276ab45475baf002dcc19721ceb06c0efb5"
+        }
+      ],
+      "server_environment": {
+        "ACE_STEP_MAX_BATCH": "2"
+      }
+    }
+  ],
+  "props": {
+    "version": "5b88ded (2026-09-20)",
+    "models": {
+      "lm": [
+        "acestep-5Hz-lm-0.6B-Q8_0.gguf",
+        "acestep-5Hz-lm-4B-Q8_0.gguf"
+      ],
+      "embedding": [
+        "Qwen3-Embedding-0.6B-Q8_0.gguf"
+      ],
+      "dit": [
+        "acestep-v15-turbo-Q4_K_M.gguf"
+      ],
+      "vae": [
+        "vae-BF16.gguf"
+      ]
+    },
+    "adapters": [],
+    "cli": {
+      "max_batch": 1
+    },
+    "default": {
+      "caption": "",
+      "seed": -1,
+      "lyrics": "",
+      "audio_codes": "",
+      "bpm": 0,
+      "duration": 0.0,
+      "keyscale": "",
+      "timesignature": "",
+      "vocal_language": "",
+      "lm_batch_size": 1,
+      "lm_temperature": 0.85,
+      "lm_cfg_scale": 2.0,
+      "lm_top_p": 0.9,
+      "lm_top_k": 0,
+      "lm_negative_prompt": "",
+      "lm_seed": -1,
+      "use_cot_caption": true,
+      "inference_steps": 0,
+      "guidance_scale": 0.0,
+      "shift": 0.0,
+      "dcw_scaler": 0.0,
+      "dcw_high_scaler": 0.0,
+      "dcw_mode": "low",
+      "solver": "euler",
+      "stork_substeps": 10,
+      "lm_mode": "generate",
+      "output_format": "mp3",
+      "synth_batch_size": 1,
+      "audio_cover_strength": 1.0,
+      "cover_noise_strength": 0.0,
+      "repainting_start": 0.0,
+      "repainting_end": -1.0,
+      "latent_shift": 0.0,
+      "latent_rescale": 1.0,
+      "custom_timesteps": "",
+      "task_type": "text2music",
+      "track": "",
+      "peak_clip": 10,
+      "mp3_bitrate": 128,
+      "synth_model": "",
+      "lm_model": "",
+      "adapter": "",
+      "adapter_scale": 1.0,
+      "vae": ""
+    },
+    "presets": {
+      "turbo": {
+        "inference_steps": 8,
+        "guidance_scale": 1.0,
+        "shift": 3.0
+      },
+      "sft": {
+        "inference_steps": 50,
+        "guidance_scale": 1.0,
+        "shift": 1.0
+      }
+    }
+  },
+  "models": {
+    "Qwen3-Embedding-0.6B-Q8_0.gguf": "972f23255e46adfe744a0eb9a0039f3c63988f65753b0968d776e8b27168c321",
+    "acestep-5Hz-lm-4B-Q8_0.gguf": "972f91147a167f0c041f1b158d67985a82c0f6a852e68cdf70e46030cf08b1bc",
+    "acestep-v15-turbo-Q4_K_M.gguf": "55b4d8514850f3d0f82536f37e99673aaf48df802b5ae5b153eea32a2e2daa5e",
+    "vae-BF16.gguf": "0599862ac5d15cd308e1d2e368373aea6c02e25ebd1737ad4a4562a0901b0ef8"
+  },
+  "engine_commit": "5b88ded7919285d5ad5b1e86ffe3378314f305db",
+  "captured_on": "2026-10-18",
+  "hardware": "NVIDIA RTX 3090 Ti",
+  "capture_script_sha256": "ae8a28596606b1a9ae5c44cac2b0bcf363431ec63e30680febdc4617deb69d88"
+}

@@ -1,0 +1,26 @@
+{
+  "status": "partial_not_deployed",
+  "engine_revision": "c678dfe704a2230342376b46add9c8ca736a653d",
+  "patched_engine_sha256": "624adeea6cf08b0ec5cb131d09d5bb9c6a77ff556a99856a453653a7f518bbf4",
+  "source_policy_cases": 2006,
+  "installed_condition_cases": 137,
+  "cli_invalid_input_cases": 5,
+  "focused_ctest": [
+    "ltx_policy_reference",
+    "ltx_conditions_reference",
+    "parity_report_gate"
+  ],
+  "files": {
+    "patches/sdcpp-ltx-conditions.patch": "50ad7e061757df07a025535c6d16f3067a28889ca2ad7fa102ea604a2bc274ad",
+    "tests/fixtures/ltx_policy_cases.json": "8afae9141c54e380c414106d6a97950bc459324ad155ce6c42eebe8898422c13",
+    "tests/fixtures/ltx_condition_cases.json": "48883c95770f5543dd73035722595cb9fa4f3b8c8ef32cfe3a4bc81f384ffc51"
+  },
+  "cache_probe": {
+    "status": "failed_before_inference",
+    "exit": 134,
+    "diagnostic": "LTX VAE encoder is only implemented for version >= 2",
+    "production_engine_used": true
+  },
+  "production_changed": false,
+  "http_ltx_backend_implemented": false
+}

@@ -1,0 +1,225 @@
+{
+  "scope": "Retained diffusion engine process and private protocol. LtxVideo still launches one-shot children; HTTP lifecycle/startup integration remains pending. Production image unchanged.",
+  "source_sha256": {
+    "src/media_engine_process.cpp": "9cc097cbcb6c575e66b60dcd653a64ae729498c4025a865959807a455f69a667",
+    "include/ezlocalai/media_engine_process.hpp": "316c3a0736a2d1be399115aabf880b40e89e87b8d5fa6b4a8591f1872968121e",
+    "include/ezlocalai/media_worker_protocol.hpp": "df915a8085f7b4a92eef392878941172e5a8303b09250236205f5143eda57e82",
+    "engine/sd_cli_worker.hpp": "9abf79152d40386b7b78afd24ee9ec6cf211ab4c28c4ff192c9f2962d97d5453",
+    "patches/sdcpp-media-worker.patch": "14367d35821716e090e793687373f10c8d3cd0f68c72044ead08b1c445eb8459",
+    "tests/test_media_engine.cpp": "b9d6cc222e98fd7eb4a90a415c3e10567e21831f74d988517da3c41cfa50fc57"
+  },
+  "engine_ref": "c678dfe704a2230342376b46add9c8ca736a653d",
+  "candidate_image": "sha256:820aac8bf6cc7d18af39e32541c14fe7b271e90ce5b7b763e8e63f05752e460c",
+  "candidate_sd_cli_sha256": "8ae0be1e2f3118397ee47d112955b8caff414242eeb37e007ce1fd2d3516b043",
+  "process_test": {
+    "success": true,
+    "seconds": 0.88,
+    "coverage": [
+      "context reuse",
+      "context replacement before reload",
+      "preload without generation",
+      "large literal prompts",
+      "descriptor isolation",
+      "fragmented and oversized frames",
+      "absolute frame deadline",
+      "generation timeout",
+      "model errors",
+      "process crash",
+      "restart",
+      "destructor reap",
+      "parent-death cleanup"
+    ]
+  },
+  "cuda_packaged_tests": {
+    "success": true,
+    "count": 30,
+    "seconds": 54.1
+  },
+  "real_models": {
+    "qwen": {
+      "image": "sha256:820aac8bf6cc7d18af39e32541c14fe7b271e90ce5b7b763e8e63f05752e460c",
+      "preload_seconds": 3.634036931,
+      "request_seconds": [
+        0.980298097,
+        0.534383095
+      ],
+      "single_process_and_context": true,
+      "reaped": true,
+      "gpu_sample_min_mib": 9224.0,
+      "gpu_sample_max_mib": 9270.0,
+      "rgba_repeat_matches": true,
+      "pngs": [
+        {
+          "name": "first.png",
+          "bytes": 110624,
+          "rgba_sha256": "838dcdf253cf9797cfa1bc187301ed83b0875a037bbc832c2403799389820b0a"
+        },
+        {
+          "name": "second.png",
+          "bytes": 110624,
+          "rgba_sha256": "838dcdf253cf9797cfa1bc187301ed83b0875a037bbc832c2403799389820b0a"
+        }
+      ]
+    },
+    "ltx": {
+      "image": "sha256:820aac8bf6cc7d18af39e32541c14fe7b271e90ce5b7b763e8e63f05752e460c",
+      "preload_seconds": 30.350512813,
+      "request_seconds": [
+        42.515452352,
+        44.23909873
+      ],
+      "single_process_and_context": true,
+      "reaped": true,
+      "gpu_sample_min_mib": 338.0,
+      "gpu_sample_max_mib": 22028.0,
+      "rgba_repeat_matches": true,
+      "pngs": [
+        {
+          "name": "first_000000.png",
+          "bytes": 8603,
+          "rgba_sha256": "de86399c5caa24a5ab053e8df7a3853ccdec4b205eb18eeabc060207e5c0d1c0"
+        },
+        {
+          "name": "first_000001.png",
+          "bytes": 8883,
+          "rgba_sha256": "25c0859164ec4345f0f10c9f1f9a4e921ea3dd2fe6aa4c490a5b5dd1552be86c"
+        },
+        {
+          "name": "first_000002.png",
+          "bytes": 8913,
+          "rgba_sha256": "86dab8b6602a41d7848884f0f5317469c09af59e18974970911ae82e54499270"
+        },
+        {
+          "name": "first_000003.png",
+          "bytes": 8839,
+          "rgba_sha256": "ea1af6e188bd36a4ccf5ec3b7c7653077914a1483755d0dc70baf24c35f6d057"
+        },
+        {
+          "name": "first_000004.png",
+          "bytes": 8561,
+          "rgba_sha256": "6bf298110257cd7a49d64970acdf36ea6fa23d2001cba95417a529c6d47b33cb"
+        },
+        {
+          "name": "first_000005.png",
+          "bytes": 8184,
+          "rgba_sha256": "9f847fdc2ed769c7332c3f00a3a00806101d62a44cd0b46bb94f1df3a21f8407"
+        },
+        {
+          "name": "first_000006.png",
+          "bytes": 7867,
+          "rgba_sha256": "215bb4e67ae45c70fc0057b626f640005e10a09ae44c9cbf04f894b099c3a67e"
+        },
+        {
+          "name": "first_000007.png",
+          "bytes": 7708,
+          "rgba_sha256": "039827c082172f1d526ff782b48be28ae19c863d440dad48c424100ad1efd009"
+        },
+        {
+          "name": "first_000008.png",
+          "bytes": 7473,
+          "rgba_sha256": "24db637e05654945c9bbb4db6e918c6dd8b3f437be17d99ce45be9cacf794fe0"
+        },
+        {
+          "name": "second_000000.png",
+          "bytes": 8603,
+          "rgba_sha256": "de86399c5caa24a5ab053e8df7a3853ccdec4b205eb18eeabc060207e5c0d1c0"
+        },
+        {
+          "name": "second_000001.png",
+          "bytes": 8883,
+          "rgba_sha256": "25c0859164ec4345f0f10c9f1f9a4e921ea3dd2fe6aa4c490a5b5dd1552be86c"
+        },
+        {
+          "name": "second_000002.png",
+          "bytes": 8913,
+          "rgba_sha256": "86dab8b6602a41d7848884f0f5317469c09af59e18974970911ae82e54499270"
+        },
+        {
+          "name": "second_000003.png",
+          "bytes": 8839,
+          "rgba_sha256": "ea1af6e188bd36a4ccf5ec3b7c7653077914a1483755d0dc70baf24c35f6d057"
+        },
+        {
+          "name": "second_000004.png",
+          "bytes": 8561,
+          "rgba_sha256": "6bf298110257cd7a49d64970acdf36ea6fa23d2001cba95417a529c6d47b33cb"
+        },
+        {
+          "name": "second_000005.png",
+          "bytes": 8184,
+          "rgba_sha256": "9f847fdc2ed769c7332c3f00a3a00806101d62a44cd0b46bb94f1df3a21f8407"
+        },
+        {
+          "name": "second_000006.png",
+          "bytes": 7867,
+          "rgba_sha256": "215bb4e67ae45c70fc0057b626f640005e10a09ae44c9cbf04f894b099c3a67e"
+        },
+        {
+          "name": "second_000007.png",
+          "bytes": 7708,
+          "rgba_sha256": "039827c082172f1d526ff782b48be28ae19c863d440dad48c424100ad1efd009"
+        },
+        {
+          "name": "second_000008.png",
+          "bytes": 7473,
+          "rgba_sha256": "24db637e05654945c9bbb4db6e918c6dd8b3f437be17d99ce45be9cacf794fe0"
+        }
+      ],
+      "audio_repeat_matches": true,
+      "audio_bytes": 63404,
+      "audio_sha256": "6a070a6525ba0d3753eb30d30c16c8a46619314b8c6979bbed3089d991ae366e",
+      "text_encoder": "unquantized BF16",
+      "parameter_memory_mb": 43407.01,
+      "container_memory_limit_gib": 28
+    }
+  },
+  "production_restored_healthy": true,
+  "live": {
+    "image": "sha256:35b8ac0bcd30288f29db5970d91c92142a29cc1576151cf6bfa2557f97703766",
+    "binary_sha256": "e78aeb9a398e51c665f691e5d0f272d78a8171282963fa8e3f3174c7a3c35655",
+    "matching_workers": 1,
+    "python_extra_matches": true,
+    "extra": {
+      "llm_model_residency": "resident",
+      "loaded_llms": [
+        "unsloth/Qwen3.8-27B-GGUF"
+      ],
+      "active_llm": "unsloth/Qwen3.8-27B-GGUF",
+      "llm_unload_dependent_capabilities": [
+        "image",
+        "video",
+        "music",
+        "music_video"
+      ]
+    },
+    "resource_lifecycle": {
+      "llm_model_residency": "resident",
+      "loaded_llms": [
+        "unsloth/Qwen3.8-27B-GGUF"
+      ],
+      "active_llm": "unsloth/Qwen3.8-27B-GGUF"
+    },
+    "gpu_count": 1,
+    "torch_cuda": [
+      {
+        "index": 0,
+        "allocated_gb": 0.0,
+        "reserved_gb": 0.0,
+        "max_allocated_gb": 0.0,
+        "free_gb": 1.831,
+        "total_gb": 23.524
+      }
+    ],
+    "free_vram_gb": 1.830810546875,
+    "sources": {
+      "Pipes.py": "8238cef03d4a1db6e775d7f62234bcf998d8f08bd9fc15f1d8a36ea0d3280005",
+      "Router.py": "d5eebf7fc48f7781628aa4eaab8af1c3f23fd8694242f0b3065436b5c86f62b1"
+    }
+  },
+  "remaining": [
+    "Wire retained process into LtxVideo startup, generation, retries and unload",
+    "Verify changed prompts/dimensions/conditions and source lifetime policy through the actual HTTP path",
+    "Compressed NF4/Quanto GPU storage and distinct offload modes",
+    "Full source-model output equivalence and broader video/model/GPU validation"
+  ]
+}

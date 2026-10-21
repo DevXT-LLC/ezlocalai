@@ -1,0 +1,2138 @@
+{
+  "source_sha256": "e3ff6eee433d0e3527d984b77036fda795b3924486cf59b349b432cd80a0b9e8",
+  "cases": [
+    {
+      "name": "cpu-0-generate",
+      "device": "cpu",
+      "free_gb": 0,
+      "kwargs": {
+        "prompt": "literal $(touch nope); ' text",
+        "size": "32x64"
+      },
+      "argv": [
+        "SDCLI",
+        "--diffusion-model",
+        "MODELS/qwen_image_2.1-Q4_K.gguf",
+        "--vae",
+        "MODELS/vae/qwen_image_2.1_vae_bf16.safetensors",
+        "--llm",
+        "MODELS/Qwen3VL-8B-Instruct-Q4_K_M.gguf",
+        "-p",
+        "literal $(touch nope); ' text",
+        "--cfg-scale",
+        "6.0",
+        "--sampling-method",
+        "euler",
+        "--steps",
+        "20",
+        "-H",
+        "64",
+        "-W",
+        "32",
+        "--diffusion-fa",
+        "--backend",
+        "cpu",
+        "-o",
+        "TMP/output.png"
+      ],
+      "timeout": 600,
+      "reference_pixels": [],
+      "engine_output": "iVBORw0KGgoAAAANSUhEUgAAACAAAABACAIAAAD07OL5AAAAOElEQVR4nO3NQQEAMAjEsDELmMAJ/h2h4n6pgKZ69iX70TsAAAAAAAAAAAAAAAAAAAAAAAAAgEAHeJYBAmrG/GgAAAAASUVORK5CYII=",
+      "result": "iVBORw0KGgoAAAANSUhEUgAAACAAAABACAIAAAD07OL5AAAAOElEQVR4nO3NQQEAMAjEsDELmMAJ/h2h4n6pgKZ69iX70TsAAAAAAAAAAAAAAAAAAAAAAAAAgEAHeJYBAmrG/GgAAAAASUVORK5CYII="
+    },
+    {
+      "name": "cpu-0-primary",
+      "device": "cpu",
+      "free_gb": 0,
+      "kwargs": {
+        "prompt": "literal $(touch nope); ' text",
+        "size": "32x64",
+        "image": "iVBORw0KGgoAAAANSUhEUgAAAAMAAAACCAIAAAASFvFNAAAAFUlEQVR4nGMU1nBnYGBgYGBgYoABAAksAIYyLNINAAAAAElFTkSuQmCC"
+      },
+      "argv": [
+        "SDCLI",
+        "--diffusion-model",
+        "MODELS/qwen_image_2.1-Q4_K.gguf",
+        "--vae",
+        "MODELS/vae/qwen_image_2.1_vae_bf16.safetensors",
+        "--llm",
+        "MODELS/Qwen3VL-8B-Instruct-Q4_K_M.gguf",
+        "-p",
+        "literal $(touch nope); ' text",
+        "--cfg-scale",
+        "6.0",
+        "--sampling-method",
+        "euler",
+        "--steps",
+        "20",
+        "-H",
+        "64",
+        "-W",
+        "32",
+        "--diffusion-fa",
+        "--init-img",
+        "TMP/ref_0.png",
+        "--strength",
+        "0.75",
+        "--llm_vision",
+        "MODELS/mmproj-Qwen3VL-8B-Instruct-F16.gguf",
+        "-r",
+        "TMP/ref_0.png",
+        "--backend",
+        "cpu",
+        "-o",
+        "TMP/output.png"
+      ],
+      "timeout": 600,
+      "reference_pixels": [
+        {
+          "size": [
+            3,
+            2
+          ],
+          "pixels": "132847132847132847132847132847132847"
+        }
+      ],
+      "engine_output": "iVBORw0KGgoAAAANSUhEUgAAACAAAABACAIAAAD07OL5AAAAOElEQVR4nO3NQQEAMAjEsDELmMAJ/h2h4n6pgKZ69iX70TsAAAAAAAAAAAAAAAAAAAAAAAAAgEAHeJYBAmrG/GgAAAAASUVORK5CYII=",
+      "result": "iVBORw0KGgoAAAANSUhEUgAAACAAAABACAIAAAD07OL5AAAAOElEQVR4nO3NQQEAMAjEsDELmMAJ/h2h4n6pgKZ69iX70TsAAAAAAAAAAAAAAAAAAAAAAAAAgEAHeJYBAmrG/GgAAAAASUVORK5CYII="
+    },
+    {
+      "name": "cpu-0-additional",
+      "device": "cpu",
+      "free_gb": 0,
+      "kwargs": {
+        "prompt": "literal $(touch nope); ' text",
+        "size": "32x64",
+        "images": [
+          "iVBORw0KGgoAAAANSUhEUgAAAAIAAAADCAIAAAA2iEnWAAAAFElEQVR4nGM8YSTCwMDAxMDAgKAAFRIBFDpYmuMAAAAASUVORK5CYII=",
+          "iVBORw0KGgoAAAANSUhEUgAAAAMAAAACCAIAAAASFvFNAAAAFUlEQVR4nGMU1nBnYGBgYGBgYoABAAksAIYyLNINAAAAAElFTkSuQmCC"
+        ]
+      },
+      "argv": [
+        "SDCLI",
+        "--diffusion-model",
+        "MODELS/qwen_image_2.1-Q4_K.gguf",
+        "--vae",
+        "MODELS/vae/qwen_image_2.1_vae_bf16.safetensors",
+        "--llm",
+        "MODELS/Qwen3VL-8B-Instruct-Q4_K_M.gguf",
+        "-p",
+        "literal $(touch nope); ' text",
+        "--cfg-scale",
+        "6.0",
+        "--sampling-method",
+        "euler",
+        "--steps",
+        "20",
+        "-H",
+        "64",
+        "-W",
+        "32",
+        "--diffusion-fa",
+        "--llm_vision",
+        "MODELS/mmproj-Qwen3VL-8B-Instruct-F16.gguf",
+        "-r",
+        "TMP/ref_0.png",
+        "-r",
+        "TMP/ref_1.png",
+        "--backend",
+        "cpu",
+        "-o",
+        "TMP/output.png"
+      ],
+      "timeout": 600,
+      "reference_pixels": [
+        {
+          "size": [
+            2,
+            3
+          ],
+          "pixels": "c83214c83214c83214c83214c83214c83214"
+        },
+        {
+          "size": [
+            3,
+            2
+          ],
+          "pixels": "132847132847132847132847132847132847"
+        }
+      ],
+      "engine_output": "iVBORw0KGgoAAAANSUhEUgAAACAAAABACAIAAAD07OL5AAAAOElEQVR4nO3NQQEAMAjEsDELmMAJ/h2h4n6pgKZ69iX70TsAAAAAAAAAAAAAAAAAAAAAAAAAgEAHeJYBAmrG/GgAAAAASUVORK5CYII=",
+      "result": "iVBORw0KGgoAAAANSUhEUgAAACAAAABACAIAAAD07OL5AAAAOElEQVR4nO3NQQEAMAjEsDELmMAJ/h2h4n6pgKZ69iX70TsAAAAAAAAAAAAAAAAAAAAAAAAAgEAHeJYBAmrG/GgAAAAASUVORK5CYII="
+    },
+    {
+      "name": "cpu-0-both",
+      "device": "cpu",
+      "free_gb": 0,
+      "kwargs": {
+        "prompt": "literal $(touch nope); ' text",
+        "size": "32x64",
+        "image": "iVBORw0KGgoAAAANSUhEUgAAAAMAAAACCAIAAAASFvFNAAAAFUlEQVR4nGMU1nBnYGBgYGBgYoABAAksAIYyLNINAAAAAElFTkSuQmCC",
+        "images": [
+          "iVBORw0KGgoAAAANSUhEUgAAAAIAAAADCAIAAAA2iEnWAAAAFElEQVR4nGM8YSTCwMDAxMDAgKAAFRIBFDpYmuMAAAAASUVORK5CYII=",
+          "iVBORw0KGgoAAAANSUhEUgAAAAMAAAACCAIAAAASFvFNAAAAFUlEQVR4nGMU1nBnYGBgYGBgYoABAAksAIYyLNINAAAAAElFTkSuQmCC"
+        ]
+      },
+      "argv": [
+        "SDCLI",
+        "--diffusion-model",
+        "MODELS/qwen_image_2.1-Q4_K.gguf",
+        "--vae",
+        "MODELS/vae/qwen_image_2.1_vae_bf16.safetensors",
+        "--llm",
+        "MODELS/Qwen3VL-8B-Instruct-Q4_K_M.gguf",
+        "-p",
+        "literal $(touch nope); ' text",
+        "--cfg-scale",
+        "6.0",
+        "--sampling-method",
+        "euler",
+        "--steps",
+        "20",
+        "-H",
+        "64",
+        "-W",
+        "32",
+        "--diffusion-fa",
+        "--init-img",
+        "TMP/ref_0.png",
+        "--strength",
+        "0.75",
+        "--llm_vision",
+        "MODELS/mmproj-Qwen3VL-8B-Instruct-F16.gguf",
+        "-r",
+        "TMP/ref_0.png",
+        "-r",
+        "TMP/ref_1.png",
+        "-r",
+        "TMP/ref_2.png",
+        "--backend",
+        "cpu",
+        "-o",
+        "TMP/output.png"
+      ],
+      "timeout": 600,
+      "reference_pixels": [
+        {
+          "size": [
+            3,
+            2
+          ],
+          "pixels": "132847132847132847132847132847132847"
+        },
+        {
+          "size": [
+            2,
+            3
+          ],
+          "pixels": "c83214c83214c83214c83214c83214c83214"
+        },
+        {
+          "size": [
+            3,
+            2
+          ],
+          "pixels": "132847132847132847132847132847132847"
+        }
+      ],
+      "engine_output": "iVBORw0KGgoAAAANSUhEUgAAACAAAABACAIAAAD07OL5AAAAOElEQVR4nO3NQQEAMAjEsDELmMAJ/h2h4n6pgKZ69iX70TsAAAAAAAAAAAAAAAAAAAAAAAAAgEAHeJYBAmrG/GgAAAAASUVORK5CYII=",
+      "result": "iVBORw0KGgoAAAANSUhEUgAAACAAAABACAIAAAD07OL5AAAAOElEQVR4nO3NQQEAMAjEsDELmMAJ/h2h4n6pgKZ69iX70TsAAAAAAAAAAAAAAAAAAAAAAAAAgEAHeJYBAmrG/GgAAAAASUVORK5CYII="
+    },
+    {
+      "name": "cuda-15-generate",
+      "device": "cuda",
+      "free_gb": 15,
+      "kwargs": {
+        "prompt": "literal $(touch nope); ' text",
+        "size": "32x64"
+      },
+      "argv": [
+        "SDCLI",
+        "--diffusion-model",
+        "MODELS/qwen_image_2.1-Q4_K.gguf",
+        "--vae",
+        "MODELS/vae/qwen_image_2.1_vae_bf16.safetensors",
+        "--llm",
+        "MODELS/Qwen3VL-8B-Instruct-Q4_K_M.gguf",
+        "-p",
+        "literal $(touch nope); ' text",
+        "--cfg-scale",
+        "6.0",
+        "--sampling-method",
+        "euler",
+        "--steps",
+        "20",
+        "-H",
+        "64",
+        "-W",
+        "32",
+        "--diffusion-fa",
+        "--offload-to-cpu",
+        "-o",
+        "TMP/output.png"
+      ],
+      "timeout": 600,
+      "reference_pixels": [],
+      "engine_output": "iVBORw0KGgoAAAANSUhEUgAAACAAAABACAIAAAD07OL5AAAAOElEQVR4nO3NQQEAMAjEsDELmMAJ/h2h4n6pgKZ69iX70TsAAAAAAAAAAAAAAAAAAAAAAAAAgEAHeJYBAmrG/GgAAAAASUVORK5CYII=",
+      "result": "iVBORw0KGgoAAAANSUhEUgAAACAAAABACAIAAAD07OL5AAAAOElEQVR4nO3NQQEAMAjEsDELmMAJ/h2h4n6pgKZ69iX70TsAAAAAAAAAAAAAAAAAAAAAAAAAgEAHeJYBAmrG/GgAAAAASUVORK5CYII="
+    },
+    {
+      "name": "cuda-15-primary",
+      "device": "cuda",
+      "free_gb": 15,
+      "kwargs": {
+        "prompt": "literal $(touch nope); ' text",
+        "size": "32x64",
+        "image": "iVBORw0KGgoAAAANSUhEUgAAAAMAAAACCAIAAAASFvFNAAAAFUlEQVR4nGMU1nBnYGBgYGBgYoABAAksAIYyLNINAAAAAElFTkSuQmCC"
+      },
+      "argv": [
+        "SDCLI",
+        "--diffusion-model",
+        "MODELS/qwen_image_2.1-Q4_K.gguf",
+        "--vae",
+        "MODELS/vae/qwen_image_2.1_vae_bf16.safetensors",
+        "--llm",
+        "MODELS/Qwen3VL-8B-Instruct-Q4_K_M.gguf",
+        "-p",
+        "literal $(touch nope); ' text",
+        "--cfg-scale",
+        "6.0",
+        "--sampling-method",
+        "euler",
+        "--steps",
+        "20",
+        "-H",
+        "64",
+        "-W",
+        "32",
+        "--diffusion-fa",
+        "--init-img",
+        "TMP/ref_0.png",
+        "--strength",
+        "0.75",
+        "--llm_vision",
+        "MODELS/mmproj-Qwen3VL-8B-Instruct-F16.gguf",
+        "-r",
+        "TMP/ref_0.png",
+        "--offload-to-cpu",
+        "-o",
+        "TMP/output.png"
+      ],
+      "timeout": 600,
+      "reference_pixels": [
+        {
+          "size": [
+            3,
+            2
+          ],
+          "pixels": "132847132847132847132847132847132847"
+        }
+      ],
+      "engine_output": "iVBORw0KGgoAAAANSUhEUgAAACAAAABACAIAAAD07OL5AAAAOElEQVR4nO3NQQEAMAjEsDELmMAJ/h2h4n6pgKZ69iX70TsAAAAAAAAAAAAAAAAAAAAAAAAAgEAHeJYBAmrG/GgAAAAASUVORK5CYII=",
+      "result": "iVBORw0KGgoAAAANSUhEUgAAACAAAABACAIAAAD07OL5AAAAOElEQVR4nO3NQQEAMAjEsDELmMAJ/h2h4n6pgKZ69iX70TsAAAAAAAAAAAAAAAAAAAAAAAAAgEAHeJYBAmrG/GgAAAAASUVORK5CYII="
+    },
+    {
+      "name": "cuda-15-additional",
+      "device": "cuda",
+      "free_gb": 15,
+      "kwargs": {
+        "prompt": "literal $(touch nope); ' text",
+        "size": "32x64",
+        "images": [
+          "iVBORw0KGgoAAAANSUhEUgAAAAIAAAADCAIAAAA2iEnWAAAAFElEQVR4nGM8YSTCwMDAxMDAgKAAFRIBFDpYmuMAAAAASUVORK5CYII=",
+          "iVBORw0KGgoAAAANSUhEUgAAAAMAAAACCAIAAAASFvFNAAAAFUlEQVR4nGMU1nBnYGBgYGBgYoABAAksAIYyLNINAAAAAElFTkSuQmCC"
+        ]
+      },
+      "argv": [
+        "SDCLI",
+        "--diffusion-model",
+        "MODELS/qwen_image_2.1-Q4_K.gguf",
+        "--vae",
+        "MODELS/vae/qwen_image_2.1_vae_bf16.safetensors",
+        "--llm",
+        "MODELS/Qwen3VL-8B-Instruct-Q4_K_M.gguf",
+        "-p",
+        "literal $(touch nope); ' text",
+        "--cfg-scale",
+        "6.0",
+        "--sampling-method",
+        "euler",
+        "--steps",
+        "20",
+        "-H",
+        "64",
+        "-W",
+        "32",
+        "--diffusion-fa",
+        "--llm_vision",
+        "MODELS/mmproj-Qwen3VL-8B-Instruct-F16.gguf",
+        "-r",
+        "TMP/ref_0.png",
+        "-r",
+        "TMP/ref_1.png",
+        "--offload-to-cpu",
+        "-o",
+        "TMP/output.png"
+      ],
+      "timeout": 600,
+      "reference_pixels": [
+        {
+          "size": [
+            2,
+            3
+          ],
+          "pixels": "c83214c83214c83214c83214c83214c83214"
+        },
+        {
+          "size": [
+            3,
+            2
+          ],
+          "pixels": "132847132847132847132847132847132847"
+        }
+      ],
+      "engine_output": "iVBORw0KGgoAAAANSUhEUgAAACAAAABACAIAAAD07OL5AAAAOElEQVR4nO3NQQEAMAjEsDELmMAJ/h2h4n6pgKZ69iX70TsAAAAAAAAAAAAAAAAAAAAAAAAAgEAHeJYBAmrG/GgAAAAASUVORK5CYII=",
+      "result": "iVBORw0KGgoAAAANSUhEUgAAACAAAABACAIAAAD07OL5AAAAOElEQVR4nO3NQQEAMAjEsDELmMAJ/h2h4n6pgKZ69iX70TsAAAAAAAAAAAAAAAAAAAAAAAAAgEAHeJYBAmrG/GgAAAAASUVORK5CYII="
+    },
+    {
+      "name": "cuda-15-both",
+      "device": "cuda",
+      "free_gb": 15,
+      "kwargs": {
+        "prompt": "literal $(touch nope); ' text",
+        "size": "32x64",
+        "image": "iVBORw0KGgoAAAANSUhEUgAAAAMAAAACCAIAAAASFvFNAAAAFUlEQVR4nGMU1nBnYGBgYGBgYoABAAksAIYyLNINAAAAAElFTkSuQmCC",
+        "images": [
+          "iVBORw0KGgoAAAANSUhEUgAAAAIAAAADCAIAAAA2iEnWAAAAFElEQVR4nGM8YSTCwMDAxMDAgKAAFRIBFDpYmuMAAAAASUVORK5CYII=",
+          "iVBORw0KGgoAAAANSUhEUgAAAAMAAAACCAIAAAASFvFNAAAAFUlEQVR4nGMU1nBnYGBgYGBgYoABAAksAIYyLNINAAAAAElFTkSuQmCC"
+        ]
+      },
+      "argv": [
+        "SDCLI",
+        "--diffusion-model",
+        "MODELS/qwen_image_2.1-Q4_K.gguf",
+        "--vae",
+        "MODELS/vae/qwen_image_2.1_vae_bf16.safetensors",
+        "--llm",
+        "MODELS/Qwen3VL-8B-Instruct-Q4_K_M.gguf",
+        "-p",
+        "literal $(touch nope); ' text",
+        "--cfg-scale",
+        "6.0",
+        "--sampling-method",
+        "euler",
+        "--steps",
+        "20",
+        "-H",
+        "64",
+        "-W",
+        "32",
+        "--diffusion-fa",
+        "--init-img",
+        "TMP/ref_0.png",
+        "--strength",
+        "0.75",
+        "--llm_vision",
+        "MODELS/mmproj-Qwen3VL-8B-Instruct-F16.gguf",
+        "-r",
+        "TMP/ref_0.png",
+        "-r",
+        "TMP/ref_1.png",
+        "-r",
+        "TMP/ref_2.png",
+        "--offload-to-cpu",
+        "-o",
+        "TMP/output.png"
+      ],
+      "timeout": 600,
+      "reference_pixels": [
+        {
+          "size": [
+            3,
+            2
+          ],
+          "pixels": "132847132847132847132847132847132847"
+        },
+        {
+          "size": [
+            2,
+            3
+          ],
+          "pixels": "c83214c83214c83214c83214c83214c83214"
+        },
+        {
+          "size": [
+            3,
+            2
+          ],
+          "pixels": "132847132847132847132847132847132847"
+        }
+      ],
+      "engine_output": "iVBORw0KGgoAAAANSUhEUgAAACAAAABACAIAAAD07OL5AAAAOElEQVR4nO3NQQEAMAjEsDELmMAJ/h2h4n6pgKZ69iX70TsAAAAAAAAAAAAAAAAAAAAAAAAAgEAHeJYBAmrG/GgAAAAASUVORK5CYII=",
+      "result": "iVBORw0KGgoAAAANSUhEUgAAACAAAABACAIAAAD07OL5AAAAOElEQVR4nO3NQQEAMAjEsDELmMAJ/h2h4n6pgKZ69iX70TsAAAAAAAAAAAAAAAAAAAAAAAAAgEAHeJYBAmrG/GgAAAAASUVORK5CYII="
+    },
+    {
+      "name": "cuda-16-generate",
+      "device": "cuda",
+      "free_gb": 16,
+      "kwargs": {
+        "prompt": "literal $(touch nope); ' text",
+        "size": "32x64"
+      },
+      "argv": [
+        "SDCLI",
+        "--diffusion-model",
+        "MODELS/qwen_image_2.1-Q4_K.gguf",
+        "--vae",
+        "MODELS/vae/qwen_image_2.1_vae_bf16.safetensors",
+        "--llm",
+        "MODELS/Qwen3VL-8B-Instruct-Q4_K_M.gguf",
+        "-p",
+        "literal $(touch nope); ' text",
+        "--cfg-scale",
+        "6.0",
+        "--sampling-method",
+        "euler",
+        "--steps",
+        "20",
+        "-H",
+        "64",
+        "-W",
+        "32",
+        "--diffusion-fa",
+        "-o",
+        "TMP/output.png"
+      ],
+      "timeout": 600,
+      "reference_pixels": [],
+      "engine_output": "iVBORw0KGgoAAAANSUhEUgAAACAAAABACAIAAAD07OL5AAAAOElEQVR4nO3NQQEAMAjEsDELmMAJ/h2h4n6pgKZ69iX70TsAAAAAAAAAAAAAAAAAAAAAAAAAgEAHeJYBAmrG/GgAAAAASUVORK5CYII=",
+      "result": "iVBORw0KGgoAAAANSUhEUgAAACAAAABACAIAAAD07OL5AAAAOElEQVR4nO3NQQEAMAjEsDELmMAJ/h2h4n6pgKZ69iX70TsAAAAAAAAAAAAAAAAAAAAAAAAAgEAHeJYBAmrG/GgAAAAASUVORK5CYII="
+    },
+    {
+      "name": "cuda-16-primary",
+      "device": "cuda",
+      "free_gb": 16,
+      "kwargs": {
+        "prompt": "literal $(touch nope); ' text",
+        "size": "32x64",
+        "image": "iVBORw0KGgoAAAANSUhEUgAAAAMAAAACCAIAAAASFvFNAAAAFUlEQVR4nGMU1nBnYGBgYGBgYoABAAksAIYyLNINAAAAAElFTkSuQmCC"
+      },
+      "argv": [
+        "SDCLI",
+        "--diffusion-model",
+        "MODELS/qwen_image_2.1-Q4_K.gguf",
+        "--vae",
+        "MODELS/vae/qwen_image_2.1_vae_bf16.safetensors",
+        "--llm",
+        "MODELS/Qwen3VL-8B-Instruct-Q4_K_M.gguf",
+        "-p",
+        "literal $(touch nope); ' text",
+        "--cfg-scale",
+        "6.0",
+        "--sampling-method",
+        "euler",
+        "--steps",
+        "20",
+        "-H",
+        "64",
+        "-W",
+        "32",
+        "--diffusion-fa",
+        "--init-img",
+        "TMP/ref_0.png",
+        "--strength",
+        "0.75",
+        "--llm_vision",
+        "MODELS/mmproj-Qwen3VL-8B-Instruct-F16.gguf",
+        "-r",
+        "TMP/ref_0.png",
+        "-o",
+        "TMP/output.png"
+      ],
+      "timeout": 600,
+      "reference_pixels": [
+        {
+          "size": [
+            3,
+            2
+          ],
+          "pixels": "132847132847132847132847132847132847"
+        }
+      ],
+      "engine_output": "iVBORw0KGgoAAAANSUhEUgAAACAAAABACAIAAAD07OL5AAAAOElEQVR4nO3NQQEAMAjEsDELmMAJ/h2h4n6pgKZ69iX70TsAAAAAAAAAAAAAAAAAAAAAAAAAgEAHeJYBAmrG/GgAAAAASUVORK5CYII=",
+      "result": "iVBORw0KGgoAAAANSUhEUgAAACAAAABACAIAAAD07OL5AAAAOElEQVR4nO3NQQEAMAjEsDELmMAJ/h2h4n6pgKZ69iX70TsAAAAAAAAAAAAAAAAAAAAAAAAAgEAHeJYBAmrG/GgAAAAASUVORK5CYII="
+    },
+    {
+      "name": "cuda-16-additional",
+      "device": "cuda",
+      "free_gb": 16,
+      "kwargs": {
+        "prompt": "literal $(touch nope); ' text",
+        "size": "32x64",
+        "images": [
+          "iVBORw0KGgoAAAANSUhEUgAAAAIAAAADCAIAAAA2iEnWAAAAFElEQVR4nGM8YSTCwMDAxMDAgKAAFRIBFDpYmuMAAAAASUVORK5CYII=",
+          "iVBORw0KGgoAAAANSUhEUgAAAAMAAAACCAIAAAASFvFNAAAAFUlEQVR4nGMU1nBnYGBgYGBgYoABAAksAIYyLNINAAAAAElFTkSuQmCC"
+        ]
+      },
+      "argv": [
+        "SDCLI",
+        "--diffusion-model",
+        "MODELS/qwen_image_2.1-Q4_K.gguf",
+        "--vae",
+        "MODELS/vae/qwen_image_2.1_vae_bf16.safetensors",
+        "--llm",
+        "MODELS/Qwen3VL-8B-Instruct-Q4_K_M.gguf",
+        "-p",
+        "literal $(touch nope); ' text",
+        "--cfg-scale",
+        "6.0",
+        "--sampling-method",
+        "euler",
+        "--steps",
+        "20",
+        "-H",
+        "64",
+        "-W",
+        "32",
+        "--diffusion-fa",
+        "--llm_vision",
+        "MODELS/mmproj-Qwen3VL-8B-Instruct-F16.gguf",
+        "-r",
+        "TMP/ref_0.png",
+        "-r",
+        "TMP/ref_1.png",
+        "-o",
+        "TMP/output.png"
+      ],
+      "timeout": 600,
+      "reference_pixels": [
+        {
+          "size": [
+            2,
+            3
+          ],
+          "pixels": "c83214c83214c83214c83214c83214c83214"
+        },
+        {
+          "size": [
+            3,
+            2
+          ],
+          "pixels": "132847132847132847132847132847132847"
+        }
+      ],
+      "engine_output": "iVBORw0KGgoAAAANSUhEUgAAACAAAABACAIAAAD07OL5AAAAOElEQVR4nO3NQQEAMAjEsDELmMAJ/h2h4n6pgKZ69iX70TsAAAAAAAAAAAAAAAAAAAAAAAAAgEAHeJYBAmrG/GgAAAAASUVORK5CYII=",
+      "result": "iVBORw0KGgoAAAANSUhEUgAAACAAAABACAIAAAD07OL5AAAAOElEQVR4nO3NQQEAMAjEsDELmMAJ/h2h4n6pgKZ69iX70TsAAAAAAAAAAAAAAAAAAAAAAAAAgEAHeJYBAmrG/GgAAAAASUVORK5CYII="
+    },
+    {
+      "name": "cuda-16-both",
+      "device": "cuda",
+      "free_gb": 16,
+      "kwargs": {
+        "prompt": "literal $(touch nope); ' text",
+        "size": "32x64",
+        "image": "iVBORw0KGgoAAAANSUhEUgAAAAMAAAACCAIAAAASFvFNAAAAFUlEQVR4nGMU1nBnYGBgYGBgYoABAAksAIYyLNINAAAAAElFTkSuQmCC",
+        "images": [
+          "iVBORw0KGgoAAAANSUhEUgAAAAIAAAADCAIAAAA2iEnWAAAAFElEQVR4nGM8YSTCwMDAxMDAgKAAFRIBFDpYmuMAAAAASUVORK5CYII=",
+          "iVBORw0KGgoAAAANSUhEUgAAAAMAAAACCAIAAAASFvFNAAAAFUlEQVR4nGMU1nBnYGBgYGBgYoABAAksAIYyLNINAAAAAElFTkSuQmCC"
+        ]
+      },
+      "argv": [
+        "SDCLI",
+        "--diffusion-model",
+        "MODELS/qwen_image_2.1-Q4_K.gguf",
+        "--vae",
+        "MODELS/vae/qwen_image_2.1_vae_bf16.safetensors",
+        "--llm",
+        "MODELS/Qwen3VL-8B-Instruct-Q4_K_M.gguf",
+        "-p",
+        "literal $(touch nope); ' text",
+        "--cfg-scale",
+        "6.0",
+        "--sampling-method",
+        "euler",
+        "--steps",
+        "20",
+        "-H",
+        "64",
+        "-W",
+        "32",
+        "--diffusion-fa",
+        "--init-img",
+        "TMP/ref_0.png",
+        "--strength",
+        "0.75",
+        "--llm_vision",
+        "MODELS/mmproj-Qwen3VL-8B-Instruct-F16.gguf",
+        "-r",
+        "TMP/ref_0.png",
+        "-r",
+        "TMP/ref_1.png",
+        "-r",
+        "TMP/ref_2.png",
+        "-o",
+        "TMP/output.png"
+      ],
+      "timeout": 600,
+      "reference_pixels": [
+        {
+          "size": [
+            3,
+            2
+          ],
+          "pixels": "132847132847132847132847132847132847"
+        },
+        {
+          "size": [
+            2,
+            3
+          ],
+          "pixels": "c83214c83214c83214c83214c83214c83214"
+        },
+        {
+          "size": [
+            3,
+            2
+          ],
+          "pixels": "132847132847132847132847132847132847"
+        }
+      ],
+      "engine_output": "iVBORw0KGgoAAAANSUhEUgAAACAAAABACAIAAAD07OL5AAAAOElEQVR4nO3NQQEAMAjEsDELmMAJ/h2h4n6pgKZ69iX70TsAAAAAAAAAAAAAAAAAAAAAAAAAgEAHeJYBAmrG/GgAAAAASUVORK5CYII=",
+      "result": "iVBORw0KGgoAAAANSUhEUgAAACAAAABACAIAAAD07OL5AAAAOElEQVR4nO3NQQEAMAjEsDELmMAJ/h2h4n6pgKZ69iX70TsAAAAAAAAAAAAAAAAAAAAAAAAAgEAHeJYBAmrG/GgAAAAASUVORK5CYII="
+    },
+    {
+      "name": "cuda:0-17-generate",
+      "device": "cuda:0",
+      "free_gb": 17,
+      "kwargs": {
+        "prompt": "literal $(touch nope); ' text",
+        "size": "32x64"
+      },
+      "argv": [
+        "SDCLI",
+        "--diffusion-model",
+        "MODELS/qwen_image_2.1-Q4_K.gguf",
+        "--vae",
+        "MODELS/vae/qwen_image_2.1_vae_bf16.safetensors",
+        "--llm",
+        "MODELS/Qwen3VL-8B-Instruct-Q4_K_M.gguf",
+        "-p",
+        "literal $(touch nope); ' text",
+        "--cfg-scale",
+        "6.0",
+        "--sampling-method",
+        "euler",
+        "--steps",
+        "20",
+        "-H",
+        "64",
+        "-W",
+        "32",
+        "--diffusion-fa",
+        "--backend",
+        "cuda0",
+        "-o",
+        "TMP/output.png"
+      ],
+      "timeout": 600,
+      "reference_pixels": [],
+      "engine_output": "iVBORw0KGgoAAAANSUhEUgAAACAAAABACAIAAAD07OL5AAAAOElEQVR4nO3NQQEAMAjEsDELmMAJ/h2h4n6pgKZ69iX70TsAAAAAAAAAAAAAAAAAAAAAAAAAgEAHeJYBAmrG/GgAAAAASUVORK5CYII=",
+      "result": "iVBORw0KGgoAAAANSUhEUgAAACAAAABACAIAAAD07OL5AAAAOElEQVR4nO3NQQEAMAjEsDELmMAJ/h2h4n6pgKZ69iX70TsAAAAAAAAAAAAAAAAAAAAAAAAAgEAHeJYBAmrG/GgAAAAASUVORK5CYII="
+    },
+    {
+      "name": "cuda:0-17-primary",
+      "device": "cuda:0",
+      "free_gb": 17,
+      "kwargs": {
+        "prompt": "literal $(touch nope); ' text",
+        "size": "32x64",
+        "image": "iVBORw0KGgoAAAANSUhEUgAAAAMAAAACCAIAAAASFvFNAAAAFUlEQVR4nGMU1nBnYGBgYGBgYoABAAksAIYyLNINAAAAAElFTkSuQmCC"
+      },
+      "argv": [
+        "SDCLI",
+        "--diffusion-model",
+        "MODELS/qwen_image_2.1-Q4_K.gguf",
+        "--vae",
+        "MODELS/vae/qwen_image_2.1_vae_bf16.safetensors",
+        "--llm",
+        "MODELS/Qwen3VL-8B-Instruct-Q4_K_M.gguf",
+        "-p",
+        "literal $(touch nope); ' text",
+        "--cfg-scale",
+        "6.0",
+        "--sampling-method",
+        "euler",
+        "--steps",
+        "20",
+        "-H",
+        "64",
+        "-W",
+        "32",
+        "--diffusion-fa",
+        "--init-img",
+        "TMP/ref_0.png",
+        "--strength",
+        "0.75",
+        "--llm_vision",
+        "MODELS/mmproj-Qwen3VL-8B-Instruct-F16.gguf",
+        "-r",
+        "TMP/ref_0.png",
+        "--backend",
+        "cuda0",
+        "-o",
+        "TMP/output.png"
+      ],
+      "timeout": 600,
+      "reference_pixels": [
+        {
+          "size": [
+            3,
+            2
+          ],
+          "pixels": "132847132847132847132847132847132847"
+        }
+      ],
+      "engine_output": "iVBORw0KGgoAAAANSUhEUgAAACAAAABACAIAAAD07OL5AAAAOElEQVR4nO3NQQEAMAjEsDELmMAJ/h2h4n6pgKZ69iX70TsAAAAAAAAAAAAAAAAAAAAAAAAAgEAHeJYBAmrG/GgAAAAASUVORK5CYII=",
+      "result": "iVBORw0KGgoAAAANSUhEUgAAACAAAABACAIAAAD07OL5AAAAOElEQVR4nO3NQQEAMAjEsDELmMAJ/h2h4n6pgKZ69iX70TsAAAAAAAAAAAAAAAAAAAAAAAAAgEAHeJYBAmrG/GgAAAAASUVORK5CYII="
+    },
+    {
+      "name": "cuda:0-17-additional",
+      "device": "cuda:0",
+      "free_gb": 17,
+      "kwargs": {
+        "prompt": "literal $(touch nope); ' text",
+        "size": "32x64",
+        "images": [
+          "iVBORw0KGgoAAAANSUhEUgAAAAIAAAADCAIAAAA2iEnWAAAAFElEQVR4nGM8YSTCwMDAxMDAgKAAFRIBFDpYmuMAAAAASUVORK5CYII=",
+          "iVBORw0KGgoAAAANSUhEUgAAAAMAAAACCAIAAAASFvFNAAAAFUlEQVR4nGMU1nBnYGBgYGBgYoABAAksAIYyLNINAAAAAElFTkSuQmCC"
+        ]
+      },
+      "argv": [
+        "SDCLI",
+        "--diffusion-model",
+        "MODELS/qwen_image_2.1-Q4_K.gguf",
+        "--vae",
+        "MODELS/vae/qwen_image_2.1_vae_bf16.safetensors",
+        "--llm",
+        "MODELS/Qwen3VL-8B-Instruct-Q4_K_M.gguf",
+        "-p",
+        "literal $(touch nope); ' text",
+        "--cfg-scale",
+        "6.0",
+        "--sampling-method",
+        "euler",
+        "--steps",
+        "20",
+        "-H",
+        "64",
+        "-W",
+        "32",
+        "--diffusion-fa",
+        "--llm_vision",
+        "MODELS/mmproj-Qwen3VL-8B-Instruct-F16.gguf",
+        "-r",
+        "TMP/ref_0.png",
+        "-r",
+        "TMP/ref_1.png",
+        "--backend",
+        "cuda0",
+        "-o",
+        "TMP/output.png"
+      ],
+      "timeout": 600,
+      "reference_pixels": [
+        {
+          "size": [
+            2,
+            3
+          ],
+          "pixels": "c83214c83214c83214c83214c83214c83214"
+        },
+        {
+          "size": [
+            3,
+            2
+          ],
+          "pixels": "132847132847132847132847132847132847"
+        }
+      ],
+      "engine_output": "iVBORw0KGgoAAAANSUhEUgAAACAAAABACAIAAAD07OL5AAAAOElEQVR4nO3NQQEAMAjEsDELmMAJ/h2h4n6pgKZ69iX70TsAAAAAAAAAAAAAAAAAAAAAAAAAgEAHeJYBAmrG/GgAAAAASUVORK5CYII=",
+      "result": "iVBORw0KGgoAAAANSUhEUgAAACAAAABACAIAAAD07OL5AAAAOElEQVR4nO3NQQEAMAjEsDELmMAJ/h2h4n6pgKZ69iX70TsAAAAAAAAAAAAAAAAAAAAAAAAAgEAHeJYBAmrG/GgAAAAASUVORK5CYII="
+    },
+    {
+      "name": "cuda:0-17-both",
+      "device": "cuda:0",
+      "free_gb": 17,
+      "kwargs": {
+        "prompt": "literal $(touch nope); ' text",
+        "size": "32x64",
+        "image": "iVBORw0KGgoAAAANSUhEUgAAAAMAAAACCAIAAAASFvFNAAAAFUlEQVR4nGMU1nBnYGBgYGBgYoABAAksAIYyLNINAAAAAElFTkSuQmCC",
+        "images": [
+          "iVBORw0KGgoAAAANSUhEUgAAAAIAAAADCAIAAAA2iEnWAAAAFElEQVR4nGM8YSTCwMDAxMDAgKAAFRIBFDpYmuMAAAAASUVORK5CYII=",
+          "iVBORw0KGgoAAAANSUhEUgAAAAMAAAACCAIAAAASFvFNAAAAFUlEQVR4nGMU1nBnYGBgYGBgYoABAAksAIYyLNINAAAAAElFTkSuQmCC"
+        ]
+      },
+      "argv": [
+        "SDCLI",
+        "--diffusion-model",
+        "MODELS/qwen_image_2.1-Q4_K.gguf",
+        "--vae",
+        "MODELS/vae/qwen_image_2.1_vae_bf16.safetensors",
+        "--llm",
+        "MODELS/Qwen3VL-8B-Instruct-Q4_K_M.gguf",
+        "-p",
+        "literal $(touch nope); ' text",
+        "--cfg-scale",
+        "6.0",
+        "--sampling-method",
+        "euler",
+        "--steps",
+        "20",
+        "-H",
+        "64",
+        "-W",
+        "32",
+        "--diffusion-fa",
+        "--init-img",
+        "TMP/ref_0.png",
+        "--strength",
+        "0.75",
+        "--llm_vision",
+        "MODELS/mmproj-Qwen3VL-8B-Instruct-F16.gguf",
+        "-r",
+        "TMP/ref_0.png",
+        "-r",
+        "TMP/ref_1.png",
+        "-r",
+        "TMP/ref_2.png",
+        "--backend",
+        "cuda0",
+        "-o",
+        "TMP/output.png"
+      ],
+      "timeout": 600,
+      "reference_pixels": [
+        {
+          "size": [
+            3,
+            2
+          ],
+          "pixels": "132847132847132847132847132847132847"
+        },
+        {
+          "size": [
+            2,
+            3
+          ],
+          "pixels": "c83214c83214c83214c83214c83214c83214"
+        },
+        {
+          "size": [
+            3,
+            2
+          ],
+          "pixels": "132847132847132847132847132847132847"
+        }
+      ],
+      "engine_output": "iVBORw0KGgoAAAANSUhEUgAAACAAAABACAIAAAD07OL5AAAAOElEQVR4nO3NQQEAMAjEsDELmMAJ/h2h4n6pgKZ69iX70TsAAAAAAAAAAAAAAAAAAAAAAAAAgEAHeJYBAmrG/GgAAAAASUVORK5CYII=",
+      "result": "iVBORw0KGgoAAAANSUhEUgAAACAAAABACAIAAAD07OL5AAAAOElEQVR4nO3NQQEAMAjEsDELmMAJ/h2h4n6pgKZ69iX70TsAAAAAAAAAAAAAAAAAAAAAAAAAgEAHeJYBAmrG/GgAAAAASUVORK5CYII="
+    },
+    {
+      "name": "cuda:1-15-generate",
+      "device": "cuda:1",
+      "free_gb": 15,
+      "kwargs": {
+        "prompt": "literal $(touch nope); ' text",
+        "size": "32x64"
+      },
+      "argv": [
+        "SDCLI",
+        "--diffusion-model",
+        "MODELS/qwen_image_2.1-Q4_K.gguf",
+        "--vae",
+        "MODELS/vae/qwen_image_2.1_vae_bf16.safetensors",
+        "--llm",
+        "MODELS/Qwen3VL-8B-Instruct-Q4_K_M.gguf",
+        "-p",
+        "literal $(touch nope); ' text",
+        "--cfg-scale",
+        "6.0",
+        "--sampling-method",
+        "euler",
+        "--steps",
+        "20",
+        "-H",
+        "64",
+        "-W",
+        "32",
+        "--diffusion-fa",
+        "--backend",
+        "cuda1",
+        "--offload-to-cpu",
+        "-o",
+        "TMP/output.png"
+      ],
+      "timeout": 600,
+      "reference_pixels": [],
+      "engine_output": "iVBORw0KGgoAAAANSUhEUgAAACAAAABACAIAAAD07OL5AAAAOElEQVR4nO3NQQEAMAjEsDELmMAJ/h2h4n6pgKZ69iX70TsAAAAAAAAAAAAAAAAAAAAAAAAAgEAHeJYBAmrG/GgAAAAASUVORK5CYII=",
+      "result": "iVBORw0KGgoAAAANSUhEUgAAACAAAABACAIAAAD07OL5AAAAOElEQVR4nO3NQQEAMAjEsDELmMAJ/h2h4n6pgKZ69iX70TsAAAAAAAAAAAAAAAAAAAAAAAAAgEAHeJYBAmrG/GgAAAAASUVORK5CYII="
+    },
+    {
+      "name": "cuda:1-15-primary",
+      "device": "cuda:1",
+      "free_gb": 15,
+      "kwargs": {
+        "prompt": "literal $(touch nope); ' text",
+        "size": "32x64",
+        "image": "iVBORw0KGgoAAAANSUhEUgAAAAMAAAACCAIAAAASFvFNAAAAFUlEQVR4nGMU1nBnYGBgYGBgYoABAAksAIYyLNINAAAAAElFTkSuQmCC"
+      },
+      "argv": [
+        "SDCLI",
+        "--diffusion-model",
+        "MODELS/qwen_image_2.1-Q4_K.gguf",
+        "--vae",
+        "MODELS/vae/qwen_image_2.1_vae_bf16.safetensors",
+        "--llm",
+        "MODELS/Qwen3VL-8B-Instruct-Q4_K_M.gguf",
+        "-p",
+        "literal $(touch nope); ' text",
+        "--cfg-scale",
+        "6.0",
+        "--sampling-method",
+        "euler",
+        "--steps",
+        "20",
+        "-H",
+        "64",
+        "-W",
+        "32",
+        "--diffusion-fa",
+        "--init-img",
+        "TMP/ref_0.png",
+        "--strength",
+        "0.75",
+        "--llm_vision",
+        "MODELS/mmproj-Qwen3VL-8B-Instruct-F16.gguf",
+        "-r",
+        "TMP/ref_0.png",
+        "--backend",
+        "cuda1",
+        "--offload-to-cpu",
+        "-o",
+        "TMP/output.png"
+      ],
+      "timeout": 600,
+      "reference_pixels": [
+        {
+          "size": [
+            3,
+            2
+          ],
+          "pixels": "132847132847132847132847132847132847"
+        }
+      ],
+      "engine_output": "iVBORw0KGgoAAAANSUhEUgAAACAAAABACAIAAAD07OL5AAAAOElEQVR4nO3NQQEAMAjEsDELmMAJ/h2h4n6pgKZ69iX70TsAAAAAAAAAAAAAAAAAAAAAAAAAgEAHeJYBAmrG/GgAAAAASUVORK5CYII=",
+      "result": "iVBORw0KGgoAAAANSUhEUgAAACAAAABACAIAAAD07OL5AAAAOElEQVR4nO3NQQEAMAjEsDELmMAJ/h2h4n6pgKZ69iX70TsAAAAAAAAAAAAAAAAAAAAAAAAAgEAHeJYBAmrG/GgAAAAASUVORK5CYII="
+    },
+    {
+      "name": "cuda:1-15-additional",
+      "device": "cuda:1",
+      "free_gb": 15,
+      "kwargs": {
+        "prompt": "literal $(touch nope); ' text",
+        "size": "32x64",
+        "images": [
+          "iVBORw0KGgoAAAANSUhEUgAAAAIAAAADCAIAAAA2iEnWAAAAFElEQVR4nGM8YSTCwMDAxMDAgKAAFRIBFDpYmuMAAAAASUVORK5CYII=",
+          "iVBORw0KGgoAAAANSUhEUgAAAAMAAAACCAIAAAASFvFNAAAAFUlEQVR4nGMU1nBnYGBgYGBgYoABAAksAIYyLNINAAAAAElFTkSuQmCC"
+        ]
+      },
+      "argv": [
+        "SDCLI",
+        "--diffusion-model",
+        "MODELS/qwen_image_2.1-Q4_K.gguf",
+        "--vae",
+        "MODELS/vae/qwen_image_2.1_vae_bf16.safetensors",
+        "--llm",
+        "MODELS/Qwen3VL-8B-Instruct-Q4_K_M.gguf",
+        "-p",
+        "literal $(touch nope); ' text",
+        "--cfg-scale",
+        "6.0",
+        "--sampling-method",
+        "euler",
+        "--steps",
+        "20",
+        "-H",
+        "64",
+        "-W",
+        "32",
+        "--diffusion-fa",
+        "--llm_vision",
+        "MODELS/mmproj-Qwen3VL-8B-Instruct-F16.gguf",
+        "-r",
+        "TMP/ref_0.png",
+        "-r",
+        "TMP/ref_1.png",
+        "--backend",
+        "cuda1",
+        "--offload-to-cpu",
+        "-o",
+        "TMP/output.png"
+      ],
+      "timeout": 600,
+      "reference_pixels": [
+        {
+          "size": [
+            2,
+            3
+          ],
+          "pixels": "c83214c83214c83214c83214c83214c83214"
+        },
+        {
+          "size": [
+            3,
+            2
+          ],
+          "pixels": "132847132847132847132847132847132847"
+        }
+      ],
+      "engine_output": "iVBORw0KGgoAAAANSUhEUgAAACAAAABACAIAAAD07OL5AAAAOElEQVR4nO3NQQEAMAjEsDELmMAJ/h2h4n6pgKZ69iX70TsAAAAAAAAAAAAAAAAAAAAAAAAAgEAHeJYBAmrG/GgAAAAASUVORK5CYII=",
+      "result": "iVBORw0KGgoAAAANSUhEUgAAACAAAABACAIAAAD07OL5AAAAOElEQVR4nO3NQQEAMAjEsDELmMAJ/h2h4n6pgKZ69iX70TsAAAAAAAAAAAAAAAAAAAAAAAAAgEAHeJYBAmrG/GgAAAAASUVORK5CYII="
+    },
+    {
+      "name": "cuda:1-15-both",
+      "device": "cuda:1",
+      "free_gb": 15,
+      "kwargs": {
+        "prompt": "literal $(touch nope); ' text",
+        "size": "32x64",
+        "image": "iVBORw0KGgoAAAANSUhEUgAAAAMAAAACCAIAAAASFvFNAAAAFUlEQVR4nGMU1nBnYGBgYGBgYoABAAksAIYyLNINAAAAAElFTkSuQmCC",
+        "images": [
+          "iVBORw0KGgoAAAANSUhEUgAAAAIAAAADCAIAAAA2iEnWAAAAFElEQVR4nGM8YSTCwMDAxMDAgKAAFRIBFDpYmuMAAAAASUVORK5CYII=",
+          "iVBORw0KGgoAAAANSUhEUgAAAAMAAAACCAIAAAASFvFNAAAAFUlEQVR4nGMU1nBnYGBgYGBgYoABAAksAIYyLNINAAAAAElFTkSuQmCC"
+        ]
+      },
+      "argv": [
+        "SDCLI",
+        "--diffusion-model",
+        "MODELS/qwen_image_2.1-Q4_K.gguf",
+        "--vae",
+        "MODELS/vae/qwen_image_2.1_vae_bf16.safetensors",
+        "--llm",
+        "MODELS/Qwen3VL-8B-Instruct-Q4_K_M.gguf",
+        "-p",
+        "literal $(touch nope); ' text",
+        "--cfg-scale",
+        "6.0",
+        "--sampling-method",
+        "euler",
+        "--steps",
+        "20",
+        "-H",
+        "64",
+        "-W",
+        "32",
+        "--diffusion-fa",
+        "--init-img",
+        "TMP/ref_0.png",
+        "--strength",
+        "0.75",
+        "--llm_vision",
+        "MODELS/mmproj-Qwen3VL-8B-Instruct-F16.gguf",
+        "-r",
+        "TMP/ref_0.png",
+        "-r",
+        "TMP/ref_1.png",
+        "-r",
+        "TMP/ref_2.png",
+        "--backend",
+        "cuda1",
+        "--offload-to-cpu",
+        "-o",
+        "TMP/output.png"
+      ],
+      "timeout": 600,
+      "reference_pixels": [
+        {
+          "size": [
+            3,
+            2
+          ],
+          "pixels": "132847132847132847132847132847132847"
+        },
+        {
+          "size": [
+            2,
+            3
+          ],
+          "pixels": "c83214c83214c83214c83214c83214c83214"
+        },
+        {
+          "size": [
+            3,
+            2
+          ],
+          "pixels": "132847132847132847132847132847132847"
+        }
+      ],
+      "engine_output": "iVBORw0KGgoAAAANSUhEUgAAACAAAABACAIAAAD07OL5AAAAOElEQVR4nO3NQQEAMAjEsDELmMAJ/h2h4n6pgKZ69iX70TsAAAAAAAAAAAAAAAAAAAAAAAAAgEAHeJYBAmrG/GgAAAAASUVORK5CYII=",
+      "result": "iVBORw0KGgoAAAANSUhEUgAAACAAAABACAIAAAD07OL5AAAAOElEQVR4nO3NQQEAMAjEsDELmMAJ/h2h4n6pgKZ69iX70TsAAAAAAAAAAAAAAAAAAAAAAAAAgEAHeJYBAmrG/GgAAAAASUVORK5CYII="
+    },
+    {
+      "name": "size-64x32",
+      "kwargs": {
+        "size": "64x32"
+      },
+      "argv": [
+        "SDCLI",
+        "--diffusion-model",
+        "MODELS/qwen_image_2.1-Q4_K.gguf",
+        "--vae",
+        "MODELS/vae/qwen_image_2.1_vae_bf16.safetensors",
+        "--llm",
+        "MODELS/Qwen3VL-8B-Instruct-Q4_K_M.gguf",
+        "-p",
+        "test",
+        "--cfg-scale",
+        "6.0",
+        "--sampling-method",
+        "euler",
+        "--steps",
+        "20",
+        "-H",
+        "32",
+        "-W",
+        "64",
+        "--diffusion-fa",
+        "--backend",
+        "cpu",
+        "-o",
+        "TMP/output.png"
+      ],
+      "timeout": 600,
+      "reference_pixels": [],
+      "engine_output": "iVBORw0KGgoAAAANSUhEUgAAAEAAAAAgCAIAAAAt/+nTAAAARUlEQVR4nO3PQQ3AIADAQMACJnCCf0cTweOypKegnfvc8WdLB7xqQGtAa0BrQGtAa0BrQGtAa0BrQGtAa0BrQGtAa0D7AFwJAMIc/GReAAAAAElFTkSuQmCC",
+      "result": "iVBORw0KGgoAAAANSUhEUgAAAEAAAAAgCAIAAAAt/+nTAAAARUlEQVR4nO3PQQ3AIADAQMACJnCCf0cTweOypKegnfvc8WdLB7xqQGtAa0BrQGtAa0BrQGtAa0BrQGtAa0BrQGtAa0D7AFwJAMIc/GReAAAAAElFTkSuQmCC"
+    },
+    {
+      "name": "size-  +32 x 64 ",
+      "kwargs": {
+        "size": "  +32 x 64 "
+      },
+      "argv": [
+        "SDCLI",
+        "--diffusion-model",
+        "MODELS/qwen_image_2.1-Q4_K.gguf",
+        "--vae",
+        "MODELS/vae/qwen_image_2.1_vae_bf16.safetensors",
+        "--llm",
+        "MODELS/Qwen3VL-8B-Instruct-Q4_K_M.gguf",
+        "-p",
+        "test",
+        "--cfg-scale",
+        "6.0",
+        "--sampling-method",
+        "euler",
+        "--steps",
+        "20",
+        "-H",
+        "64",
+        "-W",
+        "32",
+        "--diffusion-fa",
+        "--backend",
+        "cpu",
+        "-o",
+        "TMP/output.png"
+      ],
+      "timeout": 600,
+      "reference_pixels": [],
+      "engine_output": "iVBORw0KGgoAAAANSUhEUgAAACAAAABACAIAAAD07OL5AAAAOElEQVR4nO3NQQEAMAjEsDELmMAJ/h2h4n6pgKZ69iX70TsAAAAAAAAAAAAAAAAAAAAAAAAAgEAHeJYBAmrG/GgAAAAASUVORK5CYII=",
+      "result": "iVBORw0KGgoAAAANSUhEUgAAACAAAABACAIAAAD07OL5AAAAOElEQVR4nO3NQQEAMAjEsDELmMAJ/h2h4n6pgKZ69iX70TsAAAAAAAAAAAAAAAAAAAAAAAAAgEAHeJYBAmrG/GgAAAAASUVORK5CYII="
+    },
+    {
+      "name": "size-3_2x٦٤",
+      "kwargs": {
+        "size": "3_2x٦٤"
+      },
+      "argv": [
+        "SDCLI",
+        "--diffusion-model",
+        "MODELS/qwen_image_2.1-Q4_K.gguf",
+        "--vae",
+        "MODELS/vae/qwen_image_2.1_vae_bf16.safetensors",
+        "--llm",
+        "MODELS/Qwen3VL-8B-Instruct-Q4_K_M.gguf",
+        "-p",
+        "test",
+        "--cfg-scale",
+        "6.0",
+        "--sampling-method",
+        "euler",
+        "--steps",
+        "20",
+        "-H",
+        "64",
+        "-W",
+        "32",
+        "--diffusion-fa",
+        "--backend",
+        "cpu",
+        "-o",
+        "TMP/output.png"
+      ],
+      "timeout": 600,
+      "reference_pixels": [],
+      "engine_output": "iVBORw0KGgoAAAANSUhEUgAAACAAAABACAIAAAD07OL5AAAAOElEQVR4nO3NQQEAMAjEsDELmMAJ/h2h4n6pgKZ69iX70TsAAAAAAAAAAAAAAAAAAAAAAAAAgEAHeJYBAmrG/GgAAAAASUVORK5CYII=",
+      "result": "iVBORw0KGgoAAAANSUhEUgAAACAAAABACAIAAAD07OL5AAAAOElEQVR4nO3NQQEAMAjEsDELmMAJ/h2h4n6pgKZ69iX70TsAAAAAAAAAAAAAAAAAAAAAAAAAgEAHeJYBAmrG/GgAAAAASUVORK5CYII="
+    },
+    {
+      "name": "size-32X64",
+      "kwargs": {
+        "size": "32X64"
+      },
+      "error": "size must be WIDTHxHEIGHT"
+    },
+    {
+      "name": "size-32x64x32",
+      "kwargs": {
+        "size": "32x64x32"
+      },
+      "error": "size must be WIDTHxHEIGHT"
+    },
+    {
+      "name": "size-x32",
+      "kwargs": {
+        "size": "x32"
+      },
+      "error": "size must be WIDTHxHEIGHT"
+    },
+    {
+      "name": "size-0x32",
+      "kwargs": {
+        "size": "0x32"
+      },
+      "error": "Image dimensions must be positive multiples of 32"
+    },
+    {
+      "name": "size--32x64",
+      "kwargs": {
+        "size": "-32x64"
+      },
+      "error": "Image dimensions must be positive multiples of 32"
+    },
+    {
+      "name": "size-31x64",
+      "kwargs": {
+        "size": "31x64"
+      },
+      "error": "Image dimensions must be positive multiples of 32"
+    },
+    {
+      "name": "size-nanx64",
+      "kwargs": {
+        "size": "nanx64"
+      },
+      "error": "size must be WIDTHxHEIGHT"
+    },
+    {
+      "name": "size-32.0x64",
+      "kwargs": {
+        "size": "32.0x64"
+      },
+      "error": "size must be WIDTHxHEIGHT"
+    },
+    {
+      "name": "size-32_x64",
+      "kwargs": {
+        "size": "32_x64"
+      },
+      "error": "size must be WIDTHxHEIGHT"
+    },
+    {
+      "name": "size-_32x64",
+      "kwargs": {
+        "size": "_32x64"
+      },
+      "error": "size must be WIDTHxHEIGHT"
+    },
+    {
+      "name": "strength-33",
+      "kwargs": {
+        "strength": -0.1
+      },
+      "error": "strength must be between 0 and 1"
+    },
+    {
+      "name": "strength-34",
+      "kwargs": {
+        "strength": 1.1
+      },
+      "error": "strength must be between 0 and 1"
+    },
+    {
+      "name": "strength-35",
+      "kwargs": {
+        "strength": 0
+      },
+      "argv": [
+        "SDCLI",
+        "--diffusion-model",
+        "MODELS/qwen_image_2.1-Q4_K.gguf",
+        "--vae",
+        "MODELS/vae/qwen_image_2.1_vae_bf16.safetensors",
+        "--llm",
+        "MODELS/Qwen3VL-8B-Instruct-Q4_K_M.gguf",
+        "-p",
+        "test",
+        "--cfg-scale",
+        "6.0",
+        "--sampling-method",
+        "euler",
+        "--steps",
+        "20",
+        "-H",
+        "64",
+        "-W",
+        "32",
+        "--diffusion-fa",
+        "--backend",
+        "cpu",
+        "-o",
+        "TMP/output.png"
+      ],
+      "timeout": 600,
+      "reference_pixels": [],
+      "engine_output": "iVBORw0KGgoAAAANSUhEUgAAACAAAABACAIAAAD07OL5AAAAOElEQVR4nO3NQQEAMAjEsDELmMAJ/h2h4n6pgKZ69iX70TsAAAAAAAAAAAAAAAAAAAAAAAAAgEAHeJYBAmrG/GgAAAAASUVORK5CYII=",
+      "result": "iVBORw0KGgoAAAANSUhEUgAAACAAAABACAIAAAD07OL5AAAAOElEQVR4nO3NQQEAMAjEsDELmMAJ/h2h4n6pgKZ69iX70TsAAAAAAAAAAAAAAAAAAAAAAAAAgEAHeJYBAmrG/GgAAAAASUVORK5CYII="
+    },
+    {
+      "name": "strength-36",
+      "kwargs": {
+        "strength": 1
+      },
+      "argv": [
+        "SDCLI",
+        "--diffusion-model",
+        "MODELS/qwen_image_2.1-Q4_K.gguf",
+        "--vae",
+        "MODELS/vae/qwen_image_2.1_vae_bf16.safetensors",
+        "--llm",
+        "MODELS/Qwen3VL-8B-Instruct-Q4_K_M.gguf",
+        "-p",
+        "test",
+        "--cfg-scale",
+        "6.0",
+        "--sampling-method",
+        "euler",
+        "--steps",
+        "20",
+        "-H",
+        "64",
+        "-W",
+        "32",
+        "--diffusion-fa",
+        "--backend",
+        "cpu",
+        "-o",
+        "TMP/output.png"
+      ],
+      "timeout": 600,
+      "reference_pixels": [],
+      "engine_output": "iVBORw0KGgoAAAANSUhEUgAAACAAAABACAIAAAD07OL5AAAAOElEQVR4nO3NQQEAMAjEsDELmMAJ/h2h4n6pgKZ69iX70TsAAAAAAAAAAAAAAAAAAAAAAAAAgEAHeJYBAmrG/GgAAAAASUVORK5CYII=",
+      "result": "iVBORw0KGgoAAAANSUhEUgAAACAAAABACAIAAAD07OL5AAAAOElEQVR4nO3NQQEAMAjEsDELmMAJ/h2h4n6pgKZ69iX70TsAAAAAAAAAAAAAAAAAAAAAAAAAgEAHeJYBAmrG/GgAAAAASUVORK5CYII="
+    },
+    {
+      "name": "num_inference_steps-37",
+      "kwargs": {
+        "num_inference_steps": 0
+      },
+      "error": "num_inference_steps must be positive"
+    },
+    {
+      "name": "num_inference_steps-38",
+      "kwargs": {
+        "num_inference_steps": -1
+      },
+      "error": "num_inference_steps must be positive"
+    },
+    {
+      "name": "num_inference_steps-39",
+      "kwargs": {
+        "num_inference_steps": 3
+      },
+      "argv": [
+        "SDCLI",
+        "--diffusion-model",
+        "MODELS/qwen_image_2.1-Q4_K.gguf",
+        "--vae",
+        "MODELS/vae/qwen_image_2.1_vae_bf16.safetensors",
+        "--llm",
+        "MODELS/Qwen3VL-8B-Instruct-Q4_K_M.gguf",
+        "-p",
+        "test",
+        "--cfg-scale",
+        "6.0",
+        "--sampling-method",
+        "euler",
+        "--steps",
+        "3",
+        "-H",
+        "64",
+        "-W",
+        "32",
+        "--diffusion-fa",
+        "--backend",
+        "cpu",
+        "-o",
+        "TMP/output.png"
+      ],
+      "timeout": 600,
+      "reference_pixels": [],
+      "engine_output": "iVBORw0KGgoAAAANSUhEUgAAACAAAABACAIAAAD07OL5AAAAOElEQVR4nO3NQQEAMAjEsDELmMAJ/h2h4n6pgKZ69iX70TsAAAAAAAAAAAAAAAAAAAAAAAAAgEAHeJYBAmrG/GgAAAAASUVORK5CYII=",
+      "result": "iVBORw0KGgoAAAANSUhEUgAAACAAAABACAIAAAD07OL5AAAAOElEQVR4nO3NQQEAMAjEsDELmMAJ/h2h4n6pgKZ69iX70TsAAAAAAAAAAAAAAAAAAAAAAAAAgEAHeJYBAmrG/GgAAAAASUVORK5CYII="
+    },
+    {
+      "name": "negative_prompt-40",
+      "kwargs": {
+        "negative_prompt": "bad quality"
+      },
+      "argv": [
+        "SDCLI",
+        "--diffusion-model",
+        "MODELS/qwen_image_2.1-Q4_K.gguf",
+        "--vae",
+        "MODELS/vae/qwen_image_2.1_vae_bf16.safetensors",
+        "--llm",
+        "MODELS/Qwen3VL-8B-Instruct-Q4_K_M.gguf",
+        "-p",
+        "test",
+        "--cfg-scale",
+        "6.0",
+        "--sampling-method",
+        "euler",
+        "--steps",
+        "20",
+        "-H",
+        "64",
+        "-W",
+        "32",
+        "--diffusion-fa",
+        "--negative-prompt",
+        "bad quality",
+        "--backend",
+        "cpu",
+        "-o",
+        "TMP/output.png"
+      ],
+      "timeout": 600,
+      "reference_pixels": [],
+      "engine_output": "iVBORw0KGgoAAAANSUhEUgAAACAAAABACAIAAAD07OL5AAAAOElEQVR4nO3NQQEAMAjEsDELmMAJ/h2h4n6pgKZ69iX70TsAAAAAAAAAAAAAAAAAAAAAAAAAgEAHeJYBAmrG/GgAAAAASUVORK5CYII=",
+      "result": "iVBORw0KGgoAAAANSUhEUgAAACAAAABACAIAAAD07OL5AAAAOElEQVR4nO3NQQEAMAjEsDELmMAJ/h2h4n6pgKZ69iX70TsAAAAAAAAAAAAAAAAAAAAAAAAAgEAHeJYBAmrG/GgAAAAASUVORK5CYII="
+    },
+    {
+      "name": "guidance_scale-41",
+      "kwargs": {
+        "guidance_scale": 3.25
+      },
+      "argv": [
+        "SDCLI",
+        "--diffusion-model",
+        "MODELS/qwen_image_2.1-Q4_K.gguf",
+        "--vae",
+        "MODELS/vae/qwen_image_2.1_vae_bf16.safetensors",
+        "--llm",
+        "MODELS/Qwen3VL-8B-Instruct-Q4_K_M.gguf",
+        "-p",
+        "test",
+        "--cfg-scale",
+        "3.25",
+        "--sampling-method",
+        "euler",
+        "--steps",
+        "20",
+        "-H",
+        "64",
+        "-W",
+        "32",
+        "--diffusion-fa",
+        "--backend",
+        "cpu",
+        "-o",
+        "TMP/output.png"
+      ],
+      "timeout": 600,
+      "reference_pixels": [],
+      "engine_output": "iVBORw0KGgoAAAANSUhEUgAAACAAAABACAIAAAD07OL5AAAAOElEQVR4nO3NQQEAMAjEsDELmMAJ/h2h4n6pgKZ69iX70TsAAAAAAAAAAAAAAAAAAAAAAAAAgEAHeJYBAmrG/GgAAAAASUVORK5CYII=",
+      "result": "iVBORw0KGgoAAAANSUhEUgAAACAAAABACAIAAAD07OL5AAAAOElEQVR4nO3NQQEAMAjEsDELmMAJ/h2h4n6pgKZ69iX70TsAAAAAAAAAAAAAAAAAAAAAAAAAgEAHeJYBAmrG/GgAAAAASUVORK5CYII="
+    },
+    {
+      "name": "image-42",
+      "kwargs": {
+        "image": "bad"
+      },
+      "error": "Invalid reference image at index 0"
+    },
+    {
+      "name": "image-43",
+      "kwargs": {
+        "image": "iVBORw0KGgoAAAANSUhEUgAAAAMAAAACCAIAAAASFvFNAAAAFUlEQVR4nGMU1nBnYGBgYGBgYoABAAksAIYyLNINAAAAAElFTkSuQmCC\n"
+      },
+      "error": "Invalid reference image at index 0"
+    },
+    {
+      "name": "image-44",
+      "kwargs": {
+        "image": "data:text/plain;base64,iVBORw0KGgoAAAANSUhEUgAAAAMAAAACCAIAAAASFvFNAAAAFUlEQVR4nGMU1nBnYGBgYGBgYoABAAksAIYyLNINAAAAAElFTkSuQmCC"
+      },
+      "error": "Invalid reference image at index 0"
+    },
+    {
+      "name": "image-45",
+      "kwargs": {
+        "image": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAMAAAACCAIAAAASFvFNAAAAFUlEQVR4nGMU1nBnYGBgYGBgYoABAAksAIYyLNINAAAAAElFTkSuQmCC"
+      },
+      "argv": [
+        "SDCLI",
+        "--diffusion-model",
+        "MODELS/qwen_image_2.1-Q4_K.gguf",
+        "--vae",
+        "MODELS/vae/qwen_image_2.1_vae_bf16.safetensors",
+        "--llm",
+        "MODELS/Qwen3VL-8B-Instruct-Q4_K_M.gguf",
+        "-p",
+        "test",
+        "--cfg-scale",
+        "6.0",
+        "--sampling-method",
+        "euler",
+        "--steps",
+        "20",
+        "-H",
+        "64",
+        "-W",
+        "32",
+        "--diffusion-fa",
+        "--init-img",
+        "TMP/ref_0.png",
+        "--strength",
+        "0.75",
+        "--llm_vision",
+        "MODELS/mmproj-Qwen3VL-8B-Instruct-F16.gguf",
+        "-r",
+        "TMP/ref_0.png",
+        "--backend",
+        "cpu",
+        "-o",
+        "TMP/output.png"
+      ],
+      "timeout": 600,
+      "reference_pixels": [
+        {
+          "size": [
+            3,
+            2
+          ],
+          "pixels": "132847132847132847132847132847132847"
+        }
+      ],
+      "engine_output": "iVBORw0KGgoAAAANSUhEUgAAACAAAABACAIAAAD07OL5AAAAOElEQVR4nO3NQQEAMAjEsDELmMAJ/h2h4n6pgKZ69iX70TsAAAAAAAAAAAAAAAAAAAAAAAAAgEAHeJYBAmrG/GgAAAAASUVORK5CYII=",
+      "result": "iVBORw0KGgoAAAANSUhEUgAAACAAAABACAIAAAD07OL5AAAAOElEQVR4nO3NQQEAMAjEsDELmMAJ/h2h4n6pgKZ69iX70TsAAAAAAAAAAAAAAAAAAAAAAAAAgEAHeJYBAmrG/GgAAAAASUVORK5CYII="
+    },
+    {
+      "name": "images-46",
+      "kwargs": {
+        "images": [
+          "iVBORw0KGgoAAAANSUhEUgAAAAMAAAACCAIAAAASFvFNAAAAFUlEQVR4nGMU1nBnYGBgYGBgYoABAAksAIYyLNINAAAAAElFTkSuQmCC",
+          "bad"
+        ]
+      },
+      "error": "Invalid reference image at index 1"
+    },
+    {
+      "name": "images-47",
+      "kwargs": {
+        "images": [
+          "iVBORw0KGgoAAAANSUhEUgAAAAMAAAACCAIAAAASFvFNAAAAFUlEQVR4nGMU1nBnYGBgYGBgYoABAAksAIYyLNINAAAAAElFTkSuQmCC",
+          "iVBORw0KGgoAAAANSUhEUgAAAAMAAAACCAIAAAASFvFNAAAAFUlEQVR4nGMU1nBnYGBgYGBgYoABAAksAIYyLNINAAAAAElFTkSuQmCC",
+          "iVBORw0KGgoAAAANSUhEUgAAAAMAAAACCAIAAAASFvFNAAAAFUlEQVR4nGMU1nBnYGBgYGBgYoABAAksAIYyLNINAAAAAElFTkSuQmCC",
+          "iVBORw0KGgoAAAANSUhEUgAAAAMAAAACCAIAAAASFvFNAAAAFUlEQVR4nGMU1nBnYGBgYGBgYoABAAksAIYyLNINAAAAAElFTkSuQmCC",
+          "iVBORw0KGgoAAAANSUhEUgAAAAMAAAACCAIAAAASFvFNAAAAFUlEQVR4nGMU1nBnYGBgYGBgYoABAAksAIYyLNINAAAAAElFTkSuQmCC",
+          "iVBORw0KGgoAAAANSUhEUgAAAAMAAAACCAIAAAASFvFNAAAAFUlEQVR4nGMU1nBnYGBgYGBgYoABAAksAIYyLNINAAAAAElFTkSuQmCC",
+          "iVBORw0KGgoAAAANSUhEUgAAAAMAAAACCAIAAAASFvFNAAAAFUlEQVR4nGMU1nBnYGBgYGBgYoABAAksAIYyLNINAAAAAElFTkSuQmCC",
+          "iVBORw0KGgoAAAANSUhEUgAAAAMAAAACCAIAAAASFvFNAAAAFUlEQVR4nGMU1nBnYGBgYGBgYoABAAksAIYyLNINAAAAAElFTkSuQmCC",
+          "iVBORw0KGgoAAAANSUhEUgAAAAMAAAACCAIAAAASFvFNAAAAFUlEQVR4nGMU1nBnYGBgYGBgYoABAAksAIYyLNINAAAAAElFTkSuQmCC",
+          "iVBORw0KGgoAAAANSUhEUgAAAAMAAAACCAIAAAASFvFNAAAAFUlEQVR4nGMU1nBnYGBgYGBgYoABAAksAIYyLNINAAAAAElFTkSuQmCC",
+          "iVBORw0KGgoAAAANSUhEUgAAAAMAAAACCAIAAAASFvFNAAAAFUlEQVR4nGMU1nBnYGBgYGBgYoABAAksAIYyLNINAAAAAElFTkSuQmCC"
+        ]
+      },
+      "error": "At most 10 additional reference images are supported"
+    },
+    {
+      "name": "images-48",
+      "kwargs": {
+        "images": [
+          "iVBORw0KGgoAAAANSUhEUgAAAAMAAAACCAIAAAASFvFNAAAAFUlEQVR4nGMU1nBnYGBgYGBgYoABAAksAIYyLNINAAAAAElFTkSuQmCC",
+          "iVBORw0KGgoAAAANSUhEUgAAAAMAAAACCAIAAAASFvFNAAAAFUlEQVR4nGMU1nBnYGBgYGBgYoABAAksAIYyLNINAAAAAElFTkSuQmCC",
+          "iVBORw0KGgoAAAANSUhEUgAAAAMAAAACCAIAAAASFvFNAAAAFUlEQVR4nGMU1nBnYGBgYGBgYoABAAksAIYyLNINAAAAAElFTkSuQmCC",
+          "iVBORw0KGgoAAAANSUhEUgAAAAMAAAACCAIAAAASFvFNAAAAFUlEQVR4nGMU1nBnYGBgYGBgYoABAAksAIYyLNINAAAAAElFTkSuQmCC",
+          "iVBORw0KGgoAAAANSUhEUgAAAAMAAAACCAIAAAASFvFNAAAAFUlEQVR4nGMU1nBnYGBgYGBgYoABAAksAIYyLNINAAAAAElFTkSuQmCC",
+          "iVBORw0KGgoAAAANSUhEUgAAAAMAAAACCAIAAAASFvFNAAAAFUlEQVR4nGMU1nBnYGBgYGBgYoABAAksAIYyLNINAAAAAElFTkSuQmCC",
+          "iVBORw0KGgoAAAANSUhEUgAAAAMAAAACCAIAAAASFvFNAAAAFUlEQVR4nGMU1nBnYGBgYGBgYoABAAksAIYyLNINAAAAAElFTkSuQmCC",
+          "iVBORw0KGgoAAAANSUhEUgAAAAMAAAACCAIAAAASFvFNAAAAFUlEQVR4nGMU1nBnYGBgYGBgYoABAAksAIYyLNINAAAAAElFTkSuQmCC",
+          "iVBORw0KGgoAAAANSUhEUgAAAAMAAAACCAIAAAASFvFNAAAAFUlEQVR4nGMU1nBnYGBgYGBgYoABAAksAIYyLNINAAAAAElFTkSuQmCC",
+          "iVBORw0KGgoAAAANSUhEUgAAAAMAAAACCAIAAAASFvFNAAAAFUlEQVR4nGMU1nBnYGBgYGBgYoABAAksAIYyLNINAAAAAElFTkSuQmCC"
+        ]
+      },
+      "argv": [
+        "SDCLI",
+        "--diffusion-model",
+        "MODELS/qwen_image_2.1-Q4_K.gguf",
+        "--vae",
+        "MODELS/vae/qwen_image_2.1_vae_bf16.safetensors",
+        "--llm",
+        "MODELS/Qwen3VL-8B-Instruct-Q4_K_M.gguf",
+        "-p",
+        "test",
+        "--cfg-scale",
+        "6.0",
+        "--sampling-method",
+        "euler",
+        "--steps",
+        "20",
+        "-H",
+        "64",
+        "-W",
+        "32",
+        "--diffusion-fa",
+        "--llm_vision",
+        "MODELS/mmproj-Qwen3VL-8B-Instruct-F16.gguf",
+        "-r",
+        "TMP/ref_0.png",
+        "-r",
+        "TMP/ref_1.png",
+        "-r",
+        "TMP/ref_2.png",
+        "-r",
+        "TMP/ref_3.png",
+        "-r",
+        "TMP/ref_4.png",
+        "-r",
+        "TMP/ref_5.png",
+        "-r",
+        "TMP/ref_6.png",
+        "-r",
+        "TMP/ref_7.png",
+        "-r",
+        "TMP/ref_8.png",
+        "-r",
+        "TMP/ref_9.png",
+        "--backend",
+        "cpu",
+        "-o",
+        "TMP/output.png"
+      ],
+      "timeout": 600,
+      "reference_pixels": [
+        {
+          "size": [
+            3,
+            2
+          ],
+          "pixels": "132847132847132847132847132847132847"
+        },
+        {
+          "size": [
+            3,
+            2
+          ],
+          "pixels": "132847132847132847132847132847132847"
+        },
+        {
+          "size": [
+            3,
+            2
+          ],
+          "pixels": "132847132847132847132847132847132847"
+        },
+        {
+          "size": [
+            3,
+            2
+          ],
+          "pixels": "132847132847132847132847132847132847"
+        },
+        {
+          "size": [
+            3,
+            2
+          ],
+          "pixels": "132847132847132847132847132847132847"
+        },
+        {
+          "size": [
+            3,
+            2
+          ],
+          "pixels": "132847132847132847132847132847132847"
+        },
+        {
+          "size": [
+            3,
+            2
+          ],
+          "pixels": "132847132847132847132847132847132847"
+        },
+        {
+          "size": [
+            3,
+            2
+          ],
+          "pixels": "132847132847132847132847132847132847"
+        },
+        {
+          "size": [
+            3,
+            2
+          ],
+          "pixels": "132847132847132847132847132847132847"
+        },
+        {
+          "size": [
+            3,
+            2
+          ],
+          "pixels": "132847132847132847132847132847132847"
+        }
+      ],
+      "engine_output": "iVBORw0KGgoAAAANSUhEUgAAACAAAABACAIAAAD07OL5AAAAOElEQVR4nO3NQQEAMAjEsDELmMAJ/h2h4n6pgKZ69iX70TsAAAAAAAAAAAAAAAAAAAAAAAAAgEAHeJYBAmrG/GgAAAAASUVORK5CYII=",
+      "result": "iVBORw0KGgoAAAANSUhEUgAAACAAAABACAIAAAD07OL5AAAAOElEQVR4nO3NQQEAMAjEsDELmMAJ/h2h4n6pgKZ69iX70TsAAAAAAAAAAAAAAAAAAAAAAAAAgEAHeJYBAmrG/GgAAAAASUVORK5CYII="
+    },
+    {
+      "name": "exit",
+      "mode": "exit",
+      "kwargs": {
+        "image": "iVBORw0KGgoAAAANSUhEUgAAAAMAAAACCAIAAAASFvFNAAAAFUlEQVR4nGMU1nBnYGBgYGBgYoABAAksAIYyLNINAAAAAElFTkSuQmCC"
+      },
+      "argv": [
+        "SDCLI",
+        "--diffusion-model",
+        "MODELS/qwen_image_2.1-Q4_K.gguf",
+        "--vae",
+        "MODELS/vae/qwen_image_2.1_vae_bf16.safetensors",
+        "--llm",
+        "MODELS/Qwen3VL-8B-Instruct-Q4_K_M.gguf",
+        "-p",
+        "test",
+        "--cfg-scale",
+        "6.0",
+        "--sampling-method",
+        "euler",
+        "--steps",
+        "20",
+        "-H",
+        "64",
+        "-W",
+        "32",
+        "--diffusion-fa",
+        "--init-img",
+        "TMP/ref_0.png",
+        "--strength",
+        "0.75",
+        "--llm_vision",
+        "MODELS/mmproj-Qwen3VL-8B-Instruct-F16.gguf",
+        "-r",
+        "TMP/ref_0.png",
+        "--backend",
+        "cpu",
+        "-o",
+        "TMP/output.png"
+      ],
+      "timeout": 600,
+      "reference_pixels": [
+        {
+          "size": [
+            3,
+            2
+          ],
+          "pixels": "132847132847132847132847132847132847"
+        }
+      ],
+      "engine_output": "iVBORw0KGgoAAAANSUhEUgAAACAAAABACAIAAAD07OL5AAAAOElEQVR4nO3NQQEAMAjEsDELmMAJ/h2h4n6pgKZ69iX70TsAAAAAAAAAAAAAAAAAAAAAAAAAgEAHeJYBAmrG/GgAAAAASUVORK5CYII=",
+      "error": "sd-cli failed (exit 7); see server logs"
+    },
+    {
+      "name": "signal",
+      "mode": "signal",
+      "kwargs": {
+        "image": "iVBORw0KGgoAAAANSUhEUgAAAAMAAAACCAIAAAASFvFNAAAAFUlEQVR4nGMU1nBnYGBgYGBgYoABAAksAIYyLNINAAAAAElFTkSuQmCC"
+      },
+      "argv": [
+        "SDCLI",
+        "--diffusion-model",
+        "MODELS/qwen_image_2.1-Q4_K.gguf",
+        "--vae",
+        "MODELS/vae/qwen_image_2.1_vae_bf16.safetensors",
+        "--llm",
+        "MODELS/Qwen3VL-8B-Instruct-Q4_K_M.gguf",
+        "-p",
+        "test",
+        "--cfg-scale",
+        "6.0",
+        "--sampling-method",
+        "euler",
+        "--steps",
+        "20",
+        "-H",
+        "64",
+        "-W",
+        "32",
+        "--diffusion-fa",
+        "--init-img",
+        "TMP/ref_0.png",
+        "--strength",
+        "0.75",
+        "--llm_vision",
+        "MODELS/mmproj-Qwen3VL-8B-Instruct-F16.gguf",
+        "-r",
+        "TMP/ref_0.png",
+        "--backend",
+        "cpu",
+        "-o",
+        "TMP/output.png"
+      ],
+      "timeout": 600,
+      "reference_pixels": [
+        {
+          "size": [
+            3,
+            2
+          ],
+          "pixels": "132847132847132847132847132847132847"
+        }
+      ],
+      "engine_output": "iVBORw0KGgoAAAANSUhEUgAAACAAAABACAIAAAD07OL5AAAAOElEQVR4nO3NQQEAMAjEsDELmMAJ/h2h4n6pgKZ69iX70TsAAAAAAAAAAAAAAAAAAAAAAAAAgEAHeJYBAmrG/GgAAAAASUVORK5CYII=",
+      "error": "sd-cli failed (exit -15); see server logs"
+    },
+    {
+      "name": "missing",
+      "mode": "missing",
+      "kwargs": {
+        "image": "iVBORw0KGgoAAAANSUhEUgAAAAMAAAACCAIAAAASFvFNAAAAFUlEQVR4nGMU1nBnYGBgYGBgYoABAAksAIYyLNINAAAAAElFTkSuQmCC"
+      },
+      "argv": [
+        "SDCLI",
+        "--diffusion-model",
+        "MODELS/qwen_image_2.1-Q4_K.gguf",
+        "--vae",
+        "MODELS/vae/qwen_image_2.1_vae_bf16.safetensors",
+        "--llm",
+        "MODELS/Qwen3VL-8B-Instruct-Q4_K_M.gguf",
+        "-p",
+        "test",
+        "--cfg-scale",
+        "6.0",
+        "--sampling-method",
+        "euler",
+        "--steps",
+        "20",
+        "-H",
+        "64",
+        "-W",
+        "32",
+        "--diffusion-fa",
+        "--init-img",
+        "TMP/ref_0.png",
+        "--strength",
+        "0.75",
+        "--llm_vision",
+        "MODELS/mmproj-Qwen3VL-8B-Instruct-F16.gguf",
+        "-r",
+        "TMP/ref_0.png",
+        "--backend",
+        "cpu",
+        "-o",
+        "TMP/output.png"
+      ],
+      "timeout": 600,
+      "reference_pixels": [
+        {
+          "size": [
+            3,
+            2
+          ],
+          "pixels": "132847132847132847132847132847132847"
+        }
+      ],
+      "engine_output": "iVBORw0KGgoAAAANSUhEUgAAACAAAABACAIAAAD07OL5AAAAOElEQVR4nO3NQQEAMAjEsDELmMAJ/h2h4n6pgKZ69iX70TsAAAAAAAAAAAAAAAAAAAAAAAAAgEAHeJYBAmrG/GgAAAAASUVORK5CYII=",
+      "error": "sd-cli completed without an output image"
+    },
+    {
+      "name": "wrong_dimensions",
+      "mode": "wrong_dimensions",
+      "kwargs": {
+        "image": "iVBORw0KGgoAAAANSUhEUgAAAAMAAAACCAIAAAASFvFNAAAAFUlEQVR4nGMU1nBnYGBgYGBgYoABAAksAIYyLNINAAAAAElFTkSuQmCC"
+      },
+      "argv": [
+        "SDCLI",
+        "--diffusion-model",
+        "MODELS/qwen_image_2.1-Q4_K.gguf",
+        "--vae",
+        "MODELS/vae/qwen_image_2.1_vae_bf16.safetensors",
+        "--llm",
+        "MODELS/Qwen3VL-8B-Instruct-Q4_K_M.gguf",
+        "-p",
+        "test",
+        "--cfg-scale",
+        "6.0",
+        "--sampling-method",
+        "euler",
+        "--steps",
+        "20",
+        "-H",
+        "64",
+        "-W",
+        "32",
+        "--diffusion-fa",
+        "--init-img",
+        "TMP/ref_0.png",
+        "--strength",
+        "0.75",
+        "--llm_vision",
+        "MODELS/mmproj-Qwen3VL-8B-Instruct-F16.gguf",
+        "-r",
+        "TMP/ref_0.png",
+        "--backend",
+        "cpu",
+        "-o",
+        "TMP/output.png"
+      ],
+      "timeout": 600,
+      "reference_pixels": [
+        {
+          "size": [
+            3,
+            2
+          ],
+          "pixels": "132847132847132847132847132847132847"
+        }
+      ],
+      "engine_output": "iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAIAAAAlC+aJAAAAZUlEQVR4nO3PQQ3AIADAQMACJnCCf0cTweOypKegnfvc8WdLB7xqQGtAa0BrQGtAa0BrQGtAa0BrQGtAa0BrQGtAa0BrQGtAa0BrQGtAa0BrQGtAa0BrQGtAa0BrQGtAa0BrQPsAwaQBAgIiX4AAAAAASUVORK5CYII=",
+      "error": "sd-cli returned an invalid PNG or unexpected dimensions"
+    },
+    {
+      "name": "jpeg",
+      "mode": "jpeg",
+      "kwargs": {
+        "image": "iVBORw0KGgoAAAANSUhEUgAAAAMAAAACCAIAAAASFvFNAAAAFUlEQVR4nGMU1nBnYGBgYGBgYoABAAksAIYyLNINAAAAAElFTkSuQmCC"
+      },
+      "argv": [
+        "SDCLI",
+        "--diffusion-model",
+        "MODELS/qwen_image_2.1-Q4_K.gguf",
+        "--vae",
+        "MODELS/vae/qwen_image_2.1_vae_bf16.safetensors",
+        "--llm",
+        "MODELS/Qwen3VL-8B-Instruct-Q4_K_M.gguf",
+        "-p",
+        "test",
+        "--cfg-scale",
+        "6.0",
+        "--sampling-method",
+        "euler",
+        "--steps",
+        "20",
+        "-H",
+        "64",
+        "-W",
+        "32",
+        "--diffusion-fa",
+        "--init-img",
+        "TMP/ref_0.png",
+        "--strength",
+        "0.75",
+        "--llm_vision",
+        "MODELS/mmproj-Qwen3VL-8B-Instruct-F16.gguf",
+        "-r",
+        "TMP/ref_0.png",
+        "--backend",
+        "cpu",
+        "-o",
+        "TMP/output.png"
+      ],
+      "timeout": 600,
+      "reference_pixels": [
+        {
+          "size": [
+            3,
+            2
+          ],
+          "pixels": "132847132847132847132847132847132847"
+        }
+      ],
+      "engine_output": "/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wAARCABAACADASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwD5/ooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKAP/9k=",
+      "error": "sd-cli returned an invalid PNG or unexpected dimensions"
+    },
+    {
+      "name": "missing_mmproj",
+      "mode": "missing_mmproj",
+      "kwargs": {
+        "image": "iVBORw0KGgoAAAANSUhEUgAAAAMAAAACCAIAAAASFvFNAAAAFUlEQVR4nGMU1nBnYGBgYGBgYoABAAksAIYyLNINAAAAAElFTkSuQmCC"
+      },
+      "error": "Qwen image editing requires mmproj vision weights"
+    },
+    {
+      "name": "rgba",
+      "mode": "rgba",
+      "kwargs": {
+        "image": "iVBORw0KGgoAAAANSUhEUgAAAAMAAAACCAIAAAASFvFNAAAAFUlEQVR4nGMU1nBnYGBgYGBgYoABAAksAIYyLNINAAAAAElFTkSuQmCC"
+      },
+      "argv": [
+        "SDCLI",
+        "--diffusion-model",
+        "MODELS/qwen_image_2.1-Q4_K.gguf",
+        "--vae",
+        "MODELS/vae/qwen_image_2.1_vae_bf16.safetensors",
+        "--llm",
+        "MODELS/Qwen3VL-8B-Instruct-Q4_K_M.gguf",
+        "-p",
+        "test",
+        "--cfg-scale",
+        "6.0",
+        "--sampling-method",
+        "euler",
+        "--steps",
+        "20",
+        "-H",
+        "64",
+        "-W",
+        "32",
+        "--diffusion-fa",
+        "--init-img",
+        "TMP/ref_0.png",
+        "--strength",
+        "0.75",
+        "--llm_vision",
+        "MODELS/mmproj-Qwen3VL-8B-Instruct-F16.gguf",
+        "-r",
+        "TMP/ref_0.png",
+        "--backend",
+        "cpu",
+        "-o",
+        "TMP/output.png"
+      ],
+      "timeout": 600,
+      "reference_pixels": [
+        {
+          "size": [
+            3,
+            2
+          ],
+          "pixels": "132847132847132847132847132847132847"
+        }
+      ],
+      "engine_output": "iVBORw0KGgoAAAANSUhEUgAAACAAAABACAYAAAB7jnWuAAAARUlEQVR4nO3OQQEAMAjEsGMWZmJOkDXryOCTGmjqvv5Z7GzOAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAJJkAI+kAYFT+bYuAAAAAElFTkSuQmCC",
+      "result": "iVBORw0KGgoAAAANSUhEUgAAACAAAABACAYAAAB7jnWuAAAARUlEQVR4nO3OQQEAMAjEsGMWZmJOkDXryOCTGmjqvv5Z7GzOAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAJJkAI+kAYFT+bYuAAAAAElFTkSuQmCC"
+    }
+  ]
+}

@@ -1,0 +1,47 @@
+{
+  "date": "2026-10-20",
+  "image_commit": "19d618b",
+  "candidate_image": "sha256:8858a94695d28b1d49e25295aa45ea1d32fc9e4701f87d01c11af96ff0f795b1",
+  "case": "two-scene-storyboard",
+  "via_rust_reverse_tunnel": true,
+  "request": {
+    "prompt": "Pythagorean rock concert, a band performing on a stage with a mathematical LED screen.",
+    "lyrics": "[Verse]\nThe squares on legs a and b\n[Chorus]\nEqual the square on hypotenuse c",
+    "keyscale": "C minor",
+    "duration": 6.0,
+    "scene_duration": 3.0,
+    "audio_url": "outputs/reused.wav",
+    "size": "768x512",
+    "frame_rate": 24,
+    "num_inference_steps": 18,
+    "response_format": "url",
+    "worker": "native-music-video-validation"
+  },
+  "seconds": 801.91,
+  "previous_failure": "timed out at the inherited 600 s local tunnel limit; router returned 503 after 654.50 s",
+  "output": {
+    "bytes": 996027,
+    "sha256": "c3c0af82a4b8f78071c6e17c503e3544d1e5bf0e763ce7479521bca17d862a97",
+    "video": "768x512, 6.000000 s",
+    "audio": "24000 Hz, 6.000000 s",
+    "scenes": [
+      "3.041667",
+      "3.041667"
+    ]
+  },
+  "handoff_observed": true,
+  "resource_poll_timeouts": 0,
+  "llm_restored": [
+    "vision_llm"
+  ],
+  "memory_peak_bytes": 30064775168,
+  "memory_note": "cgroup limit 28 GiB; memory.peak includes reclaimable page cache from model reads and reached the limit by 4096 bytes. No OOM kill: generation completed and the worker log has no OOM entries. The driver's strict peak assertion fired after the output was verified.",
+  "production_restored": {
+    "health": "healthy",
+    "chat": {
+      "status": 200,
+      "content_nonempty": true
+    },
+    "env_unchanged": true
+  }
+}

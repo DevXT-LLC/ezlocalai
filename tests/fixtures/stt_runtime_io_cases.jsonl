@@ -1,0 +1,10 @@
+{"kind": "metadata", "source_sha256": "d0dd8340c243d7ff9ba84f4e3babe3c41b0b0ce7c7dddf2565eb886ba3f21fe2"}
+{"setup":"normal","request":{"base64_audio":"YXVkaW8=","audio_format":"wav"},"value":" text ","target_kind":"missing"}
+{"setup":"missing_outputs","request":{"base64_audio":"YXVkaW8=","audio_format":"wav"},"error":{"category":"FileNotFoundError","message":"[Errno 2] No such file or directory: '/work/outputs/00000000000000000000000000000000.wav'"},"target_kind":"missing"}
+{"setup":"outputs_file","request":{"base64_audio":"YXVkaW8=","audio_format":"wav"},"error":{"category":"NotADirectoryError","message":"[Errno 20] Not a directory: '/work/outputs/00000000000000000000000000000000.wav'"},"target_kind":"missing"}
+{"setup":"target_directory","request":{"base64_audio":"YXVkaW8=","audio_format":"wav"},"error":{"category":"IsADirectoryError","message":"[Errno 21] Is a directory: '/work/outputs/00000000000000000000000000000000.wav'"},"target_kind":"directory"}
+{"setup":"full_device","request":{"base64_audio":"YXVkaW8=","audio_format":"wav"},"error":{"category":"OSError","message":"[Errno 28] No space left on device"},"target_kind":"link"}
+{"setup":"dangling_link","request":{"base64_audio":"YXVkaW8=","audio_format":"wav"},"error":{"category":"FileNotFoundError","message":"[Errno 2] No such file or directory: '/work/outputs/00000000000000000000000000000000.wav'"},"target_kind":"link"}
+{"setup":"replace_with_directory","request":{"base64_audio":"YXVkaW8=","audio_format":"wav"},"error":{"category":"IsADirectoryError","message":"[Errno 21] Is a directory: '/work/outputs/00000000000000000000000000000000.wav'"},"target_kind":"directory"}
+{"setup":"nul_extension","request":{"base64_audio":"YXVkaW8=","audio_format":"wa\u0000v"},"error":{"category":"ValueError","message":"embedded null byte"},"target_kind":"missing"}
+{"setup":"invalid_base64","request":{"base64_audio":"x","audio_format":"wav"},"error":{"category":"Error","message":"Invalid base64-encoded string: number of data characters (1) cannot be 1 more than a multiple of 4"},"target_kind":"missing"}

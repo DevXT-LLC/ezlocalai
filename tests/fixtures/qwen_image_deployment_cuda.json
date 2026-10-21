@@ -1,0 +1,143 @@
+{
+  "image_id": "sha256:0b593f7302bc4708977c7ff452ab9b6208a57a5f56516c7a32474abe44421c5f",
+  "native_binary_sha256": "0ca04de5320263d2353b6083eec1185eeab8b227763ee26635aa4b72df81e552",
+  "sd_cli_commit": "c678dfe704a2230342376b46add9c8ca736a653d",
+  "sd_cli_sha256": "edbc96bfd41ecce411e16b1ed94bb786c3da4590996c7911d6a3e4411efe2fea",
+  "source_sha256": "e3ff6eee433d0e3527d984b77036fda795b3924486cf59b349b432cd80a0b9e8",
+  "models": [
+    {
+      "file": "qwen_image_2.1-Q4_K.gguf",
+      "bytes": 4197494816,
+      "sha256": "29f9c83c249ff0292fb2943fceddfa2319b446601866c82a4f8be062abea72c2"
+    },
+    {
+      "file": "vae/qwen_image_2.1_vae_bf16.safetensors",
+      "bytes": 675509688,
+      "sha256": "bb21f7473051e1ac368515dd3f2e15cd44d7a11748ee8823e1ddca3e4876b7c9"
+    },
+    {
+      "file": "Qwen3VL-8B-Instruct-Q4_K_M.gguf",
+      "bytes": 5027784800,
+      "sha256": "67d1659bfe71b89d50b45a4ad1a9e5b997e5bb16ce5da66a6a6167abd569e9e2"
+    },
+    {
+      "file": "mmproj-Qwen3VL-8B-Instruct-F16.gguf",
+      "bytes": 1159029824,
+      "sha256": "ca524100ebf825c9a870db1c580d03879e0da0ab2541697e2458e64891cf9d38"
+    }
+  ],
+  "seed": 42,
+  "default_steps": 20,
+  "cases": [
+    {
+      "request": {
+        "prompt": "A red ceramic mug on a plain blue table, studio photograph.",
+        "size": "256x256"
+      },
+      "size": [
+        256,
+        256
+      ],
+      "mode": "RGBA",
+      "python_pixel_sha256": "df1a416390a118cbdcabd3029887fa3bb22aa576e4efbb22bae5ab3b7f580ac8",
+      "cpp_pixel_sha256": "df1a416390a118cbdcabd3029887fa3bb22aa576e4efbb22bae5ab3b7f580ac8",
+      "python_png_sha256": "4784139cc134c224b07306491af95e7ee21b942781988a14b53478d61b434524",
+      "cpp_png_sha256": "660fb6473158d6436a1f52c932577950e37512f42b9b6543488e22e4b1e65afc",
+      "pixels_match": true
+    },
+    {
+      "request": {
+        "prompt": "Change the mug to green.",
+        "size": "256x256",
+        "image_from_case": 0
+      },
+      "size": [
+        256,
+        256
+      ],
+      "mode": "RGBA",
+      "python_pixel_sha256": "fc45a3750691f1d3288f1c584319964965dbcb62d60b00be8da563328c026e2b",
+      "cpp_pixel_sha256": "fc45a3750691f1d3288f1c584319964965dbcb62d60b00be8da563328c026e2b",
+      "python_png_sha256": "a197223831daee1e8ccd874bed740d84fc1b674eba07415f3dacf8e7659fc7ed",
+      "cpp_png_sha256": "3a66a0f32c9fc5796062297f67d14ee6f7bfbb4370b05282f2339df17f0e66de",
+      "pixels_match": true
+    },
+    {
+      "request": {
+        "prompt": "A green mug next to a red mug on a blue table.",
+        "size": "256x256",
+        "images_from_cases": [
+          1,
+          0
+        ]
+      },
+      "size": [
+        256,
+        256
+      ],
+      "mode": "RGBA",
+      "python_pixel_sha256": "d061c069c6b6a5c9d8ef6b1299ed794e2eea2b9f1465fbc277193604c9352083",
+      "cpp_pixel_sha256": "d061c069c6b6a5c9d8ef6b1299ed794e2eea2b9f1465fbc277193604c9352083",
+      "python_png_sha256": "d7da0f7dd384c36644c4845e82cc5bf300463cf95bd78f6bebafd0d9818fcabf",
+      "cpp_png_sha256": "307692a8c50344ce3c43a62fc6bfd1662a4fc114cdec107b363bdb9b3358beab",
+      "pixels_match": true
+    }
+  ],
+  "routed": {
+    "worker_label": "native-image-validation",
+    "transport": "native WebSocket tunnel to Rust router",
+    "seconds": 14.737905114074238,
+    "pixel_sha256": "d061c069c6b6a5c9d8ef6b1299ed794e2eea2b9f1465fbc277193604c9352083",
+    "mode": "RGBA",
+    "size": [
+      256,
+      256
+    ],
+    "pixels_match": true
+  },
+  "handoff": {
+    "seconds": 12.384750403929502,
+    "handoff_observed": true,
+    "llm_restored": true,
+    "pixels_match": true,
+    "before_parallel": {
+      "n_parallel": 1,
+      "n_ctx": 220000,
+      "per_slot_context": 220000,
+      "text_queue_capacity": 1,
+      "queue_wait_timeout": 30.0
+    },
+    "after_parallel": {
+      "n_parallel": 1,
+      "n_ctx": 220000,
+      "per_slot_context": 220000,
+      "text_queue_capacity": 1,
+      "queue_wait_timeout": 30.0
+    }
+  },
+  "url": {
+    "path": "/outputs/15e14c44-e2af-4e15-a00b-142da079a871.png",
+    "mode": "RGBA",
+    "size": [
+      256,
+      256
+    ],
+    "pixel_sha256": "df1a416390a118cbdcabd3029887fa3bb22aa576e4efbb22bae5ab3b7f580ac8",
+    "metadata_keys": [],
+    "file_sha256": "8c151f95720865439f0bdd72d78de11717fdb2dd0f06960629a3932e2ef9092c",
+    "python_saved_sha256": "061ca06b5e1557bf51ec69213cb27c795c12c78749563b6af6f5819bcdc1b135",
+    "pixels_match": true,
+    "file_matches": false
+  },
+  "byte_differences": {
+    "base64_png": "Engine generator version metadata: Python master-889-c678dfe; native unknown because the shallow build has no tags. Commit and generated pixels match.",
+    "url_png": "Native libpng compression differs from Pillow; RGBA pixels match and generation metadata is removed."
+  },
+  "capture_scripts": {
+    "ezlocalai-capture-qwen-real.py": "2004b861b05bdf081a38add9551d394cb874414c1648cbfd7ae21df1bf37b21d",
+    "ezlocalai-seeded-sd-cli.cpp": "04018f8bba388638c2cd723a5c8acbd6e5f97a9740ad7ad35166f5da931efc97",
+    "ezlocalai-check-qwen-real.py": "3d54f1cae76da8b35f7984d37496ed135f128115a798028f3763d50043ded6d7",
+    "ezlocalai-validate-qwen-container.py": "f3f04c8e8cc76d28e8261aee72ff50ef116273652b683e10f5cd50e02acbf9f1",
+    "ezlocalai-qwen-handoff-check.py": "dda38c2fe88b57b72be3745ded6dbe420303a3eb9313ac1288c426e74ba5746c"
+  }
+}

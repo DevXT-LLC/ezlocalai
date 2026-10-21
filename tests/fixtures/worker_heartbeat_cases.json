@@ -1,0 +1,6219 @@
+{
+  "source": "Router.py:WorkerHeartbeatClient._run/heartbeat_once/register/deregister",
+  "source_sha256": "d5eebf7fc48f7781628aa4eaab8af1c3f23fd8694242f0b3065436b5c86f62b1",
+  "cases": [
+    {
+      "name": "healthy-0",
+      "outcomes": [],
+      "wait_limit": 12,
+      "interval": 0,
+      "trace": [
+        {
+          "post": "register",
+          "ok": true
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "deregister",
+          "ok": true
+        }
+      ],
+      "registered_after_stop": false
+    },
+    {
+      "name": "healthy-3.5",
+      "outcomes": [],
+      "wait_limit": 12,
+      "interval": 3.5,
+      "trace": [
+        {
+          "post": "register",
+          "ok": true
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 3.5
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 3.5
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 3.5
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 3.5
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 3.5
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 3.5
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 3.5
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 3.5
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 3.5
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 3.5
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 3.5
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 3.5
+        },
+        {
+          "post": "deregister",
+          "ok": true
+        }
+      ],
+      "registered_after_stop": false
+    },
+    {
+      "name": "healthy-10",
+      "outcomes": [],
+      "wait_limit": 12,
+      "interval": 10,
+      "trace": [
+        {
+          "post": "register",
+          "ok": true
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 10.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 10.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 10.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 10.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 10.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 10.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 10.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 10.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 10.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 10.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 10.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 10.0
+        },
+        {
+          "post": "deregister",
+          "ok": true
+        }
+      ],
+      "registered_after_stop": false
+    },
+    {
+      "name": "initial_failure-0",
+      "outcomes": [
+        false,
+        true
+      ],
+      "wait_limit": 12,
+      "interval": 0,
+      "trace": [
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "register",
+          "ok": true
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "deregister",
+          "ok": true
+        }
+      ],
+      "registered_after_stop": false
+    },
+    {
+      "name": "initial_failure-3.5",
+      "outcomes": [
+        false,
+        true
+      ],
+      "wait_limit": 12,
+      "interval": 3.5,
+      "trace": [
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "register",
+          "ok": true
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 3.5
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 3.5
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 3.5
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 3.5
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 3.5
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 3.5
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 3.5
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 3.5
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 3.5
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 3.5
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 3.5
+        },
+        {
+          "post": "deregister",
+          "ok": true
+        }
+      ],
+      "registered_after_stop": false
+    },
+    {
+      "name": "initial_failure-10",
+      "outcomes": [
+        false,
+        true
+      ],
+      "wait_limit": 12,
+      "interval": 10,
+      "trace": [
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "register",
+          "ok": true
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 10.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 10.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 10.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 10.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 10.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 10.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 10.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 10.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 10.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 10.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 10.0
+        },
+        {
+          "post": "deregister",
+          "ok": true
+        }
+      ],
+      "registered_after_stop": false
+    },
+    {
+      "name": "startup_backoff-0",
+      "outcomes": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "wait_limit": 12,
+      "interval": 0,
+      "trace": [
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 3.0
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 4.5
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 6.75
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 10.125
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 15.1875
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 22.78125
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 34.171875
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 51.2578125
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 60.0
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 60.0
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 60.0
+        }
+      ],
+      "registered_after_stop": false
+    },
+    {
+      "name": "startup_backoff-3.5",
+      "outcomes": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "wait_limit": 12,
+      "interval": 3.5,
+      "trace": [
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 3.0
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 4.5
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 6.75
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 10.125
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 15.1875
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 22.78125
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 34.171875
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 51.2578125
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 60.0
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 60.0
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 60.0
+        }
+      ],
+      "registered_after_stop": false
+    },
+    {
+      "name": "startup_backoff-10",
+      "outcomes": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "wait_limit": 12,
+      "interval": 10,
+      "trace": [
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 3.0
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 4.5
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 6.75
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 10.125
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 15.1875
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 22.78125
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 34.171875
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 51.2578125
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 60.0
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 60.0
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 60.0
+        }
+      ],
+      "registered_after_stop": false
+    },
+    {
+      "name": "heartbeat_failure-0",
+      "outcomes": [
+        true,
+        false,
+        true
+      ],
+      "wait_limit": 12,
+      "interval": 0,
+      "trace": [
+        {
+          "post": "register",
+          "ok": true
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "deregister",
+          "ok": true
+        }
+      ],
+      "registered_after_stop": false
+    },
+    {
+      "name": "heartbeat_failure-3.5",
+      "outcomes": [
+        true,
+        false,
+        true
+      ],
+      "wait_limit": 12,
+      "interval": 3.5,
+      "trace": [
+        {
+          "post": "register",
+          "ok": true
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": true
+        },
+        {
+          "wait": 3.5
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 3.5
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 3.5
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 3.5
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 3.5
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 3.5
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 3.5
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 3.5
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 3.5
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 3.5
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 3.5
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 3.5
+        },
+        {
+          "post": "deregister",
+          "ok": true
+        }
+      ],
+      "registered_after_stop": false
+    },
+    {
+      "name": "heartbeat_failure-10",
+      "outcomes": [
+        true,
+        false,
+        true
+      ],
+      "wait_limit": 12,
+      "interval": 10,
+      "trace": [
+        {
+          "post": "register",
+          "ok": true
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": true
+        },
+        {
+          "wait": 10.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 10.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 10.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 10.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 10.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 10.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 10.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 10.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 10.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 10.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 10.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 10.0
+        },
+        {
+          "post": "deregister",
+          "ok": true
+        }
+      ],
+      "registered_after_stop": false
+    },
+    {
+      "name": "reregister_failure-0",
+      "outcomes": [
+        true,
+        false,
+        false,
+        true,
+        true
+      ],
+      "wait_limit": 12,
+      "interval": 0,
+      "trace": [
+        {
+          "post": "register",
+          "ok": true
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "post": "register",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "deregister",
+          "ok": true
+        }
+      ],
+      "registered_after_stop": false
+    },
+    {
+      "name": "reregister_failure-3.5",
+      "outcomes": [
+        true,
+        false,
+        false,
+        true,
+        true
+      ],
+      "wait_limit": 12,
+      "interval": 3.5,
+      "trace": [
+        {
+          "post": "register",
+          "ok": true
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 3.5
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "post": "register",
+          "ok": true
+        },
+        {
+          "wait": 3.5
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 3.5
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 3.5
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 3.5
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 3.5
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 3.5
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 3.5
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 3.5
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 3.5
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 3.5
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 3.5
+        },
+        {
+          "post": "deregister",
+          "ok": true
+        }
+      ],
+      "registered_after_stop": false
+    },
+    {
+      "name": "reregister_failure-10",
+      "outcomes": [
+        true,
+        false,
+        false,
+        true,
+        true
+      ],
+      "wait_limit": 12,
+      "interval": 10,
+      "trace": [
+        {
+          "post": "register",
+          "ok": true
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 10.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "post": "register",
+          "ok": true
+        },
+        {
+          "wait": 10.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 10.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 10.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 10.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 10.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 10.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 10.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 10.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 10.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 10.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 10.0
+        },
+        {
+          "post": "deregister",
+          "ok": true
+        }
+      ],
+      "registered_after_stop": false
+    },
+    {
+      "name": "repeated_failure-0",
+      "outcomes": [
+        true,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "wait_limit": 12,
+      "interval": 0,
+      "trace": [
+        {
+          "post": "register",
+          "ok": true
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 2.0
+        }
+      ],
+      "registered_after_stop": false
+    },
+    {
+      "name": "repeated_failure-3.5",
+      "outcomes": [
+        true,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "wait_limit": 12,
+      "interval": 3.5,
+      "trace": [
+        {
+          "post": "register",
+          "ok": true
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 3.5
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 3.5
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 3.5
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 3.5
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 3.5
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 3.5
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 3.5
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 3.5
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 3.5
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 3.5
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 3.5
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 3.5
+        }
+      ],
+      "registered_after_stop": false
+    },
+    {
+      "name": "repeated_failure-10",
+      "outcomes": [
+        true,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "wait_limit": 12,
+      "interval": 10,
+      "trace": [
+        {
+          "post": "register",
+          "ok": true
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 10.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 10.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 10.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 10.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 10.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 10.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 10.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 10.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 10.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 10.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 10.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 10.0
+        }
+      ],
+      "registered_after_stop": false
+    },
+    {
+      "name": "intermittent-0",
+      "outcomes": [
+        false,
+        false,
+        true,
+        true,
+        false,
+        false,
+        false,
+        true,
+        true
+      ],
+      "wait_limit": 12,
+      "interval": 0,
+      "trace": [
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 3.0
+        },
+        {
+          "post": "register",
+          "ok": true
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "deregister",
+          "ok": true
+        }
+      ],
+      "registered_after_stop": false
+    },
+    {
+      "name": "intermittent-3.5",
+      "outcomes": [
+        false,
+        false,
+        true,
+        true,
+        false,
+        false,
+        false,
+        true,
+        true
+      ],
+      "wait_limit": 12,
+      "interval": 3.5,
+      "trace": [
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 3.0
+        },
+        {
+          "post": "register",
+          "ok": true
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 3.5
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 3.5
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": true
+        },
+        {
+          "wait": 3.5
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 3.5
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 3.5
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 3.5
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 3.5
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 3.5
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 3.5
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 3.5
+        },
+        {
+          "post": "deregister",
+          "ok": true
+        }
+      ],
+      "registered_after_stop": false
+    },
+    {
+      "name": "intermittent-10",
+      "outcomes": [
+        false,
+        false,
+        true,
+        true,
+        false,
+        false,
+        false,
+        true,
+        true
+      ],
+      "wait_limit": 12,
+      "interval": 10,
+      "trace": [
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 3.0
+        },
+        {
+          "post": "register",
+          "ok": true
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 10.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 10.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": true
+        },
+        {
+          "wait": 10.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 10.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 10.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 10.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 10.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 10.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 10.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 10.0
+        },
+        {
+          "post": "deregister",
+          "ok": true
+        }
+      ],
+      "registered_after_stop": false
+    },
+    {
+      "name": "random-0",
+      "outcomes": [
+        false,
+        true,
+        true,
+        true,
+        true,
+        false,
+        false,
+        true,
+        false,
+        true,
+        false,
+        false,
+        false,
+        false,
+        true,
+        false,
+        true,
+        false,
+        false,
+        false,
+        true,
+        false,
+        true,
+        true,
+        false,
+        true,
+        true,
+        true,
+        false,
+        true,
+        false,
+        false,
+        false,
+        true,
+        true
+      ],
+      "wait_limit": 12,
+      "interval": -3,
+      "trace": [
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "register",
+          "ok": true
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "deregister",
+          "ok": false
+        }
+      ],
+      "registered_after_stop": false
+    },
+    {
+      "name": "random-1",
+      "outcomes": [
+        false,
+        false,
+        true,
+        false,
+        true,
+        true,
+        false,
+        true,
+        false,
+        false,
+        true,
+        true,
+        true,
+        false,
+        true,
+        true,
+        true,
+        true,
+        false,
+        true,
+        false,
+        false,
+        false,
+        true,
+        true,
+        true,
+        false,
+        false,
+        true,
+        false,
+        false,
+        false,
+        false,
+        true,
+        true
+      ],
+      "wait_limit": 12,
+      "interval": -3,
+      "trace": [
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 3.0
+        },
+        {
+          "post": "register",
+          "ok": true
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "post": "register",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "deregister",
+          "ok": false
+        }
+      ],
+      "registered_after_stop": false
+    },
+    {
+      "name": "random-2",
+      "outcomes": [
+        false,
+        true,
+        true,
+        true,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        true,
+        false,
+        true,
+        false,
+        true,
+        false,
+        true,
+        true,
+        false,
+        false,
+        true,
+        false,
+        false,
+        true,
+        true,
+        true,
+        true,
+        false,
+        false,
+        false,
+        false,
+        false,
+        true,
+        true,
+        true
+      ],
+      "wait_limit": 2,
+      "interval": 2,
+      "trace": [
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "register",
+          "ok": true
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "deregister",
+          "ok": true
+        }
+      ],
+      "registered_after_stop": false
+    },
+    {
+      "name": "random-3",
+      "outcomes": [
+        false,
+        false,
+        true,
+        false,
+        true,
+        true,
+        true,
+        true,
+        false,
+        false,
+        true,
+        false,
+        true,
+        true,
+        true,
+        true,
+        false,
+        true,
+        false,
+        true,
+        false,
+        true,
+        false,
+        false,
+        true,
+        false,
+        false,
+        true,
+        true,
+        true,
+        true,
+        false,
+        false,
+        true,
+        true
+      ],
+      "wait_limit": 12,
+      "interval": 2,
+      "trace": [
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 3.0
+        },
+        {
+          "post": "register",
+          "ok": true
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "post": "register",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "deregister",
+          "ok": false
+        }
+      ],
+      "registered_after_stop": false
+    },
+    {
+      "name": "random-4",
+      "outcomes": [
+        true,
+        false,
+        true,
+        true,
+        true,
+        true,
+        true,
+        false,
+        false,
+        false,
+        false,
+        true,
+        false,
+        true,
+        false,
+        true,
+        true,
+        false,
+        false,
+        false,
+        true,
+        true,
+        false,
+        false,
+        false,
+        false,
+        false,
+        true,
+        true,
+        false,
+        false,
+        true,
+        true,
+        true,
+        true
+      ],
+      "wait_limit": 12,
+      "interval": -3,
+      "trace": [
+        {
+          "post": "register",
+          "ok": true
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "post": "register",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "deregister",
+          "ok": true
+        }
+      ],
+      "registered_after_stop": false
+    },
+    {
+      "name": "random-5",
+      "outcomes": [
+        true,
+        true,
+        true,
+        true,
+        false,
+        false,
+        false,
+        false,
+        true,
+        true,
+        false,
+        true,
+        false,
+        false,
+        true,
+        true,
+        false,
+        true,
+        true,
+        false,
+        false,
+        false,
+        true,
+        true,
+        false,
+        false,
+        false,
+        false,
+        false,
+        true,
+        true,
+        true,
+        false,
+        true,
+        false
+      ],
+      "wait_limit": 2,
+      "interval": -3,
+      "trace": [
+        {
+          "post": "register",
+          "ok": true
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "deregister",
+          "ok": true
+        }
+      ],
+      "registered_after_stop": false
+    },
+    {
+      "name": "random-6",
+      "outcomes": [
+        false,
+        true,
+        false,
+        false,
+        true,
+        false,
+        false,
+        false,
+        false,
+        true,
+        true,
+        false,
+        true,
+        true,
+        false,
+        false,
+        true,
+        true,
+        false,
+        false,
+        true,
+        false,
+        true,
+        false,
+        true,
+        true,
+        true,
+        false,
+        true,
+        false,
+        false,
+        true,
+        false,
+        false,
+        true
+      ],
+      "wait_limit": 6,
+      "interval": -3,
+      "trace": [
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "register",
+          "ok": true
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "deregister",
+          "ok": false
+        }
+      ],
+      "registered_after_stop": false
+    },
+    {
+      "name": "random-7",
+      "outcomes": [
+        true,
+        true,
+        false,
+        true,
+        true,
+        true,
+        true,
+        true,
+        false,
+        true,
+        false,
+        true,
+        true,
+        false,
+        true,
+        false,
+        false,
+        false,
+        false,
+        false,
+        true,
+        false,
+        true,
+        false,
+        false,
+        false,
+        false,
+        false,
+        true,
+        true,
+        false,
+        false,
+        true,
+        false,
+        false
+      ],
+      "wait_limit": 12,
+      "interval": 60,
+      "trace": [
+        {
+          "post": "register",
+          "ok": true
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 60.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": true
+        },
+        {
+          "wait": 60.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 60.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 60.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 60.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 60.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": true
+        },
+        {
+          "wait": 60.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": true
+        },
+        {
+          "wait": 60.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 60.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": true
+        },
+        {
+          "wait": 60.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 60.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 60.0
+        }
+      ],
+      "registered_after_stop": false
+    },
+    {
+      "name": "random-8",
+      "outcomes": [
+        true,
+        true,
+        false,
+        true,
+        true,
+        false,
+        false,
+        true,
+        false,
+        true,
+        false,
+        false,
+        true,
+        false,
+        false,
+        true,
+        true,
+        false,
+        false,
+        false,
+        false,
+        true,
+        false,
+        false,
+        true,
+        true,
+        false,
+        false,
+        false,
+        true,
+        true,
+        true,
+        true,
+        false,
+        false
+      ],
+      "wait_limit": 12,
+      "interval": -3,
+      "trace": [
+        {
+          "post": "register",
+          "ok": true
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "post": "register",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 2.0
+        }
+      ],
+      "registered_after_stop": false
+    },
+    {
+      "name": "random-9",
+      "outcomes": [
+        true,
+        false,
+        false,
+        true,
+        false,
+        false,
+        true,
+        true,
+        false,
+        false,
+        false,
+        true,
+        true,
+        false,
+        true,
+        false,
+        false,
+        false,
+        true,
+        false,
+        true,
+        false,
+        false,
+        true,
+        true,
+        false,
+        true,
+        false,
+        false,
+        true,
+        true,
+        true,
+        false,
+        true,
+        true
+      ],
+      "wait_limit": 6,
+      "interval": -3,
+      "trace": [
+        {
+          "post": "register",
+          "ok": true
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "deregister",
+          "ok": true
+        }
+      ],
+      "registered_after_stop": false
+    },
+    {
+      "name": "random-10",
+      "outcomes": [
+        true,
+        true,
+        false,
+        false,
+        false,
+        false,
+        true,
+        true,
+        false,
+        false,
+        false,
+        true,
+        true,
+        true,
+        false,
+        true,
+        true,
+        true,
+        false,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        false,
+        false,
+        true,
+        true,
+        false,
+        true,
+        false,
+        true,
+        true,
+        false
+      ],
+      "wait_limit": 12,
+      "interval": -3,
+      "trace": [
+        {
+          "post": "register",
+          "ok": true
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "post": "register",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "deregister",
+          "ok": true
+        }
+      ],
+      "registered_after_stop": false
+    },
+    {
+      "name": "random-11",
+      "outcomes": [
+        false,
+        false,
+        true,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        true,
+        true,
+        false,
+        false,
+        false,
+        true,
+        true,
+        false,
+        true,
+        true,
+        true,
+        true,
+        false,
+        true,
+        false,
+        false,
+        false,
+        false,
+        true,
+        true,
+        false,
+        true,
+        true,
+        true
+      ],
+      "wait_limit": 1,
+      "interval": -3,
+      "trace": [
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 2.0
+        }
+      ],
+      "registered_after_stop": false
+    },
+    {
+      "name": "random-12",
+      "outcomes": [
+        true,
+        false,
+        true,
+        true,
+        true,
+        false,
+        true,
+        true,
+        true,
+        true,
+        true,
+        false,
+        false,
+        true,
+        true,
+        false,
+        false,
+        true,
+        false,
+        false,
+        false,
+        false,
+        true,
+        false,
+        true,
+        true,
+        false,
+        true,
+        false,
+        true,
+        true,
+        true,
+        true,
+        false,
+        true
+      ],
+      "wait_limit": 1,
+      "interval": -3,
+      "trace": [
+        {
+          "post": "register",
+          "ok": true
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "deregister",
+          "ok": true
+        }
+      ],
+      "registered_after_stop": false
+    },
+    {
+      "name": "random-13",
+      "outcomes": [
+        false,
+        false,
+        true,
+        true,
+        true,
+        false,
+        false,
+        true,
+        true,
+        true,
+        false,
+        false,
+        true,
+        false,
+        true,
+        false,
+        false,
+        false,
+        true,
+        true,
+        false,
+        false,
+        false,
+        false,
+        true,
+        false,
+        false,
+        false,
+        false,
+        false,
+        true,
+        true,
+        true,
+        true,
+        true
+      ],
+      "wait_limit": 1,
+      "interval": 60,
+      "trace": [
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 2.0
+        }
+      ],
+      "registered_after_stop": false
+    },
+    {
+      "name": "random-14",
+      "outcomes": [
+        true,
+        true,
+        false,
+        true,
+        true,
+        true,
+        false,
+        false,
+        false,
+        false,
+        false,
+        true,
+        false,
+        false,
+        true,
+        false,
+        true,
+        true,
+        false,
+        false,
+        true,
+        false,
+        true,
+        false,
+        true,
+        false,
+        true,
+        true,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        true
+      ],
+      "wait_limit": 1,
+      "interval": 8.25,
+      "trace": [
+        {
+          "post": "register",
+          "ok": true
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 8.25
+        },
+        {
+          "post": "deregister",
+          "ok": false
+        }
+      ],
+      "registered_after_stop": false
+    },
+    {
+      "name": "random-15",
+      "outcomes": [
+        false,
+        false,
+        true,
+        false,
+        true,
+        true,
+        true,
+        true,
+        false,
+        true,
+        false,
+        true,
+        true,
+        true,
+        true,
+        false,
+        true,
+        true,
+        false,
+        false,
+        false,
+        true,
+        true,
+        false,
+        true,
+        true,
+        true,
+        true,
+        false,
+        false,
+        true,
+        false,
+        false,
+        true,
+        false
+      ],
+      "wait_limit": 2,
+      "interval": 60,
+      "trace": [
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 3.0
+        }
+      ],
+      "registered_after_stop": false
+    },
+    {
+      "name": "random-16",
+      "outcomes": [
+        false,
+        false,
+        false,
+        true,
+        false,
+        true,
+        false,
+        false,
+        false,
+        false,
+        true,
+        false,
+        true,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        true,
+        true,
+        false,
+        true,
+        true,
+        false,
+        true,
+        true,
+        true,
+        true,
+        true,
+        false,
+        true,
+        true,
+        false,
+        false
+      ],
+      "wait_limit": 6,
+      "interval": 60,
+      "trace": [
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 3.0
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 4.5
+        },
+        {
+          "post": "register",
+          "ok": true
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": true
+        },
+        {
+          "wait": 60.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 60.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 60.0
+        }
+      ],
+      "registered_after_stop": false
+    },
+    {
+      "name": "random-17",
+      "outcomes": [
+        false,
+        false,
+        true,
+        true,
+        false,
+        false,
+        true,
+        false,
+        false,
+        true,
+        false,
+        true,
+        false,
+        false,
+        false,
+        false,
+        true,
+        false,
+        false,
+        true,
+        true,
+        false,
+        false,
+        false,
+        false,
+        true,
+        true,
+        false,
+        false,
+        false,
+        false,
+        false,
+        true,
+        false,
+        true
+      ],
+      "wait_limit": 1,
+      "interval": -3,
+      "trace": [
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 2.0
+        }
+      ],
+      "registered_after_stop": false
+    },
+    {
+      "name": "random-18",
+      "outcomes": [
+        false,
+        true,
+        true,
+        true,
+        false,
+        false,
+        true,
+        false,
+        false,
+        true,
+        true,
+        true,
+        false,
+        false,
+        false,
+        true,
+        false,
+        true,
+        true,
+        false,
+        false,
+        true,
+        false,
+        false,
+        true,
+        true,
+        false,
+        true,
+        false,
+        false,
+        true,
+        true,
+        false,
+        false,
+        false
+      ],
+      "wait_limit": 1,
+      "interval": -3,
+      "trace": [
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 2.0
+        }
+      ],
+      "registered_after_stop": false
+    },
+    {
+      "name": "random-19",
+      "outcomes": [
+        true,
+        true,
+        true,
+        true,
+        false,
+        true,
+        true,
+        false,
+        false,
+        true,
+        false,
+        true,
+        true,
+        false,
+        false,
+        true,
+        false,
+        true,
+        false,
+        true,
+        false,
+        false,
+        false,
+        true,
+        false,
+        true,
+        false,
+        false,
+        true,
+        true,
+        true,
+        true,
+        false,
+        true,
+        true
+      ],
+      "wait_limit": 6,
+      "interval": 60,
+      "trace": [
+        {
+          "post": "register",
+          "ok": true
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 60.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 60.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 60.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": true
+        },
+        {
+          "wait": 60.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 60.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 60.0
+        }
+      ],
+      "registered_after_stop": false
+    },
+    {
+      "name": "random-20",
+      "outcomes": [
+        true,
+        false,
+        false,
+        true,
+        true,
+        false,
+        false,
+        true,
+        true,
+        false,
+        true,
+        false,
+        true,
+        true,
+        true,
+        true,
+        true,
+        false,
+        false,
+        true,
+        false,
+        false,
+        true,
+        true,
+        true,
+        false,
+        true,
+        true,
+        false,
+        true,
+        false,
+        true,
+        false,
+        false,
+        false
+      ],
+      "wait_limit": 1,
+      "interval": 8.25,
+      "trace": [
+        {
+          "post": "register",
+          "ok": true
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 8.25
+        }
+      ],
+      "registered_after_stop": false
+    },
+    {
+      "name": "random-21",
+      "outcomes": [
+        true,
+        false,
+        false,
+        false,
+        true,
+        true,
+        true,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        true,
+        true,
+        true,
+        true,
+        false,
+        false,
+        false,
+        false,
+        true,
+        false,
+        false,
+        false,
+        true,
+        false,
+        false,
+        true,
+        true,
+        false,
+        false,
+        false,
+        true
+      ],
+      "wait_limit": 1,
+      "interval": 2,
+      "trace": [
+        {
+          "post": "register",
+          "ok": true
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 2.0
+        }
+      ],
+      "registered_after_stop": false
+    },
+    {
+      "name": "random-22",
+      "outcomes": [
+        true,
+        false,
+        false,
+        false,
+        true,
+        false,
+        true,
+        true,
+        true,
+        true,
+        false,
+        false,
+        true,
+        false,
+        true,
+        false,
+        false,
+        false,
+        false,
+        true,
+        true,
+        true,
+        false,
+        false,
+        false,
+        true,
+        false,
+        false,
+        false,
+        false,
+        false,
+        true,
+        true,
+        false,
+        true
+      ],
+      "wait_limit": 1,
+      "interval": -3,
+      "trace": [
+        {
+          "post": "register",
+          "ok": true
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 2.0
+        }
+      ],
+      "registered_after_stop": false
+    },
+    {
+      "name": "random-23",
+      "outcomes": [
+        false,
+        false,
+        false,
+        false,
+        true,
+        false,
+        false,
+        true,
+        false,
+        true,
+        false,
+        true,
+        true,
+        true,
+        true,
+        false,
+        true,
+        false,
+        false,
+        false,
+        true,
+        false,
+        true,
+        false,
+        false,
+        true,
+        false,
+        false,
+        false,
+        false,
+        false,
+        true,
+        false,
+        true,
+        true
+      ],
+      "wait_limit": 6,
+      "interval": 8.25,
+      "trace": [
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 3.0
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 4.5
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 6.75
+        },
+        {
+          "post": "register",
+          "ok": true
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 8.25
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 8.25
+        }
+      ],
+      "registered_after_stop": false
+    },
+    {
+      "name": "random-24",
+      "outcomes": [
+        false,
+        true,
+        false,
+        false,
+        false,
+        true,
+        true,
+        true,
+        true,
+        true,
+        false,
+        false,
+        true,
+        true,
+        false,
+        true,
+        false,
+        false,
+        false,
+        true,
+        false,
+        false,
+        true,
+        false,
+        true,
+        false,
+        true,
+        false,
+        true,
+        true,
+        false,
+        true,
+        true,
+        false,
+        true
+      ],
+      "wait_limit": 12,
+      "interval": -3,
+      "trace": [
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "register",
+          "ok": true
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "post": "register",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "deregister",
+          "ok": false
+        }
+      ],
+      "registered_after_stop": false
+    },
+    {
+      "name": "random-25",
+      "outcomes": [
+        true,
+        true,
+        false,
+        false,
+        false,
+        false,
+        true,
+        true,
+        false,
+        true,
+        true,
+        true,
+        false,
+        true,
+        true,
+        false,
+        true,
+        false,
+        true,
+        false,
+        false,
+        true,
+        true,
+        true,
+        true,
+        false,
+        false,
+        false,
+        true,
+        true,
+        true,
+        false,
+        true,
+        true,
+        false
+      ],
+      "wait_limit": 2,
+      "interval": 8.25,
+      "trace": [
+        {
+          "post": "register",
+          "ok": true
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 8.25
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 8.25
+        }
+      ],
+      "registered_after_stop": false
+    },
+    {
+      "name": "random-26",
+      "outcomes": [
+        true,
+        false,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        false,
+        false,
+        false,
+        false,
+        true,
+        true,
+        true,
+        false,
+        true,
+        true,
+        false,
+        true,
+        false,
+        false,
+        true,
+        false,
+        true,
+        true,
+        true,
+        true,
+        true,
+        false,
+        true,
+        false,
+        true,
+        true,
+        true
+      ],
+      "wait_limit": 1,
+      "interval": 2,
+      "trace": [
+        {
+          "post": "register",
+          "ok": true
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "deregister",
+          "ok": true
+        }
+      ],
+      "registered_after_stop": false
+    },
+    {
+      "name": "random-27",
+      "outcomes": [
+        true,
+        false,
+        false,
+        true,
+        false,
+        true,
+        true,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        true,
+        true,
+        false,
+        true,
+        false,
+        true,
+        false,
+        false,
+        false,
+        true,
+        false,
+        false,
+        false,
+        false,
+        false,
+        true,
+        true,
+        true,
+        false,
+        true,
+        false,
+        true
+      ],
+      "wait_limit": 1,
+      "interval": 8.25,
+      "trace": [
+        {
+          "post": "register",
+          "ok": true
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 8.25
+        }
+      ],
+      "registered_after_stop": false
+    },
+    {
+      "name": "random-28",
+      "outcomes": [
+        true,
+        false,
+        true,
+        false,
+        true,
+        true,
+        false,
+        true,
+        true,
+        false,
+        false,
+        false,
+        false,
+        true,
+        false,
+        false,
+        true,
+        false,
+        true,
+        true,
+        true,
+        true,
+        false,
+        true,
+        false,
+        false,
+        false,
+        true,
+        true,
+        false,
+        false,
+        true,
+        false,
+        false,
+        true
+      ],
+      "wait_limit": 1,
+      "interval": 60,
+      "trace": [
+        {
+          "post": "register",
+          "ok": true
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": true
+        },
+        {
+          "wait": 60.0
+        },
+        {
+          "post": "deregister",
+          "ok": false
+        }
+      ],
+      "registered_after_stop": false
+    },
+    {
+      "name": "random-29",
+      "outcomes": [
+        true,
+        false,
+        true,
+        false,
+        false,
+        true,
+        true,
+        false,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        false,
+        true,
+        true,
+        true,
+        false,
+        true,
+        false,
+        false,
+        false,
+        false,
+        true,
+        false,
+        true,
+        true,
+        false,
+        false,
+        true,
+        false,
+        true,
+        true
+      ],
+      "wait_limit": 6,
+      "interval": -3,
+      "trace": [
+        {
+          "post": "register",
+          "ok": true
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "post": "register",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "deregister",
+          "ok": true
+        }
+      ],
+      "registered_after_stop": false
+    },
+    {
+      "name": "random-30",
+      "outcomes": [
+        true,
+        false,
+        true,
+        true,
+        true,
+        false,
+        true,
+        false,
+        false,
+        true,
+        true,
+        true,
+        false,
+        true,
+        true,
+        true,
+        false,
+        true,
+        true,
+        true,
+        false,
+        false,
+        true,
+        true,
+        false,
+        true,
+        false,
+        false,
+        false,
+        false,
+        true,
+        false,
+        true,
+        false,
+        false
+      ],
+      "wait_limit": 6,
+      "interval": -3,
+      "trace": [
+        {
+          "post": "register",
+          "ok": true
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "post": "register",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "deregister",
+          "ok": true
+        }
+      ],
+      "registered_after_stop": false
+    },
+    {
+      "name": "random-31",
+      "outcomes": [
+        true,
+        false,
+        true,
+        false,
+        false,
+        true,
+        true,
+        false,
+        false,
+        false,
+        false,
+        false,
+        true,
+        false,
+        false,
+        false,
+        true,
+        true,
+        false,
+        false,
+        false,
+        false,
+        true,
+        true,
+        false,
+        false,
+        false,
+        true,
+        true,
+        false,
+        true,
+        false,
+        false,
+        true,
+        true
+      ],
+      "wait_limit": 2,
+      "interval": 8.25,
+      "trace": [
+        {
+          "post": "register",
+          "ok": true
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": true
+        },
+        {
+          "wait": 8.25
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 8.25
+        }
+      ],
+      "registered_after_stop": false
+    },
+    {
+      "name": "random-32",
+      "outcomes": [
+        false,
+        false,
+        true,
+        true,
+        false,
+        true,
+        true,
+        true,
+        false,
+        true,
+        true,
+        false,
+        false,
+        false,
+        false,
+        true,
+        true,
+        true,
+        false,
+        false,
+        false,
+        true,
+        false,
+        false,
+        false,
+        true,
+        false,
+        false,
+        true,
+        false,
+        true,
+        true,
+        false,
+        false,
+        false
+      ],
+      "wait_limit": 6,
+      "interval": -3,
+      "trace": [
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 3.0
+        },
+        {
+          "post": "register",
+          "ok": true
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "deregister",
+          "ok": false
+        }
+      ],
+      "registered_after_stop": false
+    },
+    {
+      "name": "random-33",
+      "outcomes": [
+        false,
+        false,
+        true,
+        false,
+        false,
+        true,
+        false,
+        true,
+        true,
+        false,
+        true,
+        true,
+        true,
+        false,
+        true,
+        true,
+        true,
+        true,
+        true,
+        false,
+        true,
+        true,
+        true,
+        true,
+        false,
+        true,
+        false,
+        true,
+        false,
+        false,
+        true,
+        false,
+        false,
+        false,
+        true
+      ],
+      "wait_limit": 6,
+      "interval": 2,
+      "trace": [
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 3.0
+        },
+        {
+          "post": "register",
+          "ok": true
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "post": "register",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": true
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "deregister",
+          "ok": true
+        }
+      ],
+      "registered_after_stop": false
+    },
+    {
+      "name": "random-34",
+      "outcomes": [
+        false,
+        true,
+        false,
+        false,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        false,
+        false,
+        true,
+        true,
+        true,
+        true,
+        true,
+        false,
+        false,
+        false,
+        false,
+        true,
+        false,
+        true,
+        false,
+        true,
+        true,
+        true,
+        false,
+        true,
+        false,
+        false,
+        true,
+        false
+      ],
+      "wait_limit": 2,
+      "interval": 2,
+      "trace": [
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 2.0
+        },
+        {
+          "post": "register",
+          "ok": true
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 2.0
+        }
+      ],
+      "registered_after_stop": false
+    },
+    {
+      "name": "random-35",
+      "outcomes": [
+        true,
+        true,
+        true,
+        false,
+        true,
+        true,
+        false,
+        false,
+        false,
+        true,
+        false,
+        false,
+        false,
+        false,
+        true,
+        false,
+        true,
+        false,
+        true,
+        false,
+        false,
+        true,
+        false,
+        true,
+        false,
+        false,
+        true,
+        true,
+        false,
+        true,
+        false,
+        false,
+        true,
+        false,
+        false
+      ],
+      "wait_limit": 6,
+      "interval": 8.25,
+      "trace": [
+        {
+          "post": "register",
+          "ok": true
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 8.25
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 8.25
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": true
+        },
+        {
+          "wait": 8.25
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 8.25
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 8.25
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": true
+        },
+        {
+          "wait": 8.25
+        },
+        {
+          "post": "deregister",
+          "ok": false
+        }
+      ],
+      "registered_after_stop": false
+    },
+    {
+      "name": "random-36",
+      "outcomes": [
+        true,
+        true,
+        false,
+        true,
+        false,
+        true,
+        true,
+        false,
+        false,
+        false,
+        false,
+        true,
+        true,
+        false,
+        false,
+        true,
+        true,
+        false,
+        false,
+        false,
+        false,
+        true,
+        false,
+        true,
+        false,
+        true,
+        false,
+        false,
+        false,
+        false,
+        true,
+        true,
+        true,
+        true,
+        true
+      ],
+      "wait_limit": 1,
+      "interval": 60,
+      "trace": [
+        {
+          "post": "register",
+          "ok": true
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 60.0
+        },
+        {
+          "post": "deregister",
+          "ok": false
+        }
+      ],
+      "registered_after_stop": false
+    },
+    {
+      "name": "random-37",
+      "outcomes": [
+        false,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        false,
+        false,
+        false,
+        true,
+        true,
+        false,
+        false,
+        false,
+        true,
+        false,
+        true,
+        false,
+        false,
+        true,
+        true,
+        false,
+        true,
+        true,
+        true,
+        false,
+        true,
+        true,
+        false,
+        true
+      ],
+      "wait_limit": 1,
+      "interval": -3,
+      "trace": [
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 2.0
+        }
+      ],
+      "registered_after_stop": false
+    },
+    {
+      "name": "random-38",
+      "outcomes": [
+        true,
+        true,
+        false,
+        true,
+        true,
+        false,
+        true,
+        false,
+        false,
+        true,
+        false,
+        true,
+        true,
+        true,
+        true,
+        false,
+        true,
+        true,
+        false,
+        true,
+        false,
+        true,
+        false,
+        true,
+        false,
+        true,
+        false,
+        false,
+        false,
+        false,
+        true,
+        false,
+        false,
+        true,
+        false
+      ],
+      "wait_limit": 2,
+      "interval": 8.25,
+      "trace": [
+        {
+          "post": "register",
+          "ok": true
+        },
+        {
+          "post": "heartbeat",
+          "ok": true
+        },
+        {
+          "wait": 8.25
+        },
+        {
+          "post": "heartbeat",
+          "ok": false
+        },
+        {
+          "post": "register",
+          "ok": true
+        },
+        {
+          "wait": 8.25
+        },
+        {
+          "post": "deregister",
+          "ok": true
+        }
+      ],
+      "registered_after_stop": false
+    },
+    {
+      "name": "random-39",
+      "outcomes": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        true,
+        false,
+        false,
+        false,
+        true,
+        false,
+        false,
+        false,
+        false,
+        true,
+        false,
+        false,
+        true,
+        true,
+        true,
+        false,
+        false,
+        true,
+        true,
+        true,
+        false,
+        true,
+        true,
+        false,
+        true,
+        false,
+        true,
+        false
+      ],
+      "wait_limit": 1,
+      "interval": 8.25,
+      "trace": [
+        {
+          "post": "register",
+          "ok": false
+        },
+        {
+          "wait": 2.0
+        }
+      ],
+      "registered_after_stop": false
+    }
+  ]
+}

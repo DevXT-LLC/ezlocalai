@@ -1,0 +1,937 @@
+{
+  "recorded_utc": "2026-10-19T04:53:33.428055+00:00",
+  "status": "partial",
+  "engine_revision": "c678dfe704a2230342376b46add9c8ca736a653d",
+  "scope": "Real CUDA LTX through native HTTP and isolated Rust WorkerRouter, using the original .env LLM/context and shared model cache",
+  "current_files": {
+    "patches/sdcpp-ltx-conditions.patch": "50ad7e061757df07a025535c6d16f3067a28889ca2ad7fa102ea604a2bc274ad",
+    "patches/sdcpp-ltx-diffusers.patch": "be7a83ad373e3da68da427a23b204c4b98c6eab814a3d2a12417f0512bdf1340",
+    "src/ltx_runtime.cpp": "7f2d04b4ffe79f4c63c48cc034fa529aac8fa6ce2a3709e2f8328516062e8e5d",
+    "src/image_processing.cpp": "99c68a18ba6d1b6e7c766f918a423d40fbbc21c1211c16dbe47ed3af06cb0ba3",
+    "cuda.Dockerfile": "6cfebff1a73484d4874887e1e98285682c36983d15cafdbbf5eeb6e79fe6a378",
+    "tests/fixtures/ltx_i2v_resize_cases.json": "62746ef85ee22fe78d029848aea04e1cb792e02097432eaea51d8055a16dcd25",
+    "tests/fixtures/ltx_audio_length_cases.json": "6ceb7fa7f64f78eeb3da95483ed8884db0f6c37b79e0fe3f7c889e53501a53ae",
+    "tests/fixtures/ltx_gemma_norm_cases.json": "4796e1238b89fe857516f11317671284999dca568091622a0d7b09439d91c191",
+    "tests/test_ltx_name_concurrency.cpp": "3dd2c6bed89ff013e85ec15305fe55a177d619d49d068acafacc1efbb607d0d4"
+  },
+  "host_ctest": {
+    "passed": 102,
+    "seconds": 423.7,
+    "scope": "Before audio latent/export correction",
+    "log_sha256": "6b97001590a4116360e61e947066f6c715ecd7b0eeeb40d3d3466fd60672ee9f"
+  },
+  "focused_ctest": {
+    "passed": 6,
+    "scope": "After audio latent/export correction",
+    "log_sha256": "a626ac9ee69c08cccf9daa3d1e48f21f8a7b96ea725a38ab7607aa4f4816e6fc"
+  },
+  "engine_regressions": {
+    "passed_targets": 2,
+    "fresh_runs_per_target": 20,
+    "log_sha256": "9e5278139e361fe90acfaec9d23b279fbe222445d2b4a4c01ae39958ce4fac17",
+    "unpatched_concurrency_failed": true,
+    "baseline_log_sha256": "bba93bc4d4e6f90c2bea14cfdaa0e3797c1317f512f3ff07480d188424147fd2"
+  },
+  "rust_wire_tests": {
+    "passed": 89,
+    "log_sha256": "6ab55aaef5858bbac588b779f32d7c067b968c34472c74db7b49bd88f0fba89a"
+  },
+  "runs": [
+    {
+      "scope": "Historical candidate before raw Gemma normalization fix. All four structural/API/handoff checks passed, but larger clip visually failed the red-ball prompt. Not deployed. Current patch hashes do not describe this image.",
+      "image": "sha256:0547fca8f61b00257c6e167400a655100340412c432c3e7ef4769bf6b5df5436",
+      "binaries": "42a9b46c52383369203816be5cfa770a7d0a1d58f51a8da2c974223039523de1  /app/build/ezlocalai-native\n12b3578446cf8ea14942b357f9d3af0c9707ce3001609301bb40939b16768b02  /opt/stable-diffusion.cpp/build/bin/sd-cli\n",
+      "harness_sha256": "e207b189f3184a3d26a9d658c81a6216fa04b2082a555675e25ee9f0ec746f3c",
+      "restored_health": "healthy",
+      "before_parallel": {
+        "n_parallel": 1,
+        "n_ctx": 220000,
+        "per_slot_context": 220000,
+        "text_queue_capacity": 1,
+        "queue_wait_timeout": 30.0
+      },
+      "cases": [
+        {
+          "case": "text",
+          "request": {
+            "prompt": "A red ball rolls across a table.",
+            "size": "64x64",
+            "num_frames": 9,
+            "frame_rate": 24,
+            "num_inference_steps": 2,
+            "guidance_scale": 4.0,
+            "response_format": "url"
+          },
+          "has_image": false,
+          "condition_indices": [],
+          "via_router": false,
+          "seconds": 71.5493804779835,
+          "bytes": 19312,
+          "sha256": "9f2a1623330d7911b7d0b9567af07dde684f2ff0b0c75c64a657eb0458d32a22",
+          "handoff_observed": true,
+          "resource_poll_timeouts": 5,
+          "streams": [
+            {
+              "codec_type": "video",
+              "codec_name": "h264",
+              "width": 64,
+              "height": 64,
+              "duration": "0.375000",
+              "duration_ts": 4608,
+              "time_base": "1/12288",
+              "nb_frames": "9"
+            },
+            {
+              "codec_type": "audio",
+              "codec_name": "aac",
+              "sample_rate": "24000",
+              "channels": 2,
+              "duration": "0.660000",
+              "duration_ts": 15840,
+              "time_base": "1/24000",
+              "nb_frames": "17"
+            }
+          ],
+          "restored_parallel": {
+            "n_parallel": 1,
+            "n_ctx": 220000,
+            "per_slot_context": 220000,
+            "text_queue_capacity": 1,
+            "queue_wait_timeout": 30.0
+          }
+        },
+        {
+          "case": "conditions",
+          "request": {
+            "prompt": "A red ball rolls across a table.",
+            "size": "64x64",
+            "num_frames": 17,
+            "frame_rate": 24,
+            "num_inference_steps": 2,
+            "guidance_scale": 4.0,
+            "response_format": "url",
+            "worker": "native-ltx-validation"
+          },
+          "has_image": false,
+          "condition_indices": [
+            0,
+            1,
+            -1,
+            99
+          ],
+          "via_router": true,
+          "seconds": 73.70530070504174,
+          "bytes": 32480,
+          "sha256": "3b69fe91e45505bf8f3d0207a5dfa0b1a95ff343025947efd4286a17c66b3888",
+          "handoff_observed": true,
+          "resource_poll_timeouts": 4,
+          "streams": [
+            {
+              "codec_type": "video",
+              "codec_name": "h264",
+              "width": 64,
+              "height": 64,
+              "duration": "0.708333",
+              "duration_ts": 8704,
+              "time_base": "1/12288",
+              "nb_frames": "17"
+            },
+            {
+              "codec_type": "audio",
+              "codec_name": "aac",
+              "sample_rate": "24000",
+              "channels": 2,
+              "duration": "1.380000",
+              "duration_ts": 33120,
+              "time_base": "1/24000",
+              "nb_frames": "34"
+            }
+          ],
+          "restored_parallel": {
+            "n_parallel": 1,
+            "n_ctx": 220000,
+            "per_slot_context": 220000,
+            "text_queue_capacity": 1,
+            "queue_wait_timeout": 30.0
+          }
+        },
+        {
+          "case": "image",
+          "request": {
+            "prompt": "A red ball rolls across a table.",
+            "size": "64x64",
+            "num_frames": 9,
+            "frame_rate": 24,
+            "num_inference_steps": 2,
+            "guidance_scale": 4.0,
+            "response_format": "b64_json",
+            "worker": "native-ltx-validation"
+          },
+          "has_image": true,
+          "condition_indices": [],
+          "via_router": true,
+          "seconds": 72.22541634598747,
+          "bytes": 18046,
+          "sha256": "51ec42def48199558cf35926af1f09006302ce77572f63b01b1336b58272e3c1",
+          "handoff_observed": true,
+          "resource_poll_timeouts": 4,
+          "streams": [
+            {
+              "codec_type": "video",
+              "codec_name": "h264",
+              "width": 64,
+              "height": 64,
+              "duration": "0.375000",
+              "duration_ts": 4608,
+              "time_base": "1/12288",
+              "nb_frames": "9"
+            },
+            {
+              "codec_type": "audio",
+              "codec_name": "aac",
+              "sample_rate": "24000",
+              "channels": 2,
+              "duration": "0.660000",
+              "duration_ts": 15840,
+              "time_base": "1/24000",
+              "nb_frames": "17"
+            }
+          ],
+          "restored_parallel": {
+            "n_parallel": 1,
+            "n_ctx": 220000,
+            "per_slot_context": 220000,
+            "text_queue_capacity": 1,
+            "queue_wait_timeout": 30.0
+          }
+        },
+        {
+          "case": "normal-size",
+          "request": {
+            "prompt": "A red ball rolls across a table.",
+            "size": "512x320",
+            "num_frames": 41,
+            "frame_rate": 24,
+            "response_format": "url",
+            "worker": "native-ltx-validation"
+          },
+          "has_image": false,
+          "condition_indices": [],
+          "via_router": true,
+          "seconds": 111.29502325505018,
+          "bytes": 219955,
+          "sha256": "a0d6c4eb9c22f21225bc87078dec9ec493fab127a8c3e5beac2582f0ff9292c2",
+          "handoff_observed": true,
+          "resource_poll_timeouts": 5,
+          "streams": [
+            {
+              "codec_type": "video",
+              "codec_name": "h264",
+              "width": 512,
+              "height": 320,
+              "duration": "1.708333",
+              "duration_ts": 20992,
+              "time_base": "1/12288",
+              "nb_frames": "41"
+            },
+            {
+              "codec_type": "audio",
+              "codec_name": "aac",
+              "sample_rate": "24000",
+              "channels": 2,
+              "duration": "3.380000",
+              "duration_ts": 81120,
+              "time_base": "1/24000",
+              "nb_frames": "81"
+            }
+          ],
+          "restored_parallel": {
+            "n_parallel": 1,
+            "n_ctx": 220000,
+            "per_slot_context": 220000,
+            "text_queue_capacity": 1,
+            "queue_wait_timeout": 30.0
+          }
+        }
+      ],
+      "invalid_request": {
+        "status": 400,
+        "body": "{\"detail\":\"LTX size must contain two integers separated by x\"}"
+      },
+      "before_chat": {
+        "choices": [
+          {
+            "finish_reason": "stop",
+            "index": 0,
+            "message": {
+              "role": "assistant",
+              "content": "READY"
+            }
+          }
+        ],
+        "created": 1792383757,
+        "model": "unsloth/Qwen3.8-27B-GGUF",
+        "system_fingerprint": "b11549-aa94f2086",
+        "object": "chat.completion",
+        "usage": {
+          "completion_tokens": 2,
+          "prompt_tokens": 17,
+          "total_tokens": 19,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          }
+        },
+        "id": "chatcmpl-j3q3t3KX3sSBRP94KQZMCdkKL1UpQ7XW",
+        "timings": {
+          "cache_n": 0,
+          "prompt_n": 17,
+          "prompt_ms": 158.884,
+          "prompt_per_token_ms": 9.346117647058822,
+          "prompt_per_second": 106.99629918682813,
+          "predicted_n": 2,
+          "predicted_ms": 55.91,
+          "predicted_per_token_ms": 55.91,
+          "predicted_per_second": 17.885888034340905,
+          "draft_n": 3,
+          "draft_n_accepted": 0
+        }
+      },
+      "after_chat": {
+        "choices": [
+          {
+            "finish_reason": "stop",
+            "index": 0,
+            "message": {
+              "role": "assistant",
+              "content": "READY"
+            }
+          }
+        ],
+        "created": 1792384093,
+        "model": "unsloth/Qwen3.8-27B-GGUF",
+        "system_fingerprint": "b11549-aa94f2086",
+        "object": "chat.completion",
+        "usage": {
+          "completion_tokens": 2,
+          "prompt_tokens": 17,
+          "total_tokens": 19,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          }
+        },
+        "id": "chatcmpl-u9AeDUaqkjinYmcO6cRuZtxZhD6nNhYf",
+        "timings": {
+          "cache_n": 0,
+          "prompt_n": 17,
+          "prompt_ms": 194.613,
+          "prompt_per_token_ms": 11.447823529411764,
+          "prompt_per_second": 87.3528489874777,
+          "predicted_n": 2,
+          "predicted_ms": 65.622,
+          "predicted_per_token_ms": 65.622,
+          "predicted_per_second": 15.238791868580659,
+          "draft_n": 3,
+          "draft_n_accepted": 0
+        }
+      },
+      "logs": {
+        "build/validation/ltx-http/result.json": "f59f3b4c4d0fa1825981a568fd001658b401a1dcf56b1537cc983ae901fe15d3",
+        "build/validation/ltx-http/worker.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "build/validation/ltx-http/router/router.log": "b0d57ddfc44df8e5a3c4699512c86ba749b2c340e376d3acf55428c0a0cc388c"
+      }
+    },
+    {
+      "scope": "Candidate with experimental sd-cli bind mount applying raw Gemma normalization. First VAE load crashed; Rust router retried successfully. Output shows a rolling red ball under a table, not the requested tabletop action. This binary predates the VAE-name initialization race fix.",
+      "image": "sha256:0547fca8f61b00257c6e167400a655100340412c432c3e7ef4769bf6b5df5436",
+      "binaries": "42a9b46c52383369203816be5cfa770a7d0a1d58f51a8da2c974223039523de1  /app/build/ezlocalai-native\nff5f3a50dd9c0efc969cdeefd1c4aef3dec1b926b9ce54bab223c839a53ea61f  /opt/stable-diffusion.cpp/build/bin/sd-cli\n",
+      "harness_sha256": "84fb5f224df0426e372013b2bef8c1721550a387a7b4eb01f45bf1cd92077297",
+      "restored_health": "healthy",
+      "before_parallel": {
+        "n_parallel": 1,
+        "n_ctx": 220000,
+        "per_slot_context": 220000,
+        "text_queue_capacity": 1,
+        "queue_wait_timeout": 30.0
+      },
+      "cases": [
+        {
+          "case": "normal-size",
+          "request": {
+            "prompt": "A red ball rolls across a table.",
+            "size": "512x320",
+            "num_frames": 41,
+            "frame_rate": 24,
+            "response_format": "url",
+            "worker": "native-ltx-validation"
+          },
+          "has_image": false,
+          "condition_indices": [],
+          "via_router": true,
+          "seconds": 247.2647555009462,
+          "bytes": 84951,
+          "sha256": "34a91a776fe7280e60186752971cef6d3f356380b0867d0522be5bf3e525f0cd",
+          "handoff_observed": true,
+          "resource_poll_timeouts": 9,
+          "streams": [
+            {
+              "codec_type": "video",
+              "codec_name": "h264",
+              "width": 512,
+              "height": 320,
+              "duration": "1.708333",
+              "duration_ts": 20992,
+              "time_base": "1/12288",
+              "nb_frames": "41"
+            },
+            {
+              "codec_type": "audio",
+              "codec_name": "aac",
+              "sample_rate": "24000",
+              "channels": 2,
+              "duration": "3.380000",
+              "duration_ts": 81120,
+              "time_base": "1/24000",
+              "nb_frames": "81"
+            }
+          ],
+          "restored_parallel": {
+            "n_parallel": 1,
+            "n_ctx": 220000,
+            "per_slot_context": 220000,
+            "text_queue_capacity": 1,
+            "queue_wait_timeout": 30.0
+          }
+        }
+      ],
+      "invalid_request": {
+        "status": 400,
+        "body": "{\"detail\":\"LTX size must contain two integers separated by x\"}"
+      },
+      "before_chat": {
+        "choices": [
+          {
+            "finish_reason": "stop",
+            "index": 0,
+            "message": {
+              "role": "assistant",
+              "content": "READY"
+            }
+          }
+        ],
+        "created": 1792384498,
+        "model": "unsloth/Qwen3.8-27B-GGUF",
+        "system_fingerprint": "b11549-aa94f2086",
+        "object": "chat.completion",
+        "usage": {
+          "completion_tokens": 2,
+          "prompt_tokens": 17,
+          "total_tokens": 19,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          }
+        },
+        "id": "chatcmpl-mJNcLtsrAeEnjLW7zLrFEARhELCGFHPk",
+        "timings": {
+          "cache_n": 0,
+          "prompt_n": 17,
+          "prompt_ms": 194.65,
+          "prompt_per_token_ms": 11.450000000000001,
+          "prompt_per_second": 87.33624454148472,
+          "predicted_n": 2,
+          "predicted_ms": 59.126,
+          "predicted_per_token_ms": 59.126,
+          "predicted_per_second": 16.913033183371105,
+          "draft_n": 3,
+          "draft_n_accepted": 0
+        }
+      },
+      "after_chat": {
+        "choices": [
+          {
+            "finish_reason": "stop",
+            "index": 0,
+            "message": {
+              "role": "assistant",
+              "content": "READY"
+            }
+          }
+        ],
+        "created": 1792384751,
+        "model": "unsloth/Qwen3.8-27B-GGUF",
+        "system_fingerprint": "b11549-aa94f2086",
+        "object": "chat.completion",
+        "usage": {
+          "completion_tokens": 2,
+          "prompt_tokens": 17,
+          "total_tokens": 19,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          }
+        },
+        "id": "chatcmpl-Z8tM1jOi7M2vrzgCFRtOHmvr682qfjeG",
+        "timings": {
+          "cache_n": 0,
+          "prompt_n": 17,
+          "prompt_ms": 158.541,
+          "prompt_per_token_ms": 9.325941176470588,
+          "prompt_per_second": 107.22778334941749,
+          "predicted_n": 2,
+          "predicted_ms": 57.959,
+          "predicted_per_token_ms": 57.959,
+          "predicted_per_second": 17.253575803585292,
+          "draft_n": 3,
+          "draft_n_accepted": 0
+        }
+      },
+      "logs": {
+        "build/validation/ltx-http-norm/result.json": "62b4970670ccd407bcc56f21e8a751ff390f85c2122ffe35798ab2a5a8eed48e",
+        "build/validation/ltx-http-norm/worker.log": "a74f40b1a3c83967c1cfde46b3f868bca7bd54f806b887ae404834db5aac62bf",
+        "build/validation/ltx-http-norm/router/router.log": "e673c5d7e06a418bf9e07f2b2e241e689e572b3cd15d561e615bdfd0b8c5fda3"
+      }
+    },
+    {
+      "scope": "Rebuilt image with raw Gemma normalization and concurrent VAE-name initialization fixes. Five real cases; harness rejects any engine failure/retry.",
+      "image": "sha256:bf51835f359370458db36aec93c2af5a6ae35c60e78510fa5fc4f143be8f6290",
+      "binaries": "42a9b46c52383369203816be5cfa770a7d0a1d58f51a8da2c974223039523de1  /app/build/ezlocalai-native\nc93d18f5b69a8c240920ea857c7d38050f5ba3b3af9677e707845c6a135c4310  /opt/stable-diffusion.cpp/build/bin/sd-cli\n",
+      "harness_sha256": "b50e38aff1b1e7c3f8cc200a3f64d5c9a28f6d6dd3e0654ceab7d57de1ecc016",
+      "restored_health": "healthy",
+      "before_parallel": {
+        "n_parallel": 1,
+        "n_ctx": 220000,
+        "per_slot_context": 220000,
+        "text_queue_capacity": 1,
+        "queue_wait_timeout": 30.0
+      },
+      "cases": [
+        {
+          "case": "text",
+          "request": {
+            "prompt": "A red ball rolls across a table.",
+            "size": "64x64",
+            "num_frames": 9,
+            "frame_rate": 24,
+            "num_inference_steps": 2,
+            "guidance_scale": 4.0,
+            "response_format": "url"
+          },
+          "has_image": false,
+          "condition_indices": [],
+          "via_router": false,
+          "seconds": 67.33630732703023,
+          "bytes": 14294,
+          "sha256": "1fee2051289df6847433f4fdd844ff03afe5ab16fae5513159d9b65642c2e529",
+          "handoff_observed": true,
+          "resource_poll_timeouts": 4,
+          "streams": [
+            {
+              "codec_type": "video",
+              "codec_name": "h264",
+              "width": 64,
+              "height": 64,
+              "duration": "0.375000",
+              "duration_ts": 4608,
+              "time_base": "1/12288",
+              "nb_frames": "9"
+            },
+            {
+              "codec_type": "audio",
+              "codec_name": "aac",
+              "sample_rate": "24000",
+              "channels": 2,
+              "duration": "0.660000",
+              "duration_ts": 15840,
+              "time_base": "1/24000",
+              "nb_frames": "17"
+            }
+          ],
+          "restored_parallel": {
+            "n_parallel": 1,
+            "n_ctx": 220000,
+            "per_slot_context": 220000,
+            "text_queue_capacity": 1,
+            "queue_wait_timeout": 30.0
+          }
+        },
+        {
+          "case": "conditions",
+          "request": {
+            "prompt": "A red ball rolls across a table.",
+            "size": "64x64",
+            "num_frames": 17,
+            "frame_rate": 24,
+            "num_inference_steps": 2,
+            "guidance_scale": 4.0,
+            "response_format": "url",
+            "worker": "native-ltx-validation"
+          },
+          "has_image": false,
+          "condition_indices": [
+            0,
+            1,
+            -1,
+            99
+          ],
+          "via_router": true,
+          "seconds": 69.29433869500645,
+          "bytes": 30349,
+          "sha256": "5cbc955f77ae657dee39a1a942990e4917a42c0e73be64a2d5d8dd97e3f0b2a5",
+          "handoff_observed": true,
+          "resource_poll_timeouts": 4,
+          "streams": [
+            {
+              "codec_type": "video",
+              "codec_name": "h264",
+              "width": 64,
+              "height": 64,
+              "duration": "0.708333",
+              "duration_ts": 8704,
+              "time_base": "1/12288",
+              "nb_frames": "17"
+            },
+            {
+              "codec_type": "audio",
+              "codec_name": "aac",
+              "sample_rate": "24000",
+              "channels": 2,
+              "duration": "1.380000",
+              "duration_ts": 33120,
+              "time_base": "1/24000",
+              "nb_frames": "34"
+            }
+          ],
+          "restored_parallel": {
+            "n_parallel": 1,
+            "n_ctx": 220000,
+            "per_slot_context": 220000,
+            "text_queue_capacity": 1,
+            "queue_wait_timeout": 30.0
+          }
+        },
+        {
+          "case": "image",
+          "request": {
+            "prompt": "A red ball rolls across a table.",
+            "size": "64x64",
+            "num_frames": 9,
+            "frame_rate": 24,
+            "num_inference_steps": 2,
+            "guidance_scale": 4.0,
+            "response_format": "b64_json",
+            "worker": "native-ltx-validation"
+          },
+          "has_image": true,
+          "condition_indices": [],
+          "via_router": true,
+          "seconds": 68.86818799795583,
+          "bytes": 18341,
+          "sha256": "9a2d0b543566594ed34947edbd633fcb915fcc0078d2c71a4629990b1db49512",
+          "handoff_observed": true,
+          "resource_poll_timeouts": 4,
+          "streams": [
+            {
+              "codec_type": "video",
+              "codec_name": "h264",
+              "width": 64,
+              "height": 64,
+              "duration": "0.375000",
+              "duration_ts": 4608,
+              "time_base": "1/12288",
+              "nb_frames": "9"
+            },
+            {
+              "codec_type": "audio",
+              "codec_name": "aac",
+              "sample_rate": "24000",
+              "channels": 2,
+              "duration": "0.660000",
+              "duration_ts": 15840,
+              "time_base": "1/24000",
+              "nb_frames": "17"
+            }
+          ],
+          "restored_parallel": {
+            "n_parallel": 1,
+            "n_ctx": 220000,
+            "per_slot_context": 220000,
+            "text_queue_capacity": 1,
+            "queue_wait_timeout": 30.0
+          }
+        },
+        {
+          "case": "normal-size",
+          "request": {
+            "prompt": "A red ball rolls across a table.",
+            "size": "512x320",
+            "num_frames": 41,
+            "frame_rate": 24,
+            "response_format": "url",
+            "worker": "native-ltx-validation"
+          },
+          "has_image": false,
+          "condition_indices": [],
+          "via_router": true,
+          "seconds": 99.1254500070354,
+          "bytes": 84951,
+          "sha256": "34a91a776fe7280e60186752971cef6d3f356380b0867d0522be5bf3e525f0cd",
+          "handoff_observed": true,
+          "resource_poll_timeouts": 4,
+          "streams": [
+            {
+              "codec_type": "video",
+              "codec_name": "h264",
+              "width": 512,
+              "height": 320,
+              "duration": "1.708333",
+              "duration_ts": 20992,
+              "time_base": "1/12288",
+              "nb_frames": "41"
+            },
+            {
+              "codec_type": "audio",
+              "codec_name": "aac",
+              "sample_rate": "24000",
+              "channels": 2,
+              "duration": "3.380000",
+              "duration_ts": 81120,
+              "time_base": "1/24000",
+              "nb_frames": "81"
+            }
+          ],
+          "restored_parallel": {
+            "n_parallel": 1,
+            "n_ctx": 220000,
+            "per_slot_context": 220000,
+            "text_queue_capacity": 1,
+            "queue_wait_timeout": 30.0
+          }
+        },
+        {
+          "case": "duck",
+          "request": {
+            "prompt": "A bright yellow rubber duck floats on calm blue water, close-up view in daylight.",
+            "size": "512x320",
+            "num_frames": 41,
+            "frame_rate": 24,
+            "num_inference_steps": 18,
+            "guidance_scale": 3.5,
+            "response_format": "url",
+            "worker": "native-ltx-validation"
+          },
+          "has_image": false,
+          "condition_indices": [],
+          "via_router": true,
+          "seconds": 99.88763737294357,
+          "bytes": 201439,
+          "sha256": "362cb76bc706f80d5e0bf5270e6fc0318d88b674b5d64d06cd3b6759fe9a0c97",
+          "handoff_observed": true,
+          "resource_poll_timeouts": 4,
+          "streams": [
+            {
+              "codec_type": "video",
+              "codec_name": "h264",
+              "width": 512,
+              "height": 320,
+              "duration": "1.708333",
+              "duration_ts": 20992,
+              "time_base": "1/12288",
+              "nb_frames": "41"
+            },
+            {
+              "codec_type": "audio",
+              "codec_name": "aac",
+              "sample_rate": "24000",
+              "channels": 2,
+              "duration": "3.380000",
+              "duration_ts": 81120,
+              "time_base": "1/24000",
+              "nb_frames": "81"
+            }
+          ],
+          "restored_parallel": {
+            "n_parallel": 1,
+            "n_ctx": 220000,
+            "per_slot_context": 220000,
+            "text_queue_capacity": 1,
+            "queue_wait_timeout": 30.0
+          }
+        }
+      ],
+      "invalid_request": {
+        "status": 400,
+        "body": "{\"detail\":\"LTX size must contain two integers separated by x\"}"
+      },
+      "before_chat": {
+        "choices": [
+          {
+            "finish_reason": "stop",
+            "index": 0,
+            "message": {
+              "role": "assistant",
+              "content": "READY"
+            }
+          }
+        ],
+        "created": 1792385182,
+        "model": "unsloth/Qwen3.8-27B-GGUF",
+        "system_fingerprint": "b11549-aa94f2086",
+        "object": "chat.completion",
+        "usage": {
+          "completion_tokens": 2,
+          "prompt_tokens": 17,
+          "total_tokens": 19,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          }
+        },
+        "id": "chatcmpl-Ezc7V0GZOyT4i1mBYLRR8nBjhoiXfoai",
+        "timings": {
+          "cache_n": 0,
+          "prompt_n": 17,
+          "prompt_ms": 159.122,
+          "prompt_per_token_ms": 9.360117647058825,
+          "prompt_per_second": 106.83626399869281,
+          "predicted_n": 2,
+          "predicted_ms": 55.0,
+          "predicted_per_token_ms": 55.0,
+          "predicted_per_second": 18.181818181818183,
+          "draft_n": 3,
+          "draft_n_accepted": 0
+        }
+      },
+      "after_chat": {
+        "choices": [
+          {
+            "finish_reason": "stop",
+            "index": 0,
+            "message": {
+              "role": "assistant",
+              "content": "READY"
+            }
+          }
+        ],
+        "created": 1792385592,
+        "model": "unsloth/Qwen3.8-27B-GGUF",
+        "system_fingerprint": "b11549-aa94f2086",
+        "object": "chat.completion",
+        "usage": {
+          "completion_tokens": 2,
+          "prompt_tokens": 17,
+          "total_tokens": 19,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          }
+        },
+        "id": "chatcmpl-fSgfhHBqxa5CMpAX6UI9PLaUVVJpi7yz",
+        "timings": {
+          "cache_n": 0,
+          "prompt_n": 17,
+          "prompt_ms": 152.127,
+          "prompt_per_token_ms": 8.94864705882353,
+          "prompt_per_second": 111.74873625326208,
+          "predicted_n": 2,
+          "predicted_ms": 54.025,
+          "predicted_per_token_ms": 54.025,
+          "predicted_per_second": 18.509949097639982,
+          "draft_n": 3,
+          "draft_n_accepted": 0
+        }
+      },
+      "logs": {
+        "build/validation/ltx-http-corrected/result.json": "7493e92263548e24b5ed29f01693e3811170c3ffb52cfbff0c72d14a9eac3d12",
+        "build/validation/ltx-http-corrected/worker.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "build/validation/ltx-http-corrected/router/router.log": "39d5147c5ca3a0d73c5101e0bbc8d7d865d83690790b0a37a1e4c8c522e76044"
+      },
+      "visual_review": {
+        "normal-size": "Rolling red ball beneath a table; differs from the requested tabletop action and the Python reference. Byte-identical to the successful normalization-only run.",
+        "duck": "Frame 20 depicts a bright yellow rubber duck floating on blue water, matching the prompt."
+      },
+      "frame_sha256": {
+        "normal-frame20.png": "88adb2bf33019449c864f8ea97432a2c3173517cca616f73e2c64bd19b4175e2",
+        "duck-frame20.png": "72d55dfc83d0696c85af3518921099331c5630d8b10750f961cfcd93fbc80c4c"
+      }
+    }
+  ],
+  "python_reference": {
+    "source_sha256": "53ca668e446acc6b9f61937b394abf9cbdf5035d42ff71ab7170838b849242b3",
+    "load_seconds": 63.97493544500321,
+    "loaded": true,
+    "residency": "sequential",
+    "dtype": "torch.bfloat16",
+    "request": {
+      "prompt": "A red ball rolls across a table.",
+      "size": "512x320",
+      "num_frames": 41,
+      "frame_rate": 24,
+      "num_inference_steps": 18,
+      "guidance_scale": 3.5
+    },
+    "frames": {
+      "shape": [
+        41,
+        320,
+        512,
+        3
+      ],
+      "dtype": "uint8",
+      "finite": true,
+      "min": 13.0,
+      "max": 255.0,
+      "sha256": "496ed9c3079a5a930e549a6e856f7cb6b13f45859114add52545d8f1b86371c3"
+    },
+    "audio": {
+      "shape": [
+        1,
+        2,
+        81120
+      ],
+      "dtype": "float32",
+      "finite": true,
+      "sample_rate_passed_to_export": 24000,
+      "sha256": "9d9474946727a7af00427855e8552ba507a219b34a219fde1470606dd7135caa"
+    },
+    "output": "outputs/80fb4eb9-378a-49e2-94ec-b82e22fe83be.mp4",
+    "video_bytes": 90521,
+    "video_sha256": "eb9b46f668d1cabcf717f45fecdfc289560cd9eb8c061d0be56b495513a2edc3",
+    "seconds": 229.8062830310082,
+    "visual_review": "Frame 20 visibly depicts a red ball on a tabletop; native outputs are not numerically equivalent.",
+    "runner": {
+      "exit": 0,
+      "restored_health": "healthy"
+    },
+    "harness_sha256": "c9c33cf49434b8273476e7ce6ea5373202a7c9cba8f525c55aee764c7ce89db1"
+  },
+  "audio_packaging": {
+    "music": {
+      "exit": 0
+    },
+    "tts": {
+      "exit": 0
+    },
+    "image": "sha256:0547fca8f61b00257c6e167400a655100340412c432c3e7ef4769bf6b5df5436",
+    "scope": "Five music requests/six audio buffers and five TTS requests/six buffers exactly match CPU reference hashes in the first candidate image. Subsequent patches affect only the diffusion engine."
+  },
+  "limitations": [
+    "No native/Python numerical or general prompt-fidelity equivalence claim",
+    "Native encoder uses BF16 instead of Python BNB/Quanto choices",
+    "Both offload modes use ggml streaming; weights do not remain resident between subprocesses",
+    "GGUF connector reconstruction, internal multi-frame conditions and complete CPU inference remain incomplete",
+    "Audio length/rate follows source export behavior, including audio lasting longer than video; waveform is not numerically equivalent",
+    "Resource polling may time out during synchronous LLM restoration"
+  ],
+  "deployment": {
+    "previous_image": "sha256:a72c50b630e18eea8b95e810fe17390ffc11df8d01ed07e350217e3bcda633bc",
+    "candidate_image": "sha256:bf51835f359370458db36aec93c2af5a6ae35c60e78510fa5fc4f143be8f6290",
+    "health": "healthy",
+    "deployed_image": "sha256:bf51835f359370458db36aec93c2af5a6ae35c60e78510fa5fc4f143be8f6290",
+    "effective_environment_changed_keys": [],
+    "original_env_file_unchanged": true
+  },
+  "live_router_checks": {
+    "registered_workers": 1,
+    "chat_http_status": 200,
+    "stream_http_status": 200,
+    "vision_http_status": 200,
+    "workers_log_sha256": "26be3b56fc36fdaf85bec8168b1e8dddf58e631bee5d4873b124a1e0c4f00319",
+    "inference_log_sha256": "ef1d62b7b0f0793bb7c774516e085f32c256008cd8341b137c2971cbb9a88311"
+  }
+}

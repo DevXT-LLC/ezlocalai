@@ -1,0 +1,112 @@
+{
+  "date": "2026-10-18",
+  "image": "sha256:a72c50b630e18eea8b95e810fe17390ffc11df8d01ed07e350217e3bcda633bc",
+  "native_sha256": "2884d6fb6b0059e2f5e775a1e0652f621835a3e665c83092c8fad89fadc65cd5",
+  "ace_step_sha256": "1c2c6987c526de013a31a126713a6277a8b5c179f0ce1a52821c5acacd164166",
+  "installed_tts_sha256": "cffa7a739a3f9ccd74a06227dab6ca35d24ff590388455ad94c1f75e57e38f4f",
+  "ace_step_commit": "5b88ded7919285d5ad5b1e86ffe3378314f305db",
+  "llama_cpp_commit": "aa94f2086147cd4bfbcff818ce998dffce5fcb39",
+  "python_commit": "0f7e9f45ac0d67ea806ee19874f98bb8f47c7544",
+  "worker_router_commit": "5968c3cc09b748b61a9dee80b635f7a416f3095f",
+  "host_tests": {
+    "passed": 98,
+    "total": 98,
+    "seconds": 419.47
+  },
+  "music_per_device": {
+    "requests": 5,
+    "exact_audio_buffers": 6,
+    "devices": [
+      "CPU",
+      "CUDA"
+    ]
+  },
+  "installed_tts_per_device": {
+    "requests": 5,
+    "exact_float32_buffers": 6,
+    "devices": [
+      "CPU",
+      "CUDA"
+    ]
+  },
+  "router_cases": [
+    {
+      "case": 0,
+      "via_router": false,
+      "audio": [
+        {
+          "bytes": 768044,
+          "sha256": "288b99ad7b4888c3e936f275c2ee5614f198c3d437af83394865a379ac1fa502"
+        }
+      ],
+      "seconds": 14.586494000977837,
+      "context_after": 220000,
+      "handoff_observed": true,
+      "resource_poll_timeouts_2s": 4
+    },
+    {
+      "case": 4,
+      "via_router": true,
+      "audio": [
+        {
+          "bytes": 1221164,
+          "sha256": "ec0a7503c56fd51e6a340d9ced4355b04bf52fb0c680b5899eb6d0fc55b4dee6"
+        },
+        {
+          "bytes": 1221164,
+          "sha256": "1631679f83edf0cbc56a8f0a7884c276ab45475baf002dcc19721ceb06c0efb5"
+        }
+      ],
+      "seconds": 15.604954315931536,
+      "context_after": 220000,
+      "handoff_observed": true,
+      "resource_poll_timeouts_2s": 4
+    },
+    {
+      "case": 3,
+      "via_router": true,
+      "audio": [
+        {
+          "bytes": 64128,
+          "sha256": "cbbe13e7f4a30aa93f8672c3c417407650433ba85155b543779e56710bdc28fb"
+        }
+      ],
+      "seconds": 12.345851025893353,
+      "context_after": 220000,
+      "handoff_observed": true,
+      "resource_poll_timeouts_2s": 4
+    }
+  ],
+  "music_failure": {
+    "status": 502,
+    "body": {
+      "detail": "Music generation failed: ACE-Step job 566facd638d439e8 ended with status failed: {\"status\":\"failed\"}"
+    }
+  },
+  "context_after_failure": 220000,
+  "llm_vram_gb": 20.015380859375,
+  "chat_before_and_after": "READY",
+  "environment_effective_matches": 20,
+  "production_enabled_capabilities": [
+    "text",
+    "vision"
+  ],
+  "live_router_checks": [
+    "chat 200 READY",
+    "SSE 200 READY",
+    "vision 200"
+  ],
+  "notes": [
+    "Original .env and mounts reused; original Python container retained stopped.",
+    "Music is temporarily enabled only in validation; production retains the original disabled media switches.",
+    "Resource polling can wait during LLM reload; exact timing equivalence remains unverified.",
+    "Full worker replacement parity is incomplete."
+  ],
+  "scripts": {
+    "ezlocalai-capture-music-real.py": "ae8a28596606b1a9ae5c44cac2b0bcf363431ec63e30680febdc4617deb69d88",
+    "ezlocalai-run-music-model-test.py": "8a5fd0006cc29a4de7cc0f33e7481cfd4af334f3a010bcb9871d90511b1b6b4f",
+    "ezlocalai-validate-music-router.py": "ae8f18b11bd1ce67788716cad4fafc2e8b3dbb27651f7f42829c1f74428c34db",
+    "ezlocalai-check-installed-tts.py": "d1dd7bdb5ccdf5e3aabe53d33247e9736242523796a771a12e29a26e3ac83f6f"
+  },
+  "deployed_model_vram_gb": 19.9334716796875
+}

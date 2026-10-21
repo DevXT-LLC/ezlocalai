@@ -1,0 +1,256 @@
+--- a/src/core/ggml_runner.h
++++ b/src/core/ggml_runner.h
+@@ -278,7 +278,7 @@
+ 
+     bool runner_started() const { return runner_started_; }
+ 
+-    void runner_end();
++    virtual void runner_end();
+ 
+ public:
+     virtual std::string get_desc() = 0;
+--- a/src/model/diffusion/ltxv.hpp
++++ b/src/model/diffusion/ltxv.hpp
+@@ -3,6 +3,7 @@
+ 
+ #include <algorithm>
+ #include "ltx_timesteps.hpp"
++#include "ltx_condition_cache.hpp"
+ #include <cinttypes>
+ #include <cmath>
+ #include <memory>
+@@ -1618,7 +1619,9 @@
+                                                       ggml_tensor* v_cross_pe,
+                                                       ggml_tensor* a_cross_pe,
+                                                       ggml_tensor* video_connector_pe,
+-                                                      ggml_tensor* audio_connector_pe) {
++                                                      ggml_tensor* audio_connector_pe,
++                                                      ggml_tensor* processed_video_context = nullptr,
++                                                      ggml_tensor* processed_audio_context = nullptr) {
+             auto patchify_proj       = std::dynamic_pointer_cast<Linear>(blocks["patchify_proj"]);
+             auto audio_patchify_proj = std::dynamic_pointer_cast<Linear>(blocks["audio_patchify_proj"]);
+             auto adaln_single        = std::dynamic_pointer_cast<AdaLayerNormSingle>(blocks["adaln_single"]);
+@@ -1646,7 +1649,9 @@
+             }
+ 
+             bool run_ax    = ax != nullptr && ggml_nelements(ax) > 0 && audio_time > 0;
+-            auto contexts  = preprocess_contexts(ctx, context, video_connector_pe, audio_connector_pe, run_ax);
++            auto contexts = processed_video_context != nullptr
++                ? std::make_pair(processed_video_context, processed_audio_context)
++                : preprocess_contexts(ctx, context, video_connector_pe, audio_connector_pe, run_ax);
+             auto v_context = contexts.first;
+             auto a_context = contexts.second != nullptr ? contexts.second : contexts.first;
+             if (contexts.second != nullptr) {
+@@ -1766,6 +1771,13 @@
+         std::vector<float> audio_connector_pe_vec;
+         sd::Tensor<float> vx_input_cache;
+         sd::Tensor<float> ax_input_cache;
++        LtxConditionCache connector_inputs;
++
++        void runner_end() override {
++            connector_inputs.clear();
++            GGMLRunner::runner_end();
++        }
++
+ 
+         LTXAVRunner(ggml_backend_t backend,
+                     const String2TensorStorage& tensor_storage_map      = {},
+@@ -1848,6 +1860,97 @@
+             return ggml_concat(ctx, vx, ax, 3);
+         }
+ 
++        std::pair<ggml_tensor*, ggml_tensor*> build_connector_rope(ggml_tensor* context, bool run_audio_context) {
++            bool needs_video_connector_pe =
++                config.use_connector &&
++                context != nullptr &&
++                (context->ne[0] == config.connector_hidden_size ||
++                 ((context->ne[0] == config.cross_attention_dim + config.audio_cross_attention_dim ||
++                   context->ne[0] == config.caption_channels * 2) &&
++                  context->ne[1] < 1024));
++            ggml_tensor* video_connector_pe = nullptr;
++            if (needs_video_connector_pe) {
++                int64_t seq_len      = context->ne[1];
++                int64_t target_len   = std::max<int64_t>(1024, seq_len);
++                int64_t duplications = (target_len + config.connector_num_registers - 1) / config.connector_num_registers;
++                int64_t full_len     = seq_len + duplications * config.connector_num_registers - seq_len;
++                connector_pe_vec     = build_1d_rope_matrix(full_len, static_cast<int>(config.connector_hidden_size), static_cast<int>(config.connector_num_heads), 10000.f, 4096.f, true);
++                video_connector_pe   = ggml_new_tensor_4d(compute_ctx, GGML_TYPE_F32, 2, 2, config.connector_head_dim / 2, full_len * config.connector_num_heads);
++                ggml_set_name(video_connector_pe, "ltxav_video_connector_pe");
++                set_backend_tensor_data(video_connector_pe, connector_pe_vec.data());
++            }
++
++            bool needs_audio_connector_pe =
++                run_audio_context &&
++                config.use_audio_connector &&
++                context != nullptr &&
++                (context->ne[0] == config.audio_connector_hidden_size ||
++                 ((context->ne[0] == config.cross_attention_dim + config.audio_cross_attention_dim ||
++                   context->ne[0] == config.caption_channels * 2) &&
++                  context->ne[1] < 1024));
++            ggml_tensor* audio_connector_pe = nullptr;
++            if (needs_audio_connector_pe) {
++                int64_t seq_len        = context->ne[1];
++                int64_t target_len     = std::max<int64_t>(1024, seq_len);
++                int64_t duplications   = (target_len + config.audio_connector_num_registers - 1) / config.audio_connector_num_registers;
++                int64_t full_len       = seq_len + duplications * config.audio_connector_num_registers - seq_len;
++                audio_connector_pe_vec = build_1d_rope_matrix(full_len, static_cast<int>(config.audio_connector_hidden_size), static_cast<int>(config.audio_connector_num_heads), 10000.f, 4096.f, true);
++                audio_connector_pe     = ggml_new_tensor_4d(compute_ctx, GGML_TYPE_F32, 2, 2, config.audio_connector_head_dim / 2, full_len * config.audio_connector_num_heads);
++                ggml_set_name(audio_connector_pe, "ltxav_audio_connector_pe");
++                set_backend_tensor_data(audio_connector_pe, audio_connector_pe_vec.data());
++            }
++
++            return {video_connector_pe, audio_connector_pe};
++        }
++
++        std::optional<std::string> prepare_connector_context(int n_threads,
++                const sd::Tensor<float>& context, bool audio) {
++            if (context.empty()) return std::string{};
++            // Adapters can have mutable schedules; do not reuse their outputs.
++            if (weight_adapter) connector_inputs.clear();
++            const auto found = connector_inputs.find(context.shape(), context.values(), audio, linear_scale, attn_scale);
++            auto key_for = [](size_t slot) { return "ltxav.connector." + std::to_string(slot); };
++            if (found) {
++                const auto key = key_for(*found);
++                if (get_cache_tensor_by_name(key + ".video") && (!audio || get_cache_tensor_by_name(key + ".audio")))
++                    return key;
++            }
++            const auto key = key_for(connector_inputs.replacement_slot());
++            std::vector<ggml_tensor*> connector_params;
++            auto graph = [&]() {
++                auto* input = make_input(context);
++                const auto rope = build_connector_rope(input, audio);
++                auto runner_ctx = get_context();
++                const auto outputs = model.preprocess_contexts(&runner_ctx, input, rope.first, rope.second, audio);
++                if (!outputs.first || (audio && !outputs.second)) return static_cast<ggml_cgraph*>(nullptr);
++                auto* gf = new_graph_custom(LTXAV_GRAPH_SIZE);
++                auto* video = ggml_cont(compute_ctx, outputs.first);
++                cache(key + ".video", video);
++                ggml_build_forward_expand(gf, video);
++                if (audio) {
++                    auto* audio_output = ggml_cont(compute_ctx, outputs.second);
++                    cache(key + ".audio", audio_output);
++                    ggml_build_forward_expand(gf, audio_output);
++                }
++                connector_params = collect_used_param_tensors(gf);
++                return gf;
++            };
++            const auto result = GGMLRunner::compute(graph, n_threads, false, true);
++            // The source offloads connectors before activating the transformer.
++            const bool released = workspace_.release();
++            evict_compute_backend_param_tensors(connector_params);
++            sync_runtime_residency();
++            if (!result.has_value() || !released) {
++                connector_inputs.clear();
++                free_cache_ctx_and_buffer();
++                LOG_ERROR("LTX connector preparation failed");
++                return std::nullopt;
++            }
++            connector_inputs.commit(context.shape(), context.values(), audio, linear_scale, attn_scale, !weight_adapter);
++            LOG_INFO("LTX connectors prepared: %s (audio %s)", key.c_str(), audio ? "on" : "off");
++            return key;
++        }
++
+         ggml_cgraph* build_graph(const sd::Tensor<float>& x_tensor,
+                                  const sd::Tensor<float>& timesteps_tensor,
+                                  const sd::Tensor<float>& context_tensor         = {},
+@@ -1855,7 +1958,8 @@
+                                  const sd::Tensor<float>& audio_timesteps_tensor = {},
+                                  int audio_length                                = 0,
+                                  float frame_rate                                = 24.f,
+-                                 const sd::Tensor<float>& video_positions_tensor = {}) {
++                                 const sd::Tensor<float>& video_positions_tensor = {},
++                                 const std::string& connector_key = {}) {
+             auto split_inputs = split_av_latents(x_tensor, audio_length);
+             vx_input_cache    = split_inputs.first;
+             if (!audio_x_tensor.empty()) {
+@@ -1950,47 +2054,14 @@
+                 set_backend_tensor_data(audio_cross_pe, audio_cross_pe_vec.data());
+             }
+ 
+-            bool needs_video_connector_pe =
+-                config.use_connector &&
+-                context != nullptr &&
+-                (context->ne[0] == config.connector_hidden_size ||
+-                 ((context->ne[0] == config.cross_attention_dim + config.audio_cross_attention_dim ||
+-                   context->ne[0] == config.caption_channels * 2) &&
+-                  context->ne[1] < 1024));
+-            ggml_tensor* video_connector_pe = nullptr;
+-            if (needs_video_connector_pe) {
+-                int64_t seq_len      = context->ne[1];
+-                int64_t target_len   = std::max<int64_t>(1024, seq_len);
+-                int64_t duplications = (target_len + config.connector_num_registers - 1) / config.connector_num_registers;
+-                int64_t full_len     = seq_len + duplications * config.connector_num_registers - seq_len;
+-                connector_pe_vec     = build_1d_rope_matrix(full_len, static_cast<int>(config.connector_hidden_size), static_cast<int>(config.connector_num_heads), 10000.f, 4096.f, true);
+-                video_connector_pe   = ggml_new_tensor_4d(compute_ctx, GGML_TYPE_F32, 2, 2, config.connector_head_dim / 2, full_len * config.connector_num_heads);
+-                ggml_set_name(video_connector_pe, "ltxav_video_connector_pe");
+-                set_backend_tensor_data(video_connector_pe, connector_pe_vec.data());
+-            }
+-
+-            bool run_audio_context =
+-                ax != nullptr &&
+-                ggml_nelements(ax) > 0 &&
+-                ax->ne[1] > 0;
+-            bool needs_audio_connector_pe =
+-                run_audio_context &&
+-                config.use_audio_connector &&
+-                context != nullptr &&
+-                (context->ne[0] == config.audio_connector_hidden_size ||
+-                 ((context->ne[0] == config.cross_attention_dim + config.audio_cross_attention_dim ||
+-                   context->ne[0] == config.caption_channels * 2) &&
+-                  context->ne[1] < 1024));
+-            ggml_tensor* audio_connector_pe = nullptr;
+-            if (needs_audio_connector_pe) {
+-                int64_t seq_len        = context->ne[1];
+-                int64_t target_len     = std::max<int64_t>(1024, seq_len);
+-                int64_t duplications   = (target_len + config.audio_connector_num_registers - 1) / config.audio_connector_num_registers;
+-                int64_t full_len       = seq_len + duplications * config.audio_connector_num_registers - seq_len;
+-                audio_connector_pe_vec = build_1d_rope_matrix(full_len, static_cast<int>(config.audio_connector_hidden_size), static_cast<int>(config.audio_connector_num_heads), 10000.f, 4096.f, true);
+-                audio_connector_pe     = ggml_new_tensor_4d(compute_ctx, GGML_TYPE_F32, 2, 2, config.audio_connector_head_dim / 2, full_len * config.audio_connector_num_heads);
+-                ggml_set_name(audio_connector_pe, "ltxav_audio_connector_pe");
+-                set_backend_tensor_data(audio_connector_pe, audio_connector_pe_vec.data());
++            const bool run_audio_context = ax != nullptr && ggml_nelements(ax) > 0 && ax->ne[1] > 0;
++            auto connector_pe = connector_key.empty() ? build_connector_rope(context, run_audio_context)
++                : std::make_pair(static_cast<ggml_tensor*>(nullptr), static_cast<ggml_tensor*>(nullptr));
++            auto* processed_video = connector_key.empty() ? nullptr : get_cache_tensor_by_name(connector_key + ".video");
++            auto* processed_audio = connector_key.empty() || !run_audio_context ? nullptr : get_cache_tensor_by_name(connector_key + ".audio");
++            if (!connector_key.empty() && (processed_video == nullptr || (run_audio_context && processed_audio == nullptr))) {
++                LOG_ERROR("LTX connector outputs disappeared before denoising");
++                return nullptr;
+             }
+ 
+             auto runner_ctx = get_context();
+@@ -2004,8 +2075,10 @@
+                                             audio_pe,
+                                             video_cross_pe,
+                                             audio_cross_pe,
+-                                            video_connector_pe,
+-                                            audio_connector_pe);
++                                            connector_pe.first,
++                                            connector_pe.second,
++                                            processed_video,
++                                            processed_audio);
+             auto out        = merge_av_latents(compute_ctx, out_pair.first, out_pair.second);
+             ggml_build_forward_expand(gf, out);
+             return gf;
+@@ -2020,10 +2093,20 @@
+                                   int audio_length                         = 0,
+                                   float frame_rate                         = 24.f,
+                                   const sd::Tensor<float>& video_positions = {}) {
++            GGML_ASSERT(x.dim() >= 4);
++            const bool run_audio = !audio_x.empty()
++                ? (audio_x.dim() < 2 || audio_x.shape()[1] > 0)
++                : (audio_length > 0 && x.shape()[3] > config.in_channels);
++            const auto connector_key = prepare_connector_context(n_threads, context, run_audio);
++            if (!connector_key) return {};
+             auto get_graph = [&]() -> ggml_cgraph* {
+-                return build_graph(x, timesteps, context, audio_x, audio_timesteps, audio_length, frame_rate, video_positions);
++                return build_graph(x, timesteps, context, audio_x, audio_timesteps, audio_length, frame_rate, video_positions, *connector_key);
+             };
+             auto out = restore_trailing_singleton_dims(GGMLRunner::compute(get_graph, n_threads, false), x.dim());
++            if (out.empty()) {
++                connector_inputs.clear();
++                free_cache_ctx_and_buffer();
++            }
+             return out;
+         }
+ 

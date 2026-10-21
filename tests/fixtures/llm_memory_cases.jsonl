@@ -1,0 +1,11 @@
+{"sources":{"ezlocalai/LLM.py":"2d54d53e014e99bcd91e036736dc4f45f8160220c35da0ac582e588db52ea607","Pipes.py":"8238cef03d4a1db6e775d7f62234bcf998d8f08bd9fc15f1d8a36ea0d3280005"},"cases":10}
+{"main_gpu":0,"before":[12.5],"after":[3.25],"delta":9.25,"estimates":{"model":9.25},"calls":2}
+{"main_gpu":1,"before":[20,9.5],"after":[19,2.25],"delta":7.25,"estimates":{"model":7.25},"calls":2}
+{"main_gpu":0,"before":[3],"after":[8],"delta":0.0,"estimates":{"model":0.0},"calls":2}
+{"main_gpu":0,"before":[4],"after":[4],"delta":0.0,"estimates":{"model":0.0},"calls":2}
+{"main_gpu":0,"before":[],"after":[],"delta":null,"estimates":{},"calls":1}
+{"main_gpu":3,"before":[10],"after":[2],"delta":null,"estimates":{},"calls":1}
+{"main_gpu":0,"before":"error","after":[1],"delta":null,"estimates":{},"calls":1}
+{"main_gpu":0,"before":[8],"after":"error","delta":null,"estimates":{},"calls":2}
+{"main_gpu":0,"before":[8],"after":[],"delta":null,"estimates":{},"calls":2}
+{"main_gpu":0,"before":[8.000001],"after":[8],"delta":9.999999992515995e-07,"estimates":{"model":9.999999992515995e-07},"calls":2}

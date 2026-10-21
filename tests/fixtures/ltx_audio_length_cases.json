@@ -1,0 +1,987 @@
+{
+  "pipeline_source_sha256": "922f449e594423d833f86d4b4a92923b87e8e1b7c286bccf362c0cd32a25eb8b",
+  "capture_sha256": "05c1d8ff84466d7b7388d347afad4e388b84c4c100a0abdc6fb664747323be9d",
+  "source_block": "duration_s = num_frames / frame_rate\naudio_latents_per_second = self.audio_sampling_rate / self.audio_hop_length / float(self.audio_vae_temporal_compression_ratio)\naudio_num_frames = round(duration_s * audio_latents_per_second)",
+  "cases": [
+    {
+      "frames": 1,
+      "fps": 1,
+      "audio_latents": 25
+    },
+    {
+      "frames": 1,
+      "fps": 8,
+      "audio_latents": 3
+    },
+    {
+      "frames": 1,
+      "fps": 10,
+      "audio_latents": 2
+    },
+    {
+      "frames": 1,
+      "fps": 12,
+      "audio_latents": 2
+    },
+    {
+      "frames": 1,
+      "fps": 16,
+      "audio_latents": 2
+    },
+    {
+      "frames": 1,
+      "fps": 20,
+      "audio_latents": 1
+    },
+    {
+      "frames": 1,
+      "fps": 24,
+      "audio_latents": 1
+    },
+    {
+      "frames": 1,
+      "fps": 25,
+      "audio_latents": 1
+    },
+    {
+      "frames": 1,
+      "fps": 30,
+      "audio_latents": 1
+    },
+    {
+      "frames": 1,
+      "fps": 40,
+      "audio_latents": 1
+    },
+    {
+      "frames": 1,
+      "fps": 48,
+      "audio_latents": 1
+    },
+    {
+      "frames": 1,
+      "fps": 50,
+      "audio_latents": 0
+    },
+    {
+      "frames": 1,
+      "fps": 60,
+      "audio_latents": 0
+    },
+    {
+      "frames": 1,
+      "fps": 100,
+      "audio_latents": 0
+    },
+    {
+      "frames": 9,
+      "fps": 1,
+      "audio_latents": 225
+    },
+    {
+      "frames": 9,
+      "fps": 8,
+      "audio_latents": 28
+    },
+    {
+      "frames": 9,
+      "fps": 10,
+      "audio_latents": 22
+    },
+    {
+      "frames": 9,
+      "fps": 12,
+      "audio_latents": 19
+    },
+    {
+      "frames": 9,
+      "fps": 16,
+      "audio_latents": 14
+    },
+    {
+      "frames": 9,
+      "fps": 20,
+      "audio_latents": 11
+    },
+    {
+      "frames": 9,
+      "fps": 24,
+      "audio_latents": 9
+    },
+    {
+      "frames": 9,
+      "fps": 25,
+      "audio_latents": 9
+    },
+    {
+      "frames": 9,
+      "fps": 30,
+      "audio_latents": 8
+    },
+    {
+      "frames": 9,
+      "fps": 40,
+      "audio_latents": 6
+    },
+    {
+      "frames": 9,
+      "fps": 48,
+      "audio_latents": 5
+    },
+    {
+      "frames": 9,
+      "fps": 50,
+      "audio_latents": 4
+    },
+    {
+      "frames": 9,
+      "fps": 60,
+      "audio_latents": 4
+    },
+    {
+      "frames": 9,
+      "fps": 100,
+      "audio_latents": 2
+    },
+    {
+      "frames": 17,
+      "fps": 1,
+      "audio_latents": 425
+    },
+    {
+      "frames": 17,
+      "fps": 8,
+      "audio_latents": 53
+    },
+    {
+      "frames": 17,
+      "fps": 10,
+      "audio_latents": 42
+    },
+    {
+      "frames": 17,
+      "fps": 12,
+      "audio_latents": 35
+    },
+    {
+      "frames": 17,
+      "fps": 16,
+      "audio_latents": 27
+    },
+    {
+      "frames": 17,
+      "fps": 20,
+      "audio_latents": 21
+    },
+    {
+      "frames": 17,
+      "fps": 24,
+      "audio_latents": 18
+    },
+    {
+      "frames": 17,
+      "fps": 25,
+      "audio_latents": 17
+    },
+    {
+      "frames": 17,
+      "fps": 30,
+      "audio_latents": 14
+    },
+    {
+      "frames": 17,
+      "fps": 40,
+      "audio_latents": 11
+    },
+    {
+      "frames": 17,
+      "fps": 48,
+      "audio_latents": 9
+    },
+    {
+      "frames": 17,
+      "fps": 50,
+      "audio_latents": 8
+    },
+    {
+      "frames": 17,
+      "fps": 60,
+      "audio_latents": 7
+    },
+    {
+      "frames": 17,
+      "fps": 100,
+      "audio_latents": 4
+    },
+    {
+      "frames": 25,
+      "fps": 1,
+      "audio_latents": 625
+    },
+    {
+      "frames": 25,
+      "fps": 8,
+      "audio_latents": 78
+    },
+    {
+      "frames": 25,
+      "fps": 10,
+      "audio_latents": 62
+    },
+    {
+      "frames": 25,
+      "fps": 12,
+      "audio_latents": 52
+    },
+    {
+      "frames": 25,
+      "fps": 16,
+      "audio_latents": 39
+    },
+    {
+      "frames": 25,
+      "fps": 20,
+      "audio_latents": 31
+    },
+    {
+      "frames": 25,
+      "fps": 24,
+      "audio_latents": 26
+    },
+    {
+      "frames": 25,
+      "fps": 25,
+      "audio_latents": 25
+    },
+    {
+      "frames": 25,
+      "fps": 30,
+      "audio_latents": 21
+    },
+    {
+      "frames": 25,
+      "fps": 40,
+      "audio_latents": 16
+    },
+    {
+      "frames": 25,
+      "fps": 48,
+      "audio_latents": 13
+    },
+    {
+      "frames": 25,
+      "fps": 50,
+      "audio_latents": 12
+    },
+    {
+      "frames": 25,
+      "fps": 60,
+      "audio_latents": 10
+    },
+    {
+      "frames": 25,
+      "fps": 100,
+      "audio_latents": 6
+    },
+    {
+      "frames": 41,
+      "fps": 1,
+      "audio_latents": 1025
+    },
+    {
+      "frames": 41,
+      "fps": 8,
+      "audio_latents": 128
+    },
+    {
+      "frames": 41,
+      "fps": 10,
+      "audio_latents": 102
+    },
+    {
+      "frames": 41,
+      "fps": 12,
+      "audio_latents": 85
+    },
+    {
+      "frames": 41,
+      "fps": 16,
+      "audio_latents": 64
+    },
+    {
+      "frames": 41,
+      "fps": 20,
+      "audio_latents": 51
+    },
+    {
+      "frames": 41,
+      "fps": 24,
+      "audio_latents": 43
+    },
+    {
+      "frames": 41,
+      "fps": 25,
+      "audio_latents": 41
+    },
+    {
+      "frames": 41,
+      "fps": 30,
+      "audio_latents": 34
+    },
+    {
+      "frames": 41,
+      "fps": 40,
+      "audio_latents": 26
+    },
+    {
+      "frames": 41,
+      "fps": 48,
+      "audio_latents": 21
+    },
+    {
+      "frames": 41,
+      "fps": 50,
+      "audio_latents": 20
+    },
+    {
+      "frames": 41,
+      "fps": 60,
+      "audio_latents": 17
+    },
+    {
+      "frames": 41,
+      "fps": 100,
+      "audio_latents": 10
+    },
+    {
+      "frames": 49,
+      "fps": 1,
+      "audio_latents": 1225
+    },
+    {
+      "frames": 49,
+      "fps": 8,
+      "audio_latents": 153
+    },
+    {
+      "frames": 49,
+      "fps": 10,
+      "audio_latents": 123
+    },
+    {
+      "frames": 49,
+      "fps": 12,
+      "audio_latents": 102
+    },
+    {
+      "frames": 49,
+      "fps": 16,
+      "audio_latents": 77
+    },
+    {
+      "frames": 49,
+      "fps": 20,
+      "audio_latents": 61
+    },
+    {
+      "frames": 49,
+      "fps": 24,
+      "audio_latents": 51
+    },
+    {
+      "frames": 49,
+      "fps": 25,
+      "audio_latents": 49
+    },
+    {
+      "frames": 49,
+      "fps": 30,
+      "audio_latents": 41
+    },
+    {
+      "frames": 49,
+      "fps": 40,
+      "audio_latents": 31
+    },
+    {
+      "frames": 49,
+      "fps": 48,
+      "audio_latents": 26
+    },
+    {
+      "frames": 49,
+      "fps": 50,
+      "audio_latents": 24
+    },
+    {
+      "frames": 49,
+      "fps": 60,
+      "audio_latents": 20
+    },
+    {
+      "frames": 49,
+      "fps": 100,
+      "audio_latents": 12
+    },
+    {
+      "frames": 81,
+      "fps": 1,
+      "audio_latents": 2025
+    },
+    {
+      "frames": 81,
+      "fps": 8,
+      "audio_latents": 253
+    },
+    {
+      "frames": 81,
+      "fps": 10,
+      "audio_latents": 202
+    },
+    {
+      "frames": 81,
+      "fps": 12,
+      "audio_latents": 169
+    },
+    {
+      "frames": 81,
+      "fps": 16,
+      "audio_latents": 127
+    },
+    {
+      "frames": 81,
+      "fps": 20,
+      "audio_latents": 101
+    },
+    {
+      "frames": 81,
+      "fps": 24,
+      "audio_latents": 84
+    },
+    {
+      "frames": 81,
+      "fps": 25,
+      "audio_latents": 81
+    },
+    {
+      "frames": 81,
+      "fps": 30,
+      "audio_latents": 68
+    },
+    {
+      "frames": 81,
+      "fps": 40,
+      "audio_latents": 51
+    },
+    {
+      "frames": 81,
+      "fps": 48,
+      "audio_latents": 42
+    },
+    {
+      "frames": 81,
+      "fps": 50,
+      "audio_latents": 40
+    },
+    {
+      "frames": 81,
+      "fps": 60,
+      "audio_latents": 34
+    },
+    {
+      "frames": 81,
+      "fps": 100,
+      "audio_latents": 20
+    },
+    {
+      "frames": 121,
+      "fps": 1,
+      "audio_latents": 3025
+    },
+    {
+      "frames": 121,
+      "fps": 8,
+      "audio_latents": 378
+    },
+    {
+      "frames": 121,
+      "fps": 10,
+      "audio_latents": 302
+    },
+    {
+      "frames": 121,
+      "fps": 12,
+      "audio_latents": 252
+    },
+    {
+      "frames": 121,
+      "fps": 16,
+      "audio_latents": 189
+    },
+    {
+      "frames": 121,
+      "fps": 20,
+      "audio_latents": 151
+    },
+    {
+      "frames": 121,
+      "fps": 24,
+      "audio_latents": 126
+    },
+    {
+      "frames": 121,
+      "fps": 25,
+      "audio_latents": 121
+    },
+    {
+      "frames": 121,
+      "fps": 30,
+      "audio_latents": 101
+    },
+    {
+      "frames": 121,
+      "fps": 40,
+      "audio_latents": 76
+    },
+    {
+      "frames": 121,
+      "fps": 48,
+      "audio_latents": 63
+    },
+    {
+      "frames": 121,
+      "fps": 50,
+      "audio_latents": 60
+    },
+    {
+      "frames": 121,
+      "fps": 60,
+      "audio_latents": 50
+    },
+    {
+      "frames": 121,
+      "fps": 100,
+      "audio_latents": 30
+    },
+    {
+      "frames": 129,
+      "fps": 1,
+      "audio_latents": 3225
+    },
+    {
+      "frames": 129,
+      "fps": 8,
+      "audio_latents": 403
+    },
+    {
+      "frames": 129,
+      "fps": 10,
+      "audio_latents": 322
+    },
+    {
+      "frames": 129,
+      "fps": 12,
+      "audio_latents": 269
+    },
+    {
+      "frames": 129,
+      "fps": 16,
+      "audio_latents": 202
+    },
+    {
+      "frames": 129,
+      "fps": 20,
+      "audio_latents": 161
+    },
+    {
+      "frames": 129,
+      "fps": 24,
+      "audio_latents": 134
+    },
+    {
+      "frames": 129,
+      "fps": 25,
+      "audio_latents": 129
+    },
+    {
+      "frames": 129,
+      "fps": 30,
+      "audio_latents": 108
+    },
+    {
+      "frames": 129,
+      "fps": 40,
+      "audio_latents": 81
+    },
+    {
+      "frames": 129,
+      "fps": 48,
+      "audio_latents": 67
+    },
+    {
+      "frames": 129,
+      "fps": 50,
+      "audio_latents": 64
+    },
+    {
+      "frames": 129,
+      "fps": 60,
+      "audio_latents": 54
+    },
+    {
+      "frames": 129,
+      "fps": 100,
+      "audio_latents": 32
+    },
+    {
+      "frames": 257,
+      "fps": 1,
+      "audio_latents": 6425
+    },
+    {
+      "frames": 257,
+      "fps": 8,
+      "audio_latents": 803
+    },
+    {
+      "frames": 257,
+      "fps": 10,
+      "audio_latents": 642
+    },
+    {
+      "frames": 257,
+      "fps": 12,
+      "audio_latents": 535
+    },
+    {
+      "frames": 257,
+      "fps": 16,
+      "audio_latents": 402
+    },
+    {
+      "frames": 257,
+      "fps": 20,
+      "audio_latents": 321
+    },
+    {
+      "frames": 257,
+      "fps": 24,
+      "audio_latents": 268
+    },
+    {
+      "frames": 257,
+      "fps": 25,
+      "audio_latents": 257
+    },
+    {
+      "frames": 257,
+      "fps": 30,
+      "audio_latents": 214
+    },
+    {
+      "frames": 257,
+      "fps": 40,
+      "audio_latents": 161
+    },
+    {
+      "frames": 257,
+      "fps": 48,
+      "audio_latents": 134
+    },
+    {
+      "frames": 257,
+      "fps": 50,
+      "audio_latents": 128
+    },
+    {
+      "frames": 257,
+      "fps": 60,
+      "audio_latents": 107
+    },
+    {
+      "frames": 257,
+      "fps": 100,
+      "audio_latents": 64
+    },
+    {
+      "frames": 513,
+      "fps": 1,
+      "audio_latents": 12825
+    },
+    {
+      "frames": 513,
+      "fps": 8,
+      "audio_latents": 1603
+    },
+    {
+      "frames": 513,
+      "fps": 10,
+      "audio_latents": 1282
+    },
+    {
+      "frames": 513,
+      "fps": 12,
+      "audio_latents": 1069
+    },
+    {
+      "frames": 513,
+      "fps": 16,
+      "audio_latents": 802
+    },
+    {
+      "frames": 513,
+      "fps": 20,
+      "audio_latents": 641
+    },
+    {
+      "frames": 513,
+      "fps": 24,
+      "audio_latents": 534
+    },
+    {
+      "frames": 513,
+      "fps": 25,
+      "audio_latents": 513
+    },
+    {
+      "frames": 513,
+      "fps": 30,
+      "audio_latents": 428
+    },
+    {
+      "frames": 513,
+      "fps": 40,
+      "audio_latents": 321
+    },
+    {
+      "frames": 513,
+      "fps": 48,
+      "audio_latents": 267
+    },
+    {
+      "frames": 513,
+      "fps": 50,
+      "audio_latents": 256
+    },
+    {
+      "frames": 513,
+      "fps": 60,
+      "audio_latents": 214
+    },
+    {
+      "frames": 513,
+      "fps": 100,
+      "audio_latents": 128
+    },
+    {
+      "frames": 1025,
+      "fps": 1,
+      "audio_latents": 25625
+    },
+    {
+      "frames": 1025,
+      "fps": 8,
+      "audio_latents": 3203
+    },
+    {
+      "frames": 1025,
+      "fps": 10,
+      "audio_latents": 2562
+    },
+    {
+      "frames": 1025,
+      "fps": 12,
+      "audio_latents": 2135
+    },
+    {
+      "frames": 1025,
+      "fps": 16,
+      "audio_latents": 1602
+    },
+    {
+      "frames": 1025,
+      "fps": 20,
+      "audio_latents": 1281
+    },
+    {
+      "frames": 1025,
+      "fps": 24,
+      "audio_latents": 1068
+    },
+    {
+      "frames": 1025,
+      "fps": 25,
+      "audio_latents": 1025
+    },
+    {
+      "frames": 1025,
+      "fps": 30,
+      "audio_latents": 854
+    },
+    {
+      "frames": 1025,
+      "fps": 40,
+      "audio_latents": 641
+    },
+    {
+      "frames": 1025,
+      "fps": 48,
+      "audio_latents": 534
+    },
+    {
+      "frames": 1025,
+      "fps": 50,
+      "audio_latents": 512
+    },
+    {
+      "frames": 1025,
+      "fps": 60,
+      "audio_latents": 427
+    },
+    {
+      "frames": 1025,
+      "fps": 100,
+      "audio_latents": 256
+    },
+    {
+      "frames": 1281,
+      "fps": 1,
+      "audio_latents": 32025
+    },
+    {
+      "frames": 1281,
+      "fps": 8,
+      "audio_latents": 4003
+    },
+    {
+      "frames": 1281,
+      "fps": 10,
+      "audio_latents": 3202
+    },
+    {
+      "frames": 1281,
+      "fps": 12,
+      "audio_latents": 2669
+    },
+    {
+      "frames": 1281,
+      "fps": 16,
+      "audio_latents": 2002
+    },
+    {
+      "frames": 1281,
+      "fps": 20,
+      "audio_latents": 1601
+    },
+    {
+      "frames": 1281,
+      "fps": 24,
+      "audio_latents": 1334
+    },
+    {
+      "frames": 1281,
+      "fps": 25,
+      "audio_latents": 1281
+    },
+    {
+      "frames": 1281,
+      "fps": 30,
+      "audio_latents": 1068
+    },
+    {
+      "frames": 1281,
+      "fps": 40,
+      "audio_latents": 801
+    },
+    {
+      "frames": 1281,
+      "fps": 48,
+      "audio_latents": 667
+    },
+    {
+      "frames": 1281,
+      "fps": 50,
+      "audio_latents": 640
+    },
+    {
+      "frames": 1281,
+      "fps": 60,
+      "audio_latents": 534
+    },
+    {
+      "frames": 1281,
+      "fps": 100,
+      "audio_latents": 320
+    },
+    {
+      "frames": 4097,
+      "fps": 1,
+      "audio_latents": 102425
+    },
+    {
+      "frames": 4097,
+      "fps": 8,
+      "audio_latents": 12803
+    },
+    {
+      "frames": 4097,
+      "fps": 10,
+      "audio_latents": 10242
+    },
+    {
+      "frames": 4097,
+      "fps": 12,
+      "audio_latents": 8535
+    },
+    {
+      "frames": 4097,
+      "fps": 16,
+      "audio_latents": 6402
+    },
+    {
+      "frames": 4097,
+      "fps": 20,
+      "audio_latents": 5121
+    },
+    {
+      "frames": 4097,
+      "fps": 24,
+      "audio_latents": 4268
+    },
+    {
+      "frames": 4097,
+      "fps": 25,
+      "audio_latents": 4097
+    },
+    {
+      "frames": 4097,
+      "fps": 30,
+      "audio_latents": 3414
+    },
+    {
+      "frames": 4097,
+      "fps": 40,
+      "audio_latents": 2561
+    },
+    {
+      "frames": 4097,
+      "fps": 48,
+      "audio_latents": 2134
+    },
+    {
+      "frames": 4097,
+      "fps": 50,
+      "audio_latents": 2048
+    },
+    {
+      "frames": 4097,
+      "fps": 60,
+      "audio_latents": 1707
+    },
+    {
+      "frames": 4097,
+      "fps": 100,
+      "audio_latents": 1024
+    }
+  ]
+}

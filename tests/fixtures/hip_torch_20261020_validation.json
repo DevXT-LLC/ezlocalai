@@ -1,0 +1,185 @@
+{
+  "date": "2026-10-20",
+  "base_commit": "216bbed",
+  "status": "HIP-configured native worker and LibTorch adapters validated without AMD hardware; ROCm image incomplete",
+  "source_python_commit": "0f7e9f45ac0d67ea806ee19874f98bb8f47c7544",
+  "torch": "2.9.1+rocm6.4",
+  "sdk": "ROCm 6.4.1",
+  "native_assets": {
+    "rocblas": {
+      "files": 1445,
+      "bytes": 3483713616
+    },
+    "hipblaslt": {
+      "files": 2059,
+      "bytes": 2703425563
+    },
+    "hipsparselt": {
+      "files": 82,
+      "bytes": 9948187
+    },
+    "aotriton.images": {
+      "files": 7445,
+      "bytes": 704419344
+    },
+    "python_bindings_excluded": true,
+    "hip_soname_link": "libamdhip64.so.6 -> libamdhip64.so",
+    "torch_hip_sha256": "103226a8f3b98381e30013ed5466b4ac8d15176a45db8635f696c4cda66ba10a",
+    "hip_runtime_sha256": "4a1fe843addbd381726b3a409de48223b5ddbf93f9e3d42b0cbf3fee6df4d49a"
+  },
+  "implementation": [
+    "HIP allocator and device guard preserving public CUDA tensor naming",
+    "Python-compatible compiled cuDNN availability on ROCm",
+    "ROCm speculative draft device prefix",
+    "Native math-kernel asset extraction and required runtime SONAME link",
+    "Reject mixed CUDA LibTorch and HIP device backend"
+  ],
+  "validation": {
+    "hip_abi_unavailable_and_allocator": {
+      "passed": 3,
+      "seconds": 2.82
+    },
+    "draft_and_device_regressions": {
+      "passed": 3,
+      "seconds": 14.61
+    },
+    "real_rust_router": {
+      "scenarios": 10,
+      "seconds": 49.29,
+      "passed": true,
+      "engines": "controlled process fixtures; no GPU inference"
+    },
+    "rocm_torch_cpu_training": {
+      "cases": 5,
+      "cancellation_boundaries": 3,
+      "passed": true,
+      "reference": "unchanged Python WakeWord classes with matching ROCm Torch and torchaudio wheels",
+      "numpy": "1.26.4",
+      "soundfile": "0.13.1",
+      "reference_source_sha256": "dcd63562c35b55472d508a3089396b39fb3c32fd018cba7ded3d83350cf2875c",
+      "reference_capture_sha256": "e4fd8b721b529c63cabcc66c15d3c47bd1b0c0956d727f8063f3e4b9eee03f73"
+    },
+    "cuda_regression": {
+      "hardware": "NVIDIA RTX 3090 Ti",
+      "suites": 3,
+      "seconds": 3.37,
+      "gpu_stt_cases": 18,
+      "wakeword_training_cases": 5,
+      "cancellation_boundaries": 3,
+      "passed": true,
+      "scope": "Shared adapter tested in isolated accepted CUDA image. Subsequent cuDNN fix changes only the HIP branch; final-source package rebuild still required."
+    },
+    "policy_and_reporting": {
+      "passed": 5,
+      "seconds": 73.98,
+      "names": [
+        "worker_metadata_reference",
+        "worker_metadata_hip_reference",
+        "ltx_runtime",
+        "video_runtime_reference",
+        "media_startup_reference"
+      ],
+      "amd_reporting_device_cases": 8,
+      "coverage": [
+        "73 Python worker-extra snapshots",
+        "23 model-reporting snapshots with projector unload/restore",
+        "AMD logical ordinal ordering and masking",
+        "registration and heartbeat property-query failures"
+      ],
+      "fixture_adapters": "NVIDIA-captured suites explicitly retain CUDA fixture adapter; separate HIP suite uses AMD adapter",
+      "source_path_correction": "Video reference initially pointed at the module subdirectory. Reconfigured to the source repository root; the failed suite then passed in 13.12 seconds."
+    }
+  },
+  "corrections": [
+    "Added the bundled HIP runtime SONAME alias after native allocator executable failed to load it.",
+    "Corrected ROCm compiled cuDNN availability using matching Python wheel evidence.",
+    "Captured matching ROCm CPU training reference after CUDA-wheel CPU losses differed beyond existing tolerance; no algorithm or tolerance change.",
+    "HIP builds now isolate NVIDIA-captured device fixtures from the production HIP adapter and add a separate HIP registration/heartbeat suite."
+  ],
+  "production_changed": false,
+  "remaining": [
+    "ROCm native model-engine builds, Compose profile and full package gate",
+    "Actual AMD GPU inference, training and memory management",
+    "Physical multi-GPU and non-3090 fleet acceptance"
+  ],
+  "source_sha256": {
+    "src/torch_gpu_runtime.hpp": "c72201202160c0cc6b34fb416f1375419dd7a84af68f0868f783811a16d8df92",
+    "src/stt_torch.cpp": "8365f66e68a8c7cc96612eab2ca362f97ae04b232f1204086aa9df2cffcf95ea",
+    "src/ctts_torch.cpp": "5d424e46e8682ce7cfe1df1fbda58b92638935b5804e739a3f4ba2fe102577c9",
+    "src/wakeword_torch.cpp": "97acb6dd0e7ecc7a71a9546320a5c05ba96225a435b9ae2db7dba5c15a8b7e5f",
+    "src/video_runtime.cpp": "b5afa95b35652a1d3f4714795e59af46a6bf347bc6944103bb84d5eca48e5acb",
+    "src/native_server.cpp": "5fe7a8408d7ae1117ac40fe70550b9033ac0b74965cc9a1702985a9db3e69cb6",
+    "CMakeLists.txt": "b9b47e2bc2c51c3cff508ab22beb5a1ca7c38d1ba5abe202ab48840b45679c7d",
+    "cmake/CudaAudioDependencies.cmake": "1ec2fb0c7273adea7d8aee497d3647a1b2647504e9bb4104f02b1085efccd720",
+    "cmake/rocm-audio-dependencies.json": "6f1251014ecb3a0520a753c35b5c954f4d5aa0e27c814457f8f0d6dc305977bc",
+    "tests/test_stt_torch.cpp": "21f4cc91b9469081947b55cbf4c69b219025d98ff790b4c5d1aefa60410cf5f7",
+    "tests/test_llm_speculative.cpp": "62d6c6d61f525588940c1e2a90f5656e57e517be83ba35befef295a21b53c7c3",
+    "tests/fixtures/stt_torch_hip_unavailable.json": "d9dd2cac2ee43657fd3cb192020a4f950028659555f48298fd0161b1faea5900",
+    "tests/fixtures/wakeword_training_rocm_cpu_cases.json": "cf5a8119cf86c9184cafbdc68fb6b1b702e51ca6417887355442c73f94684cda"
+  },
+  "evidence_directory": "build/validation/hip-runtime-20261020",
+  "upstream_sources": [
+    "https://download.pytorch.org/whl/rocm6.4/torch/",
+    "https://github.com/pytorch/pytorch/blob/v2.9.1/torch/csrc/Module.cpp"
+  ],
+  "followup_source_sha256": {
+    "CMakeLists.txt": "97458855c3a712e98c9dc39737b562fb90dbcf86630459a72c417778d1a85281",
+    "tests/test_worker_metadata.cpp": "f94be3ea1a0844ec46055a521f823240b6ba559b2d313a505c1049d912185d2f",
+    "src/video_runtime.cpp": "bfc3d87ef57fb53c2d7395f8029e823bf6756e5d5dd69c4919b4aa8c4f354490",
+    "include/ezlocalai/video_runtime.hpp": "62b9aa8e2de3c694f4b0778289bcebf7dbf2ef739354a8f7511aa202b05664c3",
+    "src/native_server.cpp": "16bd1c78db8bc4341450bc9c8f46073f162da792c883afcbdfc83d87744f5e88",
+    "tests/fixtures/worker_hip_gpu_cases.json": "38033e3ccdf81b383b87e8224ad6d9c814baed61e8bffaae72dc11a464d658ae"
+  },
+  "reporting_correction": {
+    "reference": "worker_hip_gpu_cases.json",
+    "before_fix": "Source-derived AMD comparison failed: backend cuda instead of rocm.",
+    "after_fix": "Eight complete source GPU snapshots pass, including tiers, visibility and rocm:N property-failure names.",
+    "source_scope": "Router hardware backend is rocm; public Torch tensor device remains cuda.",
+    "tests": "reporting-final-tests.log: AMD/NVIDIA reporting, device and draft suites pass; initial Rust rerun hit a shutdown limit, resolved and retested separately by heartbeat_shutdown_20261020_validation.json."
+  },
+  "cuda_followup_acceptance": {
+    "image": "sha256:db669f04add8660bccfeb3d89c6e7173eb1a8d912bf7c6c4073d79a73fd91a38",
+    "worker_sha256": "3dfcd89807949a674895fc362988870d8b55356581f70587f12e155c7d2798ea",
+    "package": {
+      "passed": 58,
+      "failed": 0,
+      "seconds": 288.03
+    },
+    "deployed": true,
+    "modes": [
+      {
+        "mode": "direct",
+        "checks": [
+          "chat",
+          "stream",
+          "vision"
+        ],
+        "owned_cuda_engine_mib": [
+          19052
+        ]
+      },
+      {
+        "mode": "tunnel",
+        "checks": [
+          "chat",
+          "stream",
+          "vision"
+        ],
+        "owned_cuda_engine_mib": [
+          19052
+        ]
+      }
+    ],
+    "restored_production_checks": [
+      "chat",
+      "stream",
+      "vision"
+    ],
+    "original_environment_restored": true,
+    "original_env_file_unchanged": true,
+    "mounts_ports_gpu_requests_verified": true,
+    "rollback_tag": "ezlocalai:cuda-before-runtime-backends",
+    "rollback_image": "sha256:b46774a0d4218552afd2e58907115f9aef05421f4476c8be5e267062689712b5",
+    "evidence_directory": "build/validation/final-cuda-20261020"
+  }
+}

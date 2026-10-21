@@ -1,0 +1,297 @@
+{
+  "scope": "Internal checkpoint/config/ONNX save path against installed Python/Torch 2.9.1; not connected to HTTP training jobs or deployed.",
+  "source_sha256": "dcd63562c35b55472d508a3089396b39fb3c32fd018cba7ded3d83350cf2875c",
+  "native_sha256": {
+    "src/wakeword_onnx.cpp": "c7ac6a5866376e7134c3d19be3fb83b4ba994ce20ddb478acaf099a9b60f3632",
+    "src/wakeword_torch.cpp": "c9bd48786dfc3a0e059add5ba5297ce78f713652c430fb12fabfa030f4e094e7",
+    "src/wakeword_checkpoint.hpp": "b5db068bb77b3008816c605d83b9b5233c063ace75c91572865e16eff1d61686",
+    "include/ezlocalai/wakeword_model.hpp": "dcb8721c7c9bdc9404b498d4ea973dcdb8132cbb0e2f2705fbacfe2215941734",
+    "tests/test_wakeword_export.cpp": "27a3360c02845c0d84a70b7c8c44be5752a9d999da2183748de031cb2dcf9187"
+  },
+  "capture_sha256": {
+    "ezlocalai-capture-wakeword-exports.py": "9a507cb939e86a7bdd5a15d6ecf8ff8389413cf747dcbe4eeea457d833b6acbc",
+    "ezlocalai-capture-wakeword-exports-expanded.py": "c795f47c19111929deb7da6addd758c700fbe9b0073c8d428470415e4abea364",
+    "ezlocalai-capture-wakeword-exports-cuda.py": "b2da75201b9bffa4f776f68aa91b9c2fc9653820fd470d40e0855d565fde39c6",
+    "ezlocalai-verify-wakeword-exports.py": "d55921cb309a65da3e96237f1b8dea12dadc93bd406ef8cabcca2d7c1b438990"
+  },
+  "verification": [
+    {
+      "device": "cpu",
+      "checks": [
+        {
+          "name": "cnn",
+          "checkpoint_tensors_exact": 25,
+          "initializer_tensors_exact": 10,
+          "probabilities_compared": 4,
+          "maximum_error": 0.0,
+          "training_dropout": false,
+          "onnx_checker": "passed"
+        },
+        {
+          "name": "gru",
+          "checkpoint_tensors_exact": 18,
+          "initializer_tensors_exact": 8,
+          "probabilities_compared": 56,
+          "maximum_error": 0.0,
+          "training_dropout": false,
+          "onnx_checker": "passed"
+        },
+        {
+          "name": "default_cnn",
+          "checkpoint_tensors_exact": 25,
+          "initializer_tensors_exact": 10,
+          "probabilities_compared": 4,
+          "maximum_error": 0.0,
+          "training_dropout": false,
+          "onnx_checker": "passed"
+        },
+        {
+          "name": "cnn_small",
+          "checkpoint_tensors_exact": 25,
+          "initializer_tensors_exact": 10,
+          "probabilities_compared": 4,
+          "maximum_error": 0.0,
+          "training_dropout": false,
+          "onnx_checker": "passed"
+        },
+        {
+          "name": "gru_one",
+          "checkpoint_tensors_exact": 10,
+          "initializer_tensors_exact": 5,
+          "probabilities_compared": 56,
+          "maximum_error": 0.0,
+          "training_dropout": false,
+          "onnx_checker": "passed"
+        },
+        {
+          "name": "gru_three",
+          "checkpoint_tensors_exact": 26,
+          "initializer_tensors_exact": 11,
+          "probabilities_compared": 56,
+          "maximum_error": 0.0,
+          "training_dropout": false,
+          "onnx_checker": "passed"
+        },
+        {
+          "name": "untrained_cnn",
+          "checkpoint_tensors_exact": 25,
+          "initializer_tensors_exact": 10,
+          "probabilities_compared": 4,
+          "maximum_error": 0.0,
+          "training_dropout": true,
+          "onnx_checker": "passed"
+        },
+        {
+          "name": "untrained_gru",
+          "checkpoint_tensors_exact": 18,
+          "initializer_tensors_exact": 8,
+          "probabilities_compared": 56,
+          "maximum_error": 0.0,
+          "training_dropout": true,
+          "onnx_checker": "passed"
+        }
+      ],
+      "native_results": [
+        {
+          "batch_rejections": 12,
+          "comparisons": 4,
+          "device": "cpu",
+          "max_absolute_error": 0.0,
+          "name": "cnn",
+          "stochastic_probabilities": 0
+        },
+        {
+          "batch_rejections": 0,
+          "comparisons": 56,
+          "device": "cpu",
+          "max_absolute_error": 0.0,
+          "name": "gru",
+          "stochastic_probabilities": 0
+        },
+        {
+          "batch_rejections": 12,
+          "comparisons": 4,
+          "device": "cpu",
+          "max_absolute_error": 0.0,
+          "name": "default_cnn",
+          "stochastic_probabilities": 0
+        },
+        {
+          "batch_rejections": 12,
+          "comparisons": 4,
+          "device": "cpu",
+          "max_absolute_error": 0.0,
+          "name": "cnn_small",
+          "stochastic_probabilities": 0
+        },
+        {
+          "batch_rejections": 0,
+          "comparisons": 56,
+          "device": "cpu",
+          "max_absolute_error": 0.0,
+          "name": "gru_one",
+          "stochastic_probabilities": 0
+        },
+        {
+          "batch_rejections": 0,
+          "comparisons": 56,
+          "device": "cpu",
+          "max_absolute_error": 0.0,
+          "name": "gru_three",
+          "stochastic_probabilities": 0
+        },
+        {
+          "batch_rejections": 12,
+          "comparisons": 0,
+          "device": "cpu",
+          "max_absolute_error": 0.0,
+          "name": "untrained_cnn",
+          "stochastic_probabilities": 4
+        },
+        {
+          "batch_rejections": 0,
+          "comparisons": 0,
+          "device": "cpu",
+          "max_absolute_error": 0.0,
+          "name": "untrained_gru",
+          "stochastic_probabilities": 56
+        }
+      ]
+    },
+    {
+      "device": "cuda",
+      "checks": [
+        {
+          "name": "cnn",
+          "checkpoint_tensors_exact": 25,
+          "initializer_tensors_exact": 10,
+          "probabilities_compared": 4,
+          "maximum_error": 0.0,
+          "training_dropout": false,
+          "onnx_checker": "passed"
+        },
+        {
+          "name": "gru",
+          "checkpoint_tensors_exact": 18,
+          "onnx_skipped": true
+        },
+        {
+          "name": "default_cnn",
+          "checkpoint_tensors_exact": 25,
+          "initializer_tensors_exact": 10,
+          "probabilities_compared": 4,
+          "maximum_error": 0.0,
+          "training_dropout": false,
+          "onnx_checker": "passed"
+        },
+        {
+          "name": "cnn_small",
+          "checkpoint_tensors_exact": 25,
+          "initializer_tensors_exact": 10,
+          "probabilities_compared": 4,
+          "maximum_error": 0.0,
+          "training_dropout": false,
+          "onnx_checker": "passed"
+        },
+        {
+          "name": "gru_one",
+          "checkpoint_tensors_exact": 10,
+          "onnx_skipped": true
+        },
+        {
+          "name": "gru_three",
+          "checkpoint_tensors_exact": 26,
+          "onnx_skipped": true
+        },
+        {
+          "name": "untrained_cnn",
+          "checkpoint_tensors_exact": 25,
+          "initializer_tensors_exact": 10,
+          "probabilities_compared": 4,
+          "maximum_error": 0.0,
+          "training_dropout": true,
+          "onnx_checker": "passed"
+        },
+        {
+          "name": "untrained_gru",
+          "checkpoint_tensors_exact": 18,
+          "onnx_skipped": true
+        }
+      ],
+      "native_results": [
+        {
+          "batch_rejections": 12,
+          "comparisons": 4,
+          "device": "cuda",
+          "max_absolute_error": 0.0,
+          "name": "cnn",
+          "stochastic_probabilities": 0
+        },
+        {
+          "device": "cuda",
+          "name": "gru",
+          "optional_onnx_failure": true
+        },
+        {
+          "batch_rejections": 12,
+          "comparisons": 4,
+          "device": "cuda",
+          "max_absolute_error": 0.0,
+          "name": "default_cnn",
+          "stochastic_probabilities": 0
+        },
+        {
+          "batch_rejections": 12,
+          "comparisons": 4,
+          "device": "cuda",
+          "max_absolute_error": 0.0,
+          "name": "cnn_small",
+          "stochastic_probabilities": 0
+        },
+        {
+          "device": "cuda",
+          "name": "gru_one",
+          "optional_onnx_failure": true
+        },
+        {
+          "device": "cuda",
+          "name": "gru_three",
+          "optional_onnx_failure": true
+        },
+        {
+          "batch_rejections": 12,
+          "comparisons": 0,
+          "device": "cuda",
+          "max_absolute_error": 0.0,
+          "name": "untrained_cnn",
+          "stochastic_probabilities": 4
+        },
+        {
+          "device": "cuda",
+          "name": "untrained_gru",
+          "optional_onnx_failure": true
+        }
+      ]
+    }
+  ],
+  "regressions": {
+    "tests": [
+      "wakeword_model_reference",
+      "wakeword_training_reference",
+      "wakeword_export_reference"
+    ],
+    "passed": 3,
+    "seconds": 6.54
+  },
+  "production_image": "sha256:9961a2bb539fbc5136c91cee0d1b6d7291f766f400d4193bc6909c44d55b8958",
+  "production_health": "healthy",
+  "limitations": [
+    "Training endpoint still creates pending jobs only; sample generation/augmentation and live job integration unfinished.",
+    "Working ESPDL export not implemented; installed source skips it because esp_ppq import fails on missing onnxsim.",
+    "CNN ONNX export preserves source batch-one reshape; GRU runtime is dynamic but output annotation remains one.",
+    "CUDA GRU optional export failure is deliberately preserved against pinned Python/Torch; CPU GRU export succeeds.",
+    "Dropout numerical comparisons set matching test-only ONNX seeds; artifacts retain unseeded dropout.",
+    "Semantic tensor and runtime equality is tested; protobuf bytes, node names and external-data layout are not byte-identical."
+  ],
+  "onnx_inference_provider": "CPUExecutionProvider"
+}

@@ -1,0 +1,81 @@
+{
+  "date": "2026-10-19",
+  "scope": "Wake-word name/storage/HTTP/configuration parity; native model prediction and training remain incomplete.",
+  "deployment": {
+    "previous_image": "sha256:542fd39d1e26ea73e9a7864b8945788bf80d2547aad4f6d7462326ed8bcbee4e",
+    "candidate_image": "sha256:4574087aa3c68e4b7cec724c9a17413542bce2c4eb82b52cf0356d3be5e708ff",
+    "health": "healthy",
+    "deployed_image": "sha256:4574087aa3c68e4b7cec724c9a17413542bce2c4eb82b52cf0356d3be5e708ff",
+    "effective_environment_changed_keys": [],
+    "original_env_file_unchanged": true,
+    "mounts_unchanged": true,
+    "ports_unchanged": true,
+    "gpu_requests_unchanged": true
+  },
+  "binaries": [
+    "50243c752b9a29040e5ebe8271bd5b35448d6e6dec844e25270e760500cb0c9e  /app/build/ezlocalai-native",
+    "ad07862ae3b26ce4fb2b02c4d98a079da0b376d52d68905c8736c3aa9994a203  /opt/stable-diffusion.cpp/build/bin/sd-cli"
+  ],
+  "source_sha256": {
+    "src/native_server.cpp": "cdf44129b9df6e4f00e05ebc15b949e994e994ef33b56bd36084a5a102acdeba",
+    "src/wakeword_paths.cpp": "bb6141d1ea1871c2163098c62b77a6302206e3d174fa4fdb9fa3f11fbbab451e",
+    "include/ezlocalai/wakeword_paths.hpp": "06a7a41b43d7f320cf9a483318782bebf23d5b105612b6898a73f315cf60b048",
+    "src/ctts_paths.cpp": "d7556e5508b07be35464906a5a2219dd52aa35cdd6ed80a655546ca8c4ad5673",
+    "src/llm_slots.cpp": "cb78a54f05be269ffb6c461e98d0ef4a00d6e1091703dc402d54799628deb4ab",
+    "tests/test_wakeword_paths.cpp": "62ca77d0e1a18d94afe52402e7852cca6cfab75ba6c9d44aba0839bcb1585d1c",
+    "tests/fixtures/wakeword_paths_cases.json": "3dbcbead6217ac97bc75f52a905ab81e923af8394f9f8860b49e0c0e33f5fe97",
+    "CMakeLists.txt": "82f36d48aa6edcc8895a913fdb1b621a82dd434a97851705afe82d2d9c8e570c",
+    "cuda.Dockerfile": "18444dfd00cc3e4a2aaf2ee144089dbf8a801e260238de53ac493922caba3da2"
+  },
+  "validation": {
+    "native_tests": 116,
+    "native_seconds": 397.82,
+    "packaged_cuda_image_tests": 10,
+    "packaged_cuda_image_seconds": 1.59,
+    "additional_cuda_image_test": "Actual wake-word target compiled and run inside the candidate image, with reference source mounted read-only for hash checks; no Python execution.",
+    "name_cases": 146,
+    "http_tcp_cases": 262,
+    "enablement_lifetime_scenarios": 169,
+    "enablement_observations": 676
+  },
+  "production": {
+    "health": "healthy",
+    "registered_workers": 1,
+    "checks": {
+      "/v1/wakeword/models/bad%5Cword": {
+        "status": 400,
+        "body": {
+          "detail": "Invalid wake word name"
+        }
+      },
+      "/v1/wakeword/models/bad%00word/config": {
+        "status": 400,
+        "body": {
+          "detail": "Invalid wake word name"
+        }
+      },
+      "chat": {
+        "status": 200,
+        "sha256": "38c320927b1f6c123a08c031df604f7371b28a54a26ce46b0a87eadbcfdc0fda"
+      },
+      "stream": {
+        "status": 200,
+        "sha256": "0e432a6bd084f0dfb2864872164f72d7c691a5fc5f6d643a820c172beeb08324"
+      },
+      "vision": {
+        "status": 200,
+        "sha256": "bc297308962b7fb671f52dff41dd664417dd4615f4fee42669066576f9fc41c8"
+      }
+    }
+  },
+  "remaining": [
+    "Native checkpoint loading, MFCC preprocessing, CNN/GRU inference and background training.",
+    "Live wake-word manager/job/model-cache state.",
+    "Complete FileResponse headers/ranges/conditional requests and OpenAPI."
+  ],
+  "prototype_checkpoint_evidence": {
+    "path": "/opt/DevXT/ezlocalai/build/validation/wakeword-model/reference.json",
+    "sha256": "d6d6bcefb2cdc1c20a99b72cd9bba3e28f92017e51fbf45e0ee7af53d3f18fb2",
+    "result": "Captured actual Python CNN/GRU checkpoints; standard LibTorch readArchiveAndTensors fails on OrderedDict state dictionaries. No native prediction claim."
+  }
+}

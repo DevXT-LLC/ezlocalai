@@ -1,0 +1,51 @@
+{
+  "date": "2026-10-19",
+  "deployed": false,
+  "base_image": "sha256:9961a2bb539fbc5136c91cee0d1b6d7291f766f400d4193bc6909c44d55b8958",
+  "training_executable_sha256": "ca36828b0457c8348b4727d0442266bb15c074507379e1fd46ea18db7d516d83",
+  "final_executable_sha256": "3a9f1b8729b84e949512634ba76e47a344d2b07069cf60854437f03bea2b610e",
+  "real_job": {
+    "device": "cpu",
+    "original_env_reused_with_test_overrides": true,
+    "word": "Hello ezlocalai",
+    "sample_count": 5,
+    "epochs": 2,
+    "batch_size": 4,
+    "elapsed_seconds": 207.3337572159944,
+    "status": "completed",
+    "positive_samples": 30,
+    "negative_samples": 21,
+    "exported_formats": ["pytorch", "config", "onnx"],
+    "checkpoint_bytes": 1708625,
+    "checkpoint_sha256": "30b6346ec47c868129a06bcf3397dba2e75944f7303830146902280eb2d3aaf4",
+    "python_weights_only_load": true,
+    "checkpoint_tensor_count": 25,
+    "onnx_full_check": true,
+    "prediction_exact_with_python": true,
+    "confidence": 0.8089866042137146
+  },
+  "final_executable_checks": {
+    "persisted_job_exact_after_restart": true,
+    "checkpoint_exact_after_restart": true,
+    "concurrent_duplicate_http_requests": 8,
+    "cancelled_job_remains_terminal": true,
+    "cancelled_job_exports_no_checkpoint": true,
+    "subsequent_job_processed": true,
+    "cancellation_recovery_seconds": 5.012768893036991,
+    "escaping_sample_directory_http_status": 409
+  },
+  "worker_router_wire": {"tests": 89, "passed": 89, "seconds": 29.524},
+  "http_regressions": {"native_http_seconds": 29.75, "worker_tunnel_seconds": 2.63, "worker_router_integration_seconds": 5.42, "passed": true},
+  "container_regressions": ["wakeword_jobs", "wakeword_training_reference", "wakeword_export_reference"],
+  "limitations": [
+    "The real complete pipeline used CPU inference and training",
+    "Cancellation is cooperative around synthesis, epochs and export",
+    "Job execution is serialized; Python asynchronous scheduling timing is not reproduced",
+    "Persisted unfinished jobs are loaded without automatic resumption",
+    "No trained-model quality or generalization claim",
+    "Production image and persistent deployment volumes have not been updated",
+    "Wake-word endpoints are not currently exposed by either router"
+  ],
+  "evidence_root": "build/validation/wakeword-model",
+  "external_scripts": ["/tmp/ezlocalai-wakeword-jobs-live.py", "/tmp/ezlocalai-wakeword-jobs-checkpoint.py", "/tmp/ezlocalai-wakeword-jobs-lifecycle.py"]
+}

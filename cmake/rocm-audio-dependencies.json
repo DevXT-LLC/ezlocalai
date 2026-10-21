@@ -1,0 +1,47 @@
+[
+  {
+    "name": "ctranslate2-headers-4.8.2",
+    "kind": "ct2_headers",
+    "url": "https://codeload.github.com/OpenNMT/CTranslate2/tar.gz/refs/tags/v4.8.2",
+    "sha256": "a15fdd27842ac80e73c4a0e2ae8ee32c990db88563b6b012db009128872ab730"
+  },
+  {
+    "name": "ctranslate2-4.8.2",
+    "kind": "ct2",
+    "url": "https://files.pythonhosted.org/packages/01/23/d72e70cac2b7c5c832a629c380235b53b20fac8c0921856bcf625b08ba44/ctranslate2-4.8.2-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl",
+    "sha256": "554a0b2abf098a11c66ef7930c0a05b3de683a455e8ea3f2e6ab6966aaabc136"
+  },
+  {
+    "name": "onnxruntime-1.31.0",
+    "kind": "ort",
+    "url": "https://github.com/microsoft/onnxruntime/releases/download/v1.31.0/onnxruntime-linux-x64-1.31.0.tgz",
+    "sha256": "cc5c72baf5ae5c8238a6841f0897227be2d02826b9cf98eaf02fdefaeeb03a57"
+  },
+  {
+    "name": "onnxruntime-installed-1.31.0",
+    "kind": "ort_library",
+    "url": "https://files.pythonhosted.org/packages/6c/44/1e9e762b95b7da0a8424913a1ed7c38cdaf88624a3c41ddba24ebac88bc9/onnxruntime-1.31.0-cp312-cp312-manylinux_2_28_x86_64.whl",
+    "sha256": "5e129d6c56abd53e659cb70f00a108d6824086470ff99c2e47a82e5786563db3"
+  },
+  {
+    "name": "torch-2.9.1-rocm6.4",
+    "kind": "torch",
+    "url": "https://download-r2.pytorch.org/whl/rocm6.4/torch-2.9.1%2Brocm6.4-cp312-cp312-manylinux_2_28_x86_64.whl",
+    "sha256": "43471c9e4520402b5feeebd6c6d180e8bf2314402925798fe219c32fecd1ef95",
+    "soname_links": {
+      "libamdhip64.so.6": "libamdhip64.so"
+    }
+  },
+  {
+    "name": "faster-whisper-assets-1.2.0",
+    "kind": "vad",
+    "url": "https://files.pythonhosted.org/packages/da/6d/64cdc135e4195f9473c2e42aa1d2268654be4c289223828eee8e6ba4fc6d/faster_whisper-1.2.0-py3-none-any.whl",
+    "sha256": "e5535628fe93b5123029b410fd8edba2d28f8cee9f8fff8119138e5a9d81afbe"
+  },
+  {
+    "name": "soundfile-native-0.14.0",
+    "kind": "sndfile",
+    "url": "https://files.pythonhosted.org/packages/7b/a2/70fd4432b924684c372df8b0a45708c36c057ef3596c9eb53e0a806b980b/soundfile-0.14.0-py2.py3-none-manylinux_2_28_x86_64.whl",
+    "sha256": "1e38bac1853412871318e82a1ba69a8be677619b56025bbfcccdb41b6cafe82d"
+  }
+]

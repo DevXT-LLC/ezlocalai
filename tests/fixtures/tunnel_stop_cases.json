@@ -1,0 +1,24 @@
+[
+  {
+    "name": "pending-upgrade",
+    "stop_seconds": 5.005498981103301,
+    "task_done": true,
+    "close_frames": []
+  },
+  {
+    "name": "connected-ack",
+    "stop_seconds": 0.00020036695059388876,
+    "task_done": true,
+    "close_frames": [
+      "8882f760cf46f488"
+    ]
+  },
+  {
+    "name": "connected-no-ack",
+    "stop_seconds": 5.004301457083784,
+    "task_done": true,
+    "close_frames": [
+      "888213d40d1e103c"
+    ]
+  }
+]

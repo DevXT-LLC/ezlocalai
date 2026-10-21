@@ -1,0 +1,10 @@
+{"config": {}, "file": "modern-0.f32z", "bands": 80, "frames": 101, "sha256": "c8390d34b0e84317c532ec0f486c9cf5d767bc1df5075f7565199ed06bca601c"}
+{"config": {"feature_size": 128}, "file": "modern-1.f32z", "bands": 128, "frames": 101, "sha256": "234031eea99874f068b75aef5dca45b39987c99f13f905c563e9e392c2b4d472"}
+{"config": {"feature_size": 40, "sampling_rate": 8000, "hop_length": 80, "n_fft": 200, "chunk_length": 12}, "file": "modern-2.f32z", "bands": 40, "frames": 202, "sha256": "9d3fb997b7f5c8e3c082800c0fb0f90aa7406d431c0c0eedfc80c1f802243de9"}
+{"config": {"hop_length": 200, "n_fft": 512, "chunk_length": 7}, "file": "modern-3.f32z", "bands": 80, "frames": 80, "sha256": "d61fac4b1c71d6f999ed66d2495ebd97d0bfffccdcb99ee7371b954a4d1a30ae"}
+{"config": {"sampling_rate": 22050, "hop_length": 221, "n_fft": 512, "chunk_length": 11}, "file": "modern-4.f32z", "bands": 80, "frames": 73, "sha256": "3502a02212396495e0074ccca36aa5b7616cc7a9455ebf02dab3a0911244e32c"}
+{"config": {"hop_length": 320, "chunk_length": 15}, "file": "modern-5.f32z", "bands": 80, "frames": 50, "sha256": "9d44c7e7f9f7e331cf4d24687d0717cdff7142de26f2115a54145ab3efdb6bd9"}
+{"config": {"sampling_rate": 8000, "hop_length": 160, "n_fft": 400, "chunk_length": 30}, "file": "modern-6.f32z", "bands": 80, "frames": 101, "sha256": "8c6be2f4a9c096caee2b7660e95b265a4c2d5326eedd3cba396c4a7143fed087"}
+{"config": {"feature_size": 2, "hop_length": 100, "n_fft": 256, "chunk_length": 1}, "file": "modern-7.f32z", "bands": 2, "frames": 161, "sha256": "c185dd13547ccbe1e4a236fd188d002bad74cabf70ceff710e033f1c4e5acf7c"}
+{"config": {"n_fft": 401}, "file": "modern-8.f32z", "bands": 80, "frames": 101, "sha256": "f8355eb389437f4fd300cb7d6849557587492769653d34343d7add185a380972"}
+{"config": {"feature_size": "８０"}, "file": "modern-9.f32z", "bands": 80, "frames": 101, "sha256": "c8390d34b0e84317c532ec0f486c9cf5d767bc1df5075f7565199ed06bca601c"}

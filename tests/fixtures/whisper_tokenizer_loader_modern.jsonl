@@ -1,0 +1,109 @@
+{"profile": "modern", "version": "1.2.0", "tokenizers": "0.22.1", "hub": "1.5.0", "source_sha256": "ecec022994e56d085351d5d4ff309db9017311680fc9171783b737139c739a6e"}
+{"multilingual":false,"kind":"file","failure":null,"calls":[],"path":"/work/model/tokenizer.json"}
+{"multilingual":false,"kind":"file","failure":"HfHubHTTPError","calls":[],"path":"/work/model/tokenizer.json"}
+{"multilingual":false,"kind":"file","failure":"LocalEntryNotFoundError","calls":[],"path":"/work/model/tokenizer.json"}
+{"multilingual":false,"kind":"file","failure":"ConnectError","calls":[],"path":"/work/model/tokenizer.json"}
+{"multilingual":false,"kind":"file","failure":"ValueError","calls":[],"path":"/work/model/tokenizer.json"}
+{"multilingual":false,"kind":"file","failure":"OSError","calls":[],"path":"/work/model/tokenizer.json"}
+{"multilingual":false,"kind":"missing","failure":null,"calls":[{"repo_id":"openai/whisper-tiny.en","filename":"tokenizer.json","revision":"main"}],"path":"/work/download/tokenizer.json"}
+{"multilingual":false,"kind":"missing","failure":"HfHubHTTPError","calls":[{"repo_id":"openai/whisper-tiny.en","filename":"tokenizer.json","revision":"main"}],"error":{"category":"HfHubHTTPError","message":"fixture failure"}}
+{"multilingual":false,"kind":"missing","failure":"LocalEntryNotFoundError","calls":[{"repo_id":"openai/whisper-tiny.en","filename":"tokenizer.json","revision":"main"}],"error":{"category":"LocalEntryNotFoundError","message":"fixture failure"}}
+{"multilingual":false,"kind":"missing","failure":"ConnectError","calls":[{"repo_id":"openai/whisper-tiny.en","filename":"tokenizer.json","revision":"main"}],"error":{"category":"ConnectError","message":"fixture failure"}}
+{"multilingual":false,"kind":"missing","failure":"ValueError","calls":[{"repo_id":"openai/whisper-tiny.en","filename":"tokenizer.json","revision":"main"}],"error":{"category":"ValueError","message":"fixture failure"}}
+{"multilingual":false,"kind":"missing","failure":"OSError","calls":[{"repo_id":"openai/whisper-tiny.en","filename":"tokenizer.json","revision":"main"}],"error":{"category":"OSError","message":"fixture failure"}}
+{"multilingual":false,"kind":"directory","failure":null,"calls":[{"repo_id":"openai/whisper-tiny.en","filename":"tokenizer.json","revision":"main"}],"path":"/work/download/tokenizer.json"}
+{"multilingual":false,"kind":"directory","failure":"HfHubHTTPError","calls":[{"repo_id":"openai/whisper-tiny.en","filename":"tokenizer.json","revision":"main"}],"error":{"category":"HfHubHTTPError","message":"fixture failure"}}
+{"multilingual":false,"kind":"directory","failure":"LocalEntryNotFoundError","calls":[{"repo_id":"openai/whisper-tiny.en","filename":"tokenizer.json","revision":"main"}],"error":{"category":"LocalEntryNotFoundError","message":"fixture failure"}}
+{"multilingual":false,"kind":"directory","failure":"ConnectError","calls":[{"repo_id":"openai/whisper-tiny.en","filename":"tokenizer.json","revision":"main"}],"error":{"category":"ConnectError","message":"fixture failure"}}
+{"multilingual":false,"kind":"directory","failure":"ValueError","calls":[{"repo_id":"openai/whisper-tiny.en","filename":"tokenizer.json","revision":"main"}],"error":{"category":"ValueError","message":"fixture failure"}}
+{"multilingual":false,"kind":"directory","failure":"OSError","calls":[{"repo_id":"openai/whisper-tiny.en","filename":"tokenizer.json","revision":"main"}],"error":{"category":"OSError","message":"fixture failure"}}
+{"multilingual":false,"kind":"symlink_file","failure":null,"calls":[],"path":"/work/model/tokenizer.json"}
+{"multilingual":false,"kind":"symlink_file","failure":"HfHubHTTPError","calls":[],"path":"/work/model/tokenizer.json"}
+{"multilingual":false,"kind":"symlink_file","failure":"LocalEntryNotFoundError","calls":[],"path":"/work/model/tokenizer.json"}
+{"multilingual":false,"kind":"symlink_file","failure":"ConnectError","calls":[],"path":"/work/model/tokenizer.json"}
+{"multilingual":false,"kind":"symlink_file","failure":"ValueError","calls":[],"path":"/work/model/tokenizer.json"}
+{"multilingual":false,"kind":"symlink_file","failure":"OSError","calls":[],"path":"/work/model/tokenizer.json"}
+{"multilingual":false,"kind":"symlink_directory","failure":null,"calls":[{"repo_id":"openai/whisper-tiny.en","filename":"tokenizer.json","revision":"main"}],"path":"/work/download/tokenizer.json"}
+{"multilingual":false,"kind":"symlink_directory","failure":"HfHubHTTPError","calls":[{"repo_id":"openai/whisper-tiny.en","filename":"tokenizer.json","revision":"main"}],"error":{"category":"HfHubHTTPError","message":"fixture failure"}}
+{"multilingual":false,"kind":"symlink_directory","failure":"LocalEntryNotFoundError","calls":[{"repo_id":"openai/whisper-tiny.en","filename":"tokenizer.json","revision":"main"}],"error":{"category":"LocalEntryNotFoundError","message":"fixture failure"}}
+{"multilingual":false,"kind":"symlink_directory","failure":"ConnectError","calls":[{"repo_id":"openai/whisper-tiny.en","filename":"tokenizer.json","revision":"main"}],"error":{"category":"ConnectError","message":"fixture failure"}}
+{"multilingual":false,"kind":"symlink_directory","failure":"ValueError","calls":[{"repo_id":"openai/whisper-tiny.en","filename":"tokenizer.json","revision":"main"}],"error":{"category":"ValueError","message":"fixture failure"}}
+{"multilingual":false,"kind":"symlink_directory","failure":"OSError","calls":[{"repo_id":"openai/whisper-tiny.en","filename":"tokenizer.json","revision":"main"}],"error":{"category":"OSError","message":"fixture failure"}}
+{"multilingual":false,"kind":"dangling","failure":null,"calls":[{"repo_id":"openai/whisper-tiny.en","filename":"tokenizer.json","revision":"main"}],"path":"/work/download/tokenizer.json"}
+{"multilingual":false,"kind":"dangling","failure":"HfHubHTTPError","calls":[{"repo_id":"openai/whisper-tiny.en","filename":"tokenizer.json","revision":"main"}],"error":{"category":"HfHubHTTPError","message":"fixture failure"}}
+{"multilingual":false,"kind":"dangling","failure":"LocalEntryNotFoundError","calls":[{"repo_id":"openai/whisper-tiny.en","filename":"tokenizer.json","revision":"main"}],"error":{"category":"LocalEntryNotFoundError","message":"fixture failure"}}
+{"multilingual":false,"kind":"dangling","failure":"ConnectError","calls":[{"repo_id":"openai/whisper-tiny.en","filename":"tokenizer.json","revision":"main"}],"error":{"category":"ConnectError","message":"fixture failure"}}
+{"multilingual":false,"kind":"dangling","failure":"ValueError","calls":[{"repo_id":"openai/whisper-tiny.en","filename":"tokenizer.json","revision":"main"}],"error":{"category":"ValueError","message":"fixture failure"}}
+{"multilingual":false,"kind":"dangling","failure":"OSError","calls":[{"repo_id":"openai/whisper-tiny.en","filename":"tokenizer.json","revision":"main"}],"error":{"category":"OSError","message":"fixture failure"}}
+{"multilingual":false,"kind":"loop","failure":null,"calls":[{"repo_id":"openai/whisper-tiny.en","filename":"tokenizer.json","revision":"main"}],"path":"/work/download/tokenizer.json"}
+{"multilingual":false,"kind":"loop","failure":"HfHubHTTPError","calls":[{"repo_id":"openai/whisper-tiny.en","filename":"tokenizer.json","revision":"main"}],"error":{"category":"HfHubHTTPError","message":"fixture failure"}}
+{"multilingual":false,"kind":"loop","failure":"LocalEntryNotFoundError","calls":[{"repo_id":"openai/whisper-tiny.en","filename":"tokenizer.json","revision":"main"}],"error":{"category":"LocalEntryNotFoundError","message":"fixture failure"}}
+{"multilingual":false,"kind":"loop","failure":"ConnectError","calls":[{"repo_id":"openai/whisper-tiny.en","filename":"tokenizer.json","revision":"main"}],"error":{"category":"ConnectError","message":"fixture failure"}}
+{"multilingual":false,"kind":"loop","failure":"ValueError","calls":[{"repo_id":"openai/whisper-tiny.en","filename":"tokenizer.json","revision":"main"}],"error":{"category":"ValueError","message":"fixture failure"}}
+{"multilingual":false,"kind":"loop","failure":"OSError","calls":[{"repo_id":"openai/whisper-tiny.en","filename":"tokenizer.json","revision":"main"}],"error":{"category":"OSError","message":"fixture failure"}}
+{"multilingual":false,"kind":"parentfile","failure":null,"calls":[{"repo_id":"openai/whisper-tiny.en","filename":"tokenizer.json","revision":"main"}],"path":"/work/download/tokenizer.json"}
+{"multilingual":false,"kind":"parentfile","failure":"HfHubHTTPError","calls":[{"repo_id":"openai/whisper-tiny.en","filename":"tokenizer.json","revision":"main"}],"error":{"category":"HfHubHTTPError","message":"fixture failure"}}
+{"multilingual":false,"kind":"parentfile","failure":"LocalEntryNotFoundError","calls":[{"repo_id":"openai/whisper-tiny.en","filename":"tokenizer.json","revision":"main"}],"error":{"category":"LocalEntryNotFoundError","message":"fixture failure"}}
+{"multilingual":false,"kind":"parentfile","failure":"ConnectError","calls":[{"repo_id":"openai/whisper-tiny.en","filename":"tokenizer.json","revision":"main"}],"error":{"category":"ConnectError","message":"fixture failure"}}
+{"multilingual":false,"kind":"parentfile","failure":"ValueError","calls":[{"repo_id":"openai/whisper-tiny.en","filename":"tokenizer.json","revision":"main"}],"error":{"category":"ValueError","message":"fixture failure"}}
+{"multilingual":false,"kind":"parentfile","failure":"OSError","calls":[{"repo_id":"openai/whisper-tiny.en","filename":"tokenizer.json","revision":"main"}],"error":{"category":"OSError","message":"fixture failure"}}
+{"multilingual":false,"kind":"nul_directory","failure":null,"calls":[{"repo_id":"openai/whisper-tiny.en","filename":"tokenizer.json","revision":"main"}],"path":"/work/download/tokenizer.json"}
+{"multilingual":false,"kind":"nul_directory","failure":"HfHubHTTPError","calls":[{"repo_id":"openai/whisper-tiny.en","filename":"tokenizer.json","revision":"main"}],"error":{"category":"HfHubHTTPError","message":"fixture failure"}}
+{"multilingual":false,"kind":"nul_directory","failure":"LocalEntryNotFoundError","calls":[{"repo_id":"openai/whisper-tiny.en","filename":"tokenizer.json","revision":"main"}],"error":{"category":"LocalEntryNotFoundError","message":"fixture failure"}}
+{"multilingual":false,"kind":"nul_directory","failure":"ConnectError","calls":[{"repo_id":"openai/whisper-tiny.en","filename":"tokenizer.json","revision":"main"}],"error":{"category":"ConnectError","message":"fixture failure"}}
+{"multilingual":false,"kind":"nul_directory","failure":"ValueError","calls":[{"repo_id":"openai/whisper-tiny.en","filename":"tokenizer.json","revision":"main"}],"error":{"category":"ValueError","message":"fixture failure"}}
+{"multilingual":false,"kind":"nul_directory","failure":"OSError","calls":[{"repo_id":"openai/whisper-tiny.en","filename":"tokenizer.json","revision":"main"}],"error":{"category":"OSError","message":"fixture failure"}}
+{"multilingual":true,"kind":"file","failure":null,"calls":[],"path":"/work/model/tokenizer.json"}
+{"multilingual":true,"kind":"file","failure":"HfHubHTTPError","calls":[],"path":"/work/model/tokenizer.json"}
+{"multilingual":true,"kind":"file","failure":"LocalEntryNotFoundError","calls":[],"path":"/work/model/tokenizer.json"}
+{"multilingual":true,"kind":"file","failure":"ConnectError","calls":[],"path":"/work/model/tokenizer.json"}
+{"multilingual":true,"kind":"file","failure":"ValueError","calls":[],"path":"/work/model/tokenizer.json"}
+{"multilingual":true,"kind":"file","failure":"OSError","calls":[],"path":"/work/model/tokenizer.json"}
+{"multilingual":true,"kind":"missing","failure":null,"calls":[{"repo_id":"openai/whisper-tiny","filename":"tokenizer.json","revision":"main"}],"path":"/work/download/tokenizer.json"}
+{"multilingual":true,"kind":"missing","failure":"HfHubHTTPError","calls":[{"repo_id":"openai/whisper-tiny","filename":"tokenizer.json","revision":"main"}],"error":{"category":"HfHubHTTPError","message":"fixture failure"}}
+{"multilingual":true,"kind":"missing","failure":"LocalEntryNotFoundError","calls":[{"repo_id":"openai/whisper-tiny","filename":"tokenizer.json","revision":"main"}],"error":{"category":"LocalEntryNotFoundError","message":"fixture failure"}}
+{"multilingual":true,"kind":"missing","failure":"ConnectError","calls":[{"repo_id":"openai/whisper-tiny","filename":"tokenizer.json","revision":"main"}],"error":{"category":"ConnectError","message":"fixture failure"}}
+{"multilingual":true,"kind":"missing","failure":"ValueError","calls":[{"repo_id":"openai/whisper-tiny","filename":"tokenizer.json","revision":"main"}],"error":{"category":"ValueError","message":"fixture failure"}}
+{"multilingual":true,"kind":"missing","failure":"OSError","calls":[{"repo_id":"openai/whisper-tiny","filename":"tokenizer.json","revision":"main"}],"error":{"category":"OSError","message":"fixture failure"}}
+{"multilingual":true,"kind":"directory","failure":null,"calls":[{"repo_id":"openai/whisper-tiny","filename":"tokenizer.json","revision":"main"}],"path":"/work/download/tokenizer.json"}
+{"multilingual":true,"kind":"directory","failure":"HfHubHTTPError","calls":[{"repo_id":"openai/whisper-tiny","filename":"tokenizer.json","revision":"main"}],"error":{"category":"HfHubHTTPError","message":"fixture failure"}}
+{"multilingual":true,"kind":"directory","failure":"LocalEntryNotFoundError","calls":[{"repo_id":"openai/whisper-tiny","filename":"tokenizer.json","revision":"main"}],"error":{"category":"LocalEntryNotFoundError","message":"fixture failure"}}
+{"multilingual":true,"kind":"directory","failure":"ConnectError","calls":[{"repo_id":"openai/whisper-tiny","filename":"tokenizer.json","revision":"main"}],"error":{"category":"ConnectError","message":"fixture failure"}}
+{"multilingual":true,"kind":"directory","failure":"ValueError","calls":[{"repo_id":"openai/whisper-tiny","filename":"tokenizer.json","revision":"main"}],"error":{"category":"ValueError","message":"fixture failure"}}
+{"multilingual":true,"kind":"directory","failure":"OSError","calls":[{"repo_id":"openai/whisper-tiny","filename":"tokenizer.json","revision":"main"}],"error":{"category":"OSError","message":"fixture failure"}}
+{"multilingual":true,"kind":"symlink_file","failure":null,"calls":[],"path":"/work/model/tokenizer.json"}
+{"multilingual":true,"kind":"symlink_file","failure":"HfHubHTTPError","calls":[],"path":"/work/model/tokenizer.json"}
+{"multilingual":true,"kind":"symlink_file","failure":"LocalEntryNotFoundError","calls":[],"path":"/work/model/tokenizer.json"}
+{"multilingual":true,"kind":"symlink_file","failure":"ConnectError","calls":[],"path":"/work/model/tokenizer.json"}
+{"multilingual":true,"kind":"symlink_file","failure":"ValueError","calls":[],"path":"/work/model/tokenizer.json"}
+{"multilingual":true,"kind":"symlink_file","failure":"OSError","calls":[],"path":"/work/model/tokenizer.json"}
+{"multilingual":true,"kind":"symlink_directory","failure":null,"calls":[{"repo_id":"openai/whisper-tiny","filename":"tokenizer.json","revision":"main"}],"path":"/work/download/tokenizer.json"}
+{"multilingual":true,"kind":"symlink_directory","failure":"HfHubHTTPError","calls":[{"repo_id":"openai/whisper-tiny","filename":"tokenizer.json","revision":"main"}],"error":{"category":"HfHubHTTPError","message":"fixture failure"}}
+{"multilingual":true,"kind":"symlink_directory","failure":"LocalEntryNotFoundError","calls":[{"repo_id":"openai/whisper-tiny","filename":"tokenizer.json","revision":"main"}],"error":{"category":"LocalEntryNotFoundError","message":"fixture failure"}}
+{"multilingual":true,"kind":"symlink_directory","failure":"ConnectError","calls":[{"repo_id":"openai/whisper-tiny","filename":"tokenizer.json","revision":"main"}],"error":{"category":"ConnectError","message":"fixture failure"}}
+{"multilingual":true,"kind":"symlink_directory","failure":"ValueError","calls":[{"repo_id":"openai/whisper-tiny","filename":"tokenizer.json","revision":"main"}],"error":{"category":"ValueError","message":"fixture failure"}}
+{"multilingual":true,"kind":"symlink_directory","failure":"OSError","calls":[{"repo_id":"openai/whisper-tiny","filename":"tokenizer.json","revision":"main"}],"error":{"category":"OSError","message":"fixture failure"}}
+{"multilingual":true,"kind":"dangling","failure":null,"calls":[{"repo_id":"openai/whisper-tiny","filename":"tokenizer.json","revision":"main"}],"path":"/work/download/tokenizer.json"}
+{"multilingual":true,"kind":"dangling","failure":"HfHubHTTPError","calls":[{"repo_id":"openai/whisper-tiny","filename":"tokenizer.json","revision":"main"}],"error":{"category":"HfHubHTTPError","message":"fixture failure"}}
+{"multilingual":true,"kind":"dangling","failure":"LocalEntryNotFoundError","calls":[{"repo_id":"openai/whisper-tiny","filename":"tokenizer.json","revision":"main"}],"error":{"category":"LocalEntryNotFoundError","message":"fixture failure"}}
+{"multilingual":true,"kind":"dangling","failure":"ConnectError","calls":[{"repo_id":"openai/whisper-tiny","filename":"tokenizer.json","revision":"main"}],"error":{"category":"ConnectError","message":"fixture failure"}}
+{"multilingual":true,"kind":"dangling","failure":"ValueError","calls":[{"repo_id":"openai/whisper-tiny","filename":"tokenizer.json","revision":"main"}],"error":{"category":"ValueError","message":"fixture failure"}}
+{"multilingual":true,"kind":"dangling","failure":"OSError","calls":[{"repo_id":"openai/whisper-tiny","filename":"tokenizer.json","revision":"main"}],"error":{"category":"OSError","message":"fixture failure"}}
+{"multilingual":true,"kind":"loop","failure":null,"calls":[{"repo_id":"openai/whisper-tiny","filename":"tokenizer.json","revision":"main"}],"path":"/work/download/tokenizer.json"}
+{"multilingual":true,"kind":"loop","failure":"HfHubHTTPError","calls":[{"repo_id":"openai/whisper-tiny","filename":"tokenizer.json","revision":"main"}],"error":{"category":"HfHubHTTPError","message":"fixture failure"}}
+{"multilingual":true,"kind":"loop","failure":"LocalEntryNotFoundError","calls":[{"repo_id":"openai/whisper-tiny","filename":"tokenizer.json","revision":"main"}],"error":{"category":"LocalEntryNotFoundError","message":"fixture failure"}}
+{"multilingual":true,"kind":"loop","failure":"ConnectError","calls":[{"repo_id":"openai/whisper-tiny","filename":"tokenizer.json","revision":"main"}],"error":{"category":"ConnectError","message":"fixture failure"}}
+{"multilingual":true,"kind":"loop","failure":"ValueError","calls":[{"repo_id":"openai/whisper-tiny","filename":"tokenizer.json","revision":"main"}],"error":{"category":"ValueError","message":"fixture failure"}}
+{"multilingual":true,"kind":"loop","failure":"OSError","calls":[{"repo_id":"openai/whisper-tiny","filename":"tokenizer.json","revision":"main"}],"error":{"category":"OSError","message":"fixture failure"}}
+{"multilingual":true,"kind":"parentfile","failure":null,"calls":[{"repo_id":"openai/whisper-tiny","filename":"tokenizer.json","revision":"main"}],"path":"/work/download/tokenizer.json"}
+{"multilingual":true,"kind":"parentfile","failure":"HfHubHTTPError","calls":[{"repo_id":"openai/whisper-tiny","filename":"tokenizer.json","revision":"main"}],"error":{"category":"HfHubHTTPError","message":"fixture failure"}}
+{"multilingual":true,"kind":"parentfile","failure":"LocalEntryNotFoundError","calls":[{"repo_id":"openai/whisper-tiny","filename":"tokenizer.json","revision":"main"}],"error":{"category":"LocalEntryNotFoundError","message":"fixture failure"}}
+{"multilingual":true,"kind":"parentfile","failure":"ConnectError","calls":[{"repo_id":"openai/whisper-tiny","filename":"tokenizer.json","revision":"main"}],"error":{"category":"ConnectError","message":"fixture failure"}}
+{"multilingual":true,"kind":"parentfile","failure":"ValueError","calls":[{"repo_id":"openai/whisper-tiny","filename":"tokenizer.json","revision":"main"}],"error":{"category":"ValueError","message":"fixture failure"}}
+{"multilingual":true,"kind":"parentfile","failure":"OSError","calls":[{"repo_id":"openai/whisper-tiny","filename":"tokenizer.json","revision":"main"}],"error":{"category":"OSError","message":"fixture failure"}}
+{"multilingual":true,"kind":"nul_directory","failure":null,"calls":[{"repo_id":"openai/whisper-tiny","filename":"tokenizer.json","revision":"main"}],"path":"/work/download/tokenizer.json"}
+{"multilingual":true,"kind":"nul_directory","failure":"HfHubHTTPError","calls":[{"repo_id":"openai/whisper-tiny","filename":"tokenizer.json","revision":"main"}],"error":{"category":"HfHubHTTPError","message":"fixture failure"}}
+{"multilingual":true,"kind":"nul_directory","failure":"LocalEntryNotFoundError","calls":[{"repo_id":"openai/whisper-tiny","filename":"tokenizer.json","revision":"main"}],"error":{"category":"LocalEntryNotFoundError","message":"fixture failure"}}
+{"multilingual":true,"kind":"nul_directory","failure":"ConnectError","calls":[{"repo_id":"openai/whisper-tiny","filename":"tokenizer.json","revision":"main"}],"error":{"category":"ConnectError","message":"fixture failure"}}
+{"multilingual":true,"kind":"nul_directory","failure":"ValueError","calls":[{"repo_id":"openai/whisper-tiny","filename":"tokenizer.json","revision":"main"}],"error":{"category":"ValueError","message":"fixture failure"}}
+{"multilingual":true,"kind":"nul_directory","failure":"OSError","calls":[{"repo_id":"openai/whisper-tiny","filename":"tokenizer.json","revision":"main"}],"error":{"category":"OSError","message":"fixture failure"}}

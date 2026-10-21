@@ -1,0 +1,8 @@
+# ezlocalai/LLM.py sha256=2d54d53e014e99bcd91e036736dc4f45f8160220c35da0ac582e588db52ea607
+# Pipes.py sha256=8238cef03d4a1db6e775d7f62234bcf998d8f08bd9fc15f1d8a36ea0d3280005
+# Unchanged full _chat_stream, _TrackedInferenceStream, and finish_inference; real threads, controlled native callback gates. Close/keepalive bounded to 4.8..6 seconds.
+unstarted	created:0:0,closed:0:1
+complete	created:0:0,first:0,final:0:stop,exhausted:1
+cancel_one	created:0:0,bounded_close:0,native_done:1
+cancel_many	created:0:0,bounded_close:1,native_done:1
+keepalive	created:0:0,keepalive:0,completed:1:2
