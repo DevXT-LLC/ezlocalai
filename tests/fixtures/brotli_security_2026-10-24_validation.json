@@ -1,0 +1,48 @@
+{
+  "date": "2026-10-24",
+  "cve": "CVE-2026-111497",
+  "upstream_version": "1.2.1",
+  "source_url": "https://github.com/google/brotli/archive/refs/tags/v1.2.1.tar.gz",
+  "source_sha256": "98d35d11a78dc453aebb7d10c3748f3f73ff78c8267c0dc697b8631f67bf7e8f",
+  "package_version": "1.2.1-0devxt1",
+  "platform_checks": [
+    {
+      "ubuntu": "22.04",
+      "architecture": "amd64",
+      "ctest_passed": 12,
+      "image_id": "sha256:10d0eeb556b7823b0ba4580b5e015bc3a46a366680e3a3015db235f5c65946ce"
+    },
+    {
+      "ubuntu": "24.04",
+      "architecture": "amd64",
+      "ctest_passed": 12,
+      "image_id": "sha256:069cf1fdd9f3b89a99dce1dc14f0833b3c79fc5658c7d9dacda7588cc142a72f"
+    },
+    {
+      "ubuntu": "24.04",
+      "architecture": "arm64",
+      "execution": "QEMU emulation",
+      "ctest_passed": 12,
+      "image_id": "sha256:aa85268a19387bf5d1b15be5c8af4423377ef073378e238562e2fac4e420877c"
+    }
+  ],
+  "scope": [
+    "checksum-verified upstream library build",
+    "12 upstream CTest round-trip cases per image",
+    "Debian package upgrade over distro libbrotli1 and libbrotli-dev",
+    "dynamic and static encoder/decoder version checks",
+    "libcurl shared-library linkage",
+    "dpkg --audit",
+    "Pillow wheel decoder replaced with patched library under its expected filename",
+    "Pinned FreeType library loads and renders a DejaVuSans glyph"
+  ],
+  "full_engine_builds": false,
+  "physical_gpu_validation": false,
+  "deployments": [],
+  "font_check": {
+    "image_id": "sha256:fe7b0d3d521e6a52f874b4579e8b6327de07c7059f220ebfa04c864954558f53",
+    "test_source": "tests/brotli_security_smoke.c",
+    "command": "gcc tests/brotli_security_smoke.c $(pkg-config --cflags freetype2) /opt/ezlocalai/storyboard/lib/libfreetype-*.so.* -lbrotlidec -lbrotlienc -ldl -o /tmp/brotli-security-smoke; LD_LIBRARY_PATH=/opt/ezlocalai/storyboard/lib /tmp/brotli-security-smoke",
+    "passed": true
+  }
+}

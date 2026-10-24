@@ -67,6 +67,10 @@ RUN apt-get update --fix-missing && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* /var/cache/apt/* /tmp/* /var/tmp/*
 
+# Ubuntu has not published a Brotli decoder backport for CVE-2026-111497.
+COPY docker/install-patched-brotli.sh /tmp/install-patched-brotli.sh
+RUN sh /tmp/install-patched-brotli.sh && rm /tmp/install-patched-brotli.sh
+
 # JetPack 6.1 ships an older CMake than LibTorch 2.9.1 requires.
 RUN curl -fL https://github.com/Kitware/CMake/releases/download/v3.31.8/cmake-3.31.8-linux-aarch64.tar.gz -o /tmp/cmake.tar.gz && \
     echo "609735983e3bdf24b6ab379d918458d64196fe72b98226f62dd5e9fe7b2997cc  /tmp/cmake.tar.gz" | sha256sum -c - && \
