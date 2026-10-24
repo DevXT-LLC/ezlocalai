@@ -1,5 +1,6 @@
-# Native libraries from the exact installed Pillow distribution, plus its
-# bundled Raqm source. No Python bindings or interpreter enter the output.
+# Font libraries from the pinned Pillow distribution and its bundled Raqm
+# source. Brotli is overlaid with the patched system package, preserving the
+# wheel filenames expected by FreeType. No Python interpreter enters the output.
 cmake_minimum_required(VERSION 3.25)
 if(NOT DEFINED DESTINATION)
     message(FATAL_ERROR "Set DESTINATION to the storyboard dependency directory")
@@ -46,7 +47,21 @@ foreach(index RANGE ${last})
             if(NOT matches EQUAL 1)
                 message(FATAL_ERROR "Expected one pinned ${stem} library")
             endif()
-            file(COPY ${library} DESTINATION "${DESTINATION}/lib")
+            if(stem STREQUAL "brotlidec" OR stem STREQUAL "brotlicommon")
+                # Pillow's wheel carries its own decoder under hashed filenames.
+                # Replacing only the system package would leave that copy exposed.
+                find_program(PKG_CONFIG_EXECUTABLE pkg-config REQUIRED)
+                execute_process(COMMAND "${PKG_CONFIG_EXECUTABLE}" --atleast-version=1.2.1 libbrotlidec
+                    COMMAND_ERROR_IS_FATAL ANY)
+                execute_process(COMMAND "${PKG_CONFIG_EXECUTABLE}" --variable=libdir libbrotlidec
+                    OUTPUT_VARIABLE patched_brotli_libdir OUTPUT_STRIP_TRAILING_WHITESPACE
+                    COMMAND_ERROR_IS_FATAL ANY)
+                get_filename_component(wheel_filename "${library}" NAME)
+                file(COPY_FILE "${patched_brotli_libdir}/lib${stem}.so.1"
+                    "${DESTINATION}/lib/${wheel_filename}")
+            else()
+                file(COPY ${library} DESTINATION "${DESTINATION}/lib")
+            endif()
         endforeach()
     elseif(kind STREQUAL "raqm")
         set(raqm "${extract}/pillow-12.3.0/src/thirdparty/raqm")
@@ -75,7 +90,7 @@ endforeach()
 file(COPY /usr/include/freetype2 DESTINATION "${DESTINATION}/include")
 file(GLOB fribidi "/usr/lib/*-linux-gnu/libfribidi.so.0*")
 file(COPY ${fribidi} DESTINATION "${DESTINATION}/lib")
-foreach(package libfribidi0 libfreetype-dev fonts-dejavu-core)
+foreach(package libfribidi0 libfreetype-dev fonts-dejavu-core libbrotli1)
     file(COPY "/usr/share/doc/${package}/copyright" DESTINATION "${DESTINATION}/licenses/${package}")
 endforeach()
 foreach(font DejaVuSans DejaVuSans-Bold)

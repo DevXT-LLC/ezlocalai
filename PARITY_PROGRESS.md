@@ -2,6 +2,30 @@
 
 The goal remains behavior parity with ezlocalai within the scope below, with all first-party executable code implemented in C++. It is **not complete**.
 
+## Brotli decoder security packages (2026-10-24)
+
+CPU, CUDA/GB10, ROCm, and Jetson image recipes now install checksum-pinned
+upstream Brotli 1.2.1 after their distro dependencies. Ubuntu 22.04/24.04 still
+supply affected Brotli versions while CVE-2026-111497 is under evaluation.
+The font dependency stages also install the patched package, and the storyboard
+installer overlays Pillow’s hashed Brotli library copies with the patched build.
+Pinned FreeType, HarfBuzz, PNG, and font bytes remain unchanged.
+The shared installer builds real replacement `libbrotli1` and `libbrotli-dev`
+packages (1.2.1-0devxt1), preserving system library paths, SONAMEs, headers,
+static archive names, and package ownership. It runs the upstream CTest gate
+before installation and verifies the installed pkg-config version.
+
+Validation: native amd64 library/package builds pass on Ubuntu 22.04 and 24.04,
+plus an emulated Ubuntu 24.04 arm64 build, with 12 upstream tests each.
+Dynamic/static encoder and decoder version checks, libcurl linkage, and
+`dpkg --audit` pass. `tests/brotli_security_smoke.c` also checks the replaced
+wheel decoder and renders a glyph with the pinned FreeType/font libraries.
+Image IDs and source checksum are in
+`tests/fixtures/brotli_security_2026-10-24_validation.json`.
+
+Full worker/engine package gates, CUDA/GB10/ROCm/Jetson hardware execution, and
+fleet rollout were not performed. No deployment or rollback tags were created.
+
 ## Default voices (2026-10-20)
 
 The repository did not include Python's default voices: `voices/` was

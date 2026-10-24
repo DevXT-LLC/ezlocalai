@@ -14,8 +14,11 @@ RUN --mount=type=cache,id=ezlocalai-audio-cpu-${TARGETARCH},target=/var/cache/ez
 FROM ubuntu:24.04 AS storyboard-dependencies
 ARG TARGETARCH
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        ca-certificates cmake gcc libfreetype-dev libharfbuzz-dev libfribidi-dev fonts-dejavu-core && \
+        ca-certificates cmake gcc curl make pkg-config libbrotli-dev libfreetype-dev libharfbuzz-dev libfribidi-dev fonts-dejavu-core && \
     rm -rf /var/lib/apt/lists/*
+# The font dependency stage also embeds Brotli through Pillow's native wheel.
+COPY docker/install-patched-brotli.sh /tmp/install-patched-brotli.sh
+RUN sh /tmp/install-patched-brotli.sh && rm /tmp/install-patched-brotli.sh
 COPY cmake/StoryboardDependencies.cmake cmake/storyboard-dependencies.json cmake/gb10-storyboard-dependencies.json /tmp/storyboard-dependencies/
 # GB10's font/text libraries are ordinary ARM64 CPU libraries.
 RUN --mount=type=cache,id=ezlocalai-storyboard-cpu-${TARGETARCH},target=/var/cache/ezlocalai-storyboard \
@@ -81,6 +84,10 @@ RUN apt-get update --fix-missing && \
         wget && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* /var/cache/apt/* /tmp/* /var/tmp/*
+
+# Ubuntu has not published a Brotli decoder backport for CVE-2026-111497.
+COPY docker/install-patched-brotli.sh /tmp/install-patched-brotli.sh
+RUN sh /tmp/install-patched-brotli.sh && rm /tmp/install-patched-brotli.sh
 
 WORKDIR /app
 RUN curl -fL https://github.com/opencv/opencv/archive/refs/tags/4.13.0.tar.gz -o /tmp/opencv.tar.gz && \
