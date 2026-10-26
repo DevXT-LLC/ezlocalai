@@ -1,0 +1,154 @@
+{
+  "date": "2026-10-26",
+  "baseline_source_commit": "c444364",
+  "reported_deployment_event": "1792988153027-801f2408",
+  "cause": "The Docker package gate selected llm_cache_reference, which requires Python source files outside the image. Earlier validation configured a real reference checkout and missed this packaging precondition. The ROCm speculative source check had the same external-checkout requirement.",
+  "fix": [
+    "Keep strict source checks for development and use explicit --fixtures package tests.",
+    "Run all recorded cases and managed checks in package mode; reject missing fixtures and incorrect expected values.",
+    "Use the HIP fixture driver for HIP builds and isolate inherited GPU masks."
+  ],
+  "validation": {
+    "cuda_package": {
+      "passed": 60,
+      "failed": 0,
+      "seconds": 292.55,
+      "configured_reference_root": "/ezlocalai",
+      "configured_reference_root_exists": false
+    },
+    "recorded_cache_ram_cases": 9111,
+    "recorded_speculative_cases": 2500,
+    "regression_cases": [
+      {
+        "name": "no_reference_checkout",
+        "exit_code": 1,
+        "expected_success": false,
+        "output": "cache reference source missing: /ezlocalai/ezlocalai/LLM.py"
+      },
+      {
+        "name": "packaged_fixtures",
+        "exit_code": 0,
+        "expected_success": true,
+        "output": "Verified 9111 recorded cache/RAM cases, native memory policy, managed startup/restoration and engine revision defaults; fixture-only package mode"
+      },
+      {
+        "name": "valid_strict_reference",
+        "exit_code": 0,
+        "expected_success": true,
+        "output": "Verified 9111 recorded cache/RAM cases, native memory policy, managed startup/restoration and engine revision defaults; Python source hashes verified"
+      },
+      {
+        "name": "missing_fixtures",
+        "exit_code": 1,
+        "expected_success": false,
+        "output": "cache fixture missing: /tmp/missing-cache-fixtures/llm_cache_resolve_cases.tsv"
+      },
+      {
+        "name": "wrong_reference_hash",
+        "exit_code": 1,
+        "expected_success": false,
+        "output": "cache source hash: /tmp/cache-wrong-reference/ezlocalai/LLM.py"
+      },
+      {
+        "name": "wrong_recorded_expectation",
+        "exit_code": 1,
+        "expected_success": false,
+        "output": "resolve cache case 0: auto for -9,223,372,036,854,775,808 context tokens"
+      },
+      {
+        "name": "speculative_no_reference",
+        "exit_code": 1,
+        "expected_success": false,
+        "output": "speculative reference source missing: /ezlocalai/ezlocalai/LLM.py"
+      },
+      {
+        "name": "speculative_packaged_fixtures",
+        "exit_code": 0,
+        "expected_success": true,
+        "output": "Verified 2500 recorded speculative cases and managed engine startup/restoration; fixture-only package mode"
+      },
+      {
+        "name": "speculative_strict_valid",
+        "exit_code": 0,
+        "expected_success": true,
+        "output": "Verified 2500 recorded speculative cases and managed engine startup/restoration; Python source hashes verified"
+      },
+      {
+        "name": "speculative_missing_fixtures",
+        "exit_code": 1,
+        "expected_success": false,
+        "output": "speculative fixture missing: /tmp/missing-speculative-fixtures/llm_speculative_size_cases.tsv"
+      },
+      {
+        "name": "speculative_wrong_source",
+        "exit_code": 1,
+        "expected_success": false,
+        "output": "speculative reference hash: /tmp/cache-wrong-reference/ezlocalai/LLM.py"
+      },
+      {
+        "name": "speculative_wrong_expectation",
+        "exit_code": 1,
+        "expected_success": false,
+        "output": "model size case 0"
+      }
+    ],
+    "hip_cache_simulation": {
+      "fixture_mode_passed": true,
+      "strict_reference_mode_passed": true,
+      "inherited_gpu_masks_passed": true,
+      "real_rocm_hardware": false
+    },
+    "docker_build_check": {
+      "host": "DevXT5090",
+      "architecture": "amd64",
+      "network": "none",
+      "reference_checkout_present": false,
+      "developer_oracle_present": false,
+      "passed": 2,
+      "failed": 0,
+      "base_image": "192.168.1.214:5000/devxt/ezlocalai-cuda@sha256:3db72b600414ab351f5ee14334ee1796faa02f7321087e2ae12ec00914cc63b1",
+      "image_id": "sha256:ef7b08c94bbbfadcdf9ca9c70bfd934c74728ecff5ad075e85d387d6e5ca18f3",
+      "scope": "Test-only Docker image using existing CUDA base plus rebuilt test binaries and HIP fixture; not a complete production image build."
+    },
+    "recipe_selection": {
+      "cpu": {
+        "cache_package": true,
+        "cache_source_reference": false,
+        "speculative_hip_package": false,
+        "speculative_hip_source_reference": false
+      },
+      "cuda": {
+        "cache_package": true,
+        "cache_source_reference": false,
+        "speculative_hip_package": false,
+        "speculative_hip_source_reference": false
+      },
+      "rocm": {
+        "cache_package": true,
+        "cache_source_reference": false,
+        "speculative_hip_package": true,
+        "speculative_hip_source_reference": false
+      },
+      "jetson": {
+        "cache_package": true,
+        "cache_source_reference": false,
+        "speculative_hip_package": false,
+        "speculative_hip_source_reference": false
+      }
+    }
+  },
+  "source_sha256": {
+    "CMakeLists.txt": "15537c0bf4228b48a79a917df0d5e574cbcafd73fee47c0bcb447b06057eb8ec",
+    "cuda.Dockerfile": "ab8849fc0d706cb462622ab9259a6a2c6afe888d71d43cfa479e24cf3fae80bf",
+    "cpu.Dockerfile": "461e2bbbc2b2df47dcfb209ba7ddf4d7bf9190847e0c4f8184e32fc796a9ff7f",
+    "rocm.Dockerfile": "1b147456f23b0d495dc6daaa5d811e42cf4b78dfdf70968da6ebec825c07156c",
+    "jetson.Dockerfile": "171028bebcdb73ad1a4910ec978c2b1115a1dae2ab4f8d1378205423f142624f",
+    "tests/test_llm_cache.cpp": "fbe0c151b5b15e74b12980da79301a8e48a02d80874934ff396e42d67096bb6c",
+    "tests/test_llm_speculative.cpp": "81a44dd004ae4894f670e8608ff9f047668914ef9ab57e968a1d8a874a80a846"
+  },
+  "limitations": [
+    "Complete production images were not rebuilt or deployed.",
+    "GB10, ROCm and Jetson hardware were not exercised.",
+    "HIP validation uses simulated discovery/driver APIs with the existing CUDA dependencies."
+  ]
+}

@@ -41,11 +41,22 @@ bool same(double value, const std::string &expected) {
     const auto target = std::strtod(expected.c_str(), nullptr);
     return (std::isnan(value) && std::isnan(target)) || (value == target && (value != 0 || std::signbit(value) == std::signbit(target)));
 }
-template<class F> size_t cases(const fs::path &reference, const fs::path &fixtures, const std::string &name, F callback) {
-    std::istringstream input(read(fixtures / ("llm_speculative_" + name + "_cases.tsv"))); size_t count = 0;
+template<class F> size_t cases(const std::optional<fs::path> &reference, const fs::path &fixtures, const std::string &name, F callback) {
+    const auto path = fixtures / ("llm_speculative_" + name + "_cases.tsv");
+    expect(fs::is_regular_file(path), "speculative fixture missing: " + path.string());
+    std::istringstream input(read(path)); size_t count = 0;
     for (std::string line; std::getline(input, line);) {
         if (line.empty()) continue;
-        if (line[0] == '#') { const auto at = line.find(" sha256="); expect(sha256(read(reference / line.substr(2, at - 2))) == line.substr(at + 8), "speculative reference hash"); continue; }
+        if (line[0] == '#') {
+            const auto at = line.find(" sha256=");
+            expect(at != std::string::npos, "speculative fixture source hash missing: " + path.string());
+            if (reference) {
+                const auto source = *reference / line.substr(2, at - 2);
+                expect(fs::is_regular_file(source), "speculative reference source missing: " + source.string());
+                expect(sha256(read(source)) == line.substr(at + 8), "speculative reference hash: " + source.string());
+            }
+            continue;
+        }
         callback(split(line)); ++count;
     }
     return count;
@@ -57,7 +68,7 @@ ezlocalai::LlmBatchProbes probes(const std::string &encoded, bool available, con
     return {[=] { record("A"); return available; }, [=] { record("C"); return static_cast<int>(devices.size()); }, {}, {},
         [=](int64_t index) { record("P:" + std::to_string(index)); if (index < 0 || static_cast<size_t>(index) >= devices.size()) throw std::runtime_error("fixture properties failed"); return devices[index]; }};
 }
-size_t reference_cases(const fs::path &reference, const fs::path &fixtures) {
+size_t reference_cases(const std::optional<fs::path> &reference, const fs::path &fixtures) {
     const auto sizes = cases(reference, fixtures, "size", [](const auto &c) { expect(same(ezlocalai::llm_model_size_billions(unhex(c[1])), c[2]), "model size case " + c[0]); });
     const auto lengths = cases(reference, fixtures, "length", [](const auto &c) {
         std::string trace, category = "S", message; std::pair<int, double> value;
@@ -158,13 +169,16 @@ void managed_cases(const fs::path &root) {
 int main(int argc, char **argv) {
     try {
         if (argc == 3 && std::string(argv[1]) == "--cuda") { managed_cases(argv[2]); return 0; }
-        expect(argc == 3, "reference root and fixtures required"); const auto count = reference_cases(argv[1], argv[2]);
+        expect(argc == 3, "usage: test_llm_speculative REFERENCE_ROOT|--fixtures FIXTURE_DIRECTORY");
+        const auto reference = std::string(argv[1]) == "--fixtures" ? std::optional<fs::path>{} : fs::path(argv[1]);
+        const auto count = reference_cases(reference, argv[2]);
         const auto directory = fs::temp_directory_path() / ("ezl-speculative-" + std::to_string(getpid())); fs::create_directories(directory);
         struct Cleanup { fs::path path; ~Cleanup() { fs::remove_all(path); } } cleanup{directory};
         std::ofstream(directory / "devices.tsv") << "NVIDIA GeForce RTX 5090\t12\t0\t34359738368\t32212254720\nNVIDIA GeForce RTX 3090\t8\t6\t25769803776\t21474836480\n";
         setenv("EZLOCALAI_TEST_CUDA_DEVICES", (directory / "devices.tsv").c_str(), 1); setenv("LD_LIBRARY_PATH", TEST_CUDA_DRIVER_DIRECTORY, 1);
         const auto result = ezlocalai::run_process_to_files({fs::absolute(argv[0]).string(), "--cuda", directory.string()}, (directory / "child.log").string(), "", 40, true);
         expect(!result.timed_out && result.status == 0, "managed speculative integration: " + read(directory / "child.log"));
-        std::cout << "Verified " << count << " source speculative cases and managed engine startup/restoration\n"; return 0;
+        std::cout << "Verified " << count << " recorded speculative cases and managed engine startup/restoration"
+            << (reference ? "; Python source hashes verified\n" : "; fixture-only package mode\n"); return 0;
     } catch (const std::exception &error) { std::cerr << error.what() << '\n'; return 1; }
 }

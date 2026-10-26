@@ -2,6 +2,38 @@
 
 The goal remains behavior parity with ezlocalai within the scope below, with all first-party executable code implemented in C++. It is **not complete**.
 
+## Oracle-free cache package gates (2026-10-26)
+
+The optimization merge added `llm_cache_reference` to the image gate, but that
+strict test reads the external Python checkout. Images do not contain it, so
+production builds failed at source-hash validation. The earlier 60-test run
+used a configured oracle and did not cover this packaging condition. The
+ROCm speculative-decoding gate had the same checkout dependency.
+
+Package gates now use explicit fixture-only modes while the strict developer
+reference tests retain source-file and hash verification. All 9,111 recorded
+cache/RAM cases, 2,500 speculative cases and their managed startup/restoration
+checks still run. Missing fixtures, incorrect expected results, and missing or
+modified source in strict mode fail explicitly. HIP builds select the HIP
+fixture driver, and cache tests clear inherited GPU masks. Runtime inference,
+cache retention, memory budgets and defaults are unchanged.
+
+Validation: all 60 CUDA package checks passed with the configured reference
+path absent (292.55 s). Both package modes passed in a Docker build on the
+5090 with networking disabled and neither a reference checkout nor the local
+oracle present. This test-only image extends the existing CUDA base with rebuilt
+test binaries; it is not a complete production image build. Its image ID and
+base digest are in `tests/fixtures/cache_package_gate_20261026_validation.json`.
+Strict reference, missing/tampered fixture and missing/tampered source checks
+passed their expected positive/negative outcomes. The HIP cache discovery
+simulation passed with and without inherited GPU masks.
+
+No production container was replaced and no production image was published.
+Complete CUDA/GB10, CPU, ROCm and Jetson image builds and hardware deployment
+remain unverified by this fix. Handoff: merge the build-gate correction, rerun
+the existing image automation, and confirm the reported GB10 build advances
+past the package gate before performing the optimization canary.
+
 ## Conversation-cache retention and CUDA optimization (2026-10-25)
 
 The worker dropped WorkConductor's `prompt_cache_key`, and the pinned engine

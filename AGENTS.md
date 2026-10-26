@@ -52,6 +52,9 @@ For quick iteration:
 - Each Dockerfile's final `ctest -R '^(...)$'` list is the **package gate**.
   When you add a test that must ship, add it to that regex and to the
   `cuda_package` CMake target.
+- Package gates must run without `EZLOCALAI_REFERENCE_ROOT`: images do not
+  include the Python checkout. Use explicit recorded-fixture modes for package
+  checks and retain strict source-hash checks as separate developer tests.
 - The compose gate runs on the host, because it needs the Docker client but no
   native dependencies:
   `cmake -S . -B build-compose -DEZLOCALAI_COMPOSE_GATE_ONLY=ON && make -C build-compose test_compose_profiles && ctest --test-dir build-compose`.
