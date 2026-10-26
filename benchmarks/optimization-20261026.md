@@ -131,9 +131,8 @@ state was also byte-identical between the two modes.
 
 This is only three return samples per mode. The 4090 stock baseline was already
 452.35 ms, so its apparent synchronous-to-async difference is insufficient to
-establish a repeatable improvement. This screen motivated the separately
-qualified bounded pinned-staging implementation; it is not the final candidate's
-performance result.
+establish a repeatable improvement. This screen motivated a subsequent bounded
+pinned-staging experiment; it is not a result for that later candidate.
 
 ## Full-worker transport and completion A/B
 
