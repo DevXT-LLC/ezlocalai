@@ -1,0 +1,575 @@
+{
+  "date": "2026-10-26",
+  "status": "native_dispatch_qualified_j_ubatch_pending",
+  "scope": "CPU request preparation and actual worker HTTP with a deterministic loopback mock engine; no GPU inference in these dispatch measurements",
+  "source": {
+    "baseline_commit": "694137438e62895b89ed3d42b1d7790486e47c65",
+    "runtime_change_commit": "8e1f9d607d69982cd6e49107fbf0af279646b153",
+    "http_benchmark_commit": "fb6b3afc483cf8921691f40c51b356d0c264d4cf",
+    "media_fixture_only_commit": "c36c9b71c670caae464a95ef8c8c5596e16f6ae0",
+    "image_id": "sha256:845c0d4edad3ee960bb22e76a48de843560d4a197f6a430e799e3136b8a032f4",
+    "worker_sha256": {
+      "baseline": "b411c47a897a4decc9d65ce0a5aca4f41ee8e54f3703833e23c4149e8ecab7fd",
+      "candidate": "ae6634f1d0f32a05117c3ae79b1b8182a31a476ac614719ccec0e95b88ee5a52"
+    },
+    "build_scope": "Executables rebuilt inside an owned CPU-only container from the existing full CUDA production image; no new Docker or other-platform image built",
+    "engine_dependencies_unchanged": true
+  },
+  "changes": [
+    "Reuse ordered outer fields and normalized messages during queued input preparation",
+    "Preserve last duplicate-key value, first-key output position, callback order and error behavior",
+    "Keep the existing audio helper boundary for every present audio_format, including falsey values",
+    "Add explicit oracle-free llm_input_package gate without relaxing developer source-hash checks",
+    "Synchronize only the media parent-death fixture with the active worker generation before abandoning its parent"
+  ],
+  "actual_function_benchmark": {
+    "function": "llm_prepare_text_image_input",
+    "benchmark": "benchmarks/bench_input.cpp",
+    "order": [
+      "baseline",
+      "candidate",
+      "candidate",
+      "baseline"
+    ],
+    "sample_batches_per_variant_case": 14,
+    "unit": "milliseconds per preparation call",
+    "cases": [
+      {
+        "case": "text-1024",
+        "baseline_ms": 0.020757835000000002,
+        "candidate_ms": 0.00875687,
+        "reduction_percent": 57.814145839390285,
+        "exact_payload_and_events": true,
+        "samples_per_variant": 14,
+        "request_bytes": 1215,
+        "prepared_bytes": 1398,
+        "request_sha256": "b0126b3f8702ad8e02228c0450ad6766d615df6fb738b2168ec1056c0ae1b69f",
+        "prepared_sha256": "42a3b3af657f223e6012dd56460b010e5d321bc027a4266f616b5d07699c9e4d",
+        "helper_events_sha256": "daf07c749f08d32fa8da120a9bd98a93bcd9df2df8fd11b9e3caa916ec87a0e8",
+        "helper_events": [
+          "load"
+        ],
+        "iterations_per_sample": 100
+      },
+      {
+        "case": "text-102400",
+        "baseline_ms": 0.8938949,
+        "candidate_ms": 0.3235343,
+        "reduction_percent": 63.80622598920746,
+        "exact_payload_and_events": true,
+        "samples_per_variant": 14,
+        "request_bytes": 108828,
+        "prepared_bytes": 109011,
+        "request_sha256": "81c47389e369e2edee555a3a9596f985ee68b385769d51b62681c81086eb0be2",
+        "prepared_sha256": "2fc48dd138b649581246509e7eee211a0701ccc6e44cae8243ca7fbba161ce68",
+        "helper_events_sha256": "daf07c749f08d32fa8da120a9bd98a93bcd9df2df8fd11b9e3caa916ec87a0e8",
+        "helper_events": [
+          "load"
+        ],
+        "iterations_per_sample": 10
+      },
+      {
+        "case": "text-1048576",
+        "baseline_ms": 13.241694666666666,
+        "candidate_ms": 3.7532335000000003,
+        "reduction_percent": 71.6559428798187,
+        "exact_payload_and_events": true,
+        "samples_per_variant": 14,
+        "request_bytes": 1113231,
+        "prepared_bytes": 1113414,
+        "request_sha256": "58d6332b0e5ff7d607fe398d41122cce459b9523a4599bcfe615ff37e0d0f96d",
+        "prepared_sha256": "bcf7fac30c7c0830b4938d6f64976a8e4cd6ddb06d827e0de4a61c7c162d3c85",
+        "helper_events_sha256": "daf07c749f08d32fa8da120a9bd98a93bcd9df2df8fd11b9e3caa916ec87a0e8",
+        "helper_events": [
+          "load"
+        ],
+        "iterations_per_sample": 3
+      },
+      {
+        "case": "messages-256",
+        "baseline_ms": 12.9997075,
+        "candidate_ms": 2.759535833333333,
+        "reduction_percent": 78.77232365933362,
+        "exact_payload_and_events": true,
+        "samples_per_variant": 14,
+        "request_bytes": 1116910,
+        "prepared_bytes": 1117093,
+        "request_sha256": "9771ee0a5ab748e3305efedbb15e7b13f61013047308009db4681d65b4ba679e",
+        "prepared_sha256": "9b415a289ac4c809e3556ea787974764de06d2d801247748f0ed27dfb90c4d13",
+        "helper_events_sha256": "daf07c749f08d32fa8da120a9bd98a93bcd9df2df8fd11b9e3caa916ec87a0e8",
+        "helper_events": [
+          "load"
+        ],
+        "iterations_per_sample": 3
+      },
+      {
+        "case": "multimodal-history",
+        "baseline_ms": 10.528123166666667,
+        "candidate_ms": 2.3488773333333333,
+        "reduction_percent": 77.68949606545098,
+        "exact_payload_and_events": true,
+        "samples_per_variant": 14,
+        "request_bytes": 1117006,
+        "prepared_bytes": 1117189,
+        "request_sha256": "7d57e4fd95376fc93a12b366de4413c1d62dec8845b32d3fc23ed87cde933aa8",
+        "prepared_sha256": "ddf2677d49104bdc82b9bb6fc4ec157d84506b08e05a931733da6f965e53282a",
+        "helper_events_sha256": "daf07c749f08d32fa8da120a9bd98a93bcd9df2df8fd11b9e3caa916ec87a0e8",
+        "helper_events": [
+          "load"
+        ],
+        "iterations_per_sample": 3
+      },
+      {
+        "case": "audio-format-history",
+        "baseline_ms": 13.780953,
+        "candidate_ms": 9.492122833333333,
+        "reduction_percent": 31.12143381278978,
+        "exact_payload_and_events": true,
+        "samples_per_variant": 14,
+        "request_bytes": 1116923,
+        "prepared_bytes": 1117113,
+        "request_sha256": "b4397a388577b541acf63fb8cad821e09ce90e00c6d0a6bc38453796f059d7c5",
+        "prepared_sha256": "90c90f637274d62cd9db88c199963282593ca3a1fd0a63779d8f01bbb70f788f",
+        "helper_events_sha256": "b0555af2d579a5f0cece9e4d691598602c907a0b8e88f1a3d75e523fa5d6ad07",
+        "helper_events": [
+          "load",
+          "transcribe:\"eA==\":\"wav\""
+        ],
+        "iterations_per_sample": 3
+      },
+      {
+        "case": "completion-1048576",
+        "baseline_ms": 3.6808355,
+        "candidate_ms": 0.7187421666666667,
+        "reduction_percent": 80.47339614425402,
+        "exact_payload_and_events": true,
+        "samples_per_variant": 14,
+        "request_bytes": 1113132,
+        "prepared_bytes": 1113186,
+        "request_sha256": "68695d4c0f68244931853d7411f840ae6bc105b5645baef29a0efb82b2189dea",
+        "prepared_sha256": "358f550b36fe12662529410f40d3521b9b49f9bb2bff1b89c2561c5e98158f4b",
+        "helper_events_sha256": "daf07c749f08d32fa8da120a9bd98a93bcd9df2df8fd11b9e3caa916ec87a0e8",
+        "helper_events": [
+          "load"
+        ],
+        "iterations_per_sample": 3
+      }
+    ],
+    "text_workload_size_unit": "UTF-8 source bytes for text-* and completion-* cases"
+  },
+  "actual_worker_http_benchmark": {
+    "benchmark": "benchmarks/bench_worker_input.py",
+    "engine": "deterministic loopback mock, not a model",
+    "cpu_only": true,
+    "blocks": 6,
+    "block_order": [
+      "baseline",
+      "candidate",
+      "candidate",
+      "baseline"
+    ],
+    "chat_cases": 7,
+    "case_modes": 14,
+    "samples_per_variant_case_mode": 12,
+    "measured_requests": 336,
+    "excluded_warmups": 28,
+    "first_output_definition": "First nonempty assistant content delta; role-only events do not count",
+    "output_identity_scope": "Actual content and finish reason are checked, not volatile IDs/timestamps or complete HTTP response bytes",
+    "cases": [
+      {
+        "case": "text-1024",
+        "streaming": false,
+        "request_bytes": 1288,
+        "request_sha256": "e73a2cdabb404ac8b350db9cae27509e3f8535a3039a9e1370748e51a3a087d2",
+        "engine_payload": {
+          "sha256": "34cf6da0b39bab87b66a40b86faa963eac5604877f42227fa81f7e293ad23064",
+          "bytes": 1269,
+          "path": "/v1/chat/completions"
+        },
+        "median_full_ms": {
+          "baseline": 1.3935014721937478,
+          "candidate": 1.4703375054523349
+        },
+        "output_content_finish_sha256": "d5756da83f1804e7beab0afd0d187a1d0f788a10630823bef8794c4a21a38046",
+        "engine_request_bytes_equal_across_all_captures": true,
+        "answer_and_finish_identical": true
+      },
+      {
+        "case": "text-1024",
+        "streaming": true,
+        "request_bytes": 1287,
+        "request_sha256": "ca6a344f80738098b742ee6be2a5f89839c80c443ff18db79abfe74427c32a3b",
+        "engine_payload": {
+          "sha256": "3709634a4763c66d4a310e542a4fa75a4d64337093276981b3e338bc1792ce13",
+          "bytes": 1268,
+          "path": "/v1/chat/completions"
+        },
+        "median_full_ms": {
+          "baseline": 1.9343385065440089,
+          "candidate": 1.7208874924108386
+        },
+        "median_first_output_ms": {
+          "baseline": 1.8419430125504732,
+          "candidate": 1.6701839922461659
+        },
+        "output_content_finish_sha256": "d5756da83f1804e7beab0afd0d187a1d0f788a10630823bef8794c4a21a38046",
+        "engine_request_bytes_equal_across_all_captures": true,
+        "answer_and_finish_identical": true
+      },
+      {
+        "case": "text-102400",
+        "streaming": false,
+        "request_bytes": 110586,
+        "request_sha256": "e4e33854db8132bf3afff00b469c50c550b018be30689afeb605fdb1e17b382f",
+        "engine_payload": {
+          "sha256": "71aa8908c838eec46d2f699fa1bb12808a48bbcd7c57ecff560fc71fa7e965f3",
+          "bytes": 110567,
+          "path": "/v1/chat/completions"
+        },
+        "median_full_ms": {
+          "baseline": 6.332797522190958,
+          "candidate": 5.066089011961594
+        },
+        "output_content_finish_sha256": "d5756da83f1804e7beab0afd0d187a1d0f788a10630823bef8794c4a21a38046",
+        "engine_request_bytes_equal_across_all_captures": true,
+        "answer_and_finish_identical": true
+      },
+      {
+        "case": "text-102400",
+        "streaming": true,
+        "request_bytes": 110585,
+        "request_sha256": "4ce8231b8951399b9cd455e5c6aeca7ca705283b8fcc33f3c488ab03be98cfc7",
+        "engine_payload": {
+          "sha256": "1a891b4c1ed02fab265734a09d15aea71c163d26c62e62335f16ba14cdda3290",
+          "bytes": 110566,
+          "path": "/v1/chat/completions"
+        },
+        "median_full_ms": {
+          "baseline": 5.171135533601046,
+          "candidate": 5.189647519728169
+        },
+        "median_first_output_ms": {
+          "baseline": 5.120268004247919,
+          "candidate": 5.098462977912277
+        },
+        "output_content_finish_sha256": "d5756da83f1804e7beab0afd0d187a1d0f788a10630823bef8794c4a21a38046",
+        "engine_request_bytes_equal_across_all_captures": true,
+        "answer_and_finish_identical": true
+      },
+      {
+        "case": "text-1048576",
+        "streaming": false,
+        "request_bytes": 1130683,
+        "request_sha256": "de9194d522fea8c175e8ddce8b0cdbc8ea0372729525fea08c77150581ddb6f2",
+        "engine_payload": {
+          "sha256": "362a6e82aeab5bddac0aced627e5642d6c013420512a4e56365fc162c84ce2bf",
+          "bytes": 1130664,
+          "path": "/v1/chat/completions"
+        },
+        "median_full_ms": {
+          "baseline": 48.433161980938166,
+          "candidate": 34.94598998804577
+        },
+        "output_content_finish_sha256": "d5756da83f1804e7beab0afd0d187a1d0f788a10630823bef8794c4a21a38046",
+        "engine_request_bytes_equal_across_all_captures": true,
+        "answer_and_finish_identical": true
+      },
+      {
+        "case": "text-1048576",
+        "streaming": true,
+        "request_bytes": 1130682,
+        "request_sha256": "b4f5c9c14bc3dfa582c3759fce3cbc01c53c30121510e68e7bc85cc6e8f3e66f",
+        "engine_payload": {
+          "sha256": "039199b08fad5ae02dcda674b0556287ed9020575a92e54982876829631ee8c2",
+          "bytes": 1130663,
+          "path": "/v1/chat/completions"
+        },
+        "median_full_ms": {
+          "baseline": 51.631110516609624,
+          "candidate": 41.58163649844937
+        },
+        "median_first_output_ms": {
+          "baseline": 51.57236199011095,
+          "candidate": 41.499694489175454
+        },
+        "output_content_finish_sha256": "d5756da83f1804e7beab0afd0d187a1d0f788a10630823bef8794c4a21a38046",
+        "engine_request_bytes_equal_across_all_captures": true,
+        "answer_and_finish_identical": true
+      },
+      {
+        "case": "messages-16",
+        "streaming": false,
+        "request_bytes": 133148,
+        "request_sha256": "df289ea9f51acf9de0e30671d19b50b0b714f895d6d203134149d0cb613a0619",
+        "engine_payload": {
+          "sha256": "e0a7435c192d224f749e6fdd3392a2f46a414249543ef6f09ea9305ce58c2a3f",
+          "bytes": 133129,
+          "path": "/v1/chat/completions"
+        },
+        "median_full_ms": {
+          "baseline": 6.7571899853646755,
+          "candidate": 5.749283474870026
+        },
+        "output_content_finish_sha256": "d5756da83f1804e7beab0afd0d187a1d0f788a10630823bef8794c4a21a38046",
+        "engine_request_bytes_equal_across_all_captures": true,
+        "answer_and_finish_identical": true
+      },
+      {
+        "case": "messages-16",
+        "streaming": true,
+        "request_bytes": 133147,
+        "request_sha256": "439b2738b9677f7bd321f1a6f53fe917633d198e2319e6f8e7cb223a7880753a",
+        "engine_payload": {
+          "sha256": "8df87c60e05909c99e55507a1b4cfc8227629db39e3dcaa12eace4c29afee39d",
+          "bytes": 133128,
+          "path": "/v1/chat/completions"
+        },
+        "median_full_ms": {
+          "baseline": 7.277879514731467,
+          "candidate": 5.982534494251013
+        },
+        "median_first_output_ms": {
+          "baseline": 7.198787498055026,
+          "candidate": 5.920700990827754
+        },
+        "output_content_finish_sha256": "d5756da83f1804e7beab0afd0d187a1d0f788a10630823bef8794c4a21a38046",
+        "engine_request_bytes_equal_across_all_captures": true,
+        "answer_and_finish_identical": true
+      },
+      {
+        "case": "messages-256",
+        "streaming": false,
+        "request_bytes": 1134309,
+        "request_sha256": "19e741e70bdb414d2a02907cf01e86fc55a7be2ee8e01d042ad2e1effa9dca4a",
+        "engine_payload": {
+          "sha256": "ec3e5889fb0e941ccac7ddfecdc467918340eb5b2a4ac407bdb2fdf95808097b",
+          "bytes": 1134290,
+          "path": "/v1/chat/completions"
+        },
+        "median_full_ms": {
+          "baseline": 55.22652302170172,
+          "candidate": 42.16197249479592
+        },
+        "output_content_finish_sha256": "d5756da83f1804e7beab0afd0d187a1d0f788a10630823bef8794c4a21a38046",
+        "engine_request_bytes_equal_across_all_captures": true,
+        "answer_and_finish_identical": true
+      },
+      {
+        "case": "messages-256",
+        "streaming": true,
+        "request_bytes": 1134308,
+        "request_sha256": "5cf51f8b79bbcabd410b3b9d0745df6b2f323642bb317f1df0e091855d0bb7c4",
+        "engine_payload": {
+          "sha256": "c39911fdc67836fd5de5169fd2a9759d3193b5800e63020a6342cd20cc0c2e32",
+          "bytes": 1134289,
+          "path": "/v1/chat/completions"
+        },
+        "median_full_ms": {
+          "baseline": 47.56472000735812,
+          "candidate": 38.494249020004645
+        },
+        "median_first_output_ms": {
+          "baseline": 47.51731047872454,
+          "candidate": 38.42905649798922
+        },
+        "output_content_finish_sha256": "d5756da83f1804e7beab0afd0d187a1d0f788a10630823bef8794c4a21a38046",
+        "engine_request_bytes_equal_across_all_captures": true,
+        "answer_and_finish_identical": true
+      },
+      {
+        "case": "typed-last-256",
+        "streaming": false,
+        "request_bytes": 1134339,
+        "request_sha256": "82eaaf7eae69fdd613acbcfa40b2d1ed4c0375e8df4448b2efbfe76bc9e22607",
+        "engine_payload": {
+          "sha256": "3bb32dc938699425e131952c4398dbee837e4ac2ab25d7dd2c1d5578ede57361",
+          "bytes": 1134292,
+          "path": "/v1/chat/completions"
+        },
+        "median_full_ms": {
+          "baseline": 51.272373006213456,
+          "candidate": 41.35175250121392
+        },
+        "output_content_finish_sha256": "d5756da83f1804e7beab0afd0d187a1d0f788a10630823bef8794c4a21a38046",
+        "engine_request_bytes_equal_across_all_captures": true,
+        "answer_and_finish_identical": true
+      },
+      {
+        "case": "typed-last-256",
+        "streaming": true,
+        "request_bytes": 1134338,
+        "request_sha256": "7da44d7eebed5bdb6d6e77b1ebe75770a1e3348a9cc2f1276c9d98978920e872",
+        "engine_payload": {
+          "sha256": "6fbfa112cb7162b65f777468f5ce2713841f0ce3586dfce11bbebbfedcaba810",
+          "bytes": 1134291,
+          "path": "/v1/chat/completions"
+        },
+        "median_full_ms": {
+          "baseline": 52.71936452481896,
+          "candidate": 39.55310501623899
+        },
+        "median_first_output_ms": {
+          "baseline": 52.625171025283635,
+          "candidate": 39.49556199950166
+        },
+        "output_content_finish_sha256": "d5756da83f1804e7beab0afd0d187a1d0f788a10630823bef8794c4a21a38046",
+        "engine_request_bytes_equal_across_all_captures": true,
+        "answer_and_finish_identical": true
+      },
+      {
+        "case": "typed-all-256",
+        "streaming": false,
+        "request_bytes": 1140710,
+        "request_sha256": "4db5594339435ba4dc4a20add2eca9c590b1d1ef80ca3d0141998b769fc68a5f",
+        "engine_payload": {
+          "sha256": "7ba9cc471cd3eca0a388c2536514635c3e4d39a6b119395c72dfdf0ad486beb6",
+          "bytes": 1134291,
+          "path": "/v1/chat/completions"
+        },
+        "median_full_ms": {
+          "baseline": 69.61025748751126,
+          "candidate": 57.4084245308768
+        },
+        "output_content_finish_sha256": "d5756da83f1804e7beab0afd0d187a1d0f788a10630823bef8794c4a21a38046",
+        "engine_request_bytes_equal_across_all_captures": true,
+        "answer_and_finish_identical": true
+      },
+      {
+        "case": "typed-all-256",
+        "streaming": true,
+        "request_bytes": 1140709,
+        "request_sha256": "0ede9327a14a3496fea00faadd93d93ee6cbdb654ca6de45bc7e11df45cccb4f",
+        "engine_payload": {
+          "sha256": "66c73611e3277f358f05253bca53d230283d2d88b85ef187a96e5ea5dbf0c9fa",
+          "bytes": 1134290,
+          "path": "/v1/chat/completions"
+        },
+        "median_full_ms": {
+          "baseline": 69.67661550152116,
+          "candidate": 54.202876024646685
+        },
+        "median_first_output_ms": {
+          "baseline": 68.73402951168828,
+          "candidate": 53.819730528630316
+        },
+        "output_content_finish_sha256": "d5756da83f1804e7beab0afd0d187a1d0f788a10630823bef8794c4a21a38046",
+        "engine_request_bytes_equal_across_all_captures": true,
+        "answer_and_finish_identical": true
+      }
+    ],
+    "owned_containers_removed": true,
+    "text_workload_size_unit": "Unicode source characters for text-* cases; request_bytes is the actual encoded HTTP body length"
+  },
+  "validation": {
+    "strict_python_reference": {
+      "git_export": "0f7e9f4",
+      "source_hash_checks": "required_and_passed",
+      "suites": [
+        "llm_output_reference",
+        "llm_request_reference",
+        "llm_input_reference",
+        "llm_audio_reference",
+        "llm_video_reference",
+        "llm_stream_reference"
+      ],
+      "passed": 6,
+      "failed": 0,
+      "seconds": 29.58,
+      "input_captured_cases": 3399,
+      "additional_input_guards": [
+        "escaped_duplicate_outer_keys_keep_value_and_position",
+        "present_null_audio_format_transcribes_after_load"
+      ]
+    },
+    "oracle_free_package": {
+      "gate": "CUDA-image package gate in owned CPU-only container",
+      "passed": 70,
+      "failed": 0,
+      "seconds": 307.93,
+      "configured_reference_root_exists": false,
+      "input_mode": "test_llm_input --fixtures FIXTURE_FILE",
+      "input_captured_cases": 3399,
+      "platform_recipes_selecting_input_package": [
+        "cuda.Dockerfile",
+        "cpu.Dockerfile",
+        "rocm.Dockerfile",
+        "jetson.Dockerfile"
+      ],
+      "other_platform_images_built": false
+    },
+    "input_negative_controls": [
+      {
+        "case": "strict_reference_absent",
+        "exit_code": 1,
+        "rejected_as_expected": true
+      },
+      {
+        "case": "fixture_missing",
+        "exit_code": 1,
+        "rejected_as_expected": true
+      },
+      {
+        "case": "fixture_corrupt_expected",
+        "exit_code": 1,
+        "rejected_as_expected": true
+      }
+    ],
+    "http_benchmark_offline_guards": {
+      "passed": 12,
+      "failed": 0,
+      "seconds": 0.084
+    },
+    "media_fixture": {
+      "initial_gate": {
+        "passed": 69,
+        "failed": 1,
+        "failure": "media_engine parent-death fixture race"
+      },
+      "old_test_executable_sha256_matches_production_image": "6b5644d99271f4e789798b9c3db3c51a15976767ce5ad20ba77ecfd7e74eba98",
+      "production_media_runtime_sources_changed": false,
+      "fixed_fresh_fixture_repetitions": 100,
+      "fixed_fresh_fixture_repetitions_seconds": 16.18,
+      "parent_death_signal_disabled_negative_control": {
+        "exit_code_nonzero": true,
+        "seconds": 2.19,
+        "failure": "parent death releases abandoned context"
+      },
+      "discarded_diagnostic": "An intermediate source-freshness misbuild is not qualification evidence; the production header was restored and the fresh fixture object was rebuilt before the 100-pass run"
+    }
+  },
+  "deployment": {
+    "native_code_published_as_latest": false,
+    "production_environment_changed_by_dispatch_checks": false,
+    "rollback_tag_for_dispatch_checks": "not applicable; production containers/images were not replaced by CPU-only dispatch checks"
+  },
+  "j_ubatch_qualification": {
+    "status": "pending_separate_live_qualification",
+    "claimed_speedup": null,
+    "selected_production_setting": null,
+    "planned_comparison": "Physical batch512 versus1024 with unchanged220000 context, model, precision and remaining arguments",
+    "permanent_environment_change_authorized": false,
+    "note": "Root will fill final matched prefill, finite-turn, near-context/vision and exact-restoration results after the live operator completes"
+  },
+  "limits": [
+    "CPU preparation reductions and mock-engine HTTP latency are not GPU token-rate or model-quality measurements",
+    "Small HTTP cases are noisy;102400-character streaming latency is effectively unchanged",
+    "Payload identity is demonstrated for captured cases and benchmark workloads, not arbitrary future inputs",
+    "No CPU-only, ROCm, Jetson or GB10 image was rebuilt or physically validated in this dispatch pass",
+    "No physical multi-GPU validation"
+  ],
+  "raw_evidence_root": "build/validation/dispatch-speed-20261026",
+  "raw_evidence_sha256": {
+    "input-paired-summary.json": "d81a11e7e295e22bf6d1ae6727ad6271d38556dc5d027be0b194cbc78a26f0b2",
+    "worker-http-abba-final/worker-input.json": "8c46cedd474c52bd150f643998975afdba45151480e7ce9d058082c89edaa904",
+    "http-benchmark-offline-tests.log": "c334d3fb4595cfa14c9d9932700ce91b31d7ec77088ddb1d5369512b6d27cfd1",
+    "focused-reference-tests.log": "ec96f2c241e74ed283d7a9d1ebc4c15ac0497d9ce994a43d4b6356821f613e72",
+    "media-fixed-fresh-repeat100.log": "47a2bdccfb5289196dd00a081e57419b0ac947121d16bd5b12217370c7bfc240",
+    "media-pdeath-negative.log": "ee4525fe1eafab4ebad2aa2f636b0534267ff2047604e460c978aab48e49e59c",
+    "input-package-negative-controls.json": "0f59b3473b09eaaef462af0beaaaed2ad7f1c9677ae3ec94b79775f73e8d27c5",
+    "cuda-package-final-tests.log": "8a2eb227d5bff67a24b635460533a5e54a54f2405976e623ca4b71e5d24db637"
+  },
+  "pull_requests": {
+    "ezlocalai": "https://github.com/DevXT-LLC/ezlocalai/pull/142",
+    "worker_router": "https://github.com/DevXT-LLC/WorkerRouter/pull/6"
+  }
+}

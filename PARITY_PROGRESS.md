@@ -2,6 +2,53 @@
 
 The goal remains behavior parity with ezlocalai within the scope below, with all first-party executable code implemented in C++. It is **not complete**.
 
+## Long-conversation request preparation and dispatch (2026-10-26)
+
+Queued input preparation now retains ordered outer fields and normalized
+messages instead of repeatedly parsing, copying and serializing the entire
+history. Duplicate-key values and output positions, input errors, model-load
+order, media callbacks and the present-audio-format helper boundary remain
+covered. Model weights, presets, KV precision, context limits and inference
+arguments are unchanged by this code.
+
+Four matched actual-function runs in ABBA order give 14 sample batches per
+variant/case. One-MiB text preparation falls **13.242 → 3.753 ms** and a
+256-message history falls **13.000 → 2.760 ms**. All seven complete prepared
+payloads and helper-event hashes match baseline. In separate actual-worker HTTP
+tests with a deterministic loopback mock engine, 336 measured requests and 28
+excluded warmups preserve every engine-bound raw payload and the checked answer
+content/finish state. A roughly 1.13 MB, 256-message request reaches first content
+in **47.517 → 38.429 ms**; its buffered response falls **55.227 → 42.162 ms**.
+Small cases remain noisy and 102,400-character streaming latency is effectively
+unchanged.
+These are CPU/HTTP overhead measurements, not GPU token-rate or model-quality
+measurements.
+
+Validation: all **six strict Python-reference suites** pass, including 3,399
+input captures and new escaped-key/null-audio guards; **12 HTTP benchmark guards**
+pass; all **70 CUDA-image package checks** pass in 307.93 seconds with the
+configured Python checkout absent. The new explicit `llm_input_package` keeps
+all captured expectations and managed checks, while strict developer mode still
+requires source hashes. Missing/corrupted captures and an absent strict reference
+are negative controls. Four platform recipes select the oracle-free gate.
+
+The first package run found a pre-existing media parent-death fixture race, with
+the old test executable identical to production. The fixture-only generation
+handshake correction passes 100 fresh repetitions; disabling the parent-death
+signal still fails. Production media runtime sources are unchanged. Candidate
+executables were rebuilt inside an owned CPU-only container from existing CUDA
+image `sha256:845c0d4edad3ee960bb22e76a48de843560d4a197f6a430e799e3136b8a032f4`,
+with unchanged engine/dependencies. No fresh Docker or other-platform image,
+physical GPU inference or multi-GPU behavior was qualified by these dispatch
+checks, and no candidate was published as latest or deployed by them.
+
+A separate live 3090J physical-batch qualification is still pending. No selected
+production setting, GPU speedup or permanent environment change is claimed from
+it yet. See [the dispatch report](benchmarks/dispatch-speed-20261026.md) and
+`tests/fixtures/dispatch_speed_20261026_validation.json` for exact binaries,
+measured scope and remaining work. Native PR #142 and WorkerRouter PR #6 carry
+the separate worker and scheduler changes; older entries below are historical.
+
 ## Cache state, RAM capacity and router admission (2026-10-26)
 
 The optimization PR now includes transactional target/draft snapshot save and
