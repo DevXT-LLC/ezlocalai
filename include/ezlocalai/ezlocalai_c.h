@@ -111,6 +111,12 @@ int ezl_queue_wait(
 );
 
 int ezl_queue_cancel(ezl_queue *queue, const char *request_id);
+// Install while stopped. Called after queue state changes, outside its mutex;
+// observers are read-only: they may read snapshots but must not enqueue,
+// cancel, reconfigure, stop or destroy the queue themselves. Clearing/replacing
+// the observer waits for an in-flight callback.
+typedef void (*ezl_queue_state_fn)(void *user_data);
+int ezl_queue_set_state_observer(ezl_queue *queue, ezl_queue_state_fn observer, void *user_data);
 int ezl_queue_get_request_status(ezl_queue *queue, const char *request_id, ezl_request_status *status_out);
 int ezl_queue_get_request_info(ezl_queue *queue, const char *request_id, ezl_request_info *info_out);
 void ezl_queue_get_snapshot(ezl_queue *queue, ezl_queue_snapshot *snapshot_out);

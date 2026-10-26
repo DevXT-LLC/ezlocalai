@@ -113,7 +113,7 @@ static void cancel_chat_after_first_chunk(int port, const Json &body, const std:
     before_close();
 }
 static void heartbeat_release_cases(const fs::path &worker_binary, const std::string &router_url,
-                                    const fs::path &temporary) {
+                                    const fs::path &temporary, bool benchmark = false) {
     // A worker heartbeat sampled during generation must not keep the completed
     // worker busy until its next 30-second periodic publication. Exercise both
     // queue-owned buffered work and the separately owned lazy-stream lease.
@@ -133,7 +133,8 @@ static void heartbeat_release_cases(const fs::path &worker_binary, const std::st
         env("GPU_LAYERS", "0"); env("LLM_SPECULATIVE_TYPE", "none"); env("N_PARALLEL", "1");
         env("EMBEDDING_FIXTURE_DIR", directory.string()); env("EZLOCALAI_API_KEY", "local-test-key");
         env("ROUTER_URL", router_url); env("ROUTER_API_KEY", "register-test-key");
-        env("WORKER_LABEL", name); env("WORKER_HEARTBEAT_INTERVAL", "30");
+        const auto interval = benchmark ? "2" : "30";
+        env("WORKER_LABEL", name); env("WORKER_HEARTBEAT_INTERVAL", interval);
         env("WORKER_TUNNEL", tunnel ? "true" : "false");
         for (auto flag : {"TTS_ENABLED", "STT_ENABLED", "EMBEDDING_ENABLED", "IMAGE_ENABLED", "VIDEO_ENABLED", "MUSIC_ENABLED"}) env(flag, "false");
         const std::string sse = "data: {\"choices\":[{\"index\":0,\"delta\":{\"content\":\"fixture\"},\"finish_reason\":null}]}\n\n"
@@ -181,10 +182,11 @@ static void heartbeat_release_cases(const fs::path &worker_binary, const std::st
         until([&] {
             return Json::parse(request(router_url, "/v1/router/dashboard")).at("router").at("waiting_requests").get<int>() > 0;
         }, "strictly pinned follow-up waits for the occupied worker");
-        require(next.wait_for(0ms) != std::future_status::ready, "follow-up must wait while real inference is active");
+        if (next.wait_for(0ms) == std::future_status::ready)
+            throw std::runtime_error("follow-up finished before release: " + next.get());
         const auto released = std::chrono::steady_clock::now();
         std::ofstream(release.path) << "release";
-        require(next.wait_for(1s) == std::future_status::ready,
+        require(next.wait_for(benchmark ? 5s : 1s) == std::future_status::ready,
             name + ": completed worker remained unavailable beyond one second (periodic interval is thirty seconds)");
         const auto latency = std::chrono::duration<double>(std::chrono::steady_clock::now() - released).count();
         const auto first_response = first.get(), next_response = next.get();
@@ -202,7 +204,7 @@ static void heartbeat_release_cases(const fs::path &worker_binary, const std::st
         }, "event publication clears worker and router busy counts");
         worker.stop(); until([&] { return !visible(); }, "heartbeat-release worker deregisters");
         std::cout << name << ": queued follow-up completed " << latency
-            << " seconds after release with a thirty-second periodic heartbeat\n" << std::flush;
+            << " seconds after release with a " << interval << "-second periodic heartbeat\n" << std::flush;
         unsetenv("LLM_FIXTURE_INFERENCE_RESULT"); unsetenv("LLM_FIXTURE_INFERENCE_STATUS");
     }
 }
@@ -210,7 +212,9 @@ int main(int argc, char **argv) {
     fs::path temporary;
     const auto cwd = fs::current_path();
     try {
-        require(argc == 3, "native worker and Rust WorkerRouter executables required");
+        require(argc == 3 || (argc == 4 && (std::string(argv[3]) == "--heartbeat-release-only" ||
+            std::string(argv[3]) == "--heartbeat-release-benchmark")),
+            "native worker and Rust WorkerRouter executables required");
         const auto worker_binary = fs::absolute(argv[1]), router_binary = fs::absolute(argv[2]);
         std::string pattern = (fs::temp_directory_path() / "ezlocalai-worker-router-XXXXXX").string();
         const auto created = mkdtemp(pattern.data()); require(created != nullptr, "temporary directory"); temporary = created;
@@ -230,6 +234,11 @@ int main(int argc, char **argv) {
             until([&] { try { return Json::parse(request(router_url, "/health")).is_object(); } catch (...) { return false; } }, "router ready");
         };
         start_router();
+        if (argc == 4) {
+            heartbeat_release_cases(worker_binary, router_url, temporary,
+                std::string(argv[3]) == "--heartbeat-release-benchmark");
+            router.stop(); fs::current_path(cwd); fs::remove_all(temporary); return 0;
+        }
         for (const bool swap : {false, true}) for (const bool tunnel : {false, true}) {
             const std::string name = std::string(tunnel ? "native-tunnel" : "native-direct") + (swap ? "-swap" : "");
             const auto worker_port = std::to_string(fixture_ports());

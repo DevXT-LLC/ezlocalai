@@ -44,6 +44,9 @@ struct ezl_queue {
     bool stopping = false;
     ezl_processor_fn processor = nullptr;
     void *user_data = nullptr;
+    ezl_queue_state_fn state_observer = nullptr;
+    void *state_observer_data = nullptr;
+    std::mutex observer_mutex;
     std::vector<std::thread> workers;
     // Serialize lifecycle operations separately so stop can join workers without
     // holding the mutex they need to finish requests.
@@ -55,6 +58,14 @@ struct ezl_queue {
 };
 
 namespace {
+void notify_state(ezl_queue *queue) noexcept {
+    // Separate from the state mutex: observers may read queue snapshots.
+    // The setter synchronizes with this lock before replacing user_data.
+    std::lock_guard<std::mutex> lock(queue->observer_mutex);
+    // An observational callback cannot turn completed inference into a queue
+    // failure. NativeServer only schedules a fresh heartbeat here.
+    if (queue->state_observer) { try { queue->state_observer(queue->state_observer_data); } catch (...) {} }
+}
 // Bound all terminal outcomes. Python's history target is 1000, but its
 // success-only pruning leaves failure-heavy workloads unbounded.
 constexpr size_t history_limit = 1000;
@@ -105,6 +116,7 @@ void worker_main(ezl_queue *queue) {
         request->status = cancelled ? EZL_REQUEST_CANCELLED : EZL_REQUEST_PROCESSING;
         queue->changed.notify_all();
         lock.unlock();
+        notify_state(queue);
 
         std::string result;
         std::string error;
@@ -149,6 +161,8 @@ void worker_main(ezl_queue *queue) {
         --queue->processing;
         --queue->active;
         queue->changed.notify_all();
+        lock.unlock();
+        notify_state(queue);
     }
 }
 }
@@ -215,7 +229,7 @@ int ezl_queue_is_running(ezl_queue *queue) {
 
 int ezl_queue_set_concurrency(ezl_queue *queue, size_t concurrency) {
     if (!queue) return EINVAL;
-    std::lock_guard<std::mutex> lock(queue->mutex);
+    std::unique_lock<std::mutex> lock(queue->mutex);
     if (queue->started && queue->stopping) return ECANCELED;
     concurrency = std::max<size_t>(1, concurrency);
     // Workers above a reduced limit remain idle and can serve a later growth.
@@ -228,8 +242,11 @@ int ezl_queue_set_concurrency(ezl_queue *queue, size_t concurrency) {
     } catch (const std::system_error &error) { return error.code().value(); }
     catch (const std::bad_alloc &) { return ENOMEM; }
     catch (const std::length_error &) { return ENOMEM; }
+    const bool changed = queue->max_concurrent_requests != concurrency;
     queue->max_concurrent_requests = concurrency;
     queue->changed.notify_all();
+    lock.unlock();
+    if (changed) notify_state(queue);
     return 0;
 }
 
@@ -244,7 +261,7 @@ int ezl_queue_enqueue_typed(ezl_queue *queue, const char *payload, const char *t
         request->payload = payload;
         request->completion_type = type ? type : "request";
         request->timestamp = std::chrono::duration<double>(std::chrono::system_clock::now().time_since_epoch()).count();
-        std::lock_guard<std::mutex> lock(queue->mutex);
+        std::unique_lock<std::mutex> lock(queue->mutex);
         if (!queue->started || queue->stopping) return EINVAL;
         if (queue->pending.size() >= queue->max_queue_size) return ENOSPC;
         request->sequence = queue->next_id++;
@@ -256,6 +273,8 @@ int ezl_queue_enqueue_typed(ezl_queue *queue, const char *payload, const char *t
         ++queue->active;
         ++queue->total_queued;
         queue->changed.notify_all();
+        lock.unlock();
+        notify_state(queue);
         return 0;
     } catch (const std::bad_alloc &) { return ENOMEM; }
 }
@@ -284,12 +303,29 @@ int ezl_queue_wait(ezl_queue *queue, const char *id, long timeout_ms, char *resu
 
 int ezl_queue_cancel(ezl_queue *queue, const char *id) {
     if (!queue || !id) return EINVAL;
-    std::lock_guard<std::mutex> lock(queue->mutex);
+    std::unique_lock<std::mutex> lock(queue->mutex);
     const auto request = find_request(queue, id);
     if (!request) return ENOENT;
     request->cancelled = true;
     if (request->status == EZL_REQUEST_QUEUED) request->status = EZL_REQUEST_CANCELLED;
     queue->changed.notify_all();
+    lock.unlock();
+    notify_state(queue);
+    return 0;
+}
+
+int ezl_queue_set_state_observer(ezl_queue *queue, ezl_queue_state_fn observer, void *user_data) {
+    if (!queue) return EINVAL;
+    std::lock_guard<std::mutex> lifecycle(queue->lifecycle_mutex);
+    {
+        std::lock_guard<std::mutex> lock(queue->mutex);
+        if (queue->started) return EBUSY;
+    }
+    // Also waits for an observer already in progress, so stopped callers may
+    // release the previous user_data once unregistration returns.
+    std::lock_guard<std::mutex> observer_lock(queue->observer_mutex);
+    queue->state_observer = observer;
+    queue->state_observer_data = user_data;
     return 0;
 }
 

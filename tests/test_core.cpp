@@ -9,6 +9,8 @@
 #include <condition_variable>
 #include <mutex>
 #include <stdexcept>
+#include <future>
+#include <vector>
 
 static void expect(int condition, const char *message) {
     if (!condition) {
@@ -30,6 +32,40 @@ struct BlockingProcessor {
     int calls = 0;
 };
 
+struct QueueObserver {
+    ezl_queue *queue = nullptr;
+    std::mutex mutex;
+    std::condition_variable changed;
+    std::vector<ezl_queue_snapshot> snapshots;
+    bool hold = false, entered = false, released = false;
+};
+static void observe_queue(void *data) {
+    auto &state = *static_cast<QueueObserver *>(data);
+    ezl_queue_snapshot snapshot{};
+    // This would deadlock if observers were called under the queue state lock.
+    ezl_queue_get_snapshot(state.queue, &snapshot);
+    std::unique_lock<std::mutex> lock(state.mutex);
+    state.snapshots.push_back(snapshot); state.entered = true; state.changed.notify_all();
+    if (state.hold) state.changed.wait(lock, [&] { return state.released; });
+}
+static void test_queue_observer_lifetime() {
+    auto *queue = ezl_queue_create(1, 1);
+    QueueObserver observer; observer.queue = queue; observer.hold = true;
+    expect(ezl_queue_set_state_observer(queue, observe_queue, &observer) == 0, "install stopped queue observer");
+    auto update = std::async(std::launch::async, [&] { return ezl_queue_set_concurrency(queue, 2); });
+    {
+        std::unique_lock<std::mutex> lock(observer.mutex);
+        expect(observer.changed.wait_for(lock, std::chrono::seconds(2), [&] { return observer.entered; }), "observer can inspect the updated state");
+    }
+    auto unregister = std::async(std::launch::async, [&] { return ezl_queue_set_state_observer(queue, nullptr, nullptr); });
+    expect(unregister.wait_for(std::chrono::milliseconds(20)) == std::future_status::timeout,
+        "unregister waits for an in-flight observer before freeing userdata");
+    { std::lock_guard<std::mutex> lock(observer.mutex); observer.released = true; observer.changed.notify_all(); }
+    expect(update.get() == 0 && unregister.get() == 0, "observer update and unregister finish");
+    expect(ezl_queue_set_concurrency(queue, 1) == 0 && observer.snapshots.size() == 1, "cleared observer is never called again");
+    ezl_queue_destroy(queue);
+}
+
 static void blocking_processor(const char *, char *result, size_t size, void *data) {
     auto &state = *static_cast<BlockingProcessor *>(data);
     std::unique_lock<std::mutex> lock(state.mutex);
@@ -48,7 +84,10 @@ static void test_queue_lifecycle() {
     BlockingProcessor state;
     auto *queue = ezl_queue_create(1, 1);
     expect(queue != nullptr, "create bounded queue");
+    QueueObserver observer; observer.queue = queue;
+    expect(ezl_queue_set_state_observer(queue, observe_queue, &observer) == 0, "install queue transition observer");
     expect(ezl_queue_start(queue, blocking_processor, &state) == 0, "start blocking processor");
+    expect(ezl_queue_set_state_observer(queue, nullptr, nullptr) == EBUSY, "running queue observer cannot be replaced");
     char first[64], second[64], rejected[64], result[64], error[64];
     expect(ezl_queue_enqueue(queue, "first", first, sizeof(first)) == 0, "enqueue blocking request");
     {
@@ -72,6 +111,11 @@ static void test_queue_lifecycle() {
     ezl_queue_get_snapshot(queue, &snapshot);
     expect(snapshot.active == 0 && snapshot.processing == 0 && snapshot.queued == 0, "cancelled work drains accounting");
     expect(snapshot.total_processed == 1 && snapshot.total_failed == 0, "cancelled work is not counted as a failure");
+    {
+        std::lock_guard<std::mutex> lock(observer.mutex);
+        expect(!observer.snapshots.empty() && observer.snapshots.back().active == 0 && observer.snapshots.back().processing == 0,
+            "final observer sees released processing and active counters after timed-out work and cancellation");
+    }
     expect(ezl_queue_enqueue(queue, "stopped", rejected, sizeof(rejected)) == EINVAL, "stopped queue rejects submissions");
     expect(ezl_queue_start(queue, failing_processor, nullptr) == 0, "restart queue");
     expect(ezl_queue_enqueue(queue, "failure", first, sizeof(first)) == 0, "enqueue failing request");
@@ -86,6 +130,7 @@ static void test_queue_lifecycle() {
 }
 
 int main(void) {
+    test_queue_observer_lifetime();
     remove("native-c-api-empty.env");
     setenv("EZLOCALAI_DOTENV_PATH", "native-c-api-empty.env", 1);
 

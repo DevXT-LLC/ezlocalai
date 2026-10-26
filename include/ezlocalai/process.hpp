@@ -103,7 +103,20 @@ inline ProcessResult run_process(const std::vector<std::string> &arguments, bool
     argv.push_back(nullptr);
 
     int pipefd[2] = {-1, -1};
-    if (capture && pipe(pipefd) != 0) throw std::system_error(errno, std::generic_category(), "pipe");
+    if (capture) {
+#ifdef __linux__
+        // Concurrent spawns must not inherit another capture's write end,
+        // otherwise EOF waits for an unrelated child to finish. dup2 below
+        // deliberately makes only the child's STDOUT survive its exec.
+        if (pipe2(pipefd, O_CLOEXEC) != 0) throw std::system_error(errno, std::generic_category(), "pipe");
+#else
+        if (pipe(pipefd) != 0) throw std::system_error(errno, std::generic_category(), "pipe");
+        if (fcntl(pipefd[0], F_SETFD, FD_CLOEXEC) < 0 || fcntl(pipefd[1], F_SETFD, FD_CLOEXEC) < 0) {
+            const int saved = errno; close(pipefd[0]); close(pipefd[1]);
+            throw std::system_error(saved, std::generic_category(), "capture pipe close-on-exec");
+        }
+#endif
+    }
     posix_spawn_file_actions_t actions;
     int error = posix_spawn_file_actions_init(&actions);
     if (error) {

@@ -2,6 +2,7 @@
 #define EZLOCALAI_NATIVE_SERVER_HPP
 #include "ezlocalai/llm_response.hpp"
 #include "ezlocalai/llm_stream.hpp"
+#include "ezlocalai/worker_heartbeat.hpp"
 #include "ezlocalai/stt_service.hpp"
 #include "ezlocalai/tts_service.hpp"
 #include "ezlocalai/qwen_image.hpp"
@@ -490,6 +491,7 @@ private:
     std::thread worker_heartbeat_thread_;
     mutable std::mutex worker_heartbeat_mutex_;
     std::condition_variable worker_heartbeat_cv_;
+    mutable WorkerHeartbeatSignal worker_heartbeat_signal_;
     std::string worker_heartbeat_id_;
     std::string worker_heartbeat_url_;
     std::string worker_heartbeat_router_url_;
@@ -761,6 +763,7 @@ private:
     void persist_usage_locked() const;
     void start_worker_heartbeat(const std::string &host, int port);
     void stop_worker_heartbeat();
+    void notify_worker_state_changed() const;
     void worker_heartbeat_loop();
     bool worker_router_post(const std::string &path, const std::string &body) const;
     std::string worker_registration_body() const;
