@@ -203,3 +203,43 @@ fingerprinted. Metadata accepts known sanitized runtime/provenance fields,
 including the earlier benchmark launch maps and selected performance settings;
 raw Docker inspect/environment lists and likely credential fields are rejected.
 API credentials come only from the environment named by `--api-key-env`.
+
+## Disk slot and vision state roundtrips
+
+`bench_state_roundtrip.py` checks real slot-file restore after replacing both
+the active target/draft state with another conversation. Use an isolated
+single-slot engine with its original context, weights, KV and MTP settings,
+but explicitly pass `--cache-ram 0 --slot-save-path /state-proof/`. The operator
+must bind its own private test directory read/write at `/state-proof/`.
+RAM prompt caching is disabled so a RAM hit cannot hide a broken file restore.
+
+```sh
+python benchmarks/bench_state_roundtrip.py http://127.0.0.1:28192 frozen-source.py \
+  build/validation/disk-state.json --label DevXT4090 --context 230000 \
+  --model unsloth/Qwen3.8-27B-GGUF --metadata sanitized-state-launch.json \
+  --run-id disk-state-20261026 --require-draft-counters
+```
+
+Launch metadata must retain the exact context and explicitly show cache size
+zero and `/state-proof/` in `original_parameters` plus `overrides`. HTTP can
+verify the single slot, context and loaded vision projector; the actual
+command line, RAM-cache setting and private mount ownership are caller-verified.
+The separate state operator copies provide those launch and mount checks.
+
+The text case generates a long branch answer, saves slot 0, records a continued
+answer, runs an unrelated branch to replace active CPU/GPU state, restores the
+file, then repeats the exact continuation payload. A vision case does the same
+with a 64×64 red PNG and a continued color question. Both require identical
+continuation request/output hashes and substantial reuse of the saved seed
+prefix; full recomputation cannot silently pass on answer correctness alone.
+Every prompt is token-counted against the fixed context and full decode budget,
+native timing/MTP counters are retained, and truncation or unexpected reasoning
+fails. The default run records eight inference samples plus one excluded warmup.
+
+The client generates bounded UUID basenames, records each save/restore RPC,
+and uses no filesystem operations on snapshots. It does not accept caller
+snapshot paths or delete files. The operator must fingerprint and remove only
+the known files in its owned directory after the run. Partial failure reports
+retain requested filenames for that cleanup. There are no inference or slot
+RPC retries and no context downshift. These normal roundtrips do not qualify
+legacy or deliberately corrupted slot files.
