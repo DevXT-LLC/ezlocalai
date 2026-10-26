@@ -2,7 +2,7 @@
 
 The goal remains behavior parity with ezlocalai within the scope below, with all first-party executable code implemented in C++. It is **not complete**.
 
-## Cache state, RAM capacity and router admission (2026-10-26; qualification in progress)
+## Cache state, RAM capacity and router admission (2026-10-26)
 
 The optimization PR now includes transactional target/draft snapshot save and
 restore, bounded reuse of initialized host buffers, shared immutable checkpoint
@@ -61,14 +61,59 @@ The finalized stopped originals were removed after verification. The reviewed
 finalized transaction from its immutable image and private backup; its 47 guards
 are offline evidence, not a live rollback test.
 
-Validation so far: 87 benchmark guards, 47 recovery-operator guards, six focused
-cache/planner/strict-source checks, and full oracle-free 69-test CUDA image gates
-for held intermediate snapshots. The final `448bf6b` CUDA image is building under
-a quality hold. Actual finite text/vision disk roundtrips passed on 5090 using
-the unchanged 2048 scheduling path. Cross-card release measurements, final disk
-roundtrips, named near-context capacity, actual swap latency and full-image
-routed canary remain in progress. No new worker/engine image has replaced a
-production image. See [the cache report](benchmarks/cache-depth-20261026.md) and
+The 3090V release comparison reduces replay first output **752 -> 304 ms**
+and rewind **15.565 -> 0.918 s**, preserving all nine seed/replay/append answers.
+On 5090, replay improves **319 -> 195 ms**, with all 12 sampled answers identical;
+its physical batch 2048 already has a useful earlier checkpoint. Across the
+three cards, all 48 finite resident-turn controls pass. All three also pass disk
+save/restore with RAM cache disabled, exact new-turn answers after stomping the
+slot with another conversation, matching restored prefix/byte counts and vision.
+Named cold capacity screens fully evaluate **218392/218392/248809 tokens** on
+4090/V/5090, followed by correct red-image recognition, with no truncation,
+smaller-context retry or cache reuse. These are single cold capacity screens,
+not long-context replay or long-decode quality measurements.
+
+An isolated 5090 paging study keeps all 14 returning cache hits and all 21
+answers identical with an 8192 MiB cache, 6 GiB RAM and 8 GiB swap limits. It
+uses about 5.32 GiB of swap on the existing NVMe partition; replay first output
+rises **197 ms -> 2.263 s**, and full turns **1.183 -> 3.240 s**. This measures
+end-to-end paging pressure, not page-attributed swap-in time. A preceding
+6 GiB RAM + 4 GiB swap limit was too small for the cache plus runtime overhead
+and OOM-killed only the isolated test process; its original worker restored
+healthy. No host swap settings or production swap allowances changed.
+
+Validation: **69/69 oracle-free CUDA package checks** on the complete final
+image, **87 benchmark guards**, **47 recovery-operator guards**, **six focused
+cache/planner/strict-source checks**, and **2/2 actual tiny-engine cache and
+Rust-router integrations**. The complete image was built on 5090 from
+`448bf6b` as `ezlocalai:cuda-candidate-20261026-448bf6b`, image
+`sha256:462cd19b65435d0ff95153b8aed32d91e5a121b8e78df2fbe4d37c39ec28bb57`.
+Fresh native/TTS/ACE/llama linkage passes, with ACE's own GGML and no missing
+libraries or libpython. Its full-image CUDA canary uses the original public
+model/presets and a private real Rust router, without worker/engine overlays.
+Chat, streaming, vision, CUDA GPU metadata, RAM/VRAM, context and capacity
+reporting pass; the exact original container/image/environment/mounts restore
+before drain release. The retained rollback is
+`ezlocalai:rollback-canary-20261026-full-canary-fdb6add414`. Earlier candidate
+images remain historical held experiments. Later documentation and recovery-tool
+commits do not change the tested production C++ or engine patch sources.
+
+All three production workers are fresh/healthy on their existing `46d9ba8`
+images with no owned drains. Only the documented RAM settings are live; the
+new worker/engine code is PR-only and no candidate image was published as latest.
+The 5090 still uses different deployed GGUF contents from V/4090; results compare
+each card with its own baseline. Greedy rewritten-prompt wording can differ
+through cache numerics; finite controls and sampled semantic checks do not
+establish universal model-quality equivalence. Other hardware images, physical
+multi-GPU, video and arbitrary deeper/longer multi-conversation cache workloads
+were not qualified in this optimization pass.
+
+Handoff: merge the optimization PR through the existing deployment automation,
+then verify fresh deployed versions, model/context/capacity/GPU/RAM reporting,
+selected RAM/UBATCH settings and interleaved routed conversations. Keep the
+original weights, precision, contexts and presets. Broaden checkpoint eligibility
+or optional swap only after matched workload and quality measurements. See
+[the cache report](benchmarks/cache-depth-20261026.md) and
 `tests/fixtures/cache_depth_20261026_validation.json`; older entries below are
 historical and do not describe the current PR scope.
 
