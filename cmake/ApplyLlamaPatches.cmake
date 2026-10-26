@@ -25,7 +25,8 @@ if(NOT PATCH_FILES)
         set(PATCH_FILE "${patch_dir}/llama-conversation-cache.patch")
     endif()
     set(PATCH_FILES "${PATCH_FILE}" "${patch_dir}/llama-cache-restore-atomic.patch"
-        "${patch_dir}/llama-cache-storage.patch" "${patch_dir}/llama-mtp-resume.patch")
+        "${patch_dir}/llama-cache-storage.patch" "${patch_dir}/llama-mtp-resume.patch"
+        "${patch_dir}/llama-checkpoint-coverage.patch")
 endif()
 set(reverse_patches "${PATCH_FILES}")
 list(REVERSE reverse_patches)

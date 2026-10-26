@@ -1436,6 +1436,11 @@ if(EXISTS "${EZLOCALAI_TTS_LLAMA_SOURCE}/tools/server/server-task.h" AND
         $<TARGET_PROPERTY:test_cache_restore_atomic,INCLUDE_DIRECTORIES>)
     add_test(NAME llama_mtp_resume COMMAND test_llama_mtp_resume)
     set_tests_properties(llama_mtp_resume PROPERTIES TIMEOUT 30)
+    add_executable(test_llama_checkpoint_coverage tests/test_llama_checkpoint_coverage.cpp)
+    target_include_directories(test_llama_checkpoint_coverage PRIVATE
+        $<TARGET_PROPERTY:test_cache_restore_atomic,INCLUDE_DIRECTORIES>)
+    add_test(NAME llama_checkpoint_coverage COMMAND test_llama_checkpoint_coverage)
+    set_tests_properties(llama_checkpoint_coverage PROPERTIES TIMEOUT 30)
     add_custom_target(test_managed_llama_patches SOURCES tests/test_managed_llama_patches.cmake)
     add_test(NAME managed_llama_patches COMMAND ${CMAKE_COMMAND}
         -DSOURCE_DIR=${EZLOCALAI_TTS_LLAMA_SOURCE}
@@ -1827,7 +1832,7 @@ if(TARGET test_ltx_norm AND TARGET ezlocalai-tts)
     )
     if(TARGET test_conversation_cache)
         list(APPEND native_package_targets test_conversation_cache test_cache_restore_atomic
-            test_cache_storage test_llama_mtp_resume test_managed_llama_patches)
+            test_cache_storage test_llama_mtp_resume test_llama_checkpoint_coverage test_managed_llama_patches)
     endif()
     add_custom_target(cpu_package DEPENDS ${native_package_targets})
     if(EZLOCALAI_USE_HIP)
