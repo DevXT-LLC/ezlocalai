@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
   "date": "2026-10-26",
-  "status": "partial",
-  "scope": "Partial: completed active aligned release 4090 freeform/finite/pressure checks; historical cache/MTP/router measurements; applied 4090/3090V RAM settings; baseline disk state and held-image evidence. Other candidate GPUs, final state/image/release and swap/forced-memory-pressure qualification remain pending.",
+  "status": "complete_for_recorded_cuda_scope",
+  "scope": "Completed recorded CUDA scope: release resident/finite comparisons on4090/3090V/5090, all-three normal finite disk state and cold near-capacity checks, actual bounded5090 OS-swap retention plus separate undersized-limit failure, final packaged image69-test gate/private5090 canary, historical storage/router evidence and appliedRAMsettings. Broad quality, arbitrary older/corrupt states and production rollout are outside this qualification.",
   "fixed_controls": {
     "gpu": "RTX 4090",
     "model": "unsloth/Qwen3.8-27B-GGUF",
@@ -690,16 +690,198 @@
       },
       "drain_released": true,
       "lease_errors": []
+    },
+    "DevXT3090V-release-resident-quality-63c83517": {
+      "result_sha256": "cf3e41af1a4801a0f164105d688f273406105af59c269e5c88698a234ceffe2d",
+      "supervisor_sha256": "3c49fca1854e0c8572484da6c437a296b44c542192949dbfa6799971a5357dff",
+      "restoration": {
+        "healthy": true,
+        "same_container": true,
+        "same_image": true,
+        "same_environment": true,
+        "same_mounts": true,
+        "same_config": true,
+        "same_hostconfig": true,
+        "critical_parameters_preserved": true,
+        "oom_killed": false
+      },
+      "drain_released": true,
+      "lease_errors": []
+    },
+    "DevXT3090V-state-finite-release-all-656e31b0": {
+      "result_sha256": "c5666d1dfe10f4b8aad6abbccda9e8998129bdb1cd81458f388e895a0fd14ec8",
+      "supervisor_sha256": "57a22ef905690a41e15546ec9fa3d8b3e4cd453190c80fda8fab1068b2a8ad5f",
+      "restoration": {
+        "healthy": true,
+        "same_container": true,
+        "same_image": true,
+        "same_environment": true,
+        "same_mounts": true,
+        "same_config": true,
+        "same_hostconfig": true,
+        "critical_parameters_preserved": true,
+        "oom_killed": false
+      },
+      "drain_released": true,
+      "lease_errors": []
+    },
+    "DevXT4090-state-finite-release-all-656e31b0": {
+      "result_sha256": "7c450f893f617452cc3c54948000c5748bf81ac074bfea1d93d3ee9559f7cdb0",
+      "supervisor_sha256": "6e2ba4ca5f31e9aeba769737dd970942ce5b5a77d20d58824d442ec42d99750e",
+      "restoration": {
+        "healthy": true,
+        "same_container": true,
+        "same_image": true,
+        "same_environment": true,
+        "same_mounts": true,
+        "same_config": true,
+        "same_hostconfig": true,
+        "critical_parameters_preserved": true,
+        "oom_killed": false
+      },
+      "drain_released": true,
+      "lease_errors": []
+    },
+    "DevXT5090-state-finite-release-all-656e31b0": {
+      "result_sha256": "67717aabad8526834f926fd6e2e3ac6f0aba08e67ac88730de7e275adf1601e7",
+      "supervisor_sha256": "b5e270bba031cc0168637fa0afddeb8c66cddb84c349f6340f75e97fa2031451",
+      "restoration": {
+        "healthy": true,
+        "same_container": true,
+        "same_image": true,
+        "same_environment": true,
+        "same_mounts": true,
+        "same_config": true,
+        "same_hostconfig": true,
+        "critical_parameters_preserved": true,
+        "oom_killed": false
+      },
+      "drain_released": true,
+      "lease_errors": []
+    },
+    "DevXT5090-full-canary-fdb6add414": {
+      "result_sha256": "50e6d5076d8557c689914d6cba24a815ded26dcdabdfe36819f4195f5a6f5736",
+      "supervisor_sha256": "7c9bddb4b944d9c4149da952100011e9a450b026b1056ba4c70394ddca072495",
+      "restoration": {
+        "healthy": true,
+        "same_container": true,
+        "same_image": true,
+        "same_environment": true,
+        "same_mounts": true,
+        "oom_killed": false
+      },
+      "drain_released": true,
+      "lease_errors": []
+    },
+    "DevXT5090-release-resident-quality-03c6cc1f": {
+      "result_sha256": "9bc1e947a6fd8b262fa2e736d0df5c9c61999dce6719c65f51e4c424805d5800",
+      "supervisor_sha256": "15a8ab5581cf2215e2108bf3a2acd9d4bd95bb782ae29bb0fa39ca13b9cc600f",
+      "restoration": {
+        "healthy": true,
+        "same_container": true,
+        "same_image": true,
+        "same_environment": true,
+        "same_mounts": true,
+        "same_config": true,
+        "same_hostconfig": true,
+        "critical_parameters_preserved": true,
+        "oom_killed": false
+      },
+      "drain_released": true,
+      "lease_errors": []
+    },
+    "DevXT4090-release-named-capacity-6e73606a": {
+      "result_sha256": "47236508cacf6ff10d4967880609692cb0ed5a1c1306143bec4086582135d0a7",
+      "supervisor_sha256": "2f4498214feedb8cab5da00785b8df764de4391eaae4bc8b2e2dcfc5d444c48d",
+      "restoration": {
+        "healthy": true,
+        "same_container": true,
+        "same_image": true,
+        "same_environment": true,
+        "same_mounts": true,
+        "same_config": true,
+        "same_hostconfig": true,
+        "critical_parameters_preserved": true,
+        "oom_killed": false
+      },
+      "drain_released": true,
+      "lease_errors": []
+    },
+    "DevXT3090V-release-named-capacity-6e73606a": {
+      "result_sha256": "fea08063640cf1bb9537f6c8ac96508963874e58bcea571f76a083972c4a1d84",
+      "supervisor_sha256": "25bd378ec3eb619aa5fa042f4e6b62077f5129d6ef7288e4998da62f3c5e4dbd",
+      "restoration": {
+        "healthy": true,
+        "same_container": true,
+        "same_image": true,
+        "same_environment": true,
+        "same_mounts": true,
+        "same_config": true,
+        "same_hostconfig": true,
+        "critical_parameters_preserved": true,
+        "oom_killed": false
+      },
+      "drain_released": true,
+      "lease_errors": []
+    },
+    "DevXT5090-release-named-capacity-6e73606a": {
+      "result_sha256": "8469dc82f28e4ce7e25c24f6379234655edb2b94c0fec70f655b8244287e1646",
+      "supervisor_sha256": "a80b50e5f8ebcf5ff7092c33a71faef737cd64af7455687d54aab4b45609c0ac",
+      "restoration": {
+        "healthy": true,
+        "same_container": true,
+        "same_image": true,
+        "same_environment": true,
+        "same_mounts": true,
+        "same_config": true,
+        "same_hostconfig": true,
+        "critical_parameters_preserved": true,
+        "oom_killed": false
+      },
+      "drain_released": true,
+      "lease_errors": []
+    },
+    "DevXT5090-5090-swap-release-99d8a3b1": {
+      "result_sha256": "f6f5d3da50d5c0a307fd2b263a89efb0efa9761eb3ba6fba083cb3aaf9a80512",
+      "supervisor_sha256": "8d3389f9818804e4fde3433facc30af7581a51f9abb26e1e1633f526fa4405d1",
+      "restoration": {
+        "healthy": true,
+        "same_container": true,
+        "same_image": true,
+        "same_environment": true,
+        "same_mounts": true,
+        "same_config": true,
+        "same_hostconfig": true,
+        "critical_parameters_preserved": true,
+        "oom_killed": false
+      },
+      "drain_released": true,
+      "lease_errors": []
+    },
+    "DevXT5090-swap-release-headroom-14g-8e732c8e": {
+      "result_sha256": "783d07e1b5e97ed30f0c58ba49a56dee7e6926f936a6c59922d28f5910da1344",
+      "supervisor_sha256": "4ecc542a610a0bfaa018801c0aa9153f36518a77901f23a62cc4f80ac37316d2",
+      "restoration": {
+        "healthy": true,
+        "same_container": true,
+        "same_image": true,
+        "same_environment": true,
+        "same_mounts": true,
+        "same_config": true,
+        "same_hostconfig": true,
+        "critical_parameters_preserved": true,
+        "oom_killed": false
+      },
+      "drain_released": true,
+      "lease_errors": []
     }
   },
   "pending": [
-    "3090V candidate engine cache/MTP/router comparison; production capacity qualification complete",
-    "5090 fresh actual CLI, candidate cache/MTP/router and state/capacity qualification; historical distinct GGUF preserved",
-    "Broader release-checkpoint quality acceptance beyond sampled 4090 finite controls and six truncated freeform rewind answers",
-    "Final aligned candidate text/vision slot save/reload/legacy/corrupt-state evidence",
-    "Controlled nonzero swap and forced host/container/co-resident media memory pressure",
-    "Post-finalization automatic rollback helper correction/validation; applied 4090/3090V fraction 0.4 already verified",
-    "Fresh aligned final image/package/artifact evidence and release/deployment"
+    "Broader quality beyond finite controls and sampled truncated freeform rewinds; verbose freeform appends still repeat seeds",
+    "Arbitrary legacy/corrupt state and process restart compatibility beyond normal same-engine slot roundtrips",
+    "Other swap/storage backends, per-buffer swap attribution and co-resident media/host pressure generalization",
+    "Live post-finalization recovery exercise; V2 helper source fix already passes47 offline guards",
+    "Production image publication/fleet deployment decision; no central candidate registration or rollout performed"
   ],
   "quality_limit": "Active release 4090 has 12/12 freeform matching inputs, 9/9 seed/replay/append identical outputs, no concrete new factual/identity regression found in six sampled truncated rewind answers, and 24/24 finite exact latest-turn answers. Rewind bytes differ and broad freeform quality equivalence remains unproven. Historical unaligned results are not release evidence.",
   "experimental_checkpoint_coverage": {
@@ -1884,7 +2066,8 @@
           "static_network_configuration_preserved": true
         },
         "post_finalize_automatic_rollback_qualified": false,
-        "post_finalize_rollback_gap": "Helper rollback unconditionally inspects original container ID after successful finalize deletes it. Retained inspection/backup/image permit manual reconstruction; no automatic rollback claim."
+        "post_finalize_rollback_gap": "Historical V1 helper assumed a retained original container. V2 source now supports recreation from immutable image/private saved state, with47 offline guards; no live rollback execution.",
+        "post_finalize_recovery_source_fixed": true
       },
       "DevXT3090V": {
         "proof": "build/validation/llm-cache-depth-20261026/cache-environment-qualification/DevXT3090V-environment/result.json",
@@ -2016,7 +2199,8 @@
           "static_network_configuration_preserved": true
         },
         "post_finalize_automatic_rollback_qualified": false,
-        "post_finalize_rollback_gap": "Helper rollback unconditionally inspects original container ID after successful finalize deletes it. Retained inspection/backup/image permit manual reconstruction; no automatic rollback claim."
+        "post_finalize_rollback_gap": "Historical V1 helper assumed a retained original container. V2 source now supports recreation from immutable image/private saved state, with47 offline guards; no live rollback execution.",
+        "post_finalize_recovery_source_fixed": true
       }
     },
     "helper": {
@@ -2031,7 +2215,8 @@
         "proof": "tests/fixtures/llm_throughput_20261026_validation.json",
         "sha256": "aad4b981e675e200f3361fa29b0083c93bf31716e72f138b5dd98e8404d3f57b"
       },
-      "scope": "Historical fixture and operator confirmation only; fresh 5090 CLI/state/capacity qualification pending."
+      "scope": "Historical fixture and operator confirmation only; fresh 5090 CLI/state/capacity qualification pending.",
+      "fresh_canary_status": "Final packaged canary verifies 32000 MiB, zero cache-swap allowance, context 262144 and batches 4096/2048; production installation unchanged."
     },
     "swap_env": {
       "value": "0",
@@ -2332,7 +2517,7 @@
       "package-linkage.txt": "de5807faf34fc604b3f05b95d9a7f8b9c6accc5b17144bd5bfe9e835aabac31a",
       "fresh-linkage.txt": "abd486301efada19fdb0b4759b41511058865d555154e105360e27583352c118"
     },
-    "superseded_for_release_by": "56d6375 aligned checkpoint source snapshot; final build/quality results pending"
+    "superseded_for_release_by": "448bf6b packaged image with 69 checks and isolated physical 5090 canary; no fleet rollout."
   },
   "aligned_checkpoint_followup": {
     "status": "historical_intermediate_guard_attempt_superseded_by_active_release_4090",
@@ -3247,5 +3432,3777 @@
     ],
     "freeform_append_outputs_equal_to_seed": 6,
     "freeform_continuation_semantics_qualified": false
-  }
+  },
+  "release_3090V": {
+    "status": "completed_sampled_qualification",
+    "variants": {
+      "matched_baseline": {
+        "proof": "build/validation/llm-cache-depth-20261026/DevXT3090V-release-resident-quality-63c83517/matched_baseline-bench.json",
+        "sha256": "765b969d301481aaba04f95e5efadbd1ddae801ba810fec9264402ce4bab95fb",
+        "summary": {
+          "seed": {
+            "samples": 3,
+            "cache_outcomes": {
+              "tail_reuse": 0,
+              "prefix_reuse": 0,
+              "full_reevaluation": 3
+            },
+            "wall_seconds_median": 19.55759173099068,
+            "ttft_seconds_median": 16.095951551993494,
+            "decode_tokens_per_second_median": 73.24980366180077,
+            "prefill_tokens_per_second_median": 1569.8066130490126,
+            "generated_tokens_median": 256,
+            "draft_tokens": 630,
+            "accepted_draft_tokens": 448,
+            "draft_acceptance_ratio": 0.7111111111111111
+          },
+          "replay": {
+            "samples": 3,
+            "cache_outcomes": {
+              "tail_reuse": 3,
+              "prefix_reuse": 0,
+              "full_reevaluation": 0
+            },
+            "wall_seconds_median": 4.26487682799052,
+            "ttft_seconds_median": 0.7522925000084797,
+            "decode_tokens_per_second_median": 72.57482678096491,
+            "prefill_tokens_per_second_median": 31.11169877653245,
+            "generated_tokens_median": 256,
+            "draft_tokens": 630,
+            "accepted_draft_tokens": 448,
+            "draft_acceptance_ratio": 0.7111111111111111
+          },
+          "append": {
+            "samples": 3,
+            "cache_outcomes": {
+              "tail_reuse": 0,
+              "prefix_reuse": 3,
+              "full_reevaluation": 0
+            },
+            "wall_seconds_median": 4.047427078010514,
+            "ttft_seconds_median": 1.1830227350001223,
+            "decode_tokens_per_second_median": 89.07792816616144,
+            "prefill_tokens_per_second_median": 247.48896032390465,
+            "generated_tokens_median": 256,
+            "draft_tokens": 510,
+            "accepted_draft_tokens": 508,
+            "draft_acceptance_ratio": 0.996078431372549
+          },
+          "rewind": {
+            "samples": 3,
+            "cache_outcomes": {
+              "tail_reuse": 0,
+              "prefix_reuse": 0,
+              "full_reevaluation": 3
+            },
+            "wall_seconds_median": 19.141797794989543,
+            "ttft_seconds_median": 15.565492712994455,
+            "decode_tokens_per_second_median": 72.0922237652157,
+            "prefill_tokens_per_second_median": 1555.032411110122,
+            "generated_tokens_median": 256,
+            "draft_tokens": 637,
+            "accepted_draft_tokens": 444,
+            "draft_acceptance_ratio": 0.6970172684458399
+          }
+        },
+        "configuration": {
+          "mode": "resident",
+          "prefix_mode": "common",
+          "conversations": 3,
+          "rounds": 2,
+          "cases": [
+            "replay",
+            "append",
+            "rewind"
+          ],
+          "context": 230000,
+          "prompt_chars": 100000,
+          "branch_records": 90,
+          "rewind_records": 40,
+          "decode_tokens": 256,
+          "minimum_generated": 64,
+          "finite_control": false,
+          "require_draft_counters": true,
+          "model": "unsloth/Qwen3.8-27B-GGUF"
+        },
+        "metadata": {
+          "image": "sha256:3e09d9905d59191ef870b3f1f2e1ce9ba4948211568229d84c1c1214925de973",
+          "engine_revision": "repo=https://github.com/ggml-org/llama.cpp.git\nref=620d2225cc436ab0b001e3200e590e3b286ef9ab\nsha=620d2225cc436ab0b001e3200e590e3b286ef9ab\ndate=2026-10-15T16:48:22+03:00\npatch.llama-conversation-cache=ea1cb7096df5107862e825ecf7fae45354632f6d091fc1cfe71f0dc72a8d39d9",
+          "model_sha256": "8c2a45ff85e7674ca185ec8eb6cdeab0e617ed9d8018caed0b64380eb2a67a5e",
+          "mmproj_sha256": "83ee4f4f205fa514161778c41df1ea14144faa0f713510893b63c2395f5c2d53",
+          "original_parameters": {
+            "-m": "/app/models/Qwen3.8-27B/Qwen3.8-27B-UD-Q3_K_XL.gguf",
+            "-c": "230000",
+            "-b": "4096",
+            "-ub": "1024",
+            "-ctk": "q4_0",
+            "-ctv": "q4_0",
+            "--spec-type": "draft-mtp",
+            "--spec-draft-n-max": "2",
+            "--spec-draft-p-min": "0.10000000000000001",
+            "--cache-ram": "12288",
+            "-np": "1",
+            "--ctx-checkpoints": "32",
+            "--checkpoint-min-step": "8192",
+            "--mmproj": "/app/models/Qwen3.8-27B/mmproj-BF16.gguf"
+          },
+          "overrides": {},
+          "environment": {},
+          "overlays": [
+            {
+              "source": "/tmp/ezlocalai-cache-depth-63c83517-devxt3090v/artifacts/overlay-0",
+              "target": "/app/build/llama.cpp/bin/llama-server",
+              "sha256": "786d233474c43332fb731763342e71657136e992b54d405b19998821b1f51074"
+            },
+            {
+              "source": "/tmp/ezlocalai-cache-depth-63c83517-devxt3090v/artifacts/overlay-1",
+              "target": "/app/build/llama.cpp/bin/libllama-server-impl.so",
+              "sha256": "f95cf664d7f13ed90d5d3a60cb90953bad4b1df379ca9704675a181bc5f83dbd"
+            },
+            {
+              "source": "/tmp/ezlocalai-cache-depth-63c83517-devxt3090v/artifacts/overlay-2",
+              "target": "/app/build/llama.cpp/bin/libllama-common.so.0.7.0",
+              "sha256": "3d87cd42de02a7fa6cfb6210e3cb9e8da3bb65b0ba5c195f7c5021776edc3f1a"
+            },
+            {
+              "source": "/tmp/ezlocalai-cache-depth-63c83517-devxt3090v/artifacts/overlay-3",
+              "target": "/app/build/llama.cpp/bin/libllama.so.0.7.0",
+              "sha256": "4c32861b7148c347033ce73f06da757a5ad01362a4409c48c20386a716bbcc9f"
+            },
+            {
+              "source": "/tmp/ezlocalai-cache-depth-63c83517-devxt3090v/artifacts/overlay-4",
+              "target": "/app/build/llama.cpp/ezlocalai-llama-cpp-version.txt",
+              "sha256": "59eec06e8b4d942e563907640dd99f348db115f31760bffa816eb02142632139"
+            },
+            {
+              "source": "/tmp/ezlocalai-cache-depth-63c83517-devxt3090v/artifacts/overlay-5",
+              "target": "/app/build/llama.cpp/ezlocalai-llama-cpp-patches.txt",
+              "sha256": "53325e0626df355d4b1e360e0ffdb91d88033750325fbfbd8d5bbd1ddf135e53"
+            }
+          ],
+          "engine_binary_sha256": "786d233474c43332fb731763342e71657136e992b54d405b19998821b1f51074",
+          "n_ctx": 230000,
+          "n_ubatch": 1024,
+          "cgroup_limits": {
+            "memory_bytes": 0,
+            "memory_swap_total_bytes": 0,
+            "overridden": false
+          }
+        },
+        "harness_sha256": "91f087c8786e42fefee92d9841873e01a5ccdcdfe55cbecbcb38ceb3f2b1fc3a",
+        "sampled_cgroup_maxima": {
+          "memory.current": 6768668672,
+          "memory.peak": 8403804160,
+          "memory.swap.current": 0,
+          "memory.swap.peak": 0,
+          "oom_events_max": 0,
+          "oom_kill_events_max": 0,
+          "missing_counters_remain_null": true
+        }
+      },
+      "release_defaulton": {
+        "proof": "build/validation/llm-cache-depth-20261026/DevXT3090V-release-resident-quality-63c83517/release_defaulton-bench.json",
+        "sha256": "9aafc01f69c10730a1b6730c7d14873d1797c94917f3a267b67cec774fa7387d",
+        "summary": {
+          "seed": {
+            "samples": 3,
+            "cache_outcomes": {
+              "tail_reuse": 0,
+              "prefix_reuse": 0,
+              "full_reevaluation": 3
+            },
+            "wall_seconds_median": 19.556098968998413,
+            "ttft_seconds_median": 16.069763422987307,
+            "decode_tokens_per_second_median": 72.29104203426425,
+            "prefill_tokens_per_second_median": 1550.6470226906326,
+            "generated_tokens_median": 256,
+            "draft_tokens": 630,
+            "accepted_draft_tokens": 448,
+            "draft_acceptance_ratio": 0.7111111111111111
+          },
+          "replay": {
+            "samples": 3,
+            "cache_outcomes": {
+              "tail_reuse": 3,
+              "prefix_reuse": 0,
+              "full_reevaluation": 0
+            },
+            "wall_seconds_median": 3.835584400992957,
+            "ttft_seconds_median": 0.30371137100155465,
+            "decode_tokens_per_second_median": 72.33703954282991,
+            "prefill_tokens_per_second_median": 31.913450721642906,
+            "generated_tokens_median": 256,
+            "draft_tokens": 630,
+            "accepted_draft_tokens": 448,
+            "draft_acceptance_ratio": 0.7111111111111111
+          },
+          "append": {
+            "samples": 3,
+            "cache_outcomes": {
+              "tail_reuse": 0,
+              "prefix_reuse": 3,
+              "full_reevaluation": 0
+            },
+            "wall_seconds_median": 3.6525713820010424,
+            "ttft_seconds_median": 0.7772226670058444,
+            "decode_tokens_per_second_median": 88.69947782095645,
+            "prefill_tokens_per_second_median": 253.48686852576023,
+            "generated_tokens_median": 256,
+            "draft_tokens": 510,
+            "accepted_draft_tokens": 508,
+            "draft_acceptance_ratio": 0.996078431372549
+          },
+          "rewind": {
+            "samples": 3,
+            "cache_outcomes": {
+              "tail_reuse": 0,
+              "prefix_reuse": 3,
+              "full_reevaluation": 0
+            },
+            "wall_seconds_median": 4.465162278997013,
+            "ttft_seconds_median": 0.9182118260068819,
+            "decode_tokens_per_second_median": 71.7527047252392,
+            "prefill_tokens_per_second_median": 972.6280436607892,
+            "generated_tokens_median": 256,
+            "draft_tokens": 640,
+            "accepted_draft_tokens": 443,
+            "draft_acceptance_ratio": 0.6921875
+          }
+        },
+        "configuration": {
+          "mode": "resident",
+          "prefix_mode": "common",
+          "conversations": 3,
+          "rounds": 2,
+          "cases": [
+            "replay",
+            "append",
+            "rewind"
+          ],
+          "context": 230000,
+          "prompt_chars": 100000,
+          "branch_records": 90,
+          "rewind_records": 40,
+          "decode_tokens": 256,
+          "minimum_generated": 64,
+          "finite_control": false,
+          "require_draft_counters": true,
+          "model": "unsloth/Qwen3.8-27B-GGUF"
+        },
+        "metadata": {
+          "image": "sha256:3e09d9905d59191ef870b3f1f2e1ce9ba4948211568229d84c1c1214925de973",
+          "engine_revision": "repo=https://github.com/ggml-org/llama.cpp.git\nref=620d2225cc436ab0b001e3200e590e3b286ef9ab\nsha=620d2225cc436ab0b001e3200e590e3b286ef9ab\ndate=2026-10-15T16:48:22+03:00\npatch.llama-conversation-cache=ea1cb7096df5107862e825ecf7fae45354632f6d091fc1cfe71f0dc72a8d39d9",
+          "model_sha256": "8c2a45ff85e7674ca185ec8eb6cdeab0e617ed9d8018caed0b64380eb2a67a5e",
+          "mmproj_sha256": "83ee4f4f205fa514161778c41df1ea14144faa0f713510893b63c2395f5c2d53",
+          "original_parameters": {
+            "-m": "/app/models/Qwen3.8-27B/Qwen3.8-27B-UD-Q3_K_XL.gguf",
+            "-c": "230000",
+            "-b": "4096",
+            "-ub": "1024",
+            "-ctk": "q4_0",
+            "-ctv": "q4_0",
+            "--spec-type": "draft-mtp",
+            "--spec-draft-n-max": "2",
+            "--spec-draft-p-min": "0.10000000000000001",
+            "--cache-ram": "12288",
+            "-np": "1",
+            "--ctx-checkpoints": "32",
+            "--checkpoint-min-step": "8192",
+            "--mmproj": "/app/models/Qwen3.8-27B/mmproj-BF16.gguf"
+          },
+          "overrides": {},
+          "environment": {},
+          "overlays": [
+            {
+              "source": "/tmp/ezlocalai-cache-depth-63c83517-devxt3090v/artifacts/overlay-6",
+              "target": "/app/build/llama.cpp/bin/llama-server",
+              "sha256": "786d233474c43332fb731763342e71657136e992b54d405b19998821b1f51074"
+            },
+            {
+              "source": "/tmp/ezlocalai-cache-depth-63c83517-devxt3090v/artifacts/overlay-7",
+              "target": "/app/build/llama.cpp/bin/libllama-server-impl.so",
+              "sha256": "56435bfa886d57c490efdb5797179ead3392dbdca79c4ea86da91761fe52312d"
+            },
+            {
+              "source": "/tmp/ezlocalai-cache-depth-63c83517-devxt3090v/artifacts/overlay-8",
+              "target": "/app/build/llama.cpp/bin/libllama-common.so.0.7.0",
+              "sha256": "c9fd858250b3e1c04ea03f057f1b01ac15496af7983a59ade34ba3dbddc37998"
+            },
+            {
+              "source": "/tmp/ezlocalai-cache-depth-63c83517-devxt3090v/artifacts/overlay-9",
+              "target": "/app/build/llama.cpp/bin/libllama.so.0.7.0",
+              "sha256": "4c32861b7148c347033ce73f06da757a5ad01362a4409c48c20386a716bbcc9f"
+            },
+            {
+              "source": "/tmp/ezlocalai-cache-depth-63c83517-devxt3090v/artifacts/overlay-10",
+              "target": "/app/build/llama.cpp/ezlocalai-llama-cpp-version.txt",
+              "sha256": "59eec06e8b4d942e563907640dd99f348db115f31760bffa816eb02142632139"
+            },
+            {
+              "source": "/tmp/ezlocalai-cache-depth-63c83517-devxt3090v/artifacts/overlay-11",
+              "target": "/app/build/llama.cpp/ezlocalai-llama-cpp-patches.txt",
+              "sha256": "585fd9a2b637ed83de08a5501348c92a2a86b7587a985ca076899dbca81abaf3"
+            }
+          ],
+          "engine_binary_sha256": "786d233474c43332fb731763342e71657136e992b54d405b19998821b1f51074",
+          "n_ctx": 230000,
+          "n_ubatch": 1024,
+          "cgroup_limits": {
+            "memory_bytes": 0,
+            "memory_swap_total_bytes": 0,
+            "overridden": false
+          }
+        },
+        "harness_sha256": "91f087c8786e42fefee92d9841873e01a5ccdcdfe55cbecbcb38ceb3f2b1fc3a",
+        "sampled_cgroup_maxima": {
+          "memory.current": 7864782848,
+          "memory.peak": 7872610304,
+          "memory.swap.current": 0,
+          "memory.swap.peak": 0,
+          "oom_events_max": 0,
+          "oom_kill_events_max": 0,
+          "missing_counters_remain_null": true
+        }
+      },
+      "finite_release": {
+        "proof": "build/validation/llm-cache-depth-20261026/DevXT3090V-release-resident-quality-63c83517/finite_release-bench.json",
+        "sha256": "d34cd7e0e3bd47f8fd158d2fbef979f7745ffefc990a0dabe2c47dd6edb94ff9",
+        "summary": {
+          "seed": {
+            "samples": 3,
+            "cache_outcomes": {
+              "tail_reuse": 0,
+              "prefix_reuse": 0,
+              "full_reevaluation": 3
+            },
+            "wall_seconds_median": 16.331391497005825,
+            "ttft_seconds_median": 16.123190677011735,
+            "decode_tokens_per_second_median": 77.07463232991796,
+            "prefill_tokens_per_second_median": 1548.6593390591931,
+            "generated_tokens_median": 17,
+            "draft_tokens": 36,
+            "accepted_draft_tokens": 30,
+            "draft_acceptance_ratio": 0.8333333333333334
+          },
+          "replay": {
+            "samples": 3,
+            "cache_outcomes": {
+              "tail_reuse": 3,
+              "prefix_reuse": 0,
+              "full_reevaluation": 0
+            },
+            "wall_seconds_median": 0.5073599799943622,
+            "ttft_seconds_median": 0.3025093219912378,
+            "decode_tokens_per_second_median": 77.99057288950199,
+            "prefill_tokens_per_second_median": 31.82559573537017,
+            "generated_tokens_median": 17,
+            "draft_tokens": 36,
+            "accepted_draft_tokens": 30,
+            "draft_acceptance_ratio": 0.8333333333333334
+          },
+          "append": {
+            "samples": 3,
+            "cache_outcomes": {
+              "tail_reuse": 0,
+              "prefix_reuse": 3,
+              "full_reevaluation": 0
+            },
+            "wall_seconds_median": 1.0012392270000419,
+            "ttft_seconds_median": 0.7630316829890944,
+            "decode_tokens_per_second_median": 84.13436257703552,
+            "prefill_tokens_per_second_median": 286.9574892976569,
+            "generated_tokens_median": 21,
+            "draft_tokens": 42,
+            "accepted_draft_tokens": 42,
+            "draft_acceptance_ratio": 1.0
+          },
+          "rewind": {
+            "samples": 3,
+            "cache_outcomes": {
+              "tail_reuse": 0,
+              "prefix_reuse": 3,
+              "full_reevaluation": 0
+            },
+            "wall_seconds_median": 1.1236584459984442,
+            "ttft_seconds_median": 0.9197933969990117,
+            "decode_tokens_per_second_median": 88.4690432072977,
+            "prefill_tokens_per_second_median": 973.4572440997525,
+            "generated_tokens_median": 19,
+            "draft_tokens": 36,
+            "accepted_draft_tokens": 36,
+            "draft_acceptance_ratio": 1.0
+          }
+        },
+        "configuration": {
+          "mode": "resident",
+          "prefix_mode": "common",
+          "conversations": 3,
+          "rounds": 2,
+          "cases": [
+            "replay",
+            "append",
+            "rewind"
+          ],
+          "context": 230000,
+          "prompt_chars": 100000,
+          "branch_records": 90,
+          "rewind_records": 40,
+          "decode_tokens": 64,
+          "minimum_generated": 1,
+          "finite_control": true,
+          "require_draft_counters": true,
+          "model": "unsloth/Qwen3.8-27B-GGUF"
+        },
+        "metadata": {
+          "image": "sha256:3e09d9905d59191ef870b3f1f2e1ce9ba4948211568229d84c1c1214925de973",
+          "engine_revision": "repo=https://github.com/ggml-org/llama.cpp.git\nref=620d2225cc436ab0b001e3200e590e3b286ef9ab\nsha=620d2225cc436ab0b001e3200e590e3b286ef9ab\ndate=2026-10-15T16:48:22+03:00\npatch.llama-conversation-cache=ea1cb7096df5107862e825ecf7fae45354632f6d091fc1cfe71f0dc72a8d39d9",
+          "model_sha256": "8c2a45ff85e7674ca185ec8eb6cdeab0e617ed9d8018caed0b64380eb2a67a5e",
+          "mmproj_sha256": "83ee4f4f205fa514161778c41df1ea14144faa0f713510893b63c2395f5c2d53",
+          "original_parameters": {
+            "-m": "/app/models/Qwen3.8-27B/Qwen3.8-27B-UD-Q3_K_XL.gguf",
+            "-c": "230000",
+            "-b": "4096",
+            "-ub": "1024",
+            "-ctk": "q4_0",
+            "-ctv": "q4_0",
+            "--spec-type": "draft-mtp",
+            "--spec-draft-n-max": "2",
+            "--spec-draft-p-min": "0.10000000000000001",
+            "--cache-ram": "12288",
+            "-np": "1",
+            "--ctx-checkpoints": "32",
+            "--checkpoint-min-step": "8192",
+            "--mmproj": "/app/models/Qwen3.8-27B/mmproj-BF16.gguf"
+          },
+          "overrides": {},
+          "environment": {},
+          "overlays": [
+            {
+              "source": "/tmp/ezlocalai-cache-depth-63c83517-devxt3090v/artifacts/overlay-12",
+              "target": "/app/build/llama.cpp/bin/llama-server",
+              "sha256": "786d233474c43332fb731763342e71657136e992b54d405b19998821b1f51074"
+            },
+            {
+              "source": "/tmp/ezlocalai-cache-depth-63c83517-devxt3090v/artifacts/overlay-13",
+              "target": "/app/build/llama.cpp/bin/libllama-server-impl.so",
+              "sha256": "56435bfa886d57c490efdb5797179ead3392dbdca79c4ea86da91761fe52312d"
+            },
+            {
+              "source": "/tmp/ezlocalai-cache-depth-63c83517-devxt3090v/artifacts/overlay-14",
+              "target": "/app/build/llama.cpp/bin/libllama-common.so.0.7.0",
+              "sha256": "c9fd858250b3e1c04ea03f057f1b01ac15496af7983a59ade34ba3dbddc37998"
+            },
+            {
+              "source": "/tmp/ezlocalai-cache-depth-63c83517-devxt3090v/artifacts/overlay-15",
+              "target": "/app/build/llama.cpp/bin/libllama.so.0.7.0",
+              "sha256": "4c32861b7148c347033ce73f06da757a5ad01362a4409c48c20386a716bbcc9f"
+            },
+            {
+              "source": "/tmp/ezlocalai-cache-depth-63c83517-devxt3090v/artifacts/overlay-16",
+              "target": "/app/build/llama.cpp/ezlocalai-llama-cpp-version.txt",
+              "sha256": "59eec06e8b4d942e563907640dd99f348db115f31760bffa816eb02142632139"
+            },
+            {
+              "source": "/tmp/ezlocalai-cache-depth-63c83517-devxt3090v/artifacts/overlay-17",
+              "target": "/app/build/llama.cpp/ezlocalai-llama-cpp-patches.txt",
+              "sha256": "585fd9a2b637ed83de08a5501348c92a2a86b7587a985ca076899dbca81abaf3"
+            }
+          ],
+          "engine_binary_sha256": "786d233474c43332fb731763342e71657136e992b54d405b19998821b1f51074",
+          "n_ctx": 230000,
+          "n_ubatch": 1024,
+          "cgroup_limits": {
+            "memory_bytes": 0,
+            "memory_swap_total_bytes": 0,
+            "overridden": false
+          }
+        },
+        "harness_sha256": "91f087c8786e42fefee92d9841873e01a5ccdcdfe55cbecbcb38ceb3f2b1fc3a",
+        "sampled_cgroup_maxima": {
+          "memory.current": 7831232512,
+          "memory.peak": 7833976832,
+          "memory.swap.current": 0,
+          "memory.swap.peak": 0,
+          "oom_events_max": 0,
+          "oom_kill_events_max": 0,
+          "missing_counters_remain_null": true
+        }
+      }
+    },
+    "comparison": "Matched baseline versus combined release engine with defaults and no environment overrides.",
+    "paired_checks": [
+      {
+        "sample_id": "seed:r0:b0",
+        "request_hash_match": true,
+        "output_hash_match": true,
+        "baseline_output_sha256": "beb116b712182fb23e484a4c2eba82d47efd21de560f50117a862b2161e56bec",
+        "release_output_sha256": "beb116b712182fb23e484a4c2eba82d47efd21de560f50117a862b2161e56bec",
+        "baseline_cached": 0,
+        "baseline_evaluated": 24577,
+        "release_cached": 0,
+        "release_evaluated": 24577
+      },
+      {
+        "sample_id": "seed:r0:b1",
+        "request_hash_match": true,
+        "output_hash_match": true,
+        "baseline_output_sha256": "9add9c8fe0756fe8fcf26a3da6b60b52d4e6c91af6b101af3c3d7ccfd2a149f7",
+        "release_output_sha256": "9add9c8fe0756fe8fcf26a3da6b60b52d4e6c91af6b101af3c3d7ccfd2a149f7",
+        "baseline_cached": 75,
+        "baseline_evaluated": 24502,
+        "release_cached": 75,
+        "release_evaluated": 24502
+      },
+      {
+        "sample_id": "seed:r0:b2",
+        "request_hash_match": true,
+        "output_hash_match": true,
+        "baseline_output_sha256": "69305827bc99e7de9a08c31348c576d6aba1532a58f959c8943eec066ebe1b70",
+        "release_output_sha256": "69305827bc99e7de9a08c31348c576d6aba1532a58f959c8943eec066ebe1b70",
+        "baseline_cached": 75,
+        "baseline_evaluated": 24502,
+        "release_cached": 75,
+        "release_evaluated": 24502
+      },
+      {
+        "sample_id": "replay:r1:b0",
+        "request_hash_match": true,
+        "output_hash_match": true,
+        "baseline_output_sha256": "beb116b712182fb23e484a4c2eba82d47efd21de560f50117a862b2161e56bec",
+        "release_output_sha256": "beb116b712182fb23e484a4c2eba82d47efd21de560f50117a862b2161e56bec",
+        "baseline_cached": 24573,
+        "baseline_evaluated": 4,
+        "release_cached": 24573,
+        "release_evaluated": 4
+      },
+      {
+        "sample_id": "replay:r1:b1",
+        "request_hash_match": true,
+        "output_hash_match": true,
+        "baseline_output_sha256": "9add9c8fe0756fe8fcf26a3da6b60b52d4e6c91af6b101af3c3d7ccfd2a149f7",
+        "release_output_sha256": "9add9c8fe0756fe8fcf26a3da6b60b52d4e6c91af6b101af3c3d7ccfd2a149f7",
+        "baseline_cached": 24573,
+        "baseline_evaluated": 4,
+        "release_cached": 24573,
+        "release_evaluated": 4
+      },
+      {
+        "sample_id": "replay:r1:b2",
+        "request_hash_match": true,
+        "output_hash_match": true,
+        "baseline_output_sha256": "69305827bc99e7de9a08c31348c576d6aba1532a58f959c8943eec066ebe1b70",
+        "release_output_sha256": "69305827bc99e7de9a08c31348c576d6aba1532a58f959c8943eec066ebe1b70",
+        "baseline_cached": 24573,
+        "baseline_evaluated": 4,
+        "release_cached": 24573,
+        "release_evaluated": 4
+      },
+      {
+        "sample_id": "append:r1:b0",
+        "request_hash_match": true,
+        "output_hash_match": true,
+        "baseline_output_sha256": "beb116b712182fb23e484a4c2eba82d47efd21de560f50117a862b2161e56bec",
+        "release_output_sha256": "beb116b712182fb23e484a4c2eba82d47efd21de560f50117a862b2161e56bec",
+        "baseline_cached": 24832,
+        "baseline_evaluated": 89,
+        "release_cached": 24832,
+        "release_evaluated": 89
+      },
+      {
+        "sample_id": "append:r1:b1",
+        "request_hash_match": true,
+        "output_hash_match": true,
+        "baseline_output_sha256": "9add9c8fe0756fe8fcf26a3da6b60b52d4e6c91af6b101af3c3d7ccfd2a149f7",
+        "release_output_sha256": "9add9c8fe0756fe8fcf26a3da6b60b52d4e6c91af6b101af3c3d7ccfd2a149f7",
+        "baseline_cached": 24832,
+        "baseline_evaluated": 89,
+        "release_cached": 24832,
+        "release_evaluated": 89
+      },
+      {
+        "sample_id": "append:r1:b2",
+        "request_hash_match": true,
+        "output_hash_match": true,
+        "baseline_output_sha256": "69305827bc99e7de9a08c31348c576d6aba1532a58f959c8943eec066ebe1b70",
+        "release_output_sha256": "69305827bc99e7de9a08c31348c576d6aba1532a58f959c8943eec066ebe1b70",
+        "baseline_cached": 24832,
+        "baseline_evaluated": 89,
+        "release_cached": 24832,
+        "release_evaluated": 89
+      },
+      {
+        "sample_id": "rewind:r1:b0",
+        "request_hash_match": true,
+        "output_hash_match": false,
+        "baseline_output_sha256": "638bbc75eb7807f0e7109547fe7883ed96b4022b61bc182a439659f4a2185071",
+        "release_output_sha256": "caef67e47a2ef598c51b9f617489c63c4de2352b3c55e6a204cc5e80362a4e76",
+        "baseline_cached": 75,
+        "baseline_evaluated": 23252,
+        "release_cached": 22603,
+        "release_evaluated": 724
+      },
+      {
+        "sample_id": "rewind:r1:b1",
+        "request_hash_match": true,
+        "output_hash_match": false,
+        "baseline_output_sha256": "4db63787b0704d6a9992a97dc5e70e9dfc95d99a43b8dad718074f94f213b213",
+        "release_output_sha256": "be7c089374790bc0a3bd72c1f906dccc5ac853e51207e4b6bd7ce965ea55eab9",
+        "baseline_cached": 75,
+        "baseline_evaluated": 23252,
+        "release_cached": 22603,
+        "release_evaluated": 724
+      },
+      {
+        "sample_id": "rewind:r1:b2",
+        "request_hash_match": true,
+        "output_hash_match": false,
+        "baseline_output_sha256": "b9b7fdd33c3aff34b672f496c3e1cb25062111137b13fda8b22c96d3762fe931",
+        "release_output_sha256": "3cc2a2606df47b6be43588c587daf89d893be16c7dbbe01c851855b47feb46d0",
+        "baseline_cached": 75,
+        "baseline_evaluated": 23252,
+        "release_cached": 22603,
+        "release_evaluated": 724
+      }
+    ],
+    "request_hash_matches": 12,
+    "seed_replay_append_output_hash_matches": 9,
+    "rewind_semantic_review": {
+      "scope": "Six truncated rewind answers only, three per variant.",
+      "independent_reviewers": 2,
+      "concrete_new_factual_or_identity_regression_found": false,
+      "observations": [
+        "Baseline branches 0/1 incorrectly associate Python dictionaries with chaining; absent in sampled release rewinds.",
+        "Release retains unsupported broad most-common-strategy claims.",
+        "All six answers are coherent generic collision explanations capped at 256 tokens.",
+        "The requested 800-word task, code and resource-management discussion are not fully evaluated."
+      ],
+      "universal_quality_equivalence_established": false
+    },
+    "finite_latest_turn_checks": [
+      {
+        "sample_id": "seed:r0:b0",
+        "expected_control_turn": "TURN_ALPHA",
+        "request_sha256": "7548091f29dc6d898f37f05f1b7ba74442e0b251afbcd0d438a2f88560637cd3",
+        "output_sha256": "9133597da29ca1b7e96f0fee152d6b3c7492c49a28e0dda460de8e7554465b8c"
+      },
+      {
+        "sample_id": "seed:r0:b1",
+        "expected_control_turn": "TURN_ALPHA",
+        "request_sha256": "bbdc775c7fb185ed41446cd9400e0da94033e7f6c0494b963b9110cceb157984",
+        "output_sha256": "3bad4fda532cf016531352e519568009294be8f70642efcd8f928f07edd2afa6"
+      },
+      {
+        "sample_id": "seed:r0:b2",
+        "expected_control_turn": "TURN_ALPHA",
+        "request_sha256": "566bf1a6c40e910c1b037cbf0af5f7182cb005648ca5fd52727b3ac203ac253e",
+        "output_sha256": "3ec68dd07c5ece47c9ad63191928282ce1570b3a9ae7960082e2ea623f44f98c"
+      },
+      {
+        "sample_id": "replay:r1:b0",
+        "expected_control_turn": "TURN_ALPHA",
+        "request_sha256": "7548091f29dc6d898f37f05f1b7ba74442e0b251afbcd0d438a2f88560637cd3",
+        "output_sha256": "9133597da29ca1b7e96f0fee152d6b3c7492c49a28e0dda460de8e7554465b8c"
+      },
+      {
+        "sample_id": "replay:r1:b1",
+        "expected_control_turn": "TURN_ALPHA",
+        "request_sha256": "bbdc775c7fb185ed41446cd9400e0da94033e7f6c0494b963b9110cceb157984",
+        "output_sha256": "3bad4fda532cf016531352e519568009294be8f70642efcd8f928f07edd2afa6"
+      },
+      {
+        "sample_id": "replay:r1:b2",
+        "expected_control_turn": "TURN_ALPHA",
+        "request_sha256": "566bf1a6c40e910c1b037cbf0af5f7182cb005648ca5fd52727b3ac203ac253e",
+        "output_sha256": "3ec68dd07c5ece47c9ad63191928282ce1570b3a9ae7960082e2ea623f44f98c"
+      },
+      {
+        "sample_id": "append:r1:b0",
+        "expected_control_turn": "TURN_BRAVO_r1",
+        "request_sha256": "cefcd8423dde87f09df3756f5e1a912afac9797d037ec49425ecb5665ec66849",
+        "output_sha256": "9f5373f95bd83eca79b7567accd30182ba143b9cda205fe055ffca2d26cacc55"
+      },
+      {
+        "sample_id": "append:r1:b1",
+        "expected_control_turn": "TURN_BRAVO_r1",
+        "request_sha256": "aec1a18dbe42439f995135c86af38a0c668e2d045e41a1be6a63fa3d915acf74",
+        "output_sha256": "fd6ddaa0a0d7db7db84af20736fe9e2a9f6783b925c08017af69f8b2628029a8"
+      },
+      {
+        "sample_id": "append:r1:b2",
+        "expected_control_turn": "TURN_BRAVO_r1",
+        "request_sha256": "4aeae9070bdfe05110450826eec11770527533c6b796e8a24a38294dbe4aa24b",
+        "output_sha256": "9ba22e714b40d7fb346f8c96a130111ade5dca232528db16b9e7bf40196f4361"
+      },
+      {
+        "sample_id": "rewind:r1:b0",
+        "expected_control_turn": "TURN_CHARLIE",
+        "request_sha256": "2cc37507648fd811d58d0f11c03e9b97860895293500d6d9ea6fe5e2c85de9c2",
+        "output_sha256": "939cb322e6227a592ef2e2ee9321f7346f93f54228d0b45265beed3a80f30a9e"
+      },
+      {
+        "sample_id": "rewind:r1:b1",
+        "expected_control_turn": "TURN_CHARLIE",
+        "request_sha256": "7f7887d16df0d1b6bc18408e5249742d6ad9d5110478d8432a7002c185b4ee8d",
+        "output_sha256": "d9f9d5bf0c836529e1d1426c9c1d5364bb352f4c3a6f30e4580e24e6f492fb40"
+      },
+      {
+        "sample_id": "rewind:r1:b2",
+        "expected_control_turn": "TURN_CHARLIE",
+        "request_sha256": "053b936333d74f03d348a52d0215916c8fd327d5cab5967b53653474f266e8b3",
+        "output_sha256": "e5ab2e98a0fa4676f1a6897127b34f671850472558dcaea5ad208887c59cbddd"
+      }
+    ],
+    "finite_exact_expected_stop_answers": 12,
+    "freeform_append_outputs_equal_to_seed": 6,
+    "freeform_continuation_semantics_qualified": false,
+    "controller": {
+      "proof": "build/validation/llm-cache-depth-20261026/DevXT3090V-release-resident-quality-63c83517/result.json",
+      "sha256": "cf3e41af1a4801a0f164105d688f273406105af59c269e5c88698a234ceffe2d"
+    },
+    "supervisor": {
+      "proof": "build/validation/llm-cache-depth-20261026/DevXT3090V-release-resident-quality-63c83517/supervisor-result.json",
+      "sha256": "3c49fca1854e0c8572484da6c437a296b44c542192949dbfa6799971a5357dff"
+    },
+    "telemetry": {
+      "proof": "build/validation/llm-cache-depth-20261026/DevXT3090V-release-resident-quality-63c83517/telemetry.json",
+      "sha256": "82866d7c43d60e333c034dc48b93f89af66b657596840ca7ff102e9b66e860c9"
+    },
+    "result_sha256": "cf3e41af1a4801a0f164105d688f273406105af59c269e5c88698a234ceffe2d",
+    "supervisor_sha256": "3c49fca1854e0c8572484da6c437a296b44c542192949dbfa6799971a5357dff",
+    "restoration": {
+      "healthy": true,
+      "same_container": true,
+      "same_image": true,
+      "same_environment": true,
+      "same_mounts": true,
+      "same_config": true,
+      "same_hostconfig": true,
+      "critical_parameters_preserved": true,
+      "oom_killed": false
+    },
+    "drain_released": true,
+    "lease_errors": []
+  },
+  "final_disk_state": {
+    "status": "passed_three_physical_gpus",
+    "workers": {
+      "DevXT3090V": {
+        "proof": "build/validation/llm-cache-depth-20261026/disk-state/DevXT3090V-state-finite-release-all-656e31b0/finite_release_state-bench.json",
+        "sha256": "0cf1eff3050325474285747dfef8e9a11f3a99962d35bcc523564c07659503e3",
+        "configuration": {
+          "context": 230000,
+          "prompt_chars": 100000,
+          "decode_tokens": 64,
+          "finite_control": true,
+          "model": "unsloth/Qwen3.8-27B-GGUF"
+        },
+        "launch": {
+          "cache_ram_mib": 0,
+          "declared_context": 230000,
+          "slot_save_path": "/state-proof/",
+          "evidence": "caller-verified immutable launch metadata; HTTP cannot verify host mount ownership"
+        },
+        "counts": {
+          "generation_calls": 9,
+          "warmup_generation_calls": 1,
+          "recorded_samples": 8,
+          "input_token_preflights": 9,
+          "save_calls": 2,
+          "restore_calls": 2
+        },
+        "comparisons": {
+          "text": {
+            "request_identical": true,
+            "output_identical": true,
+            "saved_seed_prefix_reused": true,
+            "minimum_cached_tokens": 24581,
+            "reference_cached_tokens": 24613,
+            "restored_cached_tokens": 24613
+          },
+          "vision": {
+            "request_identical": true,
+            "output_identical": true,
+            "saved_seed_prefix_reused": true,
+            "minimum_cached_tokens": 1075,
+            "reference_cached_tokens": 1092,
+            "restored_cached_tokens": 1092
+          }
+        },
+        "metadata": {
+          "image": "sha256:3e09d9905d59191ef870b3f1f2e1ce9ba4948211568229d84c1c1214925de973",
+          "engine_revision": "repo=https://github.com/ggml-org/llama.cpp.git\nref=620d2225cc436ab0b001e3200e590e3b286ef9ab\nsha=620d2225cc436ab0b001e3200e590e3b286ef9ab\ndate=2026-10-15T16:48:22+03:00\npatch.llama-conversation-cache=ea1cb7096df5107862e825ecf7fae45354632f6d091fc1cfe71f0dc72a8d39d9",
+          "model_sha256": "8c2a45ff85e7674ca185ec8eb6cdeab0e617ed9d8018caed0b64380eb2a67a5e",
+          "mmproj_sha256": "83ee4f4f205fa514161778c41df1ea14144faa0f713510893b63c2395f5c2d53",
+          "original_parameters": {
+            "-m": "/app/models/Qwen3.8-27B/Qwen3.8-27B-UD-Q3_K_XL.gguf",
+            "-c": "230000",
+            "-b": "4096",
+            "-ub": "1024",
+            "-ctk": "q4_0",
+            "-ctv": "q4_0",
+            "--spec-type": "draft-mtp",
+            "--spec-draft-n-max": "2",
+            "--spec-draft-p-min": "0.10000000000000001",
+            "--cache-ram": "12288",
+            "-np": "1",
+            "--ctx-checkpoints": "32",
+            "--checkpoint-min-step": "8192",
+            "--mmproj": "/app/models/Qwen3.8-27B/mmproj-BF16.gguf"
+          },
+          "overrides": {
+            "--cache-ram": 0,
+            "--slot-save-path": "/state-proof/"
+          },
+          "environment": {},
+          "overlays": [
+            {
+              "source": "/tmp/ezlocalai-cache-state-656e31b0-devxt3090v/artifacts/overlay-0",
+              "target": "/app/build/llama.cpp/bin/llama-server",
+              "sha256": "786d233474c43332fb731763342e71657136e992b54d405b19998821b1f51074"
+            },
+            {
+              "source": "/tmp/ezlocalai-cache-state-656e31b0-devxt3090v/artifacts/overlay-1",
+              "target": "/app/build/llama.cpp/bin/libllama-server-impl.so",
+              "sha256": "56435bfa886d57c490efdb5797179ead3392dbdca79c4ea86da91761fe52312d"
+            },
+            {
+              "source": "/tmp/ezlocalai-cache-state-656e31b0-devxt3090v/artifacts/overlay-2",
+              "target": "/app/build/llama.cpp/bin/libllama-common.so.0.7.0",
+              "sha256": "c9fd858250b3e1c04ea03f057f1b01ac15496af7983a59ade34ba3dbddc37998"
+            },
+            {
+              "source": "/tmp/ezlocalai-cache-state-656e31b0-devxt3090v/artifacts/overlay-3",
+              "target": "/app/build/llama.cpp/bin/libllama.so.0.7.0",
+              "sha256": "4c32861b7148c347033ce73f06da757a5ad01362a4409c48c20386a716bbcc9f"
+            },
+            {
+              "source": "/tmp/ezlocalai-cache-state-656e31b0-devxt3090v/artifacts/overlay-4",
+              "target": "/app/build/llama.cpp/ezlocalai-llama-cpp-version.txt",
+              "sha256": "59eec06e8b4d942e563907640dd99f348db115f31760bffa816eb02142632139"
+            },
+            {
+              "source": "/tmp/ezlocalai-cache-state-656e31b0-devxt3090v/artifacts/overlay-5",
+              "target": "/app/build/llama.cpp/ezlocalai-llama-cpp-patches.txt",
+              "sha256": "585fd9a2b637ed83de08a5501348c92a2a86b7587a985ca076899dbca81abaf3"
+            }
+          ],
+          "engine_binary_sha256": "786d233474c43332fb731763342e71657136e992b54d405b19998821b1f51074",
+          "n_ctx": 230000,
+          "n_ubatch": 1024,
+          "cgroup_limits": {
+            "memory_bytes": 0,
+            "memory_swap_total_bytes": 0,
+            "overridden": false
+          }
+        },
+        "snapshots": {
+          "text": {
+            "tokens": 24613,
+            "bytes_written_and_read": 1341217444,
+            "save_wall_seconds": 0.37083417299436405,
+            "restore_wall_seconds": 0.4183175069920253
+          },
+          "vision": {
+            "tokens": 1092,
+            "bytes_written_and_read": 495914872,
+            "save_wall_seconds": 0.10648011999728624,
+            "restore_wall_seconds": 0.18058061100600753
+          }
+        },
+        "sample_hashes": [
+          {
+            "kind": "text_seed",
+            "request_sha256": "456bd32dda6e7ab4fbf2fddbce88c15dca25a09f50c6ab3607e23620329fed8c",
+            "output_sha256": "9133597da29ca1b7e96f0fee152d6b3c7492c49a28e0dda460de8e7554465b8c",
+            "cached_prompt_tokens": 0,
+            "evaluated_prompt_tokens": 24597
+          },
+          {
+            "kind": "text_reference",
+            "request_sha256": "d3a1beb51f1488bd1c21f5f751959ccdf9229e1c8e815e8a4e371aa11653fe2b",
+            "output_sha256": "9f5373f95bd83eca79b7567accd30182ba143b9cda205fe055ffca2d26cacc55",
+            "cached_prompt_tokens": 24613,
+            "evaluated_prompt_tokens": 105
+          },
+          {
+            "kind": "text_stomp",
+            "request_sha256": "8550dea9bbbd3ecd23ce83fd920ba1a2be9eb5e29dac574d756f02e72043d6eb",
+            "output_sha256": "3bad4fda532cf016531352e519568009294be8f70642efcd8f928f07edd2afa6",
+            "cached_prompt_tokens": 0,
+            "evaluated_prompt_tokens": 1653
+          },
+          {
+            "kind": "text_restored",
+            "request_sha256": "d3a1beb51f1488bd1c21f5f751959ccdf9229e1c8e815e8a4e371aa11653fe2b",
+            "output_sha256": "9f5373f95bd83eca79b7567accd30182ba143b9cda205fe055ffca2d26cacc55",
+            "cached_prompt_tokens": 24613,
+            "evaluated_prompt_tokens": 105
+          },
+          {
+            "kind": "vision_seed",
+            "request_sha256": "14deaab98a992bed256a30a025be30fffc8efcead0a435700539d09068655e27",
+            "output_sha256": "5646cb2f1b5086db06422a6c72466e15345f744efe37045c1580cbbb0fb82378",
+            "cached_prompt_tokens": 0,
+            "evaluated_prompt_tokens": 1091
+          },
+          {
+            "kind": "vision_reference",
+            "request_sha256": "430c477c18baeaaf5c499f0fb9ac7e4f6e03339b58e19a840975998a6dcb81d9",
+            "output_sha256": "5646cb2f1b5086db06422a6c72466e15345f744efe37045c1580cbbb0fb82378",
+            "cached_prompt_tokens": 1092,
+            "evaluated_prompt_tokens": 32
+          },
+          {
+            "kind": "vision_stomp",
+            "request_sha256": "1820023968054df62d2aeca58cf8a4a843470fe4f1aad16969ee95a10198bf1f",
+            "output_sha256": "6accd6d1a05b70a55e48e82a14c45197cf27aa919ecb32840c9d0ce40718adb2",
+            "cached_prompt_tokens": 0,
+            "evaluated_prompt_tokens": 1645
+          },
+          {
+            "kind": "vision_restored",
+            "request_sha256": "430c477c18baeaaf5c499f0fb9ac7e4f6e03339b58e19a840975998a6dcb81d9",
+            "output_sha256": "5646cb2f1b5086db06422a6c72466e15345f744efe37045c1580cbbb0fb82378",
+            "cached_prompt_tokens": 1092,
+            "evaluated_prompt_tokens": 32
+          }
+        ],
+        "text_alpha_to_bravo_after_overwrite_restore": true,
+        "vision_red_after_overwrite_restore": true,
+        "sampled_cgroup_maxima": {
+          "memory.current": 5175808000,
+          "memory.peak": 5175808000,
+          "memory.swap.current": 0,
+          "memory.swap.peak": 0,
+          "oom_events_max": 0,
+          "oom_kill_events_max": 0,
+          "missing_counters_remain_null": true
+        },
+        "result_sha256": "c5666d1dfe10f4b8aad6abbccda9e8998129bdb1cd81458f388e895a0fd14ec8",
+        "supervisor_sha256": "57a22ef905690a41e15546ec9fa3d8b3e4cd453190c80fda8fab1068b2a8ad5f",
+        "restoration": {
+          "healthy": true,
+          "same_container": true,
+          "same_image": true,
+          "same_environment": true,
+          "same_mounts": true,
+          "same_config": true,
+          "same_hostconfig": true,
+          "critical_parameters_preserved": true,
+          "oom_killed": false
+        },
+        "drain_released": true,
+        "lease_errors": []
+      },
+      "DevXT4090": {
+        "proof": "build/validation/llm-cache-depth-20261026/disk-state/DevXT4090-state-finite-release-all-656e31b0/finite_release_state-bench.json",
+        "sha256": "4b4da6f0cbd9be6ad4bfd098236ab8bbcabdcd82119e545e281f0c79a8f7019c",
+        "configuration": {
+          "context": 230000,
+          "prompt_chars": 100000,
+          "decode_tokens": 64,
+          "finite_control": true,
+          "model": "unsloth/Qwen3.8-27B-GGUF"
+        },
+        "launch": {
+          "cache_ram_mib": 0,
+          "declared_context": 230000,
+          "slot_save_path": "/state-proof/",
+          "evidence": "caller-verified immutable launch metadata; HTTP cannot verify host mount ownership"
+        },
+        "counts": {
+          "generation_calls": 9,
+          "warmup_generation_calls": 1,
+          "recorded_samples": 8,
+          "input_token_preflights": 9,
+          "save_calls": 2,
+          "restore_calls": 2
+        },
+        "comparisons": {
+          "text": {
+            "request_identical": true,
+            "output_identical": true,
+            "saved_seed_prefix_reused": true,
+            "minimum_cached_tokens": 24580,
+            "reference_cached_tokens": 24612,
+            "restored_cached_tokens": 24612
+          },
+          "vision": {
+            "request_identical": true,
+            "output_identical": true,
+            "saved_seed_prefix_reused": true,
+            "minimum_cached_tokens": 1074,
+            "reference_cached_tokens": 1091,
+            "restored_cached_tokens": 1091
+          }
+        },
+        "metadata": {
+          "image": "sha256:1197b0b18d410519a25fab734bcfead8b32b8d67b1b824a188dbd08916735021",
+          "engine_revision": "repo=https://github.com/ggml-org/llama.cpp.git\nref=620d2225cc436ab0b001e3200e590e3b286ef9ab\nsha=620d2225cc436ab0b001e3200e590e3b286ef9ab\ndate=2026-10-15T16:48:22+03:00\npatch.llama-conversation-cache=ea1cb7096df5107862e825ecf7fae45354632f6d091fc1cfe71f0dc72a8d39d9",
+          "model_sha256": "8c2a45ff85e7674ca185ec8eb6cdeab0e617ed9d8018caed0b64380eb2a67a5e",
+          "mmproj_sha256": "83ee4f4f205fa514161778c41df1ea14144faa0f713510893b63c2395f5c2d53",
+          "original_parameters": {
+            "-m": "/app/models/Qwen3.8-27B/Qwen3.8-27B-UD-Q3_K_XL.gguf",
+            "-c": "230000",
+            "-b": "4096",
+            "-ub": "1024",
+            "-ctk": "q4_0",
+            "-ctv": "q4_0",
+            "--spec-type": "draft-mtp",
+            "--spec-draft-n-max": "3",
+            "--spec-draft-p-min": "0.10000000000000001",
+            "--cache-ram": "12288",
+            "-np": "1",
+            "--ctx-checkpoints": "32",
+            "--checkpoint-min-step": "8192",
+            "--mmproj": "/app/models/Qwen3.8-27B/mmproj-BF16.gguf"
+          },
+          "overrides": {
+            "--cache-ram": 0,
+            "--slot-save-path": "/state-proof/"
+          },
+          "environment": {},
+          "overlays": [
+            {
+              "source": "/tmp/ezlocalai-cache-state-656e31b0-devxt4090/artifacts/overlay-0",
+              "target": "/app/build/llama.cpp/bin/llama-server",
+              "sha256": "786d233474c43332fb731763342e71657136e992b54d405b19998821b1f51074"
+            },
+            {
+              "source": "/tmp/ezlocalai-cache-state-656e31b0-devxt4090/artifacts/overlay-1",
+              "target": "/app/build/llama.cpp/bin/libllama-server-impl.so",
+              "sha256": "56435bfa886d57c490efdb5797179ead3392dbdca79c4ea86da91761fe52312d"
+            },
+            {
+              "source": "/tmp/ezlocalai-cache-state-656e31b0-devxt4090/artifacts/overlay-2",
+              "target": "/app/build/llama.cpp/bin/libllama-common.so.0.7.0",
+              "sha256": "c9fd858250b3e1c04ea03f057f1b01ac15496af7983a59ade34ba3dbddc37998"
+            },
+            {
+              "source": "/tmp/ezlocalai-cache-state-656e31b0-devxt4090/artifacts/overlay-3",
+              "target": "/app/build/llama.cpp/bin/libllama.so.0.7.0",
+              "sha256": "4c32861b7148c347033ce73f06da757a5ad01362a4409c48c20386a716bbcc9f"
+            },
+            {
+              "source": "/tmp/ezlocalai-cache-state-656e31b0-devxt4090/artifacts/overlay-4",
+              "target": "/app/build/llama.cpp/ezlocalai-llama-cpp-version.txt",
+              "sha256": "59eec06e8b4d942e563907640dd99f348db115f31760bffa816eb02142632139"
+            },
+            {
+              "source": "/tmp/ezlocalai-cache-state-656e31b0-devxt4090/artifacts/overlay-5",
+              "target": "/app/build/llama.cpp/ezlocalai-llama-cpp-patches.txt",
+              "sha256": "585fd9a2b637ed83de08a5501348c92a2a86b7587a985ca076899dbca81abaf3"
+            }
+          ],
+          "engine_binary_sha256": "786d233474c43332fb731763342e71657136e992b54d405b19998821b1f51074",
+          "n_ctx": 230000,
+          "n_ubatch": 1024,
+          "cgroup_limits": {
+            "memory_bytes": 0,
+            "memory_swap_total_bytes": 0,
+            "overridden": false
+          }
+        },
+        "snapshots": {
+          "text": {
+            "tokens": 24612,
+            "bytes_written_and_read": 1341543092,
+            "save_wall_seconds": 0.274849417997757,
+            "restore_wall_seconds": 0.27397870999993756
+          },
+          "vision": {
+            "tokens": 1091,
+            "bytes_written_and_read": 496056164,
+            "save_wall_seconds": 0.08519667600194225,
+            "restore_wall_seconds": 0.11028771800192771
+          }
+        },
+        "sample_hashes": [
+          {
+            "kind": "text_seed",
+            "request_sha256": "0b37dabaf9fd6c35f758b01e5b16e144399b2b3c311596493f31b52ebf65d00c",
+            "output_sha256": "9133597da29ca1b7e96f0fee152d6b3c7492c49a28e0dda460de8e7554465b8c",
+            "cached_prompt_tokens": 0,
+            "evaluated_prompt_tokens": 24596
+          },
+          {
+            "kind": "text_reference",
+            "request_sha256": "e9447c12b44d6617e36f2dc307dd838dab99f47503d9cfc981585c1e3371f47b",
+            "output_sha256": "9f5373f95bd83eca79b7567accd30182ba143b9cda205fe055ffca2d26cacc55",
+            "cached_prompt_tokens": 24612,
+            "evaluated_prompt_tokens": 104
+          },
+          {
+            "kind": "text_stomp",
+            "request_sha256": "ce9959a96d22e0560341e40f9008b7c2ffcc61aef9b63b07d0159bf0a2d2f48d",
+            "output_sha256": "3bad4fda532cf016531352e519568009294be8f70642efcd8f928f07edd2afa6",
+            "cached_prompt_tokens": 0,
+            "evaluated_prompt_tokens": 1652
+          },
+          {
+            "kind": "text_restored",
+            "request_sha256": "e9447c12b44d6617e36f2dc307dd838dab99f47503d9cfc981585c1e3371f47b",
+            "output_sha256": "9f5373f95bd83eca79b7567accd30182ba143b9cda205fe055ffca2d26cacc55",
+            "cached_prompt_tokens": 24612,
+            "evaluated_prompt_tokens": 104
+          },
+          {
+            "kind": "vision_seed",
+            "request_sha256": "c7a4e90daad86053f8c8f9ab42de4e3301be5436ddce0a36c3f0255f9fd37432",
+            "output_sha256": "5646cb2f1b5086db06422a6c72466e15345f744efe37045c1580cbbb0fb82378",
+            "cached_prompt_tokens": 0,
+            "evaluated_prompt_tokens": 1090
+          },
+          {
+            "kind": "vision_reference",
+            "request_sha256": "a51dc17bbffbc6bc99ae6cb0af46cef98b3b5d20dab67b2d552c916b1e051ef5",
+            "output_sha256": "5646cb2f1b5086db06422a6c72466e15345f744efe37045c1580cbbb0fb82378",
+            "cached_prompt_tokens": 1091,
+            "evaluated_prompt_tokens": 32
+          },
+          {
+            "kind": "vision_stomp",
+            "request_sha256": "37407adb318b5eb6b915d496a79152dd2da92e068effc60c8744b9d7e91f43e9",
+            "output_sha256": "6accd6d1a05b70a55e48e82a14c45197cf27aa919ecb32840c9d0ce40718adb2",
+            "cached_prompt_tokens": 0,
+            "evaluated_prompt_tokens": 1644
+          },
+          {
+            "kind": "vision_restored",
+            "request_sha256": "a51dc17bbffbc6bc99ae6cb0af46cef98b3b5d20dab67b2d552c916b1e051ef5",
+            "output_sha256": "5646cb2f1b5086db06422a6c72466e15345f744efe37045c1580cbbb0fb82378",
+            "cached_prompt_tokens": 1091,
+            "evaluated_prompt_tokens": 32
+          }
+        ],
+        "text_alpha_to_bravo_after_overwrite_restore": true,
+        "vision_red_after_overwrite_restore": true,
+        "sampled_cgroup_maxima": {
+          "memory.current": 5115006976,
+          "memory.peak": 5115006976,
+          "memory.swap.current": 0,
+          "memory.swap.peak": 0,
+          "oom_events_max": 0,
+          "oom_kill_events_max": 0,
+          "missing_counters_remain_null": true
+        },
+        "result_sha256": "7c450f893f617452cc3c54948000c5748bf81ac074bfea1d93d3ee9559f7cdb0",
+        "supervisor_sha256": "6e2ba4ca5f31e9aeba769737dd970942ce5b5a77d20d58824d442ec42d99750e",
+        "restoration": {
+          "healthy": true,
+          "same_container": true,
+          "same_image": true,
+          "same_environment": true,
+          "same_mounts": true,
+          "same_config": true,
+          "same_hostconfig": true,
+          "critical_parameters_preserved": true,
+          "oom_killed": false
+        },
+        "drain_released": true,
+        "lease_errors": []
+      },
+      "DevXT5090": {
+        "proof": "build/validation/llm-cache-depth-20261026/disk-state/DevXT5090-state-finite-release-all-656e31b0/finite_release_state-bench.json",
+        "sha256": "f7416b8652dc3d38a85c36ae4ee80aa9df90a3cdf278f294276530da469e138c",
+        "configuration": {
+          "context": 262144,
+          "prompt_chars": 100000,
+          "decode_tokens": 64,
+          "finite_control": true,
+          "model": "unsloth/Qwen3.8-27B-GGUF"
+        },
+        "launch": {
+          "cache_ram_mib": 0,
+          "declared_context": 262144,
+          "slot_save_path": "/state-proof/",
+          "evidence": "caller-verified immutable launch metadata; HTTP cannot verify host mount ownership"
+        },
+        "counts": {
+          "generation_calls": 9,
+          "warmup_generation_calls": 1,
+          "recorded_samples": 8,
+          "input_token_preflights": 9,
+          "save_calls": 2,
+          "restore_calls": 2
+        },
+        "comparisons": {
+          "text": {
+            "request_identical": true,
+            "output_identical": true,
+            "saved_seed_prefix_reused": true,
+            "minimum_cached_tokens": 24580,
+            "reference_cached_tokens": 24612,
+            "restored_cached_tokens": 24612
+          },
+          "vision": {
+            "request_identical": true,
+            "output_identical": true,
+            "saved_seed_prefix_reused": true,
+            "minimum_cached_tokens": 1074,
+            "reference_cached_tokens": 1091,
+            "restored_cached_tokens": 1091
+          }
+        },
+        "metadata": {
+          "image": "sha256:1197b0b18d410519a25fab734bcfead8b32b8d67b1b824a188dbd08916735021",
+          "engine_revision": "repo=https://github.com/ggml-org/llama.cpp.git\nref=620d2225cc436ab0b001e3200e590e3b286ef9ab\nsha=620d2225cc436ab0b001e3200e590e3b286ef9ab\ndate=2026-10-15T16:48:22+03:00\npatch.llama-conversation-cache=ea1cb7096df5107862e825ecf7fae45354632f6d091fc1cfe71f0dc72a8d39d9",
+          "model_sha256": "00cf92e666c6af6566996c38c89a44ccdb6449ea25ef0f112a452c853b2a71e2",
+          "mmproj_sha256": "83ee4f4f205fa514161778c41df1ea14144faa0f713510893b63c2395f5c2d53",
+          "original_parameters": {
+            "-m": "/app/models/Qwen3.8-27B/Qwen3.8-27B-UD-Q3_K_XL.gguf",
+            "-c": "262144",
+            "-b": "4096",
+            "-ub": "2048",
+            "-ctk": "q4_0",
+            "-ctv": "q4_0",
+            "--spec-type": "draft-mtp",
+            "--spec-draft-n-max": "3",
+            "--spec-draft-p-min": "0.10000000000000001",
+            "--cache-ram": "32000",
+            "-np": "1",
+            "--ctx-checkpoints": "32",
+            "--checkpoint-min-step": "8192",
+            "--mmproj": "/app/models/Qwen3.8-27B/mmproj-BF16.gguf"
+          },
+          "overrides": {
+            "--cache-ram": 0,
+            "--slot-save-path": "/state-proof/"
+          },
+          "environment": {},
+          "overlays": [
+            {
+              "source": "/tmp/ezlocalai-cache-state-656e31b0-devxt5090/artifacts/overlay-0",
+              "target": "/app/build/llama.cpp/bin/llama-server",
+              "sha256": "786d233474c43332fb731763342e71657136e992b54d405b19998821b1f51074"
+            },
+            {
+              "source": "/tmp/ezlocalai-cache-state-656e31b0-devxt5090/artifacts/overlay-1",
+              "target": "/app/build/llama.cpp/bin/libllama-server-impl.so",
+              "sha256": "56435bfa886d57c490efdb5797179ead3392dbdca79c4ea86da91761fe52312d"
+            },
+            {
+              "source": "/tmp/ezlocalai-cache-state-656e31b0-devxt5090/artifacts/overlay-2",
+              "target": "/app/build/llama.cpp/bin/libllama-common.so.0.7.0",
+              "sha256": "c9fd858250b3e1c04ea03f057f1b01ac15496af7983a59ade34ba3dbddc37998"
+            },
+            {
+              "source": "/tmp/ezlocalai-cache-state-656e31b0-devxt5090/artifacts/overlay-3",
+              "target": "/app/build/llama.cpp/bin/libllama.so.0.7.0",
+              "sha256": "4c32861b7148c347033ce73f06da757a5ad01362a4409c48c20386a716bbcc9f"
+            },
+            {
+              "source": "/tmp/ezlocalai-cache-state-656e31b0-devxt5090/artifacts/overlay-4",
+              "target": "/app/build/llama.cpp/ezlocalai-llama-cpp-version.txt",
+              "sha256": "59eec06e8b4d942e563907640dd99f348db115f31760bffa816eb02142632139"
+            },
+            {
+              "source": "/tmp/ezlocalai-cache-state-656e31b0-devxt5090/artifacts/overlay-5",
+              "target": "/app/build/llama.cpp/ezlocalai-llama-cpp-patches.txt",
+              "sha256": "585fd9a2b637ed83de08a5501348c92a2a86b7587a985ca076899dbca81abaf3"
+            }
+          ],
+          "engine_binary_sha256": "786d233474c43332fb731763342e71657136e992b54d405b19998821b1f51074",
+          "n_ctx": 262144,
+          "n_ubatch": 2048,
+          "cgroup_limits": {
+            "memory_bytes": 0,
+            "memory_swap_total_bytes": 0,
+            "overridden": false
+          }
+        },
+        "snapshots": {
+          "text": {
+            "tokens": 24612,
+            "bytes_written_and_read": 1184382360,
+            "save_wall_seconds": 0.3796305130235851,
+            "restore_wall_seconds": 0.23618723591789603
+          },
+          "vision": {
+            "tokens": 1091,
+            "bytes_written_and_read": 496056164,
+            "save_wall_seconds": 0.15143401501700282,
+            "restore_wall_seconds": 0.10209920408669859
+          }
+        },
+        "sample_hashes": [
+          {
+            "kind": "text_seed",
+            "request_sha256": "fe7cea6f8604fa857305b2b4e2b0ad7fa27465f24957f8a2c8b77ad3a8ac25cc",
+            "output_sha256": "9133597da29ca1b7e96f0fee152d6b3c7492c49a28e0dda460de8e7554465b8c",
+            "cached_prompt_tokens": 0,
+            "evaluated_prompt_tokens": 24596
+          },
+          {
+            "kind": "text_reference",
+            "request_sha256": "8f78cacfb6a4c6f569baab188079943b035e026ce7c3cf1d8e041791c718905a",
+            "output_sha256": "9f5373f95bd83eca79b7567accd30182ba143b9cda205fe055ffca2d26cacc55",
+            "cached_prompt_tokens": 24612,
+            "evaluated_prompt_tokens": 104
+          },
+          {
+            "kind": "text_stomp",
+            "request_sha256": "8336b71b3db28173f48283a435f6b5484ff5fb70ca49b3a3ac37ec4ca9fb4890",
+            "output_sha256": "3bad4fda532cf016531352e519568009294be8f70642efcd8f928f07edd2afa6",
+            "cached_prompt_tokens": 0,
+            "evaluated_prompt_tokens": 1652
+          },
+          {
+            "kind": "text_restored",
+            "request_sha256": "8f78cacfb6a4c6f569baab188079943b035e026ce7c3cf1d8e041791c718905a",
+            "output_sha256": "9f5373f95bd83eca79b7567accd30182ba143b9cda205fe055ffca2d26cacc55",
+            "cached_prompt_tokens": 24612,
+            "evaluated_prompt_tokens": 104
+          },
+          {
+            "kind": "vision_seed",
+            "request_sha256": "ddcab29d97ef7fef20e73d51819a256ef52412502a31bb8bb09db15f721435d0",
+            "output_sha256": "5646cb2f1b5086db06422a6c72466e15345f744efe37045c1580cbbb0fb82378",
+            "cached_prompt_tokens": 0,
+            "evaluated_prompt_tokens": 1090
+          },
+          {
+            "kind": "vision_reference",
+            "request_sha256": "4c769a8201606a97e3eefe425d8966b91379152be30bdef341e60ee1f60b4eff",
+            "output_sha256": "5646cb2f1b5086db06422a6c72466e15345f744efe37045c1580cbbb0fb82378",
+            "cached_prompt_tokens": 1091,
+            "evaluated_prompt_tokens": 32
+          },
+          {
+            "kind": "vision_stomp",
+            "request_sha256": "9d66ca01faa20299e7ebad8037073fc500a38a21bd95ac322380622b9fa76554",
+            "output_sha256": "dcd0ca6a6757f623b9b9889cf58b75e6a87456beec9efe3b94b3791ac1399a1b",
+            "cached_prompt_tokens": 0,
+            "evaluated_prompt_tokens": 1644
+          },
+          {
+            "kind": "vision_restored",
+            "request_sha256": "4c769a8201606a97e3eefe425d8966b91379152be30bdef341e60ee1f60b4eff",
+            "output_sha256": "5646cb2f1b5086db06422a6c72466e15345f744efe37045c1580cbbb0fb82378",
+            "cached_prompt_tokens": 1091,
+            "evaluated_prompt_tokens": 32
+          }
+        ],
+        "text_alpha_to_bravo_after_overwrite_restore": true,
+        "vision_red_after_overwrite_restore": true,
+        "sampled_cgroup_maxima": {
+          "memory.current": 6295539712,
+          "memory.peak": 6296051712,
+          "memory.swap.current": 0,
+          "memory.swap.peak": 0,
+          "oom_events_max": 0,
+          "oom_kill_events_max": 0,
+          "missing_counters_remain_null": true
+        },
+        "result_sha256": "67717aabad8526834f926fd6e2e3ac6f0aba08e67ac88730de7e275adf1601e7",
+        "supervisor_sha256": "b5e270bba031cc0168637fa0afddeb8c66cddb84c349f6340f75e97fa2031451",
+        "restoration": {
+          "healthy": true,
+          "same_container": true,
+          "same_image": true,
+          "same_environment": true,
+          "same_mounts": true,
+          "same_config": true,
+          "same_hostconfig": true,
+          "critical_parameters_preserved": true,
+          "oom_killed": false
+        },
+        "drain_released": true,
+        "lease_errors": []
+      }
+    },
+    "limits": [
+      "Normal same-engine HTTP slot state after overwrite/reload, with in-memory conversation cache disabled.",
+      "Not process-restart or arbitrary legacy/corrupt file compatibility qualification."
+    ]
+  },
+  "final_full_cuda_image": {
+    "proof": "build/validation/llm-cache-depth-20261026/full-cuda-image-448bf6b/result.json",
+    "sha256": "59887b50470d13f3fe793e5a50de4f98a7555ced45294aa83300ffcd6eb6dba9",
+    "snapshot_commit": "448bf6bf58e44c18834708d8ce51162d40223b36",
+    "image_id": "sha256:462cd19b65435d0ff95153b8aed32d91e5a121b8e78df2fbe4d37c39ec28bb57",
+    "tag": "ezlocalai:cuda-candidate-20261026-448bf6b",
+    "package_gate_count": 69,
+    "package_gate_passed": 69,
+    "oracle_reference_root_absent": true,
+    "linkage_passed": true,
+    "ace_own_ggml": true,
+    "pushed": false,
+    "deployed": false,
+    "patch_metadata": "patch.llama-conversation-cache=ea1cb7096df5107862e825ecf7fae45354632f6d091fc1cfe71f0dc72a8d39d9\npatch.llama-cache-restore-atomic=beeb2f5afbfca0058a1ecfeed840a5983bf9a68bb8988ec8fde3a9bc3690f4f9\npatch.llama-cache-storage=8d7dfea21271902196a42e0567a9a3c9820d9d612906bb4b910d31a1f4770285\npatch.llama-mtp-resume=5838c9cb1448573491ef3064e792db6b94f40fbf875ae14bf4b2f4d6af98e6fa\npatch.llama-checkpoint-coverage=dd139ddd1531aeea125df3d42510d2bf7bee02574008383a96ef779a92133821\n",
+    "artifact_sha256": {
+      "runtime_build_version.hpp": "9ccd30754283cc5f7b817d4ed28e00ee2a3487df0aa2d6362fd3cf9896e0d7e3",
+      "runtime-git-HEAD": "dccd9f70c5394ee003e60fa3b41c84c0197d78cd38d1c0beda35361be166a5f2",
+      "package-LastTest.log": "789ebd4e98dd6f2e1d207278cf8b9948ca1aa59a6b3c0e0f79e7c7cc01147408",
+      "native-CMakeCache.txt": "e5ef80c16c28c744e59afe7ef7d93066aa371cba1eae9cd13831a5be1339ba1a",
+      "llama-CMakeCache.txt": "325073b1424b338d4f88cbea44119f654b5e1edb4b52394a5d85671a223184ee",
+      "llama-version.txt": "b343ce723320d7023bfc3ed37f8e60cd49e51f8ebc3983fb1fee86a56dcb1a21",
+      "llama-patches.txt": "585fd9a2b637ed83de08a5501348c92a2a86b7587a985ca076899dbca81abaf3",
+      "package-linkage.txt": "11bd9b5c268501b026dbbaee998bc210a2798c583afe028f69d2a2e5c022ddb0",
+      "fresh-linkage.txt": "419d709479ea485a4dbb5eb8958be7f5ce4b83aaf9f45395448cc529b99337c3"
+    },
+    "audit": {
+      "proof": "build/validation/llm-cache-depth-20261026/full-cuda-image-448bf6b/audit.json",
+      "sha256": "dfd34dfe14024a71b3097b0da90d136bacffec3b93182f67a87b16f3e5b6532d"
+    },
+    "production_release_eligible_at_audit": false,
+    "cpu_cache_real_router_checks": {
+      "proof": "build/validation/llm-cache-depth-20261026/release-engine-router.log",
+      "sha256": "2af9a9288688ee29730e02cb4399880119edd79ec9950d2082e4579f7ef01683",
+      "passed": 2,
+      "failed": 0,
+      "seconds": 29.88,
+      "tests": [
+        "worker_router_integration",
+        "conversation_cache_engine"
+      ]
+    },
+    "canary_passed": true,
+    "publication_authorized": false,
+    "production_deployment_authorized": false
+  },
+  "final_packaged_5090_canary": {
+    "proof": "build/validation/llm-cache-depth-20261026/DevXT5090-full-canary-fdb6add414/result.json",
+    "sha256": "50e6d5076d8557c689914d6cba24a815ded26dcdabdfe36819f4195f5a6f5736",
+    "candidate_image": "sha256:462cd19b65435d0ff95153b8aed32d91e5a121b8e78df2fbe4d37c39ec28bb57",
+    "expected_runtime_version": "448bf6b",
+    "model_sha256": "00cf92e666c6af6566996c38c89a44ccdb6449ea25ef0f112a452c853b2a71e2",
+    "projector_sha256": "83ee4f4f205fa514161778c41df1ea14144faa0f713510893b63c2395f5c2d53",
+    "actual_engine_parameters": {
+      "-m": "/app/models/Qwen3.8-27B/Qwen3.8-27B-UD-Q3_K_XL.gguf",
+      "-c": "262144",
+      "--main-gpu": "0",
+      "-b": "4096",
+      "-ub": "2048",
+      "--mmproj": "/app/models/Qwen3.8-27B/mmproj-BF16.gguf",
+      "-np": "1",
+      "--flash-attn": "on",
+      "--cache-ram": "32000",
+      "-ctk": "q4_0",
+      "-ctv": "q4_0",
+      "--ctx-checkpoints": "32",
+      "--checkpoint-min-step": "8192",
+      "--spec-type": "draft-mtp",
+      "--spec-draft-n-max": "3",
+      "--spec-draft-p-min": "0.10000000000000001",
+      "--image-min-tokens": "1024",
+      "-ngl": "-1"
+    },
+    "public_model_alias": "unsloth/Qwen3.8-27B-GGUF",
+    "application_features_preserved": true,
+    "model_presets_preserved": true,
+    "no_worker_engine_overlays": true,
+    "private_router_sha256": "06c1cb10776412646f2717ee5cd6185eb4bb27daceaf3eaf4757d78ebde2d848",
+    "not_validated": [
+      "STT GPU",
+      "Qwen TTS GPU",
+      "embedding GPU",
+      "image/music/video/wake-word generation",
+      "multi-GPU"
+    ],
+    "central_candidate_registration": false,
+    "deployed": false,
+    "rollback_tag": "ezlocalai:rollback-canary-20261026-full-canary-fdb6add414",
+    "restoration": {
+      "healthy": true,
+      "same_container": true,
+      "same_image": true,
+      "same_environment": true,
+      "same_mounts": true,
+      "oom_killed": false
+    },
+    "request_preset_overrides": {},
+    "metadata": {
+      "metadata_before": {
+        "assertions": {
+          "worker_list_shape": true,
+          "unique_pinned_worker": true,
+          "exact_public_model_alias": true,
+          "exact_model_context": true,
+          "text_advertised": true,
+          "text_capacity_positive": true,
+          "vision_advertised": true,
+          "vision_capacity_positive": true,
+          "public_model_capacity_positive": true,
+          "total_ram_gb_reported": true,
+          "free_ram_gb_reported": true,
+          "total_vram_gb_reported": true,
+          "free_vram_gb_reported": true,
+          "total_ram_positive": true
+        },
+        "worker": {
+          "version": "448bf6b",
+          "models": [
+            "unsloth/Qwen3.8-27B-GGUF"
+          ],
+          "capabilities": [
+            "text",
+            "vision"
+          ],
+          "model_context": {
+            "unsloth/Qwen3.8-27B-GGUF": 262144
+          },
+          "cap_slots": {
+            "text": {
+              "capacity": 1,
+              "in_flight": 0,
+              "queued": 0,
+              "available": 1
+            },
+            "vision": {
+              "capacity": 1,
+              "in_flight": 0,
+              "queued": 0,
+              "available": 1
+            }
+          },
+          "model_slots": {
+            "unsloth/Qwen3.8-27B-GGUF": {
+              "capacity": 1,
+              "in_flight": 0,
+              "queued": 0,
+              "available": 1
+            }
+          },
+          "total_ram_gb": 125.27968978881836,
+          "free_ram_gb": 118.55575561523438,
+          "total_vram_gb": 31.0,
+          "free_vram_gb": 7.92169189453125,
+          "gpus": [
+            {
+              "index": 0,
+              "name": "NVIDIA GeForce RTX 5090",
+              "total_vram_gb": 31.35,
+              "tier": 90,
+              "backend": "cuda"
+            },
+            {
+              "index": -1,
+              "name": "Intel(R) Core(TM) Ultra 7 270K Plus",
+              "total_vram_gb": 0.0,
+              "tier": 2,
+              "backend": "cpu"
+            }
+          ]
+        }
+      },
+      "metadata_after": {
+        "assertions": {
+          "worker_list_shape": true,
+          "unique_pinned_worker": true,
+          "exact_public_model_alias": true,
+          "exact_model_context": true,
+          "text_advertised": true,
+          "text_capacity_positive": true,
+          "vision_advertised": true,
+          "vision_capacity_positive": true,
+          "public_model_capacity_positive": true,
+          "total_ram_gb_reported": true,
+          "free_ram_gb_reported": true,
+          "total_vram_gb_reported": true,
+          "free_vram_gb_reported": true,
+          "total_ram_positive": true
+        },
+        "worker": {
+          "version": "448bf6b",
+          "models": [
+            "unsloth/Qwen3.8-27B-GGUF"
+          ],
+          "capabilities": [
+            "text",
+            "vision"
+          ],
+          "model_context": {
+            "unsloth/Qwen3.8-27B-GGUF": 262144
+          },
+          "cap_slots": {
+            "text": {
+              "capacity": 1,
+              "in_flight": 0,
+              "queued": 0,
+              "available": 1
+            },
+            "vision": {
+              "capacity": 1,
+              "in_flight": 0,
+              "queued": 0,
+              "available": 1
+            }
+          },
+          "model_slots": {
+            "unsloth/Qwen3.8-27B-GGUF": {
+              "capacity": 1,
+              "in_flight": 0,
+              "queued": 0,
+              "available": 1
+            }
+          },
+          "total_ram_gb": 125.27968978881836,
+          "free_ram_gb": 116.72846603393555,
+          "total_vram_gb": 31.0,
+          "free_vram_gb": 7.77716064453125,
+          "gpus": [
+            {
+              "index": 0,
+              "name": "NVIDIA GeForce RTX 5090",
+              "total_vram_gb": 31.35,
+              "tier": 90,
+              "backend": "cuda"
+            },
+            {
+              "index": -1,
+              "name": "Intel(R) Core(TM) Ultra 7 270K Plus",
+              "total_vram_gb": 0.0,
+              "tier": 2,
+              "backend": "cpu"
+            }
+          ]
+        }
+      }
+    },
+    "endpoints": [
+      {
+        "kind": "buffered_chat",
+        "request_sha256": "8c4ebd847d7751fc96fd6c89f83b937392531aed802b3f55b00e256f4e204cde",
+        "assertions": {
+          "http_200": true,
+          "openai_completion_shape": true,
+          "no_response_error": true,
+          "normal_finish": true,
+          "nonempty_assistant_content": true,
+          "request_marker": true,
+          "chat_arithmetic_42": true
+        },
+        "answer": "EZLCANARY_1d8384da90274ae6ba0f9a05d0289c32 42",
+        "wall_seconds": 1.0634667399572209,
+        "ok": true
+      },
+      {
+        "kind": "sse_chat",
+        "request_sha256": "38fcc4cc81d26659f4b8ec22f2057c9e154d2c58f63f04999ceac69cf9efa601",
+        "assertions": {
+          "http_200": true,
+          "sse_content_type": true,
+          "openai_chunk_shapes": true,
+          "complete_sse_done": true,
+          "no_sse_error": true,
+          "normal_finish": true,
+          "nonempty_assistant_content": true,
+          "request_marker": true,
+          "chat_arithmetic_42": true
+        },
+        "answer": "EZLCANARY_41fc5d63ded446c4824a03b9e0aed8ed 42",
+        "wall_seconds": 1.0681611390318722,
+        "ok": true
+      },
+      {
+        "kind": "vision",
+        "request_sha256": "8fd9512c30c130eaf6cb1fbb93a303893371678985f55efdab5bee5508d1a40d",
+        "assertions": {
+          "http_200": true,
+          "openai_completion_shape": true,
+          "no_response_error": true,
+          "normal_finish": true,
+          "nonempty_assistant_content": true,
+          "request_marker": true,
+          "red_vision_response": true
+        },
+        "answer": "EZLCANARY_2007f3ca3594454e909af5672d486e23 red",
+        "wall_seconds": 1.7860651590162888,
+        "ok": true
+      }
+    ],
+    "supervisor": {
+      "proof": "build/validation/llm-cache-depth-20261026/DevXT5090-full-canary-fdb6add414/supervisor.json",
+      "sha256": "7c9bddb4b944d9c4149da952100011e9a450b026b1056ba4c70394ddca072495"
+    },
+    "drain_released": true,
+    "renewal_errors": [],
+    "cache_runtime": [
+      {
+        "model": "unsloth/Qwen3.8-27B-GGUF",
+        "context": 262144,
+        "gpu_layers": -1,
+        "main_gpu": 0,
+        "prompt_cache_mib": 32000,
+        "prompt_cache_requested_mib": 32000,
+        "prompt_cache_swap_allowance_mib": 0,
+        "checkpoint_min_step": 8192,
+        "n_ctx_checkpoints": 32,
+        "n_batch": 4096,
+        "n_ubatch": 2048,
+        "kv_cache_type": "q4_0",
+        "speculative_type": "mtp"
+      }
+    ],
+    "independent_audit": {
+      "proof": "build/validation/llm-cache-depth-20261026/DevXT5090-full-canary-fdb6add414/independent-audit.json",
+      "sha256": "068393302f09f5d13c1a5384b4a9a8b24c6a674835d84f44c408ad4f601f00c5",
+      "checks_passed": 37,
+      "publication_authorized": false,
+      "production_deployment_authorized": false
+    }
+  },
+  "release_5090": {
+    "status": "completed_sampled_qualification",
+    "variants": {
+      "matched_baseline": {
+        "proof": "build/validation/llm-cache-depth-20261026/DevXT5090-release-resident-quality-03c6cc1f/matched_baseline-bench.json",
+        "sha256": "e6af085154090a8b795849c1ffe861374e4a8cbe78d413225bfbb40d8f2e7fbc",
+        "summary": {
+          "seed": {
+            "samples": 3,
+            "cache_outcomes": {
+              "tail_reuse": 0,
+              "prefix_reuse": 0,
+              "full_reevaluation": 3
+            },
+            "wall_seconds_median": 8.622410491923802,
+            "ttft_seconds_median": 6.788194988039322,
+            "decode_tokens_per_second_median": 133.28865985308974,
+            "prefill_tokens_per_second_median": 3717.0288527120874,
+            "generated_tokens_median": 256,
+            "draft_tokens": 807,
+            "accepted_draft_tokens": 494,
+            "draft_acceptance_ratio": 0.6121437422552665
+          },
+          "replay": {
+            "samples": 3,
+            "cache_outcomes": {
+              "tail_reuse": 3,
+              "prefix_reuse": 0,
+              "full_reevaluation": 0
+            },
+            "wall_seconds_median": 2.2251695530721918,
+            "ttft_seconds_median": 0.31911615398712456,
+            "decode_tokens_per_second_median": 133.82637418693918,
+            "prefill_tokens_per_second_median": 68.70727266481157,
+            "generated_tokens_median": 256,
+            "draft_tokens": 813,
+            "accepted_draft_tokens": 492,
+            "draft_acceptance_ratio": 0.6051660516605166
+          },
+          "append": {
+            "samples": 3,
+            "cache_outcomes": {
+              "tail_reuse": 0,
+              "prefix_reuse": 3,
+              "full_reevaluation": 0
+            },
+            "wall_seconds_median": 1.857948718010448,
+            "ttft_seconds_median": 0.4833377579925582,
+            "decode_tokens_per_second_median": 185.56966612742303,
+            "prefill_tokens_per_second_median": 546.3105622088134,
+            "generated_tokens_median": 256,
+            "draft_tokens": 576,
+            "accepted_draft_tokens": 571,
+            "draft_acceptance_ratio": 0.9913194444444444
+          },
+          "rewind": {
+            "samples": 3,
+            "cache_outcomes": {
+              "tail_reuse": 0,
+              "prefix_reuse": 3,
+              "full_reevaluation": 0
+            },
+            "wall_seconds_median": 2.4655516070779413,
+            "ttft_seconds_median": 0.6076943010557443,
+            "decode_tokens_per_second_median": 137.34325364552083,
+            "prefill_tokens_per_second_median": 2344.357464820022,
+            "generated_tokens_median": 256,
+            "draft_tokens": 804,
+            "accepted_draft_tokens": 496,
+            "draft_acceptance_ratio": 0.6169154228855721
+          }
+        },
+        "configuration": {
+          "mode": "resident",
+          "prefix_mode": "common",
+          "conversations": 3,
+          "rounds": 2,
+          "cases": [
+            "replay",
+            "append",
+            "rewind"
+          ],
+          "context": 262144,
+          "prompt_chars": 100000,
+          "branch_records": 90,
+          "rewind_records": 40,
+          "decode_tokens": 256,
+          "minimum_generated": 64,
+          "finite_control": false,
+          "require_draft_counters": true,
+          "model": "unsloth/Qwen3.8-27B-GGUF"
+        },
+        "metadata": {
+          "image": "sha256:1197b0b18d410519a25fab734bcfead8b32b8d67b1b824a188dbd08916735021",
+          "engine_revision": "repo=https://github.com/ggml-org/llama.cpp.git\nref=620d2225cc436ab0b001e3200e590e3b286ef9ab\nsha=620d2225cc436ab0b001e3200e590e3b286ef9ab\ndate=2026-10-15T16:48:22+03:00\npatch.llama-conversation-cache=ea1cb7096df5107862e825ecf7fae45354632f6d091fc1cfe71f0dc72a8d39d9",
+          "model_sha256": "00cf92e666c6af6566996c38c89a44ccdb6449ea25ef0f112a452c853b2a71e2",
+          "mmproj_sha256": "83ee4f4f205fa514161778c41df1ea14144faa0f713510893b63c2395f5c2d53",
+          "original_parameters": {
+            "-m": "/app/models/Qwen3.8-27B/Qwen3.8-27B-UD-Q3_K_XL.gguf",
+            "-c": "262144",
+            "-b": "4096",
+            "-ub": "2048",
+            "-ctk": "q4_0",
+            "-ctv": "q4_0",
+            "--spec-type": "draft-mtp",
+            "--spec-draft-n-max": "3",
+            "--spec-draft-p-min": "0.10000000000000001",
+            "--cache-ram": "32000",
+            "-np": "1",
+            "--ctx-checkpoints": "32",
+            "--checkpoint-min-step": "8192",
+            "--mmproj": "/app/models/Qwen3.8-27B/mmproj-BF16.gguf"
+          },
+          "overrides": {},
+          "environment": {},
+          "overlays": [
+            {
+              "source": "/tmp/ezlocalai-cache-depth-03c6cc1f-devxt5090/artifacts/overlay-0",
+              "target": "/app/build/llama.cpp/bin/llama-server",
+              "sha256": "786d233474c43332fb731763342e71657136e992b54d405b19998821b1f51074"
+            },
+            {
+              "source": "/tmp/ezlocalai-cache-depth-03c6cc1f-devxt5090/artifacts/overlay-1",
+              "target": "/app/build/llama.cpp/bin/libllama-server-impl.so",
+              "sha256": "f95cf664d7f13ed90d5d3a60cb90953bad4b1df379ca9704675a181bc5f83dbd"
+            },
+            {
+              "source": "/tmp/ezlocalai-cache-depth-03c6cc1f-devxt5090/artifacts/overlay-2",
+              "target": "/app/build/llama.cpp/bin/libllama-common.so.0.7.0",
+              "sha256": "3d87cd42de02a7fa6cfb6210e3cb9e8da3bb65b0ba5c195f7c5021776edc3f1a"
+            },
+            {
+              "source": "/tmp/ezlocalai-cache-depth-03c6cc1f-devxt5090/artifacts/overlay-3",
+              "target": "/app/build/llama.cpp/bin/libllama.so.0.7.0",
+              "sha256": "4c32861b7148c347033ce73f06da757a5ad01362a4409c48c20386a716bbcc9f"
+            },
+            {
+              "source": "/tmp/ezlocalai-cache-depth-03c6cc1f-devxt5090/artifacts/overlay-4",
+              "target": "/app/build/llama.cpp/ezlocalai-llama-cpp-version.txt",
+              "sha256": "59eec06e8b4d942e563907640dd99f348db115f31760bffa816eb02142632139"
+            },
+            {
+              "source": "/tmp/ezlocalai-cache-depth-03c6cc1f-devxt5090/artifacts/overlay-5",
+              "target": "/app/build/llama.cpp/ezlocalai-llama-cpp-patches.txt",
+              "sha256": "53325e0626df355d4b1e360e0ffdb91d88033750325fbfbd8d5bbd1ddf135e53"
+            }
+          ],
+          "engine_binary_sha256": "786d233474c43332fb731763342e71657136e992b54d405b19998821b1f51074",
+          "n_ctx": 262144,
+          "n_ubatch": 2048,
+          "cgroup_limits": {
+            "memory_bytes": 0,
+            "memory_swap_total_bytes": 0,
+            "overridden": false
+          }
+        },
+        "sampled_cgroup_maxima": {
+          "memory.current": 9311535104,
+          "memory.peak": 9790906368,
+          "memory.swap.current": 0,
+          "memory.swap.peak": 0
+        }
+      },
+      "release_defaulton": {
+        "proof": "build/validation/llm-cache-depth-20261026/DevXT5090-release-resident-quality-03c6cc1f/release_defaulton-bench.json",
+        "sha256": "eba1aaf38e4540fa83877165b7878f66a29c51247eb1a606e0b86b4d976ffb81",
+        "summary": {
+          "seed": {
+            "samples": 3,
+            "cache_outcomes": {
+              "tail_reuse": 0,
+              "prefix_reuse": 0,
+              "full_reevaluation": 3
+            },
+            "wall_seconds_median": 8.60202906304039,
+            "ttft_seconds_median": 6.733884255983867,
+            "decode_tokens_per_second_median": 132.89306642151803,
+            "prefill_tokens_per_second_median": 3720.1017433099432,
+            "generated_tokens_median": 256,
+            "draft_tokens": 807,
+            "accepted_draft_tokens": 494,
+            "draft_acceptance_ratio": 0.6121437422552665
+          },
+          "replay": {
+            "samples": 3,
+            "cache_outcomes": {
+              "tail_reuse": 3,
+              "prefix_reuse": 0,
+              "full_reevaluation": 0
+            },
+            "wall_seconds_median": 2.1456459930632263,
+            "ttft_seconds_median": 0.19510742602869868,
+            "decode_tokens_per_second_median": 133.63960386076954,
+            "prefill_tokens_per_second_median": 68.13265427787903,
+            "generated_tokens_median": 256,
+            "draft_tokens": 807,
+            "accepted_draft_tokens": 494,
+            "draft_acceptance_ratio": 0.6121437422552665
+          },
+          "append": {
+            "samples": 3,
+            "cache_outcomes": {
+              "tail_reuse": 0,
+              "prefix_reuse": 3,
+              "full_reevaluation": 0
+            },
+            "wall_seconds_median": 1.7118514589965343,
+            "ttft_seconds_median": 0.3724106539739296,
+            "decode_tokens_per_second_median": 188.4947254740642,
+            "prefill_tokens_per_second_median": 542.9974680455142,
+            "generated_tokens_median": 256,
+            "draft_tokens": 575,
+            "accepted_draft_tokens": 572,
+            "draft_acceptance_ratio": 0.9947826086956522
+          },
+          "rewind": {
+            "samples": 3,
+            "cache_outcomes": {
+              "tail_reuse": 0,
+              "prefix_reuse": 3,
+              "full_reevaluation": 0
+            },
+            "wall_seconds_median": 2.331621313933283,
+            "ttft_seconds_median": 0.4708419239614159,
+            "decode_tokens_per_second_median": 138.60247397262955,
+            "prefill_tokens_per_second_median": 2410.5511205155335,
+            "generated_tokens_median": 256,
+            "draft_tokens": 807,
+            "accepted_draft_tokens": 495,
+            "draft_acceptance_ratio": 0.6133828996282528
+          }
+        },
+        "configuration": {
+          "mode": "resident",
+          "prefix_mode": "common",
+          "conversations": 3,
+          "rounds": 2,
+          "cases": [
+            "replay",
+            "append",
+            "rewind"
+          ],
+          "context": 262144,
+          "prompt_chars": 100000,
+          "branch_records": 90,
+          "rewind_records": 40,
+          "decode_tokens": 256,
+          "minimum_generated": 64,
+          "finite_control": false,
+          "require_draft_counters": true,
+          "model": "unsloth/Qwen3.8-27B-GGUF"
+        },
+        "metadata": {
+          "image": "sha256:1197b0b18d410519a25fab734bcfead8b32b8d67b1b824a188dbd08916735021",
+          "engine_revision": "repo=https://github.com/ggml-org/llama.cpp.git\nref=620d2225cc436ab0b001e3200e590e3b286ef9ab\nsha=620d2225cc436ab0b001e3200e590e3b286ef9ab\ndate=2026-10-15T16:48:22+03:00\npatch.llama-conversation-cache=ea1cb7096df5107862e825ecf7fae45354632f6d091fc1cfe71f0dc72a8d39d9",
+          "model_sha256": "00cf92e666c6af6566996c38c89a44ccdb6449ea25ef0f112a452c853b2a71e2",
+          "mmproj_sha256": "83ee4f4f205fa514161778c41df1ea14144faa0f713510893b63c2395f5c2d53",
+          "original_parameters": {
+            "-m": "/app/models/Qwen3.8-27B/Qwen3.8-27B-UD-Q3_K_XL.gguf",
+            "-c": "262144",
+            "-b": "4096",
+            "-ub": "2048",
+            "-ctk": "q4_0",
+            "-ctv": "q4_0",
+            "--spec-type": "draft-mtp",
+            "--spec-draft-n-max": "3",
+            "--spec-draft-p-min": "0.10000000000000001",
+            "--cache-ram": "32000",
+            "-np": "1",
+            "--ctx-checkpoints": "32",
+            "--checkpoint-min-step": "8192",
+            "--mmproj": "/app/models/Qwen3.8-27B/mmproj-BF16.gguf"
+          },
+          "overrides": {},
+          "environment": {},
+          "overlays": [
+            {
+              "source": "/tmp/ezlocalai-cache-depth-03c6cc1f-devxt5090/artifacts/overlay-6",
+              "target": "/app/build/llama.cpp/bin/llama-server",
+              "sha256": "786d233474c43332fb731763342e71657136e992b54d405b19998821b1f51074"
+            },
+            {
+              "source": "/tmp/ezlocalai-cache-depth-03c6cc1f-devxt5090/artifacts/overlay-7",
+              "target": "/app/build/llama.cpp/bin/libllama-server-impl.so",
+              "sha256": "56435bfa886d57c490efdb5797179ead3392dbdca79c4ea86da91761fe52312d"
+            },
+            {
+              "source": "/tmp/ezlocalai-cache-depth-03c6cc1f-devxt5090/artifacts/overlay-8",
+              "target": "/app/build/llama.cpp/bin/libllama-common.so.0.7.0",
+              "sha256": "c9fd858250b3e1c04ea03f057f1b01ac15496af7983a59ade34ba3dbddc37998"
+            },
+            {
+              "source": "/tmp/ezlocalai-cache-depth-03c6cc1f-devxt5090/artifacts/overlay-9",
+              "target": "/app/build/llama.cpp/bin/libllama.so.0.7.0",
+              "sha256": "4c32861b7148c347033ce73f06da757a5ad01362a4409c48c20386a716bbcc9f"
+            },
+            {
+              "source": "/tmp/ezlocalai-cache-depth-03c6cc1f-devxt5090/artifacts/overlay-10",
+              "target": "/app/build/llama.cpp/ezlocalai-llama-cpp-version.txt",
+              "sha256": "59eec06e8b4d942e563907640dd99f348db115f31760bffa816eb02142632139"
+            },
+            {
+              "source": "/tmp/ezlocalai-cache-depth-03c6cc1f-devxt5090/artifacts/overlay-11",
+              "target": "/app/build/llama.cpp/ezlocalai-llama-cpp-patches.txt",
+              "sha256": "585fd9a2b637ed83de08a5501348c92a2a86b7587a985ca076899dbca81abaf3"
+            }
+          ],
+          "engine_binary_sha256": "786d233474c43332fb731763342e71657136e992b54d405b19998821b1f51074",
+          "n_ctx": 262144,
+          "n_ubatch": 2048,
+          "cgroup_limits": {
+            "memory_bytes": 0,
+            "memory_swap_total_bytes": 0,
+            "overridden": false
+          }
+        },
+        "sampled_cgroup_maxima": {
+          "memory.current": 8757075968,
+          "memory.peak": 8765317120,
+          "memory.swap.current": 0,
+          "memory.swap.peak": 0
+        }
+      },
+      "finite_release": {
+        "proof": "build/validation/llm-cache-depth-20261026/DevXT5090-release-resident-quality-03c6cc1f/finite_release-bench.json",
+        "sha256": "a0613f9d33901a130446d6185a2f8ab12c1ea5673d345545770c94f5e272fead",
+        "summary": {
+          "seed": {
+            "samples": 3,
+            "cache_outcomes": {
+              "tail_reuse": 0,
+              "prefix_reuse": 0,
+              "full_reevaluation": 3
+            },
+            "wall_seconds_median": 6.85161300690379,
+            "ttft_seconds_median": 6.76274633500725,
+            "decode_tokens_per_second_median": 181.49232060618434,
+            "prefill_tokens_per_second_median": 3706.8720997515284,
+            "generated_tokens_median": 17,
+            "draft_tokens": 36,
+            "accepted_draft_tokens": 36,
+            "draft_acceptance_ratio": 1.0
+          },
+          "replay": {
+            "samples": 3,
+            "cache_outcomes": {
+              "tail_reuse": 3,
+              "prefix_reuse": 0,
+              "full_reevaluation": 0
+            },
+            "wall_seconds_median": 0.282139329938218,
+            "ttft_seconds_median": 0.19446118001360446,
+            "decode_tokens_per_second_median": 183.22149188099766,
+            "prefill_tokens_per_second_median": 69.38301156961718,
+            "generated_tokens_median": 17,
+            "draft_tokens": 36,
+            "accepted_draft_tokens": 36,
+            "draft_acceptance_ratio": 1.0
+          },
+          "append": {
+            "samples": 3,
+            "cache_outcomes": {
+              "tail_reuse": 0,
+              "prefix_reuse": 3,
+              "full_reevaluation": 0
+            },
+            "wall_seconds_median": 0.47944431798532605,
+            "ttft_seconds_median": 0.37045642896555364,
+            "decode_tokens_per_second_median": 185.51154809386884,
+            "prefill_tokens_per_second_median": 589.406323487842,
+            "generated_tokens_median": 21,
+            "draft_tokens": 45,
+            "accepted_draft_tokens": 45,
+            "draft_acceptance_ratio": 1.0
+          },
+          "rewind": {
+            "samples": 3,
+            "cache_outcomes": {
+              "tail_reuse": 0,
+              "prefix_reuse": 3,
+              "full_reevaluation": 0
+            },
+            "wall_seconds_median": 0.576901949942112,
+            "ttft_seconds_median": 0.46915411693044007,
+            "decode_tokens_per_second_median": 168.0468290496952,
+            "prefill_tokens_per_second_median": 2415.415397371884,
+            "generated_tokens_median": 19,
+            "draft_tokens": 45,
+            "accepted_draft_tokens": 39,
+            "draft_acceptance_ratio": 0.8666666666666667
+          }
+        },
+        "configuration": {
+          "mode": "resident",
+          "prefix_mode": "common",
+          "conversations": 3,
+          "rounds": 2,
+          "cases": [
+            "replay",
+            "append",
+            "rewind"
+          ],
+          "context": 262144,
+          "prompt_chars": 100000,
+          "branch_records": 90,
+          "rewind_records": 40,
+          "decode_tokens": 64,
+          "minimum_generated": 1,
+          "finite_control": true,
+          "require_draft_counters": true,
+          "model": "unsloth/Qwen3.8-27B-GGUF"
+        },
+        "metadata": {
+          "image": "sha256:1197b0b18d410519a25fab734bcfead8b32b8d67b1b824a188dbd08916735021",
+          "engine_revision": "repo=https://github.com/ggml-org/llama.cpp.git\nref=620d2225cc436ab0b001e3200e590e3b286ef9ab\nsha=620d2225cc436ab0b001e3200e590e3b286ef9ab\ndate=2026-10-15T16:48:22+03:00\npatch.llama-conversation-cache=ea1cb7096df5107862e825ecf7fae45354632f6d091fc1cfe71f0dc72a8d39d9",
+          "model_sha256": "00cf92e666c6af6566996c38c89a44ccdb6449ea25ef0f112a452c853b2a71e2",
+          "mmproj_sha256": "83ee4f4f205fa514161778c41df1ea14144faa0f713510893b63c2395f5c2d53",
+          "original_parameters": {
+            "-m": "/app/models/Qwen3.8-27B/Qwen3.8-27B-UD-Q3_K_XL.gguf",
+            "-c": "262144",
+            "-b": "4096",
+            "-ub": "2048",
+            "-ctk": "q4_0",
+            "-ctv": "q4_0",
+            "--spec-type": "draft-mtp",
+            "--spec-draft-n-max": "3",
+            "--spec-draft-p-min": "0.10000000000000001",
+            "--cache-ram": "32000",
+            "-np": "1",
+            "--ctx-checkpoints": "32",
+            "--checkpoint-min-step": "8192",
+            "--mmproj": "/app/models/Qwen3.8-27B/mmproj-BF16.gguf"
+          },
+          "overrides": {},
+          "environment": {},
+          "overlays": [
+            {
+              "source": "/tmp/ezlocalai-cache-depth-03c6cc1f-devxt5090/artifacts/overlay-12",
+              "target": "/app/build/llama.cpp/bin/llama-server",
+              "sha256": "786d233474c43332fb731763342e71657136e992b54d405b19998821b1f51074"
+            },
+            {
+              "source": "/tmp/ezlocalai-cache-depth-03c6cc1f-devxt5090/artifacts/overlay-13",
+              "target": "/app/build/llama.cpp/bin/libllama-server-impl.so",
+              "sha256": "56435bfa886d57c490efdb5797179ead3392dbdca79c4ea86da91761fe52312d"
+            },
+            {
+              "source": "/tmp/ezlocalai-cache-depth-03c6cc1f-devxt5090/artifacts/overlay-14",
+              "target": "/app/build/llama.cpp/bin/libllama-common.so.0.7.0",
+              "sha256": "c9fd858250b3e1c04ea03f057f1b01ac15496af7983a59ade34ba3dbddc37998"
+            },
+            {
+              "source": "/tmp/ezlocalai-cache-depth-03c6cc1f-devxt5090/artifacts/overlay-15",
+              "target": "/app/build/llama.cpp/bin/libllama.so.0.7.0",
+              "sha256": "4c32861b7148c347033ce73f06da757a5ad01362a4409c48c20386a716bbcc9f"
+            },
+            {
+              "source": "/tmp/ezlocalai-cache-depth-03c6cc1f-devxt5090/artifacts/overlay-16",
+              "target": "/app/build/llama.cpp/ezlocalai-llama-cpp-version.txt",
+              "sha256": "59eec06e8b4d942e563907640dd99f348db115f31760bffa816eb02142632139"
+            },
+            {
+              "source": "/tmp/ezlocalai-cache-depth-03c6cc1f-devxt5090/artifacts/overlay-17",
+              "target": "/app/build/llama.cpp/ezlocalai-llama-cpp-patches.txt",
+              "sha256": "585fd9a2b637ed83de08a5501348c92a2a86b7587a985ca076899dbca81abaf3"
+            }
+          ],
+          "engine_binary_sha256": "786d233474c43332fb731763342e71657136e992b54d405b19998821b1f51074",
+          "n_ctx": 262144,
+          "n_ubatch": 2048,
+          "cgroup_limits": {
+            "memory_bytes": 0,
+            "memory_swap_total_bytes": 0,
+            "overridden": false
+          }
+        },
+        "sampled_cgroup_maxima": {
+          "memory.current": 8730001408,
+          "memory.peak": 8733380608,
+          "memory.swap.current": 0,
+          "memory.swap.peak": 0
+        }
+      }
+    },
+    "paired_checks": [
+      {
+        "sample_id": "seed:r0:b0",
+        "request_sha256": "d6eda71662ee15266c2fed5c2535e31c39ecc32286b5f726df98d5ce961b0149",
+        "output_sha256": "5ce1f871702cc750436b4ba5875e83739494f9be2a11afcc0a808364e1433801",
+        "cached_prompt_tokens_both": 0,
+        "evaluated_prompt_tokens_both": 24577,
+        "input_output_hashes_match": true
+      },
+      {
+        "sample_id": "seed:r0:b1",
+        "request_sha256": "c338ae7207e00c68f153ee325c648fd7bb1a75c9ceb869e33f1422fc00f24518",
+        "output_sha256": "3ecb8028869644228531dbe72354931475ed932a873f85535c0978e0fee3b096",
+        "cached_prompt_tokens_both": 75,
+        "evaluated_prompt_tokens_both": 24502,
+        "input_output_hashes_match": true
+      },
+      {
+        "sample_id": "seed:r0:b2",
+        "request_sha256": "bec417a04723b97caeec69a4868532d1f2f2328eec3e648d003eaff9d079b146",
+        "output_sha256": "63ec390ef3e3c9ed2fac7c026412b4446f2c300c551bfb3d3fc8d37c8392a9cc",
+        "cached_prompt_tokens_both": 75,
+        "evaluated_prompt_tokens_both": 24502,
+        "input_output_hashes_match": true
+      },
+      {
+        "sample_id": "replay:r1:b0",
+        "request_sha256": "d6eda71662ee15266c2fed5c2535e31c39ecc32286b5f726df98d5ce961b0149",
+        "output_sha256": "5ce1f871702cc750436b4ba5875e83739494f9be2a11afcc0a808364e1433801",
+        "cached_prompt_tokens_both": 24573,
+        "evaluated_prompt_tokens_both": 4,
+        "input_output_hashes_match": true
+      },
+      {
+        "sample_id": "replay:r1:b1",
+        "request_sha256": "c338ae7207e00c68f153ee325c648fd7bb1a75c9ceb869e33f1422fc00f24518",
+        "output_sha256": "3ecb8028869644228531dbe72354931475ed932a873f85535c0978e0fee3b096",
+        "cached_prompt_tokens_both": 24573,
+        "evaluated_prompt_tokens_both": 4,
+        "input_output_hashes_match": true
+      },
+      {
+        "sample_id": "replay:r1:b2",
+        "request_sha256": "bec417a04723b97caeec69a4868532d1f2f2328eec3e648d003eaff9d079b146",
+        "output_sha256": "63ec390ef3e3c9ed2fac7c026412b4446f2c300c551bfb3d3fc8d37c8392a9cc",
+        "cached_prompt_tokens_both": 24573,
+        "evaluated_prompt_tokens_both": 4,
+        "input_output_hashes_match": true
+      },
+      {
+        "sample_id": "append:r1:b0",
+        "request_sha256": "3641ee31a64a4791cbed424008b5015c35baffd6cec1cfa715f15a787f9e9ab5",
+        "output_sha256": "5ce1f871702cc750436b4ba5875e83739494f9be2a11afcc0a808364e1433801",
+        "cached_prompt_tokens_both": 24832,
+        "evaluated_prompt_tokens_both": 89,
+        "input_output_hashes_match": true
+      },
+      {
+        "sample_id": "append:r1:b1",
+        "request_sha256": "88844bd532a9b848799b26070499752db09e6df84afa5df0b888ace7deb64e0c",
+        "output_sha256": "144795c94a4bedd1ca8e9cb5693e2bbf3262139823a05c7198822baa1117a292",
+        "cached_prompt_tokens_both": 24832,
+        "evaluated_prompt_tokens_both": 88,
+        "input_output_hashes_match": true
+      },
+      {
+        "sample_id": "append:r1:b2",
+        "request_sha256": "09e15291a506fce82e578b8f00a8317a87473e7d79ebf8e8a7b958bd44e93b0a",
+        "output_sha256": "63ec390ef3e3c9ed2fac7c026412b4446f2c300c551bfb3d3fc8d37c8392a9cc",
+        "cached_prompt_tokens_both": 24832,
+        "evaluated_prompt_tokens_both": 89,
+        "input_output_hashes_match": true
+      },
+      {
+        "sample_id": "rewind:r1:b0",
+        "request_sha256": "42343f4c0286d08b15f6362b92fb5fd28201bec4944752f48c8b0c160f448c40",
+        "output_sha256": "f2cc5aa20f0e9a99e5664a29abccd90dddc744293eacf306a30612284973bc78",
+        "cached_prompt_tokens_both": 22525,
+        "evaluated_prompt_tokens_both": 802,
+        "input_output_hashes_match": true
+      },
+      {
+        "sample_id": "rewind:r1:b1",
+        "request_sha256": "acd858e19c81af4bae0a006a33426e11c8e8973912fef1f6f380c34b4d7f1d47",
+        "output_sha256": "d66ed26faddca549b385c355a441e2f0991e951c9e80b2197780773ad646cf0b",
+        "cached_prompt_tokens_both": 22525,
+        "evaluated_prompt_tokens_both": 802,
+        "input_output_hashes_match": true
+      },
+      {
+        "sample_id": "rewind:r1:b2",
+        "request_sha256": "2e3e82a297e76ef9963cd8f6f5359b4c41fde9824d6d50147537cdb14bc1e203",
+        "output_sha256": "289492afe14eeda44d6fb5c8e95d80b41bfcceaf9d6d6167da38b584eff45ad0",
+        "cached_prompt_tokens_both": 22525,
+        "evaluated_prompt_tokens_both": 802,
+        "input_output_hashes_match": true
+      }
+    ],
+    "paired_request_hash_matches": 12,
+    "paired_output_hash_matches": 12,
+    "finite_latest_turn_checks": [
+      {
+        "sample_id": "seed:r0:b0",
+        "expected_control_turn": "TURN_ALPHA",
+        "request_sha256": "7548091f29dc6d898f37f05f1b7ba74442e0b251afbcd0d438a2f88560637cd3",
+        "output_sha256": "9133597da29ca1b7e96f0fee152d6b3c7492c49a28e0dda460de8e7554465b8c"
+      },
+      {
+        "sample_id": "seed:r0:b1",
+        "expected_control_turn": "TURN_ALPHA",
+        "request_sha256": "bbdc775c7fb185ed41446cd9400e0da94033e7f6c0494b963b9110cceb157984",
+        "output_sha256": "3bad4fda532cf016531352e519568009294be8f70642efcd8f928f07edd2afa6"
+      },
+      {
+        "sample_id": "seed:r0:b2",
+        "expected_control_turn": "TURN_ALPHA",
+        "request_sha256": "566bf1a6c40e910c1b037cbf0af5f7182cb005648ca5fd52727b3ac203ac253e",
+        "output_sha256": "3ec68dd07c5ece47c9ad63191928282ce1570b3a9ae7960082e2ea623f44f98c"
+      },
+      {
+        "sample_id": "replay:r1:b0",
+        "expected_control_turn": "TURN_ALPHA",
+        "request_sha256": "7548091f29dc6d898f37f05f1b7ba74442e0b251afbcd0d438a2f88560637cd3",
+        "output_sha256": "9133597da29ca1b7e96f0fee152d6b3c7492c49a28e0dda460de8e7554465b8c"
+      },
+      {
+        "sample_id": "replay:r1:b1",
+        "expected_control_turn": "TURN_ALPHA",
+        "request_sha256": "bbdc775c7fb185ed41446cd9400e0da94033e7f6c0494b963b9110cceb157984",
+        "output_sha256": "3bad4fda532cf016531352e519568009294be8f70642efcd8f928f07edd2afa6"
+      },
+      {
+        "sample_id": "replay:r1:b2",
+        "expected_control_turn": "TURN_ALPHA",
+        "request_sha256": "566bf1a6c40e910c1b037cbf0af5f7182cb005648ca5fd52727b3ac203ac253e",
+        "output_sha256": "3ec68dd07c5ece47c9ad63191928282ce1570b3a9ae7960082e2ea623f44f98c"
+      },
+      {
+        "sample_id": "append:r1:b0",
+        "expected_control_turn": "TURN_BRAVO_r1",
+        "request_sha256": "cefcd8423dde87f09df3756f5e1a912afac9797d037ec49425ecb5665ec66849",
+        "output_sha256": "9f5373f95bd83eca79b7567accd30182ba143b9cda205fe055ffca2d26cacc55"
+      },
+      {
+        "sample_id": "append:r1:b1",
+        "expected_control_turn": "TURN_BRAVO_r1",
+        "request_sha256": "aec1a18dbe42439f995135c86af38a0c668e2d045e41a1be6a63fa3d915acf74",
+        "output_sha256": "fd6ddaa0a0d7db7db84af20736fe9e2a9f6783b925c08017af69f8b2628029a8"
+      },
+      {
+        "sample_id": "append:r1:b2",
+        "expected_control_turn": "TURN_BRAVO_r1",
+        "request_sha256": "4aeae9070bdfe05110450826eec11770527533c6b796e8a24a38294dbe4aa24b",
+        "output_sha256": "9ba22e714b40d7fb346f8c96a130111ade5dca232528db16b9e7bf40196f4361"
+      },
+      {
+        "sample_id": "rewind:r1:b0",
+        "expected_control_turn": "TURN_CHARLIE",
+        "request_sha256": "2cc37507648fd811d58d0f11c03e9b97860895293500d6d9ea6fe5e2c85de9c2",
+        "output_sha256": "939cb322e6227a592ef2e2ee9321f7346f93f54228d0b45265beed3a80f30a9e"
+      },
+      {
+        "sample_id": "rewind:r1:b1",
+        "expected_control_turn": "TURN_CHARLIE",
+        "request_sha256": "7f7887d16df0d1b6bc18408e5249742d6ad9d5110478d8432a7002c185b4ee8d",
+        "output_sha256": "d9f9d5bf0c836529e1d1426c9c1d5364bb352f4c3a6f30e4580e24e6f492fb40"
+      },
+      {
+        "sample_id": "rewind:r1:b2",
+        "expected_control_turn": "TURN_CHARLIE",
+        "request_sha256": "053b936333d74f03d348a52d0215916c8fd327d5cab5967b53653474f266e8b3",
+        "output_sha256": "e5ab2e98a0fa4676f1a6897127b34f671850472558dcaea5ad208887c59cbddd"
+      }
+    ],
+    "finite_exact_expected_stop_answers": 12,
+    "checkpoint_scope": "The existing 2048-ubatch path already reuses 22525 tokens and evaluates 802 on freeform rewinds; extra aligned-checkpoint scope skips this path.",
+    "quality_limit": "Exact agreement in 12 sampled freeform answers does not establish universal model quality. Freeform cap/continuation limitations remain.",
+    "controller": {
+      "proof": "build/validation/llm-cache-depth-20261026/DevXT5090-release-resident-quality-03c6cc1f/result.json",
+      "sha256": "9bc1e947a6fd8b262fa2e736d0df5c9c61999dce6719c65f51e4c424805d5800"
+    },
+    "supervisor": {
+      "proof": "build/validation/llm-cache-depth-20261026/DevXT5090-release-resident-quality-03c6cc1f/supervisor-result.json",
+      "sha256": "15a8ab5581cf2215e2108bf3a2acd9d4bd95bb782ae29bb0fa39ca13b9cc600f"
+    },
+    "telemetry": {
+      "proof": "build/validation/llm-cache-depth-20261026/DevXT5090-release-resident-quality-03c6cc1f/telemetry.json",
+      "sha256": "d7d573486ca800582050f46dde9bd6d801a25238a2de0c56358aea12cfe554fd"
+    },
+    "restoration": {
+      "healthy": true,
+      "same_container": true,
+      "same_image": true,
+      "same_environment": true,
+      "same_mounts": true,
+      "same_config": true,
+      "same_hostconfig": true,
+      "critical_parameters_preserved": true,
+      "oom_killed": false
+    },
+    "drain_released": true,
+    "lease_errors": []
+  },
+  "near_capacity": {
+    "status": "passed_all_three_gpus",
+    "workers": {
+      "DevXT4090": {
+        "proof": "build/validation/llm-cache-depth-20261026/DevXT4090-release-named-capacity-6e73606a/named_capacity-bench.json",
+        "sha256": "cc818bb65df5307225bdafbe9ff913f756b80581d27f58db5e307778668815ab",
+        "declared_context": 230000,
+        "runtime": {
+          "declared_context": 230000,
+          "effective_context": 230144,
+          "expected_n_ubatch": 1024,
+          "ubatch_evidence": "caller-verified launch metadata",
+          "model_identity_evidence": "caller model/projector fingerprints and unchanged engine properties",
+          "props_sha256": "58ea4a1a681c754fa5e585af5e7b502ffde6230b6103ebb4b655c208b4582ede"
+        },
+        "target_fraction": 0.95,
+        "metadata": {
+          "image": "sha256:1197b0b18d410519a25fab734bcfead8b32b8d67b1b824a188dbd08916735021",
+          "engine_revision": "repo=https://github.com/ggml-org/llama.cpp.git\nref=620d2225cc436ab0b001e3200e590e3b286ef9ab\nsha=620d2225cc436ab0b001e3200e590e3b286ef9ab\ndate=2026-10-15T16:48:22+03:00\npatch.llama-conversation-cache=ea1cb7096df5107862e825ecf7fae45354632f6d091fc1cfe71f0dc72a8d39d9",
+          "model_sha256": "8c2a45ff85e7674ca185ec8eb6cdeab0e617ed9d8018caed0b64380eb2a67a5e",
+          "mmproj_sha256": "83ee4f4f205fa514161778c41df1ea14144faa0f713510893b63c2395f5c2d53",
+          "original_parameters": {
+            "-m": "/app/models/Qwen3.8-27B/Qwen3.8-27B-UD-Q3_K_XL.gguf",
+            "-c": "230000",
+            "-b": "4096",
+            "-ub": "1024",
+            "-ctk": "q4_0",
+            "-ctv": "q4_0",
+            "--spec-type": "draft-mtp",
+            "--spec-draft-n-max": "3",
+            "--spec-draft-p-min": "0.10000000000000001",
+            "--cache-ram": "12288",
+            "-np": "1",
+            "--ctx-checkpoints": "32",
+            "--checkpoint-min-step": "8192",
+            "--mmproj": "/app/models/Qwen3.8-27B/mmproj-BF16.gguf"
+          },
+          "overrides": {},
+          "environment": {},
+          "overlays": [
+            {
+              "source": "/tmp/ezlocalai-cache-depth-6e73606a-devxt4090/artifacts/overlay-0",
+              "target": "/app/build/llama.cpp/bin/llama-server",
+              "sha256": "786d233474c43332fb731763342e71657136e992b54d405b19998821b1f51074"
+            },
+            {
+              "source": "/tmp/ezlocalai-cache-depth-6e73606a-devxt4090/artifacts/overlay-1",
+              "target": "/app/build/llama.cpp/bin/libllama-server-impl.so",
+              "sha256": "56435bfa886d57c490efdb5797179ead3392dbdca79c4ea86da91761fe52312d"
+            },
+            {
+              "source": "/tmp/ezlocalai-cache-depth-6e73606a-devxt4090/artifacts/overlay-2",
+              "target": "/app/build/llama.cpp/bin/libllama-common.so.0.7.0",
+              "sha256": "c9fd858250b3e1c04ea03f057f1b01ac15496af7983a59ade34ba3dbddc37998"
+            },
+            {
+              "source": "/tmp/ezlocalai-cache-depth-6e73606a-devxt4090/artifacts/overlay-3",
+              "target": "/app/build/llama.cpp/bin/libllama.so.0.7.0",
+              "sha256": "4c32861b7148c347033ce73f06da757a5ad01362a4409c48c20386a716bbcc9f"
+            },
+            {
+              "source": "/tmp/ezlocalai-cache-depth-6e73606a-devxt4090/artifacts/overlay-4",
+              "target": "/app/build/llama.cpp/ezlocalai-llama-cpp-version.txt",
+              "sha256": "59eec06e8b4d942e563907640dd99f348db115f31760bffa816eb02142632139"
+            },
+            {
+              "source": "/tmp/ezlocalai-cache-depth-6e73606a-devxt4090/artifacts/overlay-5",
+              "target": "/app/build/llama.cpp/ezlocalai-llama-cpp-patches.txt",
+              "sha256": "585fd9a2b637ed83de08a5501348c92a2a86b7587a985ca076899dbca81abaf3"
+            }
+          ],
+          "engine_binary_sha256": "786d233474c43332fb731763342e71657136e992b54d405b19998821b1f51074",
+          "n_ctx": 230000,
+          "n_ubatch": 1024,
+          "cgroup_limits": {
+            "memory_bytes": 0,
+            "memory_swap_total_bytes": 0,
+            "overridden": false
+          }
+        },
+        "harness_sha256": "f451d449704bd5c5a65d104904e04da33926a5fdc688a28a6abf8e8b05956f1b",
+        "requested_sampling": {
+          "temperature": 0,
+          "seed": 42,
+          "enable_thinking": false
+        },
+        "inference_retries": 0,
+        "context_downgrade_allowed": false,
+        "prompt_cache_key": "capacity-20261026",
+        "capacity": {
+          "answer": "Python",
+          "timings": {
+            "cache_n": 0,
+            "prompt_n": 218392,
+            "prompt_ms": 130369.29,
+            "prompt_per_token_ms": 0.5969508498479797,
+            "prompt_per_second": 1675.1797911916221,
+            "predicted_n": 2,
+            "predicted_ms": 90.267,
+            "predicted_per_token_ms": 90.267,
+            "predicted_per_second": 11.078245649019022,
+            "draft_n": 3,
+            "draft_n_accepted": 0
+          },
+          "usage": {
+            "completion_tokens": 2,
+            "prompt_tokens": 218392,
+            "total_tokens": 218394,
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            }
+          },
+          "prefill_tokens_per_second": 1675.1797911916221,
+          "decode_tokens_per_second": 11.078245649019022,
+          "evaluated_prompt_tokens": 218392,
+          "cached_prompt_tokens": 0,
+          "cache_fraction": 0.0,
+          "output_sha256": "2945b0d6616d16592538930914f4a2bc539b8d976a0b9200b3e82540f3c07c25",
+          "wall_seconds": 130.66544342500129,
+          "request_sha256": "782302c6659c60b523e45ed23730328acb90fe6000fd866f6e6c6039c4ec7b74",
+          "source_characters": 1007564,
+          "input_tokens": 218392,
+          "target_input_tokens": 218500,
+          "declared_context": 230000,
+          "input_fraction": 0.9495304347826087,
+          "reserved_headroom": 32,
+          "remaining_context_tokens": 11608,
+          "tokenizer_passes": 11
+        },
+        "vision": {
+          "answer": "Red",
+          "timings": {
+            "cache_n": 0,
+            "prompt_n": 1083,
+            "prompt_ms": 734.635,
+            "prompt_per_token_ms": 0.6783333333333333,
+            "prompt_per_second": 1474.2014742014742,
+            "predicted_n": 2,
+            "predicted_ms": 27.73,
+            "predicted_per_token_ms": 27.73,
+            "predicted_per_second": 36.062026685899745,
+            "draft_n": 3,
+            "draft_n_accepted": 0
+          },
+          "usage": {
+            "completion_tokens": 2,
+            "prompt_tokens": 1083,
+            "total_tokens": 1085,
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            }
+          },
+          "prefill_tokens_per_second": 1474.2014742014742,
+          "decode_tokens_per_second": 36.062026685899745,
+          "evaluated_prompt_tokens": 1083,
+          "cached_prompt_tokens": 0,
+          "cache_fraction": 0.0,
+          "output_sha256": "83814295523046d350f8f9728d780a92ad8359135be44ee43bd4d228310c8fcb",
+          "wall_seconds": 2.0272539569996297,
+          "request_sha256": "66f12a09c66a3171df3959ee6c01009f83a472ce40ba53ae7911bb13adae469f",
+          "image_sha256": "6f7ffeeb88929a8a2e34ea973c871f069be70cbaf1459fff345db59453934435",
+          "image_width": 64,
+          "image_height": 64
+        },
+        "both_finish_stop": true,
+        "sampled_cgroup_maxima": {
+          "memory.current": 8706387968,
+          "memory.peak": 8706387968,
+          "memory.swap.current": 0,
+          "memory.swap.peak": 0,
+          "oom_events_max": 0,
+          "oom_kill_events_max": 0
+        },
+        "controller": {
+          "proof": "build/validation/llm-cache-depth-20261026/DevXT4090-release-named-capacity-6e73606a/result.json",
+          "sha256": "47236508cacf6ff10d4967880609692cb0ed5a1c1306143bec4086582135d0a7"
+        },
+        "supervisor": {
+          "proof": "build/validation/llm-cache-depth-20261026/DevXT4090-release-named-capacity-6e73606a/supervisor-result.json",
+          "sha256": "2f4498214feedb8cab5da00785b8df764de4391eaae4bc8b2e2dcfc5d444c48d"
+        },
+        "restoration": {
+          "healthy": true,
+          "same_container": true,
+          "same_image": true,
+          "same_environment": true,
+          "same_mounts": true,
+          "same_config": true,
+          "same_hostconfig": true,
+          "critical_parameters_preserved": true,
+          "oom_killed": false
+        },
+        "drain_released": true,
+        "lease_errors": []
+      },
+      "DevXT3090V": {
+        "proof": "build/validation/llm-cache-depth-20261026/DevXT3090V-release-named-capacity-6e73606a/named_capacity-bench.json",
+        "sha256": "dc2e9634420a029d98cc5ec85298ec53c678e72ce3809321e1b2026091536250",
+        "declared_context": 230000,
+        "runtime": {
+          "declared_context": 230000,
+          "effective_context": 230144,
+          "expected_n_ubatch": 1024,
+          "ubatch_evidence": "caller-verified launch metadata",
+          "model_identity_evidence": "caller model/projector fingerprints and unchanged engine properties",
+          "props_sha256": "7ba6bd4ff779b56924c06700aa232ee2a1c813e4ef5af8a016f0c0e2a5f75538"
+        },
+        "target_fraction": 0.95,
+        "metadata": {
+          "image": "sha256:3e09d9905d59191ef870b3f1f2e1ce9ba4948211568229d84c1c1214925de973",
+          "engine_revision": "repo=https://github.com/ggml-org/llama.cpp.git\nref=620d2225cc436ab0b001e3200e590e3b286ef9ab\nsha=620d2225cc436ab0b001e3200e590e3b286ef9ab\ndate=2026-10-15T16:48:22+03:00\npatch.llama-conversation-cache=ea1cb7096df5107862e825ecf7fae45354632f6d091fc1cfe71f0dc72a8d39d9",
+          "model_sha256": "8c2a45ff85e7674ca185ec8eb6cdeab0e617ed9d8018caed0b64380eb2a67a5e",
+          "mmproj_sha256": "83ee4f4f205fa514161778c41df1ea14144faa0f713510893b63c2395f5c2d53",
+          "original_parameters": {
+            "-m": "/app/models/Qwen3.8-27B/Qwen3.8-27B-UD-Q3_K_XL.gguf",
+            "-c": "230000",
+            "-b": "4096",
+            "-ub": "1024",
+            "-ctk": "q4_0",
+            "-ctv": "q4_0",
+            "--spec-type": "draft-mtp",
+            "--spec-draft-n-max": "2",
+            "--spec-draft-p-min": "0.10000000000000001",
+            "--cache-ram": "12288",
+            "-np": "1",
+            "--ctx-checkpoints": "32",
+            "--checkpoint-min-step": "8192",
+            "--mmproj": "/app/models/Qwen3.8-27B/mmproj-BF16.gguf"
+          },
+          "overrides": {},
+          "environment": {},
+          "overlays": [
+            {
+              "source": "/tmp/ezlocalai-cache-depth-6e73606a-devxt3090v/artifacts/overlay-0",
+              "target": "/app/build/llama.cpp/bin/llama-server",
+              "sha256": "786d233474c43332fb731763342e71657136e992b54d405b19998821b1f51074"
+            },
+            {
+              "source": "/tmp/ezlocalai-cache-depth-6e73606a-devxt3090v/artifacts/overlay-1",
+              "target": "/app/build/llama.cpp/bin/libllama-server-impl.so",
+              "sha256": "56435bfa886d57c490efdb5797179ead3392dbdca79c4ea86da91761fe52312d"
+            },
+            {
+              "source": "/tmp/ezlocalai-cache-depth-6e73606a-devxt3090v/artifacts/overlay-2",
+              "target": "/app/build/llama.cpp/bin/libllama-common.so.0.7.0",
+              "sha256": "c9fd858250b3e1c04ea03f057f1b01ac15496af7983a59ade34ba3dbddc37998"
+            },
+            {
+              "source": "/tmp/ezlocalai-cache-depth-6e73606a-devxt3090v/artifacts/overlay-3",
+              "target": "/app/build/llama.cpp/bin/libllama.so.0.7.0",
+              "sha256": "4c32861b7148c347033ce73f06da757a5ad01362a4409c48c20386a716bbcc9f"
+            },
+            {
+              "source": "/tmp/ezlocalai-cache-depth-6e73606a-devxt3090v/artifacts/overlay-4",
+              "target": "/app/build/llama.cpp/ezlocalai-llama-cpp-version.txt",
+              "sha256": "59eec06e8b4d942e563907640dd99f348db115f31760bffa816eb02142632139"
+            },
+            {
+              "source": "/tmp/ezlocalai-cache-depth-6e73606a-devxt3090v/artifacts/overlay-5",
+              "target": "/app/build/llama.cpp/ezlocalai-llama-cpp-patches.txt",
+              "sha256": "585fd9a2b637ed83de08a5501348c92a2a86b7587a985ca076899dbca81abaf3"
+            }
+          ],
+          "engine_binary_sha256": "786d233474c43332fb731763342e71657136e992b54d405b19998821b1f51074",
+          "n_ctx": 230000,
+          "n_ubatch": 1024,
+          "cgroup_limits": {
+            "memory_bytes": 0,
+            "memory_swap_total_bytes": 0,
+            "overridden": false
+          }
+        },
+        "harness_sha256": "f451d449704bd5c5a65d104904e04da33926a5fdc688a28a6abf8e8b05956f1b",
+        "requested_sampling": {
+          "temperature": 0,
+          "seed": 42,
+          "enable_thinking": false
+        },
+        "inference_retries": 0,
+        "context_downgrade_allowed": false,
+        "prompt_cache_key": "capacity-20261026",
+        "capacity": {
+          "answer": "Python",
+          "timings": {
+            "cache_n": 0,
+            "prompt_n": 218392,
+            "prompt_ms": 255092.494,
+            "prompt_per_token_ms": 1.1680487105754789,
+            "prompt_per_second": 856.1286793487542,
+            "predicted_n": 2,
+            "predicted_ms": 120.518,
+            "predicted_per_token_ms": 120.518,
+            "predicted_per_second": 8.297515723792296,
+            "draft_n": 2,
+            "draft_n_accepted": 0
+          },
+          "usage": {
+            "completion_tokens": 2,
+            "prompt_tokens": 218392,
+            "total_tokens": 218394,
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            }
+          },
+          "prefill_tokens_per_second": 856.1286793487542,
+          "decode_tokens_per_second": 8.297515723792296,
+          "evaluated_prompt_tokens": 218392,
+          "cached_prompt_tokens": 0,
+          "cache_fraction": 0.0,
+          "output_sha256": "2945b0d6616d16592538930914f4a2bc539b8d976a0b9200b3e82540f3c07c25",
+          "wall_seconds": 255.4437989529979,
+          "request_sha256": "782302c6659c60b523e45ed23730328acb90fe6000fd866f6e6c6039c4ec7b74",
+          "source_characters": 1007564,
+          "input_tokens": 218392,
+          "target_input_tokens": 218500,
+          "declared_context": 230000,
+          "input_fraction": 0.9495304347826087,
+          "reserved_headroom": 32,
+          "remaining_context_tokens": 11608,
+          "tokenizer_passes": 11
+        },
+        "vision": {
+          "answer": "Red",
+          "timings": {
+            "cache_n": 0,
+            "prompt_n": 1083,
+            "prompt_ms": 1265.448,
+            "prompt_per_token_ms": 1.168465373961219,
+            "prompt_per_second": 855.8233921899595,
+            "predicted_n": 2,
+            "predicted_ms": 31.433,
+            "predicted_per_token_ms": 31.433,
+            "predicted_per_second": 31.813698978780263,
+            "draft_n": 2,
+            "draft_n_accepted": 0
+          },
+          "usage": {
+            "completion_tokens": 2,
+            "prompt_tokens": 1083,
+            "total_tokens": 1085,
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            }
+          },
+          "prefill_tokens_per_second": 855.8233921899595,
+          "decode_tokens_per_second": 31.813698978780263,
+          "evaluated_prompt_tokens": 1083,
+          "cached_prompt_tokens": 0,
+          "cache_fraction": 0.0,
+          "output_sha256": "83814295523046d350f8f9728d780a92ad8359135be44ee43bd4d228310c8fcb",
+          "wall_seconds": 3.3299595860007685,
+          "request_sha256": "66f12a09c66a3171df3959ee6c01009f83a472ce40ba53ae7911bb13adae469f",
+          "image_sha256": "6f7ffeeb88929a8a2e34ea973c871f069be70cbaf1459fff345db59453934435",
+          "image_width": 64,
+          "image_height": 64
+        },
+        "both_finish_stop": true,
+        "sampled_cgroup_maxima": {
+          "memory.current": 8770183168,
+          "memory.peak": 8770412544,
+          "memory.swap.current": 0,
+          "memory.swap.peak": 0,
+          "oom_events_max": 0,
+          "oom_kill_events_max": 0
+        },
+        "controller": {
+          "proof": "build/validation/llm-cache-depth-20261026/DevXT3090V-release-named-capacity-6e73606a/result.json",
+          "sha256": "fea08063640cf1bb9537f6c8ac96508963874e58bcea571f76a083972c4a1d84"
+        },
+        "supervisor": {
+          "proof": "build/validation/llm-cache-depth-20261026/DevXT3090V-release-named-capacity-6e73606a/supervisor-result.json",
+          "sha256": "25bd378ec3eb619aa5fa042f4e6b62077f5129d6ef7288e4998da62f3c5e4dbd"
+        },
+        "restoration": {
+          "healthy": true,
+          "same_container": true,
+          "same_image": true,
+          "same_environment": true,
+          "same_mounts": true,
+          "same_config": true,
+          "same_hostconfig": true,
+          "critical_parameters_preserved": true,
+          "oom_killed": false
+        },
+        "drain_released": true,
+        "lease_errors": []
+      },
+      "DevXT5090": {
+        "proof": "build/validation/llm-cache-depth-20261026/DevXT5090-release-named-capacity-6e73606a/named_capacity-bench.json",
+        "sha256": "6845dd4f0fce710e4253d4b4ac2dcb45fe0ea622d9711f42aee19d8f2922fd5a",
+        "declared_context": 262144,
+        "runtime": {
+          "declared_context": 262144,
+          "effective_context": 262144,
+          "expected_n_ubatch": 2048,
+          "ubatch_evidence": "caller-verified launch metadata",
+          "model_identity_evidence": "caller model/projector fingerprints and unchanged engine properties",
+          "props_sha256": "667e646bf095bc82fd7e602463156119aebc387293bd97d5096b727919b40568"
+        },
+        "target_fraction": 0.95,
+        "metadata": {
+          "image": "sha256:1197b0b18d410519a25fab734bcfead8b32b8d67b1b824a188dbd08916735021",
+          "engine_revision": "repo=https://github.com/ggml-org/llama.cpp.git\nref=620d2225cc436ab0b001e3200e590e3b286ef9ab\nsha=620d2225cc436ab0b001e3200e590e3b286ef9ab\ndate=2026-10-15T16:48:22+03:00\npatch.llama-conversation-cache=ea1cb7096df5107862e825ecf7fae45354632f6d091fc1cfe71f0dc72a8d39d9",
+          "model_sha256": "00cf92e666c6af6566996c38c89a44ccdb6449ea25ef0f112a452c853b2a71e2",
+          "mmproj_sha256": "83ee4f4f205fa514161778c41df1ea14144faa0f713510893b63c2395f5c2d53",
+          "original_parameters": {
+            "-m": "/app/models/Qwen3.8-27B/Qwen3.8-27B-UD-Q3_K_XL.gguf",
+            "-c": "262144",
+            "-b": "4096",
+            "-ub": "2048",
+            "-ctk": "q4_0",
+            "-ctv": "q4_0",
+            "--spec-type": "draft-mtp",
+            "--spec-draft-n-max": "3",
+            "--spec-draft-p-min": "0.10000000000000001",
+            "--cache-ram": "32000",
+            "-np": "1",
+            "--ctx-checkpoints": "32",
+            "--checkpoint-min-step": "8192",
+            "--mmproj": "/app/models/Qwen3.8-27B/mmproj-BF16.gguf"
+          },
+          "overrides": {},
+          "environment": {},
+          "overlays": [
+            {
+              "source": "/tmp/ezlocalai-cache-depth-6e73606a-devxt5090/artifacts/overlay-0",
+              "target": "/app/build/llama.cpp/bin/llama-server",
+              "sha256": "786d233474c43332fb731763342e71657136e992b54d405b19998821b1f51074"
+            },
+            {
+              "source": "/tmp/ezlocalai-cache-depth-6e73606a-devxt5090/artifacts/overlay-1",
+              "target": "/app/build/llama.cpp/bin/libllama-server-impl.so",
+              "sha256": "56435bfa886d57c490efdb5797179ead3392dbdca79c4ea86da91761fe52312d"
+            },
+            {
+              "source": "/tmp/ezlocalai-cache-depth-6e73606a-devxt5090/artifacts/overlay-2",
+              "target": "/app/build/llama.cpp/bin/libllama-common.so.0.7.0",
+              "sha256": "c9fd858250b3e1c04ea03f057f1b01ac15496af7983a59ade34ba3dbddc37998"
+            },
+            {
+              "source": "/tmp/ezlocalai-cache-depth-6e73606a-devxt5090/artifacts/overlay-3",
+              "target": "/app/build/llama.cpp/bin/libllama.so.0.7.0",
+              "sha256": "4c32861b7148c347033ce73f06da757a5ad01362a4409c48c20386a716bbcc9f"
+            },
+            {
+              "source": "/tmp/ezlocalai-cache-depth-6e73606a-devxt5090/artifacts/overlay-4",
+              "target": "/app/build/llama.cpp/ezlocalai-llama-cpp-version.txt",
+              "sha256": "59eec06e8b4d942e563907640dd99f348db115f31760bffa816eb02142632139"
+            },
+            {
+              "source": "/tmp/ezlocalai-cache-depth-6e73606a-devxt5090/artifacts/overlay-5",
+              "target": "/app/build/llama.cpp/ezlocalai-llama-cpp-patches.txt",
+              "sha256": "585fd9a2b637ed83de08a5501348c92a2a86b7587a985ca076899dbca81abaf3"
+            }
+          ],
+          "engine_binary_sha256": "786d233474c43332fb731763342e71657136e992b54d405b19998821b1f51074",
+          "n_ctx": 262144,
+          "n_ubatch": 2048,
+          "cgroup_limits": {
+            "memory_bytes": 0,
+            "memory_swap_total_bytes": 0,
+            "overridden": false
+          }
+        },
+        "harness_sha256": "f451d449704bd5c5a65d104904e04da33926a5fdc688a28a6abf8e8b05956f1b",
+        "requested_sampling": {
+          "temperature": 0,
+          "seed": 42,
+          "enable_thinking": false
+        },
+        "inference_retries": 0,
+        "context_downgrade_allowed": false,
+        "prompt_cache_key": "capacity-20261026",
+        "capacity": {
+          "answer": "Python",
+          "timings": {
+            "cache_n": 0,
+            "prompt_n": 248809,
+            "prompt_ms": 191200.175,
+            "prompt_per_token_ms": 0.7684616513068256,
+            "prompt_per_second": 1301.301110210804,
+            "predicted_n": 2,
+            "predicted_ms": 74.5,
+            "predicted_per_token_ms": 74.5,
+            "predicted_per_second": 13.422818791946309,
+            "draft_n": 3,
+            "draft_n_accepted": 0
+          },
+          "usage": {
+            "completion_tokens": 2,
+            "prompt_tokens": 248809,
+            "total_tokens": 248811,
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            }
+          },
+          "prefill_tokens_per_second": 1301.301110210804,
+          "decode_tokens_per_second": 13.422818791946309,
+          "evaluated_prompt_tokens": 248809,
+          "cached_prompt_tokens": 0,
+          "cache_fraction": 0.0,
+          "output_sha256": "2945b0d6616d16592538930914f4a2bc539b8d976a0b9200b3e82540f3c07c25",
+          "wall_seconds": 191.5343250799924,
+          "request_sha256": "805863ffcef6bf1eef6ad059316c46364433fd2b3c2f182295a34a597d292f07",
+          "source_characters": 1136017,
+          "input_tokens": 248809,
+          "target_input_tokens": 249036,
+          "declared_context": 262144,
+          "input_fraction": 0.9491310119628906,
+          "reserved_headroom": 32,
+          "remaining_context_tokens": 13335,
+          "tokenizer_passes": 12
+        },
+        "vision": {
+          "answer": "Red",
+          "timings": {
+            "cache_n": 0,
+            "prompt_n": 1083,
+            "prompt_ms": 606.872,
+            "prompt_per_token_ms": 0.5603619575253924,
+            "prompt_per_second": 1784.5608299608484,
+            "predicted_n": 2,
+            "predicted_ms": 19.54,
+            "predicted_per_token_ms": 19.54,
+            "predicted_per_second": 51.1770726714432,
+            "draft_n": 3,
+            "draft_n_accepted": 0
+          },
+          "usage": {
+            "completion_tokens": 2,
+            "prompt_tokens": 1083,
+            "total_tokens": 1085,
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            }
+          },
+          "prefill_tokens_per_second": 1784.5608299608484,
+          "decode_tokens_per_second": 51.1770726714432,
+          "evaluated_prompt_tokens": 1083,
+          "cached_prompt_tokens": 0,
+          "cache_fraction": 0.0,
+          "output_sha256": "83814295523046d350f8f9728d780a92ad8359135be44ee43bd4d228310c8fcb",
+          "wall_seconds": 1.6333484060596675,
+          "request_sha256": "66f12a09c66a3171df3959ee6c01009f83a472ce40ba53ae7911bb13adae469f",
+          "image_sha256": "6f7ffeeb88929a8a2e34ea973c871f069be70cbaf1459fff345db59453934435",
+          "image_width": 64,
+          "image_height": 64
+        },
+        "both_finish_stop": true,
+        "sampled_cgroup_maxima": {
+          "memory.current": 10913923072,
+          "memory.peak": 10914070528,
+          "memory.swap.current": 0,
+          "memory.swap.peak": 0,
+          "oom_events_max": 0,
+          "oom_kill_events_max": 0
+        },
+        "controller": {
+          "proof": "build/validation/llm-cache-depth-20261026/DevXT5090-release-named-capacity-6e73606a/result.json",
+          "sha256": "8469dc82f28e4ce7e25c24f6379234655edb2b94c0fec70f655b8244287e1646"
+        },
+        "supervisor": {
+          "proof": "build/validation/llm-cache-depth-20261026/DevXT5090-release-named-capacity-6e73606a/supervisor-result.json",
+          "sha256": "a80b50e5f8ebcf5ff7092c33a71faef737cd64af7455687d54aab4b45609c0ac"
+        },
+        "restoration": {
+          "healthy": true,
+          "same_container": true,
+          "same_image": true,
+          "same_environment": true,
+          "same_mounts": true,
+          "same_config": true,
+          "same_hostconfig": true,
+          "critical_parameters_preserved": true,
+          "oom_killed": false
+        },
+        "drain_released": true,
+        "lease_errors": []
+      }
+    },
+    "harness": {
+      "proof": "benchmarks/bench_capacity.py",
+      "sha256": "f451d449704bd5c5a65d104904e04da33926a5fdc688a28a6abf8e8b05956f1b"
+    },
+    "cache_prompt": false,
+    "cold_text_samples_per_card": 1,
+    "small_vision_samples_per_card": 1,
+    "limits": [
+      "Named key supplied, but cache_prompt:false; no cached replay/rewind or latest-turn discriminator.",
+      "Two short-answer single-turn requests per GPU, not long generation or broad quality evaluation.",
+      "Different models/deep contexts/physical batches; native prefill diagnostics are not paired speed claims."
+    ]
+  },
+  "environment_recovery_v2": {
+    "status": "source_fix_offline_validated",
+    "source": {
+      "proof": "benchmarks/operators/cache_env_recovery_20261026.py",
+      "sha256": "b5a56d8d924371d861a7205f04f103fac075b0565cbe6242eac22dbf94baec9f"
+    },
+    "test_source": {
+      "proof": "benchmarks/operators/test_cache_env_recovery_20261026.py",
+      "sha256": "8e66c20c1077de7004820a49a9c83c2cad9c53e29c5f76b3e923e00f2956766e"
+    },
+    "workflow": {
+      "proof": "benchmarks/operators/README.md",
+      "sha256": "20a2016b4666f3aa8e80d2331cf87ffa8d174f57688bf9793f5605127b6ffa35"
+    },
+    "guards": {
+      "proof": "build/validation/llm-cache-depth-20261026/recovery-operator-guards.log",
+      "sha256": "6753e317ecd3db2a2ac9a6d734fd6ddeddeba9107d60b9e7dd241c753b0c721c"
+    },
+    "offline_guards_passed": 47,
+    "supports_finalized_v1_transaction_recreation": true,
+    "immutable_original_image_and_private_configuration": true,
+    "refuses_unrelated_current_container_ids": true,
+    "recreated_id_reported_honestly": true,
+    "shared_image_alias_retagging": false,
+    "installed_or_autostarted": false,
+    "live_post_finalize_fleet_rollback_performed": false
+  },
+  "actual_os_swap": {
+    "status": "qualified_one_bounded_workload_with_separate_failed_limit",
+    "studies": {
+      "undersized_failed": {
+        "status": "failed",
+        "variants": {
+          "inherited_limits_cache8192": {
+            "proof": "build/validation/llm-cache-depth-20261026/DevXT5090-5090-swap-release-99d8a3b1/inherited_limits_cache8192-bench.json",
+            "sha256": "7c522f25349916b6618ee069ff449f18634ef1a36835021b3d75b8d4c925a551",
+            "status": "complete",
+            "summary": {
+              "seed": {
+                "samples": 7,
+                "cache_outcomes": {
+                  "tail_reuse": 0,
+                  "prefix_reuse": 0,
+                  "full_reevaluation": 7
+                },
+                "wall_seconds_median": 7.746959868003614,
+                "ttft_seconds_median": 6.770611825049855,
+                "decode_tokens_per_second_median": 132.43044273478247,
+                "prefill_tokens_per_second_median": 3715.6443833298395,
+                "generated_tokens_median": 128,
+                "draft_tokens": 957,
+                "accepted_draft_tokens": 565,
+                "draft_acceptance_ratio": 0.5903866248693835
+              },
+              "replay": {
+                "samples": 14,
+                "cache_outcomes": {
+                  "tail_reuse": 14,
+                  "prefix_reuse": 0,
+                  "full_reevaluation": 0
+                },
+                "wall_seconds_median": 1.1646778209833428,
+                "ttft_seconds_median": 0.1910216529504396,
+                "decode_tokens_per_second_median": 133.2894557315061,
+                "prefill_tokens_per_second_median": 68.40647367296962,
+                "generated_tokens_median": 128.0,
+                "draft_tokens": 1914,
+                "accepted_draft_tokens": 1130,
+                "draft_acceptance_ratio": 0.5903866248693835
+              }
+            },
+            "samples_completed": 21,
+            "configuration": {
+              "mode": "pressure",
+              "prefix_mode": "independent",
+              "conversations": 7,
+              "rounds": 3,
+              "cases": [
+                "replay"
+              ],
+              "context": 262144,
+              "prompt_chars": 100000,
+              "branch_records": 90,
+              "rewind_records": 40,
+              "decode_tokens": 128,
+              "minimum_generated": 64,
+              "finite_control": false,
+              "require_draft_counters": true,
+              "model": "unsloth/Qwen3.8-27B-GGUF"
+            },
+            "overrides": {
+              "--cache-ram": 8192
+            },
+            "environment": {},
+            "cgroup_limits": {
+              "memory_bytes": 0,
+              "memory_swap_total_bytes": 0,
+              "overridden": false
+            },
+            "actual_resource_configuration": {
+              "Memory": 0,
+              "MemorySwap": 0,
+              "MemoryReservation": 0,
+              "MemorySwappiness": null,
+              "NanoCpus": 0,
+              "CpuPeriod": 0,
+              "CpuQuota": 0,
+              "CpuShares": 0,
+              "CpusetCpus": "",
+              "CpusetMems": "",
+              "ShmSize": 67108864,
+              "IpcMode": "private",
+              "Ulimits": [
+                {
+                  "Name": "core",
+                  "Hard": 0,
+                  "Soft": 0
+                },
+                {
+                  "Name": "nofile",
+                  "Hard": 65535,
+                  "Soft": 65535
+                }
+              ],
+              "PidsLimit": null,
+              "DeviceRequests": [
+                {
+                  "Driver": "",
+                  "Count": -1,
+                  "DeviceIDs": null,
+                  "Capabilities": [
+                    [
+                      "gpu"
+                    ]
+                  ],
+                  "Options": {}
+                }
+              ]
+            },
+            "isolated_container_state": {
+              "oom_killed": false,
+              "exit_code": 0,
+              "running_at_cleanup": true
+            },
+            "sampled_cgroup_maxima": {
+              "memory.current": 11771834368,
+              "memory.peak": 11774042112,
+              "memory.swap.current": 0,
+              "memory.swap.peak": 0,
+              "oom_events_max": 0,
+              "oom_kill_events_max": 0
+            }
+          },
+          "bounded_6g_ram_4g_swap": {
+            "proof": "build/validation/llm-cache-depth-20261026/DevXT5090-5090-swap-release-99d8a3b1/bounded_6g_ram_4g_swap-bench.json",
+            "sha256": "8c4e112e2850b1746f0ac9454871b50edad6ce706ae0f7201f14c91837a533ba",
+            "status": "failed",
+            "summary": {
+              "seed": {
+                "samples": 6,
+                "cache_outcomes": {
+                  "tail_reuse": 0,
+                  "prefix_reuse": 0,
+                  "full_reevaluation": 6
+                },
+                "wall_seconds_median": 8.223328731022775,
+                "ttft_seconds_median": 7.241921223525424,
+                "decode_tokens_per_second_median": 131.3479908393943,
+                "prefill_tokens_per_second_median": 3556.6724391614293,
+                "generated_tokens_median": 128.0,
+                "draft_tokens": 820,
+                "accepted_draft_tokens": 484,
+                "draft_acceptance_ratio": 0.5902439024390244
+              }
+            },
+            "samples_completed": 6,
+            "configuration": {
+              "mode": "pressure",
+              "prefix_mode": "independent",
+              "conversations": 7,
+              "rounds": 3,
+              "cases": [
+                "replay"
+              ],
+              "context": 262144,
+              "prompt_chars": 100000,
+              "branch_records": 90,
+              "rewind_records": 40,
+              "decode_tokens": 128,
+              "minimum_generated": 64,
+              "finite_control": false,
+              "require_draft_counters": true,
+              "model": "unsloth/Qwen3.8-27B-GGUF"
+            },
+            "overrides": {
+              "--cache-ram": 8192
+            },
+            "environment": {},
+            "cgroup_limits": {
+              "memory_bytes": 6442450944,
+              "memory_swap_total_bytes": 10737418240,
+              "requested_swap_allowance_bytes": 4294967296,
+              "swap_reserve_bytes": 1073741824,
+              "host_memory_guard": {
+                "MemTotal": 134518042624,
+                "MemAvailable": 130635165696,
+                "SwapTotal": 103123251200,
+                "SwapFree": 101742014464
+              },
+              "overridden": true
+            },
+            "actual_resource_configuration": {
+              "Memory": 6442450944,
+              "MemorySwap": 10737418240,
+              "MemoryReservation": 0,
+              "MemorySwappiness": null,
+              "NanoCpus": 0,
+              "CpuPeriod": 0,
+              "CpuQuota": 0,
+              "CpuShares": 0,
+              "CpusetCpus": "",
+              "CpusetMems": "",
+              "ShmSize": 67108864,
+              "IpcMode": "private",
+              "Ulimits": [
+                {
+                  "Name": "core",
+                  "Hard": 0,
+                  "Soft": 0
+                },
+                {
+                  "Name": "nofile",
+                  "Hard": 65535,
+                  "Soft": 65535
+                }
+              ],
+              "PidsLimit": null,
+              "DeviceRequests": [
+                {
+                  "Driver": "",
+                  "Count": -1,
+                  "DeviceIDs": null,
+                  "Capabilities": [
+                    [
+                      "gpu"
+                    ]
+                  ],
+                  "Options": {}
+                }
+              ]
+            },
+            "isolated_container_state": {
+              "oom_killed": true,
+              "exit_code": 0,
+              "running_at_cleanup": true
+            },
+            "sampled_cgroup_maxima": {
+              "memory.current": 6442450944,
+              "memory.peak": 6442450944,
+              "memory.swap.current": 3789139968,
+              "memory.swap.peak": 4294967296,
+              "oom_events_max": 1,
+              "oom_kill_events_max": 1
+            }
+          }
+        },
+        "paired_completed_request_hash_matches": 6,
+        "paired_completed_output_hash_matches": 6,
+        "original_parameters": {
+          "-m": "/app/models/Qwen3.8-27B/Qwen3.8-27B-UD-Q3_K_XL.gguf",
+          "-c": "262144",
+          "-b": "4096",
+          "-ub": "2048",
+          "-ctk": "q4_0",
+          "-ctv": "q4_0",
+          "--spec-type": "draft-mtp",
+          "--spec-draft-n-max": "3",
+          "--spec-draft-p-min": "0.10000000000000001",
+          "--cache-ram": "32000",
+          "-np": "1",
+          "--ctx-checkpoints": "32",
+          "--checkpoint-min-step": "8192",
+          "--mmproj": "/app/models/Qwen3.8-27B/mmproj-BF16.gguf"
+        },
+        "model_sha256": "00cf92e666c6af6566996c38c89a44ccdb6449ea25ef0f112a452c853b2a71e2",
+        "projector_sha256": "83ee4f4f205fa514161778c41df1ea14144faa0f713510893b63c2395f5c2d53",
+        "artifacts": {
+          "/app/build/llama.cpp/bin/llama-server": "786d233474c43332fb731763342e71657136e992b54d405b19998821b1f51074",
+          "/app/build/llama.cpp/bin/libllama-server-impl.so": "56435bfa886d57c490efdb5797179ead3392dbdca79c4ea86da91761fe52312d",
+          "/app/build/llama.cpp/bin/libllama-common.so.0.7.0": "c9fd858250b3e1c04ea03f057f1b01ac15496af7983a59ade34ba3dbddc37998",
+          "/app/build/llama.cpp/bin/libllama.so.0.7.0": "4c32861b7148c347033ce73f06da757a5ad01362a4409c48c20386a716bbcc9f",
+          "/app/build/llama.cpp/ezlocalai-llama-cpp-version.txt": "59eec06e8b4d942e563907640dd99f348db115f31760bffa816eb02142632139",
+          "/app/build/llama.cpp/ezlocalai-llama-cpp-patches.txt": "585fd9a2b637ed83de08a5501348c92a2a86b7587a985ca076899dbca81abaf3"
+        },
+        "controller": {
+          "proof": "build/validation/llm-cache-depth-20261026/DevXT5090-5090-swap-release-99d8a3b1/result.json",
+          "sha256": "f6f5d3da50d5c0a307fd2b263a89efb0efa9761eb3ba6fba083cb3aaf9a80512"
+        },
+        "supervisor": {
+          "proof": "build/validation/llm-cache-depth-20261026/DevXT5090-5090-swap-release-99d8a3b1/supervisor-result.json",
+          "sha256": "8d3389f9818804e4fde3433facc30af7581a51f9abb26e1e1633f526fa4405d1"
+        },
+        "telemetry": {
+          "proof": "build/validation/llm-cache-depth-20261026/DevXT5090-5090-swap-release-99d8a3b1/telemetry.json",
+          "sha256": "09afea10212e764b6ffb22afd238fa0cfcc798064e329f76774a24d6c7746a49"
+        },
+        "restoration": {
+          "healthy": true,
+          "same_container": true,
+          "same_image": true,
+          "same_environment": true,
+          "same_mounts": true,
+          "same_config": true,
+          "same_hostconfig": true,
+          "critical_parameters_preserved": true,
+          "oom_killed": false
+        },
+        "drain_released": true,
+        "lease_errors": []
+      },
+      "headroom_passed": {
+        "status": "complete",
+        "variants": {
+          "inherited_limits_cache8192": {
+            "proof": "build/validation/llm-cache-depth-20261026/DevXT5090-swap-release-headroom-14g-8e732c8e/inherited_limits_cache8192-bench.json",
+            "sha256": "4f2e672914331c49152698a6a21e635246407ba9dccb1e43f125a2949e5a0648",
+            "status": "complete",
+            "summary": {
+              "seed": {
+                "samples": 7,
+                "cache_outcomes": {
+                  "tail_reuse": 0,
+                  "prefix_reuse": 0,
+                  "full_reevaluation": 7
+                },
+                "wall_seconds_median": 8.105314136017114,
+                "ttft_seconds_median": 7.064224481931888,
+                "decode_tokens_per_second_median": 123.26124006630872,
+                "prefill_tokens_per_second_median": 3589.405006186263,
+                "generated_tokens_median": 128,
+                "draft_tokens": 957,
+                "accepted_draft_tokens": 565,
+                "draft_acceptance_ratio": 0.5903866248693835
+              },
+              "replay": {
+                "samples": 14,
+                "cache_outcomes": {
+                  "tail_reuse": 14,
+                  "prefix_reuse": 0,
+                  "full_reevaluation": 0
+                },
+                "wall_seconds_median": 1.1833978460053913,
+                "ttft_seconds_median": 0.19699941447470337,
+                "decode_tokens_per_second_median": 130.05134142861215,
+                "prefill_tokens_per_second_median": 66.41132622731095,
+                "generated_tokens_median": 128.0,
+                "draft_tokens": 1914,
+                "accepted_draft_tokens": 1130,
+                "draft_acceptance_ratio": 0.5903866248693835
+              }
+            },
+            "samples_completed": 21,
+            "configuration": {
+              "mode": "pressure",
+              "prefix_mode": "independent",
+              "conversations": 7,
+              "rounds": 3,
+              "cases": [
+                "replay"
+              ],
+              "context": 262144,
+              "prompt_chars": 100000,
+              "branch_records": 90,
+              "rewind_records": 40,
+              "decode_tokens": 128,
+              "minimum_generated": 64,
+              "finite_control": false,
+              "require_draft_counters": true,
+              "model": "unsloth/Qwen3.8-27B-GGUF"
+            },
+            "overrides": {
+              "--cache-ram": 8192
+            },
+            "environment": {},
+            "cgroup_limits": {
+              "memory_bytes": 0,
+              "memory_swap_total_bytes": 0,
+              "overridden": false
+            },
+            "actual_resource_configuration": {
+              "Memory": 0,
+              "MemorySwap": 0,
+              "MemoryReservation": 0,
+              "MemorySwappiness": null,
+              "NanoCpus": 0,
+              "CpuPeriod": 0,
+              "CpuQuota": 0,
+              "CpuShares": 0,
+              "CpusetCpus": "",
+              "CpusetMems": "",
+              "ShmSize": 67108864,
+              "IpcMode": "private",
+              "Ulimits": [
+                {
+                  "Name": "core",
+                  "Hard": 0,
+                  "Soft": 0
+                },
+                {
+                  "Name": "nofile",
+                  "Hard": 65535,
+                  "Soft": 65535
+                }
+              ],
+              "PidsLimit": null,
+              "DeviceRequests": [
+                {
+                  "Driver": "",
+                  "Count": -1,
+                  "DeviceIDs": null,
+                  "Capabilities": [
+                    [
+                      "gpu"
+                    ]
+                  ],
+                  "Options": {}
+                }
+              ]
+            },
+            "isolated_container_state": {
+              "oom_killed": false,
+              "exit_code": 0,
+              "running_at_cleanup": true
+            },
+            "sampled_cgroup_maxima": {
+              "memory.current": 11775488000,
+              "memory.peak": 11775737856,
+              "memory.swap.current": 0,
+              "memory.swap.peak": 0,
+              "oom_events_max": 0,
+              "oom_kill_events_max": 0
+            }
+          },
+          "bounded_6g_ram_8g_swap": {
+            "proof": "build/validation/llm-cache-depth-20261026/DevXT5090-swap-release-headroom-14g-8e732c8e/bounded_6g_ram_8g_swap-bench.json",
+            "sha256": "be0ed199c295b3ec423bb692a2b013adcc5b4bbe1de15f6ce62287bed96148ea",
+            "status": "complete",
+            "summary": {
+              "seed": {
+                "samples": 7,
+                "cache_outcomes": {
+                  "tail_reuse": 0,
+                  "prefix_reuse": 0,
+                  "full_reevaluation": 7
+                },
+                "wall_seconds_median": 8.441236473969184,
+                "ttft_seconds_median": 7.428582342923619,
+                "decode_tokens_per_second_median": 128.84649917974494,
+                "prefill_tokens_per_second_median": 3526.564206377452,
+                "generated_tokens_median": 128,
+                "draft_tokens": 957,
+                "accepted_draft_tokens": 565,
+                "draft_acceptance_ratio": 0.5903866248693835
+              },
+              "replay": {
+                "samples": 14,
+                "cache_outcomes": {
+                  "tail_reuse": 14,
+                  "prefix_reuse": 0,
+                  "full_reevaluation": 0
+                },
+                "wall_seconds_median": 3.2401306849787943,
+                "ttft_seconds_median": 2.262975330464542,
+                "decode_tokens_per_second_median": 133.38383472634527,
+                "prefill_tokens_per_second_median": 9.012330765505839,
+                "generated_tokens_median": 128.0,
+                "draft_tokens": 1914,
+                "accepted_draft_tokens": 1130,
+                "draft_acceptance_ratio": 0.5903866248693835
+              }
+            },
+            "samples_completed": 21,
+            "configuration": {
+              "mode": "pressure",
+              "prefix_mode": "independent",
+              "conversations": 7,
+              "rounds": 3,
+              "cases": [
+                "replay"
+              ],
+              "context": 262144,
+              "prompt_chars": 100000,
+              "branch_records": 90,
+              "rewind_records": 40,
+              "decode_tokens": 128,
+              "minimum_generated": 64,
+              "finite_control": false,
+              "require_draft_counters": true,
+              "model": "unsloth/Qwen3.8-27B-GGUF"
+            },
+            "overrides": {
+              "--cache-ram": 8192
+            },
+            "environment": {},
+            "cgroup_limits": {
+              "memory_bytes": 6442450944,
+              "memory_swap_total_bytes": 15032385536,
+              "requested_swap_allowance_bytes": 8589934592,
+              "swap_reserve_bytes": 1073741824,
+              "host_memory_guard": {
+                "MemTotal": 134518042624,
+                "MemAvailable": 130763968512,
+                "SwapTotal": 103123251200,
+                "SwapFree": 101364854784
+              },
+              "overridden": true
+            },
+            "actual_resource_configuration": {
+              "Memory": 6442450944,
+              "MemorySwap": 15032385536,
+              "MemoryReservation": 0,
+              "MemorySwappiness": null,
+              "NanoCpus": 0,
+              "CpuPeriod": 0,
+              "CpuQuota": 0,
+              "CpuShares": 0,
+              "CpusetCpus": "",
+              "CpusetMems": "",
+              "ShmSize": 67108864,
+              "IpcMode": "private",
+              "Ulimits": [
+                {
+                  "Name": "core",
+                  "Hard": 0,
+                  "Soft": 0
+                },
+                {
+                  "Name": "nofile",
+                  "Hard": 65535,
+                  "Soft": 65535
+                }
+              ],
+              "PidsLimit": null,
+              "DeviceRequests": [
+                {
+                  "Driver": "",
+                  "Count": -1,
+                  "DeviceIDs": null,
+                  "Capabilities": [
+                    [
+                      "gpu"
+                    ]
+                  ],
+                  "Options": {}
+                }
+              ]
+            },
+            "isolated_container_state": {
+              "oom_killed": false,
+              "exit_code": 0,
+              "running_at_cleanup": true
+            },
+            "sampled_cgroup_maxima": {
+              "memory.current": 6442450944,
+              "memory.peak": 6442450944,
+              "memory.swap.current": 5507969024,
+              "memory.swap.peak": 5715623936,
+              "oom_events_max": 0,
+              "oom_kill_events_max": 0
+            }
+          }
+        },
+        "paired_completed_request_hash_matches": 21,
+        "paired_completed_output_hash_matches": 21,
+        "original_parameters": {
+          "-m": "/app/models/Qwen3.8-27B/Qwen3.8-27B-UD-Q3_K_XL.gguf",
+          "-c": "262144",
+          "-b": "4096",
+          "-ub": "2048",
+          "-ctk": "q4_0",
+          "-ctv": "q4_0",
+          "--spec-type": "draft-mtp",
+          "--spec-draft-n-max": "3",
+          "--spec-draft-p-min": "0.10000000000000001",
+          "--cache-ram": "32000",
+          "-np": "1",
+          "--ctx-checkpoints": "32",
+          "--checkpoint-min-step": "8192",
+          "--mmproj": "/app/models/Qwen3.8-27B/mmproj-BF16.gguf"
+        },
+        "model_sha256": "00cf92e666c6af6566996c38c89a44ccdb6449ea25ef0f112a452c853b2a71e2",
+        "projector_sha256": "83ee4f4f205fa514161778c41df1ea14144faa0f713510893b63c2395f5c2d53",
+        "artifacts": {
+          "/app/build/llama.cpp/bin/llama-server": "786d233474c43332fb731763342e71657136e992b54d405b19998821b1f51074",
+          "/app/build/llama.cpp/bin/libllama-server-impl.so": "56435bfa886d57c490efdb5797179ead3392dbdca79c4ea86da91761fe52312d",
+          "/app/build/llama.cpp/bin/libllama-common.so.0.7.0": "c9fd858250b3e1c04ea03f057f1b01ac15496af7983a59ade34ba3dbddc37998",
+          "/app/build/llama.cpp/bin/libllama.so.0.7.0": "4c32861b7148c347033ce73f06da757a5ad01362a4409c48c20386a716bbcc9f",
+          "/app/build/llama.cpp/ezlocalai-llama-cpp-version.txt": "59eec06e8b4d942e563907640dd99f348db115f31760bffa816eb02142632139",
+          "/app/build/llama.cpp/ezlocalai-llama-cpp-patches.txt": "585fd9a2b637ed83de08a5501348c92a2a86b7587a985ca076899dbca81abaf3"
+        },
+        "controller": {
+          "proof": "build/validation/llm-cache-depth-20261026/DevXT5090-swap-release-headroom-14g-8e732c8e/result.json",
+          "sha256": "783d07e1b5e97ed30f0c58ba49a56dee7e6926f936a6c59922d28f5910da1344"
+        },
+        "supervisor": {
+          "proof": "build/validation/llm-cache-depth-20261026/DevXT5090-swap-release-headroom-14g-8e732c8e/supervisor-result.json",
+          "sha256": "4ecc542a610a0bfaa018801c0aa9153f36518a77901f23a62cc4f80ac37316d2"
+        },
+        "telemetry": {
+          "proof": "build/validation/llm-cache-depth-20261026/DevXT5090-swap-release-headroom-14g-8e732c8e/telemetry.json",
+          "sha256": "2228c8b929b0605eb357b39ab978b5564a06e1e72c5f962b849c67c8dc9e0487"
+        },
+        "restoration": {
+          "healthy": true,
+          "same_container": true,
+          "same_image": true,
+          "same_environment": true,
+          "same_mounts": true,
+          "same_config": true,
+          "same_hostconfig": true,
+          "critical_parameters_preserved": true,
+          "oom_killed": false
+        },
+        "drain_released": true,
+        "lease_errors": []
+      }
+    },
+    "backend": {
+      "proof": "build/validation/llm-cache-depth-20261026/5090-swap-backend.json",
+      "sha256": "84b85da03a059083e7147cea5d1171b37afae6adfb96268cbc18e8739499bd61",
+      "proc_swaps": "Filename\t\t\t\tType\t\tSize\t\tUsed\t\tPriority\n/dev/nvme0n1p3                          partition\t100706300\t1348864\t\t-2",
+      "swappiness": "60",
+      "zswap_enabled": "N",
+      "zswap_compressor": "lzo",
+      "host_settings_changed": false
+    },
+    "production_swap_or_cache_settings_changed": false,
+    "limits": [
+      "The failed6GiB RAM+4GiB swap attempt completes six cold seeds and no bounded replay; isolated worker OOM is negative evidence.",
+      "The successful6GiB RAM+8GiB swap attempt retains14 tails and matches all21 paired outputs under actual positive cgroup swap.",
+      "Telemetry does not attribute swapped pages to particular buffers or isolate pure swap-in cost.",
+      "Single NVMe-backed5090 workload; other hosts/backends/co-resident media and unlimited cache growth are not qualified."
+    ]
+  },
+  "final_fleet": {
+    "proof": "build/validation/llm-cache-depth-20261026/final-fleet.json",
+    "sha256": "2b5d893676dfff874d34e268f86694fcbad72d2d99a522a80aa60ffeb3fb2f86",
+    "snapshot": {
+      "checked_unix": 1793036516.8821301,
+      "workers": [
+        {
+          "label": "DevXT3090V",
+          "version": "46d9ba8",
+          "model_context": {
+            "unsloth/Qwen3.8-27B-GGUF": 230000
+          },
+          "models": [
+            "unsloth/Qwen3.8-27B-GGUF"
+          ],
+          "cap_slots": {
+            "text": {
+              "capacity": 1,
+              "in_flight": 0,
+              "queued": 0,
+              "available": 1
+            },
+            "vision": {
+              "capacity": 1,
+              "in_flight": 0,
+              "queued": 0,
+              "available": 1
+            }
+          },
+          "last_heartbeat_age": 4.977654218673706,
+          "draining": false,
+          "circuit_open": false,
+          "memory_fields": {
+            "free_ram_gb": 26.690860748291016,
+            "free_vram_gb": 3.09393310546875,
+            "total_ram_gb": 30.51270294189453,
+            "total_vram_gb": 23.0
+          }
+        },
+        {
+          "label": "DevXT4090",
+          "version": "46d9ba8",
+          "model_context": {
+            "unsloth/Qwen3.8-27B-GGUF": 230000
+          },
+          "models": [
+            "unsloth/Qwen3.8-27B-GGUF"
+          ],
+          "cap_slots": {
+            "text": {
+              "capacity": 1,
+              "in_flight": 1,
+              "queued": 0,
+              "available": 0
+            },
+            "vision": {
+              "capacity": 1,
+              "in_flight": 1,
+              "queued": 0,
+              "available": 0
+            }
+          },
+          "last_heartbeat_age": 3.5971977710723877,
+          "draining": false,
+          "circuit_open": false,
+          "memory_fields": {
+            "free_ram_gb": 17.093528747558594,
+            "free_vram_gb": 2.6563720703125,
+            "total_ram_gb": 30.49881362915039,
+            "total_vram_gb": 23.0
+          }
+        },
+        {
+          "label": "DevXT5090",
+          "version": "46d9ba8",
+          "model_context": {
+            "unsloth/Qwen3.8-27B-GGUF": 262144
+          },
+          "models": [
+            "unsloth/Qwen3.8-27B-GGUF"
+          ],
+          "cap_slots": {
+            "text": {
+              "capacity": 1,
+              "in_flight": 0,
+              "queued": 0,
+              "available": 1
+            },
+            "vision": {
+              "capacity": 1,
+              "in_flight": 0,
+              "queued": 0,
+              "available": 1
+            }
+          },
+          "last_heartbeat_age": 4.640481948852539,
+          "draining": false,
+          "circuit_open": false,
+          "memory_fields": {
+            "free_ram_gb": 118.84601593017578,
+            "free_vram_gb": 7.92169189453125,
+            "total_ram_gb": 125.27968978881836,
+            "total_vram_gb": 31.0
+          }
+        }
+      ]
+    },
+    "all_benchmark_operators_stopped": "Root confirmed after all supervisor restorations; no new live calls from report agent.",
+    "candidate_left_deployed": false,
+    "production_cache_swap_allowance_changed": false,
+    "two_ram_cache_mib": 12288,
+    "5090_cache_mib": 32000
+  },
+  "final_verification_suites": {
+    "focused_engine_source_contract": {
+      "proof": "build/validation/llm-cache-depth-20261026/release-focused.log",
+      "sha256": "216eb91fd6dab5cb82dda6c87aaf4b1025874f2fb05b58ebe029fc6826f52089",
+      "passed": 6,
+      "seconds": 4.01
+    },
+    "frozen_benchmark_guards": {
+      "proof": "build/validation/llm-cache-depth-20261026/benchmark-guards-final-state.log",
+      "sha256": "76bd96ad65ced9dcfee368481fa3e94c885a85cf9e03178751c7e82ca7384f91",
+      "passed": 87
+    },
+    "tracked_recovery_guards": {
+      "proof": "build/validation/llm-cache-depth-20261026/recovery-operator-guards.log",
+      "sha256": "6753e317ecd3db2a2ac9a6d734fd6ddeddeba9107d60b9e7dd241c753b0c721c",
+      "passed": 47
+    },
+    "focused_named_capacity_guards": {
+      "proof": "build/validation/llm-cache-depth-20261026/benchmark-guards-final-named.log",
+      "sha256": "8689f7e93579b973576da0ebb5934f2674fc03b77533f217000b76501f98b294",
+      "passed": 57
+    },
+    "counting_note": "These suites overlap package/other developer coverage and are not summed."
+  },
+  "source_scope_note": "Runtime code matches validated source448bf6b and packaged image462cd19b...bb57. Later commits contain documentation, qualification descriptions, benchmark recovery tooling or gitignore changes; no additional runtime change is claimed."
 }

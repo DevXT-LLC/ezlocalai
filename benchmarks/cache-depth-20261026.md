@@ -1,13 +1,16 @@
 # Conversation cache and router admission measurements - 2026-10-26
 
-Status: partial qualification report. Results cover the 4090 four-patch
+Status: completed measurements for the recorded CUDA scope. Results cover the 4090 four-patch
 cache/MTP candidate and router comparison, 4090/3090V production-engine cache
 capacity tests, applied RAM settings on those two workers, and baseline 4090
 disk-state roundtrips. The latest release candidate also completes active
 aligned-checkpoint, finite-instruction and eight-conversation pressure checks
-on the 4090. Earlier experimental checkpoint results remain historical. Final
-state/quality qualification, other-GPU candidate checks, swap and release of a
-final image remain pending. The earlier
+on the 4090, plus resident/finite checks on the 3090V and 5090. Final candidate disk
+roundtrips pass on 3090V, 4090 and 5090; its packaged CUDA image passes the
+package gate and an isolated 5090 router canary. Earlier checkpoint results
+remain historical. Near-capacity checks pass on all three, and an isolated
+5090 experiment verifies retention during actual OS swapping. Broader quality and production rollout remain
+outside these sampled checks. The earlier
 [prefill tuning report](optimization-20261026.md)
 is historical evidence and is not replaced by these numbers.
 
@@ -41,7 +44,8 @@ The full model SHA-256 is
 `8c2a45ff85e7674ca185ec8eb6cdeab0e617ed9d8018caed0b64380eb2a67a5e`.
 The 5090's deployed weights differ despite the identical filename; future
 cross-card results must retain that distinction or use verified identical
-files. Current results compare each configuration on the same 4090.
+files. Each configuration comparison keeps its host's model files unchanged;
+the 4090 and 3090V share the verified file above, while the 5090 retains its own.
 
 ## Resident conversation restore
 
@@ -207,8 +211,68 @@ pressure phase peaks at 13127340032 cgroup bytes, including active state and
 reclaimable page-cache charges outside the conversation-cache ceiling. Host
 memory pressure and concurrent media workloads are not forced. The original
 production container, image, environment, mounts and critical arguments are
-restored, and the owned drain is released. Candidate-engine results on 3090V
-and 5090, final disk-state checks and final-image release remain pending.
+restored, and the owned drain is released. The 3090V and final disk/image checks
+below add separate evidence, including final near-capacity checks.
+
+## Resident release comparison on 3090V
+
+The 3090V compares its matched conversation-cache baseline with the complete
+release engine using defaults: storage and aligned checkpoints are enabled
+without environment overrides. Both modes preserve context 230000, batches
+4096/1024, q4_0 K/V, MTP maximum 2, one slot and the applied 12288 MiB ceiling.
+The common/server libraries differ together; this comparison measures the
+combined candidate rather than isolating checkpoint coverage alone.
+
+| Case | Baseline TTFT | Release TTFT | Baseline -> release full turn |
+| --- | ---: | ---: | ---: |
+| Seed | 16.096 s | 16.070 s | 19.558 -> 19.556 s |
+| Identical replay | 752.3 ms | 303.7 ms | 4.265 -> 3.836 s |
+| Append | 1.183 s | 777.2 ms | 4.047 -> 3.653 s |
+| Shorter-prefix rewind | 15.565 s | 918.2 ms | 19.142 -> 4.465 s |
+
+All twelve input hashes and the first nine seed/replay/append answer hashes
+match. Rewinds reuse 22603 tokens and evaluate 724 instead of reusing 75 and
+evaluating 23252. Replay native decode remains 72.57 versus 72.34 tok/s; rewind
+decode is 72.09 versus 71.75 tok/s. These are prompt/cache latency gains, with
+no demonstrated decode throughput increase.
+
+Two reviewers inspect the six differing rewind answers and find no concrete
+new factual or identity regression in the sampled release text. Baseline
+branches 0 and 1 incorrectly associate Python dictionaries with chaining;
+those claims are absent in these release samples, while broad unsupported
+statements about the most common strategy remain. All six stop at the
+256-token cap, so this is not a complete programming-task quality evaluation.
+Freeform appends still repeat seeds in both variants. The separate finite
+release control returns all twelve exact latest-turn answers with `stop`.
+The original production container/configuration is restored, its drain is
+released, and observed swap/OOM counters remain zero.
+
+## Resident release comparison on 5090
+
+The 5090 preserves its distinct model file, context 262144, batches 4096/2048,
+MTP maximum 3 and 32000 MiB cache. All twelve matched-baseline/release request
+and answer hashes match exactly, including the three rewinds. Default release
+settings are exercised without environment overrides.
+
+| Case | Baseline TTFT | Release TTFT | Baseline -> release full turn |
+| --- | ---: | ---: | ---: |
+| Seed | 6.788 s | 6.734 s | 8.622 -> 8.602 s |
+| Identical replay | 319.1 ms | 195.1 ms | 2.225 -> 2.146 s |
+| Append | 483.3 ms | 372.4 ms | 1.858 -> 1.712 s |
+| Shorter-prefix rewind | 607.7 ms | 470.8 ms | 2.466 -> 2.332 s |
+
+The baseline already reuses 22525 tokens and evaluates 802 on these rewinds;
+the release retains those exact counts. The extra aligned checkpoint has a
+narrow eligibility scope and is skipped for this existing 2048-ubatch path.
+These gains therefore reflect snapshot/restore handling rather than newly
+avoided full reevaluation. Replay native decode is 133.83 versus 133.64 tok/s;
+the measured improvements primarily reduce first-output latency.
+
+All twelve finite release controls return the exact latest-turn answer with
+`stop`. Exact agreement in the twelve freeform samples does not establish
+universal model quality; the 256-token cap and repeated freeform append
+behavior remain limitations of this workload. Production restoration and drain
+release pass, with observed swap/OOM counters zero.
 
 ## Router admission with a real GPU worker
 
@@ -327,15 +391,20 @@ Rollback materials on the respective hosts are:
 
 The update helper creates backups with mode `0600`, in private run directories,
 and retains the original inspection metadata. Successful finalization removes
-the old stopped containers. The helper version used for these updates expects
-those original container IDs, so automatic rollback after finalization remains
-a helper gap; retained files and image tags allow manual reconstruction. This
-report does not claim that command has been validated after finalization.
+the old stopped containers. The V1 helper used for these updates expects those
+original IDs, which exposed a post-finalization recovery gap. The reviewed
+[V2 recovery helper](operators/cache_env_recovery_20261026.py) now supports
+recreation from the private saved configuration/environment and immutable
+image, with 47 offline guards. It refuses unrelated current container IDs and
+reports recreated IDs accurately. The source and workflow are in the PR; the
+helper is not installed or run automatically. No live post-finalization fleet
+rollback is claimed.
 
-The 5090 installation was left unchanged in this work. Its historical effective
-cache is 32000 MiB, and the operator confirms `SWAP=0` remains unchanged on the
-workers. Fresh 5090 state/capacity verification and any nonzero-swap testing are
-pending; historical settings are not a new physical qualification.
+The 5090 installation is left unchanged in this work. Its isolated final-image
+canary freshly verifies a 32000 MiB cache, zero cache-swap allowance, context
+262144 and batches 4096/2048. The operator confirms `SWAP=0` remains unchanged
+on the workers. The separate quota-controlled swap experiment below changes no
+production setting.
 
 ## Disk state and benchmark-operator checks
 
@@ -348,12 +417,92 @@ bytes. Both restored continuations reuse the saved prefix. These results do
 not reproduce a legacy-state failure, validate corrupt/legacy payloads, or
 qualify disk state for the final aligned candidate.
 
+The final release engine subsequently passes a finite disk-state discriminator
+on all three GPUs with in-memory conversation caching disabled. Text begins
+with `TURN_ALPHA`, saves its prefix, executes an unrelated conversation, then
+restores and correctly answers the changed instruction with `TURN_BRAVO_r1`.
+Reference/restored requests and answers match, and the saved prefix is reused.
+Vision also returns the expected red color before and after overwrite/reload,
+with equal continuation requests, answers and reused prefix counts.
+
+| Worker | Text saved tokens / bytes | Vision saved tokens / bytes |
+| --- | ---: | ---: |
+| 3090V | 24613 / 1341217444 | 1092 / 495914872 |
+| 4090 | 24612 / 1341543092 | 1091 / 496056164 |
+| 5090 | 24612 / 1184382360 | 1091 / 496056164 |
+
+Each restore reports the same token and byte counts as its save. All three
+owned runs restore production and release their drains. These tests qualify
+normal current-format text/vision state and the sampled changed-turn behavior;
+they do not establish compatibility with arbitrary legacy or corrupt files.
+
 An earlier benchmark-operator attempt fails its private-port preflight before
 preparing or stopping production. Version 2 addresses false busy detection for
 `TIME_WAIT` sockets while retaining rejection of active listeners. Its 56
 offline tests cover depth/state operations, provenance and real local sockets;
 they are operator checks rather than additional GPU inference evidence. The
 failed attempt releases its drain and verifies that production remains healthy.
+
+## Cold requests near declared context capacity
+
+One cold text request per card fully evaluates approximately 95% of declared
+context, returns `Python`, and is followed by a small vision request returning
+`Red`. Both answers stop normally. Usage and native prompt counts match every
+input token, with no inference retry, prompt truncation or downward context
+change.
+
+| Worker | Declared context | Fully evaluated cold input | Fraction |
+| --- | ---: | ---: | ---: |
+| 4090 | 230000 | 218392 | 94.953% |
+| 3090V | 230000 | 218392 | 94.953% |
+| 5090 | 262144 | 248809 | 94.913% |
+
+The first two engines allocate 230144 context positions because of flash
+attention padding; this does not reduce the declared 230000-token capacity.
+The harness targets 95% with a small tokenizer tolerance and retains response
+headroom. It supplies a named cache key but explicitly sets `cache_prompt:false`.
+These are two cold single-turn requests per card, not near-capacity cached
+replays, rewinds, long generation or latest-turn tests. Native prefill rates at
+these different deep contexts are not a paired speed comparison. All three
+owned runs restore production and release their drains.
+
+## Cache retention during actual OS swapping
+
+On the 5090, seven independent conversations run for three rounds with a fixed
+8192 MiB cache, 128 generated tokens, the release engine and unchanged model
+parameters. The control inherits the production container's unbounded memory
+configuration. The bounded variant uses 6 GiB RAM plus 8 GiB swap: Docker's
+`MemorySwap` is the combined 14 GiB limit, not an extra 14 GiB of swap.
+
+All 21 paired request and answer hashes match. All fourteen replays retain
+their tails, evaluating four tokens and reusing 24580, while cgroup swap is
+actually nonzero. Observed swap current reaches 5507969024 bytes and the kernel
+swap peak reaches 5715623936 bytes, with zero OOM events or kills.
+
+| Replay metric | Inherited memory limits | 6 GiB RAM + 8 GiB swap |
+| --- | ---: | ---: |
+| Median first-output time | 197.0 ms | 2.263 s |
+| Median complete 128-token turn | 1.183 s | 3.240 s |
+
+This shows output-equivalent retention under the measured OS RAM/swap pressure,
+with substantially slower cached responses. Telemetry does not identify which
+pages or buffers swapped and does not isolate pure swap-in time. The existing
+backend is an approximately 96 GiB NVMe partition, `/dev/nvme0n1p3`, with
+swappiness 60 and zswap disabled; host settings are unchanged. This result does
+not establish another host's swap latency or justify unlimited cache growth.
+
+A preceding experiment uses the same 8 GiB cache with only 6 GiB RAM plus
+4 GiB swap. It fails during the seventh seed after reaching the full 4 GiB
+swap limit and one isolated-container OOM kill. Six completed cold requests
+match the control, but no bounded replay runs, so that attempt qualifies no
+swapped-cache restore behavior. It demonstrates why a cache byte ceiling is
+not a total process-memory budget: active state and other allocations also
+need headroom.
+
+Both experiments restore the original production container, image, environment,
+mounts and critical parameters, and release their owned drains. The original
+worker is healthy and not OOM-killed. No production `SWAP` value, cache ceiling,
+host swap device or kernel setting is changed by these isolated experiments.
 
 ## Validation, provenance and limits
 
@@ -368,15 +517,49 @@ A full x86 CUDA image from source `274eea0` also passes all 69 package checks
 without the Python oracle checkout, plus linkage checks with ACE using its own
 GGML. Its image ID is
 `sha256:023c1df039ff54a9ca0185328d8d65c5c74bf8e4b4fd6f2a274851f42c438f56`.
-It is under a quality hold, was neither pushed nor deployed, and is superseded
-for release qualification by the aligned `56d6375` build. The latter build and
-its final package/artifact results are pending here. Passing package tests on
-the held image is not a production release decision.
+It is historical, was neither pushed nor deployed, and is superseded by the
+final `448bf6b` image. Intermediate held builds are not release evidence.
+
+The final source `448bf6b` produces image
+`sha256:462cd19b65435d0ff95153b8aed32d91e5a121b8e78df2fbe4d37c39ec28bb57`.
+It passes all 69 package checks without the Python oracle checkout and clean
+linkage, including ACE resolving its own GGML. Two final real CPU
+cache/Rust-router integrations also pass in 29.88 seconds. These CPU checks
+are separate from the physical CUDA evidence.
+
+The final focused engine/source-contract set passes six checks in 4.01 seconds.
+The frozen benchmark guard suite passes 87 tests, and the tracked recovery
+helper passes 47 offline guards. These test sets overlap package coverage and
+are recorded separately rather than added into one total.
+
+An isolated 5090 canary runs that exact packaged image, with no worker/engine
+overlays, against a real private Rust router. It preserves the public model
+alias, application features and model presets. Buffered chat and SSE chat
+return the requested nonce plus arithmetic answer 42; vision returns the
+requested nonce plus red. The router advertises runtime `448bf6b`, the expected
+262144-token context, positive text/vision capacity and populated RAM/VRAM/GPU
+metadata. Presets are not disabled to obtain these functional results.
+
+The canary never registers the candidate with the central router and does not
+remain deployed. It restores the same original container, image, environment
+and mounts, then releases its drain. Its rollback image tag is
+`ezlocalai:rollback-canary-20261026-full-canary-fdb6add414`. This validates the
+packaged text/vision router path; it does not validate STT, Qwen TTS, embeddings,
+image/music/video/wake-word GPU generation or multi-GPU behavior in this canary.
+The image is not pushed or rolled out to the fleet by these checks.
+
+The final router snapshot shows all three production workers with fresh
+heartbeats, no drain or open circuit, version `46d9ba8`, and unchanged declared
+contexts of 230000, 230000 and 262144. This confirms the candidate is not left
+deployed after testing. All benchmark operators are stopped and their original
+workers are restored. The two verified 12288 MiB RAM settings remain applied;
+the 5090's production cache-swap allowance remains zero.
 
 All isolated experiments restore their original production configuration and
-release owned drains, with no observed OOM kills. The subsequent, separately
-verified persistent RAM changes are described above and are the exception to
-environment restoration.
+release owned drains. Successful final qualifications observe no OOM kills;
+the deliberately undersized swap experiment records one isolated-container
+OOM as described above, with production restored healthy. The separately
+verified persistent RAM changes are the exception to environment restoration.
 
 Raw proof remains under ignored
 `build/validation/llm-cache-depth-20261026/`, principally
@@ -385,30 +568,31 @@ Raw proof remains under ignored
 `DevXT4090-router-gpu-54124ad3a6`, plus the experimental
 `DevXT4090-coverage-fixed-resident-035908e1`, the completed active release run
 `DevXT4090-release-aligned-quality-ca9cf87e`,
+`DevXT3090V-release-resident-quality-63c83517`,
+`DevXT5090-release-resident-quality-03c6cc1f`,
 `DevXT{4090,3090V}-ram-pressure-production-dc2ca20d`,
-`cache-environment-qualification`, `disk-state`, and `full-cuda-image-274eea0`.
+`cache-environment-qualification`, `disk-state`, `full-cuda-image-448bf6b`, and
+`DevXT5090-full-canary-fdb6add414`, the three
+`*-release-named-capacity-6e73606a` records, both bounded swap experiments, and
+`final-fleet.json`.
 Exact artifact, harness, input and result
 fingerprints are summarized in
 [`cache_depth_20261026_validation.json`](../tests/fixtures/cache_depth_20261026_validation.json).
 
-## Pending qualification
+## Limits and follow-up
 
-- **3090V and 5090 candidate engines:** equivalent cache/MTP and router
-  comparisons, preserving their existing model files and selected batch sizes.
-  The completed 3090V capacity result above uses its production engine.
-- **Coverage/checkpoint changes:** final build/release qualification and broader
-  quality acceptance. Active 4090 reuse and finite instruction checks pass;
-  freeform rewind answers differ, with sampled semantic limits disclosed above.
-- **State roundtrips:** final text/vision slot-save, reload, continuation and
-  legacy/corrupt-state evidence for the final patch stack.
-- **Swap:** a controlled nonzero swap-in workload and host/container pressure
-  measurements. Zero swap counters are not swap validation.
+- **Broader quality:** finite controls and sampled semantic checks pass;
+  freeform rewind answers differ and long continuation behavior remains limited.
+- **Legacy/corrupt state:** final normal current-format disk roundtrips pass on
+  all three GPUs; arbitrary older or damaged files are not qualified here.
+- **Swap generalization:** the measured 5090 workload uses actual OS swapping;
+  other storage backends and per-buffer swap-in costs remain unmeasured.
 - **RAM and rollback followups:** co-resident-model/host-memory pressure,
-  post-finalization automatic rollback, and fresh 5090 settings/state/capacity
-  evidence. The applied 4090/3090V `0.4` setting is already verified above.
-- **Final images and deployment:** fresh package results and artifacts for the
-  final source, then normal image automation and routed version/capacity checks.
+  and a live post-finalization recovery exercise. The V2 helper fix has 47
+  offline guards; live settings, normal state and cold capacity checks pass.
+- **Production deployment:** the packaged image and isolated canary pass, but
+  no central candidate registration, image push or fleet rollout is performed.
 
-These pending items prevent this partial report from being read as final fleet
-qualification or universal quality equivalence. The sampled output agreement
-and unchanged arithmetic do not replace broader model-quality evaluation.
+These limits prevent the recorded tests from being read as universal quality
+equivalence or proof for every fleet workload. Sampled output agreement and
+unchanged arithmetic do not replace broader model-quality evaluation.
