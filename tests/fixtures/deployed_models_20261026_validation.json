@@ -1,0 +1,271 @@
+{
+  "date": "2026-10-26",
+  "model_path": "/app/models/Qwen3.8-27B/Qwen3.8-27B-UD-Q3_K_XL.gguf",
+  "source_engine_revision": "620d2225cc436ab0b001e3200e590e3b286ef9ab",
+  "method": {
+    "file_sha256": "Independent fresh full-file SHA-256 values supplied by the benchmark coordinator; corroborated here by file size, complete tensor index and payload hashes.",
+    "payloads": "Read-only minimal GGUFv2/v3 little-endian struct reader. Tensor bytes derive from declared shapes and pinned upstream GGML block sizes. Each tensor payload and the complete data section were independently SHA-256 hashed. The data-section hash includes alignment/padding.",
+    "primary_local_sources": [
+      "llama.cpp@620d2225:gguf-py/gguf/constants.py (GGUFValueType, GGMLQuantizationType, GGML_QUANT_SIZES, LlamaFileType)",
+      "llama.cpp@620d2225:common/common.cpp (common_cpu_get_num_math, cpu_count_math_cpus)"
+    ],
+    "bulk_proof": "build/validation/gguf-investigation-20261026/ in the benchmark agent worktree retains full per-tensor hashes.",
+    "reader_script_sha256": "37c7647b3d550a7648369a959658236fb976e4bdf4fe4ae8057f8cd24038fd0b",
+    "pinned_gguf_constants_sha256": "b0d5ef526bf56d0b3ea94e50c7a887766f82ddc9b5592284e2fea1b27ee1ece1",
+    "pinned_common_cpp_sha256": "0595137725df615ac952c943f06cdc8198cec0694f648358343fbdd667641da9"
+  },
+  "workers": [
+    {
+      "label": "DevXT3090V",
+      "container_image_id": "sha256:3e09d9905d59191ef870b3f1f2e1ce9ba4948211568229d84c1c1214925de973",
+      "file_sha256": "8c2a45ff85e7674ca185ec8eb6cdeab0e617ed9d8018caed0b64380eb2a67a5e",
+      "file_bytes": 13146393504,
+      "gguf_version": 3,
+      "architecture": "qwen35",
+      "metadata_count": 50,
+      "tensor_count": 866,
+      "data_section_offset": 10996640,
+      "data_section_bytes": 13135396864,
+      "data_section_sha256": "e93dd7d1ecd4948c5caf51cbea527ae67f1de7d02a76fc9fb914427322971170",
+      "general_file_type": {
+        "value": 13,
+        "enum_name": "MOSTLY_Q3_K_L",
+        "note": "Coarse LlamaFileType label; the mixed tensor types below describe actual storage. This does not mean uniform Q3 or Q4."
+      },
+      "tensor_type_counts": {
+        "Q5_K": 26,
+        "F32": 360,
+        "Q3_K": 12,
+        "IQ4_XS": 156,
+        "IQ3_XXS": 34,
+        "IQ2_XS": 4,
+        "IQ2_S": 15,
+        "Q8_0": 98,
+        "Q4_K": 36,
+        "IQ3_S": 111,
+        "IQ4_NL": 2,
+        "Q2_K": 3,
+        "IQ2_XXS": 2,
+        "Q6_K": 7
+      },
+      "tensor_type_payload_bytes": {
+        "Q5_K": 1173258240,
+        "F32": 10686464,
+        "Q3_K": 868454400,
+        "IQ4_XS": 4971724800,
+        "IQ3_XXS": 901160960,
+        "IQ2_XS": 103055360,
+        "IQ2_S": 409763840,
+        "Q8_0": 36208640,
+        "Q4_K": 642908160,
+        "IQ3_S": 3527884800,
+        "IQ4_NL": 38338560,
+        "Q2_K": 61931520,
+        "IQ2_XXS": 45957120,
+        "Q6_K": 344064000
+      },
+      "imatrix_chunks": 1251,
+      "imatrix_dataset_metadata_present": false,
+      "cpu": {
+        "model": "AMD Ryzen 5 7600X 6-Core Processor",
+        "logical_cpus": 12,
+        "threads_per_core": 2,
+        "cores_per_socket": 6,
+        "distinct_thread_sibling_sets": 6,
+        "frequency_groups_khz": {
+          "5457105": "0-11"
+        }
+      },
+      "container_cpu_limits": {
+        "CpusetCpus": "",
+        "NanoCpus": 0,
+        "CpuPeriod": 0,
+        "CpuQuota": 0,
+        "CpuShares": 0
+      },
+      "engine_affinity": "0-11",
+      "explicit_thread_arguments_observed": {},
+      "whitelisted_thread_environment": {},
+      "startup_threads_from_coordinator_baseline": 6
+    },
+    {
+      "label": "DevXT4090",
+      "container_image_id": "sha256:1197b0b18d410519a25fab734bcfead8b32b8d67b1b824a188dbd08916735021",
+      "file_sha256": "8c2a45ff85e7674ca185ec8eb6cdeab0e617ed9d8018caed0b64380eb2a67a5e",
+      "file_bytes": 13146393504,
+      "gguf_version": 3,
+      "architecture": "qwen35",
+      "metadata_count": 50,
+      "tensor_count": 866,
+      "data_section_offset": 10996640,
+      "data_section_bytes": 13135396864,
+      "data_section_sha256": "e93dd7d1ecd4948c5caf51cbea527ae67f1de7d02a76fc9fb914427322971170",
+      "general_file_type": {
+        "value": 13,
+        "enum_name": "MOSTLY_Q3_K_L",
+        "note": "Coarse LlamaFileType label; the mixed tensor types below describe actual storage. This does not mean uniform Q3 or Q4."
+      },
+      "tensor_type_counts": {
+        "Q5_K": 26,
+        "F32": 360,
+        "Q3_K": 12,
+        "IQ4_XS": 156,
+        "IQ3_XXS": 34,
+        "IQ2_XS": 4,
+        "IQ2_S": 15,
+        "Q8_0": 98,
+        "Q4_K": 36,
+        "IQ3_S": 111,
+        "IQ4_NL": 2,
+        "Q2_K": 3,
+        "IQ2_XXS": 2,
+        "Q6_K": 7
+      },
+      "tensor_type_payload_bytes": {
+        "Q5_K": 1173258240,
+        "F32": 10686464,
+        "Q3_K": 868454400,
+        "IQ4_XS": 4971724800,
+        "IQ3_XXS": 901160960,
+        "IQ2_XS": 103055360,
+        "IQ2_S": 409763840,
+        "Q8_0": 36208640,
+        "Q4_K": 642908160,
+        "IQ3_S": 3527884800,
+        "IQ4_NL": 38338560,
+        "Q2_K": 61931520,
+        "IQ2_XXS": 45957120,
+        "Q6_K": 344064000
+      },
+      "imatrix_chunks": 1251,
+      "imatrix_dataset_metadata_present": false,
+      "cpu": {
+        "model": "AMD Ryzen 5 9600X 6-Core Processor",
+        "logical_cpus": 12,
+        "threads_per_core": 2,
+        "cores_per_socket": 6,
+        "distinct_thread_sibling_sets": 6,
+        "frequency_groups_khz": {
+          "5486441": "0-11"
+        }
+      },
+      "container_cpu_limits": {
+        "CpusetCpus": "",
+        "NanoCpus": 0,
+        "CpuPeriod": 0,
+        "CpuQuota": 0,
+        "CpuShares": 0
+      },
+      "engine_affinity": "0-11",
+      "explicit_thread_arguments_observed": {},
+      "whitelisted_thread_environment": {},
+      "startup_threads_from_coordinator_baseline": 6
+    },
+    {
+      "label": "DevXT5090",
+      "container_image_id": "sha256:1197b0b18d410519a25fab734bcfead8b32b8d67b1b824a188dbd08916735021",
+      "file_sha256": "00cf92e666c6af6566996c38c89a44ccdb6449ea25ef0f112a452c853b2a71e2",
+      "file_bytes": 13441059904,
+      "gguf_version": 3,
+      "architecture": "qwen35",
+      "metadata_count": 51,
+      "tensor_count": 866,
+      "data_section_offset": 10996800,
+      "data_section_bytes": 13430063104,
+      "data_section_sha256": "57c351a32e7853070f0bd5e4f5f395987c8a3874a66a9a8a15904a226a35d9d8",
+      "general_file_type": {
+        "value": 14,
+        "enum_name": "MOSTLY_Q4_K_S",
+        "note": "Coarse LlamaFileType label; the mixed tensor types below describe actual storage. This does not mean uniform Q3 or Q4."
+      },
+      "tensor_type_counts": {
+        "Q5_K": 18,
+        "F32": 360,
+        "Q3_K": 1,
+        "IQ4_XS": 357,
+        "IQ3_S": 130
+      },
+      "tensor_type_payload_bytes": {
+        "Q5_K": 935362560,
+        "F32": 10686464,
+        "Q3_K": 546304000,
+        "IQ4_XS": 6959022080,
+        "IQ3_S": 4978688000
+      },
+      "imatrix_chunks": 45,
+      "imatrix_dataset_metadata_present": true,
+      "cpu": {
+        "model": "Intel(R) Core(TM) Ultra 7 270K Plus",
+        "logical_cpus": 24,
+        "threads_per_core": 1,
+        "cores_per_socket": 24,
+        "distinct_thread_sibling_sets": 24,
+        "frequency_groups_khz": {
+          "7000000": "0,3",
+          "6900000": "1-2,4-7",
+          "6600000": "8-23"
+        }
+      },
+      "container_cpu_limits": {
+        "CpusetCpus": "",
+        "NanoCpus": 0,
+        "CpuPeriod": 0,
+        "CpuQuota": 0,
+        "CpuShares": 0
+      },
+      "engine_affinity": "0-23",
+      "explicit_thread_arguments_observed": {},
+      "whitelisted_thread_environment": {},
+      "startup_threads_from_coordinator_baseline": 4
+    }
+  ],
+  "tensor_type_enum_ids": {
+    "F32": 0,
+    "IQ2_S": 22,
+    "IQ2_XS": 17,
+    "IQ2_XXS": 16,
+    "IQ3_S": 21,
+    "IQ3_XXS": 18,
+    "IQ4_NL": 20,
+    "IQ4_XS": 23,
+    "Q2_K": 10,
+    "Q3_K": 11,
+    "Q4_K": 12,
+    "Q5_K": 13,
+    "Q6_K": 14,
+    "Q8_0": 8
+  },
+  "comparison": {
+    "3090v_and_4090_identical_full_file_and_data_sha256": true,
+    "5090_and_4090_same_tensor_names_and_shapes": true,
+    "5090_and_4090_identical_tensor_payloads": 362,
+    "5090_and_4090_different_tensor_types": 318,
+    "5090_and_4090_same_type_different_payloads": 186,
+    "identical_f32_tensors": 360,
+    "identical_quantized_tensor_names": [
+      "output.weight",
+      "token_embd.weight"
+    ],
+    "metadata_difference_keys": [
+      "general.file_type",
+      "quantize.imatrix.file",
+      "quantize.imatrix.chunks_count",
+      "quantize.imatrix.dataset"
+    ],
+    "all_other_metadata_encoded_values_identical": true,
+    "inference": "The 5090 uses a different mixed quantization/calibration of the same architecture and tensor layout. This is an actual weight-payload difference, not a metadata-only edit."
+  },
+  "thread_finding": {
+    "observed": "5090 has 24 physical/logical CPUs and one thread per core, no configured Docker CPU quota/cpuset, full engine affinity and no inspected thread environment overrides. CPUs 0-7 and 8-23 form different observed frequency groups. 3090V/4090 are AMD six-core/twelve-thread CPUs.",
+    "upstream_behavior": "On hybrid x86 CPUs, cpu_count_math_cpus() pins each CPU, excludes efficiency cores via CPUID, then unconditionally increments the CPU index again to skip a presumed hyperthread sibling.",
+    "inference": "That unconditional sibling skip can halve the counted performance cores on a hybrid CPU without SMT, consistent with 5090 startup selecting four threads. This motivates a matched --threads8/--threads-batch8 experiment; it does not prove a throughput gain.",
+    "classification": "Code/topology inference. Per-core CPUID core-type classification was not independently probed here."
+  },
+  "limitations": [
+    "No model, environment, container, GPU clocks, affinity or deployment settings were changed.",
+    "Cross-GPU rates describe deployed configurations and cannot isolate hardware performance because the 5090 GGUF differs.",
+    "Matched before/after comparisons on each host remain valid when its full model-file hash and quality-affecting settings are unchanged.",
+    "General file_type is a coarse metadata label; mixed tensor quantization is the authoritative storage description.",
+    "Exact original floating-point model provenance or quality ordering cannot be established from these quantized files alone."
+  ]
+}
