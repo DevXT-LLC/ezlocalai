@@ -60,6 +60,23 @@
     },
     "interpretation": "Current exact-prompt samples agree with October25. Engine revision changed since October18, so no isolated GPU-unlock speedup is established. No comparable saved pre-unlock3090V or prior5090 baseline."
   },
+  "shared_prefix_batch_finding": {
+    "worker": "DevXT5090",
+    "physical_batch_before_after": [
+      1024,
+      2048
+    ],
+    "new_branch_evaluated_tokens_before_after": [
+      24033,
+      2052
+    ],
+    "new_branch_cached_tokens_before_after": [
+      16,
+      21997
+    ],
+    "source": "llama.cpp620d2225 tools/server/server-context.cpp checkpoint_offsets and near_prompt_end before llama_decode",
+    "inference": "Prompt-end checkpoint offsets are4+n_ubatch and4. With an approximately2K-token divergent suffix, physicalbatch2048 puts an earlier checkpoint in the sharedprefix while batch1024 places the endpoint checkpoint after branchdivergence. Consistent with observed reuse, workloaddependent; not a general coldprefill9x improvement."
+  },
   "workers": [
     {
       "label": "DevXT3090V",

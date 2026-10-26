@@ -104,6 +104,14 @@ branches still evaluated four tokens. This is an observed checkpoint/cache
 interaction in this workload, not a claim that every new conversation gains
 that speedup.
 
+The source suggests why this workload benefits: the pinned upstream server
+places prompt-end checkpoints at offsets `4 + n_ubatch` and `4`, before decoding
+the current batch. With this test's ~2K-token branch suffix, physical batch 2048
+places an earlier checkpoint inside the shared prefix; the batch-1024 end
+checkpoint lies after the branches diverge. That is a source-based explanation
+consistent with the observed 21997 reused tokens, rather than a general cold
+prefill speedup or a new checkpoint implementation.
+
 MTP maximum 4/5 on the 4090 and 5090, and 4 on the 3090V, changed all three
 freeform decode outputs (13/16 total outputs remained identical). Their modest
 or negative throughput changes do not justify promoting them under the current
