@@ -125,6 +125,15 @@ at one, four and eight threads preserved all outputs and showed no useful gain;
 no CPU-thread override is selected. CUDA MMQ/cuBLAS force switches are
 compile-time options, not effective environment tuning knobs at this pin.
 
+An additional 4090 screen tested physical batch 2048 against 1024 using the
+original engine. Its matched 150026-token cold throughput fell from 1988.3 to
+1820.1 tok/s, an 8.5% regression. The setting was rejected, and the remaining
+near-context/vision qualification was deliberately cancelled after the completed
+prefill screens. This is a completed negative throughput screen, not a passed
+capacity qualification. The original healthy container, environment, image and
+mounts were restored and the owned drain was released. The 4090 keeps physical
+batch 1024.
+
 ## State-transfer screen before pinned staging
 
 The first state-transfer candidate grouped CUDA transfers without pinning the

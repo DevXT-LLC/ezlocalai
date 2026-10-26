@@ -805,6 +805,53 @@
         "lease_renewal_errors": [],
         "proof_result_sha256": "3c94c96ce6e5ffd096516221f16d85ad7958bc34edfdb8efefc28bc5d0d09de4",
         "interpretation": "Pinned staging increases cache-return latency on each card; adding graph optimization has no useful decode gain. Graph-only without pinned staging was not measured. Neither optimization is selected."
+      },
+      "rejected_ubatch_2048_screen": {
+        "baseline_ubatch": 1024,
+        "candidate_ubatch": 2048,
+        "evaluated_tokens": 150026,
+        "baseline_tps": 1988.277557,
+        "candidate_tps": 1820.136836,
+        "gain_percent": -8.456602,
+        "cold_cached_tokens": [
+          0,
+          0
+        ],
+        "all_four_cases_quality": {
+          "samples": 4,
+          "request_matches": 4,
+          "output_matches": 3,
+          "request_hash_array_sha256": "4c8412c10d64d75c5518f566ac3e68ee7d0fd58cc4fec6a9bb23017c2a3869b9",
+          "output_hash_array_sha256": "593b3abe271fd48c6c80c979c827bf39aa722a0790148c25365db042fe22eb52"
+        },
+        "baseline_proof_sha256": "26132e3f4d56ede948f60d0f6189f6194ab642eb7e5846df55dc29859d8a07ff",
+        "candidate_proof_sha256": "9f80fbfe80a6a0e9b8fbb337c318445804a4c1e73a0a2522a7a9a54bc07b534a",
+        "additional_candidate_68k": {
+          "evaluated_tokens": 68069,
+          "cached_tokens": 0,
+          "tps": 2287.076424
+        },
+        "operator_decision": {
+          "status": "rejected_after_completed_prefill_screen",
+          "reason": "Physical batch 2048 reduced 150K cold throughput; remaining qualification intentionally cancelled with SIGTERM to owned runner, followed by verified restoration.",
+          "stopped_at_utc": "2026-10-26 07:20:26 UTC",
+          "near_context_qualification_completed": false
+        },
+        "capacity_qualification": "not completed; intentionally cancelled after slower completed prefill screens",
+        "overall_passed_flag_present": false,
+        "experimental_overlays": [],
+        "production_ubatch_after": 1024,
+        "restoration": {
+          "healthy": true,
+          "same_container": true,
+          "same_image": true,
+          "same_environment": true,
+          "same_mounts": true,
+          "oom_killed": false
+        },
+        "drain_released": true,
+        "lease_renewal_errors": [],
+        "result_proof_sha256": "e07dbfa627bf2b2da1b663055ed894f2d4e75a51329579940c0126f7c5b5ef8f"
       }
     },
     {
