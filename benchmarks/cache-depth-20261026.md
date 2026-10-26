@@ -402,7 +402,7 @@ rollback is claimed.
 
 The 5090 installation is left unchanged in this work. Its isolated final-image
 canary freshly verifies a 32000 MiB cache, zero cache-swap allowance, context
-262144 and batches 4096/2048. The operator confirms `SWAP=0` remains unchanged
+262144 and batches 4096/2048. The operator confirms `LLM_PROMPT_CACHE_SWAP_MIB=0` remains unchanged
 on the workers. The separate quota-controlled swap experiment below changes no
 production setting.
 
@@ -501,8 +501,8 @@ need headroom.
 
 Both experiments restore the original production container, image, environment,
 mounts and critical parameters, and release their owned drains. The original
-worker is healthy and not OOM-killed. No production `SWAP` value, cache ceiling,
-host swap device or kernel setting is changed by these isolated experiments.
+worker is healthy and not OOM-killed. These isolated paging experiments change no production cache-swap allowance,
+cache ceiling, host swap device or kernel setting.
 
 ## Validation, provenance and limits
 
@@ -510,8 +510,8 @@ The completed four-patch development build passed 68 package checks with the
 Python checkout absent, nine focused checks, and two real CPU cache/Rust-router
 integrations. It is an incremental CUDA development build, not a complete new
 production image. No physical GPU was present in that build container; the
-separate 4090 experiments supply the hardware evidence above. Later call-site
-coverage changes need their own updated test/artifact record.
+separate 4090 experiments supply the hardware evidence above. The final records below cover the later call-site
+coverage changes.
 
 A full x86 CUDA image from source `274eea0` also passes all 69 package checks
 without the Python oracle checkout, plus linkage checks with ACE using its own
