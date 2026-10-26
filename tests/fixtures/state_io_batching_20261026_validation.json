@@ -1,0 +1,58 @@
+{
+  "date": "2026-10-26",
+  "baseline_worker_commit": "46d9ba8",
+  "engine_revision": "620d2225cc436ab0b001e3200e590e3b286ef9ab",
+  "scope": "Implementation and transport correctness only; GPU performance qualification is performed separately by the parent agent.",
+  "change": "Batch host sequence-state transfers for ordinary non-host CUDA buffers, synchronize each used backend at completion or before a synchronous fallback, and preserve serialized byte layout.",
+  "diagnostic_opt_out": "EZLOCALAI_LLAMA_STATE_IO_BATCHING=0",
+  "validation": {
+    "mandatory_model_free_transport_test": true,
+    "cpu_model_snapshot_test": true,
+    "ctest_passed": 2,
+    "ctest_failed": 0,
+    "seconds": 0.19,
+    "checks": [
+      "deferred CUDA-like reads and writes complete before returning",
+      "one fence per used CUDA backend for a homogeneous batch",
+      "view offsets and metadata gaps match synchronous bytes",
+      "overlapping restores preserve order",
+      "host/special alias fallback cannot overtake pending CUDA writes",
+      "CPU, Metal, split and unmatched buffers use synchronous accessors",
+      "opt-out, empty transfers and null schedulers retain fallback behavior",
+      "exception unwinding completes queued work",
+      "actual tiny CPU model snapshots are byte-identical across modes",
+      "post-restore CPU logits match across modes",
+      "truncated restore rejects malformed data and subsequent valid restore recovers"
+    ],
+    "managed_patch_stack": [
+      "migration from conversation-only patch",
+      "idempotent repeated application",
+      "two SHA metadata records",
+      "reverse removal leaves pristine tracked files and no new header",
+      "custom revision skips patches and removes stale metadata"
+    ]
+  },
+  "cpu_model": {
+    "repository": "ggml-org/models",
+    "revision": "499bc8821c6b12b4e53c5bffcb21ec206f212d81",
+    "file": "tinyllamas/stories260K.gguf",
+    "sha256": "270cba1bd5109f42d03350f60406024560464db173c0e387d91f0426d3bd256d"
+  },
+  "gpu_candidate_library": {
+    "container": "ezlocalai-state-io-build-20261026",
+    "path": "/app/build/llama.cpp/bin/libllama.so.0.7.0",
+    "sha256": "72d83d0dd9a9e8ccf59cd40ba320ea982598d0dc829341915499d8d241830b36"
+  },
+  "source_sha256": {
+    "patches/llama-state-io-batching.patch": "0ab45cf55a2cdd52a064bdb30386c6f75034e44b2ea6022bd71f1f8bf0e815f0",
+    "cmake/ApplyLlamaPatches.cmake": "ded60742393014564b4c054d59212323b669625a341c803b00b384331ed322ab",
+    "tests/test_llama_state_io.cpp": "6d92909c94390728adca936cd3a453dc166e2527c10d08a6c7d19c91cbdeed36",
+    "CMakeLists.txt": "158fde37595e3020f32db0f9a8a3f68f95d8f3ad63578da053138ce67d8e2804"
+  },
+  "limits": [
+    "No GPU performance or model-quality claim from these CPU/fake-backend checks.",
+    "Existing ON_DEVICE serializers are untouched.",
+    "CPU, HIP, Metal, split and special buffer paths retain synchronous transfers.",
+    "No production worker or image was replaced by this agent."
+  ]
+}

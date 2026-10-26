@@ -1,0 +1,192 @@
+diff --git a/src/llama-context.cpp b/src/llama-context.cpp
+--- a/src/llama-context.cpp
++++ b/src/llama-context.cpp
+@@ -6,6 +6,7 @@
+ #include "llama-impl.h"
+ #include "llama-batch.h"
+ #include "llama-io.h"
++#include "llama-state-io.h"
+ #include "llama-memory.h"
+ #include "llama-mmap.h"
+ #include "llama-model.h"
+@@ -2903,13 +2904,13 @@
+ class llama_io_write_host : public llama_io_write_i {
+ public:
+     llama_io_write_host(
+-            uint8_t * p, size_t len) : ptr(p), buf_size(len) {}
++            uint8_t * p, size_t len, ggml_backend_sched_t sched) : ptr(p), buf_size(len), transfers(sched) {}
+ 
+     ~llama_io_write_host() {
+-        // TODO: add backend support to batch tensor_get? or some other way to speed this up
+         for (const auto & winfo : winfos) {
+-            ggml_backend_tensor_get(winfo.tensor, winfo.ptr, winfo.offset, winfo.size);
+-        }
++            transfers.get(winfo.tensor, winfo.ptr, winfo.offset, winfo.size);
++        }
++        transfers.finish();
+     }
+ 
+     void write(const void * src, size_t size) override {
+@@ -2951,17 +2952,19 @@
+         size_t offset;
+     };
+     std::vector<write_info> winfos;
++    llama_state_io_batch transfers;
+ };
+ 
+ class llama_io_read_host : public llama_io_read_i {
+ public:
+-    llama_io_read_host(const uint8_t * p, size_t len) : ptr(p), buf_size(len) {}
++    llama_io_read_host(const uint8_t * p, size_t len, ggml_backend_sched_t sched = nullptr) : ptr(p), buf_size(len), transfers(sched) {}
+ 
+     ~llama_io_read_host() {
+         // flush the reads
+         for (const auto & rinfo : rinfos) {
+-            ggml_backend_tensor_set(rinfo.tensor, rinfo.ptr, rinfo.offset, rinfo.size);
+-        }
++            transfers.set(rinfo.tensor, rinfo.ptr, rinfo.offset, rinfo.size);
++        }
++        transfers.finish();
+     }
+ 
+     void read(void * dst, size_t size) override {
+@@ -3007,6 +3010,7 @@
+         size_t offset;
+     };
+     std::vector<read_info> rinfos;
++    llama_state_io_batch transfers;
+ };
+ 
+ class llama_io_write_file : public llama_io_write_i {
+@@ -3377,7 +3381,7 @@
+ }
+ 
+ size_t llama_context::state_get_data(uint8_t * dst, size_t size) {
+-    llama_io_write_host io(dst, size);
++    llama_io_write_host io(dst, size, sched.get());
+     try {
+         return state_write_data(io);
+     } catch (const std::exception & err) {
+@@ -3387,7 +3391,7 @@
+ }
+ 
+ size_t llama_context::state_set_data(const uint8_t * src, size_t size) {
+-    llama_io_read_host io(src, size);
++    llama_io_read_host io(src, size, sched.get());
+     try {
+         return state_read_data(io);
+     } catch (const std::exception & err) {
+@@ -3417,7 +3421,7 @@
+     if (flags & LLAMA_STATE_SEQ_FLAGS_ON_DEVICE) {
+         io = std::make_unique<llama_io_write_device>(dst, size, mem_storage[seq_id]);
+     } else {
+-        io = std::make_unique<llama_io_write_host>(dst, size);
++        io = std::make_unique<llama_io_write_host>(dst, size, sched.get());
+     }
+ 
+     try {
+@@ -3450,7 +3454,7 @@
+ 
+         io = std::make_unique<llama_io_read_device>(src, size, mem_storage[seq_id_read]);
+     } else {
+-        io = std::make_unique<llama_io_read_host>(src, size);
++        io = std::make_unique<llama_io_read_host>(src, size, sched.get());
+     }
+ 
+     try {
+diff --git a/src/llama-state-io.h b/src/llama-state-io.h
+new file mode 100644
+--- /dev/null
++++ b/src/llama-state-io.h
+@@ -0,0 +1,91 @@
++#pragma once
++
++#include "ggml-backend.h"
++
++#include <cstdlib>
++#include <cstring>
++#include <vector>
++
++// Host sequence snapshots retain their byte layout. Queue ordinary CUDA
++// buffer transfers in serialization order and finish them before returning
++// the caller's host buffer. Other buffer/backend implementations keep their
++// existing synchronous accessors (notably CUDA split and host buffers).
++class llama_state_io_batch {
++public:
++    explicit llama_state_io_batch(ggml_backend_sched_t sched) {
++        const char * setting = std::getenv("EZLOCALAI_LLAMA_STATE_IO_BATCHING");
++        if (sched == nullptr || (setting != nullptr && std::strcmp(setting, "0") == 0)) {
++            return;
++        }
++        const int count = ggml_backend_sched_get_n_backends(sched);
++        targets.reserve(count);
++        for (int i = 0; i < count; ++i) {
++            ggml_backend_t backend = ggml_backend_sched_get_backend(sched, i);
++            ggml_backend_dev_t device = ggml_backend_get_device(backend);
++            ggml_backend_reg_t registry = device ? ggml_backend_dev_backend_reg(device) : nullptr;
++            if (registry == nullptr || std::strcmp(ggml_backend_reg_name(registry), "CUDA") != 0) {
++                continue;
++            }
++            ggml_backend_buffer_type_t type = ggml_backend_get_default_buffer_type(backend);
++            if (type != nullptr && !ggml_backend_buft_is_host(type)) {
++                targets.push_back({type, backend, false});
++            }
++        }
++    }
++
++    ~llama_state_io_batch() { finish(); }
++
++    llama_state_io_batch(const llama_state_io_batch &) = delete;
++    llama_state_io_batch & operator=(const llama_state_io_batch &) = delete;
++
++    void get(const ggml_tensor * tensor, void * data, size_t offset, size_t size) {
++        if (size == 0) return;
++        if (auto * target = find(tensor)) {
++            target->used = true;
++            ggml_backend_tensor_get_async(target->backend, tensor, data, offset, size);
++        } else {
++            // Preserve ordering with special/host buffers that may alias a
++            // prior device range (for example imported unified memory).
++            finish();
++            ggml_backend_tensor_get(tensor, data, offset, size);
++        }
++    }
++
++    void set(ggml_tensor * tensor, const void * data, size_t offset, size_t size) {
++        if (size == 0) return;
++        if (auto * target = find(tensor)) {
++            target->used = true;
++            ggml_backend_tensor_set_async(target->backend, tensor, data, offset, size);
++        } else {
++            finish();
++            ggml_backend_tensor_set(tensor, data, offset, size);
++        }
++    }
++
++    void finish() {
++        for (auto & target : targets) {
++            if (target.used) {
++                ggml_backend_synchronize(target.backend);
++                target.used = false;
++            }
++        }
++    }
++
++private:
++    struct target {
++        ggml_backend_buffer_type_t type;
++        ggml_backend_t backend;
++        bool used;
++    };
++    std::vector<target> targets;
++
++    target * find(const ggml_tensor * tensor) {
++        const auto buffer = tensor->view_src ? tensor->view_src->buffer : tensor->buffer;
++        if (buffer == nullptr) return nullptr;
++        const auto type = ggml_backend_buffer_get_type(buffer);
++        for (auto & target : targets) {
++            if (target.type == type) return &target;
++        }
++        return nullptr;
++    }
++};

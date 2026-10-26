@@ -1406,6 +1406,22 @@ if(EXISTS "${EZLOCALAI_TTS_LLAMA_SOURCE}/tools/server/server-task.h" AND
         set_tests_properties(conversation_cache_engine PROPERTIES TIMEOUT 90)
     endif()
 endif()
+if(EXISTS "${EZLOCALAI_TTS_LLAMA_SOURCE}/src/llama-state-io.h")
+    add_executable(test_llama_state_io tests/test_llama_state_io.cpp)
+    target_include_directories(test_llama_state_io PRIVATE
+        ${EZLOCALAI_TTS_LLAMA_SOURCE}/src ${EZLOCALAI_TTS_LLAMA_SOURCE}/include
+        ${EZLOCALAI_TTS_LLAMA_SOURCE}/ggml/include ${EZLOCALAI_TTS_LLAMA_SOURCE}/ggml/src)
+    target_link_libraries(test_llama_state_io PRIVATE OpenSSL::Crypto
+        ${EZLOCALAI_TTS_LLAMA_BUILD}/bin/libllama.so
+        ${EZLOCALAI_TTS_LLAMA_BUILD}/bin/libggml.so
+        ${EZLOCALAI_TTS_LLAMA_BUILD}/bin/libggml-base.so)
+    add_test(NAME llama_state_io COMMAND test_llama_state_io)
+    set_tests_properties(llama_state_io PROPERTIES TIMEOUT 30)
+    if(EZLOCALAI_LLAMA_CPP_SMOKE_MODEL)
+        add_test(NAME llama_state_io_model COMMAND test_llama_state_io --model ${EZLOCALAI_LLAMA_CPP_SMOKE_MODEL})
+        set_tests_properties(llama_state_io_model PROPERTIES TIMEOUT 90)
+    endif()
+endif()
 # The source application's private TTS worker, linked to an independently built
 # pinned llama.cpp/libmtmd. No Python wrapper or implicit dependency fetch.
 if(EZLOCALAI_TTS_LLAMA_SOURCE AND EZLOCALAI_TTS_LLAMA_BUILD)
@@ -1774,6 +1790,9 @@ if(TARGET test_ltx_norm AND TARGET ezlocalai-tts)
     )
     if(TARGET test_conversation_cache)
         list(APPEND native_package_targets test_conversation_cache)
+    endif()
+    if(TARGET test_llama_state_io)
+        list(APPEND native_package_targets test_llama_state_io)
     endif()
     add_custom_target(cpu_package DEPENDS ${native_package_targets})
     if(EZLOCALAI_USE_HIP)
