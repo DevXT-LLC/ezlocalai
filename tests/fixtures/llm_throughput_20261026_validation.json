@@ -411,6 +411,94 @@
         "lease_renewal_errors": [],
         "proof_result_sha256": "b841d6c16e4e4440e1766e5ea95fa31b69dadfb3f13fc6c319f66c0c5e17186a",
         "interpretation": "Pinned staging increases cache-return latency on each card; adding graph optimization has no useful decode gain. Graph-only without pinned staging was not measured. Neither optimization is selected."
+      },
+      "original_engine_final_qualification": {
+        "result_proof_sha256": "fa55673f65117ecfcd22e753578ffb883f491a8dcf5143bee9560fb72098fcfb",
+        "experimental_overlays": [],
+        "model_sha256": "8c2a45ff85e7674ca185ec8eb6cdeab0e617ed9d8018caed0b64380eb2a67a5e",
+        "mmproj_sha256": "83ee4f4f205fa514161778c41df1ea14144faa0f713510893b63c2395f5c2d53",
+        "prefill_confirmations": [
+          {
+            "evaluated_tokens": 68069,
+            "baseline_ubatch": 512,
+            "candidate_ubatch": 1024,
+            "baseline_tps": 1231.402844,
+            "candidate_tps": 1314.239618,
+            "gain_percent": 6.727025,
+            "cold_cached_tokens": [
+              0,
+              0
+            ],
+            "all_four_cases_quality": {
+              "samples": 4,
+              "request_matches": 4,
+              "output_matches": 3,
+              "request_hash_array_sha256": "6df4d4481c4d130eb1a6162cd357330e562e450df6b3646325a3cab570bb6302",
+              "output_hash_array_sha256": "3afe636230ced5cd2e6232750122572c30f9c7df4cb698864608199db5bd9b5b"
+            },
+            "baseline_proof_sha256": "d9f28db3f7ea122d979e195a98eeb5928a14f4353fd9e1e552c2b9633369a102",
+            "candidate_proof_sha256": "819fd49f537fa2607672b1e207887d45c1a4acd414bd14786aaf12746ebfe9b3"
+          },
+          {
+            "evaluated_tokens": 150026,
+            "baseline_ubatch": 512,
+            "candidate_ubatch": 1024,
+            "baseline_tps": 952.758216,
+            "candidate_tps": 1016.920936,
+            "gain_percent": 6.734418,
+            "cold_cached_tokens": [
+              0,
+              0
+            ],
+            "all_four_cases_quality": {
+              "samples": 4,
+              "request_matches": 4,
+              "output_matches": 3,
+              "request_hash_array_sha256": "4c8412c10d64d75c5518f566ac3e68ee7d0fd58cc4fec6a9bb23017c2a3869b9",
+              "output_hash_array_sha256": "76be47cf7b71395a5006f384fb691e2a14707cb83adff7679b1c0a98547600b8"
+            },
+            "baseline_proof_sha256": "1f226a7c7a39eb24c0e4f5b60bdd6cdf91ec45845082b739b77ca7f902cc6d69",
+            "candidate_proof_sha256": "5912eb23e8590486141d555aeea32d885e2e36cc0de9dfe90978cc6c0c18c52b"
+          }
+        ],
+        "capacity": {
+          "answer": "Python",
+          "evaluated_prompt_tokens": 218392,
+          "cached_prompt_tokens": 0,
+          "input_fraction": 0.9495304347826087,
+          "remaining_context_tokens": 11608,
+          "prefill_tokens_per_second": 846.5174764760204,
+          "wall_seconds": 258.3481246570009,
+          "request_sha256": "3d433f50227f4207158234bab360f570e06ae57eb0b24af72d64eb169fec0c06",
+          "output_sha256": "2945b0d6616d16592538930914f4a2bc539b8d976a0b9200b3e82540f3c07c25"
+        },
+        "vision": {
+          "answer": "Red",
+          "evaluated_prompt_tokens": 1089,
+          "cached_prompt_tokens": 0,
+          "wall_seconds": 3.5841248240030836,
+          "request_sha256": "8dddb1c26e9a92707d03fae21596db7cfacc080b6608e183c016725cdb075d03",
+          "output_sha256": "83814295523046d350f8f9728d780a92ad8359135be44ee43bd4d228310c8fcb",
+          "image_sha256": "6f7ffeeb88929a8a2e34ea973c871f069be70cbaf1459fff345db59453934435",
+          "image_width": 64,
+          "image_height": 64
+        },
+        "declared_context": 230000,
+        "expected_n_ubatch": 1024,
+        "inference_retries": 0,
+        "context_downgrade_allowed": false,
+        "capacity_harness_sha256": "aebd3e2ef48858e124f2e58a683d6d1c83dd9c89ea455b41d8a9ab0922818a6f",
+        "capacity_proof_sha256": "de60d5ab5717f655f99edaca99a3045c9adb41489d873304bbd8d3694cb2568d",
+        "restoration": {
+          "healthy": true,
+          "same_container": true,
+          "same_image": true,
+          "same_environment": true,
+          "same_mounts": true,
+          "oom_killed": false
+        },
+        "drain_released": true,
+        "lease_renewal_errors": []
       }
     },
     {
@@ -1246,10 +1334,11 @@
     "passed": true
   },
   "final_qualification": {
-    "status": "5090 complete;3090V and environment pending",
+    "status": "both cards text/vision complete; environment settings pending",
+    "sample_counts": "Across initial screens plus confirmation:150K baseline2/candidate2 per card;68K baseline2/candidate1 per card. Confirmation table uses one fresh-engine paired trial per depth.",
     "items": [
-      "3090V repeated prefill and near-limit context/vision",
-      "persistent environment settings"
+      "persistent environment settings",
+      "3090V promotion decision after two append-output differences"
     ]
   },
   "rejected_code": {

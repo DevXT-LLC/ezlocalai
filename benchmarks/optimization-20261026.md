@@ -195,31 +195,48 @@ obvious regression on the sampled workloads.
 ## Final qualification and applied environment settings
 
 A second matched round uses the original production engine without either
-experimental state-transfer overlay. On the 5090, physical batch 2048 confirms
-the earlier positive result:
+experimental state-transfer overlay. The larger physical batches confirm the
+earlier positive prefill results:
 
 | Worker | Depth | Original physical batch, tok/s | Candidate physical batch, tok/s | Gain |
 | --- | --- | ---: | ---: | ---: |
+| DevXT3090V | 68069 tokens | 1231.4 at 512 | 1314.2 at 1024 | 6.7% |
+| DevXT3090V | 150026 tokens | 952.8 at 512 | 1016.9 at 1024 | 6.7% |
 | DevXT5090 | 68069 tokens | 2829.0 at 1024 | 2922.8 at 2048 | 3.3% |
 | DevXT5090 | 150026 tokens | 1781.4 at 1024 | 1894.8 at 2048 | 6.4% |
 
-Each pair is one additional cold request per depth in a fresh engine. All
-cold, repeat, append and extend requests at both depths have identical request
-and output hashes between the two settings, including the freeform append
-answers (8/8 comparisons).
+Each pair is one additional cold request per depth in a fresh engine. Across
+the initial screen and this confirmation there are two baseline and two
+candidate 150K cold samples per card; at 68K there are two baseline samples and
+one candidate sample. The table shows the matched confirmation pairs, rather
+than pooling these screens into a statistical estimate.
 
-The 5090 candidate also completed a cold 248809-token input, 94.913% of its
-unchanged 262144-token budget, at 1300.34 tok/s and answered `Python`. Reported
-input tokens matched the tokenized request, with zero cached tokens. A separate
-64×64 solid-red PNG request used the original projector, evaluated 1088 tokens,
-and answered `Red` in 1.60 s. The tests allowed no smaller-context retry and no
-inference retry. Production was then restored with its original image,
-environment and mounts, and the owned drain was released.
+All eight request hashes match between settings on each card. On the 5090,
+all cold, repeat, append and extend output hashes at both depths also match
+(8/8 comparisons), including the freeform append answers. On the 3090V, six of
+eight output hashes match: both freeform append answers change slightly (for
+example, “inference orchestration layer” becomes “inference orchestration
+system”). Both remain 32-token capped descriptions, while the cold, repeat and
+extend answers stay identical. This does not establish a quality loss, but it
+does fail the exact-output criterion used for promotion.
 
-**Pending:** the 3090V confirmation/capacity/vision results and the resulting
-persistent environment changes. No persistent environment setting has been
-applied yet; the coordinator will replace this paragraph with an explicit
-old/new settings record.
+Both candidates passed the fixed-context text and vision checks:
+
+| Worker | Cold input tokens | Fraction of unchanged context | Prefill, tok/s | Text answer | Vision tokens | Vision answer | Vision wall time |
+| --- | ---: | ---: | ---: | --- | ---: | --- | ---: |
+| DevXT3090V | 218392 | 94.953% of 230000 | 846.52 | `Python` | 1089 | `Red` | 3.58 s |
+| DevXT5090 | 248809 | 94.913% of 262144 | 1300.34 | `Python` | 1088 | `Red` | 1.60 s |
+
+Reported input tokens matched the tokenized requests, with zero cached tokens.
+The separate 64×64 solid-red PNG requests used the original projector. The
+tests allowed no smaller-context retry and no inference retry. Each production
+container was then restored with its original image, environment and mounts,
+and its owned drain was released.
+
+**Pending:** persistent environment changes and the promotion decision for the
+3090V after its append-output differences. No persistent environment setting
+has been applied yet; the coordinator will replace this paragraph with an
+explicit old/new settings record.
 
 ## Follow-up cache work
 
