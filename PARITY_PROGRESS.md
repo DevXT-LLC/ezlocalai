@@ -2,6 +2,64 @@
 
 The goal remains behavior parity with ezlocalai within the scope below, with all first-party executable code implemented in C++. It is **not complete**.
 
+## Conversation-cache retention and CUDA optimization (2026-10-25)
+
+The worker dropped WorkConductor's `prompt_cache_key`, and the pinned engine
+could discard conversation tails when prompts shared most of their prefix.
+The worker now forwards valid chat hints. A managed, SHA-recorded patch to
+llama.cpp `620d2225` snapshots named conversation switches, restores the
+longest useful prefix, and protects the requested state during bounded
+eviction. It skips an outgoing save when two states cannot fit; cache limits
+remain hard ceilings. Custom engine revisions retain their own behavior.
+
+On DevXT3090J's RTX 3090 Ti, the same full Qwen3.8-27B/MTP three-conversation
+replay improved returning turns from a median **19.04 s to 0.916 s**. Evaluated
+tokens fell from roughly 23,800 to **4**, with identical branch answers and
+the same 14336 MiB cache ceiling. A tiny real CPU engine and model-free
+eviction/prefix tests also pass. The worker's long-request preparation now
+parses fields once, improving the 707 KB CPU case from 9.65 to 3.53 ms while
+preserving all three measured engine payloads byte for byte.
+
+Automatic prompt-cache requests now grow toward the safe quarter-RAM ceiling
+(at most 32 GiB) on hosts with at least 64 GiB. RAM and free swap respect all
+visible cgroup-v2 ancestors. Optional `LLM_PROMPT_CACHE_SWAP_MIB` permits a
+bounded allowance from existing free swap, with a separate reserve; it is off
+by default. Explicit limits and disabled caches are preserved. All six compose
+profiles pass the new settings through. Original Python policy helpers still
+pass all 9,111 recorded cases; the native extensions have deterministic tests.
+
+Unlocked-card cold-prefill medians at roughly 68K/150K tokens were
+**2529/1970 tok/s on 4090**, and **1246/939 on 3090V** (an RTX 3090 Ti).
+4090 is approximately 8–9% above the historical October 18 measurement,
+but the engine changed, so the unlock's isolated benefit is unknown. No
+comparable pre-unlock 3090V measurement was found. A single 3090V physical-batch
+1024 trial reached 1014 tok/s at 150K; defaults remain unchanged pending
+repeat/max-context/vision checks. See `benchmarks/optimization-20261025.md`.
+
+Validation: the 60-test CUDA package gate passed, plus request/CLI tests,
+the real CPU cache replay, and the Rust-router/native-worker integration.
+The latter verifies buffered/streaming cache-key delivery on direct/tunnel
+paths. Compose and benchmark guard checks passed. WorkerRouter PR #4 also
+preserves the hint for local chat (its adapter previously stripped it) and
+shows RAM beside VRAM. WorkConductor already sends the hint; no client issue
+was confirmed.
+
+All benchmarked production containers were restored with their original
+image, environment and mounts; owned drains were released. No optimized
+image was built or deployed, so no replacement/rollback tags were created.
+The CUDA cache replay overlaid the patched engine implementation in an
+isolated container from the existing production image. Actual swap-in latency,
+sustained larger-cache pressure, other hardware images, and fleet rollout
+remain unverified. Compact evidence is in the three dated optimization JSON
+records under `tests/fixtures/`; bulk logs remain in ignored `build/validation/`.
+
+Handoff: review/merge the paired router and worker changes, let the existing
+image automation build CUDA/GB10, then canary the complete image through the
+router before fleet rollout. Recheck interleaved long conversations at 68K and
+150K and larger RAM ceilings; only opt into swap after measuring restore
+latency. Repeat the 3090V ubatch candidate before considering a default change.
+Video, PDF and unrelated parity work are outside this optimization change.
+
 ## Brotli decoder security packages (2026-10-24)
 
 CPU, CUDA/GB10, ROCm, and Jetson image recipes now install checksum-pinned

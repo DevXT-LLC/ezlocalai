@@ -9,6 +9,7 @@
 #include <fstream>
 #include <iomanip>
 #include <iostream>
+#include <map>
 #include <openssl/sha.h>
 #include <sstream>
 #include <unistd.h>
@@ -97,6 +98,7 @@ struct Fixture {
 void managed_cases(const fs::path &root) {
     unsetenv("CUDA_VISIBLE_DEVICES"); unsetenv("EZLOCALAI_TEST_CUDA_FAIL");
     environment(); Fixture fixture(root, "cache");
+    setenv("LLM_PROMPT_CACHE_MIB", "8192", 1);
     setenv("KV_CACHE_TYPE", "f16", 1); setenv("KV_CACHE_TYPE_5090", "Q8_0", 1);
     {
         ezlocalai::LlamaCppInferenceBackend backend("ordinary");
@@ -130,6 +132,64 @@ void managed_cases(const fs::path &root) {
     }
     const auto actual_ram = ezlocalai::native_prompt_cache_ram(); expect(actual_ram.total_mib > 0 && actual_ram.available_mib >= 0, "native host RAM probe");
 }
+void native_policy_cases(const fs::path &root) {
+    std::map<std::string, std::string> settings;
+    const auto env = [&](const std::string &key, const std::string &fallback) {
+        const auto found = settings.find(key); return found == settings.end() ? fallback : found->second;
+    };
+    ezlocalai::PromptCacheRam ram{100000, 131072, 8192};
+    const auto budget = [&](const std::string &value = "auto") {
+        return ezlocalai::native_llm_prompt_cache_budget(value, 230000, env, [&] { return ram; });
+    };
+    auto b = budget();
+    expect(b.requested.mib == "32768" && b.effective.mib == "32768" && b.swap_allowance_mib == 0, "128 GiB auto uses bounded 32 GiB cache without swap");
+    ram.total_mib = 122880; b = budget();
+    expect(b.effective.mib == "30720", "120 GiB auto remains within the RAM fraction");
+    ram = {24000, 32768, 8192}; b = budget();
+    expect(b.effective.mib == "8192", "32 GiB workers retain their quarter-RAM ceiling");
+    settings["LLM_PROMPT_CACHE_SWAP_MIB"] = "16384"; b = budget();
+    expect(b.requested.mib == "22528" && b.effective.mib == "15360" && b.swap_allowance_mib == 7168, "opt-in swap uses only free capacity after its reserve");
+    b = budget("4096");
+    expect(b.effective.mib == "4096" && b.swap_allowance_mib == 0, "explicit cache ceiling remains an upper bound");
+    settings["LLM_PROMPT_CACHE_SWAP_MIB"] = "bad"; b = budget();
+    expect(b.effective.mib == "8192" && b.swap_allowance_mib == 0, "invalid swap setting disables swap allowance");
+    settings["LLM_PROMPT_CACHE_SWAP_MIB"] = "4096";
+    ram.swap_available_mib = 512; b = budget();
+    expect(b.effective.mib == "8192" && b.swap_allowance_mib == 0, "already occupied swap is unavailable");
+    ram = {1000, 32768, 8192}; b = budget();
+    expect(b.effective.mib == "0" && b.swap_allowance_mib == 0, "swap cannot rescue an exhausted RAM budget");
+    const auto disabled = ezlocalai::native_llm_prompt_cache_budget("off", 230000, env,
+        []() -> ezlocalai::PromptCacheRam { throw std::runtime_error("disabled cache must not probe RAM"); });
+    expect(disabled.effective.mib == "0", "disabled cache remains disabled");
+    const auto unavailable = ezlocalai::native_llm_prompt_cache_budget("auto", 230000, env,
+        []() -> ezlocalai::PromptCacheRam { throw ezlocalai::LlmCacheError("ValueError", "unavailable"); });
+    expect(unavailable.effective.mib == "4096" && unavailable.swap_allowance_mib == 0, "unavailable probe retains conservative source fallback");
+
+    const auto cg = root / "cgroup"; fs::create_directories(cg / "parent/leaf");
+    const auto write = [&](const fs::path &path, int64_t mib) { std::ofstream(cg / path) << mib * 1048576; };
+    std::ofstream(cg / "memory.max") << "max";
+    write("parent/memory.max", 65536); write("parent/memory.current", 32768);
+    std::ofstream(cg / "parent/memory.stat") << "inactive_file " << 8192LL * 1048576;
+    write("parent/memory.swap.max", 4096); write("parent/memory.swap.current", 1024);
+    write("parent/leaf/memory.max", 32768); write("parent/leaf/memory.current", 8192);
+    std::ofstream(cg / "parent/leaf/memory.stat") << "inactive_file " << 1024LL * 1048576;
+    write("parent/leaf/memory.swap.max", 8192); write("parent/leaf/memory.swap.current", 0);
+    auto constrained = ezlocalai::prompt_cache_ram_with_cgroup({100000, 131072, 8192}, cg.string(), "/parent/leaf");
+    expect(constrained.total_mib == 32768 && constrained.available_mib == 25600 && constrained.swap_available_mib == 3072,
+        "nested cgroups constrain RAM and swap by every ancestor, allowing reclaimable inactive file pages");
+    write("parent/memory.swap.max", 0);
+    constrained = ezlocalai::prompt_cache_ram_with_cgroup({100000, 131072, 8192}, cg.string(), "/parent/leaf");
+    expect(constrained.swap_available_mib == 0, "parent swap prohibition overrides child allowance");
+    fs::remove(cg / "parent/leaf/memory.current");
+    constrained = ezlocalai::prompt_cache_ram_with_cgroup({100000, 131072, 8192}, cg.string(), "/parent/leaf");
+    expect(constrained.available_mib == 0, "missing usage data cannot authorize unobserved RAM headroom");
+    std::ofstream(cg / "parent/leaf/memory.max") << "invalid";
+    constrained = ezlocalai::prompt_cache_ram_with_cgroup({100000, 131072, 8192}, cg.string(), "/parent/leaf");
+    expect(constrained.total_mib == 0 && constrained.available_mib == 0, "malformed readable limits fail closed");
+    write("memory.max", 8192); write("memory.current", 4096);
+    constrained = ezlocalai::prompt_cache_ram_with_cgroup({100000, 131072, 8192}, cg.string(), "/../../hidden");
+    expect(constrained.total_mib == 8192 && constrained.available_mib == 4096, "hidden namespace path cannot escape controller root");
+}
 void revision(const fs::path &reference) {
     const std::string pin = ezlocalai::llama_cpp_reference_revision;
     // The native engine runs llama.cpp v0.7.0, ahead of the reference's
@@ -147,6 +207,7 @@ int main(int argc, char **argv) {
         const auto count = reference_cases(argv[1], argv[2]); revision(argv[1]);
         const auto directory = fs::temp_directory_path() / ("ezl-cache-" + std::to_string(getpid())); fs::create_directories(directory);
         struct Cleanup { fs::path path; ~Cleanup() { fs::remove_all(path); } } cleanup{directory};
+        native_policy_cases(directory);
         std::ofstream(directory / "devices.tsv") << "NVIDIA GeForce RTX 5090\t12\t0\t34359738368\t32212254720\n";
         setenv("EZLOCALAI_TEST_CUDA_DEVICES", (directory / "devices.tsv").c_str(), 1); setenv("LD_LIBRARY_PATH", TEST_CUDA_DRIVER_DIRECTORY, 1);
         const auto result = ezlocalai::run_process_to_files({fs::absolute(argv[0]).string(), "--cuda", directory.string()}, (directory / "child.log").string(), "", 30, true);

@@ -1,0 +1,305 @@
+{
+  "date": "2026-10-25",
+  "baseline_source_commit": "204e3ca",
+  "engine_revision": "620d2225cc436ab0b001e3200e590e3b286ef9ab",
+  "model": "unsloth/Qwen3.8-27B-GGUF",
+  "quant": "Q3_K_XL",
+  "context": 230000,
+  "kv_cache_type": "q4_0",
+  "source_sha256": "8238cef03d4a1db6e775d7f62234bcf998d8f08bd9fc15f1d8a36ea0d3280005",
+  "workers": [
+    {
+      "label": "DevXT4090",
+      "gpu": "NVIDIA GeForce RTX 4090",
+      "production_image": "sha256:22789ed7ecbf708d3034b0e7d6aa2aeaa90f6b732ae6dd69877092bbf985e3b9",
+      "original_parameters": {
+        "-m": "/app/models/Qwen3.8-27B/Qwen3.8-27B-UD-Q3_K_XL.gguf",
+        "-c": "230000",
+        "-b": "4096",
+        "-ub": "1024",
+        "-ctk": "q4_0",
+        "-ctv": "q4_0",
+        "--spec-type": "draft-mtp",
+        "--spec-draft-n-max": "3",
+        "--spec-draft-p-min": "0.10000000000000001",
+        "--cache-ram": "7680",
+        "-np": "1",
+        "--ctx-checkpoints": "32",
+        "--checkpoint-min-step": "8192"
+      },
+      "variants": [
+        {
+          "name": "baseline",
+          "overrides": {},
+          "cold": [
+            {
+              "prompt_source_chars": 300000,
+              "input_tokens_first": 68069,
+              "messages_sha256_first": "be2a9a927a5a78dd1e57e2d891194e355e12e73ecd19650a6f9dfbfc8c9163de",
+              "samples_tokens_per_second": [
+                2530.1866819751344,
+                2529.3957557060185,
+                2527.912177996382
+              ],
+              "median_tokens_per_second": 2529.3957557060185,
+              "cached_tokens": [
+                0,
+                13,
+                13
+              ],
+              "output_sha256": [
+                "2945b0d6616d16592538930914f4a2bc539b8d976a0b9200b3e82540f3c07c25",
+                "2945b0d6616d16592538930914f4a2bc539b8d976a0b9200b3e82540f3c07c25",
+                "2945b0d6616d16592538930914f4a2bc539b8d976a0b9200b3e82540f3c07c25"
+              ]
+            },
+            {
+              "prompt_source_chars": 680000,
+              "input_tokens_first": 150026,
+              "messages_sha256_first": "7e2c9f3133ade133dda837b6060780d2b2805471a6f018502384d682c78068de",
+              "samples_tokens_per_second": [
+                1973.0321412388325,
+                1969.5523633532312,
+                1968.6287585636571
+              ],
+              "median_tokens_per_second": 1969.5523633532312,
+              "cached_tokens": [
+                0,
+                13,
+                13
+              ],
+              "output_sha256": [
+                "2945b0d6616d16592538930914f4a2bc539b8d976a0b9200b3e82540f3c07c25",
+                "2945b0d6616d16592538930914f4a2bc539b8d976a0b9200b3e82540f3c07c25",
+                "2945b0d6616d16592538930914f4a2bc539b8d976a0b9200b3e82540f3c07c25"
+              ]
+            }
+          ],
+          "decode_native_tokens_per_second": [
+            108.32998076824224,
+            108.39053236328766,
+            108.3233081173664
+          ]
+        },
+        {
+          "name": "logical8192",
+          "overrides": {
+            "-b": 8192
+          },
+          "cold": [
+            {
+              "prompt_source_chars": 680000,
+              "input_tokens_first": 150026,
+              "messages_sha256_first": "7e2c9f3133ade133dda837b6060780d2b2805471a6f018502384d682c78068de",
+              "samples_tokens_per_second": [
+                1973.8379700926434
+              ],
+              "median_tokens_per_second": 1973.8379700926434,
+              "cached_tokens": [
+                0
+              ],
+              "output_sha256": [
+                "2945b0d6616d16592538930914f4a2bc539b8d976a0b9200b3e82540f3c07c25"
+              ]
+            }
+          ],
+          "decode_native_tokens_per_second": [
+            108.35935020084725
+          ]
+        },
+        {
+          "name": "logical1024",
+          "overrides": {
+            "-b": 1024
+          },
+          "cold": [
+            {
+              "prompt_source_chars": 680000,
+              "input_tokens_first": 150026,
+              "messages_sha256_first": "7e2c9f3133ade133dda837b6060780d2b2805471a6f018502384d682c78068de",
+              "samples_tokens_per_second": [
+                1936.8170780413761
+              ],
+              "median_tokens_per_second": 1936.8170780413761,
+              "cached_tokens": [
+                0
+              ],
+              "output_sha256": [
+                "2945b0d6616d16592538930914f4a2bc539b8d976a0b9200b3e82540f3c07c25"
+              ]
+            }
+          ],
+          "decode_native_tokens_per_second": [
+            108.35207540964521
+          ]
+        }
+      ],
+      "restoration": {
+        "restored_healthy": true,
+        "original_image_restored": true,
+        "original_environment_restored": true,
+        "original_mounts_restored": true,
+        "drain_released": true,
+        "lease_renewal_errors": []
+      }
+    },
+    {
+      "label": "DevXT3090V",
+      "gpu": "NVIDIA GeForce RTX 3090 Ti",
+      "production_image": "sha256:b23b549cc5acc6110ee9f45e47cffd1aab0d0e57e72e0fb28b0a2e74b6abeb45",
+      "original_parameters": {
+        "-m": "/app/models/Qwen3.8-27B/Qwen3.8-27B-UD-Q3_K_XL.gguf",
+        "-c": "230000",
+        "-b": "4096",
+        "-ub": "512",
+        "-ctk": "q4_0",
+        "-ctv": "q4_0",
+        "--spec-type": "draft-mtp",
+        "--spec-draft-n-max": "2",
+        "--spec-draft-p-min": "0.10000000000000001",
+        "--cache-ram": "7680",
+        "-np": "1",
+        "--ctx-checkpoints": "32",
+        "--checkpoint-min-step": "8192"
+      },
+      "variants": [
+        {
+          "name": "baseline",
+          "overrides": {},
+          "cold": [
+            {
+              "prompt_source_chars": 300000,
+              "input_tokens_first": 68069,
+              "messages_sha256_first": "be2a9a927a5a78dd1e57e2d891194e355e12e73ecd19650a6f9dfbfc8c9163de",
+              "samples_tokens_per_second": [
+                1260.7379379621514,
+                1245.7316447781488,
+                1240.9160172679233
+              ],
+              "median_tokens_per_second": 1245.7316447781488,
+              "cached_tokens": [
+                0,
+                13,
+                13
+              ],
+              "output_sha256": [
+                "2945b0d6616d16592538930914f4a2bc539b8d976a0b9200b3e82540f3c07c25",
+                "2945b0d6616d16592538930914f4a2bc539b8d976a0b9200b3e82540f3c07c25",
+                "2945b0d6616d16592538930914f4a2bc539b8d976a0b9200b3e82540f3c07c25"
+              ]
+            },
+            {
+              "prompt_source_chars": 680000,
+              "input_tokens_first": 150026,
+              "messages_sha256_first": "7e2c9f3133ade133dda837b6060780d2b2805471a6f018502384d682c78068de",
+              "samples_tokens_per_second": [
+                942.0049307797855,
+                939.2697204527963,
+                938.6298015424899
+              ],
+              "median_tokens_per_second": 939.2697204527963,
+              "cached_tokens": [
+                0,
+                13,
+                13
+              ],
+              "output_sha256": [
+                "2945b0d6616d16592538930914f4a2bc539b8d976a0b9200b3e82540f3c07c25",
+                "2945b0d6616d16592538930914f4a2bc539b8d976a0b9200b3e82540f3c07c25",
+                "2945b0d6616d16592538930914f4a2bc539b8d976a0b9200b3e82540f3c07c25"
+              ]
+            }
+          ],
+          "decode_native_tokens_per_second": [
+            79.12902219801805,
+            79.07273420181036,
+            79.04760960028568
+          ]
+        },
+        {
+          "name": "logical1024",
+          "overrides": {
+            "-b": 1024
+          },
+          "cold": [
+            {
+              "prompt_source_chars": 680000,
+              "input_tokens_first": 150026,
+              "messages_sha256_first": "7e2c9f3133ade133dda837b6060780d2b2805471a6f018502384d682c78068de",
+              "samples_tokens_per_second": [
+                939.2361079156533
+              ],
+              "median_tokens_per_second": 939.2361079156533,
+              "cached_tokens": [
+                0
+              ],
+              "output_sha256": [
+                "2945b0d6616d16592538930914f4a2bc539b8d976a0b9200b3e82540f3c07c25"
+              ]
+            }
+          ],
+          "decode_native_tokens_per_second": [
+            79.13825577422197
+          ]
+        },
+        {
+          "name": "ubatch1024",
+          "overrides": {
+            "-ub": 1024
+          },
+          "cold": [
+            {
+              "prompt_source_chars": 680000,
+              "input_tokens_first": 150026,
+              "messages_sha256_first": "7e2c9f3133ade133dda837b6060780d2b2805471a6f018502384d682c78068de",
+              "samples_tokens_per_second": [
+                1013.7370677169145
+              ],
+              "median_tokens_per_second": 1013.7370677169145,
+              "cached_tokens": [
+                0
+              ],
+              "output_sha256": [
+                "2945b0d6616d16592538930914f4a2bc539b8d976a0b9200b3e82540f3c07c25"
+              ]
+            }
+          ],
+          "decode_native_tokens_per_second": [
+            79.07861934312648
+          ]
+        }
+      ],
+      "restoration": {
+        "restored_healthy": true,
+        "original_image_restored": true,
+        "original_environment_restored": true,
+        "original_mounts_restored": true,
+        "drain_released": true,
+        "lease_renewal_errors": []
+      }
+    }
+  ],
+  "historical_4090": {
+    "date": "2026-10-18",
+    "source_file_sha256": "5fecce832d4c6e35fe207646c494daacce84034ff65608449f9f7cc2a718c399",
+    "engine_revision": "aa94f2086147cd4bfbcff818ce998dffce5fcb39",
+    "cold_runs": [
+      {
+        "input_tokens": 68069,
+        "tokens_per_second": 2350.244547107403,
+        "messages_sha256": "be2a9a927a5a78dd1e57e2d891194e355e12e73ecd19650a6f9dfbfc8c9163de"
+      },
+      {
+        "input_tokens": 150026,
+        "tokens_per_second": 1812.2487533617577,
+        "messages_sha256": "7e2c9f3133ade133dda837b6060780d2b2805471a6f018502384d682c78068de"
+      }
+    ]
+  },
+  "limits": [
+    "4090 historical engine differs: speed change cannot be attributed solely to GPU unlock.",
+    "No comparable saved pre-unlock measurement was found for 3090V.",
+    "Non-default batch variants have one deep cold sample; defaults remain unchanged.",
+    "Cold repetitions use leading nonces to prevent cache contamination. Initial cold rows match the historical prompt hashes."
+  ]
+}

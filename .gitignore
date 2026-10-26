@@ -100,3 +100,6 @@ docker-compose.override.yml
 ._*
 Thumbs.db
 Desktop.ini
+
+# Local Python benchmark bytecode
+benchmarks/__pycache__/

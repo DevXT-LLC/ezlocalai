@@ -1012,6 +1012,8 @@ set_tests_properties(llm_output_reference PROPERTIES TIMEOUT 90)
 
 add_executable(test_llm_request tests/test_llm_request.cpp)
 target_link_libraries(test_llm_request PRIVATE ezlocalai_native)
+add_executable(bench_llm_request EXCLUDE_FROM_ALL benchmarks/bench_request.cpp)
+target_link_libraries(bench_llm_request PRIVATE ezlocalai_native nlohmann_json::nlohmann_json)
 target_compile_definitions(test_llm_request PRIVATE TEST_EMBEDDING_FIXTURE_BIN="$<TARGET_FILE:test_embedding_fixture>")
 add_dependencies(test_llm_request test_embedding_fixture)
 add_test(NAME llm_request_reference COMMAND test_llm_request ${EZLOCALAI_REFERENCE_ROOT} ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/llm_request_cases.tsv)
@@ -1349,10 +1351,35 @@ if(EZLOCALAI_LLAMA_CPP_REFERENCE_SOURCE AND EZLOCALAI_LLAMA_CPP_REFERENCE_BUILD)
     endif()
 endif()
 
-# The source application's private TTS worker, linked to an independently built
-# pinned llama.cpp/libmtmd. No Python wrapper or implicit dependency fetch.
 set(EZLOCALAI_TTS_LLAMA_SOURCE "${EZLOCALAI_LLAMA_CPP_REFERENCE_SOURCE}" CACHE PATH "Pinned llama.cpp source for native TTS worker")
 set(EZLOCALAI_TTS_LLAMA_BUILD "${EZLOCALAI_LLAMA_CPP_REFERENCE_BUILD}" CACHE PATH "Pinned llama.cpp build for native TTS worker")
+# Cache policy checks link the actual managed engine implementation. Custom
+# unpatched revisions do not expose this private cache API.
+if(EXISTS "${EZLOCALAI_TTS_LLAMA_SOURCE}/tools/server/server-task.h" AND
+   EXISTS "${EZLOCALAI_TTS_LLAMA_BUILD}/bin/libllama-server-impl.so" AND
+   EXISTS "${EZLOCALAI_TTS_LLAMA_BUILD}/ezlocalai-llama-cpp-patches.txt")
+    add_executable(test_conversation_cache tests/test_conversation_cache.cpp)
+    target_include_directories(test_conversation_cache PRIVATE
+        ${EZLOCALAI_TTS_LLAMA_SOURCE}/tools/server ${EZLOCALAI_TTS_LLAMA_SOURCE}/common
+        ${EZLOCALAI_TTS_LLAMA_SOURCE}/include ${EZLOCALAI_TTS_LLAMA_SOURCE}/ggml/include
+        ${EZLOCALAI_TTS_LLAMA_SOURCE}/tools/mtmd ${EZLOCALAI_TTS_LLAMA_SOURCE}/vendor)
+    target_link_libraries(test_conversation_cache PRIVATE ezlocalai_native
+        ${EZLOCALAI_TTS_LLAMA_BUILD}/bin/libllama-server-impl.so
+        ${EZLOCALAI_TTS_LLAMA_BUILD}/bin/libllama-common.so
+        ${EZLOCALAI_TTS_LLAMA_BUILD}/bin/libmtmd.so
+        ${EZLOCALAI_TTS_LLAMA_BUILD}/bin/libllama.so
+        ${EZLOCALAI_TTS_LLAMA_BUILD}/bin/libggml.so
+        ${EZLOCALAI_TTS_LLAMA_BUILD}/bin/libggml-base.so)
+    add_test(NAME conversation_cache COMMAND test_conversation_cache)
+    set_tests_properties(conversation_cache PROPERTIES TIMEOUT 30)
+    if(EZLOCALAI_LLAMA_CPP_SMOKE_MODEL)
+        add_test(NAME conversation_cache_engine COMMAND test_conversation_cache --engine
+            ${EZLOCALAI_TTS_LLAMA_BUILD}/bin/llama-server ${EZLOCALAI_LLAMA_CPP_SMOKE_MODEL})
+        set_tests_properties(conversation_cache_engine PROPERTIES TIMEOUT 90)
+    endif()
+endif()
+# The source application's private TTS worker, linked to an independently built
+# pinned llama.cpp/libmtmd. No Python wrapper or implicit dependency fetch.
 if(EZLOCALAI_TTS_LLAMA_SOURCE AND EZLOCALAI_TTS_LLAMA_BUILD)
     add_executable(ezlocalai-tts tts/worker.cpp)
     target_include_directories(ezlocalai-tts PRIVATE ${EZLOCALAI_TTS_LLAMA_SOURCE}/common ${EZLOCALAI_TTS_LLAMA_SOURCE}/include ${EZLOCALAI_TTS_LLAMA_SOURCE}/ggml/include ${EZLOCALAI_TTS_LLAMA_SOURCE}/tools/mtmd ${EZLOCALAI_TTS_LLAMA_SOURCE}/vendor)
@@ -1702,6 +1729,7 @@ if(TARGET test_ltx_norm AND TARGET ezlocalai-tts)
         test_tunnel_framing
         test_service_clients
         test_llm_residency
+        test_llm_cache
         test_llm_headroom
         test_cuda_allocator
         test_torch_resources
@@ -1714,6 +1742,9 @@ if(TARGET test_ltx_norm AND TARGET ezlocalai-tts)
         test_ltx_runtime
         test_core
     )
+    if(TARGET test_conversation_cache)
+        list(APPEND native_package_targets test_conversation_cache)
+    endif()
     add_custom_target(cpu_package DEPENDS ${native_package_targets})
     if(EZLOCALAI_USE_HIP)
         add_custom_target(rocm_package DEPENDS ${native_package_targets}
