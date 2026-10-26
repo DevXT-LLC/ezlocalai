@@ -1,0 +1,70 @@
+{
+  "date": "2026-10-26",
+  "baseline_worker_commit": "46d9ba8",
+  "prior_state_io_commit": "39d7a22",
+  "engine_revision": "620d2225cc436ab0b001e3200e590e3b286ef9ab",
+  "change": "Use reusable bounded pinned windows for CUDA host-state IO while retaining pageable cached-state vectors and the same serialized bytes.",
+  "diagnostic_opt_out": "EZLOCALAI_LLAMA_STATE_IO_BATCHING=0",
+  "pinned_workspace": {
+    "max_bytes_per_context_cuda_backend": 67108864,
+    "max_pending_copy_records": 256,
+    "allocation": "Lazy; reused across snapshots; one attempt per backend until the pool is cleared.",
+    "download": "Queue device-to-pinned chunks, synchronize, then memcpy to pageable destinations in global serialization order.",
+    "upload": "Memcpy pageable source to stable pinned chunks before queuing device writes; synchronize before reuse.",
+    "lifetime": "Released after context synchronization and before scheduler/backend teardown.",
+    "cached_snapshots_remain_pageable": true,
+    "allocation_failure": "Original synchronous IO, including detection of the CUDA allocator's pageable fallback."
+  },
+  "validation": {
+    "ctest_passed": 2,
+    "ctest_failed": 0,
+    "seconds": 0.17,
+    "tests": ["llama_state_io", "llama_state_io_model"],
+    "checks": [
+      "deferred fake-CUDA copies require synchronization before host completion",
+      "one workspace allocation is reused across multiple snapshots",
+      "per-backend capacity is enforced, clamped at 64 MiB, and released by pool clear",
+      "multi-window downloads and uploads preserve bytes without early staging reuse",
+      "upload inputs can be modified after queueing without altering captured bytes",
+      "cross-device overlapping host destinations retain global serialization order",
+      "download-to-upload direction changes make host data available before reuse",
+      "download host/device aliases and upload read-after-write aliases force barriers",
+      "cross-device writes to shared storage preserve ordering",
+      "more than 256 copy records flush safely without unbounded metadata",
+      "missing, failed and pageable-fallback host allocation retain synchronous behavior without per-tensor retries",
+      "CPU, Metal, split, host and unmatched buffers retain original accessors",
+      "view offsets, exception unwinding, diagnostic opt-out and zero-size transfers retain behavior",
+      "tiny CPU model snapshots are byte-identical and post-restore logits match across modes",
+      "truncated CPU model restore fails and a subsequent valid restore recovers"
+    ],
+    "managed_patch_roundtrip": [
+      "applies after the existing conversation-only patch",
+      "repeated application is idempotent with two SHA metadata rows",
+      "reverse removal restores tracked source and removes the new header and metadata",
+      "custom revisions skip managed patches and clear stale metadata"
+    ],
+    "independent_read_only_review": "No concrete correctness defect found in staging lifetime, ordering, fallback or teardown."
+  },
+  "cpu_model": {
+    "repository": "ggml-org/models",
+    "revision": "499bc8821c6b12b4e53c5bffcb21ec206f212d81",
+    "file": "tinyllamas/stories260K.gguf",
+    "sha256": "270cba1bd5109f42d03350f60406024560464db173c0e387d91f0426d3bd256d"
+  },
+  "gpu_candidate_library": {
+    "container": "ezlocalai-state-io-build-20261026",
+    "base_image": "sha256:c9d7cd30fb6f0d75280fda34b20cd70350dc69072ffebf564f0fffc92b8b330a",
+    "path": "/app/build/llama.cpp/bin/libllama.so.0.7.0",
+    "sha256": "a7239d3f8b6b460dfd21591932c1311b60a137bcdd192936b4c04122b5357754"
+  },
+  "source_sha256": {
+    "patches/llama-state-io-batching.patch": "50768c7471cee4e9a3e375e88a34b942209eb0915c9acc568f355f005d4d0cd3",
+    "tests/test_llama_state_io.cpp": "ffe440b13b2eb5e3b0ea36184a4230eaff88aa8c715e1eda1dca21bb38cb0477"
+  },
+  "limits": [
+    "No GPU performance or output-quality claim is established by these CPU/fake-backend tests; physical GPU qualification is performed separately.",
+    "No weights, KV precision, context limits, sampling or numerical kernels changed.",
+    "ON_DEVICE state serializers are unchanged.",
+    "No production container or deployment was changed by this agent."
+  ]
+}
