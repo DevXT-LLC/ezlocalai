@@ -31,6 +31,12 @@ The experiment requires all of these conditions:
   batches of 1024; other sizes, including 2048, retain the original scheduler;
 - no LoRA or shared-parent prefill boundary in the eligible last-user phase.
 
+Only active implementations count toward the MTP-only guard. The actual server
+parser appends explicit MTP to its default `{NONE}` list; `NONE` creates no
+implementation. The production selector ignores it, accepts repeated MTP,
+requires at least one MTP entry and rejects every other active type. Actual
+`common_params_parse` regressions cover this path without loading a model.
+
 The trained-head count comes from `llama_get_model(ctx_dft)`. Borrowed MTP
 initializers intentionally leave their owned-model pointer null, so that pointer
 must not determine eligibility. A model-free accessor-seam regression exercises

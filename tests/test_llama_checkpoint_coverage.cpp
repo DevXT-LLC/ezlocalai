@@ -4,6 +4,7 @@
 #include "llama-vocab.h"
 #include "speculative-mtp-state.h"
 #include "speculative.h"
+#include "arg.h"
 
 #include <climits>
 #include <cstring>
@@ -12,6 +13,8 @@
 #include <stdexcept>
 #include <string>
 #include <tuple>
+
+extern char ** environ;
 
 namespace {
 int checks = 0;
@@ -235,6 +238,56 @@ void actual_draft_batch_parameter_inheritance() {
         "a custom draft physical size retains the original checkpoint scheduler");
 }
 
+void actual_parser_mtp_selection() {
+    struct argument_environment {
+        std::vector<std::pair<std::string,std::string>> saved;
+        argument_environment() {
+            for(char ** item=environ;*item;++item) {
+                const std::string entry=*item;
+                if(entry.rfind("LLAMA_ARG_",0)==0) {
+                    const auto separator=entry.find('=');
+                    saved.emplace_back(entry.substr(0,separator),entry.substr(separator+1));
+                }
+            }
+            for(const auto & item:saved)unsetenv(item.first.c_str());
+        }
+        ~argument_environment() {
+            for(const auto & item:saved)setenv(item.first.c_str(),item.second.c_str(),1);
+        }
+    } isolated_environment;
+    const auto parse=[](std::vector<std::string> options) {
+        std::vector<std::string> args{"llama-server","-m","fixture.gguf","-np","1","-b","4096","-ub","1024"};
+        args.insert(args.end(),options.begin(),options.end());
+        std::vector<char *> argv;
+        for(auto & arg:args)argv.push_back(arg.data());
+        common_params parsed;
+        require(common_params_parse(int(argv.size()),argv.data(),parsed,LLAMA_EXAMPLE_SERVER),
+            "actual production server parser accepts model-free speculative arguments");
+        return parsed;
+    };
+    const auto mtp=parse({"--spec-type","draft-mtp"});
+    require(std::find(mtp.speculative.types.begin(),mtp.speculative.types.end(),COMMON_SPECULATIVE_TYPE_NONE)!=mtp.speculative.types.end() &&
+            std::find(mtp.speculative.types.begin(),mtp.speculative.types.end(),COMMON_SPECULATIVE_TYPE_DRAFT_MTP)!=mtp.speculative.types.end(),
+        "actual parser retains NONE while appending explicit MTP");
+    require(common_checkpoint_only_mtp(mtp.speculative),"production selector accepts actual NONE-plus-MTP parser output");
+    auto rt=runtime();rt.single_mtp_head=common_checkpoint_only_mtp(mtp.speculative);
+    require(plan(true,32,true,true,24577,mtp.n_batch,mtp.n_ubatch,rt).extra_window_end==2052,
+        "actual parsed MTP arguments enable the aligned production planner");
+    require(common_checkpoint_only_mtp(parse({"--spec-type","draft-mtp","--spec-type","draft-mtp"}).speculative),
+        "repeated actual MTP flags share the same active implementation");
+    require(!common_checkpoint_only_mtp(parse({"--spec-type","none"}).speculative),"actual NONE-only parser output is disabled");
+    const auto mixed=parse({"--spec-type","draft-mtp,ngram-simple"});
+    require(!common_checkpoint_only_mtp(mixed.speculative),"actual mixed MTP and ngram output stays disabled");
+    rt.single_mtp_head=common_checkpoint_only_mtp(mixed.speculative);
+    require(plan(true,32,true,true,24577,mixed.n_batch,mixed.n_ubatch,rt).extra_window_end==0,
+        "mixed active implementations retain the original scheduler");
+    common_params_speculative empty;
+    empty.types.clear();
+    require(!common_checkpoint_only_mtp(empty),"an empty implementation list is disabled");
+    empty.types={COMMON_SPECULATIVE_TYPE_NONE,COMMON_SPECULATIVE_TYPE_COUNT,COMMON_SPECULATIVE_TYPE_DRAFT_MTP};
+    require(!common_checkpoint_only_mtp(empty),"unknown active implementations are conservatively disabled");
+}
+
 void environment_optout() {
     const char * existing=std::getenv("EZLOCALAI_LLAMA_CHECKPOINT_COVERAGE");
     const bool present=existing!=nullptr;
@@ -308,6 +361,7 @@ int main() {
         measured_schedule_and_actual_splitters(); tail_reservation_and_original_start_alignment();
         eligibility_and_other_configs(); mtp_boundary_continuity(); borrowed_mtp_context_accessor(); environment_optout();
         actual_draft_batch_parameter_inheritance();
+        actual_parser_mtp_selection();
         actual_server_tokens_media_classification();
         std::cout << checks << " production checkpoint alignment checks passed\n";
         return 0;

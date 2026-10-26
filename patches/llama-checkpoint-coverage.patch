@@ -1,12 +1,13 @@
 diff --git a/common/checkpoint-coverage.h b/common/checkpoint-coverage.h
 new file mode 100644
-index 0000000..1188cf1
+index 0000000..27d7023
 --- /dev/null
 +++ b/common/checkpoint-coverage.h
-@@ -0,0 +1,106 @@
+@@ -0,0 +1,119 @@
 +#pragma once
 +
 +#include "llama.h"
++#include "common.h"
 +
 +#include <algorithm>
 +#include <array>
@@ -28,6 +29,18 @@ index 0000000..1188cf1
 +    // but its owned-model pointer is intentionally null. Query the context.
 +    const auto * model = context_model(ctx);
 +    return model ? trained_heads(model) : 0;
++}
++
++inline bool common_checkpoint_only_mtp(const common_params_speculative & speculative) {
++    bool found = false;
++    for (const auto type : speculative.types) {
++        // The parser appends explicit types to its default {NONE}. NONE has
++        // no active implementation; repeated MTP entries share one backend.
++        if (type == COMMON_SPECULATIVE_TYPE_NONE) continue;
++        if (type != COMMON_SPECULATIVE_TYPE_DRAFT_MTP) return false;
++        found = true;
++    }
++    return found;
 +}
 +
 +template <typename Tokens>
@@ -111,7 +124,7 @@ index 0000000..1188cf1
 +    return plan;
 +}
 diff --git a/tools/server/server-context.cpp b/tools/server/server-context.cpp
-index d46d508..ce09730 100644
+index d46d508..2dfffc1 100644
 --- a/tools/server/server-context.cpp
 +++ b/tools/server/server-context.cpp
 @@ -10,6 +10,7 @@
@@ -122,15 +135,14 @@ index d46d508..ce09730 100644
  #include "fit.h"
  #include "llama.h"
  #include "log.h"
-@@ -4039,6 +4040,41 @@ private:
+@@ -4039,6 +4040,40 @@ private:
                              ctx_tgt_seq_rm_type == COMMON_CONTEXT_SEQ_RM_TYPE_RS ||
                              n_swa > 0);
 
 +                    const auto & spans = slot.task->params.message_spans;
 +                    const auto last_user_pos = spans.last_user_message_pos();
 +                    const auto checkpoint_mtp_heads = common_checkpoint_mtp_head_count(ctx_dft);
-+                    const bool checkpoint_only_mtp = params_base.speculative.types.size() == 1 &&
-+                        params_base.speculative.types[0] == COMMON_SPECULATIVE_TYPE_DRAFT_MTP;
++                    const bool checkpoint_only_mtp = common_checkpoint_only_mtp(params_base.speculative);
 +                    const bool checkpoint_named_text = !slot.task->params.prompt_cache_key.empty() &&
 +                        common_checkpoint_prompt_is_text_only(input_tokens);
 +                    const bool checkpoint_recurrent = do_checkpoint && (
@@ -164,7 +176,7 @@ index d46d508..ce09730 100644
                      // TODO: do the same for all models, then remove process_mtmd_chunk()
                      if (use_mixed_batch() && !slot.can_split() && input_tokens.has_mtmd) {
                          if (!add_prompt_mixed(slot)) {
-@@ -4091,10 +4127,8 @@ private:
+@@ -4091,10 +4126,8 @@ private:
                          has_mtmd = true;
                      }
 
@@ -176,7 +188,7 @@ index d46d508..ce09730 100644
 
                      // add prompt tokens for processing in the current batch
                      while (slot.prompt.n_tokens() < slot.task->n_tokens() && batch.size() < n_batch) {
-@@ -4145,25 +4179,12 @@ private:
+@@ -4145,25 +4178,12 @@ private:
                              }
                          }
 
@@ -208,7 +220,7 @@ index d46d508..ce09730 100644
                          }
                      }
 
-@@ -4172,7 +4193,9 @@ private:
+@@ -4172,7 +4192,9 @@ private:
 
                      const auto n_tokens_start = slot.prompt.n_tokens() - n_tokens_cur;
 

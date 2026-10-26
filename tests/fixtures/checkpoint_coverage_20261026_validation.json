@@ -3,16 +3,16 @@
   "date": "2026-10-26",
   "upstream_revision": "620d2225cc436ab0b001e3200e590e3b286ef9ab",
   "patch": "patches/llama-checkpoint-coverage.patch",
-  "patch_sha256": "1b7243ea08cc3c4e68457d0fe9075f5b9bf5b08802563cc829fbbff4fde03b7e",
+  "patch_sha256": "dd139ddd1531aeea125df3d42510d2bf7bee02574008383a96ef779a92133821",
   "ordered_prerequisite": "conversation-cache -> cache-restore-atomic -> cache-storage -> mtp-resume",
   "source_sha256": {
-    "common/checkpoint-coverage.h": "de7f98d2600e8dd6623ab46d9240b05118160b67cc5398e44afb64423f79c291",
-    "tools/server/server-context.cpp": "e4635f68c2ce9fd70374e928639bb89d44421516c3bff9e936747280914de94b"
+    "common/checkpoint-coverage.h": "ded5b0362462bf708c21f178c36070a8af56bdf71610772bba809a98f75b1b2e",
+    "tools/server/server-context.cpp": "02cb298c6b3cd12d47263ef33eed4b3de258f17a5b5b0c3c6b67d3f6636892f7"
   },
-  "test_source_sha256": "094aefa755c580efb8770658c3ced586d77eacf63cf8b855cacb9191306abbd2",
+  "test_source_sha256": "155e28bc7a51523b52ba9e3186e25ca3946060ba73c1b845b356fec137cf9299",
   "qualification": {
-    "optimized_checks_passed": 3505,
-    "asan_ubsan_checks_passed": 3505,
+    "optimized_checks_passed": 3518,
+    "asan_ubsan_checks_passed": 3518,
     "actual_server_tokens_and_mtmd_linked": true,
     "actual_target_split_equal_and_draft_split_simple_linked": true,
     "actual_modified_server_context_syntax_compile_passed": true,
@@ -24,12 +24,15 @@
       "ignored recurrent-tail reservation",
       "projector-loaded text wrongly excluded",
       "media at zero missed by upper_bound",
-      "borrowed-context model lookup omitted"
+      "borrowed-context model lookup omitted",
+      "NONE sentinel treated as an active non-MTP implementation"
     ],
     "real_aligned_cuda_speed_measured": false,
     "real_aligned_model_quality_measured": false,
     "production_borrowed_context_accessor_seam_passed": true,
-    "actual_draft_parameter_inheritance_and_override_passed": true
+    "actual_draft_parameter_inheritance_and_override_passed": true,
+    "actual_server_parser_none_plus_mtp_passed": true,
+    "actual_parser_duplicates_none_only_and_mixed_ngram_passed": true
   },
   "policy": {
     "minimum_prompt_tokens": 4096,
@@ -52,7 +55,8 @@
     "configured_checkpoint_limit_unchanged": true,
     "hard_cache_byte_budget_unchanged": true,
     "optout_environment": "EZLOCALAI_LLAMA_CHECKPOINT_COVERAGE=0",
-    "trained_head_query": "llama_model_n_layer_nextn(llama_get_model(ctx_dft)); owned initializer model pointer is irrelevant"
+    "trained_head_query": "llama_model_n_layer_nextn(llama_get_model(ctx_dft)); owned initializer model pointer is irrelevant",
+    "mtp_only_selection": "ignore NONE, require at least one MTP, reject every other active/unknown type; duplicates accepted"
   },
   "qualified_model_free_schedule": {
     "prompt_tokens": 24577,
@@ -116,20 +120,22 @@
     "engine_source_and_library_unchanged_by_this_patch": true
   },
   "artifacts": {
-    "optimized_log_sha256": "4aa7843247cbfe53ea34a75ff6976d677f245173749e7c3d27c1e4e66e06daa9",
-    "asan_ubsan_log_sha256": "4aa7843247cbfe53ea34a75ff6976d677f245173749e7c3d27c1e4e66e06daa9",
+    "optimized_log_sha256": "94ce2ddf31e0192e91d0343d4f28511958b8fe83c02b4efc75726e26793c151d",
+    "asan_ubsan_log_sha256": "94ce2ddf31e0192e91d0343d4f28511958b8fe83c02b4efc75726e26793c151d",
     "actual_cpp_syntax_log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
     "negative_unaligned_log_sha256": "c25cabc44c8443afdb30181a0bac9cdf93d5dfe1ac9df7b2019e1f07d26d744b",
     "negative_rs_tail_log_sha256": "9fed50aec97439b2e1b1c0d36b0cc2fa0a3491d405a43f2c5a151634f8020a21",
     "negative_projector_flag_log_sha256": "717e57532b207a5ec1d6579caace78a1b44cda8b05ddf70495823a7643f3f958",
     "negative_upper_bound_log_sha256": "ddc63071ab633a40ea821c31a9a91252b6f49339976b70233c0c8b4f35a0c155",
-    "negative_borrowed_context_log_sha256": "2ae90d99359675479a8e7591a44fc1d19f1dd6231cab1c9938442ee0beb8bdd9"
+    "negative_borrowed_context_log_sha256": "2ae90d99359675479a8e7591a44fc1d19f1dd6231cab1c9938442ee0beb8bdd9",
+    "negative_parser_none_log_sha256": "b6c20f2653e0ea00330537c22466f41b0f9b26624b634ad1cc8d704d629947ea"
   },
   "historical_experiments": {
     "first_fixed_offset": "Disabled for projector text by the old has_mtmd eligibility check; no gain.",
     "corrected_fixed_offset": "Rewind gain observed by root, but off/on generated answers changed; superseded by alignment experiment.",
     "frozen_hardware_proofs_not_modified": true,
-    "first_aligned_guard": "Inactive for borrowed MTP contexts because the owned-model pointer was null; equal outputs/no gain do not qualify the context-model accessor correction."
+    "first_aligned_guard": "Inactive for borrowed MTP contexts because the owned-model pointer was null; equal outputs/no gain do not qualify the context-model accessor correction.",
+    "first_context_accessor_aligned_guard": "Inactive because the parser retains NONE while appending MTP; a raw types.size()==1 check rejected it. Trace diagnosed this and the active-mode selector supersedes it."
   },
   "limits": [
     "One extra checkpoint adds pageable RAM and may reduce retained states under a fixed cache limit.",
