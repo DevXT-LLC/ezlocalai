@@ -1,12 +1,18 @@
 {
   "date": "2026-10-26",
-  "scope": "Actual production server_prompt_cache load/selection/allocation with fault injection at the external llama_state_seq_set_data_ext boundary. Standalone atomicity patch; combined MTP and hardware validation remain the parent integration task.",
+  "scope": "Actual production server_prompt_cache save/load/selection/allocation with fault injection only at external llama_state_seq_get_size_ext/get_data_ext/set_data_ext boundaries. Combined MTP and hardware validation remain the parent integration task.",
   "upstream_revision": "620d2225cc436ab0b001e3200e590e3b286ef9ab",
   "prerequisite_patch_sha256": "ea1cb7096df5107862e825ecf7fae45354632f6d091fc1cfe71f0dc72a8d39d9",
-  "patch_sha256": "8bdf244b7464d428316caa18cd952dbd56d18b1a577728cda34875e1b82a93cc",
-  "production_source_before_sha256": "cd9bdf46141466ae0aa7af6509c6c1113d383d281f45bbb9118348dbabd79483",
-  "production_source_after_sha256": "5acfaa363162f6fe8af54bd853818f0c144d8db36bf7f0aa8204c647b40d1164",
-  "test_source_sha256": "29be8706d828b759eb0d8cf8dac21cbe70ecc00ec4e93d5af6041d8937457119",
+  "patch_sha256": "beeb2f5afbfca0058a1ecfeed840a5983bf9a68bb8988ec8fde3a9bc3690f4f9",
+  "production_source_before_sha256": {
+    "server-task.cpp": "cd9bdf46141466ae0aa7af6509c6c1113d383d281f45bbb9118348dbabd79483",
+    "server-task.h": "38e1a13bd7e96e9574b0ee00e763b20d335ea7076d274a7399801b554e481db0"
+  },
+  "production_source_after_sha256": {
+    "server-task.cpp": "573d30ea9b72c9b7a3630dee105fc6613dda37d6ef629615f02bcc3f503e67f9",
+    "server-task.h": "cdff6378de48816140ffd2cd5645328416b6f549d993f4dc94c8141ff819700a"
+  },
+  "test_source_sha256": "f0f897e3417d4fe4207e33aadb3987015aeab58870c389acd6c506217f28fbb2",
   "build": {
     "image_id": "sha256:c9d7cd30fb6f0d75280fda34b20cd70350dc69072ffebf564f0fffc92b8b330a",
     "owned_container": "ezlocalai-cache-restore-build-20261026",
@@ -20,15 +26,16 @@
     "physical_gpu_used": false
   },
   "regression_scenarios": {
-    "count": 14,
-    "complete_target_and_draft": 1,
-    "complete_target_only": 1,
-    "failed_target_rejected_partial_oversized": 3,
-    "failed_draft_rejected_partial_oversized": 3,
-    "empty_target_payload_with_or_without_draft": 2,
-    "missing_target_or_draft_context": 2,
-    "protected_eviction_and_valid_survivor_after_failed_restore": 1,
-    "cache_miss_without_deserializer_call": 1
+    "count": 31,
+    "restore_scenarios": 14,
+    "complete_target_and_optional_draft_snapshots": 2,
+    "failed_target_snapshot_zero_partial_oversized": 3,
+    "failed_draft_snapshot_zero_partial_oversized": 3,
+    "target_and_draft_serializer_exceptions": 2,
+    "unavailable_target_and_draft_sizes": 2,
+    "empty_prompt_or_missing_target_context": 2,
+    "oversize_and_protected_budget_refusals": 2,
+    "duplicate_snapshot_skip": 1
   },
   "verified_properties": [
     "Both target and draft payload bytes and complete cache budget remain intact inside both deserializer calls.",
@@ -37,20 +44,33 @@
     "A later miss does not select the failed entry.",
     "A valid replacement can restore after a failure.",
     "Empty target state and unavailable required context fail before any deserializer call.",
-    "Protected eviction and cache hard ceiling still apply after a failure."
+    "Protected eviction and cache hard ceiling still apply after a failure.",
+    "Every outgoing target/draft snapshot byte count is validated; zero/partial/oversized writes remove only the newly allocated entry.",
+    "Escaping target/draft serializer exceptions remove only the new entry and retain the original exception type.",
+    "Successful save roundtrips through the actual loader; active prompt/checkpoint metadata is preserved.",
+    "Unavailable state sizes, duplicate state and over-budget/protected-state allocation skip serialization without publishing an incomplete entry."
   ],
   "runs": [
     {
-      "name": "test_cache_restore_atomic",
+      "name": "test_cache_save_restore_atomic",
+      "kind": "actual_production_translation_unit",
       "exit_code": 0,
       "expected_exit_code": 0,
-      "log_sha256": "346bf23b232d97a3c772e2270625fe51bf7f30d5bc7198748cce7a7e2501ea33"
+      "log_sha256": "3c247263deeb637cda578f786d4f9f06748fecc9e7b86047f254979500e5536b"
     },
     {
-      "name": "test_cache_restore_atomic_before",
+      "name": "test_cache_unchecked_save",
+      "kind": "negative_mutation_outgoing_byte_count_checks_disabled",
       "exit_code": 1,
       "expected_exit_code": 1,
-      "log_sha256": "819285fa3f0fb4dcaa6eb70b466ff050270ceefef5376b24cdc6c1f77a1f2bb3"
+      "log_sha256": "9610b6798947ee11ae157b32ba9b0be57b2dd99a08e0d09ccaf4fb56eeb3c2c8"
+    },
+    {
+      "name": "test_cache_no_exception_cleanup",
+      "kind": "negative_mutation_outgoing_exception_cleanup_disabled",
+      "exit_code": 1,
+      "expected_exit_code": 1,
+      "log_sha256": "6b1d8711b153b5a9ffd0cdab668ccc26c1645691a13ed50b4c3227e17a5545d0"
     }
   ],
   "patch_roundtrip": {
@@ -61,8 +81,31 @@
   "independent_review": {
     "task": "/root/cache_restore_fix/review_restore",
     "blocking_findings": 0,
-    "limit": "Active target/draft context recovery remains caller-driven on false, rather than attempting to undo partial backend mutations."
+    "save_review_found_exception_edge_fixed": true,
+    "limit": "Active target/draft context recovery remains caller-driven on false; already-required allocation-policy evictions are not rolled back.",
+    "save_exception_fix_rechecked": true,
+    "save_exception_fix_blocking_findings": 0
   },
   "package_gate_run": false,
-  "bulk_proof_directory": "build/validation/cache-restore-20261026/"
+  "bulk_proof_directory": "build/validation/cache-restore-20261026/",
+  "initial_load_only_qualification": {
+    "test_source_sha256": "29be8706d828b759eb0d8cf8dac21cbe70ecc00ec4e93d5af6041d8937457119",
+    "patch_sha256": "8bdf244b7464d428316caa18cd952dbd56d18b1a577728cda34875e1b82a93cc",
+    "runs": [
+      {
+        "name": "test_cache_restore_atomic",
+        "exit_code": 0,
+        "expected_exit_code": 0,
+        "log_sha256": "346bf23b232d97a3c772e2270625fe51bf7f30d5bc7198748cce7a7e2501ea33"
+      },
+      {
+        "name": "test_cache_restore_atomic_before",
+        "exit_code": 1,
+        "expected_exit_code": 1,
+        "log_sha256": "819285fa3f0fb4dcaa6eb70b466ff050270ceefef5376b24cdc6c1f77a1f2bb3"
+      }
+    ],
+    "scenario_count": 14
+  },
+  "exception_behavior": "An allocation-free outgoing-entry guard erases the incomplete new snapshot and lets the original serializer exception propagate unchanged."
 }

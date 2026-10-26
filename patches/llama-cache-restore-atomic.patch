@@ -1,10 +1,76 @@
+diff --git a/tools/server/server-task.h b/tools/server/server-task.h
+--- a/tools/server/server-task.h
++++ b/tools/server/server-task.h
+@@ -688,6 +688,8 @@
+
+     server_prompt_cache_state * alloc(const server_prompt & prompt, size_t state_size_main, size_t state_size_drft, const server_tokens * requested = nullptr);
+
++    bool save(const server_prompt & prompt, llama_context * ctx_tgt, llama_context * ctx_dft, int32_t id_slot, const server_tokens * requested = nullptr);
++
+     bool load(server_prompt & prompt, const server_tokens & tokens_new, llama_context * ctx_tgt, llama_context * ctx_dft, int32_t id_slot);
+
+     void update();
 diff --git a/tools/server/server-task.cpp b/tools/server/server-task.cpp
 --- a/tools/server/server-task.cpp
 +++ b/tools/server/server-task.cpp
-@@ -1833,37 +1833,39 @@
+@@ -1828,42 +1828,93 @@
+     return &states.back();
+ }
+
++bool server_prompt_cache::save(const server_prompt & prompt, llama_context * ctx_tgt, llama_context * ctx_dft, int32_t id_slot, const server_tokens * requested) {
++    if (prompt.tokens.empty() || ctx_tgt == nullptr) {
++        return false;
++    }
++
++    const size_t size_tgt =           llama_state_seq_get_size_ext(ctx_tgt, id_slot, LLAMA_STATE_SEQ_FLAGS_NONE);
++    const size_t size_dft = ctx_dft ? llama_state_seq_get_size_ext(ctx_dft, id_slot, LLAMA_STATE_SEQ_FLAGS_NONE) : 0;
++    if (size_tgt == 0 || (ctx_dft != nullptr && size_dft == 0)) {
++        SRV_WRN("%s", "cannot save cached prompt with an unavailable state size\n");
++        return false;
++    }
++
++    SRV_TRC(" - saving prompt with length %d, total state size = %.3f MiB (draft: %.3f MiB)\n",
++            (int) prompt.tokens.size(), (size_tgt + size_dft) / (1024.0 * 1024.0), size_dft / (1024.0 * 1024.0));
++
++    auto * saved = alloc(prompt, size_tgt, size_dft, requested);
++    if (saved == nullptr) {
++        return false;
++    }
++
++    // alloc() may evict other entries to honor the budget. If serialization
++    // fails, invalidate only this new entry; never publish partial/stale bytes.
++    struct incomplete_snapshot {
++        std::list<server_prompt_cache_state> & entries;
++        server_prompt_cache_state * entry;
++        ~incomplete_snapshot() {
++            if (entry == nullptr) return;
++            const auto it = std::find_if(entries.begin(), entries.end(), [&](const auto & state) { return &state == entry; });
++            if (it != entries.end()) entries.erase(it);
++        }
++    } guard{states, saved};
++
++    const size_t written_tgt = llama_state_seq_get_data_ext(ctx_tgt, saved->data.main.data(), size_tgt, id_slot, LLAMA_STATE_SEQ_FLAGS_NONE);
++    if (written_tgt != size_tgt) {
++        SRV_WRN("failed to save target state: expected %zu bytes, wrote %zu\n", size_tgt, written_tgt);
++        return false;
++    }
++    if (ctx_dft != nullptr) {
++        const size_t written_dft = llama_state_seq_get_data_ext(ctx_dft, saved->data.drft.data(), size_dft, id_slot, LLAMA_STATE_SEQ_FLAGS_NONE);
++        if (written_dft != size_dft) {
++            SRV_WRN("failed to save draft state: expected %zu bytes, wrote %zu\n", size_dft, written_dft);
++            return false;
++        }
++    }
++
++    guard.entry = nullptr;
++    return true;
++}
++
+ bool server_prompt_cache::load(server_prompt & prompt, const server_tokens & tokens_new, llama_context * ctx_tgt, llama_context * ctx_dft, int32_t id_slot) {
+     auto it_best = find_best(prompt, tokens_new);
      if (it_best != states.end()) {
          SRV_TRC("%s", " - found a longer cached prompt prefix\n");
- 
+
 +        // A failed restore invalidates this cache entry. Keep both payloads
 +        // intact until all contexts are restored; the caller clears its active
 +        // contexts before reprocessing when this function returns false.
@@ -18,7 +84,7 @@ diff --git a/tools/server/server-task.cpp b/tools/server/server-task.cpp
          {
 -            auto & data = it_best->data.main;
 +            const auto & data = it_best->data.main;
- 
+
              const size_t size = data.size();
              const size_t n = llama_state_seq_set_data_ext(ctx_tgt, data.data(), size, id_slot, 0);
              if (n != size) {
@@ -31,11 +97,11 @@ diff --git a/tools/server/server-task.cpp b/tools/server/server-task.cpp
 -            data.clear();
 -            data.shrink_to_fit();
          }
- 
+
          {
 -            auto & data = it_best->data.drft;
 +            const auto & data = it_best->data.drft;
- 
+
              if (!data.empty()) {
 -                GGML_ASSERT(ctx_dft);
 -
@@ -52,4 +118,4 @@ diff --git a/tools/server/server-task.cpp b/tools/server/server-task.cpp
 -                data.shrink_to_fit();
              }
          }
- 
+

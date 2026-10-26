@@ -1,4 +1,4 @@
-# Atomic prompt-cache restoration
+# Atomic prompt-cache save and restore
 
 Apply `llama-cache-restore-atomic.patch` after the managed conversation-cache
 patch on llama.cpp `620d2225cc436ab0b001e3200e590e3b286ef9ab`.
@@ -16,15 +16,25 @@ clear both active contexts when `load()` returns false before recomputing. Any
 additional speculative CPU-state restoration must finish before the final
 prompt move and entry removal as well.
 
+Outgoing snapshots use `server_prompt_cache::save()`. It obtains the target
+and optional draft sizes, allocates through the existing protected-eviction
+policy, and requires each serializer to return its full expected byte count.
+An incomplete new entry is erased on failure or an escaping exception; an
+allocation-free guard preserves the original exception behavior. Active prompt
+tokens/checkpoints and the protected requested entry are not overwritten.
+Evictions already required by allocation policy are not rolled back.
+
 `test_cache_restore_atomic` compiles the managed engine's actual
 `tools/server/server-task.cpp` into its executable. Only the external
 `llama_state_seq_set_data_ext` boundary is replaced with a fault injector. The
-14 scenarios cover target/draft success, zero/partial/oversized return values,
-empty targets, missing required contexts, survivor preservation, valid retry,
-protected eviction and a miss without a backend call. During both backend
-calls the test checks that neither cached payload nor its accounted budget has
-been consumed. The same test built with the pre-fix production translation
-unit fails at that ownership check.
+31 scenarios cover target/draft save and restore success, zero/partial/oversized
+return values, unavailable sizes, empty targets, missing required contexts,
+serializer exceptions, survivor preservation, valid retry, protected eviction,
+duplicate/over-budget saves and a miss without a backend call. During both
+restore calls the test checks that neither cached payload nor its accounted
+budget has been consumed. A load-only build using the pre-fix production
+translation unit fails at that ownership check. Separate mutation controls
+that remove the outgoing byte-count checks or exception cleanup both fail.
 
 Build the target with `tests/test_cache_restore_atomic.cpp` and the actual
 `${EZLOCALAI_TTS_LLAMA_SOURCE}/tools/server/server-task.cpp`, using the same
