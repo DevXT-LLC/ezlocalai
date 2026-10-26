@@ -1,0 +1,132 @@
+diff --git a/common/checkpoint-coverage.h b/common/checkpoint-coverage.h
+new file mode 100644
+index 0000000..88b8ca8
+--- /dev/null
++++ b/common/checkpoint-coverage.h
+@@ -0,0 +1,59 @@
++#pragma once
++
++#include <algorithm>
++#include <array>
++#include <cstdint>
++#include <cstdlib>
++#include <cstring>
++
++inline bool common_checkpoint_coverage_enabled() {
++    const char * value = std::getenv("EZLOCALAI_LLAMA_CHECKPOINT_COVERAGE");
++    return value == nullptr || std::strcmp(value, "0") != 0;
++}
++
++struct common_checkpoint_plan {
++    std::array<int32_t, 3> offsets{};
++    size_t count = 0;
++    int32_t old_near_span = 0;
++    int32_t extra_offset = 0;
++    int32_t extra_near_span = 0;
++
++    bool break_before_end(int64_t remaining) const {
++        for (size_t i = 0; i < count; ++i) if (remaining == offsets[i]) return true;
++        return false;
++    }
++    bool near_end(int64_t remaining_after, int64_t remaining_before) const {
++        // Preserve ordinary near-end behavior. The expanded span permits only
++        // the ONE added snapshot, not unrelated user-message/batch boundaries.
++        return remaining_after < old_near_span ||
++            (extra_offset > 0 && remaining_before == extra_offset && remaining_after < extra_near_span);
++    }
++};
++
++inline common_checkpoint_plan common_plan_checkpoints(
++        int64_t prompt_tokens, int32_t n_batch, int32_t n_ubatch,
++        int32_t max_checkpoints, bool named_text_prompt, bool recurrent_checkpoint,
++        bool enabled = common_checkpoint_coverage_enabled()) {
++    common_checkpoint_plan plan;
++    plan.old_near_span = std::max(0, n_ubatch);
++    if (n_batch <= 0 || n_ubatch <= 0) return plan;
++    const auto bounded = [n_batch](int64_t offset) { return int32_t(std::min<int64_t>(n_batch, offset)); };
++    const auto add = [&](int32_t offset) {
++        for (size_t i = 0; i < plan.count; ++i) if (plan.offsets[i] == offset) return false;
++        plan.offsets[plan.count++] = offset;
++        return true;
++    };
++    // These two original offsets always remain, including with the opt-out.
++    add(bounded(int64_t(n_ubatch) + 4));
++    add(bounded(4));
++    if (enabled && named_text_prompt && recurrent_checkpoint &&
++            prompt_tokens >= 4096 && max_checkpoints >= 4) {
++        const int32_t extra = bounded(std::max<int64_t>(n_ubatch, 2048) + 4);
++        if (add(extra)) {
++            plan.extra_offset = extra;
++            plan.extra_near_span = std::max(n_ubatch, extra - 4);
++        }
++    }
++    std::sort(plan.offsets.begin(), plan.offsets.begin() + plan.count, [](int32_t a, int32_t b) { return a > b; });
++    return plan;
++}
+diff --git a/tools/server/server-context.cpp b/tools/server/server-context.cpp
+index d46d508..130e6c3 100644
+--- a/tools/server/server-context.cpp
++++ b/tools/server/server-context.cpp
+@@ -10,6 +10,7 @@
+ 
+ #include "build-info.h"
+ #include "common.h"
++#include "checkpoint-coverage.h"
+ #include "fit.h"
+ #include "llama.h"
+ #include "log.h"
+@@ -4039,6 +4040,12 @@ private:
+                             ctx_tgt_seq_rm_type == COMMON_CONTEXT_SEQ_RM_TYPE_RS ||
+                             n_swa > 0);
+ 
++                    const auto checkpoint_plan = common_plan_checkpoints(
++                            slot.task->n_tokens(), n_batch, n_ubatch, params_base.n_ctx_checkpoints,
++                            !slot.task->params.prompt_cache_key.empty() && !input_tokens.has_mtmd,
++                            do_checkpoint && (ctx_tgt_seq_rm_type == COMMON_CONTEXT_SEQ_RM_TYPE_FULL ||
++                                              ctx_tgt_seq_rm_type == COMMON_CONTEXT_SEQ_RM_TYPE_RS));
++
+                     // TODO: do the same for all models, then remove process_mtmd_chunk()
+                     if (use_mixed_batch() && !slot.can_split() && input_tokens.has_mtmd) {
+                         if (!add_prompt_mixed(slot)) {
+@@ -4145,25 +4152,11 @@ private:
+                             }
+                         }
+ 
+-                        // process the last few tokens of the prompt separately in order to allow for a checkpoint to be created.
+-                        // create checkpoints that many tokens before the end of the prompt:
+-                        //  - 4 + n_ubatch
+-                        //  - 4
+-                        // ref: https://github.com/ggml-org/llama.cpp/pull/20288
+-                        if (do_checkpoint) {
+-                            static const int checkpoint_offsets[] = {4 + n_ubatch, 4};
+-
+-                            bool should_break = false;
+-                            for (int offset : checkpoint_offsets) {
+-                                const int n_last = std::min(n_batch, offset);
+-                                if (slot.task->n_tokens() == slot.prompt.n_tokens() + n_last) {
+-                                    should_break = true;
+-                                    break;
+-                                }
+-                            }
+-                            if (should_break) {
+-                                break;
+-                            }
++                        // Split at the original end boundaries, plus one earlier
++                        // boundary for long named recurrent text conversations.
++                        if (do_checkpoint && checkpoint_plan.break_before_end(
++                                slot.task->n_tokens() - slot.prompt.n_tokens())) {
++                            break;
+                         }
+                     }
+ 
+@@ -4172,7 +4165,9 @@ private:
+ 
+                     const auto n_tokens_start = slot.prompt.n_tokens() - n_tokens_cur;
+ 
+-                    const bool near_prompt_end = slot.task->n_tokens() < slot.prompt.n_tokens() + n_ubatch;
++                    const bool near_prompt_end = checkpoint_plan.near_end(
++                            slot.task->n_tokens() - slot.prompt.n_tokens(),
++                            slot.task->n_tokens() - n_tokens_start);
+ 
+                     const bool is_user_start = spans.is_user_start(n_tokens_start);
+                     const bool is_last_user_message = n_tokens_start == last_user_pos;
