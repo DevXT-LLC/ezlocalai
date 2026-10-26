@@ -1337,8 +1337,7 @@
     "status": "both cards text/vision complete; environment settings pending",
     "sample_counts": "Across initial screens plus confirmation:150K baseline2/candidate2 per card;68K baseline2/candidate1 per card. Confirmation table uses one fresh-engine paired trial per depth.",
     "items": [
-      "persistent environment settings",
-      "3090V promotion decision after two append-output differences"
+      "retried persistent environment rollouts"
     ]
   },
   "rejected_code": {
@@ -1361,6 +1360,42 @@
     "failed_restore_gap": "Successful target restore clears cached main bytes before draft restore. Draft failure leaves a selectable damaged entry; preserve all payloads until complete success, reject empty main state and evict failed entries.",
     "classification": "Read-only source consistency findings; no measured acceptance-rate or answer-quality loss and no partial fix shipped."
   },
+  "sampled_quality_review": {
+    "worker": "DevXT3090V",
+    "candidate_ubatch": 1024,
+    "confirmation_long_requests_identical": 8,
+    "confirmation_long_outputs_identical": 6,
+    "changed_cases": "Both32-token-capped prefill_append summaries: GPU/CPUallocation versus GPUmemoryallocation; orchestrationlayer versus orchestrationsystem.",
+    "prior_short_outputs_identical": 16,
+    "prior_freeform_256_token_decode_outputs_identical": 3,
+    "independent_semantic_review": "Coordinator plus independent source/semantic reviewers found no concrete loss or contradictory claim in the two paraphrases.",
+    "interpretation": "No quality degradation observed in these sampled workloads; not comprehensive model quality equivalence or universal byte identity.",
+    "evidence": "Coordinator-reported independent source and semantic review."
+  },
+  "environment_rollout_events": [
+    {
+      "label": "DevXT5090",
+      "run_id": "env-20261026-devxt5090-7ffad6fc",
+      "status": "failed_rolled_back",
+      "proof_sha256": "9632d7a48b976d6d1876d124c00a45fefe9009f225df7d0876ed4b5840c82004",
+      "original_restored": true,
+      "final_healthy": true,
+      "drain_released": true,
+      "lease_errors": [],
+      "rollback": {
+        "dotenv_restored": true,
+        "healthy": true,
+        "original_container_restored": true,
+        "rollback_image": "ezlocalai:rollback-env-env-20261026-devxt5090-7ffad6fc",
+        "run_directory": "/tmp/ezlocalai-env-update-env-20261026-devxt5090-7ffad6fc",
+        "status": "rolled_back"
+      },
+      "final_selected_environment": {
+        "LLM_UBATCH_SIZE": "1024"
+      },
+      "interpretation": "First attempt aborted in deployment-helper pre-creation verification; original container/dotenv were restored before a later retry. No final setting change from this attempt."
+    }
+  ],
   "applied_environment_changes": {
     "status": "pending coordinator qualification",
     "changes": []

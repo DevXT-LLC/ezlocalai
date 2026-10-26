@@ -115,9 +115,10 @@ prefill speedup or a new checkpoint implementation.
 
 MTP maximum 4/5 on the 4090 and 5090, and 4 on the 3090V, changed all three
 freeform decode outputs (13/16 total outputs remained identical). Their modest
-or negative throughput changes do not justify promoting them under the current
-output-preservation criterion. MTP maximum 3 on the 3090V preserved all 16
-outputs but gave no useful decode gain. The deployed MTP settings are retained.
+or negative throughput changes do not justify selecting them. Different greedy
+wording alone does not establish a quality regression. MTP maximum 3 on the
+3090V preserved all 16 outputs but gave no useful decode gain. The deployed
+MTP settings are retained.
 
 The 5090 defaults to four inference threads on its 24-core hybrid CPU. Screens
 at one, four and eight threads preserved all outputs and showed no useful gain;
@@ -217,8 +218,12 @@ all cold, repeat, append and extend output hashes at both depths also match
 eight output hashes match: both freeform append answers change slightly (for
 example, “inference orchestration layer” becomes “inference orchestration
 system”). Both remain 32-token capped descriptions, while the cold, repeat and
-extend answers stay identical. This does not establish a quality loss, but it
-does fail the exact-output criterion used for promotion.
+extend answers stay identical. Independent source and semantic review found no
+contradictory claim or concrete quality loss in those two changes. The earlier
+3090V short suite matched all 16 outputs, including three freeform 256-token
+decode answers. These observations support the batch-setting decision for the
+sampled workloads; they do not establish comprehensive quality equivalence or
+universal byte-identical answers.
 
 Both candidates passed the fixed-context text and vision checks:
 
@@ -233,10 +238,13 @@ tests allowed no smaller-context retry and no inference retry. Each production
 container was then restored with its original image, environment and mounts,
 and its owned drain was released.
 
-**Pending:** persistent environment changes and the promotion decision for the
-3090V after its append-output differences. No persistent environment setting
+The first 5090 environment rollout aborted in the deployment helper during
+pre-creation verification. Recovery restored the original container and dotenv
+settings, verified health at physical batch 1024, and released the owned drain.
+
+**Pending:** the retried environment rollouts. No persistent environment setting
 has been applied yet; the coordinator will replace this paragraph with an
-explicit old/new settings record.
+explicit old/new settings record and final verification results.
 
 ## Follow-up cache work
 
