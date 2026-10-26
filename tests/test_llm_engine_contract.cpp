@@ -19,7 +19,7 @@ void verify_sources(const std::filesystem::path & fixture) {
 #if defined(TEST_LLAMA_MANAGED_ENGINE) && TEST_LLAMA_MANAGED_ENGINE
     const std::set<std::string> expected{
         "common/common.h", "common/arg.cpp", "common/speculative.cpp", "common/speculative.h",
-        "common/speculative-mtp-state.h", "common/state-storage.h", "tools/server/server-task.cpp",
+        "common/speculative-mtp-state.h", "common/state-storage.h", "common/checkpoint-coverage.h", "tools/server/server-task.cpp",
         "tools/server/server-task.h", "tools/server/server-context.cpp"};
 #else
     const std::set<std::string> expected{"common/common.h", "common/arg.cpp", "common/speculative.cpp"};
