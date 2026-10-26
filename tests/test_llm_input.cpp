@@ -12,6 +12,7 @@
 #include <iostream>
 #include <mutex>
 #include <openssl/sha.h>
+#include <optional>
 #include <sstream>
 #include <thread>
 #include <unistd.h>
@@ -31,11 +32,13 @@ std::string quote(const std::string &value) {
     return out + '"';
 }
 std::string array(const std::vector<std::string> &values) { std::string out = "["; for (const auto &value : values) { if (out.size() > 1) out += ','; out += value; } return out + ']'; }
-size_t policy(const fs::path &reference, const fs::path &fixture) {
-    std::istringstream input(read(fixture)); size_t count = 0;
+size_t policy(const std::optional<fs::path> &reference, const fs::path &fixture) {
+    const auto captured = read(fixture);
+    expect(!captured.empty(), "input fixture is missing or empty: " + fixture.string());
+    std::istringstream input(captured); size_t count = 0;
     for (std::string line; std::getline(input, line);) {
         if (line.empty()) continue;
-        if (line.front() == '#') { const auto at = line.find(" sha256="); if (at != std::string::npos) expect(hash(read(reference / line.substr(2, at - 2))) == line.substr(at + 8), "input reference changed"); continue; }
+        if (line.front() == '#') { const auto at = line.find(" sha256="); if (reference && at != std::string::npos) expect(hash(read(*reference / line.substr(2, at - 2))) == line.substr(at + 8), "input reference changed"); continue; }
         const auto c = split(line); expect(c.size() == 8, "input fixture fields"); ++count;
         std::vector<std::string> events;
         ezlocalai::LlmInputOperations operations;
@@ -226,8 +229,37 @@ void prepared_fallback(const fs::path &root) {
     expect(result.status == 200 && result.body.find("fallback") != std::string::npos, "prepared request post-inference fallback");
     expect(remote.requests().find(R"("messages":[{"content":"beforeafter"}])") != std::string::npos, "post-inference fallback receives prepared messages");
 }
+void duplicate_outer_fields() {
+    std::vector<std::string> events;
+    ezlocalai::LlmInputOperations operations;
+    operations.local_uri = "http://local";
+    operations.load = [&] { events.push_back("load"); return ezlocalai::LlmInputModel{"source", false, R"(["BASE"])"}; };
+    operations.transcribe = [&](const std::string &audio, const std::string &format) {
+        events.push_back("transcribe:" + audio + ':' + format);
+        return std::string(R"("transcribed")");
+    };
+    // Python dict assignment keeps the first decoded-key position and the last
+    // value. The later model/local URI assignments also preserve that position.
+    const auto prepared = ezlocalai::llm_prepare_text_image_input(
+        R"({"x":0,"\u0078":2,"messages":[{"content":"old"}],"\u006dessages":[{"content":"last"}],"local_uri":"old","\u006cocal_uri":"new","model":"old","\u006dodel":"new","stop":["A"],"\u0073top":["B"]})", true, operations);
+    expect(prepared == R"({"x":2,"messages":[{"content":"last"}],"local_uri":"http://local","model":"source","stop":["BASE","B"]})",
+        "duplicate and escaped outer keys retain values and output order");
+    expect(events == std::vector<std::string>{"load"}, "absent audio format does not transcribe");
+    events.clear();
+    const auto audio = ezlocalai::llm_prepare_text_image_input(
+        R"({"audio_format":"wav","\u0061udio_format":null,"messages":[{"content":"eA=="}]})", true, operations);
+    expect(audio == R"({"audio_format":null,"messages":[{"content":"transcribed"}],"local_uri":"http://local","model":"source"})",
+        "last duplicate audio format is preserved, including null");
+    expect(events == std::vector<std::string>{"load", "transcribe:\"eA==\":null"},
+        "present null audio format transcribes after model load");
+}
 }
 int main(int argc, char **argv) {
-    try { expect(argc == 3, "reference and fixtures required"); const auto count = policy(argv[1], argv[2]); char path[] = "/tmp/ezlocalai-input-XXXXXX"; const auto root = mkdtemp(path); expect(root, "temporary directory"); managed(root); images(fs::path(root) / "remote"); description(fs::path(root) / "description"); prepared_fallback(fs::path(root) / "fallback"); fs::remove_all(root); std::cout << count << " reference input cases and managed preparation/load/error/image/description/fallback checks passed\n"; return 0; }
+    try { expect(argc == 3, "usage: test_llm_input REFERENCE_ROOT|--fixtures FIXTURE_FILE");
+        // Packaged images carry captures, not the Python checkout. Only this
+        // explicit mode skips source hash checks; every captured expectation,
+        // case-count guard and managed regression still runs.
+        const auto reference = std::string(argv[1]) == "--fixtures" ? std::optional<fs::path>{} : fs::path(argv[1]);
+        const auto count = policy(reference, argv[2]); duplicate_outer_fields(); char path[] = "/tmp/ezlocalai-input-XXXXXX"; const auto root = mkdtemp(path); expect(root, "temporary directory"); managed(root); images(fs::path(root) / "remote"); description(fs::path(root) / "description"); prepared_fallback(fs::path(root) / "fallback"); fs::remove_all(root); std::cout << count << " recorded input cases and managed preparation/load/error/image/description/fallback checks passed\n"; return 0; }
     catch (const std::exception &error) { std::cerr << error.what() << '\n'; return 1; }
 }

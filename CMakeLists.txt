@@ -1033,6 +1033,8 @@ add_executable(test_llm_request tests/test_llm_request.cpp)
 target_link_libraries(test_llm_request PRIVATE ezlocalai_native)
 add_executable(bench_llm_request EXCLUDE_FROM_ALL benchmarks/bench_request.cpp)
 target_link_libraries(bench_llm_request PRIVATE ezlocalai_native nlohmann_json::nlohmann_json)
+add_executable(bench_llm_input EXCLUDE_FROM_ALL benchmarks/bench_input.cpp)
+target_link_libraries(bench_llm_input PRIVATE ezlocalai_native nlohmann_json::nlohmann_json)
 target_compile_definitions(test_llm_request PRIVATE TEST_EMBEDDING_FIXTURE_BIN="$<TARGET_FILE:test_embedding_fixture>")
 add_dependencies(test_llm_request test_embedding_fixture)
 add_test(NAME llm_request_reference COMMAND test_llm_request ${EZLOCALAI_REFERENCE_ROOT} ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/llm_request_cases.tsv)
@@ -1044,6 +1046,8 @@ target_compile_definitions(test_llm_input PRIVATE TEST_EMBEDDING_FIXTURE_BIN="$<
 add_dependencies(test_llm_input test_embedding_fixture)
 add_test(NAME llm_input_reference COMMAND test_llm_input ${EZLOCALAI_REFERENCE_ROOT} ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/llm_input_cases.tsv)
 set_tests_properties(llm_input_reference PROPERTIES TIMEOUT 60)
+add_test(NAME llm_input_package COMMAND test_llm_input --fixtures ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/llm_input_cases.tsv)
+set_tests_properties(llm_input_package PROPERTIES TIMEOUT 60)
 
 add_executable(test_llm_audio_fixture tests/llm_audio_process_fixture.cpp)
 add_executable(test_llm_audio tests/test_llm_audio.cpp tests/test_llm_audio_runtime.cpp)
@@ -1817,6 +1821,7 @@ if(TARGET test_ltx_norm AND TARGET ezlocalai-tts)
         test_service_clients
         test_llm_residency
         test_llm_cache
+        test_llm_input
         test_llm_headroom
         test_cuda_allocator
         test_torch_resources
