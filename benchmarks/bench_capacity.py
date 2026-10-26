@@ -18,7 +18,8 @@ import urllib.request
 import uuid
 import zlib
 
-from bench_progression import atomic_report, digest, native_metrics, validate_metadata
+from bench_progression import (atomic_report, digest, native_metrics,
+                               prompt_cache_key_argument, validate_metadata)
 
 
 def red_png(width=64, height=64):
@@ -50,10 +51,13 @@ class Client:
         return value
 
 
-def request_body(messages):
-    return {"messages": messages, "max_tokens": 8, "temperature": 0, "seed": 42,
+def request_body(messages, prompt_cache_key=None):
+    body = {"messages": messages, "max_tokens": 8, "temperature": 0, "seed": 42,
             "stream": False, "cache_prompt": False,
             "chat_template_kwargs": {"enable_thinking": False}}
+    if prompt_cache_key is not None:
+        body["prompt_cache_key"] = prompt_cache_key_argument(prompt_cache_key)
+    return body
 
 
 def launch_settings(metadata):
@@ -95,8 +99,8 @@ def language_messages(source, characters, run_id):
             {"role": "user", "content": "Reference code:\n" + text + "\nWhat language is this? Reply in one word."}]
 
 
-def count_text(client, messages):
-    prompt = client("/apply-template", request_body(messages)).get("prompt")
+def count_text(client, messages, prompt_cache_key=None):
+    prompt = client("/apply-template", request_body(messages, prompt_cache_key)).get("prompt")
     if not isinstance(prompt, str):
         raise RuntimeError("text chat template did not return a string")
     tokens = client("/tokenize", {"content": prompt, "add_special": True, "parse_special": True}).get("tokens")
@@ -176,12 +180,13 @@ def validate_completion(value, expected_tokens, expected_word, context):
             "output_sha256": digest(choice["message"])}
 
 
-def qualify(client, source, context, ubatch, metadata, run_id, save, fraction=.95):
+def qualify(client, source, context, ubatch, metadata, run_id, save, fraction=.95, prompt_cache_key=None):
     props = client("/props")
     runtime = validate_properties(props, context, ubatch, metadata)
     save("runtime", runtime)
-    messages, preparation = prepare_capacity(source, context, lambda m: count_text(client, m), run_id, fraction)
-    body = request_body(messages)
+    messages, preparation = prepare_capacity(source, context,
+        lambda m: count_text(client, m, prompt_cache_key), run_id, fraction)
+    body = request_body(messages, prompt_cache_key)
     exact = client("/v1/chat/completions/input_tokens", body).get("input_tokens")
     if exact != preparation["input_tokens"]:
         raise RuntimeError("chat-token endpoint differs from prepared tokenization; inference was not attempted")
@@ -200,7 +205,7 @@ def qualify(client, source, context, ubatch, metadata, run_id, save, fraction=.9
                 {"role": "user", "content": [
                     {"type": "text", "text": "What is the single solid color in this image? Reply with the color word only."},
                     {"type": "image_url", "image_url": {"url": image_url}}]}]
-    body = request_body(messages)
+    body = request_body(messages, prompt_cache_key)
     n_tokens = client("/v1/chat/completions/input_tokens", body).get("input_tokens")
     if isinstance(n_tokens, bool) or not isinstance(n_tokens, int) or n_tokens < 1 or n_tokens + 32 > context:
         raise RuntimeError("vision input exceeds or lacks a verified context budget")
@@ -228,6 +233,8 @@ def main(argv=None):
     parser.add_argument("output", type=Path)
     parser.add_argument("--metadata", type=Path, required=True, help="verified immutable launch metadata, including n_ctx/n_ubatch or original_parameters plus overrides")
     parser.add_argument("--run-id", default=uuid.uuid4().hex)
+    parser.add_argument("--prompt-cache-key", type=prompt_cache_key_argument,
+                        help="optional named key for text and vision requests; full cold evaluation remains required")
     parser.add_argument("--fraction", type=float, default=.95)
     parser.add_argument("--timeout", type=float, default=1800)
     parser.add_argument("--api-key-env", default="EZLOCALAI_API_KEY")
@@ -242,7 +249,7 @@ def main(argv=None):
     validate_metadata(metadata)
     report = {"status": "running", "label": args.label, "run_id": args.run_id,
               "declared_context": args.context, "expected_n_ubatch": args.expected_ubatch,
-              "target_fraction": args.fraction, "metadata": metadata,
+              "target_fraction": args.fraction, "metadata": metadata, "prompt_cache_key": args.prompt_cache_key,
               "source_sha256": hashlib.sha256(source.encode()).hexdigest(),
               "harness_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
               "requested_sampling": {"temperature": 0, "seed": 42, "enable_thinking": False},
@@ -257,7 +264,7 @@ def main(argv=None):
     atomic_report(args.output, report)
     try:
         qualify(Client(args.base_url, os.environ.get(args.api_key_env, ""), args.timeout), source,
-                args.context, args.expected_ubatch, metadata, args.run_id, save, args.fraction)
+                args.context, args.expected_ubatch, metadata, args.run_id, save, args.fraction, args.prompt_cache_key)
         report["status"] = "complete"
     except Exception as error:
         report["status"] = "failed"

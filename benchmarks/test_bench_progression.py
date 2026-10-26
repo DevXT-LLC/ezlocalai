@@ -2,6 +2,7 @@ import hashlib
 import io
 import json
 from pathlib import Path
+import re
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -60,11 +61,30 @@ class StreamingMeasurementsTests(unittest.TestCase):
         self.assertEqual(sample["cache_fraction"], 18 / 38)
         payload = json.loads(seen[0].data)
         self.assertEqual(payload["prompt_cache_key"], "A")
+        self.assertEqual(sample["request_sha256"], digest(payload))
         self.assertEqual(payload["model"], "Model")
         self.assertEqual(payload["temperature"], 0)
         self.assertFalse(payload["chat_template_kwargs"]["enable_thinking"])
         self.assertEqual(seen[0].get_header("Authorization"), "Bearer private-key")
         self.assertNotIn("private-key", json.dumps(sample))
+
+    def test_optional_key_changes_actual_request_hash_without_changing_historical_default(self):
+        messages = [{"role": "user", "content": "hello"}]
+        samples, payloads = [], []
+        for cache_key in (None, "named-prefill"):
+            def opener(request, **kwargs):
+                payloads.append(json.loads(request.data))
+                return response(records())
+
+            samples.append(measure_stream("http://local", "", messages, cache_key=cache_key,
+                clock=lambda: 1, opener=opener))
+        self.assertNotIn("prompt_cache_key", payloads[0])
+        self.assertEqual(samples[0]["request_sha256"],
+            "0d02395b66f4241ed719c8bd66f01fdb3ce6d49369408f709e0ead9a715bf3be")
+        self.assertEqual(payloads[1]["prompt_cache_key"], "named-prefill")
+        self.assertEqual(samples[1]["request_sha256"], digest(payloads[1]))
+        self.assertNotEqual(samples[0]["request_sha256"], samples[1]["request_sha256"])
+        self.assertEqual(samples[0]["messages_sha256"], samples[1]["messages_sha256"])
 
     def test_stream_record_parser_handles_multiline_data_comments_crlf_and_bom(self):
         raw = '\ufeff: keepalive\r\n\r\nevent: token\r\nid: 3\r\ndata: {"a":\r\ndata: 1}\r\n\r\ndata:[DONE]\r\n\r\n'
@@ -139,11 +159,43 @@ class ReproducibilityTests(unittest.TestCase):
                 arguments([url] + base[1:])
         args = arguments(base + ["--suites", "prefill", "--prompt-chars", "680000", "--exact-first-prompt"])
         self.assertTrue(args.exact_first_prompt)
+        self.assertIsNone(args.prompt_cache_key)
+        for key in ("", "   ", "a\nb", "a\0b", "a\x7fb"):
+            with self.subTest(key=repr(key)), patch("sys.stderr", new=io.StringIO()), self.assertRaises(SystemExit):
+                arguments(base + ["--prompt-cache-key", key])
+        with patch("sys.stderr", new=io.StringIO()), self.assertRaises(SystemExit):
+            arguments(base + ["--suites", "decode", "--prompt-cache-key", "unused"])
+
+    def test_explicit_key_only_names_prefill_and_preserves_other_suite_keys(self):
+        seen = []
+
+        def measured(*args, **kwargs):
+            seen.append(args[5])
+            marker = re.search(r"\bBRANCH_\d+_END\b", args[2][-1]["content"])
+            content = marker.group() if marker else "Python"
+            return {"wall_seconds": 1, "ttft_seconds": .5, "timings": dict(TIMINGS),
+                    **native_metrics(TIMINGS), "output": {"content": content},
+                    "output_sha256": digest(content)}
+
+        with tempfile.TemporaryDirectory() as directory:
+            source, output = Path(directory) / "source.py", Path(directory) / "report.json"
+            source.write_text("abc")
+            argv = ["http://local", str(source), str(output), "--label", "gpu", "--run-id", "stable",
+                    "--prompt-cache-key", "named-prefill", "--prompt-chars", "30", "--repeats", "1",
+                    "--latency-repeats", "1", "--conversations", "2"]
+            with patch("bench_progression.measure_stream", side_effect=measured), patch("sys.stdout", new=io.StringIO()):
+                self.assertEqual(main(argv), 0)
+            report = json.loads(output.read_text())
+        self.assertEqual(seen[:3], [None, None, None])  # warmup, latency, decode
+        self.assertEqual(seen[3:7], ["named-prefill"] * 4)
+        self.assertEqual(seen[7:], ["bench:stable:0", "bench:stable:1"] * 2)
+        self.assertEqual(report["configuration"]["prompt_cache_key"], "named-prefill")
 
     def test_historical_run_keeps_message_hash_and_reports_native_metrics(self):
         from bench_prefill import prefill_cases
 
         def measured(*args, **kwargs):
+            self.assertIsNone(args[5])
             return {"wall_seconds": 1, "ttft_seconds": 0.5, "timings": dict(TIMINGS),
                     **native_metrics(TIMINGS), "messages_sha256": digest(args[2]),
                     "output": {"content": "Python"}, "output_sha256": "answer"}

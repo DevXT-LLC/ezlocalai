@@ -198,6 +198,12 @@ def summarize(rows):
         for name, values in grouped.items()}
 
 
+def prompt_cache_key_argument(value):
+    if not value.strip() or any(ord(character) < 32 or ord(character) == 127 for character in value):
+        raise argparse.ArgumentTypeError("prompt cache key must be nonempty and contain no control characters")
+    return value
+
+
 def arguments(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("base_url")
@@ -215,6 +221,8 @@ def arguments(argv=None):
     parser.add_argument("--latency-repeats", type=int, default=10)
     parser.add_argument("--decode-tokens", type=int, default=256)
     parser.add_argument("--prefill-tokens", type=int, default=32)
+    parser.add_argument("--prompt-cache-key", type=prompt_cache_key_argument,
+                        help="optional named key for prefill requests only; preserve across fresh comparison engines")
     parser.add_argument("--cache-chars", type=int, default=100000)
     parser.add_argument("--conversations", type=int, default=3)
     parser.add_argument("--cache-rounds", type=int, default=2)
@@ -234,6 +242,8 @@ def arguments(argv=None):
         parser.error("cache replay needs at least two conversations and two rounds")
     if args.exact_first_prompt and (args.suites != ["prefill"] or len(args.prompt_chars) != 1):
         parser.error("historical mode requires prefill-only and one prompt length per fresh engine")
+    if args.prompt_cache_key is not None and "prefill" not in args.suites:
+        parser.error("--prompt-cache-key requires the prefill suite")
     return args
 
 
@@ -251,7 +261,7 @@ def main(argv=None):
               "harness_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
               "configuration": {name: getattr(args, name) for name in (
                   "suites", "model", "prompt_chars", "repeats", "latency_repeats", "decode_tokens",
-                  "prefill_tokens", "cache_chars", "conversations", "cache_rounds", "exact_first_prompt")},
+                  "prefill_tokens", "cache_chars", "conversations", "cache_rounds", "exact_first_prompt", "prompt_cache_key")},
               "requested_sampling": {"temperature": 0, "seed": 42, "enable_thinking": False},
               "sampling_note": "worker endpoints may override sampling through model presets",
               "metrics_note": "TTFT starts at request and ends at first nonempty content/reasoning delta; token rates use native timings, not stream chunks",
@@ -292,7 +302,7 @@ def main(argv=None):
                     cases = prefill_cases(source, characters, nonce=nonce)
                     for kind, messages in cases if trial == 0 else cases[:1]:
                         record("prefill_" + kind, messages, args.prefill_tokens, cold=kind == "cold",
-                               source_characters=characters, trial=trial)
+                               cache_key=args.prompt_cache_key, source_characters=characters, trial=trial)
         if "cache" in args.suites:
             originals = {}
             for round_number in range(args.cache_rounds):

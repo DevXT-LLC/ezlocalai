@@ -73,6 +73,14 @@ tokens are rejected. `messages_sha256` retains the historical `bench_prefill`
 serialization. Exact October 18/25 first prompts require one fresh engine per
 depth and `--suites prefill --prompt-chars 680000 --exact-first-prompt`.
 
+Add `--prompt-cache-key qualification-20261026` to exercise policies that
+require a named conversation. This names only the prefill suite's requests;
+warmup, latency, decode and the cache suite's per-conversation keys keep their
+existing behavior. The key is included in the transmitted request and its
+fingerprint, while message content and its historical hash stay unchanged.
+Omitting this option preserves the original request bodies and hashes. Use
+the same key on fresh comparison engines, with the same run ID and source.
+
 Suites can be selected independently with `--suites latency decode prefill
 cache`. First-output latency ends at the first nonempty content or reasoning
 delta; role announcements, empty deltas, usage and keepalives do not count.
@@ -126,6 +134,12 @@ Both actual inference requests disable prefix reuse and must evaluate every
 prepared input token, stop normally and answer `Python` or `red`, respectively.
 The generated image, requests, source and harness are fingerprinted. Atomic
 checkpoints retain raw completion responses for diagnosing failed guards.
+
+The optional `--prompt-cache-key qualification-20261026` names both text and
+vision requests before token counting, request fingerprints and inference.
+It exercises named-conversation policies while keeping `cache_prompt: false`
+and the strict zero-cached-token guard. Omitting it preserves the original
+payloads. Empty keys and control characters are rejected by both clients.
 
 A `status=complete` report qualifies these two workloads at the recorded
 settings; larger image/video workloads and sustained concurrency need their

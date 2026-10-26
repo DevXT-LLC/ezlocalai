@@ -1,11 +1,14 @@
 import base64
+import io
 import json
 import struct
 import unittest
+from unittest.mock import patch
 import zlib
 
-from bench_capacity import (prepare_capacity, qualify, red_png, request_body,
+from bench_capacity import (main, prepare_capacity, qualify, red_png, request_body,
                             validate_completion, validate_properties)
+from bench_progression import digest
 
 
 def props(context=230144):
@@ -25,6 +28,23 @@ def completion(count, word="Python", cached=0):
 
 
 class CapacityGuardsTests(unittest.TestCase):
+    def test_key_is_optional_and_default_request_fingerprint_is_unchanged(self):
+        messages = [{"role": "user", "content": "hello"}]
+        body = request_body(messages)
+        self.assertNotIn("prompt_cache_key", body)
+        self.assertEqual(digest(body), "3f92c625e56cf916ce18976fec776f18a6b28d06244ff6f1cc21928869232e7d")
+        keyed = request_body(messages, "capacity-key")
+        self.assertEqual(keyed, {**body, "prompt_cache_key": "capacity-key"})
+        self.assertNotEqual(digest(body), digest(keyed))
+        self.assertFalse(keyed["cache_prompt"])
+
+    def test_invalid_explicit_cli_key_fails_before_reading_sources_or_sending_requests(self):
+        argv = ["http://local", "absent-source.py", "4096", "1024", "gpu", "out.json",
+                "--metadata", "absent-metadata.json", "--prompt-cache-key"]
+        for key in ("", "  ", "a\nb", "a\0b", "a\x7fb"):
+            with self.subTest(key=repr(key)), patch("sys.stderr", new=io.StringIO()), self.assertRaises(SystemExit):
+                main(argv + [key])
+
     def test_declared_context_is_retained_with_only_upward_padding(self):
         result = validate_properties(props(), 230000, 1024, METADATA)
         self.assertEqual(result["effective_context"], 230144)
@@ -104,6 +124,40 @@ class CapacityGuardsTests(unittest.TestCase):
         self.assertEqual(saved["capacity"]["answer"], "Python")
         self.assertEqual(saved["vision"]["answer"], "red")
         self.assertEqual(len([path for path, _ in calls if path == "/v1/chat/completions"]), 2)
+        self.assertTrue(all("prompt_cache_key" not in body for _, body in calls if body and "messages" in body))
+
+    def test_named_key_precedes_text_vision_token_counting_inference_and_proof_hashes(self):
+        calls, saved = [], {}
+
+        def client(path, body=None):
+            calls.append((path, body))
+            if path == "/props":
+                return props(4096)
+            if path == "/apply-template":
+                self.assertEqual(body["prompt_cache_key"], "capacity-key")
+                return {"prompt": body["messages"][-1]["content"]}
+            if path == "/tokenize":
+                return {"tokens": [1] * (len(body["content"]) // 4 + 30)}
+            self.assertEqual(body["prompt_cache_key"], "capacity-key")
+            self.assertFalse(body["cache_prompt"])
+            content = body["messages"][-1]["content"]
+            count = len(content) // 4 + 30 if isinstance(content, str) else 300
+            if path.endswith("input_tokens"):
+                return {"input_tokens": count}
+            if path == "/v1/chat/completions":
+                return completion(count, "Python" if isinstance(content, str) else "red")
+            raise AssertionError(path)
+
+        qualify(client, "def f(): pass\n", 4096, 1024, {"n_ctx": 4096, "n_ubatch": 1024},
+                "test", lambda k, v: saved.update({k: v}), prompt_cache_key="capacity-key")
+        counts = [body for path, body in calls if path.endswith("input_tokens")]
+        requests = [body for path, body in calls if path == "/v1/chat/completions"]
+        self.assertEqual(counts, requests)
+        self.assertEqual(len(requests), 2)
+        for name, body in zip(("capacity", "vision"), requests):
+            self.assertEqual(saved[name + "_preparation"]["request_sha256"], digest(body))
+            self.assertEqual(saved[name]["request_sha256"], digest(body))
+            self.assertEqual(saved[name]["cached_prompt_tokens"], 0)
 
 
 if __name__ == "__main__":
