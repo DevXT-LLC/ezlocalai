@@ -107,6 +107,7 @@ TtsWebSocketInputResult TtsWebSocketInput::receive(const std::string &json){
 void run_tts_websocket(const TtsWebSocketOperations &ops){
     std::mutex mutex;std::condition_variable ready;std::deque<std::optional<std::string>> pending;
     VoiceCancellation cancellation;std::exception_ptr failure;std::shared_ptr<CttsByteStream> active;
+    const auto state_changed=[&]{try{if(ops.state_changed)ops.state_changed();}catch(...){}};
     const auto fail=[&](std::exception_ptr error){
         {std::lock_guard<std::mutex> lock(mutex);if(!failure)failure=error;}
         cancellation.cancel();ready.notify_all();
@@ -121,7 +122,8 @@ void run_tts_websocket(const TtsWebSocketOperations &ops){
             std::optional<std::string> request;
             {std::unique_lock<std::mutex> lock(mutex);ready.wait(lock,[&]{return !pending.empty()||cancellation.requested();});if(cancellation.requested())throw VoiceCancelled("");request=std::move(pending.front());pending.pop_front();}ready.notify_all();
             if(!request)break;
-            auto lease=ops.acquire(cancellation);
+            std::unique_ptr<TtsWebSocketLease> lease;
+            finally([&]{lease=ops.acquire(cancellation);},state_changed);
             finally([&]{
                 for(;;){
                     auto stream=std::shared_ptr<CttsByteStream>(lease->stream(*request));std::atomic_store(&active,stream);
@@ -133,7 +135,7 @@ void run_tts_websocket(const TtsWebSocketOperations &ops){
                     {std::lock_guard<std::mutex> lock(mutex);if(cancellation.requested())throw VoiceCancelled("");if(pending.empty())break;request=std::move(pending.front());pending.pop_front();}ready.notify_all();
                     if(!request){done=true;break;}
                 }
-            },[&]{lease->close();});
+            },[&]{finally([&]{lease->close();},state_changed);});
         }
         if(cancellation.requested())throw VoiceCancelled("");
         if(!header_sent)ops.send(tts_pcm_header());
