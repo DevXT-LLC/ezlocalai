@@ -105,20 +105,29 @@ def environment(port, engine_port, api_key, engine_key):
     }
 
 
-def docker_command(image, binary, data, env_file, name, owner, port):
+def docker_command(image, binary, data, worker_environment, name, owner, port):
     immutable_image(image)
+    # Docker imports values from its subprocess environment. Keep credentials
+    # out of both command arguments and files, including temporary dotenv files.
+    env_arguments = []
+    for key in worker_environment:
+        if not re.fullmatch(r"[A-Z_][A-Z0-9_]*", key):
+            raise ValueError("Docker environment arguments must contain variable names only")
+        env_arguments.extend(("--env", key))
     return ["docker", "run", "--detach", "--name", name, "--network", "host",
             "--runtime", "runc", "--label", OWNER_LABEL + "=" + owner,
             "--user", str(os.getuid()) + ":" + str(os.getgid()),
-            "--env-file", str(env_file), "--workdir", "/benchmark/data",
+            *env_arguments, "--workdir", "/benchmark/data",
             "--mount", "type=bind,src=" + str(binary) + ",dst=/benchmark/worker,readonly",
             "--mount", "type=bind,src=" + str(data) + ",dst=/benchmark/data",
             "--entrypoint", "/benchmark/worker", image,
             "--host", "127.0.0.1", "--port", str(port)]
 
 
-def docker(arguments, required=True):
-    result = subprocess.run(["docker", *arguments], capture_output=True, text=True)
+def docker(arguments, required=True, worker_environment=None):
+    process_environment = None if worker_environment is None else {**os.environ, **worker_environment}
+    result = subprocess.run(["docker", *arguments], capture_output=True, text=True,
+                            env=process_environment)
     if required and result.returncode:
         raise RuntimeError("docker " + arguments[0] + " failed; no external resources were modified")
     return result
@@ -334,14 +343,11 @@ def main():
                     port = reservation.getsockname()[1]
                 data = Path(temporary, variant)
                 data.mkdir()
-                env_file = Path(temporary, variant + ".env")
                 planned_environment = environment(port, engine.server.server_port, api_key, engine_key)
-                env_file.write_text("".join(key + "=" + value + "\n" for key, value in planned_environment.items()))
-                env_file.chmod(0o600)
                 name = "ezlocalai-inputbench-" + owner[:12] + "-" + variant
                 names.append(name)
-                command = docker_command(args.image, binary, data, env_file, name, owner, port)
-                docker(command[1:])
+                command = docker_command(args.image, binary, data, planned_environment, name, owner, port)
+                docker(command[1:], worker_environment=planned_environment)
                 record = json.loads(docker(["inspect", name]).stdout)[0]
                 verify_isolation(record, owner, args.image, planned_environment)
                 urls[variant] = "http://127.0.0.1:" + str(port)

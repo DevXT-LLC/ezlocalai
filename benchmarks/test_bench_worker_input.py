@@ -1,6 +1,9 @@
+import contextlib
 import io
 import json
+import os
 from pathlib import Path
+import tempfile
 from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
@@ -38,16 +41,99 @@ class WorkerInputGuards(unittest.TestCase):
         for key in ("TTS_ENABLED", "STT_ENABLED", "IMAGE_ENABLED", "VIDEO_ENABLED", "MUSIC_ENABLED", "EMBEDDING_ENABLED"):
             self.assertEqual(a[key], "false")
 
-    def test_command_loopback_no_gpu_and_private_env_file(self):
+    def test_command_loopback_no_gpu_and_key_only_environment(self):
+        worker_environment = bench.environment(1234, 1235, "private-api-key", "private-engine-key")
         command = bench.docker_command("sha256:" + "b" * 64, Path("/worker"), Path("/data"),
-                                       Path("/private.env"), "name", "owner", 1234)
+                                       worker_environment, "name", "owner", 1234)
         self.assertEqual(command[-4:], ["--host", "127.0.0.1", "--port", "1234"])
         self.assertEqual(command[command.index("--network") + 1], "host")
         self.assertEqual(command[command.index("--runtime") + 1], "runc")
-        self.assertEqual(command[command.index("--env-file") + 1], "/private.env")
+        environment_arguments = [command[index + 1] for index, value in enumerate(command) if value == "--env"]
+        self.assertEqual(environment_arguments, list(worker_environment))
+        self.assertTrue(all("=" not in argument for argument in environment_arguments))
+        self.assertNotIn("private-api-key", " ".join(command))
+        self.assertNotIn("private-engine-key", " ".join(command))
+        self.assertNotIn("--env-file", command)
         self.assertNotIn("--gpus", command)
         self.assertNotIn("--privileged", command)
         self.assertIn("type=bind,src=/worker,dst=/benchmark/worker,readonly", command)
+
+    def test_environment_values_reach_only_the_docker_subprocess(self):
+        worker_environment = {"EZLOCALAI_API_KEY": "private-api-key", "LLAMA_CPP_API_KEY": "private-engine-key"}
+        original = dict(os.environ)
+        with patch.object(bench.subprocess, "run", return_value=SimpleNamespace(returncode=0)) as run:
+            bench.docker(["run", "--env", "EZLOCALAI_API_KEY", "--env", "LLAMA_CPP_API_KEY"],
+                         worker_environment=worker_environment)
+        arguments = run.call_args.args[0]
+        self.assertNotIn("private-api-key", arguments)
+        self.assertNotIn("private-engine-key", arguments)
+        for key, value in worker_environment.items():
+            self.assertEqual(run.call_args.kwargs["env"][key], value)
+        self.assertEqual(dict(os.environ), original)
+        with self.assertRaises(ValueError):
+            bench.docker_command("sha256:" + "b" * 64, Path("/worker"), Path("/data"),
+                                 {"KEY=private": "value"}, "name", "owner", 1234)
+
+    def test_main_keeps_credentials_out_of_files_arguments_and_output(self):
+        api_key, engine_key = "api-private-do-not-store", "engine-private-do-not-store"
+        image = "sha256:" + "b" * 64
+        containers = {}
+        removed = []
+        temporary_directory = tempfile.TemporaryDirectory
+        engine = SimpleNamespace(server=SimpleNamespace(server_port=3210), records=[])
+        with temporary_directory() as root:
+            folder = Path(root)
+            binary = folder / "worker"
+            binary.write_text("#!/bin/sh\nexit 0\n")
+            binary.chmod(0o700)
+
+            def check_files():
+                for path in folder.rglob("*"):
+                    if path.is_file():
+                        content = path.read_bytes()
+                        self.assertNotIn(api_key.encode(), content)
+                        self.assertNotIn(engine_key.encode(), content)
+
+            def docker(arguments, required=True, worker_environment=None):
+                check_files()
+                self.assertNotIn(api_key, " ".join(arguments))
+                self.assertNotIn(engine_key, " ".join(arguments))
+                if arguments[0] == "run":
+                    self.assertIsNotNone(worker_environment)
+                    name = arguments[arguments.index("--name") + 1]
+                    record = self.record()
+                    record["Id"] = ("a" if not containers else "c") * 64
+                    label = arguments[arguments.index("--label") + 1]
+                    record["Config"]["Labels"] = {bench.OWNER_LABEL: label.split("=", 1)[1]}
+                    record["Config"]["Env"] = [key + "=" + value for key, value in worker_environment.items()]
+                    self.assertEqual(worker_environment["EZLOCALAI_API_KEY"], api_key)
+                    self.assertEqual(worker_environment["LLAMA_CPP_API_KEY"], engine_key)
+                    containers[name] = record
+                    return SimpleNamespace(returncode=0, stdout=record["Id"])
+                if arguments[0] == "inspect":
+                    return SimpleNamespace(returncode=0, stdout=json.dumps([containers[arguments[1]]]))
+                if arguments[0] == "rm":
+                    removed.append(arguments[-1])
+                    return SimpleNamespace(returncode=0)
+                self.fail("unexpected Docker operation")
+
+            args = ["bench_worker_input", "--image", image, "--baseline-binary", str(binary),
+                    "--candidate-binary", str(binary), "--output", str(folder / "output"), "--blocks", "1"]
+            output = io.StringIO()
+            # argparse reads the process argv; all process/container calls are mocked.
+            with patch("sys.argv", args), patch.object(bench, "docker", side_effect=docker), \
+                 patch.object(bench, "MockEngine", return_value=contextlib.nullcontext(engine)), \
+                 patch.object(bench, "cases", return_value={}), \
+                 patch.object(bench.secrets, "token_hex", side_effect=[api_key, engine_key]), \
+                 patch.object(bench, "open_loopback", side_effect=lambda *args, **kwargs: Response(b"{}")), \
+                 patch.object(bench.tempfile, "TemporaryDirectory", side_effect=lambda **kwargs: temporary_directory(dir=root, **kwargs)), \
+                 contextlib.redirect_stdout(output):
+                bench.main()
+            check_files()
+            self.assertNotIn(api_key, output.getvalue())
+            self.assertNotIn(engine_key, output.getvalue())
+            self.assertEqual(len(removed), 2)
+            self.assertTrue(json.loads((folder / "output" / "worker-input.json").read_text())["containers_removed"])
 
     def test_client_refuses_nonloopback_and_redirects(self):
         with patch.object(bench.DIRECT_OPENER, "open") as open_url:
