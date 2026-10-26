@@ -1,11 +1,12 @@
 # Conversation cache and router admission measurements - 2026-10-26
 
-Status: partial qualification report. The completed results below cover one RTX
-4090, the four-patch cache/MTP candidate, an unchanged-engine router comparison,
-baseline cache-capacity pressure, and an experimental fifth-patch checkpoint
-comparison. The fifth patch changes sampled answers and remains unqualified for
-quality. Other GPUs, final state roundtrips, swap, final images and any additional
-live RAM settings remain explicitly pending. The earlier
+Status: partial qualification report. Results cover the 4090 four-patch
+cache/MTP candidate and router comparison, 4090/3090V production-engine cache
+capacity tests, applied RAM settings on those two workers, and baseline 4090
+disk-state roundtrips. An earlier experimental fifth patch changes sampled
+answers and remains unqualified for quality; its aligned replacement is being
+tested separately. Final state/quality qualification, 5090 checks, swap and
+release of a final image remain pending. The earlier
 [prefill tuning report](optimization-20261026.md)
 is historical evidence and is not replaced by these numbers.
 
@@ -19,7 +20,8 @@ periodic heartbeat.
 
 The engine experiments use the deployed 4090 model and projector, with the same
 230000 context, logical/physical batch 4096/1024, q4_0 K/V, one slot, MTP maximum
-3 and probability threshold 0.1. The normal cache ceiling is 7680 MiB. Weights,
+3 and probability threshold 0.1. Those initial comparisons use a 7680 MiB cache
+ceiling; the later live changes below raise it to 12288 MiB on 4090 and 3090V. Weights,
 KV precision, presets, GPU clocks and power settings are not tuning variables
 in this comparison. Direct-engine requests use greedy sampling, seed 42 and
 thinking disabled; public-worker model presets are therefore not a confounder.
@@ -139,7 +141,12 @@ addressing the new continuation topics. Every output stops at the 256-token
 cap, while the prompt asks for at least 800 words, a Python example and resource
 management discussion. This workload cannot qualify those broader requirements.
 Fifth-patch quality acceptance, a concise latest-turn instruction test and any
-decision to enable coverage by default remain pending.
+decision to enable coverage by default remain pending. This older unaligned
+patch is superseded for further qualification by source snapshot `56d6375`.
+Its aligned candidate, server implementation beginning `da84...`, is undergoing
+4090 coverage-off/on, finite-output and eight-conversation pressure tests. No
+result from that replacement is included here yet; the earlier changed-answer
+result cannot establish its speed or quality.
 
 ## Router admission with a real GPU worker
 
@@ -208,6 +215,84 @@ That does not measure swap-in latency or qualify a larger production RAM
 fraction. Cgroup memory peaks include whatever page-cache charges the kernel
 assigns to the container and are not a complete host-memory budget.
 
+## Sustained cache capacity on production engines
+
+A later qualification runs each worker's unchanged production image with no
+engine overlays. Eight independent conversations run for three rounds, giving
+eight cold seeds and sixteen replays per cache ceiling, with 128 generated
+tokens per request. Only `--cache-ram` changes from 7680 to 12288 MiB. The 4090
+uses MTP maximum 3 and the 3090V maximum 2, preserving their deployed settings;
+this is not a controlled cross-card kernel benchmark.
+
+| Worker | Replay TTFT, 7680 -> 12288 MiB | Full replay turn | Native decode |
+| --- | ---: | ---: | ---: |
+| 4090 | 8.726 -> 0.462 s | 10.164 -> 1.912 s | 88.62 -> 88.68 tok/s |
+| 3090V | 16.451 -> 0.748 s | 18.297 -> 2.617 s | 69.00 -> 68.63 tok/s |
+
+On each worker, all 24 paired request and answer hashes match. At 7680 MiB all
+sixteen replays fully reevaluate; at 12288 MiB all sixteen reuse the tail,
+evaluating four tokens and reusing 24575. No code optimization or higher decode
+rate is needed for this capacity benefit. The isolated tests restore the
+original containers, images, environments, mounts and engine parameters, then
+release their drains.
+
+Both runs record zero swap and OOM counters. Container memory is unbounded in
+these tests, and no co-resident media load or forced host-memory pressure is
+introduced. The results qualify retention for this workload, not swap latency,
+arbitrary conversation counts or a general host-RAM stress limit.
+
+## Applied RAM settings and rollback materials
+
+After the sustained qualification, `LLM_PROMPT_CACHE_MAX_RAM_FRACTION` was
+changed from `0.25` to `0.4` in the 4090 and 3090V installations. Each effective
+engine command now has `--cache-ram 12288`; model, context, K/V precision,
+batch sizes, MTP settings, immutable image, mounts, host configuration and
+other engine arguments are preserved. The containers are intentionally
+recreated for the environment change, so their IDs change.
+
+Each worker passes pinned, fallback-disabled routed chat, streaming chat and
+vision requests, plus two fresh router heartbeats with stable advertised
+fields. Both final workers are healthy, show no OOM kill, and have their drains
+released. The existing production images remain `1197b0b18d41...` on 4090 and
+`3e09d9905d59...` on 3090V; these changes do not deploy the new engine candidate.
+
+Rollback materials on the respective hosts are:
+
+| Worker | Image tag | Private dotenv backup |
+| --- | --- | --- |
+| 4090 | `ezlocalai:rollback-env-cache-env-20261026-devxt4090-c16abb26` | `/tmp/ezlocalai-env-update-cache-env-20261026-devxt4090-c16abb26/dotenv.backup` |
+| 3090V | `ezlocalai:rollback-env-cache-env-20261026-devxt3090v-c16abb26` | `/tmp/ezlocalai-env-update-cache-env-20261026-devxt3090v-c16abb26/dotenv.backup` |
+
+The update helper creates backups with mode `0600`, in private run directories,
+and retains the original inspection metadata. Successful finalization removes
+the old stopped containers. The current helper's rollback command still expects
+those original container IDs, so automatic rollback after finalization remains
+a helper gap; retained files and image tags allow manual reconstruction. This
+report does not claim that command has been validated after finalization.
+
+The 5090 installation was left unchanged in this work. Its historical effective
+cache is 32000 MiB, and the operator confirms `SWAP=0` remains unchanged on the
+workers. Fresh 5090 state/capacity verification and any nonzero-swap testing are
+pending; historical settings are not a new physical qualification.
+
+## Disk state and benchmark-operator checks
+
+The matched baseline 4090 engine completes normal text and vision slot-save,
+state-overwrite, reload and continuation comparisons with identical request and
+answer hashes. In-memory conversation caching is disabled for this test, and
+the launch uses an isolated owned snapshot directory. Text saves/restores
+24842 tokens in 1188510480 bytes; vision saves/restores 1091 tokens in 495318656
+bytes. Both restored continuations reuse the saved prefix. These results do
+not reproduce a legacy-state failure, validate corrupt/legacy payloads, or
+qualify disk state for the final aligned candidate.
+
+An earlier benchmark-operator attempt fails its private-port preflight before
+preparing or stopping production. Version 2 addresses false busy detection for
+`TIME_WAIT` sockets while retaining rejection of active listeners. Its 56
+offline tests cover depth/state operations, provenance and real local sockets;
+they are operator checks rather than additional GPU inference evidence. The
+failed attempt releases its drain and verifies that production remains healthy.
+
 ## Validation, provenance and limits
 
 The completed four-patch development build passed 68 package checks with the
@@ -217,24 +302,37 @@ production image. No physical GPU was present in that build container; the
 separate 4090 experiments supply the hardware evidence above. Later call-site
 coverage changes need their own updated test/artifact record.
 
-All completed experiments restored the original production container, image,
-environment, mounts and critical engine parameters. Their owned drains were
-released, with no observed OOM kills. The pressure test's 12 GiB override was
-isolated, not a persistent production setting.
+A full x86 CUDA image from source `274eea0` also passes all 69 package checks
+without the Python oracle checkout, plus linkage checks with ACE using its own
+GGML. Its image ID is
+`sha256:023c1df039ff54a9ca0185328d8d65c5c74bf8e4b4fd6f2a274851f42c438f56`.
+It is under a quality hold, was neither pushed nor deployed, and is superseded
+for release qualification by the aligned `56d6375` build. The latter build and
+its final package/artifact results are pending here. Passing package tests on
+the held image is not a production release decision.
+
+All isolated experiments restore their original production configuration and
+release owned drains, with no observed OOM kills. The subsequent, separately
+verified persistent RAM changes are described above and are the exception to
+environment restoration.
 
 Raw proof remains under ignored
 `build/validation/llm-cache-depth-20261026/`, principally
 `DevXT4090-baseline-depth-f9977f92`,
 `DevXT4090-combined-resident-b269671d` and
 `DevXT4090-router-gpu-54124ad3a6`, plus the experimental
-`DevXT4090-coverage-fixed-resident-035908e1`. Exact artifact, harness, input and result
+`DevXT4090-coverage-fixed-resident-035908e1`,
+`DevXT{4090,3090V}-ram-pressure-production-dc2ca20d`,
+`cache-environment-qualification`, `disk-state`, and `full-cuda-image-274eea0`.
+Exact artifact, harness, input and result
 fingerprints are summarized in
 [`cache_depth_20261026_validation.json`](../tests/fixtures/cache_depth_20261026_validation.json).
 
 ## Pending qualification
 
-- **3090V and 5090:** equivalent cache/MTP and router comparisons, preserving
-  their existing model files and selected batch sizes.
+- **3090V and 5090 candidate engines:** equivalent cache/MTP and router
+  comparisons, preserving their existing model files and selected batch sizes.
+  The completed 3090V capacity result above uses its production engine.
 - **Coverage/checkpoint changes:** final source/build qualification and quality
   acceptance before enabling the experimental fifth patch. Its measured rewind
   gain above accompanies changed answers and does not establish no quality loss.
@@ -242,9 +340,9 @@ fingerprints are summarized in
   legacy/corrupt-state evidence for the final patch stack.
 - **Swap:** a controlled nonzero swap-in workload and host/container pressure
   measurements. Zero swap counters are not swap validation.
-- **Live RAM fraction:** effective worker arguments, available-RAM reserves,
-  co-resident-model pressure, routed checks, backups and rollback before any
-  additional persistent cache setting is reported as applied.
+- **RAM and rollback followups:** co-resident-model/host-memory pressure,
+  post-finalization automatic rollback, and fresh 5090 settings/state/capacity
+  evidence. The applied 4090/3090V `0.4` setting is already verified above.
 - **Final images and deployment:** fresh package results and artifacts for the
   final source, then normal image automation and routed version/capacity checks.
 

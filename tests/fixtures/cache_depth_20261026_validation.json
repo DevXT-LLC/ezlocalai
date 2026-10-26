@@ -2,7 +2,7 @@
   "schema_version": 1,
   "date": "2026-10-26",
   "status": "partial",
-  "scope": "Completed 4090 four-patch storage/MTP resident comparisons, baseline byte-budget pressure, isolated real-Rust-router/full-GPU-worker admission measurements and experimental five-patch checkpoint latency. Fifth-patch output/quality acceptance and other pending sections are deliberately not qualified.",
+  "scope": "Partial: 4090 four-patch cache/MTP and GPU-router comparisons, production-engine sustained RAM-cache capacity and applied fraction 0.4 on 4090/3090V, normal baseline 4090 disk state, held full-image 69-test evidence, and superseded experimental checkpoint latency/quality caveats. Aligned candidate and remaining hardware/state/swap/release qualification are pending.",
   "fixed_controls": {
     "gpu": "RTX 4090",
     "model": "unsloth/Qwen3.8-27B-GGUF",
@@ -21,7 +21,8 @@
     "temperature": 0,
     "seed": 42,
     "thinking": false,
-    "weights_precision_presets_context_clocks_power_unchanged": true
+    "weights_precision_presets_context_clocks_power_unchanged": true,
+    "normal_cache_mib_note": "7680 describes initial comparisons. Production 4090/3090V cache later changed to 12288 as documented in applied_ram_settings;3090V keeps its own MTP maximum 2."
   },
   "resident": {
     "configuration": {
@@ -638,17 +639,50 @@
       },
       "drain_released": true,
       "lease_errors": []
+    },
+    "DevXT4090-ram-pressure-production-dc2ca20d": {
+      "result_sha256": "87ac3effae6a3e3ef23827d2f79e31b4d99e84629c5f633b23f3778d81d14481",
+      "supervisor_sha256": "b006b0c8c9c7b9d4c47a40a84ae1dd4ad74ffa1c07e549743259024b6981b539",
+      "restoration": {
+        "healthy": true,
+        "same_container": true,
+        "same_image": true,
+        "same_environment": true,
+        "same_mounts": true,
+        "same_config": true,
+        "same_hostconfig": true,
+        "critical_parameters_preserved": true,
+        "oom_killed": false
+      },
+      "drain_released": true,
+      "lease_errors": []
+    },
+    "DevXT3090V-ram-pressure-production-dc2ca20d": {
+      "result_sha256": "4d073efe85cda2004b8d4661d35da251173c11aab4655a631a1d9e0fbbff953b",
+      "supervisor_sha256": "e16c47f6754864b0edfe315654e6baf9ee6222a3958fb28748603820182e8c09",
+      "restoration": {
+        "healthy": true,
+        "same_container": true,
+        "same_image": true,
+        "same_environment": true,
+        "same_mounts": true,
+        "same_config": true,
+        "same_hostconfig": true,
+        "critical_parameters_preserved": true,
+        "oom_killed": false
+      },
+      "drain_released": true,
+      "lease_errors": []
     }
   },
-  "new_production_code_or_cache_settings_applied_in_completed_runs": false,
   "pending": [
-    "3090V cache/MTP/router equivalence",
-    "5090 cache/MTP/router equivalence with its actual distinct GGUF",
-    "Fifth coverage/checkpoint final source/build and quality acceptance; latest-turn instruction checks before default enablement",
-    "Final text/vision slot save/reload/legacy/corrupt-state results",
-    "Controlled nonzero swap and forced host/container memory pressure",
-    "Effective live RAM fraction/settings with reserves/co-resident workloads/routed verification/rollback",
-    "Fresh final images and deployment"
+    "3090V candidate engine cache/MTP/router comparison; production capacity qualification complete",
+    "5090 fresh actual CLI, candidate cache/MTP/router and state/capacity qualification; historical distinct GGUF preserved",
+    "Aligned fifth checkpoint normal/finite/pressure results and quality acceptance before default enablement",
+    "Final aligned candidate text/vision slot save/reload/legacy/corrupt-state evidence",
+    "Controlled nonzero swap and forced host/container/co-resident media memory pressure",
+    "Post-finalization automatic rollback helper correction/validation; applied 4090/3090V fraction 0.4 already verified",
+    "Fresh aligned final image/package/artifact evidence and release/deployment"
   ],
   "quality_limit": "Four-patch sampled request/output agreement does not prove comprehensive model quality. Experimental fifth-patch answers differ across modes, factual errors appear on different branches, and append responses fail the new instruction in both modes; quality equivalence is unqualified.",
   "experimental_checkpoint_coverage": {
@@ -1267,5 +1301,1034 @@
       "proof": "build/validation/llm-cache-depth-20261026/DevXT4090-coverage-fixed-resident-035908e1/telemetry.json",
       "sha256": "1f27e4922bc27846efe5ed59f754e40a6fd33479423379adf0b61ae43048cd9c"
     }
+  },
+  "sustained_production_cache_capacity": {
+    "conversations": 8,
+    "rounds": 3,
+    "seeds": 8,
+    "replays": 16,
+    "samples_per_variant": 24,
+    "cache_ceiling_mib": [
+      7680,
+      12288
+    ],
+    "workers": {
+      "DevXT4090": {
+        "status": "complete",
+        "variants": {
+          "pressure_default": {
+            "proof": "build/validation/llm-cache-depth-20261026/DevXT4090-ram-pressure-production-dc2ca20d/pressure_default-bench.json",
+            "sha256": "2205efbe5d454a6697daba308ed7e78d3d3caa042c65475ed7e246a77bd82da2",
+            "summary": {
+              "seed": {
+                "samples": 8,
+                "cache_outcomes": {
+                  "tail_reuse": 0,
+                  "prefix_reuse": 0,
+                  "full_reevaluation": 8
+                },
+                "wall_seconds_median": 10.121710774499661,
+                "ttft_seconds_median": 8.686145887499151,
+                "decode_tokens_per_second_median": 88.56269930580955,
+                "prefill_tokens_per_second_median": 2922.43709801827,
+                "generated_tokens_median": 128.0,
+                "draft_tokens": 1140,
+                "accepted_draft_tokens": 627,
+                "draft_acceptance_ratio": 0.55
+              },
+              "replay": {
+                "samples": 16,
+                "cache_outcomes": {
+                  "tail_reuse": 0,
+                  "prefix_reuse": 0,
+                  "full_reevaluation": 16
+                },
+                "wall_seconds_median": 10.163848794501973,
+                "ttft_seconds_median": 8.725793591500405,
+                "decode_tokens_per_second_median": 88.62487286439821,
+                "prefill_tokens_per_second_median": 2914.8978730063127,
+                "generated_tokens_median": 128.0,
+                "draft_tokens": 2280,
+                "accepted_draft_tokens": 1254,
+                "draft_acceptance_ratio": 0.55
+              }
+            },
+            "metadata": {
+              "image": "sha256:1197b0b18d410519a25fab734bcfead8b32b8d67b1b824a188dbd08916735021",
+              "engine_revision": "repo=https://github.com/ggml-org/llama.cpp.git\nref=620d2225cc436ab0b001e3200e590e3b286ef9ab\nsha=620d2225cc436ab0b001e3200e590e3b286ef9ab\ndate=2026-10-15T16:48:22+03:00\npatch.llama-conversation-cache=ea1cb7096df5107862e825ecf7fae45354632f6d091fc1cfe71f0dc72a8d39d9",
+              "model_sha256": "8c2a45ff85e7674ca185ec8eb6cdeab0e617ed9d8018caed0b64380eb2a67a5e",
+              "mmproj_sha256": "83ee4f4f205fa514161778c41df1ea14144faa0f713510893b63c2395f5c2d53",
+              "original_parameters": {
+                "-m": "/app/models/Qwen3.8-27B/Qwen3.8-27B-UD-Q3_K_XL.gguf",
+                "-c": "230000",
+                "-b": "4096",
+                "-ub": "1024",
+                "-ctk": "q4_0",
+                "-ctv": "q4_0",
+                "--spec-type": "draft-mtp",
+                "--spec-draft-n-max": "3",
+                "--spec-draft-p-min": "0.10000000000000001",
+                "--cache-ram": "7680",
+                "-np": "1",
+                "--ctx-checkpoints": "32",
+                "--checkpoint-min-step": "8192",
+                "--mmproj": "/app/models/Qwen3.8-27B/mmproj-BF16.gguf"
+              },
+              "overrides": {},
+              "environment": {},
+              "overlays": [],
+              "engine_binary_sha256": "786d233474c43332fb731763342e71657136e992b54d405b19998821b1f51074",
+              "n_ctx": 230000,
+              "n_ubatch": 1024,
+              "cgroup_limits": {
+                "memory_bytes": 0,
+                "memory_swap_total_bytes": 0,
+                "overridden": false
+              }
+            },
+            "request_sequence_sha256": "5a14732c5b2875e2c872c51c9bd1aa48bd80ea6a6938ee788e1835165e7bca40",
+            "output_sequence_sha256": "5cc6284c70e89599108dccfb28c8d8949fc83204b10699b2ead13bc38cc93f45",
+            "sampled_cgroup_maxima": {
+              "memory.current": 10016636928,
+              "memory.peak": 10017185792,
+              "memory.swap.current": 0,
+              "memory.swap.peak": 0,
+              "oom_events_max": 0,
+              "oom_kill_events_max": 0
+            }
+          },
+          "pressure_12g": {
+            "proof": "build/validation/llm-cache-depth-20261026/DevXT4090-ram-pressure-production-dc2ca20d/pressure_12g-bench.json",
+            "sha256": "fb7a3324d1c1b2a2a1e06944c5ae16b02ecc2ce64e66fbe85d6e5d78cc94c31b",
+            "summary": {
+              "seed": {
+                "samples": 8,
+                "cache_outcomes": {
+                  "tail_reuse": 0,
+                  "prefix_reuse": 0,
+                  "full_reevaluation": 8
+                },
+                "wall_seconds_median": 10.156744903499202,
+                "ttft_seconds_median": 8.715695684997627,
+                "decode_tokens_per_second_median": 88.58068936150008,
+                "prefill_tokens_per_second_median": 2911.0736893125686,
+                "generated_tokens_median": 128.0,
+                "draft_tokens": 1140,
+                "accepted_draft_tokens": 627,
+                "draft_acceptance_ratio": 0.55
+              },
+              "replay": {
+                "samples": 16,
+                "cache_outcomes": {
+                  "tail_reuse": 16,
+                  "prefix_reuse": 0,
+                  "full_reevaluation": 0
+                },
+                "wall_seconds_median": 1.912140880500374,
+                "ttft_seconds_median": 0.46184683200044674,
+                "decode_tokens_per_second_median": 88.68019412556768,
+                "prefill_tokens_per_second_median": 45.942160985657914,
+                "generated_tokens_median": 128.0,
+                "draft_tokens": 2278,
+                "accepted_draft_tokens": 1254,
+                "draft_acceptance_ratio": 0.5504828797190519
+              }
+            },
+            "metadata": {
+              "image": "sha256:1197b0b18d410519a25fab734bcfead8b32b8d67b1b824a188dbd08916735021",
+              "engine_revision": "repo=https://github.com/ggml-org/llama.cpp.git\nref=620d2225cc436ab0b001e3200e590e3b286ef9ab\nsha=620d2225cc436ab0b001e3200e590e3b286ef9ab\ndate=2026-10-15T16:48:22+03:00\npatch.llama-conversation-cache=ea1cb7096df5107862e825ecf7fae45354632f6d091fc1cfe71f0dc72a8d39d9",
+              "model_sha256": "8c2a45ff85e7674ca185ec8eb6cdeab0e617ed9d8018caed0b64380eb2a67a5e",
+              "mmproj_sha256": "83ee4f4f205fa514161778c41df1ea14144faa0f713510893b63c2395f5c2d53",
+              "original_parameters": {
+                "-m": "/app/models/Qwen3.8-27B/Qwen3.8-27B-UD-Q3_K_XL.gguf",
+                "-c": "230000",
+                "-b": "4096",
+                "-ub": "1024",
+                "-ctk": "q4_0",
+                "-ctv": "q4_0",
+                "--spec-type": "draft-mtp",
+                "--spec-draft-n-max": "3",
+                "--spec-draft-p-min": "0.10000000000000001",
+                "--cache-ram": "7680",
+                "-np": "1",
+                "--ctx-checkpoints": "32",
+                "--checkpoint-min-step": "8192",
+                "--mmproj": "/app/models/Qwen3.8-27B/mmproj-BF16.gguf"
+              },
+              "overrides": {
+                "--cache-ram": 12288
+              },
+              "environment": {},
+              "overlays": [],
+              "engine_binary_sha256": "786d233474c43332fb731763342e71657136e992b54d405b19998821b1f51074",
+              "n_ctx": 230000,
+              "n_ubatch": 1024,
+              "cgroup_limits": {
+                "memory_bytes": 0,
+                "memory_swap_total_bytes": 0,
+                "overridden": false
+              }
+            },
+            "request_sequence_sha256": "5a14732c5b2875e2c872c51c9bd1aa48bd80ea6a6938ee788e1835165e7bca40",
+            "output_sequence_sha256": "5cc6284c70e89599108dccfb28c8d8949fc83204b10699b2ead13bc38cc93f45",
+            "sampled_cgroup_maxima": {
+              "memory.current": 12393615360,
+              "memory.peak": 12393775104,
+              "memory.swap.current": 0,
+              "memory.swap.peak": 0,
+              "oom_events_max": 0,
+              "oom_kill_events_max": 0
+            }
+          }
+        },
+        "paired_request_hash_matches": 24,
+        "paired_output_hash_matches": 24,
+        "paired_samples": 24,
+        "production_engine_no_overlays": true,
+        "isolation_differences": [
+          "host network with loopback-only engine port 28192",
+          "all original binds mounted read-only",
+          "no Docker healthcheck/restart policy",
+          "core dumps disabled",
+          "standalone engine; no worker registration"
+        ],
+        "unchanged_production_image": "sha256:1197b0b18d410519a25fab734bcfead8b32b8d67b1b824a188dbd08916735021",
+        "controller": {
+          "proof": "build/validation/llm-cache-depth-20261026/DevXT4090-ram-pressure-production-dc2ca20d/result.json",
+          "sha256": "87ac3effae6a3e3ef23827d2f79e31b4d99e84629c5f633b23f3778d81d14481"
+        },
+        "supervisor": {
+          "proof": "build/validation/llm-cache-depth-20261026/DevXT4090-ram-pressure-production-dc2ca20d/supervisor-result.json",
+          "sha256": "b006b0c8c9c7b9d4c47a40a84ae1dd4ad74ffa1c07e549743259024b6981b539"
+        },
+        "telemetry": {
+          "proof": "build/validation/llm-cache-depth-20261026/DevXT4090-ram-pressure-production-dc2ca20d/telemetry.json",
+          "sha256": "ea4a898c1c0c54d1b2c3f214ee53d1870e89a026e96734580c2d36f372e4cbc1"
+        },
+        "restoration": {
+          "healthy": true,
+          "same_container": true,
+          "same_image": true,
+          "same_environment": true,
+          "same_mounts": true,
+          "same_config": true,
+          "same_hostconfig": true,
+          "critical_parameters_preserved": true,
+          "oom_killed": false
+        },
+        "drain_released": true,
+        "lease_errors": [],
+        "forced_host_pressure": false,
+        "co_resident_media_pressure": false,
+        "swap_in_qualified": false
+      },
+      "DevXT3090V": {
+        "status": "complete",
+        "variants": {
+          "pressure_default": {
+            "proof": "build/validation/llm-cache-depth-20261026/DevXT3090V-ram-pressure-production-dc2ca20d/pressure_default-bench.json",
+            "sha256": "1b86889d5e0ce9452dfcd29d3bc2aa4a349846e7adbed000946689c56d9fe186",
+            "summary": {
+              "seed": {
+                "samples": 8,
+                "cache_outcomes": {
+                  "tail_reuse": 0,
+                  "prefix_reuse": 0,
+                  "full_reevaluation": 8
+                },
+                "wall_seconds_median": 18.067498884011002,
+                "ttft_seconds_median": 16.219873228503275,
+                "decode_tokens_per_second_median": 69.5735025263584,
+                "prefill_tokens_per_second_median": 1562.2221386858864,
+                "generated_tokens_median": 128.0,
+                "draft_tokens": 881,
+                "accepted_draft_tokens": 571,
+                "draft_acceptance_ratio": 0.6481271282633371
+              },
+              "replay": {
+                "samples": 16,
+                "cache_outcomes": {
+                  "tail_reuse": 0,
+                  "prefix_reuse": 0,
+                  "full_reevaluation": 16
+                },
+                "wall_seconds_median": 18.296721645994694,
+                "ttft_seconds_median": 16.45089012150129,
+                "decode_tokens_per_second_median": 69.00162396892486,
+                "prefill_tokens_per_second_median": 1545.294482730539,
+                "generated_tokens_median": 128.0,
+                "draft_tokens": 1758,
+                "accepted_draft_tokens": 1142,
+                "draft_acceptance_ratio": 0.6496018202502845
+              }
+            },
+            "metadata": {
+              "image": "sha256:3e09d9905d59191ef870b3f1f2e1ce9ba4948211568229d84c1c1214925de973",
+              "engine_revision": "repo=https://github.com/ggml-org/llama.cpp.git\nref=620d2225cc436ab0b001e3200e590e3b286ef9ab\nsha=620d2225cc436ab0b001e3200e590e3b286ef9ab\ndate=2026-10-15T16:48:22+03:00\npatch.llama-conversation-cache=ea1cb7096df5107862e825ecf7fae45354632f6d091fc1cfe71f0dc72a8d39d9",
+              "model_sha256": "8c2a45ff85e7674ca185ec8eb6cdeab0e617ed9d8018caed0b64380eb2a67a5e",
+              "mmproj_sha256": "83ee4f4f205fa514161778c41df1ea14144faa0f713510893b63c2395f5c2d53",
+              "original_parameters": {
+                "-m": "/app/models/Qwen3.8-27B/Qwen3.8-27B-UD-Q3_K_XL.gguf",
+                "-c": "230000",
+                "-b": "4096",
+                "-ub": "1024",
+                "-ctk": "q4_0",
+                "-ctv": "q4_0",
+                "--spec-type": "draft-mtp",
+                "--spec-draft-n-max": "2",
+                "--spec-draft-p-min": "0.10000000000000001",
+                "--cache-ram": "7680",
+                "-np": "1",
+                "--ctx-checkpoints": "32",
+                "--checkpoint-min-step": "8192",
+                "--mmproj": "/app/models/Qwen3.8-27B/mmproj-BF16.gguf"
+              },
+              "overrides": {},
+              "environment": {},
+              "overlays": [],
+              "engine_binary_sha256": "786d233474c43332fb731763342e71657136e992b54d405b19998821b1f51074",
+              "n_ctx": 230000,
+              "n_ubatch": 1024,
+              "cgroup_limits": {
+                "memory_bytes": 0,
+                "memory_swap_total_bytes": 0,
+                "overridden": false
+              }
+            },
+            "request_sequence_sha256": "5a14732c5b2875e2c872c51c9bd1aa48bd80ea6a6938ee788e1835165e7bca40",
+            "output_sequence_sha256": "2281fb878f87b249a4382c637ad13766655ded6ce30066d35b7413bc07532218",
+            "sampled_cgroup_maxima": {
+              "memory.current": 10047893504,
+              "memory.peak": 10048303104,
+              "memory.swap.current": 0,
+              "memory.swap.peak": 0,
+              "oom_events_max": 0,
+              "oom_kill_events_max": 0
+            }
+          },
+          "pressure_12g": {
+            "proof": "build/validation/llm-cache-depth-20261026/DevXT3090V-ram-pressure-production-dc2ca20d/pressure_12g-bench.json",
+            "sha256": "be2a38b968440d241afbc63e401f80886da34fce7e0d61ffe6d3ea7d50f67692",
+            "summary": {
+              "seed": {
+                "samples": 8,
+                "cache_outcomes": {
+                  "tail_reuse": 0,
+                  "prefix_reuse": 0,
+                  "full_reevaluation": 8
+                },
+                "wall_seconds_median": 18.280621698504547,
+                "ttft_seconds_median": 16.439211749006063,
+                "decode_tokens_per_second_median": 68.98672090199736,
+                "prefill_tokens_per_second_median": 1540.4511800334803,
+                "generated_tokens_median": 128.0,
+                "draft_tokens": 881,
+                "accepted_draft_tokens": 571,
+                "draft_acceptance_ratio": 0.6481271282633371
+              },
+              "replay": {
+                "samples": 16,
+                "cache_outcomes": {
+                  "tail_reuse": 16,
+                  "prefix_reuse": 0,
+                  "full_reevaluation": 0
+                },
+                "wall_seconds_median": 2.6170473839956685,
+                "ttft_seconds_median": 0.7484169689996634,
+                "decode_tokens_per_second_median": 68.63289280072549,
+                "prefill_tokens_per_second_median": 31.402131809819636,
+                "generated_tokens_median": 128.0,
+                "draft_tokens": 1766,
+                "accepted_draft_tokens": 1138,
+                "draft_acceptance_ratio": 0.6443941109852774
+              }
+            },
+            "metadata": {
+              "image": "sha256:3e09d9905d59191ef870b3f1f2e1ce9ba4948211568229d84c1c1214925de973",
+              "engine_revision": "repo=https://github.com/ggml-org/llama.cpp.git\nref=620d2225cc436ab0b001e3200e590e3b286ef9ab\nsha=620d2225cc436ab0b001e3200e590e3b286ef9ab\ndate=2026-10-15T16:48:22+03:00\npatch.llama-conversation-cache=ea1cb7096df5107862e825ecf7fae45354632f6d091fc1cfe71f0dc72a8d39d9",
+              "model_sha256": "8c2a45ff85e7674ca185ec8eb6cdeab0e617ed9d8018caed0b64380eb2a67a5e",
+              "mmproj_sha256": "83ee4f4f205fa514161778c41df1ea14144faa0f713510893b63c2395f5c2d53",
+              "original_parameters": {
+                "-m": "/app/models/Qwen3.8-27B/Qwen3.8-27B-UD-Q3_K_XL.gguf",
+                "-c": "230000",
+                "-b": "4096",
+                "-ub": "1024",
+                "-ctk": "q4_0",
+                "-ctv": "q4_0",
+                "--spec-type": "draft-mtp",
+                "--spec-draft-n-max": "2",
+                "--spec-draft-p-min": "0.10000000000000001",
+                "--cache-ram": "7680",
+                "-np": "1",
+                "--ctx-checkpoints": "32",
+                "--checkpoint-min-step": "8192",
+                "--mmproj": "/app/models/Qwen3.8-27B/mmproj-BF16.gguf"
+              },
+              "overrides": {
+                "--cache-ram": 12288
+              },
+              "environment": {},
+              "overlays": [],
+              "engine_binary_sha256": "786d233474c43332fb731763342e71657136e992b54d405b19998821b1f51074",
+              "n_ctx": 230000,
+              "n_ubatch": 1024,
+              "cgroup_limits": {
+                "memory_bytes": 0,
+                "memory_swap_total_bytes": 0,
+                "overridden": false
+              }
+            },
+            "request_sequence_sha256": "5a14732c5b2875e2c872c51c9bd1aa48bd80ea6a6938ee788e1835165e7bca40",
+            "output_sequence_sha256": "2281fb878f87b249a4382c637ad13766655ded6ce30066d35b7413bc07532218",
+            "sampled_cgroup_maxima": {
+              "memory.current": 12438134784,
+              "memory.peak": 12438884352,
+              "memory.swap.current": 0,
+              "memory.swap.peak": 0,
+              "oom_events_max": 0,
+              "oom_kill_events_max": 0
+            }
+          }
+        },
+        "paired_request_hash_matches": 24,
+        "paired_output_hash_matches": 24,
+        "paired_samples": 24,
+        "production_engine_no_overlays": true,
+        "isolation_differences": [
+          "host network with loopback-only engine port 28192",
+          "all original binds mounted read-only",
+          "no Docker healthcheck/restart policy",
+          "core dumps disabled",
+          "standalone engine; no worker registration"
+        ],
+        "unchanged_production_image": "sha256:3e09d9905d59191ef870b3f1f2e1ce9ba4948211568229d84c1c1214925de973",
+        "controller": {
+          "proof": "build/validation/llm-cache-depth-20261026/DevXT3090V-ram-pressure-production-dc2ca20d/result.json",
+          "sha256": "4d073efe85cda2004b8d4661d35da251173c11aab4655a631a1d9e0fbbff953b"
+        },
+        "supervisor": {
+          "proof": "build/validation/llm-cache-depth-20261026/DevXT3090V-ram-pressure-production-dc2ca20d/supervisor-result.json",
+          "sha256": "e16c47f6754864b0edfe315654e6baf9ee6222a3958fb28748603820182e8c09"
+        },
+        "telemetry": {
+          "proof": "build/validation/llm-cache-depth-20261026/DevXT3090V-ram-pressure-production-dc2ca20d/telemetry.json",
+          "sha256": "0028351fb2616be5e42f8f9c1b2bd682d01eb56f5e22da4521896aab3dd2e441"
+        },
+        "restoration": {
+          "healthy": true,
+          "same_container": true,
+          "same_image": true,
+          "same_environment": true,
+          "same_mounts": true,
+          "same_config": true,
+          "same_hostconfig": true,
+          "critical_parameters_preserved": true,
+          "oom_killed": false
+        },
+        "drain_released": true,
+        "lease_errors": [],
+        "forced_host_pressure": false,
+        "co_resident_media_pressure": false,
+        "swap_in_qualified": false
+      }
+    },
+    "limit": "Capacity/retention evidence on unchanged production engines, not code/GPU-throughput improvement, forced host-memory/co-resident media pressure, or nonzero-swap validation."
+  },
+  "applied_ram_settings": {
+    "status": "applied_4090_and_3090V_only",
+    "workers": {
+      "DevXT4090": {
+        "proof": "build/validation/llm-cache-depth-20261026/cache-environment-qualification/DevXT4090-environment/result.json",
+        "sha256": "1f207bf885aae86c75bb98be70e539e08610cafbab9f52d3428b6ee04173769e",
+        "status": "applied",
+        "setting": {
+          "LLM_PROMPT_CACHE_MAX_RAM_FRACTION": "0.4"
+        },
+        "old_fraction": "0.25",
+        "effective_cache_mib": 12288,
+        "before_container_id": "c1e42e905293ee2342e5f93243708d2ca42fc058d47fac30da862fe6cf77bf49",
+        "after_container_id": "fa93b77681cf41e9df1d9d82be8e8c9f9a9b1a1c95f7fcd26143097e49bda22c",
+        "immutable_image": "sha256:1197b0b18d410519a25fab734bcfead8b32b8d67b1b824a188dbd08916735021",
+        "launch_verification": {
+          "critical_parameters_preserved": true,
+          "effective_cache_mib": 12288,
+          "full_engine_argv_preserved_except_cache": true,
+          "healthy": true,
+          "oom_killed": false,
+          "parameters": {
+            "--cache-ram": "12288",
+            "--checkpoint-min-step": "8192",
+            "--ctx-checkpoints": "32",
+            "--mmproj": "/app/models/Qwen3.8-27B/mmproj-BF16.gguf",
+            "--spec-draft-n-max": "3",
+            "--spec-draft-p-min": "0.10000000000000001",
+            "--spec-type": "draft-mtp",
+            "-b": "4096",
+            "-c": "230000",
+            "-ctk": "q4_0",
+            "-ctv": "q4_0",
+            "-m": "/app/models/Qwen3.8-27B/Qwen3.8-27B-UD-Q3_K_XL.gguf",
+            "-np": "1",
+            "-ub": "1024"
+          },
+          "selected_environment": {
+            "LLM_PROMPT_CACHE_MAX_RAM_FRACTION": "0.4"
+          }
+        },
+        "qualification": {
+          "context": 230000,
+          "conversations": 8,
+          "image": "sha256:1197b0b18d410519a25fab734bcfead8b32b8d67b1b824a188dbd08916735021",
+          "inputs_sha256": {
+            "baseline_report": "2205efbe5d454a6697daba308ed7e78d3d3caa042c65475ed7e246a77bd82da2",
+            "candidate_report": "fb7a3324d1c1b2a2a1e06944c5ae16b02ecc2ce64e66fbe85d6e5d78cc94c31b",
+            "result": "87ac3effae6a3e3ef23827d2f79e31b4d99e84629c5f633b23f3778d81d14481",
+            "supervisor": "b006b0c8c9c7b9d4c47a40a84ae1dd4ad74ffa1c07e549743259024b6981b539"
+          },
+          "manifest_sha256": "7e66d38f116a5d309e81585ffee8370a7ccd494f44c6855f71df6409bc08afe8",
+          "mmproj_sha256": "83ee4f4f205fa514161778c41df1ea14144faa0f713510893b63c2395f5c2d53",
+          "model_sha256": "8c2a45ff85e7674ca185ec8eb6cdeab0e617ed9d8018caed0b64380eb2a67a5e",
+          "qualified_cache_mib": 12288,
+          "rounds": 3,
+          "ubatch": 1024
+        },
+        "preflight_memory": {
+          "available_mib": 23471,
+          "total_mib": 31230
+        },
+        "host_reserve_mib": 8192,
+        "routed_smoke": [
+          {
+            "answer": "OK",
+            "disable_fallback": true,
+            "finish_reason": "stop",
+            "kind": "chat",
+            "model": "unsloth/Qwen3.8-27B-GGUF",
+            "passed": true,
+            "request_sha256": "5636bad539e0d700783a24f6617d4041a196097854fbd29191c11a868e432ea0",
+            "usage": {
+              "completion_tokens": 2,
+              "prompt_tokens": 43,
+              "prompt_tokens_details": {
+                "cached_tokens": 0
+              },
+              "total_tokens": 45
+            },
+            "wall_seconds": 0.47433430000091903,
+            "worker_selector": "DevXT4090"
+          },
+          {
+            "answer": "OK",
+            "disable_fallback": true,
+            "done": true,
+            "events": 3,
+            "finish_reason": "stop",
+            "kind": "stream",
+            "passed": true,
+            "request_sha256": "a37eeec761d41d962ae4fbdfb100e9fdfc378a7f0094c06ea4cd4f1fc3bba5cc",
+            "wall_seconds": 0.30993731998023577,
+            "worker_selector": "DevXT4090"
+          },
+          {
+            "answer": "Red",
+            "disable_fallback": true,
+            "finish_reason": "stop",
+            "kind": "vision",
+            "model": "unsloth/Qwen3.8-27B-GGUF",
+            "passed": true,
+            "request_sha256": "15df46add4357b3c350bc166dd8fbca7917e23040af19ccc21a8a6bbaafd2b8d",
+            "usage": {
+              "completion_tokens": 2,
+              "prompt_tokens": 1076,
+              "prompt_tokens_details": {
+                "cached_tokens": 0
+              },
+              "total_tokens": 1078
+            },
+            "wall_seconds": 0.8976515519898385,
+            "worker_selector": "DevXT4090"
+          }
+        ],
+        "router_stable_fields_preserved": true,
+        "two_fresh_router_heartbeats": true,
+        "final_healthy": true,
+        "drain_released": true,
+        "lease_errors": [],
+        "rollback_image": "ezlocalai:rollback-env-cache-env-20261026-devxt4090-c16abb26",
+        "dotenv_backup": "/tmp/ezlocalai-env-update-cache-env-20261026-devxt4090-c16abb26/dotenv.backup",
+        "backup_mode_policy": "0600 via helper atomic writer; private run directory",
+        "original_inspection_metadata_retained": true,
+        "original_stopped_container_removed": true,
+        "preservation": {
+          "immutable_image_preserved": true,
+          "mounts_preserved": true,
+          "config_preserved_except_selected_env": true,
+          "hostconfig_preserved": true,
+          "static_network_configuration_preserved": true
+        },
+        "post_finalize_automatic_rollback_qualified": false,
+        "post_finalize_rollback_gap": "Helper rollback unconditionally inspects original container ID after successful finalize deletes it. Retained inspection/backup/image permit manual reconstruction; no automatic rollback claim."
+      },
+      "DevXT3090V": {
+        "proof": "build/validation/llm-cache-depth-20261026/cache-environment-qualification/DevXT3090V-environment/result.json",
+        "sha256": "4f79c00386abad904ab209256b6d8a8194637bf52821ac7725aae1a881ca218c",
+        "status": "applied",
+        "setting": {
+          "LLM_PROMPT_CACHE_MAX_RAM_FRACTION": "0.4"
+        },
+        "old_fraction": "0.25",
+        "effective_cache_mib": 12288,
+        "before_container_id": "22cfc8858998e4d3d4b93f76db4551334fb4a8440168ff79870602174ae3a7fd",
+        "after_container_id": "bfa1b41231095754682533f389750023d66261fcd09437c6fcb536cac97b49f8",
+        "immutable_image": "sha256:3e09d9905d59191ef870b3f1f2e1ce9ba4948211568229d84c1c1214925de973",
+        "launch_verification": {
+          "critical_parameters_preserved": true,
+          "effective_cache_mib": 12288,
+          "full_engine_argv_preserved_except_cache": true,
+          "healthy": true,
+          "oom_killed": false,
+          "parameters": {
+            "--cache-ram": "12288",
+            "--checkpoint-min-step": "8192",
+            "--ctx-checkpoints": "32",
+            "--mmproj": "/app/models/Qwen3.8-27B/mmproj-BF16.gguf",
+            "--spec-draft-n-max": "2",
+            "--spec-draft-p-min": "0.10000000000000001",
+            "--spec-type": "draft-mtp",
+            "-b": "4096",
+            "-c": "230000",
+            "-ctk": "q4_0",
+            "-ctv": "q4_0",
+            "-m": "/app/models/Qwen3.8-27B/Qwen3.8-27B-UD-Q3_K_XL.gguf",
+            "-np": "1",
+            "-ub": "1024"
+          },
+          "selected_environment": {
+            "LLM_PROMPT_CACHE_MAX_RAM_FRACTION": "0.4"
+          }
+        },
+        "qualification": {
+          "context": 230000,
+          "conversations": 8,
+          "image": "sha256:3e09d9905d59191ef870b3f1f2e1ce9ba4948211568229d84c1c1214925de973",
+          "inputs_sha256": {
+            "baseline_report": "1b86889d5e0ce9452dfcd29d3bc2aa4a349846e7adbed000946689c56d9fe186",
+            "candidate_report": "be2a38b968440d241afbc63e401f80886da34fce7e0d61ffe6d3ea7d50f67692",
+            "result": "4d073efe85cda2004b8d4661d35da251173c11aab4655a631a1d9e0fbbff953b",
+            "supervisor": "e16c47f6754864b0edfe315654e6baf9ee6222a3958fb28748603820182e8c09"
+          },
+          "manifest_sha256": "5690532aa50b8c0587e6ed67cb595aba7ed34bb372fb9c4bd68d49bd21ac121e",
+          "mmproj_sha256": "83ee4f4f205fa514161778c41df1ea14144faa0f713510893b63c2395f5c2d53",
+          "model_sha256": "8c2a45ff85e7674ca185ec8eb6cdeab0e617ed9d8018caed0b64380eb2a67a5e",
+          "qualified_cache_mib": 12288,
+          "rounds": 3,
+          "ubatch": 1024
+        },
+        "preflight_memory": {
+          "available_mib": 27295,
+          "total_mib": 31245
+        },
+        "host_reserve_mib": 8192,
+        "routed_smoke": [
+          {
+            "answer": "OK",
+            "disable_fallback": true,
+            "finish_reason": "stop",
+            "kind": "chat",
+            "model": "unsloth/Qwen3.8-27B-GGUF",
+            "passed": true,
+            "request_sha256": "0906aa10680122125467bdd71ade8e4389f5baade5622eed72fcc9e50e695683",
+            "usage": {
+              "completion_tokens": 2,
+              "prompt_tokens": 43,
+              "prompt_tokens_details": {
+                "cached_tokens": 0
+              },
+              "total_tokens": 45
+            },
+            "wall_seconds": 0.4855756949982606,
+            "worker_selector": "DevXT3090V"
+          },
+          {
+            "answer": "OK",
+            "disable_fallback": true,
+            "done": true,
+            "events": 3,
+            "finish_reason": "stop",
+            "kind": "stream",
+            "passed": true,
+            "request_sha256": "913925a6ac10850ca952017746932db7ea3c2ec884b96b18d2940ada0b4399f9",
+            "wall_seconds": 0.4975088929932099,
+            "worker_selector": "DevXT3090V"
+          },
+          {
+            "answer": "Red",
+            "disable_fallback": true,
+            "finish_reason": "stop",
+            "kind": "vision",
+            "model": "unsloth/Qwen3.8-27B-GGUF",
+            "passed": true,
+            "request_sha256": "8d0efce85b5185b6d54deae56b901fb435f0b1bd7e2628c486bbf15942fccbdf",
+            "usage": {
+              "completion_tokens": 2,
+              "prompt_tokens": 1076,
+              "prompt_tokens_details": {
+                "cached_tokens": 0
+              },
+              "total_tokens": 1078
+            },
+            "wall_seconds": 1.5583601870166603,
+            "worker_selector": "DevXT3090V"
+          }
+        ],
+        "router_stable_fields_preserved": true,
+        "two_fresh_router_heartbeats": true,
+        "final_healthy": true,
+        "drain_released": true,
+        "lease_errors": [],
+        "rollback_image": "ezlocalai:rollback-env-cache-env-20261026-devxt3090v-c16abb26",
+        "dotenv_backup": "/tmp/ezlocalai-env-update-cache-env-20261026-devxt3090v-c16abb26/dotenv.backup",
+        "backup_mode_policy": "0600 via helper atomic writer; private run directory",
+        "original_inspection_metadata_retained": true,
+        "original_stopped_container_removed": true,
+        "preservation": {
+          "immutable_image_preserved": true,
+          "mounts_preserved": true,
+          "config_preserved_except_selected_env": true,
+          "hostconfig_preserved": true,
+          "static_network_configuration_preserved": true
+        },
+        "post_finalize_automatic_rollback_qualified": false,
+        "post_finalize_rollback_gap": "Helper rollback unconditionally inspects original container ID after successful finalize deletes it. Retained inspection/backup/image permit manual reconstruction; no automatic rollback claim."
+      }
+    },
+    "helper": {
+      "proof": "build/validation/llm-cache-depth-20261026/cache-env-operator/ezlocalai-cache-env-update-20261026.py",
+      "sha256": "6138629922aff2a005a9a7374954cb96f986bff2734a87a949f3e8b4e16333d3"
+    },
+    "new_engine_candidate_deployed": false,
+    "historical_5090": {
+      "cache_mib": 32000,
+      "changed_this_work": false,
+      "source_fixture": {
+        "proof": "tests/fixtures/llm_throughput_20261026_validation.json",
+        "sha256": "aad4b981e675e200f3361fa29b0083c93bf31716e72f138b5dd98e8404d3f57b"
+      },
+      "scope": "Historical fixture and operator confirmation only; fresh 5090 CLI/state/capacity qualification pending."
+    },
+    "swap_env": {
+      "value": "0",
+      "source": "Operator confirms unchanged on workers; not fresh per-host swap-in qualification."
+    }
+  },
+  "new_production_engine_code_deployed_in_completed_runs": false,
+  "baseline_disk_state": {
+    "proof": "build/validation/llm-cache-depth-20261026/disk-state/DevXT4090-disk-baseline-f3e65607/baseline_state-bench.json",
+    "sha256": "08d40c05a3ae2a570a0792a5ed569d33ddd222ff5cd900dfe1a39155140f9994",
+    "status": "complete",
+    "gpu": "RTX4090",
+    "engine": "matched baseline conversation patch only",
+    "metadata": {
+      "image": "sha256:1197b0b18d410519a25fab734bcfead8b32b8d67b1b824a188dbd08916735021",
+      "engine_revision": "repo=https://github.com/ggml-org/llama.cpp.git\nref=620d2225cc436ab0b001e3200e590e3b286ef9ab\nsha=620d2225cc436ab0b001e3200e590e3b286ef9ab\ndate=2026-10-15T16:48:22+03:00\npatch.llama-conversation-cache=ea1cb7096df5107862e825ecf7fae45354632f6d091fc1cfe71f0dc72a8d39d9",
+      "model_sha256": "8c2a45ff85e7674ca185ec8eb6cdeab0e617ed9d8018caed0b64380eb2a67a5e",
+      "mmproj_sha256": "83ee4f4f205fa514161778c41df1ea14144faa0f713510893b63c2395f5c2d53",
+      "original_parameters": {
+        "-m": "/app/models/Qwen3.8-27B/Qwen3.8-27B-UD-Q3_K_XL.gguf",
+        "-c": "230000",
+        "-b": "4096",
+        "-ub": "1024",
+        "-ctk": "q4_0",
+        "-ctv": "q4_0",
+        "--spec-type": "draft-mtp",
+        "--spec-draft-n-max": "3",
+        "--spec-draft-p-min": "0.10000000000000001",
+        "--cache-ram": "7680",
+        "-np": "1",
+        "--ctx-checkpoints": "32",
+        "--checkpoint-min-step": "8192",
+        "--mmproj": "/app/models/Qwen3.8-27B/mmproj-BF16.gguf"
+      },
+      "overrides": {
+        "--cache-ram": 0,
+        "--slot-save-path": "/state-proof/"
+      },
+      "environment": {
+        "EZLOCALAI_LLAMA_CACHE_STORAGE": "0"
+      },
+      "overlays": [
+        {
+          "source": "/tmp/ezlocalai-cache-state-f3e65607-devxt4090/artifacts/overlay-0",
+          "target": "/app/build/llama.cpp/bin/llama-server",
+          "sha256": "786d233474c43332fb731763342e71657136e992b54d405b19998821b1f51074"
+        },
+        {
+          "source": "/tmp/ezlocalai-cache-state-f3e65607-devxt4090/artifacts/overlay-1",
+          "target": "/app/build/llama.cpp/bin/libllama-server-impl.so",
+          "sha256": "f95cf664d7f13ed90d5d3a60cb90953bad4b1df379ca9704675a181bc5f83dbd"
+        },
+        {
+          "source": "/tmp/ezlocalai-cache-state-f3e65607-devxt4090/artifacts/overlay-2",
+          "target": "/app/build/llama.cpp/bin/libllama-common.so.0.7.0",
+          "sha256": "3d87cd42de02a7fa6cfb6210e3cb9e8da3bb65b0ba5c195f7c5021776edc3f1a"
+        },
+        {
+          "source": "/tmp/ezlocalai-cache-state-f3e65607-devxt4090/artifacts/overlay-3",
+          "target": "/app/build/llama.cpp/bin/libllama.so.0.7.0",
+          "sha256": "4c32861b7148c347033ce73f06da757a5ad01362a4409c48c20386a716bbcc9f"
+        }
+      ],
+      "engine_binary_sha256": "786d233474c43332fb731763342e71657136e992b54d405b19998821b1f51074",
+      "n_ctx": 230000,
+      "n_ubatch": 1024,
+      "cgroup_limits": {
+        "memory_bytes": 0,
+        "memory_swap_total_bytes": 0,
+        "overridden": false
+      }
+    },
+    "configuration": {
+      "context": 230000,
+      "prompt_chars": 100000,
+      "decode_tokens": 256,
+      "model": "unsloth/Qwen3.8-27B-GGUF"
+    },
+    "launch": {
+      "cache_ram_mib": 0,
+      "declared_context": 230000,
+      "slot_save_path": "/state-proof/",
+      "evidence": "caller-verified immutable launch metadata; HTTP cannot verify host mount ownership"
+    },
+    "counts": {
+      "generation_calls": 9,
+      "warmup_generation_calls": 1,
+      "recorded_samples": 8,
+      "input_token_preflights": 9,
+      "save_calls": 2,
+      "restore_calls": 2
+    },
+    "comparisons": {
+      "text": {
+        "request_identical": true,
+        "output_identical": true,
+        "saved_seed_prefix_reused": true,
+        "minimum_cached_tokens": 24571,
+        "reference_cached_tokens": 24842,
+        "restored_cached_tokens": 24842
+      },
+      "vision": {
+        "request_identical": true,
+        "output_identical": true,
+        "saved_seed_prefix_reused": true,
+        "minimum_cached_tokens": 1074,
+        "reference_cached_tokens": 1091,
+        "restored_cached_tokens": 1091
+      }
+    },
+    "snapshots": [
+      {
+        "kind": "text",
+        "filename": "ezl-state-text-b37b50dba1d949658294eb254a7e35ef.bin",
+        "status": "restored",
+        "save": {
+          "id_slot": 0,
+          "filename": "ezl-state-text-b37b50dba1d949658294eb254a7e35ef.bin",
+          "n_saved": 24842,
+          "n_written": 1188510480,
+          "timings": {
+            "save_ms": 253.418
+          }
+        },
+        "save_wall_seconds": 0.25410618699970655,
+        "restore": {
+          "id_slot": 0,
+          "filename": "ezl-state-text-b37b50dba1d949658294eb254a7e35ef.bin",
+          "n_restored": 24842,
+          "n_read": 1188510480,
+          "timings": {
+            "restore_ms": 232.668
+          }
+        },
+        "restore_wall_seconds": 0.2333341159974225
+      },
+      {
+        "kind": "vision",
+        "filename": "ezl-state-vision-794c50a085c84700b6afeeefbf482a55.bin",
+        "status": "restored",
+        "save": {
+          "id_slot": 0,
+          "filename": "ezl-state-vision-794c50a085c84700b6afeeefbf482a55.bin",
+          "n_saved": 1091,
+          "n_written": 495318656,
+          "timings": {
+            "save_ms": 85.007
+          }
+        },
+        "save_wall_seconds": 0.08559201599564403,
+        "restore": {
+          "id_slot": 0,
+          "filename": "ezl-state-vision-794c50a085c84700b6afeeefbf482a55.bin",
+          "n_restored": 1091,
+          "n_read": 495318656,
+          "timings": {
+            "restore_ms": 107.929
+          }
+        },
+        "restore_wall_seconds": 0.10863587600033497
+      }
+    ],
+    "sample_hashes": [
+      {
+        "kind": "text_seed",
+        "request_sha256": "13259e2c420b7960337c8495fb7e7455dff120283c0eaa101f62012ff6cc98c7",
+        "output_sha256": "02ba09866a809a90b108e5042455d1ee7e864ce11fffc4f352108bf16be99ec0",
+        "evaluated_prompt_tokens": 24587,
+        "cached_prompt_tokens": 0
+      },
+      {
+        "kind": "text_reference",
+        "request_sha256": "ec83aabb059aab83705de8e6614084b9e2e782b3745b6deafeb4e93b3c4c6650",
+        "output_sha256": "02ba09866a809a90b108e5042455d1ee7e864ce11fffc4f352108bf16be99ec0",
+        "evaluated_prompt_tokens": 95,
+        "cached_prompt_tokens": 24842
+      },
+      {
+        "kind": "text_stomp",
+        "request_sha256": "25f99737be1d42bdd682bd9e56c6785d83ba6eeecff1c9393efd255a7db5ee26",
+        "output_sha256": "32f9babadcfe8469c9f4a7de2650e03f342c455243ad28153de294d9a09c2544",
+        "evaluated_prompt_tokens": 1643,
+        "cached_prompt_tokens": 0
+      },
+      {
+        "kind": "text_restored",
+        "request_sha256": "ec83aabb059aab83705de8e6614084b9e2e782b3745b6deafeb4e93b3c4c6650",
+        "output_sha256": "02ba09866a809a90b108e5042455d1ee7e864ce11fffc4f352108bf16be99ec0",
+        "evaluated_prompt_tokens": 95,
+        "cached_prompt_tokens": 24842
+      },
+      {
+        "kind": "vision_seed",
+        "request_sha256": "c7a4e90daad86053f8c8f9ab42de4e3301be5436ddce0a36c3f0255f9fd37432",
+        "output_sha256": "5646cb2f1b5086db06422a6c72466e15345f744efe37045c1580cbbb0fb82378",
+        "evaluated_prompt_tokens": 1090,
+        "cached_prompt_tokens": 0
+      },
+      {
+        "kind": "vision_reference",
+        "request_sha256": "a51dc17bbffbc6bc99ae6cb0af46cef98b3b5d20dab67b2d552c916b1e051ef5",
+        "output_sha256": "5646cb2f1b5086db06422a6c72466e15345f744efe37045c1580cbbb0fb82378",
+        "evaluated_prompt_tokens": 32,
+        "cached_prompt_tokens": 1091
+      },
+      {
+        "kind": "vision_stomp",
+        "request_sha256": "37407adb318b5eb6b915d496a79152dd2da92e068effc60c8744b9d7e91f43e9",
+        "output_sha256": "6accd6d1a05b70a55e48e82a14c45197cf27aa919ecb32840c9d0ce40718adb2",
+        "evaluated_prompt_tokens": 1644,
+        "cached_prompt_tokens": 0
+      },
+      {
+        "kind": "vision_restored",
+        "request_sha256": "a51dc17bbffbc6bc99ae6cb0af46cef98b3b5d20dab67b2d552c916b1e051ef5",
+        "output_sha256": "5646cb2f1b5086db06422a6c72466e15345f744efe37045c1580cbbb0fb82378",
+        "evaluated_prompt_tokens": 32,
+        "cached_prompt_tokens": 1091
+      }
+    ],
+    "supervisor": {
+      "proof": "build/validation/llm-cache-depth-20261026/disk-state/DevXT4090-disk-baseline-f3e65607/supervisor-result.json",
+      "sha256": "5ea4a364ad1c8d13fc7bef2844aae9bf2e09c25f73d2b8c59274886cfa396605"
+    },
+    "restoration": {
+      "healthy": true,
+      "same_container": true,
+      "same_image": true,
+      "same_environment": true,
+      "same_mounts": true,
+      "same_config": true,
+      "same_hostconfig": true,
+      "critical_parameters_preserved": true,
+      "oom_killed": false
+    },
+    "drain_released": true,
+    "limits": [
+      "Normal same-engine text and vision disk roundtrips only.",
+      "No legacy failure reproduced; corrupt/legacy formats and final aligned candidate remain unqualified.",
+      "Same-answer continuation comparisons do not qualify latest-turn instruction-following semantics."
+    ]
+  },
+  "operator_qualification": {
+    "v1_failed_attempt": {
+      "proof": "build/validation/llm-cache-depth-20261026/DevXT4090-ram-pressure-production-b452a611/result.json",
+      "sha256": "ce19947c40d82eadcdf3f72ab6788e62d79e115957c1527573ffd2fbecbcfa4e",
+      "failure": "Private benchmark port 28192 is already occupied",
+      "variants_completed": 0,
+      "before_prepare_or_production_stop": true,
+      "healthy": true,
+      "drain_released": true,
+      "supervisor": {
+        "proof": "build/validation/llm-cache-depth-20261026/DevXT4090-ram-pressure-production-b452a611/supervisor-result.json",
+        "sha256": "b78f750f60eeb52a541dbdf8dddf9a84b9766214bc52080257b526d17fb1a3c9"
+      }
+    },
+    "v2_offline": {
+      "proof": "build/validation/llm-cache-depth-20261026/reviewed-plans/operator-v2/ezlocalai-cache-reviewed-v2-20261026-validation.json",
+      "sha256": "afefcefc0f67780e1fb0fb799c6cb33cdda349f73ee8c12dbe827dcf8ab8abf7",
+      "passed": 56,
+      "categories": {
+        "depth": 17,
+        "state": 29,
+        "provenance": 8,
+        "sockets": 2
+      },
+      "scope": "Offline local only; no SSH, router, GPU, container or deployment actions. Real socket tests use localhost ephemeral ports.",
+      "socket_behavior": "SO_REUSEADDR preflight accepts TIME_WAIT while rejecting active listeners; two real local socket cases."
+    }
+  },
+  "held_full_cuda_image": {
+    "proof": "build/validation/llm-cache-depth-20261026/full-cuda-image-274eea0/result.json",
+    "sha256": "fb9d34886ac1a6a81369ca50c64faf23d94b8d7b41beffe3223e3406a8110d67",
+    "source_commit": "274eea0830552a8bf86023ef682024608f7212f9",
+    "image_id": "sha256:023c1df039ff54a9ca0185328d8d65c5c74bf8e4b4fd6f2a274851f42c438f56",
+    "tag": "ezlocalai:cuda-candidate-20261026-274eea0",
+    "package_gate_passed": 69,
+    "oracle_reference_root_absent": true,
+    "linkage_passed": true,
+    "ace_own_ggml": true,
+    "pushed": false,
+    "deployed": false,
+    "quality_release_eligible": false,
+    "quality_hold": {
+      "proof": "build/validation/llm-cache-depth-20261026/full-cuda-image-274eea0/QUALITY_HOLD.json",
+      "sha256": "f35c5e1dbe68ea268602171062aa29b1ee3fd135e4494e9b1681dee2bb37bfdf"
+    },
+    "hold_reason": "Root quality investigation of checkpoint-coverage behavior is unresolved.274 has fifth feature disabled on projector-loaded text, while plain-text models could enable it. Await root final quality decision/new snapshot.",
+    "patch_metadata": "patch.llama-conversation-cache=ea1cb7096df5107862e825ecf7fae45354632f6d091fc1cfe71f0dc72a8d39d9\npatch.llama-cache-restore-atomic=beeb2f5afbfca0058a1ecfeed840a5983bf9a68bb8988ec8fde3a9bc3690f4f9\npatch.llama-cache-storage=8d7dfea21271902196a42e0567a9a3c9820d9d612906bb4b910d31a1f4770285\npatch.llama-mtp-resume=5838c9cb1448573491ef3064e792db6b94f40fbf875ae14bf4b2f4d6af98e6fa\npatch.llama-checkpoint-coverage=aaa767725fa4c0658961e57d9d236f1abb673a1381386283b2bf5ddc81b4f764\n",
+    "artifact_sha256": {
+      "runtime_build_version.hpp": "82adb4a844f0a33cf6cb0ec1ad467451b722839e0ea69d421fe45463bcd38a70",
+      "runtime-git-HEAD": "f1846c6e509e37112702c1544818b588846f15736fbbdcbe7fa3440d197f00d0",
+      "package-LastTest.log": "61fcdf67441c0b0d8c9c417cb3774f5e84ce4743fd21a01f704135be73065c90",
+      "native-CMakeCache.txt": "e5ef80c16c28c744e59afe7ef7d93066aa371cba1eae9cd13831a5be1339ba1a",
+      "llama-CMakeCache.txt": "325073b1424b338d4f88cbea44119f654b5e1edb4b52394a5d85671a223184ee",
+      "llama-version.txt": "852e8ffe0f57d022eb95a2d6eaa5fbb0f9fb7c0e9a27235304f83a6dc3eb6d59",
+      "llama-patches.txt": "a5dfc8cd31897bff80eded457dd456b3349717775cda5b93eef2673ac80ed2d8",
+      "package-linkage.txt": "de5807faf34fc604b3f05b95d9a7f8b9c6accc5b17144bd5bfe9e835aabac31a",
+      "fresh-linkage.txt": "abd486301efada19fdb0b4759b41511058865d555154e105360e27583352c118"
+    },
+    "superseded_for_release_by": "56d6375 aligned checkpoint source snapshot; final build/quality results pending"
+  },
+  "aligned_checkpoint_followup": {
+    "status": "pending",
+    "source_snapshot": "56d6375",
+    "server_implementation_sha256_prefix": "da84",
+    "supersedes_unaligned_measurement": true,
+    "planned_or_running4090_checks": [
+      "coverage off/on resident",
+      "finite-output off/on",
+      "eight-conversation pressure"
+    ],
+    "hardware_result_included": false,
+    "final_image_result_included": false,
+    "quality_release_qualified": false
   }
 }
