@@ -951,10 +951,18 @@ set_tests_properties(llm_batch_reference PROPERTIES TIMEOUT 45)
 
 add_executable(test_llm_cache tests/test_llm_cache.cpp)
 target_link_libraries(test_llm_cache PRIVATE ezlocalai_native)
-target_compile_definitions(test_llm_cache PRIVATE TEST_EMBEDDING_FIXTURE_BIN="$<TARGET_FILE:test_embedding_fixture>" TEST_CUDA_DRIVER_DIRECTORY="$<TARGET_FILE_DIR:test_cuda_driver>" TEST_NATIVE_SOURCE_DIRECTORY="${CMAKE_CURRENT_SOURCE_DIR}")
-add_dependencies(test_llm_cache test_embedding_fixture test_cuda_driver)
+set(EZLOCALAI_CACHE_TEST_DRIVER test_cuda_driver)
+if(EZLOCALAI_USE_HIP)
+    set(EZLOCALAI_CACHE_TEST_DRIVER test_hip_driver)
+endif()
+target_compile_definitions(test_llm_cache PRIVATE TEST_EMBEDDING_FIXTURE_BIN="$<TARGET_FILE:test_embedding_fixture>" TEST_CUDA_DRIVER_DIRECTORY="$<TARGET_FILE_DIR:${EZLOCALAI_CACHE_TEST_DRIVER}>" TEST_NATIVE_SOURCE_DIRECTORY="${CMAKE_CURRENT_SOURCE_DIR}")
+add_dependencies(test_llm_cache test_embedding_fixture ${EZLOCALAI_CACHE_TEST_DRIVER})
 add_test(NAME llm_cache_reference COMMAND test_llm_cache ${EZLOCALAI_REFERENCE_ROOT} ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures)
 set_tests_properties(llm_cache_reference PROPERTIES TIMEOUT 45)
+# Images contain the recorded cases, not the external Python checkout. Keep
+# the package gate independent while retaining strict source verification above.
+add_test(NAME llm_cache_package COMMAND test_llm_cache --fixtures ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures)
+set_tests_properties(llm_cache_package PROPERTIES TIMEOUT 45)
 
 add_executable(test_llm_speculative tests/test_llm_speculative.cpp)
 target_link_libraries(test_llm_speculative PRIVATE ezlocalai_native)
@@ -971,6 +979,9 @@ add_dependencies(test_llm_speculative_hip test_embedding_fixture test_hip_driver
 add_test(NAME llm_speculative_hip_reference COMMAND test_llm_speculative_hip
     ${EZLOCALAI_REFERENCE_ROOT} ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures)
 set_tests_properties(llm_speculative_hip_reference PROPERTIES TIMEOUT 60)
+add_test(NAME llm_speculative_hip_package COMMAND test_llm_speculative_hip
+    --fixtures ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures)
+set_tests_properties(llm_speculative_hip_package PROPERTIES TIMEOUT 60)
 
 add_executable(test_llm_parameters tests/test_llm_parameters.cpp)
 target_link_libraries(test_llm_parameters PRIVATE ezlocalai_native)

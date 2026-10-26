@@ -28,16 +28,25 @@ std::string sha256(const std::string &s) { unsigned char hash[32]; SHA256(reinte
 std::optional<std::string> optional(const std::string &s) { return s == "N" ? std::nullopt : std::optional<std::string>(unhex(s.substr(1))); }
 std::optional<int64_t> integer(const std::string &s) { return s == "N" ? std::nullopt : std::optional<int64_t>(std::stoll(s)); }
 void event(std::string &trace, const std::string &name) { if (!trace.empty()) trace += '\n'; trace += name; }
-template<class Callback> size_t cases(const fs::path &reference, const fs::path &path, Callback callback) {
+template<class Callback> size_t cases(const std::optional<fs::path> &reference, const fs::path &path, Callback callback) {
+    expect(fs::is_regular_file(path), "cache fixture missing: " + path.string());
     std::istringstream input(read(path)); size_t count = 0;
     for (std::string line; std::getline(input, line);) {
         if (line.empty()) continue;
-        if (line[0] == '#') { const auto at = line.find(" sha256="); if (at != std::string::npos) expect(sha256(read(reference / line.substr(2, at - 2))) == line.substr(at + 8), "cache source hash"); continue; }
+        if (line[0] == '#') {
+            const auto at = line.find(" sha256=");
+            if (reference && at != std::string::npos) {
+                const auto source = *reference / line.substr(2, at - 2);
+                expect(fs::is_regular_file(source), "cache reference source missing: " + source.string());
+                expect(sha256(read(source)) == line.substr(at + 8), "cache source hash: " + source.string());
+            }
+            continue;
+        }
         callback(split(line)); ++count;
     }
     return count;
 }
-size_t reference_cases(const fs::path &reference, const fs::path &fixtures) {
+size_t reference_cases(const std::optional<fs::path> &reference, const fs::path &fixtures) {
     const auto resolved = cases(reference, fixtures / "llm_cache_resolve_cases.tsv", [](const auto &c) {
         const auto result = ezlocalai::resolve_llm_prompt_cache(optional(c[1]), std::stoll(c[2]));
         expect(result.mib == c[3] && result.reason == unhex(c[4]), "resolve cache case " + c[0] + ": " + result.reason);
@@ -96,7 +105,7 @@ struct Fixture {
     void reaped() const { std::istringstream pids(read(path("launch"))); for (int pid; pids >> pid;) expect(kill(pid, 0) != 0, "cache fixture child reaped"); }
 };
 void managed_cases(const fs::path &root) {
-    unsetenv("CUDA_VISIBLE_DEVICES"); unsetenv("EZLOCALAI_TEST_CUDA_FAIL");
+    unsetenv("CUDA_VISIBLE_DEVICES"); unsetenv("HIP_VISIBLE_DEVICES"); unsetenv("ROCR_VISIBLE_DEVICES"); unsetenv("EZLOCALAI_TEST_CUDA_FAIL");
     environment(); Fixture fixture(root, "cache");
     setenv("LLM_PROMPT_CACHE_MIB", "8192", 1);
     setenv("KV_CACHE_TYPE", "f16", 1); setenv("KV_CACHE_TYPE_5090", "Q8_0", 1);
@@ -190,11 +199,11 @@ void native_policy_cases(const fs::path &root) {
     constrained = ezlocalai::prompt_cache_ram_with_cgroup({100000, 131072, 8192}, cg.string(), "/../../hidden");
     expect(constrained.total_mib == 8192 && constrained.available_mib == 4096, "hidden namespace path cannot escape controller root");
 }
-void revision(const fs::path &reference) {
+void revision(const std::optional<fs::path> &reference) {
     const std::string pin = ezlocalai::llama_cpp_reference_revision;
     // The native engine runs llama.cpp v0.7.0, ahead of the reference's
     // xllamacpp pin. Its Docker and Compose defaults must still agree.
-    expect(read(reference / "scripts/build_xllamacpp.py").find("LLAMA_REVISION = \"") != std::string::npos, "reference still pins an engine revision");
+    if (reference) expect(read(*reference / "scripts/build_xllamacpp.py").find("LLAMA_REVISION = \"") != std::string::npos, "reference still pins an engine revision");
     const fs::path native(TEST_NATIVE_SOURCE_DIRECTORY);
     expect(read(native / "cuda.Dockerfile").find("ARG EZLOCALAI_LLAMA_CPP_REF=" + pin) != std::string::npos, "Docker engine default matches pin");
     expect(read(native / "docker-compose-cuda.yml").find("${EZLOCALAI_LLAMA_CPP_REF:-" + pin + '}') != std::string::npos, "Compose engine default matches pin");
@@ -203,8 +212,12 @@ void revision(const fs::path &reference) {
 int main(int argc, char **argv) {
     try {
         if (argc == 3 && std::string(argv[1]) == "--cuda") { managed_cases(argv[2]); return 0; }
-        expect(argc == 3, "reference root and fixtures required");
-        const auto count = reference_cases(argv[1], argv[2]); revision(argv[1]);
+        expect(argc == 3, "usage: test_llm_cache REFERENCE_ROOT|--fixtures FIXTURE_DIRECTORY");
+        // Images ship the captured cases, not an external Python checkout.
+        // Only explicit fixture mode omits source hash verification; the
+        // developer reference test remains strict when its checkout is absent.
+        const auto reference = std::string(argv[1]) == "--fixtures" ? std::optional<fs::path>{} : fs::path(argv[1]);
+        const auto count = reference_cases(reference, argv[2]); revision(reference);
         const auto directory = fs::temp_directory_path() / ("ezl-cache-" + std::to_string(getpid())); fs::create_directories(directory);
         struct Cleanup { fs::path path; ~Cleanup() { fs::remove_all(path); } } cleanup{directory};
         native_policy_cases(directory);
@@ -212,7 +225,8 @@ int main(int argc, char **argv) {
         setenv("EZLOCALAI_TEST_CUDA_DEVICES", (directory / "devices.tsv").c_str(), 1); setenv("LD_LIBRARY_PATH", TEST_CUDA_DRIVER_DIRECTORY, 1);
         const auto result = ezlocalai::run_process_to_files({fs::absolute(argv[0]).string(), "--cuda", directory.string()}, (directory / "child.log").string(), "", 30, true);
         expect(!result.timed_out && result.status == 0, "managed cache integration: " + read(directory / "child.log"));
-        std::cout << "Verified " << count << " source cache/RAM cases, managed startup/restoration and engine revision defaults\n";
+        std::cout << "Verified " << count << " recorded cache/RAM cases, native memory policy, managed startup/restoration and engine revision defaults"
+            << (reference ? "; Python source hashes verified\n" : "; fixture-only package mode\n");
         return 0;
     } catch (const std::exception &error) { std::cerr << error.what() << '\n'; return 1; }
 }
