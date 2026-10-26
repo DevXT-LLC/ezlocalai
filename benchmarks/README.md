@@ -274,6 +274,20 @@ Every prompt is token-counted against the fixed context and full decode budget,
 native timing/MTP counters are retained, and truncation or unexpected reasoning
 fails. The default run records eight inference samples plus one excluded warmup.
 
+Add `--finite-control` to verify a changed instruction after text-file restore.
+The long text seed must return its branch marker/code and `TURN_ALPHA` on two
+lines. The reference continuation asks for `TURN_BRAVO_r1`; a different branch
+then answers its own marker/code and `TURN_ALPHA` before the saved seed is
+restored. The exact repeated continuation must again answer `TURN_BRAVO_r1`,
+with the existing identical request/output and cached-prefix checks. Each
+text answer must stop normally with no extra content or reasoning; at most one
+terminal newline is allowed. Expected turn/content are recorded before inference.
+Finite mode defaults all four text requests to a 64-token budget and a minimum
+of one generated token; `--decode-tokens 128` is also supported. Replace any
+explicit historical `--decode-tokens 256` when enabling the flag. Vision color
+requests and the separate freeform vision stomp retain their usual behavior.
+Historical requests and validation remain unchanged without this flag.
+
 The client generates bounded UUID basenames, records each save/restore RPC,
 and uses no filesystem operations on snapshots. It does not accept caller
 snapshot paths or delete files. The operator must fingerprint and remove only

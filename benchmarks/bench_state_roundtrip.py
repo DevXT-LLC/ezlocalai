@@ -21,8 +21,8 @@ import bench_capacity
 import bench_prefill
 import bench_progression
 from bench_cache_workload import (Client, append_messages, conversation_messages,
-    finite_json, input_tokens, request_payload, validate_provenance, validate_runtime,
-    validate_sample)
+    finite_control_content, finite_control_turn, finite_json, input_tokens,
+    request_payload, validate_provenance, validate_runtime, validate_sample)
 from bench_capacity import red_png
 from bench_prefill import require_cold
 from bench_progression import atomic_report, digest, native_metrics
@@ -118,12 +118,15 @@ def run_roundtrips(client, source, args, report, save):
         raise RuntimeError("disk roundtrip qualification requires the vision projector loaded")
     save()
 
-    def measure(kind, messages, tokens, branch=None, cold=False):
+    def measure(kind, messages, tokens, branch=None, cold=False, expected_turn=None):
         payload = request_payload(messages, tokens, args.model, "disk-state:" + args.run_id + ":" + kind.split("_")[0])
         report["counts"]["input_token_preflights"] += 1
         expected = input_tokens(client, payload, args.context)
         pending = {"kind": kind, "expected_input_tokens": expected, "request_sha256": digest(payload),
                    "messages_sha256": digest(messages), "requested_generated_tokens": tokens}
+        if expected_turn is not None:
+            pending.update(expected_control_turn=expected_turn,
+                           finite_control_expected_content=finite_control_content(branch, expected_turn))
         report["pending_request"] = pending
         save()
         report["counts"]["generation_calls"] += 1
@@ -134,7 +137,9 @@ def run_roundtrips(client, source, args, report, save):
         if branch is None:
             details = validate_vision(sample, expected, tokens, args.require_draft_counters)
         else:
-            details = validate_sample(sample, expected, tokens, branch, min(64, tokens), args.require_draft_counters)
+            minimum = 1 if expected_turn is not None else min(64, tokens)
+            details = validate_sample(sample, expected, tokens, branch, minimum,
+                                      args.require_draft_counters, expected_turn)
         sample.update(details)
         if cold:
             require_cold(sample)
@@ -185,15 +190,21 @@ def run_roundtrips(client, source, args, report, save):
     client.measure(warmup)
     save()
 
-    text = conversation_messages(source, args.prompt_chars, args.run_id + ":disk-text", 0, "independent", 90)
-    seed = measure("text_seed", text, args.decode_tokens, 0, True)
+    seed_turn = finite_control_turn("seed") if args.finite_control else None
+    continuation_turn = finite_control_turn("append", 1) if args.finite_control else None
+    text = conversation_messages(source, args.prompt_chars, args.run_id + ":disk-text", 0,
+                                 "independent", 90, args.finite_control)
+    seed = measure("text_seed", text, args.decode_tokens, 0, True, seed_turn)
     text_file = snapshot("text")
-    continuation = append_messages(text, seed, args.run_id + ":disk-text", 0, 1)
-    reference = measure("text_reference", continuation, args.decode_tokens, 0)
-    stomp = conversation_messages(source, min(args.prompt_chars, 4000), args.run_id + ":stomp-text", 1, "independent", 20)
-    measure("text_stomp", stomp, 128, 1, True)
+    continuation = append_messages(text, seed, args.run_id + ":disk-text", 0, 1, args.finite_control)
+    reference = measure("text_reference", continuation, args.decode_tokens, 0,
+                        expected_turn=continuation_turn)
+    stomp = conversation_messages(source, min(args.prompt_chars, 4000), args.run_id + ":stomp-text", 1,
+                                  "independent", 20, args.finite_control)
+    measure("text_stomp", stomp, args.decode_tokens if args.finite_control else 128, 1, True, seed_turn)
     restore(text_file)
-    repeated = measure("text_restored", continuation, args.decode_tokens, 0)
+    repeated = measure("text_restored", continuation, args.decode_tokens, 0,
+                       expected_turn=continuation_turn)
     report["comparisons"]["text"] = compare_continuation(reference, repeated, seed["expected_input_tokens"])
     save()
 
@@ -227,16 +238,21 @@ def arguments(argv=None):
     parser.add_argument("--metadata", type=Path, required=True)
     parser.add_argument("--run-id", default=uuid.uuid4().hex)
     parser.add_argument("--prompt-chars", type=int, default=100000)
-    parser.add_argument("--decode-tokens", type=int, default=256)
+    parser.add_argument("--decode-tokens", type=int)
+    parser.add_argument("--finite-control", action="store_true",
+                        help="require exact finite new-turn answers for the text disk roundtrip only")
     parser.add_argument("--require-draft-counters", action="store_true")
     parser.add_argument("--timeout", type=float, default=1800)
     parser.add_argument("--api-key-env", default="EZLOCALAI_API_KEY")
     args = parser.parse_args(argv)
+    args.decode_tokens = args.decode_tokens if args.decode_tokens is not None else (64 if args.finite_control else 256)
     url = urllib.parse.urlsplit(args.base_url)
     if url.scheme not in ("http", "https") or not url.netloc or url.username or url.password or url.query or url.fragment:
         parser.error("require an HTTP(S) base URL without credentials, query or fragment")
     if args.context < 512 or not 1 <= args.prompt_chars <= args.context * 64 or not 64 <= args.decode_tokens < args.context - 32:
         parser.error("invalid fixed context, bounded source length or long decode budget")
+    if args.finite_control and args.decode_tokens not in (64, 128):
+        parser.error("finite control requires a text decode budget of 64 or 128")
     if not args.run_id or len(args.run_id) > 100 or not math.isfinite(args.timeout) or args.timeout <= 0:
         parser.error("require a run ID of 1..100 characters and a finite positive timeout")
     return args
@@ -257,7 +273,9 @@ def main(argv=None):
               "harness_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
               "harness_dependencies_sha256": {Path(module.__file__).name: hashlib.sha256(Path(module.__file__).read_bytes()).hexdigest() for module in dependencies},
               "requested_sampling": {"temperature": 0, "seed": 42, "enable_thinking": False},
-              "configuration": {"context": args.context, "prompt_chars": args.prompt_chars, "decode_tokens": args.decode_tokens, "model": args.model},
+              "configuration": {"context": args.context, "prompt_chars": args.prompt_chars,
+                                "decode_tokens": args.decode_tokens, "finite_control": args.finite_control,
+                                "model": args.model},
               "warmup_excluded": True, "inference_retries": 0, "context_downgrade_allowed": False,
               "file_access": "HTTP slot RPC only; operator hashes/removes files in its owned snapshot directory",
               "counts_scope": "HTTP operation attempts; recorded_samples counts only validated inference samples",
