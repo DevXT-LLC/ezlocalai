@@ -1360,10 +1360,14 @@ std::string json_object_from_ordered_entries(const std::vector<std::pair<std::st
     return out.str();
 }
 
-std::string json_object_field(const std::string &object, const std::string &key, const std::string &fallback) {
-    const auto fields = top_level_json_object_values(object);
+std::string json_object_field(const std::map<std::string, std::string> &fields,
+                              const std::string &key, const std::string &fallback) {
     const auto found = fields.find(key);
     return found == fields.end() ? fallback : found->second;
+}
+
+std::string json_object_field(const std::string &object, const std::string &key, const std::string &fallback) {
+    return json_object_field(top_level_json_object_values(object), key, fallback);
 }
 
 std::string merge_json_objects(std::string base_json, const std::string &patch_json) {
@@ -8456,17 +8460,20 @@ std::string llm_model_request_settings(const std::string &body, const std::strin
     else if (small_instruct.count(model)) profile = R"({"temperature":0.7,"top_p":0.8,"top_k":20,"min_p":0.0,"presence_penalty":1.5,"repetition_penalty":1.0,"chat_template_kwargs":{"enable_thinking":false}})";
     else if (regular_instruct.count(model)) profile = R"({"temperature":1.0,"top_p":0.95,"top_k":20,"min_p":0.0,"presence_penalty":1.5,"repetition_penalty":1.0,"chat_template_kwargs":{"enable_thinking":false}})";
     else return json_object_from_ordered_entries(data);
+    // Reuse the same last-key-wins parser without rescanning a long prompt
+    // for every sampling/reasoning field.
+    const auto request_fields = top_level_json_object_values(body);
     auto defaults = json_object_ordered_entries(profile);
     auto options = json_object_ordered_entries(json_object_field(profile, "chat_template_kwargs", "{}"));
-    const auto user_options = json_object_field(body, "chat_template_kwargs", "null");
+    const auto user_options = json_object_field(request_fields, "chat_template_kwargs", "null");
     if (!user_options.empty() && user_options.front() == '{')
         for (const auto &item : json_object_ordered_entries(user_options)) ordered_json_upsert(&options, item);
-    const auto effort = json_object_field(body, "reasoning_effort", "null");
+    const auto effort = json_object_field(request_fields, "reasoning_effort", "null");
     erase(data, "reasoning_effort");
     if (effort != "null" && (qwen || !json_object_field(json_object_from_ordered_entries(options), "reasoning_effort", "").empty()))
         ordered_json_upsert(&options, {"reasoning_effort", effort});
     if (qwen) {
-        const auto reasoning = json_object_field(body, "reasoning", "null");
+        const auto reasoning = json_object_field(request_fields, "reasoning", "null");
         if (!reasoning.empty() && reasoning.front() == '{') {
             const auto effort_value = json_object_field(reasoning, "effort", "null");
             auto enabled = json_object_field(reasoning, "enabled", "null");
@@ -8493,21 +8500,29 @@ std::string llm_model_request_settings(const std::string &body, const std::strin
 }
 
 std::string llm_engine_request(const std::string &body, bool chat_mode, const std::string &output_tokens, const std::string &system_message) {
+    const auto request_fields = top_level_json_object_values(body);
     const std::string input_key = chat_mode ? "messages" : "prompt";
-    auto input = json_object_field(body, input_key, "");
+    auto input = json_object_field(request_fields, input_key, "");
     if (input.empty()) throw LlmParameterError("TypeError", "LLM." + std::string(chat_mode ? "chat" : "completion") + "() missing 1 required positional argument: '" + input_key + "'");
     std::vector<std::pair<std::string, std::string>> fields = {
-        {input_key, input}, {"max_tokens", json_object_field(body, "max_tokens", output_tokens)},
-        {"temperature", json_object_field(body, "temperature", "1.31")}, {"top_p", json_object_field(body, "top_p", "0.95")},
-        {"stream", json_object_field(body, "stream", "false")}};
-    if (chat_mode) fields.push_back({"cache_prompt", "true"});
-    for (const auto *key : {"top_k", "min_p", "presence_penalty", "frequency_penalty"}) {
-        const auto value = json_object_field(body, key, ""); if (!value.empty()) fields.push_back({key, value});
+        {input_key, input}, {"max_tokens", json_object_field(request_fields, "max_tokens", output_tokens)},
+        {"temperature", json_object_field(request_fields, "temperature", "1.31")}, {"top_p", json_object_field(request_fields, "top_p", "0.95")},
+        {"stream", json_object_field(request_fields, "stream", "false")}};
+    if (chat_mode) {
+        fields.push_back({"cache_prompt", "true"});
+        // WorkConductor/WorkerRouter use this conversation hint to preserve
+        // separate prompt states. It must reach the owned engine as metadata.
+        const auto cache_key = json_object_field(request_fields, "prompt_cache_key", "");
+        if (cache_key.size() > 2 && cache_key.front() == '"')
+            fields.push_back({"prompt_cache_key", cache_key});
     }
-    const auto penalty = json_object_field(body, "repeat_penalty", json_object_field(body, "repetition_penalty", ""));
+    for (const auto *key : {"top_k", "min_p", "presence_penalty", "frequency_penalty"}) {
+        const auto value = json_object_field(request_fields, key, ""); if (!value.empty()) fields.push_back({key, value});
+    }
+    const auto penalty = json_object_field(request_fields, "repeat_penalty", json_object_field(request_fields, "repetition_penalty", ""));
     if (!penalty.empty()) fields.push_back({"repeat_penalty", penalty});
     if (chat_mode) {
-        const auto options = json_object_field(body, "chat_template_kwargs", "");
+        const auto options = json_object_field(request_fields, "chat_template_kwargs", "");
         if (!options.empty()) fields.push_back({"chat_template_kwargs", options});
         bool has_system = false;
         if (input.front() != '[') {
@@ -10335,9 +10350,13 @@ bool LlamaCppInferenceBackend::load_server_once_locked(Server *server, std::stri
             args.insert(args.end(), {"-b", batch.batch, "-ub", batch.ubatch});
         }
         PromptCache requested_cache{"0", ""}, effective_cache{"0", ""};
+        int64_t prompt_cache_swap_mib = 0;
         if (!server->embedding_mode) {
-            requested_cache = resolve_llm_prompt_cache(std::string(ezl_getenv_default("LLM_PROMPT_CACHE_MIB")), context_size);
-            effective_cache = cap_llm_prompt_cache(requested_cache, native_llm_cache_environment(), native_prompt_cache_ram);
+            const auto budget = native_llm_prompt_cache_budget(std::string(ezl_getenv_default("LLM_PROMPT_CACHE_MIB")),
+                context_size, native_llm_cache_environment(), native_prompt_cache_ram);
+            requested_cache = budget.requested;
+            effective_cache = budget.effective;
+            prompt_cache_swap_mib = budget.swap_allowance_mib;
             validate_llm_reasoning_budget(ezl_getenv_fallback("REASONING_BUDGET", "-1"));
         }
         auto mmproj = trim(ezl_getenv_default("LLAMA_CPP_MMPROJ_PATH"));
@@ -10575,6 +10594,7 @@ bool LlamaCppInferenceBackend::load_server_once_locked(Server *server, std::stri
                     }
                     runtime.emplace_back("prompt_cache_mib", effective_cache.mib);
                     runtime.emplace_back("prompt_cache_requested_mib", requested_cache.mib);
+                    runtime.emplace_back("prompt_cache_swap_allowance_mib", std::to_string(prompt_cache_swap_mib));
                     runtime.emplace_back("checkpoint_min_step", std::to_string(llm_default_checkpoint_min_step));
                     runtime.emplace_back("n_ctx_checkpoints", std::to_string(llm_default_context_checkpoints));
                     server->llm_parallel = 1;

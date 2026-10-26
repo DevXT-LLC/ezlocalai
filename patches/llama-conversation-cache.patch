@@ -1,0 +1,199 @@
+diff --git a/tools/server/server-task.h b/tools/server/server-task.h
+--- a/tools/server/server-task.h
++++ b/tools/server/server-task.h
+@@ -52,6 +52,7 @@
+     bool stream          = false;
+     bool include_usage   = false;
+     bool cache_prompt    = true; // remember the prompt to avoid reprocessing all prompt
++    std::string prompt_cache_key; // conversation hint, not model input
+     bool return_tokens   = false;
+     bool return_progress = false;
+ 
+@@ -683,7 +684,9 @@
+ 
+     size_t n_tokens() const;
+ 
+-    server_prompt_cache_state * alloc(const server_prompt & prompt, size_t state_size_main, size_t state_size_drft);
++    std::list<server_prompt_cache_state>::iterator find_best(const server_prompt & prompt, const server_tokens & tokens_new);
++
++    server_prompt_cache_state * alloc(const server_prompt & prompt, size_t state_size_main, size_t state_size_drft, const server_tokens * requested = nullptr);
+ 
+     bool load(server_prompt & prompt, const server_tokens & tokens_new, llama_context * ctx_tgt, llama_context * ctx_dft, int32_t id_slot);
+ 
+diff --git a/tools/server/server-task.cpp b/tools/server/server-task.cpp
+--- a/tools/server/server-task.cpp
++++ b/tools/server/server-task.cpp
+@@ -1711,7 +1711,26 @@
+     return res;
+ }
+ 
+-server_prompt_cache_state * server_prompt_cache::alloc(const server_prompt & prompt, size_t state_size_tgt, size_t state_size_dft) {
++std::list<server_prompt_cache_state>::iterator server_prompt_cache::find_best(const server_prompt & prompt, const server_tokens & tokens_new) {
++    int lcp_best = prompt.tokens.get_common_prefix(tokens_new);
++    auto best = states.end();
++    for (auto it = states.begin(); it != states.end(); ++it) {
++        const int lcp = it->prompt.tokens.get_common_prefix(tokens_new);
++        // Keep the existing guard against copying a large state for a tiny prefix.
++        if (it->prompt.tokens.empty() || float(lcp) / it->prompt.tokens.size() < 0.25f) {
++            continue;
++        }
++        // A fully preserved short resident prompt must not hide a much longer
++        // cached prefix. Compare reusable tokens, not two competing ratios.
++        if (lcp > lcp_best) {
++            lcp_best = lcp;
++            best = it;
++        }
++    }
++    return best;
++}
++
++server_prompt_cache_state * server_prompt_cache::alloc(const server_prompt & prompt, size_t state_size_tgt, size_t state_size_dft, const server_tokens * requested) {
+     // first check if the current state is contained fully in the cache
+     for (auto it = states.begin(); it != states.end(); ++it) {
+         const int cur_lcp_len = it->prompt.tokens.get_common_prefix(prompt.tokens);
+@@ -1737,11 +1756,20 @@
+         return nullptr;
+     }
+ 
++    // Protect the state the next request is about to restore. Saving the
++    // outgoing slot must not evict that state before load() can see it.
++    const auto protected_state = requested ? find_best(prompt, *requested) : states.end();
++    if (limit_size > 0 && protected_state != states.end() &&
++            protected_state->size() > limit_size - state_size_new) {
++        SRV_WRN("%s", " - insufficient cache room to save outgoing state while preserving requested prompt; skipping save\n");
++        return nullptr;
++    }
++
+     // remove any cached prompts that are fully contained in the current prompt
+     for (auto it = states.begin(); it != states.end();) {
+         const int len = it->prompt.tokens.get_common_prefix(prompt.tokens);
+ 
+-        if (len == (int) it->prompt.tokens.size()) {
++        if (it != protected_state && len == (int) it->prompt.tokens.size()) {
+             SRV_TRC(" - removing obsolete cached prompt with length %d\n", len);
+ 
+             it = states.erase(it);
+@@ -1753,10 +1781,17 @@
+     if (limit_size > 0) {
+         // make room before allocating the new vectors to avoid breaching the limit
+         while (!states.empty() && size() + state_size_new > limit_size) {
++            auto victim = states.begin();
++            if (victim == protected_state) {
++                ++victim;
++            }
++            if (victim == states.end()) {
++                return nullptr;
++            }
+             SRV_WRN(" - making room for prompt cache entry, removing oldest entry (size = %.3f MiB)\n",
+-                    states.front().size() / (1024.0 * 1024.0));
+-
+-            states.pop_front();
++                    victim->size() / (1024.0 * 1024.0));
++
++            states.erase(victim);
+         }
+     }
+ 
+@@ -1794,39 +1829,9 @@
+ }
+ 
+ bool server_prompt_cache::load(server_prompt & prompt, const server_tokens & tokens_new, llama_context * ctx_tgt, llama_context * ctx_dft, int32_t id_slot) {
+-    const int lcp_best = prompt.tokens.get_common_prefix(tokens_new);
+-
+-    float f_keep_best = prompt.tokens.size() > 0 ? float(lcp_best) / prompt.tokens.size() : -1.0f; // empty slot: any cache entry wins
+-    float f_sim_best  = float(lcp_best) / tokens_new.size();
+-
+-    SRV_TRC(" - looking for better prompt, base f_keep = %.3f, f_sim = %.3f\n", f_keep_best, f_sim_best);
+-
+-    auto it_best = states.end();
+-
+-    // find the most similar cached prompt, that would also preserve the most context
+-    for (auto it = states.begin(); it != states.end(); ++it) {
+-        const int lcp_cur = it->prompt.tokens.get_common_prefix(tokens_new);
+-
+-        const float f_keep_cur = float(lcp_cur) / it->prompt.tokens.size();
+-        const float f_sim_cur  = float(lcp_cur) / tokens_new.size();
+-
+-        SRV_TRC("   - prompt with length %7zu, lcp = %7d, f_keep = %.3f, f_sim = %.3f\n", it->prompt.tokens.size(), lcp_cur, f_keep_cur, f_sim_cur);
+-
+-        // don't trash large prompts
+-        if (f_keep_cur < 0.25f) {
+-            continue;
+-        }
+-
+-        if (f_keep_best < f_keep_cur && f_sim_best < f_sim_cur) {
+-            f_keep_best = f_keep_cur;
+-            f_sim_best  = f_sim_cur;
+-
+-            it_best = it;
+-        }
+-    }
+-
++    auto it_best = find_best(prompt, tokens_new);
+     if (it_best != states.end()) {
+-        SRV_TRC(" - found better prompt with f_keep = %.3f, f_sim = %.3f\n", f_keep_best, f_sim_best);
++        SRV_TRC("%s", " - found a longer cached prompt prefix\n");
+ 
+         {
+             auto & data = it_best->data.main;
+diff --git a/tools/server/server-schema.cpp b/tools/server/server-schema.cpp
+--- a/tools/server/server-schema.cpp
++++ b/tools/server/server-schema.cpp
+@@ -30,6 +30,12 @@
+ 
+     add((new field_bool("cache_prompt", params.cache_prompt))
+         ->set_desc("Re-use KV cache from a previous request if possible. This way the common prefix does not have to be re-processed, only the suffix that differs between the requests"));
++
++    add((new field_str("prompt_cache_key"))
++        ->set_desc("Preserve conversation state when switching named prompt caches")
++        ->set_handler([&](field_eval_context & ctx, const json & data) {
++            ctx.params.prompt_cache_key = data.at("prompt_cache_key").get<std::string>();
++        }));
+ 
+     add((new field_bool("return_tokens", params.return_tokens))
+         ->set_desc("Return the raw generated token ids in the `tokens` field"));
+diff --git a/tools/server/server-context.cpp b/tools/server/server-context.cpp
+--- a/tools/server/server-context.cpp
++++ b/tools/server/server-context.cpp
+@@ -305,7 +305,7 @@
+ 
+     server_prompt prompt;
+ 
+-    bool prompt_save(server_prompt_cache & prompt_cache) const {
++    bool prompt_save(server_prompt_cache & prompt_cache, const server_tokens * requested = nullptr) const {
+         if (prompt.tokens.size() == 0) {
+             return false;
+         }
+@@ -318,7 +318,7 @@
+         SRV_TRC(" - saving prompt with length %d, total state size = %.3f MiB (draft: %.3f MiB)\n",
+                 (int) prompt.tokens.size(), cur_size / (1024.0 * 1024.0), cur_size_dft / (1024.0 * 1024.0));
+ 
+-        auto * cur = prompt_cache.alloc(prompt, cur_size_tgt, cur_size_dft);
++        auto * cur = prompt_cache.alloc(prompt, cur_size_tgt, cur_size_dft, requested);
+         if (cur == nullptr) {
+             return false;
+         }
+@@ -1777,6 +1777,14 @@
+         }
+ 
+         if (ret) {
++            if (prompt_cache && !task.is_stateless()) {
++                const bool conversation_changed = !task.params.prompt_cache_key.empty() &&
++                    ret->task_prev && task.params.prompt_cache_key != ret->task_prev->params.prompt_cache_key;
++                // Preserve a named conversation even when another conversation
++                // shares most of its stable system/runtime prefix.
++                update_cache = update_cache || (conversation_changed && !ret->prompt.tokens.empty());
++                update_cache = update_cache || prompt_cache->find_best(ret->prompt, task.tokens) != prompt_cache->states.end();
++            }
+             update_cache = update_cache && prompt_cache;
+ 
+             // cache prompts only for the tasks that reuse them
+@@ -1787,7 +1795,7 @@
+ 
+                 const int64_t t_start = ggml_time_us();
+ 
+-                ret->prompt_save(*prompt_cache);
++                ret->prompt_save(*prompt_cache, &task.tokens);
+ 
+                 if (!ret->prompt_load(*prompt_cache, task.tokens)) {
+                     ret->prompt_clear();

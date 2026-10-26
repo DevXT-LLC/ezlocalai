@@ -1,0 +1,136 @@
+{
+  "date": "2026-10-25",
+  "baseline_source_commit": "204e3ca",
+  "status": "Source optimization validated; deployment unchanged",
+  "change": "Parse long request bodies once for engine fields and model sampling/reasoning settings, preserving the existing parser and last-key-wins behavior.",
+  "quality_contract": "No changes to weights, quantization, KV precision, context, sampling, speculative decoding or inference kernels. All 6183 captured request cases pass and three long-prompt engine payloads are byte-identical.",
+  "validation": {
+    "llm_request_cases": 6183,
+    "focused_suites_passed": 2,
+    "focused_seconds": 31.4,
+    "cuda_package_passed": 60,
+    "cuda_package_failed": 0,
+    "cuda_package_seconds": 292.75,
+    "benchmark_guards_passed": 5,
+    "unicode_byte_budget_smoke": true,
+    "final_cache_and_router_rechecks_passed": true,
+    "initial_request_only_package_gate": {
+      "passed": 58,
+      "seconds": 287.9
+    }
+  },
+  "measurements": [
+    {
+      "requested_source_bytes": 32000,
+      "request_bytes": 33478,
+      "payload_bytes": 33581,
+      "before_median_ms": 0.44521160000000004,
+      "after_median_ms": 0.1938896,
+      "speedup": 2.2962118648963123,
+      "saved_ms": 0.25132200000000005,
+      "before_samples_ms": [
+        0.44084500000000004,
+        0.46612030000000004,
+        0.44521160000000004,
+        0.443299,
+        0.44555819999999996,
+        0.4408872,
+        0.4524636
+      ],
+      "after_samples_ms": [
+        0.1964631,
+        0.1897613,
+        0.1928366,
+        0.1915524,
+        0.1938896,
+        0.1992222,
+        0.2005097
+      ]
+    },
+    {
+      "requested_source_bytes": 128000,
+      "request_bytes": 133636,
+      "payload_bytes": 133739,
+      "before_median_ms": 1.9272079999999998,
+      "after_median_ms": 0.7252457999999999,
+      "speedup": 2.657317008936832,
+      "saved_ms": 1.2019621999999999,
+      "before_samples_ms": [
+        1.8849962000000002,
+        1.8918798,
+        1.9272079999999998,
+        2.0949834,
+        1.9377779,
+        1.9187138999999998,
+        1.9341598999999998
+      ],
+      "after_samples_ms": [
+        0.7720381,
+        0.7252457999999999,
+        0.7166683,
+        0.7318063,
+        0.7118699,
+        0.7095845,
+        0.7533941000000001
+      ]
+    },
+    {
+      "requested_source_bytes": 680000,
+      "request_bytes": 707059,
+      "payload_bytes": 707162,
+      "before_median_ms": 9.6494432,
+      "after_median_ms": 3.5293225,
+      "speedup": 2.734078056057501,
+      "saved_ms": 6.1201207,
+      "before_samples_ms": [
+        9.612623600000001,
+        9.6229198,
+        9.862581500000001,
+        9.57732,
+        9.6494432,
+        9.7280677,
+        9.871782
+      ],
+      "after_samples_ms": [
+        3.9849281,
+        3.3482698999999996,
+        3.8013055000000002,
+        3.5293225,
+        3.539555,
+        3.4743237999999996,
+        3.0531574
+      ]
+    }
+  ],
+  "payload_comparisons": [
+    {
+      "name": "payload-128000.json",
+      "bytes": 133739,
+      "sha256": "7d61aac02c07735bfbd055912d92d5d795d5e11a28cda0cbde1a521810a55629",
+      "identical": true
+    },
+    {
+      "name": "payload-32000.json",
+      "bytes": 33581,
+      "sha256": "466837882b92d654018c09a071fd5d4aa7e6fef84f7997df4912b0d518847b73",
+      "identical": true
+    },
+    {
+      "name": "payload-680000.json",
+      "bytes": 707162,
+      "sha256": "1dd6c7659f1d0b965362a8a7cdf27be1b50423faaf3c3c0f98b1d18973a8f5f3",
+      "identical": true
+    }
+  ],
+  "source_hashes": {
+    "src/native_server.cpp": "8de7f06e77ea9471971d92f8302ebaad6ff1130fdd05ef2777b5dc56c8c87d2a",
+    "benchmarks/bench_request.cpp": "de0f087df560fadc2b76ca5305343bf9a1a73321c80124729de5a5db9da62066",
+    "benchmarks/bench_prefill.py": "a761559c171865f5b0c7157f3d6ceaada6eafb63c3e4ce6d1a5da205bba60ec6",
+    "benchmarks/test_bench_prefill.py": "1f0486e6805f6c0cd4a67e1ea6b5ccfbf0d9951ffb3f1f35e008ca52175ca754"
+  },
+  "limitations": [
+    "CPU request preparation is separate from GPU prompt throughput and end-to-end latency",
+    "No optimized worker image deployed in this pass"
+  ],
+  "proof_directory": "build/validation/optimization-20261025"
+}

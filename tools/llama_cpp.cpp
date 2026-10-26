@@ -156,6 +156,10 @@ struct Tool {
         fs::create_directories(build);
         std::ofstream out(build / "ezlocalai-llama-cpp-version.txt");
         out << "repo=" << repo << "\nref=" << ref << "\nsha=" << sha << "\ndate=" << date << '\n';
+        if (sha == ezlocalai::llama_cpp_reference_revision) {
+            std::ifstream patches(build / "ezlocalai-llama-cpp-patches.txt");
+            if (patches) out << patches.rdbuf();
+        }
         if (!out) throw std::runtime_error("could not write llama.cpp version file");
     }
 
@@ -165,6 +169,14 @@ struct Tool {
         else git({"remote", "set-url", "origin", repo});
         git({"fetch", "--tags", "--prune", "origin"});
         const auto remote = ezlocalai::run_process({"git", "-C", checkout.string(), "rev-parse", "--verify", "--quiet", "refs/remotes/origin/" + ref}, true);
+        if (fs::exists(build / "ezlocalai-llama-cpp-patches.txt") &&
+            git({"rev-parse", remote.status == 0 ? "origin/" + ref : ref}, true) != git({"rev-parse", "HEAD"}, true)) {
+            // Remove only our checked patch before changing engine revisions;
+            // git still protects unrelated local edits during checkout.
+            checked({"cmake", "-DSOURCE_DIR=" + checkout.string(), "-DBUILD_DIR=" + build.string(),
+                "-DPATCH_FILE=" + (native / "patches/llama-conversation-cache.patch").string(),
+                "-DREMOVE_MANAGED_PATCH=ON", "-P", (native / "cmake/ApplyLlamaPatches.cmake").string()});
+        }
         if (remote.status == 0) git({"checkout", "-B", ref, "origin/" + ref});
         else git({"checkout", ref});
         const auto branch = git({"rev-parse", "--abbrev-ref", "HEAD"}, true);
@@ -174,6 +186,14 @@ struct Tool {
 
     void build_server() const {
         ensure();
+        if (git({"rev-parse", "HEAD"}, true) == ezlocalai::llama_cpp_reference_revision) {
+            checked({"cmake", "-DSOURCE_DIR=" + checkout.string(), "-DBUILD_DIR=" + build.string(),
+                "-DPATCH_FILE=" + (native / "patches/llama-conversation-cache.patch").string(),
+                "-P", (native / "cmake/ApplyLlamaPatches.cmake").string()});
+            write_version();
+        } else {
+            fs::remove(build / "ezlocalai-llama-cpp-patches.txt");
+        }
         std::vector<std::string> configure{"cmake", "-S", checkout.string(), "-B", build.string(), "-DCMAKE_BUILD_TYPE=" + env("EZLOCALAI_LLAMA_CPP_BUILD_TYPE", "Release")};
         const auto extra = split_arguments(env("EZLOCALAI_LLAMA_CPP_CMAKE_ARGS"));
         configure.insert(configure.end(), extra.begin(), extra.end());

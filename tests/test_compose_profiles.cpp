@@ -20,6 +20,11 @@ int main(int argc, char **argv) {
                     std::string("PATH=") + (std::getenv("PATH") ? std::getenv("PATH") : "/usr/bin:/bin")};
                 for (const auto &[key, value] : scenario.at("input").items())
                     command.push_back(key + "=" + value.get<std::string>());
+                const bool override_swap = scenario.at("name") == "overridden";
+                for (const auto &key : {"LLM_PROMPT_CACHE_SWAP_MIB", "LLM_PROMPT_CACHE_SWAP_MARGIN_MIB"}) {
+                    if (override_swap) command.push_back(std::string(key) + "=2048");
+                    else if (scenario.at("name") == "empty") command.push_back(std::string(key) + '=');
+                }
                 command.insert(command.end(), {argv[3], "compose", "--env-file", "/dev/null",
                     "-f", (root / profile.at("file").get<std::string>()).string(),
                     "config", "--no-env-resolution", "--format", "json"});
@@ -27,6 +32,10 @@ int main(int argc, char **argv) {
                 if (response.status != 0) throw std::runtime_error("Compose configuration failed");
                 const auto service = nlohmann::json::parse(response.output).at("services").at("ezlocalai");
                 const auto actual = service.at("environment");
+                if (actual.at("LLM_PROMPT_CACHE_SWAP_MIB") != (override_swap ? "2048" : "0") ||
+                    actual.at("LLM_PROMPT_CACHE_SWAP_MARGIN_MIB") != (override_swap ? "2048" : "1024"))
+                    throw std::runtime_error("native bounded-swap settings must pass through every profile");
+                comparisons += 2;
                 for (const auto &[key, expected] : scenario.at("expected").items()) {
                     auto wanted = expected;
                     if (profile.contains("default_corrections") && profile.at("default_corrections").contains(key) &&

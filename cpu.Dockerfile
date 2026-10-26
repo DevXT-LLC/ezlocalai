@@ -172,7 +172,7 @@ RUN git init /opt/acestep.cpp && \
 ENV ACE_STEP_BIN=/opt/acestep.cpp/build/ace-server
 
 FROM engines-base AS llama-engine
-COPY cmake/BuildLlamaEngine.cmake /tmp/BuildLlamaEngine.cmake
+COPY cmake/BuildLlamaEngine.cmake cmake/ApplyLlamaPatches.cmake patches/llama-conversation-cache.patch /tmp/
 RUN cmake -P /tmp/BuildLlamaEngine.cmake
 
 FROM engines-base AS native-compiled
@@ -202,7 +202,7 @@ FROM native-compiled
 ARG EZLOCALAI_PACKAGE_TEST_EXCLUDE=
 RUN ctest --test-dir build \
         ${EZLOCALAI_PACKAGE_TEST_EXCLUDE:+-E "$EZLOCALAI_PACKAGE_TEST_EXCLUDE"} \
-        -R '^((storyboard_.*|ltx_norm|ltx_timesteps|ltx_schedule|ltx_rng|ltx_nf4_loader|nf4.*|torch_checkpoint|wakeword_cache|speech_resources|speech_slots|worker_metadata|media_slots|service_clients|llm_residency|llm_headroom|llm_preload|live_capacity|llm_instances|startup|media_startup|cuda_allocator)_reference|wakeword_jobs|wakeword_qwen|torch_resources|media_engine|video_auxiliary|embedding_discovery|queue_history|queue_http|dotenv_reference|dotenv_startup|openapi_reference|file_response_reference|native_http|worker_heartbeat_reference|router_fallback|worker_heartbeat_http|worker_heartbeat_shutdown|worker_tunnel|stt_diarization_reference|runtime_version_reference|tunnel_idle_reference|tunnel_transport_reference|tunnel_connection_reference|tunnel_redirect_reference|http_cookies_reference|tunnel_framing_reference|ltx_runtime|ltx_connectors|ltx_condition_cache|core)$' --output-on-failure && \
+        -R '^((storyboard_.*|ltx_norm|ltx_timesteps|ltx_schedule|ltx_rng|ltx_nf4_loader|nf4.*|torch_checkpoint|wakeword_cache|speech_resources|speech_slots|worker_metadata|media_slots|service_clients|llm_residency|llm_cache|llm_headroom|llm_preload|live_capacity|llm_instances|startup|media_startup|cuda_allocator)_reference|wakeword_jobs|wakeword_qwen|torch_resources|media_engine|video_auxiliary|embedding_discovery|queue_history|queue_http|dotenv_reference|dotenv_startup|openapi_reference|file_response_reference|native_http|worker_heartbeat_reference|router_fallback|worker_heartbeat_http|worker_heartbeat_shutdown|worker_tunnel|stt_diarization_reference|runtime_version_reference|tunnel_idle_reference|tunnel_transport_reference|tunnel_connection_reference|tunnel_redirect_reference|http_cookies_reference|tunnel_framing_reference|ltx_runtime|ltx_connectors|ltx_condition_cache|conversation_cache|core)$' --output-on-failure && \
     cmake --install build && \
     ln -sf /app/build/ezlocalai-native /usr/local/bin/ezlocalai-native && \
     ln -sf /app/build/llama_cpp_tool /usr/local/bin/llama_cpp_tool && \

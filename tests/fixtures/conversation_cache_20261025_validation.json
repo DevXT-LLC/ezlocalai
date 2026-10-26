@@ -1,0 +1,270 @@
+{
+  "date": "2026-10-25",
+  "status": "source and engine validated; no optimization image deployed",
+  "baseline_source_commit": "204e3ca",
+  "observed_host_memory_mib": [
+    {
+      "label": "DevXT5090",
+      "MemTotal_mib": 128286.40234375,
+      "MemAvailable_mib": 115133.8125,
+      "SwapTotal_mib": 98345.99609375,
+      "SwapFree_mib": 98342.99609375
+    },
+    {
+      "label": "DevXT4090",
+      "MemTotal_mib": 31230.78515625,
+      "MemAvailable_mib": 25938.98046875,
+      "SwapTotal_mib": 4095.99609375,
+      "SwapFree_mib": 4095.99609375
+    },
+    {
+      "label": "DevXT3090V",
+      "MemTotal_mib": 31245.0078125,
+      "MemAvailable_mib": 27950.390625,
+      "SwapTotal_mib": 4095.99609375,
+      "SwapFree_mib": 4095.99609375
+    },
+    {
+      "label": "DevXT3090J",
+      "MemTotal_mib": 126339.68359375,
+      "MemAvailable_mib": 84161.55078125,
+      "SwapTotal_mib": 8191.99609375,
+      "SwapFree_mib": 22.734375
+    }
+  ],
+  "observed_host_memory_note": "Read-only /proc/meminfo sample. Actual policy additionally respects container cgroup limits and recomputes at model load. Swap is off by default; these are free capacities, not reservations.",
+  "llama_cpp_revision": "620d2225cc436ab0b001e3200e590e3b286ef9ab",
+  "patch_sha256": "ea1cb7096df5107862e825ecf7fae45354632f6d091fc1cfe71f0dc72a8d39d9",
+  "model": "unsloth/Qwen3.8-27B-GGUF",
+  "gpu": "NVIDIA GeForce RTX 3090 Ti (DevXT3090J)",
+  "settings": [
+    "-m",
+    "/app/models/Qwen3.8-27B/Qwen3.8-27B-UD-Q3_K_XL.gguf",
+    "--host",
+    "127.0.0.1",
+    "--port",
+    "28193",
+    "--alias",
+    "unsloth/Qwen3.8-27B-GGUF",
+    "-c",
+    "220000",
+    "--main-gpu",
+    "0",
+    "-b",
+    "4096",
+    "-ub",
+    "512",
+    "--mmproj",
+    "/app/models/Qwen3.8-27B/mmproj-BF16.gguf",
+    "-fa",
+    "on",
+    "--cache-ram",
+    "14336",
+    "-ctk",
+    "q4_0",
+    "-ctv",
+    "q4_0",
+    "-np",
+    "1",
+    "--cont-batching",
+    "--warmup",
+    "--ctx-checkpoints",
+    "32",
+    "--checkpoint-min-step",
+    "8192",
+    "--spec-type",
+    "draft-mtp",
+    "--spec-draft-n-max",
+    "3",
+    "--spec-draft-p-min",
+    "0.10000000000000001",
+    "--image-min-tokens",
+    "1024",
+    "-ngl",
+    "-1"
+  ],
+  "fixed_cache_ceiling_mib": 14336,
+  "comparison": {
+    "stock": {
+      "rows": [
+        {
+          "conversation": "COBALT",
+          "evaluated_tokens": 23862,
+          "cached_tokens": 0,
+          "wall_seconds": 18.82237273300416,
+          "answer": "COBALT"
+        },
+        {
+          "conversation": "VIOLET",
+          "evaluated_tokens": 23844,
+          "cached_tokens": 18,
+          "wall_seconds": 18.584145294997143,
+          "answer": "VIOLET"
+        },
+        {
+          "conversation": "AMBER",
+          "evaluated_tokens": 23754,
+          "cached_tokens": 18,
+          "wall_seconds": 18.81189266598085,
+          "answer": "AMBER"
+        },
+        {
+          "conversation": "COBALT",
+          "evaluated_tokens": 23844,
+          "cached_tokens": 18,
+          "wall_seconds": 18.97000671198475,
+          "answer": "COBALT"
+        },
+        {
+          "conversation": "VIOLET",
+          "evaluated_tokens": 23844,
+          "cached_tokens": 18,
+          "wall_seconds": 19.011046366009396,
+          "answer": "VIOLET"
+        },
+        {
+          "conversation": "AMBER",
+          "evaluated_tokens": 23754,
+          "cached_tokens": 18,
+          "wall_seconds": 19.075532449991442,
+          "answer": "AMBER"
+        },
+        {
+          "conversation": "COBALT",
+          "evaluated_tokens": 23844,
+          "cached_tokens": 18,
+          "wall_seconds": 19.114513066015206,
+          "answer": "COBALT"
+        }
+      ],
+      "returning_median_seconds": 19.04328940800042,
+      "restoration": {
+        "healthy": true,
+        "same_container": true,
+        "same_image": true,
+        "same_environment": true,
+        "same_mounts": true,
+        "oom_killed": false
+      },
+      "drain_released": true
+    },
+    "patched": {
+      "rows": [
+        {
+          "conversation": "COBALT",
+          "evaluated_tokens": 23862,
+          "cached_tokens": 0,
+          "wall_seconds": 18.99933496498852,
+          "answer": "COBALT"
+        },
+        {
+          "conversation": "VIOLET",
+          "evaluated_tokens": 23844,
+          "cached_tokens": 18,
+          "wall_seconds": 19.09668052001507,
+          "answer": "VIOLET"
+        },
+        {
+          "conversation": "AMBER",
+          "evaluated_tokens": 23754,
+          "cached_tokens": 18,
+          "wall_seconds": 19.09091656198143,
+          "answer": "AMBER"
+        },
+        {
+          "conversation": "COBALT",
+          "evaluated_tokens": 4,
+          "cached_tokens": 23858,
+          "wall_seconds": 0.9371746929828078,
+          "answer": "COBALT"
+        },
+        {
+          "conversation": "VIOLET",
+          "evaluated_tokens": 4,
+          "cached_tokens": 23858,
+          "wall_seconds": 0.8822180740244221,
+          "answer": "VIOLET"
+        },
+        {
+          "conversation": "AMBER",
+          "evaluated_tokens": 4,
+          "cached_tokens": 23768,
+          "wall_seconds": 0.8952490240044426,
+          "answer": "AMBER"
+        },
+        {
+          "conversation": "COBALT",
+          "evaluated_tokens": 4,
+          "cached_tokens": 23858,
+          "wall_seconds": 0.946484148997115,
+          "answer": "COBALT"
+        }
+      ],
+      "returning_median_seconds": 0.9162118584936252,
+      "restoration": {
+        "healthy": true,
+        "same_container": true,
+        "same_image": true,
+        "same_environment": true,
+        "same_mounts": true,
+        "oom_killed": false
+      },
+      "drain_released": true
+    }
+  },
+  "quality_check": "Each of three branch labels matches its cold answer in all returning turns, and every answer matches the stock engine. Weights, quantization, KV precision, context and MTP settings are unchanged. This is a cache-correctness replay, not a general model-quality evaluation.",
+  "remaining_validation": [
+    "Live swapping/page-in latency has not been exercised.",
+    "No complete new image build or fleet rollout has been performed.",
+    "Custom engine revisions are not qualified by the managed patch."
+  ],
+  "returning_wall_speedup": 20.78481001032898,
+  "source_sha256": {
+    "src/native_server.cpp": "8de7f06e77ea9471971d92f8302ebaad6ff1130fdd05ef2777b5dc56c8c87d2a",
+    "src/llm_cache.cpp": "d507344da37f746d3ddae5f7a3dd2c97345dd3b47e05d09ebd592b8e0b021e71",
+    "include/ezlocalai/llm_cache.hpp": "ceec5ab0218311d6219b20e7dd71b716450f90e68c12e89c64a7c312a5967558",
+    "cmake/ApplyLlamaPatches.cmake": "a4bf022d98304aa7c33d9d930ba5e1f648ee6b9ca1f5fc38aa580f1bb16a4483",
+    "tools/llama_cpp.cpp": "1b97e248fe07c4b0033e12880f69b55ece60b5d6e751cd66a37c3bdd2255dddf",
+    "tests/test_conversation_cache.cpp": "2bb4c3cf02872928b72b6b78e4112b182e524ac64ff8b7dc2f9ae69bac77962d",
+    "tests/test_llm_cache.cpp": "b0d9cc1354836af1e5649d05324870840589f616c44499aa9000ac3eca13d407",
+    "CMakeLists.txt": "b052676199fb32bb0ed2dd7e3693d893b2d5e2cc727e1101672ccf0b4e67cadd",
+    "tests/test_worker_router.cpp": "e3dcf0ff4acb02b361271d975f3104118a1b53dda5fb24be12081612b3095aff",
+    "tests/test_compose_profiles.cpp": "121612886584c4495fdebf30b4539172767b45ce0263dafdb3e5cdb67328eb45"
+  },
+  "validation": {
+    "cuda_package": {
+      "passed": 60,
+      "failed": 0,
+      "seconds": 292.75
+    },
+    "request_source_cases": 6183,
+    "cache_ram_source_cases": 9111,
+    "cpu_engine_replay": true,
+    "engine_patch_apply_idempotence_reverse_custom_revision": true,
+    "native_worker_rust_router_integration": {
+      "passed": true,
+      "seconds": 36.16,
+      "transports": [
+        "direct",
+        "tunnel"
+      ],
+      "responses": [
+        "buffered",
+        "streaming"
+      ],
+      "managed_engine_receives_cache_key": true
+    },
+    "compose": {
+      "passed": true,
+      "profiles": 6,
+      "new_settings_cases": [
+        "unset",
+        "empty",
+        "overridden"
+      ]
+    },
+    "benchmark_guard_tests": 5,
+    "router_pr": "https://github.com/DevXT-LLC/WorkerRouter/pull/4",
+    "router_commit": "e48e7c6"
+  }
+}

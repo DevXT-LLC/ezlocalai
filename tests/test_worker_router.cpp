@@ -204,12 +204,19 @@ int main(int argc, char **argv) {
             auto models = Json::parse(request(router_url, "/v1/models")).at("data");
             bool found = false; for (const auto &m : models) if (m.at("id") == "integration-model") found = true;
             require(found, "router model discovery");
-            Json chat{{"model", "integration-model"}, {"messages", Json::array({{{"role", "user"}, {"content", "Hello café 日本語"}}})}, {"max_tokens", 16}};
+            Json chat{{"model", "integration-model"}, {"messages", Json::array({{{"role", "user"}, {"content", "Hello café 日本語"}}})},
+                {"max_tokens", 16}, {"prompt_cache_key", "integration-conversation"}};
             auto value = Json::parse(request(router_url, "/v1/chat/completions", chat));
             require(!value.at("choices").empty(), "buffered chat");
             chat["stream"] = true; auto stream = request(router_url, "/v1/chat/completions", chat);
             require(stream.find("data:") != std::string::npos && stream.find("[DONE]") != std::string::npos, "streamed chat");
             if (swap) {
+                std::ifstream seen(temporary / name / ("seen-" + std::string(std::getenv("LLAMA_CPP_SERVER_PORT"))));
+                const std::string requests(std::istreambuf_iterator<char>(seen), {});
+                const std::string cache_hint = "\"prompt_cache_key\":\"integration-conversation\"";
+                const auto first = requests.find(cache_hint);
+                require(first != std::string::npos && requests.find(cache_hint, first + cache_hint.size()) != std::string::npos,
+                    "conversation cache hint reaches owned engine through buffered and streamed Rust routing");
                 auto cancelled = chat;
                 cancelled["messages"] = Json::array({{{"role", "user"}, {"content", "fixture-stream-cancel"}}});
                 cancelled["disable_fallback"] = true;
