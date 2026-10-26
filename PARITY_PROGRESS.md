@@ -2,6 +2,63 @@
 
 The goal remains behavior parity with ezlocalai within the scope below, with all first-party executable code implemented in C++. It is **not complete**.
 
+## CUDA prefill qualification and streaming latency (2026-10-26)
+
+The worker now sends a complete HTTP chunk in one write, retries interrupted
+writes, requests TCP_NODELAY for streaming sockets, and wakes its consumer when
+generation completes. Response bytes, queued callback order, cancellation and
+admission release remain covered by regression tests. Controlled delayed-ACK
+and producer-completion stalls fell from 40.78/90.03 ms to below 0.1 ms; live
+model A/B runs showed no consistent material TTFT or decode improvement, with
+all 25 sampled outputs matching on each of the three GPUs.
+
+Fresh measurements start from deployed worker `46d9ba8` and engine `620d2225`.
+Paired 150K-token cold prefill improved from **952.8 to 1016.9 tok/s** on
+3090V (RTX 3090 Ti), and **1781.4 to 1894.8 tok/s** on 5090. Their larger
+physical batches also passed cold 218392/248809-token prompts and red-image
+recognition without reducing their 230000/262144 context budgets. Weights,
+KV precision, logical batch, MTP settings and model presets were preserved.
+The 3090V's two capped summary probes changed wording without a concrete
+semantic regression; 6/8 long outputs and all 16 short outputs matched exactly.
+The 5090's eight long and 16 short outputs matched. These are sampled quality
+checks, not universal numerical equivalence. The 5090 has different actual
+GGUF contents despite the same filename, so comparisons use each card's own
+baseline. Full progression and provenance are in
+[`benchmarks/optimization-20261026.md`](benchmarks/optimization-20261026.md).
+
+Applied only `LLM_UBATCH_SIZE` in `/home/josh/ezlocalai/.env`: 3090V's absent
+setting (`auto`, effective 512) is now `1024`; 5090's `1024` is now `2048`.
+4090 remains `1024`: its 2048 trial reduced 150K prefill from 1988.3 to
+1820.1 tok/s, so further qualification was intentionally stopped and its
+original container restored. State-transfer batching, pinned staging, graph
+tuning and longer MTP drafts were not promoted; both experimental state-I/O
+patches were removed from the final code.
+
+Settings cutovers retained the existing images (`3e09d9905d59` on 3090V and
+`1197b0b18d41` on 5090), mounts, ports and effective resource controls. Docker's
+default `OomKillDisable` null/false representation was normalized for comparison.
+Fresh router metadata and pinned chat, streaming and vision checks passed;
+all three workers are healthy and no owned drains remain. Rollback tags are
+`ezlocalai:rollback-env-env-20261026-devxt3090v-5903c2f8` and
+`ezlocalai:rollback-env-env-20261026-devxt5090-5903c2f8`; private dotenv backups
+remain beside each operator transaction on its host. Two earlier operator
+verification attempts rolled back safely before the successful cutovers.
+
+Validation: **62/62 CUDA package checks** without the Python checkout,
+**2/2 real CPU cache/Rust-router integrations**, **23 benchmark guards**, and
+per-card isolated CUDA measurements. Compact evidence is in
+`tests/fixtures/llm_throughput_20261026_validation.json` and the linked model
+and streaming fixtures. No complete new production image or other hardware
+image was built in this pass; the new worker code ran in isolated A/B containers.
+
+Handoff: merge the optimization PR, let image automation build/deploy it, then
+repeat routed smoke and interleaved conversations on the complete image.
+Position-aware MTP CPU carryover across cache/checkpoint rewinds and atomic
+failed-draft cache restoration remain source-audited follow-ups; no partial
+MTP state fix ships here. Sustained cache pressure and actual swap-in latency
+also remain unmeasured. Preserve the current weights, precision and context
+when benchmarking those changes.
+
 ## Oracle-free cache package gates (2026-10-26)
 
 The optimization merge added `llm_cache_reference` to the image gate, but that
