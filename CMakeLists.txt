@@ -1349,6 +1349,15 @@ target_link_libraries(test_llm_stream_lifecycle PRIVATE ezlocalai_native)
 add_test(NAME llm_stream_lifecycle_reference COMMAND test_llm_stream_lifecycle ${EZLOCALAI_REFERENCE_ROOT} ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/llm_stream_lifecycle_cases.tsv)
 set_tests_properties(llm_stream_lifecycle_reference PROPERTIES TIMEOUT 90)
 
+# Model-free stream termination/admission contracts also run in images without
+# an external Python reference checkout.
+add_executable(test_stream_completion tests/test_stream_completion.cpp)
+target_link_libraries(test_stream_completion PRIVATE ezlocalai_native)
+add_test(NAME stream_completion COMMAND test_stream_completion)
+set_tests_properties(stream_completion PROPERTIES TIMEOUT 30)
+add_executable(bench_stream_completion EXCLUDE_FROM_ALL benchmarks/bench_stream_completion.cpp)
+target_link_libraries(bench_stream_completion PRIVATE ezlocalai_native)
+
 # Optional direct parser verification uses an independently built reference
 # engine. First-party targets remain C++ only; no engine is fetched implicitly.
 set(EZLOCALAI_LLAMA_CPP_REFERENCE_SOURCE "" CACHE PATH "Pinned llama.cpp source for engine contract tests")
@@ -1761,6 +1770,7 @@ if(TARGET test_ltx_norm AND TARGET ezlocalai-tts)
         test_ltx_runtime
         test_core
         test_http_stream_socket
+        test_stream_completion
     )
     if(TARGET test_conversation_cache)
         list(APPEND native_package_targets test_conversation_cache)

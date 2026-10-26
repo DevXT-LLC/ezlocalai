@@ -113,9 +113,12 @@ bool LlmInferenceStream::next(std::string *chunk, const std::function<bool()> &d
         {
             std::unique_lock<std::mutex> lock(state->mutex);
             if (state->callbacks.empty() && !state->done && !state->closed) {
-                // Completion alone does not wake Python Queue.get(). Its
-                // timeout can yield a final keepalive before the loop exits.
-                timed_out = !state->cv.wait_for(lock, std::chrono::milliseconds(100), [&] { return !state->callbacks.empty() || state->closed; });
+                // Native completion can finalize the stream and release its
+                // admission lease immediately. Queued callbacks still take
+                // precedence below, including callbacks before an error.
+                timed_out = !state->cv.wait_for(lock, std::chrono::milliseconds(100), [&] {
+                    return !state->callbacks.empty() || state->done || state->closed;
+                });
             }
             if (state->closed) return false;
             if (!state->callbacks.empty()) { value = std::move(state->callbacks.front()); state->callbacks.pop_front(); }
