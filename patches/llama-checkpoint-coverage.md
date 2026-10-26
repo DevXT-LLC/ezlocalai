@@ -1,10 +1,11 @@
-# Aligned checkpoint coverage experiment for named MTP conversations
+# Aligned checkpoint coverage for named MTP conversations
 
 This fifth managed patch applies after conversation-cache, atomic save/load,
 bounded storage and MTP-resume at llama.cpp
 `620d2225cc436ab0b001e3200e590e3b286ef9ab`. It leaves model weights, precision,
-physical batch sizes, sampling and context limits unchanged. Its CUDA promotion
-is conditional on a new comparison; model-free tests cannot establish quality.
+physical batch sizes, sampling and context limits unchanged. CUDA qualification
+and its limits are recorded in [the cache report](../benchmarks/cache-depth-20261026.md);
+model-free tests alone cannot establish output quality.
 
 The two original capped offsets, `4 + n_ubatch` and `4`, always remain. For the
 measured seed with 24,577 tokens, those create checkpoints at 23,549 and 24,573.
@@ -13,7 +14,7 @@ A rewind to 23,327 precedes both and falls back to the early user checkpoint.
 The earlier fixed 2052-token offset was first accidentally disabled for text
 chats with a loaded projector. Correcting that eligibility showed a substantial
 rewind gain, but changed all generated answers in the comparison. That fixed
-split is superseded by this aligned experiment; its logs remain separate.
+split is superseded by this aligned policy; its logs remain separate.
 
 The new split uses a boundary the original physical splitter already had.
 For the observed final logical chunk starting at 20,555, the original target
@@ -22,7 +23,7 @@ at 22,603 preserves those physical groups and makes a checkpoint available at
 22,603, with 1,974 input tokens remaining. It does not force an absolute 2052
 boundary. MTP continues with the exact predecessor `h[22602]`.
 
-The experiment requires all of these conditions:
+The policy requires all of these conditions:
 
 - a named prompt of at least 4096 tokens with actual text only;
 - an existing FULL/RS checkpoint path and at least four configured checkpoints;
@@ -63,8 +64,7 @@ One extra checkpoint uses additional pageable RAM (about 150 MiB for the
 currently measured Qwen model), charged by the existing cache storage budget.
 A tight cache may retain fewer conversation states. Set
 `EZLOCALAI_LLAMA_CHECKPOINT_COVERAGE=0` for the original scheduler in the same
-binary. The candidate default enables the experiment only after all guards;
-production promotion still requires the new CUDA comparison.
+binary. The default enables the additional snapshot only when all guards pass.
 
 At trace verbosity (`--log-verbosity 4` or higher), `checkpoint coverage:`
 records numeric eligibility inputs and the selected window: actual target/draft
@@ -82,14 +82,15 @@ checks the MTP carryover boundary. Projector text, media at zero/after text,
 cloning, serialization and truncation are included. Optimized and ASan/UBSan
 runs pass. Negative controls forcing an unaligned boundary or ignoring the
 recurrent tail fail. The actual modified server context passes a release-flags
-syntax compile. Root must provide the existing engine test libraries plus
-`${EZLOCALAI_TTS_LLAMA_SOURCE}/src` in this target's include directories.
+syntax compile. The packaged test links the matched engine libraries and includes
+`${EZLOCALAI_TTS_LLAMA_SOURCE}/src`.
 
 Identical cold physical groups are a stronger invariant than an unchanged
 physical-batch setting. They still do not establish universal GPU bitwise
 identity. A shortened prompt evaluated cold can have a different tail grouping
 from the longer prompt that created a reused checkpoint, so rewind off/on output
-hashes are not universally expected to match. New CUDA checks must compare seed
-and replay requests, verify restored-state continuation, and assess rewind
-answers and cache-pressure costs. No corrected aligned GPU result is claimed
-by this patch's model-free fixture.
+hashes are not universally expected to match. The CUDA qualification compares
+seed, replay and append requests, verifies finite new-turn answers and restored
+state, and measures rewinds and sustained cache pressure. The linked report
+distinguishes these measurements from this patch's model-free fixture and
+records the tested hardware, prompts and remaining limits.
