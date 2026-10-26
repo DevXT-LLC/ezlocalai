@@ -1438,7 +1438,8 @@ if(EXISTS "${EZLOCALAI_TTS_LLAMA_SOURCE}/tools/server/server-task.h" AND
     set_tests_properties(llama_mtp_resume PROPERTIES TIMEOUT 30)
     add_executable(test_llama_checkpoint_coverage tests/test_llama_checkpoint_coverage.cpp)
     target_include_directories(test_llama_checkpoint_coverage PRIVATE
-        $<TARGET_PROPERTY:test_cache_restore_atomic,INCLUDE_DIRECTORIES>)
+        $<TARGET_PROPERTY:test_cache_restore_atomic,INCLUDE_DIRECTORIES>
+        ${EZLOCALAI_TTS_LLAMA_SOURCE}/src)
     target_link_libraries(test_llama_checkpoint_coverage PRIVATE
         $<TARGET_PROPERTY:test_cache_restore_atomic,LINK_LIBRARIES>)
     add_test(NAME llama_checkpoint_coverage COMMAND test_llama_checkpoint_coverage)
