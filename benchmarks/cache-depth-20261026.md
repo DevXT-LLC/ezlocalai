@@ -3,10 +3,11 @@
 Status: partial qualification report. Results cover the 4090 four-patch
 cache/MTP candidate and router comparison, 4090/3090V production-engine cache
 capacity tests, applied RAM settings on those two workers, and baseline 4090
-disk-state roundtrips. An earlier experimental fifth patch changes sampled
-answers and remains unqualified for quality; its aligned replacement is being
-tested separately. Final state/quality qualification, 5090 checks, swap and
-release of a final image remain pending. The earlier
+disk-state roundtrips. The latest release candidate also completes active
+aligned-checkpoint, finite-instruction and eight-conversation pressure checks
+on the 4090. Earlier experimental checkpoint results remain historical. Final
+state/quality qualification, other-GPU candidate checks, swap and release of a
+final image remain pending. The earlier
 [prefill tuning report](optimization-20261026.md)
 is historical evidence and is not replaced by these numbers.
 
@@ -95,7 +96,7 @@ concurrent-access examples. This happens in the matched baseline as well as both
 candidate storage modes. Their input hashes agree, but continuation semantics
 are not qualified by these results.
 
-## Experimental shorter-prefix checkpoint coverage
+## Historical unaligned checkpoint coverage
 
 A later, separate comparison uses identical five-patch engine artifacts and
 switches only `EZLOCALAI_LLAMA_CHECKPOINT_COVERAGE=0/1`, with storage enabled in
@@ -140,13 +141,74 @@ All six append answers again repeat their mode's seed answer rather than
 addressing the new continuation topics. Every output stops at the 256-token
 cap, while the prompt asks for at least 800 words, a Python example and resource
 management discussion. This workload cannot qualify those broader requirements.
-Fifth-patch quality acceptance, a concise latest-turn instruction test and any
-decision to enable coverage by default remain pending. This older unaligned
-patch is superseded for further qualification by source snapshot `56d6375`.
-Its aligned candidate, server implementation beginning `da84...`, is undergoing
-4090 coverage-off/on, finite-output and eight-conversation pressure tests. No
-result from that replacement is included here yet; the earlier changed-answer
-result cannot establish its speed or quality.
+These older unaligned results are not release qualification. Intermediate
+aligned attempts also had eligibility-guard problems, so their absence of an
+effect cannot establish active checkpoint coverage. The release comparison
+below verifies the actual runtime guard and checkpoint window separately.
+
+## Active aligned checkpoints in the release candidate
+
+The release candidate from source `448bf6b` uses server implementation
+`56435bfa886d...`, with the same common library, low-level engine and model
+files as above. Both freeform modes use the now-applied 12288 MiB cache ceiling
+and identical parameters/artifacts; only
+`EZLOCALAI_LLAMA_CHECKPOINT_COVERAGE=0/1` changes. Runtime trace confirms an
+eligible named text request with checkpoint window 2052, one active MTP head,
+MTP-only drafting, and draft/target physical batches of 1024. This demonstrates
+active coverage rather than inferring it from an environment flag.
+
+| Case | Coverage off TTFT | Coverage on TTFT |
+| --- | ---: | ---: |
+| Seed | 8.530 s | 8.587 s |
+| Identical replay | 251.9 ms | 255.9 ms |
+| Append | 519.1 ms | 517.3 ms |
+| Shorter-prefix rewind | 8.064 s | 590.2 ms |
+
+All twelve freeform request hashes match across modes. All nine seed, replay
+and append answer hashes also match exactly. All three rewinds change from
+75 cached / 23252 evaluated tokens to 22603 cached / 724 evaluated. Median full
+rewind time changes from 10.796 to 3.326 seconds, while native decode remains
+93.33 versus 93.23 tok/s. The gain comes from avoiding prompt reevaluation,
+with no measured decode-rate increase. Seed TTFT is about 0.68% slower in this
+three-sample run; replay/append differences are small.
+
+The three rewind answer hashes differ across modes. Two independent reviewers
+read all six answers against the task and found coherent collision/chaining
+explanations with no concrete new factual or identity regression in these
+samples. Differences concern wording, emphasis and truncation. One enabled
+answer uses an unsupported broad claim about the most common collision
+strategy. Every answer is capped at 256 tokens and ends with `length`, so this
+comparison still cannot qualify the requested 800-word explanation, Python
+example or full resource-management discussion. Sampled semantic review does
+not establish universal quality equivalence or byte-identical rewind answers.
+
+A separate finite control directly tests the latest user instruction. Both
+coverage modes return all twelve exact expected branch/turn answers and finish
+with `stop`: seeds/replays use `TURN_ALPHA`, appended instructions change to
+`TURN_BRAVO_r1`, and rewinds change to `TURN_CHARLIE`. All twelve paired request
+and output hashes match. Enabled finite rewinds reuse 22610 tokens and evaluate
+728, with median TTFT 590.5 ms. Finite-on additionally enables logging verbosity
+4, so its timing comparison has that extra control difference. This test
+qualifies the sampled latest-turn discriminator; it does not replace broad
+freeform quality evaluation. The freeform append samples still repeat their
+mode's seed answer rather than extending the requested topics, so their broader
+continuation semantics remain unqualified.
+
+The same release candidate also completes eight independent conversations for
+three rounds at 12288 MiB. All sixteen replays reuse the tail, with median TTFT
+252.4 ms, full turn 1.706 seconds and native decode 88.59 tok/s. All 24 request
+and answer hashes match both prior production-engine pressure variants. At the
+same 12288 MiB ceiling, the earlier production run has 461.8 ms TTFT and a
+1.912-second turn. This is a comparison of the combined engine changes across
+runs, not an isolated estimate for a single patch.
+
+All five completed release-test phases record zero swap/OOM counters. The
+pressure phase peaks at 13127340032 cgroup bytes, including active state and
+reclaimable page-cache charges outside the conversation-cache ceiling. Host
+memory pressure and concurrent media workloads are not forced. The original
+production container, image, environment, mounts and critical arguments are
+restored, and the owned drain is released. Candidate-engine results on 3090V
+and 5090, final disk-state checks and final-image release remain pending.
 
 ## Router admission with a real GPU worker
 
@@ -265,7 +327,7 @@ Rollback materials on the respective hosts are:
 
 The update helper creates backups with mode `0600`, in private run directories,
 and retains the original inspection metadata. Successful finalization removes
-the old stopped containers. The current helper's rollback command still expects
+the old stopped containers. The helper version used for these updates expects
 those original container IDs, so automatic rollback after finalization remains
 a helper gap; retained files and image tags allow manual reconstruction. This
 report does not claim that command has been validated after finalization.
@@ -321,7 +383,8 @@ Raw proof remains under ignored
 `DevXT4090-baseline-depth-f9977f92`,
 `DevXT4090-combined-resident-b269671d` and
 `DevXT4090-router-gpu-54124ad3a6`, plus the experimental
-`DevXT4090-coverage-fixed-resident-035908e1`,
+`DevXT4090-coverage-fixed-resident-035908e1`, the completed active release run
+`DevXT4090-release-aligned-quality-ca9cf87e`,
 `DevXT{4090,3090V}-ram-pressure-production-dc2ca20d`,
 `cache-environment-qualification`, `disk-state`, and `full-cuda-image-274eea0`.
 Exact artifact, harness, input and result
@@ -333,9 +396,9 @@ fingerprints are summarized in
 - **3090V and 5090 candidate engines:** equivalent cache/MTP and router
   comparisons, preserving their existing model files and selected batch sizes.
   The completed 3090V capacity result above uses its production engine.
-- **Coverage/checkpoint changes:** final source/build qualification and quality
-  acceptance before enabling the experimental fifth patch. Its measured rewind
-  gain above accompanies changed answers and does not establish no quality loss.
+- **Coverage/checkpoint changes:** final build/release qualification and broader
+  quality acceptance. Active 4090 reuse and finite instruction checks pass;
+  freeform rewind answers differ, with sampled semantic limits disclosed above.
 - **State roundtrips:** final text/vision slot-save, reload, continuation and
   legacy/corrupt-state evidence for the final patch stack.
 - **Swap:** a controlled nonzero swap-in workload and host/container pressure
