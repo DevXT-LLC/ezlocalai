@@ -1,0 +1,982 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-26",
+  "purpose": "Public native-repository source-code conversation corpus for lossless request-compression CPU and simulated-link benchmarks; no private repositories, private conversations or repeated filler",
+  "archive": "request_gzip_public_sources_20261026.json.gz",
+  "archive_sha256": "d0e8f46579d4d2d670a4abd7e75f8f5b1c5c1557b93976d237064a8d34537772",
+  "archive_decoded_sha256": "ae6bcaf349721cc9659b0ca74426f4eb11e009b20fa7771224f2735c9e3de8b2",
+  "archive_decoded_bytes": 1102210,
+  "archive_decoded_limit": 2097152,
+  "total_source_bytes": 1048397,
+  "repositories": [
+    {
+      "id": "native",
+      "url": "https://github.com/DevXT-LLC/ezlocalai",
+      "revision": "c42148868a04d05171cdfc3bca7840f227b97216",
+      "license": "MIT",
+      "license_text": "MIT License\n\nCopyright (c) Josh Throckmorton.\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.\n"
+    }
+  ],
+  "sources": [
+    {
+      "repo": "native",
+      "path": "README.md",
+      "sha256": "af33e49e51090baeb1206d13fc768d782cd0576344b4ba1fff4009e1e195e861",
+      "bytes": 103662
+    },
+    {
+      "repo": "native",
+      "path": "src/http_body.cpp",
+      "sha256": "40a8c8c64c53fa6b57649eedc3601f144231b7ff60ea10bb840c742a39b35d5f",
+      "bytes": 7272
+    },
+    {
+      "repo": "native",
+      "path": "src/http_cookies.cpp",
+      "sha256": "58107a1ee5aaccd004dbeb742b2135c09bd26e6c57a23d58baddd5f1187fa5c0",
+      "bytes": 20273
+    },
+    {
+      "repo": "native",
+      "path": "src/http_deadline.cpp",
+      "sha256": "c8c689f2fc33fd16969c63e5f50d13c6008833dbd66c59ac59e2c77834c11c23",
+      "bytes": 7955
+    },
+    {
+      "repo": "native",
+      "path": "src/http_url.cpp",
+      "sha256": "50e13a91f7bfeca6a871ea9c5a82773a1fc43c260d87dca90e5ce91ce38c88bd",
+      "bytes": 14279
+    },
+    {
+      "repo": "native",
+      "path": "src/llm_cache.cpp",
+      "sha256": "d507344da37f746d3ddae5f7a3dd2c97345dd3b47e05d09ebd592b8e0b021e71",
+      "bytes": 14316
+    },
+    {
+      "repo": "native",
+      "path": "src/llm_catalog.cpp",
+      "sha256": "2fc8f5712a40988e6b97da0a93d8a21fbd451561b861d661a3b3c714e43a1751",
+      "bytes": 6507
+    },
+    {
+      "repo": "native",
+      "path": "src/llm_context.cpp",
+      "sha256": "be873bed652030a884cbcf9ef55f346664378760db77f094be419987beda46a2",
+      "bytes": 2290
+    },
+    {
+      "repo": "native",
+      "path": "src/llm_slots.cpp",
+      "sha256": "cb78a54f05be269ffb6c461e98d0ef4a00d6e1091703dc402d54799628deb4ab",
+      "bytes": 5317
+    },
+    {
+      "repo": "native",
+      "path": "src/llm_stream.cpp",
+      "sha256": "67e1eb0251f693c82b22659354e885bc409634d94c781e6137e89dec9c878625",
+      "bytes": 8714
+    },
+    {
+      "repo": "native",
+      "path": "src/llm_batch.cpp",
+      "sha256": "ee002ae92da2a65bba6bd565e041b80da37312fe4450525269e970bea69e3028",
+      "bytes": 7033
+    },
+    {
+      "repo": "native",
+      "path": "src/worker_heartbeat.cpp",
+      "sha256": "39f61e8a2abf4256f4ef124338856a2b8ebca51b23ade582ab9f8135eeca08f2",
+      "bytes": 2996
+    },
+    {
+      "repo": "native",
+      "path": "src/request_queue.cpp",
+      "sha256": "841358ea02bc1afb9ff78a26b12649263389c312958790192085cfc0b43f8291",
+      "bytes": 14497
+    },
+    {
+      "repo": "native",
+      "path": "src/resource_manager.cpp",
+      "sha256": "40b33ef3b873eea69c5bbbfb75d5ef707dca5826582cbcde0f1d9634b3ed71c9",
+      "bytes": 12089
+    },
+    {
+      "repo": "native",
+      "path": "src/configuration.cpp",
+      "sha256": "4eac6e4acdd1e69f8f0d0b4bd32d62c8bd196c9ef58999ff14a635d308569825",
+      "bytes": 16801
+    },
+    {
+      "repo": "native",
+      "path": "src/embedding_placement.cpp",
+      "sha256": "2bc207286df6cfa09bfc3736f32e97c619660d35046dcf445bfebafef454438f",
+      "bytes": 23643
+    },
+    {
+      "repo": "native",
+      "path": "src/tunnel_connection.cpp",
+      "sha256": "457503c054e467fe4e858f8e7d6ea9177b2e3fb2765632822efdd1520cddc9f4",
+      "bytes": 21016
+    },
+    {
+      "repo": "native",
+      "path": "src/tunnel_websocket.cpp",
+      "sha256": "6dad8cd1467b4cbac63c25eabf002475aa16473a85770c7c77ede061f6826d1c",
+      "bytes": 4392
+    },
+    {
+      "repo": "native",
+      "path": "src/model_download.cpp",
+      "sha256": "dd052d8cc7bcf2ded274cc731d7206885034b8618afbb604792c4e679528e250",
+      "bytes": 4315
+    },
+    {
+      "repo": "native",
+      "path": "src/hub_local.cpp",
+      "sha256": "dc30e5f04bb9c05e0bea4d6d0b9e5ee8b113958312075979cfe4eba6196a4e8b",
+      "bytes": 18876
+    },
+    {
+      "repo": "native",
+      "path": "src/hub_snapshot.cpp",
+      "sha256": "88017aac5deee3049c0b1ecce840afda8c18d25e0cbbc1652c5bf76c83ca1f4e",
+      "bytes": 29072
+    },
+    {
+      "repo": "native",
+      "path": "src/voice_slots.cpp",
+      "sha256": "3616f23192134bbbb2111ba072bc7ffaf9eb5322f67edd9f0ade39f2b54e9f9a",
+      "bytes": 9205
+    },
+    {
+      "repo": "native",
+      "path": "include/ezlocalai/configuration.hpp",
+      "sha256": "c36733e0ed4bced1b94e4ec58954e26b7137ae6faeeaaf7c93765db70beebc7e",
+      "bytes": 1593
+    },
+    {
+      "repo": "native",
+      "path": "include/ezlocalai/ctts.hpp",
+      "sha256": "44829a875cb5eb27f8134e3c6cd09e615628728ea3b7f390566644f7dc1fe6d7",
+      "bytes": 1534
+    },
+    {
+      "repo": "native",
+      "path": "include/ezlocalai/ctts_audio.hpp",
+      "sha256": "8b4ccc61c7ee45548f47e5c8661efca7a6047f62efc2b5400018c5cb5c9772bb",
+      "bytes": 1430
+    },
+    {
+      "repo": "native",
+      "path": "include/ezlocalai/ctts_cache.hpp",
+      "sha256": "5927cee277ff794094fbd7449daf30361852fe1f7a1b3e70d9614844964ecaa7",
+      "bytes": 1840
+    },
+    {
+      "repo": "native",
+      "path": "include/ezlocalai/ctts_paths.hpp",
+      "sha256": "e33fdae2b6742aec7ecad4b012a30b011fe4f9d7b3817633f584d49b7601b2ee",
+      "bytes": 573
+    },
+    {
+      "repo": "native",
+      "path": "include/ezlocalai/ctts_runtime.hpp",
+      "sha256": "6d674d32cfe253f7f048cb284ac83194c884307537a8b7ab70422e058c6dc204",
+      "bytes": 2559
+    },
+    {
+      "repo": "native",
+      "path": "include/ezlocalai/ctts_stream_bridge.hpp",
+      "sha256": "a1a28f30862c4714af608e40af064c4139822b0308ff44cee7a12e952d727679",
+      "bytes": 787
+    },
+    {
+      "repo": "native",
+      "path": "include/ezlocalai/ctts_torch.hpp",
+      "sha256": "138b0bd74fc3c79c6a94529137c2bb416a507bbcc19b083640f99fed2574d067",
+      "bytes": 633
+    },
+    {
+      "repo": "native",
+      "path": "include/ezlocalai/edge_tts.hpp",
+      "sha256": "65055f74f550f34007c2304c8f16a9dcb4a0da3472ae36493717563b275592c6",
+      "bytes": 1542
+    },
+    {
+      "repo": "native",
+      "path": "include/ezlocalai/embedding_placement.hpp",
+      "sha256": "d5ff690e82944345636039c1b4991fbd45fd6cf4f029f9de003d1b6ae8922f6c",
+      "bytes": 1410
+    },
+    {
+      "repo": "native",
+      "path": "include/ezlocalai/embedding_runtime.hpp",
+      "sha256": "0f858a742e255ea0752e43d08273b487ae8b9f86840b8dc53ae87599977db61a",
+      "bytes": 1439
+    },
+    {
+      "repo": "native",
+      "path": "include/ezlocalai/engine_revision.hpp",
+      "sha256": "4f32ad56e777f3d63bc6954d9f4a4409044964417448bbcc36f312fcb11639b3",
+      "bytes": 648
+    },
+    {
+      "repo": "native",
+      "path": "include/ezlocalai/environment_defaults.hpp",
+      "sha256": "ffc90cc3cdbdf880cab13309cc298e1856c9f3bfa38ed131834b2c8df2de2ed5",
+      "bytes": 6252
+    },
+    {
+      "repo": "native",
+      "path": "include/ezlocalai/gtts.hpp",
+      "sha256": "137c4908de676af28b56f090520d823928942ca621481479f9f5671f53e5d99b",
+      "bytes": 1170
+    },
+    {
+      "repo": "native",
+      "path": "include/ezlocalai/http_body.hpp",
+      "sha256": "08ae1890b039cfe3ee32fd9ba58c198eb481b646e5772f6a9de4b5b790c7f81b",
+      "bytes": 952
+    },
+    {
+      "repo": "native",
+      "path": "include/ezlocalai/http_cookies.hpp",
+      "sha256": "cd9ce351be9f287ed8ed669ab38b970be5fa07e796058a994c66d559f0fc78ad",
+      "bytes": 1482
+    },
+    {
+      "repo": "native",
+      "path": "include/ezlocalai/http_deadline.hpp",
+      "sha256": "b14502cdacb30dee4cec01269d3aa45502874938e8b76a4504595b3d0fa477cb",
+      "bytes": 1426
+    },
+    {
+      "repo": "native",
+      "path": "include/ezlocalai/http_socket.hpp",
+      "sha256": "4e2820bb324ff21a2788f011304401298abde8f9a13742ece2ae175d813b88b9",
+      "bytes": 1706
+    },
+    {
+      "repo": "native",
+      "path": "include/ezlocalai/http_url.hpp",
+      "sha256": "f027c69409a5e54d93ec9c18c51fd15b90436c7805fe9499055d653f3a2aecd3",
+      "bytes": 783
+    },
+    {
+      "repo": "native",
+      "path": "include/ezlocalai/hub_assets.hpp",
+      "sha256": "2917640ba74f3cc3668498e2123b7038a9314a64bd38d63d962f358adfed0ebb",
+      "bytes": 629
+    },
+    {
+      "repo": "native",
+      "path": "include/ezlocalai/hub_snapshot.hpp",
+      "sha256": "6437015e0e6fca5776d023cc584c9086729412d0d7dffbdba0a92c37acb28838",
+      "bytes": 1010
+    },
+    {
+      "repo": "native",
+      "path": "include/ezlocalai/image_processing.hpp",
+      "sha256": "73f5fdf4d7e6c14133469c0b636e87fb929a3d935c92df6a59ffb0e4170bf747",
+      "bytes": 1149
+    },
+    {
+      "repo": "native",
+      "path": "include/ezlocalai/json_validation.hpp",
+      "sha256": "012239f6a3f240e9415d023465f2df3ef0dc6fd5793a4c9a06acd137262bc7f0",
+      "bytes": 318
+    },
+    {
+      "repo": "native",
+      "path": "include/ezlocalai/llama_tts.hpp",
+      "sha256": "65e3b2c3a2e8e2834d823306b411ab25f8c71c5e0e616c6e6aefc060070c568a",
+      "bytes": 2457
+    },
+    {
+      "repo": "native",
+      "path": "include/ezlocalai/llm_batch.hpp",
+      "sha256": "73079d6e7e53af93b80a87766b4c6645d31d968110473988825980e713b98ef9",
+      "bytes": 1417
+    },
+    {
+      "repo": "native",
+      "path": "include/ezlocalai/llm_cache.hpp",
+      "sha256": "ceec5ab0218311d6219b20e7dd71b716450f90e68c12e89c64a7c312a5967558",
+      "bytes": 2226
+    },
+    {
+      "repo": "native",
+      "path": "include/ezlocalai/llm_catalog.hpp",
+      "sha256": "fac0822a7fce94c54609e678c07442a75a6c042389262854580871e14610c8e4",
+      "bytes": 1484
+    },
+    {
+      "repo": "native",
+      "path": "include/ezlocalai/llm_context.hpp",
+      "sha256": "271ba1ef562ad7e81f00195dac1c736116ae9a1e7f29f44d94591503d9a3ba6f",
+      "bytes": 576
+    },
+    {
+      "repo": "native",
+      "path": "include/ezlocalai/llm_input.hpp",
+      "sha256": "df89419d0f5d9a80cb86e8fd740f555d99043f112bac86cc27f2344adf890232",
+      "bytes": 2137
+    },
+    {
+      "repo": "native",
+      "path": "include/ezlocalai/llm_load.hpp",
+      "sha256": "e2e61a2f3d761b98a4e8ee18a416fcbf42f7ffc8136db0185675ff98c5b3e62f",
+      "bytes": 926
+    },
+    {
+      "repo": "native",
+      "path": "include/ezlocalai/llm_memory.hpp",
+      "sha256": "781bc5c73e9c919efc448f1d2c8a898698ccfa7b4537826e5a91e68028c45daa",
+      "bytes": 563
+    },
+    {
+      "repo": "native",
+      "path": "include/ezlocalai/llm_parameters.hpp",
+      "sha256": "795ddc0ed61de7d9208a7950a58fea482fc26d7c41cf85a96056514cb29f65c6",
+      "bytes": 922
+    },
+    {
+      "repo": "native",
+      "path": "include/ezlocalai/llm_request.hpp",
+      "sha256": "e8a211f7b6d6de1335cc6ae4b119e87e9665244222a326b55584d97e3223091a",
+      "bytes": 700
+    },
+    {
+      "repo": "native",
+      "path": "include/ezlocalai/llm_residency.hpp",
+      "sha256": "ab1d928f43e2e9cbf4eb65f48b851e9b84efc0c032ce14e0f5cf987204fc3e01",
+      "bytes": 1582
+    },
+    {
+      "repo": "native",
+      "path": "include/ezlocalai/llm_response.hpp",
+      "sha256": "f7d51ca81a1f64e787ec29f858f3a6e25062ee003ebf0b65a0e8b268653e01fd",
+      "bytes": 1474
+    },
+    {
+      "repo": "native",
+      "path": "include/ezlocalai/llm_slots.hpp",
+      "sha256": "014b6b7f4f1593ff470bb30d6bccefa1755714c407404dab7ad59e769253cb69",
+      "bytes": 1527
+    },
+    {
+      "repo": "native",
+      "path": "include/ezlocalai/llm_speculative.hpp",
+      "sha256": "b16d9c566503ceba8e87558a4d6c47c11a840d8776e0b4c03cb1a378f920612c",
+      "bytes": 1532
+    },
+    {
+      "repo": "native",
+      "path": "include/ezlocalai/llm_startup.hpp",
+      "sha256": "4f2fa6d687438f0454d07a8e8cdddf78e657840a83853ccd4b553754934d7391",
+      "bytes": 536
+    },
+    {
+      "repo": "native",
+      "path": "include/ezlocalai/llm_stream.hpp",
+      "sha256": "d13877d48cc0b3484519932784c006b596c9dc5f8dcd0bd6887b963f018571a4",
+      "bytes": 3158
+    },
+    {
+      "repo": "native",
+      "path": "include/ezlocalai/llm_video.hpp",
+      "sha256": "b94ef1966588bb350e242443ae79fb75d24637fe5470cc36782a2e89d94d9c65",
+      "bytes": 971
+    },
+    {
+      "repo": "native",
+      "path": "include/ezlocalai/ltx_runtime.hpp",
+      "sha256": "6c2ef220e99d93b00409d482276d882e707c1009716a32d86f238a2127839d30",
+      "bytes": 2153
+    },
+    {
+      "repo": "native",
+      "path": "include/ezlocalai/ltx_video.hpp",
+      "sha256": "8bc50ebcc7bc945bd7a994bba20aa166506d4b7e85845a1a91149e102f02ee47",
+      "bytes": 1897
+    },
+    {
+      "repo": "native",
+      "path": "include/ezlocalai/media_engine_process.hpp",
+      "sha256": "316c3a0736a2d1be399115aabf880b40e89e87b8d5fa6b4a8591f1872968121e",
+      "bytes": 936
+    },
+    {
+      "repo": "native",
+      "path": "include/ezlocalai/media_worker_protocol.hpp",
+      "sha256": "df915a8085f7b4a92eef392878941172e5a8303b09250236205f5143eda57e82",
+      "bytes": 3552
+    },
+    {
+      "repo": "native",
+      "path": "include/ezlocalai/model_download.hpp",
+      "sha256": "83d32be9b82b5f1fc40a4238929ef3bb270bb6e37151b704b4714b9964900136",
+      "bytes": 921
+    },
+    {
+      "repo": "native",
+      "path": "include/ezlocalai/model_lifecycle.hpp",
+      "sha256": "41d44b8c7062db3b603668379166fc56ca44a5be7e10a7575af4123da35676e0",
+      "bytes": 1239
+    },
+    {
+      "repo": "native",
+      "path": "include/ezlocalai/music_runtime.hpp",
+      "sha256": "ca9e417f1d294382a5cf2dee478893a52c300cd998aa835657d34714ca6b981c",
+      "bytes": 1488
+    },
+    {
+      "repo": "native",
+      "path": "include/ezlocalai/music_video.hpp",
+      "sha256": "a56734a6cdf8e9cc45263c6349ec5ae481356264d90823b1e18ed2ee0dd2a8d9",
+      "bytes": 2017
+    },
+    {
+      "repo": "native",
+      "path": "include/ezlocalai/native_server.hpp",
+      "sha256": "1a987eb833cd0e2ac1e7afa88f73389d3d4f3f296874de199ff6978e0d59aad7",
+      "bytes": 39670
+    },
+    {
+      "repo": "native",
+      "path": "include/ezlocalai/nf4.hpp",
+      "sha256": "4eb4b527902b8e10a66beac0901027847ba527c4ac4fe82557167d247922ec10",
+      "bytes": 18743
+    },
+    {
+      "repo": "native",
+      "path": "include/ezlocalai/nf4_storage.hpp",
+      "sha256": "bfc44c1cbcf99c9ea6c05d43aa122776f016602a9ac0c33bd823fc5570caea8f",
+      "bytes": 2547
+    },
+    {
+      "repo": "native",
+      "path": "include/ezlocalai/process.hpp",
+      "sha256": "25374c58aecefd6d719ba72cbe58264567dc892b5a7098289d1dfe79a5078370",
+      "bytes": 7723
+    },
+    {
+      "repo": "native",
+      "path": "include/ezlocalai/qwen_image.hpp",
+      "sha256": "7dccc012ebfec9087e31e7b96c56d70d441df1a46473ad6eff8f6c94d2d3c062",
+      "bytes": 1050
+    },
+    {
+      "repo": "native",
+      "path": "include/ezlocalai/resource_manager.hpp",
+      "sha256": "a3885f42d24a8785546f8dd300ed894a33e924b58877b8fa236afe0756bcbee3",
+      "bytes": 3808
+    },
+    {
+      "repo": "native",
+      "path": "include/ezlocalai/runtime_version.hpp",
+      "sha256": "f87c45f41b14b76a96e65f0285ce84ab2a93001be0a348c11c0d5d1a10e12591",
+      "bytes": 515
+    },
+    {
+      "repo": "native",
+      "path": "include/ezlocalai/storyboard.hpp",
+      "sha256": "3b9ed8cf854e7737979580807b54009f5b009100275f8e3ebc17b6582f58c214",
+      "bytes": 567
+    },
+    {
+      "repo": "native",
+      "path": "include/ezlocalai/stt_audio.hpp",
+      "sha256": "90da08d5a98cbec6ec9689e2d323c43782499f1a2d9f642989cf2af59fb1f102",
+      "bytes": 493
+    },
+    {
+      "repo": "native",
+      "path": "include/ezlocalai/stt_diarization.hpp",
+      "sha256": "7ab9029696e15a61123bb43dc7f759e2c79d8b5d56e8acf643ffce2a7ad80397",
+      "bytes": 1080
+    },
+    {
+      "repo": "native",
+      "path": "include/ezlocalai/stt_input.hpp",
+      "sha256": "ecd86cb1a79b84d0d8f0d4bee09fdee5cb752564fd0860e29849ef6e2fea28be",
+      "bytes": 768
+    },
+    {
+      "repo": "native",
+      "path": "include/ezlocalai/stt_pool.hpp",
+      "sha256": "229095591c53b9c004e55614681579336adfe2cb28804c7b7affe9b7de2de891",
+      "bytes": 2365
+    },
+    {
+      "repo": "native",
+      "path": "include/ezlocalai/stt_runtime.hpp",
+      "sha256": "1ddefd9228ae28795cd3ca6465dc60ff0a3eb0b99f52fc7c3565ce6aeb0948aa",
+      "bytes": 3463
+    },
+    {
+      "repo": "native",
+      "path": "include/ezlocalai/stt_service.hpp",
+      "sha256": "458136a86ac55d88b4bba54b17c1a28993ddf69ea92c07024e0fff0f6716ac3d",
+      "bytes": 1955
+    },
+    {
+      "repo": "native",
+      "path": "include/ezlocalai/stt_torch.hpp",
+      "sha256": "73dde74f4033f70bc2fd8d288e5a64071d087383d24ff641bb0814cb6780232d",
+      "bytes": 307
+    },
+    {
+      "repo": "native",
+      "path": "include/ezlocalai/stt_whisper.hpp",
+      "sha256": "7d530ce306a5b3075235cfaf44c74cb2b295ac748ee720ac5018bf379723ae81",
+      "bytes": 1145
+    },
+    {
+      "repo": "native",
+      "path": "include/ezlocalai/subtitles.hpp",
+      "sha256": "f3b0be3b9383acd7f8c822e9d87feee5c9f20719dadc910f6ab40e17ddc49272",
+      "bytes": 715
+    },
+    {
+      "repo": "native",
+      "path": "include/ezlocalai/torch_checkpoint.hpp",
+      "sha256": "3e02b090883c210de98af019fe815827953521a5b85af286d53ec41be421cb38",
+      "bytes": 588
+    },
+    {
+      "repo": "native",
+      "path": "include/ezlocalai/torch_cuda_mean.hpp",
+      "sha256": "52921d2fc3daf9f9bcb63bb88a4a9728a2b724ef1c40daea7398648d87672542",
+      "bytes": 6427
+    },
+    {
+      "repo": "native",
+      "path": "include/ezlocalai/tts_pipeline.hpp",
+      "sha256": "bbb9f7a61ab420d022a8e31ff20572747e094bde6e491a1d235d4f4a9722af7a",
+      "bytes": 816
+    },
+    {
+      "repo": "native",
+      "path": "include/ezlocalai/tts_pool.hpp",
+      "sha256": "42b74d33465db882f558a8f7e815e4221e968aff70d58fffbf06b95f56e4b3ee",
+      "bytes": 3014
+    },
+    {
+      "repo": "native",
+      "path": "include/ezlocalai/tts_routing.hpp",
+      "sha256": "f36cc8589cc0c784bf5fcca1d76ecc5a11a734d18afdcbfb1727b3c40b4bd5b5",
+      "bytes": 1997
+    },
+    {
+      "repo": "native",
+      "path": "include/ezlocalai/tts_service.hpp",
+      "sha256": "db02f3ad106c9de16e554d45cf7779ed181be3c59e1c62d434c9a8ff47a73242",
+      "bytes": 2626
+    },
+    {
+      "repo": "native",
+      "path": "include/ezlocalai/tts_text.hpp",
+      "sha256": "0c9bd1af7c4fde12463e6e9c8c62c6406e8b66857be72da7e6668d8884b2c7b0",
+      "bytes": 1006
+    },
+    {
+      "repo": "native",
+      "path": "include/ezlocalai/tts_websocket.hpp",
+      "sha256": "44f5b3f94791c02e3be7876d0844d28bc15cfe0e945e57abc41626e925e854f5",
+      "bytes": 2199
+    },
+    {
+      "repo": "native",
+      "path": "include/ezlocalai/tunnel_connection.hpp",
+      "sha256": "72606071fead7cff22189b102be13aa2d1936cc11923f7079d2c47991a5c8db5",
+      "bytes": 1897
+    },
+    {
+      "repo": "native",
+      "path": "include/ezlocalai/tunnel_websocket.hpp",
+      "sha256": "057e883ce06d51e037121f41900208968172a21434353ecd75037ae3c6dd6aac",
+      "bytes": 720
+    },
+    {
+      "repo": "native",
+      "path": "include/ezlocalai/video_runtime.hpp",
+      "sha256": "62b9aa8e2de3c694f4b0778289bcebf7dbf2ef739354a8f7511aa202b05664c3",
+      "bytes": 3886
+    },
+    {
+      "repo": "native",
+      "path": "include/ezlocalai/voice_slots.hpp",
+      "sha256": "d9577666ead2423a117892077906e3defb7cb6ac2ae9a33b01435e1e52d630ed",
+      "bytes": 3856
+    },
+    {
+      "repo": "native",
+      "path": "include/ezlocalai/wakeword_jobs.hpp",
+      "sha256": "5b1fa2db386f40cd3cab42b33a926243e4c781425110910f5b2edc31af90a2b6",
+      "bytes": 1346
+    },
+    {
+      "repo": "native",
+      "path": "include/ezlocalai/wakeword_model.hpp",
+      "sha256": "4d7b888d0c21f0b51fcc432aec0782c8871ce4320f0523066574988a6938ed25",
+      "bytes": 2185
+    },
+    {
+      "repo": "native",
+      "path": "include/ezlocalai/wakeword_paths.hpp",
+      "sha256": "06a7a41b43d7f320cf9a483318782bebf23d5b105612b6898a73f315cf60b048",
+      "bytes": 439
+    },
+    {
+      "repo": "native",
+      "path": "include/ezlocalai/wakeword_samples.hpp",
+      "sha256": "11513ae247179e2c4de1da55ca32ae6aa3e93a522ce53d42939477e5f708c477",
+      "bytes": 1871
+    },
+    {
+      "repo": "native",
+      "path": "include/ezlocalai/wakeword_tts.hpp",
+      "sha256": "99fdaa1c6924d1cf74cfe29d6f5730885496c5a18ed5fffc3d9f47131b817c08",
+      "bytes": 2224
+    },
+    {
+      "repo": "native",
+      "path": "include/ezlocalai/wan_video.hpp",
+      "sha256": "bace218ebd48c38f783bdac3a7b01ffe5a684a97fedb5bbf7d029d40dd52a33e",
+      "bytes": 1352
+    },
+    {
+      "repo": "native",
+      "path": "include/ezlocalai/whisper_features.hpp",
+      "sha256": "14207e7312ba7e1814892800650909b6fb1b39e9670b8ed9991614abd9812d3f",
+      "bytes": 1488
+    },
+    {
+      "repo": "native",
+      "path": "include/ezlocalai/whisper_model.hpp",
+      "sha256": "8adb83343736e7bb69675be63fe07e86416370f514983cb740bc0ed87eabd95b",
+      "bytes": 1160
+    },
+    {
+      "repo": "native",
+      "path": "include/ezlocalai/whisper_tokenizer.hpp",
+      "sha256": "afc2c8b38c7558b3fada11ebcaef2fe24a7249de51a9e00d5b2a3fceb6a604d8",
+      "bytes": 2405
+    },
+    {
+      "repo": "native",
+      "path": "include/ezlocalai/whisper_transcription.hpp",
+      "sha256": "1417afbb0d393bfe2ae283a184cf4b12bbfe215f8a5045dfb041a8c39d204b0a",
+      "bytes": 7249
+    },
+    {
+      "repo": "native",
+      "path": "include/ezlocalai/whisper_vad.hpp",
+      "sha256": "bdc9ec2240c6e752a1d3afb4557b9476f163d9e230deabf7f41e07bec7697fa3",
+      "bytes": 2841
+    },
+    {
+      "repo": "native",
+      "path": "include/ezlocalai/worker_heartbeat.hpp",
+      "sha256": "62ef6bebfa1e3f787b35f0299ca71741c973a9431578bb1f2088049d53ecfa4e",
+      "bytes": 1471
+    },
+    {
+      "repo": "native",
+      "path": "include/ezlocalai/worker_models.hpp",
+      "sha256": "6597ce10af38b7f526c14896f19864f2b266e08ef514dcd788ede30a7cfd133b",
+      "bytes": 229
+    },
+    {
+      "repo": "native",
+      "path": "src/core.cpp",
+      "sha256": "d9c179e8069fe1f4b3ecc8e5bc8c62f7db14dd777e9ca62756cc9acf407de428",
+      "bytes": 9865
+    },
+    {
+      "repo": "native",
+      "path": "src/ctts.cpp",
+      "sha256": "aca2cef51baf863fb44f0034075f5b5435527bba157173277b59ddb9ec87d894",
+      "bytes": 19432
+    },
+    {
+      "repo": "native",
+      "path": "src/ctts_audio.cpp",
+      "sha256": "8de46bb3503cdf8eea634a916c0bf4cae203de9410e20559c89a61cc4a22b550",
+      "bytes": 10712
+    },
+    {
+      "repo": "native",
+      "path": "src/ctts_cache.cpp",
+      "sha256": "5cb62ff8f1fd662cb16434cc6d3e777aac01854cc14efae338b9f9fd1ffb15b2",
+      "bytes": 23248
+    },
+    {
+      "repo": "native",
+      "path": "src/ctts_paths.cpp",
+      "sha256": "d7556e5508b07be35464906a5a2219dd52aa35cdd6ed80a655546ca8c4ad5673",
+      "bytes": 5819
+    },
+    {
+      "repo": "native",
+      "path": "src/ctts_resample.cpp",
+      "sha256": "780db46abb7938cb989ec41eb08ffee775c5f4185796937b9e08fabdc96d3992",
+      "bytes": 2287
+    },
+    {
+      "repo": "native",
+      "path": "src/ctts_runtime.cpp",
+      "sha256": "8d4e7d32b420ddf5ba5a775d6e83946839f255f307b123d6636f2a27f5ae3a2c",
+      "bytes": 13463
+    },
+    {
+      "repo": "native",
+      "path": "src/ctts_stream_bridge.cpp",
+      "sha256": "36cc05397f94229b744beecc9464d6afa2896ec74dfbe9dd4002baace3cebbc3",
+      "bytes": 4424
+    },
+    {
+      "repo": "native",
+      "path": "src/ctts_torch.cpp",
+      "sha256": "9d252d7390f16951e6b8e0c839256a819d3b330b144d230cf48095cd5709e02c",
+      "bytes": 4668
+    },
+    {
+      "repo": "native",
+      "path": "src/docker_entrypoint.cpp",
+      "sha256": "c344468b05035085cf29f3574755bc9efb1d89c45a3b95f61ba037e781ac64a7",
+      "bytes": 2133
+    },
+    {
+      "repo": "native",
+      "path": "src/dotenv.cpp",
+      "sha256": "2b0070d1b6a757db8283bba8ed44fded087eaebfc4509a5f53e0c7998a830cff",
+      "bytes": 9884
+    },
+    {
+      "repo": "native",
+      "path": "src/edge_tts.cpp",
+      "sha256": "4f7ca84d3bc915c296815737f05de49a417876e74a7642b01ec59fc33059b90b",
+      "bytes": 9024
+    },
+    {
+      "repo": "native",
+      "path": "src/edge_tts_transport.cpp",
+      "sha256": "a77c2a738e4741919a9ecc1bf1046eeae8e70e3d739914287bf66d4cdc719594",
+      "bytes": 16319
+    },
+    {
+      "repo": "native",
+      "path": "src/embedding_runtime.cpp",
+      "sha256": "2514ecc071dbe675f0b25f70f94e54228fb47dde3d8b129cde9d79910f37f70f",
+      "bytes": 6898
+    },
+    {
+      "repo": "native",
+      "path": "src/gtts.cpp",
+      "sha256": "d66719a283c1eccc2503e40297c938fa7b5e332e4977ead44b781ed4b1490fa5",
+      "bytes": 9517
+    },
+    {
+      "repo": "native",
+      "path": "src/gtts_transport.cpp",
+      "sha256": "26c2eb4aaa8faaea59d37f0dac9594a5bc77bb3bd598ed9ce5c385d008bcd988",
+      "bytes": 5888
+    },
+    {
+      "repo": "native",
+      "path": "src/hub_assets.cpp",
+      "sha256": "bd09398f406d3784309ce79496a194fdd7527609672b13e7a4fdecfcb8432254",
+      "bytes": 8142
+    },
+    {
+      "repo": "native",
+      "path": "src/image_processing.cpp",
+      "sha256": "e9107d328209035bab79f19e7022d2261dc47069084beff190244027cfe505b3",
+      "bytes": 22725
+    },
+    {
+      "repo": "native",
+      "path": "src/json_validation.cpp",
+      "sha256": "aa09a6ddf61d653e8c3cee17909ad716e7d6620551bc102b1fb2c2cb58c744bc",
+      "bytes": 4127
+    },
+    {
+      "repo": "native",
+      "path": "src/llama_tts.cpp",
+      "sha256": "a85b91476548aedebc63c574001a77949ece4f15f5dac8d1e5e02ec48700fa5a",
+      "bytes": 26513
+    },
+    {
+      "repo": "native",
+      "path": "src/llm_load.cpp",
+      "sha256": "7831f06ed99ef87f75ba66aeca4684999366eb5f188bfe2e5b4afccc77f6ed47",
+      "bytes": 2610
+    },
+    {
+      "repo": "native",
+      "path": "src/llm_parameters.cpp",
+      "sha256": "e22e66c1fd0938731736cc266ea708f4414b7f55598a965926332959de82310a",
+      "bytes": 3225
+    },
+    {
+      "repo": "native",
+      "path": "src/llm_residency.cpp",
+      "sha256": "3e734ab998f3a93a0afc14a1da2a2f91af9f86f9852b03534b22fb4cbbfe3df6",
+      "bytes": 3658
+    },
+    {
+      "repo": "native",
+      "path": "src/llm_speculative.cpp",
+      "sha256": "cedcbf776d76175452e7350c2de1569301e64cf4ac944ddc3a1f6255796f996e",
+      "bytes": 6001
+    },
+    {
+      "repo": "native",
+      "path": "src/llm_video.cpp",
+      "sha256": "f8943beacdf1768edcecf515a54c66d8e6041ed3391202ef7a3c790fa05a1fb2",
+      "bytes": 8526
+    },
+    {
+      "repo": "native",
+      "path": "src/ltx_runtime.cpp",
+      "sha256": "41cb6cb198105cb2a6bd853faf79a33aaff076b7d3b7426c97955b9082762d23",
+      "bytes": 20282
+    },
+    {
+      "repo": "native",
+      "path": "src/ltx_video.cpp",
+      "sha256": "178886b3d2be9962bacf362d123cd10fe28c92904a04aa051d678f9727d33c8b",
+      "bytes": 6879
+    },
+    {
+      "repo": "native",
+      "path": "src/main.cpp",
+      "sha256": "043411e12023bedef57384e691920e60b050accb1cc3c0e020956200570cf97f",
+      "bytes": 4393
+    },
+    {
+      "repo": "native",
+      "path": "src/media_engine_process.cpp",
+      "sha256": "9cc097cbcb6c575e66b60dcd653a64ae729498c4025a865959807a455f69a667",
+      "bytes": 4681
+    },
+    {
+      "repo": "native",
+      "path": "src/model_lifecycle.cpp",
+      "sha256": "381be29a3b1e74ee5bc40bad2f751f40fd94bba023148673061ea75406c4b3fc",
+      "bytes": 2908
+    },
+    {
+      "repo": "native",
+      "path": "src/music_runtime.cpp",
+      "sha256": "a67428ab1562340168a0493dac70d01f45c2671b3f5878fd15abf32558b0de92",
+      "bytes": 9569
+    },
+    {
+      "repo": "native",
+      "path": "src/music_storyboard.cpp",
+      "sha256": "a4d209d8b5ea12dd14bf7e891b8a9a204036b831d005b0305b2617d9e5f2e60f",
+      "bytes": 11796
+    },
+    {
+      "repo": "native",
+      "path": "src/music_video.cpp",
+      "sha256": "af1d59e0430ae905e20d82423dfccea971692f2d8dd3bbd1a8a2f202169ec5fa",
+      "bytes": 18136
+    },
+    {
+      "repo": "native",
+      "path": "src/pillow_canvas.cpp",
+      "sha256": "e520bbd82015082ea1f30647b275b1b250e645b4f2b79821408e6a732680568f",
+      "bytes": 15224
+    },
+    {
+      "repo": "native",
+      "path": "src/pillow_canvas.hpp",
+      "sha256": "feae64b09c0bc4b237ee2247942a25ebd76371858725ad5bd42ff8512d240f7e",
+      "bytes": 1145
+    },
+    {
+      "repo": "native",
+      "path": "src/pillow_drawing.cpp",
+      "sha256": "dd9d14c5308d4eb1ef59897920a0643681b4f717e68006dcb0c987e6287b43fa",
+      "bytes": 48642
+    },
+    {
+      "repo": "native",
+      "path": "src/pillow_drawing.hpp",
+      "sha256": "d5e07ccedffe9ebcf4624f3b056184df560c11fee27afcb527c5921180e0ad3d",
+      "bytes": 1146
+    },
+    {
+      "repo": "native",
+      "path": "src/qwen_image.cpp",
+      "sha256": "fcd51b0b8fc41439457ec59108ab1e11f50fc975fc044854520df67c5734e92c",
+      "bytes": 11782
+    },
+    {
+      "repo": "native",
+      "path": "src/runtime_version.cpp",
+      "sha256": "019d68b4dbefb2e0ab09ea5286bb103440ef05c2e78f7707cecde6424ec348a9",
+      "bytes": 4730
+    },
+    {
+      "repo": "native",
+      "path": "src/stt_audio.cpp",
+      "sha256": "606914b9a82ca4a3b02d0bc997fe2b9ff474a8597e70d56e0e9e1b567a5290fb",
+      "bytes": 2473
+    },
+    {
+      "repo": "native",
+      "path": "src/stt_diarization.cpp",
+      "sha256": "0daaab08447b2c8118d495cedb870376717d3377e5de05ea2df1d1bddb298039",
+      "bytes": 14714
+    },
+    {
+      "repo": "native",
+      "path": "src/stt_pool.cpp",
+      "sha256": "8901d362fe32f8340f0b1f8816429a6a2535ea90edf8982a201e5d457605b647",
+      "bytes": 8351
+    },
+    {
+      "repo": "native",
+      "path": "src/stt_runtime.cpp",
+      "sha256": "1598ec8518c4ddccb696c8d8a38b89be1407358ed491916858d0c9cc09bbd9ce",
+      "bytes": 15789
+    },
+    {
+      "repo": "native",
+      "path": "src/stt_service.cpp",
+      "sha256": "f853ee424c82c8a6219ccb30d49866af589bc97806a2f412ac6c69d609f1a372",
+      "bytes": 5734
+    },
+    {
+      "repo": "native",
+      "path": "src/stt_torch.cpp",
+      "sha256": "8365f66e68a8c7cc96612eab2ca362f97ae04b232f1204086aa9df2cffcf95ea",
+      "bytes": 4025
+    },
+    {
+      "repo": "native",
+      "path": "src/stt_whisper.cpp",
+      "sha256": "a8f25c7ea55e5a915fe0a079697744e353538a8a3c5ff1e28b693d5f0c0e81bc",
+      "bytes": 9300
+    },
+    {
+      "repo": "native",
+      "path": "src/subtitles.cpp",
+      "sha256": "5279f7f508e3be8ca3eed536a27de91082a433e42c84bfbc75fd7fc2506b0c75",
+      "bytes": 5541
+    },
+    {
+      "repo": "native",
+      "path": "src/torch_checkpoint.cpp",
+      "sha256": "468bc62dfe83a3f8107de0131f882ecaa0f4160ef5ab55cf87677b5e39f4eb6a",
+      "bytes": 14067
+    }
+  ]
+}
