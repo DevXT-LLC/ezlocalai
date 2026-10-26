@@ -1090,6 +1090,73 @@
     ],
     "interpretation": "Controlled edge-condition waiting measurements; not GPU/model TTFT or decode improvements. Live full-worker results are recorded separately."
   },
+  "final_code_validation": {
+    "proof_file_sha256": "1ab4c3cbd5c0c930688b05d76ebb17f418ad5ec0f1340eaa08575c75da9da3bb",
+    "repo_commit": "0735dff",
+    "build_version": "ezlocalai-0.1.0+69205e6d7ee8",
+    "source_digest_sha256": "69205e6d7ee867b9909a1b49bd2465284d2bf946471566c4d4b024718327f9d9",
+    "build_image_id": "sha256:c9d7cd30fb6f0d75280fda34b20cd70350dc69072ffebf564f0fffc92b8b330a",
+    "cuda_package": {
+      "passed": 62,
+      "failed": 0,
+      "ctest_seconds": 279.52,
+      "excluded_tests": []
+    },
+    "python_reference_root_absent": true,
+    "optional_engine_router_tests": {
+      "passed": 2,
+      "failed": 0,
+      "ctest_seconds": 34.64,
+      "tests": [
+        "worker_router_integration",
+        "conversation_cache_engine"
+      ]
+    },
+    "benchmark_guard_tests": {
+      "passed": 23,
+      "failed": 0,
+      "evidence": "coordinator test run"
+    },
+    "state_io_patch_removed": true,
+    "llama_context_sources_equal_upstream": true,
+    "conversation_sources_unchanged": true,
+    "managed_patches": [
+      "patch.llama-conversation-cache=ea1cb7096df5107862e825ecf7fae45354632f6d091fc1cfe71f0dc72a8d39d9"
+    ],
+    "engine_library_sha256": "4c32861b7148c347033ce73f06da757a5ad01362a4409c48c20386a716bbcc9f",
+    "worker_equivalence": {
+      "prior_tested_sha256": "c9b464b35776e1e06c594c39ee89786589f42192916f2a3b8dddf2c3cc321c6a",
+      "final_sha256": "ea4deab9b3aeb0d05b3077c2ed119e70411a79e7aa3692d383aadc7eb09ed92d",
+      "bytes_each": 8443864,
+      "differing_bytes_total": 30,
+      "build_id_differing_bytes": 20,
+      "version_differing_bytes": 10,
+      "prior_version_digest": "44dfa14575e2",
+      "final_version_digest": "69205e6d7ee8",
+      "all_other_bytes_identical": true,
+      "text_instructions_identical": true,
+      "normalized_ranges": [
+        {
+          "start": 944,
+          "end_exclusive": 964,
+          "kind": "GNU build ID"
+        },
+        {
+          "start": 6062132,
+          "end_exclusive": 6062144,
+          "kind": "runtime source version digest"
+        }
+      ],
+      "normalized_common_sha256": "5afe68fe0b9704ec27b5a522025be60d1c292c6d6b7474bd2cfa568d603197a3",
+      "text_section_bytes": 5700959,
+      "text_section_sha256": "c66b3cf554221d6b1fac67cb75e1c18df51401b0261aeec1800a00b130a2af5e"
+    },
+    "limits": [
+      "CPU/fake-backend and local integration checks in CUDA image; no physical GPU performance or quality claim from these tests.",
+      "No host tracked edits, live deployment changes or replacement of stable proof binaries."
+    ],
+    "passed": true
+  },
   "final_qualification": {
     "status": "pending prefill/capacity/environment only",
     "items": [

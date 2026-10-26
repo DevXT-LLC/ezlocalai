@@ -222,6 +222,26 @@ succeeds, reject an empty main payload and evict a failed entry. Failure-injecti
 tests should cover target success/draft failure and valid retry recovery. Both
 upstream gaps remain follow-up work; no partial MTP fix ships in this change.
 
+## Final code validation
+
+After removing both experimental state-transfer patches, the final code passed
+all **62/62 CUDA package tests in 279.52 s**, with the configured Python
+reference checkout absent and no excluded tests. The real CPU conversation-cache
+engine replay and Rust WorkerRouter integration also passed, **2/2 in 34.64 s**.
+The benchmark clients passed 23 guard tests. Earlier 63-test package results
+included the experimental state-transfer test and are not the final package
+count.
+
+The final build uses only the existing conversation-cache engine patch; its
+state serializer sources match the pinned upstream revision. The final worker
+binary is `ea4deab9b3ae…eb09ed92d`; the live worker A/B used
+`c9b464b35776…c3cc321c6a`. Their instruction bytes are identical, and the only
+30 differing bytes are the GNU build ID and source-version digest. This ties
+the live A/B to the final worker implementation while recording the different
+artifact hashes. These integration tests ran in an owned CUDA image without a
+physical GPU; the per-card live measurements above provide the separate GPU
+evidence.
+
 ## Evidence and limits
 
 Compact baseline, configuration, sample counts, file hashes, A/B comparisons and
