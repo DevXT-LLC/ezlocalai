@@ -6,6 +6,7 @@
 #include <stdexcept>
 #include <iostream>
 #include <string>
+#include <cstdlib>
 
 namespace {
 std::set<int> descriptors() {

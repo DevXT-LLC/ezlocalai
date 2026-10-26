@@ -1,0 +1,161 @@
+{
+  "date": "2026-10-26",
+  "scope": "Coalesced worker capacity publication and captured subprocess descriptor isolation",
+  "production_changed": false,
+  "physical_gpu_validation": false,
+  "source_commits": [
+    "e81777138c478dd5aaf44c0ee19ce1e91b63d4f8",
+    "a706e78",
+    "53598fb"
+  ],
+  "implementation": {
+    "minimum_event_spacing_ms": 50,
+    "state_collection_thread": "existing heartbeat owner",
+    "notifies_per_token": false,
+    "unregistered_retries_consume_state_events": false,
+    "pending_update_survives_in_flight_post": true,
+    "queue_observer_after_state_unlock": true,
+    "observer_replacement_waits_for_in_flight_callback": true,
+    "observer_replacement_while_running": "EBUSY",
+    "native_observer_userdata": "WorkerHeartbeatSignal member; queue workers joined before member destruction",
+    "tts_websocket_release_observed_while_connection_stays_open": true,
+    "capture_pipe_linux_creation": "pipe2(O_CLOEXEC)",
+    "non_linux_capture_fallback": "pipe plus fcntl; atomicity not established outside Linux"
+  },
+  "artifacts": {
+    "container": "ezlocalai-heartbeat-build-20261026",
+    "image": "sha256:c9d7cd30fb6f0d75280fda34b20cd70350dc69072ffebf564f0fffc92b8b330a",
+    "baseline_worker_sha256": "ea4deab9b3aeb0d05b3077c2ed119e70411a79e7aa3692d383aadc7eb09ed92d",
+    "candidate_worker_sha256": "6f00de125ce576fcb53b259e25e27e729668b2221fe6800328ed4d3956968263",
+    "embedded_build_version": "ezlocalai-0.1.0+af81e528aacc",
+    "engine_revision": "620d2225cc436ab0b001e3200e590e3b286ef9ab",
+    "engine_library_sha256": "4c32861b7148c347033ce73f06da757a5ad01362a4409c48c20386a716bbcc9f",
+    "rust_router_binary_sha256": "06c1cb10776412646f2717ee5cd6185eb4bb27daceaf3eaf4757d78ebde2d848"
+  },
+  "focused_validation": {
+    "ctest_passed": 4,
+    "ctest_failed": 0,
+    "ctest_seconds": 33.55,
+    "ctest_names": [
+      "core",
+      "worker_heartbeat_reference",
+      "worker_heartbeat_http",
+      "worker_heartbeat_shutdown"
+    ],
+    "heartbeat_recorded_python_traces": 61,
+    "new_heartbeat_contract_functions": [
+      "signal_contracts",
+      "update_during_post",
+      "retry_wait_contract"
+    ],
+    "new_queue_contracts": [
+      "snapshot observer outside queue state mutex",
+      "idle observer after real processing decrement, including timed-out waiter and cancelled queued work",
+      "stopped unregister waits for in-flight callback",
+      "running observer replacement rejected"
+    ],
+    "tts_websocket_state_cases": 4,
+    "process_capture_test_passed": true,
+    "process_capture_old_header_expected_exit": 1,
+    "process_capture_old_header_output": "capture descriptors can leak into a concurrent child before spawn"
+  },
+  "router_validation": {
+    "backend": "controlled native HTTP engine fixture; no model inference",
+    "router": "actual Rust WorkerRouter executable",
+    "complete_existing_and_new_scenarios": 14,
+    "new_modes": 4,
+    "state_setup": "Hold actual one-slot inference, inject its authenticated busy report, queue a strict same-worker follow-up, release the original inference. Native completion must publish its accurate idle state.",
+    "strict_periodic_heartbeat_seconds": 30,
+    "maximum_allowed_followup_seconds": 1,
+    "strict_final_candidate_results": {
+      "heartbeat-release-direct-buffered": 0.0494914,
+      "heartbeat-release-direct-stream": 0.0146924,
+      "heartbeat-release-tunnel-buffered": 0.122982,
+      "heartbeat-release-tunnel-stream": 0.082217
+    },
+    "controlled_comparison": {
+      "periodic_heartbeat_seconds": 2,
+      "samples_per_mode_per_variant": 1,
+      "includes_models_or_hardware_throughput": false,
+      "results": [
+        {
+          "mode": "heartbeat-release-direct-buffered",
+          "before_seconds": 1.89062,
+          "after_seconds": 0.0460047
+        },
+        {
+          "mode": "heartbeat-release-direct-stream",
+          "before_seconds": 1.83546,
+          "after_seconds": 0.015717
+        },
+        {
+          "mode": "heartbeat-release-tunnel-buffered",
+          "before_seconds": 1.85151,
+          "after_seconds": 0.122851
+        },
+        {
+          "mode": "heartbeat-release-tunnel-stream",
+          "before_seconds": 1.84222,
+          "after_seconds": 0.101149
+        }
+      ]
+    }
+  },
+  "proof_files": {
+    "final-build.log": {
+      "path": "build/validation/heartbeat-release-20261026/final-build.log",
+      "sha256": "042da4a7388daa50ab4b051b009ad8fdda591375fdc9d3619401d091a73ffa37"
+    },
+    "final-focused.log": {
+      "path": "build/validation/heartbeat-release-20261026/final-focused.log",
+      "sha256": "078a5ca04b9aa90a1c25345af34ff144c23cf7b5e96886674e9632d8419d9a2a"
+    },
+    "final-router.log": {
+      "path": "build/validation/heartbeat-release-20261026/final-router.log",
+      "sha256": "9459f49ff0d99aa71489bc8672e11a6a4fd3a6f736177a1f7fb6ca365544ae73"
+    },
+    "final-process-capture.log": {
+      "path": "build/validation/heartbeat-release-20261026/final-process-capture.log",
+      "sha256": "1842a100cddb64cdcf358d851c0f9926e0c17ffc53e511fa5c7cb89592eea768"
+    },
+    "final-tts-state.log": {
+      "path": "build/validation/heartbeat-release-20261026/final-tts-state.log",
+      "sha256": "0d911fe1d6314e4e49889b2643c518fd731af9ee53fc121630e06dba1956d241"
+    },
+    "router-release-baseline-benchmark.log": {
+      "path": "build/validation/heartbeat-release-20261026/router-release-baseline-benchmark.log",
+      "sha256": "0bd6524ebb1b15dd5c2e6e61ce670916bc6cd3d37dceb2d992f6fe7563630647"
+    },
+    "router-release-candidate-benchmark.log": {
+      "path": "build/validation/heartbeat-release-20261026/router-release-candidate-benchmark.log",
+      "sha256": "def3112811205d88aeec045ee0883cf16741aaf5a324bd8b1a8e9c942eec4a68"
+    },
+    "baseline-process-capture.log": {
+      "path": "build/validation/heartbeat-release-20261026/baseline-process-capture.log",
+      "sha256": "3befd4bf08555afc5cf2a216d05195afd3d9594743ea69b73010e126fd723e2c"
+    }
+  },
+  "source_sha256": {
+    "include/ezlocalai/worker_heartbeat.hpp": "62ef6bebfa1e3f787b35f0299ca71741c973a9431578bb1f2088049d53ecfa4e",
+    "src/worker_heartbeat.cpp": "39f61e8a2abf4256f4ef124338856a2b8ebca51b23ade582ab9f8135eeca08f2",
+    "src/request_queue.cpp": "841358ea02bc1afb9ff78a26b12649263389c312958790192085cfc0b43f8291",
+    "include/ezlocalai/ezlocalai_c.h": "78dd44c3f9a5a0912f75abaed5ace1b2561de516dc803cc08055b05f3417d316",
+    "include/ezlocalai/process.hpp": "25374c58aecefd6d719ba72cbe58264567dc892b5a7098289d1dfe79a5078370",
+    "include/ezlocalai/native_server.hpp": "1a987eb833cd0e2ac1e7afa88f73389d3d4f3f296874de199ff6978e0d59aad7",
+    "src/native_server.cpp": "0952db7244749b4d07e1ca170dfd5765e09e5fc6f2fdf249680a92aa9789b278",
+    "include/ezlocalai/tts_websocket.hpp": "44f5b3f94791c02e3be7876d0844d28bc15cfe0e945e57abc41626e925e854f5",
+    "src/tts_websocket.cpp": "fbbcbd45d1653ded3ab7799927161184badd5a2e977db5dc523520878101be14",
+    "tests/test_core.cpp": "d750c65ec9fed76e4ad7e0c8de6688f0161dda2d8780bb7ae932c6bbf045f096",
+    "tests/test_worker_heartbeat.cpp": "926b7cf315cf693e926bcb52719111cf5880ba94864a974f8bd05e685d8182fe",
+    "tests/test_worker_router.cpp": "1f4b1202b4971c2d3d8c5395a0fb9c1f321fb999f36372a108ea3efe51fa8481",
+    "tests/test_tts_websocket.cpp": "7b9db93975cdf7bf1fecc140bffc801d760cb1bf221c8b8a8ae349e223d6cba0",
+    "tests/test_process_capture.cpp": "ffb1d46ec367c515cbb86adacf87a3e691d8589d984ea423cfafaa76d02a8e4a"
+  },
+  "limits": [
+    "Controlled router timing is not native GPU token throughput or a measured ten-second production gain.",
+    "One sample per transport/response mode in the two-second comparison does not estimate variance.",
+    "No production containers, environment files, clocks, model weights, precision, context or presets were changed.",
+    "Complete package gates and physical GPU/root integration belong to the combined parent change.",
+    "Only an owned no-GPU test container was used; other hardware and full production image deployment were not validated."
+  ]
+}
