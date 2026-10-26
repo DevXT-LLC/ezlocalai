@@ -1,0 +1,801 @@
+diff --git a/common/speculative-mtp-state.h b/common/speculative-mtp-state.h
+new file mode 100644
+index 000000000..bba759a51
+--- /dev/null
++++ b/common/speculative-mtp-state.h
+@@ -0,0 +1,245 @@
++#pragma once
++
++#include <algorithm>
++#include <cstdint>
++#include <cstring>
++#include <limits>
++#include <new>
++#include <vector>
++
++// The hidden predecessor belongs to a NEXT-input boundary, not merely the
++// last invocation of process(). M-RoPE image patches can repeat pos[0], so
++// embedded continuations stay unsealed until the caller supplies the real
++// position immediately after the whole image/audio chunk.
++struct common_mtp_state {
++    struct row_view { int32_t next; const float * data; };
++    struct row { int32_t next; std::vector<float> data; };
++
++    const size_t width;
++    const size_t history_limit;
++    const size_t verify_limit;
++    std::vector<float> pending;
++    int32_t pending_next = 0;
++    bool sealed = true;
++    bool embedded = false;
++    std::vector<row> history;
++    std::vector<float> verify;
++    std::vector<int32_t> verify_next;
++    uint32_t verify_total = 0;
++
++    common_mtp_state(size_t width, size_t history_limit, size_t verify_limit)
++        : width(width), history_limit(std::max<size_t>(2, std::min<size_t>(256, history_limit))),
++          verify_limit(std::max<size_t>(1, verify_limit)), pending(width, 0.0f) {}
++
++    void clear_verify() { verify.clear(); verify_next.clear(); verify_total = 0; }
++    void reset() {
++        std::fill(pending.begin(), pending.end(), 0.0f);
++        pending_next = 0; sealed = true; embedded = false;
++        history.clear(); clear_verify();
++    }
++    void invalidate() {
++        reset(); pending_next = -1; sealed = false;
++    }
++    const float * find(int32_t next) const {
++        if (next < 0) return nullptr;
++        if (sealed && pending_next == next) return pending.data();
++        const auto it = std::lower_bound(history.begin(), history.end(), next,
++                [](const row & value, int32_t key) { return value.next < key; });
++        return it != history.end() && it->next == next ? it->data.data() : nullptr;
++    }
++    const float * predecessor(int32_t next, bool is_embedded) const {
++        if (is_embedded && embedded) return pending.data();
++        return find(next);
++    }
++    const float * prepare(int32_t next, bool is_embedded) {
++        if (next == 0 && !(is_embedded && embedded)) reset();
++        // This binding is allowed only during uninterrupted processing. load()
++        // never restores embedded=true, and request preflight rewinds first.
++        if (!is_embedded && embedded) seal(next);
++        return predecessor(next, is_embedded);
++    }
++    bool rewind(int32_t next) {
++        if (next == 0) { reset(); return true; }
++        const float * source = find(next);
++        if (!source) return false;
++        if (source != pending.data()) std::memcpy(pending.data(), source, width * sizeof(float));
++        history.erase(std::remove_if(history.begin(), history.end(),
++                [next](const row & value) { return value.next > next; }), history.end());
++        pending_next = next; sealed = true; embedded = false; clear_verify();
++        return true;
++    }
++    void put(int32_t next, const float * data) {
++        if (next <= 0) return;
++        auto it = std::lower_bound(history.begin(), history.end(), next,
++                [](const row & value, int32_t key) { return value.next < key; });
++        if (it == history.end() || it->next != next) it = history.insert(it, {next, {}});
++        it->data.resize(width);
++        std::memcpy(it->data.data(), data, width * sizeof(float));
++        while (history.size() > history_limit) history.erase(history.begin());
++    }
++
++    // reader(i) is the ACTUAL target row used by process(). Only the rows that
++    // accept() can select and a small rewind tail need a host-side copy. A
++    // 4096-row prompt must not copy its entire hidden matrix into verify scratch.
++    template<class Reader>
++    void record(int32_t first, size_t count, Reader reader) {
++        if (count == 0) { clear_verify(); return; }
++        history.erase(std::remove_if(history.begin(), history.end(),
++                [first](const row & value) { return value.next > first; }), history.end());
++        const size_t keep = std::min(count, verify_limit);
++        verify.resize(keep * width); verify_next.resize(keep); verify_total = uint32_t(count);
++        for (size_t i = 0; i < keep; ++i) {
++            const auto value = reader(i);
++            verify_next[i] = value.next;
++            std::memcpy(verify.data() + i * width, value.data, width * sizeof(float));
++        }
++        const size_t tail = count > history_limit ? count - history_limit : 0;
++        for (size_t i = tail; i < count; ++i) {
++            const auto value = reader(i);
++            put(value.next, value.data);
++        }
++        const auto last = reader(count - 1);
++        std::memcpy(pending.data(), last.data, width * sizeof(float));
++        pending_next = last.next;
++        sealed = last.next >= 0;
++        embedded = !sealed;
++    }
++    bool accept(uint32_t n) {
++        if (verify_total == 0) return true;
++        const size_t index = std::min<uint32_t>(n, verify_total - 1);
++        if (index >= verify_next.size()) { invalidate(); return false; }
++        const int32_t next = verify_next[index];
++        if (next <= 0) { invalidate(); return false; }
++        std::memcpy(pending.data(), verify.data() + index * width, width * sizeof(float));
++        pending_next = next; sealed = true; embedded = false;
++        history.erase(std::remove_if(history.begin(), history.end(),
++                [next](const row & value) { return value.next > next; }), history.end());
++        put(next, pending.data());
++        return true;
++    }
++    void seal(int32_t next) {
++        if (next < 0) { invalidate(); return; }
++        if (next == 0) { reset(); return; }
++        pending_next = next; sealed = true; embedded = false;
++        put(next, pending.data());
++    }
++    void erase(int32_t first, int32_t end) {
++        const auto removed = [first, end](int32_t next) {
++            return next > first && (end < 0 || next <= end);
++        };
++        history.erase(std::remove_if(history.begin(), history.end(),
++                [&](const row & value) { return removed(value.next); }), history.end());
++        if (sealed && removed(pending_next)) { pending_next = -1; sealed = false; }
++        embedded = false; clear_verify();
++    }
++    void shift(int32_t first, int32_t end, int32_t delta) {
++        const auto moved = [first, end](int32_t next) { return next > first && (end < 0 || next <= end); };
++        const auto shifted = [delta](int32_t value) { return int64_t(value) + delta; };
++        for (const auto & value : history) if (moved(value.next) &&
++                (shifted(value.next) < 0 || shifted(value.next) > INT32_MAX)) { invalidate(); return; }
++        if (sealed && moved(pending_next) && (shifted(pending_next) < 0 || shifted(pending_next) > INT32_MAX)) { invalidate(); return; }
++        for (auto & value : history) if (moved(value.next)) value.next = int32_t(shifted(value.next));
++        if (sealed && moved(pending_next)) pending_next = int32_t(shifted(pending_next));
++        history.erase(std::remove_if(history.begin(), history.end(),
++                [](const row & value) { return value.next <= 0; }), history.end());
++        std::stable_sort(history.begin(), history.end(), [](const row & a, const row & b) { return a.next < b.next; });
++        // Context shifting can place a kept prefix and moved tail at the same
++        // boundary. The moved tail is later in stream order and owns that row.
++        for (size_t i = 1; i < history.size();) {
++            if (history[i - 1].next == history[i].next) history.erase(history.begin() + i - 1);
++            else ++i;
++        }
++        embedded = false; clear_verify();
++    }
++
++    static void u32(std::vector<uint8_t> & out, uint32_t value) {
++        for (int i = 0; i < 4; ++i) out.push_back(uint8_t(value >> (8 * i)));
++    }
++    static bool u32(const std::vector<uint8_t> & in, size_t & cursor, uint32_t & value) {
++        if (in.size() - cursor < 4) return false;
++        value = 0;
++        for (int i = 0; i < 4; ++i) value |= uint32_t(in[cursor++]) << (8 * i);
++        return true;
++    }
++    void save(std::vector<uint8_t> & out) const {
++        out.clear();
++        out.reserve(32 + width * sizeof(float) +
++                (history.size() + verify_next.size()) * (4 + width * sizeof(float)));
++        u32(out, 0x5350544d); // MTPS
++        u32(out, 1); u32(out, uint32_t(width));
++        u32(out, sealed ? 1 : 0); u32(out, uint32_t(pending_next));
++        u32(out, uint32_t(history.size())); u32(out, uint32_t(verify_next.size())); u32(out, verify_total);
++        const auto floats = [&](const float * values, size_t count) {
++            const auto * bytes = reinterpret_cast<const uint8_t *>(values);
++            out.insert(out.end(), bytes, bytes + count * sizeof(float));
++        };
++        floats(pending.data(), width);
++        for (const auto & value : history) { u32(out, uint32_t(value.next)); floats(value.data.data(), width); }
++        for (size_t i = 0; i < verify_next.size(); ++i) {
++            u32(out, uint32_t(verify_next[i])); floats(verify.data() + i * width, width);
++        }
++    }
++    bool restore(const std::vector<uint8_t> & in) {
++        try {
++            if (load(in)) return true;
++        } catch (const std::bad_alloc &) {
++            // The GPU payload may already have changed conversations. Do not
++            // leave the old predecessor eligible when parsing cannot allocate.
++        }
++        invalidate();
++        return false;
++    }
++    // Parse transactionally; the public restore wrapper invalidates on failure
++    // because the GPU states may already have switched to another conversation.
++    bool load(const std::vector<uint8_t> & in) {
++        static_assert(sizeof(float) == 4, "MTP state requires 32-bit float rows");
++        size_t cursor = 0;
++        uint32_t magic, version, saved_width, flags, next, n_history, n_verify, total;
++        if (!u32(in,cursor,magic) || !u32(in,cursor,version) || !u32(in,cursor,saved_width) ||
++            !u32(in,cursor,flags) || !u32(in,cursor,next) || !u32(in,cursor,n_history) ||
++            !u32(in,cursor,n_verify) || !u32(in,cursor,total)) return false;
++        if (magic != 0x5350544d || version != 1 || saved_width != width || flags > 1 ||
++            n_history > history_limit || n_verify > verify_limit || n_verify > total ||
++            (total != 0 && n_verify != std::min<size_t>(total, verify_limit)) ||
++            (flags && next > uint32_t(INT32_MAX)) || (!flags && next != UINT32_MAX)) return false;
++        if (width > (std::numeric_limits<size_t>::max() - 32) / sizeof(float)) return false;
++        const size_t row_bytes = width * sizeof(float);
++        const size_t records = size_t(n_history) + n_verify;
++        if (records > (std::numeric_limits<size_t>::max() - 32 - row_bytes) / (4 + row_bytes) ||
++            in.size() != 32 + row_bytes + records * (4 + row_bytes)) return false;
++        common_mtp_state parsed(width, history_limit, verify_limit);
++        parsed.pending_next = int32_t(next); parsed.sealed = flags != 0; parsed.embedded = false;
++        std::memcpy(parsed.pending.data(), in.data() + cursor, row_bytes); cursor += row_bytes;
++        int32_t previous = 0;
++        for (size_t i = 0; i < n_history; ++i) {
++            uint32_t boundary;
++            if (!u32(in,cursor,boundary) || boundary > uint32_t(INT32_MAX) || int32_t(boundary) <= previous) return false;
++            previous = int32_t(boundary);
++            if (parsed.sealed && previous > parsed.pending_next) return false;
++            parsed.history.push_back({previous, std::vector<float>(width)});
++            std::memcpy(parsed.history.back().data.data(), in.data() + cursor, row_bytes); cursor += row_bytes;
++        }
++        parsed.verify.resize(size_t(n_verify) * width); parsed.verify_next.resize(n_verify); parsed.verify_total = total;
++        for (size_t i = 0; i < n_verify; ++i) {
++            uint32_t boundary;
++            if (!u32(in,cursor,boundary) || (boundary > uint32_t(INT32_MAX) && boundary != UINT32_MAX)) return false;
++            parsed.verify_next[i] = int32_t(boundary);
++            std::memcpy(parsed.verify.data() + i * width, in.data() + cursor, row_bytes); cursor += row_bytes;
++        }
++        if (parsed.sealed) {
++            if (parsed.pending_next == 0) {
++                const std::vector<float> zeros(width, 0.0f);
++                if (!parsed.history.empty() || parsed.verify_total != 0 ||
++                    std::memcmp(parsed.pending.data(), zeros.data(), row_bytes) != 0) return false;
++            } else {
++                const auto it = std::lower_bound(parsed.history.begin(), parsed.history.end(), parsed.pending_next,
++                        [](const row & value, int32_t key) { return value.next < key; });
++                if (it == parsed.history.end() || it->next != parsed.pending_next ||
++                    std::memcmp(it->data.data(), parsed.pending.data(), row_bytes) != 0) return false;
++            }
++        }
++        pending.swap(parsed.pending); history.swap(parsed.history); verify.swap(parsed.verify); verify_next.swap(parsed.verify_next);
++        pending_next = parsed.pending_next; sealed = parsed.sealed; embedded = false; verify_total = parsed.verify_total;
++        return true;
++    }
++};
+diff --git a/common/speculative.cpp b/common/speculative.cpp
+index d8afd4095..af7b96004 100644
+--- a/common/speculative.cpp
++++ b/common/speculative.cpp
+@@ -9,6 +9,7 @@
+ #include "ngram-map.h"
+ #include "ngram-mod.h"
+ #include "sampling.h"
++#include "speculative-mtp-state.h"
+ 
+ #include "../src/llama-ext.h" // staging API: llama_set_embeddings_nextn / llama_get_embeddings_nextn_ith (used by MTP)
+ 
+@@ -213,6 +214,10 @@ struct common_speculative_impl {
+     // (optional) serialize/restore per-seq internal state (e.g. eagle3's deferred boundary).
+     virtual bool get_state(llama_seq_id /*seq_id*/, std::vector<uint8_t> & /*data*/) const { return false; }
+     virtual void set_state(llama_seq_id /*seq_id*/, const std::vector<uint8_t> & /*data*/) {}
++    virtual bool rewind_state(llama_seq_id /*seq_id*/, llama_pos /*next*/) { return true; }
++    virtual void seal_state(llama_seq_id /*seq_id*/, llama_pos /*next*/) {}
++    virtual void erase_state(llama_seq_id /*seq_id*/, llama_pos /*first*/, llama_pos /*end*/) {}
++    virtual void shift_state(llama_seq_id /*seq_id*/, llama_pos /*first*/, llama_pos /*end*/, llama_pos /*delta*/) {}
+ };
+ 
+ struct common_speculative_impl_draft_simple : public common_speculative_impl {
+@@ -1453,16 +1458,11 @@ struct common_speculative_impl_draft_mtp : public common_speculative_impl {
+     // Per-sequence cross-batch carryover: pair (h_p, x_{p+1}) at MTP pos p+1.
+     // The last h-row of one process() call needs the first token of the NEXT
+     // call to pair with, so it's stashed here until that next call fires.
+-    std::vector<std::vector<float>> pending_h;   // [n_seq][n_embd]
++    std::vector<common_mtp_state> carry;
+ 
+     std::vector<int32_t> i_batch_beg;
+     std::vector<int32_t> i_batch_end;
+ 
+-    // Hidden rows from the most recent target verification batch, grouped by seq.
+-    // Row 0 corresponds to the sampled token, row N to the Nth accepted draft token.
+-    std::vector<std::vector<float>> verify_h;
+-    std::vector<int32_t> verify_h_rows;
+-
+     std::vector<int>                i_last;
+     std::vector<std::vector<float>> chain_h;
+ 
+@@ -1532,14 +1532,15 @@ struct common_speculative_impl_draft_mtp : public common_speculative_impl {
+         }
+         this->n_max = this->params.n_max;
+ 
+-        pending_h.assign(n_seq, std::vector<float>(n_embd, 0.0f));
++        const size_t verify_limit = size_t(std::max(0, common_speculative_n_max(&params))) + 1;
++        const size_t history_limit = verify_limit + size_t(llama_n_rs_seq(ctx_tgt)) + 1;
++        carry.reserve(n_seq);
++        for (uint32_t i = 0; i < n_seq; ++i) carry.emplace_back(n_embd, history_limit, verify_limit);
+ 
+         i_last.assign(n_seq, -1);
+         i_batch_beg.assign(n_seq, -1);
+         i_batch_end.assign(n_seq, -1);
+ 
+-        verify_h.assign(n_seq, {});
+-        verify_h_rows.assign(n_seq, 0);
+     }
+ 
+     ~common_speculative_impl_draft_mtp() override {
+@@ -1606,7 +1607,16 @@ struct common_speculative_impl_draft_mtp : public common_speculative_impl {
+         auto * ctx_tgt = this->params.ctx_tgt;
+         auto * ctx_dft = this->params.ctx_dft;
+ 
+-        const size_t row_bytes = (size_t) n_embd * sizeof(float);
++        for (llama_seq_id seq_id = 0; seq_id < (llama_seq_id) n_seq; ++seq_id) {
++            if (i_batch_beg[seq_id] < 0) continue;
++            const auto & first = batch_in.tokens[i_batch_beg[seq_id]];
++            const bool embedded = first.id == LLAMA_TOKEN_NULL;
++            if (!carry[seq_id].prepare(first.pos[0], embedded)) {
++                SPC_ERR("missing MTP predecessor at input boundary %d for seq %d; resume must be prepared before target decode\n",
++                        first.pos[0], seq_id);
++                return false;
++            }
++        }
+ 
+         // if kv is shared with target (e.g Gemma4), then we can skip this catch-up decode
+         if (!is_mem_shared) {
+@@ -1631,7 +1641,7 @@ struct common_speculative_impl_draft_mtp : public common_speculative_impl {
+                     : batch.add_embd(t.embd, t.pos.data(), seq_id, false);
+ 
+                 const float * h_row = k == i_batch_beg[seq_id]
+-                    ? pending_h[seq_id].data()
++                    ? carry[seq_id].predecessor(t.pos[0], t.id == LLAMA_TOKEN_NULL)
+                     : h_tgt + (size_t) (k - 1) * n_embd;
+ 
+                 batch.set_embd_state(idx, { h_row, 1, (size_t) n_embd });
+@@ -1674,17 +1684,13 @@ struct common_speculative_impl_draft_mtp : public common_speculative_impl {
+                 continue;
+             }
+ 
+-            const int32_t n_rows = i_batch_end[seq_id] - i_batch_beg[seq_id] + 1;
+-            verify_h_rows[seq_id] = n_rows;
+-            verify_h[seq_id].resize((size_t) n_rows * n_embd);
+-
+-            for (int32_t i = 0; i < n_rows; ++i) {
+-                const float * h = llama_get_embeddings_nextn_ith(ctx_tgt, i_batch_beg[seq_id] + i);
+-                std::memcpy(verify_h[seq_id].data() + (size_t) i * n_embd, h, row_bytes);
+-            }
+-
+-            std::memcpy(pending_h[seq_id].data(),
+-                    verify_h[seq_id].data() + (size_t) (n_rows - 1) * n_embd, row_bytes);
++            const int32_t begin = i_batch_beg[seq_id];
++            const int32_t n_rows = i_batch_end[seq_id] - begin + 1;
++            carry[seq_id].record(batch_in.tokens[begin].pos[0], n_rows, [&](size_t i) {
++                const auto & token = batch_in.tokens[begin + i];
++                const int32_t next = token.id == LLAMA_TOKEN_NULL ? -1 : token.pos[0] + 1;
++                return common_mtp_state::row_view { next, llama_get_embeddings_nextn_ith(ctx_tgt, begin + i) };
++            });
+         }
+ 
+         return true;
+@@ -1705,6 +1711,11 @@ struct common_speculative_impl_draft_mtp : public common_speculative_impl {
+             if (!dp.drafting) {
+                 continue;
+             }
++            if (!carry[seq_id].rewind(dp.pos0)) {
++                SPC_ERR("cannot draft without MTP predecessor at boundary %d for seq %d\n", dp.pos0, seq_id);
++                dp.result->clear();
++                continue;
++            }
+ 
+             n_drafting++;
+             drafting[seq_id] = true;
+@@ -1724,12 +1735,12 @@ struct common_speculative_impl_draft_mtp : public common_speculative_impl {
+             }
+ 
+             const int32_t idx = batch.add(dp.id_last, dp.pos0, seq_id, true);
+-            batch.set_embd_state(idx, { pending_h[seq_id].data(), 1, (size_t) n_embd });
++            batch.set_embd_state(idx, { carry[seq_id].pending.data(), 1, (size_t) n_embd });
+ 
+             i_last[seq_id] = idx;
+ 
+             if (chain_heads) {
+-                chain_h[seq_id].assign(pending_h[seq_id].begin(), pending_h[seq_id].end());
++                chain_h[seq_id].assign(carry[seq_id].pending.begin(), carry[seq_id].pending.end());
+             }
+         }
+ 
+@@ -1861,15 +1872,38 @@ struct common_speculative_impl_draft_mtp : public common_speculative_impl {
+             return;
+         }
+ 
+-        const int32_t n_rows = verify_h_rows[seq_id];
+-        if (n_rows <= 0) {
+-            return;
++        if (!carry[seq_id].accept(n_accepted)) {
++            SPC_ERR("MTP acceptance exceeds the saved verification rows for seq %d\n", seq_id);
+         }
+-
+-        const int32_t i_h = std::min<int32_t>(n_accepted, n_rows - 1);
+-        const size_t row_bytes = (size_t) n_embd * sizeof(float);
+-        std::memcpy(pending_h[seq_id].data(), verify_h[seq_id].data() + (size_t) i_h * n_embd, row_bytes);
+     }
++    bool get_state(llama_seq_id seq_id, std::vector<uint8_t> & data) const override {
++        if (seq_id < 0 || seq_id >= (llama_seq_id) n_seq) return false;
++        try {
++            carry[seq_id].save(data);
++            return true;
++        } catch (const std::bad_alloc &) {
++            data.clear();
++            SPC_WRN("could not allocate MTP CPU snapshot for seq %d; cached state will require safe replay\n", seq_id);
++            return false;
++        }
++    }
++    void set_state(llama_seq_id seq_id, const std::vector<uint8_t> & data) override {
++        if (seq_id < 0 || seq_id >= (llama_seq_id) n_seq) return;
++        carry[seq_id].restore(data);
++    }
++    bool rewind_state(llama_seq_id seq_id, llama_pos next) override {
++        return seq_id >= 0 && seq_id < (llama_seq_id) n_seq && carry[seq_id].rewind(next);
++    }
++    void seal_state(llama_seq_id seq_id, llama_pos next) override {
++        if (seq_id >= 0 && seq_id < (llama_seq_id) n_seq) carry[seq_id].seal(next);
++    }
++    void erase_state(llama_seq_id seq_id, llama_pos first, llama_pos end) override {
++        if (seq_id >= 0 && seq_id < (llama_seq_id) n_seq) carry[seq_id].erase(first, end);
++    }
++    void shift_state(llama_seq_id seq_id, llama_pos first, llama_pos end, llama_pos delta) override {
++        if (seq_id >= 0 && seq_id < (llama_seq_id) n_seq) carry[seq_id].shift(first, end, delta);
++    }
++
+ };
+ 
+ // state of self-speculation (simple implementation, not ngram-map)
+@@ -3068,6 +3102,21 @@ void common_speculative_set_state(common_speculative * spec, llama_seq_id seq_id
+     }
+ }
+ 
++bool common_speculative_rewind_state(common_speculative * spec, llama_seq_id seq_id, llama_pos next) {
++    if (!spec) return true;
++    for (auto & impl : spec->impls) if (!impl->rewind_state(seq_id, next)) return false;
++    return true;
++}
++void common_speculative_seal_state(common_speculative * spec, llama_seq_id seq_id, llama_pos next) {
++    if (spec) for (auto & impl : spec->impls) impl->seal_state(seq_id, next);
++}
++void common_speculative_erase_state(common_speculative * spec, llama_seq_id seq_id, llama_pos first, llama_pos end) {
++    if (spec) for (auto & impl : spec->impls) impl->erase_state(seq_id, first, end);
++}
++void common_speculative_shift_state(common_speculative * spec, llama_seq_id seq_id, llama_pos first, llama_pos end, llama_pos delta) {
++    if (spec) for (auto & impl : spec->impls) impl->shift_state(seq_id, first, end, delta);
++}
++
+ void common_speculative_print_stats(const common_speculative * spec) {
+     if (spec == nullptr) {
+         return;
+diff --git a/common/speculative.h b/common/speculative.h
+index a59846829..27e9dc2e4 100644
+--- a/common/speculative.h
++++ b/common/speculative.h
+@@ -99,6 +99,14 @@ void common_speculative_accept(common_speculative * spec, llama_seq_id, uint16_t
+ bool common_speculative_get_state(common_speculative * spec, llama_seq_id seq_id, std::vector<uint8_t> & data);
+ void common_speculative_set_state(common_speculative * spec, llama_seq_id seq_id, const std::vector<uint8_t> & data);
+ 
++// Prepare a cached boundary BEFORE target evaluation. False requires an older
++// compatible checkpoint or full target/draft reset; never substitute a row.
++bool common_speculative_rewind_state(common_speculative * spec, llama_seq_id seq_id, llama_pos next);
++// M-RoPE image positions can repeat; seal only after the complete media chunk.
++void common_speculative_seal_state(common_speculative * spec, llama_seq_id seq_id, llama_pos next);
++void common_speculative_erase_state(common_speculative * spec, llama_seq_id seq_id, llama_pos first, llama_pos end);
++void common_speculative_shift_state(common_speculative * spec, llama_seq_id seq_id, llama_pos first, llama_pos end, llama_pos delta);
++
+ // print statistics about the speculative decoding
+ void common_speculative_print_stats(const common_speculative * spec);
+ 
+diff --git a/tools/server/server-context.cpp b/tools/server/server-context.cpp
+index 3600a3a8e..d46d5088e 100644
+--- a/tools/server/server-context.cpp
++++ b/tools/server/server-context.cpp
+@@ -306,33 +306,13 @@ struct server_slot {
+     server_prompt prompt;
+ 
+     bool prompt_save(server_prompt_cache & prompt_cache, const server_tokens * requested = nullptr) const {
+-        if (prompt.tokens.size() == 0) {
+-            return false;
+-        }
+-
+-        const size_t cur_size_tgt =           llama_state_seq_get_size_ext(ctx_tgt, id, LLAMA_STATE_SEQ_FLAGS_NONE);
+-        const size_t cur_size_dft = ctx_dft ? llama_state_seq_get_size_ext(ctx_dft, id, LLAMA_STATE_SEQ_FLAGS_NONE) : 0;
+-
+-        const size_t cur_size = cur_size_tgt + cur_size_dft;
+-
+-        SRV_TRC(" - saving prompt with length %d, total state size = %.3f MiB (draft: %.3f MiB)\n",
+-                (int) prompt.tokens.size(), cur_size / (1024.0 * 1024.0), cur_size_dft / (1024.0 * 1024.0));
+-
+-        auto * cur = prompt_cache.alloc(prompt, cur_size_tgt, cur_size_dft, requested);
+-        if (cur == nullptr) {
+-            return false;
+-        }
+-
+-        llama_state_seq_get_data_ext(ctx_tgt, cur->data.main.data(), cur_size_tgt, id, LLAMA_STATE_SEQ_FLAGS_NONE);
+-        if (ctx_dft) {
+-            llama_state_seq_get_data_ext(ctx_dft, cur->data.drft.data(), cur_size_dft, id, LLAMA_STATE_SEQ_FLAGS_NONE);
+-        }
+-
+-        return true;
++        std::vector<uint8_t> state_spec;
++        common_speculative_get_state(spec, id, state_spec);
++        return prompt_cache.save(prompt, ctx_tgt, ctx_dft, id, requested, std::move(state_spec));
+     }
+ 
+     bool prompt_load(server_prompt_cache & prompt_cache, const server_tokens & tokens) {
+-        bool res = prompt_cache.load(prompt, tokens, ctx_tgt, ctx_dft, id);
++        bool res = prompt_cache.load(prompt, tokens, ctx_tgt, ctx_dft, id, spec);
+         if (!res) {
+             SLT_WRN(*this, "%s", "failed to load prompt from cache\n");
+         }
+@@ -344,6 +324,7 @@ struct server_slot {
+         SLT_TRC(*this, "clearing prompt with %zu tokens\n", prompt.tokens.size());
+ 
+         mem.seq_rm(id, -1, -1);
++        common_speculative_rewind_state(spec, id, 0);
+ 
+         prompt.clear();
+     }
+@@ -772,6 +753,9 @@ struct server_slot {
+         mem.seq_cp(id, other.id, -1, -1);
+ 
+         other.prompt = prompt.clone();
++        std::vector<uint8_t> state_spec;
++        common_speculative_get_state(spec, id, state_spec);
++        common_speculative_set_state(other.spec, other.id, state_spec);
+     }
+ 
+     void copy_state_to(server_slot & other) const {
+@@ -785,6 +769,9 @@ struct server_slot {
+         other.stats = stats;
+ 
+         other.prompt = prompt.clone();
++        std::vector<uint8_t> state_spec;
++        common_speculative_get_state(spec, id, state_spec);
++        common_speculative_set_state(other.spec, other.id, state_spec);
+         other.init_sampler();
+     }
+ };
+@@ -863,7 +850,7 @@ static int process_mtmd_chunk(const server_slot & slot, mtmd::batch_ptr & mbatch
+                     return common_speculative_process(data->spec, batch) ? 0 : 1;
+                 };
+ 
+-                llama_pos new_n_past; // unused for now
++                llama_pos new_n_past;
+                 res = mtmd_helper_decode_image_chunk(
+                     mctx,
+                     slot.ctx_tgt,
+@@ -880,6 +867,7 @@ static int process_mtmd_chunk(const server_slot & slot, mtmd::batch_ptr & mbatch
+                     SLT_ERR(slot, "failed to decode mtmd chunk, idx = %zu, res = %d\n", idx, res);
+                     return -1;
+                 }
++                common_speculative_seal_state(slot.spec, slot.id, new_n_past);
+                 n_tokens_out = mtmd_input_chunk_get_n_tokens(chunk.get());
+                 return 0; // success
+             }
+@@ -2758,7 +2746,10 @@ private:
+         std::vector<uint8_t> data_spec;
+         if (ctx_dft != nullptr) {
+             data_dft.resize(llama_state_seq_get_size_ext(ctx_dft, slot.id, LLAMA_STATE_SEQ_FLAGS_NONE));
+-            llama_state_seq_get_data_ext(ctx_dft, data_dft.data(), data_dft.size(), slot.id, LLAMA_STATE_SEQ_FLAGS_NONE);
++            if (llama_state_seq_get_data_ext(ctx_dft, data_dft.data(), data_dft.size(), slot.id, LLAMA_STATE_SEQ_FLAGS_NONE) != data_dft.size()) {
++                SLT_WRN(slot, "%s", "failed to read complete draft state for slot save\n");
++                return false;
++            }
+         }
+         common_speculative_get_state(spec.get(), slot.id, data_spec);
+         if (data_dft.empty() && data_spec.empty()) {
+@@ -2787,6 +2778,8 @@ private:
+     // returns the number of bytes consumed, 0 if there is no usable draft state
+     // the draft starts empty unless the file holds a draft state that fits the draft context
+     size_t load_slot_draft(const std::string & filepath, size_t offset, server_slot & slot) const {
++        // Legacy/missing/corrupt appendices must not retain another slot's CPU carryover.
++        common_speculative_set_state(spec.get(), slot.id, {});
+         if (ctx_dft != nullptr) {
+             llama_memory_seq_rm(llama_get_memory(ctx_dft), slot.id, -1, -1);
+         }
+@@ -2820,9 +2813,11 @@ private:
+                 return n_read;
+             }
+         }
+-        if (!data_spec.empty()) {
+-            common_speculative_set_state(spec.get(), slot.id, data_spec);
++        if (ctx_dft != nullptr && data_dft.empty()) {
++            SLT_WRN(slot, "draft state in '%s' is absent - CPU carryover ignored\n", filepath.c_str());
++            return n_read;
+         }
++        common_speculative_set_state(spec.get(), slot.id, data_spec);
+         SLT_INF(slot, "restored the draft state (%.3f MiB) from '%s'\n", (float) n_read / 1024 / 1024, filepath.c_str());
+         return n_read;
+     }
+@@ -3421,6 +3416,8 @@ private:
+ 
+                 slot.mem.seq_rm (slot.id, n_keep            , n_keep + n_discard);
+                 slot.mem.seq_add(slot.id, n_keep + n_discard, slot.prompt.tokens.pos_next(), -n_discard);
++                common_speculative_erase_state(spec.get(), slot.id, n_keep, n_keep + n_discard);
++                common_speculative_shift_state(spec.get(), slot.id, n_keep + n_discard, slot.prompt.tokens.pos_next(), -n_discard);
+ 
+                 // add generated tokens to cache
+                 // ref: https://github.com/ggml-org/llama.cpp/pull/16818#discussion_r2473269481
+@@ -3488,6 +3485,7 @@ private:
+                     } else {
+                         GGML_ASSERT(slot.spec_i_batch.empty());
+ 
++                        common_speculative_get_state(spec.get(), slot.id, slot.spec_ckpt.data_spec);
+                         slot.spec_ckpt.update_pos(
+                                 slot.prompt.n_tokens(),
+                                 llama_memory_seq_pos_min(llama_get_memory(ctx_tgt), slot.id),
+@@ -3769,6 +3767,8 @@ private:
+ 
+                                             slot.mem.seq_rm (slot.id, head_p, head_c);
+                                             slot.mem.seq_add(slot.id, head_c, head_c + n_match, kv_shift);
++                                            common_speculative_erase_state(spec.get(), slot.id, head_p, head_c);
++                                            common_speculative_shift_state(spec.get(), slot.id, head_c, head_c + n_match, kv_shift);
+ 
+                                             for (size_t i = 0; i < n_match; i++) {
+                                                 slot.prompt.tokens.set_token(head_p + i, slot.prompt.tokens[head_c + i]);
+@@ -3921,6 +3921,40 @@ private:
+                             SLT_WRN(slot, "n_past was set to %d\n", n_past);
+                         }
+ 
++                        // A restored MTP KV state is usable only with the predecessor
++                        // at the EXACT first input boundary. The final-token replay and
++                        // hybrid checkpoint adjustment above may have rewound it.
++                        if (!common_speculative_rewind_state(spec.get(), slot.id, slot.prompt.tokens.pos_next(n_past))) {
++                            bool restored = false;
++                            for (auto it = slot.prompt.checkpoints.rbegin(); it != slot.prompt.checkpoints.rend(); ++it) {
++                                if (it->n_tokens > n_past || it->data_spec.empty()) continue;
++                                int64_t candidate = std::min<int64_t>({n_past, it->n_tokens,
++                                        (int64_t) slot.prompt.tokens.size_up_to_pos(std::max(it->pos_min + 1, it->pos_max))});
++                                if (candidate == slot.task->n_tokens() && candidate > 0) --candidate;
++                                if (candidate <= 0) continue;
++                                common_speculative_set_state(spec.get(), slot.id, it->data_spec);
++                                if (!common_speculative_rewind_state(spec.get(), slot.id, slot.prompt.tokens.pos_next(candidate))) continue;
++                                if (!it->load_tgt(ctx_tgt, slot.id, LLAMA_STATE_SEQ_FLAGS_PARTIAL_ONLY) ||
++                                    !it->load_dft(ctx_dft, slot.id, LLAMA_STATE_SEQ_FLAGS_PARTIAL_ONLY)) continue;
++                                n_past = candidate;
++                                restored = true;
++                                SLT_TRC(slot, "restored older checkpoint for MTP predecessor, n_past = %d\n", n_past);
++                                break;
++                            }
++                            if (!restored) {
++                                SLT_WRN(slot, "%s", "MTP predecessor unavailable; clearing target, draft and CPU state before full prompt replay\n");
++                                slot.mem.seq_rm(slot.id, -1, -1);
++                                common_speculative_rewind_state(spec.get(), slot.id, 0);
++                                slot.prompt.checkpoints.clear();
++                                n_past = 0;
++                            }
++                            const llama_pos next = slot.prompt.tokens.pos_next(n_past);
++                            for (auto it = slot.prompt.checkpoints.begin(); it != slot.prompt.checkpoints.end();) {
++                                if (it->pos_max > next) it = slot.prompt.checkpoints.erase(it);
++                                else ++it;
++                            }
++                        }
++
+                         slot.stats.n_prompt_cached    = n_past;
+                         slot.stats.n_prompt_processed = 0;
+ 
+@@ -4583,6 +4617,8 @@ private:
+                             GGML_ASSERT(ckpt.load_dft(slot.ctx_dft, slot.id, LLAMA_STATE_SEQ_FLAGS_PARTIAL_ONLY));
+                         }
+ 
++                        common_speculative_set_state(spec.get(), slot.id, ckpt.data_spec);
++                        GGML_ASSERT(common_speculative_rewind_state(spec.get(), slot.id, slot.prompt.tokens.pos_next(ckpt.n_tokens)));
+                         slot.mem.seq_rm(slot.id, ckpt.pos_max + 1, -1);
+ 
+                         slot.prompt.tokens.keep_first(ckpt.n_tokens);
+diff --git a/tools/server/server-task.cpp b/tools/server/server-task.cpp
+index 460cd9889..881a22f91 100644
+--- a/tools/server/server-task.cpp
++++ b/tools/server/server-task.cpp
+@@ -1730,7 +1730,7 @@ std::list<server_prompt_cache_state>::iterator server_prompt_cache::find_best(co
+     return best;
+ }
+ 
+-server_prompt_cache_state * server_prompt_cache::alloc(const server_prompt & prompt, size_t state_size_tgt, size_t state_size_dft, const server_tokens * requested) {
++server_prompt_cache_state * server_prompt_cache::alloc(const server_prompt & prompt, size_t state_size_tgt, size_t state_size_dft, const server_tokens * requested, std::vector<uint8_t> spec_state) {
+     if (!common_state_storage_enabled()) clear_spare();
+     // first check if the current state is contained fully in the cache
+     for (auto it = states.begin(); it != states.end(); ++it) {
+@@ -1753,7 +1753,7 @@ server_prompt_cache_state * server_prompt_cache::alloc(const server_prompt & pro
+     const size_t cached_size = size() - spare.size();
+     const auto allocation_size = [&] {
+         return (reuse_tgt ? spare.main.capacity() : state_size_tgt) +
+-               (reuse_dft ? spare.drft.capacity() : state_size_dft) + checkpoints_size;
++               (reuse_dft ? spare.drft.capacity() : state_size_dft) + checkpoints_size + spec_state.capacity();
+     };
+     // Extra retained capacity must not evict a useful cached prompt.
+     if (limit_size > 0 && cached_size + allocation_size() > limit_size) {
+@@ -1818,7 +1818,7 @@ server_prompt_cache_state * server_prompt_cache::alloc(const server_prompt & pro
+     try {
+         state_data_tgt.resize(state_size_tgt);
+         state_data_dft.resize(state_size_dft);
+-        if (limit_size > 0 && size() + state_data_tgt.capacity() + state_data_dft.capacity() + checkpoints_size > limit_size) {
++        if (limit_size > 0 && size() + state_data_tgt.capacity() + state_data_dft.capacity() + checkpoints_size + spec_state.capacity() > limit_size) {
+             return nullptr;
+         }
+         states.push_back({
+@@ -1829,6 +1829,7 @@ server_prompt_cache_state * server_prompt_cache::alloc(const server_prompt & pro
+             /*.data   =*/ {
+                 /*.main =*/ std::move(state_data_tgt),
+                 /*.drft =*/ std::move(state_data_dft),
++                /*.spec =*/ std::move(spec_state),
+             },
+         });
+     } catch (const std::bad_alloc & e) {
+@@ -1846,7 +1847,7 @@ server_prompt_cache_state * server_prompt_cache::alloc(const server_prompt & pro
+     return &states.back();
+ }
+ 
+-bool server_prompt_cache::save(const server_prompt & prompt, llama_context * ctx_tgt, llama_context * ctx_dft, int32_t id_slot, const server_tokens * requested) {
++bool server_prompt_cache::save(const server_prompt & prompt, llama_context * ctx_tgt, llama_context * ctx_dft, int32_t id_slot, const server_tokens * requested, std::vector<uint8_t> spec_state) {
+     if (prompt.tokens.empty() || ctx_tgt == nullptr) {
+         return false;
+     }
+@@ -1861,7 +1862,7 @@ bool server_prompt_cache::save(const server_prompt & prompt, llama_context * ctx
+     SRV_TRC(" - saving prompt with length %d, total state size = %.3f MiB (draft: %.3f MiB)\n",
+             (int) prompt.tokens.size(), (size_tgt + size_dft) / (1024.0 * 1024.0), size_dft / (1024.0 * 1024.0));
+ 
+-    auto * saved = alloc(prompt, size_tgt, size_dft, requested);
++    auto * saved = alloc(prompt, size_tgt, size_dft, requested, std::move(spec_state));
+     if (saved == nullptr) {
+         return false;
+     }
+@@ -1895,7 +1896,7 @@ bool server_prompt_cache::save(const server_prompt & prompt, llama_context * ctx
+     return true;
+ }
+ 
+-bool server_prompt_cache::load(server_prompt & prompt, const server_tokens & tokens_new, llama_context * ctx_tgt, llama_context * ctx_dft, int32_t id_slot) {
++bool server_prompt_cache::load(server_prompt & prompt, const server_tokens & tokens_new, llama_context * ctx_tgt, llama_context * ctx_dft, int32_t id_slot, common_speculative * spec) {
+     auto it_best = find_best(prompt, tokens_new);
+     if (it_best != states.end()) {
+         SRV_TRC("%s", " - found a longer cached prompt prefix\n");
+@@ -1904,7 +1905,8 @@ bool server_prompt_cache::load(server_prompt & prompt, const server_tokens & tok
+         // intact until all contexts are restored; the caller clears its active
+         // contexts before reprocessing when this function returns false.
+         if (it_best->data.main.empty() || ctx_tgt == nullptr ||
+-                (!it_best->data.drft.empty() && ctx_dft == nullptr)) {
++                (!it_best->data.drft.empty() && ctx_dft == nullptr) ||
++                (spec != nullptr && ctx_dft != nullptr && it_best->data.drft.empty())) {
+             SRV_WRN("%s", "discarding cached prompt with missing state or context\n");
+             states.erase(it_best);
+             return false;
+@@ -1936,6 +1938,9 @@ bool server_prompt_cache::load(server_prompt & prompt, const server_tokens & tok
+             }
+         }
+ 
++        // Missing/legacy CPU metadata explicitly invalidates MTP carryover;
++        // request preflight will choose a compatible checkpoint or full replay.
++        common_speculative_set_state(spec, id_slot, it_best->data.spec);
+         prompt = std::move(it_best->prompt);
+         if (common_state_storage_enabled()) {
+             spare.main = std::move(it_best->data.main);
+diff --git a/tools/server/server-task.h b/tools/server/server-task.h
+index ac7b6857c..70e8df16c 100644
+--- a/tools/server/server-task.h
++++ b/tools/server/server-task.h
+@@ -645,9 +645,10 @@ struct server_prompt {
+ struct server_prompt_data {
+     std::vector<uint8_t> main;
+     std::vector<uint8_t> drft;
++    std::vector<uint8_t> spec;
+ 
+     size_t size() const {
+-        return main.capacity() + drft.capacity();
++        return main.capacity() + drft.capacity() + spec.capacity();
+     }
+ };
+ 
+@@ -666,6 +667,8 @@ struct server_prompt_cache_state {
+     }
+ };
+ 
++struct common_speculative;
++
+ struct server_prompt_cache {
+     server_prompt_cache(int32_t limit_size_mib, size_t limit_tokens) {
+         this->limit_size   = 1024ull*1024ull*(limit_size_mib < 0 ? 0 : limit_size_mib);
+@@ -691,11 +694,11 @@ struct server_prompt_cache {
+ 
+     std::list<server_prompt_cache_state>::iterator find_best(const server_prompt & prompt, const server_tokens & tokens_new);
+ 
+-    server_prompt_cache_state * alloc(const server_prompt & prompt, size_t state_size_main, size_t state_size_drft, const server_tokens * requested = nullptr);
++    server_prompt_cache_state * alloc(const server_prompt & prompt, size_t state_size_main, size_t state_size_drft, const server_tokens * requested = nullptr, std::vector<uint8_t> spec_state = {});
+ 
+-    bool save(const server_prompt & prompt, llama_context * ctx_tgt, llama_context * ctx_dft, int32_t id_slot, const server_tokens * requested = nullptr);
++    bool save(const server_prompt & prompt, llama_context * ctx_tgt, llama_context * ctx_dft, int32_t id_slot, const server_tokens * requested = nullptr, std::vector<uint8_t> spec_state = {});
+ 
+-    bool load(server_prompt & prompt, const server_tokens & tokens_new, llama_context * ctx_tgt, llama_context * ctx_dft, int32_t id_slot);
++    bool load(server_prompt & prompt, const server_tokens & tokens_new, llama_context * ctx_tgt, llama_context * ctx_dft, int32_t id_slot, common_speculative * spec = nullptr);
+ 
+     void update();
+ };

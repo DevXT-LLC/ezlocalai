@@ -45,6 +45,9 @@ struct TtsWebSocketOperations {
     // from subsequently sending the WebSocket close frame.
     std::function<void()> interrupt_receive;
     std::function<std::unique_ptr<TtsWebSocketLease>(const VoiceCancellation &)> acquire;
+    // Observes capacity after acquire/close, including cleanup failures. The
+    // caller schedules state publication; observer errors do not affect audio.
+    std::function<void()> state_changed;
 };
 
 // Receives concurrently with synthesis, queues at most four segments, and

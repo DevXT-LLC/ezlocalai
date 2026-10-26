@@ -41,6 +41,7 @@
 #include "ezlocalai/http_body.hpp"
 #include "ezlocalai/http_url.hpp"
 #include "ezlocalai/http_cookies.hpp"
+#include "ezlocalai/http_socket.hpp"
 #include "ezlocalai/process.hpp"
 #include "generated_openapi.hpp"
 #include "ezlocalai/worker_heartbeat.hpp"
@@ -5738,35 +5739,11 @@ HttpResponse fallback_json_request(const std::string &method, const std::string 
 }
 
 bool send_all_fd(int fd, const std::string &data) {
-    size_t sent = 0;
-    while (sent < data.size()) {
-        ssize_t n = send(
-            fd,
-            data.data() + sent,
-            data.size() - sent,
-#ifdef MSG_NOSIGNAL
-            MSG_NOSIGNAL
-#else
-            0
-#endif
-        );
-        if (n <= 0) {
-            return false;
-        }
-        sent += static_cast<size_t>(n);
-    }
-    return true;
+    return http_socket::send_all(fd, data);
 }
 
 bool send_http_chunk(int fd, const std::string &chunk) {
-    if (chunk.empty()) {
-        return true;
-    }
-    std::ostringstream header;
-    header << std::hex << chunk.size() << "\r\n";
-    return send_all_fd(fd, header.str())
-        && send_all_fd(fd, chunk)
-        && send_all_fd(fd, "\r\n");
+    return http_socket::send_chunk(fd, chunk);
 }
 
 void append_stream_capture(const std::shared_ptr<std::string> &capture, const std::string &chunk) {
@@ -6013,6 +5990,7 @@ HttpResponse http_worker_stream_request(
         }
         return worker_transport_error_response(aiohttp_connect_error_message(parsed, last_connect_endpoint, last_connect_errno));
     }
+    http_socket::low_latency(state->fd);
     if (timeout_seconds > 0) {
         timeval timeout{};
         timeout.tv_sec = timeout_seconds;
@@ -11572,7 +11550,10 @@ NativeServer::NativeServer(ezl_env_config config, std::unique_ptr<InferenceBacke
     if (!queue_) {
         throw std::bad_alloc();
     }
-    int rc = ezl_queue_start(queue_, &NativeServer::queue_processor, this);
+    int rc = ezl_queue_set_state_observer(queue_, [](void *signal) {
+        static_cast<WorkerHeartbeatSignal *>(signal)->notify();
+    }, &worker_heartbeat_signal_);
+    if (!rc) rc = ezl_queue_start(queue_, &NativeServer::queue_processor, this);
     if (rc != 0) {
         ezl_queue_destroy(queue_);
         queue_ = nullptr;
@@ -11735,6 +11716,7 @@ void NativeServer::start_worker_heartbeat(const std::string &host, int port) {
     worker_heartbeat_url_ = strip_trailing_slashes(trim(ezl_getenv_default("EZLOCALAI_URL")));
     }
     worker_heartbeat_running_ = true;
+    worker_heartbeat_signal_.start();
     worker_heartbeat_cancelled_ = false;
     worker_heartbeat_done_ = false;
     worker_heartbeat_thread_ = std::thread(&NativeServer::worker_heartbeat_loop, this);
@@ -11747,6 +11729,7 @@ void NativeServer::stop_worker_heartbeat() {
         return;
     }
     worker_heartbeat_running_ = false;
+    worker_heartbeat_signal_.stop();
     worker_heartbeat_cv_.notify_all();
     if (worker_heartbeat_thread_.joinable()) {
         {
@@ -11885,16 +11868,10 @@ std::string NativeServer::worker_heartbeat_body() const {
 void NativeServer::worker_heartbeat_loop() {
     WorkerHeartbeatOperations operations;
     operations.stopped = [this] { return !worker_heartbeat_running_.load(); };
-    operations.wait = [this](double seconds) {
-        std::unique_lock<std::mutex> lock(worker_heartbeat_mutex_);
-        const auto stopped = [this] { return !worker_heartbeat_running_.load(); };
-        const auto maximum = std::chrono::steady_clock::time_point::max();
-        const auto remaining = std::chrono::duration<double>(maximum - std::chrono::steady_clock::now()).count();
-        if (!std::isfinite(seconds) || seconds >= remaining)
-            worker_heartbeat_cv_.wait_until(lock, maximum, stopped);
-        else worker_heartbeat_cv_.wait_for(lock, std::chrono::duration<double>(seconds), stopped);
-    };
+    operations.wait = [this](double seconds) { worker_heartbeat_signal_.wait(seconds, false); };
+    operations.wait_for_update = [this](double seconds) { worker_heartbeat_signal_.wait(seconds, true); };
     operations.post = [this](const std::string &action) {
+        if (action != "deregister") worker_heartbeat_signal_.begin_update();
         std::string body;
         if (action == "register") {
             // Python's _gather_state guards each probe, so registration never
@@ -11918,6 +11895,10 @@ void NativeServer::worker_heartbeat_loop() {
         worker_heartbeat_done_ = true;
     }
     worker_heartbeat_cv_.notify_all();
+}
+
+void NativeServer::notify_worker_state_changed() const {
+    if (worker_heartbeat_running_.load()) worker_heartbeat_signal_.notify();
 }
 
 void NativeServer::start_worker_tunnel(int port) {
@@ -13710,7 +13691,11 @@ std::string NativeServer::begin_llm_inference(const std::string &model, const st
     for (;;) {
         if (llm_slots_stopping_) throw std::runtime_error("LLM slot scheduler is stopping");
         const auto acquired = try_acquire_llm_slot(replicas, llm_slots_, model.empty() ? std::nullopt : std::optional<std::string>(model), preferred, llm_temporarily_unavailable_, backend_->swap_llm_residency());
-        if (acquired.acquired) return acquired.replica.value_or("");
+        if (acquired.acquired) {
+            lock.unlock();
+            notify_worker_state_changed();
+            return acquired.replica.value_or("");
+        }
         llm_idle_cv_.wait_for(lock, std::chrono::milliseconds(50));
         lock.unlock();
         replicas = backend_->llm_replica_state().value_or(llm_replicas_);
@@ -13719,22 +13704,26 @@ std::string NativeServer::begin_llm_inference(const std::string &model, const st
 }
 
 void NativeServer::end_llm_inference(const std::string &model, const std::string &replica) {
-    std::lock_guard<std::mutex> lock(resource_mutex_);
-    release_llm_slot(llm_slots_, model.empty() ? std::nullopt : std::optional<std::string>(model), replica.empty() ? std::nullopt : std::optional<std::string>(replica));
-    llm_idle_cv_.notify_all();
+    {
+        std::lock_guard<std::mutex> lock(resource_mutex_);
+        release_llm_slot(llm_slots_, model.empty() ? std::nullopt : std::optional<std::string>(model), replica.empty() ? std::nullopt : std::optional<std::string>(replica));
+        llm_idle_cv_.notify_all();
+    }
+    notify_worker_state_changed();
 }
 
 void NativeServer::resource_increment_capability_in_flight(const std::string &capability, int delta) const {
     if (capability.empty() || delta == 0) {
         return;
     }
-    std::lock_guard<std::mutex> lock(resource_mutex_);
-    int &count = resource_capability_in_flight_[capability];
-    count = std::max(0, count + delta);
-    resource_capability_last_used_[capability] = monotonic_epoch_seconds();
-    if (count == 0) {
-        resource_capability_in_flight_.erase(capability);
+    {
+        std::lock_guard<std::mutex> lock(resource_mutex_);
+        int &count = resource_capability_in_flight_[capability];
+        count = std::max(0, count + delta);
+        resource_capability_last_used_[capability] = monotonic_epoch_seconds();
+        if (count == 0) resource_capability_in_flight_.erase(capability);
     }
+    notify_worker_state_changed();
 }
 
 void NativeServer::sync_text_queue_capacity() const {
@@ -20481,6 +20470,7 @@ void NativeServer::handle_tts_websocket(int client_fd,const std::string &initial
     operations.send=[&](const auto &bytes){send_frame(websocket_binary_frame(bytes));};
     operations.interrupt_receive=[&]{interrupted=true;shutdown(client_fd,SHUT_RD);};
     operations.acquire=[&](const auto &cancellation)->std::unique_ptr<TtsWebSocketLease>{if(!tts_service_)throw TtsError("RuntimeError","Native TTS service is unavailable");return tts_service_->websocket_lease(cancellation);};
+    operations.state_changed=[this]{notify_worker_state_changed();};
     try{run_tts_websocket(operations);close_session(1000,"");}
     catch(const TtsError &error){
         if(error.category=="WebSocketDisconnect"||error.category=="CancelledError")return;
@@ -20492,9 +20482,16 @@ void NativeServer::handle_tts_websocket(int client_fd,const std::string &initial
 }
 
 void NativeServer::handle_client(int client_fd) {
-    auto client_cleanup = std::shared_ptr<int>(new int(client_fd), [this](int *value) {
-        std::lock_guard<std::mutex> lock(client_mutex_);
-        client_fds_.erase(*value); close(*value); delete value; client_cv_.notify_all();
+    bool publish_completion = false;
+    auto client_cleanup = std::shared_ptr<int>(new int(client_fd), [this, &publish_completion](int *value) {
+        // HttpResponse and its deferred stream ownership are destroyed first.
+        // Keep this client registered until the notification has finished so
+        // stop() cannot destroy the server while this deleter still uses it.
+        if (publish_completion) notify_worker_state_changed();
+        {
+            std::lock_guard<std::mutex> lock(client_mutex_);
+            client_fds_.erase(*value); close(*value); delete value; client_cv_.notify_all();
+        }
     });
     HttpResponse response;
     bool head_request = false;
@@ -20558,6 +20555,12 @@ void NativeServer::handle_client(int client_fd) {
             const auto websocket_query_pos = path.find('?');
             const std::string websocket_route_path = websocket_query_pos == std::string::npos ? path : path.substr(0, websocket_query_pos);
             const std::string websocket_query = websocket_query_pos == std::string::npos ? "" : path.substr(websocket_query_pos + 1);
+            publish_completion = authorized(authorization) && ((method == "POST" && (
+                websocket_route_path == "/v1/chat/completions" || websocket_route_path == "/v1/completions" ||
+                websocket_route_path == "/v1/embeddings" || starts_with(websocket_route_path, "/v1/audio/") ||
+                starts_with(websocket_route_path, "/v1/images/") || starts_with(websocket_route_path, "/v1/video") ||
+                starts_with(websocket_route_path, "/v1/music"))) ||
+                websocket_route_path == "/v1/audio/speech/ws");
             if (is_websocket_upgrade(headers)) {
                 bool websocket_protocol_error = false;
                 if (method != "GET") {
@@ -20645,6 +20648,8 @@ void NativeServer::handle_client(int client_fd) {
     } catch (const std::exception &ex) {
         response = {500, "application/json", make_error(500, ex.what())};
     }
+    if (!head_request && response.chunked && response.stream_writer)
+        http_socket::low_latency(client_fd);
     const std::string serialized = serialize_response(response, head_request, request_origin, request_has_cookie);
     size_t sent = 0;
     while (sent < serialized.size()) {

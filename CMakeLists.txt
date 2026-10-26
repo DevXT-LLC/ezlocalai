@@ -258,6 +258,14 @@ target_link_libraries(test_core
         ezlocalai_core
 )
 add_test(NAME core COMMAND test_core)
+add_executable(test_http_stream_socket tests/test_http_stream_socket.cpp)
+target_include_directories(test_http_stream_socket PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_link_libraries(test_http_stream_socket PRIVATE Threads::Threads)
+add_test(NAME http_stream_socket COMMAND test_http_stream_socket)
+set_tests_properties(http_stream_socket PROPERTIES TIMEOUT 15)
+add_executable(bench_stream_socket EXCLUDE_FROM_ALL benchmarks/bench_stream_socket.cpp)
+target_include_directories(bench_stream_socket PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_link_libraries(bench_stream_socket PRIVATE Threads::Threads)
 
 # Explicit live-model acceptance runner; deployment lifecycle belongs to the caller.
 add_executable(test_speculative_model tests/test_speculative_model.cpp)
@@ -298,7 +306,7 @@ target_link_libraries(test_native_http
 add_test(NAME native_http COMMAND test_native_http)
 add_executable(test_worker_heartbeat tests/test_worker_heartbeat.cpp src/worker_heartbeat.cpp)
 target_include_directories(test_worker_heartbeat PRIVATE include)
-target_link_libraries(test_worker_heartbeat PRIVATE nlohmann_json::nlohmann_json)
+target_link_libraries(test_worker_heartbeat PRIVATE nlohmann_json::nlohmann_json Threads::Threads)
 add_test(NAME worker_heartbeat_reference COMMAND test_worker_heartbeat ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/worker_heartbeat_cases.json)
 add_executable(test_worker_heartbeat_http tests/test_worker_heartbeat_http.cpp)
 target_link_libraries(test_worker_heartbeat_http PRIVATE ezlocalai_native nlohmann_json::nlohmann_json)
@@ -1341,6 +1349,15 @@ target_link_libraries(test_llm_stream_lifecycle PRIVATE ezlocalai_native)
 add_test(NAME llm_stream_lifecycle_reference COMMAND test_llm_stream_lifecycle ${EZLOCALAI_REFERENCE_ROOT} ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/llm_stream_lifecycle_cases.tsv)
 set_tests_properties(llm_stream_lifecycle_reference PROPERTIES TIMEOUT 90)
 
+# Model-free stream termination/admission contracts also run in images without
+# an external Python reference checkout.
+add_executable(test_stream_completion tests/test_stream_completion.cpp)
+target_link_libraries(test_stream_completion PRIVATE ezlocalai_native)
+add_test(NAME stream_completion COMMAND test_stream_completion)
+set_tests_properties(stream_completion PROPERTIES TIMEOUT 30)
+add_executable(bench_stream_completion EXCLUDE_FROM_ALL benchmarks/bench_stream_completion.cpp)
+target_link_libraries(bench_stream_completion PRIVATE ezlocalai_native)
+
 # Optional direct parser verification uses an independently built reference
 # engine. First-party targets remain C++ only; no engine is fetched implicitly.
 set(EZLOCALAI_LLAMA_CPP_REFERENCE_SOURCE "" CACHE PATH "Pinned llama.cpp source for engine contract tests")
@@ -1353,7 +1370,14 @@ if(EZLOCALAI_LLAMA_CPP_REFERENCE_SOURCE AND EZLOCALAI_LLAMA_CPP_REFERENCE_BUILD)
     target_link_libraries(test_llm_engine_contract PRIVATE
         ${EZLOCALAI_LLAMA_CPP_REFERENCE_BUILD}/bin/libllama-common.so ${EZLOCALAI_LLAMA_CPP_REFERENCE_BUILD}/bin/libllama.so OpenSSL::Crypto)
     target_compile_definitions(test_llm_engine_contract PRIVATE TEST_LLAMA_SOURCE_DIRECTORY="${EZLOCALAI_LLAMA_CPP_REFERENCE_SOURCE}")
-    add_test(NAME llm_engine_contract COMMAND test_llm_engine_contract ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/llm_engine_source_hashes.tsv)
+    if(EXISTS "${EZLOCALAI_LLAMA_CPP_REFERENCE_SOURCE}/common/speculative-mtp-state.h")
+        target_compile_definitions(test_llm_engine_contract PRIVATE TEST_LLAMA_MANAGED_ENGINE=1)
+        set(engine_source_fixture llm_engine_managed_source_hashes.tsv)
+    else()
+        set(engine_source_fixture llm_engine_source_hashes.tsv)
+    endif()
+    add_test(NAME llm_engine_contract COMMAND test_llm_engine_contract
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/${engine_source_fixture})
     set_tests_properties(llm_engine_contract PROPERTIES TIMEOUT 30)
     if(EZLOCALAI_LLAMA_CPP_SMOKE_MODEL)
         add_test(NAME llm_real_engine_smoke COMMAND test_model_download --real-engine
@@ -1383,6 +1407,51 @@ if(EXISTS "${EZLOCALAI_TTS_LLAMA_SOURCE}/tools/server/server-task.h" AND
         ${EZLOCALAI_TTS_LLAMA_BUILD}/bin/libggml-base.so)
     add_test(NAME conversation_cache COMMAND test_conversation_cache)
     set_tests_properties(conversation_cache PROPERTIES TIMEOUT 30)
+    add_executable(test_cache_restore_atomic tests/test_cache_restore_atomic.cpp
+        ${EZLOCALAI_TTS_LLAMA_SOURCE}/tools/server/server-task.cpp)
+    target_include_directories(test_cache_restore_atomic PRIVATE
+        ${EZLOCALAI_TTS_LLAMA_SOURCE}/tools/server ${EZLOCALAI_TTS_LLAMA_SOURCE}/common
+        ${EZLOCALAI_TTS_LLAMA_SOURCE}/include ${EZLOCALAI_TTS_LLAMA_SOURCE}/ggml/include
+        ${EZLOCALAI_TTS_LLAMA_SOURCE}/tools/mtmd ${EZLOCALAI_TTS_LLAMA_SOURCE}/vendor)
+    target_link_libraries(test_cache_restore_atomic PRIVATE
+        ${EZLOCALAI_TTS_LLAMA_BUILD}/bin/libllama-server-impl.so
+        ${EZLOCALAI_TTS_LLAMA_BUILD}/bin/libllama-common.so
+        ${EZLOCALAI_TTS_LLAMA_BUILD}/bin/libmtmd.so
+        ${EZLOCALAI_TTS_LLAMA_BUILD}/bin/libllama.so
+        ${EZLOCALAI_TTS_LLAMA_BUILD}/bin/libggml.so
+        ${EZLOCALAI_TTS_LLAMA_BUILD}/bin/libggml-base.so)
+    add_test(NAME cache_restore_atomic COMMAND test_cache_restore_atomic)
+    set_tests_properties(cache_restore_atomic PROPERTIES TIMEOUT 30)
+    target_compile_definitions(test_cache_restore_atomic PRIVATE EZLOCALAI_TEST_MTP_TRANSPORT=1)
+    add_executable(test_cache_storage tests/test_cache_storage.cpp
+        ${EZLOCALAI_TTS_LLAMA_SOURCE}/tools/server/server-task.cpp)
+    target_include_directories(test_cache_storage PRIVATE
+        $<TARGET_PROPERTY:test_cache_restore_atomic,INCLUDE_DIRECTORIES>)
+    target_link_libraries(test_cache_storage PRIVATE
+        $<TARGET_PROPERTY:test_cache_restore_atomic,LINK_LIBRARIES>)
+    add_test(NAME cache_storage COMMAND test_cache_storage)
+    set_tests_properties(cache_storage PROPERTIES TIMEOUT 30)
+    add_executable(test_llama_mtp_resume tests/test_llama_mtp_resume.cpp)
+    target_include_directories(test_llama_mtp_resume PRIVATE
+        $<TARGET_PROPERTY:test_cache_restore_atomic,INCLUDE_DIRECTORIES>)
+    add_test(NAME llama_mtp_resume COMMAND test_llama_mtp_resume)
+    set_tests_properties(llama_mtp_resume PROPERTIES TIMEOUT 30)
+    add_executable(test_llama_checkpoint_coverage tests/test_llama_checkpoint_coverage.cpp)
+    target_include_directories(test_llama_checkpoint_coverage PRIVATE
+        $<TARGET_PROPERTY:test_cache_restore_atomic,INCLUDE_DIRECTORIES>
+        ${EZLOCALAI_TTS_LLAMA_SOURCE}/src)
+    target_link_libraries(test_llama_checkpoint_coverage PRIVATE
+        $<TARGET_PROPERTY:test_cache_restore_atomic,LINK_LIBRARIES>)
+    add_test(NAME llama_checkpoint_coverage COMMAND test_llama_checkpoint_coverage)
+    set_tests_properties(llama_checkpoint_coverage PROPERTIES TIMEOUT 30)
+    add_custom_target(test_managed_llama_patches SOURCES tests/test_managed_llama_patches.cmake)
+    add_test(NAME managed_llama_patches COMMAND ${CMAKE_COMMAND}
+        -DSOURCE_DIR=${EZLOCALAI_TTS_LLAMA_SOURCE}
+        -DHELPER=${CMAKE_CURRENT_SOURCE_DIR}/cmake/ApplyLlamaPatches.cmake
+        -DPATCH_DIR=${CMAKE_CURRENT_SOURCE_DIR}/patches
+        -DTEST_ROOT=${CMAKE_CURRENT_BINARY_DIR}
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_managed_llama_patches.cmake)
+    set_tests_properties(managed_llama_patches PROPERTIES TIMEOUT 120)
     if(EZLOCALAI_LLAMA_CPP_SMOKE_MODEL)
         add_test(NAME conversation_cache_engine COMMAND test_conversation_cache --engine
             ${EZLOCALAI_TTS_LLAMA_BUILD}/bin/llama-server ${EZLOCALAI_LLAMA_CPP_SMOKE_MODEL})
@@ -1605,6 +1674,13 @@ add_executable(test_tts_routing tests/test_tts_routing.cpp)
 add_executable(test_tts_websocket tests/test_tts_websocket.cpp)
 target_link_libraries(test_tts_websocket PRIVATE ezlocalai_native nlohmann_json::nlohmann_json)
 add_test(NAME tts_websocket_reference COMMAND test_tts_websocket ${EZLOCALAI_REFERENCE_ROOT} ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/tts_websocket_cases.jsonl.gz)
+add_test(NAME tts_websocket_state COMMAND test_tts_websocket --state-notifications)
+set_tests_properties(tts_websocket_state PROPERTIES TIMEOUT 30)
+add_executable(test_process_capture tests/test_process_capture.cpp)
+target_include_directories(test_process_capture PRIVATE include)
+target_link_libraries(test_process_capture PRIVATE Threads::Threads)
+add_test(NAME process_capture COMMAND test_process_capture)
+set_tests_properties(process_capture PROPERTIES TIMEOUT 30)
 set_tests_properties(tts_websocket_reference PROPERTIES TIMEOUT 120)
 add_executable(test_tts_ws_lease tests/test_tts_ws_lease.cpp)
 target_link_libraries(test_tts_ws_lease PRIVATE ezlocalai_native nlohmann_json::nlohmann_json)
@@ -1752,9 +1828,14 @@ if(TARGET test_ltx_norm AND TARGET ezlocalai-tts)
         test_media_engine
         test_ltx_runtime
         test_core
+        test_http_stream_socket
+        test_stream_completion
+        test_tts_websocket
+        test_process_capture
     )
     if(TARGET test_conversation_cache)
-        list(APPEND native_package_targets test_conversation_cache)
+        list(APPEND native_package_targets test_conversation_cache test_cache_restore_atomic
+            test_cache_storage test_llama_mtp_resume test_llama_checkpoint_coverage test_managed_llama_patches)
     endif()
     add_custom_target(cpu_package DEPENDS ${native_package_targets})
     if(EZLOCALAI_USE_HIP)

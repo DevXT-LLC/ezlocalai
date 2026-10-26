@@ -1,0 +1,61 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-26",
+  "upstream_revision": "620d2225cc436ab0b001e3200e590e3b286ef9ab",
+  "patch": "patches/llama-mtp-resume.patch",
+  "patch_sha256": "5838c9cb1448573491ef3064e792db6b94f40fbf875ae14bf4b2f4d6af98e6fa",
+  "ordered_prerequisites": {
+    "llama-conversation-cache.patch": "ea1cb7096df5107862e825ecf7fae45354632f6d091fc1cfe71f0dc72a8d39d9",
+    "llama-cache-restore-atomic.patch": "beeb2f5afbfca0058a1ecfeed840a5983bf9a68bb8988ec8fde3a9bc3690f4f9",
+    "llama-cache-storage.patch": "8d7dfea21271902196a42e0567a9a3c9820d9d612906bb4b910d31a1f4770285"
+  },
+  "production_state_helper_sha256": "bb946ce5f0e95f4403d4f847661c6e82940477bc996380cfe95e445e08ae42b6",
+  "test_source_sha256": "f0726d1615c3cf81833423ce76e29644461fd4742f8dbedbc620bb24286c2c1f",
+  "tests": {
+    "optimized_checks_passed": 163,
+    "asan_ubsan_checks_passed": 163,
+    "actual_combined_cpu_llama_server_built": true,
+    "ggml_native": false,
+    "reference_checkout_required": false,
+    "cases": [
+      "A/B/restore-A exact predecessor",
+      "forced final-token replay and single-token history",
+      "accepted/rejected verification rows",
+      "speculative checkpoint replay",
+      "other enabled drafter verification length",
+      "bounded 4096-row prefill scratch",
+      "child sequence remapping and independence",
+      "context shift and overflow invalidation",
+      "repeated M-RoPE image positions and explicit chunk seal",
+      "uninterrupted mixed image/text boundary",
+      "float bit patterns including NaN and signed zero",
+      "all truncated payload lengths and malformed headers",
+      "legacy missing CPU metadata",
+      "actual parser allocation failure invalidates previous state"
+    ]
+  },
+  "scope": {
+    "real_gpu_validated": false,
+    "real_model_acceptance_measured": false,
+    "model_precision_changed": false,
+    "cache_budget_counts_cpu_vector_capacity": true,
+    "cpu_snapshots_pageable": true
+  },
+  "integration_notes": [
+    "Apply after the three prerequisite managed patches.",
+    "Root wires test_llama_mtp_resume using managed engine common include path and adds it to native/image package gates.",
+    "Actual cache save/load fault-injection tests are maintained separately by the atomic-cache agent.",
+    "Use matching libllama-server-impl.so or full bin set for CUDA qualification; libllama.so alone does not contain these changes."
+  ],
+  "patch_roundtrip": {
+    "reverse": true,
+    "reapply_after_ordered_prerequisites": true,
+    "second_reverse_check": true
+  },
+  "validation_artifacts": {
+    "optimized_log_sha256": "0b6f7b1dcc03a61ba82cc9c086c747a5e823a7e69140117960702c1c3c387b56",
+    "asan_ubsan_log_sha256": "0b6f7b1dcc03a61ba82cc9c086c747a5e823a7e69140117960702c1c3c387b56",
+    "cpu_build_log_sha256": "4642122a562b261cd7c2f1bc158f022ba2969a31be23629daa8ff9adb0d46bbc",
+    "cpu_server_impl_sha256": "978178552214cac0ef4e16cb90a4a288bfa97ab582a50f6602a0693037d51584"
+  }
+}

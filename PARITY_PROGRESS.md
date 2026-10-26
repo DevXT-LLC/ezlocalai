@@ -2,6 +2,178 @@
 
 The goal remains behavior parity with ezlocalai within the scope below, with all first-party executable code implemented in C++. It is **not complete**.
 
+## Cache state, RAM capacity and router admission (2026-10-26)
+
+The optimization PR now includes transactional target/draft snapshot save and
+restore, bounded reuse of initialized host buffers, shared immutable checkpoint
+bytes, and position-aware MTP CPU carryover across cache, checkpoint and disk
+boundaries. Missing or malformed CPU state invalidates carryover before target
+prefill. Failed GPU restores evict the entry and clear the active contexts;
+incomplete saves never publish a cache entry. Snapshot capacities, spare buffers
+and CPU metadata remain charged against the configured hard cache budget.
+
+Capacity notifications follow actual request/resource release, including TTS
+websocket jobs, rather than relying only on periodic heartbeats. Linux capture
+pipes use atomic close-on-exec. Three private real-Rust-router/full-CUDA-worker
+pairs on the 4090 measured completion-to-next-output **2.925 s -> 177 ms**;
+selection wait fell **2.758 s -> 9.7 ms**, while post-selection inference stayed
+about 167 ms. This removes router waiting; it does not increase GPU token rate.
+
+Same-build storage off/on on the 4090 reduced returning-turn first output
+**456 -> 252 ms** and append **685 -> 517 ms**, with all 12 requests and outputs
+identical. Native decode throughput was effectively unchanged. The final aligned
+checkpoint candidate preserves the existing late checkpoints and adds at most
+one earlier snapshot on a narrowly qualified single-slot, single-head MTP text
+path with target/draft physical batch 1024. The active 4090 comparison preserves
+all nine seed/replay/append answers and reduces shortened-prefix rewind first
+output **8.064 -> 0.590 s** (23252 -> 724 evaluated tokens); full 256-token turns
+fall **10.796 -> 3.326 s**. Rewind wording differs, so this is not byte equality
+for rewritten prompts. All 24 finite turn checks across coverage off/on return
+the exact requested branch and new turn and finish normally.
+
+The earlier fixed-offset checkpoint trial changed cold answers and was rejected.
+Projector-loaded text classification, borrowed MTP model ownership and the
+parser's inactive NONE entry each needed actual-runtime regression coverage;
+intermediate inactive trials are retained as diagnostics, not speed evidence.
+The final planner is tested with actual target/draft splitters and actual CLI
+parsing, rather than assuming the configured mode vector or microbatch layout.
+Other physical batches, slots, model/head layouts, media and unsafe boundaries
+retain the original checkpoint scheduler.
+
+**Live environment change:** `/home/josh/ezlocalai/.env` on 4090 and 3090V now
+contains `LLM_PROMPT_CACHE_MAX_RAM_FRACTION=0.4`, resolving to **12288 MiB**
+instead of 7680. On unchanged production engines, eight independent ~24.6K-token
+conversations over three rounds changed returning hits **0/16 -> 16/16**.
+First output fell **8.726 -> 0.462 s** on 4090 and **16.451 -> 0.748 s** on
+3090V, with all 24 request/output pairs identical on each host, no observed swap
+or OOM, and verified original restoration before rollout. The rollout preserved
+images, all other engine arguments and mounts, then passed fresh router metadata
+and pinned chat/stream/vision checks. The existing UBATCH settings remain
+1024/1024/2048 on V/4090/5090; weights, KV precision, contexts, presets and MTP
+lengths are unchanged. No swap allowance has been enabled.
+
+Rollback images are `ezlocalai:rollback-env-cache-env-20261026-devxt4090-c16abb26`
+and `ezlocalai:rollback-env-cache-env-20261026-devxt3090v-c16abb26`. Private
+0600 dotenv backups and saved original inspect data remain in the corresponding
+0700 `/tmp/ezlocalai-env-update-cache-env-20261026-<label>-c16abb26/` directories.
+The finalized stopped originals were removed after verification. The reviewed
+[recovery operator](benchmarks/operators/README.md) supports recreating an owned
+finalized transaction from its immutable image and private backup; its 47 guards
+are offline evidence, not a live rollback test.
+
+The 3090V release comparison reduces replay first output **752 -> 304 ms**
+and rewind **15.565 -> 0.918 s**, preserving all nine seed/replay/append answers.
+On 5090, replay improves **319 -> 195 ms**, with all 12 sampled answers identical;
+its physical batch 2048 already has a useful earlier checkpoint. Across the
+three cards, all 48 finite resident-turn controls pass. All three also pass disk
+save/restore with RAM cache disabled, exact new-turn answers after stomping the
+slot with another conversation, matching restored prefix/byte counts and vision.
+Named cold capacity screens fully evaluate **218392/218392/248809 tokens** on
+4090/V/5090, followed by correct red-image recognition, with no truncation,
+smaller-context retry or cache reuse. These are single cold capacity screens,
+not long-context replay or long-decode quality measurements.
+
+An isolated 5090 paging study keeps all 14 returning cache hits and all 21
+answers identical with an 8192 MiB cache, 6 GiB RAM and 8 GiB swap limits. It
+uses about 5.32 GiB of swap on the existing NVMe partition; replay first output
+rises **197 ms -> 2.263 s**, and full turns **1.183 -> 3.240 s**. This measures
+end-to-end paging pressure, not page-attributed swap-in time. A preceding
+6 GiB RAM + 4 GiB swap limit was too small for the cache plus runtime overhead
+and OOM-killed only the isolated test process; its original worker restored
+healthy. No host swap settings or production swap allowances changed.
+
+Validation: **69/69 oracle-free CUDA package checks** on the complete final
+image, **87 benchmark guards**, **47 recovery-operator guards**, **six focused
+cache/planner/strict-source checks**, and **2/2 actual tiny-engine cache and
+Rust-router integrations**. The complete image was built on 5090 from
+`448bf6b` as `ezlocalai:cuda-candidate-20261026-448bf6b`, image
+`sha256:462cd19b65435d0ff95153b8aed32d91e5a121b8e78df2fbe4d37c39ec28bb57`.
+Fresh native/TTS/ACE/llama linkage passes, with ACE's own GGML and no missing
+libraries or libpython. Its full-image CUDA canary uses the original public
+model/presets and a private real Rust router, without worker/engine overlays.
+Chat, streaming, vision, CUDA GPU metadata, RAM/VRAM, context and capacity
+reporting pass; the exact original container/image/environment/mounts restore
+before drain release. The retained rollback is
+`ezlocalai:rollback-canary-20261026-full-canary-fdb6add414`. Earlier candidate
+images remain historical held experiments. Later documentation and recovery-tool
+commits do not change the tested production C++ or engine patch sources.
+
+All three production workers are fresh/healthy on their existing `46d9ba8`
+images with no owned drains. Only the documented RAM settings are live; the
+new worker/engine code is PR-only and no candidate image was published as latest.
+The 5090 still uses different deployed GGUF contents from V/4090; results compare
+each card with its own baseline. Greedy rewritten-prompt wording can differ
+through cache numerics; finite controls and sampled semantic checks do not
+establish universal model-quality equivalence. Other hardware images, physical
+multi-GPU, video and arbitrary deeper/longer multi-conversation cache workloads
+were not qualified in this optimization pass.
+
+Handoff: merge the optimization PR through the existing deployment automation,
+then verify fresh deployed versions, model/context/capacity/GPU/RAM reporting,
+selected RAM/UBATCH settings and interleaved routed conversations. Keep the
+original weights, precision, contexts and presets. Broaden checkpoint eligibility
+or optional swap only after matched workload and quality measurements. See
+[the cache report](benchmarks/cache-depth-20261026.md) and
+`tests/fixtures/cache_depth_20261026_validation.json`; older entries below are
+historical and do not describe the current PR scope.
+
+## CUDA prefill qualification and streaming latency (2026-10-26)
+
+The worker now sends a complete HTTP chunk in one write, retries interrupted
+writes, requests TCP_NODELAY for streaming sockets, and wakes its consumer when
+generation completes. Response bytes, queued callback order, cancellation and
+admission release remain covered by regression tests. Controlled delayed-ACK
+and producer-completion stalls fell from 40.78/90.03 ms to below 0.1 ms; live
+model A/B runs showed no consistent material TTFT or decode improvement, with
+all 25 sampled outputs matching on each of the three GPUs.
+
+Fresh measurements start from deployed worker `46d9ba8` and engine `620d2225`.
+Paired 150K-token cold prefill improved from **952.8 to 1016.9 tok/s** on
+3090V (RTX 3090 Ti), and **1781.4 to 1894.8 tok/s** on 5090. Their larger
+physical batches also passed cold 218392/248809-token prompts and red-image
+recognition without reducing their 230000/262144 context budgets. Weights,
+KV precision, logical batch, MTP settings and model presets were preserved.
+The 3090V's two capped summary probes changed wording without a concrete
+semantic regression; 6/8 long outputs and all 16 short outputs matched exactly.
+The 5090's eight long and 16 short outputs matched. These are sampled quality
+checks, not universal numerical equivalence. The 5090 has different actual
+GGUF contents despite the same filename, so comparisons use each card's own
+baseline. Full progression and provenance are in
+[`benchmarks/optimization-20261026.md`](benchmarks/optimization-20261026.md).
+
+Applied only `LLM_UBATCH_SIZE` in `/home/josh/ezlocalai/.env`: 3090V's absent
+setting (`auto`, effective 512) is now `1024`; 5090's `1024` is now `2048`.
+4090 remains `1024`: its 2048 trial reduced 150K prefill from 1988.3 to
+1820.1 tok/s, so further qualification was intentionally stopped and its
+original container restored. State-transfer batching, pinned staging, graph
+tuning and longer MTP drafts were not promoted; both experimental state-I/O
+patches were removed from the final code.
+
+Settings cutovers retained the existing images (`3e09d9905d59` on 3090V and
+`1197b0b18d41` on 5090), mounts, ports and effective resource controls. Docker's
+default `OomKillDisable` null/false representation was normalized for comparison.
+Fresh router metadata and pinned chat, streaming and vision checks passed;
+all three workers are healthy and no owned drains remain. Rollback tags are
+`ezlocalai:rollback-env-env-20261026-devxt3090v-5903c2f8` and
+`ezlocalai:rollback-env-env-20261026-devxt5090-5903c2f8`; private dotenv backups
+remain beside each operator transaction on its host. Two earlier operator
+verification attempts rolled back safely before the successful cutovers.
+
+Validation: **62/62 CUDA package checks** without the Python checkout,
+**2/2 real CPU cache/Rust-router integrations**, **23 benchmark guards**, and
+per-card isolated CUDA measurements. Compact evidence is in
+`tests/fixtures/llm_throughput_20261026_validation.json` and the linked model
+and streaming fixtures. No complete new production image or other hardware
+image was built in this pass; the new worker code ran in isolated A/B containers.
+
+Handoff: merge the optimization PR, let image automation build/deploy it, then
+repeat routed smoke and interleaved conversations on the complete image.
+Position-aware MTP CPU carryover across cache/checkpoint rewinds and atomic
+failed-draft cache restoration remain source-audited follow-ups; no partial
+MTP state fix ships here. Sustained cache pressure and actual swap-in latency
+also remain unmeasured. Preserve the current weights, precision and context
+when benchmarking those changes.
+
 ## Oracle-free cache package gates (2026-10-26)
 
 The optimization merge added `llm_cache_reference` to the image gate, but that

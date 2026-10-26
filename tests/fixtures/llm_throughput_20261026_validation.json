@@ -1,0 +1,1864 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-26",
+  "baseline_worker_commit": "46d9ba8",
+  "engine_revision": "620d2225cc436ab0b001e3200e590e3b286ef9ab",
+  "existing_conversation_cache_patch_sha256": "ea1cb7096df5107862e825ecf7fae45354632f6d091fc1cfe71f0dc72a8d39d9",
+  "scope": "Per-host matched CUDA engine screens and full-worker streaming A/B; deployed GGUF differs on the 5090, so rates are not a hardware-only comparison.",
+  "method": {
+    "temperature": 0,
+    "seed": 42,
+    "enable_thinking": false,
+    "warmup_excluded": true,
+    "ttft": "request until first nonempty content/reasoning delta",
+    "token_rates": "native prompt/predicted timing fields, never SSE chunk count",
+    "cold_guard": "fresh isolated engine at each depth; unexpected cache hits fail",
+    "screening_cold_samples_per_depth": 1,
+    "short_suite": {
+      "latency": 7,
+      "decode": 3,
+      "decode_max_tokens": 256,
+      "conversations": 3,
+      "cache_rounds": 2
+    },
+    "full_worker_suite": {
+      "latency": 7,
+      "decode": 3,
+      "conversations": 3,
+      "cache_rounds": 5,
+      "total_requests": 25
+    },
+    "worker_control": "Synthetic model alias perf-worker preserves requested greedy sampling; exact engine controls checked; router/fallback/media bypassed."
+  },
+  "provenance": {
+    "source_sha256": "8238cef03d4a1db6e775d7f62234bcf998d8f08bd9fc15f1d8a36ea0d3280005",
+    "frozen_benchmark_sha256": "e54b07c9474a8145da088a2b93b68781ae3bd016ea5b8c6cfcc6feb9535909d6",
+    "frozen_benchmark_note": "Same measurement/request behavior as checked-in driver; later source_file/harness hash metadata and explicit UTF-8 reads were added.",
+    "worker_overlay_sha256": "c9b464b35776e1e06c594c39ee89786589f42192916f2a3b8dddf2c3cc321c6a",
+    "pageable_state_io_overlay_sha256": "72d83d0dd9a9e8ccf59cd40ba320ea982598d0dc829341915499d8d241830b36",
+    "pinned_state_io_overlay_sha256": "a7239d3f8b6b460dfd21591932c1311b60a137bcdd192936b4c04122b5357754",
+    "model_details_fixture": "tests/fixtures/deployed_models_20261026_validation.json",
+    "bulk_proof": "build/validation/llm-throughput-20261026/"
+  },
+  "historical": {
+    "2026-10-18": {
+      "DevXT4090": {
+        "engine": "aa94f20 / b11549",
+        "prefill_68k_tps_approx": 2350,
+        "prefill_150k_tps_approx": 1812
+      }
+    },
+    "2026-10-25": {
+      "DevXT4090": {
+        "prefill_68k_tps_median_rounded": 2529,
+        "prefill_150k_tps_median_rounded": 1970
+      },
+      "DevXT3090V": {
+        "prefill_68k_tps_median_rounded": 1246,
+        "prefill_150k_tps_median_rounded": 939
+      }
+    },
+    "interpretation": "Current exact-prompt samples agree with October25. Engine revision changed since October18, so no isolated GPU-unlock speedup is established. No comparable saved pre-unlock3090V or prior5090 baseline."
+  },
+  "shared_prefix_batch_finding": {
+    "worker": "DevXT5090",
+    "physical_batch_before_after": [
+      1024,
+      2048
+    ],
+    "new_branch_evaluated_tokens_before_after": [
+      24033,
+      2052
+    ],
+    "new_branch_cached_tokens_before_after": [
+      16,
+      21997
+    ],
+    "source": "llama.cpp620d2225 tools/server/server-context.cpp checkpoint_offsets and near_prompt_end before llama_decode",
+    "inference": "Prompt-end checkpoint offsets are4+n_ubatch and4. With an approximately2K-token divergent suffix, physicalbatch2048 puts an earlier checkpoint in the sharedprefix while batch1024 places the endpoint checkpoint after branchdivergence. Consistent with observed reuse, workloaddependent; not a general coldprefill9x improvement."
+  },
+  "workers": [
+    {
+      "label": "DevXT3090V",
+      "baseline_image_id": "sha256:3e09d9905d59191ef870b3f1f2e1ce9ba4948211568229d84c1c1214925de973",
+      "model_sha256": "8c2a45ff85e7674ca185ec8eb6cdeab0e617ed9d8018caed0b64380eb2a67a5e",
+      "production_environment_sha256": "11f35c9ce0c5217bbcb21d295783cc7d59c178e4dbb503b8fda093c413cbaa5c",
+      "baseline_parameters": {
+        "-m": "/app/models/Qwen3.8-27B/Qwen3.8-27B-UD-Q3_K_XL.gguf",
+        "-c": "230000",
+        "-b": "4096",
+        "-ub": "512",
+        "-ctk": "q4_0",
+        "-ctv": "q4_0",
+        "--spec-type": "draft-mtp",
+        "--spec-draft-n-max": "2",
+        "--spec-draft-p-min": "0.10000000000000001",
+        "--cache-ram": "7680",
+        "-np": "1",
+        "--ctx-checkpoints": "32",
+        "--checkpoint-min-step": "8192"
+      },
+      "gpu": "NVIDIA GeForce RTX 3090 Ti, 615.71.09, 24564 MiB, 450.00 W, 450.00 W, 2100 MHz, 10501 MHz",
+      "cpu": "AMD Ryzen 5 7600X 6-Core Processor",
+      "inference_threads": 6,
+      "baseline": {
+        "short": {
+          "latency_ttft_ms": 149.883,
+          "decode_tps": 86.597,
+          "cache_return_ttft_ms": 759.628,
+          "latency_wall_ms": 180.959,
+          "decode_wall_ms": 3240.022,
+          "cache_return_wall_ms": 832.092
+        },
+        "cold_prefill": [
+          {
+            "prompt_chars": 300000,
+            "evaluated_tokens": 68069,
+            "cached_tokens": 0,
+            "tokens_per_second": 1260.590052,
+            "ttft_seconds": 54.259949,
+            "messages_sha256": "be2a9a927a5a78dd1e57e2d891194e355e12e73ecd19650a6f9dfbfc8c9163de",
+            "request_sha256": "7aaf3fba130de362104f71c6afd95b2f0c277fd1727019a75fe3cc7f72611991",
+            "output_sha256": "3ef2f5f7a767b1a67290cc6605dc3371dba4cc73d0d95b57d36ef09e24848139",
+            "proof_file_sha256": "eb51eb46ebc9bfdaad606bcc826e07872ac1b6a6d408236fc7c1aebe4ef73d03"
+          },
+          {
+            "prompt_chars": 680000,
+            "evaluated_tokens": 150026,
+            "cached_tokens": 0,
+            "tokens_per_second": 945.815668,
+            "ttft_seconds": 158.970466,
+            "messages_sha256": "7e2c9f3133ade133dda837b6060780d2b2805471a6f018502384d682c78068de",
+            "request_sha256": "9737237d2f6ab6b13bf42934b1b5393b019d5737cb0847409db25b511c7e0ff6",
+            "output_sha256": "3ef2f5f7a767b1a67290cc6605dc3371dba4cc73d0d95b57d36ef09e24848139",
+            "proof_file_sha256": "e2d183a81ce300c6605b8795d14ac0daef3ca1292157c77f49ffc712f30e0881"
+          }
+        ],
+        "restoration": {
+          "healthy": true,
+          "same_container": true,
+          "same_image": true,
+          "same_environment": true,
+          "same_mounts": true,
+          "oom_killed": false
+        },
+        "drain_released": true
+      },
+      "initial_engine_screens": {
+        "variants": [
+          {
+            "name": "state_sync",
+            "overrides": {},
+            "short": {
+              "latency_ttft_ms": 150.76,
+              "decode_tps": 87.876,
+              "cache_return_ttft_ms": 750.164,
+              "latency_wall_ms": 181.428,
+              "decode_wall_ms": 3194.891,
+              "cache_return_wall_ms": 822.686
+            },
+            "quality": {
+              "samples": 16,
+              "request_matches": 16,
+              "output_matches": 16,
+              "request_hash_array_sha256": "0f5ad561c123c51aa039c910f26a07cd312a6671acc6a38ee1ce0db5d8561062",
+              "output_hash_array_sha256": "b3858663c6d80253f42f4b42dd8f641c7ef1026f72ad95978a314dc6a69c427d"
+            },
+            "gpu_snapshot": {
+              "sha256": "b8473e7af5715516c6ca68d6b238a07eab43de84788c0e3cb80f4e98166e509c",
+              "bytes": 1170740020
+            }
+          },
+          {
+            "name": "state_async",
+            "overrides": {},
+            "short": {
+              "latency_ttft_ms": 150.863,
+              "decode_tps": 86.783,
+              "cache_return_ttft_ms": 738.102,
+              "latency_wall_ms": 182.177,
+              "decode_wall_ms": 3233.638,
+              "cache_return_wall_ms": 810.547
+            },
+            "quality": {
+              "samples": 16,
+              "request_matches": 16,
+              "output_matches": 16,
+              "request_hash_array_sha256": "0f5ad561c123c51aa039c910f26a07cd312a6671acc6a38ee1ce0db5d8561062",
+              "output_hash_array_sha256": "b3858663c6d80253f42f4b42dd8f641c7ef1026f72ad95978a314dc6a69c427d"
+            },
+            "gpu_snapshot": {
+              "sha256": "b8473e7af5715516c6ca68d6b238a07eab43de84788c0e3cb80f4e98166e509c",
+              "bytes": 1170740020
+            }
+          },
+          {
+            "name": "ubatch1024",
+            "overrides": {
+              "-ub": 1024
+            },
+            "short": {
+              "latency_ttft_ms": 151.468,
+              "decode_tps": 86.128,
+              "cache_return_ttft_ms": 741.623,
+              "latency_wall_ms": 182.617,
+              "decode_wall_ms": 3257.525,
+              "cache_return_wall_ms": 814.681
+            },
+            "quality": {
+              "samples": 16,
+              "request_matches": 16,
+              "output_matches": 16,
+              "request_hash_array_sha256": "0f5ad561c123c51aa039c910f26a07cd312a6671acc6a38ee1ce0db5d8561062",
+              "output_hash_array_sha256": "b3858663c6d80253f42f4b42dd8f641c7ef1026f72ad95978a314dc6a69c427d"
+            },
+            "cold_prefill": {
+              "samples": 1,
+              "evaluated_tokens": 150026,
+              "cached_tokens": 0,
+              "tokens_per_second": 1018.626167,
+              "request_sha256": "9737237d2f6ab6b13bf42934b1b5393b019d5737cb0847409db25b511c7e0ff6",
+              "output_sha256": "3ef2f5f7a767b1a67290cc6605dc3371dba4cc73d0d95b57d36ef09e24848139"
+            }
+          },
+          {
+            "name": "mtp3",
+            "overrides": {
+              "--spec-draft-n-max": 3
+            },
+            "short": {
+              "latency_ttft_ms": 152.039,
+              "decode_tps": 87.818,
+              "cache_return_ttft_ms": 736.04,
+              "latency_wall_ms": 187.13,
+              "decode_wall_ms": 3200.177,
+              "cache_return_wall_ms": 814.476
+            },
+            "quality": {
+              "samples": 16,
+              "request_matches": 16,
+              "output_matches": 16,
+              "request_hash_array_sha256": "0f5ad561c123c51aa039c910f26a07cd312a6671acc6a38ee1ce0db5d8561062",
+              "output_hash_array_sha256": "b3858663c6d80253f42f4b42dd8f641c7ef1026f72ad95978a314dc6a69c427d"
+            }
+          },
+          {
+            "name": "mtp4",
+            "overrides": {
+              "--spec-draft-n-max": 4
+            },
+            "short": {
+              "latency_ttft_ms": 153.253,
+              "decode_tps": 78.749,
+              "cache_return_ttft_ms": 743.51,
+              "latency_wall_ms": 192.634,
+              "decode_wall_ms": 3529.282,
+              "cache_return_wall_ms": 789.069
+            },
+            "quality": {
+              "samples": 16,
+              "request_matches": 16,
+              "output_matches": 13,
+              "request_hash_array_sha256": "0f5ad561c123c51aa039c910f26a07cd312a6671acc6a38ee1ce0db5d8561062",
+              "output_hash_array_sha256": "07557e485ac54525a5ded86f8bd03d6721d0ea9d9fe7e5c107f30bdfaba5bb5b"
+            }
+          }
+        ],
+        "restoration": {
+          "healthy": true,
+          "same_container": true,
+          "same_image": true,
+          "same_environment": true,
+          "same_mounts": true,
+          "oom_killed": false
+        },
+        "drain_released": true,
+        "lease_evidence": "result.json"
+      },
+      "full_worker_ab": {
+        "baseline": {
+          "latency_ttft_ms": 151.057,
+          "decode_tps": 86.54,
+          "cache_return_ttft_ms": 744.148,
+          "latency_wall_ms": 181.308,
+          "decode_wall_ms": 3234.344,
+          "cache_return_wall_ms": 815.63
+        },
+        "network_completion": {
+          "latency_ttft_ms": 152.036,
+          "decode_tps": 85.188,
+          "cache_return_ttft_ms": 740.984,
+          "latency_wall_ms": 182.903,
+          "decode_wall_ms": 3280.887,
+          "cache_return_wall_ms": 813.394
+        },
+        "quality": {
+          "samples": 25,
+          "request_matches": 25,
+          "output_matches": 25,
+          "request_hash_array_sha256": "1de044d0f5df742b26a99aedc09fe6aae8bebc68b42a5c01106e807bdd550282",
+          "output_hash_array_sha256": "d2169b73a9036562f8a5cf2a1ba0fd70d2e2eb3ef4f5d7279c4266e432f369c5"
+        },
+        "restoration": {
+          "healthy": true,
+          "same_container": true,
+          "same_image": true,
+          "same_environment": true,
+          "same_mounts": true,
+          "oom_killed": false
+        },
+        "drain_released": true,
+        "lease_renewal_errors": [],
+        "proof_result_sha256": "a5cfc43b5efbdb9f8af1263d1421eb02fc3eaa337bcec74e7148b75a0ea88859"
+      },
+      "rejected_pinned_graph_screen": {
+        "samples": {
+          "latency": 7,
+          "decode": 5,
+          "conversations": 3,
+          "cache_rounds": 5,
+          "total_requests": 27
+        },
+        "variants": [
+          {
+            "name": "state_sync",
+            "environment": {
+              "EZLOCALAI_LLAMA_STATE_IO_BATCHING": "0",
+              "GGML_CUDA_GRAPH_OPT": "0"
+            },
+            "short": {
+              "latency_ttft_ms": 151.248,
+              "decode_tps": 87.213,
+              "cache_return_ttft_ms": 746.589,
+              "latency_wall_ms": 181.894,
+              "decode_wall_ms": 3215.475,
+              "cache_return_wall_ms": 819.882
+            },
+            "quality": {
+              "samples": 27,
+              "request_matches": 27,
+              "output_matches": 27,
+              "request_hash_array_sha256": "a39034e8fe229c0a42efa90341cf211053eed45020654b5060413f705932db3b",
+              "output_hash_array_sha256": "a617a6ff8e2c85d466a41f69582465f416e32ad0053d647398cee9449beadc3c"
+            },
+            "gpu_snapshot": {
+              "sha256": "3e00efbdfac64c1db5a5f89014eeb0efc900c2ab14ebbe0f1a42f77ff09e53f2",
+              "bytes": 1170740020
+            }
+          },
+          {
+            "name": "state_pinned",
+            "environment": {
+              "EZLOCALAI_LLAMA_STATE_IO_BATCHING": "1",
+              "GGML_CUDA_GRAPH_OPT": "0"
+            },
+            "short": {
+              "latency_ttft_ms": 157.113,
+              "decode_tps": 86.191,
+              "cache_return_ttft_ms": 792.498,
+              "latency_wall_ms": 187.615,
+              "decode_wall_ms": 3256.897,
+              "cache_return_wall_ms": 864.601
+            },
+            "quality": {
+              "samples": 27,
+              "request_matches": 27,
+              "output_matches": 27,
+              "request_hash_array_sha256": "a39034e8fe229c0a42efa90341cf211053eed45020654b5060413f705932db3b",
+              "output_hash_array_sha256": "a617a6ff8e2c85d466a41f69582465f416e32ad0053d647398cee9449beadc3c"
+            },
+            "gpu_snapshot": {
+              "sha256": "3e00efbdfac64c1db5a5f89014eeb0efc900c2ab14ebbe0f1a42f77ff09e53f2",
+              "bytes": 1170740020
+            }
+          },
+          {
+            "name": "graph_opt",
+            "environment": {
+              "EZLOCALAI_LLAMA_STATE_IO_BATCHING": "1",
+              "GGML_CUDA_GRAPH_OPT": "1"
+            },
+            "short": {
+              "latency_ttft_ms": 158.538,
+              "decode_tps": 85.705,
+              "cache_return_ttft_ms": 798.042,
+              "latency_wall_ms": 189.807,
+              "decode_wall_ms": 3280.913,
+              "cache_return_wall_ms": 871.103
+            },
+            "quality": {
+              "samples": 27,
+              "request_matches": 27,
+              "output_matches": 27,
+              "request_hash_array_sha256": "a39034e8fe229c0a42efa90341cf211053eed45020654b5060413f705932db3b",
+              "output_hash_array_sha256": "a617a6ff8e2c85d466a41f69582465f416e32ad0053d647398cee9449beadc3c"
+            },
+            "gpu_snapshot": {
+              "sha256": "3e00efbdfac64c1db5a5f89014eeb0efc900c2ab14ebbe0f1a42f77ff09e53f2",
+              "bytes": 1170740020
+            }
+          }
+        ],
+        "restoration": {
+          "healthy": true,
+          "same_container": true,
+          "same_image": true,
+          "same_environment": true,
+          "same_mounts": true,
+          "oom_killed": false
+        },
+        "drain_released": true,
+        "lease_renewal_errors": [],
+        "proof_result_sha256": "b841d6c16e4e4440e1766e5ea95fa31b69dadfb3f13fc6c319f66c0c5e17186a",
+        "interpretation": "Pinned staging increases cache-return latency on each card; adding graph optimization has no useful decode gain. Graph-only without pinned staging was not measured. Neither optimization is selected."
+      },
+      "original_engine_final_qualification": {
+        "result_proof_sha256": "fa55673f65117ecfcd22e753578ffb883f491a8dcf5143bee9560fb72098fcfb",
+        "experimental_overlays": [],
+        "model_sha256": "8c2a45ff85e7674ca185ec8eb6cdeab0e617ed9d8018caed0b64380eb2a67a5e",
+        "mmproj_sha256": "83ee4f4f205fa514161778c41df1ea14144faa0f713510893b63c2395f5c2d53",
+        "prefill_confirmations": [
+          {
+            "evaluated_tokens": 68069,
+            "baseline_ubatch": 512,
+            "candidate_ubatch": 1024,
+            "baseline_tps": 1231.402844,
+            "candidate_tps": 1314.239618,
+            "gain_percent": 6.727025,
+            "cold_cached_tokens": [
+              0,
+              0
+            ],
+            "all_four_cases_quality": {
+              "samples": 4,
+              "request_matches": 4,
+              "output_matches": 3,
+              "request_hash_array_sha256": "6df4d4481c4d130eb1a6162cd357330e562e450df6b3646325a3cab570bb6302",
+              "output_hash_array_sha256": "3afe636230ced5cd2e6232750122572c30f9c7df4cb698864608199db5bd9b5b"
+            },
+            "baseline_proof_sha256": "d9f28db3f7ea122d979e195a98eeb5928a14f4353fd9e1e552c2b9633369a102",
+            "candidate_proof_sha256": "819fd49f537fa2607672b1e207887d45c1a4acd414bd14786aaf12746ebfe9b3"
+          },
+          {
+            "evaluated_tokens": 150026,
+            "baseline_ubatch": 512,
+            "candidate_ubatch": 1024,
+            "baseline_tps": 952.758216,
+            "candidate_tps": 1016.920936,
+            "gain_percent": 6.734418,
+            "cold_cached_tokens": [
+              0,
+              0
+            ],
+            "all_four_cases_quality": {
+              "samples": 4,
+              "request_matches": 4,
+              "output_matches": 3,
+              "request_hash_array_sha256": "4c8412c10d64d75c5518f566ac3e68ee7d0fd58cc4fec6a9bb23017c2a3869b9",
+              "output_hash_array_sha256": "76be47cf7b71395a5006f384fb691e2a14707cb83adff7679b1c0a98547600b8"
+            },
+            "baseline_proof_sha256": "1f226a7c7a39eb24c0e4f5b60bdd6cdf91ec45845082b739b77ca7f902cc6d69",
+            "candidate_proof_sha256": "5912eb23e8590486141d555aeea32d885e2e36cc0de9dfe90978cc6c0c18c52b"
+          }
+        ],
+        "capacity": {
+          "answer": "Python",
+          "evaluated_prompt_tokens": 218392,
+          "cached_prompt_tokens": 0,
+          "input_fraction": 0.9495304347826087,
+          "remaining_context_tokens": 11608,
+          "prefill_tokens_per_second": 846.5174764760204,
+          "wall_seconds": 258.3481246570009,
+          "request_sha256": "3d433f50227f4207158234bab360f570e06ae57eb0b24af72d64eb169fec0c06",
+          "output_sha256": "2945b0d6616d16592538930914f4a2bc539b8d976a0b9200b3e82540f3c07c25"
+        },
+        "vision": {
+          "answer": "Red",
+          "evaluated_prompt_tokens": 1089,
+          "cached_prompt_tokens": 0,
+          "wall_seconds": 3.5841248240030836,
+          "request_sha256": "8dddb1c26e9a92707d03fae21596db7cfacc080b6608e183c016725cdb075d03",
+          "output_sha256": "83814295523046d350f8f9728d780a92ad8359135be44ee43bd4d228310c8fcb",
+          "image_sha256": "6f7ffeeb88929a8a2e34ea973c871f069be70cbaf1459fff345db59453934435",
+          "image_width": 64,
+          "image_height": 64
+        },
+        "declared_context": 230000,
+        "expected_n_ubatch": 1024,
+        "inference_retries": 0,
+        "context_downgrade_allowed": false,
+        "capacity_harness_sha256": "aebd3e2ef48858e124f2e58a683d6d1c83dd9c89ea455b41d8a9ab0922818a6f",
+        "capacity_proof_sha256": "de60d5ab5717f655f99edaca99a3045c9adb41489d873304bbd8d3694cb2568d",
+        "restoration": {
+          "healthy": true,
+          "same_container": true,
+          "same_image": true,
+          "same_environment": true,
+          "same_mounts": true,
+          "oom_killed": false
+        },
+        "drain_released": true,
+        "lease_renewal_errors": []
+      }
+    },
+    {
+      "label": "DevXT4090",
+      "baseline_image_id": "sha256:1197b0b18d410519a25fab734bcfead8b32b8d67b1b824a188dbd08916735021",
+      "model_sha256": "8c2a45ff85e7674ca185ec8eb6cdeab0e617ed9d8018caed0b64380eb2a67a5e",
+      "production_environment_sha256": "8afb7b15cfb5b5df707660203b031123edbea164f651e13c768f14e612d07c9f",
+      "baseline_parameters": {
+        "-m": "/app/models/Qwen3.8-27B/Qwen3.8-27B-UD-Q3_K_XL.gguf",
+        "-c": "230000",
+        "-b": "4096",
+        "-ub": "1024",
+        "-ctk": "q4_0",
+        "-ctv": "q4_0",
+        "--spec-type": "draft-mtp",
+        "--spec-draft-n-max": "3",
+        "--spec-draft-p-min": "0.10000000000000001",
+        "--cache-ram": "7680",
+        "-np": "1",
+        "--ctx-checkpoints": "32",
+        "--checkpoint-min-step": "8192"
+      },
+      "gpu": "NVIDIA GeForce RTX 4090, 580.178.04, 24564 MiB, 450.00 W, 600.00 W, 3105 MHz, 10501 MHz",
+      "cpu": "AMD Ryzen 5 9600X 6-Core Processor",
+      "inference_threads": 6,
+      "baseline": {
+        "short": {
+          "latency_ttft_ms": 99.428,
+          "decode_tps": 113.057,
+          "cache_return_ttft_ms": 452.352,
+          "latency_wall_ms": 126.705,
+          "decode_wall_ms": 2433.881,
+          "cache_return_wall_ms": 515.848
+        },
+        "cold_prefill": [
+          {
+            "prompt_chars": 300000,
+            "evaluated_tokens": 68069,
+            "cached_tokens": 0,
+            "tokens_per_second": 2524.96926,
+            "ttft_seconds": 27.117453,
+            "messages_sha256": "be2a9a927a5a78dd1e57e2d891194e355e12e73ecd19650a6f9dfbfc8c9163de",
+            "request_sha256": "7aaf3fba130de362104f71c6afd95b2f0c277fd1727019a75fe3cc7f72611991",
+            "output_sha256": "3ef2f5f7a767b1a67290cc6605dc3371dba4cc73d0d95b57d36ef09e24848139",
+            "proof_file_sha256": "fb2f0156ecbfb9c9c275224357e75bd800f7e44eec1338d9556f8e5096eebab9"
+          },
+          {
+            "prompt_chars": 680000,
+            "evaluated_tokens": 150026,
+            "cached_tokens": 0,
+            "tokens_per_second": 1976.317205,
+            "ttft_seconds": 76.146667,
+            "messages_sha256": "7e2c9f3133ade133dda837b6060780d2b2805471a6f018502384d682c78068de",
+            "request_sha256": "9737237d2f6ab6b13bf42934b1b5393b019d5737cb0847409db25b511c7e0ff6",
+            "output_sha256": "3ef2f5f7a767b1a67290cc6605dc3371dba4cc73d0d95b57d36ef09e24848139",
+            "proof_file_sha256": "8ef228fa795d152fb2012067cf7722643e63448142ef3fda8e3141299f537ae6"
+          }
+        ],
+        "restoration": {
+          "healthy": true,
+          "same_container": true,
+          "same_image": true,
+          "same_environment": true,
+          "same_mounts": true,
+          "oom_killed": false
+        },
+        "drain_released": true
+      },
+      "initial_engine_screens": {
+        "variants": [
+          {
+            "name": "state_sync",
+            "overrides": {},
+            "short": {
+              "latency_ttft_ms": 99.77,
+              "decode_tps": 113.076,
+              "cache_return_ttft_ms": 499.022,
+              "latency_wall_ms": 127.009,
+              "decode_wall_ms": 2432.589,
+              "cache_return_wall_ms": 562.728
+            },
+            "quality": {
+              "samples": 16,
+              "request_matches": 16,
+              "output_matches": 16,
+              "request_hash_array_sha256": "0f5ad561c123c51aa039c910f26a07cd312a6671acc6a38ee1ce0db5d8561062",
+              "output_hash_array_sha256": "c1d5e6e99b235911110ad6ac69e359c0677e4d36307ab71cccb9a1dc4f2344ed"
+            },
+            "gpu_snapshot": {
+              "sha256": "b1da7af69f42d4061340e3ead0f51e81adeb1a511ff3420924287979971b9e1a",
+              "bytes": 1170717440
+            }
+          },
+          {
+            "name": "state_async",
+            "overrides": {},
+            "short": {
+              "latency_ttft_ms": 97.889,
+              "decode_tps": 112.914,
+              "cache_return_ttft_ms": 445.355,
+              "latency_wall_ms": 125.277,
+              "decode_wall_ms": 2434.487,
+              "cache_return_wall_ms": 509.069
+            },
+            "quality": {
+              "samples": 16,
+              "request_matches": 16,
+              "output_matches": 16,
+              "request_hash_array_sha256": "0f5ad561c123c51aa039c910f26a07cd312a6671acc6a38ee1ce0db5d8561062",
+              "output_hash_array_sha256": "c1d5e6e99b235911110ad6ac69e359c0677e4d36307ab71cccb9a1dc4f2344ed"
+            },
+            "gpu_snapshot": {
+              "sha256": "b1da7af69f42d4061340e3ead0f51e81adeb1a511ff3420924287979971b9e1a",
+              "bytes": 1170717440
+            }
+          },
+          {
+            "name": "mtp4",
+            "overrides": {
+              "--spec-draft-n-max": 4
+            },
+            "short": {
+              "latency_ttft_ms": 99.744,
+              "decode_tps": 115.122,
+              "cache_return_ttft_ms": 447.121,
+              "latency_wall_ms": 129.185,
+              "decode_wall_ms": 2384.921,
+              "cache_return_wall_ms": 482.191
+            },
+            "quality": {
+              "samples": 16,
+              "request_matches": 16,
+              "output_matches": 13,
+              "request_hash_array_sha256": "0f5ad561c123c51aa039c910f26a07cd312a6671acc6a38ee1ce0db5d8561062",
+              "output_hash_array_sha256": "00c187e419676ebac60d7bce27a1be6eff5bc5f3f7c686e96627e675d60164d3"
+            }
+          },
+          {
+            "name": "mtp5",
+            "overrides": {
+              "--spec-draft-n-max": 5
+            },
+            "short": {
+              "latency_ttft_ms": 100.529,
+              "decode_tps": 116.483,
+              "cache_return_ttft_ms": 449.668,
+              "latency_wall_ms": 132.592,
+              "decode_wall_ms": 2360.549,
+              "cache_return_wall_ms": 487.538
+            },
+            "quality": {
+              "samples": 16,
+              "request_matches": 16,
+              "output_matches": 13,
+              "request_hash_array_sha256": "0f5ad561c123c51aa039c910f26a07cd312a6671acc6a38ee1ce0db5d8561062",
+              "output_hash_array_sha256": "00c187e419676ebac60d7bce27a1be6eff5bc5f3f7c686e96627e675d60164d3"
+            }
+          }
+        ],
+        "restoration": {
+          "healthy": true,
+          "same_container": true,
+          "same_image": true,
+          "same_environment": true,
+          "same_mounts": true,
+          "oom_killed": false
+        },
+        "drain_released": true,
+        "lease_evidence": "result.json"
+      },
+      "full_worker_ab": {
+        "baseline": {
+          "latency_ttft_ms": 98.552,
+          "decode_tps": 108.208,
+          "cache_return_ttft_ms": 451.981,
+          "latency_wall_ms": 125.856,
+          "decode_wall_ms": 2527.532,
+          "cache_return_wall_ms": 515.464
+        },
+        "network_completion": {
+          "latency_ttft_ms": 99.599,
+          "decode_tps": 108.162,
+          "cache_return_ttft_ms": 453.827,
+          "latency_wall_ms": 126.947,
+          "decode_wall_ms": 2529.959,
+          "cache_return_wall_ms": 517.205
+        },
+        "quality": {
+          "samples": 25,
+          "request_matches": 25,
+          "output_matches": 25,
+          "request_hash_array_sha256": "1de044d0f5df742b26a99aedc09fe6aae8bebc68b42a5c01106e807bdd550282",
+          "output_hash_array_sha256": "1c43a2cd3056015f51b60a475e2472af4386f1a69bb48f76134e1e0ee5f26bfd"
+        },
+        "restoration": {
+          "healthy": true,
+          "same_container": true,
+          "same_image": true,
+          "same_environment": true,
+          "same_mounts": true,
+          "oom_killed": false
+        },
+        "drain_released": true,
+        "lease_renewal_errors": [],
+        "proof_result_sha256": "044e732e172a8234c1f2b1914c94653716bf40de29037ef865be953ba24c6a6b"
+      },
+      "rejected_pinned_graph_screen": {
+        "samples": {
+          "latency": 7,
+          "decode": 5,
+          "conversations": 3,
+          "cache_rounds": 5,
+          "total_requests": 27
+        },
+        "variants": [
+          {
+            "name": "state_sync",
+            "environment": {
+              "EZLOCALAI_LLAMA_STATE_IO_BATCHING": "0",
+              "GGML_CUDA_GRAPH_OPT": "0"
+            },
+            "short": {
+              "latency_ttft_ms": 100.037,
+              "decode_tps": 113.099,
+              "cache_return_ttft_ms": 453.713,
+              "latency_wall_ms": 127.363,
+              "decode_wall_ms": 2433.273,
+              "cache_return_wall_ms": 517.19
+            },
+            "quality": {
+              "samples": 27,
+              "request_matches": 27,
+              "output_matches": 27,
+              "request_hash_array_sha256": "a39034e8fe229c0a42efa90341cf211053eed45020654b5060413f705932db3b",
+              "output_hash_array_sha256": "809b58b53c7e5481b5ec654e85b7d3238a293b043f9e0615b9021fe6b6aa92ba"
+            },
+            "gpu_snapshot": {
+              "sha256": "8622ed38f506ce04c7c5c1e5aee1335d43844a3f357550b9d5c88939f6ff6711",
+              "bytes": 1170717440
+            }
+          },
+          {
+            "name": "state_pinned",
+            "environment": {
+              "EZLOCALAI_LLAMA_STATE_IO_BATCHING": "1",
+              "GGML_CUDA_GRAPH_OPT": "0"
+            },
+            "short": {
+              "latency_ttft_ms": 106.268,
+              "decode_tps": 113.054,
+              "cache_return_ttft_ms": 503.898,
+              "latency_wall_ms": 133.851,
+              "decode_wall_ms": 2446.7,
+              "cache_return_wall_ms": 567.533
+            },
+            "quality": {
+              "samples": 27,
+              "request_matches": 27,
+              "output_matches": 27,
+              "request_hash_array_sha256": "a39034e8fe229c0a42efa90341cf211053eed45020654b5060413f705932db3b",
+              "output_hash_array_sha256": "809b58b53c7e5481b5ec654e85b7d3238a293b043f9e0615b9021fe6b6aa92ba"
+            },
+            "gpu_snapshot": {
+              "sha256": "8622ed38f506ce04c7c5c1e5aee1335d43844a3f357550b9d5c88939f6ff6711",
+              "bytes": 1170717440
+            }
+          },
+          {
+            "name": "graph_opt",
+            "environment": {
+              "EZLOCALAI_LLAMA_STATE_IO_BATCHING": "1",
+              "GGML_CUDA_GRAPH_OPT": "1"
+            },
+            "short": {
+              "latency_ttft_ms": 107.051,
+              "decode_tps": 112.93,
+              "cache_return_ttft_ms": 503.96,
+              "latency_wall_ms": 134.765,
+              "decode_wall_ms": 2444.085,
+              "cache_return_wall_ms": 568.111
+            },
+            "quality": {
+              "samples": 27,
+              "request_matches": 27,
+              "output_matches": 27,
+              "request_hash_array_sha256": "a39034e8fe229c0a42efa90341cf211053eed45020654b5060413f705932db3b",
+              "output_hash_array_sha256": "809b58b53c7e5481b5ec654e85b7d3238a293b043f9e0615b9021fe6b6aa92ba"
+            },
+            "gpu_snapshot": {
+              "sha256": "8622ed38f506ce04c7c5c1e5aee1335d43844a3f357550b9d5c88939f6ff6711",
+              "bytes": 1170717440
+            }
+          }
+        ],
+        "restoration": {
+          "healthy": true,
+          "same_container": true,
+          "same_image": true,
+          "same_environment": true,
+          "same_mounts": true,
+          "oom_killed": false
+        },
+        "drain_released": true,
+        "lease_renewal_errors": [],
+        "proof_result_sha256": "3c94c96ce6e5ffd096516221f16d85ad7958bc34edfdb8efefc28bc5d0d09de4",
+        "interpretation": "Pinned staging increases cache-return latency on each card; adding graph optimization has no useful decode gain. Graph-only without pinned staging was not measured. Neither optimization is selected."
+      },
+      "rejected_ubatch_2048_screen": {
+        "baseline_ubatch": 1024,
+        "candidate_ubatch": 2048,
+        "evaluated_tokens": 150026,
+        "baseline_tps": 1988.277557,
+        "candidate_tps": 1820.136836,
+        "gain_percent": -8.456602,
+        "cold_cached_tokens": [
+          0,
+          0
+        ],
+        "all_four_cases_quality": {
+          "samples": 4,
+          "request_matches": 4,
+          "output_matches": 3,
+          "request_hash_array_sha256": "4c8412c10d64d75c5518f566ac3e68ee7d0fd58cc4fec6a9bb23017c2a3869b9",
+          "output_hash_array_sha256": "593b3abe271fd48c6c80c979c827bf39aa722a0790148c25365db042fe22eb52"
+        },
+        "baseline_proof_sha256": "26132e3f4d56ede948f60d0f6189f6194ab642eb7e5846df55dc29859d8a07ff",
+        "candidate_proof_sha256": "9f80fbfe80a6a0e9b8fbb337c318445804a4c1e73a0a2522a7a9a54bc07b534a",
+        "additional_candidate_68k": {
+          "evaluated_tokens": 68069,
+          "cached_tokens": 0,
+          "tps": 2287.076424
+        },
+        "operator_decision": {
+          "status": "rejected_after_completed_prefill_screen",
+          "reason": "Physical batch 2048 reduced 150K cold throughput; remaining qualification intentionally cancelled with SIGTERM to owned runner, followed by verified restoration.",
+          "stopped_at_utc": "2026-10-26 07:20:26 UTC",
+          "near_context_qualification_completed": false
+        },
+        "capacity_qualification": "not completed; intentionally cancelled after slower completed prefill screens",
+        "overall_passed_flag_present": false,
+        "experimental_overlays": [],
+        "production_ubatch_after": 1024,
+        "restoration": {
+          "healthy": true,
+          "same_container": true,
+          "same_image": true,
+          "same_environment": true,
+          "same_mounts": true,
+          "oom_killed": false
+        },
+        "drain_released": true,
+        "lease_renewal_errors": [],
+        "result_proof_sha256": "e07dbfa627bf2b2da1b663055ed894f2d4e75a51329579940c0126f7c5b5ef8f"
+      }
+    },
+    {
+      "label": "DevXT5090",
+      "baseline_image_id": "sha256:1197b0b18d410519a25fab734bcfead8b32b8d67b1b824a188dbd08916735021",
+      "model_sha256": "00cf92e666c6af6566996c38c89a44ccdb6449ea25ef0f112a452c853b2a71e2",
+      "production_environment_sha256": "769f47f4fb9165d5625c13c50377ef03198c5c81074b4a2992413edb3f7b5e52",
+      "baseline_parameters": {
+        "-m": "/app/models/Qwen3.8-27B/Qwen3.8-27B-UD-Q3_K_XL.gguf",
+        "-c": "262144",
+        "-b": "4096",
+        "-ub": "1024",
+        "-ctk": "q4_0",
+        "-ctv": "q4_0",
+        "--spec-type": "draft-mtp",
+        "--spec-draft-n-max": "3",
+        "--spec-draft-p-min": "0.10000000000000001",
+        "--cache-ram": "32000",
+        "-np": "1",
+        "--ctx-checkpoints": "32",
+        "--checkpoint-min-step": "8192"
+      },
+      "gpu": "NVIDIA GeForce RTX 5090, 590.48.01, 32607 MiB, 575.00 W, 600.00 W, 3120 MHz, 14001 MHz",
+      "cpu": "Intel(R) Core(TM) Ultra 7 270K Plus",
+      "inference_threads": 4,
+      "baseline": {
+        "short": {
+          "latency_ttft_ms": 71.95,
+          "decode_tps": 157.658,
+          "cache_return_ttft_ms": 313.44,
+          "latency_wall_ms": 91.587,
+          "decode_wall_ms": 1749.051,
+          "cache_return_wall_ms": 357.405
+        },
+        "cold_prefill": [
+          {
+            "prompt_chars": 300000,
+            "evaluated_tokens": 68069,
+            "cached_tokens": 0,
+            "tokens_per_second": 2890.480722,
+            "ttft_seconds": 23.702582,
+            "messages_sha256": "be2a9a927a5a78dd1e57e2d891194e355e12e73ecd19650a6f9dfbfc8c9163de",
+            "request_sha256": "7aaf3fba130de362104f71c6afd95b2f0c277fd1727019a75fe3cc7f72611991",
+            "output_sha256": "3ef2f5f7a767b1a67290cc6605dc3371dba4cc73d0d95b57d36ef09e24848139",
+            "proof_file_sha256": "45d7e514c3129655135e441b702dff59f99a31a89e968a1d384b176178e0cf0e"
+          },
+          {
+            "prompt_chars": 680000,
+            "evaluated_tokens": 150026,
+            "cached_tokens": 0,
+            "tokens_per_second": 1774.784039,
+            "ttft_seconds": 84.764255,
+            "messages_sha256": "7e2c9f3133ade133dda837b6060780d2b2805471a6f018502384d682c78068de",
+            "request_sha256": "9737237d2f6ab6b13bf42934b1b5393b019d5737cb0847409db25b511c7e0ff6",
+            "output_sha256": "3ef2f5f7a767b1a67290cc6605dc3371dba4cc73d0d95b57d36ef09e24848139",
+            "proof_file_sha256": "54adffa75f2e2714fd10de4239f75859d57df7f8063e3c9df4cf05dd966edcab"
+          }
+        ],
+        "restoration": {
+          "healthy": true,
+          "same_container": true,
+          "same_image": true,
+          "same_environment": true,
+          "same_mounts": true,
+          "oom_killed": false
+        },
+        "drain_released": true
+      },
+      "initial_engine_screens": {
+        "variants": [
+          {
+            "name": "state_sync",
+            "overrides": {},
+            "short": {
+              "latency_ttft_ms": 71.785,
+              "decode_tps": 157.706,
+              "cache_return_ttft_ms": 313.234,
+              "latency_wall_ms": 91.331,
+              "decode_wall_ms": 1747.472,
+              "cache_return_wall_ms": 356.907
+            },
+            "quality": {
+              "samples": 16,
+              "request_matches": 16,
+              "output_matches": 16,
+              "request_hash_array_sha256": "0f5ad561c123c51aa039c910f26a07cd312a6671acc6a38ee1ce0db5d8561062",
+              "output_hash_array_sha256": "390a88201600ebd6a67e07a76b44e3610ec6ee3035dc1cb8919ff1d15af2df5e"
+            },
+            "gpu_snapshot": {
+              "sha256": "ebbf5506e4e3ce915db00456e67d9d5df4027e1d5eb89252c90a67cc7a526b5b",
+              "bytes": 1170717440
+            }
+          },
+          {
+            "name": "state_async",
+            "overrides": {},
+            "short": {
+              "latency_ttft_ms": 71.445,
+              "decode_tps": 156.239,
+              "cache_return_ttft_ms": 311.804,
+              "latency_wall_ms": 91.32,
+              "decode_wall_ms": 1761.835,
+              "cache_return_wall_ms": 355.597
+            },
+            "quality": {
+              "samples": 16,
+              "request_matches": 16,
+              "output_matches": 16,
+              "request_hash_array_sha256": "0f5ad561c123c51aa039c910f26a07cd312a6671acc6a38ee1ce0db5d8561062",
+              "output_hash_array_sha256": "390a88201600ebd6a67e07a76b44e3610ec6ee3035dc1cb8919ff1d15af2df5e"
+            },
+            "gpu_snapshot": {
+              "sha256": "ebbf5506e4e3ce915db00456e67d9d5df4027e1d5eb89252c90a67cc7a526b5b",
+              "bytes": 1170717440
+            }
+          },
+          {
+            "name": "ubatch2048",
+            "overrides": {
+              "-ub": 2048
+            },
+            "short": {
+              "latency_ttft_ms": 71.83,
+              "decode_tps": 155.651,
+              "cache_return_ttft_ms": 311.338,
+              "latency_wall_ms": 91.707,
+              "decode_wall_ms": 1768.478,
+              "cache_return_wall_ms": 355.311
+            },
+            "quality": {
+              "samples": 16,
+              "request_matches": 16,
+              "output_matches": 16,
+              "request_hash_array_sha256": "0f5ad561c123c51aa039c910f26a07cd312a6671acc6a38ee1ce0db5d8561062",
+              "output_hash_array_sha256": "390a88201600ebd6a67e07a76b44e3610ec6ee3035dc1cb8919ff1d15af2df5e"
+            },
+            "cold_prefill": {
+              "samples": 1,
+              "evaluated_tokens": 150026,
+              "cached_tokens": 0,
+              "tokens_per_second": 1880.732458,
+              "request_sha256": "9737237d2f6ab6b13bf42934b1b5393b019d5737cb0847409db25b511c7e0ff6",
+              "output_sha256": "3ef2f5f7a767b1a67290cc6605dc3371dba4cc73d0d95b57d36ef09e24848139"
+            }
+          },
+          {
+            "name": "mtp4",
+            "overrides": {
+              "--spec-draft-n-max": 4
+            },
+            "short": {
+              "latency_ttft_ms": 72.29,
+              "decode_tps": 160.044,
+              "cache_return_ttft_ms": 311.262,
+              "latency_wall_ms": 93.401,
+              "decode_wall_ms": 1719.096,
+              "cache_return_wall_ms": 336.466
+            },
+            "quality": {
+              "samples": 16,
+              "request_matches": 16,
+              "output_matches": 13,
+              "request_hash_array_sha256": "0f5ad561c123c51aa039c910f26a07cd312a6671acc6a38ee1ce0db5d8561062",
+              "output_hash_array_sha256": "b072d196bf72b7f4d2d51d7fe95fd4954c6e7966bcb7f64744e45ac2fa37f344"
+            }
+          },
+          {
+            "name": "mtp5",
+            "overrides": {
+              "--spec-draft-n-max": 5
+            },
+            "short": {
+              "latency_ttft_ms": 72.332,
+              "decode_tps": 148.682,
+              "cache_return_ttft_ms": 311.571,
+              "latency_wall_ms": 95.958,
+              "decode_wall_ms": 1838.227,
+              "cache_return_wall_ms": 339.606
+            },
+            "quality": {
+              "samples": 16,
+              "request_matches": 16,
+              "output_matches": 13,
+              "request_hash_array_sha256": "0f5ad561c123c51aa039c910f26a07cd312a6671acc6a38ee1ce0db5d8561062",
+              "output_hash_array_sha256": "b072d196bf72b7f4d2d51d7fe95fd4954c6e7966bcb7f64744e45ac2fa37f344"
+            }
+          },
+          {
+            "name": "threads8",
+            "overrides": {
+              "-t": 8,
+              "-tb": 8
+            },
+            "short": {
+              "latency_ttft_ms": 73.44,
+              "decode_tps": 157.609,
+              "cache_return_ttft_ms": 311.908,
+              "latency_wall_ms": 93.123,
+              "decode_wall_ms": 1746.072,
+              "cache_return_wall_ms": 355.539
+            },
+            "quality": {
+              "samples": 16,
+              "request_matches": 16,
+              "output_matches": 16,
+              "request_hash_array_sha256": "0f5ad561c123c51aa039c910f26a07cd312a6671acc6a38ee1ce0db5d8561062",
+              "output_hash_array_sha256": "390a88201600ebd6a67e07a76b44e3610ec6ee3035dc1cb8919ff1d15af2df5e"
+            }
+          }
+        ],
+        "restoration": {
+          "healthy": true,
+          "same_container": true,
+          "same_image": true,
+          "same_environment": true,
+          "same_mounts": true,
+          "oom_killed": false
+        },
+        "drain_released": null,
+        "lease_evidence": "candidates-supervisor.log records owned drain release"
+      },
+      "full_worker_ab": {
+        "baseline": {
+          "latency_ttft_ms": 77.328,
+          "decode_tps": 155.678,
+          "cache_return_ttft_ms": 318.961,
+          "latency_wall_ms": 96.741,
+          "decode_wall_ms": 1763.664,
+          "cache_return_wall_ms": 362.872
+        },
+        "network_completion": {
+          "latency_ttft_ms": 74.49,
+          "decode_tps": 156.752,
+          "cache_return_ttft_ms": 318.967,
+          "latency_wall_ms": 93.865,
+          "decode_wall_ms": 1751.421,
+          "cache_return_wall_ms": 362.781
+        },
+        "quality": {
+          "samples": 25,
+          "request_matches": 25,
+          "output_matches": 25,
+          "request_hash_array_sha256": "1de044d0f5df742b26a99aedc09fe6aae8bebc68b42a5c01106e807bdd550282",
+          "output_hash_array_sha256": "c480ddfd5e0cf2378a4f6db29da528376c5d8fd5c565a59a927ef1a26f7f9342"
+        },
+        "restoration": {
+          "healthy": true,
+          "same_container": true,
+          "same_image": true,
+          "same_environment": true,
+          "same_mounts": true,
+          "oom_killed": false
+        },
+        "drain_released": true,
+        "lease_renewal_errors": [],
+        "proof_result_sha256": "9779b01bdddedb648cb4d3c45ade1ab550b86dc7dfe9648392ac75e5a0fda589"
+      },
+      "rejected_pinned_graph_screen": {
+        "samples": {
+          "latency": 7,
+          "decode": 5,
+          "conversations": 3,
+          "cache_rounds": 5,
+          "total_requests": 27
+        },
+        "variants": [
+          {
+            "name": "state_sync",
+            "environment": {
+              "EZLOCALAI_LLAMA_STATE_IO_BATCHING": "0",
+              "GGML_CUDA_GRAPH_OPT": "0"
+            },
+            "short": {
+              "latency_ttft_ms": 71.259,
+              "decode_tps": 157.046,
+              "cache_return_ttft_ms": 312.023,
+              "latency_wall_ms": 90.956,
+              "decode_wall_ms": 1745.064,
+              "cache_return_wall_ms": 355.401
+            },
+            "quality": {
+              "samples": 27,
+              "request_matches": 27,
+              "output_matches": 27,
+              "request_hash_array_sha256": "a39034e8fe229c0a42efa90341cf211053eed45020654b5060413f705932db3b",
+              "output_hash_array_sha256": "2a3c7d091baa19e4ff8218ef7c340790c94210347521ad3f9c511c03a9ef0a50"
+            },
+            "gpu_snapshot": {
+              "sha256": "b6f11081834b6c41ed841c286f384702be04d5b3dc5438bde64d40948f9459b1",
+              "bytes": 1170717440
+            }
+          },
+          {
+            "name": "state_pinned",
+            "environment": {
+              "EZLOCALAI_LLAMA_STATE_IO_BATCHING": "1",
+              "GGML_CUDA_GRAPH_OPT": "0"
+            },
+            "short": {
+              "latency_ttft_ms": 77.666,
+              "decode_tps": 155.102,
+              "cache_return_ttft_ms": 359.975,
+              "latency_wall_ms": 96.845,
+              "decode_wall_ms": 1779.531,
+              "cache_return_wall_ms": 404.697
+            },
+            "quality": {
+              "samples": 27,
+              "request_matches": 27,
+              "output_matches": 27,
+              "request_hash_array_sha256": "a39034e8fe229c0a42efa90341cf211053eed45020654b5060413f705932db3b",
+              "output_hash_array_sha256": "2a3c7d091baa19e4ff8218ef7c340790c94210347521ad3f9c511c03a9ef0a50"
+            },
+            "gpu_snapshot": {
+              "sha256": "b6f11081834b6c41ed841c286f384702be04d5b3dc5438bde64d40948f9459b1",
+              "bytes": 1170717440
+            }
+          },
+          {
+            "name": "graph_opt",
+            "environment": {
+              "EZLOCALAI_LLAMA_STATE_IO_BATCHING": "1",
+              "GGML_CUDA_GRAPH_OPT": "1"
+            },
+            "short": {
+              "latency_ttft_ms": 78.54,
+              "decode_tps": 155.271,
+              "cache_return_ttft_ms": 376.531,
+              "latency_wall_ms": 98.752,
+              "decode_wall_ms": 1778.705,
+              "cache_return_wall_ms": 421.896
+            },
+            "quality": {
+              "samples": 27,
+              "request_matches": 27,
+              "output_matches": 27,
+              "request_hash_array_sha256": "a39034e8fe229c0a42efa90341cf211053eed45020654b5060413f705932db3b",
+              "output_hash_array_sha256": "2a3c7d091baa19e4ff8218ef7c340790c94210347521ad3f9c511c03a9ef0a50"
+            },
+            "gpu_snapshot": {
+              "sha256": "b6f11081834b6c41ed841c286f384702be04d5b3dc5438bde64d40948f9459b1",
+              "bytes": 1170717440
+            }
+          }
+        ],
+        "restoration": {
+          "healthy": true,
+          "same_container": true,
+          "same_image": true,
+          "same_environment": true,
+          "same_mounts": true,
+          "oom_killed": false
+        },
+        "drain_released": true,
+        "lease_renewal_errors": [],
+        "proof_result_sha256": "e4cdc056024639935d81a60426e5f257a1699b80294c4a4f96f8e5fd9313ec07",
+        "interpretation": "Pinned staging increases cache-return latency on each card; adding graph optimization has no useful decode gain. Graph-only without pinned staging was not measured. Neither optimization is selected."
+      },
+      "original_engine_final_qualification": {
+        "result_proof_sha256": "c46d004bc5f74c8f837e96a89237ca23d4677515bc75932aefb5a6d7a7324b96",
+        "experimental_overlays": [],
+        "model_sha256": "00cf92e666c6af6566996c38c89a44ccdb6449ea25ef0f112a452c853b2a71e2",
+        "mmproj_sha256": "83ee4f4f205fa514161778c41df1ea14144faa0f713510893b63c2395f5c2d53",
+        "prefill_confirmations": [
+          {
+            "evaluated_tokens": 68069,
+            "baseline_ubatch": 1024,
+            "candidate_ubatch": 2048,
+            "baseline_tps": 2828.993339,
+            "candidate_tps": 2922.7786,
+            "gain_percent": 3.315146,
+            "cold_cached_tokens": [
+              0,
+              0
+            ],
+            "all_four_cases_quality": {
+              "samples": 4,
+              "request_matches": 4,
+              "output_matches": 4,
+              "request_hash_array_sha256": "6df4d4481c4d130eb1a6162cd357330e562e450df6b3646325a3cab570bb6302",
+              "output_hash_array_sha256": "dcd420e92c224a6b65b1d8b3d00924a406ca903b00090dcae8f9f4d4ee98a55f"
+            },
+            "baseline_proof_sha256": "8aec9d131320daeefa64748f3965f8f3c4403eb04b139788a898650803a10abb",
+            "candidate_proof_sha256": "88d97d96deb7bdd6802cdc3de97f30f0728ca0c31b96e9fd842fe5d1c40c2189"
+          },
+          {
+            "evaluated_tokens": 150026,
+            "baseline_ubatch": 1024,
+            "candidate_ubatch": 2048,
+            "baseline_tps": 1781.4434,
+            "candidate_tps": 1894.789103,
+            "gain_percent": 6.362577,
+            "cold_cached_tokens": [
+              0,
+              0
+            ],
+            "all_four_cases_quality": {
+              "samples": 4,
+              "request_matches": 4,
+              "output_matches": 4,
+              "request_hash_array_sha256": "4c8412c10d64d75c5518f566ac3e68ee7d0fd58cc4fec6a9bb23017c2a3869b9",
+              "output_hash_array_sha256": "543f578943308539631a8d748f033b663e6245b3ee2f565c082fb78b6d7b81fc"
+            },
+            "baseline_proof_sha256": "1b68a68da7fd80e277acc187ed0f27264668f910ade401b5f0e518229b1cc384",
+            "candidate_proof_sha256": "43eb01b2396dd8eb06d12bc276c8f35ec5f422269c30d4ae18e7bb251649419f"
+          }
+        ],
+        "capacity": {
+          "answer": "Python",
+          "evaluated_prompt_tokens": 248809,
+          "cached_prompt_tokens": 0,
+          "input_fraction": 0.9491310119628906,
+          "remaining_context_tokens": 13335,
+          "prefill_tokens_per_second": 1300.3416738436779,
+          "wall_seconds": 191.67600820201915,
+          "request_sha256": "4ed6d94940d50a4b8df263f9850ead5d4c95eeacdee26c3dd30998eec6b28d6d",
+          "output_sha256": "2945b0d6616d16592538930914f4a2bc539b8d976a0b9200b3e82540f3c07c25"
+        },
+        "vision": {
+          "answer": "Red",
+          "evaluated_prompt_tokens": 1088,
+          "cached_prompt_tokens": 0,
+          "wall_seconds": 1.6043577899690717,
+          "request_sha256": "5fc97114ba279bbe32e31bd4b91feb1d0bd607cf6e42579c7af4f798cfea9f09",
+          "output_sha256": "83814295523046d350f8f9728d780a92ad8359135be44ee43bd4d228310c8fcb",
+          "image_sha256": "6f7ffeeb88929a8a2e34ea973c871f069be70cbaf1459fff345db59453934435",
+          "image_width": 64,
+          "image_height": 64
+        },
+        "declared_context": 262144,
+        "expected_n_ubatch": 2048,
+        "inference_retries": 0,
+        "context_downgrade_allowed": false,
+        "capacity_harness_sha256": "aebd3e2ef48858e124f2e58a683d6d1c83dd9c89ea455b41d8a9ab0922818a6f",
+        "capacity_proof_sha256": "b8889c00d0be7ad0370642d1233e1d4fe150aa61507256acdbf24bbbfa680f06",
+        "restoration": {
+          "healthy": true,
+          "same_container": true,
+          "same_image": true,
+          "same_environment": true,
+          "same_mounts": true,
+          "oom_killed": false
+        },
+        "drain_released": true,
+        "lease_renewal_errors": []
+      }
+    }
+  ],
+  "microbenchmarks": {
+    "socket_fixture": "tests/fixtures/stream_socket_20261026_validation.json",
+    "socket_delayed_ack_ms_median_before_after": [
+      40.777438,
+      0.007671
+    ],
+    "completion_fixture": "tests/fixtures/stream_completion_20261026_validation.json",
+    "completion_release_ms_median_before_after": [
+      90.031035,
+      0.05263
+    ],
+    "interpretation": "Controlled edge-condition waiting measurements; not GPU/model TTFT or decode improvements. Live full-worker results are recorded separately."
+  },
+  "final_code_validation": {
+    "proof_file_sha256": "1ab4c3cbd5c0c930688b05d76ebb17f418ad5ec0f1340eaa08575c75da9da3bb",
+    "repo_commit": "0735dff",
+    "build_version": "ezlocalai-0.1.0+69205e6d7ee8",
+    "source_digest_sha256": "69205e6d7ee867b9909a1b49bd2465284d2bf946471566c4d4b024718327f9d9",
+    "build_image_id": "sha256:c9d7cd30fb6f0d75280fda34b20cd70350dc69072ffebf564f0fffc92b8b330a",
+    "cuda_package": {
+      "passed": 62,
+      "failed": 0,
+      "ctest_seconds": 279.52,
+      "excluded_tests": []
+    },
+    "python_reference_root_absent": true,
+    "optional_engine_router_tests": {
+      "passed": 2,
+      "failed": 0,
+      "ctest_seconds": 34.64,
+      "tests": [
+        "worker_router_integration",
+        "conversation_cache_engine"
+      ]
+    },
+    "benchmark_guard_tests": {
+      "passed": 23,
+      "failed": 0,
+      "evidence": "coordinator test run"
+    },
+    "state_io_patch_removed": true,
+    "llama_context_sources_equal_upstream": true,
+    "conversation_sources_unchanged": true,
+    "managed_patches": [
+      "patch.llama-conversation-cache=ea1cb7096df5107862e825ecf7fae45354632f6d091fc1cfe71f0dc72a8d39d9"
+    ],
+    "engine_library_sha256": "4c32861b7148c347033ce73f06da757a5ad01362a4409c48c20386a716bbcc9f",
+    "worker_equivalence": {
+      "prior_tested_sha256": "c9b464b35776e1e06c594c39ee89786589f42192916f2a3b8dddf2c3cc321c6a",
+      "final_sha256": "ea4deab9b3aeb0d05b3077c2ed119e70411a79e7aa3692d383aadc7eb09ed92d",
+      "bytes_each": 8443864,
+      "differing_bytes_total": 30,
+      "build_id_differing_bytes": 20,
+      "version_differing_bytes": 10,
+      "prior_version_digest": "44dfa14575e2",
+      "final_version_digest": "69205e6d7ee8",
+      "all_other_bytes_identical": true,
+      "text_instructions_identical": true,
+      "normalized_ranges": [
+        {
+          "start": 944,
+          "end_exclusive": 964,
+          "kind": "GNU build ID"
+        },
+        {
+          "start": 6062132,
+          "end_exclusive": 6062144,
+          "kind": "runtime source version digest"
+        }
+      ],
+      "normalized_common_sha256": "5afe68fe0b9704ec27b5a522025be60d1c292c6d6b7474bd2cfa568d603197a3",
+      "text_section_bytes": 5700959,
+      "text_section_sha256": "c66b3cf554221d6b1fac67cb75e1c18df51401b0261aeec1800a00b130a2af5e"
+    },
+    "limits": [
+      "CPU/fake-backend and local integration checks in CUDA image; no physical GPU performance or quality claim from these tests.",
+      "No host tracked edits, live deployment changes or replacement of stable proof binaries."
+    ],
+    "passed": true
+  },
+  "final_qualification": {
+    "status": "complete",
+    "sample_counts": "Across initial screens plus confirmation:150K baseline2/candidate2 per positive card;68K baseline2/candidate1 per positive card. Confirmation table uses one fresh-engine paired trial per depth.",
+    "positive_candidates": [
+      "DevXT3090V physicalbatch1024",
+      "DevXT5090 physicalbatch2048"
+    ],
+    "rejected_4090_candidate": "physicalbatch2048 slower; capacity qualification intentionally cancelled",
+    "scope": "Near-limit context and vision qualification covers the two selected candidates; finite sampled-output/semantic agreement, not comprehensive model quality equivalence."
+  },
+  "rejected_code": {
+    "pageable_state_io": "removed from final change set; initial gains not established as repeatable",
+    "pinned_state_io": "removed from final change set; cache-return latency increased on all three cards",
+    "graph_environment": "GGML_CUDA_GRAPH_OPT=1 not selected; no useful decode gain on top of pinned staging"
+  },
+  "follow_up_source_audit": {
+    "engine_revision": "620d2225cc436ab0b001e3200e590e3b286ef9ab",
+    "audit_note_sha256": "342f869b7b30102f2b712e225c7c4cbd5d89ae5b4d5579b9c763354f3fbb3f4b",
+    "mtp_gap": "CPU pending_h/verify_h/row bookkeeping are outside saved target/draft KV and MTP implements no generic speculative-state payload. Restored draft processing can consume carryover from another conversation.",
+    "required_design": [
+      "explicit predecessor positions and accepted-row mapping",
+      "prefix rewind and forced last-token replay reconstruction",
+      "checkpoint/disk/live-cache/fresh-reset consistency",
+      "child-slot sequence remapping",
+      "cache budget includes speculative payloads"
+    ],
+    "required_tests": "Production state transitions: uninterrupted A versus A/B/restore-A at the same actual position; malformed/old payloads; multiple slots and checkpoints; real-model acceptance and target output observations. A final-row serializer alone is incomplete.",
+    "failed_restore_gap": "Successful target restore clears cached main bytes before draft restore. Draft failure leaves a selectable damaged entry; preserve all payloads until complete success, reject empty main state and evict failed entries.",
+    "classification": "Read-only source consistency findings; no measured acceptance-rate or answer-quality loss and no partial fix shipped."
+  },
+  "sampled_quality_review": {
+    "worker": "DevXT3090V",
+    "candidate_ubatch": 1024,
+    "confirmation_long_requests_identical": 8,
+    "confirmation_long_outputs_identical": 6,
+    "changed_cases": "Both32-token-capped prefill_append summaries: GPU/CPUallocation versus GPUmemoryallocation; orchestrationlayer versus orchestrationsystem.",
+    "prior_short_outputs_identical": 16,
+    "prior_freeform_256_token_decode_outputs_identical": 3,
+    "independent_semantic_review": "Coordinator plus independent source/semantic reviewers found no concrete loss or contradictory claim in the two paraphrases.",
+    "interpretation": "No quality degradation observed in these sampled workloads; not comprehensive model quality equivalence or universal byte identity.",
+    "evidence": "Coordinator-reported independent source and semantic review."
+  },
+  "environment_rollout_events": [
+    {
+      "label": "DevXT5090",
+      "run_id": "env-20261026-devxt5090-7ffad6fc",
+      "status": "failed_rolled_back",
+      "proof_sha256": "9632d7a48b976d6d1876d124c00a45fefe9009f225df7d0876ed4b5840c82004",
+      "operator_check_cause": "Operator pre-creation check treated Docker OomKillDisable null versus defaultfalse as unequal; original was never stopped.",
+      "original_restored": true,
+      "final_healthy": true,
+      "drain_released": true,
+      "lease_errors": [],
+      "rollback": {
+        "dotenv_restored": true,
+        "healthy": true,
+        "original_container_restored": true,
+        "rollback_image": "ezlocalai:rollback-env-env-20261026-devxt5090-7ffad6fc",
+        "run_directory": "/tmp/ezlocalai-env-update-env-20261026-devxt5090-7ffad6fc",
+        "status": "rolled_back"
+      },
+      "final_selected_environment": {
+        "LLM_UBATCH_SIZE": "1024"
+      },
+      "interpretation": "Recovered operator-check issue, not a worker product bug. Original container/dotenv and health restored before later successful retry."
+    },
+    {
+      "label": "DevXT5090",
+      "run_id": "env-20261026-devxt5090-f1223ae3",
+      "status": "failed_rolled_back",
+      "proof_sha256": "7b200c0b47284a323fdf9b2fe37a8635195492293c471a8ac632c4a7a51f46c0",
+      "operator_check_cause": "Operator metadata verifier treated startup-generated worker_id as stable; the replacement applied successfully but was rolled back before corrected verification.",
+      "original_restored": true,
+      "final_healthy": true,
+      "drain_released": true,
+      "lease_errors": [],
+      "rollback": {
+        "dotenv_restored": true,
+        "healthy": true,
+        "original_container_restored": true,
+        "rollback_image": "ezlocalai:rollback-env-env-20261026-devxt5090-f1223ae3",
+        "run_directory": "/tmp/ezlocalai-env-update-env-20261026-devxt5090-f1223ae3",
+        "status": "rolled_back"
+      },
+      "final_selected_environment": {
+        "LLM_UBATCH_SIZE": "1024"
+      },
+      "interpretation": "Recovered operator-check issue, not a worker product bug. Original container/dotenv and health restored before later successful retry."
+    }
+  ],
+  "applied_environment_changes": {
+    "status": "applied",
+    "dotenv_path_on_each_host": "/home/josh/ezlocalai/.env",
+    "changes": [
+      {
+        "label": "DevXT3090V",
+        "key": "LLM_UBATCH_SIZE",
+        "file_old": null,
+        "container_old": "auto",
+        "effective_old": 512,
+        "new": "1024",
+        "effective_new": 1024,
+        "run_id": "env-20261026-devxt3090v-5903c2f8",
+        "proof_sha256": "305efaa9739865320c2c0b3f28584313353061b7a4475e0ff3eba3b14c38e268",
+        "status": "applied",
+        "image_id": "sha256:3e09d9905d59191ef870b3f1f2e1ce9ba4948211568229d84c1c1214925de973",
+        "immutable_image_preserved": true,
+        "config_preserved_except_selected_env": true,
+        "hostconfig_preserved": true,
+        "hostconfig_default_normalizations": {},
+        "mounts_preserved": true,
+        "static_network_configuration_preserved": true,
+        "critical_engine_parameters_preserved": true,
+        "effective_parameters": {
+          "--cache-ram": "7680",
+          "--checkpoint-min-step": "8192",
+          "--ctx-checkpoints": "32",
+          "--spec-draft-n-max": "2",
+          "--spec-draft-p-min": "0.10000000000000001",
+          "--spec-type": "draft-mtp",
+          "-b": "4096",
+          "-c": "230000",
+          "-ctk": "q4_0",
+          "-ctv": "q4_0",
+          "-m": "/app/models/Qwen3.8-27B/Qwen3.8-27B-UD-Q3_K_XL.gguf",
+          "-np": "1",
+          "-ub": "1024"
+        },
+        "router_metadata_preserved_while_drained": true,
+        "router_metadata_preserved_after_resume": true,
+        "fresh_heartbeat_observations_while_drained": [
+          {
+            "last_heartbeat_age": 0.1607367992401123,
+            "observed_at": 1792999633.571383,
+            "worker_id": "DevXT3090V-8e16604b"
+          },
+          {
+            "last_heartbeat_age": 0.16229963302612305,
+            "observed_at": 1792999643.604123,
+            "worker_id": "DevXT3090V-8e16604b"
+          }
+        ],
+        "fresh_heartbeat_observations_after_resume": [
+          {
+            "last_heartbeat_age": 0.17492413520812988,
+            "observed_at": 1792999643.6164424,
+            "worker_id": "DevXT3090V-8e16604b"
+          },
+          {
+            "last_heartbeat_age": 0.17982816696166992,
+            "observed_at": 1792999653.6458075,
+            "worker_id": "DevXT3090V-8e16604b"
+          }
+        ],
+        "ephemeral_worker_id_before": "DevXT3090V-94f5c1f4",
+        "ephemeral_worker_id_after": "DevXT3090V-8e16604b",
+        "worker_version": "46d9ba8",
+        "routed_smoke": [
+          {
+            "answer": "OK",
+            "disable_fallback": true,
+            "finish_reason": "stop",
+            "kind": "chat",
+            "model": "unsloth/Qwen3.8-27B-GGUF",
+            "passed": true,
+            "request_sha256": "bf1be102a29dfca3a14e554f74df13541084d898f34c72efaded3ff4f9cdcd4d",
+            "usage": {
+              "completion_tokens": 2,
+              "prompt_tokens": 46,
+              "prompt_tokens_details": {
+                "cached_tokens": 0
+              },
+              "total_tokens": 48
+            },
+            "wall_seconds": 0.48730228198110126,
+            "worker_selector": "DevXT3090V"
+          },
+          {
+            "answer": "OK",
+            "disable_fallback": true,
+            "done": true,
+            "events": 3,
+            "finish_reason": "stop",
+            "kind": "stream",
+            "passed": true,
+            "request_sha256": "7ebbf79e72c124f0e60e4567d504599dbc9008b5968209f1a288043dc2b32afc",
+            "wall_seconds": 0.5020818790071644,
+            "worker_selector": "DevXT3090V"
+          },
+          {
+            "answer": "Red",
+            "disable_fallback": true,
+            "finish_reason": "stop",
+            "kind": "vision",
+            "model": "unsloth/Qwen3.8-27B-GGUF",
+            "passed": true,
+            "request_sha256": "118ebabd2ef14ff06073b9a2ece8feca6cf3c3389795cb1db7a04cc15d9a13ef",
+            "usage": {
+              "completion_tokens": 2,
+              "prompt_tokens": 1079,
+              "prompt_tokens_details": {
+                "cached_tokens": 0
+              },
+              "total_tokens": 1081
+            },
+            "wall_seconds": 1.533596777007915,
+            "worker_selector": "DevXT3090V"
+          }
+        ],
+        "rollback_image": "ezlocalai:rollback-env-env-20261026-devxt3090v-5903c2f8",
+        "private_dotenv_backup": "/tmp/ezlocalai-env-update-env-20261026-devxt3090v-5903c2f8/dotenv.backup",
+        "original_stopped_container_removed_after_verification": true,
+        "final_healthy": true,
+        "drain_released": true,
+        "lease_errors": []
+      },
+      {
+        "label": "DevXT5090",
+        "key": "LLM_UBATCH_SIZE",
+        "file_old": "1024",
+        "container_old": "1024",
+        "effective_old": 1024,
+        "new": "2048",
+        "effective_new": 2048,
+        "run_id": "env-20261026-devxt5090-5903c2f8",
+        "proof_sha256": "33a9e5bd88c99f0903facc758bd2dddacab2f322797ea4bba8c556608bcce547",
+        "status": "applied",
+        "image_id": "sha256:1197b0b18d410519a25fab734bcfead8b32b8d67b1b824a188dbd08916735021",
+        "immutable_image_preserved": true,
+        "config_preserved_except_selected_env": true,
+        "hostconfig_preserved": true,
+        "hostconfig_default_normalizations": {},
+        "mounts_preserved": true,
+        "static_network_configuration_preserved": true,
+        "critical_engine_parameters_preserved": true,
+        "effective_parameters": {
+          "--cache-ram": "32000",
+          "--checkpoint-min-step": "8192",
+          "--ctx-checkpoints": "32",
+          "--spec-draft-n-max": "3",
+          "--spec-draft-p-min": "0.10000000000000001",
+          "--spec-type": "draft-mtp",
+          "-b": "4096",
+          "-c": "262144",
+          "-ctk": "q4_0",
+          "-ctv": "q4_0",
+          "-m": "/app/models/Qwen3.8-27B/Qwen3.8-27B-UD-Q3_K_XL.gguf",
+          "-np": "1",
+          "-ub": "2048"
+        },
+        "router_metadata_preserved_while_drained": true,
+        "router_metadata_preserved_after_resume": true,
+        "fresh_heartbeat_observations_while_drained": [
+          {
+            "last_heartbeat_age": 0.5864834785461426,
+            "observed_at": 1792999593.2850292,
+            "worker_id": "DevXT5090-ac99d887"
+          },
+          {
+            "last_heartbeat_age": 0.6120662689208984,
+            "observed_at": 1792999603.3166158,
+            "worker_id": "DevXT5090-ac99d887"
+          }
+        ],
+        "fresh_heartbeat_observations_after_resume": [
+          {
+            "last_heartbeat_age": 0.6250312328338623,
+            "observed_at": 1792999603.3294423,
+            "worker_id": "DevXT5090-ac99d887"
+          },
+          {
+            "last_heartbeat_age": 0.6480667591094971,
+            "observed_at": 1792999613.3581705,
+            "worker_id": "DevXT5090-ac99d887"
+          }
+        ],
+        "ephemeral_worker_id_before": "DevXT5090-e1c66a07",
+        "ephemeral_worker_id_after": "DevXT5090-ac99d887",
+        "worker_version": "46d9ba8",
+        "routed_smoke": [
+          {
+            "answer": "OK",
+            "disable_fallback": true,
+            "finish_reason": "stop",
+            "kind": "chat",
+            "model": "unsloth/Qwen3.8-27B-GGUF",
+            "passed": true,
+            "request_sha256": "5e2f8991c13a9180b36e69f670f0d40627a706e4dc91b40bfd0539a682a1b27b",
+            "usage": {
+              "completion_tokens": 2,
+              "prompt_tokens": 46,
+              "prompt_tokens_details": {
+                "cached_tokens": 0
+              },
+              "total_tokens": 48
+            },
+            "wall_seconds": 0.2435334989859257,
+            "worker_selector": "DevXT5090"
+          },
+          {
+            "answer": "OK",
+            "disable_fallback": true,
+            "done": true,
+            "events": 3,
+            "finish_reason": "stop",
+            "kind": "stream",
+            "passed": true,
+            "request_sha256": "a2bb4cb8057203198054fcdc7af3e1662c03e0252ca246873dae287a834fdbea",
+            "wall_seconds": 0.2176263769797515,
+            "worker_selector": "DevXT5090"
+          },
+          {
+            "answer": "Red",
+            "disable_fallback": true,
+            "finish_reason": "stop",
+            "kind": "vision",
+            "model": "unsloth/Qwen3.8-27B-GGUF",
+            "passed": true,
+            "request_sha256": "d330f0ef5a326f9b30fa5c64b19c8abff7404021559fc2b788cf179d4acf2352",
+            "usage": {
+              "completion_tokens": 2,
+              "prompt_tokens": 1079,
+              "prompt_tokens_details": {
+                "cached_tokens": 0
+              },
+              "total_tokens": 1081
+            },
+            "wall_seconds": 0.6807103210012428,
+            "worker_selector": "DevXT5090"
+          }
+        ],
+        "rollback_image": "ezlocalai:rollback-env-env-20261026-devxt5090-5903c2f8",
+        "private_dotenv_backup": "/tmp/ezlocalai-env-update-env-20261026-devxt5090-5903c2f8/dotenv.backup",
+        "original_stopped_container_removed_after_verification": true,
+        "final_healthy": true,
+        "drain_released": true,
+        "lease_errors": []
+      }
+    ],
+    "unchanged_4090_ubatch": 1024,
+    "helper_sha256": "7ae0b2e2afbf47b8645f0e91aca05a509c0f47bf1b4352c7eacafedf7f56e2df",
+    "supervisor_sha256": "1d7d4f722979a73b77b13298e510e859a841deecd478ef1895cb84ba6347cedf",
+    "operator_offline_tests": {
+      "helper_passed": 27,
+      "workflow_passed": 14,
+      "failed": 0,
+      "helper_seconds": 0.539,
+      "workflow_seconds": 0.016,
+      "helper_source_sha256": "7ae0b2e2afbf47b8645f0e91aca05a509c0f47bf1b4352c7eacafedf7f56e2df",
+      "supervisor_source_sha256": "1d7d4f722979a73b77b13298e510e859a841deecd478ef1895cb84ba6347cedf",
+      "helper_tests_sha256": "6394791dd804176ed1426050364011ca275f8b122d04087c3af2b3ecedc0e7c8",
+      "workflow_tests_sha256": "d28b325c70f4d47a9b56b736fb9b0ce092160e28ff2dd8e1769b1de997dc7eb7",
+      "helper_log_sha256": "45b136e6dd9de50390a192f63b21b040ad2ec3a0b665fa399425e0895ee283b9",
+      "workflow_log_sha256": "cfb753860c718cede39e53ca9c698a71098825ee3a7cf88ab03e9c31c523b5e5",
+      "evidence": "Archived final offline helper and workflow test logs."
+    },
+    "backup_permissions": {
+      "file_mode": "0600",
+      "parent_directory_mode": "0700",
+      "evidence": "coordinator verified private backups"
+    },
+    "code_deployment": "Settings applied to unchanged main46d9ba8 images. New worker transport/completion code ran only in isolated A/B containers; automated image build/deployment follows merge."
+  },
+  "limitations": [
+    "Finite greedy-output and serialized-state agreement does not prove quality equivalence for all inputs.",
+    "Initial cold throughput screens have one sample per depth.",
+    "5090 model payload differs from 4090/3090V; cross-GPU results describe deployed configurations.",
+    "No production optimization image deployed by these experiments.",
+    "Sustained swap pressure, multi-GPU, other hardware platforms and video are not performance-qualified here."
+  ],
+  "final_fleet": {
+    "proof_sha256": "c3a574f1c96fb8fd98794ce9d621b48eb5f1b34fa86b3fd4db37096022f8893a",
+    "checked_at_unix": 1792999701.2796712,
+    "workers": [
+      {
+        "label": "DevXT4090",
+        "version": "46d9ba8",
+        "models": [
+          "unsloth/Qwen3.8-27B-GGUF"
+        ],
+        "capabilities": [
+          "text",
+          "vision"
+        ],
+        "cap_slots": {
+          "text": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          },
+          "vision": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          }
+        },
+        "model_context": {
+          "unsloth/Qwen3.8-27B-GGUF": 230000
+        },
+        "total_ram_gb": 30.49881362915039,
+        "free_ram_gb": 26.73019790649414,
+        "total_vram_gb": 23.0,
+        "free_vram_gb": 2.7325439453125,
+        "draining": false,
+        "circuit_open": false,
+        "last_heartbeat_age": 4.893877029418945
+      },
+      {
+        "label": "DevXT5090",
+        "version": "46d9ba8",
+        "models": [
+          "unsloth/Qwen3.8-27B-GGUF"
+        ],
+        "capabilities": [
+          "text",
+          "vision"
+        ],
+        "cap_slots": {
+          "text": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          },
+          "vision": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          }
+        },
+        "model_context": {
+          "unsloth/Qwen3.8-27B-GGUF": 262144
+        },
+        "total_ram_gb": 125.27968978881836,
+        "free_ram_gb": 117.04949188232422,
+        "total_vram_gb": 31.0,
+        "free_vram_gb": 7.78302001953125,
+        "draining": false,
+        "circuit_open": false,
+        "last_heartbeat_age": 8.521211624145508
+      },
+      {
+        "label": "DevXT3090V",
+        "version": "46d9ba8",
+        "models": [
+          "unsloth/Qwen3.8-27B-GGUF"
+        ],
+        "capabilities": [
+          "text",
+          "vision"
+        ],
+        "cap_slots": {
+          "text": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          },
+          "vision": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          }
+        },
+        "model_context": {
+          "unsloth/Qwen3.8-27B-GGUF": 230000
+        },
+        "total_ram_gb": 30.51270294189453,
+        "free_ram_gb": 24.761375427246094,
+        "total_vram_gb": 23.0,
+        "free_vram_gb": 2.99627685546875,
+        "draining": false,
+        "circuit_open": false,
+        "last_heartbeat_age": 7.7039337158203125
+      }
+    ]
+  }
+}
