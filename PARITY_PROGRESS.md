@@ -2,6 +2,76 @@
 
 The goal remains behavior parity with ezlocalai within the scope below, with all first-party executable code implemented in C++. It is **not complete**.
 
+## Long-conversation request preparation and dispatch (2026-10-26)
+
+Queued input preparation now retains ordered outer fields and normalized
+messages instead of repeatedly parsing, copying and serializing the entire
+history. Duplicate-key values and output positions, input errors, model-load
+order, media callbacks and the present-audio-format helper boundary remain
+covered. Model weights, presets, KV precision, context limits and inference
+arguments are unchanged by this code.
+
+Four matched actual-function runs in ABBA order give 14 sample batches per
+variant/case. One-MiB text preparation falls **13.242 → 3.753 ms** and a
+256-message history falls **13.000 → 2.760 ms**. All seven complete prepared
+payloads and helper-event hashes match baseline. In separate actual-worker HTTP
+tests with a deterministic loopback mock engine, 336 measured requests and 28
+excluded warmups preserve every engine-bound raw payload and the checked answer
+content/finish state. A roughly 1.13 MB, 256-message request reaches first content
+in **32.044 → 23.086 ms**; its buffered response falls **32.494 → 24.905 ms**.
+The complete post-credential-fix rerun preserves all 14 request/engine/output
+identities and the worker binaries from the earlier run. Absolute latency varies
+with ambient host load; small-case gains are inconsistent, so timings are not
+selected across runs or generalized to every short request. These are CPU/HTTP
+overhead measurements, not GPU token-rate or model-quality measurements.
+
+Validation: all **six strict Python-reference suites** pass, including 3,399
+input captures and new escaped-key/null-audio guards; **14 HTTP benchmark guards**
+pass; all **70 CUDA-image package checks** pass in 307.93 seconds with the
+configured Python checkout absent. The new explicit `llm_input_package` keeps
+all captured expectations and managed checks, while strict developer mode still
+requires source hashes. Missing/corrupted captures and an absent strict reference
+are negative controls. Four platform recipes select the oracle-free gate.
+The benchmark now passes generated credentials through key-name-only Docker
+`--env` flags and explicit subprocess environment mappings, preserving
+authentication without temporary credential files, argv values, log exposure or
+parent-environment mutation. Actual HTTP measurements were repeated after this
+CodeQL correction.
+
+The first package run found a pre-existing media parent-death fixture race, with
+the old test executable identical to production. The fixture-only generation
+handshake correction passes 100 fresh repetitions; disabling the parent-death
+signal still fails. Production media runtime sources are unchanged. Candidate
+executables were rebuilt inside an owned CPU-only container from existing CUDA
+image `sha256:845c0d4edad3ee960bb22e76a48de843560d4a197f6a430e799e3136b8a032f4`,
+with unchanged engine/dependencies. No fresh Docker or other-platform image,
+physical GPU inference or multi-GPU behavior was qualified by these dispatch
+checks, and no candidate was published as latest or deployed by them.
+
+Separate matched 3090J physical-batch checks complete with all 24 finite
+controls correct and all 12 paired request/answer hashes equal. Batch 1024
+reduces rewind first output **18.628 → 1.184 s** by reusing 22613 tokens;
+replay improves **648 → 470 ms** and append **1.192 → 0.891 s**. The roughly
+1.2% cold-prefill median difference is within observed spread. Both batches
+fully evaluate 208866 cold tokens at the unchanged 220000 context and pass
+red-image recognition, with no retries, smaller-context path or observed OOM.
+
+**Live environment change:** only DevXT3090J's `LLM_UBATCH_SIZE` is now `1024`
+in its `.env` and running container, replacing absent/`auto` (effective 512).
+Image, all remaining engine arguments, context, presets, precision, host limits,
+environment and mounts are preserved. Fresh drained/resumed router reporting,
+pinned chat, streaming and vision pass; no owned drain remains. The original was
+retained through checks and then finalized. Rollback image is
+`ezlocalai:rollback-env-j-env-20261026-05d665ee`; private backup is under
+`/tmp/ezlocalai-env-update-j-env-20261026-05d665ee/` (0700/0600). New request
+code is PR-only; the live setting uses existing merged image `845c0d4…`.
+
+See [the dispatch report](benchmarks/dispatch-speed-20261026.md) and
+`tests/fixtures/dispatch_speed_20261026_validation.json` for exact binaries,
+sampled quality limits and remaining work. Native PR #142 contains this worker
+optimization. WorkerRouter PR #6 has its separately validated performance
+changes; another agent is adding model-matching fixes there.
+
 ## Cache state, RAM capacity and router admission (2026-10-26)
 
 The optimization PR now includes transactional target/draft snapshot save and

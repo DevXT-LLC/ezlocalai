@@ -8853,8 +8853,29 @@ std::vector<std::string> llm_prepare_images(const std::vector<std::string> &imag
 }
 
 std::string llm_prepare_text_image_input(const std::string &body, bool chat, const LlmInputOperations &operations) {
-    auto data = input_set(body, "local_uri", '"' + json_escape(operations.local_uri) + '"');
-    auto messages = json_object_field(data, "messages", "");
+    // Keep the outer request parsed while preparing its messages. Rebuilding
+    // and reparsing the entire history for each scalar update is expensive on
+    // a returning long conversation. Upsert retains Python dict ordering and
+    // the last value of duplicate decoded keys, as input_set does.
+    using Fields = std::vector<std::pair<std::string, std::string>>;
+    const auto parse_fields = [](const std::string &object) {
+        Fields fields;
+        for (const auto &entry : json_object_ordered_entries(object)) ordered_json_upsert(&fields, entry);
+        return fields;
+    };
+    auto data = parse_fields(body);
+    const auto field = [&](const std::string &key, const std::string &fallback) {
+        const auto found = std::find_if(data.begin(), data.end(), [&](const auto &entry) { return entry.first == key; });
+        return found == data.end() ? fallback : found->second;
+    };
+    const auto required = [&](const std::string &key) {
+        auto value = field(key, "");
+        if (value.empty()) throw LlmResponseError{"KeyError", python_repr_string(key)};
+        return value;
+    };
+    const auto assign = [&](const std::string &key, const std::string &value) { ordered_json_upsert(&data, {key, value}); };
+    assign("local_uri", '"' + json_escape(operations.local_uri) + '"');
+    auto messages = field("messages", "");
     std::vector<std::string> images, items;
     if (!messages.empty()) {
         const auto type = llm_output_type(messages);
@@ -8939,26 +8960,34 @@ std::string llm_prepare_text_image_input(const std::string &body, bool chat, con
         // The legacy branch is unreachable after JSON lists were flattened,
         // but its condition still indexes the last content when images is empty.
         if (images.empty()) (void)input_at(input_last(messages), "content");
-        data = input_set(data, "messages", messages);
+        assign("messages", messages);
     }
     const auto model = operations.load();
-    data = input_set(data, "model", '"' + json_escape(model.source) + '"');
-    const auto stop = json_object_field(data, "stop", "null");
+    assign("model", '"' + json_escape(model.source) + '"');
+    const auto stop = field("stop", "null");
     if (!llm_output_falsey(stop)) {
         auto stops = json_array_elements(model.stops);
         if (llm_output_type(stop) == "list") { const auto requested = json_array_elements(stop); stops.insert(stops.end(), requested.begin(), requested.end()); }
         else stops.push_back(stop);
-        data = input_set(data, "stop", json_array_from_values(stops));
+        assign("stop", json_array_from_values(stops));
     }
-    data = llm_apply_audio_format(data, chat, operations);
-    if (!messages.empty()) items = json_array_elements(json_object_field(data, "messages", "[]"));
-    const auto user_message = chat ? input_at(input_last(input_at(data, "messages")), "content") : input_at(data, "prompt");
+    // A present falsey audio format still invokes transcription in the source.
+    // Keep that helper's error and callback ordering; the ordinary text path
+    // needs no serialization boundary here.
+    if (!field("audio_format", "").empty()) {
+        data = parse_fields(llm_apply_audio_format(json_object_from_ordered_entries(data), chat, operations));
+        if (!messages.empty()) items = json_array_elements(field("messages", "[]"));
+    }
+    std::string user_message;
+    if (!chat) user_message = required("prompt");
+    else if (!items.empty()) user_message = input_at(items.back(), "content");
+    else user_message = input_at(input_last(required("messages")), "content");
     if (model.vision && !images.empty()) {
         auto processed = llm_prepare_images(images, operations);
         if (chat && !processed.empty()) {
             processed.insert(processed.begin(), "{\"type\":\"text\",\"text\":" + user_message + '}');
             items.back() = input_set(items.back(), "content", json_array_from_values(processed));
-            data = input_set(data, "messages", json_array_from_values(items));
+            assign("messages", json_array_from_values(items));
         }
     } else if (!images.empty() && operations.describe) {
         const auto user_text = stream_python_str(user_message);
@@ -8966,11 +8995,11 @@ std::string llm_prepare_text_image_input(const std::string &body, bool chat, con
         if (!llm_output_falsey(description)) {
             const auto enhanced = '"' + json_escape("[Image Description: " + stream_python_str(description)
                 + "]\n\nUser's question: " + user_text) + '"';
-            if (chat) { items.back() = input_set(items.back(), "content", enhanced); data = input_set(data, "messages", json_array_from_values(items)); }
-            else data = input_set(data, "prompt", enhanced);
+            if (chat) { items.back() = input_set(items.back(), "content", enhanced); assign("messages", json_array_from_values(items)); }
+            else assign("prompt", enhanced);
         }
     }
-    return data;
+    return json_object_from_ordered_entries(data);
 }
 
 std::string llm_stream_delta(const std::string &json) {
