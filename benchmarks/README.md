@@ -50,3 +50,51 @@ on the same idle host. The target is excluded from ordinary builds.
 
 Benchmark guard checks run with
 `python -m unittest discover -s benchmarks -p test_bench_prefill.py`.
+
+## Comparative streaming and conversation measurements
+
+`bench_progression.py` adds streamed first-output latency, native decode rates
+and an alternating conversation replay. Reserve the worker/engine before
+running it and capture sanitized image, engine, GPU and runtime settings in
+the metadata file. The caller owns drain leases and restoration.
+
+```sh
+python benchmarks/bench_progression.py http://127.0.0.1:28192 frozen-source.py \
+  build/validation/4090-baseline.json --label DevXT4090 \
+  --model unsloth/Qwen3.8-27B-GGUF --metadata sanitized-runtime.json \
+  --run-id comparison-20261026 --prompt-chars 300000 680000
+```
+
+Run the same command on fresh baseline and candidate engines with the same
+`--run-id` to compare identical request hashes and answers. The default run ID
+is random, preventing accidental reuse between unrelated runs. A fixed run ID
+must not be reused on a warmed engine: cold samples that reuse 100 or more
+tokens are rejected. `messages_sha256` retains the historical `bench_prefill`
+serialization. Exact October 18/25 first prompts require one fresh engine per
+depth and `--suites prefill --prompt-chars 680000 --exact-first-prompt`.
+
+Suites can be selected independently with `--suites latency decode prefill
+cache`. First-output latency ends at the first nonempty content or reasoning
+delta; role announcements, empty deltas, usage and keepalives do not count.
+Reports retain native evaluated/cached/generated token counts and rates. They
+never derive token throughput from stream chunks. Inspect the generated-token
+count and finish reason when comparing decode runs. Warmup is excluded.
+
+The cache suite alternates three named conversations twice by default. It
+records evaluated tokens, cached tokens, wall time, first-output latency,
+branch-label correctness and whether returning answers match their first
+answers. `tail_reused` means at most 16 prompt tokens were evaluated; initial
+visits to later conversations may legitimately reuse their common prefix.
+`--require-identical-cache-output` makes a changed returning answer fail the
+run. Cache hits depend on the actual byte budget and model state size.
+
+Completed samples and summaries are saved atomically after each request.
+Failures leave a report with `status=failed`; only `status=complete` represents
+a complete comparison run. Reports include input and harness fingerprints,
+requested sampling, full answer text/hashes, and caller-supplied settings.
+Likely credential fields in metadata are rejected; API credentials come from
+`--api-key-env` and are not recorded. Engine timing fields are required, so
+endpoints that filter them cannot produce misleading native throughput.
+
+The parser, timing, cold-cache and checkpoint guards run without an inference
+server: `python -m unittest discover -s benchmarks -p 'test_bench*.py'`.
