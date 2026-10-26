@@ -1,5 +1,8 @@
 #include "checkpoint-coverage.h"
 #include "server-common.h"
+#include "llama-batch.h"
+#include "llama-vocab.h"
+#include "speculative-mtp-state.h"
 
 #include <climits>
 #include <cstring>
@@ -7,6 +10,7 @@
 #include <set>
 #include <stdexcept>
 #include <string>
+#include <tuple>
 
 namespace {
 int checks = 0;
@@ -14,112 +18,175 @@ void require(bool value, const char * what) {
     ++checks;
     if (!value) throw std::runtime_error(what);
 }
-std::set<int32_t> offsets(const common_checkpoint_plan & plan) {
-    return {plan.offsets.begin(), plan.offsets.begin() + plan.count};
+common_checkpoint_runtime runtime() { return {1,1024,3,true,true}; }
+common_checkpoint_plan plan(bool enabled=true, int count=32, bool named=true, bool recurrent=true,
+        int64_t tokens=24577, int batch=4096, int ubatch=1024,
+        common_checkpoint_runtime rt=runtime()) {
+    return common_plan_checkpoints(tokens,batch,ubatch,count,named,recurrent,rt,enabled);
 }
-common_checkpoint_plan plan(int count = 32, bool named = true, bool recurrent = true,
-        bool enabled = true, int64_t tokens = 23252, int batch = 4096, int ubatch = 1024) {
-    return common_plan_checkpoints(tokens,batch,ubatch,count,named,recurrent,enabled);
+std::set<int32_t> offsets(const common_checkpoint_plan & p) {
+    return {p.offsets.begin(),p.offsets.begin()+p.count};
 }
-
-// Drive the production planner's actual break/near-end decisions with the
-// server's ordinary monotonic token-fill order. Checkpoints precede each batch.
-std::set<int64_t> snapshot_boundaries(const common_checkpoint_plan & p, int64_t tokens, int batch) {
-    std::set<int64_t> snapshots;
-    int64_t remaining = tokens;
-    while (remaining > 0) {
-        const int64_t before = remaining;
-        int added = 0;
-        while (remaining > 0 && added < batch) {
-            --remaining; ++added;
-            if (p.break_before_end(remaining)) break;
+struct schedule {
+    std::vector<std::pair<int32_t,int32_t>> logical;
+    std::set<int32_t> snapshots;
+};
+schedule schedule_prompt(const common_checkpoint_plan & p,int tokens,int start,int batch=4096) {
+    schedule out;
+    while (start<tokens) {
+        const int before=start;
+        int added=0;
+        while(start<tokens && added<batch) {
+            ++start; ++added;
+            if(p.break_before_end(tokens-start,added,tokens-before)) break;
         }
-        if (remaining == 0 || p.near_end(remaining,before)) snapshots.insert(before);
+        out.logical.emplace_back(before,added);
+        if(start==tokens || p.near_end(tokens-start,tokens-before)) out.snapshots.insert(before);
     }
-    return snapshots;
+    return out;
 }
-
-void eligible_and_legacy_boundaries() {
-    const auto on = plan(), off = plan(32,true,true,false);
-    require(offsets(on)==std::set<int32_t>({2052,1028,4}), "1024 adds exactly the earlier 2K boundary");
-    require(offsets(off)==std::set<int32_t>({1028,4}), "opt-out preserves both original offsets");
-    require(on.extra_offset==2052 && on.extra_near_span==2048 && on.old_near_span==1024,
-        "earlier checkpoint has its own span without changing ordinary near-end behavior");
-    require(on.break_before_end(2052) && on.break_before_end(1028) && on.break_before_end(4), "all intended split points remain active");
-    require(!off.break_before_end(2052), "baseline has no earlier split");
-    require(on.near_end(1028,2052) && !off.near_end(1028,2052),
-        "snapshot before the 2052-to-1028 batch is actually permitted");
-    require(on.near_end(4,1028) && off.near_end(4,1028), "old near-end microbatch snapshot remains");
-    require(on.near_end(0,4) && off.near_end(0,4), "last four-token snapshot remains");
-    require(!on.near_end(1500,2400), "expanded coverage cannot add arbitrary intermediate/user-split checkpoints");
-    require(on.near_end(1500,2052), "a user split within the extra batch still preserves its designated starting snapshot");
-    const auto before = snapshot_boundaries(off,23252,4096);
-    const auto after = snapshot_boundaries(on,23252,4096);
-    require(before==std::set<int64_t>({1028,4}), "ordinary long prompt retains original two end snapshots");
-    require(after==std::set<int64_t>({2052,1028,4}), "production decisions add one checkpoint and lose neither old checkpoint");
-    require(after.size()==before.size()+1, "near-end snapshot growth is one, not unbounded");
-}
-
-void qualification_guards() {
-    const auto base = offsets(plan(32,true,true,false));
-    for (int count=-2;count<=3;++count) {
-        const auto p=plan(count);
-        require(offsets(p)==base && p.extra_offset==0, "checkpoint counts below four retain original behavior");
-    }
-    require(offsets(plan(4))==offsets(plan(32)), "minimum qualified checkpoint budget supports the same one extra boundary");
-    require(offsets(plan(32,false))==base, "unnamed prompts are untouched");
-    require(offsets(plan(32,true,false))==base, "non-recurrent checkpoint paths are untouched");
-    require(offsets(plan(32,true,true,true,4095))==base, "short prompts are untouched");
-    require(offsets(plan(32,true,true,true,4096))==offsets(plan()), "4096-token named prompt reaches the qualification threshold");
-    require(offsets(plan(32,true,true,true,0))==base, "empty prompt cannot enable new coverage");
-    require(offsets(plan(32,true,true,true,23252,0,1024)).empty(), "invalid zero batch cannot create a boundary");
-    require(offsets(plan(32,true,true,true,23252,4096,0)).empty(), "invalid zero physical batch cannot create a boundary");
-}
-
-void cap_deduplicate_and_keep_other_cards_unchanged() {
-    const auto on2048=plan(32,true,true,true,23252,4096,2048);
-    const auto off2048=plan(32,true,true,false,23252,4096,2048);
-    require(offsets(on2048)==offsets(off2048) && on2048.extra_offset==0, "2048 already has the desired boundary and remains unchanged");
-    require(on2048.old_near_span==off2048.old_near_span, "2048 near-end predicate is unchanged");
-    for (int remaining=0;remaining<5000;remaining+=37) {
-        require(on2048.break_before_end(remaining)==off2048.break_before_end(remaining), "2048 break decisions are identical");
-        require(on2048.near_end(remaining,remaining+500)==off2048.near_end(remaining,remaining+500), "2048 snapshot decisions are identical");
-    }
-    for (int batch : {1,4,512,1024,2048,4096}) {
-        for (int ubatch : {1,256,512,1024,2048,4096}) {
-            const auto p=plan(32,true,true,true,23252,batch,ubatch);
-            const auto old=plan(32,true,true,false,23252,batch,ubatch);
-            require(p.count<=3 && p.count<=old.count+1, "planner never adds more than one distinct boundary");
-            for (int offset : offsets(p)) require(offset>0 && offset<=batch, "every boundary respects the logical batch cap");
-            for (int offset : offsets(old)) require(offsets(p).count(offset)==1, "deduplication never loses an old boundary");
+using group = std::vector<std::tuple<llama_pos,llama_token,int>>;
+using groups = std::vector<group>;
+// Execute the actual production hybrid/recurrent splitter, including RS-tail
+// reservation. Token/position/output rows must retain exactly the old groups.
+groups physical_groups(const schedule & s,int tokens,uint32_t ubatch,uint32_t rollback,bool draft=false) {
+    groups result;
+    llama_vocab vocab;
+    for(const auto & chunk:s.logical) {
+        llama_batch_ext input(chunk.second,2,2,1,nullptr,64,1);
+        bool valid=true;
+        for(int i=0;i<chunk.second;++i) {
+            const int index=input.add_token(0);
+            const llama_pos pos=chunk.first+i;
+            valid=valid && index>=0 && input.set_token_id(index,pos%64) && input.set_token_pos(index,&pos) &&
+                    input.set_output(index,pos==tokens-1);
+        }
+        require(valid,"actual input token/position/output row construction succeeds");
+        llama_batch_allocr allocator(1);
+        require(allocator.init(input,vocab,false),"actual allocator accepts the token batch");
+        allocator.split_reset();
+        while(allocator.get_n_used()<allocator.get_n_tokens()) {
+            const auto physical=draft?allocator.split_simple(ubatch):
+                allocator.split_equal(ubatch,true,rollback>0?rollback+1:0);
+            require(physical.n_tokens>0 && physical.n_seqs_unq==1 && (draft || physical.n_seqs==1),
+                "actual splitter returns rows for one unique sequence");
+            group current;
+            for(uint32_t i=0;i<physical.n_tokens;++i)
+                current.emplace_back(physical.pos[i],physical.token[i],physical.output[i]);
+            result.push_back(std::move(current));
         }
     }
-    const auto max=plan(32,true,true,true,INT64_MAX,INT_MAX,INT_MAX);
-    require(offsets(max)==std::set<int32_t>({INT_MAX,4}) && max.extra_offset==0, "large configuration values do not overflow offset arithmetic");
-    const auto capped=plan(32,true,true,true,23252,2048,1024);
-    require(offsets(capped)==std::set<int32_t>({2048,1028,4}) && capped.extra_near_span==2044,
-        "additional boundary is safely capped below requested 2052");
+    return result;
+}
+
+void measured_schedule_and_actual_splitters() {
+    const auto on=plan(),off=plan(false);
+    require(offsets(on)==std::set<int32_t>({1028,4}) && offsets(on)==offsets(off),
+        "both original fixed offsets remain, without a new fixed2052 split");
+    require(on.extra_window_end==2052 && on.rollback_tail==4,"extra snapshot window includes target rollback tail");
+    const auto before=schedule_prompt(off,24577,75),after=schedule_prompt(on,24577,75);
+    require(before.snapshots==std::set<int32_t>({23549,24573}),"observed baseline has the original two checkpoints");
+    require(after.snapshots==std::set<int32_t>({22603,23549,24573}),"one added checkpoint is aligned to the original physical groups");
+    require(after.snapshots.size()==before.snapshots.size()+1,"only one snapshot is added");
+    require(physical_groups(before,24577,1024,3)==physical_groups(after,24577,1024,3),
+        "actual target RS splitter keeps identical cold token/position/output groups");
+    require(physical_groups(before,24577,1024,0,true)==physical_groups(after,24577,1024,0,true),
+        "actual draft splitter keeps identical cold token/position/output groups");
+    require(!on.break_before_end(2052,1970,4022),"absolute2052 offset is not a physical boundary");
+    require(on.break_before_end(1974,2048,4022),"actual measured full-physical-batch boundary is selected");
+    require(on.near_end(1028,1974),"next batch captures the aligned starting checkpoint");
+}
+
+void tail_reservation_and_original_start_alignment() {
+    for(uint32_t rollback:{0u,1u,3u,7u}) {
+        auto rt=runtime();rt.rollback_tokens=rollback;
+        for(int length:{1025,1026,1027,1031,2049,2050,2051,2055,2994,3073,3074,3075,3079,4096}) {
+            const int start=75,tokens=start+length+1028;
+            const auto before=schedule_prompt(plan(false,32,true,true,tokens,4096,1024,rt),tokens,start);
+            const auto after=schedule_prompt(plan(true,32,true,true,tokens,4096,1024,rt),tokens,start);
+            require(physical_groups(before,tokens,1024,rollback)==physical_groups(after,tokens,1024,rollback),
+                "actual target grouping is preserved around short rollback tails");
+            require(physical_groups(before,tokens,1024,0,true)==physical_groups(after,tokens,1024,0,true),
+                "actual draft grouping is preserved around target rollback tails");
+            for(int old:before.snapshots)require(after.snapshots.count(old)==1,"neither original checkpoint disappears");
+            require(after.snapshots.size()<=before.snapshots.size()+1,"tail cases add at most one checkpoint");
+        }
+    }
+    require(!plan().break_before_end(1030,3072,4102),"two-row legacy tail cannot split before a four-row RS reservation");
+    for(int start:{0,75,128,1234}) {
+        const auto before=schedule_prompt(plan(false),24577,start),after=schedule_prompt(plan(),24577,start);
+        require(physical_groups(before,24577,1024,3)==physical_groups(after,24577,1024,3),
+            "alignment follows each actual/user-start logical base, not absolute token positions");
+    }
+}
+
+void eligibility_and_other_configs() {
+    const auto base=offsets(plan(false));
+    for(int count=-2;count<4;++count)require(plan(true,count).extra_window_end==0,"low checkpoint counts retain old behavior");
+    require(plan(true,4).extra_window_end>0,"four checkpoint slots qualify");
+    require(plan(true,32,false).extra_window_end==0,"unnamed prompts retain old behavior");
+    require(plan(true,32,true,false).extra_window_end==0,"non-recurrent paths retain old behavior");
+    require(plan(true,32,true,true,4095).extra_window_end==0,"short prompts retain old behavior");
+    for(int ubatch:{1,256,512,2048,4096}) {
+        auto rt=runtime();rt.draft_ubatch=ubatch;
+        const auto on=plan(true,32,true,true,24577,4096,ubatch,rt),off=plan(false,32,true,true,24577,4096,ubatch,rt);
+        require(on.extra_window_end==0 && offsets(on)==offsets(off),"unqualified physical sizes retain original scheduler");
+    }
+    for(int which=0;which<6;++which) {
+        auto rt=runtime();
+        if(which==0)rt.slots=2;
+        if(which==1)rt.draft_ubatch=512;
+        if(which==2)rt.draft_ubatch=0;
+        if(which==3)rt.rollback_tokens=1023;
+        if(which==4)rt.single_mtp_head=false;
+        if(which==5)rt.uninterrupted_last_user=false;
+        require(plan(true,32,true,true,24577,4096,1024,rt).extra_window_end==0,
+            "multiple slots, custom draft UB, excessive RS, multiple heads and future switches disable experiment");
+    }
+    for(int batch:{1,4,512,1024,2048,4096})for(int ubatch:{1,256,512,1024,2048,4096}) {
+        const auto p=plan(true,32,true,true,24577,batch,ubatch),old=plan(false,32,true,true,24577,batch,ubatch);
+        require(offsets(p)==offsets(old),"legacy capped/deduplicated fixed offsets are unchanged");
+        for(int offset:offsets(p))require(offset>0 && offset<=batch,"all original offsets respect logical cap");
+    }
+    require(plan(true,32,true,true,24577,0).count==0,"invalid zero batch yields no split");
+    require(plan(true,32,true,true,24577,4096,0).count==0,"invalid zero UB yields no split");
+    require(offsets(plan(true,32,true,true,INT64_MAX,INT_MAX,INT_MAX))==std::set<int32_t>({INT_MAX,4}),"offset addition cannot overflow");
+}
+
+void mtp_boundary_continuity() {
+    common_mtp_state state(2,16,4);
+    const auto row=[](int pos){return std::array<float,2>{float(pos),float(-pos)};};
+    const auto record=[&](int start,int count){state.record(start,count,[&](size_t i){
+        static std::array<float,2> value;value=row(start+int(i));
+        return common_mtp_state::row_view{start+int32_t(i)+1,value.data()};});};
+    state.seal(20555);
+    record(20555,2048);
+    const auto expected=row(22602);
+    const float * predecessor=state.prepare(22603,false);
+    require(predecessor && predecessor[0]==expected[0] && predecessor[1]==expected[1],
+        "split MTP process gets the exact predecessor h22602 at boundary22603");
+    record(22603,946);
+    require(state.pending_next==23549 && state.pending==std::vector<float>({23548,-23548}),
+        "right logical chunk reaches the same final MTP pending boundary");
 }
 
 void environment_optout() {
     const char * existing=std::getenv("EZLOCALAI_LLAMA_CHECKPOINT_COVERAGE");
-    const bool had_existing=existing!=nullptr;
-    const std::string saved=existing ? existing : "";
+    const bool present=existing!=nullptr;
+    const std::string saved=existing?existing:"";
     unsetenv("EZLOCALAI_LLAMA_CHECKPOINT_COVERAGE");
-    require(common_checkpoint_coverage_enabled(), "coverage defaults on for qualified cases");
+    require(common_checkpoint_coverage_enabled(),"experimental default applies only after all runtime guards");
     setenv("EZLOCALAI_LLAMA_CHECKPOINT_COVERAGE","0",1);
-    require(!common_checkpoint_coverage_enabled(), "explicit zero disables the experiment in the same binary");
-    require(common_plan_checkpoints(23252,4096,1024,32,true,true).extra_offset==0, "default planner reads opt-out");
+    require(!common_checkpoint_coverage_enabled(),"explicit zero disables coverage");
+    require(common_plan_checkpoints(24577,4096,1024,32,true,true,runtime()).extra_window_end==0,"production planner reads opt-out");
     setenv("EZLOCALAI_LLAMA_CHECKPOINT_COVERAGE","1",1);
-    require(common_plan_checkpoints(23252,4096,1024,32,true,true).extra_offset==2052, "explicit one enables qualified coverage");
-    if (had_existing) setenv("EZLOCALAI_LLAMA_CHECKPOINT_COVERAGE",saved.c_str(),1);
-    else unsetenv("EZLOCALAI_LLAMA_CHECKPOINT_COVERAGE");
+    require(common_plan_checkpoints(24577,4096,1024,32,true,true,runtime()).extra_window_end==2052,"explicit one enables qualified alignment");
+    if(present)setenv("EZLOCALAI_LLAMA_CHECKPOINT_COVERAGE",saved.c_str(),1);else unsetenv("EZLOCALAI_LLAMA_CHECKPOINT_COVERAGE");
 }
-
 void actual_server_tokens_media_classification() {
     const auto enabled_for = [](const server_tokens & tokens) {
         return common_plan_checkpoints(24577,4096,1024,32,
-                common_checkpoint_prompt_is_text_only(tokens),true,true).extra_offset == 2052;
+                common_checkpoint_prompt_is_text_only(tokens),true,runtime(),true).extra_window_end == 2052;
     };
     server_tokens ordinary(llama_tokens{1,2,3}, false);
     server_tokens projector_text(llama_tokens{1,2,3}, true);
@@ -173,10 +240,10 @@ void actual_server_tokens_media_classification() {
 
 int main() {
     try {
-        eligible_and_legacy_boundaries(); qualification_guards();
-        cap_deduplicate_and_keep_other_cards_unchanged(); environment_optout();
+        measured_schedule_and_actual_splitters(); tail_reservation_and_original_start_alignment();
+        eligibility_and_other_configs(); mtp_boundary_continuity(); environment_optout();
         actual_server_tokens_media_classification();
-        std::cout << checks << " production checkpoint coverage planner checks passed\n";
+        std::cout << checks << " production checkpoint alignment checks passed\n";
         return 0;
     } catch (const std::exception & error) {
         std::cerr << error.what() << '\n';

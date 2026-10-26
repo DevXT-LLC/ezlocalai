@@ -1,9 +1,9 @@
 diff --git a/common/checkpoint-coverage.h b/common/checkpoint-coverage.h
 new file mode 100644
-index 0000000..800cc97
+index 0000000..27c2351
 --- /dev/null
 +++ b/common/checkpoint-coverage.h
-@@ -0,0 +1,70 @@
+@@ -0,0 +1,95 @@
 +#pragma once
 +
 +#include "llama.h"
@@ -29,30 +29,52 @@ index 0000000..800cc97
 +}
 +
 +struct common_checkpoint_plan {
-+    std::array<int32_t, 3> offsets{};
++    std::array<int32_t, 2> offsets{};
 +    size_t count = 0;
 +    int32_t old_near_span = 0;
-+    int32_t extra_offset = 0;
-+    int32_t extra_near_span = 0;
++    int32_t logical_batch = 0;
++    int32_t extra_window_end = 0;
++    uint32_t rollback_tail = 0;
 +
-+    bool break_before_end(int64_t remaining) const {
++    bool break_before_end(int64_t remaining, int64_t added = 0, int64_t remaining_before = 0) const {
 +        for (size_t i = 0; i < count; ++i) if (remaining == offsets[i]) return true;
++        if (extra_window_end > 0 && remaining > offsets[0] && remaining <= extra_window_end &&
++                added > 0 && added % old_near_span == 0) {
++            // Match an ORIGINAL physical boundary, not an absolute prompt
++            // offset. The original target splitter reserves its RS tail;
++            // splitting immediately before a shorter tail would rephase it.
++            const int64_t legacy_chunk = std::min<int64_t>(logical_batch, remaining_before - offsets[0]);
++            return legacy_chunk - added >= rollback_tail;
++        }
 +        return false;
 +    }
 +    bool near_end(int64_t remaining_after, int64_t remaining_before) const {
-+        // Preserve ordinary near-end behavior. The expanded span permits only
-+        // the ONE added snapshot, not unrelated user-message/batch boundaries.
++        // The extra window is one physical batch wide. Once reached, the next
++        // original split ends the window, so at most one snapshot is added.
 +        return remaining_after < old_near_span ||
-+            (extra_offset > 0 && remaining_before == extra_offset && remaining_after < extra_near_span);
++            (extra_window_end > 0 && remaining_before > offsets[0] &&
++             remaining_before <= extra_window_end && remaining_after <= offsets[0]);
 +    }
++};
++
++struct common_checkpoint_runtime {
++    size_t slots = 0;
++    uint32_t draft_ubatch = 0;
++    uint32_t rollback_tokens = 0;
++    bool single_mtp_head = false;
++    // No later user-start, LoRA switch or shared-parent boundary may shorten
++    // the original logical chunk used for the physical-alignment proof.
++    bool uninterrupted_last_user = false;
 +};
 +
 +inline common_checkpoint_plan common_plan_checkpoints(
 +        int64_t prompt_tokens, int32_t n_batch, int32_t n_ubatch,
 +        int32_t max_checkpoints, bool named_text_prompt, bool recurrent_checkpoint,
++        const common_checkpoint_runtime & runtime,
 +        bool enabled = common_checkpoint_coverage_enabled()) {
 +    common_checkpoint_plan plan;
 +    plan.old_near_span = std::max(0, n_ubatch);
++    plan.logical_batch = n_batch;
 +    if (n_batch <= 0 || n_ubatch <= 0) return plan;
 +    const auto bounded = [n_batch](int64_t offset) { return int32_t(std::min<int64_t>(n_batch, offset)); };
 +    const auto add = [&](int32_t offset) {
@@ -63,46 +85,74 @@ index 0000000..800cc97
 +    // These two original offsets always remain, including with the opt-out.
 +    add(bounded(int64_t(n_ubatch) + 4));
 +    add(bounded(4));
-+    if (enabled && named_text_prompt && recurrent_checkpoint &&
-+            prompt_tokens >= 4096 && max_checkpoints >= 4) {
-+        const int32_t extra = bounded(std::max<int64_t>(n_ubatch, 2048) + 4);
-+        if (add(extra)) {
-+            plan.extra_offset = extra;
-+            plan.extra_near_span = std::max(n_ubatch, extra - 4);
-+        }
++    // This experiment is deliberately limited to the measured fleet's 1024
++    // path. Other physical sizes, multiple slots/heads and custom draft batch
++    // sizes retain the exact original scheduler.
++    if (enabled && named_text_prompt && recurrent_checkpoint && prompt_tokens >= 4096 &&
++            max_checkpoints >= 4 && runtime.slots == 1 && n_ubatch == 1024 &&
++            runtime.draft_ubatch == uint32_t(n_ubatch) && runtime.single_mtp_head &&
++            runtime.uninterrupted_last_user && runtime.rollback_tokens < uint32_t(n_ubatch - 1) &&
++            n_batch >= 2*n_ubatch) {
++        plan.extra_window_end = bounded(2*int64_t(n_ubatch) + 4);
++        plan.rollback_tail = runtime.rollback_tokens > 0 ? runtime.rollback_tokens + 1 : 1;
 +    }
 +    std::sort(plan.offsets.begin(), plan.offsets.begin() + plan.count, [](int32_t a, int32_t b) { return a > b; });
 +    return plan;
 +}
 diff --git a/tools/server/server-context.cpp b/tools/server/server-context.cpp
-index d46d508..7a4be2d 100644
+index d46d508..1efd121 100644
 --- a/tools/server/server-context.cpp
 +++ b/tools/server/server-context.cpp
 @@ -10,6 +10,7 @@
- 
+
  #include "build-info.h"
  #include "common.h"
 +#include "checkpoint-coverage.h"
  #include "fit.h"
  #include "llama.h"
  #include "log.h"
-@@ -4039,6 +4040,12 @@ private:
+@@ -4039,6 +4040,25 @@ private:
                              ctx_tgt_seq_rm_type == COMMON_CONTEXT_SEQ_RM_TYPE_RS ||
                              n_swa > 0);
- 
+
++                    const auto & spans = slot.task->params.message_spans;
++                    const auto last_user_pos = spans.last_user_message_pos();
++                    const common_checkpoint_runtime checkpoint_runtime {
++                        slots.size(),
++                        ctx_dft ? llama_n_ubatch(ctx_dft) : 0,
++                        llama_n_rs_seq(ctx_tgt),
++                        model_dft && llama_model_n_layer_nextn(model_dft) == 1 &&
++                            params_base.speculative.types.size() == 1 &&
++                            params_base.speculative.types[0] == COMMON_SPECULATIVE_TYPE_DRAFT_MTP,
++                        last_user_pos >= 0 && int64_t(last_user_pos) <= int64_t(slot.prompt.n_tokens()) && slot.lora.empty() &&
++                            slot.task->n_tokens_shared == 0 && llama_get_causal_attn(ctx_tgt),
++                    };
 +                    const auto checkpoint_plan = common_plan_checkpoints(
 +                            slot.task->n_tokens(), n_batch, n_ubatch, params_base.n_ctx_checkpoints,
 +                            !slot.task->params.prompt_cache_key.empty() && common_checkpoint_prompt_is_text_only(input_tokens),
 +                            do_checkpoint && (ctx_tgt_seq_rm_type == COMMON_CONTEXT_SEQ_RM_TYPE_FULL ||
-+                                              ctx_tgt_seq_rm_type == COMMON_CONTEXT_SEQ_RM_TYPE_RS));
++                                              ctx_tgt_seq_rm_type == COMMON_CONTEXT_SEQ_RM_TYPE_RS),
++                            checkpoint_runtime);
 +
                      // TODO: do the same for all models, then remove process_mtmd_chunk()
                      if (use_mixed_batch() && !slot.can_split() && input_tokens.has_mtmd) {
                          if (!add_prompt_mixed(slot)) {
-@@ -4145,25 +4152,11 @@ private:
+@@ -4091,10 +4111,8 @@ private:
+                         has_mtmd = true;
+                     }
+
+-                    const auto & spans = slot.task->params.message_spans;
+-                    const auto last_user_pos = spans.last_user_message_pos();
+-
+                     const int32_t n_decision_first = slot.task->type == SERVER_TASK_TYPE_DECISION ? slot.task->decision.pos_first() : -1;
++                    const auto prompt_remaining_before_batch = slot.task->n_tokens() - slot.prompt.n_tokens();
+
+                     // add prompt tokens for processing in the current batch
+                     while (slot.prompt.n_tokens() < slot.task->n_tokens() && batch.size() < n_batch) {
+@@ -4145,25 +4163,12 @@ private:
                              }
                          }
- 
+
 -                        // process the last few tokens of the prompt separately in order to allow for a checkpoint to be created.
 -                        // create checkpoints that many tokens before the end of the prompt:
 -                        //  - 4 + n_ubatch
@@ -122,22 +172,23 @@ index d46d508..7a4be2d 100644
 -                            if (should_break) {
 -                                break;
 -                            }
-+                        // Split at the original end boundaries, plus one earlier
-+                        // boundary for long named recurrent text conversations.
++                        // Keep original splits. Any additional split must land
++                        // on an original physical boundary of this logical batch.
 +                        if (do_checkpoint && checkpoint_plan.break_before_end(
-+                                slot.task->n_tokens() - slot.prompt.n_tokens())) {
++                                slot.task->n_tokens() - slot.prompt.n_tokens(),
++                                batch.size() - n_tokens_prev, prompt_remaining_before_batch)) {
 +                            break;
                          }
                      }
- 
-@@ -4172,7 +4165,9 @@ private:
- 
+
+@@ -4172,7 +4177,9 @@ private:
+
                      const auto n_tokens_start = slot.prompt.n_tokens() - n_tokens_cur;
- 
+
 -                    const bool near_prompt_end = slot.task->n_tokens() < slot.prompt.n_tokens() + n_ubatch;
 +                    const bool near_prompt_end = checkpoint_plan.near_end(
 +                            slot.task->n_tokens() - slot.prompt.n_tokens(),
 +                            slot.task->n_tokens() - n_tokens_start);
- 
+
                      const bool is_user_start = spans.is_user_start(n_tokens_start);
                      const bool is_last_user_message = n_tokens_start == last_user_pos;

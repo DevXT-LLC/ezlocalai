@@ -3,78 +3,132 @@
   "date": "2026-10-26",
   "upstream_revision": "620d2225cc436ab0b001e3200e590e3b286ef9ab",
   "patch": "patches/llama-checkpoint-coverage.patch",
-  "patch_sha256": "704dc9d4905ba075a0b1ad0a2c22793a669ad635347d7f556ee063a75c2fc9ce",
+  "patch_sha256": "88367ba11092bdcf77de198eafbf797f9c0667c82014e7a5c87ae9d9a28fde18",
   "ordered_prerequisite": "conversation-cache -> cache-restore-atomic -> cache-storage -> mtp-resume",
   "source_sha256": {
-    "common/checkpoint-coverage.h": "67450323bc96c930bcc3b3971661b96035af825ffdf5e1cb73d73f3c017793d1",
-    "tools/server/server-context.cpp": "dae2c231890a32c1e9cd601cd05733ca0a934a776aa8a92f8aabc5b7e459a046"
+    "common/checkpoint-coverage.h": "1b139b9e8e533bc6000741e4f0ffcf4566feab7f3d201d12de4d2ae7e260c47a",
+    "tools/server/server-context.cpp": "c6ef1b27e2082896f09f4a8d3f378f81ef2a9b33c06679634bc71f4456c752a1"
   },
-  "test_source_sha256": "ea133287bbd66e3a24d0ba11eaae5f4e80b0a6be64068611acc593eb46e77175",
+  "test_source_sha256": "d2366e427affc783422a4f37f548d78f66e10af8a284c28ec37d27a1878d6dcd",
   "qualification": {
-    "planner_optimized_checks_passed": 494,
-    "planner_asan_ubsan_checks_passed": 494,
+    "optimized_checks_passed": 3485,
+    "asan_ubsan_checks_passed": 3485,
+    "actual_server_tokens_and_mtmd_linked": true,
+    "actual_target_split_equal_and_draft_split_simple_linked": true,
     "actual_modified_server_context_syntax_compile_passed": true,
     "matched_four_patch_headers_and_release_flags": true,
     "patch_reverse_reapply_check_passed": true,
-    "independent_read_only_review": "no blocking defect found",
-    "real_cuda_speed_measured": false,
-    "real_model_quality_measured": false,
-    "actual_server_tokens_and_mtmd_linked": true,
-    "projector_text_negative_control_rejected": true,
-    "media_at_zero_negative_control_rejected": true
+    "independent_read_only_review": "no blocking defect; suggestion to use literal production draft splitter implemented",
+    "negative_controls_rejected": [
+      "unaligned extra split",
+      "ignored recurrent-tail reservation",
+      "projector-loaded text wrongly excluded",
+      "media at zero missed by upper_bound"
+    ],
+    "real_aligned_cuda_speed_measured": false,
+    "real_aligned_model_quality_measured": false
   },
   "policy": {
     "minimum_prompt_tokens": 4096,
     "minimum_configured_checkpoint_count": 4,
     "requires_named_prompt_cache_key": true,
-    "text_only": true,
+    "text_only_classification": "actual media chunks, including index zero; has_mtmd is not media presence",
     "requires_existing_full_or_recurrent_checkpoint_path": true,
-    "additional_offset_before_capping": "4 + max(n_ubatch, 2048)",
+    "requires_exactly_one_configured_slot": true,
+    "requires_target_and_draft_physical_batch": 1024,
+    "requires_only_draft_mtp_with_one_trained_head": true,
+    "requires_causal_last_user_phase_without_lora_or_shared_parent": true,
     "maximum_additional_near_end_snapshots": 1,
     "preserves_original_offsets": [
       "min(n_batch, 4 + n_ubatch)",
       "min(n_batch, 4)"
     ],
-    "ubatch_2048_behavior_unchanged": true,
-    "old_near_end_predicate_preserved": true,
-    "new_snapshot_only_at_exact_extra_batch_start": true,
+    "additional_split": "an original physical boundary from the current logical batch start, with remaining in (1028,min(n_batch,2052)] and sufficient original RS tail",
+    "rollback_tail_guard": "legacy_chunk_tokens - candidate_tokens >= n_rs_seq + 1 (or 1 without RS)",
+    "ubatch_2048_and_other_sizes_unchanged": true,
     "configured_checkpoint_limit_unchanged": true,
     "hard_cache_byte_budget_unchanged": true,
-    "optout_environment": "EZLOCALAI_LLAMA_CHECKPOINT_COVERAGE=0",
-    "text_only_classification": "actual media chunks; media at index zero handled separately from upper_bound lookup"
+    "optout_environment": "EZLOCALAI_LLAMA_CHECKPOINT_COVERAGE=0"
   },
-  "measured_planner_schedule": {
-    "prompt_tokens": 23252,
+  "qualified_model_free_schedule": {
+    "prompt_tokens": 24577,
+    "initial_user_start": 75,
     "n_batch": 4096,
-    "n_ubatch": 1024,
-    "baseline_snapshot_remaining_tokens": [
-      1028,
-      4
+    "target_and_draft_n_ubatch": 1024,
+    "target_n_rs_seq": 3,
+    "old_final_large_logical_chunk": [
+      20555,
+      23549
     ],
-    "coverage_snapshot_remaining_tokens": [
-      2052,
-      1028,
-      4
-    ]
+    "baseline_snapshot_positions": [
+      23549,
+      24573
+    ],
+    "aligned_snapshot_positions": [
+      22603,
+      23549,
+      24573
+    ],
+    "old_target_and_draft_physical_ranges": [
+      [
+        20555,
+        21579
+      ],
+      [
+        21579,
+        22603
+      ],
+      [
+        22603,
+        23549
+      ]
+    ],
+    "new_target_and_draft_physical_ranges": [
+      [
+        20555,
+        21579
+      ],
+      [
+        21579,
+        22603
+      ],
+      [
+        22603,
+        23549
+      ]
+    ],
+    "remaining_at_added_snapshot": 1974,
+    "mtp_predecessor_row": 22602,
+    "tail_cases": 56,
+    "additional_start_alignment_cases": 4
+  },
+  "production_splitter_provenance": {
+    "source_sha256": {
+      "src/llama-batch.cpp": "bdaa2cea85556483d008a214bd20b8d8c3a851a95e26a1ec7fc0151b1b5ced25",
+      "src/llama-batch.h": "c73c35c56408ce9fd54862ac39794ed3a8bcb21b5f5de68395e8285f68b2da57",
+      "src/llama-vocab.h": "b3352ac3ca3e4429c6603e2bbc6e1db7a906d8d3098468dc827711e40d7babb5"
+    },
+    "libllama_sha256": "42120cef2bba02caac2d283f70be9de21f76b5326f53372110282d13b666d312",
+    "engine_source_and_library_unchanged_by_this_patch": true
   },
   "artifacts": {
-    "optimized_log_sha256": "f5f96d9489cc168992046a2c46483feac249a1bce96d1b323a864526c32c9a4d",
-    "asan_ubsan_log_sha256": "f5f96d9489cc168992046a2c46483feac249a1bce96d1b323a864526c32c9a4d",
+    "optimized_log_sha256": "674a842a7fd36156ef459d0e0c697a0c9414665f77225fa8d8d46e2e567d93e4",
+    "asan_ubsan_log_sha256": "674a842a7fd36156ef459d0e0c697a0c9414665f77225fa8d8d46e2e567d93e4",
     "actual_cpp_syntax_log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "negative_unaligned_log_sha256": "c25cabc44c8443afdb30181a0bac9cdf93d5dfe1ac9df7b2019e1f07d26d744b",
+    "negative_rs_tail_log_sha256": "9fed50aec97439b2e1b1c0d36b0cc2fa0a3491d405a43f2c5a151634f8020a21",
     "negative_projector_flag_log_sha256": "717e57532b207a5ec1d6579caace78a1b44cda8b05ddf70495823a7643f3f958",
     "negative_upper_bound_log_sha256": "ddc63071ab633a40ea821c31a9a91252b6f49339976b70233c0c8b4f35a0c155"
   },
+  "historical_experiments": {
+    "first_fixed_offset": "Disabled for projector text by the old has_mtmd eligibility check; no gain.",
+    "corrected_fixed_offset": "Rewind gain observed by root, but off/on generated answers changed; superseded by alignment experiment.",
+    "frozen_hardware_proofs_not_modified": true
+  },
   "limits": [
     "One extra checkpoint adds pageable RAM and may reduce retained states under a fixed cache limit.",
-    "Synthetic branch-suffix coverage is workload-dependent; first-visit and cache-pressure latency need CUDA measurements.",
-    "Old four-patch engine source/build and parent GPU artifacts were not modified.",
-    "Root owns package wiring, the strict managed-source contract and real-GPU qualification."
-  ],
-  "projector_text_correction": {
-    "cause": "OAI chat with a loaded projector sets server_tokens.has_mtmd=true for text-only requests; the old eligibility predicate disabled coverage.",
-    "first_cuda_on_off_result": "Identical schedules and no rewind speedup; not qualification of corrected placement.",
-    "corrected_cuda_rerun_pending": true,
-    "existing_media_decode_guards_preserved": true,
-    "server_tokens_abi_unchanged": true
-  }
+    "Model-free equal cold physical groups are not a claim of universal CUDA bitwise identity or no quality loss.",
+    "A shortened cold prompt may group its tail differently from the longer seed that produced a restored checkpoint; rewind output needs independent quality validation.",
+    "Root owns strict ten-source hashes, package wiring, a new matched CUDA build and off/on hardware qualification."
+  ]
 }

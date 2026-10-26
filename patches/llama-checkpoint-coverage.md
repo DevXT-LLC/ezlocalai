@@ -1,63 +1,73 @@
-# Earlier checkpoint coverage for named recurrent conversations
+# Aligned checkpoint coverage experiment for named MTP conversations
 
-This fifth managed patch applies after the conversation-cache, atomic save/load,
-bounded storage and MTP-resume patches at llama.cpp
-`620d2225cc436ab0b001e3200e590e3b286ef9ab`. It changes checkpoint placement, not
-physical batch sizes, model weights, precision, sampling or context limits.
+This fifth managed patch applies after conversation-cache, atomic save/load,
+bounded storage and MTP-resume at llama.cpp
+`620d2225cc436ab0b001e3200e590e3b286ef9ab`. It leaves model weights, precision,
+physical batch sizes, sampling and context limits unchanged. Its CUDA promotion
+is conditional on a new comparison; model-free tests cannot establish quality.
 
-The original near-end checkpoints cover offsets `4 + n_ubatch` and `4` from the
-prompt end, capped by the logical batch. With physical batch 1024, the first
-checkpoint can fall after a roughly 2K-token branch record has diverged or been
-shortened. A hybrid/recurrent target then lacks an earlier usable state and
-reprocesses the entire shared prefix.
+The two original capped offsets, `4 + n_ubatch` and `4`, always remain. For the
+measured seed with 24,577 tokens, those create checkpoints at 23,549 and 24,573.
+A rewind to 23,327 precedes both and falls back to the early user checkpoint.
 
-For a **named, text-only prompt of at least 4096 tokens**, the planner adds one
-earlier offset `4 + max(n_ubatch, 2048)`, capped by the logical batch and
-deduplicated against the two original offsets. It requires an already-enabled
-FULL/RS checkpoint path and at least four configured checkpoint slots. With
-batch 4096 / physical batch 1024 the offsets become `2052, 1028, 4`; with
-physical batch 2048 the offset already exists and behavior stays unchanged.
+The earlier fixed 2052-token offset was first accidentally disabled for text
+chats with a loaded projector. Correcting that eligibility showed a substantial
+rewind gain, but changed all generated answers in the comparison. That fixed
+split is superseded by this aligned experiment; its logs remain separate.
 
-Text-only classification inspects actual media chunks. A loaded projector makes
-the OAI chat tokenizer set `server_tokens::has_mtmd` even when the request has
-only text, so that flag cannot exclude a prompt from this policy. The helper
-checks media at token zero separately because the existing next-media lookup
-uses `upper_bound`. Actual image/audio chunks remain excluded.
+The new split uses a boundary the original physical splitter already had.
+For the observed final logical chunk starting at 20,555, the original target
+and draft groups end at 21,579, 22,603 and 23,549. Splitting the logical call
+at 22,603 preserves those physical groups and makes a checkpoint available at
+22,603, with 1,974 input tokens remaining. It does not force an absolute 2052
+boundary. MTP continues with the exact predecessor `h[22602]`.
 
-The checkpoint is saved **before** the batch beginning at that earlier
-boundary. Its expanded near-end span is accepted only for that designated
-batch start; it cannot add snapshots at unrelated intermediate/user-message
-splits. Both original late offsets and their near-end decisions remain.
-Existing multimodal checks, maximum checkpoint count, minimum-step/eviction
-rules and hard prompt-cache byte accounting remain in force. This adds at most
-one near-end snapshot rather than raising the configured count limit.
+The experiment requires all of these conditions:
 
-One extra checkpoint consumes additional pageable RAM (about 150 MiB for the
-currently measured Qwen model). Its capacity is charged by the existing cache
-storage budget when the prompt is cached. A tight cache may retain fewer
-conversation states; the change does not expand its byte ceiling. Set
-`EZLOCALAI_LLAMA_CHECKPOINT_COVERAGE=0` for original placement in the **same
-binary**; the default enables coverage only for the qualified cases above.
+- a named prompt of at least 4096 tokens with actual text only;
+- an existing FULL/RS checkpoint path and at least four configured checkpoints;
+- exactly one configured slot, causal attention and no future user-start split;
+- only `draft-mtp`, one trained MTP head and matching actual target/draft physical
+  batches of 1024; other sizes, including 2048, retain the original scheduler;
+- no LoRA or shared-parent prefill boundary in the eligible last-user phase.
 
-`test_llama_checkpoint_coverage` exercises the production planner's split and
-near-end methods: eligibility, short/unnamed/non-recurrent paths, checkpoint
-counts below four, opt-out, integer bounds, logical-batch caps, deduplication,
-unchanged 2048 behavior, preservation of both original offsets and exactly one
-additional snapshot for a long prompt. It also links actual `server_tokens` and
-MTMD implementations for projector-loaded text, media at zero/after text,
-cloning, packed serialization and truncation. Optimized and ASan/UBSan runs pass
-494 checks. Private negative controls using the old `has_mtmd` predicate or only
-the next-media lookup fail the relevant regression. The actual modified
-`server-context.cpp` passes a syntax compile using
-the matched four-patch engine's release flags and headers. Those source and
-binary artifacts remain frozen; this validation uses a separate tiny source
-tree and does not replace the four-patch binaries.
+An additional split must follow a complete physical batch from the actual
+current logical batch start. It lies in the one-batch-wide remaining-token
+window `(1028, 2052]`. The original logical chunk must still leave at least
+`n_rs_seq + 1` rows after the candidate when recurrent rollback is enabled;
+otherwise the original splitter would rebalance its short tail. At most one
+additional near-end checkpoint is created. A natural batch start already in
+that window can be snapshotted without another split. Both old checkpoints,
+configured count limits, eviction rules and cache byte ceilings remain intact.
 
-Real CUDA rewind/shared-prefix gains, core state hashes, quality, context and
-vision checks are separate qualification work. Source/planner tests alone do
-not establish GPU speed or output quality.
+Text-only classification inspects actual media chunks. The OAI chat tokenizer
+sets `server_tokens::has_mtmd` for projector-loaded text too. The helper checks
+media at token zero separately because the existing next-media lookup uses
+`upper_bound`. Existing media decode/checkpoint guards remain unchanged.
 
-The first CUDA coverage on/off experiment had identical schedules and no rewind
-gain because the former `!input_tokens.has_mtmd` eligibility condition disabled
-the policy for projector-loaded text chats. The corrected media predicate needs
-a new CUDA run; that earlier result is not evidence for the corrected schedule.
+One extra checkpoint uses additional pageable RAM (about 150 MiB for the
+currently measured Qwen model), charged by the existing cache storage budget.
+A tight cache may retain fewer conversation states. Set
+`EZLOCALAI_LLAMA_CHECKPOINT_COVERAGE=0` for the original scheduler in the same
+binary. The candidate default enables the experiment only after all guards;
+production promotion still requires the new CUDA comparison.
+
+`test_llama_checkpoint_coverage` links the actual `server_tokens`, MTMD and
+production batch allocator. It compares complete ordered token/position/output
+groups from target `split_equal` with RS-tail reservation and draft
+`split_simple`, tests eligibility and preservation of old checkpoints, and
+checks the MTP carryover boundary. Projector text, media at zero/after text,
+cloning, serialization and truncation are included. Optimized and ASan/UBSan
+runs pass. Negative controls forcing an unaligned boundary or ignoring the
+recurrent tail fail. The actual modified server context passes a release-flags
+syntax compile. Root must provide the existing engine test libraries plus
+`${EZLOCALAI_TTS_LLAMA_SOURCE}/src` in this target's include directories.
+
+Identical cold physical groups are a stronger invariant than an unchanged
+physical-batch setting. They still do not establish universal GPU bitwise
+identity. A shortened prompt evaluated cold can have a different tail grouping
+from the longer prompt that created a reused checkpoint, so rewind off/on output
+hashes are not universally expected to match. New CUDA checks must compare seed
+and replay requests, verify restored-state continuation, and assess rewind
+answers and cache-pressure costs. No corrected aligned GPU result is claimed
+by this patch's model-free fixture.
