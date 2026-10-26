@@ -36,6 +36,15 @@ budget has been consumed. A load-only build using the pre-fix production
 translation unit fails at that ownership check. Separate mutation controls
 that remove the outgoing byte-count checks or exception cleanup both fail.
 
+With the complete storage/MTP patch stack, compile the same target with
+`EZLOCALAI_TEST_MTP_TRANSPORT=1` to run 40 scenarios. The nine additional cases
+replace only speculative CPU-state dispatch and check exact bytes/vector
+ownership, GPU-before-CPU-before-prompt ordering, legacy empty metadata,
+failure exclusion, required draft state, CPU capacity budgeting and protected
+entries. Consumed CPU metadata must never enter the GPU-buffer spare pool.
+These are transport/ownership checks; MTP row parsing and position semantics
+require the separate real helper tests and model validation.
+
 Build the target with `tests/test_cache_restore_atomic.cpp` and the actual
 `${EZLOCALAI_TTS_LLAMA_SOURCE}/tools/server/server-task.cpp`, using the same
 engine include directories and server/common/mtmd/llama/ggml libraries as

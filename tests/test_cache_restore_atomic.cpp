@@ -7,9 +7,15 @@
 #include <string>
 #include <vector>
 
+#if defined(EZLOCALAI_TEST_MTP_TRANSPORT) && !defined(CACHE_RESTORE_ONLY)
+#include "speculative.h"
+#define CACHE_TEST_MTP_ENABLED 1
+#endif
+
 // This test compiles the managed engine's actual server-task.cpp. Only the
-// external state-deserializer boundary is replaced, so failures exercise the
-// production cache selection, ownership, return value and invalidation code.
+// external state-serialization boundaries are replaced, together with optional
+// MTP CPU-state dispatch. Tests exercise production selection/ownership/commit
+// code without substituting its cache algorithm or claiming parser semantics.
 namespace {
 void check(bool condition, const char * message) {
     if (!condition) throw std::runtime_error(message);
@@ -29,6 +35,9 @@ struct restore_plan {
     const server_prompt_cache_state * selected = nullptr;
     std::vector<uint8_t> main;
     std::vector<uint8_t> drft;
+#ifdef CACHE_TEST_MTP_ENABLED
+    std::vector<uint8_t> spec;
+#endif
     size_t cache_size = 0;
     result target_result = result::complete;
     result draft_result = result::complete;
@@ -46,6 +55,19 @@ struct snapshot_plan {
     std::vector<restore_call> size_calls;
     std::vector<restore_call> data_calls;
 } snapshot;
+#endif
+
+#ifdef CACHE_TEST_MTP_ENABLED
+struct speculative_tag {} spec_tag;
+common_speculative * speculative_context() { return reinterpret_cast<common_speculative *>(&spec_tag); }
+struct cpu_transport_plan {
+    const server_prompt * resident = nullptr;
+    const server_prompt * before_resident = nullptr;
+    const uint8_t * bytes_pointer = nullptr;
+    size_t gpu_calls = 0;
+    size_t calls = 0;
+    std::vector<uint8_t> bytes;
+} cpu;
 #endif
 
 server_prompt prompt(int branch) {
@@ -86,6 +108,9 @@ void prepare(server_prompt_cache & cache, const server_prompt_cache_state * sele
     if (selected) {
         plan.main = selected->data.main;
         plan.drft = selected->data.drft;
+#ifdef CACHE_TEST_MTP_ENABLED
+        plan.spec = selected->data.spec;
+#endif
     }
     plan.cache_size = cache.size();
     plan.target_result = target_result;
@@ -278,7 +303,135 @@ void duplicate_snapshot() {
         "duplicate skip must not overwrite existing cached state");
 }
 #endif
+
+#ifdef CACHE_TEST_MTP_ENABLED
+std::vector<uint8_t> cpu_state(size_t capacity = 4096) {
+    std::vector<uint8_t> bytes{0x4d, 0x54, 0x50, 0x31};
+    bytes.reserve(capacity);
+    return bytes;
 }
+
+void prepare_cpu(server_prompt & resident, const server_prompt & before, size_t gpu_calls,
+        const server_prompt_cache_state * selected) {
+    cpu = {};
+    cpu.resident = &resident;
+    cpu.before_resident = &before;
+    cpu.gpu_calls = gpu_calls;
+    cpu.bytes_pointer = selected ? selected->data.spec.data() : nullptr;
+}
+
+void cpu_restore(bool with_draft, bool legacy_metadata) {
+    auto active = prompt(1), resident = prompt(3);
+    const auto before = resident.clone();
+    auto bytes = legacy_metadata ? std::vector<uint8_t>{} : cpu_state();
+    const auto expected = bytes;
+    const auto * const pointer = bytes.data();
+    const auto capacity = bytes.capacity();
+    server_prompt_cache cache(1, 4096);
+    prepare_snapshot(cache, active);
+    check(cache.save(active, target_context(), with_draft ? draft_context() : nullptr, 7, nullptr, std::move(bytes)),
+        "complete outgoing snapshot with CPU metadata should succeed");
+    auto * selected = &cache.states.front();
+    check(selected->data.spec == expected && selected->data.spec.capacity() == capacity && selected->data.spec.data() == pointer,
+        "CPU snapshot must move into the cached entry without a copy or lost capacity accounting");
+    const size_t gpu_capacity = selected->data.main.capacity() + selected->data.drft.capacity();
+    check(selected->data.size() == gpu_capacity + capacity, "CPU vector capacity must be charged with GPU state");
+    prepare(cache, selected);
+    prepare_cpu(resident, before, with_draft ? 2 : 1, selected);
+    check(cache.load(resident, active.tokens, target_context(), with_draft ? draft_context() : nullptr, 7, speculative_context()),
+        "complete GPU/CPU restore should succeed");
+    check(cpu.calls == 1 && cpu.bytes == expected && same_prompt(resident, active),
+        "CPU state must be passed exactly once before the cached prompt commits");
+    check(cache.states.empty() && cache.spare.spec.empty() && cache.spare.spec.capacity() == 0,
+        "consumed speculative CPU metadata must never enter the GPU snapshot spare pool");
+    check(cache.size() == cache.spare.main.capacity() + cache.spare.drft.capacity(),
+        "consumed CPU metadata must not remain charged or retained in the cache");
+}
+
+void failed_cpu_restore(bool draft_failure) {
+    auto active = prompt(1), resident = prompt(3);
+    const auto before = resident.clone();
+    server_prompt_cache cache(1, 4096);
+    auto * selected = cache.alloc(active, 32, 16, nullptr, cpu_state());
+    check(selected != nullptr, "allocate CPU/GPU fixture state");
+    std::fill(selected->data.main.begin(), selected->data.main.end(), uint8_t(0xa1));
+    std::fill(selected->data.drft.begin(), selected->data.drft.end(), uint8_t(0xd2));
+    prepare(cache, selected, draft_failure ? result::complete : result::rejected,
+        draft_failure ? result::rejected : result::complete);
+    prepare_cpu(resident, before, 2, selected);
+    check(!cache.load(resident, active.tokens, target_context(), draft_context(), 7, speculative_context()),
+        "GPU failure must fail a combined CPU restore");
+    check(cpu.calls == 0 && cache.states.empty() && cache.spare.spec.capacity() == 0 && same_prompt(resident, before),
+        "GPU failure must not apply CPU state or commit/retain a damaged entry");
+}
+
+void cpu_without_draft() {
+    auto active = prompt(1), resident = prompt(3);
+    const auto before = resident.clone();
+    server_prompt_cache cache(1, 4096);
+    auto * selected = cache.alloc(active, 32, 0, nullptr, cpu_state());
+    check(selected != nullptr, "allocate missing-draft fixture");
+    prepare(cache, selected);
+    prepare_cpu(resident, before, 0, selected);
+    check(!cache.load(resident, active.tokens, target_context(), draft_context(), 7, speculative_context()),
+        "speculative driver with a draft context requires its draft snapshot");
+    check(plan.calls.empty() && cpu.calls == 0 && cache.states.empty() && same_prompt(resident, before),
+        "missing draft must be rejected before changing GPU, CPU or prompt state");
+}
+
+void cpu_allocation_capacity() {
+    auto active = prompt(1);
+    auto bytes = cpu_state(8192);
+    const auto capacity = bytes.capacity();
+    const auto * pointer = bytes.data();
+    server_prompt_cache cache(1, 4096);
+    auto * selected = cache.alloc(active, 32, 16, nullptr, std::move(bytes));
+    check(selected != nullptr && selected->data.spec.capacity() == capacity && selected->data.spec.data() == pointer,
+        "alloc must take ownership of the CPU capacity without copying");
+    size_t checkpoints = 0;
+    for (const auto & checkpoint : selected->prompt.checkpoints) checkpoints += checkpoint.capacity();
+    check(cache.size() == selected->data.main.capacity() + selected->data.drft.capacity() + capacity + checkpoints,
+        "direct allocation must account CPU capacity rather than only serialized byte size");
+}
+
+void cpu_protected_budget(bool cpu_on_protected_entry) {
+    auto active = prompt(1), requested = prompt(2);
+    server_prompt_cache cache(1, 4096);
+    auto protected_bytes = cpu_on_protected_entry ? cpu_state(300 * 1024) : std::vector<uint8_t>{};
+    auto * protected_entry = cache.alloc(requested, 400 * 1024, 200 * 1024, nullptr, std::move(protected_bytes));
+    check(protected_entry != nullptr, "allocate protected CPU/GPU state");
+    const auto before_cpu = protected_entry->data.spec;
+    const auto before_size = cache.size();
+    auto bytes = cpu_state((cpu_on_protected_entry ? 200 : 500) * 1024);
+    prepare_snapshot(cache, active);
+    check(!cache.save(active, target_context(), draft_context(), 7, &requested.tokens, std::move(bytes)),
+        "CPU capacity must participate in protected-state allocation refusal");
+    check(snapshot.data_calls.empty() && cache.states.size() == 1 && &cache.states.front() == protected_entry &&
+        protected_entry->data.spec == before_cpu && cache.size() == before_size && cache.size() <= cache.limit_size,
+        "over-budget CPU metadata must not serialize or evict its protected requested state");
+}
+#endif
+}
+
+#ifdef CACHE_TEST_MTP_ENABLED
+void common_speculative_set_state(common_speculative * spec, llama_seq_id sequence, const std::vector<uint8_t> & bytes) {
+    if (spec == nullptr) return;
+    check(spec == speculative_context() && sequence == 7, "wrong speculative driver or sequence at CPU restore");
+    check(plan.cache && plan.selected && cpu.resident && cpu.before_resident, "unexpected CPU restore call");
+    check(std::any_of(plan.cache->states.begin(), plan.cache->states.end(), [&](const auto & entry) {
+        return &entry == plan.selected;
+    }), "cached entry was erased before CPU restore completed");
+    check(plan.calls.size() == cpu.gpu_calls && !plan.calls.empty() && !plan.calls.front().draft &&
+        (cpu.gpu_calls == 1 || plan.calls.back().draft), "CPU state must be restored only after all GPU restores succeed");
+    check(plan.selected->data.main == plan.main && plan.selected->data.drft == plan.drft &&
+        plan.selected->data.spec == plan.spec && plan.cache->size() == plan.cache_size,
+        "GPU and CPU cache payloads must remain intact until CPU restore finishes");
+    check(same_prompt(*cpu.resident, *cpu.before_resident), "cached prompt committed before CPU restore completed");
+    check(bytes == plan.spec && bytes.data() == cpu.bytes_pointer, "CPU restore must receive the exact owned cached byte vector");
+    ++cpu.calls;
+    cpu.bytes = bytes;
+}
+#endif
 
 #ifndef CACHE_RESTORE_ONLY
 extern "C" size_t llama_state_seq_get_size_ext(llama_context * context, llama_seq_id sequence, llama_state_seq_flags flags) {
@@ -322,6 +475,9 @@ extern "C" size_t llama_state_seq_get_data_ext(llama_context * context, uint8_t 
 extern "C" size_t llama_state_seq_set_data_ext(llama_context * context, const uint8_t * bytes,
         size_t size, llama_seq_id sequence, llama_state_seq_flags flags) {
     check(plan.cache && plan.selected, "unexpected deserializer call");
+    check(std::any_of(plan.cache->states.begin(), plan.cache->states.end(), [&](const auto & entry) {
+        return &entry == plan.selected;
+    }), "cached entry was erased before GPU restore completed");
     check(context == target_context() || context == draft_context(), "unexpected restore context");
     check(sequence == 7 && flags == 0, "sequence/flags were not preserved");
     // Check this inside BOTH deserializer calls. The old implementation cleared
@@ -329,6 +485,9 @@ extern "C" size_t llama_state_seq_set_data_ext(llama_context * context, const ui
     // entry and this assertion fails even before injecting a draft error.
     check(plan.selected->data.main == plan.main && plan.selected->data.drft == plan.drft &&
         plan.cache->size() == plan.cache_size, "cache payload was consumed before the whole restore completed");
+#ifdef CACHE_TEST_MTP_ENABLED
+    check(plan.selected->data.spec == plan.spec, "CPU metadata changed during GPU restoration");
+#endif
     const bool draft = context == draft_context();
     const auto & expected = draft ? plan.drft : plan.main;
     check(size == expected.size() && std::equal(expected.begin(), expected.end(), bytes), "wrong cached restore bytes");
@@ -373,7 +532,20 @@ int main() {
         refused_snapshot_budget(true);
         refused_snapshot_budget(false);
         duplicate_snapshot();
+#ifdef CACHE_TEST_MTP_ENABLED
+        cpu_restore(true, false);
+        cpu_restore(false, false);
+        cpu_restore(true, true);
+        failed_cpu_restore(false);
+        failed_cpu_restore(true);
+        cpu_without_draft();
+        cpu_allocation_capacity();
+        cpu_protected_budget(false);
+        cpu_protected_budget(true);
+        std::cout << "40 atomic cache scenarios passed, including 9 MTP CPU transport/capacity/order regressions\n";
+#else
         std::cout << "31 atomic cache save/restore scenarios passed: exact byte counts, exception cleanup, payload ownership and recovery\n";
+#endif
 #else
         std::cout << "14 atomic cache restore scenarios passed: payload ownership, failure eviction, prompt commit and recovery\n";
 #endif
