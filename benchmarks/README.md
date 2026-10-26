@@ -130,3 +130,76 @@ checkpoints retain raw completion responses for diagnosing failed guards.
 A `status=complete` report qualifies these two workloads at the recorded
 settings; larger image/video workloads and sustained concurrency need their
 own validation. This program owns no drains, deployment or restoration steps.
+
+## Long decode after cache switches and cache pressure
+
+`bench_cache_workload.py` exercises MTP after named conversation restores,
+including an identical prompt replay, an appended assistant/user history and
+a shorter deterministic branch-record prefix. It requires a reserved,
+single-slot engine with `/props` and `/v1/chat/completions/input_tokens`:
+
+```sh
+python benchmarks/bench_cache_workload.py http://127.0.0.1:28192 frozen-source.py \
+  build/validation/cache-resume.json --label DevXT4090 --context 230000 \
+  --model unsloth/Qwen3.8-27B-GGUF --metadata sanitized-runtime.json \
+  --run-id cache-resume-20261026 --require-draft-counters
+```
+
+The default resident workload fills three conversations, then alternates
+replay, append and rewind requests. Each requests 256 generated tokens; use
+`--decode-tokens 512` for longer decode, or select cases with `--cases replay
+append`. `--rounds 2` means the seed fill followed by one round of each selected
+case. With only `--cases append`, later rounds extend the preceding real
+assistant answer. The default rewind shortens the branch identity record from
+90 to 40 lines while retaining the source prefix; these sizes are configurable.
+
+Reuse a run ID on fresh baseline and candidate engines with the same source
+and arguments. Seed, replay and rewind prompts are deterministic. Appended
+requests include the actual previous answer and record its sample ID/output
+hash; their payloads may diverge if preceding answers differ. Compare request
+hashes before treating two measurements as a matched pair. A branch marker
+and identity code on the first response line detect cross-conversation mixups.
+Freeform wording differences are retained, not automatically called a quality
+regression. Warmup is excluded, and a short marker-only answer cannot become
+a fast decode sample (`--minimum-generated` defaults to 64).
+
+Pressure mode defaults to eight independent early-prefix conversations and
+replay requests only:
+
+```sh
+python benchmarks/bench_cache_workload.py http://127.0.0.1:28192 frozen-source.py \
+  build/validation/cache-pressure.json --label DevXT4090 --context 230000 \
+  --mode pressure --conversations 8 --rounds 3 --prompt-chars 100000 \
+  --metadata sanitized-runtime.json --run-id cache-pressure-20261026 \
+  --require-draft-counters
+```
+
+Choose the conversation count/source size against the recorded host cache
+budget. `--prefix-mode common` measures related conversations; `independent`
+puts their discriminator before the long prompt, requiring cold seed fills.
+Returning requests are classified as tail reuse, prefix reuse or full
+re-evaluation. A miss under pressure may be a legitimate eviction, unavailable
+checkpoint or skipped save; the client reports the work without asserting its
+cause or requiring every returning state to fit. It never changes memory or
+swap limits. Collect cgroup `memory.current`, `memory.swap.current`, events and
+limits externally to establish actual swap pressure; cache misses alone are
+not evidence of swap-in or eviction.
+
+The declared context is fixed. Each prompt is token-counted before generation,
+including appended histories, with the full requested decode budget and 32
+tokens of headroom reserved. Native prompt/usage counts must match the
+preflight count, and reported truncation, missing completions, unexpected
+reasoning and invalid MTP counters fail explicitly. Draft acceptance uses
+native `draft_n`/`draft_n_accepted`, and throughput uses native timing fields.
+No token rate is derived from SSE chunks. Draft counters may be unavailable
+for a non-speculative baseline unless `--require-draft-counters` is passed.
+Token-count preflight and request JSON encoding are excluded from HTTP wall
+time and TTFT, matching the earlier streaming measurement client.
+
+Reports are atomic after each sample and retain a pending request/failed raw
+sample when possible. `complete`, `failed` and interrupted `cancelled` statuses
+are distinct. The source, driver and imported parser/cold-guard modules are
+fingerprinted. Metadata accepts known sanitized runtime/provenance fields,
+including the earlier benchmark launch maps and selected performance settings;
+raw Docker inspect/environment lists and likely credential fields are rejected.
+API credentials come only from the environment named by `--api-key-env`.
