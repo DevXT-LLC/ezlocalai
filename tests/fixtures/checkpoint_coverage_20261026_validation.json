@@ -3,22 +3,25 @@
   "date": "2026-10-26",
   "upstream_revision": "620d2225cc436ab0b001e3200e590e3b286ef9ab",
   "patch": "patches/llama-checkpoint-coverage.patch",
-  "patch_sha256": "aaa767725fa4c0658961e57d9d236f1abb673a1381386283b2bf5ddc81b4f764",
+  "patch_sha256": "704dc9d4905ba075a0b1ad0a2c22793a669ad635347d7f556ee063a75c2fc9ce",
   "ordered_prerequisite": "conversation-cache -> cache-restore-atomic -> cache-storage -> mtp-resume",
   "source_sha256": {
-    "common/checkpoint-coverage.h": "7ab6891ace7f706d100470c3f96c9e610a4a347d27409d741b21ce8bc1bddb92",
-    "tools/server/server-context.cpp": "e84031d72e91574f5dc6703e8b1c78e2e8bdb89ecb757004b0e744bf947abd1c"
+    "common/checkpoint-coverage.h": "67450323bc96c930bcc3b3971661b96035af825ffdf5e1cb73d73f3c017793d1",
+    "tools/server/server-context.cpp": "dae2c231890a32c1e9cd601cd05733ca0a934a776aa8a92f8aabc5b7e459a046"
   },
-  "test_source_sha256": "bfa701e480d511284d77fb91b2f01dae9ffbf6d4b4930d4b0aa929ceb2962031",
+  "test_source_sha256": "ea133287bbd66e3a24d0ba11eaae5f4e80b0a6be64068611acc593eb46e77175",
   "qualification": {
-    "planner_optimized_checks_passed": 476,
-    "planner_asan_ubsan_checks_passed": 476,
+    "planner_optimized_checks_passed": 494,
+    "planner_asan_ubsan_checks_passed": 494,
     "actual_modified_server_context_syntax_compile_passed": true,
     "matched_four_patch_headers_and_release_flags": true,
     "patch_reverse_reapply_check_passed": true,
     "independent_read_only_review": "no blocking defect found",
     "real_cuda_speed_measured": false,
-    "real_model_quality_measured": false
+    "real_model_quality_measured": false,
+    "actual_server_tokens_and_mtmd_linked": true,
+    "projector_text_negative_control_rejected": true,
+    "media_at_zero_negative_control_rejected": true
   },
   "policy": {
     "minimum_prompt_tokens": 4096,
@@ -37,7 +40,8 @@
     "new_snapshot_only_at_exact_extra_batch_start": true,
     "configured_checkpoint_limit_unchanged": true,
     "hard_cache_byte_budget_unchanged": true,
-    "optout_environment": "EZLOCALAI_LLAMA_CHECKPOINT_COVERAGE=0"
+    "optout_environment": "EZLOCALAI_LLAMA_CHECKPOINT_COVERAGE=0",
+    "text_only_classification": "actual media chunks; media at index zero handled separately from upper_bound lookup"
   },
   "measured_planner_schedule": {
     "prompt_tokens": 23252,
@@ -54,14 +58,23 @@
     ]
   },
   "artifacts": {
-    "optimized_log_sha256": "eb12ad82e4bffd00f5df69df6f97f4cafaea672457fc0b51589eb9569708bd1e",
-    "asan_ubsan_log_sha256": "eb12ad82e4bffd00f5df69df6f97f4cafaea672457fc0b51589eb9569708bd1e",
-    "actual_cpp_syntax_log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    "optimized_log_sha256": "f5f96d9489cc168992046a2c46483feac249a1bce96d1b323a864526c32c9a4d",
+    "asan_ubsan_log_sha256": "f5f96d9489cc168992046a2c46483feac249a1bce96d1b323a864526c32c9a4d",
+    "actual_cpp_syntax_log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "negative_projector_flag_log_sha256": "717e57532b207a5ec1d6579caace78a1b44cda8b05ddf70495823a7643f3f958",
+    "negative_upper_bound_log_sha256": "ddc63071ab633a40ea821c31a9a91252b6f49339976b70233c0c8b4f35a0c155"
   },
   "limits": [
     "One extra checkpoint adds pageable RAM and may reduce retained states under a fixed cache limit.",
     "Synthetic branch-suffix coverage is workload-dependent; first-visit and cache-pressure latency need CUDA measurements.",
     "Old four-patch engine source/build and parent GPU artifacts were not modified.",
     "Root owns package wiring, the strict managed-source contract and real-GPU qualification."
-  ]
+  ],
+  "projector_text_correction": {
+    "cause": "OAI chat with a loaded projector sets server_tokens.has_mtmd=true for text-only requests; the old eligibility predicate disabled coverage.",
+    "first_cuda_on_off_result": "Identical schedules and no rewind speedup; not qualification of corrected placement.",
+    "corrected_cuda_rerun_pending": true,
+    "existing_media_decode_guards_preserved": true,
+    "server_tokens_abi_unchanged": true
+  }
 }

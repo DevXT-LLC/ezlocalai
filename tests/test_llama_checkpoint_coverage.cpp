@@ -1,6 +1,8 @@
 #include "checkpoint-coverage.h"
+#include "server-common.h"
 
 #include <climits>
+#include <cstring>
 #include <iostream>
 #include <set>
 #include <stdexcept>
@@ -113,12 +115,67 @@ void environment_optout() {
     if (had_existing) setenv("EZLOCALAI_LLAMA_CHECKPOINT_COVERAGE",saved.c_str(),1);
     else unsetenv("EZLOCALAI_LLAMA_CHECKPOINT_COVERAGE");
 }
+
+void actual_server_tokens_media_classification() {
+    const auto enabled_for = [](const server_tokens & tokens) {
+        return common_plan_checkpoints(24577,4096,1024,32,
+                common_checkpoint_prompt_is_text_only(tokens),true,true).extra_offset == 2052;
+    };
+    server_tokens ordinary(llama_tokens{1,2,3}, false);
+    server_tokens projector_text(llama_tokens{1,2,3}, true);
+    server_tokens empty_projector(llama_tokens{}, true);
+    require(!ordinary.has_mtmd && projector_text.has_mtmd, "actual token paths reproduce projector-loaded text");
+    require(common_checkpoint_prompt_is_text_only(ordinary), "ordinary text has no media");
+    require(common_checkpoint_prompt_is_text_only(projector_text), "projector-loaded text is text-only despite has_mtmd");
+    require(enabled_for(ordinary) && enabled_for(projector_text), "both actual text paths enable the same production planner");
+    require(common_checkpoint_prompt_is_text_only(empty_projector), "empty projector tokens contain no media");
+
+    mtmd::input_chunks chunks(mtmd_test_create_input_chunks());
+    require(chunks.ptr != nullptr && chunks.size() == 2, "actual MTMD C fixture supplies text plus image");
+    require(mtmd_input_chunk_get_type(chunks[1]) == MTMD_INPUT_CHUNK_TYPE_IMAGE, "fixture's second chunk is image media");
+    server_tokens media_later(chunks,true);
+    require(media_later[0] != LLAMA_TOKEN_NULL && media_later.find_next_media_chunk(0).first != nullptr,
+        "actual media map contains an image after text");
+    require(!common_checkpoint_prompt_is_text_only(media_later) && !enabled_for(media_later),
+        "actual later image remains outside the coverage policy");
+
+    server_tokens media_at_zero(llama_tokens{},true);
+    media_at_zero.push_back(chunks[1]);
+    require(media_at_zero[0] == LLAMA_TOKEN_NULL && media_at_zero.find_next_media_chunk(0).first == nullptr,
+        "actual upper_bound lookup alone misses media at index zero");
+    require(!common_checkpoint_prompt_is_text_only(media_at_zero) && !enabled_for(media_at_zero),
+        "image at index zero remains outside coverage");
+    auto cloned_text=projector_text.clone();
+    auto cloned_media=media_later.clone();
+    require(common_checkpoint_prompt_is_text_only(cloned_text) && enabled_for(cloned_text),
+        "actual text clone remains eligible");
+    require(!common_checkpoint_prompt_is_text_only(cloned_media) && !enabled_for(cloned_media),
+        "actual image clone remains excluded");
+
+    const auto roundtrip = [](const server_tokens & tokens) {
+        const auto bytes = tokens.serialize();
+        require(bytes.size() % sizeof(llama_token) == 0, "serialized tokens retain token alignment");
+        llama_tokens packed(bytes.size() / sizeof(llama_token));
+        std::memcpy(packed.data(),bytes.data(),bytes.size());
+        return server_tokens::deserialize(packed,true);
+    };
+    auto restored_text=roundtrip(projector_text);
+    auto restored_media=roundtrip(media_at_zero);
+    require(common_checkpoint_prompt_is_text_only(restored_text) && enabled_for(restored_text),
+        "packed text with projector path remains eligible");
+    require(!common_checkpoint_prompt_is_text_only(restored_media) && !enabled_for(restored_media),
+        "packed media at zero remains excluded");
+    media_later.keep_first(5);
+    require(common_checkpoint_prompt_is_text_only(media_later) && enabled_for(media_later),
+        "actual truncation removing all image chunks restores text classification");
+}
 }
 
 int main() {
     try {
         eligible_and_legacy_boundaries(); qualification_guards();
         cap_deduplicate_and_keep_other_cards_unchanged(); environment_optout();
+        actual_server_tokens_media_classification();
         std::cout << checks << " production checkpoint coverage planner checks passed\n";
         return 0;
     } catch (const std::exception & error) {

@@ -1,10 +1,12 @@
 diff --git a/common/checkpoint-coverage.h b/common/checkpoint-coverage.h
 new file mode 100644
-index 0000000..88b8ca8
+index 0000000..800cc97
 --- /dev/null
 +++ b/common/checkpoint-coverage.h
-@@ -0,0 +1,59 @@
+@@ -0,0 +1,70 @@
 +#pragma once
++
++#include "llama.h"
 +
 +#include <algorithm>
 +#include <array>
@@ -15,6 +17,15 @@ index 0000000..88b8ca8
 +inline bool common_checkpoint_coverage_enabled() {
 +    const char * value = std::getenv("EZLOCALAI_LLAMA_CHECKPOINT_COVERAGE");
 +    return value == nullptr || std::strcmp(value, "0") != 0;
++}
++
++template <typename Tokens>
++inline bool common_checkpoint_prompt_is_text_only(const Tokens & tokens) {
++    // OAI chat tokenization sets has_mtmd whenever a projector is loaded,
++    // including requests containing only text. Inspect the actual media map.
++    // find_next_media_chunk() uses upper_bound, so check index zero separately.
++    return tokens.empty() || (tokens[0] != LLAMA_TOKEN_NULL &&
++            tokens.find_next_media_chunk(0).first == nullptr);
 +}
 +
 +struct common_checkpoint_plan {
@@ -64,7 +75,7 @@ index 0000000..88b8ca8
 +    return plan;
 +}
 diff --git a/tools/server/server-context.cpp b/tools/server/server-context.cpp
-index d46d508..130e6c3 100644
+index d46d508..7a4be2d 100644
 --- a/tools/server/server-context.cpp
 +++ b/tools/server/server-context.cpp
 @@ -10,6 +10,7 @@
@@ -81,7 +92,7 @@ index d46d508..130e6c3 100644
  
 +                    const auto checkpoint_plan = common_plan_checkpoints(
 +                            slot.task->n_tokens(), n_batch, n_ubatch, params_base.n_ctx_checkpoints,
-+                            !slot.task->params.prompt_cache_key.empty() && !input_tokens.has_mtmd,
++                            !slot.task->params.prompt_cache_key.empty() && common_checkpoint_prompt_is_text_only(input_tokens),
 +                            do_checkpoint && (ctx_tgt_seq_rm_type == COMMON_CONTEXT_SEQ_RM_TYPE_FULL ||
 +                                              ctx_tgt_seq_rm_type == COMMON_CONTEXT_SEQ_RM_TYPE_RS));
 +

@@ -18,6 +18,12 @@ FULL/RS checkpoint path and at least four configured checkpoint slots. With
 batch 4096 / physical batch 1024 the offsets become `2052, 1028, 4`; with
 physical batch 2048 the offset already exists and behavior stays unchanged.
 
+Text-only classification inspects actual media chunks. A loaded projector makes
+the OAI chat tokenizer set `server_tokens::has_mtmd` even when the request has
+only text, so that flag cannot exclude a prompt from this policy. The helper
+checks media at token zero separately because the existing next-media lookup
+uses `upper_bound`. Actual image/audio chunks remain excluded.
+
 The checkpoint is saved **before** the batch beginning at that earlier
 boundary. Its expanded near-end span is accepted only for that designated
 batch start; it cannot add snapshots at unrelated intermediate/user-message
@@ -37,8 +43,12 @@ binary**; the default enables coverage only for the qualified cases above.
 near-end methods: eligibility, short/unnamed/non-recurrent paths, checkpoint
 counts below four, opt-out, integer bounds, logical-batch caps, deduplication,
 unchanged 2048 behavior, preservation of both original offsets and exactly one
-additional snapshot for a long prompt. Optimized and ASan/UBSan runs pass 476
-checks. The actual modified `server-context.cpp` passes a syntax compile using
+additional snapshot for a long prompt. It also links actual `server_tokens` and
+MTMD implementations for projector-loaded text, media at zero/after text,
+cloning, packed serialization and truncation. Optimized and ASan/UBSan runs pass
+494 checks. Private negative controls using the old `has_mtmd` predicate or only
+the next-media lookup fail the relevant regression. The actual modified
+`server-context.cpp` passes a syntax compile using
 the matched four-patch engine's release flags and headers. Those source and
 binary artifacts remain frozen; this validation uses a separate tiny source
 tree and does not replace the four-patch binaries.
@@ -46,3 +56,8 @@ tree and does not replace the four-patch binaries.
 Real CUDA rewind/shared-prefix gains, core state hashes, quality, context and
 vision checks are separate qualification work. Source/planner tests alone do
 not establish GPU speed or output quality.
+
+The first CUDA coverage on/off experiment had identical schedules and no rewind
+gain because the former `!input_tokens.has_mtmd` eligibility condition disabled
+the policy for projector-loaded text chats. The corrected media predicate needs
+a new CUDA run; that earlier result is not evidence for the corrected schedule.
