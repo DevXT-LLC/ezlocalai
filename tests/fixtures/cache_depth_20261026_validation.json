@@ -1,0 +1,1271 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-26",
+  "status": "partial",
+  "scope": "Completed 4090 four-patch storage/MTP resident comparisons, baseline byte-budget pressure, isolated real-Rust-router/full-GPU-worker admission measurements and experimental five-patch checkpoint latency. Fifth-patch output/quality acceptance and other pending sections are deliberately not qualified.",
+  "fixed_controls": {
+    "gpu": "RTX 4090",
+    "model": "unsloth/Qwen3.8-27B-GGUF",
+    "model_sha256": "8c2a45ff85e7674ca185ec8eb6cdeab0e617ed9d8018caed0b64380eb2a67a5e",
+    "projector_sha256": "83ee4f4f205fa514161778c41df1ea14144faa0f713510893b63c2395f5c2d53",
+    "engine_pin": "620d2225cc436ab0b001e3200e590e3b286ef9ab",
+    "context": 230000,
+    "batch": 4096,
+    "ubatch": 1024,
+    "kv_k": "q4_0",
+    "kv_v": "q4_0",
+    "slots": 1,
+    "mtp_maximum": 3,
+    "mtp_p_min": 0.1,
+    "normal_cache_mib": 7680,
+    "temperature": 0,
+    "seed": 42,
+    "thinking": false,
+    "weights_precision_presets_context_clocks_power_unchanged": true
+  },
+  "resident": {
+    "configuration": {
+      "mode": "resident",
+      "prefix_mode": "common",
+      "conversations": 3,
+      "rounds": 2,
+      "cases": [
+        "replay",
+        "append",
+        "rewind"
+      ],
+      "context": 230000,
+      "prompt_chars": 100000,
+      "branch_records": 90,
+      "rewind_records": 40,
+      "decode_tokens": 256,
+      "minimum_generated": 64,
+      "require_draft_counters": true,
+      "model": "unsloth/Qwen3.8-27B-GGUF"
+    },
+    "source_sha256": "8238cef03d4a1db6e775d7f62234bcf998d8f08bd9fc15f1d8a36ea0d3280005",
+    "variants": {
+      "matched_baseline": {
+        "proof": "build/validation/llm-cache-depth-20261026/DevXT4090-combined-resident-b269671d/matched_baseline-bench.json",
+        "sha256": "0fb9dd0b06eefcae7eccd0115c8ca77349376009f207498a76cd7c8b047d0826",
+        "summary": {
+          "seed": {
+            "samples": 3,
+            "cache_outcomes": {
+              "tail_reuse": 0,
+              "prefix_reuse": 0,
+              "full_reevaluation": 3
+            },
+            "wall_seconds_median": 11.402711736998754,
+            "ttft_seconds_median": 8.632166659997893,
+            "decode_tokens_per_second_median": 92.39652676020819,
+            "prefill_tokens_per_second_median": 2928.888448462525,
+            "draft_tokens": 850,
+            "accepted_draft_tokens": 479,
+            "draft_acceptance_ratio": 0.5635294117647058
+          },
+          "replay": {
+            "samples": 3,
+            "cache_outcomes": {
+              "tail_reuse": 3,
+              "prefix_reuse": 0,
+              "full_reevaluation": 0
+            },
+            "wall_seconds_median": 3.267590150004253,
+            "ttft_seconds_median": 0.45452279500022996,
+            "decode_tokens_per_second_median": 90.56983342609341,
+            "prefill_tokens_per_second_median": 46.684795929085794,
+            "draft_tokens": 856,
+            "accepted_draft_tokens": 477,
+            "draft_acceptance_ratio": 0.5572429906542056
+          },
+          "append": {
+            "samples": 3,
+            "cache_outcomes": {
+              "tail_reuse": 0,
+              "prefix_reuse": 3,
+              "full_reevaluation": 0
+            },
+            "wall_seconds_median": 2.6081076839982416,
+            "ttft_seconds_median": 0.6850532210009987,
+            "decode_tokens_per_second_median": 132.80157153734223,
+            "prefill_tokens_per_second_median": 380.797424424693,
+            "draft_tokens": 577,
+            "accepted_draft_tokens": 570,
+            "draft_acceptance_ratio": 0.9878682842287695
+          },
+          "rewind": {
+            "samples": 3,
+            "cache_outcomes": {
+              "tail_reuse": 0,
+              "prefix_reuse": 0,
+              "full_reevaluation": 3
+            },
+            "wall_seconds_median": 11.102079702002811,
+            "ttft_seconds_median": 8.295819173996279,
+            "decode_tokens_per_second_median": 93.33940954587632,
+            "prefill_tokens_per_second_median": 2934.5621170646955,
+            "draft_tokens": 847,
+            "accepted_draft_tokens": 480,
+            "draft_acceptance_ratio": 0.5667060212514758
+          }
+        },
+        "request_sequence_sha256": "1f8168f5c53f77c2050a98efa8d378fc283df7c1578a5ce581e991093e4c67ea",
+        "output_sequence_sha256": "c2d0e2eb9c226fd0ecb5520e150d3b0f83f68d6c2385ce137111bbe4a0d29282",
+        "request_hashes_matched": 12,
+        "output_hashes_matched": 12,
+        "all_generated_tokens": [
+          256
+        ],
+        "storage_setting": "0",
+        "engine_artifacts": {
+          "llama-server": "786d233474c43332fb731763342e71657136e992b54d405b19998821b1f51074",
+          "libllama-server-impl.so": "f95cf664d7f13ed90d5d3a60cb90953bad4b1df379ca9704675a181bc5f83dbd",
+          "libllama-common.so.0.7.0": "3d87cd42de02a7fa6cfb6210e3cb9e8da3bb65b0ba5c195f7c5021776edc3f1a",
+          "libllama.so.0.7.0": "4c32861b7148c347033ce73f06da757a5ad01362a4409c48c20386a716bbcc9f"
+        },
+        "harness_sha256": "5117970d067c508184211812c43ea5d9b7d5c0a47b700650106145b9a2d13709"
+      },
+      "new_storage_off": {
+        "proof": "build/validation/llm-cache-depth-20261026/DevXT4090-combined-resident-b269671d/new_storage_off-bench.json",
+        "sha256": "dd78d932fe579fa4f6addfc524333ebc823f8afe9178930c65685f9f51d69522",
+        "summary": {
+          "seed": {
+            "samples": 3,
+            "cache_outcomes": {
+              "tail_reuse": 0,
+              "prefix_reuse": 0,
+              "full_reevaluation": 3
+            },
+            "wall_seconds_median": 11.406742205996125,
+            "ttft_seconds_median": 8.617772739999054,
+            "decode_tokens_per_second_median": 91.4734872168492,
+            "prefill_tokens_per_second_median": 2937.062802942289,
+            "draft_tokens": 850,
+            "accepted_draft_tokens": 479,
+            "draft_acceptance_ratio": 0.5635294117647058
+          },
+          "replay": {
+            "samples": 3,
+            "cache_outcomes": {
+              "tail_reuse": 3,
+              "prefix_reuse": 0,
+              "full_reevaluation": 0
+            },
+            "wall_seconds_median": 3.239260540001851,
+            "ttft_seconds_median": 0.4562418979985523,
+            "decode_tokens_per_second_median": 91.489043379799,
+            "prefill_tokens_per_second_median": 46.60538059118925,
+            "draft_tokens": 850,
+            "accepted_draft_tokens": 479,
+            "draft_acceptance_ratio": 0.5635294117647058
+          },
+          "append": {
+            "samples": 3,
+            "cache_outcomes": {
+              "tail_reuse": 0,
+              "prefix_reuse": 3,
+              "full_reevaluation": 0
+            },
+            "wall_seconds_median": 2.589822661000653,
+            "ttft_seconds_median": 0.6848709890036844,
+            "decode_tokens_per_second_median": 133.0104222794022,
+            "prefill_tokens_per_second_median": 380.5866223802233,
+            "draft_tokens": 576,
+            "accepted_draft_tokens": 571,
+            "draft_acceptance_ratio": 0.9913194444444444
+          },
+          "rewind": {
+            "samples": 3,
+            "cache_outcomes": {
+              "tail_reuse": 0,
+              "prefix_reuse": 0,
+              "full_reevaluation": 3
+            },
+            "wall_seconds_median": 11.07249487000081,
+            "ttft_seconds_median": 8.26168321800651,
+            "decode_tokens_per_second_median": 93.32892186429463,
+            "prefill_tokens_per_second_median": 2944.722125093447,
+            "draft_tokens": 847,
+            "accepted_draft_tokens": 480,
+            "draft_acceptance_ratio": 0.5667060212514758
+          }
+        },
+        "request_sequence_sha256": "1f8168f5c53f77c2050a98efa8d378fc283df7c1578a5ce581e991093e4c67ea",
+        "output_sequence_sha256": "c2d0e2eb9c226fd0ecb5520e150d3b0f83f68d6c2385ce137111bbe4a0d29282",
+        "request_hashes_matched": 12,
+        "output_hashes_matched": 12,
+        "all_generated_tokens": [
+          256
+        ],
+        "storage_setting": "0",
+        "engine_artifacts": {
+          "llama-server": "786d233474c43332fb731763342e71657136e992b54d405b19998821b1f51074",
+          "libllama-server-impl.so": "39c397e48e2bc303de740913f3e054fca9bf1b63577da41ca540a77c1002e27d",
+          "libllama-common.so.0.7.0": "c9fd858250b3e1c04ea03f057f1b01ac15496af7983a59ade34ba3dbddc37998",
+          "libllama.so.0.7.0": "4c32861b7148c347033ce73f06da757a5ad01362a4409c48c20386a716bbcc9f"
+        },
+        "harness_sha256": "5117970d067c508184211812c43ea5d9b7d5c0a47b700650106145b9a2d13709"
+      },
+      "new_storage_on": {
+        "proof": "build/validation/llm-cache-depth-20261026/DevXT4090-combined-resident-b269671d/new_storage_on-bench.json",
+        "sha256": "abfba3443bb05f380d6b8a839a50ce1b40fd041f317c6f2094219e362d31c649",
+        "summary": {
+          "seed": {
+            "samples": 3,
+            "cache_outcomes": {
+              "tail_reuse": 0,
+              "prefix_reuse": 0,
+              "full_reevaluation": 3
+            },
+            "wall_seconds_median": 11.342012502995203,
+            "ttft_seconds_median": 8.547123118994932,
+            "decode_tokens_per_second_median": 91.44235796491625,
+            "prefill_tokens_per_second_median": 2933.0459422347244,
+            "draft_tokens": 850,
+            "accepted_draft_tokens": 479,
+            "draft_acceptance_ratio": 0.5635294117647058
+          },
+          "replay": {
+            "samples": 3,
+            "cache_outcomes": {
+              "tail_reuse": 3,
+              "prefix_reuse": 0,
+              "full_reevaluation": 0
+            },
+            "wall_seconds_median": 3.098437445994932,
+            "ttft_seconds_median": 0.25222946599387797,
+            "decode_tokens_per_second_median": 91.51130379922635,
+            "prefill_tokens_per_second_median": 46.64505445810108,
+            "draft_tokens": 850,
+            "accepted_draft_tokens": 479,
+            "draft_acceptance_ratio": 0.5635294117647058
+          },
+          "append": {
+            "samples": 3,
+            "cache_outcomes": {
+              "tail_reuse": 0,
+              "prefix_reuse": 3,
+              "full_reevaluation": 0
+            },
+            "wall_seconds_median": 2.417316221006331,
+            "ttft_seconds_median": 0.5168624910002109,
+            "decode_tokens_per_second_median": 132.9126690792488,
+            "prefill_tokens_per_second_median": 381.1635884819293,
+            "draft_tokens": 576,
+            "accepted_draft_tokens": 571,
+            "draft_acceptance_ratio": 0.9913194444444444
+          },
+          "rewind": {
+            "samples": 3,
+            "cache_outcomes": {
+              "tail_reuse": 0,
+              "prefix_reuse": 0,
+              "full_reevaluation": 3
+            },
+            "wall_seconds_median": 10.92024649099767,
+            "ttft_seconds_median": 8.070865305002371,
+            "decode_tokens_per_second_median": 93.38928389097113,
+            "prefill_tokens_per_second_median": 2941.4856627874865,
+            "draft_tokens": 847,
+            "accepted_draft_tokens": 480,
+            "draft_acceptance_ratio": 0.5667060212514758
+          }
+        },
+        "request_sequence_sha256": "1f8168f5c53f77c2050a98efa8d378fc283df7c1578a5ce581e991093e4c67ea",
+        "output_sequence_sha256": "c2d0e2eb9c226fd0ecb5520e150d3b0f83f68d6c2385ce137111bbe4a0d29282",
+        "request_hashes_matched": 12,
+        "output_hashes_matched": 12,
+        "all_generated_tokens": [
+          256
+        ],
+        "storage_setting": "1",
+        "engine_artifacts": {
+          "llama-server": "786d233474c43332fb731763342e71657136e992b54d405b19998821b1f51074",
+          "libllama-server-impl.so": "39c397e48e2bc303de740913f3e054fca9bf1b63577da41ca540a77c1002e27d",
+          "libllama-common.so.0.7.0": "c9fd858250b3e1c04ea03f057f1b01ac15496af7983a59ade34ba3dbddc37998",
+          "libllama.so.0.7.0": "4c32861b7148c347033ce73f06da757a5ad01362a4409c48c20386a716bbcc9f"
+        },
+        "harness_sha256": "5117970d067c508184211812c43ea5d9b7d5c0a47b700650106145b9a2d13709"
+      }
+    },
+    "same_build_storage_ttft_reduction_percent": {
+      "replay": 44.715847645654335,
+      "append": 24.531408206950587
+    },
+    "limits": [
+      "Three samples per case; one GPU and model, 256-token capped answers.",
+      "Native token rates are engine timings, never stream chunk rates.",
+      "Append requests depend on preceding answers; actual request and output hashes match across all variants.",
+      "All shorter-prefix rewinds remain full reevaluation: 23252 evaluated tokens and74 cached tokens.",
+      "Fifth coverage-patch runs and final-stack qualification are pending; no new coverage gain is claimed."
+    ]
+  },
+  "baseline_byte_budget_pressure": {
+    "configuration": {
+      "mode": "pressure",
+      "prefix_mode": "independent",
+      "conversations": 8,
+      "rounds": 2,
+      "cases": [
+        "replay"
+      ],
+      "context": 230000,
+      "prompt_chars": 100000,
+      "branch_records": 90,
+      "rewind_records": 40,
+      "decode_tokens": 128,
+      "minimum_generated": 64,
+      "require_draft_counters": true,
+      "model": "unsloth/Qwen3.8-27B-GGUF"
+    },
+    "variants": {
+      "pressure_default": {
+        "proof": "build/validation/llm-cache-depth-20261026/DevXT4090-baseline-depth-f9977f92/pressure_default-bench.json",
+        "sha256": "527cfbf27b4a1d1a3018e60eede21bdce935bdd55f904d4ef76dfe663060dff8",
+        "cache_mib": 7680,
+        "summary": {
+          "seed": {
+            "samples": 8,
+            "cache_outcomes": {
+              "tail_reuse": 0,
+              "prefix_reuse": 0,
+              "full_reevaluation": 8
+            },
+            "wall_seconds_median": 10.153347582501738,
+            "ttft_seconds_median": 8.698697069001355,
+            "decode_tokens_per_second_median": 88.61646404234531,
+            "prefill_tokens_per_second_median": 2918.195774656648,
+            "draft_tokens": 1140,
+            "accepted_draft_tokens": 627,
+            "draft_acceptance_ratio": 0.55
+          },
+          "replay": {
+            "samples": 8,
+            "cache_outcomes": {
+              "tail_reuse": 0,
+              "prefix_reuse": 0,
+              "full_reevaluation": 8
+            },
+            "wall_seconds_median": 10.161894503500662,
+            "ttft_seconds_median": 8.725900329496653,
+            "decode_tokens_per_second_median": 88.63165241667394,
+            "prefill_tokens_per_second_median": 2915.63001097044,
+            "draft_tokens": 1140,
+            "accepted_draft_tokens": 627,
+            "draft_acceptance_ratio": 0.55
+          }
+        },
+        "request_sequence_sha256": "5cd86203f9f2677ac5ff0cfc9d77f98832834fad6ae06cf1a2357517ae93db24",
+        "output_sequence_sha256": "86a922013860657b99f0646aed8e7ff73ad79fad8c8ca34b0eda18627462eb29",
+        "same_requests_and_outputs": 16
+      },
+      "pressure_12g": {
+        "proof": "build/validation/llm-cache-depth-20261026/DevXT4090-baseline-depth-f9977f92/pressure_12g-bench.json",
+        "sha256": "bcdf5dcc1440ec6a994f7ce569d554c06f00a43afcc127e16f5243f971ea3506",
+        "cache_mib": 12288,
+        "summary": {
+          "seed": {
+            "samples": 8,
+            "cache_outcomes": {
+              "tail_reuse": 0,
+              "prefix_reuse": 0,
+              "full_reevaluation": 8
+            },
+            "wall_seconds_median": 10.162205107502814,
+            "ttft_seconds_median": 8.70274325650098,
+            "decode_tokens_per_second_median": 88.61020883216091,
+            "prefill_tokens_per_second_median": 2916.0087814153603,
+            "draft_tokens": 1140,
+            "accepted_draft_tokens": 627,
+            "draft_acceptance_ratio": 0.55
+          },
+          "replay": {
+            "samples": 8,
+            "cache_outcomes": {
+              "tail_reuse": 8,
+              "prefix_reuse": 0,
+              "full_reevaluation": 0
+            },
+            "wall_seconds_median": 1.9297674495028332,
+            "ttft_seconds_median": 0.4994121290037583,
+            "decode_tokens_per_second_median": 88.73521096280479,
+            "prefill_tokens_per_second_median": 43.262807077312814,
+            "draft_tokens": 1139,
+            "accepted_draft_tokens": 627,
+            "draft_acceptance_ratio": 0.5504828797190519
+          }
+        },
+        "request_sequence_sha256": "5cd86203f9f2677ac5ff0cfc9d77f98832834fad6ae06cf1a2357517ae93db24",
+        "output_sequence_sha256": "86a922013860657b99f0646aed8e7ff73ad79fad8c8ca34b0eda18627462eb29",
+        "same_requests_and_outputs": 16
+      }
+    },
+    "interpretation": "A larger baseline cache changes retention, not GPU token speed or code. 12288MiB is an isolated override, not an applied production setting.",
+    "observed_swap_bytes": 0,
+    "observed_oom_events": 0,
+    "swap_or_forced_host_memory_pressure_validated": false
+  },
+  "gpu_router": {
+    "proof": "build/validation/llm-cache-depth-20261026/DevXT4090-router-gpu-54124ad3a6/result.json",
+    "sha256": "c7aaafa17cc98de1a125486a0824d760bc6b4bba0997fcc05193aa7faf979903",
+    "audit_proof": "build/validation/llm-cache-depth-20261026/router-gpu-audit.json",
+    "audit_sha256": "a3edc4246bfd70e9daa05f07bee16f13d28988a42cdf9b6414f6b2bf22400a22",
+    "heartbeat_seconds": 10,
+    "state_poll_seconds": 0.1,
+    "first_prompt_source_characters": 300000,
+    "output_budget_tokens": 2,
+    "trials": [
+      {
+        "pair": 0,
+        "variant": "baseline",
+        "request_sha256": "30fec8f8a47be039c65f599ced9d2ef91354bbbc27afa268e9a4466d477928eb",
+        "answer_sha256": "3ef2f5f7a767b1a67290cc6605dc3371dba4cc73d0d95b57d36ef09e24848139",
+        "first_evaluated": 68088,
+        "first_cached": 0,
+        "followup_evaluated": 4,
+        "followup_cached": 68084,
+        "completion_to_selection_event_seconds": 2.7887124529952416,
+        "selection_event_to_first_output_seconds": 0.16678646800573915,
+        "completion_to_first_output_seconds": 2.9554989210009808
+      },
+      {
+        "pair": 0,
+        "variant": "candidate",
+        "request_sha256": "30fec8f8a47be039c65f599ced9d2ef91354bbbc27afa268e9a4466d477928eb",
+        "answer_sha256": "3ef2f5f7a767b1a67290cc6605dc3371dba4cc73d0d95b57d36ef09e24848139",
+        "first_evaluated": 68088,
+        "first_cached": 0,
+        "followup_evaluated": 4,
+        "followup_cached": 68084,
+        "completion_to_selection_event_seconds": 0.009557607001625001,
+        "selection_event_to_first_output_seconds": 0.1681811789967469,
+        "completion_to_first_output_seconds": 0.1777387859983719
+      },
+      {
+        "pair": 1,
+        "variant": "candidate",
+        "request_sha256": "ec68bedca7cd111d60bd0c414d02f70edad53ebc39cbec613f6cda90379e589c",
+        "answer_sha256": "3ef2f5f7a767b1a67290cc6605dc3371dba4cc73d0d95b57d36ef09e24848139",
+        "first_evaluated": 68088,
+        "first_cached": 0,
+        "followup_evaluated": 4,
+        "followup_cached": 68084,
+        "completion_to_selection_event_seconds": 0.009712155995657668,
+        "selection_event_to_first_output_seconds": 0.16641599000286078,
+        "completion_to_first_output_seconds": 0.17612814599851845
+      },
+      {
+        "pair": 1,
+        "variant": "baseline",
+        "request_sha256": "ec68bedca7cd111d60bd0c414d02f70edad53ebc39cbec613f6cda90379e589c",
+        "answer_sha256": "3ef2f5f7a767b1a67290cc6605dc3371dba4cc73d0d95b57d36ef09e24848139",
+        "first_evaluated": 68088,
+        "first_cached": 0,
+        "followup_evaluated": 4,
+        "followup_cached": 68084,
+        "completion_to_selection_event_seconds": 2.7583707610028796,
+        "selection_event_to_first_output_seconds": 0.1664979859997402,
+        "completion_to_first_output_seconds": 2.92486874700262
+      },
+      {
+        "pair": 2,
+        "variant": "baseline",
+        "request_sha256": "68b23778195f0a20945d0b68e899b044ce0fbfef7717e5a9c3c906f3740a710d",
+        "answer_sha256": "3ef2f5f7a767b1a67290cc6605dc3371dba4cc73d0d95b57d36ef09e24848139",
+        "first_evaluated": 68088,
+        "first_cached": 0,
+        "followup_evaluated": 4,
+        "followup_cached": 68084,
+        "completion_to_selection_event_seconds": 2.7571970830031205,
+        "selection_event_to_first_output_seconds": 0.16679263999685645,
+        "completion_to_first_output_seconds": 2.923989722999977
+      },
+      {
+        "pair": 2,
+        "variant": "candidate",
+        "request_sha256": "68b23778195f0a20945d0b68e899b044ce0fbfef7717e5a9c3c906f3740a710d",
+        "answer_sha256": "3ef2f5f7a767b1a67290cc6605dc3371dba4cc73d0d95b57d36ef09e24848139",
+        "first_evaluated": 68088,
+        "first_cached": 0,
+        "followup_evaluated": 4,
+        "followup_cached": 68084,
+        "completion_to_selection_event_seconds": 0.009740228000737261,
+        "selection_event_to_first_output_seconds": 0.16724686399538768,
+        "completion_to_first_output_seconds": 0.17698709199612495
+      }
+    ],
+    "summary": {
+      "baseline": {
+        "trials": 3,
+        "completion_to_selection_event_seconds": 2.7583707610028796,
+        "selection_event_to_first_output_seconds": 0.16678646800573915,
+        "completion_to_first_output_seconds": 2.92486874700262
+      },
+      "candidate": {
+        "trials": 3,
+        "completion_to_selection_event_seconds": 0.009712155995657668,
+        "selection_event_to_first_output_seconds": 0.16724686399538768,
+        "completion_to_first_output_seconds": 0.17698709199612495
+      }
+    },
+    "worker_artifacts": {
+      "baseline": "ea4deab9b3aeb0d05b3077c2ed119e70411a79e7aa3692d383aadc7eb09ed92d",
+      "candidate": "246b6542065197054446b038a863f583f592bc77eeacc355e87d84a7ccee10dc"
+    },
+    "engine_artifacts": {
+      "llama-server": "786d233474c43332fb731763342e71657136e992b54d405b19998821b1f51074",
+      "libllama-server-impl.so": "39c397e48e2bc303de740913f3e054fca9bf1b63577da41ca540a77c1002e27d",
+      "libllama-common.so.0.7.0": "c9fd858250b3e1c04ea03f057f1b01ac15496af7983a59ade34ba3dbddc37998",
+      "libllama.so.0.7.0": "4c32861b7148c347033ce73f06da757a5ad01362a4409c48c20386a716bbcc9f",
+      "ezlocalai-llama-cpp-version.txt": "59eec06e8b4d942e563907640dd99f348db115f31760bffa816eb02142632139",
+      "ezlocalai-llama-cpp-patches.txt": "2d0e8a451df64c2b574316099794d953ce31f6649af648d561bac14675a53a75"
+    },
+    "private_router_sha256": "06c1cb10776412646f2717ee5cd6185eb4bb27daceaf3eaf4757d78ebde2d848",
+    "limits": [
+      "Selection uses receipt of router worker_queue timing event, not100ms state polling.",
+      "Follow-up starts at first busy heartbeat (~9.8s into baseline and~0.1s into candidate); compare completion-aligned intervals, not whole-arrival TTFT.",
+      "Inference service path after selection stays~167ms; measured gain removes stale-busy admission wait, not GPU decode work.",
+      "Physical measurement covers routed directSSE; buffered/tunnel timing belongs to separate controlled model-free fixtures.",
+      "Heartbeat phase controls the old delay; these runs do not establish a universal ten-second improvement."
+    ],
+    "completion_marker": "first.completed_monotonic: HTTP response completed, not earlier SSE [DONE] receipt",
+    "worker_baseline_note": "Frozen earlier PR native build, not an assertion that the production image contains those worker changes; registration version may be inherited from image environment."
+  },
+  "completed_four_patch_build": {
+    "proof": "build/validation/llm-cache-depth-20261026/combined-validation.json",
+    "sha256": "d3dfbb688f19aad7821bde860697bdf52e7ba6b751b7c8d0990ba06865b32ec0",
+    "source_snapshot_head": "a3250627edc8998e7e9f30d4b6f5d0d1e0dc8068",
+    "source_snapshot_contains_uncommitted_global_wiring": true,
+    "reference_root_absent": true,
+    "checks": {
+      "combined-managed-stack.log": {
+        "passed": 1,
+        "failed": 0,
+        "seconds": 2.45,
+        "sha256": "7ef1aed43104e3b870159e3adc6decbee6feca5a05cd9b8f7f20df16c8504e9a"
+      },
+      "combined-focused.log": {
+        "passed": 9,
+        "failed": 0,
+        "seconds": 2.99,
+        "sha256": "af62c74d5cc025fa0f2ff4d6a24d55ab35bb4b41b84d329f2f12a8c1fb6aa632"
+      },
+      "combined-package.log": {
+        "passed": 68,
+        "failed": 0,
+        "seconds": 281.52,
+        "sha256": "0bb123b747857f41b8d62e93a1325a646547454395e74426d5e75d125d6a7e4a"
+      },
+      "combined-engine-router.log": {
+        "passed": 2,
+        "failed": 0,
+        "seconds": 31.42,
+        "sha256": "56afd82db74dc388eea6d92d31c1118632ebe0b7efa85d09e3e52ab10ecc6a83"
+      }
+    },
+    "full_production_image_build": false,
+    "physical_gpu_in_development_container": false,
+    "later_coverage_patch_final_tests_included": false
+  },
+  "restorations": {
+    "DevXT4090-baseline-depth-f9977f92": {
+      "result_sha256": "4074f18bc1c624ef1b5f4e4b7230cc9f86dcf24be552974577798f77c0adeadf",
+      "supervisor_sha256": "67dc494fd3e33132c6c9f851a6bd7b8461d5c88ff423c784e5d42912faf488ed",
+      "restoration": {
+        "healthy": true,
+        "same_container": true,
+        "same_image": true,
+        "same_environment": true,
+        "same_mounts": true,
+        "same_config": true,
+        "same_hostconfig": true,
+        "critical_parameters_preserved": true,
+        "oom_killed": false
+      },
+      "drain_released": true,
+      "lease_errors": []
+    },
+    "DevXT4090-combined-resident-b269671d": {
+      "result_sha256": "608de31ef40332368565eb041bcb9972997b26a0383a57ec39acfe36f9d7eebf",
+      "supervisor_sha256": "ac96395e8f13c2df4ac8f2df17c2b50abf7bc93458a0aceccada8d59f0f48347",
+      "restoration": {
+        "healthy": true,
+        "same_container": true,
+        "same_image": true,
+        "same_environment": true,
+        "same_mounts": true,
+        "same_config": true,
+        "same_hostconfig": true,
+        "critical_parameters_preserved": true,
+        "oom_killed": false
+      },
+      "drain_released": true,
+      "lease_errors": []
+    },
+    "DevXT4090-router-gpu-54124ad3a6": {
+      "result_sha256": "c7aaafa17cc98de1a125486a0824d760bc6b4bba0997fcc05193aa7faf979903",
+      "restoration": {
+        "healthy": true,
+        "same_container": true,
+        "same_image": true,
+        "same_environment": true,
+        "same_mounts": true,
+        "oom_killed": false
+      },
+      "supervisor": {
+        "drain_acquired": true,
+        "drain_released": true,
+        "restoration_verified": true,
+        "renewal_errors": [],
+        "remote_exit_code": 0,
+        "error": null
+      }
+    },
+    "DevXT4090-coverage-fixed-resident-035908e1": {
+      "result_sha256": "6ce976bb83c62aa5663df8cf2816e5e4c14ba403f7b66080f9ac8b4269f2b1a7",
+      "supervisor_sha256": "6770daf8f074add65d13ea3fa2d57049f09cdd8878617aaee60dd121578fecef",
+      "restoration": {
+        "healthy": true,
+        "same_container": true,
+        "same_image": true,
+        "same_environment": true,
+        "same_mounts": true,
+        "same_config": true,
+        "same_hostconfig": true,
+        "critical_parameters_preserved": true,
+        "oom_killed": false
+      },
+      "drain_released": true,
+      "lease_errors": []
+    }
+  },
+  "new_production_code_or_cache_settings_applied_in_completed_runs": false,
+  "pending": [
+    "3090V cache/MTP/router equivalence",
+    "5090 cache/MTP/router equivalence with its actual distinct GGUF",
+    "Fifth coverage/checkpoint final source/build and quality acceptance; latest-turn instruction checks before default enablement",
+    "Final text/vision slot save/reload/legacy/corrupt-state results",
+    "Controlled nonzero swap and forced host/container memory pressure",
+    "Effective live RAM fraction/settings with reserves/co-resident workloads/routed verification/rollback",
+    "Fresh final images and deployment"
+  ],
+  "quality_limit": "Four-patch sampled request/output agreement does not prove comprehensive model quality. Experimental fifth-patch answers differ across modes, factual errors appear on different branches, and append responses fail the new instruction in both modes; quality equivalence is unqualified.",
+  "experimental_checkpoint_coverage": {
+    "status": "latency_measured_quality_unqualified",
+    "source_commits": [
+      "99151a6",
+      "f26ceab"
+    ],
+    "same_engine_artifacts_and_parameters": true,
+    "only_environment_difference": "EZLOCALAI_LLAMA_CHECKPOINT_COVERAGE=0/1",
+    "storage_enabled_in_both": true,
+    "configuration": {
+      "mode": "resident",
+      "prefix_mode": "common",
+      "conversations": 3,
+      "rounds": 2,
+      "cases": [
+        "replay",
+        "append",
+        "rewind"
+      ],
+      "context": 230000,
+      "prompt_chars": 100000,
+      "branch_records": 90,
+      "rewind_records": 40,
+      "decode_tokens": 256,
+      "minimum_generated": 64,
+      "require_draft_counters": true,
+      "model": "unsloth/Qwen3.8-27B-GGUF"
+    },
+    "source_sha256": "8238cef03d4a1db6e775d7f62234bcf998d8f08bd9fc15f1d8a36ea0d3280005",
+    "harness_sha256": "5117970d067c508184211812c43ea5d9b7d5c0a47b700650106145b9a2d13709",
+    "variants": {
+      "off": {
+        "proof": "build/validation/llm-cache-depth-20261026/DevXT4090-coverage-fixed-resident-035908e1/coverage_off-bench.json",
+        "sha256": "ec940d4313b46bb669b39bfd43c2cd53aeaed66d9417f007004c384c8669ab18",
+        "summary": {
+          "seed": {
+            "samples": 3,
+            "cache_outcomes": {
+              "tail_reuse": 0,
+              "prefix_reuse": 0,
+              "full_reevaluation": 3
+            },
+            "wall_seconds_median": 11.19898245800141,
+            "ttft_seconds_median": 8.497036061999097,
+            "decode_tokens_per_second_median": 94.39168997771245,
+            "prefill_tokens_per_second_median": 2951.463278258246,
+            "generated_tokens_median": 256,
+            "draft_tokens": 821,
+            "accepted_draft_tokens": 488,
+            "draft_acceptance_ratio": 0.5943970767356882
+          },
+          "replay": {
+            "samples": 3,
+            "cache_outcomes": {
+              "tail_reuse": 3,
+              "prefix_reuse": 0,
+              "full_reevaluation": 0
+            },
+            "wall_seconds_median": 2.9553188600038993,
+            "ttft_seconds_median": 0.25421272100356873,
+            "decode_tokens_per_second_median": 94.42297196119105,
+            "prefill_tokens_per_second_median": 46.583127591186475,
+            "generated_tokens_median": 256,
+            "draft_tokens": 821,
+            "accepted_draft_tokens": 488,
+            "draft_acceptance_ratio": 0.5943970767356882
+          },
+          "append": {
+            "samples": 3,
+            "cache_outcomes": {
+              "tail_reuse": 0,
+              "prefix_reuse": 3,
+              "full_reevaluation": 0
+            },
+            "wall_seconds_median": 2.41804662499635,
+            "ttft_seconds_median": 0.5172378200004459,
+            "decode_tokens_per_second_median": 132.87526972377054,
+            "prefill_tokens_per_second_median": 386.14394057722006,
+            "generated_tokens_median": 256,
+            "draft_tokens": 576,
+            "accepted_draft_tokens": 571,
+            "draft_acceptance_ratio": 0.9913194444444444
+          },
+          "rewind": {
+            "samples": 3,
+            "cache_outcomes": {
+              "tail_reuse": 0,
+              "prefix_reuse": 0,
+              "full_reevaluation": 3
+            },
+            "wall_seconds_median": 10.786231213001884,
+            "ttft_seconds_median": 8.053245800998411,
+            "decode_tokens_per_second_median": 93.31618267283163,
+            "prefill_tokens_per_second_median": 2950.739328220766,
+            "generated_tokens_median": 256,
+            "draft_tokens": 838,
+            "accepted_draft_tokens": 484,
+            "draft_acceptance_ratio": 0.5775656324582339
+          }
+        },
+        "environment": {
+          "EZLOCALAI_LLAMA_CACHE_STORAGE": "1",
+          "EZLOCALAI_LLAMA_CHECKPOINT_COVERAGE": "0"
+        },
+        "original_parameters": {
+          "-m": "/app/models/Qwen3.8-27B/Qwen3.8-27B-UD-Q3_K_XL.gguf",
+          "-c": "230000",
+          "-b": "4096",
+          "-ub": "1024",
+          "-ctk": "q4_0",
+          "-ctv": "q4_0",
+          "--spec-type": "draft-mtp",
+          "--spec-draft-n-max": "3",
+          "--spec-draft-p-min": "0.10000000000000001",
+          "--cache-ram": "7680",
+          "-np": "1",
+          "--ctx-checkpoints": "32",
+          "--checkpoint-min-step": "8192",
+          "--mmproj": "/app/models/Qwen3.8-27B/mmproj-BF16.gguf"
+        },
+        "artifacts": {
+          "/app/build/llama.cpp/bin/llama-server": "786d233474c43332fb731763342e71657136e992b54d405b19998821b1f51074",
+          "/app/build/llama.cpp/bin/libllama-server-impl.so": "f7a59fd02dbf8e9926bc0e07b77426f719f70e530a98c1df44c75a23585cbc64",
+          "/app/build/llama.cpp/bin/libllama-common.so.0.7.0": "c9fd858250b3e1c04ea03f057f1b01ac15496af7983a59ade34ba3dbddc37998",
+          "/app/build/llama.cpp/bin/libllama.so.0.7.0": "4c32861b7148c347033ce73f06da757a5ad01362a4409c48c20386a716bbcc9f"
+        },
+        "identity_checks": [
+          {
+            "sample_id": "seed:r0:b0",
+            "identity_guard_passed": true,
+            "output_sha256": "6d387bff5254330cb87d0505aad3be6c414d9420095a5d38eef1d45ecfd3c074"
+          },
+          {
+            "sample_id": "seed:r0:b1",
+            "identity_guard_passed": true,
+            "output_sha256": "43f50e944fef2dd8f5c3adc8f7e06195c3c54a350b22a5f42b445fe90c9ff7fc"
+          },
+          {
+            "sample_id": "seed:r0:b2",
+            "identity_guard_passed": true,
+            "output_sha256": "cc47f80905bf10aa77fda32d9d8b96aee37a6a78de3129fad313e24d886afa13"
+          },
+          {
+            "sample_id": "replay:r1:b0",
+            "identity_guard_passed": true,
+            "output_sha256": "6d387bff5254330cb87d0505aad3be6c414d9420095a5d38eef1d45ecfd3c074"
+          },
+          {
+            "sample_id": "replay:r1:b1",
+            "identity_guard_passed": true,
+            "output_sha256": "43f50e944fef2dd8f5c3adc8f7e06195c3c54a350b22a5f42b445fe90c9ff7fc"
+          },
+          {
+            "sample_id": "replay:r1:b2",
+            "identity_guard_passed": true,
+            "output_sha256": "cc47f80905bf10aa77fda32d9d8b96aee37a6a78de3129fad313e24d886afa13"
+          },
+          {
+            "sample_id": "append:r1:b0",
+            "identity_guard_passed": true,
+            "output_sha256": "6d387bff5254330cb87d0505aad3be6c414d9420095a5d38eef1d45ecfd3c074"
+          },
+          {
+            "sample_id": "append:r1:b1",
+            "identity_guard_passed": true,
+            "output_sha256": "43f50e944fef2dd8f5c3adc8f7e06195c3c54a350b22a5f42b445fe90c9ff7fc"
+          },
+          {
+            "sample_id": "append:r1:b2",
+            "identity_guard_passed": true,
+            "output_sha256": "cc47f80905bf10aa77fda32d9d8b96aee37a6a78de3129fad313e24d886afa13"
+          },
+          {
+            "sample_id": "rewind:r1:b0",
+            "identity_guard_passed": true,
+            "output_sha256": "b94395ef381b964c23eed50f9f9e16575b4c9bb79b0366eebd0a23fc23e8dd03"
+          },
+          {
+            "sample_id": "rewind:r1:b1",
+            "identity_guard_passed": true,
+            "output_sha256": "3139892c66f41095038f55aa5de88b88274835b2e7ea0d994458398c4e58dcf9"
+          },
+          {
+            "sample_id": "rewind:r1:b2",
+            "identity_guard_passed": true,
+            "output_sha256": "ffe4b981bc5c55f9c66e2c783ba1dc3702fcee15a8fd79d8926e2c06801e2ea4"
+          }
+        ],
+        "seed_replay_checks": [
+          {
+            "branch": 0,
+            "output_equal": true,
+            "hash_equal": true
+          },
+          {
+            "branch": 1,
+            "output_equal": true,
+            "hash_equal": true
+          },
+          {
+            "branch": 2,
+            "output_equal": true,
+            "hash_equal": true
+          }
+        ],
+        "seed_append_checks": [
+          {
+            "branch": 0,
+            "output_equal": true,
+            "hash_equal": true
+          },
+          {
+            "branch": 1,
+            "output_equal": true,
+            "hash_equal": true
+          },
+          {
+            "branch": 2,
+            "output_equal": true,
+            "hash_equal": true
+          }
+        ],
+        "sampled_cgroup_maxima": {
+          "memory.current": 7348469760,
+          "memory.peak": 7348469760,
+          "memory.swap.current": 0,
+          "memory.swap.peak": 0,
+          "oom_events_max": 0,
+          "oom_kill_events_max": 0
+        }
+      },
+      "on": {
+        "proof": "build/validation/llm-cache-depth-20261026/DevXT4090-coverage-fixed-resident-035908e1/coverage_on-bench.json",
+        "sha256": "b0881685f47daec7ff385ea1b2b42827f56d986d441522666e5bb56c79296665",
+        "summary": {
+          "seed": {
+            "samples": 3,
+            "cache_outcomes": {
+              "tail_reuse": 0,
+              "prefix_reuse": 0,
+              "full_reevaluation": 3
+            },
+            "wall_seconds_median": 11.248919278994435,
+            "ttft_seconds_median": 8.56936230899737,
+            "decode_tokens_per_second_median": 95.4282031879756,
+            "prefill_tokens_per_second_median": 2924.678487689839,
+            "generated_tokens_median": 256,
+            "draft_tokens": 818,
+            "accepted_draft_tokens": 490,
+            "draft_acceptance_ratio": 0.5990220048899756
+          },
+          "replay": {
+            "samples": 3,
+            "cache_outcomes": {
+              "tail_reuse": 3,
+              "prefix_reuse": 0,
+              "full_reevaluation": 0
+            },
+            "wall_seconds_median": 2.9804028169965022,
+            "ttft_seconds_median": 0.25125455200031865,
+            "decode_tokens_per_second_median": 95.44806315293025,
+            "prefill_tokens_per_second_median": 46.860356138706656,
+            "generated_tokens_median": 256,
+            "draft_tokens": 818,
+            "accepted_draft_tokens": 490,
+            "draft_acceptance_ratio": 0.5990220048899756
+          },
+          "append": {
+            "samples": 3,
+            "cache_outcomes": {
+              "tail_reuse": 0,
+              "prefix_reuse": 3,
+              "full_reevaluation": 0
+            },
+            "wall_seconds_median": 2.416888301995641,
+            "ttft_seconds_median": 0.5188858840047033,
+            "decode_tokens_per_second_median": 134.33828909915906,
+            "prefill_tokens_per_second_median": 384.58546871894146,
+            "generated_tokens_median": 256,
+            "draft_tokens": 576,
+            "accepted_draft_tokens": 572,
+            "draft_acceptance_ratio": 0.9930555555555556
+          },
+          "rewind": {
+            "samples": 3,
+            "cache_outcomes": {
+              "tail_reuse": 0,
+              "prefix_reuse": 3,
+              "full_reevaluation": 0
+            },
+            "wall_seconds_median": 3.2976122540057986,
+            "ttft_seconds_median": 0.621243500005221,
+            "decode_tokens_per_second_median": 97.51001485211364,
+            "prefill_tokens_per_second_median": 1765.745851488004,
+            "generated_tokens_median": 256,
+            "draft_tokens": 803,
+            "accepted_draft_tokens": 495,
+            "draft_acceptance_ratio": 0.6164383561643836
+          }
+        },
+        "environment": {
+          "EZLOCALAI_LLAMA_CACHE_STORAGE": "1",
+          "EZLOCALAI_LLAMA_CHECKPOINT_COVERAGE": "1"
+        },
+        "original_parameters": {
+          "-m": "/app/models/Qwen3.8-27B/Qwen3.8-27B-UD-Q3_K_XL.gguf",
+          "-c": "230000",
+          "-b": "4096",
+          "-ub": "1024",
+          "-ctk": "q4_0",
+          "-ctv": "q4_0",
+          "--spec-type": "draft-mtp",
+          "--spec-draft-n-max": "3",
+          "--spec-draft-p-min": "0.10000000000000001",
+          "--cache-ram": "7680",
+          "-np": "1",
+          "--ctx-checkpoints": "32",
+          "--checkpoint-min-step": "8192",
+          "--mmproj": "/app/models/Qwen3.8-27B/mmproj-BF16.gguf"
+        },
+        "artifacts": {
+          "/app/build/llama.cpp/bin/llama-server": "786d233474c43332fb731763342e71657136e992b54d405b19998821b1f51074",
+          "/app/build/llama.cpp/bin/libllama-server-impl.so": "f7a59fd02dbf8e9926bc0e07b77426f719f70e530a98c1df44c75a23585cbc64",
+          "/app/build/llama.cpp/bin/libllama-common.so.0.7.0": "c9fd858250b3e1c04ea03f057f1b01ac15496af7983a59ade34ba3dbddc37998",
+          "/app/build/llama.cpp/bin/libllama.so.0.7.0": "4c32861b7148c347033ce73f06da757a5ad01362a4409c48c20386a716bbcc9f"
+        },
+        "identity_checks": [
+          {
+            "sample_id": "seed:r0:b0",
+            "identity_guard_passed": true,
+            "output_sha256": "eb40b43f5ad19dddcd0f18ecbe04632caedf3290c3fdce9e4d435f5ea5773b5e"
+          },
+          {
+            "sample_id": "seed:r0:b1",
+            "identity_guard_passed": true,
+            "output_sha256": "3e2b7af28bb23587f0daa937f10acd8b41c454d33c8e4a0e961a83b266cd44ca"
+          },
+          {
+            "sample_id": "seed:r0:b2",
+            "identity_guard_passed": true,
+            "output_sha256": "b1c29893f514044665e4e1b4e61dd152a83ed9cf3e0a64e20dff8649a79eb252"
+          },
+          {
+            "sample_id": "replay:r1:b0",
+            "identity_guard_passed": true,
+            "output_sha256": "eb40b43f5ad19dddcd0f18ecbe04632caedf3290c3fdce9e4d435f5ea5773b5e"
+          },
+          {
+            "sample_id": "replay:r1:b1",
+            "identity_guard_passed": true,
+            "output_sha256": "3e2b7af28bb23587f0daa937f10acd8b41c454d33c8e4a0e961a83b266cd44ca"
+          },
+          {
+            "sample_id": "replay:r1:b2",
+            "identity_guard_passed": true,
+            "output_sha256": "b1c29893f514044665e4e1b4e61dd152a83ed9cf3e0a64e20dff8649a79eb252"
+          },
+          {
+            "sample_id": "append:r1:b0",
+            "identity_guard_passed": true,
+            "output_sha256": "eb40b43f5ad19dddcd0f18ecbe04632caedf3290c3fdce9e4d435f5ea5773b5e"
+          },
+          {
+            "sample_id": "append:r1:b1",
+            "identity_guard_passed": true,
+            "output_sha256": "3e2b7af28bb23587f0daa937f10acd8b41c454d33c8e4a0e961a83b266cd44ca"
+          },
+          {
+            "sample_id": "append:r1:b2",
+            "identity_guard_passed": true,
+            "output_sha256": "b1c29893f514044665e4e1b4e61dd152a83ed9cf3e0a64e20dff8649a79eb252"
+          },
+          {
+            "sample_id": "rewind:r1:b0",
+            "identity_guard_passed": true,
+            "output_sha256": "bd55573ea469fa6669a08692aa8a4f9748e5cf6764c8ef37e63a7547699e4b95"
+          },
+          {
+            "sample_id": "rewind:r1:b1",
+            "identity_guard_passed": true,
+            "output_sha256": "69def2e5ea55344e1962e8f96a55a4ded6cd7c6043632b145e12244f74155536"
+          },
+          {
+            "sample_id": "rewind:r1:b2",
+            "identity_guard_passed": true,
+            "output_sha256": "c4ffef400ad5618473dd4f73d6f344aafbec974de09af9bad53afb3eab11c1b2"
+          }
+        ],
+        "seed_replay_checks": [
+          {
+            "branch": 0,
+            "output_equal": true,
+            "hash_equal": true
+          },
+          {
+            "branch": 1,
+            "output_equal": true,
+            "hash_equal": true
+          },
+          {
+            "branch": 2,
+            "output_equal": true,
+            "hash_equal": true
+          }
+        ],
+        "seed_append_checks": [
+          {
+            "branch": 0,
+            "output_equal": true,
+            "hash_equal": true
+          },
+          {
+            "branch": 1,
+            "output_equal": true,
+            "hash_equal": true
+          },
+          {
+            "branch": 2,
+            "output_equal": true,
+            "hash_equal": true
+          }
+        ],
+        "sampled_cgroup_maxima": {
+          "memory.current": 7833931776,
+          "memory.peak": 7841751040,
+          "memory.swap.current": 0,
+          "memory.swap.peak": 0,
+          "oom_events_max": 0,
+          "oom_kill_events_max": 0
+        }
+      }
+    },
+    "paired_checks": [
+      {
+        "sample_id": "seed:r0:b0",
+        "request_hash_match": true,
+        "output_hash_match": false,
+        "off_request_sha256": "d6eda71662ee15266c2fed5c2535e31c39ecc32286b5f726df98d5ce961b0149",
+        "on_request_sha256": "d6eda71662ee15266c2fed5c2535e31c39ecc32286b5f726df98d5ce961b0149",
+        "off_evaluated": 24577,
+        "off_cached": 0,
+        "on_evaluated": 24577,
+        "on_cached": 0
+      },
+      {
+        "sample_id": "seed:r0:b1",
+        "request_hash_match": true,
+        "output_hash_match": false,
+        "off_request_sha256": "c338ae7207e00c68f153ee325c648fd7bb1a75c9ceb869e33f1422fc00f24518",
+        "on_request_sha256": "c338ae7207e00c68f153ee325c648fd7bb1a75c9ceb869e33f1422fc00f24518",
+        "off_evaluated": 24502,
+        "off_cached": 75,
+        "on_evaluated": 24502,
+        "on_cached": 75
+      },
+      {
+        "sample_id": "seed:r0:b2",
+        "request_hash_match": true,
+        "output_hash_match": false,
+        "off_request_sha256": "bec417a04723b97caeec69a4868532d1f2f2328eec3e648d003eaff9d079b146",
+        "on_request_sha256": "bec417a04723b97caeec69a4868532d1f2f2328eec3e648d003eaff9d079b146",
+        "off_evaluated": 24502,
+        "off_cached": 75,
+        "on_evaluated": 24502,
+        "on_cached": 75
+      },
+      {
+        "sample_id": "replay:r1:b0",
+        "request_hash_match": true,
+        "output_hash_match": false,
+        "off_request_sha256": "d6eda71662ee15266c2fed5c2535e31c39ecc32286b5f726df98d5ce961b0149",
+        "on_request_sha256": "d6eda71662ee15266c2fed5c2535e31c39ecc32286b5f726df98d5ce961b0149",
+        "off_evaluated": 4,
+        "off_cached": 24573,
+        "on_evaluated": 4,
+        "on_cached": 24573
+      },
+      {
+        "sample_id": "replay:r1:b1",
+        "request_hash_match": true,
+        "output_hash_match": false,
+        "off_request_sha256": "c338ae7207e00c68f153ee325c648fd7bb1a75c9ceb869e33f1422fc00f24518",
+        "on_request_sha256": "c338ae7207e00c68f153ee325c648fd7bb1a75c9ceb869e33f1422fc00f24518",
+        "off_evaluated": 4,
+        "off_cached": 24573,
+        "on_evaluated": 4,
+        "on_cached": 24573
+      },
+      {
+        "sample_id": "replay:r1:b2",
+        "request_hash_match": true,
+        "output_hash_match": false,
+        "off_request_sha256": "bec417a04723b97caeec69a4868532d1f2f2328eec3e648d003eaff9d079b146",
+        "on_request_sha256": "bec417a04723b97caeec69a4868532d1f2f2328eec3e648d003eaff9d079b146",
+        "off_evaluated": 4,
+        "off_cached": 24573,
+        "on_evaluated": 4,
+        "on_cached": 24573
+      },
+      {
+        "sample_id": "append:r1:b0",
+        "request_hash_match": false,
+        "output_hash_match": false,
+        "off_request_sha256": "4429c6abc1c2f753217bcc20002cc9a96ef44071ca8319e276de6e51d61090b5",
+        "on_request_sha256": "4d48b8922c70b9eb6a61828894be7bf70632770f9f1dbd143901b2b5adcabd18",
+        "off_evaluated": 89,
+        "off_cached": 24832,
+        "on_evaluated": 89,
+        "on_cached": 24832
+      },
+      {
+        "sample_id": "append:r1:b1",
+        "request_hash_match": false,
+        "output_hash_match": false,
+        "off_request_sha256": "6134a1bdaca47c7213943d931847dbf4856fa604364a97b6cb46afafd84d58ce",
+        "on_request_sha256": "baa90d23809ba24e06fd276dc83b44b007f487c21a0b2733fe6054343ac4cd51",
+        "off_evaluated": 89,
+        "off_cached": 24832,
+        "on_evaluated": 89,
+        "on_cached": 24832
+      },
+      {
+        "sample_id": "append:r1:b2",
+        "request_hash_match": false,
+        "output_hash_match": false,
+        "off_request_sha256": "3696c90563bab50ef33d16ba1e3eabb79e45aaf0e1200e0067ed6450b8f4c757",
+        "on_request_sha256": "1bc4537806b368953a58274fe2e645d995139386b5c4e115ed9cb2ad6d5eef26",
+        "off_evaluated": 89,
+        "off_cached": 24832,
+        "on_evaluated": 89,
+        "on_cached": 24832
+      },
+      {
+        "sample_id": "rewind:r1:b0",
+        "request_hash_match": true,
+        "output_hash_match": false,
+        "off_request_sha256": "42343f4c0286d08b15f6362b92fb5fd28201bec4944752f48c8b0c160f448c40",
+        "on_request_sha256": "42343f4c0286d08b15f6362b92fb5fd28201bec4944752f48c8b0c160f448c40",
+        "off_evaluated": 23252,
+        "off_cached": 75,
+        "on_evaluated": 802,
+        "on_cached": 22525
+      },
+      {
+        "sample_id": "rewind:r1:b1",
+        "request_hash_match": true,
+        "output_hash_match": false,
+        "off_request_sha256": "acd858e19c81af4bae0a006a33426e11c8e8973912fef1f6f380c34b4d7f1d47",
+        "on_request_sha256": "acd858e19c81af4bae0a006a33426e11c8e8973912fef1f6f380c34b4d7f1d47",
+        "off_evaluated": 23252,
+        "off_cached": 75,
+        "on_evaluated": 802,
+        "on_cached": 22525
+      },
+      {
+        "sample_id": "rewind:r1:b2",
+        "request_hash_match": true,
+        "output_hash_match": false,
+        "off_request_sha256": "2e3e82a297e76ef9963cd8f6f5359b4c41fde9824d6d50147537cdb14bc1e203",
+        "on_request_sha256": "2e3e82a297e76ef9963cd8f6f5359b4c41fde9824d6d50147537cdb14bc1e203",
+        "off_evaluated": 23252,
+        "off_cached": 75,
+        "on_evaluated": 802,
+        "on_cached": 22525
+      }
+    ],
+    "semantic_review": {
+      "reviewed_output_count": 24,
+      "independent_reviewers": 2,
+      "identity_guards_passed": 24,
+      "within_mode_seed_replay_exact_pairs": 6,
+      "cross_mode_request_hash_matches": 9,
+      "cross_mode_output_hash_matches": 0,
+      "append_output_equal_to_seed_count": 6,
+      "append_instruction_following_qualified": false,
+      "factual_findings": [
+        {
+          "mode": "on",
+          "branch": 0,
+          "cases": [
+            "seed",
+            "replay",
+            "append"
+          ],
+          "finding": "Associates separate chaining with Python dictionaries, absent from matching off branch 0 sample. CPython uses probing rather than linked-list buckets."
+        },
+        {
+          "mode": "off",
+          "branch": 1,
+          "cases": [
+            "seed",
+            "replay",
+            "append"
+          ],
+          "finding": "Contains the same misleading Python/separate-chaining association, so the error shifts branches across modes."
+        }
+      ],
+      "factual_reference": "https://github.com/python/cpython/blob/main/Objects/dictobject.c",
+      "task_limits": [
+        "All 24 responses hit the 256-token output cap despite a request for at least 800 words, a Python example and resource-management discussion.",
+        "All six append answers repeat their seed answer despite a new deletion/resizing/concurrency instruction. Prior b269 baseline/storage variants repeat all nine append answers too.",
+        "Nine cross-mode inputs match; the three append requests depend on changed earlier outputs."
+      ],
+      "quality_equivalence_established": false,
+      "general_quality_regression_established": false,
+      "required_followup": "Concise latest-turn instruction and factual-quality checks before accepting or enabling coverage by default."
+    },
+    "limits": [
+      "Added checkpoint boundaries change physical prefill partitioning with unchanged requested batch/ubatch sizes and numerical precision.",
+      "Greedy decoding and branch identity guards do not establish answer equality or comprehensive model quality.",
+      "This is not a matrix-kernel or native-prefill-throughput gain."
+    ],
+    "telemetry": {
+      "proof": "build/validation/llm-cache-depth-20261026/DevXT4090-coverage-fixed-resident-035908e1/telemetry.json",
+      "sha256": "1f27e4922bc27846efe5ed59f754e40a6fd33479423379adf0b61ae43048cd9c"
+    }
+  }
+}
