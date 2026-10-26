@@ -98,3 +98,35 @@ endpoints that filter them cannot produce misleading native throughput.
 
 The parser, timing, cold-cache and checkpoint guards run without an inference
 server: `python -m unittest discover -s benchmarks -p 'test_bench*.py'`.
+
+## Fixed-context batch qualification
+
+Before promoting a physical-batch increase, `bench_capacity.py` checks a cold
+text prompt near 95% of the declared context and a small solid-red PNG through
+the same isolated engine/projector:
+
+```sh
+python benchmarks/bench_capacity.py http://127.0.0.1:28192 frozen-source.py \
+  230000 1024 DevXT3090V build/validation/3090v-capacity.json \
+  --metadata sanitized-launch.json --run-id qualification-20261026
+```
+
+The metadata must describe the verified immutable launch: either `n_ctx` and
+`n_ubatch`, or the existing benchmark `original_parameters` map plus
+`overrides` (`-c`/`-ub`). Include model/projector SHA-256, image and engine
+identities when collecting promotion evidence. The pinned engine's `/props`
+exposes effective context and vision availability, but not physical batch or
+projector byte identity; those values require the caller's launch provenance.
+
+The client calibrates only the prepared text length using `/apply-template`
+and `/tokenize`, then cross-checks `/v1/chat/completions/input_tokens`. It keeps
+the declared context fixed, allowing only its normal upward 256-token
+allocation padding. It does not retry inference or reduce context on failure.
+Both actual inference requests disable prefix reuse and must evaluate every
+prepared input token, stop normally and answer `Python` or `red`, respectively.
+The generated image, requests, source and harness are fingerprinted. Atomic
+checkpoints retain raw completion responses for diagnosing failed guards.
+
+A `status=complete` report qualifies these two workloads at the recorded
+settings; larger image/video workloads and sustained concurrency need their
+own validation. This program owns no drains, deployment or restoration steps.
