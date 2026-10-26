@@ -7,6 +7,7 @@
 #include <iomanip>
 #include <iostream>
 #include <openssl/sha.h>
+#include <set>
 #include <sstream>
 
 extern char **environ;
@@ -14,6 +15,37 @@ namespace {
 void expect(bool ok, const char *message) { if (!ok) throw std::runtime_error(message); }
 std::string read(const std::filesystem::path &path) { std::ifstream in(path); return {std::istreambuf_iterator<char>(in), std::istreambuf_iterator<char>()}; }
 std::string sha256(const std::string &s) { unsigned char hash[32]; SHA256(reinterpret_cast<const unsigned char *>(s.data()), s.size(), hash); std::ostringstream out; for (auto c : hash) out << std::hex << std::setw(2) << std::setfill('0') << unsigned(c); return out.str(); }
+void verify_sources(const std::filesystem::path & fixture) {
+#if defined(TEST_LLAMA_MANAGED_ENGINE) && TEST_LLAMA_MANAGED_ENGINE
+    const std::set<std::string> expected{
+        "common/common.h", "common/arg.cpp", "common/speculative.cpp", "common/speculative.h",
+        "common/speculative-mtp-state.h", "common/state-storage.h", "tools/server/server-task.cpp",
+        "tools/server/server-task.h", "tools/server/server-context.cpp"};
+#else
+    const std::set<std::string> expected{"common/common.h", "common/arg.cpp", "common/speculative.cpp"};
+#endif
+    expect(std::filesystem::is_regular_file(fixture), "engine source hash fixture is missing");
+    std::istringstream hashes(read(fixture));
+    std::set<std::string> seen;
+    for (std::string line; std::getline(hashes, line);) {
+        if (line.empty()) continue;
+        if (line[0] == '#') {
+            expect(line.find(ezlocalai::llama_cpp_reference_revision) != std::string::npos, "engine revision hash fixture");
+            continue;
+        }
+        const auto tab = line.find('\t');
+        expect(tab != std::string::npos && line.find('\t', tab + 1) == std::string::npos, "malformed engine source hash row");
+        const auto name = line.substr(0, tab), hash = line.substr(tab + 1);
+        expect(expected.count(name) == 1 && seen.insert(name).second, "unexpected or duplicate engine source hash path");
+        expect(hash.size() == 64 && std::all_of(hash.begin(), hash.end(), [](char c) {
+            return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f');
+        }), "malformed engine source hash");
+        const auto source = std::filesystem::path(TEST_LLAMA_SOURCE_DIRECTORY) / name;
+        expect(std::filesystem::is_regular_file(source), "expected engine source file is missing");
+        expect(sha256(read(source)) == hash, "compiled engine source differs from selected pin");
+    }
+    expect(seen == expected, "all engine source hashes are required");
+}
 common_params parse(std::vector<std::string> options) {
     std::vector<std::string> args{"llama-server", "-m", "fixture.gguf"}; args.insert(args.end(), options.begin(), options.end());
     std::vector<char *> argv; for (auto &s : args) argv.push_back(s.data());
@@ -25,12 +57,7 @@ common_params parse(std::vector<std::string> options) {
 int main(int argc, char **argv) {
     try {
         expect(argc == 2, "source hash fixture required");
-        std::istringstream hashes(read(argv[1])); size_t count = 0;
-        for (std::string line; std::getline(hashes, line);) {
-            if (line[0] == '#') { expect(line.find(ezlocalai::llama_cpp_reference_revision) != std::string::npos, "engine revision hash fixture"); continue; }
-            const auto tab = line.find('\t'); expect(sha256(read(std::filesystem::path(TEST_LLAMA_SOURCE_DIRECTORY) / line.substr(0, tab))) == line.substr(tab + 1), "compiled engine source differs from pin"); ++count;
-        }
-        expect(count == 3, "all engine source hashes");
+        verify_sources(argv[1]);
         std::vector<std::string> environment;
         for (char **entry = environ; *entry; ++entry) { std::string s(*entry); if (s.rfind("LLAMA_ARG_", 0) == 0) environment.push_back(s.substr(0, s.find('='))); }
         for (const auto &key : environment) unsetenv(key.c_str());
