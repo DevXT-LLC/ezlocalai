@@ -26,6 +26,12 @@ int engine(int argc,const char **argv){
  check(fcntl(57,F_GETFD)==-1 && errno==EBADF,"unrelated parent descriptor inherited");
  auto context=ezlocalai_sd_worker::acquire({false,args.count("--ltx-offload-mode")?std::stoi(args["--ltx-offload-mode"]):0});
  if(ezlocalai_sd_worker::preload)return 0;
+ if(args.count("--parent-death-ready")){
+  {std::ofstream ready(args.at("--parent-death-ready"));ready<<getpid();check(ready.good(),"parent death readiness marker");}
+  // Stay inside generation so closing the IPC socket cannot race the death
+  // signal by letting an idle worker observe EOF and exit successfully.
+  for(;;)pause();
+ }
  if(args.count("--sleep"))std::this_thread::sleep_for(std::chrono::milliseconds(std::stoi(args["--sleep"])));
  if(args.count("--crash"))raise(SIGKILL);
  if(args.count("--fail")){std::cerr<<"fixture model failure\n";return 7;}
@@ -43,7 +49,15 @@ void wire(){
 int main(int argc,char **argv){
  if(argc==5&&std::string(argv[1])=="--ezlocalai-worker-fd")return ezlocalai_sd_worker::serve(std::stoi(argv[2]),std::stoi(argv[4]),engine);
  if(argc==2&&std::string(argv[1])=="--abandon"){
-  ezlocalai::MediaEngineProcess worker({fs::canonical("/proc/self/exe").string()});worker.request({"fixture","--model","one"},true,"preload.log",2);std::ofstream("abandoned.pid")<<worker.pid();_exit(0);
+  ezlocalai::MediaEngineProcess worker({fs::canonical("/proc/self/exe").string()});
+  worker.request({"fixture","--model","one"},true,"preload.log",2);
+  const auto child=worker.pid();
+  fs::remove("abandoned.ready");
+  std::thread([&]{try{worker.request({"fixture","--model","one","--parent-death-ready","abandoned.ready"},false,"abandoned.log",10);}catch(...){}}).detach();
+  bool ready=false;
+  for(int i=0;i<200;++i){if(read("abandoned.ready")==std::to_string(child)){ready=true;break;}std::this_thread::sleep_for(std::chrono::milliseconds(10));}
+  if(!ready){kill(child,SIGKILL);_exit(1);}
+  std::ofstream("abandoned.pid")<<child;_exit(0);
  }
  if(argc==3&&std::string(argv[1])=="--model-case"){
   try{
