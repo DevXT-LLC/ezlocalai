@@ -3,16 +3,16 @@
   "date": "2026-10-26",
   "upstream_revision": "620d2225cc436ab0b001e3200e590e3b286ef9ab",
   "patch": "patches/llama-checkpoint-coverage.patch",
-  "patch_sha256": "88367ba11092bdcf77de198eafbf797f9c0667c82014e7a5c87ae9d9a28fde18",
+  "patch_sha256": "1b7243ea08cc3c4e68457d0fe9075f5b9bf5b08802563cc829fbbff4fde03b7e",
   "ordered_prerequisite": "conversation-cache -> cache-restore-atomic -> cache-storage -> mtp-resume",
   "source_sha256": {
-    "common/checkpoint-coverage.h": "1b139b9e8e533bc6000741e4f0ffcf4566feab7f3d201d12de4d2ae7e260c47a",
-    "tools/server/server-context.cpp": "c6ef1b27e2082896f09f4a8d3f378f81ef2a9b33c06679634bc71f4456c752a1"
+    "common/checkpoint-coverage.h": "de7f98d2600e8dd6623ab46d9240b05118160b67cc5398e44afb64423f79c291",
+    "tools/server/server-context.cpp": "e4635f68c2ce9fd70374e928639bb89d44421516c3bff9e936747280914de94b"
   },
-  "test_source_sha256": "d2366e427affc783422a4f37f548d78f66e10af8a284c28ec37d27a1878d6dcd",
+  "test_source_sha256": "094aefa755c580efb8770658c3ced586d77eacf63cf8b855cacb9191306abbd2",
   "qualification": {
-    "optimized_checks_passed": 3485,
-    "asan_ubsan_checks_passed": 3485,
+    "optimized_checks_passed": 3505,
+    "asan_ubsan_checks_passed": 3505,
     "actual_server_tokens_and_mtmd_linked": true,
     "actual_target_split_equal_and_draft_split_simple_linked": true,
     "actual_modified_server_context_syntax_compile_passed": true,
@@ -23,10 +23,13 @@
       "unaligned extra split",
       "ignored recurrent-tail reservation",
       "projector-loaded text wrongly excluded",
-      "media at zero missed by upper_bound"
+      "media at zero missed by upper_bound",
+      "borrowed-context model lookup omitted"
     ],
     "real_aligned_cuda_speed_measured": false,
-    "real_aligned_model_quality_measured": false
+    "real_aligned_model_quality_measured": false,
+    "production_borrowed_context_accessor_seam_passed": true,
+    "actual_draft_parameter_inheritance_and_override_passed": true
   },
   "policy": {
     "minimum_prompt_tokens": 4096,
@@ -48,7 +51,8 @@
     "ubatch_2048_and_other_sizes_unchanged": true,
     "configured_checkpoint_limit_unchanged": true,
     "hard_cache_byte_budget_unchanged": true,
-    "optout_environment": "EZLOCALAI_LLAMA_CHECKPOINT_COVERAGE=0"
+    "optout_environment": "EZLOCALAI_LLAMA_CHECKPOINT_COVERAGE=0",
+    "trained_head_query": "llama_model_n_layer_nextn(llama_get_model(ctx_dft)); owned initializer model pointer is irrelevant"
   },
   "qualified_model_free_schedule": {
     "prompt_tokens": 24577,
@@ -112,23 +116,52 @@
     "engine_source_and_library_unchanged_by_this_patch": true
   },
   "artifacts": {
-    "optimized_log_sha256": "674a842a7fd36156ef459d0e0c697a0c9414665f77225fa8d8d46e2e567d93e4",
-    "asan_ubsan_log_sha256": "674a842a7fd36156ef459d0e0c697a0c9414665f77225fa8d8d46e2e567d93e4",
+    "optimized_log_sha256": "4aa7843247cbfe53ea34a75ff6976d677f245173749e7c3d27c1e4e66e06daa9",
+    "asan_ubsan_log_sha256": "4aa7843247cbfe53ea34a75ff6976d677f245173749e7c3d27c1e4e66e06daa9",
     "actual_cpp_syntax_log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
     "negative_unaligned_log_sha256": "c25cabc44c8443afdb30181a0bac9cdf93d5dfe1ac9df7b2019e1f07d26d744b",
     "negative_rs_tail_log_sha256": "9fed50aec97439b2e1b1c0d36b0cc2fa0a3491d405a43f2c5a151634f8020a21",
     "negative_projector_flag_log_sha256": "717e57532b207a5ec1d6579caace78a1b44cda8b05ddf70495823a7643f3f958",
-    "negative_upper_bound_log_sha256": "ddc63071ab633a40ea821c31a9a91252b6f49339976b70233c0c8b4f35a0c155"
+    "negative_upper_bound_log_sha256": "ddc63071ab633a40ea821c31a9a91252b6f49339976b70233c0c8b4f35a0c155",
+    "negative_borrowed_context_log_sha256": "2ae90d99359675479a8e7591a44fc1d19f1dd6231cab1c9938442ee0beb8bdd9"
   },
   "historical_experiments": {
     "first_fixed_offset": "Disabled for projector text by the old has_mtmd eligibility check; no gain.",
     "corrected_fixed_offset": "Rewind gain observed by root, but off/on generated answers changed; superseded by alignment experiment.",
-    "frozen_hardware_proofs_not_modified": true
+    "frozen_hardware_proofs_not_modified": true,
+    "first_aligned_guard": "Inactive for borrowed MTP contexts because the owned-model pointer was null; equal outputs/no gain do not qualify the context-model accessor correction."
   },
   "limits": [
     "One extra checkpoint adds pageable RAM and may reduce retained states under a fixed cache limit.",
     "Model-free equal cold physical groups are not a claim of universal CUDA bitwise identity or no quality loss.",
     "A shortened cold prompt may group its tail differently from the longer seed that produced a restored checkpoint; rewind output needs independent quality validation.",
     "Root owns strict ten-source hashes, package wiring, a new matched CUDA build and off/on hardware qualification."
-  ]
+  ],
+  "diagnostics": {
+    "trace_minimum_log_verbosity": 4,
+    "contains_prompt_or_cache_key_values": false,
+    "fields": [
+      "enabled",
+      "named",
+      "text",
+      "tokens",
+      "slots",
+      "batch",
+      "target_ub",
+      "draft_ub",
+      "rs",
+      "draft_ctx",
+      "owned_draft_model",
+      "heads",
+      "only_mtp",
+      "last_user",
+      "past",
+      "lora",
+      "shared",
+      "causal",
+      "recurrent",
+      "checkpoints",
+      "window"
+    ]
+  }
 }

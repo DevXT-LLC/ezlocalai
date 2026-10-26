@@ -1,9 +1,9 @@
 diff --git a/common/checkpoint-coverage.h b/common/checkpoint-coverage.h
 new file mode 100644
-index 0000000..27c2351
+index 0000000..1188cf1
 --- /dev/null
 +++ b/common/checkpoint-coverage.h
-@@ -0,0 +1,95 @@
+@@ -0,0 +1,106 @@
 +#pragma once
 +
 +#include "llama.h"
@@ -17,6 +17,17 @@ index 0000000..27c2351
 +inline bool common_checkpoint_coverage_enabled() {
 +    const char * value = std::getenv("EZLOCALAI_LLAMA_CHECKPOINT_COVERAGE");
 +    return value == nullptr || std::strcmp(value, "0") != 0;
++}
++
++inline int32_t common_checkpoint_mtp_head_count(
++        const llama_context * ctx,
++        const llama_model * (*context_model)(const llama_context *) = llama_get_model,
++        int32_t (*trained_heads)(const llama_model *) = llama_model_n_layer_nextn) {
++    if (!ctx) return 0;
++    // MTP can borrow the target model: the initializer owns the draft context,
++    // but its owned-model pointer is intentionally null. Query the context.
++    const auto * model = context_model(ctx);
++    return model ? trained_heads(model) : 0;
 +}
 +
 +template <typename Tokens>
@@ -100,7 +111,7 @@ index 0000000..27c2351
 +    return plan;
 +}
 diff --git a/tools/server/server-context.cpp b/tools/server/server-context.cpp
-index d46d508..1efd121 100644
+index d46d508..ce09730 100644
 --- a/tools/server/server-context.cpp
 +++ b/tools/server/server-context.cpp
 @@ -10,6 +10,7 @@
@@ -111,33 +122,49 @@ index d46d508..1efd121 100644
  #include "fit.h"
  #include "llama.h"
  #include "log.h"
-@@ -4039,6 +4040,25 @@ private:
+@@ -4039,6 +4040,41 @@ private:
                              ctx_tgt_seq_rm_type == COMMON_CONTEXT_SEQ_RM_TYPE_RS ||
                              n_swa > 0);
 
 +                    const auto & spans = slot.task->params.message_spans;
 +                    const auto last_user_pos = spans.last_user_message_pos();
++                    const auto checkpoint_mtp_heads = common_checkpoint_mtp_head_count(ctx_dft);
++                    const bool checkpoint_only_mtp = params_base.speculative.types.size() == 1 &&
++                        params_base.speculative.types[0] == COMMON_SPECULATIVE_TYPE_DRAFT_MTP;
++                    const bool checkpoint_named_text = !slot.task->params.prompt_cache_key.empty() &&
++                        common_checkpoint_prompt_is_text_only(input_tokens);
++                    const bool checkpoint_recurrent = do_checkpoint && (
++                        ctx_tgt_seq_rm_type == COMMON_CONTEXT_SEQ_RM_TYPE_FULL ||
++                        ctx_tgt_seq_rm_type == COMMON_CONTEXT_SEQ_RM_TYPE_RS);
++                    const bool checkpoint_coverage_enabled = common_checkpoint_coverage_enabled();
 +                    const common_checkpoint_runtime checkpoint_runtime {
 +                        slots.size(),
 +                        ctx_dft ? llama_n_ubatch(ctx_dft) : 0,
 +                        llama_n_rs_seq(ctx_tgt),
-+                        model_dft && llama_model_n_layer_nextn(model_dft) == 1 &&
-+                            params_base.speculative.types.size() == 1 &&
-+                            params_base.speculative.types[0] == COMMON_SPECULATIVE_TYPE_DRAFT_MTP,
++                        checkpoint_mtp_heads == 1 && checkpoint_only_mtp,
 +                        last_user_pos >= 0 && int64_t(last_user_pos) <= int64_t(slot.prompt.n_tokens()) && slot.lora.empty() &&
 +                            slot.task->n_tokens_shared == 0 && llama_get_causal_attn(ctx_tgt),
 +                    };
 +                    const auto checkpoint_plan = common_plan_checkpoints(
 +                            slot.task->n_tokens(), n_batch, n_ubatch, params_base.n_ctx_checkpoints,
-+                            !slot.task->params.prompt_cache_key.empty() && common_checkpoint_prompt_is_text_only(input_tokens),
-+                            do_checkpoint && (ctx_tgt_seq_rm_type == COMMON_CONTEXT_SEQ_RM_TYPE_FULL ||
-+                                              ctx_tgt_seq_rm_type == COMMON_CONTEXT_SEQ_RM_TYPE_RS),
-+                            checkpoint_runtime);
++                            checkpoint_named_text, checkpoint_recurrent,
++                            checkpoint_runtime, checkpoint_coverage_enabled);
++                    SLT_TRC(slot, "checkpoint coverage: enabled=%d named=%d text=%d tokens=%" PRId64
++                            " slots=%zu batch=%d target_ub=%d draft_ub=%u rs=%u draft_ctx=%d owned_draft_model=%d"
++                            " heads=%d only_mtp=%d last_user=%d past=%" PRId64
++                            " lora=%zu shared=%d causal=%d recurrent=%d checkpoints=%d window=%d\n",
++                            checkpoint_coverage_enabled, !slot.task->params.prompt_cache_key.empty(),
++                            common_checkpoint_prompt_is_text_only(input_tokens), int64_t(slot.task->n_tokens()),
++                            checkpoint_runtime.slots, n_batch, n_ubatch, checkpoint_runtime.draft_ubatch,
++                            checkpoint_runtime.rollback_tokens, ctx_dft != nullptr, model_dft != nullptr,
++                            checkpoint_mtp_heads, checkpoint_only_mtp, last_user_pos, int64_t(slot.prompt.n_tokens()),
++                            slot.lora.size(), int(slot.task->n_tokens_shared), llama_get_causal_attn(ctx_tgt),
++                            checkpoint_recurrent, params_base.n_ctx_checkpoints, checkpoint_plan.extra_window_end);
 +
                      // TODO: do the same for all models, then remove process_mtmd_chunk()
                      if (use_mixed_batch() && !slot.can_split() && input_tokens.has_mtmd) {
                          if (!add_prompt_mixed(slot)) {
-@@ -4091,10 +4111,8 @@ private:
+@@ -4091,10 +4127,8 @@ private:
                          has_mtmd = true;
                      }
 
@@ -149,7 +176,7 @@ index d46d508..1efd121 100644
 
                      // add prompt tokens for processing in the current batch
                      while (slot.prompt.n_tokens() < slot.task->n_tokens() && batch.size() < n_batch) {
-@@ -4145,25 +4163,12 @@ private:
+@@ -4145,25 +4179,12 @@ private:
                              }
                          }
 
@@ -181,7 +208,7 @@ index d46d508..1efd121 100644
                          }
                      }
 
-@@ -4172,7 +4177,9 @@ private:
+@@ -4172,7 +4193,9 @@ private:
 
                      const auto n_tokens_start = slot.prompt.n_tokens() - n_tokens_cur;
 

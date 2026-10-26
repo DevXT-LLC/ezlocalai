@@ -31,6 +31,14 @@ The experiment requires all of these conditions:
   batches of 1024; other sizes, including 2048, retain the original scheduler;
 - no LoRA or shared-parent prefill boundary in the eligible last-user phase.
 
+The trained-head count comes from `llama_get_model(ctx_dft)`. Borrowed MTP
+initializers intentionally leave their owned-model pointer null, so that pointer
+must not determine eligibility. A model-free accessor-seam regression exercises
+the production helper with a borrowed context and null ownership, including
+null context/model and zero/multiple-head paths. The actual draft-parameter
+converter is also tested: default zero inherits target UB, an explicit draft
+override is preserved, and the runtime guard still reads actual context UB.
+
 An additional split must follow a complete physical batch from the actual
 current logical batch start. It lies in the one-batch-wide remaining-token
 window `(1028, 2052]`. The original logical chunk must still leave at least
@@ -51,6 +59,14 @@ A tight cache may retain fewer conversation states. Set
 `EZLOCALAI_LLAMA_CHECKPOINT_COVERAGE=0` for the original scheduler in the same
 binary. The candidate default enables the experiment only after all guards;
 production promotion still requires the new CUDA comparison.
+
+At trace verbosity (`--log-verbosity 4` or higher), `checkpoint coverage:`
+records numeric eligibility inputs and the selected window: actual target/draft
+UB, slot/rollback counts, trained heads, borrowed/owned model presence, mode,
+message phase, adapters, shared tokens and checkpoint settings. It includes
+neither prompt content nor cache-key values. An aligned experiment before the
+context-model accessor correction was also inactive; its equal outputs do not
+qualify the now-active policy.
 
 `test_llama_checkpoint_coverage` links the actual `server_tokens`, MTMD and
 production batch allocator. It compares complete ordered token/position/output

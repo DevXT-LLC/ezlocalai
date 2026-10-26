@@ -3,6 +3,7 @@
 #include "llama-batch.h"
 #include "llama-vocab.h"
 #include "speculative-mtp-state.h"
+#include "speculative.h"
 
 #include <climits>
 #include <cstring>
@@ -170,6 +171,70 @@ void mtp_boundary_continuity() {
         "right logical chunk reaches the same final MTP pending boundary");
 }
 
+struct borrowed_context_probe {
+    const llama_model * owned_model = nullptr;
+    const llama_model * attached_model = nullptr;
+    int32_t heads = 1;
+    int model_lookups = 0;
+    int head_lookups = 0;
+};
+borrowed_context_probe * context_probe = nullptr;
+const llama_model * probe_context_model(const llama_context * ctx) {
+    require(ctx == reinterpret_cast<const llama_context *>(context_probe),
+        "production accessor queries the actual borrowed context");
+    ++context_probe->model_lookups;
+    return context_probe->attached_model;
+}
+int32_t probe_trained_heads(const llama_model * model) {
+    require(model == context_probe->attached_model,"head lookup uses the context's attached model");
+    ++context_probe->head_lookups;
+    return context_probe->heads;
+}
+void borrowed_mtp_context_accessor() {
+    int model_storage=0;
+    borrowed_context_probe probe;
+    context_probe=&probe;
+    probe.attached_model=reinterpret_cast<const llama_model *>(&model_storage);
+    const auto * ctx=reinterpret_cast<const llama_context *>(&probe);
+    const auto lookup=[&](const llama_context * context) {
+        return common_checkpoint_mtp_head_count(context,probe_context_model,probe_trained_heads);
+    };
+    require(probe.owned_model==nullptr && lookup(ctx)==1,
+        "borrowed MTP context with no owned model still exposes one trained head");
+    require(probe.model_lookups==1 && probe.head_lookups==1,"both production accessor stages were exercised");
+    auto rt=runtime();rt.single_mtp_head=lookup(ctx)==1;
+    require(plan(true,32,true,true,24577,4096,1024,rt).extra_window_end==2052,
+        "actual borrowed-context accessor result enables aligned planning");
+    const int previous_models=probe.model_lookups,previous_heads=probe.head_lookups;
+    require(lookup(nullptr)==0 && probe.model_lookups==previous_models && probe.head_lookups==previous_heads,
+        "null context invokes neither accessor");
+    probe.attached_model=nullptr;
+    require(lookup(ctx)==0 && probe.head_lookups==previous_heads,
+        "a context without a model never queries trained heads");
+    probe.attached_model=reinterpret_cast<const llama_model *>(&model_storage);
+    for(int heads:{0,2}) {
+        probe.heads=heads;
+        rt.single_mtp_head=lookup(ctx)==1;
+        require(plan(true,32,true,true,24577,4096,1024,rt).extra_window_end==0,
+            "zero or multiple trained heads retain the original scheduler");
+    }
+    context_probe=nullptr;
+}
+
+void actual_draft_batch_parameter_inheritance() {
+    common_params configured;
+    configured.n_ubatch=1024;
+    require(configured.speculative.draft.n_ubatch==0,"actual draft batch default requests target inheritance");
+    require(common_base_params_to_speculative(configured).n_ubatch==1024,
+        "actual production draft parameter conversion inherits target1024");
+    configured.speculative.draft.n_ubatch=512;
+    const auto custom=common_base_params_to_speculative(configured);
+    require(custom.n_ubatch==512,"actual production conversion preserves an explicit draft override");
+    auto rt=runtime();rt.draft_ubatch=custom.n_ubatch;
+    require(plan(true,32,true,true,24577,4096,1024,rt).extra_window_end==0,
+        "a custom draft physical size retains the original checkpoint scheduler");
+}
+
 void environment_optout() {
     const char * existing=std::getenv("EZLOCALAI_LLAMA_CHECKPOINT_COVERAGE");
     const bool present=existing!=nullptr;
@@ -241,7 +306,8 @@ void actual_server_tokens_media_classification() {
 int main() {
     try {
         measured_schedule_and_actual_splitters(); tail_reservation_and_original_start_alignment();
-        eligibility_and_other_configs(); mtp_boundary_continuity(); environment_optout();
+        eligibility_and_other_configs(); mtp_boundary_continuity(); borrowed_mtp_context_accessor(); environment_optout();
+        actual_draft_batch_parameter_inheritance();
         actual_server_tokens_media_classification();
         std::cout << checks << " production checkpoint alignment checks passed\n";
         return 0;
