@@ -8,8 +8,8 @@ precision, context limits and inference arguments are unchanged by this code.
 
 These measurements cover CPU preparation and actual worker HTTP handling with
 a deterministic loopback mock engine. They do **not** measure GPU prefill,
-decode throughput, cache restoration or model quality. The separate live 3090J
-physical-batch qualification remains pending below.
+decode throughput, cache restoration or model quality. Separate 3090J physical-batch measurements and the applied setting are recorded
+below; they use the existing production engine, not the new request code.
 
 ## Implemented behavior and controls
 
@@ -56,12 +56,17 @@ differ only in the worker port. Both workers and the mock engine bind to
 loopback. No GPU, router registration, provider, fallback, media service or
 production data directory is used. The harness verifies the image, CPU-only
 runtime, environment and ownership labels, then removes its containers by
-immutable ID after checking ownership.
+immutable ID after checking ownership. Generated worker and engine credentials
+remain authenticated. Docker receives key-name-only `--env` arguments and an
+explicit subprocess environment mapping; credential values are excluded from
+command arguments, benchmark files and logs, and the parent environment is not
+mutated. The original temporary dotenv transport was replaced after CodeQL
+identified it; no authentication bypass or suppression was used.
 
 Seven chat workloads run buffered and streamed. Text workload sizes below are
 Unicode source-character budgets; encoded wire requests also include UTF-8 and
-JSON escaping. Six ABBA blocks give **12
-samples per variant and case/mode**, or **336 measured requests**. An additional
+JSON escaping. Six ABBA blocks give **12 samples per variant and case/mode**,
+or **336 measured requests**. An additional
 28 warmups are excluded. Every request produces exactly one engine request;
 the engine-bound raw bytes, length and path match across variants and repeats.
 Actual answer content and the normal finish state also match. Volatile response
@@ -70,21 +75,29 @@ output means the first nonempty content delta, excluding role-only events.
 
 | HTTP workload | Buffered full response, baseline → candidate | Streaming first content, baseline → candidate |
 | --- | ---: | ---: |
-| 1,024-character text | 1.394 → 1.470 ms | 1.842 → 1.670 ms |
-| 102,400-character text | 6.333 → 5.066 ms | 5.120 → 5.098 ms |
-| 1,048,576-character text | 48.433 → 34.946 ms | 51.572 → 41.500 ms |
-| 16-message history | 6.757 → 5.749 ms | 7.199 → 5.921 ms |
-| 256-message history | 55.227 → 42.162 ms | 47.517 → 38.429 ms |
-| 256 messages, final content represented as text blocks | 51.272 → 41.352 ms | 52.625 → 39.496 ms |
-| 256 messages, every content represented as text blocks | 69.610 → 57.408 ms | 68.734 → 53.820 ms |
+| 1,024-character text | 1.262 → 1.243 ms | 1.035 → 1.120 ms |
+| 102,400-character text | 4.180 → 3.887 ms | 3.713 → 3.013 ms |
+| 1,048,576-character text | 32.011 → 26.145 ms | 30.723 → 24.168 ms |
+| 16-message history | 5.168 → 4.120 ms | 4.189 → 3.405 ms |
+| 256-message history | 32.494 → 24.905 ms | 32.044 → 23.086 ms |
+| 256 messages, final content represented as text blocks | 33.151 → 26.620 ms | 30.599 → 23.549 ms |
+| 256 messages, every content represented as text blocks | 39.982 → 34.273 ms | 42.318 → 34.382 ms |
 
 The 256-message requests are about 1.13 MB on the wire. Their first content
-arrives **19.1%** sooner; buffered completion improves **23.7%**. These timings
+arrives **28.0%** sooner; buffered completion improves **23.4%**. These timings
 include HTTP parsing, validation, queueing, preparation, forwarding and a fixed
 mock response. They show a worker overhead reduction rather than faster GPU
-execution. Small HTTP cases remain noisy: the 1,024-character buffered median is slightly
-slower, and 102,400-character streaming latency is effectively unchanged. No universal
-speedup or statistical confidence interval is claimed from this single-host run.
+execution.
+
+This table uses the complete rerun after the benchmark credential transport fix.
+Worker binaries and all 14 request/engine-payload/output identities match the
+previous run. Absolute HTTP times vary between runs on this shared host with
+ambient load and scheduling; the lower absolute times are not attributed to the
+launcher change. Medians are not selected across runs. Small-case gains are not
+consistent: the current 1,024-character streaming median is slightly slower,
+while the earlier 102,400-character streaming comparison was effectively neutral.
+No universal short-request improvement or statistical confidence interval is
+claimed.
 
 ## Regression and package checks
 
@@ -103,9 +116,10 @@ speedup or statistical confidence interval is claimed from this single-host run.
 - All four platform Docker package regexes select `llm_input_package` and omit
   the strict external-source test. CPU-only, ROCm, Jetson and GB10 images were
   not rebuilt or physically validated in this pass.
-- All 12 offline HTTP benchmark guards pass. They cover request counts and byte
-  identity, first-content timing, isolation, loopback/redirect restrictions and
-  refusal to remove an unowned container.
+- All 14 offline HTTP benchmark guards pass. They cover request counts and byte
+  identity, first-content timing, isolation, loopback/redirect restrictions,
+  refusal to remove an unowned container, and credential transport without
+  temporary files, argument values or parent-environment mutation.
 
 The first 70-check package run exposed a pre-existing media parent-death fixture
 race. Its test executable was byte-identical to the existing production image's
@@ -122,6 +136,7 @@ with stale source freshness was discarded and is not qualification evidence.
 - Baseline source: `694137438e62895b89ed3d42b1d7790486e47c65`.
 - Runtime preparation change: `8e1f9d607d69982cd6e49107fbf0af279646b153`.
 - HTTP benchmark: `fb6b3afc483cf8921691f40c51b356d0c264d4cf`.
+- Benchmark credential transport correction: `b26f0ce09951ae58c1c46b749bf8a93dd211a5ab`.
 - Media fixture synchronization: `c36c9b71c670caae464a95ef8c8c5596e16f6ae0`.
 - Existing image used by the owned build/benchmark containers:
   `sha256:845c0d4edad3ee960bb22e76a48de843560d4a197f6a430e799e3136b8a032f4`.
@@ -140,7 +155,9 @@ The script owns its temporary containers and needs no production credentials.
 Compact results, hashes and validation scope are recorded in
 [`dispatch_speed_20261026_validation.json`](../tests/fixtures/dispatch_speed_20261026_validation.json).
 Raw batches, payloads and full logs stay under ignored
-`build/validation/dispatch-speed-20261026/`. The native change is in
+`build/validation/dispatch-speed-20261026/`. The authoritative HTTP report is
+`worker-http-key-only-env/worker-input.json`; the earlier HTTP report is
+historical evidence, with matching workload/output identity but superseded timings. The native change is in
 [ezlocalai PR #142](https://github.com/DevXT-LLC/ezlocalai/pull/142); separate
 router scheduling work is in
 [WorkerRouter PR #6](https://github.com/DevXT-LLC/WorkerRouter/pull/6).
@@ -148,13 +165,74 @@ The CPU-only dispatch checks did not replace production containers or images,
 so they required no rollout rollback tag. No candidate image was published as
 latest.
 
-## Separate 3090J physical-batch qualification — pending
+## 3090J physical batch: qualified and applied
 
-A separate owned live operator is comparing physical batches 512 and 1024 on
-DevXT3090J while retaining its 220000-token context, model files, precision,
-presets and remaining engine arguments. Qualification includes matched cold
-prefill, finite continuation/replay, near-context capacity and vision, followed
-by exact original-container/argument restoration and fresh router heartbeats.
-That run is still in progress. No GPU speedup, selected production setting or
-permanent environment change is claimed here; the final results and restoration
-evidence must be filled after the operator completes.
+The local DevXT3090J uses an RTX 3090 Ti, 128 GB RAM and the deployed model
+SHA-256 `00cf92e666c6af6566996c38c89a44ccdb6449ea25ef0f112a452c853b2a71e2`.
+Those weights match the recorded 5090 file and differ from V/4090 despite the
+same filename. The comparison uses J's own unchanged image and weights, logical
+batch 4096, one slot, `q4_0` K/V, MTP and its 31488 MiB host cache ceiling.
+Only physical batch 512 versus 1024 varies. No GPU clock or power setting was
+changed.
+
+Four fresh-engine cold runs use ABBA order and identical 149992-token requests,
+with zero cached tokens and identical normal-stop answers. Rates are
+731.23/733.34 tok/s at 512 and 720.72/761.45 at 1024. The medians are
+732.28 and 741.08 tok/s: the roughly 1.2% difference lies within the observed
+spread and is **not a reliable cold-prefill gain**.
+
+The returning-conversation result is stronger. All 24 finite controls pass;
+all 12 paired requests and answers match exactly:
+
+| Case | Physical batch 512 | Physical batch 1024 |
+| --- | ---: | ---: |
+| Replay first output | 648 ms | 470 ms |
+| Append first output | 1.192 s | 0.891 s |
+| Shorter-prefix rewind first output | 18.628 s | 1.184 s |
+
+All three rewinds change from 23256 evaluated / 85 cached tokens to
+728 evaluated / 22613 cached tokens. Batch 1024 enables the already-merged
+aligned checkpoint path; this is cache coverage, not a claimed faster decode
+kernel. These exact finite answers do not establish universal model-quality
+equivalence for arbitrary rewritten prompts.
+
+Both batches fully evaluate the same 208866-token near-context request with
+zero cache reuse, zero inference retries and no context reduction. The declared
+220000-token budget is retained (the engine pads internally to 220160). Both
+return `Python`, then correctly recognize the red image. Capacity rates are
+608.89 and 673.79 tok/s, **one screen each**, not a repeated rate estimate.
+No OOM or test-container swap was observed.
+
+The qualification retained and restored the exact original container, full
+argv, configuration, environment and mounts, then verified fresh heartbeats
+and released its owned drain. A separate reviewed rollout then applied only
+`LLM_UBATCH_SIZE=1024` in `/home/josh/repos/xtsys/ezlocalai/.env` and the running
+container. Previously the file had no such key and the container's `auto`
+resolved to 512. Current container `79a536848ee1` uses the same immutable image
+`845c0d4…`; every other engine argument, context, environment value, host limit,
+mount and static network configuration is preserved.
+
+Two fresh drained and two fresh resumed heartbeats pass, followed by routed
+chat, streaming and red-image checks with fallback disabled. The original was
+retained through those checks and then finalized. No owned drain remains.
+The new C++ request-preparation code is still PR-only; this live setting uses
+merged worker `6941374` and its existing engine. No other worker setting changed.
+
+Rollback image: `ezlocalai:rollback-env-j-env-20261026-05d665ee`.
+Private transaction directory:
+`/tmp/ezlocalai-env-update-j-env-20261026-05d665ee`, including its `dotenv.backup`
+at mode 0600 in a 0700 directory. The unchanged tracked recovery core supports
+that finalized transaction; a rollback must use an owned idle lease and verify
+full original argv/configuration and fresh heartbeats before resuming. The
+rollout used 18 adapter guards, the core's 47 guards and independent review;
+the GPU qualifier has 32 offline guards. These counts describe separate checks. No live
+post-finalization rollback was performed; the retained image, private backup
+and recovery guards are the rollback material and offline evidence.
+
+The compact fixture contains the qualification and rollout proofs and hashes.
+Raw operators/results remain under `build/validation/dispatch-speed-20261026/`
+in `j-ubatch-live-ad88fa15/` and `j-env-promotion-plan/`. After merging the code
+PRs, verify the deployed worker version and repeat real interleaved routed
+conversations with stable keys and native cache telemetry. A separate agent
+owns the model-matching additions to router PR #6; their runtime changes need
+their own combined validation.

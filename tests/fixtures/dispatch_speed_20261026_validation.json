@@ -1,6 +1,6 @@
 {
   "date": "2026-10-26",
-  "status": "native_dispatch_qualified_j_ubatch_pending",
+  "status": "dispatch_qualified_and_j_ubatch_applied",
   "scope": "CPU request preparation and actual worker HTTP with a deterministic loopback mock engine; no GPU inference in these dispatch measurements",
   "source": {
     "baseline_commit": "694137438e62895b89ed3d42b1d7790486e47c65",
@@ -13,14 +13,16 @@
       "candidate": "ae6634f1d0f32a05117c3ae79b1b8182a31a476ac614719ccec0e95b88ee5a52"
     },
     "build_scope": "Executables rebuilt inside an owned CPU-only container from the existing full CUDA production image; no new Docker or other-platform image built",
-    "engine_dependencies_unchanged": true
+    "engine_dependencies_unchanged": true,
+    "http_benchmark_credential_transport_commit": "b26f0ce09951ae58c1c46b749bf8a93dd211a5ab"
   },
   "changes": [
     "Reuse ordered outer fields and normalized messages during queued input preparation",
     "Preserve last duplicate-key value, first-key output position, callback order and error behavior",
     "Keep the existing audio helper boundary for every present audio_format, including falsey values",
     "Add explicit oracle-free llm_input_package gate without relaxing developer source-hash checks",
-    "Synchronize only the media parent-death fixture with the active worker generation before abandoning its parent"
+    "Synchronize only the media parent-death fixture with the active worker generation before abandoning its parent",
+    "Pass generated benchmark credentials through key-name-only Docker --env flags and an explicit subprocess environment; retain authentication without temporary credential files"
   ],
   "actual_function_benchmark": {
     "function": "llm_prepare_text_image_input",
@@ -187,8 +189,8 @@
           "path": "/v1/chat/completions"
         },
         "median_full_ms": {
-          "baseline": 1.3935014721937478,
-          "candidate": 1.4703375054523349
+          "baseline": 1.261893514310941,
+          "candidate": 1.243178005097434
         },
         "output_content_finish_sha256": "d5756da83f1804e7beab0afd0d187a1d0f788a10630823bef8794c4a21a38046",
         "engine_request_bytes_equal_across_all_captures": true,
@@ -205,12 +207,12 @@
           "path": "/v1/chat/completions"
         },
         "median_full_ms": {
-          "baseline": 1.9343385065440089,
-          "candidate": 1.7208874924108386
+          "baseline": 1.0961079970002174,
+          "candidate": 1.1793225130531937
         },
         "median_first_output_ms": {
-          "baseline": 1.8419430125504732,
-          "candidate": 1.6701839922461659
+          "baseline": 1.0347264760639518,
+          "candidate": 1.1201009911019355
         },
         "output_content_finish_sha256": "d5756da83f1804e7beab0afd0d187a1d0f788a10630823bef8794c4a21a38046",
         "engine_request_bytes_equal_across_all_captures": true,
@@ -227,8 +229,8 @@
           "path": "/v1/chat/completions"
         },
         "median_full_ms": {
-          "baseline": 6.332797522190958,
-          "candidate": 5.066089011961594
+          "baseline": 4.17967201792635,
+          "candidate": 3.8873830053489655
         },
         "output_content_finish_sha256": "d5756da83f1804e7beab0afd0d187a1d0f788a10630823bef8794c4a21a38046",
         "engine_request_bytes_equal_across_all_captures": true,
@@ -245,12 +247,12 @@
           "path": "/v1/chat/completions"
         },
         "median_full_ms": {
-          "baseline": 5.171135533601046,
-          "candidate": 5.189647519728169
+          "baseline": 3.798531019128859,
+          "candidate": 3.074551495956257
         },
         "median_first_output_ms": {
-          "baseline": 5.120268004247919,
-          "candidate": 5.098462977912277
+          "baseline": 3.712859994266182,
+          "candidate": 3.0128280050121248
         },
         "output_content_finish_sha256": "d5756da83f1804e7beab0afd0d187a1d0f788a10630823bef8794c4a21a38046",
         "engine_request_bytes_equal_across_all_captures": true,
@@ -267,8 +269,8 @@
           "path": "/v1/chat/completions"
         },
         "median_full_ms": {
-          "baseline": 48.433161980938166,
-          "candidate": 34.94598998804577
+          "baseline": 32.01085247565061,
+          "candidate": 26.144907023990527
         },
         "output_content_finish_sha256": "d5756da83f1804e7beab0afd0d187a1d0f788a10630823bef8794c4a21a38046",
         "engine_request_bytes_equal_across_all_captures": true,
@@ -285,12 +287,12 @@
           "path": "/v1/chat/completions"
         },
         "median_full_ms": {
-          "baseline": 51.631110516609624,
-          "candidate": 41.58163649844937
+          "baseline": 30.767248012125492,
+          "candidate": 24.232181982370093
         },
         "median_first_output_ms": {
-          "baseline": 51.57236199011095,
-          "candidate": 41.499694489175454
+          "baseline": 30.72332000010647,
+          "candidate": 24.168254487449303
         },
         "output_content_finish_sha256": "d5756da83f1804e7beab0afd0d187a1d0f788a10630823bef8794c4a21a38046",
         "engine_request_bytes_equal_across_all_captures": true,
@@ -307,8 +309,8 @@
           "path": "/v1/chat/completions"
         },
         "median_full_ms": {
-          "baseline": 6.7571899853646755,
-          "candidate": 5.749283474870026
+          "baseline": 5.167605530004948,
+          "candidate": 4.120349505683407
         },
         "output_content_finish_sha256": "d5756da83f1804e7beab0afd0d187a1d0f788a10630823bef8794c4a21a38046",
         "engine_request_bytes_equal_across_all_captures": true,
@@ -325,12 +327,12 @@
           "path": "/v1/chat/completions"
         },
         "median_full_ms": {
-          "baseline": 7.277879514731467,
-          "candidate": 5.982534494251013
+          "baseline": 4.262624483089894,
+          "candidate": 3.453237994108349
         },
         "median_first_output_ms": {
-          "baseline": 7.198787498055026,
-          "candidate": 5.920700990827754
+          "baseline": 4.1891635046340525,
+          "candidate": 3.4048095112666488
         },
         "output_content_finish_sha256": "d5756da83f1804e7beab0afd0d187a1d0f788a10630823bef8794c4a21a38046",
         "engine_request_bytes_equal_across_all_captures": true,
@@ -347,8 +349,8 @@
           "path": "/v1/chat/completions"
         },
         "median_full_ms": {
-          "baseline": 55.22652302170172,
-          "candidate": 42.16197249479592
+          "baseline": 32.49386348761618,
+          "candidate": 24.905491998651996
         },
         "output_content_finish_sha256": "d5756da83f1804e7beab0afd0d187a1d0f788a10630823bef8794c4a21a38046",
         "engine_request_bytes_equal_across_all_captures": true,
@@ -365,12 +367,12 @@
           "path": "/v1/chat/completions"
         },
         "median_full_ms": {
-          "baseline": 47.56472000735812,
-          "candidate": 38.494249020004645
+          "baseline": 32.08147449186072,
+          "candidate": 23.123131482861936
         },
         "median_first_output_ms": {
-          "baseline": 47.51731047872454,
-          "candidate": 38.42905649798922
+          "baseline": 32.04378648661077,
+          "candidate": 23.08607500162907
         },
         "output_content_finish_sha256": "d5756da83f1804e7beab0afd0d187a1d0f788a10630823bef8794c4a21a38046",
         "engine_request_bytes_equal_across_all_captures": true,
@@ -387,8 +389,8 @@
           "path": "/v1/chat/completions"
         },
         "median_full_ms": {
-          "baseline": 51.272373006213456,
-          "candidate": 41.35175250121392
+          "baseline": 33.15084500354715,
+          "candidate": 26.61984649603255
         },
         "output_content_finish_sha256": "d5756da83f1804e7beab0afd0d187a1d0f788a10630823bef8794c4a21a38046",
         "engine_request_bytes_equal_across_all_captures": true,
@@ -405,12 +407,12 @@
           "path": "/v1/chat/completions"
         },
         "median_full_ms": {
-          "baseline": 52.71936452481896,
-          "candidate": 39.55310501623899
+          "baseline": 30.68911246373318,
+          "candidate": 23.604712478118017
         },
         "median_first_output_ms": {
-          "baseline": 52.625171025283635,
-          "candidate": 39.49556199950166
+          "baseline": 30.59907947317697,
+          "candidate": 23.548941971966997
         },
         "output_content_finish_sha256": "d5756da83f1804e7beab0afd0d187a1d0f788a10630823bef8794c4a21a38046",
         "engine_request_bytes_equal_across_all_captures": true,
@@ -427,8 +429,8 @@
           "path": "/v1/chat/completions"
         },
         "median_full_ms": {
-          "baseline": 69.61025748751126,
-          "candidate": 57.4084245308768
+          "baseline": 39.982151007279754,
+          "candidate": 34.27348600234836
         },
         "output_content_finish_sha256": "d5756da83f1804e7beab0afd0d187a1d0f788a10630823bef8794c4a21a38046",
         "engine_request_bytes_equal_across_all_captures": true,
@@ -445,12 +447,12 @@
           "path": "/v1/chat/completions"
         },
         "median_full_ms": {
-          "baseline": 69.67661550152116,
-          "candidate": 54.202876024646685
+          "baseline": 42.3610775033012,
+          "candidate": 34.446731995558366
         },
         "median_first_output_ms": {
-          "baseline": 68.73402951168828,
-          "candidate": 53.819730528630316
+          "baseline": 42.31754600186832,
+          "candidate": 34.38236951478757
         },
         "output_content_finish_sha256": "d5756da83f1804e7beab0afd0d187a1d0f788a10630823bef8794c4a21a38046",
         "engine_request_bytes_equal_across_all_captures": true,
@@ -458,7 +460,28 @@
       }
     ],
     "owned_containers_removed": true,
-    "text_workload_size_unit": "Unicode source characters for text-* cases; request_bytes is the actual encoded HTTP body length"
+    "text_workload_size_unit": "Unicode source characters for text-* cases; request_bytes is the actual encoded HTTP body length",
+    "authoritative_report": "worker-http-key-only-env/worker-input.json",
+    "credential_transport_fix_commit": "b26f0ce09951ae58c1c46b749bf8a93dd211a5ab",
+    "benchmark_source_sha256": "e67d73e773f6e643288acadfe9bc8b5d02ea8fad58dd431cfa7853c899ff70e7",
+    "authentication": {
+      "worker_and_mock_engine_enabled": true,
+      "credential_lifetime": "random values generated for this invocation",
+      "docker_argv": "--env VARIABLE_NAME; no values in argv",
+      "values_transport": "explicit Docker subprocess environment mapping",
+      "benchmark_writes_credential_files": false,
+      "parent_environment_mutated": false,
+      "actual_http_rerun_after_launcher_fix": true
+    },
+    "superseded_report": {
+      "path": "worker-http-abba-final/worker-input.json",
+      "sha256": "8c46cedd474c52bd150f643998975afdba45151480e7ce9d058082c89edaa904",
+      "reason": "Rerun required after removing temporary dotenv storage of generated benchmark credentials",
+      "all_14_request_engine_payload_output_identities_match_new_report": true,
+      "worker_executable_hashes_unchanged": true,
+      "used_for_current_timing_headlines": false
+    },
+    "interpretation": "Absolute HTTP timings vary across complete runs on the shared host; all current medians come from the single post-fix run, not selected across runs. CPU/model throughput causality is not inferred from the inter-run absolute shift."
   },
   "validation": {
     "strict_python_reference": {
@@ -515,9 +538,22 @@
       }
     ],
     "http_benchmark_offline_guards": {
-      "passed": 12,
+      "passed": 14,
       "failed": 0,
-      "seconds": 0.084
+      "credential_transport_fix_commit": "b26f0ce09951ae58c1c46b749bf8a93dd211a5ab",
+      "test_source_sha256": "40a1f4ca9a9217b39c0b80bd43fd57e158f53f9139c442ea0b23799a97b9a09b",
+      "guard_coverage_additions": [
+        "Generated credential values absent from Docker argv and benchmark files",
+        "Explicit subprocess environment carries credentials without mutating parent os.environ"
+      ],
+      "superseded_log": {
+        "path": "http-benchmark-offline-tests-prior12.log",
+        "passed": 12,
+        "status": "historical_before_credential_transport_fix",
+        "sha256": "c334d3fb4595cfa14c9d9932700ce91b31d7ec77088ddb1d5369512b6d27cfd1"
+      },
+      "seconds": 0.105,
+      "raw_log": "http-benchmark-offline-tests.log"
     },
     "media_fixture": {
       "initial_gate": {
@@ -540,19 +576,315 @@
   "deployment": {
     "native_code_published_as_latest": false,
     "production_environment_changed_by_dispatch_checks": false,
-    "rollback_tag_for_dispatch_checks": "not applicable; production containers/images were not replaced by CPU-only dispatch checks"
+    "rollback_tag_for_dispatch_checks": "not applicable; production containers/images were not replaced by CPU-only dispatch checks",
+    "separate_j_ubatch_rollout": "Only LLM_UBATCH_SIZE=1024 applied to DevXT3090J after qualification; unchanged image and all other settings. See j_ubatch_qualification.promotion."
   },
   "j_ubatch_qualification": {
-    "status": "pending_separate_live_qualification",
-    "claimed_speedup": null,
-    "selected_production_setting": null,
-    "planned_comparison": "Physical batch512 versus1024 with unchanged220000 context, model, precision and remaining arguments",
-    "permanent_environment_change_authorized": false,
-    "note": "Root will fill final matched prefill, finite-turn, near-context/vision and exact-restoration results after the live operator completes"
+    "status": "qualified_and_applied",
+    "qualification": {
+      "plan_sha256": "0852816a6b6a372a3028ac9b2309d1111e33552dd40e22d53263c739e73723a7",
+      "label": "DevXT3090J",
+      "baseline_image": "sha256:845c0d4edad3ee960bb22e76a48de843560d4a197f6a430e799e3136b8a032f4",
+      "model_sha256": "00cf92e666c6af6566996c38c89a44ccdb6449ea25ef0f112a452c853b2a71e2",
+      "context": 220000,
+      "ubatch_baseline": 512,
+      "ubatch_candidate": 1024,
+      "cold": {
+        "target_tokens": 150000,
+        "actual_input_tokens": [
+          149992,
+          149992,
+          149992,
+          149992
+        ],
+        "baseline_rates": [
+          731.228877632022,
+          733.3377772713457
+        ],
+        "candidate_rates": [
+          720.7159970736217,
+          761.4492410915967
+        ],
+        "baseline_median": 732.2833274516838,
+        "candidate_median": 741.0826190826092,
+        "median_delta_percent": 1.2016239208321844,
+        "all_request_hashes_equal": true,
+        "all_output_hashes_equal": true,
+        "all_cache_tokens_zero": true,
+        "conclusion": "No reliable cold-prefill gain: candidate spread exceeds median difference."
+      },
+      "finite": {
+        "seed": {
+          "samples_per_config": 3,
+          "baseline_ttft_seconds": 19.97066716203699,
+          "candidate_ttft_seconds": 19.162691657955293,
+          "ttft_reduction_percent": 4.045811276738953,
+          "baseline_evaluated_tokens": [
+            24589,
+            24504,
+            24504
+          ],
+          "candidate_evaluated_tokens": [
+            24589,
+            24504,
+            24504
+          ],
+          "baseline_cached_tokens": [
+            0,
+            85,
+            85
+          ],
+          "candidate_cached_tokens": [
+            0,
+            85,
+            85
+          ]
+        },
+        "replay": {
+          "samples_per_config": 3,
+          "baseline_ttft_seconds": 0.6484342110343277,
+          "candidate_ttft_seconds": 0.47049902396975085,
+          "ttft_reduction_percent": 27.440746345068632,
+          "baseline_evaluated_tokens": [
+            4,
+            4,
+            4
+          ],
+          "candidate_evaluated_tokens": [
+            4,
+            4,
+            4
+          ],
+          "baseline_cached_tokens": [
+            24585,
+            24585,
+            24585
+          ],
+          "candidate_cached_tokens": [
+            24585,
+            24585,
+            24585
+          ]
+        },
+        "append": {
+          "samples_per_config": 3,
+          "baseline_ttft_seconds": 1.191758407978341,
+          "candidate_ttft_seconds": 0.8914490700117312,
+          "ttft_reduction_percent": 25.19884365456624,
+          "baseline_evaluated_tokens": [
+            101,
+            101,
+            101
+          ],
+          "candidate_evaluated_tokens": [
+            101,
+            101,
+            101
+          ],
+          "baseline_cached_tokens": [
+            24605,
+            24605,
+            24605
+          ],
+          "candidate_cached_tokens": [
+            24605,
+            24605,
+            24605
+          ]
+        },
+        "rewind": {
+          "samples_per_config": 3,
+          "baseline_ttft_seconds": 18.62773022498004,
+          "candidate_ttft_seconds": 1.1838765240390785,
+          "ttft_reduction_percent": 93.6445476193794,
+          "baseline_evaluated_tokens": [
+            23256,
+            23256,
+            23256
+          ],
+          "candidate_evaluated_tokens": [
+            728,
+            728,
+            728
+          ],
+          "baseline_cached_tokens": [
+            85,
+            85,
+            85
+          ],
+          "candidate_cached_tokens": [
+            22613,
+            22613,
+            22613
+          ]
+        }
+      },
+      "finite_controls": {
+        "total": 24,
+        "all_correct": true,
+        "paired_requests_equal": 12,
+        "paired_outputs_equal": 12,
+        "pairs": 12
+      },
+      "quality_scope": "Finite synthetic controls and four one-word long-input checks; not universal model-quality equivalence.",
+      "capacity": {
+        "baseline": {
+          "declared_context": 220000,
+          "effective_context": 220160,
+          "ubatch": 512,
+          "input_tokens": 208866,
+          "input_fraction": 0.9493909090909091,
+          "evaluated_prompt_tokens": 208866,
+          "cached_prompt_tokens": 0,
+          "capacity_answer": "Python",
+          "capacity_prefill_tokens_per_second": 608.8901867833748,
+          "capacity_wall_seconds": 343.50380105600925,
+          "capacity_request_sha256": "937f7fab3342288cca67559081f2903f7804f16fac24f528b22267c083ea1871",
+          "vision_answer": "Red",
+          "vision_evaluated_prompt_tokens": 1088,
+          "vision_cached_prompt_tokens": 0,
+          "vision_request_sha256": "58287794ddc81ce1b3075fc036332262db9e41a07826e04119d75dbd4d1956c3",
+          "inference_retries": 0,
+          "context_downgrade_allowed": false
+        },
+        "candidate": {
+          "declared_context": 220000,
+          "effective_context": 220160,
+          "ubatch": 1024,
+          "input_tokens": 208866,
+          "input_fraction": 0.9493909090909091,
+          "evaluated_prompt_tokens": 208866,
+          "cached_prompt_tokens": 0,
+          "capacity_answer": "Python",
+          "capacity_prefill_tokens_per_second": 673.7904111094452,
+          "capacity_wall_seconds": 310.4651687720325,
+          "capacity_request_sha256": "937f7fab3342288cca67559081f2903f7804f16fac24f528b22267c083ea1871",
+          "vision_answer": "Red",
+          "vision_evaluated_prompt_tokens": 1088,
+          "vision_cached_prompt_tokens": 0,
+          "vision_request_sha256": "58287794ddc81ce1b3075fc036332262db9e41a07826e04119d75dbd4d1956c3",
+          "inference_retries": 0,
+          "context_downgrade_allowed": false
+        },
+        "paired_request_hashes_equal": true,
+        "single_sample_per_configuration": true,
+        "note": "Capacity throughput is an unreplicated screening observation, not a repeated rate estimate."
+      },
+      "restoration": {
+        "healthy": true,
+        "same_container": true,
+        "same_image": true,
+        "same_environment": true,
+        "same_mounts": true,
+        "same_config": true,
+        "same_hostconfig": true,
+        "critical_parameters_preserved": true,
+        "oom_killed": false,
+        "full_engine_argv_preserved": true,
+        "full_engine_argv_sha256": "c08cad466fcb0681d82eed3264de106a80e730ba8d27605ca85827fafef8b661"
+      },
+      "supervisor": {
+        "status": "complete",
+        "runner_exit_code": 0,
+        "restoration_verified": true,
+        "router_restoration_verified": true,
+        "drain_released": true,
+        "lease_renewal_errors": [],
+        "router_restoration": {
+          "two_fresh_heartbeats": true,
+          "stable_metadata_preserved": true,
+          "worker_id": "DevXT3090J-61ce2c32"
+        }
+      },
+      "post_run_exact_original_verified": true,
+      "owned_test_container_removed": true,
+      "measured_output_counts": {
+        "cold_one_word": 4,
+        "finite_branch_turn_controls": 24,
+        "near_context": 2,
+        "vision": 2,
+        "total_excluding_warmups": 32
+      }
+    },
+    "qualification_summary_sha256": "1c699a1a835e6212e8343e82a0a8c21d1f3eae7bd123b7ccc24f6b67232bfe51",
+    "promotion": {
+      "status": "applied_and_verified",
+      "label": "DevXT3090J",
+      "selected_environment": {
+        "container_old": "auto",
+        "dotenv_old": null,
+        "new": "1024"
+      },
+      "context": 220000,
+      "complete_engine_argv_preserved_except_ubatch": true,
+      "original_container_id": "5299ee219ea855e25d3232230be241ccd9d99d87c52b07e555127bbc2809e205",
+      "replacement_container_id": "79a536848ee1220b5966849be55b85bac978277ddc41f4a4fc8f8c1686c372fb",
+      "image": "sha256:845c0d4edad3ee960bb22e76a48de843560d4a197f6a430e799e3136b8a032f4",
+      "only_selected_dotenv_bytes_changed": true,
+      "all_other_container_settings": {
+        "immutable_image_preserved": true,
+        "config_preserved_except_selected_env": true,
+        "hostconfig_preserved": true,
+        "hostconfig_default_normalizations": {},
+        "mounts_preserved": true,
+        "static_network_configuration_preserved": true
+      },
+      "router_two_fresh_drained_heartbeats": true,
+      "router_two_fresh_resumed_heartbeats": true,
+      "routed_smoke": [
+        {
+          "kind": "chat",
+          "passed": true,
+          "answer": "OK",
+          "finish_reason": "stop",
+          "disable_fallback": true
+        },
+        {
+          "kind": "stream",
+          "passed": true,
+          "answer": "OK",
+          "finish_reason": "stop",
+          "disable_fallback": true
+        },
+        {
+          "kind": "vision",
+          "passed": true,
+          "answer": "Red",
+          "finish_reason": "stop",
+          "disable_fallback": true
+        }
+      ],
+      "original_retained_until_routed_checks": true,
+      "original_stopped_container_removed_after_checks": true,
+      "drain_released": true,
+      "no_owned_drain": true,
+      "lease_errors": [],
+      "rollback_image": "ezlocalai:rollback-env-j-env-20261026-05d665ee",
+      "private_transaction_directory": "/tmp/ezlocalai-env-update-j-env-20261026-05d665ee",
+      "dotenv_backup": "/tmp/ezlocalai-env-update-j-env-20261026-05d665ee/dotenv.backup",
+      "transaction_directory_mode": "0o700",
+      "backup_mode": "0o600",
+      "old_dotenv_sha256": "61dd1627786c0516e0ad59287ea2fb0990eeee7c93951d292aca38f46402dd24",
+      "new_dotenv_sha256": "78fd3c93442135daed88c968e4f7fcb9deba44c09c02f2736fdd69de3d9e07b9",
+      "reviewed_plan_sha256": "10e471bc2c5e40384b70d603115627963697c94a47a86799fe363eae350b1cd7",
+      "controller_proof_sha256": "e82ee12e065d0a60ec9e57ec3c673c2df1664d33ecc5df71c096d30d496b741d"
+    },
+    "promotion_summary_sha256": "3b238885b613c4376beb3116c93e09c4a86ab32d15d0259c5e508741f24a9c0f",
+    "offline_guards": {
+      "qualification_adapter": 32,
+      "environment_adapter": 18,
+      "frozen_environment_core": 47
+    },
+    "limits": [
+      "Only two cold-prefill samples per batch; the 1.2 percent median difference is within observed spread.",
+      "One near-context capacity screen per batch, not a repeated throughput estimate.",
+      "Finite-turn identity and capacity/vision checks are sampled controls, not universal model-quality proof.",
+      "The benchmark restored the original before the separate single-setting rollout."
+    ]
   },
   "limits": [
     "CPU preparation reductions and mock-engine HTTP latency are not GPU token-rate or model-quality measurements",
-    "Small HTTP cases are noisy;102400-character streaming latency is effectively unchanged",
+    "Small HTTP results vary across complete runs: the current1024-character streaming median is slightly slower; the earlier102400-character streaming comparison was neutral.",
     "Payload identity is demonstrated for captured cases and benchmark workloads, not arbitrary future inputs",
     "No CPU-only, ROCm, Jetson or GB10 image was rebuilt or physically validated in this dispatch pass",
     "No physical multi-GPU validation"
@@ -560,13 +892,13 @@
   "raw_evidence_root": "build/validation/dispatch-speed-20261026",
   "raw_evidence_sha256": {
     "input-paired-summary.json": "d81a11e7e295e22bf6d1ae6727ad6271d38556dc5d027be0b194cbc78a26f0b2",
-    "worker-http-abba-final/worker-input.json": "8c46cedd474c52bd150f643998975afdba45151480e7ce9d058082c89edaa904",
-    "http-benchmark-offline-tests.log": "c334d3fb4595cfa14c9d9932700ce91b31d7ec77088ddb1d5369512b6d27cfd1",
     "focused-reference-tests.log": "ec96f2c241e74ed283d7a9d1ebc4c15ac0497d9ce994a43d4b6356821f613e72",
     "media-fixed-fresh-repeat100.log": "47a2bdccfb5289196dd00a081e57419b0ac947121d16bd5b12217370c7bfc240",
     "media-pdeath-negative.log": "ee4525fe1eafab4ebad2aa2f636b0534267ff2047604e460c978aab48e49e59c",
     "input-package-negative-controls.json": "0f59b3473b09eaaef462af0beaaaed2ad7f1c9677ae3ec94b79775f73e8d27c5",
-    "cuda-package-final-tests.log": "8a2eb227d5bff67a24b635460533a5e54a54f2405976e623ca4b71e5d24db637"
+    "cuda-package-final-tests.log": "8a2eb227d5bff67a24b635460533a5e54a54f2405976e623ca4b71e5d24db637",
+    "worker-http-key-only-env/worker-input.json": "105b16e18fe1d272342f4a1879fd52e9df6a5458dbc0ef9830ad6949455cb326",
+    "http-benchmark-offline-tests.log": "b7f46c7ee048c780101f3648455333782fa34296e7a0e386148f37a5c51419ef"
   },
   "pull_requests": {
     "ezlocalai": "https://github.com/DevXT-LLC/ezlocalai/pull/142",
