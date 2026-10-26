@@ -223,7 +223,7 @@ def qualify(client, source, context, ubatch, metadata, run_id, save, fraction=.9
         raise RuntimeError("engine properties changed during qualification")
 
 
-def main(argv=None):
+def arguments(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("base_url")
     parser.add_argument("source", type=Path)
@@ -244,6 +244,11 @@ def main(argv=None):
         parser.error("require an HTTP(S) base URL without credentials, query or fragment")
     if args.context < 512 or args.expected_ubatch < 1 or not .9 <= args.fraction < 1 or not math.isfinite(args.timeout) or args.timeout <= 0:
         parser.error("invalid fixed context, batch, fraction or timeout")
+    return args
+
+
+def main(argv=None):
+    args = arguments(argv)
     source = args.source.read_text(encoding="utf-8")
     metadata = json.loads(args.metadata.read_text(encoding="utf-8"))
     validate_metadata(metadata)

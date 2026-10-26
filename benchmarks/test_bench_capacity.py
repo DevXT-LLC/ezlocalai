@@ -6,7 +6,7 @@ import unittest
 from unittest.mock import patch
 import zlib
 
-from bench_capacity import (main, prepare_capacity, qualify, red_png, request_body,
+from bench_capacity import (arguments, main, prepare_capacity, qualify, red_png, request_body,
                             validate_completion, validate_properties)
 from bench_progression import digest
 
@@ -25,6 +25,54 @@ def completion(count, word="Python", cached=0):
             "timings": {"prompt_n": count, "cache_n": cached, "prompt_ms": 20,
                         "prompt_per_second": count * 50, "predicted_n": 2,
                         "predicted_ms": 1, "predicted_per_second": 1000}}
+
+
+class CapacityArgumentsTests(unittest.TestCase):
+    def argv(self):
+        return ["http://127.0.0.1:28192", "absent-source.py", "230000", "1024", "gpu", "out.json",
+                "--metadata", "absent-metadata.json"]
+
+    def parse_without_io(self, argv):
+        with patch("bench_capacity.Path.read_text", side_effect=AssertionError("parser read a file")), \
+                patch("bench_capacity.urllib.request.urlopen", side_effect=AssertionError("parser used HTTP")), \
+                patch("bench_capacity.Client", side_effect=AssertionError("parser created a client")), \
+                patch("bench_capacity.atomic_report", side_effect=AssertionError("parser wrote a report")):
+            return arguments(argv)
+
+    def test_named_capacity_controls_are_retained_without_file_or_network_access(self):
+        args = self.parse_without_io(self.argv() + ["--prompt-cache-key", "capacity-key",
+            "--fraction", "0.94", "--timeout", "120", "--api-key-env", "CAPACITY_API_KEY",
+            "--run-id", "qualification-run"])
+        self.assertEqual((args.context, args.expected_ubatch), (230000, 1024))
+        self.assertEqual(args.prompt_cache_key, "capacity-key")
+        self.assertEqual((args.fraction, args.timeout), (.94, 120))
+        self.assertEqual((args.api_key_env, args.run_id), ("CAPACITY_API_KEY", "qualification-run"))
+        self.assertEqual(str(args.source), "absent-source.py")
+        self.assertEqual(str(args.metadata), "absent-metadata.json")
+
+    def test_default_capacity_controls_are_unchanged(self):
+        args = self.parse_without_io(self.argv())
+        self.assertIsNone(args.prompt_cache_key)
+        self.assertEqual((args.fraction, args.timeout, args.api_key_env), (.95, 1800, "EZLOCALAI_API_KEY"))
+
+    def test_invalid_options_fail_during_the_same_pure_preflight(self):
+        cases = []
+        for key in ("", "  ", "a\nb", "a\0b", "a\x7fb"):
+            cases.append(self.argv() + ["--prompt-cache-key", key])
+        for fraction in ("0.899", "1", "nan", "inf", "-inf"):
+            cases.append(self.argv() + ["--fraction=" + fraction])
+        for context in ("0", "511", "invalid"):
+            argv = self.argv(); argv[2] = context; cases.append(argv)
+        for ubatch in ("0", "-1", "invalid"):
+            argv = self.argv(); argv[3] = ubatch; cases.append(argv)
+        for timeout in ("0", "-1", "nan", "inf", "-inf"):
+            cases.append(self.argv() + ["--timeout=" + timeout])
+        for url in ("http://user@local", "https://user:secret@local", "http://local?key=secret",
+                    "http://local#secret", "file:///tmp/engine", "http:///missing-host"):
+            argv = self.argv(); argv[0] = url; cases.append(argv)
+        for argv in cases:
+            with self.subTest(argv=argv), patch("sys.stderr", new=io.StringIO()), self.assertRaises(SystemExit):
+                self.parse_without_io(argv)
 
 
 class CapacityGuardsTests(unittest.TestCase):
