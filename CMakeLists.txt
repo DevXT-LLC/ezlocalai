@@ -258,6 +258,14 @@ target_link_libraries(test_core
         ezlocalai_core
 )
 add_test(NAME core COMMAND test_core)
+add_executable(test_http_stream_socket tests/test_http_stream_socket.cpp)
+target_include_directories(test_http_stream_socket PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_link_libraries(test_http_stream_socket PRIVATE Threads::Threads)
+add_test(NAME http_stream_socket COMMAND test_http_stream_socket)
+set_tests_properties(http_stream_socket PROPERTIES TIMEOUT 15)
+add_executable(bench_stream_socket EXCLUDE_FROM_ALL benchmarks/bench_stream_socket.cpp)
+target_include_directories(bench_stream_socket PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_link_libraries(bench_stream_socket PRIVATE Threads::Threads)
 
 # Explicit live-model acceptance runner; deployment lifecycle belongs to the caller.
 add_executable(test_speculative_model tests/test_speculative_model.cpp)
@@ -1752,6 +1760,7 @@ if(TARGET test_ltx_norm AND TARGET ezlocalai-tts)
         test_media_engine
         test_ltx_runtime
         test_core
+        test_http_stream_socket
     )
     if(TARGET test_conversation_cache)
         list(APPEND native_package_targets test_conversation_cache)

@@ -41,6 +41,7 @@
 #include "ezlocalai/http_body.hpp"
 #include "ezlocalai/http_url.hpp"
 #include "ezlocalai/http_cookies.hpp"
+#include "ezlocalai/http_socket.hpp"
 #include "ezlocalai/process.hpp"
 #include "generated_openapi.hpp"
 #include "ezlocalai/worker_heartbeat.hpp"
@@ -5738,35 +5739,11 @@ HttpResponse fallback_json_request(const std::string &method, const std::string 
 }
 
 bool send_all_fd(int fd, const std::string &data) {
-    size_t sent = 0;
-    while (sent < data.size()) {
-        ssize_t n = send(
-            fd,
-            data.data() + sent,
-            data.size() - sent,
-#ifdef MSG_NOSIGNAL
-            MSG_NOSIGNAL
-#else
-            0
-#endif
-        );
-        if (n <= 0) {
-            return false;
-        }
-        sent += static_cast<size_t>(n);
-    }
-    return true;
+    return http_socket::send_all(fd, data);
 }
 
 bool send_http_chunk(int fd, const std::string &chunk) {
-    if (chunk.empty()) {
-        return true;
-    }
-    std::ostringstream header;
-    header << std::hex << chunk.size() << "\r\n";
-    return send_all_fd(fd, header.str())
-        && send_all_fd(fd, chunk)
-        && send_all_fd(fd, "\r\n");
+    return http_socket::send_chunk(fd, chunk);
 }
 
 void append_stream_capture(const std::shared_ptr<std::string> &capture, const std::string &chunk) {
@@ -6013,6 +5990,7 @@ HttpResponse http_worker_stream_request(
         }
         return worker_transport_error_response(aiohttp_connect_error_message(parsed, last_connect_endpoint, last_connect_errno));
     }
+    http_socket::low_latency(state->fd);
     if (timeout_seconds > 0) {
         timeval timeout{};
         timeout.tv_sec = timeout_seconds;
@@ -20645,6 +20623,8 @@ void NativeServer::handle_client(int client_fd) {
     } catch (const std::exception &ex) {
         response = {500, "application/json", make_error(500, ex.what())};
     }
+    if (!head_request && response.chunked && response.stream_writer)
+        http_socket::low_latency(client_fd);
     const std::string serialized = serialize_response(response, head_request, request_origin, request_has_cookie);
     size_t sent = 0;
     while (sent < serialized.size()) {
