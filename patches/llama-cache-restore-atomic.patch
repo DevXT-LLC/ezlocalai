@@ -1,0 +1,55 @@
+diff --git a/tools/server/server-task.cpp b/tools/server/server-task.cpp
+--- a/tools/server/server-task.cpp
++++ b/tools/server/server-task.cpp
+@@ -1833,37 +1833,39 @@
+     if (it_best != states.end()) {
+         SRV_TRC("%s", " - found a longer cached prompt prefix\n");
+ 
++        // A failed restore invalidates this cache entry. Keep both payloads
++        // intact until all contexts are restored; the caller clears its active
++        // contexts before reprocessing when this function returns false.
++        if (it_best->data.main.empty() || ctx_tgt == nullptr ||
++                (!it_best->data.drft.empty() && ctx_dft == nullptr)) {
++            SRV_WRN("%s", "discarding cached prompt with missing state or context\n");
++            states.erase(it_best);
++            return false;
++        }
++
+         {
+-            auto & data = it_best->data.main;
++            const auto & data = it_best->data.main;
+ 
+             const size_t size = data.size();
+             const size_t n = llama_state_seq_set_data_ext(ctx_tgt, data.data(), size, id_slot, 0);
+             if (n != size) {
+                 SRV_ERR("failed to restore state with size %zu\n", size);
+-
++                states.erase(it_best);
+                 return false;
+             }
+-
+-            data.clear();
+-            data.shrink_to_fit();
+         }
+ 
+         {
+-            auto & data = it_best->data.drft;
++            const auto & data = it_best->data.drft;
+ 
+             if (!data.empty()) {
+-                GGML_ASSERT(ctx_dft);
+-
+                 const size_t size = data.size();
+                 const size_t n = llama_state_seq_set_data_ext(ctx_dft, data.data(), size, id_slot, 0);
+                 if (n != size) {
+                     SRV_WRN("failed to restore state with size %zu\n", size);
+-
++                    states.erase(it_best);
+                     return false;
+                 }
+-
+-                data.clear();
+-                data.shrink_to_fit();
+             }
+         }
+ 

@@ -1,0 +1,68 @@
+{
+  "date": "2026-10-26",
+  "scope": "Actual production server_prompt_cache load/selection/allocation with fault injection at the external llama_state_seq_set_data_ext boundary. Standalone atomicity patch; combined MTP and hardware validation remain the parent integration task.",
+  "upstream_revision": "620d2225cc436ab0b001e3200e590e3b286ef9ab",
+  "prerequisite_patch_sha256": "ea1cb7096df5107862e825ecf7fae45354632f6d091fc1cfe71f0dc72a8d39d9",
+  "patch_sha256": "8bdf244b7464d428316caa18cd952dbd56d18b1a577728cda34875e1b82a93cc",
+  "production_source_before_sha256": "cd9bdf46141466ae0aa7af6509c6c1113d383d281f45bbb9118348dbabd79483",
+  "production_source_after_sha256": "5acfaa363162f6fe8af54bd853818f0c144d8db36bf7f0aa8204c647b40d1164",
+  "test_source_sha256": "29be8706d828b759eb0d8cf8dac21cbe70ecc00ec4e93d5af6041d8937457119",
+  "build": {
+    "image_id": "sha256:c9d7cd30fb6f0d75280fda34b20cd70350dc69072ffebf564f0fffc92b8b330a",
+    "owned_container": "ezlocalai-cache-restore-build-20261026",
+    "compiler": "c++ (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0",
+    "flags": [
+      "-O2",
+      "-std=c++17"
+    ],
+    "production_translation_unit": "tools/server/server-task.cpp",
+    "production_test_hook_added": false,
+    "physical_gpu_used": false
+  },
+  "regression_scenarios": {
+    "count": 14,
+    "complete_target_and_draft": 1,
+    "complete_target_only": 1,
+    "failed_target_rejected_partial_oversized": 3,
+    "failed_draft_rejected_partial_oversized": 3,
+    "empty_target_payload_with_or_without_draft": 2,
+    "missing_target_or_draft_context": 2,
+    "protected_eviction_and_valid_survivor_after_failed_restore": 1,
+    "cache_miss_without_deserializer_call": 1
+  },
+  "verified_properties": [
+    "Both target and draft payload bytes and complete cache budget remain intact inside both deserializer calls.",
+    "Only the selected failed entry is erased; unrelated state survives.",
+    "Failed load leaves resident prompt tokens and checkpoint payloads unchanged.",
+    "A later miss does not select the failed entry.",
+    "A valid replacement can restore after a failure.",
+    "Empty target state and unavailable required context fail before any deserializer call.",
+    "Protected eviction and cache hard ceiling still apply after a failure."
+  ],
+  "runs": [
+    {
+      "name": "test_cache_restore_atomic",
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "log_sha256": "346bf23b232d97a3c772e2270625fe51bf7f30d5bc7198748cce7a7e2501ea33"
+    },
+    {
+      "name": "test_cache_restore_atomic_before",
+      "exit_code": 1,
+      "expected_exit_code": 1,
+      "log_sha256": "819285fa3f0fb4dcaa6eb70b466ff050270ceefef5376b24cdc6c1f77a1f2bb3"
+    }
+  ],
+  "patch_roundtrip": {
+    "reverse_restored_exact_conversation_patched_source": true,
+    "forward_check_and_apply_passed": true,
+    "reapplied_source_hash_identical": true
+  },
+  "independent_review": {
+    "task": "/root/cache_restore_fix/review_restore",
+    "blocking_findings": 0,
+    "limit": "Active target/draft context recovery remains caller-driven on false, rather than attempting to undo partial backend mutations."
+  },
+  "package_gate_run": false,
+  "bulk_proof_directory": "build/validation/cache-restore-20261026/"
+}
