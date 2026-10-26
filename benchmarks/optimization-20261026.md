@@ -193,9 +193,31 @@ obvious regression on the sampled workloads.
 
 ## Final qualification and applied environment settings
 
-**Pending:** repeated positive prefill trials, near-limit context and vision
-checks, and any resulting persistent environment changes. The benchmark
-coordinator will replace this section with measured results and an explicit
+A second matched round uses the original production engine without either
+experimental state-transfer overlay. On the 5090, physical batch 2048 confirms
+the earlier positive result:
+
+| Worker | Depth | Original physical batch, tok/s | Candidate physical batch, tok/s | Gain |
+| --- | --- | ---: | ---: | ---: |
+| DevXT5090 | 68069 tokens | 2829.0 at 1024 | 2922.8 at 2048 | 3.3% |
+| DevXT5090 | 150026 tokens | 1781.4 at 1024 | 1894.8 at 2048 | 6.4% |
+
+Each pair is one additional cold request per depth in a fresh engine. All
+cold, repeat, append and extend requests at both depths have identical request
+and output hashes between the two settings, including the freeform append
+answers (8/8 comparisons).
+
+The 5090 candidate also completed a cold 248809-token input, 94.913% of its
+unchanged 262144-token budget, at 1300.34 tok/s and answered `Python`. Reported
+input tokens matched the tokenized request, with zero cached tokens. A separate
+64×64 solid-red PNG request used the original projector, evaluated 1088 tokens,
+and answered `Red` in 1.60 s. The tests allowed no smaller-context retry and no
+inference retry. Production was then restored with its original image,
+environment and mounts, and the owned drain was released.
+
+**Pending:** the 3090V confirmation/capacity/vision results and the resulting
+persistent environment changes. No persistent environment setting has been
+applied yet; the coordinator will replace this paragraph with an explicit
 old/new settings record.
 
 ## Follow-up cache work
