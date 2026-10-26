@@ -55,10 +55,11 @@ Each cold depth starts a fresh engine and rejects an unexpected cache hit.
 
 The initial cold numbers below are **screening n=1 per depth**, not repeated
 estimates of variance. Short suites contain seven latency requests, three
-256-token decode requests and three independent conversations with a common
-~24K-token prefix. Each returning conversation must recover its own branch
-answer. Worker A/B suites use five conversation rounds, giving 12 cache-return
-samples and 25 total comparisons per variant.
+256-token decode requests and three independent ~24K-token histories with a
+~22K-token shared prefix and ~2K-token branch suffixes. Each returning
+conversation must recover its own branch answer. Worker A/B suites use five
+conversation rounds, giving 12 cache-return samples and 25 total comparisons
+per variant.
 
 Normal model presets can override the public request's sampling fields. Direct
 engine tests avoid that ambiguity. Full-worker A/B tests use a synthetic model
