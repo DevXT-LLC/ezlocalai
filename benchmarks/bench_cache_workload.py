@@ -210,9 +210,10 @@ def validate_sample(sample, expected_tokens, decode_tokens, branch, minimum_gene
         raise RuntimeError("reasoning was emitted despite thinking being disabled")
     content = sample["output"]["content"]
     marker, code = branch_identity(branch)
-    first = content.strip().splitlines()[0] if content.strip() else ""
-    if not re.search(r"\b" + re.escape(marker) + r"\b", first) or not re.search(r"\b" + code + r"\b", first):
-        raise RuntimeError("response first line does not preserve its branch marker and identity code")
+    first = next((line.strip() for line in content.splitlines() if line.strip() and not re.fullmatch(
+        r"(?:`{3,}|~{3,})(?:[A-Za-z][A-Za-z0-9_+-]*)?", line.strip())), "")
+    if not re.match(r"^\W*" + re.escape(marker) + r"\b", first) or not re.search(r"\b" + code + r"\b", first):
+        raise RuntimeError("response first meaningful line does not preserve its branch marker and identity code")
     if any(value != marker for value in re.findall(r"\bBRANCH_\d+_END\b", content)) or any(
             value != code for value in re.findall(r"\bCODE_\d+\b", content)):
         raise RuntimeError("response contains another conversation's identity")

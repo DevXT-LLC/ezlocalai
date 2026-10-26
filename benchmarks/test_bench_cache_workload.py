@@ -166,6 +166,20 @@ class MetricAndBudgetTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "thinking being disabled"):
             validate_sample(data, 1000, 256, 0, 64)
 
+    def test_identity_header_accepts_leading_markdown_fences_without_skipping_prose(self):
+        for text in ("```\nBRANCH_0_END CODE_910000\n```\n\nHash maps handle collisions.",
+                     "\n\n```text\n\nBRANCH_0_END CODE_910000\n```\nAn explanation.",
+                     "~~~\nBRANCH_0_END CODE_910000\n~~~\nAn explanation."):
+            with self.subTest(text=text):
+                self.assertTrue(validate_sample(sample(text=text), 1000, 256, 0, 64)["identity_correct"])
+        for text in ("```\nBRANCH_1_END CODE_910017\n```\nAn explanation.",
+                     "```\nBRANCH_0_END CODE_910017\n```\nAn explanation.",
+                     "Here is the requested answer:\n```\nBRANCH_0_END CODE_910000\n```",
+                     "Here is BRANCH_0_END CODE_910000\nAn explanation.",
+                     "```\nBRANCH_0_END CODE_910000\n```\nBRANCH_1_END CODE_910017"):
+            with self.subTest(text=text), self.assertRaises(RuntimeError):
+                validate_sample(sample(text=text), 1000, 256, 0, 64)
+
     def test_fixed_context_padding_single_slot_and_headroom_guards(self):
         self.assertEqual(validate_runtime({"n_ctx": 230144, "total_slots": 1}, 230000)["effective_context"], 230144)
         for props in ({"n_ctx": 229888, "total_slots": 1}, {"n_ctx": 230144, "total_slots": 2},
