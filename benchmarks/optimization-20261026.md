@@ -10,9 +10,10 @@ The code candidates in this branch have only run in isolated test containers.
 They have not replaced the production images. Each machine was drained through
 WorkerRouter while its original container was stopped; the same container was
 then restarted with its original image, environment and mounts. The router
-maintenance leases were released after restoration.
+maintenance leases were released after restoration. The qualified physical-batch
+settings were subsequently applied as documented below.
 
-## Baseline and provenance
+## Pre-tuning baseline and provenance
 
 All workers use logical batch 4096, one slot, `q4_0` K/V cache, 32 context
 checkpoints and checkpoint minimum step 8192. The model filename is
@@ -66,7 +67,7 @@ engine tests avoid that ambiguity. Full-worker A/B tests use a synthetic model
 alias with identical explicit engine parameters and greedy sampling, and bypass
 the router/fallback/media paths to isolate the HTTP worker changes.
 
-## Current baseline and historical progression
+## Post-rollout baseline and historical progression
 
 | Worker | 68069-token cold prefill, tok/s | 150026-token cold prefill, tok/s | Short TTFT, ms | Decode, tok/s | Returning-conversation TTFT, ms |
 | --- | ---: | ---: | ---: | ---: | ---: |
@@ -247,13 +248,49 @@ tests allowed no smaller-context retry and no inference retry. Each production
 container was then restored with its original image, environment and mounts,
 and its owned drain was released.
 
-The first 5090 environment rollout aborted in the deployment helper during
-pre-creation verification. Recovery restored the original container and dotenv
-settings, verified health at physical batch 1024, and released the owned drain.
+The following changes are now applied in `/home/josh/ezlocalai/.env` on the
+respective hosts:
 
-**Pending:** the retried environment rollouts. No persistent environment setting
-has been applied yet; the coordinator will replace this paragraph with an
-explicit old/new settings record and final verification results.
+| Worker | Previous dotenv value | Previous effective physical batch | Applied `LLM_UBATCH_SIZE` |
+| --- | --- | ---: | ---: |
+| DevXT3090V | Absent; container inherited `auto` | 512 | 1024 |
+| DevXT5090 | `1024` | 1024 | 2048 |
+
+The 4090 keeps 1024. Model/projector files, context, q4 KV, logical batch, MTP,
+cache ceilings, CPU threads and GPU clocks/power settings are unchanged. The
+running images remain `3e09d9905d59` on the 3090V and `1197b0b18d41` on the
+5090, both reporting worker `46d9ba8`. The code changes in this PR have only
+run in isolated A/B containers; this rollout changes settings on the existing
+main images.
+
+Both replacements preserved all other container configuration, host
+configuration, mounts and static network/port configuration. Each worker passed
+router-pinned non-streaming chat, streaming chat and vision requests with
+fallback disabled. Two fresh heartbeats were observed while drained and again
+after resuming, with version, models, capability slots, context and GPU metadata
+preserved. Startup-generated worker IDs changed as expected and were recorded
+separately. Original stopped containers were removed only after these checks
+passed; the rollback images and private dotenv backups remain:
+
+- 5090: `ezlocalai:rollback-env-env-20261026-devxt5090-5903c2f8`, with
+  `/tmp/ezlocalai-env-update-env-20261026-devxt5090-5903c2f8/dotenv.backup`.
+- 3090V: `ezlocalai:rollback-env-env-20261026-devxt3090v-5903c2f8`, with
+  `/tmp/ezlocalai-env-update-env-20261026-devxt3090v-5903c2f8/dotenv.backup`.
+
+Backups are mode 0600 inside mode-0700 directories. Two earlier 5090 attempts
+recovered cleanly after operator verification checks rejected normal Docker
+`OomKillDisable` null/false equivalence, then a new startup-generated worker ID.
+The first attempt never stopped the original container; the second restored it
+after startup verification. Both restored the original dotenv settings and
+health and released their drains. These were rollout-check issues rather than
+worker failures; the final successful proof records strict preservation of all
+other settings.
+
+The final fleet check found all three workers fresh, available, not draining
+and with closed circuits. All still report `46d9ba8`, their original context
+budgets, and RAM/VRAM metrics. The deployment helper and workflow passed 27 and
+14 offline checks respectively; the settings rollout proof includes exact
+artifact and request hashes.
 
 ## Follow-up cache work
 
@@ -298,6 +335,14 @@ the live A/B to the final worker implementation while recording the different
 artifact hashes. These integration tests ran in an owned CUDA image without a
 physical GPU; the per-card live measurements above provide the separate GPU
 evidence.
+
+After merge, the automated image build/deployment will install the worker
+transport and completion changes. Verify the deployed version, fresh router
+heartbeats and routed chat/stream/vision behavior after that rollout. The next
+cache work is the position-aware MTP state and failed-restore handling described
+above; it needs real-model acceptance/output measurements and should be a
+separate change. Broader quality workloads and sustained RAM/swap pressure
+remain useful follow-up measurements.
 
 ## Evidence and limits
 

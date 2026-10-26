@@ -1381,11 +1381,14 @@
     "passed": true
   },
   "final_qualification": {
-    "status": "both cards text/vision complete; environment settings pending",
-    "sample_counts": "Across initial screens plus confirmation:150K baseline2/candidate2 per card;68K baseline2/candidate1 per card. Confirmation table uses one fresh-engine paired trial per depth.",
-    "items": [
-      "retried persistent environment rollouts"
-    ]
+    "status": "complete",
+    "sample_counts": "Across initial screens plus confirmation:150K baseline2/candidate2 per positive card;68K baseline2/candidate1 per positive card. Confirmation table uses one fresh-engine paired trial per depth.",
+    "positive_candidates": [
+      "DevXT3090V physicalbatch1024",
+      "DevXT5090 physicalbatch2048"
+    ],
+    "rejected_4090_candidate": "physicalbatch2048 slower; capacity qualification intentionally cancelled",
+    "scope": "Near-limit context and vision qualification covers the two selected candidates; finite sampled-output/semantic agreement, not comprehensive model quality equivalence."
   },
   "rejected_code": {
     "pageable_state_io": "removed from final change set; initial gains not established as repeatable",
@@ -1425,6 +1428,7 @@
       "run_id": "env-20261026-devxt5090-7ffad6fc",
       "status": "failed_rolled_back",
       "proof_sha256": "9632d7a48b976d6d1876d124c00a45fefe9009f225df7d0876ed4b5840c82004",
+      "operator_check_cause": "Operator pre-creation check treated Docker OomKillDisable null versus defaultfalse as unequal; original was never stopped.",
       "original_restored": true,
       "final_healthy": true,
       "drain_released": true,
@@ -1440,12 +1444,304 @@
       "final_selected_environment": {
         "LLM_UBATCH_SIZE": "1024"
       },
-      "interpretation": "First attempt aborted in deployment-helper pre-creation verification; original container/dotenv were restored before a later retry. No final setting change from this attempt."
+      "interpretation": "Recovered operator-check issue, not a worker product bug. Original container/dotenv and health restored before later successful retry."
+    },
+    {
+      "label": "DevXT5090",
+      "run_id": "env-20261026-devxt5090-f1223ae3",
+      "status": "failed_rolled_back",
+      "proof_sha256": "7b200c0b47284a323fdf9b2fe37a8635195492293c471a8ac632c4a7a51f46c0",
+      "operator_check_cause": "Operator metadata verifier treated startup-generated worker_id as stable; the replacement applied successfully but was rolled back before corrected verification.",
+      "original_restored": true,
+      "final_healthy": true,
+      "drain_released": true,
+      "lease_errors": [],
+      "rollback": {
+        "dotenv_restored": true,
+        "healthy": true,
+        "original_container_restored": true,
+        "rollback_image": "ezlocalai:rollback-env-env-20261026-devxt5090-f1223ae3",
+        "run_directory": "/tmp/ezlocalai-env-update-env-20261026-devxt5090-f1223ae3",
+        "status": "rolled_back"
+      },
+      "final_selected_environment": {
+        "LLM_UBATCH_SIZE": "1024"
+      },
+      "interpretation": "Recovered operator-check issue, not a worker product bug. Original container/dotenv and health restored before later successful retry."
     }
   ],
   "applied_environment_changes": {
-    "status": "pending coordinator qualification",
-    "changes": []
+    "status": "applied",
+    "dotenv_path_on_each_host": "/home/josh/ezlocalai/.env",
+    "changes": [
+      {
+        "label": "DevXT3090V",
+        "key": "LLM_UBATCH_SIZE",
+        "file_old": null,
+        "container_old": "auto",
+        "effective_old": 512,
+        "new": "1024",
+        "effective_new": 1024,
+        "run_id": "env-20261026-devxt3090v-5903c2f8",
+        "proof_sha256": "305efaa9739865320c2c0b3f28584313353061b7a4475e0ff3eba3b14c38e268",
+        "status": "applied",
+        "image_id": "sha256:3e09d9905d59191ef870b3f1f2e1ce9ba4948211568229d84c1c1214925de973",
+        "immutable_image_preserved": true,
+        "config_preserved_except_selected_env": true,
+        "hostconfig_preserved": true,
+        "hostconfig_default_normalizations": {},
+        "mounts_preserved": true,
+        "static_network_configuration_preserved": true,
+        "critical_engine_parameters_preserved": true,
+        "effective_parameters": {
+          "--cache-ram": "7680",
+          "--checkpoint-min-step": "8192",
+          "--ctx-checkpoints": "32",
+          "--spec-draft-n-max": "2",
+          "--spec-draft-p-min": "0.10000000000000001",
+          "--spec-type": "draft-mtp",
+          "-b": "4096",
+          "-c": "230000",
+          "-ctk": "q4_0",
+          "-ctv": "q4_0",
+          "-m": "/app/models/Qwen3.8-27B/Qwen3.8-27B-UD-Q3_K_XL.gguf",
+          "-np": "1",
+          "-ub": "1024"
+        },
+        "router_metadata_preserved_while_drained": true,
+        "router_metadata_preserved_after_resume": true,
+        "fresh_heartbeat_observations_while_drained": [
+          {
+            "last_heartbeat_age": 0.1607367992401123,
+            "observed_at": 1792999633.571383,
+            "worker_id": "DevXT3090V-8e16604b"
+          },
+          {
+            "last_heartbeat_age": 0.16229963302612305,
+            "observed_at": 1792999643.604123,
+            "worker_id": "DevXT3090V-8e16604b"
+          }
+        ],
+        "fresh_heartbeat_observations_after_resume": [
+          {
+            "last_heartbeat_age": 0.17492413520812988,
+            "observed_at": 1792999643.6164424,
+            "worker_id": "DevXT3090V-8e16604b"
+          },
+          {
+            "last_heartbeat_age": 0.17982816696166992,
+            "observed_at": 1792999653.6458075,
+            "worker_id": "DevXT3090V-8e16604b"
+          }
+        ],
+        "ephemeral_worker_id_before": "DevXT3090V-94f5c1f4",
+        "ephemeral_worker_id_after": "DevXT3090V-8e16604b",
+        "worker_version": "46d9ba8",
+        "routed_smoke": [
+          {
+            "answer": "OK",
+            "disable_fallback": true,
+            "finish_reason": "stop",
+            "kind": "chat",
+            "model": "unsloth/Qwen3.8-27B-GGUF",
+            "passed": true,
+            "request_sha256": "bf1be102a29dfca3a14e554f74df13541084d898f34c72efaded3ff4f9cdcd4d",
+            "usage": {
+              "completion_tokens": 2,
+              "prompt_tokens": 46,
+              "prompt_tokens_details": {
+                "cached_tokens": 0
+              },
+              "total_tokens": 48
+            },
+            "wall_seconds": 0.48730228198110126,
+            "worker_selector": "DevXT3090V"
+          },
+          {
+            "answer": "OK",
+            "disable_fallback": true,
+            "done": true,
+            "events": 3,
+            "finish_reason": "stop",
+            "kind": "stream",
+            "passed": true,
+            "request_sha256": "7ebbf79e72c124f0e60e4567d504599dbc9008b5968209f1a288043dc2b32afc",
+            "wall_seconds": 0.5020818790071644,
+            "worker_selector": "DevXT3090V"
+          },
+          {
+            "answer": "Red",
+            "disable_fallback": true,
+            "finish_reason": "stop",
+            "kind": "vision",
+            "model": "unsloth/Qwen3.8-27B-GGUF",
+            "passed": true,
+            "request_sha256": "118ebabd2ef14ff06073b9a2ece8feca6cf3c3389795cb1db7a04cc15d9a13ef",
+            "usage": {
+              "completion_tokens": 2,
+              "prompt_tokens": 1079,
+              "prompt_tokens_details": {
+                "cached_tokens": 0
+              },
+              "total_tokens": 1081
+            },
+            "wall_seconds": 1.533596777007915,
+            "worker_selector": "DevXT3090V"
+          }
+        ],
+        "rollback_image": "ezlocalai:rollback-env-env-20261026-devxt3090v-5903c2f8",
+        "private_dotenv_backup": "/tmp/ezlocalai-env-update-env-20261026-devxt3090v-5903c2f8/dotenv.backup",
+        "original_stopped_container_removed_after_verification": true,
+        "final_healthy": true,
+        "drain_released": true,
+        "lease_errors": []
+      },
+      {
+        "label": "DevXT5090",
+        "key": "LLM_UBATCH_SIZE",
+        "file_old": "1024",
+        "container_old": "1024",
+        "effective_old": 1024,
+        "new": "2048",
+        "effective_new": 2048,
+        "run_id": "env-20261026-devxt5090-5903c2f8",
+        "proof_sha256": "33a9e5bd88c99f0903facc758bd2dddacab2f322797ea4bba8c556608bcce547",
+        "status": "applied",
+        "image_id": "sha256:1197b0b18d410519a25fab734bcfead8b32b8d67b1b824a188dbd08916735021",
+        "immutable_image_preserved": true,
+        "config_preserved_except_selected_env": true,
+        "hostconfig_preserved": true,
+        "hostconfig_default_normalizations": {},
+        "mounts_preserved": true,
+        "static_network_configuration_preserved": true,
+        "critical_engine_parameters_preserved": true,
+        "effective_parameters": {
+          "--cache-ram": "32000",
+          "--checkpoint-min-step": "8192",
+          "--ctx-checkpoints": "32",
+          "--spec-draft-n-max": "3",
+          "--spec-draft-p-min": "0.10000000000000001",
+          "--spec-type": "draft-mtp",
+          "-b": "4096",
+          "-c": "262144",
+          "-ctk": "q4_0",
+          "-ctv": "q4_0",
+          "-m": "/app/models/Qwen3.8-27B/Qwen3.8-27B-UD-Q3_K_XL.gguf",
+          "-np": "1",
+          "-ub": "2048"
+        },
+        "router_metadata_preserved_while_drained": true,
+        "router_metadata_preserved_after_resume": true,
+        "fresh_heartbeat_observations_while_drained": [
+          {
+            "last_heartbeat_age": 0.5864834785461426,
+            "observed_at": 1792999593.2850292,
+            "worker_id": "DevXT5090-ac99d887"
+          },
+          {
+            "last_heartbeat_age": 0.6120662689208984,
+            "observed_at": 1792999603.3166158,
+            "worker_id": "DevXT5090-ac99d887"
+          }
+        ],
+        "fresh_heartbeat_observations_after_resume": [
+          {
+            "last_heartbeat_age": 0.6250312328338623,
+            "observed_at": 1792999603.3294423,
+            "worker_id": "DevXT5090-ac99d887"
+          },
+          {
+            "last_heartbeat_age": 0.6480667591094971,
+            "observed_at": 1792999613.3581705,
+            "worker_id": "DevXT5090-ac99d887"
+          }
+        ],
+        "ephemeral_worker_id_before": "DevXT5090-e1c66a07",
+        "ephemeral_worker_id_after": "DevXT5090-ac99d887",
+        "worker_version": "46d9ba8",
+        "routed_smoke": [
+          {
+            "answer": "OK",
+            "disable_fallback": true,
+            "finish_reason": "stop",
+            "kind": "chat",
+            "model": "unsloth/Qwen3.8-27B-GGUF",
+            "passed": true,
+            "request_sha256": "5e2f8991c13a9180b36e69f670f0d40627a706e4dc91b40bfd0539a682a1b27b",
+            "usage": {
+              "completion_tokens": 2,
+              "prompt_tokens": 46,
+              "prompt_tokens_details": {
+                "cached_tokens": 0
+              },
+              "total_tokens": 48
+            },
+            "wall_seconds": 0.2435334989859257,
+            "worker_selector": "DevXT5090"
+          },
+          {
+            "answer": "OK",
+            "disable_fallback": true,
+            "done": true,
+            "events": 3,
+            "finish_reason": "stop",
+            "kind": "stream",
+            "passed": true,
+            "request_sha256": "a2bb4cb8057203198054fcdc7af3e1662c03e0252ca246873dae287a834fdbea",
+            "wall_seconds": 0.2176263769797515,
+            "worker_selector": "DevXT5090"
+          },
+          {
+            "answer": "Red",
+            "disable_fallback": true,
+            "finish_reason": "stop",
+            "kind": "vision",
+            "model": "unsloth/Qwen3.8-27B-GGUF",
+            "passed": true,
+            "request_sha256": "d330f0ef5a326f9b30fa5c64b19c8abff7404021559fc2b788cf179d4acf2352",
+            "usage": {
+              "completion_tokens": 2,
+              "prompt_tokens": 1079,
+              "prompt_tokens_details": {
+                "cached_tokens": 0
+              },
+              "total_tokens": 1081
+            },
+            "wall_seconds": 0.6807103210012428,
+            "worker_selector": "DevXT5090"
+          }
+        ],
+        "rollback_image": "ezlocalai:rollback-env-env-20261026-devxt5090-5903c2f8",
+        "private_dotenv_backup": "/tmp/ezlocalai-env-update-env-20261026-devxt5090-5903c2f8/dotenv.backup",
+        "original_stopped_container_removed_after_verification": true,
+        "final_healthy": true,
+        "drain_released": true,
+        "lease_errors": []
+      }
+    ],
+    "unchanged_4090_ubatch": 1024,
+    "helper_sha256": "7ae0b2e2afbf47b8645f0e91aca05a509c0f47bf1b4352c7eacafedf7f56e2df",
+    "supervisor_sha256": "1d7d4f722979a73b77b13298e510e859a841deecd478ef1895cb84ba6347cedf",
+    "operator_offline_tests": {
+      "helper_passed": 27,
+      "workflow_passed": 14,
+      "failed": 0,
+      "helper_seconds": 0.539,
+      "workflow_seconds": 0.016,
+      "helper_source_sha256": "7ae0b2e2afbf47b8645f0e91aca05a509c0f47bf1b4352c7eacafedf7f56e2df",
+      "supervisor_source_sha256": "1d7d4f722979a73b77b13298e510e859a841deecd478ef1895cb84ba6347cedf",
+      "helper_tests_sha256": "6394791dd804176ed1426050364011ca275f8b122d04087c3af2b3ecedc0e7c8",
+      "workflow_tests_sha256": "d28b325c70f4d47a9b56b736fb9b0ce092160e28ff2dd8e1769b1de997dc7eb7",
+      "helper_log_sha256": "45b136e6dd9de50390a192f63b21b040ad2ec3a0b665fa399425e0895ee283b9",
+      "workflow_log_sha256": "cfb753860c718cede39e53ca9c698a71098825ee3a7cf88ab03e9c31c523b5e5",
+      "evidence": "Archived final offline helper and workflow test logs."
+    },
+    "backup_permissions": {
+      "file_mode": "0600",
+      "parent_directory_mode": "0700",
+      "evidence": "coordinator verified private backups"
+    },
+    "code_deployment": "Settings applied to unchanged main46d9ba8 images. New worker transport/completion code ran only in isolated A/B containers; automated image build/deployment follows merge."
   },
   "limitations": [
     "Finite greedy-output and serialized-state agreement does not prove quality equivalence for all inputs.",
@@ -1453,5 +1749,116 @@
     "5090 model payload differs from 4090/3090V; cross-GPU results describe deployed configurations.",
     "No production optimization image deployed by these experiments.",
     "Sustained swap pressure, multi-GPU, other hardware platforms and video are not performance-qualified here."
-  ]
+  ],
+  "final_fleet": {
+    "proof_sha256": "c3a574f1c96fb8fd98794ce9d621b48eb5f1b34fa86b3fd4db37096022f8893a",
+    "checked_at_unix": 1792999701.2796712,
+    "workers": [
+      {
+        "label": "DevXT4090",
+        "version": "46d9ba8",
+        "models": [
+          "unsloth/Qwen3.8-27B-GGUF"
+        ],
+        "capabilities": [
+          "text",
+          "vision"
+        ],
+        "cap_slots": {
+          "text": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          },
+          "vision": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          }
+        },
+        "model_context": {
+          "unsloth/Qwen3.8-27B-GGUF": 230000
+        },
+        "total_ram_gb": 30.49881362915039,
+        "free_ram_gb": 26.73019790649414,
+        "total_vram_gb": 23.0,
+        "free_vram_gb": 2.7325439453125,
+        "draining": false,
+        "circuit_open": false,
+        "last_heartbeat_age": 4.893877029418945
+      },
+      {
+        "label": "DevXT5090",
+        "version": "46d9ba8",
+        "models": [
+          "unsloth/Qwen3.8-27B-GGUF"
+        ],
+        "capabilities": [
+          "text",
+          "vision"
+        ],
+        "cap_slots": {
+          "text": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          },
+          "vision": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          }
+        },
+        "model_context": {
+          "unsloth/Qwen3.8-27B-GGUF": 262144
+        },
+        "total_ram_gb": 125.27968978881836,
+        "free_ram_gb": 117.04949188232422,
+        "total_vram_gb": 31.0,
+        "free_vram_gb": 7.78302001953125,
+        "draining": false,
+        "circuit_open": false,
+        "last_heartbeat_age": 8.521211624145508
+      },
+      {
+        "label": "DevXT3090V",
+        "version": "46d9ba8",
+        "models": [
+          "unsloth/Qwen3.8-27B-GGUF"
+        ],
+        "capabilities": [
+          "text",
+          "vision"
+        ],
+        "cap_slots": {
+          "text": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          },
+          "vision": {
+            "capacity": 1,
+            "in_flight": 0,
+            "queued": 0,
+            "available": 1
+          }
+        },
+        "model_context": {
+          "unsloth/Qwen3.8-27B-GGUF": 230000
+        },
+        "total_ram_gb": 30.51270294189453,
+        "free_ram_gb": 24.761375427246094,
+        "total_vram_gb": 23.0,
+        "free_vram_gb": 2.99627685546875,
+        "draining": false,
+        "circuit_open": false,
+        "last_heartbeat_age": 7.7039337158203125
+      }
+    ]
+  }
 }
