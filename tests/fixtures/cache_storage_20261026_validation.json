@@ -1,0 +1,178 @@
+{
+  "date": "2026-10-26",
+  "scope": "Standalone storage ownership/allocation optimization; actual production common.cpp and server-task.cpp with state API fault injection. GPU and combined MTP integration are parent tasks.",
+  "upstream_revision": "620d2225cc436ab0b001e3200e590e3b286ef9ab",
+  "prerequisite_patches": {
+    "llama-conversation-cache.patch": "ea1cb7096df5107862e825ecf7fae45354632f6d091fc1cfe71f0dc72a8d39d9",
+    "llama-cache-restore-atomic.patch": "beeb2f5afbfca0058a1ecfeed840a5983bf9a68bb8988ec8fde3a9bc3690f4f9"
+  },
+  "patch_sha256": "8d7dfea21271902196a42e0567a9a3c9820d9d612906bb4b910d31a1f4770285",
+  "test_source_sha256": "a0d88600feb4ee2d7271b1ed5b6b0df4c3714f628433ca57f59f800d0584b08a",
+  "build": {
+    "owned_container": "ezlocalai-cache-storage-build-20261026",
+    "image_id": "sha256:c9d7cd30fb6f0d75280fda34b20cd70350dc69072ffebf564f0fffc92b8b330a",
+    "compiler": "c++ (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0",
+    "flags": [
+      "-O2",
+      "-std=c++17"
+    ],
+    "production_translation_units": [
+      "common/common.cpp",
+      "tools/server/server-task.cpp"
+    ],
+    "common_checkpoint_abi_matched": true,
+    "physical_gpu_used": false,
+    "server_context_syntax_check_passed": true
+  },
+  "functional_scenarios": {
+    "count": 10,
+    "cases": [
+      "checkpoint clone shares immutable bytes and mutation/resize/clear isolates owners",
+      "actual checkpoint update/load preserves source bytes",
+      "checkpoint clone succeeds with large allocations rejected",
+      "same-size consumed snapshot reuses initialized storage with large allocations rejected",
+      "smaller serialized lengths retain full capacity budget charge",
+      "oversized spare discarded before protected useful state eviction",
+      "reduced byte quota discards spare before useful state",
+      "failed restore evicts entry without recycling invalid storage; fresh allocation failure contained",
+      "partial write into recycled state is not published",
+      "process opt-out restores deep-copy ownership and releases consumed buffers"
+    ]
+  },
+  "runs": [
+    {
+      "name": "test_cache_storage",
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "log_sha256": "3569e53a7233e2a8d817ca75a3c99431de4cacc1d73ed3c8c1c938a27db9e8c8"
+    },
+    {
+      "name": "test_cache_storage_pool",
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "log_sha256": "c06adf0ee6872327822a88a70b90946d437ade2aa15ad86bd343c1b2fe49cac7"
+    },
+    {
+      "name": "test_cache_storage_before",
+      "exit_code": 1,
+      "expected_exit_code": 1,
+      "log_sha256": "184df54f31f9936e8d77e278e418be65c296c60a598c2fdd2a3ca3f8e5508cfd"
+    },
+    {
+      "name": "test_cache_storage_before_pool",
+      "exit_code": 1,
+      "expected_exit_code": 1,
+      "log_sha256": "78f8dc54ba22d2d692ac6ff997f4260a84d26dbd78bc8b1a360c1e4ea537cbe3"
+    }
+  ],
+  "negative_controls": {
+    "baseline": "conversation + combined atomic save/restore, before storage patch",
+    "full_suite_failure": "checkpoint clone must share immutable bytes",
+    "pool_only_failure": "consumed snapshot storage is not charged to the cache budget"
+  },
+  "patch_roundtrip": {
+    "reverse_restored_exact_baseline": {
+      "common/common.h": true,
+      "tools/server/server-task.cpp": true,
+      "tools/server/server-task.h": true,
+      "tools/server/server-context.cpp": true,
+      "new_header_absent": true
+    },
+    "forward_check_apply_passed": true,
+    "after_sha256": {
+      "common/common.h": "097674596c55be35fec2f0ca57058324951f980716b675b1cb0453c872cf872d",
+      "tools/server/server-task.cpp": "6c9385c295c472425779fb5a7c4bbe1f7730a616975ebcfe461a833d7de0c9e7",
+      "tools/server/server-task.h": "d1f5062edba1edca9c44b81e045611edfac45f28a32e34b7de760bc571cd81b6",
+      "tools/server/server-context.cpp": "d50eb4787ab8b49566d541384060666283fb6aee57303b6ec8a952f2fd059131",
+      "common/state-storage.h": "9cda9f4c1ec7e7790acb408ffb6e38761b0b6c054b27ea00427a57627e3fa256"
+    }
+  },
+  "cpu_microbenchmarks": {
+    "host": "xt-dev",
+    "cpu_model": "12th Gen Intel(R) Core(TM) i9-12900KS",
+    "compiler": "g++ (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0",
+    "flags": [
+      "-O2",
+      "-std=c++17"
+    ],
+    "warning": "Isolated CPU allocation/copy costs, not CUDA or end-to-end inference measurements. The generic memory probe is an allocation-cost audit; the checkpoint probe uses the actual patched blob class.",
+    "checkpoint_copy": {
+      "source_sha256": "da0f09fa6cbab827ea2d9de7afcbb40340f87e85818caa5f460777f123220d96",
+      "csv_sha256": "70d2fd19ea54d93a65acdc85cbb02a2ad26c3c8787b77a38343d749951c41fa5",
+      "modes": {
+        "0": {
+          "trials": 7,
+          "payload_bytes": 468713472,
+          "ms_median": 168.668,
+          "minor_faults_median": 114435
+        },
+        "1": {
+          "trials": 7,
+          "payload_bytes": 468713472,
+          "ms_median": 0.000651,
+          "minor_faults_median": 0
+        }
+      }
+    },
+    "generic_memory_cost": {
+      "source_sha256": "ca59bc327ba230d372f37ec4563c89e28dab1bf3e921cdd07d50045b622ddf73",
+      "csv_sha256": "1a962c12aeaac43dde9b5a7481bea1d391cf6e7ff057f4cadb62050d29344c9d",
+      "cases": {
+        "fresh_vector_resize": {
+          "trials": 7,
+          "ms_median": 264.982,
+          "minor_faults_median": 171009
+        },
+        "fill_initialized_pages": {
+          "trials": 7,
+          "ms_median": 48.42,
+          "minor_faults_median": 0
+        },
+        "reuse_initialized_storage_fill": {
+          "trials": 7,
+          "ms_median": 49.68,
+          "minor_faults_median": 0
+        },
+        "fresh_uninitialized_fill": {
+          "trials": 7,
+          "ms_median": 338.897,
+          "minor_faults_median": 171008
+        },
+        "checkpoint_deep_copy": {
+          "trials": 7,
+          "ms_median": 207.585,
+          "minor_faults_median": 114945
+        }
+      }
+    }
+  },
+  "invariants": [
+    "No arithmetic, weights, KV precision, prompt or serialization wire format changes.",
+    "All snapshot vectors and idle spare capacities enter the hard byte budget.",
+    "Oversized spare capacity is discarded rather than causing extra useful-state eviction.",
+    "Shared checkpoint capacity is charged conservatively for every cached owner.",
+    "State API and disk serialization lengths use logical size, not retained capacity.",
+    "Only complete successful restore buffers are retained; short/throwing saves are removed by the atomic prerequisite.",
+    "Storage remains pageable; no pinned cache or global allocator tuning."
+  ],
+  "process_flag": {
+    "name": "EZLOCALAI_LLAMA_CACHE_STORAGE",
+    "disabled": "0",
+    "default": "enabled; includes immutable sharing and one-pair spare reuse",
+    "does_not_disable": "atomic save/restore or independent MTP fixes"
+  },
+  "independent_review": {
+    "task": "/root/cache_profile_audit/router_affinity_audit",
+    "blocking_findings": 0,
+    "scope": "All target/draft blob uses, disk templates, capacity accounting, protected eviction and exception ownership."
+  },
+  "integration_requirements": [
+    "Rebuild matched common/server consumers because checkpoint C++ field layout changes.",
+    "Slot prompt_save must call the atomic cache.save API before reused buffers can be enabled.",
+    "Combined MTP payload capacity must enter allocation and cache budget accounting.",
+    "Add the mandatory test to native package targets and all four Docker gates."
+  ],
+  "package_gate_run": false,
+  "gpu_quality_or_speed_claim": false,
+  "bulk_proof_directory": "build/validation/cache-storage-20261026/"
+}
