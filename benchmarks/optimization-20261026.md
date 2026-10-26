@@ -132,7 +132,34 @@ state was also byte-identical between the two modes.
 This is only three return samples per mode. The 4090 stock baseline was already
 452.35 ms, so its apparent synchronous-to-async difference is insufficient to
 establish a repeatable improvement. This screen motivated a subsequent bounded
-pinned-staging experiment; it is not a result for that later candidate.
+pinned-staging experiment.
+
+## Rejected pinned-staging and CUDA graph screens
+
+The follow-up state-transfer candidate used reusable pinned staging capped at
+64 MiB per context/CUDA backend; the saved conversation buffers remained
+pageable. A three-way screen compared the same library with state batching
+disabled, pinned staging enabled, then pinned staging plus
+`GGML_CUDA_GRAPH_OPT=1`. Each mode had seven latency requests, five decode
+requests and 15 conversation requests, including 12 returning turns.
+
+| Worker | Cache-return TTFT: synchronous → pinned → pinned + graph, ms | Decode: synchronous → pinned → pinned + graph, tok/s |
+| --- | ---: | ---: |
+| DevXT3090V | 746.59 → 792.50 → 798.04 | 87.21 → 86.19 → 85.71 |
+| DevXT4090 | 453.71 → 503.90 → 503.96 | 113.10 → 113.05 → 112.93 |
+| DevXT5090 | 312.02 → 359.97 → 376.53 | 157.05 → 155.10 → 155.27 |
+
+All 27 request and output hashes matched between modes on each card. Each
+card's final serialized GPU state was byte-identical across all three modes;
+the complete hashes are in the compact evidence fixture. Correctness agreement
+did not produce a performance benefit: pinned staging increased the measured
+cache-return latency on every card, and graph optimization added no useful
+decode gain in this configuration. The graph result is specifically a screen
+on top of pinned staging, rather than an independent graph-only comparison.
+
+Both state-transfer implementations were removed from the final change set,
+and the graph environment switch is not selected. These rejected experiments
+remain documented so their correctness evidence is not mistaken for a speedup.
 
 ## Full-worker transport and completion A/B
 
@@ -158,10 +185,34 @@ obvious regression on the sampled workloads.
 
 ## Final qualification and applied environment settings
 
-**Pending:** bounded pinned-staging GPU A/B, CUDA graph optimization screen,
-repeated positive prefill trials, near-limit context and vision checks, and any
-resulting persistent environment changes. The benchmark coordinator will replace
-this section with measured results and an explicit old/new settings record.
+**Pending:** repeated positive prefill trials, near-limit context and vision
+checks, and any resulting persistent environment changes. The benchmark
+coordinator will replace this section with measured results and an explicit
+old/new settings record.
+
+## Follow-up cache work
+
+A separate read-only audit of the pinned upstream MTP implementation found that
+its CPU `pending_h`, `verify_h` and row bookkeeping are outside the target/draft
+KV snapshots. The generic speculative-state hooks currently capture no MTP
+payload, so restoring conversation A after B can retain B's predecessor row in
+the draft path. This establishes a state-consistency gap in source; it does not
+establish a measured acceptance-rate or answer-quality loss.
+
+A production fix needs a position-aware resume design, including identical
+prompt last-token replay, shorter shared prefixes, checkpoint rewind, full
+reset and child-slot remapping. Copying only the saved final hidden row is
+insufficient when replay begins at an earlier position. Tests should compare
+uninterrupted A with A/B/restore-A at the same position, then measure MTP
+acceptance and target outputs on a real model. Speculative payloads also need
+cache-budget accounting.
+
+The audit also found that a successful target restore followed by a failed
+draft restore can leave a selectable entry whose main bytes have already been
+cleared. A separate fix should preserve payloads until the whole restore
+succeeds, reject an empty main payload and evict a failed entry. Failure-injection
+tests should cover target success/draft failure and valid retry recovery. Both
+upstream gaps remain follow-up work; no partial MTP fix ships in this change.
 
 ## Evidence and limits
 

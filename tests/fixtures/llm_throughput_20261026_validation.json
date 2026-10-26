@@ -36,6 +36,7 @@
     "frozen_benchmark_note": "Same measurement/request behavior as checked-in driver; later source_file/harness hash metadata and explicit UTF-8 reads were added.",
     "worker_overlay_sha256": "c9b464b35776e1e06c594c39ee89786589f42192916f2a3b8dddf2c3cc321c6a",
     "pageable_state_io_overlay_sha256": "72d83d0dd9a9e8ccf59cd40ba320ea982598d0dc829341915499d8d241830b36",
+    "pinned_state_io_overlay_sha256": "a7239d3f8b6b460dfd21591932c1311b60a137bcdd192936b4c04122b5357754",
     "model_details_fixture": "tests/fixtures/deployed_models_20261026_validation.json",
     "bulk_proof": "build/validation/llm-throughput-20261026/"
   },
@@ -292,6 +293,107 @@
         "drain_released": true,
         "lease_renewal_errors": [],
         "proof_result_sha256": "a5cfc43b5efbdb9f8af1263d1421eb02fc3eaa337bcec74e7148b75a0ea88859"
+      },
+      "rejected_pinned_graph_screen": {
+        "samples": {
+          "latency": 7,
+          "decode": 5,
+          "conversations": 3,
+          "cache_rounds": 5,
+          "total_requests": 27
+        },
+        "variants": [
+          {
+            "name": "state_sync",
+            "environment": {
+              "EZLOCALAI_LLAMA_STATE_IO_BATCHING": "0",
+              "GGML_CUDA_GRAPH_OPT": "0"
+            },
+            "short": {
+              "latency_ttft_ms": 151.248,
+              "decode_tps": 87.213,
+              "cache_return_ttft_ms": 746.589,
+              "latency_wall_ms": 181.894,
+              "decode_wall_ms": 3215.475,
+              "cache_return_wall_ms": 819.882
+            },
+            "quality": {
+              "samples": 27,
+              "request_matches": 27,
+              "output_matches": 27,
+              "request_hash_array_sha256": "a39034e8fe229c0a42efa90341cf211053eed45020654b5060413f705932db3b",
+              "output_hash_array_sha256": "a617a6ff8e2c85d466a41f69582465f416e32ad0053d647398cee9449beadc3c"
+            },
+            "gpu_snapshot": {
+              "sha256": "3e00efbdfac64c1db5a5f89014eeb0efc900c2ab14ebbe0f1a42f77ff09e53f2",
+              "bytes": 1170740020
+            }
+          },
+          {
+            "name": "state_pinned",
+            "environment": {
+              "EZLOCALAI_LLAMA_STATE_IO_BATCHING": "1",
+              "GGML_CUDA_GRAPH_OPT": "0"
+            },
+            "short": {
+              "latency_ttft_ms": 157.113,
+              "decode_tps": 86.191,
+              "cache_return_ttft_ms": 792.498,
+              "latency_wall_ms": 187.615,
+              "decode_wall_ms": 3256.897,
+              "cache_return_wall_ms": 864.601
+            },
+            "quality": {
+              "samples": 27,
+              "request_matches": 27,
+              "output_matches": 27,
+              "request_hash_array_sha256": "a39034e8fe229c0a42efa90341cf211053eed45020654b5060413f705932db3b",
+              "output_hash_array_sha256": "a617a6ff8e2c85d466a41f69582465f416e32ad0053d647398cee9449beadc3c"
+            },
+            "gpu_snapshot": {
+              "sha256": "3e00efbdfac64c1db5a5f89014eeb0efc900c2ab14ebbe0f1a42f77ff09e53f2",
+              "bytes": 1170740020
+            }
+          },
+          {
+            "name": "graph_opt",
+            "environment": {
+              "EZLOCALAI_LLAMA_STATE_IO_BATCHING": "1",
+              "GGML_CUDA_GRAPH_OPT": "1"
+            },
+            "short": {
+              "latency_ttft_ms": 158.538,
+              "decode_tps": 85.705,
+              "cache_return_ttft_ms": 798.042,
+              "latency_wall_ms": 189.807,
+              "decode_wall_ms": 3280.913,
+              "cache_return_wall_ms": 871.103
+            },
+            "quality": {
+              "samples": 27,
+              "request_matches": 27,
+              "output_matches": 27,
+              "request_hash_array_sha256": "a39034e8fe229c0a42efa90341cf211053eed45020654b5060413f705932db3b",
+              "output_hash_array_sha256": "a617a6ff8e2c85d466a41f69582465f416e32ad0053d647398cee9449beadc3c"
+            },
+            "gpu_snapshot": {
+              "sha256": "3e00efbdfac64c1db5a5f89014eeb0efc900c2ab14ebbe0f1a42f77ff09e53f2",
+              "bytes": 1170740020
+            }
+          }
+        ],
+        "restoration": {
+          "healthy": true,
+          "same_container": true,
+          "same_image": true,
+          "same_environment": true,
+          "same_mounts": true,
+          "oom_killed": false
+        },
+        "drain_released": true,
+        "lease_renewal_errors": [],
+        "proof_result_sha256": "b841d6c16e4e4440e1766e5ea95fa31b69dadfb3f13fc6c319f66c0c5e17186a",
+        "interpretation": "Pinned staging increases cache-return latency on each card; adding graph optimization has no useful decode gain. Graph-only without pinned staging was not measured. Neither optimization is selected."
       }
     },
     {
@@ -497,6 +599,107 @@
         "drain_released": true,
         "lease_renewal_errors": [],
         "proof_result_sha256": "044e732e172a8234c1f2b1914c94653716bf40de29037ef865be953ba24c6a6b"
+      },
+      "rejected_pinned_graph_screen": {
+        "samples": {
+          "latency": 7,
+          "decode": 5,
+          "conversations": 3,
+          "cache_rounds": 5,
+          "total_requests": 27
+        },
+        "variants": [
+          {
+            "name": "state_sync",
+            "environment": {
+              "EZLOCALAI_LLAMA_STATE_IO_BATCHING": "0",
+              "GGML_CUDA_GRAPH_OPT": "0"
+            },
+            "short": {
+              "latency_ttft_ms": 100.037,
+              "decode_tps": 113.099,
+              "cache_return_ttft_ms": 453.713,
+              "latency_wall_ms": 127.363,
+              "decode_wall_ms": 2433.273,
+              "cache_return_wall_ms": 517.19
+            },
+            "quality": {
+              "samples": 27,
+              "request_matches": 27,
+              "output_matches": 27,
+              "request_hash_array_sha256": "a39034e8fe229c0a42efa90341cf211053eed45020654b5060413f705932db3b",
+              "output_hash_array_sha256": "809b58b53c7e5481b5ec654e85b7d3238a293b043f9e0615b9021fe6b6aa92ba"
+            },
+            "gpu_snapshot": {
+              "sha256": "8622ed38f506ce04c7c5c1e5aee1335d43844a3f357550b9d5c88939f6ff6711",
+              "bytes": 1170717440
+            }
+          },
+          {
+            "name": "state_pinned",
+            "environment": {
+              "EZLOCALAI_LLAMA_STATE_IO_BATCHING": "1",
+              "GGML_CUDA_GRAPH_OPT": "0"
+            },
+            "short": {
+              "latency_ttft_ms": 106.268,
+              "decode_tps": 113.054,
+              "cache_return_ttft_ms": 503.898,
+              "latency_wall_ms": 133.851,
+              "decode_wall_ms": 2446.7,
+              "cache_return_wall_ms": 567.533
+            },
+            "quality": {
+              "samples": 27,
+              "request_matches": 27,
+              "output_matches": 27,
+              "request_hash_array_sha256": "a39034e8fe229c0a42efa90341cf211053eed45020654b5060413f705932db3b",
+              "output_hash_array_sha256": "809b58b53c7e5481b5ec654e85b7d3238a293b043f9e0615b9021fe6b6aa92ba"
+            },
+            "gpu_snapshot": {
+              "sha256": "8622ed38f506ce04c7c5c1e5aee1335d43844a3f357550b9d5c88939f6ff6711",
+              "bytes": 1170717440
+            }
+          },
+          {
+            "name": "graph_opt",
+            "environment": {
+              "EZLOCALAI_LLAMA_STATE_IO_BATCHING": "1",
+              "GGML_CUDA_GRAPH_OPT": "1"
+            },
+            "short": {
+              "latency_ttft_ms": 107.051,
+              "decode_tps": 112.93,
+              "cache_return_ttft_ms": 503.96,
+              "latency_wall_ms": 134.765,
+              "decode_wall_ms": 2444.085,
+              "cache_return_wall_ms": 568.111
+            },
+            "quality": {
+              "samples": 27,
+              "request_matches": 27,
+              "output_matches": 27,
+              "request_hash_array_sha256": "a39034e8fe229c0a42efa90341cf211053eed45020654b5060413f705932db3b",
+              "output_hash_array_sha256": "809b58b53c7e5481b5ec654e85b7d3238a293b043f9e0615b9021fe6b6aa92ba"
+            },
+            "gpu_snapshot": {
+              "sha256": "8622ed38f506ce04c7c5c1e5aee1335d43844a3f357550b9d5c88939f6ff6711",
+              "bytes": 1170717440
+            }
+          }
+        ],
+        "restoration": {
+          "healthy": true,
+          "same_container": true,
+          "same_image": true,
+          "same_environment": true,
+          "same_mounts": true,
+          "oom_killed": false
+        },
+        "drain_released": true,
+        "lease_renewal_errors": [],
+        "proof_result_sha256": "3c94c96ce6e5ffd096516221f16d85ad7958bc34edfdb8efefc28bc5d0d09de4",
+        "interpretation": "Pinned staging increases cache-return latency on each card; adding graph optimization has no useful decode gain. Graph-only without pinned staging was not measured. Neither optimization is selected."
       }
     },
     {
@@ -753,6 +956,107 @@
         "drain_released": true,
         "lease_renewal_errors": [],
         "proof_result_sha256": "9779b01bdddedb648cb4d3c45ade1ab550b86dc7dfe9648392ac75e5a0fda589"
+      },
+      "rejected_pinned_graph_screen": {
+        "samples": {
+          "latency": 7,
+          "decode": 5,
+          "conversations": 3,
+          "cache_rounds": 5,
+          "total_requests": 27
+        },
+        "variants": [
+          {
+            "name": "state_sync",
+            "environment": {
+              "EZLOCALAI_LLAMA_STATE_IO_BATCHING": "0",
+              "GGML_CUDA_GRAPH_OPT": "0"
+            },
+            "short": {
+              "latency_ttft_ms": 71.259,
+              "decode_tps": 157.046,
+              "cache_return_ttft_ms": 312.023,
+              "latency_wall_ms": 90.956,
+              "decode_wall_ms": 1745.064,
+              "cache_return_wall_ms": 355.401
+            },
+            "quality": {
+              "samples": 27,
+              "request_matches": 27,
+              "output_matches": 27,
+              "request_hash_array_sha256": "a39034e8fe229c0a42efa90341cf211053eed45020654b5060413f705932db3b",
+              "output_hash_array_sha256": "2a3c7d091baa19e4ff8218ef7c340790c94210347521ad3f9c511c03a9ef0a50"
+            },
+            "gpu_snapshot": {
+              "sha256": "b6f11081834b6c41ed841c286f384702be04d5b3dc5438bde64d40948f9459b1",
+              "bytes": 1170717440
+            }
+          },
+          {
+            "name": "state_pinned",
+            "environment": {
+              "EZLOCALAI_LLAMA_STATE_IO_BATCHING": "1",
+              "GGML_CUDA_GRAPH_OPT": "0"
+            },
+            "short": {
+              "latency_ttft_ms": 77.666,
+              "decode_tps": 155.102,
+              "cache_return_ttft_ms": 359.975,
+              "latency_wall_ms": 96.845,
+              "decode_wall_ms": 1779.531,
+              "cache_return_wall_ms": 404.697
+            },
+            "quality": {
+              "samples": 27,
+              "request_matches": 27,
+              "output_matches": 27,
+              "request_hash_array_sha256": "a39034e8fe229c0a42efa90341cf211053eed45020654b5060413f705932db3b",
+              "output_hash_array_sha256": "2a3c7d091baa19e4ff8218ef7c340790c94210347521ad3f9c511c03a9ef0a50"
+            },
+            "gpu_snapshot": {
+              "sha256": "b6f11081834b6c41ed841c286f384702be04d5b3dc5438bde64d40948f9459b1",
+              "bytes": 1170717440
+            }
+          },
+          {
+            "name": "graph_opt",
+            "environment": {
+              "EZLOCALAI_LLAMA_STATE_IO_BATCHING": "1",
+              "GGML_CUDA_GRAPH_OPT": "1"
+            },
+            "short": {
+              "latency_ttft_ms": 78.54,
+              "decode_tps": 155.271,
+              "cache_return_ttft_ms": 376.531,
+              "latency_wall_ms": 98.752,
+              "decode_wall_ms": 1778.705,
+              "cache_return_wall_ms": 421.896
+            },
+            "quality": {
+              "samples": 27,
+              "request_matches": 27,
+              "output_matches": 27,
+              "request_hash_array_sha256": "a39034e8fe229c0a42efa90341cf211053eed45020654b5060413f705932db3b",
+              "output_hash_array_sha256": "2a3c7d091baa19e4ff8218ef7c340790c94210347521ad3f9c511c03a9ef0a50"
+            },
+            "gpu_snapshot": {
+              "sha256": "b6f11081834b6c41ed841c286f384702be04d5b3dc5438bde64d40948f9459b1",
+              "bytes": 1170717440
+            }
+          }
+        ],
+        "restoration": {
+          "healthy": true,
+          "same_container": true,
+          "same_image": true,
+          "same_environment": true,
+          "same_mounts": true,
+          "oom_killed": false
+        },
+        "drain_released": true,
+        "lease_renewal_errors": [],
+        "proof_result_sha256": "e4cdc056024639935d81a60426e5f257a1699b80294c4a4f96f8e5fd9313ec07",
+        "interpretation": "Pinned staging increases cache-return latency on each card; adding graph optimization has no useful decode gain. Graph-only without pinned staging was not measured. Neither optimization is selected."
       }
     }
   ],
@@ -770,13 +1074,31 @@
     "interpretation": "Controlled edge-condition waiting measurements; not GPU/model TTFT or decode improvements. Live full-worker results are recorded separately."
   },
   "final_qualification": {
-    "status": "pending",
+    "status": "pending prefill/capacity/environment only",
     "items": [
-      "bounded pinned-staging GPU A/B",
-      "CUDA graph optimization",
       "repeated positive prefill screens",
       "near-limit context and vision validation"
     ]
+  },
+  "rejected_code": {
+    "pageable_state_io": "removed from final change set; initial gains not established as repeatable",
+    "pinned_state_io": "removed from final change set; cache-return latency increased on all three cards",
+    "graph_environment": "GGML_CUDA_GRAPH_OPT=1 not selected; no useful decode gain on top of pinned staging"
+  },
+  "follow_up_source_audit": {
+    "engine_revision": "620d2225cc436ab0b001e3200e590e3b286ef9ab",
+    "audit_note_sha256": "342f869b7b30102f2b712e225c7c4cbd5d89ae5b4d5579b9c763354f3fbb3f4b",
+    "mtp_gap": "CPU pending_h/verify_h/row bookkeeping are outside saved target/draft KV and MTP implements no generic speculative-state payload. Restored draft processing can consume carryover from another conversation.",
+    "required_design": [
+      "explicit predecessor positions and accepted-row mapping",
+      "prefix rewind and forced last-token replay reconstruction",
+      "checkpoint/disk/live-cache/fresh-reset consistency",
+      "child-slot sequence remapping",
+      "cache budget includes speculative payloads"
+    ],
+    "required_tests": "Production state transitions: uninterrupted A versus A/B/restore-A at the same actual position; malformed/old payloads; multiple slots and checkpoints; real-model acceptance and target output observations. A final-row serializer alone is incomplete.",
+    "failed_restore_gap": "Successful target restore clears cached main bytes before draft restore. Draft failure leaves a selectable damaged entry; preserve all payloads until complete success, reject empty main state and evict failed entries.",
+    "classification": "Read-only source consistency findings; no measured acceptance-rate or answer-quality loss and no partial fix shipped."
   },
   "applied_environment_changes": {
     "status": "pending coordinator qualification",
