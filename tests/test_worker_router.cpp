@@ -112,6 +112,100 @@ static void cancel_chat_after_first_chunk(int port, const Json &body, const std:
         "cancel an active successful stream, not a completed response");
     before_close();
 }
+static void heartbeat_release_cases(const fs::path &worker_binary, const std::string &router_url,
+                                    const fs::path &temporary) {
+    // A worker heartbeat sampled during generation must not keep the completed
+    // worker busy until its next 30-second periodic publication. Exercise both
+    // queue-owned buffered work and the separately owned lazy-stream lease.
+    for (const bool tunnel : {false, true}) for (const bool streaming : {false, true}) {
+        const std::string name = std::string("heartbeat-release-") + (tunnel ? "tunnel-" : "direct-")
+            + (streaming ? "stream" : "buffered");
+        const auto directory = temporary / name; fs::create_directories(directory);
+        const auto worker_port = std::to_string(fixture_ports());
+        const auto engine_port = std::to_string(fixture_ports());
+        const auto model_file = directory / "model-Q6_K.gguf"; std::ofstream(model_file) << "GGUF fixture";
+        env("PORT", worker_port); env("EZLOCALAI_URL", "http://127.0.0.1:" + worker_port);
+        env("EZLOCALAI_NATIVE_BACKEND", "llama.cpp"); env("EZLOCALAI_PRELOAD_MODEL_ON_START", "true");
+        env("DEFAULT_MODEL", "integration-model"); env("LLM_MODEL_RESIDENCY", "resident");
+        env("LLAMA_CPP_MODEL_PATH", model_file.string()); env("LLAMA_CPP_MMPROJ_PATH", "");
+        env("LLAMA_CPP_SERVER_BIN", TEST_EMBEDDING_FIXTURE_BIN); env("LLAMA_CPP_SERVER_PORT", engine_port);
+        env("LLAMA_CPP_EXTRA_ARGS", ""); env("LLAMA_CPP_START_TIMEOUT", "2");
+        env("GPU_LAYERS", "0"); env("LLM_SPECULATIVE_TYPE", "none"); env("N_PARALLEL", "1");
+        env("EMBEDDING_FIXTURE_DIR", directory.string()); env("EZLOCALAI_API_KEY", "local-test-key");
+        env("ROUTER_URL", router_url); env("ROUTER_API_KEY", "register-test-key");
+        env("WORKER_LABEL", name); env("WORKER_HEARTBEAT_INTERVAL", "30");
+        env("WORKER_TUNNEL", tunnel ? "true" : "false");
+        for (auto flag : {"TTS_ENABLED", "STT_ENABLED", "EMBEDDING_ENABLED", "IMAGE_ENABLED", "VIDEO_ENABLED", "MUSIC_ENABLED"}) env(flag, "false");
+        const std::string sse = "data: {\"choices\":[{\"index\":0,\"delta\":{\"content\":\"fixture\"},\"finish_reason\":null}]}\n\n"
+            "data: {\"choices\":[{\"index\":0,\"delta\":{},\"finish_reason\":\"stop\"}]}\n\n"
+            "data: [DONE]\n\n";
+        env("LLM_FIXTURE_INFERENCE_RESULT", streaming ? sse : R"({"choices":[{"message":{"content":"fixture"},"finish_reason":"stop"}]})");
+        env("LLM_FIXTURE_INFERENCE_STATUS", "200");
+        Child worker; worker.start(worker_binary, temporary / (name + ".log"));
+        Json current;
+        const auto visible = [&] {
+            const auto workers = Json::parse(request(router_url, "/v1/router/workers")).at("data");
+            for (const auto &entry : workers)
+                if (entry.at("label") == name) { current = entry; return true; }
+            return false;
+        };
+        until(visible, "heartbeat-release worker registered");
+        require(current.at("model_slots").at("integration-model").at("capacity") == 1,
+            "heartbeat regression requires one actual model slot");
+        const auto id = current.at("worker_id");
+        Json first_body{{"model", "integration-model"}, {"worker", name}, {"stream", streaming},
+            {"disable_fallback", true}, {"max_tokens", 8}, {"prompt_cache_key", "heartbeat-release-affinity"},
+            {"messages", Json::array({{{"role", "user"}, {"content", "heartbeat-release-block"}}})}};
+        auto next_body = first_body;
+        next_body["messages"] = Json::array({{{"role", "user"}, {"content", "heartbeat-release-follow-up"}}});
+        std::future<std::string> first, next;
+        // Release before future destructors join on any failed assertion.
+        struct Release {
+            fs::path path;
+            ~Release() { std::ofstream(path) << "release"; }
+        } release{directory / ("release-" + engine_port)};
+        first = std::async(std::launch::async, [&] { return request(router_url, "/v1/chat/completions", first_body); });
+        until([&] { return fs::exists(directory / ("seen-" + engine_port)); }, "first heartbeat regression request reaches engine");
+        // Establish exactly the state produced by a periodic busy heartbeat.
+        // This setup avoids spending 30 seconds waiting for that sample, and
+        // requires the actual worker completion event to clear it afterwards.
+        const Json slot{{"capacity", 1}, {"in_flight", 1}, {"queued", 0}};
+        request(router_url, "/v1/router/heartbeat",
+            {{"worker_id", id}, {"in_flight", 1}, {"queue_depth", 1}, {"queue_capacity", 1},
+             {"cap_slots", {{"text", slot}}}, {"model_slots", {{"integration-model", slot}}}}, "register-test-key");
+        until([&] {
+            return visible() && current.at("reported_in_flight") == 1
+                && current.at("router_in_flight") == 1;
+        }, "Rust sees busy worker report and active reservation");
+        next = std::async(std::launch::async, [&] { return request(router_url, "/v1/chat/completions", next_body); });
+        until([&] {
+            return Json::parse(request(router_url, "/v1/router/dashboard")).at("router").at("waiting_requests").get<int>() > 0;
+        }, "strictly pinned follow-up waits for the occupied worker");
+        require(next.wait_for(0ms) != std::future_status::ready, "follow-up must wait while real inference is active");
+        const auto released = std::chrono::steady_clock::now();
+        std::ofstream(release.path) << "release";
+        require(next.wait_for(1s) == std::future_status::ready,
+            name + ": completed worker remained unavailable beyond one second (periodic interval is thirty seconds)");
+        const auto latency = std::chrono::duration<double>(std::chrono::steady_clock::now() - released).count();
+        const auto first_response = first.get(), next_response = next.get();
+        if (streaming) {
+            require(first_response.find("fixture") != std::string::npos && first_response.find("[DONE]") != std::string::npos,
+                "initial stream completes normally");
+            require(next_response.find("fixture") != std::string::npos && next_response.find("[DONE]") != std::string::npos,
+                "follow-up stream completes normally");
+        } else {
+            require(!Json::parse(first_response).at("choices").empty() && !Json::parse(next_response).at("choices").empty(),
+                "buffered requests complete after event-driven idle publication");
+        }
+        until([&] {
+            return visible() && current.at("reported_in_flight") == 0 && current.at("router_in_flight") == 0;
+        }, "event publication clears worker and router busy counts");
+        worker.stop(); until([&] { return !visible(); }, "heartbeat-release worker deregisters");
+        std::cout << name << ": queued follow-up completed " << latency
+            << " seconds after release with a thirty-second periodic heartbeat\n" << std::flush;
+        unsetenv("LLM_FIXTURE_INFERENCE_RESULT"); unsetenv("LLM_FIXTURE_INFERENCE_STATUS");
+    }
+}
 int main(int argc, char **argv) {
     fs::path temporary;
     const auto cwd = fs::current_path();
@@ -363,6 +457,7 @@ int main(int argc, char **argv) {
             env("EMBEDDING_ENABLED", "false");
             std::cout << name << ": alias, context, quantization, dashboard and restart passed\n";
         }
+        heartbeat_release_cases(worker_binary, router_url, temporary);
         router.stop(); fs::current_path(cwd); fs::remove_all(temporary); return 0;
     } catch (const std::exception &e) {
         fs::current_path(cwd);
