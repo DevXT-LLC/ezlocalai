@@ -74,6 +74,7 @@
 #include <set>
 #include <sstream>
 #include <stdexcept>
+#include <string_view>
 #include <system_error>
 #include <unordered_map>
 #include <vector>
@@ -5227,6 +5228,66 @@ bool decode_http_chunked_body(const std::string &encoded, std::string *decoded_o
     return decode_http_chunked_body_state(encoded, decoded_out) == ChunkedDecodeResult::Complete;
 }
 
+// Check framing while the receive buffer grows, without repeatedly copying or
+// decoding all preceding payload bytes. Offsets survive buffer reallocations;
+// the existing decoder still produces the body once the framing is complete.
+class HttpChunkedFramingProbe {
+public:
+    ChunkedDecodeResult update(std::string_view encoded) {
+        for (;;) {
+            if (phase_ == Phase::Complete) return ChunkedDecodeResult::Complete;
+            if (phase_ == Phase::Malformed) return ChunkedDecodeResult::Malformed;
+            if (phase_ == Phase::Data) {
+                if (position_ > encoded.size() || chunk_size_ > encoded.size() - position_) {
+                    return ChunkedDecodeResult::Incomplete;
+                }
+                const auto end = position_ + chunk_size_;
+                // Match the decoder's error timing: both terminator bytes must
+                // arrive before either is checked, even if the first is wrong.
+                if (encoded.size() - end < 2) return ChunkedDecodeResult::Incomplete;
+                if (encoded.substr(end, 2) != "\r\n") {
+                    phase_ = Phase::Malformed;
+                    return ChunkedDecodeResult::Malformed;
+                }
+                position_ = end + 2;
+                search_ = position_;
+                phase_ = Phase::Size;
+                continue;
+            }
+
+            const auto end = encoded.find("\r\n", search_);
+            if (end == std::string_view::npos) {
+                // Revisit a final CR when the following byte arrives.
+                search_ = std::max(position_, encoded.empty() ? 0 : encoded.size() - 1);
+                return ChunkedDecodeResult::Incomplete;
+            }
+            if (phase_ == Phase::Trailers) {
+                if (end == position_) {
+                    phase_ = Phase::Complete;
+                    return ChunkedDecodeResult::Complete;
+                }
+                position_ = end + 2;
+                search_ = position_;
+                continue;
+            }
+            if (!parse_http_chunk_size(std::string(encoded.substr(position_, end - position_)), &chunk_size_)) {
+                phase_ = Phase::Malformed;
+                return ChunkedDecodeResult::Malformed;
+            }
+            position_ = end + 2;
+            search_ = position_;
+            phase_ = chunk_size_ == 0 ? Phase::Trailers : Phase::Data;
+        }
+    }
+
+private:
+    enum class Phase { Size, Data, Trailers, Complete, Malformed };
+    Phase phase_ = Phase::Size;
+    size_t position_ = 0;
+    size_t search_ = 0;
+    size_t chunk_size_ = 0;
+};
+
 using HttpHeaderList = std::vector<std::pair<std::string,std::string>>;
 HttpHeaderList response_header_list(const std::string &raw) {
     HttpHeaderList out; std::istringstream input(raw);
@@ -5478,6 +5539,7 @@ HttpResponse http_worker_request(
     size_t expected_response_bytes = 0;
     bool have_expected_response_bytes = false;
     bool response_chunked = false;
+    HttpChunkedFramingProbe response_chunked_probe;
     bool skip_response_body = false;
     bool stream_response_body = false;
     std::unique_ptr<HttpBodyDecoder> body_decoder;
@@ -5629,11 +5691,8 @@ HttpResponse http_worker_request(
             break;
         }
         if (response_chunked && response_header_end != std::string::npos) {
-            std::string decoded_probe;
-            const auto chunked_state = decode_http_chunked_body_state(
-                response_raw.substr(response_header_end + 4),
-                &decoded_probe
-            );
+            const auto chunked_state = response_chunked_probe.update(
+                std::string_view(response_raw).substr(response_header_end + 4));
             if (chunked_state == ChunkedDecodeResult::Complete) {
                 break;
             }
@@ -6807,10 +6866,12 @@ std::string read_socket_request(int fd) {
     auto transfer_encoding_it = headers.find("transfer-encoding");
     if (transfer_encoding_it != headers.end()
         && to_lower(transfer_encoding_it->second).find("chunked") != std::string::npos) {
+        HttpChunkedFramingProbe chunked_probe;
         while (true) {
-            std::string decoded_body;
-            const auto decoded = decode_http_chunked_body_state(buffer.substr(body_start), &decoded_body);
+            const auto decoded = chunked_probe.update(std::string_view(buffer).substr(body_start));
             if (decoded == ChunkedDecodeResult::Complete) {
+                std::string decoded_body;
+                if (!decode_http_chunked_body(buffer.substr(body_start), &decoded_body)) return buffer;
                 return buffer.substr(0, body_start) + decoded_body;
             }
             if (decoded == ChunkedDecodeResult::Malformed) {
