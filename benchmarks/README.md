@@ -177,6 +177,30 @@ Freeform wording differences are retained, not automatically called a quality
 regression. Warmup is excluded, and a short marker-only answer cannot become
 a fast decode sample (`--minimum-generated` defaults to 64).
 
+Use `--finite-control` for a separate instruction-following check across the
+same cache switches. It keeps the long source and branch identity records,
+then requests exactly two lines: the branch marker/code followed by
+`TURN_ALPHA` for seed/replay, `TURN_BRAVO_rN` for append round N, or
+`TURN_CHARLIE` for a shortened rewind. For example:
+
+```sh
+python benchmarks/bench_cache_workload.py http://127.0.0.1:28192 frozen-source.py \
+  build/validation/cache-finite-control.json --label DevXT4090 --context 230000 \
+  --model unsloth/Qwen3.8-27B-GGUF --metadata sanitized-runtime.json \
+  --run-id cache-finite-control-20261026 --finite-control --require-draft-counters
+```
+
+This mode defaults to a 64-token budget and a minimum of one generated token;
+an explicit budget may be 64 or 128, and the minimum must remain one. The
+response must match both lines exactly, with at most one terminal newline,
+emit no reasoning or extra text, and finish with `stop`. Repeating the seed's
+answer on a new append instruction fails. Each pending/sample record includes
+the expected turn and canonical answer; the output and hash preserve actual
+bytes, including a terminal newline. Actual assistant answers remain in append
+history and its dependency hashes. These short completions verify the finite
+instructions; use the freeform workload separately to measure sustained decode.
+Without this flag, historical prompt bodies and default budgets are unchanged.
+
 Pressure mode defaults to eight independent early-prefix conversations and
 replay requests only:
 

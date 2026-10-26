@@ -164,7 +164,25 @@ def input_tokens(client, payload, context, reserve=32):
     return count
 
 
-def conversation_messages(source, characters, run_id, branch, prefix_mode, records):
+def finite_control_turn(kind, round_number=0):
+    if kind in ("seed", "replay"):
+        return "TURN_ALPHA"
+    if kind == "append" and type(round_number) is int and round_number > 0:
+        return "TURN_BRAVO_r" + str(round_number)
+    if kind == "rewind":
+        return "TURN_CHARLIE"
+    raise ValueError("unknown finite control turn")
+
+
+def finite_control_content(branch, turn):
+    if not re.fullmatch(r"TURN_(?:ALPHA|CHARLIE|BRAVO_r[1-9]\d*)", turn):
+        raise ValueError("invalid finite control answer")
+    marker, code = branch_identity(branch)
+    return marker + " " + code + "\n" + turn
+
+
+def conversation_messages(source, characters, run_id, branch, prefix_mode, records,
+                          finite_control=False, control_turn="TURN_ALPHA"):
     if not source or characters < 1 or records < 1:
         raise ValueError("source, source length and branch records must be nonempty")
     marker, code = branch_identity(branch)
@@ -174,8 +192,20 @@ def conversation_messages(source, characters, run_id, branch, prefix_mode, recor
               "separated by one space. Do not print any other branch marker or identity code. "
               "Then answer the programming question in detail using the reference code and "
               "general programming knowledge.")
+    if finite_control:
+        system = ("[cache-workload " + identity + "run " + run_id + "]\n"
+                  "Use only this branch's identity record for the marker and code. Follow the "
+                  "latest user turn's exact two-line answer instruction, even when it changes "
+                  "the preceding answer. Emit only those two lines and then stop. Do not emit "
+                  "reasoning, Markdown, explanations or another branch's identity.")
     shared = (source * ((characters + len(source) - 1) // len(source)))[:characters]
     record = "This branch's marker is " + marker + " and its identity code is " + code + ".\n"
+    if finite_control:
+        return [{"role": "system", "content": system}, {"role": "user", "content":
+            "Reference code:\n" + shared + "\nBranch identity record:\n" + record * records
+            + "\nFor this turn, output exactly the following two lines and then stop. "
+              "Do not add any other text, code fences or reasoning. Required answer:\n"
+            + finite_control_content(branch, control_turn)}]
     return [{"role": "system", "content": system}, {"role": "user", "content":
         "Reference code:\n" + shared + "\nBranch identity record:\n" + record * records
         + "\nCopy this branch's marker and code on the first line. Then explain in at least "
@@ -183,8 +213,15 @@ def conversation_messages(source, characters, run_id, branch, prefix_mode, recor
           "of resource management relevant to the reference code."}]
 
 
-def append_messages(base, previous, run_id, branch, round_number):
+def append_messages(base, previous, run_id, branch, round_number, finite_control=False):
     marker, code = branch_identity(branch)
+    if finite_control:
+        return [*base, {"role": "assistant", "content": previous["output"]["content"]},
+                {"role": "user", "content": "[continuation " + run_id + " " + str(round_number)
+                 + "] For this new turn, replace the previous turn's second line. Output "
+                   "exactly the following two lines and then stop. Do not repeat the previous "
+                   "answer or add any other text, code fences or reasoning. Required answer:\n"
+                 + finite_control_content(branch, finite_control_turn("append", round_number))}]
     return [*base, {"role": "assistant", "content": previous["output"]["content"]},
             {"role": "user", "content": "[continuation " + run_id + " " + str(round_number) + "] "
              "Start with " + marker + " " + code + " on the first line. In at least 800 words, "
@@ -192,8 +229,20 @@ def append_messages(base, previous, run_id, branch, round_number):
              "Retain this branch's identity and do not mention another branch."}]
 
 
+def validate_finite_control(sample, branch, expected_turn):
+    expected = finite_control_content(branch, expected_turn)
+    if sample["output"].get("reasoning_content"):
+        raise RuntimeError("finite control emitted reasoning despite thinking being disabled")
+    if sample["output"]["content"] not in (expected, expected + "\n"):
+        raise RuntimeError("finite control answer differs from the exact branch and turn instruction")
+    finishes = sample.get("finish_reasons")
+    if not finishes or any(reason != "stop" for reason in finishes):
+        raise RuntimeError("finite control must finish with stop, not the token cap")
+    return {"finite_control_correct": True}
+
+
 def validate_sample(sample, expected_tokens, decode_tokens, branch, minimum_generated,
-                    require_draft=False):
+                    require_draft=False, expected_turn=None):
     timings = sample["timings"]
     metrics = native_metrics(timings)
     if metrics["evaluated_prompt_tokens"] + metrics["cached_prompt_tokens"] != expected_tokens:
@@ -217,6 +266,7 @@ def validate_sample(sample, expected_tokens, decode_tokens, branch, minimum_gene
     if any(value != marker for value in re.findall(r"\bBRANCH_\d+_END\b", content)) or any(
             value != code for value in re.findall(r"\bCODE_\d+\b", content)):
         raise RuntimeError("response contains another conversation's identity")
+    control = validate_finite_control(sample, branch, expected_turn) if expected_turn is not None else {}
     draft = {}
     names = ("draft_n", "draft_n_accepted")
     present = [name in timings for name in names]
@@ -235,7 +285,7 @@ def validate_sample(sample, expected_tokens, decode_tokens, branch, minimum_gene
     outcome = "tail_reuse" if cached > 0 and evaluated <= 16 else "prefix_reuse" if cached >= 100 else "full_reevaluation"
     return {"identity_correct": True, "generated_tokens": generated,
             "generated_budget_reached": generated == decode_tokens, "cache_outcome": outcome,
-            "tail_reused": outcome == "tail_reuse", **draft}
+            "tail_reused": outcome == "tail_reuse", **draft, **control}
 
 
 def summary(rows):
@@ -263,9 +313,10 @@ def run_workload(client, source, args, report, save):
     report["runtime"] = validate_runtime(props, args.context)
     save()
     seeds = [conversation_messages(source, args.prompt_chars, args.run_id, branch,
-             args.prefix_mode, args.branch_records) for branch in range(args.conversations)]
+             args.prefix_mode, args.branch_records, args.finite_control) for branch in range(args.conversations)]
     rewinds = [conversation_messages(source, args.prompt_chars, args.run_id, branch,
-               args.prefix_mode, args.rewind_records) for branch in range(args.conversations)]
+               args.prefix_mode, args.rewind_records, args.finite_control,
+               "TURN_CHARLIE") for branch in range(args.conversations)]
     seed_outputs, histories = {}, {}
 
     def record(kind, branch, round_number, messages, dependency=None):
@@ -277,6 +328,10 @@ def run_workload(client, source, args, report, save):
                   "expected_input_tokens": expected, "declared_context": args.context,
                   "remaining_context_tokens": args.context - expected, "request_sha256": digest(payload),
                   "messages_sha256": digest(messages), "model_output_dependent_request": dependency is not None}
+        expected_turn = finite_control_turn(kind, round_number) if args.finite_control else None
+        if expected_turn is not None:
+            fields.update(expected_control_turn=expected_turn,
+                          finite_control_expected_content=finite_control_content(branch, expected_turn))
         if dependency is not None:
             fields.update(history_dependency_sample_id=dependency["sample_id"],
                           history_dependency_output_sha256=dependency["output_sha256"])
@@ -287,7 +342,7 @@ def run_workload(client, source, args, report, save):
         report["last_response"] = sample
         save()
         sample.update(validate_sample(sample, expected, args.decode_tokens, branch,
-                      args.minimum_generated, args.require_draft_counters))
+                      args.minimum_generated, args.require_draft_counters, expected_turn))
         if kind == "seed" and (branch == 0 or args.prefix_mode == "independent"):
             require_cold(sample)
         if kind == "replay":
@@ -319,7 +374,8 @@ def run_workload(client, source, args, report, save):
                 dependency = None
                 if kind == "append":
                     base, dependency = histories[branch]
-                    messages = append_messages(base, dependency, args.run_id, branch, round_number)
+                    messages = append_messages(base, dependency, args.run_id, branch, round_number,
+                                               args.finite_control)
                 else:
                     messages = seeds[branch] if kind == "replay" else rewinds[branch]
                 sample = record(kind, branch, round_number, messages, dependency)
@@ -346,12 +402,16 @@ def arguments(argv=None):
     parser.add_argument("--prompt-chars", type=int, default=100000)
     parser.add_argument("--branch-records", type=int, default=90)
     parser.add_argument("--rewind-records", type=int, default=40)
-    parser.add_argument("--decode-tokens", type=int, default=256)
-    parser.add_argument("--minimum-generated", type=int, default=64)
+    parser.add_argument("--decode-tokens", type=int)
+    parser.add_argument("--minimum-generated", type=int)
+    parser.add_argument("--finite-control", action="store_true",
+                        help="verify exact finite turn instructions instead of long freeform decode")
     parser.add_argument("--require-draft-counters", action="store_true")
     parser.add_argument("--timeout", type=float, default=1800)
     parser.add_argument("--api-key-env", default="EZLOCALAI_API_KEY")
     args = parser.parse_args(argv)
+    args.decode_tokens = args.decode_tokens if args.decode_tokens is not None else (64 if args.finite_control else 256)
+    args.minimum_generated = args.minimum_generated if args.minimum_generated is not None else (1 if args.finite_control else 64)
     url = urllib.parse.urlsplit(args.base_url)
     if url.scheme not in ("http", "https") or not url.netloc or url.username or url.password or url.query or url.fragment:
         parser.error("require an HTTP(S) base URL without credentials, query or fragment")
@@ -364,6 +424,8 @@ def arguments(argv=None):
         parser.error("require distinct cases and 1 <= rewind records < branch records <= context")
     if not 1 <= args.minimum_generated <= args.decode_tokens or args.decode_tokens + 32 >= args.context:
         parser.error("invalid decode count/minimum or insufficient fixed-context headroom")
+    if args.finite_control and (args.decode_tokens not in (64, 128) or args.minimum_generated != 1):
+        parser.error("finite control requires a decode budget of 64 or 128 and minimum-generated 1")
     if not math.isfinite(args.timeout) or args.timeout <= 0 or not args.run_id or len(args.run_id) > 128:
         parser.error("require a finite positive timeout and run ID of 1..128 characters")
     return args
@@ -383,7 +445,7 @@ def main(argv=None):
               "harness_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
               "harness_dependencies_sha256": {Path(module.__file__).name: hashlib.sha256(Path(module.__file__).read_bytes()).hexdigest()
                   for module in (bench_prefill, bench_progression)},
-              "configuration": {key: getattr(args, key) for key in ("mode", "prefix_mode", "conversations", "rounds", "cases", "context", "prompt_chars", "branch_records", "rewind_records", "decode_tokens", "minimum_generated", "require_draft_counters", "model")},
+              "configuration": {key: getattr(args, key) for key in ("mode", "prefix_mode", "conversations", "rounds", "cases", "context", "prompt_chars", "branch_records", "rewind_records", "decode_tokens", "minimum_generated", "finite_control", "require_draft_counters", "model")},
               "requested_sampling": {"temperature": 0, "seed": 42, "enable_thinking": False},
               "warmup_excluded": True, "inference_retries": 0, "context_downgrade_allowed": False,
               "notes": ["Native timings supply token rates; SSE chunks are never token counts.",
