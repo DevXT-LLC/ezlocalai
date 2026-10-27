@@ -2,6 +2,59 @@
 
 The goal remains behavior parity with ezlocalai within the scope below, with all first-party executable code implemented in C++. It is **not complete**.
 
+## Shared checkpoint cache retention (2026-10-27)
+
+A seventh managed engine patch counts shared immutable checkpoint allocations
+once across retained/incoming/protected prompts. It keeps full snapshots,
+speculative CPU vectors, detached allocations and spare capacity separately
+charged. This avoids rejecting or evicting useful branches that fit the actual
+cache budget. Refreshing a checkpoint at the same token boundary also removes
+that entry before capacity cleanup, preserving an unrelated oldest checkpoint;
+existing minimum-step and current-task policies remain intact.
+
+All **seven focused engine tests** pass (16.05 seconds), including all eleven
+strict source fingerprints. The **72 oracle-free CUDA package checks** pass
+(328.89 seconds) in an isolated CPU-only builder, image
+`sha256:d7321ef6403b8dbc3b692d4e989ee38bf762d2a33080f239a36c9727ec6cd8e5`.
+Detailed output confirms **18 storage scenarios**, **163 MTP checks** and
+**364,393 checkpoint checks**. Deliberately restoring old accounting/order fails
+the new regressions. All four platform recipes include patch seven; pristine,
+prefix upgrade, idempotence and complete removal checks pass. No model,
+precision, sampling, context, default or permanent environment change is made.
+The cache budget continues to cover retained cache/spare allocations, with
+live-slot-only checkpoints outside that scope.
+
+Physical RTX 4090 shared-cache ABBA improves complete tail returns **24/32 to
+32/32**, reducing evaluated tokens **41,704 to 128** at the unchanged 12 GiB
+ceiling. Across all returns median first output falls **339.800 to 258.251 ms**;
+the eight evicted-tail cases improve **2,205.650 to 258.119 ms**. Already-retained
+second-sweep cases and native decode (88.906 to 88.948 tokens/s) stay approximately
+flat. All **236 measured output hashes match** across calibration, ABBA pressure
+and separate finite/independent qualification. Both builds preserve **16/16
+independent returns**. No Docker/cgroup/host OOM is observed; cgroup swap peaks
+are zero. Measurements use isolated library overlays with matched trace logging,
+not a new image deployment or a production-traffic average.
+
+The original image `sha256:b56ebbeb9efb1419e5d060d9df12ed5637cc683972f2ce5036d66fad28d6239c`,
+container, environment, mounts and full argv are restored; two fresh router
+heartbeats precede each owned drain release. Rollback tag:
+`ezlocalai:rollback-round5-20261027-4090`. A final pinned routed chat passes.
+Owned CPU/GPU children and remote staging directories are removed. Other physical
+GPUs, fresh images, maximum context, vision and full-list checkpoint refresh on
+hardware are not requalified. Compact evidence is in
+`tests/fixtures/cache_retention_cuda_20261027_validation.json`.
+
+Separate salvaged CUDA traces identify quantized matrix multiply as 69–72% of
+recorded cold-prefill kernel time, and repeated Q4 KV expansion as 24.5% of
+recorded deep-decode kernel time. These traces have event/graph warnings and no
+final uninstrumented control, so they support investigation rather than a speedup
+claim. A precision-preserving tile-load design and required checks are recorded
+in [the Q4 attention handoff](benchmarks/q4-kv-attention-handoff-20261027.md);
+compact diagnostics are in `tests/fixtures/cuda_kernel_profile_20261027_validation.json`.
+
+See [the retention contract](patches/llama-cache-retention.md) and
+[the validation report](benchmarks/cache-retention-20261027.md).
+
 ## Checkpoint entry-window coverage candidate (2026-10-26)
 
 A sixth managed engine patch retains a checkpoint at an existing full logical

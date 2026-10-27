@@ -1,0 +1,280 @@
+diff --git a/common/checkpoint-retention.h b/common/checkpoint-retention.h
+new file mode 100644
+--- /dev/null
++++ b/common/checkpoint-retention.h
+@@ -0,0 +1,46 @@
++#pragma once
++
++#include <cstddef>
++#include <cstdint>
++
++enum class common_checkpoint_erasure {
++    superseded,
++    too_close,
++    oldest,
++};
++
++// Remove same-boundary entries before reserving capacity for their replacement,
++// so a refresh cannot cause an unnecessary oldest-entry eviction. The existing
++// min-step cleanup and current-task exception still apply to the remaining list.
++// The callback keeps logging outside this allocation-free list policy.
++template <typename Checkpoints, typename OnErase>
++inline void common_prepare_checkpoint_admission(
++        Checkpoints & checkpoints, int64_t n_tokens, int id_task,
++        size_t max_checkpoints, int64_t min_step, OnErase on_erase) {
++    for (auto it = checkpoints.begin(); it != checkpoints.end();) {
++        if (it->n_tokens == n_tokens) {
++            on_erase(common_checkpoint_erasure::superseded, *it);
++            it = checkpoints.erase(it);
++        } else {
++            ++it;
++        }
++    }
++
++    // Preserve the existing min-step policy and current-task exception.
++    int64_t last = -1;
++    for (auto it = checkpoints.begin();
++            checkpoints.size() + 1 >= max_checkpoints && it != checkpoints.end();) {
++        if (it->id_task != id_task && last >= 0 && it->n_tokens <= last + min_step) {
++            on_erase(common_checkpoint_erasure::too_close, *it);
++            it = checkpoints.erase(it);
++            continue;
++        }
++        last = it->n_tokens;
++        ++it;
++    }
++
++    while (!checkpoints.empty() && checkpoints.size() >= max_checkpoints) {
++        on_erase(common_checkpoint_erasure::oldest, checkpoints.front());
++        checkpoints.erase(checkpoints.begin());
++    }
++}
+diff --git a/tools/server/server-context.cpp b/tools/server/server-context.cpp
+--- a/tools/server/server-context.cpp
++++ b/tools/server/server-context.cpp
+@@ -11,6 +11,7 @@
+ #include "build-info.h"
+ #include "common.h"
+ #include "checkpoint-coverage.h"
++#include "checkpoint-retention.h"
+ #include "fit.h"
+ #include "llama.h"
+ #include "log.h"
+@@ -2541,47 +2542,20 @@
+     void create_checkpoint(server_slot & slot, const int64_t n_tokens_cur, llama_pos pos_min, llama_pos pos_max) {
+         const int id_task = slot.task->id;
+ 
+-        // evict checkpoints within min-step of a previous checkpoint, unless they were
+-        // created by the current task
+-        // only when the list is full, otherwise short prompts keep just the oldest checkpoint
+-        int64_t last = -1;
+-        for (auto it = slot.prompt.checkpoints.begin();
+-                slot.prompt.checkpoints.size() + 1 >= (size_t) params_base.n_ctx_checkpoints &&
+-                it != slot.prompt.checkpoints.end(); ) {
+-            if (it->id_task != id_task && last >= 0 && it->n_tokens <= last + params_base.checkpoint_min_step) {
+-                SLT_TRC(slot, "erasing context checkpoint too close to an earlier one (pos_min = %d, pos_max = %d, n_tokens = %" PRId64 ", size = %.3f MiB)\n",
+-                        it->pos_min, it->pos_max, it->n_tokens, (float) it->size() / 1024 / 1024);
+-
+-                it = slot.prompt.checkpoints.erase(it);
+-                continue;
+-            }
+-
+-            last = it->n_tokens;
+-            ++it;
+-        }
+-
+-        while (slot.prompt.checkpoints.size() >= (size_t) params_base.n_ctx_checkpoints) {
+-            // make room for the new checkpoint, if needed
+-            const auto & cur = slot.prompt.checkpoints.front();
+-
+-            SLT_WRN(slot, "erasing old context checkpoint (pos_min = %d, pos_max = %d, n_tokens = %" PRId64 ", size = %.3f MiB)\n",
+-                    cur.pos_min, cur.pos_max, cur.n_tokens, (float) cur.size() / 1024 / 1024);
+-
+-            slot.prompt.checkpoints.erase(slot.prompt.checkpoints.begin());
+-        }
+-
+-        // replace an existing checkpoint at the same n_tokens instead of appending a duplicate
+-        {
+-            const int64_t n_tokens_new = slot.prompt.n_tokens() - n_tokens_cur;
+-            for (auto it = slot.prompt.checkpoints.begin(); it != slot.prompt.checkpoints.end(); ) {
+-                if (it->n_tokens == n_tokens_new) {
+-                    SLT_TRC(slot, "superseding context checkpoint at n_tokens = %" PRId64 "\n", it->n_tokens);
+-                    it = slot.prompt.checkpoints.erase(it);
+-                } else {
+-                    ++it;
+-                }
+-            }
+-        }
++        common_prepare_checkpoint_admission(slot.prompt.checkpoints,
++                slot.prompt.n_tokens() - n_tokens_cur, id_task,
++                params_base.n_ctx_checkpoints, params_base.checkpoint_min_step,
++                [&](common_checkpoint_erasure reason, const auto & cur) {
++                    if (reason == common_checkpoint_erasure::superseded) {
++                        SLT_TRC(slot, "superseding context checkpoint at n_tokens = %" PRId64 "\n", cur.n_tokens);
++                    } else if (reason == common_checkpoint_erasure::too_close) {
++                        SLT_TRC(slot, "erasing context checkpoint too close to an earlier one (pos_min = %d, pos_max = %d, n_tokens = %" PRId64 ", size = %.3f MiB)\n",
++                                cur.pos_min, cur.pos_max, cur.n_tokens, (float) cur.size() / 1024 / 1024);
++                    } else {
++                        SLT_WRN(slot, "erasing old context checkpoint (pos_min = %d, pos_max = %d, n_tokens = %" PRId64 ", size = %.3f MiB)\n",
++                                cur.pos_min, cur.pos_max, cur.n_tokens, (float) cur.size() / 1024 / 1024);
++                    }
++                });
+ 
+         auto & cur = slot.prompt.checkpoints.emplace_back();
+ 
+diff --git a/tools/server/server-task.cpp b/tools/server/server-task.cpp
+--- a/tools/server/server-task.cpp
++++ b/tools/server/server-task.cpp
+@@ -1691,14 +1691,74 @@
+ //
+ // server_prompt_cache
+ //
++namespace {
++
++// Blobs expose their immutable backing through const data(). Distinct nonempty
++// vectors cannot have the same address, including across target/draft fields.
++bool prompt_has_blob_before(const server_prompt & prompt, const common_state_blob & blob,
++        const common_state_blob * before = nullptr) {
++    for (const auto & checkpoint : prompt.checkpoints) {
++        for (const auto * current : {&checkpoint.data_tgt, &checkpoint.data_dft}) {
++            if (current == before) return false;
++            if (!current->empty() && current->data() == blob.data()) return true;
++        }
++    }
++    return false;
++}
++
++bool cache_has_blob_before(const std::list<server_prompt_cache_state> * states,
++        const server_prompt_cache_state * only, const server_prompt_cache_state * before,
++        const common_state_blob & blob) {
++    if (states != nullptr) {
++        for (const auto & state : *states) {
++            if (&state == before) break;
++            if (only != nullptr && &state != only) continue;
++            if (prompt_has_blob_before(state.prompt, blob)) return true;
++        }
++    }
++    return false;
++}
++
++// Count backing allocations retained by cached prompts, plus an optional prompt
++// about to be cloned. Live-slot-only checkpoints remain outside the cache budget.
++// The small cache needs no allocating identity set, so accounting stays usable
++// while handling allocation failures. CPU speculative vectors are never shared.
++size_t prompt_cache_bytes(const std::list<server_prompt_cache_state> * states,
++        const server_prompt_cache_state * only = nullptr,
++        const server_prompt * incoming = nullptr, size_t incoming_data = 0) {
++    size_t result = incoming_data;
++    const auto add_prompt = [&](const server_prompt & prompt,
++            const server_prompt_cache_state * before, bool shares_storage) {
++        size_t bytes = 0;
++        for (const auto & checkpoint : prompt.checkpoints) {
++            bytes += checkpoint.data_spec.capacity();
++            for (const auto * blob : {&checkpoint.data_tgt, &checkpoint.data_dft}) {
++                if (blob->empty()) continue;
++                if (shares_storage && (cache_has_blob_before(states, only, before, *blob) ||
++                        prompt_has_blob_before(prompt, *blob, blob))) continue;
++                bytes += blob->capacity();
++            }
++        }
++        return bytes;
++    };
++    if (states != nullptr) {
++        for (const auto & state : *states) {
++            if (only != nullptr && &state != only) continue;
++            result += state.data.size() + add_prompt(state.prompt, &state, true);
++        }
++    }
++    if (incoming != nullptr) {
++        // With storage disabled, copying each incoming field allocates its own
++        // vector even if the source still shares backing from an earlier save.
++        result += add_prompt(*incoming, nullptr, common_state_storage_enabled());
++    }
++    return result;
++}
++
++} // namespace
++
+ size_t server_prompt_cache::size() const {
+-    size_t res = spare.size();
+-
+-    for (const auto & state : states) {
+-        res += state.size();
+-    }
+-
+-    return res;
++    return spare.size() + prompt_cache_bytes(&states);
+ }
+ 
+ size_t server_prompt_cache::n_tokens() const {
+@@ -1742,25 +1802,19 @@
+         }
+     }
+ 
+-    // calculate checkpoints size to see if it will fit with the prompt
+-    size_t checkpoints_size = 0;
+-    for (const auto & ckpt : prompt.checkpoints) {
+-        checkpoints_size += ckpt.capacity();
+-    }
+-
+     bool reuse_tgt = state_size_tgt > 0 && spare.main.capacity() >= state_size_tgt;
+     bool reuse_dft = state_size_dft > 0 && spare.drft.capacity() >= state_size_dft;
+-    const size_t cached_size = size() - spare.size();
+-    const auto allocation_size = [&] {
++    const auto allocation_data_size = [&] {
+         return (reuse_tgt ? spare.main.capacity() : state_size_tgt) +
+-               (reuse_dft ? spare.drft.capacity() : state_size_dft) + checkpoints_size + spec_state.capacity();
++               (reuse_dft ? spare.drft.capacity() : state_size_dft) + spec_state.capacity();
+     };
+     // Extra retained capacity must not evict a useful cached prompt.
+-    if (limit_size > 0 && cached_size + allocation_size() > limit_size) {
++    if (limit_size > 0 && prompt_cache_bytes(&states, nullptr, &prompt, allocation_data_size()) > limit_size) {
+         reuse_tgt = reuse_tgt && spare.main.capacity() == state_size_tgt;
+         reuse_dft = reuse_dft && spare.drft.capacity() == state_size_dft;
+     }
+-    const size_t state_size_new = allocation_size();
++    const size_t data_size = allocation_data_size();
++    const size_t state_size_new = prompt_cache_bytes(nullptr, nullptr, &prompt, data_size);
+ 
+     // skip over-limit entries to avoid disturbing the cache
+     if (limit_size > 0 && state_size_new > limit_size) {
+@@ -1773,7 +1827,7 @@
+     // outgoing slot must not evict that state before load() can see it.
+     const auto protected_state = requested ? find_best(prompt, *requested) : states.end();
+     if (limit_size > 0 && protected_state != states.end() &&
+-            protected_state->size() > limit_size - state_size_new) {
++            prompt_cache_bytes(&states, &*protected_state, &prompt, data_size) > limit_size) {
+         SRV_WRN("%s", " - insufficient cache room to save outgoing state while preserving requested prompt; skipping save\n");
+         return nullptr;
+     }
+@@ -1799,7 +1853,7 @@
+ 
+     if (limit_size > 0) {
+         // make room before allocating the new vectors to avoid breaching the limit
+-        while (!states.empty() && size() + state_size_new > limit_size) {
++        while (!states.empty() && prompt_cache_bytes(&states, nullptr, &prompt, data_size) > limit_size) {
+             auto victim = states.begin();
+             if (victim == protected_state) {
+                 ++victim;
+@@ -1818,7 +1872,8 @@
+     try {
+         state_data_tgt.resize(state_size_tgt);
+         state_data_dft.resize(state_size_dft);
+-        if (limit_size > 0 && size() + state_data_tgt.capacity() + state_data_dft.capacity() + checkpoints_size + spec_state.capacity() > limit_size) {
++        if (limit_size > 0 && prompt_cache_bytes(&states, nullptr, &prompt,
++                state_data_tgt.capacity() + state_data_dft.capacity() + spec_state.capacity()) > limit_size) {
+             return nullptr;
+         }
+         states.push_back({
+@@ -1832,6 +1887,11 @@
+                 /*.spec =*/ std::move(spec_state),
+             },
+         });
++        // Check the actual cloned CPU-vector capacities before publishing.
++        if (limit_size > 0 && size() > limit_size) {
++            states.pop_back();
++            return nullptr;
++        }
+     } catch (const std::bad_alloc & e) {
+         SRV_ERR("failed to allocate memory for prompt cache state: %s\n", e.what());
+ 

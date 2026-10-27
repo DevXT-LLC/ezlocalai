@@ -32,8 +32,13 @@ void check(bool condition, const char * message) {
     if (!condition) throw std::runtime_error(message);
 }
 struct allocation_failure {
-    allocation_failure() { allocation_probe::large_calls = 0; allocation_probe::reject_large = true; }
-    ~allocation_failure() { allocation_probe::reject_large = false; }
+    size_t saved_threshold;
+    explicit allocation_failure(size_t threshold = allocation_probe::threshold) : saved_threshold(allocation_probe::threshold) {
+        allocation_probe::threshold = threshold;
+        allocation_probe::large_calls = 0;
+        allocation_probe::reject_large = true;
+    }
+    ~allocation_failure() { allocation_probe::reject_large = false; allocation_probe::threshold = saved_threshold; }
 };
 struct context_tag {} target_tag, draft_tag;
 llama_context * target() { return reinterpret_cast<llama_context *>(&target_tag); }
@@ -72,6 +77,7 @@ const uint8_t * checkpoint_data(const server_prompt & value) {
 
 server_prompt_cache_state * save(server_prompt_cache & cache, const server_prompt & value, bool with_draft = true) {
     check(cache.save(value, target(), with_draft ? draft() : nullptr, 7), "valid snapshot save failed");
+    check(!cache.states.empty(), "successful snapshot save published no cached state");
     return &cache.states.back();
 }
 
@@ -117,6 +123,167 @@ void checkpoint_copy_without_large_allocation() {
     }
     check(entry && allocation_probe::large_calls == 0, "cache cloning checkpoint bytes still needs a large allocation");
     check(checkpoint_data(entry->prompt) == checkpoint_data(value), "cached checkpoint payload is not shared");
+}
+
+void shared_checkpoint_branches_fit_budget() {
+    auto a = prompt(1, 1024 * 1024), b = prompt(2);
+    a.checkpoints.front().data_spec.resize(16 * 1024);
+    b.checkpoints = a.checkpoints;
+    server_prompt_cache cache(2, 4096);
+    std::vector<uint8_t> spec_a(32 * 1024), spec_b(48 * 1024);
+    check(cache.save(a, target(), draft(), 7, nullptr, std::move(spec_a)), "first shared branch save failed");
+    check(cache.states.size() == 1, "first shared branch save published no cached state");
+    auto * first = &cache.states.front();
+    check(cache.save(b, target(), draft(), 7, nullptr, std::move(spec_b)), "second shared branch save failed");
+    check(cache.states.size() == 2 && &cache.states.front() == first,
+        "shared checkpoint backing needlessly evicted an existing branch");
+    const auto & second = cache.states.back();
+    const auto & checkpoint = first->prompt.checkpoints.front();
+    const size_t expected = first->data.size() + second.data.size() + checkpoint.data_tgt.capacity() +
+        checkpoint.data_dft.capacity() + checkpoint.data_spec.capacity() +
+        second.prompt.checkpoints.front().data_spec.capacity();
+    size_t accounted = 0;
+    {
+        allocation_failure fail(1);
+        accounted = cache.size();
+    }
+    check(accounted == expected && cache.size() <= cache.limit_size &&
+        first->size() + second.size() > cache.limit_size,
+        "shared backing union lost full-state or CPU speculative capacity charges");
+}
+
+void protected_shared_checkpoint_save_fits() {
+    auto a = prompt(1, 1024 * 1024), b = prompt(2), resident = prompt(3);
+    b.checkpoints = a.checkpoints;
+    server_prompt_cache cache(2, 4096);
+    auto * protected_state = save(cache, a);
+    check(cache.save(b, target(), draft(), 7, &a.tokens),
+        "shared backing caused a false protected-state admission failure");
+    check(cache.states.size() == 2 && &cache.states.front() == protected_state,
+        "saving a shared branch displaced the pending restore");
+    check(cache.load(resident, a.tokens, target(), draft(), 7), "protected shared branch restore failed");
+    check(cache.states.size() == 1, "protected shared branch restore removed the wrong cached states");
+    const auto & survivor = cache.states.front();
+    check(cache.size() == survivor.size() + cache.spare.size() &&
+        cache.size() <= cache.limit_size,
+        "consumed shared snapshot spare escaped the byte budget");
+}
+
+void independent_checkpoints_do_not_bypass_protection() {
+    auto a = prompt(1, 1024 * 1024), b = prompt(2, 1024 * 1024);
+    check(checkpoint_data(a) != checkpoint_data(b), "independent checkpoint fixture unexpectedly shares backing");
+    server_prompt_cache cache(2, 4096);
+    auto * protected_state = save(cache, a);
+    const size_t before = cache.size();
+    check(!cache.save(b, target(), draft(), 7, &a.tokens),
+        "equal bytes in independent allocations bypassed the protected-state limit");
+    check(cache.states.size() == 1 && &cache.states.front() == protected_state && cache.size() == before,
+        "denied independent checkpoint save disturbed the protected state");
+}
+
+void independent_checkpoint_union_evicts_oldest() {
+    auto a = prompt(1, 1024 * 1024), b = prompt(2, 1024 * 1024), c = prompt(3, 1024 * 1024);
+    server_prompt_cache cache(3, 4096);
+    save(cache, a);
+    auto * survivor = save(cache, b);
+    check(cache.states.size() == 2, "independent checkpoint pair did not fit its byte budget");
+    auto * newest = save(cache, c);
+    check(cache.states.size() == 2 && &cache.states.front() == survivor && &cache.states.back() == newest,
+        "independent checkpoint pressure failed to evict the actual oldest state");
+    check(cache.size() == survivor->size() + newest->size() && cache.size() <= cache.limit_size,
+        "independent checkpoint union lost distinct allocation charges");
+}
+
+void shared_identity_across_target_and_draft() {
+    auto a = prompt(1, 1024 * 1024), b = prompt(2);
+    a.checkpoints.front().data_dft = a.checkpoints.front().data_tgt;
+    b.checkpoints = a.checkpoints;
+    server_prompt_cache cache(2, 4096);
+    auto * first = save(cache, a);
+    auto * second = save(cache, b);
+    check(cache.states.size() == 2 && &cache.states.front() == first && &cache.states.back() == second,
+        "shared target/draft branches did not both survive admission");
+    const auto & checkpoint = first->prompt.checkpoints.front();
+    check(cache.size() == first->data.size() + second->data.size() +
+        checkpoint.data_tgt.capacity() + checkpoint.data_spec.capacity() +
+        second->prompt.checkpoints.front().data_spec.capacity(),
+        "shared target/draft backing was charged more than once");
+}
+
+void shared_checkpoint_growth_and_release() {
+    auto a = prompt(1, 1024 * 1024), b = prompt(2);
+    b.checkpoints = a.checkpoints;
+    server_prompt_cache cache(2, 4096);
+    auto * first = save(cache, a);
+    save(cache, b);
+    check(cache.states.size() == 2 && &cache.states.front() == first,
+        "shared branches did not survive before release accounting");
+    const size_t both = cache.size();
+    const size_t first_private = first->data.size() + first->prompt.checkpoints.front().data_spec.capacity();
+    cache.states.pop_front();
+    check(cache.size() == both - first_private,
+        "removing one shared owner released backing still retained by another cached branch");
+    auto * changed = save(cache, a);
+    check(cache.states.size() == 2 && &cache.states.back() == changed,
+        "shared branches did not survive before detached-growth accounting");
+    const size_t before = cache.size();
+    auto & checkpoint = changed->prompt.checkpoints.front();
+    const size_t detached_capacity = checkpoint.data_tgt.capacity();
+    checkpoint.data_tgt.data()[17] = 0x9d;
+    check(cache.size() == before + detached_capacity &&
+        checkpoint_data(cache.states.front().prompt)[17] == 0x4c,
+        "detached checkpoint growth was uncharged or corrupted its shared owner");
+    cache.update();
+    check(cache.states.size() == 1 && &cache.states.front() == changed &&
+        cache.size() == changed->size() && cache.size() <= cache.limit_size,
+        "COW growth failed to enforce the byte limit");
+    cache.states.clear();
+    check(cache.size() == 0 && !a.checkpoints.empty() && !b.checkpoints.empty(),
+        "last cached owner release charged checkpoints retained solely by live prompts");
+}
+
+void shared_checkpoint_snapshot_failures_preserve_budget() {
+    auto a = prompt(1, 1024 * 1024), b = prompt(2), resident = prompt(3);
+    b.checkpoints = a.checkpoints;
+    server_prompt_cache cache(2, 4096);
+    auto * protected_state = save(cache, a);
+    const size_t before = cache.size();
+    plan.short_save = true;
+    check(!cache.save(b, target(), draft(), 7, &a.tokens), "partial shared snapshot was published");
+    plan.short_save = false;
+    check(cache.states.size() == 1 && &cache.states.front() == protected_state && cache.size() == before,
+        "failed shared snapshot damaged the protected backing or its charge");
+    auto * survivor = save(cache, b);
+    check(cache.states.size() == 2 && &cache.states.front() == protected_state && &cache.states.back() == survivor,
+        "shared branches did not survive before restore fault injection");
+    plan.fail_restore = true;
+    check(!cache.load(resident, a.tokens, target(), draft(), 7), "failed shared restore was accepted");
+    plan.fail_restore = false;
+    check(cache.states.size() == 1 && &cache.states.front() == survivor && cache.size() == survivor->size() &&
+        cache.spare.size() == 0, "failed restore released surviving shared backing or recycled invalid buffers");
+    check(cache.load(resident, b.tokens, target(), draft(), 7), "surviving shared branch restore failed");
+    check(cache.states.empty() && cache.size() == cache.spare.size() && cache.size() > 0,
+        "consumed shared snapshot buffers were not charged");
+    plan.short_save = true;
+    check(!cache.save(a, target(), draft(), 7), "partial recycled shared snapshot was published");
+    plan.short_save = false;
+    check(cache.states.empty() && cache.size() == 0, "failed recycled save retained snapshot or checkpoint charges");
+}
+
+void disabled_storage_shared_sources_still_need_independent_space() {
+    auto a = prompt(1, 1024 * 1024), b = prompt(2);
+    b.checkpoints = a.checkpoints;
+    setenv("EZLOCALAI_LLAMA_CACHE_STORAGE", "0", 1);
+    server_prompt_cache cache(2, 4096);
+    auto * protected_state = save(cache, a);
+    check(checkpoint_data(protected_state->prompt) != checkpoint_data(a),
+        "storage opt-out reused source checkpoint backing");
+    const size_t before = cache.size();
+    check(!cache.save(b, target(), draft(), 7, &a.tokens),
+        "storage opt-out treated independent checkpoint clones as shared");
+    check(cache.states.size() == 1 && &cache.states.front() == protected_state && cache.size() == before,
+        "storage opt-out admission disturbed protected state accounting");
+    setenv("EZLOCALAI_LLAMA_CACHE_STORAGE", "1", 1);
 }
 
 void snapshot_reuse_without_large_allocation() {
@@ -264,6 +431,14 @@ int main(int argc, char ** argv) {
         checkpoint_copy_and_write();
         plan = {}; actual_checkpoint_update_and_restore();
         plan = {}; checkpoint_copy_without_large_allocation();
+        plan = {}; shared_checkpoint_branches_fit_budget();
+        plan = {}; protected_shared_checkpoint_save_fits();
+        plan = {}; independent_checkpoints_do_not_bypass_protection();
+        plan = {}; independent_checkpoint_union_evicts_oldest();
+        plan = {}; shared_identity_across_target_and_draft();
+        plan = {}; shared_checkpoint_growth_and_release();
+        plan = {}; shared_checkpoint_snapshot_failures_preserve_budget();
+        plan = {}; disabled_storage_shared_sources_still_need_independent_space();
         plan = {}; snapshot_reuse_without_large_allocation();
         plan = {}; smaller_snapshot_charges_capacity();
         plan = {}; oversized_spare_does_not_evict_useful_state();
@@ -271,7 +446,7 @@ int main(int argc, char ** argv) {
         plan = {}; failure_does_not_recycle_partial_state();
         plan = {}; failed_reused_save_is_not_published();
         plan = {}; disabled_storage_uses_legacy_ownership();
-        std::cout << "10 cache storage scenarios passed: shared checkpoints, detached mutation, initialized buffer reuse, capacity budget, allocation/save failures and opt-out\n";
+        std::cout << "18 cache storage scenarios passed: shared backing union, protected admission, detached mutation, initialized buffer reuse, capacity budget, allocation/save failures and opt-out\n";
         return 0;
     } catch (const std::exception & error) {
         allocation_probe::reject_large = false;
