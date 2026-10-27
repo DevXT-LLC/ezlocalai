@@ -44,8 +44,8 @@ are not treated as gains.
 
 ## Compatibility and package checks
 
-- All 65,519 generated prefixes had exactly the legacy decoder's complete,
-  incomplete or malformed classification, using the actual candidate class.
+- All 65,519 prefix classification checks matched the legacy decoder's complete,
+  incomplete or malformed result, using the actual candidate class.
 - The expanded real-TCP `native_http` tests passed against both baseline and
   candidate. They cover decoded chat input, binary buffered responses before
   upstream EOF, permissive legacy size lines/extensions/trailers, fragmentation,
@@ -56,9 +56,10 @@ are not treated as gains.
 - Both owned benchmark containers were removed and all three listeners released.
   No production worker was changed for this comparison.
 
-The reusable [driver](bench_chunked_http.py) requires two distinct, explicitly
-identified loopback Echo workers configured for the same loopback fake voice
-port. It checks process start identity, listener ownership, synthetic model/auth
+For an A/B comparison, use the reusable [driver](bench_chunked_http.py) with two
+distinct, explicitly identified loopback Echo workers configured for the same
+loopback fake voice port. It checks process start identity, listener ownership,
+synthetic model/auth
 configuration and absence of external forwarding before measurement. Run
 `python3 benchmarks/bench_chunked_http.py --help` for its URLs/PIDs/output options;
 it does not create workers or modify deployments.

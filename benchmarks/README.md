@@ -295,3 +295,67 @@ the known files in its owned directory after the run. Partial failure reports
 retain requested filenames for that cleanup. There are no inference or slot
 RPC retries and no context downshift. These normal roundtrips do not qualify
 legacy or deliberately corrupted slot files.
+
+## GPU arithmetic diagnostics
+
+`gpu_compute_probe.cu` measures FP16 and BF16 inputs with FP32 accumulation,
+and INT8 inputs with INT32 accumulation. It uses cuBLAS with reduced-precision
+reductions disabled, checks 32 deterministic output elements against exact CPU
+dot products per case, and records CUDA/cuBLAS versions, GPU identity, allocation
+headroom and event timings. It does not change worker settings or GPU clocks.
+
+Build it in the same CUDA SDK image on each host:
+
+```sh
+nvcc -std=c++17 -O2 benchmarks/gpu_compute_probe.cu -lcublas -ldl \
+  -o build/gpu_compute_probe
+build/gpu_compute_probe --plan --max-bytes 805306368
+```
+
+Run the offline guards with host Python, setting `GPU_COMPUTE_PROBE_BIN` to the
+executable or a wrapper that invokes it in a CPU-only SDK container. Native
+worker images do not include Python:
+
+```sh
+GPU_COMPUTE_PROBE_BIN=/absolute/path/to/probe-or-wrapper \
+  python3 -m unittest discover -s benchmarks -p test_gpu_compute_probe.py
+```
+
+`--plan` and the offline guard tests do not call CUDA. The default six cases
+use sizes 4096 and 8192, with a maximum explicit device allocation of 544 MiB,
+including a 32 MiB workspace. The allocation cap is mandatory; library/context
+overhead is measured separately and has its own preflight allowance. The
+default free-memory reserve is 1 GiB. Allocation failures stop the run without
+retrying a smaller case.
+
+Run `--run --device 0 --max-bytes 805306368` only inside an operator-owned idle
+maintenance window, after checking original process identity, free VRAM and
+healthy alternative workers. Capture clocks, power, temperature, PCIe links
+and throttling externally, then verify service identity and release the owned
+lease. Never overlap timed runs with model copies or other inference.
+
+Use identical probe binaries, libraries and arguments for comparisons. These
+are dense arithmetic diagnostics, not model throughput or quality tests. The
+probe does not verify which Tensor Core kernel executed. Different cards,
+drivers, power behavior or PCIe links prevent attributing a cross-host result
+solely to an unlock; a causal result needs a controlled before/after run on
+the same card.
+
+See the [unlocked CUDA measurements](unlocked-cuda-20261026.md) for current fleet
+results and the [chunked HTTP comparison](chunked-http-20261026.md) for the
+independent CPU transport improvement.
+
+## Negotiated request compression
+
+`bench_request_gzip.py` uses a hash-pinned corpus of complete, public native
+repository files. Its default mode reports Python reference-codec timings.
+`--run-route` explicitly starts isolated loopback services using supplied Rust
+router/native-worker binaries, a mock engine and an immutable SDK image. It
+measures the actual Rust encoder and C++ decoder through the complete route,
+with shaped upload or an unshaped loopback control. It never benchmarks a
+production router or GPU model. Check `--help` for required binary/image options.
+
+The [request-compression report](request-gzip-20261026.md) records decoded-byte
+and inference identity, actual route samples, codec costs, limits and cleanup.
+The 13 MB/s upload setting is a simulation informed by the V copy observation;
+it is not a measurement of deployed Wi-Fi request latency.

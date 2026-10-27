@@ -1,0 +1,364 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-26",
+  "collected_utc": "2026-10-26T23:14:29.568394+00:00",
+  "scope": "Read-only pre-benchmark deployment and hardware provenance; benchmark outcomes are recorded separately.",
+  "native_revision": "c42148868a04d05171cdfc3bca7840f227b97216",
+  "methods": [
+    "Selected actual llama-server process argv, not dotenv intent.",
+    "Full on-disk SHA-256 of worker, engine, common library, model and projector on all four host-accessible workers.",
+    "NVML hardware snapshot plus J GPU/upstream sysfs link limits.",
+    "Read-only gpu_unlock module metadata and current boot journal.",
+    "Redacted router worker records."
+  ],
+  "shared_artifact_sha256": {
+    "/app/build/ezlocalai-native": "562ee7c369e65c288ff8836accc75d4618bd75e1a6c7735171e7f696a343da17",
+    "/app/build/llama.cpp/bin/llama-server": "786d233474c43332fb731763342e71657136e992b54d405b19998821b1f51074",
+    "/app/build/llama.cpp/bin/libllama-server-impl.so": "56435bfa886d57c490efdb5797179ead3392dbdca79c4ea86da91761fe52312d",
+    "/app/build/llama.cpp/bin/libllama.so": "4c32861b7148c347033ce73f06da757a5ad01362a4409c48c20386a716bbcc9f",
+    "/app/build/llama.cpp/bin/libllama-common.so": "c9fd858250b3e1c04ea03f057f1b01ac15496af7983a59ade34ba3dbddc37998"
+  },
+  "artifacts_identical_across_host_accessible_workers": true,
+  "models": [
+    {
+      "sha256": "00cf92e666c6af6566996c38c89a44ccdb6449ea25ef0f112a452c853b2a71e2",
+      "bytes": 13441059904,
+      "filename": "Qwen3.8-27B-UD-Q3_K_XL.gguf"
+    },
+    {
+      "sha256": "8c2a45ff85e7674ca185ec8eb6cdeab0e617ed9d8018caed0b64380eb2a67a5e",
+      "bytes": 13146393504,
+      "filename": "Qwen3.8-27B-UD-Q3_K_XL.gguf"
+    }
+  ],
+  "shared_projector": {
+    "filename": "mmproj-BF16.gguf",
+    "bytes": 931146432,
+    "sha256": "83ee4f4f205fa514161778c41df1ea14144faa0f713510893b63c2395f5c2d53"
+  },
+  "common_llama_process_settings": {
+    "flash_attention": "on",
+    "cache_type_k": "q4_0",
+    "cache_type_v": "q4_0",
+    "parallel": 1,
+    "checkpoints": 32,
+    "checkpoint_min_step": 8192,
+    "spec_type": "draft-mtp",
+    "draft_min_probability": 0.1,
+    "gpu_layers": -1
+  },
+  "workers": [
+    {
+      "label": "DevXT3090J",
+      "evidence": "host process argv, OCI revision, NVML, sysfs, full file SHA-256 and router registry",
+      "worker_revision": "c42148868a04d05171cdfc3bca7840f227b97216",
+      "image_id": "sha256:b2c1fd792f29205ab20fdea8a7c756549537a31a78b658f89d8a1b2922599be6",
+      "gpu": {
+        "name": "NVIDIA GeForce RTX 3090 Ti",
+        "driver": "570.211.01",
+        "vram_mib": 24564,
+        "power_limit_w": 450.0
+      },
+      "host_memory_kib": {
+        "MemTotal": 129371836,
+        "MemAvailable": 87412572,
+        "SwapTotal": 8388604,
+        "SwapFree": 196
+      },
+      "model_sha256": "00cf92e666c6af6566996c38c89a44ccdb6449ea25ef0f112a452c853b2a71e2",
+      "llama_process": {
+        "context": 220000,
+        "batch": 4096,
+        "ubatch": 1024,
+        "cache_ram_mib": 31488,
+        "mtp_max": 3
+      },
+      "pcie_idle_snapshot": {
+        "generation": 1,
+        "max_generation": 4,
+        "width": 4,
+        "gpu_max_width": 16
+      },
+      "registry": {
+        "version": "c421488",
+        "model_context": {
+          "unsloth/Qwen3.8-27B-GGUF": 220000
+        },
+        "text_capacity": 1,
+        "vision_capacity": 1,
+        "model_residency": "resident"
+      },
+      "container": {
+        "running": true,
+        "health": "healthy",
+        "oom_killed": false
+      },
+      "unlock": {
+        "user_reported": "locked",
+        "module_loaded": false,
+        "boot_success_verified": false,
+        "current_selector_readback_performed": false
+      },
+      "pcie_upstream_sysfs": [
+        {
+          "device": "0000:04:00.0",
+          "current_link_width": "4",
+          "max_link_width": "16",
+          "current_link_speed": "5.0 GT/s PCIe",
+          "max_link_speed": "16.0 GT/s PCIe"
+        },
+        {
+          "device": "0000:00:1c.4",
+          "current_link_width": "4",
+          "max_link_width": "4",
+          "current_link_speed": "5.0 GT/s PCIe",
+          "max_link_speed": "16.0 GT/s PCIe"
+        }
+      ]
+    },
+    {
+      "label": "DevXT3090V",
+      "evidence": "host process argv, OCI revision, NVML, sysfs, full file SHA-256 and router registry",
+      "worker_revision": "c42148868a04d05171cdfc3bca7840f227b97216",
+      "image_id": "sha256:b2c1fd792f29205ab20fdea8a7c756549537a31a78b658f89d8a1b2922599be6",
+      "gpu": {
+        "name": "NVIDIA GeForce RTX 3090 Ti",
+        "driver": "615.71.09",
+        "vram_mib": 24564,
+        "power_limit_w": 450.0
+      },
+      "host_memory_kib": {
+        "MemTotal": 31994888,
+        "MemAvailable": 27912156,
+        "SwapTotal": 4194300,
+        "SwapFree": 4193680
+      },
+      "model_sha256": "8c2a45ff85e7674ca185ec8eb6cdeab0e617ed9d8018caed0b64380eb2a67a5e",
+      "llama_process": {
+        "context": 230000,
+        "batch": 4096,
+        "ubatch": 1024,
+        "cache_ram_mib": 12288,
+        "mtp_max": 2
+      },
+      "pcie_idle_snapshot": {
+        "generation": 1,
+        "max_generation": 4,
+        "width": 16,
+        "gpu_max_width": 16
+      },
+      "registry": {
+        "version": "c421488",
+        "model_context": {
+          "unsloth/Qwen3.8-27B-GGUF": 230000
+        },
+        "text_capacity": 1,
+        "vision_capacity": 1,
+        "model_residency": "resident"
+      },
+      "container": {
+        "running": true,
+        "health": "healthy",
+        "oom_killed": false
+      },
+      "unlock": {
+        "module_loaded": true,
+        "module_version": "1.0.0",
+        "module_srcversion": "8C3A0B337AE00088B146BF2",
+        "module_parameters": {
+          "resume": "Y",
+          "targets": "all"
+        },
+        "boot_success_verified": true,
+        "success_journal_lines": [
+          "Oct 25 09:11:45 devxt3090v kernel: pci 0000:01:00.0: gpu_unlock: unlocked"
+        ],
+        "journal_timestamp_format": "Host-local short journal timestamp; year and timezone are not printed.",
+        "current_selector_readback_performed": false,
+        "classification": "per-card boot unlock success; current selector readback not performed",
+        "success_journal_lines_utc": [
+          "2026-10-25T13:11:45.282904+00:00 devxt3090v kernel: pci 0000:01:00.0: gpu_unlock: unlocked"
+        ],
+        "boot_time_utc": "2026-10-25T13:11:39+00:00",
+        "host_timezone": "America/New_York",
+        "utc_anchor_collected_utc": "2026-10-26T23:41:34.002303+00:00",
+        "utc_anchor_method": "journalctl --utc -o short-iso-precise, current boot"
+      }
+    },
+    {
+      "label": "DevXT4090",
+      "evidence": "host process argv, OCI revision, NVML, sysfs, full file SHA-256 and router registry",
+      "worker_revision": "c42148868a04d05171cdfc3bca7840f227b97216",
+      "image_id": "sha256:8688fdf01700b01b2d620988bb4652cfb38b529e793840b1de965f0fbe47e8b5",
+      "gpu": {
+        "name": "NVIDIA GeForce RTX 4090",
+        "driver": "580.178.04",
+        "vram_mib": 24564,
+        "power_limit_w": 450.0
+      },
+      "host_memory_kib": {
+        "MemTotal": 31980324,
+        "MemAvailable": 27898220,
+        "SwapTotal": 4194300,
+        "SwapFree": 4189736
+      },
+      "model_sha256": "8c2a45ff85e7674ca185ec8eb6cdeab0e617ed9d8018caed0b64380eb2a67a5e",
+      "llama_process": {
+        "context": 230000,
+        "batch": 4096,
+        "ubatch": 1024,
+        "cache_ram_mib": 12288,
+        "mtp_max": 3
+      },
+      "pcie_idle_snapshot": {
+        "generation": 1,
+        "max_generation": 4,
+        "width": 16,
+        "gpu_max_width": 16
+      },
+      "registry": {
+        "version": "c421488",
+        "model_context": {
+          "unsloth/Qwen3.8-27B-GGUF": 230000
+        },
+        "text_capacity": 1,
+        "vision_capacity": 1,
+        "model_residency": "resident"
+      },
+      "container": {
+        "running": true,
+        "health": "healthy",
+        "oom_killed": false
+      },
+      "unlock": {
+        "module_loaded": true,
+        "module_version": "1.1.1",
+        "module_srcversion": "5F2DCBCFF81AEEC7AFA7F5D",
+        "module_parameters": {
+          "ad103_experimental": "N",
+          "ad106_experimental": "N",
+          "rtx4090d_experimental": "N",
+          "targets": "0000:01:00.0"
+        },
+        "boot_success_verified": true,
+        "success_journal_lines": [
+          "Oct 25 22:18:08 devxt4090 kernel: pci 0000:01:00.0: gpu_unlock: unlocked"
+        ],
+        "journal_timestamp_format": "Host-local short journal timestamp; year and timezone are not printed.",
+        "current_selector_readback_performed": false,
+        "classification": "per-card boot unlock success; current selector readback not performed",
+        "success_journal_lines_utc": [
+          "2026-10-26T02:18:08.390111+00:00 devxt4090 kernel: pci 0000:01:00.0: gpu_unlock: unlocked"
+        ],
+        "boot_time_utc": "2026-10-26T02:18:04+00:00",
+        "host_timezone": "America/New_York",
+        "utc_anchor_collected_utc": "2026-10-26T23:41:34.002303+00:00",
+        "utc_anchor_method": "journalctl --utc -o short-iso-precise, current boot"
+      }
+    },
+    {
+      "label": "DevXT5090",
+      "evidence": "host process argv, OCI revision, NVML, sysfs, full file SHA-256 and router registry",
+      "worker_revision": "c42148868a04d05171cdfc3bca7840f227b97216",
+      "image_id": "sha256:8688fdf01700b01b2d620988bb4652cfb38b529e793840b1de965f0fbe47e8b5",
+      "gpu": {
+        "name": "NVIDIA GeForce RTX 5090",
+        "driver": "590.48.01",
+        "vram_mib": 32607,
+        "power_limit_w": 575.0
+      },
+      "host_memory_kib": {
+        "MemTotal": 131365276,
+        "MemAvailable": 122351912,
+        "SwapTotal": 100706300,
+        "SwapFree": 98983596
+      },
+      "model_sha256": "00cf92e666c6af6566996c38c89a44ccdb6449ea25ef0f112a452c853b2a71e2",
+      "llama_process": {
+        "context": 262144,
+        "batch": 4096,
+        "ubatch": 2048,
+        "cache_ram_mib": 32000,
+        "mtp_max": 3
+      },
+      "pcie_idle_snapshot": {
+        "generation": 1,
+        "max_generation": 5,
+        "width": 16,
+        "gpu_max_width": 16
+      },
+      "registry": {
+        "version": "c421488",
+        "model_context": {
+          "unsloth/Qwen3.8-27B-GGUF": 262144
+        },
+        "text_capacity": 1,
+        "vision_capacity": 1,
+        "model_residency": "resident"
+      },
+      "container": {
+        "running": true,
+        "health": "healthy",
+        "oom_killed": false
+      },
+      "unlock": {
+        "module_loaded": false,
+        "module_version": null,
+        "module_srcversion": null,
+        "module_parameters": {},
+        "boot_success_verified": false,
+        "success_journal_lines": [],
+        "journal_timestamp_format": "Host-local short journal timestamp; year and timezone are not printed.",
+        "current_selector_readback_performed": false,
+        "classification": "no successful boot unlock observed"
+      }
+    }
+  ],
+  "api_only_worker": {
+    "label": "DevXT3090A",
+    "evidence": "Router API only; no host access or process inspection is available for qualification.",
+    "registry_version": "c421488",
+    "gpu_name_from_registry": "NVIDIA GeForce RTX 3090 Ti",
+    "cpu_name_from_registry": "Intel(R) Xeon(R) CPU E5-2620 v3 @ 2.40GHz",
+    "registry_model_context": {
+      "unsloth/Qwen3.8-27B-GGUF": 230000
+    },
+    "user_reported_dotenv_ubatch": 1024,
+    "effective_process_ubatch": null,
+    "effective_process_ubatch_verified": false,
+    "user_reported_unlock": "locked",
+    "unlock_host_verified": false,
+    "worker_engine_and_model_sha256_verified": false,
+    "host_ram_verified": false
+  },
+  "comparison_limits": [
+    "The 3090J and 3090V GPUs are both RTX 3090 Ti, but their production model files differ despite identical filenames.",
+    "J and V require a common model and matched context, cache, MTP and batching controls for throughput comparison.",
+    "J driver 570.211.01 differs from V driver 615.71.09; CPU, RAM and PCIe topology also differ. Cross-host differences cannot isolate the unlock.",
+    "J GPU is attached through an upstream port with maximum width x4; V GPU reports x16. The x4 upstream limit is independent of idle link generation. Generation must also be recorded under load.",
+    "Verified UTC unlock success anchors are V 2026-10-25T13:11:45.282904+00:00 and 4090 2026-10-26T02:18:08.390111+00:00. Historical runs after their worker-specific anchor were already unlocked and cannot be pre-unlock baselines; earlier Oct 25/26 measurements must be classified individually.",
+    "Boot journal success verifies that the module reported unlocking that PCI device. Current selector readback was not performed.",
+    "A user change to dotenv does not prove a running llama-server uses ubatch 1024; the registry cannot establish its effective process argv.",
+    "No same-card, same-driver locked-versus-unlocked causal A/B was performed.",
+    "RAM and swap figures are instantaneous host snapshots; free swap is not a latency or capacity guarantee."
+  ],
+  "production_mutations_performed_for_this_inventory": false,
+  "hardware_operations_not_performed": [
+    "inference",
+    "drain",
+    "container replacement",
+    "environment writes",
+    "module install or unload",
+    "GPU reset",
+    "unlock toggle",
+    "clock or power changes",
+    "reboot"
+  ],
+  "omitted": [
+    "credentials",
+    "full environments",
+    "Docker inspect output",
+    "private callback addresses",
+    "host SSH details"
+  ]
+}
