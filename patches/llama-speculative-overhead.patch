@@ -1,0 +1,61 @@
+diff --git a/common/speculative.cpp b/common/speculative.cpp
+--- a/common/speculative.cpp
++++ b/common/speculative.cpp
+@@ -1618,6 +1618,13 @@
+             }
+         }
+ 
++        // The target exposes unmasked, densely packed nextn rows (set in the
++        // constructor). Synchronize once before reading them: the draft work
++        // below does not change the target output buffer. Per-row public getters
++        // would synchronize every backend again for each retained CPU-state row.
++        const float * h_tgt = llama_get_embeddings_nextn(ctx_tgt);
++        GGML_ASSERT(h_tgt != nullptr);
++
+         // if kv is shared with target (e.g Gemma4), then we can skip this catch-up decode
+         if (!is_mem_shared) {
+             batch.clear();
+@@ -1628,8 +1635,6 @@
+             // i.e. we cannot have seq_id like this: [0, 0, 0, 1, 1, 0, 1, 1]
+             //                                                       ^--- this is a problem
+             // TODO:this is generally true, but would be nice to assert it
+-            const float * h_tgt = llama_get_embeddings_nextn(ctx_tgt);
+-
+             for (int k = 0; k < n_tokens; ++k) {
+                 const auto & t = batch_in.tokens[k];
+ 
+@@ -1689,7 +1694,7 @@
+             carry[seq_id].record(batch_in.tokens[begin].pos[0], n_rows, [&](size_t i) {
+                 const auto & token = batch_in.tokens[begin + i];
+                 const int32_t next = token.id == LLAMA_TOKEN_NULL ? -1 : token.pos[0] + 1;
+-                return common_mtp_state::row_view { next, llama_get_embeddings_nextn_ith(ctx_tgt, begin + i) };
++                return common_mtp_state::row_view { next, h_tgt + (size_t(begin) + i) * n_embd };
+             });
+         }
+ 
+diff --git a/tools/server/server-context.cpp b/tools/server/server-context.cpp
+--- a/tools/server/server-context.cpp
++++ b/tools/server/server-context.cpp
+@@ -4586,7 +4586,13 @@
+ 
+             // verify and try to accept the draft
+             {
+-                common_sampler_ptr smpl_save(common_sampler_clone(slot.smpl.get()));
++                // At least one target token is accepted, so at most n_draft
++                // positions can roll back. Keep sampler/RNG/grammar state only
++                // when that rollback could require a checkpoint replay.
++                const bool may_replay_checkpoint =
++                    ctx_tgt_seq_rm_type == COMMON_CONTEXT_SEQ_RM_TYPE_FULL ||
++                    (ctx_tgt_seq_rm_type == COMMON_CONTEXT_SEQ_RM_TYPE_RS && n_draft > llama_n_rs_seq(ctx_tgt));
++                common_sampler_ptr smpl_save(may_replay_checkpoint ? common_sampler_clone(slot.smpl.get()) : nullptr);
+ 
+                 GGML_ASSERT(slot.spec_i_batch.size() == n_draft + 1);
+                 GGML_ASSERT(slot.spec_draft_q.empty() || (slot.spec_draft_q.size() == slot.spec_draft.size()));
+@@ -4644,6 +4650,7 @@
+                         slot.mem.seq_rm(slot.id, ckpt.pos_max + 1, -1);
+ 
+                         slot.prompt.tokens.keep_first(ckpt.n_tokens);
++                        GGML_ASSERT(smpl_save);
+                         common_sampler_copy(smpl_save.get(), slot.smpl.get());
+ 
+                         return;

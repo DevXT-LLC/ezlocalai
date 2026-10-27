@@ -2,6 +2,34 @@
 
 The goal remains behavior parity with ezlocalai within the scope below, with all first-party executable code implemented in C++. It is **not complete**.
 
+## Speculative host-work screen and timing interpretation (2026-10-26)
+
+A fresh physical-4090 ABBA screen preserves all **76 request/output/token
+signatures** when avoiding redundant sampler snapshots and MTP row-getter
+synchronization. It shows no useful throughput gain: cold prefill averages
+**2660.60 → 2655.19 tok/s (−0.20%)**, short decode **115.37 → 115.54 tok/s
+(+0.14%)**. This experimental branch is **not promoted**; no V confirmation
+is justified by those timings. Weights, precision, context and engine arguments
+are fixed. All eight focused engine tests and all **73 oracle-free CUDA package
+checks** pass (322.92 seconds), with the package builder CPU-only; the new
+instrumented actual-source guard makes 21,051 checks.
+
+The original `720ee94` 4090 container/image/environment/mounts/full argv were
+restored, and health plus two fresh router heartbeats passed before releasing
+the owned drain. Rollback tag: `ezlocalai:rollback-spec-overhead-4090-7a6e959d4a`;
+image `sha256:f78bbd2139979beb58859f79c4c0e5c233919f43908be720eb5e25d266a108f9`.
+No permanent settings changed. Other cards, new platform images, maximum context
+and broad model quality were not qualified by this screen.
+
+Router historical means mix workload sizes and cache states. The read-only
+retained sample has 4090 cache-hit requests averaging 130,577 input tokens and
+59.50 tok/s decode, unlike the prior short-context benchmark's 111.75 tok/s.
+WorkerRouter PR #8 adds workload-aware timing rows and recent windows. The new
+public-source rewind also exposes an alignment-dependent checkpoint coverage
+gap; it is a separate optimization lead, not evidence of eviction. Details and
+artifact hashes are in [the screen report](benchmarks/speculative-overhead-20261026.md)
+and `tests/fixtures/speculative_overhead_20261026_validation.json`.
+
 ## Benchmark relay response-header validation (2026-10-26)
 
 CodeQL findings 59 and 60 identified unvalidated upstream header names/values

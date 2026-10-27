@@ -1,0 +1,159 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-26",
+  "status": "screened_not_promoted",
+  "baseline_revision": "720ee945c72eaff2f81612d19e22f44ea7738ecf",
+  "engine_pin": "620d2225cc436ab0b001e3200e590e3b286ef9ab",
+  "scope": "4090 physical-GPU ABBA screen of sampler snapshot elision and MTP hidden-row getter batching; no material throughput gain",
+  "run_id": "spec-overhead-4090-7a6e959d4a",
+  "production_image": "sha256:f78bbd2139979beb58859f79c4c0e5c233919f43908be720eb5e25d266a108f9",
+  "rollback_tag": "ezlocalai:rollback-spec-overhead-4090-7a6e959d4a",
+  "model_sha256": "8c2a45ff85e7674ca185ec8eb6cdeab0e617ed9d8018caed0b64380eb2a67a5e",
+  "projector_sha256": "83ee4f4f205fa514161778c41df1ea14144faa0f713510893b63c2395f5c2d53",
+  "source_sha256": "1fa09e891df2dd2759501d60498cd94271a9665c01feff3ad070994ce92bf626",
+  "operator_source_manifest_sha256": "eaee4f577240ed3f6154ed1b370da0bbf7929a66df0591e56b009b792f7999f5",
+  "plan_sha256": "bc4d9b77e9cbcd25a5017b5bbf012f7ed768b84ead3c11f5e62d177bc3196f0d",
+  "libraries": {
+    "baseline": {
+      "/app/build/llama.cpp/bin/libllama-common.so.0": "c9fd858250b3e1c04ea03f057f1b01ac15496af7983a59ade34ba3dbddc37998",
+      "/app/build/llama.cpp/bin/libllama-server-impl.so": "56435bfa886d57c490efdb5797179ead3392dbdca79c4ea86da91761fe52312d"
+    },
+    "candidate": {
+      "/app/build/llama.cpp/bin/libllama-common.so.0": "eb18e6472223b139902dce7a620a5655ec0a93a2425bc95ec5e9a5410bccd35e",
+      "/app/build/llama.cpp/bin/libllama-server-impl.so": "5d106f13e5316dd9e7e0676d049a230c0cf194aa99fe8baf69bed3a7cd6cd774"
+    }
+  },
+  "controls": {
+    "-c": "230000",
+    "-b": "4096",
+    "-ub": "1024",
+    "-ctk": "q4_0",
+    "-ctv": "q4_0",
+    "--spec-type": "draft-mtp",
+    "--spec-draft-n-max": "3",
+    "--spec-draft-p-min": "0.10000000000000001",
+    "--cache-ram": "12288",
+    "-np": "1",
+    "--ctx-checkpoints": "32",
+    "--checkpoint-min-step": "8192"
+  },
+  "phases": [
+    {
+      "phase": "a1",
+      "build": "baseline",
+      "cold_input_tokens": 49987,
+      "cold_cached_tokens": 0,
+      "cold_prefill_tokens_per_second": 2669.77053015991,
+      "short_decode_median_tokens_per_second": 115.46815999449377,
+      "cache_decode_medians": {
+        "seed": 97.44342835787188,
+        "replay": 97.51918833441052,
+        "append": 133.01500148403014,
+        "rewind": 92.14921234105616
+      },
+      "request_output_rows": 19
+    },
+    {
+      "phase": "b1",
+      "build": "candidate",
+      "cold_input_tokens": 49987,
+      "cold_cached_tokens": 0,
+      "cold_prefill_tokens_per_second": 2656.9141770531633,
+      "short_decode_median_tokens_per_second": 115.52476103363402,
+      "cache_decode_medians": {
+        "seed": 97.62626521725481,
+        "replay": 97.63067578805185,
+        "append": 133.27834948092,
+        "rewind": 92.19938931463312
+      },
+      "request_output_rows": 19
+    },
+    {
+      "phase": "b2",
+      "build": "candidate",
+      "cold_input_tokens": 49987,
+      "cold_cached_tokens": 0,
+      "cold_prefill_tokens_per_second": 2653.456800707277,
+      "short_decode_median_tokens_per_second": 115.54554261546171,
+      "cache_decode_medians": {
+        "seed": 97.63785316185829,
+        "replay": 97.67667412073756,
+        "append": 133.2704784462439,
+        "rewind": 92.26911463261513
+      },
+      "request_output_rows": 19
+    },
+    {
+      "phase": "a2",
+      "build": "baseline",
+      "cold_input_tokens": 49987,
+      "cold_cached_tokens": 0,
+      "cold_prefill_tokens_per_second": 2651.423593336428,
+      "short_decode_median_tokens_per_second": 115.28075837559918,
+      "cache_decode_medians": {
+        "seed": 97.4514347908501,
+        "replay": 97.52925877763329,
+        "append": 132.84591905151137,
+        "rewind": 92.08522108036547
+      },
+      "request_output_rows": 19
+    }
+  ],
+  "comparison": {
+    "cold_prefill": {
+      "baseline_mean_of_phase_values": 2660.597061748169,
+      "candidate_mean_of_phase_values": 2655.18548888022,
+      "change_percent": -0.20339693468627296
+    },
+    "short_decode": {
+      "baseline_mean_of_phase_values": 115.37445918504648,
+      "candidate_mean_of_phase_values": 115.53515182454787,
+      "change_percent": 0.13927921364611517
+    },
+    "matched_signatures_per_phase": 19,
+    "matching_signature_rows_total": 76,
+    "signature_sha256": "56ce121857aee2a496dd6b0737c99c0fafefbbcebcb98e3d8d81996d91ef9ce3",
+    "decision": "No useful demonstrated throughput gain; do not promote on these timings"
+  },
+  "validation": {
+    "actual_source_mock_backend_checks": 21051,
+    "focused_engine_tests_passed": 8,
+    "focused_engine_tests_seconds": 4.65,
+    "cuda_package_tests_passed": 73,
+    "cuda_package_tests_failed": 0,
+    "cuda_package_tests_seconds": 322.92,
+    "python_reference_checkout_present": false,
+    "physical_gpu_available_to_package_builder": false
+  },
+  "restoration": {
+    "healthy": true,
+    "same_container": true,
+    "same_image": true,
+    "same_environment": true,
+    "same_mounts": true,
+    "same_config": true,
+    "same_hostconfig": true,
+    "critical_parameters_preserved": true,
+    "oom_killed": false,
+    "full_engine_argv_preserved": true,
+    "full_engine_argv_sha256": "7c20570c1f33c54d66fa648e6015acb55874bfc89d4b34cdb128891298865ca8",
+    "fresh_router_heartbeats_verified": true,
+    "owned_drain_released": true
+  },
+  "permanent_environment_changes": [],
+  "settings_promoted": false,
+  "other_cards_tested": false,
+  "general_model_quality_claimed": false,
+  "notes": [
+    "49,987 actual cold tokens per phase; historical 49,993-token workload differs",
+    "Both numerical model and sampling paths unchanged by this candidate; outputs match only on bounded tested workloads",
+    "No causal GPU-unlock claim; NVML clock values on unlocked cards are not accepted as normalized performance proof",
+    "Package gate runs in CPU-only container, not physical GPU package qualification"
+  ],
+  "candidate_source_sha256": {
+    "patches/llama-speculative-overhead.patch": "79a4106ad7247f31e8b07fa993484463f831e3ca70abbff72474f2eba123469f",
+    "cmake/LlamaSpeculativeTestSources.cmake": "6574ad438a07f5f87d2ff294a68d5bcb10cf2b8e43697adbe72b8332f2fcaf6c",
+    "tests/test_llama_speculative_overhead.cpp": "b26ead6370e8b0c4addbcce4af930de131723de4bc04bdeea7170779f4d955d4",
+    "tests/fixtures/llm_engine_managed_source_hashes.tsv": "b86de6f8cb26d9b3f2f3d3ec4b97b221cf7651e91a91704ee9b39d9522928fe8"
+  }
+}

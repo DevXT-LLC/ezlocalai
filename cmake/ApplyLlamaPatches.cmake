@@ -26,7 +26,7 @@ if(NOT PATCH_FILES)
     endif()
     set(PATCH_FILES "${PATCH_FILE}" "${patch_dir}/llama-cache-restore-atomic.patch"
         "${patch_dir}/llama-cache-storage.patch" "${patch_dir}/llama-mtp-resume.patch"
-        "${patch_dir}/llama-checkpoint-coverage.patch")
+        "${patch_dir}/llama-checkpoint-coverage.patch" "${patch_dir}/llama-speculative-overhead.patch")
 endif()
 set(reverse_patches "${PATCH_FILES}")
 list(REVERSE reverse_patches)
