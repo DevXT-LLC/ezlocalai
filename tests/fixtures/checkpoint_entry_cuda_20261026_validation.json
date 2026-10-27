@@ -3,8 +3,8 @@
   "date": "2026-10-26",
   "baseline_native_revision": "720ee945c72eaff2f81612d19e22f44ea7738ecf",
   "engine_pin": "620d2225cc436ab0b001e3200e590e3b286ef9ab",
-  "status": "screen_passed_qualification_running",
-  "scope": "4090 physical-GPU checkpoint entry-window ABBA screen plus model-free/package checks; finite/pressure qualification pending",
+  "status": "qualified_4090_bounded_workloads",
+  "scope": "4090 physical-GPU checkpoint entry-window ABBA screen and finite/independent-cache-pressure qualification; model-free and CPU-only package checks",
   "image_id": "sha256:f78bbd2139979beb58859f79c4c0e5c233919f43908be720eb5e25d266a108f9",
   "rollback_tag": "ezlocalai:rollback-spec-overhead-4090-7a6e959d4a",
   "candidate_patch_sha256": "d540b689360ee9efe7c5a45d24f2d473b5798aeb5ef8792dee49adbf687ffd5d",
@@ -846,13 +846,251 @@
     "owned_drain_released": true
   },
   "qualification": {
-    "status": "running",
+    "status": "complete",
     "run_id": "checkpoint-entry-4090-fe6e50cbce",
     "plan_sha256": "82f3159a414adba2c6b77c847e0c018c22359a80dbb4c625ea2e6f7060f03fb0",
-    "checks": "Finite64/128 latest-turn answers and eight independent conversations with two return rounds; unchanged12GiB ceiling"
+    "operator_manifest_sha256": "39afb43cdd95247bf2483a64a0c391cd3173ae7e350898e869d3688cafaf681d",
+    "requests": 192,
+    "requests_by_suite": {
+      "finite64": 48,
+      "finite128": 48,
+      "pressure": 96
+    },
+    "all_finite_controls_correct": true,
+    "all_branch_and_latest_turn_controls_correct": true,
+    "all_finishes_stop": true,
+    "comparison": {
+      "passed": true,
+      "stage": "qualification",
+      "compared_rows_per_phase": 48,
+      "baseline_pair_identical": true,
+      "candidate_pair_identical": true,
+      "all_cross_build_output_hashes_match": true,
+      "errors": [],
+      "pressure": {
+        "baseline": {
+          "returns": 16,
+          "full_reevaluations": 0,
+          "tail_reuses": 16,
+          "cached_tokens": 412288
+        },
+        "candidate": {
+          "returns": 16,
+          "full_reevaluations": 0,
+          "tail_reuses": 16,
+          "cached_tokens": 412288
+        },
+        "retention_not_regressed": true
+      },
+      "scope": "bounded request/answer/cache retention controls; broad model quality is unqualified",
+      "configured12GiB_cache_and_no_observed_oom": true
+    },
+    "cache_ceiling_mib": 12288,
+    "independent_conversations": 8,
+    "pressure_return_rounds": 2,
+    "phases": [
+      {
+        "phase": "a1",
+        "requests": 48,
+        "comparison_signature_sha256": "0f6e6cce0d82dbfed3b330036243aed71396600fa54e33ba44f2400ec73a6470",
+        "loaded_library_sha256": {
+          "/app/build/llama.cpp/bin/libllama-server-impl.so": "56435bfa886d57c490efdb5797179ead3392dbdca79c4ea86da91761fe52312d",
+          "/app/build/llama.cpp/bin/libllama-common.so.0": "c9fd858250b3e1c04ea03f057f1b01ac15496af7983a59ade34ba3dbddc37998",
+          "/app/build/llama.cpp/bin/libggml-cuda.so.0": "5fe5f7b9de2f29ace36a74258c3074396c2f1b71cedcda200fc5b498085fc3c3"
+        },
+        "memory_peak_bytes_including_reclaimable_cache": 15321681920,
+        "observed_cgroup_swap_peak_bytes": 0,
+        "cgroup_oom_event_deltas": {
+          "oom": 0,
+          "oom_kill": 0,
+          "oom_group_kill": 0
+        },
+        "host_oom_kill_delta": 0,
+        "docker_oom_killed": false
+      },
+      {
+        "phase": "b1",
+        "requests": 48,
+        "comparison_signature_sha256": "825350641e6e9aedadcfc6fbe7c25469a99bd2fc4301ed304579bb19da53f43e",
+        "loaded_library_sha256": {
+          "/app/build/llama.cpp/bin/libllama-server-impl.so": "2fbc02b333b689f21d9b7273553099b0cab60c6b9f18d4c9fd90c1372a0b1e74",
+          "/app/build/llama.cpp/bin/libllama-common.so.0": "c9fd858250b3e1c04ea03f057f1b01ac15496af7983a59ade34ba3dbddc37998",
+          "/app/build/llama.cpp/bin/libggml-cuda.so.0": "5fe5f7b9de2f29ace36a74258c3074396c2f1b71cedcda200fc5b498085fc3c3"
+        },
+        "memory_peak_bytes_including_reclaimable_cache": 15583977472,
+        "observed_cgroup_swap_peak_bytes": 0,
+        "cgroup_oom_event_deltas": {
+          "oom": 0,
+          "oom_kill": 0,
+          "oom_group_kill": 0
+        },
+        "host_oom_kill_delta": 0,
+        "docker_oom_killed": false
+      },
+      {
+        "phase": "b2",
+        "requests": 48,
+        "comparison_signature_sha256": "825350641e6e9aedadcfc6fbe7c25469a99bd2fc4301ed304579bb19da53f43e",
+        "loaded_library_sha256": {
+          "/app/build/llama.cpp/bin/libllama-server-impl.so": "2fbc02b333b689f21d9b7273553099b0cab60c6b9f18d4c9fd90c1372a0b1e74",
+          "/app/build/llama.cpp/bin/libllama-common.so.0": "c9fd858250b3e1c04ea03f057f1b01ac15496af7983a59ade34ba3dbddc37998",
+          "/app/build/llama.cpp/bin/libggml-cuda.so.0": "5fe5f7b9de2f29ace36a74258c3074396c2f1b71cedcda200fc5b498085fc3c3"
+        },
+        "memory_peak_bytes_including_reclaimable_cache": 15558664192,
+        "observed_cgroup_swap_peak_bytes": 0,
+        "cgroup_oom_event_deltas": {
+          "oom": 0,
+          "oom_kill": 0,
+          "oom_group_kill": 0
+        },
+        "host_oom_kill_delta": 0,
+        "docker_oom_killed": false
+      },
+      {
+        "phase": "a2",
+        "requests": 48,
+        "comparison_signature_sha256": "0f6e6cce0d82dbfed3b330036243aed71396600fa54e33ba44f2400ec73a6470",
+        "loaded_library_sha256": {
+          "/app/build/llama.cpp/bin/libllama-server-impl.so": "56435bfa886d57c490efdb5797179ead3392dbdca79c4ea86da91761fe52312d",
+          "/app/build/llama.cpp/bin/libllama-common.so.0": "c9fd858250b3e1c04ea03f057f1b01ac15496af7983a59ade34ba3dbddc37998",
+          "/app/build/llama.cpp/bin/libggml-cuda.so.0": "5fe5f7b9de2f29ace36a74258c3074396c2f1b71cedcda200fc5b498085fc3c3"
+        },
+        "memory_peak_bytes_including_reclaimable_cache": 15545610240,
+        "observed_cgroup_swap_peak_bytes": 0,
+        "cgroup_oom_event_deltas": {
+          "oom": 0,
+          "oom_kill": 0,
+          "oom_group_kill": 0
+        },
+        "host_oom_kill_delta": 0,
+        "docker_oom_killed": false
+      }
+    ],
+    "raw_report_sha256": {
+      "a1-bench-finite128.json": "2dc5b070436bb60d5ae851f164050407c2978b3c6b3cfc318623c434853f5a16",
+      "a1-bench-finite64.json": "e3fc73e0983a1c64e12d4a15ae5906c20a3fb2a3a6ac2aeed69f11321ef67e3e",
+      "a1-bench-pressure.json": "0c6e52f2c130fc255e7d96b538847908fcdd3e30d2816be8792747a3639b5f37",
+      "a1-bench.json": "ec46baa913e2991bfb1225a5fdf15c84aec1986c77627b29ea846ea7e915a6b1",
+      "a2-bench-finite128.json": "7e6752cee30c10b8d7e125d32931a6b28feb3ec6dc79ec1f3e2b72b3699b0182",
+      "a2-bench-finite64.json": "b307f98dac53e36a9794ecd14620bf897093c122cfd241563f9e8590ec9e44fb",
+      "a2-bench-pressure.json": "f7499647e60dfb685621e3c7305ec7a45f4e1edcc587feaa1926b5afc6375284",
+      "a2-bench.json": "57ea73b74ecda44e74627ffa671baea263182d0f2547ddd7e178515a0722fb1b",
+      "b1-bench-finite128.json": "8c447b2abd3c3d8005541188d48516893a2c3caec98c7d5d5c92c24cf416482b",
+      "b1-bench-finite64.json": "22048a4d8f899d97181a0db2c636780a19ef71ee859dbe43d73e6198809dc6c8",
+      "b1-bench-pressure.json": "c5b7ec54601f76e1cd43bd0cceb7eac463ea925d731086568139af59aec755b6",
+      "b1-bench.json": "2782fefaf2e23b8dd03585fc7a31df463307b069cb00cd48f423e0829c68a659",
+      "b2-bench-finite128.json": "7d9be47ab2503ac40b7286454e942499ba3eafda9dccaa8e8d0cad7718b00cb7",
+      "b2-bench-finite64.json": "8ee932677ac23ce0d938388adffc73a7c89c5cb9259bed0d520555a73bcaac95",
+      "b2-bench-pressure.json": "0b211232696ba83739e0d9d327a47ee0a6bfbc5f603448343009b0b447724ee1",
+      "b2-bench.json": "2e2b51d6dbfb153b96725b1c03f07320ae3baeffea3537c43bc48b53f97b79fb",
+      "result.json": "1e484f162fbea0dd3252ab6b243c942c75ea92ae8f548c7cdf727eb25fa82048",
+      "supervisor-result.json": "32ea0965be1d54a0c40d6f3bed04a7dae4e059b51136e69c149f5d0d17a2f60d",
+      "telemetry.json": "3637bd56aac0b67050ffb0e188016fb07d588f677267ab64965f412e6c99c757"
+    }
   },
   "environment_changes": [],
   "other_gpus_qualified": false,
   "maximum_context_or_vision_requalified": false,
-  "general_model_quality_claimed": false
+  "general_model_quality_claimed": false,
+  "qualification_restoration": {
+    "healthy": true,
+    "same_container": true,
+    "same_image": true,
+    "same_environment": true,
+    "same_mounts": true,
+    "same_config": true,
+    "same_hostconfig": true,
+    "critical_parameters_preserved": true,
+    "oom_killed": false,
+    "full_engine_argv_preserved": true,
+    "full_engine_argv_sha256": "7c20570c1f33c54d66fa648e6015acb55874bfc89d4b34cdb128891298865ca8",
+    "fresh_router_heartbeats": true,
+    "owned_drain_released": true
+  },
+  "engine_log_audit": {
+    "screen": {
+      "sha256": "6a0bd21c9581d2954da2f38c7f1ea97557e469732701dab63cfb42816a7ddc97",
+      "error_or_allocation_retry_lines": 0
+    },
+    "qualification": {
+      "sha256": "fd993889cd1e665cb97576e7de4d57d0096d6fbf060c675bf453af60ccef7f74",
+      "error_or_allocation_retry_lines": 0
+    }
+  },
+  "final_routed_smoke": {
+    "status": "passed",
+    "collected_utc": "2026-10-27T02:22:17.625010+00:00",
+    "pinned_worker": "DevXT4090",
+    "http_status": 200,
+    "nonempty_content": true,
+    "answer_sha256": "c2e3ac47f4a325469c1a2d5f117e463ec943c721986d5d9f09ac4540b7d80526",
+    "finish_reason": "stop",
+    "before": {
+      "label": "DevXT4090",
+      "version": "720ee94",
+      "draining": false,
+      "last_heartbeat_age": 6.039817571640015,
+      "model_context": {
+        "unsloth/Qwen3.8-27B-GGUF": 230000
+      }
+    },
+    "after": {
+      "label": "DevXT4090",
+      "version": "720ee94",
+      "draining": false,
+      "last_heartbeat_age": 0.18516135215759277,
+      "model_context": {
+        "unsloth/Qwen3.8-27B-GGUF": 230000
+      }
+    },
+    "scope": "post-restoration route smoke of original production image; not candidate deployment or performance benchmark"
+  },
+  "cleanup": {
+    "owned_cpu_builders_removed": 2,
+    "screen_and_qualification_children_removed": true,
+    "all_owned_drains_released": true,
+    "completed_local_staging_archives_removed": true,
+    "final_resource_proof": {
+      "status": "passed",
+      "original_container_id": "412b88dd0571cfd57f3b351e74b78cd72d3821104cbd4412300ef827fcef7cca",
+      "original_image_id": "sha256:f78bbd2139979beb58859f79c4c0e5c233919f43908be720eb5e25d266a108f9",
+      "original_healthy": true,
+      "private_port_28192_free": true,
+      "owned_runs": [
+        {
+          "run_id": "spec-overhead-4090-7a6e959d4a",
+          "owned_container_absent": true,
+          "private_environment_files_absent": true,
+          "owned_drain_released": true
+        },
+        {
+          "run_id": "cublas-screen-4090-0d83003ade",
+          "owned_container_absent": true,
+          "private_environment_files_absent": true,
+          "owned_drain_released": true
+        },
+        {
+          "run_id": "checkpoint-entry-4090-89e07fa288",
+          "owned_container_absent": true,
+          "private_environment_files_absent": true,
+          "owned_drain_released": true
+        },
+        {
+          "run_id": "checkpoint-entry-4090-fe6e50cbce",
+          "owned_container_absent": true,
+          "private_environment_files_absent": true,
+          "owned_drain_released": true
+        }
+      ]
+    },
+    "final_resource_proof_sha256": "14b876a9f105ffad809866cc174cdbb071590b47bcd1e406cab03adef225373c"
+  },
+  "total_positive_candidate_requests_with_matching_outputs": 268,
+  "remaining_limits": [
+    "Physical qualification covers 4090 and the recorded Qwen weights/workloads only",
+    "No new Docker image, non-CUDA hardware, multi-GPU, maximum-context or vision qualification",
+    "No demonstrated raw cold-prefill or decode throughput gain",
+    "Additional checkpoint uses RAM within the unchanged byte ceiling; arbitrary cache retention is not guaranteed",
+    "No causal GPU-unlock claim"
+  ]
 }

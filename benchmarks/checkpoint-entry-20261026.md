@@ -2,8 +2,10 @@ The checkpoint entry-window candidate reduces reprocessing for a shortened
 conversation whose usable prefix precedes every saved near-end state. On the
 controlled 4090 workload, median rewind first output falls **8.522 → 1.785 s**
 (79.1%) while every measured output hash agrees. Cold prefill and decode
-throughput remain approximately unchanged. Finite-answer and cache-pressure
-qualification is running; this proposal remains in draft pending that result.
+throughput remain approximately unchanged. Separate finite-answer and
+eight-conversation pressure qualification also passes under the unchanged
+12 GiB ceiling. The runtime change is proposed for merge; no candidate was
+deployed to production during these checks.
 
 ## Behavior and controls
 
@@ -61,7 +63,7 @@ GPU host, with native token timings. They exclude router/worker transport and
 are not production Wi-Fi measurements. The decode rate depends on prompt and
 context; these requests are unsuitable as a full-day GPU average.
 
-## Validation and remaining qualification
+## Validation and qualification
 
 The actual scheduler/allocator guard passes **364,385 checks**, including all
 4,096 logical-batch residues at three starting positions/four recurrent-tail
@@ -76,18 +78,34 @@ The package builder has no GPU; physical inference evidence is the separate
 idempotence, five-patch upgrade, metadata and complete-removal checks. Fresh
 images, other GPUs/platforms, maximum context and vision were not requalified.
 
-The separate qualification runs finite latest-turn controls at 64/128 token
-budgets, then eight independent named conversations with two return rounds under
-the same 12 GiB ceiling. Its acceptance requires exact finite answers and no
-observed OOM or retention regression. Until complete, RAM pressure and latest-turn
-qualification remain pending; the screen is a bounded output check rather than
-a general model-quality claim.
+The separate ABBA qualification executes **192 finite-answer requests**: 48 at
+the 64-token control budget, 48 at the 128-token budget and 96 across the
+eight-conversation pressure cases. All expected branch/code/latest-turn markers
+are correct, every finish is `stop`, and all output hashes agree across builds
+and repeats. Together with the screen, this gives **268 matching measured
+outputs**. These are bounded workload checks, with broader model quality still
+unqualified.
+
+Both builds preserve tail reuse for **16/16 return requests across eight
+conversations** in each pressure phase,
+with zero full re-evaluations and 412,288 reused tokens across those returns.
+The actual engine cache ceiling remains 12,288 MiB. All host/cgroup OOM counters
+stay unchanged at zero, Docker reports no OOM kills, and observed cgroup swap
+peaks are zero. Cgroup memory peaks include reclaimable model-read cache; they
+do not directly measure allocated prompt-cache bytes. Both complete engine logs
+contain no CUDA allocation/error or batch/decode-retry matches. The extra state
+still uses RAM and may affect other histories under the same hard byte limit.
 
 The screen restored the exact original container/image/environment/mounts/full
 argv, confirmed health and two fresh stable router heartbeats, then released its
 owned drain. Rollback tag: `ezlocalai:rollback-spec-overhead-4090-7a6e959d4a`.
-Qualification uses its own lease and will verify restoration separately. No
-permanent `.env`, precision, context, GPU power/clock or model changes are made.
+Qualification independently restores the same original and passes the same
+health/metadata/heartbeat checks before releasing its lease. A final routed chat
+pinned to `DevXT4090` returns HTTP 200 with nonempty content and a normal stop;
+that smoke checks the restored original image, rather than a candidate deployment.
+Both owned CPU builders and all GPU test children are removed. No owned drain
+remains, and permanent `.env`, precision, context, GPU power/clock and model
+settings are unchanged.
 Evidence: [CUDA validation](../tests/fixtures/checkpoint_entry_cuda_20261026_validation.json)
 and [model-free validation](../tests/fixtures/checkpoint_entry_window_20261026_validation.json).
 
