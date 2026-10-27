@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-26",
+  "scope": "Benchmark-only loopback response header forwarding; no native/router runtime or deployment changes",
+  "codeql_findings": [
+    59,
+    60
+  ],
+  "rule": "py/http-response-splitting",
+  "policy": [
+    "Validate the entire upstream header list before any response is committed",
+    "Reject CR/LF, non-token field names and invalid field-value octets",
+    "Preserve valid fields exactly and replace existing hop-by-hop/framing headers"
+  ],
+  "validation": {
+    "benchmark_tests_passed": 18,
+    "benchmark_tests_failed": 0,
+    "seconds": 1.557,
+    "valid_headers_preserved": true,
+    "invalid_names_and_values_rejected": true,
+    "real_folded_upstream_header_sent_zero_response_bytes": true,
+    "python_compilation_passed": true,
+    "whitespace_check_passed": true
+  },
+  "source_sha256": {
+    "benchmarks/bench_request_gzip.py": "ab042eb04c1031c9e949ba50d0a35c15a7846b4ad96cb137fd8bb5381dd19769",
+    "benchmarks/test_bench_request_gzip.py": "6290f9f7fb325b0a759a2f01e386d7d3c56ab332e7b7f62930924e2e0898a1d7"
+  },
+  "historical_measured_script_sha256": "8dc3a1f45e65002e8f0eed50e136b8b9038e16a3b17d418e71bf3101d7a7139f",
+  "performance_measurements_repeated": false,
+  "production_or_gpu_actions": false,
+  "codeql_reanalysis": "Required after pushing the fix; no alert suppression or dismissal"
+}

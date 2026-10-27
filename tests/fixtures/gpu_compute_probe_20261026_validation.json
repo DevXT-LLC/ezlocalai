@@ -1,0 +1,397 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-26",
+  "scope": "Standalone diagnostic GEMM on unlocked DevXT3090V; worker engine remains resident",
+  "probe_numeric_status": "passed",
+  "operator_status": "failed_due_to_clock_plausibility",
+  "recorded_operator_status": "failed",
+  "worker_label": "DevXT3090V",
+  "image_id": "sha256:b2c1fd792f29205ab20fdea8a7c756549537a31a78b658f89d8a1b2922599be6",
+  "source": {
+    "path": "benchmarks/gpu_compute_probe.cu",
+    "sha256": "3a12d7618160dbab7ecbbe592d7b9503d5b7163b0c741d949d7ceac860185172"
+  },
+  "binary": {
+    "sha256": "ab4d4b32dfbe719d3d242d2679fb466960999d4381ae0e869a846d3db93c443b",
+    "build_command": [
+      "nvcc",
+      "-std=c++17",
+      "-O2",
+      "gpu_compute_probe.cu",
+      "-lcublas",
+      "-ldl",
+      "-o",
+      "gpu_compute_probe"
+    ],
+    "compiled_without_gpu": true
+  },
+  "operator": {
+    "source_sha256": "0194f6f90d05c3a2769126aaada2c3d040690f42d6550ad28385eb6069e30c59",
+    "plan_sha256": "97f768b9ebf445fbda16a73d4498b520c29acaa847e876c774b9fcf7a08ead8e",
+    "run_id": "compute-7a709d52d9674a88",
+    "source_reviewed": true,
+    "offline_guard_tests_passed": 20,
+    "probe_cli_guard_tests_passed": 15
+  },
+  "libraries_sha256": {
+    "/opt/ezlocalai/deps/lib/libcublas.so.12": "031ce6c2cbfbb9468f040527cab5c599069ce5609e73e28f87503881063eac21",
+    "/opt/ezlocalai/deps/lib/libcublasLt.so.12": "10b5e6631cf8115c661eb895ed1533826308b58f7956466f53d236a40c9b622c"
+  },
+  "library_hash_validation": "Matching hashes read from production container and CPU-only builder of the identical immutable image",
+  "arguments": [
+    "--run",
+    "--device",
+    "0",
+    "--max-bytes",
+    "805306368",
+    "--sizes",
+    "4096,8192",
+    "--dtypes",
+    "fp16,bf16,int8",
+    "--warmups",
+    "20",
+    "--samples",
+    "9",
+    "--iterations",
+    "30"
+  ],
+  "metadata": {
+    "schema": "ezlocalai_gpu_compute_probe_v1",
+    "status": "passed",
+    "device": 0,
+    "gpu_name": "NVIDIA GeForce RTX 3090 Ti",
+    "gpu_uuid": "GPU-1d71a1a3-1a01-32a0-accb-f2cef7198347",
+    "pci_bus_id": "0000:01:00.0",
+    "compute_capability": "8.6",
+    "nvidia_driver": "615.71.09",
+    "cuda_driver_api_version": 13040,
+    "cuda_runtime_version": 12080,
+    "cuda_compile_version": 12080,
+    "cublas_version": 120804,
+    "device_total_memory_bytes": 25338773504,
+    "free_memory_before_library_bytes": 3041722368,
+    "planned_peak_explicit_device_bytes": 570425344,
+    "max_allocated_bytes": 570425344,
+    "allocation_cap_bytes": 805306368,
+    "workspace_bytes": 33554432,
+    "min_free_reserve_bytes": 1073741824,
+    "min_observed_free_bytes": 2452422656,
+    "max_observed_device_memory_growth_bytes": 589299712,
+    "memory_growth_includes_other_processes": true
+  },
+  "results": [
+    {
+      "input_dtype": "fp16",
+      "output_dtype": "fp32",
+      "accumulation_dtype": "fp32",
+      "compute_type": "CUBLAS_COMPUTE_32F",
+      "math_mode": "CUBLAS_DEFAULT_MATH|CUBLAS_MATH_DISALLOW_REDUCED_PRECISION_REDUCTION",
+      "algorithm": "CUBLAS_GEMM_DEFAULT",
+      "tensor_core_kernel_verified": false,
+      "layout": "column_major_TN",
+      "m": 4096,
+      "n": 4096,
+      "k": 4096,
+      "alpha": 1,
+      "beta": 0,
+      "warmups": 20,
+      "iterations_per_sample": 30,
+      "samples_ms": [
+        1.08270937602,
+        1.08257280986,
+        1.08706881205,
+        1.07895469666,
+        1.07878405253,
+        1.07972806295,
+        1.04232743581,
+        0.986043739319,
+        0.986043739319
+      ],
+      "median_ms": 1.07895469666,
+      "tera_operations_per_second": 127.381579503,
+      "operations_unit": "TFLOPS",
+      "explicit_device_bytes": 167772160,
+      "validation": {
+        "status": "passed",
+        "method": "32_exact_sampled_integer_dot_products",
+        "checked_outputs": 32,
+        "reference_checksum": -1179
+      }
+    },
+    {
+      "input_dtype": "bf16",
+      "output_dtype": "fp32",
+      "accumulation_dtype": "fp32",
+      "compute_type": "CUBLAS_COMPUTE_32F",
+      "math_mode": "CUBLAS_DEFAULT_MATH|CUBLAS_MATH_DISALLOW_REDUCED_PRECISION_REDUCTION",
+      "algorithm": "CUBLAS_GEMM_DEFAULT",
+      "tensor_core_kernel_verified": false,
+      "layout": "column_major_TN",
+      "m": 4096,
+      "n": 4096,
+      "k": 4096,
+      "alpha": 1,
+      "beta": 0,
+      "warmups": 20,
+      "iterations_per_sample": 30,
+      "samples_ms": [
+        0.992255973816,
+        0.992733891805,
+        0.993177604675,
+        0.993105061849,
+        0.993100802104,
+        0.993678919474,
+        0.993416531881,
+        0.9933482488,
+        0.99347521464
+      ],
+      "median_ms": 0.993177604675,
+      "tera_operations_per_second": 138.383057396,
+      "operations_unit": "TFLOPS",
+      "explicit_device_bytes": 167772160,
+      "validation": {
+        "status": "passed",
+        "method": "32_exact_sampled_integer_dot_products",
+        "checked_outputs": 32,
+        "reference_checksum": -1179
+      }
+    },
+    {
+      "input_dtype": "int8",
+      "output_dtype": "int32",
+      "accumulation_dtype": "int32",
+      "compute_type": "CUBLAS_COMPUTE_32I",
+      "math_mode": "CUBLAS_DEFAULT_MATH|CUBLAS_MATH_DISALLOW_REDUCED_PRECISION_REDUCTION",
+      "algorithm": "CUBLAS_GEMM_DEFAULT",
+      "tensor_core_kernel_verified": false,
+      "layout": "column_major_TN",
+      "m": 4096,
+      "n": 4096,
+      "k": 4096,
+      "alpha": 1,
+      "beta": 0,
+      "warmups": 20,
+      "iterations_per_sample": 30,
+      "samples_ms": [
+        0.548453330994,
+        0.559752527873,
+        0.561590385437,
+        0.561834653219,
+        0.562005360921,
+        0.561356798808,
+        0.561230913798,
+        0.561015446981,
+        0.560878944397
+      ],
+      "median_ms": 0.561230913798,
+      "tera_operations_per_second": 244.888423095,
+      "operations_unit": "TOPS",
+      "explicit_device_bytes": 134217728,
+      "validation": {
+        "status": "passed",
+        "method": "32_exact_sampled_integer_dot_products",
+        "checked_outputs": 32,
+        "reference_checksum": -1179
+      }
+    },
+    {
+      "input_dtype": "fp16",
+      "output_dtype": "fp32",
+      "accumulation_dtype": "fp32",
+      "compute_type": "CUBLAS_COMPUTE_32F",
+      "math_mode": "CUBLAS_DEFAULT_MATH|CUBLAS_MATH_DISALLOW_REDUCED_PRECISION_REDUCTION",
+      "algorithm": "CUBLAS_GEMM_DEFAULT",
+      "tensor_core_kernel_verified": false,
+      "layout": "column_major_TN",
+      "m": 8192,
+      "n": 8192,
+      "k": 8192,
+      "alpha": 1,
+      "beta": 0,
+      "warmups": 20,
+      "iterations_per_sample": 30,
+      "samples_ms": [
+        6.87942810059,
+        6.86858215332,
+        6.83884887695,
+        6.98978322347,
+        7.03689371745,
+        7.0194519043,
+        6.90414377848,
+        6.89687906901,
+        6.99340820312
+      ],
+      "median_ms": 6.90414377848,
+      "tera_operations_per_second": 159.25387174,
+      "operations_unit": "TFLOPS",
+      "explicit_device_bytes": 570425344,
+      "validation": {
+        "status": "passed",
+        "method": "32_exact_sampled_integer_dot_products",
+        "checked_outputs": 32,
+        "reference_checksum": 8096
+      }
+    },
+    {
+      "input_dtype": "bf16",
+      "output_dtype": "fp32",
+      "accumulation_dtype": "fp32",
+      "compute_type": "CUBLAS_COMPUTE_32F",
+      "math_mode": "CUBLAS_DEFAULT_MATH|CUBLAS_MATH_DISALLOW_REDUCED_PRECISION_REDUCTION",
+      "algorithm": "CUBLAS_GEMM_DEFAULT",
+      "tensor_core_kernel_verified": false,
+      "layout": "column_major_TN",
+      "m": 8192,
+      "n": 8192,
+      "k": 8192,
+      "alpha": 1,
+      "beta": 0,
+      "warmups": 20,
+      "iterations_per_sample": 30,
+      "samples_ms": [
+        6.92967681885,
+        6.92510732015,
+        6.9362004598,
+        7.10826670329,
+        7.13956044515,
+        7.07737579346,
+        6.95844777425,
+        6.98704833984,
+        7.12024536133
+      ],
+      "median_ms": 6.98704833984,
+      "tera_operations_per_second": 157.364250868,
+      "operations_unit": "TFLOPS",
+      "explicit_device_bytes": 570425344,
+      "validation": {
+        "status": "passed",
+        "method": "32_exact_sampled_integer_dot_products",
+        "checked_outputs": 32,
+        "reference_checksum": 8096
+      }
+    },
+    {
+      "input_dtype": "int8",
+      "output_dtype": "int32",
+      "accumulation_dtype": "int32",
+      "compute_type": "CUBLAS_COMPUTE_32I",
+      "math_mode": "CUBLAS_DEFAULT_MATH|CUBLAS_MATH_DISALLOW_REDUCED_PRECISION_REDUCTION",
+      "algorithm": "CUBLAS_GEMM_DEFAULT",
+      "tensor_core_kernel_verified": false,
+      "layout": "column_major_TN",
+      "m": 8192,
+      "n": 8192,
+      "k": 8192,
+      "alpha": 1,
+      "beta": 0,
+      "warmups": 20,
+      "iterations_per_sample": 30,
+      "samples_ms": [
+        3.83153483073,
+        3.83167139689,
+        3.83402659098,
+        3.8338218689,
+        3.83450444539,
+        3.83170547485,
+        3.938671875,
+        4.0198794047,
+        4.01629867554
+      ],
+      "median_ms": 3.83402659098,
+      "tera_operations_per_second": 286.777256674,
+      "operations_unit": "TOPS",
+      "explicit_device_bytes": 436207616,
+      "validation": {
+        "status": "passed",
+        "method": "32_exact_sampled_integer_dot_products",
+        "checked_outputs": 32,
+        "reference_checksum": 8096
+      }
+    }
+  ],
+  "telemetry": {
+    "qualification": "clock_readings_inconsistent_with_observed_compute_load",
+    "samples": 15,
+    "active_samples": 11,
+    "max_sample_gap_seconds": 0.5243592262268066,
+    "reported_pstates": [
+      "P8"
+    ],
+    "reported_sm_clock_mhz": [
+      210
+    ],
+    "reported_memory_clock_mhz": [
+      405
+    ],
+    "active_gpu_utilization_percent": [
+      100
+    ],
+    "active_power_watts_minmax": [
+      324.98,
+      462.01
+    ],
+    "power_limit_watts": [
+      450.0
+    ],
+    "active_temperature_c_minmax": [
+      53.0,
+      58.0
+    ],
+    "active_pcie_link_gen_width": [
+      "4x16"
+    ],
+    "reported_software_power_cap_active_samples": 11,
+    "reported_hardware_thermal_slowdown_seen": false,
+    "per_case_wall_timestamps_available": false,
+    "clock_normalized_comparison_qualified": false
+  },
+  "cleanup": {
+    "probe_elapsed_seconds": 7.695619414997054,
+    "diagnostic_container": {
+      "id": "33d511f68736301e9b2c6a404f124de8dd191e5eef8336b51840c666a7544dd4",
+      "image": "sha256:b2c1fd792f29205ab20fdea8a7c756549537a31a78b658f89d8a1b2922599be6",
+      "state": {
+        "Running": false,
+        "Pid": 0,
+        "ExitCode": 0,
+        "OOMKilled": false,
+        "StartedAt": "2026-10-26T23:46:42.353304048Z",
+        "FinishedAt": "2026-10-26T23:46:49.768480783Z"
+      }
+    },
+    "owned_gpu_process_absent": true,
+    "diagnostic_container_removed": true,
+    "original_never_stopped": true,
+    "original_process_and_configuration_verified": true,
+    "two_fresh_unchanged_router_heartbeats_verified": true,
+    "drain_released": true,
+    "lease_renewal_errors": []
+  },
+  "J": {
+    "status": "not_run",
+    "reason": "Existing desktop/Brave GPU activity and insufficient free VRAM under the unchanged guard",
+    "observed_gpu_utilization_percent_range": [
+      28,
+      55
+    ],
+    "observed_free_vram_mib_range": [
+      1658,
+      1671
+    ],
+    "required_initial_free_vram_mib": 1696,
+    "prepared_plan_preserved": true,
+    "gpu_jobs_run": 0,
+    "prepared_plan_reusable": false,
+    "archived_plan_status": "Stale after the later common-model benchmark restarted the original engine",
+    "fresh_original_identity_and_plan_required": true
+  },
+  "interpretation_limits": [
+    "No same-card locked/unlocked comparison; no unlock-causal speedup claim",
+    "J was not measured; cards, drivers and PCIe topology differ",
+    "Clock and pstate telemetry is unqualified; no throughput-per-MHz comparison",
+    "External telemetry covers the whole suite; no per-case clock/power attribution",
+    "The diagnostic does not measure LLM quality or endpoint performance",
+    "Tensor Core kernel selection was not independently profiled",
+    "Operator acceptance remains failed; valid numerical results are preserved without weakening guards"
+  ]
+}

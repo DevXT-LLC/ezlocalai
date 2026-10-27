@@ -1,0 +1,773 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-26",
+  "status": "qualified: opted-in quiet-5090 CPU transport; no production deployment",
+  "scope": "Actual combined native worker and Rust router with deterministic mock engine; pinned CPUs and lossless public-source requests",
+  "native_runtime_commit": "bff136f19aa86dc3d31bf02c113f0b327ece5ccc",
+  "native_worker": {
+    "sha256": "09b3112cf0825136495326ac6c0f2238396ad92643bf1bd99ab11d9091c65f26",
+    "bytes": 8461056
+  },
+  "router_runtime_commit": "def8e4e7e8dd947bfd651670ddbb1fed81b87314",
+  "router_release_sha256": "db315055ad6b94bca125debd8e0576feda3cbca60e61fb27bcca1ea680559942",
+  "builder_image": "sha256:b2c1fd792f29205ab20fdea8a7c756549537a31a78b658f89d8a1b2922599be6",
+  "runner_image": "sha256:8688fdf01700b01b2d620988bb4652cfb38b529e793840b1de965f0fbe47e8b5",
+  "policy": {
+    "setting": "EZLOCALAI_ROUTER_REQUEST_GZIP",
+    "default": false,
+    "metadata_explicit_true_false_cases": 4,
+    "metadata_live_revocations": 2,
+    "media_probe_failure_covered": true,
+    "decoder_available_when_off": true
+  },
+  "public_corpus": {
+    "repositories": [
+      {
+        "url": "https://github.com/DevXT-LLC/ezlocalai",
+        "revision": "c42148868a04d05171cdfc3bca7840f227b97216",
+        "license": "MIT"
+      }
+    ],
+    "source_files": 160,
+    "source_bytes": 1048397,
+    "all_entries_and_license_match_public_git_blobs": true,
+    "private_repository_sources": false
+  },
+  "qualification": {
+    "native_focused": {
+      "passed": 4,
+      "failed": 0,
+      "seconds": 54.49
+    },
+    "native_package": {
+      "passed": 72,
+      "failed": 0,
+      "seconds": 307.84,
+      "reference_env_unset": true,
+      "configured_reference_root_absent": true,
+      "selector": "exact cuda.Dockerfile package regex"
+    },
+    "all_13_host_builder_source_document_hashes_match_frozen_commit": true,
+    "sdk_abi_comparison": {
+      "file": "sdk-dso-inventory.json",
+      "sha256": "f687bc7419f2567e68ca0f8f6f271fa142ca5c8f4cd4f09540938caa53dfa926",
+      "all_checks_pass": true,
+      "native_cache_sha256": "c1842710452a2503a3000eade7df9b453bf91ae06820e213fb934159d58ff752",
+      "resolved_dso_count": 172,
+      "gnu_build_id_count": 169,
+      "no_build_id_sha256_count": 3,
+      "ordered_dt_needed_count": 30,
+      "comparison": {
+        "native_cache_matches_5090": true,
+        "resolved_dso_count_matches_5090": true,
+        "dso_build_id_map_matches_5090": true,
+        "dso_paths_without_build_id_match_5090": true,
+        "three_no_build_id_sha256_match_5090": true,
+        "ordered_dt_needed_matches_5090": true
+      }
+    },
+    "router": {
+      "rust_passed": 78,
+      "existing_manual_benchmarks_ignored": 2,
+      "python_integration_passed": 573,
+      "python_integration_seconds": 418.874,
+      "release_tcp_subset_passed": 14,
+      "release_tcp_subset_seconds": 2.596,
+      "format_passed": true,
+      "strict_clippy_passed": true,
+      "toolchain": "Rust 1.93"
+    },
+    "benchmark_guards": {
+      "passed": 15,
+      "seconds": 1.581
+    },
+    "readonly_controller_guards": 16,
+    "owned_operator_guards": 14
+  },
+  "quiet_node": {
+    "label": "DevXT5090",
+    "benchmark_cpus": [
+      4,
+      5,
+      6,
+      7
+    ],
+    "monitor_cpus": [
+      0,
+      1
+    ],
+    "production_monitor_observations": 32,
+    "before_during_after_queue": {
+      "queue_size": 0,
+      "processing_count": 0,
+      "active_requests": 0,
+      "total_queued": 7,
+      "total_processed": 7,
+      "total_failed": 0
+    },
+    "all_observations_counters_and_full_original_identity_unchanged": true,
+    "docker_health_healthy_when_present": true,
+    "load_average_before": [
+      0.03271484375,
+      0.66943359375,
+      0.98193359375
+    ],
+    "load_average_after": [
+      0.638671875,
+      0.7568359375,
+      0.9990234375
+    ],
+    "production_model_resident_available": true,
+    "production_inference_or_maintenance_api_writes": false,
+    "lease_or_drain": false
+  },
+  "route_checks": {
+    "measured_requests_total": 384,
+    "excluded_warmups_total": 32,
+    "decoded_router_bytes_exact_across_variants_repetitions_links": true,
+    "engine_payload_exact_across_variants_repetitions_links": true,
+    "normalized_output_exact_across_variants_repetitions_links": true,
+    "one_relay_and_one_mock_engine_request_per_request": true,
+    "relay_verification_after_client_timer": true,
+    "cases": [
+      {
+        "case": "public-source-32768",
+        "streaming": false,
+        "client_request_bytes": 33573,
+        "client_request_sha256": "52a863fc1923963d2b7c73fcc449a9a60b05e6a10b5dd4bebe4245d5205c42f5",
+        "decoded_router_payload": {
+          "decoded_bytes": 33533,
+          "decoded_sha256": "edd54aa9ea85e13d0c0aff7ed79c797a84257abdbb609171f46dc4aa7648da49",
+          "path": "/v1/chat/completions",
+          "disable_fallback": true
+        },
+        "engine_payload": {
+          "sha256": "b3a0c5a671c9701e54f87fa6190f8dbf06351da0d59a5de1e82471a499f6f0ff",
+          "bytes": 33470,
+          "path": "/v1/chat/completions"
+        },
+        "output_sha256": "d5756da83f1804e7beab0afd0d187a1d0f788a10630823bef8794c4a21a38046",
+        "wire": {
+          "identity": {
+            "bytes": 33533,
+            "sha256": "edd54aa9ea85e13d0c0aff7ed79c797a84257abdbb609171f46dc4aa7648da49",
+            "content_encoding": ""
+          },
+          "gzip": {
+            "bytes": 33533,
+            "sha256": "edd54aa9ea85e13d0c0aff7ed79c797a84257abdbb609171f46dc4aa7648da49",
+            "content_encoding": ""
+          }
+        }
+      },
+      {
+        "case": "public-source-32768",
+        "streaming": true,
+        "client_request_bytes": 33572,
+        "client_request_sha256": "1e32d32de58fc23d932baa2e9efa5647dac935f8955cb20a1a672669293b2787",
+        "decoded_router_payload": {
+          "decoded_bytes": 33532,
+          "decoded_sha256": "330fa8ac1e46b1c0f9fa821a1e92bc8f7c6fa4834568e0c291523c51bb1f68fa",
+          "path": "/v1/chat/completions",
+          "disable_fallback": true
+        },
+        "engine_payload": {
+          "sha256": "49843da080418b04e992e297df6737f7567337e4063e0f24d05e87de2b821a98",
+          "bytes": 33469,
+          "path": "/v1/chat/completions"
+        },
+        "output_sha256": "d5756da83f1804e7beab0afd0d187a1d0f788a10630823bef8794c4a21a38046",
+        "wire": {
+          "identity": {
+            "bytes": 33532,
+            "sha256": "330fa8ac1e46b1c0f9fa821a1e92bc8f7c6fa4834568e0c291523c51bb1f68fa",
+            "content_encoding": ""
+          },
+          "gzip": {
+            "bytes": 33532,
+            "sha256": "330fa8ac1e46b1c0f9fa821a1e92bc8f7c6fa4834568e0c291523c51bb1f68fa",
+            "content_encoding": ""
+          }
+        }
+      },
+      {
+        "case": "public-source-131072",
+        "streaming": false,
+        "client_request_bytes": 133455,
+        "client_request_sha256": "9f0939adb575cb1afc7b8278f40d8e4be6c836a067c02fe18d2a2983859a818b",
+        "decoded_router_payload": {
+          "decoded_bytes": 133482,
+          "decoded_sha256": "c51dd8c79c029fb61ad55813a85bf74141dc3ed706eea8e30350a5e1c9fc57a6",
+          "path": "/v1/chat/completions",
+          "disable_fallback": true
+        },
+        "engine_payload": {
+          "sha256": "0ee1f52b372cbe371b079723b050242d18db4ea0b689c686da82a5621f69117d",
+          "bytes": 133415,
+          "path": "/v1/chat/completions"
+        },
+        "output_sha256": "d5756da83f1804e7beab0afd0d187a1d0f788a10630823bef8794c4a21a38046",
+        "wire": {
+          "identity": {
+            "bytes": 133482,
+            "sha256": "c51dd8c79c029fb61ad55813a85bf74141dc3ed706eea8e30350a5e1c9fc57a6",
+            "content_encoding": ""
+          },
+          "gzip": {
+            "bytes": 62204,
+            "sha256": "d6256ac1b45d8776284dc6273fa6aa384c42a78e7d14aaa91900c85c62d95624",
+            "content_encoding": "gzip"
+          }
+        }
+      },
+      {
+        "case": "public-source-131072",
+        "streaming": true,
+        "client_request_bytes": 133454,
+        "client_request_sha256": "aeac760e4511d4e84aedb08460025144e1f454a8714e2fd6db730acce37034d3",
+        "decoded_router_payload": {
+          "decoded_bytes": 133481,
+          "decoded_sha256": "5dca91ac0a6f0e58d7d48e8ea446a41ceb061de1c361f26ed1b32b5a58b14d0c",
+          "path": "/v1/chat/completions",
+          "disable_fallback": true
+        },
+        "engine_payload": {
+          "sha256": "348acb3f218dae763a2cc92b8081c12a0ee13150f2e1d44cbc0357167ee434eb",
+          "bytes": 133414,
+          "path": "/v1/chat/completions"
+        },
+        "output_sha256": "d5756da83f1804e7beab0afd0d187a1d0f788a10630823bef8794c4a21a38046",
+        "wire": {
+          "identity": {
+            "bytes": 133481,
+            "sha256": "5dca91ac0a6f0e58d7d48e8ea446a41ceb061de1c361f26ed1b32b5a58b14d0c",
+            "content_encoding": ""
+          },
+          "gzip": {
+            "bytes": 62204,
+            "sha256": "2b0db48977fb85338c1f56967b10ff7dd6ce0a2b390f8ffd3f10082ae642e3d7",
+            "content_encoding": "gzip"
+          }
+        }
+      },
+      {
+        "case": "public-source-524288",
+        "streaming": false,
+        "client_request_bytes": 538313,
+        "client_request_sha256": "e6a71db6cfad255e8c4939cb641d69e58a5fec5f85ad673a5e4b71d885fa9694",
+        "decoded_router_payload": {
+          "decoded_bytes": 538407,
+          "decoded_sha256": "c12de786bcf1f3b56e793f26cee687e5464af70433f81964268ce7c52398c3e5",
+          "path": "/v1/chat/completions",
+          "disable_fallback": true
+        },
+        "engine_payload": {
+          "sha256": "497695e2420d314858f446b78513b6cfc5bac3c79ce5f56077d488e93216b9fc",
+          "bytes": 538324,
+          "path": "/v1/chat/completions"
+        },
+        "output_sha256": "d5756da83f1804e7beab0afd0d187a1d0f788a10630823bef8794c4a21a38046",
+        "wire": {
+          "identity": {
+            "bytes": 538407,
+            "sha256": "c12de786bcf1f3b56e793f26cee687e5464af70433f81964268ce7c52398c3e5",
+            "content_encoding": ""
+          },
+          "gzip": {
+            "bytes": 202805,
+            "sha256": "18ff26d3e39103ac7afcace205a5dbd2b887ec5d32a39503c437fb625b66c6b8",
+            "content_encoding": "gzip"
+          }
+        }
+      },
+      {
+        "case": "public-source-524288",
+        "streaming": true,
+        "client_request_bytes": 538312,
+        "client_request_sha256": "9201257fcaa422d24db988e6e9e5f9d41c155d1043c79dbcab57f954a7c8ed15",
+        "decoded_router_payload": {
+          "decoded_bytes": 538406,
+          "decoded_sha256": "384c31b8e28fa58779675e1b711c4b53a83d2e8577cf63fd5a7c73851eed9157",
+          "path": "/v1/chat/completions",
+          "disable_fallback": true
+        },
+        "engine_payload": {
+          "sha256": "09a378db1aadc01c53b2e03c8b10942f7ebbc3525250d2d426c5ba5ed3776ee2",
+          "bytes": 538323,
+          "path": "/v1/chat/completions"
+        },
+        "output_sha256": "d5756da83f1804e7beab0afd0d187a1d0f788a10630823bef8794c4a21a38046",
+        "wire": {
+          "identity": {
+            "bytes": 538406,
+            "sha256": "384c31b8e28fa58779675e1b711c4b53a83d2e8577cf63fd5a7c73851eed9157",
+            "content_encoding": ""
+          },
+          "gzip": {
+            "bytes": 202805,
+            "sha256": "226cbd3294d2490fe81ecdca131b2deba5c9eb849c3366e65df09af04beb0892",
+            "content_encoding": "gzip"
+          }
+        }
+      },
+      {
+        "case": "public-source-1000000",
+        "streaming": false,
+        "client_request_bytes": 1028935,
+        "client_request_sha256": "67be3871d27fb651e68b8d3e62791d7c2858d27f1ccb4a2ff47a932fc51d415d",
+        "decoded_router_payload": {
+          "decoded_bytes": 1029190,
+          "decoded_sha256": "1039fc722ee8e3e3a2552a73cf705d069e9e2ab59d41f23d2723d22f968e10d3",
+          "path": "/v1/chat/completions",
+          "disable_fallback": true
+        },
+        "engine_payload": {
+          "sha256": "c68377982e9f2f2acd04a2673948eb8a12eb72e3efc99308fcc6850c3a329b0d",
+          "bytes": 1029088,
+          "path": "/v1/chat/completions"
+        },
+        "output_sha256": "d5756da83f1804e7beab0afd0d187a1d0f788a10630823bef8794c4a21a38046",
+        "wire": {
+          "identity": {
+            "bytes": 1029190,
+            "sha256": "1039fc722ee8e3e3a2552a73cf705d069e9e2ab59d41f23d2723d22f968e10d3",
+            "content_encoding": ""
+          },
+          "gzip": {
+            "bytes": 380814,
+            "sha256": "6db5750162a4bc56c54295171c3112f60f4b602838acac89ca2f721934bbc0dd",
+            "content_encoding": "gzip"
+          }
+        }
+      },
+      {
+        "case": "public-source-1000000",
+        "streaming": true,
+        "client_request_bytes": 1028934,
+        "client_request_sha256": "e0cbfaf4408947836433783a3e4ddd401659a20ff75264338175bc4bd566b1be",
+        "decoded_router_payload": {
+          "decoded_bytes": 1029189,
+          "decoded_sha256": "45bcbdd4bac5fdd338620360b5628d57771e6ddb7521d90622363835b16040c2",
+          "path": "/v1/chat/completions",
+          "disable_fallback": true
+        },
+        "engine_payload": {
+          "sha256": "077226dc66aec5ad2403580f705e0f1c741fc2e4a21186d33289a47a2eecb434",
+          "bytes": 1029087,
+          "path": "/v1/chat/completions"
+        },
+        "output_sha256": "d5756da83f1804e7beab0afd0d187a1d0f788a10630823bef8794c4a21a38046",
+        "wire": {
+          "identity": {
+            "bytes": 1029189,
+            "sha256": "45bcbdd4bac5fdd338620360b5628d57771e6ddb7521d90622363835b16040c2",
+            "content_encoding": ""
+          },
+          "gzip": {
+            "bytes": 380814,
+            "sha256": "f954c9b68bc498744acdcf57f1ffab7985fedf561e2665712b6d626a1aeb54bf",
+            "content_encoding": "gzip"
+          }
+        }
+      }
+    ],
+    "links": {
+      "unshaped": {
+        "rate_bytes_per_second": 0,
+        "measured_requests": 192,
+        "excluded_warmups": 16,
+        "blocks": 6,
+        "samples_per_variant_case_mode": 12,
+        "owned_containers_removed": true,
+        "owned_router_stopped": true,
+        "timings": [
+          {
+            "case": "public-source-32768",
+            "streaming": false,
+            "median_full_ms": {
+              "identity": 1.0743510210886598,
+              "gzip": 1.0814814013428986
+            }
+          },
+          {
+            "case": "public-source-32768",
+            "streaming": true,
+            "median_full_ms": {
+              "identity": 2.23825650755316,
+              "gzip": 2.192611980717629
+            },
+            "median_first_output_ms": {
+              "identity": 2.1772669861093163,
+              "gzip": 2.1352774929255247
+            }
+          },
+          {
+            "case": "public-source-131072",
+            "streaming": false,
+            "median_full_ms": {
+              "identity": 2.7362689725123346,
+              "gzip": 3.866619081236422
+            }
+          },
+          {
+            "case": "public-source-131072",
+            "streaming": true,
+            "median_full_ms": {
+              "identity": 3.8970609894022346,
+              "gzip": 4.961161001119763
+            },
+            "median_first_output_ms": {
+              "identity": 3.819203993771225,
+              "gzip": 4.924553970340639
+            }
+          },
+          {
+            "case": "public-source-524288",
+            "streaming": false,
+            "median_full_ms": {
+              "identity": 10.49351750407368,
+              "gzip": 14.098070503678173
+            }
+          },
+          {
+            "case": "public-source-524288",
+            "streaming": true,
+            "median_full_ms": {
+              "identity": 10.857411485631019,
+              "gzip": 14.490581466816366
+            },
+            "median_first_output_ms": {
+              "identity": 10.807585960719734,
+              "gzip": 14.441474457271397
+            }
+          },
+          {
+            "case": "public-source-1000000",
+            "streaming": false,
+            "median_full_ms": {
+              "identity": 22.182957036420703,
+              "gzip": 28.51931151235476
+            }
+          },
+          {
+            "case": "public-source-1000000",
+            "streaming": true,
+            "median_full_ms": {
+              "identity": 21.994824055582285,
+              "gzip": 28.51162396837026
+            },
+            "median_first_output_ms": {
+              "identity": 21.78580651525408,
+              "gzip": 28.37820100830868
+            }
+          }
+        ]
+      },
+      "shaped": {
+        "rate_bytes_per_second": 13000000,
+        "measured_requests": 192,
+        "excluded_warmups": 16,
+        "blocks": 6,
+        "samples_per_variant_case_mode": 12,
+        "owned_containers_removed": true,
+        "owned_router_stopped": true,
+        "timings": [
+          {
+            "case": "public-source-32768",
+            "streaming": false,
+            "median_full_ms": {
+              "identity": 4.664851527195424,
+              "gzip": 4.4756310526281595
+            }
+          },
+          {
+            "case": "public-source-32768",
+            "streaming": true,
+            "median_full_ms": {
+              "identity": 5.689762474503368,
+              "gzip": 5.673819512594491
+            },
+            "median_first_output_ms": {
+              "identity": 5.640872463118285,
+              "gzip": 5.5372294737026095
+            }
+          },
+          {
+            "case": "public-source-131072",
+            "streaming": false,
+            "median_full_ms": {
+              "identity": 14.632017991971225,
+              "gzip": 10.318842018023133
+            }
+          },
+          {
+            "case": "public-source-131072",
+            "streaming": true,
+            "median_full_ms": {
+              "identity": 15.672227018512785,
+              "gzip": 11.406429985072464
+            },
+            "median_first_output_ms": {
+              "identity": 15.628943452611566,
+              "gzip": 11.366722988896072
+            }
+          },
+          {
+            "case": "public-source-524288",
+            "streaming": false,
+            "median_full_ms": {
+              "identity": 56.338800059165806,
+              "gzip": 30.547184986062348
+            }
+          },
+          {
+            "case": "public-source-524288",
+            "streaming": true,
+            "median_full_ms": {
+              "identity": 54.614232562016696,
+              "gzip": 30.547538481187075
+            },
+            "median_first_output_ms": {
+              "identity": 54.58183604059741,
+              "gzip": 30.514752492308617
+            }
+          },
+          {
+            "case": "public-source-1000000",
+            "streaming": false,
+            "median_full_ms": {
+              "identity": 105.45257944613695,
+              "gzip": 59.53153152950108
+            }
+          },
+          {
+            "case": "public-source-1000000",
+            "streaming": true,
+            "median_full_ms": {
+              "identity": 105.53105891449377,
+              "gzip": 60.47752301674336
+            },
+            "median_first_output_ms": {
+              "identity": 105.48680851934478,
+              "gzip": 60.44423300772905
+            }
+          }
+        ]
+      }
+    }
+  },
+  "cleanup": {
+    "complete": true,
+    "cleanup_complete": true,
+    "operator_stopped": true,
+    "current_operator_exiting": false,
+    "child_processes_remaining": 0,
+    "listeners_released": true,
+    "errors": [],
+    "removed_container_ids": [],
+    "owned_process_pids_remaining": [],
+    "owned_containers_remaining": 0,
+    "production_actions": [],
+    "finished_utc": "2026-10-27T00:56:43.229881+00:00"
+  },
+  "conclusions": {
+    "simulated_constrained_link_improves_large_cases": true,
+    "unshaped_compressed_cases_regressed": true,
+    "below_threshold_control_is_plain_plain": true,
+    "universal_speedup_claim": false,
+    "exploratory_J_timings_used_for_final_claims": false,
+    "python_codec_times_or_sizes_are_not_actual_rust_cpp_codec_measurements": true
+  },
+  "persistent_environment_changes": [
+    {
+      "node": "DevXT3090V",
+      "kind": "future-deployment env-file opt-in only",
+      "path": "/home/josh/ezlocalai/.env",
+      "setting": "EZLOCALAI_ROUTER_REQUEST_GZIP=true",
+      "previous_bytes_preserved": 675,
+      "staged_bytes": 783,
+      "before_sha256": "8d8f03ec4d44350b5ef96c89ca5dca3e9f7af3274ae9054ab35ef74ca639941c",
+      "staged_sha256": "ca7cebc25d9ec1a50784e46cbc122d496d34b5f745de2285e0a2df1d88f544b1",
+      "backup": "/home/josh/.local/state/ezlocalai-benchmarks-20261026-b8e1eddc923e410b/.env-router-gzip-backup-20261026-59ea36fc049d46e4/.env.before",
+      "backup_file_mode": "0600",
+      "backup_dir_mode": "0700",
+      "activation": "next deployment only",
+      "existing_container_environment_mounts_worker_engine_processes_unchanged": true,
+      "restart_or_model_operation": false,
+      "full_file_rollback_requires_current_staged_sha_match": true,
+      "newer_edits_rollback": "Review a fresh fingerprint; remove only exact uniquely matching appended comment/setting block preserving every other byte; stop if changed or ambiguous",
+      "sanitized_proof_sha256": "b81b262489ba9bc17c8684ddd0ec4312fa880e495bba5e7d36fa24b6708c3145",
+      "initial_backup_path": "/home/josh/ezlocalai/.env-router-gzip-backup-20261026-59ea36fc049d46e4/.env.before",
+      "backup_outside_deployment_checkout": true,
+      "backup_archive_preserved_inode_mode_contents": true,
+      "archive_mapping_proof_sha256": "5e89bb7a95f13e584b94171e1d3064e3c3676a42030bc631f09099c0a90b151c"
+    }
+  ],
+  "production_deployment": false,
+  "rollback_tag": null,
+  "not_validated": [
+    "Production Wi-Fi throughput or latency on V",
+    "GPU inference speed or numerical model quality by these transport checks",
+    "Fresh Docker image build",
+    "Physical CPU/ROCm/Jetson/GB10 images",
+    "Exact encoded-body 16 MiB real-TCP acceptance: legacy raw socket limit includes headers"
+  ],
+  "artifact_fingerprints": {
+    "quiet_5090/controller-result.json": {
+      "sha256": "3ffbdf74b1237400060ed81e3d716788fde956e6736e2fc8a9e0ea56fbbff57b",
+      "bytes": 50957
+    },
+    "quiet_5090/controller-state.json": {
+      "sha256": "28b9d6b94f5f95618bbcbade8e460a65e0f99ae4a5bd0888068dc23ca830cdad",
+      "bytes": 48697
+    },
+    "quiet_5090/evidence/cleanup-owned-result.json": {
+      "sha256": "9945249966d1d5f6b965b4eaae1da01bed0827a8a25922bd2668a8f1eee35c82",
+      "bytes": 382
+    },
+    "quiet_5090/evidence/owned-resources.json": {
+      "sha256": "39117f82471af3fc217c9fff72cdbbf00a403fd28faf6b1e70c7785ac507db0b",
+      "bytes": 19945
+    },
+    "quiet_5090/evidence/operator-result.json": {
+      "sha256": "8c75b3904953a4c3d5a96f5f8dbdead6107552b7a43e2211871de0925040b2a9",
+      "bytes": 1486
+    },
+    "quiet_5090/evidence/candidate-ldd.txt": {
+      "sha256": "674f16d492e08e022a10d3c7dbb5767309db3d9b651b1919caac107fc38b80c9",
+      "bytes": 13810
+    },
+    "quiet_5090/evidence/chunk-results.json": {
+      "sha256": "859f75437b25de90b674ec6fa43cfd50e4bbe8db57d1e44d16ff46ee7b2a8136",
+      "bytes": 19025
+    },
+    "quiet_5090/evidence/chunk-runners.json": {
+      "sha256": "8e4bd6bcf3d91a3f701ce215c07547598e4e843704d080441ab1d161bf74d6ba",
+      "bytes": 1991
+    },
+    "quiet_5090/evidence/gzip-unshaped/request-gzip.json": {
+      "sha256": "291655a3015580a7d639800855e6286dbbff59cca93f8f854ee8c3e5eebebed5",
+      "bytes": 172704
+    },
+    "quiet_5090/evidence/gzip-shaped/request-gzip.json": {
+      "sha256": "dccf312ae5fe67b9014e2c6cc6b1156b21703e52e7d2002e8ecbe3e030e54826",
+      "bytes": 173690
+    },
+    "quiet_5090/evidence/gzip-unshaped-wrapper.json": {
+      "sha256": "591756343cdb2e77cab5d299ea47a3bbc9233c417e8638546e11179cbef8f492",
+      "bytes": 793
+    },
+    "quiet_5090/evidence/gzip-shaped-wrapper.json": {
+      "sha256": "591756343cdb2e77cab5d299ea47a3bbc9233c417e8638546e11179cbef8f492",
+      "bytes": 793
+    },
+    "final_opt_in_build/qualification.json": {
+      "sha256": "1cbfb25982fccc2f4c48aaee3a3754976685416fb04b1eb10121b019a7c8a548",
+      "bytes": 3194
+    },
+    "final_opt_in_build/source-manifest.json": {
+      "sha256": "d2d364969d181cb1c752ac4a78e535eef9ee98e0b8bbc5dcaf7184a7f4ab00dd",
+      "bytes": 1967
+    },
+    "final_opt_in_build/source-verification.json": {
+      "sha256": "6b7ace5bf2c6315d09031086e5acda6e815c7cb34dea0fda6b5632dad2074754",
+      "bytes": 1420
+    },
+    "final_opt_in_build/sdk-dso-inventory.json": {
+      "sha256": "f687bc7419f2567e68ca0f8f6f271fa142ca5c8f4cd4f09540938caa53dfa926",
+      "bytes": 25520
+    },
+    "final_opt_in_build/configure.log": {
+      "sha256": "7b760fb84c9663b167052a32f585ce94ad82f22c63847038c1ab8c6c65105c3d",
+      "bytes": 399
+    },
+    "final_opt_in_build/build.log": {
+      "sha256": "c650f9468848dad295433646bec237b4e5227f38046182ebd68595c0625bbc07",
+      "bytes": 6211
+    },
+    "final_opt_in_build/focused-tests.log": {
+      "sha256": "5819c6e927cb61aeb31f47c1a599107d18407e9caa286ab7d896e72d398e1412",
+      "bytes": 567
+    },
+    "final_opt_in_build/cuda-package-tests.log": {
+      "sha256": "175ef2368943816b80d041facc2cf4971319b4bac356032de4173279490214e2",
+      "bytes": 8270
+    },
+    "benchmarks/bench_request_gzip.py": {
+      "sha256": "8dc3a1f45e65002e8f0eed50e136b8b9038e16a3b17d418e71bf3101d7a7139f",
+      "bytes": 27517
+    },
+    "benchmarks/test_bench_request_gzip.py": {
+      "sha256": "b326d4ea4744bf7e5a8e6c7779b9a8297260f62377d782e3af7755af41e22d12",
+      "bytes": 16254
+    },
+    "benchmarks/bench_worker_input.py": {
+      "sha256": "e67d73e773f6e643288acadfe9bc8b5d02ea8fad58dd431cfa7853c899ff70e7",
+      "bytes": 18931
+    },
+    "tests/fixtures/request_gzip_public_sources_20261026.json": {
+      "sha256": "d0c2e793c738b731eba7fb550edbfc609210d67d567abe980f89cde11d52efb4",
+      "bytes": 31830
+    },
+    "tests/fixtures/request_gzip_public_sources_20261026.json.gz": {
+      "sha256": "d0e8f46579d4d2d670a4abd7e75f8f5b1c5c1557b93976d237064a8d34537772",
+      "bytes": 288952
+    },
+    "operator_and_harness/offline-guards-opt-in-final.log": {
+      "sha256": "7a8028aaa7c0c224802ba6a59a168549544b026cadd14d7ff4d989b127158e70",
+      "bytes": 2610
+    },
+    "operator_and_harness/public-source-independent-audit.json": {
+      "sha256": "fc588e69da2193580a5d742812aba5cfb9bb181e7404fd4f6a3e85322cbeb00a",
+      "bytes": 1073
+    },
+    "operator_and_harness/5090-controller.py": {
+      "sha256": "4348c0ed4b9a8c12930b2daf310257696c0a06ce9257fc7b8a659db0fb94ef70",
+      "bytes": 14141
+    },
+    "operator_and_harness/5090-operator.py": {
+      "sha256": "56c06dd217e8df461bad7b2088b946a10548b5f41afde8723c8081bbfc293fc0",
+      "bytes": 42138
+    },
+    "operator_and_harness/5090-router-adapter.py": {
+      "sha256": "ec27e6c758cbc4264c328eb7bff491ee64b511f8ff263f65f939b2c8b0ec9392",
+      "bytes": 4851
+    },
+    "operator_and_harness/5090-reviewed-plan.json": {
+      "sha256": "1c0fabf9a2fc930cdfbcdaa89ecd9e89336fc0f79eb1e3094a388c7d3dd650d1",
+      "bytes": 5732
+    },
+    "operator_and_harness/5090-frozen-source-review.json": {
+      "sha256": "390639a4268b2f8e0247fd60424d41d4d2b71bd1b813f861485012d2b0650b4d",
+      "bytes": 3258
+    },
+    "operator_and_harness/5090-controller-offline-guards.log": {
+      "sha256": "a668325707e88bbffc6217de628511b6b672568b13605e55c410c053cafd6d2e",
+      "bytes": 2921
+    },
+    "operator_and_harness/5090-operator-offline-validation.json": {
+      "sha256": "6e76456447727095bc88c50f45e35ecd34e27443a8fd9ece859b8d7c1119bb0d",
+      "bytes": 1852
+    },
+    "router_validation/rust-all.log": {
+      "sha256": "1fb5b4acd8734ded293c79a38f486acc9765dbb3a311e32bcc39abf5868f212c",
+      "bytes": 6444
+    },
+    "router_validation/python-full.log": {
+      "sha256": "2549a7b9dd53d5ebf7ad72563bba2f43977b1d18a6238516b0cf10f253d407c2",
+      "bytes": 75193
+    },
+    "router_validation/python-release-compression.log": {
+      "sha256": "b17bdb20d0038cb6a2d7b0b0977338a9634a3761dee312af0b57618af5996672",
+      "bytes": 2819
+    },
+    "router_validation/clippy.log": {
+      "sha256": "8656ca81b2c5f53273d99ea3ab8445d0128fea484a10fa8fa3b0e9760ca448fe",
+      "bytes": 5181
+    },
+    "quiet_5090/final-opt-in-route-summary.json": {
+      "sha256": "9e677b1604fc4c3d26c854b92c2c513d96d28caa2a0eeb183f18713d9ffd1642",
+      "bytes": 32835
+    }
+  }
+}

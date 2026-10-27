@@ -309,6 +309,7 @@ The default lookup table mirrors all current `Globals.py` defaults. Runtime use 
 - `MODELS_PATH`
 - `ROUTER_URL`
 - `ROUTER_API_KEY`
+- `EZLOCALAI_ROUTER_REQUEST_GZIP`
 - `WORKER_LABEL`
 - `WORKER_HEARTBEAT_INTERVAL`
 - `WORKER_TUNNEL`
@@ -329,6 +330,17 @@ models and aliases report context/quantization, and loaded projectors add persis
 vision capability. See [worker_reporting_README.md](tests/fixtures/worker_reporting_README.md).
 
 When `ROUTER_URL` is set and `ROUTER_MODE` is not true, native starts the same worker-side router client as the Python service: it registers on startup, sends resource/model/slot heartbeats, and deregisters during shutdown. `ROUTER_API_KEY` is used for router auth, falling back to `EZLOCALAI_API_KEY`; `WORKER_LABEL` controls the display label.
+
+`EZLOCALAI_ROUTER_REQUEST_GZIP` defaults to `false`. Set it to `true` in a
+worker's `.env` to let a supporting WorkerRouter compress large direct text
+requests to that worker. Enable it where measured transfer savings outweigh
+codec cost; fast LAN and loopback workers can benefit from leaving it off.
+The worker reports the enabled encoding in every registration and heartbeat.
+Compression preserves the decoded JSON bytes, uses bounded single-member gzip,
+and covers `/v1/chat/completions` and `/v1/completions`; media and reverse tunnels
+retain their existing transport. Authenticated gzip decoding remains available
+independently of this automatic-router opt-in. Recreate the container to apply
+an environment-file change. See the [measured tradeoffs](benchmarks/request-gzip-20261026.md).
 
 Worker capabilities follow the reference enable switches and delegation rules, including embeddings, music, and music video. Model names now use whisper `large-v3-turbo`, Qwen TTS, and the Qwen3 embedding alias by default. Advertising a configured capability does not establish that its local inference implementation is complete; endpoint gaps remain in the manifest.
 

@@ -1,0 +1,940 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-26",
+  "status": "complete",
+  "scope": "Current unlocked V/4090 native CUDA baselines and V physical-batch screen; common J observations are exploratory/contended and are not a clean locked-card baseline.",
+  "native_revision": "c42148868a04d05171cdfc3bca7840f227b97216",
+  "engine_revision": "620d2225cc436ab0b001e3200e590e3b286ef9ab",
+  "provenance_fixture": "tests/fixtures/unlocked_fleet_20261026_validation.json",
+  "shared_artifact_sha256": {
+    "/app/build/ezlocalai-native": "562ee7c369e65c288ff8836accc75d4618bd75e1a6c7735171e7f696a343da17",
+    "/app/build/llama.cpp/bin/llama-server": "786d233474c43332fb731763342e71657136e992b54d405b19998821b1f51074",
+    "/app/build/llama.cpp/bin/libllama-server-impl.so": "56435bfa886d57c490efdb5797179ead3392dbdca79c4ea86da91761fe52312d",
+    "/app/build/llama.cpp/bin/libllama.so": "4c32861b7148c347033ce73f06da757a5ad01362a4409c48c20386a716bbcc9f",
+    "/app/build/llama.cpp/bin/libllama-common.so": "c9fd858250b3e1c04ea03f057f1b01ac15496af7983a59ade34ba3dbddc37998"
+  },
+  "models": [
+    {
+      "sha256": "00cf92e666c6af6566996c38c89a44ccdb6449ea25ef0f112a452c853b2a71e2",
+      "bytes": 13441059904,
+      "filename": "Qwen3.8-27B-UD-Q3_K_XL.gguf"
+    },
+    {
+      "sha256": "8c2a45ff85e7674ca185ec8eb6cdeab0e617ed9d8018caed0b64380eb2a67a5e",
+      "bytes": 13146393504,
+      "filename": "Qwen3.8-27B-UD-Q3_K_XL.gguf"
+    }
+  ],
+  "shared_projector": {
+    "filename": "mmproj-BF16.gguf",
+    "bytes": 931146432,
+    "sha256": "83ee4f4f205fa514161778c41df1ea14144faa0f713510893b63c2395f5c2d53"
+  },
+  "common_cold_request": {
+    "input_tokens": 49993,
+    "evaluated_tokens": 49993,
+    "cached_tokens": 0,
+    "request_sha256": "6b1b3caa10ee64f011072e4174f0d087f7d17e09b6ee85f8093e36414d6a2c6e",
+    "messages_sha256": "06e86b02f2b0e8577d6aa744c68b157939d6f42ed0aa7101d1aaa0a08f58db09",
+    "answer": "Python",
+    "output_sha256": "2945b0d6616d16592538930914f4a2bc539b8d976a0b9200b3e82540f3c07c25",
+    "temperature": 0,
+    "seed": 42,
+    "enable_thinking": false,
+    "measurement": "Native timings.prompt_per_second; cold means no reused prompt tokens, not a cold disk/model load.",
+    "inference_retries": 0,
+    "context_downgrade_allowed": false
+  },
+  "V_physical_batch_screen": {
+    "run_id": "unlocked-v-fc30c2afec",
+    "plan_sha256": "7ee5363cf083b15a88479d8b554f45c70addac25507e2874d7d62a662db3fb2c",
+    "model_sha256": "8c2a45ff85e7674ca185ec8eb6cdeab0e617ed9d8018caed0b64380eb2a67a5e",
+    "image_id": "sha256:b2c1fd792f29205ab20fdea8a7c756549537a31a78b658f89d8a1b2922599be6",
+    "controls": {
+      "context": 230000,
+      "batch": 4096,
+      "cache_ram_mib": 12288,
+      "cache_type_k": "q4_0",
+      "cache_type_v": "q4_0",
+      "mtp_max": 2,
+      "parallel": 1
+    },
+    "ubatch_order": [
+      1024,
+      2048,
+      4096,
+      1024
+    ],
+    "baseline_mean_tokens_per_second": 1418.141899791578,
+    "rows": [
+      {
+        "phase": "screen_a1",
+        "ubatch": 1024,
+        "prefill_tokens_per_second": 1432.9456777639866,
+        "wall_seconds": 35.02989493300265,
+        "relative_to_baseline_mean_percent": 1.043885521934329
+      },
+      {
+        "phase": "screen_b",
+        "ubatch": 2048,
+        "prefill_tokens_per_second": 1414.9513027271232,
+        "wall_seconds": 35.46986008199747,
+        "relative_to_baseline_mean_percent": -0.22498433089972458
+      },
+      {
+        "phase": "screen_c",
+        "ubatch": 4096,
+        "prefill_tokens_per_second": 1202.7511829631555,
+        "wall_seconds": 41.916407894997974,
+        "relative_to_baseline_mean_percent": -15.18823446793851
+      },
+      {
+        "phase": "screen_a2",
+        "ubatch": 1024,
+        "prefill_tokens_per_second": 1403.3381218191696,
+        "wall_seconds": 35.76196050400904,
+        "relative_to_baseline_mean_percent": -1.0438855219343068
+      }
+    ],
+    "identical_requests_messages_and_outputs": true,
+    "assessment": "Neither larger physical batch exceeds bracketed baseline spread; do not promote. Full quality/capacity qualification not run for rejected candidates.",
+    "full_quality_or_context_capacity_qualification_run": false,
+    "environment_promoted": false,
+    "restoration": {
+      "status": "complete",
+      "runner_exit_code": 0,
+      "restoration": {
+        "healthy": true,
+        "same_container": true,
+        "same_image": true,
+        "same_environment": true,
+        "same_mounts": true,
+        "same_config": true,
+        "same_hostconfig": true,
+        "critical_parameters_preserved": true,
+        "oom_killed": false,
+        "full_engine_argv_preserved": true,
+        "full_engine_argv_sha256": "ce785c67b521ac1103c8b856ef4060c766ddbe9618a648532fdc160e77886c19"
+      },
+      "restoration_verified": true,
+      "router_restoration_verified": true,
+      "drain_released": true,
+      "lease_renewal_errors": []
+    }
+  },
+  "4090_deployed_baseline": {
+    "run_id": "unlocked-4090-deployed-20261026-v3",
+    "plan_sha256": "d1cdda0911e82842d1e5d3df7c2e144e895df4f303b41a6f481bb0e092486f2f",
+    "model_sha256": "8c2a45ff85e7674ca185ec8eb6cdeab0e617ed9d8018caed0b64380eb2a67a5e",
+    "image_id": "sha256:8688fdf01700b01b2d620988bb4652cfb38b529e793840b1de965f0fbe47e8b5",
+    "controls": {
+      "context": 230000,
+      "batch": 4096,
+      "ubatch": 1024,
+      "cache_ram_mib": 12288,
+      "cache_type_k": "q4_0",
+      "cache_type_v": "q4_0",
+      "mtp_max": 3,
+      "parallel": 1
+    },
+    "transport": "docker exec curl; client wall/TTFT includes CLI spawn",
+    "cold_prefill_tokens_per_second": 2704.0027061121236,
+    "decode_median_tokens_per_second": 111.74623875306972,
+    "decode_trials": [
+      {
+        "trial": 0,
+        "request_sha256": "36e4db33c7555813f4c38e0678ea6da918468c333bc2aa72140200bf1a381049",
+        "messages_sha256": "4b6553689f27c278d3aea0d07404d91ded724254f776b1e9f2878fc07764403c",
+        "output_sha256": "0f07ad453e3121b0bd11692f69274f2861841244a74ba0f0051bff8b664a8dd5",
+        "decode_tokens_per_second": 111.74623875306972,
+        "prompt_tokens": 60,
+        "generated_tokens": 256
+      },
+      {
+        "trial": 1,
+        "request_sha256": "975d7b33756ba9f96e8b9a0c8bde19d7dff4079ab880699481e7d5118058303e",
+        "messages_sha256": "9649edef591c47983e344983927265b2e91ff23b2f669a28fca95dd155dfe93c",
+        "output_sha256": "8ecf859ec2c8ea0ab31296e8d9949519ad6ab1898a7a6f9a66525e9c294e5c4d",
+        "decode_tokens_per_second": 112.03866432337433,
+        "prompt_tokens": 60,
+        "generated_tokens": 256
+      },
+      {
+        "trial": 2,
+        "request_sha256": "0386dec0cb2d456529c93c57adc870cd441db52bccf1084977148f54ab99c114",
+        "messages_sha256": "ab2ac003842cc948b1c8f7e4811a3269054a4fcfc8cbb4988dea1d110b56a684",
+        "output_sha256": "8ecf859ec2c8ea0ab31296e8d9949519ad6ab1898a7a6f9a66525e9c294e5c4d",
+        "decode_tokens_per_second": 109.71299939851461,
+        "prompt_tokens": 60,
+        "generated_tokens": 256
+      }
+    ],
+    "replay": {
+      "request_sha256": "7fb61383ff3287796ba3b6a1096369224838ffbce6554362f00b11e0a056c7f6",
+      "wall_seconds": 0.42123046999040525,
+      "evaluated_prompt_tokens": 4,
+      "cached_prompt_tokens": 49989,
+      "output_sha256": "2945b0d6616d16592538930914f4a2bc539b8d976a0b9200b3e82540f3c07c25",
+      "output_matches_cold": true,
+      "tail_reused": true
+    },
+    "inference_requests": 5,
+    "original_process_unchanged": true,
+    "two_fresh_unchanged_router_heartbeats": true,
+    "independent_post_run_identity_readback": true,
+    "drain_released": true,
+    "lease_errors": []
+  },
+  "common_model_V": {
+    "status": "complete",
+    "run_id": "common-jv-v-cc678cc910",
+    "plan_sha256": "5ebc92b5739f08f2d15903f6ab22e66d10032bc2fba0ca67baaeafbdc46f9b22",
+    "model_sha256": "00cf92e666c6af6566996c38c89a44ccdb6449ea25ef0f112a452c853b2a71e2",
+    "projector_sha256": "83ee4f4f205fa514161778c41df1ea14144faa0f713510893b63c2395f5c2d53",
+    "image_id": "sha256:b2c1fd792f29205ab20fdea8a7c756549537a31a78b658f89d8a1b2922599be6",
+    "actual_child_proof_verified": true,
+    "actual_full_argv_sha256": "0be532d176713990cbd65c5779450738b2c3a5fa6e8bed4b7d87274c29c8eb99",
+    "controls": {
+      "context": 220000,
+      "batch": 4096,
+      "ubatch": 1024,
+      "cache_ram_mib": 12288,
+      "cache_type_k": "q4_0",
+      "cache_type_v": "q4_0",
+      "mtp_max": 2,
+      "parallel": 1,
+      "threads": 6,
+      "threads_batch": 6,
+      "checkpoint_count": 32,
+      "checkpoint_min_step": 8192,
+      "performance_environment_sha256": "b417ea7e8e209cb1888d7f2e4e896b3bfb2e1ab78a1a097faaca46b9afd7c289"
+    },
+    "cold_prefill_mean_tokens_per_second": 1455.4785236799125,
+    "decode_median_tokens_per_second_all_six": 85.41825914465223,
+    "replay_mean_wall_seconds": 0.43072967500484083,
+    "identical_cold_requests_messages_and_finite_outputs": true,
+    "identical_decode_outputs_by_trial": true,
+    "rows": [
+      {
+        "phase": "matched_1",
+        "prefill_tokens_per_second": 1464.1306871576821,
+        "cold_wall_seconds": 34.283493480994366,
+        "decode_median_tokens_per_second": 85.75827466458425,
+        "decode_trials": [
+          {
+            "trial": 0,
+            "request_sha256": "334976e9ea0afa49c17ec02ff8fcda1f533912909db2300874155f6239323d6e",
+            "messages_sha256": "4b6553689f27c278d3aea0d07404d91ded724254f776b1e9f2878fc07764403c",
+            "output_sha256": "a9d511fc68c608eca6f26551243fe60918461301d45b2a18e316cdb233af280a",
+            "decode_tokens_per_second": 85.75827466458425,
+            "prompt_tokens": 60,
+            "generated_tokens": 256
+          },
+          {
+            "trial": 1,
+            "request_sha256": "3a324d51c2d391fd3501b059b389a352ab9ea0ff3bdbf7a381dacc17bfdc67a7",
+            "messages_sha256": "9649edef591c47983e344983927265b2e91ff23b2f669a28fca95dd155dfe93c",
+            "output_sha256": "8b122c25e36033ae0b427a20e5adb1b1fe2cecac4f3372516b36e2f466b26e53",
+            "decode_tokens_per_second": 86.59716932531298,
+            "prompt_tokens": 60,
+            "generated_tokens": 256
+          },
+          {
+            "trial": 2,
+            "request_sha256": "9b32356c363dd43fa55413d70fbaa97fd40c82b1bcc38cdc3310e7c246fe7277",
+            "messages_sha256": "ab2ac003842cc948b1c8f7e4811a3269054a4fcfc8cbb4988dea1d110b56a684",
+            "output_sha256": "4f52edd7071b2c55e7500119532d04c07e80c995c764e541761f4a7af7697645",
+            "decode_tokens_per_second": 84.68215962753132,
+            "prompt_tokens": 60,
+            "generated_tokens": 256
+          }
+        ],
+        "replay": {
+          "request_sha256": "7fb61383ff3287796ba3b6a1096369224838ffbce6554362f00b11e0a056c7f6",
+          "wall_seconds": 0.4288818170025479,
+          "evaluated_prompt_tokens": 4,
+          "cached_prompt_tokens": 49989,
+          "output_sha256": "2945b0d6616d16592538930914f4a2bc539b8d976a0b9200b3e82540f3c07c25",
+          "output_matches_cold": true,
+          "tail_reused": true
+        },
+        "host_vmstat_benchmark_window": {
+          "pgfault_observed_window_delta": 1023242,
+          "pgmajfault_observed_window_delta": 493,
+          "pswpin_observed_window_delta": 788,
+          "pswpout_observed_window_delta": 0
+        },
+        "host_vmstat_whole_phase": {
+          "host_pgfault_delta": 2171180,
+          "host_pgmajfault_delta": 2126,
+          "host_pswpin_delta": 2089,
+          "host_pswpout_delta": 5044
+        },
+        "cgroup_whole_phase": {
+          "memory_current_observed_max": 18533126144,
+          "memory_peak_kernel_max": 18533126144,
+          "swap_current_observed_max": 0,
+          "swap_peak_kernel_max": 0,
+          "cgroup_events_delta": {
+            "low": 0,
+            "high": 0,
+            "max": 0,
+            "oom": 0,
+            "oom_kill": 0,
+            "oom_group_kill": 0,
+            "sock_throttled": 0
+          },
+          "cgroup_pgfault_delta": 1606346,
+          "cgroup_pgmajfault_delta": 613
+        },
+        "loaded_pcie": {
+          "generations": [
+            "4"
+          ],
+          "widths": [
+            "16"
+          ]
+        }
+      },
+      {
+        "phase": "matched_2",
+        "prefill_tokens_per_second": 1446.826360202143,
+        "cold_wall_seconds": 34.69195980900258,
+        "decode_median_tokens_per_second": 85.0782436247202,
+        "decode_trials": [
+          {
+            "trial": 0,
+            "request_sha256": "334976e9ea0afa49c17ec02ff8fcda1f533912909db2300874155f6239323d6e",
+            "messages_sha256": "4b6553689f27c278d3aea0d07404d91ded724254f776b1e9f2878fc07764403c",
+            "output_sha256": "a9d511fc68c608eca6f26551243fe60918461301d45b2a18e316cdb233af280a",
+            "decode_tokens_per_second": 85.0782436247202,
+            "prompt_tokens": 60,
+            "generated_tokens": 256
+          },
+          {
+            "trial": 1,
+            "request_sha256": "3a324d51c2d391fd3501b059b389a352ab9ea0ff3bdbf7a381dacc17bfdc67a7",
+            "messages_sha256": "9649edef591c47983e344983927265b2e91ff23b2f669a28fca95dd155dfe93c",
+            "output_sha256": "8b122c25e36033ae0b427a20e5adb1b1fe2cecac4f3372516b36e2f466b26e53",
+            "decode_tokens_per_second": 86.03781682582537,
+            "prompt_tokens": 60,
+            "generated_tokens": 256
+          },
+          {
+            "trial": 2,
+            "request_sha256": "9b32356c363dd43fa55413d70fbaa97fd40c82b1bcc38cdc3310e7c246fe7277",
+            "messages_sha256": "ab2ac003842cc948b1c8f7e4811a3269054a4fcfc8cbb4988dea1d110b56a684",
+            "output_sha256": "4f52edd7071b2c55e7500119532d04c07e80c995c764e541761f4a7af7697645",
+            "decode_tokens_per_second": 84.1007943072667,
+            "prompt_tokens": 60,
+            "generated_tokens": 256
+          }
+        ],
+        "replay": {
+          "request_sha256": "7fb61383ff3287796ba3b6a1096369224838ffbce6554362f00b11e0a056c7f6",
+          "wall_seconds": 0.43257753300713375,
+          "evaluated_prompt_tokens": 4,
+          "cached_prompt_tokens": 49989,
+          "output_sha256": "2945b0d6616d16592538930914f4a2bc539b8d976a0b9200b3e82540f3c07c25",
+          "output_matches_cold": true,
+          "tail_reused": true
+        },
+        "host_vmstat_benchmark_window": {
+          "pgfault_observed_window_delta": 966376,
+          "pgmajfault_observed_window_delta": 482,
+          "pswpin_observed_window_delta": 2,
+          "pswpout_observed_window_delta": 0
+        },
+        "host_vmstat_whole_phase": {
+          "host_pgfault_delta": 2107648,
+          "host_pgmajfault_delta": 525,
+          "host_pswpin_delta": 13,
+          "host_pswpout_delta": 0
+        },
+        "cgroup_whole_phase": {
+          "memory_current_observed_max": 4834033664,
+          "memory_peak_kernel_max": 4834979840,
+          "swap_current_observed_max": 0,
+          "swap_peak_kernel_max": 0,
+          "cgroup_events_delta": {
+            "low": 0,
+            "high": 0,
+            "max": 0,
+            "oom": 0,
+            "oom_kill": 0,
+            "oom_group_kill": 0,
+            "sock_throttled": 0
+          },
+          "cgroup_pgfault_delta": 1611326,
+          "cgroup_pgmajfault_delta": 0
+        },
+        "loaded_pcie": {
+          "generations": [
+            "4"
+          ],
+          "widths": [
+            "16"
+          ]
+        }
+      }
+    ],
+    "telemetry_scope": "Raw driver-reported clocks retained; no clock-normalized throughput or causal unlock attribution. Window deltas use periodic observations and can miss subsecond boundary activity.",
+    "restoration": {
+      "status": "complete",
+      "runner_exit_code": 0,
+      "restoration": {
+        "healthy": true,
+        "same_container": true,
+        "same_image": true,
+        "same_environment": true,
+        "same_mounts": true,
+        "same_config": true,
+        "same_hostconfig": true,
+        "critical_parameters_preserved": true,
+        "oom_killed": false,
+        "full_engine_argv_preserved": true,
+        "full_engine_argv_sha256": "ce785c67b521ac1103c8b856ef4060c766ddbe9618a648532fdc160e77886c19"
+      },
+      "restoration_verified": true,
+      "router_restoration_verified": true,
+      "drain_released": true,
+      "lease_renewal_errors": []
+    }
+  },
+  "dense_GEMM_V": {
+    "fixture": "tests/fixtures/gpu_compute_probe_20261026_validation.json",
+    "probe_numeric_status": "passed",
+    "operator_status": "failed_due_to_clock_plausibility",
+    "rows_8192": [
+      {
+        "input_dtype": "fp16",
+        "output_dtype": "fp32",
+        "accumulation_dtype": "fp32",
+        "m": 8192,
+        "n": 8192,
+        "k": 8192,
+        "median_ms": 6.90414377848,
+        "tera_operations_per_second": 159.25387174,
+        "operations_unit": "TFLOPS",
+        "tensor_core_kernel_verified": false,
+        "validation": {
+          "status": "passed",
+          "method": "32_exact_sampled_integer_dot_products",
+          "checked_outputs": 32,
+          "reference_checksum": 8096
+        }
+      },
+      {
+        "input_dtype": "bf16",
+        "output_dtype": "fp32",
+        "accumulation_dtype": "fp32",
+        "m": 8192,
+        "n": 8192,
+        "k": 8192,
+        "median_ms": 6.98704833984,
+        "tera_operations_per_second": 157.364250868,
+        "operations_unit": "TFLOPS",
+        "tensor_core_kernel_verified": false,
+        "validation": {
+          "status": "passed",
+          "method": "32_exact_sampled_integer_dot_products",
+          "checked_outputs": 32,
+          "reference_checksum": 8096
+        }
+      },
+      {
+        "input_dtype": "int8",
+        "output_dtype": "int32",
+        "accumulation_dtype": "int32",
+        "m": 8192,
+        "n": 8192,
+        "k": 8192,
+        "median_ms": 3.83402659098,
+        "tera_operations_per_second": 286.777256674,
+        "operations_unit": "TOPS",
+        "tensor_core_kernel_verified": false,
+        "validation": {
+          "status": "passed",
+          "method": "32_exact_sampled_integer_dot_products",
+          "checked_outputs": 32,
+          "reference_checksum": 8096
+        }
+      }
+    ],
+    "telemetry": {
+      "qualification": "clock_readings_inconsistent_with_observed_compute_load",
+      "samples": 15,
+      "active_samples": 11,
+      "max_sample_gap_seconds": 0.5243592262268066,
+      "reported_pstates": [
+        "P8"
+      ],
+      "reported_sm_clock_mhz": [
+        210
+      ],
+      "reported_memory_clock_mhz": [
+        405
+      ],
+      "active_gpu_utilization_percent": [
+        100
+      ],
+      "active_power_watts_minmax": [
+        324.98,
+        462.01
+      ],
+      "power_limit_watts": [
+        450.0
+      ],
+      "active_temperature_c_minmax": [
+        53.0,
+        58.0
+      ],
+      "active_pcie_link_gen_width": [
+        "4x16"
+      ],
+      "reported_software_power_cap_active_samples": 11,
+      "reported_hardware_thermal_slowdown_seen": false,
+      "per_case_wall_timestamps_available": false,
+      "clock_normalized_comparison_qualified": false
+    },
+    "cleanup_verified": true,
+    "J": {
+      "status": "not_run",
+      "reason": "Existing desktop/Brave GPU activity and insufficient free VRAM under the unchanged guard",
+      "observed_gpu_utilization_percent_range": [
+        28,
+        55
+      ],
+      "observed_free_vram_mib_range": [
+        1658,
+        1671
+      ],
+      "required_initial_free_vram_mib": 1696,
+      "prepared_plan_preserved": true,
+      "gpu_jobs_run": 0,
+      "further_work": "Skipped while J is utilized, per user instruction."
+    },
+    "4090_dense_status": "not_run"
+  },
+  "interpretation_limits": [
+    "No permanent production environment or model settings were changed or promoted by these measurements.",
+    "The V screen and 4090 baseline share production weights 8c2a45ff...; common V uses J weights 00cf92e6... under different declared context. Do not compute a speedup between those V suites.",
+    "Native engine measurements exclude the complete worker/router request path. Client replay wall times depend on harness transport; the 4090 value includes Docker CLI spawn overhead.",
+    "The exact cold request and finite answer match across reported suites. Decode outputs match by trial across all four common J/V repetitions; 4090 decode outputs differ and its MTP maximum is 3 rather than 2. These are bounded smoke workloads, not comprehensive quality qualification.",
+    "Whole-phase vmstat includes startup/model-load/lifecycle activity. Benchmark-window counters are periodic host-wide observations, not precise per-process accounting, and may miss subsecond boundary activity.",
+    "The two V benchmark windows show pswpout delta 0, while phase one has host pswpout 5044. Zero cgroup swap is not proof that the host never paged.",
+    "J and V differ in driver, CPU, RAM, desktop GPU activity and physical upstream PCIe width (J x4, V x16). Even a matched-model cross-card result cannot isolate unlock causality.",
+    "UTC boot-unlock anchors are V 2026-10-25T13:11:45.282904+00:00 and 4090 2026-10-26T02:18:08.390111+00:00. Classify historical samples individually; no same-card same-driver locked/unlocked A/B or causal unlock percentage is available.",
+    "Do not compare historical throughput at unlike prompt lengths or label samples after unlock as pre-unlock baselines.",
+    "Dense probe numerical references passed, but the operator failed clock plausibility. Preserve raw values without a qualified clock-normalized, Tensor Core, unlock or LLM-speedup claim.",
+    "J normal desktop GPU load was 31% before its run (Code SM samples 16-19%, Brave 12-15%); applications were left running. The common-model comparison measures the deployed hosts under these conditions.",
+    "J host major-fault deltas in the observed benchmark windows were 24930 and 6065, while its benchmark child cgroups recorded only 4 and 0 major faults across the entire phases. Host fault activity cannot be attributed to the child and indicates substantial background/platform activity.",
+    "Archived observed ratios are V/J +19.9015% native prefill and +17.6039% native decode. Because J was contended by unrelated desktop and user-reported game build/testing activity, these ratios are exploratory only and unsuitable for predicting unlock uplift.",
+    "User-confirmed unrelated game build/testing on J during the session was not isolated from desktop/CPU/GPU contention. The J observations are not a clean locked-J baseline; V/4090 native baseline qualification is unchanged.",
+    "A future clean J baseline requires a fresh reviewed plan and current container identity under a quiet host window. No further J GPU jobs, live queries, model hashing or other-agent contact were performed for this reclassification."
+  ],
+  "source_reports": [
+    {
+      "path": "tests/fixtures/unlocked_fleet_20261026_validation.json",
+      "sha256": "8b5cc856b2f2ca0204eb23c68bf4406467f10653080d434da37cf30020f25070"
+    },
+    {
+      "path": "tests/fixtures/gpu_compute_probe_20261026_validation.json",
+      "sha256": "d63348735cfc7b26d460f4e31d1d0742fedfc63a68fa09ce3b685c33925a2f8e"
+    },
+    {
+      "path": "build/validation/unlocked-prefill-20261026/v-screen-result-unlocked-v-fc30c2afec/screen-summary.json",
+      "sha256": "64f36f3ae0068c8e6b26f8ab97411a04dbe213273efa0d448dc1cfe6d1ed5475"
+    },
+    {
+      "path": "build/validation/unlocked-prefill-20261026/common-v-result-common-jv-v-cc678cc910/common-summary.json",
+      "sha256": "d7cc55812e6eed15b6c933fe951fd6b9af0407785fe81b143c1d8e45f3df5201"
+    },
+    {
+      "path": "build/validation/unlocked-prefill-20261026/4090-deployed-baseline/sanitized-summary.json",
+      "sha256": "3a6781bdf506191faeb897c0797d6ca1d5983be4e21ea5c1ff1fac238cba0d08"
+    },
+    {
+      "path": "build/validation/unlocked-prefill-20261026/4090-deployed-baseline/benchmark-result.json",
+      "sha256": "abcd6634b4242d0bfe3b7011742a2a5a17b7b642ae4f30ee593b0802e06886b5"
+    },
+    {
+      "path": "build/validation/unlocked-prefill-20261026/4090-deployed-baseline/supervisor-result.json",
+      "sha256": "2dbb24d93bc92848555a0c257e52184e7885176bb391ea3cd60d78fc877b287b"
+    },
+    {
+      "path": "build/validation/unlocked-prefill-20261026/4090-deployed-baseline/independent-post-run.json",
+      "sha256": "e0072698d82d781c72529849eaceff6f86c7c85fc6965fae2d7a4ba5c2e58088"
+    },
+    {
+      "path": "build/validation/unlocked-prefill-20261026/v-screen-result-unlocked-v-fc30c2afec/screen_a1-bench.json",
+      "sha256": "e3faa6c75e7a43d39c65da4531038465b776d535a6bbd3a3b2895aa0458447bf"
+    },
+    {
+      "path": "build/validation/unlocked-prefill-20261026/v-screen-result-unlocked-v-fc30c2afec/screen_b-bench.json",
+      "sha256": "4b32080473ffb15f3fdea4e17c6b70ae074beb3312fe42cc679450acff27c096"
+    },
+    {
+      "path": "build/validation/unlocked-prefill-20261026/v-screen-result-unlocked-v-fc30c2afec/screen_c-bench.json",
+      "sha256": "5a687f0673ebe51c52722b9ee8cd65b129538315cdb3ec1b6a4ad4d6f94a915a"
+    },
+    {
+      "path": "build/validation/unlocked-prefill-20261026/v-screen-result-unlocked-v-fc30c2afec/screen_a2-bench.json",
+      "sha256": "bdd590a6d6969daf8238ca9ce5d746387a63a5cb18813b93bf840cfe51d31b27"
+    },
+    {
+      "path": "build/validation/unlocked-prefill-20261026/common-v-result-common-jv-v-cc678cc910/matched_1-bench.json",
+      "sha256": "a078f7f8df32d650b7a033e69f507168ce8744f644c8bd0706c0c2325197f5af"
+    },
+    {
+      "path": "build/validation/unlocked-prefill-20261026/common-v-result-common-jv-v-cc678cc910/matched_2-bench.json",
+      "sha256": "c2ea571ae91ae1716a7e19f224fc2aa49f8296ab8ccb9b9dc59ab6c42289c5e7"
+    },
+    {
+      "path": "build/validation/unlocked-prefill-20261026/common-jv-comparison.json",
+      "sha256": "b98e54079a4297cdde94533466cb16828a81153d63277c6599afa36c7d8290e8"
+    },
+    {
+      "path": "build/validation/unlocked-prefill-20261026/common-j-result-common-jv-j-ceec469465/common-summary.json",
+      "sha256": "b839fb4fcca1ac0e53d1d82239903863bb5f0a43ca97778b248a2ce5e907d895"
+    },
+    {
+      "path": "build/validation/unlocked-prefill-20261026/common-j-result-common-jv-j-ceec469465/plan.json",
+      "sha256": "51225d4cbc260fb8dd8131ccf7ebfb43349b12a04b0839104ff14a867538788c"
+    },
+    {
+      "path": "build/validation/unlocked-prefill-20261026/common-j-result-common-jv-j-ceec469465/supervisor-result.json",
+      "sha256": "084c493c5474b0a11552053b55242736c59bee0f4756c9c4ba279778aec2c5d3"
+    },
+    {
+      "path": "build/validation/unlocked-prefill-20261026/common-j-result-common-jv-j-ceec469465/desktop-baseline-before.json",
+      "sha256": "264577c4dfe1b3b1608b492d3698c050ca600fbabf41468e5052589699ada934"
+    },
+    {
+      "path": "build/validation/unlocked-prefill-20261026/common-j-result-common-jv-j-ceec469465/desktop-load-during-matched_1.json",
+      "sha256": "19b4d0635d22a3cafaa536a571fd942ba88586a2bfb4d899b9a16ad87559d925"
+    },
+    {
+      "path": "build/validation/unlocked-prefill-20261026/common-j-result-common-jv-j-ceec469465/desktop-load-during-matched_2.json",
+      "sha256": "b4d582ae54f1af71af88594ca9cd04799907f8d45310bbbe978e25938eae5c3c"
+    },
+    {
+      "path": "build/validation/unlocked-prefill-20261026/common-j-result-common-jv-j-ceec469465/matched_1-bench.json",
+      "sha256": "7329b3817e984d7707a43a6d33c847d87d5aa2b0d0d2e1ea7337aa23e30598b5"
+    },
+    {
+      "path": "build/validation/unlocked-prefill-20261026/common-j-result-common-jv-j-ceec469465/matched_2-bench.json",
+      "sha256": "004e47b8b1042aa1d076b9f0b5ac4af7c2eed4076f3f96e4bdd6e40659e32e9e"
+    },
+    {
+      "path": "build/validation/unlocked-prefill-20261026/common-model-cleanup-proof.json",
+      "sha256": "66ea31f8341d807dc5992b2553ef366122892bfd3c335708982c1074c22d8cd2"
+    }
+  ],
+  "common_model_J": {
+    "status": "complete",
+    "run_id": "common-jv-j-ceec469465",
+    "plan_sha256": "51225d4cbc260fb8dd8131ccf7ebfb43349b12a04b0839104ff14a867538788c",
+    "model_sha256": "00cf92e666c6af6566996c38c89a44ccdb6449ea25ef0f112a452c853b2a71e2",
+    "projector_sha256": "83ee4f4f205fa514161778c41df1ea14144faa0f713510893b63c2395f5c2d53",
+    "image_id": "sha256:b2c1fd792f29205ab20fdea8a7c756549537a31a78b658f89d8a1b2922599be6",
+    "actual_child_proof_verified": true,
+    "actual_full_argv_sha256": "0be532d176713990cbd65c5779450738b2c3a5fa6e8bed4b7d87274c29c8eb99",
+    "controls": {
+      "context": 220000,
+      "batch": 4096,
+      "ubatch": 1024,
+      "cache_ram_mib": 12288,
+      "cache_type_k": "q4_0",
+      "cache_type_v": "q4_0",
+      "mtp_max": 2,
+      "parallel": 1,
+      "threads": 6,
+      "threads_batch": 6,
+      "checkpoint_count": 32,
+      "checkpoint_min_step": 8192,
+      "performance_environment_sha256": "b417ea7e8e209cb1888d7f2e4e896b3bfb2e1ab78a1a097faaca46b9afd7c289"
+    },
+    "cold_prefill_mean_tokens_per_second": 1213.8950019567483,
+    "decode_median_tokens_per_second_all_six": 72.63215290061113,
+    "replay_mean_wall_seconds": 0.6673331799975131,
+    "identical_cold_requests_messages_and_finite_outputs": true,
+    "identical_decode_outputs_by_trial": true,
+    "rows": [
+      {
+        "phase": "matched_1",
+        "prefill_tokens_per_second": 1208.55954994483,
+        "cold_wall_seconds": 41.5157459609909,
+        "decode_median_tokens_per_second": 72.28723033319595,
+        "decode_trials": [
+          {
+            "trial": 0,
+            "request_sha256": "334976e9ea0afa49c17ec02ff8fcda1f533912909db2300874155f6239323d6e",
+            "messages_sha256": "4b6553689f27c278d3aea0d07404d91ded724254f776b1e9f2878fc07764403c",
+            "output_sha256": "a9d511fc68c608eca6f26551243fe60918461301d45b2a18e316cdb233af280a",
+            "decode_tokens_per_second": 72.28723033319595,
+            "prompt_tokens": 60,
+            "generated_tokens": 256
+          },
+          {
+            "trial": 1,
+            "request_sha256": "3a324d51c2d391fd3501b059b389a352ab9ea0ff3bdbf7a381dacc17bfdc67a7",
+            "messages_sha256": "9649edef591c47983e344983927265b2e91ff23b2f669a28fca95dd155dfe93c",
+            "output_sha256": "8b122c25e36033ae0b427a20e5adb1b1fe2cecac4f3372516b36e2f466b26e53",
+            "decode_tokens_per_second": 72.97707546802631,
+            "prompt_tokens": 60,
+            "generated_tokens": 256
+          },
+          {
+            "trial": 2,
+            "request_sha256": "9b32356c363dd43fa55413d70fbaa97fd40c82b1bcc38cdc3310e7c246fe7277",
+            "messages_sha256": "ab2ac003842cc948b1c8f7e4811a3269054a4fcfc8cbb4988dea1d110b56a684",
+            "output_sha256": "4f52edd7071b2c55e7500119532d04c07e80c995c764e541761f4a7af7697645",
+            "decode_tokens_per_second": 71.37610898879927,
+            "prompt_tokens": 60,
+            "generated_tokens": 256
+          }
+        ],
+        "replay": {
+          "request_sha256": "7fb61383ff3287796ba3b6a1096369224838ffbce6554362f00b11e0a056c7f6",
+          "wall_seconds": 0.5740230770315975,
+          "evaluated_prompt_tokens": 4,
+          "cached_prompt_tokens": 49989,
+          "output_sha256": "2945b0d6616d16592538930914f4a2bc539b8d976a0b9200b3e82540f3c07c25",
+          "output_matches_cold": true,
+          "tail_reused": true
+        },
+        "host_vmstat_benchmark_window": {
+          "pgfault_observed_window_delta": 6585216,
+          "pgmajfault_observed_window_delta": 24930,
+          "pswpin_observed_window_delta": 74,
+          "pswpout_observed_window_delta": 0
+        },
+        "host_vmstat_whole_phase": {
+          "host_pgfault_delta": 10635887,
+          "host_pgmajfault_delta": 29224,
+          "host_pswpin_delta": 74,
+          "host_pswpout_delta": 674
+        },
+        "cgroup_whole_phase": {
+          "memory_current_observed_max": 5161934848,
+          "memory_peak_kernel_max": 5162332160,
+          "swap_current_observed_max": 0,
+          "swap_peak_kernel_max": 0,
+          "cgroup_events_delta": {
+            "low": 0,
+            "high": 0,
+            "max": 0,
+            "oom": 0,
+            "oom_kill": 0,
+            "oom_group_kill": 0
+          },
+          "cgroup_pgfault_delta": 1742376,
+          "cgroup_pgmajfault_delta": 4
+        },
+        "loaded_pcie": {
+          "generations": [
+            "4"
+          ],
+          "widths": [
+            "4"
+          ]
+        }
+      },
+      {
+        "phase": "matched_2",
+        "prefill_tokens_per_second": 1219.2304539686666,
+        "cold_wall_seconds": 41.149874672992155,
+        "decode_median_tokens_per_second": 73.30646962654234,
+        "decode_trials": [
+          {
+            "trial": 0,
+            "request_sha256": "334976e9ea0afa49c17ec02ff8fcda1f533912909db2300874155f6239323d6e",
+            "messages_sha256": "4b6553689f27c278d3aea0d07404d91ded724254f776b1e9f2878fc07764403c",
+            "output_sha256": "a9d511fc68c608eca6f26551243fe60918461301d45b2a18e316cdb233af280a",
+            "decode_tokens_per_second": 74.60669107914629,
+            "prompt_tokens": 60,
+            "generated_tokens": 256
+          },
+          {
+            "trial": 1,
+            "request_sha256": "3a324d51c2d391fd3501b059b389a352ab9ea0ff3bdbf7a381dacc17bfdc67a7",
+            "messages_sha256": "9649edef591c47983e344983927265b2e91ff23b2f669a28fca95dd155dfe93c",
+            "output_sha256": "8b122c25e36033ae0b427a20e5adb1b1fe2cecac4f3372516b36e2f466b26e53",
+            "decode_tokens_per_second": 73.30646962654234,
+            "prompt_tokens": 60,
+            "generated_tokens": 256
+          },
+          {
+            "trial": 2,
+            "request_sha256": "9b32356c363dd43fa55413d70fbaa97fd40c82b1bcc38cdc3310e7c246fe7277",
+            "messages_sha256": "ab2ac003842cc948b1c8f7e4811a3269054a4fcfc8cbb4988dea1d110b56a684",
+            "output_sha256": "4f52edd7071b2c55e7500119532d04c07e80c995c764e541761f4a7af7697645",
+            "decode_tokens_per_second": 69.25728756413429,
+            "prompt_tokens": 60,
+            "generated_tokens": 256
+          }
+        ],
+        "replay": {
+          "request_sha256": "7fb61383ff3287796ba3b6a1096369224838ffbce6554362f00b11e0a056c7f6",
+          "wall_seconds": 0.7606432829634286,
+          "evaluated_prompt_tokens": 4,
+          "cached_prompt_tokens": 49989,
+          "output_sha256": "2945b0d6616d16592538930914f4a2bc539b8d976a0b9200b3e82540f3c07c25",
+          "output_matches_cold": true,
+          "tail_reused": true
+        },
+        "host_vmstat_benchmark_window": {
+          "pgfault_observed_window_delta": 6978515,
+          "pgmajfault_observed_window_delta": 6065,
+          "pswpin_observed_window_delta": 0,
+          "pswpout_observed_window_delta": 0
+        },
+        "host_vmstat_whole_phase": {
+          "host_pgfault_delta": 12364658,
+          "host_pgmajfault_delta": 14664,
+          "host_pswpin_delta": 0,
+          "host_pswpout_delta": 0
+        },
+        "cgroup_whole_phase": {
+          "memory_current_observed_max": 4939653120,
+          "memory_peak_kernel_max": 4939931648,
+          "swap_current_observed_max": 0,
+          "swap_peak_kernel_max": 0,
+          "cgroup_events_delta": {
+            "low": 0,
+            "high": 0,
+            "max": 0,
+            "oom": 0,
+            "oom_kill": 0,
+            "oom_group_kill": 0
+          },
+          "cgroup_pgfault_delta": 1739807,
+          "cgroup_pgmajfault_delta": 0
+        },
+        "loaded_pcie": {
+          "generations": [
+            "4"
+          ],
+          "widths": [
+            "4"
+          ]
+        }
+      }
+    ],
+    "desktop_confounder": {
+      "baseline_total_gpu_utilization_percent": 31,
+      "baseline_free_vram_mib": 1703,
+      "code_sm_percent_samples": [
+        19,
+        16,
+        17
+      ],
+      "brave_sm_percent_samples": [
+        12,
+        12,
+        15
+      ],
+      "applications_untouched": true,
+      "during_model_pmon_llama_sm_percent": [
+        99,
+        98
+      ]
+    },
+    "telemetry_scope": "Raw driver-reported clocks retained; no clock-normalized throughput or causal unlock attribution. Host page/swap deltas differ from child cgroup occupancy; benchmark windows are bounded by periodic observations.",
+    "restoration": {
+      "status": "complete",
+      "runner_exit_code": 0,
+      "restoration": {
+        "healthy": true,
+        "same_container": true,
+        "same_image": true,
+        "same_environment": true,
+        "same_mounts": true,
+        "same_config": true,
+        "same_hostconfig": true,
+        "critical_parameters_preserved": true,
+        "oom_killed": false,
+        "full_engine_argv_preserved": true,
+        "full_engine_argv_sha256": "7ad3383d563e0eb29b5b743cd825fe49c847fa377d4301f223e1f41db1045f3d"
+      },
+      "restoration_verified": true,
+      "router_restoration_verified": true,
+      "drain_released": true,
+      "lease_renewal_errors": []
+    },
+    "measurement_qualification": "exploratory_contended_not_clean_locked_baseline",
+    "user_reported_concurrent_activity": {
+      "activity": "Another agent was building and testing a game on J during this session.",
+      "source": "User clarification after the run.",
+      "exact_benchmark_overlap_and_CPU_GPU_contention_isolated": false,
+      "independently_verified_game_process_load": false,
+      "further_J_GPU_work": "Skipped per user instruction; no live J queries or other-agent contact were used for this reclassification."
+    }
+  },
+  "common_model_comparison": {
+    "purpose": "archival observed cross-host differences only; J run is exploratory/contended",
+    "J_prefill_mean_tps": 1213.8950019567483,
+    "V_prefill_mean_tps": 1455.4785236799125,
+    "V_prefill_relative_to_J_percent": 19.901517127407374,
+    "J_decode_median_tps": 72.63215290061113,
+    "V_decode_median_tps": 85.41825914465223,
+    "V_decode_relative_to_J_percent": 17.60392021084303,
+    "J_replay_mean_wall_seconds": 0.6673331799975131,
+    "V_replay_mean_wall_seconds": 0.43072967500484083,
+    "all_four_cold_request_hashes_identical": true,
+    "all_four_cold_message_hashes_identical": true,
+    "all_four_actual_model_hashes_identical": true,
+    "all_four_finite_output_hashes_identical": true,
+    "all_decoded_outputs_by_trial_identical": true,
+    "all_decoded_request_hashes_by_trial_identical": true,
+    "all_replays_cache_n": [
+      49989,
+      49989,
+      49989,
+      49989
+    ],
+    "all_replays_prompt_n": [
+      4,
+      4,
+      4,
+      4
+    ],
+    "all_restorations_and_drains_verified": true,
+    "interpretation": "Raw rates, cache counters, fingerprints and recovery facts are retained. User-confirmed unrelated game build/testing and unisolated desktop/CPU/GPU contention make J unsuitable as a clean locked-card baseline. Stored ratios describe only these observations and cannot predict GPU-unlock uplift.",
+    "actual_child_full_argv_hash_identical": true,
+    "selected_performance_environment_hash_identical": true,
+    "qualification": "archival_only_unsuitable_for_predicting_unlock_uplift",
+    "ratios_are_clean_locked_vs_unlocked_baseline": false
+  },
+  "temporary_common_model_cleanup": {
+    "status": "removed_after_completed_successful_benchmarks",
+    "cleaned_utc": "2026-10-27T00:12:04.464380+00:00",
+    "owner": "unlocked-prefill-20261026-cc24578321a6d8c0",
+    "removed_directory": "/home/josh/ezlocalai/benchmark-models/unlocked-prefill-20261026-cc24578321a6d8c0",
+    "removed_files": [
+      "model.gguf",
+      "ownership.json"
+    ],
+    "removed_model_bytes": 13441059904,
+    "removed_model_sha256": "00cf92e666c6af6566996c38c89a44ccdb6449ea25ef0f112a452c853b2a71e2",
+    "removed_model_inode": 207364384,
+    "marker_sha256": "aefc2a74d0b905222943c078f17ec5e8bd80dcd484820eaaf2bddd75e426c160",
+    "all_exact_path_owner_no_symlink_marker_inode_size_full_sha_and_expected_entry_guards_verified": true,
+    "directory_absent_after_cleanup": true,
+    "V_original_production_healthy_configuration_and_full_argv_verified_before_after": true,
+    "V_original_full_argv_sha256": "ce785c67b521ac1103c8b856ef4060c766ddbe9618a648532fdc160e77886c19",
+    "V_original_production_model_recorded_sha256": "8c2a45ff85e7674ca185ec8eb6cdeab0e617ed9d8018caed0b64380eb2a67a5e",
+    "V_production_model_hash_scope": "Controller verified original production model; current size/mtime and exact restored argv match. No new production-model hash.",
+    "no_remaining_common_child_containers_or_temporary_model_binds": true,
+    "J_production_source_retained": true,
+    "J_source_size_bytes": 13441059904,
+    "J_source_recorded_full_sha256": "00cf92e666c6af6566996c38c89a44ccdb6449ea25ef0f112a452c853b2a71e2",
+    "J_source_current_identity_matches_verified_source": true,
+    "J_source_full_hash_reread_during_cleanup": false,
+    "production_files_modified": false,
+    "operator_and_audit_directories_retained": true,
+    "proof_path": "build/validation/unlocked-prefill-20261026/common-model-cleanup-proof.json",
+    "proof_sha256": "66ea31f8341d807dc5992b2553ef366122892bfd3c335708982c1074c22d8cd2"
+  }
+}

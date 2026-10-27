@@ -3,6 +3,7 @@
 #include "ezlocalai/environment_defaults.hpp"
 #include "ezlocalai/process.hpp"
 #include <nlohmann/json.hpp>
+#include <algorithm>
 #include <arpa/inet.h>
 #include <sys/socket.h>
 #include <poll.h>
@@ -67,6 +68,16 @@ struct Capture {
         check(changed.wait_for(lock, 6s, [&] { return !error.empty() || messages.size() >= count; }), "router update timeout");
         check(error.empty(), error); return messages;
     }
+    std::vector<Json> wait_extra_after(size_t after, const Json &expected) {
+        std::unique_lock<std::mutex> lock(mutex);
+        check(changed.wait_for(lock, 6s, [&] {
+            return !error.empty() || (messages.size() > after
+                && std::any_of(messages.begin() + after, messages.end(), [&](const Json &message) {
+                    return message.at("extra") == expected;
+                }));
+        }), "router policy update timeout");
+        check(error.empty(), error); return messages;
+    }
 };
 struct State {
     std::mutex mutex;
@@ -92,6 +103,7 @@ struct Backend : InferenceBackend {
 };
 void environment(const Json &row, const Capture &capture) {
     for (const auto &entry : environment_defaults) unsetenv(std::string(entry.first).c_str());
+    unsetenv("EZLOCALAI_ROUTER_REQUEST_GZIP");
     for (const auto &[key, value] : std::map<std::string, std::string>{
         {"EZLOCALAI_API_KEY", ""}, {"ROUTER_API_KEY", "fixture-key"}, {"DEFAULT_MODEL", "org/model,org/model"},
         {"ROUTER_URL", capture.url()}, {"WORKER_LABEL", "metadata"}, {"WORKER_HEARTBEAT_INTERVAL", "2"},
@@ -105,8 +117,18 @@ void reporting(const Json &expected,const Json &actual) {
     if(!expected.contains("report"))return;
     for(const auto &field:expected.at("report").items())check(actual.at(field.key())==field.value(),expected.at("name").get<std::string>()+": "+field.key()+" actual="+actual.at(field.key()).dump()+" expected="+field.value().dump());
 }
-void one(const Json &row, Capture &capture, const Json *detached = nullptr, const Json *restored = nullptr) {
+Json expected_extra(const Json &row, bool request_gzip = false) {
+    // Preserve every captured Python media-policy field exactly. Native gzip
+    // request policy is additive, including when a failed media-policy probe
+    // left the original captured extra object empty.
+    auto extra = row.at("extra");
+    extra["http_request_encodings"] = request_gzip ? Json::array({"gzip"}) : Json::array();
+    return extra;
+}
+void one(const Json &row, Capture &capture, const Json *detached = nullptr, const Json *restored = nullptr,
+    const char *gzip_setting = nullptr, bool advertise_gzip = false, bool revoke_gzip = false) {
     capture.clear(); environment(row, capture);
+    if (gzip_setting) setenv("EZLOCALAI_ROUTER_REQUEST_GZIP", gzip_setting, 1);
     auto state = std::make_shared<State>(row);
     // A transient memory failure begins after the ordinary resource snapshot.
     // Receiving the update closes that fault window before the next request.
@@ -124,14 +146,21 @@ void one(const Json &row, Capture &capture, const Json *detached = nullptr, cons
     std::string error; check(server.start("127.0.0.1", 0, &error), error);
     auto messages = capture.wait(2);
     for (size_t i = 0; i < 2; ++i) check(messages[i].at("version") == "native-metadata-version", "registration and heartbeat version");
-    for (size_t i = 0; i < 2; ++i) check(messages[i].at("extra") == row.at("extra"), row.at("name").get<std::string>() + ": " + messages[i].at("extra").dump());
+    for (size_t i = 0; i < 2; ++i) check(messages[i].at("extra") == expected_extra(row, advertise_gzip), row.at("name").get<std::string>() + ": " + messages[i].at("extra").dump());
     for(size_t i=0;i<2;++i)reporting(row,messages[i]);
     if (detached && restored) {
         // Change runtime state without changing configuration or restarting the worker.
         state->set(*detached); messages = capture.wait(3);
-        check(messages.back().at("extra") == detached->at("extra"), "heartbeat reflects detached LLMs");reporting(*detached,messages.back());
+        check(messages.back().at("extra") == expected_extra(*detached, advertise_gzip), "heartbeat reflects detached LLMs");reporting(*detached,messages.back());
         state->set(*restored); messages = capture.wait(4);
-        check(messages.back().at("extra") == restored->at("extra"), "heartbeat reflects restored public replica identities");reporting(*restored,messages.back());
+        check(messages.back().at("extra") == expected_extra(*restored, advertise_gzip), "heartbeat reflects restored public replica identities");reporting(*restored,messages.back());
+    }
+    if (revoke_gzip) {
+        check(advertise_gzip && !detached, "invalid gzip revocation fixture");
+        const auto after = messages.size();
+        setenv("EZLOCALAI_ROUTER_REQUEST_GZIP", "false", 1);
+        messages = capture.wait_extra_after(after, expected_extra(row, false));
+        check(messages.back().at("extra") == expected_extra(row, false), "heartbeat did not revoke gzip policy");
     }
     server.stop();
 }
@@ -211,8 +240,15 @@ int main(int argc, char **argv) { try {
     const auto &rows = fixture.at("cases"); one(rows.back(), capture, &rows.at(rows.size() - 2), &rows.back());
     std::ifstream model_input(argv[2]);const auto models=Json::parse(model_input);
     for(const auto &row:models.at("cases"))one(row,capture,row.contains("detached")?&row.at("detached"):nullptr,row.contains("detached")?&row:nullptr);
+    const auto failed = std::find_if(rows.begin(), rows.end(), [](const Json &row) { return row.at("name") == "probe-failure"; });
+    check(failed != rows.end(), "media-policy failure fixture missing");
+    for (const auto *row : {&rows.front(), &*failed}) {
+        one(*row, capture, nullptr, nullptr, "true", true, true);
+        one(*row, capture, nullptr, nullptr, "false", false);
+    }
+    std::cout << "4 explicit gzip policy registration/heartbeat cases and 2 live revocations passed, including media-policy failure\n";
     std::cout<<models.at("cases").size()<<" model reporting snapshots and projector unload/restore passed\n";
-    std::cout << rows.size() << " Python worker-extra snapshots match registration and heartbeat; detach/restore updates verified\n";
+    std::cout << rows.size() << " Python worker-extra snapshots plus native request encodings match registration and heartbeat; detach/restore updates verified\n";
     gpu_cases(self);
     return 0;
 } catch (const std::exception &e) { std::cerr << e.what() << '\n'; return 1; } }

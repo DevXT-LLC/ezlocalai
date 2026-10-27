@@ -7,6 +7,7 @@
 
 #include <arpa/inet.h>
 #include <netinet/in.h>
+#include <netinet/tcp.h>
 #include <sys/select.h>
 #include <sys/socket.h>
 #include <unistd.h>
@@ -16,6 +17,7 @@
 
 #include <algorithm>
 #include <atomic>
+#include <cerrno>
 #include <chrono>
 #include <cctype>
 #include <cmath>
@@ -98,6 +100,61 @@ static std::string request(const std::string &raw) {
         if (n <= 0) {
             break;
         }
+        response.append(buffer, static_cast<size_t>(n));
+    }
+    close(fd);
+    return response;
+}
+
+static void socket_write_all(int fd, const std::string &data) {
+    size_t sent = 0;
+    while (sent < data.size()) {
+        const auto n = send(fd, data.data() + sent, data.size() - sent, MSG_NOSIGNAL);
+        expect(n > 0, "fragmented HTTP send");
+        sent += static_cast<size_t>(n);
+    }
+}
+
+static std::vector<std::string> byte_fragments(const std::string &encoded) {
+    std::vector<std::string> fragments;
+    for (const char byte : encoded) fragments.emplace_back(1, byte);
+    return fragments;
+}
+
+// A complete or malformed frame must finish the read without client EOF. Every
+// earlier fragment in these cases is incomplete and must keep waiting.
+static std::string fragmented_request(
+    const std::string &headers,
+    const std::vector<std::string> &fragments,
+    bool finish_at_eof = false
+) {
+    int fd = socket(AF_INET, SOCK_STREAM, 0);
+    expect(fd >= 0, "fragmented HTTP socket");
+    timeval timeout{10, 0};
+    setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout));
+    setsockopt(fd, SOL_SOCKET, SO_SNDTIMEO, &timeout, sizeof(timeout));
+    int yes = 1;
+    setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &yes, sizeof(yes));
+    sockaddr_in addr{};
+    addr.sin_family = AF_INET;
+    addr.sin_port = htons(18091);
+    addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+    expect(connect(fd, reinterpret_cast<sockaddr *>(&addr), sizeof(addr)) == 0, "fragmented HTTP connect");
+    socket_write_all(fd, headers);
+    for (size_t i = 0; i < fragments.size(); ++i) {
+        socket_write_all(fd, fragments[i]);
+        if (i + 1 < fragments.size() || finish_at_eof) {
+            pollfd peer{fd, POLLIN, 0};
+            expect(poll(&peer, 1, 2) == 0, "incomplete chunked request keeps waiting");
+        }
+    }
+    if (finish_at_eof) shutdown(fd, SHUT_WR);
+    std::string response;
+    char buffer[4096];
+    for (;;) {
+        const auto n = recv(fd, buffer, sizeof(buffer), 0);
+        expect(n >= 0 || errno == ECONNRESET, "fragmented HTTP response completes without timeout");
+        if (n <= 0) break;
         response.append(buffer, static_cast<size_t>(n));
     }
     close(fd);
@@ -644,6 +701,59 @@ struct TestListenerReady {
         started.get();
     }
 };
+
+static void fake_fragmented_speech_worker(
+    int port,
+    const std::vector<std::vector<std::string>> &responses,
+    const std::vector<std::shared_future<void>> &consumed,
+    TestListenerReady *ready
+) {
+    int server_fd = socket(AF_INET, SOCK_STREAM, 0);
+    expect(server_fd >= 0, "fragmented speech worker socket");
+    int yes = 1;
+    setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes));
+    sockaddr_in addr{};
+    addr.sin_family = AF_INET;
+    addr.sin_port = htons(static_cast<uint16_t>(port));
+    addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+    expect(bind(server_fd, reinterpret_cast<sockaddr *>(&addr), sizeof(addr)) == 0, "fragmented speech worker bind");
+    expect(listen(server_fd, 1) == 0, "fragmented speech worker listen");
+    ready->signal.set_value();
+    for (size_t i = 0; i <= responses.size(); ++i) {
+        pollfd listener{server_fd, POLLIN, 0};
+        expect(poll(&listener, 1, 10000) > 0, "fragmented speech worker receives request");
+        int fd = accept(server_fd, nullptr, nullptr);
+        expect(fd >= 0, "fragmented speech worker accept");
+        timeval timeout{3, 0};
+        setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout));
+        setsockopt(fd, SOL_SOCKET, SO_SNDTIMEO, &timeout, sizeof(timeout));
+        setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &yes, sizeof(yes));
+        const auto raw = recv_http_request_with_body(fd);
+        if (i == 0) {
+            expect(raw.rfind("GET /v1/audio/voices HTTP/1.1", 0) == 0, "fragmented speech availability path");
+            const std::string body = "{\"voices\":[\"availability\"]}";
+            socket_write_all(fd, "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: "
+                + std::to_string(body.size()) + "\r\n\r\n" + body);
+        } else {
+            expect(raw.rfind("POST /v1/audio/speech HTTP/1.1", 0) == 0, "fragmented speech request path");
+            socket_write_all(fd, "HTTP/1.1 200 OK\r\nContent-Type: audio/wav\r\nTransfer-Encoding: chunked\r\n\r\n");
+            const auto &fragments = responses[i - 1];
+            for (size_t part = 0; part < fragments.size(); ++part) {
+                socket_write_all(fd, fragments[part]);
+                if (part + 1 < fragments.size()) {
+                    std::this_thread::sleep_for(std::chrono::milliseconds(2));
+                }
+            }
+            // The native client half-closes its request write side, so recv(0)
+            // cannot distinguish that from its eventual full close. Wait for
+            // the downstream response instead, keeping our write side open.
+            expect(consumed[i - 1].wait_for(std::chrono::seconds(3)) == std::future_status::ready,
+                "buffered chunked response completes before worker EOF");
+        }
+        close(fd);
+    }
+    close(server_fd);
+}
 
 static int accept_test_tls_connection(int server_fd, int port) {
     pollfd listener{server_fd, POLLIN, 0};
@@ -3359,6 +3469,58 @@ int main() {
     auto chunked_chat_response = request(raw);
     expect(chunked_chat_response.find("200 OK") != std::string::npos, "chunked chat request status");
     expect(chunked_chat_response.find("chunked ping") != std::string::npos, "chunked chat request body decoded");
+    {
+        const std::string headers = "GET /health HTTP/1.1\r\nHost: localhost\r\nTransfer-Encoding: chunked\r\n\r\n";
+        std::string extended = "\n1\n \t;ignored\n";
+        extended.push_back('\0');
+        extended += "extension\r\nA\r\n0\r\n\r\n";
+        std::string trailer = "0\r\narbitrary\n";
+        trailer.push_back('\0');
+        trailer += "trailer\r\n\r\n";
+        // The final byte is the first point where each frame becomes complete
+        // or malformed. In particular, A\n remains incomplete until X arrives.
+        for (const auto &encoded : std::vector<std::string>{
+            "0\r\n\r\n", extended, trailer, "g\r\n", "+1\r\n", "0x1\r\n",
+            "10000000000000000\r\n", "\v1\r\n", "\f1\r\n", "1\r\nA\nX"
+        }) {
+            const auto response = fragmented_request(headers, byte_fragments(encoded));
+            expect(response.find("200 OK") != std::string::npos, "fragmented chunked framing returns request without EOF");
+            expect(response_body(response) == "{\"status\":\"healthy\"}", "fragmented chunked framing preserves route result");
+        }
+        for (const auto &encoded : {"1\r\nA\r", "0\r\n", "0\r\ntrailer\r\n", "1\r\nA\n"}) {
+            const auto response = fragmented_request(headers, byte_fragments(encoded), true);
+            expect(response.find("200 OK") != std::string::npos, "incomplete chunked request returns on EOF");
+        }
+        const auto trailing = fragmented_request(headers, {"0\r\n\r\nignored trailing bytes"});
+        expect(response_body(trailing) == "{\"status\":\"healthy\"}", "chunked framing ignores bytes after the final trailer");
+        const auto long_line = fragmented_request(headers, {
+            std::string(4095, ' '), std::string(4097, ' ') + "1\r", "\n", "A\r", "\n0\r", "\n\r", "\n"
+        });
+        expect(long_line.find("200 OK") != std::string::npos, "chunked size line spans receive buffers");
+        const std::string oversized_chunk = "1000001\r\n";
+        const auto capped = fragmented_request(headers, {oversized_chunk,
+            std::string(16 * 1024 * 1024 - headers.size() - oversized_chunk.size(), 'A'), "A"});
+        expect(response_body(capped) == "{\"status\":\"healthy\"}", "incomplete chunked request returns at the raw 16 MiB limit without EOF");
+
+        // Keep the model input short while exercising many received chunks.
+        const std::string padded_body = "{\"model\":\"native-test-model\",\"messages\":[{\"role\":\"user\",\"content\":\"large chunked ping\"}],\"padding\":\""
+            + std::string(1024 * 1024, 'x') + "\"}";
+        std::ostringstream encoded;
+        for (size_t pos = 0; pos < padded_body.size(); pos += 4096) {
+            const auto count = std::min<size_t>(4096, padded_body.size() - pos);
+            encoded << std::hex << count << ";test=large\r\n";
+            encoded.write(padded_body.data() + pos, static_cast<std::streamsize>(count));
+            encoded << "\r\n";
+        }
+        encoded << "0\r\nX-End: yes\r\n\r\nignored trailing bytes";
+        const auto large_response = request("POST /v1/chat/completions HTTP/1.1\r\nHost: localhost\r\n"
+            "Authorization: Bearer secret\r\nContent-Type: application/json\r\nTransfer-Encoding: chunked\r\n\r\n" + encoded.str());
+        expect(large_response.find("200 OK") != std::string::npos, "large chunked chat request status");
+        expect(large_response.find("large chunked ping") != std::string::npos, "large chunked chat preserves decoded input");
+        const auto after_large = request("GET /v1/queue/status HTTP/1.1\r\nHost: localhost\r\nAuthorization: Bearer secret\r\n\r\n");
+        expect(after_large.find("\"total_queued\":3") != std::string::npos,
+            "queue tracks plain, chunked, and large chunked chat requests");
+    }
     const std::string stream_chat_body = "{\"model\":\"native-test-model\",\"stream\":true,\"messages\":[{\"role\":\"user\",\"content\":\"stream ping\"}]}";
     raw = "POST /v1/chat/completions HTTP/1.1\r\n"
         "Host: localhost\r\n"
@@ -3463,7 +3625,7 @@ int main() {
     expect(embedding_bad_list.find("\"loc\":[\"body\",\"input\",\"list[str]\",1]") != std::string::npos, "embedding bad list loc");
 
     auto queue_status = request("GET /v1/queue/status HTTP/1.1\r\nHost: localhost\r\nAuthorization: Bearer secret\r\n\r\n");
-    expect(queue_status.find("\"total_queued\":5") != std::string::npos, "queue saw chat requests");
+    expect(queue_status.find("\"total_queued\":6") != std::string::npos, "queue includes the large chunked chat request and three streaming requests");
     expect(queue_status.find("\"queue_size\":0") != std::string::npos, "queue status has python key");
 
     auto queue_alias = request("GET /v1/queue HTTP/1.1\r\nHost: localhost\r\nAuthorization: Bearer secret\r\n\r\n");
@@ -4891,6 +5053,67 @@ int main() {
     expect(chunked_remote_voices.find("\"voices\":[\"chunked-voice\"]") != std::string::npos, "chunked remote voices body");
     expect(chunked_remote_voices.find("\r\n0\r\n\r\n") == std::string::npos, "chunked remote voices omits raw chunk terminator");
     unsetenv("VOICE_SERVER");
+
+    {
+        // Adding voice audio to chat uses the buffered worker client. The
+        // standalone speech route uses the separate fallback response decoder.
+        const int port = fixture_ports();
+        const std::string url = "http://127.0.0.1:" + std::to_string(port);
+        setenv("VOICE_SERVER", url.c_str(), 1);
+        std::vector<std::string> payloads;
+        std::vector<std::vector<std::string>> responses;
+        for (const size_t size : {64U * 1024U, 1024U * 1024U}) {
+            std::string payload(size, '\0');
+            for (size_t i = 0; i < payload.size(); ++i) payload[i] = static_cast<char>(i % 251);
+            payload.replace(0, 4, "RIFF");
+            payloads.push_back(payload);
+            std::vector<std::string> fragments;
+            if (size == 64U * 1024U) {
+                fragments = {std::string(4095, ' '), std::string(4097, ' ') + "\n10000 \t;ignored\n"};
+                fragments.back().push_back('\0');
+                fragments.back() += "extension\r";
+                fragments.push_back("\n");
+                for (size_t i = 0; i < payload.size(); i += 4096) fragments.push_back(payload.substr(i, 4096));
+                fragments.push_back("\r");
+                fragments.push_back("\n0\r");
+                std::string trailer = "\nany\n";
+                trailer.push_back('\0');
+                fragments.push_back(trailer + "trailer\r");
+                fragments.push_back("\n\r");
+                fragments.push_back("\nignored trailing bytes");
+            } else {
+                for (size_t i = 0; i < payload.size(); i += 4096) {
+                    fragments.push_back("1000;large=yes\r\n" + payload.substr(i, 4096) + "\r\n");
+                }
+                fragments.insert(fragments.end(), {"0\r", "\nX-End: yes\r", "\n\r", "\nignored trailing bytes"});
+            }
+            responses.push_back(std::move(fragments));
+        }
+        TestListenerReady ready(port);
+        std::vector<std::promise<void>> response_consumed(payloads.size());
+        std::vector<std::shared_future<void>> consumed;
+        for (auto &signal : response_consumed) consumed.push_back(signal.get_future().share());
+        std::thread worker(fake_fragmented_speech_worker, port, responses, consumed, &ready);
+        ready.wait();
+        for (size_t i = 0; i < payloads.size(); ++i) {
+            const std::string body = "{\"model\":\"native-test-model\",\"messages\":[{\"role\":\"user\",\"content\":\"buffered chunked speech\"}],\"voice\":\"amy\"}";
+            const auto response = request("POST /v1/chat/completions HTTP/1.1\r\nHost: localhost\r\nAuthorization: Bearer secret\r\n"
+                "Content-Type: application/json\r\nContent-Length: " + std::to_string(body.size()) + "\r\n\r\n" + body);
+            expect(response.find("200 OK") != std::string::npos, "buffered chunked speech status");
+            const auto body_json = response_body(response);
+            const auto asset_start = body_json.find("/outputs/");
+            const auto asset_end = body_json.find(".wav", asset_start);
+            expect(asset_start != std::string::npos && asset_end != std::string::npos,
+                "buffered chunked speech attaches the decoded audio asset");
+            const auto asset = request("GET " + body_json.substr(asset_start, asset_end + 4 - asset_start)
+                + " HTTP/1.1\r\nHost: localhost\r\n\r\n");
+            expect(asset.find("200 OK") != std::string::npos, "buffered chunked speech asset status");
+            expect(response_body(asset) == payloads[i], "buffered chunked speech preserves binary body and removes framing");
+            response_consumed[i].set_value();
+        }
+        worker.join();
+        unsetenv("VOICE_SERVER");
+    }
 
     setenv("VOICE_SERVER", "http://localhost:18126", 1);
     std::thread fake_voice_cache_probe(fake_json_worker_many, 18126, std::vector<std::string>{

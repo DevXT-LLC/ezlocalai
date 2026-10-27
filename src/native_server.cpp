@@ -39,6 +39,7 @@
 #include "ezlocalai/json_validation.hpp"
 #include "ezlocalai/http_deadline.hpp"
 #include "ezlocalai/http_body.hpp"
+#include "ezlocalai/request_gzip.hpp"
 #include "ezlocalai/http_url.hpp"
 #include "ezlocalai/http_cookies.hpp"
 #include "ezlocalai/http_socket.hpp"
@@ -74,6 +75,7 @@
 #include <set>
 #include <sstream>
 #include <stdexcept>
+#include <string_view>
 #include <system_error>
 #include <unordered_map>
 #include <vector>
@@ -5227,6 +5229,66 @@ bool decode_http_chunked_body(const std::string &encoded, std::string *decoded_o
     return decode_http_chunked_body_state(encoded, decoded_out) == ChunkedDecodeResult::Complete;
 }
 
+// Check framing while the receive buffer grows, without repeatedly copying or
+// decoding all preceding payload bytes. Offsets survive buffer reallocations;
+// the existing decoder still produces the body once the framing is complete.
+class HttpChunkedFramingProbe {
+public:
+    ChunkedDecodeResult update(std::string_view encoded) {
+        for (;;) {
+            if (phase_ == Phase::Complete) return ChunkedDecodeResult::Complete;
+            if (phase_ == Phase::Malformed) return ChunkedDecodeResult::Malformed;
+            if (phase_ == Phase::Data) {
+                if (position_ > encoded.size() || chunk_size_ > encoded.size() - position_) {
+                    return ChunkedDecodeResult::Incomplete;
+                }
+                const auto end = position_ + chunk_size_;
+                // Match the decoder's error timing: both terminator bytes must
+                // arrive before either is checked, even if the first is wrong.
+                if (encoded.size() - end < 2) return ChunkedDecodeResult::Incomplete;
+                if (encoded.substr(end, 2) != "\r\n") {
+                    phase_ = Phase::Malformed;
+                    return ChunkedDecodeResult::Malformed;
+                }
+                position_ = end + 2;
+                search_ = position_;
+                phase_ = Phase::Size;
+                continue;
+            }
+
+            const auto end = encoded.find("\r\n", search_);
+            if (end == std::string_view::npos) {
+                // Revisit a final CR when the following byte arrives.
+                search_ = std::max(position_, encoded.empty() ? 0 : encoded.size() - 1);
+                return ChunkedDecodeResult::Incomplete;
+            }
+            if (phase_ == Phase::Trailers) {
+                if (end == position_) {
+                    phase_ = Phase::Complete;
+                    return ChunkedDecodeResult::Complete;
+                }
+                position_ = end + 2;
+                search_ = position_;
+                continue;
+            }
+            if (!parse_http_chunk_size(std::string(encoded.substr(position_, end - position_)), &chunk_size_)) {
+                phase_ = Phase::Malformed;
+                return ChunkedDecodeResult::Malformed;
+            }
+            position_ = end + 2;
+            search_ = position_;
+            phase_ = chunk_size_ == 0 ? Phase::Trailers : Phase::Data;
+        }
+    }
+
+private:
+    enum class Phase { Size, Data, Trailers, Complete, Malformed };
+    Phase phase_ = Phase::Size;
+    size_t position_ = 0;
+    size_t search_ = 0;
+    size_t chunk_size_ = 0;
+};
+
 using HttpHeaderList = std::vector<std::pair<std::string,std::string>>;
 HttpHeaderList response_header_list(const std::string &raw) {
     HttpHeaderList out; std::istringstream input(raw);
@@ -5478,6 +5540,7 @@ HttpResponse http_worker_request(
     size_t expected_response_bytes = 0;
     bool have_expected_response_bytes = false;
     bool response_chunked = false;
+    HttpChunkedFramingProbe response_chunked_probe;
     bool skip_response_body = false;
     bool stream_response_body = false;
     std::unique_ptr<HttpBodyDecoder> body_decoder;
@@ -5629,11 +5692,8 @@ HttpResponse http_worker_request(
             break;
         }
         if (response_chunked && response_header_end != std::string::npos) {
-            std::string decoded_probe;
-            const auto chunked_state = decode_http_chunked_body_state(
-                response_raw.substr(response_header_end + 4),
-                &decoded_probe
-            );
+            const auto chunked_state = response_chunked_probe.update(
+                std::string_view(response_raw).substr(response_header_end + 4));
             if (chunked_state == ChunkedDecodeResult::Complete) {
                 break;
             }
@@ -6807,10 +6867,12 @@ std::string read_socket_request(int fd) {
     auto transfer_encoding_it = headers.find("transfer-encoding");
     if (transfer_encoding_it != headers.end()
         && to_lower(transfer_encoding_it->second).find("chunked") != std::string::npos) {
+        HttpChunkedFramingProbe chunked_probe;
         while (true) {
-            std::string decoded_body;
-            const auto decoded = decode_http_chunked_body_state(buffer.substr(body_start), &decoded_body);
+            const auto decoded = chunked_probe.update(std::string_view(buffer).substr(body_start));
             if (decoded == ChunkedDecodeResult::Complete) {
+                std::string decoded_body;
+                if (!decode_http_chunked_body(buffer.substr(body_start), &decoded_body)) return buffer;
                 return buffer.substr(0, body_start) + decoded_body;
             }
             if (decoded == ChunkedDecodeResult::Malformed) {
@@ -11874,6 +11936,10 @@ std::string NativeServer::worker_state_json() const {
         // Python leaves extra empty when a media-policy probe fails. The
         // worker must still register and send its remaining state.
     }
+    // Router request compression is opt-in per worker. Always report the
+    // current policy, including revocation and failed media-policy probes.
+    values["extra"] = merge_json_objects(values["extra"], env_true("EZLOCALAI_ROUTER_REQUEST_GZIP")
+        ? R"({"http_request_encodings":["gzip"]})" : R"({"http_request_encodings":[]})");
     values["version"] = "\"" + json_escape(runtime_version()) + "\"";
     return json_object_from_values(values);
 }
@@ -12436,6 +12502,41 @@ HttpResponse NativeServer::handle_request(
         return {401, "application/json", "{\"detail\":\"Invalid API Key\"}"};
     }
     if (native_router_mode_enabled() && !ensure_router_drains_loaded()) return plain_internal_server_error();
+    const auto transport_header = [&](const std::string &name) {
+        const auto found = request_headers.find(name);
+        if (found != request_headers.end()) return found->second;
+        // TCP parsing normalizes names; direct handle_request callers may use
+        // ordinary mixed-case HTTP field names.
+        for (const auto &header : request_headers)
+            if (to_lower(header.first) == name) return header.second;
+        return std::string();
+    };
+    if (method == "POST" && (route_path == "/v1/chat/completions" || route_path == "/v1/completions")
+        && to_lower(trim(transport_header("content-encoding"))) == "gzip") {
+        try {
+            const auto declared = trim(transport_header("content-length"));
+            uint64_t length = 0;
+            if (!declared.empty()) {
+                const auto parsed = std::from_chars(declared.data(), declared.data() + declared.size(), length);
+                if (parsed.ec == std::errc::result_out_of_range
+                    || (parsed.ec == std::errc{} && parsed.ptr == declared.data() + declared.size()
+                        && length > http_request_gzip_max_bytes))
+                    throw HttpRequestGzipError(HttpRequestGzipFailure::TooLarge);
+            }
+            const auto decoded = decode_http_request_gzip(body);
+            auto decoded_headers = request_headers;
+            for (auto field = decoded_headers.begin(); field != decoded_headers.end();) {
+                const auto name = to_lower(field->first);
+                if (name == "content-encoding" || name == "content-length") field = decoded_headers.erase(field);
+                else ++field;
+            }
+            return route_authorized(method, path, decoded, content_type,
+                request_base_url_from_host(host_header), decoded_headers, allow_deferred_streaming);
+        } catch (const HttpRequestGzipError &error) {
+            return {error.reason() == HttpRequestGzipFailure::TooLarge ? 413 : 400,
+                "application/json", "{\"detail\":\"" + std::string(error.what()) + "\"}"};
+        }
+    }
     return route_authorized(method, path, body, content_type, request_base_url_from_host(host_header), request_headers, allow_deferred_streaming);
 }
 

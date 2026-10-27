@@ -2,6 +2,92 @@
 
 The goal remains behavior parity with ezlocalai within the scope below, with all first-party executable code implemented in C++. It is **not complete**.
 
+## Benchmark relay response-header validation (2026-10-26)
+
+CodeQL findings 59 and 60 identified unvalidated upstream header names/values
+in the gzip benchmark's loopback relay. It now validates the entire response
+header list before committing a status line or headers, rejects CR/LF and
+invalid field syntax, and forwards valid values unchanged. The relay continues
+to replace hop-by-hop/framing headers itself; no warning suppression is used.
+
+All **18 benchmark guards** pass, including invalid names/values, valid field
+preservation and a real folded-header response that must close without sending
+any response bytes. Python compilation and whitespace checks pass. Native and
+router runtime code, deployments and GPU settings are unchanged. Historical
+timings keep the original measured script fingerprint; this follow-up does not
+claim a fresh performance measurement. Compact evidence is in
+`tests/fixtures/request_gzip_headers_20261026_validation.json`.
+
+## Lossless HTTP transport and CUDA speed checks (2026-10-26)
+
+Incoming chunked requests and buffered local responses now track framing
+incrementally instead of repeatedly copying and decoding every accumulated
+prefix. The final legacy decoder, permissive size parsing, malformed/EOF timing
+and raw receive limit are retained. All **65,519 prefix classification checks**
+match, with real-TCP decoded-chat, binary-response and fragmentation coverage.
+Content-Length and ordinary SSE paths retain their existing decoding.
+
+The worker also strictly decodes authenticated, single-member gzip JSON on the
+two text completion endpoints, enforcing independent 16 MiB encoded/decoded
+limits and validating CRC/trailers. Transport headers are removed before normal
+routing/fallback. Automatic use by WorkerRouter is **opt-in per worker** through
+`EZLOCALAI_ROUTER_REQUEST_GZIP` (default false): every registration/heartbeat
+reports the current policy, including revocation and media-probe failures.
+The paired router preserves final decoded bytes and existing admission,
+fallback and cache hints; old workers, external providers, media and tunnels
+retain their existing transport. Codec jobs have a bounded cancellation budget.
+
+Final combined worker source `bff136f19aa86dc3d31bf02c113f0b327ece5ccc`
+passes all **72 oracle-free CUDA package tests** in 307.84 seconds and all four
+focused suites in 54.49 seconds. All 13 selected source/package hashes match the
+builder; the final executable is `09b3112c…`. The configured Python checkout is
+absent. The paired Rust implementation passes 78 Rust tests, strict Clippy and
+formatting, and 573 local integration tests, including 14 direct wire cases.
+Public benchmark inputs are complete files pinned to public native commit
+`c421488`; no private repository corpus is published.
+
+The transport reports separate controlled measurements from exploratory local
+runs: [chunked HTTP](benchmarks/chunked-http-20261026.md) and
+[request gzip](benchmarks/request-gzip-20261026.md). Gzip is deliberately off
+by default because codec overhead can outweigh transfer savings on fast links.
+Shaped upload measurements are simulations, not deployed Wi-Fi latency.
+
+On the quiet 5090 CPU host, 8 MiB/4 KiB-chunk receive latency falls
+**1363.542 → 14.995 ms**, and buffered responses **1440.573 → 14.716 ms**.
+For the largest public-code JSON, the actual paired route under simulated
+13 MB/s upload falls **105.453 → 59.532 ms**, while unshaped loopback increases
+**22.183 → 28.519 ms**. This measured tradeoff motivates the opt-in default.
+All 384 measured gzip payload/checked-output identities match; all 19 chunk
+cases pass. Read-only monitoring records unchanged original production
+counters/processes/configuration, and all owned benchmark resources are gone.
+
+Fresh CUDA measurements use native token timings and preserve model precision,
+sampling and context. With production weights, V's bracketed 49,993-token cold
+prefill averages **1418.14 tok/s** at physical batch 1024; 2048 is flat and 4096
+regresses, so no batch setting was promoted. The 4090 measures **2704.00 tok/s**
+on that prompt and **111.75 tok/s** median decode. Common-model replay checks
+reuse 49,989 tokens and evaluate four, with matching sampled answers. J results
+are explicitly exploratory: the user confirmed concurrent game build/testing,
+and desktop, driver, PCIe and paging differences prevent a clean unlock
+comparison. J's dense diagnostic was skipped. V's standalone GEMM numerical
+checks passed, but clock-plausibility acceptance failed and remains recorded as
+such. No causal unlock percentage is claimed. See the
+[CUDA report](benchmarks/unlocked-cuda-20261026.md) and its compact fixtures.
+
+All GPU-test originals were restored and their owned drains released after
+fresh router heartbeats. The 13.44 GB temporary V model copy was removed; private
+operator records and the exact dotenv backup were archived outside the checkout.
+After testing, only V's dotenv gained `EZLOCALAI_ROUTER_REQUEST_GZIP=true` for
+its **next deployment**; its running c421 container stayed unchanged. Other
+workers keep the default-off policy. No weights, KV precision, GPU clocks,
+power limits or unlock settings changed. A remains API-only; its user-reported
+1024 dotenv value is not an effective-process verification.
+
+Post-merge validation still needs real routed V histories/cache returns after
+both services deploy. A clean same-card before/after unlock experiment and a
+quiet J baseline remain separate work; the contended samples cannot replace
+them. Fresh platform images and non-CUDA hardware were not validated here.
+
 ## Long-conversation request preparation and dispatch (2026-10-26)
 
 Queued input preparation now retains ordered outer fields and normalized

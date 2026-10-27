@@ -96,6 +96,7 @@ add_library(ezlocalai_native
     src/torch_checkpoint.cpp
     src/http_deadline.cpp
     src/http_body.cpp
+    src/request_gzip.cpp
     src/http_url.cpp
     src/http_cookies.cpp
     src/music_runtime.cpp
@@ -263,6 +264,15 @@ target_include_directories(test_http_stream_socket PRIVATE ${CMAKE_CURRENT_SOURC
 target_link_libraries(test_http_stream_socket PRIVATE Threads::Threads)
 add_test(NAME http_stream_socket COMMAND test_http_stream_socket)
 set_tests_properties(http_stream_socket PROPERTIES TIMEOUT 15)
+add_executable(test_request_gzip_codec tests/test_request_gzip_codec.cpp src/request_gzip.cpp)
+target_include_directories(test_request_gzip_codec PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_link_libraries(test_request_gzip_codec PRIVATE ZLIB::ZLIB)
+add_test(NAME request_gzip_codec COMMAND test_request_gzip_codec)
+set_tests_properties(request_gzip_codec PROPERTIES TIMEOUT 20)
+add_executable(test_request_gzip_http tests/test_request_gzip_http.cpp)
+target_link_libraries(test_request_gzip_http PRIVATE ezlocalai_native nlohmann_json::nlohmann_json)
+add_test(NAME request_gzip_http COMMAND test_request_gzip_http)
+set_tests_properties(request_gzip_http PROPERTIES TIMEOUT 60)
 add_executable(bench_stream_socket EXCLUDE_FROM_ALL benchmarks/bench_stream_socket.cpp)
 target_include_directories(bench_stream_socket PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_link_libraries(bench_stream_socket PRIVATE Threads::Threads)
@@ -1834,6 +1844,8 @@ if(TARGET test_ltx_norm AND TARGET ezlocalai-tts)
         test_ltx_runtime
         test_core
         test_http_stream_socket
+        test_request_gzip_codec
+        test_request_gzip_http
         test_stream_completion
         test_tts_websocket
         test_process_capture
