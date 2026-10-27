@@ -2,6 +2,43 @@
 
 The goal remains behavior parity with ezlocalai within the scope below, with all first-party executable code implemented in C++. It is **not complete**.
 
+## Checkpoint entry-window coverage candidate (2026-10-26)
+
+A sixth managed engine patch retains a checkpoint at an existing full logical
+batch's start when that batch enters the near-end window. It introduces no new
+split and preserves target/draft groups, weights, precision and sampling. A
+25,758-token seed shortened to 24,508 previously reused 77 tokens; the candidate
+reuses 20,557, evaluating 3,951 rather than 24,431. In the physical-4090 ABBA
+screen, rewind median first output falls **8.522 → 1.785 s**, with all **76
+measured output hashes equal**. Existing replay/append behavior is preserved;
+cold prefill/decode rates remain approximately flat.
+
+The actual scheduler/allocator regression passes **364,385 checks**. All seven
+focused engine tests and all **72 oracle-free CUDA package tests** pass (335.40
+seconds); the package builder is CPU-only. The new partial state consumes RAM
+within the unchanged count/byte ceilings. Separate ABBA finite latest-turn and
+eight-conversation pressure qualification passes **192 more requests**, with
+all **268 measured outputs matching** across the positive screen/qualification.
+Both builds retain **16/16 returns per pressure phase** at the existing 12 GiB
+ceiling, with no full re-evaluation or observed OOM. Other GPUs, fresh images,
+maximum context, vision and broad model quality were not requalified.
+
+The screen's original `720ee94` container, image, environment, mounts and full
+argv were restored and two fresh router heartbeats verified before drain release.
+Image: `sha256:f78bbd2139979beb58859f79c4c0e5c233919f43908be720eb5e25d266a108f9`;
+rollback: `ezlocalai:rollback-spec-overhead-4090-7a6e959d4a`. Qualification also
+restores the exact original and verifies fresh router heartbeats before releasing
+its lease. A final pinned routed chat passes on that original image. Both owned
+CPU builders and all GPU children are removed, with no owned drain remaining.
+No permanent settings changed, and no candidate image was deployed. See
+[the checkpoint report](benchmarks/checkpoint-entry-20261026.md)
+and `tests/fixtures/checkpoint_entry_cuda_20261026_validation.json`.
+
+Rejected experiments are preserved as evidence: speculative host work changes
+4090 prefill −0.20% and decode +0.14%; alternate cuBLAS prefill is 15.93% slower.
+Their runtime changes are excluded. WorkerRouter PR #8 adds recent workload-aware
+rates, input depth and optional native draft-acceptance diagnostics.
+
 ## Benchmark relay response-header validation (2026-10-26)
 
 CodeQL findings 59 and 60 identified unvalidated upstream header names/values

@@ -1457,7 +1457,8 @@ if(EXISTS "${EZLOCALAI_TTS_LLAMA_SOURCE}/tools/server/server-task.h" AND
     target_link_libraries(test_llama_checkpoint_coverage PRIVATE
         $<TARGET_PROPERTY:test_cache_restore_atomic,LINK_LIBRARIES>)
     add_test(NAME llama_checkpoint_coverage COMMAND test_llama_checkpoint_coverage)
-    set_tests_properties(llama_checkpoint_coverage PROPERTIES TIMEOUT 30)
+    # The exhaustive model-free phase grid also ships in ARM/QEMU packages.
+    set_tests_properties(llama_checkpoint_coverage PROPERTIES TIMEOUT 300)
     add_custom_target(test_managed_llama_patches SOURCES tests/test_managed_llama_patches.cmake)
     add_test(NAME managed_llama_patches COMMAND ${CMAKE_COMMAND}
         -DSOURCE_DIR=${EZLOCALAI_TTS_LLAMA_SOURCE}

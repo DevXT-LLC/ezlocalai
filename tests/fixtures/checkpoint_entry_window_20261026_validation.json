@@ -1,0 +1,107 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-26",
+  "baseline_native_revision": "720ee945c72eaff2f81612d19e22f44ea7738ecf",
+  "engine_pin": "620d2225cc436ab0b001e3200e590e3b286ef9ab",
+  "scope": "Offline model-free checkpoint entry-window scheduler candidate; no GPU inference or production actions",
+  "changes": {
+    "new_splits": false,
+    "maximum_extra_checkpoints_vs_previous_policy": 1,
+    "maximum_extra_checkpoints_vs_original_scheduler": 2,
+    "additional_entry_requires_configured_checkpoints_at_least": 5,
+    "configured_checkpoint_limit_changed": false,
+    "hard_cache_budget_changed": false,
+    "weights_precision_sampling_or_context_changed": false,
+    "old_logical_calls_and_planned_checkpoint_positions_preserved": true,
+    "existing_bounded_eviction_policy_unchanged": true
+  },
+  "source_derived_cases": [
+    {
+      "seed_tokens": 25758,
+      "last_user_boundary": 77,
+      "rewind_tokens": 24508,
+      "previous_near_end_checkpoints": [
+        24653,
+        24730,
+        25754
+      ],
+      "candidate_near_end_checkpoints": [
+        20557,
+        24653,
+        24730,
+        25754
+      ],
+      "positions_hardware_trace_verified": false
+    },
+    {
+      "seed_tokens": 24577,
+      "last_user_boundary": 75,
+      "rewind_tokens": 23327,
+      "previous_near_end_checkpoints": [
+        22603,
+        23549,
+        24573
+      ],
+      "candidate_near_end_checkpoints": [
+        22603,
+        23549,
+        24573
+      ],
+      "positions_hardware_trace_verified": false
+    }
+  ],
+  "validation": {
+    "model_free_checks_passed": 364385,
+    "seconds": 14.42,
+    "planner_phase_cases": 49152,
+    "actual_target_and_draft_splitter_phase_cases": 672,
+    "all4096_token_phases_tested": true,
+    "start_positions": [
+      0,
+      77,
+      1023
+    ],
+    "rollback_sizes": [
+      0,
+      1,
+      3,
+      7
+    ],
+    "negative_control_disabling_entry_rejected": true,
+    "gpu_visibility_for_test": "CUDA_VISIBLE_DEVICES=-1",
+    "whitespace_check_passed": true,
+    "additional_non4096_actual_splitter_cases": 240,
+    "additional_logical_batch_sizes": [
+      2048,
+      2049,
+      3072,
+      4097,
+      8192
+    ],
+    "packaged_test_timeout_seconds": 300,
+    "independent_review": "No runtime correctness blocker; scope retention claims and qualify RAM pressure on hardware",
+    "managed_stack_full_suite_run_in_this_record": false,
+    "package_gate_run_in_this_record": false
+  },
+  "candidate_header_sha256": "7e87e74fa434240dcb3f3c7005a95f8b957436cd53b20479db7072a4cb25259e",
+  "unchanged_server_context_sha256": "02cb298c6b3cd12d47263ef33eed4b3de258f17a5b5b0c3c6b67d3f6636892f7",
+  "linked_low_level_engine_sha256": "4c32861b7148c347033ce73f06da757a5ad01362a4409c48c20386a716bbcc9f",
+  "source_sha256": {
+    "patches/llama-checkpoint-entry-window.patch": "d540b689360ee9efe7c5a45d24f2d473b5798aeb5ef8792dee49adbf687ffd5d",
+    "patches/llama-checkpoint-entry-window.md": "1e259de868a94c8f6659f66678d0b7a50c89acd8a3e01be545c8dc3175a124ea",
+    "tests/test_llama_checkpoint_coverage.cpp": "785781ecfb7f1a431c48fd38259ce010ded5d05522cea0dea432a6698e1bfa02",
+    "tests/test_managed_llama_patches.cmake": "d33447b323f7418d3ed07062c8cd2c3bfd99c05e9caf657d3d94f410f6652e30",
+    "tests/fixtures/llm_engine_managed_source_hashes.tsv": "b004d52349b6d72968929e443394aa1ad31fb3d599ffdb96e49022656e6e7597",
+    "cmake/ApplyLlamaPatches.cmake": "0f055794a12e0b60d3ad7ad494c360843d8fc6ed0604316569c514534428cc05",
+    "cpu.Dockerfile": "26fd3af8d04c1a2949a06df4b2b7bb2a84bdd9e1c2cb569429a78ba20b18e208",
+    "cuda.Dockerfile": "1f15924d3f68443d51d47a20225157e8e181495ba165a04d6efa8e22189ac617",
+    "rocm.Dockerfile": "fbdc014012d2a08aaab4772b3d575b75c57ab07efe4393de764543983a3d3d3b",
+    "jetson.Dockerfile": "97d850a87c552c7d2038c6def707d47ec6cb084a39d0aff4a4bfb8741a6baf3c",
+    "CMakeLists.txt": "0ba93475c68264d4dcebe59b484efddbdb9ebf257c7e6f8806d1a4015369fb9f"
+  },
+  "performance_measurements": null,
+  "hardware_quality_and_cache_pressure_qualified": false,
+  "production_actions": false,
+  "image_ids": [],
+  "rollback_tags": []
+}

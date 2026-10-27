@@ -1,0 +1,43 @@
+diff --git a/common/checkpoint-coverage.h b/common/checkpoint-coverage.h
+--- a/common/checkpoint-coverage.h
++++ b/common/checkpoint-coverage.h
+@@ -53,6 +53,7 @@
+     int32_t logical_batch = 0;
+     int32_t extra_window_end = 0;
+     uint32_t rollback_tail = 0;
++    bool entry_window = false;
+ 
+     bool break_before_end(int64_t remaining, int64_t added = 0, int64_t remaining_before = 0) const {
+         for (size_t i = 0; i < count; ++i) if (remaining == offsets[i]) return true;
+@@ -67,9 +68,17 @@
+         return false;
+     }
+     bool near_end(int64_t remaining_after, int64_t remaining_before) const {
+-        // The extra window is one physical batch wide. Once reached, the next
+-        // original split ends the window, so at most one snapshot is added.
+-        return remaining_after < old_near_span ||
++        // Inside the extra window, the next original split ends the window,
++        // so at most one starting checkpoint is added there.
++        const bool entered_window_from_full_batch = entry_window &&
++            remaining_before > extra_window_end && remaining_after > offsets[0] &&
++            remaining_after <= extra_window_end &&
++            remaining_before - remaining_after == logical_batch;
++        // A full logical chunk can jump into the window so late that its
++        // natural starting checkpoint is already beyond a shortened prompt.
++        // Save the state BEFORE that unchanged chunk too. This adds no split,
++        // preserves every original physical group and occurs at most once.
++        return remaining_after < old_near_span || entered_window_from_full_batch ||
+             (extra_window_end > 0 && remaining_before > offsets[0] &&
+              remaining_before <= extra_window_end && remaining_after <= offsets[0]);
+     }
+@@ -113,6 +122,10 @@
+             n_batch >= 2*n_ubatch) {
+         plan.extra_window_end = bounded(2*int64_t(n_ubatch) + 4);
+         plan.rollback_tail = runtime.rollback_tokens > 0 ? runtime.rollback_tokens + 1 : 1;
++        // A fresh single-user prefill needs four slots for its early, original
++        // and aligned states. Require a fifth here; normal bounded eviction
++        // still applies to older checkpoints from other turns.
++        plan.entry_window = max_checkpoints >= 5;
+     }
+     std::sort(plan.offsets.begin(), plan.offsets.begin() + plan.count, [](int32_t a, int32_t b) { return a > b; });
+     return plan;
