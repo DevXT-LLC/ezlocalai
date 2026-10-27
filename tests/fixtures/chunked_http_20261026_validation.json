@@ -1,59 +1,106 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "date": "2026-10-26",
   "scope": "incoming chunked bodies and buffered local worker responses; no model/GPU/SSE/prefill speed claim",
+  "measurement_status": "primary quiet5090 rerun; original J measurements retained as exploratory/contended",
   "baseline_commit": "c42148868a04d05171cdfc3bca7840f227b97216",
-  "source_commit": "f4de948c548b17ba73b9803bb13293a6140fa432",
-  "integrated_commit": "7cc1321",
+  "source_commit": "bff136f19aa86dc3d31bf02c113f0b327ece5ccc",
+  "framing_source_commit": "f4de948c548b17ba73b9803bb13293a6140fa432",
+  "integrated_framing_commit": "7cc1321",
   "sources": {
     "baseline_runtime_sha256": "05d6d61620da885dec63fe62fb0338db933e7381093bd33a6863c75e926772d6",
-    "candidate_runtime_sha256": "22a24b688474049ce9171078a6f4802dc63aea4aad3aa0051a70e7e4c8f71e0f",
+    "candidate_runtime_sha256": "2086732693b6e417369711ce6830b85b0c5ad36f1234ae9734550b2dbf17b5d1",
     "shared_test_sha256": "542337b72e50b2b8c04d93e29a6ad5167fe56d8071d06852a067364f74d69bb5"
   },
-  "image": "sha256:b2c1fd792f29205ab20fdea8a7c756549537a31a78b658f89d8a1b2922599be6",
+  "image": "sha256:8688fdf01700b01b2d620988bb4652cfb38b529e793840b1de965f0fbe47e8b5",
+  "builder_image": "sha256:b2c1fd792f29205ab20fdea8a7c756549537a31a78b658f89d8a1b2922599be6",
   "artifact_sha256": {
     "baseline": "562ee7c369e65c288ff8836accc75d4618bd75e1a6c7735171e7f696a343da17",
-    "candidate": "6954c20b5ed5211de62f96d1b9cf2d11dbc9cc94a248326e4aa830d73ef62e51"
+    "candidate": "09b3112cf0825136495326ac6c0f2238396ad92643bf1bd99ab11d9091c65f26"
   },
   "qualification": {
-    "baseline_native_http": {
-      "passed": true,
-      "seconds": 40.27
-    },
-    "candidate_native_http": {
-      "passed": true,
-      "seconds": 29.84
-    },
-    "exact_cuda_package_gate": {
-      "passed": 70,
-      "failed": 0,
-      "seconds": 289.28,
-      "reference_root": "/app/../ezlocalai",
-      "reference_checkout_present": false
-    },
     "strict_prefix_classifications_matched": 65519,
-    "linkage_checks": {
-      "/app/build/ezlocalai-native": {
-        "no_missing_libraries": true,
-        "no_libpython": true
+    "framing_parser_decoder_probe_block_sha256": "dea13249939e274344a05f01bb3da075e43db007ab01c99bbb454f1d0a21f88a",
+    "framing_block_unchanged_in_final_source": true,
+    "original_chunked_change": {
+      "baseline_native_http": {
+        "passed": true,
+        "seconds": 40.27
       },
-      "/usr/local/bin/ezlocalai-tts": {
-        "no_missing_libraries": true,
-        "no_libpython": true
+      "candidate_native_http": {
+        "passed": true,
+        "seconds": 29.84
       },
-      "/opt/acestep.cpp/build/ace-server": {
-        "no_missing_libraries": true,
-        "no_libpython": true
-      }
+      "exact_cuda_package_gate": {
+        "passed": 70,
+        "failed": 0,
+        "seconds": 289.28,
+        "reference_root": "/app/../ezlocalai",
+        "reference_checkout_present": false
+      },
+      "strict_prefix_classifications_matched": 65519,
+      "linkage_checks": {
+        "/app/build/ezlocalai-native": {
+          "no_missing_libraries": true,
+          "no_libpython": true
+        },
+        "/usr/local/bin/ezlocalai-tts": {
+          "no_missing_libraries": true,
+          "no_libpython": true
+        },
+        "/opt/acestep.cpp/build/ace-server": {
+          "no_missing_libraries": true,
+          "no_libpython": true
+        }
+      },
+      "offline_cli_guard_cases_passed": 5
     },
-    "offline_cli_guard_cases_passed": 5
+    "final_combined_worker": {
+      "source_commit": "bff136f19aa86dc3d31bf02c113f0b327ece5ccc",
+      "focused": {
+        "passed": 4,
+        "failed": 0,
+        "seconds": 54.49
+      },
+      "exact_cuda_package_gate": {
+        "passed": 72,
+        "failed": 0,
+        "seconds": 307.84,
+        "reference_env_unset": true,
+        "configured_reference_root_absent": true,
+        "selector": "exact cuda.Dockerfile package regex"
+      },
+      "source_matches_frozen_policy_commit": true,
+      "router_request_gzip_default": false,
+      "not_validated": [
+        "fresh platform image builds",
+        "physical GPU inference or performance",
+        "production deployment"
+      ]
+    }
+  },
+  "runtime_compatibility": {
+    "all_checks_pass": true,
+    "native_cache_sha256": "c1842710452a2503a3000eade7df9b453bf91ae06820e213fb934159d58ff752",
+    "resolved_dso_count": 172,
+    "gnu_build_id_count": 169,
+    "no_build_id_sha256_count": 3,
+    "ordered_dt_needed_count": 30,
+    "comparison": {
+      "native_cache_matches_5090": true,
+      "resolved_dso_count_matches_5090": true,
+      "dso_build_id_map_matches_5090": true,
+      "dso_paths_without_build_id_match_5090": true,
+      "three_no_build_id_sha256_match_5090": true,
+      "ordered_dt_needed_matches_5090": true
+    }
   },
   "method": {
-    "host": "Linux-6.11.0-29-generic-x86_64-with-glibc2.39",
+    "host": "Linux-6.12.113+deb13-amd64-x86_64-with-glibc2.41",
     "initial_load_average": [
-      3.2177734375,
-      3.1123046875,
-      4.72314453125
+      0.03271484375,
+      0.66943359375,
+      0.98193359375
     ],
     "timing": "connect + send + receive + close; prepared wire bytes; perf_counter_ns; audio asset verification excluded",
     "variant_order": "alternating each sample",
@@ -61,7 +108,9 @@
     "buffered_response_route": "chat with voice -> buffered fake speech response -> writes local audio asset",
     "worker_cpu_affinity": [
       4,
-      5
+      5,
+      6,
+      7
     ],
     "gpu_access": false,
     "loopback_only": true,
@@ -73,10 +122,50 @@
     "driver_sha256": "48b2d220e84c0e0cf07d916116e0bf1095f203120b2508fdd85e4288bb956f17",
     "limitations": [
       "Synthetic loopback receive/buffered transport measurements; not GPU/prefill or ordinary streaming gains.",
-      "Health route ignores decoded input; decoded chat input is independently covered by native_http and unchanged final decoder.",
+      "Health ignores decoded input; decoded chat input is independently covered by native_http and the unchanged final decoder.",
+      "Buffered response timing includes writing the local audio asset; its retrieval and byte verification are excluded.",
       "CPU counters have 10ms resolution; wall-clock samples are the reported latency metric.",
+      "The final combined worker includes other changes, so this is not an isolated measurement of each included change.",
       "No statistical claim is made for small changes in Content-Length/SSE controls."
-    ]
+    ],
+    "host_label": "5090",
+    "classification": "primary_quiet_rerun",
+    "started_utc": "2026-10-27T00:56:04.197427+00:00",
+    "finished_utc": "2026-10-27T00:56:27.827299+00:00",
+    "driver_cpu_affinity": [
+      4,
+      5,
+      6,
+      7
+    ],
+    "monitor_cpu_affinity": [
+      0,
+      1
+    ],
+    "timed_requests": 218,
+    "warmups_per_case_per_variant": 1,
+    "candidate_comparison": "Final combined worker, including request-gzip handling, versus pre-change baseline; this driver sends no gzip requests.",
+    "body_hash_semantics": {
+      "incoming": "SHA-256 of the fixed health response; GET /health ignores the decoded request body.",
+      "buffered_response": "SHA-256 of the exact generated audio asset, verified outside the timed interval.",
+      "sse_control": "No fixed body hash; expected Echo text and completion marker are checked."
+    },
+    "runtime_isolation": {
+      "Runtime": "runc",
+      "NetworkMode": "host",
+      "CpusetCpus": "4,5,6,7",
+      "Memory": 4294967296,
+      "Privileged": false,
+      "Devices": [],
+      "DeviceRequests": null,
+      "ReadonlyRootfs": true,
+      "CapDrop": [
+        "ALL"
+      ],
+      "SecurityOpt": [
+        "no-new-privileges"
+      ]
+    }
   },
   "controls": {
     "baseline": {
@@ -99,27 +188,27 @@
       "chunk_bytes": 0,
       "samples_ms": {
         "baseline": [
-          0.129061,
-          0.117664,
-          0.111461,
-          0.081713,
-          0.065465,
-          0.070203,
-          0.062657
+          0.47675,
+          0.352333,
+          0.368433,
+          0.398664,
+          0.3986,
+          0.364843,
+          0.370205
         ],
         "candidate": [
-          0.153648,
-          0.098054,
-          0.08671,
-          0.071511,
-          0.074309,
-          0.062202,
-          0.069036
+          0.531544,
+          0.371705,
+          0.171957,
+          0.174668,
+          0.350827,
+          0.519851,
+          0.29296
         ]
       },
       "median_ms": {
-        "baseline": 0.081713,
-        "candidate": 0.074309
+        "baseline": 0.370205,
+        "candidate": 0.350827
       },
       "body_sha256": "b808daea0f225957b3cddad9d5e33cb8dd4da1dbfc1d764e291f8d2e9fa4f857"
     },
@@ -129,27 +218,27 @@
       "chunk_bytes": 0,
       "samples_ms": {
         "baseline": [
-          1.602395,
-          0.639202,
-          0.592761,
-          0.95688,
-          0.828754,
-          0.810425,
-          0.670796
+          1.370949,
+          0.467785,
+          0.449511,
+          0.361597,
+          0.305812,
+          0.321899,
+          0.328391
         ],
         "candidate": [
-          1.840533,
-          0.721397,
-          0.77808,
-          0.723816,
-          0.852858,
-          0.780597,
-          0.598312
+          1.372274,
+          0.542438,
+          0.567587,
+          0.568049,
+          0.318414,
+          0.51926,
+          0.628827
         ]
       },
       "median_ms": {
-        "baseline": 0.810425,
-        "candidate": 0.77808
+        "baseline": 0.361597,
+        "candidate": 0.567587
       },
       "body_sha256": "9d794cebb642e9c17c0a7e6cc0ca07ec1eb88da992d0101e6a78719ec2710482"
     },
@@ -159,27 +248,27 @@
       "chunk_bytes": 4096,
       "samples_ms": {
         "baseline": [
-          0.12801,
-          0.10902,
-          0.103542,
-          0.111495,
-          0.103818,
-          0.106028,
-          0.100617
+          0.091862,
+          0.084896,
+          0.078547,
+          0.081522,
+          0.077055,
+          0.080413,
+          0.076137
         ],
         "candidate": [
-          0.086831,
-          0.072814,
-          0.076283,
-          0.069085,
-          0.07717,
-          0.06846,
-          0.076543
+          0.060708,
+          0.05742,
+          0.054541,
+          0.054851,
+          0.054198,
+          0.05316,
+          0.053875
         ]
       },
       "median_ms": {
-        "baseline": 0.106028,
-        "candidate": 0.076283
+        "baseline": 0.080413,
+        "candidate": 0.054541
       },
       "body_sha256": "b808daea0f225957b3cddad9d5e33cb8dd4da1dbfc1d764e291f8d2e9fa4f857"
     },
@@ -189,27 +278,27 @@
       "chunk_bytes": 4096,
       "samples_ms": {
         "baseline": [
-          0.697201,
-          0.671441,
-          0.624735,
-          0.65855,
-          0.629413,
-          0.691755,
-          0.603952
+          0.573859,
+          0.355383,
+          0.518666,
+          0.467216,
+          0.633273,
+          0.364827,
+          0.540504
         ],
         "candidate": [
-          0.639882,
-          0.560363,
-          0.6265,
-          0.600486,
-          0.556854,
-          0.571468,
-          0.65406
+          0.706156,
+          0.322826,
+          0.324334,
+          0.299825,
+          0.330729,
+          0.332615,
+          0.342671
         ]
       },
       "median_ms": {
-        "baseline": 0.65855,
-        "candidate": 0.600486
+        "baseline": 0.518666,
+        "candidate": 0.330729
       },
       "body_sha256": "9d794cebb642e9c17c0a7e6cc0ca07ec1eb88da992d0101e6a78719ec2710482"
     },
@@ -219,27 +308,27 @@
       "chunk_bytes": 65536,
       "samples_ms": {
         "baseline": [
-          0.092627,
-          0.085652,
-          0.081489,
-          0.084755,
-          0.076664,
-          0.08098,
-          0.074373
+          0.06646,
+          0.062398,
+          0.059238,
+          0.059154,
+          0.056943,
+          0.058203,
+          0.057355
         ],
         "candidate": [
-          0.081435,
-          0.077643,
-          0.076629,
-          0.066826,
-          0.072945,
-          0.065335,
-          0.072689
+          0.057694,
+          0.055386,
+          0.054467,
+          0.050349,
+          0.056781,
+          0.051721,
+          0.053564
         ]
       },
       "median_ms": {
-        "baseline": 0.081489,
-        "candidate": 0.072945
+        "baseline": 0.059154,
+        "candidate": 0.054467
       },
       "body_sha256": "b808daea0f225957b3cddad9d5e33cb8dd4da1dbfc1d764e291f8d2e9fa4f857"
     },
@@ -249,27 +338,27 @@
       "chunk_bytes": 65536,
       "samples_ms": {
         "baseline": [
-          0.642734,
-          0.623514,
-          0.577397,
-          0.960634,
-          0.775631,
-          0.779018,
-          0.609563
+          0.332496,
+          0.334591,
+          0.403537,
+          0.321141,
+          0.471306,
+          0.327875,
+          0.474117
         ],
         "candidate": [
-          0.625454,
-          0.546124,
-          0.612773,
-          0.757843,
-          0.927671,
-          0.671684,
-          0.729899
+          0.311378,
+          0.461398,
+          0.319384,
+          0.304654,
+          0.425358,
+          0.303738,
+          0.325634
         ]
       },
       "median_ms": {
-        "baseline": 0.642734,
-        "candidate": 0.671684
+        "baseline": 0.334591,
+        "candidate": 0.319384
       },
       "body_sha256": "9d794cebb642e9c17c0a7e6cc0ca07ec1eb88da992d0101e6a78719ec2710482"
     },
@@ -279,27 +368,27 @@
       "chunk_bytes": 0,
       "samples_ms": {
         "baseline": [
-          0.482031,
-          0.334725,
-          0.349436,
-          0.337007,
-          0.336778,
-          0.345476,
-          0.335652
+          0.280254,
+          0.270085,
+          0.250386,
+          0.554304,
+          0.413182,
+          0.324121,
+          1.092563
         ],
         "candidate": [
-          0.365655,
-          0.344184,
-          0.350259,
-          0.33835,
-          0.340382,
-          0.393852,
-          0.368141
+          0.264282,
+          0.257021,
+          0.273072,
+          0.295579,
+          0.630142,
+          0.600279,
+          0.570851
         ]
       },
       "median_ms": {
-        "baseline": 0.337007,
-        "candidate": 0.350259
+        "baseline": 0.324121,
+        "candidate": 0.295579
       },
       "body_sha256": "b808daea0f225957b3cddad9d5e33cb8dd4da1dbfc1d764e291f8d2e9fa4f857"
     },
@@ -309,27 +398,27 @@
       "chunk_bytes": 0,
       "samples_ms": {
         "baseline": [
-          3.284464,
-          3.604766,
-          3.044004,
-          3.150234,
-          2.998935,
-          3.498769,
-          3.172559
+          3.42501,
+          3.818301,
+          3.723256,
+          3.3454,
+          3.986795,
+          4.128232,
+          3.148494
         ],
         "candidate": [
-          3.170112,
-          3.159484,
-          3.657545,
-          3.197362,
-          3.41959,
-          3.23553,
-          3.320063
+          3.518649,
+          4.404326,
+          3.554622,
+          4.223886,
+          3.418521,
+          3.812338,
+          4.043194
         ]
       },
       "median_ms": {
-        "baseline": 3.172559,
-        "candidate": 3.23553
+        "baseline": 3.723256,
+        "candidate": 3.812338
       },
       "body_sha256": "672845b8f87abf650b6f9ccbe2e8b963d7df97fe813b6e1aee23a11da41743ae"
     },
@@ -339,27 +428,27 @@
       "chunk_bytes": 4096,
       "samples_ms": {
         "baseline": [
-          14.242592,
-          14.260306,
-          14.18366,
-          14.333303,
-          16.479169,
-          15.251923,
-          14.34688
+          9.590967,
+          9.517137,
+          9.741478,
+          9.543838,
+          9.48965,
+          9.370856,
+          9.287892
         ],
         "candidate": [
-          1.085928,
-          0.609756,
-          0.990929,
-          0.651734,
-          1.207519,
-          0.838097,
-          1.085708
+          0.906762,
+          0.776458,
+          0.937277,
+          0.819214,
+          0.681482,
+          0.715342,
+          0.828793
         ]
       },
       "median_ms": {
-        "baseline": 14.333303,
-        "candidate": 0.990929
+        "baseline": 9.517137,
+        "candidate": 0.819214
       },
       "body_sha256": "b808daea0f225957b3cddad9d5e33cb8dd4da1dbfc1d764e291f8d2e9fa4f857"
     },
@@ -369,27 +458,27 @@
       "chunk_bytes": 4096,
       "samples_ms": {
         "baseline": [
-          17.87252,
-          18.444142,
-          17.16672,
-          17.541814,
-          17.801577,
-          18.190847,
-          17.409244
+          13.358453,
+          13.972151,
+          13.35447,
+          13.631787,
+          13.465197,
+          13.667885,
+          13.59699
         ],
         "candidate": [
-          4.160936,
-          3.462888,
-          3.929063,
-          4.498765,
-          4.434442,
-          3.466479,
-          4.019398
+          4.619916,
+          4.308476,
+          4.333885,
+          5.039876,
+          3.84679,
+          3.796153,
+          3.908358
         ]
       },
       "median_ms": {
-        "baseline": 17.801577,
-        "candidate": 4.019398
+        "baseline": 13.59699,
+        "candidate": 4.308476
       },
       "body_sha256": "672845b8f87abf650b6f9ccbe2e8b963d7df97fe813b6e1aee23a11da41743ae"
     },
@@ -399,27 +488,27 @@
       "chunk_bytes": 65536,
       "samples_ms": {
         "baseline": [
-          11.773861,
-          12.406426,
-          11.812959,
-          12.184617,
-          12.806501,
-          11.745737,
-          12.52042
+          7.440511,
+          7.312242,
+          7.547663,
+          7.290712,
+          7.334728,
+          7.414245,
+          7.724681
         ],
         "candidate": [
-          0.864568,
-          0.56237,
-          0.86653,
-          0.567783,
-          0.882144,
-          0.619253,
-          0.90737
+          0.612049,
+          0.780424,
+          0.720576,
+          0.572515,
+          0.857782,
+          0.563001,
+          0.852387
         ]
       },
       "median_ms": {
-        "baseline": 12.184617,
-        "candidate": 0.864568
+        "baseline": 7.414245,
+        "candidate": 0.720576
       },
       "body_sha256": "b808daea0f225957b3cddad9d5e33cb8dd4da1dbfc1d764e291f8d2e9fa4f857"
     },
@@ -429,27 +518,27 @@
       "chunk_bytes": 65536,
       "samples_ms": {
         "baseline": [
-          16.071099,
-          16.35616,
-          19.603093,
-          18.26202,
-          15.493997,
-          15.890993,
-          15.965298
+          11.234476,
+          11.437993,
+          11.855953,
+          11.455569,
+          11.399617,
+          11.850014,
+          11.405645
         ],
         "candidate": [
-          4.158553,
-          3.663743,
-          7.544338,
-          7.45071,
-          3.915269,
-          3.298283,
-          3.878029
+          4.643142,
+          4.669991,
+          4.252755,
+          4.22915,
+          3.896721,
+          4.254862,
+          4.556586
         ]
       },
       "median_ms": {
-        "baseline": 16.071099,
-        "candidate": 3.915269
+        "baseline": 11.437993,
+        "candidate": 4.254862
       },
       "body_sha256": "672845b8f87abf650b6f9ccbe2e8b963d7df97fe813b6e1aee23a11da41743ae"
     },
@@ -459,19 +548,19 @@
       "chunk_bytes": 0,
       "samples_ms": {
         "baseline": [
-          7.158983,
-          4.269721,
-          3.826714
+          5.973734,
+          3.478298,
+          3.119746
         ],
         "candidate": [
-          7.704662,
-          3.417497,
-          3.971605
+          6.208352,
+          3.06079,
+          3.44446
         ]
       },
       "median_ms": {
-        "baseline": 4.269721,
-        "candidate": 3.971605
+        "baseline": 3.478298,
+        "candidate": 3.44446
       },
       "body_sha256": "b808daea0f225957b3cddad9d5e33cb8dd4da1dbfc1d764e291f8d2e9fa4f857"
     },
@@ -481,19 +570,19 @@
       "chunk_bytes": 0,
       "samples_ms": {
         "baseline": [
-          16.267067,
-          18.199028,
-          16.507079
+          13.899649,
+          14.01181,
+          13.007996
         ],
         "candidate": [
-          15.69771,
-          16.674212,
-          15.755029
+          13.642088,
+          12.982346,
+          13.423532
         ]
       },
       "median_ms": {
-        "baseline": 16.507079,
-        "candidate": 15.755029
+        "baseline": 13.899649,
+        "candidate": 13.423532
       },
       "body_sha256": "31ffea78522473e01c1d14c30705860a65c131c094e49e814e97764806ecc60b"
     },
@@ -503,19 +592,19 @@
       "chunk_bytes": 4096,
       "samples_ms": {
         "baseline": [
-          1376.459619,
-          1463.20309,
-          1372.811311
+          1382.513443,
+          1348.029035,
+          1363.542033
         ],
         "candidate": [
-          19.629603,
-          18.54436,
-          20.820898
+          14.995334,
+          14.149883,
+          15.032951
         ]
       },
       "median_ms": {
-        "baseline": 1376.459619,
-        "candidate": 19.629603
+        "baseline": 1363.542033,
+        "candidate": 14.995334
       },
       "body_sha256": "b808daea0f225957b3cddad9d5e33cb8dd4da1dbfc1d764e291f8d2e9fa4f857"
     },
@@ -525,19 +614,19 @@
       "chunk_bytes": 4096,
       "samples_ms": {
         "baseline": [
-          1453.832126,
-          1680.265075,
-          1571.908832
+          1452.552275,
+          1440.572795,
+          1434.771407
         ],
         "candidate": [
-          22.998154,
-          21.143946,
-          20.746248
+          14.715733,
+          14.54479,
+          15.251421
         ]
       },
       "median_ms": {
-        "baseline": 1571.908832,
-        "candidate": 21.143946
+        "baseline": 1440.572795,
+        "candidate": 14.715733
       },
       "body_sha256": "31ffea78522473e01c1d14c30705860a65c131c094e49e814e97764806ecc60b"
     },
@@ -547,19 +636,19 @@
       "chunk_bytes": 65536,
       "samples_ms": {
         "baseline": [
-          1271.496986,
-          1266.629899,
-          1204.853794
+          1269.870801,
+          1271.22611,
+          1268.973504
         ],
         "candidate": [
-          15.738228,
-          17.325684,
-          14.749255
+          11.461921,
+          11.492123,
+          11.757983
         ]
       },
       "median_ms": {
-        "baseline": 1266.629899,
-        "candidate": 15.738228
+        "baseline": 1269.870801,
+        "candidate": 11.492123
       },
       "body_sha256": "b808daea0f225957b3cddad9d5e33cb8dd4da1dbfc1d764e291f8d2e9fa4f857"
     },
@@ -569,19 +658,19 @@
       "chunk_bytes": 65536,
       "samples_ms": {
         "baseline": [
-          1205.391068,
-          1365.063212,
-          1279.090447
+          1334.625132,
+          1349.960491,
+          1338.183074
         ],
         "candidate": [
-          19.497605,
-          19.098203,
-          20.446928
+          13.935654,
+          14.663085,
+          14.466554
         ]
       },
       "median_ms": {
-        "baseline": 1279.090447,
-        "candidate": 19.497605
+        "baseline": 1338.183074,
+        "candidate": 14.466554
       },
       "body_sha256": "31ffea78522473e01c1d14c30705860a65c131c094e49e814e97764806ecc60b"
     },
@@ -591,41 +680,737 @@
       "chunk_bytes": 0,
       "samples_ms": {
         "baseline": [
-          0.569649,
-          0.438722,
-          0.31989,
-          0.311369,
-          0.281886,
-          0.297801,
-          0.317174
+          0.682424,
+          0.403755,
+          0.49285,
+          0.394969,
+          0.841468,
+          0.216219,
+          0.205475
         ],
         "candidate": [
-          0.542311,
-          0.311911,
-          0.376622,
-          0.308688,
-          0.300237,
-          0.282151,
-          0.299836
+          0.697333,
+          0.637538,
+          0.425184,
+          0.401933,
+          0.459607,
+          0.439915,
+          0.199983
         ]
       },
       "median_ms": {
-        "baseline": 0.317174,
-        "candidate": 0.308688
+        "baseline": 0.403755,
+        "candidate": 0.439915
       },
       "body_sha256": null
     }
   ],
+  "original_worker_monitor": {
+    "observations": 32,
+    "queue_before": {
+      "queue_size": 0,
+      "processing_count": 0,
+      "active_requests": 0,
+      "total_queued": 7,
+      "total_processed": 7,
+      "total_failed": 0
+    },
+    "queue_after": {
+      "queue_size": 0,
+      "processing_count": 0,
+      "active_requests": 0,
+      "total_queued": 7,
+      "total_processed": 7,
+      "total_failed": 0
+    },
+    "all_queue_snapshots_equal": true,
+    "all_production_snapshots_equal": true,
+    "original_identity_and_idle_verified": true,
+    "original_cumulative_counters_unchanged": true,
+    "production_mutated": false,
+    "monitor_scope": "Entire reviewed run, including the companion gzip phases."
+  },
   "cleanup": {
     "cases_passed": 19,
-    "owned_containers_removed": 2,
-    "listeners_released": true
+    "chunk_containers_recorded": 2,
+    "reviewed_run_containers_recorded": 4,
+    "operator_stopped": true,
+    "owned_containers_remaining": 0,
+    "child_processes_remaining": 0,
+    "owned_process_pids_remaining": [],
+    "listeners_released": true,
+    "errors": [],
+    "production_actions": []
   },
+  "raw_evidence_worktree": "ezlocalcpp-http-request-gzip-20261026",
+  "raw_evidence_root": "build/validation/request-gzip-20261026/http-opt-in-5090-0386e2fdd0c6e4a1-evidence",
   "evidence_sha256": {
-    "handoff.json": "88ddf14b01866d748bccd568a7a6b829c7e2435b165af913b82f25598564047e",
-    "contracts.json": "b4092bf2d34aedd67683d1cbe9e025fe920e303d5ad40fad5f77aa2865fa669a",
-    "source.json": "03b804f0e4dc8ea036ff34596210ab7a7c2ad41b9f70f2b44277e58d83638a33",
-    "http-ab/http-ab-results.json": "d08287e5b2b7c41a2e79ab861ee0079fb1600589e67adb13c321cb34efddb429",
-    "http-ab/http-ab-runners.json": "59a5a488c528bb2173003b3b60295686c9d5f12cacf244d89797f10d8eed0fe4"
-  }
+    "evidence/chunk-results.json": "859f75437b25de90b674ec6fa43cfd50e4bbe8db57d1e44d16ff46ee7b2a8136",
+    "evidence/chunk-runners.json": "8e4bd6bcf3d91a3f701ce215c07547598e4e843704d080441ab1d161bf74d6ba",
+    "controller-result.json": "3ffbdf74b1237400060ed81e3d716788fde956e6736e2fc8a9e0ea56fbbff57b",
+    "controller-state.json": "28b9d6b94f5f95618bbcbade8e460a65e0f99ae4a5bd0888068dc23ca830cdad",
+    "evidence/operator-result.json": "8c75b3904953a4c3d5a96f5f8dbdead6107552b7a43e2211871de0925040b2a9",
+    "evidence/cleanup-owned-result.json": "9945249966d1d5f6b965b4eaae1da01bed0827a8a25922bd2668a8f1eee35c82",
+    "evidence/owned-resources.json": "39117f82471af3fc217c9fff72cdbbf00a403fd28faf6b1e70c7785ac507db0b",
+    "evidence/candidate-ldd.txt": "674f16d492e08e022a10d3c7dbb5767309db3d9b651b1919caac107fc38b80c9"
+  },
+  "qualification_evidence": {
+    "worktree": "ezlocalcpp-unlocked-prefill-20261026",
+    "root": "build/validation/http-request-gzip-20261026/combined-opt-in-bff136f19aa8",
+    "sha256": {
+      "qualification.json": "1cbfb25982fccc2f4c48aaee3a3754976685416fb04b1eb10121b019a7c8a548",
+      "source-manifest.json": "d2d364969d181cb1c752ac4a78e535eef9ee98e0b8bbc5dcaf7184a7f4ab00dd",
+      "source-verification.json": "6b7ace5bf2c6315d09031086e5acda6e815c7cb34dea0fda6b5632dad2074754",
+      "sdk-dso-inventory.json": "f687bc7419f2567e68ca0f8f6f271fa142ca5c8f4cd4f09540938caa53dfa926",
+      "cuda-package-tests.log": "175ef2368943816b80d041facc2cf4971319b4bac356032de4173279490214e2",
+      "focused-tests.log": "5819c6e927cb61aeb31f47c1a599107d18407e9caa286ab7d896e72d398e1412"
+    }
+  },
+  "final_summary_evidence": {
+    "worktree": "ezlocalcpp-http-request-gzip-20261026",
+    "path": "build/validation/request-gzip-20261026/final-opt-in-route-summary.json",
+    "sha256": "9e677b1604fc4c3d26c854b92c2c513d96d28caa2a0eeb183f18713d9ffd1642"
+  },
+  "exploratory_runs": [
+    {
+      "schema_version": 1,
+      "date": "2026-10-26",
+      "scope": "incoming chunked bodies and buffered local worker responses; no model/GPU/SSE/prefill speed claim",
+      "baseline_commit": "c42148868a04d05171cdfc3bca7840f227b97216",
+      "source_commit": "f4de948c548b17ba73b9803bb13293a6140fa432",
+      "integrated_commit": "7cc1321",
+      "sources": {
+        "baseline_runtime_sha256": "05d6d61620da885dec63fe62fb0338db933e7381093bd33a6863c75e926772d6",
+        "candidate_runtime_sha256": "22a24b688474049ce9171078a6f4802dc63aea4aad3aa0051a70e7e4c8f71e0f",
+        "shared_test_sha256": "542337b72e50b2b8c04d93e29a6ad5167fe56d8071d06852a067364f74d69bb5"
+      },
+      "image": "sha256:b2c1fd792f29205ab20fdea8a7c756549537a31a78b658f89d8a1b2922599be6",
+      "artifact_sha256": {
+        "baseline": "562ee7c369e65c288ff8836accc75d4618bd75e1a6c7735171e7f696a343da17",
+        "candidate": "6954c20b5ed5211de62f96d1b9cf2d11dbc9cc94a248326e4aa830d73ef62e51"
+      },
+      "qualification": {
+        "baseline_native_http": {
+          "passed": true,
+          "seconds": 40.27
+        },
+        "candidate_native_http": {
+          "passed": true,
+          "seconds": 29.84
+        },
+        "exact_cuda_package_gate": {
+          "passed": 70,
+          "failed": 0,
+          "seconds": 289.28,
+          "reference_root": "/app/../ezlocalai",
+          "reference_checkout_present": false
+        },
+        "strict_prefix_classifications_matched": 65519,
+        "linkage_checks": {
+          "/app/build/ezlocalai-native": {
+            "no_missing_libraries": true,
+            "no_libpython": true
+          },
+          "/usr/local/bin/ezlocalai-tts": {
+            "no_missing_libraries": true,
+            "no_libpython": true
+          },
+          "/opt/acestep.cpp/build/ace-server": {
+            "no_missing_libraries": true,
+            "no_libpython": true
+          }
+        },
+        "offline_cli_guard_cases_passed": 5
+      },
+      "method": {
+        "host": "Linux-6.11.0-29-generic-x86_64-with-glibc2.39",
+        "initial_load_average": [
+          3.2177734375,
+          3.1123046875,
+          4.72314453125
+        ],
+        "timing": "connect + send + receive + close; prepared wire bytes; perf_counter_ns; audio asset verification excluded",
+        "variant_order": "alternating each sample",
+        "incoming_route": "GET /health with a binary request body, isolating receive framing from JSON parsing/inference",
+        "buffered_response_route": "chat with voice -> buffered fake speech response -> writes local audio asset",
+        "worker_cpu_affinity": [
+          4,
+          5
+        ],
+        "gpu_access": false,
+        "loopback_only": true,
+        "memory_limit_bytes_per_worker": 4294967296,
+        "rootfs_read_only": true,
+        "runtime": "runc",
+        "samples_up_to_1mib": 7,
+        "samples_8mib": 3,
+        "driver_sha256": "48b2d220e84c0e0cf07d916116e0bf1095f203120b2508fdd85e4288bb956f17",
+        "limitations": [
+          "Synthetic loopback receive/buffered transport measurements; not GPU/prefill or ordinary streaming gains.",
+          "Health route ignores decoded input; decoded chat input is independently covered by native_http and unchanged final decoder.",
+          "CPU counters have 10ms resolution; wall-clock samples are the reported latency metric.",
+          "No statistical claim is made for small changes in Content-Length/SSE controls."
+        ]
+      },
+      "controls": {
+        "baseline": {
+          "valid_split_trailer": true,
+          "split_malformed_terminator": true,
+          "incomplete_zero_eof": true,
+          "incomplete_data_eof": true
+        },
+        "candidate": {
+          "valid_split_trailer": true,
+          "split_malformed_terminator": true,
+          "incomplete_zero_eof": true,
+          "incomplete_data_eof": true
+        }
+      },
+      "cases": [
+        {
+          "path": "incoming",
+          "payload_bytes": 65536,
+          "chunk_bytes": 0,
+          "samples_ms": {
+            "baseline": [
+              0.129061,
+              0.117664,
+              0.111461,
+              0.081713,
+              0.065465,
+              0.070203,
+              0.062657
+            ],
+            "candidate": [
+              0.153648,
+              0.098054,
+              0.08671,
+              0.071511,
+              0.074309,
+              0.062202,
+              0.069036
+            ]
+          },
+          "median_ms": {
+            "baseline": 0.081713,
+            "candidate": 0.074309
+          },
+          "body_sha256": "b808daea0f225957b3cddad9d5e33cb8dd4da1dbfc1d764e291f8d2e9fa4f857"
+        },
+        {
+          "path": "buffered_response",
+          "payload_bytes": 65536,
+          "chunk_bytes": 0,
+          "samples_ms": {
+            "baseline": [
+              1.602395,
+              0.639202,
+              0.592761,
+              0.95688,
+              0.828754,
+              0.810425,
+              0.670796
+            ],
+            "candidate": [
+              1.840533,
+              0.721397,
+              0.77808,
+              0.723816,
+              0.852858,
+              0.780597,
+              0.598312
+            ]
+          },
+          "median_ms": {
+            "baseline": 0.810425,
+            "candidate": 0.77808
+          },
+          "body_sha256": "9d794cebb642e9c17c0a7e6cc0ca07ec1eb88da992d0101e6a78719ec2710482"
+        },
+        {
+          "path": "incoming",
+          "payload_bytes": 65536,
+          "chunk_bytes": 4096,
+          "samples_ms": {
+            "baseline": [
+              0.12801,
+              0.10902,
+              0.103542,
+              0.111495,
+              0.103818,
+              0.106028,
+              0.100617
+            ],
+            "candidate": [
+              0.086831,
+              0.072814,
+              0.076283,
+              0.069085,
+              0.07717,
+              0.06846,
+              0.076543
+            ]
+          },
+          "median_ms": {
+            "baseline": 0.106028,
+            "candidate": 0.076283
+          },
+          "body_sha256": "b808daea0f225957b3cddad9d5e33cb8dd4da1dbfc1d764e291f8d2e9fa4f857"
+        },
+        {
+          "path": "buffered_response",
+          "payload_bytes": 65536,
+          "chunk_bytes": 4096,
+          "samples_ms": {
+            "baseline": [
+              0.697201,
+              0.671441,
+              0.624735,
+              0.65855,
+              0.629413,
+              0.691755,
+              0.603952
+            ],
+            "candidate": [
+              0.639882,
+              0.560363,
+              0.6265,
+              0.600486,
+              0.556854,
+              0.571468,
+              0.65406
+            ]
+          },
+          "median_ms": {
+            "baseline": 0.65855,
+            "candidate": 0.600486
+          },
+          "body_sha256": "9d794cebb642e9c17c0a7e6cc0ca07ec1eb88da992d0101e6a78719ec2710482"
+        },
+        {
+          "path": "incoming",
+          "payload_bytes": 65536,
+          "chunk_bytes": 65536,
+          "samples_ms": {
+            "baseline": [
+              0.092627,
+              0.085652,
+              0.081489,
+              0.084755,
+              0.076664,
+              0.08098,
+              0.074373
+            ],
+            "candidate": [
+              0.081435,
+              0.077643,
+              0.076629,
+              0.066826,
+              0.072945,
+              0.065335,
+              0.072689
+            ]
+          },
+          "median_ms": {
+            "baseline": 0.081489,
+            "candidate": 0.072945
+          },
+          "body_sha256": "b808daea0f225957b3cddad9d5e33cb8dd4da1dbfc1d764e291f8d2e9fa4f857"
+        },
+        {
+          "path": "buffered_response",
+          "payload_bytes": 65536,
+          "chunk_bytes": 65536,
+          "samples_ms": {
+            "baseline": [
+              0.642734,
+              0.623514,
+              0.577397,
+              0.960634,
+              0.775631,
+              0.779018,
+              0.609563
+            ],
+            "candidate": [
+              0.625454,
+              0.546124,
+              0.612773,
+              0.757843,
+              0.927671,
+              0.671684,
+              0.729899
+            ]
+          },
+          "median_ms": {
+            "baseline": 0.642734,
+            "candidate": 0.671684
+          },
+          "body_sha256": "9d794cebb642e9c17c0a7e6cc0ca07ec1eb88da992d0101e6a78719ec2710482"
+        },
+        {
+          "path": "incoming",
+          "payload_bytes": 1048576,
+          "chunk_bytes": 0,
+          "samples_ms": {
+            "baseline": [
+              0.482031,
+              0.334725,
+              0.349436,
+              0.337007,
+              0.336778,
+              0.345476,
+              0.335652
+            ],
+            "candidate": [
+              0.365655,
+              0.344184,
+              0.350259,
+              0.33835,
+              0.340382,
+              0.393852,
+              0.368141
+            ]
+          },
+          "median_ms": {
+            "baseline": 0.337007,
+            "candidate": 0.350259
+          },
+          "body_sha256": "b808daea0f225957b3cddad9d5e33cb8dd4da1dbfc1d764e291f8d2e9fa4f857"
+        },
+        {
+          "path": "buffered_response",
+          "payload_bytes": 1048576,
+          "chunk_bytes": 0,
+          "samples_ms": {
+            "baseline": [
+              3.284464,
+              3.604766,
+              3.044004,
+              3.150234,
+              2.998935,
+              3.498769,
+              3.172559
+            ],
+            "candidate": [
+              3.170112,
+              3.159484,
+              3.657545,
+              3.197362,
+              3.41959,
+              3.23553,
+              3.320063
+            ]
+          },
+          "median_ms": {
+            "baseline": 3.172559,
+            "candidate": 3.23553
+          },
+          "body_sha256": "672845b8f87abf650b6f9ccbe2e8b963d7df97fe813b6e1aee23a11da41743ae"
+        },
+        {
+          "path": "incoming",
+          "payload_bytes": 1048576,
+          "chunk_bytes": 4096,
+          "samples_ms": {
+            "baseline": [
+              14.242592,
+              14.260306,
+              14.18366,
+              14.333303,
+              16.479169,
+              15.251923,
+              14.34688
+            ],
+            "candidate": [
+              1.085928,
+              0.609756,
+              0.990929,
+              0.651734,
+              1.207519,
+              0.838097,
+              1.085708
+            ]
+          },
+          "median_ms": {
+            "baseline": 14.333303,
+            "candidate": 0.990929
+          },
+          "body_sha256": "b808daea0f225957b3cddad9d5e33cb8dd4da1dbfc1d764e291f8d2e9fa4f857"
+        },
+        {
+          "path": "buffered_response",
+          "payload_bytes": 1048576,
+          "chunk_bytes": 4096,
+          "samples_ms": {
+            "baseline": [
+              17.87252,
+              18.444142,
+              17.16672,
+              17.541814,
+              17.801577,
+              18.190847,
+              17.409244
+            ],
+            "candidate": [
+              4.160936,
+              3.462888,
+              3.929063,
+              4.498765,
+              4.434442,
+              3.466479,
+              4.019398
+            ]
+          },
+          "median_ms": {
+            "baseline": 17.801577,
+            "candidate": 4.019398
+          },
+          "body_sha256": "672845b8f87abf650b6f9ccbe2e8b963d7df97fe813b6e1aee23a11da41743ae"
+        },
+        {
+          "path": "incoming",
+          "payload_bytes": 1048576,
+          "chunk_bytes": 65536,
+          "samples_ms": {
+            "baseline": [
+              11.773861,
+              12.406426,
+              11.812959,
+              12.184617,
+              12.806501,
+              11.745737,
+              12.52042
+            ],
+            "candidate": [
+              0.864568,
+              0.56237,
+              0.86653,
+              0.567783,
+              0.882144,
+              0.619253,
+              0.90737
+            ]
+          },
+          "median_ms": {
+            "baseline": 12.184617,
+            "candidate": 0.864568
+          },
+          "body_sha256": "b808daea0f225957b3cddad9d5e33cb8dd4da1dbfc1d764e291f8d2e9fa4f857"
+        },
+        {
+          "path": "buffered_response",
+          "payload_bytes": 1048576,
+          "chunk_bytes": 65536,
+          "samples_ms": {
+            "baseline": [
+              16.071099,
+              16.35616,
+              19.603093,
+              18.26202,
+              15.493997,
+              15.890993,
+              15.965298
+            ],
+            "candidate": [
+              4.158553,
+              3.663743,
+              7.544338,
+              7.45071,
+              3.915269,
+              3.298283,
+              3.878029
+            ]
+          },
+          "median_ms": {
+            "baseline": 16.071099,
+            "candidate": 3.915269
+          },
+          "body_sha256": "672845b8f87abf650b6f9ccbe2e8b963d7df97fe813b6e1aee23a11da41743ae"
+        },
+        {
+          "path": "incoming",
+          "payload_bytes": 8388608,
+          "chunk_bytes": 0,
+          "samples_ms": {
+            "baseline": [
+              7.158983,
+              4.269721,
+              3.826714
+            ],
+            "candidate": [
+              7.704662,
+              3.417497,
+              3.971605
+            ]
+          },
+          "median_ms": {
+            "baseline": 4.269721,
+            "candidate": 3.971605
+          },
+          "body_sha256": "b808daea0f225957b3cddad9d5e33cb8dd4da1dbfc1d764e291f8d2e9fa4f857"
+        },
+        {
+          "path": "buffered_response",
+          "payload_bytes": 8388608,
+          "chunk_bytes": 0,
+          "samples_ms": {
+            "baseline": [
+              16.267067,
+              18.199028,
+              16.507079
+            ],
+            "candidate": [
+              15.69771,
+              16.674212,
+              15.755029
+            ]
+          },
+          "median_ms": {
+            "baseline": 16.507079,
+            "candidate": 15.755029
+          },
+          "body_sha256": "31ffea78522473e01c1d14c30705860a65c131c094e49e814e97764806ecc60b"
+        },
+        {
+          "path": "incoming",
+          "payload_bytes": 8388608,
+          "chunk_bytes": 4096,
+          "samples_ms": {
+            "baseline": [
+              1376.459619,
+              1463.20309,
+              1372.811311
+            ],
+            "candidate": [
+              19.629603,
+              18.54436,
+              20.820898
+            ]
+          },
+          "median_ms": {
+            "baseline": 1376.459619,
+            "candidate": 19.629603
+          },
+          "body_sha256": "b808daea0f225957b3cddad9d5e33cb8dd4da1dbfc1d764e291f8d2e9fa4f857"
+        },
+        {
+          "path": "buffered_response",
+          "payload_bytes": 8388608,
+          "chunk_bytes": 4096,
+          "samples_ms": {
+            "baseline": [
+              1453.832126,
+              1680.265075,
+              1571.908832
+            ],
+            "candidate": [
+              22.998154,
+              21.143946,
+              20.746248
+            ]
+          },
+          "median_ms": {
+            "baseline": 1571.908832,
+            "candidate": 21.143946
+          },
+          "body_sha256": "31ffea78522473e01c1d14c30705860a65c131c094e49e814e97764806ecc60b"
+        },
+        {
+          "path": "incoming",
+          "payload_bytes": 8388608,
+          "chunk_bytes": 65536,
+          "samples_ms": {
+            "baseline": [
+              1271.496986,
+              1266.629899,
+              1204.853794
+            ],
+            "candidate": [
+              15.738228,
+              17.325684,
+              14.749255
+            ]
+          },
+          "median_ms": {
+            "baseline": 1266.629899,
+            "candidate": 15.738228
+          },
+          "body_sha256": "b808daea0f225957b3cddad9d5e33cb8dd4da1dbfc1d764e291f8d2e9fa4f857"
+        },
+        {
+          "path": "buffered_response",
+          "payload_bytes": 8388608,
+          "chunk_bytes": 65536,
+          "samples_ms": {
+            "baseline": [
+              1205.391068,
+              1365.063212,
+              1279.090447
+            ],
+            "candidate": [
+              19.497605,
+              19.098203,
+              20.446928
+            ]
+          },
+          "median_ms": {
+            "baseline": 1279.090447,
+            "candidate": 19.497605
+          },
+          "body_sha256": "31ffea78522473e01c1d14c30705860a65c131c094e49e814e97764806ecc60b"
+        },
+        {
+          "path": "sse_control",
+          "payload_bytes": 104,
+          "chunk_bytes": 0,
+          "samples_ms": {
+            "baseline": [
+              0.569649,
+              0.438722,
+              0.31989,
+              0.311369,
+              0.281886,
+              0.297801,
+              0.317174
+            ],
+            "candidate": [
+              0.542311,
+              0.311911,
+              0.376622,
+              0.308688,
+              0.300237,
+              0.282151,
+              0.299836
+            ]
+          },
+          "median_ms": {
+            "baseline": 0.317174,
+            "candidate": 0.308688
+          },
+          "body_sha256": null
+        }
+      ],
+      "cleanup": {
+        "cases_passed": 19,
+        "owned_containers_removed": 2,
+        "listeners_released": true
+      },
+      "evidence_sha256": {
+        "handoff.json": "88ddf14b01866d748bccd568a7a6b829c7e2435b165af913b82f25598564047e",
+        "contracts.json": "b4092bf2d34aedd67683d1cbe9e025fe920e303d5ad40fad5f77aa2865fa669a",
+        "source.json": "03b804f0e4dc8ea036ff34596210ab7a7c2ad41b9f70f2b44277e58d83638a33",
+        "http-ab/http-ab-results.json": "d08287e5b2b7c41a2e79ab861ee0079fb1600589e67adb13c321cb34efddb429",
+        "http-ab/http-ab-runners.json": "59a5a488c528bb2173003b3b60295686c9d5f12cacf244d89797f10d8eed0fe4"
+      },
+      "classification": "exploratory_contended",
+      "host_label": "3090J",
+      "reason": "J was shared with another agent building/testing a game; background contention was not controlled. Retained as history, not the primary measurements or a cross-machine/GPU comparison.",
+      "raw_evidence_worktree": "ezlocalcpp-chunk-probe-20261026",
+      "raw_evidence_root": "build/validation/chunk-probe-20261026",
+      "recorded_cpu_affinity": [
+        4,
+        5
+      ]
+    }
+  ]
 }

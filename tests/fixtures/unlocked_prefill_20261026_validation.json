@@ -2,7 +2,7 @@
   "schema_version": 1,
   "date": "2026-10-26",
   "status": "complete",
-  "scope": "Current unlocked CUDA baseline, V physical-batch screen and completed matched-model J/V deployed cross-host proxy.",
+  "scope": "Current unlocked V/4090 native CUDA baselines and V physical-batch screen; common J observations are exploratory/contended and are not a clean locked-card baseline.",
   "native_revision": "c42148868a04d05171cdfc3bca7840f227b97216",
   "engine_revision": "620d2225cc436ab0b001e3200e590e3b286ef9ab",
   "provenance_fixture": "tests/fixtures/unlocked_fleet_20261026_validation.json",
@@ -511,7 +511,8 @@
       ],
       "required_initial_free_vram_mib": 1696,
       "prepared_plan_preserved": true,
-      "gpu_jobs_run": 0
+      "gpu_jobs_run": 0,
+      "further_work": "Skipped while J is utilized, per user instruction."
     },
     "4090_dense_status": "not_run"
   },
@@ -528,7 +529,9 @@
     "Dense probe numerical references passed, but the operator failed clock plausibility. Preserve raw values without a qualified clock-normalized, Tensor Core, unlock or LLM-speedup claim.",
     "J normal desktop GPU load was 31% before its run (Code SM samples 16-19%, Brave 12-15%); applications were left running. The common-model comparison measures the deployed hosts under these conditions.",
     "J host major-fault deltas in the observed benchmark windows were 24930 and 6065, while its benchmark child cgroups recorded only 4 and 0 major faults across the entire phases. Host fault activity cannot be attributed to the child and indicates substantial background/platform activity.",
-    "Common-model V exceeds J by 19.9015% native prefill and 17.6039% native decode in these runs. This is a measured deployed cross-host difference, not a causal GPU-unlock percentage."
+    "Archived observed ratios are V/J +19.9015% native prefill and +17.6039% native decode. Because J was contended by unrelated desktop and user-reported game build/testing activity, these ratios are exploratory only and unsuitable for predicting unlock uplift.",
+    "User-confirmed unrelated game build/testing on J during the session was not isolated from desktop/CPU/GPU contention. The J observations are not a clean locked-J baseline; V/4090 native baseline qualification is unchanged.",
+    "A future clean J baseline requires a fresh reviewed plan and current container identity under a quiet host window. No further J GPU jobs, live queries, model hashing or other-agent contact were performed for this reclassification."
   ],
   "source_reports": [
     {
@@ -622,6 +625,10 @@
     {
       "path": "build/validation/unlocked-prefill-20261026/common-j-result-common-jv-j-ceec469465/matched_2-bench.json",
       "sha256": "004e47b8b1042aa1d076b9f0b5ac4af7c2eed4076f3f96e4bdd6e40659e32e9e"
+    },
+    {
+      "path": "build/validation/unlocked-prefill-20261026/common-model-cleanup-proof.json",
+      "sha256": "66ea31f8341d807dc5992b2553ef366122892bfd3c335708982c1074c22d8cd2"
     }
   ],
   "common_model_J": {
@@ -855,10 +862,18 @@
       "router_restoration_verified": true,
       "drain_released": true,
       "lease_renewal_errors": []
+    },
+    "measurement_qualification": "exploratory_contended_not_clean_locked_baseline",
+    "user_reported_concurrent_activity": {
+      "activity": "Another agent was building and testing a game on J during this session.",
+      "source": "User clarification after the run.",
+      "exact_benchmark_overlap_and_CPU_GPU_contention_isolated": false,
+      "independently_verified_game_process_load": false,
+      "further_J_GPU_work": "Skipped per user instruction; no live J queries or other-agent contact were used for this reclassification."
     }
   },
   "common_model_comparison": {
-    "purpose": "matched deployed cross-card proxy; not causal unlock before/after",
+    "purpose": "archival observed cross-host differences only; J run is exploratory/contended",
     "J_prefill_mean_tps": 1213.8950019567483,
     "V_prefill_mean_tps": 1455.4785236799125,
     "V_prefill_relative_to_J_percent": 19.901517127407374,
@@ -886,8 +901,40 @@
       4
     ],
     "all_restorations_and_drains_verified": true,
-    "interpretation": "V is faster in this matched deployed workload, with identical sampled greedy outputs and verified cache hits. The difference cannot be assigned exclusively to GPU unlock.",
+    "interpretation": "Raw rates, cache counters, fingerprints and recovery facts are retained. User-confirmed unrelated game build/testing and unisolated desktop/CPU/GPU contention make J unsuitable as a clean locked-card baseline. Stored ratios describe only these observations and cannot predict GPU-unlock uplift.",
     "actual_child_full_argv_hash_identical": true,
-    "selected_performance_environment_hash_identical": true
+    "selected_performance_environment_hash_identical": true,
+    "qualification": "archival_only_unsuitable_for_predicting_unlock_uplift",
+    "ratios_are_clean_locked_vs_unlocked_baseline": false
+  },
+  "temporary_common_model_cleanup": {
+    "status": "removed_after_completed_successful_benchmarks",
+    "cleaned_utc": "2026-10-27T00:12:04.464380+00:00",
+    "owner": "unlocked-prefill-20261026-cc24578321a6d8c0",
+    "removed_directory": "/home/josh/ezlocalai/benchmark-models/unlocked-prefill-20261026-cc24578321a6d8c0",
+    "removed_files": [
+      "model.gguf",
+      "ownership.json"
+    ],
+    "removed_model_bytes": 13441059904,
+    "removed_model_sha256": "00cf92e666c6af6566996c38c89a44ccdb6449ea25ef0f112a452c853b2a71e2",
+    "removed_model_inode": 207364384,
+    "marker_sha256": "aefc2a74d0b905222943c078f17ec5e8bd80dcd484820eaaf2bddd75e426c160",
+    "all_exact_path_owner_no_symlink_marker_inode_size_full_sha_and_expected_entry_guards_verified": true,
+    "directory_absent_after_cleanup": true,
+    "V_original_production_healthy_configuration_and_full_argv_verified_before_after": true,
+    "V_original_full_argv_sha256": "ce785c67b521ac1103c8b856ef4060c766ddbe9618a648532fdc160e77886c19",
+    "V_original_production_model_recorded_sha256": "8c2a45ff85e7674ca185ec8eb6cdeab0e617ed9d8018caed0b64380eb2a67a5e",
+    "V_production_model_hash_scope": "Controller verified original production model; current size/mtime and exact restored argv match. No new production-model hash.",
+    "no_remaining_common_child_containers_or_temporary_model_binds": true,
+    "J_production_source_retained": true,
+    "J_source_size_bytes": 13441059904,
+    "J_source_recorded_full_sha256": "00cf92e666c6af6566996c38c89a44ccdb6449ea25ef0f112a452c853b2a71e2",
+    "J_source_current_identity_matches_verified_source": true,
+    "J_source_full_hash_reread_during_cleanup": false,
+    "production_files_modified": false,
+    "operator_and_audit_directories_retained": true,
+    "proof_path": "build/validation/unlocked-prefill-20261026/common-model-cleanup-proof.json",
+    "proof_sha256": "66ea31f8341d807dc5992b2553ef366122892bfd3c335708982c1074c22d8cd2"
   }
 }

@@ -356,6 +356,9 @@ with shaped upload or an unshaped loopback control. It never benchmarks a
 production router or GPU model. Check `--help` for required binary/image options.
 
 The [request-compression report](request-gzip-20261026.md) records decoded-byte
-and inference identity, actual route samples, codec costs, limits and cleanup.
+and engine-request identity, actual route samples, codec costs, limits and cleanup.
+Automatic router compression is off unless the selected worker sets
+`EZLOCALAI_ROUTER_REQUEST_GZIP=true`; the isolated route benchmark enables that
+setting explicitly and alternates the owned registration's advertised encoding.
 The 13 MB/s upload setting is a simulation informed by the V copy observation;
 it is not a measurement of deployed Wi-Fi request latency.
