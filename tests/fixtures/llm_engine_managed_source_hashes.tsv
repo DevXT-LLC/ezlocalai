@@ -1,4 +1,4 @@
-# llama.cpp 620d2225cc436ab0b001e3200e590e3b286ef9ab (managed conversation/cache-storage/MTP/checkpoint-coverage/entry-window/retention patches)
+# llama.cpp 620d2225cc436ab0b001e3200e590e3b286ef9ab (managed conversation/cache-storage/MTP/checkpoint-coverage/entry-window/retention/CUDA-Q4-KV-fusion patches)
 common/common.h	097674596c55be35fec2f0ca57058324951f980716b675b1cb0453c872cf872d
 common/arg.cpp	a10b6e6af910366c5c1abb89e47a7c6711fc1f10708b5fbfd8b59ba1a11d0f4a
 common/speculative.cpp	0025c275599583a3a633188dfc62d84daaed92131ff970c0a2551993ab2d92eb
@@ -10,3 +10,7 @@ tools/server/server-task.cpp	a697236d9459340e5f1382670d56c85d1f5d9a141c70de40401
 tools/server/server-task.h	5d32b085d81a5ee38b84aa3e3a6fca9d04dd7cd324011b29c4aeddb47aad53f1
 tools/server/server-context.cpp	2e7f2e407a524101c629561ccbb79b633a47b78c3ce7d954f1284e41796aade1
 common/checkpoint-retention.h	d38594c52301310a062c664ad3bb143bb174815971bbcff41ac91a5096379a13
+ggml/src/ggml-cuda/fattn.cu	0afc8c1848c33be251e356cec8bbd4fa696d966db75b04b246c31d3962a44eb1
+ggml/src/ggml-cuda/fattn-common.cuh	6df3641dca1908bc761d8e48e50642ee850c3f003e081c9eea84e4cd8434cd75
+ggml/src/ggml-cuda/fattn-mma-f16.cuh	fede01e5b26d16e0293ae3a417434364885abdd7cfaa130c55bf5c59146e23d1
+ggml/src/ggml-cuda/fattn-q4-kv-policy.h	5cf02b3e1a905c014f46f636a1ee7a259eff0dd5858c542f0056cc1acb488b35

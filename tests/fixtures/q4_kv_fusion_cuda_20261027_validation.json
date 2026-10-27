@@ -1,0 +1,774 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-27",
+  "topic": "cuda_q4_kv_f16_tile_loading",
+  "native_base_revision": "0d7224b47a789b63421be23cce2ec01a1afea3f8",
+  "production_deployment_changed": false,
+  "permanent_environment_changes": false,
+  "engine": {
+    "pin": "620d2225cc436ab0b001e3200e590e3b286ef9ab",
+    "managed_patch_count": 8,
+    "patch_sha256": "2e1b610a8cb04c168a237f020c919f6cc90e7caea8079c948bf50caf4aafc9f9",
+    "source_fixture_sha256": "7ae74a8dd01ecb014c06f4ded8e74f24571021406e0935b9a2fe7cc5fbfd991b",
+    "verified_source_files": 15,
+    "source_sha256": {
+      "common/common.h": "097674596c55be35fec2f0ca57058324951f980716b675b1cb0453c872cf872d",
+      "common/arg.cpp": "a10b6e6af910366c5c1abb89e47a7c6711fc1f10708b5fbfd8b59ba1a11d0f4a",
+      "common/speculative.cpp": "0025c275599583a3a633188dfc62d84daaed92131ff970c0a2551993ab2d92eb",
+      "common/speculative.h": "c55ba342165645c2036d33606411036788ce73bc0b055598f255f39950d087c0",
+      "common/speculative-mtp-state.h": "bb946ce5f0e95f4403d4f847661c6e82940477bc996380cfe95e445e08ae42b6",
+      "common/state-storage.h": "9cda9f4c1ec7e7790acb408ffb6e38761b0b6c054b27ea00427a57627e3fa256",
+      "common/checkpoint-coverage.h": "7e87e74fa434240dcb3f3c7005a95f8b957436cd53b20479db7072a4cb25259e",
+      "tools/server/server-task.cpp": "a697236d9459340e5f1382670d56c85d1f5d9a141c70de40401bfdbec52510a4",
+      "tools/server/server-task.h": "5d32b085d81a5ee38b84aa3e3a6fca9d04dd7cd324011b29c4aeddb47aad53f1",
+      "tools/server/server-context.cpp": "2e7f2e407a524101c629561ccbb79b633a47b78c3ce7d954f1284e41796aade1",
+      "common/checkpoint-retention.h": "d38594c52301310a062c664ad3bb143bb174815971bbcff41ac91a5096379a13",
+      "ggml/src/ggml-cuda/fattn.cu": "0afc8c1848c33be251e356cec8bbd4fa696d966db75b04b246c31d3962a44eb1",
+      "ggml/src/ggml-cuda/fattn-common.cuh": "6df3641dca1908bc761d8e48e50642ee850c3f003e081c9eea84e4cd8434cd75",
+      "ggml/src/ggml-cuda/fattn-mma-f16.cuh": "fede01e5b26d16e0293ae3a417434364885abdd7cfaa130c55bf5c59146e23d1",
+      "ggml/src/ggml-cuda/fattn-q4-kv-policy.h": "5cf02b3e1a905c014f46f636a1ee7a259eff0dd5858c542f0056cc1acb488b35"
+    },
+    "stock_cuda_sha256": "f2e399216679d0f2f969e2b29194ab5bdab4de1da86489536f7d49e570bfe5a0",
+    "explicit_candidate_sha256": "bce474db9b6c12e337dbdcb875b6412d18167ebd029d30c0c451d0122f2677d3",
+    "final_cuda_sha256": "7b8c73ada80a40126c883c780e8dac89038f27d459a6eb6206834bcb4f1a6baa",
+    "hot_sm89_instruction_control_words_and_resources_identical": true,
+    "sass_comparison_sha256": "9d5ffd069a00dca824b1bba1609653af57e54fb8613659d0783009e59283984f"
+  },
+  "activation": {
+    "environment_key": "GGML_CUDA_FATTN_Q4_KV_FUSION",
+    "unset": "automatic strictly guarded SM89 fusion, diagnostics disabled",
+    "exact_0": "stock path with diagnostic counters",
+    "exact_1": "guarded fusion with diagnostic counters",
+    "other": "stock path, diagnostics disabled",
+    "query_rows": [
+      3,
+      4
+    ],
+    "head_dimension": 256,
+    "query_heads": 24,
+    "kv_heads": 4,
+    "sequence_count": 1,
+    "kv_storage": "q4_0",
+    "operand_precision": "same F16 operands and original attention reduction partition",
+    "old_f16_workspace_reserved": true
+  },
+  "builder": {
+    "image": "sha256:d7321ef6403b8dbc3b692d4e989ee38bf762d2a33080f239a36c9727ec6cd8e5",
+    "runtime": "runc",
+    "cpus": 2,
+    "memory_bytes": 6442450944,
+    "network": "none",
+    "gpu_device_access": false,
+    "removed_after_validation": true,
+    "cuda_version": "12.8.93",
+    "gcc_version": "13.3.0",
+    "packaged_cuda_architectures": [
+      86,
+      89,
+      120
+    ],
+    "gpu_oracles_built_through_actual_cmake_target": true
+  },
+  "tests": {
+    "cpu_policy_checks": 394,
+    "focused": {
+      "passed": 8,
+      "total": 8,
+      "seconds": 18.32,
+      "log_sha256": "7f7c9ae0eab3c49cbc50f1ffe0060b74183112adcfebdb23cb48b662548b9670"
+    },
+    "package": {
+      "passed": 73,
+      "total": 73,
+      "seconds": 327.42,
+      "oracle_free": true,
+      "regex_source": "cuda.Dockerfile",
+      "log_sha256": "5417ca58487bde6f4ea3b82bc6e72ca60c3b7dacf017bacd2db54b2c8a41a350"
+    },
+    "managed_pristine_upgrade_idempotence_removal_passed": true
+  },
+  "physical_gpu": "NVIDIA GeForce RTX 4090",
+  "gpu_operator_qualification": {
+    "exhaustive_loader": {
+      "scales": 65536,
+      "nibbles_per_scale": 16,
+      "exhaustive_cases": 4,
+      "long_offset_cases": 8,
+      "half_operand_comparisons": 25427968,
+      "both_nan_comparisons": 786432,
+      "nan_payload_differences": 0,
+      "all_non_nan_bits_and_nan_classifications_match": true,
+      "all_source_and_guard_checks_pass": true,
+      "scale_coverage_limit": null
+    },
+    "full_auto_operator": {
+      "cases": 96,
+      "supported_fused_cases": 84,
+      "fallback_cases": 12,
+      "float32_output_positions": 2113536,
+      "off_on_comparison_values": 2113536,
+      "off_auto_comparison_values": 2113536,
+      "all_output_bits_and_inputs_preserved": true,
+      "all_auto_17_counters_zero": true,
+      "supported_off_workspace_overwrites": 84,
+      "supported_on_and_auto_preserved_canaries_each": 84,
+      "workspace_probe_bytes": 256,
+      "off_changed_byte_range": [
+        256,
+        256
+      ],
+      "on_twin_occupancy_pairs": [
+        [
+          2,
+          2
+        ]
+      ],
+      "on_twin_partition_preserved": true,
+      "input_output_fingerprint_matrix_sha256": "b836ff6165ba28ff1f9df0b5bcc575d625fc9a03f0b3782014f95fc8fbbed605"
+    },
+    "cross_stock_candidate_auto_input_output_fingerprints_match": true,
+    "cross_process_fingerprint_algorithm": "FNV1a64; actual within-process OFF/ON/AUTO outputs compare full bytes",
+    "sanitizers": {
+      "loader_memcheck_quick": {
+        "error_summary_counts": [
+          0
+        ],
+        "warning_groups": 0,
+        "log_sha256": "dad84bdc777f0d95f9348065908b17b91dae547ed8d2f864ea996bd1a17385b4"
+      },
+      "attention_auto_memcheck_quick": {
+        "error_summary_counts": [
+          0
+        ],
+        "warning_groups": 0,
+        "log_sha256": "6a401bb836c2726e4ae0fb6f948da0093f33f45108a81339aad3cebf34c5d083"
+      }
+    },
+    "known_vector_warnings": {
+      "groups": 12,
+      "same_deployed_stock_signature": true,
+      "declared_safe": false,
+      "scope": "The unchanged two-query vector fallback reproduces the exact same warning PCs/access counts/multiplicity. This establishes no additional observed warning, not legacy-path race safety."
+    },
+    "original_full_strict_warning_gate": {
+      "status": "failed",
+      "all_sanitizers_passed": false,
+      "supervisor_sha256": "578e2ba2344e48cd0c9b9935d92b18e9e446e4b563b7a3fe1283a5aef64b0cc2"
+    },
+    "restoration": {
+      "restoration_verified": true,
+      "router_restoration_verified": true,
+      "drain_released": true
+    },
+    "default_only_process_silence_scope": "Fresh full-engine AUTO process verified separately below; the mixed-mode oracle cannot prove process-wide silence.",
+    "selected_fused_auto_racecheck": {
+      "cases": 18,
+      "supported_fused_cases": 18,
+      "fallback_cases": 0,
+      "all_output_bits_and_inputs_preserved": true,
+      "all_auto_17_counters_zero": true,
+      "on_twin_partition_preserved": true
+    },
+    "race_summary": {
+      "stock_race_quick": {
+        "displayed_warning_groups": 12,
+        "errors": 0,
+        "warnings": 12,
+        "normalized_full_signature_sha256": "7a2826bac8d9f8cb951a3ba41eb7a012177b2cacaeeafccba0538157ed9115d1",
+        "log_sha256": "9271c365d8434672f8946b99df56408c60f9b0651ffdc9d604f9fcccf11e6f3c"
+      },
+      "candidate_race_quick": {
+        "displayed_warning_groups": 12,
+        "errors": 0,
+        "warnings": 12,
+        "normalized_full_signature_sha256": "7a2826bac8d9f8cb951a3ba41eb7a012177b2cacaeeafccba0538157ed9115d1",
+        "log_sha256": "1bcad92cce61da91f8b93b7cf5d648791fa229b293ce3e0b744b379ea170297e"
+      },
+      "candidate_race_fused_auto": {
+        "displayed_warning_groups": 0,
+        "errors": 0,
+        "warnings": 0,
+        "normalized_full_signature_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "log_sha256": "40ac39752b680f294b631ebe4de1d225210b0bb262a783a5838161ea4b7f711b"
+      },
+      "loader_racecheck_quick": {
+        "displayed_warning_groups": 0,
+        "errors": 0,
+        "warnings": 0,
+        "normalized_full_signature_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "log_sha256": "a9c351daee602f8ee34f595d85b1e87b3d25ad6e5e1ff19f801af320fb4fd794"
+      }
+    }
+  },
+  "initial_six_phase": {
+    "phase_order": [
+      "stock",
+      "off",
+      "on",
+      "on",
+      "off",
+      "stock"
+    ],
+    "outputs": 78,
+    "all_13_signature_fields_exact": true,
+    "pair_checks": {
+      "stock_p0_p1": true,
+      "candidate_off_a1_a2": true,
+      "candidate_on_b1_b2": true,
+      "production_to_candidate_off": true,
+      "candidate_off_to_on": true
+    },
+    "counts": {
+      "expected_input_tokens": 3855810,
+      "evaluated_prompt_tokens": 1082970,
+      "cached_prompt_tokens": 2772840,
+      "generated_tokens": 11220,
+      "draft_tokens": 12102,
+      "accepted_draft_tokens": 7080
+    },
+    "abba_cohorts": {
+      "deep_replay": {
+        "off": {
+          "samples": 6,
+          "native_decode_tps": 54.01714,
+          "response_wall_ms": 4942.227393,
+          "ttft_ms": 219.40186,
+          "native_prompt_tps": 35.087005,
+          "native_prompt_ms": 114.0025,
+          "native_predicted_ms": 4720.724
+        },
+        "on": {
+          "samples": 6,
+          "native_decode_tps": 77.203583,
+          "response_wall_ms": 3509.111292,
+          "ttft_ms": 204.619406,
+          "native_prompt_tps": 40.249555,
+          "native_prompt_ms": 99.38,
+          "native_predicted_ms": 3302.9555
+        },
+        "on_vs_off": {
+          "native_decode_speed_ratio": 1.429242,
+          "native_decode_gain_percent": 42.924234,
+          "response_wall_ratio": 0.710026,
+          "response_wall_reduction_percent": 28.997373,
+          "ttft_ratio": 0.932624,
+          "ttft_reduction_percent": 6.737615,
+          "native_prompt_tps_change_percent": 14.713568
+        }
+      },
+      "short_decode": {
+        "off": {
+          "samples": 6,
+          "native_decode_tps": 112.777374,
+          "response_wall_ms": 2449.39021,
+          "ttft_ms": 148.777733,
+          "native_prompt_tps": 570.711311,
+          "native_prompt_ms": 105.132,
+          "native_predicted_ms": 2261.092
+        },
+        "on": {
+          "samples": 6,
+          "native_decode_tps": 112.877035,
+          "response_wall_ms": 2449.804149,
+          "ttft_ms": 148.83729,
+          "native_prompt_tps": 571.115027,
+          "native_prompt_ms": 105.058,
+          "native_predicted_ms": 2259.096
+        },
+        "on_vs_off": {
+          "native_decode_speed_ratio": 1.000884,
+          "native_decode_gain_percent": 0.088369,
+          "response_wall_ratio": 1.000169,
+          "response_wall_reduction_percent": -0.0169,
+          "ttft_ratio": 1.0004,
+          "ttft_reduction_percent": -0.040031,
+          "native_prompt_tps_change_percent": 0.070739
+        }
+      },
+      "cold4k": {
+        "off": {
+          "samples": 2,
+          "native_decode_tps": 20.21021,
+          "response_wall_ms": 1663.61883,
+          "ttft_ms": 1613.96325,
+          "native_prompt_tps": 2535.51759,
+          "native_prompt_ms": 1609.14,
+          "native_predicted_ms": 49.48
+        },
+        "on": {
+          "samples": 2,
+          "native_decode_tps": 20.088795,
+          "response_wall_ms": 1661.860783,
+          "ttft_ms": 1611.856881,
+          "native_prompt_tps": 2538.735446,
+          "native_prompt_ms": 1607.101,
+          "native_predicted_ms": 49.779
+        },
+        "on_vs_off": {
+          "native_decode_speed_ratio": 0.993992,
+          "native_decode_gain_percent": -0.600762,
+          "response_wall_ratio": 0.998943,
+          "response_wall_reduction_percent": 0.105676,
+          "ttft_ratio": 0.998695,
+          "ttft_reduction_percent": 0.130509,
+          "native_prompt_tps_change_percent": 0.126911
+        }
+      },
+      "cold16k": {
+        "off": {
+          "samples": 2,
+          "native_decode_tps": 33.506458,
+          "response_wall_ms": 5597.086768,
+          "ttft_ms": 5566.881532,
+          "native_prompt_tps": 2983.816764,
+          "native_prompt_ms": 5488.951,
+          "native_predicted_ms": 29.845
+        },
+        "on": {
+          "samples": 2,
+          "native_decode_tps": 34.879698,
+          "response_wall_ms": 5596.799499,
+          "ttft_ms": 5567.66482,
+          "native_prompt_tps": 2983.233603,
+          "native_prompt_ms": 5490.016,
+          "native_predicted_ms": 28.67
+        },
+        "on_vs_off": {
+          "native_decode_speed_ratio": 1.040984,
+          "native_decode_gain_percent": 4.098434,
+          "response_wall_ratio": 0.999949,
+          "response_wall_reduction_percent": 0.005132,
+          "ttft_ratio": 1.000141,
+          "ttft_reduction_percent": -0.014071,
+          "native_prompt_tps_change_percent": -0.019544
+        }
+      },
+      "deep_seed": {
+        "off": {
+          "samples": 2,
+          "native_decode_tps": 53.988141,
+          "response_wall_ms": 67010.157239,
+          "ttft_ms": 62285.501012,
+          "native_prompt_tps": 2096.792226,
+          "native_prompt_ms": 62001.9005,
+          "native_predicted_ms": 4723.2595
+        },
+        "on": {
+          "samples": 2,
+          "native_decode_tps": 77.111274,
+          "response_wall_ms": 65596.043811,
+          "ttft_ms": 62287.782819,
+          "native_prompt_tps": 2096.669054,
+          "native_prompt_ms": 62005.4965,
+          "native_predicted_ms": 3306.911
+        },
+        "on_vs_off": {
+          "native_decode_speed_ratio": 1.4283,
+          "native_decode_gain_percent": 42.830023,
+          "response_wall_ratio": 0.978897,
+          "response_wall_reduction_percent": 2.110297,
+          "ttft_ratio": 1.000037,
+          "ttft_reduction_percent": -0.003663,
+          "native_prompt_tps_change_percent": -0.005874
+        }
+      }
+    },
+    "production_controls": {
+      "short_decode": {
+        "p0": {
+          "samples": 3,
+          "native_decode_tps": 112.925147,
+          "response_wall_ms": 2450.665604,
+          "ttft_ms": 149.329975,
+          "native_prompt_tps": 567.800059,
+          "native_prompt_ms": 105.671,
+          "native_predicted_ms": 2258.133
+        },
+        "p1": {
+          "samples": 3,
+          "native_decode_tps": 112.844641,
+          "response_wall_ms": 2450.337468,
+          "ttft_ms": 148.952181,
+          "native_prompt_tps": 568.865966,
+          "native_prompt_ms": 105.473,
+          "native_predicted_ms": 2259.744
+        },
+        "p1_vs_p0": {
+          "native_decode_speed_ratio": 0.999287,
+          "native_decode_gain_percent": -0.071291,
+          "response_wall_ratio": 0.999866,
+          "response_wall_reduction_percent": 0.01339,
+          "ttft_ratio": 0.99747,
+          "ttft_reduction_percent": 0.252993,
+          "native_prompt_tps_change_percent": 0.187726
+        }
+      },
+      "deep_replay": {
+        "p0": {
+          "samples": 3,
+          "native_decode_tps": 54.043492,
+          "response_wall_ms": 4941.34619,
+          "ttft_ms": 221.300589,
+          "native_prompt_tps": 34.489597,
+          "native_prompt_ms": 115.977,
+          "native_predicted_ms": 4718.422
+        },
+        "p1": {
+          "samples": 3,
+          "native_decode_tps": 54.012619,
+          "response_wall_ms": 4942.853433,
+          "ttft_ms": 220.342711,
+          "native_prompt_tps": 34.621843,
+          "native_prompt_ms": 115.534,
+          "native_predicted_ms": 4721.119
+        },
+        "p1_vs_p0": {
+          "native_decode_speed_ratio": 0.999429,
+          "native_decode_gain_percent": -0.057126,
+          "response_wall_ratio": 1.000305,
+          "response_wall_reduction_percent": -0.030503,
+          "ttft_ratio": 0.995672,
+          "ttft_reduction_percent": 0.43284,
+          "native_prompt_tps_change_percent": 0.383437
+        }
+      }
+    },
+    "dispatch": {
+      "off_eligible_each": 832,
+      "off_selected_each": 0,
+      "on_eligible_each": 832,
+      "on_selected_each": 832,
+      "occupancy_fallbacks": 0,
+      "last_kv_rows": 130304,
+      "last_query_rows": 4,
+      "same_partition": true,
+      "scope": "host selections/capture, not GPU replay counts"
+    },
+    "all_phase_no_oom": true,
+    "gpu_controls": {
+      "power_limit_watts": 450,
+      "abba_sm_clock_mhz_median": 2565,
+      "abba_memory_clock_mhz_median": 10251,
+      "gpu_memory_mib_max_all_phases": 21383,
+      "thermal_slowdown_active_samples": 0,
+      "power_cap_frequently_active": true,
+      "causality": "No locked/unlocked comparison; no GPU-unlock causal inference"
+    },
+    "provenance": {
+      "detailed_analysis": "q4-kv-initial-sixphase-analysis.json",
+      "detailed_analysis_sha256": "ed8165ddb1f91498220bc24a9dc6817fc3677df1cb53c74c7516de966161c1d8",
+      "benchmarks": {
+        "p0": "3c4549757cf3f7961834d9fd7c256b97c5574cc4fbec234b311e61312b2b6c8f",
+        "a1": "5b1d5917f815ea15dd78f5a7e14ef531d3ddcf2517853e347f0de3e2bcb26668",
+        "b1": "c282012b02b30d40c2c23131a67de20ea9cb47c7787a54243b335da447c095bc",
+        "b2": "4aa0d57afb09e62c2934bce12c04f63483a6b2e27bab9ed885bdf21c5f3db156",
+        "a2": "2e564b1153eb39f841602d731339138c995cb1d05ea6eceb297f38425c532525",
+        "p1": "f672c6dbbd46072e9aa8d06ca9efd514671e9dbf0dd6d8808a0b81cb68cd277b"
+      },
+      "result_json": "310e74e9919dd3f8f322138867b2152e4adb91e0b2af8668a8097685cfcc4847",
+      "supervisor_result_json": "8912cc00a4c509f2cfb56d958891156a4653de1b3fe52c5aeff6cdd916e40ea5",
+      "telemetry_json": "8a6fdbfaf16beee368eab118b2385daa3f3d9019214cc0e2e033b0758ce0393c",
+      "engine_log": "98df6e1491823be5a67683d52b0a118af11e25c3fe4d3e11c2aca31ea20146bd",
+      "source_sha256": "1fa09e891df2dd2759501d60498cd94271a9665c01feff3ad070994ce92bf626",
+      "driver_sha256": "8eec3708f92e0a9c3a583af51c0a38a720015785593f8bf3a54047e62220e3a3",
+      "comparator_sha256": "aa679f4e8de40981e663e3a2ed1f86bd5f77eb155e819f7360e26cfdd80ef4f0",
+      "operator_source_manifest_sha256": "9c3f1839381333d7ff6ba2a2bff8480f24dacab8c86b5c5efecb75416625d66a",
+      "plan_sha256": "aef27ac38f7329be36c7736a5bfd57963cec611d57558485d4a0c4adfa3a9c99"
+    }
+  },
+  "final_default_engine": {
+    "phase_order": [
+      "off",
+      "auto",
+      "on"
+    ],
+    "outputs": 39,
+    "combined_outputs": 117,
+    "combined_counts": {
+      "expected_input_tokens": 5783715,
+      "evaluated_prompt_tokens": 1624455,
+      "cached_prompt_tokens": 4159260,
+      "generated_tokens": 16830,
+      "draft_tokens": 18153,
+      "accepted_draft_tokens": 10620
+    },
+    "all_final_to_prior_phase_pairings": 18,
+    "all_request_output_native_cache_mtp_signatures_exact": true,
+    "default_mode_audit": {
+      "exact_environment_verified": true,
+      "flag_absent": true,
+      "only_removed_environment_key": "GGML_CUDA_FATTN_Q4_KV_FUSION",
+      "stats_getter_export_present": true,
+      "stats_exit_log_lines": 0,
+      "container_fusion_stats_is_null": true,
+      "clean_owned_exit_code": 0,
+      "all_phases_loaded_same_final_backend": true,
+      "all_other_loaded_libraries_match_production": true
+    },
+    "fixed_controls": {
+      "declared_context": 230000,
+      "effective_context": 230144,
+      "logical_batch": 4096,
+      "physical_batch": 1024,
+      "kv_types": "q4_0/q4_0",
+      "slots": 1,
+      "mtp_max": 3,
+      "cache_mib": 12288,
+      "deep_input_tokens": 130005,
+      "deep_replay_evaluated_tokens": 4,
+      "deep_replay_cached_tokens": 130001,
+      "image": "sha256:41ab1c10845756013cf93746d71f7d5e652c9b656ad2ee4025ba5cb3b7d29bad",
+      "original_container_id": "faa252f88f1ff5c5629c3692c7d53a18de94adf258eebdbca87b284ee79361f4",
+      "final_cuda_sha256": "7b8c73ada80a40126c883c780e8dac89038f27d459a6eb6206834bcb4f1a6baa",
+      "model_sha256": "8c2a45ff85e7674ca185ec8eb6cdeab0e617ed9d8018caed0b64380eb2a67a5e",
+      "projector_sha256": "83ee4f4f205fa514161778c41df1ea14144faa0f713510893b63c2395f5c2d53",
+      "argv_same_as_initial_six_phase": true,
+      "engine_environment_same_as_initial_six_phase": true,
+      "permanent_environment_changes": false
+    },
+    "performance": {
+      "deep_replay": {
+        "per_phase": {
+          "off": {
+            "samples": 3,
+            "native_decode_tps": 54.006602,
+            "response_wall_ms": 4945.670459,
+            "ttft_ms": 222.259205,
+            "native_prompt_tps": 34.794106,
+            "native_prompt_ms": 114.962
+          },
+          "auto": {
+            "samples": 3,
+            "native_decode_tps": 77.228941,
+            "response_wall_ms": 3509.794283,
+            "ttft_ms": 205.018203,
+            "native_prompt_tps": 40.160643,
+            "native_prompt_ms": 99.6
+          },
+          "on": {
+            "samples": 3,
+            "native_decode_tps": 77.238695,
+            "response_wall_ms": 3506.043408,
+            "ttft_ms": 204.073792,
+            "native_prompt_tps": 40.392208,
+            "native_prompt_ms": 99.029
+          }
+        },
+        "auto_vs_off": {
+          "native_decode_ratio": 1.429991,
+          "native_decode_gain_percent": 42.999075,
+          "response_wall_reduction_percent": 29.032993,
+          "ttft_reduction_percent": 7.75716,
+          "native_prompt_tps_change_percent": 15.423695
+        }
+      },
+      "short_decode": {
+        "per_phase": {
+          "off": {
+            "samples": 3,
+            "native_decode_tps": 112.8077,
+            "response_wall_ms": 2450.606821,
+            "ttft_ms": 148.211797,
+            "native_prompt_tps": 570.228376,
+            "native_prompt_ms": 105.221
+          },
+          "auto": {
+            "samples": 3,
+            "native_decode_tps": 112.680687,
+            "response_wall_ms": 2451.5172,
+            "ttft_ms": 148.53432,
+            "native_prompt_tps": 569.681548,
+            "native_prompt_ms": 105.322
+          },
+          "on": {
+            "samples": 3,
+            "native_decode_tps": 112.811093,
+            "response_wall_ms": 2450.059104,
+            "ttft_ms": 149.368012,
+            "native_prompt_tps": 568.122639,
+            "native_prompt_ms": 105.611
+          }
+        },
+        "auto_vs_off": {
+          "native_decode_ratio": 0.998874,
+          "native_decode_gain_percent": -0.112592,
+          "response_wall_reduction_percent": -0.037149,
+          "ttft_reduction_percent": -0.21761,
+          "native_prompt_tps_change_percent": -0.095896
+        }
+      }
+    },
+    "resource_audit": {
+      "off": {
+        "host_oom_kill_delta": 0,
+        "cgroup_oom_delta": 0,
+        "cgroup_oom_kill_delta": 0,
+        "clean_exit_code": 0,
+        "configured_cache_mib": 12288,
+        "observed_cgroup_memory_peak_bytes": 7385632768,
+        "observed_swap_peak_bytes": 0
+      },
+      "auto": {
+        "host_oom_kill_delta": 0,
+        "cgroup_oom_delta": 0,
+        "cgroup_oom_kill_delta": 0,
+        "clean_exit_code": 0,
+        "configured_cache_mib": 12288,
+        "observed_cgroup_memory_peak_bytes": 7567642624,
+        "observed_swap_peak_bytes": 0
+      },
+      "on": {
+        "host_oom_kill_delta": 0,
+        "cgroup_oom_delta": 0,
+        "cgroup_oom_kill_delta": 0,
+        "clean_exit_code": 0,
+        "configured_cache_mib": 12288,
+        "observed_cgroup_memory_peak_bytes": 7566991360,
+        "observed_swap_peak_bytes": 0
+      }
+    },
+    "restoration": {
+      "proof": {
+        "healthy": true,
+        "same_container": true,
+        "same_image": true,
+        "same_environment": true,
+        "same_mounts": true,
+        "same_config": true,
+        "same_hostconfig": true,
+        "critical_parameters_preserved": true,
+        "oom_killed": false,
+        "full_engine_argv_preserved": true
+      },
+      "two_fresh_heartbeats": true,
+      "stable_metadata_preserved": true,
+      "owned_drain_released": true,
+      "lease_renewal_errors": []
+    },
+    "provenance": {
+      "benchmarks": {
+        "off": "2871ff179067d239f26855b6e21b8cb98943994d8df9ddd020c2615cf4938d2c",
+        "auto": "eca3247a27868b0be47c0d3766c0deaff88907c417fa12f94b41e4bd69f2d310",
+        "on": "5174d6ed3d4200072ffd99865bc4a54425c5add72773afdb4605f6ce9c2cb26f"
+      },
+      "result_json": "177bc2470f16cbc2ef063e772d2817063ecb330dc2e60b7c53d7a2ac9d907ca0",
+      "supervisor_result_json": "def8fd7e91f775a16942519fb3f4f77b037eb87d02c914ca1b7492da31a4448c",
+      "engine_log": "0f10142f70a3aa28784dcfdfda0a9bb2331f1fc40b4c6bb238764629023d5714",
+      "telemetry_json": "750dc058ab0554c4b0dc87d9f60df369ba0688405f2c25792da26ec13b3b38e8",
+      "source_sha256": "1fa09e891df2dd2759501d60498cd94271a9665c01feff3ad070994ce92bf626",
+      "driver_sha256": "8eec3708f92e0a9c3a583af51c0a38a720015785593f8bf3a54047e62220e3a3",
+      "comparator_sha256": "2e7635ea4d2760552b6461128bea39fbc4d31424da3256150c429204ed7ff912",
+      "operator_source_manifest_sha256": "25b44653f55a538eec4d3da4c18d93cb0014a35b66aed8174ee9ca5b0ed97996",
+      "artifact_manifest_sha256": "13a7a9afbbe03a6308ff6ae4e12aad225f0cfab56f89860ce517ddb9d06775f7",
+      "plan_sha256": "3e19053c7fc02b3c6452b8b8dd6abcd7794682a3ca7f2fc3b7f8fbec5d39802d",
+      "initial_summary_sha256": "8db17887c29fe43e4d57bbc7943fd2ade046096f1b5b2f67fc65f0aec311cc0a"
+    },
+    "scope": "One final OFF/AUTO/ON qualification, not ABBA; initial OFF/ON ABBA remains the primary performance estimate. No final image deployment is implied."
+  },
+  "restored_worker_probe": {
+    "status": "passed",
+    "label": "DevXT4090",
+    "pinned_router_chat": true,
+    "response": "READY",
+    "response_sha256": "c2e3ac47f4a325469c1a2d5f117e463ec943c721986d5d9f09ac4540b7d80526",
+    "disable_fallback": true,
+    "stable_worker_metadata_preserved": true,
+    "stable_worker_metadata_sha256": "e8930d09fd3812ef74b54ca79ffc3df8cd0865d883b9d301c956b74d85c57d23",
+    "version": "0d7224b",
+    "original_container": "faa252f88f1ff5c5629c3692c7d53a18de94adf258eebdbca87b284ee79361f4",
+    "original_image": "sha256:41ab1c10845756013cf93746d71f7d5e652c9b656ad2ee4025ba5cb3b7d29bad",
+    "rollback_tag": "ezlocalai:rollback-q4-kv-fusion-20261027-4090",
+    "no_permanent_environment_changes": true
+  },
+  "cleanup": {
+    "status": "passed",
+    "utc": "2026-10-27T17:24:30.426971+00:00",
+    "original_container_healthy": true,
+    "original_container": "faa252f88f1ff5c5629c3692c7d53a18de94adf258eebdbca87b284ee79361f4",
+    "original_image": "sha256:41ab1c10845756013cf93746d71f7d5e652c9b656ad2ee4025ba5cb3b7d29bad",
+    "owned_children_remaining": 0,
+    "removed_owned_directories": [
+      "/tmp/ezlocalai-q4-oracles-20261027-v1",
+      "/tmp/ezlocalai-q4-oracles-20261027-v2",
+      "/tmp/ezlocalai-q4-oracles-20261027-full-v1",
+      "/tmp/ezlocalai-q4-kv-engine-parity-20261027-v1",
+      "/tmp/ezlocalai-q4-kv-engine-parity-20261027-v2",
+      "/tmp/ezlocalai-q4-race-differential-20261027-v1",
+      "/tmp/ezlocalai-q4-race-differential-20261027-v2",
+      "/tmp/ezlocalai-q4-kv-engine-default-20261027-v3",
+      "/tmp/ezlocalai-q4-final-auto-20261027-v1"
+    ],
+    "removed_owned_ephemeral_tags": [
+      "ezlocalai:rollback-q4-default-eab2563f0557",
+      "ezlocalai:rollback-q4-engine-9b5d0ae4436d",
+      "ezlocalai:rollback-q4-oracles-951e03f5faef",
+      "ezlocalai:rollback-q4-oracles-0fda76513f73",
+      "ezlocalai:rollback-q4-oracles-f09c4639a07c",
+      "ezlocalai:rollback-q4-oracles-bf4e391b9f5a",
+      "ezlocalai:rollback-q4-oracles-e836ecbcf7b4"
+    ],
+    "retained_rollback_tag": "ezlocalai:rollback-q4-kv-fusion-20261027-4090",
+    "other_containers_or_images_removed": false,
+    "cpu_builder_removed": true,
+    "cpu_builder_name": "ezlocalai-q4-fusion-cpu-builder-20261027"
+  },
+  "independent_audit_sha256": {
+    "initial_six_phase": "8db17887c29fe43e4d57bbc7943fd2ade046096f1b5b2f67fc65f0aec311cc0a",
+    "final_default": "23bdcc7a62c66414d9c4227fd2d28b502f97e63a343bca756222f9e548e17bca",
+    "final_gpu": "ae7c9c3d82e18aaf682c950c286dbf7901673db57749bada09b70c10b3fbbefe"
+  },
+  "gpu_report_provenance": {
+    "image": "sha256:41ab1c10845756013cf93746d71f7d5e652c9b656ad2ee4025ba5cb3b7d29bad",
+    "worker_revision": "0d7224b47a789b63421be23cce2ec01a1afea3f8",
+    "engine_pin": "620d2225cc436ab0b001e3200e590e3b286ef9ab",
+    "artifacts": {
+      "libggml-cuda.prototype.so.0": "7b8c73ada80a40126c883c780e8dac89038f27d459a6eb6206834bcb4f1a6baa",
+      "test_q4_kv_loader": "6ab341c255aecd226fc0cd9231238bb769a343a8c153c337edaa3b54c6634d3c",
+      "test_q4_kv_attention_operator": "7ce8c57ce00b640a09a774bf18d775148b38794763aed712475918964c475ce6",
+      "test_q4_kv_layout": "12b6047047ffb964e913163bbbf62a2c046688c2d2c84b9c4cc9b2b793c04cfa"
+    },
+    "plan_sha256": "8925ed0e8101de8b7a5e0edcc3164edda0a08122c9023bcea7f18c4d9f9bc658",
+    "report_and_log_sha256": {
+      "attention_auto_memcheck_quick.log": "6a401bb836c2726e4ae0fb6f948da0093f33f45108a81339aad3cebf34c5d083",
+      "attention_full_auto_near_context.log": "ebd2483bb98e49d18e2c99e5ef1fb87ddf7c454eb2faec749581e4db2e06c84b",
+      "candidate_race_fused_auto.log": "40ac39752b680f294b631ebe4de1d225210b0bb262a783a5838161ea4b7f711b",
+      "candidate_race_quick.log": "1bcad92cce61da91f8b93b7cf5d648791fa229b293ce3e0b744b379ea170297e",
+      "engine.log": "d2600afd4650afcdd1616d013d3bfe4732adc15d66b9b7f65070109be684a625",
+      "layout.log": "dfedba73ed0c86e1110b6a4cf147ddcfd62b1192a77055dd639b000499e8c6f7",
+      "loader_full.log": "40145ce265749026d7474fe4a95367ac0c3798d956e50c3f84ace5ea74e75f19",
+      "loader_memcheck_quick.log": "dad84bdc777f0d95f9348065908b17b91dae547ed8d2f864ea996bd1a17385b4",
+      "loader_racecheck_quick.log": "a9c351daee602f8ee34f595d85b1e87b3d25ad6e5e1ff19f801af320fb4fd794",
+      "result.json": "3803c553d51431d8138b9046d65d6d7bcef06893333e02ac89903ce69f1a39b8",
+      "results/attention_auto_memcheck_quick.json": "416e3c06128aebdabffc6d5caf331cbe6a2a9ab7c57dfe4795681119880bbefa",
+      "results/attention_full_auto_near_context.json": "a85fcceef835516f9f3d1a91b54349db129d60176ffe2d7b19d20366f0ec36b8",
+      "results/candidate_race_fused_auto.json": "a87f73b390cce09d927f7e2ac08cfda62190eefa8415e17804cb19c694d7430b",
+      "results/candidate_race_quick.json": "4245705bf484a30f9bc087fdbce58d0b96d47b2dc469fe82456ed5dafad4c8ae",
+      "results/loader_full.json": "8a84468ee53b9e50408ee631f6a35c8ac3192e50722133e318b3d67b5be924d8",
+      "results/loader_memcheck_quick.json": "a63f7c01cab79cd1a6c28f6ede30ba248d7b5ef92c6ed5f337e661a5ecf80af6",
+      "results/loader_racecheck_quick.json": "a63f7c01cab79cd1a6c28f6ede30ba248d7b5ef92c6ed5f337e661a5ecf80af6",
+      "results/stock_race_quick.json": "f8db96035b92902b4a107e042ae24fa5e510e9a3ed15d58ee334a11b74eb1bf4",
+      "run.log": "c8abb3b69ab4d4ebfd3c1e808b98f6e19cc4d236c51923ae27ed6c14824241e9",
+      "stock_race_quick.log": "9271c365d8434672f8946b99df56408c60f9b0651ffdc9d604f9fcccf11e6f3c",
+      "supervisor-result.json": "e4498f81c25dbd5ea1942a669a3e99cf68039013656287d6aed5640858de0013",
+      "telemetry.json": "831a5b05f21b3b9e82126c52c5bdd7fe111cad68d198e2412ce6a381df43b6b2"
+    },
+    "audit_script_sha256": "32c801b67b2ff2431ad480d643ec0823af1860e059f80371b401fa1d91b8687c",
+    "numeric_helper_sha256": "ca2c45109d67eb1f6a1c20b0855619b5465241a44a582dc9c1c49cd8bb27013f",
+    "differential_helper_sha256": "ec6123af87cd5c6131a2103c978cb3e95c488ff5079ce5ac727effceb0047d9a"
+  },
+  "not_validated": [
+    "fresh complete Docker image deployment",
+    "other physical GPUs or platforms",
+    "multi-GPU",
+    "vision",
+    "full-model 230000-token maximum-context behavior",
+    "broad model-quality study",
+    "internal network latency improvements",
+    "locked-versus-unlocked GPU causality"
+  ],
+  "remaining_work": [
+    "bulk prefill MMQ profiling and optimization",
+    "physical qualification before extending the fusion guard to SM86/SM120",
+    "investigate unchanged two-query Q4 vector racecheck warnings separately"
+  ]
+}

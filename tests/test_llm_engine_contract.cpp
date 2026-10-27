@@ -21,7 +21,9 @@ void verify_sources(const std::filesystem::path & fixture) {
         "common/common.h", "common/arg.cpp", "common/speculative.cpp", "common/speculative.h",
         "common/speculative-mtp-state.h", "common/state-storage.h", "common/checkpoint-coverage.h",
         "common/checkpoint-retention.h", "tools/server/server-task.cpp",
-        "tools/server/server-task.h", "tools/server/server-context.cpp"};
+        "tools/server/server-task.h", "tools/server/server-context.cpp",
+        "ggml/src/ggml-cuda/fattn.cu", "ggml/src/ggml-cuda/fattn-common.cuh",
+        "ggml/src/ggml-cuda/fattn-mma-f16.cuh", "ggml/src/ggml-cuda/fattn-q4-kv-policy.h"};
 #else
     const std::set<std::string> expected{"common/common.h", "common/arg.cpp", "common/speculative.cpp"};
 #endif
