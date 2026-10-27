@@ -1,3 +1,6 @@
+This experiment is not promoted after its completed CUDA screen. It is not
+part of the proposed checkpoint entry-window runtime patch stack.
+
 The managed speculative-overhead patch retains the pinned engine's token
 arithmetic, sampler settings and target/draft state format. It removes two
 pieces of host work.

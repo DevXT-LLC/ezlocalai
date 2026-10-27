@@ -29,7 +29,7 @@ remain intact.
 
 ## Engine changes
 
-The sixth managed llama.cpp patch avoids cloning the sampler on verification
+The experimental host-work patch avoids cloning the sampler on verification
 rounds where the largest possible rollback fits the existing partial/recurrent
 rollback capacity. Cases needing checkpoint replay retain their original sampler
 snapshot. It also reads the dense unmasked MTP hidden-output buffer once per
@@ -80,3 +80,6 @@ near-end checkpoints are after the shorter prompt, according to source-derived
 scheduler positions. This is a coverage limitation rather than evidence of an
 evicted conversation. Broader coverage requires its own quality and memory
 qualification and is not part of the host-overhead measurements above.
+
+The unpromoted implementation and guards are preserved in experimental commit
+[`e2241c5`](https://github.com/DevXT-LLC/ezlocalai/commit/e2241c5).
