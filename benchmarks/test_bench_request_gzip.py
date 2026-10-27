@@ -6,6 +6,7 @@ import json
 import os
 from pathlib import Path
 import re
+import socket
 import tempfile
 import threading
 from types import SimpleNamespace
@@ -29,6 +30,56 @@ class FakeClock:
 
 
 class GzipBenchmarkGuards(unittest.TestCase):
+    def test_relay_response_headers_preserve_valid_fields_and_replace_framing(self):
+        headers = [("Content-Type", "text/event-stream; charset=utf-8"),
+                   ("X-Example_123", "\tvalid caf\xe9 "), ("Cache-Control", "no-cache"),
+                   ("Content-Length", "42"), ("TRANSFER-ENCODING", "chunked"),
+                   ("Connection", "close"), ("Server", "fixture"), ("Date", "fixture")]
+        self.assertEqual(bench.checked_response_headers(headers), headers[:3])
+
+    def test_relay_response_headers_reject_injection_and_invalid_field_syntax(self):
+        invalid = [("X-Test\r\nInjected", "value"), ("X-Test\nInjected", "value"),
+                   ("X:Injected", "value"), ("X Test", "value"), ("", "value"),
+                   ("X-\x00Test", "value"), ("X-\xe9", "value"),
+                   ("X-Test", "value\r\nInjected: yes"), ("X-Test", "value\nInjected: yes"),
+                   ("X-Test", "value\rInjected: yes"), ("X-Test", "value\x00"),
+                   ("X-Test", "value\x7f"), ("X-Test", "value\u0100"),
+                   ("Content-Length", "2\r\nInjected: yes")]
+        for header in invalid:
+            with self.subTest(header=header), self.assertRaisesRegex(ValueError, "upstream response header"):
+                bench.checked_response_headers([("Content-Type", "application/json"), header])
+
+    def test_real_relay_rejects_folded_upstream_header_before_sending_any_response(self):
+        class Native(BaseHTTPRequestHandler):
+            def log_message(self, *args):
+                pass
+            def do_POST(self):
+                self.rfile.read(int(self.headers["Content-Length"]))
+                self.wfile.write(b"HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n"
+                    b"X-Test: value\r\n Injected: yes\r\nContent-Length: 2\r\n\r\n{}")
+        server = ThreadingHTTPServer(("127.0.0.1", 0), Native)
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        try:
+            with bench.UploadRelay(server.server_port, "generated-worker-secret", rate=0) as relay:
+                with socket.create_connection(("127.0.0.1", relay.port), timeout=2) as client:
+                    client.sendall(b"POST /v1/chat/completions HTTP/1.1\r\nHost: localhost\r\n"
+                        b"Authorization: Bearer generated-worker-secret\r\nContent-Length: 2\r\n"
+                        b"Connection: close\r\n\r\n{}")
+                    received = bytearray()
+                    while True:
+                        part = client.recv(4096)
+                        if not part:
+                            break
+                        received.extend(part)
+                self.assertEqual(received, b"", "malformed headers committed part of a response")
+                self.assertEqual(relay.errors, ["ValueError"])
+                self.assertEqual(relay.records, [])
+        finally:
+            server.shutdown()
+            server.server_close()
+            thread.join()
+
     def test_public_corpus_provenance_and_bounds(self):
         manifest, text = bench.load_corpus()
         self.assertEqual(len(manifest["sources"]), 160)

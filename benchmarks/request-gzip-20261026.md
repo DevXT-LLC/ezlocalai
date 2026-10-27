@@ -214,6 +214,19 @@ an empty encoding list. Normal deployment drain/rollback still applies if a
 live worker changes after the final capability check. GPU inference throughput,
 numerical model quality and production V Wi-Fi latency are not measured here.
 
+## Benchmark response-header follow-up
+
+After the measurements, CodeQL identified two response-splitting paths in the
+loopback relay's upstream header forwarding. The relay now validates the whole
+header list before sending any response, rejects CR/LF and invalid field syntax,
+and preserves valid forwarded fields. All 18 benchmark guards pass, including
+a real folded-header rejection with zero response bytes. This changes only the
+host benchmark harness; worker/router runtime and model inputs are unaffected.
+The timing tables and script fingerprint below still identify the earlier
+measured script, not a new timing run. See
+[`request_gzip_headers_20261026_validation.json`](../tests/fixtures/request_gzip_headers_20261026_validation.json)
+for the follow-up source fingerprints and checks.
+
 ## Separate staged setting on DevXT3090V
 
 Only the comment and `EZLOCALAI_ROUTER_REQUEST_GZIP=true` were appended to
@@ -250,7 +263,7 @@ fixed CPU sets, owned-resource cleanup and read-only contamination checks.
 | --- | --- |
 | Final native worker | `09b3112cf0825136495326ac6c0f2238396ad92643bf1bd99ab11d9091c65f26` |
 | Router release | `db315055ad6b94bca125debd8e0576feda3cbca60e61fb27bcca1ea680559942` |
-| Benchmark script | `8dc3a1f45e65002e8f0eed50e136b8b9038e16a3b17d418e71bf3101d7a7139f` |
+| Measured benchmark script | `8dc3a1f45e65002e8f0eed50e136b8b9038e16a3b17d418e71bf3101d7a7139f` |
 | Public-source manifest | `d0c2e793c738b731eba7fb550edbfc609210d67d567abe980f89cde11d52efb4` |
 | Public-source archive | `d0e8f46579d4d2d670a4abd7e75f8f5b1c5c1557b93976d237064a8d34537772` |
 | Final unshaped raw report | `291655a3015580a7d639800855e6286dbbff59cca93f8f854ee8c3e5eebebed5` |

@@ -2,6 +2,22 @@
 
 The goal remains behavior parity with ezlocalai within the scope below, with all first-party executable code implemented in C++. It is **not complete**.
 
+## Benchmark relay response-header validation (2026-10-26)
+
+CodeQL findings 59 and 60 identified unvalidated upstream header names/values
+in the gzip benchmark's loopback relay. It now validates the entire response
+header list before committing a status line or headers, rejects CR/LF and
+invalid field syntax, and forwards valid values unchanged. The relay continues
+to replace hop-by-hop/framing headers itself; no warning suppression is used.
+
+All **18 benchmark guards** pass, including invalid names/values, valid field
+preservation and a real folded-header response that must close without sending
+any response bytes. Python compilation and whitespace checks pass. Native and
+router runtime code, deployments and GPU settings are unchanged. Historical
+timings keep the original measured script fingerprint; this follow-up does not
+claim a fresh performance measurement. Compact evidence is in
+`tests/fixtures/request_gzip_headers_20261026_validation.json`.
+
 ## Lossless HTTP transport and CUDA speed checks (2026-10-26)
 
 Incoming chunked requests and buffered local responses now track framing

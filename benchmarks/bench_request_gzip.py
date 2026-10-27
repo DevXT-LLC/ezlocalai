@@ -13,6 +13,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
 import os
 from pathlib import Path
+import re
 import secrets
 import socket
 import statistics
@@ -185,6 +186,23 @@ def pace_send(send, body, rate=RATE, clock=time.monotonic, sleep=time.sleep, blo
     return sent
 
 
+def checked_response_headers(headers):
+    """Validate the complete upstream header list before committing a response."""
+    forwarded = []
+    for name, value in headers:
+        # These cleaned copies are also safe at the HTTP writer boundary. Reject
+        # changes instead of silently repairing malformed upstream responses.
+        safe_name = name.replace("\r", "").replace("\n", "").replace(":", "")
+        safe_value = value.replace("\r", "").replace("\n", "")
+        if (safe_name != name or safe_value != value
+                or re.fullmatch(r"[!#$%&'*+\-.^_`|~0-9A-Za-z]+", safe_name) is None
+                or re.fullmatch(r"[\t\x20-\x7e\x80-\xff]*", safe_value) is None):
+            raise ValueError("invalid upstream response header")
+        if safe_name.lower() not in ("content-length", "transfer-encoding", "connection", "server", "date"):
+            forwarded.append((safe_name, safe_value))
+    return forwarded
+
+
 class UploadRelay:
     """An owned loopback proxy pacing body bytes before forwarding them."""
     def __init__(self, target_port, expected_key, rate=RATE):
@@ -229,10 +247,10 @@ class UploadRelay:
                         pace_send(connection.send, body, rate)
                         upload_seconds = time.perf_counter() - paced
                         response = connection.getresponse()
+                        forwarded = checked_response_headers(response.getheaders())
                         self.send_response(response.status)
-                        for key, value in response.getheaders():
-                            if key.lower() not in ("content-length", "transfer-encoding", "connection", "server", "date"):
-                                self.send_header(key, value)
+                        for key, value in forwarded:
+                            self.send_header(key, value)
                         self.send_header("Transfer-Encoding", "chunked")
                         self.send_header("Connection", "close")
                         self.end_headers()
