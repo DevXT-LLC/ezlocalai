@@ -197,7 +197,7 @@ public:
         check(changed_.wait_for(lock, std::chrono::seconds(8), [&] { return complete() || !failure_.empty(); }), "worker registration/heartbeat timed out");
         check(failure_.empty(), failure_);
         for (const auto &call : calls_) if (call.first == "/v1/router/register" || call.first == "/v1/router/heartbeat")
-            check(call.second.at("extra").at("http_request_encodings") == Json::array({"gzip"}), "worker capability is absent from registration or heartbeat");
+            check(call.second.at("extra").at("http_request_encodings") == Json::array(), "unset gzip policy advertised compression");
     }
 };
 
@@ -240,6 +240,7 @@ std::shared_ptr<ezlocalai::ResourceManager> resources() {
 }
 void environment(const CaptureRouter &router) {
     for (const auto &[key, value] : ezlocalai::environment_defaults) unsetenv(std::string(key).c_str());
+    unsetenv("EZLOCALAI_ROUTER_REQUEST_GZIP");
     for (const auto *key : {"TTS_ENABLED", "STT_ENABLED", "EMBEDDING_ENABLED", "IMAGE_ENABLED", "VIDEO_ENABLED", "MUSIC_ENABLED", "WORKER_TUNNEL", "ROUTER_MODE"}) setenv(key, "false", 1);
     for (const auto *key : {"EZLOCALAI_DOTENV_PATH", "TEXT_SERVER", "VOICE_SERVER", "FALLBACK_SERVER", "FALLBACK_API_KEY", "IMAGE_SERVER"}) setenv(key, "", 1);
     setenv("DEFAULT_MODEL", "gzip-fixture", 1); setenv("EZLOCALAI_API_KEY", "gzip-worker-key", 1);
@@ -274,6 +275,8 @@ int main() {
         ezlocalai::NativeServer server(config, std::make_unique<Backend>(recorded), resources());
         const int port = fixture_ports(); std::string failure;
         check(server.start("127.0.0.1", port, &failure), failure);
+        // Advertisement defaults off; explicit gzip clients and requests
+        // already in flight during policy revocation still decode normally.
         router.check_advertisements();
         const std::vector<std::pair<std::string, std::string>> bodies{
             {"/v1/chat/completions", R"({"model":"gzip-fixture","messages":[{"role":"user","content":"é \\ quoted \" text"}],"stream":false,"temperature":0,"prompt_cache_key":"separate-history","disable_fallback":true,"metadata":{"unchanged":true}})"},

@@ -11936,9 +11936,10 @@ std::string NativeServer::worker_state_json() const {
         // Python leaves extra empty when a media-policy probe fails. The
         // worker must still register and send its remaining state.
     }
-    // Transport support is independent of optional media-policy probes and
-    // must remain advertised on registration and every subsequent heartbeat.
-    values["extra"] = merge_json_objects(values["extra"], R"({"http_request_encodings":["gzip"]})");
+    // Router request compression is opt-in per worker. Always report the
+    // current policy, including revocation and failed media-policy probes.
+    values["extra"] = merge_json_objects(values["extra"], env_true("EZLOCALAI_ROUTER_REQUEST_GZIP")
+        ? R"({"http_request_encodings":["gzip"]})" : R"({"http_request_encodings":[]})");
     values["version"] = "\"" + json_escape(runtime_version()) + "\"";
     return json_object_from_values(values);
 }
