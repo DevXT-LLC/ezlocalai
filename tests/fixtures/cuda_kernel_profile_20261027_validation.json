@@ -1,0 +1,430 @@
+{
+  "date": "2026-10-27",
+  "worker": "DevXT4090",
+  "purpose": "Observed CUDA bottlenecks; diagnostic only",
+  "workflow_complete": false,
+  "control_after_present": false,
+  "speedup_claim": false,
+  "restoration_verified": true,
+  "router_restoration_verified": true,
+  "owned_drain_released": true,
+  "capture_salvaged_offline": true,
+  "nsight_version": "2025.3.2.474",
+  "collection_limits": [
+    "Missing importer prevented the live export and final control; matching local importer salvaged all three raw traces",
+    "All captures warn that not all CUDA events might have been collected",
+    "Deep capture has CUPTI graph-ID annotation errors; graph association/completeness is limited",
+    "Busy union includes reported kernel and copy intervals only; wall difference is not attributed to CPU or network",
+    "Profile instrumentation is active; before/profile differences are not an optimization result"
+  ],
+  "aggregation_script_sha256": "315beaeb028cd8a1e0cbaafaba9f4844781a69848e72fe2ea2aa89b38d45b38f",
+  "provenance": {
+    "frozen_plan_sha256": "880267719517e4f9b197090d7365afd4a3680e612b2595106c22b3cb9edbcfce",
+    "public_corpus": {
+      "repository": "https://github.com/DevXT-LLC/ezlocalai",
+      "commit": "c42148868a04d05171cdfc3bca7840f227b97216",
+      "path": "benchmarks/bench_progression.py",
+      "sha256": "1fa09e891df2dd2759501d60498cd94271a9665c01feff3ad070994ce92bf626"
+    },
+    "required_native_worker_revision": "3412754",
+    "production_image_id": "sha256:b56ebbeb9efb1419e5d060d9df12ed5637cc683972f2ce5036d66fad28d6239c",
+    "llama_source_pin": "620d2225cc436ab0b001e3200e590e3b286ef9ab",
+    "model_sha256": "8c2a45ff85e7674ca185ec8eb6cdeab0e617ed9d8018caed0b64380eb2a67a5e",
+    "projector_sha256": "83ee4f4f205fa514161778c41df1ea14144faa0f713510893b63c2395f5c2d53",
+    "engine_executable_sha256": "786d233474c43332fb731763342e71657136e992b54d405b19998821b1f51074",
+    "loaded_production_library_sha256": {
+      "/app/build/llama.cpp/bin/libllama-server-impl.so": "2fbc02b333b689f21d9b7273553099b0cab60c6b9f18d4c9fd90c1372a0b1e74",
+      "/app/build/llama.cpp/bin/libllama-common.so.0": "c9fd858250b3e1c04ea03f057f1b01ac15496af7983a59ade34ba3dbddc37998",
+      "/app/build/llama.cpp/bin/libggml-cuda.so.0": "4d225f165f3b86e0bd06db78162a279dd92ed6109d6ba416bf8ae7574551bb41"
+    }
+  },
+  "full_summary_sha256": "be04f800dd32b74458e08c90a8a4e1c2d977321c446a651ac1a74236ee27ad80",
+  "captures": [
+    {
+      "name": "cold4096",
+      "actual_timed_cuda_kernels": 16167,
+      "invalid_kernel_records": 0,
+      "gpu_kernel_sum_seconds": 1.215752828,
+      "gpu_kernel_and_copy_union_seconds": 1.27039053,
+      "gpu_reported_activity_span_seconds": 1.4338849,
+      "gpu_reported_activity_span_busy_fraction": 0.8859780377072106,
+      "profile_request_wall_seconds": 1.4511515170015628,
+      "uninstrumented_before_wall_seconds": 1.433286715997383,
+      "finite_answers_match": true,
+      "request_signatures_match": true,
+      "kernel_categories": [
+        {
+          "category": "mmq",
+          "count": 2520,
+          "sum_ns": 873936756,
+          "sum_ms": 873.936756,
+          "kernel_sum_percent": 71.88441070194246
+        },
+        {
+          "category": "gated_activation",
+          "count": 780,
+          "sum_ns": 64653237,
+          "sum_ms": 64.653237,
+          "kernel_sum_percent": 5.3179590053974355
+        },
+        {
+          "category": "gdn",
+          "count": 288,
+          "sum_ns": 59701939,
+          "sum_ms": 59.701939,
+          "kernel_sum_percent": 4.910697110876883
+        },
+        {
+          "category": "activation_quantization",
+          "count": 3217,
+          "sum_ns": 52369063,
+          "sum_ms": 52.369063,
+          "kernel_sum_percent": 4.307541943879402
+        },
+        {
+          "category": "other",
+          "count": 4543,
+          "sum_ns": 45976658,
+          "sum_ms": 45.976658,
+          "kernel_sum_percent": 3.7817438661142067
+        },
+        {
+          "category": "normalization",
+          "count": 1872,
+          "sum_ns": 33778546,
+          "sum_ms": 33.778546,
+          "kernel_sum_percent": 2.7784057106055116
+        },
+        {
+          "category": "attention",
+          "count": 204,
+          "sum_ns": 27019803,
+          "sum_ms": 27.019803,
+          "kernel_sum_percent": 2.2224750276295473
+        },
+        {
+          "category": "concat",
+          "count": 294,
+          "sum_ns": 25636824,
+          "sum_ms": 25.636824,
+          "kernel_sum_percent": 2.1087200794074565
+        },
+        {
+          "category": "mmvq",
+          "count": 505,
+          "sum_ns": 16836124,
+          "sum_ms": 16.836124,
+          "kernel_sum_percent": 1.384831160762885
+        },
+        {
+          "category": "mmq_stream_k_fixup",
+          "count": 1548,
+          "sum_ns": 12829159,
+          "sum_ms": 12.829159,
+          "kernel_sum_percent": 1.0552440187291097
+        },
+        {
+          "category": "rope",
+          "count": 204,
+          "sum_ns": 1733378,
+          "sum_ms": 1.733378,
+          "kernel_sum_percent": 0.14257651391619877
+        },
+        {
+          "category": "q4_0_to_half_dequantization",
+          "count": 192,
+          "sum_ns": 1281341,
+          "sum_ms": 1.281341,
+          "kernel_sum_percent": 0.10539486073891328
+        }
+      ],
+      "copies_by_kind": [
+        {
+          "kind": "Device-to-Host",
+          "count": 295,
+          "bytes": 555292672,
+          "sum_ns": 37161009,
+          "sum_ms": 37.161009
+        },
+        {
+          "kind": "Host-to-Device",
+          "count": 103,
+          "bytes": 463476852,
+          "sum_ns": 17477877,
+          "sum_ms": 17.477877
+        }
+      ],
+      "diagnostics": {
+        "severity_counts": {
+          "1": 11,
+          "2": 3
+        },
+        "cuda_event_completeness_warning": true,
+        "osrt_event_completeness_warning": true,
+        "graph_id_errors": {},
+        "raw_launch_metadata_omitted": true
+      },
+      "native_counts": {
+        "cache_n": 0,
+        "prompt_n": 4083,
+        "predicted_n": 1
+      },
+      "sync_api_union_seconds": 0.475173603,
+      "sync_api_overlapping_recorded_gpu_seconds": 0.470637825
+    },
+    {
+      "name": "cold16384",
+      "actual_timed_cuda_kernels": 48339,
+      "invalid_kernel_records": 0,
+      "gpu_kernel_sum_seconds": 5.006535517,
+      "gpu_kernel_and_copy_union_seconds": 5.150139385,
+      "gpu_reported_activity_span_seconds": 5.509492368,
+      "gpu_reported_activity_span_busy_fraction": 0.9347756637095681,
+      "profile_request_wall_seconds": 5.54015850200085,
+      "uninstrumented_before_wall_seconds": 5.494271033996483,
+      "finite_answers_match": true,
+      "request_signatures_match": true,
+      "kernel_categories": [
+        {
+          "category": "mmq",
+          "count": 8568,
+          "sum_ns": 3469546201,
+          "sum_ms": 3469.546201,
+          "kernel_sum_percent": 69.30034130825481
+        },
+        {
+          "category": "attention",
+          "count": 612,
+          "sum_ns": 336344408,
+          "sum_ms": 336.344408,
+          "kernel_sum_percent": 6.71810689962993
+        },
+        {
+          "category": "gated_activation",
+          "count": 2340,
+          "sum_ns": 260688912,
+          "sum_ms": 260.688912,
+          "kernel_sum_percent": 5.206972188948121
+        },
+        {
+          "category": "gdn",
+          "count": 864,
+          "sum_ns": 239431655,
+          "sum_ms": 239.431655,
+          "kernel_sum_percent": 4.782382032185631
+        },
+        {
+          "category": "activation_quantization",
+          "count": 9649,
+          "sum_ns": 207962243,
+          "sum_ms": 207.962243,
+          "kernel_sum_percent": 4.153815393775823
+        },
+        {
+          "category": "other",
+          "count": 13435,
+          "sum_ns": 178812390,
+          "sum_ms": 178.81239,
+          "kernel_sum_percent": 3.5715793764536676
+        },
+        {
+          "category": "normalization",
+          "count": 5616,
+          "sum_ns": 133220769,
+          "sum_ms": 133.220769,
+          "kernel_sum_percent": 2.6609372598604497
+        },
+        {
+          "category": "concat",
+          "count": 882,
+          "sum_ns": 101533693,
+          "sum_ms": 101.533693,
+          "kernel_sum_percent": 2.028023024209777
+        },
+        {
+          "category": "mmq_stream_k_fixup",
+          "count": 4680,
+          "sum_ns": 42783219,
+          "sum_ms": 42.783219,
+          "kernel_sum_percent": 0.8545473981903642
+        },
+        {
+          "category": "mmvq",
+          "count": 505,
+          "sum_ns": 16940326,
+          "sum_ms": 16.940326,
+          "kernel_sum_percent": 0.33836424294760475
+        },
+        {
+          "category": "q4_0_to_half_dequantization",
+          "count": 576,
+          "sum_ns": 12521464,
+          "sum_ms": 12.521464,
+          "kernel_sum_percent": 0.2501023703413787
+        },
+        {
+          "category": "rope",
+          "count": 612,
+          "sum_ns": 6750237,
+          "sum_ms": 6.750237,
+          "kernel_sum_percent": 0.13482850520243297
+        }
+      ],
+      "copies_by_kind": [
+        {
+          "kind": "Host-to-Device",
+          "count": 307,
+          "bytes": 2265886580,
+          "sum_ns": 85484592,
+          "sum_ms": 85.484592
+        },
+        {
+          "kind": "Device-to-Host",
+          "count": 403,
+          "bytes": 964048896,
+          "sum_ns": 58133037,
+          "sum_ms": 58.133037
+        }
+      ],
+      "diagnostics": {
+        "severity_counts": {
+          "1": 5,
+          "2": 3
+        },
+        "cuda_event_completeness_warning": true,
+        "osrt_event_completeness_warning": true,
+        "graph_id_errors": {},
+        "raw_launch_metadata_omitted": true
+      },
+      "native_counts": {
+        "cache_n": 0,
+        "prompt_n": 16381,
+        "predicted_n": 1
+      },
+      "sync_api_union_seconds": 1.920812144,
+      "sync_api_overlapping_recorded_gpu_seconds": 1.905836227
+    },
+    {
+      "name": "deep_cache_decode",
+      "actual_timed_cuda_kernels": 69009,
+      "invalid_kernel_records": 0,
+      "gpu_kernel_sum_seconds": 1.29153519,
+      "gpu_kernel_and_copy_union_seconds": 1.324686171,
+      "gpu_reported_activity_span_seconds": 1.460849692,
+      "gpu_reported_activity_span_busy_fraction": 0.906791559908136,
+      "profile_request_wall_seconds": 1.5691553130018292,
+      "uninstrumented_before_wall_seconds": 1.5159502739988966,
+      "finite_answers_match": true,
+      "request_signatures_match": true,
+      "kernel_categories": [
+        {
+          "category": "mmvq",
+          "count": 14259,
+          "sum_ns": 550282364,
+          "sum_ms": 550.282364,
+          "kernel_sum_percent": 42.60684248177551
+        },
+        {
+          "category": "attention",
+          "count": 1074,
+          "sum_ns": 326207613,
+          "sum_ms": 326.207613,
+          "kernel_sum_percent": 25.257353847245927
+        },
+        {
+          "category": "q4_0_to_half_dequantization",
+          "count": 864,
+          "sum_ns": 316367445,
+          "sum_ms": 316.367445,
+          "kernel_sum_percent": 24.495456836913597
+        },
+        {
+          "category": "other",
+          "count": 21360,
+          "sum_ns": 36148451,
+          "sum_ms": 36.148451,
+          "kernel_sum_percent": 2.7988746477747926
+        },
+        {
+          "category": "normalization",
+          "count": 8970,
+          "sum_ns": 20358884,
+          "sum_ms": 20.358884,
+          "kernel_sum_percent": 1.576332116819829
+        },
+        {
+          "category": "activation_quantization",
+          "count": 15123,
+          "sum_ns": 18885304,
+          "sum_ms": 18.885304,
+          "kernel_sum_percent": 1.4622368903475251
+        },
+        {
+          "category": "gdn",
+          "count": 1296,
+          "sum_ns": 9254499,
+          "sum_ms": 9.254499,
+          "kernel_sum_percent": 0.7165502784325992
+        },
+        {
+          "category": "concat",
+          "count": 1401,
+          "sum_ns": 8512908,
+          "sum_ms": 8.512908,
+          "kernel_sum_percent": 0.6591309370362568
+        },
+        {
+          "category": "gated_activation",
+          "count": 3588,
+          "sum_ns": 4228972,
+          "sum_ms": 4.228972,
+          "kernel_sum_percent": 0.327437613217492
+        },
+        {
+          "category": "rope",
+          "count": 1074,
+          "sum_ns": 1288750,
+          "sum_ms": 1.28875,
+          "kernel_sum_percent": 0.09978435043647553
+        }
+      ],
+      "copies_by_kind": [
+        {
+          "kind": "Host-to-Device",
+          "count": 1128,
+          "bytes": 255203176,
+          "sum_ns": 17792605,
+          "sum_ms": 17.792605
+        },
+        {
+          "kind": "Device-to-Host",
+          "count": 384,
+          "bytes": 265003104,
+          "sum_ns": 15805166,
+          "sum_ms": 15.805166
+        }
+      ],
+      "diagnostics": {
+        "severity_counts": {
+          "3": 300,
+          "1": 5,
+          "2": 3
+        },
+        "cuda_event_completeness_warning": true,
+        "osrt_event_completeness_warning": true,
+        "graph_id_errors": {
+          "GetGraphId": 150,
+          "GetGraphNodeId": 150
+        },
+        "raw_launch_metadata_omitted": true
+      },
+      "native_counts": {
+        "cache_n": 129980,
+        "prompt_n": 4,
+        "predicted_n": 103
+      },
+      "sync_api_union_seconds": 1.218333036,
+      "sync_api_overlapping_recorded_gpu_seconds": 1.205245601
+    }
+  ]
+}

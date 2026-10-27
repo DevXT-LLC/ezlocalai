@@ -1,4 +1,5 @@
 #include "checkpoint-coverage.h"
+#include "checkpoint-retention.h"
 #include "server-common.h"
 #include "llama-batch.h"
 #include "llama-vocab.h"
@@ -9,6 +10,7 @@
 #include <climits>
 #include <cstring>
 #include <iostream>
+#include <list>
 #include <set>
 #include <stdexcept>
 #include <string>
@@ -430,6 +432,71 @@ void actual_server_tokens_media_classification() {
     require(common_checkpoint_prompt_is_text_only(media_later) && enabled_for(media_later),
         "actual truncation removing all image chunks restores text classification");
 }
+
+void actual_checkpoint_admission_preserves_other_boundaries() {
+    using checkpoints = std::list<common_prompt_checkpoint>;
+    using event = std::pair<common_checkpoint_erasure, int64_t>;
+    const auto checkpoint = [](int64_t n, int task = 1) {
+        common_prompt_checkpoint value{};
+        value.n_tokens = n;
+        value.id_task = task;
+        value.pos_min = value.pos_max = n - 1;
+        value.data_spec = {uint8_t(task)};
+        return value;
+    };
+    const auto boundaries = [](const checkpoints & values) {
+        std::vector<int64_t> result;
+        for (const auto & value : values) result.push_back(value.n_tokens);
+        return result;
+    };
+    const auto admit = [&](checkpoints & values, int64_t n, size_t limit, int64_t step, int task = 2) {
+        std::vector<event> erased;
+        common_prepare_checkpoint_admission(values, n, task, limit, step,
+            [&](common_checkpoint_erasure reason, const auto & value) { erased.emplace_back(reason, value.n_tokens); });
+        values.push_back(checkpoint(n, task));
+        return erased;
+    };
+
+    checkpoints full{checkpoint(10), checkpoint(100), checkpoint(200), checkpoint(300)};
+    const auto * oldest = &full.front();
+    const auto full_erased = admit(full, 300, 4, 20);
+    require(boundaries(full) == std::vector<int64_t>({10, 100, 200, 300}) && &full.front() == oldest,
+        "refreshing a full checkpoint list preserves its unrelated oldest state");
+    require(full_erased == std::vector<event>({{common_checkpoint_erasure::superseded, 300}}) &&
+            full.back().id_task == 2 && full.back().data_spec == std::vector<uint8_t>({2}),
+        "same-boundary refresh publishes the current payload without a capacity eviction");
+
+    checkpoints full_near{checkpoint(10), checkpoint(11), checkpoint(200), checkpoint(300)};
+    require(admit(full_near, 300, 4, 20) == std::vector<event>({
+                {common_checkpoint_erasure::superseded, 300}, {common_checkpoint_erasure::too_close, 11}}) &&
+            boundaries(full_near) == std::vector<int64_t>({10, 200, 300}),
+        "full-list refresh keeps min-step cleanup while avoiding an unnecessary oldest eviction");
+
+    checkpoints one_under{checkpoint(10), checkpoint(11), checkpoint(200)};
+    const auto under_erased = admit(one_under, 200, 4, 20);
+    require(boundaries(one_under) == std::vector<int64_t>({10, 11, 200}) &&
+            under_erased == std::vector<event>({{common_checkpoint_erasure::superseded, 200}}),
+        "refresh one under capacity does not trigger unnecessary min-step eviction");
+
+    checkpoints single{checkpoint(10)};
+    require(admit(single, 10, 1, 20) == std::vector<event>({{common_checkpoint_erasure::superseded, 10}}) &&
+            single.size() == 1 && single.front().id_task == 2,
+        "a one-slot refresh replaces its payload within the count ceiling");
+
+    checkpoints distinct{checkpoint(10), checkpoint(100), checkpoint(200), checkpoint(300)};
+    require(admit(distinct, 400, 4, 20) == std::vector<event>({{common_checkpoint_erasure::oldest, 10}}) &&
+            boundaries(distinct) == std::vector<int64_t>({100, 200, 300, 400}),
+        "a genuinely new boundary retains the original oldest-first capacity policy");
+
+    checkpoints near{checkpoint(10), checkpoint(11), checkpoint(100)};
+    require(admit(near, 200, 4, 20) == std::vector<event>({{common_checkpoint_erasure::too_close, 11}}) &&
+            boundaries(near) == std::vector<int64_t>({10, 100, 200}),
+        "new-boundary admission preserves the original min-step cleanup");
+    checkpoints current{checkpoint(10), checkpoint(11, 2), checkpoint(100)};
+    require(admit(current, 200, 4, 20).empty() &&
+            boundaries(current) == std::vector<int64_t>({10, 11, 100, 200}),
+        "current-task near checkpoints retain their existing min-step exception");
+}
 }
 
 int main() {
@@ -440,6 +507,7 @@ int main() {
         actual_draft_batch_parameter_inheritance();
         actual_parser_mtp_selection();
         actual_server_tokens_media_classification();
+        actual_checkpoint_admission_preserves_other_boundaries();
         std::cout << checks << " production checkpoint alignment checks passed\n";
         return 0;
     } catch (const std::exception & error) {

@@ -38,7 +38,7 @@ function(check_metadata)
     endif()
     file(STRINGS "${path}" rows)
     list(LENGTH rows count)
-    if(NOT count EQUAL 6)
+    if(NOT count EQUAL 7)
         message(FATAL_ERROR "The managed stack did not record all engine fixes")
     endif()
     set(seen "")
@@ -101,6 +101,31 @@ run_helper()
 check_metadata()
 run_helper(-DREMOVE_MANAGED_PATCH=ON)
 check_clean()
+
+# Upgrade the preceding six-patch release, including its overlapping entry-window
+# header fix, and remove the complete upgraded stack back to the original pin.
+foreach(name llama-conversation-cache llama-cache-restore-atomic llama-cache-storage
+        llama-mtp-resume llama-checkpoint-coverage llama-checkpoint-entry-window)
+    execute_process(COMMAND git -C "${copy}" apply "${PATCH_DIR}/${name}.patch"
+        COMMAND_ERROR_IS_FATAL ANY)
+endforeach()
+run_helper()
+check_metadata()
+run_helper(-DREMOVE_MANAGED_PATCH=ON)
+check_clean()
+
+# Removing an old six-patch installation directly must also peel the complete
+# prefix without leaving the new helper or qualification metadata behind.
+foreach(name llama-conversation-cache llama-cache-restore-atomic llama-cache-storage
+        llama-mtp-resume llama-checkpoint-coverage llama-checkpoint-entry-window)
+    execute_process(COMMAND git -C "${copy}" apply "${PATCH_DIR}/${name}.patch"
+        COMMAND_ERROR_IS_FATAL ANY)
+endforeach()
+run_helper(-DREMOVE_MANAGED_PATCH=ON)
+check_clean()
+if(EXISTS "${out}/ezlocalai-llama-cpp-patches.txt")
+    message(FATAL_ERROR "Removing the preceding stack left stale metadata")
+endif()
 
 # Missing and malformed inputs must fail explicitly, not ship a partial worker.
 execute_process(COMMAND "${CMAKE_COMMAND}" "-DSOURCE_DIR=${copy}" "-DBUILD_DIR=${out}"

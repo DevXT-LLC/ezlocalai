@@ -1,0 +1,2 @@
+# Unified diffs need a space on empty context lines, including the final line.
+patches/*.patch whitespace=-blank-at-eol,-blank-at-eof
