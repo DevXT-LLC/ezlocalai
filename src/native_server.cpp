@@ -39,6 +39,7 @@
 #include "ezlocalai/json_validation.hpp"
 #include "ezlocalai/http_deadline.hpp"
 #include "ezlocalai/http_body.hpp"
+#include "ezlocalai/request_gzip.hpp"
 #include "ezlocalai/http_url.hpp"
 #include "ezlocalai/http_cookies.hpp"
 #include "ezlocalai/http_socket.hpp"
@@ -11935,6 +11936,9 @@ std::string NativeServer::worker_state_json() const {
         // Python leaves extra empty when a media-policy probe fails. The
         // worker must still register and send its remaining state.
     }
+    // Transport support is independent of optional media-policy probes and
+    // must remain advertised on registration and every subsequent heartbeat.
+    values["extra"] = merge_json_objects(values["extra"], R"({"http_request_encodings":["gzip"]})");
     values["version"] = "\"" + json_escape(runtime_version()) + "\"";
     return json_object_from_values(values);
 }
@@ -12497,6 +12501,41 @@ HttpResponse NativeServer::handle_request(
         return {401, "application/json", "{\"detail\":\"Invalid API Key\"}"};
     }
     if (native_router_mode_enabled() && !ensure_router_drains_loaded()) return plain_internal_server_error();
+    const auto transport_header = [&](const std::string &name) {
+        const auto found = request_headers.find(name);
+        if (found != request_headers.end()) return found->second;
+        // TCP parsing normalizes names; direct handle_request callers may use
+        // ordinary mixed-case HTTP field names.
+        for (const auto &header : request_headers)
+            if (to_lower(header.first) == name) return header.second;
+        return std::string();
+    };
+    if (method == "POST" && (route_path == "/v1/chat/completions" || route_path == "/v1/completions")
+        && to_lower(trim(transport_header("content-encoding"))) == "gzip") {
+        try {
+            const auto declared = trim(transport_header("content-length"));
+            uint64_t length = 0;
+            if (!declared.empty()) {
+                const auto parsed = std::from_chars(declared.data(), declared.data() + declared.size(), length);
+                if (parsed.ec == std::errc::result_out_of_range
+                    || (parsed.ec == std::errc{} && parsed.ptr == declared.data() + declared.size()
+                        && length > http_request_gzip_max_bytes))
+                    throw HttpRequestGzipError(HttpRequestGzipFailure::TooLarge);
+            }
+            const auto decoded = decode_http_request_gzip(body);
+            auto decoded_headers = request_headers;
+            for (auto field = decoded_headers.begin(); field != decoded_headers.end();) {
+                const auto name = to_lower(field->first);
+                if (name == "content-encoding" || name == "content-length") field = decoded_headers.erase(field);
+                else ++field;
+            }
+            return route_authorized(method, path, decoded, content_type,
+                request_base_url_from_host(host_header), decoded_headers, allow_deferred_streaming);
+        } catch (const HttpRequestGzipError &error) {
+            return {error.reason() == HttpRequestGzipFailure::TooLarge ? 413 : 400,
+                "application/json", "{\"detail\":\"" + std::string(error.what()) + "\"}"};
+        }
+    }
     return route_authorized(method, path, body, content_type, request_base_url_from_host(host_header), request_headers, allow_deferred_streaming);
 }
 

@@ -105,6 +105,14 @@ void reporting(const Json &expected,const Json &actual) {
     if(!expected.contains("report"))return;
     for(const auto &field:expected.at("report").items())check(actual.at(field.key())==field.value(),expected.at("name").get<std::string>()+": "+field.key()+" actual="+actual.at(field.key()).dump()+" expected="+field.value().dump());
 }
+Json expected_extra(const Json &row) {
+    // Preserve every captured Python media-policy field exactly. Native gzip
+    // request support is an additive transport capability, including when the
+    // policy probe failed and the original captured extra object was empty.
+    auto extra = row.at("extra");
+    extra["http_request_encodings"] = Json::array({"gzip"});
+    return extra;
+}
 void one(const Json &row, Capture &capture, const Json *detached = nullptr, const Json *restored = nullptr) {
     capture.clear(); environment(row, capture);
     auto state = std::make_shared<State>(row);
@@ -124,14 +132,14 @@ void one(const Json &row, Capture &capture, const Json *detached = nullptr, cons
     std::string error; check(server.start("127.0.0.1", 0, &error), error);
     auto messages = capture.wait(2);
     for (size_t i = 0; i < 2; ++i) check(messages[i].at("version") == "native-metadata-version", "registration and heartbeat version");
-    for (size_t i = 0; i < 2; ++i) check(messages[i].at("extra") == row.at("extra"), row.at("name").get<std::string>() + ": " + messages[i].at("extra").dump());
+    for (size_t i = 0; i < 2; ++i) check(messages[i].at("extra") == expected_extra(row), row.at("name").get<std::string>() + ": " + messages[i].at("extra").dump());
     for(size_t i=0;i<2;++i)reporting(row,messages[i]);
     if (detached && restored) {
         // Change runtime state without changing configuration or restarting the worker.
         state->set(*detached); messages = capture.wait(3);
-        check(messages.back().at("extra") == detached->at("extra"), "heartbeat reflects detached LLMs");reporting(*detached,messages.back());
+        check(messages.back().at("extra") == expected_extra(*detached), "heartbeat reflects detached LLMs");reporting(*detached,messages.back());
         state->set(*restored); messages = capture.wait(4);
-        check(messages.back().at("extra") == restored->at("extra"), "heartbeat reflects restored public replica identities");reporting(*restored,messages.back());
+        check(messages.back().at("extra") == expected_extra(*restored), "heartbeat reflects restored public replica identities");reporting(*restored,messages.back());
     }
     server.stop();
 }
@@ -212,7 +220,7 @@ int main(int argc, char **argv) { try {
     std::ifstream model_input(argv[2]);const auto models=Json::parse(model_input);
     for(const auto &row:models.at("cases"))one(row,capture,row.contains("detached")?&row.at("detached"):nullptr,row.contains("detached")?&row:nullptr);
     std::cout<<models.at("cases").size()<<" model reporting snapshots and projector unload/restore passed\n";
-    std::cout << rows.size() << " Python worker-extra snapshots match registration and heartbeat; detach/restore updates verified\n";
+    std::cout << rows.size() << " Python worker-extra snapshots plus native request encodings match registration and heartbeat; detach/restore updates verified\n";
     gpu_cases(self);
     return 0;
 } catch (const std::exception &e) { std::cerr << e.what() << '\n'; return 1; } }
