@@ -411,6 +411,13 @@ def checked_record(relay, before, expected, encoding):
     return record, identity
 
 
+def route_worker_environment(port, engine_port, worker_key, engine_key):
+    # Both variants use the same explicitly opted-in worker. Only its manually
+    # registered router advertisement varies; shared defaults stay untouched.
+    return {**worker_http.environment(port, engine_port, worker_key, engine_key),
+            "EZLOCALAI_ROUTER_REQUEST_GZIP": "true"}
+
+
 def full_route(args, corpus):
     worker_http.immutable_image(args.image)
     for binary in (args.worker_binary, args.router_binary):
@@ -434,7 +441,7 @@ def full_route(args, corpus):
             worker_data.mkdir()
             router_data.mkdir()
             port = free_port()
-            environment = worker_http.environment(port, engine.server.server_port, worker_key, engine_key)
+            environment = route_worker_environment(port, engine.server.server_port, worker_key, engine_key)
             name = "ezlocalai-gzipbench-" + owner[:12]
             names.append(name)
             command = worker_http.docker_command(args.image, args.worker_binary, worker_data,

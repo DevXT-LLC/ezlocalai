@@ -185,6 +185,27 @@ class GzipBenchmarkGuards(unittest.TestCase):
             finally:
                 router.__exit__()
 
+    def test_worker_gzip_opt_in_is_explicit_constant_and_keeps_shared_defaults(self):
+        defaults = bench.worker_http.environment(8100, 8101, "worker-secret", "engine-secret")
+        original_defaults = dict(defaults)
+        self.assertNotIn("EZLOCALAI_ROUTER_REQUEST_GZIP", defaults)
+        with mock.patch.dict(os.environ, {"EZLOCALAI_ROUTER_REQUEST_GZIP": "false"}):
+            parent = dict(os.environ)
+            with mock.patch.object(bench.worker_http, "environment", return_value=defaults) as environment:
+                opted_in = bench.route_worker_environment(8100, 8101, "worker-secret", "engine-secret")
+            environment.assert_called_once_with(8100, 8101, "worker-secret", "engine-secret")
+            self.assertIsNot(opted_in, defaults)
+            self.assertEqual(opted_in["EZLOCALAI_ROUTER_REQUEST_GZIP"], "true")
+            router = SimpleNamespace(base="http://127.0.0.1:8102")
+            with mock.patch.object(bench, "router_request", return_value={}) as register:
+                for enabled in (False, True, False):
+                    bench.register(router, "register-secret", "worker-secret", 8103, enabled)
+                    self.assertEqual(opted_in["EZLOCALAI_ROUTER_REQUEST_GZIP"], "true")
+            self.assertEqual([call.args[3]["extra"] for call in register.call_args_list],
+                             [{}, {"http_request_encodings": ["gzip"]}, {}])
+            self.assertEqual(defaults, original_defaults)
+            self.assertTrue(dict(os.environ) == parent)
+
     def test_relay_defers_decode_parse_and_hash_until_measurement_returns(self):
         response_body = json.dumps({"choices": [{"message": {"content": bench.worker_http.ANSWER},
             "finish_reason": "stop"}]}).encode()
