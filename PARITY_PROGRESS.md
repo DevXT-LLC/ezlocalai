@@ -2,6 +2,59 @@
 
 The goal remains behavior parity with ezlocalai within the scope below, with all first-party executable code implemented in C++. It is **not complete**.
 
+## CUDA Q4 KV tile loading (2026-10-27)
+
+On a controlled RTX 4090, retained 130K-context decode improves **54.02 to
+77.20 tokens/s (+42.9%)**, and a 256-token response falls **4.94 to 3.51 seconds
+(29.0%)**. Initial production/OFF/ON ABBA plus separate final OFF/AUTO/ON controls
+produce **117 matching outputs / 16,830 generated tokens**, with identical
+requests, input/evaluated/reused counts, finishes and MTP draft/accept counters.
+Short decode stays approximately 112.8 tokens/s; cold bulk prefill stays flat.
+
+An eighth managed patch decodes Q4 KV tiles into the original F16 attention
+layout, avoiding full-cache expansion during eligible three/four-query MTP
+verification. It preserves the actual model's GQA six, F16 operands, attention
+math and original occupancy-derived reduction partition. Activation is automatic
+only within the strict SM89 metadata/layout/occupancy guard. Exact
+`GGML_CUDA_FATTN_Q4_KV_FUSION=0` disables it; exact `1` enables diagnostics.
+Unset automatic mode has no diagnostic atomics or exit log. No permanent `.env`,
+precision, context, sampling or cache-ceiling change is made. Workspace remains
+reserved, so no VRAM-capacity gain is claimed.
+
+Final physical checks pass **25,427,968 half comparisons** and **96 actual
+OFF/ON/AUTO attention cases**, including synthetic near-context cases. All
+2,113,536 float32 output positions match; 84 supported cases prove OFF scratch
+overwrite and ON/AUTO preservation, while all 17 AUTO counters stay zero.
+Quick memchecks and selected fused/loader racechecks pass. The original full
+race gate remains recorded as failed: the unchanged two-query vector fallback
+produces 12 warnings. The deployed stock binary reproduces exactly those PCs,
+counts and multiplicities; the fused cases produce zero. These inherited warnings
+remain unresolved and are not declared safe.
+
+All **394 CPU policy checks**, **eight focused engine checks** (18.32 s,
+15 strict source fingerprints) and **73 oracle-free package checks** (327.42 s)
+pass. CUDA 12.8.93/GCC 13.3.0 rebuild packaged SM86/89/120 code in a GPU-inaccessible
+two-CPU/6-GiB builder, image
+`sha256:d7321ef6403b8dbc3b692d4e989ee38bf762d2a33080f239a36c9727ec6cd8e5`.
+All four platform recipes install patch eight and its CPU policy gate. The final
+automatic backend's hot SM89 stock/fused instruction and scheduling words match
+the measured explicit-mode backend; separate full-model AUTO controls confirm
+77.23 tokens/s, matching outputs and no exit diagnostics.
+
+The original production image
+`sha256:41ab1c10845756013cf93746d71f7d5e652c9b656ad2ee4025ba5cb3b7d29bad`,
+container, environment, mounts and full argv are restored. Two fresh matching
+router heartbeats precede each owned drain release; a final pinned routed chat
+returns `READY`. Rollback: `ezlocalai:rollback-q4-kv-fusion-20261027-4090`.
+Owned children, nine remote staging directories, redundant aliases and the CPU
+builder are removed. No fresh image deployment, other physical GPUs/platforms,
+multi-GPU, vision, full-model maximum-context or GPU-unlock causality is validated.
+Cold-prefill MMQ work and extending the guard to other architectures remain.
+
+See [the contract](patches/llama-cuda-q4-kv-fusion.md),
+[the report](benchmarks/q4-kv-fusion-20261027.md) and
+`tests/fixtures/q4_kv_fusion_cuda_20261027_validation.json`.
+
 ## Shared checkpoint cache retention (2026-10-27)
 
 A seventh managed engine patch counts shared immutable checkpoint allocations

@@ -1459,6 +1459,15 @@ if(EXISTS "${EZLOCALAI_TTS_LLAMA_SOURCE}/tools/server/server-task.h" AND
     add_test(NAME llama_checkpoint_coverage COMMAND test_llama_checkpoint_coverage)
     # The exhaustive model-free phase grid also ships in ARM/QEMU packages.
     set_tests_properties(llama_checkpoint_coverage PROPERTIES TIMEOUT 300)
+    if(EXISTS "${EZLOCALAI_TTS_LLAMA_SOURCE}/ggml/src/ggml-cuda/fattn-q4-kv-policy.h")
+        # The CUDA dispatch policy is ordinary C++ and ships in every package.
+        add_executable(test_q4_kv_layout tests/test_q4_kv_layout.cpp)
+        target_include_directories(test_q4_kv_layout PRIVATE
+            ${EZLOCALAI_TTS_LLAMA_SOURCE}/ggml/include
+            ${EZLOCALAI_TTS_LLAMA_SOURCE}/ggml/src/ggml-cuda)
+        add_test(NAME q4_kv_layout COMMAND test_q4_kv_layout)
+        set_tests_properties(q4_kv_layout PROPERTIES TIMEOUT 30)
+    endif()
     add_custom_target(test_managed_llama_patches SOURCES tests/test_managed_llama_patches.cmake)
     add_test(NAME managed_llama_patches COMMAND ${CMAKE_COMMAND}
         -DSOURCE_DIR=${EZLOCALAI_TTS_LLAMA_SOURCE}
@@ -1472,6 +1481,12 @@ if(EXISTS "${EZLOCALAI_TTS_LLAMA_SOURCE}/tools/server/server-task.h" AND
             ${EZLOCALAI_TTS_LLAMA_BUILD}/bin/llama-server ${EZLOCALAI_LLAMA_CPP_SMOKE_MODEL})
         set_tests_properties(conversation_cache_engine PROPERTIES TIMEOUT 90)
     endif()
+endif()
+# Physical GPU oracles are explicitly built and manually executed on an owned
+# device. They never enter a package's model-free CTest gate.
+option(EZLOCALAI_BUILD_Q4_KV_GPU_ORACLES "Build developer-only Q4 KV CUDA oracles" OFF)
+if(EZLOCALAI_BUILD_Q4_KV_GPU_ORACLES)
+    include(cmake/Q4KvOracleTargets.cmake)
 endif()
 # The source application's private TTS worker, linked to an independently built
 # pinned llama.cpp/libmtmd. No Python wrapper or implicit dependency fetch.
@@ -1854,6 +1869,9 @@ if(TARGET test_ltx_norm AND TARGET ezlocalai-tts)
     if(TARGET test_conversation_cache)
         list(APPEND native_package_targets test_conversation_cache test_cache_restore_atomic
             test_cache_storage test_llama_mtp_resume test_llama_checkpoint_coverage test_managed_llama_patches)
+    endif()
+    if(TARGET test_q4_kv_layout)
+        list(APPEND native_package_targets test_q4_kv_layout)
     endif()
     add_custom_target(cpu_package DEPENDS ${native_package_targets})
     if(EZLOCALAI_USE_HIP)

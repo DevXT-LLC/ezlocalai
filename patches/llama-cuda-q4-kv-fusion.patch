@@ -1,0 +1,638 @@
+diff --git a/ggml/src/ggml-cuda/fattn-common.cuh b/ggml/src/ggml-cuda/fattn-common.cuh
+index 41d948335..648d96e3a 100644
+--- a/ggml/src/ggml-cuda/fattn-common.cuh
++++ b/ggml/src/ggml-cuda/fattn-common.cuh
+@@ -3,6 +3,7 @@
+ #include "common.cuh"
+ #include "convert.cuh"
+ #include "vecdotq.cuh"
++#include "fattn-q4-kv-policy.h"
+ 
+ #include <cstdint>
+ 
+@@ -44,6 +45,12 @@ typedef void (* fattn_kernel_t)(
+ typedef float (*vec_dot_KQ_t)(
+     const char * __restrict__ K_c, const void * __restrict__ Q_v, const int * __restrict__ Q_q8 , const void * __restrict__ Q_ds);
+ 
++extern "C" GGML_BACKEND_API void ggml_cuda_fattn_q4_kv_reset_stats();
++extern "C" GGML_BACKEND_API void ggml_cuda_fattn_q4_kv_get_stats(ggml_cuda_fattn_q4_kv_stats * result);
++void ggml_cuda_fattn_q4_kv_record_dispatch(bool fused, bool fallback, int baseline, int candidate);
++void ggml_cuda_fattn_q4_kv_record_launch(dim3 grid, dim3 block, size_t shared_bytes,
++        int kv_rows, int query_rows, int tile_rows, int output_tiles, bool stream_k, int baseline_blocks);
++
+ struct ggml_cuda_flash_attn_ext_f16_extra_data {
+     uintptr_t K;
+     uintptr_t V;
+@@ -981,7 +988,8 @@ template <int DV, int ncols1, int ncols2>
+ void launch_fattn(
+     ggml_backend_cuda_context & ctx, ggml_tensor * dst, fattn_kernel_t fattn_kernel, const int nwarps, const size_t nbytes_shared,
+     const int nbatch_fa, const bool need_f16_K, const bool need_f16_V, const bool stream_k, const bool use_sparse,
+-    const int warp_size = WARP_SIZE, const bool async_kv_preload = false
++    const int warp_size = WARP_SIZE, const bool async_kv_preload = false,
++    const int q4_baseline_blocks_per_sm = 0, const bool record_q4_kv = false
+ ) {
+     constexpr int ncols = ncols1 * ncols2;
+ 
+@@ -1136,6 +1144,17 @@ void launch_fattn(
+     int max_blocks_per_sm = 1; // Max. number of active blocks limited by occupancy.
+     CUDA_CHECK(cudaOccupancyMaxActiveBlocksPerMultiprocessor(&max_blocks_per_sm, fattn_kernel, block_dim.x * block_dim.y * block_dim.z, nbytes_shared));
+     GGML_ASSERT(max_blocks_per_sm > 0);
++    if (q4_baseline_blocks_per_sm != 0) {
++        GGML_ASSERT(!need_f16_K && !need_f16_V && stream_k && !use_sparse);
++        GGML_ASSERT(cc == GGML_CUDA_CC_ADA_LOVELACE && DV == 256 && ncols1 == 4 && ncols2 == 8);
++        GGML_ASSERT(Q->type == GGML_TYPE_F32 && K->type == GGML_TYPE_Q4_0 && V->type == GGML_TYPE_Q4_0);
++        GGML_ASSERT(Q->ne[0] == 256 && Q->ne[1] >= 3 && Q->ne[1] <= 4 && Q->ne[2] == 24 && Q->ne[3] == 1);
++        GGML_ASSERT(K->ne[0] == 256 && K->ne[2] == 4 && K->ne[3] == 1);
++        GGML_ASSERT(q4_baseline_blocks_per_sm > 0 && q4_baseline_blocks_per_sm <= max_blocks_per_sm);
++        // Preserve the stock kernel's stream-K partition and reduction order,
++        // even if the fused loader's compiled occupancy would permit more work.
++        max_blocks_per_sm = q4_baseline_blocks_per_sm;
++    }
+     int parallel_blocks = max_blocks_per_sm;
+ 
+     const int64_t n_kv = use_sparse ? n_kv_max : K->ne[1];
+@@ -1247,6 +1266,11 @@ void launch_fattn(
+ 
+     GGML_ASSERT(block_dim.x % warp_size == 0);
+ 
++    if (record_q4_kv) {
++        ggml_cuda_fattn_q4_kv_record_launch(blocks_num, block_dim, nbytes_shared,
++                int(n_kv), int(Q->ne[1]), nbatch_fa, ntiles_dst, stream_k, max_blocks_per_sm);
++    }
++
+     ggml_cuda_kernel_launch_params launch_params = ggml_cuda_kernel_launch_params(blocks_num, block_dim, nbytes_shared, main_stream);
+     ggml_cuda_kernel_launch(fattn_kernel, launch_params,
+         (const char *) Q->data,
+diff --git a/ggml/src/ggml-cuda/fattn-mma-f16.cuh b/ggml/src/ggml-cuda/fattn-mma-f16.cuh
+index 296aa2b34..f8d92ae18 100644
+--- a/ggml/src/ggml-cuda/fattn-mma-f16.cuh
++++ b/ggml/src/ggml-cuda/fattn-mma-f16.cuh
+@@ -380,7 +380,24 @@ static constexpr __device__ int ggml_cuda_fattn_mma_get_nstages(
+ 
+ // ------------------------------------------------------------------------------------------------------------------
+ 
+-template<int stride_tile, int nwarps, int nbatch_fa, bool use_cp_async, bool oob_check, bool use_sparse>
++// Match convert.cu's Q4_0 -> half expression, including signed zero. Packed
++// source blocks are only two-byte aligned; scalar byte loads remain safe.
++static __device__ __forceinline__ void ggml_cuda_fattn_q4_0_decode_8(
++        const block_q4_0 * const row, const int scalar_offset, half * const output) {
++    const block_q4_0 & block = row[scalar_offset / QK4_0];
++    const int within = scalar_offset % QK4_0;
++    const float d = __half2float(block.d);
++    const float dm = -8*d;
++#pragma unroll
++    for (int l = 0; l < 8; ++l) {
++        const int channel = within + l;
++        const uint8_t packed = block.qs[channel % (QK4_0/2)];
++        const int value = channel < QK4_0/2 ? packed & 0xF : packed >> 4;
++        output[l] = ggml_cuda_cast<half>(d * value + dm);
++    }
++}
++
++template<int stride_tile, int nwarps, int nbatch_fa, bool use_cp_async, bool oob_check, bool use_sparse, bool q4_kv = false>
+ static __device__ __forceinline__ void flash_attn_ext_f16_load_tile(
+         const half2 * const __restrict__ KV, half2 * const __restrict__ tile_KV, const int D2, const int stride_KV,
+         const int k_VKQ_0, const int i_sup, const int32_t * const __restrict__ indices) {
+@@ -390,7 +407,34 @@ static __device__ __forceinline__ void flash_attn_ext_f16_load_tile(
+     constexpr int chunk_size = 16;
+     constexpr int h2_per_chunk = chunk_size / sizeof(half2);
+     const int chunks_per_row = D2 / h2_per_chunk;
+-    if constexpr (use_cp_async) {
++    if constexpr (q4_kv) {
++        static_assert(!oob_check && !use_sparse, "Q4 KV requires the guarded dense tile");
++        static_assert(warp_size == 32, "Q4 KV requires NVIDIA warp size");
++        // Retain the original chunk-to-thread mapping and swizzled destination.
++        // The surrounding pipeline barriers publish these synchronous stores;
++        // mask loading keeps its existing cp.async path.
++        auto load = [&] __device__ (auto n) {
++            const int stride_k = warp_size >> n;
++            const int k0_start = stride_k == warp_size ? 0 : chunks_per_row - chunks_per_row % (2*stride_k);
++            const int k0_stop = chunks_per_row - chunks_per_row % stride_k;
++            const int stride_i = warp_size / stride_k;
++            if (k0_start == k0_stop) return;
++#pragma unroll
++            for (int i0 = 0; i0 < nbatch_fa; i0 += nwarps*stride_i) {
++                const int i = i0 + threadIdx.y*stride_i + (stride_k == warp_size ? 0 : threadIdx.x / stride_k);
++                if (i0 + nwarps*stride_i > nbatch_fa && i >= nbatch_fa) break;
++                const block_q4_0 * const row = reinterpret_cast<const block_q4_0 *>(KV + int64_t(k_VKQ_0 + i)*stride_KV);
++#pragma unroll
++                for (int k0 = k0_start; k0 < k0_stop; k0 += stride_k) {
++                    const int k = k0 + (stride_k == warp_size ? threadIdx.x : threadIdx.x % stride_k);
++                    alignas(16) half values[8];
++                    ggml_cuda_fattn_q4_0_decode_8(row, k*8, values);
++                    ggml_cuda_memcpy_1<16>(swizzle<stride_tile>(tile_KV, i*stride_tile + k*h2_per_chunk, i), values);
++                }
++            }
++        };
++        ggml_cuda_unroll<6>{}(load);
++    } else if constexpr (use_cp_async) {
+         static_assert(warp_size == 32, "bad warp_size");
+         static_assert(!oob_check || use_sparse, "OOB check not compatible with cp_async");
+         constexpr int preload = 64;
+@@ -572,7 +616,7 @@ static __device__ __forceinline__ void flash_attn_ext_f16_load_mask(
+ }
+ 
+ template<int DKQ, int DV, int ncols1, int ncols2, int nwarps,
+-    bool use_logit_softcap, bool V_is_K_view, bool use_sparse, bool needs_fixup, bool is_fixup, bool last_iter, bool oob_check,
++    bool use_logit_softcap, bool V_is_K_view, bool use_sparse, bool needs_fixup, bool is_fixup, bool last_iter, bool oob_check, bool q4_kv,
+     typename T_A_KQ, typename T_B_KQ, typename T_C_KQ, typename T_A_VKQ, typename T_B_VKQ, typename T_C_VKQ>
+ static __device__ __forceinline__ void flash_attn_ext_f16_iter(
+         const float2 * const __restrict__ Q_f2,
+@@ -633,7 +677,7 @@ static __device__ __forceinline__ void flash_attn_ext_f16_iter(
+         constexpr bool use_cp_async = true;
+         cp_async_wait_all();
+         __syncthreads();
+-        flash_attn_ext_f16_load_tile<stride_tile_V, nwarps, nbatch_fa, use_cp_async, oob_check, use_sparse>
++        flash_attn_ext_f16_load_tile<stride_tile_V, nwarps, nbatch_fa, use_cp_async, oob_check, use_sparse, q4_kv>
+             (V_h2, tile_V, nbatch_V2, stride_V, k_VKQ_0, k_VKQ_sup, nullptr);
+     } else {
+         // the sparse mask values are gathered per element, always load them synchronously
+@@ -653,7 +697,7 @@ static __device__ __forceinline__ void flash_attn_ext_f16_iter(
+         if constexpr (nstages <= 1) {
+             const int k0_diff = k0_stop - k0_start;
+             constexpr bool use_cp_async = nstages == 1;
+-            flash_attn_ext_f16_load_tile<stride_tile_K, nwarps, nbatch_fa, use_cp_async, oob_check, use_sparse>
++            flash_attn_ext_f16_load_tile<stride_tile_K, nwarps, nbatch_fa, use_cp_async, oob_check, use_sparse, q4_kv>
+                 (K_h2 + k0_start, tile_K, k0_diff, stride_K, k_VKQ_0, k_VKQ_sup, indices);
+             if (use_cp_async) {
+                 cp_async_wait_all();
+@@ -990,7 +1034,7 @@ static __device__ __forceinline__ void flash_attn_ext_f16_iter(
+                 flash_attn_ext_f16_load_mask<ncols1, nwarps, nbatch_fa, use_cp_async, oob_check, use_sparse>
+                     (mask_h, tile_mask, stride_mask, k_VKQ_0 + nbatch_fa, k_VKQ_sup, jt*ncols1, ne01, nullptr);
+             }
+-            flash_attn_ext_f16_load_tile<stride_tile_K, nwarps, nbatch_fa, use_cp_async, oob_check, use_sparse>
++            flash_attn_ext_f16_load_tile<stride_tile_K, nwarps, nbatch_fa, use_cp_async, oob_check, use_sparse, q4_kv>
+                 (K_h2, tile_K, nbatch_K2, stride_K, k_VKQ_0 + nbatch_fa, k_VKQ_sup, nullptr);
+         }
+     }
+@@ -1006,7 +1050,7 @@ static __device__ __forceinline__ void flash_attn_ext_f16_iter(
+             const int i0_diff = i0_stop - i0_start;
+             if (!V_is_K_view || i0_stop > 2*nbatch_K2) {
+                 constexpr bool use_cp_async = nstages == 1;
+-                flash_attn_ext_f16_load_tile<stride_tile_V, nwarps, nbatch_fa, use_cp_async, oob_check, use_sparse>
++                flash_attn_ext_f16_load_tile<stride_tile_V, nwarps, nbatch_fa, use_cp_async, oob_check, use_sparse, q4_kv>
+                     (V_h2 + i0_start/2, tile_V, i0_diff/2, stride_V, k_VKQ_0, k_VKQ_sup, indices);
+                 if (use_cp_async) {
+                     cp_async_wait_all();
+@@ -1186,7 +1230,7 @@ template<int DKQ, int ncols> struct mma_tile_sizes {
+ };
+ #endif // defined(TURING_MMA_AVAILABLE)
+ 
+-template<int DKQ, int DV, int ncols1, int ncols2, int nwarps, bool use_logit_softcap, bool V_is_K_view, bool use_sparse, bool needs_fixup, bool is_fixup>
++template<int DKQ, int DV, int ncols1, int ncols2, int nwarps, bool use_logit_softcap, bool V_is_K_view, bool use_sparse, bool needs_fixup, bool is_fixup, bool q4_kv = false>
+ static __device__ __forceinline__ void flash_attn_ext_f16_process_tile(
+         const float2 * const __restrict__ Q_f2,
+         const half2  * const __restrict__ K_h2,
+@@ -1342,7 +1386,7 @@ static __device__ __forceinline__ void flash_attn_ext_f16_process_tile(
+             flash_attn_ext_f16_load_mask<ncols1, nwarps, nbatch_fa, use_cp_async, oob_check, use_sparse>
+                 (mask_h, tile_mask, stride_mask, kb0*nbatch_fa, k_VKQ_sup, jt*ncols1, ne01, nullptr);
+         }
+-        flash_attn_ext_f16_load_tile<stride_tile_K, nwarps, nbatch_fa, use_cp_async, oob_check, use_sparse>
++        flash_attn_ext_f16_load_tile<stride_tile_K, nwarps, nbatch_fa, use_cp_async, oob_check, use_sparse, q4_kv>
+             (K_h2, tile_K, nbatch_K2, stride_K, kb0*nbatch_fa, k_VKQ_sup, nullptr);
+     }
+ 
+@@ -1353,7 +1397,7 @@ static __device__ __forceinline__ void flash_attn_ext_f16_process_tile(
+             constexpr bool last_iter = false;
+             constexpr int  k_VKQ_sup = nbatch_fa;
+             flash_attn_ext_f16_iter
+-                <DKQ, DV, ncols1, ncols2, nwarps, use_logit_softcap, V_is_K_view, use_sparse, needs_fixup, is_fixup, last_iter, oob_check,
++                <DKQ, DV, ncols1, ncols2, nwarps, use_logit_softcap, V_is_K_view, use_sparse, needs_fixup, is_fixup, last_iter, oob_check, q4_kv,
+                  T_A_KQ, T_B_KQ, T_C_KQ, T_A_VKQ, T_B_VKQ, T_C_VKQ>
+                 (Q_f2, K_h2, V_h2, mask_h, indices, dstk, dstk_fixup, scale, slope, logit_softcap,
+                  ne01, ne02, stride_K, stride_V, stride_mask, tile_Q, tile_K, tile_V, tile_mask, Q_B, VKQ_C,
+@@ -1362,7 +1406,7 @@ static __device__ __forceinline__ void flash_attn_ext_f16_process_tile(
+         constexpr bool last_iter = true;
+         const     int  k_VKQ_sup = ne11 - kb0*nbatch_fa;
+         flash_attn_ext_f16_iter
+-            <DKQ, DV, ncols1, ncols2, nwarps, use_logit_softcap, V_is_K_view, use_sparse, needs_fixup, is_fixup, last_iter, oob_check,
++            <DKQ, DV, ncols1, ncols2, nwarps, use_logit_softcap, V_is_K_view, use_sparse, needs_fixup, is_fixup, last_iter, oob_check, q4_kv,
+               T_A_KQ, T_B_KQ, T_C_KQ, T_A_VKQ, T_B_VKQ, T_C_VKQ>
+             (Q_f2, K_h2, V_h2, mask_h, indices, dstk, dstk_fixup, scale, slope, logit_softcap,
+              ne01, ne02, stride_K, stride_V, stride_mask, tile_Q, tile_K, tile_V, tile_mask, Q_B, VKQ_C,
+@@ -1373,7 +1417,7 @@ static __device__ __forceinline__ void flash_attn_ext_f16_process_tile(
+             constexpr bool last_iter = false;
+             constexpr int  k_VKQ_sup = nbatch_fa;
+             flash_attn_ext_f16_iter
+-                <DKQ, DV, ncols1, ncols2, nwarps, use_logit_softcap, V_is_K_view, use_sparse, needs_fixup, is_fixup, last_iter, oob_check,
++                <DKQ, DV, ncols1, ncols2, nwarps, use_logit_softcap, V_is_K_view, use_sparse, needs_fixup, is_fixup, last_iter, oob_check, q4_kv,
+                  T_A_KQ, T_B_KQ, T_C_KQ, T_A_VKQ, T_B_VKQ, T_C_VKQ>
+                 (Q_f2, K_h2, V_h2, mask_h, indices, dstk, dstk_fixup, scale, slope, logit_softcap,
+                  ne01, ne02, stride_K, stride_V, stride_mask, tile_Q, tile_K, tile_V, tile_mask, Q_B, VKQ_C,
+@@ -1382,7 +1426,7 @@ static __device__ __forceinline__ void flash_attn_ext_f16_process_tile(
+         constexpr bool last_iter = true;
+         constexpr int  k_VKQ_sup = nbatch_fa;
+         flash_attn_ext_f16_iter
+-            <DKQ, DV, ncols1, ncols2, nwarps, use_logit_softcap, V_is_K_view, use_sparse, needs_fixup, is_fixup, last_iter, oob_check,
++            <DKQ, DV, ncols1, ncols2, nwarps, use_logit_softcap, V_is_K_view, use_sparse, needs_fixup, is_fixup, last_iter, oob_check, q4_kv,
+              T_A_KQ, T_B_KQ, T_C_KQ, T_A_VKQ, T_B_VKQ, T_C_VKQ>
+             (Q_f2, K_h2, V_h2, mask_h, indices, dstk, dstk_fixup, scale, slope, logit_softcap,
+              ne01, ne02, stride_K, stride_V, stride_mask, tile_Q, tile_K, tile_V, tile_mask, Q_B, VKQ_C,
+@@ -1793,7 +1837,7 @@ static constexpr __host__ __device__ bool ggml_cuda_flash_attn_ext_mma_f16_may_u
+            (DKQ == 256 && DV == 256 && ncols1 == 8 && ncols2 == 8);
+ }
+ 
+-template<int DKQ, int DV, int ncols1, int ncols2, bool use_logit_softcap, bool V_is_K_view, bool use_sparse>
++template<int DKQ, int DV, int ncols1, int ncols2, bool use_logit_softcap, bool V_is_K_view, bool use_sparse, bool q4_kv = false>
+ __launch_bounds__(ggml_cuda_fattn_mma_get_nthreads(DKQ, DV, ncols1*ncols2), ggml_cuda_fattn_mma_get_occupancy(DKQ, DV, ncols1*ncols2))
+ static __global__ void flash_attn_ext_f16(
+         const char * Q_ptr,
+@@ -1819,6 +1863,13 @@ static __global__ void flash_attn_ext_f16(
+                             const int32_t nb31, const int32_t nb32, const int64_t nb33) {
+     ggml_cuda_pdl_sync(); // TODO optimize placement
+ #if defined(FLASH_ATTN_AVAILABLE) && (defined(VOLTA_MMA_AVAILABLE) || defined(TURING_MMA_AVAILABLE) || defined(AMD_WMMA_AVAILABLE) || defined(AMD_MFMA_AVAILABLE))
++#if __CUDA_ARCH__ != GGML_CUDA_CC_ADA_LOVELACE
++    if constexpr (q4_kv) {
++        NO_DEVICE_CODE;
++        return;
++    } else
++#endif
++    {
+     const char * GGML_CUDA_RESTRICT Q              = Q_ptr;
+     const char * GGML_CUDA_RESTRICT K              = K_ptr;
+     const char * GGML_CUDA_RESTRICT V              = V_ptr;
+@@ -1878,6 +1929,13 @@ static __global__ void flash_attn_ext_f16(
+     constexpr int nthreads  = ggml_cuda_fattn_mma_get_nthreads(DKQ, DV, ncols);
+     constexpr int nwarps    = nthreads / warp_size;
+ 
++    if constexpr (q4_kv) {
++        static_assert(DKQ == 256 && DV == 256 && ncols1 == 4 && ncols2 == 8, "Q4 KV shape");
++        static_assert(!use_logit_softcap && !V_is_K_view && !use_sparse, "Q4 KV policy");
++        static_assert(ggml_cuda_fattn_mma_get_nbatch_K2(DKQ, DV, ncols) == DKQ/2, "Q4 K slice");
++        static_assert(ggml_cuda_fattn_mma_get_nbatch_V2(DKQ, DV, ncols) == DV/2, "Q4 V slice");
++    }
++
+     const int gqa_ratio = ne02 / ne12; // With grouped query attention there are > 1 Q matrices per K, V matrix.
+ 
+     const int stride_Q1   = nb01 / sizeof(float2);
+@@ -1936,12 +1994,12 @@ static __global__ void flash_attn_ext_f16(
+         constexpr bool is_fixup = false; // All but (potentially) the last iterations write their data to dst rather than the fixup buffer.
+         if (kb0_start == 0) {
+             constexpr bool needs_fixup = false; // CUDA block is working on an entire tile.
+-            flash_attn_ext_f16_process_tile<DKQ, DV, ncols1, ncols2, nwarps, use_logit_softcap, V_is_K_view, use_sparse, needs_fixup, is_fixup>
++            flash_attn_ext_f16_process_tile<DKQ, DV, ncols1, ncols2, nwarps, use_logit_softcap, V_is_K_view, use_sparse, needs_fixup, is_fixup, q4_kv>
+                 (Q_f2, K_h2, V_h2, mask_h, indices, sinks_f, dstk, dst_meta, scale, slope, logit_softcap,
+                  ne01, ne02, gqa_ratio, ne11, stride_Q1, stride_Q2, stride_K, stride_V, stride_mask, jt, zt_gqa, kb0_start, kb0_stop);
+         } else {
+             constexpr bool needs_fixup = true; // CUDA block is missing the beginning of a tile.
+-            flash_attn_ext_f16_process_tile<DKQ, DV, ncols1, ncols2, nwarps, use_logit_softcap, V_is_K_view, use_sparse, needs_fixup, is_fixup>
++            flash_attn_ext_f16_process_tile<DKQ, DV, ncols1, ncols2, nwarps, use_logit_softcap, V_is_K_view, use_sparse, needs_fixup, is_fixup, q4_kv>
+                 (Q_f2, K_h2, V_h2, mask_h, indices, sinks_f, dstk, dst_meta, scale, slope, logit_softcap,
+                  ne01, ne02, gqa_ratio, ne11, stride_Q1, stride_Q2, stride_K, stride_V, stride_mask, jt, zt_gqa, kb0_start, kb0_stop);
+         }
+@@ -1985,9 +2043,10 @@ static __global__ void flash_attn_ext_f16(
+ 
+     constexpr bool is_fixup = true; // Last index writes its data to fixup buffer to avoid data races with other blocks.
+     constexpr bool needs_fixup = false;
+-    flash_attn_ext_f16_process_tile<DKQ, DV, ncols1, ncols2, nwarps, use_logit_softcap, V_is_K_view, use_sparse, needs_fixup, is_fixup>
++    flash_attn_ext_f16_process_tile<DKQ, DV, ncols1, ncols2, nwarps, use_logit_softcap, V_is_K_view, use_sparse, needs_fixup, is_fixup, q4_kv>
+         (Q_f2, K_h2, V_h2, mask_h, indices, sinks_f, dstk, dst_meta, scale, slope, logit_softcap,
+          ne01, ne02, gqa_ratio, ne11, stride_Q1, stride_Q2, stride_K, stride_V, stride_mask, jt, zt_gqa, kb0_start, kb0_stop);
++    }
+ #else
+     GGML_UNUSED_VARS(Q_ptr, K_ptr, V_ptr, mask_ptr, sinks_ptr, KV_max_ptr, dst_ptr, dst_meta_ptr, scale,
+         max_bias, m0, m1, n_head_log2, logit_softcap,
+@@ -2004,6 +2063,42 @@ static __global__ void flash_attn_ext_f16(
+ 
+ bool ggml_cuda_flash_attn_ext_mma_f16_shall_use_sparse(const int cc, const ggml_tensor * dst, const int ncols1, const int ncols2);
+ 
++static inline ggml_cuda_q4_kv_tensor ggml_cuda_fattn_q4_kv_metadata(const ggml_tensor * tensor) {
++    ggml_cuda_q4_kv_tensor result;
++    if (tensor == nullptr) return result;
++    result.type = tensor->type;
++    for (int i = 0; i < 4; ++i) {
++        result.ne[i] = tensor->ne[i];
++        result.nb[i] = tensor->nb[i];
++    }
++    result.data = uint64_t(reinterpret_cast<uintptr_t>(tensor->data));
++    result.bytes = ggml_nbytes(tensor);
++    return result;
++}
++
++static inline bool ggml_cuda_fattn_q4_kv_shape_eligible(const ggml_tensor * dst, int cc, bool use_sparse) {
++    if (cc != GGML_CUDA_CC_ADA_LOVELACE) return false;
++    ggml_cuda_q4_kv_policy policy;
++    // Shape eligibility also records the stock dispatch for paired oracles.
++    // The separate environment opt-in controls whether fusion may be selected.
++    policy.enabled = true;
++    policy.cc = cc;
++    policy.q = ggml_cuda_fattn_q4_kv_metadata(dst->src[0]);
++    policy.k = ggml_cuda_fattn_q4_kv_metadata(dst->src[1]);
++    policy.v = ggml_cuda_fattn_q4_kv_metadata(dst->src[2]);
++    policy.mask = ggml_cuda_fattn_q4_kv_metadata(dst->src[3]);
++    policy.mask_present = dst->src[3] != nullptr;
++    policy.has_sinks = dst->src[4] != nullptr;
++    policy.use_sparse = use_sparse || ggml_get_op_params_i32(dst, 4) != 0;
++    const ggml_tensor * K = dst->src[1];
++    const ggml_tensor * V = dst->src[2];
++    policy.shared_kv = V->view_src && (V->view_src == K ||
++            (V->view_src == K->view_src && V->view_offs == K->view_offs));
++    memcpy(&policy.max_bias, (const float *) dst->op_params + 1, sizeof(float));
++    memcpy(&policy.logit_softcap, (const float *) dst->op_params + 2, sizeof(float));
++    return ggml_cuda_q4_kv_eligible(policy);
++}
++
+ template <int DKQ, int DV, int ncols1, int ncols2>
+ void ggml_cuda_flash_attn_ext_mma_f16_case(ggml_backend_cuda_context & ctx, ggml_tensor * dst) {
+     const ggml_tensor * KQV = dst;
+@@ -2100,9 +2195,51 @@ void ggml_cuda_flash_attn_ext_mma_f16_case(ggml_backend_cuda_context & ctx, ggml
+         }
+     }
+ 
++    bool fused_q4_kv = false;
++    bool record_q4_kv = false;
++    int q4_baseline_blocks_per_sm = 0;
++#if !defined(GGML_USE_HIP) && !defined(GGML_USE_MUSA)
++    if constexpr (DKQ == 256 && DV == 256 && ncols1 == 4 && ncols2 == 8) {
++        if (cc == GGML_CUDA_CC_ADA_LOVELACE) {
++            const char * const mode = std::getenv("GGML_CUDA_FATTN_Q4_KV_FUSION");
++            const bool enabled = ggml_cuda_q4_kv_enabled(mode);
++            const bool diagnostics = ggml_cuda_q4_kv_diagnostics(mode);
++            const bool eligible = (enabled || diagnostics) && ggml_cuda_fattn_q4_kv_shape_eligible(dst, cc, use_sparse);
++            record_q4_kv = eligible && diagnostics;
++            if (eligible) {
++                bool occupancy_fallback = false;
++                int baseline_blocks = 0;
++                int candidate_blocks = 0;
++                if (enabled) {
++                    const fattn_kernel_t fused_kernel = flash_attn_ext_f16<256, 256, 4, 8, false, false, false, true>;
++                    static std::once_flag fused_shared_memory_limit_once[GGML_CUDA_MAX_DEVICES];
++                    std::call_once(fused_shared_memory_limit_once[id], [&] {
++                        CUDA_CHECK(cudaFuncSetAttribute(reinterpret_cast<fattn_kernel_ptr_t>(fused_kernel), cudaFuncAttributeMaxDynamicSharedMemorySize, nbytes_shared_total));
++                    });
++                    CUDA_CHECK(cudaOccupancyMaxActiveBlocksPerMultiprocessor(&baseline_blocks, fattn_kernel, nthreads, nbytes_shared_total));
++                    CUDA_CHECK(cudaOccupancyMaxActiveBlocksPerMultiprocessor(&candidate_blocks, fused_kernel, nthreads, nbytes_shared_total));
++                    GGML_ASSERT(baseline_blocks > 0 && candidate_blocks > 0);
++                    if (candidate_blocks >= baseline_blocks) {
++                        fattn_kernel = fused_kernel;
++                        fused_q4_kv = true;
++                        q4_baseline_blocks_per_sm = baseline_blocks;
++                    } else {
++                        // A different stream-K partition can change reduction order.
++                        // Retain the stock conversion and kernel if it cannot fit.
++                        occupancy_fallback = true;
++                    }
++                }
++                if (diagnostics) {
++                    ggml_cuda_fattn_q4_kv_record_dispatch(fused_q4_kv, occupancy_fallback, baseline_blocks, candidate_blocks);
++                }
++            }
++        }
++    }
++#endif
+     const bool async_kv_preload = nstages == 2 && !use_sparse;
+     launch_fattn<DV, ncols1, ncols2>
+-        (ctx, dst, fattn_kernel, nwarps, nbytes_shared_total, nbatch_fa, true, true, true, use_sparse, warp_size_host, async_kv_preload);
++        (ctx, dst, fattn_kernel, nwarps, nbytes_shared_total, nbatch_fa, !fused_q4_kv, !fused_q4_kv, true, use_sparse,
++         warp_size_host, async_kv_preload, q4_baseline_blocks_per_sm, record_q4_kv);
+ }
+ 
+ 
+diff --git a/ggml/src/ggml-cuda/fattn.cu b/ggml/src/ggml-cuda/fattn.cu
+index 5fa3e5308..22b230a20 100644
+--- a/ggml/src/ggml-cuda/fattn.cu
++++ b/ggml/src/ggml-cuda/fattn.cu
+@@ -5,6 +5,92 @@
+ #include "fattn-vec.cuh"
+ #include "fattn.cuh"
+ 
++#include <atomic>
++#include <cstdio>
++
++namespace {
++
++#define GGML_Q4_KV_STATS_FIELDS(X) \
++    X(eligible_calls) X(fused_calls) X(occupancy_fallbacks) \
++    X(baseline_blocks_per_sm) X(candidate_blocks_per_sm) \
++    X(grid_x) X(grid_y) X(grid_z) X(block_x) X(block_y) X(block_z) \
++    X(shared_bytes) X(kv_rows) X(query_rows) X(tile_rows) X(output_tiles) X(stream_k)
++
++struct q4_kv_atomic_stats {
++#define GGML_Q4_KV_ATOMIC_FIELD(name) std::atomic<uint64_t> name{0};
++    GGML_Q4_KV_STATS_FIELDS(GGML_Q4_KV_ATOMIC_FIELD)
++#undef GGML_Q4_KV_ATOMIC_FIELD
++};
++
++q4_kv_atomic_stats q4_kv_stats;
++std::atomic<bool> q4_kv_exit_dump_registered{false};
++
++static void q4_kv_dump_at_exit() {
++    ggml_cuda_fattn_q4_kv_stats value;
++    ggml_cuda_fattn_q4_kv_get_stats(&value);
++    // Host selections include graph capture, not GPU graph replays. These
++    // diagnostic snapshots are individually atomic, not transactionally paired.
++    std::fprintf(stderr,
++            "ezlocalai_q4_kv_fusion_stats {\"kind\":\"host_dispatch_selections\","
++            "\"eligible\":%llu,\"selected\":%llu,\"occupancy_fallbacks\":%llu,"
++            "\"baseline_blocks_per_sm\":%llu,\"candidate_blocks_per_sm\":%llu,"
++            "\"grid\":[%llu,%llu,%llu],\"block\":[%llu,%llu,%llu],"
++            "\"shared_bytes\":%llu,\"kv_rows\":%llu,\"query_rows\":%llu,"
++            "\"tile_rows\":%llu,\"output_tiles\":%llu,\"stream_k\":%llu}\n",
++            (unsigned long long) value.eligible_calls, (unsigned long long) value.fused_calls,
++            (unsigned long long) value.occupancy_fallbacks,
++            (unsigned long long) value.baseline_blocks_per_sm, (unsigned long long) value.candidate_blocks_per_sm,
++            (unsigned long long) value.grid_x, (unsigned long long) value.grid_y, (unsigned long long) value.grid_z,
++            (unsigned long long) value.block_x, (unsigned long long) value.block_y, (unsigned long long) value.block_z,
++            (unsigned long long) value.shared_bytes, (unsigned long long) value.kv_rows, (unsigned long long) value.query_rows,
++            (unsigned long long) value.tile_rows, (unsigned long long) value.output_tiles, (unsigned long long) value.stream_k);
++}
++
++} // namespace
++
++extern "C" GGML_BACKEND_API void ggml_cuda_fattn_q4_kv_reset_stats() {
++#define GGML_Q4_KV_RESET_FIELD(name) q4_kv_stats.name.store(0, std::memory_order_relaxed);
++    GGML_Q4_KV_STATS_FIELDS(GGML_Q4_KV_RESET_FIELD)
++#undef GGML_Q4_KV_RESET_FIELD
++}
++
++extern "C" GGML_BACKEND_API void ggml_cuda_fattn_q4_kv_get_stats(ggml_cuda_fattn_q4_kv_stats * result) {
++    if (result == nullptr) return;
++#define GGML_Q4_KV_GET_FIELD(name) result->name = q4_kv_stats.name.load(std::memory_order_relaxed);
++    GGML_Q4_KV_STATS_FIELDS(GGML_Q4_KV_GET_FIELD)
++#undef GGML_Q4_KV_GET_FIELD
++}
++
++void ggml_cuda_fattn_q4_kv_record_dispatch(bool fused, bool fallback, int baseline, int candidate) {
++    q4_kv_stats.eligible_calls.fetch_add(1, std::memory_order_relaxed);
++    if (fused) q4_kv_stats.fused_calls.fetch_add(1, std::memory_order_relaxed);
++    if (fallback) q4_kv_stats.occupancy_fallbacks.fetch_add(1, std::memory_order_relaxed);
++    q4_kv_stats.baseline_blocks_per_sm.store(baseline, std::memory_order_relaxed);
++    q4_kv_stats.candidate_blocks_per_sm.store(candidate, std::memory_order_relaxed);
++    if (!q4_kv_exit_dump_registered.exchange(true, std::memory_order_relaxed)) {
++        std::atexit(q4_kv_dump_at_exit);
++    }
++}
++
++void ggml_cuda_fattn_q4_kv_record_launch(dim3 grid, dim3 block, size_t shared_bytes,
++        int kv_rows, int query_rows, int tile_rows, int output_tiles, bool stream_k, int baseline_blocks) {
++    q4_kv_stats.grid_x.store(grid.x, std::memory_order_relaxed);
++    q4_kv_stats.grid_y.store(grid.y, std::memory_order_relaxed);
++    q4_kv_stats.grid_z.store(grid.z, std::memory_order_relaxed);
++    q4_kv_stats.block_x.store(block.x, std::memory_order_relaxed);
++    q4_kv_stats.block_y.store(block.y, std::memory_order_relaxed);
++    q4_kv_stats.block_z.store(block.z, std::memory_order_relaxed);
++    q4_kv_stats.shared_bytes.store(shared_bytes, std::memory_order_relaxed);
++    q4_kv_stats.kv_rows.store(kv_rows, std::memory_order_relaxed);
++    q4_kv_stats.query_rows.store(query_rows, std::memory_order_relaxed);
++    q4_kv_stats.tile_rows.store(tile_rows, std::memory_order_relaxed);
++    q4_kv_stats.output_tiles.store(output_tiles, std::memory_order_relaxed);
++    q4_kv_stats.stream_k.store(stream_k, std::memory_order_relaxed);
++    q4_kv_stats.baseline_blocks_per_sm.store(baseline_blocks, std::memory_order_relaxed);
++}
++
++#undef GGML_Q4_KV_STATS_FIELDS
++
+ #if !defined(GGML_USE_HIP) && !defined(GGML_USE_MUSA)
+ // one list per group of ncols1 queries: a column is selected if any query of the group can see it
+ template <int ncols1, bool oob>
+diff --git a/ggml/src/ggml-cuda/fattn-q4-kv-policy.h b/ggml/src/ggml-cuda/fattn-q4-kv-policy.h
+new file mode 100644
+index 000000000..c86295f19
+--- /dev/null
++++ b/ggml/src/ggml-cuda/fattn-q4-kv-policy.h
+@@ -0,0 +1,145 @@
++#pragma once
++
++#include "ggml.h"
++
++#include <cstdint>
++#include <limits>
++
++// Host-only metadata: CPU guards and the CUDA dispatcher exercise one policy.
++// The byte range is the tensor's logical span, not the backing buffer size.
++struct ggml_cuda_q4_kv_tensor {
++    ggml_type type = GGML_TYPE_COUNT;
++    int64_t ne[4] = {};
++    uint64_t nb[4] = {};
++    uint64_t data = 0;
++    uint64_t bytes = 0;
++};
++
++struct ggml_cuda_q4_kv_policy {
++    bool enabled = false;
++    int cc = 0;
++    ggml_cuda_q4_kv_tensor q, k, v, mask;
++    bool mask_present = false;
++    bool has_sinks = false;
++    bool use_sparse = false;
++    bool shared_kv = false;
++    float max_bias = 0.0f;
++    float logit_softcap = 0.0f;
++};
++
++// Private diagnostic ABI. No CUDA or context pointer crosses this interface.
++struct ggml_cuda_fattn_q4_kv_stats {
++    uint64_t eligible_calls = 0;
++    uint64_t fused_calls = 0;
++    uint64_t occupancy_fallbacks = 0;
++    uint64_t baseline_blocks_per_sm = 0;
++    uint64_t candidate_blocks_per_sm = 0;
++    uint64_t grid_x = 0, grid_y = 0, grid_z = 0;
++    uint64_t block_x = 0, block_y = 0, block_z = 0;
++    uint64_t shared_bytes = 0;
++    uint64_t kv_rows = 0, query_rows = 0;
++    uint64_t tile_rows = 0, output_tiles = 0;
++    uint64_t stream_k = 0;
++};
++
++constexpr bool ggml_cuda_q4_kv_enabled(const char * value) {
++    return value == nullptr || (value[0] == '1' && value[1] == '\0');
++}
++
++// Automatic activation has no diagnostics. Explicit 0/1 modes provide paired
++// stock/fused launch proof; malformed values disable the optimization silently.
++constexpr bool ggml_cuda_q4_kv_diagnostics(const char * value) {
++    return value != nullptr && (value[0] == '0' || value[0] == '1') && value[1] == '\0';
++}
++
++namespace ggml_cuda_q4_kv_detail {
++
++constexpr bool multiply(uint64_t a, uint64_t b, uint64_t & result) {
++    if (b != 0 && a > std::numeric_limits<uint64_t>::max() / b) return false;
++    result = a * b;
++    return true;
++}
++
++constexpr bool add(uint64_t a, uint64_t b, uint64_t & result) {
++    if (a > std::numeric_limits<uint64_t>::max() - b) return false;
++    result = a + b;
++    return true;
++}
++
++constexpr bool tensor_span(const ggml_cuda_q4_kv_tensor & t,
++        uint64_t block_elements, uint64_t block_bytes, uint64_t & span) {
++    for (int i = 0; i < 4; ++i) {
++        if (t.ne[i] <= 0 || t.ne[i] > std::numeric_limits<int32_t>::max() || t.nb[i] == 0) return false;
++    }
++    if (t.ne[0] % block_elements != 0 || t.nb[0] != block_bytes) return false;
++    if (!multiply(uint64_t(t.ne[0]) / block_elements, block_bytes, span)) return false;
++    for (int i = 1; i < 4; ++i) {
++        uint64_t term = 0;
++        if (!multiply(uint64_t(t.ne[i] - 1), t.nb[i], term) || !add(span, term, span)) return false;
++    }
++    return t.data != 0 && t.data % 16 == 0 && t.bytes >= span &&
++        t.data <= std::numeric_limits<uint64_t>::max() - span;
++}
++
++// Recognize both the production head-interleaved FA view and a head-major test
++// tensor. Single-sequence views may retain the full allocated cache's nb[3].
++constexpr bool dense_rows_heads(const ggml_cuda_q4_kv_tensor & t,
++        uint64_t row_bytes, uint64_t span) {
++    uint64_t rows_bytes = 0, heads_bytes = 0;
++    if (!multiply(row_bytes, uint64_t(t.ne[1]), rows_bytes) ||
++        !multiply(row_bytes, uint64_t(t.ne[2]), heads_bytes)) return false;
++    const bool head_major = t.nb[1] == row_bytes && t.nb[2] == rows_bytes;
++    const bool token_major = t.nb[1] == heads_bytes && t.nb[2] == row_bytes;
++    return (head_major || token_major) && t.nb[3] >= span && t.nb[3] % 4 == 0 &&
++        t.nb[1] <= std::numeric_limits<int32_t>::max() &&
++        t.nb[2] <= std::numeric_limits<int32_t>::max() &&
++        t.nb[3] <= uint64_t(std::numeric_limits<int64_t>::max());
++}
++
++constexpr bool overlaps(const ggml_cuda_q4_kv_tensor & a, uint64_t a_span,
++        const ggml_cuda_q4_kv_tensor & b, uint64_t b_span) {
++    // End-address overflow was rejected by tensor_span().
++    return a.data < b.data + b_span && b.data < a.data + a_span;
++}
++
++} // namespace ggml_cuda_q4_kv_detail
++
++constexpr bool ggml_cuda_q4_kv_eligible(const ggml_cuda_q4_kv_policy & p) {
++    using namespace ggml_cuda_q4_kv_detail;
++    if (!p.enabled || p.cc != 890 || !p.mask_present || p.has_sinks ||
++        p.use_sparse || p.shared_kv || p.max_bias != 0.0f || p.logit_softcap != 0.0f) return false;
++    if (p.q.type != GGML_TYPE_F32 || p.k.type != GGML_TYPE_Q4_0 ||
++        p.v.type != GGML_TYPE_Q4_0 || p.mask.type != GGML_TYPE_F16) return false;
++    if (p.q.ne[0] != 256 || (p.q.ne[1] != 3 && p.q.ne[1] != 4) ||
++        p.q.ne[2] != 24 || p.q.ne[3] != 1 || p.k.ne[0] != 256 ||
++        p.k.ne[1] <= 0 || p.k.ne[1] % 256 != 0 || p.k.ne[2] != 4 || p.k.ne[3] != 1) return false;
++    for (int i = 0; i < 4; ++i) if (p.k.ne[i] != p.v.ne[i]) return false;
++    for (int i = 0; i < 3; ++i) if (p.k.nb[i] != p.v.nb[i]) return false;
++    if (p.mask.ne[0] != p.k.ne[1] || p.mask.ne[1] < p.q.ne[1] ||
++        p.mask.ne[2] != 1 || p.mask.ne[3] != 1) return false;
++
++    uint64_t q_span = 0, k_span = 0, v_span = 0, mask_span = 0;
++    if (!tensor_span(p.q, 1, 4, q_span) || !tensor_span(p.k, 32, 18, k_span) ||
++        !tensor_span(p.v, 32, 18, v_span) || !tensor_span(p.mask, 1, 2, mask_span)) return false;
++    if (!dense_rows_heads(p.q, 256 * 4, q_span) || !dense_rows_heads(p.k, 8 * 18, k_span) ||
++        !dense_rows_heads(p.v, 8 * 18, v_span)) return false;
++    // Q stride arguments narrow to int32_t; the single-sequence stride still
++    // must be representable even though it is not dereferenced at sequence 0.
++    if (p.q.nb[3] > std::numeric_limits<int32_t>::max()) return false;
++    for (int i = 1; i < 4; ++i) if (p.q.nb[i] % 16 != 0 || p.mask.nb[i] % 16 != 0) return false;
++
++    uint64_t mask_row = 0, mask_plane = 0;
++    if (!multiply(uint64_t(p.mask.ne[0]), 2, mask_row) ||
++        !multiply(mask_row, uint64_t(p.mask.ne[1]), mask_plane)) return false;
++    if (p.mask.nb[1] != mask_row || p.mask.nb[2] < mask_plane || p.mask.nb[3] < mask_plane ||
++        p.mask.nb[1] > std::numeric_limits<int32_t>::max() ||
++        p.mask.nb[2] > std::numeric_limits<int32_t>::max() ||
++        p.mask.nb[3] > uint64_t(std::numeric_limits<int64_t>::max())) return false;
++
++    // These read-only inputs normally have separate tensors. Reject overlap so
++    // the first prototype does not broaden the existing shared-K/V contract.
++    return !overlaps(p.k, k_span, p.v, v_span) &&
++        !overlaps(p.q, q_span, p.k, k_span) && !overlaps(p.q, q_span, p.v, v_span) &&
++        !overlaps(p.mask, mask_span, p.k, k_span) && !overlaps(p.mask, mask_span, p.v, v_span) &&
++        !overlaps(p.mask, mask_span, p.q, q_span);
++}

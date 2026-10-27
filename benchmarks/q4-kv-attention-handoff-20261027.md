@@ -1,7 +1,9 @@
 # Q4 KV attention: profiling-backed implementation handoff
 
-This is a follow-up design, **not an implemented or qualified optimization**.
-Keep it separate from the cache-retention patch. The source audited here is
+This records the profiling and initial design behind the separate
+[Q4 KV fusion implementation and validation](q4-kv-fusion-20261027.md).
+The default-off prototype below preceded its guarded automatic activation.
+The source audited here is
 ggml-org/llama.cpp `620d2225cc436ab0b001e3200e590e3b286ef9ab` (v0.7.0).
 Preserve the deployed model, Q4 KV bytes, query precision, context and sampling.
 
@@ -17,9 +19,14 @@ rounds times 16 target attention layers times separate K/V conversions. This
 source-and-shape attribution identifies repeated KV conversion; static model
 weight dequantization would not explain those growing context-sized buffers.
 
+The model metadata records 24 query heads and four KV heads (`n_gqa=6`). The
+kernel template's `ncols2=8` is a padded tile width. The initial handoff inferred
+eight actual grouped query heads from that width; the prototype audit corrected
+this before GPU execution. Eligibility and padded-head tests must use GQA six.
+
 The trace also records 459 `flash_attn_ext_f16<256,256,4,8,...>` calls (279.951 ms)
 and 78 `<256,256,1,8,...>` calls (43.811 ms). These observations identify a target
-for investigation; removing conversion has no measured speedup yet. Nsight warns
+for investigation; the profile alone establishes no speedup. Nsight warns
 that not all CUDA events may have been collected, and the deep trace reports
 150 GetGraphId and 150 GetGraphNodeId `CUPTI_INVALID_PARAMETER` errors. Kernel
 timings are present; complete graph association is unproven. An uninstrumented
@@ -45,7 +52,7 @@ reductions, so avoiding standalone conversion does not guarantee better latency.
 This requires substantial CUDA kernel work. Add a packed-Q4 storage policy to
 the existing F16 MMA tile loader, preserving the actual F16 operands consumed
 by the original MMA instructions. Start with an experimental, default-off path
-limited to **SM89, D_K=D_V=256, three/four query rows, GQA ratio eight, one
+limited to **SM89, D_K=D_V=256, three/four query rows, GQA ratio six (24 query heads / four KV heads), one
 sequence, contiguous padded Q4_0 K and V, ordinary mask, no ALiBi, softcap,
 sparse gather or shared-K/V view**. All other inputs retain the original path.
 This eligibility must be checked from actual tensor metadata, not model names.

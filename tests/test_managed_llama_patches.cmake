@@ -38,7 +38,7 @@ function(check_metadata)
     endif()
     file(STRINGS "${path}" rows)
     list(LENGTH rows count)
-    if(NOT count EQUAL 7)
+    if(NOT count EQUAL 8)
         message(FATAL_ERROR "The managed stack did not record all engine fixes")
     endif()
     set(seen "")
@@ -125,6 +125,33 @@ run_helper(-DREMOVE_MANAGED_PATCH=ON)
 check_clean()
 if(EXISTS "${out}/ezlocalai-llama-cpp-patches.txt")
     message(FATAL_ERROR "Removing the preceding stack left stale metadata")
+endif()
+
+# Upgrade the preceding seven-patch release with its checkpoint-retention fix,
+# then remove the complete stack, including the CUDA policy header.
+foreach(name llama-conversation-cache llama-cache-restore-atomic llama-cache-storage
+        llama-mtp-resume llama-checkpoint-coverage llama-checkpoint-entry-window
+        llama-cache-retention)
+    execute_process(COMMAND git -C "${copy}" apply "${PATCH_DIR}/${name}.patch"
+        COMMAND_ERROR_IS_FATAL ANY)
+endforeach()
+run_helper()
+check_metadata()
+run_helper(-DREMOVE_MANAGED_PATCH=ON)
+check_clean()
+
+# A seven-patch installation can also be removed directly, without first
+# installing the CUDA fusion patch or leaving qualification metadata behind.
+foreach(name llama-conversation-cache llama-cache-restore-atomic llama-cache-storage
+        llama-mtp-resume llama-checkpoint-coverage llama-checkpoint-entry-window
+        llama-cache-retention)
+    execute_process(COMMAND git -C "${copy}" apply "${PATCH_DIR}/${name}.patch"
+        COMMAND_ERROR_IS_FATAL ANY)
+endforeach()
+run_helper(-DREMOVE_MANAGED_PATCH=ON)
+check_clean()
+if(EXISTS "${out}/ezlocalai-llama-cpp-patches.txt")
+    message(FATAL_ERROR "Removing the seven-patch stack left stale metadata")
 endif()
 
 # Missing and malformed inputs must fail explicitly, not ship a partial worker.
