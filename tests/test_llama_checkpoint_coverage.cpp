@@ -35,7 +35,7 @@ struct schedule {
     std::vector<std::pair<int32_t,int32_t>> logical;
     std::set<int32_t> snapshots;
 };
-schedule schedule_prompt(const common_checkpoint_plan & p,int tokens,int start,int batch=4096) {
+schedule schedule_prompt(const common_checkpoint_plan & p,int tokens,int start,int batch=4096, bool legacy_entry=false) {
     schedule out;
     while (start<tokens) {
         const int before=start;
@@ -45,7 +45,13 @@ schedule schedule_prompt(const common_checkpoint_plan & p,int tokens,int start,i
             if(p.break_before_end(tokens-start,added,tokens-before)) break;
         }
         out.logical.emplace_back(before,added);
-        if(start==tokens || p.near_end(tokens-start,tokens-before)) out.snapshots.insert(before);
+        const auto remaining_after=tokens-start,remaining_before=tokens-before;
+        // Recorded five-patch policy, before opportunistic entry-window capture.
+        const bool old_near=remaining_after<p.old_near_span ||
+            (p.extra_window_end>0 && remaining_before>p.offsets[0] &&
+             remaining_before<=p.extra_window_end && remaining_after<=p.offsets[0]);
+        if(start==tokens || (legacy_entry ? old_near : p.near_end(remaining_after,remaining_before)))
+            out.snapshots.insert(before);
     }
     return out;
 }
@@ -113,7 +119,7 @@ void tail_reservation_and_original_start_alignment() {
             require(physical_groups(before,tokens,1024,0,true)==physical_groups(after,tokens,1024,0,true),
                 "actual draft grouping is preserved around target rollback tails");
             for(int old:before.snapshots)require(after.snapshots.count(old)==1,"neither original checkpoint disappears");
-            require(after.snapshots.size()<=before.snapshots.size()+1,"tail cases add at most one checkpoint");
+            require(after.snapshots.size()<=before.snapshots.size()+2,"tail cases add at most two checkpoints beyond the original scheduler");
         }
     }
     require(!plan().break_before_end(1030,3072,4102),"two-row legacy tail cannot split before a four-row RS reservation");
@@ -121,6 +127,76 @@ void tail_reservation_and_original_start_alignment() {
         const auto before=schedule_prompt(plan(false),24577,start),after=schedule_prompt(plan(),24577,start);
         require(physical_groups(before,24577,1024,3)==physical_groups(after,24577,1024,3),
             "alignment follows each actual/user-start logical base, not absolute token positions");
+    }
+}
+
+void entry_window_coverage_and_phase_grid() {
+    const auto current=schedule_prompt(plan(),25758,77,4096,true);
+    const auto expanded=schedule_prompt(plan(),25758,77);
+    require(current.snapshots==std::set<int32_t>({24653,24730,25754}),
+        "new public seed reproduces the prior narrow near-end coverage gap");
+    require(expanded.snapshots==std::set<int32_t>({20557,24653,24730,25754}),
+        "entry window retains the earlier unchanged full logical chunk start");
+    require(expanded.logical==current.logical,
+        "entry-window capture changes no logical call or physical grouping");
+    require(*expanded.snapshots.begin()<24508 && *current.snapshots.begin()>24508,
+        "new public rewind has an earlier reusable checkpoint without dropping tail states");
+    const auto previous=schedule_prompt(plan(),24577,75);
+    require(previous.snapshots==std::set<int32_t>({22603,23549,24573}),
+        "prior qualified seed retains its exact checkpoint positions");
+    require(plan(true,4).extra_window_end>0 && !plan(true,4).entry_window,
+        "four slots keep prior aligned coverage without evicting early or original states");
+    require(plan(true,5).entry_window,
+        "five slots admit early user state, two original tail states and two coverage states");
+    require(!plan(false).entry_window && !plan(true,32,false).entry_window &&
+            !plan(true,32,true,false).entry_window,
+        "opt-out, unnamed and non-recurrent paths cannot add an entry state");
+    // Every logical-batch residue, three nontrivial starting positions and four
+    // RS tail sizes exercise planner invariants. Representative phases below
+    // additionally run the production target and draft batch allocators.
+    for(int start:{0,77,1023})for(uint32_t rollback:{0u,1u,3u,7u}) {
+        auto rt=runtime();rt.rollback_tokens=rollback;
+        for(int phase=0;phase<4096;++phase) {
+            const int tokens=start+8192+phase;
+            const auto selected=plan(true,32,true,true,tokens,4096,1024,rt);
+            const auto before=schedule_prompt(selected,tokens,start,4096,true);
+            const auto after=schedule_prompt(selected,tokens,start);
+            require(before.logical==after.logical,
+                "entry snapshots preserve every logical call across the complete token-phase grid");
+            for(int checkpoint:before.snapshots)require(after.snapshots.count(checkpoint)==1,
+                "all five-patch checkpoint positions remain across every phase");
+            require(after.snapshots.size()<=before.snapshots.size()+1,
+                "entry window adds at most one state per prompt");
+            const auto original=schedule_prompt(plan(false,32,true,true,tokens,4096,1024,rt),tokens,start);
+            require(after.snapshots.size()<=original.snapshots.size()+2,
+                "combined coverage stays at most two states beyond the original scheduler");
+            if(phase%127==0 || phase==4095 || phase==1105 || phase==1250) {
+                require(physical_groups(before,tokens,1024,rollback)==physical_groups(after,tokens,1024,rollback),
+                    "actual target splitter preserves ordered rows with RS tail reservations across phases");
+                require(physical_groups(before,tokens,1024,0,true)==physical_groups(after,tokens,1024,0,true),
+                    "actual draft splitter preserves ordered rows across phases");
+            }
+        }
+    }
+    // Production permits logical sizes other than 4096. They get the same
+    // snapshot-only behavior, including sizes not divisible by physical UB.
+    for(int batch:{2048,2049,3072,4097,8192})for(uint32_t rollback:{0u,3u,7u}) {
+        auto rt=runtime();rt.rollback_tokens=rollback;
+        for(int phase:{0,1,2,3,4,31,127,511,1023,1024,1025,1028,1105,1250,2047,2048}) {
+            const int start=77,tokens=start+3*batch+phase;
+            const auto selected=plan(true,32,true,true,tokens,batch,1024,rt);
+            const auto before=schedule_prompt(selected,tokens,start,batch,true);
+            const auto after=schedule_prompt(selected,tokens,start,batch);
+            require(before.logical==after.logical,"other eligible logical batches preserve exact calls");
+            for(int checkpoint:before.snapshots)require(after.snapshots.count(checkpoint)==1,
+                "other eligible logical batches keep every prior checkpoint");
+            require(after.snapshots.size()<=before.snapshots.size()+1,
+                "other logical sizes add at most one entry checkpoint");
+            require(physical_groups(before,tokens,1024,rollback)==physical_groups(after,tokens,1024,rollback),
+                "actual target groups stay equal at other logical sizes and short RS tails");
+            require(physical_groups(before,tokens,1024,0,true)==physical_groups(after,tokens,1024,0,true),
+                "actual draft groups stay equal at other logical sizes");
+        }
     }
 }
 
@@ -359,6 +435,7 @@ void actual_server_tokens_media_classification() {
 int main() {
     try {
         measured_schedule_and_actual_splitters(); tail_reservation_and_original_start_alignment();
+        entry_window_coverage_and_phase_grid();
         eligibility_and_other_configs(); mtp_boundary_continuity(); borrowed_mtp_context_accessor(); environment_optout();
         actual_draft_batch_parameter_inheritance();
         actual_parser_mtp_selection();

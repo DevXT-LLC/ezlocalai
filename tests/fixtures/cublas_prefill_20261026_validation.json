@@ -1,0 +1,239 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-26",
+  "status": "complete",
+  "scope": "Rejected RTX 4090 CUDA prefill algorithm screen; no production promotion or broad model-quality qualification",
+  "decision": {
+    "promoted": false,
+    "reason": "cuBLAS cold prefill was 15.93% slower than the bracketed MMQ baseline; short decode was flat"
+  },
+  "hardware": {
+    "worker": "DevXT4090",
+    "gpu": "NVIDIA GeForce RTX 4090",
+    "worker_revision": "720ee945c72eaff2f81612d19e22f44ea7738ecf",
+    "image_id": "sha256:f78bbd2139979beb58859f79c4c0e5c233919f43908be720eb5e25d266a108f9",
+    "original_container_id": "412b88dd0571cfd57f3b351e74b78cd72d3821104cbd4412300ef827fcef7cca",
+    "engine_pin": "620d2225cc436ab0b001e3200e590e3b286ef9ab",
+    "measured_start_utc": "2026-10-27T01:45:07.338252+00:00",
+    "measured_end_utc": "2026-10-27T01:47:18.784187+00:00",
+    "unlock_causal_comparison": false
+  },
+  "controls": {
+    "model": "unsloth/Qwen3.8-27B-GGUF",
+    "model_filename": "Qwen3.8-27B-UD-Q3_K_XL.gguf",
+    "model_sha256": "8c2a45ff85e7674ca185ec8eb6cdeab0e617ed9d8018caed0b64380eb2a67a5e",
+    "projector_sha256": "83ee4f4f205fa514161778c41df1ea14144faa0f713510893b63c2395f5c2d53",
+    "declared_context": 230000,
+    "effective_context": 230144,
+    "batch": 4096,
+    "physical_batch": 1024,
+    "cache_type_k": "q4_0",
+    "cache_type_v": "q4_0",
+    "slots": 1,
+    "spec_type": "draft-mtp",
+    "mtp_maximum": 3,
+    "mtp_minimum_probability": 0.1,
+    "cache_ram_mib": 12288,
+    "context_checkpoints": 32,
+    "checkpoint_min_step": 8192,
+    "requested_sampling": {
+      "temperature": 0,
+      "seed": 42,
+      "enable_thinking": false
+    },
+    "complete_original_argv_sha256": "7c20570c1f33c54d66fa648e6015acb55874bfc89d4b34cdb128891298865ca8",
+    "engine_executable_sha256": "786d233474c43332fb731763342e71657136e992b54d405b19998821b1f51074"
+  },
+  "algorithm": {
+    "baseline": "Original MMQ selector and CUDA library; diagnostic environment key absent",
+    "candidate": "Diagnostic cuBLAS preference for supported dense NVIDIA Turing+ matrices with ne11 >=128; existing precision policy unchanged",
+    "candidate_environment_overrides": {
+      "EZLOCALAI_CUDA_PREFILL_CUBLAS": "1"
+    },
+    "arithmetic_changed": true,
+    "numerical_limit": "Existing cuBLAS normally uses F16 inputs/compute for quantized weights; MMQ uses its Q8 activation working format. Identical weights/KV do not establish arithmetic or general quality equivalence."
+  },
+  "phase_order": [
+    "a1_baseline",
+    "b1_candidate",
+    "b2_candidate",
+    "a2_baseline"
+  ],
+  "phases": [
+    {
+      "phase": "a1",
+      "build": "baseline",
+      "cold_evaluated_tokens": 49991,
+      "cold_cached_tokens": 0,
+      "cold_prompt_ms": 18651.136,
+      "cold_prefill_tokens_per_second": 2680.3193113813554,
+      "cold_wall_seconds": 18.77199819899397,
+      "short_decode_median_tokens_per_second": 104.11571461351838,
+      "short_decode_samples": 3,
+      "short_decode_generated_tokens_per_sample": 256,
+      "cgroup_memory_peak_bytes": 4393193472,
+      "cgroup_swap_peak_bytes": 0,
+      "cgroup_oom_events_delta": 0
+    },
+    {
+      "phase": "b1",
+      "build": "candidate",
+      "cold_evaluated_tokens": 49991,
+      "cold_cached_tokens": 0,
+      "cold_prompt_ms": 22223.989,
+      "cold_prefill_tokens_per_second": 2249.416160168186,
+      "cold_wall_seconds": 22.345203681994462,
+      "short_decode_median_tokens_per_second": 104.16756026093363,
+      "short_decode_samples": 3,
+      "short_decode_generated_tokens_per_sample": 256,
+      "cgroup_memory_peak_bytes": 4494897152,
+      "cgroup_swap_peak_bytes": 0,
+      "cgroup_oom_events_delta": 0
+    },
+    {
+      "phase": "b2",
+      "build": "candidate",
+      "cold_evaluated_tokens": 49991,
+      "cold_cached_tokens": 0,
+      "cold_prompt_ms": 22229.558,
+      "cold_prefill_tokens_per_second": 2248.852631257895,
+      "cold_wall_seconds": 22.35193838099076,
+      "short_decode_median_tokens_per_second": 104.1146518712261,
+      "short_decode_samples": 3,
+      "short_decode_generated_tokens_per_sample": 256,
+      "cgroup_memory_peak_bytes": 4485050368,
+      "cgroup_swap_peak_bytes": 0,
+      "cgroup_oom_events_delta": 0
+    },
+    {
+      "phase": "a2",
+      "build": "baseline",
+      "cold_evaluated_tokens": 49991,
+      "cold_cached_tokens": 0,
+      "cold_prompt_ms": 18719.272,
+      "cold_prefill_tokens_per_second": 2670.563256947172,
+      "cold_wall_seconds": 18.841741447002278,
+      "short_decode_median_tokens_per_second": 104.0560645914759,
+      "short_decode_samples": 3,
+      "short_decode_generated_tokens_per_sample": 256,
+      "cgroup_memory_peak_bytes": 4393021440,
+      "cgroup_swap_peak_bytes": 0,
+      "cgroup_oom_events_delta": 0
+    }
+  ],
+  "comparison": {
+    "statistic": "Mean of two phase values; each decode phase value is its three-request median",
+    "cold_prefill_tokens_per_second": {
+      "baseline_mean": 2675.4412841642634,
+      "candidate_mean": 2249.1343957130402,
+      "candidate_change_percent": -15.93407752861189
+    },
+    "short_decode_tokens_per_second": {
+      "baseline_mean": 104.08588960249713,
+      "candidate_mean": 104.14110606607986,
+      "candidate_change_percent": 0.05304894236251023
+    },
+    "cold_wall_seconds": {
+      "baseline_mean": 18.806869822998124,
+      "candidate_mean": 22.34857103149261,
+      "candidate_change_percent": 18.831954715629973
+    }
+  },
+  "bounded_output_validation": {
+    "distinct_cases": 7,
+    "matched_phase_request_output_token_signatures": 28,
+    "all_phase_signatures_equal": true,
+    "comparison_signature_sha256": "251a55ec988eccce446d32e8569aa5610809cf017fc5e172de9a377e73f96b49",
+    "cold_request_sha256": "505c1e2fe15403e6cc332866049152a8876b3da294c03ad3be818c13570208fa",
+    "cold_messages_sha256": "019638002fade3c013def9bd2e2917f2f300ffb77171f4e7827b417b2278dcfa",
+    "cold_answer": "Python",
+    "cold_output_sha256": "2945b0d6616d16592538930914f4a2bc539b8d976a0b9200b3e82540f3c07c25",
+    "short_latency_requests_per_phase": 3,
+    "short_decode_requests_per_phase": 3,
+    "short_controls_run_before_large_prefill": true,
+    "short_controls_input_tokens_below_selector_threshold": true,
+    "warmup_excluded": true,
+    "inference_retries": 0,
+    "context_downgrade_allowed": false,
+    "general_model_quality_validated": false
+  },
+  "offline_validation": {
+    "selector_checks_passed": 53222400,
+    "selector_process_cases": 35,
+    "selector_hardware_simulated": true,
+    "selector_seam_sha256": "33491b816069c5b4f92479a8dc7c73dbfd5f5f6c09af8da04e2119c05fad554f",
+    "operator_guard_tests_passed": 16,
+    "operator_guard_tests_failed": 0,
+    "operator_source_manifest_sha256": "bcbd7a4182bd0afcf8624b3fa7286b34205f129471549cf403c3f6da9aec2550"
+  },
+  "artifact_sha256": {
+    "baseline": {
+      "/app/build/llama.cpp/bin/libggml-cuda.so.0": "5fe5f7b9de2f29ace36a74258c3074396c2f1b71cedcda200fc5b498085fc3c3"
+    },
+    "candidate": {
+      "/app/build/llama.cpp/bin/libggml-cuda.so.0": "efab748f1e65c5130c1082ecee4d4f246be9ffbf2926300c21ddca3ae7efb71b"
+    }
+  },
+  "diagnostic_source_sha256": {
+    "mmq.original.cu": "513ed8c9f2d4f33dc41a5d9cc066148ac63a6e4772bb487b5c064af9086da22e",
+    "mmq.candidate.cu": "738e7775554b6b83de2c61d0334950c496e8a8665f53a609037c0ce33e17b33c",
+    "prefill-cublas-diagnostic.patch": "4709d505635ae1f104d6bbccb915d525a4f385f65c8d9c6252e4dde235a74865"
+  },
+  "public_input": {
+    "repository": "https://github.com/DevXT-LLC/ezlocalai",
+    "commit": "c42148868a04d05171cdfc3bca7840f227b97216",
+    "path": "benchmarks/bench_progression.py",
+    "sha256": "1fa09e891df2dd2759501d60498cd94271a9665c01feff3ad070994ce92bf626"
+  },
+  "provenance": {
+    "run_id": "cublas-screen-4090-0d83003ade",
+    "benchmark_run_id": "cublas-prefill-screen-matched-20261026-v1",
+    "plan_sha256": "45d44b2d1f75f3e25f53ca3b4162f829f73101681a408c0bd95a408342f48662",
+    "controller_sha256": "710a1b0512f24f7a38342299c6c1ff47f70e2d23f1f63b56db4184bd0be97be5",
+    "benchmark_harness_sha256": "1f2423f9db4fc8212702a0601a76529fecf74c376a55893925f83c5c22e1760e"
+  },
+  "restoration": {
+    "healthy": true,
+    "same_container": true,
+    "same_image": true,
+    "same_environment": true,
+    "same_mounts": true,
+    "same_config": true,
+    "same_hostconfig": true,
+    "critical_parameters_preserved": true,
+    "oom_killed": false,
+    "full_engine_argv_preserved": true,
+    "full_engine_argv_sha256": "7c20570c1f33c54d66fa648e6015acb55874bfc89d4b34cdb128891298865ca8",
+    "two_fresh_heartbeats": true,
+    "stable_metadata_preserved": true,
+    "worker_id": "DevXT4090-330c7e83",
+    "restoration_verified": true,
+    "router_restoration_verified": true,
+    "owned_drain_released": true,
+    "lease_renewal_errors": [],
+    "existing_rollback_tag": "ezlocalai:rollback-spec-overhead-4090-7a6e959d4a",
+    "new_rollback_tag_created_for_this_screen": false,
+    "production_environment_promoted": false,
+    "gpu_clock_power_or_unlock_settings_changed": false
+  },
+  "limitations": [
+    "One 4090 only; no 3090/5090 comparison or causal unlock claim",
+    "49,991-token cold prompt, not maximum-context qualification",
+    "Finite answer plus short greedy controls, not broad quality, grammar, vision or cache-return qualification",
+    "Cgroup observations do not prove absence of whole-host paging",
+    "Different nonce/request from the 49,987-token host-overhead screen; decode rates are not paired across those screens"
+  ],
+  "raw_report_sha256": {
+    "a1-bench-decode.json": "e68662b2ed0075ebbcdb1fb5631001c542a6ad8ecdc3a7780cd13886ac7c8fc8",
+    "a1-bench.json": "dc89642420bccb0260220904bee6e9ef0284252f335c3830d6f2abd08cf19fdb",
+    "a2-bench-decode.json": "c32edda83f96d3a53a3c73fddd5e89a4381a60b9b27badee9a6b8682ffa269e3",
+    "a2-bench.json": "ff90da3f4254d7639d4c4ac37c3ce563766b05a547ca15e9292ca12d8ee953a5",
+    "b1-bench-decode.json": "5d51712a92871671dc8fd44f56d03136b589aac7a443958bc540df36b9da599f",
+    "b1-bench.json": "038607be91593b2cc0fd7f87a37713f594ad8ccdafdbdc0f413953cdadfc5bfb",
+    "b2-bench-decode.json": "a607d027e1b04f2468e304cd0429fb87e273a6f14c4a15baad99225613c16355",
+    "b2-bench.json": "dfc191ffd520b4ef24c8de17ff14e138ea69fa4ed81b0462b35c946fa9106a9a",
+    "result.json": "2bfec383f480b459f410969d337f664400ad47cbf36e33d9200dabfd5b02ffb8",
+    "supervisor-result.json": "08b0edf0d2211b88228dc0f170200fb6aac2c5ddee8545058262eb9626fdb644",
+    "telemetry.json": "5c89cba6403900a5abc466c5334a914ec8f991a3fd8538159e37d861179ac947"
+  }
+}

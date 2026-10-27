@@ -172,7 +172,7 @@ RUN git init /opt/acestep.cpp && \
 ENV ACE_STEP_BIN=/opt/acestep.cpp/build/ace-server
 
 FROM engines-base AS llama-engine
-COPY cmake/BuildLlamaEngine.cmake cmake/ApplyLlamaPatches.cmake patches/llama-conversation-cache.patch patches/llama-cache-restore-atomic.patch patches/llama-cache-storage.patch patches/llama-mtp-resume.patch patches/llama-checkpoint-coverage.patch /tmp/
+COPY cmake/BuildLlamaEngine.cmake cmake/ApplyLlamaPatches.cmake patches/llama-conversation-cache.patch patches/llama-cache-restore-atomic.patch patches/llama-cache-storage.patch patches/llama-mtp-resume.patch patches/llama-checkpoint-coverage.patch patches/llama-checkpoint-entry-window.patch /tmp/
 RUN cmake -P /tmp/BuildLlamaEngine.cmake
 
 FROM engines-base AS native-compiled
