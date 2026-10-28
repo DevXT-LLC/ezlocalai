@@ -633,7 +633,8 @@ private:
     bool forward_music_request(const std::string &payload, bool video, bool through_router, HttpResponse *out) const;
     std::string resolve_request_slot_model(const std::string &body) const;
     bool should_use_llm_fallback() const;
-    std::string begin_llm_inference(const std::string &model, const std::string &body);
+    std::string begin_llm_inference(const std::string &model, const std::string &body,
+        const std::function<bool()> &cancelled = {});
     void end_llm_inference(const std::string &model, const std::string &replica);
     void resource_increment_capability_in_flight(const std::string &capability, int delta) const;
     HttpResponse models() const;

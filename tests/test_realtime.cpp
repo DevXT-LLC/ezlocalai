@@ -146,6 +146,12 @@ void gateway() {
     require(read_message().find("session.created")!=std::string::npos&&state->active==1,"call retains backend lease");
     auto snapshot=nlohmann::json::parse(server.handle_request("GET","/v1/resources","Bearer front-key","").body);
     require(snapshot["slots"]["model_slots"]["LiquidAI/LFM3-Omni-2B-GGUF"]["in_flight"]==1,"call shares model slot counters");
+    std::atomic<bool> cancel_waiter{false};
+    auto waiter=std::async(std::launch::async,[&]{TunnelWebSocketConnection waiting([&]{return cancel_waiter.load();});std::string initial,why;return waiting.connect_endpoint(url,"front-key",&initial,&why);});
+    require(waiter.wait_for(std::chrono::milliseconds(100))==std::future_status::timeout,"second call waits for shared text capacity");
+    cancel_waiter=true;
+    require(waiter.wait_for(std::chrono::seconds(2))==std::future_status::ready&&!waiter.get(),"waiting client can disconnect before upgrade");
+    require(state->calls==1&&state->active==1,"cancelled waiter does not acquire the busy model");
     require(client.send_text(R"({"type":"response.cancel"})"),"gateway cancel send");require(read_message()==R"({"type":"response.cancel"})","gateway preserves bidirectional event");client.close_all();
     const auto deadline=std::chrono::steady_clock::now()+std::chrono::seconds(3);
     while(std::chrono::steady_clock::now()<deadline){

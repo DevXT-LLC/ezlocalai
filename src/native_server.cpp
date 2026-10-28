@@ -13974,7 +13974,8 @@ bool NativeServer::should_use_llm_fallback() const {
     return !admission.can_load && admission.device == "fallback";
 }
 
-std::string NativeServer::begin_llm_inference(const std::string &model, const std::string &body) {
+std::string NativeServer::begin_llm_inference(const std::string &model, const std::string &body,
+    const std::function<bool()> &cancelled) {
     const auto requested = extract_json_string(body, "model", "");
     const auto preferred = requested.find('#') == std::string::npos ? std::nullopt : llm_catalog_.resolve(requested);
     auto replicas = backend_->llm_replica_state().value_or(llm_replicas_);
@@ -13983,6 +13984,7 @@ std::string NativeServer::begin_llm_inference(const std::string &model, const st
     std::unique_lock<std::mutex> lock(resource_mutex_);
     for (;;) {
         if (llm_slots_stopping_) throw std::runtime_error("LLM slot scheduler is stopping");
+        if (cancelled && cancelled()) throw std::runtime_error("Realtime admission cancelled or timed out");
         const auto acquired = try_acquire_llm_slot(replicas, llm_slots_, model.empty() ? std::nullopt : std::optional<std::string>(model), preferred, llm_temporarily_unavailable_, backend_->swap_llm_residency());
         if (acquired.acquired) {
             lock.unlock();
@@ -20713,7 +20715,19 @@ void NativeServer::handle_realtime_websocket(int client_fd, const std::string &q
             return;
         }
         model = llm_catalog_.source(*resolved);
-        replica = begin_llm_inference(model, "{\"model\":\"" + json_escape(*resolved) + "\"}");
+        const auto admission_deadline = std::chrono::steady_clock::now() + std::chrono::seconds(30);
+        replica = begin_llm_inference(model, "{\"model\":\"" + json_escape(*resolved) + "\"}", [&] {
+            if (!running() || std::chrono::steady_clock::now() >= admission_deadline) return true;
+            pollfd pending{client_fd, POLLIN, 0};
+            if (poll(&pending, 1, 0) <= 0) return false;
+            if (pending.revents & (POLLERR | POLLHUP | POLLNVAL)) return true;
+            if (pending.revents & POLLIN) {
+                char byte;
+                const auto count = recv(client_fd, &byte, 1, MSG_PEEK | MSG_DONTWAIT);
+                return count == 0 || (count < 0 && errno != EAGAIN && errno != EWOULDBLOCK && errno != EINTR);
+            }
+            return false;
+        });
         admitted = true;
         auto lease = backend_->open_realtime(model, replica);
         if (!lease) throw std::runtime_error("Realtime backend did not provide a model lease");
