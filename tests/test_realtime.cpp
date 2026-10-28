@@ -36,7 +36,7 @@ void profiles() {
     auto explicit_cache=[](const std::string &key,const std::string &fallback){return key=="KV_CACHE_TYPE"?"q8_0":fallback;};
     require(configured_llm_kv_cache_type("3090",explicit_cache,"LFM3-Omni-2B")=="q8_0","explicit cache override retained");
     LlmCatalogSettings settings;settings.models="LiquidAI/LFM3-Omni-2B-GGUF";settings.contexts="230000";settings.parallels="0";
-    auto c=parse_llm_catalog(settings);require(c.configs.begin()->second.context==128000&&c.configs.begin()->second.parallel==1,"published context cap and voice auto parallel");
+    auto c=parse_llm_catalog(settings);require(c.configs.begin()->second.context==32768&&c.configs.begin()->second.parallel==1,"supported context cap and voice auto parallel");
     settings.models="unsloth/Qwen3.8-27B-GGUF";settings.contexts="262144";settings.parallels="1";
     require(parse_llm_catalog(settings).configs.begin()->second.context==262144,"Qwen 262144 context remains unchanged");
     settings.models="LiquidAI/LFM3-Omni-2B-GGUF";

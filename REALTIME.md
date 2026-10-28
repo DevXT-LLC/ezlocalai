@@ -12,7 +12,7 @@ A dedicated voice worker can start with:
 ```dotenv
 DEFAULT_MODEL=LiquidAI/LFM3-Omni-2B-GGUF
 QUANT_TYPE=F16
-LLM_MAX_TOKENS=65536
+LLM_MAX_TOKENS=32768
 N_PARALLEL=1
 KV_CACHE_TYPE=auto
 TTS_ENABLED=false
@@ -30,7 +30,9 @@ Remove explicit per-card KV overrides to use this model's automatic precision.
 The vendor's greedy text sampling and `--reasoning off` apply; the GGUF's audio
 sampling metadata remains in effect. Explicit request sampling is respected.
 
-LFM3 Omni's published context limit is **128,000** tokens. A larger inherited
+LFM3 Omni's model card advertises **32K** supported context. Its config allows
+128,000 positions, which does not establish quality at that length. The
+quality-preserving profile uses **32,768** tokens. A larger inherited
 context is capped only for this model, and automatic parallelism selects one
 slot. **Qwen's 262,144-token configuration is unchanged.** `N_PARALLEL` divides
 the engine context between slots as usual.
@@ -79,6 +81,9 @@ model. For native Omni transcription, set `session.type=transcription` in
 the initial `session.update`. The optional `?intent=transcription` query is
 forwarded upstream; it does not replace the required session type for a
 conversational model.
+
+For selectable or cloned output voices, see [voice paths and the measured
+feasibility limits](VOICE_SELECTION.md).
 
 ## Images and video
 

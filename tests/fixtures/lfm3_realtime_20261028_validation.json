@@ -24,14 +24,16 @@
         "sha256": "361bc95192c7d9156b566fcd4e48930363b78218e493fb1be607456bd51586e3"
       }
     ],
-    "published_context_limit": 128000,
     "tested_context": 65536,
     "tested_parallel": 1,
     "configured_kv_cache": "auto",
     "automatic_kv_precision_unit_verified": "f16",
     "text_sampling": "greedy; reasoning off",
     "audio_sampling": "GGUF defaults retained",
-    "acquisition": "normal cached model folder; no explicit model/projector path overrides"
+    "acquisition": "normal cached model folder; no explicit model/projector path overrides",
+    "architectural_config_max_positions": 128000,
+    "vendor_supported_context": 32768,
+    "context_correction": "Initial record mistook architectural max_position_embeddings for supported context. Vendor model card specifies 32K; earlier 65536-context acceptance used short prompts and did not validate long-context quality."
   },
   "qwen_262144_context_regression": "passed; no LFM context cap applied to Qwen",
   "hardware": {

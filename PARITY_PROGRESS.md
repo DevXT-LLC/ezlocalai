@@ -2,12 +2,65 @@
 
 The goal remains behavior parity with ezlocalai within the scope below, with all first-party executable code implemented in C++. It is **not complete**.
 
+## Selectable voice feasibility and supported LFM context (2026-10-28)
+
+The existing native Qwen path can render LFM text using selectable reference
+WAVs. Demonstrated two bundled voices and switching back, first CPU-only and
+then with both raw v0.8 engines resident on the local RTX 3090 Ti. The repeated
+reference produced bit-identical float PCM on each backend; the alternative
+reference changed the PCM. Four same-family ASR spot checks recovered all 14
+words. This is **not** human validation of voice similarity, naturalness or
+quality equivalence. No unified call voice selector or waveform converter was
+added. `VOICE_SELECTION.md` records the integration contract and options;
+`benchmarks/bench_reference_voices.py` reproduces the isolated CPU renderer.
+
+Native LFM first-audio observations were 193 ms initially and 68 ms on repeat.
+Serial LFM text → Qwen reference-voice speech took 1.124–1.487 s to first audio,
+including 121 ms for the full LFM text. LFM used F16, context 8,192, one slot;
+Qwen used the existing 0.6B Base Q8_0/F16 codec. Both had real CUDA allocations:
+5,522 MiB for LFM and 3,532 MiB for Qwen after speech. No simultaneous microphone
+processing, sentence pipelining, client barge-in or production worker shared
+resource behavior was tested. The current Qwen API uses a speaker embedding,
+without reference-transcript ICL; its 72-frame decoder window is unchanged.
+Qwen re-synthesis creates its own delivery and does not preserve native LFM
+prosody/emotion. Native LFM ignores reference speaker files; its realtime voice
+field is not implemented. Keep native speech as the default pending UX/quality
+acceptance; selectable Qwen speech is a demonstrated opt-in integration path.
+
+**Context correction:** the vendor model card supports **32K (32,768)**. Our
+initial profile mistook `max_position_embeddings=128000` for supported context.
+Cap the LFM profile at 32,768 and retain the Qwen 262,144 regression. The older
+65,536-context acceptance used short prompts and did not validate long-context
+accuracy; its actual tested configuration is retained in the historical record.
+
+The CUDA/CPU probes reused immutable container image
+`sha256:2928738bb5e60d6b57c179b550a24bf0844c0b07c0493c27aea232ed66d0a5a2`
+with the separately pinned v0.8 runtime. The scoped/package SDK is image
+`sha256:c9d7cd30fb6f0d75280fda34b20cd70350dc69072ffebf564f0fffc92b8b330a`.
+The GPU comparison held an owned idle drain with healthy alternate workers and
+an independent restore watchdog. Rollback tag:
+`ezlocalai:rollback-voice-selection-20261028-local3090ti`. Restoration verified
+same image/container/environment/mounts/full engine argv, healthy status,
+no OOM and two fresh matching production router heartbeats before releasing
+the drain. **No permanent environment changes or image deployment.**
+
+Validation: native realtime regression passed, strict pinned-source catalog
+passed **2,216 cases**, final CPU renderer/CLI/bytecode/PCM amplitude checks
+passed. The dependency SDK passed **73/73** tests selected by the exact CUDA
+Dockerfile package regex, with `EZLOCALAI_REFERENCE_ROOT` unset (346.21 s).
+Fleet image architecture inventory was not registered in this ordinary SDK;
+no new image build or architecture validation was performed. Evidence:
+`tests/fixtures/selectable_voice_20261028_validation.json`; bulky logs and WAVs:
+`build/validation/selectable-voice-20261028/`. WorkConductor integration remains
+tracked in issue #429, without WorkConductor code changes. No router protocol
+change is needed for this client-composed approach.
+
 ## LFM3 Omni native voice calls and router transport (2026-10-28)
 
 Add **LiquidAI/LFM3-Omni-2B-GGUF**, the released 2B Omni model supported by
-llama.cpp v0.8.0. Its published context cap is **128,000**, applied only to this
-family. **Qwen 262,144-token configurations are unchanged**, with a specific
-regression. Automatic Omni KV uses F16, automatic parallelism is one, text is
+llama.cpp v0.8.0. The initial profile used **128,000** architectural positions;
+the subsequent entry above corrects this to the supported **32,768** context.
+**Qwen 262,144-token configurations are unchanged**, with a specific regression. Automatic Omni KV uses F16, automatic parallelism is one, text is
 greedy/non-reasoning as the vendor recommends, and the GGUF audio sampler is
 preserved. Unsupported inherited Qwen weight quant names select F16; explicit
 supported quants/KV overrides remain available. Acquisition pairs the backbone
