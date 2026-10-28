@@ -46,7 +46,7 @@ std::vector<std::string> vector(const std::string &value) { std::vector<std::str
 std::string join(const std::vector<std::string> &values) { std::string out; for (const auto &value : values) { if (!out.empty()) out += '\n'; out += value; } return out; }
 void environment() {
     for (const auto &entry : ezlocalai::environment_defaults) unsetenv(entry.first.data());
-    for (const auto *name : {"HF_HUB_OFFLINE", "HF_HUB_DISABLE_IMPLICIT_TOKEN", "HF_TOKEN", "HUGGING_FACE_HUB_TOKEN", "HF_TOKEN_PATH", "HF_HOME", "HF_HUB_CACHE", "HUGGINGFACE_HUB_CACHE", "HF_ENDPOINT", "LLAMA_CPP_SERVER_URL", "LLAMA_CPP_EMBEDDING_SERVER_URL", "LLAMA_CPP_EMBEDDING_MODEL_PATH", "LLAMA_CPP_EMBEDDING_MODEL", "LLAMA_CPP_EMBEDDING_ALIAS", "LLAMA_CPP_CONTEXT", "LLAMA_CPP_EMBEDDING_CONTEXT", "LLAMA_CPP_EXTRA_ARGS", "LLAMA_CPP_EMBEDDING_EXTRA_ARGS", "EMBEDDING_FIXTURE_MAX_LAYERS", "EMBEDDING_FIXTURE_WARMUP_ERROR", "EMBEDDING_FIXTURE_TIMEOUT", "EMBEDDING_FIXTURE_FAIL_PORT"}) unsetenv(name);
+    for (const auto *name : {"MODELS_PATH", "HF_HUB_OFFLINE", "HF_HUB_DISABLE_IMPLICIT_TOKEN", "HF_TOKEN", "HUGGING_FACE_HUB_TOKEN", "HF_TOKEN_PATH", "HF_HOME", "HF_HUB_CACHE", "HUGGINGFACE_HUB_CACHE", "HF_ENDPOINT", "LLAMA_CPP_SERVER_URL", "LLAMA_CPP_EMBEDDING_SERVER_URL", "LLAMA_CPP_EMBEDDING_MODEL_PATH", "LLAMA_CPP_EMBEDDING_MODEL", "LLAMA_CPP_EMBEDDING_ALIAS", "LLAMA_CPP_CONTEXT", "LLAMA_CPP_EMBEDDING_CONTEXT", "LLAMA_CPP_EXTRA_ARGS", "LLAMA_CPP_EMBEDDING_EXTRA_ARGS", "EMBEDDING_FIXTURE_MAX_LAYERS", "EMBEDDING_FIXTURE_WARMUP_ERROR", "EMBEDDING_FIXTURE_TIMEOUT", "EMBEDDING_FIXTURE_FAIL_PORT"}) unsetenv(name);
     setenv("EZLOCALAI_DOTENV_PATH", "", 1);
 }
 size_t policy_cases(const fs::path &source, const fs::path &fixture) {
@@ -211,7 +211,7 @@ void engine_child(const std::string &endpoint, const fs::path &model_root, const
     setenv("LLAMA_CPP_SERVER_BIN", TEST_EMBEDDING_FIXTURE_BIN, 1); setenv("LLAMA_CPP_START_TIMEOUT", "2", 1); setenv("EMBEDDING_FIXTURE_DIR", model_root.c_str(), 1);
     {
         ezlocalai::LlamaCppInferenceBackend backend("none"); backend.warm_aux_model("embedding");
-        if (mode == "failure") expect(backend.loaded_models_json() == "{}" && !fs::exists("launch-" + std::to_string(port)), "failed acquisition publishes no engine");
+        if (mode == "failure") expect(backend.loaded_models_json() == "{}" && !fs::exists("launch-" + std::to_string(port)), "failed acquisition publishes no engine: loaded=" + backend.loaded_models_json() + " launched=" + std::to_string(fs::exists("launch-" + std::to_string(port))));
         else {
             expect(backend.loaded_models_json().find("\"device\":\"cuda\"") != std::string::npos, "downloaded embedding published with GPU placement");
             const auto args = read("args-" + std::to_string(port));
@@ -341,11 +341,15 @@ void text_acquisition_cases(const std::string &self, const fs::path &fixtures) {
         expect(!wrong_request, std::string(mode) + " model source, quant and authorization");
         if (std::string(mode) == "offline" || std::string(mode) == "override") expect(lists == 0 && projector_heads == 0 && model_heads == 0, "local text files require no Hub traffic");
         else {
-            const int expected_lists = std::string(mode) == "restore" || std::string(mode) == "missing-restore" ? 4 : std::string(mode) == "retry" ? std::stoi(read(root / "launch-count")) + 1 : 2;
+            // Native residency estimates the selected weight before the
+            // Python-style preliminary/constructor acquisitions. The parent
+            // runtime already performs this extra metadata lookup; immutable
+            // weight bytes still download only once across retries/restores.
+            const int expected_lists = std::string(mode) == "restore" || std::string(mode) == "missing-restore" ? 5 : std::string(mode) == "retry" ? std::stoi(read(root / "launch-count")) + 2 : 3;
             expect(lists == expected_lists, std::string(mode) + " repeats reference preliminary and constructor acquisition: " + std::to_string(lists));
-            const int expected_heads = std::string(mode) == "failure" ? 0 : std::string(mode) == "preflight-recovery" ? 1 : std::string(mode) == "missing-restore" ? 2 : expected_lists;
-            expect(model_heads == expected_heads && model_gets == (std::string(mode) == "failure" ? 0 : 1), "model HEAD metadata rechecked while unchanged bytes download once");
-            expect(projector_heads == (std::string(mode) == "no-projector" ? 16 : 2) && projector_gets == (std::string(mode) == "no-projector" ? 0 : 1), "source projector preference and local reuse");
+            const int expected_heads = std::string(mode) == "failure" ? 0 : std::string(mode) == "preflight-recovery" ? 2 : std::string(mode) == "missing-restore" ? 3 : expected_lists;
+            expect(model_heads == expected_heads && model_gets == (std::string(mode) == "failure" ? 0 : 1), std::string(mode) + " model HEAD metadata rechecked while unchanged bytes download once: heads=" + std::to_string(model_heads) + " expected=" + std::to_string(expected_heads) + " gets=" + std::to_string(model_gets));
+            expect(projector_heads == (std::string(mode) == "no-projector" ? 24 : 2) && projector_gets == (std::string(mode) == "no-projector" ? 0 : 1), "source projector preference and local reuse");
         }
     }
     environment();
