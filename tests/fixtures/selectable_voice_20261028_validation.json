@@ -298,5 +298,64 @@
     "LFM long-context accuracy; cap follows the vendor model card, not architectural maxima",
     "Fresh image architecture inventory (cuda_package_architectures requires a fleet image build, not this runtime SDK)"
   ],
-  "workconductor_issue": "https://github.com/Josh-XT/WorkConductor/issues/429#issuecomment-6482157521"
+  "workconductor_issue": "https://github.com/Josh-XT/WorkConductor/issues/429#issuecomment-6482157521",
+  "streaming_conversion_followup": {
+    "date": "2026-10-28",
+    "reason": "User prioritizes natural call latency; Qwen resynthesis is a measured alternative, not preferred call architecture",
+    "recommended_architecture": "LFM native PCM -> stateful streaming voice converter -> playback",
+    "local_converter_benchmark": false,
+    "native_candidate": {
+      "repository": "https://github.com/0xShug0/audio.cpp",
+      "commit": "cd770076152085af5b166521185bec76f9d47808",
+      "family": "meanvc2",
+      "package": "meanvc2_120ms_40ms_f32",
+      "preferred_input_chunk_samples": 2560,
+      "input_rate": 16000,
+      "output_rate": 16000,
+      "native_api_observed": [
+        "start_stream encodes target reference once",
+        "process_audio_chunk returns audio events before finish_stream",
+        "reset clears streaming state",
+        "merged output retained in streaming_output_ until reset"
+      ],
+      "source_sha256": {
+        "meanvc2.json": "e4fe246f57d3db22d6574a0c97f593cef10523173d1f62a5762c1ac847e93e00",
+        "session.h": "c0ca01de5415029ceaf5735536989b42fa45786841ce545e580f27e21fbbe6cb",
+        "meanvc2.md": "8ae67c83120e4ef5852982e8fa8f93d2312f70ce4cf9d6beed24934446c749d1",
+        "session.cpp": "4ca442a184ce2c9db93df673cd4bfdd68527ec0cea1c0462a14b65f04aae8da7"
+      },
+      "first_benchmark_requirements": [
+        "Compare F32 baseline; no extra quantization assumed quality neutral",
+        "Time real native LFM packets through conversion; separate lookahead/processing and first-audio p50/p95",
+        "Check 24k->16k bandwidth impact and stateful resampling at chunk boundaries",
+        "Use bounded per-utterance output storage; upstream retains merged stream output",
+        "Test cancellation, recovery, co-residency, long calls and human speaker/prosody quality",
+        "Isolate converter ggml linkage from pinned llama.cpp until compatibility established"
+      ]
+    },
+    "upstream_only_results": [
+      {
+        "model": "RT-VC",
+        "claim": "61.4ms: 32ms lookahead +15ms chunk +14.4ms processing on Apple M3 CPU; 16kHz",
+        "source": "https://arxiv.org/html/2506.10289v1",
+        "source_commit": "9d9a55d0fb6cd53ebba108a0bab3380b1fc3c066"
+      },
+      {
+        "model": "MeanVC2 paper",
+        "claim": "110ms reported; not a measurement of the native default120/40 package",
+        "source": "https://arxiv.org/abs/2606.09050"
+      },
+      {
+        "model": "Seed-VC realtime",
+        "claim": "~300ms algorithmic +~100ms device;430ms example on RTX3060 Laptop",
+        "source": "https://github.com/Plachtaa/seed-vc",
+        "source_commit": "51383efd921027683c89e5348211d93ff12ac2a8"
+      }
+    ],
+    "limits": [
+      "No converter binary or weights installed, no inference executed and no production changes in this follow-up",
+      "No converter-specific performance/quality/native integration claim",
+      "Zero-shot reference conditioning differs from per-target trained RVC/LLVC model selection"
+    ]
+  }
 }

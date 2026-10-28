@@ -20,6 +20,53 @@ Changing voice cannot be promised to preserve every quality dimension.
 Evaluate intelligibility, naturalness, speaker similarity, prosody, interruption
 behavior and latency separately. No production output path changes automatically.
 
+## Recommended direction for calls
+
+Prioritize **streaming waveform voice conversion** for custom call voices.
+The Qwen experiment establishes a working alternative using existing components,
+but its measured extra turn delay makes it a weaker fit for natural conversation.
+The preferred pipeline is `LFM native PCM → stateful voice converter → playback`.
+This keeps LFM's speech generation and aims to preserve its timing and expression;
+quality preservation still needs listening and content/prosody checks.
+
+A native candidate is now available in
+[audio.cpp's MeanVC2 implementation](https://github.com/0xShug0/audio.cpp/blob/cd770076152085af5b166521185bec76f9d47808/docs/models/meanvc2.md).
+The source exposes a persistent streaming session, source-audio chunks and a
+target-reference voice. Its default F32 package uses the **120 ms / 40 ms** path,
+with **160 ms preferred input chunks at 16 kHz**. The upstream MeanVC2 paper's
+**110 ms** result is a different reported configuration; do not use it as a
+measurement of this native package or our complete LFM pipeline. Start evaluation
+with F32 and precompute/cache target conditioning. The native runtime has not
+been built or benchmarked here.
+
+Other useful comparisons are
+[RT-VC](https://arxiv.org/html/2506.10289v1), which reports **61.4 ms on an Apple M3
+CPU** (32 ms lookahead + 15 ms input + 14.4 ms processing), and
+[Seed-VC](https://github.com/Plachtaa/seed-vc#usage), whose realtime setup documents
+roughly **300 ms algorithmic + 100 ms device delay**, with a **430 ms** example
+on an RTX3060 Laptop GPU. These are upstream results under different conditions,
+not fleet benchmarks. RVC-style changers are another option for a library of
+trained voice models; that is a different workflow from selecting an arbitrary
+reference recording without training.
+
+RT-VC and the inspected native MeanVC2 output are **16 kHz**; LFM currently emits
+24 kHz. Resampling back to 24 kHz does not restore the removed bandwidth. Their
+lower latency is insufficient to establish unchanged quality. Compare source
+and converted speech for intelligibility, speaker similarity, emotion, pitch
+contours, pauses and audible seams, including cross-gender and multilingual cases.
+
+Measure added first-audio delay, per-chunk p50/p95 processing, required lookahead,
+underruns, memory and barge-in/recovery with the LFM engine running. Faster-than-
+realtime throughput alone does not establish low latency. Source PCM generated
+in bursts also means microphone latency reports cannot simply be added to LFM's
+first-packet time. Use bounded queues, persistent per-call converter state and
+immediate cancellation/discard on interruption. Native deployment should isolate
+the converter's ggml libraries from the pinned llama.cpp runtime until ABI/linkage
+compatibility is established. The inspected MeanVC2 session retains merged audio
+until reset; use bounded per-utterance storage and verify stateful resampling
+across input chunks. No converter runtime, weights, production settings
+or public voice-selector protocol was added by this research update.
+
 ## Existing Qwen path
 
 Our native Qwen worker already takes a reference WAV and streams new speech.

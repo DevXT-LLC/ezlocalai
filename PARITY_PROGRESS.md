@@ -2,6 +2,31 @@
 
 The goal remains behavior parity with ezlocalai within the scope below, with all first-party executable code implemented in C++. It is **not complete**.
 
+## Prefer streaming voice conversion for call latency (2026-10-28)
+
+The user clarified that the measured additional second from Qwen is too costly
+for a natural call. Prioritize `LFM native PCM → streaming voice converter` for
+custom voices; Qwen remains the demonstrated alternative. This follows from the
+previous measurements, not a new performance result. Expanded `VOICE_SELECTION.md`
+with a source-audited native candidate: audio.cpp MeanVC2 at commit
+`cd770076152085af5b166521185bec76f9d47808`. Its F32 default 120/40 package has a
+persistent chunk API, 160 ms preferred input chunks and 16 kHz output. Upstream
+RT-VC reports 61.4 ms on Apple M3 CPU; MeanVC2's paper reports 110 ms in a different
+configuration; Seed-VC documents roughly 300 ms algorithmic plus 100 ms device
+latency. These reports are **not local measurements or equivalent comparisons**.
+
+The native MeanVC2 session returns incremental audio, prepares speaker reference
+conditioning once per stream and retains merged audio until reset. Evaluate
+bounded per-utterance storage, stateful resampling, cancellation, ggml linkage
+isolation and real co-residency. Its 16 kHz output requires a listening/bandwidth
+comparison against LFM's 24 kHz output. No converter has been installed, built,
+benchmarked or selected as a production default. No new environment changes,
+images or rollback actions; prior worker restoration remains the last GPU action.
+Only documentation/evidence changed in this follow-up: JSON parsing and diff
+checks pass; the preceding 73-test SDK and 2216-case catalog results apply to the
+unchanged C++ code. WorkConductor remains issue-only. The same PR149 carries
+this recommendation update and the previously tested supported-context fix.
+
 ## Selectable voice feasibility and supported LFM context (2026-10-28)
 
 The existing native Qwen path can render LFM text using selectable reference
