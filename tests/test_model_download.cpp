@@ -410,7 +410,12 @@ void real_engine_smoke(const fs::path &engine, const fs::path &model) {
         const auto restored = backend.completion(prompt);
         expect(ezlocalai::extract_json_string(restored, "text", "") == generated, "real restored engine preserves greedy completion");
     }
-    expect(!wrong_request && lists == 4 && heads == 4 && gets == 1 && projector_heads == 32, "real acquisition and reload follow reference selection while reusing weights");
+    // Current residency/capability discovery performs five catalog resolutions;
+    // both the pre-upgrade engine and v0.8.0 must reuse the single weight GET.
+    expect(!wrong_request && lists == 5 && heads == 5 && gets == 1 && projector_heads == 40,
+        "real acquisition and reload follow reference selection while reusing weights: lists=" + std::to_string(lists) +
+        " heads=" + std::to_string(heads) + " gets=" + std::to_string(gets) + " projector_heads=" +
+        std::to_string(projector_heads) + " wrong_request=" + std::to_string(wrong_request));
     const int probe = socket(AF_INET, SOCK_STREAM, 0); expect(probe >= 0, "real engine cleanup probe socket");
     sockaddr_in address{}; address.sin_family = AF_INET; address.sin_addr.s_addr = htonl(INADDR_LOOPBACK); address.sin_port = htons(engine_port);
     const auto connected = connect(probe, reinterpret_cast<sockaddr *>(&address), sizeof(address)); close(probe);

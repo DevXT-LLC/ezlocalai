@@ -1,0 +1,665 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-28",
+  "scope": "llama.cpp v0.8.0 upgrade and bounded cache retention; no universal quality or bitwise equivalence claim",
+  "engine": {
+    "previous_pin": "620d2225cc436ab0b001e3200e590e3b286ef9ab",
+    "release": "v0.8.0",
+    "pin": "8642541b255bfb5dc39cd351a178be09013a55d6",
+    "release_url": "https://github.com/ggml-org/llama.cpp/releases/tag/v0.8.0",
+    "managed_patches": {
+      "llama-cache-retention.patch": "12434df067895568a5cee1d0960aa34ef532ee96e7d77268755d0991817d1e36",
+      "llama-conversation-cache.patch": "ea1cb7096df5107862e825ecf7fae45354632f6d091fc1cfe71f0dc72a8d39d9",
+      "llama-checkpoint-coverage.patch": "dd139ddd1531aeea125df3d42510d2bf7bee02574008383a96ef779a92133821",
+      "llama-prefix-anchor.patch": "fe4c35bf2c79a948bb23bbb489d012c42d96f2e888d36d42d4e9dad680ab643b",
+      "llama-cuda-q4-kv-fusion.patch": "2e1b610a8cb04c168a237f020c919f6cc90e7caea8079c948bf50caf4aafc9f9",
+      "llama-checkpoint-entry-window.patch": "d540b689360ee9efe7c5a45d24f2d473b5798aeb5ef8792dee49adbf687ffd5d",
+      "llama-mtp-resume.patch": "5838c9cb1448573491ef3064e792db6b94f40fbf875ae14bf4b2f4d6af98e6fa",
+      "llama-cache-restore-atomic.patch": "beeb2f5afbfca0058a1ecfeed840a5983bf9a68bb8988ec8fde3a9bc3690f4f9",
+      "llama-cache-storage.patch": "8d7dfea21271902196a42e0567a9a3c9820d9d612906bb4b910d31a1f4770285"
+    },
+    "managed_source_sha256": {
+      "common/common.h": "372a051be69f7eaf95a3f2180827af5469c5743a8fb1c29b36cd852e8447b00a",
+      "common/arg.cpp": "fc09d12abd18c08a879c98a472e27ec80688c97b8c52720552112fe2c548f2ed",
+      "common/speculative.cpp": "09a31cca78434b7381d7ed09f7b65fd5bee4901098f17d5b5825c12162af5c38",
+      "common/speculative.h": "87c00dddc51a5a301d9eb858cb9e95ceefb60b90d32b5b26b1d78e97e1ecca72",
+      "common/speculative-mtp-state.h": "bb946ce5f0e95f4403d4f847661c6e82940477bc996380cfe95e445e08ae42b6",
+      "common/state-storage.h": "9cda9f4c1ec7e7790acb408ffb6e38761b0b6c054b27ea00427a57627e3fa256",
+      "common/checkpoint-coverage.h": "7e87e74fa434240dcb3f3c7005a95f8b957436cd53b20479db7072a4cb25259e",
+      "tools/server/server-task.cpp": "5bdcc19b27d40922ada62703f40fc4b161bd96fdd2f8ea192ac51228b23d1025",
+      "tools/server/server-task.h": "f869b1b4224322d6db5930f3fec6b31e21aa017cdb805147ffb5243565123a99",
+      "tools/server/server-context.cpp": "118ed4f312fd5b6aa48a014fd57c3501997f7ac269f5ebd6c4114a4f275a1847",
+      "common/checkpoint-retention.h": "e20571279e4485e32d2671655e848b290483b11c405e97f88ed93dcb9feb84a3",
+      "ggml/src/ggml-cuda/fattn.cu": "a120173862f2f9ae28d697bab34ed8f29ba8fb6794c4fcde6e02c011e7c0c5dd",
+      "ggml/src/ggml-cuda/fattn-common.cuh": "6df3641dca1908bc761d8e48e50642ee850c3f003e081c9eea84e4cd8434cd75",
+      "ggml/src/ggml-cuda/fattn-mma-f16.cuh": "fede01e5b26d16e0293ae3a417434364885abdd7cfaa130c55bf5c59146e23d1",
+      "ggml/src/ggml-cuda/fattn-q4-kv-policy.h": "5cf02b3e1a905c014f46f636a1ee7a259eff0dd5858c542f0056cc1acb488b35"
+    },
+    "bundle_files": [
+      {
+        "file": "libggml-base.so.0.28.0",
+        "target": "/app/build/llama.cpp/bin/libggml-base.so.0.27.0",
+        "sha256": "f6b1bf48216c9b40e782d02e3e4b9accbfbb6fa4a44fecbc42a8ea7b3fab94a5"
+      },
+      {
+        "file": "libggml-cpu.so.0.28.0",
+        "target": "/app/build/llama.cpp/bin/libggml-cpu.so.0.27.0",
+        "sha256": "e70aa24e74bfef807c1bdcf33f635721e3e245ce718a1503ebe9a9ca7d17a9f5"
+      },
+      {
+        "file": "libggml-cuda.so.0.28.0",
+        "target": "/app/build/llama.cpp/bin/libggml-cuda.so.0.27.0",
+        "sha256": "8a710fdf63a1b7bc08e086ed67800baf2e8709fd87b145e3ad14f825560e1890"
+      },
+      {
+        "file": "libggml.so.0.28.0",
+        "target": "/app/build/llama.cpp/bin/libggml.so.0.27.0",
+        "sha256": "3c93012dc8e60a9e269b355f3b40acf61cc4b0b194eead0217ae548becbd86a8"
+      },
+      {
+        "file": "libllama-common.so.0.8.0",
+        "target": "/app/build/llama.cpp/bin/libllama-common.so.0.7.0",
+        "sha256": "d9fb8e036d9685206f2b291564a49e641ad494c30c5b27f9e51da312f4f22818"
+      },
+      {
+        "file": "libllama-server-impl.so",
+        "target": "/app/build/llama.cpp/bin/libllama-server-impl.so",
+        "sha256": "cf145103e97dbc95b4c0754120cd2915219706b314b11dd0350f3c35130d1945"
+      },
+      {
+        "file": "libllama.so.0.8.0",
+        "target": "/app/build/llama.cpp/bin/libllama.so.0.7.0",
+        "sha256": "516cfd39cfc29822d22da67aed65cfeda1b3cdcebf29f6c3b28e45f5f14b192a"
+      },
+      {
+        "file": "libmtmd.so.0.8.0",
+        "target": "/app/build/llama.cpp/bin/libmtmd.so.0.7.0",
+        "sha256": "1237f3fb581ec4e0f482bc22f005f8e7501cfa7899e67f85dd424f307486b72e"
+      },
+      {
+        "file": "llama-server",
+        "target": "/app/build/llama.cpp/bin/llama-server",
+        "sha256": "69255c4ecdf9e54a7e09216a15dc8cde2311d5d523325ea4eeb4f55f282a29e0"
+      }
+    ],
+    "old_pin_to_new_pin_managed_migration_test_passed": true
+  },
+  "retention": {
+    "default_engine_sleep_idle_seconds": -1,
+    "named_prefix_anchor_default": true,
+    "optout": "EZLOCALAI_LLAMA_PREFIX_ANCHOR=0",
+    "extra_checkpoints_or_RAM_budget": false,
+    "single_slot_and_unnamed_policies_unchanged": true,
+    "actual_header_simulated_turns": 40,
+    "actual_header_later_admissions": 120,
+    "physical_40_turn_or_overnight_survival_tested": false
+  },
+  "router": {
+    "pr": "https://github.com/DevXT-LLC/WorkerRouter/pull/9",
+    "commit": "d6e1181",
+    "merged_commit": "8dd9243f36558937b10b1950780996ae4432c097",
+    "tests_passed": 89,
+    "tests_ignored": 2,
+    "default_user_and_prompt_hint_ttl_seconds": 86400,
+    "existing_explicit_TTLs_need_update": true,
+    "production_environment_modified": false,
+    "effective_explicit_router_TTLs_verified": false
+  },
+  "incident": {
+    "stable_system_message_bytes_on_inspected_recent_main_turns": 341320,
+    "exact_router_event_to_conversation_correlation_available": false,
+    "exact_miss_cause_established": false,
+    "workconductor_modified": false,
+    "workconductor_issue_opened": false,
+    "private_conversation_export_committed": false
+  },
+  "build": {
+    "builder": {
+      "id": "9b2f24671e749b9005c06c22e9421d77e9c0b3a94aba954c7809e59262938519",
+      "image": "sha256:c9d7cd30fb6f0d75280fda34b20cd70350dc69072ffebf564f0fffc92b8b330a",
+      "runtime": "runc",
+      "nano_cpus": 4000000000,
+      "memory": 8589934592,
+      "gpu_requests": null,
+      "mounts": [],
+      "owner": "ezlocalai-v080-20261028"
+    },
+    "requested_CUDA_architectures": [
+      "86-real",
+      "89-real",
+      "120-real"
+    ],
+    "CUDA": "12.8.93",
+    "compiler": "GCC 13.3.0",
+    "GGML_NATIVE": false,
+    "NCCL": false,
+    "CURL": true,
+    "memory_oom_kills": 0,
+    "memory_limit_reclaim_events": 1003,
+    "owned_builder_removed": true,
+    "new_full_image_built_or_deployed": false
+  },
+  "tests": {
+    "final_oracle_free_CUDA_package": {
+      "passed": 73,
+      "seconds": 306.78
+    },
+    "CPU_package": {
+      "passed": 72,
+      "seconds": 311.57
+    },
+    "focused_CPU_engine": {
+      "passed": 10,
+      "seconds": 15.32,
+      "strict_managed_source_fingerprints": 15
+    },
+    "CUDA_linked_CPU_only_smoke": {
+      "passed": 4,
+      "seconds": 2.1
+    },
+    "compose_source_comparisons": 1875,
+    "checkpoint_policy_checks": 364777,
+    "MTP_policy_checks": 163,
+    "storage_scenarios": 18,
+    "final_install_and_linkage_passed": true,
+    "missing_libraries": false,
+    "libpython_linkage": false,
+    "ACE_uses_own_ggml_base": true,
+    "real_download_old_and_new_control": {
+      "catalogue_resolutions": 5,
+      "weight_HEADs": 5,
+      "projector_HEADs": 40,
+      "weight_GETs": 1
+    }
+  },
+  "tts": {
+    "reference_header": {
+      "source_sha256": "729deb342d0825f6c401636cbcef40348f3fd2bb505a5b78572754106ae126e6",
+      "worker_sha256": "0b8fb608d6cc442f664048649272393fbcc71316c42f28c73732af81942e7cfa",
+      "model_hashes": {
+        "qwen-tokenizer-12hz-f16.gguf": "4277fcb68c5d638b6a91d99507b179fdaa3ebcc9663bc26968d83939f42995c6",
+        "qwen-talker-0.6b-base-Q8_0.gguf": "dffc2c31316742e74aad194e203c391988b4fd391cf8e9268c3c19c008569fc6"
+      },
+      "speaker_sha256": "d7d4e74b8a333ed02186008bc109a1b1a19d16da668bd56e785d80d69a16a72f",
+      "cases": 5,
+      "seed": 23,
+      "threads": 4,
+      "native_worker_sha256": "de7343544914ad67fa06acf50c4c27ad3855e95e5d37a9f98ea0657c831b924f",
+      "engine_pin": "8642541b255bfb5dc39cd351a178be09013a55d6",
+      "recorded_date": "2026-10-28",
+      "qualification": "unchanged Python LlamaTTS wrapper, real v0.8.0 CPU engine; per-utterance generator RNG state"
+    },
+    "new_CPU_wrapper_requests": 5,
+    "new_CPU_exact_float32_buffers": 6,
+    "independent_direct_worker_matches": true,
+    "old_CPU_control_matches_historical_six_buffers": true,
+    "old_header_API_syntax_check_passed": true,
+    "final_native_binary_sha256": "267ff347869bc4179f54462e6eee21c68e66a1a0c5890c789e0b87189bec27f4",
+    "per_utterance_RNG_reset_intentional": true,
+    "first_buffered_old_new_waveform_equal": true,
+    "later_stochastic_waveforms_bitwise_equal": false,
+    "historical_fixtures_rewritten": false,
+    "physical_GPU_and_composed_v080_goldens_qualified": false
+  },
+  "physical_4090": {
+    "production_image": "sha256:00c5cf54c8c1e23f214adf68c0a226edb74926192de32a6d154542c2520559a4",
+    "worker_base_commit": "13f8f716972dc8ae12ebe933ba75bc3208b296bd",
+    "model_sha256": "8c2a45ff85e7674ca185ec8eb6cdeab0e617ed9d8018caed0b64380eb2a67a5e",
+    "projector_sha256": "83ee4f4f205fa514161778c41df1ea14144faa0f713510893b63c2395f5c2d53",
+    "controls": {
+      "-m": "/app/models/Qwen3.8-27B/Qwen3.8-27B-UD-Q3_K_XL.gguf",
+      "-c": "230000",
+      "-b": "4096",
+      "-ub": "1024",
+      "-ctk": "q4_0",
+      "-ctv": "q4_0",
+      "--spec-type": "draft-mtp",
+      "--spec-draft-n-max": "3",
+      "--spec-draft-p-min": "0.10000000000000001",
+      "--cache-ram": "12288",
+      "-np": "1",
+      "--ctx-checkpoints": "32",
+      "--checkpoint-min-step": "8192",
+      "--mmproj": "/app/models/Qwen3.8-27B/mmproj-BF16.gguf"
+    },
+    "whole_engine_functional_requests": 39,
+    "old_before_after_full_signatures_equal": true,
+    "all_input_evaluated_cached_generated_finish_counts_equal": true,
+    "finite_case_output_hashes_equal": 6,
+    "strict_text_equivalence": {
+      "exact_output_and_counts": false,
+      "differences": [
+        {
+          "phase": "upgrade",
+          "case_id": "short0",
+          "fields": [
+            "output_sha256",
+            "draft_tokens",
+            "accepted_draft_tokens"
+          ]
+        },
+        {
+          "phase": "upgrade",
+          "case_id": "short1",
+          "fields": [
+            "output_sha256",
+            "draft_tokens",
+            "accepted_draft_tokens"
+          ]
+        },
+        {
+          "phase": "upgrade",
+          "case_id": "short2",
+          "fields": [
+            "output_sha256",
+            "draft_tokens",
+            "accepted_draft_tokens"
+          ]
+        },
+        {
+          "phase": "upgrade",
+          "case_id": "deep_seed",
+          "fields": [
+            "output_sha256",
+            "draft_tokens",
+            "accepted_draft_tokens"
+          ]
+        },
+        {
+          "phase": "upgrade",
+          "case_id": "deep_replay1",
+          "fields": [
+            "output_sha256",
+            "draft_tokens",
+            "accepted_draft_tokens"
+          ]
+        },
+        {
+          "phase": "upgrade",
+          "case_id": "deep_replay2",
+          "fields": [
+            "output_sha256",
+            "draft_tokens",
+            "accepted_draft_tokens"
+          ]
+        },
+        {
+          "phase": "upgrade",
+          "case_id": "deep_replay3",
+          "fields": [
+            "output_sha256",
+            "draft_tokens",
+            "accepted_draft_tokens"
+          ]
+        }
+      ],
+      "outputs": 39
+    },
+    "timings_descriptive_changed_greedy_trajectories": {
+      "p0": {
+        "cold_prefill_tokens_per_second": {
+          "cold4k": 2557.115172968786,
+          "cold16k": 3000.4662465867364
+        },
+        "short_decode_tokens_per_second_median": 112.80720054996827,
+        "cached_130k_decode_tokens_per_second_median": 77.21787917915275,
+        "cached_130k_ttft_ms_median": 202.91708799777552
+      },
+      "upgrade": {
+        "cold_prefill_tokens_per_second": {
+          "cold4k": 2581.5955019494845,
+          "cold16k": 3050.8596446227248
+        },
+        "short_decode_tokens_per_second_median": 109.81396652784171,
+        "cached_130k_decode_tokens_per_second_median": 79.11151869917086,
+        "cached_130k_ttft_ms_median": 205.53100400138646
+      },
+      "p1": {
+        "cold_prefill_tokens_per_second": {
+          "cold4k": 2534.0465929184575,
+          "cold16k": 2986.2611565425887
+        },
+        "short_decode_tokens_per_second_median": 112.75407804969934,
+        "cached_130k_decode_tokens_per_second_median": 77.21462911391217,
+        "cached_130k_ttft_ms_median": 204.02900900808163
+      }
+    },
+    "fixed_continuation_numerical_check": {
+      "diagnostic_only_both_variants_override": {
+        "--spec-type": "none"
+      },
+      "production_MTP_configuration_unchanged": true,
+      "requests_completed": 6,
+      "result": {
+        "passed": false,
+        "mean_nll_tolerance": 0.001,
+        "token_logprob_tolerance": 0.01,
+        "cases": [
+          {
+            "case_id": "hash_map",
+            "passed": false,
+            "identity_equal": true,
+            "tokens": 42,
+            "old_mean_nll": 2.62736853981568,
+            "new_mean_nll": 2.6361977674893016,
+            "mean_nll_delta": 0.008829227673621709,
+            "fixed_continuation_perplexity_ratio": 1.00886832027206,
+            "max_token_logprob_delta": 0.27405548095703125
+          },
+          {
+            "case_id": "arithmetic",
+            "passed": false,
+            "identity_equal": true,
+            "tokens": 14,
+            "old_mean_nll": 0.0405812749799322,
+            "new_mean_nll": 0.040095944063637035,
+            "mean_nll_delta": -0.00048533091629516384,
+            "fixed_continuation_perplexity_ratio": 0.9995147868377033,
+            "max_token_logprob_delta": 0.03491750359535217
+          },
+          {
+            "case_id": "long_context",
+            "passed": false,
+            "identity_equal": false
+          }
+        ],
+        "scope": "fixed-continuation numerical comparison, not broad model-quality or perplexity-benchmark evidence"
+      },
+      "long_context_target_text_equal_but_BPE_ids_differ": true,
+      "gate_limits_not_relaxed": true
+    },
+    "predeclared_finite_accuracy": {
+      "production_MTP_controls_unchanged": true,
+      "forced_grammar_or_answer_bias": false,
+      "requests_completed": 42,
+      "result": {
+        "passed": true,
+        "cases": [
+          {
+            "case_id": "mul_small",
+            "old_correct": true,
+            "new_correct": true,
+            "regressed": false
+          },
+          {
+            "case_id": "mul_large",
+            "old_correct": true,
+            "new_correct": true,
+            "regressed": false
+          },
+          {
+            "case_id": "sum",
+            "old_correct": true,
+            "new_correct": true,
+            "regressed": false
+          },
+          {
+            "case_id": "signed",
+            "old_correct": true,
+            "new_correct": true,
+            "regressed": false
+          },
+          {
+            "case_id": "division",
+            "old_correct": true,
+            "new_correct": true,
+            "regressed": false
+          },
+          {
+            "case_id": "modulo",
+            "old_correct": true,
+            "new_correct": true,
+            "regressed": false
+          },
+          {
+            "case_id": "fraction",
+            "old_correct": true,
+            "new_correct": true,
+            "regressed": false
+          },
+          {
+            "case_id": "percent",
+            "old_correct": true,
+            "new_correct": true,
+            "regressed": false
+          },
+          {
+            "case_id": "gcd",
+            "old_correct": true,
+            "new_correct": true,
+            "regressed": false
+          },
+          {
+            "case_id": "binary",
+            "old_correct": true,
+            "new_correct": true,
+            "regressed": false
+          },
+          {
+            "case_id": "hex",
+            "old_correct": true,
+            "new_correct": true,
+            "regressed": false
+          },
+          {
+            "case_id": "sort",
+            "old_correct": true,
+            "new_correct": true,
+            "regressed": false
+          },
+          {
+            "case_id": "order",
+            "old_correct": true,
+            "new_correct": true,
+            "regressed": false
+          },
+          {
+            "case_id": "syllogism",
+            "old_correct": true,
+            "new_correct": true,
+            "regressed": false
+          },
+          {
+            "case_id": "python_sum",
+            "old_correct": true,
+            "new_correct": true,
+            "regressed": false
+          },
+          {
+            "case_id": "python_loop",
+            "old_correct": false,
+            "new_correct": false,
+            "regressed": false
+          },
+          {
+            "case_id": "javascript",
+            "old_correct": true,
+            "new_correct": true,
+            "regressed": false
+          },
+          {
+            "case_id": "json_extract",
+            "old_correct": true,
+            "new_correct": true,
+            "regressed": false
+          },
+          {
+            "case_id": "negation",
+            "old_correct": true,
+            "new_correct": true,
+            "regressed": false
+          },
+          {
+            "case_id": "weekday",
+            "old_correct": true,
+            "new_correct": true,
+            "regressed": false
+          },
+          {
+            "case_id": "long_context_identity",
+            "old_correct": true,
+            "new_correct": true,
+            "regressed": false
+          }
+        ],
+        "old_correct": 20,
+        "new_correct": 20,
+        "total": 21,
+        "scope": "predeclared finite-task non-regression only; failed text/numerical identity gates remain failed"
+      },
+      "common_baseline_and_new_miss": {
+        "case_id": "python_loop",
+        "expected": "33",
+        "both_actual": "9"
+      },
+      "scope": "21 short/long exact-answer cases; no per-case loss among the 20 correct baseline answers; not broad model quality evidence"
+    },
+    "inference_retries": 0,
+    "context_downgrades": 0,
+    "hidden_warmup_generations": 0
+  },
+  "all_execution_window_restorations": [
+    {
+      "stage": 1,
+      "status": "read_only_preparation_only",
+      "lease_acquired": false
+    },
+    {
+      "stage": 2,
+      "status": "read_only_preparation_only",
+      "lease_acquired": false
+    },
+    {
+      "stage": 3,
+      "status": "failed",
+      "plan_sha256": "085e3289d9a3afafb98ad36df63eb90fbdab67708845c80bb3acbdb4578a6f75",
+      "same_container_image_environment_mounts_config_argv": null,
+      "two_fresh_matching_heartbeats": true,
+      "drain_released": true,
+      "proof_sha256": "18d3aa9b382695257d16e98dc20a0dd82d6fa499756ef2c16698ed5c6f28c254",
+      "runner_never_prepared": true,
+      "original_reference_verified_by_supervisor": true
+    },
+    {
+      "stage": 4,
+      "status": "failed",
+      "plan_sha256": "15a278d023d7eece8e7c8bb25a145ef154d772e886904cbe580b46b853a4f8d0",
+      "same_container_image_environment_mounts_config_argv": true,
+      "two_fresh_matching_heartbeats": true,
+      "drain_released": true,
+      "proof_sha256": "d135ee82d89e962455ca0ef0589e4fadbbeea1df49bfbfd6c48fabbc84f8d376"
+    },
+    {
+      "stage": 5,
+      "status": "failed",
+      "plan_sha256": "e8e2bfb0ec3172dfe6b3f338f94a0b733af06ad0489c84bc5c5887811beb49d7",
+      "same_container_image_environment_mounts_config_argv": true,
+      "two_fresh_matching_heartbeats": true,
+      "drain_released": true,
+      "proof_sha256": "8862a7a28cdaaeb4e323c61c8fc41c5890bba896c7d96e7d16a3f8d7bb8760f3"
+    },
+    {
+      "stage": 6,
+      "status": "failed",
+      "plan_sha256": "191b80a121a9329e926e8e7d6bafce64e950206eab9f1fd2a80cef112b62b077",
+      "same_container_image_environment_mounts_config_argv": true,
+      "two_fresh_matching_heartbeats": true,
+      "drain_released": true,
+      "proof_sha256": "7b77a1e69799b642e7baedb49a6789bcc3f58d84c1096e5c69870c00c18c7b9a"
+    },
+    {
+      "stage": 7,
+      "status": "failed",
+      "plan_sha256": "601a9a0d23955a2fa0cdaf5ae14f5a74564af01a6047f2ad7b70f79dc9ed4931",
+      "same_container_image_environment_mounts_config_argv": true,
+      "two_fresh_matching_heartbeats": true,
+      "drain_released": true,
+      "proof_sha256": "7da0261677d6ac972e2a12490adcefd11b3d1c7b65d2890ae04f6f09e7813704"
+    },
+    {
+      "stage": 8,
+      "status": "failed",
+      "plan_sha256": "f8a189e020b53053e56314b849ffbb6e5706d33fc08e62d113e428d55d0607a5",
+      "same_container_image_environment_mounts_config_argv": true,
+      "two_fresh_matching_heartbeats": true,
+      "drain_released": true,
+      "proof_sha256": "188cee5e619e74c315953ffab4674bbde5d27ebb49029e22641e1cf72635cea0"
+    },
+    {
+      "stage": 9,
+      "status": "failed",
+      "plan_sha256": "5a70c3df562bc4b7e0f1fab3260b71654049b53977da55302c91fd308ffda680",
+      "same_container_image_environment_mounts_config_argv": true,
+      "two_fresh_matching_heartbeats": true,
+      "drain_released": true,
+      "proof_sha256": "dca574829a2a01056d2dd68d0c9de323408a8b347c1456a3897f7fc8b60b08ef"
+    },
+    {
+      "stage": 10,
+      "status": "read_only_preparation_only",
+      "lease_acquired": false
+    },
+    {
+      "stage": 11,
+      "status": "failed",
+      "plan_sha256": "d30a1808d49d482e3039ab87b67b56e07cac777cfaceaf21f4cd70167a8b381e",
+      "same_container_image_environment_mounts_config_argv": null,
+      "two_fresh_matching_heartbeats": true,
+      "drain_released": true,
+      "proof_sha256": "6c05355f3f546284a6744f8f77a3eadabf40f54a57eed7a1821dda8511826406",
+      "runner_never_prepared": true,
+      "original_reference_verified_by_supervisor": true
+    },
+    {
+      "stage": 12,
+      "status": "complete",
+      "plan_sha256": "dc99a78f6c7d435994e18753d602d1266338e6cf5c04f5851ee8776134a2615a",
+      "same_container_image_environment_mounts_config_argv": true,
+      "two_fresh_matching_heartbeats": true,
+      "drain_released": true,
+      "proof_sha256": "f93e8531e2c5fd25d278813e06ea90a9b9aa7e7884ef1c95035020d2c1c17e3c"
+    }
+  ],
+  "unvalidated": [
+    "fresh full Docker image deployment",
+    "other physical GPUs and platforms",
+    "multi-GPU",
+    "vision inference",
+    "full maximum model context",
+    "overnight idle survival",
+    "v0.8 physical CUDA sanitizer rerun",
+    "GPU/composed real Qwen v0.8 model goldens",
+    "GPU unlock causality",
+    "universal text/audio quality equivalence"
+  ],
+  "raw_evidence_directory": "build/validation/llama-v080-20261028",
+  "final_restoration": {
+    "production_image": "sha256:00c5cf54c8c1e23f214adf68c0a226edb74926192de32a6d154542c2520559a4",
+    "same_container_config_environment_mounts_and_argv": true,
+    "healthy": true,
+    "draining": false,
+    "last_heartbeat_age": 4.778765916824341,
+    "worker_version": "13f8f71",
+    "pinned_routed_chat": "READY",
+    "rollback_tag": "ezlocalai:rollback-llama-v080-20261028-4090",
+    "rollback_image": "sha256:00c5cf54c8c1e23f214adf68c0a226edb74926192de32a6d154542c2520559a4",
+    "removed_only_owned_nonce_aliases": [
+      "ezlocalai:rollback-v080-c5018d8d4b2a",
+      "ezlocalai:rollback-v080-8b915c3a7245",
+      "ezlocalai:rollback-v080-be0a7961fa94",
+      "ezlocalai:rollback-v080-07969b68c7fb",
+      "ezlocalai:rollback-v080-82298cf07470",
+      "ezlocalai:rollback-v080-e58cab72bea7",
+      "ezlocalai:rollback-v080-759333b31260"
+    ],
+    "owned_children_remaining": false,
+    "permanent_environment_changes": false
+  },
+  "cleanup": {
+    "owned_remote_staging_directories_removed": 12,
+    "owned_builder_removed": true,
+    "owned_children_remaining": false,
+    "other_projects_touched": false,
+    "stable_original_image_rollback_retained": "ezlocalai:rollback-llama-v080-20261028-4090"
+  }
+}

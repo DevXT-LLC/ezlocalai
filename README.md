@@ -419,10 +419,10 @@ The native executable and CUDA compose configuration preload configured LLMs by 
 `LLAMA_CPP_START_TIMEOUT` defaults to `3600` in CUDA compose and governs engine startup after native acquisition. Hub requests have separate downloader timeouts.
 The default CUDA build targets compute capabilities 8.6, 8.9 and 12.0 and builds llama.cpp in parallel. llama.cpp, stable-diffusion.cpp and ACE-Step are built with `GGML_NATIVE=OFF`, a portable AVX2/FMA/F16C x86-64 baseline, so the image runs on any fleet CPU rather than only on CPUs like the build host. The GB10 image (`docker-compose-gb10.yml`) uses the same Dockerfile with `EZLOCALAI_PLATFORM=gb10`. Override `EZLOCALAI_LLAMA_CPP_CMAKE_ARGS` or `EZLOCALAI_LLAMA_CPP_JOBS` in `.env` for other architectures or job counts.
 
-The default engine revision is llama.cpp release v0.7.0 (`620d2225cc436ab0b001e3200e590e3b286ef9ab`). It is newer than the Python reference’s xllamacpp engine, `aa94f2086147cd4bfbcff818ce998dffce5fcb39`. The C++ management tool, CUDA Dockerfile and Compose build use the same default; `EZLOCALAI_LLAMA_CPP_REF` remains an explicit override. To rebuild that revision in the CUDA image:
+The default engine revision is llama.cpp release v0.8.0 (`8642541b255bfb5dc39cd351a178be09013a55d6`). It is newer than the Python reference’s xllamacpp engine, `aa94f2086147cd4bfbcff818ce998dffce5fcb39`. The C++ management tool, CUDA Dockerfile and Compose build use the same default; `EZLOCALAI_LLAMA_CPP_REF` remains an explicit override. Remove or update an older explicit `.env` pin to adopt v0.8.0. To rebuild that revision in the CUDA image:
 
 ```bash
-EZLOCALAI_LLAMA_CPP_REF=620d2225cc436ab0b001e3200e590e3b286ef9ab docker compose -f docker-compose-cuda.yml build
+EZLOCALAI_LLAMA_CPP_REF=8642541b255bfb5dc39cd351a178be09013a55d6 docker compose -f docker-compose-cuda.yml build
 ```
 
 ### CUDA package architecture gate
@@ -709,6 +709,17 @@ Swap supplementation is **off by default**. To permit up to 4 GiB of existing fr
 
 The selected ceiling is passed to llama.cpp’s `--cache-ram`. Nonempty string `prompt_cache_key` values now reach the managed engine as conversation hints. The managed patch preserves outgoing named conversations even when their prompts share most of their prefix, restores the longest useful cached prefix, and protects the requested state during bounded eviction. When two states cannot fit, it skips the outgoing save instead of evicting the state being requested. No number of retained conversations is guaranteed beyond the byte budget. Keys do not rewrite prompts or bypass token-prefix matching. Custom llama.cpp revisions keep their own behavior; this patch is qualified against the default pinned revision.
 
+Idle time alone does not expire the engine cache: the pinned engine defaults to
+`sleep_idle_seconds=-1`. Named conversations with at least two checkpoint slots
+now keep their earliest valid prefix checkpoint when later checkpoints fill the
+list, allowing a changed user/runtime suffix to reuse recurrent system state.
+Count and RAM ceilings still apply; one-slot and unnamed policies retain their
+previous behavior. See [prefix checkpoint retention](patches/llama-prefix-anchor.md).
+WorkerRouter separately defaults user/conversation/prefix routing hints to 24
+hours. Existing explicit router TTLs must be changed to `86400` to adopt that
+behavior. Model unload, deployment restart, memory pressure and a changed token
+prefix can still cause a miss; neither lifetime promises reserved KV memory.
+
 The guarded 1024-token MTP checkpoint path also retains a state at an existing full logical-batch start when that batch jumps into the near-end window. This covers some shortened conversations that precede all tail checkpoints without adding any physical batch split. It requires at least five checkpoint slots, keeps the configured count and cache byte ceiling, and charges the additional state to that budget. See [checkpoint entry-window behavior](patches/llama-checkpoint-entry-window.md) for eligibility and memory costs.
 
 Chat engine requests explicitly set `cache_prompt=true`, including when a caller supplies false. Completion and embedding startup retain their separate cache behavior.
@@ -793,7 +804,7 @@ The output is key/value lines showing each model id, a matching top-level GGUF i
 To pin or update a specific upstream ref:
 
 ```bash
-EZLOCALAI_LLAMA_CPP_REF=620d2225cc436ab0b001e3200e590e3b286ef9ab ./build/llama_cpp_tool update
+EZLOCALAI_LLAMA_CPP_REF=8642541b255bfb5dc39cd351a178be09013a55d6 ./build/llama_cpp_tool update
 ./build/llama_cpp_tool build
 ```
 

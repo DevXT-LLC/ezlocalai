@@ -8,7 +8,7 @@ string(RANDOM LENGTH 16 ALPHABET 0123456789abcdef nonce)
 set(root "${TEST_ROOT}/managed-patch-test-${nonce}")
 set(copy "${root}/source")
 set(out "${root}/metadata")
-set(pin 620d2225cc436ab0b001e3200e590e3b286ef9ab)
+set(pin 8642541b255bfb5dc39cd351a178be09013a55d6)
 set(first "${PATCH_DIR}/llama-conversation-cache.patch")
 file(MAKE_DIRECTORY "${root}" "${out}")
 execute_process(COMMAND git clone --shared --no-checkout --quiet "${SOURCE_DIR}" "${copy}"
@@ -38,7 +38,7 @@ function(check_metadata)
     endif()
     file(STRINGS "${path}" rows)
     list(LENGTH rows count)
-    if(NOT count EQUAL 8)
+    if(NOT count EQUAL 9)
         message(FATAL_ERROR "The managed stack did not record all engine fixes")
     endif()
     set(seen "")
@@ -127,11 +127,10 @@ if(EXISTS "${out}/ezlocalai-llama-cpp-patches.txt")
     message(FATAL_ERROR "Removing the preceding stack left stale metadata")
 endif()
 
-# Upgrade the preceding seven-patch release with its checkpoint-retention fix,
-# then remove the complete stack, including the CUDA policy header.
+# Upgrade the preceding eight-patch release, then remove the complete stack.
 foreach(name llama-conversation-cache llama-cache-restore-atomic llama-cache-storage
         llama-mtp-resume llama-checkpoint-coverage llama-checkpoint-entry-window
-        llama-cache-retention)
+        llama-cache-retention llama-cuda-q4-kv-fusion)
     execute_process(COMMAND git -C "${copy}" apply "${PATCH_DIR}/${name}.patch"
         COMMAND_ERROR_IS_FATAL ANY)
 endforeach()
@@ -140,19 +139,44 @@ check_metadata()
 run_helper(-DREMOVE_MANAGED_PATCH=ON)
 check_clean()
 
-# A seven-patch installation can also be removed directly, without first
-# installing the CUDA fusion patch or leaving qualification metadata behind.
+# An eight-patch installation can also be removed directly without leaving
+# qualification metadata behind.
 foreach(name llama-conversation-cache llama-cache-restore-atomic llama-cache-storage
         llama-mtp-resume llama-checkpoint-coverage llama-checkpoint-entry-window
-        llama-cache-retention)
+        llama-cache-retention llama-cuda-q4-kv-fusion)
     execute_process(COMMAND git -C "${copy}" apply "${PATCH_DIR}/${name}.patch"
         COMMAND_ERROR_IS_FATAL ANY)
 endforeach()
 run_helper(-DREMOVE_MANAGED_PATCH=ON)
 check_clean()
 if(EXISTS "${out}/ezlocalai-llama-cpp-patches.txt")
-    message(FATAL_ERROR "Removing the seven-patch stack left stale metadata")
+    message(FATAL_ERROR "Removing the eight-patch stack left stale metadata")
 endif()
+
+# A real v0.7 -> v0.8 update removes the previous pin's eight patches before
+# git checkout, then installs all nine at the new pin. The old pin is accepted
+# only for removal; it must never be advertised as a qualified new engine.
+execute_process(COMMAND git -C "${copy}" checkout --quiet --detach
+    620d2225cc436ab0b001e3200e590e3b286ef9ab COMMAND_ERROR_IS_FATAL ANY)
+foreach(name llama-conversation-cache llama-cache-restore-atomic llama-cache-storage
+        llama-mtp-resume llama-checkpoint-coverage llama-checkpoint-entry-window
+        llama-cache-retention llama-cuda-q4-kv-fusion)
+    execute_process(COMMAND git -C "${copy}" apply "${PATCH_DIR}/${name}.patch"
+        COMMAND_ERROR_IS_FATAL ANY)
+endforeach()
+run_helper(-DREMOVE_MANAGED_PATCH=ON)
+check_clean()
+if(EXISTS "${out}/ezlocalai-llama-cpp-patches.txt")
+    message(FATAL_ERROR "Previous-pin removal left stale metadata")
+endif()
+run_helper()
+check_clean()
+execute_process(COMMAND git -C "${copy}" checkout --quiet --detach "${pin}"
+    COMMAND_ERROR_IS_FATAL ANY)
+run_helper()
+check_metadata()
+run_helper(-DREMOVE_MANAGED_PATCH=ON)
+check_clean()
 
 # Missing and malformed inputs must fail explicitly, not ship a partial worker.
 execute_process(COMMAND "${CMAKE_COMMAND}" "-DSOURCE_DIR=${copy}" "-DBUILD_DIR=${out}"

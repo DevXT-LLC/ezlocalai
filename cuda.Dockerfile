@@ -37,7 +37,7 @@ RUN --mount=type=cache,id=ezlocalai-storyboard-${EZLOCALAI_PLATFORM},target=/var
 FROM ${CUDA_IMAGE} AS engines-base
 
 ARG EZLOCALAI_LLAMA_CPP_REPO=https://github.com/ggml-org/llama.cpp.git
-ARG EZLOCALAI_LLAMA_CPP_REF=620d2225cc436ab0b001e3200e590e3b286ef9ab
+ARG EZLOCALAI_LLAMA_CPP_REF=8642541b255bfb5dc39cd351a178be09013a55d6
 # GGML_NATIVE=OFF: images run on other fleet CPUs. -march=native from the
 # build host (e.g. Alder Lake AVX-VNNI) fails on Haswell or Zen hosts.
 ARG EZLOCALAI_LLAMA_CPP_CMAKE_ARGS="-DGGML_CUDA=ON -DGGML_CUDA_NCCL=OFF -DLLAMA_CURL=ON -DGGML_NATIVE=OFF -DCMAKE_CUDA_ARCHITECTURES=86-real;89-real;120-real -DCMAKE_EXE_LINKER_FLAGS=-Wl,-rpath-link,/usr/local/cuda/lib64/stubs"
@@ -234,7 +234,7 @@ RUN git init /opt/acestep.cpp && \
 ENV ACE_STEP_BIN=/opt/acestep.cpp/build/ace-server
 
 FROM engines-base AS llama-engine
-COPY cmake/BuildLlamaEngine.cmake cmake/ApplyLlamaPatches.cmake patches/llama-conversation-cache.patch patches/llama-cache-restore-atomic.patch patches/llama-cache-storage.patch patches/llama-mtp-resume.patch patches/llama-checkpoint-coverage.patch patches/llama-checkpoint-entry-window.patch patches/llama-cache-retention.patch patches/llama-cuda-q4-kv-fusion.patch /tmp/
+COPY cmake/BuildLlamaEngine.cmake cmake/ApplyLlamaPatches.cmake patches/llama-conversation-cache.patch patches/llama-cache-restore-atomic.patch patches/llama-cache-storage.patch patches/llama-mtp-resume.patch patches/llama-checkpoint-coverage.patch patches/llama-checkpoint-entry-window.patch patches/llama-cache-retention.patch patches/llama-cuda-q4-kv-fusion.patch patches/llama-prefix-anchor.patch /tmp/
 RUN \
     LIBRARY_PATH="/usr/local/cuda/lib64/stubs:${LIBRARY_PATH:-}" \
     cmake -P /tmp/BuildLlamaEngine.cmake

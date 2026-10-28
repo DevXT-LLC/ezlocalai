@@ -2,6 +2,86 @@
 
 The goal remains behavior parity with ezlocalai within the scope below, with all first-party executable code implemented in C++. It is **not complete**.
 
+## llama.cpp v0.8.0 and idle cache retention (2026-10-28)
+
+The maintained default becomes release **v0.8.0**,
+`8642541b255bfb5dc39cd351a178be09013a55d6`, across the tool, four platform
+recipes and compose defaults. All eight earlier patches apply; patch nine
+preserves the earliest still-valid named prefix checkpoint within the existing
+checkpoint count and RAM ceiling. Refresh order and later admissions cannot
+silently discard that anchor. Token-prefix invalidation still owns correctness;
+one-slot/unnamed behavior is unchanged. Exact
+`EZLOCALAI_LLAMA_PREFIX_ANCHOR=0` restores the previous admission policy. The
+actual-header regression covers 40 simulated turns/120 admissions; it is not a
+physical 40-turn or overnight retention test.
+
+The engine already defaults to **no idle expiry** (`sleep_idle_seconds=-1`).
+[WorkerRouter PR #9](https://github.com/DevXT-LLC/WorkerRouter/pull/9), now merged,
+changes user and conversation/prefix hint defaults from ten minutes/one hour to
+**24 hours**. Explicit router TTLs still override these defaults: update both
+`ROUTER_USER_AFFINITY_TTL` and `ROUTER_PROMPT_AFFINITY_TTL` to `86400` if set.
+The full router suite passes **89 tests, two ignored**, including actual
+admission after 30 minutes/two hours of simulated idle time. No router host
+settings are changed here. Cache pressure, model unload, changed token prefixes
+and deployment restarts can still cause misses; a hint is not reserved KV RAM.
+Read-only WorkConductor metadata showed a stable large system prefix but did
+not conclusively identify the reported miss's cause. WorkConductor is unchanged;
+no speculative issue or private conversation export is committed.
+
+In-place engine migration now removes the old pin's eight patches before
+checkout, then installs all nine at the new pin. A real cross-pin regression
+covers that sequence. Qwen TTS supports the old constructor and new `init` API
+and reports readiness only after initialization. v0.8 resets codec RNG per
+utterance: the first buffered waveform is unchanged, later stochastic hashes
+differ. A new versioned CPU fixture records five requests/six buffers through
+the unchanged Python wrapper, reproduces them with the final native worker and
+an independent direct-worker control, and retains all historical fixtures.
+Composed/GPU model goldens have **not** been regenerated for v0.8.0.
+
+**73 oracle-free CUDA package checks pass (306.78 s)**; the CPU package gate
+passes **72 (311.57 s)**. Ten focused engine checks pass (15.32 s), with 15
+strict managed source fingerprints, 18 storage scenarios, 163 MTP checks and
+364,777 checkpoint policy checks. Four CUDA-linked CPU-only contract/tool/model/
+cache checks pass (2.10 s); all 1,875 compose comparisons pass. Final install
+and native/TTS/ACE linkage pass without missing libraries or Python, and ACE
+keeps its own ggml base. Old-header TTS syntax compatibility passes. CUDA
+12.8.93/GCC 13.3.0 compiles portable SM86/89/120 code in the GPU-inaccessible
+owned builder, image
+`sha256:c9d7cd30fb6f0d75280fda34b20cd70350dc69072ffebf564f0fffc92b8b330a`.
+No OOM kill occurs; reclaimable page cache does hit its memory limit.
+
+On a physical RTX 4090, **39 old/new/old requests** complete functional cache
+and inference controls with matching input/evaluated/cached/generated/finish
+counts. Both old runs match all 13 full signatures exactly. Six finite cases
+match across versions; **seven free greedy outputs and their MTP counters
+differ**. The strict text-equivalence gate remains **failed**. A separate
+fixed-continuation numerical check also **fails its original limits**; no
+cross-version bitwise or numerical equivalence is claimed. Prefill changes
+only modestly (~3,000 to ~3,051 tokens/s for the cold 16K control). Changed
+trajectories make decode figures descriptive rather than matched-output gains.
+A separate predeclared, unforced **21-case exact-answer check** keeps original
+production MTP settings and scores **20/21 in both versions**, with the same
+existing Python-loop error. All 42 requests finish normally with cold counts;
+every correct baseline answer remains correct. This is bounded task
+non-regression evidence, not universal text/audio quality equivalence.
+
+The original production image
+`sha256:00c5cf54c8c1e23f214adf68c0a226edb74926192de32a6d154542c2520559a4`,
+container, environment, mounts and full argv are restored. Every executed
+window records two fresh matching router heartbeats before owned drain release;
+a final pinned routed chat returns `READY`, worker `13f8f71` is healthy and
+undrained. Rollback: `ezlocalai:rollback-llama-v080-20261028-4090`.
+Owned children, twelve verified remote staging directories, redundant aliases
+and the completed CPU builder are removed. Other projects are untouched. No
+permanent production environment changes are made.
+
+A fresh full Docker image/deployment, other physical GPUs/platforms, multi-GPU,
+vision, maximum context, overnight survival, GPU speech and physical sanitizer
+requalification are not validated. See [the report](benchmarks/llama-v080-cache-lifetime-20261028.md),
+[the checkpoint contract](patches/llama-prefix-anchor.md) and
+`tests/fixtures/llama_v080_cache_lifetime_20261028_validation.json` for exact scope,
+failed gates, restoration proofs and remaining work.
+
 ## CUDA Q4 KV tile loading (2026-10-27)
 
 On a controlled RTX 4090, retained 130K-context decode improves **54.02 to
