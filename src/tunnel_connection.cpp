@@ -124,12 +124,15 @@ public:
         const std::string &worker_id,
         const std::string &api_key,
         std::string *initial_buffer,
-        std::string *error
+        std::string *error,
+        bool endpoint = false
     ) {
         close_all();
+        bounded_upgrade_ = endpoint;
         if (initial_buffer) initial_buffer->clear();
         try {
             auto first = tunnel_connection_url(url, worker_id, api_key);
+            if (endpoint) first.url.query = HttpUrl::parse(url).query;
             auto logical = HttpUrl::parse(url);
             logical.remove_credentials();
             logical.fragment.clear();
@@ -330,7 +333,7 @@ public:
             return false;
         }
 
-        HttpDeadline upgrading(0, false, cancelled_);
+        HttpDeadline upgrading(bounded_upgrade_ ? 15 : 0, false, cancelled_);
         std::string raw;
         char buffer[4096];
         size_t header_end = std::string::npos;
@@ -374,6 +377,10 @@ public:
         sent_ = 0;
     }
     bool writing() const { return !pending_.empty(); }
+    void queue_raw(std::string bytes) {
+        if (writing()) throw std::logic_error("WebSocket write already pending");
+        pending_ = std::move(bytes); sent_ = 0;
+    }
     int flush_frame() {
         HttpDeadline slice(.005, false, cancelled_);
         while (sent_ < pending_.size()) {
@@ -423,6 +430,7 @@ public:
 
 private:
     HttpUrl parsed_;
+    bool bounded_upgrade_ = false;
     int fd_ = -1;
     SSL_CTX *ssl_ctx_ = nullptr;
     SSL *ssl_ = nullptr;
@@ -446,6 +454,8 @@ private:
 };
 TunnelWebSocketConnection::TunnelWebSocketConnection(std::function<bool()> cancelled) : impl_(std::make_unique<Impl>(std::move(cancelled))) {}
 TunnelWebSocketConnection::~TunnelWebSocketConnection() = default;
+bool TunnelWebSocketConnection::connect_endpoint(const std::string &url, const std::string &key, std::string *buffer, std::string *error) { return impl_->connect_to(url, "", key, buffer, error, true); }
+void TunnelWebSocketConnection::queue_raw(std::string bytes) { impl_->queue_raw(std::move(bytes)); }
 bool TunnelWebSocketConnection::connect_to(const std::string &url, const std::string &worker, const std::string &key, std::string *buffer, std::string *error) { return impl_->connect_to(url, worker, key, buffer, error); }
 bool TunnelWebSocketConnection::send_text(const std::string &payload) { return impl_->send_text(payload); }
 bool TunnelWebSocketConnection::send_pong(const std::string &payload) { return impl_->send_pong(payload); }

@@ -1,3 +1,5 @@
+#include "ezlocalai/omni_model.hpp"
+#include "ezlocalai/realtime.hpp"
 #include "ezlocalai/worker_models.hpp"
 #include "ezlocalai/runtime_version.hpp"
 #include "ezlocalai/native_server.hpp"
@@ -6614,7 +6616,7 @@ bool websocket_route_available(const std::string &route_path, bool router_mode_e
     if (route_path == "/v1/router/tunnel") {
         return router_mode_enabled;
     }
-    if (route_path == "/v1/audio/speech/ws") {
+    if (route_path == "/v1/audio/speech/ws" || route_path == "/v1/realtime") {
         return !router_mode_enabled;
     }
     return false;
@@ -8494,7 +8496,8 @@ std::string llm_model_request_settings(const std::string &body, const std::strin
         "unsloth/Qwen3.5-9B-GGUF", "unsloth/Qwen3.5-4B-GGUF", "unsloth/Qwen3.5-2B-GGUF", "unsloth/Qwen3.5-0.8B-GGUF",
         "unsloth/Qwen3.6-35B-A3B-GGUF", "unsloth/Qwen3.6-35B-A3B-MTP-GGUF", "unsloth/Qwen3.5-9B-MTP-GGUF", "unsloth/Qwen3.5-4B-MTP-GGUF"};
     std::string profile;
-    if (qwen) profile = R"({"temperature":1.0,"top_p":0.95,"top_k":20,"min_p":0.0,"presence_penalty":0.0,"repetition_penalty":1.0,"chat_template_kwargs":{"enable_thinking":true,"reasoning_effort":"xhigh"}})";
+    if (realtime_audio_model(model)) profile = R"({"temperature":0.0,"top_p":1.0,"top_k":0,"min_p":0.0,"repetition_penalty":1.0,"chat_template_kwargs":{"enable_thinking":false}})";
+    else if (qwen) profile = R"({"temperature":1.0,"top_p":0.95,"top_k":20,"min_p":0.0,"presence_penalty":0.0,"repetition_penalty":1.0,"chat_template_kwargs":{"enable_thinking":true,"reasoning_effort":"xhigh"}})";
     else if (llm_minicpm5_model(model)) profile = R"({"temperature":1.0,"top_p":0.95,"min_p":0.0,"chat_template_kwargs":{"enable_thinking":false}})";
     else if (const auto it = profiles.find(model); it != profiles.end()) profile = it->second;
     else if (small_instruct.count(model)) profile = R"({"temperature":0.7,"top_p":0.8,"top_k":20,"min_p":0.0,"presence_penalty":1.5,"repetition_penalty":1.0,"chat_template_kwargs":{"enable_thinking":false}})";
@@ -8535,7 +8538,12 @@ std::string llm_model_request_settings(const std::string &body, const std::strin
             erase(options, "reasoning_effort");
         }
     }
-    for (const auto &item : defaults) ordered_json_upsert(&data, {item.first, item.first == "chat_template_kwargs" ? json_object_from_ordered_entries(options) : item.second});
+    for (const auto &item : defaults) {
+        // New native omni defaults preserve explicit request sampling. The
+        // historical Python profiles keep their existing override semantics.
+        if (realtime_audio_model(model) && item.first != "chat_template_kwargs" && request_fields.count(item.first)) continue;
+        ordered_json_upsert(&data, {item.first, item.first == "chat_template_kwargs" ? json_object_from_ordered_entries(options) : item.second});
+    }
     return json_object_from_ordered_entries(data);
 }
 
@@ -9910,7 +9918,8 @@ LlmCatalog captured_llm_catalog(const std::string &default_model) {
     for (auto &entry : catalog.configs) {
         int context = llama_configured_context_size(entry.second.original_index, false);
         if (context <= 0) parse_strict_int_string(csv_env_value_for_index("LLAMA_CPP_DEFAULT_CONTEXT", entry.second.original_index), &context);
-        if (context > 0) entry.second.context = context;
+        if (context > 0) entry.second.context = realtime_audio_model(catalog.source(entry.first))
+            ? std::min(context, lfm3_context_limit) : context;
     }
     return catalog;
 }
@@ -10088,7 +10097,7 @@ double LlamaCppInferenceBackend::estimate_configured_llm_locked(Server &server, 
         server.total_layers = llama_total_layers_for_path(files.model);
     }
     const auto profile = gpu_inference_profile(native_llm_batch_probes(), configured.main_gpu);
-    const auto cache = configured_llm_kv_cache_type(profile.family, native_llm_cache_environment());
+    const auto cache = configured_llm_kv_cache_type(profile.family, native_llm_cache_environment(), llm_catalog_.source(server.model_id));
     const double estimate = std::max(0.0, estimate_llm_memory_gb(server.model_path, context,
         server.projector_path.empty() ? std::vector<std::string>{} : std::vector<std::string>{server.projector_path}, cache));
     if (context <= configured.context) llm_vram_estimates_[server.model_id] = estimate;
@@ -10192,7 +10201,9 @@ void LlamaCppInferenceBackend::note_llm_loaded_locked(Server *server) {
 bool LlamaCppInferenceBackend::load_server_locked(Server *server, std::string *error_out, std::optional<int64_t> requested_context) {
     if (!server || server->embedding_mode || server->started) return load_server_once_locked(server, error_out, requested_context);
     const auto &configured = llm_catalog_.configs.at(server->model_id);
-    const int64_t context = requested_context.value_or(configured_load_context(*server));
+    const int64_t context = realtime_audio_model(llm_catalog_.source(server->model_id))
+        ? std::min<int64_t>(requested_context.value_or(configured_load_context(*server)), lfm3_context_limit)
+        : requested_context.value_or(configured_load_context(*server));
     LlmLoadConfiguration load;
     load.model = server->model_id;
     load.context = context;
@@ -10264,6 +10275,8 @@ bool LlamaCppInferenceBackend::load_server_once_locked(Server *server, std::stri
         return true;
     }
 
+    if (!server->embedding_mode && realtime_audio_model(llm_catalog_.source(server->model_id)))
+        requested_context = std::min<int64_t>(requested_context.value_or(configured_load_context(*server)), lfm3_context_limit);
     const auto effective_context = server->embedding_mode ? std::string() : llm_effective_context(
         std::to_string(requested_context.value_or(configured_load_context(*server))), ezl_getenv_default("LLM_MAX_TOKENS"));
     if (!server->embedding_mode) server->output_tokens = llm_parameter_integer(ezl_getenv_fallback("LLM_MAX_OUTPUT_TOKENS", "8192"));
@@ -10454,11 +10467,15 @@ bool LlamaCppInferenceBackend::load_server_once_locked(Server *server, std::stri
             args.push_back("-fa");
             args.push_back("on");
         }
+        if (!server->embedding_mode && realtime_audio_model(llm_catalog_.source(server->model_id))) {
+            if (!extra_has_any({"--reasoning"})) args.insert(args.end(), {"--reasoning", "off"});
+            if (!extra_has_any({"--temp", "--temperature"})) args.insert(args.end(), {"--temp", "0"});
+        }
         std::string kv_cache_type;
         if (!server->embedding_mode) {
             const auto profile = gpu_inference_profile(native_llm_batch_probes(), llm_catalog_.configs.at(server->model_id).main_gpu);
             const auto environment = native_llm_cache_environment();
-            kv_cache_type = configured_llm_kv_cache_type(profile.family, environment);
+            kv_cache_type = configured_llm_kv_cache_type(profile.family, environment, llm_catalog_.source(server->model_id));
             if (!extra_has_any({"--cache-ram", "-cram"})) args.insert(args.end(), {"--cache-ram", effective_cache.mib});
             if (!extra_has_any({"-ctk", "--cache-type-k"})) {
                 args.push_back("-ctk");
@@ -10720,6 +10737,44 @@ int64_t LlamaCppInferenceBackend::configured_load_context(const Server &server) 
     return llm_catalog_.configs.at(server.model_id).context;
 }
 
+std::unique_ptr<RealtimeEngineLease> LlamaCppInferenceBackend::open_realtime(
+    const std::string &model, const std::string &replica) {
+    const std::string body = "{\"model\":\"" + json_escape(model) + "\"}";
+    std::lock_guard<std::mutex> transition(llm_transition_mutex_);
+    std::unique_lock<std::mutex> lock(mutex_);
+    auto *server = select_server_locked(body, false, replica);
+    if (!server || !realtime_audio_model(llm_catalog_.source(server->model_id)))
+        throw std::invalid_argument("The selected model does not support realtime audio");
+    const auto context = std::min<int64_t>(configured_load_context(*server), lfm3_context_limit);
+    prepare_request_llm_locked(server, context, lock);
+    std::string error;
+    if (!ensure_server_locked(server, &error, context)) throw std::runtime_error(error);
+    if (server->owns_process && server->projector_path.empty())
+        throw std::runtime_error("Realtime audio requires the model's audio projector and codec");
+    auto lease = std::make_unique<RealtimeEngineLease>();
+    lease->url = strip_trailing_slashes(server->url) + "/v1/realtime";
+    lease->api_key = api_key_;
+    std::function<void()> release = [this, server] {
+        std::lock_guard<std::mutex> lock(mutex_);
+        if (server->active_requests > 0) --server->active_requests;
+        if (server->owns_process) resources_->mark_model_in_use(llm_resource_type(*server), false);
+        server->last_used = resources_->current_time();
+    };
+    server->last_used = resources_->current_time();
+    active_llm_ = server->model_id;
+    ++server->active_requests;
+    try {
+        if (server->owns_process) resources_->mark_model_in_use(llm_resource_type(*server), true);
+    } catch (...) {
+        --server->active_requests;
+        throw;
+    }
+    // Install the releasing callback last: unwinding while mutex_ is held
+    // must never destroy a lease which tries to acquire that same mutex.
+    lease->release = std::move(release);
+    return lease;
+}
+
 InferenceResult LlamaCppInferenceBackend::forward(const std::string &path, const std::string &request_body, const std::string &replica,
     bool model_profile, std::optional<int64_t> context) {
     const bool embedding_request = path == "/v1/embeddings";
@@ -10750,6 +10805,7 @@ InferenceResult LlamaCppInferenceBackend::forward(const std::string &path, const
             if (server && !embedding_request) {
                 request_context = context ? context : std::optional<int64_t>(std::stoll(llm_configured_context_limit(
                     std::to_string(llm_catalog_.configs.at(server->model_id).context), optimal_context_)));
+                if (realtime_audio_model(source_model)) *request_context = std::min<int64_t>(*request_context, lfm3_context_limit);
                 if (server->started && server->owns_process && server->context_size < *request_context && server->active_requests == 0)
                     stop_owned_server_locked(server);
             }
@@ -11274,6 +11330,11 @@ InferenceResult InferenceBackend::pipeline_text_result(const std::string &body, 
 
 InferenceResult LlamaCppInferenceBackend::pipeline_text_result(const std::string &body, const std::string &replica, bool chat_mode,
     const LlmInputOperations &input) {
+    // LFM3 owns its audio/video/vision encoders. Preserve native multimodal
+    // message parts instead of converting audio to Whisper text or stripping
+    // video soundtracks through the legacy Python-compatible preprocessing.
+    const auto source = llm_catalog_.source(replica.empty() ? extract_json_string(body, "model", default_model_) : replica);
+    if (chat_mode && realtime_audio_model(source)) return forward("/v1/chat/completions", body, replica, true);
     LlmInputOperations operations = input;
     operations.local_uri = ezl_getenv_default("EZLOCALAI_URL");
     Server *request_server = nullptr;
@@ -11940,6 +12001,9 @@ std::string NativeServer::worker_state_json() const {
     // current policy, including revocation and failed media-policy probes.
     values["extra"] = merge_json_objects(values["extra"], env_true("EZLOCALAI_ROUTER_REQUEST_GZIP")
         ? R"({"http_request_encodings":["gzip"]})" : R"({"http_request_encodings":[]})");
+    std::vector<std::string> realtime_models;
+    for (const auto &model : llm_catalog_.public_models()) if (realtime_audio_model(model)) realtime_models.push_back(model);
+    if (!realtime_models.empty()) values["extra"] = merge_json_objects(values["extra"], "{\"realtime\":{\"tunnel\":true,\"protocol\":\"openai-realtime\",\"path\":\"/v1/realtime\",\"shared_capacity\":\"text\",\"models\":" + string_array_json(realtime_models) + "}}");
     values["version"] = "\"" + json_escape(runtime_version()) + "\"";
     return json_object_from_values(values);
 }
@@ -12036,6 +12100,9 @@ void NativeServer::worker_tunnel_loop() {
         std::atomic<bool> cancelled{false};
         std::mutex mutex;
         std::function<void()> interrupt;
+        std::deque<std::pair<uint64_t, std::string>> websocket_input;
+        uint64_t websocket_received = 0;
+        uint64_t websocket_read_ack = 0;
         std::thread thread;
         void cancel() {
             std::lock_guard<std::mutex> lock(mutex);
@@ -12123,6 +12190,44 @@ void NativeServer::worker_tunnel_loop() {
                     const auto task = tasks.find(id);
                     if (task != tasks.end()) task->second->cancel();
                     outgoing_cv.notify_all();
+                } else if (type == "req_ws_read_ack" && tasks.count(id)) {
+                    auto task = tasks.at(id); bool valid = true; uint64_t sequence = 0;
+                    try { sequence = std::stoull(extract_json_value(frame.payload, "sequence", "0")); }
+                    catch (...) { valid = false; }
+                    {
+                        std::lock_guard<std::mutex> lock(task->mutex);
+                        valid = valid && sequence == task->websocket_read_ack + 1;
+                        if (valid) task->websocket_read_ack = sequence;
+                    }
+                    if (!valid) {
+                        task->cancel(); outgoing_cv.notify_all();
+                        controls.emplace_back(0x1U, "{\"t\":\"resp_err\",\"id\":\"" + json_escape(id)
+                            + "\",\"error\":\"Invalid realtime response acknowledgement\"}");
+                    }
+                } else if (type == "req_ws" && tasks.count(id)) {
+                    auto task = tasks.at(id);
+                    const auto encoded = extract_json_string(frame.payload, "data_b64", "");
+                    bool valid = !encoded.empty() && encoded.size() <= 87384;
+                    uint64_t sequence = 0;
+                    try { sequence = std::stoull(extract_json_value(frame.payload, "sequence", "0")); }
+                    catch (...) { valid = false; }
+                    std::string bytes;
+                    if (valid) {
+                        bytes = base64_decode_string(encoded);
+                        valid = !bytes.empty() && bytes.size() <= 65536
+                            && base64_encode(reinterpret_cast<const unsigned char *>(bytes.data()), bytes.size()) == encoded;
+                    }
+                    {
+                        std::lock_guard<std::mutex> lock(task->mutex);
+                        valid = valid && !task->cancelled && task->websocket_input.empty()
+                            && sequence == task->websocket_received + 1;
+                        if (valid) { task->websocket_received = sequence; task->websocket_input.emplace_back(sequence, std::move(bytes)); }
+                    }
+                    if (!valid) {
+                        task->cancel(); outgoing_cv.notify_all();
+                        controls.emplace_back(0x1U, "{\"t\":\"resp_err\",\"id\":\"" + json_escape(id)
+                            + "\",\"error\":\"Invalid realtime tunnel sequence or buffer\"}");
+                    }
                 } else if (type == "req" && !id.empty() && !tasks.count(id)) {
                     auto task = std::make_shared<RequestTask>();
                     tasks.emplace(id, task);
@@ -12140,7 +12245,11 @@ void NativeServer::worker_tunnel_loop() {
                             if (task->cancelled && task->interrupt) task->interrupt();
                         };
                         try {
-                            worker_tunnel_handle_message(message, send_text, register_interrupt);
+                            worker_tunnel_handle_message(message, send_text, register_interrupt, [task]() -> std::optional<std::pair<uint64_t, std::string>> {
+                                std::lock_guard<std::mutex> lock(task->mutex);
+                                if (task->websocket_input.empty()) return {};
+                                auto value = std::move(task->websocket_input.front()); task->websocket_input.pop_front(); return value;
+                            }, [task] { std::lock_guard<std::mutex> lock(task->mutex); return task->websocket_read_ack; });
                         } catch (const std::exception &e) {
                             send_text("{\"t\":\"resp_err\",\"id\":\"" + json_escape(extract_json_string(message, "id", ""))
                                 + "\",\"error\":\"" + json_escape(e.what()) + "\"}");
@@ -12186,7 +12295,9 @@ void NativeServer::worker_tunnel_loop() {
 void NativeServer::worker_tunnel_handle_message(
     const std::string &message,
     const std::function<bool(const std::string &)> &send_text,
-    const LlmInferenceStream::Interrupt &register_interrupt
+    const LlmInferenceStream::Interrupt &register_interrupt,
+    const std::function<std::optional<std::pair<uint64_t, std::string>>()> &realtime_input,
+    const std::function<uint64_t()> &realtime_read_ack
 ) {
     const std::string type = extract_json_string(message, "t", "");
     if (type == "ping") {
@@ -12218,6 +12329,58 @@ void NativeServer::worker_tunnel_handle_message(
             if (to_lower(entry.first) == "content-type") content_type = headers[entry.first];
         }
     }
+    if (method == "GET" && path.substr(0, path.find('?')) == "/v1/realtime") {
+        if (!realtime_input || !realtime_read_ack) throw std::runtime_error("Realtime tunnel flow control is unavailable");
+        std::string key, authorization;
+        for (const auto &header : headers) {
+            if (to_lower(header.first) == "sec-websocket-key") key = header.second;
+            if (to_lower(header.first) == "authorization") authorization = header.second;
+        }
+        if (!valid_websocket_key(key)) throw std::runtime_error("Invalid realtime tunnel upgrade key");
+        auto cancelled = std::make_shared<std::atomic<bool>>(false);
+        register_interrupt([cancelled] { *cancelled = true; });
+        TunnelWebSocketConnection local([this, cancelled] { return *cancelled || !worker_tunnel_running_; });
+        const auto api_key = starts_with(to_lower(authorization), "bearer ") ? authorization.substr(7) : authorization;
+        std::string buffered, error;
+        if (!local.connect_endpoint(worker_tunnel_local_url_ + path, api_key, &buffered, &error))
+            throw std::runtime_error("Local realtime upgrade failed: " + error);
+        if (!send_text("{\"t\":\"resp_start\",\"id\":\"" + json_escape(request_id)
+            + "\",\"status\":101,\"headers\":{\"Upgrade\":\"websocket\",\"Connection\":\"Upgrade\",\"Sec-WebSocket-Accept\":\""
+            + tunnel_websocket_accept(key) + "\"}}")) return;
+        uint64_t response_sequence = 0;
+        const auto send_bytes = [&](const std::string &bytes) {
+            if (bytes.empty()) return true;
+            ++response_sequence;
+            return send_text("{\"t\":\"resp_chunk\",\"id\":\"" + json_escape(request_id)
+                + "\",\"sequence\":" + std::to_string(response_sequence)
+                + ",\"data_b64\":\"" + base64_encode(reinterpret_cast<const unsigned char *>(bytes.data()), bytes.size()) + "\"}");
+        };
+        if (!send_bytes(buffered)) return;
+        uint64_t writing_sequence = 0;
+        char bytes[16384];
+        while (!*cancelled && worker_tunnel_running_) {
+            if (!local.writing()) if (auto next = realtime_input()) {
+                writing_sequence = next->first;
+                local.queue_raw(std::move(next->second));
+            }
+            if (local.writing()) {
+                const auto result = local.flush_frame();
+                if (result < 0) break;
+                if (result > 0 && !send_text("{\"t\":\"resp_ws_ack\",\"id\":\"" + json_escape(request_id)
+                    + "\",\"sequence\":" + std::to_string(writing_sequence) + "}")) return;
+            }
+            const auto acknowledged = realtime_read_ack();
+            if (acknowledged > response_sequence) throw std::runtime_error("Realtime response acknowledgement exceeds sent data");
+            if (acknowledged < response_sequence) { std::this_thread::sleep_for(std::chrono::milliseconds(5)); continue; }
+            if (!local.readable(local.writing() ? 0 : 10)) continue;
+            const auto n = local.read_some(bytes, sizeof(bytes));
+            if (n == 0) break;
+            if (n > 0 && !send_bytes(std::string(bytes, size_t(n)))) return;
+        }
+        send_text("{\"t\":\"resp_end\",\"id\":\"" + json_escape(request_id) + "\"}");
+        return;
+    }
+
     const std::string body = base64_decode_string(extract_json_string(message, "body_b64", ""));
     // A fixed ten-minute local timeout can abandon media generation while
     // WorkerRouter is still waiting for it. Retain the ordinary default, but
@@ -20522,6 +20685,60 @@ void NativeServer::handle_router_tunnel_websocket(int client_fd, const std::stri
     close(client_fd);
 }
 
+void NativeServer::handle_realtime_websocket(int client_fd, const std::string &query,
+    const std::string &initial, const std::string &websocket_key) {
+    bool upgraded = false;
+    std::string model, replica;
+    bool admitted = false;
+    struct Release {
+        std::function<void()> callback;
+        ~Release() { if (callback) callback(); }
+    } release{[&] { if (admitted) end_llm_inference(model, replica); }};
+    try {
+        const auto requested = query_param_value(query, "model", "");
+        auto resolved = llm_catalog_.resolve(requested);
+        if (requested.empty()) {
+            for (const auto &candidate : llm_catalog_.available)
+                if (realtime_audio_model(llm_catalog_.source(candidate))) { resolved = candidate; break; }
+        }
+        const auto intent = query_param_value(query, "intent", "");
+        const bool invalid_intent = !intent.empty() && intent != "transcription";
+        if (invalid_intent || !resolved || !realtime_audio_model(llm_catalog_.source(*resolved))) {
+            const HttpResponse error{400, "application/json", make_error(400, invalid_intent
+                ? "Unsupported realtime intent" : "Select a configured LFM3-Omni model for /v1/realtime")};
+            const auto raw = serialize_response(error);
+            HttpDeadline writing(15, false, [this] { return !running(); });
+            size_t sent = 0;
+            while (sent < raw.size()) { const auto n = http_write(client_fd, nullptr, raw.data() + sent, raw.size() - sent, writing); if (n <= 0) return; sent += size_t(n); }
+            return;
+        }
+        model = llm_catalog_.source(*resolved);
+        replica = begin_llm_inference(model, "{\"model\":\"" + json_escape(*resolved) + "\"}");
+        admitted = true;
+        auto lease = backend_->open_realtime(model, replica);
+        if (!lease) throw std::runtime_error("Realtime backend did not provide a model lease");
+        if (!intent.empty()) lease->url += "?intent=transcription";
+        TunnelWebSocketConnection engine([this] { return !running(); });
+        std::string buffered, error;
+        if (!engine.connect_endpoint(lease->url, lease->api_key, &buffered, &error))
+            throw std::runtime_error("Realtime engine upgrade failed: " + error);
+        const auto handshake = "HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: "
+            + websocket_accept_value(websocket_key) + "\r\n\r\n";
+        HttpDeadline writing(15, false, [this] { return !running(); });
+        size_t sent = 0;
+        while (sent < handshake.size()) { const auto n = http_write(client_fd, nullptr, handshake.data() + sent, handshake.size() - sent, writing); if (n <= 0) return; sent += size_t(n); }
+        upgraded = true;
+        relay_realtime_websocket(client_fd, engine, initial, buffered, [this] { return !running(); });
+    } catch (const std::exception &error) {
+        if (!upgraded) {
+            const auto raw = serialize_response({503, "application/json", make_error(503, error.what())});
+            HttpDeadline writing(15, false, [this] { return !running(); });
+            size_t sent = 0;
+            while (sent < raw.size()) { const auto n = http_write(client_fd, nullptr, raw.data() + sent, raw.size() - sent, writing); if (n <= 0) break; sent += size_t(n); }
+        }
+    }
+}
+
 void NativeServer::handle_tts_websocket(int client_fd,const std::string &initial) {
     // handle_client owns the descriptor. Closing it here would let its final
     // cleanup close an unrelated fd reused by a concurrent model/connection.
@@ -20690,7 +20907,7 @@ void NativeServer::handle_client(int client_fd) {
                 websocket_route_path == "/v1/embeddings" || starts_with(websocket_route_path, "/v1/audio/") ||
                 starts_with(websocket_route_path, "/v1/images/") || starts_with(websocket_route_path, "/v1/video") ||
                 starts_with(websocket_route_path, "/v1/music"))) ||
-                websocket_route_path == "/v1/audio/speech/ws");
+                (websocket_route_path == "/v1/audio/speech/ws" || websocket_route_path == "/v1/realtime"));
             if (is_websocket_upgrade(headers)) {
                 bool websocket_protocol_error = false;
                 if (method != "GET") {
@@ -20715,9 +20932,13 @@ void NativeServer::handle_client(int client_fd) {
                         } else if (!websocket_route_available(websocket_route_path, native_router_mode_enabled())) {
                             response = websocket_plain_response(403, "");
                             websocket_protocol_error = true;
-                        } else if(websocket_route_path=="/v1/audio/speech/ws"&&!authorized(authorization)) {
-                            response=websocket_plain_response(403,"");websocket_protocol_error=true;
+                        } else if((websocket_route_path=="/v1/audio/speech/ws" || websocket_route_path=="/v1/realtime")&&!authorized(authorization)) {
+                            response=websocket_plain_response(websocket_route_path=="/v1/realtime"?401:403,"");websocket_protocol_error=true;
                         } else {
+                            if (websocket_route_path == "/v1/realtime") {
+                                handle_realtime_websocket(client_fd, websocket_query, raw.substr(header_end + 4), key_it->second);
+                                return;
+                            }
                             const std::string accept = websocket_accept_value(key_it->second);
                             std::ostringstream handshake;
                             handshake << "HTTP/1.1 101 Switching Protocols\r\n"

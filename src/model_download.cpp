@@ -3,6 +3,7 @@
 #include "ezlocalai/configuration.hpp"
 #include "ezlocalai/ezlocalai_c.h"
 #include "ezlocalai/llm_slots.hpp"
+#include "ezlocalai/omni_model.hpp"
 #include <filesystem>
 #include <iostream>
 #include <stdexcept>
@@ -26,7 +27,9 @@ ModelFiles download_gguf_model(std::string name, const std::string &models_dir, 
     if (!io.list_remote) io.list_remote = [](const auto &repo) { return list_hub_files(repo); };
     if (!io.download) io.download = [](const auto &repo, const auto &file, const auto &directory) { download_hub_file(repo, file, directory); };
     if (name.empty()) name = ezl_getenv_default("DEFAULT_MODEL");
-    if (name.find('/') == std::string::npos) name = "unsloth/" + name + "-GGUF";
+    if (name.find('/') == std::string::npos) name = realtime_audio_model(name)
+        ? "LiquidAI/" + name + (name.find("-GGUF") == std::string::npos ? "-GGUF" : "")
+        : "unsloth/" + name + "-GGUF";
     std::string quant = quantization.value_or(ezl_getenv_default("QUANT_TYPE"));
     const auto comma = quant.find(',');
     if (comma != std::string::npos) quant = strip_config_value(quant.substr(0, comma));
@@ -35,6 +38,34 @@ ModelFiles download_gguf_model(std::string name, const std::string &models_dir, 
     const auto directory = join(models_dir, model);
     io.mkdir(directory);
     ModelFiles result;
+    if (realtime_audio_model(name)) {
+        // Resolve Liquid's model-qualified projector (encoders plus codec).
+        // Known unsupported global Qwen quants fall back to full precision.
+        auto desired = lower(quant);
+        if (desired != "f16" && desired != "bf16" && desired != "q8_0" && desired != "q4_0" && desired != "q4_k_m") desired = "f16";
+        const auto select = [&](const std::vector<std::string> &files, bool want_projector, const std::vector<std::string> &preferences) {
+            for (const auto &preference : preferences) for (const auto &file : files)
+                if (gguf(file) && projector(file) == want_projector && file.find('/') == std::string::npos
+                    && lower(file).find(preference) != std::string::npos) return file;
+            return std::string();
+        };
+        const auto local = io.list_local(directory);
+        auto weight = select(local, false, {"-" + desired + ".gguf"});
+        auto projection = select(local, true, {"-f16.", "-bf16.", "q8_0"});
+        if (weight.empty() || (!skip_projector && projection.empty())) {
+            const auto files = io.list_remote(name);
+            if (weight.empty()) weight = select(files, false, {"-" + desired + ".gguf", "-f16.", "-bf16.", "q8_0", "q4_k_m"});
+            if (!skip_projector && projection.empty()) projection = select(files, true, {"-f16.", "-bf16.", "q8_0"});
+        }
+        if (weight.empty() || (!skip_projector && projection.empty())) throw std::runtime_error("Missing LFM3 backbone or required audio/vision projector");
+        result.model = join(directory, weight);
+        if (!io.exists(result.model)) io.download(name, weight, directory);
+        if (!skip_projector) {
+            result.projector = join(directory, projection);
+            if (!io.exists(result.projector)) io.download(name, projection, directory);
+        }
+        return result;
+    }
     if (!skip_projector) {
         for (const auto &file : io.list_local(directory)) if (projector(file) && gguf(file)) { result.projector = join(directory, file); break; }
         if (result.projector.empty()) {

@@ -21,12 +21,18 @@ public:
     ~TunnelWebSocketConnection();
     bool connect_to(const std::string &url, const std::string &worker_id,
         const std::string &api_key, std::string *initial_buffer, std::string *error);
+    // Connect to an ordinary WebSocket endpoint without tunnel query fields.
+    bool connect_endpoint(const std::string &url, const std::string &api_key,
+        std::string *initial_buffer, std::string *error);
     bool send_text(const std::string &payload);
     bool send_pong(const std::string &payload = "");
     bool send_close(int code = 1000);
     // The worker event loop retains one masked frame across short write slices.
     // A slice returns 1 when complete, 0 on backpressure, and -1 on failure.
     void queue_frame(unsigned char opcode, const std::string &payload);
+    // Bounded callers can relay RFC6455 bytes without decoding audio or changing
+    // fragmentation/masks. The existing client already supplies masked frames.
+    void queue_raw(std::string bytes);
     int flush_frame();
     bool writing() const;
     bool readable(int milliseconds) const;

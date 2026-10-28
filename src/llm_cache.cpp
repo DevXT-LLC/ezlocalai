@@ -1,3 +1,4 @@
+#include "ezlocalai/omni_model.hpp"
 #include "ezlocalai/llm_cache.hpp"
 #include "ezlocalai/configuration.hpp"
 #include "ezlocalai/llm_slots.hpp"
@@ -34,9 +35,12 @@ std::string resolve_llm_kv_cache_type(const std::string &global, const std::stri
     if (value == "q4_0" || value == "q8_0" || value == "f16" || value == "f32") return value;
     throw LlmCacheError("ValueError", "KV_CACHE_TYPE must be auto, q4_0, q8_0, f16 or f32");
 }
-std::string configured_llm_kv_cache_type(const std::string &family, const LlmCacheEnvironment &environment) {
+std::string configured_llm_kv_cache_type(const std::string &family, const LlmCacheEnvironment &environment, const std::string &model) {
     const auto card = family.empty() ? "" : environment("KV_CACHE_TYPE_" + family, "");
-    return resolve_llm_kv_cache_type(card.empty() ? environment("KV_CACHE_TYPE", "auto") : "", card);
+    const auto global = card.empty() ? environment("KV_CACHE_TYPE", "auto") : std::string();
+    const auto selected = setting(card.empty() ? global : card);
+    if (realtime_audio_model(model) && (selected.empty() || selected == "auto")) return "f16";
+    return resolve_llm_kv_cache_type(card.empty() ? global : "", card);
 }
 PromptCache resolve_llm_prompt_cache(const std::optional<std::string> &raw, int64_t context) {
     const auto value = setting(raw.value_or("auto"));

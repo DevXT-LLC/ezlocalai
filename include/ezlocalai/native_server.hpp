@@ -13,6 +13,7 @@
 #include <condition_variable>
 #include <chrono>
 #include <cstdint>
+#include <stdexcept>
 #include <deque>
 #include <functional>
 #include <mutex>
@@ -71,12 +72,24 @@ struct RouterSlotState {
     int instances = -1;
 };
 
+struct RealtimeEngineLease {
+    std::string url, api_key;
+    std::function<void()> release;
+    RealtimeEngineLease() = default;
+    RealtimeEngineLease(const RealtimeEngineLease &) = delete;
+    RealtimeEngineLease &operator=(const RealtimeEngineLease &) = delete;
+    ~RealtimeEngineLease() { if (release) release(); }
+};
+
 class InferenceBackend {
 public:
     virtual ~InferenceBackend() = default;
     virtual std::string chat(const std::string &request_body) = 0;
     virtual std::string completion(const std::string &request_body) = 0;
     virtual std::string embedding(const std::string &request_body) = 0;
+    virtual std::unique_ptr<RealtimeEngineLease> open_realtime(const std::string &, const std::string &) {
+        throw std::runtime_error("Realtime inference is unavailable on this backend");
+    }
     virtual std::string chat_for_replica(const std::string &body, const std::string &) { return chat(body); }
     virtual std::string completion_for_replica(const std::string &body, const std::string &) { return completion(body); }
     virtual InferenceResult text_result(const std::string &body, const std::string &replica, bool chat_mode) {
@@ -139,6 +152,7 @@ public:
     std::string chat(const std::string &request_body) override;
     std::string completion(const std::string &request_body) override;
     std::string embedding(const std::string &request_body) override;
+    std::unique_ptr<RealtimeEngineLease> open_realtime(const std::string &model, const std::string &replica) override;
     std::string chat_for_replica(const std::string &body, const std::string &replica) override;
     std::string completion_for_replica(const std::string &body, const std::string &replica) override;
     InferenceResult text_result(const std::string &body, const std::string &replica, bool chat_mode) override;
@@ -776,12 +790,16 @@ private:
     void worker_tunnel_handle_message(
         const std::string &message,
         const std::function<bool(const std::string &)> &send_text,
-        const LlmInferenceStream::Interrupt &register_interrupt
+        const LlmInferenceStream::Interrupt &register_interrupt,
+        const std::function<std::optional<std::pair<uint64_t, std::string>>()> &realtime_input = {},
+        const std::function<uint64_t()> &realtime_read_ack = {}
     );
     void accept_loop();
     void handle_client(int client_fd);
     void handle_router_tunnel_websocket(int client_fd, const std::string &worker_id);
     void handle_tts_websocket(int client_fd,const std::string &initial);
+    void handle_realtime_websocket(int client_fd, const std::string &query,
+        const std::string &initial, const std::string &websocket_key);
 };
 
 // Initialize the worker's text and auxiliary models before opening listeners.

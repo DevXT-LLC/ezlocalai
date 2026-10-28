@@ -87,6 +87,7 @@ add_library(ezlocalai_native
     src/worker_heartbeat.cpp
     src/tunnel_websocket.cpp
     src/tunnel_connection.cpp
+    src/realtime.cpp
     src/wakeword_paths.cpp
     src/wakeword_samples.cpp
     src/wakeword_tts.cpp
@@ -349,6 +350,10 @@ target_link_libraries(test_tunnel_transport PRIVATE ezlocalai_native nlohmann_js
 add_test(NAME tunnel_transport_reference COMMAND test_tunnel_transport ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/tunnel_deadlines_cases.json)
 set_tests_properties(tunnel_transport_reference PROPERTIES TIMEOUT 45)
 
+add_executable(test_realtime tests/test_realtime.cpp)
+target_link_libraries(test_realtime PRIVATE ezlocalai_native nlohmann_json::nlohmann_json)
+add_test(NAME realtime COMMAND test_realtime)
+set_tests_properties(realtime PROPERTIES TIMEOUT 45)
 add_executable(test_tunnel_connection tests/test_tunnel_connection.cpp)
 target_link_libraries(test_tunnel_connection PRIVATE ezlocalai_native nlohmann_json::nlohmann_json)
 add_test(NAME tunnel_connection_reference COMMAND test_tunnel_connection ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/tunnel_connection_cases.json)
@@ -1838,7 +1843,7 @@ if(TARGET test_ltx_norm AND TARGET ezlocalai-tts)
         test_worker_heartbeat
         test_worker_heartbeat_http
         test_worker_tunnel
-        test_tunnel_connection
+        test_realtime test_tunnel_connection
         test_tunnel_redirects
         test_http_cookies
         test_tunnel_transport
