@@ -107,6 +107,14 @@ The original installation's enable flags remain authoritative.
 
 Set `EZLOCALAI_LLAMA_CPP_REF` to pin an upstream llama.cpp branch, tag, or commit before building.
 
+## LFM3 Omni voice calls
+
+Native `/v1/realtime` streams text and PCM speech with tool calls through the
+worker and Rust WorkerRouter, including reverse tunnels. LFM3 Omni also accepts
+native image/audio/video input through chat completions. See [configuration,
+protocol and tested limits](REALTIME.md). Qwen remains the ordinary TTS engine. Qwen language models retain their
+262,144-token context configuration.
+
 ## Implementation details
 
 This repository is the C++ implementation of ezlocalai. The replacement target is the Python worker's behavior with the separate Rust WorkerRouter. Historical Python router-service code is outside that target; use the worker-only parity gate. Application code, tools, entrypoint, and process fixtures are compiled as C++17; the C ABI is retained for callers.

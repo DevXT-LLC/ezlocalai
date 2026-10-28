@@ -2,6 +2,88 @@
 
 The goal remains behavior parity with ezlocalai within the scope below, with all first-party executable code implemented in C++. It is **not complete**.
 
+## LFM3 Omni native voice calls and router transport (2026-10-28)
+
+Add **LiquidAI/LFM3-Omni-2B-GGUF**, the released 2B Omni model supported by
+llama.cpp v0.8.0. Its published context cap is **128,000**, applied only to this
+family. **Qwen 262,144-token configurations are unchanged**, with a specific
+regression. Automatic Omni KV uses F16, automatic parallelism is one, text is
+greedy/non-reasoning as the vendor recommends, and the GGUF audio sampler is
+preserved. Unsupported inherited Qwen weight quant names select F16; explicit
+supported quants/KV overrides remain available. Acquisition pairs the backbone
+with the complete model-qualified audio/vision projector and works offline
+from its normal cache directory. Omni chat input reaches its native encoders
+instead of the legacy Whisper/video-to-text adapter. Ordinary Qwen TTS stays.
+
+The worker's authenticated **`/v1/realtime`** holds a normal text/model slot
+and active engine lease for the whole call. Both byte directions remain
+independent under backpressure; failed upgrades, disconnect and shutdown
+release ownership. Waiting direct callers detect disconnect and have a
+30-second admission bound. Heartbeat `extra.realtime` advertises the model,
+protocol, shared text capacity and tunnel capability without inventing GPU
+slots. WorkerRouter has matching admission and a bounded acknowledged duplex
+extension to its existing reverse tunnel. Real acceptance caught and fixed
+WebSocket worker-label versus internal-ID resolution; labels now use normal
+case-folded matching. No cross-model fallback or replay follows an upgrade.
+
+**Physical acceptance:** worker `24a6615`, router `a3c190f`, release engine
+`8642541b255bfb5dc39cd351a178be09013a55d6` plus the same nine managed patches,
+on the local **RTX 3090 Ti (24,564 MiB)**. Official F16 backbone/projector at
+immutable model revision `64660117852a2054cf1f666f47eeb910e2204e4d`, context
+65,536, one slot, automatic KV. The final run used ordinary cached acquisition
+with no explicit weight/projector path overrides. **62 acceptance checks**
+passed across direct and actual C++ reverse-tunnel dispatch through an
+isolated real Rust router: text to streamed PCM, 16 kHz chunked audio input,
+24 kHz speech output, retained conversation context, progress and steering
+function calls with valid JSON/call IDs and spoken mock-tool results, updated
+working-agent context, cancellation during speech and next-turn recovery,
+native image/audio/video chat including soundtrack, and native streaming ASR
+(`Hello, Cedar.`). ASR requires initial `session.type=transcription`; forwarding
+an intent query alone does not change a conversational session. Earlier test
+client type/audio-buffer errors are not counted as successful runs. Tools were
+local mocks, not commands to real agents. First audio in these short local
+functional prompts ranged **0.061–0.202 seconds**; this is not a production
+latency or speech-quality benchmark. An earlier video case without the vendor
+system prompt missed brief speech; final prompted cases recognized it.
+
+**Checks:** all **67 available tests selected by the CUDA package regex**
+passed without the Python oracle, including the new native gateway test.
+Rust: **97 passed, two existing ignored**, plus formatting. Developer-only
+checks against exact Python `0f7e9f4` sources passed **2,216 catalog cases,
+6,183 request/settings/binding cases, 1,068 download policies and 16 Hub HTTP
+traces**, with managed acquisition/placement/retry/restoration checks. The
+acquisition test now clears the image's native `MODELS_PATH` override, which
+could reuse other cases' cached weights, and counts the pre-existing residency
+estimation lookup. A separate parent-runtime diagnostic confirmed those counts;
+weight single-download, source, quantization, authorization and lifecycle
+checks were retained. No Python source hashes or recorded policy cases changed.
+
+**Deployment safety:** candidate overlay used the original image
+`sha256:2928738bb5e60d6b57c179b550a24bf0844c0b07c0493c27aea232ed66d0a5a2`
+in an owned child; this was not a freshly built full Docker image. Each GPU
+window used a fresh idle router drain with healthy alternatives, frozen
+artifact/model fingerprints and an independent restoration watchdog. Retain
+rollback `ezlocalai:rollback-lfm3-realtime-20261028-local3090ti`. The original
+`46648ad81b9fa1ea67b6a1a513e41bb9b44e4b65b3e94607cd02e9ccbd74a143`
+was restored with identical image, environment, config, mounts and full engine
+argv; two fresh matching heartbeats preceded owned drain release. A final
+production-router request pinned to `DevXT3090J` returned **READY**. **No
+permanent `.env` changes** were made; dedicated voice settings and all client
+requirements are in [REALTIME.md](REALTIME.md). Compact evidence, artifact
+hashes and exact transient configuration are in
+[the validation record](tests/fixtures/lfm3_realtime_20261028_validation.json);
+raw synthetic logs remain under ignored `build/validation/lfm3-realtime-20261028`.
+
+**Limits / next work:** WorkConductor needs its own native voice adapter, VAD,
+playback, reconnect/context rotation and authorized tool integration; its code
+was not changed. Upstream realtime accepts text/audio; images/video use chat
+completions and need another available slot during a call. Long calls, browser
+UX, broad speech/AV accuracy, multi-GPU and other-platform hardware were not
+validated. Existing video-generation priorities and out-of-scope PDF work are
+unchanged. This branch includes prerequisite worker PR147; its documented
+v0.8 Qwen numerical-equivalence limitation remains and is not superseded by
+these new-model tests.
+
 ## llama.cpp v0.8.0 and idle cache retention (2026-10-28)
 
 The maintained default becomes release **v0.8.0**,
