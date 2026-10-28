@@ -7,6 +7,7 @@
 #include "speculative.h"
 #include "arg.h"
 
+#include <algorithm>
 #include <climits>
 #include <cstring>
 #include <iostream>
@@ -378,6 +379,17 @@ void environment_optout() {
     setenv("EZLOCALAI_LLAMA_CHECKPOINT_COVERAGE","1",1);
     require(common_plan_checkpoints(24577,4096,1024,32,true,true,runtime()).extra_window_end==2052,"explicit one enables qualified alignment");
     if(present)setenv("EZLOCALAI_LLAMA_CHECKPOINT_COVERAGE",saved.c_str(),1);else unsetenv("EZLOCALAI_LLAMA_CHECKPOINT_COVERAGE");
+    const char * anchor_existing = std::getenv("EZLOCALAI_LLAMA_PREFIX_ANCHOR");
+    const bool anchor_present = anchor_existing != nullptr;
+    const std::string anchor_saved = anchor_existing ? anchor_existing : "";
+    unsetenv("EZLOCALAI_LLAMA_PREFIX_ANCHOR");
+    require(common_prefix_anchor_enabled(), "prefix anchor enabled by default");
+    setenv("EZLOCALAI_LLAMA_PREFIX_ANCHOR", "0", 1);
+    require(!common_prefix_anchor_enabled(), "explicit zero restores legacy prefix eviction");
+    setenv("EZLOCALAI_LLAMA_PREFIX_ANCHOR", "1", 1);
+    require(common_prefix_anchor_enabled(), "explicit one enables prefix retention");
+    if (anchor_present) setenv("EZLOCALAI_LLAMA_PREFIX_ANCHOR", anchor_saved.c_str(), 1);
+    else unsetenv("EZLOCALAI_LLAMA_PREFIX_ANCHOR");
 }
 void actual_server_tokens_media_classification() {
     const auto enabled_for = [](const server_tokens & tokens) {
@@ -499,6 +511,49 @@ void actual_checkpoint_admission_preserves_other_boundaries() {
 }
 }
 
+// Exercise the actual engine eviction policy across many turns. The earliest
+// valid boundary is the only recurrent state preceding a changed runtime suffix.
+void named_prefix_survives_checkpoint_pressure() {
+    using checkpoints = std::list<common_prompt_checkpoint>;
+    auto add = [](checkpoints & values, int64_t n, int task, size_t limit, bool named, int64_t step = 8192) {
+        common_prepare_checkpoint_admission(values, n, task, limit, step,
+            [](common_checkpoint_erasure, const auto &) {}, named);
+        auto & value = values.emplace_back();
+        value.n_tokens = n;
+        value.id_task = task;
+        require(values.size() <= limit, "prefix retention respects checkpoint ceiling");
+    };
+    const auto contains = [](const checkpoints & values, int64_t n) {
+        return std::any_of(values.begin(), values.end(), [=](const auto & value) { return value.n_tokens == n; });
+    };
+    checkpoints named, unnamed;
+    for (auto * values : {&named, &unnamed}) add(*values, 100, 0, 4, values == &named);
+    for (int turn = 1; turn <= 40; ++turn) {
+        for (int offset : {0, 1024, 2048}) {
+            const auto boundary = int64_t(turn) * 16384 + offset;
+            add(named, boundary, turn, 4, true);
+            add(unnamed, boundary, turn, 4, false);
+            require(contains(named, 100), "named prefix remains restorable after forty turns");
+        }
+    }
+    require(!contains(unnamed, 100), "legacy eviction reproduces lost prefix regression");
+    add(named, 100, 41, 4, true); // refresh moves the anchor to the list's tail
+    add(named, 700000, 42, 4, true);
+    require(contains(named, 100), "refreshed anchor survives out-of-order list position");
+    add(named, 50, 43, 4, true); // a newly evaluated earlier boundary supersedes it
+    for (int turn = 44; turn <= 50; ++turn) add(named, int64_t(turn) * 16384, turn, 4, true);
+    require(contains(named, 50) && !contains(named, 100), "earliest valid boundary replaces old anchor");
+    // Real server invalidation still owns prefix correctness: an edited system
+    // prompt removes checkpoints beyond the shared prefix before admission.
+    named.clear();
+    add(named, 25, 51, 2, true);
+    add(named, 10000, 52, 2, true);
+    add(named, 20000, 53, 2, true);
+    require(contains(named, 25) && contains(named, 20000), "two slots retain anchor plus recent state");
+    add(named, 30000, 54, 1, true);
+    require(named.size() == 1 && named.front().n_tokens == 30000, "single-checkpoint configuration keeps latest state");
+}
+
 int main() {
     try {
         measured_schedule_and_actual_splitters(); tail_reservation_and_original_start_alignment();
@@ -508,6 +563,7 @@ int main() {
         actual_parser_mtp_selection();
         actual_server_tokens_media_classification();
         actual_checkpoint_admission_preserves_other_boundaries();
+        named_prefix_survives_checkpoint_pressure();
         std::cout << checks << " production checkpoint alignment checks passed\n";
         return 0;
     } catch (const std::exception & error) {

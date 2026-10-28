@@ -65,6 +65,7 @@ int main(int argc, char **argv) {
         for (char **entry = environ; *entry; ++entry) { std::string s(*entry); if (s.rfind("LLAMA_ARG_", 0) == 0) environment.push_back(s.substr(0, s.find('='))); }
         for (const auto &key : environment) unsetenv(key.c_str());
         const common_params binding_defaults{};
+        expect(binding_defaults.sleep_idle_seconds == -1, "idle time alone must not destroy worker model and caches");
         expect(binding_defaults.n_ctx_checkpoints == ezlocalai::llm_default_context_checkpoints && binding_defaults.checkpoint_min_step == ezlocalai::llm_default_checkpoint_min_step, "reference checkpoint defaults");
         expect(binding_defaults.sampling.reasoning_budget_tokens == -1 && binding_defaults.image_min_tokens == -1 && binding_defaults.warmup && binding_defaults.cont_batching, "reference constructor defaults");
         const std::vector<std::string> base{"-np", "1", "-c", "65536", "-b", "1024", "-ub", "256", "--cache-ram", "8192", "-ctk", "q4_0", "-ctv", "q4_0", "--ctx-checkpoints", "32", "--checkpoint-min-step", "8192", "--warmup", "--cont-batching"};

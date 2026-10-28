@@ -2,6 +2,168 @@
 
 The goal remains behavior parity with ezlocalai within the scope below, with all first-party executable code implemented in C++. It is **not complete**.
 
+## LFM3 Omni native voice calls and router transport (2026-10-28)
+
+Add **LiquidAI/LFM3-Omni-2B-GGUF**, the released 2B Omni model supported by
+llama.cpp v0.8.0. Its published context cap is **128,000**, applied only to this
+family. **Qwen 262,144-token configurations are unchanged**, with a specific
+regression. Automatic Omni KV uses F16, automatic parallelism is one, text is
+greedy/non-reasoning as the vendor recommends, and the GGUF audio sampler is
+preserved. Unsupported inherited Qwen weight quant names select F16; explicit
+supported quants/KV overrides remain available. Acquisition pairs the backbone
+with the complete model-qualified audio/vision projector and works offline
+from its normal cache directory. Omni chat input reaches its native encoders
+instead of the legacy Whisper/video-to-text adapter. Ordinary Qwen TTS stays.
+
+The worker's authenticated **`/v1/realtime`** holds a normal text/model slot
+and active engine lease for the whole call. Both byte directions remain
+independent under backpressure; failed upgrades, disconnect and shutdown
+release ownership. Waiting direct callers detect disconnect and have a
+30-second admission bound. Heartbeat `extra.realtime` advertises the model,
+protocol, shared text capacity and tunnel capability without inventing GPU
+slots. WorkerRouter has matching admission and a bounded acknowledged duplex
+extension to its existing reverse tunnel. Real acceptance caught and fixed
+WebSocket worker-label versus internal-ID resolution; labels now use normal
+case-folded matching. No cross-model fallback or replay follows an upgrade.
+
+**Physical acceptance:** worker `24a6615`, router `a3c190f`, release engine
+`8642541b255bfb5dc39cd351a178be09013a55d6` plus the same nine managed patches,
+on the local **RTX 3090 Ti (24,564 MiB)**. Official F16 backbone/projector at
+immutable model revision `64660117852a2054cf1f666f47eeb910e2204e4d`, context
+65,536, one slot, automatic KV. The final run used ordinary cached acquisition
+with no explicit weight/projector path overrides. **62 acceptance checks**
+passed across direct and actual C++ reverse-tunnel dispatch through an
+isolated real Rust router: text to streamed PCM, 16 kHz chunked audio input,
+24 kHz speech output, retained conversation context, progress and steering
+function calls with valid JSON/call IDs and spoken mock-tool results, updated
+working-agent context, cancellation during speech and next-turn recovery,
+native image/audio/video chat including soundtrack, and native streaming ASR
+(`Hello, Cedar.`). ASR requires initial `session.type=transcription`; forwarding
+an intent query alone does not change a conversational session. Earlier test
+client type/audio-buffer errors are not counted as successful runs. Tools were
+local mocks, not commands to real agents. First audio in these short local
+functional prompts ranged **0.061–0.202 seconds**; this is not a production
+latency or speech-quality benchmark. An earlier video case without the vendor
+system prompt missed brief speech; final prompted cases recognized it.
+
+**Checks:** all **67 available tests selected by the CUDA package regex**
+passed without the Python oracle, including the new native gateway test.
+Rust: **97 passed, two existing ignored**, plus formatting. Developer-only
+checks against exact Python `0f7e9f4` sources passed **2,216 catalog cases,
+6,183 request/settings/binding cases, 1,068 download policies and 16 Hub HTTP
+traces**, with managed acquisition/placement/retry/restoration checks. The
+acquisition test now clears the image's native `MODELS_PATH` override, which
+could reuse other cases' cached weights, and counts the pre-existing residency
+estimation lookup. A separate parent-runtime diagnostic confirmed those counts;
+weight single-download, source, quantization, authorization and lifecycle
+checks were retained. No Python source hashes or recorded policy cases changed.
+
+**Deployment safety:** candidate overlay used the original image
+`sha256:2928738bb5e60d6b57c179b550a24bf0844c0b07c0493c27aea232ed66d0a5a2`
+in an owned child; this was not a freshly built full Docker image. Each GPU
+window used a fresh idle router drain with healthy alternatives, frozen
+artifact/model fingerprints and an independent restoration watchdog. Retain
+rollback `ezlocalai:rollback-lfm3-realtime-20261028-local3090ti`. The original
+`46648ad81b9fa1ea67b6a1a513e41bb9b44e4b65b3e94607cd02e9ccbd74a143`
+was restored with identical image, environment, config, mounts and full engine
+argv; two fresh matching heartbeats preceded owned drain release. A final
+production-router request pinned to `DevXT3090J` returned **READY**. **No
+permanent `.env` changes** were made; dedicated voice settings and all client
+requirements are in [REALTIME.md](REALTIME.md). Compact evidence, artifact
+hashes and exact transient configuration are in
+[the validation record](tests/fixtures/lfm3_realtime_20261028_validation.json);
+raw synthetic logs remain under ignored `build/validation/lfm3-realtime-20261028`.
+
+**Limits / next work:** WorkConductor needs its own native voice adapter, VAD,
+playback, reconnect/context rotation and authorized tool integration; its code
+was not changed. Upstream realtime accepts text/audio; images/video use chat
+completions and need another available slot during a call. Long calls, browser
+UX, broad speech/AV accuracy, multi-GPU and other-platform hardware were not
+validated. Existing video-generation priorities and out-of-scope PDF work are
+unchanged. This branch includes prerequisite worker PR147; its documented
+v0.8 Qwen numerical-equivalence limitation remains and is not superseded by
+these new-model tests.
+
+## llama.cpp v0.8.0 and idle cache retention (2026-10-28)
+
+The maintained default becomes release **v0.8.0**,
+`8642541b255bfb5dc39cd351a178be09013a55d6`, across the tool, four platform
+recipes and compose defaults. All eight earlier patches apply; patch nine
+preserves the earliest still-valid named prefix checkpoint within the existing
+checkpoint count and RAM ceiling. Refresh order and later admissions cannot
+silently discard that anchor. Token-prefix invalidation still owns correctness;
+one-slot/unnamed behavior is unchanged. Exact
+`EZLOCALAI_LLAMA_PREFIX_ANCHOR=0` restores the previous admission policy. The
+actual-header regression covers 40 simulated turns/120 admissions; it is not a
+physical 40-turn or overnight retention test.
+
+The engine already defaults to **no idle expiry** (`sleep_idle_seconds=-1`).
+[WorkerRouter PR #9](https://github.com/DevXT-LLC/WorkerRouter/pull/9), now merged,
+changes user and conversation/prefix hint defaults from ten minutes/one hour to
+**24 hours**. Explicit router TTLs still override these defaults: update both
+`ROUTER_USER_AFFINITY_TTL` and `ROUTER_PROMPT_AFFINITY_TTL` to `86400` if set.
+The full router suite passes **89 tests, two ignored**, including actual
+admission after 30 minutes/two hours of simulated idle time. No router host
+settings are changed here. Cache pressure, model unload, changed token prefixes
+and deployment restarts can still cause misses; a hint is not reserved KV RAM.
+Read-only WorkConductor metadata showed a stable large system prefix but did
+not conclusively identify the reported miss's cause. WorkConductor is unchanged;
+no speculative issue or private conversation export is committed.
+
+In-place engine migration now removes the old pin's eight patches before
+checkout, then installs all nine at the new pin. A real cross-pin regression
+covers that sequence. Qwen TTS supports the old constructor and new `init` API
+and reports readiness only after initialization. v0.8 resets codec RNG per
+utterance: the first buffered waveform is unchanged, later stochastic hashes
+differ. A new versioned CPU fixture records five requests/six buffers through
+the unchanged Python wrapper, reproduces them with the final native worker and
+an independent direct-worker control, and retains all historical fixtures.
+Composed/GPU model goldens have **not** been regenerated for v0.8.0.
+
+**73 oracle-free CUDA package checks pass (306.78 s)**; the CPU package gate
+passes **72 (311.57 s)**. Ten focused engine checks pass (15.32 s), with 15
+strict managed source fingerprints, 18 storage scenarios, 163 MTP checks and
+364,777 checkpoint policy checks. Four CUDA-linked CPU-only contract/tool/model/
+cache checks pass (2.10 s); all 1,875 compose comparisons pass. Final install
+and native/TTS/ACE linkage pass without missing libraries or Python, and ACE
+keeps its own ggml base. Old-header TTS syntax compatibility passes. CUDA
+12.8.93/GCC 13.3.0 compiles portable SM86/89/120 code in the GPU-inaccessible
+owned builder, image
+`sha256:c9d7cd30fb6f0d75280fda34b20cd70350dc69072ffebf564f0fffc92b8b330a`.
+No OOM kill occurs; reclaimable page cache does hit its memory limit.
+
+On a physical RTX 4090, **39 old/new/old requests** complete functional cache
+and inference controls with matching input/evaluated/cached/generated/finish
+counts. Both old runs match all 13 full signatures exactly. Six finite cases
+match across versions; **seven free greedy outputs and their MTP counters
+differ**. The strict text-equivalence gate remains **failed**. A separate
+fixed-continuation numerical check also **fails its original limits**; no
+cross-version bitwise or numerical equivalence is claimed. Prefill changes
+only modestly (~3,000 to ~3,051 tokens/s for the cold 16K control). Changed
+trajectories make decode figures descriptive rather than matched-output gains.
+A separate predeclared, unforced **21-case exact-answer check** keeps original
+production MTP settings and scores **20/21 in both versions**, with the same
+existing Python-loop error. All 42 requests finish normally with cold counts;
+every correct baseline answer remains correct. This is bounded task
+non-regression evidence, not universal text/audio quality equivalence.
+
+The original production image
+`sha256:00c5cf54c8c1e23f214adf68c0a226edb74926192de32a6d154542c2520559a4`,
+container, environment, mounts and full argv are restored. Every executed
+window records two fresh matching router heartbeats before owned drain release;
+a final pinned routed chat returns `READY`, worker `13f8f71` is healthy and
+undrained. Rollback: `ezlocalai:rollback-llama-v080-20261028-4090`.
+Owned children, twelve verified remote staging directories, redundant aliases
+and the completed CPU builder are removed. Other projects are untouched. No
+permanent production environment changes are made.
+
+A fresh full Docker image/deployment, other physical GPUs/platforms, multi-GPU,
+vision, maximum context, overnight survival, GPU speech and physical sanitizer
+requalification are not validated. See [the report](benchmarks/llama-v080-cache-lifetime-20261028.md),
+[the checkpoint contract](patches/llama-prefix-anchor.md) and
+`tests/fixtures/llama_v080_cache_lifetime_20261028_validation.json` for exact scope,
+failed gates, restoration proofs and remaining work.
+
 ## CUDA Q4 KV tile loading (2026-10-27)
 
 On a controlled RTX 4090, retained 130K-context decode improves **54.02 to

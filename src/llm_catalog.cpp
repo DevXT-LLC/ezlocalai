@@ -1,5 +1,6 @@
 #include "ezlocalai/llm_catalog.hpp"
 #include "ezlocalai/configuration.hpp"
+#include "ezlocalai/omni_model.hpp"
 #include <algorithm>
 #include <charconv>
 
@@ -61,6 +62,9 @@ LlmCatalog parse_llm_catalog(const LlmCatalogSettings &settings) {
         config.parallel=integer(parallels[std::min(i,parallels.size()-1)]);
         const auto quant=quants[std::min(i,quants.size()-1)];if(!quant.empty())config.quant=quant;
         const auto source=catalog.source(id);config.speculative_type=llm_speculative_backend(source,settings.speculative_type);config.original_index=i;
+        if (realtime_audio_model(source) && (config.context > lfm3_context_limit)) config.context = lfm3_context_limit;
+        if (realtime_audio_model(source) && config.context <= 0) config.context = 65536;
+        if (realtime_audio_model(source) && config.parallel == 0) config.parallel = 1;
         int64_t instances=1;if(config.speculative_type!="none"){instances=std::max<int64_t>(1,config.parallel);config.parallel=1;}
         if(settings.gpu_count>1 && (catalog.available.size()>1 || instances>1)) {
             if(config.main_gpu < -128 || config.main_gpu >= 128)throw LlmCatalogError("IndexError","list assignment index out of range");

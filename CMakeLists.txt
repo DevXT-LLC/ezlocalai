@@ -87,6 +87,7 @@ add_library(ezlocalai_native
     src/worker_heartbeat.cpp
     src/tunnel_websocket.cpp
     src/tunnel_connection.cpp
+    src/realtime.cpp
     src/wakeword_paths.cpp
     src/wakeword_samples.cpp
     src/wakeword_tts.cpp
@@ -349,6 +350,10 @@ target_link_libraries(test_tunnel_transport PRIVATE ezlocalai_native nlohmann_js
 add_test(NAME tunnel_transport_reference COMMAND test_tunnel_transport ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/tunnel_deadlines_cases.json)
 set_tests_properties(tunnel_transport_reference PROPERTIES TIMEOUT 45)
 
+add_executable(test_realtime tests/test_realtime.cpp)
+target_link_libraries(test_realtime PRIVATE ezlocalai_native nlohmann_json::nlohmann_json)
+add_test(NAME realtime COMMAND test_realtime)
+set_tests_properties(realtime PROPERTIES TIMEOUT 45)
 add_executable(test_tunnel_connection tests/test_tunnel_connection.cpp)
 target_link_libraries(test_tunnel_connection PRIVATE ezlocalai_native nlohmann_json::nlohmann_json)
 add_test(NAME tunnel_connection_reference COMMAND test_tunnel_connection ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/tunnel_connection_cases.json)
@@ -1513,11 +1518,13 @@ add_dependencies(test_llama_tts_process test_tts_process_fixture)
 add_test(NAME llama_tts_process_reference COMMAND test_llama_tts_process ${EZLOCALAI_REFERENCE_ROOT} ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/llama_tts_process_cases.jsonl $<TARGET_FILE:test_tts_process_fixture>)
 set_tests_properties(llama_tts_process_reference PROPERTIES TIMEOUT 120)
 set(EZLOCALAI_TTS_MODEL_DIRECTORY "" CACHE PATH "Pinned Qwen TTS GGUF directory for real CPU wrapper verification")
+set(EZLOCALAI_TTS_MODEL_CASES "${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/llama_tts_model_v080_cases.jsonl"
+    CACHE FILEPATH "Version-specific real CPU Qwen TTS reference cases")
 if(TARGET ezlocalai-tts AND EZLOCALAI_TTS_MODEL_DIRECTORY)
     add_executable(test_llama_tts_model tests/test_llama_tts_model.cpp)
     target_link_libraries(test_llama_tts_model PRIVATE ezlocalai_native nlohmann_json::nlohmann_json)
     add_dependencies(test_llama_tts_model ezlocalai-tts)
-    add_test(NAME llama_tts_model_reference COMMAND test_llama_tts_model ${EZLOCALAI_REFERENCE_ROOT} ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/llama_tts_model_cases.jsonl $<TARGET_FILE:ezlocalai-tts> ${EZLOCALAI_TTS_MODEL_DIRECTORY} ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/stt_runtime_assets/speech.wav)
+    add_test(NAME llama_tts_model_reference COMMAND test_llama_tts_model ${EZLOCALAI_REFERENCE_ROOT} ${EZLOCALAI_TTS_MODEL_CASES} $<TARGET_FILE:ezlocalai-tts> ${EZLOCALAI_TTS_MODEL_DIRECTORY} ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/stt_runtime_assets/speech.wav)
     set_tests_properties(llama_tts_model_reference PROPERTIES TIMEOUT 300 DEPENDS llama_tts_process_reference)
     if(EZLOCALAI_STT_TORCH_GPU_TESTS)
         add_test(NAME llama_tts_deployment_cuda_reference COMMAND test_llama_tts_model ${EZLOCALAI_REFERENCE_ROOT}
@@ -1836,7 +1843,7 @@ if(TARGET test_ltx_norm AND TARGET ezlocalai-tts)
         test_worker_heartbeat
         test_worker_heartbeat_http
         test_worker_tunnel
-        test_tunnel_connection
+        test_realtime test_tunnel_connection
         test_tunnel_redirects
         test_http_cookies
         test_tunnel_transport

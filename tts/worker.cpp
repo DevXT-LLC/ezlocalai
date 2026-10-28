@@ -13,8 +13,21 @@
 #include <iostream>
 #include <stdexcept>
 #include <string>
+#include <type_traits>
 
 using json = nlohmann::json;
+
+template <typename Generator>
+static Generator make_audio_generator(llama_context * ctx, mtmd_context * mctx) {
+    // Keep explicit older engine overrides buildable while using v0.8's API.
+    if constexpr (std::is_constructible_v<Generator, llama_context *, mtmd_context *>) {
+        return Generator(ctx, mctx);
+    } else {
+        Generator gen;
+        gen.init(ctx, mctx);
+        return gen;
+    }
+}
 
 static std::string encode64(const char * data, size_t size) {
     static const char alphabet[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
@@ -146,10 +159,11 @@ int main(int argc, char ** argv) {
         if (!mctx || mtmd_gen_audio_get_info(mctx.get()).type == MTMD_GEN_AUDIO_TYPE_NONE) {
             throw std::runtime_error("cannot load TTS audio encoder/decoder");
         }
-        std::cout << json({{"ready", true}}).dump() << std::endl;
         // set_input resets per-utterance state while preserving the pipeline's
         // cached embedding matrix. Recreating it for every chunk is expensive.
-        mtmd_helper::gen_audio gen(ctx, mctx.get());
+        auto gen = make_audio_generator<mtmd_helper::gen_audio>(ctx, mctx.get());
+        if (!gen.ctx) throw std::runtime_error("cannot initialize TTS audio generation");
+        std::cout << json({{"ready", true}}).dump() << std::endl;
         std::string line;
         while (std::getline(std::cin, line)) {
             try {

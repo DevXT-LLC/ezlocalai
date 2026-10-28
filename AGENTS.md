@@ -137,11 +137,15 @@ Keep these. Do not "fix" them back:
   `VIDEO_GENERATION_TIMEOUT` and `ACE_STEP_TIMEOUT`. Python uses a fixed 600 s.
 - **LTX audio** is resampled to 24 kHz. Python labels 48 kHz audio as 24 kHz.
 - **STT text and subtitle responses** carry `; charset=utf-8`.
-- **Engine:** llama.cpp v0.7.0. Python pins b11549.
+- **Engine:** llama.cpp v0.8.0. Python pins b11549.
+- **Qwen generator seed:** v0.8.0 resets codec RNG per utterance. Historical
+  sequential audio hashes differ; the versioned CPU fixture retains exact
+  Python-wrapper comparison with the same new engine.
 
 ## Scope
 
-- Qwen is the only required TTS engine; gTTS and Edge fallbacks are not
+- LFM3-Omni-2B native realtime text/audio and chat image/audio/video input are in scope; see `REALTIME.md`. Its 128,000 context cap must never affect Qwen's 262,144 context.
+- Qwen is the only required ordinary TTS engine; gTTS and Edge fallbacks are not
   required.
 - PDF-to-speech is out of scope.
 - The separate Gemma storage experiments in Python are out of scope. Complete

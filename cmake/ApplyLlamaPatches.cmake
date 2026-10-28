@@ -6,12 +6,20 @@ execute_process(COMMAND git -C "${SOURCE_DIR}" rev-parse HEAD
     OUTPUT_VARIABLE revision OUTPUT_STRIP_TRAILING_WHITESPACE COMMAND_ERROR_IS_FATAL ANY)
 set(metadata "${BUILD_DIR}/ezlocalai-llama-cpp-patches.txt")
 # Custom revisions retain their own behavior; this stack is qualified at the pin.
-if(NOT revision STREQUAL "620d2225cc436ab0b001e3200e590e3b286ef9ab")
-    if(BUILD_DIR)
-        file(REMOVE "${metadata}")
+set(legacy_remove FALSE)
+if(NOT revision STREQUAL "8642541b255bfb5dc39cd351a178be09013a55d6")
+    # The updater removes the previous release's patches BEFORE checkout. Its
+    # files still have the old pin here; dropping metadata alone strands those
+    # edits and prevents git from checking out the new release.
+    if(REMOVE_MANAGED_PATCH AND revision STREQUAL "620d2225cc436ab0b001e3200e590e3b286ef9ab")
+        set(legacy_remove TRUE)
+    else()
+        if(BUILD_DIR)
+            file(REMOVE "${metadata}")
+        endif()
+        message(STATUS "Custom llama.cpp revision: managed patches not applied")
+        return()
     endif()
-    message(STATUS "Custom llama.cpp revision: managed patches not applied")
-    return()
 endif()
 if(NOT PATCH_FILES)
     if(PATCH_FILE)
@@ -28,6 +36,9 @@ if(NOT PATCH_FILES)
         "${patch_dir}/llama-cache-storage.patch" "${patch_dir}/llama-mtp-resume.patch"
         "${patch_dir}/llama-checkpoint-coverage.patch" "${patch_dir}/llama-checkpoint-entry-window.patch"
         "${patch_dir}/llama-cache-retention.patch" "${patch_dir}/llama-cuda-q4-kv-fusion.patch")
+    if(NOT legacy_remove)
+        list(APPEND PATCH_FILES "${patch_dir}/llama-prefix-anchor.patch")
+    endif()
 endif()
 set(reverse_patches "${PATCH_FILES}")
 list(REVERSE reverse_patches)

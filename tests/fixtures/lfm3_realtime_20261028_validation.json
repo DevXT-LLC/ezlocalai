@@ -1,0 +1,437 @@
+{
+  "date": "2026-10-28",
+  "feature": "LFM3-Omni-2B native realtime and multimodal worker/router support",
+  "worker_source": "24a6615e48e56c3f807e0583ae0be19a3a882fbb",
+  "router_source": "a3c190f7f5ad12a87785398d4e77fed49063e9e5",
+  "worker_parent": "39249dde0c55276bc6b30a0384162e8c92ae915d",
+  "engine": {
+    "release": "v0.8.0",
+    "commit": "8642541b255bfb5dc39cd351a178be09013a55d6",
+    "managed_patches": 9
+  },
+  "model": {
+    "repository": "LiquidAI/LFM3-Omni-2B-GGUF",
+    "revision": "64660117852a2054cf1f666f47eeb910e2204e4d",
+    "assets": [
+      {
+        "file": "LFM3-Omni-2B-F16.gguf",
+        "bytes": 3466628608,
+        "sha256": "9fde8072a7313d676591499d14ecf7f7ee2f1773cc9e4bdbdbeed4a87c5987f6"
+      },
+      {
+        "file": "mmproj-LFM3-Omni-2B-F16.gguf",
+        "bytes": 949841248,
+        "sha256": "361bc95192c7d9156b566fcd4e48930363b78218e493fb1be607456bd51586e3"
+      }
+    ],
+    "published_context_limit": 128000,
+    "tested_context": 65536,
+    "tested_parallel": 1,
+    "configured_kv_cache": "auto",
+    "automatic_kv_precision_unit_verified": "f16",
+    "text_sampling": "greedy; reasoning off",
+    "audio_sampling": "GGUF defaults retained",
+    "acquisition": "normal cached model folder; no explicit model/projector path overrides"
+  },
+  "qwen_262144_context_regression": "passed; no LFM context cap applied to Qwen",
+  "hardware": {
+    "gpu": "NVIDIA GeForce RTX 3090 Ti",
+    "vram_mib": 24564,
+    "worker_label": "DevXT3090J",
+    "candidate_base_image": "sha256:2928738bb5e60d6b57c179b550a24bf0844c0b07c0493c27aea232ed66d0a5a2",
+    "candidate_overlays": {
+      "ezlocalai-native": "bc8ae90069318e73de747f515bfe9bc62ab9a98fb4314896c328417990fc861e",
+      "libezlocalai_whisper_kernel.so": "3b2cb5c01a89724c7b5967d83b855f80692d27bde6fba3ffab22554742865925",
+      "worker-router": "0527f29a44538a99d64a9091ab2d859a4d213953a7f89aacd5f93f19b9375c13"
+    },
+    "plan_sha256": "88024ca8f58c7a02007c8adb6ea89349a78ed5405db90250003a8c0e001f97aa"
+  },
+  "tests": {
+    "cuda_package": {
+      "selected_available_tests": 67,
+      "passed": 67,
+      "failed": 0,
+      "seconds": 327.35,
+      "python_oracle_present": false,
+      "fresh_full_docker_image_built": false
+    },
+    "native_gateway": {
+      "passed": true,
+      "seconds": 0.33,
+      "covers": [
+        "auth before lease",
+        "shared text model capacity",
+        "bidirectional cancellation bytes",
+        "disconnect cleanup",
+        "failed startup cleanup",
+        "cancelled waiting client"
+      ]
+    },
+    "router": {
+      "passed": 97,
+      "ignored": 2,
+      "failed": 0
+    },
+    "developer_catalog": {
+      "recorded_cases": 2216,
+      "passed": true,
+      "oracle_commit": "0f7e9f4"
+    },
+    "developer_request": {
+      "recorded_cases": 6183,
+      "passed": true,
+      "oracle_commit": "0f7e9f4"
+    },
+    "developer_acquisition": {
+      "status": "passed",
+      "oracle_commit": "0f7e9f4",
+      "policy_cases": 1068,
+      "hub_http_traces": 16,
+      "managed_modes": [
+        "selected",
+        "restore",
+        "replica",
+        "wrong-local",
+        "preflight-recovery",
+        "failure",
+        "no-projector",
+        "retry",
+        "offline",
+        "override",
+        "custom-root",
+        "missing-restore"
+      ],
+      "fixture_corrections": "Clear inherited MODELS_PATH; align legacy metadata-call counts with the unchanged parent residency estimator; preserve single-GET, model/quant/auth, failure and lifecycle assertions."
+    },
+    "gpu_acceptance": [
+      {
+        "transport": "direct",
+        "status": "passed",
+        "checks": [
+          "real model advertised",
+          "realtime shares text capacity",
+          "session.created on 28194",
+          "native PCM sample rates advertised",
+          "real streamed PCM speech on 28194",
+          "conversation context persists on 28194",
+          "session.created on 28195",
+          "native PCM sample rates advertised",
+          "real streamed PCM speech on 28195",
+          "conversation context persists on 28195",
+          "session.created on 28195",
+          "chunked input audio produces spoken response",
+          "session.created on 28195",
+          "function call streamed with call_id",
+          "correct progress tool and correlation id",
+          "streamed tool arguments are valid JSON",
+          "tool result produces spoken follow-up",
+          "voice agent selects steering tool",
+          "steering arguments preserve user instruction",
+          "mock steering result produces speech",
+          "working-agent context updates between turns",
+          "session.created on 28195",
+          "barge-in cancellation delivered during real audio output",
+          "conversation continues after response.cancel",
+          "native image understanding through router",
+          "native audio understanding through router",
+          "native video understanding through router",
+          "native video soundtrack understanding through router",
+          "session.created on 28195",
+          "explicit native transcription session type",
+          "native streaming transcription intent"
+        ],
+        "check_count": 31,
+        "response_count": 12,
+        "sample_rates": {
+          "input": 16000,
+          "output": 24000
+        },
+        "first_audio_seconds": {
+          "min": 0.06096930900821462,
+          "median": 0.08109908096957952,
+          "max": 0.2018973240046762
+        },
+        "cancelled_responses": 1,
+        "streaming_transcript": "Hello, Cedar.",
+        "media": [
+          {
+            "type": "image",
+            "text": "Red"
+          },
+          {
+            "type": "audio",
+            "text": "Hello, Cedar."
+          },
+          {
+            "type": "video",
+            "text": "The visible color is blue. The speaker says, \"Hello, Cedar.\""
+          }
+        ],
+        "tool_arguments": [
+          {
+            "name": "get_agent_progress",
+            "arguments": {}
+          },
+          {
+            "name": "steer_working_agent",
+            "arguments": {
+              "message": "run only the fast unit tests"
+            }
+          }
+        ],
+        "reported": {
+          "models": [
+            "LiquidAI/LFM3-Omni-2B-GGUF"
+          ],
+          "model_context": {
+            "LiquidAI/LFM3-Omni-2B-GGUF": 65536
+          },
+          "capabilities": [
+            "text",
+            "vision"
+          ],
+          "cap_slots": {
+            "text": {
+              "capacity": 1,
+              "in_flight": 0,
+              "queued": 0,
+              "available": 1
+            }
+          },
+          "extra": {
+            "llm_model_residency": "resident",
+            "loaded_llms": [
+              "LiquidAI/LFM3-Omni-2B-GGUF"
+            ],
+            "active_llm": "LiquidAI/LFM3-Omni-2B-GGUF",
+            "llm_unload_dependent_capabilities": [
+              "video",
+              "music",
+              "music_video"
+            ],
+            "http_request_encodings": [],
+            "realtime": {
+              "tunnel": true,
+              "protocol": "openai-realtime",
+              "path": "/v1/realtime",
+              "shared_capacity": "text",
+              "models": [
+                "LiquidAI/LFM3-Omni-2B-GGUF"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "transport": "tunnel",
+        "status": "passed",
+        "checks": [
+          "real model advertised",
+          "realtime shares text capacity",
+          "session.created on 28194",
+          "native PCM sample rates advertised",
+          "real streamed PCM speech on 28194",
+          "conversation context persists on 28194",
+          "session.created on 28195",
+          "native PCM sample rates advertised",
+          "real streamed PCM speech on 28195",
+          "conversation context persists on 28195",
+          "session.created on 28195",
+          "chunked input audio produces spoken response",
+          "session.created on 28195",
+          "function call streamed with call_id",
+          "correct progress tool and correlation id",
+          "streamed tool arguments are valid JSON",
+          "tool result produces spoken follow-up",
+          "voice agent selects steering tool",
+          "steering arguments preserve user instruction",
+          "mock steering result produces speech",
+          "working-agent context updates between turns",
+          "session.created on 28195",
+          "barge-in cancellation delivered during real audio output",
+          "conversation continues after response.cancel",
+          "native image understanding through router",
+          "native audio understanding through router",
+          "native video understanding through router",
+          "native video soundtrack understanding through router",
+          "session.created on 28195",
+          "explicit native transcription session type",
+          "native streaming transcription intent"
+        ],
+        "check_count": 31,
+        "response_count": 12,
+        "sample_rates": {
+          "input": 16000,
+          "output": 24000
+        },
+        "first_audio_seconds": {
+          "min": 0.08226285601267591,
+          "median": 0.10374144499655813,
+          "max": 0.19191901601152495
+        },
+        "cancelled_responses": 1,
+        "streaming_transcript": "Hello, Cedar.",
+        "media": [
+          {
+            "type": "image",
+            "text": "Red"
+          },
+          {
+            "type": "audio",
+            "text": "Hello, Cedar."
+          },
+          {
+            "type": "video",
+            "text": "The visible color is blue. The speaker says, \"Hello, Cedar.\""
+          }
+        ],
+        "tool_arguments": [
+          {
+            "name": "get_agent_progress",
+            "arguments": {}
+          },
+          {
+            "name": "steer_working_agent",
+            "arguments": {
+              "message": "run only the fast unit tests"
+            }
+          }
+        ],
+        "reported": {
+          "models": [
+            "LiquidAI/LFM3-Omni-2B-GGUF"
+          ],
+          "model_context": {
+            "LiquidAI/LFM3-Omni-2B-GGUF": 65536
+          },
+          "capabilities": [
+            "text",
+            "vision"
+          ],
+          "cap_slots": {
+            "text": {
+              "capacity": 1,
+              "in_flight": 0,
+              "queued": 0,
+              "available": 1
+            }
+          },
+          "extra": {
+            "llm_model_residency": "resident",
+            "loaded_llms": [
+              "LiquidAI/LFM3-Omni-2B-GGUF"
+            ],
+            "active_llm": "LiquidAI/LFM3-Omni-2B-GGUF",
+            "llm_unload_dependent_capabilities": [
+              "video",
+              "music",
+              "music_video"
+            ],
+            "http_request_encodings": [],
+            "realtime": {
+              "tunnel": true,
+              "protocol": "openai-realtime",
+              "path": "/v1/realtime",
+              "shared_capacity": "text",
+              "models": [
+                "LiquidAI/LFM3-Omni-2B-GGUF"
+              ]
+            }
+          }
+        }
+      }
+    ]
+  },
+  "production_restoration": {
+    "container_id": "46648ad81b9fa1ea67b6a1a513e41bb9b44e4b65b3e94607cd02e9ccbd74a143",
+    "image_id": "sha256:2928738bb5e60d6b57c179b550a24bf0844c0b07c0493c27aea232ed66d0a5a2",
+    "rollback_tag": "ezlocalai:rollback-lfm3-realtime-20261028-local3090ti",
+    "proof": {
+      "critical_parameters_preserved": true,
+      "full_engine_argv_preserved": true,
+      "healthy": true,
+      "oom_killed": false,
+      "same_config": true,
+      "same_container": true,
+      "same_environment": true,
+      "same_hostconfig": true,
+      "same_image": true,
+      "same_mounts": true
+    },
+    "router_proof": {
+      "metadata_preserved": true,
+      "two_fresh_matching_heartbeats": true
+    },
+    "drain_resumed": true,
+    "permanent_environment_changes": false,
+    "pinned_router_probe": {
+      "pinned_worker": "DevXT3090J",
+      "model": "unsloth/Qwen3.8-27B-GGUF",
+      "reply": "READY",
+      "passed": true,
+      "elapsed_seconds": 0.48888581502251327,
+      "same_container": true
+    }
+  },
+  "limits": [
+    "Short synthetic English calls on one physical CUDA GPU only; no long-call, multi-GPU or other-platform hardware validation.",
+    "Realtime websocket accepts text/audio, not image/video events; visual input was tested through chat completions.",
+    "Browser microphone/VAD/playback, tool authorization and actual WorkConductor integration remain client work. Tools used deterministic local mocks, not real working-agent operations.",
+    "F16 acceptance is not a broad speech naturalness, audiovisual accuracy or numerical-equivalence benchmark. Earlier no-system-prompt video case missed brief speech; final vendor-prompt cases recognized color and speech.",
+    "Prerequisite PR147 retains its documented v0.8 Qwen numerical-equivalence limitation; this work does not supersede that result."
+  ],
+  "transient_environment_overrides": {
+    "ACE_STEP_PRECACHE": "false",
+    "DEFAULT_MODEL": "LiquidAI/LFM3-Omni-2B-GGUF",
+    "EMBEDDING_ENABLED": "false",
+    "EZLOCALAI_API_KEY": "<validation-only key>",
+    "EZLOCALAI_COMMIT": "validation-working-tree",
+    "EZLOCALAI_PRELOAD_MODEL_ON_START": "true",
+    "EZLOCALAI_URL": "http://127.0.0.1:28194",
+    "EZLOCALAI_VERSION": "lfm3-validation-lfm3-local-b052962f89",
+    "FALLBACK_SERVER": "",
+    "IMAGE_ENABLED": "false",
+    "IMAGE_SERVER": "",
+    "KV_CACHE_TYPE": "auto",
+    "KV_CACHE_TYPE_3090": "auto",
+    "KV_CACHE_TYPE_4090": "auto",
+    "KV_CACHE_TYPE_5090": "auto",
+    "KV_CACHE_TYPE_A100": "auto",
+    "KV_CACHE_TYPE_H100": "auto",
+    "KV_CACHE_TYPE_T4": "auto",
+    "LD_LIBRARY_PATH": "/validation:/validation/engine:/opt/ezlocalai/deps/lib:/opt/ezlocalai/deps/torch/lib:/opt/ezlocalai/ctranslate2/lib:/usr/local/cuda/lib64:/usr/local/cuda/lib64:/usr/local/cuda/lib64",
+    "LLAMA_CPP_API_KEY": "<validation-only key>",
+    "LLAMA_CPP_CONTEXT": "65536",
+    "LLAMA_CPP_DEFAULT_CONTEXT": "65536",
+    "LLAMA_CPP_EXTRA_ARGS": "",
+    "LLAMA_CPP_MMPROJ_PATH": "",
+    "LLAMA_CPP_MODEL_PATH": "",
+    "LLAMA_CPP_MODEL_PATHS": "",
+    "LLAMA_CPP_SERVER_BIN": "/validation/engine/llama-server",
+    "LLAMA_CPP_SERVER_PORT": "28193",
+    "LLM_CONTEXTS": "65536",
+    "LLM_MAX_TOKENS": "65536",
+    "LLM_MODELS": "LiquidAI/LFM3-Omni-2B-GGUF",
+    "LLM_PARALLELS": "1",
+    "LLM_SPECULATIVE_TYPE": "none",
+    "MODELS_PATH": "/validation/models",
+    "MUSIC_ENABLED": "false",
+    "MUSIC_SERVER": "",
+    "N_PARALLEL": "1",
+    "OPTIMAL_MAX_TOKENS": "65536",
+    "QUANT_TYPE": "F16",
+    "ROUTER_API_KEY": "<validation-only key>",
+    "ROUTER_MODE": "false",
+    "ROUTER_URL": "http://127.0.0.1:28195",
+    "STT_ENABLED": "false",
+    "TEXT_SERVER": "",
+    "TTS_ENABLED": "false",
+    "USAGE_FILE": "/tmp/lfm3-usage.json",
+    "VIDEO_ENABLED": "false",
+    "VIDEO_SERVER": "",
+    "VOICE_SERVER": "",
+    "WORKER_HEARTBEAT_INTERVAL": "2",
+    "WORKER_LABEL": "<unique validation label per phase>",
+    "WORKER_TUNNEL": "false for direct phase; true for tunnel phase"
+  }
+}

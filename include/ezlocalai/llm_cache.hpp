@@ -15,7 +15,7 @@ struct PromptCacheRam { int64_t available_mib, total_mib; int64_t swap_available
 struct PromptCacheBudget { PromptCache requested, effective; int64_t swap_allowance_mib = 0; };
 using LlmCacheEnvironment = std::function<std::string(const std::string &, const std::string &)>;
 std::string resolve_llm_kv_cache_type(const std::string &global, const std::string &card);
-std::string configured_llm_kv_cache_type(const std::string &family, const LlmCacheEnvironment &environment);
+std::string configured_llm_kv_cache_type(const std::string &family, const LlmCacheEnvironment &environment, const std::string &model = "");
 PromptCache resolve_llm_prompt_cache(const std::optional<std::string> &raw, int64_t context);
 PromptCache cap_llm_prompt_cache(PromptCache requested, const LlmCacheEnvironment &environment,
     const std::function<PromptCacheRam()> &memory, std::optional<int64_t> available = {}, std::optional<int64_t> total = {});

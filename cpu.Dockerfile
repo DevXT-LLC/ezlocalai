@@ -31,7 +31,7 @@ RUN --mount=type=cache,id=ezlocalai-storyboard-cpu-${TARGETARCH},target=/var/cac
 FROM ${CPU_IMAGE} AS engines-base
 
 ARG EZLOCALAI_LLAMA_CPP_REPO=https://github.com/ggml-org/llama.cpp.git
-ARG EZLOCALAI_LLAMA_CPP_REF=620d2225cc436ab0b001e3200e590e3b286ef9ab
+ARG EZLOCALAI_LLAMA_CPP_REF=8642541b255bfb5dc39cd351a178be09013a55d6
 # GGML_NATIVE=OFF: images run on other fleet CPUs. -march=native from the
 # build host (e.g. Alder Lake AVX-VNNI) fails on Haswell or Zen hosts.
 ARG EZLOCALAI_LLAMA_CPP_CMAKE_ARGS="-DGGML_CUDA=OFF -DGGML_BLAS=ON -DGGML_BLAS_VENDOR=OpenBLAS -DLLAMA_CURL=ON -DGGML_NATIVE=OFF"
@@ -172,7 +172,7 @@ RUN git init /opt/acestep.cpp && \
 ENV ACE_STEP_BIN=/opt/acestep.cpp/build/ace-server
 
 FROM engines-base AS llama-engine
-COPY cmake/BuildLlamaEngine.cmake cmake/ApplyLlamaPatches.cmake patches/llama-conversation-cache.patch patches/llama-cache-restore-atomic.patch patches/llama-cache-storage.patch patches/llama-mtp-resume.patch patches/llama-checkpoint-coverage.patch patches/llama-checkpoint-entry-window.patch patches/llama-cache-retention.patch patches/llama-cuda-q4-kv-fusion.patch /tmp/
+COPY cmake/BuildLlamaEngine.cmake cmake/ApplyLlamaPatches.cmake patches/llama-conversation-cache.patch patches/llama-cache-restore-atomic.patch patches/llama-cache-storage.patch patches/llama-mtp-resume.patch patches/llama-checkpoint-coverage.patch patches/llama-checkpoint-entry-window.patch patches/llama-cache-retention.patch patches/llama-cuda-q4-kv-fusion.patch patches/llama-prefix-anchor.patch /tmp/
 RUN cmake -P /tmp/BuildLlamaEngine.cmake
 
 FROM engines-base AS native-compiled
@@ -202,7 +202,7 @@ FROM native-compiled
 ARG EZLOCALAI_PACKAGE_TEST_EXCLUDE=
 RUN ctest --test-dir build \
         ${EZLOCALAI_PACKAGE_TEST_EXCLUDE:+-E "$EZLOCALAI_PACKAGE_TEST_EXCLUDE"} \
-        -R '^((storyboard_.*|ltx_norm|ltx_timesteps|ltx_schedule|ltx_rng|ltx_nf4_loader|nf4.*|torch_checkpoint|wakeword_cache|speech_resources|speech_slots|worker_metadata|media_slots|service_clients|llm_residency|llm_headroom|llm_preload|live_capacity|llm_instances|startup|media_startup|cuda_allocator)_reference|wakeword_jobs|wakeword_qwen|torch_resources|media_engine|video_auxiliary|embedding_discovery|queue_history|queue_http|dotenv_reference|dotenv_startup|openapi_reference|file_response_reference|native_http|worker_heartbeat_reference|router_fallback|worker_heartbeat_http|worker_heartbeat_shutdown|worker_tunnel|stt_diarization_reference|runtime_version_reference|tunnel_idle_reference|tunnel_transport_reference|tunnel_connection_reference|tunnel_redirect_reference|http_cookies_reference|tunnel_framing_reference|ltx_runtime|ltx_connectors|ltx_condition_cache|llm_cache_package|llm_input_package|conversation_cache|cache_restore_atomic|cache_storage|llama_mtp_resume|llama_checkpoint_coverage|q4_kv_layout|managed_llama_patches|http_stream_socket|request_gzip_codec|request_gzip_http|stream_completion|tts_websocket_state|process_capture|core)$' --output-on-failure && \
+        -R '^(realtime|(storyboard_.*|ltx_norm|ltx_timesteps|ltx_schedule|ltx_rng|ltx_nf4_loader|nf4.*|torch_checkpoint|wakeword_cache|speech_resources|speech_slots|worker_metadata|media_slots|service_clients|llm_residency|llm_headroom|llm_preload|live_capacity|llm_instances|startup|media_startup|cuda_allocator)_reference|wakeword_jobs|wakeword_qwen|torch_resources|media_engine|video_auxiliary|embedding_discovery|queue_history|queue_http|dotenv_reference|dotenv_startup|openapi_reference|file_response_reference|native_http|worker_heartbeat_reference|router_fallback|worker_heartbeat_http|worker_heartbeat_shutdown|worker_tunnel|stt_diarization_reference|runtime_version_reference|tunnel_idle_reference|tunnel_transport_reference|tunnel_connection_reference|tunnel_redirect_reference|http_cookies_reference|tunnel_framing_reference|ltx_runtime|ltx_connectors|ltx_condition_cache|llm_cache_package|llm_input_package|conversation_cache|cache_restore_atomic|cache_storage|llama_mtp_resume|llama_checkpoint_coverage|q4_kv_layout|managed_llama_patches|http_stream_socket|request_gzip_codec|request_gzip_http|stream_completion|tts_websocket_state|process_capture|core)$' --output-on-failure && \
     cmake --install build && \
     ln -sf /app/build/ezlocalai-native /usr/local/bin/ezlocalai-native && \
     ln -sf /app/build/llama_cpp_tool /usr/local/bin/llama_cpp_tool && \

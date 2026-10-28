@@ -201,7 +201,7 @@ void native_policy_cases(const fs::path &root) {
 }
 void revision(const std::optional<fs::path> &reference) {
     const std::string pin = ezlocalai::llama_cpp_reference_revision;
-    // The native engine runs llama.cpp v0.7.0, ahead of the reference's
+    // The native engine runs llama.cpp v0.8.0, ahead of the reference's
     // xllamacpp pin. Its Docker and Compose defaults must still agree.
     if (reference) expect(read(*reference / "scripts/build_xllamacpp.py").find("LLAMA_REVISION = \"") != std::string::npos, "reference still pins an engine revision");
     const fs::path native(TEST_NATIVE_SOURCE_DIRECTORY);

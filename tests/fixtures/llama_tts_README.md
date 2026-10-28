@@ -64,6 +64,24 @@ and native wrapper use the same unchanged worker and pinned engine, so these
 checks isolate wrapper behavior rather than independently reimplementing the
 upstream synthesis algorithm.
 
+`llama_tts_model_v080_cases.jsonl` separately records those same five sequential
+requests through the unchanged, hash-pinned Python wrapper with llama.cpp
+v0.8.0 (`8642541b255bfb5dc39cd351a178be09013a55d6`). The historical fixture
+above is unchanged. The new header distinguishes the reference worker source
+from the adapted native worker. The default optional real CPU model test uses
+this versioned fixture; `EZLOCALAI_TTS_MODEL_CASES` selects another record for
+an explicitly matched engine.
+
+Upstream v0.8.0 moves the codec generator RNG from the shared model context to
+per-utterance state. The first buffered result matches the old engine exactly;
+subsequent stochastic waveforms change. This is a seed-lifecycle correction,
+not a bitwise audio-preservation claim. All six buffers retain their exact
+lengths, rate and chunk boundaries, and the native wrapper matches the Python
+wrapper's new hashes exactly. An independent direct-worker run produces the
+same hashes. The existing composition/CUDA model fixtures remain historical
+evidence for their recorded engines; they have not been regenerated for v0.8.0.
+Model-free process, transport and package gates retain their own checks.
+
 Configure `EZLOCALAI_TTS_LLAMA_SOURCE` and `EZLOCALAI_TTS_LLAMA_BUILD` to a pinned
 source checkout and existing native shared-library build to enable the optional
 `ezlocalai-tts` target. They default to the corresponding existing engine-test
