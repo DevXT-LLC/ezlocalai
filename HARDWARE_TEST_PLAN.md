@@ -50,6 +50,15 @@ CUDA 12.8 and portable x86 CPU code. Per-card settings match Python:
 
 ## 2. GB10 (DevXTgx10), every modality
 
+**Physical LFM update, 2026-10-28:** native ARM/CUDA 13 SDK package gate passed
+77/77. Two independent 32K LFM instances with private MPS and per-instance GPU
+priority completed 42 voice responses/98 helper requests, including fresh vision
+and text injected during microphone/speech output, without measured playout gaps.
+[Details and limits](benchmarks/gb10-lfm-concurrency-20261028.md). The new profile
+awaits deployment; production MiniCPM alone was reduced to one 32768-token slot.
+Human quality, long calls, full MiniCPM replacement and other modalities remain
+outstanding. The older QEMU evidence below is historical and distinct.
+
 **Status:** the image is published at
 `192.168.1.243:5000/devxt/ezlocalai-native-gb10:latest` (`sm_121`, CUDA 13).
 54/54 package checks pass under QEMU, and health, models and resources respond.

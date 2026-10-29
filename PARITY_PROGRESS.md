@@ -2,6 +2,51 @@
 
 The goal remains behavior parity with ezlocalai within the scope below, with all first-party executable code implemented in C++. It is **not complete**.
 
+## GB10 LFM concurrency, GPU priorities and MiniCPM 32K (2026-10-28)
+
+Added opt-in native CUDA MPS supervision and per-model
+`LLM_CUDA_MPS_CLIENT_PRIORITY` (0 normal, 1 below normal). Calls and helpers
+prefer matching available copies at equal load. Two independent LFM instances
+retain 32K each; a single two-slot context previously split that budget and
+serialized realtime/ordinary decode work. MPS alone improved text contention,
+but fresh-image requests still caused gaps. Normal-priority voice plus
+below-normal helper inference corrected that bounded workload without changing
+Q4 weights, f16 KV, F32 MeanVC2, wire format or sampling defaults.
+
+Physical GB10 final validation: 42 voice responses and 98 helper requests,
+including 71 fresh-image checks, microphone/text input, context injected during
+speech, mocked tools and interruption/recovery; no errors or measured 80-ms-buffer
+underruns. Converted fresh-vision median first PCM/RTF: 167 ms/0.364;
+continuous-text: 233 ms/0.465. Packet arrival is not heard speech: leading quiet
+and human quality remain unvalidated. A contradictory-status diagnostic returned
+stale facts; coherent authoritative updates were retained correctly.
+
+The final native ARM SDK package target rebuilt and passed 77/77 checks without
+the Python reference (326.03 s). Lifecycle/CSV tests passed on x86 and under ARM
+QEMU with a mocked control program; only the GB10 tests validate real GPU work.
+Private foreground-controller startup, signal forwarding, child exit status,
+actual engine priorities and complete reaping were verified. Retained worker
+CUDA contexts required a CUDA-free supervisor rather than an in-process RAII
+shutdown. Ambiguous numeric device remapping is rejected. All platform package
+gates include the new lifecycle test.
+
+At the user's request, production MiniCPM is now one slot at 32768 tokens;
+LFM remains one slot at 32000. Image `58b53ae4ad6c`/worker `f20da84`, model list,
+quants, mounts and other environment were preserved. Router records were verified
+across two heartbeats and a routed MiniCPM smoke passed. Rollback tag:
+`ezlocalai:rollback-gb10-minicpm32k-20261028`; the prior voice-cutover rollback
+also remains. The tested three-model/priorities environment is staged and
+compose-validated but awaits deployment of this new code; it is not active in
+production. No full new image was built or pushed for this change.
+
+Details: [benchmark and handoff](benchmarks/gb10-lfm-concurrency-20261028.md),
+`tests/fixtures/gb10_lfm_qos_20261028_validation.json`, and `VOICE_SELECTION.md`.
+Not validated: maximum/long-call context, subjective quality, full MiniCPM task
+replacement, multiple helper streams, GB10 routed/tunnel voice performance for
+this change, other GPUs or multi-GPU. No WorkConductor code changed; no router
+code changes are needed. Owned SDK resources are removed after validation;
+production assets and rollback backups remain.
+
 ## Native MeanVC2 reference voices and conditioning reuse (2026-10-28)
 
 PR149 now implements optional `LFM PCM → MeanVC2 → playback`, with native LFM

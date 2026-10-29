@@ -243,3 +243,63 @@ No permanent environment settings changed.
 Human listening and a combined client interruption test are still required
 before choosing Qwen as a default call voice. Native LFM remains the
 lowest-complexity default; custom Qwen voices should initially be opt-in.
+
+
+## Concurrent LFM instances and CUDA MPS
+
+An LFM realtime connection reserves a model slot for its lifetime. To retain
+32K per conversation on a GB10, configure independent instances instead of
+splitting one context over two slots:
+
+```dotenv
+DEFAULT_MODEL=openbmb/MiniCPM5-2B-GGUF,LiquidAI/LFM3-Omni-2B-GGUF,LiquidAI/LFM3-Omni-2B-GGUF
+QUANT_TYPE=Q4_K_M,Q4_K_M,Q4_K_M
+LLM_MAX_TOKENS=32768,32000,32000
+N_PARALLEL=1,1,1
+EZLOCALAI_CUDA_MPS=true
+CUDA_MPS_CLIENT_PRIORITY=1
+LLM_CUDA_MPS_CLIENT_PRIORITY=1,0,1
+```
+
+`LLM_CUDA_MPS_CLIENT_PRIORITY` aligns with `DEFAULT_MODEL`: 0 is normal
+priority, 1 is below normal. This example keeps MiniCPM and the LFM helper copy
+below the LFM voice copy. Among equally loaded available copies, ordinary requests prefer lower-priority
+copies and realtime calls prefer higher-priority copies. Explicit replica
+pins and existing capacity/fallback behavior remain intact: this is a preference,
+not an exclusive reservation or hard latency guarantee. Empty CSV entries
+inherit NVIDIA's global `CUDA_MPS_CLIENT_PRIORITY`, and later models reuse the
+last entry. Changing these settings requires restarting the engines.
+
+Repeated model names create independent engine processes; the router sees the
+public LFM model once with two available slots. MeanVC2 still has one converted
+call slot per worker. Two native calls can use the two LFM slots; two converted
+calls require additional converter capacity, which this change does not add.
+
+`EZLOCALAI_CUDA_MPS` defaults to false. When enabled, the native worker starts a
+private NVIDIA multi-process service before GPU clients, verifies server
+readiness, and supervises a worker child sharing that private pipe directory.
+The supervisor forwards shutdown signals and exit status, waits for the worker
+to exit (including retained CUDA contexts), then stops and reaps its foreground
+MPS controller. Startup fails with a log
+location if MPS is unavailable; it does not silently fall back to ordinary CUDA.
+The runtime must provide `nvidia-cuda-mps-control` and a compatible NVIDIA GPU
+and driver. No host compute-mode changes or global MPS configuration are made.
+Numeric `CUDA_VISIBLE_DEVICES` lists that MPS would renumber (for example `2,0`)
+are rejected; use stable GPU UUIDs for that selection, following
+[NVIDIA guidance](https://docs.nvidia.com/deploy/mps/appendix-environment-variables.html).
+Existing external MPS setups remain supported with the managed option off;
+managed mode rejects preconfigured `CUDA_MPS_PIPE_DIRECTORY` or
+`CUDA_MPS_LOG_DIRECTORY` rather than taking ownership of an external service.
+
+A physical GB10 screen found that two independent LFM processes alone still
+suffered from CUDA scheduling contention. Private MPS improved continuous-text
+plus converted-voice generation from roughly playback speed to about 1.65×
+playback speed, without measured 80-ms-buffer underruns in that bounded screen.
+NVIDIA describes MPS as enabling cooperative work across CUDA processes; see
+[when to use MPS](https://docs.nvidia.com/deploy/mps/when-to-use-mps.html).
+This screen is not a hard latency guarantee or validation of other GPUs. Native/converted context injection during microphone
+input and speech output is covered by `benchmarks/bench_lfm_realtime.py` using
+`--audio-context-words` and `--interleave-context-words`. Context received while
+speaking is queued for the next response; it does not rewrite an utterance that
+has already started. Budget media, output and accumulated history within each
+instance's context, and validate helper-task quality before replacing MiniCPM.

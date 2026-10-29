@@ -1,0 +1,979 @@
+{
+  "date": "2026-10-28",
+  "timezone": "America/New_York",
+  "hardware": "Physical NVIDIA GB10 / aarch64 / CUDA 13",
+  "base_image": "sha256:58b53ae4ad6cc06234a1775d076ef6c08b726f453804c3a2f4a85e2629b9e84b",
+  "engine": "llama.cpp 0.8.0-dev build 11960 / 8642541b2",
+  "implementation": "Unmerged source built in an isolated native SDK container; production still f20da84",
+  "models": {
+    "source": "LiquidAI/LFM3-Omni-2B-GGUF",
+    "quantization": "Q4_K_M",
+    "instances": 2,
+    "context_per_instance": 32000,
+    "parallel_per_instance": 1,
+    "gpu_layers": -1,
+    "kv_cache": "f16",
+    "batch_ubatch": [
+      [
+        4096,
+        1024
+      ],
+      [
+        2048,
+        512
+      ]
+    ],
+    "meanvc2_backend": "cpu",
+    "meanvc2_threads": 4,
+    "meanvc2_precision": "F32"
+  },
+  "assets": {
+    "lfm_q4": {
+      "bytes": 1099630080,
+      "sha256": "9f8d30e9d4fd7a9349d586e077988229b3ca0a0e4ad730897563d1eccc9893e2"
+    },
+    "projector": {
+      "bytes": 949841248,
+      "sha256": "361bc95192c7d9156b566fcd4e48930363b78218e493fb1be607456bd51586e3"
+    },
+    "meanvc2_f32": {
+      "bytes": 1629326784,
+      "sha256": "340d5dd63cdd9d44045cdc4b394cccf677ae870a9ce4ed18f0007c8788e65245"
+    }
+  },
+  "runtime_proof": {
+    "supervisor_pid": 1865,
+    "direct_children": [
+      1889,
+      1900
+    ],
+    "mps_server_pid": 1895,
+    "mps_client_pids": [
+      1900,
+      1924,
+      1953
+    ],
+    "engines": [
+      {
+        "pid": 1924,
+        "port": 8092,
+        "priority": 0,
+        "same_private_pipe": true
+      },
+      {
+        "pid": 1953,
+        "port": 8093,
+        "priority": 1,
+        "same_private_pipe": true
+      }
+    ],
+    "binary_sha256": "72540e3b87c595ee33d2252904614e53efedf0fdb718b2eb297e9196689336dd",
+    "cgroup_memory_events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0\nsock_throttled 0\n",
+    "cgroup_cpu_stat": "usage_usec 1054482829\nuser_usec 996738455\nsystem_usec 57744374\nnice_usec 0\ncore_sched.force_idle_usec 0\nnr_periods 0\nnr_throttled 0\nthrottled_usec 0\nnr_bursts 0\nburst_usec 0\n",
+    "shutdown_error": false,
+    "owned_children_reaped": true
+  },
+  "profiles": {
+    "replica-heavy": {
+      "normal_turn_summary": {
+        "warm_american_narrator": {
+          "first_pcm_seconds": {
+            "n": 3,
+            "median": 0.4140415060101077,
+            "min": 0.39932626095833257,
+            "max": 0.7787674939609133
+          },
+          "first_energy_packet_seconds": {
+            "n": 3,
+            "median": 0.5762502930010669,
+            "min": 0.5642484789714217,
+            "max": 0.9167660999810323
+          },
+          "leading_quiet_seconds": {
+            "n": 3,
+            "median": 0.12,
+            "min": 0.12,
+            "max": 0.12
+          },
+          "estimated_untrimmed_energy_playout_seconds": {
+            "n": 3,
+            "median": 0.6140415060101077,
+            "min": 0.5993262609583325,
+            "max": 0.9787674939609132
+          },
+          "generation_rtf": {
+            "n": 3,
+            "median": 1.0210317160908744,
+            "min": 1.0115541229799203,
+            "max": 1.112947228172308
+          },
+          "largest_playout_lateness_with_80ms_buffer_seconds": {
+            "n": 3,
+            "median": 0.14442726501636216,
+            "min": 0.1282825720231049,
+            "max": 0.15289146196702497
+          }
+        }
+      },
+      "responses": 9,
+      "errors": [],
+      "max_playout_lateness_seconds": 0.15289146196702497,
+      "background_requests": 30,
+      "background_errors": 0,
+      "images_red_recognized": 0,
+      "unique_image_hashes": 0
+    },
+    "replica-mps-heavy": {
+      "normal_turn_summary": {
+        "warm_american_narrator": {
+          "first_pcm_seconds": {
+            "n": 3,
+            "median": 0.3019306240021251,
+            "min": 0.3007686209748499,
+            "max": 0.634924036974553
+          },
+          "first_energy_packet_seconds": {
+            "n": 3,
+            "median": 0.3842065960052423,
+            "min": 0.382959294016473,
+            "max": 0.7132710539735854
+          },
+          "leading_quiet_seconds": {
+            "n": 3,
+            "median": 0.12,
+            "min": 0.12,
+            "max": 0.16
+          },
+          "estimated_untrimmed_energy_playout_seconds": {
+            "n": 3,
+            "median": 0.5019306240021251,
+            "min": 0.5007686209748499,
+            "max": 0.874924036974553
+          },
+          "generation_rtf": {
+            "n": 3,
+            "median": 0.6047987202316382,
+            "min": 0.594276775010503,
+            "max": 0.6467904650032454
+          },
+          "largest_playout_lateness_with_80ms_buffer_seconds": {
+            "n": 3,
+            "median": 0,
+            "min": 0,
+            "max": 0
+          }
+        }
+      },
+      "responses": 9,
+      "errors": [],
+      "max_playout_lateness_seconds": 0,
+      "background_requests": 24,
+      "background_errors": 0,
+      "images_red_recognized": 0,
+      "unique_image_hashes": 0
+    },
+    "replica-mps-injection": {
+      "normal_turn_summary": {
+        "warm_american_narrator": {
+          "first_pcm_seconds": {
+            "n": 3,
+            "median": 0.30425664799986407,
+            "min": 0.2872167279710993,
+            "max": 0.31062545895110816
+          },
+          "first_energy_packet_seconds": {
+            "n": 3,
+            "median": 0.39044588699471205,
+            "min": 0.376161603955552,
+            "max": 0.3953072080039419
+          },
+          "leading_quiet_seconds": {
+            "n": 3,
+            "median": 0.12,
+            "min": 0.12,
+            "max": 0.16
+          },
+          "estimated_untrimmed_energy_playout_seconds": {
+            "n": 3,
+            "median": 0.5106254589511081,
+            "min": 0.504256647999864,
+            "max": 0.5272167279710993
+          },
+          "generation_rtf": {
+            "n": 3,
+            "median": 0.5943707332760397,
+            "min": 0.5900256569605388,
+            "max": 0.5961336170235263
+          },
+          "largest_playout_lateness_with_80ms_buffer_seconds": {
+            "n": 3,
+            "median": 0,
+            "min": 0,
+            "max": 0
+          }
+        }
+      },
+      "responses": 11,
+      "errors": [],
+      "max_playout_lateness_seconds": 0,
+      "background_requests": 30,
+      "background_errors": 0,
+      "images_red_recognized": 0,
+      "unique_image_hashes": 0
+    },
+    "managed-mps-injection": {
+      "normal_turn_summary": {
+        "warm_american_narrator": {
+          "first_pcm_seconds": {
+            "n": 3,
+            "median": 0.2896847790107131,
+            "min": 0.28886317199794576,
+            "max": 0.677357887965627
+          },
+          "first_energy_packet_seconds": {
+            "n": 3,
+            "median": 0.3744163030060008,
+            "min": 0.3728976559941657,
+            "max": 0.7649976990069263
+          },
+          "leading_quiet_seconds": {
+            "n": 3,
+            "median": 0.12,
+            "min": 0.12,
+            "max": 0.12
+          },
+          "estimated_untrimmed_energy_playout_seconds": {
+            "n": 3,
+            "median": 0.4896847790107131,
+            "min": 0.48886317199794577,
+            "max": 0.877357887965627
+          },
+          "generation_rtf": {
+            "n": 3,
+            "median": 0.5819693039250394,
+            "min": 0.5780863006454242,
+            "max": 0.6522545732555562
+          },
+          "largest_playout_lateness_with_80ms_buffer_seconds": {
+            "n": 3,
+            "median": 0,
+            "min": 0,
+            "max": 0
+          }
+        }
+      },
+      "responses": 11,
+      "errors": [],
+      "max_playout_lateness_seconds": 0,
+      "background_requests": 32,
+      "background_errors": 0,
+      "images_red_recognized": 0,
+      "unique_image_hashes": 0
+    },
+    "final-text-clean": {
+      "normal_turn_summary": {
+        "warm_american_narrator": {
+          "first_pcm_seconds": {
+            "n": 3,
+            "median": 0.2960851149982773,
+            "min": 0.28253138600848615,
+            "max": 0.31385221995878965
+          },
+          "first_energy_packet_seconds": {
+            "n": 3,
+            "median": 0.38300019199959934,
+            "min": 0.36503817996708676,
+            "max": 0.3945977189578116
+          },
+          "leading_quiet_seconds": {
+            "n": 3,
+            "median": 0.12,
+            "min": 0.12,
+            "max": 0.12
+          },
+          "estimated_untrimmed_energy_playout_seconds": {
+            "n": 3,
+            "median": 0.4960851149982773,
+            "min": 0.48253138600848616,
+            "max": 0.5138522199587896
+          },
+          "generation_rtf": {
+            "n": 3,
+            "median": 0.5819417560047916,
+            "min": 0.579356926736861,
+            "max": 0.5853593616068663
+          },
+          "largest_playout_lateness_with_80ms_buffer_seconds": {
+            "n": 3,
+            "median": 0,
+            "min": 0,
+            "max": 0
+          }
+        }
+      },
+      "responses": 11,
+      "errors": [],
+      "max_playout_lateness_seconds": 0.39951893197977917,
+      "background_requests": 28,
+      "background_errors": 0,
+      "images_red_recognized": 0,
+      "unique_image_hashes": 0
+    },
+    "priority-fresh-vision": {
+      "normal_turn_summary": {
+        "warm_american_narrator": {
+          "first_pcm_seconds": {
+            "n": 3,
+            "median": 0.18835748900892213,
+            "min": 0.16648161102784798,
+            "max": 0.33834021200891584
+          },
+          "first_energy_packet_seconds": {
+            "n": 3,
+            "median": 0.25952955102548003,
+            "min": 0.20543986099073663,
+            "max": 0.39650590100791305
+          },
+          "leading_quiet_seconds": {
+            "n": 3,
+            "median": 0.12,
+            "min": 0.12,
+            "max": 0.12
+          },
+          "estimated_untrimmed_energy_playout_seconds": {
+            "n": 3,
+            "median": 0.38835748900892214,
+            "min": 0.366481611027848,
+            "max": 0.5383402120089158
+          },
+          "generation_rtf": {
+            "n": 3,
+            "median": 0.38517580285510383,
+            "min": 0.36705343089124653,
+            "max": 0.39446408040561975
+          },
+          "largest_playout_lateness_with_80ms_buffer_seconds": {
+            "n": 3,
+            "median": 0,
+            "min": 0,
+            "max": 0
+          }
+        }
+      },
+      "responses": 11,
+      "errors": [],
+      "max_playout_lateness_seconds": 0,
+      "background_requests": 27,
+      "background_errors": 0,
+      "images_red_recognized": 27,
+      "unique_image_hashes": 27
+    },
+    "native-priority-fresh-vision": {
+      "normal_turn_summary": {
+        "warm_american_narrator": {
+          "first_pcm_seconds": {
+            "n": 3,
+            "median": 0.22754241299116984,
+            "min": 0.1624616920016706,
+            "max": 0.3270550649613142
+          },
+          "first_energy_packet_seconds": {
+            "n": 3,
+            "median": 0.2920062909834087,
+            "min": 0.20430745201883838,
+            "max": 0.3810650630039163
+          },
+          "leading_quiet_seconds": {
+            "n": 3,
+            "median": 0.12,
+            "min": 0.12,
+            "max": 0.16
+          },
+          "estimated_untrimmed_energy_playout_seconds": {
+            "n": 3,
+            "median": 0.46754241299116983,
+            "min": 0.3624616920016706,
+            "max": 0.5270550649613142
+          },
+          "generation_rtf": {
+            "n": 3,
+            "median": 0.38958535774391223,
+            "min": 0.3526689265821864,
+            "max": 0.3995947255509022
+          },
+          "largest_playout_lateness_with_80ms_buffer_seconds": {
+            "n": 3,
+            "median": 0,
+            "min": 0,
+            "max": 0
+          }
+        }
+      },
+      "responses": 11,
+      "errors": [],
+      "max_playout_lateness_seconds": 0,
+      "background_requests": 27,
+      "background_errors": 0,
+      "images_red_recognized": 27,
+      "unique_image_hashes": 27,
+      "special_cases": [
+        {
+          "voice": "warm_american_narrator",
+          "case": "context-update",
+          "first_pcm_seconds": 0.4471479379571974,
+          "generation_rtf": 0.44734406036057295,
+          "largest_playout_lateness_with_80ms_buffer_seconds": 0,
+          "cancel_ack_seconds": null,
+          "context_ack_seconds": null,
+          "text": "The current task has now changed to deploying Cedar."
+        },
+        {
+          "voice": "warm_american_narrator",
+          "case": "cancel",
+          "first_pcm_seconds": 0.16612752299988642,
+          "generation_rtf": 2.2627190607976204,
+          "largest_playout_lateness_with_80ms_buffer_seconds": 0,
+          "cancel_ack_seconds": 0.057881664019078016,
+          "context_ack_seconds": null,
+          "text": "One, two, three,"
+        },
+        {
+          "voice": "warm_american_narrator",
+          "case": "after-cancel",
+          "first_pcm_seconds": 0.21390241902554408,
+          "generation_rtf": 0.48122257633765814,
+          "largest_playout_lateness_with_80ms_buffer_seconds": 0,
+          "cancel_ack_seconds": null,
+          "context_ack_seconds": null,
+          "text": "Ready."
+        },
+        {
+          "voice": "warm_american_narrator",
+          "case": "speech-to-speech",
+          "first_pcm_seconds": 0.19719494198216125,
+          "generation_rtf": 0.38858209072186545,
+          "largest_playout_lateness_with_80ms_buffer_seconds": 0,
+          "cancel_ack_seconds": null,
+          "context_ack_seconds": null,
+          "text": "The working agent is running integration tests for Marigold."
+        },
+        {
+          "voice": "warm_american_narrator",
+          "case": "tool-request",
+          "first_pcm_seconds": 0.17756175698013976,
+          "generation_rtf": 0.4198556548008361,
+          "largest_playout_lateness_with_80ms_buffer_seconds": 0,
+          "cancel_ack_seconds": null,
+          "context_ack_seconds": null,
+          "text": "I'm calling get_agent_progress now."
+        },
+        {
+          "voice": "warm_american_narrator",
+          "case": "tool-result",
+          "first_pcm_seconds": 0.20884394401218742,
+          "generation_rtf": 0.372175794832098,
+          "largest_playout_lateness_with_80ms_buffer_seconds": 0,
+          "cancel_ack_seconds": null,
+          "context_ack_seconds": null,
+          "text": "The working agent is currently deploying the Cedar project, and the task status is in progress."
+        },
+        {
+          "voice": "warm_american_narrator",
+          "case": "context-during-output",
+          "first_pcm_seconds": 0.1751859649666585,
+          "generation_rtf": 0.3781050233039816,
+          "largest_playout_lateness_with_80ms_buffer_seconds": 0,
+          "cancel_ack_seconds": null,
+          "context_ack_seconds": 0.06215693597914651,
+          "text": "Hello. The working agent is running the tests. I can help you steer it."
+        },
+        {
+          "voice": "warm_american_narrator",
+          "case": "after-injected-context",
+          "first_pcm_seconds": 0.23322526999982074,
+          "generation_rtf": 0.39748126230279013,
+          "largest_playout_lateness_with_80ms_buffer_seconds": 0,
+          "cancel_ack_seconds": null,
+          "context_ack_seconds": null,
+          "text": "The new project codename is Marigold, and its current task is inventory."
+        }
+      ]
+    },
+    "native-priority-text": {
+      "normal_turn_summary": {
+        "warm_american_narrator": {
+          "first_pcm_seconds": {
+            "n": 3,
+            "median": 0.23264151701005176,
+            "min": 0.22930511995218694,
+            "max": 0.23837528302101418
+          },
+          "first_energy_packet_seconds": {
+            "n": 3,
+            "median": 0.30229841003892943,
+            "min": 0.29158761695725843,
+            "max": 0.30500319198472425
+          },
+          "leading_quiet_seconds": {
+            "n": 3,
+            "median": 0.12,
+            "min": 0.12,
+            "max": 0.12
+          },
+          "estimated_untrimmed_energy_playout_seconds": {
+            "n": 3,
+            "median": 0.43264151701005177,
+            "min": 0.42930511995218695,
+            "max": 0.4383752830210142
+          },
+          "generation_rtf": {
+            "n": 3,
+            "median": 0.46495147402083603,
+            "min": 0.4613513566119377,
+            "max": 0.4719836957626873
+          },
+          "largest_playout_lateness_with_80ms_buffer_seconds": {
+            "n": 3,
+            "median": 0,
+            "min": 0,
+            "max": 0
+          }
+        }
+      },
+      "responses": 11,
+      "errors": [],
+      "max_playout_lateness_seconds": 0,
+      "background_requests": 27,
+      "background_errors": 0,
+      "images_red_recognized": 0,
+      "unique_image_hashes": 0,
+      "special_cases": [
+        {
+          "voice": "warm_american_narrator",
+          "case": "context-update",
+          "first_pcm_seconds": 0.36154615302802995,
+          "generation_rtf": 0.5247921295596092,
+          "largest_playout_lateness_with_80ms_buffer_seconds": 0,
+          "cancel_ack_seconds": null,
+          "context_ack_seconds": null,
+          "text": "The current task has now changed to deploying Cedar."
+        },
+        {
+          "voice": "warm_american_narrator",
+          "case": "cancel",
+          "first_pcm_seconds": 0.23127714596921578,
+          "generation_rtf": 3.1528103534564975,
+          "largest_playout_lateness_with_80ms_buffer_seconds": 0,
+          "cancel_ack_seconds": 0.0808510790229775,
+          "context_ack_seconds": null,
+          "text": "One, two, three,"
+        },
+        {
+          "voice": "warm_american_narrator",
+          "case": "after-cancel",
+          "first_pcm_seconds": 0.20859514299081638,
+          "generation_rtf": 0.5319745581073221,
+          "largest_playout_lateness_with_80ms_buffer_seconds": 0,
+          "cancel_ack_seconds": null,
+          "context_ack_seconds": null,
+          "text": "Ready."
+        },
+        {
+          "voice": "warm_american_narrator",
+          "case": "speech-to-speech",
+          "first_pcm_seconds": 0.2271802700124681,
+          "generation_rtf": 0.4763443960824023,
+          "largest_playout_lateness_with_80ms_buffer_seconds": 0,
+          "cancel_ack_seconds": null,
+          "context_ack_seconds": null,
+          "text": "The working agent is running integration tests for Marigold."
+        },
+        {
+          "voice": "warm_american_narrator",
+          "case": "tool-request",
+          "first_pcm_seconds": 0.24325140501605347,
+          "generation_rtf": 0.4721989394593367,
+          "largest_playout_lateness_with_80ms_buffer_seconds": 0,
+          "cancel_ack_seconds": null,
+          "context_ack_seconds": null,
+          "text": "I'm calling get_agent_progress now. The working agent is currently running unit tests."
+        },
+        {
+          "voice": "warm_american_narrator",
+          "case": "tool-result",
+          "first_pcm_seconds": 0.21937507402617484,
+          "generation_rtf": 0.4625027905290058,
+          "largest_playout_lateness_with_80ms_buffer_seconds": 0,
+          "cancel_ack_seconds": null,
+          "context_ack_seconds": null,
+          "text": "The working agent is deploying the Cedar project, and the task is currently in progress."
+        },
+        {
+          "voice": "warm_american_narrator",
+          "case": "context-during-output",
+          "first_pcm_seconds": 0.2394314759876579,
+          "generation_rtf": 0.4600235537509434,
+          "largest_playout_lateness_with_80ms_buffer_seconds": 0,
+          "cancel_ack_seconds": null,
+          "context_ack_seconds": 0.07714926096377894,
+          "text": "Hello. The working agent is running the tests. I can help you steer it."
+        },
+        {
+          "voice": "warm_american_narrator",
+          "case": "after-injected-context",
+          "first_pcm_seconds": 0.28684246202465147,
+          "generation_rtf": 0.48422270694919417,
+          "largest_playout_lateness_with_80ms_buffer_seconds": 0,
+          "cancel_ack_seconds": null,
+          "context_ack_seconds": null,
+          "text": "The new project codename is Marigold, and its current task is inventory."
+        }
+      ]
+    },
+    "native-voice-priority-fresh-vision": {
+      "normal_turn_summary": {
+        "native": {
+          "first_pcm_seconds": {
+            "n": 1,
+            "median": 0.11482477700337768,
+            "min": 0.11482477700337768,
+            "max": 0.11482477700337768
+          },
+          "first_energy_packet_seconds": {
+            "n": 1,
+            "median": 0.3888680930249393,
+            "min": 0.3888680930249393,
+            "max": 0.3888680930249393
+          },
+          "leading_quiet_seconds": {
+            "n": 1,
+            "median": 0.92,
+            "min": 0.92,
+            "max": 0.92
+          },
+          "estimated_untrimmed_energy_playout_seconds": {
+            "n": 1,
+            "median": 1.1148247770033777,
+            "min": 1.1148247770033777,
+            "max": 1.1148247770033777
+          },
+          "generation_rtf": {
+            "n": 1,
+            "median": 0.33758468171981804,
+            "min": 0.33758468171981804,
+            "max": 0.33758468171981804
+          },
+          "largest_playout_lateness_with_80ms_buffer_seconds": {
+            "n": 1,
+            "median": 0,
+            "min": 0,
+            "max": 0
+          }
+        }
+      },
+      "responses": 9,
+      "errors": [],
+      "max_playout_lateness_seconds": 0,
+      "background_requests": 16,
+      "background_errors": 0,
+      "images_red_recognized": 16,
+      "unique_image_hashes": 16,
+      "special_cases": [
+        {
+          "voice": "native",
+          "case": "context-update",
+          "first_pcm_seconds": 0.23112451704218984,
+          "generation_rtf": 0.4184034017372243,
+          "largest_playout_lateness_with_80ms_buffer_seconds": 0,
+          "cancel_ack_seconds": null,
+          "context_ack_seconds": null,
+          "text": "The current task is deploying Cedar."
+        },
+        {
+          "voice": "native",
+          "case": "cancel",
+          "first_pcm_seconds": 0.10546957101905718,
+          "generation_rtf": 0.6565626834344584,
+          "largest_playout_lateness_with_80ms_buffer_seconds": 0,
+          "cancel_ack_seconds": 0.05210547300521284,
+          "context_ack_seconds": null,
+          "text": "One, two, three,"
+        },
+        {
+          "voice": "native",
+          "case": "after-cancel",
+          "first_pcm_seconds": 0.09523727098712698,
+          "generation_rtf": 0.40481034890905465,
+          "largest_playout_lateness_with_80ms_buffer_seconds": 0,
+          "cancel_ack_seconds": null,
+          "context_ack_seconds": null,
+          "text": "Ready."
+        },
+        {
+          "voice": "native",
+          "case": "speech-to-speech",
+          "first_pcm_seconds": 0.09352955204667524,
+          "generation_rtf": 0.3550314213650078,
+          "largest_playout_lateness_with_80ms_buffer_seconds": 0,
+          "cancel_ack_seconds": null,
+          "context_ack_seconds": null,
+          "text": "The working agent is running integration tests for Marigold."
+        },
+        {
+          "voice": "native",
+          "case": "tool-request",
+          "first_pcm_seconds": 0.1170788899762556,
+          "generation_rtf": 0.3514240631920984,
+          "largest_playout_lateness_with_80ms_buffer_seconds": 0,
+          "cancel_ack_seconds": null,
+          "context_ack_seconds": null,
+          "text": "I'm checking the current working agent progress now. The working agent is currently in the process of running unit tests."
+        },
+        {
+          "voice": "native",
+          "case": "tool-result",
+          "first_pcm_seconds": 0.12502866698196158,
+          "generation_rtf": 0.34156061800396337,
+          "largest_playout_lateness_with_80ms_buffer_seconds": 0,
+          "cancel_ack_seconds": null,
+          "context_ack_seconds": null,
+          "text": "The working agent is in the project Cedar, task deploying, and its status is in progress."
+        },
+        {
+          "voice": "native",
+          "case": "context-during-output",
+          "first_pcm_seconds": 0.11665887496201321,
+          "generation_rtf": 0.3264051529568908,
+          "largest_playout_lateness_with_80ms_buffer_seconds": 0,
+          "cancel_ack_seconds": null,
+          "context_ack_seconds": 0.06240458402317017,
+          "text": "Hello. The working agent is running the tests. I can help you steer it."
+        },
+        {
+          "voice": "native",
+          "case": "after-injected-context",
+          "first_pcm_seconds": 0.19858846301212907,
+          "generation_rtf": 0.369641297861802,
+          "largest_playout_lateness_with_80ms_buffer_seconds": 0,
+          "cancel_ack_seconds": null,
+          "context_ack_seconds": null,
+          "text": "The new project codename is Marigold, and its current task is inventory."
+        }
+      ]
+    },
+    "native-priority-vision-alltiles": {
+      "normal_turn_summary": {
+        "warm_american_narrator": {
+          "first_pcm_seconds": {
+            "n": 3,
+            "median": 0.1666355810011737,
+            "min": 0.16112987999804318,
+            "max": 0.17246607301058248
+          },
+          "first_energy_packet_seconds": {
+            "n": 3,
+            "median": 0.21864231495419517,
+            "min": 0.21632255194708705,
+            "max": 0.22405255801277235
+          },
+          "leading_quiet_seconds": {
+            "n": 3,
+            "median": 0.12,
+            "min": 0.12,
+            "max": 0.12
+          },
+          "estimated_untrimmed_energy_playout_seconds": {
+            "n": 3,
+            "median": 0.3666355810011737,
+            "min": 0.3611298799980432,
+            "max": 0.3724660730105825
+          },
+          "generation_rtf": {
+            "n": 3,
+            "median": 0.36424462996863394,
+            "min": 0.3618984384729629,
+            "max": 0.3804175604690917
+          },
+          "largest_playout_lateness_with_80ms_buffer_seconds": {
+            "n": 3,
+            "median": 0,
+            "min": 0,
+            "max": 0
+          }
+        }
+      },
+      "responses": 11,
+      "errors": [],
+      "max_playout_lateness_seconds": 0,
+      "background_requests": 28,
+      "background_errors": 0,
+      "images_red_recognized": 28,
+      "unique_image_hashes": 28,
+      "special_cases": [
+        {
+          "voice": "warm_american_narrator",
+          "case": "context-update",
+          "first_pcm_seconds": 0.2727641119854525,
+          "generation_rtf": 0.42412821818619373,
+          "largest_playout_lateness_with_80ms_buffer_seconds": 0,
+          "cancel_ack_seconds": null,
+          "context_ack_seconds": null,
+          "text": "The current task has now changed to deploying Cedar."
+        },
+        {
+          "voice": "warm_american_narrator",
+          "case": "cancel",
+          "first_pcm_seconds": 0.17106693901587278,
+          "generation_rtf": 2.3090102929725416,
+          "largest_playout_lateness_with_80ms_buffer_seconds": 0,
+          "cancel_ack_seconds": 0.057525079988408834,
+          "context_ack_seconds": null,
+          "text": "One, two, three,"
+        },
+        {
+          "voice": "warm_american_narrator",
+          "case": "after-cancel",
+          "first_pcm_seconds": 0.14907879900420085,
+          "generation_rtf": 0.5224840008304454,
+          "largest_playout_lateness_with_80ms_buffer_seconds": 0,
+          "cancel_ack_seconds": null,
+          "context_ack_seconds": null,
+          "text": "Ready."
+        },
+        {
+          "voice": "warm_american_narrator",
+          "case": "speech-to-speech",
+          "first_pcm_seconds": 0.2104066020110622,
+          "generation_rtf": 0.38354874423720714,
+          "largest_playout_lateness_with_80ms_buffer_seconds": 0,
+          "cancel_ack_seconds": null,
+          "context_ack_seconds": null,
+          "text": "The working agent is running integration tests for Marigold."
+        },
+        {
+          "voice": "warm_american_narrator",
+          "case": "tool-request",
+          "first_pcm_seconds": 0.17451046203495935,
+          "generation_rtf": 0.37947267220787534,
+          "largest_playout_lateness_with_80ms_buffer_seconds": 0,
+          "cancel_ack_seconds": null,
+          "context_ack_seconds": null,
+          "text": "I'm calling get_agent_progress now. The working agent is currently running unit tests."
+        },
+        {
+          "voice": "warm_american_narrator",
+          "case": "tool-result",
+          "first_pcm_seconds": 0.15653059299802408,
+          "generation_rtf": 0.37968475094203313,
+          "largest_playout_lateness_with_80ms_buffer_seconds": 0,
+          "cancel_ack_seconds": null,
+          "context_ack_seconds": null,
+          "text": "The working agent is deploying the Cedar project, and the task is currently in progress."
+        },
+        {
+          "voice": "warm_american_narrator",
+          "case": "context-during-output",
+          "first_pcm_seconds": 0.16839620901737362,
+          "generation_rtf": 0.359785063036335,
+          "largest_playout_lateness_with_80ms_buffer_seconds": 0,
+          "cancel_ack_seconds": null,
+          "context_ack_seconds": 0.054390849953051656,
+          "text": "Hello. The working agent is running the tests. I can help you steer it."
+        },
+        {
+          "voice": "warm_american_narrator",
+          "case": "after-injected-context",
+          "first_pcm_seconds": 0.2934100349666551,
+          "generation_rtf": 0.41280643964682895,
+          "largest_playout_lateness_with_80ms_buffer_seconds": 0,
+          "cancel_ack_seconds": null,
+          "context_ack_seconds": null,
+          "text": "The new project codename is Marigold, and its current task is inventory."
+        }
+      ]
+    }
+  },
+  "final_native_validation": {
+    "profiles": [
+      "native-priority-fresh-vision",
+      "native-priority-text",
+      "native-voice-priority-fresh-vision",
+      "native-priority-vision-alltiles"
+    ],
+    "voice_responses": 42,
+    "helper_requests": 98,
+    "errors": 0,
+    "max_playout_lateness_seconds": 0,
+    "fresh_images_recognized_red": 71
+  },
+  "package_gate": {
+    "status": "passed",
+    "tests": 77,
+    "failed": 0,
+    "seconds": 326.03,
+    "reference_checkout_present": false,
+    "platform": "native physical GB10 ARM64",
+    "build_target": "cuda_package",
+    "initial_diagnostic": "Initial run inherited benchmark capability overrides and failed native_http. Clean-environment rerun passed; final rebuilt priority-aware package gate passed all 77."
+  },
+  "qemu_unit_validation": {
+    "status": "passed",
+    "hardware_validation": false,
+    "description": "Standalone static ARM lifecycle/CSV test under qemu-aarch64-static; NVIDIA control executable is a deterministic mock."
+  },
+  "host_unit_validation": "g++ x86_64 lifecycle/CSV test passed",
+  "python_checks": {
+    "compile": "passed",
+    "ruff_F": "passed",
+    "websockets": "15.0.1",
+    "python": "3.12.3"
+  },
+  "production_change": {
+    "status": "applied",
+    "worker": "DevXTgx10",
+    "image_unchanged": true,
+    "version": "f20da84",
+    "settings": {
+      "LLM_MAX_TOKENS": "32768,32000",
+      "N_PARALLEL": "1,1"
+    },
+    "other_environment_and_mounts_preserved": true,
+    "two_fresh_router_heartbeats": true,
+    "routed_minicpm_smoke": true,
+    "rollback_tag": "ezlocalai:rollback-gb10-minicpm32k-20261028",
+    "lfm_instances": 1,
+    "managed_mps_active": false,
+    "next_profile_staged_only": {
+      "DEFAULT_MODEL": "openbmb/MiniCPM5-2B-GGUF,LiquidAI/LFM3-Omni-2B-GGUF,LiquidAI/LFM3-Omni-2B-GGUF",
+      "QUANT_TYPE": "Q4_K_M,Q4_K_M,Q4_K_M",
+      "LLM_MAX_TOKENS": "32768,32000,32000",
+      "N_PARALLEL": "1,1,1",
+      "EZLOCALAI_CUDA_MPS": "true",
+      "CUDA_MPS_CLIENT_PRIORITY": "1",
+      "LLM_CUDA_MPS_CLIENT_PRIORITY": "1,0,1"
+    },
+    "staged_compose_valid": true
+  },
+  "source_sha256": {
+    "src/cuda_mps.cpp": "38d7fa36d503c7103c990d2e7dc004e57e03b2d6a975cdde1fb51b3149a4c84b",
+    "src/main.cpp": "d725942fdfb8c74997fc73a1f1715d7a9a17ffefaa25fe8ae24ec77cdb0a9a0c",
+    "src/native_server.cpp": "847ec2efc73cbc7091a0f1bd7a8b1c62cae4807190f4da1e2369772018648cb8",
+    "include/ezlocalai/cuda_mps.hpp": "0dfe208c65f754ad5bba1bf7c35ea58767907e652648dad460612b5a00b3d44a",
+    "include/ezlocalai/native_server.hpp": "6179750f4744cd2c8c2ce3ed4cc6c071c0451d9a36808fcb4e9f9581c99e72d9",
+    "tests/test_cuda_mps.cpp": "d297c4cb5647657a1ce05c2b1725e4e8bb11d7b7f0e235c052f4b8f8fd8b72cb",
+    "CMakeLists.txt": "7ef37c0cacc2d809bae76ff0261891b0479a806dd992f1cb76244ed7dfb9722d"
+  },
+  "diagnostics_and_limits": [
+    "Small timing screens, not production percentiles or a hard realtime SLA.",
+    "First PCM/RMS activity and intelligible-speech onset are different; human listening and quality validation remain outstanding.",
+    "A contradictory context diagnostic repeated stale status before a single new-status sentence and returned stale information. Consistent authoritative updates changed the answer correctly; robustness to contradictory histories is not established.",
+    "An accidental overlapping-load trial and a probe started before readiness were excluded from final validation.",
+    "Equal-priority fresh-image trial lost its connection when the owned SDK sleep timeout expired; three completed normal turns showed RTF 1.077 and gaps, but the incomplete suite was not counted as a pass.",
+    "A later equal-priority text screen had a 400 ms tool-result gap despite normal median RTF below one.",
+    "Native priority-aware final profiles used the public model name for automatic helper/call preference, without the prototype wrapper.",
+    "Only one helper stream plus one voice call tested per final profile; simultaneous MiniCPM plus LFM helper activity, two voice calls and maximum/long-call context remain unvalidated.",
+    "No fresh full platform image was built, and CPU/ROCm/Jetson/other CUDA GPUs/multi-GPU physical execution was not performed.",
+    "GB10 routed/tunnel voice performance was not rerun for this change; worker/router protocol package checks passed and live routed MiniCPM cutover smoke passed.",
+    "No WorkConductor code changed; integration issue receives the handoff."
+  ]
+}
