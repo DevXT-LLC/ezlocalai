@@ -112,8 +112,12 @@ Set `EZLOCALAI_LLAMA_CPP_REF` to pin an upstream llama.cpp branch, tag, or commi
 Native `/v1/realtime` streams text and PCM speech with tool calls through the
 worker and Rust WorkerRouter, including reverse tunnels. LFM3 Omni also accepts
 native image/audio/video input through chat completions. See [configuration,
-protocol and tested limits](REALTIME.md). Qwen remains the ordinary TTS engine. Qwen language models retain their
-262,144-token context configuration.
+protocol and tested limits](REALTIME.md). Qwen remains the ordinary TTS engine.
+Optional [MeanVC2 reference voices](VOICE_SELECTION.md) convert LFM audio in a
+separate native CPU process with bounded streaming and cancellation. Native LFM
+speech remains the default; the converter's 16 kHz bandwidth and voice quality
+need evaluation for each application. Qwen language models retain their 262,144-token
+context configuration.
 
 ## Implementation details
 

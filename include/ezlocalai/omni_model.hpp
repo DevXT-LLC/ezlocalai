@@ -14,5 +14,7 @@ inline bool lfm3_family(const std::string &model, const std::string &family) {
 }
 inline bool lfm3_omni_model(const std::string &model) { return lfm3_family(model, "omni"); }
 inline bool realtime_audio_model(const std::string &model) { return lfm3_omni_model(model); }
-inline constexpr int lfm3_context_limit = 128000;
+// The model card supports 32K; config max_position_embeddings=128000 is
+// an architectural limit, not a long-context quality validation.
+inline constexpr int lfm3_context_limit = 32768;
 }

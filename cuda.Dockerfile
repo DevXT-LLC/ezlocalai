@@ -256,8 +256,19 @@ COPY --from=storyboard-dependencies /opt/ezlocalai/storyboard /opt/ezlocalai/sto
 COPY --from=storyboard-dependencies /opt/ezlocalai/storyboard/fonts/ /usr/share/fonts/truetype/dejavu/
 ENV LD_LIBRARY_PATH=/opt/ezlocalai/deps/lib:/opt/ezlocalai/deps/torch/lib:/opt/ezlocalai/ctranslate2/lib:/usr/local/cuda/lib64:${LD_LIBRARY_PATH} \
     QWEN_TTS_BIN=/usr/local/bin/ezlocalai-tts
+# Isolated portable CPU MeanVC2 engine; weights are provisioned only when opted in.
+COPY cmake/BuildMeanVc2.cmake /tmp/meanvc2/BuildMeanVc2.cmake
+COPY engine/meanvc2 /tmp/meanvc2/engine/meanvc2
+COPY include/ezlocalai/voice_audio.hpp include/ezlocalai/voice_resample.hpp include/ezlocalai/process.hpp /tmp/meanvc2/include/ezlocalai/
+RUN cmake -DEZLOCALAI_MEANVC2_WRAPPER=/tmp/meanvc2/engine/meanvc2 \
+        -DEZLOCALAI_MEANVC2_PREFIX=/opt/ezlocalai/meanvc2 \
+        -DEZLOCALAI_ARM_CPU_ARCH="armv8-a" \
+        -P /tmp/meanvc2/BuildMeanVc2.cmake && \
+    ln -sf /opt/ezlocalai/meanvc2/bin/ezlocalai-meanvc2 /usr/local/bin/ezlocalai-meanvc2 && \
+    rm -rf /tmp/meanvc2 /tmp/ezlocalai-meanvc2-source /tmp/ezlocalai-meanvc2-build
 COPY . .
 RUN cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -C /opt/ezlocalai/deps/native-cache.cmake \
+        -DEZLOCALAI_REQUIRE_MEANVC2=ON \
         -DEZLOCALAI_CUDA_FLEET_PROFILE="${EZLOCALAI_CUDA_FLEET_PROFILE}" \
         -DCMAKE_EXE_LINKER_FLAGS=-Wl,-rpath-link,/usr/local/cuda/lib64/stubs \
         -DEZLOCALAI_STORYBOARD_DEPS=/opt/ezlocalai/storyboard \
@@ -272,7 +283,7 @@ FROM native-compiled
 # depend on native timing or syscalls QEMU user mode lacks.
 ARG EZLOCALAI_PACKAGE_TEST_EXCLUDE=
 RUN LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:/usr/local/cuda/lib64/stubs" ctest --test-dir build \
-        ${EZLOCALAI_PACKAGE_TEST_EXCLUDE:+-E "$EZLOCALAI_PACKAGE_TEST_EXCLUDE"} -R '^(realtime|(storyboard_.*|ltx_norm|ltx_timesteps|ltx_schedule|ltx_rng|ltx_nf4_loader|nf4.*|torch_checkpoint|wakeword_cache|speech_resources|speech_slots|worker_metadata|media_slots|service_clients|llm_residency|llm_headroom|llm_preload|live_capacity|llm_instances|startup|media_startup|cuda_allocator)_reference|wakeword_jobs|wakeword_qwen|torch_resources|media_engine|video_auxiliary|embedding_discovery|queue_history|queue_http|dotenv_reference|dotenv_startup|openapi_reference|file_response_reference|native_http|worker_heartbeat_reference|router_fallback|worker_heartbeat_http|worker_heartbeat_shutdown|worker_tunnel|stt_diarization_reference|runtime_version_reference|tunnel_idle_reference|tunnel_transport_reference|tunnel_connection_reference|tunnel_redirect_reference|http_cookies_reference|cuda_architecture_policy|cuda_package_architectures|tunnel_framing_reference|ltx_runtime|ltx_connectors|ltx_condition_cache|llm_cache_package|llm_input_package|conversation_cache|cache_restore_atomic|cache_storage|llama_mtp_resume|llama_checkpoint_coverage|q4_kv_layout|managed_llama_patches|http_stream_socket|request_gzip_codec|request_gzip_http|stream_completion|tts_websocket_state|process_capture|core)$' --output-on-failure && \
+        ${EZLOCALAI_PACKAGE_TEST_EXCLUDE:+-E "$EZLOCALAI_PACKAGE_TEST_EXCLUDE"} -R '^(voice_conversion|voice_conversion_engine_version|realtime|(storyboard_.*|ltx_norm|ltx_timesteps|ltx_schedule|ltx_rng|ltx_nf4_loader|nf4.*|torch_checkpoint|wakeword_cache|speech_resources|speech_slots|worker_metadata|media_slots|service_clients|llm_residency|llm_headroom|llm_preload|live_capacity|llm_instances|startup|media_startup|cuda_allocator)_reference|wakeword_jobs|wakeword_qwen|torch_resources|media_engine|video_auxiliary|embedding_discovery|queue_history|queue_http|dotenv_reference|dotenv_startup|openapi_reference|file_response_reference|native_http|worker_heartbeat_reference|router_fallback|worker_heartbeat_http|worker_heartbeat_shutdown|worker_tunnel|stt_diarization_reference|runtime_version_reference|tunnel_idle_reference|tunnel_transport_reference|tunnel_connection_reference|tunnel_redirect_reference|http_cookies_reference|cuda_architecture_policy|cuda_package_architectures|tunnel_framing_reference|ltx_runtime|ltx_connectors|ltx_condition_cache|llm_cache_package|llm_input_package|conversation_cache|cache_restore_atomic|cache_storage|llama_mtp_resume|llama_checkpoint_coverage|q4_kv_layout|managed_llama_patches|http_stream_socket|request_gzip_codec|request_gzip_http|stream_completion|tts_websocket_state|process_capture|core)$' --output-on-failure && \
     cmake --install build && \
     ln -sf /app/build/ezlocalai-native /usr/local/bin/ezlocalai-native && \
     ln -sf /app/build/llama_cpp_tool /usr/local/bin/llama_cpp_tool && \
@@ -280,6 +291,7 @@ RUN LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:/usr/local/cuda/lib64/stubs" ctest --tes
     ln -sf /app/build/llama.cpp/bin/llama-server /usr/local/bin/llama-server && \
     LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:/usr/local/cuda/lib64/stubs" ldd build/ezlocalai-native > /tmp/native-linkage.txt && \
     LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:/usr/local/cuda/lib64/stubs" ldd /usr/local/bin/ezlocalai-tts >> /tmp/native-linkage.txt && \
+    ldd /usr/local/bin/ezlocalai-meanvc2 >> /tmp/native-linkage.txt && \
     LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:/usr/local/cuda/lib64/stubs" ldd /opt/acestep.cpp/build/ace-server > /tmp/ace-linkage.txt && \
     grep -F 'libggml-base.so.0 => /opt/acestep.cpp/build/' /tmp/ace-linkage.txt && \
     cat /tmp/ace-linkage.txt >> /tmp/native-linkage.txt && \

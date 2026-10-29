@@ -144,7 +144,7 @@ Keep these. Do not "fix" them back:
 
 ## Scope
 
-- LFM3-Omni-2B native realtime text/audio and chat image/audio/video input are in scope; see `REALTIME.md`. Its 128,000 context cap must never affect Qwen's 262,144 context.
+- LFM3-Omni-2B native realtime text/audio and chat image/audio/video input are in scope; see `REALTIME.md`. Its 32,768 supported-context cap must never affect Qwen's 262,144 context.
 - Qwen is the only required ordinary TTS engine; gTTS and Edge fallbacks are not
   required.
 - PDF-to-speech is out of scope.

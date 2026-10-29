@@ -1,5 +1,6 @@
 #include "ezlocalai/omni_model.hpp"
 #include "ezlocalai/realtime.hpp"
+#include "ezlocalai/voice_conversion.hpp"
 #include "ezlocalai/worker_models.hpp"
 #include "ezlocalai/runtime_version.hpp"
 #include "ezlocalai/native_server.hpp"
@@ -12003,7 +12004,15 @@ std::string NativeServer::worker_state_json() const {
         ? R"({"http_request_encodings":["gzip"]})" : R"({"http_request_encodings":[]})");
     std::vector<std::string> realtime_models;
     for (const auto &model : llm_catalog_.public_models()) if (realtime_audio_model(model)) realtime_models.push_back(model);
-    if (!realtime_models.empty()) values["extra"] = merge_json_objects(values["extra"], "{\"realtime\":{\"tunnel\":true,\"protocol\":\"openai-realtime\",\"path\":\"/v1/realtime\",\"shared_capacity\":\"text\",\"models\":" + string_array_json(realtime_models) + "}}");
+    if (!realtime_models.empty()) {
+        std::string realtime = "{\"tunnel\":true,\"protocol\":\"openai-realtime\",\"path\":\"/v1/realtime\",\"shared_capacity\":\"text\",\"models\":" + string_array_json(realtime_models);
+        try {
+            const auto vc = voice_conversion_config();
+            if (vc.enabled) realtime += ",\"voice_conversion\":{\"engine\":\"meanvc2\",\"query_parameter\":\"voice\",\"native_voice\":\"native\",\"assets_ready\":" + std::string(voice_conversion_ready(vc) ? "true" : "false")
+                + ",\"in_flight\":" + std::string(voice_conversion_active_.load() ? "1" : "0") + ",\"voices\":" + string_array_json(voice_conversion_voices(vc)) + ",\"backend\":\"" + json_escape(vc.backend) + "\",\"capacity\":1,\"output_rate\":24000,\"bandwidth_rate\":16000,\"max_utterance_seconds\":120}";
+        } catch (const std::exception &) { realtime += ",\"voice_conversion\":{\"assets_ready\":false,\"configuration_error\":true}"; }
+        values["extra"] = merge_json_objects(values["extra"], "{\"realtime\":" + realtime + "}}");
+    }
     values["version"] = "\"" + json_escape(runtime_version()) + "\"";
     return json_object_from_values(values);
 }
@@ -20704,6 +20713,17 @@ void NativeServer::handle_realtime_websocket(int client_fd, const std::string &q
                 if (realtime_audio_model(llm_catalog_.source(candidate))) { resolved = candidate; break; }
         }
         const auto intent = query_param_value(query, "intent", "");
+        const auto selected_voice = query_param_value(query, "voice", "native");
+        const bool converted_voice = !selected_voice.empty() && selected_voice != "native";
+        VoiceConversionConfig voice_config;
+        std::string voice_reference;
+        std::unique_lock<std::mutex> voice_slot(voice_conversion_mutex_, std::defer_lock);
+        Release release_voice_capacity{[&] {
+            if (voice_slot.owns_lock()) {
+                voice_conversion_active_ = false;
+                notify_worker_state_changed();
+            }
+        }};
         const bool invalid_intent = !intent.empty() && intent != "transcription";
         if (invalid_intent || !resolved || !realtime_audio_model(llm_catalog_.source(*resolved))) {
             const HttpResponse error{400, "application/json", make_error(400, invalid_intent
@@ -20713,6 +20733,15 @@ void NativeServer::handle_realtime_websocket(int client_fd, const std::string &q
             size_t sent = 0;
             while (sent < raw.size()) { const auto n = http_write(client_fd, nullptr, raw.data() + sent, raw.size() - sent, writing); if (n <= 0) return; sent += size_t(n); }
             return;
+        }
+        if (converted_voice) {
+            if (!intent.empty()) throw std::invalid_argument("Voice conversion is unavailable for transcription sessions");
+            try { voice_config = voice_conversion_config(); } catch (const std::exception &) { throw std::runtime_error("Invalid MeanVC2 server configuration"); }
+            if (!voice_conversion_ready(voice_config)) throw std::runtime_error("MeanVC2 is not ready; enable it and provision its pinned model first");
+            voice_reference = voice_conversion_reference(voice_config, selected_voice);
+            if (!voice_slot.try_lock()) throw std::runtime_error("The converted voice slot is busy");
+            voice_conversion_active_ = true;
+            notify_worker_state_changed();
         }
         model = llm_catalog_.source(*resolved);
         const auto admission_deadline = std::chrono::steady_clock::now() + std::chrono::seconds(30);
@@ -20731,6 +20760,26 @@ void NativeServer::handle_realtime_websocket(int client_fd, const std::string &q
         admitted = true;
         auto lease = backend_->open_realtime(model, replica);
         if (!lease) throw std::runtime_error("Realtime backend did not provide a model lease");
+        std::unique_ptr<VoiceConversion> converter;
+        bool voice_registered = false;
+        Release release_voice{[&] {
+            converter.reset();
+            if (voice_registered) { resources_->unregister_model(ModelType::VoiceConversion); notify_worker_state_changed(); }
+        }};
+        if (converted_voice) {
+            if (voice_config.backend == "cpu") {
+                if (voice_conversion_free_ram(resources_->get_free_ram()) < 3.0) throw std::runtime_error("Insufficient free RAM for MeanVC2");
+            } else if (voice_config.device >= resources_->get_status().gpu_count || resources_->get_free_vram(voice_config.device) < 4.0)
+                throw std::runtime_error("Insufficient free GPU memory for MeanVC2");
+            resources_->register_model(ModelType::VoiceConversion, "MeanVC2", voice_config.backend == "cpu" ? "cpu" : "cuda:" + std::to_string(voice_config.device), 4.0, true);
+            voice_registered = true;
+            converter = std::make_unique<VoiceConversion>(voice_config, voice_reference, [this, client_fd] {
+                if (!running()) return true;
+                char byte; const auto n = recv(client_fd, &byte, 1, MSG_PEEK | MSG_DONTWAIT);
+                return n == 0 || (n < 0 && errno != EAGAIN && errno != EWOULDBLOCK && errno != EINTR);
+            });
+            notify_worker_state_changed();
+        }
         if (!intent.empty()) lease->url += "?intent=transcription";
         TunnelWebSocketConnection engine([this] { return !running(); });
         std::string buffered, error;
@@ -20742,10 +20791,12 @@ void NativeServer::handle_realtime_websocket(int client_fd, const std::string &q
         size_t sent = 0;
         while (sent < handshake.size()) { const auto n = http_write(client_fd, nullptr, handshake.data() + sent, handshake.size() - sent, writing); if (n <= 0) return; sent += size_t(n); }
         upgraded = true;
-        relay_realtime_websocket(client_fd, engine, initial, buffered, [this] { return !running(); });
+        if (converter) relay_realtime_voice(client_fd, engine, initial, buffered, *converter, selected_voice, [this] { return !running(); });
+        else relay_realtime_websocket(client_fd, engine, initial, buffered, [this] { return !running(); });
     } catch (const std::exception &error) {
         if (!upgraded) {
-            const auto raw = serialize_response({503, "application/json", make_error(503, error.what())});
+            const int status = dynamic_cast<const std::invalid_argument *>(&error) ? 400 : 503;
+            const auto raw = serialize_response({status, "application/json", make_error(status, error.what())});
             HttpDeadline writing(15, false, [this] { return !running(); });
             size_t sent = 0;
             while (sent < raw.size()) { const auto n = http_write(client_fd, nullptr, raw.data() + sent, raw.size() - sent, writing); if (n <= 0) break; sent += size_t(n); }

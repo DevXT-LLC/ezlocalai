@@ -1,0 +1,361 @@
+{
+  "date": "2026-10-28",
+  "topic": "LFM native versus selectable Qwen reference voices; feasibility, not an integrated call voice feature",
+  "base_worker_commit": "9927a27",
+  "product_changes": [
+    "LFM supported context cap corrected from architectural 128000 to vendor-supported 32K (32768)",
+    "Qwen language-model 262144 cap and existing speech sampler/precision/window unchanged",
+    "No production voice converter or live-call resynthesis adapter added"
+  ],
+  "sources": {
+    "lfm_model_card": "https://huggingface.co/LiquidAI/LFM3-Omni-2B",
+    "qwen_clone_api": "https://github.com/QwenLM/Qwen3-TTS#voice-clone",
+    "llama_tts_guide": "https://github.com/ggml-org/llama.cpp/blob/8642541b255bfb5dc39cd351a178be09013a55d6/tools/tts/README.md",
+    "voice_conversion_research": "https://github.com/Plachtaa/seed-vc"
+  },
+  "engine": {
+    "release": "v0.8.0",
+    "commit": "8642541b255bfb5dc39cd351a178be09013a55d6",
+    "managed_patches": 9,
+    "native_voice_cloning": false,
+    "native_realtime_voice_field": false,
+    "qwen_reference_conditioning": "speaker embedding; reference-transcript ICL unavailable in current C++ input API",
+    "qwen_codec_frames_per_window": 72,
+    "qwen_codec_frame_rate": 12.5,
+    "qwen_window_audio_seconds": 5.76
+  },
+  "cpu": {
+    "purpose": "CPU-only native Qwen selectable-voice feasibility",
+    "text": "Hello. The working agent is running the tests. I can help you steer it.",
+    "image": "sha256:2928738bb5e60d6b57c179b550a24bf0844c0b07c0493c27aea232ed66d0a5a2",
+    "threads": 6,
+    "model_revision": "30954b7a9d99fad81064bf1dc35f881b029f9032",
+    "model_sha256": {
+      "qwen-talker-0.6b-base-Q8_0.gguf": "dffc2c31316742e74aad194e203c391988b4fd391cf8e9268c3c19c008569fc6",
+      "qwen-tokenizer-12hz-f16.gguf": "4277fcb68c5d638b6a91d99507b179fdaa3ebcc9663bc26968d83939f42995c6"
+    },
+    "runtime_sha256": "4897bac7c088c341847e3958a3f5dfa9be7f00ba2a0ef5904e809149fd2807e1",
+    "cases": [
+      {
+        "voice": "warm_american_narrator.wav",
+        "reference_sha256": "8e25d2f4c14af7b325b3713f0a7a4bf74aacb0d3a8946b7cc91d2188d145163b",
+        "file": "1-warm_american_narrator.wav",
+        "first_audio_seconds": 8.688907078991178,
+        "total_seconds": 8.722595326020382,
+        "audio_seconds": 4.4,
+        "frames": 55,
+        "peak_absolute": 0.2510409951210022,
+        "rms": 0.04355033342786757,
+        "clipped_samples": 0,
+        "pcm_f32_sha256": "6d37664270cc17c497acacac243ad9daf64f88dd5dc59664c87e45cdf24fd738",
+        "wav_sha256": "f90b7368e1c2aabf300d7516ea38378c5f0f25fdcdd21e06000e79a5662c582a"
+      },
+      {
+        "voice": "british_rp_female.wav",
+        "reference_sha256": "56b6e742b5fd32c913b8b4a6e36c8a9dd537e57b16954e38715cde11de0f874a",
+        "file": "2-british_rp_female.wav",
+        "first_audio_seconds": 9.767579866049346,
+        "total_seconds": 9.802015602996107,
+        "audio_seconds": 5.44,
+        "frames": 68,
+        "peak_absolute": 0.4737807512283325,
+        "rms": 0.05364571586592695,
+        "clipped_samples": 0,
+        "pcm_f32_sha256": "ae081a1f098856ceab5574a206a11bb9a4999fcc97c457abf5b9ffc6b04a44cc",
+        "wav_sha256": "e07fdb24284ec0b7dad0048a0593fbb6c7e17e8cd98d7a05963bed21168ee8c1"
+      },
+      {
+        "voice": "warm_american_narrator.wav",
+        "reference_sha256": "8e25d2f4c14af7b325b3713f0a7a4bf74aacb0d3a8946b7cc91d2188d145163b",
+        "file": "3-warm_american_narrator.wav",
+        "first_audio_seconds": 8.063260897004511,
+        "total_seconds": 8.093288211966865,
+        "audio_seconds": 4.4,
+        "frames": 55,
+        "peak_absolute": 0.2510409951210022,
+        "rms": 0.04355033342786757,
+        "clipped_samples": 0,
+        "pcm_f32_sha256": "6d37664270cc17c497acacac243ad9daf64f88dd5dc59664c87e45cdf24fd738",
+        "wav_sha256": "f90b7368e1c2aabf300d7516ea38378c5f0f25fdcdd21e06000e79a5662c582a"
+      }
+    ],
+    "startup_seconds": 0.9045888700056821,
+    "status": "passed"
+  },
+  "cpu_asr": {
+    "recognizer": "LFM3 Omni F16 CPU",
+    "cases": [
+      {
+        "voice": "warm_american_narrator.wav",
+        "recognized_text": "Hello, the working agent is running the tests. I can help you steer it.",
+        "word_edits": 0,
+        "expected_words": 14,
+        "wer": 0.0
+      },
+      {
+        "voice": "british_rp_female.wav",
+        "recognized_text": "Hello, the working agent is running the tests. I can help you steer it.",
+        "word_edits": 0,
+        "expected_words": 14,
+        "wer": 0.0
+      }
+    ],
+    "limits": "Two synthetic sentences; same-family recognition is not human listening or a broad TTS quality benchmark."
+  },
+  "gpu": {
+    "hardware": "NVIDIA GeForce RTX 3090 Ti (local J)",
+    "context": 8192,
+    "parallel": 1,
+    "lfm_weights": "F16 backbone and full F16 audio/vision projector",
+    "qwen_weights": "0.6B Base Q8_0 talker, F16 tokenizer/codec",
+    "image": "sha256:2928738bb5e60d6b57c179b550a24bf0844c0b07c0493c27aea232ed66d0a5a2",
+    "results": {
+      "mode": "raw co-resident CUDA engines, not production worker call adapter",
+      "qwen_text": "Hello. The working agent is running the tests. I can help you steer it.",
+      "native": [
+        {
+          "text": "Hello. The working agent is running the tests. I can help you steer it.",
+          "first_text_seconds": 0.11318178399233148,
+          "first_audio_seconds": 0.19310058001428843,
+          "total_seconds": 0.7908667960437015,
+          "audio_seconds": 5.12,
+          "output_rate": 24000,
+          "file": "native-1.wav",
+          "wav_sha256": "506896ac9362f91d60d1bb4e80d4a457cc65040769210f21e254273c17484b5b"
+        },
+        {
+          "text": "Hello. The working agent is running the tests. I can help you steer it.",
+          "first_text_seconds": 0.03289575799135491,
+          "first_audio_seconds": 0.06751584098674357,
+          "total_seconds": 0.852564133994747,
+          "audio_seconds": 6.8,
+          "output_rate": 24000,
+          "file": "native-2.wav",
+          "wav_sha256": "25eb6ee463434855c4933a3260b51f9776261c553e291981e35d33aef76f5531"
+        }
+      ],
+      "qwen": [
+        {
+          "voice": "warm_american_narrator.wav",
+          "file": "qwen-1-warm_american_narrator.wav",
+          "first_audio_seconds": 1.366595498053357,
+          "total_seconds": 1.3927994230180047,
+          "audio_seconds": 4.96,
+          "frames": 62,
+          "pcm_f32_sha256": "b503247f1b73206dffaeb7071e3a50eff7c5a61ad14ce56fa5787b69ed60acb2",
+          "serial_lfm_text_then_qwen_ttfa_seconds": 1.4872850200627,
+          "wav_sha256": "5e2593714801cd167dd786a85a6b72609b613b36f9b6da55b6b52b1973d15296"
+        },
+        {
+          "voice": "british_rp_female.wav",
+          "file": "qwen-2-british_rp_female.wav",
+          "first_audio_seconds": 1.065866757009644,
+          "total_seconds": 1.0934576739673503,
+          "audio_seconds": 5.2,
+          "frames": 65,
+          "pcm_f32_sha256": "a7b81354ac86ff82f7a741d1fdb492a3cbcd74cb8d00e7fb3d7d15fe4e66a13e",
+          "serial_lfm_text_then_qwen_ttfa_seconds": 1.186556279018987,
+          "wav_sha256": "8918e7949abcb724a81be5be08c50ed948341f9b5a9fd3719bfb0d57891d37b6"
+        },
+        {
+          "voice": "warm_american_narrator.wav",
+          "file": "qwen-3-warm_american_narrator.wav",
+          "first_audio_seconds": 1.0029023370007053,
+          "total_seconds": 1.0290727750398219,
+          "audio_seconds": 4.96,
+          "frames": 62,
+          "pcm_f32_sha256": "b503247f1b73206dffaeb7071e3a50eff7c5a61ad14ce56fa5787b69ed60acb2",
+          "serial_lfm_text_then_qwen_ttfa_seconds": 1.1235918590100482,
+          "wav_sha256": "5e2593714801cd167dd786a85a6b72609b613b36f9b6da55b6b52b1973d15296"
+        }
+      ],
+      "qwen_startup_seconds": 0.854595567972865,
+      "gpu_allocation_after_load": [
+        {
+          "process": "llama-server",
+          "used_vram_mib": 5522
+        },
+        {
+          "process": "tts",
+          "used_vram_mib": 2538
+        }
+      ],
+      "lfm_text_only": {
+        "text": "Hello. The working agent is running the tests. I can help you steer it.",
+        "first_text_seconds": 0.03704366699093953,
+        "first_audio_seconds": null,
+        "total_seconds": 0.12068952200934291,
+        "audio_seconds": 0.0,
+        "output_rate": 24000
+      },
+      "gpu_allocation_after_speech": [
+        {
+          "process": "llama-server",
+          "used_vram_mib": 5522
+        },
+        {
+          "process": "tts",
+          "used_vram_mib": 3532
+        }
+      ],
+      "asr": [
+        {
+          "voice": "warm_american_narrator.wav",
+          "recognized": "Hello! The working agent is running the tests. I can help you steer it.",
+          "word_edits": 0,
+          "expected_words": 14
+        },
+        {
+          "voice": "british_rp_female.wav",
+          "recognized": "Hello, the working agent is running the tests. I can help you steer it.",
+          "word_edits": 0,
+          "expected_words": 14
+        }
+      ],
+      "status": "passed"
+    },
+    "verified_cuda_allocations_for_both_engines": true,
+    "limits": [
+      "Raw engines, loopback only; not a browser or production worker/router live-call benchmark",
+      "Serial complete LFM text then Qwen; no sentence pipelining or simultaneous microphone decoding measured",
+      "First native sample includes colder state; second native and third Qwen sample are warmer observations",
+      "Memory figures are nvidia-smi process allocation snapshots, not a maximum for larger contexts or long calls"
+    ],
+    "asset_and_binary_sha256": {
+      "LFM3-Omni-2B-F16.gguf": "9fde8072a7313d676591499d14ecf7f7ee2f1773cc9e4bdbdbeed4a87c5987f6",
+      "mmproj-LFM3-Omni-2B-F16.gguf": "361bc95192c7d9156b566fcd4e48930363b78218e493fb1be607456bd51586e3",
+      "ezlocalai-tts": "4897bac7c088c341847e3958a3f5dfa9be7f00ba2a0ef5904e809149fd2807e1",
+      "libllama-server-impl.so": "cf145103e97dbc95b4c0754120cd2915219706b314b11dd0350f3c35130d1945",
+      "llama-server": "69255c4ecdf9e54a7e09216a15dc8cde2311d5d523325ea4eeb4f55f282a29e0"
+    }
+  },
+  "controlled_selection": {
+    "cpu_first_and_repeat_pcm_bit_identical": true,
+    "gpu_first_and_repeat_pcm_bit_identical": true,
+    "alternate_reference_changes_pcm": true,
+    "same_family_asr_spot_checks": "2 CPU and 2 GPU cases, each 0 word edits out of 14; not human-rated speech/clone quality"
+  },
+  "restoration": {
+    "rollback_tag": "ezlocalai:rollback-voice-selection-20261028-local3090ti",
+    "original": {
+      "critical_parameters_preserved": true,
+      "full_engine_argv_preserved": true,
+      "healthy": true,
+      "oom_killed": false,
+      "same_config": true,
+      "same_container": true,
+      "same_environment": true,
+      "same_hostconfig": true,
+      "same_image": true,
+      "same_mounts": true
+    },
+    "router": {
+      "metadata_preserved": true,
+      "two_fresh_matching_heartbeats": true
+    },
+    "completed": {
+      "resumed": true,
+      "time": 1793225876.906104
+    },
+    "permanent_environment_changes": false
+  },
+  "tests": {
+    "realtime": "passed; includes 32768 LFM and unchanged 262144 Qwen profiles plus gateway regressions",
+    "strict_llm_catalog": "2216 cases passed against pinned 0f7e9f4 source",
+    "package_gate": {
+      "status": "passed",
+      "tests": 73,
+      "failed": 0,
+      "elapsed_seconds": 346.21,
+      "target": "cuda_package built",
+      "selection": "exact cuda.Dockerfile ctest regex in dependency SDK",
+      "python_reference_environment": "EZLOCALAI_REFERENCE_ROOT unset",
+      "image_architecture_inventory": "not registered in this ordinary SDK build; requires fleet image rebuild",
+      "sdk_setup": "Preserved image library paths and added CUDA stubs/v0.8 runtime; supplied existing storyboard deps and pinned engine patch manifest",
+      "log_sha256": "0fc9a5dea54adf667bfe51c3819d12e5f0472e0d4f84e601676ac58ae9348b34"
+    },
+    "python_cli_and_compile": "passed",
+    "cpu_script_end_to_end": "passed; two references and repeat; finite, non-silent, unclipped PCM"
+  },
+  "artifacts": {
+    "cpu_script_sha256": "d5f7dbc311f336c438a6ffd48ee75d088357b6952b5a808aeed2a0fe424324a9",
+    "gpu_operator_artifact_sha256": {
+      "drive.py": "75daa509015c1c5f03727a045f2479690cb2b3efc648d0572b4fbb1cff4388bf",
+      "gpu_compare.py": "f53f17a65dff2b635bc83cd42d39c29029d87b7ed082f94e4f9443e55cfa07a9",
+      "lease_base.py": "c7f21a19e2be6744a58e81e286b52a96d9c4e1bb8293b7b4f58d0300f53eddf6",
+      "maintenance.py": "fc9f5630f6475c75542d8d1ecf3237227efde7c3cb4abf478a85ed64fa08809d",
+      "reference_base.py": "f225081689d65ac386d7a36cf816a2194e009f9c358f929fff711c1853d74f89"
+    },
+    "local_ignored_directory": "build/validation/selectable-voice-20261028",
+    "cpu_demo": "cpu-reference-demo-final",
+    "gpu_demo": "gpu-compare-v1"
+  },
+  "not_validated": [
+    "Human listening, speaker similarity, emotional/prosodic preservation, multilingual speech or long responses",
+    "Unified selectable-voice realtime worker API or WorkConductor client adapter",
+    "Live combined microphone/voice generation, barge-in cancellation, next-turn recovery or production shared memory policy",
+    "Reference-transcript Qwen ICL, waveform voice conversion, new image build or multi-GPU",
+    "LFM long-context accuracy; cap follows the vendor model card, not architectural maxima",
+    "Fresh image architecture inventory (cuda_package_architectures requires a fleet image build, not this runtime SDK)"
+  ],
+  "workconductor_issue": "https://github.com/Josh-XT/WorkConductor/issues/429#issuecomment-6482157521",
+  "streaming_conversion_followup": {
+    "date": "2026-10-28",
+    "reason": "User prioritizes natural call latency; Qwen resynthesis is a measured alternative, not preferred call architecture",
+    "recommended_architecture": "LFM native PCM -> stateful streaming voice converter -> playback",
+    "local_converter_benchmark": false,
+    "native_candidate": {
+      "repository": "https://github.com/0xShug0/audio.cpp",
+      "commit": "cd770076152085af5b166521185bec76f9d47808",
+      "family": "meanvc2",
+      "package": "meanvc2_120ms_40ms_f32",
+      "preferred_input_chunk_samples": 2560,
+      "input_rate": 16000,
+      "output_rate": 16000,
+      "native_api_observed": [
+        "start_stream encodes target reference once",
+        "process_audio_chunk returns audio events before finish_stream",
+        "reset clears streaming state",
+        "merged output retained in streaming_output_ until reset"
+      ],
+      "source_sha256": {
+        "meanvc2.json": "e4fe246f57d3db22d6574a0c97f593cef10523173d1f62a5762c1ac847e93e00",
+        "session.h": "c0ca01de5415029ceaf5735536989b42fa45786841ce545e580f27e21fbbe6cb",
+        "meanvc2.md": "8ae67c83120e4ef5852982e8fa8f93d2312f70ce4cf9d6beed24934446c749d1",
+        "session.cpp": "4ca442a184ce2c9db93df673cd4bfdd68527ec0cea1c0462a14b65f04aae8da7"
+      },
+      "first_benchmark_requirements": [
+        "Compare F32 baseline; no extra quantization assumed quality neutral",
+        "Time real native LFM packets through conversion; separate lookahead/processing and first-audio p50/p95",
+        "Check 24k->16k bandwidth impact and stateful resampling at chunk boundaries",
+        "Use bounded per-utterance output storage; upstream retains merged stream output",
+        "Test cancellation, recovery, co-residency, long calls and human speaker/prosody quality",
+        "Isolate converter ggml linkage from pinned llama.cpp until compatibility established"
+      ]
+    },
+    "upstream_only_results": [
+      {
+        "model": "RT-VC",
+        "claim": "61.4ms: 32ms lookahead +15ms chunk +14.4ms processing on Apple M3 CPU; 16kHz",
+        "source": "https://arxiv.org/html/2506.10289v1",
+        "source_commit": "9d9a55d0fb6cd53ebba108a0bab3380b1fc3c066"
+      },
+      {
+        "model": "MeanVC2 paper",
+        "claim": "110ms reported; not a measurement of the native default120/40 package",
+        "source": "https://arxiv.org/abs/2606.09050"
+      },
+      {
+        "model": "Seed-VC realtime",
+        "claim": "~300ms algorithmic +~100ms device;430ms example on RTX3060 Laptop",
+        "source": "https://github.com/Plachtaa/seed-vc",
+        "source_commit": "51383efd921027683c89e5348211d93ff12ac2a8"
+      }
+    ],
+    "limits": [
+      "No converter binary or weights installed, no inference executed and no production changes in this follow-up",
+      "No converter-specific performance/quality/native integration claim",
+      "Zero-shot reference conditioning differs from per-target trained RVC/LLVC model selection"
+    ]
+  }
+}

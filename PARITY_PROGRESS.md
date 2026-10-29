@@ -2,12 +2,144 @@
 
 The goal remains behavior parity with ezlocalai within the scope below, with all first-party executable code implemented in C++. It is **not complete**.
 
+## Native MeanVC2 reference voices and conditioning reuse (2026-10-28)
+
+PR149 now implements optional `LFM PCM → MeanVC2 → playback`, with native LFM
+speech retained as the default and Qwen retained for ordinary TTS. The engine is
+an isolated native C++ CPU process, pinned to audio.cpp `cd770076...` and verified
+F32 weights (`340d5dd6...`). All four platform Dockerfiles package it without
+weights or Python. Explicit provisioning, environment defaults, voice discovery,
+query/session contracts and quality limits are in `VOICE_SELECTION.md`. The
+companion WorkerRouter PR11 forwards selection across direct/tunnel transports
+and reserves converter plus text capacity. WorkConductor remains issue-only:
+issue429 has the verified integration handoff.
+
+Bounded queues, stateful resampling, complete 160 ms inference windows, short
+utterance padding, cancellation epochs and per-call resource pins cover the
+streaming lifecycle. A first real call exposed the native frontend discarding
+tiny packet fragments; actual F32 output is now bit-identical across 160 ms,
+20 ms and mixed fragments. A second finding was reference conditioning being
+recomputed every response. A bounded content-keyed upstream patch retains the
+exact embedding/projected memory across resets: A/A and B/B outputs are bit-
+identical; references invalidate correctly. Conditioning startup dropped from
+1.50–1.76 seconds to 0.19–0.25 ms on cache hits. The supported LFM auto-context
+fallback is also corrected to 32,768; Qwen's 262,144 remains unchanged.
+
+On RTX3090Ti with LFM F16/8192 context and six CPU threads for MeanVC2, both
+transports passed 26 protocol checks each: audio input, two references, tools,
+context/text-only turns, interruption/recovery and cleanup. Later first-audio
+packets fell from 1.36–1.60 s to 88–143 ms (native later baseline 61 ms), and
+after interruption from 2.84–2.88 s to 96–122 ms. These are observations, not
+percentiles. Call setup remains about 3.0–3.3 s. Converted later energy-bearing
+packets were 111–241 ms; sampled pre-cache converter RSS was 1.68 GiB. Ten short
+same-family ASR diagnostics yielded 0–7.14% WER, including matching errors in
+same-source native/converted controls. An earlier strict spelling check failed
+on “working”/“worken”; protocol acceptance and quality diagnostics are now
+separate. Human voice-quality validation remains pending; no unchanged-quality
+claim, and the 24 kHz wire still has MeanVC2's 16 kHz bandwidth.
+
+Validation: the complete final SDK package gate passed 75/75 without a Python
+reference checkout, including the conditioning-cache version and supported
+zero-context follow-up. Latest focused engine/voice/realtime tests passed 3/3. Router: 103 passed / 2 ignored, fmt clean, clippy has four
+pre-existing warnings. The standalone installer, pinned model verification,
+real-model conditioning reuse and cancellation/process cleanup were exercised.
+No fresh full platform image was built; ARM, ROCm, GB10, Jetson, Pi, custom GPU
+conversion and multi-GPU remain physically unverified. SDK image:
+`sha256:c9d7cd30fb6f0d75280fda34b20cd70350dc69072ffebf564f0fffc92b8b330a`.
+Original image:
+`sha256:2928738bb5e60d6b57c179b550a24bf0844c0b07c0493c27aea232ed66d0a5a2`;
+rollback `ezlocalai:rollback-meanvc2-20261028-local3090ti-v4`. All four guarded
+windows restored the exact original container/image/environment/mounts/full
+engine argv, verified health/no OOM and two fresh matching production heartbeats,
+then released the owned drain. No permanent environment setting changed; only
+private validation overrides used 8192 context and six MeanVC2 threads. Compact
+evidence: `tests/fixtures/meanvc2_streaming_20261028_validation.json`; bulky logs,
+plans and listening samples stay under `build/validation/meanvc2-20261028/`.
+
+## Prefer streaming voice conversion for call latency (2026-10-28)
+
+The user clarified that the measured additional second from Qwen is too costly
+for a natural call. Prioritize `LFM native PCM → streaming voice converter` for
+custom voices; Qwen remains the demonstrated alternative. This follows from the
+previous measurements, not a new performance result. Expanded `VOICE_SELECTION.md`
+with a source-audited native candidate: audio.cpp MeanVC2 at commit
+`cd770076152085af5b166521185bec76f9d47808`. Its F32 default 120/40 package has a
+persistent chunk API, 160 ms preferred input chunks and 16 kHz output. Upstream
+RT-VC reports 61.4 ms on Apple M3 CPU; MeanVC2's paper reports 110 ms in a different
+configuration; Seed-VC documents roughly 300 ms algorithmic plus 100 ms device
+latency. These reports are **not local measurements or equivalent comparisons**.
+
+The native MeanVC2 session returns incremental audio, prepares speaker reference
+conditioning once per stream and retains merged audio until reset. Evaluate
+bounded per-utterance storage, stateful resampling, cancellation, ggml linkage
+isolation and real co-residency. Its 16 kHz output requires a listening/bandwidth
+comparison against LFM's 24 kHz output. No converter has been installed, built,
+benchmarked or selected as a production default. No new environment changes,
+images or rollback actions; prior worker restoration remains the last GPU action.
+Only documentation/evidence changed in this follow-up: JSON parsing and diff
+checks pass; the preceding 73-test SDK and 2216-case catalog results apply to the
+unchanged C++ code. WorkConductor remains issue-only. The same PR149 carries
+this recommendation update and the previously tested supported-context fix.
+
+## Selectable voice feasibility and supported LFM context (2026-10-28)
+
+The existing native Qwen path can render LFM text using selectable reference
+WAVs. Demonstrated two bundled voices and switching back, first CPU-only and
+then with both raw v0.8 engines resident on the local RTX 3090 Ti. The repeated
+reference produced bit-identical float PCM on each backend; the alternative
+reference changed the PCM. Four same-family ASR spot checks recovered all 14
+words. This is **not** human validation of voice similarity, naturalness or
+quality equivalence. No unified call voice selector or waveform converter was
+added. `VOICE_SELECTION.md` records the integration contract and options;
+`benchmarks/bench_reference_voices.py` reproduces the isolated CPU renderer.
+
+Native LFM first-audio observations were 193 ms initially and 68 ms on repeat.
+Serial LFM text → Qwen reference-voice speech took 1.124–1.487 s to first audio,
+including 121 ms for the full LFM text. LFM used F16, context 8,192, one slot;
+Qwen used the existing 0.6B Base Q8_0/F16 codec. Both had real CUDA allocations:
+5,522 MiB for LFM and 3,532 MiB for Qwen after speech. No simultaneous microphone
+processing, sentence pipelining, client barge-in or production worker shared
+resource behavior was tested. The current Qwen API uses a speaker embedding,
+without reference-transcript ICL; its 72-frame decoder window is unchanged.
+Qwen re-synthesis creates its own delivery and does not preserve native LFM
+prosody/emotion. Native LFM ignores reference speaker files; its realtime voice
+field is not implemented. Keep native speech as the default pending UX/quality
+acceptance; selectable Qwen speech is a demonstrated opt-in integration path.
+
+**Context correction:** the vendor model card supports **32K (32,768)**. Our
+initial profile mistook `max_position_embeddings=128000` for supported context.
+Cap the LFM profile at 32,768 and retain the Qwen 262,144 regression. The older
+65,536-context acceptance used short prompts and did not validate long-context
+accuracy; its actual tested configuration is retained in the historical record.
+
+The CUDA/CPU probes reused immutable container image
+`sha256:2928738bb5e60d6b57c179b550a24bf0844c0b07c0493c27aea232ed66d0a5a2`
+with the separately pinned v0.8 runtime. The scoped/package SDK is image
+`sha256:c9d7cd30fb6f0d75280fda34b20cd70350dc69072ffebf564f0fffc92b8b330a`.
+The GPU comparison held an owned idle drain with healthy alternate workers and
+an independent restore watchdog. Rollback tag:
+`ezlocalai:rollback-voice-selection-20261028-local3090ti`. Restoration verified
+same image/container/environment/mounts/full engine argv, healthy status,
+no OOM and two fresh matching production router heartbeats before releasing
+the drain. **No permanent environment changes or image deployment.**
+
+Validation: native realtime regression passed, strict pinned-source catalog
+passed **2,216 cases**, final CPU renderer/CLI/bytecode/PCM amplitude checks
+passed. The dependency SDK passed **73/73** tests selected by the exact CUDA
+Dockerfile package regex, with `EZLOCALAI_REFERENCE_ROOT` unset (346.21 s).
+Fleet image architecture inventory was not registered in this ordinary SDK;
+no new image build or architecture validation was performed. Evidence:
+`tests/fixtures/selectable_voice_20261028_validation.json`; bulky logs and WAVs:
+`build/validation/selectable-voice-20261028/`. WorkConductor integration remains
+tracked in issue #429, without WorkConductor code changes. No router protocol
+change is needed for this client-composed approach.
+
 ## LFM3 Omni native voice calls and router transport (2026-10-28)
 
 Add **LiquidAI/LFM3-Omni-2B-GGUF**, the released 2B Omni model supported by
-llama.cpp v0.8.0. Its published context cap is **128,000**, applied only to this
-family. **Qwen 262,144-token configurations are unchanged**, with a specific
-regression. Automatic Omni KV uses F16, automatic parallelism is one, text is
+llama.cpp v0.8.0. The initial profile used **128,000** architectural positions;
+the subsequent entry above corrects this to the supported **32,768** context.
+**Qwen 262,144-token configurations are unchanged**, with a specific regression. Automatic Omni KV uses F16, automatic parallelism is one, text is
 greedy/non-reasoning as the vendor recommends, and the GGUF audio sampler is
 preserved. Unsupported inherited Qwen weight quant names select F16; explicit
 supported quants/KV overrides remain available. Acquisition pairs the backbone

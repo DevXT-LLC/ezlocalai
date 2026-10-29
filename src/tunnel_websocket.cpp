@@ -37,6 +37,8 @@ bool TunnelWebSocketReader::pop(std::string &wire, TunnelWebSocketMessage &messa
         if (wire.size() < 2) return false;
         const auto first = static_cast<unsigned char>(wire[0]);
         const auto second = static_cast<unsigned char>(wire[1]);
+        if (expected_mask_ >= 0 && bool(second & 128) != bool(expected_mask_))
+            return fail(wire, 1002);
         const bool final = (first & 128) != 0;
         unsigned opcode = first & 15;
         uint64_t length = second & 127;

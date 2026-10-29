@@ -44,6 +44,7 @@ const char *model_type_name(ModelType type) {
         case ModelType::Tts: return "tts"; case ModelType::Stt: return "stt";
         case ModelType::Image: return "img"; case ModelType::Video: return "video";
         case ModelType::Music: return "music"; case ModelType::Embedding: return "embedding";
+        case ModelType::VoiceConversion: return "voice_conversion";
     }
     throw std::invalid_argument("Unknown model type");
 }
@@ -53,6 +54,7 @@ double model_vram_estimate(ModelType type) {
         case ModelType::Tts: return 4; case ModelType::Stt: return 2;
         case ModelType::Image: return 6; case ModelType::Video: return 12;
         case ModelType::Music: return 0; case ModelType::Embedding: return 2;
+        case ModelType::VoiceConversion: return 4;
     }
     return 2;
 }
@@ -134,12 +136,13 @@ void ResourceManager::mark_model_in_use(ModelType type, bool in_use) {
         m.in_use = m.active_requests > 0; return;
     }
 }
-void ResourceManager::register_model(ModelType type, std::string name, std::string device, std::optional<double> vram) {
+void ResourceManager::register_model(ModelType type, std::string name, std::string device, std::optional<double> vram, bool pinned) {
     std::lock_guard<std::mutex> lock(mutex_);
     ModelResource resource{type, std::move(name), std::move(device)};
     resource.vram_gb = resource.device.find("cuda") != std::string::npos ? vram.value_or(model_vram_estimate(type)) : 0;
     const auto found = std::find_if(models_.begin(), models_.end(), [type](const auto &m) { return m.type == type; });
     if (found != models_.end()) { resource.in_use = found->in_use; resource.active_requests = found->active_requests; }
+    if (pinned) { ++resource.active_requests; resource.in_use = true; }
     resource.last_used = probes_.now();
     if (found != models_.end()) *found = std::move(resource); else models_.push_back(std::move(resource));
 }
