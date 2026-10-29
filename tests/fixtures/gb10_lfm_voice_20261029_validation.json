@@ -1,0 +1,1368 @@
+{
+  "date": "2026-10-29",
+  "topic": "GB10 physical LFM voice benchmark and service correction",
+  "production_commit": "f20da848de5c9e3c9947385520b8b308386ad6bb",
+  "hardware": {
+    "architecture": "aarch64",
+    "gpu": "NVIDIA GB10",
+    "engine_version": "version: 0.8.0-dev (build 11960, commit 8642541b2)\nbuilt with GNU 13.3.0 for Linux aarch64",
+    "image": "sha256:58b53ae4ad6cc06234a1775d076ef6c08b726f453804c3a2f4a85e2629b9e84b",
+    "container": "b20a83b9336ff643a5640c101f1664e8d634fc612e8069ac7349f20c3bcd1bb4",
+    "healthy": "healthy",
+    "oom_killed": false,
+    "package_tests": {
+      "passed": 75,
+      "failed": 0
+    },
+    "settings": {
+      "DEFAULT_MODEL": "openbmb/MiniCPM5-2B-GGUF,LiquidAI/LFM3-Omni-2B-GGUF",
+      "QUANT_TYPE": "Q4_K_M,Q4_K_M",
+      "LLM_MAX_TOKENS": "131072,32000",
+      "N_PARALLEL": "2,1",
+      "GPU_LAYERS": "-1",
+      "KV_CACHE_TYPE": "auto",
+      "MEANVC2_ENABLED": "true",
+      "MEANVC2_THREADS": "4",
+      "MEANVC2_MODEL_PATH": "/app/models/MeanVC2-GGUF/meanvc2-120ms-40ms-fp32.gguf",
+      "MEANVC2_VOICES_DIR": "/app/voices"
+    },
+    "model_runtime": [
+      {
+        "model": "openbmb/MiniCPM5-2B-GGUF",
+        "context": 131072,
+        "gpu_layers": -1,
+        "main_gpu": 0,
+        "prompt_cache_mib": 30976,
+        "prompt_cache_requested_mib": 31135,
+        "prompt_cache_swap_allowance_mib": 0,
+        "checkpoint_min_step": 8192,
+        "n_ctx_checkpoints": 32,
+        "n_batch": 8192,
+        "n_ubatch": 2048,
+        "kv_cache_type": "q4_0",
+        "speculative_type": "none"
+      },
+      {
+        "model": "LiquidAI/LFM3-Omni-2B-GGUF",
+        "context": 32000,
+        "gpu_layers": -1,
+        "main_gpu": 0,
+        "prompt_cache_mib": 30976,
+        "prompt_cache_requested_mib": 31135,
+        "prompt_cache_swap_allowance_mib": 0,
+        "checkpoint_min_step": 8192,
+        "n_ctx_checkpoints": 32,
+        "n_batch": 8192,
+        "n_ubatch": 2048,
+        "kv_cache_type": "f16",
+        "speculative_type": "none"
+      }
+    ],
+    "remaining_requests": 0
+  },
+  "router": {
+    "label": "DevXTgx10",
+    "version": "f20da84",
+    "models": [
+      "openbmb/MiniCPM5-2B-GGUF",
+      "LiquidAI/LFM3-Omni-2B-GGUF"
+    ],
+    "model_context": {
+      "LiquidAI/LFM3-Omni-2B-GGUF": 32000,
+      "Qwen/Qwen3-Embedding-0.6B-GGUF": 10000,
+      "Qwen3-Embedding-0.6B": 10000,
+      "openbmb/MiniCPM5-2B-GGUF": 65536
+    },
+    "model_quant": {
+      "LiquidAI/LFM3-Omni-2B-GGUF": "Q4_K_M",
+      "Qwen/Qwen3-Embedding-0.6B-GGUF": "Q8_0",
+      "Qwen3-Embedding-0.6B": "Q8_0",
+      "openbmb/MiniCPM5-2B-GGUF": "Q4_K_M"
+    },
+    "cap_slots": {
+      "embedding": {
+        "capacity": 2,
+        "in_flight": 0,
+        "queued": 0,
+        "available": 2
+      },
+      "image": {
+        "capacity": 1,
+        "in_flight": 0,
+        "queued": 0,
+        "available": 1
+      },
+      "music": {
+        "capacity": 1,
+        "in_flight": 0,
+        "queued": 0,
+        "available": 1
+      },
+      "stt": {
+        "capacity": 2,
+        "in_flight": 0,
+        "queued": 0,
+        "available": 2
+      },
+      "text": {
+        "capacity": 3,
+        "in_flight": 0,
+        "queued": 0,
+        "available": 3
+      },
+      "tts": {
+        "capacity": 2,
+        "in_flight": 0,
+        "queued": 0,
+        "available": 2
+      },
+      "vision": {
+        "capacity": 1,
+        "in_flight": 0,
+        "queued": 0,
+        "available": 1
+      }
+    },
+    "extra": {
+      "llm_model_residency": "resident",
+      "loaded_llms": [
+        "openbmb/MiniCPM5-2B-GGUF",
+        "LiquidAI/LFM3-Omni-2B-GGUF"
+      ],
+      "active_llm": "LiquidAI/LFM3-Omni-2B-GGUF",
+      "llm_unload_dependent_capabilities": [],
+      "http_request_encodings": [],
+      "realtime": {
+        "tunnel": true,
+        "protocol": "openai-realtime",
+        "path": "/v1/realtime",
+        "shared_capacity": "text",
+        "models": [
+          "LiquidAI/LFM3-Omni-2B-GGUF"
+        ],
+        "voice_conversion": {
+          "engine": "meanvc2",
+          "query_parameter": "voice",
+          "native_voice": "native",
+          "assets_ready": true,
+          "in_flight": 0,
+          "voices": [
+            "DukeNukem",
+            "HAL9000",
+            "Morgan_Freeman",
+            "StarTrekComputer1",
+            "american_male_storyteller",
+            "australian_female_casual",
+            "australian_male_cultivated",
+            "bill_mosley",
+            "british_rp_female",
+            "british_rp_male",
+            "default",
+            "french_accented_narrator",
+            "german_female_narrator",
+            "hungarian_female_narrator",
+            "jolie_odell",
+            "midwestern_female_storyteller",
+            "newfoundland_male",
+            "robert_middleton",
+            "scottish_male_narrator",
+            "singaporean_mandarin_female",
+            "southern_louisiana_female",
+            "warm_american_narrator"
+          ],
+          "backend": "cpu",
+          "capacity": 1,
+          "output_rate": 24000,
+          "bandwidth_rate": 16000,
+          "max_utterance_seconds": 120
+        }
+      }
+    },
+    "gpus": [
+      {
+        "index": 0,
+        "name": "NVIDIA GB10",
+        "total_vram_gb": 121.62,
+        "tier": 50,
+        "backend": "cuda"
+      },
+      {
+        "index": -1,
+        "name": "b20a83b9336f",
+        "total_vram_gb": 0.0,
+        "tier": 2,
+        "backend": "cpu"
+      }
+    ],
+    "last_heartbeat_age": 6.208475351333618,
+    "draining": false
+  },
+  "cutover": {
+    "status": "updated",
+    "old_image": "sha256:c55e0cc523c1a14aadc58576d8704bead2e1f4b9e31127e1e271e3bb6d8e7be8",
+    "new_image": "sha256:58b53ae4ad6cc06234a1775d076ef6c08b726f453804c3a2f4a85e2629b9e84b",
+    "rollback_tag": "ezlocalai:rollback-gb10-voice-20261029",
+    "models_preserved": true,
+    "quantization_preserved": true,
+    "mounts_preserved": true,
+    "effective_environment_matches_compose": true,
+    "added_settings": {
+      "MEANVC2_ENABLED": "true",
+      "MEANVC2_THREADS": "4",
+      "MEANVC2_MODEL_PATH": "/app/models/MeanVC2-GGUF/meanvc2-120ms-40ms-fp32.gguf",
+      "MEANVC2_VOICES_DIR": "/app/voices"
+    },
+    "router_version": "f20da84",
+    "two_fresh_heartbeats": true
+  },
+  "baseline_failure": {
+    "worker_version": "1821480",
+    "engine": "0.7.0-dev 620d2225c",
+    "http_status": 503,
+    "error": "unknown model architecture: 'lfm3'",
+    "realtime_upgrade_status": 403,
+    "cause_established": "Active ezlocalai:gb10 tag referenced the old image while a newer image existed as ezlocalai-ezlocalai:latest. Whether manual launch or Deploy caused the mismatch was not established."
+  },
+  "metrics_definition": "Energy onset uses 20 ms RMS >98/32768; it is not human-confirmed speech onset. Playback estimate assumes first PCM playback after an 80ms buffer, without silence trimming.",
+  "profiles": {
+    "q4-gpu": {
+      "summary": {
+        "british_rp_female": {
+          "first_pcm_seconds": {
+            "n": 5,
+            "median": 0.16528446698794141,
+            "min": 0.16336847300408408,
+            "max": 0.18110239400994033
+          },
+          "first_energy_packet_seconds": {
+            "n": 5,
+            "median": 0.4341079710284248,
+            "min": 0.2715889420360327,
+            "max": 0.44143901695497334
+          },
+          "leading_quiet_seconds": {
+            "n": 5,
+            "median": 0.74,
+            "min": 0.26,
+            "max": 0.8
+          },
+          "estimated_untrimmed_playout_onset_with_80ms_buffer_seconds": {
+            "n": 5,
+            "median": 0.9833684730040841,
+            "min": 0.5035704479995184,
+            "max": 1.0452844669879415
+          },
+          "generation_rtf": {
+            "n": 5,
+            "median": 0.34085100369723054,
+            "min": 0.3370012554089929,
+            "max": 0.3540113215774087
+          }
+        },
+        "native": {
+          "first_pcm_seconds": {
+            "n": 5,
+            "median": 0.10690384602639824,
+            "min": 0.10342460096580908,
+            "max": 0.28033925901399925
+          },
+          "first_energy_packet_seconds": {
+            "n": 5,
+            "median": 0.3582438269513659,
+            "min": 0.3258202350116335,
+            "max": 0.5030823029810563
+          },
+          "leading_quiet_seconds": {
+            "n": 5,
+            "median": 0.82,
+            "min": 0.74,
+            "max": 1.02
+          },
+          "estimated_untrimmed_playout_onset_with_80ms_buffer_seconds": {
+            "n": 5,
+            "median": 1.1150538029614836,
+            "min": 0.9235037260153331,
+            "max": 1.2069038460263983
+          },
+          "generation_rtf": {
+            "n": 5,
+            "median": 0.32124408014032557,
+            "min": 0.31330812614344594,
+            "max": 0.349682480996245
+          }
+        }
+      },
+      "responses": 16,
+      "errors": [],
+      "playout_lateness_max_seconds": 0,
+      "cancel_ack_seconds": [
+        0.05293155700201169,
+        0.07039365102536976
+      ],
+      "calls": [
+        {
+          "voice": "native",
+          "setup_seconds": 0.06896634999429807,
+          "session_voice_conversion": null
+        },
+        {
+          "voice": "native",
+          "setup_seconds": 0.11249899299582466,
+          "session_voice_conversion": null
+        },
+        {
+          "voice": "british_rp_female",
+          "setup_seconds": 3.7939027919783257,
+          "session_voice_conversion": {
+            "bandwidth_rate": 16000,
+            "engine": "meanvc2",
+            "voice": "british_rp_female"
+          }
+        },
+        {
+          "voice": "british_rp_female",
+          "setup_seconds": 3.6682433870155364,
+          "session_voice_conversion": {
+            "bandwidth_rate": 16000,
+            "engine": "meanvc2",
+            "voice": "british_rp_female"
+          }
+        }
+      ],
+      "special_cases": [
+        {
+          "voice": "native",
+          "case": "after-cancel",
+          "first_pcm_seconds": 0.08386085199890658,
+          "first_energy_packet_seconds": 0.3873603380052373,
+          "leading_quiet_seconds": 1.0,
+          "estimated_untrimmed_playout_onset_with_80ms_buffer_seconds": 1.1638608519989067,
+          "generation_rtf": 0.3568108650142676,
+          "text": "Ready."
+        },
+        {
+          "voice": "native",
+          "case": "speech-to-speech",
+          "first_pcm_seconds": 0.1053263699868694,
+          "first_energy_packet_seconds": 0.21645061700837687,
+          "leading_quiet_seconds": 0.4,
+          "estimated_untrimmed_playout_onset_with_80ms_buffer_seconds": 0.5853263699868694,
+          "generation_rtf": 0.31810660933191304,
+          "text": "Hello! I'm ready to help you steer the tests. What would you like to do?"
+        },
+        {
+          "voice": "british_rp_female",
+          "case": "after-cancel",
+          "first_pcm_seconds": 0.1474079550243914,
+          "first_energy_packet_seconds": 0.5324312230222858,
+          "leading_quiet_seconds": 1.22,
+          "estimated_untrimmed_playout_onset_with_80ms_buffer_seconds": 1.4474079550243915,
+          "generation_rtf": 0.37242690713832244,
+          "text": "Ready."
+        },
+        {
+          "voice": "british_rp_female",
+          "case": "speech-to-speech",
+          "first_pcm_seconds": 0.16354838100960478,
+          "first_energy_packet_seconds": 0.5095177699695341,
+          "leading_quiet_seconds": 0.84,
+          "estimated_untrimmed_playout_onset_with_80ms_buffer_seconds": 1.0835483810096047,
+          "generation_rtf": 0.34140829805655304,
+          "text": "Hello. The working agent is running the tests. I can help you steer it."
+        }
+      ]
+    },
+    "f16-gpu": {
+      "summary": {
+        "british_rp_female": {
+          "first_pcm_seconds": {
+            "n": 5,
+            "median": 0.2733081759652123,
+            "min": 0.2683721909997985,
+            "max": 0.28881649899994954
+          },
+          "first_energy_packet_seconds": {
+            "n": 5,
+            "median": 0.7595448649954051,
+            "min": 0.5416186489746906,
+            "max": 0.9448809489840642
+          },
+          "leading_quiet_seconds": {
+            "n": 5,
+            "median": 0.84,
+            "min": 0.64,
+            "max": 1.36
+          },
+          "estimated_untrimmed_playout_onset_with_80ms_buffer_seconds": {
+            "n": 5,
+            "median": 1.1885690019861794,
+            "min": 1.0088164989999495,
+            "max": 1.715625758979004
+          },
+          "generation_rtf": {
+            "n": 5,
+            "median": 0.4736343232193635,
+            "min": 0.46561892339986816,
+            "max": 0.48489841214638585
+          }
+        },
+        "native": {
+          "first_pcm_seconds": {
+            "n": 5,
+            "median": 0.19886485900497064,
+            "min": 0.18852487503318116,
+            "max": 0.33123822702327743
+          },
+          "first_energy_packet_seconds": {
+            "n": 5,
+            "median": 0.47085854096803814,
+            "min": 0.4123165049823001,
+            "max": 0.8203669640352018
+          },
+          "leading_quiet_seconds": {
+            "n": 5,
+            "median": 0.76,
+            "min": 0.54,
+            "max": 1.08
+          },
+          "estimated_untrimmed_playout_onset_with_80ms_buffer_seconds": {
+            "n": 5,
+            "median": 1.0378321369970218,
+            "min": 0.8202869860152715,
+            "max": 1.4112382270232775
+          },
+          "generation_rtf": {
+            "n": 5,
+            "median": 0.45103528623430855,
+            "min": 0.447541751194353,
+            "max": 0.4750312609394314
+          }
+        }
+      },
+      "responses": 16,
+      "errors": [],
+      "playout_lateness_max_seconds": 0,
+      "cancel_ack_seconds": [
+        0.06359187402995303,
+        0.05888070596847683
+      ],
+      "calls": [
+        {
+          "voice": "native",
+          "setup_seconds": 0.11016756104072556,
+          "session_voice_conversion": null
+        },
+        {
+          "voice": "native",
+          "setup_seconds": 0.06913381395861506,
+          "session_voice_conversion": null
+        },
+        {
+          "voice": "british_rp_female",
+          "setup_seconds": 3.71355670504272,
+          "session_voice_conversion": {
+            "bandwidth_rate": 16000,
+            "engine": "meanvc2",
+            "voice": "british_rp_female"
+          }
+        },
+        {
+          "voice": "british_rp_female",
+          "setup_seconds": 3.6831601899466477,
+          "session_voice_conversion": {
+            "bandwidth_rate": 16000,
+            "engine": "meanvc2",
+            "voice": "british_rp_female"
+          }
+        }
+      ],
+      "special_cases": [
+        {
+          "voice": "native",
+          "case": "after-cancel",
+          "first_pcm_seconds": 0.14572787401266396,
+          "first_energy_packet_seconds": 0.3692995849996805,
+          "leading_quiet_seconds": 0.58,
+          "estimated_untrimmed_playout_onset_with_80ms_buffer_seconds": 0.8057278740126639,
+          "generation_rtf": 0.531002000882706,
+          "text": "Ready."
+        },
+        {
+          "voice": "native",
+          "case": "speech-to-speech",
+          "first_pcm_seconds": 0.18135542195523158,
+          "first_energy_packet_seconds": 0.4143282699515112,
+          "leading_quiet_seconds": 0.54,
+          "estimated_untrimmed_playout_onset_with_80ms_buffer_seconds": 0.8013554219552317,
+          "generation_rtf": 0.46864672159162263,
+          "text": "Hello! I'm ready to help you steer the tests. What would you like to do?"
+        },
+        {
+          "voice": "british_rp_female",
+          "case": "after-cancel",
+          "first_pcm_seconds": 0.22735837998334318,
+          "first_energy_packet_seconds": 0.6102978350245394,
+          "leading_quiet_seconds": 0.9,
+          "estimated_untrimmed_playout_onset_with_80ms_buffer_seconds": 1.2073583799833432,
+          "generation_rtf": 0.5350919625016104,
+          "text": "Ready."
+        },
+        {
+          "voice": "british_rp_female",
+          "case": "speech-to-speech",
+          "first_pcm_seconds": 0.2538960379897617,
+          "first_energy_packet_seconds": 0.4932219770271331,
+          "leading_quiet_seconds": 0.68,
+          "estimated_untrimmed_playout_onset_with_80ms_buffer_seconds": 1.0138960379897617,
+          "generation_rtf": 0.48674971893238506,
+          "text": "Hello! I'm ready to help you steer the tests. How can I assist you today?"
+        }
+      ]
+    },
+    "production-direct": {
+      "summary": {
+        "british_rp_female": {
+          "first_pcm_seconds": {
+            "n": 5,
+            "median": 0.1716970720444806,
+            "min": 0.16977072699228302,
+            "max": 0.17779116897145286
+          },
+          "first_energy_packet_seconds": {
+            "n": 5,
+            "median": 0.4592811670154333,
+            "min": 0.3717719229753129,
+            "max": 0.5669776919530705
+          },
+          "leading_quiet_seconds": {
+            "n": 5,
+            "median": 0.78,
+            "min": 0.58,
+            "max": 1.34
+          },
+          "estimated_untrimmed_playout_onset_with_80ms_buffer_seconds": {
+            "n": 5,
+            "median": 1.0297707269922831,
+            "min": 0.830191625948064,
+            "max": 1.597791168971453
+          },
+          "generation_rtf": {
+            "n": 5,
+            "median": 0.35278264101634704,
+            "min": 0.35100648573986715,
+            "max": 0.35527009025985457
+          }
+        },
+        "native": {
+          "first_pcm_seconds": {
+            "n": 5,
+            "median": 0.11478603904834017,
+            "min": 0.10491833300329745,
+            "max": 0.37088210799265653
+          },
+          "first_energy_packet_seconds": {
+            "n": 5,
+            "median": 0.3477118029841222,
+            "min": 0.29748241300694644,
+            "max": 0.5130411850404926
+          },
+          "leading_quiet_seconds": {
+            "n": 5,
+            "median": 0.74,
+            "min": 0.5,
+            "max": 0.9
+          },
+          "estimated_untrimmed_playout_onset_with_80ms_buffer_seconds": {
+            "n": 5,
+            "median": 0.9508821079926566,
+            "min": 0.8547860390483402,
+            "max": 1.0924339310335927
+          },
+          "generation_rtf": {
+            "n": 5,
+            "median": 0.335601684764697,
+            "min": 0.3260338108186654,
+            "max": 0.37633654161541735
+          }
+        },
+        "warm_american_narrator": {
+          "first_pcm_seconds": {
+            "n": 5,
+            "median": 0.16813932702643797,
+            "min": 0.16358169697923586,
+            "max": 0.1702545210137032
+          },
+          "first_energy_packet_seconds": {
+            "n": 5,
+            "median": 0.21792345104040578,
+            "min": 0.21341331402072683,
+            "max": 0.2254029790055938
+          },
+          "leading_quiet_seconds": {
+            "n": 5,
+            "median": 0.12,
+            "min": 0.12,
+            "max": 0.16
+          },
+          "estimated_untrimmed_playout_onset_with_80ms_buffer_seconds": {
+            "n": 5,
+            "median": 0.3702545210137032,
+            "min": 0.36358169697923587,
+            "max": 0.4098067469988018
+          },
+          "generation_rtf": {
+            "n": 5,
+            "median": 0.35119147999466804,
+            "min": 0.3488456814957317,
+            "max": 0.3556808242672773
+          }
+        }
+      },
+      "responses": 33,
+      "errors": [],
+      "playout_lateness_max_seconds": 0,
+      "cancel_ack_seconds": [
+        0.05316602601669729,
+        0.048314246989320964,
+        0.0689547230140306
+      ],
+      "calls": [
+        {
+          "voice": "native",
+          "setup_seconds": 0.04462151404004544,
+          "session_voice_conversion": null
+        },
+        {
+          "voice": "native",
+          "setup_seconds": 0.04554625495802611,
+          "session_voice_conversion": null
+        },
+        {
+          "voice": "native",
+          "setup_seconds": 0.045017249998636544,
+          "session_voice_conversion": null
+        },
+        {
+          "voice": "british_rp_female",
+          "setup_seconds": 3.702140262001194,
+          "session_voice_conversion": {
+            "bandwidth_rate": 16000,
+            "engine": "meanvc2",
+            "voice": "british_rp_female"
+          }
+        },
+        {
+          "voice": "british_rp_female",
+          "setup_seconds": 3.6162846770021133,
+          "session_voice_conversion": {
+            "bandwidth_rate": 16000,
+            "engine": "meanvc2",
+            "voice": "british_rp_female"
+          }
+        },
+        {
+          "voice": "british_rp_female",
+          "setup_seconds": 3.572525535011664,
+          "session_voice_conversion": {
+            "bandwidth_rate": 16000,
+            "engine": "meanvc2",
+            "voice": "british_rp_female"
+          }
+        },
+        {
+          "voice": "warm_american_narrator",
+          "setup_seconds": 3.9514313339604996,
+          "session_voice_conversion": {
+            "bandwidth_rate": 16000,
+            "engine": "meanvc2",
+            "voice": "warm_american_narrator"
+          }
+        },
+        {
+          "voice": "warm_american_narrator",
+          "setup_seconds": 3.8803598700324073,
+          "session_voice_conversion": {
+            "bandwidth_rate": 16000,
+            "engine": "meanvc2",
+            "voice": "warm_american_narrator"
+          }
+        },
+        {
+          "voice": "warm_american_narrator",
+          "setup_seconds": 3.8968418129952624,
+          "session_voice_conversion": {
+            "bandwidth_rate": 16000,
+            "engine": "meanvc2",
+            "voice": "warm_american_narrator"
+          }
+        }
+      ],
+      "special_cases": [
+        {
+          "voice": "native",
+          "case": "context-update",
+          "first_pcm_seconds": 0.3691767540294677,
+          "first_energy_packet_seconds": 0.3691767540294677,
+          "leading_quiet_seconds": 0.0,
+          "estimated_untrimmed_playout_onset_with_80ms_buffer_seconds": 0.4491767540294677,
+          "generation_rtf": 0.40790534947821777,
+          "text": "The current task has now changed to deploying Cedar."
+        },
+        {
+          "voice": "native",
+          "case": "after-cancel",
+          "first_pcm_seconds": 0.09446662204572931,
+          "first_energy_packet_seconds": 0.37837757100351155,
+          "leading_quiet_seconds": 0.96,
+          "estimated_untrimmed_playout_onset_with_80ms_buffer_seconds": 1.1344666220457293,
+          "generation_rtf": 0.3621852283111749,
+          "text": "Ready."
+        },
+        {
+          "voice": "native",
+          "case": "speech-to-speech",
+          "first_pcm_seconds": 0.10500160697847605,
+          "first_energy_packet_seconds": 0.31742451997706667,
+          "leading_quiet_seconds": 0.76,
+          "estimated_untrimmed_playout_onset_with_80ms_buffer_seconds": 0.9450016069784761,
+          "generation_rtf": 0.3472860939124272,
+          "text": "The working agent is running unit tests."
+        },
+        {
+          "voice": "british_rp_female",
+          "case": "context-update",
+          "first_pcm_seconds": 0.2794407260371372,
+          "first_energy_packet_seconds": 0.672710423998069,
+          "leading_quiet_seconds": 1.06,
+          "estimated_untrimmed_playout_onset_with_80ms_buffer_seconds": 1.4194407260371373,
+          "generation_rtf": 0.39592641848645616,
+          "text": "The current task has now changed to deploying Cedar."
+        },
+        {
+          "voice": "british_rp_female",
+          "case": "after-cancel",
+          "first_pcm_seconds": 0.1519610770046711,
+          "first_energy_packet_seconds": 0.41313477099174634,
+          "leading_quiet_seconds": 0.72,
+          "estimated_untrimmed_playout_onset_with_80ms_buffer_seconds": 0.9519610770046711,
+          "generation_rtf": 0.41771558280743193,
+          "text": "Ready."
+        },
+        {
+          "voice": "british_rp_female",
+          "case": "speech-to-speech",
+          "first_pcm_seconds": 0.16889759997138754,
+          "first_energy_packet_seconds": 0.4817316739936359,
+          "leading_quiet_seconds": 0.98,
+          "estimated_untrimmed_playout_onset_with_80ms_buffer_seconds": 1.2288975999713876,
+          "generation_rtf": 0.3485198862472316,
+          "text": "The working agent is running unit tests."
+        },
+        {
+          "voice": "warm_american_narrator",
+          "case": "context-update",
+          "first_pcm_seconds": 0.28088440699502826,
+          "first_energy_packet_seconds": 0.33094364596763626,
+          "leading_quiet_seconds": 0.12,
+          "estimated_untrimmed_playout_onset_with_80ms_buffer_seconds": 0.48088440699502827,
+          "generation_rtf": 0.399074564120383,
+          "text": "The current task has now changed to deploying Cedar."
+        },
+        {
+          "voice": "warm_american_narrator",
+          "case": "after-cancel",
+          "first_pcm_seconds": 0.15615476202219725,
+          "first_energy_packet_seconds": 0.2084440200123936,
+          "leading_quiet_seconds": 0.12,
+          "estimated_untrimmed_playout_onset_with_80ms_buffer_seconds": 0.35615476202219726,
+          "generation_rtf": 0.4477154731060951,
+          "text": "Ready."
+        },
+        {
+          "voice": "warm_american_narrator",
+          "case": "speech-to-speech",
+          "first_pcm_seconds": 0.15909570403164253,
+          "first_energy_packet_seconds": 0.21138733898987994,
+          "leading_quiet_seconds": 0.12,
+          "estimated_untrimmed_playout_onset_with_80ms_buffer_seconds": 0.35909570403164254,
+          "generation_rtf": 0.36124713433934236,
+          "text": "The working agent is running unit tests."
+        }
+      ]
+    },
+    "production-routed": {
+      "summary": {
+        "british_rp_female": {
+          "first_pcm_seconds": {
+            "n": 5,
+            "median": 0.17099174996837974,
+            "min": 0.1654838279937394,
+            "max": 0.17733481898903847
+          },
+          "first_energy_packet_seconds": {
+            "n": 5,
+            "median": 0.5098628199775703,
+            "min": 0.36910219496348873,
+            "max": 0.5574852189747617
+          },
+          "leading_quiet_seconds": {
+            "n": 5,
+            "median": 0.9,
+            "min": 0.6,
+            "max": 1.08
+          },
+          "estimated_untrimmed_playout_onset_with_80ms_buffer_seconds": {
+            "n": 5,
+            "median": 1.1510970790009014,
+            "min": 0.8464707569871097,
+            "max": 1.3309917499683799
+          },
+          "generation_rtf": {
+            "n": 5,
+            "median": 0.3504838305040418,
+            "min": 0.34726677716632065,
+            "max": 0.35713019767302157
+          }
+        },
+        "native": {
+          "first_pcm_seconds": {
+            "n": 5,
+            "median": 0.10539038898423314,
+            "min": 0.10408104199450463,
+            "max": 0.11754101701080799
+          },
+          "first_energy_packet_seconds": {
+            "n": 5,
+            "median": 0.3376596160233021,
+            "min": 0.10539038898423314,
+            "max": 0.3465705179842189
+          },
+          "leading_quiet_seconds": {
+            "n": 5,
+            "median": 0.7,
+            "min": 0.0,
+            "max": 0.78
+          },
+          "estimated_untrimmed_playout_onset_with_80ms_buffer_seconds": {
+            "n": 5,
+            "median": 0.8859632719843649,
+            "min": 0.18539038898423316,
+            "max": 0.9641407680022531
+          },
+          "generation_rtf": {
+            "n": 5,
+            "median": 0.33682290364191025,
+            "min": 0.3296889045183586,
+            "max": 0.337956781512643
+          }
+        },
+        "warm_american_narrator": {
+          "first_pcm_seconds": {
+            "n": 5,
+            "median": 0.17434920399682596,
+            "min": 0.16906453802948818,
+            "max": 0.17715845996281132
+          },
+          "first_energy_packet_seconds": {
+            "n": 5,
+            "median": 0.2274480169871822,
+            "min": 0.21648297703359276,
+            "max": 0.23449001100379974
+          },
+          "leading_quiet_seconds": {
+            "n": 5,
+            "median": 0.16,
+            "min": 0.12,
+            "max": 0.16
+          },
+          "estimated_untrimmed_playout_onset_with_80ms_buffer_seconds": {
+            "n": 5,
+            "median": 0.41434920399682595,
+            "min": 0.3690645380294882,
+            "max": 0.4171584599628113
+          },
+          "generation_rtf": {
+            "n": 5,
+            "median": 0.34992196499842976,
+            "min": 0.3385691740853793,
+            "max": 0.35631892892914563
+          }
+        }
+      },
+      "responses": 33,
+      "errors": [],
+      "playout_lateness_max_seconds": 0,
+      "cancel_ack_seconds": [
+        0.052965242008212954,
+        0.061270345002412796,
+        0.06324654095806181
+      ],
+      "calls": [
+        {
+          "voice": "native",
+          "setup_seconds": 0.831937669951003,
+          "session_voice_conversion": null
+        },
+        {
+          "voice": "native",
+          "setup_seconds": 1.0251197370234877,
+          "session_voice_conversion": null
+        },
+        {
+          "voice": "native",
+          "setup_seconds": 1.0187724499846809,
+          "session_voice_conversion": null
+        },
+        {
+          "voice": "british_rp_female",
+          "setup_seconds": 3.6135725309723057,
+          "session_voice_conversion": {
+            "bandwidth_rate": 16000,
+            "engine": "meanvc2",
+            "voice": "british_rp_female"
+          }
+        },
+        {
+          "voice": "british_rp_female",
+          "setup_seconds": 3.663971893955022,
+          "session_voice_conversion": {
+            "bandwidth_rate": 16000,
+            "engine": "meanvc2",
+            "voice": "british_rp_female"
+          }
+        },
+        {
+          "voice": "british_rp_female",
+          "setup_seconds": 3.677709803043399,
+          "session_voice_conversion": {
+            "bandwidth_rate": 16000,
+            "engine": "meanvc2",
+            "voice": "british_rp_female"
+          }
+        },
+        {
+          "voice": "warm_american_narrator",
+          "setup_seconds": 4.058098356996197,
+          "session_voice_conversion": {
+            "bandwidth_rate": 16000,
+            "engine": "meanvc2",
+            "voice": "warm_american_narrator"
+          }
+        },
+        {
+          "voice": "warm_american_narrator",
+          "setup_seconds": 4.055351536022499,
+          "session_voice_conversion": {
+            "bandwidth_rate": 16000,
+            "engine": "meanvc2",
+            "voice": "warm_american_narrator"
+          }
+        },
+        {
+          "voice": "warm_american_narrator",
+          "setup_seconds": 3.9559034650446847,
+          "session_voice_conversion": {
+            "bandwidth_rate": 16000,
+            "engine": "meanvc2",
+            "voice": "warm_american_narrator"
+          }
+        }
+      ],
+      "special_cases": [
+        {
+          "voice": "native",
+          "case": "context-update",
+          "first_pcm_seconds": 0.439839246973861,
+          "first_energy_packet_seconds": 0.5611536029609852,
+          "leading_quiet_seconds": 0.4,
+          "estimated_untrimmed_playout_onset_with_80ms_buffer_seconds": 0.919839246973861,
+          "generation_rtf": 0.471716436827831,
+          "text": "The current task has now changed to deploying Cedar."
+        },
+        {
+          "voice": "native",
+          "case": "after-cancel",
+          "first_pcm_seconds": 0.09344893402885646,
+          "first_energy_packet_seconds": 0.37792659900151193,
+          "leading_quiet_seconds": 0.98,
+          "estimated_untrimmed_playout_onset_with_80ms_buffer_seconds": 1.1534489340288565,
+          "generation_rtf": 0.36825528753551595,
+          "text": "Ready."
+        },
+        {
+          "voice": "native",
+          "case": "speech-to-speech",
+          "first_pcm_seconds": 0.10462427500169724,
+          "first_energy_packet_seconds": 0.4300816709874198,
+          "leading_quiet_seconds": 1.08,
+          "estimated_untrimmed_playout_onset_with_80ms_buffer_seconds": 1.2646242750016974,
+          "generation_rtf": 0.34184021576601525,
+          "text": "The working agent is running unit tests."
+        },
+        {
+          "voice": "british_rp_female",
+          "case": "context-update",
+          "first_pcm_seconds": 0.29186414898140356,
+          "first_energy_packet_seconds": 0.4945013129618019,
+          "leading_quiet_seconds": 0.66,
+          "estimated_untrimmed_playout_onset_with_80ms_buffer_seconds": 1.0318641489814036,
+          "generation_rtf": 0.41265811312769074,
+          "text": "The current task has now changed to deploying Cedar."
+        },
+        {
+          "voice": "british_rp_female",
+          "case": "after-cancel",
+          "first_pcm_seconds": 0.15801229799399152,
+          "first_energy_packet_seconds": 0.5568268669885583,
+          "leading_quiet_seconds": 1.2,
+          "estimated_untrimmed_playout_onset_with_80ms_buffer_seconds": 1.4380122979939916,
+          "generation_rtf": 0.39133607798638487,
+          "text": "Ready."
+        },
+        {
+          "voice": "british_rp_female",
+          "case": "speech-to-speech",
+          "first_pcm_seconds": 0.15883790602674708,
+          "first_energy_packet_seconds": 0.36999097402440384,
+          "leading_quiet_seconds": 0.68,
+          "estimated_untrimmed_playout_onset_with_80ms_buffer_seconds": 0.9188379060267471,
+          "generation_rtf": 0.36614031777538697,
+          "text": "The working agent is running unit tests."
+        },
+        {
+          "voice": "warm_american_narrator",
+          "case": "context-update",
+          "first_pcm_seconds": 0.28369649400701746,
+          "first_energy_packet_seconds": 0.3359157700324431,
+          "leading_quiet_seconds": 0.12,
+          "estimated_untrimmed_playout_onset_with_80ms_buffer_seconds": 0.4836964940070175,
+          "generation_rtf": 0.3995265212731109,
+          "text": "The current task has now changed to deploying Cedar."
+        },
+        {
+          "voice": "warm_american_narrator",
+          "case": "after-cancel",
+          "first_pcm_seconds": 0.15772177203325555,
+          "first_energy_packet_seconds": 0.19900566601427272,
+          "leading_quiet_seconds": 0.12,
+          "estimated_untrimmed_playout_onset_with_80ms_buffer_seconds": 0.35772177203325556,
+          "generation_rtf": 0.42910642334997345,
+          "text": "Ready."
+        },
+        {
+          "voice": "warm_american_narrator",
+          "case": "speech-to-speech",
+          "first_pcm_seconds": 0.16899466898757964,
+          "first_energy_packet_seconds": 0.21882785798516124,
+          "leading_quiet_seconds": 0.12,
+          "estimated_untrimmed_playout_onset_with_80ms_buffer_seconds": 0.36899466898757965,
+          "generation_rtf": 0.3702212081861944,
+          "text": "The working agent is running unit tests."
+        }
+      ]
+    }
+  },
+  "concurrency": {
+    "concurrent-minicpm": {
+      "summary": {
+        "warm_american_narrator": {
+          "first_pcm_seconds": {
+            "n": 3,
+            "median": 0.45157485199160874,
+            "min": 0.42867691098945215,
+            "max": 0.4586972859688103
+          },
+          "first_energy_packet_seconds": {
+            "n": 3,
+            "median": 0.6182203890057281,
+            "min": 0.6043960149982013,
+            "max": 0.6228728130226955
+          },
+          "leading_quiet_seconds": {
+            "n": 3,
+            "median": 0.12,
+            "min": 0.12,
+            "max": 0.12
+          },
+          "estimated_untrimmed_energy_playout_seconds": {
+            "n": 3,
+            "median": 0.6515748519916087,
+            "min": 0.6286769109894521,
+            "max": 0.6586972859688103
+          },
+          "generation_rtf": {
+            "n": 3,
+            "median": 1.157326951139915,
+            "min": 1.1453548868398924,
+            "max": 1.1598710658076656
+          },
+          "largest_playout_lateness_with_80ms_buffer_seconds": {
+            "n": 3,
+            "median": 0.669445336003788,
+            "min": 0.6239455330478956,
+            "max": 0.7248905110396446
+          }
+        }
+      },
+      "responses": 9,
+      "errors": [],
+      "largest_playout_lateness_seconds": 0.8768260650187729,
+      "background_requests": 30,
+      "background_errors": 0,
+      "background_completion_tokens": [
+        256,
+        256,
+        7,
+        109,
+        256,
+        256,
+        175,
+        8,
+        74,
+        256,
+        256,
+        75,
+        106,
+        256,
+        59,
+        121,
+        256,
+        82,
+        97,
+        256,
+        256,
+        256,
+        256,
+        256,
+        9,
+        37,
+        256,
+        207,
+        256,
+        256
+      ]
+    },
+    "concurrent-shared-lfm": {
+      "summary": {
+        "warm_american_narrator": {
+          "first_pcm_seconds": {
+            "n": 3,
+            "median": 0.8964849599869922,
+            "min": 0.8750323060085066,
+            "max": 0.9187308629625477
+          },
+          "first_energy_packet_seconds": {
+            "n": 3,
+            "median": 1.0756973440293223,
+            "min": 1.0457968200207688,
+            "max": 1.088592580985278
+          },
+          "leading_quiet_seconds": {
+            "n": 3,
+            "median": 0.14,
+            "min": 0.12,
+            "max": 0.16
+          },
+          "estimated_untrimmed_energy_playout_seconds": {
+            "n": 3,
+            "median": 1.0964849599869921,
+            "min": 1.0950323060085065,
+            "max": 1.1587308629625477
+          },
+          "generation_rtf": {
+            "n": 3,
+            "median": 1.332174090091544,
+            "min": 1.317200310595696,
+            "max": 1.3376569246726209
+          },
+          "largest_playout_lateness_with_80ms_buffer_seconds": {
+            "n": 3,
+            "median": 1.1842029590266758,
+            "min": 1.1764949060431684,
+            "max": 1.342568726010155
+          }
+        }
+      },
+      "responses": 9,
+      "errors": [],
+      "largest_playout_lateness_seconds": 2.798590354979038,
+      "background_requests": 13,
+      "background_errors": 0,
+      "background_completion_tokens": [
+        256,
+        256,
+        256,
+        256,
+        256,
+        256,
+        256,
+        256,
+        256,
+        256,
+        256,
+        256,
+        256
+      ]
+    },
+    "intermittent-shared-vision": {
+      "summary": {
+        "warm_american_narrator": {
+          "first_pcm_seconds": {
+            "n": 3,
+            "median": 0.9314886110369116,
+            "min": 0.9300564710283652,
+            "max": 0.9331511470372789
+          },
+          "first_energy_packet_seconds": {
+            "n": 3,
+            "median": 1.1153700139839202,
+            "min": 1.1118248600396328,
+            "max": 1.1203448200249113
+          },
+          "leading_quiet_seconds": {
+            "n": 3,
+            "median": 0.12,
+            "min": 0.12,
+            "max": 0.12
+          },
+          "estimated_untrimmed_energy_playout_seconds": {
+            "n": 3,
+            "median": 1.1314886110369118,
+            "min": 1.1300564710283654,
+            "max": 1.133151147037279
+          },
+          "generation_rtf": {
+            "n": 3,
+            "median": 0.8867466994763716,
+            "min": 0.8834945564189725,
+            "max": 0.9317418028749179
+          },
+          "largest_playout_lateness_with_80ms_buffer_seconds": {
+            "n": 3,
+            "median": 0.36529022395052013,
+            "min": 0.0027683890112675663,
+            "max": 0.8588228659951127
+          }
+        }
+      },
+      "responses": 9,
+      "errors": [],
+      "largest_playout_lateness_seconds": 1.1509425290245563,
+      "background_requests": 16,
+      "background_errors": 0,
+      "background_completion_tokens": [
+        64,
+        64,
+        60,
+        64,
+        55,
+        64,
+        60,
+        64,
+        64,
+        64,
+        64,
+        61,
+        64,
+        64,
+        64,
+        61
+      ],
+      "red_recognized": 16
+    },
+    "shared-lfm-idle": {
+      "summary": {
+        "warm_american_narrator": {
+          "first_pcm_seconds": {
+            "n": 3,
+            "median": 0.17091364198131487,
+            "min": 0.16855780401965603,
+            "max": 0.20494477596366778
+          },
+          "first_energy_packet_seconds": {
+            "n": 3,
+            "median": 0.2212155350134708,
+            "min": 0.2202935279929079,
+            "max": 0.24592846701852977
+          },
+          "leading_quiet_seconds": {
+            "n": 3,
+            "median": 0.12,
+            "min": 0.12,
+            "max": 0.12
+          },
+          "estimated_untrimmed_energy_playout_seconds": {
+            "n": 3,
+            "median": 0.3709136419813149,
+            "min": 0.36855780401965604,
+            "max": 0.4049447759636678
+          },
+          "generation_rtf": {
+            "n": 3,
+            "median": 0.3408362454683811,
+            "min": 0.3369898361155395,
+            "max": 0.35169636660619924
+          },
+          "largest_playout_lateness_with_80ms_buffer_seconds": {
+            "n": 3,
+            "median": 0,
+            "min": 0,
+            "max": 0
+          }
+        }
+      },
+      "responses": 5,
+      "errors": [],
+      "largest_playout_lateness_seconds": 0
+    }
+  },
+  "minicpm_context_audit": {
+    "retained_router_rows": 500,
+    "minicpm_requests": 86,
+    "prompt_tokens_median": 630.0,
+    "max_prompt_tokens": 5181,
+    "max_prompt_plus_actual_completion_tokens": 5208,
+    "max_actual_completion_tokens": 167,
+    "earliest_utc": "2026-10-28T21:55:38.922167+00:00",
+    "latest_utc": "2026-10-29T01:50:04.442532+00:00",
+    "limits": [
+      "Only retained router history, not full long-term history or direct requests.",
+      "Different tokenization/vision tokens and requested output caps need validation before migration.",
+      "Current LFM single slot is reserved for the entire call; other LFM requests would wait."
+    ]
+  },
+  "existing_endpoint_smokes": [
+    {
+      "check": "existing MiniCPM chat",
+      "seconds": 0.07137577899266034,
+      "text": "OK"
+    },
+    {
+      "check": "existing embedding pool",
+      "seconds": 0.0076671799761243165,
+      "dimensions": 1024
+    },
+    {
+      "check": "existing transcription pool",
+      "seconds": 0.6954288510023616,
+      "text": " What is the working agent doing?"
+    },
+    {
+      "check": "existing Qwen TTS",
+      "passed": true,
+      "audio_seconds": 2.32
+    }
+  ],
+  "limitations": [
+    "Single GB10, small timing samples; medians/ranges are not a production latency SLA.",
+    "Only GPU-offloaded profiles included; initial CPU-offload diagnostics were excluded.",
+    "Voice quality, speaker similarity and cross-language behavior not certified.",
+    "Native 24kHz wire and MeanVC2 16kHz bandwidth remain distinct.",
+    "Untrimmed playout onset is an RMS/80ms-buffer estimate, not measured human intelligibility.",
+    "Concurrent MiniCPM and two-slot LFM/vision work degraded voice timing; consolidation alone is not a QoS guarantee.",
+    "Production parallelism remains MiniCPM 2 / LFM 1; no model was removed.",
+    "Context audit covers only 86 MiniCPM entries in retained 500-row history; actual LFM tokenizer/media and requested output cap must be validated.",
+    "GB10 reverse-tunnel transport was not exercised; routed tests used the live direct worker path.",
+    "Publisher workflow success acknowledges accepted background builds, not proof of a completed worker rollout."
+  ]
+}

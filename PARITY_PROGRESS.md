@@ -2,6 +2,43 @@
 
 The goal remains behavior parity with ezlocalai within the scope below, with all first-party executable code implemented in C++. It is **not complete**.
 
+## Physical GB10 LFM voice benchmarking and service correction (2026-10-29)
+
+The GB10 was still running image `c55e0cc523c1`/worker `1821480` with llama.cpp
+0.7.0: LFM reported an unknown architecture and could not serve calls. With
+user authorization, verified the already-built native ARM image and recreated
+the canonical compose service using `58b53ae4ad6c`/`f20da84` (llama.cpp 0.8.0).
+Rollback: `ezlocalai:rollback-gb10-voice-20261029`. Preserved both models,
+quantization, contexts, parallelism and mounts; provisioned verified projector
+and MeanVC2 assets and recorded the four MeanVC2 environment changes in
+[the benchmark report](benchmarks/gb10-voice-20261029.md). Manual launch versus
+Deploy origin of the stale tag remains undetermined.
+
+Physical GB10 evidence: 75/75 native package checks in the deployed image;
+33 responses each direct and routed with no protocol errors or uncontended
+80-ms-buffer underruns; speech input, context updates, mocked tools and
+cancellation/recovery passed. Routed normal first PCM medians were 105 ms native
+and 171–174 ms converted; generation RTF about 0.34–0.35. Packet latency is not
+heard-word latency: untrimmed RMS-based playout estimates were 0.41–1.15 seconds,
+and converted-call setup was about 3.7–3.8 seconds. Human quality remains pending.
+Existing MiniCPM, embedding, Whisper and Qwen TTS smoke checks passed.
+
+Concurrent GPU work is a material limitation: continuous MiniCPM or shared LFM
+requests slowed voice below playback speed; intermittent shared vision produced
+bursty underruns despite average RTF below one. A two-slot idle control remained
+fast. No cgroup memory/OOM or CPU-throttling events occurred in that candidate.
+Observed MiniCPM history peaked at 5208 prompt-plus-actual-output tokens, but
+LFM retokenization, media/output budgets and task quality need checking before
+consolidation. Production remains one LFM slot, held for a whole call; no model
+was removed. Voice priority/admission control or another worker is needed for
+reliable simultaneous helper inference.
+
+Added a reusable GPU-guarded realtime benchmark and compact evidence in
+`tests/fixtures/gb10_lfm_voice_20261029_validation.json`. Owned test containers,
+forwards and duplicate test weights were cleaned up; rollback remains. Not
+validated: GB10 reverse tunnel, long calls, subjective voice quality, image/music/
+video generation, other hardware or multi-GPU. No WorkConductor code changed.
+
 ## Native MeanVC2 reference voices and conditioning reuse (2026-10-28)
 
 PR149 now implements optional `LFM PCM → MeanVC2 → playback`, with native LFM

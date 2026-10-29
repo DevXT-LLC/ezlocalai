@@ -50,6 +50,15 @@ CUDA 12.8 and portable x86 CPU code. Per-card settings match Python:
 
 ## 2. GB10 (DevXTgx10), every modality
 
+**Physical update, 2026-10-29:** native ARM image `58b53ae4ad6c` (worker
+`f20da84`, llama.cpp 0.8.0) has 75/75 package checks. Direct/routed LFM voice,
+MeanVC2 selection, microphone input, mocked tools, cancellation and context
+updates were exercised on the actual GB10, alongside MiniCPM/embedding/STT/TTS
+smokes. Uncontended voice is faster than playback; competing GPU inference can
+cause underruns. See [measurements and deployment changes](benchmarks/gb10-voice-20261029.md).
+Image/music/video, GB10 reverse tunnel, long calls and human voice-quality
+acceptance remain outstanding. The older QEMU evidence below is historical.
+
 **Status:** the image is published at
 `192.168.1.243:5000/devxt/ezlocalai-native-gb10:latest` (`sm_121`, CUDA 13).
 54/54 package checks pass under QEMU, and health, models and resources respond.
