@@ -1,5 +1,6 @@
 #include "ezlocalai/native_server.hpp"
 #include "ezlocalai/music_runtime.hpp"
+#include "ezlocalai/cuda_mps.hpp"
 #ifdef EZLOCALAI_CTTS_TORCH
 #include "ezlocalai/ctts_torch.hpp"
 #endif
@@ -63,6 +64,25 @@ int main(int argc, char **argv) {
         }
     }
 
+    // A CUDA-free supervisor owns MPS. The child must exit completely before
+    // shutdown: driver/Torch contexts can outlive the worker's local objects.
+    std::unique_ptr<ezlocalai::CudaMpsService> cuda_mps;
+    try { cuda_mps = std::make_unique<ezlocalai::CudaMpsService>(); }
+    catch (const std::exception &error) {
+        std::cerr << "Failed to initialize CUDA MPS: " << error.what() << '\n';
+        return 1;
+    }
+    if (cuda_mps->active()) {
+        std::signal(SIGINT, handle_signal);
+        std::signal(SIGTERM, handle_signal);
+        std::vector<std::string> arguments{"/proc/self/exe"};
+        for (int i = 1; i < argc; ++i) arguments.emplace_back(argv[i]);
+        try { return cuda_mps->supervise(arguments, [] { return !keep_running; }); }
+        catch (const std::exception &error) {
+            std::cerr << "MPS worker supervisor failed: " << error.what() << '\n';
+            return 1;
+        }
+    }
     ezl_env_config config{};
     ezl_load_config(&config);
     ezlocalai::precache_music_models();

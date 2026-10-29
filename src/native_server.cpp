@@ -1,5 +1,6 @@
 #include "ezlocalai/omni_model.hpp"
 #include "ezlocalai/realtime.hpp"
+#include "ezlocalai/cuda_mps.hpp"
 #include "ezlocalai/voice_conversion.hpp"
 #include "ezlocalai/worker_models.hpp"
 #include "ezlocalai/runtime_version.hpp"
@@ -10576,6 +10577,13 @@ bool LlamaCppInferenceBackend::load_server_once_locked(Server *server, std::stri
                 if (measured_gpu >= 0 && static_cast<size_t>(measured_gpu) < free.size()) gpu_free_before_load = free[measured_gpu];
             } catch (...) { /* Telemetry must not prevent model loading. */ }
         }
+        if (!server->embedding_mode) {
+            if (const auto priority = llm_mps_client_priority(ezl_getenv_default("LLM_CUDA_MPS_CLIENT_PRIORITY"), server->config_index)) {
+                // Build the environment command before fork. /usr/bin/env then
+                // execs the engine without touching the threaded parent's env.
+                args.insert(args.begin(), {"/usr/bin/env", "CUDA_MPS_CLIENT_PRIORITY=" + std::to_string(*priority)});
+            }
+        }
         const std::string startup_log_path = temporary_llama_startup_log_path();
         const pid_t pid = fork();
         if (pid < 0) {
@@ -10604,7 +10612,7 @@ bool LlamaCppInferenceBackend::load_server_once_locked(Server *server, std::stri
                 argv.push_back(arg.data());
             }
             argv.push_back(nullptr);
-            execvp(server_bin_.c_str(), argv.data());
+            execvp(args.front().c_str(), argv.data());
             _exit(127);
         }
 
@@ -13984,7 +13992,7 @@ bool NativeServer::should_use_llm_fallback() const {
 }
 
 std::string NativeServer::begin_llm_inference(const std::string &model, const std::string &body,
-    const std::function<bool()> &cancelled) {
+    const std::function<bool()> &cancelled, bool realtime) {
     const auto requested = extract_json_string(body, "model", "");
     const auto preferred = requested.find('#') == std::string::npos ? std::nullopt : llm_catalog_.resolve(requested);
     auto replicas = backend_->llm_replica_state().value_or(llm_replicas_);
@@ -13994,6 +14002,22 @@ std::string NativeServer::begin_llm_inference(const std::string &model, const st
     for (;;) {
         if (llm_slots_stopping_) throw std::runtime_error("LLM slot scheduler is stopping");
         if (cancelled && cancelled()) throw std::runtime_error("Realtime admission cancelled or timed out");
+        const auto priorities = ezl_getenv_default("LLM_CUDA_MPS_CLIENT_PRIORITY");
+        if (*priorities) {
+            auto priority = [&](const LlmReplica &item) {
+                const auto config = llm_catalog_.configs.find(item.id);
+                if (config == llm_catalog_.configs.end()) return 0;
+                const char *global = std::getenv("CUDA_MPS_CLIENT_PRIORITY");
+                return llm_mps_client_priority(priorities, config->second.original_index)
+                    .value_or(global && std::string(global) == "1" ? 1 : 0);
+            };
+            // Prefer normal-priority copies for calls, below-normal copies for
+            // ordinary helper work. Capacity, explicit replica pins and fallback
+            // to other available copies retain their existing semantics.
+            std::stable_sort(replicas.begin(), replicas.end(), [&](const auto &a, const auto &b) {
+                return realtime ? priority(a) < priority(b) : priority(a) > priority(b);
+            });
+        }
         const auto acquired = try_acquire_llm_slot(replicas, llm_slots_, model.empty() ? std::nullopt : std::optional<std::string>(model), preferred, llm_temporarily_unavailable_, backend_->swap_llm_residency());
         if (acquired.acquired) {
             lock.unlock();
@@ -20756,7 +20780,7 @@ void NativeServer::handle_realtime_websocket(int client_fd, const std::string &q
                 return count == 0 || (count < 0 && errno != EAGAIN && errno != EWOULDBLOCK && errno != EINTR);
             }
             return false;
-        });
+        }, true);
         admitted = true;
         auto lease = backend_->open_realtime(model, replica);
         if (!lease) throw std::runtime_error("Realtime backend did not provide a model lease");

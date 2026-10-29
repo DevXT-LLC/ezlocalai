@@ -69,6 +69,7 @@ add_library(ezlocalai_core
     src/tts_text.cpp
     src/configuration.cpp
     src/request_queue.cpp
+    src/cuda_mps.cpp
 )
 add_library(ezlocalai_c ALIAS ezlocalai_core)
 target_include_directories(ezlocalai_core
@@ -215,6 +216,12 @@ target_compile_definitions(llama_cpp_tool PRIVATE EZLOCALAI_NATIVE_SOURCE_DIR="$
 add_executable(ezlocalai-native-entrypoint src/docker_entrypoint.cpp)
 target_link_libraries(ezlocalai-native-entrypoint PRIVATE ezlocalai_core)
 target_include_directories(ezlocalai-native-entrypoint PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+
+add_executable(test_cuda_mps tests/test_cuda_mps.cpp src/cuda_mps.cpp)
+target_include_directories(test_cuda_mps PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_link_libraries(test_cuda_mps PRIVATE Threads::Threads)
+add_test(NAME cuda_mps COMMAND test_cuda_mps)
+set_tests_properties(cuda_mps PROPERTIES TIMEOUT 60)
 
 add_custom_target(llama_cpp_update
     COMMAND llama_cpp_tool update
@@ -1855,6 +1862,7 @@ if(TARGET test_ltx_norm AND TARGET ezlocalai-tts)
         test_queue_http
         test_dotenv
         test_dotenv_startup
+        test_cuda_mps
         test_openapi
         test_router_fallback
         test_worker_heartbeat
