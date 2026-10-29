@@ -1,0 +1,492 @@
+{
+  "date": "2026-10-28",
+  "topic": "native_meanvc2_lfm_streaming",
+  "worker_pr": 149,
+  "router_pr": "https://github.com/DevXT-LLC/WorkerRouter/pull/11",
+  "workconductor_issue": "https://github.com/Josh-XT/WorkConductor/issues/429",
+  "implementation": {
+    "native_default_unchanged": true,
+    "python_product_runtime": false,
+    "audio_cpp_revision": "cd770076152085af5b166521185bec76f9d47808",
+    "speaker_cache_patch_sha256": "2c58693986e154f27c6fb9807248d9c60a3f0545ce826831cd54892d52657cb9",
+    "model_revision": "874fcb41ececda20bcbc0782d6b4ea7f7d069ea8",
+    "model_sha256": "340d5dd63cdd9d44045cdc4b394cccf677ae870a9ce4ed18f0007c8788e65245",
+    "model_bytes": 1629326784,
+    "backend": "cpu",
+    "inference_window_samples_16k": 2560,
+    "wire_sample_rate": 24000,
+    "bandwidth_sample_rate": 16000,
+    "max_utterance_seconds": 120,
+    "single_converter_capacity": 1,
+    "gib_free_ram_guard": 3,
+    "cgroup_v2_guard": true
+  },
+  "tests": {
+    "package_checkpoint": {
+      "passed": 75,
+      "failed": 0,
+      "reference_checkout_used": false
+    },
+    "final_package_recheck": {
+      "passed": 75,
+      "failed": 0,
+      "seconds": 346.04,
+      "reference_checkout_used": false,
+      "includes_speaker_cache_and_auto_context_fixes": true
+    },
+    "latest_focused": {
+      "passed": 3,
+      "failed": 0
+    },
+    "router": {
+      "passed": 103,
+      "ignored": 2,
+      "clippy_existing_warnings": 4
+    },
+    "conditioning_cache": {
+      "bit_identical_cached_output": true,
+      "different_reference_changes_output": true,
+      "passed": true,
+      "recomputed_a_matches_original": false,
+      "records": [
+        {
+          "samples": 99680,
+          "start_seconds": 1.497596582,
+          "voice": 0
+        },
+        {
+          "samples": 99680,
+          "start_seconds": 0.000247817,
+          "voice": 0
+        },
+        {
+          "samples": 99680,
+          "start_seconds": 1.761706268,
+          "voice": 1
+        },
+        {
+          "samples": 99680,
+          "start_seconds": 0.000189653,
+          "voice": 1
+        },
+        {
+          "samples": 99680,
+          "start_seconds": 1.627715389,
+          "voice": 0
+        }
+      ],
+      "reference_invalidation_verified": true
+    },
+    "packet_fragmentation": [
+      {
+        "case": "160ms",
+        "setup_seconds": 3.0302542540011927,
+        "processing_seconds": 0.5956437350250781,
+        "input_seconds": 6.16,
+        "output_seconds": 6.16,
+        "sha256": "dc443bf517ae1bd6ed660c17d63f28547bdbe4bf5c342db39c9ee9b207ee50b6"
+      },
+      {
+        "case": "20ms",
+        "setup_seconds": 3.090982714027632,
+        "processing_seconds": 0.6302740140235983,
+        "input_seconds": 6.16,
+        "output_seconds": 6.16,
+        "sha256": "dc443bf517ae1bd6ed660c17d63f28547bdbe4bf5c342db39c9ee9b207ee50b6"
+      },
+      {
+        "case": "mixed",
+        "setup_seconds": 3.050087547977455,
+        "processing_seconds": 0.6148337129852735,
+        "input_seconds": 6.16,
+        "output_seconds": 6.16,
+        "sha256": "dc443bf517ae1bd6ed660c17d63f28547bdbe4bf5c342db39c9ee9b207ee50b6"
+      },
+      {
+        "case": "short-20ms",
+        "setup_seconds": 3.0802316699991934,
+        "processing_seconds": 0.03311385400593281,
+        "input_seconds": 0.02,
+        "output_seconds": 0.02,
+        "sha256": "09878dd5972afaf0f53c50b65a43c5767ae29805759131c9b4891a4ecf39f690"
+      },
+      {
+        "case": "empty",
+        "setup_seconds": 3.102054813003633,
+        "processing_seconds": 4.883401561528444e-05,
+        "input_seconds": 0.0,
+        "output_seconds": 0.0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    ]
+  },
+  "hardware": {
+    "gpu": "NVIDIA RTX 3090 Ti",
+    "worker_label": "DevXT3090J",
+    "llm": "LiquidAI/LFM3-Omni-2B-GGUF F16",
+    "context": 8192,
+    "converter_cpu_threads": 6,
+    "sampled_pre_memoization_peak_rss_kib": 1756296,
+    "observations": {
+      "direct": {
+        "status": "passed",
+        "functional_checks": 26,
+        "quality_accepted": false,
+        "asr_diagnostics": [
+          {
+            "sample": "native",
+            "text": "Hello. The working agent is running the tests. I can help you steer it.",
+            "word_error_rate": 0.0
+          },
+          {
+            "sample": "british_rp_female",
+            "text": "Hello. The working agent is reming the tests. I can help you steer it.",
+            "word_error_rate": 0.07142857142857142
+          },
+          {
+            "sample": "warm_american_narrator",
+            "text": "Hello. The working agents is running the tests. I can help you steer it.",
+            "word_error_rate": 0.07142857142857142
+          },
+          {
+            "sample": "same-source",
+            "text": "Hello. The working agents is running the tests. I can help you steer it.",
+            "word_error_rate": 0.07142857142857142
+          },
+          {
+            "sample": "same-source-converted",
+            "text": "Hello. The working agents is running the tests. I can help you steer it.",
+            "word_error_rate": 0.07142857142857142
+          }
+        ],
+        "call_setup_seconds": [
+          3.0142384510254487,
+          3.236476471996866,
+          3.048497803043574,
+          3.2860179120325483
+        ],
+        "speech": [
+          {
+            "voice": "native",
+            "case": null,
+            "warmed_turn": false,
+            "ttfa_seconds": 0.17157880897866562,
+            "first_energy_packet_seconds": 0.22246052097762004,
+            "pcm_bytes": 268800
+          },
+          {
+            "voice": null,
+            "case": "native_text_context",
+            "warmed_turn": false,
+            "ttfa_seconds": null,
+            "first_energy_packet_seconds": null,
+            "pcm_bytes": 0
+          },
+          {
+            "voice": null,
+            "case": "native_warmed_speech",
+            "warmed_turn": false,
+            "ttfa_seconds": 0.060892069013789296,
+            "first_energy_packet_seconds": 0.1316213239915669,
+            "pcm_bytes": 57600
+          },
+          {
+            "voice": "british_rp_female",
+            "case": null,
+            "warmed_turn": false,
+            "ttfa_seconds": 0.1124476830009371,
+            "first_energy_packet_seconds": 0.1927322819828987,
+            "pcm_bytes": 264960
+          },
+          {
+            "voice": null,
+            "case": null,
+            "warmed_turn": false,
+            "ttfa_seconds": null,
+            "first_energy_packet_seconds": null,
+            "pcm_bytes": 0
+          },
+          {
+            "voice": "british_rp_female",
+            "case": null,
+            "warmed_turn": true,
+            "ttfa_seconds": 0.08992374199442565,
+            "first_energy_packet_seconds": 0.24147440801607445,
+            "pcm_bytes": 76800
+          },
+          {
+            "voice": "warm_american_narrator",
+            "case": null,
+            "warmed_turn": false,
+            "ttfa_seconds": 0.11466724501224235,
+            "first_energy_packet_seconds": 0.13308584602782503,
+            "pcm_bytes": 280320
+          },
+          {
+            "voice": null,
+            "case": null,
+            "warmed_turn": false,
+            "ttfa_seconds": null,
+            "first_energy_packet_seconds": null,
+            "pcm_bytes": 0
+          },
+          {
+            "voice": "warm_american_narrator",
+            "case": null,
+            "warmed_turn": true,
+            "ttfa_seconds": 0.08816216798732057,
+            "first_energy_packet_seconds": 0.11079924798104912,
+            "pcm_bytes": 80640
+          },
+          {
+            "voice": null,
+            "case": "input_audio",
+            "warmed_turn": false,
+            "ttfa_seconds": 0.22517337498720735,
+            "first_energy_packet_seconds": 0.26105053100036457,
+            "pcm_bytes": 245760
+          },
+          {
+            "voice": null,
+            "case": null,
+            "warmed_turn": false,
+            "ttfa_seconds": 0.12697590596508235,
+            "first_energy_packet_seconds": 0.14696986397029832,
+            "pcm_bytes": 91680
+          },
+          {
+            "voice": null,
+            "case": "tool_result",
+            "warmed_turn": false,
+            "ttfa_seconds": 0.10356169799342752,
+            "first_energy_packet_seconds": 0.11985184298828244,
+            "pcm_bytes": 160800
+          },
+          {
+            "voice": null,
+            "case": "barge_in",
+            "warmed_turn": false,
+            "ttfa_seconds": 0.10318555298727006,
+            "first_energy_packet_seconds": null,
+            "pcm_bytes": 4752
+          },
+          {
+            "voice": null,
+            "case": "after_barge_in",
+            "warmed_turn": false,
+            "ttfa_seconds": 0.09586016100365669,
+            "first_energy_packet_seconds": 0.11128935997840017,
+            "pcm_bytes": 72960
+          }
+        ],
+        "gpu_compute_processes": [
+          "4133883, /validation/engine/llama-server, 5808 MiB\n",
+          "4133883, /validation/engine/llama-server, 5808 MiB\n"
+        ]
+      },
+      "tunnel": {
+        "status": "passed",
+        "functional_checks": 26,
+        "quality_accepted": false,
+        "asr_diagnostics": [
+          {
+            "sample": "native",
+            "text": "Hello. The working agent is running the tests. I can help you steer it.",
+            "word_error_rate": 0.0
+          },
+          {
+            "sample": "british_rp_female",
+            "text": "Hello. The working agent is running the tests. I can help you steer it.",
+            "word_error_rate": 0.0
+          },
+          {
+            "sample": "warm_american_narrator",
+            "text": "Hello. The working agent is running the tests. I can hope you steer it.",
+            "word_error_rate": 0.07142857142857142
+          },
+          {
+            "sample": "same-source",
+            "text": "Hello. The working agents is running the tests. I can help you steer it.",
+            "word_error_rate": 0.07142857142857142
+          },
+          {
+            "sample": "same-source-converted",
+            "text": "Hello. The working agents is running the tests. I can help you steer it.",
+            "word_error_rate": 0.07142857142857142
+          }
+        ],
+        "call_setup_seconds": [
+          3.0299299669568427,
+          3.3590661879861727,
+          3.2407681639888324,
+          3.2793087380123325
+        ],
+        "speech": [
+          {
+            "voice": "native",
+            "case": null,
+            "warmed_turn": false,
+            "ttfa_seconds": 0.1618483069469221,
+            "first_energy_packet_seconds": 0.26293469994561747,
+            "pcm_bytes": 295680
+          },
+          {
+            "voice": null,
+            "case": "native_text_context",
+            "warmed_turn": false,
+            "ttfa_seconds": null,
+            "first_energy_packet_seconds": null,
+            "pcm_bytes": 0
+          },
+          {
+            "voice": null,
+            "case": "native_warmed_speech",
+            "warmed_turn": false,
+            "ttfa_seconds": 0.060812797979451716,
+            "first_energy_packet_seconds": 0.17229073896305636,
+            "pcm_bytes": 76800
+          },
+          {
+            "voice": "british_rp_female",
+            "case": null,
+            "warmed_turn": false,
+            "ttfa_seconds": 0.11331838800106198,
+            "first_energy_packet_seconds": 0.19266829203115776,
+            "pcm_bytes": 264960
+          },
+          {
+            "voice": null,
+            "case": null,
+            "warmed_turn": false,
+            "ttfa_seconds": null,
+            "first_energy_packet_seconds": null,
+            "pcm_bytes": 0
+          },
+          {
+            "voice": "british_rp_female",
+            "case": null,
+            "warmed_turn": true,
+            "ttfa_seconds": 0.08772083203075454,
+            "first_energy_packet_seconds": 0.24012597900582477,
+            "pcm_bytes": 84480
+          },
+          {
+            "voice": "warm_american_narrator",
+            "case": null,
+            "warmed_turn": false,
+            "ttfa_seconds": 0.14167003304464743,
+            "first_energy_packet_seconds": 0.16223735903622583,
+            "pcm_bytes": 272640
+          },
+          {
+            "voice": null,
+            "case": null,
+            "warmed_turn": false,
+            "ttfa_seconds": null,
+            "first_energy_packet_seconds": null,
+            "pcm_bytes": 0
+          },
+          {
+            "voice": "warm_american_narrator",
+            "case": null,
+            "warmed_turn": true,
+            "ttfa_seconds": 0.14251387998228893,
+            "first_energy_packet_seconds": 0.1630094510037452,
+            "pcm_bytes": 53760
+          },
+          {
+            "voice": null,
+            "case": "input_audio",
+            "warmed_turn": false,
+            "ttfa_seconds": 0.456344539008569,
+            "first_energy_packet_seconds": 0.6605448580230586,
+            "pcm_bytes": 303360
+          },
+          {
+            "voice": null,
+            "case": null,
+            "warmed_turn": false,
+            "ttfa_seconds": 0.14190974400844425,
+            "first_energy_packet_seconds": 0.16248519101645797,
+            "pcm_bytes": 91680
+          },
+          {
+            "voice": null,
+            "case": "tool_result",
+            "warmed_turn": false,
+            "ttfa_seconds": 0.163301955035422,
+            "first_energy_packet_seconds": 0.1837926180451177,
+            "pcm_bytes": 145920
+          },
+          {
+            "voice": null,
+            "case": "barge_in",
+            "warmed_turn": false,
+            "ttfa_seconds": 0.14258131699170917,
+            "first_energy_packet_seconds": 0.20386130904080346,
+            "pcm_bytes": 10512
+          },
+          {
+            "voice": null,
+            "case": "after_barge_in",
+            "warmed_turn": false,
+            "ttfa_seconds": 0.12199921096907929,
+            "first_energy_packet_seconds": 0.14237193402368575,
+            "pcm_bytes": 61440
+          }
+        ],
+        "gpu_compute_processes": [
+          "4140432, /validation/engine/llama-server, 5808 MiB\n",
+          "4140432, /validation/engine/llama-server, 5808 MiB\n"
+        ]
+      }
+    }
+  },
+  "validation_environment": {
+    "sdk_image": "sha256:c9d7cd30fb6f0d75280fda34b20cd70350dc69072ffebf564f0fffc92b8b330a",
+    "original_production_image": "sha256:2928738bb5e60d6b57c179b550a24bf0844c0b07c0493c27aea232ed66d0a5a2",
+    "rollback_tag": "ezlocalai:rollback-meanvc2-20261028-local3090ti-v4",
+    "new_platform_image_built": false,
+    "permanent_environment_changes": false,
+    "restorations": [
+      {
+        "stage": 1,
+        "all_identity_and_health_checks_passed": true,
+        "two_matching_heartbeats": true,
+        "resumed": true
+      },
+      {
+        "stage": 2,
+        "all_identity_and_health_checks_passed": true,
+        "two_matching_heartbeats": true,
+        "resumed": true
+      },
+      {
+        "stage": 3,
+        "all_identity_and_health_checks_passed": true,
+        "two_matching_heartbeats": true,
+        "resumed": true
+      },
+      {
+        "stage": 4,
+        "all_identity_and_health_checks_passed": true,
+        "two_matching_heartbeats": true,
+        "resumed": true
+      }
+    ],
+    "final_binary_sha256": {
+      "ezlocalai-native": "49233e19a73d7add0a8463e5867a834cf393e3e5139408d2d9f93f5362f25d64",
+      "ezlocalai-meanvc2": "ed7677c65465e7945fe1bfec5d951866e94fe2fc2a2d6f5a305ea3c2381c09b6",
+      "worker-router": "f83eb39ce038527bd27570bf46378166b1749cd4b814b2e636470c59bf3c765a"
+    }
+  },
+  "limitations": [
+    "No claim of unchanged voice quality; human listening for similarity, pronunciation, emotion, seams, cross-gender and multilingual audio remains pending.",
+    "Same-family 14-word ASR diagnostics are not an independent quality certification; observed WER 0-7.14%.",
+    "Earlier strict ASR spelling acceptance failed on working/worken; quality diagnostics were separated from protocol acceptance and source controls added.",
+    "Call setup still costs roughly 3 seconds and is separate from per-turn latency.",
+    "No ARM/ROCm/GB10/Jetson/Pi/custom GPU converter or multi-GPU physical validation.",
+    "No fresh full Docker image build; native SDK package, standalone installer and original-image validation mounts were exercised.",
+    "A/A and B/B cached output is bit-identical; A recomputed after B was not identical to original A. Product voice selection is immutable per call."
+  ]
+}

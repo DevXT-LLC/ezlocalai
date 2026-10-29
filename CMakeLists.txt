@@ -87,6 +87,8 @@ add_library(ezlocalai_native
     src/worker_heartbeat.cpp
     src/tunnel_websocket.cpp
     src/tunnel_connection.cpp
+    src/voice_conversion.cpp
+    src/realtime_voice.cpp
     src/realtime.cpp
     src/wakeword_paths.cpp
     src/wakeword_samples.cpp
@@ -350,6 +352,21 @@ target_link_libraries(test_tunnel_transport PRIVATE ezlocalai_native nlohmann_js
 add_test(NAME tunnel_transport_reference COMMAND test_tunnel_transport ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/tunnel_deadlines_cases.json)
 set_tests_properties(tunnel_transport_reference PROPERTIES TIMEOUT 45)
 
+option(EZLOCALAI_REQUIRE_MEANVC2 "Require the packaged native MeanVC2 engine" OFF)
+find_program(EZLOCALAI_MEANVC2_BIN NAMES ezlocalai-meanvc2)
+if(EZLOCALAI_REQUIRE_MEANVC2 AND NOT EZLOCALAI_MEANVC2_BIN)
+    message(FATAL_ERROR "The packaged MeanVC2 executable is missing")
+endif()
+if(EZLOCALAI_MEANVC2_BIN)
+    add_custom_target(meanvc2_engine_check COMMAND ${EZLOCALAI_MEANVC2_BIN} --version)
+    add_test(NAME voice_conversion_engine_version COMMAND ${EZLOCALAI_MEANVC2_BIN} --version)
+    set_tests_properties(voice_conversion_engine_version PROPERTIES TIMEOUT 15
+        PASS_REGULAR_EXPRESSION "cd770076152085af5b166521185bec76f9d47808.*reference-v1")
+endif()
+add_executable(test_voice_conversion tests/test_voice_conversion.cpp)
+target_link_libraries(test_voice_conversion PRIVATE ezlocalai_native nlohmann_json::nlohmann_json)
+add_test(NAME voice_conversion COMMAND test_voice_conversion)
+set_tests_properties(voice_conversion PROPERTIES TIMEOUT 45)
 add_executable(test_realtime tests/test_realtime.cpp)
 target_link_libraries(test_realtime PRIVATE ezlocalai_native nlohmann_json::nlohmann_json)
 add_test(NAME realtime COMMAND test_realtime)
@@ -1843,7 +1860,7 @@ if(TARGET test_ltx_norm AND TARGET ezlocalai-tts)
         test_worker_heartbeat
         test_worker_heartbeat_http
         test_worker_tunnel
-        test_realtime test_tunnel_connection
+        test_voice_conversion test_realtime test_tunnel_connection
         test_tunnel_redirects
         test_http_cookies
         test_tunnel_transport
@@ -1879,6 +1896,9 @@ if(TARGET test_ltx_norm AND TARGET ezlocalai-tts)
     endif()
     if(TARGET test_q4_kv_layout)
         list(APPEND native_package_targets test_q4_kv_layout)
+    endif()
+    if(TARGET meanvc2_engine_check)
+        list(APPEND native_package_targets meanvc2_engine_check)
     endif()
     add_custom_target(cpu_package DEPENDS ${native_package_targets})
     if(EZLOCALAI_USE_HIP)

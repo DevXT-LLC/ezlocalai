@@ -5,6 +5,11 @@ It uses llama.cpp v0.8.0's native audio/vision projector and speech codec.
 Qwen remains the ordinary `/v1/audio/speech` engine; a realtime call does not
 chain Whisper, a text model and Qwen TTS.
 
+Optional [MeanVC2 voice conversion](VOICE_SELECTION.md) selects a reference
+with the initial `voice` query parameter. Native output is unchanged when it is
+omitted or `native`. Check the converted session marker before playing audio;
+matching WorkerRouter support is required.
+
 ## Configuration
 
 A dedicated voice worker can start with:

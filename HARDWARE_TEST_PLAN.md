@@ -208,3 +208,13 @@ multi-GPU host exists:
    and the actual per-card allocation.
 3. Check that embeddings, TTS and STT land on the secondary card the way
    Python's placement chooses.
+
+## Optional MeanVC2 voice conversion
+
+Validated on the local RTX 3090 Ti with the converter on x86 CPU (six threads),
+F32 weights and LFM3 F16, for direct and reverse-tunnel calls. Other CPU/ARM,
+ROCm, Jetson, Pi and GB10 builds/hardware remain unverified for this feature.
+Before application rollout, listen to reference/converted pairs for similarity,
+pronunciation, emotion and seams, including multilingual and long utterances.
+MeanVC2 has 16 kHz bandwidth even though the wire is 24 kHz. ASR spot checks do
+not establish quality equivalence. See VOICE_SELECTION.md and the dated fixture.

@@ -8,7 +8,7 @@
 #include <vector>
 
 namespace ezlocalai {
-enum class ModelType { Llm, VisionLlm, Tts, Stt, Image, Video, Music, Embedding };
+enum class ModelType { Llm, VisionLlm, Tts, Stt, Image, Video, Music, Embedding, VoiceConversion };
 const char *model_type_name(ModelType type);
 double model_vram_estimate(ModelType type);
 struct ModelResource {
@@ -63,7 +63,7 @@ public:
     uint64_t get_model_active_count(ModelType type) const;
     void mark_model_in_use(ModelType type, bool in_use = true);
     void register_model(ModelType type, std::string name, std::string device,
-                        std::optional<double> vram_gb = std::nullopt);
+                        std::optional<double> vram_gb = std::nullopt, bool pinned = false);
     void unregister_model(ModelType type);
     double get_free_vram(std::optional<int> ordinal = std::nullopt) const;
     double get_total_free_vram() const;

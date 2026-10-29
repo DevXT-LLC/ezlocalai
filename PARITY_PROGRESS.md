@@ -2,6 +2,60 @@
 
 The goal remains behavior parity with ezlocalai within the scope below, with all first-party executable code implemented in C++. It is **not complete**.
 
+## Native MeanVC2 reference voices and conditioning reuse (2026-10-28)
+
+PR149 now implements optional `LFM PCM → MeanVC2 → playback`, with native LFM
+speech retained as the default and Qwen retained for ordinary TTS. The engine is
+an isolated native C++ CPU process, pinned to audio.cpp `cd770076...` and verified
+F32 weights (`340d5dd6...`). All four platform Dockerfiles package it without
+weights or Python. Explicit provisioning, environment defaults, voice discovery,
+query/session contracts and quality limits are in `VOICE_SELECTION.md`. The
+companion WorkerRouter PR11 forwards selection across direct/tunnel transports
+and reserves converter plus text capacity. WorkConductor remains issue-only:
+issue429 has the verified integration handoff.
+
+Bounded queues, stateful resampling, complete 160 ms inference windows, short
+utterance padding, cancellation epochs and per-call resource pins cover the
+streaming lifecycle. A first real call exposed the native frontend discarding
+tiny packet fragments; actual F32 output is now bit-identical across 160 ms,
+20 ms and mixed fragments. A second finding was reference conditioning being
+recomputed every response. A bounded content-keyed upstream patch retains the
+exact embedding/projected memory across resets: A/A and B/B outputs are bit-
+identical; references invalidate correctly. Conditioning startup dropped from
+1.50–1.76 seconds to 0.19–0.25 ms on cache hits. The supported LFM auto-context
+fallback is also corrected to 32,768; Qwen's 262,144 remains unchanged.
+
+On RTX3090Ti with LFM F16/8192 context and six CPU threads for MeanVC2, both
+transports passed 26 protocol checks each: audio input, two references, tools,
+context/text-only turns, interruption/recovery and cleanup. Later first-audio
+packets fell from 1.36–1.60 s to 88–143 ms (native later baseline 61 ms), and
+after interruption from 2.84–2.88 s to 96–122 ms. These are observations, not
+percentiles. Call setup remains about 3.0–3.3 s. Converted later energy-bearing
+packets were 111–241 ms; sampled pre-cache converter RSS was 1.68 GiB. Ten short
+same-family ASR diagnostics yielded 0–7.14% WER, including matching errors in
+same-source native/converted controls. An earlier strict spelling check failed
+on “working”/“worken”; protocol acceptance and quality diagnostics are now
+separate. Human voice-quality validation remains pending; no unchanged-quality
+claim, and the 24 kHz wire still has MeanVC2's 16 kHz bandwidth.
+
+Validation: the complete final SDK package gate passed 75/75 without a Python
+reference checkout, including the conditioning-cache version and supported
+zero-context follow-up. Latest focused engine/voice/realtime tests passed 3/3. Router: 103 passed / 2 ignored, fmt clean, clippy has four
+pre-existing warnings. The standalone installer, pinned model verification,
+real-model conditioning reuse and cancellation/process cleanup were exercised.
+No fresh full platform image was built; ARM, ROCm, GB10, Jetson, Pi, custom GPU
+conversion and multi-GPU remain physically unverified. SDK image:
+`sha256:c9d7cd30fb6f0d75280fda34b20cd70350dc69072ffebf564f0fffc92b8b330a`.
+Original image:
+`sha256:2928738bb5e60d6b57c179b550a24bf0844c0b07c0493c27aea232ed66d0a5a2`;
+rollback `ezlocalai:rollback-meanvc2-20261028-local3090ti-v4`. All four guarded
+windows restored the exact original container/image/environment/mounts/full
+engine argv, verified health/no OOM and two fresh matching production heartbeats,
+then released the owned drain. No permanent environment setting changed; only
+private validation overrides used 8192 context and six MeanVC2 threads. Compact
+evidence: `tests/fixtures/meanvc2_streaming_20261028_validation.json`; bulky logs,
+plans and listening samples stay under `build/validation/meanvc2-20261028/`.
+
 ## Prefer streaming voice conversion for call latency (2026-10-28)
 
 The user clarified that the measured additional second from Qwen is too costly

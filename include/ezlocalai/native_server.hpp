@@ -542,6 +542,8 @@ private:
     mutable bool fallback_cache_available_ = false;
     mutable std::string fallback_cache_reason_;
     mutable std::mutex voice_mutex_;
+    std::mutex voice_conversion_mutex_;
+    std::atomic<bool> voice_conversion_active_{false};
     std::mutex llm_audio_handoff_mutex_, llm_audio_mutex_;
     std::condition_variable llm_audio_cv_;
     int64_t llm_audio_active_ = 0, llm_audio_capacity_ = 1;

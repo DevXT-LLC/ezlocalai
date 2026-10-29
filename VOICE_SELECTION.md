@@ -1,71 +1,148 @@
 # Selectable voices for LFM3 calls
 
-LFM3 Omni does not accept a reference speaker recording in its native speech
-decoder. The pinned llama.cpp implementation explicitly ignores a speaker
-reference for this model. The vendor's TTS interface documents male/female
-speech prompting and language/locale selection; conversational realtime voice
-control has not been independently verified. This is not arbitrary voice cloning. A
-`session.audio.output.voice` field is not implemented by the pinned realtime
-server and must not be presented as a working clone selector.
+Native LFM speech remains the default. Optional **MeanVC2** converts LFM's
+streamed waveform to a reference voice; Qwen remains the ordinary TTS engine.
+The converter is a native C++ executable, with no Python service or runtime.
 
-There are three different paths:
+## Enable MeanVC2
 
-| Output path | Selection | Delivery and latency | Status |
-| --- | --- | --- | --- |
-| LFM native speech | Male/female/locale controls documented for TTS; realtime selection unverified | Original LFM delivery; current native streaming | Existing default; arbitrary speaker cloning unavailable |
-| LFM text → Qwen TTS | Existing named reference WAVs or uploaded reference audio | Qwen generates new delivery; additional synthesis/buffering | Existing components demonstrated below; live-call adapter still required |
-| LFM audio → voice converter | A converter's supported target voice/reference | Aims to retain source rhythm/prosody; adds conversion and possible artifacts | Research option; no converter shipped or validated here |
+Images include the CPU engine, built from audio.cpp
+[`cd770076152085af5b166521185bec76f9d47808`](https://github.com/0xShug0/audio.cpp/blob/cd770076152085af5b166521185bec76f9d47808/docs/models/meanvc2.md).
+Weights are downloaded separately into the persistent models volume. Provision
+before enabling the feature:
 
-Changing voice cannot be promised to preserve every quality dimension.
-Evaluate intelligibility, naturalness, speaker similarity, prosody, interruption
-behavior and latency separately. No production output path changes automatically.
+```sh
+docker exec ezlocalai sh -lc 'ezlocalai-meanvc2 --download-model "${MEANVC2_MODEL_PATH:-${MODELS_PATH:-models}/MeanVC2-GGUF/meanvc2-120ms-40ms-fp32.gguf}"'
+```
 
-## Recommended direction for calls
+The command downloads only the pinned **F32** 120/40 model and checks its size
+and SHA-256 before atomic installation. An existing invalid file is rejected.
+Model revision: `874fcb41ececda20bcbc0782d6b4ea7f7d069ea8` in
+[`audio-cpp/audio.cpp-gguf`](https://huggingface.co/audio-cpp/audio.cpp-gguf/tree/874fcb41ececda20bcbc0782d6b4ea7f7d069ea8/MeanVC2-GGUF).
+SHA-256: `340d5dd63cdd9d44045cdc4b394cccf677ae870a9ce4ed18f0007c8788e65245`.
 
-Prioritize **streaming waveform voice conversion** for custom call voices.
-The Qwen experiment establishes a working alternative using existing components,
-but its measured extra turn delay makes it a weaker fit for natural conversation.
-The preferred pipeline is `LFM native PCM → stateful voice converter → playback`.
-This keeps LFM's speech generation and aims to preserve its timing and expression;
-quality preservation still needs listening and content/prosody checks.
+Add these settings to the worker's existing `.env` and recreate its container:
 
-A native candidate is now available in
-[audio.cpp's MeanVC2 implementation](https://github.com/0xShug0/audio.cpp/blob/cd770076152085af5b166521185bec76f9d47808/docs/models/meanvc2.md).
-The source exposes a persistent streaming session, source-audio chunks and a
-target-reference voice. Its default F32 package uses the **120 ms / 40 ms** path,
-with **160 ms preferred input chunks at 16 kHz**. The upstream MeanVC2 paper's
-**110 ms** result is a different reported configuration; do not use it as a
-measurement of this native package or our complete LFM pipeline. Start evaluation
-with F32 and precompute/cache target conditioning. The native runtime has not
-been built or benchmarked here.
+```dotenv
+MEANVC2_ENABLED=true
+MEANVC2_BACKEND=cpu
+MEANVC2_THREADS=4
+```
 
-Other useful comparisons are
-[RT-VC](https://arxiv.org/html/2506.10289v1), which reports **61.4 ms on an Apple M3
-CPU** (32 ms lookahead + 15 ms input + 14.4 ms processing), and
-[Seed-VC](https://github.com/Plachtaa/seed-vc#usage), whose realtime setup documents
-roughly **300 ms algorithmic + 100 ms device delay**, with a **430 ms** example
-on an RTX3060 Laptop GPU. These are upstream results under different conditions,
-not fleet benchmarks. RVC-style changers are another option for a library of
-trained voice models; that is a different workflow from selecting an arbitrary
-reference recording without training.
+The worker needs a configured LFM3 Omni model as described in [REALTIME.md](REALTIME.md).
+No production environment setting is changed automatically. CPU processing keeps
+VRAM available to LFM. Allow at least 3 GiB free RAM; admission also checks a
+finite cgroup v2 memory limit and reclaimable file cache. There is one converted
+call slot per worker, sharing its existing text capacity. The model and one reference-conditioning cache stay pinned
+for the call and are released on disconnect; it is not an ordinary TTS pool.
 
-RT-VC and the inspected native MeanVC2 output are **16 kHz**; LFM currently emits
-24 kHz. Resampling back to 24 kHz does not restore the removed bandwidth. Their
-lower latency is insufficient to establish unchanged quality. Compare source
-and converted speech for intelligibility, speaker similarity, emotion, pitch
-contours, pauses and audible seams, including cross-gender and multilingual cases.
+| Setting | Default |
+| --- | --- |
+| `MEANVC2_ENABLED` | `false` |
+| `MEANVC2_BIN` | `/usr/local/bin/ezlocalai-meanvc2` |
+| `MEANVC2_MODEL_PATH` | `${MODELS_PATH:-models}/MeanVC2-GGUF/meanvc2-120ms-40ms-fp32.gguf` |
+| `MEANVC2_VOICES_DIR` | `voices` |
+| `MEANVC2_BACKEND` | `cpu` (packaged engine); custom CUDA/HIP builds unvalidated |
+| `MEANVC2_DEVICE` | `0` |
+| `MEANVC2_THREADS` | `4`, range 1–64 |
+| `MEANVC2_STARTUP_TIMEOUT` | `180` seconds, range 1–600 |
+| `MEANVC2_CHUNK_TIMEOUT` | `15` seconds, range 1–120 |
 
-Measure added first-audio delay, per-chunk p50/p95 processing, required lookahead,
-underruns, memory and barge-in/recovery with the LFM engine running. Faster-than-
-realtime throughput alone does not establish low latency. Source PCM generated
-in bursts also means microphone latency reports cannot simply be added to LFM's
-first-packet time. Use bounded queues, persistent per-call converter state and
-immediate cancellation/discard on interruption. Native deployment should isolate
-the converter's ggml libraries from the pinned llama.cpp runtime until ABI/linkage
-compatibility is established. The inspected MeanVC2 session retains merged audio
-until reset; use bounded per-utterance storage and verify stateful resampling
-across input chunks. No converter runtime, weights, production settings
-or public voice-selector protocol was added by this research update.
+## Select a call voice
+
+Choose a WAV basename from `extra.realtime.voice_conversion.voices` in the
+router's worker record. Existing bundled references and recordings placed in
+`MEANVC2_VOICES_DIR` are supported. Paths, escaping symlinks, missing files and
+references over 32 MiB are rejected. Decoded reference audio must be nonempty,
+finite and no longer than 60 seconds. Use clean speech without music or noise.
+
+```text
+ws://router/v1/realtime?model=LiquidAI%2FLFM3-Omni-2B-GGUF&voice=british_rp_female
+```
+
+The companion WorkerRouter update must be deployed first: it forwards the voice
+query through direct and reverse-tunnel transports, selects workers advertising
+that reference and reserves converter capacity alongside text capacity. Older
+routers drop this query. **Check `session.created.session.voice_conversion`**
+before playing audio; it must identify `engine: "meanvc2"` and the selected
+`voice`. Absence of this marker means conversion was not selected.
+
+`voice=native` or an omitted voice keeps native speech. Selection lasts for the
+call. A matching `session.update.session.audio.output.voice` is accepted; changing
+it requires a new call. Text, tool calls, incoming audio and context updates retain
+the existing realtime protocol. Transcription-only requests cannot select conversion.
+Conversion failures produce an explicit error/closed socket, with no native-voice
+fallback. Send `response.cancel`, clear local playback and wait for cancelled
+`response.done` before starting the next response.
+
+## Streaming and quality limits
+
+MeanVC2 receives continuous 16 kHz audio in complete 160 ms inference windows,
+independent of transport packet boundaries. Final partial windows are padded;
+short acknowledgements get the minimum context needed by its frontend. Padding
+cannot extend output beyond the source duration. Input and output resamplers
+retain their state between chunks. Queues are bounded and utterances are capped
+at 120 seconds, because the upstream session retains merged output until reset.
+Cancellation discards queued and in-flight results by generation and resets the
+converter for the next response. Audio already delivered to a client must be
+removed from its playback queue there; ignore later deltas for the cancelled
+response ID, including frames already in transit.
+
+The wire remains mono PCM16 **24 kHz**. MeanVC2's actual bandwidth is **16 kHz**;
+upsampling does not restore higher frequencies. F32 avoids model quantization,
+but conversion can still change timbre, emotion, pronunciation or naturalness.
+Do not claim unchanged quality without listening tests. Call setup loads and
+conditions the reference before the WebSocket upgrade; it is separate from
+per-turn first-audio latency. Published MeanVC2/RT-VC delays are not measurements
+of this complete pipeline.
+
+## Local validation (2026-10-28)
+
+RTX 3090 Ti, LFM3 F16 at 8192 context, F32 MeanVC2 on six CPU threads; isolated
+Rust router, both direct and reverse-tunnel transports. Native remains the default.
+These are individual observations, not a percentile benchmark or network SLA.
+
+| Observation | Result |
+| --- | --- |
+| Native later-turn first PCM packet | 61 ms |
+| Converted later-turn first PCM packet | 88–143 ms |
+| Converted later-turn first energy-bearing packet | 111–241 ms |
+| Converted speech after cancellation | 96–122 ms to first PCM |
+| Converted connection setup | About 3.0–3.3 seconds, separate from turn latency |
+| Source-control CPU conversion | 6.16 seconds of speech in 0.60–0.63 seconds |
+| Sampled converter RSS before conditioning memoization | 1.68 GiB |
+
+The first implementation recomputed reference conditioning after every response:
+later-turn packets took 1.36–1.60 seconds and post-interruption packets 2.84–2.88
+seconds. A bounded, content-keyed cache in the pinned MeanVC2 session now retains
+the exact embedding and projected speaker memory across resets. The real-model
+A/A/B/B/A probe measured reference startup falling from 1.50–1.76 seconds to
+0.19–0.25 milliseconds on cache hits. Cached A/A and B/B conversions are
+bit-identical, and changing the reference invalidates the entry. Recomputing A
+after B was not bit-identical to the original A; voice changes require new calls
+in the product. No quantization, solver or vocoder-window change was used.
+
+Both transports passed 26 protocol checks each, including incoming audio, tools,
+context updates, text-only turns, cancellation/recovery and resource cleanup.
+Tiny live transport packets initially exposed a frontend failure; complete 160 ms
+windows fixed it. Real F32 output is bit-identical for 160 ms, 20 ms and mixed
+transport fragments. Short/empty input also finalizes without extending duration.
+
+Ten 14-word same-family ASR diagnostics yielded 0–7.14% word error. The exact
+same-source native/converted controls both had 7.14% in both transports; other
+samples included one-word differences. An earlier strict spelling check failed
+on “working” → “worken”. **This is not evidence of unchanged intelligibility or
+speaker quality.** Human listening, longer speech, emotion, cross-gender and
+multilingual checks remain necessary. No ARM, ROCm or custom GPU converter was
+physically validated. No production environment setting changed; the original
+worker was restored with identical image, environment, mounts and full engine
+arguments and two matching router heartbeats.
+
+The optional real-model probe is built with
+`-DEZLOCALAI_MEANVC2_VALIDATION=ON` in `engine/meanvc2`; invoke
+`meanvc2-session-validation MODEL SOURCE_24K_MONO_WAV VOICE_A_WAV VOICE_B_WAV`.
+Package tests use fixtures and `--version` without downloading weights. Detailed
+machine-readable evidence is recorded in the MeanVC2 validation fixture.
 
 ## Existing Qwen path
 
@@ -166,18 +243,3 @@ No permanent environment settings changed.
 Human listening and a combined client interruption test are still required
 before choosing Qwen as a default call voice. Native LFM remains the
 lowest-complexity default; custom Qwen voices should initially be opt-in.
-
-## Voice conversion research
-
-A real voice converter consumes LFM's waveform and changes its speaker timbre.
-[Seed-VC](https://github.com/Plachtaa/seed-vc) provides a reference implementation
-with a realtime mode and documented additional algorithm/device delay. That is
-not a measured delay on this fleet, and the repository is a Python deployment,
-not a native C++ component we can silently add to these images. A production
-converter needs its own native runtime/weights, bounded streaming, cancellation,
-GPU accounting and word/speaker/prosody evaluation. Qwen TTS itself is not that
-converter.
-
-Sources: [LiquidAI model card](https://huggingface.co/LiquidAI/LFM3-Omni-2B),
-[pinned llama.cpp TTS guide](https://github.com/ggml-org/llama.cpp/blob/8642541b255bfb5dc39cd351a178be09013a55d6/tools/tts/README.md),
-[Qwen cloning interface](https://github.com/QwenLM/Qwen3-TTS#voice-clone).
