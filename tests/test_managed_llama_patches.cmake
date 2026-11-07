@@ -8,11 +8,37 @@ string(RANDOM LENGTH 16 ALPHABET 0123456789abcdef nonce)
 set(root "${TEST_ROOT}/managed-patch-test-${nonce}")
 set(copy "${root}/source")
 set(out "${root}/metadata")
-set(pin 8642541b255bfb5dc39cd351a178be09013a55d6)
+set(pin cd959bae99ff4bed22bef2604f45241c09bbb8c8)
+get_filename_component(native_root "${PATCH_DIR}/.." ABSOLUTE)
+foreach(platform cpu cuda rocm jetson)
+    file(READ "${native_root}/${platform}.Dockerfile" dockerfile)
+    string(FIND "${dockerfile}" "ARG EZLOCALAI_LLAMA_CPP_REF=${pin}" pin_at)
+    if(pin_at LESS 0)
+        message(FATAL_ERROR "${platform} Docker engine pin is inconsistent")
+    endif()
+    foreach(patch llama-mtp-resume-v090 llama-cuda-q4-kv-fusion-v090)
+        string(FIND "${dockerfile}" "patches/${patch}.patch" patch_at)
+        if(patch_at LESS 0)
+            message(FATAL_ERROR "${platform} Docker build does not copy ${patch}")
+        endif()
+    endforeach()
+endforeach()
+foreach(profile "" -cuda -gb10 -rocm -rpi)
+    file(READ "${native_root}/docker-compose${profile}.yml" compose)
+    string(FIND "${compose}" "\${EZLOCALAI_LLAMA_CPP_REF:-${pin}}" pin_at)
+    if(pin_at LESS 0)
+        message(FATAL_ERROR "Compose${profile} engine pin is inconsistent")
+    endif()
+endforeach()
 set(first "${PATCH_DIR}/llama-conversation-cache.patch")
 file(MAKE_DIRECTORY "${root}" "${out}")
 execute_process(COMMAND git clone --shared --no-checkout --quiet "${SOURCE_DIR}" "${copy}"
     COMMAND_ERROR_IS_FATAL ANY)
+# Shallow release checkouts do not propagate unreferenced old-pin objects when
+# cloned; fetch them explicitly from the local source, never from the network.
+execute_process(COMMAND git -C "${copy}" fetch --quiet --update-shallow "${SOURCE_DIR}"
+    620d2225cc436ab0b001e3200e590e3b286ef9ab
+    8642541b255bfb5dc39cd351a178be09013a55d6 COMMAND_ERROR_IS_FATAL ANY)
 execute_process(COMMAND git -C "${copy}" checkout --quiet --detach "${pin}"
     COMMAND_ERROR_IS_FATAL ANY)
 
@@ -93,7 +119,7 @@ check_clean()
 
 # Upgrade the previous five-patch release while preserving cache/state fixes.
 foreach(name llama-conversation-cache llama-cache-restore-atomic llama-cache-storage
-        llama-mtp-resume llama-checkpoint-coverage)
+        llama-mtp-resume-v090 llama-checkpoint-coverage)
     execute_process(COMMAND git -C "${copy}" apply "${PATCH_DIR}/${name}.patch"
         COMMAND_ERROR_IS_FATAL ANY)
 endforeach()
@@ -105,7 +131,7 @@ check_clean()
 # Upgrade the preceding six-patch release, including its overlapping entry-window
 # header fix, and remove the complete upgraded stack back to the original pin.
 foreach(name llama-conversation-cache llama-cache-restore-atomic llama-cache-storage
-        llama-mtp-resume llama-checkpoint-coverage llama-checkpoint-entry-window)
+        llama-mtp-resume-v090 llama-checkpoint-coverage llama-checkpoint-entry-window)
     execute_process(COMMAND git -C "${copy}" apply "${PATCH_DIR}/${name}.patch"
         COMMAND_ERROR_IS_FATAL ANY)
 endforeach()
@@ -117,7 +143,7 @@ check_clean()
 # Removing an old six-patch installation directly must also peel the complete
 # prefix without leaving the new helper or qualification metadata behind.
 foreach(name llama-conversation-cache llama-cache-restore-atomic llama-cache-storage
-        llama-mtp-resume llama-checkpoint-coverage llama-checkpoint-entry-window)
+        llama-mtp-resume-v090 llama-checkpoint-coverage llama-checkpoint-entry-window)
     execute_process(COMMAND git -C "${copy}" apply "${PATCH_DIR}/${name}.patch"
         COMMAND_ERROR_IS_FATAL ANY)
 endforeach()
@@ -129,8 +155,8 @@ endif()
 
 # Upgrade the preceding eight-patch release, then remove the complete stack.
 foreach(name llama-conversation-cache llama-cache-restore-atomic llama-cache-storage
-        llama-mtp-resume llama-checkpoint-coverage llama-checkpoint-entry-window
-        llama-cache-retention llama-cuda-q4-kv-fusion)
+        llama-mtp-resume-v090 llama-checkpoint-coverage llama-checkpoint-entry-window
+        llama-cache-retention llama-cuda-q4-kv-fusion-v090)
     execute_process(COMMAND git -C "${copy}" apply "${PATCH_DIR}/${name}.patch"
         COMMAND_ERROR_IS_FATAL ANY)
 endforeach()
@@ -142,8 +168,8 @@ check_clean()
 # An eight-patch installation can also be removed directly without leaving
 # qualification metadata behind.
 foreach(name llama-conversation-cache llama-cache-restore-atomic llama-cache-storage
-        llama-mtp-resume llama-checkpoint-coverage llama-checkpoint-entry-window
-        llama-cache-retention llama-cuda-q4-kv-fusion)
+        llama-mtp-resume-v090 llama-checkpoint-coverage llama-checkpoint-entry-window
+        llama-cache-retention llama-cuda-q4-kv-fusion-v090)
     execute_process(COMMAND git -C "${copy}" apply "${PATCH_DIR}/${name}.patch"
         COMMAND_ERROR_IS_FATAL ANY)
 endforeach()
@@ -153,30 +179,38 @@ if(EXISTS "${out}/ezlocalai-llama-cpp-patches.txt")
     message(FATAL_ERROR "Removing the eight-patch stack left stale metadata")
 endif()
 
-# A real v0.7 -> v0.8 update removes the previous pin's eight patches before
-# git checkout, then installs all nine at the new pin. The old pin is accepted
-# only for removal; it must never be advertised as a qualified new engine.
-execute_process(COMMAND git -C "${copy}" checkout --quiet --detach
-    620d2225cc436ab0b001e3200e590e3b286ef9ab COMMAND_ERROR_IS_FATAL ANY)
-foreach(name llama-conversation-cache llama-cache-restore-atomic llama-cache-storage
-        llama-mtp-resume llama-checkpoint-coverage llama-checkpoint-entry-window
-        llama-cache-retention llama-cuda-q4-kv-fusion)
-    execute_process(COMMAND git -C "${copy}" apply "${PATCH_DIR}/${name}.patch"
+# Both deployed old pins must be removable before the updater checks out v0.9.
+# v0.7 used eight patches, while v0.8 added prefix anchors. Neither old pin
+# may acquire new qualification metadata after removal.
+foreach(old_pin 620d2225cc436ab0b001e3200e590e3b286ef9ab
+                8642541b255bfb5dc39cd351a178be09013a55d6)
+    execute_process(COMMAND git -C "${copy}" checkout --quiet --detach
+        ${old_pin} COMMAND_ERROR_IS_FATAL ANY)
+    foreach(name llama-conversation-cache llama-cache-restore-atomic llama-cache-storage
+            llama-mtp-resume llama-checkpoint-coverage llama-checkpoint-entry-window
+            llama-cache-retention llama-cuda-q4-kv-fusion)
+        execute_process(COMMAND git -C "${copy}" apply "${PATCH_DIR}/${name}.patch"
+            COMMAND_ERROR_IS_FATAL ANY)
+    endforeach()
+    if(old_pin STREQUAL "8642541b255bfb5dc39cd351a178be09013a55d6")
+        execute_process(COMMAND git -C "${copy}" apply "${PATCH_DIR}/llama-prefix-anchor.patch"
+            COMMAND_ERROR_IS_FATAL ANY)
+    endif()
+    run_helper(-DREMOVE_MANAGED_PATCH=ON)
+    check_clean()
+    if(EXISTS "${out}/ezlocalai-llama-cpp-patches.txt")
+        message(FATAL_ERROR "Previous-pin removal left stale metadata")
+    endif()
+    run_helper()
+    check_clean()
+    execute_process(COMMAND git -C "${copy}" checkout --quiet --detach "${pin}"
         COMMAND_ERROR_IS_FATAL ANY)
+    run_helper()
+    check_metadata()
+    run_helper(-DREMOVE_MANAGED_PATCH=ON)
+    check_clean()
+
 endforeach()
-run_helper(-DREMOVE_MANAGED_PATCH=ON)
-check_clean()
-if(EXISTS "${out}/ezlocalai-llama-cpp-patches.txt")
-    message(FATAL_ERROR "Previous-pin removal left stale metadata")
-endif()
-run_helper()
-check_clean()
-execute_process(COMMAND git -C "${copy}" checkout --quiet --detach "${pin}"
-    COMMAND_ERROR_IS_FATAL ANY)
-run_helper()
-check_metadata()
-run_helper(-DREMOVE_MANAGED_PATCH=ON)
-check_clean()
 
 # Missing and malformed inputs must fail explicitly, not ship a partial worker.
 execute_process(COMMAND "${CMAKE_COMMAND}" "-DSOURCE_DIR=${copy}" "-DBUILD_DIR=${out}"

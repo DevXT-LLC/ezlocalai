@@ -102,6 +102,51 @@ void bounded_prefill_copy() {
     require(state.rewind(4095) && equal(state.predecessor(4095,false),row), "bounded tail still covers final-token replay");
 }
 
+void shared_kv_output_rows() {
+    common_mtp_state state(4,9,4);
+    process(state,9,0,2);
+    size_t reads = 0;
+    const auto output = [&](size_t i) { return i == 3; };
+    const auto reader = [&](size_t i) {
+        ++reads;
+        require(i == 3, "shared sparse prefill must never read a non-output hidden row");
+        static const values last = hidden(9,5);
+        return common_mtp_state::row_view {6,last.data()};
+    };
+    state.record_outputs(2,4,true,[](size_t) { return false; },reader);
+    require(reads == 0 && state.verify_total == 0, "shared prefill without outputs clears verification without reading rows");
+    require(!state.rewind(6) && equal(state.find(2),hidden(9,1)), "absent output cannot invent a later predecessor");
+    state.record_outputs(2,4,true,output,reader);
+    require(reads > 0 && state.verify_total == 1 && state.verify_next.size() == 1,
+        "shared sparse prefill stores only the final output row");
+    require(state.accept(3) && equal(state.predecessor(6,false),hidden(9,5)),
+        "shared sparse acceptance retains upstream final-row clamping");
+    require(!state.rewind(5), "unrepresented shared prefill boundary requires replay");
+    common_mtp_state restored(4,9,4);
+    require(restored.restore(snapshot(state)) && restored.rewind(6), "shared sparse snapshot restores its exact final boundary");
+    for (bool shared : {false,true}) {
+        state.reset();
+        state.record_outputs(0,4,shared,[](size_t) { return true; },[&](size_t i) {
+            static values row;
+            row = hidden(10,int(i));
+            return common_mtp_state::row_view {int32_t(i+1),row.data()};
+        });
+        require(state.verify_total == 4 && state.accept(1) && equal(state.find(2),hidden(10,1)),
+            "full-output verification preserves accepted-row indexing for shared and ordinary KV");
+        require(state.find(3) == nullptr, "full-output verification discards rejected rows");
+    }
+    state.reset();
+    state.record_outputs(0,4,false,[](size_t) { return false; },[&](size_t i) {
+        static values row;
+        row = hidden(11,int(i));
+        return common_mtp_state::row_view {int32_t(i+1),row.data()};
+    });
+    require(state.verify_total == 4 && state.accept(1) && equal(state.find(2),hidden(11,1)),
+        "ordinary KV retains all verification rows regardless of output selection");
+    state.record_outputs(2,0,true,output,reader);
+    require(state.verify_total == 0, "empty shared output batch clears verification");
+}
+
 void checkpoint_and_child_copy() {
     common_mtp_state parent(4,9,4), child(4,9,4);
     process(parent,5,0,16);
@@ -181,6 +226,7 @@ void payload_validation_and_bits() {
 int main() {
     try {
         conversation_restore_and_replay(); accepted_and_rejected_rows(); bounded_prefill_copy();
+        shared_kv_output_rows();
         checkpoint_and_child_copy(); shifts_and_reuse(); multimodal_boundaries(); payload_validation_and_bits();
         std::cout << checks << " production MTP carryover, resume, copy-bound and payload checks passed\n";
         return 0;

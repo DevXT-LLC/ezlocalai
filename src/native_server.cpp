@@ -6268,6 +6268,8 @@ std::string http_reason(int status) {
             return "Range Not Satisfiable";
         case 422:
             return "Unprocessable Entity";
+        case 431:
+            return "Request Header Fields Too Large";
         case 500:
             return "Internal Server Error";
         case 502:
@@ -6844,64 +6846,162 @@ std::unordered_map<std::string, std::string> parse_headers(std::istream &stream)
     return headers;
 }
 
-std::string read_socket_request(int fd) {
+struct HttpRequestReadError : std::runtime_error {
+    int status;
+    HttpRequestReadError(int code, const std::string &message) : std::runtime_error(message),status(code) {}
+};
+
+size_t http_request_bytes_setting(const char *name) {
+    const auto raw = std::getenv(name);
+    if (!raw || !*raw) return 512u * 1024u * 1024u;
+    size_t limit = 0;
+    const auto end = raw + std::strlen(raw);
+    const auto parsed = std::from_chars(raw,end,limit);
+    if (parsed.ec != std::errc{} || parsed.ptr != end || !limit)
+        throw std::runtime_error(std::string(name) + " must be a positive integer");
+    return limit;
+}
+
+std::atomic<size_t> http_in_flight_request_body_bytes{0};
+class HttpRequestBodyPermit {
+public:
+    HttpRequestBodyPermit() = default;
+    HttpRequestBodyPermit(const HttpRequestBodyPermit &) = delete;
+    HttpRequestBodyPermit &operator=(const HttpRequestBodyPermit &) = delete;
+    ~HttpRequestBodyPermit() { http_in_flight_request_body_bytes.fetch_sub(reserved_); }
+    void reserve(size_t bytes) {
+        if (bytes <= reserved_) return;
+        const auto additional = bytes - reserved_;
+        const auto limit = http_request_bytes_setting("EZLOCALAI_MAX_IN_FLIGHT_REQUEST_BODY_BYTES");
+        auto used = http_in_flight_request_body_bytes.load();
+        do {
+            if (used > limit || additional > limit - used)
+                throw HttpRequestReadError(503,"HTTP request body memory budget exhausted");
+        } while (!http_in_flight_request_body_bytes.compare_exchange_weak(used,used + additional));
+        reserved_ = bytes;
+    }
+private:
+    size_t reserved_ = 0;
+};
+
+struct HttpRequestEarlyResponse { HttpResponse response; };
+using HttpRequestPreflight = std::function<std::optional<HttpResponse>(const std::string &,const std::string &,
+    const std::unordered_map<std::string,std::string> &)>;
+
+std::unordered_map<std::string,std::string> parse_request_headers(std::istream &head) {
+    std::unordered_map<std::string,std::string> headers;
+    for (std::string line;std::getline(head,line);) {
+        if (!line.empty() && line.back() == '\r') line.pop_back();
+        if (line.empty()) break;
+        const auto colon = line.find(':');
+        if (colon == std::string::npos || !colon)
+            throw HttpRequestReadError(400,"Invalid HTTP header name");
+        const auto name = line.substr(0,colon);
+        for (const unsigned char byte : name) {
+            if (!((byte >= 'a' && byte <= 'z') || (byte >= 'A' && byte <= 'Z') || (byte >= '0' && byte <= '9')
+                || std::string_view("!#$%&'*+-.^_`|~").find(char(byte)) != std::string_view::npos))
+                throw HttpRequestReadError(400,"Invalid HTTP header name");
+        }
+        for (size_t i = colon + 1;i < line.size();++i)
+            if ((static_cast<unsigned char>(line[i]) < 32 && line[i] != '\t') || line[i] == 127)
+                throw HttpRequestReadError(400,"Invalid HTTP header value");
+        const auto normalized = to_lower(name);
+        if ((normalized == "content-length" || normalized == "transfer-encoding") && headers.count(normalized))
+            throw HttpRequestReadError(400,"Duplicate HTTP framing header");
+        headers[normalized] = trim(line.substr(colon + 1));
+    }
+    return headers;
+}
+
+std::string read_socket_request(int fd, HttpRequestBodyPermit &permit, const HttpRequestPreflight &preflight) {
     std::string buffer;
-    char chunk[4096];
+    char chunk[65536];
     while (buffer.find("\r\n\r\n") == std::string::npos) {
         ssize_t n = recv(fd, chunk, sizeof(chunk), 0);
+        if (n < 0 && errno == EINTR) continue;
         if (n <= 0) {
             return buffer;
         }
         buffer.append(chunk, static_cast<size_t>(n));
-        if (buffer.size() > 1024 * 1024) {
-            return buffer;
-        }
+        const auto end = buffer.find("\r\n\r\n");
+        if ((end == std::string::npos ? buffer.size() : end + 4) > 1024 * 1024)
+            throw HttpRequestReadError(431,"HTTP request headers exceed 1 MiB");
     }
 
-    std::istringstream head(buffer.substr(0, buffer.find("\r\n\r\n") + 4));
+    const size_t body_start = buffer.find("\r\n\r\n") + 4;
+    std::istringstream head(buffer.substr(0, body_start));
     std::string request_line;
     std::getline(head, request_line);
-    auto headers = parse_headers(head);
+    auto headers = parse_request_headers(head);
+    std::istringstream line(request_line);
+    std::string method,path,version;
+    line >> method >> path >> version;
+    if (method.empty() || path.empty() || (version != "HTTP/1.0" && version != "HTTP/1.1")) return buffer;
+    // Upgrade frames are not HTTP body bytes. OPTIONS handling also needs no
+    // body, and must retain the existing CORS/method precedence.
+    if (is_websocket_upgrade(headers) || method == "OPTIONS") return buffer;
+    if (const auto response = preflight(method,path,headers)) throw HttpRequestEarlyResponse{*response};
     size_t content_length = 0;
     auto it = headers.find("content-length");
     if (it != headers.end()) {
-        content_length = static_cast<size_t>(std::stoul(it->second));
+        const auto &value = it->second;
+        const auto parsed = std::from_chars(value.data(),value.data() + value.size(),content_length);
+        if (value.empty() || parsed.ec != std::errc{} || parsed.ptr != value.data() + value.size())
+            throw HttpRequestReadError(400,"Invalid HTTP Content-Length");
     }
-    const size_t body_start = buffer.find("\r\n\r\n") + 4;
     auto transfer_encoding_it = headers.find("transfer-encoding");
-    if (transfer_encoding_it != headers.end()
-        && to_lower(transfer_encoding_it->second).find("chunked") != std::string::npos) {
-        HttpChunkedFramingProbe chunked_probe;
+    const bool chunked = transfer_encoding_it != headers.end();
+    if (chunked && (it != headers.end() || to_lower(trim(transfer_encoding_it->second)) != "chunked"))
+        throw HttpRequestReadError(400,"Invalid HTTP Transfer-Encoding");
+    // Let the gzip endpoint reject a declared oversized body with its normal
+    // method/authentication priority, without waiting for the rejected payload.
+    path = path.substr(0,path.find('?'));
+    if (!chunked && content_length > http_request_gzip_max_bytes
+        && method == "POST" && (path == "/v1/chat/completions" || path == "/v1/completions")
+        && to_lower(trim(headers["content-encoding"])) == "gzip") return buffer;
+
+    // Multipart media uploads commonly exceed 16 MiB; gzip text retains its
+    // separate cap. Reservations remain live until the response is released.
+    const auto limit = http_request_bytes_setting("EZLOCALAI_MAX_REQUEST_BODY_BYTES");
+    if (!chunked && content_length > limit)
+        throw HttpRequestReadError(413,"HTTP request body exceeds EZLOCALAI_MAX_REQUEST_BODY_BYTES");
+    if (!chunked) permit.reserve(content_length);
+    if (to_lower(headers["expect"]) == "100-continue")
+        send_all_fd(fd,"HTTP/1.1 100 Continue\r\n\r\n");
+    if (chunked) {
+        HttpBodyDecoder decoder("",true,{},limit);
+        auto incoming = buffer.substr(body_start);
+        buffer.resize(body_start);
         while (true) {
-            const auto decoded = chunked_probe.update(std::string_view(buffer).substr(body_start));
-            if (decoded == ChunkedDecodeResult::Complete) {
-                std::string decoded_body;
-                if (!decode_http_chunked_body(buffer.substr(body_start), &decoded_body)) return buffer;
-                return buffer.substr(0, body_start) + decoded_body;
+            try {
+                decoder.feed(incoming);
+            } catch (const HttpBodySizeError &) {
+                throw HttpRequestReadError(413,"HTTP request body exceeds EZLOCALAI_MAX_REQUEST_BODY_BYTES");
+            } catch (const std::runtime_error &) {
+                throw HttpRequestReadError(400,"Malformed chunked HTTP request body");
             }
-            if (decoded == ChunkedDecodeResult::Malformed) {
+            auto decoded = decoder.take();
+            permit.reserve(buffer.size() - body_start + decoded.size());
+            buffer += decoded;
+            if (decoder.complete()) {
                 return buffer;
             }
             ssize_t n = recv(fd, chunk, sizeof(chunk), 0);
-            if (n <= 0) {
-                return buffer;
-            }
-            buffer.append(chunk, static_cast<size_t>(n));
-            if (buffer.size() > 16 * 1024 * 1024) {
-                return buffer;
-            }
+            if (n < 0 && errno == EINTR) continue;
+            if (n <= 0) throw HttpRequestReadError(400,"Incomplete chunked HTTP request body");
+            incoming.assign(chunk,static_cast<size_t>(n));
         }
     }
-    while (buffer.size() < body_start + content_length) {
-        ssize_t n = recv(fd, chunk, sizeof(chunk), 0);
-        if (n <= 0) {
-            break;
-        }
+    while (buffer.size() - body_start < content_length) {
+        const auto remaining = content_length - (buffer.size() - body_start);
+        ssize_t n = recv(fd, chunk, std::min(remaining,sizeof(chunk)), 0);
+        if (n < 0 && errno == EINTR) continue;
+        if (n <= 0) throw HttpRequestReadError(400,"Incomplete HTTP request body");
         buffer.append(chunk, static_cast<size_t>(n));
-        if (buffer.size() > 16 * 1024 * 1024) {
-            break;
-        }
     }
+    // Preserve bytes following an upgrade request (the first WebSocket frame),
+    // but do not feed pipelined bytes into ordinary multipart/JSON handlers.
+    if (!is_websocket_upgrade(headers)) buffer.resize(body_start + content_length);
     return buffer;
 }
 
@@ -20929,6 +21029,7 @@ void NativeServer::handle_client(int client_fd) {
             client_fds_.erase(*value); close(*value); delete value; client_cv_.notify_all();
         }
     });
+    HttpRequestBodyPermit body_permit;
     HttpResponse response;
     bool head_request = false;
     std::string request_origin;
@@ -20943,7 +21044,30 @@ void NativeServer::handle_client(int client_fd) {
                 client_host = host_buffer;
             }
         }
-        const std::string raw = read_socket_request(client_fd);
+        const auto preflight = [this,&client_host,&head_request,&request_origin,&request_has_cookie](const std::string &method,const std::string &path,
+            const std::unordered_map<std::string,std::string> &headers) -> std::optional<HttpResponse> {
+            head_request = method == "HEAD";
+            const auto origin = headers.find("origin");
+            request_origin = origin == headers.end() ? "" : origin->second;
+            request_has_cookie = headers.count("cookie") != 0;
+            const auto route = path.substr(0,path.find('?'));
+            const auto allowed = allowed_methods_for_route_path(starts_with(route,"/v1/wakeword/") ? url_decode(route) : route,native_router_mode_enabled());
+            if (allowed.empty() || std::find(allowed.begin(),allowed.end(),method) == allowed.end())
+                return method_not_allowed_or_not_found(path);
+            const auto field = [&](const char *name) { const auto at = headers.find(name); return at == headers.end() ? std::string() : at->second; };
+            const bool public_read = (method == "GET" || method == "HEAD") && (route == "/" || route == "/openapi.json"
+                || route == "/docs/oauth2-redirect" || route == "/redoc" || route == "/health" || route == "/v1/router/health"
+                || route == "/dashboard" || starts_with(route,"/outputs/"));
+            if (public_read)
+                return handle_request(method,path,field("authorization"),"",field("content-type"),client_host,field("host"),headers,true);
+            const bool worker_route = method == "POST" && (route == "/v1/router/register" || route == "/v1/router/heartbeat"
+                || route == "/v1/router/deregister" || route == "/v1/router/drain" || route == "/v1/router/resume");
+            if (worker_route ? authorized_for_worker(field("authorization")) : authorized(field("authorization"))) return {};
+            // Reuse route-specific auth errors and method precedence, never
+            // dispatching an authorized request with an empty placeholder body.
+            return handle_request(method,path,field("authorization"),"",field("content-type"),client_host,field("host"),headers);
+        };
+        std::string raw = read_socket_request(client_fd,body_permit,preflight);
         const auto header_end = raw.find("\r\n\r\n");
         if (header_end == std::string::npos) {
             response = invalid_http_request_response();
@@ -21081,10 +21205,15 @@ void NativeServer::handle_client(int client_fd) {
             if (host_it != headers.end()) {
                 host_header = host_it->second;
             }
-            const std::string body = raw.substr(header_end + 4);
-            response = handle_request(method, path, authorization, body, content_type, client_host, host_header, headers, true);
+            raw.erase(0,header_end + 4);
+            response = handle_request(method, path, authorization, raw, content_type, client_host, host_header, headers, true);
             }
         }
+    } catch (const HttpRequestEarlyResponse &early) {
+        response = early.response;
+    } catch (const HttpRequestReadError &ex) {
+        response = {ex.status, "application/json", "{\"detail\":\"" + json_escape(ex.what()) + "\"}"};
+        if (ex.status == 503) response.headers.emplace_back("Retry-After","1");
     } catch (const std::exception &ex) {
         response = {500, "application/json", make_error(500, ex.what())};
     }

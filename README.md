@@ -317,6 +317,8 @@ The default lookup table mirrors all current `Globals.py` defaults. Runtime use 
 - `MAX_CONCURRENT_REQUESTS`
 - `N_PARALLEL`
 - `REQUEST_TIMEOUT`
+- `EZLOCALAI_MAX_REQUEST_BODY_BYTES`
+- `EZLOCALAI_MAX_IN_FLIGHT_REQUEST_BODY_BYTES`
 - `EZLOCALAI_PORT`
 - `MODELS_PATH`
 - `ROUTER_URL`
@@ -330,6 +332,27 @@ The default lookup table mirrors all current `Globals.py` defaults. Runtime use 
 Native loads `.env` from the current working directory before reading config and does not override variables already present in the process environment. Set `EZLOCALAI_DOTENV_PATH` to point at a different dotenv file, or set it to an empty string to skip automatic dotenv loading.
 File parsing follows the pinned python-dotenv 1.2.2 behavior for quoted/multiline values, escapes, comments, `${NAME}` and `${NAME:-default}` interpolation, and duplicate assignments. Process environment values take precedence; otherwise the last file assignment wins. `PYTHON_DOTENV_DISABLED` also disables loading. The CUDA entrypoint loads the file before supplying defaults. Invalid UTF-8 or unrepresentable environment values stop executable startup; diagnostics do not print configuration values. Native retains its explicit file/current-directory controls rather than Python stack-based file discovery.
 `N_PARALLEL` remains the llama.cpp slot setting. If `N_PARALLEL` is unset, native uses `MAX_CONCURRENT_REQUESTS` as the queue concurrency fallback for compatibility with older/local `.env` files.
+
+Native HTTP uploads default to a 512 MiB per-request limit
+(`EZLOCALAI_MAX_REQUEST_BODY_BYTES=536870912`) and a process-wide 512 MiB
+in-flight payload budget (`EZLOCALAI_MAX_IN_FLIGHT_REQUEST_BODY_BYTES=536870912`).
+Both settings accept positive integer byte counts, are passed through every
+Compose profile, and can be set in `.env`. Oversized requests return 413;
+malformed or incomplete framing returns 400 rather than a misleading missing-file
+422. Protected uploads reject invalid credentials before reading their bodies.
+When concurrent uploads exhaust the aggregate budget, requests return 503 with
+`Retry-After: 1`. Reservations last through response completion and are released
+on failures and disconnects. Public body-independent reads do not consume the
+upload budget. Fixed-length uploads reserve their declared length; chunked
+uploads reserve incrementally as decoded payload arrives.
+
+The aggregate budget measures retained request payload bytes, not total process
+RSS: multipart parsing, base64/STT processing and inference require additional
+memory. Keep both limits comfortably below available RAM; raise both together
+when permitting larger media. The separate 16 MiB compressed/decoded gzip text
+request limits are unchanged. `http_upload` is a CPU-only package gate covering
+large multipart STT requests, framing errors, authentication/CORS, memory
+backpressure and early WebSocket frames without model downloads.
 
 ## Router Worker
 
@@ -431,10 +454,10 @@ The native executable and CUDA compose configuration preload configured LLMs by 
 `LLAMA_CPP_START_TIMEOUT` defaults to `3600` in CUDA compose and governs engine startup after native acquisition. Hub requests have separate downloader timeouts.
 The default CUDA build targets compute capabilities 8.6, 8.9 and 12.0 and builds llama.cpp in parallel. llama.cpp, stable-diffusion.cpp and ACE-Step are built with `GGML_NATIVE=OFF`, a portable AVX2/FMA/F16C x86-64 baseline, so the image runs on any fleet CPU rather than only on CPUs like the build host. The GB10 image (`docker-compose-gb10.yml`) uses the same Dockerfile with `EZLOCALAI_PLATFORM=gb10`. Override `EZLOCALAI_LLAMA_CPP_CMAKE_ARGS` or `EZLOCALAI_LLAMA_CPP_JOBS` in `.env` for other architectures or job counts.
 
-The default engine revision is llama.cpp release v0.8.0 (`8642541b255bfb5dc39cd351a178be09013a55d6`). It is newer than the Python reference’s xllamacpp engine, `aa94f2086147cd4bfbcff818ce998dffce5fcb39`. The C++ management tool, CUDA Dockerfile and Compose build use the same default; `EZLOCALAI_LLAMA_CPP_REF` remains an explicit override. Remove or update an older explicit `.env` pin to adopt v0.8.0. To rebuild that revision in the CUDA image:
+The default engine revision is llama.cpp release v0.9.0 (`cd959bae99ff4bed22bef2604f45241c09bbb8c8`). It is newer than the Python reference’s xllamacpp engine, `aa94f2086147cd4bfbcff818ce998dffce5fcb39`. The C++ management tool, platform Dockerfiles and Compose builds use the same default; `EZLOCALAI_LLAMA_CPP_REF` remains an explicit override. Remove or update an older explicit `.env` pin to adopt v0.9.0. To rebuild that revision in the CUDA image:
 
 ```bash
-EZLOCALAI_LLAMA_CPP_REF=8642541b255bfb5dc39cd351a178be09013a55d6 docker compose -f docker-compose-cuda.yml build
+EZLOCALAI_LLAMA_CPP_REF=cd959bae99ff4bed22bef2604f45241c09bbb8c8 docker compose -f docker-compose-cuda.yml build
 ```
 
 ### CUDA package architecture gate
@@ -816,7 +839,7 @@ The output is key/value lines showing each model id, a matching top-level GGUF i
 To pin or update a specific upstream ref:
 
 ```bash
-EZLOCALAI_LLAMA_CPP_REF=8642541b255bfb5dc39cd351a178be09013a55d6 ./build/llama_cpp_tool update
+EZLOCALAI_LLAMA_CPP_REF=cd959bae99ff4bed22bef2604f45241c09bbb8c8 ./build/llama_cpp_tool update
 ./build/llama_cpp_tool build
 ```
 

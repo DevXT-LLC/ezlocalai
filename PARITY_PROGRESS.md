@@ -2,6 +2,81 @@
 
 The goal remains behavior parity with ezlocalai within the scope below, with all first-party executable code implemented in C++. It is **not complete**.
 
+## Large Caption Upload Transport (2026-11-07)
+
+Confirmed and fixed silent native HTTP truncation at roughly 16 MiB, which
+removed the closing multipart boundary and made long STT uploads return the
+misleading FastAPI-shaped 422 missing `body.file`. Fixed-length and chunked
+uploads now retain the complete payload up to a configurable 512 MiB per-request
+limit. A separate process-wide 512 MiB retained-payload budget provides 503
+backpressure with `Retry-After: 1`; reservations persist through response
+completion. Protected uploads reject unauthorized requests before payload
+reception, and body-independent public reads do not reserve upload memory.
+Malformed/incomplete framing returns 400, oversize uploads return 413, invalid
+header names and ambiguous TE/CL are rejected, and normal CORS/HEAD/WebSocket
+behavior and gzip text authentication/caps are preserved. Both limits are
+documented in `.env.example`/README and passed through all six Compose profiles.
+
+The CPU-only `http_upload` regression is registered in CMake, every Docker
+package gate and the shared native package target list. It verifies byte-exact
+17 MiB WAV delivery to a real-socket STT fixture, timed SRT/VTT/verbose JSON,
+bounds, malformed/incomplete framing, early auth/CORS/HEAD responses, aggregate
+budget contention/release and coalesced early WebSocket frames.
+
+Isolated staging reused dependency image `2928738bb5e6` without a GPU or network.
+The full native worker and TTS executable compiled/linked against the patched
+v0.9.0 CPU reference. The final Release gate passed 8/8 tests in 56.61 seconds:
+upload, native HTTP, gzip HTTP, realtime, worker metadata, speech resources,
+speech slots and the strict engine contract. Worker `--help` passed, all 1,947
+Compose settings passed, and final configure/build logs have no warning/error
+markers. See `tests/fixtures/http_upload_20261107_validation.json` and
+`build/validation/http-upload-*.log` for exact commands, hashes and scope.
+
+Final transport assessment: no remaining issues were found in the focused
+tests or staged build logs. Source is frozen for the parent's commit/push and
+companion PR; no additional tests, runtime changes or scope are planned here.
+
+No image was built, no production worker or engine was restarted, and no new
+rollback tag was needed. This is not live transcription accuracy, Qwen/LFM/TTS
+hardware, Bolt output-audio or end-to-end XT School acceptance. Full-image
+packaging and coordinated live validation remain before rollout.
+
+## llama.cpp v0.9.0 Compatibility (2026-11-07)
+
+Updated active platform and management pins to
+`cd959bae99ff4bed22bef2604f45241c09bbb8c8`. Versioned MTP and CUDA Q4 patches
+preserve position-aware cache state while accommodating upstream shared-KV
+sparse outputs and indirect KV rows. Indirect layouts retain stock attention;
+the existing dense SM89 optimization retains its original guards. Original
+patches remain available for safe removal from v0.7/v0.8 installations.
+Current README/AGENTS guidance is updated; historical evidence is unchanged.
+
+The patched portable CPU server and native TTS worker compile and link.
+Focused validation passed 8/8 tests plus the Compose profile gate: 179 MTP
+checks (also ASan/UBSan), 364,777 checkpoint checks, 395 Q4 policy checks,
+atomic restore, bounded storage, strict parser/source hashes, patch lifecycle
+and TTS CLI startup. Real pinned tiny-model A/B/A/B/A inference restored each
+returning prompt with one processed token and its original greedy answer.
+Smoke/test logs contain no error or warning markers.
+
+Focused CUDA compilation also passed unchanged with NVCC 12.8.93/GNU 13.3.0:
+dispatcher, fused 4x8 MMA instance, ordinary 8x4 MMA instance and 256x256 tile
+control. All four objects contain SM86/SM89/SM120a cubins and symbol inspection
+confirms the fused q4_kv=true specialization. This used cached toolchain image
+`2928738bb5e6` in isolated, network-disabled staging without GPU exposure, not
+a Docker build or runtime worker. The compile log has no warnings or errors;
+configure warns that upstream ignores the existing deprecated LLAMA_CURL flag.
+Exact scripts, generated commands and logs:
+`build/validation/llama-v090-cuda-stage/`.
+
+No image was built or deployed, so there is no new image ID or rollback tag.
+No existing worker was restarted. Full runtime package gates, complete CUDA
+backend/server link, GPU numeric/launch/speed checks, real-model MTP acceptance,
+native ARM/ROCm and Qwen waveform synthesis remain unvalidated for this upgrade.
+Historical GPU evidence does not qualify the v0.9.0 CUDA patch. Compact evidence
+and local log paths:
+`tests/fixtures/llama_v090_upgrade_20261107_validation.json`.
+
 ## GB10 LFM concurrency, GPU priorities and MiniCPM 32K (2026-10-28)
 
 Added opt-in native CUDA MPS supervision and per-model

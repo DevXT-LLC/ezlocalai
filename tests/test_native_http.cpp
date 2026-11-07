@@ -3470,37 +3470,35 @@ int main() {
     expect(chunked_chat_response.find("200 OK") != std::string::npos, "chunked chat request status");
     expect(chunked_chat_response.find("chunked ping") != std::string::npos, "chunked chat request body decoded");
     {
-        const std::string headers = "GET /health HTTP/1.1\r\nHost: localhost\r\nTransfer-Encoding: chunked\r\n\r\n";
-        std::string extended = "\n1\n \t;ignored\n";
-        extended.push_back('\0');
-        extended += "extension\r\nA\r\n0\r\n\r\n";
-        std::string trailer = "0\r\narbitrary\n";
-        trailer.push_back('\0');
-        trailer += "trailer\r\n\r\n";
+        const std::string headers = "GET /v1/models HTTP/1.1\r\nHost: localhost\r\nAuthorization: Bearer secret\r\nTransfer-Encoding: chunked\r\n\r\n";
         // The final byte is the first point where each frame becomes complete
         // or malformed. In particular, A\n remains incomplete until X arrives.
         for (const auto &encoded : std::vector<std::string>{
-            "0\r\n\r\n", extended, trailer, "g\r\n", "+1\r\n", "0x1\r\n",
-            "10000000000000000\r\n", "\v1\r\n", "\f1\r\n", "1\r\nA\nX"
+            "0\r\n\r\n", "1;ignored=extension\r\nA\r\n0\r\n\r\n", "0\r\nX-Trailer: value\r\n\r\n"
         }) {
             const auto response = fragmented_request(headers, byte_fragments(encoded));
             expect(response.find("200 OK") != std::string::npos, "fragmented chunked framing returns request without EOF");
-            expect(response_body(response) == "{\"status\":\"healthy\"}", "fragmented chunked framing preserves route result");
+            expect(response_body(response).find("native-test-model") != std::string::npos, "fragmented chunked framing preserves route result");
+        }
+        for (const auto &encoded : std::vector<std::string>{
+            "g\r\n", "+1\r\n", "0x1\r\n",
+            "10000000000000000\r\n", "\v1\r\n", "\f1\r\n", "1\r\nA\nX"
+        }) {
+            const auto response = fragmented_request(headers, byte_fragments(encoded));
+            expect(response.find("400 Bad Request") != std::string::npos, "malformed chunked framing is rejected without EOF");
         }
         for (const auto &encoded : {"1\r\nA\r", "0\r\n", "0\r\ntrailer\r\n", "1\r\nA\n"}) {
             const auto response = fragmented_request(headers, byte_fragments(encoded), true);
-            expect(response.find("200 OK") != std::string::npos, "incomplete chunked request returns on EOF");
+            expect(response.find("400 Bad Request") != std::string::npos, "incomplete chunked request is rejected on EOF");
         }
         const auto trailing = fragmented_request(headers, {"0\r\n\r\nignored trailing bytes"});
-        expect(response_body(trailing) == "{\"status\":\"healthy\"}", "chunked framing ignores bytes after the final trailer");
+        expect(response_body(trailing).find("native-test-model") != std::string::npos, "chunked framing ignores bytes after the final trailer");
         const auto long_line = fragmented_request(headers, {
             std::string(4095, ' '), std::string(4097, ' ') + "1\r", "\n", "A\r", "\n0\r", "\n\r", "\n"
         });
         expect(long_line.find("200 OK") != std::string::npos, "chunked size line spans receive buffers");
-        const std::string oversized_chunk = "1000001\r\n";
-        const auto capped = fragmented_request(headers, {oversized_chunk,
-            std::string(16 * 1024 * 1024 - headers.size() - oversized_chunk.size(), 'A'), "A"});
-        expect(response_body(capped) == "{\"status\":\"healthy\"}", "incomplete chunked request returns at the raw 16 MiB limit without EOF");
+        const auto capped = fragmented_request(headers, {"20000001\r\n"});
+        expect(capped.find("413 Payload Too Large") != std::string::npos, "oversized chunk is rejected before receiving its payload");
 
         // Keep the model input short while exercising many received chunks.
         const std::string padded_body = "{\"model\":\"native-test-model\",\"messages\":[{\"role\":\"user\",\"content\":\"large chunked ping\"}],\"padding\":\""

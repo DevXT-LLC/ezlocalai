@@ -123,6 +123,7 @@ void excluded_geometry() {
         rejected("unqualified architecture", [=](auto & p) { p.cc = cc; });
     rejected("missing mask", [](auto & p) { p.mask_present = false; });
     rejected("attention sinks", [](auto & p) { p.has_sinks = true; });
+    rejected("indirect KV row gather", [](auto & p) { p.kv_rows = true; });
     rejected("sparse gather", [](auto & p) { p.use_sparse = true; });
     rejected("shared KV view", [](auto & p) { p.shared_kv = true; });
     rejected("ALiBi", [](auto & p) { p.max_bias = 1.0f; });

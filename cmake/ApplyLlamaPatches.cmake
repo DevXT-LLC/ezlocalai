@@ -7,12 +7,16 @@ execute_process(COMMAND git -C "${SOURCE_DIR}" rev-parse HEAD
 set(metadata "${BUILD_DIR}/ezlocalai-llama-cpp-patches.txt")
 # Custom revisions retain their own behavior; this stack is qualified at the pin.
 set(legacy_remove FALSE)
-if(NOT revision STREQUAL "8642541b255bfb5dc39cd351a178be09013a55d6")
+set(previous_pin FALSE)
+if(NOT revision STREQUAL "cd959bae99ff4bed22bef2604f45241c09bbb8c8")
     # The updater removes the previous release's patches BEFORE checkout. Its
     # files still have the old pin here; dropping metadata alone strands those
     # edits and prevents git from checking out the new release.
     if(REMOVE_MANAGED_PATCH AND revision STREQUAL "620d2225cc436ab0b001e3200e590e3b286ef9ab")
         set(legacy_remove TRUE)
+        set(previous_pin TRUE)
+    elseif(REMOVE_MANAGED_PATCH AND revision STREQUAL "8642541b255bfb5dc39cd351a178be09013a55d6")
+        set(previous_pin TRUE)
     else()
         if(BUILD_DIR)
             file(REMOVE "${metadata}")
@@ -32,10 +36,16 @@ if(NOT PATCH_FILES)
         endif()
         set(PATCH_FILE "${patch_dir}/llama-conversation-cache.patch")
     endif()
+    set(mtp_patch "${patch_dir}/llama-mtp-resume-v090.patch")
+    set(q4_patch "${patch_dir}/llama-cuda-q4-kv-fusion-v090.patch")
+    if(previous_pin)
+        set(mtp_patch "${patch_dir}/llama-mtp-resume.patch")
+        set(q4_patch "${patch_dir}/llama-cuda-q4-kv-fusion.patch")
+    endif()
     set(PATCH_FILES "${PATCH_FILE}" "${patch_dir}/llama-cache-restore-atomic.patch"
-        "${patch_dir}/llama-cache-storage.patch" "${patch_dir}/llama-mtp-resume.patch"
+        "${patch_dir}/llama-cache-storage.patch" "${mtp_patch}"
         "${patch_dir}/llama-checkpoint-coverage.patch" "${patch_dir}/llama-checkpoint-entry-window.patch"
-        "${patch_dir}/llama-cache-retention.patch" "${patch_dir}/llama-cuda-q4-kv-fusion.patch")
+        "${patch_dir}/llama-cache-retention.patch" "${q4_patch}")
     if(NOT legacy_remove)
         list(APPEND PATCH_FILES "${patch_dir}/llama-prefix-anchor.patch")
     endif()
