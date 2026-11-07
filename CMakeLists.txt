@@ -283,6 +283,10 @@ add_executable(test_request_gzip_http tests/test_request_gzip_http.cpp)
 target_link_libraries(test_request_gzip_http PRIVATE ezlocalai_native nlohmann_json::nlohmann_json)
 add_test(NAME request_gzip_http COMMAND test_request_gzip_http)
 set_tests_properties(request_gzip_http PROPERTIES TIMEOUT 60)
+add_executable(test_http_upload tests/test_http_upload.cpp)
+target_link_libraries(test_http_upload PRIVATE ezlocalai_native nlohmann_json::nlohmann_json)
+add_test(NAME http_upload COMMAND test_http_upload)
+set_tests_properties(http_upload PROPERTIES TIMEOUT 90)
 add_executable(bench_stream_socket EXCLUDE_FROM_ALL benchmarks/bench_stream_socket.cpp)
 target_include_directories(bench_stream_socket PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_link_libraries(bench_stream_socket PRIVATE Threads::Threads)
@@ -1894,6 +1898,7 @@ if(TARGET test_ltx_norm AND TARGET ezlocalai-tts)
         test_http_stream_socket
         test_request_gzip_codec
         test_request_gzip_http
+        test_http_upload
         test_stream_completion
         test_tts_websocket
         test_process_capture

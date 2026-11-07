@@ -25,6 +25,10 @@ int main(int argc, char **argv) {
                     if (override_swap) command.push_back(std::string(key) + "=2048");
                     else if (scenario.at("name") == "empty") command.push_back(std::string(key) + '=');
                 }
+                for (const auto &key : {"EZLOCALAI_MAX_REQUEST_BODY_BYTES", "EZLOCALAI_MAX_IN_FLIGHT_REQUEST_BODY_BYTES"}) {
+                    if (override_swap) command.push_back(std::string(key) + "=67108864");
+                    else if (scenario.at("name") == "empty") command.push_back(std::string(key) + '=');
+                }
                 command.insert(command.end(), {argv[3], "compose", "--env-file", "/dev/null",
                     "-f", (root / profile.at("file").get<std::string>()).string(),
                     "config", "--no-env-resolution", "--format", "json"});
@@ -36,6 +40,11 @@ int main(int argc, char **argv) {
                     actual.at("LLM_PROMPT_CACHE_SWAP_MARGIN_MIB") != (override_swap ? "2048" : "1024"))
                     throw std::runtime_error("native bounded-swap settings must pass through every profile");
                 comparisons += 2;
+                for (const auto &key : {"EZLOCALAI_MAX_REQUEST_BODY_BYTES", "EZLOCALAI_MAX_IN_FLIGHT_REQUEST_BODY_BYTES"}) {
+                    if (actual.at(key) != (override_swap ? "67108864" : "536870912"))
+                        throw std::runtime_error("native HTTP upload settings must pass through every profile");
+                    ++comparisons;
+                }
                 for (const auto &[key, expected] : scenario.at("expected").items()) {
                     auto wanted = expected;
                     if (profile.contains("default_corrections") && profile.at("default_corrections").contains(key) &&

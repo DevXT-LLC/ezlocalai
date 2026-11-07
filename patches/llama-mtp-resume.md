@@ -1,5 +1,26 @@
 # Position-aware MTP cache resume
 
+## v0.9.0 Compatibility (2026-11-07)
+
+The active managed pin is `cd959bae99ff4bed22bef2604f45241c09bbb8c8`.
+`llama-mtp-resume-v090.patch` replaces upstream's single-row snapshots with the
+same position-aware state and preserves its shared-KV output selection: do not
+read hidden rows when the final token is not an output; retain only the final
+row for sparse prefill, and all selectable rows for full-output verification.
+Shared-KV prefill does not consume a draft predecessor; actual drafting still
+requires the exact boundary. Ordinary KV retains its predecessor checks.
+
+The original patch below remains unchanged for safe removal from installed
+v0.7/v0.8 engines before checkout. Both old-pin removal paths, complete stack
+application/removal, prefix upgrades, idempotence and metadata fingerprints are
+tested. The v0.9.0 CPU server builds with `GGML_NATIVE=OFF`; 179 MTP checks pass
+in optimized and ASan/UBSan builds, alongside atomic-restore, storage,
+checkpoint, parser/source-hash and Q4 policy tests. Real tiny-model CPU
+A/B/A/B/A switching restores each returning prompt with one processed token
+and the original greedy answer. This is not real-model MTP or GPU validation.
+
+## Original Implementation
+
 This managed patch targets llama.cpp `620d2225cc436ab0b001e3200e590e3b286ef9ab`
 after the conversation-cache, atomic restore/save and bounded cache-storage
 patches. Custom engine revisions retain their own implementation.

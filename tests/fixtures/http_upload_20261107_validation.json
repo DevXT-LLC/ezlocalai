@@ -1,0 +1,95 @@
+{
+  "date": "2026-11-07",
+  "branch": "fix/xtschool-large-stt-uploads",
+  "base": "dc10612",
+  "scope": "HTTP request transport and fixture-backed STT; not a live model accuracy or deployment validation",
+  "regression": {
+    "before": "17,825,792-byte upload was silently truncated at roughly 16 MiB and returned HTTP 422 missing body.file",
+    "after": "17 MiB WAV reaches the STT fixture byte-for-byte over fixed-length and chunked TCP; SRT, VTT and timed verbose JSON responses survive"
+  },
+  "limits": {
+    "EZLOCALAI_MAX_REQUEST_BODY_BYTES": 536870912,
+    "EZLOCALAI_MAX_IN_FLIGHT_REQUEST_BODY_BYTES": 536870912,
+    "aggregate_scope": "process-wide retained request payload bytes, held through response lifetime; not an RSS limit",
+    "backpressure": "503 with Retry-After: 1",
+    "malformed_or_incomplete_body": 400,
+    "per_request_limit_exceeded": 413,
+    "gzip_text_limit_unchanged_bytes": 16777216
+  },
+  "isolation": {
+    "container": "ezlocalai-stt-upload-validation",
+    "dependency_image": "ezlocalai:rollback-lfm3-realtime-20261028-local3090ti",
+    "dependency_image_id": "2928738bb5e6",
+    "network": "none",
+    "cpus": 2,
+    "memory_gib": 8,
+    "gpu_access": false,
+    "production_restarts": false,
+    "transport_library": "rebuilt current first-party C++ sources with cached native dependencies, Release optimization",
+    "broad_test_fixture": "final registered package gate rebuilt with normal Release flags; early -O0 iteration is superseded by the final staged gate"
+  },
+  "staging_artifacts": {
+    "engine_release": "v0.9.0",
+    "engine_pin": "cd959bae99ff4bed22bef2604f45241c09bbb8c8",
+    "engine_source": "/source/build/validation/llama-v090-upgrade",
+    "engine_build": "/validation/llama-v090-cpu",
+    "native_worker": {"path": "/app/build/ezlocalai-native", "sha256": "efbf74af4f94194157711ddcb6f6c63466a567f431db786c31049c4bfb6db2e9", "help_smoke": "passed"},
+    "native_tts": {"path": "/app/build/ezlocalai-tts", "sha256": "3fe27f26d53ce23b10e1638b01ed5c33257a303e86c9cd53fff34fcb0e56814f", "linkage": "v0.9.0 llama/common/mtmd and ggml v0.29.0; no unresolved libraries"},
+    "new_image_built": false,
+    "rollback_tag_created": false,
+    "rollback_note": "No deployment or running worker replacement occurred"
+  },
+  "package_registration": {
+    "test": "http_upload",
+    "target": "test_http_upload",
+    "shared_native_package_target_list": true,
+    "docker_package_gates": ["cpu.Dockerfile", "cuda.Dockerfile", "rocm.Dockerfile", "jetson.Dockerfile"],
+    "compose_profiles": ["cpu", "cuda", "gb10", "jetson", "rocm", "rpi"],
+    "compose_settings_checked": 1947,
+    "compose_result": "passed for defaults, empty values and overrides",
+    "environment_defaults_documented": [".env.example", "README.md"]
+  },
+  "tests": {
+    "http_upload": {
+      "passed": true,
+      "framing_and_large_stt_cases": 38,
+      "additional_checks": [
+        "exact and over-limit fixed-length/chunked bodies, including header-only default 512 MiB boundary checks",
+        "cumulative chunk-size cap and recovery after rejection",
+        "coalesced early WebSocket ping and close frames preserved outside HTTP payload cap",
+        "unauthorized fixed-length/chunked uploads rejected before body or client EOF",
+        "method and unknown-route rejection precedence before body admission",
+        "401 responses retain origin/credentials CORS with missing or wrong API key, with and without Cookie",
+        "HEAD early error retains CORS and sends no body",
+        "aggregate fixed-length/chunked backpressure while a separate upload holds a reservation",
+        "Expect: 100-continue acknowledges successful reservation before accepting payload",
+        "body reservation released on completion, followed by successful large STT upload",
+        "public GET /health with declared 512 MiB body responds before receiving it, without starving authenticated uploads",
+        "whitespace/invalid header names and duplicate/ambiguous TE/CL rejected"
+      ]
+    },
+    "final_staged_ctest": {
+      "passed": 8,
+      "failed": 0,
+      "seconds": 56.61,
+      "tests": ["http_upload", "native_http", "request_gzip_http", "realtime", "worker_metadata_reference", "speech_resources_reference", "speech_slots_reference", "llm_engine_contract"]
+    },
+    "native_http": {"passed": true, "seconds": 29.97},
+    "request_gzip_http": {"passed": true, "seconds": 0.43},
+    "git_diff_check": "passed"
+  },
+  "logs": ["build/validation/http-upload-configure.log", "build/validation/http-upload-build.log", "build/validation/http-upload-ctest.log", "build/validation/http-upload-worker-help.log", "build/validation/compose-upload/Testing/Temporary/LastTest.log"],
+  "log_assessment": "No warning/error compiler markers, failed checks, tracebacks or exceptions in the final configure/build/test logs",
+  "commands": [
+    "docker exec ezlocalai-stt-upload-validation cmake -P /validation/stage_upload_package.cmake",
+    "cmake -S . -B build/validation/compose-upload -DEZLOCALAI_COMPOSE_GATE_ONLY=ON",
+    "cmake --build build/validation/compose-upload --target test_compose_profiles --parallel 2",
+    "ctest --test-dir build/validation/compose-upload --output-on-failure",
+    "git diff --check"
+  ],
+  "remaining_after_isolated_validation": [
+    "No rebuilt worker deployed; coordinated rollout and real XT School long-caption acceptance remain",
+    "No live Qwen, Qwen TTS, LFM or Bolt output-audio acceptance performed by the transport task",
+    "No commit or push before parent review"
+  ]
+}

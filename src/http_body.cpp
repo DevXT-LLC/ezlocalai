@@ -18,13 +18,15 @@ struct HttpBodyDecoder::State {
     enum class Frame { Size, Data, DataEnd, Trailers, Done };
     std::string encoding, body, line;
     bool chunked, started = false, ended = false, finished = false, zlib_ready = false;
-    std::optional<size_t> length;
-    size_t received = 0, chunk_left = 0, end_bytes = 0;
+    std::optional<size_t> length, max_bytes;
+    size_t received = 0, chunk_left = 0, end_bytes = 0, decoded_bytes = 0, trailer_bytes = 0;
+    char chunk_end_first = 0;
     Frame frame = Frame::Size;
     z_stream z{};
     BrotliDecoderState *brotli = nullptr;
 
-    State(std::string coding, bool chunks, std::optional<size_t> size) : encoding(std::move(coding)),chunked(chunks),length(size) {
+    State(std::string coding, bool chunks, std::optional<size_t> size, std::optional<size_t> maximum)
+        : encoding(std::move(coding)),chunked(chunks),length(size),max_bytes(maximum) {
         for (auto &c : encoding) c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
         if (encoding == "zstd") invalid_encoding();
         if (encoding == "br") { brotli = BrotliDecoderCreateInstance(nullptr,nullptr,nullptr); if (!brotli) throw std::bad_alloc(); }
@@ -33,6 +35,10 @@ struct HttpBodyDecoder::State {
 
     void decode(std::string_view bytes) {
         if (bytes.empty()) return;
+        if (max_bytes) {
+            if (bytes.size() > *max_bytes - decoded_bytes) throw HttpBodySizeError();
+            decoded_bytes += bytes.size();
+        }
         if (encoding != "gzip" && encoding != "deflate" && encoding != "br") { body.append(bytes); return; }
         std::array<unsigned char,65536> output;
         if (brotli) {
@@ -101,6 +107,7 @@ struct HttpBodyDecoder::State {
             size = size*16+digit;
         }
         chunk_left = size; frame = size ? Frame::Data : Frame::Trailers;
+        if (max_bytes && size > *max_bytes - decoded_bytes) throw HttpBodySizeError();
     }
     void feed(std::string_view bytes) {
         if (!chunked) {
@@ -112,10 +119,17 @@ struct HttpBodyDecoder::State {
                 const auto count = std::min(chunk_left,bytes.size()); decode(bytes.substr(0,count)); bytes.remove_prefix(count); chunk_left -= count;
                 if (!chunk_left) { frame = Frame::DataEnd; end_bytes = 0; }
             } else if (frame == Frame::DataEnd) {
-                if (bytes.front() != (end_bytes ? '\n' : '\r')) invalid_body();
-                bytes.remove_prefix(1); if (++end_bytes == 2) frame = Frame::Size;
+                const auto next = bytes.front(); bytes.remove_prefix(1);
+                if (!end_bytes) chunk_end_first = next;
+                if (++end_bytes == 2) {
+                    if (chunk_end_first != '\r' || next != '\n') invalid_body();
+                    frame = Frame::Size;
+                }
             } else {
                 const char next = bytes.front(); bytes.remove_prefix(1); line += next;
+                // Bounded request decoding must not buffer unbounded chunk
+                // extensions or trailers. Response compatibility is unchanged.
+                if (max_bytes && (line.size() > 65536 || (frame == Frame::Trailers && ++trailer_bytes > 65536))) invalid_body();
                 if (next != '\n') continue;
                 if (line.size() < 2 || line[line.size()-2] != '\r') invalid_body();
                 if (frame == Frame::Size) chunk_size();
@@ -127,7 +141,8 @@ struct HttpBodyDecoder::State {
     bool complete() const { return chunked ? frame == Frame::Done : length && received == *length; }
 };
 
-HttpBodyDecoder::HttpBodyDecoder(std::string encoding, bool chunked, std::optional<size_t> length) : state_(std::make_unique<State>(std::move(encoding),chunked,length)) {}
+HttpBodyDecoder::HttpBodyDecoder(std::string encoding, bool chunked, std::optional<size_t> length,
+    std::optional<size_t> max_bytes) : state_(std::make_unique<State>(std::move(encoding),chunked,length,max_bytes)) {}
 HttpBodyDecoder::~HttpBodyDecoder() = default;
 void HttpBodyDecoder::feed(std::string_view bytes) { state_->feed(bytes); }
 std::string HttpBodyDecoder::take() { std::string bytes; bytes.swap(state_->body); return bytes; }

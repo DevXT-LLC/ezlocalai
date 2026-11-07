@@ -1,5 +1,33 @@
 # CUDA Q4 KV loading for F16 attention
 
+## v0.9.0 Compatibility (2026-11-07)
+
+The active pin `cd959bae99ff4bed22bef2604f45241c09bbb8c8` uses
+`llama-cuda-q4-kv-fusion-v090.patch`. It retains the qualified dense SM89 path,
+operand expression, occupancy fallback and stock stream-K partition. Upstream
+now supports indirect KV row lists; those layouts use stock attention rather
+than the dense-only fused loader, with an explicit CPU policy regression check.
+All 395 layout-policy checks and full patch lifecycle checks pass.
+
+Focused CUDA compilation passes with NVCC 12.8.93 and GNU 13.3.0 for SM86,
+SM89 and SM120a (upstream normalizes the requested 120-real to 120a-real).
+The production dispatcher, 4x8 MMA fused instance, 8x4 MMA control and 256x256
+tile control compile unchanged. All four objects contain all three cubins;
+symbol inspection confirms the q4_kv=true 256x256/4x8 specialization exists.
+The compile log has no warnings or errors; configure reports the existing,
+deprecated and ignored LLAMA_CURL option. No GPU devices were exposed.
+
+The complete CUDA backend/server link, image/package gates and GPU runtime
+have **not been validated**. Historical GPU evidence below applies to the
+earlier pin only; SM89 stock/fused numeric and launch comparisons must be
+repeated before claiming v0.9.0 GPU qualification. ROCm and native ARM builds
+also remain unvalidated. The original patch is retained for removing old
+installed stacks safely. Reproduction scripts and logs are under
+`build/validation/llama-v090-cuda-stage/`; compact results are recorded in
+`tests/fixtures/llama_v090_upgrade_20261107_validation.json`.
+
+## Original Implementation
+
 This managed patch targets llama.cpp pin
 `620d2225cc436ab0b001e3200e590e3b286ef9ab`. Four-query MTP verification can
 expand the entire active Q4 KV cache to F16 before executing attention. The

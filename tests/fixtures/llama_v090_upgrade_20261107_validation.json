@@ -1,0 +1,133 @@
+{
+  "date": "2026-11-07",
+  "scope": "llama.cpp pins, managed cache/MTP/CUDA patch compatibility, focused CPU validation and CUDA compilation",
+  "branch": "fix/xtschool-large-stt-uploads",
+  "engine": {
+    "release": "v0.9.0",
+    "sha": "cd959bae99ff4bed22bef2604f45241c09bbb8c8",
+    "managed_patch_count": 9,
+    "mtp_patch_sha256": "5641592e8debd064f3ab8bb74f6b7823ca6e37b5cb0d0ffcfe15ca056f8e549f",
+    "q4_patch_sha256": "2a6fdb09d3ea8bc3588ecf7b21fb13424eca521cc7c91826f13cf68bb57c7d98",
+    "old_pin_removal": [
+      "620d2225cc436ab0b001e3200e590e3b286ef9ab",
+      "8642541b255bfb5dc39cd351a178be09013a55d6"
+    ]
+  },
+  "build": {
+    "platform": "x86_64 CPU",
+    "compiler": "GNU 13.3.0",
+    "ggml_native": false,
+    "ggml_cuda": false,
+    "llama_server": "passed",
+    "native_tts_worker_compile_link": "passed",
+    "image_id": null,
+    "rollback_tag": null
+  },
+  "cuda_compile": {
+    "status": "passed",
+    "scope": "four focused production translation units; not a complete backend/server link",
+    "toolchain_image": "ezlocalai:rollback-lfm3-realtime-20261028-local3090ti",
+    "toolchain_image_id": "sha256:2928738bb5e60d6b57c179b550a24bf0844c0b07c0493c27aea232ed66d0a5a2",
+    "container": "ezlocalai-llama-v090-cuda-compile",
+    "nvcc": "/usr/local/cuda/bin/nvcc",
+    "nvcc_version": "12.8.93",
+    "cmake_version": "3.28.3",
+    "host_compiler": "GNU 13.3.0",
+    "dependency_cache": "/opt/ezlocalai/deps/native-cache.cmake",
+    "staging": "build/validation/llama-v090-cuda-stage",
+    "container_staging": "/validation",
+    "requested_architectures": ["86-real", "89-real", "120-real"],
+    "emitted_architectures": ["sm_86", "sm_89", "sm_120a"],
+    "upstream_architecture_normalization": "120-real is normalized to 120a-real by v0.9.0 CMake",
+    "objects": [
+      {
+        "name": "fattn.cu.o",
+        "sha256": "e17515f7ca2791725c63cd8c3268efc6d837193dcd936ac265a73b40b4ea69db"
+      },
+      {
+        "name": "template-instances/fattn-mma-f16-instance-ncols1_4-ncols2_8.cu.o",
+        "sha256": "21f6a1d72a9462af62638c90879024617a287f81b2086d1f5f3037db47ebb8e4"
+      },
+      {
+        "name": "template-instances/fattn-mma-f16-instance-ncols1_8-ncols2_4.cu.o",
+        "sha256": "f9662b865d1203190eadb11d6687e6d0edf115f6fc4411cba8a458f1c159edd1"
+      },
+      {
+        "name": "template-instances/fattn-tile-instance-dkq256-dv256.cu.o",
+        "sha256": "52a90df472563ebdb478c11b1bfb6af125a9ae97d83f4ee3c3634a6e1d7bb556"
+      }
+    ],
+    "fused_q4_kernel_specialization_symbol": "flash_attn_ext_f16<256, 256, 4, 8, false, false, false, true>",
+    "fused_symbol_present": true,
+    "all_four_objects_contain_all_three_architectures": true,
+    "staged_source_hashes_match_managed_fixture": true,
+    "compile_errors_or_warnings": 0,
+    "configure_warning": "Existing LLAMA_CURL option is deprecated and ignored by upstream v0.9.0",
+    "network": "none",
+    "gpu_devices_exposed": false,
+    "scripts": ["configure.sh", "compile.sh", "inspect.sh"],
+    "logs": ["configure.log", "compile.log", "objects.log", "kernel-symbols.log", "fused-symbols.log"],
+    "production_source_changes_required": false,
+    "container_stopped_after_validation": true
+  },
+  "tests": {
+    "focused_ctest_passed": 8,
+    "focused_ctest_failed": 0,
+    "suites": [
+      "cache_restore_atomic",
+      "cache_storage",
+      "llama_mtp_resume",
+      "llama_checkpoint_coverage",
+      "q4_kv_layout",
+      "llm_engine_contract",
+      "managed_llama_patches",
+      "tts_engine_cli"
+    ],
+    "mtp_checks": 179,
+    "mtp_asan_ubsan": "passed",
+    "checkpoint_alignment_checks": 364777,
+    "q4_layout_checks": 395,
+    "compose_profiles": "passed",
+    "managed_patch_checks": [
+      "four Dockerfile pins and versioned patch copies",
+      "five Compose profile pins",
+      "pristine and partial-prefix application",
+      "idempotence without source mtime changes",
+      "complete and prefix removal",
+      "v0.7 and v0.8 removal before v0.9 checkout",
+      "all nine patch fingerprints",
+      "explicit missing and malformed patch failures",
+      "custom revision qualification invalidation"
+    ]
+  },
+  "real_cpu_cache_smoke": {
+    "status": "passed",
+    "model_sha256": "270cba1bd5109f42d03350f60406024560464db173c0e387d91f0426d3bd256d",
+    "conversation_sequence": ["A", "B", "A", "B", "A"],
+    "prompt_tokens_processed": [1331, 361, 1, 1, 1],
+    "prompt_tokens_cached": [0, 1001, 1330, 1361, 1330],
+    "returning_greedy_answers_unchanged": true,
+    "inference_endpoint": "/v1/chat/completions",
+    "server_logs_error_warning_scan": "no matches"
+  },
+  "local_artifacts": {
+    "engine_source": "build/validation/llama-v090-upgrade",
+    "engine_build": "build/validation/llama-v090-cpu",
+    "focused_test_build": "build/validation/llama-v090-tests/build",
+    "ctest_log": "build/validation/llama-v090-tests.log",
+    "smoke_script": "build/validation/smoke_v090.py",
+    "smoke_log": "build/validation/llama-v090-smoke.log",
+    "smoke_results": "build/validation/llama-v090-smoke.json"
+  },
+  "not_validated": [
+    "full worker runtime image build and package gates",
+    "complete CUDA backend/server build and link beyond the four focused translation units",
+    "SM89 stock/fused numerical equality, occupancy, launches and speed",
+    "real-model MTP acceptance and multimodal cache resume on GPU",
+    "GPU runtime on non-SM89 architectures, ROCm and native ARM",
+    "Qwen TTS waveform synthesis and numerical fixtures"
+  ],
+  "runtime_workers_restarted": false,
+  "docker_build_launched": false,
+  "committed_or_pushed": false
+}
