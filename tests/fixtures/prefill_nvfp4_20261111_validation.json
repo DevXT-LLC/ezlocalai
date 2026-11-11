@@ -1,0 +1,134 @@
+{
+  "date": "2026-11-11",
+  "scope": "Completed disk staging and CPU GGUF audit only; no runtime fit or general quality proof",
+  "worker": "DevXT5090",
+  "evidence_directory": "/home/josh/prefill-experiments/nvfp4-20261111",
+  "candidate": {
+    "repository": "tiyuvta/Qwen3.8-27B-NVFP4-MTP-GGUF",
+    "revision": "6c39753daccd7473d4e60735ec8ace1d30afdd10",
+    "filename": "Qwen3.8-27B-NVFP4-Q5K-mtp.gguf",
+    "source_url": "https://huggingface.co/tiyuvta/Qwen3.8-27B-NVFP4-MTP-GGUF/resolve/6c39753daccd7473d4e60735ec8ace1d30afdd10/Qwen3.8-27B-NVFP4-Q5K-mtp.gguf",
+    "file_bytes": 15705922304,
+    "file_sha256": "1facf36c2db359dcf9c2475cf8f85fe84a528d10aaaaff20f7c0db3d561e024a",
+    "full_file_size_and_sha256_verified_before_atomic_rename": true,
+    "outside_production_model_mount": true,
+    "download_finished_without_remaining_partial_files": true,
+    "tensor_type_counts": {"NVFP4": 504, "Q5_K": 2, "F32": 360}
+  },
+  "baseline": {
+    "path": "/home/josh/ezlocalai/models/Qwen3.8-27B/Qwen3.8-27B-UD-Q3_K_XL.gguf",
+    "file_bytes": 13441059904,
+    "file_sha256": "00cf92e666c6af6566996c38c89a44ccdb6449ea25ef0f112a452c853b2a71e2",
+    "full_file_sha256_independently_verified": true,
+    "tensor_type_counts": {"IQ4_XS": 357, "IQ3_S": 130, "Q5_K": 18, "Q3_K": 1, "F32": 360}
+  },
+  "method": {
+    "reader": "Local stdlib-only CPU GGUFv3 parser; no code from the model repository executed",
+    "comparison": "Complete metadata values and tensor names/shapes, bounded payload layout, full artifact hashes, and all 360 shared F32 payloads",
+    "ggml_block_size_source_revision": "cd959bae99ff4bed22bef2604f45241c09bbb8c8",
+    "metadata_digest_encoding": "SHA256 of json.dumps(value, ensure_ascii=True, sort_keys=True, separators=(',', ':')).encode(); not a raw Jinja-file digest"
+  },
+  "structural_checks": {
+    "architecture": "qwen35",
+    "all_architecture_metadata_equal": true,
+    "tensor_count_each": 866,
+    "parameter_count_each": 27320697856,
+    "missing_tensors": [],
+    "extra_tensors": [],
+    "shape_differences": [],
+    "context_length": 262144,
+    "embedding_length": 5120,
+    "all_candidate_baseline_and_projector_payloads_in_bounds": true,
+    "overlapping_payloads": false,
+    "trailing_bytes_each": 0,
+    "shared_f32_payloads_byte_identical": 360,
+    "changed_shared_f32_payloads": []
+  },
+  "tokenizer_checks": {
+    "all_fields_equal": true,
+    "compared_fields": [
+      "tokenizer.chat_template",
+      "tokenizer.ggml.bos_token_id",
+      "tokenizer.ggml.eos_token_id",
+      "tokenizer.ggml.merges",
+      "tokenizer.ggml.model",
+      "tokenizer.ggml.padding_token_id",
+      "tokenizer.ggml.pre",
+      "tokenizer.ggml.token_type",
+      "tokenizer.ggml.tokens"
+    ],
+    "tokens_and_token_types_each": 248320,
+    "merges_each": 247587,
+    "complete_chat_template_equal": true,
+    "shared_chat_template_canonical_json_sha256": "1479547fcbec594bd35a7b6e48d5a08703554b37b03a5889cabf3775d6bb165a",
+    "chat_template_diff_bytes": 0,
+    "candidate_template_override_needed": false,
+    "baseline_jinja_override_saved": false
+  },
+  "mtp_checks": {
+    "block_count_including_mtp": 65,
+    "nextn_predict_layers": 1,
+    "embedded_block": "blk.64",
+    "tensor_count": 15,
+    "tensor_type_counts": {"NVFP4": 8, "F32": 7},
+    "all_mtp_names_and_shapes_match_baseline": true,
+    "embedding_and_output_shape_each": [5120, 248320],
+    "embedding_and_output_type_each": "Q5_K",
+    "masked_head_or_d2t_present": false,
+    "separate_draft_head_staged": false
+  },
+  "projector_checks": {
+    "path": "/home/josh/ezlocalai/models/Qwen3.8-27B/mmproj-BF16.gguf",
+    "file_bytes": 931146432,
+    "file_sha256": "83ee4f4f205fa514161778c41df1ea14144faa0f713510893b63c2395f5c2d53",
+    "full_file_sha256_independently_verified": true,
+    "projector_type": "qwen3vl_merger",
+    "projection_dim": 5120,
+    "projection_dim_matches_candidate_embedding": true,
+    "compatibility_scope": "Structural metadata only; no vision inference"
+  },
+  "quantization_metadata_review": {
+    "comparison_is_not_a_conversion_lineage": true,
+    "baseline_to_candidate_tensor_encodings": [
+      {"baseline": "IQ4_XS", "candidate": "NVFP4", "count": 357},
+      {"baseline": "IQ3_S", "candidate": "NVFP4", "count": 130},
+      {"baseline": "Q5_K", "candidate": "NVFP4", "count": 17},
+      {"baseline": "Q5_K", "candidate": "Q5_K", "count": 1},
+      {"baseline": "Q3_K", "candidate": "Q5_K", "count": 1},
+      {"baseline": "F32", "candidate": "F32", "count": 360}
+    ],
+    "q5_k_to_nvfp4_tensors": "All 17 attn_v.weight tensors, including blk.64 MTP",
+    "output_weight": "Q5_K in both; payload equality was not checked",
+    "token_embedding": "Q3_K baseline, Q5_K candidate",
+    "baseline_imatrix_metadata": {"entries": 496, "chunks": 45, "dataset": "unsloth_calibration_Qwen3.8-27B.txt"},
+    "candidate_imatrix_metadata_present": false,
+    "calibration_caveat": "Absent imatrix metadata does not prove calibration was absent",
+    "quality_conclusion": "Different mixed tensor encodings can regress tasks; size, bitwidth, structural equality and unchanged F32 tensors do not establish either superiority or inferiority"
+  },
+  "lineage": {
+    "pinned_model_card_url": "https://huggingface.co/tiyuvta/Qwen3.8-27B-NVFP4-MTP-GGUF/blob/6c39753daccd7473d4e60735ec8ace1d30afdd10/README.md",
+    "publisher_declared": "Qwen/Qwen3.8-27B BF16 -> Unsloth BF16 GGUF -> NVFP4, embeddings/output Q5_K",
+    "exact_bf16_lineage_independently_pinned": false,
+    "ancestor_checkpoint_and_conversion_tool_revisions_independently_pinned": false,
+    "absence_of_prior_fp8_quantization_independently_proven": false
+  },
+  "evidence_sha256": {
+    "header-audit.json": "f05bb32ac98ae3c2cfe5595b6cc835c2d77f6e1cd2ad51556a7c8a5d4add09d2",
+    "payload-compatibility-audit.json": "8836c1e387fb12e4faf52f161e7198cae8c885df5cbd3cdb8d056f3258706402",
+    "tensor-inventory.json": "2bc87e41c3b73523229ce08f677c374413d54c7553d8195db3358169e7acedd6",
+    "upstream-manifest.json": "b9d27fbfe83133b56421299925c36f314746d8e942e3fcb953f09eb2955e2fac",
+    "upstream-README.md": "35155429cb37bc8672aba9c940572f6fea6d4187620889b56d80b86c8b7c640f"
+  },
+  "limitations": [
+    "No GPU load, memory-fit benchmark, runtime MTP check, throughput test, vision inference or quality evaluation was performed by this audit.",
+    "No general quality proof: bitwidth, file size, metadata agreement and any later synthetic screening pass are not production-quality certification.",
+    "Exact BF16 lineage is not independently pinned; the artifact hash authenticates these bytes, not their complete conversion history.",
+    "Fit and paired task benchmarks belong to the parent experiment and are not results in this fixture."
+  ],
+  "gpu_process_started": false,
+  "production_settings_changed": false,
+  "worker_queues_changed": false,
+  "voice_evicted": false,
+  "context_reduced": false,
+  "runtime_promotion": false
+}

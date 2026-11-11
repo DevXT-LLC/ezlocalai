@@ -41,7 +41,7 @@ def inspect_container(name, optional=False):
         ["docker", "inspect", name], capture_output=True, text=True, timeout=30
     )
     if result.returncode:
-        if optional and re.search(r"No such (object|container)", result.stderr):
+        if optional and re.search(r"no such (object|container)", result.stderr, re.I):
             return None
         raise RuntimeError("Could not inspect container identity")
     return json.loads(result.stdout)[0]
@@ -82,7 +82,7 @@ def call(*args,timeout=45):
 def inspect(name,optional=False):
  p=call('docker','inspect',name)
  if p.returncode:
-  if optional and re.search(r'No such (object|container)',p.stderr): return None
+  if optional and re.search(r'no such (object|container)',p.stderr,re.I): return None
   raise RuntimeError('Watchdog identity inspection failed')
  return json.loads(p.stdout)[0]
 def fingerprint(c):
@@ -550,10 +550,23 @@ def main(argv=None):
             probe.emit("profile", **status)
             probe.emit("restored", **receipt)
         except BaseException as error:
+            restoration_error = {
+                "event": "restoration_failed",
+                "error_type": type(error).__name__,
+                "watchdog_retained": watchdog.poll() is None,
+            }
+            if isinstance(error, (RuntimeError, ValueError, InterruptedError)):
+                restoration_error["error"] = str(error)
+            try:
+                write_json(
+                    Path(state["report_dir"]) / "restoration-failure.json",
+                    restoration_error,
+                )
+            except OSError:
+                pass
             probe.emit(
-                "restoration_failed",
-                error_type=type(error).__name__,
-                watchdog_retained=watchdog.poll() is None,
+                restoration_error.pop("event"),
+                **restoration_error,
             )
             raise
         finally:

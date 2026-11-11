@@ -86,6 +86,7 @@ class ProfileLifecycleTests(unittest.TestCase):
         self.missing_report = False
         self.warning = ""
         self.stop_warning = ""
+        self.absent_error = "Error: No such object"
         self.kernel_stats = (
             '"Time (%)","Total Time (ns)","Instances","Name"\n100,1234,5,kernel\n'
         )
@@ -144,7 +145,7 @@ class ProfileLifecycleTests(unittest.TestCase):
         else:
             result = self.container
         if result is None:
-            return subprocess.CompletedProcess(args, 1, "", "Error: No such object")
+            return subprocess.CompletedProcess(args, 1, "[]\n", self.absent_error)
         return subprocess.CompletedProcess(args, 0, json.dumps([result]), "")
 
     def command(self, args, **kwargs):
@@ -512,6 +513,25 @@ class ProfileLifecycleTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "inspect"):
                 profile.inspect_container("probe", optional=True)
 
+    def test_lowercase_docker_absence_restores_after_successful_capture(self):
+        self.absent_error = "error: no such object: prefill-profile-owned"
+        self.invoke()
+        self.assert_restored()
+        self.assertTrue(self.events[-2]["capture_success"])
+        self.assertIn(["docker", "start", "production-id"], self.calls)
+
+    def test_inspect_absence_variants_only_optional(self):
+        for error in (
+            "error: no such object: owned",
+            "Error: No such container: owned",
+            "Error response from daemon: No such container: owned",
+        ):
+            with self.subTest(error=error):
+                self.absent_error = error
+                self.assertIsNone(profile.inspect_container("owned", optional=True))
+                with self.assertRaisesRegex(RuntimeError, "inspect"):
+                    profile.inspect_container("owned")
+
     def test_early_dead_watchdog_prevents_cutover(self):
         self.watchdog.poll.return_value = 1
         with self.assertRaisesRegex(RuntimeError, "Profile failed"):
@@ -539,6 +559,51 @@ class ProfileLifecycleTests(unittest.TestCase):
         self.assertTrue(receipt["original_container"])
         self.assertTrue(receipt["original_argv"])
         self.assertIsNone(self.container)
+
+    def test_watchdog_lowercase_absence_recovers_already_removed_probe(self):
+        self.invoke()
+        state = json.loads(profile.subprocess.Popen.call_args.args[0][-1])
+        self.absent_error = "error: no such object: " + state["name"]
+        self.production["State"]["Running"] = False
+        self.calls.clear()
+        self.run_watchdog(state)
+        receipt = json.loads((self.directory / "watchdog-restoration.json").read_text())
+        self.assertTrue(receipt["original_container"])
+        self.assertTrue(receipt["original_argv"])
+        self.assertIn(["docker", "start", "production-id"], self.calls)
+
+    def test_watchdog_lowercase_absence_after_removing_owned_probe(self):
+        self.absent_error = "error: no such object: owned"
+        self.test_watchdog_standalone_recovers_after_controller_loss()
+
+    def test_watchdog_daemon_error_stays_fail_closed(self):
+        self.invoke()
+        state = json.loads(profile.subprocess.Popen.call_args.args[0][-1])
+        self.calls.clear()
+        with patch.object(
+            self,
+            "inspect_command",
+            return_value=subprocess.CompletedProcess(
+                [], 1, "", "Cannot connect to Docker"
+            ),
+        ):
+            self.run_watchdog(state)
+        receipt = json.loads((self.directory / "watchdog-restoration.json").read_text())
+        self.assertFalse(receipt["original_container"])
+        self.assertIn("identity inspection failed", receipt["error"])
+        self.assertEqual(self.calls, [])
+
+    def test_restoration_failure_preserves_safe_diagnostic(self):
+        self.failure = "changed-production"
+        with self.assertRaisesRegex(RuntimeError, "identity/configuration"):
+            self.invoke()
+        receipt = json.loads((self.directory / "restoration-failure.json").read_text())
+        self.assertEqual(receipt["event"], "restoration_failed")
+        self.assertEqual(
+            receipt["error"], "Retained production identity/configuration changed"
+        )
+        self.assertTrue(receipt["watchdog_retained"])
+        self.assertEqual(self.events[-1], receipt)
 
     def run_watchdog(self, state):
         def call(args, **kwargs):
@@ -611,6 +676,29 @@ class ProfileLifecycleTests(unittest.TestCase):
         profile.subprocess.Popen.assert_not_called()
         profile.subprocess.check_output.assert_not_called()
         profile.subprocess.run.assert_not_called()
+
+
+class ProfileEvidenceTests(unittest.TestCase):
+    def test_recorded_phase_totals_and_manual_recovery(self):
+        path = (
+            Path(__file__).resolve().parents[1]
+            / "tests/fixtures/prefill_profile_20261111_validation.json"
+        )
+        evidence = json.loads(path.read_text())
+        for key in ("kernel_ns", "h2d_ns", "d2h_ns", "h2d_bytes", "d2h_bytes"):
+            self.assertEqual(
+                evidence["capture"][key],
+                evidence["prefill_proxy"][key] + evidence["decode_proxy"][key],
+            )
+        method = evidence["phase_method"]
+        self.assertLess(method["last_mul_mat_q_end_ns"], method["split_ns"])
+        self.assertLess(method["split_ns"], method["first_cuda_graph_launch_start_ns"])
+        self.assertFalse(method["nvtx_ranges_present"])
+        recovery = evidence["recovery"]
+        self.assertFalse(recovery["automatic_restoration_succeeded"])
+        self.assertFalse(recovery["automatic_restored_receipt_present"])
+        self.assertTrue(recovery["production_restarted_manually_by_parent"])
+        self.assertTrue(recovery["watchdog_terminated_after_verification_with_pidfd"])
 
 
 class PortGuardTests(unittest.TestCase):

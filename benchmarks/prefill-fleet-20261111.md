@@ -76,16 +76,50 @@ capability. The other 24 GB cards report x16 width while idle. Idle Gen1 is a
 power-saving state, not itself a fault. No PCIe/BIOS settings were changed, and
 no claimed latency gain is attributed to changing the link.
 
+## NVFP4 Model Audit (CPU Only)
+
+Disk staging and the CPU metadata/payload audit are complete. The compact evidence
+is [prefill_nvfp4_20261111_validation.json](../tests/fixtures/prefill_nvfp4_20261111_validation.json).
+The [tiyuvta artifact](https://huggingface.co/tiyuvta/Qwen3.8-27B-NVFP4-MTP-GGUF/blob/6c39753daccd7473d4e60735ec8ace1d30afdd10/README.md)
+is pinned at revision `6c39753daccd7473d4e60735ec8ace1d30afdd10`:
+`Qwen3.8-27B-NVFP4-Q5K-mtp.gguf`, 15,705,922,304 bytes, SHA-256
+`1facf36c2db359dcf9c2475cf8f85fe84a528d10aaaaff20f7c0db3d561e024a`.
+Full size and SHA-256 were verified before atomic rename on DevXT5090 under
+`/home/josh/prefill-experiments/nvfp4-20261111/`, outside `/app/models`.
+
+Against the actual larger Q3 identified above, all 866 tensor names/shapes and
+architecture metadata match. Every tokenizer field matches, including all
+248,320 tokens, 247,587 merges and the complete chat template; no paired
+`--candidate-template` override is needed. All 360 shared F32 payloads are
+byte-identical, and candidate/baseline/projector payload bounds pass without
+overlap or trailing bytes. The embedded MTP block contains all 15 expected
+tensors (eight NVFP4, seven F32), with full-vocabulary Q5_K embeddings/output
+and no masked head. The existing BF16 projector's 5,120-dimensional output
+matches structurally; vision inference has not been tested.
+
+This is not a uniform precision upgrade: 17 baseline Q5_K attention-value
+matrices use NVFP4 in the candidate, while token embeddings change from Q3_K
+to Q5_K. These are comparisons of storage encodings, not a claimed conversion
+from the deployed Q3. The baseline records imatrix calibration metadata; the
+candidate does not, which does not prove calibration was absent. Neither
+bitwidth nor these CPU checks provide general quality proof or establish which
+artifact is better. The publisher declares BF16 ancestry, but **exact BF16
+lineage is not independently pinned**, including ancestral checkpoint and
+conversion-tool revisions; absence of an earlier FP8 step is not independently
+proven. No GPU load, fit/throughput/quality test, queue change, voice eviction,
+context reduction or runtime promotion was performed by this audit. Parent-run
+fit and paired task screens remain separate evidence; a synthetic pass is not
+production-quality certification.
+
 ## Experimental Paths
 
 - A disabled-by-default GDN value-slice scheduling experiment is kept outside
   the production patch manifest. CUDA 12.8 builds for SM86/89/120a succeeded.
   Build success is not a numerical, dispatch or throughput qualification.
   See the separate GDN experiment and build notes.
-- A pinned NVFP4 artifact is being staged outside the production model directory.
-  Its published size is 15,705,922,304 bytes. Tokenizer, full embedded MTP, tensor
-  layout, real memory fit, long-context behavior and task quality must be checked
-  before considering it for the 5090. No production model was replaced.
+- Pinned NVFP4 disk staging and CPU checks are complete as recorded above.
+  Runtime fit, long-context behavior and task quality remain unqualified by this
+  audit. No production model was replaced.
 - Approximate cache/prefill methods are not enabled. Published short-context or
   different-quantization results do not establish a quality-preserving gain for
   these long-context infrastructure and coding workloads.
