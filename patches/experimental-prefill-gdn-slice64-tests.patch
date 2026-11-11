@@ -1,0 +1,35 @@
+--- a/tests/test-backend-ops.cpp
++++ b/tests/test-backend-ops.cpp
+@@ -12718,6 +12718,15 @@
+     // Keep the WebGPU dispatch below 65535 workgroups (32 per token for this shape).
+     test_cases.emplace_back(new test_gated_delta_net(GGML_TYPE_F32, 16, 128, 2047, 2, 3));
+ 
++    // Experimental slice64: admission boundary, exact chunks, tail, and strided value heads.
++    test_cases.emplace_back(new test_gated_delta_net(GGML_TYPE_F32, 16, 128,   63, 1, 2));
++    test_cases.emplace_back(new test_gated_delta_net(GGML_TYPE_F32, 16, 128,  128, 1, 2));
++    test_cases.emplace_back(new test_gated_delta_net(GGML_TYPE_F32, 16, 128,  129, 1, 2));
++    test_cases.emplace_back(new test_gated_delta_net(GGML_TYPE_F32, 16, 128, 2049, 1, 1));
++    test_cases.emplace_back(new test_gated_delta_net(GGML_TYPE_F32, 16, 128,  129, 2, 4, true));
++    test_cases.emplace_back(new test_gated_delta_net(GGML_TYPE_F32, 16, 128,   64, 1, 2, false, true));
++    test_cases.emplace_back(new test_gated_delta_net(GGML_TYPE_F32, 16, 128,   64, 1, 1, false, false, /*K=*/64));
++
+     // K > 1: output keeps the last min(n_tokens, K) per-token snapshots, ordered most-recent-first
+     // (slot 0 = final state, slot s = state s tokens back).
+     // exact-match cases (K == n_seq_tokens):
+@@ -13286,6 +13295,16 @@
+     test_cases.emplace_back(new test_acc(GGML_TYPE_F32, {256, 17, 2, 3}, {128, 16, 2, 3}, 2));
+     test_cases.emplace_back(new test_acc(GGML_TYPE_F32, {256, 17, 2, 3}, {64, 16, 2, 3}, 3));
+ 
++    // Experimental MMA schedule screen: H_k must be 16, H_v = 16 * v_repeat.
++    for (int v_repeat : {1, 2, 3, 4}) {
++        for (int n_seqs : {1, 2}) {
++            for (int n_tokens : {64, 128, 512, 2048}) {
++                test_cases.emplace_back(new test_gated_delta_net(
++                    GGML_TYPE_F32, 16, 128, n_tokens, n_seqs, v_repeat));
++            }
++        }
++    }
++
+     // GATED_DELTA_NET: realistic model configurations
+     // TG: n_seq_tokens=1 (autoregressive)
+     test_cases.emplace_back(new test_gated_delta_net(GGML_TYPE_F32, 32, 128, 1, 1));   // Qwen3.5-like: 32 heads, d=128

@@ -2,6 +2,31 @@
 
 The goal remains behavior parity with ezlocalai within the scope below, with all first-party executable code implemented in C++. It is **not complete**.
 
+## Long-Context Prefill Experiments (2026-11-11)
+
+Added isolated fleet measurement, strict synthetic retrieval cases, sandboxed
+Rust/JavaScript grading, and a disabled GDN scheduling experiment outside the
+managed production patch stack. No production defaults changed. Worker probes
+require idle owned drains, preserve model/context/voice settings, and restore
+the original container; independent watchdogs cover controller loss.
+
+The initial RTX 5090 sweep passed 40/40 cold/repeated retrieval responses at
+8K/64K/128K/200K. Baseline prefill decreases from about 3,300 tokens/s at 8K to
+1,520-1,540 at 200K. Batch 4,096 improved the 200K result but left under 1 GiB
+VRAM free under load. MTP-off reduced prefill time but increased complete-response
+time. Neither is promoted. The original 5090 and local pilot containers/arguments
+were restored and their drains released. Other fleet and candidate checks are
+still pending; see `benchmarks/prefill-fleet-20261111.md` and the compact fixture.
+
+An isolated, GPU-free CUDA 12.8.93 build produced the experimental engine and
+operator checker for SM86/89/120a using immutable image
+`sha256:85764c1a7540b36d143faa494fdb3bac6927fe99b59c8d6a65f31261e2a6ee12`.
+All 99 focused prefill harness tests, 17 code-grader tests, and 10 structural GDN
+checks passed; five CPU-sandbox grading examples behaved as expected. Device
+numerics, actual kernel dispatch, representative model quality, and a useful
+end-to-end kernel gain remain unqualified. No runtime image was replaced, so no
+new rollback image tag was needed; probes retain each original immutable image.
+
 ## Prompt Cache RAM Allowance (2026-11-11)
 
 Removed the extra 32 GiB ceiling from native automatic prompt-cache sizing on
