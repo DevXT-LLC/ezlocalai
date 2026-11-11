@@ -1,11 +1,13 @@
 import csv
 import hashlib
 import io
+import json
 from pathlib import Path
+import signal
 import subprocess
 import tempfile
 import unittest
-from unittest.mock import patch
+from unittest.mock import MagicMock, Mock, patch
 
 import prefill_probe as probe
 from prefill_probe import variant_args
@@ -354,6 +356,297 @@ class ProvenanceTests(unittest.TestCase):
         self.manifest(overrides={"llama-server": "0" * 64})
         result = probe.engine_provenance(self.root)
         self.assertNotIn("gdn_build_verified", result)
+
+
+class ScreenSafetyTests(unittest.TestCase):
+    def setUp(self):
+        self.original = [
+            "/usr/local/bin/llama-server",
+            "-m",
+            "Qwen3.8-27B.gguf",
+            "--port",
+            "8092",
+            "--alias",
+            "qwen",
+            "-c",
+            "262144",
+            "-b",
+            "4096",
+            "-ub",
+            "2048",
+            "--spec-type",
+            "draft-mtp",
+        ]
+        self.production = {
+            "Id": "production-id",
+            "Image": "sha256:original",
+            "Config": {"Env": [], "Labels": {}},
+            "State": {"Running": True, "Health": {"Status": "healthy"}},
+        }
+        self.container = self.owned_container()
+        self.actions, self.events, self.handlers = [], [], {}
+        self.inspect_error = None
+        self.after_remove_error = False
+        self.removed = False
+        self.keep_container = False
+        self.recovery_timeout = False
+        self.watchdog = Mock()
+        self.watchdog.poll.return_value = None
+        self.watchdog.terminate.side_effect = lambda: self.actions.append("terminate")
+        self.watchdog.wait.side_effect = lambda **kw: self.actions.append("reaped") or 0
+        self.enterContext(
+            patch.object(probe.subprocess, "run", side_effect=self.command)
+        )
+        self.enterContext(
+            patch.object(probe.subprocess, "check_output", side_effect=self.output)
+        )
+        self.enterContext(
+            patch.object(probe.subprocess, "Popen", return_value=self.watchdog)
+        )
+        self.enterContext(patch.object(probe, "engines", return_value=[self.original]))
+        self.enterContext(patch.object(probe, "emit", side_effect=self.emit))
+        self.enterContext(
+            patch.object(probe.signal, "signal", side_effect=self.install_signal)
+        )
+        self.alarm = self.enterContext(patch.object(probe.signal, "alarm"))
+        self.enterContext(patch.object(probe.time, "sleep"))
+
+    def owned_container(self):
+        return {
+            "Id": "owned-id",
+            "Image": "sha256:original",
+            "Config": {"Labels": {"xt.prefill.owner": "owner"}},
+        }
+
+    def install_signal(self, sig, handler):
+        previous = self.handlers.get(sig, signal.SIG_DFL)
+        self.handlers[sig] = handler
+        return previous
+
+    def emit(self, event, **values):
+        self.actions.append(event)
+        self.events.append(dict(event=event, **values))
+
+    def command(self, args, **kwargs):
+        self.assertGreater(kwargs["timeout"], 0)
+        self.assertLessEqual(kwargs["timeout"], 120)
+        args = list(args)
+        if args[:2] == ["docker", "inspect"]:
+            if args[-1] in ("ezlocalai", "production-id"):
+                container = self.production
+            else:
+                if self.inspect_error or (self.after_remove_error and self.removed):
+                    return subprocess.CompletedProcess(
+                        args, 1, "", self.inspect_error or "Cannot connect to Docker"
+                    )
+                container = self.container
+            return subprocess.CompletedProcess(
+                args,
+                0 if container else 1,
+                json.dumps([container]) if container else "[]\n",
+                "" if container else "error: no such object: owned",
+            )
+        self.actions.append(args)
+        if args[:3] == ["docker", "rm", "-f"]:
+            self.assertEqual(args[-1], "owned-id")
+            self.removed = True
+            if not self.keep_container:
+                self.container = None
+        elif args[:2] == ["docker", "start"]:
+            self.assertEqual(args[-1], "production-id")
+            if self.recovery_timeout:
+                self.handlers[signal.SIGALRM](signal.SIGALRM, None)
+            self.production["State"]["Running"] = True
+        elif args[:2] == ["docker", "stop"]:
+            self.production["State"]["Running"] = False
+        elif args[:2] == ["docker", "run"]:
+            self.container = self.owned_container()
+        elif args[:2] == ["docker", "exec"] or args[0] == "nvidia-smi":
+            pass
+        else:
+            self.fail("Unexpected subprocess: " + repr(args))
+        return subprocess.CompletedProcess(args, 0, "hash-or-output", "")
+
+    def output(self, args, **kwargs):
+        result = self.command(args, **kwargs)
+        if result.returncode:
+            raise subprocess.CalledProcessError(result.returncode, args)
+        return result.stdout
+
+    def restore(self):
+        probe.restore(
+            self.production, "probe", "owner", self.original, [], self.watchdog
+        )
+
+    def watchdog_run(self):
+        with patch(
+            "sys.argv",
+            [
+                "watchdog",
+                "probe",
+                "owner",
+                "production-id",
+                "sha256:original",
+                str(probe.WATCHDOG_SECONDS),
+                str(probe.RESTORE_SECONDS),
+            ],
+        ):
+            exec(compile(probe.WATCHDOG, "<watchdog>", "exec"), {})
+
+    def assert_no_restart(self):
+        self.assertNotIn(["docker", "start", "production-id"], self.actions)
+        self.assertNotIn("restored", self.actions)
+
+    def test_cleanup_and_watchdog_require_confirmed_absence(self):
+        for runner in (self.restore, self.watchdog_run):
+            for failure in (
+                "inspect",
+                "post-remove-inspect",
+                "still-present",
+                "owner",
+                "image",
+            ):
+                with self.subTest(runner=runner.__name__, failure=failure):
+                    self.container = self.owned_container()
+                    self.actions.clear()
+                    self.removed = False
+                    self.inspect_error = (
+                        "Cannot connect to Docker" if failure == "inspect" else None
+                    )
+                    self.after_remove_error = failure == "post-remove-inspect"
+                    self.keep_container = failure == "still-present"
+                    if failure == "owner":
+                        self.container["Config"]["Labels"][
+                            "xt.prefill.owner"
+                        ] = "foreign"
+                    if failure == "image":
+                        self.container["Image"] = "sha256:foreign"
+                    with self.assertRaises(RuntimeError):
+                        runner()
+                    self.assert_no_restart()
+                    if failure in ("owner", "image", "inspect"):
+                        self.assertFalse(
+                            any(
+                                isinstance(a, list) and a[:2] == ["docker", "rm"]
+                                for a in self.actions
+                            )
+                        )
+
+    def test_lowercase_absence_is_safe_for_both_recovery_paths(self):
+        for runner in (self.restore, self.watchdog_run):
+            with self.subTest(runner=runner.__name__):
+                self.container = None
+                self.actions.clear()
+                runner()
+                self.assertIn(["docker", "start", "production-id"], self.actions)
+
+    def test_owned_probe_is_removed_by_id_and_watchdog_reaped_before_receipt(self):
+        self.restore()
+        self.assertIsNone(self.container)
+        self.assertLess(
+            self.actions.index(["docker", "rm", "-f", "owned-id"]),
+            self.actions.index(["docker", "start", "production-id"]),
+        )
+        self.assertLess(self.actions.index("terminate"), self.actions.index("reaped"))
+        self.assertLess(self.actions.index("reaped"), self.actions.index("restored"))
+
+    def test_standalone_watchdog_removes_owned_probe_before_restart(self):
+        self.watchdog_run()
+        self.assertIsNone(self.container)
+        self.assertLess(
+            self.actions.index(["docker", "rm", "-f", "owned-id"]),
+            self.actions.index(["docker", "start", "production-id"]),
+        )
+
+    def test_watchdog_reaping_failure_never_emits_restored(self):
+        self.watchdog.wait.side_effect = subprocess.TimeoutExpired("watchdog", 5)
+        with self.assertRaises(subprocess.TimeoutExpired):
+            self.restore()
+        self.assertNotIn("restored", self.actions)
+
+    def test_watchdog_rejects_changed_production_image(self):
+        self.production["Image"] = "sha256:changed"
+        self.container = None
+        with self.assertRaisesRegex(RuntimeError, "identity changed"):
+            self.watchdog_run()
+        self.assert_no_restart()
+
+    def invoke_main(self, measure):
+        self.container = None
+        argv = [
+            "probe",
+            "--owned-drain",
+            "owner",
+            "--variants",
+            "baseline",
+            "--targets",
+            "2000",
+            "--skip-cache",
+        ]
+        with patch("sys.argv", argv), patch.object(
+            probe.socket, "socket"
+        ), patch.object(probe, "wait_health"), patch.object(
+            probe, "calibrate", return_value=({"messages": []}, 2000)
+        ), patch.object(
+            probe, "measure", side_effect=measure
+        ):
+            probe.main()
+
+    def test_main_absolute_deadline_interrupts_work_and_restores(self):
+        def expired(*args, **kwargs):
+            self.assertIn("deadline", kwargs)
+            self.handlers[signal.SIGALRM](signal.SIGALRM, None)
+
+        with self.assertRaisesRegex(TimeoutError, "phase deadline"):
+            self.invoke_main(expired)
+        self.assertTrue(self.production["State"]["Running"])
+        self.assertIsNone(self.container)
+        self.assertEqual(self.events[-1]["event"], "restored")
+        self.assertIn(unittest.mock.call(probe.WORK_SECONDS), self.alarm.call_args_list)
+        self.assertIn(
+            unittest.mock.call(probe.RESTORE_SECONDS), self.alarm.call_args_list
+        )
+        self.assertLess(
+            probe.WORK_SECONDS + probe.RESTORE_SECONDS, probe.WATCHDOG_SECONDS
+        )
+        self.assertLess(probe.RESTORE_SECONDS, 300)
+        self.assertEqual(self.alarm.call_args, unittest.mock.call(0))
+
+    def test_main_success_restores_and_reaps_watchdog(self):
+        self.invoke_main(lambda *args, **kwargs: {"quality_pass": True})
+        self.assertEqual(self.events[-1]["event"], "restored")
+        self.assertLess(self.actions.index("reaped"), self.actions.index("restored"))
+        self.assertIsNone(self.container)
+
+    def test_main_recovery_deadline_fails_closed_with_watchdog_retained(self):
+        self.recovery_timeout = True
+        with self.assertRaisesRegex(TimeoutError, "phase deadline"):
+            self.invoke_main(lambda *args, **kwargs: {"quality_pass": True})
+        self.assertEqual(self.events[-1]["event"], "restoration_failed")
+        self.assertTrue(self.events[-1]["watchdog_retained"])
+        self.watchdog.terminate.assert_not_called()
+        self.assertNotIn("restored", self.actions)
+
+
+class StreamDeadlineTests(unittest.TestCase):
+    def test_expired_deadline_never_submits_request(self):
+        with patch.object(probe.time, "monotonic", return_value=10), patch.object(
+            probe, "http"
+        ) as http:
+            with self.assertRaisesRegex(TimeoutError, "work deadline"):
+                probe.measure({"messages": []}, "model", deadline=10)
+        http.assert_not_called()
+
+    def test_keepalive_stream_cannot_extend_absolute_deadline(self):
+        response = MagicMock()
+        response.__enter__.return_value = iter([b": keepalive\n", b": keepalive\n"])
+        with patch.object(
+            probe.time, "monotonic", side_effect=[0, 0, 9, 10]
+        ), patch.object(probe, "http", return_value=response) as http:
+            with self.assertRaisesRegex(TimeoutError, "work deadline"):
+                probe.measure({"messages": []}, "model", deadline=10)
+        self.assertEqual(http.call_args.kwargs["timeout"], 10)
+        response.__exit__.assert_called_once()
 
 
 class PreflightTests(unittest.TestCase):

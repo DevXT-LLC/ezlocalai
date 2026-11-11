@@ -22,6 +22,12 @@ import uuid
 from prefill_cases import build_case, build_code_case, estimate_record_count, grade
 
 
+WORK_SECONDS = 2000
+# Finish recovery within the controller's 300-second cancellation grace.
+RESTORE_SECONDS = 280
+WATCHDOG_SECONDS = 2400
+
+
 # Pins for the isolated 2026-11-11 CUDA 12.8 GDN build, not a general engine policy.
 GDN_BUILD_HASHES = {
     "libggml-base.so.0.29.0": "01165991ccb9a8317d0217fc922d31391b71c7e985f3b58b4b8b484b701c26a4",
@@ -129,8 +135,39 @@ def engine_provenance(engine_root, require_gdn=False):
     return result
 
 
-def run(*args):
-    return subprocess.check_output(args, text=True, timeout=120).strip()
+def run(*args, timeout=120):
+    return subprocess.check_output(args, text=True, timeout=timeout).strip()
+
+
+def inspect_container(name, optional=False):
+    result = subprocess.run(
+        ["docker", "inspect", name], capture_output=True, text=True, timeout=30
+    )
+    if result.returncode:
+        if optional and re.search(r"no such (object|container)", result.stderr, re.I):
+            return None
+        raise RuntimeError("Could not inspect container identity")
+    return json.loads(result.stdout)[0]
+
+
+def remove_owned_probe(name, owner, image):
+    container = inspect_container(name, optional=True)
+    if container is None:
+        return
+    if (container["Config"].get("Labels") or {}).get(
+        "xt.prefill.owner"
+    ) != owner or container["Image"] != image:
+        raise RuntimeError("Refusing cleanup of an unowned probe container")
+    run("docker", "rm", "-f", container["Id"], timeout=45)
+    if inspect_container(name, optional=True) is not None:
+        raise RuntimeError("Probe container still exists; restoration unsafe")
+
+
+def check_deadline(deadline):
+    remaining = deadline - time.monotonic()
+    if remaining <= 0:
+        raise TimeoutError("Maintenance work deadline exhausted")
+    return remaining
 
 
 def emit(event, **values):
@@ -291,7 +328,7 @@ def calibrate(target, task="infra"):
     return case, length
 
 
-def measure(case, model, cache=False, thinking=False, max_tokens=1024):
+def measure(case, model, cache=False, thinking=False, max_tokens=1024, deadline=None):
     body = {
         "model": model,
         "messages": case["messages"],
@@ -308,8 +345,11 @@ def measure(case, model, cache=False, thinking=False, max_tokens=1024):
     text = ""
     timing = None
     finish = None
-    with http("/v1/chat/completions", body) as response:
+    timeout = min(600, check_deadline(deadline)) if deadline is not None else 600
+    with http("/v1/chat/completions", body, timeout=timeout) as response:
         for line in response:
+            if deadline is not None:
+                check_deadline(deadline)
             if not line.startswith(b"data: ") or line.strip() == b"data: [DONE]":
                 continue
             item = json.loads(line[6:])
@@ -323,6 +363,8 @@ def measure(case, model, cache=False, thinking=False, max_tokens=1024):
                     first = time.monotonic() - begin
                 text += token
                 finish = choice.get("finish_reason") or finish
+    if deadline is not None:
+        check_deadline(deadline)
     if (
         not timing
         or first is None
@@ -352,13 +394,65 @@ def measure(case, model, cache=False, thinking=False, max_tokens=1024):
     }
 
 
-WATCHDOG = """import json,subprocess,sys,time
-time.sleep(2400)
-p=subprocess.run(['docker','inspect',sys.argv[1]],capture_output=True,text=True)
-if p.returncode==0 and json.loads(p.stdout)[0]['Config']['Labels'].get('xt.prefill.owner')==sys.argv[2]:
- subprocess.run(['docker','rm','-f',sys.argv[1]],stdout=subprocess.DEVNULL)
-subprocess.run(['docker','start',sys.argv[3]],stdout=subprocess.DEVNULL)
+WATCHDOG = r"""import json,re,signal,subprocess,sys,time
+name,owner,production_id,image=sys.argv[1:5]
+time.sleep(int(sys.argv[5]))
+def expired(*_): raise TimeoutError('Watchdog recovery deadline exhausted')
+signal.signal(signal.SIGALRM,expired)
+signal.alarm(int(sys.argv[6]))
+def inspect(name,optional=False):
+ p=subprocess.run(['docker','inspect',name],capture_output=True,text=True,timeout=30)
+ if p.returncode:
+  if optional and re.search(r'no such (object|container)',p.stderr,re.I): return None
+  raise RuntimeError('Watchdog identity inspection failed')
+ return json.loads(p.stdout)[0]
+try:
+ c=inspect(name,True)
+ if c is not None:
+  if (c['Config'].get('Labels') or {}).get('xt.prefill.owner')!=owner or c['Image']!=image:
+   raise RuntimeError('Watchdog refuses unowned container')
+  subprocess.run(['docker','rm','-f',c['Id']],check=True,stdout=subprocess.DEVNULL,timeout=45)
+  if inspect(name,True) is not None: raise RuntimeError('Probe still exists')
+ c=inspect(production_id)
+ if c['Id']!=production_id or c['Image']!=image: raise RuntimeError('Retained production identity changed')
+ subprocess.run(['docker','start',production_id],check=True,stdout=subprocess.DEVNULL,timeout=60)
+finally:
+ signal.alarm(0)
 """
+
+
+def restore(production, name, owner, original, voices, watchdog):
+    remove_owned_probe(name, owner, production["Image"])
+    current = inspect_container(production["Id"])
+    if current["Id"] != production["Id"] or current["Image"] != production["Image"]:
+        raise RuntimeError("Retained production identity changed")
+    run("docker", "start", production["Id"], timeout=60)
+    deadline = time.monotonic() + 240
+    while time.monotonic() < deadline:
+        restored = inspect_container(production["Id"])
+        if (
+            restored["Id"] != production["Id"]
+            or restored["Image"] != production["Image"]
+        ):
+            raise RuntimeError("Restored production identity changed")
+        if (
+            restored["State"]["Running"]
+            and restored["State"].get("Health", {}).get("Status") == "healthy"
+        ):
+            actual = engines()
+            if original in actual and all(v in actual for v in voices):
+                if watchdog.poll() is None:
+                    watchdog.terminate()
+                watchdog.wait(timeout=5)
+                emit(
+                    "restored",
+                    image=restored["Image"],
+                    original_argv=True,
+                    original_container=True,
+                )
+                return
+        time.sleep(2)
+    raise RuntimeError("Restoration unverified; watchdog retained")
 
 
 def main():
@@ -454,7 +548,17 @@ def main():
         ),
     )
     watchdog = subprocess.Popen(
-        ["python3", "-c", WATCHDOG, name, owner, production["Id"]],
+        [
+            "python3",
+            "-c",
+            WATCHDOG,
+            name,
+            owner,
+            production["Id"],
+            production["Image"],
+            str(WATCHDOG_SECONDS),
+            str(RESTORE_SECONDS),
+        ],
         stdin=subprocess.DEVNULL,
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
@@ -464,17 +568,25 @@ def main():
     def interrupted(*_):
         raise InterruptedError("Restore after signal")
 
-    signal.signal(signal.SIGTERM, interrupted)
-    signal.signal(signal.SIGHUP, interrupted)
-    began = time.monotonic()
+    def expired(*_):
+        raise TimeoutError("Maintenance phase deadline exhausted")
+
+    previous = {}
+    deadline = time.monotonic() + WORK_SECONDS
     cases = {}
     try:
+        for sig in (signal.SIGINT, signal.SIGTERM, signal.SIGHUP, signal.SIGALRM):
+            previous[sig] = signal.signal(
+                sig, expired if sig == signal.SIGALRM else interrupted
+            )
+        signal.alarm(WORK_SECONDS)
+        if watchdog.poll() is not None:
+            raise RuntimeError("Independent recovery watchdog exited before cutover")
         run("docker", "stop", "--time", "45", production["Id"])
         if any(v.startswith("gdn-") for v in variants):
             check_operators(production, name, owner, args.engine_root)
         for block, variant in enumerate(variants):
-            if time.monotonic() - began > 2000:
-                raise TimeoutError("Maintenance budget exhausted")
+            check_deadline(deadline)
             launch = [
                 "docker",
                 "run",
@@ -560,6 +672,7 @@ def main():
             for task, target in (
                 (task, target) for task in tasks for target in targets
             ):
+                check_deadline(deadline)
                 if (task, target) not in cases:
                     cases[task, target] = calibrate(target, task)
                 case, measured_tokens = cases[task, target]
@@ -569,6 +682,7 @@ def main():
                         original[original.index("--alias") + 1],
                         thinking=args.thinking,
                         max_tokens=args.max_tokens,
+                        deadline=deadline,
                     )
                     emit(
                         "sample",
@@ -588,6 +702,7 @@ def main():
                         cache=True,
                         thinking=args.thinking,
                         max_tokens=args.max_tokens,
+                        deadline=deadline,
                     )
                     emit(
                         "sample",
@@ -600,38 +715,26 @@ def main():
                         kind="repeat",
                         **sample,
                     )
-            run("docker", "rm", "-f", name)
+            remove_owned_probe(name, owner, production["Image"])
     finally:
-        probe = subprocess.run(
-            ["docker", "inspect", name], capture_output=True, text=True
-        )
-        if (
-            probe.returncode == 0
-            and json.loads(probe.stdout)[0]["Config"]["Labels"].get("xt.prefill.owner")
-            == owner
-        ):
-            run("docker", "rm", "-f", name)
-        run("docker", "start", production["Id"])
-        deadline = time.monotonic() + 240
-        while time.monotonic() < deadline:
-            restored = json.loads(run("docker", "inspect", production["Id"]))[0]
-            if restored["State"].get("Health", {}).get("Status") == "healthy":
-                actual = engines()
-                if original not in actual or any(v not in actual for v in voices):
-                    time.sleep(2)
-                    continue
-                emit(
-                    "restored",
-                    image=restored["Image"],
-                    original_argv=True,
-                    original_container=True,
-                )
-                watchdog.terminate()
-                watchdog.wait(timeout=5)
-                break
-            time.sleep(2)
-        else:
-            raise RuntimeError("Restoration unverified; watchdog retained")
+        signal.alarm(0)
+        for sig in (signal.SIGINT, signal.SIGTERM, signal.SIGHUP):
+            signal.signal(sig, signal.SIG_IGN)
+        signal.signal(signal.SIGALRM, expired)
+        signal.alarm(RESTORE_SECONDS)
+        try:
+            restore(production, name, owner, original, voices, watchdog)
+        except BaseException as error:
+            emit(
+                "restoration_failed",
+                error_type=type(error).__name__,
+                watchdog_retained=watchdog.poll() is None,
+            )
+            raise
+        finally:
+            signal.alarm(0)
+            for sig, handler in previous.items():
+                signal.signal(sig, handler)
 
 
 if __name__ == "__main__":
