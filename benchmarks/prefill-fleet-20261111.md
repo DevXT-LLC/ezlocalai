@@ -68,8 +68,72 @@ The fleet has two different Q3 artifacts under the same filename. The larger
 13,441,059,904-byte file hashes to
 `00cf92e666c6af6566996c38c89a44ccdb6449ea25ef0f112a452c853b2a71e2`.
 Other workers use a 13,146,393,504-byte variant with a different tensor mix and
-calibration metadata. Cross-machine speed is therefore not a pure GPU comparison.
+calibration metadata, SHA-256
+`8c2a45ff85e7674ca185ec8eb6cdeab0e617ed9d8018caed0b64380eb2a67a5e`.
+DevXT3090J uses the larger artifact; DevXT4090, DevXT3090V and DevXT3090A use
+the smaller one. Cross-machine speed is therefore not a pure GPU comparison.
 Every experiment records its own file hash and engine arguments.
+
+The completed fleet screens below used logical batch 4,096, Q4 KV and MTP minimum
+probability 0.1. Context was 230,000 on 4090/V/A and 220,000 on local 3090J.
+V, A and J all identify as RTX 3090 Ti in their GPU provenance. MTP maxima and
+baseline physical batches are not identical across workers; the table preserves
+those differences rather than treating the configurations as interchangeable.
+
+Cold TTFT is in seconds. Paired baseline values are the opening / closing runs,
+not confidence intervals. The 8K rows are initial-request measurements. Reserve
+means free VRAM in the recorded ready-state snapshot, not guaranteed peak-load
+headroom. The short A comparison intentionally tested only 64K.
+
+| Worker | Physical batch | MTP max | 8K TTFT | 64K TTFT | 128K TTFT | Ready reserve, MiB |
+| --- | --- | --- | --- | --- | --- | --- |
+| DevXT4090 | 1,024 baseline | 3 | 2.716 / 2.725 | 24.64 / 24.84 | 60.85 / 61.15 | 2,837 |
+| DevXT4090 | 512 | 3 | 2.689 | 25.04 | 61.83 | 3,457 |
+| DevXT4090 | 2,048 | 3 | 2.870 | 25.22 | 62.02 | 1,599 |
+| DevXT3090V | 512 baseline | 2 | 5.067 / 5.229 | 49.72 / 50.87 | 127.53 / 128.46 | 3,745 |
+| DevXT3090V | 1,024 | 2 | 5.134 | 47.71 | 119.48 | 3,125 |
+| DevXT3090A | 1,024 baseline | 3 | Not retested | 52.06 / 50.22 | Not retested | 2,970 |
+| DevXT3090A | 512 | 3 | Not retested | 54.73 | Not retested | 3,590 |
+| DevXT3090J (local) | 1,024 baseline | 3 | 5.521 / 5.439 | 51.66 / 50.64 | 128.97 / 127.66 | 1,732 / 1,615 |
+| DevXT3090J (local) | 512 | 3 | 5.694 | 54.86 | 139.37 | 2,174 |
+| DevXT3090J (local) | 2,048 | 3 | 6.675 | 56.48 | 137.95 | 1,130 |
+
+V's batch 1,024 reduced 128K TTFT by approximately 6.65% relative to the mean
+of its two batch-512 baselines. Its 64K TTFT was 47.71 s versus 49.72 / 50.87 s.
+On A, batch 512 was slower than both batch-1,024 baselines but left 620 MiB more
+free at readiness. On local J, both alternate batches were slower at 64K and
+128K; batch 2,048 left only 1,130 MiB free, below a 1.5 GiB reserve. On 4090,
+batch 2,048 also slowed these sizes and left 1,599 MiB free. These are bracketed
+synthetic retrieval observations, not fleet-wide configuration recommendations.
+
+The original A queue was `baseline,ub1024,baseline`, but its provenance showed
+that the baseline already used physical batch 1,024 and MTP max 3. It was stopped
+intentionally after its first 64K cold/repeated pair, rather than running three
+identical configurations through all sizes. Only the exact owner-verified remote
+probe received SIGTERM; its controller and independent watchdog were left alone.
+The partial file retains four passing responses: 8K cold TTFT 6.389 s and 64K
+cold TTFT 49.60 s, plus their cached repeats. No 128K result is claimed. Its final
+receipt confirmed restoration and the controller released the lease before the
+separate `baseline,ub512,baseline` 64K-only retry started.
+
+All 76 recorded cold/repeated responses passed across these five evidence files:
+
+- [4090-screen.jsonl](../build/validation/prefill-fleet-20261111/4090-screen.jsonl): 24/24.
+- [3090v-screen.jsonl](../build/validation/prefill-fleet-20261111/3090v-screen.jsonl): 18/18.
+- [3090a-screen.jsonl](../build/validation/prefill-fleet-20261111/3090a-screen.jsonl): 4/4, intentionally partial.
+- [3090a-batch-screen.jsonl](../build/validation/prefill-fleet-20261111/3090a-batch-screen.jsonl): 6/6, completed short retry.
+- [3090ti-screen.jsonl](../build/validation/prefill-fleet-20261111/3090ti-screen.jsonl): 24/24, local DevXT3090J.
+
+All five files end with `restored`, `original_container=true` and
+`original_argv=true`. All recorded cold samples pass the uncached-prefix gate.
+Post-run checks confirmed healthy original services and fresh router heartbeats;
+all four workers were undrained with `drain_until=null`. The short A controller
+exited successfully with `drain_released=true` and `renewal_failed=false`.
+
+All deployed settings stayed original. No automatic cap change was made: the
+code's `8192/1024` automatic policy is not the measured `4096` logical-batch
+configuration, including the `4096/2048` pairings above. Its quantization-blind
+selection cannot be generalized from these Q3 artifacts or synthetic passes.
 
 The local DevXT3090J reports PCIe Gen4 x4 under 99-100% load, despite x16 maximum
 capability. The other 24 GB cards report x16 width while idle. Idle Gen1 is a
