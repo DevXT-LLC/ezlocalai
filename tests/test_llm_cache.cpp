@@ -152,6 +152,21 @@ void native_policy_cases(const fs::path &root) {
     };
     auto b = budget();
     expect(b.requested.mib == "32768" && b.effective.mib == "32768" && b.swap_allowance_mib == 0, "128 GiB auto uses bounded 32 GiB cache without swap");
+    ram = {200000, 262144, 8192}; b = budget();
+    expect(b.effective.mib == "65536", "256 GiB auto is not silently limited to 32 GiB");
+    ram = {100000, 131072, 8192};
+    settings["LLM_PROMPT_CACHE_MAX_RAM_FRACTION"] = "0.4"; b = budget();
+    expect(b.effective.mib == "52224", "auto honors a larger configured RAM fraction with safe rounding");
+    b = budget("32768");
+    expect(b.effective.mib == "32768", "raising fraction does not override explicit ceiling");
+    ram.available_mib = 20000; b = budget();
+    expect(b.effective.mib == "15872", "larger auto allowance still reserves available RAM");
+    settings["LLM_PROMPT_CACHE_MAX_RAM_FRACTION"] = "0"; b = budget();
+    expect(b.effective.mib == "0", "zero RAM fraction remains disabled");
+    settings["LLM_PROMPT_CACHE_MAX_RAM_FRACTION"] = "bad";
+    ram = {100000, 131072, 8192}; b = budget();
+    expect(b.effective.mib == "32768", "invalid fraction falls back to safe quarter-RAM policy");
+    settings.clear();
     ram.total_mib = 122880; b = budget();
     expect(b.effective.mib == "30720", "120 GiB auto remains within the RAM fraction");
     ram = {24000, 32768, 8192}; b = budget();
@@ -186,6 +201,9 @@ void native_policy_cases(const fs::path &root) {
     auto constrained = ezlocalai::prompt_cache_ram_with_cgroup({100000, 131072, 8192}, cg.string(), "/parent/leaf");
     expect(constrained.total_mib == 32768 && constrained.available_mib == 25600 && constrained.swap_available_mib == 3072,
         "nested cgroups constrain RAM and swap by every ancestor, allowing reclaimable inactive file pages");
+    settings.clear();
+    b = ezlocalai::native_llm_prompt_cache_budget("auto", 230000, env, [&] { return constrained; });
+    expect(b.effective.mib == "8192", "large host cannot raise auto cache beyond container RAM fraction");
     write("parent/memory.swap.max", 0);
     constrained = ezlocalai::prompt_cache_ram_with_cgroup({100000, 131072, 8192}, cg.string(), "/parent/leaf");
     expect(constrained.swap_available_mib == 0, "parent swap prohibition overrides child allowance");

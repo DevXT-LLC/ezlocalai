@@ -2,6 +2,34 @@
 
 The goal remains behavior parity with ezlocalai within the scope below, with all first-party executable code implemented in C++. It is **not complete**.
 
+## Prompt Cache RAM Allowance (2026-11-11)
+
+Removed the extra 32 GiB ceiling from native automatic prompt-cache sizing on
+hosts with at least 64 GiB of RAM. The existing configured RAM fraction,
+available-memory reserve and cgroup limits still constrain the allowance.
+Explicit sizes, disabled caches and the unsafe opt-in retain their behavior;
+the default fraction remains 0.25. Existing bounded swap support remains opt-in,
+not a new persistent SSD cache or a reason to ignore low available RAM.
+
+Network-disabled, GPU-free staging reused the deployed CUDA dependency image
+`sha256:7ca3c1347d318fae30b86d138f17305916a236ebd4d98a3ee2be216911761ab3`.
+The cache test executable and full native worker rebuilt successfully. All seven
+focused cache/MTP/checkpoint/patch package tests passed. Cache validation includes
+9,111 recorded cases plus native policy, cgroup and managed-engine tests; new
+cases cover larger RAM/fractions, explicit ceilings, memory pressure, invalid
+fractions and container limits. No image was replaced, so no rollback tag was
+needed. Full release-image packaging and rollout remain pending.
+
+A separate real RTX 5090/Qwen3.8-27B benchmark against the existing worker
+isolated caller-side prompt layout: a roughly 53k-token follow-up took 13.00 s
+with the changing layout versus 1.10 s with stable message boundaries; switching
+away and returning took 1.23 s, and returning after 180 idle seconds took 0.97 s.
+This validates prefix reuse, not the new RAM budget under pressure. Neither
+model quantization nor MTP settings changed. Multi-hour eviction, SSD restore
+latency, optimal draft length and end-to-end user-run performance were not
+validated. Compact evidence is in
+`tests/fixtures/prompt_cache_20261111_validation.json`.
+
 ## Large Caption Upload Transport (2026-11-07)
 
 Confirmed and fixed silent native HTTP truncation at roughly 16 MiB, which
