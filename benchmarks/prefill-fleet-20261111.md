@@ -1,8 +1,8 @@
 # Long-Context Prefill Qualification
 
 2026-11-11. These are isolated experiments, not a production configuration change.
-The initial sweep is still being extended. Do not interpret a passing retrieval
-screen as proof of general coding quality or mathematical equivalence.
+The bounded screens below have completed restoration. Passing these retrieval
+and two-function checks is not proof of general quality or mathematical equivalence.
 
 ## Method
 
@@ -21,16 +21,23 @@ screen as proof of general coding quality or mathematical equivalence.
 - Infrastructure cases require exact current paths, ports, health URLs and safe
   remediation IDs from early, middle and late inventory records. Conflicting
   obsolete records surround each target. All prompts are synthetic.
-- Use identical prompts and weights within each worker's bracketed sweep. Greedy
-  seed 42, thinking disabled, 1,024 output tokens. This is a controlled screen,
+- Use identical prompts within each worker's bracketed sweep; keep weights fixed
+  except for the explicitly paired Q3/NVFP4 artifact comparison. Greedy seed 42,
+  thinking disabled, 1,024 output tokens for infrastructure-only runs and 2,048
+  for the 64K infra/Rust/JavaScript comparison. This is a controlled screen,
   not a complete reproduction of the production thinking workload.
-- Later Rust/JavaScript checks execute generated code only in network-disabled,
+- Rust/JavaScript checks execute generated code only in network-disabled,
   read-only, resource-limited disposable containers. They do not execute it on
   the host. Their results are recorded separately from retrieval grades.
 
 Commands and provenance are retained in the JSONL evidence under the ignored
-`build/validation/prefill-fleet-20261111/` directory. The checked-in compact
-fixture is generated with `summarize_prefill_fleet.py` and omits answer text.
+`build/validation/prefill-fleet-20261111/` directory. The compact
+[fixture](../tests/fixtures/prefill_fleet_20261111_validation.json) contains 11
+files ending in confirmed restoration: 172 responses, including 160 passing
+infrastructure grades and 12 externally graded code outputs (12/12 passed).
+Experiment records use `summarize_prefill_fleet.py`, supplemented with hashed
+code-grade provenance and three utilization-confirmed memory samples; prompt
+and answer text are omitted. The intentionally partial A run is identified below.
 
 ## RTX 5090 Batch And MTP Screen
 
@@ -54,13 +61,55 @@ evaluated four new tokens and returned the first token in approximately 0.06-0.2
 Batch 4,096 improves the 200K case but is not a general-purpose promotion:
 it leaves only 1,001 MiB free after loading both models, and a live under-load
 sample reported 841 MiB. Batch 1,024 leaves 4,743 MiB free but slows the long
-prompts. Baseline batch 2,048 leaves 3,381 MiB free. An intermediate batch is a
-separate candidate, not a measured result yet.
+prompts. Baseline batch 2,048 leaves 3,381 MiB free. The separate batch-3,072
+midpoint measurement is recorded below.
 
 Disabling MTP does not improve total task time here. At 128K, baseline completes
 in 65.12-66.38 s versus 76.57 s without MTP. At 200K it is 136.10-137.72 s versus
 148.30 s. The MTP-off comparison bounds total MTP overhead; it does not attribute
 that entire difference to host transfers or establish a device-copy speedup.
+
+## RTX 5090 Midpoint Screen
+
+`5090-ub3072-screen.jsonl` brackets batch 3,072 with production batch-2,048
+controls, retaining logical batch 4,096, MTP max 3, context 262,144, Q4 KV and
+resident LFM voice. All 24 responses passed; original-container/argument
+restoration and drain release completed successfully.
+
+| Prompt | Batch 2,048 TTFT, before / after | Batch 3,072 TTFT | Batch 2,048 prefill tokens/s, before / after | Batch 3,072 prefill tokens/s |
+| --- | --- | --- | --- | --- |
+| 8K | 2.804 / 2.596 s | 2.797 s | 2,875 / 3,107 | 2,883 |
+| 64K | 22.52 / 22.29 s | 22.50 s | 2,877 / 2,891 | 2,865 |
+| 128K | 63.62 / 63.02 s | 62.17 s | 2,045 / 2,044 | 2,072 |
+| 200K | 133.64 / 133.07 s | 129.48 s | 1,509 / 1,513 | 1,566 |
+
+TTFT improved 1.82% at 128K and 2.91% at 200K versus mean bracketed controls,
+with no consistent 8K/64K benefit. Ready free VRAM fell from 3,381 to 2,019 MiB;
+`5090-ub3072-memory.csv` records 1,899 MiB at **99% GPU utilization**, not a
+worst-case guarantee. Given this tradeoff, batch 2,048 remains deployed.
+No automatic batch cap changed.
+
+## GDN Scheduling Screen
+
+The CUDA 12.8 experimental engine was tested off / on / off at 64K with identical
+prompts/Q3 weights, physical batch 2,048, MTP max 3 and resident LFM voice.
+Engine SHA-256:
+`b19b041625578c6f3c6c8d1294a361e3480c62d7403b896908397354eebc9db6`;
+the JSONL also pins its shared-library hashes.
+
+| GDN setting | Cold TTFT | Native prefill tokens/s | Total task time | Ready reserve |
+| --- | --- | --- | --- | --- |
+| Off, opening | 21.78 s | 2,951 | 25.15 s | 3,381 MiB |
+| On | 21.95 s | 2,928 | 25.37 s | 3,381 MiB |
+| Off, closing | 22.37 s | 2,874 | 25.82 s | 3,381 MiB |
+
+All six responses passed and restoration is confirmed. The on result lies inside
+the off-control spread, establishing no clear latency benefit or general
+numerical equivalence; the experiment stays disabled. The profile retry captured
+and analyzed valid Nsight data but required manual production recovery after
+automatic cleanup failed. See [prefill-profile-20261111.md](prefill-profile-20261111.md).
+Profile files are excluded from this automatic-restoration fixture; their capture
+does not establish dispatch attribution for the experimental GDN toggle.
 
 ## Fleet Interpretation
 
@@ -175,18 +224,88 @@ context reduction or runtime promotion was performed by this audit. Parent-run
 fit and paired task screens remain separate evidence; a synthetic pass is not
 production-quality certification.
 
+## NVFP4 Paired Runtime Screen
+
+The 64K Q3 / NVFP4 / Q3 screen used physical batch 1,024, logical batch 4,096,
+context 262,144, Q4 KV, MTP max 3 and resident LFM voice. It used the audited
+candidate without a template override; prompt hashes match across blocks within
+each task. Evaluated lengths: 64,183 infra, 64,048 Rust and 64,017 JavaScript tokens.
+
+| Task | Q3 TTFT, before / after | NVFP4 TTFT | Q3 prefill tokens/s, before / after | NVFP4 prefill tokens/s |
+| --- | --- | --- | --- | --- |
+| Infrastructure | 22.30 / 22.59 s | 16.12 s | 2,881 / 2,845 | 3,989 |
+| Rust | 22.00 / 22.29 s | 15.77 s | 2,915 / 2,877 | 4,070 |
+| JavaScript | 22.23 / 22.36 s | 15.84 s | 2,884 / 2,867 | 4,049 |
+
+Infrastructure TTFT fell 28.2% versus mean **same-batch-1,024** Q3 controls.
+Against the initial production-batch-2,048 controls (21.15 / 21.90 s), the reduction
+is approximately 25.1%, a separate cross-run comparison. Different output lengths
+prevent interpreting total task times as an equal-output decode-speed benchmark.
+
+Q3 left 4,743 MiB free at readiness; NVFP4 left 2,895 MiB. The separate
+`5090-nvfp4-memory.csv` sample records 2,847 MiB free at **99% GPU utilization**.
+This is one under-load observation, not the minimum across all workloads.
+All six infrastructure responses passed. The file ends with `restored`,
+`original_container=true` and `original_argv=true`.
+
+The CPU-only sandbox grader accepted **12/12 Rust/JavaScript responses**, with
+no paired failures: opening Q3, candidate and closing Q3 each passed two Rust
+and two JavaScript outputs (cold and repeated). Images were
+`rust:1.93-slim-bookworm` and `node:22-alpine`, with no network, read-only root,
+dropped capabilities, no new privileges, UID/GID 65534, 512 MiB memory, one CPU,
+64 PIDs and a 128 MiB tmpfs. Generated code was not executed on the host.
+
+Grading provenance:
+
+- Input `5090-nvfp4-screen.jsonl` SHA-256:
+  `4af0486c2879c5abe3bbee0910e65de4e419102d1dfe3e1c365383585b17d7e3`.
+- Grade output `5090-nvfp4-code-grades.json` SHA-256:
+  `84650b7a0525c02052b613e5d14c69098df479f65a4ef3bf04b9fa8aaef4afda`.
+- Grader source snapshot `benchmarks/grade_prefill_code.py` SHA-256:
+  `5b9e56940372310cf1376447452547c492eadaf880ab640b4af9cdf6accb9028`.
+
+These are only `parse_port` and `mapLimit` on synthetic 64K prompts: four distinct
+answer hashes, not 12 independent tasks. They establish no general coding/reasoning
+quality, production thinking-mode parity, vision quality or exact BF16 lineage.
+
+## NVFP4 Long-Context Follow-Up
+
+`5090-nvfp4-long.jsonl` completed the separate infrastructure-only comparison
+at physical batch 1,024, with cached repeats disabled. All six cold responses
+passed, with identical prompt hashes/counts across blocks (128,092 and 200,035
+evaluated tokens), unchanged context/KV/MTP settings and resident LFM voice.
+
+| Prompt | Q3 batch-1,024 TTFT, before / after | NVFP4 batch-1,024 TTFT | Q3 prefill tokens/s, before / after | NVFP4 prefill tokens/s |
+| --- | --- | --- | --- | --- |
+| 128K | 66.30 / 66.36 s | 53.34 s | 1,934 / 1,932 | 2,404 |
+| 200K | 141.10 / 142.14 s | 121.32 s | 1,424 / 1,421 | 1,661 |
+
+TTFT reductions versus mean **same-batch** controls were 19.58% and 14.34%.
+Separately, the initial production-batch-2,048 controls were 60.99 / 62.23 s
+and 130.82 / 132.52 s: cross-run reductions are 13.42% and 7.86%, not the paired
+same-batch gains. No Rust/JavaScript or vision quality is claimed at these lengths.
+
+Ready reserve remained 2,895 MiB for NVFP4 versus 4,743 MiB for Q3. The parent
+200K load sample in `5090-nvfp4-long-memory.csv` records 2,847 MiB free at **100%
+GPU utilization** (2026-11-11 13:52:19.963, source-local timestamp), not a peak-memory
+bound. The final receipt confirms original-container/argument restoration; the
+controller exited successfully with drain released and no renewal failure.
+
 ## Experimental Paths
 
 - A disabled-by-default GDN value-slice scheduling experiment is kept outside
   the production patch manifest. CUDA 12.8 builds for SM86/89/120a succeeded.
-  Build success is not a numerical, dispatch or throughput qualification.
+  The bounded 64K off/on/off screen above shows no clear latency benefit.
+  Build and screen success are not general numerical or dispatch qualification.
   See the separate GDN experiment and build notes.
 - Pinned NVFP4 disk staging and CPU checks are complete as recorded above.
-  Runtime fit, long-context behavior and task quality remain unqualified by this
-  audit. No production model was replaced.
+  The 64K paired-task and 128K/200K retrieval screens establish only the bounded
+  fit/quality results above, not general quality certification. Exact BF16 lineage
+  and vision remain unqualified; no production model was replaced.
 - Approximate cache/prefill methods are not enabled. Published short-context or
   different-quantization results do not establish a quality-preserving gain for
   these long-context infrastructure and coding workloads.
 
-No permanent runtime default is changed by this work. Pending experiments and
-limitations must remain explicit until their device evidence is recorded.
+No permanent runtime default changed. Memory tradeoffs block large-batch promotion;
+GDN has no clear measured benefit, and NVFP4's limited quality/provenance evidence
+does not justify a general fleet-wide recommendation.
