@@ -60,6 +60,19 @@ kernels. The GPU-event span also contains 1.648 s of gaps. Neither occupancy
 nor gaps establish a dependency critical path. Stop at this evidence; no risky
 device-handoff patch is justified by the small demonstrated copy budget.
 
+## AutoDefaultScope
+
+Do not generalize this screen into a 5090-wide auto-cap increase. With at least
+28 GiB free, `src/llm_batch.cpp` selects batch 8192 before capping long-context
+Qwen ubatch to 1024. Relaxing that cap exposes **8192/2048**, whereas the measured
+baseline is **4096/2048**. The cap matches a model-name substring, not the resolved
+GGUF quantization, so a GPU-only exception would also affect larger quants.
+Startup fallback can reduce ubatch or GPU layers, but does not establish
+full-context memory safety. Retain the qualified explicit setting; any future
+auto exception needs resolved-artifact eligibility and validation of its actual
+batch pair, KV/context settings, and resident-voice headroom. No default change
+is implemented or recommended for unqualified models or other GPUs here.
+
 ## Recovery and Fix
 
 **Automatic restoration failed.** The owned probe was removed, but lowercase

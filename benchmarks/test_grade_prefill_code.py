@@ -171,11 +171,16 @@ class SandboxTests(unittest.TestCase):
                 self.assertIn("cleanup failed", diagnostic)
 
     def test_already_auto_removed_container_is_normal(self):
-        self.run.side_effect = [
-            subprocess.CompletedProcess([], 0, "PREFILL_CODE_TESTS_PASSED", ""),
-            subprocess.CompletedProcess([], 1, "", "Error: No such container: owned"),
-        ]
-        self.assertTrue(grader.evaluate(sample())[0])
+        for message in (
+            "Error: No such container: owned",
+            "Error response from daemon: no such container: owned",
+        ):
+            with self.subTest(message=message):
+                self.run.side_effect = [
+                    subprocess.CompletedProcess([], 0, "PREFILL_CODE_TESTS_PASSED", ""),
+                    subprocess.CompletedProcess([], 1, "", message),
+                ]
+                self.assertTrue(grader.evaluate(sample())[0])
 
     def test_interrupt_still_cleans_up_and_propagates(self):
         self.run.side_effect = [

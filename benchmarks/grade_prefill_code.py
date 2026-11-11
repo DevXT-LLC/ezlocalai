@@ -191,7 +191,7 @@ def evaluate(sample):
                 capture_output=True,
                 timeout=15,
             )
-            if cleanup.returncode and "No such container" not in cleanup.stderr:
+            if cleanup.returncode and "no such container" not in cleanup.stderr.lower():
                 passed = False
                 diagnostic = (
                     "sandbox cleanup failed: "
