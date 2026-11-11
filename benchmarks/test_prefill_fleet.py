@@ -98,6 +98,105 @@ class ReservationTests(unittest.TestCase):
         self.assertTrue(self.request.call_args.args[2]["require_idle"])
         self.popen.assert_not_called()
 
+    def test_absent_target_waits_before_acquisition_and_uses_fresh_target(self):
+        self.argv += ["--wait-seconds", "60"]
+        returned = workers()
+        returned[0]["url"] = "http://returned:8091"
+        self.request.side_effect = [{"data": workers()[1:]}, {"data": returned}, {}]
+        with patch.object(fleet.time, "monotonic", side_effect=[0, 0]):
+            fleet.main()
+        self.sleep.assert_called_once_with(30)
+        self.assertEqual(self.run.call_args.args[3]["url"], "http://returned:8091")
+        self.assertEqual(
+            [c.args[1] for c in self.request.call_args_list],
+            ["/v1/router/workers", "/v1/router/workers", "/v1/router/drain"],
+        )
+        self.assertFalse(self.output.exists())
+        self.popen.assert_not_called()
+
+    def test_absent_target_without_wait_budget_fails_without_mutation(self):
+        self.request.return_value = {"data": workers()[1:]}
+        self.request.side_effect = None
+        with self.assertRaisesRegex(fleet.TargetAbsent, "wait budget exhausted"):
+            fleet.main()
+        self.request.assert_called_once_with(
+            "http://192.168.1.214:8092", "/v1/router/workers"
+        )
+        self.sleep.assert_not_called()
+        self.run.assert_not_called()
+        self.assertFalse(self.output.exists())
+
+    def test_absent_target_retry_is_bounded_and_final_sleep_is_clipped(self):
+        self.argv += ["--wait-seconds", "35"]
+        self.request.side_effect = None
+        self.request.return_value = {"data": workers()[1:]}
+        with patch.object(fleet.time, "monotonic", side_effect=[0, 0, 30, 35]):
+            with self.assertRaisesRegex(fleet.TargetAbsent, "wait budget exhausted"):
+                fleet.main()
+        self.assertEqual([c.args[0] for c in self.sleep.call_args_list], [30, 5])
+        self.assertEqual(self.request.call_count, 3)
+        self.assertTrue(
+            all(c.args[1].endswith("workers") for c in self.request.call_args_list)
+        )
+        self.run.assert_not_called()
+        self.assertFalse(self.output.exists())
+
+    def test_absence_and_busy_reservations_share_one_wait_budget(self):
+        self.argv += ["--wait-seconds", "35"]
+
+        def busy():
+            return urllib.error.HTTPError("url", 409, "busy", {}, io.BytesIO(b"busy"))
+
+        self.request.side_effect = [
+            {"data": workers()},
+            busy(),
+            {"data": workers()[1:]},
+            {"data": workers()},
+            busy(),
+        ]
+        with patch.object(fleet.time, "monotonic", side_effect=[0, 0, 30, 35]):
+            with self.assertRaisesRegex(RuntimeError, "reservation failed.*409"):
+                fleet.main()
+        self.assertEqual([c.args[0] for c in self.sleep.call_args_list], [30, 5])
+        self.run.assert_not_called()
+        self.assertFalse(self.output.exists())
+
+    def test_absent_target_does_not_hide_lost_spare_capacity(self):
+        self.argv += ["--wait-seconds", "60"]
+        self.request.side_effect = [{"data": workers()[1:]}, {"data": workers()[1:2]}]
+        with self.assertRaisesRegex(RuntimeError, "two other"):
+            fleet.main()
+        self.sleep.assert_called_once()
+        self.assertEqual(self.request.call_count, 2)
+        self.run.assert_not_called()
+
+    def test_worker_lookup_errors_are_not_blindly_retried(self):
+        self.argv += ["--wait-seconds", "60"]
+        for error in (
+            ValueError("bad JSON"),
+            OSError("unavailable"),
+            StopIteration("not a missing target signal"),
+            urllib.error.HTTPError("url", 409, "lookup conflict", {}, io.BytesIO()),
+            urllib.error.HTTPError("url", 503, "unavailable", {}, io.BytesIO()),
+        ):
+            with self.subTest(error=error):
+                self.request.reset_mock()
+                self.request.side_effect = error
+                with self.assertRaises(type(error)):
+                    fleet.main()
+                self.request.assert_called_once()
+                self.sleep.assert_not_called()
+                self.run.assert_not_called()
+
+    def test_malformed_worker_registry_is_not_absence(self):
+        self.argv += ["--wait-seconds", "60"]
+        self.request.side_effect = None
+        self.request.return_value = {"data": [None]}
+        with self.assertRaises(AttributeError):
+            fleet.main()
+        self.sleep.assert_not_called()
+        self.run.assert_not_called()
+
     def test_explicit_ssh_opt_in_allows_verified_empty_production_key(self):
         self.argv += ["--router-key-ssh", "key-host"]
         with patch.dict("os.environ", {"EZLOCALAI_API_KEY": ""}), patch.object(
@@ -417,6 +516,35 @@ class LifecycleTests(unittest.TestCase):
                 self.run_reserved()
         self.popen.assert_not_called()
         self.assertEqual(len(self.resumed()), 1)
+
+    def test_absent_target_after_acquisition_is_not_retried_or_launched(self):
+        def respond(base, path, *args):
+            if path.endswith("workers"):
+                return {"data": workers()[1:]}
+            return self.respond(base, path, *args)
+
+        self.request.side_effect = respond
+        with patch.object(fleet.time, "sleep") as sleep:
+            with self.assertRaises(fleet.TargetAbsent):
+                self.run_reserved()
+        sleep.assert_not_called()
+        self.popen.assert_not_called()
+        self.thread.start.assert_not_called()
+        self.assertFalse(self.args.output.exists())
+        # Preserve existing cleanup for a never-launched, verified healthy target.
+        self.assertEqual(len(self.resumed()), 1)
+
+    def test_absent_target_after_acquisition_unhealthy_stays_fail_closed(self):
+        def respond(base, path, *args):
+            if path.endswith("workers"):
+                return {"data": workers()[1:]}
+            return {"status": "unhealthy"}
+
+        self.request.side_effect = respond
+        with self.assertRaisesRegex(RuntimeError, "health unconfirmed"):
+            self.run_reserved()
+        self.popen.assert_not_called()
+        self.assertFalse(self.resumed())
 
     def test_thread_setup_failure_releases_untouched_healthy_target(self):
         self.thread_factory.side_effect = RuntimeError("thread setup")

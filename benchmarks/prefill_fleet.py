@@ -44,9 +44,13 @@ def bundle_source(root, probe_kind):
     return source + (root / f"{entry}.py").read_text()
 
 
+class TargetAbsent(RuntimeError):
+    """A stopped worker may disappear from the router until its heartbeat returns."""
+
+
 def available_target(router, label):
     workers = request(router, "/v1/router/workers")["data"]
-    target = next(w for w in workers if w.get("label") == label)
+    target = next((w for w in workers if w.get("label") == label), None)
     others = {
         w["label"]
         for w in workers
@@ -59,6 +63,8 @@ def available_target(router, label):
     }
     if len(others) < 2:
         raise RuntimeError("Require two other healthy undrained Qwen workers")
+    if target is None:
+        raise TargetAbsent(f"Target {label!r} is absent from router registry")
     return target
 
 
@@ -205,7 +211,12 @@ def main():
     parser.add_argument("--variants")
     parser.add_argument("--targets")
     parser.add_argument("--repeats", type=int, default=1)
-    parser.add_argument("--wait-seconds", type=int, default=0)
+    parser.add_argument(
+        "--wait-seconds",
+        type=int,
+        default=0,
+        help="Pre-acquisition wait budget for a busy or temporarily absent target",
+    )
     parser.add_argument("--skip-cache", action="store_true")
     parser.add_argument(
         "--engine-root", help="Absolute remote engine bin/lib directory (screen only)"
@@ -322,7 +333,27 @@ def main():
     args.output.parent.mkdir(parents=True, exist_ok=True)
     deadline = time.monotonic() + args.wait_seconds
     while True:
-        target = available_target(args.router, args.label)
+        try:
+            target = available_target(args.router, args.label)
+        except TargetAbsent as error:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                raise TargetAbsent(
+                    f"{error}; reservation wait budget exhausted"
+                ) from None
+            print(
+                json.dumps(
+                    {
+                        "event": "maintenance_wait",
+                        "label": args.label,
+                        "reason": "target_absent",
+                        "detail": str(error),
+                    }
+                ),
+                flush=True,
+            )
+            time.sleep(min(30, remaining))
+            continue
         try:
             request(
                 args.router,

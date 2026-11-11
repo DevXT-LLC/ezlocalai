@@ -1,14 +1,84 @@
 # Experimental NVIDIA GDN Value-Slice64
 
 2026-11-11. Isolated, disabled by default, NOT qualified for deployment.
-No production services, deployed patch stack, audit source, or GPUs were changed.
-The parent batch/MTP fleet measurement owns all GPUs; do not run the device steps
-below until that measurement and its profiling window have finished.
+The deployed patch stack and audit source remain unchanged. The authorized 5090
+controller screen below temporarily replaced the workload, then restored the
+original container and Qwen/voice arguments. No runtime promotion was made.
+Additional device steps below remain pending and require separate authorization.
 
 Follow-up: the [full clean CUDA 12.8 build](experimental-prefill-gdn-slice64-cuda128.md)
 now provides both `test-backend-ops` and `llama-server` for SM86/89/120a, with
 completion evidence and a bounded seven-case operator gate. The CUDA 13 object
 compile recorded below is the earlier screen, not the final qualification build.
+
+## 5090 Bounded Screen
+
+2026-11-11: completed through the parent controller after explicit confirmation
+of prior-owner restoration and watchdog cleanup. Raw evidence:
+[`5090-gdn-screen.jsonl`](../build/validation/prefill-fleet-20261111/5090-gdn-screen.jsonl).
+Only the requested gates and 64k off/on/off screen ran; no trace, perplexity run,
+additional target, or follow-up experiment was launched.
+
+```bash
+PYTHONDONTWRITEBYTECODE=1 /home/josh/repos/xtsys/.venv/bin/python benchmarks/prefill_fleet.py \
+  --host josh@192.168.1.135 --label DevXT5090 \
+  --router-key-ssh josh@192.168.1.214 --wait-seconds 3600 \
+  --engine-root /home/josh/prefill-experiments/gdn-cuda128-20261111/bin \
+  --variants gdn-off,gdn-on,gdn-off --targets 64000 \
+  --output build/validation/prefill-fleet-20261111/5090-gdn-screen.jsonl
+```
+
+RTX 5090, driver 590.48.01, CUDA 12.8 build. All 24 staged executable/library
+file hashes matched the pinned build (`gdn_build_verified=true`), including
+server `b19b0416...`, operator binary `6bc78f74...`, and CUDA library `32a64b12...`.
+Full hashes are in the raw provenance and linked CUDA 12.8 build document.
+Same Q3_K_XL model, logical batch 4096, physical batch 2048, MTP enabled,
+and original voice engine throughout; ready-state free VRAM was 3381 MiB.
+
+Compact operator fixture: both flag modes `0` and `1` returned exit `0` and
+exactly seven expected supported CUDA0 test rows with empty `error_message`.
+The current CSV printer has no `passed` field. Each expected `op_params` string
+uses this exact order (substitute the tuples below):
+
+```text
+type=f32,head_count=16,head_size=128,n_seq_tokens=T,n_seqs=S,v_repeat=R,permuted=P,kda=0,K=1
+(T,S,R,P) = (63,1,2,0), (64,1,4,0), (65,1,1,0), (65,3,4,0),
+            (128,1,2,0), (129,1,2,0), (129,2,4,1)
+```
+
+All 14 checks passed without changing tolerance. This is bounded operator
+coverage, not broad model-quality or state-continuation qualification.
+
+| Block / flag | Sample | TTFT (s) | Prompt (ms) | Prompt / cached tokens |
+| --- | --- | ---: | ---: | ---: |
+| 0 / off | cold | 21.778362 | 21748.264 | 64183 / 0 |
+| 1 / on | cold | 21.947789 | 21917.967 | 64183 / 0 |
+| 2 / off | cold | 22.365190 | 22334.293 | 64183 / 0 |
+| 0 / off | cache repeat | 0.103297 | 73.590 | 4 / 64179 |
+| 1 / on | cache repeat | 0.101571 | 71.620 | 4 / 64179 |
+| 2 / off | cache repeat | 0.107434 | 75.364 | 4 / 64179 |
+
+All six responses for the single infra fixture passed with identical prompt and output hashes and
+483 predicted tokens. Cold TTFT improved only 0.562% versus the disabled mean
+(22.071776 s), while the disabled brackets drifted 2.695%. Enabled was 0.778%
+slower than the first disabled run and 1.866% faster than the second. Prompt
+latency likewise improved only 0.559% versus the bracket mean. Cache repeats
+are not prefill evidence. There is one cold sample per block, not a repeatability
+study. **No clear >=3% gain: stop here; do not expand or promote.**
+
+This measures the requested flag off/on behavior only. Without a fresh candidate
+kernel trace, actual `gdn_single<16,64,1>` dispatch remains unverified. The parent
+reported GDN at roughly 4.5% of profiled prefill kernel time, suggesting limited
+upside; that is not a measured end-to-end bound or a trace of this candidate.
+
+The final evidence row is `restored`, with `original_argv=true`,
+`original_container=true`, and the original immutable image
+`sha256:b7e7d157c93827b563cbda3f1e331343b17d0984afb370363881624e3198689d`.
+The controller exited 0 and reported `restored=true`, `drain_released=true`,
+`renewal_failed=false`, after its original-service health check. Its remote child
+finished, owned probe containers were removed, and the owned watchdog was
+terminated and waited for. No child from this run remains pending. The main
+fleet report and other owners' queues were not modified.
 
 ## Candidate
 
