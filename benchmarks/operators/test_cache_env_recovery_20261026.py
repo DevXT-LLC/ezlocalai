@@ -435,4 +435,211 @@ class FinalizedRollbackReviewTests(unittest.TestCase):
         self.assertNotIn(self.tuned['Id'],self.engine.items);self.assertTrue(proof['healthy'])
 
 
+class QuantUpdateTests(unittest.TestCase):
+    state = UpdateTests.state
+    assert_restored = UpdateTests.assert_restored
+    assert_original_configuration = (
+        FinalizedRollbackReviewTests.assert_original_configuration
+    )
+
+    def setUp(self):
+        UpdateTests.setUp(self)
+        self.plan["changes"] = {"QUANT_TYPE": "NVFP4,Q4_K_M", "LLM_UBATCH_SIZE": "1024"}
+        self.raw = (
+            b'# retained bytes\r\n export QUANT_TYPE = "Q3_K_XL,Q4_K_M" # previous\r\n'
+            b"LLM_UBATCH_SIZE=auto\r\nLLAMA_CPP_MODEL_PATHS=\r\nLLAMA_CPP_MMPROJ_PATH=\r\n"
+            b'API_KEY=fixture-secret-marker-env\r\nOTHER="keep $HOME; commas," # keep'
+        )
+        self.env.write_bytes(self.raw)
+        self.engine.items["original-id"]["Config"]["Env"] += [
+            "QUANT_TYPE=Q3_K_XL,Q4_K_M",
+            "LLAMA_CPP_MODEL_PATHS=",
+            "LLAMA_CPP_MMPROJ_PATH=",
+            "KV_CACHE_TYPE=q4_0",
+            "LLM_MAX_TOKENS=262144",
+            "MTP_SPEC_DRAFT_N_MAX=3",
+        ]
+        self.engine.original = copy.deepcopy(self.engine.items["original-id"])
+
+    def test_deploy_quant_and_microbatch_preserves_all_other_configuration(self):
+        proof = mod.apply(self.engine, self.plan, retain=True)
+        self.assertEqual(proof["status"], "awaiting_router_verification")
+        actual = self.engine.inspect("ezlocalai")
+        expected = copy.deepcopy(self.engine.original["Config"])
+        expected["Env"] = [
+            key + "=" + self.plan["changes"].get(key, value)
+            for key, value in mod.env_values(expected["Env"]).items()
+        ]
+        self.assertEqual(actual["Config"], expected)
+        for key in ("Image", "HostConfig", "Mounts"):
+            self.assertEqual(actual[key], self.engine.original[key])
+        rendered = self.raw.replace(
+            b' "Q3_K_XL,Q4_K_M" # previous', b"NVFP4,Q4_K_M"
+        ).replace(b"LLM_UBATCH_SIZE=auto", b"LLM_UBATCH_SIZE=1024")
+        self.assertEqual(self.env.read_bytes(), rendered)
+        self.assertEqual(self.env.stat().st_mode & 0o777, 0o640)
+        self.assertNotIn("fixture-secret-marker", json.dumps(proof))
+
+    def test_retained_rollback_restores_quant_and_byte_exact_dotenv(self):
+        mod.apply(self.engine, self.plan, retain=True)
+        root, state, original = self.state()
+        proof = mod.rollback(self.engine, root, state, original)
+        self.assertEqual(proof["status"], "rolled_back")
+        self.assert_restored()
+
+    def test_finalized_rollback_recreates_original_quant_image_and_hostconfig(self):
+        engine = MultiDocker()
+        engine.original["Config"]["Env"] = copy.deepcopy(
+            self.engine.original["Config"]["Env"]
+        )
+        engine.items["original-id"] = copy.deepcopy(engine.original)
+        self.engine = engine
+        mod.apply(self.engine, self.plan)
+        root, state, original = self.state()
+        self.assertNotIn("original-id", self.engine.items)
+        proof = mod.rollback(self.engine, root, state, original)
+        self.assertTrue(proof["original_container_recreated"])
+        self.assert_original_configuration(self.engine.inspect("ezlocalai"), original)
+        self.assertEqual(self.env.read_bytes(), self.raw)
+        self.assertEqual(self.env.stat().st_mode & 0o777, 0o640)
+
+    def test_unhealthy_quant_replacement_restores_original(self):
+        self.engine.bad_health = True
+        with self.assertRaisesRegex(mod.UpdateError, "unhealthy"):
+            mod.apply(self.engine, self.plan)
+        self.assert_restored()
+
+    def test_existing_empty_quant_defaults_are_supported(self):
+        for value in ("", "''", '""', " # default", "'' # default", '"" # default'):
+            with self.subTest(value=value):
+                raw = ("QUANT_TYPE=" + value + "\r\nOTHER=unchanged\r\n").encode()
+                self.env.write_bytes(raw)
+                entries = self.engine.items["original-id"]["Config"]["Env"]
+                entries[:] = [
+                    "QUANT_TYPE=" if v.startswith("QUANT_TYPE=") else v for v in entries
+                ]
+                self.engine.original = copy.deepcopy(self.engine.items["original-id"])
+                proof = mod.apply(self.engine, self.plan, dry_run=True)
+                self.assertEqual(proof["changes"]["QUANT_TYPE"]["container_old"], "")
+                self.assertEqual(proof["changes"]["QUANT_TYPE"]["file_old"], "")
+                self.assertEqual(self.env.read_bytes(), raw)
+                self.assertEqual(self.engine.calls, [])
+                rendered, old = mod.render_env(raw, {"QUANT_TYPE": "NVFP4,Q4_K_M"})
+                self.assertEqual(
+                    rendered, b"QUANT_TYPE=NVFP4,Q4_K_M\r\nOTHER=unchanged\r\n"
+                )
+                self.assertEqual(old, {"QUANT_TYPE": ""})
+
+    def test_empty_original_quant_can_deploy_and_rollback(self):
+        self.raw = self.raw.replace(b'"Q3_K_XL,Q4_K_M" # previous', b"")
+        self.env.write_bytes(self.raw)
+        entries = self.engine.items["original-id"]["Config"]["Env"]
+        entries[:] = [
+            "QUANT_TYPE=" if v.startswith("QUANT_TYPE=") else v for v in entries
+        ]
+        self.engine.original = copy.deepcopy(self.engine.items["original-id"])
+        mod.apply(self.engine, self.plan, retain=True)
+        root, state, original = self.state()
+        mod.rollback(self.engine, root, state, original)
+        self.assert_restored()
+
+    def test_absent_quant_appends_without_changing_other_bytes(self):
+        raw = b'# preserve\r\nOTHER="keep $HOME; commas,"'
+        rendered, old = mod.render_env(raw, {"QUANT_TYPE": "NVFP4,Q4_K_M"})
+        self.assertEqual(rendered, raw + b"\r\nQUANT_TYPE=NVFP4,Q4_K_M\r\n")
+        self.assertEqual(old, {"QUANT_TYPE": None})
+
+    def test_safe_single_and_list_quant_names(self):
+        for value in (
+            "NVFP4",
+            "NVFP4,Q4_K_M",
+            "Q3_K_XL,Q4_K_M",
+            "BF16,F16,IQ4_XS",
+            "q4_0",
+            "auto",
+        ):
+            with self.subTest(value=value):
+                self.assertEqual(
+                    mod.validate_changes({"QUANT_TYPE": value}), {"QUANT_TYPE": value}
+                )
+
+    def test_invalid_quant_values_refuse_before_mutation(self):
+        bad = (
+            "",
+            ",NVFP4",
+            "NVFP4,",
+            "NVFP4,,Q4_K_M",
+            "NVFP4, Q4_K_M",
+            "NVFP4\t",
+            "NVFP4\nAPI_KEY=bad",
+            "NVFP4\rOTHER=bad",
+            '"NVFP4"',
+            "'NVFP4'",
+            "NVFP4;touch /tmp/bad",
+            "$(id)",
+            "${QUANT_TYPE}",
+            "`id`",
+            "/app/models/model.gguf",
+            "../NVFP4",
+            "NVFP4#comment",
+            "NVFP4\\Q4_K_M",
+            "Q4-K-M",
+            "4",
+            "NVFP4\0",
+            "\uff2e\uff36FP4",
+            None,
+            True,
+            4,
+            ["NVFP4"],
+        )
+        for value in bad:
+            with self.subTest(value=value):
+                self.plan["changes"] = {"QUANT_TYPE": value}
+                with self.assertRaises(mod.UpdateError):
+                    mod.apply(self.engine, self.plan)
+                self.assertEqual(self.engine.calls, [])
+                self.assertEqual(self.env.read_bytes(), self.raw)
+                self.assertFalse((self.dir / "proof").exists())
+
+    def test_invalid_existing_quant_syntax_refuses_before_mutation(self):
+        for location in ("dotenv", "container"):
+            with self.subTest(location=location):
+                value = "NVFP4,$BAD"
+                if location == "dotenv":
+                    self.env.write_bytes(b'QUANT_TYPE="NVFP4,$BAD"\n')
+                else:
+                    self.env.write_bytes(self.raw)
+                    self.engine.items["original-id"]["Config"]["Env"] = [
+                        "QUANT_TYPE=" + value if v.startswith("QUANT_TYPE=") else v
+                        for v in self.engine.items["original-id"]["Config"]["Env"]
+                    ]
+                with self.assertRaisesRegex(mod.UpdateError, "unsupported syntax"):
+                    mod.apply(self.engine, self.plan)
+                self.assertEqual(self.engine.calls, [])
+
+    def test_only_quant_is_added_to_allowed_settings(self):
+        self.assertEqual(
+            set(mod.ALLOWED),
+            {
+                "LLM_UBATCH_SIZE",
+                "LLM_BATCH_SIZE",
+                "LLM_PROMPT_CACHE_MAX_RAM_FRACTION",
+                "GGML_CUDA_GRAPH_OPT",
+                "EZLOCALAI_LLAMA_STATE_IO_BATCHING",
+                "QUANT_TYPE",
+            },
+        )
+        for key in (
+            "LLAMA_CPP_MODEL_PATHS",
+            "LLAMA_CPP_MMPROJ_PATH",
+            "MODEL",
+            "KV_CACHE_TYPE",
+        ):
+            with self.subTest(key=key), self.assertRaises(mod.UpdateError):
+                mod.validate_changes({key: "/app/models/model.gguf"})
+        for key in ("LLM_UBATCH_SIZE", "LLM_BATCH_SIZE", "GGML_CUDA_GRAPH_OPT"):
+            with self.subTest(key=key), self.assertRaises(mod.UpdateError):
+                mod.validate_changes({key: "NVFP4"})
+
+
 if __name__=='__main__':unittest.main(verbosity=2)

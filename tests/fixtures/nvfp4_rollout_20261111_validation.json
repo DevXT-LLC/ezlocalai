@@ -1,0 +1,67 @@
+{
+  "date": "2026-11-11",
+  "worker": "DevXT5090",
+  "status": "deployed_user_authorized",
+  "image": "sha256:b7e7d157c93827b563cbda3f1e331343b17d0984afb370363881624e3198689d",
+  "container_id": "7af1aa67be8cf239f02e9d6751401009e9bc3bcd3a2ff4706676b0208a3855bc",
+  "rollback_image": "ezlocalai:rollback-env-nvfp4-5090-v2-20261111",
+  "model": {
+    "alias": "unsloth/Qwen3.8-27B-GGUF",
+    "source_revision": "6c39753daccd7473d4e60735ec8ace1d30afdd10",
+    "source_filename": "Qwen3.8-27B-NVFP4-Q5K-mtp.gguf",
+    "deployment_filename": "Qwen3.8-27B-NVFP4-mtp.gguf",
+    "size_bytes": 15705922304,
+    "sha256": "1facf36c2db359dcf9c2475cf8f85fe84a528d10aaaaff20f7c0db3d561e024a",
+    "reported_quant_source": "configured fallback after unrecognized filename; hash verified separately"
+  },
+  "persistent_env_changes": {
+    "QUANT_TYPE": {"before": "Q3_K_XL,Q4_K_M", "after": "NVFP4,Q4_K_M"},
+    "LLM_UBATCH_SIZE": {"before": "2048", "after": "1024"}
+  },
+  "preserved": {
+    "immutable_image": true,
+    "hostconfig": true,
+    "mounts": true,
+    "static_network_configuration": true,
+    "main_context": 262144,
+    "voice_context": 32768,
+    "resident_voice": true,
+    "both_projectors": true,
+    "main_kv": "q4_0",
+    "voice_kv": "f16",
+    "logical_batch": 4096,
+    "mtp_max": 3,
+    "mtp_min_probability": 0.1,
+    "cache_mib_per_engine": 32000
+  },
+  "first_attempt": {
+    "canaries_passed": ["thinking_infrastructure", "vision", "realtime_voice"],
+    "rejected_reason": "router advertised Q5K from auxiliary quant in filename",
+    "original_container_id_restored": true,
+    "original_dotenv_restored": true,
+    "healthy": true,
+    "drain_released": true,
+    "receipt_sha256": "f2c1be9b7cc02853b84694893419554d2c34a803f57e854553cf61bddbee518a"
+  },
+  "second_attempt": {
+    "canaries_passed": ["thinking_infrastructure", "vision", "realtime_voice", "router_pinned"],
+    "voice_records": 3,
+    "voice_first_pcm_seconds": 0.1533947140123928,
+    "voice_first_energy_packet_seconds": 0.1739460440003313,
+    "voice_leading_quiet_seconds": 0.54,
+    "voice_audio_seconds": 5.6,
+    "voice_cancel_ack_seconds": 0.02146013300807681,
+    "voice_after_cancel_completed": true,
+    "router_quant": "NVFP4",
+    "router_voice_quant": "Q4_K_M",
+    "healthy": true,
+    "drain_released": true,
+    "old_stopped_container_removed_after_verification": true,
+    "idle_free_vram_mib": 3323,
+    "receipt_sha256": "e87e46d41bfef7eb1bd2c2ddb18515fd25fa4bc440395230ac300a3e1400d508",
+    "controller_sha256": "a90e5d5a9dbcbeb9e8cdf59c12c4a444bb2dc4aade21c509bc8429c6f738af53"
+  },
+  "other_workers": {"labels": ["DevXT4090", "DevXT3090A", "DevXT3090V", "DevXT3090J"], "quant": "Q3_K_XL", "changed": false, "fresh_and_undrained": true},
+  "operator_tests_passed": 58,
+  "limitations": ["No broad quality parity certification", "No multi-day stability qualification", "Exact BF16 ancestry not independently pinned", "Idle VRAM is not a peak-load reserve guarantee", "One audio canary is not a latency distribution"]
+}

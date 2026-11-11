@@ -2,6 +2,39 @@
 
 The goal remains behavior parity with ezlocalai within the scope below, with all first-party executable code implemented in C++. It is **not complete**.
 
+## Authorized RTX 5090 NVFP4 Deployment (2026-11-11)
+
+After the isolated qualification below, the user authorized NVFP4 on the 5090.
+Only that worker's persistent configuration changed: `QUANT_TYPE=NVFP4,Q4_K_M`
+and `LLM_UBATCH_SIZE=1024`. Main context 262,144, voice context 32,768, both
+projectors, cache budgets, KV formats and MTP max 3 / probability 0.1 remain.
+The microbatch setting applies to both resident engines; real voice output,
+cancellation and a subsequent audio turn passed with that setting.
+
+The first canary passed thinking, vision and voice, but the filename parser
+reported its Q5K auxiliary tensors as the whole model's quantization. The strict
+router gate rejected it and automatically restored the original healthy
+container and byte-exact dotenv before releasing its drain. The retry uses a
+local hardlink named `Qwen3.8-27B-NVFP4-mtp.gguf`, with the same verified artifact
+SHA-256, allowing the configured NVFP4 metadata fallback. It passed all four
+checks: thinking retrieval, vision, native realtime audio and pinned routed chat.
+This is not tensor-derived quant reporting or general quality certification.
+
+The transactional operator now accepts validated comma-separated quant names;
+58 focused operator tests pass, including retained/finalized rollback and
+configuration preservation. No runtime code, global defaults or image changed.
+The existing image is
+`sha256:b7e7d157c93827b563cbda3f1e331343b17d0984afb370363881624e3198689d`;
+rollback tag: `ezlocalai:rollback-env-nvfp4-5090-v2-20261111`.
+Full settings and private recovery files remain on the worker. The old stopped
+container was removed only after routed verification; its image and original
+model remain available. All five tested workers have fresh heartbeats and no
+drains; the 3090s and 4090 retain Q3. Idle free VRAM on the new 5090 container
+was 3,323 MiB, not a worst-case load bound. No new worker log errors were found.
+See `tests/fixtures/nvfp4_rollout_20261111_validation.json` and the deployment
+section of `benchmarks/prefill-fleet-20261111.md`. Long-running production
+quality, exact BF16 ancestry and comprehensive vision quality remain unqualified.
+
 ## Long-Context Prefill Experiments (2026-11-11)
 
 Added isolated fleet measurement, strict synthetic retrieval cases, sandboxed

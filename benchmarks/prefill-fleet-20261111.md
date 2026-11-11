@@ -1,8 +1,10 @@
 # Long-Context Prefill Qualification
 
-2026-11-11. These are isolated experiments, not a production configuration change.
-The bounded screens below have completed restoration. Passing these retrieval
-and two-function checks is not proof of general quality or mathematical equivalence.
+2026-11-11. The isolated screens below completed restoration. Subsequently,
+the user authorized the 5090-only deployment documented at the end; historical
+restoration statements describe the experiments, not that later rollout.
+Passing retrieval and two-function checks is not proof of general quality or
+mathematical equivalence. Global runtime defaults are unchanged.
 
 ## Method
 
@@ -309,3 +311,59 @@ controller exited successfully with drain released and no renewal failure.
 No permanent runtime default changed. Memory tradeoffs block large-batch promotion;
 GDN has no clear measured benefit, and NVFP4's limited quality/provenance evidence
 does not justify a general fleet-wide recommendation.
+
+## Authorized 5090 Deployment
+
+After reviewing the above evidence, the user requested the 5090 switch to NVFP4.
+This is a per-worker configuration change, not a fleet-wide default. Native FP4
+is a Blackwell feature ([NVIDIA](https://blogs.nvidia.com/blog/rtx-ai-garage-blackwell-nim-blueprints-pc/));
+the older 3090/4090 have neither the same native FP4 acceleration nor the same
+32 GB memory budget. We did not change their quantization.
+
+The pinned artifact above was hardlinked into the 5090 model directory, not
+redownloaded or requantized. Its deployment basename is
+`Qwen3.8-27B-NVFP4-mtp.gguf`, while the canonical source remains
+`Qwen3.8-27B-NVFP4-Q5K-mtp.gguf`. SHA-256 was reverified after staging.
+Only `QUANT_TYPE=NVFP4,Q4_K_M` and `LLM_UBATCH_SIZE=1024` changed in the
+container and persistent dotenv. The microbatch setting also applies to LFM;
+its Q4_K_M weights, F16 projector/KV and 32,768 context remain intact.
+Qwen retains its alias, BF16 projector, 262,144 context, Q4 KV, logical batch
+4,096, MTP max 3 / minimum probability 0.1 and 32,000 MiB cache setting.
+
+An idle router reservation excluded the worker during replacement and direct
+canaries. The original pinned image, mounts, HostConfig and static network
+configuration were verified unchanged. The first attempt's canaries passed,
+but the current filename quant parser recognized `Q5K` and advertised that
+instead of NVFP4. The controller rejected this mismatch and automatically
+restored the original healthy container and dotenv. No partial deployment was
+accepted. The deployment basename avoids that auxiliary-quant token: the
+parser skips the unrecognized filename, then falls back to configured NVFP4.
+This label is configuration-derived, not a tensor audit; the artifact hash
+establishes that the qualified bytes are loaded. There is only one NVFP4 match
+in the model directory, and local projector discovery stays enabled.
+
+The second attempt passed thinking-mode infrastructure retrieval, a simple
+color/shape image, and actual native realtime audio including cancellation and
+an after-cancel response. First PCM was 153 ms; first nonquiet packet 174 ms;
+the 5.6-second response contained 540 ms of leading quiet audio. These packet
+timings are not perceived speech latency or representative distributions.
+After a fresh router heartbeat advertised NVFP4 and both original contexts,
+the drain was released and a pinned routed chat completed successfully.
+The old stopped container was then removed. Idle free VRAM was 3,323 MiB.
+All five workers were fresh and undrained, with Q3 unchanged on the other four.
+
+Image: `sha256:b7e7d157c93827b563cbda3f1e331343b17d0984afb370363881624e3198689d`.
+Rollback tag: `ezlocalai:rollback-env-nvfp4-5090-v2-20261111`.
+Private recovery directory on the 5090:
+`/home/josh/prefill-experiments/nvfp4-rollout-v2-20261111/transaction`.
+To roll back, first acquire an idle owned router drain and renew it, then run
+the matching `updater.py rollback <transaction-directory>` on that worker.
+Verify restored engine arguments, health and router metadata before resuming.
+The updater can recreate the original container from retained configuration
+after finalization; do not delete its backup or rollback image prematurely.
+
+The operator's quant-list validation/preservation/rollback tests pass (58 total).
+No native image rebuild was needed. Compact evidence, receipt hashes and bounded
+claims are in [the rollout fixture](../tests/fixtures/nvfp4_rollout_20261111_validation.json).
+This canary adds thinking/vision/audio compatibility evidence, not broad quality
+parity, multi-day stability or proof of better answers.
