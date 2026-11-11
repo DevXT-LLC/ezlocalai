@@ -188,9 +188,14 @@ PromptCacheBudget native_llm_prompt_cache_budget(const std::optional<std::string
     }
     const auto automatic = setting(raw.value_or("auto"));
     if ((automatic.empty() || automatic == "auto") && ram.total_mib >= 65536) {
+        // Reuse the safety policy instead of imposing a second, hidden 32 GiB
+        // ceiling. Operators can raise the fraction on dedicated high-RAM
+        // workers without enabling the unsafe bypass or specifying a fixed size.
+        const auto safe = cap_llm_prompt_cache({std::to_string(ram.total_mib), "auto"},
+            environment, [&] { return ram; });
         requested.mib = std::to_string(std::max(std::stoll(requested.mib),
-            static_cast<long long>(std::min<int64_t>(32768, ram.total_mib / 4))));
-        requested.reason += "; high-RAM automatic ceiling";
+            std::stoll(safe.mib)));
+        requested.reason += "; high-RAM automatic allowance";
     }
     const auto nonnegative = [&](const char *name, const char *fallback) {
         auto value = parse_configuration_integer(environment(name, fallback)).value_or(fallback);

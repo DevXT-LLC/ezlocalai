@@ -1,0 +1,34 @@
+{
+  "date": "2026-11-11",
+  "base_revision": "6505f29",
+  "staging": {
+    "image_digest": "sha256:7ca3c1347d318fae30b86d138f17305916a236ebd4d98a3ee2be216911761ab3",
+    "network": "none",
+    "gpu": false,
+    "compiled_targets": ["test_llm_cache", "ezlocalai-native"],
+    "ctest_passed": ["llm_cache_package", "conversation_cache", "cache_restore_atomic", "cache_storage", "llama_mtp_resume", "llama_checkpoint_coverage", "managed_llama_patches"],
+    "recorded_cache_cases": 9111,
+    "native_policy_tests": true,
+    "deployed": false,
+    "rollback_tag": null
+  },
+  "prefix_benchmark": {
+    "hardware": "RTX 5090",
+    "model": "Qwen3.8-27B Q3_K_XL",
+    "worker_revision": "6505f29",
+    "method": "Synthetic system/history/guidance messages, unique per-case prefixes, temperature 0, max_tokens 8, thinking disabled; idle worker reserved through router and resumed afterward. Legacy first request combines base and guidance, then splits the follow-up; stable layout splits both. Timing is first streamed content. Direct worker requests, not a WorkConductor user run.",
+    "idle_seconds": 180,
+    "cases": [
+      {"case": "legacy-first", "ttft_seconds": 17.0388, "cache_n": 0, "prompt_n": 53391},
+      {"case": "legacy-next", "ttft_seconds": 12.9976, "cache_n": 15436, "prompt_n": 37967},
+      {"case": "split-first", "ttft_seconds": 17.2960, "cache_n": 0, "prompt_n": 53396},
+      {"case": "split-next", "ttft_seconds": 1.1021, "cache_n": 51344, "prompt_n": 2060},
+      {"case": "other-conversation", "ttft_seconds": 9.3423, "cache_n": 0, "prompt_n": 32494},
+      {"case": "return-to-split", "ttft_seconds": 1.2287, "cache_n": 51352, "prompt_n": 2052},
+      {"case": "idle-return", "ttft_seconds": 0.9686, "cache_n": 51352, "prompt_n": 2052}
+    ],
+    "all_cases_produced_output": true,
+    "mtp_changed": false
+  },
+  "not_validated": ["new RAM allowance under live cache pressure", "multi-hour retention", "SSD restoration latency", "optimal MTP draft length", "end-to-end user conversation latency", "full release-image packaging"]
+}
