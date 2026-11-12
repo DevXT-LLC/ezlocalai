@@ -84,6 +84,91 @@ class VariantTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             variant_args(original, "ub3072")
 
+    def mtp_original(self):
+        return self.original + [
+            "--spec-draft-n-max",
+            "3",
+            "--spec-draft-p-min",
+            "0.10000000000000001",
+            "--mmproj",
+            "/app/models/mmproj.gguf",
+            "--chat-template-file",
+            "/app/models/template.jinja",
+            "-np",
+            "1",
+        ]
+
+    def test_mtp_lengths_change_only_maximum_and_probe_port(self):
+        for variant in ("mtp2", "mtp3", "mtp4"):
+            with self.subTest(variant=variant):
+                original = self.mtp_original()
+                before = original.copy()
+                expected = variant_args(original, "baseline")
+                expected[expected.index("--spec-draft-n-max") + 1] = variant[-1]
+                self.assertEqual(variant_args(original, variant), expected)
+                self.assertEqual(original, before)
+
+    def test_mtp_rejects_missing_duplicate_and_malformed_selected_arguments(self):
+        for flag in (
+            "--port",
+            "--spec-type",
+            "--spec-draft-n-max",
+            "--spec-draft-p-min",
+        ):
+            for defect in (
+                "missing",
+                "duplicate",
+                "equals",
+                "extra-equals",
+                "empty",
+                "no-value",
+                "trailing",
+            ):
+                with self.subTest(flag=flag, defect=defect):
+                    original = self.mtp_original()
+                    index = original.index(flag)
+                    value = original[index + 1]
+                    if defect == "missing":
+                        del original[index : index + 2]
+                    elif defect == "duplicate":
+                        original += [flag, value]
+                    elif defect == "equals":
+                        original[index : index + 2] = [flag + "=" + value]
+                    elif defect == "extra-equals":
+                        original += [flag + "=" + value]
+                    elif defect == "empty":
+                        original[index + 1] = ""
+                    elif defect == "no-value":
+                        del original[index + 1]
+                    else:
+                        del original[index : index + 2]
+                        original.append(flag)
+                    before = original.copy()
+                    for variant in ("mtp2", "mtp3", "mtp4"):
+                        with self.assertRaises(ValueError):
+                            variant_args(original, variant)
+                    self.assertEqual(original, before)
+
+    def test_mtp_requires_active_mtp_and_positive_original_maximum(self):
+        for flag, values in (
+            ("--spec-type", ("none", "draft", "draft-dflash", "draft-mtp,draft")),
+            ("--spec-draft-n-max", ("0", "-1", "3.0", "auto", "nan", " 3")),
+        ):
+            for value in values:
+                with self.subTest(flag=flag, value=value):
+                    original = self.mtp_original()
+                    original[original.index(flag) + 1] = value
+                    with self.assertRaises(ValueError):
+                        variant_args(original, "mtp2")
+
+    def test_mtp_rejects_alias_override_and_unknown_lengths(self):
+        for extra in (["--draft-p-min", "0.5"], ["--draft-p-min=0.5"]):
+            with self.subTest(extra=extra), self.assertRaises(ValueError):
+                variant_args(self.mtp_original() + extra, "mtp2")
+        for variant in ("mtp0", "mtp1", "mtp5", "mtp02", "mtp-2"):
+            with self.subTest(variant=variant), self.assertRaises(ValueError):
+                variant_args(self.mtp_original(), variant)
+
 
 class OperatorTests(unittest.TestCase):
     # Exact current CSV printer order. It omits `passed`; test mode leaves
@@ -571,7 +656,7 @@ class ScreenSafetyTests(unittest.TestCase):
             self.watchdog_run()
         self.assert_no_restart()
 
-    def invoke_main(self, measure):
+    def invoke_main(self, measure, options=(), skip_cache=True):
         self.container = None
         argv = [
             "probe",
@@ -581,16 +666,19 @@ class ScreenSafetyTests(unittest.TestCase):
             "baseline",
             "--targets",
             "2000",
-            "--skip-cache",
         ]
+        if skip_cache:
+            argv.append("--skip-cache")
+        argv.extend(options)
         with patch("sys.argv", argv), patch.object(
             probe.socket, "socket"
         ), patch.object(probe, "wait_health"), patch.object(
             probe, "calibrate", return_value=({"messages": []}, 2000)
-        ), patch.object(
+        ) as calibration, patch.object(
             probe, "measure", side_effect=measure
         ):
             probe.main()
+        return calibration
 
     def test_main_absolute_deadline_interrupts_work_and_restores(self):
         def expired(*args, **kwargs):
@@ -617,6 +705,89 @@ class ScreenSafetyTests(unittest.TestCase):
         self.assertEqual(self.events[-1]["event"], "restored")
         self.assertLess(self.actions.index("reaped"), self.actions.index("restored"))
         self.assertIsNone(self.container)
+
+    def test_production_mtp_screen_forwards_cold_and_cached_profile_and_records_it(
+        self,
+    ):
+        self.original += ["--spec-draft-n-max", "3", "--spec-draft-p-min", "0.1"]
+        measure = Mock(return_value={"quality_pass": True})
+        variants = ["baseline", "mtp2", "mtp3", "mtp4", "baseline"]
+        calibration = self.invoke_main(
+            measure,
+            options=[
+                "--variants",
+                ",".join(variants),
+                "--thinking",
+                "--production-sampling",
+                "--max-tokens",
+                "8192",
+            ],
+            skip_cache=False,
+        )
+        calibration.assert_called_once_with(
+            2000,
+            "infra",
+            chat_template_kwargs={"enable_thinking": True, "reasoning_effort": "xhigh"},
+        )
+        self.assertEqual(measure.call_count, 10)
+        for index, call in enumerate(measure.call_args_list):
+            self.assertTrue(call.kwargs["production_sampling"])
+            self.assertTrue(call.kwargs["thinking"])
+            self.assertEqual(call.kwargs["max_tokens"], 8192)
+            self.assertEqual(call.kwargs.get("cache", False), bool(index % 2))
+        provenance = next(
+            event for event in self.events if event["event"] == "provenance"
+        )
+        self.assertEqual(provenance["sampling_profile"], "production")
+        self.assertEqual(
+            provenance["sampling_parameters"], probe.sampling_parameters(True, True)
+        )
+        launches = [
+            action
+            for action in self.actions
+            if isinstance(action, list) and action[:2] == ["docker", "run"]
+        ]
+        self.assertEqual(len(launches), len(variants))
+        for launch, variant in zip(launches, variants):
+            self.assertEqual(
+                launch[launch.index("sha256:original") + 1 :],
+                variant_args(self.original, variant),
+            )
+        self.assertEqual(self.events[-1]["event"], "restored")
+
+    def test_invalid_mtp_preflight_never_starts_watchdog_or_stops_production(self):
+        with self.assertRaises(ValueError):
+            self.invoke_main(Mock(), options=["--variants", "baseline,mtp2,baseline"])
+        probe.subprocess.Popen.assert_not_called()
+        self.assertFalse(
+            any(
+                isinstance(action, list)
+                and action[:2] in (["docker", "stop"], ["docker", "run"])
+                for action in self.actions
+            )
+        )
+
+    def test_default_screen_provenance_remains_greedy(self):
+        measure = Mock(return_value={"quality_pass": True})
+        calibration = self.invoke_main(measure)
+        calibration.assert_called_once_with(
+            2000,
+            "infra",
+            chat_template_kwargs={"enable_thinking": False},
+        )
+        self.assertFalse(measure.call_args.kwargs["production_sampling"])
+        provenance = next(
+            event for event in self.events if event["event"] == "provenance"
+        )
+        self.assertEqual(provenance["sampling_profile"], "greedy")
+        self.assertEqual(
+            provenance["sampling_parameters"],
+            {
+                "temperature": 0,
+                "seed": 42,
+                "chat_template_kwargs": {"enable_thinking": False},
+            },
+        )
 
     def test_main_recovery_deadline_fails_closed_with_watchdog_retained(self):
         self.recovery_timeout = True
@@ -649,7 +820,172 @@ class StreamDeadlineTests(unittest.TestCase):
         response.__exit__.assert_called_once()
 
 
+class CalibrationTests(unittest.TestCase):
+    def test_template_options_match_sampling_across_tasks_and_retries(self):
+        for thinking, production in ((False, False), (True, False), (True, True)):
+            for task in ("infra", "rust", "js"):
+                with self.subTest(thinking=thinking, production=production, task=task):
+                    options = probe.sampling_parameters(thinking, production)[
+                        "chat_template_kwargs"
+                    ]
+                    before = options.copy()
+                    case = {"messages": [{"role": "user", "content": "fixture"}]}
+                    responses = [
+                        io.StringIO(json.dumps(value))
+                        for value in (
+                            {"prompt": "first template"},
+                            {"tokens": [1] * 1000},
+                            {"prompt": "resized template"},
+                            {"tokens": [1] * 2000},
+                        )
+                    ]
+                    with patch.object(
+                        probe, "http", side_effect=responses
+                    ) as http, patch.object(
+                        probe, "estimate_record_count", return_value=12
+                    ), patch.object(
+                        probe, "build_case", return_value=case
+                    ), patch.object(
+                        probe, "build_code_case", return_value=case
+                    ):
+                        self.assertEqual(
+                            probe.calibrate(2000, task, chat_template_kwargs=options),
+                            (case, 2000),
+                        )
+                    self.assertEqual(
+                        http.call_args_list,
+                        [
+                            unittest.mock.call(
+                                "/apply-template",
+                                {
+                                    "messages": case["messages"],
+                                    "chat_template_kwargs": before,
+                                },
+                            ),
+                            unittest.mock.call(
+                                "/tokenize",
+                                {"content": "first template", "add_special": True},
+                            ),
+                            unittest.mock.call(
+                                "/apply-template",
+                                {
+                                    "messages": case["messages"],
+                                    "chat_template_kwargs": before,
+                                },
+                            ),
+                            unittest.mock.call(
+                                "/tokenize",
+                                {"content": "resized template", "add_special": True},
+                            ),
+                        ],
+                    )
+                    self.assertEqual(options, before)
+
+    def test_omitted_options_preserve_existing_calibration_callers(self):
+        case = {"messages": []}
+        with patch.object(probe, "build_case", return_value=case), patch.object(
+            probe,
+            "http",
+            side_effect=[
+                io.StringIO('{"prompt":"fixture"}'),
+                io.StringIO('{"tokens":[1,2]}'),
+            ],
+        ) as http:
+            self.assertEqual(probe.calibrate(2), (case, 2))
+        self.assertEqual(
+            http.call_args_list[0],
+            unittest.mock.call("/apply-template", {"messages": []}),
+        )
+
+
+class SamplingTests(unittest.TestCase):
+    def request_body(self, **options):
+        event = {
+            "choices": [{"delta": {"content": "answer"}, "finish_reason": "stop"}],
+            "timings": {
+                "cache_n": 0,
+                "prompt_n": 2000,
+                "prompt_ms": 10,
+                "prompt_per_second": 200000,
+            },
+        }
+        response = MagicMock()
+        response.__enter__.return_value = [
+            b"data: " + json.dumps(event).encode(),
+            b"data: [DONE]",
+        ]
+        with patch.object(probe, "http", return_value=response) as http:
+            probe.measure({"messages": []}, "qwen", **options)
+        return http.call_args.args[1]
+
+    def test_default_request_is_unchanged_with_or_without_thinking(self):
+        for thinking in (False, True):
+            with self.subTest(thinking=thinking):
+                self.assertEqual(
+                    self.request_body(thinking=thinking),
+                    {
+                        "model": "qwen",
+                        "messages": [],
+                        "stream": True,
+                        "stream_options": {"include_usage": True},
+                        "temperature": 0,
+                        "seed": 42,
+                        "max_tokens": 1024,
+                        "cache_prompt": False,
+                        "chat_template_kwargs": {"enable_thinking": thinking},
+                    },
+                )
+
+    def test_production_request_matches_native_qwen_profile_for_cold_and_cache(self):
+        for cache in (False, True):
+            with self.subTest(cache=cache):
+                self.assertEqual(
+                    self.request_body(
+                        thinking=True,
+                        production_sampling=True,
+                        cache=cache,
+                        max_tokens=8192,
+                    ),
+                    {
+                        "model": "qwen",
+                        "messages": [],
+                        "stream": True,
+                        "stream_options": {"include_usage": True},
+                        "temperature": 1,
+                        "seed": 42,
+                        "max_tokens": 8192,
+                        "cache_prompt": cache,
+                        "top_p": 0.95,
+                        "top_k": 20,
+                        "min_p": 0,
+                        "presence_penalty": 0,
+                        "repeat_penalty": 1,
+                        "chat_template_kwargs": {
+                            "enable_thinking": True,
+                            "reasoning_effort": "xhigh",
+                        },
+                    },
+                )
+
+    def test_production_without_thinking_rejected_before_http(self):
+        with patch.object(probe, "http") as http:
+            with self.assertRaisesRegex(ValueError, "requires --thinking"):
+                probe.measure({"messages": []}, "qwen", production_sampling=True)
+        http.assert_not_called()
+
+
 class PreflightTests(unittest.TestCase):
+    def test_production_without_thinking_rejected_before_subprocess(self):
+        with patch(
+            "sys.argv", ["probe", "--owned-drain", "owner", "--production-sampling"]
+        ), patch.object(probe, "run") as command, patch.object(
+            probe.subprocess, "Popen"
+        ) as watchdog:
+            with self.assertRaisesRegex(ValueError, "requires --thinking"):
+                probe.main()
+        command.assert_not_called()
+        watchdog.assert_not_called()
+
     def test_bad_gdn_staging_rejected_before_any_subprocess_or_watchdog(self):
         with tempfile.TemporaryDirectory() as root, patch(
             "sys.argv",

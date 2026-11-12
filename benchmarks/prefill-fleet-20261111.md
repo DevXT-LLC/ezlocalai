@@ -367,3 +367,98 @@ No native image rebuild was needed. Compact evidence, receipt hashes and bounded
 claims are in [the rollout fixture](../tests/fixtures/nvfp4_rollout_20261111_validation.json).
 This canary adds thinking/vision/audio compatibility evidence, not broad quality
 parity, multi-day stability or proof of better answers.
+
+## Older GPU Follow-Up
+
+The user requested more speed screening on the 3090s and 4090 after the 5090
+deployment. These follow-up screens leave production configuration unchanged.
+PR #153 records the earlier 5090 MTP decision; PR #154 preserves the tools and
+evidence, not a required activation step for the already-applied NVFP4 setting.
+
+### Rebuilt 3090 V Thinking Batch Check
+
+`3090v-thinking-batch.jsonl` repeated baseline 512 / candidate 1,024 / baseline
+512 with thinking enabled, greedy sampling, seed 42 and a 4,096 output cap.
+Logical batch 4,096, context 230,000, original Q3 weights, Q4 KV, MTP maximum 2
+and probability 0.1 stayed fixed. All six cold infrastructure responses passed.
+This is thinking-enabled greedy validation, not the stochastic production profile.
+
+| Native prompt tokens | Baseline TTFT, before / after | Batch 1,024 TTFT | Reduction versus mean control |
+| --- | --- | --- | --- |
+| 64,219 | 49.62 / 51.01 s | 47.96 s | 4.67% |
+| 128,128 | 127.41 / 128.57 s | 119.56 s | 6.59% |
+
+Native decode rates stayed around 68-70 tokens/s at 64K and 53.6-53.8 at 128K.
+Output lengths differ, so complete-answer time is not a matched-length decode
+comparison. Candidate ready-state free VRAM was 3,125 MiB versus 3,745 MiB for
+the controls; this is not a peak-load bound. The exact original container and
+engine arguments were restored, health confirmed and the owned drain released.
+This corroborates the earlier roughly 6.65% non-thinking 128K improvement.
+
+The durable candidate is `LLM_UBATCH_SIZE=1024` in the deployment manager's
+per-worker settings for `xt-3090/ezlocalai`, preserving the measured logical
+batch 4,096. The rebuilt machine has no dotenv file at its managed Compose path
+and its launch also used a generated temporary override. We have not established
+that editing the host's generated Compose file would survive a Deploy update,
+so neither that file nor an ephemeral live container setting was changed.
+Do not imply merging this benchmark PR applies the candidate automatically.
+
+### 3090 A And 4090 Production-Profile MTP
+
+Each worker ran maxima 3 / 2 / 4 / 3 with one 64K cold prompt and its cache-hit
+repeat per block. Weights, context 230,000, logical/physical batch 4,096/1,024,
+Q4 KV, projector and minimum draft probability 0.1 stayed fixed. Requests used
+the worker's native Qwen profile: temperature 1, top-p 0.95, top-k 20, min-p 0,
+presence penalty 0, repeat penalty 1, thinking enabled and effort `xhigh`.
+Seed 42 and an 8,192-token output cap bounded the comparison. All 16 responses
+passed and stopped normally. A generated 1,320-1,677 tokens; the 4090 generated
+1,016-1,587. Neither truncated. Final-answer correctness does not imply identical
+reasoning, general task quality or equivalence across seeds.
+
+Decode rates below are pooled generated tokens divided by native decode time,
+not unweighted means of individual per-request rates. Controls combine the
+opening and closing blocks, with four requests versus two per candidate.
+
+| Worker | Maximum 3 decode | Maximum 2 decode | Maximum 4 decode | Draft acceptance, 3 / 2 / 4 |
+| --- | --- | --- | --- | --- |
+| 3090 A | 69.43 tokens/s | 61.23 tokens/s | 67.78 tokens/s | 80.22% / 83.74% / 66.92% |
+| 4090 | 116.40 tokens/s | 100.46 tokens/s | 92.15 tokens/s | 79.95% / 83.91% / 65.58% |
+
+Retain maximum 3 on both. A's cold TTFT was 50.99/52.11 s for the controls,
+50.32 s at 2 and 51.65 s at 4. The 4090 controls were 24.73/24.89 s, versus
+24.82 s at 2 and 24.85 s at 4. These are not meaningful prefill improvements.
+Cache-hit TTFT remained about 0.39-0.41 s on A and 0.09 s on the 4090. Cached
+requests reused 64,215 prompt tokens and evaluated four new tokens. Lower
+complete-response times on some candidates reflect shorter reasoning outputs,
+not faster decoding of equivalent work. No new coding quality claim is made.
+
+The benchmark now validates explicit canonical MTP arguments before changing
+only draft maximum and probe port. The production profile is opt-in and recorded
+in provenance; existing greedy defaults are unchanged. New calibration forwards
+matching thinking/template kwargs. V and A were already bundled before that
+calibration correction, so their template-token estimate is not authoritative;
+use recorded native `prompt_n`/`cache_n`. All three runs evaluated 64,219 tokens
+for their 64K cold samples; V's 128K samples evaluated 128,128.
+
+All 22 follow-up responses, actual arguments, model hashes and restoration
+receipts are summarized in
+[older_gpu_speed_20261111_validation.json](../tests/fixtures/older_gpu_speed_20261111_validation.json).
+All 140 focused `test_prefill*.py` tests and formatting checks passed. There were
+no permanent settings changes or native image builds in these follow-up screens.
+
+### Hardware Observations
+
+The [telemetry fixture](../tests/fixtures/older_gpu_telemetry_20261111_validation.json)
+records four read-only samples per host. Local J's upstream PCIe port supports
+only Gen4 x4 although the GPU supports x16; A's upstream port is limited to
+Gen3 x16. V showed Gen4 x16 under 99-100% utilization and its normal 450 W
+software power cap, with no observed thermal slowdown. The 4090 was idle during
+these snapshots; its idle Gen1/P8 state does not establish a problem. A later
+single active A snapshot showed Gen3 x16, 86% utilization, 73 C, 428 W and
+2,010 MHz SM clock, consistent with the platform link ceiling.
+
+A better slot for J is worth investigating during planned hardware maintenance,
+but no link-width change or causal inference-speed gain has been measured.
+No clocks, BIOS settings, power limits, model precision or context limits were
+changed. The earlier per-GPU batch results still apply; larger batches are not
+uniformly better and J has the tightest memory reserve.

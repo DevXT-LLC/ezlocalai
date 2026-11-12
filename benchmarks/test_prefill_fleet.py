@@ -229,6 +229,7 @@ class ReservationTests(unittest.TestCase):
             "--candidate-model",
             "--candidate-template",
             "--thinking",
+            "--production-sampling",
         ):
             self.assertNotIn(flag, command)
 
@@ -245,6 +246,7 @@ class ReservationTests(unittest.TestCase):
             "--targets",
             "--tasks",
             "--thinking",
+            "--production-sampling",
             "--max-tokens",
             "--engine-root",
             "--candidate-model",
@@ -281,13 +283,13 @@ class ReservationTests(unittest.TestCase):
             "--engine-root": "/opt/engine with spaces/bin",
             "--candidate-model": "/models/model;$(not-a-command).gguf",
             "--candidate-template": "/models/template's file.jinja",
-            "--variants": "gdn-off,gdn-on,nvfp4-ub1024",
+            "--variants": "gdn-off,gdn-on,nvfp4-ub1024,mtp2,mtp3,mtp4",
             "--tasks": "infra,rust,js",
             "--max-tokens": "4096",
         }
         for flag, value in options.items():
             self.argv += [flag, value]
-        self.argv += ["--thinking"]
+        self.argv += ["--thinking", "--production-sampling"]
         fleet.main()
         command = self.run.call_args.args[-1]
         self.assertEqual(
@@ -299,6 +301,30 @@ class ReservationTests(unittest.TestCase):
         for flag, value in options.items():
             self.assertEqual(remote[remote.index(flag) + 1], value)
         self.assertIn("--thinking", remote)
+        self.assertIn("--production-sampling", remote)
+
+    def test_local_production_mtp_screen_options_forwarded(self):
+        self.argv += [
+            "--thinking",
+            "--production-sampling",
+            "--variants",
+            "baseline,mtp2,mtp4,baseline",
+            "--targets",
+            "64000",
+            "--max-tokens",
+            "8192",
+        ]
+        fleet.main()
+        command = self.run.call_args.args[-1]
+        self.assertIn("--production-sampling", command)
+        self.assertIn("--thinking", command)
+        self.assertNotIn("--skip-cache", command)
+        for flag, value in (
+            ("--variants", "baseline,mtp2,mtp4,baseline"),
+            ("--targets", "64000"),
+            ("--max-tokens", "8192"),
+        ):
+            self.assertEqual(command[command.index(flag) + 1], value)
 
     def test_invalid_screen_options_fail_before_acquisition(self):
         invalid = [
@@ -316,6 +342,7 @@ class ReservationTests(unittest.TestCase):
             ["--max-tokens", "127"],
             ["--max-tokens", "8193"],
             ["--probe-kind", "invalid"],
+            ["--production-sampling"],
         ]
         for options in invalid:
             with self.subTest(options=options), patch(
@@ -342,6 +369,8 @@ class ReservationTests(unittest.TestCase):
             ["--candidate-model", "/model.gguf"],
             ["--candidate-template", "/template.jinja"],
             ["--thinking"],
+            ["--production-sampling"],
+            ["--thinking", "--production-sampling"],
             ["--tasks", "rust"],
             ["--max-tokens", "2048"],
         ):

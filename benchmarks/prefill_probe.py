@@ -213,6 +213,38 @@ def wait_health(port):
 
 def variant_args(original, variant):
     args = original[1:].copy()
+    if variant in ("mtp2", "mtp3", "mtp4"):
+        # Only qualify the explicit canonical MTP setup emitted by the worker.
+        for flag in (
+            "--port",
+            "--spec-type",
+            "--spec-draft-n-max",
+            "--spec-draft-p-min",
+        ):
+            positions = [
+                i
+                for i, arg in enumerate(args)
+                if arg == flag or arg.startswith(flag + "=")
+            ]
+            if len(positions) != 1:
+                raise ValueError(f"MTP variant requires exactly one {flag}")
+            index = positions[0]
+            if (
+                args[index] != flag
+                or index + 1 == len(args)
+                or not args[index + 1]
+                or args[index + 1].startswith("-")
+            ):
+                raise ValueError(f"Unsupported MTP argument syntax: {flag}")
+        if any(
+            arg == "--draft-p-min" or arg.startswith("--draft-p-min=") for arg in args
+        ):
+            raise ValueError("Unsupported MTP p-min alias override")
+        if args[args.index("--spec-type") + 1] != "draft-mtp":
+            raise ValueError("MTP length variants require active draft-mtp")
+        if not re.fullmatch(r"[1-9][0-9]*", args[args.index("--spec-draft-n-max") + 1]):
+            raise ValueError("Unsupported original MTP maximum")
+        args[args.index("--spec-draft-n-max") + 1] = variant[-1]
     args[args.index("--port") + 1] = "18092"
     if variant == "nvfp4-ub1024":
         if int(args[args.index("-b") + 1]) < 1024:
@@ -228,7 +260,7 @@ def variant_args(original, variant):
         args[args.index("-ub") + 1] = str(value)
     elif variant == "mtp-off":
         args[args.index("--spec-type") + 1] = "none"
-    elif variant not in ("baseline", "gdn-off", "gdn-on"):
+    elif variant not in ("baseline", "gdn-off", "gdn-on", "mtp2", "mtp3", "mtp4"):
         raise ValueError("Unknown variant")
     return args
 
@@ -307,7 +339,7 @@ def check_operators(production, name, owner, engine_root):
             )
 
 
-def calibrate(target, task="infra"):
+def calibrate(target, task="infra", chat_template_kwargs=None):
     # Same prompt on every variant. Coldness is verified from engine timings,
     # not assumed from the cache_prompt flag or a random suffix.
     nonce = "prefill-fleet-v1-" + str(target)
@@ -318,7 +350,10 @@ def calibrate(target, task="infra"):
             if task == "infra"
             else build_code_case(task, count, nonce)
         )
-        with http("/apply-template", {"messages": case["messages"]}) as response:
+        template_body = {"messages": case["messages"]}
+        if chat_template_kwargs is not None:
+            template_body["chat_template_kwargs"] = chat_template_kwargs
+        with http("/apply-template", template_body) as response:
             template = json.load(response)["prompt"]
         with http("/tokenize", {"content": template, "add_special": True}) as response:
             length = len(json.load(response)["tokens"])
@@ -328,17 +363,44 @@ def calibrate(target, task="infra"):
     return case, length
 
 
-def measure(case, model, cache=False, thinking=False, max_tokens=1024, deadline=None):
+def sampling_parameters(thinking=False, production_sampling=False):
+    if production_sampling and not thinking:
+        raise ValueError("--production-sampling requires --thinking")
+    params = {
+        "temperature": 0,
+        "seed": 42,
+        "chat_template_kwargs": {"enable_thinking": thinking},
+    }
+    if production_sampling:
+        params.update(
+            temperature=1,
+            top_p=0.95,
+            top_k=20,
+            min_p=0,
+            presence_penalty=0,
+            repeat_penalty=1,
+        )
+        params["chat_template_kwargs"]["reasoning_effort"] = "xhigh"
+    return params
+
+
+def measure(
+    case,
+    model,
+    cache=False,
+    thinking=False,
+    max_tokens=1024,
+    deadline=None,
+    production_sampling=False,
+):
     body = {
         "model": model,
         "messages": case["messages"],
         "stream": True,
         "stream_options": {"include_usage": True},
-        "temperature": 0,
-        "seed": 42,
         "max_tokens": max_tokens,
         "cache_prompt": cache,
-        "chat_template_kwargs": {"enable_thinking": thinking},
+        **sampling_parameters(thinking, production_sampling),
     }
     begin = time.monotonic()
     first = None
@@ -467,8 +529,10 @@ def main():
     parser.add_argument("--candidate-template", type=Path)
     parser.add_argument("--tasks", default="infra")
     parser.add_argument("--thinking", action="store_true")
+    parser.add_argument("--production-sampling", action="store_true")
     parser.add_argument("--max-tokens", type=int, default=1024)
     args = parser.parse_args()
+    sampling = sampling_parameters(args.thinking, args.production_sampling)
     targets = [int(v) for v in args.targets.split(",")]
     variants = args.variants.split(",")
     tasks = args.tasks.split(",")
@@ -541,6 +605,8 @@ def main():
         tasks=tasks,
         thinking=args.thinking,
         max_tokens=args.max_tokens,
+        sampling_profile="production" if args.production_sampling else "greedy",
+        sampling_parameters=sampling,
         gpu=run(
             "nvidia-smi",
             "--query-gpu=name,driver_version,power.limit,memory.total,pcie.link.gen.current,pcie.link.width.current,pcie.link.gen.max,pcie.link.width.max",
@@ -674,13 +740,18 @@ def main():
             ):
                 check_deadline(deadline)
                 if (task, target) not in cases:
-                    cases[task, target] = calibrate(target, task)
+                    cases[task, target] = calibrate(
+                        target,
+                        task,
+                        chat_template_kwargs=sampling["chat_template_kwargs"],
+                    )
                 case, measured_tokens = cases[task, target]
                 for repeat in range(args.repeats):
                     sample = measure(
                         case,
                         original[original.index("--alias") + 1],
                         thinking=args.thinking,
+                        production_sampling=args.production_sampling,
                         max_tokens=args.max_tokens,
                         deadline=deadline,
                     )
@@ -701,6 +772,7 @@ def main():
                         original[original.index("--alias") + 1],
                         cache=True,
                         thinking=args.thinking,
+                        production_sampling=args.production_sampling,
                         max_tokens=args.max_tokens,
                         deadline=deadline,
                     )

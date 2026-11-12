@@ -2,6 +2,45 @@
 
 The goal remains behavior parity with ezlocalai within the scope below, with all first-party executable code implemented in C++. It is **not complete**.
 
+## Older GPU Speed Follow-Up (2026-11-11)
+
+Completed three further isolated screens: rebuilt 3090 V microbatch 512/1024/512
+with greedy thinking at 64K/128K, and production-sampling MTP maxima 3/2/4/3 on
+3090 A and 4090 at 64K with cached repeats. All 22 infrastructure responses
+passed without output truncation. The exact original containers and engine
+arguments were restored before their owned drains were released; all five
+fleet workers then had fresh heartbeats and no drains. The previously authorized
+5090 NVFP4 deployment is unchanged. No new production settings were applied.
+
+V microbatch 1,024 reduced TTFT 4.67% at 64K and 6.59% at 128K against mean
+bracketed controls, corroborating its earlier non-thinking result. Ready free
+VRAM was 3,125 MiB. This is a durable per-worker configuration candidate, not
+full-context/peak-memory or general quality certification. Its rebuilt managed
+Compose installation lacks the old dotenv path and uses a generated launch
+override; no ephemeral setting was applied that could silently disappear on
+redeployment. Logical batch 4,096 must be preserved when promoting the candidate.
+
+MTP maximum 3 remains preferred. Pooled decode throughput for maxima 3/2/4 was
+69.43/61.23/67.78 tokens/s on A and 116.40/100.46/92.15 on the 4090. Higher draft
+acceptance at length 2 did not mean higher throughput. Different reasoning
+lengths preclude treating shorter complete-response time as equivalent-work
+speedup. These are one-prompt, fixed-seed screens, not coding or broad quality
+qualification. Hardware telemetry confirmed local J's upstream x4 limit and A's
+Gen3 ceiling, but no causal speed gain from a hardware change is claimed.
+
+Added tested benchmark-only MTP variants and the exact native Qwen sampling
+profile, recording its parameters in provenance. Calibration now passes matching
+thinking/template options; native evaluated counts remain authoritative for
+earlier captures. All 140 focused `test_prefill*.py` tests passed, with Black and
+diff checks. No runtime binary or global default changed, so no image build or
+new rollback tag was needed; each probe retained its original immutable image:
+`sha256:b7e7d157c93827b563cbda3f1e331343b17d0984afb370363881624e3198689d`
+on V/4090 and
+`sha256:85764c1a7540b36d143faa494fdb3bac6927fe99b59c8d6a65f31261e2a6ee12`
+on A. Comparisons are within workers, not pure cross-GPU comparisons.
+See `benchmarks/prefill-fleet-20261111.md` and the compact
+`older_gpu_speed_20261111_validation.json` / telemetry fixtures.
+
 ## Authorized RTX 5090 NVFP4 Deployment (2026-11-11)
 
 After the isolated qualification below, the user authorized NVFP4 on the 5090.

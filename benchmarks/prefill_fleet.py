@@ -233,6 +233,7 @@ def main():
         help="Comma-separated infra,rust,js tasks (screen only)",
     )
     parser.add_argument("--thinking", action="store_true")
+    parser.add_argument("--production-sampling", action="store_true")
     parser.add_argument("--max-tokens", type=int, default=1024)
     parser.add_argument("--router", default="http://192.168.1.214:8092")
     parser.add_argument("--key-env", default="EZLOCALAI_API_KEY")
@@ -244,6 +245,8 @@ def main():
         parser.error("Evidence output already exists; use a new path")
     if args.wait_seconds < 0:
         parser.error("Wait budget cannot be negative")
+    if args.production_sampling and not args.thinking:
+        parser.error("--production-sampling requires --thinking")
     remote_paths = {
         "--engine-root": args.engine_root,
         "--candidate-model": args.candidate_model,
@@ -252,7 +255,12 @@ def main():
     if args.probe_kind == "profile":
         if any(value is not None for value in remote_paths.values()):
             parser.error("Engine and candidate options are screen-only")
-        if args.tasks != "infra" or args.thinking or args.max_tokens != 1024:
+        if (
+            args.tasks != "infra"
+            or args.thinking
+            or args.production_sampling
+            or args.max_tokens != 1024
+        ):
             parser.error("Task, thinking, and token overrides are screen-only")
     else:
         args.variants = (
@@ -319,6 +327,8 @@ def main():
         options += ["--tasks", args.tasks, "--max-tokens", str(args.max_tokens)]
         if args.thinking:
             options += ["--thinking"]
+        if args.production_sampling:
+            options += ["--production-sampling"]
     command = ["python3", "-u", "-", *options]
     if args.host != "local":
         command = [
