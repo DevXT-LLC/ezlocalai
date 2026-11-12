@@ -372,8 +372,9 @@ parity, multi-day stability or proof of better answers.
 
 The user requested more speed screening on the 3090s and 4090 after the 5090
 deployment. These follow-up screens leave production configuration unchanged.
-PR #153 records the earlier 5090 MTP decision; PR #154 preserves the tools and
-evidence, not a required activation step for the already-applied NVFP4 setting.
+The included [5090 MTP evaluation](mtp-workload-20261111.md) records the earlier
+draft-length decision. PR #154 consolidates both sets of tools and evidence;
+its merge is not required to activate the already-applied NVFP4 setting.
 
 ### Rebuilt 3090 V Thinking Batch Check
 

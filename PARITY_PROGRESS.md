@@ -2,6 +2,14 @@
 
 The goal remains behavior parity with ezlocalai within the scope below, with all first-party executable code implemented in C++. It is **not complete**.
 
+## Benchmark PR Consolidation (2026-11-11)
+
+Combined the earlier RTX 5090 MTP evaluation from PR #153 into the fleet
+qualification PR #154. Both evidence sets and their limitations are retained;
+only #154 needs merging. This consolidation adds no runtime settings or worker
+restarts. The rebuilt 3090 V microbatch candidate below still requires durable
+per-worker deployment configuration; other unqualified tuning remains disabled.
+
 ## Older GPU Speed Follow-Up (2026-11-11)
 
 Completed three further isolated screens: rebuilt 3090 V microbatch 512/1024/512
@@ -123,6 +131,31 @@ image. Screen cleanup now verifies ownership and confirmed absence before
 restoring production, reaps the watchdog before reporting success, and bounds
 both work and restoration time. The earlier profiling cleanup failure required
 manual restoration and is recorded explicitly in the separate profile evidence.
+
+## RTX 5090 MTP Workload Evaluation (2026-11-11)
+
+Completed a 36-response greedy screen of MTP off and draft lengths 2/3/4/6,
+including a repeated length-3 baseline, followed by a 12-response comparison
+of lengths 3 and 4 using the production reasoning/sampling profile and resident
+LFM3 engine. Five responses from earlier truncated pilots are retained separately.
+Tasks cover infrastructure path/port diagnosis and executable Rust/JavaScript
+edge cases at short and roughly 58k-token input lengths.
+
+No default is promoted. Length 4's approximately 10% greedy decode improvement
+did not carry over: matched production-profile decode rates were 0.54% lower,
+and the bounded coding-answer results do not establish quality preservation.
+Length 6 also introduced an additional functional failure in the greedy screen.
+Keep draft length 3 and probability 0.1. Model weights, precision, context and
+reasoning defaults remain unchanged. This is not other-GPU, full-agent, cache
+reuse or general quality qualification.
+
+Image `sha256:b7e7d157c93827b563cbda3f1e331343b17d0984afb370363881624e3198689d`
+was reused without rebuilding. All benchmark runs restored the retained original
+container; final image/engine argv, health, probe cleanup and router drain checks
+passed. Routed smoke returned HTTP 200/`OK`. No new rollback tag was needed.
+See `benchmarks/mtp-workload-20261111.md` and
+`tests/fixtures/mtp_workload_20261111_validation.json` for conditions, failures,
+measurement limits and restoration evidence.
 
 ## Prompt Cache RAM Allowance (2026-11-11)
 
