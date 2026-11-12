@@ -2,6 +2,161 @@
 
 The goal remains behavior parity with ezlocalai within the scope below, with all first-party executable code implemented in C++. It is **not complete**.
 
+## Benchmark PR Consolidation (2026-11-11)
+
+Combined the earlier RTX 5090 MTP evaluation from PR #153 into the fleet
+qualification PR #154. Both evidence sets and their limitations are retained;
+only #154 needs merging. This consolidation adds no runtime settings or worker
+restarts. The rebuilt 3090 V microbatch candidate below still requires durable
+per-worker deployment configuration; other unqualified tuning remains disabled.
+
+## Older GPU Speed Follow-Up (2026-11-11)
+
+Completed three further isolated screens: rebuilt 3090 V microbatch 512/1024/512
+with greedy thinking at 64K/128K, and production-sampling MTP maxima 3/2/4/3 on
+3090 A and 4090 at 64K with cached repeats. All 22 infrastructure responses
+passed without output truncation. The exact original containers and engine
+arguments were restored before their owned drains were released; all five
+fleet workers then had fresh heartbeats and no drains. The previously authorized
+5090 NVFP4 deployment is unchanged. No new production settings were applied.
+
+V microbatch 1,024 reduced TTFT 4.67% at 64K and 6.59% at 128K against mean
+bracketed controls, corroborating its earlier non-thinking result. Ready free
+VRAM was 3,125 MiB. This is a durable per-worker configuration candidate, not
+full-context/peak-memory or general quality certification. Its rebuilt managed
+Compose installation lacks the old dotenv path and uses a generated launch
+override; no ephemeral setting was applied that could silently disappear on
+redeployment. Logical batch 4,096 must be preserved when promoting the candidate.
+
+MTP maximum 3 remains preferred. Pooled decode throughput for maxima 3/2/4 was
+69.43/61.23/67.78 tokens/s on A and 116.40/100.46/92.15 on the 4090. Higher draft
+acceptance at length 2 did not mean higher throughput. Different reasoning
+lengths preclude treating shorter complete-response time as equivalent-work
+speedup. These are one-prompt, fixed-seed screens, not coding or broad quality
+qualification. Hardware telemetry confirmed local J's upstream x4 limit and A's
+Gen3 ceiling, but no causal speed gain from a hardware change is claimed.
+
+Added tested benchmark-only MTP variants and the exact native Qwen sampling
+profile, recording its parameters in provenance. Calibration now passes matching
+thinking/template options; native evaluated counts remain authoritative for
+earlier captures. All 140 focused `test_prefill*.py` tests passed, with Black and
+diff checks. No runtime binary or global default changed, so no image build or
+new rollback tag was needed; each probe retained its original immutable image:
+`sha256:b7e7d157c93827b563cbda3f1e331343b17d0984afb370363881624e3198689d`
+on V/4090 and
+`sha256:85764c1a7540b36d143faa494fdb3bac6927fe99b59c8d6a65f31261e2a6ee12`
+on A. Comparisons are within workers, not pure cross-GPU comparisons.
+See `benchmarks/prefill-fleet-20261111.md` and the compact
+`older_gpu_speed_20261111_validation.json` / telemetry fixtures.
+
+## Authorized RTX 5090 NVFP4 Deployment (2026-11-11)
+
+After the isolated qualification below, the user authorized NVFP4 on the 5090.
+Only that worker's persistent configuration changed: `QUANT_TYPE=NVFP4,Q4_K_M`
+and `LLM_UBATCH_SIZE=1024`. Main context 262,144, voice context 32,768, both
+projectors, cache budgets, KV formats and MTP max 3 / probability 0.1 remain.
+The microbatch setting applies to both resident engines; real voice output,
+cancellation and a subsequent audio turn passed with that setting.
+
+The first canary passed thinking, vision and voice, but the filename parser
+reported its Q5K auxiliary tensors as the whole model's quantization. The strict
+router gate rejected it and automatically restored the original healthy
+container and byte-exact dotenv before releasing its drain. The retry uses a
+local hardlink named `Qwen3.8-27B-NVFP4-mtp.gguf`, with the same verified artifact
+SHA-256, allowing the configured NVFP4 metadata fallback. It passed all four
+checks: thinking retrieval, vision, native realtime audio and pinned routed chat.
+This is not tensor-derived quant reporting or general quality certification.
+
+The transactional operator now accepts validated comma-separated quant names;
+58 focused operator tests pass, including retained/finalized rollback and
+configuration preservation. No runtime code, global defaults or image changed.
+The existing image is
+`sha256:b7e7d157c93827b563cbda3f1e331343b17d0984afb370363881624e3198689d`;
+rollback tag: `ezlocalai:rollback-env-nvfp4-5090-v2-20261111`.
+Full settings and private recovery files remain on the worker. The old stopped
+container was removed only after routed verification; its image and original
+model remain available. All five tested workers have fresh heartbeats and no
+drains; the 3090s and 4090 retain Q3. Idle free VRAM on the new 5090 container
+was 3,323 MiB, not a worst-case load bound. No new worker log errors were found.
+See `tests/fixtures/nvfp4_rollout_20261111_validation.json` and the deployment
+section of `benchmarks/prefill-fleet-20261111.md`. Long-running production
+quality, exact BF16 ancestry and comprehensive vision quality remain unqualified.
+
+## Long-Context Prefill Experiments (2026-11-11)
+
+Added isolated fleet measurement, strict synthetic retrieval cases, sandboxed
+Rust/JavaScript grading, and a disabled GDN scheduling experiment outside the
+managed production patch stack. No production defaults changed. Worker probes
+require idle owned drains, preserve model/context/voice settings, and restore
+the original container; independent watchdogs cover controller loss.
+
+The initial RTX 5090 sweep passed 40/40 cold/repeated retrieval responses at
+8K/64K/128K/200K. Baseline prefill decreases from about 3,300 tokens/s at 8K to
+1,520-1,540 at 200K. Batch 4,096 improved the 200K result but left under 1 GiB
+VRAM free under load. MTP-off reduced prefill time but increased complete-response
+time. Neither is promoted. Completed 4090/3090 Ti fleet screens passed all 76
+recorded retrieval responses. Existing physical batch 1,024 remains preferred
+on 4090/A/J; moving V from 512 to 1,024 reduced 128K TTFT by about 6.65% in
+its bracketed screen. No deployed configuration was changed.
+
+The pinned NVFP4 candidate fits on the 5090 with full 262,144 context and the
+resident voice engine retained. Its 64K TTFT fell from about 22 s to 16 s at
+matched physical batch 1,024, with about 2.8 GiB free under load. All 12 generated
+Rust/JavaScript answers passed isolated execution checks, across two synthetic
+tasks; this is not general quality certification. Exact BF16 ancestry and vision
+inference remain unqualified. The separate long-context comparison passed all
+six responses: NVFP4 reached the first token in 53.34 s at 128K and 121.32 s at
+200K, versus paired Q3 controls of 66.30/66.36 s and 141.10/142.14 s at the same
+physical batch 1,024. Those are roughly 20% and 14% reductions, not a direct
+comparison to the deployed batch 2,048. The intermediate batch 3,072 screen
+passed 24/24 responses but improved 200K latency only 2.9% while reducing memory
+reserve; the current default is retained. See `benchmarks/prefill-fleet-20261111.md`
+and the compact fixture for full timings and provenance.
+
+Final checks confirmed all five tested workers healthy on their original
+containers and engine arguments, fresh router heartbeats, no maintenance drains,
+and no remaining diagnostic probe containers. The 5090 queue and long-context
+controller both exited successfully after releasing their owned reservations.
+
+An isolated, GPU-free CUDA 12.8.93 build produced the experimental engine and
+operator checker for SM86/89/120a using immutable image
+`sha256:85764c1a7540b36d143faa494fdb3bac6927fe99b59c8d6a65f31261e2a6ee12`.
+All 149 focused benchmark tests and 10 structural GDN checks passed; five
+CPU-sandbox grading examples behaved as expected. Fourteen GDN device operator
+checks passed, but the paired model screen improved only 0.56%, within baseline
+drift; the experiment is not promoted. Actual specialization dispatch and
+representative model quality remain unqualified. No runtime image was replaced,
+so no new rollback image tag was needed; probes retain each original immutable
+image. Screen cleanup now verifies ownership and confirmed absence before
+restoring production, reaps the watchdog before reporting success, and bounds
+both work and restoration time. The earlier profiling cleanup failure required
+manual restoration and is recorded explicitly in the separate profile evidence.
+
+## RTX 5090 MTP Workload Evaluation (2026-11-11)
+
+Completed a 36-response greedy screen of MTP off and draft lengths 2/3/4/6,
+including a repeated length-3 baseline, followed by a 12-response comparison
+of lengths 3 and 4 using the production reasoning/sampling profile and resident
+LFM3 engine. Five responses from earlier truncated pilots are retained separately.
+Tasks cover infrastructure path/port diagnosis and executable Rust/JavaScript
+edge cases at short and roughly 58k-token input lengths.
+
+No default is promoted. Length 4's approximately 10% greedy decode improvement
+did not carry over: matched production-profile decode rates were 0.54% lower,
+and the bounded coding-answer results do not establish quality preservation.
+Length 6 also introduced an additional functional failure in the greedy screen.
+Keep draft length 3 and probability 0.1. Model weights, precision, context and
+reasoning defaults remain unchanged. This is not other-GPU, full-agent, cache
+reuse or general quality qualification.
+
+Image `sha256:b7e7d157c93827b563cbda3f1e331343b17d0984afb370363881624e3198689d`
+was reused without rebuilding. All benchmark runs restored the retained original
+container; final image/engine argv, health, probe cleanup and router drain checks
+passed. Routed smoke returned HTTP 200/`OK`. No new rollback tag was needed.
+See `benchmarks/mtp-workload-20261111.md` and
+`tests/fixtures/mtp_workload_20261111_validation.json` for conditions, failures,
+measurement limits and restoration evidence.
+
 ## Prompt Cache RAM Allowance (2026-11-11)
 
 Removed the extra 32 GiB ceiling from native automatic prompt-cache sizing on

@@ -1,0 +1,39 @@
+--- a/ggml/src/ggml-cuda/gated-delta-net-mma.cu
++++ b/ggml/src/ggml-cuda/gated-delta-net-mma.cu
+@@ -2,6 +2,8 @@
+ #include "mma.cuh"
+ 
+ #include <climits>
++#include <cstdlib>
++#include <cstring>
+ #include <mutex>
+ 
+ namespace ggml_cuda_gated_delta_net_mma {
+@@ -405,6 +407,16 @@
+          info.cc != GGML_CUDA_CC_BLACKWELL && info.cc != GGML_CUDA_CC_DGX_SPARK)) {
+         return gdn_path::ar;
+     }
++    // Opt-in scheduling experiment only; keep the kernel math and eligibility unchanged.
++    // Read once so CUDA graph capture and replay use a stable process-wide policy.
++    static const bool experimental_slice64 = [] {
++        const char * value = std::getenv("GGML_CUDA_EXPERIMENTAL_GDN_SLICE64");
++        return value != nullptr && std::strcmp(value, "1") == 0;
++    }();
++    if (experimental_slice64 && init<16, 64>(device)) {
++        return gdn_path::slice64;
++    }
++    // If the experimental specialization is unavailable, retain the original schedule.
+     // Value splitting pays off when whole heads leave at least half the SMs idle.
+     if (a.H * a.n_seqs * 2 <= info.nsm) {
+         // A grid that already fits in one wave benefits from a larger register budget.
+@@ -430,7 +442,9 @@
+ #ifdef GGML_USE_HIP
+     gdn_single<16, 64><<<a.H * a.n_seqs * 2, dim3(32, 8), sizeof(shared<16, 64>), stream>>>(a);
+ #else
+-    if (path == gdn_path::slice32_two_blocks) {
++    if (path == gdn_path::slice64) {
++        gdn_single<16, 64><<<a.H * a.n_seqs * 2, dim3(32, 8), sizeof(shared<16, 64>), stream>>>(a);
++    } else if (path == gdn_path::slice32_two_blocks) {
+         gdn_single<16, 32, 2><<<a.H * a.n_seqs * 4, dim3(32, 8), sizeof(shared<16, 32>), stream>>>(a);
+     } else if (path == gdn_path::slice32_one_block) {
+         gdn_single<16, 32, 1><<<a.H * a.n_seqs * 4, dim3(32, 8), sizeof(shared<16, 32>), stream>>>(a);

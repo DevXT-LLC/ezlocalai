@@ -98,7 +98,9 @@ ALLOWED={
     'LLM_PROMPT_CACHE_MAX_RAM_FRACTION':r'(?:0?\.[0-9]{1,6}|0|1(?:\.0{1,6})?)',
     'GGML_CUDA_GRAPH_OPT':r'[01]',
     'EZLOCALAI_LLAMA_STATE_IO_BATCHING':r'[01]',
+    "QUANT_TYPE": r"[A-Za-z][A-Za-z0-9_]*(?:,[A-Za-z][A-Za-z0-9_]*)*",
 }
+EMPTY_DEFAULTS = {"LLM_PROMPT_CACHE_MAX_RAM_FRACTION", "QUANT_TYPE"}
 def validate_changes(changes):
     if not isinstance(changes,dict) or not changes: raise UpdateError('changes must be a nonempty object')
     for key,value in changes.items():
@@ -127,9 +129,11 @@ def render_env(raw, changes):
             if not match: continue
             if key in found: raise UpdateError('Selected dotenv setting is duplicated: '+key)
             value=match.group(2).strip()
-            # Existing integer/batch parsing is unchanged. Only the selected
-            # cache fraction accepts a bounded decimal or its empty default.
-            token = r'(?:0?\.[0-9]{1,6}|0|1(?:\.0{1,6})?)?' if key == 'LLM_PROMPT_CACHE_MAX_RAM_FRACTION' else r'(?:auto|[0-9]+)'
+            # Fractions and quant lists use their own grammar, including an
+            # existing empty default. Legacy integer/batch parsing is unchanged.
+            token = (
+                rf"(?:{ALLOWED[key]})?" if key in EMPTY_DEFAULTS else r"(?:auto|[0-9]+)"
+            )
             parsed=re.fullmatch(r'(?:(%s)|\'(%s)\'|"(%s)")[ \t]*(?:#.*)?' % (token,token,token),value)
             if not parsed: raise UpdateError('Selected dotenv setting has unsupported syntax: '+key)
             old[key]=next(v for v in parsed.groups() if v is not None); found[key]=i
@@ -463,7 +467,14 @@ def apply(engine, plan, dry_run=False, retain=False):
     if engine.image(original['Config']['Image'])['Id']!=original['Image']: raise UpdateError('Original image tag moved; cannot preserve Config.Image safely')
     old_values=env_values(original['Config']['Env'])
     for key in changes:
-        if key in old_values and not (key == 'LLM_PROMPT_CACHE_MAX_RAM_FRACTION' and old_values[key] == '') and not re.fullmatch(ALLOWED[key],old_values[key]): raise UpdateError('Existing selected container setting has unsupported syntax: '+key)
+        if (
+            key in old_values
+            and not (key in EMPTY_DEFAULTS and old_values[key] == "")
+            and not re.fullmatch(ALLOWED[key], old_values[key])
+        ):
+            raise UpdateError(
+                "Existing selected container setting has unsupported syntax: " + key
+            )
     new_env=[k+'='+changes.get(k,v) for k,v in old_values.items()]
     new_env += [k+'='+v for k,v in changes.items() if k not in old_values]
     raw=target.read_bytes(); rendered,file_old=render_env(raw,changes)
