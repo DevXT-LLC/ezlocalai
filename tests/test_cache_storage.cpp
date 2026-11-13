@@ -59,7 +59,8 @@ server_prompt prompt(int branch, size_t checkpoint_bytes = 0) {
     for (int i = 0; i < 128; ++i) tokens.push_back(i < 64 ? i : branch * 1000 + i);
     server_prompt result{server_tokens(tokens, false), {}};
     if (checkpoint_bytes) {
-        auto & checkpoint = result.checkpoints.emplace_back();
+        auto owner = std::make_shared<common_prompt_checkpoint>();
+        auto & checkpoint = *owner;
         checkpoint.n_tokens = 32;
         checkpoint.pos_min = 0;
         checkpoint.pos_max = 31;
@@ -67,12 +68,21 @@ server_prompt prompt(int branch, size_t checkpoint_bytes = 0) {
         std::memset(checkpoint.data_tgt.data(), 0x4c, checkpoint_bytes);
         checkpoint.data_dft = {4, 5, 6};
         checkpoint.data_spec = {7, 8, 9};
+        result.checkpoints.push_back(std::move(owner));
     }
     return result;
 }
 
+// Production checkpoint handles are immutable; a test writer must publish a
+// new owner, just as creating/replacing a checkpoint does in the server.
+common_prompt_checkpoint & writable_checkpoint(server_prompt & prompt) {
+    auto owner = std::make_shared<common_prompt_checkpoint>(*prompt.checkpoints.front());
+    prompt.checkpoints.front() = owner;
+    return *owner;
+}
+
 const uint8_t * checkpoint_data(const server_prompt & value) {
-    return value.checkpoints.front().data_tgt.data();
+    return value.checkpoints.front()->data_tgt.data();
 }
 
 server_prompt_cache_state * save(server_prompt_cache & cache, const server_prompt & value, bool with_draft = true) {
@@ -84,16 +94,19 @@ server_prompt_cache_state * save(server_prompt_cache & cache, const server_promp
 void checkpoint_copy_and_write() {
     auto original = prompt(1, 128 * 1024);
     auto copy = original.clone();
+    check(original.checkpoints.front() == copy.checkpoints.front(), "checkpoint clone must share its immutable owner");
+    check(original.checkpoints.front()->data_spec.data() == copy.checkpoints.front()->data_spec.data(),
+        "checkpoint clone must share CPU speculative bytes too");
     check(checkpoint_data(original) == checkpoint_data(copy), "checkpoint clone must share immutable bytes");
-    auto & changed = copy.checkpoints.front();
+    auto & changed = writable_checkpoint(copy);
     changed.data_tgt.data()[17] = 0x9d;
     check(checkpoint_data(original) != checkpoint_data(copy), "checkpoint writer must detach shared bytes");
     check(checkpoint_data(original)[17] == 0x4c && checkpoint_data(copy)[17] == 0x9d,
         "checkpoint mutation damaged its other owner");
     changed.data_dft.clear();
-    check(!original.checkpoints.front().data_dft.empty() && changed.data_dft.empty(), "checkpoint clear mutated a shared owner");
+    check(!original.checkpoints.front()->data_dft.empty() && changed.data_dft.empty(), "checkpoint clear mutated a shared owner");
     changed.data_tgt.resize(256 * 1024);
-    check(changed.data_tgt.size() == 256 * 1024 && original.checkpoints.front().data_tgt.size() == 128 * 1024,
+    check(changed.data_tgt.size() == 256 * 1024 && original.checkpoints.front()->data_tgt.size() == 128 * 1024,
         "checkpoint resize changed another owner");
 }
 
@@ -127,7 +140,7 @@ void checkpoint_copy_without_large_allocation() {
 
 void shared_checkpoint_branches_fit_budget() {
     auto a = prompt(1, 1024 * 1024), b = prompt(2);
-    a.checkpoints.front().data_spec.resize(16 * 1024);
+    writable_checkpoint(a).data_spec.resize(16 * 1024);
     b.checkpoints = a.checkpoints;
     server_prompt_cache cache(2, 4096);
     std::vector<uint8_t> spec_a(32 * 1024), spec_b(48 * 1024);
@@ -138,10 +151,9 @@ void shared_checkpoint_branches_fit_budget() {
     check(cache.states.size() == 2 && &cache.states.front() == first,
         "shared checkpoint backing needlessly evicted an existing branch");
     const auto & second = cache.states.back();
-    const auto & checkpoint = first->prompt.checkpoints.front();
+    const auto & checkpoint = *first->prompt.checkpoints.front();
     const size_t expected = first->data.size() + second.data.size() + checkpoint.data_tgt.capacity() +
-        checkpoint.data_dft.capacity() + checkpoint.data_spec.capacity() +
-        second.prompt.checkpoints.front().data_spec.capacity();
+        checkpoint.data_dft.capacity() + checkpoint.data_spec.capacity();
     size_t accounted = 0;
     {
         allocation_failure fail(1);
@@ -196,17 +208,16 @@ void independent_checkpoint_union_evicts_oldest() {
 
 void shared_identity_across_target_and_draft() {
     auto a = prompt(1, 1024 * 1024), b = prompt(2);
-    a.checkpoints.front().data_dft = a.checkpoints.front().data_tgt;
+    writable_checkpoint(a).data_dft = a.checkpoints.front()->data_tgt;
     b.checkpoints = a.checkpoints;
     server_prompt_cache cache(2, 4096);
     auto * first = save(cache, a);
     auto * second = save(cache, b);
     check(cache.states.size() == 2 && &cache.states.front() == first && &cache.states.back() == second,
         "shared target/draft branches did not both survive admission");
-    const auto & checkpoint = first->prompt.checkpoints.front();
+    const auto & checkpoint = *first->prompt.checkpoints.front();
     check(cache.size() == first->data.size() + second->data.size() +
-        checkpoint.data_tgt.capacity() + checkpoint.data_spec.capacity() +
-        second->prompt.checkpoints.front().data_spec.capacity(),
+        checkpoint.data_tgt.capacity() + checkpoint.data_spec.capacity(),
         "shared target/draft backing was charged more than once");
 }
 
@@ -219,7 +230,7 @@ void shared_checkpoint_growth_and_release() {
     check(cache.states.size() == 2 && &cache.states.front() == first,
         "shared branches did not survive before release accounting");
     const size_t both = cache.size();
-    const size_t first_private = first->data.size() + first->prompt.checkpoints.front().data_spec.capacity();
+    const size_t first_private = first->data.size();
     cache.states.pop_front();
     check(cache.size() == both - first_private,
         "removing one shared owner released backing still retained by another cached branch");
@@ -227,8 +238,8 @@ void shared_checkpoint_growth_and_release() {
     check(cache.states.size() == 2 && &cache.states.back() == changed,
         "shared branches did not survive before detached-growth accounting");
     const size_t before = cache.size();
-    auto & checkpoint = changed->prompt.checkpoints.front();
-    const size_t detached_capacity = checkpoint.data_tgt.capacity();
+    auto & checkpoint = writable_checkpoint(changed->prompt);
+    const size_t detached_capacity = checkpoint.data_tgt.capacity() + checkpoint.data_spec.capacity();
     checkpoint.data_tgt.data()[17] = 0x9d;
     check(cache.size() == before + detached_capacity &&
         checkpoint_data(cache.states.front().prompt)[17] == 0x4c,

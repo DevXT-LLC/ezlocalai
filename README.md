@@ -454,11 +454,29 @@ The native executable and CUDA compose configuration preload configured LLMs by 
 `LLAMA_CPP_START_TIMEOUT` defaults to `3600` in CUDA compose and governs engine startup after native acquisition. Hub requests have separate downloader timeouts.
 The default CUDA build targets compute capabilities 8.6, 8.9 and 12.0 and builds llama.cpp in parallel. llama.cpp, stable-diffusion.cpp and ACE-Step are built with `GGML_NATIVE=OFF`, a portable AVX2/FMA/F16C x86-64 baseline, so the image runs on any fleet CPU rather than only on CPUs like the build host. The GB10 image (`docker-compose-gb10.yml`) uses the same Dockerfile with `EZLOCALAI_PLATFORM=gb10`. Override `EZLOCALAI_LLAMA_CPP_CMAKE_ARGS` or `EZLOCALAI_LLAMA_CPP_JOBS` in `.env` for other architectures or job counts.
 
-The default engine revision is llama.cpp release v0.9.0 (`cd959bae99ff4bed22bef2604f45241c09bbb8c8`). It is newer than the Python reference’s xllamacpp engine, `aa94f2086147cd4bfbcff818ce998dffce5fcb39`. The C++ management tool, platform Dockerfiles and Compose builds use the same default; `EZLOCALAI_LLAMA_CPP_REF` remains an explicit override. Remove or update an older explicit `.env` pin to adopt v0.9.0. To rebuild that revision in the CUDA image:
+The default engine revision is llama.cpp release v1.0.0 (`b1b770d90d94cad9e9ea5b993bdbc383a522fb28`). It is newer than the Python reference’s xllamacpp engine, `aa94f2086147cd4bfbcff818ce998dffce5fcb39`. The C++ management tool, platform Dockerfiles and Compose builds use the same default; `EZLOCALAI_LLAMA_CPP_REF` remains an explicit override. Remove or update an older explicit `.env` pin to adopt v1.0.0. To rebuild that revision in the CUDA image:
 
 ```bash
-EZLOCALAI_LLAMA_CPP_REF=cd959bae99ff4bed22bef2604f45241c09bbb8c8 docker compose -f docker-compose-cuda.yml build
+EZLOCALAI_LLAMA_CPP_REF=b1b770d90d94cad9e9ea5b993bdbc383a522fb28 docker compose -f docker-compose-cuda.yml build
 ```
+
+v1.0.0 brings CUDA few-row quantized matrix multiplication, fused recurrent
+state snapshots, and scheduler/graph reuse that may help Qwen3.8-27B prefill and
+MTP verification. The managed patches preserve its GPU-resident MTP catch-up:
+only the bounded verification prefix and rewind tail are downloaded for cache
+resume, instead of the full target hidden matrix. Checkpoints share immutable
+owners, including their speculative state, and the cache budget counts shared
+backing once. Qwen's 262,144 context limit, Q4 KV default, model quantization,
+draft length and sampling settings remain unchanged. GPU throughput needs a
+controlled benchmark with the deployed model before claiming a speedup.
+
+The engine parser also accepts v1's FP8 KV format (`f8_e4m3`). This change
+checks parsing only; native `KV_CACHE_TYPE` policy retains its existing accepted
+values, and FP8 capacity planning, speed and output quality remain unvalidated.
+FP8 uses more KV memory than Q4. MoE expert caching does not apply to the dense
+27B model. The removed `LLAMA_CURL` build option is no longer passed by the
+default platform builds; upstream handles HTTPS through its current OpenSSL
+support.
 
 ### CUDA package architecture gate
 
@@ -841,7 +859,7 @@ The output is key/value lines showing each model id, a matching top-level GGUF i
 To pin or update a specific upstream ref:
 
 ```bash
-EZLOCALAI_LLAMA_CPP_REF=cd959bae99ff4bed22bef2604f45241c09bbb8c8 ./build/llama_cpp_tool update
+EZLOCALAI_LLAMA_CPP_REF=b1b770d90d94cad9e9ea5b993bdbc383a522fb28 ./build/llama_cpp_tool update
 ./build/llama_cpp_tool build
 ```
 

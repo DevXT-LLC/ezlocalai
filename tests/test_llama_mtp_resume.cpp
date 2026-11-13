@@ -47,6 +47,30 @@ std::vector<uint8_t> snapshot(const common_mtp_state & state) {
     return bytes;
 }
 
+void device_row_snapshot_ranges() {
+    for (size_t count : {size_t(1), size_t(4), size_t(8), size_t(13), size_t(14), size_t(32), size_t(4096)}) {
+        common_mtp_state host(4, 9, 4), device(4, 9, 4);
+        std::vector<values> target;
+        for (size_t i = 0; i < count; ++i) target.push_back(hidden(7, int(i)));
+        const common_mtp_row_ranges ranges(count, device.verify_limit, device.history_limit);
+        require(ranges.prefix + ranges.tail <= std::min(count, size_t(13)), "device snapshots stay bounded");
+        std::vector<values> downloaded(target.begin(), target.begin() + ranges.prefix);
+        downloaded.insert(downloaded.end(), target.begin() + ranges.tail_begin, target.end());
+        host.record(0, count, [&](size_t i) { return common_mtp_state::row_view{int(i + 1), target[i].data()}; });
+        device.record(0, count, [&](size_t i) {
+            require(ranges.offset(i) < downloaded.size(), "every retained row maps into its downloaded range");
+            return common_mtp_state::row_view{int(i + 1), downloaded[ranges.offset(i)].data()};
+        });
+        require(snapshot(host) == snapshot(device), "device and host snapshots preserve identical boundary rows");
+        for (size_t accepted = 0; accepted < std::min(count, size_t(4)); ++accepted) {
+            auto a = host, b = device;
+            require(a.accept(accepted) && b.accept(accepted) && snapshot(a) == snapshot(b),
+                "device row snapshots preserve accepted and rejected tails");
+        }
+        require((count <= 13) == (ranges.tail == 0), "overlapping device ranges coalesce into one read");
+    }
+}
+
 void conversation_restore_and_replay() {
     common_mtp_state state(4, 9, 4);
     process(state, 1, 0, 10);
@@ -225,7 +249,7 @@ void payload_validation_and_bits() {
 
 int main() {
     try {
-        conversation_restore_and_replay(); accepted_and_rejected_rows(); bounded_prefill_copy();
+        device_row_snapshot_ranges(); conversation_restore_and_replay(); accepted_and_rejected_rows(); bounded_prefill_copy();
         shared_kv_output_rows();
         checkpoint_and_child_copy(); shifts_and_reuse(); multimodal_boundaries(); payload_validation_and_bits();
         std::cout << checks << " production MTP carryover, resume, copy-bound and payload checks passed\n";

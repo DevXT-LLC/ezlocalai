@@ -31,10 +31,10 @@ RUN --mount=type=cache,id=ezlocalai-storyboard-cpu-${TARGETARCH},target=/var/cac
 FROM ${CPU_IMAGE} AS engines-base
 
 ARG EZLOCALAI_LLAMA_CPP_REPO=https://github.com/ggml-org/llama.cpp.git
-ARG EZLOCALAI_LLAMA_CPP_REF=cd959bae99ff4bed22bef2604f45241c09bbb8c8
+ARG EZLOCALAI_LLAMA_CPP_REF=b1b770d90d94cad9e9ea5b993bdbc383a522fb28
 # GGML_NATIVE=OFF: images run on other fleet CPUs. -march=native from the
 # build host (e.g. Alder Lake AVX-VNNI) fails on Haswell or Zen hosts.
-ARG EZLOCALAI_LLAMA_CPP_CMAKE_ARGS="-DGGML_CUDA=OFF -DGGML_BLAS=ON -DGGML_BLAS_VENDOR=OpenBLAS -DLLAMA_CURL=ON -DGGML_NATIVE=OFF"
+ARG EZLOCALAI_LLAMA_CPP_CMAKE_ARGS="-DGGML_CUDA=OFF -DGGML_BLAS=ON -DGGML_BLAS_VENDOR=OpenBLAS -DGGML_NATIVE=OFF"
 ARG EZLOCALAI_LLAMA_CPP_JOBS=
 
 ENV DEBIAN_FRONTEND=noninteractive \
@@ -172,7 +172,7 @@ RUN git init /opt/acestep.cpp && \
 ENV ACE_STEP_BIN=/opt/acestep.cpp/build/ace-server
 
 FROM engines-base AS llama-engine
-COPY cmake/BuildLlamaEngine.cmake cmake/ApplyLlamaPatches.cmake patches/llama-conversation-cache.patch patches/llama-cache-restore-atomic.patch patches/llama-cache-storage.patch patches/llama-mtp-resume.patch patches/llama-mtp-resume-v090.patch patches/llama-checkpoint-coverage.patch patches/llama-checkpoint-entry-window.patch patches/llama-cache-retention.patch patches/llama-cuda-q4-kv-fusion.patch patches/llama-cuda-q4-kv-fusion-v090.patch patches/llama-prefix-anchor.patch /tmp/
+COPY cmake/BuildLlamaEngine.cmake cmake/ApplyLlamaPatches.cmake patches/llama-conversation-cache.patch patches/llama-cache-restore-atomic.patch patches/llama-cache-storage.patch patches/llama-mtp-resume.patch patches/llama-mtp-resume-v090.patch patches/llama-checkpoint-coverage.patch patches/llama-checkpoint-entry-window.patch patches/llama-cache-retention.patch patches/llama-cuda-q4-kv-fusion.patch patches/llama-cuda-q4-kv-fusion-v090.patch patches/llama-prefix-anchor.patch patches/llama-conversation-cache-v100.patch patches/llama-cache-storage-v100.patch patches/llama-mtp-resume-v100.patch patches/llama-cache-retention-v100.patch patches/llama-cuda-q4-kv-fusion-v100.patch patches/llama-prefix-anchor-v100.patch /tmp/
 RUN cmake -P /tmp/BuildLlamaEngine.cmake
 
 FROM engines-base AS native-compiled

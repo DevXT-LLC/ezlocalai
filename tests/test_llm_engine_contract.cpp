@@ -83,6 +83,9 @@ int main(int argc, char **argv) {
             if (std::string(type) != "none") expect(p.speculative.draft.n_max == 3 && p.speculative.draft.p_min == static_cast<float>(.1), "actual draft length/probability");
             if (std::string(type) == "draft-dflash") expect(!p.fit_params && p.speculative.draft.mparams.path == "draft.gguf" && p.speculative.draft.n_gpu_layers == 0, "actual DFlash model/fitting/offload settings");
         }
+        const auto fp8 = parse({"-ctk", "f8_e4m3", "-ctv", "f8_e4m3", "-fa", "on"});
+        expect(fp8.cache_type_k == GGML_TYPE_F8_E4M3 && fp8.cache_type_v == GGML_TYPE_F8_E4M3,
+            "native extra arguments accept v1 FP8 KV caches");
         const auto placed = parse({"-np", "1", "--main-gpu", "1", "--split-mode", "none", "--fit", "off", "--mmproj", "projector.gguf", "--image-min-tokens", "1024"});
         expect(placed.main_gpu == 1 && placed.split_mode == LLAMA_SPLIT_MODE_NONE && !placed.fit_params && placed.image_min_tokens == 1024 && placed.mmproj.path == "projector.gguf", "actual single GPU vision parameters");
         for (float ratio : placed.tensor_split) expect(ratio == 0, "source split mode leaves native tensor ratios at zero");

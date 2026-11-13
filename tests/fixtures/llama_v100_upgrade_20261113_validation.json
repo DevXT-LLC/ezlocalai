@@ -1,0 +1,205 @@
+{
+  "date": "2026-11-13",
+  "branch": "upgrade/llama-cpp-v1.0.0",
+  "scope": "Pinned llama.cpp v1.0.0 with cache/MTP/CUDA attention compatibility; code and isolated validation, no rollout",
+  "upstream_release": "https://github.com/ggml-org/llama.cpp/releases/tag/v1.0.0",
+  "engine": {
+    "release": "v1.0.0",
+    "sha": "b1b770d90d94cad9e9ea5b993bdbc383a522fb28",
+    "annotated_tag_object": "a6d1a74dbebce3a16f4f2ceddbf38c21a08d8674",
+    "previous_sha": "cd959bae99ff4bed22bef2604f45241c09bbb8c8",
+    "managed_patch_count": 9,
+    "versioned_patch_sha256": {
+      "llama-cache-retention-v100": "f1bf7b2aa3a3e9b3520ea1ecd260b127895be47476cf9fdb6643312975e16a3a",
+      "llama-cache-storage-v100": "155b60910880861e7575acb1963cc00a51abff0bc0e3ddbea23248fb3b8fad7b",
+      "llama-conversation-cache-v100": "a21c5ecb94efcaf6252d9c67383032736ea4a7f3b0942a88df84857f476a95db",
+      "llama-cuda-q4-kv-fusion-v100": "5149b29aef2375347e924f0ac9ea588dce12e5e4266165bf65023d10a2cff7f8",
+      "llama-mtp-resume-v100": "b0b0370bcb701c6cf2177a765996e87244d3c72b2e314e77001cb86165daf027",
+      "llama-prefix-anchor-v100": "fb12815443f7f07e63918a08fa017b243c2361eae5c739b207397683770f5d19"
+    },
+    "old_pin_removal": [
+      "620d2225cc436ab0b001e3200e590e3b286ef9ab",
+      "8642541b255bfb5dc39cd351a178be09013a55d6",
+      "cd959bae99ff4bed22bef2604f45241c09bbb8c8"
+    ]
+  },
+  "changes": [
+    "Aligned four Dockerfiles, five Compose build defaults and the C++ management-tool pin; removed ignored LLAMA_CURL flags",
+    "Retained v1 GPU-resident single-head MTP catch-up and checked predecessor uploads; download only bounded verification/rewind ranges in at most two reads",
+    "Preserved immutable checkpoint-owner sharing, including CPU speculative state, and non-initializing full-state snapshot buffers",
+    "Deduplicate checkpoint CPU speculative capacity by owner and target/draft capacity by backing identity; retain hard limits and storage opt-out",
+    "Rebased dense-only SM89 Q4 attention fusion with upstream bounded tile loads and explicit mutex include",
+    "Retained Qwen 262144 context limit, Q4 KV default, model quantization, draft lengths and sampling; FP8 parser support is tested, without enabling native FP8 capacity policy"
+  ],
+  "cpu_build": {
+    "platform": "x86_64 CPU",
+    "compiler": "GNU 13.3.0",
+    "ggml_native": false,
+    "ggml_cuda": false,
+    "llama_server_compile_link": "passed",
+    "native_tts_compile_link_cli": "passed",
+    "notes": [
+      "Shallow source reports 1.0.0-dev build 1, commit b1b770d",
+      "Upstream UI provisioning fell back from missing b1 UI asset to latest; no inference-engine source fallback",
+      "Tiny CPU smoke logs expected no-usable-GPU warnings; final compilation has no compiler warning/error markers"
+    ]
+  },
+  "focused_tests": {
+    "passed": 8,
+    "failed": 0,
+    "duration_seconds": 34.7,
+    "suites": [
+      "cache_restore_atomic",
+      "cache_storage",
+      "llama_mtp_resume",
+      "llama_checkpoint_coverage",
+      "q4_kv_layout",
+      "llm_engine_contract",
+      "managed_llama_patches",
+      "tts_engine_cli"
+    ],
+    "mtp_checks": 306,
+    "mtp_asan_ubsan": "passed",
+    "checkpoint_checks": 364777,
+    "q4_layout_checks": 395,
+    "managed_patch_lifecycle": "passed: pristine/prefix, idempotence/mtimes, full/prefix/three-old-pin removal, nine fingerprints, missing/malformed failures, custom revision metadata invalidation; all six versioned Docker patch copies checked",
+    "compose_profiles": {
+      "passed": 1,
+      "settings": 1947
+    }
+  },
+  "cuda_compile": {
+    "status": "passed",
+    "scope": "four focused production translation units; not a full CUDA backend/server link",
+    "toolchain_image_id": "sha256:2928738bb5e60d6b57c179b550a24bf0844c0b07c0493c27aea232ed66d0a5a2",
+    "nvcc": "12.8.93",
+    "host_compiler": "GNU 13.3.0",
+    "requested_architectures": [
+      "86-real",
+      "89-real",
+      "120-real"
+    ],
+    "emitted_architectures": [
+      "sm_86",
+      "sm_89",
+      "sm_120a"
+    ],
+    "all_four_objects_contain_all_three_architectures": true,
+    "fused_q4_symbol_present": true,
+    "staged_source_hashes_match_managed_fixture": true,
+    "final_compile_warnings_errors": 0,
+    "objects": [
+      {
+        "name": "fattn.cu.o",
+        "sha256": "330223fcc017a79e27cb174be2960c1176dabf421e8007584f810b783607382b"
+      },
+      {
+        "name": "template-instances/fattn-mma-f16-instance-ncols1_4-ncols2_8.cu.o",
+        "sha256": "6839de882af5bb00e8be228a637011e268c821edd5fd3902f3e7d5f8e3bab67a"
+      },
+      {
+        "name": "template-instances/fattn-mma-f16-instance-ncols1_8-ncols2_4.cu.o",
+        "sha256": "2eaa8bb9f543af3aa611c4a897fa53dd4c4c86dfa5747f22e29941205b98bd89"
+      },
+      {
+        "name": "template-instances/fattn-tile-instance-dkq256-dv256.cu.o",
+        "sha256": "ab5cee0c07802ea3a8541670645ee86e5bf5ec15d7966fea88694c9eee3e4d34"
+      }
+    ],
+    "network": "none",
+    "gpu_devices_exposed": false
+  },
+  "native_package": {
+    "status": "passed after validation-only staging corrections",
+    "toolchain_image_id": "sha256:2928738bb5e60d6b57c179b550a24bf0844c0b07c0493c27aea232ed66d0a5a2",
+    "network": "none",
+    "gpu_devices_exposed": false,
+    "reference_root": "/reference-not-present",
+    "native_worker_and_cuda_package_targets_build": "passed",
+    "management_tool_test": "passed (direct executable and final CTest retest)",
+    "initial_staging_failures": {
+      "tests_passed": 73,
+      "tests_failed": 3,
+      "causes": [
+        "Validation copy omitted top-level Dockerfiles, leaving old pins for two source-layout checks",
+        "An empty reference-path argument disappeared from the allocator test command"
+      ],
+      "resolution": "Stage current Dockerfiles/Compose files before configure and use an explicit nonexistent reference path; no production-code workaround"
+    },
+    "available_package_checks_passed": 76,
+    "main_gate": {
+      "passed": 75,
+      "failed": 1,
+      "duration_seconds": 292.41,
+      "remaining_failure": "Git ownership check on the read-only source .git path"
+    },
+    "final_targeted_retest": {
+      "passed": 3,
+      "failed": 0,
+      "duration_seconds": 8.18,
+      "suites": [
+        "managed_llama_patches",
+        "llm_engine_contract",
+        "llama_cpp_tool"
+      ]
+    },
+    "worker_help": "passed",
+    "native_tts_compile_link": "passed",
+    "compiler_warning_error_markers": 0,
+    "safe_directory_exceptions": [
+      "engine source directory",
+      "engine source .git directory (local Git transport)"
+    ],
+    "all_package_checks_passed_across_main_run_and_targeted_retest": true,
+    "production_code_workaround_required": false
+  },
+  "real_cpu_cache_smoke": {
+    "status": "passed",
+    "model_sha256": "270cba1bd5109f42d03350f60406024560464db173c0e387d91f0426d3bd256d",
+    "conversation_sequence": [
+      "A",
+      "B",
+      "A",
+      "B",
+      "A"
+    ],
+    "prompt_tokens_processed": [
+      1331,
+      361,
+      1,
+      1,
+      1
+    ],
+    "prompt_tokens_cached": [
+      0,
+      1001,
+      1330,
+      1361,
+      1330
+    ],
+    "returning_greedy_answers_unchanged": true
+  },
+  "artifacts": {
+    "engine_source": "build/validation/llama-v100-source",
+    "engine_build": "build/validation/llama-v100-cpu",
+    "focused_tests": "build/validation/llama-v100-tests.log",
+    "smoke": "build/validation/llama-v100-smoke.json",
+    "cuda_compile": "build/validation/llama-v100-cuda-stage/",
+    "native_package": "build/validation/llama-v100-native.log",
+    "native_reproduction_script": "build/validation/stage_v100_package_full.cmake",
+    "native_final_retest": "build/validation/llama-v100-native-retest.log"
+  },
+  "not_validated": [
+    "Full release Docker image build",
+    "Complete v1.0.0 CUDA backend/server link beyond the four focused objects",
+    "Qwen3.8-27B GPU throughput, numeric/quality equivalence and real MTP acceptance/cache resume",
+    "FP8 KV inference speed/quality/VRAM and maximum-context GPU operation",
+    "Qwen TTS waveform numerical comparison and realtime multimodal model inference",
+    "Qwen TTS waveform numerical comparison and realtime multimodal model inference"
+  ],
+  "new_image_id": null,
+  "new_rollback_tag": null,
+  "runtime_workers_restarted": false,
+  "docker_build_launched": false,
+  "production_environment_changed": false
+}

@@ -1,0 +1,78 @@
+diff --git a/common/checkpoint-retention.h b/common/checkpoint-retention.h
+index 2deef1c..af85500 100644
+--- a/common/checkpoint-retention.h
++++ b/common/checkpoint-retention.h
+@@ -8,6 +8,13 @@ template <typename T>
+ inline const T & common_checkpoint_ref(const T & value) { return value; }
+ template <typename T>
+ inline const T & common_checkpoint_ref(const std::shared_ptr<T> & value) { return *value; }
++#include <cstdlib>
++#include <cstring>
++
++inline bool common_prefix_anchor_enabled() {
++    const char * value = std::getenv("EZLOCALAI_LLAMA_PREFIX_ANCHOR");
++    return !value || std::strcmp(value, "0") != 0;
++}
+ 
+ enum class common_checkpoint_erasure {
+     superseded,
+@@ -22,7 +29,7 @@ enum class common_checkpoint_erasure {
+ template <typename Checkpoints, typename OnErase>
+ inline void common_prepare_checkpoint_admission(
+         Checkpoints & checkpoints, int64_t n_tokens, int id_task,
+-        size_t max_checkpoints, int64_t min_step, OnErase on_erase) {
++        size_t max_checkpoints, int64_t min_step, OnErase on_erase, bool preserve_prefix = false) {
+     for (auto it = checkpoints.begin(); it != checkpoints.end();) {
+         if (common_checkpoint_ref(*it).n_tokens == n_tokens) {
+             on_erase(common_checkpoint_erasure::superseded, common_checkpoint_ref(*it));
+@@ -32,11 +39,24 @@ inline void common_prepare_checkpoint_admission(
+         }
+     }
+ 
++    // A named recurrent conversation must keep an early restore point for a
++    // later turn that changes only its user/runtime suffix. Incoming earlier
++    // boundaries replace this anchor; no extra checkpoint or RAM is allocated.
++    auto anchor = checkpoints.end();
++    if (preserve_prefix && max_checkpoints > 1) {
++        for (auto it = checkpoints.begin(); it != checkpoints.end(); ++it) {
++            if (common_checkpoint_ref(*it).n_tokens < n_tokens &&
++                    (anchor == checkpoints.end() || common_checkpoint_ref(*it).n_tokens < common_checkpoint_ref(*anchor).n_tokens)) {
++                anchor = it;
++            }
++        }
++    }
++
+     // Preserve the existing min-step policy and current-task exception.
+     int64_t last = -1;
+     for (auto it = checkpoints.begin();
+             checkpoints.size() + 1 >= max_checkpoints && it != checkpoints.end();) {
+-        if (common_checkpoint_ref(*it).id_task != id_task && last >= 0 && common_checkpoint_ref(*it).n_tokens <= last + min_step) {
++        if (it != anchor && common_checkpoint_ref(*it).id_task != id_task && last >= 0 && common_checkpoint_ref(*it).n_tokens <= last + min_step) {
+             on_erase(common_checkpoint_erasure::too_close, common_checkpoint_ref(*it));
+             it = checkpoints.erase(it);
+             continue;
+@@ -46,7 +66,9 @@ inline void common_prepare_checkpoint_admission(
+     }
+ 
+     while (!checkpoints.empty() && checkpoints.size() >= max_checkpoints) {
+-        on_erase(common_checkpoint_erasure::oldest, common_checkpoint_ref(checkpoints.front()));
+-        checkpoints.erase(checkpoints.begin());
++        auto victim = checkpoints.begin();
++        if (victim == anchor) ++victim;
++        on_erase(common_checkpoint_erasure::oldest, common_checkpoint_ref(*victim));
++        checkpoints.erase(victim);
+     }
+ }
+diff --git a/tools/server/server-context.cpp b/tools/server/server-context.cpp
+index ad76013..6d08884 100644
+--- a/tools/server/server-context.cpp
++++ b/tools/server/server-context.cpp
+@@ -2736,7 +2736,7 @@ private:
+                         SLT_WRN(slot, "erasing old context checkpoint (pos_min = %d, pos_max = %d, n_tokens = %" PRId64 ", size = %.3f MiB)\n",
+                                 cur.pos_min, cur.pos_max, cur.n_tokens, (float) cur.size() / 1024 / 1024);
+                     }
+-                });
++                }, !slot.task->params.prompt_cache_key.empty() && common_prefix_anchor_enabled());
+ 
+         auto ckpt = std::make_shared<common_prompt_checkpoint>();
+         auto & cur = *ckpt;
