@@ -1,5 +1,26 @@
 # Position-aware MTP cache resume
 
+## v1.0.0 Compatibility (2026-11-13)
+
+The active pin is `b1b770d90d94cad9e9ea5b993bdbc383a522fb28`, using
+`llama-mtp-resume-v100.patch`. NextN is now public in `llama.h` and upstream
+uses `llama_set_ctx_state_src`. The patch retains upstream's device-row catch-up
+for ordinary, single-head MTP while uploading the position-checked predecessor
+from our carry state. Shared KV and chained heads retain their host paths.
+
+Only the selectable verification prefix and bounded rewind tail are downloaded,
+in at most two contiguous reads (one when they overlap). Those exact rows feed
+the existing serialization, rewind and acceptance helper. Device read/write
+failures reject processing. The range regression checks serialized host/device
+row equivalence and accepted/rejected tails, including a 4096-row prefill.
+Immutable checkpoint handles preserve upstream sharing of CPU speculative
+vectors. Older patch versions remain available for removal before checkout.
+
+See `tests/fixtures/llama_v100_upgrade_20261113_validation.json` for validation
+and its limits. CPU and CUDA compilation do not establish real Qwen MTP GPU
+acceptance, numerical equivalence, or throughput.
+
+
 ## v0.9.0 Compatibility (2026-11-07)
 
 The active managed pin is `cd959bae99ff4bed22bef2604f45241c09bbb8c8`.

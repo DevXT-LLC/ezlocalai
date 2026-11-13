@@ -8,11 +8,14 @@ set(metadata "${BUILD_DIR}/ezlocalai-llama-cpp-patches.txt")
 # Custom revisions retain their own behavior; this stack is qualified at the pin.
 set(legacy_remove FALSE)
 set(previous_pin FALSE)
-if(NOT revision STREQUAL "cd959bae99ff4bed22bef2604f45241c09bbb8c8")
-    # The updater removes the previous release's patches BEFORE checkout. Its
-    # files still have the old pin here; dropping metadata alone strands those
-    # edits and prevents git from checking out the new release.
-    if(REMOVE_MANAGED_PATCH AND revision STREQUAL "620d2225cc436ab0b001e3200e590e3b286ef9ab")
+set(v090_remove FALSE)
+# The updater removes the previous release's patches BEFORE checkout. Its
+# files still have the old pin here; dropping metadata alone strands those
+# edits and prevents git from checking out the new release.
+if(NOT revision STREQUAL "b1b770d90d94cad9e9ea5b993bdbc383a522fb28")
+    if(REMOVE_MANAGED_PATCH AND revision STREQUAL "cd959bae99ff4bed22bef2604f45241c09bbb8c8")
+        set(v090_remove TRUE)
+    elseif(REMOVE_MANAGED_PATCH AND revision STREQUAL "620d2225cc436ab0b001e3200e590e3b286ef9ab")
         set(legacy_remove TRUE)
         set(previous_pin TRUE)
     elseif(REMOVE_MANAGED_PATCH AND revision STREQUAL "8642541b255bfb5dc39cd351a178be09013a55d6")
@@ -36,19 +39,23 @@ if(NOT PATCH_FILES)
         endif()
         set(PATCH_FILE "${patch_dir}/llama-conversation-cache.patch")
     endif()
-    set(mtp_patch "${patch_dir}/llama-mtp-resume-v090.patch")
-    set(q4_patch "${patch_dir}/llama-cuda-q4-kv-fusion-v090.patch")
-    if(previous_pin)
-        set(mtp_patch "${patch_dir}/llama-mtp-resume.patch")
-        set(q4_patch "${patch_dir}/llama-cuda-q4-kv-fusion.patch")
-    endif()
-    set(PATCH_FILES "${PATCH_FILE}" "${patch_dir}/llama-cache-restore-atomic.patch"
-        "${patch_dir}/llama-cache-storage.patch" "${mtp_patch}"
-        "${patch_dir}/llama-checkpoint-coverage.patch" "${patch_dir}/llama-checkpoint-entry-window.patch"
-        "${patch_dir}/llama-cache-retention.patch" "${q4_patch}")
+    set(names llama-conversation-cache llama-cache-restore-atomic llama-cache-storage
+        llama-mtp-resume llama-checkpoint-coverage llama-checkpoint-entry-window
+        llama-cache-retention llama-cuda-q4-kv-fusion)
     if(NOT legacy_remove)
-        list(APPEND PATCH_FILES "${patch_dir}/llama-prefix-anchor.patch")
+        list(APPEND names llama-prefix-anchor)
     endif()
+    set(PATCH_FILES "")
+    foreach(name IN LISTS names)
+        if(NOT previous_pin AND NOT v090_remove)
+            if(name MATCHES "^llama-(conversation-cache|cache-storage|mtp-resume|cache-retention|cuda-q4-kv-fusion|prefix-anchor)$")
+                string(APPEND name "-v100")
+            endif()
+        elseif(v090_remove AND name MATCHES "^llama-(mtp-resume|cuda-q4-kv-fusion)$")
+            string(APPEND name "-v090")
+        endif()
+        list(APPEND PATCH_FILES "${patch_dir}/${name}.patch")
+    endforeach()
 endif()
 set(reverse_patches "${PATCH_FILES}")
 list(REVERSE reverse_patches)

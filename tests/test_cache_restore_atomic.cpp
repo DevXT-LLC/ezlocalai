@@ -33,8 +33,8 @@ struct restore_call { bool draft; size_t size; };
 struct restore_plan {
     server_prompt_cache * cache = nullptr;
     const server_prompt_cache_state * selected = nullptr;
-    std::vector<uint8_t> main;
-    std::vector<uint8_t> drft;
+    common_state_data main;
+    common_state_data drft;
 #ifdef CACHE_TEST_MTP_ENABLED
     std::vector<uint8_t> spec;
 #endif
@@ -80,15 +80,15 @@ server_prompt prompt(int branch) {
     checkpoint.data_tgt = {1, 2, 3};
     checkpoint.data_dft = {4, 5};
     checkpoint.data_spec = {6, 7, 8, 9};
-    return {server_tokens(tokens, false), {std::move(checkpoint)}};
+    return {server_tokens(tokens, false), {std::make_shared<common_prompt_checkpoint>(std::move(checkpoint))}};
 }
 
 bool same_prompt(const server_prompt & a, const server_prompt & b) {
     return a.n_tokens() == b.n_tokens() && a.tokens.get_common_prefix(b.tokens) == a.n_tokens() &&
         a.checkpoints.size() == b.checkpoints.size() &&
-        a.checkpoints.front().data_tgt == b.checkpoints.front().data_tgt &&
-        a.checkpoints.front().data_dft == b.checkpoints.front().data_dft &&
-        a.checkpoints.front().data_spec == b.checkpoints.front().data_spec;
+        a.checkpoints.front()->data_tgt == b.checkpoints.front()->data_tgt &&
+        a.checkpoints.front()->data_dft == b.checkpoints.front()->data_dft &&
+        a.checkpoints.front()->data_spec == b.checkpoints.front()->data_spec;
 }
 
 server_prompt_cache_state * save(server_prompt_cache & cache, const server_prompt & value,
@@ -214,8 +214,8 @@ void complete_snapshot(bool with_draft) {
     check(same_prompt(active, before), "saving must preserve the active prompt/checkpoints");
     check(cache.states.size() == 1 && same_prompt(cache.states.front().prompt, active), "complete outgoing entry should be cached");
     const auto & saved = cache.states.front();
-    check(saved.data.main == std::vector<uint8_t>(32, 0x5a) &&
-        saved.data.drft == std::vector<uint8_t>(with_draft ? 16 : 0, 0xa5), "only complete serializer bytes should be cached");
+    check(saved.data.main == common_state_data(32, 0x5a) &&
+        saved.data.drft == common_state_data(with_draft ? 16 : 0, 0xa5), "only complete serializer bytes should be cached");
     prepare(cache, &saved);
     check(cache.load(resident, active.tokens, target_context(), with_draft ? draft_context() : nullptr, 7) && same_prompt(resident, active),
         "a complete snapshot should roundtrip through the production loader");
@@ -389,7 +389,7 @@ void cpu_allocation_capacity() {
     check(selected != nullptr && selected->data.spec.capacity() == capacity && selected->data.spec.data() == pointer,
         "alloc must take ownership of the CPU capacity without copying");
     size_t checkpoints = 0;
-    for (const auto & checkpoint : selected->prompt.checkpoints) checkpoints += checkpoint.capacity();
+    for (const auto & checkpoint : selected->prompt.checkpoints) checkpoints += checkpoint->capacity();
     check(cache.size() == selected->data.main.capacity() + selected->data.drft.capacity() + capacity + checkpoints,
         "direct allocation must account CPU capacity rather than only serialized byte size");
 }

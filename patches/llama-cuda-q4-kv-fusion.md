@@ -1,5 +1,22 @@
 # CUDA Q4 KV loading for F16 attention
 
+## v1.0.0 Compatibility (2026-11-13)
+
+The active pin is `b1b770d90d94cad9e9ea5b993bdbc383a522fb28`, using
+`llama-cuda-q4-kv-fusion-v100.patch`. Its dense SM89 eligibility, indirect-row
+fallback, operand expression and occupancy/partition guards are retained.
+Upstream's bounded K/V tile loads are preserved, and `<mutex>` is included
+explicitly for our one-time shared-memory configuration after upstream removed
+the transitive include. FP8 and other stock attention paths keep their dispatch.
+
+The dispatcher, fused 4x8 MMA instance, ordinary 8x4 MMA instance and 256x256
+tile control compile with CUDA 12.8 for SM86, SM89 and SM120a. Symbol inspection
+confirms the Q4 fused specialization. This is focused compilation, without a
+GPU device or complete CUDA backend/server link. Real-model numeric/launch/speed
+qualification remains pending. Evidence:
+`tests/fixtures/llama_v100_upgrade_20261113_validation.json`.
+
+
 ## v0.9.0 Compatibility (2026-11-07)
 
 The active pin `cd959bae99ff4bed22bef2604f45241c09bbb8c8` uses

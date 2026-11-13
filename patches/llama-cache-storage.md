@@ -1,5 +1,22 @@
 # Bounded host snapshot storage
 
+## v1.0.0 Compatibility (2026-11-13)
+
+The active pin uses `llama-cache-storage-v100.patch`. Upstream's immutable
+checkpoint handles share the complete checkpoint, including CPU speculative
+vectors. Existing copy-on-write target/draft blobs and bounded spare snapshots
+are retained; full-state snapshots keep upstream's non-initializing allocator.
+The storage opt-out explicitly clones checkpoint owners and bytes. Tests publish
+a new checkpoint owner when exercising writes rather than mutating a shared
+immutable checkpoint.
+
+`llama-cache-retention-v100.patch` counts checkpoint speculative capacity once
+per owner and target/draft allocations once per backing identity across cached
+prompts. Per-entry CPU speculative snapshots and spare capacities remain fully
+charged. Admission/eviction continues without allocating an identity set.
+Historical evidence below applies to its original engine revision.
+
+
 Apply `llama-cache-storage.patch` after the conversation-cache patch and the
 combined atomic restore/save patch, against llama.cpp `620d2225`. It changes
 storage ownership and allocation, with no model arithmetic or precision change.

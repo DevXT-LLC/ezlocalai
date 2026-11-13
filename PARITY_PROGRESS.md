@@ -2,6 +2,49 @@
 
 The goal remains behavior parity with ezlocalai within the scope below, with all first-party executable code implemented in C++. It is **not complete**.
 
+## llama.cpp v1.0.0 and Qwen MTP Compatibility (2026-11-13)
+
+Updated active engine/build pins to `b1b770d90d94cad9e9ea5b993bdbc383a522fb28`
+(v1.0.0). Six versioned patches adapt conversation caching, storage, MTP,
+retention, prefix anchors and CUDA Q4 attention while retaining removal of
+installed v0.7/v0.8/v0.9 stacks. Removed the ignored LLAMA_CURL default flag.
+MTP keeps upstream's device-resident catch-up with position-checked predecessor
+uploads; only bounded verification/rewind ranges are downloaded, in at most two
+reads. Immutable checkpoint owners also share CPU speculative bytes, which the
+hard cache budget now counts once. Full-state snapshots retain upstream's
+non-initializing allocator. Qwen context, weights, Q4 KV and draft/sampling
+defaults are unchanged; FP8 is parser-tested only.
+
+The portable CPU server and native TTS worker compile/link. Eight focused tests
+passed: 306 MTP checks (also ASan/UBSan), 364,777 checkpoint checks, 395 Q4 policy
+checks, atomic restore, bounded storage, strict parser/source hashes, patch
+lifecycle and TTS CLI startup. Real tiny-model CPU A/B/A/B/A inference restores
+each returning prompt with one processed token and the original greedy answer.
+The host Compose gate passed all 1,947 settings.
+
+Isolated native staging reused dependency image
+`sha256:2928738bb5e60d6b57c179b550a24bf0844c0b07c0493c27aea232ed66d0a5a2`
+without networking, a GPU or a Python checkout. The native worker and package
+target build passed. All 76 available package checks passed across the main
+run and targeted retest: the main run passed 75/76 in 292.41 s; the remaining
+Git ownership check passed with the strict engine contract and management tool
+(3/3 in 8.18 s). Worker CLI startup passed. Validation-only staging corrections
+copied current Docker/Compose files, supplied an absent reference path and
+allowed the exact mounted Git source/.git directories. No production-code
+workaround was needed; compact evidence retains the initial failed attempts.
+
+Four focused production CUDA objects compile with NVCC 12.8.93/GNU 13.3.0 for
+SM86/SM89/SM120a; symbol inspection confirms the fused Q4 specialization, and
+staged engine hashes match the managed fixture. Final focused/native/CUDA
+compilation logs have no compiler warning/error markers. These are compilation
+checks, not GPU execution or a complete CUDA backend/server link.
+
+No image was built or deployed, no worker was restarted and no new rollback tag
+was needed. Real Qwen3.8-27B GPU speed/numerics/MTP acceptance, FP8 capacity and
+quality, full release-image packaging, native ARM/ROCm, TTS waveforms and real
+multimodal inference remain unvalidated. Evidence and local log paths:
+`tests/fixtures/llama_v100_upgrade_20261113_validation.json`.
+
 ## Prompt Cache RAM Allowance (2026-11-11)
 
 Removed the extra 32 GiB ceiling from native automatic prompt-cache sizing on
