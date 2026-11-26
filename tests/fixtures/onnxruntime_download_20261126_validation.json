@@ -20,7 +20,10 @@
       "http_failure_empty_cache": true,
       "hash_mismatch_empty_cache": true
     },
-    "cold_install_checks": ["x86_64", "aarch64"],
+    "cold_install_checks": [
+      "x86_64",
+      "aarch64"
+    ],
     "gb10_docker_audio_stage": {
       "passed": true,
       "installer_step_seconds": 101.1,
@@ -34,11 +37,28 @@
       "modern_model_inference_passed": true,
       "legacy_model_inference_passed": true,
       "matches_running_image_runtime": true
+    },
+    "warm_install_verified_cache": [
+      "x86_64"
+    ],
+    "cuda_docker_audio_stage": {
+      "passed": true,
+      "installer_step_seconds": 144.3,
+      "output": "cacheonly"
+    },
+    "gb10_full_docker_build": {
+      "passed": true,
+      "platform": "linux/arm64",
+      "output": "cacheonly",
+      "package_tests_passed": 78,
+      "package_tests_failed": 0,
+      "package_tests_seconds": 307.46,
+      "native_linkage_checks_passed": true
     }
   },
   "running_gb10_worker_image": "sha256:a664f933d08ca1bfaf508efe1fd90a0e01b65a0acf8840dfb967e3967a84ef74",
   "running_gb10_worker_health": "healthy",
-  "full_image_packaging_validated": false,
+  "full_image_packaging_validated": true,
   "release_image_id": null,
   "rollback_tag": null,
   "rollout_validated": false

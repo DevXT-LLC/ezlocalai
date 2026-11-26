@@ -14,17 +14,20 @@ wheels, with their linker and SONAME links installed by CMake. Download
 errors identify the artifact and URL, and only verified downloads enter
 the cache.
 
-The exact Docker audio dependency stage passed on `xt-gb10` (101.1 seconds
-for the installer step). Cold x86-64 and ARM64 installer runs checked the
-libraries and symlinks. All 29 real Silero VAD cases passed on x86-64
-with zero probability error. Modern and legacy Silero inference passed
+The Docker audio dependency stage passed on the GB10 and CUDA profiles
+(101.1 and 144.3 seconds for their installer steps, respectively). Cold
+x86-64 and ARM64 installer runs checked the libraries and symlinks. A warm
+x86-64 run reused verified archives. All 29 real Silero VAD cases passed on
+x86-64 with zero probability error. Modern and legacy Silero inference passed
 on the physical GB10. HTTP failure and hash failure each left an empty
 download cache.
 
-The existing GB10 worker was healthy on
+The full native GB10 Docker build passed with cache-only output. All 78
+package checks passed in 307.46 seconds, followed by installation and
+native linkage checks. The existing GB10 worker was healthy on
 `sha256:a664f933d08ca1bfaf508efe1fd90a0e01b65a0acf8840dfb967e3967a84ef74`.
-Full image packaging and rollout remain unverified. No release image or
-rollback tag was created. Compact evidence is in
+Registry publication and router-backed rollout remain unverified. No release
+image or rollback tag was created. Compact evidence is in
 `tests/fixtures/onnxruntime_download_20261126_validation.json`.
 
 ## Inkling 2 Mini Context and DSpark (2026-11-26)
