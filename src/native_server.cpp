@@ -9305,9 +9305,10 @@ void LlmChatStreamNormalizer::chunk(const std::string &json, std::vector<std::st
         for (const auto &item : json_array_elements(value))
             if (item == "\"choices\"") choices_present = true;
     if (choices_present) {
-        const bool has_output = llm_stream_has_assistant_text(value) || llm_stream_has_tool_calls(value);
+        const bool has_tool_calls = value.find("\"tool_calls\"") != std::string::npos && llm_stream_has_tool_calls(value);
+        const bool has_output = has_tool_calls || llm_stream_has_assistant_text(value);
         if (has_output) ++assistant_chunks_;
-        if (!has_output && !llm_stream_finish_reason(value).empty()) pending_final_ = stream_json_dumps(value);
+        if ((!has_output || has_tool_calls) && !llm_stream_finish_reason(value).empty()) pending_final_ = stream_json_dumps(value);
         else output->push_back(stream_json_dumps(value));
         return;
     }
