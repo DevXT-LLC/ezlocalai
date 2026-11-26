@@ -21,7 +21,8 @@ void verify_sources(const std::filesystem::path & fixture) {
         "common/common.h", "common/arg.cpp", "common/speculative.cpp", "common/speculative.h",
         "common/speculative-mtp-state.h", "common/state-storage.h", "common/checkpoint-coverage.h",
         "common/checkpoint-retention.h", "tools/server/server-task.cpp",
-        "tools/server/server-task.h", "tools/server/server-context.cpp",
+        "tools/server/server-task.h", "tools/server/server-context.cpp", "tools/server/server-schema.cpp",
+        "tools/server/server-slot-sched.cpp", "tools/server/server-slot-sched.h",
         "ggml/src/ggml-cuda/fattn.cu", "ggml/src/ggml-cuda/fattn-common.cuh",
         "ggml/src/ggml-cuda/fattn-mma-f16.cuh", "ggml/src/ggml-cuda/fattn-q4-kv-policy.h"};
 #else
@@ -69,19 +70,21 @@ int main(int argc, char **argv) {
         expect(binding_defaults.n_ctx_checkpoints == ezlocalai::llm_default_context_checkpoints && binding_defaults.checkpoint_min_step == ezlocalai::llm_default_checkpoint_min_step, "reference checkpoint defaults");
         expect(binding_defaults.sampling.reasoning_budget_tokens == -1 && binding_defaults.image_min_tokens == -1 && binding_defaults.warmup && binding_defaults.cont_batching, "reference constructor defaults");
         const std::vector<std::string> base{"-np", "1", "-c", "65536", "-b", "1024", "-ub", "256", "--cache-ram", "8192", "-ctk", "q4_0", "-ctv", "q4_0", "--ctx-checkpoints", "32", "--checkpoint-min-step", "8192", "--warmup", "--cont-batching"};
-        for (const auto type : {"none", "draft-mtp", "draft-dflash"}) {
+        for (const std::string type : {"none", "draft-mtp", "draft-dflash", "draft-dspark"}) {
             auto args = base; args.insert(args.end(), {"--spec-type", type});
-            if (std::string(type) != "none") args.insert(args.end(), {"--spec-draft-n-max", "3", "--spec-draft-p-min", "0.1"});
-            if (std::string(type) == "draft-dflash") args.insert(args.end(), {"--spec-draft-model", "draft.gguf", "--spec-draft-ngl", "0", "--fit", "off"});
+            if (type != "none") args.insert(args.end(), {"--spec-draft-n-max", "3", "--spec-draft-p-min", "0.1"});
+            if (type == "draft-dflash" || type == "draft-dspark") args.insert(args.end(), {"--spec-draft-model", "draft.gguf", "--spec-draft-ngl", "0", "--fit", "off"});
             const auto p = parse(args);
             expect(p.n_parallel == 1 && p.n_ctx == 65536 && p.n_batch == 1024 && p.n_ubatch == 256 && p.cache_ram_mib == 8192, "actual launch dimensions/cache");
             expect(p.n_ctx_checkpoints == 32 && p.checkpoint_min_step == 8192 && p.warmup && p.cont_batching, "actual launch checkpoint/warmup/batching settings");
             expect(p.cache_type_k == GGML_TYPE_Q4_0 && p.cache_type_v == GGML_TYPE_Q4_0, "actual launch KV precision");
-            const auto expected = std::string(type) == "none" ? COMMON_SPECULATIVE_TYPE_NONE : std::string(type) == "draft-mtp" ? COMMON_SPECULATIVE_TYPE_DRAFT_MTP : COMMON_SPECULATIVE_TYPE_DRAFT_DFLASH;
+            const auto expected = type == "none" ? COMMON_SPECULATIVE_TYPE_NONE
+                : type == "draft-mtp" ? COMMON_SPECULATIVE_TYPE_DRAFT_MTP
+                : type == "draft-dspark" ? COMMON_SPECULATIVE_TYPE_DRAFT_DSPARK : COMMON_SPECULATIVE_TYPE_DRAFT_DFLASH;
             for (auto item : p.speculative.types) expect(item == expected || item == COMMON_SPECULATIVE_TYPE_NONE, "unexpected active speculative backend");
             expect(std::find(p.speculative.types.begin(), p.speculative.types.end(), expected) != p.speculative.types.end(), "selected speculative backend is active");
-            if (std::string(type) != "none") expect(p.speculative.draft.n_max == 3 && p.speculative.draft.p_min == static_cast<float>(.1), "actual draft length/probability");
-            if (std::string(type) == "draft-dflash") expect(!p.fit_params && p.speculative.draft.mparams.path == "draft.gguf" && p.speculative.draft.n_gpu_layers == 0, "actual DFlash model/fitting/offload settings");
+            if (type != "none") expect(p.speculative.draft.n_max == 3 && p.speculative.draft.p_min == static_cast<float>(.1), "actual draft length/probability");
+            if (type == "draft-dflash" || type == "draft-dspark") expect(!p.fit_params && p.speculative.draft.mparams.path == "draft.gguf" && p.speculative.draft.n_gpu_layers == 0, "actual draft model/fitting/offload settings");
         }
         const auto fp8 = parse({"-ctk", "f8_e4m3", "-ctv", "f8_e4m3", "-fa", "on"});
         expect(fp8.cache_type_k == GGML_TYPE_F8_E4M3 && fp8.cache_type_v == GGML_TYPE_F8_E4M3,

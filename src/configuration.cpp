@@ -1,5 +1,6 @@
 #include "ezlocalai/configuration.hpp"
 #include "ezlocalai/ezlocalai_c.h"
+#include "ezlocalai/inkling_model.hpp"
 
 #include <algorithm>
 #include <cstdint>
@@ -176,6 +177,14 @@ std::vector<std::string> local_capabilities() {
     if (!model.empty() && model != "none" && !url(text_server)) {
         caps.push_back("text");
         bool vision = false;
+        for (size_t start = 0; start < model_raw.size();) {
+            const auto end = model_raw.find(',', start);
+            auto name = strip_config_value(model_raw.substr(start, end == std::string::npos ? end : end - start));
+            if (const auto at = name.rfind('@'); at != std::string::npos) name.resize(at);
+            if (inkling2_mini_model(name)) { vision = true; break; }
+            if (end == std::string::npos) break;
+            start = end + 1;
+        }
         for (const std::string_view tag : {"-vl", "-vlm", "vision", "qwen3.6", "qwen3.8", "qvq", "minicpm-v",
                                           "llava", "bakllava", "moondream", "cogvlm", "internvl", "idefics"}) {
             if (model.find(tag) != std::string::npos) { vision = true; break; }

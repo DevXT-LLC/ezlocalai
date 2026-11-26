@@ -1,4 +1,5 @@
 #include "ezlocalai/llm_speculative.hpp"
+#include "ezlocalai/inkling_model.hpp"
 #include "ezlocalai/llm_cache.hpp"
 #include "ezlocalai/native_server.hpp"
 #include "ezlocalai/environment_defaults.hpp"
@@ -135,6 +136,54 @@ void managed_cases(const fs::path &root) {
           expect(backend.model_lifecycle_json().find("\"speculative_type\":") != std::string::npos, "speculative runtime metadata");
         } run.reaped();
     }
+    environment();
+    Fixture inkling_auto(root, "inkling-auto");
+    setenv("HF_HUB_OFFLINE", "1", 1);
+    {
+        ezlocalai::LlamaCppInferenceBackend backend(ezlocalai::inkling2_mini_repository);
+        expect(backend.chat(R"({"messages":[]})").find("choices") != std::string::npos,
+               "Inkling auto is available offline without a draft");
+        expect(argument(read(inkling_auto.path("args")), "--spec-type") == "none", "Inkling auto speculative mode");
+    }
+    inkling_auto.reaped();
+
+    const auto cache = root / "inkling-hub";
+    const auto snapshot = cache / "models--unsloth--Inkling-2-Mini-GGUF/snapshots"
+        / ezlocalai::inkling2_mini_draft_revision / ezlocalai::inkling2_mini_draft_filename;
+    fs::create_directories(snapshot.parent_path());
+    std::ofstream(snapshot) << "draft cache fixture";
+    environment();
+    Fixture inkling(root, "inkling-dspark");
+    setenv("LLM_SPECULATIVE_TYPE", "dspark", 1);
+    setenv("HF_HUB_CACHE", cache.c_str(), 1);
+    setenv("HF_HUB_OFFLINE", "1", 1);
+    {
+        ezlocalai::LlamaCppInferenceBackend backend(ezlocalai::inkling2_mini_repository);
+        expect(backend.chat(R"({"messages":[]})").find("choices") != std::string::npos, "managed DSpark inference");
+        const auto args = read(inkling.path("args"));
+        expect(argument(args, "--spec-type") == "draft-dspark" &&
+               argument(args, "--spec-draft-model") == snapshot &&
+               argument(args, "--spec-draft-device") == draft_device_zero &&
+               argument(args, "--spec-draft-ngl") == "0" && argument(args, "-np") == "1" &&
+               argument(args, "--spec-draft-n-max") == "5" && argument(args, "--spec-draft-p-min") == "0",
+               "Inkling DSpark weights, draft settings and placement");
+    }
+    inkling.reaped();
+
+    environment();
+    Fixture inkling_override(root, "inkling-dspark-override");
+    setenv("LLM_SPECULATIVE_TYPE", "draft-dspark", 1);
+    setenv("HF_HUB_CACHE", (root / "empty-hub").c_str(), 1);
+    setenv("HF_HUB_OFFLINE", "1", 1);
+    setenv("LLAMA_CPP_EXTRA_ARGS", ("--spec-draft-model " + draft.string() + " --spec-draft-n-max 3").c_str(), 1);
+    {
+        ezlocalai::LlamaCppInferenceBackend backend(ezlocalai::inkling2_mini_repository);
+        expect(backend.chat(R"({"messages":[]})").find("choices") != std::string::npos, "DSpark launch with explicit file");
+        const auto args = read(inkling_override.path("args"));
+        expect(argument(args, "--spec-type") == "draft-dspark" && argument(args, "--spec-draft-model") == draft &&
+               argument(args, "--spec-draft-n-max") == "3", "explicit DSpark path and length skip the pinned download");
+    }
+    inkling_override.reaped();
     environment(); Fixture restored(root, "restore"); setenv("DFLASH_MODEL_PATH", draft.c_str(), 1);
     { ezlocalai::LlamaCppInferenceBackend backend("Qwen3.8-27B"); backend.chat(R"({"messages":[]})"); auto restore = backend.unload_llms_for_media();
       setenv("LLM_SPECULATIVE_TYPE", "dflash2", 1); setenv("DFLASH_SPEC_DRAFT_N_MAX_5090", "7", 1); setenv("DFLASH_SPEC_DRAFT_P_MIN", ".5", 1);

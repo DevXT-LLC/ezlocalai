@@ -1,4 +1,4 @@
-#include "server-task.h"
+#include "server-slot-sched.h"
 
 #include <algorithm>
 #include <cstdint>
@@ -12,11 +12,16 @@
 #define CACHE_TEST_MTP_ENABLED 1
 #endif
 
-// This test compiles the managed engine's actual server-task.cpp. Only the
+// This test compiles the managed engine's actual server-slot-sched.cpp. Only the
 // external state-serialization boundaries are replaced, together with optional
 // MTP CPU-state dispatch. Tests exercise production selection/ownership/commit
 // code without substituting its cache algorithm or claiming parser semantics.
 namespace {
+static auto find_best(const server_prompt_cache & cache, const server_prompt & prompt, const server_tokens & tokens) {
+    int lcp = 0;
+    return cache.find_better(prompt, tokens, {}, lcp);
+}
+
 void check(bool condition, const char * message) {
     if (!condition) throw std::runtime_error(message);
 }
@@ -123,7 +128,7 @@ void complete_restore(bool with_draft) {
     auto * saved = save(cache, a, 32, with_draft ? 16 : 0);
     save(cache, b);
     prepare(cache, saved);
-    check(cache.load(resident, a.tokens, target_context(), with_draft ? draft_context() : nullptr, 7),
+    check(cache.load(resident, a.tokens, {}, target_context(), with_draft ? draft_context() : nullptr, 7),
         "complete restore should succeed");
     check(plan.calls.size() == (with_draft ? 2u : 1u), "restore called the wrong contexts");
     check(!plan.calls[0].draft && (!with_draft || plan.calls[1].draft), "target must restore before draft");
@@ -140,22 +145,39 @@ void failed_restore(result target_result, result draft_result, bool expect_draft
     auto * survivor = save(cache, b);
     const auto survivor_main = survivor->data.main, survivor_draft = survivor->data.drft;
     prepare(cache, saved, target_result, draft_result);
-    check(!cache.load(resident, a.tokens, target_context(), draft_context(), 7), "invalid restore should fail");
+    check(!cache.load(resident, a.tokens, {}, target_context(), draft_context(), 7), "invalid restore should fail");
     check(plan.calls.size() == (expect_draft ? 2u : 1u), "failed target must prevent draft restore");
     check(same_prompt(resident, before), "failed restore must not commit cached prompt metadata");
     check(cache.states.size() == 1 && &cache.states.front() == survivor &&
         survivor->data.main == survivor_main && survivor->data.drft == survivor_draft,
         "failed restore must evict its entry without damaging other entries");
-    check(cache.find_best(resident, a.tokens) == cache.states.end(), "damaged entry remains selectable");
+    check(find_best(cache, resident, a.tokens) == cache.states.end(), "damaged entry remains selectable");
     const auto calls = plan.calls.size();
-    check(cache.load(resident, a.tokens, target_context(), draft_context(), 7) && plan.calls.size() == calls,
+    check(cache.load(resident, a.tokens, {}, target_context(), draft_context(), 7) && plan.calls.size() == calls,
         "a later miss must not retry the damaged entry");
 
     // The caller can clear/recompute and cache a valid replacement. This also
     // catches a stale empty-main entry shadowing the new complete state.
     prepare(cache, save(cache, a));
-    check(cache.load(resident, a.tokens, target_context(), draft_context(), 7) && same_prompt(resident, a),
+    check(cache.load(resident, a.tokens, {}, target_context(), draft_context(), 7) && same_prompt(resident, a),
         "valid replacement should restore successfully after a failure");
+}
+
+void retry_after_partial_restore(bool succeeds) {
+    auto requested = prompt(1), resident = prompt(3);
+    const auto before = resident.clone();
+    server_prompt_cache cache(1, 4096);
+    auto * saved = save(cache, requested);
+    prepare(cache, saved, result::complete, result::partial);
+    check(!cache.load(resident, requested.tokens, {}, target_context(), draft_context(), 7, nullptr, true),
+        "short restore must request a retry");
+    check(cache.states.size() == 1 && same_prompt(resident, before), "retry must retain bytes and leave the prompt uncommitted");
+
+    prepare(cache, saved, result::complete, succeeds ? result::complete : result::partial);
+    check(cache.load(resident, requested.tokens, {}, target_context(), draft_context(), 7) == succeeds,
+        "final restore result must reflect both contexts");
+    check(cache.states.empty() && same_prompt(resident, succeeds ? requested : before),
+        "final restore must consume the snapshot and commit only on success");
 }
 
 void incomplete_entry(size_t main_size, size_t draft_size, llama_context * target, llama_context * draft) {
@@ -164,7 +186,7 @@ void incomplete_entry(size_t main_size, size_t draft_size, llama_context * targe
     server_prompt_cache cache(1, 4096);
     auto * saved = save(cache, a, main_size, draft_size);
     prepare(cache, saved);
-    check(!cache.load(resident, a.tokens, target, draft, 7), "missing payload/context must fail");
+    check(!cache.load(resident, a.tokens, {}, target, draft, 7), "missing payload/context must fail");
     check(plan.calls.empty(), "unrestorable entry must be rejected before mutating either context");
     check(cache.states.empty() && same_prompt(resident, before), "unrestorable entry must be evicted without committing prompt");
 }
@@ -175,13 +197,15 @@ void protected_eviction_after_failure() {
     auto * bad = save(cache, a, 400 * 1024, 200 * 1024);
     auto * protected_b = save(cache, b, 128 * 1024, 64 * 1024);
     prepare(cache, bad, result::complete, result::rejected);
-    check(!cache.load(resident, a.tokens, target_context(), draft_context(), 7), "injected draft failure");
-    check(cache.alloc(outgoing, 768 * 1024, 0, &b.tokens) != nullptr, "failed entry should release its full cache budget");
-    const auto best = cache.find_best(resident, b.tokens);
+    check(!cache.load(resident, a.tokens, {}, target_context(), draft_context(), 7), "injected draft failure");
+    server_task request;
+    request.tokens = b.tokens.clone();
+    check(cache.alloc(outgoing, 768 * 1024, 0, &request) != nullptr, "failed entry should release its full cache budget");
+    const auto best = find_best(cache, resident, b.tokens);
     check(best != cache.states.end() && &*best == protected_b && cache.size() <= 1024 * 1024,
         "allocation after failure must retain the protected requested state and hard budget");
     prepare(cache, protected_b);
-    check(cache.load(resident, b.tokens, target_context(), draft_context(), 7) && same_prompt(resident, b),
+    check(cache.load(resident, b.tokens, {}, target_context(), draft_context(), 7) && same_prompt(resident, b),
         "unrelated protected entry must remain restorable");
 }
 
@@ -189,7 +213,7 @@ void cache_miss() {
     auto a = prompt(1), resident = prompt(3);
     server_prompt_cache cache(1, 4096);
     prepare(cache, nullptr);
-    check(cache.load(resident, a.tokens, target_context(), draft_context(), 7) && plan.calls.empty(),
+    check(cache.load(resident, a.tokens, {}, target_context(), draft_context(), 7) && plan.calls.empty(),
         "cache miss must retain the existing success-without-restore behavior");
 }
 
@@ -217,7 +241,7 @@ void complete_snapshot(bool with_draft) {
     check(saved.data.main == common_state_data(32, 0x5a) &&
         saved.data.drft == common_state_data(with_draft ? 16 : 0, 0xa5), "only complete serializer bytes should be cached");
     prepare(cache, &saved);
-    check(cache.load(resident, active.tokens, target_context(), with_draft ? draft_context() : nullptr, 7) && same_prompt(resident, active),
+    check(cache.load(resident, active.tokens, {}, target_context(), with_draft ? draft_context() : nullptr, 7) && same_prompt(resident, active),
         "a complete snapshot should roundtrip through the production loader");
 }
 
@@ -228,15 +252,17 @@ void failed_snapshot(result target_result, result draft_result, bool expect_draf
     auto * protected_entry = save(cache, requested);
     const auto original_main = protected_entry->data.main, original_draft = protected_entry->data.drft;
     prepare_snapshot(cache, active, target_result, draft_result);
-    check(!cache.save(active, target_context(), draft_context(), 7, &requested.tokens), "incomplete snapshot should fail");
+    server_task request;
+    request.tokens = requested.tokens.clone();
+    check(!cache.save(active, target_context(), draft_context(), 7, &request), "incomplete snapshot should fail");
     check(snapshot.data_calls.size() == (expect_draft ? 2u : 1u), "failed target serialization must prevent draft serialization");
     check(same_prompt(active, before), "failed save must preserve active prompt/checkpoint ownership");
     check(cache.states.size() == 1 && &cache.states.front() == protected_entry &&
         protected_entry->data.main == original_main && protected_entry->data.drft == original_draft,
         "failed save must remove only its new entry and retain the protected requested state");
-    check(cache.find_best(requested, active.tokens) == cache.states.end(), "partial outgoing entry remains selectable");
+    check(find_best(cache, requested, active.tokens) == cache.states.end(), "partial outgoing entry remains selectable");
     prepare_snapshot(cache, active);
-    check(cache.save(active, target_context(), draft_context(), 7, &requested.tokens), "valid save retry should succeed after a partial write");
+    check(cache.save(active, target_context(), draft_context(), 7, &request), "valid save retry should succeed after a partial write");
     check(cache.states.size() == 2 && same_prompt(active, before), "save retry must retain the unrelated protected entry and active prompt");
 }
 
@@ -249,7 +275,9 @@ void throwing_snapshot(bool draft) {
     prepare_snapshot(cache, active, draft ? result::complete : result::exception, draft ? result::exception : result::complete);
     bool caught = false;
     try {
-        cache.save(active, target_context(), draft_context(), 7, &requested.tokens);
+        server_task request;
+        request.tokens = requested.tokens.clone();
+        cache.save(active, target_context(), draft_context(), 7, &request);
     } catch (const injected_state_error &) {
         caught = true;
     }
@@ -258,7 +286,7 @@ void throwing_snapshot(bool draft) {
     check(cache.states.size() == 1 && &cache.states.front() == protected_entry &&
         protected_entry->data.main == original_main && protected_entry->data.drft == original_draft && same_prompt(active, before),
         "serializer exception must discard only its new entry and preserve active/protected prompt ownership");
-    check(cache.find_best(requested, active.tokens) == cache.states.end(), "throwing serializer left a selectable partial entry");
+    check(find_best(cache, requested, active.tokens) == cache.states.end(), "throwing serializer left a selectable partial entry");
 }
 
 void unavailable_snapshot_size(bool draft) {
@@ -267,7 +295,9 @@ void unavailable_snapshot_size(bool draft) {
     auto * protected_entry = save(cache, requested);
     prepare_snapshot(cache, active);
     (draft ? snapshot.draft_size : snapshot.target_size) = 0;
-    check(!cache.save(active, target_context(), draft_context(), 7, &requested.tokens), "unavailable state size must fail");
+    server_task request;
+    request.tokens = requested.tokens.clone();
+    check(!cache.save(active, target_context(), draft_context(), 7, &request), "unavailable state size must fail");
     check(snapshot.data_calls.empty() && cache.states.size() == 1 && &cache.states.front() == protected_entry,
         "unavailable size must not allocate/publish an outgoing entry or call the serializer");
 }
@@ -287,7 +317,9 @@ void refused_snapshot_budget(bool oversized) {
     prepare_snapshot(cache, active);
     snapshot.target_size = oversized ? 2 * 1024 * 1024 : 300 * 1024;
     snapshot.draft_size = 200 * 1024;
-    check(!cache.save(active, target_context(), draft_context(), 7, &requested.tokens), "over-budget save must be refused");
+    server_task request;
+    request.tokens = requested.tokens.clone();
+    check(!cache.save(active, target_context(), draft_context(), 7, &request), "over-budget save must be refused");
     check(snapshot.data_calls.empty() && cache.states.size() == 1 && &cache.states.front() == protected_entry && cache.size() <= 1024 * 1024,
         "refused save must not serialize or evict its protected requested entry");
 }
@@ -329,7 +361,7 @@ void cpu_restore(bool with_draft, bool legacy_metadata) {
     const auto capacity = bytes.capacity();
     server_prompt_cache cache(1, 4096);
     prepare_snapshot(cache, active);
-    check(cache.save(active, target_context(), with_draft ? draft_context() : nullptr, 7, nullptr, std::move(bytes)),
+    check(cache.save(active, target_context(), with_draft ? draft_context() : nullptr, 7, nullptr, {}, std::move(bytes)),
         "complete outgoing snapshot with CPU metadata should succeed");
     auto * selected = &cache.states.front();
     check(selected->data.spec == expected && selected->data.spec.capacity() == capacity && selected->data.spec.data() == pointer,
@@ -338,7 +370,7 @@ void cpu_restore(bool with_draft, bool legacy_metadata) {
     check(selected->data.size() == gpu_capacity + capacity, "CPU vector capacity must be charged with GPU state");
     prepare(cache, selected);
     prepare_cpu(resident, before, with_draft ? 2 : 1, selected);
-    check(cache.load(resident, active.tokens, target_context(), with_draft ? draft_context() : nullptr, 7, speculative_context()),
+    check(cache.load(resident, active.tokens, {}, target_context(), with_draft ? draft_context() : nullptr, 7, speculative_context()),
         "complete GPU/CPU restore should succeed");
     check(cpu.calls == 1 && cpu.bytes == expected && same_prompt(resident, active),
         "CPU state must be passed exactly once before the cached prompt commits");
@@ -352,14 +384,14 @@ void failed_cpu_restore(bool draft_failure) {
     auto active = prompt(1), resident = prompt(3);
     const auto before = resident.clone();
     server_prompt_cache cache(1, 4096);
-    auto * selected = cache.alloc(active, 32, 16, nullptr, cpu_state());
+    auto * selected = cache.alloc(active, 32, 16, nullptr, {}, cpu_state());
     check(selected != nullptr, "allocate CPU/GPU fixture state");
     std::fill(selected->data.main.begin(), selected->data.main.end(), uint8_t(0xa1));
     std::fill(selected->data.drft.begin(), selected->data.drft.end(), uint8_t(0xd2));
     prepare(cache, selected, draft_failure ? result::complete : result::rejected,
         draft_failure ? result::rejected : result::complete);
     prepare_cpu(resident, before, 2, selected);
-    check(!cache.load(resident, active.tokens, target_context(), draft_context(), 7, speculative_context()),
+    check(!cache.load(resident, active.tokens, {}, target_context(), draft_context(), 7, speculative_context()),
         "GPU failure must fail a combined CPU restore");
     check(cpu.calls == 0 && cache.states.empty() && cache.spare.spec.capacity() == 0 && same_prompt(resident, before),
         "GPU failure must not apply CPU state or commit/retain a damaged entry");
@@ -369,11 +401,11 @@ void cpu_without_draft() {
     auto active = prompt(1), resident = prompt(3);
     const auto before = resident.clone();
     server_prompt_cache cache(1, 4096);
-    auto * selected = cache.alloc(active, 32, 0, nullptr, cpu_state());
+    auto * selected = cache.alloc(active, 32, 0, nullptr, {}, cpu_state());
     check(selected != nullptr, "allocate missing-draft fixture");
     prepare(cache, selected);
     prepare_cpu(resident, before, 0, selected);
-    check(!cache.load(resident, active.tokens, target_context(), draft_context(), 7, speculative_context()),
+    check(!cache.load(resident, active.tokens, {}, target_context(), draft_context(), 7, speculative_context()),
         "speculative driver with a draft context requires its draft snapshot");
     check(plan.calls.empty() && cpu.calls == 0 && cache.states.empty() && same_prompt(resident, before),
         "missing draft must be rejected before changing GPU, CPU or prompt state");
@@ -385,7 +417,7 @@ void cpu_allocation_capacity() {
     const auto capacity = bytes.capacity();
     const auto * pointer = bytes.data();
     server_prompt_cache cache(1, 4096);
-    auto * selected = cache.alloc(active, 32, 16, nullptr, std::move(bytes));
+    auto * selected = cache.alloc(active, 32, 16, nullptr, {}, std::move(bytes));
     check(selected != nullptr && selected->data.spec.capacity() == capacity && selected->data.spec.data() == pointer,
         "alloc must take ownership of the CPU capacity without copying");
     size_t checkpoints = 0;
@@ -398,13 +430,15 @@ void cpu_protected_budget(bool cpu_on_protected_entry) {
     auto active = prompt(1), requested = prompt(2);
     server_prompt_cache cache(1, 4096);
     auto protected_bytes = cpu_on_protected_entry ? cpu_state(300 * 1024) : std::vector<uint8_t>{};
-    auto * protected_entry = cache.alloc(requested, 400 * 1024, 200 * 1024, nullptr, std::move(protected_bytes));
+    auto * protected_entry = cache.alloc(requested, 400 * 1024, 200 * 1024, nullptr, {}, std::move(protected_bytes));
     check(protected_entry != nullptr, "allocate protected CPU/GPU state");
     const auto before_cpu = protected_entry->data.spec;
     const auto before_size = cache.size();
     auto bytes = cpu_state((cpu_on_protected_entry ? 200 : 500) * 1024);
     prepare_snapshot(cache, active);
-    check(!cache.save(active, target_context(), draft_context(), 7, &requested.tokens, std::move(bytes)),
+    server_task request;
+    request.tokens = requested.tokens.clone();
+    check(!cache.save(active, target_context(), draft_context(), 7, &request, {}, std::move(bytes)),
         "CPU capacity must participate in protected-state allocation refusal");
     check(snapshot.data_calls.empty() && cache.states.size() == 1 && &cache.states.front() == protected_entry &&
         protected_entry->data.spec == before_cpu && cache.size() == before_size && cache.size() <= cache.limit_size,
@@ -510,6 +544,8 @@ int main() {
             failed_restore(failure, result::complete, false);
             failed_restore(result::complete, failure, true);
         }
+        retry_after_partial_restore(true);
+        retry_after_partial_restore(false);
         incomplete_entry(0, 16, target_context(), draft_context());
         incomplete_entry(0, 0, target_context(), nullptr);
         incomplete_entry(32, 16, target_context(), nullptr);
@@ -542,12 +578,12 @@ int main() {
         cpu_allocation_capacity();
         cpu_protected_budget(false);
         cpu_protected_budget(true);
-        std::cout << "40 atomic cache scenarios passed, including 9 MTP CPU transport/capacity/order regressions\n";
+        std::cout << "42 atomic cache scenarios passed, including 9 MTP CPU transport/capacity/order regressions\n";
 #else
-        std::cout << "31 atomic cache save/restore scenarios passed: exact byte counts, exception cleanup, payload ownership and recovery\n";
+        std::cout << "33 atomic cache save/restore scenarios passed: exact byte counts, exception cleanup, payload ownership and recovery\n";
 #endif
 #else
-        std::cout << "14 atomic cache restore scenarios passed: payload ownership, failure eviction, prompt commit and recovery\n";
+        std::cout << "16 atomic cache restore scenarios passed: payload ownership, failure eviction, prompt commit and recovery\n";
 #endif
         return 0;
     } catch (const std::exception & error) {

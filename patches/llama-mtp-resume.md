@@ -1,8 +1,15 @@
 # Position-aware MTP cache resume
 
+## v1.1.0 Compatibility (2026-11-26)
+
+`llama-mtp-resume-v110.patch` carries the position-checked MTP state through
+the new slot scheduler. Full-prompt restores attach CPU speculative state after
+both contexts load. The patch retains upstream's device-resident catch-up and
+the bounded verification and rewind reads.
+
 ## v1.0.0 Compatibility (2026-11-13)
 
-The active pin is `b1b770d90d94cad9e9ea5b993bdbc383a522fb28`, using
+The v1.0.0 pin is `b1b770d90d94cad9e9ea5b993bdbc383a522fb28`, using
 `llama-mtp-resume-v100.patch`. NextN is now public in `llama.h` and upstream
 uses `llama_set_ctx_state_src`. The patch retains upstream's device-row catch-up
 for ordinary, single-head MTP while uploading the position-checked predecessor

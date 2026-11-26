@@ -1437,7 +1437,7 @@ set(EZLOCALAI_TTS_LLAMA_SOURCE "${EZLOCALAI_LLAMA_CPP_REFERENCE_SOURCE}" CACHE P
 set(EZLOCALAI_TTS_LLAMA_BUILD "${EZLOCALAI_LLAMA_CPP_REFERENCE_BUILD}" CACHE PATH "Pinned llama.cpp build for native TTS worker")
 # Cache policy checks link the actual managed engine implementation. Custom
 # unpatched revisions do not expose this private cache API.
-if(EXISTS "${EZLOCALAI_TTS_LLAMA_SOURCE}/tools/server/server-task.h" AND
+if(EXISTS "${EZLOCALAI_TTS_LLAMA_SOURCE}/tools/server/server-slot-sched.h" AND
    EXISTS "${EZLOCALAI_TTS_LLAMA_BUILD}/bin/libllama-server-impl.so" AND
    EXISTS "${EZLOCALAI_TTS_LLAMA_BUILD}/ezlocalai-llama-cpp-patches.txt")
     add_executable(test_conversation_cache tests/test_conversation_cache.cpp)
@@ -1455,7 +1455,7 @@ if(EXISTS "${EZLOCALAI_TTS_LLAMA_SOURCE}/tools/server/server-task.h" AND
     add_test(NAME conversation_cache COMMAND test_conversation_cache)
     set_tests_properties(conversation_cache PROPERTIES TIMEOUT 30)
     add_executable(test_cache_restore_atomic tests/test_cache_restore_atomic.cpp
-        ${EZLOCALAI_TTS_LLAMA_SOURCE}/tools/server/server-task.cpp)
+        ${EZLOCALAI_TTS_LLAMA_SOURCE}/tools/server/server-slot-sched.cpp)
     target_include_directories(test_cache_restore_atomic PRIVATE
         ${EZLOCALAI_TTS_LLAMA_SOURCE}/tools/server ${EZLOCALAI_TTS_LLAMA_SOURCE}/common
         ${EZLOCALAI_TTS_LLAMA_SOURCE}/include ${EZLOCALAI_TTS_LLAMA_SOURCE}/ggml/include
@@ -1471,7 +1471,7 @@ if(EXISTS "${EZLOCALAI_TTS_LLAMA_SOURCE}/tools/server/server-task.h" AND
     set_tests_properties(cache_restore_atomic PROPERTIES TIMEOUT 30)
     target_compile_definitions(test_cache_restore_atomic PRIVATE EZLOCALAI_TEST_MTP_TRANSPORT=1)
     add_executable(test_cache_storage tests/test_cache_storage.cpp
-        ${EZLOCALAI_TTS_LLAMA_SOURCE}/tools/server/server-task.cpp)
+        ${EZLOCALAI_TTS_LLAMA_SOURCE}/tools/server/server-slot-sched.cpp)
     target_include_directories(test_cache_storage PRIVATE
         $<TARGET_PROPERTY:test_cache_restore_atomic,INCLUDE_DIRECTORIES>)
     target_link_libraries(test_cache_storage PRIVATE

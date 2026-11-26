@@ -1,8 +1,15 @@
 # CUDA Q4 KV loading for F16 attention
 
+## v1.1.0 Compatibility (2026-11-26)
+
+`llama-cuda-q4-kv-fusion-v110.patch` implements the Q4 loader through upstream's
+typed K/V tile interface. Its guarded SM89 dispatch uses the same stream-K
+partition as the F16 conversion path and retains the occupancy fallback. The
+engine still reserves F16 workspace for that fallback.
+
 ## v1.0.0 Compatibility (2026-11-13)
 
-The active pin is `b1b770d90d94cad9e9ea5b993bdbc383a522fb28`, using
+The v1.0.0 pin is `b1b770d90d94cad9e9ea5b993bdbc383a522fb28`, using
 `llama-cuda-q4-kv-fusion-v100.patch`. Its dense SM89 eligibility, indirect-row
 fallback, operand expression and occupancy/partition guards are retained.
 Upstream's bounded K/V tile loads are preserved, and `<mutex>` is included

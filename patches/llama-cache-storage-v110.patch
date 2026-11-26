@@ -1,0 +1,313 @@
+diff --git a/common/common.h b/common/common.h
+index 22724e817..a7ba1777b 100644
+--- a/common/common.h
++++ b/common/common.h
+@@ -7,6 +7,7 @@
+ #include "ggml-opt.h"
+ #include "ggml.h"
+ #include "llama.h"
++#include "state-storage.h"
+ 
+ #include <array>
+ #include <list>
+@@ -1347,8 +1348,8 @@ struct common_prompt_checkpoint {
+     llama_pos pos_min;
+     llama_pos pos_max;
+ 
+-    common_state_data data_tgt;
+-    common_state_data data_dft;
++    common_state_blob data_tgt;
++    common_state_blob data_dft;
+ 
+     // (optional) speculative-decoding implementation state stashed with the checkpoint
+     // (e.g. eagle3's deferred-boundary g_embd row)
+@@ -1356,6 +1357,8 @@ struct common_prompt_checkpoint {
+ 
+     size_t size() const;
+ 
++    size_t capacity() const { return data_tgt.capacity() + data_dft.capacity() + data_spec.capacity(); }
++
+     bool empty() const;
+     void clear();
+ 
+diff --git a/common/state-storage.h b/common/state-storage.h
+new file mode 100644
+index 000000000..91cb5cb5c
+--- /dev/null
++++ b/common/state-storage.h
+@@ -0,0 +1,78 @@
++#pragma once
++
++#include <cstdint>
++#include <cstdlib>
++#include <cstring>
++#include <initializer_list>
++#include <memory>
++#include <vector>
++
++inline bool common_state_storage_enabled() {
++    const char * value = std::getenv("EZLOCALAI_LLAMA_CACHE_STORAGE");
++    return value == nullptr || std::strcmp(value, "0") != 0;
++}
++
++// Checkpoint bytes are immutable until a writer requests its own copy.
++class common_state_blob {
++public:
++    common_state_blob() = default;
++    common_state_blob(std::initializer_list<uint8_t> bytes) { *this = bytes; }
++    common_state_blob(const common_state_blob & other) : storage(other.storage) {
++        if (storage && !common_state_storage_enabled()) storage = std::make_shared<std::vector<uint8_t>>(*storage);
++    }
++    common_state_blob(common_state_blob &&) noexcept = default;
++    common_state_blob & operator=(common_state_blob &&) noexcept = default;
++    common_state_blob & operator=(const common_state_blob & other) {
++        common_state_blob copy(other);
++        storage.swap(copy.storage);
++        return *this;
++    }
++
++    common_state_blob & operator=(std::initializer_list<uint8_t> bytes) {
++        if (bytes.size() == 0) {
++            clear();
++        } else {
++            storage = std::make_shared<std::vector<uint8_t>>(bytes);
++        }
++        return *this;
++    }
++
++    size_t size() const noexcept { return storage ? storage->size() : 0; }
++    size_t capacity() const noexcept { return storage ? storage->capacity() : 0; }
++    bool empty() const noexcept { return size() == 0; }
++
++    const uint8_t * data() const noexcept { return storage ? storage->data() : nullptr; }
++    uint8_t * data() {
++        if (!storage) return nullptr;
++        make_writable();
++        return storage->data();
++    }
++
++    void resize(size_t count) {
++        if (count == 0) {
++            clear();
++            return;
++        }
++        make_writable();
++        storage->resize(count);
++    }
++
++    void clear() noexcept { storage.reset(); }
++
++    friend bool operator==(const common_state_blob & a, const common_state_blob & b) {
++        return a.storage == b.storage || (a.size() == b.size() &&
++                (a.empty() || *a.storage == *b.storage));
++    }
++    friend bool operator!=(const common_state_blob & a, const common_state_blob & b) { return !(a == b); }
++
++private:
++    std::shared_ptr<std::vector<uint8_t>> storage;
++
++    void make_writable() {
++        if (!storage) {
++            storage = std::make_shared<std::vector<uint8_t>>();
++        } else if (!storage.unique()) {
++            storage = std::make_shared<std::vector<uint8_t>>(*storage);
++        }
++    }
++};
+diff --git a/tools/server/server-slot-sched.cpp b/tools/server/server-slot-sched.cpp
+index e6510f2fc..083e12579 100644
+--- a/tools/server/server-slot-sched.cpp
++++ b/tools/server/server-slot-sched.cpp
+@@ -62,7 +62,7 @@ server_prompt_reuse server_prompt::get_reuse(int32_t n_prefix, bool has_new_toke
+ //
+ 
+ size_t server_prompt_cache::size() const {
+-    size_t res = 0;
++    size_t res = spare.size();
+ 
+     for (const auto & state : states) {
+         res += state.size();
+@@ -83,6 +83,7 @@ size_t server_prompt_cache::n_tokens() const {
+ 
+ server_prompt_cache_state * server_prompt_cache::alloc(const server_prompt & prompt, size_t state_size_tgt, size_t state_size_dft,
+         const server_task * requested, const std::vector<common_adapter_lora_info> & lora) {
++    if (!common_state_storage_enabled()) clear_spare();
+     // first check if the current state is contained fully in the cache
+     for (auto it = states.begin(); it != states.end(); ++it) {
+         const int cur_lcp_len = it->prompt.tokens.get_common_prefix(prompt.tokens);
+@@ -96,10 +97,22 @@ server_prompt_cache_state * server_prompt_cache::alloc(const server_prompt & pro
+     // calculate checkpoints size to see if it will fit with the prompt
+     size_t checkpoints_size = 0;
+     for (const auto & ckpt : prompt.checkpoints) {
+-        checkpoints_size += ckpt->size();
++        checkpoints_size += ckpt->capacity();
+     }
+ 
+-    const size_t state_size_new = state_size_tgt + state_size_dft + checkpoints_size;
++    bool reuse_tgt = state_size_tgt > 0 && spare.main.capacity() >= state_size_tgt;
++    bool reuse_dft = state_size_dft > 0 && spare.drft.capacity() >= state_size_dft;
++    const size_t cached_size = size() - spare.size();
++    const auto allocation_size = [&] {
++        return (reuse_tgt ? spare.main.capacity() : state_size_tgt) +
++               (reuse_dft ? spare.drft.capacity() : state_size_dft) + checkpoints_size;
++    };
++    // Extra retained capacity must not evict a useful cached prompt.
++    if (limit_size > 0 && cached_size + allocation_size() > limit_size) {
++        reuse_tgt = reuse_tgt && spare.main.capacity() == state_size_tgt;
++        reuse_dft = reuse_dft && spare.drft.capacity() == state_size_dft;
++    }
++    const size_t state_size_new = allocation_size();
+ 
+     // skip over-limit entries to avoid disturbing the cache
+     if (limit_size > 0 && state_size_new > limit_size) {
+@@ -116,6 +129,12 @@ server_prompt_cache_state * server_prompt_cache::alloc(const server_prompt & pro
+         return nullptr;
+     }
+ 
++    common_state_data state_data_tgt;
++    common_state_data state_data_dft;
++    if (reuse_tgt) state_data_tgt = std::move(spare.main);
++    if (reuse_dft) state_data_dft = std::move(spare.drft);
++    clear_spare();
++
+     // remove any cached prompts that are fully contained in the current prompt
+     for (auto it = states.begin(); it != states.end();) {
+         const int len = it->prompt.tokens.get_common_prefix(prompt.tokens);
+@@ -145,13 +164,24 @@ server_prompt_cache_state * server_prompt_cache::alloc(const server_prompt & pro
+         }
+     }
+ 
+-    common_state_data state_data_tgt;
+-    common_state_data state_data_dft;
+-
+     // check if we can allocate enough memory for the new state
+     try {
+         state_data_tgt.resize(state_size_tgt);
+         state_data_dft.resize(state_size_dft);
++        if (limit_size > 0 && size() + state_data_tgt.capacity() + state_data_dft.capacity() + checkpoints_size > limit_size) {
++            return nullptr;
++        }
++        states.push_back({
++            /*.prompt =*/ {
++                /*.tokens      =*/ prompt.tokens.clone(),
++                /*.checkpoints =*/ prompt.clone_checkpoints(),
++                /*.lora        =*/ prompt.lora,
++            },
++            /*.data   =*/ {
++                /*.main =*/ std::move(state_data_tgt),
++                /*.drft =*/ std::move(state_data_dft),
++            },
++        });
+     } catch (const std::bad_alloc & e) {
+         SRV_ERR("failed to allocate memory for prompt cache state: %s\n", e.what());
+ 
+@@ -164,18 +194,6 @@ server_prompt_cache_state * server_prompt_cache::alloc(const server_prompt & pro
+         return nullptr;
+     }
+ 
+-    states.push_back({
+-        /*.prompt =*/ {
+-            /*.tokens      =*/ prompt.tokens.clone(),
+-            /*.checkpoints =*/ prompt.checkpoints,
+-            /*.lora        =*/ prompt.lora,
+-        },
+-        /*.data   =*/ {
+-            /*.main =*/ std::move(state_data_tgt),
+-            /*.drft =*/ std::move(state_data_dft),
+-        },
+-    });
+-
+     return &states.back();
+ }
+ 
+@@ -316,8 +334,14 @@ bool server_prompt_cache::load(server_prompt & prompt, const server_tokens & tok
+         }
+ 
+         prompt = std::move(it_best->prompt);
+-
++        if (common_state_storage_enabled()) {
++            spare.main = std::move(it_best->data.main);
++            spare.drft = std::move(it_best->data.drft);
++        } else {
++            clear_spare();
++        }
+         states.erase(it_best);
++        if (limit_size > 0 && size() > limit_size) clear_spare();
+ 
+         SRV_TRC("slot %d: prompt cache restore took %.2f ms\n", id_slot, (ggml_time_us() - t_start) / 1000.0);
+     }
+@@ -326,7 +350,9 @@ bool server_prompt_cache::load(server_prompt & prompt, const server_tokens & tok
+ }
+ 
+ void server_prompt_cache::update() {
++    if (!common_state_storage_enabled()) clear_spare();
+     if (limit_size > 0) {
++        if (size() > limit_size) clear_spare();
+         while (!states.empty() && size() > limit_size) {
+             SRV_WRN(" - cache size limit reached, removing oldest entry (size = %.3f MiB)\n", states.front().size() / (1024.0 * 1024.0));
+ 
+@@ -335,7 +361,7 @@ void server_prompt_cache::update() {
+     }
+ 
+     // average size per token
+-    const float size_per_token = std::max<float>(1.0f, float(size()) / (std::max<size_t>(1, n_tokens())));
++    const float size_per_token = std::max<float>(1.0f, float(size() - spare.size()) / (std::max<size_t>(1, n_tokens())));
+ 
+     // dynamically increase the token limit if it can fit in the memory limit
+     const size_t limit_tokens_cur = limit_size > 0 ? std::max<size_t>(limit_tokens, limit_size/size_per_token) : limit_tokens;
+diff --git a/tools/server/server-slot-sched.h b/tools/server/server-slot-sched.h
+index 425698214..e5e9486f1 100644
+--- a/tools/server/server-slot-sched.h
++++ b/tools/server/server-slot-sched.h
+@@ -37,10 +37,20 @@ struct server_prompt {
+         return tokens.size();
+     }
+ 
++    auto clone_checkpoints() const {
++        auto result = checkpoints;
++        if (!common_state_storage_enabled()) {
++            for (auto & checkpoint : result) {
++                checkpoint = std::make_shared<common_prompt_checkpoint>(*checkpoint);
++            }
++        }
++        return result;
++    }
++
+     server_prompt clone() const {
+         return server_prompt {
+             tokens.clone(),
+-            checkpoints,
++            clone_checkpoints(),
+             lora,
+         };
+     }
+@@ -58,7 +68,7 @@ struct server_prompt_data {
+     common_state_data drft;
+ 
+     size_t size() const {
+-        return main.size() + drft.size();
++        return main.capacity() + drft.capacity();
+     }
+ };
+ 
+@@ -70,7 +80,7 @@ struct server_prompt_cache_state {
+         size_t res = data.size();
+ 
+         for (const auto & ckpt : prompt.checkpoints) {
+-            res += ckpt->size();
++            res += ckpt->capacity();
+         }
+ 
+         return res;
+@@ -85,6 +95,11 @@ struct server_prompt_cache {
+ 
+     std::list<server_prompt_cache_state> states;
+ 
++    // At most one consumed snapshot pair, charged to the same byte budget.
++    server_prompt_data spare;
++
++    void clear_spare() { spare = {}; }
++
+     // in bytes, 0 = no limit
+     size_t limit_size = 0;
+ 

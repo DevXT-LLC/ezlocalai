@@ -1,8 +1,15 @@
 # Bounded host snapshot storage
 
+## v1.1.0 Compatibility (2026-11-26)
+
+The cache now lives in `server-slot-sched`. The v1.1.0 storage and retention
+patches account for immutable checkpoint backing and spare buffers while
+preserving the scheduler's LoRA matching. An initial restore may retain a
+failed snapshot for upstream's unified-KV retry after idle slots are cleared.
+
 ## v1.0.0 Compatibility (2026-11-13)
 
-The active pin uses `llama-cache-storage-v100.patch`. Upstream's immutable
+The v1.0.0 pin uses `llama-cache-storage-v100.patch`. Upstream's immutable
 checkpoint handles share the complete checkpoint, including CPU speculative
 vectors. Existing copy-on-write target/draft blobs and bounded spare snapshots
 are retained; full-state snapshots keep upstream's non-initializing allocator.

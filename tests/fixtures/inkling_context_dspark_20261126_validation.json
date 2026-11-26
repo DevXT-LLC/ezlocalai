@@ -1,0 +1,96 @@
+{
+  "date": "2026-11-26",
+  "engine": {
+    "tag": "v1.1.0",
+    "commit": "171527522610996f5f0acf12334e185156ca8f44"
+  },
+  "model": {
+    "repository": "unsloth/Inkling-2-Mini-GGUF",
+    "default_context": 262144,
+    "maximum_tested_startup_context": 1048576,
+    "context_precedence_tested": [
+      "native default",
+      "Compose 65536 and 8192 fallbacks",
+      "explicit 65536",
+      "explicit 1048576",
+      "native context override",
+      "ordinary model Compose fallback"
+    ],
+    "weights": "Inkling-2-Mini-UD-Q4_K_M.gguf",
+    "weights_sha256": "78fcedcf93c5d1bfe83e225513b71392bb52259be0eaa5f8899c856a2e5834ae",
+    "head_channels": 128,
+    "query_heads": 24,
+    "kv_heads": 8
+  },
+  "dspark": {
+    "selection": "opt_in",
+    "setting": "LLM_SPECULATIVE_TYPE=dspark",
+    "draft_filename": "dspark-Inkling-2-Mini-Q8_0.gguf",
+    "draft_revision": "8078d149286eec7193795413b9e0643da6d11fa1",
+    "draft_sha256": "3da00cf7c31bbe5662b3c0d373ecf782d74d32ef43990acc158ce60c2add72e0",
+    "max_draft_tokens": 5,
+    "confidence_threshold": 0,
+    "managed_draft_kv": "f16"
+  },
+  "cpu_validation": {
+    "native_draft_and_projector_from_offline_cache": true,
+    "native_worker_context": 262144,
+    "native_worker_text_and_vision": [
+      "Jupiter",
+      "Blue"
+    ],
+    "target_kv_mib_262144": {
+      "q4_0": 2360.25,
+      "f16": 8392.0
+    },
+    "draft_kv_mib_262144": {
+      "q4_0": 291.38,
+      "f16": 1036.0
+    },
+    "direct_draft_acceptance": {
+      "f16": {
+        "count-A": {
+          "accepted": 37,
+          "proposed": 50
+        },
+        "image": {
+          "accepted": 31,
+          "proposed": 68
+        }
+      },
+      "q4_0": {
+        "count-A": {
+          "accepted": 36,
+          "proposed": 51
+        },
+        "image": {
+          "accepted": 31,
+          "proposed": 68
+        }
+      }
+    },
+    "one_million_token_context_readiness": true,
+    "one_million_token_target_kv_mib": 9272.25
+  },
+  "compose": {
+    "profiles": 6,
+    "settings_passed": 1965
+  },
+  "native_staging": {
+    "base_image_id": "sha256:2928738bb5e60d6b57c179b550a24bf0844c0b07c0493c27aea232ed66d0a5a2",
+    "gpu_attached": false,
+    "network_enabled": false,
+    "release_image_id": null,
+    "rollback_tag_created": null,
+    "deployed": false,
+    "package_tests_passed": 76,
+    "package_elapsed_seconds": 344.26,
+    "engine_contract_checks_passed": 2,
+    "strict_reference_suites_passed": 4
+  },
+  "not_validated": [
+    "GPU inference performance",
+    "Retrieval and generation at a million-token prompt",
+    "Release images and router deployment"
+  ]
+}
