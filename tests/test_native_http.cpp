@@ -2362,6 +2362,51 @@ int main() {
     expect(llama_chunked_stream.body.find("\r\n0\r\n\r\n") == std::string::npos, "llama.cpp chunked stream strips transfer coding");
     unsetenv("LLAMA_CPP_SERVER_URL");
 
+    const std::string tool_options = R"("tools":[{"type":"function","function":{"name":"read_note","parameters":{"type":"object","properties":{"name":{"type":"string"}},"required":["name"]}}}],"tool_choice":{"type":"function","function":{"name":"read_note"}},"parallel_tool_calls":false)";
+    const auto tool_request = [&](bool stream) {
+        return std::string(R"({"model":"native-test-model","messages":[{"role":"user","content":"Read the note."}],"disable_fallback":true,"stream":)")
+            + (stream ? "true" : "false") + "," + tool_options + "}";
+    };
+    setenv("LLAMA_CPP_SERVER_URL", "http://127.0.0.1:18141", 1);
+    std::thread fake_tool_server(
+        fake_expect_worker_once,
+        18141,
+        "POST /v1/chat/completions HTTP/1.1",
+        "Content-Type: application/json",
+        tool_options,
+        R"({"choices":[{"index":0,"message":{"role":"assistant","content":null,"tool_calls":[{"id":"call_note","type":"function","function":{"name":"read_note","arguments":"{\"name\":\"todo\"}"}}]},"finish_reason":"tool_calls"}]})"
+    );
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    ezlocalai::NativeServer tool_server(config, std::make_unique<ezlocalai::LlamaCppInferenceBackend>(config.default_model));
+    const auto tool_reply = tool_server.handle_request("POST", "/v1/chat/completions", "Bearer secret",
+        tool_request(false), "application/json");
+    fake_tool_server.join();
+    expect(tool_reply.status == 200 && tool_reply.body.find("\"id\":\"call_note\"") != std::string::npos
+        && tool_reply.body.find("\"finish_reason\":\"tool_calls\"") != std::string::npos, "buffered tool call is preserved");
+
+    const std::string tool_start = R"({"choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"id":"call_note","type":"function","function":{"name":"read_note","arguments":""}}]},"finish_reason":null}]})";
+    const std::string tool_arguments = R"({"choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"{\"name\":\"todo\"}"}}]},"finish_reason":null}]})";
+    const std::string tool_finish = R"({"choices":[{"index":0,"delta":{},"finish_reason":"tool_calls"}]})";
+    std::thread fake_tool_stream_server(
+        fake_expect_worker_once_with_type,
+        18141,
+        "POST /v1/chat/completions HTTP/1.1",
+        "Content-Type: application/json",
+        tool_options,
+        "text/event-stream",
+        "data: " + tool_start + "\n\ndata: " + tool_arguments + "\n\ndata: " + tool_finish + "\n\ndata: [DONE]\n\n"
+    );
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    const auto tool_stream_reply = tool_server.handle_request("POST", "/v1/chat/completions", "Bearer secret",
+        tool_request(true), "application/json");
+    fake_tool_stream_server.join();
+    expect(tool_stream_reply.status == 200 && tool_stream_reply.content_type == "text/event-stream; charset=utf-8"
+        && tool_stream_reply.body.find("\"id\": \"call_note\"") != std::string::npos
+        && tool_stream_reply.body.find("\"finish_reason\": \"tool_calls\"") != std::string::npos
+        && tool_stream_reply.body.find("empty_stream") == std::string::npos
+        && tool_stream_reply.body.find("data: [DONE]") != std::string::npos, "tool-only stream completes successfully");
+    unsetenv("LLAMA_CPP_SERVER_URL");
+
     const auto fake_hf_llama_bin = test_cwd / "fake-hf-llama-server";
     const auto fake_hf_llama_args = test_cwd / "llama-hf-args.txt";
     {

@@ -8676,6 +8676,10 @@ std::string llm_engine_request(const std::string &body, bool chat_mode, const st
     if (chat_mode) {
         const auto options = json_object_field(request_fields, "chat_template_kwargs", "");
         if (!options.empty()) fields.push_back({"chat_template_kwargs", options});
+        for (const auto *key : {"tools", "tool_choice", "parallel_tool_calls"}) {
+            const auto value = json_object_field(request_fields, key, "");
+            if (!value.empty()) fields.push_back({key, value});
+        }
         bool has_system = false;
         if (input.front() != '[') {
             if (input.front() == '"' && parse_json_string_at(input, 0).empty()) { /* empty iterable */ }
@@ -9240,6 +9244,20 @@ std::string llm_stream_finish_reason(const std::string &json) {
     return "";
 }
 
+namespace {
+bool llm_stream_has_tool_calls(const std::string &json) {
+    const auto choices = json_object_field(json, "choices", "[]");
+    if (choices.empty() || choices.front() != '[') return false;
+    for (const auto &choice : json_array_elements(choices)) {
+        for (const auto *key : {"delta", "message"}) {
+            const auto calls = json_object_field(json_object_field(choice, key, "{}"), "tool_calls", "[]");
+            if (!calls.empty() && calls.front() == '[' && !json_array_elements(calls).empty()) return true;
+        }
+    }
+    return false;
+}
+}
+
 LlmChatStreamNormalizer::LlmChatStreamNormalizer(std::string model, std::string backend, std::string version,
     int64_t id_time, int64_t created)
     : model_(std::move(model)), backend_(std::move(backend)), version_(std::move(version)),
@@ -9287,9 +9305,9 @@ void LlmChatStreamNormalizer::chunk(const std::string &json, std::vector<std::st
         for (const auto &item : json_array_elements(value))
             if (item == "\"choices\"") choices_present = true;
     if (choices_present) {
-        const bool has_text = llm_stream_has_assistant_text(value);
-        if (has_text) ++assistant_chunks_;
-        if (!has_text && !llm_stream_finish_reason(value).empty()) pending_final_ = stream_json_dumps(value);
+        const bool has_output = llm_stream_has_assistant_text(value) || llm_stream_has_tool_calls(value);
+        if (has_output) ++assistant_chunks_;
+        if (!has_output && !llm_stream_finish_reason(value).empty()) pending_final_ = stream_json_dumps(value);
         else output->push_back(stream_json_dumps(value));
         return;
     }
