@@ -1,0 +1,25 @@
+{
+  "date": "2026-11-26",
+  "model": "unsloth/Inkling-2-Mini-GGUF",
+  "validation": {
+    "focused_suites_passed": [
+      "llm_request_reference",
+      "llm_stream_reference",
+      "native_http",
+      "stream_completion"
+    ],
+    "native_staging_dependency_image": "sha256:2928738bb5e60d6b57c179b550a24bf0844c0b07c0493c27aea232ed66d0a5a2",
+    "rtx_5090": {
+      "engine_image": "sha256:7531fd7a56545cc2d12d5df53d7698679d0636cb5029e781089321078f17b2f4",
+      "original_direct_engine_tool_call_passed": true,
+      "original_worker_forwarding_reproduced": true,
+      "patched_worker_buffered_call_passed": true,
+      "patched_worker_follow_up_passed": true,
+      "patched_worker_streamed_named_call_passed": true
+    },
+    "package_tests_passed": 76,
+    "package_tests_seconds": 355.22
+  },
+  "release_image_id": null,
+  "rollback_tag": null
+}
