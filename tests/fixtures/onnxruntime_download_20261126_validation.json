@@ -1,0 +1,45 @@
+{
+  "date": "2026-11-26",
+  "deployment_event": "1795717745224-c96ca3d2",
+  "failed_stage": "audio-dependencies",
+  "host": "xt-gb10",
+  "onnxruntime_version": "1.31.0",
+  "github_release_http_status": {
+    "linux-x64": 404,
+    "linux-aarch64": 404,
+    "linux-aarch64_on_build_host": 404
+  },
+  "nuget_headers_sha256": "7e35fdb4f5adb62f01e60798e2e5ed05108f5fbbe1cca03fbcc37903cf7c5e3b",
+  "headers_matching_running_image_after_line_ending_normalization": 17,
+  "preserved_pypi_wheel_sha256": {
+    "x86_64": "5e129d6c56abd53e659cb70f00a108d6824086470ff99c2e47a82e5786563db3",
+    "aarch64": "35758d7606d578ec5b9d65f6e8a1f488013194c3f6097038a3223cb26d35ef9a"
+  },
+  "validation": {
+    "download_diagnostics": {
+      "http_failure_empty_cache": true,
+      "hash_mismatch_empty_cache": true
+    },
+    "cold_install_checks": ["x86_64", "aarch64"],
+    "gb10_docker_audio_stage": {
+      "passed": true,
+      "installer_step_seconds": 101.1,
+      "output": "cacheonly"
+    },
+    "silero_x86_64": {
+      "cases_passed": 29,
+      "max_probability_error": 0
+    },
+    "silero_gb10": {
+      "modern_model_inference_passed": true,
+      "legacy_model_inference_passed": true,
+      "matches_running_image_runtime": true
+    }
+  },
+  "running_gb10_worker_image": "sha256:a664f933d08ca1bfaf508efe1fd90a0e01b65a0acf8840dfb967e3967a84ef74",
+  "running_gb10_worker_health": "healthy",
+  "full_image_packaging_validated": false,
+  "release_image_id": null,
+  "rollback_tag": null,
+  "rollout_validated": false
+}
