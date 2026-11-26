@@ -1073,7 +1073,7 @@ add_test(NAME llm_output_reference COMMAND test_llm_output ${EZLOCALAI_REFERENCE
 set_tests_properties(llm_output_reference PROPERTIES TIMEOUT 90)
 
 add_executable(test_llm_request tests/test_llm_request.cpp)
-target_link_libraries(test_llm_request PRIVATE ezlocalai_native)
+target_link_libraries(test_llm_request PRIVATE ezlocalai_native nlohmann_json::nlohmann_json)
 add_executable(bench_llm_request EXCLUDE_FROM_ALL benchmarks/bench_request.cpp)
 target_link_libraries(bench_llm_request PRIVATE ezlocalai_native nlohmann_json::nlohmann_json)
 add_executable(bench_llm_input EXCLUDE_FROM_ALL benchmarks/bench_input.cpp)

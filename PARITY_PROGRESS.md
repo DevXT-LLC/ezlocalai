@@ -2,6 +2,28 @@
 
 The goal remains behavior parity with ezlocalai within the scope below, with all first-party executable code implemented in C++. It is **not complete**.
 
+## Native Chat Tool Calls (2026-11-26)
+
+Fixed a worker request filter that discarded OpenAI tool declarations and
+selection options before llama.cpp received them. The native worker forwards
+`tools`, `tool_choice` and `parallel_tool_calls`. Tool-only SSE responses
+retain the original argument deltas and terminal reason. This intentionally
+extends the Python worker's request and stream behavior.
+
+On DevXT5090, the original Inkling engine produced the expected call directly
+while the worker omitted it. The patched worker passed a buffered tool call,
+a result-driven follow-up and a streamed named tool call against the same
+physical RTX 5090 and Inkling model. The focused request, stream, native HTTP
+and stream completion suites passed. All 76 package checks passed in
+355.22 seconds with the Python reference checkout disabled.
+
+Staging reused dependency image
+`sha256:2928738bb5e60d6b57c179b550a24bf0844c0b07c0493c27aea232ed66d0a5a2`.
+The isolated tool test used the running engine from
+`sha256:7531fd7a56545cc2d12d5df53d7698679d0636cb5029e781089321078f17b2f4`.
+The staging checks did not publish a release image or create a rollback tag.
+Compact evidence is in `tests/fixtures/native_tool_calls_20261126_validation.json`.
+
 ## ONNX Runtime Dependency Download (2026-11-26)
 
 Both ONNX Runtime 1.31.0 GitHub release archives returned HTTP 404. The ARM64

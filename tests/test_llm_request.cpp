@@ -9,6 +9,7 @@
 #include <fstream>
 #include <iomanip>
 #include <iostream>
+#include <nlohmann/json.hpp>
 #include <openssl/sha.h>
 #include <sstream>
 #include <unistd.h>
@@ -29,7 +30,18 @@ size_t policy(const fs::path &reference,const fs::path &fixture){
         else{
             expect(c[0]=="P"&&c.size()==9,"request fixture fields");std::string category="OK",error,payload="null",guard;
             try{payload=ezlocalai::llm_engine_request(c[2],c[1]=="chat",c[3],c[4]);}catch(const ezlocalai::LlmParameterError &e){category=e.category;error=e.message;}
-            expect(category==c[5]&&error==c[6]&&payload==c[7],"engine payload "+std::to_string(count)+": "+category+" "+error+" "+payload+" expected "+c[5]+" "+c[6]+" "+c[7]);
+            std::string expected_payload = c[7];
+            if (c[1] == "chat" && expected_payload != "null" && c[2].find("\"tools\"") != std::string::npos) {
+                // The Python binding drops OpenAI tool options. The worker
+                // forwards them while keeping the rest of the recorded shape.
+                const auto request = nlohmann::ordered_json::parse(c[2]);
+                auto expected = nlohmann::ordered_json::parse(expected_payload);
+                for (const auto *key : {"tools", "tool_choice", "parallel_tool_calls"}) {
+                    if (request.contains(key)) expected[key] = request.at(key);
+                }
+                expected_payload = expected.dump();
+            }
+            expect(category==c[5]&&error==c[6]&&payload==expected_payload,"engine payload "+std::to_string(count)+": "+category+" "+error+" "+payload+" expected "+c[5]+" "+c[6]+" "+expected_payload);
             if(payload!="null"&&c[1]=="completion")try{ezlocalai::llm_completion_callback_guard(payload);}catch(const ezlocalai::LlmParameterError &e){guard=e.category+':'+e.message;}
             expect(guard==c[8],"compiled binding guard "+std::to_string(count));
         }
