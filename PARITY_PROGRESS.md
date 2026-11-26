@@ -2,6 +2,34 @@
 
 The goal remains behavior parity with ezlocalai within the scope below, with all first-party executable code implemented in C++. It is **not complete**.
 
+## ONNX Runtime Dependency Download (2026-11-26)
+
+Both ONNX Runtime 1.31.0 GitHub release archives returned HTTP 404. The ARM64
+download stopped deployment event `1795717745224-c96ca3d2` in the GB10
+`audio-dependencies` stage. All six native dependency manifests now take
+public headers and license notices from Microsoft's checksum-pinned NuGet
+package. The 17 public headers match the running GB10 image after line
+ending normalization. Runtime libraries still come from the pinned PyPI
+wheels, with their linker and SONAME links installed by CMake. Download
+errors identify the artifact and URL, and only verified downloads enter
+the cache.
+
+The Docker audio dependency stage passed on the GB10 and CUDA profiles
+(101.1 and 144.3 seconds for their installer steps, respectively). Cold
+x86-64 and ARM64 installer runs checked the libraries and symlinks. A warm
+x86-64 run reused verified archives. All 29 real Silero VAD cases passed on
+x86-64 with zero probability error. Modern and legacy Silero inference passed
+on the physical GB10. HTTP failure and hash failure each left an empty
+download cache.
+
+The full native GB10 Docker build passed with cache-only output. All 78
+package checks passed in 307.46 seconds, followed by installation and
+native linkage checks. The existing GB10 worker was healthy on
+`sha256:a664f933d08ca1bfaf508efe1fd90a0e01b65a0acf8840dfb967e3967a84ef74`.
+Registry publication and router-backed rollout remain unverified. No release
+image or rollback tag was created. Compact evidence is in
+`tests/fixtures/onnxruntime_download_20261126_validation.json`.
+
 ## Inkling 2 Mini Context and DSpark (2026-11-26)
 
 Raised the Inkling-specific starting context to 262,144 tokens for native and

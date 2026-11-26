@@ -1,9 +1,9 @@
 [
   {
-    "name": "onnxruntime-1.31.0",
-    "kind": "ort",
-    "url": "https://github.com/microsoft/onnxruntime/releases/download/v1.31.0/onnxruntime-linux-aarch64-1.31.0.tgz",
-    "sha256": "c5b8b3cca31f3d643a3b313b8f42e2d0f16a4fcefd02cda343d97bd5306afaab"
+    "name": "onnxruntime-headers-1.31.0",
+    "kind": "ort_headers",
+    "url": "https://api.nuget.org/v3-flatcontainer/microsoft.ml.onnxruntime/1.31.0/microsoft.ml.onnxruntime.1.31.0.nupkg",
+    "sha256": "7e35fdb4f5adb62f01e60798e2e5ed05108f5fbbe1cca03fbcc37903cf7c5e3b"
   },
   {
     "name": "onnxruntime-installed-1.31.0",

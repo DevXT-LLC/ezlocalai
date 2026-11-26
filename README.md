@@ -220,7 +220,9 @@ binary used by the installed reference. It also builds the native Qwen TTS
 worker from the pinned llama.cpp tree and sets `QWEN_TTS_BIN` to its installed
 executable. No Python interpreter or binding library is required at runtime.
 Downloads and licenses are managed by `cmake/CudaAudioDependencies.cmake` and
-the SHA-256 lock file beside it. Models remain in the mounted model cache.
+the platform SHA-256 manifests beside it. Microsoft’s NuGet package supplies
+the ONNX Runtime headers. The pinned PyPI wheels supply the native libraries.
+Models remain in the mounted model cache.
 
 Current CPU/CUDA large-v3-turbo and Qwen inference comparisons are documented
 in `tests/fixtures/audio_deployment_README.md`. Configure
