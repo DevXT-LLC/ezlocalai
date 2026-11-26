@@ -1,5 +1,6 @@
 #include "ezlocalai/model_download.hpp"
 #include "ezlocalai/hub_assets.hpp"
+#include "ezlocalai/inkling_model.hpp"
 #include "ezlocalai/configuration.hpp"
 #include "ezlocalai/ezlocalai_c.h"
 #include "ezlocalai/llm_slots.hpp"
@@ -27,12 +28,15 @@ ModelFiles download_gguf_model(std::string name, const std::string &models_dir, 
     if (!io.list_remote) io.list_remote = [](const auto &repo) { return list_hub_files(repo); };
     if (!io.download) io.download = [](const auto &repo, const auto &file, const auto &directory) { download_hub_file(repo, file, directory); };
     if (name.empty()) name = ezl_getenv_default("DEFAULT_MODEL");
+    const bool inkling = inkling2_mini_model(name);
+    if (inkling && name.find('/') == std::string::npos) name = inkling2_mini_repository;
     if (name.find('/') == std::string::npos) name = realtime_audio_model(name)
         ? "LiquidAI/" + name + (name.find("-GGUF") == std::string::npos ? "-GGUF" : "")
         : "unsloth/" + name + "-GGUF";
     std::string quant = quantization.value_or(ezl_getenv_default("QUANT_TYPE"));
     const auto comma = quant.find(',');
     if (comma != std::string::npos) quant = strip_config_value(quant.substr(0, comma));
+    if (inkling && quant.empty()) quant = inkling2_mini_quant;
     auto model = name.substr(name.rfind('/') + 1);
     const auto suffix = model.find("-GGUF"); if (suffix != std::string::npos) model.resize(suffix);
     const auto directory = join(models_dir, model);
@@ -78,15 +82,21 @@ ModelFiles download_gguf_model(std::string name, const std::string &models_dir, 
             }
         }
     }
+    const auto is_weight = [inkling](const std::string &file) {
+        if (!gguf(file) || projector(file)) return false;
+        // This repository also ships speculative draft GGUFs, including Q8.
+        return !inkling || lower(file).rfind("inkling-2-mini-", 0) == 0;
+    };
     std::vector<std::string> local;
-    if (io.exists(directory)) for (const auto &file : io.list_local(directory)) if (gguf(file) && !projector(file)) local.push_back(file);
+    if (io.exists(directory)) for (const auto &file : io.list_local(directory)) if (is_weight(file)) local.push_back(file);
     for (const auto &file : local) if (quant.empty() || file.find(quant) != std::string::npos) { result.model = join(directory, file); return result; }
     try {
         std::vector<std::string> files;
-        for (const auto &file : io.list_remote(name)) if (gguf(file) && !projector(file)) files.push_back(file);
+        for (const auto &file : io.list_remote(name)) if (is_weight(file)) files.push_back(file);
         if (!files.empty()) {
             std::string chosen;
-            for (const auto &pattern : {quant, std::string("Q4_K"), std::string("Q5_K"), std::string("Q6_K"), std::string("Q8")}) {
+            const auto fallback = inkling ? inkling2_mini_quant : "Q4_K";
+            for (const auto &pattern : {quant, std::string(fallback), std::string("Q5_K"), std::string("Q6_K"), std::string("Q8")}) {
                 for (const auto &file : files) if (file.find(pattern) != std::string::npos) { chosen = file; break; }
                 if (!chosen.empty()) break;
             }

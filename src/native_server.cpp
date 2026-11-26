@@ -1,4 +1,5 @@
 #include "ezlocalai/omni_model.hpp"
+#include "ezlocalai/inkling_model.hpp"
 #include "ezlocalai/realtime.hpp"
 #include "ezlocalai/cuda_mps.hpp"
 #include "ezlocalai/voice_conversion.hpp"
@@ -8586,6 +8587,7 @@ std::string llm_model_request_settings(const std::string &body, const std::strin
         fields.erase(std::remove_if(fields.begin(), fields.end(), [&](const auto &item) { return item.first == key; }), fields.end());
     };
     const bool qwen = llm_qwen38_model(model);
+    const bool inkling = inkling2_mini_model(model);
     static const std::map<std::string, std::string> profiles = {
         {"unsloth/Qwen3-VL-4B-Instruct-GGUF", R"({"top_p":0.8,"top_k":20,"temperature":0.7,"repetition_penalty":1.0,"presence_penalty":1.5})"},
         {"unsloth/Qwen3-4B-Instruct-2507-GGUF", R"({"top_p":1.0,"top_k":40,"temperature":1.0,"repetition_penalty":1.0,"presence_penalty":2.0})"},
@@ -8599,6 +8601,7 @@ std::string llm_model_request_settings(const std::string &body, const std::strin
         "unsloth/Qwen3.6-35B-A3B-GGUF", "unsloth/Qwen3.6-35B-A3B-MTP-GGUF", "unsloth/Qwen3.5-9B-MTP-GGUF", "unsloth/Qwen3.5-4B-MTP-GGUF"};
     std::string profile;
     if (realtime_audio_model(model)) profile = R"({"temperature":0.0,"top_p":1.0,"top_k":0,"min_p":0.0,"repetition_penalty":1.0,"chat_template_kwargs":{"enable_thinking":false}})";
+    else if (inkling) profile = R"({"temperature":1.0,"top_p":1.0,"top_k":0,"min_p":0.0,"repetition_penalty":1.0,"chat_template_kwargs":{"reasoning_effort":"high"}})";
     else if (qwen) profile = R"({"temperature":1.0,"top_p":0.95,"top_k":20,"min_p":0.0,"presence_penalty":0.0,"repetition_penalty":1.0,"chat_template_kwargs":{"enable_thinking":true,"reasoning_effort":"xhigh"}})";
     else if (llm_minicpm5_model(model)) profile = R"({"temperature":1.0,"top_p":0.95,"min_p":0.0,"chat_template_kwargs":{"enable_thinking":false}})";
     else if (const auto it = profiles.find(model); it != profiles.end()) profile = it->second;
@@ -8641,9 +8644,8 @@ std::string llm_model_request_settings(const std::string &body, const std::strin
         }
     }
     for (const auto &item : defaults) {
-        // New native omni defaults preserve explicit request sampling. The
-        // historical Python profiles keep their existing override semantics.
-        if (realtime_audio_model(model) && item.first != "chat_template_kwargs" && request_fields.count(item.first)) continue;
+        // Native model profiles preserve explicit request sampling.
+        if ((inkling || realtime_audio_model(model)) && item.first != "chat_template_kwargs" && request_fields.count(item.first)) continue;
         ordered_json_upsert(&data, {item.first, item.first == "chat_template_kwargs" ? json_object_from_ordered_entries(options) : item.second});
     }
     return json_object_from_ordered_entries(data);
@@ -10015,12 +10017,19 @@ LlmCatalog captured_llm_catalog(const std::string &default_model) {
     settings.speculative_type = ezl_getenv_fallback("LLM_SPECULATIVE_TYPE", "auto");
     settings.gpu_count = visible_cuda_device_count();
     auto catalog = parse_llm_catalog(settings);
+    const bool default_context = std::getenv("LLM_MAX_TOKENS") == nullptr;
+    const bool default_quant = std::getenv("QUANT_TYPE") == nullptr;
     // Preserve the existing explicit llama-server context extension. Added
     // instances inherit the originating CSV entry, not their appended index.
     for (auto &entry : catalog.configs) {
+        const auto source = catalog.source(entry.first);
+        if (inkling2_mini_model(source)) {
+            if (default_context) entry.second.context = inkling2_mini_context;
+            if (default_quant) entry.second.quant = inkling2_mini_quant;
+        }
         int context = llama_configured_context_size(entry.second.original_index, false);
         if (context <= 0) parse_strict_int_string(csv_env_value_for_index("LLAMA_CPP_DEFAULT_CONTEXT", entry.second.original_index), &context);
-        if (context > 0) entry.second.context = realtime_audio_model(catalog.source(entry.first))
+        if (context > 0) entry.second.context = realtime_audio_model(source)
             ? std::min(context, lfm3_context_limit) : context;
     }
     return catalog;

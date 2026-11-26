@@ -2,6 +2,41 @@
 
 The goal remains behavior parity with ezlocalai within the scope below, with all first-party executable code implemented in C++. It is **not complete**.
 
+## llama.cpp v1.1.0 and Inkling 2 Mini (2026-11-26)
+
+Pinned managed llama.cpp builds to `171527522610996f5f0acf12334e185156ca8f44`.
+Ported the nine-patch stack to the upstream slot scheduler and typed CUDA
+attention loader, retaining LoRA-aware cache selection, unified-KV retry,
+bounded snapshots, MTP resume, checkpoint coverage and prefix anchors. The
+managed updater removed a fully installed v1.0.0 stack and checked out v1.1.0.
+Lifecycle tests also exercised pristine and partial installs, idempotence and
+removal of the v0.7–v0.9 stacks.
+
+Added opt-in Inkling 2 Mini defaults for `UD-Q4_K_M`, a 32,768-token context,
+the F16 projector and Unsloth's sampling settings. All ten current root target
+GGUF hashes match their `Mainline_Support` copies. A CPU worker picked the
+default cached weights and projector with quantization and context unset and
+answered text and image requests through the native HTTP API. The standalone
+engine passed the same two requests. Qwen3.5-0.8B on CPU accepted 12 of 12
+draft tokens per turn and processed four prompt tokens on each returning
+A/B/A/B/A conversation with matching greedy output.
+
+The six-profile Compose gate passed all 1,947 settings. The portable CPU
+engine, native worker and Qwen TTS executable built, and the TTS CLI started.
+Four engine and management checks and five strict Python reference suites
+passed. The 306 MTP state checks also passed under ASan/UBSan. The CUDA
+dispatcher and Q4 MMA specialization compiled with NVCC 12.8.93 for SM86,
+SM89 and SM120a. The staged package used dependency image
+`sha256:2928738bb5e60d6b57c179b550a24bf0844c0b07c0493c27aea232ed66d0a5a2`
+with networking and GPU access disabled. All 76 package checks passed in
+344.80 seconds with `EZLOCALAI_REFERENCE_ROOT` pointing to an absent path.
+
+Physical GPU inference, real-weight DFlash and DSpark, LFM3 realtime, Qwen TTS
+audio, release-image packaging and router-backed deployment remain unverified.
+This PR used a staging container, so no release image or rollback tag was
+created. Compact evidence is in
+`tests/fixtures/llama_v110_upgrade_20261126_validation.json`.
+
 ## llama.cpp v1.0.0 and Qwen MTP Compatibility (2026-11-13)
 
 Updated active engine/build pins to `b1b770d90d94cad9e9ea5b993bdbc383a522fb28`

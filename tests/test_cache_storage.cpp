@@ -1,4 +1,4 @@
-#include "server-task.h"
+#include "server-slot-sched.h"
 
 #include <algorithm>
 #include <cstdlib>
@@ -28,6 +28,11 @@ void operator delete(void * ptr, std::size_t) noexcept { std::free(ptr); }
 void operator delete[](void * ptr, std::size_t) noexcept { std::free(ptr); }
 
 namespace {
+static auto find_best(const server_prompt_cache & cache, const server_prompt & prompt, const server_tokens & tokens) {
+    int lcp = 0;
+    return cache.find_better(prompt, tokens, {}, lcp);
+}
+
 void check(bool condition, const char * message) {
     if (!condition) throw std::runtime_error(message);
 }
@@ -144,10 +149,10 @@ void shared_checkpoint_branches_fit_budget() {
     b.checkpoints = a.checkpoints;
     server_prompt_cache cache(2, 4096);
     std::vector<uint8_t> spec_a(32 * 1024), spec_b(48 * 1024);
-    check(cache.save(a, target(), draft(), 7, nullptr, std::move(spec_a)), "first shared branch save failed");
+    check(cache.save(a, target(), draft(), 7, nullptr, {}, std::move(spec_a)), "first shared branch save failed");
     check(cache.states.size() == 1, "first shared branch save published no cached state");
     auto * first = &cache.states.front();
-    check(cache.save(b, target(), draft(), 7, nullptr, std::move(spec_b)), "second shared branch save failed");
+    check(cache.save(b, target(), draft(), 7, nullptr, {}, std::move(spec_b)), "second shared branch save failed");
     check(cache.states.size() == 2 && &cache.states.front() == first,
         "shared checkpoint backing needlessly evicted an existing branch");
     const auto & second = cache.states.back();
@@ -169,11 +174,13 @@ void protected_shared_checkpoint_save_fits() {
     b.checkpoints = a.checkpoints;
     server_prompt_cache cache(2, 4096);
     auto * protected_state = save(cache, a);
-    check(cache.save(b, target(), draft(), 7, &a.tokens),
+    server_task request;
+    request.tokens = a.tokens.clone();
+    check(cache.save(b, target(), draft(), 7, &request),
         "shared backing caused a false protected-state admission failure");
     check(cache.states.size() == 2 && &cache.states.front() == protected_state,
         "saving a shared branch displaced the pending restore");
-    check(cache.load(resident, a.tokens, target(), draft(), 7), "protected shared branch restore failed");
+    check(cache.load(resident, a.tokens, {}, target(), draft(), 7), "protected shared branch restore failed");
     check(cache.states.size() == 1, "protected shared branch restore removed the wrong cached states");
     const auto & survivor = cache.states.front();
     check(cache.size() == survivor.size() + cache.spare.size() &&
@@ -187,7 +194,9 @@ void independent_checkpoints_do_not_bypass_protection() {
     server_prompt_cache cache(2, 4096);
     auto * protected_state = save(cache, a);
     const size_t before = cache.size();
-    check(!cache.save(b, target(), draft(), 7, &a.tokens),
+    server_task request;
+    request.tokens = a.tokens.clone();
+    check(!cache.save(b, target(), draft(), 7, &request),
         "equal bytes in independent allocations bypassed the protected-state limit");
     check(cache.states.size() == 1 && &cache.states.front() == protected_state && cache.size() == before,
         "denied independent checkpoint save disturbed the protected state");
@@ -260,7 +269,9 @@ void shared_checkpoint_snapshot_failures_preserve_budget() {
     auto * protected_state = save(cache, a);
     const size_t before = cache.size();
     plan.short_save = true;
-    check(!cache.save(b, target(), draft(), 7, &a.tokens), "partial shared snapshot was published");
+    server_task request;
+    request.tokens = a.tokens.clone();
+    check(!cache.save(b, target(), draft(), 7, &request), "partial shared snapshot was published");
     plan.short_save = false;
     check(cache.states.size() == 1 && &cache.states.front() == protected_state && cache.size() == before,
         "failed shared snapshot damaged the protected backing or its charge");
@@ -268,11 +279,11 @@ void shared_checkpoint_snapshot_failures_preserve_budget() {
     check(cache.states.size() == 2 && &cache.states.front() == protected_state && &cache.states.back() == survivor,
         "shared branches did not survive before restore fault injection");
     plan.fail_restore = true;
-    check(!cache.load(resident, a.tokens, target(), draft(), 7), "failed shared restore was accepted");
+    check(!cache.load(resident, a.tokens, {}, target(), draft(), 7), "failed shared restore was accepted");
     plan.fail_restore = false;
     check(cache.states.size() == 1 && &cache.states.front() == survivor && cache.size() == survivor->size() &&
         cache.spare.size() == 0, "failed restore released surviving shared backing or recycled invalid buffers");
-    check(cache.load(resident, b.tokens, target(), draft(), 7), "surviving shared branch restore failed");
+    check(cache.load(resident, b.tokens, {}, target(), draft(), 7), "surviving shared branch restore failed");
     check(cache.states.empty() && cache.size() == cache.spare.size() && cache.size() > 0,
         "consumed shared snapshot buffers were not charged");
     plan.short_save = true;
@@ -290,7 +301,9 @@ void disabled_storage_shared_sources_still_need_independent_space() {
     check(checkpoint_data(protected_state->prompt) != checkpoint_data(a),
         "storage opt-out reused source checkpoint backing");
     const size_t before = cache.size();
-    check(!cache.save(b, target(), draft(), 7, &a.tokens),
+    server_task request;
+    request.tokens = a.tokens.clone();
+    check(!cache.save(b, target(), draft(), 7, &request),
         "storage opt-out treated independent checkpoint clones as shared");
     check(cache.states.size() == 1 && &cache.states.front() == protected_state && cache.size() == before,
         "storage opt-out admission disturbed protected state accounting");
@@ -304,7 +317,7 @@ void snapshot_reuse_without_large_allocation() {
     const auto * main_ptr = entry->data.main.data();
     const auto * draft_ptr = entry->data.drft.data();
     const auto charged = entry->data.main.capacity() + entry->data.drft.capacity();
-    check(cache.load(resident, a.tokens, target(), draft(), 7), "initial snapshot restore failed");
+    check(cache.load(resident, a.tokens, {}, target(), draft(), 7), "initial snapshot restore failed");
     check(cache.states.empty() && cache.size() == charged, "consumed snapshot storage is not charged to the cache budget");
     server_prompt_cache_state * reused = nullptr;
     {
@@ -323,7 +336,7 @@ void smaller_snapshot_charges_capacity() {
     server_prompt_cache cache(2, 4096);
     auto * entry = save(cache, a);
     const size_t charged = entry->data.main.capacity() + entry->data.drft.capacity();
-    check(cache.load(resident, a.tokens, target(), draft(), 7), "restore before smaller snapshot failed");
+    check(cache.load(resident, a.tokens, {}, target(), draft(), 7), "restore before smaller snapshot failed");
     auto * smaller = cache.alloc(b, plan.main_size / 2, plan.draft_size / 2);
     check(smaller && smaller->data.main.size() == plan.main_size / 2 && smaller->data.drft.size() == plan.draft_size / 2,
         "smaller snapshot has incorrect logical lengths");
@@ -340,11 +353,13 @@ void oversized_spare_does_not_evict_useful_state() {
     plan.main_size = 600 * 1024;
     auto * survivor = save(cache, b, false);
     plan.main_size = 1024 * 1024;
-    check(cache.load(resident, a.tokens, target(), nullptr, 7), "restore before oversized spare test failed");
-    auto * fresh = cache.alloc(c, 256 * 1024, 0, &b.tokens);
+    check(cache.load(resident, a.tokens, {}, target(), nullptr, 7), "restore before oversized spare test failed");
+    server_task request;
+    request.tokens = b.tokens.clone();
+    auto * fresh = cache.alloc(c, 256 * 1024, 0, &request);
     check(fresh && fresh->data.main.capacity() < 1024 * 1024, "oversized spare displaced a useful cached state");
-    check(cache.states.size() == 2 && cache.find_best(resident, b.tokens) != cache.states.end() &&
-        &*cache.find_best(resident, b.tokens) == survivor && cache.size() <= cache.limit_size,
+    check(cache.states.size() == 2 && find_best(cache, resident, b.tokens) != cache.states.end() &&
+        &*find_best(cache, resident, b.tokens) == survivor && cache.size() <= cache.limit_size,
         "spare pressure changed protected eviction or exceeded the hard budget");
 }
 
@@ -357,7 +372,7 @@ void update_discards_spare_before_cached_state() {
     plan.main_size = 128 * 1024;
     auto * survivor = save(cache, b, false);
     plan.main_size = 256 * 1024;
-    check(cache.load(resident, a.tokens, target(), nullptr, 7), "restore before reduced budget failed");
+    check(cache.load(resident, a.tokens, {}, target(), nullptr, 7), "restore before reduced budget failed");
     cache.limit_size = 160 * 1024;
     cache.update();
     check(cache.states.size() == 1 && &cache.states.front() == survivor && cache.size() <= cache.limit_size,
@@ -369,7 +384,7 @@ void failure_does_not_recycle_partial_state() {
     server_prompt_cache cache(2, 4096);
     save(cache, a);
     plan.fail_restore = true;
-    check(!cache.load(resident, a.tokens, target(), draft(), 7), "injected restore failure was accepted");
+    check(!cache.load(resident, a.tokens, {}, target(), draft(), 7), "injected restore failure was accepted");
     plan.fail_restore = false;
     check(cache.states.empty() && cache.size() == 0, "failed restore retained invalid storage");
     server_prompt_cache_state * result = nullptr;
@@ -384,11 +399,11 @@ void failed_reused_save_is_not_published() {
     auto a = prompt(1), b = prompt(2), resident = prompt(3);
     server_prompt_cache cache(2, 4096);
     save(cache, a);
-    check(cache.load(resident, a.tokens, target(), draft(), 7), "restore before reused failed save failed");
+    check(cache.load(resident, a.tokens, {}, target(), draft(), 7), "restore before reused failed save failed");
     plan.short_save = true;
     check(!cache.save(b, target(), draft(), 7), "short write into recycled storage was published");
     plan.short_save = false;
-    check(cache.states.empty() && cache.find_best(resident, b.tokens) == cache.states.end(),
+    check(cache.states.empty() && find_best(cache, resident, b.tokens) == cache.states.end(),
         "partially overwritten recycled bytes remain selectable");
 }
 
@@ -399,7 +414,7 @@ void disabled_storage_uses_legacy_ownership() {
     check(checkpoint_data(a) != checkpoint_data(copy), "storage opt-out did not deep-copy checkpoint bytes");
     server_prompt_cache cache(2, 4096);
     save(cache, a);
-    check(cache.load(resident, a.tokens, target(), draft(), 7), "storage opt-out changed restore bytes");
+    check(cache.load(resident, a.tokens, {}, target(), draft(), 7), "storage opt-out changed restore bytes");
     check(cache.states.empty() && cache.size() == 0, "storage opt-out retained consumed snapshot buffers");
     setenv("EZLOCALAI_LLAMA_CACHE_STORAGE", "1", 1);
 }

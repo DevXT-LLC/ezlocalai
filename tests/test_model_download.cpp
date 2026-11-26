@@ -426,6 +426,37 @@ void real_engine_smoke(const fs::path &engine, const fs::path &model) {
     expect(connected != 0, "real engine no longer listens after backend destruction");
     std::cout << "Verified pinned real CPU engine acquisition, startup, repeated/streamed generation and unload/reload; generated text: " << generated << '\n';
 }
+void inkling_acquisition() {
+    const std::string repository = "unsloth/Inkling-2-Mini-GGUF";
+    const std::string directory = "models/Inkling-2-Mini";
+    const std::string q4 = "Inkling-2-Mini-UD-Q4_K_M.gguf", q8 = "Inkling-2-Mini-UD-Q8_K_XL.gguf";
+    const std::string draft = "dspark-Inkling-2-Mini-Q8_0.gguf";
+    std::vector<std::string> local{draft};
+    std::vector<std::string> downloads;
+    ezlocalai::ModelDownloadHooks hooks;
+    hooks.mkdir = [&](const auto &path) { expect(path == directory, "Inkling cache path"); };
+    hooks.list_local = [&](const auto &) { return local; };
+    hooks.exists = [&](const auto &path) { return path == directory; };
+    hooks.list_remote = [&](const auto &repo) {
+        expect(repo == repository, "Inkling Hub repo");
+        return std::vector<std::string>{draft, "dspark/model-Q8.gguf", q8, q4, "Old_Support/" + q4 + "_file"};
+    };
+    hooks.download = [&](const auto &repo, const auto &file, const auto &path) {
+        expect(repo == repository && path == directory, "Inkling asset location");
+        downloads.push_back(file);
+        local.push_back(file);
+    };
+    const auto fallback = ezlocalai::download_gguf_model("Inkling-2-Mini-GGUF", "models", "Q8_0", false, hooks);
+    expect(fallback.model == directory + "/" + q4 && fallback.projector == directory + "/mmproj-F16.gguf",
+           "unsupported Inkling quant falls back to base weights and F16 projector");
+    expect(downloads == std::vector<std::string>{"mmproj-F16.gguf", q4}, "only current root assets are downloaded");
+    const auto explicit_q8 = ezlocalai::download_gguf_model(repository, "models", "Q8", false, hooks);
+    expect(explicit_q8.model == directory + "/" + q8 && downloads.back() == q8, "Q8 selects backbone before DSpark");
+    const auto cached = ezlocalai::download_gguf_model(repository, "models", "UD-Q4_K_M", false, hooks);
+    expect(cached.model == fallback.model && cached.projector == fallback.projector && downloads.size() == 3,
+           "cached Inkling assets are reused");
+}
+
 }
 int main(int argc, char **argv) {
     try {
@@ -440,6 +471,7 @@ int main(int argc, char **argv) {
         const auto policies = policy_cases(root, policy), traces = transport_cases(transport);
         acquisition_cases(self.string(), policy.parent_path());
         dflash_cache_cases();
+        inkling_acquisition();
         text_acquisition_cases(self.string(), policy.parent_path());
         std::cout << "Verified " << policies << " reference model-download cases, " << traces << " Hub HTTP traces, offline reuse and managed acquisition/placement/warmup\n";
         return 0;

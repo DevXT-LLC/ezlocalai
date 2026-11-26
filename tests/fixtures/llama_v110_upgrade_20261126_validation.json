@@ -1,0 +1,140 @@
+{
+  "date": "2026-11-26",
+  "llama_cpp": {
+    "tag": "v1.1.0",
+    "commit": "171527522610996f5f0acf12334e185156ca8f44",
+    "previous_commit": "b1b770d90d94cad9e9ea5b993bdbc383a522fb28",
+    "release_url": "https://github.com/ggml-org/llama.cpp/releases/tag/v1.1.0",
+    "managed_patches": {
+      "llama-conversation-cache-v110": "b88d19cfc480b2424b0591cf8b613768b6cb2ae442fa7a7f7c3c11173dac9814",
+      "llama-cache-restore-atomic-v110": "2be41dacb04a97f890833ac7c8811fd37316e4536c85f52c1350a39c2444e595",
+      "llama-cache-storage-v110": "ebf2512249180063a0987bfe44f848641c4f243a93f675274f47785897c80921",
+      "llama-mtp-resume-v110": "d8eaef3afd2d72978aea53bad4dee06ac257d98f8283dce48e56b4f7fc965177",
+      "llama-checkpoint-coverage-v110": "cf296278594da6c55e3addece956054c8c926e3f771190b6a91fbd8d4de87daa",
+      "llama-checkpoint-entry-window": "d540b689360ee9efe7c5a45d24f2d473b5798aeb5ef8792dee49adbf687ffd5d",
+      "llama-cache-retention-v110": "f580e03bd2489c11013780cdb28657a172973e0206f0b2b5eb4dbcbf16fb0f25",
+      "llama-cuda-q4-kv-fusion-v110": "6dbc2ee238cf63cb859ca8fa16459f08e5bf2168c7e7893d87a30057c3aa067b",
+      "llama-prefix-anchor-v110": "f0c132a3445f5aa93684bef624596a6ba0b4ad1e3b2cd5f9db58eec7ab66da89"
+    },
+    "patched_files_verified_against_build_checkout": 16,
+    "tool_update_from_fully_patched_v100": "passed",
+    "patch_lifecycle": "passed",
+    "focused_engine_ctest_passed": 4,
+    "native_tts_cli": "passed"
+  },
+  "compose": {
+    "profiles": 6,
+    "settings": 1947,
+    "passed": true
+  },
+  "package_staging": {
+    "base_image_id": "sha256:2928738bb5e60d6b57c179b550a24bf0844c0b07c0493c27aea232ed66d0a5a2",
+    "gpu_attached": false,
+    "network_enabled": false,
+    "native_package_target": "cuda_package",
+    "reference_checkout_used": false,
+    "release_image_id": null,
+    "rollback_tag_created": null,
+    "deployed": false,
+    "tests_passed": 76,
+    "tests_failed": 0,
+    "elapsed_seconds": 344.8
+  },
+  "developer_reference_checks": {
+    "reference_commit": "0f7e9f4",
+    "tests_passed": 5,
+    "request_cases": 6183,
+    "catalog_cases": 2216,
+    "speculative_cases": 2500,
+    "model_download_cases": 1068,
+    "hub_http_traces": 16,
+    "configuration_cases": {
+      "defaults": 147,
+      "gpu_tiers": 92,
+      "capabilities_and_model_names": 536
+    }
+  },
+  "engine_policy_checks": {
+    "atomic_cache_scenarios": 42,
+    "storage_scenarios": 18,
+    "mtp_carry_and_resume": 306,
+    "mtp_address_undefined_sanitizers": "passed",
+    "checkpoint_alignment": 364777,
+    "q4_kv_layout": 395
+  },
+  "cuda_compilation": {
+    "compiler": "NVCC 12.8.93 / GNU 13.3.0",
+    "architectures": [
+      "sm_86",
+      "sm_89",
+      "sm_120a"
+    ],
+    "translation_units": [
+      "fattn.cu",
+      "fattn-mma-f16-instance-f16-f16-ncols1_4-ncols2_8.cu"
+    ],
+    "q4_specialization_symbol": "present",
+    "device_execution": false
+  },
+  "inkling_2_mini_cpu": {
+    "repository": "unsloth/Inkling-2-Mini-GGUF",
+    "hub_revision": "8078d149286eec7193795413b9e0643da6d11fa1",
+    "matching_root_and_mainline_quant_hashes": 10,
+    "weights": "Inkling-2-Mini-UD-Q4_K_M.gguf",
+    "weights_sha256": "78fcedcf93c5d1bfe83e225513b71392bb52259be0eaa5f8899c856a2e5834ae",
+    "projector": "mmproj-F16.gguf",
+    "projector_sha256": "3bff75ffeb2d6e0371ba7bd42e30d26a7d98aea681fa44b03b5a20891cfa2c5f",
+    "context_tokens": 32768,
+    "kv": "q4_0",
+    "direct_engine_responses": {
+      "text": "Jupiter",
+      "vision": "Blue"
+    },
+    "native_worker_responses": {
+      "text": "Jupiter",
+      "vision": "Blue"
+    },
+    "native_worker_selected_cached_default_weights_and_projector": true
+  },
+  "qwen_mtp_cpu": {
+    "repository": "unsloth/Qwen3.5-0.8B-MTP-GGUF",
+    "weights": "Qwen3.5-0.8B-Q4_K_M.gguf",
+    "weights_sha256": "ac7c9d7a1b3e3695bb3bd50f8ceaa97f9c93e99ccc3d3d1a620301b6dd6d3d86",
+    "conversation_order": [
+      "A",
+      "B",
+      "A",
+      "B",
+      "A"
+    ],
+    "processed_prompt_tokens": [
+      393,
+      28,
+      4,
+      4,
+      4
+    ],
+    "draft_tokens_accepted": [
+      12,
+      12,
+      12,
+      12,
+      12
+    ],
+    "matching_greedy_content_on_each_cache_restore": true
+  },
+  "not_validated": [
+    "Physical GPU inference or CUDA performance and numerical comparisons",
+    "Real-model DFlash, DSpark, LFM3 realtime, or Qwen TTS audio",
+    "Full platform release images, native ARM or ROCm, router-backed deployment"
+  ],
+  "local_logs": [
+    "build/validation/native-package-tests.log",
+    "build/validation/native-engine-tests.log",
+    "build/validation/native-reference-tests.log",
+    "build/validation/managed-update.log",
+    "build/validation/llama-v110-cuda-build.log",
+    "build/validation/inkling-native-props.json",
+    "build/validation/mtp-cpu-engine.log"
+  ]
+}

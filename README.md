@@ -454,21 +454,17 @@ The native executable and CUDA compose configuration preload configured LLMs by 
 `LLAMA_CPP_START_TIMEOUT` defaults to `3600` in CUDA compose and governs engine startup after native acquisition. Hub requests have separate downloader timeouts.
 The default CUDA build targets compute capabilities 8.6, 8.9 and 12.0 and builds llama.cpp in parallel. llama.cpp, stable-diffusion.cpp and ACE-Step are built with `GGML_NATIVE=OFF`, a portable AVX2/FMA/F16C x86-64 baseline, so the image runs on any fleet CPU rather than only on CPUs like the build host. The GB10 image (`docker-compose-gb10.yml`) uses the same Dockerfile with `EZLOCALAI_PLATFORM=gb10`. Override `EZLOCALAI_LLAMA_CPP_CMAKE_ARGS` or `EZLOCALAI_LLAMA_CPP_JOBS` in `.env` for other architectures or job counts.
 
-The default engine revision is llama.cpp release v1.0.0 (`b1b770d90d94cad9e9ea5b993bdbc383a522fb28`). It is newer than the Python reference’s xllamacpp engine, `aa94f2086147cd4bfbcff818ce998dffce5fcb39`. The C++ management tool, platform Dockerfiles and Compose builds use the same default; `EZLOCALAI_LLAMA_CPP_REF` remains an explicit override. Remove or update an older explicit `.env` pin to adopt v1.0.0. To rebuild that revision in the CUDA image:
+The default engine revision is llama.cpp release v1.1.0 (`171527522610996f5f0acf12334e185156ca8f44`). It is newer than the Python reference’s xllamacpp engine, `aa94f2086147cd4bfbcff818ce998dffce5fcb39`. The C++ management tool, platform Dockerfiles and Compose builds use the same default; `EZLOCALAI_LLAMA_CPP_REF` remains an explicit override. Remove or update an older explicit `.env` pin to adopt v1.1.0. To rebuild that revision in the CUDA image:
 
 ```bash
-EZLOCALAI_LLAMA_CPP_REF=b1b770d90d94cad9e9ea5b993bdbc383a522fb28 docker compose -f docker-compose-cuda.yml build
+EZLOCALAI_LLAMA_CPP_REF=171527522610996f5f0acf12334e185156ca8f44 docker compose -f docker-compose-cuda.yml build
 ```
 
-v1.0.0 brings CUDA few-row quantized matrix multiplication, fused recurrent
-state snapshots, and scheduler/graph reuse that may help Qwen3.8-27B prefill and
-MTP verification. The managed patches preserve its GPU-resident MTP catch-up:
-only the bounded verification prefix and rewind tail are downloaded for cache
-resume, instead of the full target hidden matrix. Checkpoints share immutable
-owners, including their speculative state, and the cache budget counts shared
-backing once. Qwen's 262,144 context limit, Q4 KV default, model quantization,
-draft length and sampling settings remain unchanged. GPU throughput needs a
-controlled benchmark with the deployed model before claiming a speedup.
+v1.1.0 adds Inkling 2 Mini support and refactors llama-server's slot scheduler.
+The managed patches retain named prompt caching, bounded checkpoint storage,
+MTP resume and opt-in Ada Q4 KV fusion on the new engine. The upstream
+`draft-dflash` launch option still selects the appropriate driver for the
+loaded draft head.
 
 The engine parser also accepts v1's FP8 KV format (`f8_e4m3`). This change
 checks parsing only; native `KV_CACHE_TYPE` policy retains its existing accepted
@@ -823,6 +819,30 @@ Text, vision and embedding acquisition use C++ Hub listing and local-folder down
 
 `EMBEDDING_SERVER` delegates to another ezlocalai service with `EMBEDDING_SERVER_API_KEY`. The API preserves current dimensions/encoding fields on delegation, applies reference dimension trimming and normalization for local results, and keeps embedding work outside the LLM request queue. `embedding_reference` verifies 86 cases captured from executing the current reference schema and embedding methods. Real model output equivalence has not been established.
 
+### Inkling 2 Mini
+
+Set these values in `.env` to run Inkling 2 Mini for text and image chat:
+
+```dotenv
+DEFAULT_MODEL=unsloth/Inkling-2-Mini-GGUF
+QUANT_TYPE=UD-Q4_K_M
+LLM_MAX_TOKENS=32768
+```
+
+The native worker uses that quant and starting context when the corresponding
+environment variables are unset. Set them explicitly in Compose to override
+the profile's general defaults. The downloader uses the current root GGUF and
+`mmproj-F16.gguf` from Unsloth. For manual downloads, use assets from the
+current [Unsloth model repository](https://huggingface.co/unsloth/Inkling-2-Mini-GGUF).
+The default weights take about 16.6 GB plus the projector, KV cache and
+runtime buffers. The model supports longer contexts when memory permits.
+Refresh any cached Inkling weights from before Unsloth updated the root files
+to the mainline format.
+
+Inkling's request defaults are temperature 1.0, top-p 1.0, top-k disabled,
+min-p 0.0 and high reasoning effort. Requests can override sampling and
+`reasoning_effort`.
+
 ### Managed llama.cpp Checkout
 
 ezlocalai can manage a local llama.cpp checkout without vendoring it into git:
@@ -859,7 +879,7 @@ The output is key/value lines showing each model id, a matching top-level GGUF i
 To pin or update a specific upstream ref:
 
 ```bash
-EZLOCALAI_LLAMA_CPP_REF=b1b770d90d94cad9e9ea5b993bdbc383a522fb28 ./build/llama_cpp_tool update
+EZLOCALAI_LLAMA_CPP_REF=171527522610996f5f0acf12334e185156ca8f44 ./build/llama_cpp_tool update
 ./build/llama_cpp_tool build
 ```
 

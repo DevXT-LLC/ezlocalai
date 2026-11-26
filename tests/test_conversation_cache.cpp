@@ -1,6 +1,6 @@
 #include "ezlocalai/llm_request.hpp"
 #include "ezlocalai/process.hpp"
-#include "server-task.h"
+#include "server-slot-sched.h"
 #include <arpa/inet.h>
 #include <openssl/sha.h>
 #include <filesystem>
@@ -9,6 +9,11 @@
 #include <iostream>
 #include <sstream>
 #include <sys/socket.h>
+
+static auto find_best(const server_prompt_cache & cache, const server_prompt & prompt, const server_tokens & tokens) {
+    int lcp = 0;
+    return cache.find_better(prompt, tokens, {}, lcp);
+}
 
 static void check(bool value, const char *message) {
     if (!value) throw std::runtime_error(message);
@@ -24,19 +29,21 @@ static void policy() {
     auto *saved_a = cache.alloc(a, 768 * 1024, 0);
     check(saved_a != nullptr, "save conversation A");
     check(cache.alloc(b, 768 * 1024, 0) != nullptr, "save conversation B");
-    check(cache.alloc(c, 768 * 1024, 0, &a.tokens) != nullptr, "save C without evicting requested A");
-    auto best = cache.find_best(c, a.tokens);
+    server_task request;
+    request.tokens = a.tokens.clone();
+    check(cache.alloc(c, 768 * 1024, 0, &request) != nullptr, "save C without evicting requested A");
+    auto best = find_best(cache, c, a.tokens);
     check(best != cache.states.end() && &*best == saved_a, "requested cache survives eviction");
     check(cache.states.size() == 2 && cache.size() <= 2 * 1024 * 1024, "cache remains bounded");
     auto short_resident = prompt(0, 8);
-    check(cache.find_best(short_resident, a.tokens) == best, "a short resident prefix cannot hide a longer cache hit");
-    check(cache.find_best(a, a.tokens) == cache.states.end(), "resident continuation avoids a redundant restore");
+    check(find_best(cache, short_resident, a.tokens) == best, "a short resident prefix cannot hide a longer cache hit");
+    check(find_best(cache, a, a.tokens) == cache.states.end(), "resident continuation avoids a redundant restore");
     server_prompt_cache tight(1, 4096);
     check(tight.alloc(a, 400 * 1024, 200 * 1024) != nullptr, "cache includes target and draft state");
-    check(tight.alloc(b, 400 * 1024, 200 * 1024, &a.tokens) == nullptr, "skip outgoing snapshot when both states exceed budget");
-    check(tight.find_best(b, a.tokens) != tight.states.end(), "tight budget preserves requested state");
+    check(tight.alloc(b, 400 * 1024, 200 * 1024, &request) == nullptr, "skip outgoing snapshot when both states exceed budget");
+    check(find_best(tight, b, a.tokens) != tight.states.end(), "tight budget preserves requested state");
     check(tight.size() == 600 * 1024, "no transient cache-budget overrun");
-    check(tight.alloc(c, 2 * 1024 * 1024, 0, &a.tokens) == nullptr, "oversize snapshot is rejected");
+    check(tight.alloc(c, 2 * 1024 * 1024, 0, &request) == nullptr, "oversize snapshot is rejected");
     check(tight.states.size() == 1, "oversize snapshot does not disturb requested cache");
 
     const std::string base = R"({"messages":[{"role":"user","content":"unchanged"}],"temperature":0,)";

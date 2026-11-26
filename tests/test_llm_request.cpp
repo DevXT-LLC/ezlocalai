@@ -47,6 +47,7 @@ struct Fixture{
 };
 void managed(const fs::path &root){
     const std::vector<std::pair<std::string,std::string>> cases{
+        {"unsloth/Inkling-2-Mini-GGUF",R"({"messages":[{"role":"user","content":""}],"max_tokens":8192,"temperature":0.12,"top_p":0.13,"stream":false,"cache_prompt":true,"top_k":3,"min_p":0.0,"repeat_penalty":2,"chat_template_kwargs":{"reasoning_effort":"high"}})"},
         {"ordinary",R"({"messages":[{"role":"user","content":""}],"max_tokens":8192,"temperature":0.12,"top_p":0.13,"stream":false,"cache_prompt":true,"top_k":3,"repeat_penalty":2})"},
         {"other/MiniCPM5-2B-Q8_0.gguf",R"({"messages":[{"role":"user","content":""}],"max_tokens":8192,"temperature":1.0,"top_p":0.95,"stream":false,"cache_prompt":true,"top_k":3,"min_p":0.0,"repeat_penalty":2,"chat_template_kwargs":{"enable_thinking":false}})"},
         {"other/Qwen3.8-27B-TEE",R"({"messages":[{"role":"user","content":""}],"max_tokens":8192,"temperature":1.0,"top_p":0.95,"stream":false,"cache_prompt":true,"top_k":20,"min_p":0.0,"presence_penalty":0.0,"repeat_penalty":2,"chat_template_kwargs":{"enable_thinking":true,"reasoning_effort":"xhigh"}})"},
@@ -57,9 +58,22 @@ void managed(const fs::path &root){
         {ezl_env_config config{};ezl_load_config(&config);config.request_timeout_ms=5000;ezlocalai::NativeServer server(config,std::make_unique<ezlocalai::LlamaCppInferenceBackend>(config.default_model));
          const auto result=server.handle_request("POST","/v1/chat/completions","",R"({"messages":[{"role":"user","content":""}],"temperature":0.12,"top_p":0.13,"top_k":3,"repeat_penalty":2,"repetition_penalty":3,"model":"unknown-alias","stop":["custom"],"seed":7,"n":3,"user":"private-user","cache_prompt":false,"disable_fallback":true})");
          expect(result.status==200&&result.body.find("fixture")!=std::string::npos,"managed API response");expect(run.last_payload()==item.second,"managed profile payload "+item.first+": "+run.last_payload());
-         if(index==3){const auto instruct=server.handle_request("POST","/v1/chat/completions","",R"({"messages":[{"role":"user","content":""}],"reasoning":{"effort":"none"},"disable_fallback":true})");expect(instruct.status==200&&run.last_payload()==R"({"messages":[{"role":"user","content":""}],"max_tokens":8192,"temperature":0.7,"top_p":0.8,"stream":false,"cache_prompt":true,"top_k":20,"min_p":0.0,"presence_penalty":1.5,"repeat_penalty":1.0,"chat_template_kwargs":{"enable_thinking":false}})","effective reasoning changes profile and filters provider-only fields");}
+         if(item.first=="other/Qwen3.8-27B-TEE"){const auto instruct=server.handle_request("POST","/v1/chat/completions","",R"({"messages":[{"role":"user","content":""}],"reasoning":{"effort":"none"},"disable_fallback":true})");expect(instruct.status==200&&run.last_payload()==R"({"messages":[{"role":"user","content":""}],"max_tokens":8192,"temperature":0.7,"top_p":0.8,"stream":false,"cache_prompt":true,"top_k":20,"min_p":0.0,"presence_penalty":1.5,"repeat_penalty":1.0,"chat_template_kwargs":{"enable_thinking":false}})","effective reasoning changes profile and filters provider-only fields");}
         }run.reaped();
     }
+    environment();
+    Fixture inkling(root, "inkling-defaults");
+    unsetenv("LLM_MAX_TOKENS");
+    setenv("DEFAULT_MODEL", "unsloth/Inkling-2-Mini-GGUF", 1);
+    {
+        ezlocalai::LlamaCppInferenceBackend backend("unsloth/Inkling-2-Mini-GGUF");
+        expect(!backend.text_result(R"({"messages":[{"role":"user","content":""}],"reasoning_effort":"low"})", "", true).failure,
+               "Inkling request with defaults");
+        expect(inkling.last_payload() == R"({"messages":[{"role":"user","content":""}],"max_tokens":8192,"temperature":1.0,"top_p":1.0,"stream":false,"cache_prompt":true,"top_k":0,"min_p":0.0,"repeat_penalty":1.0,"chat_template_kwargs":{"reasoning_effort":"low"}})",
+               "Inkling sampling defaults and request reasoning effort");
+        expect(read(inkling.path("args")).find("32768") != std::string::npos, "Inkling native context default");
+    }
+    inkling.reaped();
     environment();Fixture run(root,"captured");setenv("LLM_MAX_OUTPUT_TOKENS","123",1);
     {ezlocalai::LlamaCppInferenceBackend backend("ordinary");expect(!backend.text_result(R"({"prompt":"one"})","",false).failure,"first captured-default request");expect(run.last_payload()==R"({"prompt":"one","max_tokens":123,"temperature":1.31,"top_p":0.95,"stream":false})","constructor sampling defaults");
      setenv("LLM_MAX_OUTPUT_TOKENS","456",1);backend.completion(R"({"prompt":"two"})");expect(run.last_payload().find("\"max_tokens\":123")!=std::string::npos,"loaded engine keeps constructor default");
