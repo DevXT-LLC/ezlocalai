@@ -35,7 +35,7 @@ size_t policy(const fs::path &reference,const fs::path &fixture){
         }
     }expect(count==6183,"all source request cases");return count;
 }
-void environment(){for(const auto &item:ezlocalai::environment_defaults)unsetenv(item.first.data());for(const auto *key:{"LLAMA_CPP_CONTEXT","LLAMA_CPP_SERVER_URL","LLAMA_CPP_MODEL_PATHS","LLAMA_CPP_EXTRA_ARGS","LLM_FIXTURE_INFERENCE_RESULT","LLM_FIXTURE_INFERENCE_FILE","LLM_MAX_OUTPUT_TOKENS"})unsetenv(key);setenv("EZLOCALAI_DOTENV_PATH","",1);setenv("EZLOCALAI_API_KEY","none",1);setenv("GPU_LAYERS","0",1);setenv("LLM_MAX_TOKENS","512",1);setenv("LLM_PROMPT_CACHE_MIB","0",1);setenv("SPECULATIVE_TYPE","none",1);setenv("LLAMA_CPP_SERVER_BIN",TEST_EMBEDDING_FIXTURE_BIN,1);setenv("LLAMA_CPP_START_TIMEOUT","2",1);}
+void environment(){for(const auto &item:ezlocalai::environment_defaults)unsetenv(item.first.data());for(const auto *key:{"LLAMA_CPP_CONTEXT","EZLOCALAI_COMPOSE_DEFAULT_LLM_MAX_TOKENS","LLAMA_CPP_SERVER_URL","LLAMA_CPP_MODEL_PATHS","LLAMA_CPP_EXTRA_ARGS","LLM_FIXTURE_INFERENCE_RESULT","LLM_FIXTURE_INFERENCE_FILE","LLM_MAX_OUTPUT_TOKENS"})unsetenv(key);setenv("EZLOCALAI_DOTENV_PATH","",1);setenv("EZLOCALAI_API_KEY","none",1);setenv("GPU_LAYERS","0",1);setenv("LLM_MAX_TOKENS","512",1);setenv("LLM_PROMPT_CACHE_MIB","0",1);setenv("SPECULATIVE_TYPE","none",1);setenv("LLAMA_CPP_SERVER_BIN",TEST_EMBEDDING_FIXTURE_BIN,1);setenv("LLAMA_CPP_START_TIMEOUT","2",1);}
 int available_port(){int fd=socket(AF_INET,SOCK_STREAM,0);sockaddr_in a{};a.sin_family=AF_INET;a.sin_addr.s_addr=htonl(INADDR_LOOPBACK);expect(!bind(fd,reinterpret_cast<sockaddr *>(&a),sizeof(a)),"bind");socklen_t size=sizeof(a);getsockname(fd,reinterpret_cast<sockaddr *>(&a),&size);close(fd);return ntohs(a.sin_port);}
 struct Fixture{
     fs::path root;int port;
@@ -71,9 +71,30 @@ void managed(const fs::path &root){
                "Inkling request with defaults");
         expect(inkling.last_payload() == R"({"messages":[{"role":"user","content":""}],"max_tokens":8192,"temperature":1.0,"top_p":1.0,"stream":false,"cache_prompt":true,"top_k":0,"min_p":0.0,"repeat_penalty":1.0,"chat_template_kwargs":{"reasoning_effort":"low"}})",
                "Inkling sampling defaults and request reasoning effort");
-        expect(read(inkling.path("args")).find("32768") != std::string::npos, "Inkling native context default");
+        expect(read(inkling.path("args")).find("262144") != std::string::npos, "Inkling native context default");
     }
     inkling.reaped();
+    const auto check_context = [&](const std::string &name, const char *model, const char *configured,
+                                   const char *compose_marker, const char *native_override, const char *expected) {
+        environment();
+        Fixture run(root, name);
+        setenv("LLM_MAX_TOKENS", configured, 1);
+        if (compose_marker) setenv("EZLOCALAI_COMPOSE_DEFAULT_LLM_MAX_TOKENS", compose_marker, 1);
+        if (native_override) setenv("LLAMA_CPP_CONTEXT", native_override, 1);
+        {
+            ezlocalai::LlamaCppInferenceBackend backend(model);
+            expect(!backend.text_result(R"({"messages":[]})", "", true).failure, name + " startup");
+            const auto args = read(run.path("args"));
+            expect(args.find(std::string("-c\n") + expected + '\n') != std::string::npos, name + " context: " + args);
+        }
+        run.reaped();
+    };
+    check_context("inkling-compose", "unsloth/Inkling-2-Mini-GGUF", "65536", "65536", nullptr, "262144");
+    check_context("inkling-small-profile", "unsloth/Inkling-2-Mini-GGUF", "8192", "8192", nullptr, "262144");
+    check_context("inkling-set-same-as-compose", "unsloth/Inkling-2-Mini-GGUF", "65536", "explicit:65536", nullptr, "65536");
+    check_context("inkling-context-from-env", "unsloth/Inkling-2-Mini-GGUF", "1048576", nullptr, nullptr, "1048576");
+    check_context("inkling-context-override", "unsloth/Inkling-2-Mini-GGUF", "65536", "65536", "524288", "524288");
+    check_context("other-model-in-compose", "ordinary", "65536", "65536", nullptr, "65536");
     environment();Fixture run(root,"captured");setenv("LLM_MAX_OUTPUT_TOKENS","123",1);
     {ezlocalai::LlamaCppInferenceBackend backend("ordinary");expect(!backend.text_result(R"({"prompt":"one"})","",false).failure,"first captured-default request");expect(run.last_payload()==R"({"prompt":"one","max_tokens":123,"temperature":1.31,"top_p":0.95,"stream":false})","constructor sampling defaults");
      setenv("LLM_MAX_OUTPUT_TOKENS","456",1);backend.completion(R"({"prompt":"two"})");expect(run.last_payload().find("\"max_tokens\":123")!=std::string::npos,"loaded engine keeps constructor default");

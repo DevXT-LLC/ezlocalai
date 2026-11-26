@@ -1,6 +1,7 @@
 #include "ezlocalai/llm_catalog.hpp"
 #include "ezlocalai/configuration.hpp"
 #include "ezlocalai/omni_model.hpp"
+#include "ezlocalai/inkling_model.hpp"
 #include <algorithm>
 #include <charconv>
 
@@ -37,8 +38,10 @@ std::string llm_speculative_backend(const std::string &model,const std::string &
     const bool mtp=qwen || name.find("-mtp")!=std::string::npos;
     auto backend=llm_unicode_lower(strip_config_value(setting));
     if(backend=="draft-dflash")backend="dflash2";else if(backend=="draft-mtp")backend="mtp";else if(backend=="off")backend="none";
+    else if(backend=="draft-dspark")backend="dspark";
     if(backend.empty() || backend=="auto")return mtp ? "mtp" : "none";
-    if(backend!="dflash2" && backend!="mtp" && backend!="none")throw LlmCatalogError("ValueError","LLM_SPECULATIVE_TYPE must be auto, dflash2, mtp or none");
+    if (backend == "dspark") return inkling2_mini_model(model) ? "dspark" : mtp ? "mtp" : "none";
+    if(backend!="dflash2" && backend!="mtp" && backend!="none")throw LlmCatalogError("ValueError","LLM_SPECULATIVE_TYPE must be auto, dflash2, dspark, mtp or none");
     if(backend=="dflash2" && !qwen)return mtp ? "mtp" : "none";
     if(backend=="mtp" && !mtp)return "none";
     return backend;

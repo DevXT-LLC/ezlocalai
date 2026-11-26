@@ -826,22 +826,40 @@ Set these values in `.env` to run Inkling 2 Mini for text and image chat:
 ```dotenv
 DEFAULT_MODEL=unsloth/Inkling-2-Mini-GGUF
 QUANT_TYPE=UD-Q4_K_M
-LLM_MAX_TOKENS=32768
 ```
 
-The native worker uses that quant and starting context when the corresponding
-environment variables are unset. Set them explicitly in Compose to override
-the profile's general defaults. The downloader uses the current root GGUF and
-`mmproj-F16.gguf` from Unsloth. For manual downloads, use assets from the
+The model defaults to a 262,144-token context in both native and Compose
+launches. Set `LLM_MAX_TOKENS` or `LLAMA_CPP_CONTEXT` for a different context.
+Inkling supports a window of up to 1,048,576 tokens, including generated tokens,
+and larger windows require more KV memory.
+[Model card](https://huggingface.co/thinkingmachines/Inkling-2-Mini)
+
+The native worker uses `UD-Q4_K_M` when the quant is unset. Set it in `.env` to
+override the Compose profile's general quant default. The downloader uses the
+current root GGUF and `mmproj-F16.gguf` from Unsloth. For manual downloads, use assets from the
 current [Unsloth model repository](https://huggingface.co/unsloth/Inkling-2-Mini-GGUF).
 The default weights take about 16.6 GB plus the projector, KV cache and
-runtime buffers. The model supports longer contexts when memory permits.
+runtime buffers.
 Refresh any cached Inkling weights from before Unsloth updated the root files
 to the mainline format.
 
 Inkling's request defaults are temperature 1.0, top-p 1.0, top-k disabled,
 min-p 0.0 and high reasoning effort. Requests can override sampling and
 `reasoning_effort`.
+
+Automatic KV precision uses `q4_0` for both keys and values. Set
+`KV_CACHE_TYPE` for a different precision. Inkling uses the standard attention
+path because its head dimensions differ from the CUDA Q4 fusion shape used in
+Qwen verification.
+
+Set `LLM_SPECULATIVE_TYPE=dspark` to enable Inkling's DSpark drafter. The worker
+uses the pinned Unsloth Q8_0 draft weights from the shared Hub cache, a
+five-token draft limit, a confidence threshold of zero, and llama.cpp's F16
+draft KV defaults. The `auto` mode keeps Inkling drafting disabled. Use
+`LLAMA_CPP_EXTRA_ARGS` to override the path or limit with `--spec-draft-model`
+or `--spec-draft-n-max`. For a smaller draft KV cache, pass
+`-ctkd q4_0 -ctvd q4_0` in the same setting.
+[llama.cpp v1.1.0 release](https://github.com/ggml-org/llama.cpp/releases/tag/v1.1.0)
 
 ### Managed llama.cpp Checkout
 

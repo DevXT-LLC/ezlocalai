@@ -45,6 +45,13 @@ int main(int argc, char **argv) {
                         throw std::runtime_error("native HTTP upload settings must pass through every profile");
                     ++comparisons;
                 }
+                const auto profile_context = profile.at("name") == "rpi" || profile.at("name") == "jetson"
+                    ? "8192" : "65536";
+                const auto context_override = scenario.at("input").value("LLM_MAX_TOKENS", std::string());
+                const auto context_marker = context_override.empty() ? profile_context : std::string("explicit:") + profile_context;
+                if (actual.at("EZLOCALAI_COMPOSE_DEFAULT_LLM_MAX_TOKENS") != context_marker)
+                    throw std::runtime_error("Compose must distinguish a profile context default from a user override");
+                ++comparisons;
                 for (const auto &[key, expected] : scenario.at("expected").items()) {
                     auto wanted = expected;
                     if (profile.contains("default_corrections") && profile.at("default_corrections").contains(key) &&

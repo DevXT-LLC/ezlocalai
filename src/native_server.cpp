@@ -10017,7 +10017,9 @@ LlmCatalog captured_llm_catalog(const std::string &default_model) {
     settings.speculative_type = ezl_getenv_fallback("LLM_SPECULATIVE_TYPE", "auto");
     settings.gpu_count = visible_cuda_device_count();
     auto catalog = parse_llm_catalog(settings);
-    const bool default_context = std::getenv("LLM_MAX_TOKENS") == nullptr;
+    const char *compose_default = std::getenv("EZLOCALAI_COMPOSE_DEFAULT_LLM_MAX_TOKENS");
+    const bool default_context = std::getenv("LLM_MAX_TOKENS") == nullptr
+        || (compose_default && settings.contexts == compose_default);
     const bool default_quant = std::getenv("QUANT_TYPE") == nullptr;
     // Preserve the existing explicit llama-server context extension. Added
     // instances inherit the originating CSV entry, not their appended index.
@@ -10606,22 +10608,36 @@ bool LlamaCppInferenceBackend::load_server_once_locked(Server *server, std::stri
             if (!extra_has_any({"--checkpoint-min-step", "-cms"}))
                 args.insert(args.end(), {"--checkpoint-min-step", std::to_string(llm_default_checkpoint_min_step)});
         }
+        const bool external_draft = speculative_type == "dflash2" || speculative_type == "dspark";
+        const char *spec_argument = "none";
         LlmDraftSettings draft_settings;
         std::string draft_path;
         if (speculative_type == "mtp") {
+            spec_argument = "draft-mtp";
             const auto length = llm_mtp_draft_length(llm_catalog_.configs.at(server->model_id).main_gpu,
                 llm_catalog_.source(server->model_id), speculative_environment);
             draft_settings = {length.first, llm_mtp_draft_probability(llm_catalog_.source(server->model_id), speculative_environment), length.second};
         } else if (speculative_type == "dflash2") {
+            spec_argument = "draft-dflash";
             draft_settings = llm_dflash_settings(llm_catalog_.configs.at(server->model_id).main_gpu, speculative_environment);
             draft_path = download_dflash_model(speculative_environment);
+        } else if (speculative_type == "dspark") {
+            spec_argument = "draft-dspark";
+            draft_settings = {inkling2_mini_draft_tokens, 0, 0};
+            if (!extra_has_any({"--spec-draft-model", "-md", "--model-draft"})) {
+                draft_path = download_hub_asset({"dspark", inkling2_mini_repository,
+                    inkling2_mini_draft_filename, inkling2_mini_draft_revision}, default_hub_cache_directory());
+            }
+        }
+        if (external_draft) {
             if (!extra_has_any({"--fit", "-fit"})) args.insert(args.end(), {"--fit", "off"});
-            if (!extra_has_any({"--spec-draft-model", "-md", "--model-draft"})) args.insert(args.end(), {"--spec-draft-model", draft_path});
+            if (!draft_path.empty() && !extra_has_any({"--spec-draft-model", "-md", "--model-draft"}))
+                args.insert(args.end(), {"--spec-draft-model", draft_path});
             if (visible_cuda_device_count() > 0 && !extra_has_any({"--spec-draft-device", "-devd", "--device-draft"}))
                 args.insert(args.end(), {"--spec-draft-device", llama_gpu_device_name(main_gpu)});
         }
         if (!server->embedding_mode && !extra_has_any({"--spec-type"}))
-            args.insert(args.end(), {"--spec-type", speculative_type == "mtp" ? "draft-mtp" : speculative_type == "dflash2" ? "draft-dflash" : "none"});
+            args.insert(args.end(), {"--spec-type", spec_argument});
         if (speculative_type != "none") {
             if (!extra_has_any({"--spec-draft-n-max"})) args.insert(args.end(), {"--spec-draft-n-max", std::to_string(draft_settings.n_max)});
             // The engine stores this as float. Preserve NaN and signed zero,
@@ -10639,9 +10655,9 @@ bool LlamaCppInferenceBackend::load_server_once_locked(Server *server, std::stri
             }
         }
         if (!server->embedding_mode) {
-            const auto placement = llm_tensor_parameters(source_tensor_split, visible_cuda_device_count(), speculative_type != "dflash2");
+            const auto placement = llm_tensor_parameters(source_tensor_split, visible_cuda_device_count(), !external_draft);
             if (placement.split_none && !extra_has_any({"--split-mode", "-sm"})) args.insert(args.end(), {"--split-mode", "none"});
-            if (!placement.fit && speculative_type != "dflash2" && !extra_has_any({"--fit", "-fit"})) args.insert(args.end(), {"--fit", "off"});
+            if (!placement.fit && !external_draft && !extra_has_any({"--fit", "-fit"})) args.insert(args.end(), {"--fit", "off"});
             const auto image_tokens = llm_image_min_tokens(llm_catalog_.source(server->model_id));
             if (!mmproj.empty() && image_tokens > 0 && !extra_has_any({"--image-min-tokens"}))
                 args.insert(args.end(), {"--image-min-tokens", std::to_string(image_tokens)});
@@ -10666,7 +10682,7 @@ bool LlamaCppInferenceBackend::load_server_once_locked(Server *server, std::stri
             args.push_back("-ngl");
             args.push_back(std::to_string(selected_gpu_layers));
         }
-        if (speculative_type == "dflash2" && !extra_has_any({"--spec-draft-ngl", "-ngld", "--gpu-layers-draft", "--n-gpu-layers-draft"}))
+        if (external_draft && !extra_has_any({"--spec-draft-ngl", "-ngld", "--gpu-layers-draft", "--n-gpu-layers-draft"}))
             args.insert(args.end(), {"--spec-draft-ngl", std::to_string(selected_gpu_layers)});
         if (server->embedding_mode) {
             selected_gpu_layers = embedding_attempts.at(startup_attempt);
