@@ -1,0 +1,38 @@
+{
+  "date": "2026-11-27",
+  "reason": "llama.cpp v1.1.0 requires a positive mtmd speaking speed. The worker's zero-initialized input set speed to zero.",
+  "llama_cpp_ref": "171527522610996f5f0acf12334e185156ca8f44",
+  "worker_source_sha256": "d0d0716bc1eea7fb1cb5f9df5e781efce1995db87ea49d8754f6b194c9e531d8",
+  "baseline_image": "sha256:bdf1d82950d2421b0bfc6f664d7acf8f1ee4fb281fef7620f3a98ccd3813017d",
+  "worker_canary_binary_sha256": "912b238aadf30e4ecffd815631643fe713ee8cb273c00dd90db03ffce41c8c7e",
+  "hardware": "NVIDIA GB10 on DevXTgx10",
+  "model_revision": "30954b7a9d99fad81064bf1dc35f881b029f9032",
+  "baseline": {
+    "http_status": 200,
+    "partial_pcm_bytes": 8,
+    "curl_exit": 18,
+    "routed_error": "error decoding response body"
+  },
+  "verification": {
+    "gpu_layers_requested": 999,
+    "streamed_http_checks": 2,
+    "buffered_http_checks": 1,
+    "short": {
+      "pcm_bytes": 130576,
+      "pcm_chunks": 11,
+      "pcm_sha256": "bc32d828b80f16bae1d71af7083ba0dd165b9bf37f7c57819c1b4c93b0034bca",
+      "terminator": true
+    },
+    "long": {
+      "pcm_bytes": 714264,
+      "pcm_chunks": 49,
+      "pcm_sha256": "97a9b2599e78358bdeefbe74b027a4f66a91af30cfa1598921f47c8a4191d6eb",
+      "terminator": true
+    },
+    "buffered": {
+      "wav_bytes": 130604,
+      "wav_seconds": 2.72,
+      "wav_sha256": "e5bbb7df75966962322390fce6f4ac06679a0b4f94cdd84747a9b0f6328e3ba9"
+    }
+  }
+}
