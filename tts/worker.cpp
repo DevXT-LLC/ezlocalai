@@ -65,7 +65,7 @@ static json synthesize(const json & request, const common_params & params,
     if (!wrapper.bitmap) throw std::runtime_error("cannot load reference audio");
     bitmap.reset(wrapper.bitmap);
 
-    mtmd_helper_gen_audio_inp inp{};
+    auto inp = mtmd_helper_gen_audio_inp_default();
     inp.seq_id = 0;
     inp.prompt = prompt.c_str();
     inp.prompt_len = prompt.size();

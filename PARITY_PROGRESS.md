@@ -2,6 +2,22 @@
 
 The goal remains behavior parity with ezlocalai within the scope below, with all first-party executable code implemented in C++. It is **not complete**.
 
+## Qwen TTS Delivery Defaults on llama.cpp v1.1.0 (2026-11-27)
+
+Initialized Qwen TTS input through libmtmd's defaults so the speaking speed
+is 1.0. llama.cpp v1.1.0 rejected the previous zero speed after opening the
+speech stream. DevXTgx10 sent only the eight-byte PCM header, and WorkerRouter
+reported a response body decoding error. The worker retains its explicit
+top-k, top-p and seed settings.
+
+On physical GB10, compiled the replacement TTS worker against the exact
+libmtmd shipped in image `sha256:bdf1d82950d2421b0bfc6f664d7acf8f1ee4fb281fef7620f3a98ccd3813017d`. Two streaming HTTP
+tests returned 130,576 and 714,264 PCM bytes with complete chunk framing.
+The buffered HTTP test returned 2.72 seconds of 24 kHz mono WAV. All three
+used the real Qwen model in an isolated native server. Production rollout
+and package test results are pending. Compact evidence is in
+`tests/fixtures/qwen_tts_delivery_defaults_20261127_validation.json`.
+
 ## Native Chat Tool Calls (2026-11-26)
 
 Fixed a worker request filter that discarded OpenAI tool declarations and
